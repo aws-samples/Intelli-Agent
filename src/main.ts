@@ -26,8 +26,8 @@ export class MyStack extends Stack {
     _ApiStack.addDependency(_VpcStack);
     _ApiStack.addDependency(_OsStack);
 
-    new CfnOutput(this,'VPC',{value:_VpcStack._vpc.vpcId});
-    new CfnOutput(this,'OpenSearch endpoint',{value:_OsStack._domainEndpoint});
+    new CfnOutput(this, 'VPC',{value:_VpcStack._vpc.vpcId});
+    new CfnOutput(this, 'OpenSearch Endpoint',{value:_OsStack._domainEndpoint});
 
   }
 }
@@ -41,6 +41,5 @@ const devEnv = {
 const app = new App();
 
 new MyStack(app, 'llm-bot-dev', { env: devEnv });
-// new MyStack(app, 'llm-bot-prod', { env: prodEnv });
 
 app.synth();

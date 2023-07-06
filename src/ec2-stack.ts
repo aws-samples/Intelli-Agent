@@ -50,7 +50,7 @@ export class Ec2Stack extends NestedStack {
           securityGroup: _securityGroup,
           vpcSubnets: {subnetType: ec2.SubnetType.PUBLIC,},
           // specify the key name for the instance for debugging purposes
-          keyName: 'us-east-1',
+          // keyName: 'us-east-1',
         });
 
         const asset = new Asset(this, 'UserdataAsset', { path: path.join(__dirname, '../script/ec2config.sh') });
