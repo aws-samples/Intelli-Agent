@@ -3,6 +3,7 @@ import { DockerImageFunction }  from 'aws-cdk-lib/aws-lambda';
 import { DockerImageCode, Architecture } from 'aws-cdk-lib/aws-lambda';
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
+import * as apigw from 'aws-cdk-lib/aws-apigateway';
 
 import { Construct } from 'constructs';
 import { join } from "path";
@@ -54,6 +55,29 @@ export class LLMApiStack extends NestedStack {
             resources: ['*'],
             }
         ))
+
+        // Define the API Gateway
+        const api = new apigw.RestApi(this, 'llmApi', {
+            restApiName: 'llmApi',
+            description: 'This service serves the LLM API.',
+            endpointConfiguration: {
+                types: [apigw.EndpointType.REGIONAL]
+            },
+            deployOptions: {
+                stageName: 'v1',
+                metricsEnabled: true,
+                loggingLevel: apigw.MethodLoggingLevel.INFO,
+                dataTraceEnabled: true,
+                tracingEnabled: true,
+            },
+        });
+
+        // Define the API Gateway Lambda Integration with proxy and no integration responses
+        const lambdaIntegration = new apigw.LambdaIntegration(lambdaExecutor, { proxy: true, });
+
+        // Define the API Gateway Method
+        const apiResource = api.root.addResource('llm');
+        apiResource.addMethod('POST', lambdaIntegration);
 
     }
 }
