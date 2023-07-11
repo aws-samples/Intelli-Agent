@@ -66,6 +66,7 @@ def main_entry(session_id:str, query_input:str, embedding_model_endpoint:str, ll
     return: answer(str)
     """
     sm_client = boto3.client("sagemaker-runtime")
+    aos_client = OpenSearchClient(aos_endpoint)
     
     # 1. get_session
     import time
@@ -77,13 +78,13 @@ def main_entry(session_id:str, query_input:str, embedding_model_endpoint:str, ll
     # 3. get AOS knn recall 
     start = time.time()
     query_embedding = get_vector_by_sm_endpoint(query_input, sm_client, embedding_model_endpoint)
-    opensearch_knn_respose = search_using_aos_knn(query_embedding[0], aos_endpoint, aos_index)
+    opensearch_knn_respose = aos_client.search(index_name=aos_index, query_type="knn", query_term=query_embedding[0])
     elpase_time = time.time() - start
     logger.info(f'runing time of opensearch_knn : {elpase_time}s seconds')
     
     # 4. get AOS invertedIndex recall
     start = time.time()
-    opensearch_query_response = aos_search(aos_endpoint, aos_index, "doc", query_input)
+    opensearch_query_response = aos_client.search(index_name=aos_index, query_type="basic", query_term=query_input)
     elpase_time = time.time() - start
     logger.info(f'runing time of opensearch_query : {elpase_time}s seconds')
 
@@ -93,7 +94,7 @@ def main_entry(session_id:str, query_input:str, embedding_model_endpoint:str, ll
     recall_knowledge = recall_knowledge[-2:]
 
     # 6. check is it keyword search
-    exactly_match_result = aos_search(aos_endpoint, aos_index, "doc", query_input, exactly_match=True)
+    exactly_match_result = aos_client.search(index_name=aos_index, query_type="exact", query_term=query_input)
 
     answer = None
     final_prompt = None
