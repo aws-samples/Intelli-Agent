@@ -7,7 +7,7 @@ import uuid
 from enum import Enum
 import langchain
 from aos_search import OpenSearchClient
-from llmbot_utils import combine_recalls, qa_knowledge_prompt_build, conversion_prompt_build
+from llmbot_utils import combine_recalls, build_conversation_prompt, build_knowledge_qa_prompt
 from ddb_utils import get_session, update_session
 from sagemaker_utils import get_vector_by_sm_endpoint, generate_answer
 
@@ -106,11 +106,11 @@ def main_entry(session_id:str, query_input:str, embedding_model_endpoint:str, ll
         final_prompt = ""
     elif recall_knowledge:
         query_type = QueryType.KnowledgeQuery
-        final_prompt = qa_knowledge_prompt_build(query_input, recall_knowledge, role_a=A_Role, role_b=B_Role)
+        final_prompt = build_knowledge_qa_prompt(query_input, recall_knowledge, role_a=A_Role, role_b=B_Role)
     else:
         query_type = QueryType.Conversation
         free_chat_coversions = [ item for item in session_history if item[2] == QueryType.Conversation ]
-        final_prompt = conversion_prompt_build(query_input, free_chat_coversions[-2:], role_a=A_Role, role_b=B_Role)
+        final_prompt = build_conversation_prompt(query_input, free_chat_coversions[-2:], role_a=A_Role, role_b=B_Role)
 
     json_obj = {
         "query": query_input,
