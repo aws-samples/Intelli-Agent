@@ -6,7 +6,7 @@ import time
 import uuid
 from enum import Enum
 import langchain
-from aos_search import search_using_aos_knn, aos_search
+from aos_search import OpenSearchClient
 from llmbot_utils import combine_recalls, qa_knowledge_prompt_build, conversion_prompt_build
 from ddb_utils import get_session, update_session
 from sagemaker_utils import get_vector_by_sm_endpoint, generate_answer
