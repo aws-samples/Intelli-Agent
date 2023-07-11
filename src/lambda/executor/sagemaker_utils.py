@@ -28,7 +28,7 @@ def get_vector_by_sm_endpoint(questions, sm_client, endpoint_name):
 
 def generate_answer(smr_client, llm_endpoint, question, context, stop=None, history=[], existing_answer=""):
     '''
-    generate answer by passing quesiton and parameters to LLM model
+    generate answer by passing question and parameters to LLM model
     :param llm_endpoint: model endpoint
     :param question: input question
     :param context: document got from opensearch
