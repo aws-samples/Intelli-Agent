@@ -123,7 +123,7 @@ def main_entry(session_id:str, query_input:str, embedding_model_endpoint:str, ll
 
     try:
         if final_prompt:
-            answer = generate_answer(sm_client, llm_model_endpoint, prompt=final_prompt, llm_name=llm_model_name, stop=STOP)
+            answer = generate_answer(sm_client, llm_model_endpoint, question=query_input, context= recall_knowledge, stop=STOP)
             
         json_obj['session_id'] = session_id
         json_obj['chatbot_answer'] = answer
