@@ -1,9 +1,15 @@
+from enum import Enum
 
 QA_SEP = "=>"
 AWS_Free_Chat_Prompt = """你是云服务AWS的智能客服机器人{B}，能够回答{A}的各种问题以及陪{A}聊天，如:{chat_history}\n\n{A}: {question}\n{B}: """
 AWS_Knowledge_QA_Prompt = """你是云服务AWS的智能客服机器人{B}，请严格根据反括号中的资料提取相关信息\n```\n{fewshot}\n```\n回答{A}的各种问题，比如:\n\n{A}: {question}\n{B}: """
 Fewshot_prefix_Q="问题"
 Fewshot_prefix_A="回答"
+
+class QueryType(Enum):
+    KeywordQuery   = "KeywordQuery"       #用户仅仅输入了一些关键词（2 token)
+    KnowledgeQuery = "KnowledgeQuery"     #用户输入的需要参考知识库有关来回答
+    Conversation   = "Conversation"       #用户输入的是跟知识库无关的问题
 
 def combine_recalls(opensearch_knn_respose, opensearch_query_response):
     '''
@@ -56,3 +62,35 @@ def build_knowledge_qa_prompt(post_text, qa_recalls, role_a, role_b):
 
     knowledge_qa_prompt = AWS_Knowledge_QA_Prompt.format(fewshot=fewshots_str, question=post_text, A=role_a, B=role_b)
     return knowledge_qa_prompt
+
+def build_final_prompt(query_input, session_history, exactly_match_result, recall_knowledge, role_a, role_b):
+    """
+    built final prompt for generating answer for user LLM.
+
+    :param query_input: user post text
+    :param session_history: conversation history from DynamoDB
+    :param exactly_match_result: exactly match result from OpenSearch
+    :param recall_knowledge: knowledge recall result from OpenSearch
+    :param role_a: role name, e.g. "用户"
+    :param role_b: role name, e.g. "AWSBot"
+
+    :return: (answer, final_prompt, query_type)
+    """
+  
+    answer = None
+    final_prompt = None
+    query_type = None
+
+    if exactly_match_result and recall_knowledge:
+        query_type = QueryType.KeywordQuery
+        answer = exactly_match_result[0]["doc"]
+        final_prompt = ""
+    elif recall_knowledge:
+        query_type = QueryType.KnowledgeQuery
+        final_prompt = build_knowledge_qa_prompt(query_input, recall_knowledge, role_a=role_a, role_b=role_b)
+    else:
+        query_type = QueryType.Conversation
+        free_chat_coversions = [item for item in session_history if item[2] == QueryType.Conversation]
+        final_prompt = build_conversation_prompt(query_input, free_chat_coversions[-2:], role_a=role_a, role_b=role_b)
+
+    return (answer, final_prompt, query_type)
