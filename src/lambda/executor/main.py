@@ -90,7 +90,7 @@ def main_entry(session_id:str, query_input:str, embedding_model_endpoint:str, ll
         recall_knowledge_str = concat_recall_knowledge(recall_knowledge[-2:])
         query_type = QueryType.KnowledgeQuery
     else:
-        recall_knowledge = ""
+        recall_knowledge_str = ""
         query_type = QueryType.Conversation
 
     # 5. generate answer using question and recall_knowledge
@@ -98,6 +98,7 @@ def main_entry(session_id:str, query_input:str, embedding_model_endpoint:str, ll
         answer = generate_answer(sm_client, llm_model_endpoint, question=query_input, context= recall_knowledge_str, stop=STOP)
     except Exception as e:
         logger.info(f'Exceptions: str({e})')
+        answer = ""
     
     # 6. update_session
     start = time.time()
