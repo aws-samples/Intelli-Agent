@@ -91,6 +91,7 @@ def main_entry(session_id:str, query_input:str, embedding_model_endpoint:str, ll
         query_type = QueryType.KnowledgeQuery
     else:
         recall_knowledge_str = ""
+        opensearch_query_response, opensearch_knn_respose, recall_knowledge = [], [], []
         query_type = QueryType.Conversation
 
     # 5. generate answer using question and recall_knowledge
