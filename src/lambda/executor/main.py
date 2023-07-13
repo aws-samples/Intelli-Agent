@@ -43,7 +43,7 @@ def handle_error(func):
 
     return wrapper
 
-def main_entry(session_id:str, query_input:str, embedding_model_endpoint:str, llm_model_endpoint:str, llm_model_name:str, aos_endpoint:str, aos_index:str, aos_knn_field:str, aos_result_num:int, enable_knowledge_qa:bool):
+def main_entry(session_id:str, query_input:str, embedding_model_endpoint:str, llm_model_endpoint:str, aos_endpoint:str, aos_index:str, aos_result_num:int, enable_knowledge_qa:str):
     """
     Entry point for the Lambda function.
 
@@ -65,11 +65,10 @@ def main_entry(session_id:str, query_input:str, embedding_model_endpoint:str, ll
     # 1. get_session
     import time
     start1 = time.time()
-    session_history = get_session(session_id=session_id, chat_session_table=chat_session_table)
     elpase_time = time.time() - start1
     logger.info(f'runing time of get_session : {elpase_time}s seconds')
 
-    if enable_knowledge_qa:
+    if enable_knowledge_qa == "True":
 
         # 2. get AOS knn recall 
         start = time.time()
@@ -114,10 +113,8 @@ def main_entry(session_id:str, query_input:str, embedding_model_endpoint:str, ll
         "query": query_input,
         "opensearch_doc":  opensearch_query_response,
         "opensearch_knn_doc":  opensearch_knn_respose,
-        "kendra_doc": [],
         "knowledges" : recall_knowledge,
-        "detect_query_type": str(query_type),
-        "LLM_input": query_input
+        "detect_query_type": str(query_type)
     }
 
     json_obj['session_id'] = session_id
@@ -134,9 +131,8 @@ def main_entry(session_id:str, query_input:str, embedding_model_endpoint:str, ll
 def lambda_handler(event, context):
 
     logger.info(f"event:{event}")
-    session_id = event['chat_name']
-    question = event['prompt']
-    model_name = event['model']
+    session_id = event['session_id']
+    question = event['query']
     knowledge_qa_flag = event['enable_knowledge_qa']
 
     # 获取当前时间戳
@@ -154,13 +150,9 @@ def lambda_handler(event, context):
     aos_index = os.environ.get("aos_index", "")
     aos_knn_field = os.environ.get("aos_knn_field", "")
     aos_result_num = int(os.environ.get("aos_results", ""))
-    llm_endpoint = None
-    if model_name in ['chatglm', 'bloomz', 'llama', 'alpaca']:
-        llm_endpoint = os.environ.get('llm_{}_endpoint'.format(model_name))
-    else:
-        llm_endpoint = os.environ.get('llm_default_endpoint')
 
-    logger.info(f'model_name : {model_name}')
+    llm_endpoint = os.environ.get('llm_default_endpoint')
+
     logger.info(f'llm_endpoint : {llm_endpoint}')
     logger.info(f'embedding_endpoint : {embedding_endpoint}')
     logger.info(f'aos_endpoint : {aos_endpoint}')
@@ -169,7 +161,7 @@ def lambda_handler(event, context):
     logger.info(f'aos_result_num : {aos_result_num}')
     
     main_entry_start = time.time()  # 或者使用 time.time_ns() 获取纳秒级别的时间戳
-    answer = main_entry(session_id, question, embedding_endpoint, llm_endpoint, model_name, aos_endpoint, aos_index, aos_knn_field, aos_result_num, knowledge_qa_flag)
+    answer = main_entry(session_id, question, embedding_endpoint, llm_endpoint, aos_endpoint, aos_index, aos_result_num, knowledge_qa_flag)
     main_entry_elpase = time.time() - main_entry_start  # 或者使用 time.time_ns() 获取纳秒级别的时间戳
     logger.info(f'runing time of main_entry : {main_entry_elpase}s seconds')
 
