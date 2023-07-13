@@ -6,7 +6,7 @@ import time
 import uuid
 import langchain
 from aos_search import OpenSearchClient
-from llmbot_utils import combine_recalls, build_final_prompt
+from llmbot_utils import QueryType, combine_recalls, concat_recall_knowledge
 from ddb_utils import get_session, update_session
 from sagemaker_utils import get_vector_by_sm_endpoint, generate_answer
 
@@ -43,7 +43,7 @@ def handle_error(func):
 
     return wrapper
 
-def main_entry(session_id:str, query_input:str, embedding_model_endpoint:str, llm_model_endpoint:str, llm_model_name:str, aos_endpoint:str, aos_index:str, aos_knn_field:str, aos_result_num:int):
+def main_entry(session_id:str, query_input:str, embedding_model_endpoint:str, llm_model_endpoint:str, aos_endpoint:str, aos_index:str, aos_result_num:int, enable_knowledge_qa:str):
     """
     Entry point for the Lambda function.
 
@@ -65,42 +65,43 @@ def main_entry(session_id:str, query_input:str, embedding_model_endpoint:str, ll
     # 1. get_session
     import time
     start1 = time.time()
-    session_history = get_session(session_id=session_id, chat_session_table=chat_session_table)
     elpase_time = time.time() - start1
     logger.info(f'runing time of get_session : {elpase_time}s seconds')
 
-    # 2. get AOS knn recall 
-    start = time.time()
-    query_embedding = get_vector_by_sm_endpoint(query_input, sm_client, embedding_model_endpoint)
-    opensearch_knn_respose = aos_client.search(index_name=aos_index, query_type="knn", query_term=query_embedding[0])
-    elpase_time = time.time() - start
-    logger.info(f'runing time of opensearch_knn : {elpase_time}s seconds')
-    
-    # 3. get AOS invertedIndex recall
-    start = time.time()
-    opensearch_query_response = aos_client.search(index_name=aos_index, query_type="basic", query_term=query_input)
-    elpase_time = time.time() - start
-    logger.info(f'runing time of opensearch_query : {elpase_time}s seconds')
+    if enable_knowledge_qa == "True":
 
-    # 4. combine these two opensearch_knn_respose and opensearch_query_response
-    recall_knowledge = combine_recalls(opensearch_knn_respose, opensearch_query_response)
-    recall_knowledge.sort(key=lambda x: x["score"])
-    recall_knowledge = recall_knowledge[-2:]
+        # 2. get AOS knn recall 
+        start = time.time()
+        query_embedding = get_vector_by_sm_endpoint(query_input, sm_client, embedding_model_endpoint)
+        opensearch_knn_respose = aos_client.search(index_name=aos_index, query_type="knn", query_term=query_embedding[0])
+        elpase_time = time.time() - start
+        logger.info(f'runing time of opensearch_knn : {elpase_time}s seconds')
+        
+        # 3. get AOS invertedIndex recall
+        start = time.time()
+        opensearch_query_response = aos_client.search(index_name=aos_index, query_type="basic", query_term=query_input)
+        elpase_time = time.time() - start
+        logger.info(f'runing time of opensearch_query : {elpase_time}s seconds')
 
-    # 5. check is it keyword search
-    exactly_match_result = aos_client.search(index_name=aos_index, query_type="exact", query_term=query_input)
+        # 4. combine these two opensearch_knn_respose and opensearch_query_response
+        recall_knowledge = combine_recalls(opensearch_knn_respose, opensearch_query_response)
+        recall_knowledge.sort(key=lambda x: x["score"])
 
-    # 6. build final prompt
-    answer, final_prompt, query_type = build_final_prompt(query_input, session_history, exactly_match_result, recall_knowledge, role_a=A_Role, role_b=B_Role)
+        recall_knowledge_str = concat_recall_knowledge(recall_knowledge[-2:])
+        query_type = QueryType.KnowledgeQuery
+    else:
+        recall_knowledge_str = ""
+        opensearch_query_response, opensearch_knn_respose, recall_knowledge = [], [], []
+        query_type = QueryType.Conversation
 
-    # 7. generate answer using final prompt
+    # 5. generate answer using question and recall_knowledge
     try:
-        if final_prompt:
-            answer = generate_answer(sm_client, llm_model_endpoint, question=query_input, context= recall_knowledge, stop=STOP)
+        answer = generate_answer(sm_client, llm_model_endpoint, question=query_input, context= recall_knowledge_str, stop=STOP)
     except Exception as e:
         logger.info(f'Exceptions: str({e})')
+        answer = ""
     
-    # 8. update_session
+    # 6. update_session
     start = time.time()
     update_session(session_id=session_id, chat_session_table=chat_session_table, 
                    question=query_input, answer=answer, intention=str(query_type))
@@ -109,15 +110,13 @@ def main_entry(session_id:str, query_input:str, embedding_model_endpoint:str, ll
     logger.info(f'runing time of update_session : {elpase_time}s seconds')
     logger.info(f'runing time of all  : {elpase_time1}s seconds')
 
-    # 9. log results
+    # 7. log results
     json_obj = {
         "query": query_input,
         "opensearch_doc":  opensearch_query_response,
         "opensearch_knn_doc":  opensearch_knn_respose,
-        "kendra_doc": [],
         "knowledges" : recall_knowledge,
-        "detect_query_type": str(query_type),
-        "LLM_input": final_prompt
+        "detect_query_type": str(query_type)
     }
 
     json_obj['session_id'] = session_id
@@ -134,9 +133,9 @@ def main_entry(session_id:str, query_input:str, embedding_model_endpoint:str, ll
 def lambda_handler(event, context):
 
     logger.info(f"event:{event}")
-    session_id = event['chat_name']
-    question = event['prompt']
-    model_name = event['model']
+    session_id = event['session_id']
+    question = event['query']
+    knowledge_qa_flag = event['enable_knowledge_qa']
 
     # 获取当前时间戳
     request_timestamp = time.time()  # 或者使用 time.time_ns() 获取纳秒级别的时间戳
@@ -153,13 +152,9 @@ def lambda_handler(event, context):
     aos_index = os.environ.get("aos_index", "")
     aos_knn_field = os.environ.get("aos_knn_field", "")
     aos_result_num = int(os.environ.get("aos_results", ""))
-    llm_endpoint = None
-    if model_name in ['chatglm', 'bloomz', 'llama', 'alpaca']:
-        llm_endpoint = os.environ.get('llm_{}_endpoint'.format(model_name))
-    else:
-        llm_endpoint = os.environ.get('llm_default_endpoint')
 
-    logger.info(f'model_name : {model_name}')
+    llm_endpoint = os.environ.get('llm_default_endpoint')
+
     logger.info(f'llm_endpoint : {llm_endpoint}')
     logger.info(f'embedding_endpoint : {embedding_endpoint}')
     logger.info(f'aos_endpoint : {aos_endpoint}')
@@ -168,7 +163,7 @@ def lambda_handler(event, context):
     logger.info(f'aos_result_num : {aos_result_num}')
     
     main_entry_start = time.time()  # 或者使用 time.time_ns() 获取纳秒级别的时间戳
-    answer = main_entry(session_id, question, embedding_endpoint, llm_endpoint, model_name, aos_endpoint, aos_index, aos_knn_field, aos_result_num)
+    answer = main_entry(session_id, question, embedding_endpoint, llm_endpoint, aos_endpoint, aos_index, aos_result_num, knowledge_qa_flag)
     main_entry_elpase = time.time() - main_entry_start  # 或者使用 time.time_ns() 获取纳秒级别的时间戳
     logger.info(f'runing time of main_entry : {main_entry_elpase}s seconds')
 

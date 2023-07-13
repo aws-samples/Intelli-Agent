@@ -27,6 +27,12 @@ def combine_recalls(opensearch_knn_respose, opensearch_query_response):
 
     return combine_result
 
+def concat_recall_knowledge(recall_knowledge_list):
+    """
+    Concat recall knowledge result from OpenSearch into a single string.
+    """
+    return "\n".join([item["doc"] for item in recall_knowledge_list])
+
 def build_conversation_prompt(post_text, conversations, role_a, role_b):
     """
     Build conversation prompt for LLM.
