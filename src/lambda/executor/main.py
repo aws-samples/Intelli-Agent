@@ -43,13 +43,14 @@ def handle_error(func):
 
     return wrapper
 
-def main_entry(session_id:str, query_input:str, embedding_model_endpoint:str, llm_model_endpoint:str, aos_endpoint:str, aos_index:str, aos_result_num:int, enable_knowledge_qa:str):
+def main_entry(session_id:str, query_input:str, embedding_model_endpoint:str, cross_model_endpoint:str, llm_model_endpoint:str, aos_endpoint:str, aos_index:str, aos_result_num:int, enable_knowledge_qa:str):
     """
     Entry point for the Lambda function.
 
     :param session_id: The ID of the session.
     :param query_input: The query input.
     :param embedding_model_endpoint: The endpoint of the embedding model.
+    :param cross_model_endpoint: The endpoint of the cross model.
     :param llm_model_endpoint: The endpoint of the language model.
     :param llm_model_name: The name of the language model.
     :param aos_endpoint: The endpoint of the AOS engine.
@@ -85,23 +86,31 @@ def main_entry(session_id:str, query_input:str, embedding_model_endpoint:str, ll
 
         # 4. combine these two opensearch_knn_respose and opensearch_query_response
         recall_knowledge = combine_recalls(opensearch_knn_respose, opensearch_query_response)
-        recall_knowledge.sort(key=lambda x: x["score"])
+        
+        # 5. Predict correlation score
+        recall_knowledge_cross = []
+        for knowledge in recall_knowledge:
+            score = get_cross_by_sm_endpoint(query_input, knowledge['doc'], sm_client, cross_model_endpoint)
+            if score > 0.8:
+                recall_knowledge_cross.append({'doc': knowledge['doc'], 'score': score})
 
-        recall_knowledge_str = concat_recall_knowledge(recall_knowledge[-2:])
+        recall_knowledge_cross.sort(key=lambda x: x["score"])
+
+        recall_knowledge_str = concat_recall_knowledge(recall_knowledge_cross[-2:])
         query_type = QueryType.KnowledgeQuery
     else:
         recall_knowledge_str = ""
         opensearch_query_response, opensearch_knn_respose, recall_knowledge = [], [], []
         query_type = QueryType.Conversation
 
-    # 5. generate answer using question and recall_knowledge
+    # 6. generate answer using question and recall_knowledge
     try:
         answer = generate_answer(sm_client, llm_model_endpoint, question=query_input, context= recall_knowledge_str, stop=STOP)
     except Exception as e:
         logger.info(f'Exceptions: str({e})')
         answer = ""
     
-    # 6. update_session
+    # 7. update_session
     start = time.time()
     update_session(session_id=session_id, chat_session_table=chat_session_table, 
                    question=query_input, answer=answer, intention=str(query_type))
@@ -110,7 +119,7 @@ def main_entry(session_id:str, query_input:str, embedding_model_endpoint:str, ll
     logger.info(f'runing time of update_session : {elpase_time}s seconds')
     logger.info(f'runing time of all  : {elpase_time1}s seconds')
 
-    # 7. log results
+    # 8. log results
     json_obj = {
         "query": query_input,
         "opensearch_doc":  opensearch_query_response,
@@ -148,6 +157,7 @@ def lambda_handler(event, context):
 
     # 1. 获取环境变量
     embedding_endpoint = os.environ.get("embedding_endpoint", "")
+    cross_endpoint = os.environ.get("cross_endpoint", "")
     aos_endpoint = os.environ.get("aos_endpoint", "")
     aos_index = os.environ.get("aos_index", "")
     aos_knn_field = os.environ.get("aos_knn_field", "")
@@ -157,13 +167,14 @@ def lambda_handler(event, context):
 
     logger.info(f'llm_endpoint : {llm_endpoint}')
     logger.info(f'embedding_endpoint : {embedding_endpoint}')
+    logger.info(f'cross_endpoint : {cross_endpoint}')
     logger.info(f'aos_endpoint : {aos_endpoint}')
     logger.info(f'aos_index : {aos_index}')
     logger.info(f'aos_knn_field : {aos_knn_field}')
     logger.info(f'aos_result_num : {aos_result_num}')
     
     main_entry_start = time.time()  # 或者使用 time.time_ns() 获取纳秒级别的时间戳
-    answer = main_entry(session_id, question, embedding_endpoint, llm_endpoint, aos_endpoint, aos_index, aos_result_num, knowledge_qa_flag)
+    answer = main_entry(session_id, question, embedding_endpoint, cross_endpoint, llm_endpoint, aos_endpoint, aos_index, aos_result_num, knowledge_qa_flag)
     main_entry_elpase = time.time() - main_entry_start  # 或者使用 time.time_ns() 获取纳秒级别的时间戳
     logger.info(f'runing time of main_entry : {main_entry_elpase}s seconds')
 

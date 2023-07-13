@@ -33,6 +33,7 @@ def concat_recall_knowledge(recall_knowledge_list):
     """
     return "\n".join([item["doc"] for item in recall_knowledge_list])
 
+
 def build_conversation_prompt(post_text, conversations, role_a, role_b):
     """
     Build conversation prompt for LLM.
