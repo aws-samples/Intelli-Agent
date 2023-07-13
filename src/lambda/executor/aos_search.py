@@ -42,7 +42,7 @@ class OpenSearchClient:
                 "size": size,
                 "query": {
                     "bool":{
-                        "must":[ {"term": { "doc_type": "Q" }} ],
+                        "must":[ {"term": { "doc_type": "Sentence" }} ],
                         "should": [ {"match": { field : query_term }} ]
                     }
                 },
@@ -113,13 +113,13 @@ class OpenSearchClient:
         aos_hits = response["hits"]["hits"]
         if query_type == "exact":
             for aos_hit in aos_hits:
-                doc = aos_hit['_source']['answer']
+                doc = aos_hit['_source']['doc']
                 doc_type = "A"
                 score = aos_hit["_score"]
                 results.append({'doc': doc, 'doc_type': doc_type, 'score': score})
         else:
             for aos_hit in aos_hits:
-                doc = f"{aos_hit['_source']['doc']}{QA_SEP}{aos_hit['_source']['answer']}"
+                doc = f"{aos_hit['_source']['doc']}"
                 doc_type = aos_hit["_source"]["doc_type"]
                 score = aos_hit["_score"]
                 results.append({'doc': doc, 'doc_type': doc_type, 'score': score})
