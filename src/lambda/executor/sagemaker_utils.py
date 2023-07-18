@@ -26,6 +26,24 @@ def get_vector_by_sm_endpoint(questions, sm_client, endpoint_name):
     embeddings = json_obj['sentence_embeddings']
     return embeddings
 
+def get_cross_by_sm_endpoint(question, doc, sm_client, endpoint_name):
+    '''
+    Get the embedding vector of input question.
+    '''
+    response_model = sm_client.invoke_endpoint(
+        EndpointName=endpoint_name,
+        Body=json.dumps(
+            {
+                "inputs": question,
+                "docs": doc
+            }
+        ),
+        ContentType="application/json",
+    )
+    json_str = response_model['Body'].read().decode('utf8')
+    json_obj = json.loads(json_str)
+    return json_obj['scores'][0][1]
+
 def generate_answer(smr_client, llm_endpoint, question, context, stop=None, history=[], existing_answer=""):
     '''
     generate answer by passing question and parameters to LLM model
