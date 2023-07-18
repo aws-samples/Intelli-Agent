@@ -8,7 +8,7 @@ import langchain
 from aos_search import OpenSearchClient
 from llmbot_utils import QueryType, combine_recalls, concat_recall_knowledge
 from ddb_utils import get_session, update_session
-from sagemaker_utils import get_vector_by_sm_endpoint, generate_answer
+from sagemaker_utils import get_vector_by_sm_endpoint, get_cross_by_sm_endpoint, generate_answer
 
 A_Role="用户"
 B_Role="AWSBot"
@@ -43,7 +43,7 @@ def handle_error(func):
 
     return wrapper
 
-def main_entry(session_id:str, query_input:str, embedding_model_endpoint:str, cross_model_endpoint:str, llm_model_endpoint:str, aos_endpoint:str, aos_index:str, aos_result_num:int, enable_knowledge_qa:str):
+def main_entry(session_id:str, query_input:str, embedding_model_endpoint:str, cross_model_endpoint:str, llm_model_endpoint:str, aos_endpoint:str, aos_index:str, aos_result_num:int, enable_knowledge_qa:bool):
     """
     Entry point for the Lambda function.
 
@@ -69,7 +69,7 @@ def main_entry(session_id:str, query_input:str, embedding_model_endpoint:str, cr
     elpase_time = time.time() - start1
     logger.info(f'runing time of get_session : {elpase_time}s seconds')
 
-    if enable_knowledge_qa == "True":
+    if enable_knowledge_qa:
 
         # 2. get AOS knn recall 
         start = time.time()
@@ -144,7 +144,7 @@ def lambda_handler(event, context):
     logger.info(f"event:{event}")
     session_id = event['session_id']
     question = event['query']
-    knowledge_qa_flag = event['enable_knowledge_qa']
+    knowledge_qa_flag = event.get('enable_knowledge_qa', False)
 
     # 获取当前时间戳
     request_timestamp = time.time()  # 或者使用 time.time_ns() 获取纳秒级别的时间戳

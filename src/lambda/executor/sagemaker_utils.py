@@ -23,7 +23,7 @@ def get_vector_by_sm_endpoint(questions, sm_client, endpoint_name):
     )
     json_str = response_model['Body'].read().decode('utf8')
     json_obj = json.loads(json_str)
-    embeddings = json_obj['scores'][0][1]
+    embeddings = json_obj['sentence_embeddings']
     return embeddings
 
 def get_cross_by_sm_endpoint(question, doc, sm_client, endpoint_name):
