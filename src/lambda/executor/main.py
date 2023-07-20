@@ -207,7 +207,7 @@ def lambda_handler(event, context):
         "choices": [
             {
                 "message": {
-                    "role": B_Role,
+                    "role": "assistant",
                     "content": answer
                 },
                 "finish_reason": "stop",
