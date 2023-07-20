@@ -131,6 +131,8 @@ def main_entry(session_id:str, query_input:str, embedding_model_endpoint:str, cr
         "opensearch_doc":  opensearch_query_response,
         "opensearch_knn_doc":  opensearch_knn_respose,
         "knowledges" : recall_knowledge,
+        "recall_knowledge_str": recall_knowledge_str,
+        "STOP": STOP,
         "detect_query_type": str(query_type)
     }
 
