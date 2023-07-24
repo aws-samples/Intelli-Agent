@@ -44,7 +44,7 @@ def get_cross_by_sm_endpoint(question, doc, sm_client, endpoint_name):
     json_obj = json.loads(json_str)
     return json_obj['scores'][0][1]
 
-def generate_answer(smr_client, llm_endpoint, question, context, stop=None, history=[], existing_answer=""):
+def generate_answer(smr_client, llm_endpoint, question, context, stop=None, history=[], parameters = {}, existing_answer=""):
     '''
     generate answer by passing question and parameters to LLM model
     :param llm_endpoint: model endpoint
