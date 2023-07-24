@@ -43,7 +43,9 @@ def handle_error(func):
 
     return wrapper
 
-def main_entry(session_id:str, query_input:str, embedding_model_endpoint:str, cross_model_endpoint:str, llm_model_endpoint:str, aos_endpoint:str, aos_index:str, aos_result_num:int, enable_knowledge_qa:bool):
+def main_entry(session_id:str, query_input:str, embedding_model_endpoint:str, cross_model_endpoint:str, 
+               llm_model_endpoint:str, aos_endpoint:str, aos_index:str, aos_result_num:int, 
+               enable_knowledge_qa:bool, temperature: float):
     """
     Entry point for the Lambda function.
 
@@ -57,6 +59,8 @@ def main_entry(session_id:str, query_input:str, embedding_model_endpoint:str, cr
     :param aos_index: The index of the AOS engine.
     :param aos_knn_field: The knn field of the AOS engine.
     :param aos_result_num: The number of results of the AOS engine.
+    :param enable_knowledge_qa: Whether to enable knowledge QA.
+    :param temperature: The temperature of the language model.
 
     return: answer(str)
     """
@@ -64,7 +68,6 @@ def main_entry(session_id:str, query_input:str, embedding_model_endpoint:str, cr
     aos_client = OpenSearchClient(aos_endpoint)
     
     # 1. get_session
-    import time
     start1 = time.time()
     elpase_time = time.time() - start1
     logger.info(f'runing time of get_session : {elpase_time}s seconds')
@@ -98,14 +101,17 @@ def main_entry(session_id:str, query_input:str, embedding_model_endpoint:str, cr
 
         recall_knowledge_str = concat_recall_knowledge(recall_knowledge_cross[-2:])
         query_type = QueryType.KnowledgeQuery
+        elpase_time = time.time() - start
+        logger.info(f'runing time of recall knowledge : {elpase_time}s seconds')
     else:
         recall_knowledge_str = ""
         opensearch_query_response, opensearch_knn_respose, recall_knowledge = [], [], []
         query_type = QueryType.Conversation
 
     # 6. generate answer using question and recall_knowledge
+    parameters = {'temperature': temperature}
     try:
-        answer = generate_answer(sm_client, llm_model_endpoint, question=query_input, context= recall_knowledge_str, stop=STOP)
+        answer = generate_answer(sm_client, llm_model_endpoint, question=query_input, context = recall_knowledge_str, stop=STOP, parameters=parameters)
     except Exception as e:
         logger.info(f'Exceptions: str({e})')
         answer = ""
@@ -125,6 +131,8 @@ def main_entry(session_id:str, query_input:str, embedding_model_endpoint:str, cr
         "opensearch_doc":  opensearch_query_response,
         "opensearch_knn_doc":  opensearch_knn_respose,
         "knowledges" : recall_knowledge,
+        "recall_knowledge_str": recall_knowledge_str,
+        "STOP": STOP,
         "detect_query_type": str(query_type)
     }
 
@@ -142,12 +150,17 @@ def main_entry(session_id:str, query_input:str, embedding_model_endpoint:str, cr
 def lambda_handler(event, context):
 
     logger.info(f"event:{event}")
-    session_id = event['session_id']
-    question = event['query']
-    knowledge_qa_flag = event.get('enable_knowledge_qa', False)
 
-    # 获取当前时间戳
-    request_timestamp = time.time()  # 或者使用 time.time_ns() 获取纳秒级别的时间戳
+    model = event['model']
+    message = event['messages'][0]
+    role, question = message['role'], message['content']
+    temperature = event['temperature']
+    request_timestamp = time.time() # 或者使用 time.time_ns() 获取纳秒级别的时间戳
+    session_id = f"{role}_{int(request_timestamp)}"
+
+    # knowledge_qa_flag is True if model == 'knowledge_qa' else False
+    knowledge_qa_flag = True if model == 'knowledge_qa' else False
+
     logger.info(f'request_timestamp :{request_timestamp}')
     logger.info(f"event:{event}")
     logger.info(f"context:{context}")
@@ -174,28 +187,31 @@ def lambda_handler(event, context):
     logger.info(f'aos_result_num : {aos_result_num}')
     
     main_entry_start = time.time()  # 或者使用 time.time_ns() 获取纳秒级别的时间戳
-    answer = main_entry(session_id, question, embedding_endpoint, cross_endpoint, llm_endpoint, aos_endpoint, aos_index, aos_result_num, knowledge_qa_flag)
+    answer = main_entry(session_id, question, embedding_endpoint, cross_endpoint, llm_endpoint, aos_endpoint, aos_index, aos_result_num, knowledge_qa_flag, temperature)
     main_entry_elpase = time.time() - main_entry_start  # 或者使用 time.time_ns() 获取纳秒级别的时间戳
     logger.info(f'runing time of main_entry : {main_entry_elpase}s seconds')
 
 
     # 2. return rusult
 
-    # Sample Response:
-    # "id": "设置一个uuid"
-    # "created": "1681891998"
-    # "model": "模型名称"
-    # "choices": [{"text": "模型回答的内容"}]
-
     return {
-        'statusCode': 200,
-        'headers': {'Content-Type': 'application/json'},
-        'body': [{
-            "id": str(uuid.uuid4()),
-            "created": request_timestamp,
-            "useTime": time.time() - request_timestamp,
-            "model": "main_brain",
-            "choices":[{"text": answer}]
-        }]
+        "id": session_id,
+        "object": "chat.completion",
+        "created": int(request_timestamp),
+        "model": model,
+        "usage": {
+            "prompt_tokens": 13,
+            "completion_tokens": 7,
+            "total_tokens": 20
+        },
+        "choices": [
+            {
+                "message": {
+                    "role": "assistant",
+                    "content": answer
+                },
+                "finish_reason": "stop",
+                "index": 0
+            }
+        ]
     }
-
