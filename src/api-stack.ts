@@ -4,6 +4,7 @@ import { DockerImageCode, Architecture } from 'aws-cdk-lib/aws-lambda';
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as apigw from 'aws-cdk-lib/aws-apigateway';
+import * as s3 from 'aws-cdk-lib/aws-s3';
 
 import { Construct } from 'constructs';
 import { join } from "path";
@@ -22,6 +23,12 @@ export class LLMApiStack extends NestedStack {
         const _vpc = props._vpc
         const _securityGroup = props._securityGroup
         const _domainEndpoint = props._domainEndpoint
+
+        // s3 bucket for storing documents
+        const _S3Bucket = new s3.Bucket(this, 'llm-bot-documents', {
+            bucketName: 'llm-bot-documents',
+            blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+        });
 
         const lambdaExecutor = new DockerImageFunction(this,
             "lambdaExecutor", {
@@ -42,20 +49,51 @@ export class LLMApiStack extends NestedStack {
         lambdaExecutor.addToRolePolicy(new iam.PolicyStatement({
         // principals: [new iam.AnyPrincipal()],
             actions: [ 
-            "sagemaker:InvokeEndpointAsync",
-            "sagemaker:InvokeEndpoint",
-            "s3:List*",
-            "s3:Put*",
-            "s3:Get*",
-            "es:*",
-            "dynamodb:*",
-            "secretsmanager:GetSecretValue",
+                "sagemaker:InvokeEndpointAsync",
+                "sagemaker:InvokeEndpoint",
+                "s3:List*",
+                "s3:Put*",
+                "s3:Get*",
+                "es:*",
+                "dynamodb:*",
+                "secretsmanager:GetSecretValue",
             ],
             effect: iam.Effect.ALLOW,
             resources: ['*'],
             }
         ))
 
+        const lambdaEmbedding = new DockerImageFunction(this,
+            "lambdaEmbedding", {
+            code: DockerImageCode.fromImageAsset(join(__dirname, "../src/lambda/embedding")),
+            timeout: Duration.minutes(15),
+            memorySize: 4096,
+            vpc: _vpc,
+            vpcSubnets: {
+                subnets: _vpc.privateSubnets,
+            },
+            securityGroups: [_securityGroup],
+            architecture: Architecture.X86_64,
+            environment: {
+                document_bucket: _S3Bucket.bucketName,
+                // embeddings_model_endpoint_name: TBD, wait for in sm-stack.ts
+                opensearch_cluster_domain: _domainEndpoint,
+            },
+          });
+
+          lambdaEmbedding.addToRolePolicy(new iam.PolicyStatement({
+            actions: [
+                "sagemaker:InvokeEndpointAsync",
+                "sagemaker:InvokeEndpoint",
+                "s3:List*",
+                "s3:Put*",
+                "s3:Get*",
+                "es:*",
+            ],
+            effect: iam.Effect.ALLOW,
+            resources: ['*'],
+            }
+        ))
         // Define the API Gateway
         const api = new apigw.RestApi(this, 'llmApi', {
             restApiName: 'llmApi',
@@ -73,11 +111,18 @@ export class LLMApiStack extends NestedStack {
         });
 
         // Define the API Gateway Lambda Integration with proxy and no integration responses
-        const lambdaIntegration = new apigw.LambdaIntegration(lambdaExecutor, { proxy: true, });
+        const lambdaExecutorIntegration = new apigw.LambdaIntegration(lambdaExecutor, { proxy: true, });
 
         // Define the API Gateway Method
-        const apiResource = api.root.addResource('llm');
-        apiResource.addMethod('POST', lambdaIntegration);
+        const apiResourceLLM = api.root.addResource('llm');
+        apiResourceLLM.addMethod('POST', lambdaExecutorIntegration);
+
+        // Define the API Gateway Lambda Integration with proxy and no integration responses
+        const lambdaEmbeddingIntegration = new apigw.LambdaIntegration(lambdaEmbedding, { proxy: true, });
+
+        // Define the API Gateway Method
+        const apiResourceEmbedding = api.root.addResource('embedding');
+        apiResourceEmbedding.addMethod('POST', lambdaEmbeddingIntegration);
 
     }
 }

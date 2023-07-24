@@ -1,0 +1,5 @@
+langchain==0.0.229
+opensearch-py==2.2.0
+faiss_cpu==1.7.4
+sagemaker==2.48.0
+numpy==1.19.5

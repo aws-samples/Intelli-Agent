@@ -17,7 +17,7 @@ class OpenSearchClient:
         Initialize OpenSearch client using OpenSearch Endpoint
         """
         self.client = OpenSearch(
-            hosts=[{'host': host, 'port': 443}],
+            hosts = [{'host': host.replace("https://", ""), 'port': 443}],
             http_auth=awsauth,
             use_ssl=True,
             verify_certs=True,

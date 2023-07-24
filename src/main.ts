@@ -9,7 +9,7 @@ import { LLMApiStack } from './api-stack';
 import * as dotenv from "dotenv";
 dotenv.config();
 
-export class MyStack extends Stack {
+export class RootStack extends Stack {
   constructor(scope: Construct, id: string, props: StackProps = {}) {
     super(scope, id, props);
 
@@ -28,7 +28,8 @@ export class MyStack extends Stack {
 
     new CfnOutput(this, 'VPC',{value:_VpcStack._vpc.vpcId});
     new CfnOutput(this, 'OpenSearch Endpoint',{value:_OsStack._domainEndpoint});
-
+    // contatenate the outputs from the ec2 stack with port 8081 and prefix _dashboards
+    new CfnOutput(this, 'OpenSearch Dashboard',{value:`${_Ec2Stack._publicIP}:8081/_dashboards`});
   }
 }
 
@@ -40,6 +41,6 @@ const devEnv = {
 
 const app = new App();
 
-new MyStack(app, 'llm-bot-dev', { env: devEnv });
+new RootStack(app, 'llm-bot-dev', { env: devEnv });
 
 app.synth();
