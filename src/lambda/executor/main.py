@@ -5,10 +5,10 @@ import boto3
 import time
 import uuid
 import langchain
-from aos_search import OpenSearchClient
+from aos_utils import OpenSearchClient
 from llmbot_utils import QueryType, combine_recalls, concat_recall_knowledge
 from ddb_utils import get_session, update_session
-from sagemaker_utils import get_vector_by_sm_endpoint, get_cross_by_sm_endpoint, generate_answer
+from sm_utils import get_vector_by_sm_endpoint, get_cross_by_sm_endpoint, generate_answer
 
 A_Role="用户"
 B_Role="AWSBot"
@@ -136,7 +136,6 @@ def main_entry(session_id:str, query_input:str, embedding_model_endpoint:str, cr
     logger.info(json_obj_str)
 
     return answer
-
 
 @handle_error
 def lambda_handler(event, context):
