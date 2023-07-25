@@ -43,7 +43,7 @@ def handle_error(func):
 
     return wrapper
 
-def main_entry(session_id:str, query_input:str, embedding_model_endpoint:str, cross_model_endpoint:str, 
+def main_entry(session_id:str, query_input:str, history:list, embedding_model_endpoint:str, cross_model_endpoint:str, 
                llm_model_endpoint:str, aos_endpoint:str, aos_index:str, aos_result_num:int, 
                enable_knowledge_qa:bool, temperature: float):
     """
@@ -73,17 +73,20 @@ def main_entry(session_id:str, query_input:str, embedding_model_endpoint:str, cr
     logger.info(f'runing time of get_session : {elpase_time}s seconds')
 
     if enable_knowledge_qa:
-
+        #query_knowledge = query_input
+        query_knowledge = ''.join([query_input] + [row[0] for row in history][::-1])
+        
         # 2. get AOS knn recall 
         start = time.time()
-        query_embedding = get_vector_by_sm_endpoint(query_input, sm_client, embedding_model_endpoint)
+        
+        query_embedding = get_vector_by_sm_endpoint(query_knowledge, sm_client, embedding_model_endpoint)
         opensearch_knn_respose = aos_client.search(index_name=aos_index, query_type="knn", query_term=query_embedding[0])
         elpase_time = time.time() - start
         logger.info(f'runing time of opensearch_knn : {elpase_time}s seconds')
         
         # 3. get AOS invertedIndex recall
         start = time.time()
-        opensearch_query_response = aos_client.search(index_name=aos_index, query_type="basic", query_term=query_input)
+        opensearch_query_response = aos_client.search(index_name=aos_index, query_type="basic", query_term=query_knowledge)
         elpase_time = time.time() - start
         logger.info(f'runing time of opensearch_query : {elpase_time}s seconds')
 
@@ -93,13 +96,14 @@ def main_entry(session_id:str, query_input:str, embedding_model_endpoint:str, cr
         # 5. Predict correlation score
         recall_knowledge_cross = []
         for knowledge in recall_knowledge:
-            score = get_cross_by_sm_endpoint(query_input, knowledge['doc'], sm_client, cross_model_endpoint)
+            score = get_cross_by_sm_endpoint(query_knowledge, knowledge['doc'], sm_client, cross_model_endpoint)
+            logger.info(json.dumps({"doc": knowledge['doc'], "score": score}, ensure_ascii=False))
             if score > 0.8:
                 recall_knowledge_cross.append({'doc': knowledge['doc'], 'score': score})
 
-        recall_knowledge_cross.sort(key=lambda x: x["score"])
+        recall_knowledge_cross.sort(key=lambda x: x["score"], reverse=True)
 
-        recall_knowledge_str = concat_recall_knowledge(recall_knowledge_cross[-2:])
+        recall_knowledge_str = concat_recall_knowledge(recall_knowledge_cross[:2])
         query_type = QueryType.KnowledgeQuery
         elpase_time = time.time() - start
         logger.info(f'runing time of recall knowledge : {elpase_time}s seconds')
@@ -111,7 +115,7 @@ def main_entry(session_id:str, query_input:str, embedding_model_endpoint:str, cr
     # 6. generate answer using question and recall_knowledge
     parameters = {'temperature': temperature}
     try:
-        answer = generate_answer(sm_client, llm_model_endpoint, question=query_input, context = recall_knowledge_str, stop=STOP, parameters=parameters)
+        answer = generate_answer(sm_client, llm_model_endpoint, question=query_input, context = recall_knowledge_str, history=history, stop=STOP, parameters=parameters)
     except Exception as e:
         logger.info(f'Exceptions: str({e})')
         answer = ""
@@ -128,10 +132,8 @@ def main_entry(session_id:str, query_input:str, embedding_model_endpoint:str, cr
     # 8. log results
     json_obj = {
         "query": query_input,
-        "opensearch_doc":  opensearch_query_response,
-        "opensearch_knn_doc":  opensearch_knn_respose,
-        "knowledges" : recall_knowledge,
-        "recall_knowledge_str": recall_knowledge_str,
+        "recall_knowledge" : recall_knowledge,
+        "recall_knowledge_cross_str": recall_knowledge_str,
         "STOP": STOP,
         "detect_query_type": str(query_type)
     }
@@ -151,8 +153,27 @@ def lambda_handler(event, context):
     logger.info(f"event:{event}")
 
     model = event['model']
-    message = event['messages'][0]
-    role, question = message['role'], message['content']
+    
+    messages = event['messages']
+    human = []
+    assistant = []
+    history = []
+    for line in messages:
+        if line['role'] in ("system", "user"):
+            if len(assistant):
+                history.append('\n'.join(assistant))
+                assistant = []
+            human.append(line['content'])
+        else:
+            if len(human):
+                history.append('\n'.join(human))
+                human = []
+            assistant.append(line['content'])
+    history = [[history[i], history[i+1]] for i in range(0, len(history), 2)]
+    question = human[0]
+    
+    role = "user"
+    
     temperature = event['temperature']
     request_timestamp = time.time() # 或者使用 time.time_ns() 获取纳秒级别的时间戳
     session_id = f"{role}_{int(request_timestamp)}"
@@ -186,7 +207,7 @@ def lambda_handler(event, context):
     logger.info(f'aos_result_num : {aos_result_num}')
     
     main_entry_start = time.time()  # 或者使用 time.time_ns() 获取纳秒级别的时间戳
-    answer = main_entry(session_id, question, embedding_endpoint, cross_endpoint, llm_endpoint, aos_endpoint, aos_index, aos_result_num, knowledge_qa_flag, temperature)
+    answer = main_entry(session_id, question, history, embedding_endpoint, cross_endpoint, llm_endpoint, aos_endpoint, aos_index, aos_result_num, knowledge_qa_flag, temperature)
     main_entry_elpase = time.time() - main_entry_start  # 或者使用 time.time_ns() 获取纳秒级别的时间戳
     logger.info(f'runing time of main_entry : {main_entry_elpase}s seconds')
 

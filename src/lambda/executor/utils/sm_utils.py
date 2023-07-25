@@ -60,7 +60,7 @@ def generate_answer(smr_client, llm_endpoint, question, context, stop=None, hist
         {
             "inputs": question,
             "history" : history,
-            "parameters": {},
+            "parameters": parameters,
             "context": context
         }
         ),

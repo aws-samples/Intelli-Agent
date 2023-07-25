@@ -5,6 +5,7 @@ import { VpcStack } from './vpc-stack';
 import { Ec2Stack } from './ec2-stack';
 import { OpenSearchStack } from './os-stack';
 import { LLMApiStack } from './api-stack';
+import { DynamoDBStack } from './ddb-stack';
 
 import * as dotenv from "dotenv";
 dotenv.config();
@@ -25,6 +26,10 @@ export class RootStack extends Stack {
     const _ApiStack = new LLMApiStack(this, 'api-stack', {_vpc:_VpcStack._vpc, _securityGroup:_VpcStack._securityGroup, _domainEndpoint:_OsStack._domainEndpoint, env:process.env});
     _ApiStack.addDependency(_VpcStack);
     _ApiStack.addDependency(_OsStack);
+
+    const _DynamoDBStack = new DynamoDBStack(this, 'ddb-stack', {_vpc:_VpcStack._vpc, _securityGroup:_VpcStack._securityGroup, _domainEndpoint:_OsStack._domainEndpoint, env:process.env});
+    _DynamoDBStack.addDependency(_VpcStack);
+    _DynamoDBStack.addDependency(_OsStack);
 
     new CfnOutput(this, 'VPC',{value:_VpcStack._vpc.vpcId});
     new CfnOutput(this, 'OpenSearch Endpoint',{value:_OsStack._domainEndpoint});
