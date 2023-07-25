@@ -97,12 +97,13 @@ def main_entry(session_id:str, query_input:str, history:list, embedding_model_en
         recall_knowledge_cross = []
         for knowledge in recall_knowledge:
             score = get_cross_by_sm_endpoint(query_knowledge, knowledge['doc'], sm_client, cross_model_endpoint)
+            logger.info(json.dumps({"doc": knowledge['doc'], "score": score}, ensure_ascii=False))
             if score > 0.8:
                 recall_knowledge_cross.append({'doc': knowledge['doc'], 'score': score})
 
-        recall_knowledge_cross.sort(key=lambda x: x["score"])
+        recall_knowledge_cross.sort(key=lambda x: x["score"], reverse=True)
 
-        recall_knowledge_str = concat_recall_knowledge(recall_knowledge_cross[-2:])
+        recall_knowledge_str = concat_recall_knowledge(recall_knowledge_cross[:2])
         query_type = QueryType.KnowledgeQuery
         elpase_time = time.time() - start
         logger.info(f'runing time of recall knowledge : {elpase_time}s seconds')
@@ -131,10 +132,8 @@ def main_entry(session_id:str, query_input:str, history:list, embedding_model_en
     # 8. log results
     json_obj = {
         "query": query_input,
-        "opensearch_doc":  opensearch_query_response,
-        "opensearch_knn_doc":  opensearch_knn_respose,
-        "knowledges" : recall_knowledge,
-        "recall_knowledge_str": recall_knowledge_str,
+        "recall_knowledge" : recall_knowledge,
+        "recall_knowledge_cross_str": recall_knowledge_str,
         "STOP": STOP,
         "detect_query_type": str(query_type)
     }
