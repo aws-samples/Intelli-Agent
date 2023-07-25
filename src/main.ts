@@ -27,7 +27,9 @@ export class RootStack extends Stack {
     _ApiStack.addDependency(_VpcStack);
     _ApiStack.addDependency(_OsStack);
 
-    const _DynamoDBStack = new DynamoDBStack(this, 'ddb-stack', {_vpc:_VpcStack._vpc, _securityGroup:_VpcStack._securityGroup});
+    const _DynamoDBStack = new DynamoDBStack(this, 'ddb-stack', {_vpc:_VpcStack._vpc, _securityGroup:_VpcStack._securityGroup, _domainEndpoint:_OsStack._domainEndpoint, env:process.env});
+    _DynamoDBStack.addDependency(_VpcStack);
+    _DynamoDBStack.addDependency(_OsStack);
 
     new CfnOutput(this, 'VPC',{value:_VpcStack._vpc.vpcId});
     new CfnOutput(this, 'OpenSearch Endpoint',{value:_OsStack._domainEndpoint});

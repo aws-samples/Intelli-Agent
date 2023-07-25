@@ -30,7 +30,7 @@ def lambda_handler(event, context):
         
     
 def post_handler(event, ticket_table):
-    body = json.loads(event['body'])
+    body = event['body']
     ticket_id = str(uuid.uuid1())
     required_fields = ['question_content', 'question_answer', 'answer_rating']
     

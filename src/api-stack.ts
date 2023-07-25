@@ -1,4 +1,4 @@
-import { NestedStack, StackProps, Duration } from 'aws-cdk-lib';
+import { NestedStack, StackProps, Duration, Aws } from 'aws-cdk-lib';
 import { DockerImageFunction }  from 'aws-cdk-lib/aws-lambda';
 import { DockerImageCode, Architecture } from 'aws-cdk-lib/aws-lambda';
 import * as iam from "aws-cdk-lib/aws-iam";
@@ -26,7 +26,7 @@ export class LLMApiStack extends NestedStack {
 
         // s3 bucket for storing documents
         const _S3Bucket = new s3.Bucket(this, 'llm-bot-documents', {
-            bucketName: 'llm-bot-documents',
+            bucketName: `llm-bot-documents-${Aws.ACCOUNT_ID}-${Aws.REGION}`,
             blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
         });
 
