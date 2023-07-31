@@ -1,6 +1,6 @@
 ## LLM Bot
 
-![image](https://github.com/aws-samples/llm-bot/assets/23544182/62a4103e-1798-48b7-99f6-fc47d6bcd1e0)
+![image](https://github.com/aws-samples/llm-bot/assets/23544182/68a37d9b-e3bf-4737-9c76-7632c3f5d3ef)
 
 ## Security
 
