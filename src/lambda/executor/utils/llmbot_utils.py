@@ -33,6 +33,35 @@ def concat_recall_knowledge(recall_knowledge_list):
     """
     return "\n".join([item["doc"] for item in recall_knowledge_list])
 
+def process_input_messages(messages):
+    # 1. If two messages are from the same role, we need to merge them into one message.
+    # Make sure new_messages follows this order: [user, assistant, user, assistant, ...]
+    new_messages = []
+    previous_role = None
+    for message in messages:
+        if message['role'] not in ("user", "assistant"):
+            continue
+
+        if len(new_messages) == 0:
+            if message['role'] == 'user':
+                new_messages.append(message['content'])
+        else:
+            if message['role'] == previous_role:
+                new_messages[-1] += f"\n{message['content']}"
+            else:
+                new_messages.append(message['content'])
+        previous_role = message['role']
+
+    # 2. Generate history and question
+    if len(new_messages) % 2 == 0:
+        print("The number of messages is even, which is not expected.")
+        history = [[new_messages[i], new_messages[i+1]] for i in range(0, len(new_messages)-2, 2)]
+        question = new_messages[-2]
+    else:
+        history = [[new_messages[i], new_messages[i+1]] for i in range(0, len(new_messages)-1, 2)]
+        question = new_messages[-1]
+
+    return history, question
 
 def build_conversation_prompt(post_text, conversations, role_a, role_b):
     """

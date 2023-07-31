@@ -6,13 +6,9 @@ import time
 import uuid
 import langchain
 from aos_utils import OpenSearchClient
-from llmbot_utils import QueryType, combine_recalls, concat_recall_knowledge
+from llmbot_utils import QueryType, combine_recalls, concat_recall_knowledge, process_input_messages
 from ddb_utils import get_session, update_session
 from sm_utils import get_vector_by_sm_endpoint, get_cross_by_sm_endpoint, generate_answer
-
-A_Role="用户"
-B_Role="AWSBot"
-STOP=[f"\n{A_Role}", f"\n{B_Role}"]
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -115,7 +111,7 @@ def main_entry(session_id:str, query_input:str, history:list, embedding_model_en
     # 6. generate answer using question and recall_knowledge
     parameters = {'temperature': temperature}
     try:
-        answer = generate_answer(sm_client, llm_model_endpoint, question=query_input, context = recall_knowledge_str, history=history, stop=STOP, parameters=parameters)
+        answer = generate_answer(sm_client, llm_model_endpoint, question=query_input, context = recall_knowledge_str, history=history, stop=None, parameters=parameters)
     except Exception as e:
         logger.info(f'Exceptions: str({e})')
         answer = ""
@@ -134,7 +130,6 @@ def main_entry(session_id:str, query_input:str, history:list, embedding_model_en
         "query": query_input,
         "recall_knowledge" : recall_knowledge,
         "recall_knowledge_cross_str": recall_knowledge_str,
-        "STOP": STOP,
         "detect_query_type": str(query_type)
     }
 
@@ -153,39 +148,21 @@ def lambda_handler(event, context):
     logger.info(f"event:{event}")
 
     model = event['model']
-    
     messages = event['messages']
-    human = []
-    assistant = []
-    history = []
-    for line in messages:
-        if line['role'] in ("system", "user"):
-            if len(assistant):
-                history.append('\n'.join(assistant))
-                assistant = []
-            human.append(line['content'])
-        else:
-            if len(human):
-                history.append('\n'.join(human))
-                human = []
-            assistant.append(line['content'])
-    history = [[history[i], history[i+1]] for i in range(0, len(history), 2)]
-    question = human[0]
-    
-    role = "user"
-    
     temperature = event['temperature']
+
+    history, question = process_input_messages(messages)
+    role = "user"
     request_timestamp = time.time() # 或者使用 time.time_ns() 获取纳秒级别的时间戳
     session_id = f"{role}_{int(request_timestamp)}"
 
     # knowledge_qa_flag is True if model == 'knowledge_qa' else False
     knowledge_qa_flag = True if model == 'knowledge_qa' else False
 
+    # 接收触发AWS Lambda函数的事件
     logger.info(f'request_timestamp :{request_timestamp}')
     logger.info(f"event:{event}")
     logger.info(f"context:{context}")
-
-    # 接收触发AWS Lambda函数的事件
     logger.info('The main brain has been activated, aws🚀!')
 
     # 1. 获取环境变量
@@ -195,7 +172,6 @@ def lambda_handler(event, context):
     aos_index = os.environ.get("aos_index", "")
     aos_knn_field = os.environ.get("aos_knn_field", "")
     aos_result_num = int(os.environ.get("aos_results", ""))
-
     llm_endpoint = os.environ.get('llm_default_endpoint')
 
     logger.info(f'llm_endpoint : {llm_endpoint}')
