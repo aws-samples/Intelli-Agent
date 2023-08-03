@@ -26,7 +26,7 @@ export class LLMStack extends NestedStack {
         // Prepare model asset to download from Hugging Face follow script
 
         // Specify s3 bucket and prefix for model
-        const _S3Bucket = new s3.Bucket(this, 'llm-bot-documents', {
+        const _S3Bucket = new s3.Bucket(this, 'llm-rag', {
             // Fixed name for serving.properties
             bucketName: "llm-rag",
             blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
