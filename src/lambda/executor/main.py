@@ -129,7 +129,7 @@ def main_entry(session_id:str, query_input:str, history:list, embedding_model_en
     json_obj = {
         "query": query_input,
         "recall_knowledge" : recall_knowledge,
-        "recall_knowledge_cross_str": recall_knowledge_str,
+        "recall_knowledge_cross_str": [recall_knowledge_str, len(recall_knowledge_str)],
         "detect_query_type": str(query_type)
     }
 
