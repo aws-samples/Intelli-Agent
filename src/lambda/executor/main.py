@@ -127,16 +127,16 @@ def main_entry(session_id:str, query_input:str, history:list, embedding_model_en
 
     # 8. log results
     json_obj = {
+        "session_id": session_id,
         "query": query_input,
-        "recall_knowledge" : recall_knowledge,
-        "recall_knowledge_cross_str": [recall_knowledge_str, len(recall_knowledge_str)],
-        "detect_query_type": str(query_type)
+        "recall_knowledge_cross_str": recall_knowledge_str,
+        "detect_query_type": str(query_type),
+        "history": history,
+        "chatbot_answer": answer,
+        "timestamp": int(time.time()),
+        "log_type": "all"
     }
 
-    json_obj['session_id'] = session_id
-    json_obj['chatbot_answer'] = answer
-    json_obj['timestamp'] = int(time.time())
-    json_obj['log_type'] = "all"
     json_obj_str = json.dumps(json_obj, ensure_ascii=False)
     logger.info(json_obj_str)
 
@@ -144,8 +144,6 @@ def main_entry(session_id:str, query_input:str, history:list, embedding_model_en
 
 @handle_error
 def lambda_handler(event, context):
-
-    logger.info(f"event:{event}")
 
     model = event['model']
     messages = event['messages']
