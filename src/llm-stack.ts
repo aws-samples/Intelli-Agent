@@ -27,7 +27,7 @@ export class LLMStack extends NestedStack {
 
         // Specify s3 bucket and prefix for model
         const _S3Bucket = new s3.Bucket(this, 'llm-rag', {
-            // Fixed name for serving.properties
+            // Fixed name for serving.properties for now
             bucketName: "llm-rag",
             blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
         });
@@ -52,54 +52,33 @@ export class LLMStack extends NestedStack {
         });
 
         const modelAssetDeployment = new s3deploy.BucketDeployment(this, 'modelAssetDeployment', {
-            sources: [s3deploy.Source.asset('src/models/cross')],
+            sources: [s3deploy.Source.asset('src/models/cross/model')],
             destinationBucket: _S3Bucket,
             destinationKeyPrefix: modelPrefix,
         });
 
-        // Create execution role
-        const executionRole = new iam.Role(this, 'executionRole', {
+        // Create IAM execution role
+        const executionRole = new iam.Role(this, 'cross-execution-role', {
             assumedBy: new iam.ServicePrincipal('sagemaker.amazonaws.com'),
+            managedPolicies: [
+                iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonSageMakerFullAccess'),
+                iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonS3FullAccess'),
+                iam.ManagedPolicy.fromAwsManagedPolicyName('CloudWatchLogsFullAccess'),
+            ],
         });
 
-        executionRole.addToPolicy(new iam.PolicyStatement({
-            actions: [
-                's3:GetObject',
-                's3:PutObject',
-                's3:DeleteObject',
-                's3:ListBucket',
-            ],
-            resources: [
-                _S3Bucket.bucketArn,
-                `${_S3Bucket.bucketArn}/*`,
-            ],
-        }));
-
-        executionRole.addToPolicy(new iam.PolicyStatement({
-            actions: [
-                'logs:CreateLogGroup',
-                'logs:CreateLogStream',
-                'logs:PutLogEvents',
-            ],
-            resources: ['*'],
-        }));
-
-        // Create model
+        // Create model, BucketDeployment construct automatically handles dependencies to ensure model assets uploaded before creating the model
         const inference_image_uri = '763104351884.dkr.ecr.'+ Aws.REGION +'.amazonaws.com/djl-inference:0.21.0-deepspeed0.8.3-cu117'
         const model = new sagemaker.CfnModel(this, 'cross-model', {
             executionRoleArn: executionRole.roleArn,
             primaryContainer: {
                 image: inference_image_uri,
-                modelDataUrl: `s3://${_S3Bucket.bucketName}/${codePrefix}`,
+                modelDataUrl: `s3://${_S3Bucket.bucketName}/${codePrefix}/cross_model.tar.gz`,
                 environment: {
                     S3_CODE_PREFIX: codePrefix,
                 },
             },
         });
-
-        // const baseName = 'buffer-cross-001';
-        // const timestamp = Date.now();
-        // const modelName = `${baseName}-${timestamp}`;
 
         // Create endpoint configuration, refer to https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_sagemaker.CfnEndpointConfig.html for full options
         const endpointConfig = new sagemaker.CfnEndpointConfig(this, 'cross-endpoint-config', {
