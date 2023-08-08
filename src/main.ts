@@ -42,15 +42,22 @@ export class RootStack extends Stack {
 
     // This assest stack is to mitigate issue that the model assets in s3 bucket can't be located immediately to create sagemaker model
     const _AssetsStack = new AssetsStack(this, 'assets-stack', {_s3ModelAssets:_S3ModelAssets.valueAsString, env:process.env});
-
-    const _LLMStack = new LLMStack(this, 'llm-stack', { _s3ModelAssets:_S3ModelAssets.valueAsString, _crossCodePrefix:_AssetsStack._crossCodePrefix, env:process.env});
+    const _LLMStack = new LLMStack(this, 'llm-stack', {
+        _s3ModelAssets:_S3ModelAssets.valueAsString,
+        _crossCodePrefix:_AssetsStack._crossCodePrefix,
+        _embeddingCodePrefix:_AssetsStack._embeddingCodePrefix,
+        _instructCodePrefix:_AssetsStack._instructCodePrefix,
+        env:process.env
+    });
     _LLMStack.addDependency(_AssetsStack);
 
     new CfnOutput(this, 'VPC',{value:_VpcStack._vpc.vpcId});
     new CfnOutput(this, 'OpenSearch Endpoint',{value:_OsStack._domainEndpoint});
     // contatenate the outputs from the ec2 stack with port 8081 and prefix _dashboards
     new CfnOutput(this, 'OpenSearch Dashboard',{value:`${_Ec2Stack._publicIP}:8081/_dashboards`});
-    new CfnOutput(this, 'Cross Model Endpoint',{value:_LLMStack._crossEndPointName || 'No Endpoint Created'});
+    new CfnOutput(this, 'Cross Model Endpoint',{value:_LLMStack._crossEndPointName || 'No Cross Endpoint Created'});
+    new CfnOutput(this, 'Embedding Model Endpoint',{value:_LLMStack._embeddingEndPointName || 'No Embedding Endpoint Created'});
+    new CfnOutput(this, 'Instruct Model Endpoint',{value:_LLMStack._instructEndPointName || 'No Instruct Endpoint Created'});
   }
 }
 

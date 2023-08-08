@@ -9,11 +9,15 @@ dotenv.config();
 
 interface llmStackProps extends StackProps {
     _s3ModelAssets: string;
-    _crossCodePrefix: string
+    _crossCodePrefix: string;
+    _embeddingCodePrefix: string;
+    _instructCodePrefix: string;
 }
 
 export class LLMStack extends NestedStack {
     _crossEndPointName;
+    _embeddingEndPointName;
+    _instructEndPointName;
 
     constructor(scope: Construct, id: string, props: llmStackProps) {
         super(scope, id, props);
@@ -63,12 +67,13 @@ export class LLMStack extends NestedStack {
             ],
         });
 
+        // CROSS MODEL
         // Create model, BucketDeployment construct automatically handles dependencies to ensure model assets uploaded before creating the model in this.region
-        const inference_image_uri = '763104351884.dkr.ecr.'+ 'us-east-1' +'.amazonaws.com/djl-inference:0.21.0-deepspeed0.8.3-cu117'
-        const model = new sagemaker.CfnModel(this, 'cross-model', {
+        const crossImageUrl = '763104351884.dkr.ecr.'+ this.region +'.amazonaws.com/djl-inference:0.21.0-deepspeed0.8.3-cu117'
+        const crossModel = new sagemaker.CfnModel(this, 'cross-model', {
             executionRoleArn: executionRole.roleArn,
             primaryContainer: {
-                image: inference_image_uri,
+                image: crossImageUrl,
                 modelDataUrl: `s3://${props._s3ModelAssets}/${props._crossCodePrefix}/cross_model.tar.gz`,
                 environment: {
                     S3_CODE_PREFIX: props._crossCodePrefix,
@@ -77,10 +82,10 @@ export class LLMStack extends NestedStack {
         });
 
         // Create endpoint configuration, refer to https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_sagemaker.CfnEndpointConfig.html for full options
-        const endpointConfig = new sagemaker.CfnEndpointConfig(this, 'cross-endpoint-config', {
+        const crossEndpointConfig = new sagemaker.CfnEndpointConfig(this, 'cross-endpoint-config', {
             productionVariants: [{
                 initialVariantWeight: 1.0,
-                modelName: model.attrModelName,
+                modelName: crossModel.attrModelName,
                 variantName: 'variantProd',
                 containerStartupHealthCheckTimeoutInSeconds: 15*60,
                 initialInstanceCount: 1,
@@ -89,11 +94,79 @@ export class LLMStack extends NestedStack {
         });
 
         // Create endpoint
-        const endpoint = new sagemaker.CfnEndpoint(this, 'cross-endpoint', {
-            endpointConfigName: endpointConfig.attrEndpointConfigName,
+        const crossEndpoint = new sagemaker.CfnEndpoint(this, 'cross-endpoint', {
+            endpointConfigName: crossEndpointConfig.attrEndpointConfigName,
             endpointName: 'cross-endpoint',
         });
 
-        this._crossEndPointName = endpoint.endpointName;
+        this._crossEndPointName = crossEndpoint.endpointName;
+
+        // EMBEDDING MODEL
+        // Create model, BucketDeployment construct automatically handles dependencies to ensure model assets uploaded before creating the model in this.region
+        const embeddingImageUrl = '763104351884.dkr.ecr.'+ this.region +'.amazonaws.com/djl-inference:0.21.0-deepspeed0.8.3-cu117'
+        const embeddingModel = new sagemaker.CfnModel(this, 'embedding-model', {
+            executionRoleArn: executionRole.roleArn,
+            primaryContainer: {
+                image: embeddingImageUrl,
+                modelDataUrl: `s3://${props._s3ModelAssets}/${props._embeddingCodePrefix}/s2e_model.tar.gz`,
+                environment: {
+                    S3_CODE_PREFIX: props._embeddingCodePrefix,
+                },
+            },
+        });
+
+        // Create endpoint configuration, refer to https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_sagemaker.CfnEndpointConfig.html for full options
+        const embeddingEndpointConfig = new sagemaker.CfnEndpointConfig(this, 'embedding-endpoint-config', {
+            productionVariants: [{
+                initialVariantWeight: 1.0,
+                modelName: embeddingModel.attrModelName,
+                variantName: 'variantProd',
+                containerStartupHealthCheckTimeoutInSeconds: 15*60,
+                initialInstanceCount: 1,
+                instanceType: 'ml.g4dn.xlarge',
+            }],
+        });
+
+        // Create endpoint
+        const embeddingEndpoint = new sagemaker.CfnEndpoint(this, 'embedding-endpoint', {
+            endpointConfigName: embeddingEndpointConfig.attrEndpointConfigName,
+            endpointName: 'embedding-endpoint',
+        });
+
+        this._embeddingEndPointName = embeddingEndpoint.endpointName;
+
+        // INSTRUCT MODEL
+        // Create model, BucketDeployment construct automatically handles dependencies to ensure model assets uploaded before creating the model in this.region
+        const instructImageUrl = '763104351884.dkr.ecr.'+ this.region +'.amazonaws.com/djl-inference:0.21.0-deepspeed0.8.3-cu117'
+        const instructModel = new sagemaker.CfnModel(this, 'instruct-model', {
+            executionRoleArn: executionRole.roleArn,
+            primaryContainer: {
+                image: instructImageUrl,
+                modelDataUrl: `s3://${props._s3ModelAssets}/${props._instructCodePrefix}/model.tar.gz`,
+                environment: {
+                    S3_CODE_PREFIX: props._instructCodePrefix,
+                },
+            },
+        });
+
+        // Create endpoint configuration, refer to https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_sagemaker.CfnEndpointConfig.html for full options
+        const instructEndpointConfig = new sagemaker.CfnEndpointConfig(this, 'instruct-endpoint-config', {
+            productionVariants: [{
+                initialVariantWeight: 1.0,
+                modelName: instructModel.attrModelName,
+                variantName: 'variantProd',
+                containerStartupHealthCheckTimeoutInSeconds: 15*60,
+                initialInstanceCount: 1,
+                instanceType: 'ml.g4dn.xlarge',
+            }],
+        });
+
+        // Create endpoint
+        const instructEndpoint = new sagemaker.CfnEndpoint(this, 'instruct-endpoint', {
+            endpointConfigName: instructEndpointConfig.attrEndpointConfigName,
+            endpointName: 'instruct-endpoint',
+        });
+
+        this._instructEndPointName = instructEndpoint.endpointName;
     }
 }
