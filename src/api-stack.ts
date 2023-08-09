@@ -13,6 +13,9 @@ interface apiStackProps extends StackProps {
     _vpc: ec2.Vpc;
     _securityGroup: ec2.SecurityGroup;
     _domainEndpoint: string;
+    _crossEndPoint: string;
+    _embeddingEndPoint: string;
+    _instructEndPoint: string;
 }
 
 export class LLMApiStack extends NestedStack {
@@ -42,7 +45,10 @@ export class LLMApiStack extends NestedStack {
             securityGroups: [_securityGroup],
             architecture: Architecture.X86_64,
             environment: {
-              aos_endpoint: _domainEndpoint,
+                aos_endpoint: _domainEndpoint,
+                llm_endpoint: props._crossEndPoint,
+                embedding_endpoint: props._embeddingEndPoint,
+                cross_endpoint: props._crossEndPoint,
             },
           });
 
@@ -76,8 +82,10 @@ export class LLMApiStack extends NestedStack {
             architecture: Architecture.X86_64,
             environment: {
                 document_bucket: _S3Bucket.bucketName,
-                // embeddings_model_endpoint_name: TBD, wait for in sm-stack.ts
                 opensearch_cluster_domain: _domainEndpoint,
+                llm_endpoint: props._instructEndPoint,
+                embedding_endpoint: props._embeddingEndPoint,
+                cross_endpoint: props._crossEndPoint,
             },
           });
 

@@ -23,23 +23,6 @@ export class RootStack extends Stack {
       default: 'llm-rag',
     });
 
-    const _VpcStack = new VpcStack(this, 'vpc-stack', {env:process.env});
-
-    const _OsStack = new OpenSearchStack(this,'os-stack', {_vpc:_VpcStack._vpc, _securityGroup:_VpcStack._securityGroup});
-    _OsStack.addDependency(_VpcStack);
-
-    const _Ec2Stack = new Ec2Stack(this, 'ec2-stack', {_vpc:_VpcStack._vpc, _securityGroup:_VpcStack._securityGroup, _domainEndpoint:_OsStack._domainEndpoint, env:process.env});
-    _Ec2Stack.addDependency(_VpcStack);
-    _Ec2Stack.addDependency(_OsStack);
-
-    const _ApiStack = new LLMApiStack(this, 'api-stack', {_vpc:_VpcStack._vpc, _securityGroup:_VpcStack._securityGroup, _domainEndpoint:_OsStack._domainEndpoint, env:process.env});
-    _ApiStack.addDependency(_VpcStack);
-    _ApiStack.addDependency(_OsStack);
-
-    const _DynamoDBStack = new DynamoDBStack(this, 'ddb-stack', {_vpc:_VpcStack._vpc, _securityGroup:_VpcStack._securityGroup, _domainEndpoint:_OsStack._domainEndpoint, env:process.env});
-    _DynamoDBStack.addDependency(_VpcStack);
-    _DynamoDBStack.addDependency(_OsStack);
-
     // This assest stack is to mitigate issue that the model assets in s3 bucket can't be located immediately to create sagemaker model
     const _AssetsStack = new AssetsStack(this, 'assets-stack', {_s3ModelAssets:_S3ModelAssets.valueAsString, env:process.env});
     const _LLMStack = new LLMStack(this, 'llm-stack', {
@@ -51,13 +34,38 @@ export class RootStack extends Stack {
     });
     _LLMStack.addDependency(_AssetsStack);
 
+    const _VpcStack = new VpcStack(this, 'vpc-stack', {env:process.env});
+
+    const _OsStack = new OpenSearchStack(this,'os-stack', {_vpc:_VpcStack._vpc, _securityGroup:_VpcStack._securityGroup});
+    _OsStack.addDependency(_VpcStack);
+
+    const _Ec2Stack = new Ec2Stack(this, 'ec2-stack', {_vpc:_VpcStack._vpc, _securityGroup:_VpcStack._securityGroup, _domainEndpoint:_OsStack._domainEndpoint, env:process.env});
+    _Ec2Stack.addDependency(_VpcStack);
+    _Ec2Stack.addDependency(_OsStack);
+
+    const _ApiStack = new LLMApiStack(this, 'api-stack', {
+        _vpc:_VpcStack._vpc,
+        _securityGroup:_VpcStack._securityGroup,
+        _domainEndpoint:_OsStack._domainEndpoint,
+        _crossEndPoint: _LLMStack._crossEndPoint ?? '',
+        _embeddingEndPoint:_LLMStack._embeddingEndPoint || '',
+        _instructEndPoint:_LLMStack._instructEndPoint || '',
+        env:process.env
+    });
+    _ApiStack.addDependency(_VpcStack);
+    _ApiStack.addDependency(_OsStack);
+
+    const _DynamoDBStack = new DynamoDBStack(this, 'ddb-stack', {_vpc:_VpcStack._vpc, _securityGroup:_VpcStack._securityGroup, _domainEndpoint:_OsStack._domainEndpoint, env:process.env});
+    _DynamoDBStack.addDependency(_VpcStack);
+    _DynamoDBStack.addDependency(_OsStack);
+
     new CfnOutput(this, 'VPC',{value:_VpcStack._vpc.vpcId});
     new CfnOutput(this, 'OpenSearch Endpoint',{value:_OsStack._domainEndpoint});
     // contatenate the outputs from the ec2 stack with port 8081 and prefix _dashboards
     new CfnOutput(this, 'OpenSearch Dashboard',{value:`${_Ec2Stack._publicIP}:8081/_dashboards`});
-    new CfnOutput(this, 'Cross Model Endpoint',{value:_LLMStack._crossEndPointName || 'No Cross Endpoint Created'});
-    new CfnOutput(this, 'Embedding Model Endpoint',{value:_LLMStack._embeddingEndPointName || 'No Embedding Endpoint Created'});
-    new CfnOutput(this, 'Instruct Model Endpoint',{value:_LLMStack._instructEndPointName || 'No Instruct Endpoint Created'});
+    new CfnOutput(this, 'Cross Model Endpoint',{value:_LLMStack._crossEndPoint || 'No Cross Endpoint Created'});
+    new CfnOutput(this, 'Embedding Model Endpoint',{value:_LLMStack._embeddingEndPoint || 'No Embedding Endpoint Created'});
+    new CfnOutput(this, 'Instruct Model Endpoint',{value:_LLMStack._instructEndPoint || 'No Instruct Endpoint Created'});
   }
 }
 
