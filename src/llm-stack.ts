@@ -15,9 +15,9 @@ interface llmStackProps extends StackProps {
 }
 
 export class LLMStack extends NestedStack {
-    _crossEndPointName;
-    _embeddingEndPointName;
-    _instructEndPointName;
+    _crossEndPoint;
+    _embeddingEndPoint;
+    _instructEndPoint;
 
     constructor(scope: Construct, id: string, props: llmStackProps) {
         super(scope, id, props);
@@ -99,7 +99,7 @@ export class LLMStack extends NestedStack {
             endpointName: 'cross-endpoint',
         });
 
-        this._crossEndPointName = crossEndpoint.endpointName;
+        this._crossEndPoint = crossEndpoint.endpointName;
 
         // EMBEDDING MODEL
         // Create model, BucketDeployment construct automatically handles dependencies to ensure model assets uploaded before creating the model in this.region
@@ -133,7 +133,7 @@ export class LLMStack extends NestedStack {
             endpointName: 'embedding-endpoint',
         });
 
-        this._embeddingEndPointName = embeddingEndpoint.endpointName;
+        this._embeddingEndPoint = embeddingEndpoint.endpointName;
 
         // INSTRUCT MODEL
         // Create model, BucketDeployment construct automatically handles dependencies to ensure model assets uploaded before creating the model in this.region
@@ -167,6 +167,6 @@ export class LLMStack extends NestedStack {
             endpointName: 'instruct-endpoint',
         });
 
-        this._instructEndPointName = instructEndpoint.endpointName;
+        this._instructEndPoint = instructEndpoint.endpointName;
     }
 }
