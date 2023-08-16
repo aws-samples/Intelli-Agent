@@ -131,6 +131,37 @@ At the time of writing you can only use `amazon.titan-e1t-medium` as embedding m
 }
 ```
 
+### CSDC Buffer
+
+#### Input
+
+```json
+{
+    "inputs": "<prompt>",
+    "context": "<context>",
+    "existing_answer": "<existing_answer>",
+    "history": [
+        ["<human_0>", "<assistant_0>"],
+        ["<human_1>", "<assistant_1>"]
+    ],
+    "parameters": {
+        "max_tokens": 512,
+        "temperature": 0.5,
+        "top_k": 250,
+        "top_p": 1,
+        "stop": ["<eoa>"]
+    }
+}
+```
+
+#### Output
+
+```json
+{
+    "outputs": "<output>"
+}
+```
+
 ### Stability AI Stable Diffusion XL
 
 #### Input
