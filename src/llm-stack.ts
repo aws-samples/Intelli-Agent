@@ -157,7 +157,7 @@ export class LLMStack extends NestedStack {
                 variantName: 'variantProd',
                 containerStartupHealthCheckTimeoutInSeconds: 15*60,
                 initialInstanceCount: 1,
-                instanceType: 'ml.g4dn.xlarge',
+                instanceType: 'ml.g5.4xlarge',
             }],
         });
 
