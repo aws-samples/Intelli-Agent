@@ -17,10 +17,11 @@ export class RootStack extends Stack {
     super(scope, id, props);
 
     // add cdk input parameters for user to specify s3 bucket store model assets
+    // using npx cdk deploy --rollback false --parameters S3ModelAssets=llm-rag to deploy
     const _S3ModelAssets = new CfnParameter(this, 'S3ModelAssets', {
       type: 'String',
       description: 'S3 Bucket for model & code assets',
-      default: 'llm-rag',
+      // default: 'llm-rag',
     });
 
     // This assest stack is to mitigate issue that the model assets in s3 bucket can't be located immediately to create sagemaker model

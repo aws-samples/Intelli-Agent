@@ -22,9 +22,9 @@ export class AssetsStack extends NestedStack {
 
         // Prepare model asset to download from Hugging Face follow script
 
-        // Specify s3 bucket and prefix for model
-        const _S3Bucket = new s3.Bucket(this, 'llm-rag', {
-            // Fixed name for serving.properties for now
+        // Check if _s3ModelAssets is provided, create a new s3 bucket if not
+        const _S3Bucket = props._s3ModelAssets ? s3.Bucket.fromBucketName(this, 'llm-rag', props._s3ModelAssets) : new s3.Bucket(this, 'llm-rag', {
+            // Fixed name for serving.properties for now, default is llm-rag inherit from main stack
             bucketName: props._s3ModelAssets,
             blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
         });
@@ -48,18 +48,6 @@ export class AssetsStack extends NestedStack {
             destinationBucket: _S3Bucket,
             destinationKeyPrefix: crossCodePrefix,
         });
-
-        // Define a local asset for model
-        const crossModelAsset = new s3assets.Asset(this, 'ModelAsset', {
-            path: 'src/models/cross/model',
-        });
-
-        const crossModelAssetDeployment = new s3deploy.BucketDeployment(this, 'crossModelAssetDeployment', {
-            sources: [s3deploy.Source.asset('src/models/cross/model')],
-            destinationBucket: _S3Bucket,
-            destinationKeyPrefix: crossModelPrefix,
-        });
-
         this._crossCodePrefix = crossCodePrefix
 
         // EMBEDDING MODEL
@@ -73,18 +61,6 @@ export class AssetsStack extends NestedStack {
             destinationBucket: _S3Bucket,
             destinationKeyPrefix: embeddingCodePrefix,
         });
-
-        // Define a local asset for model
-        const embeddingModelAsset = new s3assets.Asset(this, 'embeddingModelAsset', {
-            path: 'src/models/embedding/model',
-        });
-
-        const embeddingModelAssetDeployment = new s3deploy.BucketDeployment(this, 'embeddingModelAssetDeployment', {
-            sources: [s3deploy.Source.asset('src/models/embedding/model')],
-            destinationBucket: _S3Bucket,
-            destinationKeyPrefix: embeddingModelPrefix,
-        });
-
         this._embeddingCodePrefix = embeddingCodePrefix
 
         // INSTRUCT MODEL
@@ -98,18 +74,41 @@ export class AssetsStack extends NestedStack {
             destinationBucket: _S3Bucket,
             destinationKeyPrefix: instructCodePrefix,
         });
-
-        // Define a local asset for model
-        const instructModelAsset = new s3assets.Asset(this, 'instructModelAsset', {
-            path: 'src/models/instruct/model',
-        });
-
-        const instructModelAssetDeployment = new s3deploy.BucketDeployment(this, 'instructModelAssetDeployment', {
-            sources: [s3deploy.Source.asset('src/models/instruct/model')],
-            destinationBucket: _S3Bucket,
-            destinationKeyPrefix: instructModelPrefix,
-        });
-
         this._instructCodePrefix = instructCodePrefix
+
+       // Skip the deployment if _s3ModelAssets is provided
+       if (!props._s3ModelAssets) {
+            // Define a local asset for model
+            const crossModelAsset = new s3assets.Asset(this, 'ModelAsset', {
+                path: 'src/models/cross/model',
+            });
+            const crossModelAssetDeployment = new s3deploy.BucketDeployment(this, 'crossModelAssetDeployment', {
+                sources: [s3deploy.Source.asset('src/models/cross/model')],
+                destinationBucket: _S3Bucket,
+                destinationKeyPrefix: crossModelPrefix,
+                // memoryLimit: 4096,
+            });
+
+            // Define a local asset for model
+            const embeddingModelAsset = new s3assets.Asset(this, 'embeddingModelAsset', {
+                path: 'src/models/embedding/model',
+            });
+            const embeddingModelAssetDeployment = new s3deploy.BucketDeployment(this, 'embeddingModelAssetDeployment', {
+                sources: [s3deploy.Source.asset('src/models/embedding/model')],
+                destinationBucket: _S3Bucket,
+                destinationKeyPrefix: embeddingModelPrefix,
+            });
+
+            // Define a local asset for model
+            const instructModelAsset = new s3assets.Asset(this, 'instructModelAsset', {
+                path: 'src/models/instruct/model',
+            });
+
+            const instructModelAssetDeployment = new s3deploy.BucketDeployment(this, 'instructModelAssetDeployment', {
+                sources: [s3deploy.Source.asset('src/models/instruct/model')],
+                destinationBucket: _S3Bucket,
+                destinationKeyPrefix: instructModelPrefix,
+            });
+        }
     }
 }
