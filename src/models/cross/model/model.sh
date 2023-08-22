@@ -42,13 +42,16 @@ local_model_path="."
 # Download model snapshot in current folder without model prefix added
 python -c "from huggingface_hub import snapshot_download; from pathlib import Path; snapshot_download(repo_id='$model_name', revision='$commit_hash', cache_dir=Path('.'), token='$hf_token')"
 
-# Modify the content of serving.properties
-file_path="../code/serving.properties"
-sed -i "" "s|option.s3url = s3://[^/]*/buffer-cross-001-model/|option.s3url = s3://$s3_bucket_name/buffer-cross-001-model/|" $file_path
-
 # Find model snapshot path with the first search result
 model_snapshot_path=$(find . -path '*/snapshots/*' -type d -print -quit)
 echo "Model snapshot path: $model_snapshot_path"
 
 # s3://<your own bucket>/<model prefix inherit crossModelPrefix from assets stack>
 aws s3 cp --recursive $model_snapshot_path s3://$s3_bucket_name/buffer-cross-001-model
+
+# Modify the content of serving.properties and re-tar the model
+cd ../code
+file_path="serving.properties"
+sed -i "" "s|option.s3url = s3://[^/]*/buffer-cross-001-model/|option.s3url = s3://$s3_bucket_name/buffer-cross-001-model/|" $file_path
+rm cross_model.tar.gz
+tar czvf cross_model.tar.gz *
