@@ -60,13 +60,14 @@ export class RootStack extends Stack {
     _DynamoDBStack.addDependency(_VpcStack);
     _DynamoDBStack.addDependency(_OsStack);
 
-    new CfnOutput(this, 'VPC',{value:_VpcStack._vpc.vpcId});
-    new CfnOutput(this, 'OpenSearch Endpoint',{value:_OsStack._domainEndpoint});
+    new CfnOutput(this, 'VPC', {value:_VpcStack._vpc.vpcId});
+    new CfnOutput(this, 'OpenSearch Endpoint', {value:_OsStack._domainEndpoint});
     // contatenate the outputs from the ec2 stack with port 8081 and prefix _dashboards
-    new CfnOutput(this, 'OpenSearch Dashboard',{value:`${_Ec2Stack._publicIP}:8081/_dashboards`});
-    new CfnOutput(this, 'Cross Model Endpoint',{value:_LLMStack._crossEndPoint || 'No Cross Endpoint Created'});
-    new CfnOutput(this, 'Embedding Model Endpoint',{value:_LLMStack._embeddingEndPoint || 'No Embedding Endpoint Created'});
-    new CfnOutput(this, 'Instruct Model Endpoint',{value:_LLMStack._instructEndPoint || 'No Instruct Endpoint Created'});
+    new CfnOutput(this, 'OpenSearch Dashboard', {value:`${_Ec2Stack._publicIP}:8081/_dashboards`});
+    new CfnOutput(this, 'API Endpoint Address', {value:_ApiStack._apiEndpoint});
+    new CfnOutput(this, 'Cross Model Endpoint', {value:_LLMStack._crossEndPoint || 'No Cross Endpoint Created'});
+    new CfnOutput(this, 'Embedding Model Endpoint', {value:_LLMStack._embeddingEndPoint || 'No Embedding Endpoint Created'});
+    new CfnOutput(this, 'Instruct Model Endpoint', {value:_LLMStack._instructEndPoint || 'No Instruct Endpoint Created'});
   }
 }
 

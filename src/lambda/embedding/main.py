@@ -1,15 +1,18 @@
 import os
-import sys
 import time
 import json
 import logging
 import numpy as np
 import boto3, json
+import tempfile
+import nltk
 
 from langchain.document_loaders import S3DirectoryLoader
 from langchain.vectorstores import OpenSearchVectorSearch
-from sm_utils import create_sagemaker_embeddings_from_js_model
+from langchain.document_loaders.unstructured import UnstructuredFileLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+
+from sm_utils import create_sagemaker_embeddings_from_js_model
 from requests_aws4auth import AWS4Auth
 from aos_utils import OpenSearchClient
 
@@ -20,7 +23,8 @@ CHUNK_SIZE_FOR_DOC_SPLIT = 600
 CHUNK_OVERLAP_FOR_DOC_SPLIT = 20
 
 logger = logging.getLogger()
-logging.basicConfig(format='%(asctime)s,%(module)s,%(processName)s,%(levelname)s,%(message)s', level=logging.INFO, stream=sys.stderr)
+# logging.basicConfig(format='%(asctime)s,%(module)s,%(processName)s,%(levelname)s,%(message)s', level=logging.INFO, stream=sys.stderr)
+logger.setLevel(logging.INFO)
 
 # fetch all the environment variables
 _document_bucket = os.environ.get('document_bucket')
@@ -32,6 +36,9 @@ aws_region = boto3.Session().region_name
 document_bucket = s3.Bucket(_document_bucket)
 credentials = boto3.Session().get_credentials()
 awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, aws_region, 'es', session_token=credentials.token)
+
+# Set the NLTK data path to the /tmp directory (writable in AWS Lambda)
+nltk.data.path.append("/tmp")
 
 def process_shard(shard, embeddings_model_endpoint_name, aws_region, os_index_name, os_domain_ep, os_http_auth) -> int: 
     logger.info(f'Starting process_shard of {len(shard)} chunks.')
@@ -52,11 +59,11 @@ def lambda_handler(event, context):
     logger.info(f"event:{event}")
     logger.info(f"context:{context}")
     # parse aos endpoint from event
-    index_name = event['aos_index']
+    index_name = json.loads(event['body'])['aos_index']
     aos_client = OpenSearchClient(_opensearch_cluster_domain)
 
     # iterate all files within specific s3 prefix in bucket llm-bot-documents and print out file number and total size
-    prefix = event['document_prefix']
+    prefix = json.loads(event['body'])['document_prefix']
     total_size = 0
     total_files = 0
     for obj in document_bucket.objects.filter(Prefix=prefix):
@@ -67,19 +74,32 @@ def lambda_handler(event, context):
     # raise error and return if the total size is larger than 100MB
     if total_size > MAX_FILE_SIZE:
         raise Exception(f'total_size:{total_size} is larger than {MAX_FILE_SIZE}')
-
-    loader = S3DirectoryLoader(_document_bucket, prefix=prefix)
     text_splitter = RecursiveCharacterTextSplitter(
         # Set a really small chunk size, just to show.
         chunk_size = CHUNK_SIZE_FOR_DOC_SPLIT,
         chunk_overlap = CHUNK_OVERLAP_FOR_DOC_SPLIT,
         length_function = len,
     )
-
     # split all docs into chunks
     st = time.time()
     logger.info('Loading documents ...')
-    docs = loader.load()
+
+    # loader = S3DirectoryLoader(document_bucket, prefix=prefix)
+    # docs = loader.load()
+
+    docs = []
+    for obj in document_bucket.objects.filter(Prefix=prefix):
+        # loader = S3FileLoader(bucket, obj.key)
+        with tempfile.TemporaryDirectory(dir='/tmp') as temp_dir:
+            file_path = f"{temp_dir}/{obj.key}"
+            logging.info(f"_document_bucket={_document_bucket}, obj.key={obj.key}, file_path={file_path}")
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+            s3.meta.client.download_file(_document_bucket, obj.key, file_path)
+            loader = UnstructuredFileLoader(file_path)
+            # return loader.load()
+            logging.info(f'Loading {obj.key} ...')
+            docs.extend(loader.load())
+            logging.info(f'Loaded {obj.key} complete!')
 
     # add a custom metadata field, timestamp and embeddings_model
     for doc in docs:

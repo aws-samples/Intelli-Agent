@@ -20,6 +20,7 @@ interface apiStackProps extends StackProps {
 
 export class LLMApiStack extends NestedStack {
 
+    _apiEndpoint;
     constructor(scope: Construct, id: string, props: apiStackProps) {
         super(scope, id, props);
 
@@ -132,5 +133,6 @@ export class LLMApiStack extends NestedStack {
         const apiResourceEmbedding = api.root.addResource('embedding');
         apiResourceEmbedding.addMethod('POST', lambdaEmbeddingIntegration);
 
+        this._apiEndpoint = api.url
     }
 }
