@@ -9,8 +9,9 @@ from typing import List
 from langchain.embeddings import SagemakerEndpointEmbeddings
 from langchain.embeddings.sagemaker_endpoint import EmbeddingsContentHandler
 
-logger = logging.getLogger(__name__)
-logging.basicConfig(format='%(asctime)s,%(module)s,%(processName)s,%(levelname)s,%(message)s', level=logging.INFO, stream=sys.stderr)
+logger = logging.getLogger()
+# logging.basicConfig(format='%(asctime)s,%(module)s,%(processName)s,%(levelname)s,%(message)s', level=logging.INFO, stream=sys.stderr)
+logger.setLevel(logging.INFO)
 
 # extend the SagemakerEndpointEmbeddings class from langchain to provide a custom embedding function
 class SagemakerEndpointEmbeddingsJumpStart(SagemakerEndpointEmbeddings):
@@ -45,24 +46,21 @@ class ContentHandler(EmbeddingsContentHandler):
     accepts = "application/json"
 
     def transform_input(self, prompt: str, model_kwargs={}) -> bytes:
-
-        input_str = json.dumps({"text_inputs": prompt, **model_kwargs})
+        input_str = json.dumps({"inputs": prompt, **model_kwargs})
         return input_str.encode('utf-8') 
 
     def transform_output(self, output: bytes) -> str:
-
         response_json = json.loads(output.read().decode("utf-8"))
-        embeddings = response_json["embedding"]
+        embeddings = response_json["sentence_embeddings"]
         if len(embeddings) == 1:
             return [embeddings[0]]
         return embeddings
-    
 
 def create_sagemaker_embeddings_from_js_model(embeddings_model_endpoint_name: str, aws_region: str) -> SagemakerEndpointEmbeddingsJumpStart:
     # all set to create the objects for the ContentHandler and 
     # SagemakerEndpointEmbeddingsJumpStart classes
     content_handler = ContentHandler()
-
+    logger.info(f'content_handler: {content_handler}, embeddings_model_endpoint_name: {embeddings_model_endpoint_name}, aws_region: {aws_region}')
     # note the name of the LLM Sagemaker endpoint, this is the model that we would
     # be using for generating the embeddings
     embeddings = SagemakerEndpointEmbeddingsJumpStart( 

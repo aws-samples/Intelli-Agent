@@ -16,6 +16,11 @@ from sm_utils import create_sagemaker_embeddings_from_js_model
 from requests_aws4auth import AWS4Auth
 from aos_utils import OpenSearchClient
 
+from opensearchpy import OpenSearch, RequestsHttpConnection
+credentials = boto3.Session().get_credentials()
+region = boto3.Session().region_name
+awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, region, 'es', session_token=credentials.token)
+
 # global constants
 MAX_FILE_SIZE = 1024*1024*100 # 100MB
 MAX_OS_DOCS_PER_PUT = 500
@@ -28,7 +33,7 @@ logger.setLevel(logging.INFO)
 
 # fetch all the environment variables
 _document_bucket = os.environ.get('document_bucket')
-_embeddings_model_endpoint_name = os.environ.get('embeddings_model_endpoint_name')
+_embeddings_model_endpoint_name = os.environ.get('embedding_endpoint')
 _opensearch_cluster_domain = os.environ.get('opensearch_cluster_domain')
 
 s3 = boto3.resource('s3')
@@ -36,9 +41,6 @@ aws_region = boto3.Session().region_name
 document_bucket = s3.Bucket(_document_bucket)
 credentials = boto3.Session().get_credentials()
 awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, aws_region, 'es', session_token=credentials.token)
-
-# Set the NLTK data path to the /tmp directory (writable in AWS Lambda)
-nltk.data.path.append("/tmp")
 
 def process_shard(shard, embeddings_model_endpoint_name, aws_region, os_index_name, os_domain_ep, os_http_auth) -> int: 
     logger.info(f'Starting process_shard of {len(shard)} chunks.')
@@ -60,8 +62,16 @@ def lambda_handler(event, context):
     logger.info(f"context:{context}")
     # parse aos endpoint from event
     index_name = json.loads(event['body'])['aos_index']
-    aos_client = OpenSearchClient(_opensearch_cluster_domain)
+    # aos_client = OpenSearchClient(_opensearch_cluster_domain)
 
+    aos_client = OpenSearch(
+        hosts = [{'host': _opensearch_cluster_domain.replace("https://", ""), 'port': 443}],
+        http_auth = awsauth,
+        use_ssl = True,
+        verify_certs = True,
+        connection_class = RequestsHttpConnection,
+        region=region
+    )
     # iterate all files within specific s3 prefix in bucket llm-bot-documents and print out file number and total size
     prefix = json.loads(event['body'])['document_prefix']
     total_size = 0
@@ -87,6 +97,16 @@ def lambda_handler(event, context):
     # loader = S3DirectoryLoader(document_bucket, prefix=prefix)
     # docs = loader.load()
 
+    # Set the NLTK data path to the /tmp directory (writable in AWS Lambda)
+    nltk.data.path.append("/tmp")
+
+    # List of NLTK packages to download
+    nltk_packages = ['punkt', 'averaged_perceptron_tagger']
+
+    # Download the required NLTK packages to /tmp
+    for package in nltk_packages:
+        nltk.download(package, download_dir='/tmp')
+
     docs = []
     for obj in document_bucket.objects.filter(Prefix=prefix):
         # loader = S3FileLoader(bucket, obj.key)
@@ -95,11 +115,10 @@ def lambda_handler(event, context):
             logging.info(f"_document_bucket={_document_bucket}, obj.key={obj.key}, file_path={file_path}")
             os.makedirs(os.path.dirname(file_path), exist_ok=True)
             s3.meta.client.download_file(_document_bucket, obj.key, file_path)
+
             loader = UnstructuredFileLoader(file_path)
             # return loader.load()
-            logging.info(f'Loading {obj.key} ...')
             docs.extend(loader.load())
-            logging.info(f'Loaded {obj.key} complete!')
 
     # add a custom metadata field, timestamp and embeddings_model
     for doc in docs:
@@ -116,7 +135,7 @@ def lambda_handler(event, context):
 
     exists = aos_client.indices.exists(index_name)
     logger.info(f"index_name={index_name}, exists={exists}")
-    
+
     embeddings = create_sagemaker_embeddings_from_js_model(_embeddings_model_endpoint_name, aws_region)
 
     docsearch = OpenSearchVectorSearch.from_documents(index_name = index_name,
