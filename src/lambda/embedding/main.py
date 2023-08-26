@@ -46,10 +46,15 @@ def process_shard(shard, embeddings_model_endpoint_name, aws_region, os_index_na
     logger.info(f'Starting process_shard of {len(shard)} chunks.')
     st = time.time()
     embeddings = create_sagemaker_embeddings_from_js_model(embeddings_model_endpoint_name, aws_region)
-    docsearch = OpenSearchVectorSearch(index_name=os_index_name,
-                                       embedding_function=embeddings,
-                                       opensearch_url=os_domain_ep,
-                                       http_auth=os_http_auth)    
+    docsearch = OpenSearchVectorSearch(
+        index_name=os_index_name,
+        embedding_function=embeddings,
+        opensearch_url="https://{}".format(os_domain_ep),
+        http_auth = os_http_auth,
+        use_ssl = True,
+        verify_certs = True,
+        connection_class = RequestsHttpConnection
+    )
     docsearch.add_documents(documents=shard)
     et = time.time() - st
     logger.info(f'Shard completed in {et} seconds.')
@@ -126,25 +131,32 @@ def lambda_handler(event, context):
         doc.metadata['embeddings_model'] = _embeddings_model_endpoint_name
     chunks = text_splitter.create_documents([doc.page_content for doc in docs], metadatas=[doc.metadata for doc in docs])
     et = time.time() - st
-    logger.info(f'Time taken: {et} seconds. {len(chunks)} chunks generated') 
+    # [Document(page_content = 'xx', metadata = { 'source': '/tmp/xx/xx.pdf', 'timestamp': 123.456, 'embeddings_model': 'embedding-endpoint'})],
+    logger.info(f'Time taken: {et} seconds. {len(chunks)} chunks generated')
 
     st = time.time()
     db_shards = (len(chunks) // MAX_OS_DOCS_PER_PUT) + 1
-    logger.info(f'Loading chunks into vector store ... using {db_shards} shards') 
     shards = np.array_split(chunks, db_shards)
+    logger.info(f'Loading chunks into vector store ... using {db_shards} shards, shards content: {shards}')
 
+    # TBD, create index if not exists instead of using API in AOS console manually
     exists = aos_client.indices.exists(index_name)
     logger.info(f"index_name={index_name}, exists={exists}")
 
     embeddings = create_sagemaker_embeddings_from_js_model(_embeddings_model_endpoint_name, aws_region)
+    docsearch = OpenSearchVectorSearch.from_documents(
+        documents = shards[0],
+        embedding = embeddings,
+        opensearch_url="https://{}".format(_opensearch_cluster_domain),
+        http_auth = awsauth,
+        use_ssl = True,
+        verify_certs = True,
+        connection_class = RequestsHttpConnection,
+        index_name = index_name,
+    )
 
-    docsearch = OpenSearchVectorSearch.from_documents(index_name = index_name,
-                                                        documents = shards[0],
-                                                        embedding = embeddings,
-                                                        opensearch_url = _opensearch_cluster_domain,
-                                                        http_auth = awsauth)
-    shard_start_index = 1  
-    process_shard(shards[shard_start_index:], _embeddings_model_endpoint_name, aws_region, index_name, _opensearch_cluster_domain, awsauth)
+    # shard_start_index = 1
+    process_shard(shards[0].tolist(), _embeddings_model_endpoint_name, aws_region, index_name, _opensearch_cluster_domain, awsauth)
 
     et = time.time() - st
     logger.info(f'Time taken: {et} seconds. all shards processed')
