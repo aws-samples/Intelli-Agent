@@ -42,8 +42,7 @@ class OpenSearchClient:
                 "size": size,
                 "query": {
                     "bool":{
-                        "must":[ {"term": { "doc_type": "Sentence" }} ],
-                        "should": [ {"match": { field : query_term }} ]
+                        "should": [ {"match": { "text" : query_term }} ]
                     }
                 },
                 "sort": [
@@ -113,19 +112,17 @@ class OpenSearchClient:
         aos_hits = response["hits"]["hits"]
         if query_type == "exact":
             for aos_hit in aos_hits:
-                doc = aos_hit['_source']['doc']
-                doc_type = "A"
+                doc = aos_hit['_source']['text']
                 score = aos_hit["_score"]
-                results.append({'doc': doc, 'doc_type': doc_type, 'score': score})
+                results.append({'doc': doc, 'score': score})
         else:
             for aos_hit in aos_hits:
-                doc = f"{aos_hit['_source']['doc']}"
-                doc_type = aos_hit["_source"]["doc_type"]
+                doc = f"{aos_hit['_source']['text']}"
                 score = aos_hit["_score"]
-                results.append({'doc': doc, 'doc_type': doc_type, 'score': score})
+                results.append({'doc': doc, 'score': score})
         return results
 
-    def search(self, index_name, query_type, query_term, field: str = "doc", size: int = 10):
+    def search(self, index_name, query_type, query_term, field: str = "text", size: int = 10):
         """
         Perform search on aos
         

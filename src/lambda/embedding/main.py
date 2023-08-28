@@ -82,7 +82,6 @@ def lambda_handler(event, context):
     total_size = 0
     total_files = 0
     for obj in document_bucket.objects.filter(Prefix=prefix):
-        print(obj.key, obj.size)
         total_files += 1
         total_size += obj.size
     logger.info(f'total_files:{total_files}, total_size:{total_size}')

@@ -7,6 +7,7 @@ from aos_utils import OpenSearchClient
 from llmbot_utils import QueryType, combine_recalls, concat_recall_knowledge, process_input_messages
 from ddb_utils import get_session, update_session
 from sm_utils import get_vector_by_sm_endpoint, get_cross_by_sm_endpoint, generate_answer
+from sm_utils import SagemakerEndpointVectorOrCross
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -70,14 +71,17 @@ def main_entry(session_id:str, query_input:str, history:list, embedding_model_en
         # 2. get AOS knn recall 
         start = time.time()
         # call SagemakerEndpointVectorOrCross(prompt: str, endpoint_name: str, region_name: str, model_type: str, stop: List[str]) instead of get_vector_by_sm_endpoint
+        # query_embedding = SagemakerEndpointVectorOrCross(prompt=query_knowledge, endpoint_name=sm_client, region_name=embedding_model_endpoint, model_type="vector", stop=None)
         query_embedding = get_vector_by_sm_endpoint(query_knowledge, sm_client, embedding_model_endpoint)
         opensearch_knn_respose = aos_client.search(index_name=aos_index, query_type="knn", query_term=query_embedding[0])
+        logger.info(json.dumps(opensearch_knn_respose, ensure_ascii=False))
         elpase_time = time.time() - start
         logger.info(f'runing time of opensearch_knn : {elpase_time}s seconds')
         
         # 3. get AOS invertedIndex recall
         start = time.time()
         opensearch_query_response = aos_client.search(index_name=aos_index, query_type="basic", query_term=query_knowledge)
+        logger.info(json.dumps(opensearch_query_response, ensure_ascii=False))
         elpase_time = time.time() - start
         logger.info(f'runing time of opensearch_query : {elpase_time}s seconds')
 
