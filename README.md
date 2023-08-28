@@ -18,6 +18,7 @@ Make sure Python installed properly. Usage: ./model.sh -t TOKEN [-m MODEL_NAME] 
 2. Upload file to S3 bucket in the S3 bucket you specified <Your S3 bucket/Your S3 bucket prefix> in the previous step or use default bucket
 
 3. Create index in AOS dashboard (Will be deprecated in the future)
+
 Logging into AOS dashboard address in the output of CloudFormation Stack to open Dashboard choose Dev Tools in left side panel, copy and paste the following command to create index
 ```bash
 PUT chatbot-index
@@ -62,13 +63,25 @@ PUT chatbot-index
 ```
 
 4. Test the API connection
-Use Postman to test the API connection, the API endpoint is the output of CloudFormation Stack, the API request body is as follows:
+
+Use Postman to test the API connection, the API endpoint is the output of CloudFormation Stack with prefix 'embedding' or 'llm', the sample URL will be like "https://xxxx.execute-api.us-east-1.amazonaws.com/v1/embedding", the API request body is as follows:
+
 ```bash
 {
   "document_prefix": "<Your S3 bucket prefix>",
   "aos_index": "chatbot-index"
 }
 ```
+You should see output like this:
+```bash
+{
+  "created": 1693064936.203125,
+  "model": "embedding-endpoint"
+}
+```
+
+## Other Sample
+Try [Bedrock tuturial](https://github.com/aws-samples/llm-bot/blob/main/sample/bedrock-tuturial.ipynb) quick get though the bedrock model & langchain.
 
 ## Security
 
