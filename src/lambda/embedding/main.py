@@ -82,6 +82,7 @@ def lambda_handler(event, context):
     total_size = 0
     total_files = 0
     for obj in document_bucket.objects.filter(Prefix=prefix):
+        print(obj.key, obj.size)
         total_files += 1
         total_size += obj.size
     logger.info(f'total_files:{total_files}, total_size:{total_size}')
@@ -114,16 +115,19 @@ def lambda_handler(event, context):
 
     docs = []
     for obj in document_bucket.objects.filter(Prefix=prefix):
-        # loader = S3FileLoader(bucket, obj.key)
-        with tempfile.TemporaryDirectory(dir='/tmp') as temp_dir:
-            file_path = f"{temp_dir}/{obj.key}"
-            logging.info(f"_document_bucket={_document_bucket}, obj.key={obj.key}, file_path={file_path}")
-            os.makedirs(os.path.dirname(file_path), exist_ok=True)
-            s3.meta.client.download_file(_document_bucket, obj.key, file_path)
+        if obj.key.endswith("/"):   # bypass the prefix directory
+            continue
+        else:
+            # loader = S3FileLoader(bucket, obj.key)
+            with tempfile.TemporaryDirectory(dir='/tmp') as temp_dir:
+                file_path = f"{temp_dir}/{obj.key}"
+                logging.info(f"_document_bucket={_document_bucket}, obj.key={obj.key}, file_path={file_path}")
+                os.makedirs(os.path.dirname(file_path), exist_ok=True)
+                s3.meta.client.download_file(_document_bucket, obj.key, file_path)
 
-            loader = UnstructuredFileLoader(file_path)
-            # return loader.load()
-            docs.extend(loader.load())
+                loader = UnstructuredFileLoader(file_path)
+                # return loader.load()
+                docs.extend(loader.load())
 
     # add a custom metadata field, timestamp and embeddings_model
     for doc in docs:
