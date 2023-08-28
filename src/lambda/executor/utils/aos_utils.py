@@ -8,10 +8,7 @@ credentials = boto3.Session().get_credentials()
 region = boto3.Session().region_name
 awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, region, 'es', session_token=credentials.token)
 
-
-QA_SEP = "=>"
-
-class OpenSearchClient:
+class LLMBotOpenSearchClient:
     def __init__(self, host):
         """
         Initialize OpenSearch client using OpenSearch Endpoint
@@ -42,7 +39,6 @@ class OpenSearchClient:
                 "size": size,
                 "query": {
                     "bool":{
-                        "must":[ {"term": { "doc_type": "Sentence" }} ],
                         "should": [ {"match": { field : query_term }} ]
                     }
                 },
@@ -72,7 +68,7 @@ class OpenSearchClient:
             "size": size,
             "query": {
                 "knn": {
-                    "embedding": {
+                    "vector_field": {
                         "vector": query_term,
                         "k": size
                     }
@@ -96,13 +92,13 @@ class OpenSearchClient:
         query =  {
             "query" : {
                 "match_phrase":{
-                    "doc": query_term
+                    field : query_term
                 }
             }
         }
         return query
 
-    def organize_results(self, query_type, response):
+    def organize_results(self, query_type, response, field):
         """
         Organize results from aos response
 
@@ -113,19 +109,17 @@ class OpenSearchClient:
         aos_hits = response["hits"]["hits"]
         if query_type == "exact":
             for aos_hit in aos_hits:
-                doc = aos_hit['_source']['doc']
-                doc_type = "A"
+                doc = aos_hit['_source'][field]
                 score = aos_hit["_score"]
-                results.append({'doc': doc, 'doc_type': doc_type, 'score': score})
+                results.append({'doc': doc, 'score': score})
         else:
             for aos_hit in aos_hits:
-                doc = f"{aos_hit['_source']['doc']}"
-                doc_type = aos_hit["_source"]["doc_type"]
+                doc = f"{aos_hit['_source'][field]}"
                 score = aos_hit["_score"]
-                results.append({'doc': doc, 'doc_type': doc_type, 'score': score})
+                results.append({'doc': doc, 'score': score})
         return results
 
-    def search(self, index_name, query_type, query_term, field: str = "doc", size: int = 10):
+    def search(self, index_name, query_type, query_term, field: str = "text", size: int = 10):
         """
         Perform search on aos
         
@@ -142,5 +136,5 @@ class OpenSearchClient:
             body=query,
             index=index_name
         )
-        result = self.organize_results(query_type, response)
+        result = self.organize_results(query_type, response, field)
         return result
