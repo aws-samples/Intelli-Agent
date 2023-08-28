@@ -3,3 +3,7 @@ opensearch-py==2.2.0
 faiss_cpu==1.7.4
 sagemaker==2.48.0
 numpy==1.22.0
+# nltk==3.8.1
+requests-aws4auth==1.2.3
+unstructured==0.10.5
+unstructured[pdf]

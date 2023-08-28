@@ -3,8 +3,6 @@ import logging
 import os
 import boto3
 import time
-import uuid
-import langchain
 from aos_utils import OpenSearchClient
 from llmbot_utils import QueryType, combine_recalls, concat_recall_knowledge, process_input_messages
 from ddb_utils import get_session, update_session
@@ -74,7 +72,7 @@ def main_entry(session_id:str, query_input:str, history:list, embedding_model_en
         
         # 2. get AOS knn recall 
         start = time.time()
-        
+        # call SagemakerEndpointVectorOrCross(prompt: str, endpoint_name: str, region_name: str, model_type: str, stop: List[str]) instead of get_vector_by_sm_endpoint
         query_embedding = get_vector_by_sm_endpoint(query_knowledge, sm_client, embedding_model_endpoint)
         opensearch_knn_respose = aos_client.search(index_name=aos_index, query_type="knn", query_term=query_embedding[0])
         elpase_time = time.time() - start
@@ -92,6 +90,7 @@ def main_entry(session_id:str, query_input:str, history:list, embedding_model_en
         # 5. Predict correlation score
         recall_knowledge_cross = []
         for knowledge in recall_knowledge:
+            # should concatenate query_knowledge and knowledge['doc'] to unified prompt and call SagemakerEndpointVectorOrCross(prompt: str, endpoint_name: str, region_name: str, model_type: str, stop: List[str]) instead of get_cross_by_sm_endpoint
             score = get_cross_by_sm_endpoint(query_knowledge, knowledge['doc'], sm_client, cross_model_endpoint)
             logger.info(json.dumps({"doc": knowledge['doc'], "score": score}, ensure_ascii=False))
             if score > 0.8:
@@ -111,6 +110,7 @@ def main_entry(session_id:str, query_input:str, history:list, embedding_model_en
     # 6. generate answer using question and recall_knowledge
     parameters = {'temperature': temperature}
     try:
+        # call SagemakerEndpointVectorOrCross(prompt: str, endpoint_name: str, region_name: str, model_type: str, stop: List[str]) instead of generate_answer
         answer = generate_answer(sm_client, llm_model_endpoint, question=query_input, context = recall_knowledge_str, history=history, stop=None, parameters=parameters)
     except Exception as e:
         logger.info(f'Exceptions: str({e})')
