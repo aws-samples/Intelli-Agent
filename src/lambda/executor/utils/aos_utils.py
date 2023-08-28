@@ -8,10 +8,7 @@ credentials = boto3.Session().get_credentials()
 region = boto3.Session().region_name
 awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, region, 'es', session_token=credentials.token)
 
-
-QA_SEP = "=>"
-
-class OpenSearchClient:
+class LLMBotOpenSearchClient:
     def __init__(self, host):
         """
         Initialize OpenSearch client using OpenSearch Endpoint
@@ -42,7 +39,7 @@ class OpenSearchClient:
                 "size": size,
                 "query": {
                     "bool":{
-                        "should": [ {"match": { "text" : query_term }} ]
+                        "should": [ {"match": { field : query_term }} ]
                     }
                 },
                 "sort": [
@@ -95,13 +92,13 @@ class OpenSearchClient:
         query =  {
             "query" : {
                 "match_phrase":{
-                    "doc": query_term
+                    field : query_term
                 }
             }
         }
         return query
 
-    def organize_results(self, query_type, response):
+    def organize_results(self, query_type, response, field):
         """
         Organize results from aos response
 
@@ -112,12 +109,12 @@ class OpenSearchClient:
         aos_hits = response["hits"]["hits"]
         if query_type == "exact":
             for aos_hit in aos_hits:
-                doc = aos_hit['_source']['text']
+                doc = aos_hit['_source'][field]
                 score = aos_hit["_score"]
                 results.append({'doc': doc, 'score': score})
         else:
             for aos_hit in aos_hits:
-                doc = f"{aos_hit['_source']['text']}"
+                doc = f"{aos_hit['_source'][field]}"
                 score = aos_hit["_score"]
                 results.append({'doc': doc, 'score': score})
         return results
@@ -139,5 +136,5 @@ class OpenSearchClient:
             body=query,
             index=index_name
         )
-        result = self.organize_results(query_type, response)
+        result = self.organize_results(query_type, response, field)
         return result
