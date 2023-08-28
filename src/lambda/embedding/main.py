@@ -143,6 +143,8 @@ def lambda_handler(event, context):
     logger.info(f'Loading chunks into vector store ... using {db_shards} shards, shards content: {shards}')
 
     # TBD, create index if not exists instead of using API in AOS console manually
+    # Reply: Langchain has already implemented the code to create index if not exists
+    # Refer Link: https://github.com/langchain-ai/langchain/blob/eb3d1fa93caa26d497e5b5bdf6134d266f6a6990/libs/langchain/langchain/vectorstores/opensearch_vector_search.py#L120
     exists = aos_client.indices.exists(index_name)
     logger.info(f"index_name={index_name}, exists={exists}")
 
