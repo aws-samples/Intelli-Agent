@@ -6,7 +6,6 @@ import time
 from aos_utils import OpenSearchClient
 from llmbot_utils import QueryType, combine_recalls, concat_recall_knowledge, process_input_messages
 from ddb_utils import get_session, update_session
-from sm_utils import get_vector_by_sm_endpoint, get_cross_by_sm_endpoint, generate_answer
 from sm_utils import SagemakerEndpointVectorOrCross
 
 logger = logging.getLogger()
