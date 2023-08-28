@@ -38,8 +38,7 @@ def handle_error(func):
     return wrapper
 
 def main_entry(session_id:str, query_input:str, history:list, embedding_model_endpoint:str, cross_model_endpoint:str, 
-               llm_model_endpoint:str, aos_endpoint:str, aos_index:str, aos_result_num:int, 
-               enable_knowledge_qa:bool, temperature: float):
+               llm_model_endpoint:str, aos_endpoint:str, aos_index:str, enable_knowledge_qa:bool, temperature: float):
     """
     Entry point for the Lambda function.
 
@@ -51,8 +50,6 @@ def main_entry(session_id:str, query_input:str, history:list, embedding_model_en
     :param llm_model_name: The name of the language model.
     :param aos_endpoint: The endpoint of the AOS engine.
     :param aos_index: The index of the AOS engine.
-    :param aos_knn_field: The knn field of the AOS engine.
-    :param aos_result_num: The number of results of the AOS engine.
     :param enable_knowledge_qa: Whether to enable knowledge QA.
     :param temperature: The temperature of the language model.
 
@@ -117,13 +114,13 @@ def main_entry(session_id:str, query_input:str, history:list, embedding_model_en
         answer = ""
     
     # 7. update_session
-    start = time.time()
-    update_session(session_id=session_id, chat_session_table=chat_session_table, 
-                   question=query_input, answer=answer, intention=str(query_type))
-    elpase_time = time.time() - start
-    elpase_time1 = time.time() - start1
-    logger.info(f'runing time of update_session : {elpase_time}s seconds')
-    logger.info(f'runing time of all  : {elpase_time1}s seconds')
+    # start = time.time()
+    # update_session(session_id=session_id, chat_session_table=chat_session_table, 
+    #                question=query_input, answer=answer, intention=str(query_type))
+    # elpase_time = time.time() - start
+    # elpase_time1 = time.time() - start1
+    # logger.info(f'runing time of update_session : {elpase_time}s seconds')
+    # logger.info(f'runing time of all  : {elpase_time1}s seconds')
 
     # 8. log results
     json_obj = {
@@ -144,32 +141,28 @@ def main_entry(session_id:str, query_input:str, history:list, embedding_model_en
 
 @handle_error
 def lambda_handler(event, context):
-
-    model = event['model']
-    messages = event['messages']
-    temperature = event['temperature']
-
-    history, question = process_input_messages(messages)
-    role = "user"
-    request_timestamp = time.time() # 或者使用 time.time_ns() 获取纳秒级别的时间戳
-    session_id = f"{role}_{int(request_timestamp)}"
-
-    # knowledge_qa_flag is True if model == 'knowledge_qa' else False
-    knowledge_qa_flag = True if model == 'knowledge_qa' else False
-
-    # 接收触发AWS Lambda函数的事件
+    request_timestamp = time.time()
     logger.info(f'request_timestamp :{request_timestamp}')
     logger.info(f"event:{event}")
     logger.info(f"context:{context}")
-    logger.info('The main brain has been activated, aws🚀!')
+
+    # Get request body
+    event_body = json.loads(event['body'])
+    model = event_body['model']
+    messages = event_body['messages']
+    temperature = event_body['temperature']
+
+    history, question = process_input_messages(messages)
+    role = "user"
+    session_id = f"{role}_{int(request_timestamp)}"
+    # knowledge_qa_flag is True if model == 'knowledge_qa' else False
+    knowledge_qa_flag = True if model == 'knowledge_qa' else False
 
     # 1. 获取环境变量
     embedding_endpoint = os.environ.get("embedding_endpoint", "")
     cross_endpoint = os.environ.get("cross_endpoint", "")
     aos_endpoint = os.environ.get("aos_endpoint", "")
     aos_index = os.environ.get("aos_index", "")
-    aos_knn_field = os.environ.get("aos_knn_field", "")
-    aos_result_num = int(os.environ.get("aos_results", ""))
     llm_endpoint = os.environ.get('llm_default_endpoint')
 
     logger.info(f'llm_endpoint : {llm_endpoint}')
@@ -177,18 +170,13 @@ def lambda_handler(event, context):
     logger.info(f'cross_endpoint : {cross_endpoint}')
     logger.info(f'aos_endpoint : {aos_endpoint}')
     logger.info(f'aos_index : {aos_index}')
-    logger.info(f'aos_knn_field : {aos_knn_field}')
-    logger.info(f'aos_result_num : {aos_result_num}')
     
     main_entry_start = time.time()  # 或者使用 time.time_ns() 获取纳秒级别的时间戳
-    answer = main_entry(session_id, question, history, embedding_endpoint, cross_endpoint, llm_endpoint, aos_endpoint, aos_index, aos_result_num, knowledge_qa_flag, temperature)
+    answer = main_entry(session_id, question, history, embedding_endpoint, cross_endpoint, llm_endpoint, aos_endpoint, aos_index, knowledge_qa_flag, temperature)
     main_entry_elpase = time.time() - main_entry_start  # 或者使用 time.time_ns() 获取纳秒级别的时间戳
     logger.info(f'runing time of main_entry : {main_entry_elpase}s seconds')
 
-
-    # 2. return rusult
-
-    return {
+    llmbot_response = {
         "id": session_id,
         "object": "chat.completion",
         "created": int(request_timestamp),
@@ -208,4 +196,11 @@ def lambda_handler(event, context):
                 "index": 0
             }
         ]
+    }
+
+    # 2. return rusult
+    return {
+        'statusCode': 200,
+        'headers': {'Content-Type': 'application/json'},
+        'body': json.dumps(llmbot_response)
     }
