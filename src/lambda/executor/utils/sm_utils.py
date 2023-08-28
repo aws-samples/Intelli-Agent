@@ -1,8 +1,10 @@
 import json
 import re
 from langchain.llms.sagemaker_endpoint import LLMContentHandler, SagemakerEndpoint
-from typing import Dict, List
-
+from langchain.embeddings import SagemakerEndpointEmbeddings
+from langchain.embeddings.sagemaker_endpoint import EmbeddingsContentHandler
+from typing import Dict, List, Optional
+    
 def enforce_stop_tokens(text, stop) -> str:
     """Cut off the text as soon as any stop words occur."""
     if stop is None:
@@ -10,24 +12,24 @@ def enforce_stop_tokens(text, stop) -> str:
     
     return re.split("|".join(stop), text)[0]
 
-class vectorContentHandler(LLMContentHandler):
+class vectorContentHandler(EmbeddingsContentHandler):
     content_type = "application/json"
     accepts = "application/json"
 
-    def transform_input(self, prompt: str, model_kwargs: Dict) -> bytes:
-        input_str = json.dumps({"inputs": prompt, **model_kwargs})
-        return input_str.encode('utf-8')
+    def transform_input(self, inputs: List[str], model_kwargs: Dict) -> bytes:
+        input_str = json.dumps({"inputs": inputs, **model_kwargs})
+        return input_str.encode("utf-8")
 
-    def transform_output(self, output: bytes) -> str:
+    def transform_output(self, output: bytes) -> List[List[float]]:
         response_json = json.loads(output.read().decode("utf-8"))
-        return response_json['sentence_embeddings']
+        return response_json["sentence_embeddings"]
 
 class crossContentHandler(LLMContentHandler):
     content_type = "application/json"
     accepts = "application/json"
 
     def transform_input(self, prompt: str, model_kwargs: Dict) -> bytes:
-        input_str = json.dumps({"inputs": prompt["inputs"], "docs":prompt["docs"] **model_kwargs})
+        input_str = json.dumps({"inputs": prompt, "docs":model_kwargs["context"]})
         return input_str.encode('utf-8')
 
     def transform_output(self, output: bytes) -> str:
@@ -39,18 +41,17 @@ class answerContentHandler(LLMContentHandler):
     accepts = "application/json"
 
     def transform_input(self, prompt: str, model_kwargs: Dict) -> bytes:
-        input_str = json.dumps({"inputs": prompt["inputs"],
-                                "history":prompt["history"],
-                                "parameters":prompt["parameters"],
-                                "context":prompt["context"],
-                                 **model_kwargs})
+        input_str = json.dumps({"inputs": prompt,
+                                "history": model_kwargs["history"],
+                                "parameters": model_kwargs["parameters"],
+                                "context": model_kwargs["context"]})
         return input_str.encode('utf-8')
 
     def transform_output(self, output: bytes) -> str:
         response_json = json.loads(output.read().decode("utf-8"))
-        return response_json['scores'][0][1]
+        return response_json['outputs']
 
-def SagemakerEndpointVectorOrCross(prompt: str, endpoint_name: str, region_name: str, model_type: str, stop: List[str]) -> SagemakerEndpoint:
+def SagemakerEndpointVectorOrCross(prompt: str, endpoint_name: str, region_name: str, model_type: str, stop: List[str], context='', history = [], parameters = {}) -> SagemakerEndpoint:
     """
     original class invocation:
         response = self.client.invoke_endpoint(
@@ -63,16 +64,41 @@ def SagemakerEndpointVectorOrCross(prompt: str, endpoint_name: str, region_name:
     """
     if model_type == "vector":
         content_handler = vectorContentHandler()
+        embeddings = SagemakerEndpointEmbeddings(
+            endpoint_name=endpoint_name,
+            region_name=region_name,
+            content_handler=content_handler,
+        )
+        query_result = embeddings.embed_query(prompt)
+        return query_result
     elif model_type == "cross":
         content_handler = crossContentHandler()
+        genericModel = SagemakerEndpoint(
+            endpoint_name = endpoint_name,
+            region_name = region_name,
+            content_handler = content_handler
+        )
+        return genericModel(prompt=prompt, stop=stop, context=context)
     elif model_type == "answer":
         content_handler = answerContentHandler()
-    genericModel = SagemakerEndpoint(
-        endpoint_name = endpoint_name,
-        region_name = region_name,
-        content_handler = content_handler
-    )
-    return genericModel(prompt=prompt, stop=stop)
+        genericModel = SagemakerEndpoint(
+            endpoint_name = endpoint_name,
+            region_name = region_name,
+            content_handler = content_handler
+        )
+        return genericModel(prompt=prompt, stop=stop, history = history, parameters = parameters, context=context)
+    else:
+        return None
+    # elif model_type == "cross":
+    #     content_handler = crossContentHandler()
+    # elif model_type == "answer":
+    #     content_handler = answerContentHandler()
+    # genericModel = SagemakerEndpoint(
+    #     endpoint_name = endpoint_name,
+    #     region_name = region_name,
+    #     content_handler = content_handler
+    # )
+    # return genericModel(prompt=prompt, stop=stop)
 
 # will be deprecated in the future
 def get_vector_by_sm_endpoint(questions, sm_client, endpoint_name):

@@ -11,6 +11,7 @@ from sm_utils import SagemakerEndpointVectorOrCross
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
+region = os.environ['AWS_REGION']
 sm_client = boto3.client("sagemaker-runtime")
 chat_session_table = os.environ.get('chat_session_table')
 
@@ -71,9 +72,8 @@ def main_entry(session_id:str, query_input:str, history:list, embedding_model_en
         # 2. get AOS knn recall 
         start = time.time()
         # call SagemakerEndpointVectorOrCross(prompt: str, endpoint_name: str, region_name: str, model_type: str, stop: List[str]) instead of get_vector_by_sm_endpoint
-        # query_embedding = SagemakerEndpointVectorOrCross(prompt=query_knowledge, endpoint_name=sm_client, region_name=embedding_model_endpoint, model_type="vector", stop=None)
-        query_embedding = get_vector_by_sm_endpoint(query_knowledge, sm_client, embedding_model_endpoint)
-        opensearch_knn_respose = aos_client.search(index_name=aos_index, query_type="knn", query_term=query_embedding[0])
+        query_embedding = SagemakerEndpointVectorOrCross(prompt=query_knowledge, endpoint_name=embedding_model_endpoint, region_name=region, model_type="vector", stop=None)
+        opensearch_knn_respose = aos_client.search(index_name=aos_index, query_type="knn", query_term=query_embedding)
         logger.info(json.dumps(opensearch_knn_respose, ensure_ascii=False))
         elpase_time = time.time() - start
         logger.info(f'runing time of opensearch_knn : {elpase_time}s seconds')
@@ -92,7 +92,7 @@ def main_entry(session_id:str, query_input:str, history:list, embedding_model_en
         recall_knowledge_cross = []
         for knowledge in recall_knowledge:
             # should concatenate query_knowledge and knowledge['doc'] to unified prompt and call SagemakerEndpointVectorOrCross(prompt: str, endpoint_name: str, region_name: str, model_type: str, stop: List[str]) instead of get_cross_by_sm_endpoint
-            score = get_cross_by_sm_endpoint(query_knowledge, knowledge['doc'], sm_client, cross_model_endpoint)
+            score = float(SagemakerEndpointVectorOrCross(prompt=query_knowledge, endpoint_name=cross_model_endpoint, region_name=region, model_type="cross", stop=None, context=knowledge['doc']))
             logger.info(json.dumps({"doc": knowledge['doc'], "score": score}, ensure_ascii=False))
             if score > 0.8:
                 recall_knowledge_cross.append({'doc': knowledge['doc'], 'score': score})
@@ -112,7 +112,7 @@ def main_entry(session_id:str, query_input:str, history:list, embedding_model_en
     parameters = {'temperature': temperature}
     try:
         # call SagemakerEndpointVectorOrCross(prompt: str, endpoint_name: str, region_name: str, model_type: str, stop: List[str]) instead of generate_answer
-        answer = generate_answer(sm_client, llm_model_endpoint, question=query_input, context = recall_knowledge_str, history=history, stop=None, parameters=parameters)
+        answer = SagemakerEndpointVectorOrCross(prompt=query_input, endpoint_name=llm_model_endpoint, region_name=region, model_type="answer", stop=None, history=history, parameters=parameters, context=recall_knowledge_str)
     except Exception as e:
         logger.info(f'Exceptions: str({e})')
         answer = ""

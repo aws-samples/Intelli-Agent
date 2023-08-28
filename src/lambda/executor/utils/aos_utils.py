@@ -71,7 +71,7 @@ class OpenSearchClient:
             "size": size,
             "query": {
                 "knn": {
-                    "embedding": {
+                    "vector_field": {
                         "vector": query_term,
                         "k": size
                     }
