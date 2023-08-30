@@ -27,6 +27,8 @@ export class LLMApiStack extends NestedStack {
         const _vpc = props._vpc
         const _securityGroup = props._securityGroup
         const _domainEndpoint = props._domainEndpoint
+        const _aosIndex = "chatbot-index"
+        const _chatSessionTable = "modelRatingInfo"
 
         // s3 bucket for storing documents
         const _S3Bucket = new s3.Bucket(this, 'llm-bot-documents', {
@@ -50,6 +52,8 @@ export class LLMApiStack extends NestedStack {
                 llm_endpoint: props._crossEndPoint,
                 embedding_endpoint: props._embeddingEndPoint,
                 cross_endpoint: props._crossEndPoint,
+                aos_index: _aosIndex,
+                chat_session_table: _chatSessionTable,
             },
           });
 

@@ -8,6 +8,17 @@ credentials = boto3.Session().get_credentials()
 region = boto3.Session().region_name
 awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, region, 'es', session_token=credentials.token)
 
+IMPORT_OPENSEARCH_PY_ERROR = (
+    "Could not import OpenSearch. Please install it with `pip install opensearch-py`."
+)
+def _import_not_found_error():
+    """Import not found error if available, otherwise raise error."""
+    try:
+        from opensearchpy.exceptions import NotFoundError
+    except ImportError:
+        raise ImportError(IMPORT_OPENSEARCH_PY_ERROR)
+    return NotFoundError
+
 class LLMBotOpenSearchClient:
     def __init__(self, host):
         """
@@ -131,6 +142,11 @@ class LLMBotOpenSearchClient:
         
         :return: aos response json
         """
+        not_found_error = _import_not_found_error()
+        try:
+            self.client.indices.get(index=index_name)
+        except not_found_error:
+            return []
         query = self.query_match[query_type](index_name, query_term, field, size)
         response = self.client.search(
             body=query,

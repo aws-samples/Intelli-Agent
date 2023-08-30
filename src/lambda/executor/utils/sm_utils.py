@@ -40,11 +40,12 @@ class answerContentHandler(LLMContentHandler):
     content_type = "application/json"
     accepts = "application/json"
 
-    def transform_input(self, prompt: str, model_kwargs: Dict) -> bytes:
+    def transform_input(self, question: str, model_kwargs: Dict) -> bytes:
+
+        template_1 = '以下context xml tag内的文本内容为背景知识：\n<context>\n{context}\n</context>\n请根据背景知识, 回答这个问题：{question}'
+        prompt = template_1.format(context = model_kwargs["context"], question = question)
         input_str = json.dumps({"inputs": prompt,
-                                "history": model_kwargs["history"],
-                                "parameters": model_kwargs["parameters"],
-                                "context": model_kwargs["context"]})
+                                "history": model_kwargs["history"]})
         return input_str.encode('utf-8')
 
     def transform_output(self, output: bytes) -> str:
