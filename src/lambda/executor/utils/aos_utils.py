@@ -121,13 +121,15 @@ class LLMBotOpenSearchClient:
         if query_type == "exact":
             for aos_hit in aos_hits:
                 doc = aos_hit['_source'][field]
+                source = aos_hit['_source']['metadata']['source']
                 score = aos_hit["_score"]
-                results.append({'doc': doc, 'score': score})
+                results.append({'doc': doc, 'score': score, 'source': source})
         else:
             for aos_hit in aos_hits:
                 doc = f"{aos_hit['_source'][field]}"
+                source = aos_hit['_source']['metadata']['source']
                 score = aos_hit["_score"]
-                results.append({'doc': doc, 'score': score})
+                results.append({'doc': doc, 'score': score, 'source': source})
         return results
 
     def search(self, index_name, query_type, query_term, field: str = "text", size: int = 10):

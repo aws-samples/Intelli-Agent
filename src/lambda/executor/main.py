@@ -92,13 +92,14 @@ def main_entry(session_id:str, query_input:str, history:list, embedding_model_en
         for knowledge in recall_knowledge:
             # get score using cross model
             score = float(SagemakerEndpointVectorOrCross(prompt=query_knowledge, endpoint_name=cross_model_endpoint, region_name=region, model_type="cross", stop=None, context=knowledge['doc']))
-            logger.info(json.dumps({"doc": knowledge['doc'], "score": score}, ensure_ascii=False))
+            logger.info(json.dumps({'doc': knowledge['doc'], 'score': score, 'source': knowledge['source']}, ensure_ascii=False))
             if score > 0.8:
-                recall_knowledge_cross.append({'doc': knowledge['doc'], 'score': score})
+                recall_knowledge_cross.append({'doc': knowledge['doc'], 'score': score, 'source': knowledge['source']})
 
         recall_knowledge_cross.sort(key=lambda x: x["score"], reverse=True)
 
         recall_knowledge_str = concat_recall_knowledge(recall_knowledge_cross[:2])
+        sources = list(set([item["source"] for item in recall_knowledge_cross[:2]]))
         query_type = QueryType.KnowledgeQuery
         elpase_time = time.time() - start
         logger.info(f'runing time of recall knowledge : {elpase_time}s seconds')
@@ -130,13 +131,14 @@ def main_entry(session_id:str, query_input:str, history:list, embedding_model_en
         "detect_query_type": str(query_type),
         "history": history,
         "chatbot_answer": answer,
+        "sources": sources,
         "timestamp": int(time.time())
     }
 
     json_obj_str = json.dumps(json_obj, ensure_ascii=False)
     logger.info(json_obj_str)
 
-    return answer
+    return answer, sources
 
 @handle_error
 def lambda_handler(event, context):
@@ -157,7 +159,7 @@ def lambda_handler(event, context):
     knowledge_qa_flag = True if model == 'knowledge_qa' else False
     
     main_entry_start = time.time() 
-    answer = main_entry(session_id, question, history, embedding_endpoint, cross_endpoint, llm_endpoint, aos_index, knowledge_qa_flag, temperature)
+    answer, sources = main_entry(session_id, question, history, embedding_endpoint, cross_endpoint, llm_endpoint, aos_index, knowledge_qa_flag, temperature)
     main_entry_elpase = time.time() - main_entry_start  
     logger.info(f'runing time of main_entry : {main_entry_elpase}s seconds')
 
@@ -175,7 +177,8 @@ def lambda_handler(event, context):
             {
                 "message": {
                     "role": "assistant",
-                    "content": answer
+                    "content": answer,
+                    "knowledge_sources": sources
                 },
                 "finish_reason": "stop",
                 "index": 0
