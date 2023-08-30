@@ -46,7 +46,7 @@ def post_handler(event, session_table):
     # inserting values into table
     response = session_table.put_item(
         Item={
-            "session_id":session_id,
+            "session-id":session_id,
             "question_content":body['question_content'],
             "question_answer":body['question_answer'],
             "revised_answer":body['revised_answer'] if 'revised_answer' in body else None,
