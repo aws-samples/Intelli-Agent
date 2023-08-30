@@ -71,7 +71,7 @@ def main_entry(session_id:str, query_input:str, history:list, embedding_model_en
         
         # 2. get AOS knn recall 
         start = time.time()
-        query_embedding = SagemakerEndpointVectorOrCross(prompt=query_knowledge, endpoint_name=embedding_model_endpoint, region_name=region, model_type="vector", stop=None)
+        query_embedding = SagemakerEndpointVectorOrCross(prompt="为这个句子生成表示以用于检索相关文章：" + query_knowledge, endpoint_name=embedding_model_endpoint, region_name=region, model_type="vector", stop=None)
         opensearch_knn_respose = aos_client.search(index_name=aos_index, query_type="knn", query_term=query_embedding)
         logger.info(json.dumps(opensearch_knn_respose, ensure_ascii=False))
         elpase_time = time.time() - start
