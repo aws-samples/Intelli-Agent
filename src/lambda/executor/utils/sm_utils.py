@@ -4,7 +4,11 @@ from langchain.llms.sagemaker_endpoint import LLMContentHandler, SagemakerEndpoi
 from langchain.embeddings import SagemakerEndpointEmbeddings
 from langchain.embeddings.sagemaker_endpoint import EmbeddingsContentHandler
 from typing import Dict, List
-    
+
+import logging
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
 def enforce_stop_tokens(text, stop) -> str:
     """Cut off the text as soon as any stop words occur."""
     if stop is None:
@@ -40,11 +44,19 @@ class answerContentHandler(LLMContentHandler):
     content_type = "application/json"
     accepts = "application/json"
 
-    def transform_input(self, prompt: str, model_kwargs: Dict) -> bytes:
+    def transform_input(self, question: str, model_kwargs: Dict) -> bytes:
+
+        template_1 = '以下context xml tag内的文本内容为背景知识：\n<context>\n{context}\n</context>\n请根据背景知识, 回答这个问题：{question}'
+        context = model_kwargs["context"]
+        
+        if len(context) == 0:
+            prompt = question
+        else:
+            prompt = template_1.format(context = model_kwargs["context"], question = question)
+
         input_str = json.dumps({"inputs": prompt,
                                 "history": model_kwargs["history"],
-                                "parameters": model_kwargs["parameters"],
-                                "context": model_kwargs["context"]})
+                                "parameters": model_kwargs["parameters"]})
         return input_str.encode('utf-8')
 
     def transform_output(self, output: bytes) -> str:

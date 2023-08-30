@@ -25,7 +25,7 @@ export class DynamoDBStack extends NestedStack {
     const table = new Table(this, "modelRatingTable", {
       tableName: "modelRatingInfo",
       partitionKey: {
-        name: "ticket_id",
+        name: "session-id",
         type: AttributeType.STRING,
       },
     //   removalPolicy: RemovalPolicy.DESTROY, 

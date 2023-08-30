@@ -138,8 +138,6 @@ At the time of writing you can only use `amazon.titan-e1t-medium` as embedding m
 ```json
 {
     "inputs": "<prompt>",
-    "context": "<context>",
-    "existing_answer": "<existing_answer>",
     "history": [
         ["<human_0>", "<assistant_0>"],
         ["<human_1>", "<assistant_1>"]
@@ -160,6 +158,16 @@ At the time of writing you can only use `amazon.titan-e1t-medium` as embedding m
 {
     "outputs": "<output>"
 }
+```
+
+Inputs example: Making models answer using reference text
+
+```
+以下context xml tag内的文本内容为背景知识：
+<context>
+{insert articles here}
+</context>
+请根据背景知识, 回答这个问题：{insert question here}
 ```
 
 ### Stability AI Stable Diffusion XL

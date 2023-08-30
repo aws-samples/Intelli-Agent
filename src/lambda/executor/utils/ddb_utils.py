@@ -1,5 +1,6 @@
 import json
 import boto3
+from datetime import date
 
 def get_session(session_id, chat_session_table):
 
