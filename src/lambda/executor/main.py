@@ -16,7 +16,7 @@ embedding_endpoint = os.environ.get("embedding_endpoint", "")
 cross_endpoint = os.environ.get("cross_endpoint", "")
 aos_endpoint = os.environ.get("aos_endpoint", "")
 aos_index = os.environ.get("aos_index", "")
-llm_endpoint = os.environ.get('llm_default_endpoint', "")
+llm_endpoint = os.environ.get('llm_endpoint', "")
 chat_session_table = os.environ.get('chat_session_table', "")
 
 sm_client = boto3.client("sagemaker-runtime")
