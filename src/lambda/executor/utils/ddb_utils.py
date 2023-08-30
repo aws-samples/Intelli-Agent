@@ -1,5 +1,6 @@
 import json
 import boto3
+import date
 
 def get_session(session_id, chat_session_table):
 
@@ -10,7 +11,7 @@ def get_session(session_id, chat_session_table):
     table = dynamodb.Table(table_name)
     operation_result = ""
 
-    response = table.get_item(Key={'session-id': session_id})
+    response = table.get_item(Key={'session_id': session_id})
 
     if "Item" in response.keys():
         # print("****** " + response["Item"]["content"])
@@ -36,7 +37,7 @@ def update_session(session_id, chat_session_table, question, answer, intention):
     table = dynamodb.Table(table_name)
     operation_result = ""
 
-    response = table.get_item(Key={'session-id': session_id})
+    response = table.get_item(Key={'session_id': session_id})
 
     # if "Item" in response.keys():
     #     # print("****** " + response["Item"]["content"])
@@ -52,7 +53,7 @@ def update_session(session_id, chat_session_table, question, answer, intention):
     # inserting values into table
     response = table.put_item(
         Item={
-            'session-id': session_id,
+            'session_id': session_id,
             'content': content
         }
     )
@@ -84,7 +85,7 @@ def update_history(session_id, chat_session_table, user, message, timestamp, isF
     table = dynamodb.Table(table_name)
     operation_result = ""
 
-    response = table.get_item(Key={'session-id': session_id})
+    response = table.get_item(Key={'session_id': session_id})
 
     if "Item" in response.keys():
         # print("****** " + response["Item"]["content"])
@@ -101,7 +102,7 @@ def update_history(session_id, chat_session_table, user, message, timestamp, isF
     if isFirstUpdate:
         response = table.put_item(
             Item={
-                'session-id': session_id,
+                'session_id': session_id,
                 'content': content,
                 'sessionCreationDate': TodayDate,
                 'lastUpdateDate': TodayDate
@@ -110,7 +111,7 @@ def update_history(session_id, chat_session_table, user, message, timestamp, isF
     else:
         response = table.put_item(
             Item={
-                'session-id': session_id,
+                'session_id': session_id,
                 'content': content,
                 'lastUpdateDate': TodayDate
             }

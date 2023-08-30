@@ -7,13 +7,13 @@ import uuid
 def lambda_handler(event, context):
     dynamodb = boto3.resource('dynamodb')
     table_name = os.getenv('TABLE_NAME')
-    ticket_table = dynamodb.Table(table_name)
+    session_table = dynamodb.Table(table_name)
 
     http_method = event['httpMethod']
     
     try:
         if http_method == 'POST':
-            return post_handler(event, ticket_table)
+            return post_handler(event, session_table)
         else:
             return {
                 'statusCode': 400,
@@ -29,9 +29,9 @@ def lambda_handler(event, context):
         }
         
     
-def post_handler(event, ticket_table):
+def post_handler(event, session_table):
     body = event['body']
-    ticket_id = str(uuid.uuid1())
+    session_id = str(uuid.uuid1())
     required_fields = ['question_content', 'question_answer', 'answer_rating']
     
     if not all(field in body for field in required_fields):
@@ -41,15 +41,12 @@ def post_handler(event, ticket_table):
                 'message': 'Missing required fields'
             })
         }
-    ticket_creation_date = datetime.datetime.now().strftime("%m/%d/%y,%H:%M:%S")
+    session_creation_date = datetime.datetime.now().strftime("%m/%d/%y,%H:%M:%S")
     
-    table = ticket_table
- 
-
     # inserting values into table
-    response = table.put_item(
+    response = session_table.put_item(
         Item={
-            "ticket_id":ticket_id,
+            "session_id":session_id,
             "question_content":body['question_content'],
             "question_answer":body['question_answer'],
             "revised_answer":body['revised_answer'] if 'revised_answer' in body else None,
