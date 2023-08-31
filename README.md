@@ -13,60 +13,38 @@ Make sure Python installed properly. Usage: ./model.sh -t TOKEN [-m MODEL_NAME] 
   -m MODEL_NAME       Model name (default: csdc-atl/buffer-cross-001)
   -c COMMIT_HASH      Commit hash (default: 46d270928463db49b317e5ea469a8ac8152f4a13)
   -s S3_BUCKET_NAME   S3 bucket name to upload the model (default: llm-rag)
-./model.sh -t <Your Hugging Face Token>
+./model.sh -t <Your Hugging Face Token> -s <Your S3 Bucket Name>
 ```
-2. Upload file to S3 bucket in the S3 bucket you specified <Your S3 bucket/Your S3 bucket prefix> in the previous step or use default bucket
 
-3. Create index in AOS dashboard (Will be deprecated in the future)
-
-Logging into AOS dashboard address in the output of CloudFormation Stack to open Dashboard choose Dev Tools in left side panel, copy and paste the following command to create index
+2. Deploy CDK template
 ```bash
-PUT chatbot-index
-{
-    "settings" : {
-        "index":{
-            "number_of_shards" : 1,
-            "number_of_replicas" : 0,
-            "knn": "true",
-            "knn.algo_param.ef_search": 32
-        }
-    },
-    "mappings": {
-        "properties": {
-            "doc_type" : {
-                "type" : "keyword"
-            },
-            "doc": {
-                "type": "text",
-                "analyzer": "ik_max_word",
-                "search_analyzer": "ik_smart"
-            },
-            "answer": {
-                "type": "text"
-            },
-            "embedding": {
-                "type": "knn_vector",
-                "dimension": 768,
-                "method": {
-                    "name": "hnsw",
-                    "space_type": "l2",
-                    "engine": "nmslib",
-                    "parameters": {
-                        "ef_construction": 512,
-                        "m": 32
-                    }
-                }            
-            }
-        }
-    }
-}
+npx cdk deploy --rollback false --parameters S3ModelAssets=<Your S3 Bucket Name>
+```
+
+You will get output similar like below:
+```
+Outputs:
+llm-bot-dev.APIEndpointAddress = https://xx.execute-api.us-east-1.amazonaws.com/v1/
+llm-bot-dev.CrossModelEndpoint = cross-endpoint
+llm-bot-dev.EmbeddingModelEndpoint = embedding-endpoint
+llm-bot-dev.InstructModelEndpoint = instruct-endpoint
+llm-bot-dev.OpenSearchDashboard = x.x.x.x:8081/_dashboards
+llm-bot-dev.OpenSearchEndpoint = vpc-xx-xx-xx.us-east-1.es.amazonaws.com
+llm-bot-dev.VPC = vpc-xx
+```
+
+3. Upload embedding file to S3 bucket created in the previous step, the format is like below:
+```bash
+aws s3 cp dth.txt s3://llm-bot-documents-<your account id>-<region>/<your S3 bucket prefix>/
 ```
 
 4. Test the API connection
 
-Use Postman to test the API connection, the API endpoint is the output of CloudFormation Stack with prefix 'embedding' or 'llm', the sample URL will be like "https://xxxx.execute-api.us-east-1.amazonaws.com/v1/embedding", the API request body is as follows:
+Use Postman/cURL to test the API connection, the API endpoint is the output of CloudFormation Stack with prefix 'embedding' or 'llm', the sample URL will be like "https://xxxx.execute-api.us-east-1.amazonaws.com/v1/embedding", the API request body is as follows:
 
+**embedding uploaded file into AOS, POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/embedding**
 ```bash
+BODY
 {
   "document_prefix": "<Your S3 bucket prefix>",
   "aos_index": "chatbot-index"
@@ -75,8 +53,50 @@ Use Postman to test the API connection, the API endpoint is the output of CloudF
 You should see output like this:
 ```bash
 {
-  "created": 1693064936.203125,
+  "created": xx.xx,
   "model": "embedding-endpoint"
+}
+```
+
+**invoke LLM with context, POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/llm**
+```bash
+BODY
+{
+  "model": "knowledge_qa",
+  "messages": [
+    {
+      "role": "user",
+      "content": "给我介绍一下什么是data transfer hub方案？"
+    }
+  ],
+  "temperature": 0.7
+}
+```
+You should see output like this:
+```bash
+{
+  "id": "user_1693493252",
+  "object": "chat.completion",
+  "created": 1693493252,
+  "model": "knowledge_qa",
+  "usage": {
+    "prompt_tokens": 13,
+    "completion_tokens": 7,
+    "total_tokens": 20
+  },
+  "choices": [
+    {
+      "message": {
+        "role": "assistant",
+        "content": "数据传输解决方案（Data Transfer Hub）是一种用于安全、可扩展和可追踪地将数据从不同云服务提供商的对象存储服务（如阿里云 OSS、腾讯 COS、七牛 Kodo等）传输到Amazon S3和Amazon ECR的方案。它提供了一个直观的用户界面，允许客户在界面上创建和管理数据传输任务。通过数据传输解决方案，客户可以实现将数据从其他云服务提供商的对象存储服务传输到Amazon S3，以及在Amazon ECR之间传输容器镜像。该方案采用无服务器架构，按需使用并随用随付。有关更多信息，请参阅实施指南的“成本”部分。",
+        "knowledge_sources": [
+          "/tmp/tmptezz8py3/csdc/dth.txt"
+        ]
+      },
+      "finish_reason": "stop",
+      "index": 0
+    }
+  ]
 }
 ```
 
