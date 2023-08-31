@@ -44,6 +44,10 @@ export class RootStack extends Stack {
     _Ec2Stack.addDependency(_VpcStack);
     _Ec2Stack.addDependency(_OsStack);
 
+    const _DynamoDBStack = new DynamoDBStack(this, 'ddb-stack', {_vpc:_VpcStack._vpc, _securityGroup:_VpcStack._securityGroup, _domainEndpoint:_OsStack._domainEndpoint, env:process.env});
+    _DynamoDBStack.addDependency(_VpcStack);
+    _DynamoDBStack.addDependency(_OsStack);
+
     const _ApiStack = new LLMApiStack(this, 'api-stack', {
         _vpc:_VpcStack._vpc,
         _securityGroup:_VpcStack._securityGroup,
@@ -51,14 +55,13 @@ export class RootStack extends Stack {
         _crossEndPoint: _LLMStack._crossEndPoint ?? '',
         _embeddingEndPoint:_LLMStack._embeddingEndPoint || '',
         _instructEndPoint:_LLMStack._instructEndPoint || '',
+        _chatSessionTable: _DynamoDBStack._chatSessionTable,
         env:process.env
     });
     _ApiStack.addDependency(_VpcStack);
     _ApiStack.addDependency(_OsStack);
-
-    const _DynamoDBStack = new DynamoDBStack(this, 'ddb-stack', {_vpc:_VpcStack._vpc, _securityGroup:_VpcStack._securityGroup, _domainEndpoint:_OsStack._domainEndpoint, env:process.env});
-    _DynamoDBStack.addDependency(_VpcStack);
-    _DynamoDBStack.addDependency(_OsStack);
+    _ApiStack.addDependency(_LLMStack);
+    _ApiStack.addDependency(_DynamoDBStack);
 
     new CfnOutput(this, 'VPC', {value:_VpcStack._vpc.vpcId});
     new CfnOutput(this, 'OpenSearch Endpoint', {value:_OsStack._domainEndpoint});

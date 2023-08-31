@@ -16,9 +16,10 @@ interface ddbStackProps extends StackProps {
 }
 
 export class DynamoDBStack extends NestedStack {
+
+  _chatSessionTable;
   constructor(scope: Construct, id: string, props: ddbStackProps) {
     super(scope, id, props);
-    
     const _vpc = props._vpc;
     
     // Create the DynamoDB table
@@ -78,5 +79,6 @@ export class DynamoDBStack extends NestedStack {
     const session = api.root.addResource('rating');
     session.addMethod("POST", new LambdaIntegration(postFn));
   
+    this._chatSessionTable = table.tableName;
   }
 }

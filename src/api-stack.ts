@@ -16,6 +16,7 @@ interface apiStackProps extends StackProps {
     _crossEndPoint: string;
     _embeddingEndPoint: string;
     _instructEndPoint: string;
+    _chatSessionTable: string;
 }
 
 export class LLMApiStack extends NestedStack {
@@ -28,7 +29,7 @@ export class LLMApiStack extends NestedStack {
         const _securityGroup = props._securityGroup
         const _domainEndpoint = props._domainEndpoint
         const _aosIndex = "chatbot-index"
-        const _chatSessionTable = "modelRatingInfo"
+        const _chatSessionTable = props._chatSessionTable
 
         // s3 bucket for storing documents
         const _S3Bucket = new s3.Bucket(this, 'llm-bot-documents', {

@@ -1,0 +1,18 @@
+Data Transfer Hub (数据传输解决方案)
+
+轻松将数据移入和移出 AWS 中国区域
+
+概览
+
+此解决方案可为 Amazon Simple Storage Service (Amazon S3) 对象和 Amazon Elastic Container Registry (Amazon ECR) 映像提供安全、可扩展且可追踪的数据传输。使用数据传输解决方案，您可以执行以下任何任务：在 AWS S3 之间传输对象
+
+优势
+
+直观的用户界面
+客户可在用户界面上为 Amazon S3 对象和 Amazon ECR 映像创建和管理数据传输任务。
+
+支持各类源
+将数据从其他云服务商的对象存储服务（包括阿里云 OSS，腾讯 COS，七牛 Kodo 以及其他兼容 Amazon S3 的云存储服务）传输到 Amazon S3。在 Amazon ECR 之间传输容器镜像。将容器镜像从公共容器镜像仓库（例如 Docker Hub、Google gcr.io 和 Red Hat Quay.io）传输到 Amazon ECR。
+
+无服务器架构
+传输任务可按需使用并随用随付。有关更多信息，请参阅实施指南的“成本”部分。
