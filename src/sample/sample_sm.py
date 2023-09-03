@@ -10,7 +10,7 @@ from langchain.document_loaders.unstructured import UnstructuredFileLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 from opensearchpy import RequestsHttpConnection
-from sm_utils import create_sagemaker_embeddings_from_js_model, SagemakerEndpointVectorOrCross
+from sagemaker_utils import create_sagemaker_embeddings_from_js_model, SagemakerEndpointVectorOrCross
 from requests_aws4auth import AWS4Auth
 
 s3 = boto3.resource('s3')

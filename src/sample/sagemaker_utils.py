@@ -40,7 +40,7 @@ class SagemakerEndpointEmbeddingsJumpStart(SagemakerEndpointEmbeddings):
             response = self._embedding_func(texts[i:i + _chunk_size])
             results.extend(response)
         time_taken = time.time() - st
-        logger.info(f"got results for {len(texts)} in {time_taken}s, length of embeddings list is {len(results)}")
+        logger.info(f"get results for {len(texts)} in {time_taken}s, length of embeddings list is {len(results)}")
         return results
 
 # class for serializing/deserializing requests/responses to/from the embeddings model
