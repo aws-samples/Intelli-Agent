@@ -28,7 +28,7 @@ def get_session(session_id, chat_session_table):
 #           answer
 # return:   success
 #           failed
-def update_session(session_id, chat_session_table, question, answer, intention):
+def update_session(session_id, chat_session_table, question, answer, knowledge_sources):
 
     table_name = chat_session_table
     dynamodb = boto3.resource('dynamodb')
@@ -39,23 +39,18 @@ def update_session(session_id, chat_session_table, question, answer, intention):
 
     response = table.get_item(Key={'session_id': session_id})
 
-    # if "Item" in response.keys():
-    #     # print("****** " + response["Item"]["content"])
-    #     chat_history = json.loads(response["Item"]["content"])
-    # else:
-    #     # print("****** No result")
-    #     chat_history = []
-
-    # chat_history.append([question, answer, intention])
-    chat_history = []
-    content = json.dumps(chat_history)
+    item = {
+            "session_id":session_id,
+            "question_content":question,
+            "question_answer":answer,
+            "revised_answer":"",
+            "answer_rating":"",
+            "knowledge_sources": knowledge_sources,
+        }
 
     # inserting values into table
     response = table.put_item(
-        Item={
-            'session_id': session_id,
-            'content': content
-        }
+        Item=item
     )
 
     if "ResponseMetadata" in response.keys():

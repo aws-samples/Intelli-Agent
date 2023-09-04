@@ -119,7 +119,7 @@ def main_entry(session_id:str, query_input:str, history:list, embedding_model_en
     # 7. update_session
     start = time.time()
     update_session(session_id=session_id, chat_session_table=chat_session_table, 
-                   question=query_input, answer=answer, intention=str(query_type))
+                   question=query_input, answer=answer, knowledge_sources=sources)
     elpase_time = time.time() - start
     logger.info(f'runing time of update_session : {elpase_time}s seconds')
 
