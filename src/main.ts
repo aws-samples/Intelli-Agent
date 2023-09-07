@@ -8,6 +8,7 @@ import { LLMApiStack } from './api-stack';
 import { DynamoDBStack } from './ddb-stack';
 import { LLMStack } from './llm-stack';
 import { AssetsStack } from './assets-stack';
+import { EtlStack } from './etl-stack';
 
 import * as dotenv from "dotenv";
 dotenv.config();
@@ -17,11 +18,16 @@ export class RootStack extends Stack {
     super(scope, id, props);
 
     // add cdk input parameters for user to specify s3 bucket store model assets
-    // using npx cdk deploy --rollback false --parameters S3ModelAssets=llm-rag to deploy
+    // using npx cdk deploy --rollback false --parameters S3ModelAssets=llm-rag --parameters SubEmail=example@example.org to deploy
     const _S3ModelAssets = new CfnParameter(this, 'S3ModelAssets', {
       type: 'String',
       description: 'S3 Bucket for model & code assets',
       // default: 'llm-rag',
+    });
+
+    const _SubEmail = new CfnParameter(this, 'SubEmail', {
+      type: 'String',
+      description: 'Email address for SNS notification',
     });
 
     // This assest stack is to mitigate issue that the model assets in s3 bucket can't be located immediately to create sagemaker model
@@ -48,6 +54,8 @@ export class RootStack extends Stack {
     _DynamoDBStack.addDependency(_VpcStack);
     _DynamoDBStack.addDependency(_OsStack);
 
+    const _EtlStack = new EtlStack(this, 'etl-stack', {_domainEndpoint:_OsStack._domainEndpoint, _subEmail:_SubEmail.valueAsString, env:process.env});
+
     const _ApiStack = new LLMApiStack(this, 'api-stack', {
         _vpc:_VpcStack._vpc,
         _securityGroup:_VpcStack._securityGroup,
@@ -56,6 +64,7 @@ export class RootStack extends Stack {
         _embeddingEndPoint:_LLMStack._embeddingEndPoint || '',
         _instructEndPoint:_LLMStack._instructEndPoint || '',
         _chatSessionTable: _DynamoDBStack._chatSessionTable,
+        _sfnOutput: _EtlStack._sfnOutput,
         env:process.env
     });
     _ApiStack.addDependency(_VpcStack);

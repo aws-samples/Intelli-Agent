@@ -43,6 +43,7 @@
     "typescript": "^5.1.6"
   },
   "dependencies": {
+    "@aws-cdk/aws-glue-alpha": "^2.94.0-alpha.0",
     "aws-cdk-lib": "^2.1.0",
     "constructs": "^10.0.5",
     "dotenv": "^16.0.3"
