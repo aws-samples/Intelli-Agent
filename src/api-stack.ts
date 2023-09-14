@@ -5,7 +5,7 @@ import * as iam from "aws-cdk-lib/aws-iam";
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as apigw from 'aws-cdk-lib/aws-apigateway';
 import * as s3 from 'aws-cdk-lib/aws-s3';
-
+import * as sfn from 'aws-cdk-lib/aws-stepfunctions';
 import { Construct } from 'constructs';
 import { join } from "path";
 
@@ -17,6 +17,8 @@ interface apiStackProps extends StackProps {
     _embeddingEndPoint: string;
     _instructEndPoint: string;
     _chatSessionTable: string;
+    // type of StepFunctions
+    _sfnOutput: sfn.StateMachine;
 }
 
 export class LLMApiStack extends NestedStack {
@@ -137,6 +139,10 @@ export class LLMApiStack extends NestedStack {
         // Define the API Gateway Method
         const apiResourceEmbedding = api.root.addResource('embedding');
         apiResourceEmbedding.addMethod('POST', lambdaEmbeddingIntegration);
+
+        // Integration with Step Function
+        const apiResourceStepFunction = api.root.addResource('etl');
+        apiResourceStepFunction.addMethod('POST', apigw.StepFunctionsIntegration.startExecution(props._sfnOutput));
 
         this._apiEndpoint = api.url
     }

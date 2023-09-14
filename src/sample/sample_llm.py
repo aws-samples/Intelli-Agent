@@ -6,11 +6,11 @@ logger.setLevel(logging.INFO)
 
 if __name__ == "__main__":
     embeddings = CSDCEmbeddings(
-        aosEndpointName = 'vpc-domain66ac69e0-xeosdcwfmktn-x3xvmrzvzeoq2uisfavnc6pj7e.us-east-1.es.amazonaws.com',
+        aosEndpointName = 'vpc-xx.us-east-1.es.amazonaws.com',
         region = 'us-east-1'
     )
     doc_reult = embeddings.embed_documents(
-        bucketName='llm-bot-documents-705247044519-us-east-1',
+        bucketName='llm-bot-documents-xx-us-east-1',
         prefix='csdc'
     )
     query_result = embeddings.embed_query(
