@@ -21,6 +21,3 @@ systemctl start nginx >> /home/ec2-user/userdata.log
 
 echo 'initialization completed' >> /home/ec2-user/userdata.log
 
-
-
-
