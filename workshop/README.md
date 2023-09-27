@@ -142,12 +142,12 @@ At the time of writing you can only use `amazon.titan-e1t-medium` as embedding m
         ["<human_0>", "<assistant_0>"],
         ["<human_1>", "<assistant_1>"]
     ],
+    "stream": false, #true为流式输出, false为关闭输出
     "parameters": {
-        "max_tokens": 512,
+        "max_tokens": 2048,
         "temperature": 0.5,
         "top_k": 250,
-        "top_p": 1,
-        "stop": ["<eoa>"]
+        "top_p": 1
     }
 }
 ```
