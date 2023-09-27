@@ -59,10 +59,6 @@ class CSDCEmbeddings:
         logging.info(f"doc_reult is {doc_reult}, the type of doc_reult is {type(doc_reult)}")
     """
 
-    def __init__(self, aosEndpointName: str, region: int):
-        self.aosEndpointName = aosEndpointName
-        self.region = region
-
     client: Any  #: :meta private:
     """CSDC client."""
     region_name: Optional[str] = None
@@ -116,7 +112,7 @@ class CSDCEmbeddings:
             if values["endpoint_url"]:
                 client_params["endpoint_url"] = values["endpoint_url"]
 
-            values["client"] = session.client("bedrock", **client_params)
+            values["client"] = session.client("sagemaker-runtime", **client_params)
 
         except ImportError:
             raise ModuleNotFoundError(
@@ -137,19 +133,17 @@ class CSDCEmbeddings:
         # replace newlines, which can negatively affect performance.
         text = text.replace(os.linesep, " ")
         _model_kwargs = self.model_kwargs or {}
+        content_type = "application/json"
 
-        input_body = {**_model_kwargs, "inputText": text}
+        input_body = {"inputs": text, **_model_kwargs}
         body = json.dumps(input_body)
 
         try:
-            response = self.client.invoke_model(
-                body=body,
-                modelId=self.model_id,
-                accept="application/json",
-                contentType="application/json",
+            response = self.client.invoke_endpoint(
+                EndpointName = self.endpoint_url, Body=body, ContentType=content_type
             )
-            response_body = json.loads(response.get("body").read())
-            return response_body.get("embedding")
+            response_body = json.loads(response['Body'].read().decode("utf-8"))
+            return response_body.get('sentence_embeddings')
         except Exception as e:
             raise ValueError(f"Error raised by inference endpoint: {e}")
 
@@ -255,7 +249,7 @@ class CSDCEmbeddings:
         Returns:
             List[float]: embeddings for the documents.
         """        
-        embeddings = create_sagemaker_embeddings_from_js_model('embedding-endpoint', self.region)
+        embeddings = create_sagemaker_embeddings_from_js_model(self.endpoint_url, self.region)
         return embeddings
     
     def embed_documents(self, bucketName: str, prefix: str) -> List[List[float]]:
@@ -266,7 +260,7 @@ class CSDCEmbeddings:
         Returns:
             List of embeddings, one for each text.
         """    
-        shard = self._construct_shard(bucketName, prefix, 'embedding-endpoint')
+        shard = self._construct_shard(bucketName, prefix, self.endpoint_url)
         embeddings = self._embedding_func(shard)
         return embeddings.embed_documents([str(shard[0])])
 
