@@ -54,7 +54,7 @@ def handle(inputs: Input):
         outputs.add_property("content-type", "application/jsonlines")
         outputs.add_stream_content(stream_items(input_sentences, history, params))
     else:
-        response = model.chat(tokenizer, input_sentences, history=history, **params)
+        response, history = model.chat(tokenizer, input_sentences, history=history, **params)
         result = {"outputs": response}
         outputs.add_as_json(result)
     return outputs
