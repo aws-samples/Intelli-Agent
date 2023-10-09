@@ -27,7 +27,7 @@ export class EtlStack extends NestedStack {
             executable: glue.JobExecutable.pythonShell({
               glueVersion: glue.GlueVersion.V1_0,
               pythonVersion: glue.PythonVersion.THREE,
-              script: glue.Code.fromAsset(path.join(__dirname, 'scripts/scripts.py')),
+              script: glue.Code.fromAsset(path.join(__dirname, 'scripts/glue-job-script.py')),
             }),
             maxConcurrentRuns:200,
             maxRetries:3,
@@ -58,27 +58,10 @@ export class EtlStack extends NestedStack {
         });
         topic.addSubscription(new subscriptions.EmailSubscription(props._subEmail));
 
-        // Create Step Function to orchestrate the glue job to start from API Gateway inovcation with S3 bucket and prefix
-        const startState = new sfn.Pass(this, 'StartState', {
-            result: sfn.Result.fromObject({
-                "bucket": sfn.JsonPath.stringAt('$.bucket'),
-                "prefix": sfn.JsonPath.stringAt('$.prefix'),
-                "topicArn": topic.topicArn,
-            }),
-            resultPath: '$.input',
+        const startGlueJob = new tasks.GlueStartJobRun(this, 'StartGlueJob', {
+            glueJobName: glueJob.jobName,
+            integrationPattern: sfn.IntegrationPattern.RUN_JOB,
         });
-
-        // // Glue task for file validation
-        // const validateTask = new tasks.GlueStartJobRun(this, 'ValidateTask', {
-        //     glueJobName: 'validate',
-        //     integrationPattern: sfn.IntegrationPattern.RUN_JOB,
-        // });
-
-        // // Glue task for file processing
-        // const processTask = new tasks.GlueStartJobRun(this, 'ProcessTask', {
-        //     glueJobName: 'process',
-        //     integrationPattern: sfn.IntegrationPattern.RUN_JOB,
-        // });
 
         // Notify the result of the glue job
         const notifyTask = new tasks.SnsPublish(this, 'NotifyTask', {
@@ -87,16 +70,12 @@ export class EtlStack extends NestedStack {
             message: sfn.TaskInput.fromText(`Glue job ${glueJob.jobName} completed!`),
         });
 
-        const sfnDefinition = startState
-            // .next(validateTask)
-            // .next(processTask)
-            .next(notifyTask);
+        const sfnDefinition = startGlueJob.next(notifyTask);
         
         const sfnStateMachine = new sfn.StateMachine(this, 'ETLState', {
-            // definition: sfnDefinition,
             definitionBody: sfn.DefinitionBody.fromChainable(sfnDefinition),
-            stateMachineType: sfn.StateMachineType.EXPRESS,
-            timeout: Duration.minutes(30),
+            stateMachineType: sfn.StateMachineType.STANDARD,
+            timeout: Duration.minutes(5),
         });
 
         // Export the Step function to be used in API Gateway

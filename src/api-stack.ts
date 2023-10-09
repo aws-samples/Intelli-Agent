@@ -1,11 +1,12 @@
 import { NestedStack, StackProps, Duration, Aws } from 'aws-cdk-lib';
-import { DockerImageFunction }  from 'aws-cdk-lib/aws-lambda';
+import { DockerImageFunction, Handler }  from 'aws-cdk-lib/aws-lambda';
 import { DockerImageCode, Architecture } from 'aws-cdk-lib/aws-lambda';
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as apigw from 'aws-cdk-lib/aws-apigateway';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as sfn from 'aws-cdk-lib/aws-stepfunctions';
+import * as lambda from 'aws-cdk-lib/aws-lambda';
 import { Construct } from 'constructs';
 import { join } from "path";
 
@@ -140,9 +141,39 @@ export class LLMApiStack extends NestedStack {
         const apiResourceEmbedding = api.root.addResource('embedding');
         apiResourceEmbedding.addMethod('POST', lambdaEmbeddingIntegration);
 
-        // Integration with Step Function
+        // Integration with Step Function to trigger ETL process
+        // Lambda function to trigger Step Function
+        const lambdaStepFunction = new lambda.Function(this, 'lambdaStepFunction', {
+            // format to avoid indent error
+            code: lambda.Code.fromInline(`
+import json
+import boto3
+import os
+client = boto3.client('stepfunctions')
+def handler(event, context):
+    response = client.start_execution(
+        stateMachineArn=os.environ['sfn_arn'],
+        input=json.dumps(event)
+    )
+    return {
+        'statusCode': 200,
+        'body': json.dumps('Step Function triggered!')
+}
+            `),
+            handler: 'index.handler',
+            runtime: lambda.Runtime.PYTHON_3_9,
+            timeout: Duration.seconds(30),
+            environment: {
+                sfn_arn: props._sfnOutput.stateMachineArn,
+            },
+            memorySize: 256,
+        });
+
+        // grant lambda function to invoke step function
+        props._sfnOutput.grantStartExecution(lambdaStepFunction);
+
         const apiResourceStepFunction = api.root.addResource('etl');
-        apiResourceStepFunction.addMethod('POST', apigw.StepFunctionsIntegration.startExecution(props._sfnOutput));
+        apiResourceStepFunction.addMethod('POST', new apigw.LambdaIntegration(lambdaStepFunction));
 
         this._apiEndpoint = api.url
     }
