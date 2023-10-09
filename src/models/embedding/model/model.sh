@@ -8,8 +8,8 @@ function usage {
 }
 
 # Default values
-model_name="csdc-atl/buffer-embedding-002"
-commit_hash="cfab7a41f7895e85b66e3910a85d143523c8941a"
+model_name="BAAI/bge-large-zh-v1.5"
+commit_hash="00f8ffc4928a685117583e2a38af8ebb65dcec2c"
 s3_bucket_name="llm-rag" # Default S3 bucket name
 
 # Parse command-line options

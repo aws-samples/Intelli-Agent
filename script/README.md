@@ -3,7 +3,7 @@ Follow step below to create a ec2 instance with nginx installed
 ## 2.1. Prepare the environment
 ```bash
 # display image id with ubuntu 20.04 from aws
-aws ec2 describe-images --filters "Name=name,Values=ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*" "Name=owner-id,Values=099720109477" --region us-west-2 --query 'Images[0].ImageId' --output text
+aws ec2 describe-images --filters "Name=name,Values=ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*" "Name=owner-id,Values=09972010****" --region us-west-2 --query 'Images[0].ImageId' --output text
 
 # list default vpc id
 aws ec2 describe-vpcs --filters "Name=isDefault,Values=true" --query 'Vpcs[*].{ID:VpcId}' --output text

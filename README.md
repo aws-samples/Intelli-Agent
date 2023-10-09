@@ -18,6 +18,7 @@ Make sure Python installed properly. Usage: ./model.sh -t TOKEN [-m MODEL_NAME] 
 
 2. Deploy CDK template
 ```bash
+npm install
 npx cdk deploy --rollback false --parameters S3ModelAssets=<Your S3 Bucket Name>
 ```
 

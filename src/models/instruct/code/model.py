@@ -4,8 +4,7 @@ import logging
 import math
 import os
 import json
-from vllm import LLM, SamplingParams
-
+from transformers import AutoTokenizer, AutoModelForCausalLM
 
 def load_model(properties):
     tensor_parallel = properties["tensor_parallel_degree"]
@@ -14,39 +13,48 @@ def load_model(properties):
         model_location = properties['model_id']
     logging.info(f"Loading model in {model_location}")
     
-    llm = LLM(model=str(model_location), trust_remote_code=True)
+    tokenizer = AutoTokenizer.from_pretrained(model_location, trust_remote_code=True)
+    model = AutoModelForCausalLM.from_pretrained(model_location, trust_remote_code=True)
+    model = model.eval().half().cuda()
     
-    return llm
+    return model, tokenizer
 
 
-llm = None
+model = None
+tokenizer = None
 generator = None
 
+def stream_items(input_sentences, history, params):
+    global model, tokenizer
+    res_generator = model.stream_chat(tokenizer, input_sentences, history=history, **params)
+    size = 0
+    response = ""
+    for response in res_generator:
+        this_response = response[size:]
+        size = len(response)
+        stream_buffer = {"outputs":this_response, "finished": len(this_response)==0}
+        yield stream_buffer
 
 def handle(inputs: Input):
-    global llm
-    if not llm:
-        llm = load_model(inputs.get_properties())
+    global model, tokenizer
+    if not model:
+        model, tokenizer = load_model(inputs.get_properties())
 
     if inputs.is_empty():
         return None
     data = inputs.get_as_json()
     
-    query = data["inputs"]
+    input_sentences = data["inputs"]
     params = data["parameters"]
-    params["stop"] = params.get('stop', []) + ['<eoa>']
-    params["max_tokens"] = params.get('max_tokens', 2048)
     history = data["history"]
+    stream = data.get('stream', False)
     
-    prompt = ""
-    for record in history:
-        prompt += f"""<s><|User|>:{record[0]}<eoh>\n<|Bot|>:{record[1]}<eoa>\n"""
-    if len(prompt) == 0:
-        prompt += "<s>"
-    prompt += f"""<|User|>:{query}<eoh>\n<|Bot|>:"""
-    sampling_params = SamplingParams(**params)
-    outputs = llm.generate(prompt, sampling_params, use_tqdm=False)
-    response = outputs[0].outputs[0].text
-    
-    result = {"outputs": response}
-    return Output().add_as_json(result)
+    outputs = Output()
+    if stream:
+        outputs.add_property("content-type", "application/jsonlines")
+        outputs.add_stream_content(stream_items(input_sentences, history, params))
+    else:
+        response, history = model.chat(tokenizer, input_sentences, history=history, **params)
+        result = {"outputs": response}
+        outputs.add_as_json(result)
+    return outputs
