@@ -151,9 +151,12 @@ import boto3
 import os
 client = boto3.client('stepfunctions')
 def handler(event, context):
+    # Parse the body from the event object
+    body = json.loads(event['body'])
+    # Pass the parsed body to the Step Function
     response = client.start_execution(
         stateMachineArn=os.environ['sfn_arn'],
-        input=json.dumps(event)
+        input=json.dumps(body)
     )
     return {
         'statusCode': 200,

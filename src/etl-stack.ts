@@ -6,21 +6,34 @@ import * as api from 'aws-cdk-lib/aws-apigateway';
 import * as glue from '@aws-cdk/aws-glue-alpha';
 import * as sfn from 'aws-cdk-lib/aws-stepfunctions';
 import * as tasks from 'aws-cdk-lib/aws-stepfunctions-tasks';
-import * as apigateway from 'aws-cdk-lib/aws-apigateway';
+import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as sns from 'aws-cdk-lib/aws-sns';
 import * as subscriptions from 'aws-cdk-lib/aws-sns-subscriptions';
 import path from "path";
 
 interface etlStackProps extends StackProps {
+    _vpc: ec2.Vpc;
+    _subnets: ec2.ISubnet[];
+    _securityGroups: ec2.SecurityGroup;
     _domainEndpoint: string;
+    _embeddingEndpoint: string;
+    _region: string;
     _subEmail: string;
 }
 
 export class EtlStack extends NestedStack {
     _sfnOutput;
+    _jobName;
+    _jobArn;
 
     constructor(scope: Construct, id: string, props: etlStackProps) {
         super(scope, id, props);
+
+        const connection = new glue.Connection(this, 'GlueJobConnection', {
+            type: glue.ConnectionType.NETWORK,
+            subnet: props._subnets[0],
+            securityGroups: [props._securityGroups],
+          });
 
         // Creata glue job to process files speicified in s3 bucket and prefix
         const glueJob = new glue.Job(this, 'PythonShellJob', {
@@ -31,20 +44,28 @@ export class EtlStack extends NestedStack {
             }),
             maxConcurrentRuns:200,
             maxRetries:3,
-            // connections:[connection],
+            connections:[connection],
             maxCapacity:1,
             defaultArguments:{
-                '--aos-endpoint':props._domainEndpoint,
-                '--additional-python-modules': 'langchain==0.0.283,beautifulsoup4==4.12.2'
+                // '--S3_BUCKET': 'delete-me-jack-us-east-1',
+                // '--S3_PREFIX': 'sdps',
+                '--S3_BUCKET.$': sfn.JsonPath.stringAt('$.s3Bucket'),
+                '--S3_PREFIX.$': sfn.JsonPath.stringAt('$.s3Prefix'),
+                '--AOS_ENDPOINT': props._domainEndpoint,
+                '--REGION': props._region,
+                '--EMBEDDING_MODEL_ENDPOINT': props._embeddingEndpoint,
+                '--DOC_INDEX_TABLE': 'chatbot_doc_index',
+                '--additional-python-modules': 'pdfminer.six==20221105,gremlinpython==3.6.3,langchain==0.0.162,beautifulsoup4==4.12.2'
             }
           });
 
         glueJob.role.addToPrincipalPolicy(
             new iam.PolicyStatement({
-                actions: [ 
-                    "s3:List*",
-                    "s3:Put*",
-                    "s3:Get*",
+                actions: [
+                    "sagemaker:InvokeEndpointAsync",
+                    "sagemaker:InvokeEndpoint",
+                    "s3:*",
+                    "es:*",
                 ],
                 effect: iam.Effect.ALLOW,
                 resources: ['*'],
@@ -61,6 +82,12 @@ export class EtlStack extends NestedStack {
         const startGlueJob = new tasks.GlueStartJobRun(this, 'StartGlueJob', {
             glueJobName: glueJob.jobName,
             integrationPattern: sfn.IntegrationPattern.RUN_JOB,
+            arguments: sfn.TaskInput.fromObject({
+                '--job-language': 'python',
+                '--JOB_NAME': glueJob.jobName,
+                '--S3_BUCKET.$': '$.s3Bucket',
+                '--S3_PREFIX.$': '$.s3Prefix',
+            }),
         });
 
         // Notify the result of the glue job
@@ -80,5 +107,7 @@ export class EtlStack extends NestedStack {
 
         // Export the Step function to be used in API Gateway
         this._sfnOutput = sfnStateMachine;
+        this._jobName = glueJob.jobName;
+        this._jobArn = glueJob.jobArn;
     }
 }

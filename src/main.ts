@@ -54,7 +54,18 @@ export class RootStack extends Stack {
     _DynamoDBStack.addDependency(_VpcStack);
     _DynamoDBStack.addDependency(_OsStack);
 
-    const _EtlStack = new EtlStack(this, 'etl-stack', {_domainEndpoint:_OsStack._domainEndpoint, _subEmail:_SubEmail.valueAsString, env:process.env});
+    const _EtlStack = new EtlStack(this, 'etl-stack', {
+      _domainEndpoint: _OsStack._domainEndpoint,
+      _embeddingEndpoint: _LLMStack._embeddingEndPoint ?? '',
+      _region: process.env.AWS_REGION ?? '',
+      _subEmail: _SubEmail.valueAsString ?? '',
+      _vpc: _VpcStack._vpc,
+      _subnets: _VpcStack._privateSubnets,
+      _securityGroups: _VpcStack._securityGroup,
+    });
+    _EtlStack.addDependency(_VpcStack);
+    _EtlStack.addDependency(_OsStack);
+    _EtlStack.addDependency(_LLMStack);
 
     const _ApiStack = new LLMApiStack(this, 'api-stack', {
         _vpc:_VpcStack._vpc,
