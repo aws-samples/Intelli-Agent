@@ -193,7 +193,8 @@ def process_pdf(pdf: bytes, **kwargs):
     logger.info("Processing PDF file...")
     bucket = kwargs['bucket']
     key = kwargs['key']
-    local_path = os.path.basename(key)
+    # extract file name also in consideration of file name with blank space
+    local_path = str(os.path.basename(key))
     # download to local for futher processing
     s3.download_file(Bucket=bucket, Key=bucket, Filename=local_path)
     loader = PDFMinerPDFasHTMLLoader(local_path)
@@ -222,6 +223,9 @@ def iterate_s3_files(bucket: str, prefix: str) -> Generator:
 
     for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
         for obj in page.get('Contents', []):
+            # skip the prefix with slash, which is the folder name
+            if obj['Key'].endswith('/'):
+                continue
             key = obj['Key']
             file_type = key.split('.')[-1]  # Extract file extension
 
@@ -239,7 +243,7 @@ def iterate_s3_files(bucket: str, prefix: str) -> Generator:
             elif file_type in ['jpg', 'png']:
                 yield 'image', file_content, kwargs
             else:
-                print(f"Unknown file type: {file_type}")
+                logger.info(f"Unknown file type: {file_type}")
 
 # main function to be called by Glue job script
 logger.info("Starting Glue job with passing arguments: %s", args)
