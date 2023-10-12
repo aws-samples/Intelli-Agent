@@ -3,8 +3,9 @@ import boto3
 import sys
 import re
 import logging
-from typing import Generator
+import json
 
+from typing import Generator
 from bs4 import BeautifulSoup
 from langchain.document_loaders import PDFMinerPDFasHTMLLoader
 from langchain.docstore.document import Document
@@ -21,17 +22,26 @@ args = getResolvedOptions(sys.argv, ['JOB_NAME', 'S3_BUCKET', 'S3_PREFIX', 'AOS_
 s3_bucket = args['S3_BUCKET']
 s3_prefix = args['S3_PREFIX']
 
-def link_header(semantic_snippets):
-    heading_fonts_arr = [ item.metadata['heading_font'] for item in semantic_snippets ]
-    heading_arr = [ item.metadata['heading'] for item in semantic_snippets ]
+def fontsize_mapping(heading_fonts_arr):
+    heading_fonts_set = list(set(heading_fonts_arr))
+    heading_fonts_set.sort(reverse=True)
+    idxs = range(len(heading_fonts_set))
+    font_idx_mapping = dict(zip(heading_fonts_set,idxs))
+    return font_idx_mapping
 
-    def fontsize_mapping(heading_fonts_arr):
-        heading_fonts_set = list(set(heading_fonts_arr))
-        heading_fonts_set.sort(reverse=True)
-        idxs = range(len(heading_fonts_set))
-        font_idx_mapping = dict(zip(heading_fonts_set,idxs))
-        return font_idx_mapping
-        
+def link_header(semantic_snippets):
+    """
+    Processes a list of semantic snippets to organize and structure the header information based on font size,
+    and then outputs the structured data as a JSON string.
+
+    Parameters:
+    semantic_snippets (list): A list of objects where each object has a 'metadata' attribute containing 'heading_font' and 'heading' fields.
+
+    Returns:
+    str: A JSON string representing the structured header and content information of each snippet.
+    """
+    heading_fonts_arr = [ item.metadata['heading_font'] for item in semantic_snippets ]
+    heading_arr = [ item.metadata['heading'] for item in semantic_snippets ]        
     fontsize_dict = fontsize_mapping(heading_fonts_arr)
 
     snippet_arr = []
@@ -55,8 +65,22 @@ def link_header(semantic_snippets):
     json_arr = json.dumps(snippet_arr, ensure_ascii=False)
     return json_arr
 
-# refer to https://python.langchain.com/docs/modules/data_connection/document_loaders/pdf
 def parse_pdf_to_json(file_content):
+    """
+    Credit to https://python.langchain.com/docs/modules/data_connection/document_loaders/pdf, parses the content of a PDF file converted to HTML format, organizing text segments semantically based on their font size.
+
+    Parameters:
+    file_content (str): The HTML content of the converted PDF file.
+
+    Returns:
+    list: A list of Document objects, each representing a semantically grouped section of the PDF file. Each Document object contains a metadata dictionary with details about the heading and content font sizes, and a page_content string with the text content of that section.
+
+    Notes:
+    - Assumes that headings have a larger font size than their respective content.
+    - It first iterates through all the text segments, grouping consecutive segments with the same font size together.
+    - Then, iterates through these grouped segments, identifying new headings based on a change in font size, and grouping the content under these headings.
+    - The function is designed to work with a specific HTML structure and may not work as expected with differently structured HTML.
+    """
     soup = BeautifulSoup(file_content,'html.parser')
     content = soup.find_all('div')
 
@@ -176,6 +200,7 @@ def process_pdf(pdf: bytes, **kwargs):
     # entire PDF is loaded as a single Document
     file_content = loader.load()[0].page_content
     res = parse_pdf_to_json(file_content)
+    logger.info("PDF file processed successfully, with result: %s", res)
     return res
 
 def process_image(image: bytes):
@@ -216,5 +241,7 @@ def iterate_s3_files(bucket: str, prefix: str) -> Generator:
             else:
                 print(f"Unknown file type: {file_type}")
 
+# main function to be called by Glue job script
+logger.info("Starting Glue job with passing arguments: %s", args)
 for file_type, file_content, kwargs in iterate_s3_files(s3_bucket, s3_prefix):
     cb_process_object(file_type, file_content, **kwargs)
