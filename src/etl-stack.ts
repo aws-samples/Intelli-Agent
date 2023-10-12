@@ -55,7 +55,7 @@ export class EtlStack extends NestedStack {
                 '--REGION': props._region,
                 '--EMBEDDING_MODEL_ENDPOINT': props._embeddingEndpoint,
                 '--DOC_INDEX_TABLE': 'chatbot_doc_index',
-                '--additional-python-modules': 'pdfminer.six==20221105,gremlinpython==3.6.3,langchain==0.0.162,beautifulsoup4==4.12.2'
+                '--additional-python-modules': 'pdfminer.six==20221105,gremlinpython==3.7.0,langchain==0.0.312,beautifulsoup4==4.12.2'
             }
           });
 
@@ -87,6 +87,9 @@ export class EtlStack extends NestedStack {
                 '--JOB_NAME': glueJob.jobName,
                 '--S3_BUCKET.$': '$.s3Bucket',
                 '--S3_PREFIX.$': '$.s3Prefix',
+                '--AOS_ENDPOINT': props._domainEndpoint,
+                '--EMBEDDING_MODEL_ENDPOINT': props._embeddingEndpoint,
+                '--REGION': props._region,
             }),
         });
 
