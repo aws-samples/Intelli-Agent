@@ -39,7 +39,7 @@ export class EtlStack extends NestedStack {
         const glueJob = new glue.Job(this, 'PythonShellJob', {
             executable: glue.JobExecutable.pythonShell({
               glueVersion: glue.GlueVersion.V1_0,
-              pythonVersion: glue.PythonVersion.THREE,
+              pythonVersion: glue.PythonVersion.THREE_NINE,
               script: glue.Code.fromAsset(path.join(__dirname, 'scripts/glue-job-script.py')),
             }),
             maxConcurrentRuns:200,
@@ -47,8 +47,6 @@ export class EtlStack extends NestedStack {
             connections:[connection],
             maxCapacity:1,
             defaultArguments:{
-                // '--S3_BUCKET': 'delete-me-jack-us-east-1',
-                // '--S3_PREFIX': 'sdps',
                 '--S3_BUCKET.$': sfn.JsonPath.stringAt('$.s3Bucket'),
                 '--S3_PREFIX.$': sfn.JsonPath.stringAt('$.s3Prefix'),
                 '--AOS_ENDPOINT': props._domainEndpoint,
