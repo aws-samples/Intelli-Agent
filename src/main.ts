@@ -46,9 +46,9 @@ export class RootStack extends Stack {
     const _OsStack = new OpenSearchStack(this,'os-stack', {_vpc:_VpcStack._vpc, _securityGroup:_VpcStack._securityGroup});
     _OsStack.addDependency(_VpcStack);
 
-    const _Ec2Stack = new Ec2Stack(this, 'ec2-stack', {_vpc:_VpcStack._vpc, _securityGroup:_VpcStack._securityGroup, _domainEndpoint:_OsStack._domainEndpoint, env:process.env});
-    _Ec2Stack.addDependency(_VpcStack);
-    _Ec2Stack.addDependency(_OsStack);
+    // const _Ec2Stack = new Ec2Stack(this, 'ec2-stack', {_vpc:_VpcStack._vpc, _securityGroup:_VpcStack._securityGroup, _domainEndpoint:_OsStack._domainEndpoint, env:process.env});
+    // _Ec2Stack.addDependency(_VpcStack);
+    // _Ec2Stack.addDependency(_OsStack);
 
     const _DynamoDBStack = new DynamoDBStack(this, 'ddb-stack', {_vpc:_VpcStack._vpc, _securityGroup:_VpcStack._securityGroup, _domainEndpoint:_OsStack._domainEndpoint, env:process.env});
     _DynamoDBStack.addDependency(_VpcStack);
@@ -85,8 +85,9 @@ export class RootStack extends Stack {
 
     new CfnOutput(this, 'VPC', {value:_VpcStack._vpc.vpcId});
     new CfnOutput(this, 'OpenSearch Endpoint', {value:_OsStack._domainEndpoint});
-    // contatenate the outputs from the ec2 stack with port 8081 and prefix _dashboards
-    new CfnOutput(this, 'OpenSearch Dashboard', {value:`${_Ec2Stack._publicIP}:8081/_dashboards`});
+    new CfnOutput(this, 'Document Bucket', {value:_ApiStack._documentBucket});
+    // deprecate for now since proxy in ec2 instance is not allowed according to policy
+    // new CfnOutput(this, 'OpenSearch Dashboard', {value:`${_Ec2Stack._publicIP}:8081/_dashboards`});
     new CfnOutput(this, 'API Endpoint Address', {value:_ApiStack._apiEndpoint});
     new CfnOutput(this, 'Cross Model Endpoint', {value:_LLMStack._crossEndPoint || 'No Cross Endpoint Created'});
     new CfnOutput(this, 'Embedding Model Endpoint', {value:_LLMStack._embeddingEndPoint || 'No Embedding Endpoint Created'});

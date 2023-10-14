@@ -18,7 +18,7 @@ logger.setLevel(logging.INFO)
 s3 = boto3.client('s3')
 
 # Parse arguments
-args = getResolvedOptions(sys.argv, ['JOB_NAME', 'S3_BUCKET', 'S3_PREFIX', 'AOS_ENDPOINT', 'EMBEDDING_MODEL_ENDPOINT'])
+args = getResolvedOptions(sys.argv, ['JOB_NAME', 'S3_BUCKET', 'S3_PREFIX', 'AOS_ENDPOINT', 'EMBEDDING_MODEL_ENDPOINT', 'REGION'])
 s3_bucket = args['S3_BUCKET']
 s3_prefix = args['S3_PREFIX']
 
