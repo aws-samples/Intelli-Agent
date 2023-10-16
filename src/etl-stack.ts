@@ -38,12 +38,16 @@ export class EtlStack extends NestedStack {
             securityGroups: [props._securityGroups],
           });
 
-        // Define a local asset for code
-        const extraPythonFilesAsset = new s3assets.Asset(this, 'extraPythonModulesAsset', {
-            path: 'src/scripts/dep/',
+        const _S3Bucket = new s3.Bucket(this, 'llm-bot-glue-lib', {
+            bucketName: `llm-bot-glue-lib-${Aws.ACCOUNT_ID}-${Aws.REGION}`,
+            blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
         });
 
-        const extraPythonFiles = glue.Code.fromBucket(extraPythonFilesAsset.bucket, extraPythonFilesAsset.s3ObjectKey);
+        const extraPythonFiles = new s3deploy.BucketDeployment(this, 'extraPythonFiles', {
+            sources: [s3deploy.Source.asset('src/scripts/whl')],
+            destinationBucket: _S3Bucket,
+            // destinationKeyPrefix: 'llm_bot_dep-0.1.0-py3-none-any.whl',
+        });
 
         // Creata glue job to process files speicified in s3 bucket and prefix
         const glueJob = new glue.Job(this, 'PythonShellJob', {
@@ -52,7 +56,8 @@ export class EtlStack extends NestedStack {
               pythonVersion: glue.PythonVersion.THREE_NINE,
               script: glue.Code.fromAsset(path.join(__dirname, 'scripts/glue-job-script.py')),
               // s3 location of the python script
-              extraPythonFiles: [extraPythonFiles],
+            //   extraPythonFiles: [glue.Code.fromAsset(path.join(__dirname, 'scripts/llm_bot_dep-0.1.0-py3-none-any.whl'))],
+            //   extraPythonFiles: [extraPythonFiles],
             }),
             maxConcurrentRuns:200,
             maxRetries:3,
@@ -65,7 +70,8 @@ export class EtlStack extends NestedStack {
                 '--REGION': props._region,
                 '--EMBEDDING_MODEL_ENDPOINT': props._embeddingEndpoint,
                 '--DOC_INDEX_TABLE': 'chatbot_doc_index',
-                '--additional-python-modules': 'pdfminer.six==20221105,gremlinpython==3.7.0,langchain==0.0.312,beautifulsoup4==4.12.2,requests-aws4auth==1.2.3'
+                '--additional-python-modules': 'pdfminer.six==20221105,gremlinpython==3.7.0,langchain==0.0.312,beautifulsoup4==4.12.2,requests-aws4auth==1.2.3',
+                '--extra-py-files': _S3Bucket.s3UrlForObject('llm_bot_dep-0.1.0-py3-none-any.whl'),
             }
           });
 

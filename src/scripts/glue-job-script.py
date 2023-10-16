@@ -11,8 +11,7 @@ from langchain.document_loaders import PDFMinerPDFasHTMLLoader
 from langchain.docstore.document import Document
 
 from awsglue.utils import getResolvedOptions
-
-from sm_utils import create_sagemaker_embeddings_from_js_model
+from llm_bot_dep import sm_utils, aos_utils
 # from requests_aws4auth import AWS4Auth
 # from aos_utils import OpenSearchClient
 
