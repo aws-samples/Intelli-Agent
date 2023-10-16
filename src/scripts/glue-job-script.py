@@ -9,11 +9,12 @@ from typing import Generator
 from bs4 import BeautifulSoup
 from langchain.document_loaders import PDFMinerPDFasHTMLLoader
 from langchain.docstore.document import Document
+from langchain.vectorstores import OpenSearchVectorSearch
+from opensearchpy import RequestsHttpConnection
 
 from awsglue.utils import getResolvedOptions
 from llm_bot_dep import sm_utils, aos_utils
-# from requests_aws4auth import AWS4Auth
-# from aos_utils import OpenSearchClient
+from requests_aws4auth import AWS4Auth
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -28,6 +29,9 @@ aosEndpoint = args['AOS_ENDPOINT']
 embeddingModelEndpoint = args['EMBEDDING_MODEL_ENDPOINT']
 region = args['REGION']
 offline = args['OFFLINE']
+
+credentials = boto3.Session().get_credentials()
+awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, region, 'es', session_token=credentials.token)
 
 def fontsize_mapping(heading_fonts_arr):
     heading_fonts_set = list(set(heading_fonts_arr))
@@ -297,15 +301,21 @@ def main():
         logger.info("Running in offline mode with consideration for large file size...")
         for file_type, file_content, kwargs in iterate_s3_files(s3_bucket, s3_prefix):
             res = cb_process_object(file_type, file_content, **kwargs)
-
+            embeddings = sm_utils.create_sagemaker_embeddings_from_js_model(embeddingModelEndpoint, region)
+            logger.info("Adding documents %s to OpenSearch index...", res)
+            docsearch = OpenSearchVectorSearch(
+                # TODO, make this configurable
+                index_name='chatbot-index',
+                embedding_function=embeddings,
+                opensearch_url="https://{}".format(aosEndpoint),
+                http_auth = awsauth,
+                use_ssl = True,
+                verify_certs = True,
+                connection_class = RequestsHttpConnection
+            )
+            # docsearch.add_documents(documents=res)
     else:
         logger.info("Running in online mode, assume file number is small...")
 
 if __name__ == '__main__':
-    logger.info("Check if libary are correctly imported, os.listdir(os.getcwd()): %s", os.listdir(os.getcwd()))
-    logger.info("Check if libary are correctly imported, os.getcwd(): %s", os.getcwd())
-    logger.info("Check if libary are correctly imported, os.listdir('.'): %s", os.listdir('.'))
-    logger.info("Check if libary are correctly imported, sys.path: %s", sys.path)
-    logger.info("Check if libary are correctly imported, sys.modules: %s", sys.modules)
-
     main()
