@@ -38,10 +38,24 @@ llm-bot-dev.VPC = vpc-xx
 ```bash
 aws s3 cp dth.txt s3://llm-bot-documents-<your account id>-<region>/<your S3 bucket prefix>/
 ```
+Now the object created event will trigger the Step function to execute Glue job for online processing.
 
 4. Test the API connection
 
 Use Postman/cURL to test the API connection, the API endpoint is the output of CloudFormation Stack with prefix 'embedding' or 'llm', the sample URL will be like "https://xxxx.execute-api.us-east-1.amazonaws.com/v1/embedding", the API request body is as follows:
+**offline process to pre-process file specificed in S3 bucket and prefix, POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/etl**
+```bash
+BODY
+{
+    "s3Bucket": "<Your S3 bucket>",
+    "s3Prefix": "<Your S3 prefix>",
+    "offline": "true"
+}
+```
+You should see output like this:
+```bash
+"Step Function triggered, Step Function ARN: arn:aws:states:us-east-1:xxxx:execution:xx-xxx:xx-xx-xx-xx-xx, Input Payload: {\"s3Bucket\": \"<Your S3 bucket>\", \"s3Prefix\": \"<Your S3 prefix>\", \"offline\": \"true\"}"
+```
 
 **embedding uploaded file into AOS, POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/embedding**
 ```bash

@@ -57,7 +57,7 @@ export class RootStack extends Stack {
     const _EtlStack = new EtlStack(this, 'etl-stack', {
       _domainEndpoint: _OsStack._domainEndpoint,
       _embeddingEndpoint: _LLMStack._embeddingEndPoint ?? '',
-      _region: process.env.AWS_REGION ?? '',
+      _region: props.env?.region || 'us-east-1',
       _subEmail: _SubEmail.valueAsString ?? '',
       _vpc: _VpcStack._vpc,
       _subnets: _VpcStack._privateSubnets,

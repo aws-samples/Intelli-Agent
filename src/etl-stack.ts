@@ -1,4 +1,4 @@
-import { NestedStack, StackProps, RemovalPolicy, Duration } from 'aws-cdk-lib';
+import { NestedStack, StackProps, RemovalPolicy, Duration, Aws } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
 import * as iam from 'aws-cdk-lib/aws-iam';
@@ -9,6 +9,9 @@ import * as tasks from 'aws-cdk-lib/aws-stepfunctions-tasks';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as sns from 'aws-cdk-lib/aws-sns';
 import * as subscriptions from 'aws-cdk-lib/aws-sns-subscriptions';
+import * as s3 from 'aws-cdk-lib/aws-s3';
+import * as s3assets from 'aws-cdk-lib/aws-s3-assets';
+import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
 import path from "path";
 
 interface etlStackProps extends StackProps {
@@ -35,12 +38,21 @@ export class EtlStack extends NestedStack {
             securityGroups: [props._securityGroups],
           });
 
+        // Define a local asset for code
+        const extraPythonFilesAsset = new s3assets.Asset(this, 'extraPythonModulesAsset', {
+            path: 'src/scripts/dep/',
+        });
+
+        const extraPythonFiles = glue.Code.fromBucket(extraPythonFilesAsset.bucket, extraPythonFilesAsset.s3ObjectKey);
+
         // Creata glue job to process files speicified in s3 bucket and prefix
         const glueJob = new glue.Job(this, 'PythonShellJob', {
             executable: glue.JobExecutable.pythonShell({
               glueVersion: glue.GlueVersion.V1_0,
               pythonVersion: glue.PythonVersion.THREE_NINE,
               script: glue.Code.fromAsset(path.join(__dirname, 'scripts/glue-job-script.py')),
+              // s3 location of the python script
+              extraPythonFiles: [extraPythonFiles],
             }),
             maxConcurrentRuns:200,
             maxRetries:3,
@@ -53,7 +65,7 @@ export class EtlStack extends NestedStack {
                 '--REGION': props._region,
                 '--EMBEDDING_MODEL_ENDPOINT': props._embeddingEndpoint,
                 '--DOC_INDEX_TABLE': 'chatbot_doc_index',
-                '--additional-python-modules': 'pdfminer.six==20221105,gremlinpython==3.7.0,langchain==0.0.312,beautifulsoup4==4.12.2'
+                '--additional-python-modules': 'pdfminer.six==20221105,gremlinpython==3.7.0,langchain==0.0.312,beautifulsoup4==4.12.2,requests-aws4auth==1.2.3'
             }
           });
 
@@ -77,7 +89,11 @@ export class EtlStack extends NestedStack {
         });
         topic.addSubscription(new subscriptions.EmailSubscription(props._subEmail));
 
-        const startGlueJob = new tasks.GlueStartJobRun(this, 'StartGlueJob', {
+        const offlineChoice = new sfn.Choice(this, 'Offline or Online', {
+            comment: 'Check if the job is offline or online',
+        });
+
+        const offlineGlueJob = new tasks.GlueStartJobRun(this, 'OfflineGlueJob', {
             glueJobName: glueJob.jobName,
             integrationPattern: sfn.IntegrationPattern.RUN_JOB,
             arguments: sfn.TaskInput.fromObject({
@@ -88,6 +104,23 @@ export class EtlStack extends NestedStack {
                 '--AOS_ENDPOINT': props._domainEndpoint,
                 '--EMBEDDING_MODEL_ENDPOINT': props._embeddingEndpoint,
                 '--REGION': props._region,
+                '--OFFLINE': 'true',
+            }),
+        });
+
+        // multiplex the same glue job to offline and online
+        const onlineGlueJob = new tasks.GlueStartJobRun(this, 'OnlineGlueJob', {
+            glueJobName: glueJob.jobName,
+            integrationPattern: sfn.IntegrationPattern.RUN_JOB,
+            arguments: sfn.TaskInput.fromObject({
+                '--job-language': 'python',
+                '--JOB_NAME': glueJob.jobName,
+                '--S3_BUCKET.$': '$.s3Bucket',
+                '--S3_PREFIX.$': '$.s3Prefix',
+                '--AOS_ENDPOINT': props._domainEndpoint,
+                '--EMBEDDING_MODEL_ENDPOINT': props._embeddingEndpoint,
+                '--REGION': props._region,
+                '--OFFLINE': 'false',
             }),
         });
 
@@ -98,12 +131,15 @@ export class EtlStack extends NestedStack {
             message: sfn.TaskInput.fromText(`Glue job ${glueJob.jobName} completed!`),
         });
 
-        const sfnDefinition = startGlueJob.next(notifyTask);
-        
+        const sfnDefinition = offlineChoice
+        .when(sfn.Condition.stringEquals('$.offline', 'true'), offlineGlueJob)
+        .when(sfn.Condition.stringEquals('$.offline', 'false'), onlineGlueJob)
+        .afterwards().next(notifyTask);
+    
         const sfnStateMachine = new sfn.StateMachine(this, 'ETLState', {
             definitionBody: sfn.DefinitionBody.fromChainable(sfnDefinition),
             stateMachineType: sfn.StateMachineType.STANDARD,
-            timeout: Duration.minutes(5),
+            timeout: Duration.minutes(30),
         });
 
         // Export the Step function to be used in API Gateway

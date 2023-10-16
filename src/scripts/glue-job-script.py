@@ -12,15 +12,23 @@ from langchain.docstore.document import Document
 
 from awsglue.utils import getResolvedOptions
 
+from sm_utils import create_sagemaker_embeddings_from_js_model
+# from requests_aws4auth import AWS4Auth
+# from aos_utils import OpenSearchClient
+
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 s3 = boto3.client('s3')
 
 # Parse arguments
-args = getResolvedOptions(sys.argv, ['JOB_NAME', 'S3_BUCKET', 'S3_PREFIX', 'AOS_ENDPOINT', 'EMBEDDING_MODEL_ENDPOINT', 'REGION'])
+args = getResolvedOptions(sys.argv, ['JOB_NAME', 'S3_BUCKET', 'S3_PREFIX', 'AOS_ENDPOINT', 'EMBEDDING_MODEL_ENDPOINT', 'REGION', 'OFFLINE'])
 s3_bucket = args['S3_BUCKET']
 s3_prefix = args['S3_PREFIX']
+aosEndpoint = args['AOS_ENDPOINT']
+embeddingModelEndpoint = args['EMBEDDING_MODEL_ENDPOINT']
+region = args['REGION']
+offline = args['OFFLINE']
 
 def fontsize_mapping(heading_fonts_arr):
     heading_fonts_set = list(set(heading_fonts_arr))
@@ -190,13 +198,48 @@ def process_html(htmlstr: str):
     return s
 
 def process_pdf(pdf: bytes, **kwargs):
+    """
+    Process a given PDF file and extracts structured information from it.
+
+    This function reads a PDF file, converts it to HTML using PDFMiner, then extracts 
+    and structures the information into a list of dictionaries containing headings and content.
+
+    Parameters:
+    pdf (bytes): The PDF file to process.
+    **kwargs: Arbitrary keyword arguments. The function expects 'bucket' and 'key' among the kwargs
+              to specify the S3 bucket and key where the PDF file is located.
+
+    Returns:
+    list: A list of dictionaries, each containing 'heading' and 'content' keys. 
+          The 'heading' key maps to a list of dictionaries with keys 'font_size', 'heading', 
+          and 'fontsize_idx'. The 'content' key maps to a string containing the content under 
+          that heading.
+    [
+        {
+            "heading": [
+                {
+                    "font_size": 10,
+                    "heading": "5\n1\n0\n2\ny\na\nM\n8\n1\n",
+                    "fontsize_idx": 2
+                }
+            ],
+            "content": "xxxx\n"
+        },
+        ...
+    }
+    Usage: process_pdf(pdf_bytes, bucket='my-bucket', key='documents/doc.pdf')
+
+    Note: 
+    - The extracted headings and content are dependent on the structure and formatting of the PDF.
+    - The S3 bucket and key are used to download the file to a local path for processing.
+    """
     logger.info("Processing PDF file...")
     bucket = kwargs['bucket']
     key = kwargs['key']
     # extract file name also in consideration of file name with blank space
     local_path = str(os.path.basename(key))
     # download to local for futher processing
-    s3.download_file(Bucket=bucket, Key=bucket, Filename=local_path)
+    s3.download_file(Bucket=bucket, Key=key, Filename=local_path)
     loader = PDFMinerPDFasHTMLLoader(local_path)
     # entire PDF is loaded as a single Document
     file_content = loader.load()[0].page_content
@@ -209,14 +252,16 @@ def process_image(image: bytes):
     # TODO: Implement image processing with ASK API
 
 def cb_process_object(file_type: str, file_content, **kwargs):
+    res = None
     if file_type == 'text':
         process_text(file_content, **kwargs)
     elif file_type == 'html':
         process_html(file_content, **kwargs)
     elif file_type == 'pdf':
-        process_pdf(file_content, **kwargs)
+        res = process_pdf(file_content, **kwargs)
     elif file_type == 'image':
         process_image(file_content, **kwargs)
+    return res
 
 def iterate_s3_files(bucket: str, prefix: str) -> Generator:    
     paginator = s3.get_paginator('list_objects_v2')
@@ -246,6 +291,22 @@ def iterate_s3_files(bucket: str, prefix: str) -> Generator:
                 logger.info(f"Unknown file type: {file_type}")
 
 # main function to be called by Glue job script
-logger.info("Starting Glue job with passing arguments: %s", args)
-for file_type, file_content, kwargs in iterate_s3_files(s3_bucket, s3_prefix):
-    cb_process_object(file_type, file_content, **kwargs)
+def main():
+    logger.info("Starting Glue job with passing arguments: %s", args)
+    # check if offline mode
+    if offline == 'true':
+        logger.info("Running in offline mode with consideration for large file size...")
+        for file_type, file_content, kwargs in iterate_s3_files(s3_bucket, s3_prefix):
+            res = cb_process_object(file_type, file_content, **kwargs)
+
+    else:
+        logger.info("Running in online mode, assume file number is small...")
+
+if __name__ == '__main__':
+    logger.info("Check if libary are correctly imported, os.listdir(os.getcwd()): %s", os.listdir(os.getcwd()))
+    logger.info("Check if libary are correctly imported, os.getcwd(): %s", os.getcwd())
+    logger.info("Check if libary are correctly imported, os.listdir('.'): %s", os.listdir('.'))
+    logger.info("Check if libary are correctly imported, sys.path: %s", sys.path)
+    logger.info("Check if libary are correctly imported, sys.modules: %s", sys.modules)
+
+    main()

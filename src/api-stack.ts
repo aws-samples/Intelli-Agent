@@ -147,7 +147,8 @@ export class LLMApiStack extends NestedStack {
         // Lambda function to trigger Step Function
         const lambdaStepFunction = new lambda.Function(this, 'lambdaStepFunction', {
             // format to avoid indent error, using inline for simplicity no more container pack time needed
-            code: lambda.Code.fromInline(`
+            code: lambda.Code.fromInline
+            (`
 import json
 import boto3
 import os
@@ -156,12 +157,14 @@ def handler(event, context):
     # First check the event for possible S3 created event
     inputPayload = {}
     if 'Records' in event:
+        print('S3 created event detected')
         # TODO, Aggregate the bucket and key from the event object for S3 created event
         bucket = event['Records'][0]['s3']['bucket']['name']
         key = event['Records'][0]['s3']['object']['key']
         # Pass the bucket and key to the Step Function, align with the input schema in etl-stack.ts
-        inputPayload=json.dumps({'s3Bucket': bucket, 's3Prefix': key})
+        inputPayload=json.dumps({'s3Bucket': bucket, 's3Prefix': key, 'offline': 'false'})
     else:
+        print('API Gateway event detected')
         # Parse the body from the event object
         body = json.loads(event['body'])
         # Pass the parsed body to the Step Function
@@ -173,8 +176,8 @@ def handler(event, context):
     )
     return {
         'statusCode': 200,
-        'body': json.dumps('Step Function triggered!\n Execution ARN: ' + response['executionArn'] + \nInput Payload: ' + inputPayload)
-}
+        'body': json.dumps('Step Function triggered, Step Function ARN: ' + response['executionArn'] + ' Input Payload: ' + inputPayload)
+    }
             `),
             handler: 'index.handler',
             runtime: lambda.Runtime.PYTHON_3_9,
@@ -191,8 +194,9 @@ def handler(event, context):
         const apiResourceStepFunction = api.root.addResource('etl');
         apiResourceStepFunction.addMethod('POST', new apigw.LambdaIntegration(lambdaStepFunction));
 
-        // add s3 event notification to trigger lambdaStepFunction for online process in ETL
-        _S3Bucket.addEventNotification(s3.EventType.OBJECT_CREATED, new s3n.LambdaDestination(lambdaStepFunction))
+        // add s3 event notification when file uploaded to the bucket
+        _S3Bucket.addEventNotification(s3.EventType.OBJECT_CREATED, new s3n.LambdaDestination(lambdaStepFunction), { prefix: 'documents/' });
+        _S3Bucket.grantReadWrite(lambdaStepFunction);
 
         this._apiEndpoint = api.url
         this._documentBucket = _S3Bucket.bucketName
