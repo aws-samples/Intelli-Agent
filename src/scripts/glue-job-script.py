@@ -5,7 +5,7 @@ import re
 import logging
 import json
 
-from typing import Generator
+from typing import Generator, Any, Dict, Iterable, List, Optional, Tuple
 from bs4 import BeautifulSoup
 from langchain.document_loaders import PDFMinerPDFasHTMLLoader
 from langchain.docstore.document import Document
@@ -155,6 +155,55 @@ def pre_process_text(text: str):
     str_doc = re.sub(r'\n', ' ', str_doc)
     return str_doc.strip()
 
+def post_process_pdf(pdf: str):
+    """
+    Transforms a given string of a specific format into a desired formatted string.
+
+    The function extracts the 'page_content' value from the input string and
+    constructs a new string in a JSON-like format with specific hardcoded values
+    and the extracted 'page_content' value.
+
+    Parameters:
+    -----------
+    original_string : str
+        The input string to be transformed. Sample: 
+        str: A string formatted in the desired JSON-like structure. Sample:
+        [
+            {
+                "heading": [
+                    {
+                        "font_size": 10,
+                        "heading": "5\n1\n0\n2\ny\na\nM\n8\n1\n",
+                        "fontsize_idx": 2
+                    }
+                ],
+                "content": "this is the content\n"
+            }
+            ...
+        ]
+    Returns:
+    --------
+        str: A string to conform to AOS embedding wrapper. Sample:
+        List[Document]
+        [Document(page_content='this is the content', metadata={'source': '/tmp/tmpghff3i39/xx/dth.txt', 'timestamp': 1697513348.1026106, 'embeddings_model': 'embedding-endpoint'})]
+    """
+    logger.info("Post-processing PDF file %s", pdf)
+    # Parse the input string to a Python data structure
+    input_data = json.loads(pdf)
+    # Create an empty list to hold the Document objects
+    documents: List[Document] = []
+
+    # Iterate through the parsed data, creating Document objects for each item
+    for item in input_data:
+        page_content = item['content']
+        # Assuming some default metadata; adjust as necessary
+        metadata = {'source': 'unknown', 'fontsize': item['heading'][0]['font_size'], 'heading': item['heading'][0]['heading'], 'fontsize_idx': item['heading'][0]['fontsize_idx']}
+        doc = Document(page_content=page_content, metadata=metadata)
+        documents.append(doc)
+
+    logger.info("Post-processing PDF with result %s", documents)
+    return documents
+
 def process_text(text: str):
     logger.info("Processing text file...")
     text = pre_process_text(text)
@@ -261,7 +310,7 @@ def cb_process_object(file_type: str, file_content, **kwargs):
     elif file_type == 'html':
         process_html(file_content, **kwargs)
     elif file_type == 'pdf':
-        res = process_pdf(file_content, **kwargs)
+        res = post_process_pdf(process_pdf(file_content, **kwargs))
     elif file_type == 'image':
         process_image(file_content, **kwargs)
     return res
@@ -313,7 +362,7 @@ def main():
                 verify_certs = True,
                 connection_class = RequestsHttpConnection
             )
-            # docsearch.add_documents(documents=res)
+            docsearch.add_documents(documents=res)
     else:
         logger.info("Running in online mode, assume file number is small...")
 

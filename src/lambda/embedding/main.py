@@ -43,7 +43,7 @@ credentials = boto3.Session().get_credentials()
 awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, aws_region, 'es', session_token=credentials.token)
 
 def process_shard(shard, embeddings_model_endpoint_name, aws_region, os_index_name, os_domain_ep, os_http_auth) -> int: 
-    logger.info(f'Starting process_shard of {len(shard)} chunks.')
+    logger.info(f'Starting process_shard with content: {shard}')
     st = time.time()
     embeddings = create_sagemaker_embeddings_from_js_model(embeddings_model_endpoint_name, aws_region)
     docsearch = OpenSearchVectorSearch(
