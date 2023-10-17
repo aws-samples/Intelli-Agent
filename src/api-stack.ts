@@ -5,6 +5,7 @@ import * as iam from "aws-cdk-lib/aws-iam";
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as apigw from 'aws-cdk-lib/aws-apigateway';
 import * as s3 from 'aws-cdk-lib/aws-s3';
+import * as s3n from 'aws-cdk-lib/aws-s3-notifications';
 import * as sfn from 'aws-cdk-lib/aws-stepfunctions';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import { Construct } from 'constructs';
@@ -25,6 +26,7 @@ interface apiStackProps extends StackProps {
 export class LLMApiStack extends NestedStack {
 
     _apiEndpoint;
+    _documentBucket;
     constructor(scope: Construct, id: string, props: apiStackProps) {
         super(scope, id, props);
 
@@ -144,24 +146,38 @@ export class LLMApiStack extends NestedStack {
         // Integration with Step Function to trigger ETL process
         // Lambda function to trigger Step Function
         const lambdaStepFunction = new lambda.Function(this, 'lambdaStepFunction', {
-            // format to avoid indent error
-            code: lambda.Code.fromInline(`
+            // format to avoid indent error, using inline for simplicity no more container pack time needed
+            code: lambda.Code.fromInline
+            (`
 import json
 import boto3
 import os
 client = boto3.client('stepfunctions')
 def handler(event, context):
-    # Parse the body from the event object
-    body = json.loads(event['body'])
-    # Pass the parsed body to the Step Function
+    # First check the event for possible S3 created event
+    inputPayload = {}
+    if 'Records' in event:
+        print('S3 created event detected')
+        # TODO, Aggregate the bucket and key from the event object for S3 created event
+        bucket = event['Records'][0]['s3']['bucket']['name']
+        key = event['Records'][0]['s3']['object']['key']
+        # Pass the bucket and key to the Step Function, align with the input schema in etl-stack.ts
+        inputPayload=json.dumps({'s3Bucket': bucket, 's3Prefix': key, 'offline': 'false'})
+    else:
+        print('API Gateway event detected')
+        # Parse the body from the event object
+        body = json.loads(event['body'])
+        # Pass the parsed body to the Step Function
+        inputPayload=json.dumps(body)
+
     response = client.start_execution(
         stateMachineArn=os.environ['sfn_arn'],
-        input=json.dumps(body)
+        input=inputPayload
     )
     return {
         'statusCode': 200,
-        'body': json.dumps('Step Function triggered!')
-}
+        'body': json.dumps('Step Function triggered, Step Function ARN: ' + response['executionArn'] + ' Input Payload: ' + inputPayload)
+    }
             `),
             handler: 'index.handler',
             runtime: lambda.Runtime.PYTHON_3_9,
@@ -178,6 +194,11 @@ def handler(event, context):
         const apiResourceStepFunction = api.root.addResource('etl');
         apiResourceStepFunction.addMethod('POST', new apigw.LambdaIntegration(lambdaStepFunction));
 
+        // add s3 event notification when file uploaded to the bucket
+        _S3Bucket.addEventNotification(s3.EventType.OBJECT_CREATED, new s3n.LambdaDestination(lambdaStepFunction), { prefix: 'documents/' });
+        _S3Bucket.grantReadWrite(lambdaStepFunction);
+
         this._apiEndpoint = api.url
+        this._documentBucket = _S3Bucket.bucketName
     }
 }
