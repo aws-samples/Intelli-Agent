@@ -143,6 +143,9 @@ export class LLMApiStack extends NestedStack {
         const apiResourceEmbedding = api.root.addResource('embedding');
         apiResourceEmbedding.addMethod('POST', lambdaEmbeddingIntegration);
 
+        // Add Get method to query & search index in OpenSearch, the POST method above should be deprecated in the future and replaced by AWS Glue
+        apiResourceEmbedding.addMethod('GET', lambdaEmbeddingIntegration);
+
         // Integration with Step Function to trigger ETL process
         // Lambda function to trigger Step Function
         const lambdaStepFunction = new lambda.Function(this, 'lambdaStepFunction', {

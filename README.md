@@ -57,7 +57,7 @@ You should see output like this:
 "Step Function triggered, Step Function ARN: arn:aws:states:us-east-1:xxxx:execution:xx-xxx:xx-xx-xx-xx-xx, Input Payload: {\"s3Bucket\": \"<Your S3 bucket>\", \"s3Prefix\": \"<Your S3 prefix>\", \"offline\": \"true\"}"
 ```
 
-**embedding uploaded file into AOS, POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/embedding**
+**embedding uploaded file into AOS, POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/embedding**, will be deprecate in the future
 ```bash
 BODY
 {
@@ -70,6 +70,59 @@ You should see output like this:
 {
   "created": xx.xx,
   "model": "embedding-endpoint"
+}
+```
+
+**query embeddings in AOS, POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/embedding**, other operation including index, delete, query are also provided for debugging purpose.
+```bash
+BODY
+{
+  "aos_index": "chatbot-index",
+  "query": {
+    "operation": "match_all",
+    "match_all": {}
+  }
+}
+```
+You should see output like this:
+```bash
+{
+  "took": 17,
+  "timed_out": false,
+  "_shards": {
+    "total": 5,
+    "successful": 5,
+    "skipped": 0,
+    "failed": 0
+  },
+  "hits": {
+    "total": {
+      "value": 890,
+      "relation": "eq"
+    },
+    "max_score": 1.0,
+    "hits": [
+      {
+        "_index": "chatbot-index",
+        "_id": "038592b1-8bd0-4415-9e18-93d632afa52f",
+        "_score": 1.0,
+        "_source": {
+          "vector_field": [
+            0.005092620849609375,
+            xx
+          ],
+          "text": "cess posterior mean. However, we can expand\nEq. (8) further by reparameterizing Eq. (4) as xt(x0, (cid:15)) = √¯αtx0 + √1\n(0, I) and\napplying the forward process posterior formula (7):\n¯αt(cid:15) for (cid:15)\n∼ N\n−\n(cid:34)\n(cid:34)\nLt\n1 −\n−\nC = Ex0,(cid:15)\n= Ex0,(cid:15)\n1\n2σ2\nt\n(cid:18)\n(cid:13)\n(cid:13)\n˜µt\n(cid:13)\n(cid:13)\nxt(x0, (cid:15)),\n1\n√¯αt\n(xt(x0, (cid:15))\n√1\n−\n−\n¯αt(cid:15))\n(cid:19)\n−\n(cid:13)\n(cid:13)\nµθ(xt(x0, (cid:15)), t)\n(cid:13)\n(cid:13)\n2(cid:35)\n1\n2σ2\nt\n(cid:13)\n(cid:13)\n(cid:13)\n(cid:13)\n1\n√αt\n(cid:18)\nxt(x0, (cid:15))\nβt\n−\n√1\n¯αt\n−\n(cid:19)\n(cid:15)\n−\nµθ(xt(x0, (cid:15)), t)\n2(cid:35)\n(cid:13)\n(cid:13)\n(cid:13)\n(cid:13)\n(9)\n(10)\n3\nAlgorithm 1 Training\nAlgorithm 2 Sampling\n1: repeat\n2: x0 ∼ q(x0)\n3:\n4:\n5: Take gradient descent step on\n√\n(cid:13)\n(cid:13)(cid:15) − (cid:15)θ(\nt ∼ Uniform({1, . . . , T })\n(cid:15) ∼ N (0, I)\n¯αtx0 +\n∇θ\n6: until converged\n√\n1 − ¯αt(cid:15), t)(cid:13)\n2\n(cid:13)\n1: xT ∼ N (0, I)\n2: for t = T, . . . , 1 do\n3: z ∼ N (0, I) if t > ",
+          "metadata": {
+            "source": "unknown",
+            "fontsize": 11,
+            "heading": "3 Diffusion models and denoising autoencoders\n",
+            "fontsize_idx": 2
+          }
+        }
+      },
+      ...
+    ]
+  }
 }
 ```
 

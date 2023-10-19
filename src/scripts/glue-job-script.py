@@ -4,6 +4,7 @@ import sys
 import re
 import logging
 import json
+import itertools
 
 from typing import Generator, Any, Dict, Iterable, List, Optional, Tuple
 from bs4 import BeautifulSoup
@@ -311,6 +312,7 @@ def cb_process_object(file_type: str, file_content, **kwargs):
         process_html(file_content, **kwargs)
     elif file_type == 'pdf':
         res = post_process_pdf(process_pdf(file_content, **kwargs))
+        split_chunk(res, embeddingModelEndpoint, aosEndpoint, 'chatbot-index')
     elif file_type == 'image':
         process_image(file_content, **kwargs)
     return res
@@ -342,6 +344,44 @@ def iterate_s3_files(bucket: str, prefix: str) -> Generator:
             else:
                 logger.info(f"Unknown file type: {file_type}")
 
+def batch_generator(generator, batch_size):
+    while True:
+        batch = list(itertools.islice(generator, batch_size))
+        if not batch:
+            break
+        yield batch
+
+def split_chunk(content: List[Document], embeddingModelEndpoint: str, aosEndpoint: str, index_name: str, chunk_size: int = 1000) -> List[Document]:
+    embeddings = sm_utils.create_sagemaker_embeddings_from_js_model(embeddingModelEndpoint, region)
+
+    def chunk_generator(content: List[Document], chunk_size: int = 1000):
+        # iterate documents list and split per document with chunk size
+        for i in range(0, len(content)):
+            # split the document into chunks
+            chunks = [content[i].page_content[j:j+chunk_size] for j in range(0, len(content[i].page_content), chunk_size)]
+            # create a new document for each chunk
+            for chunk in chunks:
+                metadata = content[i].metadata
+                doc = Document(page_content=chunk, metadata=metadata)
+                yield doc
+
+    generator = chunk_generator(content, )
+    batches = batch_generator(generator, batch_size=10)
+    for batch in batches:
+        if len(batch) == 0:
+            continue
+        logger.info("Adding documents %s to OpenSearch index...", batch)
+        docsearch = OpenSearchVectorSearch(
+            index_name=index_name,
+            embedding_function=embeddings,
+            opensearch_url="https://{}".format(aosEndpoint),
+            http_auth = awsauth,
+            use_ssl = True,
+            verify_certs = True,
+            connection_class = RequestsHttpConnection
+        )
+        docsearch.add_documents(documents=batch)
+
 # main function to be called by Glue job script
 def main():
     logger.info("Starting Glue job with passing arguments: %s", args)
@@ -350,19 +390,6 @@ def main():
         logger.info("Running in offline mode with consideration for large file size...")
         for file_type, file_content, kwargs in iterate_s3_files(s3_bucket, s3_prefix):
             res = cb_process_object(file_type, file_content, **kwargs)
-            embeddings = sm_utils.create_sagemaker_embeddings_from_js_model(embeddingModelEndpoint, region)
-            logger.info("Adding documents %s to OpenSearch index...", res)
-            docsearch = OpenSearchVectorSearch(
-                # TODO, make this configurable
-                index_name='chatbot-index',
-                embedding_function=embeddings,
-                opensearch_url="https://{}".format(aosEndpoint),
-                http_auth = awsauth,
-                use_ssl = True,
-                verify_certs = True,
-                connection_class = RequestsHttpConnection
-            )
-            docsearch.add_documents(documents=res)
     else:
         logger.info("Running in online mode, assume file number is small...")
 

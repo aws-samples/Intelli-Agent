@@ -17,9 +17,6 @@ from requests_aws4auth import AWS4Auth
 from aos_utils import OpenSearchClient
 
 from opensearchpy import OpenSearch, RequestsHttpConnection
-credentials = boto3.Session().get_credentials()
-region = boto3.Session().region_name
-awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, region, 'es', session_token=credentials.token)
 
 # global constants
 MAX_FILE_SIZE = 1024*1024*100 # 100MB
@@ -67,7 +64,24 @@ def lambda_handler(event, context):
     logger.info(f"context:{context}")
     # parse aos endpoint from event
     index_name = json.loads(event['body'])['aos_index']
-    # aos_client = OpenSearchClient(_opensearch_cluster_domain)
+
+    # re-route GET request to seperate processing branch
+    if event['httpMethod'] == 'GET':
+        query = json.loads(event['body'])['query']
+        aos_client = OpenSearchClient(_opensearch_cluster_domain)
+        # check if the operation is query of search for OpenSearch
+        if query['operation'] == 'query':
+            response = aos_client.query(index_name, query['field'], query['value'])
+        elif query['operation'] == 'match_all':
+            response = aos_client.match_all(index_name)
+        else:
+            raise Exception(f'Invalid query operation: {query["operation"]}')
+
+        return {
+            'statusCode': 200,
+            'headers': {'Content-Type': 'application/json'},
+            'body': json.dumps(response)
+        }
 
     aos_client = OpenSearch(
         hosts = [{'host': _opensearch_cluster_domain.replace("https://", ""), 'port': 443}],
@@ -75,7 +89,7 @@ def lambda_handler(event, context):
         use_ssl = True,
         verify_certs = True,
         connection_class = RequestsHttpConnection,
-        region=region
+        region=aws_region
     )
     # iterate all files within specific s3 prefix in bucket llm-bot-documents and print out file number and total size
     prefix = json.loads(event['body'])['document_prefix']
