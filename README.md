@@ -43,21 +43,8 @@ Now the object created event will trigger the Step function to execute Glue job 
 4. Test the API connection
 
 Use Postman/cURL to test the API connection, the API endpoint is the output of CloudFormation Stack with prefix 'embedding' or 'llm', the sample URL will be like "https://xxxx.execute-api.us-east-1.amazonaws.com/v1/embedding", the API request body is as follows:
-**offline process to pre-process file specificed in S3 bucket and prefix, POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/etl**
-```bash
-BODY
-{
-    "s3Bucket": "<Your S3 bucket>",
-    "s3Prefix": "<Your S3 prefix>",
-    "offline": "true"
-}
-```
-You should see output like this:
-```bash
-"Step Function triggered, Step Function ARN: arn:aws:states:us-east-1:xxxx:execution:xx-xxx:xx-xx-xx-xx-xx, Input Payload: {\"s3Bucket\": \"<Your S3 bucket>\", \"s3Prefix\": \"<Your S3 prefix>\", \"offline\": \"true\"}"
-```
 
-**embedding uploaded file into AOS, POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/embedding**, will be deprecate in the future
+**embedding uploaded file into AOS, POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/embedding, will be deprecate in the future**
 ```bash
 BODY
 {
@@ -71,6 +58,20 @@ You should see output like this:
   "created": xx.xx,
   "model": "embedding-endpoint"
 }
+```
+
+**offline process to pre-process file specificed in S3 bucket and prefix, POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/etl**
+```bash
+BODY
+{
+    "s3Bucket": "<Your S3 bucket>",
+    "s3Prefix": "<Your S3 prefix>",
+    "offline": "true"
+}
+```
+You should see output like this:
+```bash
+"Step Function triggered, Step Function ARN: arn:aws:states:us-east-1:xxxx:execution:xx-xxx:xx-xx-xx-xx-xx, Input Payload: {\"s3Bucket\": \"<Your S3 bucket>\", \"s3Prefix\": \"<Your S3 prefix>\", \"offline\": \"true\"}"
 ```
 
 **query embeddings in AOS, POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/embedding**, other operation including index, delete, query are also provided for debugging purpose.
