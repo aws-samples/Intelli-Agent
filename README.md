@@ -1,6 +1,6 @@
 ## LLM Bot
 
-![image](https://github.com/aws-samples/llm-bot/assets/23544182/68a37d9b-e3bf-4737-9c76-7632c3f5d3ef)
+![image](https://github.com/aws-samples/llm-bot/assets/23544182/63bbe9a4-41fb-441a-86ad-013215d168b4)
 
 ### Quick Start
 
@@ -167,6 +167,15 @@ You should see output like this:
     }
   ]
 }
+```
+5. Launch dashboard to check and debug the ETL & QA process
+
+```bash
+cd /src/panel
+pip install -r requirements.txt
+mv .env_sample .env
+# fill .env content accordingly with cdk output
+streamlit run app.py --server.runOnSave true
 ```
 
 ## Other Sample
