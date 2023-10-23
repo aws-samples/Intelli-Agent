@@ -18,9 +18,6 @@ from requests_aws4auth import AWS4Auth
 from aos_utils import OpenSearchClient
 
 from opensearchpy import OpenSearch, RequestsHttpConnection
-credentials = boto3.Session().get_credentials()
-region = boto3.Session().region_name
-awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, region, 'es', session_token=credentials.token)
 
 # global constants
 MAX_FILE_SIZE = 1024*1024*100 # 100MB
@@ -102,7 +99,7 @@ def load_processed_documents(prefix=""):
     return chunks
 
 def process_shard(shard, embeddings_model_endpoint_name, aws_region, os_index_name, os_domain_ep, os_http_auth) -> int: 
-    logger.info(f'Starting process_shard of {len(shard)} chunks.')
+    logger.info(f'Starting process_shard with content: {shard}')
     st = time.time()
     embeddings = create_sagemaker_embeddings_from_js_model(embeddings_model_endpoint_name, aws_region)
     docsearch = OpenSearchVectorSearch(
@@ -127,9 +124,28 @@ def lambda_handler(event, context):
 
     # parse arguments from event
     index_name = json.loads(event['body'])['aos_index']
+
+    # re-route GET request to seperate processing branch
+    if event['httpMethod'] == 'GET':
+        query = json.loads(event['body'])['query']
+        aos_client = OpenSearchClient(_opensearch_cluster_domain)
+        # check if the operation is query of search for OpenSearch
+        if query['operation'] == 'query':
+            response = aos_client.query(index_name, query['field'], query['value'])
+        elif query['operation'] == 'match_all':
+            response = aos_client.match_all(index_name)
+        else:
+            raise Exception(f'Invalid query operation: {query["operation"]}')
+
+        return {
+            'statusCode': 200,
+            'headers': {'Content-Type': 'application/json'},
+            'body': json.dumps(response)
+        }
+
+    # parse arguments from event
     prefix = json.loads(event['body'])['document_prefix']
     file_processed = json.loads(event['body']).get('file_processed', False)
-    
 
     # Set the NLTK data path to the /tmp directory (writable in AWS Lambda)
     nltk.data.path.append("/tmp")
@@ -145,7 +161,7 @@ def lambda_handler(event, context):
         use_ssl = True,
         verify_certs = True,
         connection_class = RequestsHttpConnection,
-        region=region
+        region=aws_region
     )
 
     # iterate all files within specific s3 prefix in bucket llm-bot-documents and print out file number and total size
