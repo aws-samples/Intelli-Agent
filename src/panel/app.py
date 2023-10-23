@@ -38,7 +38,7 @@ def process_text(text):
     
     return knowledgeBase
 
-def main():
+def pipeline_tab():
     st.title("LLM Bot ETL Pipeline")
     # text box to allow user input the url address of the pipeline with default value
     pipeline_url = st.text_input('Pipeline URL', value=os.getenv('PIPELINE_URL'))
@@ -125,8 +125,51 @@ def main():
     send_button = st.button('Send')
     if send_button:
         response = requests.get(pipeline_url + '/embedding', json=request_body, headers={'Content-Type': 'application/json'})
-        # output with text_area to show the response with json format
         st.text_area('Response:', value=response.text, height=200, max_chars=None)
+
+def llm_bot_tab():
+    # user input box to allow user input question
+    st.title("LLM Bot")
+    query = st.text_input('Ask a question to the PDF')
+    # cancel button to allow user to cancel the question
+    cancel_button = st.button('Cancel')
+    if cancel_button:
+        st.stop()
+    # send button to trigger the request sending to the endpoint with query as request body
+    send_button = st.button('Send')
+    if send_button:
+        # request body to be sent to the endpoint
+        request_body = {
+            "model": "knowledge_qa",
+            "messages": [
+                {
+                "role": "user",
+                "content": query
+                }
+            ],
+            "temperature": 0.7
+        }
+        response = requests.post(os.getenv('PIPELINE_URL') + '/llm', json=request_body, headers={'Content-Type': 'application/json'})
+        try:
+            data_dict = json.loads(response.text)
+            content = data_dict["choices"][0]["message"]["content"]
+            st.text_area('Response:', value=content.encode('utf-8').decode('utf-8'), height=200, max_chars=None)
+        except json.JSONDecodeError as e:
+            st.error(f"Failed to parse response as JSON: {e}")
+            st.text(response.text)
+        # data_dict = response.text.json()
+        # content = data_dict["choices"][0]["message"]["content"]
+        # st.text_area('Response:', value=content.encode('utf-8').decode('unicode_escape'), height=200, max_chars=None)
+
+def main():
+    # Create a tab bar
+    st.sidebar.title("LLM Bot")
+    tabs = ["ETL Pipeline", "LLM Bot"]
+    page = st.sidebar.radio("Select a tab", tabs)
+    if page == "ETL Pipeline":
+        pipeline_tab()
+    elif page == "LLM Bot":
+        llm_bot_tab()
 
     # using libary and OpenAI for local testing, comment for now
     
