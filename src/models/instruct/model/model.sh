@@ -9,7 +9,7 @@ function usage {
 
 # Default values
 model_name="csdc-atl/buffer-instruct-InternLM-001"
-commit_hash="2da398b96f1617c22af037e9177940cc1c823fcf"
+commit_hash="b43935b91d90df80bccdab4c2e8a5d6315f5278b"
 s3_bucket_name="llm-rag" # Default S3 bucket name
 
 # Parse command-line options

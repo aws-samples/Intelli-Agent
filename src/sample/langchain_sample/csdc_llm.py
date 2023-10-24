@@ -17,7 +17,7 @@ class LLMInputOutputAdapter:
 
     @classmethod
     def prepare_input(
-        cls, provider: str, prompt: str, model_kwargs: Dict[str, Any]
+        cls, provider: str, prompt: str, streaming: bool, model_kwargs: Dict[str, Any]
     ) -> Dict[str, Any]:
         input_body = {**model_kwargs}
         if provider == "CSDC":
@@ -25,10 +25,7 @@ class LLMInputOutputAdapter:
             input_body["inputs"] = prompt
             input_body["history"] = []
             input_body["parameters"] = {**model_kwargs}
-        elif provider == "amazon":
-            input_body = dict()
-            input_body["inputText"] = prompt
-            input_body["textGenerationConfig"] = {**model_kwargs}
+            input_body["stream"] = streaming
         else:
             input_body["inputText"] = prompt
 
@@ -41,7 +38,6 @@ class LLMInputOutputAdapter:
             return response_body.get('outputs')
         else:
             response_body = json.loads(response.get("body").read())
-
 
 class CSDCLLMBase(BaseModel, ABC):
     client: Any  #: :meta private:
@@ -74,6 +70,9 @@ class CSDCLLMBase(BaseModel, ABC):
 
     endpoint_url: Optional[str] = None
     """Needed if you don't want to default to us-east-1 endpoint"""
+
+    streaming: bool = False
+    """Whether to stream the results."""
 
     @root_validator()
     def validate_environment(cls, values: Dict) -> Dict:
@@ -125,6 +124,9 @@ class CSDCLLMBase(BaseModel, ABC):
     def _get_provider(self) -> str:
         return self.model_provider if self.model_provider else self.model_id.split(".")[0]
 
+    def _get_streaming(self) -> bool:
+        return self.streaming
+
     def _prepare_input_and_invoke(
         self,
         prompt: str,
@@ -135,8 +137,9 @@ class CSDCLLMBase(BaseModel, ABC):
         _model_kwargs = self.model_kwargs or {}
 
         provider = self._get_provider()
+        streaming = self._get_streaming()
         params = {**_model_kwargs, **kwargs}
-        input_body = LLMInputOutputAdapter.prepare_input(provider, prompt, params)
+        input_body = LLMInputOutputAdapter.prepare_input(provider, prompt, streaming, params)
         body = json.dumps(input_body).encode('utf-8')
         accept = "application/json"
         contentType = "application/json"
@@ -155,6 +158,34 @@ class CSDCLLMBase(BaseModel, ABC):
             text = enforce_stop_tokens(text, stop)
 
         return text
+
+    def _prepare_input_and_invoke_stream(
+        self,
+        prompt: str,
+        stop: Optional[List[str]] = None,
+        run_manager: Optional[CallbackManagerForLLMRun] = None,
+        **kwargs: Any,
+    ) -> str:
+        _model_kwargs = self.model_kwargs or {}
+
+        provider = self._get_provider()
+        streaming = self._get_streaming()
+        params = {**_model_kwargs, **kwargs}
+        input_body = LLMInputOutputAdapter.prepare_input(provider, prompt, streaming, params)
+        body = json.dumps(input_body).encode('utf-8')
+        accept = "application/json"
+        contentType = "application/json"
+        endpoint_name = self.model_endpoint
+
+        try:
+            resp = self.client.invoke_endpoint_with_response_stream(
+                EndpointName=endpoint_name,
+                Body=body,
+                ContentType=contentType
+            )
+            return resp
+        except Exception as e:
+            raise ValueError(f"Error raised by streaming inference endpoint: {e}")
 
 
 class CSDCLLM(LLM, CSDCLLMBase):
