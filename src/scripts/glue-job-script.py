@@ -14,7 +14,7 @@ from langchain.vectorstores import OpenSearchVectorSearch
 from opensearchpy import RequestsHttpConnection
 
 from awsglue.utils import getResolvedOptions
-from llm_bot_dep import sm_utils, aos_utils
+from llm_bot_dep import sm_utils, aos_utils, enhance_utils
 from requests_aws4auth import AWS4Auth
 
 logger = logging.getLogger()
@@ -394,4 +394,5 @@ def main():
         logger.info("Running in online mode, assume file number is small...")
 
 if __name__ == '__main__':
+    logger.info("boto3 version: %s", boto3.__version__)
     main()
