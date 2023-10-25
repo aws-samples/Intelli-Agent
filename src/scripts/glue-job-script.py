@@ -14,7 +14,7 @@ from langchain.vectorstores import OpenSearchVectorSearch
 from opensearchpy import RequestsHttpConnection
 
 from awsglue.utils import getResolvedOptions
-from llm_bot_dep import sm_utils, aos_utils, enhance_utils
+from llm_bot_dep import sm_utils, aos_utils, enhance_utils, extraction_utils
 from requests_aws4auth import AWS4Auth
 
 logger = logging.getLogger()
@@ -389,7 +389,12 @@ def main():
     if offline == 'true':
         logger.info("Running in offline mode with consideration for large file size...")
         for file_type, file_content, kwargs in iterate_s3_files(s3_bucket, s3_prefix):
-            res = cb_process_object(file_type, file_content, **kwargs)
+            try:
+                res = cb_process_object(file_type, file_content, **kwargs)
+                if res:
+                    logger.info("Result: %s", res)
+            except Exception as e:
+                logger.error("Error processing object %s: %s", kwargs['bucket'] + '/' + kwargs['key'], e)
     else:
         logger.info("Running in online mode, assume file number is small...")
 
