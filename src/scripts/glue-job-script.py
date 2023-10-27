@@ -14,7 +14,7 @@ from langchain.vectorstores import OpenSearchVectorSearch
 from opensearchpy import RequestsHttpConnection
 
 from awsglue.utils import getResolvedOptions
-from llm_bot_dep import sm_utils, aos_utils, enhance_utils, extraction_utils
+from llm_bot_dep import sm_utils, aos_utils, enhance_utils, loader_utils
 from requests_aws4auth import AWS4Auth
 
 logger = logging.getLogger()
