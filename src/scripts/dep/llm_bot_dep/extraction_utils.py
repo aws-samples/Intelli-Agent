@@ -1,8 +1,7 @@
 import logging
 import subprocess
 from pathlib import Path
-from typing import Dict, List, Optional
-
+from typing import Dict, List, Optional, Iterator
 from langchain.document_loaders.pdf import BasePDFLoader
 from langchain.docstore.document import Document
 
@@ -63,11 +62,16 @@ class NougatPDFLoader(BasePDFLoader):
     def load(self) -> List[Document]:
         """Loads and processes the specified PDF file, converting it to a list of Document objects.
 
-        This method reads the PDF file, processes it using the `nougat` command,
-        reads the resulting Markdown content, and constructs a Document object with the content.
-
         Returns:
             List[Document]: A list containing a single Document object with the processed content.
+        """
+        return list(self.lazy_load())
+
+    def lazy_load(self) -> Iterator[Document]:
+        """Lazy load and process the specified PDF file, yielding Document objects.
+
+        This method reads the PDF file, processes it using the `nougat` command,
+        reads the resulting Markdown content, and yields a Document object with the content.
         """
         try:
             file_path = self.file_path
@@ -87,7 +91,7 @@ class NougatPDFLoader(BasePDFLoader):
                 .replace(r"\]", "$$")
             )
             metadata = {"source": self.file_path}
-            return [Document(page_content=content, metadata=metadata)]
+            yield Document(page_content=content, metadata=metadata)
 
         except Exception as e:
             logging.error(f"An error occurred while processing the PDF: {str(e)}")
