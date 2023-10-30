@@ -293,6 +293,7 @@ def process_pdf(pdf: bytes, **kwargs):
     local_path = str(os.path.basename(key))
     # download to local for futher processing
     s3.download_file(Bucket=bucket, Key=key, Filename=local_path)
+    # TODO, will be deprecated and replaced by nougat class in loader_utils
     loader = PDFMinerPDFasHTMLLoader(local_path)
     # entire PDF is loaded as a single Document
     file_content = loader.load()[0].page_content
@@ -357,7 +358,7 @@ def split_chunk(content: List[Document], embeddingModelEndpoint: str, aosEndpoin
     def chunk_generator(content: List[Document], chunk_size: int = 1000):
         # iterate documents list and split per document with chunk size
         for i in range(0, len(content)):
-            # split the document into chunks
+            # TODO, split the document into chunks, will be deprecated and replaced by the ASK model directly
             chunks = [content[i].page_content[j:j+chunk_size] for j in range(0, len(content[i].page_content), chunk_size)]
             # create a new document for each chunk
             for chunk in chunks:

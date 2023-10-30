@@ -85,3 +85,23 @@ class OpenSearchClient:
         }
         response = self.client.search(index=index, body=body)
         return response
+    def search_with_metadata(self, index: str, query: str, filter: str):
+        """
+        Execute a search query using the query DSL, using bool query to filter on metadata.
+        """
+        body = {
+            "query": {
+                "bool": {
+                    "must": [
+                        {"match": {"content": query}},
+                        {"match": {"metadata": "true"}}
+                    ],
+                    # looking for documents where the metadata field exactly matches the value of filter
+                    "filter": [
+                        {"term": {"metadata": filter}}
+                    ]
+                }
+            }
+        }
+        response = self.client.search(index=index, body=body)
+        return response
