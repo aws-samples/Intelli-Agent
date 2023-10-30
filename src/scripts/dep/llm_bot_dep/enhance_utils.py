@@ -5,16 +5,24 @@ import json
 import logging
 import openai
 from typing import Dict, List
+from langchain.docstore.document import Document
+import nltk
+
 # print the log to stdout
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# token number to slice a document
+slice_size = 50
+# number of questions to generate
+question_num = 5
 
 en_prompt_template = """
 Here is snippet of {solution}'s manual document within backticks
 ```
 {page}
 ```
-Please generate 10 questions and corresponding answers based on these document fragments, with the questions being as diverse as possible and containing details, following the rules below:
+Please generate {question_num} questions and corresponding answers based on these document fragments, with the questions being as diverse as possible and containing details, following the rules below:
 1. "{solution}" needs to be included in the Question continuously
 2. The question part needs to start with "Question: "
 3. The answer part needs to start with "Answer: "
@@ -26,7 +34,7 @@ zh_prompt_template = """
 ```
 {page}
 ```
-请基于这些文档片段自动生成10个问题以及对应答案, 问题需要尽可能多样化并包含细节, 且遵循如下规则:
+请基于这些文档片段自动生成{question_num}个问题以及对应答案, 问题需要尽可能多样化并包含细节, 且遵循如下规则:
 1. "{solution}"需要一直被包含在Question中
 2. 问题部分需要以"Question: "开始
 3. 答案部分需要以"Answer: "开始
@@ -34,7 +42,7 @@ zh_prompt_template = """
 """
 
 class EnhanceWithBedrock:
-    def __init__(self, prompt: str, solution_title: str, page_content: str, zh: bool = True):
+    def __init__(self, prompt: str, solution_title: str, document: Document, zh: bool = True):
         BEDROCK_REGION = str(boto3.session.Session().region_name)
         # TODO, pass such credentials from CloudFormation creation and store in SSM
         openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -46,10 +54,10 @@ class EnhanceWithBedrock:
         )
         self.prompt = prompt
         self.solution_title = solution_title
-        self.page_content = page_content
+        self.document = document
         self.zh = zh
 
-    def EnhanceWithClaude(self, prompt: str, solution_title: str, page_content: str, zh: bool = True) -> List[Dict[str, str]]:
+    def EnhanceWithClaude(self, prompt: str, solution_title: str, document: Document, zh: bool = True) -> List[Dict[str, str]]:
         """
         Enhance the given prompt using the Claude model by Anthropic. This function constructs a new prompt using the given solution title and page content,
         sends a request to the Claude model, and retrieves the model's response.
@@ -74,8 +82,10 @@ class EnhanceWithBedrock:
         Note:
         - Deprecated: Claude v2 does not output Chinese characters in experiment, so Claude v1 is used here.
         """
+        # Initialize an empty list to store the Document objects
+        # documents = []
         prompt_template = zh_prompt_template if zh else en_prompt_template
-        prompt = prompt_template.format(solution=solution_title, page=page_content)
+        prompt = prompt_template.format(solution=solution_title, page=document.page_content, question_num=question_num)
         prompt = "\n\nHuman:{}".format(prompt) + "\n\nAssistant:"
         # schema keep changing, refer to https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters.html#model-parameters-claude for latest schema
         body = json.dumps({
@@ -95,16 +105,31 @@ class EnhanceWithBedrock:
             body=body, modelId=modelId, accept=accept, contentType=contentType
         )
         response_body = json.loads(response.get("body").read())
-        raw_completion = response_body.get("completion")
-        converted_completion = []
-        for qa in raw_completion.split("\n\n"):
-            if qa.startswith("Question:"):
-                converted_completion.append({"Question": qa.replace("Question:", "").strip()})
-            elif qa.startswith("Answer:"):
-                converted_completion[-1]["Answer"] = qa.replace("Answer:", "").strip()
-        return converted_completion
+        raw_completion = response_body.get("completion").split('\n')
 
-    def EnhanceWithOpenAI(self, prompt: str, solution_title: str, page_content: str, zh: bool = True) -> List[Dict[str, str]]:
+        # Initialize an empty list to store the Q&A pairs
+        qa_list = []
+
+        # Initialize an empty dictionary to store the current Q&A pair
+        qa_dict = {}
+        for line in raw_completion:
+            # Check if the line contains a question
+            if line.startswith('Question:'):
+                # If there's already a Q&A pair in qa_dict, append it to qa_list
+                if qa_dict:
+                    qa_list.append(qa_dict)
+                    qa_dict = {}  # Reset qa_dict for the next Q&A pair
+                qa_dict['Question'] = line.replace('Question:', '').strip()
+            # Check if the line contains an answer
+            elif line.startswith('Answer:'):
+                qa_dict['Answer'] = line.replace('Answer:', '').strip()
+
+        # Append the last Q&A pair to qa_list
+        if qa_dict:
+            qa_list.append(qa_dict)
+        return qa_list
+
+    def EnhanceWithOpenAI(self, prompt: str, solution_title: str, document: Document, zh: bool = True) -> List[Dict[str, str]]:
         """
         Enhances a given prompt with additional information and performs a chat completion using OpenAI's GPT-3.5 Turbo model.
         
@@ -122,37 +147,95 @@ class EnhanceWithBedrock:
         [{'Question': 'What is Solution Title?', 'Answer': 'It is ...'}]
         """
         prompt_template = zh_prompt_template if zh else en_prompt_template
-        prompt = prompt_template.format(solution=solution_title, page=page_content)
+        prompt = prompt_template.format(solution=solution_title, page=document.page_content, question_num=question_num)
         messages = [{"role": "user", "content": f"{prompt}"}]
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=messages,
-            temperature=0,
-            max_tokens=2048
-        )
-        raw_completion = response.choices[0]["message"]["content"]
-        converted_completion = []
-        for qa in raw_completion.split("\n\n"):
-            if qa.startswith("Question:"):
-                converted_completion.append({"Question": qa.replace("Question:", "").strip()})
-            elif qa.startswith("Answer:"):
-                converted_completion[-1]["Answer"] = qa.replace("Answer:", "").strip()
-        return converted_completion
+        # error and retry handling for openai api due to request cap limit
+        try:
+            response = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=messages,
+                temperature=0,
+                max_tokens=2048
+            )
+        except Exception as e:
+            logger.error("OpenAI API request failed: {}".format(e))
+            return []
+        raw_completion = response.choices[0]["message"]["content"].split('\n')
+        logger.info("raw_completion: {}".format(raw_completion))
+        # Initialize an empty list to store the Q&A pairs
+        qa_list = []
+
+        # Initialize an empty dictionary to store the current Q&A pair
+        qa_dict = {}
+        for line in raw_completion:
+            # Check if the line contains a question
+            if line.startswith('Question:'):
+                # If there's already a Q&A pair in qa_dict, append it to qa_list
+                if qa_dict:
+                    qa_list.append(qa_dict)
+                    qa_dict = {}  # Reset qa_dict for the next Q&A pair
+                qa_dict['Question'] = line.replace('Question:', '').strip()
+            # Check if the line contains an answer
+            elif line.startswith('Answer:'):
+                qa_dict['Answer'] = line.replace('Answer:', '').strip()
+
+        # Append the last Q&A pair to qa_list
+        if qa_dict:
+            qa_list.append(qa_dict)
+        return qa_list
+
+    def SplitDocumentByTokenNum(self, document: Document, token_num: str) -> List[Document]:
+        """
+        Splits a given document into multiple documents, each containing a slice of the original document.
+
+        Parameters:
+        - document (Document): The document to be split.
+        - token_num (int): The number of tokens to include in each document.
+
+        Returns:
+        - List[Document]: A list of documents, each containing a slice of the original document.
+        """
+        # Get the token number of input paragraph
+        tokens = nltk.word_tokenize(document.page_content)
+        # Calculate the total number of tokens and chunk number
+        total_tokens = len(tokens)
+        chunk_num = total_tokens // slice_size + 1
+
+        # Initial document list to sttore ducoment slices seperated by 50 tokens
+        documents_list = []
+        # Iterate through the list of tokens, extracting slices of 50 tokens at a time
+        for i in range(0, len(tokens), slice_size):
+            token_slice = tokens[i:i+slice_size]
+            # Join the slice of tokens back into a string
+            document_slice = ' '.join(token_slice)
+            # Create new Document object to store the slice
+            document = Document(page_content=document_slice)
+            # Append the Document object to the list of documents
+            documents_list.append(document)
+        return documents_list
 
 # local debugging purpose
-# if __name__ == "__main__":
-#     # test the function
-#     prompt = "Do we have any solution offer to Stable Diffusion?"
-#     solution_title = "Stable Diffusion AWS Extensions"
-#     page_content = "Stable Diffusion AWS Extensions is a CSDC solution that..."
-#     ewb = EnhanceWithBedrock(prompt, solution_title, page_content)
-#     enhanced_prompt = ewb.EnhanceWithClaude(prompt, solution_title, page_content)
-#     logger.info("Enhanced prompt: {}".format(enhanced_prompt))
+if __name__ == "__main__":
+    # test the function
+    prompt = "Do we have any solution offer to Stable Diffusion?"
+    solution_title = "Stable Diffusion AWS Extensions"
+    page_content = """
+    Stable Diffusion AWS Extensions is a CSDC solution that...
+    """
+    # construct a Document object
+    document = Document(page_content=page_content)
+    ewb = EnhanceWithBedrock(prompt, solution_title, document)
+    document_list = ewb.SplitDocumentByTokenNum(document, slice_size)
+    # test the function
+    for document in document_list:
+        prompt = "Do we have any solution offer to Stable Diffusion?"
+        solution_title = "Stable Diffusion AWS Extensions"
+        enhanced_prompt = ewb.EnhanceWithClaude(prompt, solution_title, document)
+        logger.info("Enhanced prompt: {}".format(enhanced_prompt))
 
-#     # test the function
-#     prompt = "Do we have any solution offer to Stable Diffusion?"
-#     solution_title = "Stable Diffusion AWS Extensions"
-#     page_content = "Stable Diffusion AWS Extensions is a CSDC solution that..."
-#     ewb = EnhanceWithBedrock(prompt, solution_title, page_content)
-#     enhanced_prompt = ewb.EnhanceWithOpenAI(prompt, solution_title, page_content)
-#     logger.info("Enhanced prompt: {}".format(enhanced_prompt))
+    # test the function
+    for document in document_list:
+        prompt = "Do we have any solution offer to Stable Diffusion?"
+        solution_title = "Stable Diffusion AWS Extensions"
+        enhanced_prompt = ewb.EnhanceWithOpenAI(prompt, solution_title, document)
+        logger.info("Enhanced prompt: {}".format(enhanced_prompt))

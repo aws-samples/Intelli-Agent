@@ -18,7 +18,7 @@ class NougatPDFLoader(BasePDFLoader):
 
     This class leverages the `nougat` library to perform the conversion from PDF to HTML.
     It inherits from `BasePDFLoader` and extends its functionality to utilize the `nougat` library.
-
+    TODO, the load_and_split method need to be implemented and default is RecursiveCharacterTextSplitter
     Attributes:
         file_path (str): The path to the PDF file to be loaded.
         headers (Optional[Dict]): Optional headers to be used when loading the PDF.
