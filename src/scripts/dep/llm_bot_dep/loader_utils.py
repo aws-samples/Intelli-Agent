@@ -1,3 +1,4 @@
+import re
 import logging
 import subprocess
 from pathlib import Path
@@ -9,9 +10,68 @@ import csv
 from io import TextIOWrapper
 from langchain.document_loaders.helpers import detect_file_encodings
 
-
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+metadata_template = {
+    "content_type": "",
+    "heading_hierachy": {},
+    "figure_list": [],
+    "chunk_id": "",
+    "file_path": "",
+    "keywords": [],
+    "summary": "",
+}
+
+class NestedDict(dict):
+    def __missing__(self, key):
+        self[key] = NestedDict()
+        return self[key]
+
+def extract_headings(md_content):
+    """Extract headings hierarchically from Markdown content.
+    Consider alternate syntax that "any number of == characters for heading level 1 or -- characters for heading level 2."
+    See https://www.markdownguide.org/basic-syntax/
+    Args:
+        md_content (str): Markdown content.
+    Returns:
+        NestedDict: A nested dictionary containing the headings. Sample output:
+        {
+            'Title 1': {
+                'Subtitle 1.1': {},
+                'Subtitle 1.2': {}
+            },
+            'Title 2': {
+                'Subtitle 2.1': {}
+            }
+        }
+    """
+    headings = NestedDict()
+    current_heads = [headings]
+    lines = md_content.strip().split('\n')
+
+    for i, line in enumerate(lines):
+        match = re.match(r'(#+) (.+)', line)
+        if not match and i > 0:  # If the line is not a heading, check if the previous line is a heading using alternate syntax
+            if re.match(r'=+', lines[i - 1]):
+                level = 1
+                title = lines[i - 2]
+            elif re.match(r'-+', lines[i - 1]):
+                level = 2
+                title = lines[i - 2]
+            else:
+                continue
+        elif match:
+            level = len(match.group(1))
+            title = match.group(2)
+        else:
+            continue
+
+        current_heads = current_heads[:level]
+        current_heads[-1][title]
+        current_heads.append(current_heads[-1][title])
+
+    return headings
 
 class NougatPDFLoader(BasePDFLoader):
     """A PDF loader class for converting PDF files to MMD.
@@ -96,7 +156,19 @@ class NougatPDFLoader(BasePDFLoader):
                 .replace(r"\[", "$$")
                 .replace(r"\]", "$$")
             )
-            metadata = {"source": self.file_path}
+            logging.info("content: %s", content)
+            # extract headings hierarchically
+            headings = extract_headings(content)
+
+            # assemble metadata from template
+            metadata = metadata_template
+            metadata["content_type"] = "paragraph"
+            metadata["heading_hierachy"] = headings
+            metadata["chunk_id"] = "$$"
+            metadata["file_path"] = str(file_path)
+            # TODO, use PyMuPDF to detect image and figure list, but no link to the image for the extracted text
+            # metadata["figure_list"] = []
+
             yield Document(page_content=content, metadata=metadata)
 
         except Exception as e:
@@ -253,7 +325,7 @@ class CustomCSVLoader(CSVLoader):
 # local debugging purpose
 # if __name__ == "__main__":
 #     # local pdf file in current folder
-#     loader = NougatPDFLoader('paperSnapshot.pdf')
+#     loader = NougatPDFLoader('1.pdf')
 #     data = loader.load()
 #     logging.info("text: %s", data)
 
