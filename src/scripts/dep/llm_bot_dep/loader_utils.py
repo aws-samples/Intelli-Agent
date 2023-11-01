@@ -9,15 +9,17 @@ from langchain.docstore.document import Document
 import csv
 from io import TextIOWrapper
 from langchain.document_loaders.helpers import detect_file_encodings
+# from langchain.text_splitter import MarkdownHeaderTextSplitter
+from splitter_utils import MarkdownHeaderTextSplitter
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 metadata_template = {
-    "content_type": "",
-    "heading_hierachy": {},
+    "content_type": "paragraph",
+    "heading_hierarchy": {},
     "figure_list": [],
-    "chunk_id": "",
+    "chunk_id": "$$",
     "file_path": "",
     "keywords": [],
     "summary": "",
@@ -28,6 +30,7 @@ class NestedDict(dict):
         self[key] = NestedDict()
         return self[key]
 
+# TODO, this function is duplicated in splitter_utils.py, need to merge to one place
 def extract_headings(md_content):
     """Extract headings hierarchically from Markdown content.
     Consider alternate syntax that "any number of == characters for heading level 1 or -- characters for heading level 2."
@@ -163,7 +166,7 @@ class NougatPDFLoader(BasePDFLoader):
             # assemble metadata from template
             metadata = metadata_template
             metadata["content_type"] = "paragraph"
-            metadata["heading_hierachy"] = headings
+            metadata["heading_hierarchy"] = headings
             metadata["chunk_id"] = "$$"
             metadata["file_path"] = str(file_path)
             # TODO, use PyMuPDF to detect image and figure list, but no link to the image for the extracted text
@@ -323,11 +326,125 @@ class CustomCSVLoader(CSVLoader):
 
 
 # local debugging purpose
-# if __name__ == "__main__":
-#     # local pdf file in current folder
-#     loader = NougatPDFLoader('1.pdf')
-#     data = loader.load()
-#     logging.info("text: %s", data)
+if __name__ == "__main__":
+    markdown_document = """
+# Learning to Retrieve In-Context Examples for Large Language Models
+
+###### Abstract
+
+aaaa
+
+## 1 Introduction
+
+1111
+
+## 2 Related Work
+
+2222
+
+## 3 Preliminaries
+
+3333
+
+## 4 Methodology
+
+4444
+
+### Training Data Generation
+
+5555
+
+### Reward Modeling
+
+6666
+
+### Training LLM Retrievers with Knowledge Distillation
+
+7777
+
+### Evaluation of LLM Retrievers
+
+8888
+
+## 5 Experiments
+
+### Evaluation Setup
+
+9999
+
+### Main Results
+
+0000
+
+### Training Pipeline of LLM-R
+
+1010
+
+### Generalization Ability of LLM-R
+
+1212
+
+### When does LLM-R Work and When Does it Not?
+
+1313
+
+### Using Different LLMs for Data Generation and Task Evaluation
+
+1414
+
+### Scaling the Number of In-Context Examples and Retriever Size
+
+1515
+
+## 7 Conclusion
+
+1616
+
+## Limitations
+
+1717
+
+## References
+
+1818
+"""
+    markdown_splitter = MarkdownHeaderTextSplitter()
+
+    # construct a fake document data
+    data = [Document(page_content=markdown_document, metadata=metadata_template)]
+    md_header_splits = markdown_splitter.split_text(data[0])
+    for i, doc in enumerate(md_header_splits):
+        logger.info("content of chunk %s: %s", i, doc)
+
+    # local pdf file in current folder
+    loader = NougatPDFLoader('1.pdf')
+    data = loader.load()
+    logger.info("raw data: %s", data)
+    md_header_splits = markdown_splitter.split_text(data[0])
+    for i, doc in enumerate(md_header_splits):
+        logger.info("content of chunk %s: %s", i, doc)
+
+    # official splits will be deprecated by the new MarkdownHeaderTextSplitter
+    # markdown_splitter = MarkdownHeaderTextSplitter(headers_to_split_on=headers_to_split_on)
+    # headers_to_split_on = [
+    #     ("#", "Header 1"),
+    #     ("##", "Header 2"),
+    # ]
+    # markdown_document = "# Foo\n\n    ## Bar\n\nHi this is Jim\n\nHi this is Joe\n\n ### Boo \n\n Hi this is Lance \n\n ## Baz\n\n Hi this is Molly"
+    # md_header_splits = markdown_splitter.split_text(markdown_document)
+
+    # Char-level splits
+    # from langchain.text_splitter import RecursiveCharacterTextSplitter
+
+    # chunk_size = 250
+    # chunk_overlap = 30
+    # text_splitter = RecursiveCharacterTextSplitter(
+    #     chunk_size=chunk_size, chunk_overlap=chunk_overlap
+    # )
+
+    # Split
+    # splits = text_splitter.split_documents(md_header_splits)
+    # logger.info("splits: %s", splits)
 
 
 # TODO: Local debug CSV loader, remove it before release
