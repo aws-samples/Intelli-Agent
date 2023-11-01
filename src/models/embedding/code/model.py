@@ -13,6 +13,7 @@ def load_model(properties):
     logging.info(f"Loading model in {model_location}")
 
     model = SentenceTransformer(model_location)
+    model = model.eval().cuda()
     
     return model
 
