@@ -44,7 +44,7 @@ export class EtlStack extends NestedStack {
         });
 
         const extraPythonFiles = new s3deploy.BucketDeployment(this, 'extraPythonFiles', {
-            sources: [s3deploy.Source.asset('src/scripts/whl')],
+            sources: [s3deploy.Source.asset('src/scripts/dep/dist')],
             destinationBucket: _S3Bucket,
             // destinationKeyPrefix: 'llm_bot_dep-0.1.0-py3-none-any.whl',
         });

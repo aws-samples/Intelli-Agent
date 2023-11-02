@@ -129,20 +129,41 @@ class MarkdownHeaderTextSplitter:
         lines = text.page_content.strip().split('\n')
         chunks = []
         current_chunk_content = []
+        table_content = []
+        inside_table = False
         chunk_id = 1  # Initializing chunk_id
 
         for line in lines:
-            if line.startswith(('## ', ' ### ')):  # Assuming these denote headings
+            # Replace escaped characters for table markers
+            line = line.replace(r"\begin{table}", "\\begin{table}").replace(r"\end{table}", "\\end{table}")
+            if line.strip() == "\\begin{table}":
+                inside_table = True
+                continue  # Skip this line
+            elif line.strip() == "\\end{table}":
+                inside_table = False
+                # Save table content as a separate document
+                if table_content:
+                    metadata = text.metadata.copy()
+                    metadata['content_type'] = 'table'
+                    metadata['chunk_id'] = f"${chunk_id}"
+                    chunks.append(Document(page_content='\n'.join(table_content), metadata=metadata))
+                    table_content = []  # Reset for the next table
+                continue  # Skip this line
+
+            if inside_table:
+                table_content.append(line)
+            elif line.startswith(('## ', ' ### ')):  # Assuming these denote headings
                 # Save the current chunk if it exists
                 if current_chunk_content:
                     metadata = text.metadata.copy()
                     metadata['heading_hierarchy'] = extract_headings('\n'.join(current_chunk_content))
                     metadata['chunk_id'] = f"${chunk_id}"
-                    chunk_id += 1
+                    chunk_id += 1  # Increment chunk_id for the next chunk
                     chunks.append(Document(page_content='\n'.join(current_chunk_content), metadata=metadata))
                     current_chunk_content = []  # Reset for the next chunk
 
-            current_chunk_content.append(line)
+            if not inside_table:
+                current_chunk_content.append(line)
 
         # Save the last chunk if it exists
         if current_chunk_content:
@@ -152,4 +173,3 @@ class MarkdownHeaderTextSplitter:
             chunks.append(Document(page_content='\n'.join(current_chunk_content), metadata=metadata))
 
         return chunks
-

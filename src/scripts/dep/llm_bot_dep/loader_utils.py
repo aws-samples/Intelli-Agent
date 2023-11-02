@@ -177,7 +177,6 @@ class NougatPDFLoader(BasePDFLoader):
         except Exception as e:
             logging.error(f"An error occurred while processing the PDF: {str(e)}")
 
-
 class CustomCSVLoader(CSVLoader):
     """Load a `CSV` file into a list of Documents.
 
@@ -324,105 +323,108 @@ class CustomCSVLoader(CSVLoader):
 
         return docs
 
-
 # local debugging purpose
-if __name__ == "__main__":
-    markdown_document = """
-# Learning to Retrieve In-Context Examples for Large Language Models
+# if __name__ == "__main__":
+#     markdown_document = r"""
+# # Learning to Retrieve In-Context Examples for Large Language Models
 
-###### Abstract
+# ###### Abstract
 
-aaaa
+# aaaa
 
-## 1 Introduction
+# ## 1 Introduction
 
-1111
+# 1111
 
-## 2 Related Work
+# ## 2 Related Work
 
-2222
+# 2222
 
-## 3 Preliminaries
+# ## 3 Preliminaries
 
-3333
+# 3333
 
-## 4 Methodology
+# ## 4 Methodology
 
-4444
+# 4444
 
-### Training Data Generation
+# ### Training Data Generation
 
-5555
+# 5555
 
-### Reward Modeling
+# ### Reward Modeling
 
-6666
+# 6666
 
-### Training LLM Retrievers with Knowledge Distillation
+# ### Training LLM Retrievers with Knowledge Distillation
 
-7777
+# 7777
 
-### Evaluation of LLM Retrievers
+# ### Evaluation of LLM Retrievers
 
-8888
+# 8888
 
-## 5 Experiments
+# ## 5 Experiments
 
-### Evaluation Setup
+# ### Evaluation Setup
 
-9999
+# 9999
 
-### Main Results
+# ### Main Results
 
-0000
+# 0000
 
-### Training Pipeline of LLM-R
+# \begin{table}
+# This is table content
+# \end{table}
 
-1010
+# ### Training Pipeline of LLM-R
 
-### Generalization Ability of LLM-R
+# 1010
 
-1212
+# ### Generalization Ability of LLM-R
 
-### When does LLM-R Work and When Does it Not?
+# 1212
 
-1313
+# ### When does LLM-R Work and When Does it Not?
 
-### Using Different LLMs for Data Generation and Task Evaluation
+# 1313
 
-1414
+# ### Using Different LLMs for Data Generation and Task Evaluation
 
-### Scaling the Number of In-Context Examples and Retriever Size
+# 1414
 
-1515
+# ### Scaling the Number of In-Context Examples and Retriever Size
 
-## 7 Conclusion
+# 1515
 
-1616
+# ## 7 Conclusion
 
-## Limitations
+# 1616
 
-1717
+# ## Limitations
 
-## References
+# 1717
 
-1818
-"""
-    markdown_splitter = MarkdownHeaderTextSplitter()
+# ## References
 
-    # construct a fake document data
-    data = [Document(page_content=markdown_document, metadata=metadata_template)]
-    md_header_splits = markdown_splitter.split_text(data[0])
-    for i, doc in enumerate(md_header_splits):
-        logger.info("content of chunk %s: %s", i, doc)
+# 1818
+# """
+#     markdown_splitter = MarkdownHeaderTextSplitter()
+
+#     # construct a fake document data
+#     data = [Document(page_content=markdown_document, metadata=metadata_template)]
+#     md_header_splits = markdown_splitter.split_text(data[0])
+#     for i, doc in enumerate(md_header_splits):
+#         logger.info("content of chunk %s: %s", i, doc)
 
     # local pdf file in current folder
-    loader = NougatPDFLoader('1.pdf')
-    data = loader.load()
-    logger.info("raw data: %s", data)
-    md_header_splits = markdown_splitter.split_text(data[0])
-    for i, doc in enumerate(md_header_splits):
-        logger.info("content of chunk %s: %s", i, doc)
+    # loader = NougatPDFLoader('1.pdf')
+    # data = loader.load()
+    # logger.info("raw data: %s", data)
+    # md_header_splits = markdown_splitter.split_text(data[0])
+    # for i, doc in enumerate(md_header_splits):
+    #     logger.info("content of chunk %s: %s", i, doc)
 
     # official splits will be deprecated by the new MarkdownHeaderTextSplitter
     # markdown_splitter = MarkdownHeaderTextSplitter(headers_to_split_on=headers_to_split_on)
@@ -442,7 +444,7 @@ aaaa
     #     chunk_size=chunk_size, chunk_overlap=chunk_overlap
     # )
 
-    # Split
+    # # Split
     # splits = text_splitter.split_documents(md_header_splits)
     # logger.info("splits: %s", splits)
 
