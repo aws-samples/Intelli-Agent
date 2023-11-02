@@ -49,6 +49,9 @@ export class EtlStack extends NestedStack {
             // destinationKeyPrefix: 'llm_bot_dep-0.1.0-py3-none-any.whl',
         });
 
+        // Assemble the extra python files list using _S3Bucket.s3UrlForObject('llm_bot_dep-0.1.0-py3-none-any.whl') and _S3Bucket.s3UrlForObject('nougat_ocr-0.1.17-py3-none-any.whl') and convert to string
+        const extraPythonFilesList = [_S3Bucket.s3UrlForObject('llm_bot_dep-0.1.0-py3-none-any.whl'), _S3Bucket.s3UrlForObject('nougat_ocr-0.1.17-py3-none-any.whl')].join(',');
+
         // Creata glue job to process files speicified in s3 bucket and prefix
         const glueJob = new glue.Job(this, 'PythonShellJob', {
             executable: glue.JobExecutable.pythonShell({
@@ -70,8 +73,9 @@ export class EtlStack extends NestedStack {
                 '--REGION': props._region,
                 '--EMBEDDING_MODEL_ENDPOINT': props._embeddingEndpoint,
                 '--DOC_INDEX_TABLE': 'chatbot-index',
-                '--additional-python-modules': 'pdfminer.six==20221105,gremlinpython==3.7.0,langchain==0.0.312,beautifulsoup4==4.12.2,requests-aws4auth==1.2.3,boto3==1.28.69,nougat==0.3.3,openai==0.28.1',
-                '--extra-py-files': _S3Bucket.s3UrlForObject('llm_bot_dep-0.1.0-py3-none-any.whl'),
+                '--additional-python-modules': 'pdfminer.six==20221105,gremlinpython==3.7.0,langchain==0.0.312,beautifulsoup4==4.12.2,requests-aws4auth==1.2.3,boto3==1.28.69,nougat-ocr==0.1.17,openai==0.28.1',
+                // add multiple extra python files
+                '--extra-py-files': extraPythonFilesList
             }
           });
 

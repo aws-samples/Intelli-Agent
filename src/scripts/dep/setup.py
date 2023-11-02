@@ -12,5 +12,6 @@ setup(
         'requests_aws4auth',
         'unstructured',
         'boto3',
+        'nougat-ocr',
     ],
 )

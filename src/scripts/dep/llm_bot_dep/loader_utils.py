@@ -10,7 +10,7 @@ import csv
 from io import TextIOWrapper
 from langchain.document_loaders.helpers import detect_file_encodings
 # from langchain.text_splitter import MarkdownHeaderTextSplitter
-from splitter_utils import MarkdownHeaderTextSplitter
+# from splitter_utils import MarkdownHeaderTextSplitter
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -444,9 +444,31 @@ class CustomCSVLoader(CSVLoader):
     #     chunk_size=chunk_size, chunk_overlap=chunk_overlap
     # )
 
-    # # Split
     # splits = text_splitter.split_documents(md_header_splits)
     # logger.info("splits: %s", splits)
+    # from typing import Generator
+    # import itertools
+    # from langchain.text_splitter import RecursiveCharacterTextSplitter
+    # def chunk_generator(content: List[Document], chunk_size: int = 500, chunk_overlap: int = 30) -> Generator[Document, None, None]:
+    #     text_splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+    #     for document in content:
+    #         splits = text_splitter.split_documents([document])
+    #         # list of Document objects
+    #         for split in splits:
+    #             yield split
+    # def batch_generator(generator, batch_size):
+    #     while True:
+    #         batch = list(itertools.islice(generator, batch_size))
+    #         if not batch:
+    #             break
+    #         yield batch
+
+    # generator = chunk_generator(md_header_splits, )
+    # batches = batch_generator(generator, batch_size=10)
+    # logger.info("current batch size: {} and next batch size: {}".format(len(next(batches)), len(next(batches))))
+    # # note: typeof(batch)->list[Document], sizeof(batch)=batch_size
+    # for batch in batches:
+    #     logger.info("batch: %s", batch)
 
 
 # TODO: Local debug CSV loader, remove it before release

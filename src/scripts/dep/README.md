@@ -9,6 +9,7 @@ pip install setuptools wheel
 Run the following command to create the wheel distribution:
 
 ```bash
+python setup.py develop
 python setup.py bdist_wheel
 ```
 

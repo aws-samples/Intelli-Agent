@@ -26,12 +26,12 @@ class OpenSearchClient:
             connection_class = RequestsHttpConnection,
             region=region
         )
-    def create_index(self, index: str):
+    def create_index(self, index: str, body: str):
         """
         Create an index in OpenSearch.
         """
         # create the index
-        self.client.indices.create(index=index)
+        self.client.indices.create(index=index, body=body)
     def delete_index(self, index: str):
         """
         Delete an index in OpenSearch.
@@ -61,10 +61,14 @@ class OpenSearchClient:
                 logger.info(f"response: {response}")
             except Exception as e:
                 logger.error(f"Error indexing document: {e}")
-    def query(self, index: str, field: str, value: str):
+    def query(self, index: str, body: str):
         """
         Execute a query on a specific index based on a field and value.
         """
+        # extract the field and value from the query
+        query = json.loads(body)
+        field = query['field']
+        value = query['value']
         body = {
             "query": {
                 "match": {

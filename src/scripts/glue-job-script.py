@@ -9,12 +9,16 @@ import itertools
 from typing import Generator, Any, Dict, Iterable, List, Optional, Tuple
 from bs4 import BeautifulSoup
 from langchain.document_loaders import PDFMinerPDFasHTMLLoader
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.docstore.document import Document
 from langchain.vectorstores import OpenSearchVectorSearch
 from opensearchpy import RequestsHttpConnection
 
 from awsglue.utils import getResolvedOptions
-from llm_bot_dep import sm_utils, aos_utils, enhance_utils, loader_utils
+from llm_bot_dep import sm_utils
+from llm_bot_dep.loader_utils import NougatPDFLoader
+from llm_bot_dep.splitter_utils import MarkdownHeaderTextSplitter
+
 from requests_aws4auth import AWS4Auth
 
 logger = logging.getLogger()
@@ -294,12 +298,19 @@ def process_pdf(pdf: bytes, **kwargs):
     # download to local for futher processing
     s3.download_file(Bucket=bucket, Key=key, Filename=local_path)
     # TODO, will be deprecated and replaced by nougat class in loader_utils
-    loader = PDFMinerPDFasHTMLLoader(local_path)
+    # loader = PDFMinerPDFasHTMLLoader(local_path)
     # entire PDF is loaded as a single Document
-    file_content = loader.load()[0].page_content
-    res = parse_pdf_to_json(file_content)
-    logger.info("PDF file processed successfully, with result: %s", res)
-    return res
+    # file_content = loader.load()[0].page_content
+    # res = parse_pdf_to_json(file_content)
+
+    loader = NougatPDFLoader(local_path)
+    data = loader.load()
+    logger.info("raw data: %s", data)
+    markdown_splitter = MarkdownHeaderTextSplitter()
+    md_header_splits = markdown_splitter.split_text(data[0])
+    for i, doc in enumerate(md_header_splits):
+        logger.info("PDF file processed successfully, with content of chunk %s: %s", i, doc)
+    return md_header_splits
 
 def process_image(image: bytes):
     logger.info("Processing image file...")
@@ -312,8 +323,9 @@ def cb_process_object(file_type: str, file_content, **kwargs):
     elif file_type == 'html':
         process_html(file_content, **kwargs)
     elif file_type == 'pdf':
-        res = post_process_pdf(process_pdf(file_content, **kwargs))
-        split_chunk(res, embeddingModelEndpoint, aosEndpoint, 'chatbot-index')
+        # res = post_process_pdf(process_pdf(file_content, **kwargs))
+        res = process_pdf(file_content, **kwargs)
+        aos_injection(res, embeddingModelEndpoint, aosEndpoint, 'chatbot-index')
     elif file_type == 'image':
         process_image(file_content, **kwargs)
     return res
@@ -352,26 +364,46 @@ def batch_generator(generator, batch_size):
             break
         yield batch
 
-def split_chunk(content: List[Document], embeddingModelEndpoint: str, aosEndpoint: str, index_name: str, chunk_size: int = 1000) -> List[Document]:
+def aos_injection(content: List[Document], embeddingModelEndpoint: str, aosEndpoint: str, index_name: str, chunk_size: int = 500) -> List[Document]:
+
+    """
+    This function includes the following steps:
+    1. split the document into chunks with chunk size to fit the embedding model, note the document is already splited by title/subtitle to form sementic chunks approximately;
+    2. call the embedding model to get the embeddings for each chunk;
+    3. call the AOS to index the chunk with the embeddings;
+    Parameters:
+    content (list): A list of Document objects, each representing a semantically grouped section of the PDF file. Each Document object contains a metadata dictionary with details about the heading hierarchy etc.
+    embeddingModelEndpoint (str): The endpoint of the embedding model.
+    aosEndpoint (str): The endpoint of the AOS.
+    index_name (str): The name of the index to be created in the AOS.
+    chunk_size (int): The size of each chunk to be indexed in the AOS.
+
+    Returns:
+
+    Note:
+    """
+    # This function includes the following steps:
+    # 1. split the document into chunks with chunk size to fit the embedding model, note the document is already splited by title/subtitle to form sementic chunks approximately;
+    # 2. call the embedding model to get the embeddings for each chunk;
+    # 3. call the AOS to index the chunk with the embeddings;
     embeddings = sm_utils.create_sagemaker_embeddings_from_js_model(embeddingModelEndpoint, region)
 
-    def chunk_generator(content: List[Document], chunk_size: int = 1000):
-        # iterate documents list and split per document with chunk size
-        for i in range(0, len(content)):
-            # TODO, split the document into chunks, will be deprecated and replaced by the ASK model directly
-            chunks = [content[i].page_content[j:j+chunk_size] for j in range(0, len(content[i].page_content), chunk_size)]
-            # create a new document for each chunk
-            for chunk in chunks:
-                metadata = content[i].metadata
-                doc = Document(page_content=chunk, metadata=metadata)
-                yield doc
+    def chunk_generator(content: List[Document], chunk_size: int = 500, chunk_overlap: int = 30) -> Generator[Document, None, None]:
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+        for document in content:
+            splits = text_splitter.split_documents([document])
+            # list of Document objects
+            for split in splits:
+                yield split
 
-    generator = chunk_generator(content, )
+    generator = chunk_generator(content, chunk_size=chunk_size)
     batches = batch_generator(generator, batch_size=10)
+    # note: typeof(batch)->list[Document], sizeof(batches)=batch_size
     for batch in batches:
         if len(batch) == 0:
             continue
         logger.info("Adding documents %s to OpenSearch index...", batch)
+        # TODO, parse the metadata to embed with different index
         docsearch = OpenSearchVectorSearch(
             index_name=index_name,
             embedding_function=embeddings,

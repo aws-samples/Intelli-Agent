@@ -124,19 +124,30 @@ def lambda_handler(event, context):
 
     # parse arguments from event
     index_name = json.loads(event['body'])['aos_index']
-
+    operation = json.loads(event['body'])['operation']
+    body = json.loads(event['body'])['body']
+    aos_client = OpenSearchClient(_opensearch_cluster_domain)
     # re-route GET request to seperate processing branch
     if event['httpMethod'] == 'GET':
-        query = json.loads(event['body'])['query']
-        aos_client = OpenSearchClient(_opensearch_cluster_domain)
-        # check if the operation is query of search for OpenSearch
-        if query['operation'] == 'query':
-            response = aos_client.query(index_name, query['field'], query['value'])
-        elif query['operation'] == 'match_all':
+        if operation == 'query':
+            response = aos_client.query(index_name, json.dumps(body))
+        elif operation == 'match_all':
             response = aos_client.match_all(index_name)
         else:
-            raise Exception(f'Invalid query operation: {query["operation"]}')
-
+            raise Exception(f'Invalid query operation: {operation}')
+        return {
+            'statusCode': 200,
+            'headers': {'Content-Type': 'application/json'},
+            'body': json.dumps(response)
+        }
+    elif event['httpMethod'] == 'POST':
+        if operation == 'delete':
+            response = aos_client.delete_index(index_name)
+        elif operation == 'create':
+            logger.info(f'create index with query: {json.dumps(body)}')
+            response = aos_client.create_index(index_name, json.dumps(body))
+        else:
+            raise Exception(f'Invalid query operation: {operation}')
         return {
             'statusCode': 200,
             'headers': {'Content-Type': 'application/json'},
