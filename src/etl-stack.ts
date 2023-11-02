@@ -36,7 +36,7 @@ export class EtlStack extends NestedStack {
             type: glue.ConnectionType.NETWORK,
             subnet: props._subnets[0],
             securityGroups: [props._securityGroups],
-          });
+        });
 
         const _S3Bucket = new s3.Bucket(this, 'llm-bot-glue-lib', {
             bucketName: `llm-bot-glue-lib-${Aws.ACCOUNT_ID}-${Aws.REGION}`,
@@ -55,18 +55,18 @@ export class EtlStack extends NestedStack {
         // Creata glue job to process files speicified in s3 bucket and prefix
         const glueJob = new glue.Job(this, 'PythonShellJob', {
             executable: glue.JobExecutable.pythonShell({
-              glueVersion: glue.GlueVersion.V1_0,
-              pythonVersion: glue.PythonVersion.THREE_NINE,
-              script: glue.Code.fromAsset(path.join(__dirname, 'scripts/glue-job-script.py')),
-              // s3 location of the python script
-            //   extraPythonFiles: [glue.Code.fromAsset(path.join(__dirname, 'scripts/llm_bot_dep-0.1.0-py3-none-any.whl'))],
-            //   extraPythonFiles: [extraPythonFiles],
+                glueVersion: glue.GlueVersion.V1_0,
+                pythonVersion: glue.PythonVersion.THREE_NINE,
+                script: glue.Code.fromAsset(path.join(__dirname, 'scripts/glue-job-script.py')),
+                // s3 location of the python script
+                // extraPythonFiles: [glue.Code.fromAsset(path.join(__dirname, 'scripts/llm_bot_dep-0.1.0-py3-none-any.whl'))],
+                // extraPythonFiles: [extraPythonFiles],
             }),
-            maxConcurrentRuns:200,
-            maxRetries:3,
-            connections:[connection],
-            maxCapacity:1,
-            defaultArguments:{
+            maxConcurrentRuns: 200,
+            maxRetries: 3,
+            connections: [connection],
+            maxCapacity: 1,
+            defaultArguments: {
                 '--S3_BUCKET.$': sfn.JsonPath.stringAt('$.s3Bucket'),
                 '--S3_PREFIX.$': sfn.JsonPath.stringAt('$.s3Prefix'),
                 '--AOS_ENDPOINT': props._domainEndpoint,
@@ -77,7 +77,7 @@ export class EtlStack extends NestedStack {
                 // add multiple extra python files
                 '--extra-py-files': extraPythonFilesList
             }
-          });
+        });
 
         glueJob.role.addToPrincipalPolicy(
             new iam.PolicyStatement({
@@ -149,7 +149,7 @@ export class EtlStack extends NestedStack {
         const sfnStateMachine = new sfn.StateMachine(this, 'ETLState', {
             definitionBody: sfn.DefinitionBody.fromChainable(sfnDefinition),
             stateMachineType: sfn.StateMachineType.STANDARD,
-            timeout: Duration.minutes(30),
+            timeout: Duration.minutes(60),
         });
 
         // Export the Step function to be used in API Gateway
