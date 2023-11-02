@@ -5,10 +5,12 @@ import re
 import logging
 import json
 import itertools
+import uuid
+from datetime import datetime
 
 from typing import Generator, Any, Dict, Iterable, List, Optional, Tuple
 from bs4 import BeautifulSoup
-from langchain.document_loaders import PDFMinerPDFasHTMLLoader
+from langchain.document_loaders import PDFMinerPDFasHTMLLoader, CSVLoader
 from langchain.docstore.document import Document
 from langchain.vectorstores import OpenSearchVectorSearch
 from opensearchpy import RequestsHttpConnection
@@ -150,8 +152,8 @@ def parse_pdf_to_json(file_content):
     return res
 
 def pre_process_text(text: str):
-    # Remove special characters, punctuation, line breaks and multiple spaces with a single space, 
-    str_doc = re.sub(r'[^\w\s]', '', str_doc)    
+    # Remove special characters, punctuation, line breaks and multiple spaces with a single space,
+    str_doc = re.sub(r'[^\w\s]', '', text)
     str_doc = re.sub(r'\s+', ' ', str_doc)
     str_doc = re.sub(r'\n', ' ', str_doc)
     return str_doc.strip()
@@ -205,9 +207,28 @@ def post_process_pdf(pdf: str):
     logger.info("Post-processing PDF with result %s", documents)
     return documents
 
+
 def process_text(text: str):
     logger.info("Processing text file...")
     text = pre_process_text(text)
+
+
+def process_csv(csv_content: str, **kwargs):
+    now = datetime.now()
+    timestamp_str = now.strftime("%Y%m%d%H%M%S")
+    random_uuid = str(uuid.uuid4())[:8]
+    bucket_name = kwargs['bucket']
+    key = kwargs['key']
+    row_count = kwargs['csv_row_count']
+    local_path = f'/tmp/csv-{timestamp_str}-{random_uuid}.csv'
+
+    s3.download_file(bucket_name, key, local_path)
+    logger.info(f"CSV file downloaded to {local_path}")
+    loader = loader_utils.CustomCSVLoader(file_path=local_path, row_count=row_count)
+    data = loader.load()
+
+    return data
+
 
 def process_html(htmlstr: str):
     logger.info("Processing HTML file...")
@@ -309,6 +330,10 @@ def cb_process_object(file_type: str, file_content, **kwargs):
     res = None
     if file_type == 'text':
         process_text(file_content, **kwargs)
+    elif file_type == 'csv':
+        res = process_csv(file_content, **kwargs)
+        # CSV page document has been splited into chunk, no more spliting is needed
+        split_chunk(res, embeddingModelEndpoint, aosEndpoint, 'chatbot-index', gen_chunk=False)
     elif file_type == 'html':
         process_html(file_content, **kwargs)
     elif file_type == 'pdf':
@@ -334,8 +359,12 @@ def iterate_s3_files(bucket: str, prefix: str) -> Generator:
             # assemble bucket and key as args for the callback function
             kwargs = {'bucket': bucket, 'key': key}
 
-            if file_type in ['txt', 'csv']:
+            if file_type in ['txt']:
                 yield 'text', file_content.decode('utf-8'), kwargs
+            elif file_type in ['csv']:
+                # Update row count here, the default row count is 1
+                kwargs['csv_row_count'] = 1
+                yield 'csv', file_content.decode('utf-8'), kwargs
             elif file_type in ['html']:
                 yield 'html', file_content.decode('utf-8'), kwargs
             elif file_type in ['pdf']:
@@ -345,28 +374,32 @@ def iterate_s3_files(bucket: str, prefix: str) -> Generator:
             else:
                 logger.info(f"Unknown file type: {file_type}")
 
-def batch_generator(generator, batch_size):
+def batch_generator(generator, batch_size: int):
+    iterator = iter(generator)
     while True:
-        batch = list(itertools.islice(generator, batch_size))
+        batch = list(itertools.islice(iterator, batch_size))
         if not batch:
             break
         yield batch
 
-def split_chunk(content: List[Document], embeddingModelEndpoint: str, aosEndpoint: str, index_name: str, chunk_size: int = 1000) -> List[Document]:
+def chunk_generator(content: List[Document], chunk_size: int = 1000):
+    # iterate documents list and split per document with chunk size
+    for i in range(0, len(content)):
+        # TODO, split the document into chunks, will be deprecated and replaced by the ASK model directly
+        chunks = [content[i].page_content[j:j+chunk_size] for j in range(0, len(content[i].page_content), chunk_size)]
+        # create a new document for each chunk
+        for chunk in chunks:
+            metadata = content[i].metadata
+            doc = Document(page_content=chunk, metadata=metadata)
+            yield doc
+
+def split_chunk(content: List[Document], embeddingModelEndpoint: str, aosEndpoint: str, index_name: str, chunk_size: int = 1000, gen_chunk: bool = True) -> List[Document]:
     embeddings = sm_utils.create_sagemaker_embeddings_from_js_model(embeddingModelEndpoint, region)
 
-    def chunk_generator(content: List[Document], chunk_size: int = 1000):
-        # iterate documents list and split per document with chunk size
-        for i in range(0, len(content)):
-            # TODO, split the document into chunks, will be deprecated and replaced by the ASK model directly
-            chunks = [content[i].page_content[j:j+chunk_size] for j in range(0, len(content[i].page_content), chunk_size)]
-            # create a new document for each chunk
-            for chunk in chunks:
-                metadata = content[i].metadata
-                doc = Document(page_content=chunk, metadata=metadata)
-                yield doc
-
-    generator = chunk_generator(content, )
+    if gen_chunk:
+        generator = chunk_generator(content)
+    else:
+        generator = content
     batches = batch_generator(generator, batch_size=10)
     for batch in batches:
         if len(batch) == 0:
