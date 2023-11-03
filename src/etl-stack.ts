@@ -50,7 +50,7 @@ export class EtlStack extends NestedStack {
         });
 
         // Assemble the extra python files list using _S3Bucket.s3UrlForObject('llm_bot_dep-0.1.0-py3-none-any.whl') and _S3Bucket.s3UrlForObject('nougat_ocr-0.1.17-py3-none-any.whl') and convert to string
-        const extraPythonFilesList = [_S3Bucket.s3UrlForObject('llm_bot_dep-0.1.0-py3-none-any.whl'), _S3Bucket.s3UrlForObject('nougat_ocr-0.1.17-py3-none-any.whl')].join(',');
+        const extraPythonFilesList = [_S3Bucket.s3UrlForObject('llm_bot_dep-0.1.0-py3-none-any.whl')].join(',');
 
         // Creata glue job to process files speicified in s3 bucket and prefix
         const glueJob = new glue.Job(this, 'PythonShellJob', {
@@ -62,8 +62,11 @@ export class EtlStack extends NestedStack {
                 // extraPythonFiles: [glue.Code.fromAsset(path.join(__dirname, 'scripts/llm_bot_dep-0.1.0-py3-none-any.whl'))],
                 // extraPythonFiles: [extraPythonFiles],
             }),
+            // Worker Type is not supported for Job Command pythonshell and Both workerType and workerCount must be set...
+            // workerType: glue.WorkerType.G_2X,
+            // workerCount: 2,
             maxConcurrentRuns: 200,
-            maxRetries: 3,
+            maxRetries: 1,
             connections: [connection],
             maxCapacity: 1,
             defaultArguments: {
@@ -73,7 +76,7 @@ export class EtlStack extends NestedStack {
                 '--REGION': props._region,
                 '--EMBEDDING_MODEL_ENDPOINT': props._embeddingEndpoint,
                 '--DOC_INDEX_TABLE': 'chatbot-index',
-                '--additional-python-modules': 'pdfminer.six==20221105,gremlinpython==3.7.0,langchain==0.0.312,beautifulsoup4==4.12.2,requests-aws4auth==1.2.3,boto3==1.28.69,nougat-ocr==0.1.17,openai==0.28.1',
+                '--additional-python-modules': 'langchain==0.0.312,beautifulsoup4==4.12.2,requests-aws4auth==1.2.3,boto3==1.28.69,openai==0.28.1,nougat-ocr==0.1.17,pyOpenSSL==23.3.0',
                 // add multiple extra python files
                 '--extra-py-files': extraPythonFilesList
             }

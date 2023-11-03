@@ -7,8 +7,8 @@ setup(
     install_requires=[
         'langchain',
         'opensearch-py',
-        'faiss_cpu',
-        'sagemaker',
+        # 'faiss_cpu',
+        # 'sagemaker',
         'requests_aws4auth',
         'unstructured',
         'boto3',
