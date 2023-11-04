@@ -117,6 +117,8 @@ def pipeline_tab():
 
     request_body = {
         'aos_index': 'chatbot-index',
+        'operation': 'match_all',
+        'body': {},
         'query': {
             'operation': 'match_all',
             'match_all': {}
