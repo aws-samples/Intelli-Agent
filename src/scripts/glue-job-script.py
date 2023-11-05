@@ -10,6 +10,7 @@ from datetime import datetime
 
 from typing import Generator, Any, Dict, Iterable, List, Optional, Tuple
 from bs4 import BeautifulSoup
+import nltk
 
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.document_loaders import PDFMinerPDFasHTMLLoader, CSVLoader
@@ -28,6 +29,11 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 s3 = boto3.client('s3')
+
+# Adaption to allow nougat to run in AWS Glue with writable /tmp
+os.environ['TRANSFORMERS_CACHE'] = '/tmp/transformers_cache'
+os.environ['NOUGAT_CHECKPOINT'] = '/tmp/nougat_checkpoint'
+os.environ['NLTK_DATA'] = '/tmp/nltk_data'
 
 # Parse arguments
 args = getResolvedOptions(sys.argv, ['JOB_NAME', 'S3_BUCKET', 'S3_PREFIX', 'AOS_ENDPOINT', 'EMBEDDING_MODEL_ENDPOINT', 'REGION', 'OFFLINE'])
@@ -327,7 +333,7 @@ def process_pdf(pdf: bytes, **kwargs):
 
     loader = NougatPDFLoader(local_path)
     data = loader.load()
-    logger.info("raw data: %s", data)
+    # logger.info("raw data: %s", data)
     markdown_splitter = MarkdownHeaderTextSplitter()
     md_header_splits = markdown_splitter.split_text(data[0])
     for i, doc in enumerate(md_header_splits):
@@ -437,7 +443,7 @@ def aos_injection(content: List[Document], embeddingModelEndpoint: str, aosEndpo
     for batch in batches:
         if len(batch) == 0:
             continue
-        logger.info("Adding documents %s to OpenSearch index...", batch)
+        logger.info("Adding documents %s to OpenSearch with index %s", batch, index_name)
         # TODO, parse the metadata to embed with different index
         docsearch = OpenSearchVectorSearch(
             index_name=index_name,
@@ -468,4 +474,13 @@ def main():
 
 if __name__ == '__main__':
     logger.info("boto3 version: %s", boto3.__version__)
+ 
+    # Set the NLTK data path to the /tmp directory for AWS Glue jobs
+    nltk.data.path.append("/tmp")
+    # List of NLTK packages to download
+    nltk_packages = ['words']
+    # Download the required NLTK packages to /tmp
+    for package in nltk_packages:
+        # download the package to /tmp/nltk_data
+        nltk.download(package, download_dir='/tmp/nltk_data')
     main()
