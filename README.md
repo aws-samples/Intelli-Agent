@@ -147,9 +147,18 @@ You should see output like this:
   "aos_index": "chatbot-index",
   "operation": "create",
   "body": {
-      "settings": {
+    "settings": {
       "index": {
-        "number_of_shards": 4
+        "number_of_shards": 2,
+        "number_of_replicas": 1
+      }
+    },
+    "mappings": {
+      "properties": {
+        "vector_field": {
+            "type": "knn_vector",
+            "dimension": 1024
+        }
       }
     }
   }
