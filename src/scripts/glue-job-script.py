@@ -104,10 +104,6 @@ def aos_injection(content: List[Document], embeddingModelEndpoint: str, aosEndpo
 
     Note:
     """
-    # This function includes the following steps:
-    # 1. split the document into chunks with chunk size to fit the embedding model, note the document is already splited by title/subtitle to form sementic chunks approximately;
-    # 2. call the embedding model to get the embeddings for each chunk;
-    # 3. call the AOS to index the chunk with the embeddings;
     embeddings = sm_utils.create_sagemaker_embeddings_from_js_model(embeddingModelEndpoint, region)
 
     def chunk_generator(content: List[Document], chunk_size: int = 500, chunk_overlap: int = 30) -> Generator[Document, None, None]:

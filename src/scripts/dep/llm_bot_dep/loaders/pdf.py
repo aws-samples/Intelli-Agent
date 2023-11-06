@@ -1,6 +1,7 @@
 import os
 import re
 import json
+import logging
 from bs4 import BeautifulSoup
 import subprocess
 from pathlib import Path
@@ -11,6 +12,9 @@ from langchain.document_loaders import PDFMinerPDFasHTMLLoader
 
 from langchain.document_loaders.pdf import BasePDFLoader
 from langchain.text_splitter import MarkdownHeaderTextSplitter
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 metadata_template = {
     "content_type": "paragraph",
@@ -178,7 +182,7 @@ class NougatPDFLoader(BasePDFLoader):
             return result.stdout
 
         except subprocess.CalledProcessError as e:
-            print(
+            logger.info(
                 f"Nougat command failed with return code {e.returncode}: {e.stderr}"
             )
             raise RuntimeError("Nougat command failed.") from e
@@ -214,7 +218,7 @@ class NougatPDFLoader(BasePDFLoader):
             .replace(r"\[", "$$")
             .replace(r"\]", "$$")
         )
-        print("content: %s", content)
+        logger.info("content: %s", content)
         # extract headings hierarchically
         headings = extract_headings(content)
 
@@ -230,7 +234,7 @@ class NougatPDFLoader(BasePDFLoader):
         yield Document(page_content=content, metadata=metadata)
 
         # except Exception as e:
-        #     print(f"An error occurred while processing the PDF: {str(e)}")
+        #     logger.info(f"An error occurred while processing the PDF: {str(e)}")
 
 
 def fontsize_mapping(heading_fonts_arr):
@@ -357,41 +361,21 @@ def process_pdf(s3, pdf: bytes, **kwargs):
     and structures the information into a list of dictionaries containing headings and content.
 
     Parameters:
+    s3 (boto3.client): The S3 client to use for downloading the PDF file.
     pdf (bytes): The PDF file to process.
     **kwargs: Arbitrary keyword arguments. The function expects 'bucket' and 'key' among the kwargs
               to specify the S3 bucket and key where the PDF file is located.
 
     Returns:
-    list: A list of dictionaries, each containing 'heading' and 'content' keys. 
-          The 'heading' key maps to a list of dictionaries with keys 'font_size', 'heading', 
-          and 'fontsize_idx'. The 'content' key maps to a string containing the content under 
-          that heading.
-    [
-        {
-            "heading": [
-                {
-                    "font_size": 10,
-                    "heading": "5\n1\n0\n2\ny\na\nM\n8\n1\n",
-                    "fontsize_idx": 2
-                }
-            ],
-            "content": "xxxx\n"
-        },
-        ...
-    }
-    Usage: process_pdf(pdf_bytes, bucket='my-bucket', key='documents/doc.pdf')
-
-    Note: 
-    - The extracted headings and content are dependent on the structure and formatting of the PDF.
-    - The S3 bucket and key are used to download the file to a local path for processing.
+    list[Doucment]: A list of Document objects, each representing a semantically grouped section of the PDF file. Each Document object contains a metadata defined in metadata_template, and page_content string with the text content of that section.
     """
-    print("Processing PDF file...")
+    logger.info("Processing PDF file...")
     bucket = kwargs['bucket']
     key = kwargs['key']
     # extract file name also in consideration of file name with blank space
     local_path = str(os.path.basename(key))
     # download to local for futher processing
-    print(local_path)
+    logger.info(local_path)
     s3.download_file(Bucket=bucket, Key=key, Filename=local_path)
     # TODO, will be deprecated and replaced by nougat class in loader_utils
     # loader = PDFMinerPDFasHTMLLoader(local_path)
@@ -401,11 +385,14 @@ def process_pdf(s3, pdf: bytes, **kwargs):
 
     loader = NougatPDFLoader(local_path)
     data = loader.load()
-    print("raw data: %s", data)
+    logger.info("raw data: %s", data)
+    # Update file_path metadata to full s3 path in list of Document objects
+    for doc in data[0]:
+        doc.metadata['file_path'] = f"s3://{bucket}/{key}"
     markdown_splitter = MarkdownHeaderTextSplitter()
     md_header_splits = markdown_splitter.split_text(data[0])
     for i, doc in enumerate(md_header_splits):
-        print("PDF file processed successfully, with content of chunk %s: %s", i, doc)
+        logger.info("PDF file processed successfully, with content of chunk %s: %s", i, doc)
     return md_header_splits
 
 def post_process_pdf(s3, pdf: str):
@@ -440,7 +427,7 @@ def post_process_pdf(s3, pdf: str):
         List[Document]
         [Document(page_content='this is the content', metadata={'source': '/tmp/tmpghff3i39/xx/dth.txt', 'timestamp': 1697513348.1026106, 'embeddings_model': 'embedding-endpoint'})]
     """
-    print("Post-processing PDF file %s", pdf)
+    logger.info("Post-processing PDF file %s", pdf)
     # Parse the input string to a Python data structure
     input_data = json.loads(pdf)
     # Create an empty list to hold the Document objects
@@ -454,5 +441,5 @@ def post_process_pdf(s3, pdf: str):
         doc = Document(page_content=page_content, metadata=metadata)
         documents.append(doc)
 
-    print("Post-processing PDF with result %s", documents)
+    logger.info("Post-processing PDF with result %s", documents)
     return documents

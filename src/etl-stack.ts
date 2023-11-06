@@ -55,7 +55,7 @@ export class EtlStack extends NestedStack {
         // Creata glue job to process files speicified in s3 bucket and prefix
         const glueJob = new glue.Job(this, 'PythonShellJob', {
             executable: glue.JobExecutable.pythonShell({
-                glueVersion: glue.GlueVersion.V1_0,
+                glueVersion: glue.GlueVersion.V3_0,
                 pythonVersion: glue.PythonVersion.THREE_NINE,
                 script: glue.Code.fromAsset(path.join(__dirname, 'scripts/glue-job-script.py')),
                 // s3 location of the python script
@@ -152,7 +152,8 @@ export class EtlStack extends NestedStack {
         const sfnStateMachine = new sfn.StateMachine(this, 'ETLState', {
             definitionBody: sfn.DefinitionBody.fromChainable(sfnDefinition),
             stateMachineType: sfn.StateMachineType.STANDARD,
-            timeout: Duration.minutes(60),
+            // Align with the glue job timeout
+            timeout: Duration.minutes(2880),
         });
 
         // Export the Step function to be used in API Gateway

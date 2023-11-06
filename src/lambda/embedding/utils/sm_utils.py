@@ -16,7 +16,7 @@ logger.setLevel(logging.INFO)
 # extend the SagemakerEndpointEmbeddings class from langchain to provide a custom embedding function
 class SagemakerEndpointEmbeddingsJumpStart(SagemakerEndpointEmbeddings):
     def embed_documents(
-        self, texts: List[str], chunk_size: int = 5
+        self, texts: List[str], chunk_size: int = 500
     ) -> List[List[float]]:
         """Compute doc embeddings using a SageMaker Inference Endpoint.
 
