@@ -387,8 +387,7 @@ def process_pdf(s3, pdf: bytes, **kwargs):
     data = loader.load()
     logger.info("raw data: %s", data)
     # Update file_path metadata to full s3 path in list of Document objects
-    for doc in data[0]:
-        doc.metadata['file_path'] = f"s3://{bucket}/{key}"
+    data[0].metadata['file_path'] = f"s3://{bucket}/{key}"
     markdown_splitter = MarkdownHeaderTextSplitter()
     md_header_splits = markdown_splitter.split_text(data[0])
     for i, doc in enumerate(md_header_splits):

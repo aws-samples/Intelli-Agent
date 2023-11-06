@@ -52,15 +52,34 @@ export class EtlStack extends NestedStack {
         // Assemble the extra python files list using _S3Bucket.s3UrlForObject('llm_bot_dep-0.1.0-py3-none-any.whl') and _S3Bucket.s3UrlForObject('nougat_ocr-0.1.17-py3-none-any.whl') and convert to string
         const extraPythonFilesList = [_S3Bucket.s3UrlForObject('llm_bot_dep-0.1.0-py3-none-any.whl')].join(',');
 
+        const glueRole = new iam.Role(this, 'ETLGlueJobRole', {
+            assumedBy: new iam.ServicePrincipal('glue.amazonaws.com'),
+            // the role is used by the glue job to access AOS and by default it has 1 hour session duration which is not enough for the glue job to finish the embedding injection
+            maxSessionDuration: Duration.hours(12),
+        });
+        glueRole.addToPrincipalPolicy(
+            new iam.PolicyStatement({
+                actions: [
+                    "sagemaker:InvokeEndpointAsync",
+                    "sagemaker:InvokeEndpoint",
+                    "s3:*",
+                    "es:*",
+                    "glue:*",
+                    "ec2:*",
+                    // cloudwatch logs
+                    "logs:*",
+                ],
+                effect: iam.Effect.ALLOW,
+                resources: ['*'],
+            })
+        )
+
         // Creata glue job to process files speicified in s3 bucket and prefix
         const glueJob = new glue.Job(this, 'PythonShellJob', {
             executable: glue.JobExecutable.pythonShell({
                 glueVersion: glue.GlueVersion.V3_0,
                 pythonVersion: glue.PythonVersion.THREE_NINE,
                 script: glue.Code.fromAsset(path.join(__dirname, 'scripts/glue-job-script.py')),
-                // s3 location of the python script
-                // extraPythonFiles: [glue.Code.fromAsset(path.join(__dirname, 'scripts/llm_bot_dep-0.1.0-py3-none-any.whl'))],
-                // extraPythonFiles: [extraPythonFiles],
             }),
             // Worker Type is not supported for Job Command pythonshell and Both workerType and workerCount must be set...
             // workerType: glue.WorkerType.G_2X,
@@ -69,9 +88,11 @@ export class EtlStack extends NestedStack {
             maxRetries: 1,
             connections: [connection],
             maxCapacity: 1,
+            role: glueRole,
             defaultArguments: {
                 '--S3_BUCKET.$': sfn.JsonPath.stringAt('$.s3Bucket'),
                 '--S3_PREFIX.$': sfn.JsonPath.stringAt('$.s3Prefix'),
+                '--QA_ENHANCEMENT.$': sfn.JsonPath.stringAt('$.qaEnhance'),
                 '--AOS_ENDPOINT': props._domainEndpoint,
                 '--REGION': props._region,
                 '--EMBEDDING_MODEL_ENDPOINT': props._embeddingEndpoint,
@@ -81,19 +102,6 @@ export class EtlStack extends NestedStack {
                 '--extra-py-files': extraPythonFilesList
             }
         });
-
-        glueJob.role.addToPrincipalPolicy(
-            new iam.PolicyStatement({
-                actions: [
-                    "sagemaker:InvokeEndpointAsync",
-                    "sagemaker:InvokeEndpoint",
-                    "s3:*",
-                    "es:*",
-                ],
-                effect: iam.Effect.ALLOW,
-                resources: ['*'],
-            })
-        )
 
         // Create SNS topic and subscription to notify when glue job is completed
         const topic = new sns.Topic(this, 'etl-topic', {
@@ -118,6 +126,7 @@ export class EtlStack extends NestedStack {
                 '--EMBEDDING_MODEL_ENDPOINT': props._embeddingEndpoint,
                 '--REGION': props._region,
                 '--OFFLINE': 'true',
+                '--QA_ENHANCEMENT.$': '$.qaEnhance',
             }),
         });
 
@@ -134,6 +143,7 @@ export class EtlStack extends NestedStack {
                 '--EMBEDDING_MODEL_ENDPOINT': props._embeddingEndpoint,
                 '--REGION': props._region,
                 '--OFFLINE': 'false',
+                '--QA_ENHANCEMENT.$': '$.qaEnhance',
             }),
         });
 

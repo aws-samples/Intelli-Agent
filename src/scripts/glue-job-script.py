@@ -22,6 +22,7 @@ from awsglue.utils import getResolvedOptions
 from llm_bot_dep import sm_utils
 from llm_bot_dep.splitter_utils import MarkdownHeaderTextSplitter
 from llm_bot_dep.loaders.auto import cb_process_object
+from llm_bot_dep.enhance_utils import EnhanceWithBedrock
 
 from requests_aws4auth import AWS4Auth
 
@@ -36,13 +37,16 @@ os.environ['NOUGAT_CHECKPOINT'] = '/tmp/nougat_checkpoint'
 os.environ['NLTK_DATA'] = '/tmp/nltk_data'
 
 # Parse arguments
-args = getResolvedOptions(sys.argv, ['JOB_NAME', 'S3_BUCKET', 'S3_PREFIX', 'AOS_ENDPOINT', 'EMBEDDING_MODEL_ENDPOINT', 'REGION', 'OFFLINE'])
+args = getResolvedOptions(sys.argv, ['JOB_NAME', 'S3_BUCKET', 'S3_PREFIX', 'AOS_ENDPOINT', 'EMBEDDING_MODEL_ENDPOINT', 'REGION', 'OFFLINE', 'QA_ENHANCEMENT'])
 s3_bucket = args['S3_BUCKET']
 s3_prefix = args['S3_PREFIX']
 aosEndpoint = args['AOS_ENDPOINT']
 embeddingModelEndpoint = args['EMBEDDING_MODEL_ENDPOINT']
 region = args['REGION']
 offline = args['OFFLINE']
+qa_enhancement = args['QA_ENHANCEMENT']
+
+ENHANCE_CHUNK_SIZE = 500
 
 credentials = boto3.Session().get_credentials()
 awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, region, 'es', session_token=credentials.token)
@@ -105,6 +109,16 @@ def aos_injection(content: List[Document], embeddingModelEndpoint: str, aosEndpo
     Note:
     """
     embeddings = sm_utils.create_sagemaker_embeddings_from_js_model(embeddingModelEndpoint, region)
+    # TODO, parse the metadata to embed with different index
+    docsearch = OpenSearchVectorSearch(
+        index_name=index_name,
+        embedding_function=embeddings,
+        opensearch_url="https://{}".format(aosEndpoint),
+        http_auth = awsauth,
+        use_ssl = True,
+        verify_certs = True,
+        connection_class = RequestsHttpConnection
+    )
 
     def chunk_generator(content: List[Document], chunk_size: int = 500, chunk_overlap: int = 30) -> Generator[Document, None, None]:
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
@@ -124,18 +138,10 @@ def aos_injection(content: List[Document], embeddingModelEndpoint: str, aosEndpo
     for batch in batches:
         if len(batch) == 0:
             continue
-        logger.info("Adding documents %s to OpenSearch with index %s", batch, index_name)
-        # TODO, parse the metadata to embed with different index
-        docsearch = OpenSearchVectorSearch(
-            index_name=index_name,
-            embedding_function=embeddings,
-            opensearch_url="https://{}".format(aosEndpoint),
-            http_auth = awsauth,
-            use_ssl = True,
-            verify_certs = True,
-            connection_class = RequestsHttpConnection
-        )
-        docsearch.add_documents(documents=batch)
+        # the batch are still list of Document objects, we need to iterate the list to inject the embeddings, the chunk size (500) should already be small enough to fit the embedding model
+        for document in batch:
+            logger.info("Adding documents %s to OpenSearch with index %s", document, index_name)
+            docsearch.add_documents(documents=document)
 
 # main function to be called by Glue job script
 def main():
@@ -146,6 +152,7 @@ def main():
         for file_type, file_content, kwargs in iterate_s3_files(s3_bucket, s3_prefix):
             try:
                 res = cb_process_object(s3, file_type, file_content, **kwargs)
+                # TODO, parse the metadata to embed with different index
                 if res:
                     logger.info("Result: %s", res)
                 if file_type == 'csv':
@@ -153,6 +160,19 @@ def main():
                     aos_injection(res, embeddingModelEndpoint, aosEndpoint, 'chatbot-index', gen_chunk=False)
                 elif file_type == 'pdf':
                     aos_injection(res, embeddingModelEndpoint, aosEndpoint, 'chatbot-index')
+                    if qa_enhancement == 'true':
+                        # iterate the document to get the QA pairs
+                        for document in res:
+                            # prompt is not used in this case
+                            prompt = ""
+                            solution_title = "GCR Solution LLM Bot"
+                            ewb = EnhanceWithBedrock(prompt, solution_title, document)
+                            # This is should be optional for the user to choose the chunk size
+                            document_list = ewb.SplitDocumentByTokenNum(document, ENHANCE_CHUNK_SIZE)
+                            # test the function
+                            for document in document_list:
+                                enhanced_prompt = ewb.EnhanceWithClaude(prompt, solution_title, document)
+                                logger.info("Enhanced prompt: {}".format(enhanced_prompt))
 
             except Exception as e:
                 logger.error("Error processing object %s: %s", kwargs['bucket'] + '/' + kwargs['key'], e)

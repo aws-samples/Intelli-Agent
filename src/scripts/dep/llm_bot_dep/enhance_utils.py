@@ -57,13 +57,13 @@ class EnhanceWithBedrock:
         self.document = document
         self.zh = zh
 
-    def EnhanceWithClaude(self, prompt: str, solution_title: str, document: Document, zh: bool = True) -> List[Dict[str, str]]:
+    def EnhanceWithClaude(self, prompt: str, solution_title: str, document: Document, zh: bool = False) -> List[Dict[str, str]]:
         """
         Enhance the given prompt using the Claude model by Anthropic. This function constructs a new prompt using the given solution title and page content,
         sends a request to the Claude model, and retrieves the model's response.
 
         Parameters:
-        - prompt (str): The original prompt to be enhanced.
+        - prompt (str): The original prompt to be enhanced, not used for now.
         - solution_title (str): The title of the solution to be included in the new prompt.
         - page_content (str): The content of the page to be included in the new prompt.
         - zh (bool): A flag indicating whether to use the Chinese or English prompt template. Default is True (Chinese).
