@@ -1,30 +1,24 @@
 import os
 import boto3
 import sys
-import re
 import logging
-import json
 import itertools
-import uuid
-from datetime import datetime
 
 from typing import Generator, Any, Dict, Iterable, List, Optional, Tuple
-from bs4 import BeautifulSoup
 import nltk
 
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.document_loaders import PDFMinerPDFasHTMLLoader, CSVLoader
 from langchain.docstore.document import Document
 from langchain.vectorstores import OpenSearchVectorSearch
 from opensearchpy import RequestsHttpConnection
 
 from awsglue.utils import getResolvedOptions
 from llm_bot_dep import sm_utils
-from llm_bot_dep.splitter_utils import MarkdownHeaderTextSplitter
 from llm_bot_dep.loaders.auto import cb_process_object
 from llm_bot_dep.enhance_utils import EnhanceWithBedrock
 
 from requests_aws4auth import AWS4Auth
+from tenacity import retry, stop_after_attempt
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -91,7 +85,6 @@ def batch_generator(generator, batch_size: int):
         yield batch
 
 def aos_injection(content: List[Document], embeddingModelEndpoint: str, aosEndpoint: str, index_name: str, chunk_size: int = 500, gen_chunk: bool = True) -> List[Document]:
-
     """
     This function includes the following steps:
     1. split the document into chunks with chunk size to fit the embedding model, note the document is already splited by title/subtitle to form sementic chunks approximately;
@@ -109,17 +102,6 @@ def aos_injection(content: List[Document], embeddingModelEndpoint: str, aosEndpo
     Note:
     """
     embeddings = sm_utils.create_sagemaker_embeddings_from_js_model(embeddingModelEndpoint, region)
-    # TODO, parse the metadata to embed with different index
-    docsearch = OpenSearchVectorSearch(
-        index_name=index_name,
-        embedding_function=embeddings,
-        opensearch_url="https://{}".format(aosEndpoint),
-        http_auth = awsauth,
-        use_ssl = True,
-        verify_certs = True,
-        connection_class = RequestsHttpConnection
-    )
-
     def chunk_generator(content: List[Document], chunk_size: int = 500, chunk_overlap: int = 30) -> Generator[Document, None, None]:
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
         for document in content:
@@ -140,8 +122,23 @@ def aos_injection(content: List[Document], embeddingModelEndpoint: str, aosEndpo
             continue
         # the batch are still list of Document objects, we need to iterate the list to inject the embeddings, the chunk size (500) should already be small enough to fit the embedding model
         for document in batch:
-            logger.info("Adding documents %s to OpenSearch with index %s", document, index_name)
-            docsearch.add_documents(documents=document)
+            @retry(stop=stop_after_attempt(3))
+            def _aos_injection(document: Document) -> Document:
+                # TODO, parse the metadata to embed with different index
+                docsearch = OpenSearchVectorSearch(
+                    index_name=index_name,
+                    embedding_function=embeddings,
+                    opensearch_url="https://{}".format(aosEndpoint),
+                    http_auth = awsauth,
+                    use_ssl = True,
+                    verify_certs = True,
+                    connection_class = RequestsHttpConnection
+                )
+                logger.info("Adding documents %s to OpenSearch with index %s", document, index_name)
+                docsearch.add_documents(documents=[document])
+                logger.info("Retry statistics: %s", _aos_injection.retry.statistics)
+            # logger.info("Adding documents %s to OpenSearch with index %s", document, index_name)
+            _aos_injection(document)
 
 # main function to be called by Glue job script
 def main():
@@ -166,6 +163,8 @@ def main():
                             # prompt is not used in this case
                             prompt = ""
                             solution_title = "GCR Solution LLM Bot"
+                            # Make sure the document is Document object
+                            logger.info("Enhancing document type: {} and content: {}".format(type(document), document))
                             ewb = EnhanceWithBedrock(prompt, solution_title, document)
                             # This is should be optional for the user to choose the chunk size
                             document_list = ewb.SplitDocumentByTokenNum(document, ENHANCE_CHUNK_SIZE)

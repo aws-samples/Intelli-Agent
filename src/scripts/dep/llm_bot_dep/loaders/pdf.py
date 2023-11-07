@@ -11,7 +11,7 @@ from langchain.docstore.document import Document
 from langchain.document_loaders import PDFMinerPDFasHTMLLoader
 
 from langchain.document_loaders.pdf import BasePDFLoader
-from langchain.text_splitter import MarkdownHeaderTextSplitter
+# from langchain.text_splitter import MarkdownHeaderTextSplitter
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

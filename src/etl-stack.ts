@@ -97,7 +97,7 @@ export class EtlStack extends NestedStack {
                 '--REGION': props._region,
                 '--EMBEDDING_MODEL_ENDPOINT': props._embeddingEndpoint,
                 '--DOC_INDEX_TABLE': 'chatbot-index',
-                '--additional-python-modules': 'langchain==0.0.312,beautifulsoup4==4.12.2,requests-aws4auth==1.2.3,boto3==1.28.69,openai==0.28.1,nougat-ocr==0.1.17,pyOpenSSL==23.3.0',
+                '--additional-python-modules': 'langchain==0.0.312,beautifulsoup4==4.12.2,requests-aws4auth==1.2.3,boto3==1.28.69,openai==0.28.1,nougat-ocr==0.1.17,pyOpenSSL==23.3.0,tenacity==8.2.3',
                 // add multiple extra python files
                 '--extra-py-files': extraPythonFilesList
             }
