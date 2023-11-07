@@ -62,7 +62,7 @@ def iterate_s3_files(bucket: str, prefix: str) -> Generator:
             kwargs = {'bucket': bucket, 'key': key}
 
             if file_type in ['txt']:
-                yield 'text', file_content.decode('utf-8'), kwargs
+                yield 'txt', file_content.decode('utf-8'), kwargs
             elif file_type in ['csv']:
                 # Update row count here, the default row count is 1
                 kwargs['csv_row_count'] = 1
@@ -73,6 +73,8 @@ def iterate_s3_files(bucket: str, prefix: str) -> Generator:
                 yield 'pdf', file_content, kwargs
             elif file_type in ['jpg', 'png']:
                 yield 'image', file_content, kwargs
+            elif file_type in ['docx', 'doc']:
+                yield 'doc', file_content.decode('utf-8'), kwargs
             else:
                 logger.info(f"Unknown file type: {file_type}")
 
@@ -140,10 +142,10 @@ def aos_injection(content: List[Document], embeddingModelEndpoint: str, aosEndpo
             # logger.info("Adding documents %s to OpenSearch with index %s", document, index_name)
             _aos_injection(document)
 
-# main function to be called by Glue job script
+# Main function to be called by Glue job script
 def main():
     logger.info("Starting Glue job with passing arguments: %s", args)
-    # check if offline mode
+    # Check if offline mode
     if offline == 'true':
         logger.info("Running in offline mode with consideration for large file size...")
         for file_type, file_content, kwargs in iterate_s3_files(s3_bucket, s3_prefix):
@@ -155,7 +157,7 @@ def main():
                 if file_type == 'csv':
                     # CSV page document has been splited into chunk, no more spliting is needed
                     aos_injection(res, embeddingModelEndpoint, aosEndpoint, 'chatbot-index', gen_chunk=False)
-                elif file_type == 'pdf':
+                elif file_type in ['pdf', 'txt']:
                     aos_injection(res, embeddingModelEndpoint, aosEndpoint, 'chatbot-index')
                     if qa_enhancement == 'true':
                         # iterate the document to get the QA pairs
@@ -180,13 +182,13 @@ def main():
 
 if __name__ == '__main__':
     logger.info("boto3 version: %s", boto3.__version__)
- 
+
     # Set the NLTK data path to the /tmp directory for AWS Glue jobs
     nltk.data.path.append("/tmp")
     # List of NLTK packages to download
     nltk_packages = ['words']
     # Download the required NLTK packages to /tmp
     for package in nltk_packages:
-        # download the package to /tmp/nltk_data
+        # Download the package to /tmp/nltk_data
         nltk.download(package, download_dir='/tmp/nltk_data')
     main()
