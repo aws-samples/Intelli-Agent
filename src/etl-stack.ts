@@ -36,7 +36,7 @@ export class EtlStack extends NestedStack {
             type: glue.ConnectionType.NETWORK,
             subnet: props._subnets[0],
             securityGroups: [props._securityGroups],
-          });
+        });
 
         const _S3Bucket = new s3.Bucket(this, 'llm-bot-glue-lib', {
             bucketName: `llm-bot-glue-lib-${Aws.ACCOUNT_ID}-${Aws.REGION}`,
@@ -44,49 +44,64 @@ export class EtlStack extends NestedStack {
         });
 
         const extraPythonFiles = new s3deploy.BucketDeployment(this, 'extraPythonFiles', {
-            sources: [s3deploy.Source.asset('src/scripts/whl')],
+            sources: [s3deploy.Source.asset('src/scripts/dep/dist')],
             destinationBucket: _S3Bucket,
             // destinationKeyPrefix: 'llm_bot_dep-0.1.0-py3-none-any.whl',
         });
 
-        // Creata glue job to process files speicified in s3 bucket and prefix
-        const glueJob = new glue.Job(this, 'PythonShellJob', {
-            executable: glue.JobExecutable.pythonShell({
-              glueVersion: glue.GlueVersion.V1_0,
-              pythonVersion: glue.PythonVersion.THREE_NINE,
-              script: glue.Code.fromAsset(path.join(__dirname, 'scripts/glue-job-script.py')),
-              // s3 location of the python script
-            //   extraPythonFiles: [glue.Code.fromAsset(path.join(__dirname, 'scripts/llm_bot_dep-0.1.0-py3-none-any.whl'))],
-            //   extraPythonFiles: [extraPythonFiles],
-            }),
-            maxConcurrentRuns:200,
-            maxRetries:3,
-            connections:[connection],
-            maxCapacity:1,
-            defaultArguments:{
-                '--S3_BUCKET.$': sfn.JsonPath.stringAt('$.s3Bucket'),
-                '--S3_PREFIX.$': sfn.JsonPath.stringAt('$.s3Prefix'),
-                '--AOS_ENDPOINT': props._domainEndpoint,
-                '--REGION': props._region,
-                '--EMBEDDING_MODEL_ENDPOINT': props._embeddingEndpoint,
-                '--DOC_INDEX_TABLE': 'chatbot-index',
-                '--additional-python-modules': 'pdfminer.six==20221105,gremlinpython==3.7.0,langchain==0.0.312,beautifulsoup4==4.12.2,requests-aws4auth==1.2.3,boto3==1.28.69,nougat==0.3.3',
-                '--extra-py-files': _S3Bucket.s3UrlForObject('llm_bot_dep-0.1.0-py3-none-any.whl'),
-            }
-          });
+        // Assemble the extra python files list using _S3Bucket.s3UrlForObject('llm_bot_dep-0.1.0-py3-none-any.whl') and _S3Bucket.s3UrlForObject('nougat_ocr-0.1.17-py3-none-any.whl') and convert to string
+        const extraPythonFilesList = [_S3Bucket.s3UrlForObject('llm_bot_dep-0.1.0-py3-none-any.whl')].join(',');
 
-        glueJob.role.addToPrincipalPolicy(
+        const glueRole = new iam.Role(this, 'ETLGlueJobRole', {
+            assumedBy: new iam.ServicePrincipal('glue.amazonaws.com'),
+            // the role is used by the glue job to access AOS and by default it has 1 hour session duration which is not enough for the glue job to finish the embedding injection
+            maxSessionDuration: Duration.hours(12),
+        });
+        glueRole.addToPrincipalPolicy(
             new iam.PolicyStatement({
                 actions: [
                     "sagemaker:InvokeEndpointAsync",
                     "sagemaker:InvokeEndpoint",
                     "s3:*",
                     "es:*",
+                    "glue:*",
+                    "ec2:*",
+                    // cloudwatch logs
+                    "logs:*",
                 ],
                 effect: iam.Effect.ALLOW,
                 resources: ['*'],
             })
         )
+
+        // Creata glue job to process files speicified in s3 bucket and prefix
+        const glueJob = new glue.Job(this, 'PythonShellJob', {
+            executable: glue.JobExecutable.pythonShell({
+                glueVersion: glue.GlueVersion.V3_0,
+                pythonVersion: glue.PythonVersion.THREE_NINE,
+                script: glue.Code.fromAsset(path.join(__dirname, 'scripts/glue-job-script.py')),
+            }),
+            // Worker Type is not supported for Job Command pythonshell and Both workerType and workerCount must be set...
+            // workerType: glue.WorkerType.G_2X,
+            // workerCount: 2,
+            maxConcurrentRuns: 200,
+            maxRetries: 1,
+            connections: [connection],
+            maxCapacity: 1,
+            role: glueRole,
+            defaultArguments: {
+                '--S3_BUCKET.$': sfn.JsonPath.stringAt('$.s3Bucket'),
+                '--S3_PREFIX.$': sfn.JsonPath.stringAt('$.s3Prefix'),
+                '--QA_ENHANCEMENT.$': sfn.JsonPath.stringAt('$.qaEnhance'),
+                '--AOS_ENDPOINT': props._domainEndpoint,
+                '--REGION': props._region,
+                '--EMBEDDING_MODEL_ENDPOINT': props._embeddingEndpoint,
+                '--DOC_INDEX_TABLE': 'chatbot-index',
+                '--additional-python-modules': 'langchain==0.0.312,beautifulsoup4==4.12.2,requests-aws4auth==1.2.3,boto3==1.28.69,openai==0.28.1,nougat-ocr==0.1.17,pyOpenSSL==23.3.0,tenacity==8.2.3',
+                // add multiple extra python files
+                '--extra-py-files': extraPythonFilesList
+            }
+        });
 
         // Create SNS topic and subscription to notify when glue job is completed
         const topic = new sns.Topic(this, 'etl-topic', {
@@ -111,6 +126,7 @@ export class EtlStack extends NestedStack {
                 '--EMBEDDING_MODEL_ENDPOINT': props._embeddingEndpoint,
                 '--REGION': props._region,
                 '--OFFLINE': 'true',
+                '--QA_ENHANCEMENT.$': '$.qaEnhance',
             }),
         });
 
@@ -127,6 +143,7 @@ export class EtlStack extends NestedStack {
                 '--EMBEDDING_MODEL_ENDPOINT': props._embeddingEndpoint,
                 '--REGION': props._region,
                 '--OFFLINE': 'false',
+                '--QA_ENHANCEMENT.$': '$.qaEnhance',
             }),
         });
 
@@ -145,7 +162,8 @@ export class EtlStack extends NestedStack {
         const sfnStateMachine = new sfn.StateMachine(this, 'ETLState', {
             definitionBody: sfn.DefinitionBody.fromChainable(sfnDefinition),
             stateMachineType: sfn.StateMachineType.STANDARD,
-            timeout: Duration.minutes(30),
+            // Align with the glue job timeout
+            timeout: Duration.minutes(2880),
         });
 
         // Export the Step function to be used in API Gateway

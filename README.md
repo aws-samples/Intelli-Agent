@@ -44,7 +44,21 @@ Now the object created event will trigger the Step function to execute Glue job 
 
 Use Postman/cURL to test the API connection, the API endpoint is the output of CloudFormation Stack with prefix 'embedding' or 'llm', the sample URL will be like "https://xxxx.execute-api.us-east-1.amazonaws.com/v1/embedding", the API request body is as follows:
 
-**embedding uploaded file into AOS, POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/embedding, will be deprecate in the future**
+**Offline process to pre-process file specificed in S3 bucket and prefix, POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/etl**
+```bash
+BODY
+{
+    "s3Bucket": "<Your S3 bucket>",
+    "s3Prefix": "<Your S3 prefix>",
+    "offline": "true"
+}
+```
+You should see output like this:
+```bash
+"Step Function triggered, Step Function ARN: arn:aws:states:us-east-1:xxxx:execution:xx-xxx:xx-xx-xx-xx-xx, Input Payload: {\"s3Bucket\": \"<Your S3 bucket>\", \"s3Prefix\": \"<Your S3 prefix>\", \"offline\": \"true\"}"
+```
+
+**Embedding uploaded file into AOS, POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/embedding, will be deprecate in the future**
 ```bash
 BODY
 {
@@ -60,69 +74,93 @@ You should see output like this:
 }
 ```
 
-**offline process to pre-process file specificed in S3 bucket and prefix, POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/etl**
-```bash
-BODY
-{
-    "s3Bucket": "<Your S3 bucket>",
-    "s3Prefix": "<Your S3 prefix>",
-    "offline": "true"
-}
-```
-You should see output like this:
-```bash
-"Step Function triggered, Step Function ARN: arn:aws:states:us-east-1:xxxx:execution:xx-xxx:xx-xx-xx-xx-xx, Input Payload: {\"s3Bucket\": \"<Your S3 bucket>\", \"s3Prefix\": \"<Your S3 prefix>\", \"offline\": \"true\"}"
-```
-
-**query embeddings in AOS, POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/embedding**, other operation including index, delete, query are also provided for debugging purpose.
+**Then you can query embeddings in AOS, POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/embedding**, other operation including index, delete, query are also provided for debugging purpose.
 ```bash
 BODY
 {
   "aos_index": "chatbot-index",
-  "query": {
-    "operation": "match_all",
-    "match_all": {}
-  }
+  "operation": "match_all",
+  "body": ""
 }
 ```
+
 You should see output like this:
 ```bash
 {
-  "took": 17,
+  "took": 4,
   "timed_out": false,
   "_shards": {
-    "total": 5,
-    "successful": 5,
+    "total": 4,
+    "successful": 4,
     "skipped": 0,
     "failed": 0
   },
   "hits": {
     "total": {
-      "value": 890,
+      "value": 256,
       "relation": "eq"
     },
     "max_score": 1.0,
     "hits": [
       {
         "_index": "chatbot-index",
-        "_id": "038592b1-8bd0-4415-9e18-93d632afa52f",
+        "_id": "035e8439-c683-4278-97f3-151f8cd4cdb6",
         "_score": 1.0,
         "_source": {
           "vector_field": [
-            0.005092620849609375,
-            xx
+            -0.03106689453125,
+            -0.00798797607421875,
+            ...
           ],
-          "text": "cess posterior mean. However, we can expand\nEq. (8) further by reparameterizing Eq. (4) as xt(x0, (cid:15)) = √¯αtx0 + √1\n(0, I) and\napplying the forward process posterior formula (7):\n¯αt(cid:15) for (cid:15)\n∼ N\n−\n(cid:34)\n(cid:34)\nLt\n1 −\n−\nC = Ex0,(cid:15)\n= Ex0,(cid:15)\n1\n2σ2\nt\n(cid:18)\n(cid:13)\n(cid:13)\n˜µt\n(cid:13)\n(cid:13)\nxt(x0, (cid:15)),\n1\n√¯αt\n(xt(x0, (cid:15))\n√1\n−\n−\n¯αt(cid:15))\n(cid:19)\n−\n(cid:13)\n(cid:13)\nµθ(xt(x0, (cid:15)), t)\n(cid:13)\n(cid:13)\n2(cid:35)\n1\n2σ2\nt\n(cid:13)\n(cid:13)\n(cid:13)\n(cid:13)\n1\n√αt\n(cid:18)\nxt(x0, (cid:15))\nβt\n−\n√1\n¯αt\n−\n(cid:19)\n(cid:15)\n−\nµθ(xt(x0, (cid:15)), t)\n2(cid:35)\n(cid:13)\n(cid:13)\n(cid:13)\n(cid:13)\n(9)\n(10)\n3\nAlgorithm 1 Training\nAlgorithm 2 Sampling\n1: repeat\n2: x0 ∼ q(x0)\n3:\n4:\n5: Take gradient descent step on\n√\n(cid:13)\n(cid:13)(cid:15) − (cid:15)θ(\nt ∼ Uniform({1, . . . , T })\n(cid:15) ∼ N (0, I)\n¯αtx0 +\n∇θ\n6: until converged\n√\n1 − ¯αt(cid:15), t)(cid:13)\n2\n(cid:13)\n1: xT ∼ N (0, I)\n2: for t = T, . . . , 1 do\n3: z ∼ N (0, I) if t > ",
+          "text": "## 1 Introduction\n\nDeep generative models of all kinds have recently exhibited high quality samples in a wide variety of data modalities. Generative adversarial networks (GANs), autoregressive models, flows, and variational autoencoders (VAEs) have synthesized striking image and audio samples [14; 27; 3; 58; 38; 25; 10; 32; 44; 57; 26; 33; 45], and there have been remarkable advances in energy-based modeling and score matching that have produced images comparable to those of GANs [11; 55].",
           "metadata": {
-            "source": "unknown",
-            "fontsize": 11,
-            "heading": "3 Diffusion models and denoising autoencoders\n",
-            "fontsize_idx": 2
+            "content_type": "paragraph",
+            "heading_hierarchy": {
+              "1 Introduction": {}
+            },
+            "figure_list": [],
+            "chunk_id": "$2",
+            "file_path": "Denoising Diffusion Probabilistic Models.pdf",
+            "keywords": [],
+            "summary": ""
           }
         }
       },
       ...
     ]
+  }
+}
+```
+
+**Delete intial index in AOS, POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/embedding for debugging purpose**
+```bash
+{
+  "aos_index": "chatbot-index",
+  "operation": "delete",
+  "body": ""
+}
+```
+
+**Create intial index in AOS, POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/embedding for debugging purpose**
+```bash
+{
+  "aos_index": "chatbot-index",
+  "operation": "create",
+  "body": {
+    "settings": {
+      "index": {
+        "number_of_shards": 2,
+        "number_of_replicas": 1
+      }
+    },
+    "mappings": {
+      "properties": {
+        "vector_field": {
+            "type": "knn_vector",
+            "dimension": 1024
+        }
+      }
+    }
   }
 }
 ```
@@ -168,7 +206,7 @@ You should see output like this:
   ]
 }
 ```
-5. Launch dashboard to check and debug the ETL & QA process
+1. Launch dashboard to check and debug the ETL & QA process
 
 ```bash
 cd /src/panel

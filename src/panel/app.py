@@ -117,10 +117,8 @@ def pipeline_tab():
 
     request_body = {
         'aos_index': 'chatbot-index',
-        'query': {
-            'operation': 'match_all',
-            'match_all': {}
-        }
+        'operation': 'match_all',
+        'body': ''
     }
     send_button = st.button('Send')
     if send_button:
