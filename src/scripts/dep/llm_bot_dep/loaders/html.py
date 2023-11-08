@@ -51,7 +51,7 @@ class CustomHtmlLoader(BaseLoader):
     # def load(self, file_content: str) -> List[Document]:
     def load(self, file_content: str):
         file_content = self.clean_html(file_content)
-        file_content = markdownify.markdownify(file_content)
+        file_content = markdownify.markdownify(file_content, heading_style="ATX")
         doc = Document(page_content=file_content,
                        metadata={"file_type": "html"})
 
