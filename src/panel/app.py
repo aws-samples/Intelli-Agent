@@ -86,7 +86,7 @@ def pipeline_tab():
             's3Bucket': s3_bucket_name,
             's3Prefix': s3_object_name,
             'documentEnhance': documentEnhance,
-            'qaPairEnhance': qaPairEnhance,
+            'qaEnhance': str(qaPairEnhance),
             'keyWordExtract': keyWordExtract,
             'textSummarize': textSummarize,
             'offline': 'true'
