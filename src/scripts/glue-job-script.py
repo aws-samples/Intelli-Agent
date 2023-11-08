@@ -31,7 +31,7 @@ os.environ['NOUGAT_CHECKPOINT'] = '/tmp/nougat_checkpoint'
 os.environ['NLTK_DATA'] = '/tmp/nltk_data'
 
 # Parse arguments
-args = getResolvedOptions(sys.argv, ['JOB_NAME', 'S3_BUCKET', 'S3_PREFIX', 'AOS_ENDPOINT', 'EMBEDDING_MODEL_ENDPOINT', 'REGION', 'OFFLINE', 'QA_ENHANCEMENT'])
+args = getResolvedOptions(sys.argv, ['JOB_NAME', 'S3_BUCKET', 'S3_PREFIX', 'AOS_ENDPOINT', 'EMBEDDING_MODEL_ENDPOINT', 'REGION', 'OFFLINE', 'QA_ENHANCEMENT', 'BATCH_INDICE'])
 s3_bucket = args['S3_BUCKET']
 s3_prefix = args['S3_PREFIX']
 aosEndpoint = args['AOS_ENDPOINT']
@@ -39,19 +39,27 @@ embeddingModelEndpoint = args['EMBEDDING_MODEL_ENDPOINT']
 region = args['REGION']
 offline = args['OFFLINE']
 qa_enhancement = args['QA_ENHANCEMENT']
+# TODO, pass the bucket and prefix need to handle in current job directly
+batchIndice = args['BATCH_INDICE']
 
 ENHANCE_CHUNK_SIZE = 500
 
 credentials = boto3.Session().get_credentials()
 awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, region, 'es', session_token=credentials.token)
 
+# such glue job is running as map job, the batchIndice is the index per file to handle in current job
 def iterate_s3_files(bucket: str, prefix: str) -> Generator:    
     paginator = s3.get_paginator('list_objects_v2')
-
+    currentIndice = 0
     for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
         for obj in page.get('Contents', []):
             # skip the prefix with slash, which is the folder name
             if obj['Key'].endswith('/'):
+                continue
+            # skip the file if the index is not in the batchIndice
+            if currentIndice != int(batchIndice):
+                logger.info("currentIndice: {}, batchIndice: {}, skip file: {}".format(currentIndice, batchIndice, obj['Key']))
+                currentIndice += 1
                 continue
             key = obj['Key']
             file_type = key.split('.')[-1]  # Extract file extension

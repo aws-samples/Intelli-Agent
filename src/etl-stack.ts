@@ -13,6 +13,10 @@ import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as s3assets from 'aws-cdk-lib/aws-s3-assets';
 import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
 import path from "path";
+import * as lambda from 'aws-cdk-lib/aws-lambda';
+import { DockerImageCode, Architecture, DockerImageFunction} from 'aws-cdk-lib/aws-lambda';
+import { join } from "path";
+import { off } from 'process';
 
 interface etlStackProps extends StackProps {
     _vpc: ec2.Vpc;
@@ -110,6 +114,45 @@ export class EtlStack extends NestedStack {
         });
         topic.addSubscription(new subscriptions.EmailSubscription(props._subEmail));
 
+        // Lambda function to for file deduplication and glue job allocation based on file number
+        const lambdaETL = new DockerImageFunction(this,
+            "lambdaETL", {
+            code: DockerImageCode.fromImageAsset(join(__dirname, "../src/lambda/etl")),
+            timeout: Duration.minutes(15),
+            memorySize: 1024,
+            architecture: Architecture.X86_64,
+          });
+
+          lambdaETL.addToRolePolicy(new iam.PolicyStatement({
+            actions: [
+                // glue job
+                "glue:StartJobRun",
+                "s3:List*",
+                "s3:Put*",
+                "s3:Get*",
+            ],
+            effect: iam.Effect.ALLOW,
+            resources: ['*'],
+            }
+        ))
+
+        const lambdaETLIntegration = new tasks.LambdaInvoke(this, 'lambdaETLIntegration', {
+            lambdaFunction: lambdaETL,
+            // Use the result of this invocation to decide how many Glue jobs to run
+            resultSelector: {
+                "processedPayload": {
+                    'batchIndices.$': '$.Payload.batchIndices',
+                    's3Bucket.$': '$.Payload.s3Bucket',
+                    's3Prefix.$': '$.Payload.s3Prefix',
+                    'qaEnhance.$': '$.Payload.qaEnhance',
+                    'offline.$': '$.Payload.offline',
+                }
+            },
+            // we need the original input
+            resultPath: '$.TaskResult',
+            outputPath: '$.TaskResult.processedPayload',
+        });
+
         const offlineChoice = new sfn.Choice(this, 'Offline or Online', {
             comment: 'Check if the job is offline or online',
         });
@@ -127,8 +170,31 @@ export class EtlStack extends NestedStack {
                 '--REGION': props._region,
                 '--OFFLINE': 'true',
                 '--QA_ENHANCEMENT.$': '$.qaEnhance',
+                // Convert the numeric index to a string
+                '--BATCH_INDICE.$': 'States.Format(\'{}\', $.batchIndices)',
             }),
         });
+
+        // Define a Map state to run multiple Glue jobs in parallel based on the number of files to process
+        const mapState = new sfn.Map(this, 'MapState', {
+            // inputPath should point to the root since we want to pass the entire payload to the iterator
+            inputPath: '$',
+            // itemsPath should reference an array. We need to construct this array based on batchIndices
+            itemsPath: sfn.JsonPath.stringAt('$.batchIndices'), 
+            // set the max concurrency to 0 to run all the jobs in parallel
+            maxConcurrency: 0,
+            parameters: {
+                // These parameters are passed to each iteration of the map state
+                's3Bucket.$': '$.s3Bucket',
+                's3Prefix.$': '$.s3Prefix',
+                'qaEnhance.$': '$.qaEnhance',
+                // 'index' is a special variable within the Map state that represents the current index
+                'batchIndices.$': '$$.Map.Item.Index' // Add this if you need to know the index of the current item in the map state
+              },
+            resultPath: '$.mapResults',
+        });
+
+        mapState.iterator(offlineGlueJob);
 
         // multiplex the same glue job to offline and online
         const onlineGlueJob = new tasks.GlueStartJobRun(this, 'OnlineGlueJob', {
@@ -154,10 +220,13 @@ export class EtlStack extends NestedStack {
             message: sfn.TaskInput.fromText(`Glue job ${glueJob.jobName} completed!`),
         });
 
-        const sfnDefinition = offlineChoice
-        .when(sfn.Condition.stringEquals('$.offline', 'true'), offlineGlueJob)
-        .when(sfn.Condition.stringEquals('$.offline', 'false'), onlineGlueJob)
-        .afterwards().next(notifyTask);
+        offlineChoice.when(sfn.Condition.booleanEquals('$.offline', true), mapState)
+            .when(sfn.Condition.booleanEquals('$.offline', false), onlineGlueJob)
+        
+        // add the notify task to both online and offline branches
+        mapState.next(notifyTask);
+
+        const sfnDefinition = lambdaETLIntegration.next(offlineChoice)
     
         const sfnStateMachine = new sfn.StateMachine(this, 'ETLState', {
             definitionBody: sfn.DefinitionBody.fromChainable(sfnDefinition),
