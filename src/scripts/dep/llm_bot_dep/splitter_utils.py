@@ -1,11 +1,10 @@
 import re
-from typing import Any, Dict, List, Optional, Iterator, Union
+from typing import Any, Dict, Iterator, List, Optional, Union
+
 from langchain.docstore.document import Document
-from langchain.text_splitter import (
-    RecursiveCharacterTextSplitter,
-    Language,
-    TextSplitter,
-)
+from langchain.text_splitter import (Language, RecursiveCharacterTextSplitter,
+                                     TextSplitter)
+
 
 def _make_spacy_pipeline_for_splitting(pipeline: str) -> Any:  # avoid importing spacy
     try:
@@ -125,6 +124,16 @@ class MarkdownHeaderTextSplitter:
     def __init__(self) -> None:
         pass
 
+    def _is_markdown_header(self, line):
+        header_pattern = r'^#+\s+'
+        if re.match(header_pattern, line):
+            return True
+        else:
+            return False
+
+    def _is_markdown_table_row(self, line):
+        return re.fullmatch(r'\|.*\|.*\|', line) is not None
+
     def split_text(self, text: Document) -> List[Document]:
         lines = text.page_content.strip().split('\n')
         chunks = []
@@ -135,24 +144,12 @@ class MarkdownHeaderTextSplitter:
 
         for line in lines:
             # Replace escaped characters for table markers
+            line = line.strip()
             line = line.replace(r"\begin{table}", "\\begin{table}").replace(r"\end{table}", "\\end{table}")
-            if line.strip() == "\\begin{table}":
-                inside_table = True
-                continue  # Skip this line
-            elif line.strip() == "\\end{table}":
-                inside_table = False
-                # Save table content as a separate document
-                if table_content:
-                    metadata = text.metadata.copy()
-                    metadata['content_type'] = 'table'
-                    metadata['chunk_id'] = f"${chunk_id}"
-                    chunks.append(Document(page_content='\n'.join(table_content), metadata=metadata))
-                    table_content = []  # Reset for the next table
-                continue  # Skip this line
+            if line in ["\\begin{table}", "\\end{table}"]:
+                continue
 
-            if inside_table:
-                table_content.append(line)
-            elif line.startswith(('## ', ' ### ')):  # Assuming these denote headings
+            if self._is_markdown_header(line):  # Assuming these denote headings
                 # Save the current chunk if it exists
                 if current_chunk_content:
                     metadata = text.metadata.copy()
@@ -162,7 +159,22 @@ class MarkdownHeaderTextSplitter:
                     chunks.append(Document(page_content='\n'.join(current_chunk_content), metadata=metadata))
                     current_chunk_content = []  # Reset for the next chunk
 
-            if not inside_table:
+            if self._is_markdown_table_row(line):
+                inside_table = True
+            elif inside_table:
+                # The first line under a table
+                inside_table = False
+                # Save table content as a separate document
+                if table_content:
+                    metadata = text.metadata.copy()
+                    metadata['content_type'] = 'table'
+                    metadata['chunk_id'] = f"${chunk_id}"
+                    chunks.append(Document(page_content='\n'.join(table_content), metadata=metadata))
+                    table_content = []  # Reset for the next table
+
+            if inside_table:
+                table_content.append(line)
+            else:
                 current_chunk_content.append(line)
 
         # Save the last chunk if it exists

@@ -34,6 +34,7 @@ class CustomTextLoader(TextLoader):
     def load(self, text_content: str) -> List[Document]:
         """Load from file path."""
         metadata = {"source": self.file_path}
+
         return [Document(page_content=text_content, metadata=metadata)]
 
 
@@ -41,6 +42,7 @@ def pre_process_text(text_content: str) -> str:
     # Clean up text content
     text_content = re.sub(r'\s+', ' ', text_content)
     text_content = re.sub(r'\n+', '\n', text_content)
+
     return text_content.strip()
 
 

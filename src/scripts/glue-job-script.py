@@ -149,6 +149,7 @@ def aos_injection(content: List[Document], embeddingModelEndpoint: str, aosEndpo
     aosEndpoint (str): The endpoint of the AOS.
     index_name (str): The name of the index to be created in the AOS.
     chunk_size (int): The size of each chunk to be indexed in the AOS.
+    gen_chunk (bool): Whether generate chunks or not.
 
     Returns:
 
@@ -208,6 +209,8 @@ def main():
                 if file_type == 'csv':
                     # CSV page document has been splited into chunk, no more spliting is needed
                     aos_injection(res, embeddingModelEndpoint, aosEndpoint, 'chatbot-index', gen_chunk=False)
+                elif file_type == 'html':
+                    aos_injection(res, embeddingModelEndpoint, aosEndpoint, 'chatbot-index')
                 elif file_type in ['pdf', 'txt']:
                     aos_injection(res, embeddingModelEndpoint, aosEndpoint, 'chatbot-index')
                     if qa_enhancement == 'true':
