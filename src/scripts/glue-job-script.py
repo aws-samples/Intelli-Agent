@@ -48,8 +48,8 @@ dynamodb = boto3.resource('dynamodb')
 table = dynamodb.Table(processedObjectsTable)
 
 ENHANCE_CHUNK_SIZE = 500
-# Make it 60s for debugging purpose
-OBJECT_EXPIRY_TIME = 60
+# Make it 3600s for debugging purpose
+OBJECT_EXPIRY_TIME = 3600
 
 credentials = boto3.Session().get_credentials()
 awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, region, 'es', session_token=credentials.token)
@@ -64,6 +64,13 @@ def iterate_s3_files(bucket: str, prefix: str) -> Generator:
             # skip the prefix with slash, which is the folder name
             if key.endswith('/'):
                 continue
+
+            # skip the file if the index is not in the batchIndice
+            if currentIndice != int(batchIndice):
+                logger.info("currentIndice: {}, batchIndice: {}, skip file: {}".format(currentIndice, batchIndice, key))
+                currentIndice += 1
+                continue
+
             # Truncate to seconds with round()
             current_time = int(round(time.time()))
             # Check for redundancy and expiry
@@ -76,12 +83,6 @@ def iterate_s3_files(bucket: str, prefix: str) -> Generator:
             # If the object is found and has not expired, skip processing
             if response['Items'] and response['Items'][0]['ExpiryTimestamp'] > current_time:
                 logger.info(f"Object {key} has not expired yet and will be skipped.")
-                continue
-
-            # skip the file if the index is not in the batchIndice
-            if currentIndice != int(batchIndice):
-                logger.info("currentIndice: {}, batchIndice: {}, skip file: {}".format(currentIndice, batchIndice, key))
-                currentIndice += 1
                 continue
 
             # Record the processing of the S3 object with an updated expiry timestamp, and each job only update single object in table. TODO, current assume the object will be handled successfully
@@ -127,7 +128,6 @@ def iterate_s3_files(bucket: str, prefix: str) -> Generator:
                 break
             else:
                 logger.info(f"Unknown file type: {file_type}")
-        break
 
 def batch_generator(generator, batch_size: int):
     iterator = iter(generator)
