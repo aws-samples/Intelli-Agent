@@ -12,6 +12,7 @@ import * as subscriptions from 'aws-cdk-lib/aws-sns-subscriptions';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as s3assets from 'aws-cdk-lib/aws-s3-assets';
 import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
+import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import path from "path";
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import { DockerImageCode, Architecture, DockerImageFunction} from 'aws-cdk-lib/aws-lambda';
@@ -32,6 +33,7 @@ export class EtlStack extends NestedStack {
     _sfnOutput;
     _jobName;
     _jobArn;
+    _processedObjectsTable;
 
     constructor(scope: Construct, id: string, props: etlStackProps) {
         super(scope, id, props);
@@ -40,6 +42,24 @@ export class EtlStack extends NestedStack {
             type: glue.ConnectionType.NETWORK,
             subnet: props._subnets[0],
             securityGroups: [props._securityGroups],
+        });
+
+        const table = new dynamodb.Table(this, 'ProcessedObjects', {
+            partitionKey: { name: 'ObjectKey', type: dynamodb.AttributeType.STRING },
+            billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+          });
+
+        table.addGlobalSecondaryIndex({
+            indexName: 'BucketAndPrefixIndex',
+            partitionKey: { name: 'Bucket', type: dynamodb.AttributeType.STRING },
+            sortKey: { name: 'Prefix', type: dynamodb.AttributeType.STRING },
+        });
+
+        // Add ExpiryTimestamp as an attribute but not as a sort key in the base table
+        table.addGlobalSecondaryIndex({
+            indexName: 'ExpiryTimestampIndex',
+            partitionKey: { name: 'ExpiryTimestamp', type: dynamodb.AttributeType.NUMBER },
+            // No sort key for this index
         });
 
         const _S3Bucket = new s3.Bucket(this, 'llm-bot-glue-lib', {
@@ -61,6 +81,7 @@ export class EtlStack extends NestedStack {
             // the role is used by the glue job to access AOS and by default it has 1 hour session duration which is not enough for the glue job to finish the embedding injection
             maxSessionDuration: Duration.hours(12),
         });
+        // TODO, narrow down the policy to specific resources and actions
         glueRole.addToPrincipalPolicy(
             new iam.PolicyStatement({
                 actions: [
@@ -70,6 +91,7 @@ export class EtlStack extends NestedStack {
                     "es:*",
                     "glue:*",
                     "ec2:*",
+                    "dynamodb:*",
                     // cloudwatch logs
                     "logs:*",
                 ],
@@ -172,6 +194,7 @@ export class EtlStack extends NestedStack {
                 '--QA_ENHANCEMENT.$': '$.qaEnhance',
                 // Convert the numeric index to a string
                 '--BATCH_INDICE.$': 'States.Format(\'{}\', $.batchIndices)',
+                '--ProcessedObjectsTable': table.tableName,
             }),
         });
 
@@ -239,5 +262,6 @@ export class EtlStack extends NestedStack {
         this._sfnOutput = sfnStateMachine;
         this._jobName = glueJob.jobName;
         this._jobArn = glueJob.jobArn;
+        this._processedObjectsTable = table.tableName
     }
 }

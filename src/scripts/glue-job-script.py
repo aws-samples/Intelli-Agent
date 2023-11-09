@@ -1,8 +1,10 @@
 import os
 import boto3
+from boto3.dynamodb.conditions import Key, Attr
 import sys
 import logging
 import itertools
+import time
 
 from typing import Generator, Any, Dict, Iterable, List, Optional, Tuple
 import nltk
@@ -23,15 +25,13 @@ from tenacity import retry, stop_after_attempt
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-s3 = boto3.client('s3')
-
 # Adaption to allow nougat to run in AWS Glue with writable /tmp
 os.environ['TRANSFORMERS_CACHE'] = '/tmp/transformers_cache'
 os.environ['NOUGAT_CHECKPOINT'] = '/tmp/nougat_checkpoint'
 os.environ['NLTK_DATA'] = '/tmp/nltk_data'
 
 # Parse arguments
-args = getResolvedOptions(sys.argv, ['JOB_NAME', 'S3_BUCKET', 'S3_PREFIX', 'AOS_ENDPOINT', 'EMBEDDING_MODEL_ENDPOINT', 'REGION', 'OFFLINE', 'QA_ENHANCEMENT', 'BATCH_INDICE'])
+args = getResolvedOptions(sys.argv, ['JOB_NAME', 'S3_BUCKET', 'S3_PREFIX', 'AOS_ENDPOINT', 'EMBEDDING_MODEL_ENDPOINT', 'REGION', 'OFFLINE', 'QA_ENHANCEMENT', 'BATCH_INDICE', 'ProcessedObjectsTable'])
 s3_bucket = args['S3_BUCKET']
 s3_prefix = args['S3_PREFIX']
 aosEndpoint = args['AOS_ENDPOINT']
@@ -41,8 +41,15 @@ offline = args['OFFLINE']
 qa_enhancement = args['QA_ENHANCEMENT']
 # TODO, pass the bucket and prefix need to handle in current job directly
 batchIndice = args['BATCH_INDICE']
+processedObjectsTable = args['ProcessedObjectsTable']
+
+s3 = boto3.client('s3')
+dynamodb = boto3.resource('dynamodb')
+table = dynamodb.Table(processedObjectsTable)
 
 ENHANCE_CHUNK_SIZE = 500
+# Make it 60s for debugging purpose
+OBJECT_EXPIRY_TIME = 60
 
 credentials = boto3.Session().get_credentials()
 awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, region, 'es', session_token=credentials.token)
@@ -53,17 +60,46 @@ def iterate_s3_files(bucket: str, prefix: str) -> Generator:
     currentIndice = 0
     for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
         for obj in page.get('Contents', []):
+            key = obj['Key']
             # skip the prefix with slash, which is the folder name
-            if obj['Key'].endswith('/'):
+            if key.endswith('/'):
                 continue
+            # Truncate to seconds with round()
+            current_time = int(round(time.time()))
+            # Check for redundancy and expiry
+            response = table.query(
+                KeyConditionExpression = Key('ObjectKey').eq(key),
+                ScanIndexForward=False,  # Sort by ProcessTimestamp in descending order
+                Limit=1  # We only need the latest record
+            )
+
+            # If the object is found and has not expired, skip processing
+            if response['Items'] and response['Items'][0]['ExpiryTimestamp'] > current_time:
+                logger.info(f"Object {key} has not expired yet and will be skipped.")
+                continue
+
             # skip the file if the index is not in the batchIndice
             if currentIndice != int(batchIndice):
-                logger.info("currentIndice: {}, batchIndice: {}, skip file: {}".format(currentIndice, batchIndice, obj['Key']))
+                logger.info("currentIndice: {}, batchIndice: {}, skip file: {}".format(currentIndice, batchIndice, key))
                 currentIndice += 1
                 continue
-            key = obj['Key']
-            file_type = key.split('.')[-1]  # Extract file extension
 
+            # Record the processing of the S3 object with an updated expiry timestamp, and each job only update single object in table. TODO, current assume the object will be handled successfully
+            expiry_timestamp = current_time + OBJECT_EXPIRY_TIME
+            try:
+                table.put_item(
+                    Item={
+                        'ObjectKey': key,
+                        'ProcessTimestamp': current_time,
+                        'Bucket': bucket,
+                        'Prefix': '/'.join(key.split('/')[:-1]),
+                        'ExpiryTimestamp': expiry_timestamp
+                    }
+                )
+            except Exception as e:
+                logger.error(f"Error recording processed of S3 object {key}: {e}")
+
+            file_type = key.split('.')[-1]  # Extract file extension
             response = s3.get_object(Bucket=bucket, Key=key)
             file_content = response['Body'].read()
             # assemble bucket and key as args for the callback function
@@ -71,20 +107,27 @@ def iterate_s3_files(bucket: str, prefix: str) -> Generator:
 
             if file_type in ['txt']:
                 yield 'txt', file_content.decode('utf-8'), kwargs
+                break
             elif file_type in ['csv']:
                 # Update row count here, the default row count is 1
                 kwargs['csv_row_count'] = 1
                 yield 'csv', file_content.decode('utf-8'), kwargs
+                break
             elif file_type in ['html']:
                 yield 'html', file_content.decode('utf-8'), kwargs
+                break
             elif file_type in ['pdf']:
                 yield 'pdf', file_content, kwargs
+                break
             elif file_type in ['jpg', 'png']:
                 yield 'image', file_content, kwargs
+                break
             elif file_type in ['docx', 'doc']:
                 yield 'doc', file_content.decode('utf-8'), kwargs
+                break
             else:
                 logger.info(f"Unknown file type: {file_type}")
+        break
 
 def batch_generator(generator, batch_size: int):
     iterator = iter(generator)
