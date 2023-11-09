@@ -106,15 +106,15 @@ def iterate_s3_files(bucket: str, prefix: str) -> Generator:
             # assemble bucket and key as args for the callback function
             kwargs = {'bucket': bucket, 'key': key}
 
-            if file_type in ['txt']:
+            if file_type == 'txt':
                 yield 'txt', file_content.decode('utf-8'), kwargs
                 break
-            elif file_type in ['csv']:
+            elif file_type == 'csv':
                 # Update row count here, the default row count is 1
                 kwargs['csv_row_count'] = 1
                 yield 'csv', file_content.decode('utf-8'), kwargs
                 break
-            elif file_type in ['html']:
+            elif file_type == 'html':
                 yield 'html', file_content.decode('utf-8'), kwargs
                 break
             elif file_type in ['pdf']:
@@ -126,6 +126,8 @@ def iterate_s3_files(bucket: str, prefix: str) -> Generator:
             elif file_type in ['docx', 'doc']:
                 yield 'doc', file_content.decode('utf-8'), kwargs
                 break
+            elif file_type == 'md':
+                yield 'md', file_content.decode('utf-8'), kwargs
             else:
                 logger.info(f"Unknown file type: {file_type}")
 
@@ -211,7 +213,7 @@ def main():
                     aos_injection(res, embeddingModelEndpoint, aosEndpoint, 'chatbot-index', gen_chunk=False)
                 elif file_type == 'html':
                     aos_injection(res, embeddingModelEndpoint, aosEndpoint, 'chatbot-index')
-                elif file_type in ['pdf', 'txt']:
+                elif file_type in ['pdf', 'txt', 'doc', 'md']:
                     aos_injection(res, embeddingModelEndpoint, aosEndpoint, 'chatbot-index')
                     if qa_enhancement == 'true':
                         # iterate the document to get the QA pairs
