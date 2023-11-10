@@ -54,6 +54,9 @@ OBJECT_EXPIRY_TIME = 3600
 credentials = boto3.Session().get_credentials()
 awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, region, 'es', session_token=credentials.token)
 
+# Set the NLTK data path to the /tmp directory for AWS Glue jobs
+nltk.data.path.append('/tmp/nltk_data')
+
 # such glue job is running as map job, the batchIndice is the index per file to handle in current job
 def iterate_s3_files(bucket: str, prefix: str) -> Generator:    
     paginator = s3.get_paginator('list_objects_v2')
@@ -240,7 +243,7 @@ if __name__ == '__main__':
     # Set the NLTK data path to the /tmp directory for AWS Glue jobs
     nltk.data.path.append("/tmp")
     # List of NLTK packages to download
-    nltk_packages = ['words']
+    nltk_packages = ['words', 'punkt']
     # Download the required NLTK packages to /tmp
     for package in nltk_packages:
         # Download the package to /tmp/nltk_data

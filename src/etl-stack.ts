@@ -92,6 +92,7 @@ export class EtlStack extends NestedStack {
                     "glue:*",
                     "ec2:*",
                     "dynamodb:*",
+                    "bedrock:*",
                     // cloudwatch logs
                     "logs:*",
                 ],

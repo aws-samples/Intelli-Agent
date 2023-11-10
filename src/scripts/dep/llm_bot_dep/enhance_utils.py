@@ -215,27 +215,27 @@ class EnhanceWithBedrock:
         return documents_list
 
 # local debugging purpose
-if __name__ == "__main__":
-    # test the function
-    prompt = "Do we have any solution offer to Stable Diffusion?"
-    solution_title = "Stable Diffusion AWS Extensions"
-    page_content = """
-    Stable Diffusion AWS Extensions is a CSDC solution that...
-    """
-    # construct a Document object
-    document = Document(page_content=page_content)
-    ewb = EnhanceWithBedrock(prompt, solution_title, document)
-    document_list = ewb.SplitDocumentByTokenNum(document, slice_size)
-    # test the function
-    for document in document_list:
-        prompt = "Do we have any solution offer to Stable Diffusion?"
-        solution_title = "Stable Diffusion AWS Extensions"
-        enhanced_prompt = ewb.EnhanceWithClaude(prompt, solution_title, document)
-        logger.info("Enhanced prompt: {}".format(enhanced_prompt))
+# if __name__ == "__main__":
+#     # test the function
+#     prompt = "Do we have any solution offer to Stable Diffusion?"
+#     solution_title = "Stable Diffusion AWS Extensions"
+#     page_content = """
+#     Stable Diffusion AWS Extensions is a CSDC solution that...
+#     """
+#     # construct a Document object
+#     document = Document(page_content=page_content)
+#     ewb = EnhanceWithBedrock(prompt, solution_title, document)
+#     document_list = ewb.SplitDocumentByTokenNum(document, slice_size)
+#     # test the function
+#     for document in document_list:
+#         prompt = "Do we have any solution offer to Stable Diffusion?"
+#         solution_title = "Stable Diffusion AWS Extensions"
+#         enhanced_prompt = ewb.EnhanceWithClaude(prompt, solution_title, document)
+#         logger.info("Enhanced prompt: {}".format(enhanced_prompt))
 
-    # test the function
-    for document in document_list:
-        prompt = "Do we have any solution offer to Stable Diffusion?"
-        solution_title = "Stable Diffusion AWS Extensions"
-        enhanced_prompt = ewb.EnhanceWithOpenAI(prompt, solution_title, document)
-        logger.info("Enhanced prompt: {}".format(enhanced_prompt))
+#     # test the function
+#     for document in document_list:
+#         prompt = "Do we have any solution offer to Stable Diffusion?"
+#         solution_title = "Stable Diffusion AWS Extensions"
+#         enhanced_prompt = ewb.EnhanceWithOpenAI(prompt, solution_title, document)
+#         logger.info("Enhanced prompt: {}".format(enhanced_prompt))
