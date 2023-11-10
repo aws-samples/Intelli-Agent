@@ -46,6 +46,10 @@ class CustomHtmlLoader(BaseLoader):
         blank_line = re.compile('\n+')
         s = blank_line.sub('\n', s)
 
+        # Remove blank image
+        img_src = re.compile('<img src="" />')
+        s = img_src.sub('', s)
+
         return s.strip()
 
     # def load(self, file_content: str) -> List[Document]:

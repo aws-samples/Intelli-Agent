@@ -13,6 +13,8 @@ setup(
         'unstructured',
         'boto3',
         'nougat-ocr',
-        'markdownify'
+        'markdownify',
+        'mammoth',
+        'chardet'
     ],
 )

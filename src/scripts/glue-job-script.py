@@ -1,24 +1,22 @@
-import os
-import boto3
-from boto3.dynamodb.conditions import Key, Attr
-import sys
-import logging
 import itertools
+import logging
+import os
+import sys
 import time
+from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple
 
-from typing import Generator, Any, Dict, Iterable, List, Optional, Tuple
+import boto3
+import chardet
 import nltk
-
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.docstore.document import Document
-from langchain.vectorstores import OpenSearchVectorSearch
-from opensearchpy import RequestsHttpConnection
-
 from awsglue.utils import getResolvedOptions
+from boto3.dynamodb.conditions import Attr, Key
+from langchain.docstore.document import Document
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.vectorstores import OpenSearchVectorSearch
 from llm_bot_dep import sm_utils
-from llm_bot_dep.loaders.auto import cb_process_object
 from llm_bot_dep.enhance_utils import EnhanceWithBedrock
-
+from llm_bot_dep.loaders.auto import cb_process_object
+from opensearchpy import RequestsHttpConnection
 from requests_aws4auth import AWS4Auth
 from tenacity import retry, stop_after_attempt
 
@@ -56,6 +54,24 @@ awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, region, 'es',
 
 # Set the NLTK data path to the /tmp directory for AWS Glue jobs
 nltk.data.path.append('/tmp/nltk_data')
+
+def decode_file_content(content: str, default_encoding: str = 'utf-8'):
+    """Decode the file content and auto detect the content encoding.
+
+    Args:
+        content: The content to detect the encoding.
+        default_encoding: The default encoding to try to decode the content.
+        timeout: The timeout in seconds for the encoding detection.
+    """
+
+    try:
+        decoded_content = content.decode(default_encoding)
+    except UnicodeDecodeError:
+        # Try to detect encoding
+        encoding = chardet.detect(content)['encoding']
+        decoded_content = content.decode(encoding)
+
+    return decoded_content
 
 # such glue job is running as map job, the batchIndice is the index per file to handle in current job
 def iterate_s3_files(bucket: str, prefix: str) -> Generator:    
@@ -109,16 +125,16 @@ def iterate_s3_files(bucket: str, prefix: str) -> Generator:
             # assemble bucket and key as args for the callback function
             kwargs = {'bucket': bucket, 'key': key}
 
-            if file_type in ['txt']:
-                yield 'txt', file_content.decode('utf-8'), kwargs
+            if file_type == 'txt':
+                yield 'txt', decode_file_content(file_content), kwargs
                 break
-            elif file_type in ['csv']:
+            elif file_type == 'csv':
                 # Update row count here, the default row count is 1
                 kwargs['csv_row_count'] = 1
-                yield 'csv', file_content.decode('utf-8'), kwargs
+                yield 'csv', decode_file_content(file_content), kwargs
                 break
-            elif file_type in ['html']:
-                yield 'html', file_content.decode('utf-8'), kwargs
+            elif file_type == 'html':
+                yield 'html', decode_file_content(file_content), kwargs
                 break
             elif file_type in ['pdf']:
                 yield 'pdf', file_content, kwargs
@@ -127,7 +143,10 @@ def iterate_s3_files(bucket: str, prefix: str) -> Generator:
                 yield 'image', file_content, kwargs
                 break
             elif file_type in ['docx', 'doc']:
-                yield 'doc', file_content.decode('utf-8'), kwargs
+                yield 'doc', file_content, kwargs
+                break
+            elif file_type == 'md':
+                yield 'md', decode_file_content(file_content), kwargs
                 break
             else:
                 logger.info(f"Unknown file type: {file_type}")
@@ -214,7 +233,7 @@ def main():
                     aos_injection(res, embeddingModelEndpoint, aosEndpoint, 'chatbot-index', gen_chunk=False)
                 elif file_type == 'html':
                     aos_injection(res, embeddingModelEndpoint, aosEndpoint, 'chatbot-index')
-                elif file_type in ['pdf', 'txt']:
+                elif file_type in ['pdf', 'txt', 'doc', 'md']:
                     aos_injection(res, embeddingModelEndpoint, aosEndpoint, 'chatbot-index')
                     if qa_enhancement == 'true':
                         # iterate the document to get the QA pairs
