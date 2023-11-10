@@ -17,7 +17,7 @@ def cb_process_object(s3, file_type: str, file_content, **kwargs):
     elif file_type == 'html':
         res = process_html(file_content, **kwargs)
     elif file_type == 'doc':
-        res = process_doc(file_content, **kwargs)
+        res = process_doc(s3, **kwargs)
     elif file_type == 'md':
         res = process_md(file_content, **kwargs)
     elif file_type == 'pdf':

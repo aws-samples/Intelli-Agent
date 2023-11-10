@@ -14,6 +14,7 @@ setup(
         'boto3',
         'nougat-ocr',
         'markdownify',
-        'mammoth'
+        'mammoth',
+        'chardet'
     ],
 )
