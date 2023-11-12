@@ -46,12 +46,13 @@ class EnhanceWithBedrock:
         BEDROCK_REGION = str(boto3.session.Session().region_name)
         # TODO, pass such credentials from CloudFormation creation and store in SSM
         openai.api_key = os.getenv("OPENAI_API_KEY")
-        session = boto3.Session()
-        self.bedrock_client = session.client(
-            service_name='bedrock',
-            region_name=BEDROCK_REGION,
-            endpoint_url='https://bedrock-runtime.{}.amazonaws.com'.format(BEDROCK_REGION)
-        )
+        self.bedrock_client = boto3.client('bedrock-runtime')
+        # session = boto3.Session()
+        # self.bedrock_client = session.client(
+        #     service_name='bedrock',
+        #     region_name=BEDROCK_REGION,
+        #     endpoint_url='https://bedrock-runtime.{}.amazonaws.com'.format(BEDROCK_REGION)
+        # )
         self.prompt = prompt
         self.solution_title = solution_title
         self.document = document
@@ -100,7 +101,6 @@ class EnhanceWithBedrock:
         modelId = "anthropic.claude-v2"
         accept = "*/*"
         contentType = "application/json"
-
         response = self.bedrock_client.invoke_model(
             body=body, modelId=modelId, accept=accept, contentType=contentType
         )
@@ -216,6 +216,8 @@ class EnhanceWithBedrock:
 
 # local debugging purpose
 # if __name__ == "__main__":
+#     # log out boto3 version
+#     logger.info("boto3 version: {}".format(boto3.__version__))
 #     # test the function
 #     prompt = "Do we have any solution offer to Stable Diffusion?"
 #     solution_title = "Stable Diffusion AWS Extensions"

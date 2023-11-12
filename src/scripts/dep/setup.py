@@ -11,7 +11,7 @@ setup(
         # 'sagemaker',
         'requests_aws4auth',
         'unstructured',
-        'boto3',
+        'boto3==1.28.84',
         'nougat-ocr',
         'markdownify',
         'mammoth',
