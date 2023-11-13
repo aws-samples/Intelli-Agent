@@ -4,7 +4,7 @@ import { Construct } from 'constructs';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as s3assets from 'aws-cdk-lib/aws-s3-assets';
 import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
-
+import { join } from "path";
 import * as dotenv from "dotenv";
 dotenv.config();
 
@@ -40,11 +40,11 @@ export class AssetsStack extends NestedStack {
         // CROSS MODEL
         // Define a local asset for code
         const crossCodeAsset = new s3assets.Asset(this, 'crossCodeAsset', {
-            path: 'src/models/cross/code',
+            path: join(__dirname, '../../../model/cross/code'),
         });
 
         const crossCodeAssetDeployment = new s3deploy.BucketDeployment(this, 'crossCodeAssetDeployment', {
-            sources: [s3deploy.Source.asset('src/models/cross/code')],
+            sources: [s3deploy.Source.asset(join(__dirname, '../../../model/cross/code'))],
             destinationBucket: _S3Bucket,
             destinationKeyPrefix: crossCodePrefix,
         });
@@ -53,11 +53,11 @@ export class AssetsStack extends NestedStack {
         // EMBEDDING MODEL
         // Define a local asset for code
         const embeddingCodeAsset = new s3assets.Asset(this, 'embeddingCodeAsset', {
-            path: 'src/models/embedding/code',
+            path: join(__dirname, '../../../model/embedding/code'),
         });
 
         const embeddingCodeAssetDeployment = new s3deploy.BucketDeployment(this, 'embeddingCodeAssetDeployment', {
-            sources: [s3deploy.Source.asset('src/models/embedding/code')],
+            sources: [s3deploy.Source.asset(join(__dirname, '../../../model/embedding/code'))],
             destinationBucket: _S3Bucket,
             destinationKeyPrefix: embeddingCodePrefix,
         });
@@ -66,24 +66,24 @@ export class AssetsStack extends NestedStack {
         // INSTRUCT MODEL
         // Define a local asset for code
         const instructCodeAsset = new s3assets.Asset(this, 'instructCodeAsset', {
-            path: 'src/models/instruct/code',
+            path: join(__dirname, '../../../model/instruct/code'),
         });
 
         const instructCodeAssetDeployment = new s3deploy.BucketDeployment(this, 'instructCodeAssetDeployment', {
-            sources: [s3deploy.Source.asset('src/models/instruct/code')],
+            sources: [s3deploy.Source.asset(join(__dirname, '../../../model/instruct/code'))],
             destinationBucket: _S3Bucket,
             destinationKeyPrefix: instructCodePrefix,
         });
         this._instructCodePrefix = instructCodePrefix
 
-       // Skip the deployment if _s3ModelAssets is provided
-       if (!props._s3ModelAssets) {
+        // Skip the deployment if _s3ModelAssets is provided
+        if (!props._s3ModelAssets) {
             // Define a local asset for model
             const crossModelAsset = new s3assets.Asset(this, 'ModelAsset', {
-                path: 'src/models/cross/model',
+                path: join(__dirname, '../../../model/cross/model'),
             });
             const crossModelAssetDeployment = new s3deploy.BucketDeployment(this, 'crossModelAssetDeployment', {
-                sources: [s3deploy.Source.asset('src/models/cross/model')],
+                sources: [s3deploy.Source.asset(join(__dirname, '../../../model/cross/model'))],
                 destinationBucket: _S3Bucket,
                 destinationKeyPrefix: crossModelPrefix,
                 // memoryLimit: 4096,
@@ -91,21 +91,21 @@ export class AssetsStack extends NestedStack {
 
             // Define a local asset for model
             const embeddingModelAsset = new s3assets.Asset(this, 'embeddingModelAsset', {
-                path: 'src/models/embedding/model',
+                path: join(__dirname, '../../../model/embedding/model'),
             });
             const embeddingModelAssetDeployment = new s3deploy.BucketDeployment(this, 'embeddingModelAssetDeployment', {
-                sources: [s3deploy.Source.asset('src/models/embedding/model')],
+                sources: [s3deploy.Source.asset(join(__dirname, '../../../model/embedding/model'))],
                 destinationBucket: _S3Bucket,
                 destinationKeyPrefix: embeddingModelPrefix,
             });
 
             // Define a local asset for model
             const instructModelAsset = new s3assets.Asset(this, 'instructModelAsset', {
-                path: 'src/models/instruct/model',
+                path: join(__dirname, '../../../model/instruct/model'),
             });
 
             const instructModelAssetDeployment = new s3deploy.BucketDeployment(this, 'instructModelAssetDeployment', {
-                sources: [s3deploy.Source.asset('src/models/instruct/model')],
+                sources: [s3deploy.Source.asset(join(__dirname, '../../../model/instruct/model'))],
                 destinationBucket: _S3Bucket,
                 destinationKeyPrefix: instructModelPrefix,
             });

@@ -13,7 +13,6 @@ import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as s3assets from 'aws-cdk-lib/aws-s3-assets';
 import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
-import path from "path";
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import { DockerImageCode, Architecture, DockerImageFunction} from 'aws-cdk-lib/aws-lambda';
 import { join } from "path";
@@ -47,7 +46,7 @@ export class EtlStack extends NestedStack {
         const table = new dynamodb.Table(this, 'ProcessedObjects', {
             partitionKey: { name: 'ObjectKey', type: dynamodb.AttributeType.STRING },
             billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-          });
+        });
 
         table.addGlobalSecondaryIndex({
             indexName: 'BucketAndPrefixIndex',
@@ -63,12 +62,12 @@ export class EtlStack extends NestedStack {
         });
 
         const _S3Bucket = new s3.Bucket(this, 'llm-bot-glue-lib', {
-            bucketName: `llm-bot-glue-lib-${Aws.ACCOUNT_ID}-${Aws.REGION}`,
+            // bucketName: `llm-bot-glue-lib-${Aws.ACCOUNT_ID}-${Aws.REGION}`,
             blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
         });
 
         const extraPythonFiles = new s3deploy.BucketDeployment(this, 'extraPythonFiles', {
-            sources: [s3deploy.Source.asset('src/scripts/dep/dist')],
+            sources: [s3deploy.Source.asset(join(__dirname, '../../../lambda/job/dep/dist'))],
             destinationBucket: _S3Bucket,
             // destinationKeyPrefix: 'llm_bot_dep-0.1.0-py3-none-any.whl',
         });
@@ -78,10 +77,10 @@ export class EtlStack extends NestedStack {
 
         const glueRole = new iam.Role(this, 'ETLGlueJobRole', {
             assumedBy: new iam.ServicePrincipal('glue.amazonaws.com'),
-            // the role is used by the glue job to access AOS and by default it has 1 hour session duration which is not enough for the glue job to finish the embedding injection
+            // The role is used by the glue job to access AOS and by default it has 1 hour session duration which is not enough for the glue job to finish the embedding injection
             maxSessionDuration: Duration.hours(12),
         });
-        // TODO, narrow down the policy to specific resources and actions
+        // TODO: narrow down the policy to specific resources and actions
         glueRole.addToPrincipalPolicy(
             new iam.PolicyStatement({
                 actions: [
@@ -106,7 +105,7 @@ export class EtlStack extends NestedStack {
             executable: glue.JobExecutable.pythonShell({
                 glueVersion: glue.GlueVersion.V3_0,
                 pythonVersion: glue.PythonVersion.THREE_NINE,
-                script: glue.Code.fromAsset(path.join(__dirname, 'scripts/glue-job-script.py')),
+                script: glue.Code.fromAsset(join(__dirname, '../../../lambda/job/glue-job-script.py')),
             }),
             // Worker Type is not supported for Job Command pythonshell and Both workerType and workerCount must be set...
             // workerType: glue.WorkerType.G_2X,
@@ -140,7 +139,7 @@ export class EtlStack extends NestedStack {
         // Lambda function to for file deduplication and glue job allocation based on file number
         const lambdaETL = new DockerImageFunction(this,
             "lambdaETL", {
-            code: DockerImageCode.fromImageAsset(join(__dirname, "../src/lambda/etl")),
+            code: DockerImageCode.fromImageAsset(join(__dirname, "../../../lambda/etl")),
             timeout: Duration.minutes(15),
             memorySize: 1024,
             architecture: Architecture.X86_64,
@@ -214,7 +213,7 @@ export class EtlStack extends NestedStack {
                 'qaEnhance.$': '$.qaEnhance',
                 // 'index' is a special variable within the Map state that represents the current index
                 'batchIndices.$': '$$.Map.Item.Index' // Add this if you need to know the index of the current item in the map state
-              },
+            },
             resultPath: '$.mapResults',
         });
 

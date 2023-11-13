@@ -38,13 +38,13 @@ export class LLMApiStack extends NestedStack {
 
         // s3 bucket for storing documents
         const _S3Bucket = new s3.Bucket(this, 'llm-bot-documents', {
-            bucketName: `llm-bot-documents-${Aws.ACCOUNT_ID}-${Aws.REGION}`,
+            // bucketName: `llm-bot-documents-${Aws.ACCOUNT_ID}-${Aws.REGION}`,
             blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
         });
 
         const lambdaExecutor = new DockerImageFunction(this,
             "lambdaExecutor", {
-            code: DockerImageCode.fromImageAsset(join(__dirname, "../src/lambda/executor")),
+            code: DockerImageCode.fromImageAsset(join(__dirname, "../../../lambda/executor")),
             timeout: Duration.minutes(15),
             memorySize: 1024,
             vpc: _vpc,
@@ -61,11 +61,11 @@ export class LLMApiStack extends NestedStack {
                 aos_index: _aosIndex,
                 chat_session_table: _chatSessionTable,
             },
-          });
+        });
 
         lambdaExecutor.addToRolePolicy(new iam.PolicyStatement({
-        // principals: [new iam.AnyPrincipal()],
-            actions: [ 
+            // principals: [new iam.AnyPrincipal()],
+            actions: [
                 "sagemaker:InvokeEndpointAsync",
                 "sagemaker:InvokeEndpoint",
                 "s3:List*",
@@ -77,12 +77,12 @@ export class LLMApiStack extends NestedStack {
             ],
             effect: iam.Effect.ALLOW,
             resources: ['*'],
-            }
+        }
         ))
 
         const lambdaEmbedding = new DockerImageFunction(this,
             "lambdaEmbedding", {
-            code: DockerImageCode.fromImageAsset(join(__dirname, "../src/lambda/embedding")),
+            code: DockerImageCode.fromImageAsset(join(__dirname, "../../../lambda/embedding")),
             timeout: Duration.minutes(15),
             memorySize: 4096,
             vpc: _vpc,
@@ -98,9 +98,9 @@ export class LLMApiStack extends NestedStack {
                 embedding_endpoint: props._embeddingEndPoint,
                 cross_endpoint: props._crossEndPoint,
             },
-          });
+        });
 
-          lambdaEmbedding.addToRolePolicy(new iam.PolicyStatement({
+        lambdaEmbedding.addToRolePolicy(new iam.PolicyStatement({
             actions: [
                 "sagemaker:InvokeEndpointAsync",
                 "sagemaker:InvokeEndpoint",
@@ -111,7 +111,7 @@ export class LLMApiStack extends NestedStack {
             ],
             effect: iam.Effect.ALLOW,
             resources: ['*'],
-            }
+        }
         ))
         // Define the API Gateway
         const api = new apigw.RestApi(this, 'llmApi', {

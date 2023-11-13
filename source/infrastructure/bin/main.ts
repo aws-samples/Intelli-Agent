@@ -1,16 +1,13 @@
-import { App, CfnOutput, Stack, StackProps, CfnParameter } from 'aws-cdk-lib';
+import { App, CfnOutput, CfnParameter, Stack, StackProps } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
-
-import { VpcStack } from './vpc-stack';
-import { Ec2Stack } from './ec2-stack';
-import { OpenSearchStack } from './os-stack';
-import { LLMApiStack } from './api-stack';
-import { DynamoDBStack } from './ddb-stack';
-import { LLMStack } from './llm-stack';
-import { AssetsStack } from './assets-stack';
-import { EtlStack } from './etl-stack';
-
 import * as dotenv from "dotenv";
+import { LLMApiStack } from '../lib/api/api-stack';
+import { DynamoDBStack } from '../lib/ddb-stack';
+import { EtlStack } from '../lib/etl/etl-stack';
+import { AssetsStack } from '../lib/model/assets-stack';
+import { LLMStack } from '../lib/model/llm-stack';
+import { VpcStack } from '../lib/shared/vpc-stack';
+import { OpenSearchStack } from '../lib/vector-store/os-stack';
 dotenv.config();
 
 export class RootStack extends Stack {

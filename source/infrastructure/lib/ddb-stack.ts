@@ -24,7 +24,7 @@ export class DynamoDBStack extends NestedStack {
     
     // Create the DynamoDB table
     const table = new Table(this, "modelRatingTable", {
-      tableName: "modelRatingInfo",
+      // tableName: "modelRatingInfo",
       partitionKey: {
         name: "session_id",
         type: AttributeType.STRING,
@@ -36,7 +36,7 @@ export class DynamoDBStack extends NestedStack {
     const postFn = new lambda.Function(this, "PostRatingFunction", {
       runtime:lambda.Runtime.PYTHON_3_7,
       handler: "rating.lambda_handler",
-      code: Code.fromAsset(join(__dirname, "../src/lambda/ddb")),
+      code: Code.fromAsset(join(__dirname, "../../lambda/ddb")),
       environment: {
         TABLE_NAME: table.tableName,
       },
@@ -59,7 +59,6 @@ export class DynamoDBStack extends NestedStack {
     
     // Grant permissions to the Lambda functions to access the DynamoDB table
     table.grantReadWriteData(postFn);
-   
 
     const api = new apigw.RestApi(this, 'ddbApi', {
         restApiName: 'ddbApi',
