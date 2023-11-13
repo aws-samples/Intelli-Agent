@@ -1,6 +1,0 @@
-python-dotenv 
-PyPDF2
-streamlit 
-langchain 
-openai
-tiktoken
