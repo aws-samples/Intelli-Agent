@@ -54,3 +54,11 @@ cdk.context.json
 package-lock.json
 .idea
 .env
+**/llm_bot_dep.egg-info
+**/llm_bot_dep/__pycache__
+**/llm_bot_dep/loaders/__pycache__
+**/dep/build
+**/models/cross/model/models--csdc-atl--buffer-cross-001
+**/models/embedding/model/models--BAAI--bge-large-zh-v1.5
+**/models/embedding/model/models--csdc-atl--buffer-embedding-002
+**/models/instruct/model/models--csdc-atl--buffer-instruct-InternLM-001
