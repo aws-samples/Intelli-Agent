@@ -6,8 +6,8 @@
 
 1. Prepare model assets by executing script per model folder
 ```bash
-% cd src/models/<cross/embedding/instruct>/model
-% ./model.sh       
+cd source/model/<cross/embedding/instruct>/model
+./model.sh       
 Make sure Python installed properly. Usage: ./model.sh -t TOKEN [-m MODEL_NAME] [-c COMMIT_HASH] [-s S3_BUCKET_NAME]
   -t TOKEN            Hugging Face token (required)
   -m MODEL_NAME       Model name (default: csdc-atl/buffer-cross-001)
@@ -18,11 +18,12 @@ Make sure Python installed properly. Usage: ./model.sh -t TOKEN [-m MODEL_NAME] 
 
 2. Deploy CDK template
 ```bash
+cd source/infrastructure
+aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
 npm install
 npx cdk deploy --rollback false --parameters S3ModelAssets=<Your S3 Bucket Name>
 ```
-
-You will get output similar like below:
+You can update us-east-1 to any other available region according to your need. You will get output similar like below:
 ```
 Outputs:
 llm-bot-dev.APIEndpointAddress = https://xx.execute-api.us-east-1.amazonaws.com/v1/
@@ -209,7 +210,7 @@ You should see output like this:
 1. Launch dashboard to check and debug the ETL & QA process
 
 ```bash
-cd /src/panel
+cd /source/panel
 pip install -r requirements.txt
 mv .env_sample .env
 # fill .env content accordingly with cdk output
