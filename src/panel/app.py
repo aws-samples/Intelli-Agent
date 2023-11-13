@@ -12,6 +12,11 @@ import boto3
 import requests
 import json
 import time
+
+import logging
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
+
 # Load environment variables
 load_dotenv()
 
@@ -37,6 +42,15 @@ def process_text(text):
     knowledgeBase = FAISS.from_texts(chunks, embeddings)
     
     return knowledgeBase
+
+def get_job_runs(page_token=None):
+    if page_token:
+        response = glue.get_job_runs(JobName=glue_job_name, MaxResults=10, NextToken=page_token)
+    else:
+        response = glue.get_job_runs(JobName=glue_job_name, MaxResults=10)
+    # function only return running aws glue jobs
+    job_runs = [job_run for job_run in response['JobRuns'] if job_run['JobRunState'] == 'RUNNING']
+    return job_runs, response.get('NextToken'), response.get('PreviousToken')
 
 def pipeline_tab():
     st.title("LLM Bot ETL Pipeline")
@@ -98,23 +112,42 @@ def pipeline_tab():
             st.text_area('Response:', value=response.text, height=200, max_chars=None)
 
     # progress bar to show the offline ETL job running status
-    st.subheader('Online & Offline ETL Job Status')
-    refresh_button = st.button('Refresh')
-    if refresh_button:
-        # list all job running with a specific job name
-        job_runs = glue.get_job_runs(JobName=glue_job_name, MaxResults=1)
-        # get the latest job run id
-        job_run_id = job_runs['JobRuns'][0]['Id']
-        # get the latest job run status
-        job_status = glue.get_job_run(JobName=glue_job_name, RunId=job_run_id)['JobRun']['JobRunState']
-        # output the job status details with slim height
-        st.text_area('Job Status:', value=json.dumps(job_status, indent=4), height=100, max_chars=None)
+    st.subheader('AWS Glue Job Status')
+
+    # Initialize session state for pagination
+    if 'next_token' not in st.session_state:
+        st.session_state['next_token'] = None
+
+    # Layout for buttons
+    left_col, right_col = st.columns(2)
+    with left_col:
+        refresh_button = st.button('Refresh')
+
+    with right_col:
+        placeholder, prev_button, next_button = st.columns([3, 1, 1])
+        with prev_button:
+            if st.button('Prev'):
+                st.session_state['next_token'] = st.session_state.get('new_prev_token')
+        with next_button:
+            if st.button('Next'):
+                st.session_state['next_token'] = st.session_state.get('new_next_token')
+
+    if refresh_button or 'next_token' in st.session_state:
+        response, st.session_state['new_next_token'], st.session_state['new_prev_token'] = get_job_runs(st.session_state['next_token'])
+        # Display the running glue jobs
+        job_runs_container = ""
+        total_job_runs = len(response)
+        for job_run in response:
+            job_runs_container += (f"Job Run ID: {job_run['Id']}")
+            job_runs_container += (f" Retries: {job_run.get('Attempt', 'N/A')}")
+            job_runs_container += (f" Start Time: {job_run['StartedOn']}")
+            job_runs_container += (f" Duration: {job_run.get('ExecutionTime', 'N/A')} seconds\n")
+        st.text_area('Running AWS Glue Jobs in total: ' + str(total_job_runs), value=job_runs_container, height=200, max_chars=None)
 
     # sub pannel to query and search the embedding in AOS
     st.subheader('Query and Search AOS')
     query = st.text_input('Input your query body here', value='{"aos_index": "chatbot-index", "query": {"operation": "match_all", "match_all": {}}}')
     # send button to trigger the request sending to the endpoint with query as request body
-
     request_body = {
         'aos_index': 'chatbot-index',
         'operation': 'match_all',
