@@ -58,7 +58,10 @@ package-lock.json
 **/llm_bot_dep/__pycache__
 **/llm_bot_dep/loaders/__pycache__
 **/dep/build
-**/models/cross/model/models--csdc-atl--buffer-cross-001
-**/models/embedding/model/models--BAAI--bge-large-zh-v1.5
-**/models/embedding/model/models--csdc-atl--buffer-embedding-002
-**/models/instruct/model/models--csdc-atl--buffer-instruct-InternLM-001
+**/model/cross/model/.locks
+**/model/embedding/model/.locks
+**/model/instruct/model/.locks
+**/model/cross/model/models--csdc-atl--buffer-cross-001
+**/model/embedding/model/models--BAAI--bge-large-zh-v1.5
+**/model/embedding/model/models--csdc-atl--buffer-embedding-002
+**/model/instruct/model/models--csdc-atl--buffer-instruct-InternLM-001
