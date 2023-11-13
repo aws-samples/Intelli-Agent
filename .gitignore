@@ -47,7 +47,7 @@ junit.xml
 !/.eslintrc.json
 /assets/
 !/cdk.json
-/cdk.out/
+**/cdk.out
 .cdk.staging/
 .parcel-cache/
 cdk.context.json
