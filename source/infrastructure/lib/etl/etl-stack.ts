@@ -190,6 +190,7 @@ export class EtlStack extends NestedStack {
                 '--AOS_ENDPOINT': props._domainEndpoint,
                 '--EMBEDDING_MODEL_ENDPOINT': props._embeddingEndpoint,
                 '--REGION': props._region,
+                '--RES_BUCKET': _S3Bucket.bucketName,
                 '--OFFLINE': 'true',
                 '--QA_ENHANCEMENT.$': '$.qaEnhance',
                 // Convert the numeric index to a string
