@@ -7,6 +7,7 @@ import mammoth
 import uuid
 from datetime import datetime
 from llm_bot_dep.splitter_utils import MarkdownHeaderTextSplitter
+from docx import Document as pyDocument
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +35,22 @@ class CustomDocLoader(BaseLoader):
         self.file_path = file_path
         self.encoding = encoding
         self.autodetect_encoding = autodetect_encoding
+    
+    def clean_document(self, doc: pyDocument):
+        """Clean document including removing header and footer for each page
+
+        Args:
+            doc (Document): The document to clean
+        """
+        # Remove headers and footers
+        for section in doc.sections:
+            if section.header is not None:
+                for paragraph in section.header.paragraphs:
+                    paragraph.clear()
+
+            if section.footer is not None:
+                for paragraph in section.footer.paragraphs:
+                    paragraph.clear()
 
     def load(self) -> List[Document]:
         """Load from file path."""
@@ -43,6 +60,10 @@ class CustomDocLoader(BaseLoader):
             # Images are excluded
             return {"src": ""}
         
+        pyDoc = pyDocument(self.file_path)
+        self.clean_document(pyDoc)
+        pyDoc.save(self.file_path)
+
         with open(self.file_path, "rb") as docx_file:
             result = mammoth.convert_to_html(docx_file, convert_image=mammoth.images.img_element(_convert_image))
             html_content = result.value # The generated HTML

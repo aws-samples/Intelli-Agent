@@ -15,6 +15,7 @@ setup(
         'nougat-ocr',
         'markdownify',
         'mammoth',
-        'chardet'
+        'chardet',
+        'python-docx'
     ],
 )
