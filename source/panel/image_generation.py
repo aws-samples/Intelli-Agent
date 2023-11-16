@@ -5,12 +5,13 @@ import logging
 import time
 import json
 
-from langchain import PromptTemplate
+from langchain.prompts import PromptTemplate
 from langchain.llms.bedrock import Bedrock
 from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple
 from langchain.docstore.document import Document
-from langchain.embeddings import OpenAIEmbeddings
+from langchain.chains import ConversationChain
 from langchain.vectorstores import FAISS
+from langchain.memory import ConversationBufferMemory
 
 from dotenv import load_dotenv
 # load .env file with specific name
@@ -49,19 +50,25 @@ def deploy_sagemaker_endpoint(instance_type: str = "ml.g4dn.4xlarge", initial_in
 def upload_model():
     pass
 
-def get_bedrock_client():
+def get_bedrock_llm():
     # specify the profile_name to call the bedrock api if needed
     bedrock_client = boto3.client('bedrock-runtime')
-    return bedrock_client
 
-def claude_template(initial_prompt: str, placeholder: str):
-    sd_prompt = PromptTemplate(
-        input_variables=["initial_prompt", "placeholder"], 
-        template="""
-    - Transform the input prompt {initial_prompt} into a detailed prompt for an image generation model, describing the scene with vivid and specific attributes that enhance the original concept, only adjective and noun are allowed, verb and adverb are not allowed, each words speperated by comma.
+    modelId = "anthropic.claude-v2"
+    cl_llm = Bedrock(
+        model_id=modelId,
+        client=bedrock_client,
+        model_kwargs={"max_tokens_to_sample": 1000},
+    )
+    return cl_llm
+
+sd_prompt = PromptTemplate.from_template(
+    """
+    Human:
+    - Transform the input prompt {input} into a detailed prompt for an image generation model, describing the scene with vivid and specific attributes that enhance the original concept, only adjective and noun are allowed, verb and adverb are not allowed, each words speperated by comma.
     - Generate a negative prompt that specifies what should be avoided in the image, including any elements that contradict the desired style or tone.
     - Recommend a list of suitable models from the stable diffusion lineup that best match the style and content described in the detailed prompt.
-    - Other notes please refer to {placeholder}
+    - Other notes please refer to the following example:
 
     The output should be a plain text in Python List format shown follows, no extra content added beside Positive Prompt, Negative Prompt and Recommended Model List. The model list can only be chosen from the fixed list: "sd_xl_base_1.0.safetensors", "majicmixRealistic_v7.safetensors", "x2AnimeFinal_gzku.safetensors":
     
@@ -74,46 +81,41 @@ def claude_template(initial_prompt: str, placeholder: str):
     [Positive Prompt: "visually appealing, high-quality image of a cute dog in a vibrant, cartoon style, adorable appearance, expressive eyes, friendly demeanor, colorful and lively, reminiscent of popular animation studios, artwork.",
     Negative Prompt: "realism, dark or dull colors, scary or aggressive dog depictions, overly simplistic, stick figure drawings, blurry or distorted images, inappropriate or NSFW content.",
     Recommended Model List: ["Stable-diffusion: LahCuteCartoonSDXL_alpha.safetensors", "Other model recommended..."]]
-    <initial_prompt>
-    {initial_prompt}
-    </initial_prompt>
-    """
-    )
-    # Pass in values to the input variables
-    prompt = sd_prompt.format(initial_prompt="a cute dog", placeholder="")    
-    return prompt
+
+    Current conversation:
+    <conversation_history>
+    {history}
+    </conversation_history>
+
+    Here is the human's next reply:
+    <human_reply>
+    {input}
+    </human_reply>
+
+    Assistant:
+    """)
 
 def get_llm_processed_prompts(initial_prompt):
-    # get the bedrock client
-    bedrock_client = get_bedrock_client()
-
-    prompt = claude_template(initial_prompt, '')
-    prompt = "\n\nHuman:{}".format(prompt) + "\n\nAssistant:"
-    logger.debug("final prompt: {}".format(prompt))    
-    body = json.dumps({
-        "prompt": prompt,
-        "temperature": 0.7,
-        "top_p": 1,
-        "top_k": 0,
-        "max_tokens_to_sample": 500,
-        "stop_sequences": ["\n\nHuman:"]
-    })
-    # note v2 is not output chinese characters
-    modelId = "anthropic.claude-v2"
-    accept = "*/*"
-    contentType = "application/json"
-    response = bedrock_client.invoke_model(
-        body=body, modelId=modelId, accept=accept, contentType=contentType
+    cl_llm = get_bedrock_llm()
+    memory = ConversationBufferMemory()
+    conversation = ConversationChain(
+        llm=cl_llm, verbose=False, memory=memory
     )
-    response_body = json.loads(response.get("body").read())
-    raw_completion = response_body.get("completion").split('\n')
-    logger.info("raw_completion: {}".format(raw_completion))
+ 
+    conversation.prompt = sd_prompt
+    response = conversation.predict(input=initial_prompt)
+    logger.info("the first invoke: {}".format(response))
+    # logger.info("the second invoke: {}".format(conversation.predict(input="change to realist style")))
 
-    # TODO: extract positive prompt, negative prompt and model list from the raw_completion
-
-    logger.info("positive_prompt: {}".format(positive_prompt))
-    logger.info("negative_prompt: {}".format(negative_prompt))
-    logger.info("model_list: {}".format(model_list))
+    """
+    [Positive Prompt: visually appealing, high-quality image of a big, large, muscular horse with powerful body, majestic stance, flowing mane, detailed texture, vivid color, striking photography.,
+    Negative Prompt: ugly, distorted, inappropriate or NSFW content,
+    Recommended Model List: ["sd_xl_base_1.0.safetensors"]]
+    """
+    positive_prompt = response.split('Positive Prompt: ')[1].split('Negative Prompt: ')[0].strip()
+    negative_prompt = response.split('Negative Prompt: ')[1].split('Recommended Model List: ')[0].strip()
+    model_list = response.split('Recommended Model List: ')[1].strip().replace('[', '').replace(']', '').replace('"', '').split(',')
+    logger.info("positive_prompt: {}\n negative_prompt: {}\n model_list: {}".format(positive_prompt, negative_prompt, model_list))
     return positive_prompt, negative_prompt, model_list
 
 def generate_image(endpoint_name: str, positive_prompt: str, negative_prompt: str, model: List[str]):
@@ -194,10 +196,10 @@ def streamlit():
 if __name__ == "__main__":
     # deploy_sagemaker_endpoint()
     # upload_model()
-    positive_prompt, negative_prompt, model_list = get_llm_processed_prompts("a cute dog")
+    positive_prompt, negative_prompt, model_list = get_llm_processed_prompts("a big horse")
     # The endpoint fixed for now, since the deploy_sagemaker_endpoint() won't return the endpoint name
-    response = generate_image("default-endpoint-for-llm-bot", positive_prompt, negative_prompt, model_list)
-    logger.info("generate image response: {}".format(response))
+    # response = generate_image("default-endpoint-for-llm-bot", positive_prompt, negative_prompt, model_list)
+    # logger.info("generate image response: {}".format(response))
 
     # python -m streamlit run image-generation.py --server.port 8088
     # streamlit()
