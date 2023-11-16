@@ -1,6 +1,10 @@
 ## LLM Bot
 
-![image](https://github.com/aws-samples/llm-bot/assets/23544182/63bbe9a4-41fb-441a-86ad-013215d168b4)
+### Overall Architecture
+![image](https://github.com/aws-samples/llm-bot/assets/23544182/acb918e3-3253-4cef-82bb-da65d78b1249)
+
+### ETL Workflow
+![image](https://github.com/aws-samples/llm-bot/assets/23544182/f35915ee-69ef-4f15-af83-e0df1d1249be)
 
 ### Quick Start
 
@@ -28,20 +32,17 @@ You can update us-east-1 to any other available region according to your need. Y
 Outputs:
 llm-bot-dev.APIEndpointAddress = https://xx.execute-api.us-east-1.amazonaws.com/v1/
 llm-bot-dev.CrossModelEndpoint = cross-endpoint
+llm-bot-dev.DocumentBucket = llm-bot-documents-xx-us-east-1
 llm-bot-dev.EmbeddingModelEndpoint = embedding-endpoint
+llm-bot-dev.GlueJobName = PythonShellJobxx
 llm-bot-dev.InstructModelEndpoint = instruct-endpoint
-llm-bot-dev.OpenSearchDashboard = x.x.x.x:8081/_dashboards
-llm-bot-dev.OpenSearchEndpoint = vpc-xx-xx-xx.us-east-1.es.amazonaws.com
+llm-bot-dev.OpenSearchEndpoint = vpc-xx.us-east-1.es.amazonaws.com
 llm-bot-dev.VPC = vpc-xx
+Stack ARN:
+arn:aws:cloudformation:us-east-1:xx:stack/llm-bot-dev/xx
 ```
 
-3. Upload embedding file to S3 bucket created in the previous step, the format is like below:
-```bash
-aws s3 cp dth.txt s3://llm-bot-documents-<your account id>-<region>/<your S3 bucket prefix>/
-```
-Now the object created event will trigger the Step function to execute Glue job for online processing.
-
-4. Test the API connection
+3. Test the API connection
 
 Use Postman/cURL to test the API connection, the API endpoint is the output of CloudFormation Stack with prefix 'embedding' or 'llm', the sample URL will be like "https://xxxx.execute-api.us-east-1.amazonaws.com/v1/embedding", the API request body is as follows:
 
@@ -207,7 +208,8 @@ You should see output like this:
   ]
 }
 ```
-1. Launch dashboard to check and debug the ETL & QA process
+
+4. Launch dashboard to check and debug the ETL & QA process
 
 ```bash
 cd /source/panel
@@ -216,6 +218,12 @@ mv .env_sample .env
 # fill .env content accordingly with cdk output
 streamlit run app.py --server.runOnSave true
 ```
+
+5. [Optional] Upload embedding file to S3 bucket created in the previous step, the format is like below:
+```bash
+aws s3 cp dth.txt s3://llm-bot-documents-<your account id>-<region>/<your S3 bucket prefix>/
+```
+Now the object created event will trigger the Step function to execute Glue job for online processing.
 
 ## Other Sample
 Try [Bedrock tuturial](https://github.com/aws-samples/llm-bot/blob/main/sample/bedrock-tuturial.ipynb) quick get though the bedrock model & langchain.
