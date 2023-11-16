@@ -55,7 +55,7 @@ def upload_chunk_to_s3(logger_content: str, bucket: str, prefix: str, splitting_
     try:
         res = s3.put_object(Bucket=bucket, Key=object_key, Body=logger_content)
         logger.info(f"Upload logger file to S3: {res}")
-        return f"s3://{bucket}/{object_key}"
+        return object_key
     except Exception as e:
         logger.error(f"Error uploading logger file to S3: {e}")
         return None
@@ -135,10 +135,10 @@ def handle(inputs: Input):
 
     logging.info(f"Processing bucket: {bucket}, object_key: {object_key}")
 
-    destination_path = process_pdf(bucket, object_key, destination_bucket)
+    destination_prefix = process_pdf(bucket, object_key, destination_bucket)
 
     result = {
-        "destination_path": destination_path
+        "destination_prefix": destination_prefix
     }
 
     return Output().add_as_json(result)
