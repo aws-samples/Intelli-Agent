@@ -80,7 +80,7 @@ def process_doc(s3, **kwargs):
     random_uuid = str(uuid.uuid4())[:8]
     bucket_name = kwargs['bucket']
     key = kwargs['key']
-    local_path = f'/tmp/doc-{timestamp_str}-{random_uuid}.csv'
+    local_path = f'/tmp/doc-{timestamp_str}-{random_uuid}.docx'
 
     s3.download_file(bucket_name, key, local_path)
     loader = CustomDocLoader(file_path=local_path)
