@@ -23,25 +23,26 @@ class CustomMarkdownLoader(BaseLoader):
 
     def __init__(
         self,
-        file_path: str,
+        aws_path: str,
         encoding: Optional[str] = None,
         autodetect_encoding: bool = False,
     ):
         """Initialize with file path."""
-        self.file_path = file_path
+        self.aws_path = aws_path
         self.encoding = encoding
         self.autodetect_encoding = autodetect_encoding
 
     def load(self, content: str) -> Document:
         """Load from file path."""
-        metadata = {"file_path": self.file_path, "file_type": "md"}
+        metadata = {"file_path": self.aws_path, "file_type": "md"}
 
         return Document(page_content=content, metadata=metadata)
 
 
 def process_md(file_content: str, **kwargs):
-    loader = CustomMarkdownLoader(
-        file_path=kwargs['bucket'] + "/" + kwargs['key'])
+    bucket = kwargs['bucket']
+    key = kwargs['key']
+    loader = CustomMarkdownLoader(aws_path=f"s3://{bucket}/{key}")
     doc = loader.load(file_content)
     splitter = MarkdownHeaderTextSplitter()
     doc_list = splitter.split_text(doc)

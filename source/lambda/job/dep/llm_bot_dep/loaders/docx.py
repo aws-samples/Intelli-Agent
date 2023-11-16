@@ -28,11 +28,13 @@ class CustomDocLoader(BaseLoader):
     def __init__(
         self,
         file_path: str,
+        aws_path: str,
         encoding: Optional[str] = None,
         autodetect_encoding: bool = False,
     ):
         """Initialize with file path."""
         self.file_path = file_path
+        self.aws_path = aws_path
         self.encoding = encoding
         self.autodetect_encoding = autodetect_encoding
     
@@ -54,7 +56,7 @@ class CustomDocLoader(BaseLoader):
 
     def load(self) -> List[Document]:
         """Load from file path."""
-        metadata = {"file_path": self.file_path, "file_type": "docx"}
+        metadata = {"file_path": self.aws_path, "file_type": "docx"}
 
         def _convert_image(image):
             # Images are excluded
@@ -66,8 +68,8 @@ class CustomDocLoader(BaseLoader):
 
         with open(self.file_path, "rb") as docx_file:
             result = mammoth.convert_to_html(docx_file, convert_image=mammoth.images.img_element(_convert_image))
-            html_content = result.value # The generated HTML
-            loader = CustomHtmlLoader()
+            html_content = result.value
+            loader = CustomHtmlLoader(aws_path=self.aws_path)
             doc = loader.load(html_content)
             doc.metadata = metadata
 
@@ -80,10 +82,10 @@ def process_doc(s3, **kwargs):
     random_uuid = str(uuid.uuid4())[:8]
     bucket_name = kwargs['bucket']
     key = kwargs['key']
-    local_path = f'/tmp/doc-{timestamp_str}-{random_uuid}.csv'
+    local_path = f'/tmp/doc-{timestamp_str}-{random_uuid}.docx'
 
     s3.download_file(bucket_name, key, local_path)
-    loader = CustomDocLoader(file_path=local_path)
+    loader = CustomDocLoader(file_path=local_path, aws_path=f"s3://{bucket_name}/{key}")
     doc = loader.load()
     splitter = MarkdownHeaderTextSplitter()
     doc_list = splitter.split_text(doc)

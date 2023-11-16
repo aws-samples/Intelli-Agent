@@ -33,7 +33,7 @@ class CustomTextLoader(TextLoader):
 
     def load(self, text_content: str) -> List[Document]:
         """Load from file path."""
-        metadata = {"source": self.file_path}
+        metadata = {"file_path": self.file_path, "file_type": "txt"}
 
         return [Document(page_content=text_content, metadata=metadata)]
 
@@ -48,7 +48,9 @@ def pre_process_text(text_content: str) -> str:
 
 def process_text(file_content: str, **kwargs):
     clean_text = pre_process_text(file_content)
-    loader = CustomTextLoader(file_path=kwargs['bucket'] + "/" + kwargs['key'])
+    bucket = kwargs['bucket']
+    key = kwargs['key']
+    loader = CustomTextLoader(file_path=f"s3://{bucket}/{key}")
     data = loader.load(clean_text)
 
     return data
