@@ -2,17 +2,13 @@ import os
 import re
 import json
 import logging
-from bs4 import BeautifulSoup
-import subprocess
-from pathlib import Path
-from typing import List, Dict, List, Optional, Iterator, Sequence
 
 from langchain.docstore.document import Document
+from langchain.document_loaders.pdf import BasePDFLoader
 from langchain.document_loaders import PDFMinerPDFasHTMLLoader
 
-from langchain.document_loaders.pdf import BasePDFLoader
 from ..splitter_utils import extract_headings, MarkdownHeaderTextSplitter
-# from langchain.text_splitter import MarkdownHeaderTextSplitter
+from .html import CustomHtmlLoader
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -27,106 +23,19 @@ metadata_template = {
     "summary": "",
 }
 
-class NougatPDFLoader(BasePDFLoader):
-    """A PDF loader class for converting PDF files to MMD.
-
-    This class leverages the `nougat` library to perform the conversion from PDF to HTML.
-    It inherits from `BasePDFLoader` and extends its functionality to utilize the `nougat` library.
-    TODO, the load_and_split method need to be implemented and default is RecursiveCharacterTextSplitter
-    Attributes:
-        file_path (str): The path to the PDF file to be loaded.
-        headers (Optional[Dict]): Optional headers to be used when loading the PDF.
-
-    Raises:
-        ImportError: If the `nougat` library is not installed.
-        RuntimeError: If the `nougat` command fails to execute successfully.
+def detect_language(input):
     """
-
-    def __init__(self, file_path: str, *, headers: Optional[Dict] = None):
-        """Initialize with a file path."""
-        try:
-            import nougat
-        except ImportError:
-            raise ImportError(
-                "Please install nougat to use NougatPDFLoader. "
-                "You can install it with `pip install nougat`."
-            )
-
-        super().__init__(file_path, headers=headers)
-
-    def nougat(self, file_path: Path) -> str:
-        """Executes the `nougat` command to convert the specified PDF file to Markdown format.
-
-        Args:
-            file_path (Path): The path to the PDF file to be converted.
-
-        Returns:
-            str: The Markdown content resulting from the `nougat` conversion.
-        """
-        # nougat ./paperSnapshot.pdf --full-precision --markdown -m 0.1.0-base -o tmp --recompute
-        cli_command = ["nougat", str(file_path), "full-precision", "--markdown", "-m", "0.1.0-base", "-o", "tmp", "--recompute"]
-
-        try:
-            result = subprocess.run(
-                cli_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-            )
-            result.check_returncode()
-            return result.stdout
-
-        except subprocess.CalledProcessError as e:
-            logger.info(
-                f"Nougat command failed with return code {e.returncode}: {e.stderr}"
-            )
-            raise RuntimeError("Nougat command failed.") from e
-
-    def load(self) -> List[Document]:
-        """Loads and processes the specified PDF file, converting it to a list of Document objects.
-
-        Returns:
-            List[Document]: A list containing a single Document object with the processed content.
-        """
-        return list(self.lazy_load())
-
-    def lazy_load(self) -> Iterator[Document]:
-        """Lazy load and process the specified PDF file, yielding Document objects.
-
-        This method reads the PDF file, processes it using the `nougat` command,
-        reads the resulting Markdown content, and yields a Document object with the content.
-        """
-        # try:
-        file_path = self.file_path
-        # Call the method to run the Nougat OCR command
-        self.nougat(file_path)
-
-        # Rest of your code for reading and processing the output
-        file_path = Path(file_path)
-        output_path = Path("tmp") / f"{file_path.stem}.mmd"
-        with output_path.open("r") as f:
-            content = f.read()
-        # consider math expressions are enclosed in \( and \) in Markdown
-        content = (
-            content.replace(r"\(", "$")
-            .replace(r"\)", "$")
-            .replace(r"\[", "$$")
-            .replace(r"\]", "$$")
-        )
-        logger.info("content: %s", content)
-        # extract headings hierarchically
-        headings = extract_headings(content)
-
-        # assemble metadata from template
-        metadata = metadata_template
-        metadata["content_type"] = "paragraph"
-        metadata["heading_hierarchy"] = headings
-        metadata["chunk_id"] = "$$"
-        metadata["file_path"] = str(file_path)
-        # TODO, use PyMuPDF to detect image and figure list, but no link to the image for the extracted text
-        # metadata["figure_list"] = []
-
-        yield Document(page_content=content, metadata=metadata)
-
-        # except Exception as e:
-        #     logger.info(f"An error occurred while processing the PDF: {str(e)}")
+    This function detects the language of the input text. It checks if the input is a list, 
+    and if so, it joins the list into a single string. Then it uses a regular expression to 
+    search for Chinese characters in the input. If it finds any, it returns 'ch' for Chinese. 
+    If it doesn't find any Chinese characters, it assumes the language is English and returns 'en'.
+    """
+    if isinstance(input, list):
+        input = ' '.join(input)
+    if re.search("[\u4e00-\u9FFF]", input):
+        return 'ch'
+    else:
+        return 'en'
 
 
 def process_pdf(s3, pdf: bytes, **kwargs):
@@ -154,18 +63,18 @@ def process_pdf(s3, pdf: bytes, **kwargs):
     logger.info(local_path)
     s3.download_file(Bucket=bucket, Key=key, Filename=local_path)
     # TODO, will be deprecated and replaced by nougat class in loader_utils
-    # loader = PDFMinerPDFasHTMLLoader(local_path)
+    loader = PDFMinerPDFasHTMLLoader(local_path)
     # entire PDF is loaded as a single Document
-    # file_content = loader.load()[0].page_content
-    # res = parse_pdf_to_json(file_content)
+    file_content = loader.load()[0].page_content
+    
+    loader = CustomHtmlLoader()
+    doc = loader.load(file_content)
+    splitter = MarkdownHeaderTextSplitter()
+    doc_list = splitter.split_text(doc)
 
-    loader = NougatPDFLoader(local_path)
-    data = loader.load()
-    logger.info("raw data: %s", data)
-    # Update file_path metadata to full s3 path in list of Document objects
-    data[0].metadata['file_path'] = f"s3://{bucket}/{key}"
-    markdown_splitter = MarkdownHeaderTextSplitter()
-    md_header_splits = markdown_splitter.split_text(data[0])
-    for i, doc in enumerate(md_header_splits):
-        logger.info("PDF file processed successfully, with content of chunk %s: %s", i, doc)
-    return md_header_splits
+    for doc in doc_list:
+        doc.metadata = metadata_template
+        doc.metadata['file_path'] = f"s3://{bucket}/{key}"
+
+
+    return doc_list
