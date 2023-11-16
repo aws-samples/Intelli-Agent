@@ -31,19 +31,23 @@ GENERATE_API_URL = COMMAND_API_URL + "inference-api/inference"
 STATUS_API_URL = COMMAND_API_URL + "inference/get-inference-job"
 IMAGE_API_URL = COMMAND_API_URL + "inference/get-inference-job-param-output"
 
-def deploy_sagemaker_endpoint():
+def deploy_sagemaker_endpoint(instance_type: str = "ml.g4dn.4xlarge", initial_instance_count: int = 1, endpoint_name: str = "default-endpoint-for-llm-bot"):
     headers = {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-    'x-api-key': API_KEY
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'x-api-key': API_KEY
     }
     inputBody = {
-        "instance_type": "ml.g4dn.4xlarge",
-        "initial_instance_count": "1"
+        "instance_type": instance_type,
+        "initial_instance_count": initial_instance_count,
+        "endpoint_name": endpoint_name
     }    
     # https://<Your API Gateway ID>.execute-api.<Your AWS Account Region>.amazonaws.com/{basePath}/inference/deploy-sagemaker-endpoint
     res = requests.post(COMMAND_API_URL + 'inference/deploy-sagemaker-endpoint', headers = headers, json = inputBody)
     logger.info("deploy_sagemaker_endpoint: {}".format(res.json()))
+
+def upload_model():
+    pass
 
 def get_bedrock_client():
     # specify the profile_name to call the bedrock api if needed
@@ -112,7 +116,7 @@ def get_llm_processed_prompts(initial_prompt):
     logger.info("model_list: {}".format(model_list))
     return positive_prompt, negative_prompt, model_list
 
-def generate_image(positive_prompt, negative_prompt, model: List[str]):
+def generate_image(endpoint_name: str, positive_prompt: str, negative_prompt: str, model: List[str]):
     # Construct the API request (this is a placeholder)
     headers = {
         "Content-Type": "application/json",
@@ -124,7 +128,7 @@ def generate_image(positive_prompt, negative_prompt, model: List[str]):
         "models": {
             model
         },
-        "sagemaker_endpoint_name": '<your endpoint>',
+        "sagemaker_endpoint_name": endpoint_name,
         "prompt": positive_prompt,
         "negative_prompt": negative_prompt,
         "denoising_strength": 0.75
@@ -189,7 +193,11 @@ def streamlit():
 # main entry point for debugging
 if __name__ == "__main__":
     # deploy_sagemaker_endpoint()
-    # get_llm_processed_prompts("a cute dog")
+    # upload_model()
+    positive_prompt, negative_prompt, model_list = get_llm_processed_prompts("a cute dog")
+    # The endpoint fixed for now, since the deploy_sagemaker_endpoint() won't return the endpoint name
+    response = generate_image("default-endpoint-for-llm-bot", positive_prompt, negative_prompt, model_list)
+    logger.info("generate image response: {}".format(response))
 
     # python -m streamlit run image-generation.py --server.port 8088
-    streamlit()
+    # streamlit()
