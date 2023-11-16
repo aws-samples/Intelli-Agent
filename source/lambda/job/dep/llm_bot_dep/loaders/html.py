@@ -19,6 +19,12 @@ class CustomHtmlLoader(BaseLoader):
     different unstructured settings.
 
     """
+    def __init__(
+        self,
+        aws_path: str
+    ):
+        """Initialize with file path."""
+        self.aws_path = aws_path
 
     def clean_html(self, html_str: str) -> str:
         # Filter out DOCTYPE
@@ -57,13 +63,15 @@ class CustomHtmlLoader(BaseLoader):
         file_content = self.clean_html(file_content)
         file_content = markdownify.markdownify(file_content, heading_style="ATX")
         doc = Document(page_content=file_content,
-                       metadata={"file_type": "html"})
+                       metadata={"file_type": "html", "file_path": self.aws_path})
 
         return doc
 
 
 def process_html(html_str: str, **kwargs):
-    loader = CustomHtmlLoader()
+    bucket_name = kwargs["bucket"]
+    key = kwargs["key"]
+    loader = CustomHtmlLoader(aws_path=f"s3://{bucket_name}/{key}")
     doc = loader.load(html_str)
     splitter = MarkdownHeaderTextSplitter()
     doc_list = splitter.split_text(doc)
