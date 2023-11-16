@@ -1,0 +1,7 @@
+boto3==1.28.85
+torch==2.0.1
+opencv-contrib-python-headless==4.8.1.78
+nougat-ocr==0.1.17
+langchain==0.0.335
+unstructured==0.10.30
+unstructured[pdf]
