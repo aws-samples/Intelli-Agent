@@ -31,11 +31,12 @@ os.environ['NOUGAT_CHECKPOINT'] = '/tmp/nougat_checkpoint'
 os.environ['NLTK_DATA'] = '/tmp/nltk_data'
 
 # Parse arguments
-args = getResolvedOptions(sys.argv, ['JOB_NAME', 'S3_BUCKET', 'S3_PREFIX', 'AOS_ENDPOINT', 'EMBEDDING_MODEL_ENDPOINT', 'REGION', 'RES_BUCKET', 'OFFLINE', 'QA_ENHANCEMENT', 'BATCH_INDICE', 'ProcessedObjectsTable'])
+args = getResolvedOptions(sys.argv, ['JOB_NAME', 'S3_BUCKET', 'S3_PREFIX', 'AOS_ENDPOINT', 'EMBEDDING_MODEL_ENDPOINT', 'ETL_MODEL_ENDPOINT', 'REGION', 'RES_BUCKET', 'OFFLINE', 'QA_ENHANCEMENT', 'BATCH_INDICE', 'ProcessedObjectsTable'])
 s3_bucket = args['S3_BUCKET']
 s3_prefix = args['S3_PREFIX']
 aosEndpoint = args['AOS_ENDPOINT']
 embeddingModelEndpoint = args['EMBEDDING_MODEL_ENDPOINT']
+etlModelEndpoint = args['ETL_MODEL_ENDPOINT']
 region = args['REGION']
 res_bucket = args['RES_BUCKET']
 offline = args['OFFLINE']
@@ -45,6 +46,7 @@ batchIndice = args['BATCH_INDICE']
 processedObjectsTable = args['ProcessedObjectsTable']
 
 s3 = boto3.client('s3')
+smr_client = boto3.client("sagemaker-runtime")
 dynamodb = boto3.resource('dynamodb')
 table = dynamodb.Table(processedObjectsTable)
 
@@ -168,7 +170,7 @@ def iterate_s3_files(bucket: str, prefix: str) -> Generator:
             response = s3.get_object(Bucket=bucket, Key=key)
             file_content = response['Body'].read()
             # assemble bucket and key as args for the callback function
-            kwargs = {'bucket': bucket, 'key': key}
+            kwargs = {'bucket': bucket, 'key': key, 'etl_model_endpoint': etlModelEndpoint, 'smr_client': smr_client, 'res_bucket': res_bucket}
 
             if file_type == 'txt':
                 yield 'txt', decode_file_content(file_content), kwargs
