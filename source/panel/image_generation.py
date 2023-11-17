@@ -43,7 +43,7 @@ support_model_list = ["sd_xl_base_1.0.safetensors", "majicmixRealistic_v7.safete
 
 default_models = ["v1-5-pruned-emaonly.safetensors"]
 
-
+# todo will update api
 def deploy_sagemaker_endpoint(instance_type: str = "ml.g4dn.4xlarge", initial_instance_count: int = 1,
                               endpoint_name: str = "default-endpoint-for-llm-bot"):
     headers = {
