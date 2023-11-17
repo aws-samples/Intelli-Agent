@@ -65,3 +65,5 @@ package-lock.json
 **/model/embedding/model/models--BAAI--bge-large-zh-v1.5
 **/model/embedding/model/models--csdc-atl--buffer-embedding-002
 **/model/instruct/model/models--csdc-atl--buffer-instruct-InternLM-001
+.env_sd
+venv
