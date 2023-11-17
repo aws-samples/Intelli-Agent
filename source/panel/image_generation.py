@@ -57,21 +57,19 @@ def deploy_sagemaker_endpoint(instance_type: str = "ml.g4dn.4xlarge", initial_in
         "endpoint_name": endpoint_name
     }
     # https://<Your API Gateway ID>.execute-api.<Your AWS Account Region>.amazonaws.com/{basePath}/inference/deploy-sagemaker-endpoint
-    res = requests.post(COMMAND_API_URL + 'inference/deploy-sagemaker-endpoint', headers=headers, json=inputBody)
+    res = requests.post(COMMAND_API_URL + 'inference/deploy-sagemaker-endpoint', headers = headers, json = inputBody)
     logger.info("deploy_sagemaker_endpoint: {}".format(res.json()))
-
 
 def upload_model():
     pass
-
 
 def get_bedrock_llm():
     # specify the profile_name to call the bedrock api if needed
     bedrock_client = boto3.client('bedrock-runtime', region_name=BEDROCK_REGION)
 
-    model_id = "anthropic.claude-v2"
+    modelId = "anthropic.claude-v2"
     cl_llm = Bedrock(
-        model_id=model_id,
+        model_id=modelId,
         client=bedrock_client,
         model_kwargs={"max_tokens_to_sample": 1000},
     )
