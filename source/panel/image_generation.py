@@ -116,12 +116,16 @@ def get_llm_processed_prompts(initial_prompt):
     )
 
     conversation.prompt = sd_prompt
+
     """
     Example:
     [Positive Prompt: visually appealing, high-quality image of a big, large, muscular horse with powerful body, majestic stance, flowing mane, detailed texture, vivid color, striking photography.,
     Negative Prompt: ugly, distorted, inappropriate or NSFW content,
     Recommended Model List: ["sd_xl_base_1.0.safetensors"]]
     """
+
+    st.write("Wait for LLM to process the prompt...")
+
     response = conversation.predict(input=initial_prompt)
     logger.info("the first invoke: {}".format(response))
     # logger.info("the second invoke: {}".format(conversation.predict(input="change to realist style")))
@@ -428,7 +432,7 @@ def generate_llm_image(initial_prompt: str, llm_prompt: bool = True):
     negative = ""
     models = default_models
     if llm_prompt is True:
-        st.write("Wait for LLM to process the prompt...")
+
         positive_prompt, negative_prompt, model_list = get_llm_processed_prompts(prompt)
 
         # if prompt is empty, use default
