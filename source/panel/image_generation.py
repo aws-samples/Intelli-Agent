@@ -5,42 +5,40 @@ import time
 from datetime import datetime
 from typing import List
 
-from langchain.prompts import PromptTemplate
-from langchain.llms.bedrock import Bedrock
-from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple
-from langchain.docstore.document import Document
-from langchain.chains import ConversationChain
-from langchain.vectorstores import FAISS
-from langchain.memory import ConversationBufferMemory
-
 import boto3
 import requests
 import streamlit as st
 from dotenv import load_dotenv
 from langchain import PromptTemplate
-
-# load .env file with specific name
-load_dotenv(dotenv_path='.env_sd')
+from langchain.chains import ConversationChain
+from langchain.llms.bedrock import Bedrock
+from langchain.memory import ConversationBufferMemory
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# load the URL from .env file
-# 'https://xxxx.execute-api.us-west-2.amazonaws.com/prod/'
+# load .env file with specific name
+load_dotenv(dotenv_path='.env_sd')
+
+# Your ApiGatewayUrl in Extension for Stable Diffusion
+# Example: https://xxxx.execute-api.us-west-2.amazonaws.com/prod/
 COMMAND_API_URL = os.getenv("COMMON_API_URL")
+# Your ApiGatewayUrlToken in Extension for Stable Diffusion
 API_KEY = os.getenv("API_KEY")
+# Your username in Extension for Stable Diffusion
+# Some resources are limited to specific users
 API_USERNAME = os.getenv("API_USERNAME")
 # The service support varies in different regions
 BEDROCK_REGION = os.getenv("BEDROCK_REGION")
 
+# API URL
 GENERATE_API_URL = COMMAND_API_URL + "inference/v2"
 STATUS_API_URL = COMMAND_API_URL + "inference/get-inference-job"
 PARAM_API_URL = COMMAND_API_URL + "inference/get-inference-job-param-output"
 IMAGE_API_URL = COMMAND_API_URL + "inference/get-inference-job-image-output"
+CHECKPOINTS_API_URL = COMMAND_API_URL + "checkpoints"
 
-support_model_list = ["sd_xl_base_1.0.safetensors", "majicmixRealistic_v7.safetensors",
-                      "x2AnimeFinal_gzku.safetensors", "v1-5-pruned-emaonly.safetensors"]
-
+support_model_list = []
 default_models = ["v1-5-pruned-emaonly.safetensors"]
 
 # todo will update api
@@ -75,6 +73,7 @@ def get_bedrock_llm():
     )
     return cl_llm
 
+# todo template use dynamic checkpoints
 sd_prompt = PromptTemplate.from_template(
     """
     Human:
@@ -206,14 +205,37 @@ def get_inference_image_output(inference_id: str):
     return job.json()
 
 
-def create_inference_job(models: List[str]):
-    if len(models) == 0:
-        models = default_models
+def get_checkpoints():
+    headers = {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        'x-api-key': API_KEY
+    }
 
-    if not set(models).issubset(set(support_model_list)):
-        models = default_models
-        st.warning(
-            "Use default model {}\nbecause LLM recommend not in support list:\n{}".format(models, support_model_list))
+    params = {
+        "username": API_USERNAME,
+        "status": "Active",
+    }
+
+    job = requests.get(CHECKPOINTS_API_URL, headers=headers, params=params)
+
+    checkpoints = []
+    if 'checkpoints' in job.json():
+        for checkpoint in job.json()['checkpoints']:
+            checkpoints.append(checkpoint['name'][0])
+
+    if len(checkpoints) == 0:
+        raise Exception("No checkpoint available.")
+
+    global support_model_list
+    support_model_list = checkpoints
+    logger.info("support_model_list: {}".format(support_model_list))
+    return support_model_list
+
+
+def create_inference_job(models: List[str]):
+
+    models = select_checkpoint(models)
 
     headers = {
         "Content-Type": "application/json",
@@ -422,6 +444,7 @@ def upload_inference_job_api_params(s3_url, positive: str, negative: str):
 
 
 def generate_llm_image(initial_prompt: str, llm_prompt: bool = True):
+    global support_model_list
     negative = ""
     models = default_models
     if llm_prompt is True:
@@ -449,6 +472,18 @@ def generate_llm_image(initial_prompt: str, llm_prompt: bool = True):
     return inference_id
 
 
+def select_checkpoint(user_list: List[str]):
+    global support_model_list
+    user_list = [item.strip() for item in user_list]
+    intersection = list(set(user_list).intersection(set(support_model_list)))
+    if len(intersection) == 0:
+        intersection = default_models
+        st.warning(
+            "Use default model {}\nwhen LLM recommend not in support list:\n{}".format(intersection,
+                                                                                          support_model_list))
+    return intersection
+
+
 # main entry point for debugging
 # python -m streamlit run image_generation.py --server.port 8088
 if __name__ == "__main__":
@@ -462,6 +497,8 @@ if __name__ == "__main__":
         button_disabled = False
         if not button_disabled:
             if st.button('Generate Image'):
+                get_checkpoints()
+
                 button_disabled = True
                 st.empty()
 
@@ -472,5 +509,4 @@ if __name__ == "__main__":
                 generate_llm_image(prompt)
     except Exception as e:
         logger.exception(e)
-        st.error("Failed to start the image generation process.")
         raise e
