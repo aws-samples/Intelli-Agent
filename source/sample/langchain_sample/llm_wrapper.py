@@ -155,10 +155,10 @@ class ChatCSDC(BaseChatModel, CSDCLLMBase):
         """Return type of chat model."""
         return "aws_csdc_chat"
 
-    class Config:
-        """Configuration for this pydantic object."""
+    # class Config:
+    #     """Configuration for this pydantic object."""
 
-        extra = Extra.forbid
+    #     extra = Extra.forbid
 
     def _invoke(
         self,
