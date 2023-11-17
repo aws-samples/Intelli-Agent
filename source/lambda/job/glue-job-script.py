@@ -20,6 +20,8 @@ from llm_bot_dep.enhance_utils import EnhanceWithBedrock
 from llm_bot_dep.loaders.auto import cb_process_object
 from opensearchpy import RequestsHttpConnection
 from requests_aws4auth import AWS4Auth
+from llm_bot_dep.storage_utils import save_content_to_s3
+from llm_bot_dep.constant import SplittingType
 from tenacity import retry, stop_after_attempt
 
 logger = logging.getLogger()
@@ -60,47 +62,7 @@ awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, region, 'es',
 # Set the NLTK data path to the /tmp directory for AWS Glue jobs
 nltk.data.path.append('/tmp/nltk_data')
 
-def convert_to_logger(document: Document) -> str:
-    # TODO: Convert the document to a logger file format, customize if possible
-    logger_content = "Page Content: " + document.page_content + "\n"
-    logger_content += "Metadata: " + json.dumps(document.metadata)
-    return logger_content
 
-def upload_chunk_to_s3(logger_content: str, bucket: str, prefix: str, splitting_type: str):
-    """Upload the logger file to S3 with hierachy below:
-    filename A
-        ├── semantic-splitting
-        │   ├── timestamp 1
-        │   │   ├── logger file 1
-        │   ├── timestamp 2
-        │   │   ├── logger file 2
-        ├── chunk-size-splitting
-        │   ├── timestamp 3
-        │   │   ├── logger file 3
-        │   ├── timestamp 4
-        │   │   ├── logger file 4
-    filename B
-        ├── semantic-splitting
-        │   ├── timestamp 5
-        │   │   ├── logger file 5
-        │   ├── timestamp 6
-        │   │   ├── logger file 6
-        ├── chunk-size-splitting
-        │   ├── timestamp 7
-        │   │   ├── logger file 7
-        │   ├── timestamp 8
-        │   │   ├── logger file 8
-        ...
-    """
-    # round the timestamp to hours to avoid too many folders
-    timestamp = datetime.datetime.now().strftime("%Y-%m-%d-%H")
-    # make the logger file name unique
-    object_key = f"{prefix}/{splitting_type}/{timestamp}/{datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S-%f')}.log"
-    try:
-        res = s3.put_object(Bucket=bucket, Key=object_key, Body=logger_content)
-        logger.info(f"Upload logger file to S3: {res}")
-    except Exception as e:
-        logger.error(f"Error uploading logger file to S3: {e}")
 
 def decode_file_content(content: str, default_encoding: str = 'utf-8'):
     """Decode the file content and auto detect the content encoding.
@@ -261,14 +223,7 @@ def aos_injection(content: List[Document], embeddingModelEndpoint: str, aosEndpo
                 docsearch.add_documents(documents=[document])
                 logger.info("Retry statistics: %s", _aos_injection.retry.statistics)
             # logger.info("Adding documents %s to OpenSearch with index %s", document, index_name)
-
-            logger_file = convert_to_logger(document)
-            # Extract the filename from the file_path in the metadata
-            file_path = document.metadata.get('file_path', '')
-            filename = file_path.split('/')[-1].split('.')[0]
-            # RecursiveCharacterTextSplitter have been rewrite to split based on chunk size & overlap, use seperate folder to store the logger file
-            upload_chunk_to_s3(logger_file, res_bucket, filename, 'chunk-size-splitting')
-
+            save_content_to_s3(s3, document, res_bucket, SplittingType.CHUNK.value)
             _aos_injection(document)
 
 # Main function to be called by Glue job script
@@ -281,12 +236,7 @@ def main():
             try:
                 res = cb_process_object(s3, file_type, file_content, **kwargs)
                 for document in res:
-                    logger_file = convert_to_logger(document)
-                        # Extract the filename from the file_path in the metadata
-                    file_path = document.metadata.get('file_path', '')
-                    filename = file_path.split('/')[-1].split('.')[0]
-                    # semantic split based on title/sub-title within loader per file type, use seperate folder to store the logger file
-                    upload_chunk_to_s3(logger_file, res_bucket, filename, 'semantic-splitting')
+                    save_content_to_s3(s3, document, res_bucket, SplittingType.SEMANTIC.value)
 
                 # the res is unified to list[Doucment] type, store the res to S3 for observation
                 # TODO, parse the metadata to embed with different index

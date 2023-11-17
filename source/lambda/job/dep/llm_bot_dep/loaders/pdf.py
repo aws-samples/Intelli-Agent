@@ -104,7 +104,7 @@ def process_pdf(s3, pdf: bytes, **kwargs):
         logger.info("No ETL model endpoint or SageMaker Runtime client provided, using default PDF loader...")
         loader = CustomHtmlLoader(aws_path=f"s3://{bucket}/{key}")
         doc = loader.load(file_content)
-        splitter = MarkdownHeaderTextSplitter()
+        splitter = MarkdownHeaderTextSplitter(res_bucket)
         doc_list = splitter.split_text(doc)
 
         for doc in doc_list:
@@ -115,7 +115,7 @@ def process_pdf(s3, pdf: bytes, **kwargs):
             logger.info("Detected language is Chinese, using default PDF loader...")
             loader = CustomHtmlLoader(aws_path=f"s3://{bucket}/{key}")
             doc = loader.load(file_content)
-            splitter = MarkdownHeaderTextSplitter()
+            splitter = MarkdownHeaderTextSplitter(res_bucket)
             doc_list = splitter.split_text(doc)
 
             for doc in doc_list:
@@ -144,7 +144,7 @@ def process_pdf(s3, pdf: bytes, **kwargs):
             metadata["chunk_id"] = "$$"
             metadata["file_path"] = f"s3://{bucket}/{key}"
 
-            markdown_splitter = MarkdownHeaderTextSplitter()
+            markdown_splitter = MarkdownHeaderTextSplitter(res_bucket)
             doc_list = markdown_splitter.split_text(Document(page_content=content, metadata=metadata))
 
     return doc_list

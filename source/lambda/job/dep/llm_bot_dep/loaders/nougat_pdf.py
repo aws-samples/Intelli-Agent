@@ -154,7 +154,7 @@ def nougat_process_pdf(local_path, **kwargs):
     logger.info("raw data: %s", data)
     # Update file_path metadata to full s3 path in list of Document objects
     data[0].metadata['file_path'] = f"s3://{bucket}/{key}"
-    markdown_splitter = MarkdownHeaderTextSplitter()
+    markdown_splitter = MarkdownHeaderTextSplitter(kwargs['res_bucket'])
     md_header_splits = markdown_splitter.split_text(data[0])
     for i, doc in enumerate(md_header_splits):
         logger.info("PDF file processed successfully, with content of chunk %s: %s", i, doc)
