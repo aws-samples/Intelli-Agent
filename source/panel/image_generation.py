@@ -116,8 +116,6 @@ def get_llm_processed_prompts(initial_prompt):
 
     conversation.prompt = sd_prompt
 
-    st.write("Wait for LLM to process the prompt...")
-
     response = conversation.predict(input=initial_prompt)
     logger.info("the first invoke: {}".format(response))
     # logger.info("the second invoke: {}".format(conversation.predict(input="change to realist style")))
@@ -129,43 +127,57 @@ def get_llm_processed_prompts(initial_prompt):
     return positive_prompt, negative_prompt, model_list
 
 
-def generate_image(positive_prompts: str, negative_prompts: str, model: List[str]):
-    st.write("Generate Image Process:")
-
-    # set progress bar for user experience
-    progess = 5
-    bar = st.progress(progess)
+def generate_image(positive_prompts: str, negative_prompts: str, model: List[str], current_col, progress_bar):
 
     job = create_inference_job(model)
-    progess += 5
-    bar.progress(progess)
+    st.session_state.progress += 5
+    progress_bar.progress(st.session_state.progress)
 
     inference = job["inference"]
 
     upload_inference_job_api_params(inference["api_params_s3_upload_url"], positive_prompts, negative_prompts)
-    progess += 5
-    bar.progress(progess)
+    st.session_state.progress += 5
+    progress_bar.progress(st.session_state.progress)
 
     run_inference_job(inference["id"])
-    progess += 5
-    bar.progress(progess)
+    st.session_state.progress += 5
+    progress_bar.progress(st.session_state.progress)
 
     while True:
         status_response = get_inference_job(inference["id"])
-        if progess < 90:
-            progess += 10
-        bar.progress(progess)
+        if st.session_state.progress < 80:
+            st.session_state.progress += 10
+        progress_bar.progress(st.session_state.progress)
         if status_response['status'] == 'succeed':
+            progress_bar.progress(100)
             image_url = get_inference_image_output(inference["id"])[0]
-            st.image(image_url, caption=positive_prompts, use_column_width=True)
+            current_col.image(image_url, caption=positive_prompts, use_column_width=True)
             break
         elif status_response['status'] == 'failed':
-            st.error("Image generation failed.")
+            current_col.error("Image generation failed.")
             break
         else:
             time.sleep(1)
 
-    bar.progress(100)
+    for item in st.session_state.warning:
+        current_col.warning(item)
+
+    api_params = get_inference_param_output(inference["id"])
+    params = requests.get(api_params[0]).json()
+    info = json.loads(params['info'])
+
+    if info["prompt"] != "":
+        current_col.write("prompt:")
+        current_col.info(info["prompt"])
+
+    if info["negative_prompt"] != "":
+        current_col.write("negative_prompt:")
+        current_col.info(info["negative_prompt"])
+
+    if info["sd_model_name"] != "":
+        current_col.write("sd_model_name:")
+        current_col.info(info["sd_model_name"])
+
     return inference["id"]
 
 
@@ -258,10 +270,6 @@ def create_inference_job(models: List[str]):
     }
 
     job = requests.post(GENERATE_API_URL, headers=headers, json=body)
-    user_models = []
-    for model in job.json()['inference']['models']:
-        user_models.append(model['name'][0])
-    st.write("use models: {}".format(user_models))
     return job.json()
 
 
@@ -443,31 +451,33 @@ def upload_inference_job_api_params(s3_url, positive: str, negative: str):
     return response
 
 
-def generate_llm_image(initial_prompt: str, llm_prompt: bool = True):
+def generate_llm_image(initial_prompt: str, llm_prompt: bool, col, title: str):
+    col.empty()
+    col.subheader(title)
+    st.spinner()
+    st.session_state.progress = 5
+    progress_bar = col.progress(st.session_state.progress)
+
     global support_model_list
     negative = ""
     models = default_models
     if llm_prompt is True:
 
         positive_prompt, negative_prompt, model_list = get_llm_processed_prompts(prompt)
+        st.session_state.progress += 15
+        progress_bar.progress(st.session_state.progress)
 
         # if prompt is empty, use default
         if positive_prompt != "":
             initial_prompt = positive_prompt
-            st.write("positive_prompt:")
-            st.info("{}".format(positive_prompt))
 
         if negative_prompt != "":
             negative = negative_prompt
-            st.write("negative_prompt:")
-            st.info("{}".format(negative_prompt))
 
         if len(model_list) > 0 and model_list[0] != "":
             models = model_list
-            st.write("model_list:")
-            st.info("{}".format(model_list))
 
-    inference_id = generate_image(initial_prompt, negative, models)
+    inference_id = generate_image(initial_prompt, negative, models, col, progress_bar)
 
     return inference_id
 
@@ -478,9 +488,9 @@ def select_checkpoint(user_list: List[str]):
     intersection = list(set(user_list).intersection(set(support_model_list)))
     if len(intersection) == 0:
         intersection = default_models
-        st.warning(
-            "Use default model {}\nwhen LLM recommend not in support list:\n{}".format(intersection,
-                                                                                          support_model_list))
+        st.session_state.warning.append("Use default model {}\nwhen LLM recommends {} not in support list:\n{}".format(
+            default_models, user_list, support_model_list))
+
     return intersection
 
 
@@ -488,25 +498,29 @@ def select_checkpoint(user_list: List[str]):
 # python -m streamlit run image_generation.py --server.port 8088
 if __name__ == "__main__":
     try:
-        # Streamlit layout
+        st.set_page_config(layout="wide", page_title="Image Generation Application")
+
         st.title("Image Generation Application")
 
         # User input
         prompt = st.text_input("Enter a prompt for the image:", "A cute dog")
 
-        button_disabled = False
-        if not button_disabled:
-            if st.button('Generate Image'):
-                get_checkpoints()
+        button = st.button('Generate Image')
 
-                button_disabled = True
-                st.empty()
+        col1, col2 = st.columns(2)
 
-                st.subheader("Image without LLM")
-                generate_llm_image(prompt, False)
+        # col1.subheader("Without LLM")
+        # col1.image(Image.open("./zebra.jpg"))
+        #
+        # col2.subheader("With LLM")
+        # col2.image(Image.open("./zebra.jpg"))
 
-                st.subheader("Image with LLM")
-                generate_llm_image(prompt)
+        if button:
+            get_checkpoints()
+            st.session_state.warning = []
+            generate_llm_image(prompt, False, col1, "Without LLM")
+            generate_llm_image(prompt, True, col2, "With LLM")
+
     except Exception as e:
         logger.exception(e)
         raise e
