@@ -20,6 +20,8 @@ from llm_bot_dep.enhance_utils import EnhanceWithBedrock
 from llm_bot_dep.loaders.auto import cb_process_object
 from opensearchpy import RequestsHttpConnection
 from requests_aws4auth import AWS4Auth
+from llm_bot_dep.storage_utils import save_content_to_s3
+from llm_bot_dep.constant import SplittingType
 from tenacity import retry, stop_after_attempt
 
 logger = logging.getLogger()
@@ -31,11 +33,12 @@ os.environ['NOUGAT_CHECKPOINT'] = '/tmp/nougat_checkpoint'
 os.environ['NLTK_DATA'] = '/tmp/nltk_data'
 
 # Parse arguments
-args = getResolvedOptions(sys.argv, ['JOB_NAME', 'S3_BUCKET', 'S3_PREFIX', 'AOS_ENDPOINT', 'EMBEDDING_MODEL_ENDPOINT', 'REGION', 'RES_BUCKET', 'OFFLINE', 'QA_ENHANCEMENT', 'BATCH_INDICE', 'ProcessedObjectsTable'])
+args = getResolvedOptions(sys.argv, ['JOB_NAME', 'S3_BUCKET', 'S3_PREFIX', 'AOS_ENDPOINT', 'EMBEDDING_MODEL_ENDPOINT', 'ETL_MODEL_ENDPOINT', 'REGION', 'RES_BUCKET', 'OFFLINE', 'QA_ENHANCEMENT', 'BATCH_INDICE', 'ProcessedObjectsTable'])
 s3_bucket = args['S3_BUCKET']
 s3_prefix = args['S3_PREFIX']
 aosEndpoint = args['AOS_ENDPOINT']
 embeddingModelEndpoint = args['EMBEDDING_MODEL_ENDPOINT']
+etlModelEndpoint = args['ETL_MODEL_ENDPOINT']
 region = args['REGION']
 res_bucket = args['RES_BUCKET']
 offline = args['OFFLINE']
@@ -45,6 +48,7 @@ batchIndice = args['BATCH_INDICE']
 processedObjectsTable = args['ProcessedObjectsTable']
 
 s3 = boto3.client('s3')
+smr_client = boto3.client("sagemaker-runtime")
 dynamodb = boto3.resource('dynamodb')
 table = dynamodb.Table(processedObjectsTable)
 
@@ -58,47 +62,7 @@ awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, region, 'es',
 # Set the NLTK data path to the /tmp directory for AWS Glue jobs
 nltk.data.path.append('/tmp/nltk_data')
 
-def convert_to_logger(document: Document) -> str:
-    # TODO: Convert the document to a logger file format, customize if possible
-    logger_content = "Page Content: " + document.page_content + "\n"
-    logger_content += "Metadata: " + json.dumps(document.metadata)
-    return logger_content
 
-def upload_chunk_to_s3(logger_content: str, bucket: str, prefix: str, splitting_type: str):
-    """Upload the logger file to S3 with hierachy below:
-    filename A
-        ├── semantic-splitting
-        │   ├── timestamp 1
-        │   │   ├── logger file 1
-        │   ├── timestamp 2
-        │   │   ├── logger file 2
-        ├── chunk-size-splitting
-        │   ├── timestamp 3
-        │   │   ├── logger file 3
-        │   ├── timestamp 4
-        │   │   ├── logger file 4
-    filename B
-        ├── semantic-splitting
-        │   ├── timestamp 5
-        │   │   ├── logger file 5
-        │   ├── timestamp 6
-        │   │   ├── logger file 6
-        ├── chunk-size-splitting
-        │   ├── timestamp 7
-        │   │   ├── logger file 7
-        │   ├── timestamp 8
-        │   │   ├── logger file 8
-        ...
-    """
-    # round the timestamp to hours to avoid too many folders
-    timestamp = datetime.datetime.now().strftime("%Y-%m-%d-%H")
-    # make the logger file name unique
-    object_key = f"{prefix}/{splitting_type}/{timestamp}/{datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S-%f')}.log"
-    try:
-        res = s3.put_object(Bucket=bucket, Key=object_key, Body=logger_content)
-        logger.info(f"Upload logger file to S3: {res}")
-    except Exception as e:
-        logger.error(f"Error uploading logger file to S3: {e}")
 
 def decode_file_content(content: str, default_encoding: str = 'utf-8'):
     """Decode the file content and auto detect the content encoding.
@@ -168,7 +132,7 @@ def iterate_s3_files(bucket: str, prefix: str) -> Generator:
             response = s3.get_object(Bucket=bucket, Key=key)
             file_content = response['Body'].read()
             # assemble bucket and key as args for the callback function
-            kwargs = {'bucket': bucket, 'key': key}
+            kwargs = {'bucket': bucket, 'key': key, 'etl_model_endpoint': etlModelEndpoint, 'smr_client': smr_client, 'res_bucket': res_bucket}
 
             if file_type == 'txt':
                 yield 'txt', decode_file_content(file_content), kwargs
@@ -259,14 +223,7 @@ def aos_injection(content: List[Document], embeddingModelEndpoint: str, aosEndpo
                 docsearch.add_documents(documents=[document])
                 logger.info("Retry statistics: %s", _aos_injection.retry.statistics)
             # logger.info("Adding documents %s to OpenSearch with index %s", document, index_name)
-
-            logger_file = convert_to_logger(document)
-            # Extract the filename from the file_path in the metadata
-            file_path = document.metadata.get('file_path', '')
-            filename = file_path.split('/')[-1].split('.')[0]
-            # RecursiveCharacterTextSplitter have been rewrite to split based on chunk size & overlap, use seperate folder to store the logger file
-            upload_chunk_to_s3(logger_file, res_bucket, filename, 'chunk-size-splitting')
-
+            save_content_to_s3(s3, document, res_bucket, SplittingType.CHUNK.value)
             _aos_injection(document)
 
 # Main function to be called by Glue job script
@@ -279,12 +236,7 @@ def main():
             try:
                 res = cb_process_object(s3, file_type, file_content, **kwargs)
                 for document in res:
-                    logger_file = convert_to_logger(document)
-                        # Extract the filename from the file_path in the metadata
-                    file_path = document.metadata.get('file_path', '')
-                    filename = file_path.split('/')[-1].split('.')[0]
-                    # semantic split based on title/sub-title within loader per file type, use seperate folder to store the logger file
-                    upload_chunk_to_s3(logger_file, res_bucket, filename, 'semantic-splitting')
+                    save_content_to_s3(s3, document, res_bucket, SplittingType.SEMANTIC.value)
 
                 # the res is unified to list[Doucment] type, store the res to S3 for observation
                 # TODO, parse the metadata to embed with different index

@@ -73,7 +73,7 @@ def process_html(html_str: str, **kwargs):
     key = kwargs["key"]
     loader = CustomHtmlLoader(aws_path=f"s3://{bucket_name}/{key}")
     doc = loader.load(html_str)
-    splitter = MarkdownHeaderTextSplitter()
+    splitter = MarkdownHeaderTextSplitter(kwargs['res_bucket'])
     doc_list = splitter.split_text(doc)
 
     return doc_list

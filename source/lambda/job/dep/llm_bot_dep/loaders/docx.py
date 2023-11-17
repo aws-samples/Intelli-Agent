@@ -87,7 +87,7 @@ def process_doc(s3, **kwargs):
     s3.download_file(bucket_name, key, local_path)
     loader = CustomDocLoader(file_path=local_path, aws_path=f"s3://{bucket_name}/{key}")
     doc = loader.load()
-    splitter = MarkdownHeaderTextSplitter()
+    splitter = MarkdownHeaderTextSplitter(kwargs['res_bucket'])
     doc_list = splitter.split_text(doc)
 
     return doc_list

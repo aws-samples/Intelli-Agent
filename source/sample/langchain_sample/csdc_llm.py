@@ -207,10 +207,10 @@ class CSDCLLM(LLM, CSDCLLMBase):
         """Return type of llm."""
         return "aws_csdc_llm"
 
-    class Config:
-        """Configuration for this pydantic object."""
+    # class Config:
+    #     """Configuration for this pydantic object."""
 
-        extra = Extra.forbid
+    #     extra = Extra.forbid
 
     def _call(
         self,
