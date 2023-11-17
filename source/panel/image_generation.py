@@ -83,7 +83,7 @@ sd_prompt = PromptTemplate.from_template(
     - Recommend a list of suitable models from the stable diffusion lineup that best match the style and content described in the detailed prompt.
     - Other notes please refer to the following example:
 
-    The output should be a plain text in Python List format shown follows, no extra content added beside Positive Prompt, Negative Prompt and Recommended Model List. The model list can only be chosen from the fixed list: ["sd_xl_base_1.0.safetensors", "majicmixRealistic_v7.safetensors", "x2AnimeFinal_gzku.safetensors"]:
+    The output should be a plain text in Python List format shown follows, no extra content added beside Positive Prompt, Negative Prompt and Recommended Model List. The model list can only be chosen from the fixed list: "sd_xl_base_1.0.safetensors", "majicmixRealistic_v7.safetensors", "x2AnimeFinal_gzku.safetensors":
     
     [Positive Prompt: <detailed_prompt>,
     Negative Prompt: <negative_prompt>,
