@@ -215,7 +215,8 @@ def create_inference_job(models: List[str]):
 
     if not set(models).issubset(set(support_model_list)):
         models = default_models
-        st.warning("use default model {} because LLM recommend not in support list".format(models))
+        st.warning(
+            "use default model {}\nbecause LLM recommend not in support list:\n{}".format(models, support_model_list))
 
     headers = {
         "Content-Type": "application/json",
