@@ -151,7 +151,7 @@ def generate_image(positive_prompts: str, negative_prompts: str, model: List[str
         if status_response['status'] == 'succeed':
             progress_bar.progress(100)
             image_url = get_inference_image_output(inference["id"])[0]
-            current_col.image(image_url, caption=positive_prompts, use_column_width=True)
+            current_col.image(image_url, use_column_width=True)
             break
         elif status_response['status'] == 'failed':
             current_col.error("Image generation failed.")
