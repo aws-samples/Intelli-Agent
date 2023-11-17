@@ -59,6 +59,8 @@ export class RootStack extends Stack {
       _vpc: _VpcStack._vpc,
       _subnets: _VpcStack._privateSubnets,
       _securityGroups: _VpcStack._securityGroup,
+      _etlCodePrefix: _AssetsStack._etlCodePrefix,
+      _s3ModelAssets:_S3ModelAssets.valueAsString,
     });
     _EtlStack.addDependency(_VpcStack);
     _EtlStack.addDependency(_OsStack);

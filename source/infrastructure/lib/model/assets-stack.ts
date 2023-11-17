@@ -16,6 +16,7 @@ export class AssetsStack extends NestedStack {
     _crossCodePrefix;
     _embeddingCodePrefix;
     _instructCodePrefix;
+    _etlCodePrefix;
 
     constructor(scope: Construct, id: string, props: assetsStackProps) {
         super(scope, id, props);
@@ -36,6 +37,8 @@ export class AssetsStack extends NestedStack {
         const embeddingCodePrefix = 'buffer_embedding_002_deploy_code'
         const instructModelPrefix = 'buffer-instruct-003-model'
         const instructCodePrefix = 'buffer_instruct_003_deploy_code'
+        // const etlModelPrefix = 'buffer-etl-model'
+        const etlCodePrefix = 'buffer_etl_deploy_code'
 
         // CROSS MODEL
         // Define a local asset for code
@@ -75,6 +78,19 @@ export class AssetsStack extends NestedStack {
             destinationKeyPrefix: instructCodePrefix,
         });
         this._instructCodePrefix = instructCodePrefix
+
+        // ETL MODEL
+        // Define a local asset for code
+        const etlCodeAsset = new s3assets.Asset(this, 'etlCodeAsset', {
+            path: join(__dirname, '../../../model/etl/code'),
+        });
+
+        const etlCodeAssetDeployment = new s3deploy.BucketDeployment(this, 'etlCodeAssetDeployment', {
+            sources: [s3deploy.Source.asset(join(__dirname, '../../../model/etl/code'))],
+            destinationBucket: _S3Bucket,
+            destinationKeyPrefix: etlCodePrefix,
+        });
+        this._etlCodePrefix = etlCodePrefix
 
         // Skip the deployment if _s3ModelAssets is provided
         if (!props._s3ModelAssets) {
