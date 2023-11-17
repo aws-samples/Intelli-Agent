@@ -117,13 +117,6 @@ def get_llm_processed_prompts(initial_prompt):
 
     conversation.prompt = sd_prompt
 
-    """
-    Example:
-    [Positive Prompt: visually appealing, high-quality image of a big, large, muscular horse with powerful body, majestic stance, flowing mane, detailed texture, vivid color, striking photography.,
-    Negative Prompt: ugly, distorted, inappropriate or NSFW content,
-    Recommended Model List: ["sd_xl_base_1.0.safetensors"]]
-    """
-
     st.write("Wait for LLM to process the prompt...")
 
     response = conversation.predict(input=initial_prompt)
@@ -220,7 +213,7 @@ def create_inference_job(models: List[str]):
     if not set(models).issubset(set(support_model_list)):
         models = default_models
         st.warning(
-            "use default model {}\nbecause LLM recommend not in support list:\n{}".format(models, support_model_list))
+            "Use default model {}\nbecause LLM recommend not in support list:\n{}".format(models, support_model_list))
 
     headers = {
         "Content-Type": "application/json",
