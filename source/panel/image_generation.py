@@ -83,7 +83,7 @@ sd_prompt = PromptTemplate.from_template(
     - Recommend a list of suitable models from the stable diffusion lineup that best match the style and content described in the detailed prompt.
     - Other notes please refer to the following example:
 
-    The output should be a plain text in Python List format shown follows, no extra content added beside Positive Prompt, Negative Prompt and Recommended Model List. The model list can only be chosen from the fixed list: ["sd_xl_base_1.0.safetensors", "majicmixRealistic_v7.safetensors", "x2AnimeFinal_gzku.safetensors"]:
+    The output should be a plain text in Python List format shown follows, no extra content added beside Positive Prompt, Negative Prompt and Recommended Model List. The model list can only be chosen from the fixed list: "sd_xl_base_1.0.safetensors", "majicmixRealistic_v7.safetensors", "x2AnimeFinal_gzku.safetensors":
     
     [Positive Prompt: <detailed_prompt>,
     Negative Prompt: <negative_prompt>,
@@ -116,15 +116,16 @@ def get_llm_processed_prompts(initial_prompt):
     )
 
     conversation.prompt = sd_prompt
-    response = conversation.predict(input=initial_prompt)
-    logger.info("the first invoke: {}".format(response))
-    # logger.info("the second invoke: {}".format(conversation.predict(input="change to realist style")))
-
     """
+    Example:
     [Positive Prompt: visually appealing, high-quality image of a big, large, muscular horse with powerful body, majestic stance, flowing mane, detailed texture, vivid color, striking photography.,
     Negative Prompt: ugly, distorted, inappropriate or NSFW content,
     Recommended Model List: ["sd_xl_base_1.0.safetensors"]]
     """
+    response = conversation.predict(input=initial_prompt)
+    logger.info("the first invoke: {}".format(response))
+    # logger.info("the second invoke: {}".format(conversation.predict(input="change to realist style")))
+
     positive_prompt = response.split('Positive Prompt: ')[1].split('Negative Prompt: ')[0].strip()
     negative_prompt = response.split('Negative Prompt: ')[1].split('Recommended Model List: ')[0].strip()
     model_list = response.split('Recommended Model List: ')[1].strip().replace('[', '').replace(']', '').replace('"', '').split(',')
