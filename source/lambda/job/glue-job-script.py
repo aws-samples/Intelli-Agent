@@ -33,10 +33,11 @@ os.environ['NOUGAT_CHECKPOINT'] = '/tmp/nougat_checkpoint'
 os.environ['NLTK_DATA'] = '/tmp/nltk_data'
 
 # Parse arguments
-args = getResolvedOptions(sys.argv, ['JOB_NAME', 'S3_BUCKET', 'S3_PREFIX', 'AOS_ENDPOINT', 'EMBEDDING_MODEL_ENDPOINT', 'ETL_MODEL_ENDPOINT', 'REGION', 'RES_BUCKET', 'OFFLINE', 'QA_ENHANCEMENT', 'BATCH_INDICE', 'ProcessedObjectsTable'])
+args = getResolvedOptions(sys.argv, ['JOB_NAME', 'S3_BUCKET', 'S3_PREFIX', 'AOS_ENDPOINT', 'EMBEDDING_MODEL_ENDPOINT', 'ETL_MODEL_ENDPOINT', 'REGION', 'RES_BUCKET', 'OFFLINE', 'QA_ENHANCEMENT', 'BATCH_INDICE', 'ProcessedObjectsTable', 'DOC_INDEX_TABLE'])
 s3_bucket = args['S3_BUCKET']
 s3_prefix = args['S3_PREFIX']
 aosEndpoint = args['AOS_ENDPOINT']
+aos_index = args['DOC_INDEX_TABLE']
 embeddingModelEndpoint = args['EMBEDDING_MODEL_ENDPOINT']
 etlModelEndpoint = args['ETL_MODEL_ENDPOINT']
 region = args['REGION']
@@ -244,11 +245,11 @@ def main():
                     logger.info("Result: %s", res)
                 if file_type == 'csv':
                     # CSV page document has been splited into chunk, no more spliting is needed
-                    aos_injection(res, embeddingModelEndpoint, aosEndpoint, 'chatbot-index', gen_chunk=False)
+                    aos_injection(res, embeddingModelEndpoint, aosEndpoint, aos_index, gen_chunk=False)
                 elif file_type == 'html':
-                    aos_injection(res, embeddingModelEndpoint, aosEndpoint, 'chatbot-index')
+                    aos_injection(res, embeddingModelEndpoint, aosEndpoint, aos_index)
                 elif file_type in ['pdf', 'txt', 'doc', 'md']:
-                    aos_injection(res, embeddingModelEndpoint, aosEndpoint, 'chatbot-index')
+                    aos_injection(res, embeddingModelEndpoint, aosEndpoint, aos_index)
                     if qa_enhancement == 'true':
                         # iterate the document to get the QA pairs
                         for document in res:

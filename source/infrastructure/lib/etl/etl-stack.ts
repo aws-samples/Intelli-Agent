@@ -29,6 +29,7 @@ interface etlStackProps extends StackProps {
     _subEmail: string;
     _etlCodePrefix: string;
     _s3ModelAssets: string;
+    _OpenSearchIndex: string;
 }
 
 export class EtlStack extends NestedStack {
@@ -173,7 +174,7 @@ export class EtlStack extends NestedStack {
                 '--REGION': props._region,
                 '--EMBEDDING_MODEL_ENDPOINT': props._embeddingEndpoint,
                 '--ETL_MODEL_ENDPOINT': this._etlEndpoint,
-                '--DOC_INDEX_TABLE': 'chatbot-index',
+                '--DOC_INDEX_TABLE': props._OpenSearchIndex,
                 '--additional-python-modules': 'langchain==0.0.312,beautifulsoup4==4.12.2,requests-aws4auth==1.2.3,boto3==1.28.84,openai==0.28.1,pyOpenSSL==23.3.0,tenacity==8.2.3,markdownify==0.11.6,mammoth==1.6.0,chardet==5.2.0,python-docx==1.1.0,nltk==3.8.1,pdfminer.six==20221105',
                 // add multiple extra python files
                 '--extra-py-files': extraPythonFilesList
@@ -240,7 +241,8 @@ export class EtlStack extends NestedStack {
                 '--S3_PREFIX.$': '$.s3Prefix',
                 '--AOS_ENDPOINT': props._domainEndpoint,
                 '--EMBEDDING_MODEL_ENDPOINT': props._embeddingEndpoint,
-                '--ETL_ENDPOINT': this._etlEndpoint,
+                '--ETL_MODEL_ENDPOINT': this._etlEndpoint,
+                '--DOC_INDEX_TABLE': props._OpenSearchIndex,
                 '--REGION': props._region,
                 '--RES_BUCKET': _S3Bucket.bucketName,
                 '--OFFLINE': 'true',
@@ -283,6 +285,7 @@ export class EtlStack extends NestedStack {
                 '--S3_PREFIX.$': '$.s3Prefix',
                 '--AOS_ENDPOINT': props._domainEndpoint,
                 '--EMBEDDING_MODEL_ENDPOINT': props._embeddingEndpoint,
+                '--DOC_INDEX_TABLE': props._OpenSearchIndex,
                 '--REGION': props._region,
                 '--OFFLINE': 'false',
                 '--QA_ENHANCEMENT.$': '$.qaEnhance',

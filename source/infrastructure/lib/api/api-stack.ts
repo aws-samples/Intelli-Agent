@@ -21,6 +21,7 @@ interface apiStackProps extends StackProps {
     _chatSessionTable: string;
     // type of StepFunctions
     _sfnOutput: sfn.StateMachine;
+    _OpenSearchIndex: string;
 }
 
 export class LLMApiStack extends NestedStack {
@@ -33,7 +34,7 @@ export class LLMApiStack extends NestedStack {
         const _vpc = props._vpc
         const _securityGroup = props._securityGroup
         const _domainEndpoint = props._domainEndpoint
-        const _aosIndex = "chatbot-index"
+        const _aosIndex = props._OpenSearchIndex
         const _chatSessionTable = props._chatSessionTable
 
         // s3 bucket for storing documents
