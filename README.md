@@ -46,7 +46,7 @@ arn:aws:cloudformation:us-east-1:xx:stack/llm-bot-dev/xx
 
 Use Postman/cURL to test the API connection, the API endpoint is the output of CloudFormation Stack with prefix 'embedding' or 'llm', the sample URL will be like "https://xxxx.execute-api.us-east-1.amazonaws.com/v1/embedding", the API request body is as follows:
 
-**Offline process to pre-process file specificed in S3 bucket and prefix, POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/etl**
+**Offline process to pre-process file specified in S3 bucket and prefix, POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/etl**
 ```bash
 BODY
 {
@@ -134,7 +134,7 @@ You should see output like this:
 }
 ```
 
-**Delete intial index in AOS, POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/embedding for debugging purpose**
+**Delete initial index in AOS, POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/embedding for debugging purpose**
 ```bash
 {
   "aos_index": "chatbot-index",
@@ -143,7 +143,7 @@ You should see output like this:
 }
 ```
 
-**Create intial index in AOS, POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/embedding for debugging purpose**
+**Create initial index in AOS, POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/embedding for debugging purpose**
 ```bash
 {
   "aos_index": "chatbot-index",
