@@ -25,8 +25,17 @@ Make sure Python installed properly. Usage: ./model.sh -t TOKEN [-m MODEL_NAME] 
 cd source/infrastructure
 aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
 npm install
-npx cdk deploy --rollback false --parameters S3ModelAssets=<Your S3 Bucket Name>
+npx cdk deploy --rollback false --parameters S3ModelAssets=<Your S3 Bucket Name> --parameters SubEmail=<Your email address>
 ```
+**Deployment parameters**
+
+| Parameter | Description |
+|-|-|
+| S3ModelAssets | Your bucket name to store models |
+| SubEmail | Your email address to receive notifications |
+| OpenSearchIndex | OpenSearch index name to store the knowledge, if the index is not existed, the solution will create one |
+
+
 You can update us-east-1 to any other available region according to your need. You will get output similar like below:
 ```
 Outputs:
