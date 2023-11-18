@@ -159,9 +159,6 @@ def generate_image(positive_prompts: str, negative_prompts: str, model: List[str
         else:
             time.sleep(1)
 
-    for item in st.session_state.warning:
-        current_col.warning(item)
-
     api_params = get_inference_param_output(inference["id"])
     params = requests.get(api_params[0]).json()
     info = json.loads(params['info'])
@@ -177,6 +174,9 @@ def generate_image(positive_prompts: str, negative_prompts: str, model: List[str
     if info["sd_model_name"] != "":
         current_col.write("sd_model_name:")
         current_col.info(info["sd_model_name"])
+
+    for warning in st.session_state.warnings:
+        current_col.warning(warning)
 
     return inference["id"]
 
@@ -488,7 +488,7 @@ def select_checkpoint(user_list: List[str]):
     intersection = list(set(user_list).intersection(set(support_model_list)))
     if len(intersection) == 0:
         intersection = default_models
-        st.session_state.warning.append("Use default model {}\nwhen LLM recommends {} not in support list:\n{}".format(
+        st.session_state.warnings.append("Use default model {}\nwhen LLM recommends {} not in support list:\n{}".format(
             default_models, user_list, support_model_list))
 
     return intersection
@@ -498,7 +498,7 @@ def select_checkpoint(user_list: List[str]):
 # python -m streamlit run image_generation.py --server.port 8088
 if __name__ == "__main__":
     try:
-        st.set_page_config(layout="wide", page_title="Image Generation Application")
+        st.set_page_config(page_title="Image Generation Application")
 
         st.title("Image Generation Application")
 
@@ -509,15 +509,9 @@ if __name__ == "__main__":
 
         col1, col2 = st.columns(2)
 
-        # col1.subheader("Without LLM")
-        # col1.image(Image.open("./zebra.jpg"))
-        #
-        # col2.subheader("With LLM")
-        # col2.image(Image.open("./zebra.jpg"))
-
         if button:
             get_checkpoints()
-            st.session_state.warning = []
+            st.session_state.warnings = []
             generate_llm_image(prompt, False, col1, "Without LLM")
             generate_llm_image(prompt, True, col2, "With LLM")
 
