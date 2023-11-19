@@ -1,0 +1,3 @@
+[submodule "source/submodule"]
+	path = source/submodule
+	url = https://github.com/awslabs/aws-ai-solution-kit.git
