@@ -210,7 +210,7 @@ def aos_injection(content: List[Document], embeddingModelEndpoint: str, aosEndpo
         for document in batch:
             @retry(stop=stop_after_attempt(3))
             def _aos_injection(document: Document) -> Document:
-                # TODO, parse the metadata to embed with different index
+                # TODO, parse the metadata to embed with different index, currently the index name is passed as cfn parameter with default value "chatbot-index"
                 docsearch = OpenSearchVectorSearch(
                     index_name=index_name,
                     embedding_function=embeddings,

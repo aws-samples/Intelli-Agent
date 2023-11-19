@@ -20,13 +20,22 @@ Make sure Python installed properly. Usage: ./model.sh -t TOKEN [-m MODEL_NAME] 
 ./model.sh -t <Your Hugging Face Token> -s <Your S3 Bucket Name>
 ```
 
-2. Deploy CDK template
+2. Deploy CDK template (add sudo if you are using Linux)
 ```bash
+git clone --recursive
+git submodule update --init
+
+optional step to deploy AI Solution Kit Endpoints (OCR, Semantic Chunk Splitting, Chunk Summary):
+cd submodule
+npx projen build
+npx cdk deploy
+
 cd source/infrastructure
 aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
 npm install
-npx cdk deploy --rollback false --parameters S3ModelAssets=<Your S3 Bucket Name> --parameters SubEmail=<Your email address>
+npx cdk deploy --rollback false --parameters S3ModelAssets=<Your S3 Bucket Name> --parameters SubEmail=<Your email address> --parameters OpenSearchIndex=<Your OpenSearch Index Name>
 ```
+
 **Deployment parameters**
 
 | Parameter | Description |
