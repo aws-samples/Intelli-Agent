@@ -1,6 +1,7 @@
-python-dotenv 
+python-dotenv
 PyPDF2
-streamlit 
-langchain 
+streamlit
+langchain
 openai
 tiktoken
+boto3
