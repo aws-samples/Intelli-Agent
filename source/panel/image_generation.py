@@ -43,13 +43,15 @@ CHECKPOINTS_API_URL = COMMAND_API_URL + "checkpoints"
 
 support_model_list = []
 
+# fixed model list installed on sd solution, MUST align with prompt template
 prompt_model_list = [
     {"sd_xl_base_1.0.safetensors", "default"},
     {"majicmixRealistic_v7.safetensors", "realistic"},
-    {"x2AnimeFinal_gzku.safetensors", "anime"}
+    {"x2AnimeFinal_gzku.safetensors", "anime"},
+    {"LahCuteCartoonSDXL_alpha.safetensors", "catoon"}
 ]
 
-default_models = ["v1-5-pruned-emaonly.safetensors"]
+default_models = ["sd_xl_base_1.0.safetensors"]
 
 # todo will update api
 def deploy_sagemaker_endpoint(instance_type: str = "ml.g4dn.4xlarge", initial_instance_count: int = 1,
@@ -68,10 +70,8 @@ def deploy_sagemaker_endpoint(instance_type: str = "ml.g4dn.4xlarge", initial_in
     res = requests.post(COMMAND_API_URL + 'inference/deploy-sagemaker-endpoint', headers=headers, json=inputBody)
     logger.info("deploy_sagemaker_endpoint: {}".format(res.json()))
 
-
 def upload_model():
     pass
-
 
 def get_bedrock_llm():
     # specify the profile_name to call the bedrock api if needed
@@ -94,25 +94,32 @@ sd_prompt = PromptTemplate.from_template(
     - Recommend a list of suitable models from the fix model list that best match the style and content described in the detailed prompt.
     - Other notes please refer to the following example:
 
-    The output should be a plain text in Python List format shown follows, no extra content added beside Positive Prompt, Negative Prompt and Recommended Model List. The model list can only be chosen from following list based on style discribed and output the index number only: 
-    list of dict with table name and style name:
+    The output should be a plain text in Python List format shown follows, no extra content added beside Positive Prompt, Negative Prompt and Recommended Model Index List.
+    [Positive Prompt: <detailed_prompt>,
+    Negative Prompt: <negative_prompt>,
+    Recommended Model Index List: [model index list]]
+
+    The model can only be chosen from following list of dict with table name and style name described, we can only and must choose 2 models based on style discribed and output the model index list:
     [
         {{"sd_xl_base_1.0.safetensors", "default"}},
         {{"majicmixRealistic_v7.safetensors", "realistic"}},
         {{"x2AnimeFinal_gzku.safetensors", "anime"}}
-        {{"otherAnimeStyle.safetensors", "anime"}}
+        {{"LahCuteCartoonSDXL_alpha.safetensors", "catoon"}}
     ]
-    
-    [Positive Prompt: <detailed_prompt>,
-    Negative Prompt: <negative_prompt>,
-    Recommended Model Index List: <model index list>]
-    
+
     For example:
     If the input prompt is: "a cute dog in cartoon style", the output should be as follows:
     [
         Positive Prompt: "visually appealing, high-quality image of a cute dog in a vibrant, cartoon style, adorable appearance, expressive eyes, friendly demeanor, colorful and lively, reminiscent of popular animation studios, artwork.",
         Negative Prompt: "realism, dark or dull colors, scary or aggressive dog depictions, overly simplistic, stick figure drawings, blurry or distorted images, inappropriate or NSFW content.",
-        Recommended Model Index List: [2, 3]
+        Recommended Model Index List: [0, 3]
+    ]
+
+    If the input prompt is: "a girl in photo-realistic style", the output should be as follows:
+    [
+        Positive Prompt: "detailed, photo-realistic, life-like, high-definition, sharp, accurate color tones, realistic textures, natural lighting, subtle expressions, vivid, true-to-life, authentic appearance, nuanced, real photograph.",
+        Negative Prompt: "cartoonish, abstract, stylized, overly simplistic, exaggerated, distorted features, bright unrealistic colors, artificial elements, fantasy elements, non-photo-realistic.",
+        Recommended Model Index List: [0, 2]
     ]
 
     Current conversation:
@@ -140,8 +147,8 @@ sd_prompt_cn = PromptTemplate.from_template(
     [
         {{"sd_xl_base_1.0.safetensors", "default"}},
         {{"majicmixRealistic_v7.safetensors", "realistic"}},
-        {{"x2AnimeFinal_gzku.safetensors", "anime"}},
-        {{"otherAnimeStyle.safetensors", "anime"}}
+        {{"x2AnimeFinal_gzku.safetensors", "anime"}}
+        {{"LahCuteCartoonSDXL_alpha.safetensors", "catoon"}}
     ]
 
     [Positive Prompt: <detailed_prompt>,
@@ -153,7 +160,7 @@ sd_prompt_cn = PromptTemplate.from_template(
     [
         Positive Prompt: "visually appealing, high-quality image of a cute dog in a vibrant, cartoon style, adorable appearance, expressive eyes, friendly demeanor, colorful and lively, reminiscent of popular animation studios, artwork.",
         Negative Prompt: "realism, dark or dull colors, scary or aggressive dog depictions, overly simplistic, stick figure drawings, blurry or distorted images, inappropriate or NSFW content.",
-        Recommended Model Index List: [2, 3]
+        Recommended Model Index List: [0, 3]
     ]
 
     当前对话：
@@ -198,7 +205,7 @@ def get_llm_processed_prompts(initial_prompt):
     logger.info("positive_prompt: {}\n negative_prompt: {}\n model_index_list: {}".format(positive_prompt, negative_prompt,model_index_list))
     return positive_prompt, negative_prompt, model_index_list
 
-def generate_image(positive_prompts: str, negative_prompts: str, model: List[str], current_col, progress_bar):
+def generate_image(positive_prompts: str, negative_prompts: str, model: List[str], current_col, progress_bar, debug: bool = False):
     job = create_inference_job(model)
     st.session_state.progress += 5
     progress_bar.progress(st.session_state.progress)
@@ -233,23 +240,24 @@ def generate_image(positive_prompts: str, negative_prompts: str, model: List[str
     params = requests.get(api_params[0]).json()
     info = json.loads(params['info'])
 
-    if info["prompt"] != "":
-        current_col.write("prompt:")
-        current_col.info(info["prompt"])
+    # debug info
+    if debug:
+        if info["prompt"] != "":
+            current_col.write("prompt:")
+            current_col.info(info["prompt"])
 
-    if info["negative_prompt"] != "":
-        current_col.write("negative_prompt:")
-        current_col.info(info["negative_prompt"])
+        if info["negative_prompt"] != "":
+            current_col.write("negative_prompt:")
+            current_col.info(info["negative_prompt"])
 
-    if info["sd_model_name"] != "":
-        current_col.write("sd_model_name:")
-        current_col.info(info["sd_model_name"])
+        if info["sd_model_name"] != "":
+            current_col.write("sd_model_name:")
+            current_col.info(info["sd_model_name"])
 
-    for warning in st.session_state.warnings:
-        current_col.warning(warning)
+        for warning in st.session_state.warnings:
+            current_col.warning(warning)
 
     return inference["id"]
-
 
 def get_inference_job(inference_id: str):
     headers = {
@@ -262,7 +270,6 @@ def get_inference_job(inference_id: str):
 
     return job.json()
 
-
 def get_inference_param_output(inference_id: str):
     headers = {
         "Content-Type": "application/json",
@@ -274,7 +281,6 @@ def get_inference_param_output(inference_id: str):
 
     return job.json()
 
-
 def get_inference_image_output(inference_id: str):
     headers = {
         "Content-Type": "application/json",
@@ -285,7 +291,6 @@ def get_inference_image_output(inference_id: str):
     job = requests.get(IMAGE_API_URL, headers=headers, params={"jobID": inference_id})
 
     return job.json()
-
 
 def get_checkpoints():
     headers = {
@@ -300,7 +305,6 @@ def get_checkpoints():
     }
 
     job = requests.get(CHECKPOINTS_API_URL, headers=headers, params=params)
-
     checkpoints = []
     if 'checkpoints' in job.json():
         for checkpoint in job.json()['checkpoints']:
@@ -311,9 +315,10 @@ def get_checkpoints():
 
     global support_model_list
     support_model_list = checkpoints
+    # filter the model v1-5-pruned-emaonly.safetensors out of support list
+    support_model_list = [item for item in support_model_list if not item.startswith("v1-5-pruned-emaonly")]
     logger.info("support_model_list: {}".format(support_model_list))
     return support_model_list
-
 
 def create_inference_job(models: List[str]):
     models = select_checkpoint(models)
@@ -341,7 +346,6 @@ def create_inference_job(models: List[str]):
     job = requests.post(GENERATE_API_URL, headers=headers, json=body)
     return job.json()
 
-
 def run_inference_job(inference_id: str):
     headers = {
         "Content-Type": "application/json",
@@ -352,7 +356,6 @@ def run_inference_job(inference_id: str):
     job = requests.put(COMMAND_API_URL + 'inference/v2/' + inference_id + '/run', headers=headers)
 
     return job.json()
-
 
 def upload_inference_job_api_params(s3_url, positive: str, negative: str):
     # todo use default api params
@@ -519,39 +522,33 @@ def upload_inference_job_api_params(s3_url, positive: str, negative: str):
     response.raise_for_status()
     return response
 
-
-def generate_llm_image(initial_prompt: str, llm_prompt: bool, col, title: str):
-    col.empty()
-    col.subheader(title)
+def generate_llm_image(initial_prompt: str, col, title: str, order: int, debug: bool = False):
+    # col.empty()
+    # col.subheader(title)
     st.spinner()
     st.session_state.progress = 5
     progress_bar = col.progress(st.session_state.progress)
 
     global support_model_list
-    negative = ""
     models = default_models
-    if llm_prompt is True:
 
-        positive_prompt, negative_prompt, model_index_list = get_llm_processed_prompts(prompt)
-        st.session_state.progress += 15
-        progress_bar.progress(st.session_state.progress)
+    positive_prompt, negative_prompt, model_index_list = get_llm_processed_prompts(initial_prompt)
+    st.session_state.progress += 15
+    progress_bar.progress(st.session_state.progress)
 
-        # if prompt is empty, use default
-        if positive_prompt != "":
-            initial_prompt = positive_prompt
+    # if prompt is empty, use default
+    if positive_prompt == "" or negative_prompt == "":
+        positive_prompt = initial_prompt
 
-        if negative_prompt != "":
-            negative = negative_prompt
+    if len(model_index_list) > 0:
+        # TODO, support model list should align with prompt template, we assume the model list is fixed at 2
+        models = [support_model_list[int(index)] for index in model_index_list[1:-1].split(",")]
+        logger.info("models: {}".format(models))
 
-        if len(model_index_list) > 0 and model_index_list[0] != "":
-            # TODO, support model list should align with prompt template
-            models = [support_model_list[int(index)] for index in model_index_list[1:-1].split(",")]
-            logger.info("models: {}".format(models))
-
-    inference_id = generate_image(initial_prompt, negative, models, col, progress_bar)
-
+    # select the model in model list according to the order while keep the List type to compatible with genegrate_image, e.g. models: ['LahCuteCartoonSDXL_alpha.safetensors', 'majicmixRealistic_v7.safetensors']
+    models = [models[order]]
+    inference_id = generate_image(positive_prompt, negative_prompt, models, col, progress_bar, debug)
     return inference_id
-
 
 def select_checkpoint(user_list: List[str]):
     global support_model_list
@@ -574,22 +571,24 @@ def check_if_input_cn(prompt: str):
 # python -m streamlit run image_generation.py --server.port 8088
 if __name__ == "__main__":
     try:
-        st.set_page_config(page_title="Image Generation Application")
-
-        st.title("Image Generation Application")
+        st.set_page_config(page_title="Da Vinci")
+        st.title("Da Vinci")
 
         # User input
-        prompt = st.text_input("Enter a prompt for the image:", "A cute dog")
-
+        prompt = st.text_input("What image do you want to create today?", "A cute dog")
         button = st.button('Generate Image')
 
+        # 2*2 layout
         col1, col2 = st.columns(2)
+        col3, col4 = st.columns(2)
 
         if button:
             get_checkpoints()
             st.session_state.warnings = []
-            generate_llm_image(prompt, False, col1, "Without LLM")
-            generate_llm_image(prompt, True, col2, "With LLM")
+            generate_llm_image(prompt, col1, "Without LLM", 0, False)
+            generate_llm_image(prompt, col2, "With LLM", 0, False)
+            generate_llm_image(prompt, col3, "Without LLM", 1, False)
+            generate_llm_image(prompt, col4, "With LLM", 1, False)
 
     except Exception as e:
         logger.exception(e)
