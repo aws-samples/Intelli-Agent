@@ -1,3 +1,4 @@
+import re
 import json
 import logging
 import os
@@ -15,7 +16,9 @@ from langchain.llms.bedrock import Bedrock
 from langchain.memory import ConversationBufferMemory
 
 logging.basicConfig(level=logging.INFO)
+# logging to stdout
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 # load .env file with specific name
 load_dotenv(dotenv_path='.env_sd')
@@ -39,8 +42,14 @@ IMAGE_API_URL = COMMAND_API_URL + "inference/get-inference-job-image-output"
 CHECKPOINTS_API_URL = COMMAND_API_URL + "checkpoints"
 
 support_model_list = []
-default_models = ["v1-5-pruned-emaonly.safetensors"]
 
+prompt_model_list = [
+    {"sd_xl_base_1.0.safetensors", "default"},
+    {"majicmixRealistic_v7.safetensors", "realistic"},
+    {"x2AnimeFinal_gzku.safetensors", "anime"}
+]
+
+default_models = ["v1-5-pruned-emaonly.safetensors"]
 
 # todo will update api
 def deploy_sagemaker_endpoint(instance_type: str = "ml.g4dn.4xlarge", initial_instance_count: int = 1,
@@ -76,27 +85,35 @@ def get_bedrock_llm():
     )
     return cl_llm
 
-
 # todo template use dynamic checkpoints
 sd_prompt = PromptTemplate.from_template(
     """
     Human:
     - Transform the input prompt {input} into a detailed prompt for an image generation model, describing the scene with vivid and specific attributes that enhance the original concept, only adjective and noun are allowed, verb and adverb are not allowed, each words speperated by comma.
     - Generate a negative prompt that specifies what should be avoided in the image, including any elements that contradict the desired style or tone.
-    - Recommend a list of suitable models from the stable diffusion lineup that best match the style and content described in the detailed prompt.
+    - Recommend a list of suitable models from the fix model list that best match the style and content described in the detailed prompt.
     - Other notes please refer to the following example:
 
-    The output should be a plain text in Python List format shown follows, no extra content added beside Positive Prompt, Negative Prompt and Recommended Model List. The model list can only be chosen from the fixed list: "sd_xl_base_1.0.safetensors", "majicmixRealistic_v7.safetensors", "x2AnimeFinal_gzku.safetensors":
+    The output should be a plain text in Python List format shown follows, no extra content added beside Positive Prompt, Negative Prompt and Recommended Model List. The model list can only be chosen from following list based on style discribed and output the index number only: 
+    list of dict with table name and style name:
+    [
+        {{"sd_xl_base_1.0.safetensors", "default"}},
+        {{"majicmixRealistic_v7.safetensors", "realistic"}},
+        {{"x2AnimeFinal_gzku.safetensors", "anime"}}
+        {{"otherAnimeStyle.safetensors", "anime"}}
+    ]
     
     [Positive Prompt: <detailed_prompt>,
     Negative Prompt: <negative_prompt>,
-    Recommended Model List: <model_list>]
+    Recommended Model Index List: <model index list>]
     
     For example:
     If the input prompt is: "a cute dog in cartoon style", the output should be as follows:
-    [Positive Prompt: "visually appealing, high-quality image of a cute dog in a vibrant, cartoon style, adorable appearance, expressive eyes, friendly demeanor, colorful and lively, reminiscent of popular animation studios, artwork.",
-    Negative Prompt: "realism, dark or dull colors, scary or aggressive dog depictions, overly simplistic, stick figure drawings, blurry or distorted images, inappropriate or NSFW content.",
-    Recommended Model List: ["Stable-diffusion: LahCuteCartoonSDXL_alpha.safetensors", "Other model recommended..."]]
+    [
+        Positive Prompt: "visually appealing, high-quality image of a cute dog in a vibrant, cartoon style, adorable appearance, expressive eyes, friendly demeanor, colorful and lively, reminiscent of popular animation studios, artwork.",
+        Negative Prompt: "realism, dark or dull colors, scary or aggressive dog depictions, overly simplistic, stick figure drawings, blurry or distorted images, inappropriate or NSFW content.",
+        Recommended Model Index List: [2, 3]
+    ]
 
     Current conversation:
     <conversation_history>
@@ -111,6 +128,46 @@ sd_prompt = PromptTemplate.from_template(
     Assistant:
     """)
 
+sd_prompt_cn = PromptTemplate.from_template(
+    """
+    Human:
+    - 将输入提示 {input} 转化为图像生成模型的详细提示，用生动和具体的属性描述场景，以增强原始概念，只允许使用形容词和名词，不允许使用动词和副词，每个词用逗号分隔。
+    - 生成一个负面提示，指定图像中应避免的内容，包括任何与期望风格或基调相矛盾的元素。
+    - 从固定的模型列表中推荐最符合详细提示描述的风格和内容的模型列表。
+    - 其他注意事项请参考以下示例：
+
+    输出应为以下所示的 Python 列表格式纯文本，除了 Positive Prompt、Negative Prompt 和 Recommended Model Index List 之外不添加任何额外内容。模型列表只能从以下基于风格描述的列表中选择，并仅输出索引号：
+    [
+        {{"sd_xl_base_1.0.safetensors", "default"}},
+        {{"majicmixRealistic_v7.safetensors", "realistic"}},
+        {{"x2AnimeFinal_gzku.safetensors", "anime"}},
+        {{"otherAnimeStyle.safetensors", "anime"}}
+    ]
+
+    [Positive Prompt: <detailed_prompt>,
+    Negative Prompt: <negative_prompt>,
+    Recommended Model Index List: <model index list>]
+
+    例如：
+    如果输入提示是：“卡通风格的可爱狗”，输出应如下：
+    [
+        Positive Prompt: "visually appealing, high-quality image of a cute dog in a vibrant, cartoon style, adorable appearance, expressive eyes, friendly demeanor, colorful and lively, reminiscent of popular animation studios, artwork.",
+        Negative Prompt: "realism, dark or dull colors, scary or aggressive dog depictions, overly simplistic, stick figure drawings, blurry or distorted images, inappropriate or NSFW content.",
+        Recommended Model Index List: [2, 3]
+    ]
+
+    当前对话：
+    <conversation_history>
+    {history}
+    </conversation_history>
+
+    人类的下次回复：
+    <human_reply>
+    {input}
+    </human_reply>
+
+    Assistant:
+    """)
 
 def get_llm_processed_prompts(initial_prompt):
     cl_llm = get_bedrock_llm()
@@ -119,21 +176,27 @@ def get_llm_processed_prompts(initial_prompt):
         llm=cl_llm, verbose=False, memory=memory
     )
 
-    conversation.prompt = sd_prompt
+    # use cn template to avoid instability in prompt output
+    res = check_if_input_cn(initial_prompt)
+    conversation.prompt = sd_prompt_cn if check_if_input_cn(initial_prompt) else sd_prompt
 
     response = conversation.predict(input=initial_prompt)
     logger.info("the first invoke: {}".format(response))
     # logger.info("the second invoke: {}".format(conversation.predict(input="change to realist style")))
 
-    positive_prompt = response.split('Positive Prompt: ')[1].split('Negative Prompt: ')[0].strip()
-    negative_prompt = response.split('Negative Prompt: ')[1].split('Recommended Model List: ')[0].strip()
-    model_list = response.split('Recommended Model List: ')[1].strip().replace('[', '').replace(']', '').replace('"',
-                                                                                                                 '').split(
-        ',')
-    logger.info("positive_prompt: {}\n negative_prompt: {}\n model_list: {}".format(positive_prompt, negative_prompt,
-                                                                                    model_list))
-    return positive_prompt, negative_prompt, model_list
+    # TODO, below parase is not stable and can be changed accord to PE, will update later
+    # Define regular expressions
+    positive_pattern = r"Positive Prompt: (.*?),\s+Negative Prompt:"
+    negative_pattern = r"Negative Prompt: (.*?),\s+Recommended Model Index List:"
+    model_pattern = r"Recommended Model Index List: (\[[^\]]*\])"
 
+    # Extract data using regex
+    positive_prompt = re.search(positive_pattern, response, re.DOTALL).group(1).strip()
+    negative_prompt = re.search(negative_pattern, response, re.DOTALL).group(1).strip()
+    model_index_list = re.search(model_pattern, response, re.DOTALL).group(1).strip()
+
+    logger.info("positive_prompt: {}\n negative_prompt: {}\n model_index_list: {}".format(positive_prompt, negative_prompt,model_index_list))
+    return positive_prompt, negative_prompt, model_index_list
 
 def generate_image(positive_prompts: str, negative_prompts: str, model: List[str], current_col, progress_bar):
     job = create_inference_job(model)
@@ -469,7 +532,7 @@ def generate_llm_image(initial_prompt: str, llm_prompt: bool, col, title: str):
     models = default_models
     if llm_prompt is True:
 
-        positive_prompt, negative_prompt, model_list = get_llm_processed_prompts(prompt)
+        positive_prompt, negative_prompt, model_index_list = get_llm_processed_prompts(prompt)
         st.session_state.progress += 15
         progress_bar.progress(st.session_state.progress)
 
@@ -480,8 +543,10 @@ def generate_llm_image(initial_prompt: str, llm_prompt: bool, col, title: str):
         if negative_prompt != "":
             negative = negative_prompt
 
-        if len(model_list) > 0 and model_list[0] != "":
-            models = model_list
+        if len(model_index_list) > 0 and model_index_list[0] != "":
+            # TODO, support model list should align with prompt template
+            models = [support_model_list[int(index)] for index in model_index_list[1:-1].split(",")]
+            logger.info("models: {}".format(models))
 
     inference_id = generate_image(initial_prompt, negative, models, col, progress_bar)
 
@@ -499,6 +564,11 @@ def select_checkpoint(user_list: List[str]):
 
     return intersection
 
+def check_if_input_cn(prompt: str):
+    if re.search("[\u4e00-\u9FFF]", prompt):
+        return True
+    else:
+        return False
 
 # main entry point for debugging
 # python -m streamlit run image_generation.py --server.port 8088
