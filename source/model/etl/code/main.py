@@ -1,7 +1,7 @@
 
 import os
-# os.environ["DEFAULT_PADDLE_LANG"] = "ch"
-# os.environ["OCR_AGENT"] = "paddle"
+
+os.environ["OCR_AGENT"] = "ask"
 
 import json
 import boto3
