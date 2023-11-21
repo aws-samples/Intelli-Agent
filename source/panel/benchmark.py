@@ -178,10 +178,20 @@ def faiss_retriver(texts: List[str], query: str):
     return docs_with_score
 
 def langchain_evalutor(query: str, docs_with_score: List[Tuple[str, float]]):
-    # evaluate the retriever
-    from vectorview import Vectorview
-    vv = Vectorview(key)
-    vv.event(query, docs_with_score)
+    """
+    evaluate the retrieved documents with query and return summary result including metrics below:
+    1. # round of experiments
+    2. # of evaluation questions
+    3. chunk size and overlap size
+    4. split method
+    5. retrieval method
+    6. embedding algorithm & model
+    7. # of chunks retrieved
+    8. average relevance score of retrival
+    9. average similarity score of retrival
+    10. average time of retrival
+    """
+    pass
 
 # Preparing loader, splitter, and embeddings retriever list, iterate them to create comparasion matrix
 loader_list = [unstructured_loader]
@@ -238,6 +248,10 @@ class WorkflowExecutor:
 
         Returns:
             list: A list of results from executing each workflow combination.
+
+        Embedding evaluation: embedding into AOS using solution and langchain with different index , then using same question to query the retrieved references, calculate the similarities score between query and retrieved score, compare the score for both methods.
+
+        E2E LLM evaluation: construct dataset with ground truth and using exiting langchain or llama index library to evaluate the faithfulness, relevance and accuracy metrics, OpenAI or Claude will be used as judger to determine the final score.
         """
         results_matrix = []
         for loader, splitter, embedder, retriever, evaluator in product(
