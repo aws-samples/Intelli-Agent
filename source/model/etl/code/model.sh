@@ -6,10 +6,11 @@
 # machine and combined with the account and region to form the repository name for ECR.
 dockerfile=$1
 image=$2
+region=$3
 
-if [ "$image" = "" ] || [ "$dockerfile" = "" ]
+if [ "$image" = "" ] || [ "$dockerfile" = "" ] || [ "$region" = "" ]
 then
-    echo "Usage: $0 <docker-file> <image-name>"
+    echo "Usage: $0 <docker-file> <image-name> <aws-region>"
     exit 1
 fi
 
@@ -22,7 +23,6 @@ then
 fi
 
 # Get the region defined in the current configuration (default to us-west-2 if none defined)
-region=$(aws configure get region)
 image_name="${image}"
 fullname="${account}.dkr.ecr.${region}.amazonaws.com/${image_name}:latest"
 
