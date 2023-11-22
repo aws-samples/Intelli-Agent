@@ -55,6 +55,7 @@ def pipeline_tab():
     st.title("LLM Bot ETL Pipeline")
     # text box to allow user input the url address of the pipeline with default value
     pipeline_url = st.text_input('Pipeline URL', value=os.getenv('PIPELINE_URL'))
+    aos_index = st.text_input('OpenSearch index name', value=os.getenv('AOS_INDEX'))
 
     col1, col2 = st.columns(2)
     with col1:
@@ -148,7 +149,7 @@ def pipeline_tab():
     query = st.text_input('Input your query body here', value='{"aos_index": "chatbot-index", "query": {"operation": "match_all", "match_all": {}}}')
     # send button to trigger the request sending to the endpoint with query as request body
     request_body = {
-        'aos_index': 'chatbot-index',
+        'aos_index': aos_index,
         'operation': 'match_all',
         'body': ''
     }

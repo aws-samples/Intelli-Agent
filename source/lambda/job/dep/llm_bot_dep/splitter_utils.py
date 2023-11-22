@@ -1,10 +1,20 @@
 import re
+import logging
 from typing import Any, Dict, Iterator, List, Optional, Union
-
+import boto3
 from langchain.docstore.document import Document
-from langchain.text_splitter import (Language, RecursiveCharacterTextSplitter,
-                                     TextSplitter)
+from langchain.text_splitter import (
+    Language,
+    RecursiveCharacterTextSplitter,
+    TextSplitter,
+)
+from llm_bot_dep.storage_utils import save_content_to_s3
+from llm_bot_dep.constant import SplittingType
 
+
+s3 = boto3.client('s3')
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 def _make_spacy_pipeline_for_splitting(pipeline: str) -> Any:  # avoid importing spacy
     try:
@@ -21,6 +31,7 @@ def _make_spacy_pipeline_for_splitting(pipeline: str) -> Any:  # avoid importing
     else:
         sentencizer = spacy.load(pipeline, exclude=["ner", "tagger"])
     return sentencizer
+
 
 class NLTKTextSplitter(TextSplitter):
     """Splitting text using NLTK package."""
@@ -47,6 +58,7 @@ class NLTKTextSplitter(TextSplitter):
         splits = self._tokenizer(text, language=self._language)
         return self._merge_splits(splits, self._separator)
 
+
 class SpacyTextSplitter(TextSplitter):
     """Splitting text using Spacy package.
 
@@ -68,10 +80,12 @@ class SpacyTextSplitter(TextSplitter):
         splits = (s.text for s in self._tokenizer(text).sents)
         return self._merge_splits(splits, self._separator)
 
+
 class NestedDict(dict):
     def __missing__(self, key):
         self[key] = NestedDict()
         return self[key]
+
 
 def extract_headings(md_content):
     """Extract headings hierarchically from Markdown content.
@@ -93,15 +107,17 @@ def extract_headings(md_content):
     """
     headings = NestedDict()
     current_heads = [headings]
-    lines = md_content.strip().split('\n')
+    lines = md_content.strip().split("\n")
 
     for i, line in enumerate(lines):
-        match = re.match(r'(#+) (.+)', line)
-        if not match and i > 0:  # If the line is not a heading, check if the previous line is a heading using alternate syntax
-            if re.match(r'=+', lines[i - 1]):
+        match = re.match(r"(#+) (.+)", line)
+        if (
+            not match and i > 0
+        ):  # If the line is not a heading, check if the previous line is a heading using alternate syntax
+            if re.match(r"=+", lines[i - 1]):
                 level = 1
                 title = lines[i - 2]
-            elif re.match(r'-+', lines[i - 1]):
+            elif re.match(r"-+", lines[i - 1]):
                 level = 2
                 title = lines[i - 2]
             else:
@@ -118,24 +134,30 @@ def extract_headings(md_content):
 
     return headings
 
+
 # rewrite this class to use the new TextSplitter for mmd type
 class MarkdownHeaderTextSplitter:
     # Place holder for now without parameters
-    def __init__(self) -> None:
-        pass
+    def __init__(self, res_bucket: str = None):
+        self.res_bucket = res_bucket
 
     def _is_markdown_header(self, line):
-        header_pattern = r'^#+\s+'
+        header_pattern = r"^#+\s+"
         if re.match(header_pattern, line):
             return True
         else:
             return False
 
     def _is_markdown_table_row(self, line):
-        return re.fullmatch(r'\|.*\|.*\|', line) is not None
+        return re.fullmatch(r"\|.*\|.*\|", line) is not None
 
     def split_text(self, text: Document) -> List[Document]:
-        lines = text.page_content.strip().split('\n')
+        if self.res_bucket is not None:
+            save_content_to_s3(s3, text, self.res_bucket, SplittingType.BEFORE.value)
+        else:
+            logger.error("No resource bucket is defined, skip saving content into S3 bucket")
+
+        lines = text.page_content.strip().split("\n")
         chunks = []
         current_chunk_content = []
         table_content = []
@@ -145,7 +167,9 @@ class MarkdownHeaderTextSplitter:
         for line in lines:
             # Replace escaped characters for table markers
             line = line.strip()
-            line = line.replace(r"\begin{table}", "\\begin{table}").replace(r"\end{table}", "\\end{table}")
+            line = line.replace(r"\begin{table}", "\\begin{table}").replace(
+                r"\end{table}", "\\end{table}"
+            )
             if line in ["\\begin{table}", "\\end{table}"]:
                 continue
 
@@ -153,10 +177,17 @@ class MarkdownHeaderTextSplitter:
                 # Save the current chunk if it exists
                 if current_chunk_content:
                     metadata = text.metadata.copy()
-                    metadata['heading_hierarchy'] = extract_headings('\n'.join(current_chunk_content))
-                    metadata['chunk_id'] = f"${chunk_id}"
+                    metadata["heading_hierarchy"] = extract_headings(
+                        "\n".join(current_chunk_content)
+                    )
+                    metadata["chunk_id"] = f"${chunk_id}"
                     chunk_id += 1  # Increment chunk_id for the next chunk
-                    chunks.append(Document(page_content='\n'.join(current_chunk_content), metadata=metadata))
+                    chunks.append(
+                        Document(
+                            page_content="\n".join(current_chunk_content),
+                            metadata=metadata,
+                        )
+                    )
                     current_chunk_content = []  # Reset for the next chunk
 
             if self._is_markdown_table_row(line):
@@ -167,9 +198,13 @@ class MarkdownHeaderTextSplitter:
                 # Save table content as a separate document
                 if table_content:
                     metadata = text.metadata.copy()
-                    metadata['content_type'] = 'table'
-                    metadata['chunk_id'] = f"${chunk_id}"
-                    chunks.append(Document(page_content='\n'.join(table_content), metadata=metadata))
+                    metadata["content_type"] = "table"
+                    metadata["chunk_id"] = f"${chunk_id}"
+                    chunks.append(
+                        Document(
+                            page_content="\n".join(table_content), metadata=metadata
+                        )
+                    )
                     table_content = []  # Reset for the next table
 
             if inside_table:
@@ -180,8 +215,14 @@ class MarkdownHeaderTextSplitter:
         # Save the last chunk if it exists
         if current_chunk_content:
             metadata = text.metadata.copy()
-            metadata['heading_hierarchy'] = extract_headings('\n'.join(current_chunk_content))
-            metadata['chunk_id'] = f"${chunk_id}"
-            chunks.append(Document(page_content='\n'.join(current_chunk_content), metadata=metadata))
+            metadata["heading_hierarchy"] = extract_headings(
+                "\n".join(current_chunk_content)
+            )
+            metadata["chunk_id"] = f"${chunk_id}"
+            chunks.append(
+                Document(
+                    page_content="\n".join(current_chunk_content), metadata=metadata
+                )
+            )
 
         return chunks

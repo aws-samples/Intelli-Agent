@@ -18,15 +18,38 @@ Make sure Python installed properly. Usage: ./model.sh -t TOKEN [-m MODEL_NAME] 
   -c COMMIT_HASH      Commit hash (default: 46d270928463db49b317e5ea469a8ac8152f4a13)
   -s S3_BUCKET_NAME   S3 bucket name to upload the model (default: llm-rag)
 ./model.sh -t <Your Hugging Face Token> -s <Your S3 Bucket Name>
-```
 
-2. Deploy CDK template
+cd source/model/etl/code
+sh model.sh ./Dockerfile <EtlImageName> <AWS_REGION>
+```
+The ETL image will be pushed to your ECR repo with the image name you specified when executing the command sh model.sh ./Dockerfile <EtlImageName> <AWS_REGION>, AWS_REGION is like us-east-1, us-west-2, etc.
+
+
+2. Deploy CDK template (add sudo if you are using Linux)
 ```bash
+git clone --recursive
+git submodule update --init
+
+optional step to deploy AI Solution Kit Endpoints (OCR, Semantic Chunk Splitting, Chunk Summary):
+cd submodule
+npx projen build
+npx cdk deploy
+
 cd source/infrastructure
 aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
 npm install
-npx cdk deploy --rollback false --parameters S3ModelAssets=<Your S3 Bucket Name>
+npx cdk deploy --rollback false --parameters S3ModelAssets=<Your S3 Bucket Name> --parameters SubEmail=<Your email address> --parameters OpenSearchIndex=<Your OpenSearch Index Name> --parameters EtlImageName=<Your ETL model name>
 ```
+
+**Deployment parameters**
+
+| Parameter | Description |
+|-|-|
+| S3ModelAssets | Your bucket name to store models |
+| SubEmail | Your email address to receive notifications |
+| OpenSearchIndex | OpenSearch index name to store the knowledge, if the index is not existed, the solution will create one |
+| EtlImageName | ETL image name, eg. etl-model, it is set when you executing source/model/etl/code/model.sh script |
+
 You can update us-east-1 to any other available region according to your need. You will get output similar like below:
 ```
 Outputs:
@@ -46,7 +69,7 @@ arn:aws:cloudformation:us-east-1:xx:stack/llm-bot-dev/xx
 
 Use Postman/cURL to test the API connection, the API endpoint is the output of CloudFormation Stack with prefix 'embedding' or 'llm', the sample URL will be like "https://xxxx.execute-api.us-east-1.amazonaws.com/v1/embedding", the API request body is as follows:
 
-**Offline process to pre-process file specificed in S3 bucket and prefix, POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/etl**
+**Offline process to pre-process file specified in S3 bucket and prefix, POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/etl**
 ```bash
 BODY
 {
@@ -134,7 +157,7 @@ You should see output like this:
 }
 ```
 
-**Delete intial index in AOS, POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/embedding for debugging purpose**
+**Delete initial index in AOS, POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/embedding for debugging purpose**
 ```bash
 {
   "aos_index": "chatbot-index",
@@ -143,7 +166,7 @@ You should see output like this:
 }
 ```
 
-**Create intial index in AOS, POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/embedding for debugging purpose**
+**Create initial index in AOS, POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/embedding for debugging purpose**
 ```bash
 {
   "aos_index": "chatbot-index",

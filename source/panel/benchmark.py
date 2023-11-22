@@ -1,11 +1,17 @@
-import os
+import json
 import logging
 import time
 
+from itertools import product
 from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple
 from langchain.docstore.document import Document
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.vectorstores import FAISS
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.document_loaders import UnstructuredFileLoader
+
+from llm_bot_dep.loaders.nougat_pdf import NougatPDFLoader
+from llm_bot_dep.splitter_utils import MarkdownHeaderTextSplitter
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -14,16 +20,17 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 metadata_template = {
-"content_type": "paragraph",
-"heading_hierarchy": {},
-"figure_list": [],
-"chunk_id": "$$",
-"file_path": "",
-"keywords": [],
-"summary": "",
+    "content_type": "paragraph",
+    "current_heading": 0,
+    "heading_hierarchy": {},    
+    "figure_list": [],
+    "chunk_id": "$$",
+    "file_path": "",
+    "keywords": [],
+    "summary": "",
 }
 
-markdown_document = """
+sample_sample_markdown_document = """
 # Learning to Retrieve In-Context Examples for Large Language Models
 ###### Abstract
 aaaa
@@ -68,12 +75,12 @@ aaaa
 1818
 """
 
-def nougat_loader():
-    # benchemark the nougat package
-    # nougat ./2.pdf -o . --full-precision --markdown -m 0.1.0-base --recompute
-    pass
+def nougat_loader(file_path: str) -> List[Document]:
+    loader = NougatPDFLoader(file_path)
+    docs = loader.load()
+    logger.info("nougat load data: {}".format(docs))
 
-def llamaIndex_loader(file_path: str):
+def llamaIndex_loader(file_path: str) -> List[Document]:
     try:
         import pypdf
     except ImportError:
@@ -98,15 +105,13 @@ def llamaIndex_loader(file_path: str):
             logger.info("page_text: {}, page_label: {}".format(page_text, page_label))
             docs.append(Document(page_content=page_text, metadata=metadata))
         
-def unstructured_loader(file_path: str):
-    from langchain.document_loaders import UnstructuredFileLoader
+def unstructured_loader(file_path: str) -> List[Document]:
     loader = UnstructuredFileLoader(file_path, mode="elements")
     docs = loader.load()
-    logger.info("loader docs: {}".format(docs))
+    logger.info("unstructured load data: {}".format(docs))
     return docs
 
-def recursive_splitter(docs: List[Document]):
-    from langchain.text_splitter import RecursiveCharacterTextSplitter
+def recursive_splitter(docs: List[Document]) -> List[Document]:
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size = 500,
         chunk_overlap  = 30,
@@ -114,32 +119,41 @@ def recursive_splitter(docs: List[Document]):
         add_start_index = True,
     )
     docs = text_splitter.split_documents(docs)
-    logger.info("splitter docs: {}".format(docs))
+    logger.info("langchain recursive splitter: {}".format(docs))
     return docs
 
-def csdc_markdown_header_splitter():
-    from splitter_utils import MarkdownHeaderTextSplitter, Document
+def csdc_markdown_header_splitter(docs: List[Document]) -> List[Document]:
     markdown_splitter = MarkdownHeaderTextSplitter()
     # construct a fake document data
-    data = [Document(page_content=markdown_document, metadata=metadata_template)]
-    md_header_splits = markdown_splitter.split_text(data[0])
+    # data = [Document(page_content=sample_markdown_document, metadata=metadata_template)]
+    md_header_splits = markdown_splitter.split_text(docs)
     for i, doc in enumerate(md_header_splits):
         logger.info("content of chunk %s: %s", i, doc)
+    logger.info("csdc markdown splitter: {}".format(md_header_splits))
     return md_header_splits
 
-def openai_embedding():
+def documents_to_strings(documents: List[Document]) -> List[str]:
+    serialized_documents = []
+
+    for doc in documents:
+        # Serialize the document into a JSON string
+        serialized_doc = json.dumps({
+            'page_content': doc.page_content,
+            'metadata': doc.metadata,
+            'type': doc.type
+        })
+        serialized_documents.append(serialized_doc)
+
+    return serialized_documents
+
+def openai_embedding(docs: List[Document]) -> List[List[float]]:
     embeddings = OpenAIEmbeddings()
+    docs = documents_to_strings(docs)
+    embeddings.embed_documents(docs)
+    logger.info("openai embeddings: {}".format(embeddings))
     return embeddings
 
-def faiss_retriver(texts: List[str], query: str):
-    retriever = FAISS.from_texts(texts, OpenAIEmbeddings()).as_retriever()
-    docs = retriever.get_relevant_documents(query)
-    logger.info("retriever docs: {}".format(docs))
-    db = FAISS.from_texts(texts, OpenAIEmbeddings())
-    docs_with_score = db.similarity_search_with_score(query, 3)
-    logger.info("docs_with_score: {}".format(docs_with_score))
-    return docs_with_score
-
+# utils to run embeddings with metrics of dimension and time
 def run_embeddings(embeddings_list, docs: List[str]):
     results = []
     for embed_func in embeddings_list:
@@ -154,14 +168,110 @@ def run_embeddings(embeddings_list, docs: List[str]):
         })
     return results
 
-# main entry point
-if __name__ == "__main__":
+def faiss_retriver(texts: List[str], query: str):
+    retriever = FAISS.from_texts(texts, OpenAIEmbeddings()).as_retriever()
+    docs = retriever.get_relevant_documents(query)
+    logger.info("retriever docs: {}".format(docs))
+    db = FAISS.from_texts(texts, OpenAIEmbeddings())
+    docs_with_score = db.similarity_search_with_score(query, 3)
+    logger.info("docs_with_score: {}".format(docs_with_score))
+    return docs_with_score
 
-    # Preparing loader, splitter, and embeddings retriever list, iterate them to create comparasion matrix
-    loader_list = [unstructured_loader]
-    splitter_list = [recursive_splitter, csdc_markdown_header_splitter]
-    embeddings_list = []
-    retriever_list = [faiss_retriver]
+def langchain_evalutor(query: str, docs_with_score: List[Tuple[str, float]]):
+    """
+    evaluate the retrieved documents with query and return summary result including metrics below:
+    1. # round of experiments
+    2. # of evaluation questions
+    3. chunk size and overlap size
+    4. split method
+    5. retrieval method
+    6. embedding algorithm & model
+    7. # of chunks retrieved
+    8. average relevance score of retrival
+    9. average similarity score of retrival
+    10. average time of retrival
+    """
+    pass
+
+# Preparing loader, splitter, and embeddings retriever list, iterate them to create comparasion matrix
+loader_list = [unstructured_loader]
+splitter_list = [recursive_splitter, csdc_markdown_header_splitter]
+embeddings_list = [openai_embedding]
+retriever_list = [faiss_retriver]
+evalutor_list = [langchain_evalutor]
+
+class WorkflowExecutor:
+    """
+    A class to execute a workflow with various components such as loaders, splitters,
+    embedders, retrievers, and evaluators.
+
+    Attributes:
+        components (dict): A dictionary to store lists of different workflow components.
+    """
+    def __init__(self):
+        """Initializes the WorkflowExecutor with empty lists of components."""
+        self.components = {
+            'loaders': [],
+            'splitters': [],
+            'embedders': [],
+            'retrievers': [],
+            'evaluators': []
+        }
+
+    def update_component(self, component_type, component, action):
+        """
+        Adds or removes a component to/from the respective component list.
+
+        Args:
+            component_type (str): The type of component (e.g., 'loaders', 'splitters').
+            component (object): The component to add or remove.
+            action (str): 'add' to add the component, 'remove' to remove it.
+
+        Raises:
+            ValueError: If the component type is invalid.
+        """
+        if component_type in self.components:
+            if action == 'add':
+                self.components[component_type].append(component)
+            elif action == 'remove' and component in self.components[component_type]:
+                self.components[component_type].remove(component)
+        else:
+            raise ValueError(f"Invalid component type: {component_type}")
+
+    def execute_workflow(self, input_document, query):
+        """
+        Executes the workflow with all combinations of components and returns the results.
+
+        Args:
+            input_document (str): The input document to process.
+            query (str): The query for retrieval and evaluation.
+
+        Returns:
+            list: A list of results from executing each workflow combination.
+
+        Embedding evaluation: embedding into AOS using solution and langchain with different index , then using same question to query the retrieved references, calculate the similarities score between query and retrieved score, compare the score for both methods.
+
+        E2E LLM evaluation: construct dataset with ground truth and using exiting langchain or llama index library to evaluate the faithfulness, relevance and accuracy metrics, OpenAI or Claude will be used as judger to determine the final score.
+        """
+        results_matrix = []
+        for loader, splitter, embedder, retriever, evaluator in product(
+            self.components['loaders'],
+            self.components['splitters'],
+            self.components['embedders'],
+            self.components['retrievers'],
+            self.components['evaluators']
+        ):
+            docs = loader(input_document)
+            docs = splitter(docs)
+            vectors = embedder.embed_documents(docs)
+            retrieved_docs = retriever(docs, query)
+            metrics = evaluator(retrieved_docs)
+            results_matrix.append(metrics)
+
+        return results_matrix
+
+# Debugging purpose
+if __name__ == "__main__":
 
     # load
     docs = unstructured_loader("paper-01.pdf")
@@ -169,19 +279,16 @@ if __name__ == "__main__":
     # split
     docs = recursive_splitter(docs)
     
-    # embedding & evaluate with dimension/time
-    # In compatible with OpenAIEmbeddings
-    texts = [doc.page_content for doc in docs]
-    embedding_instance = openai_embedding()
-    embeddings_list.append(embedding_instance)
-    results = run_embeddings(embeddings_list, texts)
+    # embedding
+    vector = openai_embedding(docs)
 
-    # retriever
-    query = "什么是思维链？"
-    docs_with_score = faiss_retriver(texts, query = query)
+    # # retriever
+    # query = "什么是思维链？"
+    # docs_with_score = faiss_retriver(docs, query = query)
 
-    # evaluate retriever
-        # evaluate the retriever
-    # from vectorview import Vectorview
-    # vv = Vectorview(key)
-    # vv.event(query, docs_with_score)
+    # # evaluator
+    # result = langchain_evalutor(query, docs_with_score)
+
+    # workflow = WorkflowExecutor()
+    # workflow.update_component('loaders', unstructured_loader, 'add')
+    # workflow.update_component('splitters', recursive_splitter, 'add')

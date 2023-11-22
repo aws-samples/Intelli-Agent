@@ -14,6 +14,7 @@ import * as s3assets from 'aws-cdk-lib/aws-s3-assets';
 import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as sagemaker from 'aws-cdk-lib/aws-sagemaker';
 import { DockerImageCode, Architecture, DockerImageFunction} from 'aws-cdk-lib/aws-lambda';
 import { join } from "path";
 import { off } from 'process';
@@ -26,6 +27,10 @@ interface etlStackProps extends StackProps {
     _embeddingEndpoint: string;
     _region: string;
     _subEmail: string;
+    _etlCodePrefix: string;
+    _s3ModelAssets: string;
+    _OpenSearchIndex: string;
+    _imageName: string;
 }
 
 export class EtlStack extends NestedStack {
@@ -33,9 +38,55 @@ export class EtlStack extends NestedStack {
     _jobName;
     _jobArn;
     _processedObjectsTable;
+    _etlEndpoint: string;
 
     constructor(scope: Construct, id: string, props: etlStackProps) {
         super(scope, id, props);
+
+        const endpointRole = new iam.Role(this, 'etl-endpoint-role', {
+            assumedBy: new iam.ServicePrincipal('sagemaker.amazonaws.com'),
+            managedPolicies: [
+                iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonSageMakerFullAccess'),
+                iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonS3FullAccess'),
+                iam.ManagedPolicy.fromAwsManagedPolicyName('CloudWatchLogsFullAccess'),
+            ],
+        });
+
+        // Create model, BucketDeployment construct automatically handles dependencies to ensure model assets uploaded before creating the model in this.region
+        const imageUrl = this.account + '.dkr.ecr.' + this.region +'.amazonaws.com/' + props._imageName
+        const model = new sagemaker.CfnModel(this, 'etl-model', {
+            executionRoleArn: endpointRole.roleArn,
+            primaryContainer: {
+                image: imageUrl,
+                environment: {
+                    S3_CODE_PREFIX: props._etlCodePrefix,
+                },
+            },
+        });
+
+        // Create endpoint configuration
+        const endpointConfig = new sagemaker.CfnEndpointConfig(this, 'etl-endpoint-config', {
+            productionVariants: [{
+                initialVariantWeight: 1.0,
+                modelName: model.attrModelName,
+                variantName: 'variantProd',
+                containerStartupHealthCheckTimeoutInSeconds: 15*60,
+                initialInstanceCount: 1,
+                instanceType: 'ml.g4dn.xlarge',
+            }],
+        });
+
+        // Create endpoint
+        const etlEndpoint = new sagemaker.CfnEndpoint(this, 'etl-endpoint', {
+            endpointConfigName: endpointConfig.attrEndpointConfigName,
+            endpointName: 'etl-endpoint',
+        });
+        
+        if (typeof etlEndpoint.endpointName === 'undefined') {
+            throw new Error('etlEndpoint.endpointName is undefined');
+        }
+
+        this._etlEndpoint = etlEndpoint.endpointName;
 
         const connection = new glue.Connection(this, 'GlueJobConnection', {
             type: glue.ConnectionType.NETWORK,
@@ -122,8 +173,8 @@ export class EtlStack extends NestedStack {
                 '--AOS_ENDPOINT': props._domainEndpoint,
                 '--REGION': props._region,
                 '--EMBEDDING_MODEL_ENDPOINT': props._embeddingEndpoint,
-                '--ETL_MODEL_ENDPOINT': 'test-etl-endpoint',
-                '--DOC_INDEX_TABLE': 'chatbot-index',
+                '--ETL_MODEL_ENDPOINT': this._etlEndpoint,
+                '--DOC_INDEX_TABLE': props._OpenSearchIndex,
                 '--additional-python-modules': 'langchain==0.0.312,beautifulsoup4==4.12.2,requests-aws4auth==1.2.3,boto3==1.28.84,openai==0.28.1,pyOpenSSL==23.3.0,tenacity==8.2.3,markdownify==0.11.6,mammoth==1.6.0,chardet==5.2.0,python-docx==1.1.0,nltk==3.8.1,pdfminer.six==20221105',
                 // add multiple extra python files
                 '--extra-py-files': extraPythonFilesList
@@ -190,6 +241,8 @@ export class EtlStack extends NestedStack {
                 '--S3_PREFIX.$': '$.s3Prefix',
                 '--AOS_ENDPOINT': props._domainEndpoint,
                 '--EMBEDDING_MODEL_ENDPOINT': props._embeddingEndpoint,
+                '--ETL_MODEL_ENDPOINT': this._etlEndpoint,
+                '--DOC_INDEX_TABLE': props._OpenSearchIndex,
                 '--REGION': props._region,
                 '--RES_BUCKET': _S3Bucket.bucketName,
                 '--OFFLINE': 'true',
@@ -232,6 +285,7 @@ export class EtlStack extends NestedStack {
                 '--S3_PREFIX.$': '$.s3Prefix',
                 '--AOS_ENDPOINT': props._domainEndpoint,
                 '--EMBEDDING_MODEL_ENDPOINT': props._embeddingEndpoint,
+                '--DOC_INDEX_TABLE': props._OpenSearchIndex,
                 '--REGION': props._region,
                 '--OFFLINE': 'false',
                 '--QA_ENHANCEMENT.$': '$.qaEnhance',

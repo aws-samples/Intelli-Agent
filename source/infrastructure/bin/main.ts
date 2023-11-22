@@ -27,6 +27,17 @@ export class RootStack extends Stack {
       description: 'Email address for SNS notification',
     });
 
+    const _OpenSearchIndex = new CfnParameter(this, 'OpenSearchIndex', {
+      type: 'String',
+      description: 'OpenSearch index to store knowledge',
+      default: 'chatbot-index',
+    });
+
+    const _imageName = new CfnParameter(this, 'EtlImageName', {
+      type: 'String',
+      description: 'The ECR image name which is used for ETL, eg. etl-model',
+    });
+
     // This assest stack is to mitigate issue that the model assets in s3 bucket can't be located immediately to create sagemaker model
     const _AssetsStack = new AssetsStack(this, 'assets-stack', {_s3ModelAssets:_S3ModelAssets.valueAsString, env:process.env});
     const _LLMStack = new LLMStack(this, 'llm-stack', {
@@ -59,6 +70,10 @@ export class RootStack extends Stack {
       _vpc: _VpcStack._vpc,
       _subnets: _VpcStack._privateSubnets,
       _securityGroups: _VpcStack._securityGroup,
+      _etlCodePrefix: _AssetsStack._etlCodePrefix,
+      _s3ModelAssets:_S3ModelAssets.valueAsString,
+      _OpenSearchIndex: _OpenSearchIndex.valueAsString,
+      _imageName: _imageName.valueAsString,
     });
     _EtlStack.addDependency(_VpcStack);
     _EtlStack.addDependency(_OsStack);
@@ -73,6 +88,7 @@ export class RootStack extends Stack {
         _instructEndPoint:_LLMStack._instructEndPoint || '',
         _chatSessionTable: _DynamoDBStack._chatSessionTable,
         _sfnOutput: _EtlStack._sfnOutput,
+        _OpenSearchIndex: _OpenSearchIndex.valueAsString,
         env:process.env
     });
     _ApiStack.addDependency(_VpcStack);
