@@ -233,10 +233,15 @@ def get_llm_summary(initial_prompt):
     logger.info("summary response: {}".format(response))
     return response
 
-def generate_image(positive_prompts: str, negative_prompts: str, model: List[str], current_col, progress_bar, debug: bool = False):
+def generate_image(positive_prompts: str, negative_prompts: str, model: List[str], current_col, progress_bar):
     job = create_inference_job(model)
     st.session_state.progress += 5
     progress_bar.progress(st.session_state.progress)
+
+    if 'inference' not in job:
+        logger.error(f"Failed to create inference job: {job}")
+        current_col.error(f"Failed to create inference job: {job}")
+        return
 
     inference = job["inference"]
 
@@ -401,8 +406,8 @@ def upload_inference_job_api_params(s3_url, positive: str, negative: str):
         "n_iter": 1,
         "steps": 20,
         "cfg_scale": 7.0,
-        "width": 512,
-        "height": 512,
+        "width": 1024,
+        "height": 1024,
         "restore_faces": None,
         "tiling": None,
         "do_not_save_samples": False,
@@ -550,7 +555,7 @@ def upload_inference_job_api_params(s3_url, positive: str, negative: str):
     response.raise_for_status()
     return response
 
-def generate_llm_image(initial_prompt: str, col, order: int, debug: bool = False):
+def generate_llm_image(initial_prompt: str, col, order: int):
     # col.empty()
     # col.subheader(title)
     st.spinner()
@@ -560,23 +565,26 @@ def generate_llm_image(initial_prompt: str, col, order: int, debug: bool = False
     global support_model_list
     models = default_models
 
-    positive_prompt, negative_prompt, model_index_list = get_llm_processed_prompts(initial_prompt)
-    st.session_state.progress += 15
-    progress_bar.progress(st.session_state.progress)
+    if not debug or enable_llm:
+        positive_prompt, negative_prompt, model_index_list = get_llm_processed_prompts(initial_prompt)
+        st.session_state.progress += 15
+        progress_bar.progress(st.session_state.progress)
+        # if prompt is empty, use default
+        if positive_prompt == "" or negative_prompt == "":
+            positive_prompt = initial_prompt
 
-    # if prompt is empty, use default
-    if positive_prompt == "" or negative_prompt == "":
+        if len(model_index_list) > 0:
+            # TODO, support model list should align with prompt template, we assume the model list is fixed at 2
+            models = [support_model_list[int(index)] for index in model_index_list.strip("[]").split(",")]
+
+        # select the model in model list according to the order while keep the List type to compatible with genegrate_image, e.g. models: ['LahCuteCartoonSDXL_alpha.safetensors', 'majicmixRealistic_v7.safetensors']
+        models = [models[order]]
+    else:
         positive_prompt = initial_prompt
-
-    if len(model_index_list) > 0:
-        # TODO, support model list should align with prompt template, we assume the model list is fixed at 2
-        models = [support_model_list[int(index)] for index in model_index_list.strip("[]").split(",")]
-
-    # select the model in model list according to the order while keep the List type to compatible with genegrate_image, e.g. models: ['LahCuteCartoonSDXL_alpha.safetensors', 'majicmixRealistic_v7.safetensors']
-    models = [models[order]]
+        negative_prompt = ""
 
     # This is a synchrounous call, will block the UI
-    inference_id = generate_image(positive_prompt, negative_prompt, models, col, progress_bar, debug)
+    inference_id = generate_image(positive_prompt, negative_prompt, models, col, progress_bar)
     return inference_id
 
 def select_checkpoint(user_list: List[str]):
@@ -599,10 +607,13 @@ def check_if_input_cn(prompt: str):
 # Generator function
 def image_generator(prompt, cols):
     for idx, col in enumerate(cols):
-        yield generate_llm_image, (prompt, col, idx // 2, True)
+        yield generate_llm_image, (prompt, col, idx // 2)
+
+# main entry point for serve
+# python -m streamlit run image_generation.py --server.port 8088
 
 # main entry point for debugging
-# python -m streamlit run image_generation.py --server.port 8088
+# DEBUG=true python -m streamlit run image_generation.py --server.port 8088
 if __name__ == "__main__":
     try:
         st.set_page_config(page_title="Da Vinci", layout="wide")
@@ -610,6 +621,13 @@ if __name__ == "__main__":
 
         # Sidebar logo
         st.sidebar.image("https://d0.awsstatic.com/logos/powered-by-aws.png", width=200)
+
+        debug = os.getenv("DEBUG", "false").lower() == "true"
+        if debug:
+            st.sidebar.write("")
+            st.sidebar.write("")
+            st.sidebar.write("Debug Options:")
+            enable_llm = st.sidebar.checkbox("Enable Bedrock LLM", value=True)
 
         # User input
         prompt = st.text_input("What image do you want to create today?", "A cute dog")
