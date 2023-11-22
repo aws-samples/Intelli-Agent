@@ -559,8 +559,10 @@ def generate_llm_image(initial_prompt: str, col, order: int):
         generate_llm_image_col(initial_prompt, col, order, progress_bar)
         st.session_state.succeed_count += 1
     except Exception as e:
+        # Exceed the retry limit
         col.error("Image generation failed, please try again.")
         raise e
+
 
 @retry(stop=stop_after_attempt(5))
 def generate_llm_image_col(initial_prompt: str, col, order: int, progress_bar):
