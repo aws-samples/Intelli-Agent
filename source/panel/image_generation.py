@@ -5,7 +5,6 @@ import os
 import time
 from datetime import datetime
 from typing import List
-from itertools import product
 import boto3
 import requests
 import streamlit as st
@@ -14,6 +13,7 @@ from langchain import PromptTemplate
 from langchain.chains import ConversationChain
 from langchain.llms.bedrock import Bedrock
 from langchain.memory import ConversationBufferMemory
+from tenacity import stop_after_attempt, retry
 
 logging.basicConfig(level=logging.INFO)
 # logging to stdout
@@ -48,7 +48,7 @@ prompt_model_list = [
     {"sd_xl_base_1.0.safetensors", "default"},
     {"majicmixRealistic_v7.safetensors", "realistic"},
     {"x2AnimeFinal_gzku.safetensors", "anime"},
-    {"LahCuteCartoonSDXL_alpha.safetensors", "catoon"}
+    {"LahCuteCartoonSDXL_alpha.safetensors", "cartoon"}
 ]
 
 default_models = ["sd_xl_base_1.0.safetensors"]
@@ -201,7 +201,6 @@ def get_llm_processed_prompts(initial_prompt):
     )
 
     # use cn template to avoid instability in prompt output
-    res = check_if_input_cn(initial_prompt)
     conversation.prompt = sd_prompt_cn if check_if_input_cn(initial_prompt) else sd_prompt
 
     response = conversation.predict(input=initial_prompt)
@@ -237,11 +236,6 @@ def generate_image(positive_prompts: str, negative_prompts: str, model: List[str
     job = create_inference_job(model)
     st.session_state.progress += 5
     progress_bar.progress(st.session_state.progress)
-
-    if 'inference' not in job:
-        logger.error(f"Failed to create inference job: {job}")
-        current_col.error(f"Failed to create inference job: {job}")
-        return
 
     inference = job["inference"]
 
@@ -555,37 +549,42 @@ def upload_inference_job_api_params(s3_url, positive: str, negative: str):
     response.raise_for_status()
     return response
 
+
 def generate_llm_image(initial_prompt: str, col, order: int):
-    # col.empty()
-    # col.subheader(title)
     st.spinner()
     st.session_state.progress = 5
     progress_bar = col.progress(st.session_state.progress)
 
+    try:
+        generate_llm_image_col(initial_prompt, col, order, progress_bar)
+    except Exception as e:
+        col.error("Image generation failed, please try again.")
+        raise e
+
+@retry(stop=stop_after_attempt(5))
+def generate_llm_image_col(initial_prompt: str, col, order: int, progress_bar):
+    if order == 1:
+        raise Exception("retry test")
     global support_model_list
     models = default_models
 
-    if not debug or enable_llm:
-        positive_prompt, negative_prompt, model_index_list = get_llm_processed_prompts(initial_prompt)
-        st.session_state.progress += 15
-        progress_bar.progress(st.session_state.progress)
-        # if prompt is empty, use default
-        if positive_prompt == "" or negative_prompt == "":
-            positive_prompt = initial_prompt
+    positive_prompt, negative_prompt, model_index_list = get_llm_processed_prompts(initial_prompt)
+    st.session_state.progress += 15
+    progress_bar.progress(st.session_state.progress)
 
-        if len(model_index_list) > 0:
-            # TODO, support model list should align with prompt template, we assume the model list is fixed at 2
-            models = [support_model_list[int(index)] for index in model_index_list.strip("[]").split(",")]
-
-        # select the model in model list according to the order while keep the List type to compatible with genegrate_image, e.g. models: ['LahCuteCartoonSDXL_alpha.safetensors', 'majicmixRealistic_v7.safetensors']
-        models = [models[order]]
-    else:
+    # if prompt is empty, use default
+    if positive_prompt == "" or negative_prompt == "":
         positive_prompt = initial_prompt
-        negative_prompt = ""
 
-    # This is a synchrounous call, will block the UI
-    inference_id = generate_image(positive_prompt, negative_prompt, models, col, progress_bar)
-    return inference_id
+    if len(model_index_list) > 0:
+        # TODO, support model list should align with prompt template, we assume the model list is fixed at 2
+        models = [support_model_list[int(index)] for index in model_index_list.strip("[]").split(",")]
+
+    # select the model in model list according to the order while keep the List type to compatible with genegrate_image, e.g. models: ['LahCuteCartoonSDXL_alpha.safetensors', 'majicmixRealistic_v7.safetensors']
+    models = [models[order]]
+
+    # This is a synchronous call, will block the UI
+    generate_image(positive_prompt, negative_prompt, models, col, progress_bar)
 
 def select_checkpoint(user_list: List[str]):
     global support_model_list
@@ -623,19 +622,17 @@ if __name__ == "__main__":
         st.sidebar.image("https://d0.awsstatic.com/logos/powered-by-aws.png", width=200)
 
         debug = os.getenv("DEBUG", "false").lower() == "true"
-        if debug:
-            st.sidebar.write("")
-            st.sidebar.write("")
-            st.sidebar.write("Debug Options:")
-            enable_llm = st.sidebar.checkbox("Enable Bedrock LLM", value=True)
 
         # User input
         prompt = st.text_input("What image do you want to create today?", "A cute dog")
         button = st.button('Generate Image')
 
+        # Initialize checkpoints before user action
+        get_checkpoints()
+
         if button:
-            get_checkpoints()
             st.session_state.warnings = []
+            st.session_state.succeed_count = 0
             # 2*2 layout image grid
             col1, col2 = st.columns(2)
             col3, col4 = st.columns(2)
@@ -645,11 +642,18 @@ if __name__ == "__main__":
 
             # Execute each image generation task
             for func, args in generator:
-                func(*args)
+                try:
+                    func(*args)
+                except Exception as e:
+                    logger.exception(e)
+                    # Each task can retry 5 times
+                    # When one task fails, the next will not be executed
+                    break
 
-            # output box to summarize the image grid
-            response = get_llm_summary(prompt)
-            st.text_area("Summary", value=response, height=200)
+            # output box to summarize the image grid if succeed at least one image
+            if st.session_state.succeed_count > 0:
+                response = get_llm_summary(prompt)
+                st.text_area("Summary", value=response, height=200)
 
     except Exception as e:
         logger.exception(e)

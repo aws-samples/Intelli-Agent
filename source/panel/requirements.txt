@@ -5,3 +5,4 @@ langchain
 openai
 tiktoken
 boto3
+tenacity
