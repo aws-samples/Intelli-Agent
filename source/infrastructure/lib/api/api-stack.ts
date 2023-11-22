@@ -114,6 +114,35 @@ export class LLMApiStack extends NestedStack {
             resources: ['*'],
         }
         ))
+
+        const lambdaAos = new DockerImageFunction(this,
+            "lambdaAos", {
+            code: DockerImageCode.fromImageAsset(join(__dirname, "../../../lambda/aos")),
+            timeout: Duration.minutes(15),
+            memorySize: 1024,
+            vpc: _vpc,
+            vpcSubnets: {
+                subnets: _vpc.privateSubnets,
+            },
+            securityGroups: [_securityGroup],
+            architecture: Architecture.X86_64,
+            environment: {
+                opensearch_cluster_domain: _domainEndpoint,
+            },
+        });
+
+        lambdaAos.addToRolePolicy(new iam.PolicyStatement({
+            actions: [
+                "s3:List*",
+                "s3:Put*",
+                "s3:Get*",
+                "es:*",
+            ],
+            effect: iam.Effect.ALLOW,
+            resources: ['*'],
+        }
+        ))
+
         // Define the API Gateway
         const api = new apigw.RestApi(this, 'llmApi', {
             restApiName: 'llmApi',
@@ -144,8 +173,18 @@ export class LLMApiStack extends NestedStack {
         const apiResourceEmbedding = api.root.addResource('embedding');
         apiResourceEmbedding.addMethod('POST', lambdaEmbeddingIntegration);
 
-        // Add Get method to query & search index in OpenSearch, the POST method above should be deprecated in the future and replaced by AWS Glue
+        // Add Get method to query & search index in OpenSearch, such embedding lambda will be updated for online process
         apiResourceEmbedding.addMethod('GET', lambdaEmbeddingIntegration);
+
+        // Define the API Gateway Lambda Integration with proxy and no integration responses
+        const lambdaAosIntegration = new apigw.LambdaIntegration(lambdaAos, { proxy: true, });
+
+        // All AOS wrapper should be within such lambda
+        const apiResourceAos = api.root.addResource('aos');
+        apiResourceAos.addMethod('POST', lambdaAosIntegration);
+
+        // Add Get method to query & search index in OpenSearch, such embedding lambda will be updated for online process
+        apiResourceAos.addMethod('GET', lambdaAosIntegration);
 
         // Integration with Step Function to trigger ETL process
         // Lambda function to trigger Step Function

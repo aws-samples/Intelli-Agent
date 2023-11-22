@@ -18,7 +18,12 @@ Make sure Python installed properly. Usage: ./model.sh -t TOKEN [-m MODEL_NAME] 
   -c COMMIT_HASH      Commit hash (default: 46d270928463db49b317e5ea469a8ac8152f4a13)
   -s S3_BUCKET_NAME   S3 bucket name to upload the model (default: llm-rag)
 ./model.sh -t <Your Hugging Face Token> -s <Your S3 Bucket Name>
+
+cd source/model/etl/code
+sh model.sh ./Dockerfile <EtlImageName> <AWS_REGION>
 ```
+The ETL image will be pushed to your ECR repo with the image name you specified when executing the command sh model.sh ./Dockerfile <EtlImageName> <AWS_REGION>, AWS_REGION is like us-east-1, us-west-2, etc.
+
 
 2. Deploy CDK template (add sudo if you are using Linux)
 ```bash
@@ -33,7 +38,7 @@ npx cdk deploy
 cd source/infrastructure
 aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
 npm install
-npx cdk deploy --rollback false --parameters S3ModelAssets=<Your S3 Bucket Name> --parameters SubEmail=<Your email address> --parameters OpenSearchIndex=<Your OpenSearch Index Name>
+npx cdk deploy --rollback false --parameters S3ModelAssets=<Your S3 Bucket Name> --parameters SubEmail=<Your email address> --parameters OpenSearchIndex=<Your OpenSearch Index Name> --parameters EtlImageName=<Your ETL model name>
 ```
 
 **Deployment parameters**
@@ -43,7 +48,7 @@ npx cdk deploy --rollback false --parameters S3ModelAssets=<Your S3 Bucket Name>
 | S3ModelAssets | Your bucket name to store models |
 | SubEmail | Your email address to receive notifications |
 | OpenSearchIndex | OpenSearch index name to store the knowledge, if the index is not existed, the solution will create one |
-
+| EtlImageName | ETL image name, eg. etl-model, it is set when you executing source/model/etl/code/model.sh script |
 
 You can update us-east-1 to any other available region according to your need. You will get output similar like below:
 ```

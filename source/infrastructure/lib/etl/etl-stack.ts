@@ -30,6 +30,7 @@ interface etlStackProps extends StackProps {
     _etlCodePrefix: string;
     _s3ModelAssets: string;
     _OpenSearchIndex: string;
+    _imageName: string;
 }
 
 export class EtlStack extends NestedStack {
@@ -52,12 +53,11 @@ export class EtlStack extends NestedStack {
         });
 
         // Create model, BucketDeployment construct automatically handles dependencies to ensure model assets uploaded before creating the model in this.region
-        const imageUrl = '763104351884.dkr.ecr.'+ this.region +'.amazonaws.com/djl-inference:0.21.0-deepspeed0.8.3-cu117'
-        const model = new sagemaker.CfnModel(this, 'embedding-model', {
+        const imageUrl = this.account + '.dkr.ecr.' + this.region +'.amazonaws.com/' + props._imageName
+        const model = new sagemaker.CfnModel(this, 'etl-model', {
             executionRoleArn: endpointRole.roleArn,
             primaryContainer: {
                 image: imageUrl,
-                modelDataUrl: `s3://${props._s3ModelAssets}/${props._etlCodePrefix}/etl_model.tar.gz`,
                 environment: {
                     S3_CODE_PREFIX: props._etlCodePrefix,
                 },

@@ -33,6 +33,11 @@ export class RootStack extends Stack {
       default: 'chatbot-index',
     });
 
+    const _imageName = new CfnParameter(this, 'EtlImageName', {
+      type: 'String',
+      description: 'The ECR image name which is used for ETL, eg. etl-model',
+    });
+
     // This assest stack is to mitigate issue that the model assets in s3 bucket can't be located immediately to create sagemaker model
     const _AssetsStack = new AssetsStack(this, 'assets-stack', {_s3ModelAssets:_S3ModelAssets.valueAsString, env:process.env});
     const _LLMStack = new LLMStack(this, 'llm-stack', {
@@ -68,6 +73,7 @@ export class RootStack extends Stack {
       _etlCodePrefix: _AssetsStack._etlCodePrefix,
       _s3ModelAssets:_S3ModelAssets.valueAsString,
       _OpenSearchIndex: _OpenSearchIndex.valueAsString,
+      _imageName: _imageName.valueAsString,
     });
     _EtlStack.addDependency(_VpcStack);
     _EtlStack.addDependency(_OsStack);

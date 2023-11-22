@@ -1,6 +1,6 @@
 import { NestedStack, StackProps, RemovalPolicy } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
-import { EngineVersion, Domain} from 'aws-cdk-lib/aws-opensearchservice';
+import { EngineVersion, Domain } from 'aws-cdk-lib/aws-opensearchservice';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as iam from "aws-cdk-lib/aws-iam";
 
@@ -19,13 +19,14 @@ export class OpenSearchStack extends NestedStack {
         const devDomain = new Domain(this, 'Domain', {
             version: EngineVersion.OPENSEARCH_2_5,
             removalPolicy: RemovalPolicy.DESTROY,
-            vpc:props._vpc,
+            vpc: props._vpc,
             zoneAwareness: {
-            enabled:true
+                enabled: true
             },
             securityGroups: [props._securityGroup],
             capacity: {
                 dataNodes: 2,
+                dataNodeInstanceType:'r6g.2xlarge.search',
             },
             ebs: {
                 volumeSize: 300,
@@ -36,7 +37,7 @@ export class OpenSearchStack extends NestedStack {
         devDomain.addAccessPolicies(new iam.PolicyStatement({
             actions: ['es:*'],
             effect: iam.Effect.ALLOW,
-            principals:[new iam.AnyPrincipal()],
+            principals: [new iam.AnyPrincipal()],
             resources: [`${devDomain.domainArn}/*`],
         }))
 
