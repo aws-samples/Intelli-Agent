@@ -99,12 +99,12 @@ sd_prompt = PromptTemplate.from_template(
     Negative Prompt: <negative_prompt>,
     Recommended Model Index List: [model index list]]
 
-    The model can only be chosen from following list of dict with table name and style name described, we can only and must choose 2 models based on style discribed and output the model index list:
+    The model can only be chosen from following list of dict with table name and style name described, we can only and must choose 2 models based on style described and output the model index list:
     [
         {{"sd_xl_base_1.0.safetensors", "default"}},
         {{"majicmixRealistic_v7.safetensors", "realistic"}},
         {{"x2AnimeFinal_gzku.safetensors", "anime"}}
-        {{"LahCuteCartoonSDXL_alpha.safetensors", "catoon"}}
+        {{"LahCuteCartoonSDXL_alpha.safetensors", "cartoon"}}
     ]
 
     For example:
