@@ -563,8 +563,6 @@ def generate_llm_image(initial_prompt: str, col, order: int):
 
 @retry(stop=stop_after_attempt(5))
 def generate_llm_image_col(initial_prompt: str, col, order: int, progress_bar):
-    if order == 1:
-        raise Exception("retry test")
     global support_model_list
     models = default_models
 
