@@ -134,6 +134,8 @@ export class LLMApiStack extends NestedStack {
 
         lambdaAos.addToRolePolicy(new iam.PolicyStatement({
             actions: [
+                "sagemaker:InvokeEndpointAsync",
+                "sagemaker:InvokeEndpoint",
                 "s3:List*",
                 "s3:Put*",
                 "s3:Get*",
