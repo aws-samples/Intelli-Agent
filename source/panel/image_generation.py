@@ -1,18 +1,19 @@
-import re
 import json
 import logging
 import os
+import re
 import time
 from datetime import datetime
 from typing import List
+
 import boto3
 import requests
 import streamlit as st
 from dotenv import load_dotenv
-from langchain import PromptTemplate
 from langchain.chains import ConversationChain
 from langchain.llms.bedrock import Bedrock
 from langchain.memory import ConversationBufferMemory
+from langchain.prompts import PromptTemplate
 from tenacity import stop_after_attempt, retry
 
 logging.basicConfig(level=logging.INFO)
@@ -53,6 +54,7 @@ prompt_model_list = [
 
 default_models = ["sd_xl_base_1.0.safetensors"]
 
+
 # todo will update api
 def deploy_sagemaker_endpoint(instance_type: str = "ml.g4dn.4xlarge", initial_instance_count: int = 1,
                               endpoint_name: str = "default-endpoint-for-llm-bot"):
@@ -70,8 +72,10 @@ def deploy_sagemaker_endpoint(instance_type: str = "ml.g4dn.4xlarge", initial_in
     res = requests.post(COMMAND_API_URL + 'inference/deploy-sagemaker-endpoint', headers=headers, json=inputBody)
     logger.info("deploy_sagemaker_endpoint: {}".format(res.json()))
 
+
 def upload_model():
     pass
+
 
 def get_bedrock_llm():
     # specify the profile_name to call the bedrock api if needed
@@ -85,26 +89,19 @@ def get_bedrock_llm():
     )
     return cl_llm
 
-# todo template use dynamic checkpoints
+
 sd_prompt = PromptTemplate.from_template(
     """
     Human:
     - Transform the input prompt {input} into a detailed prompt for an image generation model, describing the scene with vivid and specific attributes that enhance the original concept, only adjective and noun are allowed, verb and adverb are not allowed, each words speperated by comma.
     - Generate a negative prompt that specifies what should be avoided in the image, including any elements that contradict the desired style or tone.
-    - Recommend a list of suitable models from the fix model list that best match the style and content described in the detailed prompt.
     - Other notes please refer to the following example:
 
-    The output should be a plain text in Python List format shown follows, no extra content added beside Positive Prompt, Negative Prompt and Recommended Model Index List.
-    [Positive Prompt: <detailed_prompt>,
-    Negative Prompt: <negative_prompt>,
-    Recommended Model Index List: [model index list]]
-
-    The model can only be chosen from following list of dict with table name and style name described, we can only and must choose 2 models based on style described and output the model index list:
+    The output should be a plain text in Python List format shown follows, no extra content added beside Positive Prompt, Negative Prompt.
     [
-        {{"sd_xl_base_1.0.safetensors", "default"}},
-        {{"majicmixRealistic_v7.safetensors", "realistic"}},
-        {{"x2AnimeFinal_gzku.safetensors", "anime"}}
-        {{"LahCuteCartoonSDXL_alpha.safetensors", "cartoon"}}
+        Positive Prompt: <detailed_prompt>,
+        Negative Prompt: <negative_prompt>,
+        Prompt End String:
     ]
 
     For example:
@@ -112,15 +109,87 @@ sd_prompt = PromptTemplate.from_template(
     [
         Positive Prompt: "visually appealing, high-quality image of a cute dog in a vibrant, cartoon style, adorable appearance, expressive eyes, friendly demeanor, colorful and lively, reminiscent of popular animation studios, artwork.",
         Negative Prompt: "realism, dark or dull colors, scary or aggressive dog depictions, overly simplistic, stick figure drawings, blurry or distorted images, inappropriate or NSFW content.",
-        Recommended Model Index List: [0, 3]
+        Prompt End String:
     ]
 
     If the input prompt is: "a girl in photo-realistic style", the output should be as follows:
     [
         Positive Prompt: "detailed, photo-realistic, life-like, high-definition, sharp, accurate color tones, realistic textures, natural lighting, subtle expressions, vivid, true-to-life, authentic appearance, nuanced, real photograph.",
         Negative Prompt: "cartoonish, abstract, stylized, overly simplistic, exaggerated, distorted features, bright unrealistic colors, artificial elements, fantasy elements, non-photo-realistic.",
-        Recommended Model Index List: [0, 2]
+        Prompt End String:
     ]
+
+    If the input prompt is: "Can you draw a photograph of astronaut floating in space", the output should be as follows:
+    [
+        Positive Prompt: "breathtaking selfie photograph of astronaut floating in space, earth in the background. masterpiece, best quality, highly detailed",
+        Negative Prompt: "lowres, anime, cartoon, graphic, text, painting, crayon, graphite, abstract glitch, blurry, cropped, worst quality, low quality, watermark",
+        Prompt End String:
+    ]
+
+    If the input prompt is: "帮我画一个飞行的宇航员", the output should be as follows:
+    [
+        Positive Prompt: "breathtaking selfie photograph of astronaut floating in space, earth in the background. masterpiece, best quality, highly detailed",
+        Negative Prompt: "lowres, anime, cartoon, graphic, text, painting, crayon, graphite, abstract glitch, blurry",
+        Prompt End String:
+    ]
+
+    If the input prompt is: "Please generate a night street of Tokyo", the output should be as follows:
+    [
+        Positive Prompt: "breathtaking night street of Tokyo, neon lights. masterpiece, best quality, highly detailed",
+        Negative Prompt: "lowres, anime, cartoon, graphic, text, painting, crayon, graphite, abstract glitch, blurry",
+        Prompt End String:
+    ]
+
+    If the input prompt is: "你可以画一个东京的夜景图吗？", the output should be as follows:
+    [
+        Positive Prompt: "breathtaking night street of Tokyo, neon lights. masterpiece, best quality, highly detailed",
+        Negative Prompt: "lowres, anime, cartoon, graphic, text, painting, crayon, graphite, abstract glitch, blurry",
+        Prompt End String:
+    ]
+
+    If the input prompt is: "Generate an empty classroom in anime style", the output should be as follows:
+    [
+        Positive Prompt: "anime artwork an empty classroom. anime style, key visual, vibrant, studio anime, highly detailed",
+        Negative Prompt: "photo, deformed, black and white, realism, disfigured, low contrast",
+        Prompt End String:
+    ]
+
+    If the input prompt is: "i want a photo of 1 realistic girl", the output should be as follows:
+    [
+        Positive Prompt: "masterpiece, best quality,realistic,1girl",
+        Negative Prompt: "nsfw,(worst quality:2), (low quality:2), (normal quality:2), lowres, ((monochrome)), ((grayscale)), watermark, (bad-hands-5:1.5)",
+        Prompt End String:
+    ]
+
+    If the input prompt is: "我想要一张女生的写实照片", the output should be as follows:
+    [
+        Positive Prompt: "best quality,highly detailed, masterpiece, 8k wallpaper, realistic,1girl",
+        Negative Prompt: "nsfw,(worst quality:2), (low quality:2), (normal quality:2), lowres, ((monochrome)), ((grayscale)), watermark, (bad-hands-5:1.5)",
+        Prompt End String:
+    ]
+
+    If the input prompt is: "我想要一张漫画风格的小狗", the output should be as follows:
+    [
+        Positive Prompt: "masterpiece, best quality, cartoon style, dog",
+        Negative Prompt: "realistic, dark or dull colors, (worst quality:2), (low quality:2), (normal quality:2), lowres, ((monochrome)), ((grayscale)), watermark",
+        Prompt End String:
+    ]
+
+    If the input prompt is: "请帮忙画一张朋克风格的猫", the output should be as follows:
+    [
+        Positive Prompt: "masterpiece, best quality, cybernetic cat wears futuristic armor",
+        Negative Prompt: "dark environment, (worst quality:2), (low quality:2), (normal quality:2), lowres, ((monochrome)), ((grayscale)), watermark",
+        Prompt End String:
+    ]
+    
+    If the input prompt is: "please draw a Steampunk cat", the output should be as follows:
+    [
+        Positive Prompt: "masterpiece, best quality, cybernetic cat wears futuristic armor",
+        Negative Prompt: "dark environment, (worst quality:2), (low quality:2), (normal quality:2), lowres, ((monochrome)), ((grayscale)), watermark",
+        Prompt End String:
+    ]
+ 
+    "Do not include style modifiers that do not appear in the question in positive prompt, such as cute, cartoon \n"   
 
     Current conversation:
     <conversation_history>
@@ -128,47 +197,6 @@ sd_prompt = PromptTemplate.from_template(
     </conversation_history>
 
     Here is the human's next reply:
-    <human_reply>
-    {input}
-    </human_reply>
-
-    Assistant:
-    """)
-
-sd_prompt_cn = PromptTemplate.from_template(
-    """
-    Human:
-    - 将输入提示 {input} 转化为图像生成模型的详细提示，用生动和具体的属性描述场景，以增强原始概念，只允许使用形容词和名词，不允许使用动词和副词，每个词用逗号分隔。
-    - 生成一个负面提示，指定图像中应避免的内容，包括任何与期望风格或基调相矛盾的元素。
-    - 从固定的模型列表中推荐最符合详细提示描述的风格和内容的模型列表。
-    - 其他注意事项请参考以下示例：
-
-    输出应为以下所示的 Python 列表格式纯文本，除了 Positive Prompt、Negative Prompt 和 Recommended Model Index List 之外不添加任何额外内容。模型列表只能从以下基于风格描述的列表中选择，并仅输出索引号：
-    [
-        {{"sd_xl_base_1.0.safetensors", "default"}},
-        {{"majicmixRealistic_v7.safetensors", "realistic"}},
-        {{"x2AnimeFinal_gzku.safetensors", "anime"}}
-        {{"LahCuteCartoonSDXL_alpha.safetensors", "catoon"}}
-    ]
-
-    [Positive Prompt: <detailed_prompt>,
-    Negative Prompt: <negative_prompt>,
-    Recommended Model Index List: <model index list>]
-
-    例如：
-    如果输入提示是：“卡通风格的可爱狗”，输出应如下：
-    [
-        Positive Prompt: "visually appealing, high-quality image of a cute dog in a vibrant, cartoon style, adorable appearance, expressive eyes, friendly demeanor, colorful and lively, reminiscent of popular animation studios, artwork.",
-        Negative Prompt: "realism, dark or dull colors, scary or aggressive dog depictions, overly simplistic, stick figure drawings, blurry or distorted images, inappropriate or NSFW content.",
-        Recommended Model Index List: [0, 3]
-    ]
-
-    当前对话：
-    <conversation_history>
-    {history}
-    </conversation_history>
-
-    人类的下次回复：
     <human_reply>
     {input}
     </human_reply>
@@ -193,6 +221,7 @@ summary_prompt = PromptTemplate.from_template(
     Assistant:
     """)
 
+
 def get_llm_processed_prompts(initial_prompt):
     cl_llm = get_bedrock_llm()
     memory = ConversationBufferMemory()
@@ -200,26 +229,30 @@ def get_llm_processed_prompts(initial_prompt):
         llm=cl_llm, verbose=False, memory=memory
     )
 
-    # use cn template to avoid instability in prompt output
-    conversation.prompt = sd_prompt_cn if check_if_input_cn(initial_prompt) else sd_prompt
+    conversation.prompt = sd_prompt
 
     response = conversation.predict(input=initial_prompt)
     logger.info("the first invoke: {}".format(response))
     # logger.info("the second invoke: {}".format(conversation.predict(input="change to realist style")))
 
-    # TODO, below parase is not stable and can be changed accord to PE, will update later
+    # TODO, below paras is not stable and can be changed accord to PE, will update later
     # Define regular expressions
     positive_pattern = r"Positive Prompt: (.*?),\s+Negative Prompt:"
-    negative_pattern = r"Negative Prompt: (.*?),\s+Recommended Model Index List:"
-    model_pattern = r"Recommended Model Index List: (\[[^\]]*\])"
+    negative_pattern = r"Negative Prompt: (.*?),\s+Prompt End String:"
 
     # Extract data using regex
     positive_prompt = re.search(positive_pattern, response, re.DOTALL).group(1).strip()
     negative_prompt = re.search(negative_pattern, response, re.DOTALL).group(1).strip()
-    model_index_list = re.search(model_pattern, response, re.DOTALL).group(1).strip()
 
-    logger.info("positive_prompt: {}\n negative_prompt: {}\n model_index_list: {}".format(positive_prompt, negative_prompt, model_index_list))
-    return positive_prompt, negative_prompt, model_index_list
+    # remove the " and ' in the prompt
+    positive_prompt = positive_prompt.replace('"', '').replace("'", "")
+    negative_prompt = negative_prompt.replace('"', '').replace("'", "")
+
+    logger.info("positive_pattern: {}".format(positive_prompt))
+    logger.info("negative_pattern: {}".format(negative_prompt))
+
+    return positive_prompt, negative_prompt
+
 
 def get_llm_summary(initial_prompt):
     cl_llm = get_bedrock_llm()
@@ -232,8 +265,9 @@ def get_llm_summary(initial_prompt):
     logger.info("summary response: {}".format(response))
     return response
 
-def generate_image(positive_prompts: str, negative_prompts: str, model: List[str], current_col, progress_bar):
-    job = create_inference_job(model)
+
+def generate_image(positive_prompts: str, negative_prompts: str, current_col, progress_bar):
+    job = create_inference_job(default_models)
     st.session_state.progress += 5
     progress_bar.progress(st.session_state.progress)
 
@@ -243,15 +277,24 @@ def generate_image(positive_prompts: str, negative_prompts: str, model: List[str
     st.session_state.progress += 5
     progress_bar.progress(st.session_state.progress)
 
-    run_inference_job(inference["id"])
+    run_resp = run_inference_job(inference["id"])
+    logger.info("run_resp: {}".format(run_resp))
+    # if endpoint is not deleted through api, api may return an endpoint not available message
+    if 'errorMessage' in run_resp:
+        current_col.error(run_resp['errorMessage'])
+        return
+
     st.session_state.progress += 5
     progress_bar.progress(st.session_state.progress)
 
     while True:
         status_response = get_inference_job(inference["id"])
-        if st.session_state.progress < 80:
-            st.session_state.progress += 10
-        progress_bar.progress(st.session_state.progress)
+        # if status is not created, increase the progress bar
+        if status_response['status'] != 'created':
+            if st.session_state.progress < 80:
+                st.session_state.progress += 10
+            progress_bar.progress(st.session_state.progress)
+        logger.info("job status: {}".format(status_response['status']))
         if status_response['status'] == 'succeed':
             progress_bar.progress(100)
             image_url = get_inference_image_output(inference["id"])[0]
@@ -286,6 +329,7 @@ def generate_image(positive_prompts: str, negative_prompts: str, model: List[str
 
     return inference["id"]
 
+
 def get_inference_job(inference_id: str):
     headers = {
         "Content-Type": "application/json",
@@ -296,6 +340,7 @@ def get_inference_job(inference_id: str):
     job = requests.get(STATUS_API_URL, headers=headers, params={"jobID": inference_id})
 
     return job.json()
+
 
 def get_inference_param_output(inference_id: str):
     headers = {
@@ -308,6 +353,7 @@ def get_inference_param_output(inference_id: str):
 
     return job.json()
 
+
 def get_inference_image_output(inference_id: str):
     headers = {
         "Content-Type": "application/json",
@@ -318,6 +364,7 @@ def get_inference_image_output(inference_id: str):
     job = requests.get(IMAGE_API_URL, headers=headers, params={"jobID": inference_id})
 
     return job.json()
+
 
 def get_checkpoints():
     headers = {
@@ -347,6 +394,7 @@ def get_checkpoints():
     logger.info("support_model_list: {}".format(support_model_list))
     return support_model_list
 
+
 def create_inference_job(models: List[str]):
     models = select_checkpoint(models)
 
@@ -373,6 +421,7 @@ def create_inference_job(models: List[str]):
     job = requests.post(GENERATE_API_URL, headers=headers, json=body)
     return job.json()
 
+
 def run_inference_job(inference_id: str):
     headers = {
         "Content-Type": "application/json",
@@ -383,6 +432,7 @@ def run_inference_job(inference_id: str):
     job = requests.put(COMMAND_API_URL + 'inference/v2/' + inference_id + '/run', headers=headers)
 
     return job.json()
+
 
 def upload_inference_job_api_params(s3_url, positive: str, negative: str):
     # todo use default api params
@@ -550,26 +600,26 @@ def upload_inference_job_api_params(s3_url, positive: str, negative: str):
     return response
 
 
-def generate_llm_image(initial_prompt: str, col, order: int):
+def generate_llm_image(initial_prompt: str, col):
     st.spinner()
     st.session_state.progress = 5
+    # Keep one progress bar instance for each column
     progress_bar = col.progress(st.session_state.progress)
 
     try:
-        generate_llm_image_col(initial_prompt, col, order, progress_bar)
+        generate_llm_image_col(initial_prompt, col, progress_bar)
         st.session_state.succeed_count += 1
+        progress_bar.empty()
+        progress_bar.hidden = True
     except Exception as e:
         # Exceed the retry limit
         col.error("Image generation failed, please try again.")
         raise e
 
 
-@retry(stop=stop_after_attempt(5))
-def generate_llm_image_col(initial_prompt: str, col, order: int, progress_bar):
-    global support_model_list
-    models = default_models
-
-    positive_prompt, negative_prompt, model_index_list = get_llm_processed_prompts(initial_prompt)
+@retry(stop=stop_after_attempt(1))
+def generate_llm_image_col(initial_prompt: str, col, progress_bar):
+    positive_prompt, negative_prompt = get_llm_processed_prompts(initial_prompt)
     st.session_state.progress += 15
     progress_bar.progress(st.session_state.progress)
 
@@ -577,15 +627,16 @@ def generate_llm_image_col(initial_prompt: str, col, order: int, progress_bar):
     if positive_prompt == "" or negative_prompt == "":
         positive_prompt = initial_prompt
 
-    if len(model_index_list) > 0:
-        # TODO, support model list should align with prompt template, we assume the model list is fixed at 2
-        models = [support_model_list[int(index)] for index in model_index_list.strip("[]").split(",")]
+    # if len(model_index_list) > 0:
+    #     # TODO, support model list should align with prompt template, we assume the model list is fixed at 2
+    #     models = [support_model_list[int(index)] for index in model_index_list.strip("[]").split(",")]
 
     # select the model in model list according to the order while keep the List type to compatible with genegrate_image, e.g. models: ['LahCuteCartoonSDXL_alpha.safetensors', 'majicmixRealistic_v7.safetensors']
-    models = [models[order]]
+    # models = [models[order]]
 
     # This is a synchronous call, will block the UI
-    generate_image(positive_prompt, negative_prompt, models, col, progress_bar)
+    generate_image(positive_prompt, negative_prompt, col, progress_bar)
+
 
 def select_checkpoint(user_list: List[str]):
     global support_model_list
@@ -598,16 +649,12 @@ def select_checkpoint(user_list: List[str]):
 
     return intersection
 
-def check_if_input_cn(prompt: str):
-    if re.search("[\u4e00-\u9FFF]", prompt):
-        return True
-    else:
-        return False
 
 # Generator function
 def image_generator(prompt, cols):
     for idx, col in enumerate(cols):
-        yield generate_llm_image, (prompt, col, idx // 2)
+        yield generate_llm_image, (prompt, col)
+
 
 # main entry point for serve
 # python -m streamlit run image_generation.py --server.port 8088
@@ -634,7 +681,7 @@ if __name__ == "__main__":
         if button:
             st.session_state.warnings = []
             st.session_state.succeed_count = 0
-            # 2*2 layout image grid
+            # 2*2 layout image grids
             col1, col2 = st.columns(2)
             col3, col4 = st.columns(2)
             cols = [col1, col2, col3, col4]
@@ -653,8 +700,10 @@ if __name__ == "__main__":
 
             # output box to summarize the image grid if succeed at least one image
             if st.session_state.succeed_count > 0:
+                summary = st.subheader("In Summary...")
                 response = get_llm_summary(prompt)
-                st.text_area("Summary", value=response, height=200)
+                summary.subheader("Summary")
+                st.success(response)
 
     except Exception as e:
         logger.exception(e)
