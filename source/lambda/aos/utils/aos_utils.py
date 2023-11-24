@@ -78,19 +78,22 @@ class OpenSearchClient:
             }
         }
         """
+        # break if the validation fails
+        self.validation(index, body)
         body_dict = json.loads(body)
         # Extract the settings and mappings from the body
         settings = body_dict.get('body', {}).get('settings', {})
         mappings = body_dict.get('body', {}).get('mappings', {})
 
         # Create the index with the specified settings and mappings
-        self.client.indices.create(
+        response = self.client.indices.create(
             index=index,
             body={
                 'settings': settings,
                 'mappings': mappings
             }
         )
+        return response
 
     def delete_index(self, index: str, _body: str, _kwargs: dict):
         """
@@ -102,7 +105,8 @@ class OpenSearchClient:
         # break if the validation fails
         self.validation(index, _body)
         # delete the index
-        self.client.indices.delete(index=index)
+        response = self.client.indices.delete(index=index)
+        return response
 
     def delete_document(self, index: str, body: str, _kwargs: dict):
         """
@@ -253,19 +257,16 @@ class OpenSearchClient:
         """
         self.validation(index, body)
         body_dict = json.loads(body)
-        query = str(body_dict.get('query'))
-        filter = str(body_dict.get('filter'))
+        field = str(body_dict.get('field'))
+        value = str(body_dict.get('value'))
         # optional size with default value 100
         size = str(body_dict.get('size', 100))
+        logger.info(f"field: {field}, value: {value}, size: {size}")
         body = {
             "query": {
                 "bool": {
                     "must": [
-                        {"match": {"text": query}},
-                    ],
-                    # looking for documents where the metadata field exactly matches the value of filter
-                    "filter": [
-                        {"term": {"metadata": filter}}
+                        {"match": {field: value}}
                     ]
                 }
             }
@@ -347,7 +348,23 @@ class OpenSearchClient:
         response = self.client.search(index=index, body=body)
         return response
 
-    @retry(stop=stop_after_attempt(3))
+    # @retry(stop=stop_after_attempt(3))
+    def _embed_document(self, index: str, document: Document, _kwargs: dict):
+        embeddings = create_sagemaker_embeddings_from_js_model(embeddingModelEndpoint, region)
+        docsearch = OpenSearchVectorSearch(
+            index_name=index,
+            embedding_function=embeddings,
+            opensearch_url="https://{}".format(aosEndpoint),
+            http_auth = awsauth,
+            use_ssl = True,
+            verify_certs = True,
+            connection_class = RequestsHttpConnection
+        )
+        logger.info("Adding documents %s to OpenSearch with index %s", document, index)
+        # List of ids from adding the texts into the vectorstore.
+        return docsearch.add_documents(documents=[document])
+        # logger.info("Retry statistics: %s", _embed_document.retry.statistics)
+
     def embed_document(self, index: str, body: str, _kwargs: dict):
         """
         Returns:
@@ -374,18 +391,12 @@ class OpenSearchClient:
             page_content=body_dict['documents']['page_content'],
             metadata=body_dict['documents']['metadata']
         )
-        logger.info("embeddingModelEndpoint: {}, region: {}, aosEndpoint: {}".format(embeddingModelEndpoint, region, aosEndpoint))
-        embeddings = create_sagemaker_embeddings_from_js_model(embeddingModelEndpoint, region)
-        docsearch = OpenSearchVectorSearch(
-            index_name=index,
-            embedding_function=embeddings,
-            opensearch_url="https://{}".format(aosEndpoint),
-            http_auth = awsauth,
-            use_ssl = True,
-            verify_certs = True,
-            connection_class = RequestsHttpConnection
-        )
-        logger.info("Adding documents %s to OpenSearch with index %s", document, index)
-        res = docsearch.add_documents(documents=[document])
-        logger.info("Retry statistics: %s and response: %s", embed_document.retry.statistics, res)
-        return res
+        # if the embedding function execute successfully, return success with the document id
+        res = self._embed_document(index, document, _kwargs)
+        # assemble the response
+        response = {
+            'statusCode': 200,
+            'headers': {'Content-Type': 'application/json'},
+            'body': {'document_id': res}
+        }
+        return response

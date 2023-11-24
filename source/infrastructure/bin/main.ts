@@ -15,7 +15,7 @@ export class RootStack extends Stack {
     super(scope, id, props);
 
     // add cdk input parameters for user to specify s3 bucket store model assets
-    // using npx cdk deploy --rollback false --parameters S3ModelAssets=llm-rag --parameters SubEmail=example@example.org to deploy
+    // using npx cdk deploy --rollback false --parameters S3ModelAssets=llm-rag --parameters SubEmail=example@example.org --parameters EtlImageName=etl-image to deploy
     const _S3ModelAssets = new CfnParameter(this, 'S3ModelAssets', {
       type: 'String',
       description: 'S3 Bucket for model & code assets',
