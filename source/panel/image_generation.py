@@ -235,7 +235,7 @@ def get_llm_processed_prompts(initial_prompt):
     logger.info("the first invoke: {}".format(response))
     # logger.info("the second invoke: {}".format(conversation.predict(input="change to realist style")))
 
-    # TODO, below paras is not stable and can be changed accord to PE, will update later
+    # TODO, below parse is not stable and can be changed accord to PE, will update later
     # Define regular expressions
     positive_pattern = r"Positive Prompt: (.*?),\s+Negative Prompt:"
     negative_pattern = r"Negative Prompt: (.*?),\s+Prompt End String:"
