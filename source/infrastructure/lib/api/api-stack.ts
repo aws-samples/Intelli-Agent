@@ -128,11 +128,14 @@ export class LLMApiStack extends NestedStack {
             architecture: Architecture.X86_64,
             environment: {
                 opensearch_cluster_domain: _domainEndpoint,
+                embedding_endpoint: props._embeddingEndPoint,
             },
         });
 
         lambdaAos.addToRolePolicy(new iam.PolicyStatement({
             actions: [
+                "sagemaker:InvokeEndpointAsync",
+                "sagemaker:InvokeEndpoint",
                 "s3:List*",
                 "s3:Put*",
                 "s3:Get*",
