@@ -1,5 +1,6 @@
 import re
 import logging
+import uuid
 from typing import Any, Dict, Iterator, List, Optional, Union
 import boto3
 from langchain.docstore.document import Document
@@ -12,9 +13,10 @@ from llm_bot_dep.storage_utils import save_content_to_s3
 from llm_bot_dep.constant import SplittingType
 
 
-s3 = boto3.client('s3')
+s3 = boto3.client("s3")
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
+
 
 def _make_spacy_pipeline_for_splitting(pipeline: str) -> Any:  # avoid importing spacy
     try:
@@ -81,61 +83,113 @@ class SpacyTextSplitter(TextSplitter):
         return self._merge_splits(splits, self._separator)
 
 
-class NestedDict(dict):
-    def __missing__(self, key):
-        self[key] = NestedDict()
-        return self[key]
+def find_parent(headers: dict, level: int):
+    """Find the parent node of current node
+    Find the last node whose level is less than current node
+
+    Args:
+        headers (dict): headers dict
+        level (int): level of the header, eg. # is level1, ## is level2
+
+    Returns:
+        _type_: parent node id or None
+    """
+    for id, header in reversed(list(headers.items())):
+        if header["level"] < level:
+            return id
+
+    return None
 
 
-def extract_headings(md_content):
-    """Extract headings hierarchically from Markdown content.
-    Consider alternate syntax that "any number of == characters for heading level 1 or -- characters for heading level 2."
-    See https://www.markdownguide.org/basic-syntax/
+def find_previous_with_same_level(headers: dict, level: int):
+    """Find the previous node with same level
+
+    Args:
+        headers (dict): headers dict
+        level (int): level of the header, eg. # is level1, ## is level2
+
+    Returns:
+        _type_: previous node id or None
+    """
+    for id, header in reversed(list(headers.items())):
+        if header["level"] == level:
+            return id
+
+    return None
+
+
+def find_next_with_same_level(headers: dict, header_id: str):
+    level = headers[header_id]["level"]
+    header_found = False
+
+    for id, header in headers.items():
+        if header_id == id:
+            header_found = True
+
+        # Find the next node with the same level
+        if header_found and header["level"] == level and header_id != id:
+            return id
+
+    return None
+
+
+def find_child(headers: dict, header_id: str):
+    children = []
+    level = headers[header_id]["level"]
+
+    for id, header in headers.items():
+        if (
+            header["level"] == level + 1
+            and id not in children
+            and header["parent"] == header_id
+        ):
+            children.append(id)
+
+    return children
+
+
+def extract_headings(md_content: str):
+    """Extract heading hierarchy from Markdown content.
     Args:
         md_content (str): Markdown content.
     Returns:
-        NestedDict: A nested dictionary containing the headings. Sample output:
-        {
-            'Title 1': {
-                'Subtitle 1.1': {},
-                'Subtitle 1.2': {}
-            },
-            'Title 2': {
-                'Subtitle 2.1': {}
-            }
-        }
+        Json object contains the heading hierarchy
     """
-    headings = NestedDict()
-    current_heads = [headings]
-    lines = md_content.strip().split("\n")
-
-    for i, line in enumerate(lines):
-        match = re.match(r"(#+) (.+)", line)
-        if (
-            not match and i > 0
-        ):  # If the line is not a heading, check if the previous line is a heading using alternate syntax
-            if re.match(r"=+", lines[i - 1]):
-                level = 1
-                title = lines[i - 2]
-            elif re.match(r"-+", lines[i - 1]):
-                level = 2
-                title = lines[i - 2]
-            else:
-                continue
-        elif match:
+    header_index = 0
+    headers = {}
+    lines = md_content.split("\n")
+    id_index_dict = {}
+    for line in lines:
+        match = re.match(r"(#+)(.*)", line)
+        if match:
+            header_index += 1
+            print(match.group)
             level = len(match.group(1))
-            title = match.group(2)
-        else:
-            continue
+            title = match.group(2).strip()
+            id_prefix = str(uuid.uuid4())[:8]
+            _id = f"${header_index}-{id_prefix}"
+            parent = find_parent(headers, level)
+            previous = find_previous_with_same_level(headers, level)
+            headers[_id] = {
+                "title": title,
+                "level": level,
+                "parent": parent,
+                "previous": previous,
+            }
+            # Use list in case multiple heading have the same title
+            if title not in id_index_dict:
+                id_index_dict[title] = [_id]
+            else:
+                id_index_dict[title].append(_id)
 
-        current_heads = current_heads[:level]
-        current_heads[-1][title]
-        current_heads.append(current_heads[-1][title])
+    for header_obj in headers:
+        headers[header_obj]["child"] = find_child(headers, header_obj)
+        headers[header_obj]["next"] = find_next_with_same_level(headers, header_obj)
 
-    return headings
+    return headers, id_index_dict
 
 
-# rewrite this class to use the new TextSplitter for mmd type
+# Rewrite this class to use the new TextSplitter for mmd type
 class MarkdownHeaderTextSplitter:
     # Place holder for now without parameters
     def __init__(self, res_bucket: str = None):
@@ -155,14 +209,19 @@ class MarkdownHeaderTextSplitter:
         if self.res_bucket is not None:
             save_content_to_s3(s3, text, self.res_bucket, SplittingType.BEFORE.value)
         else:
-            logger.error("No resource bucket is defined, skip saving content into S3 bucket")
+            logger.error(
+                "No resource bucket is defined, skip saving content into S3 bucket"
+            )
 
         lines = text.page_content.strip().split("\n")
         chunks = []
         current_chunk_content = []
+        same_heading_dict = {}
         table_content = []
         inside_table = False
-        chunk_id = 1  # Initializing chunk_id
+        heading_hierarchy, id_index_dict = extract_headings(text.page_content.strip())
+        if len(lines) > 0:
+            current_heading = lines[0]
 
         for line in lines:
             # Replace escaped characters for table markers
@@ -177,11 +236,32 @@ class MarkdownHeaderTextSplitter:
                 # Save the current chunk if it exists
                 if current_chunk_content:
                     metadata = text.metadata.copy()
-                    metadata["heading_hierarchy"] = extract_headings(
-                        "\n".join(current_chunk_content)
-                    )
-                    metadata["chunk_id"] = f"${chunk_id}"
-                    chunk_id += 1  # Increment chunk_id for the next chunk
+                    metadata["content_type"] = "paragragh"
+                    metadata["heading_hierarchy"] = heading_hierarchy
+                    metadata["current_heading"] = current_heading
+                    current_heading = current_heading.replace("#", "").strip()
+                    try:
+                        if 1 == len(id_index_dict[current_heading]):
+                            metadata["chunk_id"] = id_index_dict[current_heading][0]
+                        elif len(id_index_dict[current_heading]) > 1:
+                            # If multiple headings are the same in the document,
+                            # use index in same_heading_dict to get the chunk_id
+                            if current_heading not in same_heading_dict:
+                                same_heading_dict[current_heading] = 0
+                                metadata["chunk_id"] = id_index_dict[current_heading][0]
+                            else:
+                                # Move one step to get the next chunk_id
+                                same_heading_dict[current_heading] += 1
+                                metadata["chunk_id"] = id_index_dict[current_heading][
+                                    same_heading_dict[current_heading]
+                                ]
+
+                    except KeyError:
+                        logger.info(
+                            f"No standard heading found, check your document with {current_chunk_content}"
+                        )
+                        id_prefix = str(uuid.uuid4())[:8]
+                        metadata["chunk_id"] = f"$0-{id_prefix}"
                     chunks.append(
                         Document(
                             page_content="\n".join(current_chunk_content),
@@ -189,6 +269,7 @@ class MarkdownHeaderTextSplitter:
                         )
                     )
                     current_chunk_content = []  # Reset for the next chunk
+                current_heading = line
 
             if self._is_markdown_table_row(line):
                 inside_table = True
@@ -199,7 +280,10 @@ class MarkdownHeaderTextSplitter:
                 if table_content:
                     metadata = text.metadata.copy()
                     metadata["content_type"] = "table"
-                    metadata["chunk_id"] = f"${chunk_id}"
+                    metadata["heading_hierarchy"] = heading_hierarchy
+                    metadata["current_heading"] = current_heading
+                    current_heading = current_heading.replace("#", "").strip()
+                    metadata["chunk_id"] = id_index_dict[current_heading]
                     chunks.append(
                         Document(
                             page_content="\n".join(table_content), metadata=metadata
@@ -215,10 +299,11 @@ class MarkdownHeaderTextSplitter:
         # Save the last chunk if it exists
         if current_chunk_content:
             metadata = text.metadata.copy()
-            metadata["heading_hierarchy"] = extract_headings(
-                "\n".join(current_chunk_content)
-            )
-            metadata["chunk_id"] = f"${chunk_id}"
+            metadata["content_type"] = "paragragh"
+            metadata["heading_hierarchy"] = heading_hierarchy
+            metadata["current_heading"] = current_heading
+            current_heading = current_heading.replace("#", "").strip()
+            metadata["chunk_id"] = id_index_dict[current_heading]
             chunks.append(
                 Document(
                     page_content="\n".join(current_chunk_content), metadata=metadata

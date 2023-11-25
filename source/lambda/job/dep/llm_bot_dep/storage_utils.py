@@ -16,7 +16,7 @@ logger.setLevel(logging.INFO)
 def convert_to_logger(document: Document) -> str:
     # TODO: Convert the document to a logger file format, customize if possible
     logger_content = "Page Content: " + document.page_content + "\n"
-    logger_content += "Metadata: " + json.dumps(document.metadata)
+    logger_content += "Metadata: " + json.dumps(document.metadata, ensure_ascii=False)
 
     return logger_content
 

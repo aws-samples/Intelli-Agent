@@ -193,7 +193,13 @@ def aos_injection(content: List[Document], embeddingModelEndpoint: str, aosEndpo
         for document in content:
             splits = text_splitter.split_documents([document])
             # list of Document objects
+            index = 1
+            split_size = len(splits)
             for split in splits:
+                chunk_id = split.metadata['chunk_id']
+                split.metadata['chunk_id'] = f"{chunk_id}-{index}"
+                split.metadata['heading_hierarchy'][chunk_id]['size'] = split_size
+                index += 1
                 yield split
 
     if gen_chunk:
