@@ -41,7 +41,7 @@ class OpenSearchClient:
     def validation(self, index: str, _body: str):
         # avoid NotFoundError: NotFoundError(404, 'index_not_found_exception'...
         if not self.client.indices.exists(index=index):
-            # hint to the caller that the index does not exist
+            logger.error(f"Index {index} does not exist")
             return {
                 'statusCode': 404,
                 'headers': {'Content-Type': 'application/json'},

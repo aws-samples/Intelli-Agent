@@ -1,12 +1,11 @@
 import os
 import json
 import time
-import pinecone
 import pandas as pd
 import altair as alt
 import streamlit as st
 from typing import List
-from langchain.vectorstores import Pinecone
+from langchain.vectorstores import OpenSearchVectorSearch
 from langchain.llms import Anthropic
 from langchain.chat_models import ChatOpenAI
 from langchain.evaluation.qa import QAEvalChain
@@ -15,7 +14,19 @@ from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.chains.question_answering import load_qa_chain
 from langchain.retrievers.self_query.base import SelfQueryRetriever
 from langchain.docstore.document import Document
+
+from benchmark import WorkflowExecutor
 from prompts import GRADE_DOCS_PROMPT, GRADE_ANSWER_PROMPT, GRADE_ANSWER_PROMPT_FAST, GRADE_ANSWER_PROMPT_BIAS_CHECK, GRADE_ANSWER_PROMPT_OPENAI, QA_CHAIN_PROMPT_LEX, QA_CHAIN_PROMPT_TRAVEL
+
+from dotenv import load_dotenv
+load_dotenv(dotenv_path='.env')
+
+import logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+oai_api_key = os.getenv("OPENAI_API_KEY")
+
 
 # Keep dataframe in memory to accumulate experimental results
 if "existing_df" not in st.session_state:
@@ -47,23 +58,16 @@ def make_llm(model_version: str):
     return chosen_model
 
 @st.cache_resource
-def make_retriever(retriever_type,embedding_type,pc_api_key,pc_region,pc_index):
+def make_retriever(retriever_type, embedding_type):
     """
     Make document retriever
     @param retriever_type: retriever type
     @param embedding_type: embedding type
     @param num_neighbors: number of neighbors for retrieval
-    @return: Pinecone
+    
     """
-    st.info("`Connecting to Pinecone ...`")
-        
-    # Retriver type 
-    if retriever_type in ("Pinecone","Pinecone w/ metadata filtering"):
-        return p   
-    elif retriever_type == "Pinecone w/ self-querying":
-        return  SelfQueryRetriever.from_llm(ChatOpenAI(model_name="gpt-3.5-turbo",temperature=0), p, document_content_description, metadata_field_info, verbose=True, k=10)
-    elif retriever_type == "Kor filtering":
-        return  kor_retriever
+    # TODO:
+    pass
     
 def make_chain(llm):
     """
@@ -147,6 +151,7 @@ def grade_model_retrieval(gt_dataset: List, predictions: List, grade_docs_prompt
 
 def run_evaluation(chain, retriever, eval_set, grade_prompt, retriever_type, num_neighbors):
     """
+    
     Runs evaluation on a model's performance on a given evaluation dataset.
     @param chain: Model chain used for answering questions
     @param retriever:  Document retriever used for retrieving relevant documents
@@ -172,24 +177,16 @@ def run_evaluation(chain, retriever, eval_set, grade_prompt, retriever_type, num
         start_time = time.time()
         
         # Get docs
-        if retriever_type == "Pinecone w/ self-querying":
-            docs = retriever.get_relevant_documents(data["question"])
-
-        elif retriever_type == "Pinecone w/ metadata filtering":
-            ### Set metadata here ### 
-            metadata_filter = {'id':"0252"}
+        if retriever_type == "Faiss retriver":
             docs = retriever.similarity_search(query=data["question"],k=num_neighbors,filter=metadata_filter)
-
-        elif retriever_type == "Kor filtering":
-            docs = retriever(p,data["question"]) 
-
+        elif retriever_type == "CSDC retriever":
+            docs = retriever.similarity_search(query=data["question"],k=num_neighbors,filter=metadata_filter)
         else: 
             docs = retriever.similarity_search(query=data["question"],k=num_neighbors)
-
-        print("--DOCS--")
+        logger.info("--DOCS--")
         if not docs:
             docs=[Document(page_content="I was unable to recover any information about the question!")]
-        print(docs)
+        logger.info(docs)
 
         # Get answer
         answer = chain.run(input_documents=docs,question=data["question"])
@@ -212,34 +209,45 @@ def run_evaluation(chain, retriever, eval_set, grade_prompt, retriever_type, num
     return answers_grade, retrieval_grade, latencies_list, predictions_list
 
 # Auth
-st.sidebar.image("img/diagnostic.jpg")
+st.sidebar.image("https://d0.awsstatic.com/logos/powered-by-aws.png", width=200)
 
 with st.sidebar.form("user_input"):
 
-    # Pinecone params 
-    oai_api_key = st.text_input("`OpenAI API Key:`", type="password").strip()
-    pc_api_key = st.text_input("`Pinecone API Key:`", type="password").strip()
-    pc_region = st.text_input("`Pinecone region:`", type="password").strip()
-    pc_index = st.text_input("`Pinecone index:`", type="password").strip()
+    loader_type = st.radio("`Choose loader`",
+                              ("unstructured loader",
+                               "Nougat loader",
+                               "CSDC loader",),
+                              index=0)
+
+    splitter_type = st.radio("`Choose splitter`",
+                                ("recursive splitter",
+                                 "CSDC markdown header splitter",),
+                                index=0)
+
+    embedding_type = st.radio("`Choose embedding`",
+                                ("HuggingFace",
+                                 "OpenAI",
+                                 "CSDC",),
+                                index=1)
 
     retriever_type = st.radio("`Choose retriever`",
-                              ("Pinecone",
-                               "Pinecone w/ self-querying",
-                               "Pinecone w/ metadata filtering",
-                               "Kor filtering"),
+                              ("Faiss retriver",
+                               "CSDC retriever",),
                               index=0)
+    
+    evaluator_type = st.radio("`Choose evaluator`",
+                                ("LangChain evaluator",
+                                "CSDC evaluator",),
+                                index=0)
 
     num_neighbors = st.select_slider("`Choose # chunks to retrieve`",
                                      options=[3, 4, 5, 6, 7, 8])
 
-    embeddings = st.radio("`Choose embeddings`",
-                          ("HuggingFace",
-                           "OpenAI"),
-                          index=1)
-
     model = st.radio("`Choose model`",
                      ("gpt-3.5-turbo",
-                      "gpt-4"),
+                      "gpt-4",
+                      "anthropic",
+                      "csdc",),
                      index=0)
 
     grade_prompt = st.radio("`Grading style prompt`",
@@ -252,10 +260,10 @@ with st.sidebar.form("user_input"):
     submitted = st.form_submit_button("Submit evaluation")
 
 # App
-st.header("`VectorDB auto-evaluator`")
+st.header("`AOS auto-evaluator`")
 st.info(
-    "`I am an evaluation tool for question-answering using an existing vectorDB (currently Pinecone is supported) and an eval set. "
-    "I will generate and grade an answer to each eval set question with the user-specific retrival setting, such as metadata filtering or self-querying retrieval." 
+    "`Evaluation tool for question-answering using an existing vectorDB (Amazon Open Search) and an eval set. "
+    " Such tool will generate & grade an answer to each eval set question with the user-specific retrival setting, such as metadata filtering or self-querying retrieval." 
     " Experiments with different configurations are logged. For an example eval set, see eval_sets/lex-pod-eval.json.`")
 
 with st.form(key='file_inputs'):
@@ -267,20 +275,12 @@ with st.form(key='file_inputs'):
     submitted = st.form_submit_button("Submit files")
 
 # Build an index from the supplied docs
-if uploaded_eval_set and pc_api_key and pc_region and pc_index:
-    
-    # Set API key
-    os.environ["OPENAI_API_KEY"] = oai_api_key
+if uploaded_eval_set:
 
-    # Set embeddings (must match your Pinecone DB)
     if embeddings == "OpenAI":
         embedding = OpenAIEmbeddings()
     elif embeddings == "HuggingFace":
         embedding = HuggingFaceEmbeddings()
-
-    # Set Pinecone 
-    pinecone.init(api_key=str(pc_api_key), environment=str(pc_region))
-    p = Pinecone.from_existing_index(index_name=str(pc_index), embedding=embedding)
 
     # Eval set
     eval_set = json.loads(uploaded_eval_set.read())
@@ -289,7 +289,7 @@ if uploaded_eval_set and pc_api_key and pc_region and pc_index:
     llm = make_llm(model)
     
     # Make retriver
-    retriever = make_retriever(retriever_type,embeddings,pc_api_key,pc_region,pc_index)
+    retriever = make_retriever(retriever_type,embeddings)
     
     # Make chain
     qa_chain = make_chain(llm)
@@ -348,4 +348,4 @@ if uploaded_eval_set and pc_api_key and pc_region and pc_index:
     st.altair_chart(c, use_container_width=True, theme="streamlit")
 
 else:
-    st.warning('Please specify a Pinecone index and add an eval set.', icon="⚠️")
+    st.warning('Please specify a AOS index and add an eval set.', icon="⚠️")
