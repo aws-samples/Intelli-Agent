@@ -298,7 +298,12 @@ class MarkdownHeaderTextSplitter:
                     metadata["heading_hierarchy"] = heading_hierarchy
                     metadata["current_heading"] = current_heading
                     current_heading = current_heading.replace("#", "").strip()
-                    self._set_chunk_id(id_index_dict, current_heading, metadata, same_heading_dict)
+                    try:
+                        self._set_chunk_id(id_index_dict, current_heading, metadata, same_heading_dict)
+                    except KeyError:
+                        logger.info(f"No standard heading found")
+                        id_prefix = str(uuid.uuid4())[:8]
+                        metadata["chunk_id"] = f"$0-{id_prefix}"
                     chunks.append(
                         Document(
                             page_content="\n".join(table_content), metadata=metadata
@@ -318,7 +323,12 @@ class MarkdownHeaderTextSplitter:
             metadata["heading_hierarchy"] = heading_hierarchy
             metadata["current_heading"] = current_heading
             current_heading = current_heading.replace("#", "").strip()
-            self._set_chunk_id(id_index_dict, current_heading, metadata, same_heading_dict)
+            try:
+                self._set_chunk_id(id_index_dict, current_heading, metadata, same_heading_dict)
+            except KeyError:
+                logger.info(f"No standard heading found")
+                id_prefix = str(uuid.uuid4())[:8]
+                metadata["chunk_id"] = f"$0-{id_prefix}"
             chunks.append(
                 Document(
                     page_content="\n".join(current_chunk_content), metadata=metadata
