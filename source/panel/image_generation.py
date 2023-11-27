@@ -54,6 +54,45 @@ prompt_model_list = [
 
 default_models = ["sd_xl_base_1.0.safetensors"]
 
+def get_bedrock_llm():
+    # specify the profile_name to call the bedrock api if needed
+    bedrock_client = boto3.client('bedrock-runtime', region_name=BEDROCK_REGION)
+
+    modelId = "anthropic.claude-v2"
+    cl_llm = Bedrock(
+        model_id=modelId,
+        client=bedrock_client,
+        model_kwargs={"max_tokens_to_sample": 1000},
+    )
+    return cl_llm
+
+def create_or_get_conversation(type: str) -> ConversationChain:
+    # the type can be "conversation" or "summary"
+    cl_llm = get_bedrock_llm()
+
+    # judge the type and create chain accordingly to store in session state
+    if type == "conversation":
+        # return if the Chain is already created
+        if 'conversation' in st.session_state:
+            logger.info("conversation session already created")
+            return st.session_state.conversation
+        memory = ConversationBufferMemory()
+        st.session_state.conversation = ConversationChain(
+            llm=cl_llm, verbose=True, memory=memory
+        )
+        logger.info("conversation session created")
+        return st.session_state.conversation
+    elif type == "summary":
+        # return if the Chain is already created
+        if 'summary' in st.session_state:
+            logger.info("summary session already created")
+            return st.session_state.summary
+        memory = ConversationBufferMemory()
+        st.session_state.summary = ConversationChain(
+            llm=cl_llm, verbose=True, memory=memory
+        )
+        logger.info("summary session created")
+        return st.session_state.summary
 
 # todo will update api
 def deploy_sagemaker_endpoint(instance_type: str = "ml.g4dn.4xlarge", initial_instance_count: int = 1,
@@ -72,23 +111,8 @@ def deploy_sagemaker_endpoint(instance_type: str = "ml.g4dn.4xlarge", initial_in
     res = requests.post(COMMAND_API_URL + 'inference/deploy-sagemaker-endpoint', headers=headers, json=inputBody)
     logger.info("deploy_sagemaker_endpoint: {}".format(res.json()))
 
-
 def upload_model():
     pass
-
-
-def get_bedrock_llm():
-    # specify the profile_name to call the bedrock api if needed
-    bedrock_client = boto3.client('bedrock-runtime', region_name=BEDROCK_REGION)
-
-    modelId = "anthropic.claude-v2"
-    cl_llm = Bedrock(
-        model_id=modelId,
-        client=bedrock_client,
-        model_kwargs={"max_tokens_to_sample": 1000},
-    )
-    return cl_llm
-
 
 sd_prompt = PromptTemplate.from_template(
     """
@@ -223,16 +247,12 @@ summary_prompt = PromptTemplate.from_template(
 
 
 def get_llm_processed_prompts(initial_prompt):
-    cl_llm = get_bedrock_llm()
-    memory = ConversationBufferMemory()
-    conversation = ConversationChain(
-        llm=cl_llm, verbose=False, memory=memory
-    )
-
+    conversation = create_or_get_conversation("conversation")
     conversation.prompt = sd_prompt
 
     response = conversation.predict(input=initial_prompt)
     logger.info("the first invoke: {}".format(response))
+
     # logger.info("the second invoke: {}".format(conversation.predict(input="change to realist style")))
 
     # TODO, below parse is not stable and can be changed accord to PE, will update later
@@ -255,13 +275,10 @@ def get_llm_processed_prompts(initial_prompt):
 
 
 def get_llm_summary(initial_prompt):
-    cl_llm = get_bedrock_llm()
-    memory = ConversationBufferMemory()
-    conversation = ConversationChain(
-        llm=cl_llm, verbose=False, memory=memory
-    )
-    conversation.prompt = summary_prompt
-    response = conversation.predict(input=initial_prompt)
+    summary = create_or_get_conversation("summary")
+    summary.prompt = summary_prompt
+
+    response = summary.predict(input=initial_prompt)
     logger.info("summary response: {}".format(response))
     return response
 
