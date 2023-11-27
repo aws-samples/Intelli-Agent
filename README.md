@@ -79,6 +79,7 @@ BODY
     "offline": "true"
 }
 ```
+
 You should see output like this:
 ```bash
 "Step Function triggered, Step Function ARN: arn:aws:states:us-east-1:xxxx:execution:xx-xxx:xx-xx-xx-xx-xx, Input Payload: {\"s3Bucket\": \"<Your S3 bucket>\", \"s3Prefix\": \"<Your S3 prefix>\", \"offline\": \"true\"}"
@@ -89,7 +90,7 @@ You should see output like this:
 BODY
 {
   "aos_index": "chatbot-index",
-  "operation": "query_allquery_all",
+  "operation": "query_all",
   "body": ""
 }
 ```
@@ -218,7 +219,59 @@ You should see output like this, it will output the document id for the document
   },
   "body": {
     "document_id": [
-      "e4599ccd-b256-4203-ae19-5737472ff424"
+      "9a4e62fc-9823-4143-a14f-38e9eea06d8c"
+    ]
+  }
+}
+```
+
+**Query the embedding with field and value specified, POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/aos**
+```bash
+{
+  "aos_index": "demo-index-1",
+  "operation": "query",
+  "body": {
+      "field": "metadata.heading_hierarchy",
+      "value": "Title 1",
+      "size": 1000
+  }
+}
+```
+
+You should see output like this, the metadata.heading_hierarchy field is matched with the value "Title 1" and embedding vector is returned with score for relevance possibility:
+```bash
+{
+  "took": 355,
+  "timed_out": false,
+  "_shards": {
+    "total": 5,
+    "successful": 5,
+    "skipped": 0,
+    "failed": 0
+  },
+  "hits": {
+    "total": {
+      "value": 1,
+      "relation": "eq"
+    },
+    "max_score": 0.5753642,
+    "hits": [
+      {
+        "_index": "demo-index-1",
+        "_id": "9a4e62fc-9823-4143-a14f-38e9eea06d8c",
+        "_score": 0.5753642,
+        "_source": {
+          "vector_field": [
+            0.019999539479613304,
+            0.008335119113326073,
+            ...
+          ],
+          "text": "This is a test content",
+          "metadata": {
+            "heading_hierarchy": "Title 1"
+          }
+        }
+      }
     ]
   }
 }

@@ -182,7 +182,17 @@ class OpenSearchClient:
             except Exception as e:
                 logger.error(f"Error indexing document: {e}")
 
-    def query(self, index: str, body: str, _kwargs: dict):
+    def query_all(self, index: str, _body: str, _kwargs: dict):
+        self.validation(index, _body)
+        body = {
+            "query": {
+                "match_all": {}
+            }
+        }
+        response = self.client.search(index=index, body=body)
+        return response
+
+    def query_full_text_match(self, index: str, body: str, _kwargs: dict):
         """
         Basic query with fixed result size
 
@@ -210,8 +220,11 @@ class OpenSearchClient:
         logger.info(f"field: {field}, value: {value}, size: {size}")
         body = {
             "query": {
+                # use term-level queries only for fields mapped as keyword
                 "match": {
                     field: value
+                    # "operator": "and",
+                    # "minimum_should_match": 2
                 }
             },
             "size": size,
@@ -226,19 +239,9 @@ class OpenSearchClient:
         response = self.client.search(index=index, body=body)
         return response
 
-    def query_all(self, index: str, _body: str, _kwargs: dict):
-        self.validation(index, _body)
-        body = {
-            "query": {
-                "match_all": {}
-            }
-        }
-        response = self.client.search(index=index, body=body)
-        return response
-
-    def query_with_must_and_filter(self, index: str, body: str, _kwargs: dict):
+    def query_full_text_multi_match(self, index: str, body: str, _kwargs: dict):
         """
-        Execute a search query using the query DSL, using bool query to filter on metadata.
+        Basic query with fixed result size
 
         Args:
             index (str): The name of the index to delete.
@@ -247,7 +250,57 @@ class OpenSearchClient:
         Sample body:
         {
             "aos_index": "chatbot-index",
-            "operation": "query_with_must_and_filter",
+            "operation": "query",
+            "body": {
+                "field": field,
+                "value": value,
+                "size": size
+            }
+        }
+        """
+        self.validation(index, body)
+        body_dict = json.loads(body)
+        field = str(body_dict.get('field'))
+        value = str(body_dict.get('value'))
+        # optional size with default value 100
+        size = str(body_dict.get('size', 100))
+        logger.info(f"field: {field}, value: {value}, size: {size}")
+        body = {
+            "query": {
+                # use term-level queries only for fields mapped as keyword
+                "multi_match": {
+                    "query": field,
+                    # sample: "fields": ["title", "body"]
+                    "fields": value,
+                    "type": "best_fields",
+                    # add (tie_breaker * _score) for all other matching fields
+                    # "tie_breaker": 0.3
+                }
+            },
+            "size": size,
+            "sort": [
+                {
+                    "_score": {
+                        "order": "desc"
+                    }
+                }
+            ]
+        }
+        response = self.client.search(index=index, body=body)
+        return response
+
+    def query_term(self, index: str, body: str, _kwargs: dict):
+        """
+        Execute a term-level query, documents returned by a term-level query are not sorted by their relevance scores.
+
+        Args:
+            index (str): The name of the index to delete.
+            body (str): The query body.
+
+        Sample body:
+        {
+            "aos_index": "chatbot-index",
+            "operation": "query_term",
             "body": {
                 "quey": query,
                 "filter": filter
@@ -262,14 +315,74 @@ class OpenSearchClient:
         # optional size with default value 100
         size = str(body_dict.get('size', 100))
         logger.info(f"field: {field}, value: {value}, size: {size}")
+        # With a filter context, OpenSearch returns matching documents without calculating a relevance score.
         body = {
             "query": {
-                "bool": {
-                    "must": [
-                        {"match": {field: value}}
-                    ]
+                # use term-level queries only for fields mapped as keyword
+                "term": {
+                    field:{
+                        "value": value,
+                        "case_insensitive": false
+                    }
                 }
+            },
+            "size": size,
+            "sort": [
+                {
+                    "_score": {
+                        "order": "desc"
+                    }
+                }
+            ]
+        }
+        response = self.client.search(index=index, body=body)
+        return response
+
+    def query_term_regex(self, index: str, body: str, _kwargs: dict):
+        """
+        Execute a term-level query, documents returned by a term-level query are not sorted by their relevance scores.
+
+        Args:
+            index (str): The name of the index to delete.
+            body (str): The query body.
+
+        Sample body:
+        {
+            "aos_index": "chatbot-index",
+            "operation": "query_term",
+            "body": {
+                "quey": query,
+                "filter": filter
+                "size": size
             }
+        }
+        """
+        self.validation(index, body)
+        body_dict = json.loads(body)
+        field = str(body_dict.get('field'))
+        value = str(body_dict.get('value'))
+        # optional size with default value 100
+        size = str(body_dict.get('size', 100))
+        logger.info(f"field: {field}, value: {value}, size: {size}")
+        # With a filter context, OpenSearch returns matching documents without calculating a relevance score.
+        body = {
+            "query": {
+                # use term-level queries only for fields mapped as keyword
+                "regexp": {
+                    field:{
+                        "value": value,
+                        "case_insensitive": false
+                    }
+                }
+            },
+            "size": size,
+            "sort": [
+                {
+                    "_score": {
+                        "order": "desc"
+                    }
+                }
+            ]
         }
         response = self.client.search(index=index, body=body)
         return response
