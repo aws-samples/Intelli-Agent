@@ -119,6 +119,7 @@ sd_prompt = PromptTemplate.from_template(
     Human:
     - Transform the input prompt {input} into a detailed prompt for an image generation model, describing the scene with vivid and specific attributes that enhance the original concept, only adjective and noun are allowed, verb and adverb are not allowed, each words speperated by comma.
     - Generate a negative prompt that specifies what should be avoided in the image, including any elements that contradict the desired style or tone.
+    - all the output should be in english.
     - Other notes please refer to the following example:
 
     The output should be a plain text in Python List format shown follows, no extra content added beside Positive Prompt, Negative Prompt.
@@ -131,14 +132,14 @@ sd_prompt = PromptTemplate.from_template(
     For example:
     If the input prompt is: "a cute dog in cartoon style", the output should be as follows:
     [
-        Positive Prompt: "visually appealing, high-quality image of a cute dog in a vibrant, cartoon style, adorable appearance, expressive eyes, friendly demeanor, colorful and lively, reminiscent of popular animation studios, artwork.",
+        Positive Prompt: "visually appealing, high-quality image of a cute dog in a vibrant, cartoon style, adorable appearance, expressive eyes, friendly demeanor, artwork.",
         Negative Prompt: "realism, dark or dull colors, scary or aggressive dog depictions, overly simplistic, stick figure drawings, blurry or distorted images, inappropriate or NSFW content.",
         Prompt End String:
     ]
 
     If the input prompt is: "a girl in photo-realistic style", the output should be as follows:
     [
-        Positive Prompt: "detailed, photo-realistic, life-like, high-definition, sharp, accurate color tones, realistic textures, natural lighting, subtle expressions, vivid, true-to-life, authentic appearance, nuanced, real photograph.",
+        Positive Prompt: "detailed, photo-realistic, life-like, high-definition, sharp, accurate color tones, realistic textures, natural lighting, subtle expressions, vivid, authentic appearance, real photograph.",
         Negative Prompt: "cartoonish, abstract, stylized, overly simplistic, exaggerated, distorted features, bright unrealistic colors, artificial elements, fantasy elements, non-photo-realistic.",
         Prompt End String:
     ]
