@@ -7,3 +7,8 @@ tiktoken==0.5.1
 boto3==1.28.84
 nougat-ocr==0.1.17
 tenacity==8.2.2
+altair==4.2.2
+scikit-learn==1.2.1
+kor==0.9.2
+transformers==4.28.1
+lark==1.1.5

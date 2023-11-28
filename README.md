@@ -25,12 +25,12 @@ sh model.sh ./Dockerfile <EtlImageName> <AWS_REGION>
 The ETL image will be pushed to your ECR repo with the image name you specified when executing the command sh model.sh ./Dockerfile <EtlImageName> <AWS_REGION>, AWS_REGION is like us-east-1, us-west-2, etc.
 
 
-2. Deploy CDK template (add sudo if you are using Linux)
+2. Deploy CDK template (add sudo if you are using Linux), make sure DOCKER is installed properly
 ```bash
 git clone --recursive
 git submodule update --init
 
-optional step to deploy AI Solution Kit Endpoints (OCR, Semantic Chunk Splitting, Chunk Summary):
+**optional** step to deploy AI Solution Kit Endpoints (OCR, Semantic Chunk Splitting, Chunk Summary):
 cd submodule
 npx projen build
 npx cdk deploy
@@ -60,9 +60,10 @@ llm-bot-dev.EmbeddingModelEndpoint = embedding-endpoint
 llm-bot-dev.GlueJobName = PythonShellJobxx
 llm-bot-dev.InstructModelEndpoint = instruct-endpoint
 llm-bot-dev.OpenSearchEndpoint = vpc-xx.us-east-1.es.amazonaws.com
+lm-bot-dev.ProcessedObjectTable = llm-bot-dev-xx
 llm-bot-dev.VPC = vpc-xx
 Stack ARN:
-arn:aws:cloudformation:us-east-1:xx:stack/llm-bot-dev/xx
+arn:aws:cloudformation:us-east-1:<Your account id>:stack/llm-bot-dev/xx
 ```
 
 3. Test the API connection
@@ -78,33 +79,18 @@ BODY
     "offline": "true"
 }
 ```
+
 You should see output like this:
 ```bash
 "Step Function triggered, Step Function ARN: arn:aws:states:us-east-1:xxxx:execution:xx-xxx:xx-xx-xx-xx-xx, Input Payload: {\"s3Bucket\": \"<Your S3 bucket>\", \"s3Prefix\": \"<Your S3 prefix>\", \"offline\": \"true\"}"
 ```
 
-**Embedding uploaded file into AOS, POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/embedding, will be deprecate in the future**
-```bash
-BODY
-{
-  "document_prefix": "<Your S3 bucket prefix>",
-  "aos_index": "chatbot-index"
-}
-```
-You should see output like this:
-```bash
-{
-  "created": xx.xx,
-  "model": "embedding-endpoint"
-}
-```
-
-**Then you can query embeddings in AOS, POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/embedding**, other operation including index, delete, query are also provided for debugging purpose.
+**Then you can query embeddings in AOS, POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/aos**, other operation including index, delete, query are also provided for debugging purpose.
 ```bash
 BODY
 {
   "aos_index": "chatbot-index",
-  "operation": "match_all",
+  "operation": "query_all",
   "body": ""
 }
 ```
@@ -157,7 +143,7 @@ You should see output like this:
 }
 ```
 
-**Delete initial index in AOS, POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/embedding for debugging purpose**
+**Delete initial index in AOS, POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/aos for debugging purpose**
 ```bash
 {
   "aos_index": "chatbot-index",
@@ -166,17 +152,25 @@ You should see output like this:
 }
 ```
 
-**Create initial index in AOS, POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/embedding for debugging purpose**
+You should see output like this:
 ```bash
 {
-  "aos_index": "chatbot-index",
-  "operation": "create",
+  "acknowledged": true
+}
+```
+
+**Create other index in AOS, POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/aos for debugging purpose, note the index "chatbot-index" will create by default to use directly**
+```bash
+{
+  "aos_index": "demo-index-1",
+  "operation": "create_index",
   "body": {
     "settings": {
       "index": {
-        "number_of_shards": 2,
+        "number_of_shards": 8,
         "number_of_replicas": 1
-      }
+      },
+      "index.knn": true
     },
     "mappings": {
       "properties": {
@@ -189,6 +183,101 @@ You should see output like this:
   }
 }
 ```
+
+You should see output like this:
+```bash
+{
+  "acknowledged": true,
+  "shards_acknowledged": true,
+  "index": "demo-index-1"
+}
+```
+
+**Online process to embedding & inject document directly, POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/aos**
+```bash
+BODY
+{
+  "aos_index": "demo-index-1",
+  "operation": "embed_document",
+  "body": {
+    "documents": {
+      "page_content": "This is a test content",
+      "metadata": {
+        "heading_hierarchy": "Title 1"
+      }
+    }
+  }
+}
+```
+
+You should see output like this, it will output the document id for the document you just injected:
+```bash
+{
+  "statusCode": 200,
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "body": {
+    "document_id": [
+      "9a4e62fc-9823-4143-a14f-38e9eea06d8c"
+    ]
+  }
+}
+```
+
+**Query the embedding with field and value specified, POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/aos**
+```bash
+{
+  "aos_index": "demo-index-1",
+  "operation": "query",
+  "body": {
+      "field": "metadata.heading_hierarchy",
+      "value": "Title 1",
+      "size": 1000
+  }
+}
+```
+
+You should see output like this, the metadata.heading_hierarchy field is matched with the value "Title 1" and embedding vector is returned with score for relevance possibility:
+```bash
+{
+  "took": 355,
+  "timed_out": false,
+  "_shards": {
+    "total": 5,
+    "successful": 5,
+    "skipped": 0,
+    "failed": 0
+  },
+  "hits": {
+    "total": {
+      "value": 1,
+      "relation": "eq"
+    },
+    "max_score": 0.5753642,
+    "hits": [
+      {
+        "_index": "demo-index-1",
+        "_id": "9a4e62fc-9823-4143-a14f-38e9eea06d8c",
+        "_score": 0.5753642,
+        "_source": {
+          "vector_field": [
+            0.019999539479613304,
+            0.008335119113326073,
+            ...
+          ],
+          "text": "This is a test content",
+          "metadata": {
+            "heading_hierarchy": "Title 1"
+          }
+        }
+      }
+    ]
+  }
+}
+```
+
+There are other operations including 'query_with_must_and_filter', 'query_knn', 'query_exact', 'bulk', 'index', 'delete_nndex', 'delete_document' for debugging purpose, the sample body will be update soon. User will not need to use proxy instance to access the AOS inside VPC, the API gateway with Lambda proxy integration are wrapped to access the AOS directly.
 
 **invoke LLM with context, POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/llm**
 ```bash
@@ -232,19 +321,20 @@ You should see output like this:
 }
 ```
 
-4. Launch dashboard to check and debug the ETL & QA process
+1. Launch dashboard to check and debug the ETL & QA process
 
 ```bash
 cd /source/panel
 pip install -r requirements.txt
 mv .env_sample .env
 # fill .env content accordingly with cdk output
-streamlit run app.py --server.runOnSave true
+streamlit run app.py --server.runOnSave true --server.port 8088
 ```
+login with IP/localhost:8088, you should see the dashboard to operate.
 
 5. [Optional] Upload embedding file to S3 bucket created in the previous step, the format is like below:
 ```bash
-aws s3 cp dth.txt s3://llm-bot-documents-<your account id>-<region>/<your S3 bucket prefix>/
+aws s3 cp <Your documents> s3://llm-bot-documents-<Your account id>-<region>/<Your S3 bucket prefix>/
 ```
 Now the object created event will trigger the Step function to execute Glue job for online processing.
 

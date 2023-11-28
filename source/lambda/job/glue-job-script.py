@@ -28,29 +28,46 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 # Adaption to allow nougat to run in AWS Glue with writable /tmp
-os.environ['TRANSFORMERS_CACHE'] = '/tmp/transformers_cache'
-os.environ['NOUGAT_CHECKPOINT'] = '/tmp/nougat_checkpoint'
-os.environ['NLTK_DATA'] = '/tmp/nltk_data'
+os.environ["TRANSFORMERS_CACHE"] = "/tmp/transformers_cache"
+os.environ["NOUGAT_CHECKPOINT"] = "/tmp/nougat_checkpoint"
+os.environ["NLTK_DATA"] = "/tmp/nltk_data"
 
 # Parse arguments
-args = getResolvedOptions(sys.argv, ['JOB_NAME', 'S3_BUCKET', 'S3_PREFIX', 'AOS_ENDPOINT', 'EMBEDDING_MODEL_ENDPOINT', 'ETL_MODEL_ENDPOINT', 'REGION', 'RES_BUCKET', 'OFFLINE', 'QA_ENHANCEMENT', 'BATCH_INDICE', 'ProcessedObjectsTable', 'DOC_INDEX_TABLE'])
-s3_bucket = args['S3_BUCKET']
-s3_prefix = args['S3_PREFIX']
-aosEndpoint = args['AOS_ENDPOINT']
-aos_index = args['DOC_INDEX_TABLE']
-embeddingModelEndpoint = args['EMBEDDING_MODEL_ENDPOINT']
-etlModelEndpoint = args['ETL_MODEL_ENDPOINT']
-region = args['REGION']
-res_bucket = args['RES_BUCKET']
-offline = args['OFFLINE']
-qa_enhancement = args['QA_ENHANCEMENT']
+args = getResolvedOptions(
+    sys.argv,
+    [
+        "JOB_NAME",
+        "S3_BUCKET",
+        "S3_PREFIX",
+        "AOS_ENDPOINT",
+        "EMBEDDING_MODEL_ENDPOINT",
+        "ETL_MODEL_ENDPOINT",
+        "REGION",
+        "RES_BUCKET",
+        "OFFLINE",
+        "QA_ENHANCEMENT",
+        "BATCH_INDICE",
+        "ProcessedObjectsTable",
+        "DOC_INDEX_TABLE",
+    ],
+)
+s3_bucket = args["S3_BUCKET"]
+s3_prefix = args["S3_PREFIX"]
+aosEndpoint = args["AOS_ENDPOINT"]
+aos_index = args["DOC_INDEX_TABLE"]
+embeddingModelEndpoint = args["EMBEDDING_MODEL_ENDPOINT"]
+etlModelEndpoint = args["ETL_MODEL_ENDPOINT"]
+region = args["REGION"]
+res_bucket = args["RES_BUCKET"]
+offline = args["OFFLINE"]
+qa_enhancement = args["QA_ENHANCEMENT"]
 # TODO, pass the bucket and prefix need to handle in current job directly
-batchIndice = args['BATCH_INDICE']
-processedObjectsTable = args['ProcessedObjectsTable']
+batchIndice = args["BATCH_INDICE"]
+processedObjectsTable = args["ProcessedObjectsTable"]
 
-s3 = boto3.client('s3')
+s3 = boto3.client("s3")
 smr_client = boto3.client("sagemaker-runtime")
-dynamodb = boto3.resource('dynamodb')
+dynamodb = boto3.resource("dynamodb")
 table = dynamodb.Table(processedObjectsTable)
 
 ENHANCE_CHUNK_SIZE = 500
@@ -58,14 +75,19 @@ ENHANCE_CHUNK_SIZE = 500
 OBJECT_EXPIRY_TIME = 3600
 
 credentials = boto3.Session().get_credentials()
-awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, region, 'es', session_token=credentials.token)
+awsauth = AWS4Auth(
+    credentials.access_key,
+    credentials.secret_key,
+    region,
+    "es",
+    session_token=credentials.token,
+)
 
 # Set the NLTK data path to the /tmp directory for AWS Glue jobs
-nltk.data.path.append('/tmp/nltk_data')
+nltk.data.path.append("/tmp/nltk_data")
 
 
-
-def decode_file_content(content: str, default_encoding: str = 'utf-8'):
+def decode_file_content(content: str, default_encoding: str = "utf-8"):
     """Decode the file content and auto detect the content encoding.
 
     Args:
@@ -78,25 +100,30 @@ def decode_file_content(content: str, default_encoding: str = 'utf-8'):
         decoded_content = content.decode(default_encoding)
     except UnicodeDecodeError:
         # Try to detect encoding
-        encoding = chardet.detect(content)['encoding']
+        encoding = chardet.detect(content)["encoding"]
         decoded_content = content.decode(encoding)
 
     return decoded_content
 
+
 # such glue job is running as map job, the batchIndice is the index per file to handle in current job
-def iterate_s3_files(bucket: str, prefix: str) -> Generator:    
-    paginator = s3.get_paginator('list_objects_v2')
+def iterate_s3_files(bucket: str, prefix: str) -> Generator:
+    paginator = s3.get_paginator("list_objects_v2")
     currentIndice = 0
     for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
-        for obj in page.get('Contents', []):
-            key = obj['Key']
+        for obj in page.get("Contents", []):
+            key = obj["Key"]
             # skip the prefix with slash, which is the folder name
-            if key.endswith('/'):
+            if key.endswith("/"):
                 continue
 
             # skip the file if the index is not in the batchIndice
             if currentIndice != int(batchIndice):
-                logger.info("currentIndice: {}, batchIndice: {}, skip file: {}".format(currentIndice, batchIndice, key))
+                logger.info(
+                    "currentIndice: {}, batchIndice: {}, skip file: {}".format(
+                        currentIndice, batchIndice, key
+                    )
+                )
                 currentIndice += 1
                 continue
 
@@ -104,13 +131,16 @@ def iterate_s3_files(bucket: str, prefix: str) -> Generator:
             current_time = int(round(time.time()))
             # Check for redundancy and expiry
             response = table.query(
-                KeyConditionExpression = Key('ObjectKey').eq(key),
+                KeyConditionExpression=Key("ObjectKey").eq(key),
                 ScanIndexForward=False,  # Sort by ProcessTimestamp in descending order
-                Limit=1  # We only need the latest record
+                Limit=1,  # We only need the latest record
             )
 
             # If the object is found and has not expired, skip processing
-            if response['Items'] and response['Items'][0]['ExpiryTimestamp'] > current_time:
+            if (
+                response["Items"]
+                and response["Items"][0]["ExpiryTimestamp"] > current_time
+            ):
                 logger.info(f"Object {key} has not expired yet and will be skipped.")
                 continue
 
@@ -119,47 +149,54 @@ def iterate_s3_files(bucket: str, prefix: str) -> Generator:
             try:
                 table.put_item(
                     Item={
-                        'ObjectKey': key,
-                        'ProcessTimestamp': current_time,
-                        'Bucket': bucket,
-                        'Prefix': '/'.join(key.split('/')[:-1]),
-                        'ExpiryTimestamp': expiry_timestamp
+                        "ObjectKey": key,
+                        "ProcessTimestamp": current_time,
+                        "Bucket": bucket,
+                        "Prefix": "/".join(key.split("/")[:-1]),
+                        "ExpiryTimestamp": expiry_timestamp,
                     }
                 )
             except Exception as e:
                 logger.error(f"Error recording processed of S3 object {key}: {e}")
 
-            file_type = key.split('.')[-1]  # Extract file extension
+            file_type = key.split(".")[-1]  # Extract file extension
             response = s3.get_object(Bucket=bucket, Key=key)
-            file_content = response['Body'].read()
+            file_content = response["Body"].read()
             # assemble bucket and key as args for the callback function
-            kwargs = {'bucket': bucket, 'key': key, 'etl_model_endpoint': etlModelEndpoint, 'smr_client': smr_client, 'res_bucket': res_bucket}
+            kwargs = {
+                "bucket": bucket,
+                "key": key,
+                "etl_model_endpoint": etlModelEndpoint,
+                "smr_client": smr_client,
+                "res_bucket": res_bucket,
+            }
 
-            if file_type == 'txt':
-                yield 'txt', decode_file_content(file_content), kwargs
+            if file_type == "txt":
+                yield "txt", decode_file_content(file_content), kwargs
                 break
-            elif file_type == 'csv':
+            elif file_type == "csv":
                 # Update row count here, the default row count is 1
-                kwargs['csv_row_count'] = 1
-                yield 'csv', decode_file_content(file_content), kwargs
+                kwargs["csv_row_count"] = 1
+                yield "csv", decode_file_content(file_content), kwargs
                 break
-            elif file_type == 'html':
-                yield 'html', decode_file_content(file_content), kwargs
+            elif file_type == "html":
+                yield "html", decode_file_content(file_content), kwargs
                 break
-            elif file_type in ['pdf']:
-                yield 'pdf', file_content, kwargs
+            elif file_type in ["pdf"]:
+                yield "pdf", file_content, kwargs
                 break
-            elif file_type in ['jpg', 'png']:
-                yield 'image', file_content, kwargs
+            elif file_type in ["jpg", "png"]:
+                yield "image", file_content, kwargs
                 break
-            elif file_type in ['docx', 'doc']:
-                yield 'doc', file_content, kwargs
+            elif file_type in ["docx", "doc"]:
+                yield "doc", file_content, kwargs
                 break
-            elif file_type == 'md':
-                yield 'md', decode_file_content(file_content), kwargs
+            elif file_type == "md":
+                yield "md", decode_file_content(file_content), kwargs
                 break
             else:
                 logger.info(f"Unknown file type: {file_type}")
+
 
 def batch_generator(generator, batch_size: int):
     iterator = iter(generator)
@@ -169,7 +206,15 @@ def batch_generator(generator, batch_size: int):
             break
         yield batch
 
-def aos_injection(content: List[Document], embeddingModelEndpoint: str, aosEndpoint: str, index_name: str, chunk_size: int = 500, gen_chunk: bool = True) -> List[Document]:
+
+def aos_injection(
+    content: List[Document],
+    embeddingModelEndpoint: str,
+    aosEndpoint: str,
+    index_name: str,
+    chunk_size: int = 500,
+    gen_chunk: bool = True,
+) -> List[Document]:
     """
     This function includes the following steps:
     1. split the document into chunks with chunk size to fit the embedding model, note the document is already splited by title/subtitle to form sementic chunks approximately;
@@ -187,13 +232,38 @@ def aos_injection(content: List[Document], embeddingModelEndpoint: str, aosEndpo
 
     Note:
     """
-    embeddings = sm_utils.create_sagemaker_embeddings_from_js_model(embeddingModelEndpoint, region)
-    def chunk_generator(content: List[Document], chunk_size: int = 500, chunk_overlap: int = 30) -> Generator[Document, None, None]:
-        text_splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+    embeddings = sm_utils.create_sagemaker_embeddings_from_js_model(
+        embeddingModelEndpoint, region
+    )
+
+    def chunk_generator(
+        content: List[Document], chunk_size: int = 500, chunk_overlap: int = 30
+    ) -> Generator[Document, None, None]:
+        temp_text_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=chunk_size, chunk_overlap=chunk_overlap
+        )
+        temp_content = content
+        text_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=chunk_size, chunk_overlap=chunk_overlap
+        )
+        updated_heading_hierarchy = {}
+        for temp_document in temp_content:
+            temp_chunk_id = temp_document.metadata["chunk_id"]
+            temp_split_size = len(temp_text_splitter.split_documents([temp_document]))
+            # Add size in heading_hierarchy
+            temp_hierarchy = temp_document.metadata["heading_hierarchy"][temp_chunk_id]
+            temp_hierarchy["size"] = temp_split_size
+            updated_heading_hierarchy[temp_chunk_id] = temp_hierarchy
+
         for document in content:
             splits = text_splitter.split_documents([document])
             # list of Document objects
+            index = 1
             for split in splits:
+                chunk_id = split.metadata["chunk_id"]
+                split.metadata["chunk_id"] = f"{chunk_id}-{index}"
+                split.metadata["heading_hierarchy"] = updated_heading_hierarchy
+                index += 1
                 yield split
 
     if gen_chunk:
@@ -208,6 +278,7 @@ def aos_injection(content: List[Document], embeddingModelEndpoint: str, aosEndpo
             continue
         # the batch are still list of Document objects, we need to iterate the list to inject the embeddings, the chunk size (500) should already be small enough to fit the embedding model
         for document in batch:
+
             @retry(stop=stop_after_attempt(3))
             def _aos_injection(document: Document) -> Document:
                 # TODO, parse the metadata to embed with different index, currently the index name is passed as cfn parameter with default value "chatbot-index"
@@ -215,71 +286,103 @@ def aos_injection(content: List[Document], embeddingModelEndpoint: str, aosEndpo
                     index_name=index_name,
                     embedding_function=embeddings,
                     opensearch_url="https://{}".format(aosEndpoint),
-                    http_auth = awsauth,
-                    use_ssl = True,
-                    verify_certs = True,
-                    connection_class = RequestsHttpConnection
+                    http_auth=awsauth,
+                    use_ssl=True,
+                    verify_certs=True,
+                    connection_class=RequestsHttpConnection,
                 )
-                logger.info("Adding documents %s to OpenSearch with index %s", document, index_name)
-                docsearch.add_documents(documents=[document])
+                logger.info(
+                    "Adding documents %s to OpenSearch with index %s",
+                    document,
+                    index_name,
+                )
+                try:
+                    docsearch.add_documents(documents=[document])
+                except Exception as e:
+                    logger.info(f"Catch exception when adding document to OpenSearch: {e}")
                 logger.info("Retry statistics: %s", _aos_injection.retry.statistics)
+
             # logger.info("Adding documents %s to OpenSearch with index %s", document, index_name)
             save_content_to_s3(s3, document, res_bucket, SplittingType.CHUNK.value)
             _aos_injection(document)
+
 
 # Main function to be called by Glue job script
 def main():
     logger.info("Starting Glue job with passing arguments: %s", args)
     # Check if offline mode
-    if offline == 'true':
+    if offline == "true":
         logger.info("Running in offline mode with consideration for large file size...")
         for file_type, file_content, kwargs in iterate_s3_files(s3_bucket, s3_prefix):
             try:
                 res = cb_process_object(s3, file_type, file_content, **kwargs)
                 for document in res:
-                    save_content_to_s3(s3, document, res_bucket, SplittingType.SEMANTIC.value)
+                    save_content_to_s3(
+                        s3, document, res_bucket, SplittingType.SEMANTIC.value
+                    )
 
                 # the res is unified to list[Doucment] type, store the res to S3 for observation
                 # TODO, parse the metadata to embed with different index
                 if res:
                     logger.info("Result: %s", res)
-                if file_type == 'csv':
+                if file_type == "csv":
                     # CSV page document has been splited into chunk, no more spliting is needed
-                    aos_injection(res, embeddingModelEndpoint, aosEndpoint, aos_index, gen_chunk=False)
-                elif file_type == 'html':
+                    aos_injection(
+                        res,
+                        embeddingModelEndpoint,
+                        aosEndpoint,
+                        aos_index,
+                        gen_chunk=False,
+                    )
+                elif file_type == "html":
                     aos_injection(res, embeddingModelEndpoint, aosEndpoint, aos_index)
-                elif file_type in ['pdf', 'txt', 'doc', 'md']:
+                elif file_type in ["pdf", "txt", "doc", "md"]:
                     aos_injection(res, embeddingModelEndpoint, aosEndpoint, aos_index)
-                    if qa_enhancement == 'true':
+                    if qa_enhancement == "true":
                         # iterate the document to get the QA pairs
                         for document in res:
                             # prompt is not used in this case
                             prompt = ""
                             solution_title = "GCR Solution LLM Bot"
                             # Make sure the document is Document object
-                            logger.info("Enhancing document type: {} and content: {}".format(type(document), document))
+                            logger.info(
+                                "Enhancing document type: {} and content: {}".format(
+                                    type(document), document
+                                )
+                            )
                             ewb = EnhanceWithBedrock(prompt, solution_title, document)
                             # This is should be optional for the user to choose the chunk size
-                            document_list = ewb.SplitDocumentByTokenNum(document, ENHANCE_CHUNK_SIZE)
+                            document_list = ewb.SplitDocumentByTokenNum(
+                                document, ENHANCE_CHUNK_SIZE
+                            )
                             # test the function
                             for document in document_list:
-                                enhanced_prompt = ewb.EnhanceWithClaude(prompt, solution_title, document)
-                                logger.info("Enhanced prompt: {}".format(enhanced_prompt))
+                                enhanced_prompt = ewb.EnhanceWithClaude(
+                                    prompt, solution_title, document
+                                )
+                                logger.info(
+                                    "Enhanced prompt: {}".format(enhanced_prompt)
+                                )
 
             except Exception as e:
-                logger.error("Error processing object %s: %s", kwargs['bucket'] + '/' + kwargs['key'], e)
+                logger.error(
+                    "Error processing object %s: %s",
+                    kwargs["bucket"] + "/" + kwargs["key"],
+                    e,
+                )
     else:
         logger.info("Running in online mode, assume file number is small...")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     logger.info("boto3 version: %s", boto3.__version__)
 
     # Set the NLTK data path to the /tmp directory for AWS Glue jobs
     nltk.data.path.append("/tmp")
     # List of NLTK packages to download
-    nltk_packages = ['words', 'punkt']
+    nltk_packages = ["words", "punkt"]
     # Download the required NLTK packages to /tmp
     for package in nltk_packages:
         # Download the package to /tmp/nltk_data
-        nltk.download(package, download_dir='/tmp/nltk_data')
+        nltk.download(package, download_dir="/tmp/nltk_data")
     main()
