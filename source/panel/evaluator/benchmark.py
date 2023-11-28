@@ -19,7 +19,7 @@ from langchain.vectorstores import OpenSearchVectorSearch
 
 from llm_bot_dep.loaders.nougat_pdf import NougatPDFLoader
 from llm_bot_dep.splitter_utils import MarkdownHeaderTextSplitter
-from llm_bot_dep.sm_utils import create_sagemaker_embeddings_from_js_model
+from llm_bot_dep.sm_utils import create_sagemaker_embeddings_from_js_model, SagemakerEndpointVectorOrCross
 
 from dotenv import load_dotenv
 load_dotenv(dotenv_path='.env')
@@ -33,6 +33,8 @@ region = os.getenv("REGION")
 
 credentials = boto3.Session().get_credentials()
 awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, region, 'es', session_token=credentials.token)
+
+default_aos_index_name = "llm-bot-index"
 
 metadata_template = {
     "content_type": "paragraph",
@@ -131,7 +133,7 @@ def _aos_injection(document: Document) -> List[str]:
     """
     embeddings = create_sagemaker_embeddings_from_js_model(embeddingModelEndpoint, region)
     docsearch = OpenSearchVectorSearch(
-        index_name='chatbot-index',
+        index_name=default_aos_index_name,
         embedding_function=embeddings,
         opensearch_url="https://{}".format(aosEndpoint),
         http_auth = awsauth,
@@ -139,7 +141,7 @@ def _aos_injection(document: Document) -> List[str]:
         verify_certs = True,
         connection_class = RequestsHttpConnection
     )
-    logger.info("Adding documents %s to OpenSearch with fixed index %s", document, 'chatbot-index')
+    logger.info("Adding documents %s to OpenSearch with index %s", document, default_aos_index_name)
     res = docsearch.add_documents(documents=[document])
     logger.info("Retry statistics: %s and response: %s", _aos_injection.retry.statistics, res)
     return res
@@ -174,6 +176,20 @@ def faiss_retriver(texts: List[str], query: str):
     logger.info("docs_with_score: {}".format(docs_with_score))
     return docs_with_score
 
+def csdc_retriver(texts: List[str], query: str):
+    query_embedding = SagemakerEndpointVectorOrCross(
+        prompt=query,
+        endpoint_name=embeddingModelEndpoint,
+        region_name=region,
+        model_type="vector",
+        stop=None,
+    )
+    # TODO, replace with aos wrapper
+    # knn_respose = aos_client.search(
+    #     index_name=default_aos_index_name, query_type="knn", query_term=query_embedding
+    # )
+    # return knn_respose
+
 def langchain_evalutor(query: str, docs_with_score: List[Tuple[str, float]]):
     """
     evaluate the retrieved documents with query and return summary result including metrics below:
@@ -194,7 +210,7 @@ def langchain_evalutor(query: str, docs_with_score: List[Tuple[str, float]]):
 loader_list = [unstructured_loader, nougat_loader, llamaIndex_loader]
 splitter_list = [recursive_splitter, csdc_markdown_header_splitter]
 embeddings_list = [openai_embedding]
-retriever_list = [faiss_retriver]
+retriever_list = [faiss_retriver, csdc_retriver]
 evalutor_list = [langchain_evalutor]
 
 class WorkflowExecutor:

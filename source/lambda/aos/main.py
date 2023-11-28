@@ -27,15 +27,18 @@ def lambda_handler(event, _context):
 
     operations_mapping = {
         'GET': {
-            'query': lambda: aos_client.query(index_name, json.dumps(body), kwargs),
             'query_all': lambda: aos_client.query_all(index_name, json.dumps(body), kwargs),
-            'query_with_must_and_filter': lambda: aos_client.query_with_must_and_filter(index_name, json.dumps(body), kwargs),
+            'query_full_text_match': lambda: aos_client.query_full_text_match(index_name, json.dumps(body), kwargs),
+            'query_full_text_multi_match': lambda: aos_client.query_full_text_multi_match(index_name, json.dumps(body), kwargs),
+            'query_term': lambda: aos_client.query_term(index_name, json.dumps(body), kwargs),
+            'query_term_regex': lambda: aos_client.query_term_wildcard(index_name, json.dumps(body), kwargs),
             'query_knn': lambda: aos_client.query_knn(index_name, json.dumps(body), kwargs),
             'query_exact': lambda: aos_client.query_exact(index_name, json.dumps(body), kwargs),
-            'index': lambda: aos_client.index(index_name, json.dumps(body), kwargs),
+            'query_index': lambda: aos_client.query_index(index_name, json.dumps(body), kwargs),
         },
         'POST': {
             'create_index': lambda: aos_client.create_index(index_name, json.dumps(body), kwargs),
+            'index': lambda: aos_client.index(index_name, json.dumps(body), kwargs),
             'bulk': lambda: aos_client.bulk(index_name, json.dumps(body), kwargs),
             'delete_index': lambda: aos_client.delete_index(index_name, json.dumps(body), kwargs),
             'delete_document': lambda: aos_client.delete_document(index_name, json.dumps(body), kwargs),
