@@ -10,5 +10,5 @@ tenacity==8.2.2
 altair==4.2.2
 scikit-learn==1.2.1
 kor==0.9.2
-transformers==4.28.1
+transformers==4.30.0
 lark==1.1.5
