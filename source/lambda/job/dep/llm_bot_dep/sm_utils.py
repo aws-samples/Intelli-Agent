@@ -5,7 +5,7 @@ import sys
 import time
 import json
 import logging
-from typing import List
+from typing import List, Dict, Any, Optional
 from langchain.embeddings import SagemakerEndpointEmbeddings
 from langchain.embeddings.sagemaker_endpoint import EmbeddingsContentHandler
 from langchain.llms.sagemaker_endpoint import LLMContentHandler, SagemakerEndpoint

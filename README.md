@@ -162,25 +162,9 @@ You should see output like this:
 **Create other index in AOS, POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/aos for debugging purpose, note the index "chatbot-index" will create by default to use directly**
 ```bash
 {
-  "aos_index": "demo-index-1",
+  "aos_index": "llm-bot-index",
   "operation": "create_index",
-  "body": {
-    "settings": {
-      "index": {
-        "number_of_shards": 8,
-        "number_of_replicas": 1
-      },
-      "index.knn": true
-    },
-    "mappings": {
-      "properties": {
-        "vector_field": {
-            "type": "knn_vector",
-            "dimension": 1024
-        }
-      }
-    }
-  }
+  "body": {}
 }
 ```
 
@@ -189,7 +173,7 @@ You should see output like this:
 {
   "acknowledged": true,
   "shards_acknowledged": true,
-  "index": "demo-index-1"
+  "index": "llm-bot-index"
 }
 ```
 
@@ -197,13 +181,19 @@ You should see output like this:
 ```bash
 BODY
 {
-  "aos_index": "demo-index-1",
+  "aos_index": "llm-bot-index",
   "operation": "embed_document",
   "body": {
     "documents": {
-      "page_content": "This is a test content",
+      "page_content": "## Main Titile\n This is the main titlebe before such chapter",
       "metadata": {
-        "heading_hierarchy": "Title 1"
+        "content_type": "paragraph", 
+        "heading_hierarchy": "{'Evaluation of LLM Retrievers': {}}", 
+        "figure_list": [], 
+        "chunk_id": "$9", 
+        "file_path": "s3://bucket/file_folder/ec2/user_guide", 
+        "keywords": ["ec2", "s3"],
+        "summary": "This is summary for such user guide"
       }
     }
   }
@@ -219,29 +209,29 @@ You should see output like this, it will output the document id for the document
   },
   "body": {
     "document_id": [
-      "9a4e62fc-9823-4143-a14f-38e9eea06d8c"
+      "1e70e167-53b4-42d1-9bdb-084c2f2d3282"
     ]
   }
 }
 ```
 
-**Query the embedding with field and value specified, POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/aos**
+**Query the embedding with field and value specified, GET https://xxxx.execute-api.us-east-1.amazonaws.com/v1/aos**
 ```bash
 {
-  "aos_index": "demo-index-1",
-  "operation": "query",
+  "aos_index": "llm-bot-index-01",
+  "operation": "query_full_text_match",
   "body": {
-      "field": "metadata.heading_hierarchy",
-      "value": "Title 1",
-      "size": 1000
+      "field": "metadata.file_path",
+      "value": "s3://bucket/file_folder/ec2/user_guide",
+      "size": 100
   }
 }
 ```
 
-You should see output like this, the metadata.heading_hierarchy field is matched with the value "Title 1" and embedding vector is returned with score for relevance possibility:
+You should see output like this, the metadata.file_path field is matched with the value "s3://bucket/file_folder/ec2/user_guide" and embedding vector is returned with score for relevance possibility:
 ```bash
 {
-  "took": 355,
+  "took": 4,
   "timed_out": false,
   "_shards": {
     "total": 5,
@@ -254,21 +244,30 @@ You should see output like this, the metadata.heading_hierarchy field is matched
       "value": 1,
       "relation": "eq"
     },
-    "max_score": 0.5753642,
+    "max_score": 1.4384104,
     "hits": [
       {
-        "_index": "demo-index-1",
-        "_id": "9a4e62fc-9823-4143-a14f-38e9eea06d8c",
-        "_score": 0.5753642,
+        "_index": "llm-bot-index-01",
+        "_id": "94d05a5c-1311-4c16-8f32-67b03526b888",
+        "_score": 1.4384104,
         "_source": {
           "vector_field": [
-            0.019999539479613304,
-            0.008335119113326073,
+            0.014800798147916794,
+            0.04196572303771973,
             ...
           ],
-          "text": "This is a test content",
+          "text": "### Evaluation of LLM Retrievers\n This is the main body of such chapter",
           "metadata": {
-            "heading_hierarchy": "Title 1"
+            "content_type": "paragraph",
+            "heading_hierarchy": "{'Evaluation of LLM Retrievers': {}}",
+            "figure_list": [],
+            "chunk_id": "$10",
+            "file_path": "s3://bucket/file_folder/ec2/user_guide",
+            "keywords": [
+              "ec2",
+              "s3"
+            ],
+            "summary": "This is summary for such user guide"
           }
         }
       }
@@ -276,59 +275,198 @@ You should see output like this, the metadata.heading_hierarchy field is matched
   }
 }
 ```
-
-There are other operations including 'query_with_must_and_filter', 'query_knn', 'query_exact', 'bulk', 'index', 'delete_nndex', 'delete_document' for debugging purpose, the sample body will be update soon. User will not need to use proxy instance to access the AOS inside VPC, the API gateway with Lambda proxy integration are wrapped to access the AOS directly.
-
-**invoke LLM with context, POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/llm**
+**Query the embedding with KNN, GET https://xxxx.execute-api.us-east-1.amazonaws.com/v1/aos**
 ```bash
-BODY
 {
-  "model": "knowledge_qa",
-  "messages": [
-    {
-      "role": "user",
-      "content": "给我介绍一下什么是data transfer hub方案？"
-    }
-  ],
-  "temperature": 0.7
+  "aos_index": "llm-bot-index",
+  "operation": "query_knn",
+  "body": {
+      "query": [
+            0.014800798147916794,
+            0.04196572303771973,
+            ...
+          ],
+      "size": 10
+  }
 }
 ```
-You should see output like this:
+
+You should see output like this, the embedding vector is matched with the embedding value and result are returned with score for relevance possibility, we usaually embed our query first to get the float vector and then use the vector to query the AOS:
 ```bash
 {
-  "id": "user_1693493252",
-  "object": "chat.completion",
-  "created": 1693493252,
-  "model": "knowledge_qa",
-  "usage": {
-    "prompt_tokens": 13,
-    "completion_tokens": 7,
-    "total_tokens": 20
+  "took": 2,
+  "timed_out": false,
+  "_shards": {
+    "total": 5,
+    "successful": 5,
+    "skipped": 0,
+    "failed": 0
   },
-  "choices": [
-    {
-      "message": {
-        "role": "assistant",
-        "content": "数据传输解决方案（Data Transfer Hub）是一种用于安全、可扩展和可追踪地将数据从不同云服务提供商的对象存储服务（如阿里云 OSS、腾讯 COS、七牛 Kodo等）传输到Amazon S3和Amazon ECR的方案。它提供了一个直观的用户界面，允许客户在界面上创建和管理数据传输任务。通过数据传输解决方案，客户可以实现将数据从其他云服务提供商的对象存储服务传输到Amazon S3，以及在Amazon ECR之间传输容器镜像。该方案采用无服务器架构，按需使用并随用随付。有关更多信息，请参阅实施指南的“成本”部分。",
-        "knowledge_sources": [
-          "/tmp/tmptezz8py3/csdc/dth.txt"
-        ]
+  "hits": {
+    "total": {
+      "value": 2,
+      "relation": "eq"
+    },
+    "max_score": 1.0,
+    "hits": [
+      {
+        "_index": "llm-bot-index",
+        "_id": "f57c95cb-ec45-4ea3-8c41-d364897c84ff",
+        "_score": 1.0,
+        "_source": {
+          "vector_field": [
+            0.014800798147916794,
+            0.04196572303771973,
+            ...
+          ],
+          "text": "### Evaluation of LLM Retrievers\n This is the main body of such chapter",
+          "metadata": {
+            "content_type": "paragraph",
+            "heading_hierarchy": "{'Evaluation of LLM Retrievers': {}}",
+            "figure_list": [],
+            "chunk_id": "$10",
+            "file_path": "s3://bucket/file_folder/ec2/user_guide",
+            "keywords": [
+              "ec2",
+              "s3"
+            ],
+            "summary": "This is summary for such user guide"
+          }
+        }
       },
-      "finish_reason": "stop",
-      "index": 0
-    }
-  ]
+      {
+        "_index": "llm-bot-index",
+        "_id": "1e70e167-53b4-42d1-9bdb-084c2f2d3282",
+        "_score": 0.68924075,
+        "_source": {
+          "vector_field": [
+            -0.02339574135839939,
+            0.03578857704997063,
+            ...
+          ],
+          "text": "## Main Titile\n This is the main titlebe before such chapter",
+          "metadata": {
+            "content_type": "paragraph",
+            "heading_hierarchy": "{'Evaluation of LLM Retrievers': {}}",
+            "figure_list": [],
+            "chunk_id": "$9",
+            "file_path": "s3://bucket/file_folder/ec2/user_guide",
+            "keywords": [
+              "ec2",
+              "s3"
+            ],
+            "summary": "This is summary for such user guide"
+          }
+        }
+      }
+    ]
+  }
+}
+```
+**Query the index for mappings configuration, normally used in debugging model, GET https://xxxx.execute-api.us-east-1.amazonaws.com/v1/aos**
+```bash
+{
+  "aos_index": "llm-bot-index",
+  "operation": "query_index",
+  "body": {
+  }
 }
 ```
 
-1. Launch dashboard to check and debug the ETL & QA process
+You should see output like this, the index mapping configuration is returned:
+```bash
+{
+  "llm-bot-index": {
+    "mappings": {
+      "properties": {
+        "metadata": {
+          "properties": {
+            "chunk_id": {
+              "type": "text",
+              "fields": {
+                "keyword": {
+                  "type": "keyword",
+                  "ignore_above": 256
+                }
+              }
+            },
+            "content_type": {
+              "type": "text",
+              "fields": {
+                "keyword": {
+                  "type": "keyword",
+                  "ignore_above": 256
+                }
+              }
+            },
+            "file_path": {
+              "type": "text",
+              "fields": {
+                "keyword": {
+                  "type": "keyword",
+                  "ignore_above": 256
+                }
+              }
+            },
+            "heading_hierarchy": {
+              "type": "text",
+              "fields": {
+                "keyword": {
+                  "type": "keyword",
+                  "ignore_above": 256
+                }
+              }
+            },
+            "keywords": {
+              "type": "text",
+              "fields": {
+                "keyword": {
+                  "type": "keyword",
+                  "ignore_above": 256
+                }
+              }
+            },
+            "summary": {
+              "type": "text",
+              "fields": {
+                "keyword": {
+                  "type": "keyword",
+                  "ignore_above": 256
+                }
+              }
+            }
+          }
+        },
+        "text": {
+          "type": "text",
+          "fields": {
+            "keyword": {
+              "type": "keyword",
+              "ignore_above": 256
+            }
+          }
+        },
+        "vector_field": {
+          "type": "float"
+        }
+      }
+    }
+  }
+}
+```
+
+
+There are other operations including 'bulk', 'delete_index', 'delete_document' etc. for debugging purpose, the sample body will be update soon. User will not need to use proxy instance to access the AOS inside VPC, the API gateway with Lambda proxy integration are wrapped to access the AOS directly.
+
+
+4. [Optional] Launch dashboard to check and debug the ETL & QA process
 
 ```bash
 cd /source/panel
 pip install -r requirements.txt
 mv .env_sample .env
 # fill .env content accordingly with cdk output
-streamlit run app.py --server.runOnSave true --server.port 8088
+python -m streamlit run app.py --server.runOnSave true --server.port 8088 --browser.gatherUsageStats false --server.fileWatcherType none
 ```
 login with IP/localhost:8088, you should see the dashboard to operate.
 
