@@ -247,13 +247,13 @@ def aos_injection(
             chunk_size=chunk_size, chunk_overlap=chunk_overlap
         )
         updated_heading_hierarchy = {}
-        # for temp_document in temp_content:
-        #     temp_chunk_id = temp_document.metadata["chunk_id"]
-        #     temp_split_size = len(temp_text_splitter.split_documents([temp_document]))
-        #     # Add size in heading_hierarchy
-        #     temp_hierarchy = temp_document.metadata["heading_hierarchy"][temp_chunk_id]
-        #     temp_hierarchy["size"] = temp_split_size
-        #     updated_heading_hierarchy[temp_chunk_id] = temp_hierarchy
+        for temp_document in temp_content:
+            temp_chunk_id = temp_document.metadata["chunk_id"]
+            temp_split_size = len(temp_text_splitter.split_documents([temp_document]))
+            # Add size in heading_hierarchy
+            temp_hierarchy = temp_document.metadata["heading_hierarchy"][temp_chunk_id]
+            temp_hierarchy["size"] = temp_split_size
+            updated_heading_hierarchy[temp_chunk_id] = temp_hierarchy
 
         for document in content:
             splits = text_splitter.split_documents([document])
@@ -262,7 +262,7 @@ def aos_injection(
             for split in splits:
                 chunk_id = split.metadata["chunk_id"]
                 split.metadata["chunk_id"] = f"{chunk_id}-{index}"
-                # split.metadata["heading_hierarchy"] = updated_heading_hierarchy
+                split.metadata["heading_hierarchy"] = updated_heading_hierarchy
                 index += 1
                 yield split
 
@@ -296,7 +296,10 @@ def aos_injection(
                     document,
                     index_name,
                 )
-                docsearch.add_documents(documents=[document])
+                try:
+                    docsearch.add_documents(documents=[document])
+                except Exception as e:
+                    logger.info(f"Catch exception when adding document to OpenSearch: {e}")
                 logger.info("Retry statistics: %s", _aos_injection.retry.statistics)
 
             # logger.info("Adding documents %s to OpenSearch with index %s", document, index_name)
