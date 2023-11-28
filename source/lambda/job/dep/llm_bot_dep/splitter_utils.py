@@ -238,7 +238,7 @@ class MarkdownHeaderTextSplitter:
         if self.res_bucket is not None:
             save_content_to_s3(s3, text, self.res_bucket, SplittingType.BEFORE.value)
         else:
-            logger.error(
+            logger.warning(
                 "No resource bucket is defined, skip saving content into S3 bucket"
             )
 

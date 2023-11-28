@@ -3,6 +3,8 @@ import json
 import logging
 import time
 import boto3
+import requests
+import json
 
 from tenacity import retry, stop_after_attempt
 from itertools import product
@@ -30,6 +32,7 @@ logger = logging.getLogger(__name__)
 embeddingModelEndpoint = os.getenv("EMBEDDING_MODEL_ENDPOINT")
 aosEndpoint = os.getenv("AOS_ENDPOINT")
 region = os.getenv("REGION")
+apiEndpoint = os.getenv("APIEndpointAddress")
 
 credentials = boto3.Session().get_credentials()
 awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, region, 'es', session_token=credentials.token)
@@ -94,16 +97,10 @@ def recursive_splitter(docs: List[Document]) -> List[Document]:
     logger.info("langchain recursive splitter: {}".format(docs))
     return docs
 
-def csdc_markdown_header_splitter(docs: List[Document]) -> List[Document]:
+def csdc_markdown_header_splitter(doc: Document) -> List[Document]:
     markdown_splitter = MarkdownHeaderTextSplitter()
-    # construct a fake document data
-    md_header_splits = []
-    for doc in docs:
-        md_header_splits = markdown_splitter.split_text(doc)
-        for i, doc in enumerate(md_header_splits):
-            logger.info("content of chunk %s: %s", i, doc)
-        md_header_splits.append(md_header_splits) 
-    logger.info("csdc markdown splitter: {}".format(md_header_splits))        
+    md_header_splits = markdown_splitter.split_text(doc)
+    logger.info("csdc markdown header splitter: {}".format(md_header_splits)) 
     return md_header_splits
 
 def documents_to_strings(documents: List[Document]) -> List[str]:
@@ -146,7 +143,8 @@ def _aos_injection(document: Document) -> List[str]:
     logger.info("Retry statistics: %s and response: %s", _aos_injection.retry.statistics, res)
     return res
 
-def csdc_embedding(docs: List[Document]):
+# this method require such aos was public accessible
+def csdc_embedding_public(docs: List[Document]):
     for doc in docs:
         res = _aos_injection(doc)
         logger.info("aos injection result: {}".format(res))
@@ -205,6 +203,63 @@ def langchain_evalutor(query: str, docs_with_score: List[Tuple[str, float]]):
     10. average time of retrival
     """
     pass
+
+import requests
+
+def send_request(method: str, body=None):
+    """
+    Send a request to the specified URL with the given method and data.
+
+    Args:
+    url (str): The URL to which the request is sent.
+    method (str): HTTP method ('GET', 'POST', 'PUT', etc.).
+    data (dict, optional): The request body for methods like POST or PUT.
+
+    Returns:
+    Response object
+    """
+    if method.upper() == 'POST':
+        response = requests.post(apiEndpoint, json=body)
+    elif method.upper() == 'GET':
+        response = requests.get(apiEndpoint, params=body)
+    elif method.upper() == 'PUT':
+        response = requests.put(apiEndpoint, json=body)
+    else:
+        raise ValueError(f"Unsupported method: {method}")
+
+    return response
+
+def csdc_embedding(index: str, doc: Document):
+    """
+    Embeds the given documents using the CSDC embedding model.
+
+    Args:
+        index (str): The name of the index to which the documents will be added.
+        document (Document): The document to embed.
+
+    Returns:
+        list: A list of embeddings, one for each document.
+    """
+    page_content = doc.page_content
+    metadata = doc.metadata
+    payload = json.dumps({
+        "aos_index": index,
+        "operation": "embed_document",
+        "body": {
+            "documents": {
+                "page_content": page_content,
+                "metadata": metadata
+            }
+        }
+    })
+    headers = {'Content-Type': 'application/json'}
+    logger.info("payload: {}, apiEndpoint: {}, headers: {}, type: {}".format(payload, apiEndpoint, headers, type(payload)))
+    try: 
+        response = requests.request("POST", apiEndpoint + 'aos', headers=headers, data=payload)
+        logger.info("response: {}".format(response))
+    except Exception as e:
+        logger.error("error: {}".format(e))
+        raise e
 
 # Preparing loader, splitter, and embeddings retriever list, iterate them to create comparasion matrix
 loader_list = [unstructured_loader, nougat_loader, llamaIndex_loader]
@@ -303,13 +358,17 @@ if __name__ == "__main__":
     loader_res = unstructured_loader("benchmark.md")
 
     # split
-    # docs = recursive_splitter(docs)
-    logger.info("loader result: {}".format(loader_res))
-    splitter_res = csdc_markdown_header_splitter(loader_res)
-    
+    for doc in loader_res:
+        splitter_res = csdc_markdown_header_splitter(doc)
+
+        for doc in splitter_res:
+            # embedding
+            embedding_res = csdc_embedding(default_aos_index_name, doc)
+
     # embedding
-    # vector = openai_embedding(splitter_res)
-    vector = csdc_embedding(splitter_res)
+    # for doc in splitter_res:
+    #     csdc_embedding(default_aos_index_name, doc)
+    # embedding_res = csdc_embedding(default_aos_index_name, splitter_res[0])
 
     # # retriever
     # query = "什么是思维链？"
