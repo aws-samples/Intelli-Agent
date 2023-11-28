@@ -38,16 +38,6 @@ class OpenSearchClient:
             region=region
         )
 
-    def validation(self, index: str, _body: str):
-        # avoid NotFoundError: NotFoundError(404, 'index_not_found_exception'...
-        if not self.client.indices.exists(index=index):
-            logger.error(f"Index {index} does not exist")
-            return {
-                'statusCode': 404,
-                'headers': {'Content-Type': 'application/json'},
-                'body': json.dumps({'error': f'index {index} does not exist'})
-            }
-
     def create_index(self, index: str, body: str, _kwargs: dict):
         """
         Create an index in OpenSearch.
@@ -78,22 +68,54 @@ class OpenSearchClient:
             }
         }
         """
-        # break if the validation fails
-        self.validation(index, body)
-        body_dict = json.loads(body)
-        # Extract the settings and mappings from the body
-        settings = body_dict.get('body', {}).get('settings', {})
-        mappings = body_dict.get('body', {}).get('mappings', {})
-
-        # Create the index with the specified settings and mappings
-        response = self.client.indices.create(
-            index=index,
-            body={
-                'settings': settings,
-                'mappings': mappings
+        # avoid NotFoundError: NotFoundError(404, 'index_not_found_exception'...
+        if self.client.indices.exists(index=index):
+            return {
+                'statusCode': 404,
+                'headers': {'Content-Type': 'application/json'},
+                'body': json.dumps({'error': f'index {index} already exist'})
             }
-        )
+        body_dict = json.loads(body)
+        # fixed settings and mappings
+        body = {
+            "settings": {"index": {"knn": True, "knn.algo_param.ef_search": 512}},
+            "mappings": {
+                "properties": {
+                    "vector_field": {
+                        "type": "knn_vector",
+                        "dimension": 1024,
+                        "method": {
+                            "name": "hnsw",
+                            "space_type": "l2",
+                            "engine": "nmslib",
+                            "parameters": {"ef_construction": 512, "m": 16},
+                        },
+                    }
+                }
+            },
+        }
+        # Create the index with the specified settings and mappings
+        response = self.client.indices.create(index=index, body=body)
         return response
+
+    def query_index(self, index: str, body: str, _kwargs: dict):
+        """
+        Get all mappings for specified index or indices.
+        :param index_name: Name of the index or '_all' for all indices.
+        :return: Mappings of the index or indices.
+        """
+        # avoid NotFoundError: NotFoundError(404, 'index_not_found_exception'...
+        if not self.client.indices.exists(index=index):
+            return {
+                'statusCode': 404,
+                'headers': {'Content-Type': 'application/json'},
+                'body': json.dumps({'error': f'index {index} does not exist'})
+            }
+        body_dict = json.loads(body)
+        # set default index to '_all' if index is not specified
+        if index == '':
+            index = '_all'
+        return self.client.indices.get_mapping(index=index)
 
     def delete_index(self, index: str, _body: str, _kwargs: dict):
         """
@@ -102,8 +124,14 @@ class OpenSearchClient:
         Args:
             index (str): The name of the index to delete.
         """
-        # break if the validation fails
-        self.validation(index, _body)
+        # avoid NotFoundError: NotFoundError(404, 'index_not_found_exception'...
+        if not self.client.indices.exists(index=index):
+            return {
+                'statusCode': 404,
+                'headers': {'Content-Type': 'application/json'},
+                'body': json.dumps({'error': f'index {index} does not exist'})
+            }
+        
         # delete the index
         response = self.client.indices.delete(index=index)
         return response
@@ -125,7 +153,13 @@ class OpenSearchClient:
             }
         }
         """
-        self.validation(index, body)
+        # avoid NotFoundError: NotFoundError(404, 'index_not_found_exception'...
+        if not self.client.indices.exists(index=index):
+            return {
+                'statusCode': 404,
+                'headers': {'Content-Type': 'application/json'},
+                'body': json.dumps({'error': f'index {index} does not exist'})
+            }
         body_dict = json.loads(body)
         document_id = body_dict.get('body', {}).get('document_id', {})
         # delete the document
@@ -148,7 +182,13 @@ class OpenSearchClient:
             }
         }
         """
-        self.validation(index, body)
+        # avoid NotFoundError: NotFoundError(404, 'index_not_found_exception'...
+        if not self.client.indices.exists(index=index):
+            return {
+                'statusCode': 404,
+                'headers': {'Content-Type': 'application/json'},
+                'body': json.dumps({'error': f'index {index} does not exist'})
+            }
         body_dict = json.loads(body)
         document = body_dict.get('body', {})
         # bulk index the documents
@@ -171,7 +211,13 @@ class OpenSearchClient:
             }
         }
         """
-        self.validation(index, body)
+        # avoid NotFoundError: NotFoundError(404, 'index_not_found_exception'...
+        if not self.client.indices.exists(index=index):
+            return {
+                'statusCode': 404,
+                'headers': {'Content-Type': 'application/json'},
+                'body': json.dumps({'error': f'index {index} does not exist'})
+            }
         body_dict = json.loads(body)
         document = body_dict.get('body', {})
         # iterate through the documents and index them
@@ -183,7 +229,13 @@ class OpenSearchClient:
                 logger.error(f"Error indexing document: {e}")
 
     def query_all(self, index: str, _body: str, _kwargs: dict):
-        self.validation(index, _body)
+        # avoid NotFoundError: NotFoundError(404, 'index_not_found_exception'...
+        if not self.client.indices.exists(index=index):
+            return {
+                'statusCode': 404,
+                'headers': {'Content-Type': 'application/json'},
+                'body': json.dumps({'error': f'index {index} does not exist'})
+            }
         body = {
             "query": {
                 "match_all": {}
@@ -211,7 +263,13 @@ class OpenSearchClient:
             }
         }
         """
-        self.validation(index, body)
+        # avoid NotFoundError: NotFoundError(404, 'index_not_found_exception'...
+        if not self.client.indices.exists(index=index):
+            return {
+                'statusCode': 404,
+                'headers': {'Content-Type': 'application/json'},
+                'body': json.dumps({'error': f'index {index} does not exist'})
+            }
         body_dict = json.loads(body)
         field = str(body_dict.get('field'))
         value = str(body_dict.get('value'))
@@ -258,7 +316,13 @@ class OpenSearchClient:
             }
         }
         """
-        self.validation(index, body)
+        # avoid NotFoundError: NotFoundError(404, 'index_not_found_exception'...
+        if not self.client.indices.exists(index=index):
+            return {
+                'statusCode': 404,
+                'headers': {'Content-Type': 'application/json'},
+                'body': json.dumps({'error': f'index {index} does not exist'})
+            }
         body_dict = json.loads(body)
         field = str(body_dict.get('field'))
         value = str(body_dict.get('value'))
@@ -308,7 +372,13 @@ class OpenSearchClient:
             }
         }
         """
-        self.validation(index, body)
+        # avoid NotFoundError: NotFoundError(404, 'index_not_found_exception'...
+        if not self.client.indices.exists(index=index):
+            return {
+                'statusCode': 404,
+                'headers': {'Content-Type': 'application/json'},
+                'body': json.dumps({'error': f'index {index} does not exist'})
+            }
         body_dict = json.loads(body)
         field = str(body_dict.get('field'))
         value = str(body_dict.get('value'))
@@ -357,7 +427,13 @@ class OpenSearchClient:
             }
         }
         """
-        self.validation(index, body)
+        # avoid NotFoundError: NotFoundError(404, 'index_not_found_exception'...
+        if not self.client.indices.exists(index=index):
+            return {
+                'statusCode': 404,
+                'headers': {'Content-Type': 'application/json'},
+                'body': json.dumps({'error': f'index {index} does not exist'})
+            }
         body_dict = json.loads(body)
         field = str(body_dict.get('field'))
         value = str(body_dict.get('value'))
@@ -406,12 +482,18 @@ class OpenSearchClient:
             }
         }
         """
-        self.validation(index, body)
+        # avoid NotFoundError: NotFoundError(404, 'index_not_found_exception'...
+        if not self.client.indices.exists(index=index):
+            return {
+                'statusCode': 404,
+                'headers': {'Content-Type': 'application/json'},
+                'body': json.dumps({'error': f'index {index} does not exist'})
+            }
         body_dict = json.loads(body)
-        query = str(body_dict.get('query'))
-        field = str(body_dict.get('field'))
+        query = body_dict.get('query')
         # optional size with default value 100
         size = str(body_dict.get('size', 100))
+        logging.info(f"query: {query}, size: {size}")
         body = {
             "size": size,
             "query": {
@@ -445,7 +527,13 @@ class OpenSearchClient:
             }
         }
         """
-        self.validation(index, body)
+        # avoid NotFoundError: NotFoundError(404, 'index_not_found_exception'...
+        if not self.client.indices.exists(index=index):
+            return {
+                'statusCode': 404,
+                'headers': {'Content-Type': 'application/json'},
+                'body': json.dumps({'error': f'index {index} does not exist'})
+            }
         body_dict = json.loads(body)
         query = str(body_dict.get('query'))
         field = str(body_dict.get('field'))
