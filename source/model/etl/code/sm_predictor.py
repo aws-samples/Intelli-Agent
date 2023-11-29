@@ -2,9 +2,29 @@ from gevent import pywsgi
 import flask
 import json
 
-import file_analyzer_app
-
 app = flask.Flask(__name__)
+
+from main import process_pdf_pipeline
+from aikits_utils import lambda_return
+
+def handler(event, context):
+    if 'body' not in event:
+        return lambda_return(400, 'invalid param')
+    try:
+        if isinstance(event['body'], str):
+            body = json.loads(event['body'])
+        else:
+            body = event['body']
+        
+        if 's3_bucket' not in body or 'object_key' not in body:
+            return lambda_return(400, 'Must specify the `s3_bucket` and `object_key` for the file')
+        
+    except:
+        return lambda_return(400, 'invalid param')
+    
+    output = process_pdf_pipeline(body)
+
+    return lambda_return(200, json.dumps(output))
 
 @app.route('/ping', methods=['GET'])
 def ping():
@@ -26,7 +46,7 @@ def transformation():
     if flask.request.content_type == 'application/json':
         request_body = flask.request.data.decode('utf-8')
         body = json.loads(request_body)
-        req = file_analyzer_app.handler({'body':body}, None)
+        req = handler({'body':body}, None)
         return flask.Response(
             response=req['body'],
             status=req['statusCode'], mimetype='application/json')
