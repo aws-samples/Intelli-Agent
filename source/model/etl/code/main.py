@@ -1,192 +1,28 @@
 
 import os
 
-os.environ["OCR_AGENT"] = "ask"
-
 import json
 import boto3
 import logging
 import datetime
 import subprocess
 from pathlib import Path
-from unstructured.partition.pdf import partition_pdf
+
+from paddleocr import PPStructure
+from ppocr.utils.utility import check_and_read
+from markdownify import markdownify as md
+import re
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+table_engine = PPStructure(det_model_dir='weight/ch_PP-OCRv4_det_infer',
+                           rec_model_dir='weight/ch_PP-OCRv4_rec_infer',
+                           table_model_dir='weight/ch_ppstructure_mobile_v2.0_SLANet_infer',
+                           layout_model_dir='weight/picodet_lcnet_x1_0_fgd_layout_cdla_infer',
+                           show_log=True, recovery=True, type='structure')
+
 s3 = boto3.client("s3")
-
-def get_element_size(element):
-    """Get the size of the element.
-
-    Args:
-        element : The element to get the width from.
-
-    """
-
-    points = element.metadata.coordinates.points
-    element_width = points[2][0] - points[0][0]
-    element_height = points[2][1] - points[0][1]
-    return (element_width, element_height)
-
-def sorted_elements(elements, same_line_threshold):
-    """
-    Sort text boxes in order from top to bottom, left to right
-    The points in elements follows this order:
-    (upper_left, lower_left, lower_right, upper_right)
-    Each point is (x, y)
-    args:
-        dt_boxes(array):detected text boxes with shape [4, 2]
-    return:
-        sorted boxes(array) with shape [4, 2]
-    """
-
-    num_elements = len(elements)
-    sorted_elements = sorted(elements, key=lambda x: (x.metadata.coordinates.points[0][1], x.metadata.coordinates.points[0][0]))
-    _elements = list(sorted_elements)
-
-    cur_index = 0
-    while cur_index < num_elements:
-        cur_element_points = _elements[cur_index].metadata.coordinates.points
-        next_index = cur_index + 1
-        while next_index < num_elements:
-            next_element_points = _elements[next_index].metadata.coordinates.points
-            if abs(next_element_points[0][1] - cur_element_points[0][1]) < same_line_threshold:
-                next_index += 1
-            else:
-                break
-        if next_index - cur_index > 1:
-            _elements[cur_index:next_index] = sorted(_elements[cur_index:next_index], key=lambda x: x.metadata.coordinates.points[0][0])
-       
-        cur_index = next_index 
-
-    return _elements
-
-def get_page_numbers(elements):
-    """
-    Get all the page numbers from the elements.
-    """
-    page_numbers = []
-    for element in elements:
-        if element.metadata.page_number not in page_numbers:
-            page_numbers.append(element.metadata.page_number)
-    return page_numbers
-
-def get_elements_by_page(elements, page_number):
-    """
-    Get the elements for a specific page.
-    """
-    elements_by_page = []
-    for element in elements:
-        if element.metadata.page_number == page_number:
-            elements_by_page.append(element)
-    return elements_by_page
-
-def get_element_diff(element1, element2):
-    """
-    Get the difference between two elements.
-    """
-    element1_points = element1.metadata.coordinates.points
-    element1_medium_point = ((element1_points[0][0] + element1_points[2][0]) / 2, (element1_points[0][1] + element1_points[2][1]) / 2)
-    element2_points = element2.metadata.coordinates.points
-    element2_medium_point = ((element2_points[0][0] + element2_points[2][0]) / 2, (element2_points[0][1] + element2_points[2][1]) / 2)
-    x_diff = element2_medium_point[0] - element1_medium_point[0]
-    y_diff = element2_medium_point[1] - element1_medium_point[1]
-
-    return x_diff, y_diff
-
-def get_title_threshold(elements):
-    """
-    Unstructured Library usually generates tons of titles from the pdf,
-    we need to remove the duplicate titles and keep less than 5% elements with biggest.
-    """
-    all_element_height = []
-    for element in elements:
-        all_element_height.append(get_element_size(element)[0])
-    all_element_height.sort(reverse=True)
-
-    # Get the threshold for being a Title(top 5%)
-    title_threshold = all_element_height[int(len(all_element_height) * 0.05)]
-    subtitle_threshold = all_element_height[int(len(all_element_height) * 0.15)]
-    text_threshold = all_element_height[int(len(all_element_height) * 0.5)]
-    return title_threshold, subtitle_threshold, text_threshold
-
-def transform_elements_to_markdown(elements):
-    """Transform the list of elements to markdown content.
-
-    Sample input: 
-    [   
-        <unstructured.documents.elements.Title object>, 
-        <unstructured.documents.elements.NarrativeText object>, 
-        <unstructured.documents.elements.Title object>, 
-        <unstructured.documents.elements.Text object>, 
-        <unstructured.documents.elements.Text object>
-    ]
-
-    Sample output:
-    [
-        "# Title 1\n\n",
-        "Narrative text 1\n\n",
-        "# Title 2\n\n",
-        "Text 1\n\n",
-        "Text 2\n\n"
-    ]
-
-    Args:
-        elements (List[Dict]): The list of elements to be transformed.
-
-    Returns:
-        List[str]: The list of Markdown strings resulting from the transformation.
-    """
-    
-    # Implementation of a Naive Markdown converter
-    # TODO: Add support for Tables by analyzing the layout
-    markdown_content = []
-    title_threshold, subtitle_threshold, text_threshold = get_title_threshold(elements)
-    same_line_threshold = text_threshold * 0.5
-
-    page_numbers = get_page_numbers(elements)
-    sorted_page_numbers = sorted(page_numbers)
-
-    for page_number in sorted_page_numbers:
-        raw_page_elements = get_elements_by_page(elements, page_number)
-        page_elements = sorted_elements(raw_page_elements, same_line_threshold)
-
-        for page_element_id, page_element in enumerate(page_elements):
-            if page_element_id > 0:
-                prev_page_element = page_elements[page_element_id - 1]
-                x_diff, y_diff = get_element_diff(prev_page_element, page_element)
-                if x_diff > 0 and y_diff < same_line_threshold:
-                    prev_markdown_content = markdown_content.pop()
-                    if prev_markdown_content.strip().endswith("|"):
-                        markdown_content.append(f"{prev_markdown_content.strip()}")
-                    else:
-                        markdown_content.append(f"|{prev_markdown_content.strip()}|")
-                    markdown_content.append(f"{page_element.text}|\n\n")
-                    continue
-
-
-            if page_element.category == "Title":
-                if get_element_size(page_element)[0] > title_threshold:
-                    markdown_content.append(f"# {page_element.text}\n\n")
-                elif get_element_size(page_element)[0] > subtitle_threshold:
-                    markdown_content.append(f"## {page_element.text}\n\n")
-                elif get_element_size(page_element)[0] > text_threshold:
-                    markdown_content.append(f"### {page_element.text}\n\n")
-                else:
-                    markdown_content.append(f"{page_element.text}\n\n")
-            elif page_element.category == "NarrativeText":
-                markdown_content.append(f"{page_element.text}\n\n")
-            elif page_element.category == "UncategorizedText":
-                markdown_content.append(f"{page_element.text}\n\n")
-            elif page_element.category in ["List", "ListItem", "List-item"]:
-                markdown_content.append(f"* {page_element.text}\n\n")
-            elif page_element.category == "Table":
-                markdown_content.append(page_element.metadata.text_as_html if page_element.metadata.text_as_html else "")
-            else:
-                markdown_content.append(f"{page_element.text}\n\n")
-
-    return markdown_content
 
 def upload_chunk_to_s3(logger_content: str, bucket: str, prefix: str, splitting_type: str):
     """Upload the logger file to S3 with hierachy below:
@@ -261,11 +97,45 @@ def nougat(file_path: Path) -> str:
         )
         raise RuntimeError("Nougat command failed.") from e
 
-def unstructured(file_path: Path) -> str:
-    elements = partition_pdf(filename=file_path, languages = ["eng", "chi_sim"])
-    markdown_content_list = transform_elements_to_markdown(elements)
 
-    return markdown_content_list
+def ppstructure(file_path: Path) -> str:
+
+    img_list, flag_gif, flag_pdf = check_and_read(file_path)
+
+    all_res = []
+    for index, img in enumerate(img_list):
+        result = table_engine(img, img_idx=index)
+        if result != []:
+            from copy import deepcopy
+            from ppstructure.recovery.recovery_to_doc import sorted_layout_boxes
+            h, w, _ = img.shape
+            result_cp = deepcopy(result)
+            result_sorted = sorted_layout_boxes(result_cp, w)
+            all_res += result_sorted
+    doc = ''
+    flag = 1
+    for i, region in enumerate(all_res):
+        if len(region['res']) == 0:
+            continue
+        if flag == 2 and region['layout'] == 'single':
+            flag = 1
+        elif flag == 1 and region['layout'] == 'double':
+            flag = 2
+        img_idx = region['img_idx']
+        if region['type'].lower() == 'figure':
+            continue
+        elif region['type'].lower() == 'title':
+            doc += '## ' + region['res'][0]['text'] + '\n\n'
+        elif region['type'].lower() == 'table':
+            doc += md(region['res']['html'], strip=['b', 'img'], heading_style='ATX', newline_style='BACKSLASH')+ '\n\n'
+        elif region['type'].lower() in ('header', 'footer'):
+            continue
+        else:
+            for i, line in enumerate(region['res']):
+                doc += line['text'] + ' '
+        doc += '\n\n'
+    doc = re.sub('\n{2,}', '\n\n', doc.strip())
+    return doc
 
 def process_pdf(bucket, object_key, destination_bucket, mode = 'unstructured', **kwargs):
     """
@@ -295,8 +165,12 @@ def process_pdf(bucket, object_key, destination_bucket, mode = 'unstructured', *
         with output_path.open("r") as f:
             content = f.read()
     else:
-        markdown_content_list = unstructured(local_path)
-        content = "".join(markdown_content_list)
+        content = ppstructure(local_path)
+
+        # write content to local markdown
+        # output_path = Path("/home/ubuntu/icyxu/code/AWSLLMCode/llm-bot/tmp_deploy/etl_endpoint/test_result") / f"{file_path.stem}.md"
+        # with output_path.open("w") as f:
+        #     f.write(content)
     
     filename = file_path.stem
     destination_s3_path = upload_chunk_to_s3(content, destination_bucket, filename, "before-splitting")
@@ -320,3 +194,14 @@ def process_pdf_pipeline(body):
     }
 
     return result
+
+
+if __name__ == "__main__":
+    body = {
+        "s3_bucket": "icyxu-llm-glue-assets",
+        "object_key": "test_data/test_glue_lib/cn_pdf/test_pdf_1122/E1 用户手册.pdf",
+        "destination_bucket": "llm-bot-dev-apistacknested-llmbotdocumentse383ebd9-xglohd46f8by",
+        "mode": "nougat"
+    }
+
+    process_pdf_pipeline(body)

@@ -644,6 +644,9 @@ def generate_llm_image_col(initial_prompt: str, col, progress_bar):
     # if prompt is empty, use default
     if positive_prompt == "" or negative_prompt == "":
         positive_prompt = initial_prompt
+    # add original prompt to ensure the original subject in the final positive prompt
+    else:
+        positive_prompt = initial_prompt + "," + positive_prompt
 
     # if len(model_index_list) > 0:
     #     # TODO, support model list should align with prompt template, we assume the model list is fixed at 2

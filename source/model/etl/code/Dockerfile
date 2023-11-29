@@ -1,30 +1,26 @@
-FROM 763104351884.dkr.ecr.us-east-1.amazonaws.com/pytorch-inference:2.1.0-gpu-py310-cu118-ubuntu20.04-sagemaker
+FROM nvidia/cuda:11.7.1-cudnn8-runtime-ubuntu20.04
 
 RUN apt update \
-    && apt install -y --no-install-recommends wget python3 python3-pip \
+    && DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends build-essential wget python3 python3-pip libgomp1 libgl1-mesa-glx libglib2.0-0 \
     && ln -sf python3 /usr/bin/python \
     && ln -sf pip3 /usr/bin/pip \
     && pip install --upgrade pip \
     && pip install wheel setuptools
 
-RUN apt-get install -y poppler-utils
+RUN apt install unzip
 
 ARG FUNCTION_DIR="/opt/ml/code"
+RUN python -m pip install paddlepaddle-gpu==2.4.2.post117 -f https://www.paddlepaddle.org.cn/whl/linux/mkl/avx/stable.html
+RUN pip install markdownify flask gevent
+RUN pip install "paddleocr>=2.6.0.3" "paddleclas>=2.4.3"
+# Lite version
+RUN ln -s /usr/lib/x86_64-linux-gnu/libcudnn.so.8 /usr/lib/libcudnn.so  
+RUN ln -s /usr/local/cuda-11.7/targets/x86_64-linux/lib/libcublas.so.11 /usr/lib/libcublas.so
 ADD / ${FUNCTION_DIR}/
 
 RUN pip3 install -r ${FUNCTION_DIR}/requirements.txt
-RUN pip3 install flask gevent
-RUN pip3 uninstall -y onnxruntime && pip3 install onnxruntime-gpu
-RUN pip3 uninstall -y unstructured && pip3 install ${FUNCTION_DIR}/unstructured-0.11.0-py3-none-any.whl
 
-ARG MODEL_DIR="/opt/ml/model"
-ARG MODEL_URL="https://aws-gcr-solutions-assets.s3.cn-northwest-1.amazonaws.com.cn/ai-solution-kit/infer-ocr-model/standard"
-ARG MODEL_VERSION="v1.0.0"
-RUN mkdir -p ${MODEL_DIR}/ocr_model
-RUN wget -c $MODEL_URL/$MODEL_VERSION/classifier.onnx -O ${MODEL_DIR}/ocr_model/classifier.onnx
-RUN wget -c $MODEL_URL/$MODEL_VERSION/det_standard.onnx -O ${MODEL_DIR}/ocr_model/det_standard.onnx
-RUN wget -c $MODEL_URL/$MODEL_VERSION/keys_v1.txt -O ${MODEL_DIR}/ocr_model/keys_v1.txt
-RUN wget -c $MODEL_URL/$MODEL_VERSION/rec_standard.onnx -O ${MODEL_DIR}/ocr_model/rec_standard.onnx
+RUN unzip ${FUNCTION_DIR}/weight.zip -d ${FUNCTION_DIR}/
 
 WORKDIR ${FUNCTION_DIR}
 ENV PYTHONUNBUFFERED=TRUE
