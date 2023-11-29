@@ -17,11 +17,20 @@ from langchain.embeddings import OpenAIEmbeddings
 from langchain.vectorstores import FAISS
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.document_loaders import UnstructuredFileLoader
+from langchain.document_loaders import UnstructuredMarkdownLoader
 from langchain.vectorstores import OpenSearchVectorSearch
+from langchain.llms.bedrock import Bedrock
+from langchain.embeddings import BedrockEmbeddings
 
 from llm_bot_dep.loaders.nougat_pdf import NougatPDFLoader
+from llm_bot_dep.loaders.markdown import process_md, CustomMarkdownLoader
 from llm_bot_dep.splitter_utils import MarkdownHeaderTextSplitter
 from llm_bot_dep.sm_utils import create_sagemaker_embeddings_from_js_model, SagemakerEndpointVectorOrCross
+
+from ragas.testset import TestsetGenerator
+from langchain.embeddings import OpenAIEmbeddings
+from langchain.chat_models import ChatOpenAI
+from ragas.llms import LangchainLLM
 
 from dotenv import load_dotenv
 load_dotenv(dotenv_path='.env')
@@ -33,6 +42,8 @@ embeddingModelEndpoint = os.getenv("EMBEDDING_MODEL_ENDPOINT")
 aosEndpoint = os.getenv("AOS_ENDPOINT")
 region = os.getenv("REGION")
 apiEndpoint = os.getenv("APIEndpointAddress")
+openaiApiKey = os.getenv("OPENAI_API_KEY")
+openaiApiBase = os.getenv("OPENAI_API_BASE")
 
 credentials = boto3.Session().get_credentials()
 awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, region, 'es', session_token=credentials.token)
@@ -50,12 +61,39 @@ metadata_template = {
     "summary": "",
 }
 
+# prerequisite for testdata generation using ragas, or using OpenAIEmbeddings but need to set the OPENAI_API_KEY/OPENAI_API_BASE in env
+bedrock_client = boto3.client("bedrock-runtime", region_name="us-east-1")
+bedrock_llm = Bedrock(
+    model_id = "anthropic.claude-v2", 
+    client = bedrock_client,
+    model_kwargs = {'temperature': 0}
+)
+bedrock_embedding = BedrockEmbeddings(
+    # model_id="amazon.titan-embed-text-v1", region_name="us-east-1"
+    model_id="cohere.embed-multilingual-v3", region_name="us-east-1"
+)
+
+def csdc_markdown_loader(file_path: str) -> List[Document]:
+    # read content from file_path
+    with open(file_path, "r") as f:
+        file_content = f.read()
+    # placeholder for bucket and key
+    bucket = "default"
+    key = "default"
+
+    loader = CustomMarkdownLoader(aws_path=f"s3://{bucket}/{key}")
+    doc = loader.load(file_content)
+    splitter = MarkdownHeaderTextSplitter("default")
+    doc_list = splitter.split_text(doc)
+    logger.info("markdown load data: {}".format(doc_list))
+    return doc_list
+
 def nougat_loader(file_path: str) -> List[Document]:
     loader = NougatPDFLoader(file_path)
     docs = loader.load()
     logger.info("nougat load data: {}".format(docs))
 
-def llamaIndex_loader(file_path: str) -> List[Document]:
+def llamaIndex_pdf_loader(file_path: str) -> List[Document]:
     try:
         import pypdf
     except ImportError:
@@ -79,8 +117,14 @@ def llamaIndex_loader(file_path: str) -> List[Document]:
             metadata = {"page_label": page_label, "file_name": file_path}
             logger.info("page_text: {}, page_label: {}".format(page_text, page_label))
             docs.append(Document(page_content=page_text, metadata=metadata))
-        
-def unstructured_loader(file_path: str) -> List[Document]:
+
+def langchain_md_loader(file_path: str) -> List[Document]:
+    loader = UnstructuredMarkdownLoader(file_path, mode="elements")
+    docs = loader.load()
+    logger.info("langchain md load data: {}".format(docs))
+    return docs
+
+def langchain_unstructured_loader(file_path: str) -> List[Document]:
     loader = UnstructuredFileLoader(file_path, mode="elements")
     docs = loader.load()
     logger.info("unstructured load data: {}".format(docs))
@@ -204,8 +248,6 @@ def langchain_evalutor(query: str, docs_with_score: List[Tuple[str, float]]):
     """
     pass
 
-import requests
-
 def send_request(method: str, body=None):
     """
     Send a request to the specified URL with the given method and data.
@@ -261,12 +303,45 @@ def csdc_embedding(index: str, doc: Document):
         logger.error("error: {}".format(e))
         raise e
 
-# Preparing loader, splitter, and embeddings retriever list, iterate them to create comparasion matrix
-loader_list = [unstructured_loader, nougat_loader, llamaIndex_loader]
-splitter_list = [recursive_splitter, csdc_markdown_header_splitter]
-embeddings_list = [openai_embedding]
-retriever_list = [faiss_retriver, csdc_retriver]
-evalutor_list = [langchain_evalutor]
+def testdata_generate(docs: List[Document], llm: str = "bedrock"):
+    """
+    generate test data for evaluation
+    """
+    if llm == "bedrock":
+        generator_llm = LangchainLLM(llm=bedrock_llm)
+        critic_llm = LangchainLLM(llm=bedrock_llm)
+    elif llm == "openai":
+        generator_llm = LangchainLLM(llm=ChatOpenAI(model="gpt-3.5-turbo", openai_api_key=openaiApiKey, openai_api_base=openaiApiBase))
+        critic_llm = LangchainLLM(llm=ChatOpenAI(model="gpt-4"))
+    else:
+        raise ValueError(f"Unsupported llm: {llm}")
+
+    # Change resulting question type distribution
+    testset_distribution = {
+        "simple": 0.25,
+        "reasoning": 0.5,
+        "multi_context": 0.0,
+        "conditional": 0.25,
+    }
+
+    # percentage of conversational question
+    chat_qa = 0.2
+
+    test_generator = TestsetGenerator(
+        generator_llm=generator_llm,
+        critic_llm=critic_llm,
+        embeddings_model=bedrock_embedding,
+        testset_distribution=testset_distribution,
+        chat_qa=chat_qa,
+    )
+
+    testset = test_generator.generate(loader_res, test_size=10)
+    test_df = testset.to_pandas()
+    logger.info("testdata head: {}".format(test_df.head()))
+
+    # Saving to a csv and txt file for debugging purpose
+    test_df.to_csv('test_data.csv', index=False)
+    test_df.to_csv('test_data.txt', sep='\t', index=False)
 
 class WorkflowExecutor:
     """
@@ -338,6 +413,13 @@ class WorkflowExecutor:
 
         return results_matrix
 
+# Preparing loader, splitter, and embeddings retriever list, iterate them to create comparasion matrix
+loader_list = [langchain_unstructured_loader, nougat_loader]
+splitter_list = [recursive_splitter, csdc_markdown_header_splitter]
+embeddings_list = [openai_embedding]
+retriever_list = [faiss_retriver, csdc_retriver]
+evalutor_list = [langchain_evalutor]
+
 # Debugging purpose
 if __name__ == "__main__":
     """
@@ -353,17 +435,22 @@ if __name__ == "__main__":
     9. average similarity score of retrival
     10. average time of retrival
     """
+    # prepare for QA dataset
+    # loader_res = langchain_md_loader("md-sample-02.md")
+    loader_res = langchain_unstructured_loader("pdf-sample-01.pdf")
+    testdata_generate(loader_res)
 
     # load
-    loader_res = unstructured_loader("benchmark.md")
+    # loader_res = langchain_unstructured_loader("benchmark.md")
+    # loader_res = markdown_loader("benchmark.md")
 
-    # split
-    for doc in loader_res:
-        splitter_res = csdc_markdown_header_splitter(doc)
+    # # split
+    # for doc in loader_res:
+    #     splitter_res = csdc_markdown_header_splitter(doc)
 
-        for doc in splitter_res:
-            # embedding
-            embedding_res = csdc_embedding(default_aos_index_name, doc)
+    #     for doc in splitter_res:
+    #         # embedding
+    #         embedding_res = csdc_embedding(default_aos_index_name, doc)
 
     # embedding
     # for doc in splitter_res:
@@ -377,6 +464,7 @@ if __name__ == "__main__":
     # # evaluator
     # result = langchain_evalutor(query, docs_with_score)
 
+    # overall workflow
     # workflow = WorkflowExecutor()
-    # workflow.update_component('loaders', unstructured_loader, 'add')
+    # workflow.update_component('loaders', langchain_unstructured_loader, 'add')
     # workflow.update_component('splitters', recursive_splitter, 'add')
