@@ -103,7 +103,7 @@ def pipeline_tab():
             'qaEnhance': str(qaPairEnhance),
             'keyWordExtract': keyWordExtract,
             'textSummarize': textSummarize,
-            'offline': True
+            'offline': 'true'
         }
         # send button to trigger the request sending to the endpoint with s3_bucket_name and s3_object_name as request body, in conform with
         send_button = st.button('Start Offline Job')

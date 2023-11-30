@@ -74,11 +74,14 @@ Use Postman/cURL to test the API connection, the API endpoint is the output of C
 ```bash
 BODY
 {
-    "s3Bucket": "<Your S3 bucket>",
-    "s3Prefix": "<Your S3 prefix>",
-    "offline": "true"
+    "s3Bucket": "<Your S3 bucket>", eg. "llm-bot-resource"
+    "s3Prefix": "<Your S3 prefix>", eg. "input_samples/"
+    "offline": "true",
+    "qaEnhance": "false"
 }
+
 ```
+
 
 You should see output like this:
 ```bash
