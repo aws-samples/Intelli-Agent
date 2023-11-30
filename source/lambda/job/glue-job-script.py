@@ -116,8 +116,7 @@ def iterate_s3_files(bucket: str, prefix: str) -> Generator:
             # skip the prefix with slash, which is the folder name
             if key.endswith("/"):
                 continue
-
-            # skip the file if the index is not in the batchIndice
+            logger.info("Current batchIndice: {}, bucket: {}, key: {}".format(currentIndice, bucket, key))
             if currentIndice != int(batchIndice):
                 logger.info(
                     "currentIndice: {}, batchIndice: {}, skip file: {}".format(
@@ -314,7 +313,7 @@ def aos_injection(
 def main():
     logger.info("Starting Glue job with passing arguments: %s", args)
     # Check if offline mode
-    if offline == "true":
+    if offline == "true" or offline == "false":
         logger.info("Running in offline mode with consideration for large file size...")
         for file_type, file_content, kwargs in iterate_s3_files(s3_bucket, s3_prefix):
             try:
