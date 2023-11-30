@@ -251,9 +251,10 @@ def aos_injection(
             temp_chunk_id = temp_document.metadata["chunk_id"]
             temp_split_size = len(temp_text_splitter.split_documents([temp_document]))
             # Add size in heading_hierarchy
-            temp_hierarchy = temp_document.metadata["heading_hierarchy"]
-            temp_hierarchy["size"] = temp_split_size
-            updated_heading_hierarchy[temp_chunk_id] = temp_hierarchy
+            if "heading_hierarchy" in temp_document.metadata:
+                temp_hierarchy = temp_document.metadata["heading_hierarchy"]
+                temp_hierarchy["size"] = temp_split_size
+                updated_heading_hierarchy[temp_chunk_id] = temp_hierarchy
         
         for document in content:
             splits = text_splitter.split_documents([document])
