@@ -39,7 +39,8 @@ export class LLMApiStack extends NestedStack {
 
         // s3 bucket for storing documents
         const _S3Bucket = new s3.Bucket(this, 'llm-bot-documents', {
-            // bucketName: `llm-bot-documents-${Aws.ACCOUNT_ID}-${Aws.REGION}`,
+            // stack name + bucket name + account id + region
+            // bucketName: Aws.STACK_NAME + '-' + Aws.ACCOUNT_ID + '-' + Aws.REGION + '-documents',
             blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
         });
 
@@ -207,8 +208,8 @@ def handler(event, context):
         # TODO, Aggregate the bucket and key from the event object for S3 created event
         bucket = event['Records'][0]['s3']['bucket']['name']
         key = event['Records'][0]['s3']['object']['key']
-        # Pass the bucket and key to the Step Function, align with the input schema in etl-stack.ts
-        inputPayload=json.dumps({'s3Bucket': bucket, 's3Prefix': key, 'offline': 'false'})
+        # Pass the bucket and key to the Step Function, align with the input schema in etl-stack.ts, qaEnhance are optional with default false
+        inputPayload=json.dumps({'s3Bucket': bucket, 's3Prefix': key, 'offline': False, 'qaEnhance': 'false'})
     else:
         print('API Gateway event detected')
         # Parse the body from the event object

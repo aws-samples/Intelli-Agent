@@ -285,10 +285,15 @@ export class EtlStack extends NestedStack {
                 '--S3_PREFIX.$': '$.s3Prefix',
                 '--AOS_ENDPOINT': props._domainEndpoint,
                 '--EMBEDDING_MODEL_ENDPOINT': props._embeddingEndpoint,
+                '--ETL_MODEL_ENDPOINT': this._etlEndpoint,
                 '--DOC_INDEX_TABLE': props._OpenSearchIndex,
                 '--REGION': props._region,
+                '--RES_BUCKET': _S3Bucket.bucketName,
                 '--OFFLINE': 'false',
                 '--QA_ENHANCEMENT.$': '$.qaEnhance',
+                // set the batch indice to 0 since we are running online
+                '--BATCH_INDICE': '0',
+                '--ProcessedObjectsTable': table.tableName,
             }),
         });
 

@@ -70,7 +70,8 @@ bedrock_llm = Bedrock(
 )
 bedrock_embedding = BedrockEmbeddings(
     # model_id="amazon.titan-embed-text-v1", region_name="us-east-1"
-    model_id="cohere.embed-multilingual-v3", region_name="us-east-1"
+    # model_id="cohere.embed-multilingual-v3", region_name="us-east-1"
+    model_id = "amazon.titan-text-express-v1", region_name="us-east-1"
 )
 
 def csdc_markdown_loader(file_path: str) -> List[Document]:
