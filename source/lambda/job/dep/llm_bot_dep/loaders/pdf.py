@@ -37,14 +37,15 @@ def detect_language(input):
     else:
         return 'en'
 
-def invoke_etl_model(smr_client, etl_model_endpoint, bucket, key, res_bucket):
+def invoke_etl_model(smr_client, etl_model_endpoint, bucket, key, res_bucket, mode = "ppstructure"):
     response_model = smr_client.invoke_endpoint(
         EndpointName=etl_model_endpoint,
         Body=json.dumps(
             {
                 "s3_bucket": bucket,
                 "object_key": key,
-                "destination_bucket":  res_bucket
+                "destination_bucket":  res_bucket,
+                "mode": mode
             }
         ),
         ContentType="application/json",
@@ -97,7 +98,7 @@ def process_pdf(s3, pdf: bytes, **kwargs):
     # entire PDF is loaded as a single Document
     file_content = loader.load()[0].page_content
 
-    detected_lang = detect_language(file_content)
+    detected_lang = detect_language(file_content[:1000])
     logger.info(f"Detected language: {detected_lang}")
 
     if not etl_model_endpoint or not smr_client or not res_bucket:
@@ -113,38 +114,35 @@ def process_pdf(s3, pdf: bytes, **kwargs):
     else:
         if detected_lang == 'ch':
             logger.info("Detected language is Chinese, using default PDF loader...")
-            loader = CustomHtmlLoader(aws_path=f"s3://{bucket}/{key}")
-            doc = loader.load(file_content)
-            splitter = MarkdownHeaderTextSplitter(res_bucket)
-            doc_list = splitter.split_text(doc)
-
-            for doc in doc_list:
-                doc.metadata = metadata_template
-                doc.metadata['file_path'] = f"s3://{bucket}/{key}"
+            markdown_prefix = invoke_etl_model(smr_client, etl_model_endpoint, bucket, key, res_bucket, mode = "ppstructure")
+            logger.info(f"Markdown file path: s3://{res_bucket}/{markdown_prefix}")
+            content = load_content_from_s3(s3, res_bucket, markdown_prefix)
         else:
             logger.info("Detected language is English, using ETL model endpoint...")
-            markdown_prefix = invoke_etl_model(smr_client, etl_model_endpoint, bucket, key, res_bucket)
+            markdown_prefix = invoke_etl_model(smr_client, etl_model_endpoint, bucket, key, res_bucket, mode = "nougat")
             logger.info(f"Markdown file path: s3://{res_bucket}/{markdown_prefix}")
             content = load_content_from_s3(s3, res_bucket, markdown_prefix)
 
-            content = (
-                content.replace(r"\(", "$")
-                .replace(r"\)", "$")
-                .replace(r"\[", "$$")
-                .replace(r"\]", "$$")
-            )
+        # content = (
+        #     content.replace(r"\(", "$")
+        #     .replace(r"\)", "$")
+        #     .replace(r"\[", "$$")
+        #     .replace(r"\]", "$$")
+        # )
 
-            # extract headings hierarchically
-            headings = extract_headings(content)
+        # # extract headings hierarchically
+        # headings = extract_headings(content)
 
-            # assemble metadata from template
-            metadata = metadata_template
-            metadata["content_type"] = "paragraph"
-            metadata["heading_hierarchy"] = headings
-            metadata["chunk_id"] = "$$"
-            metadata["file_path"] = f"s3://{bucket}/{key}"
+        # # assemble metadata from template
+        # metadata = metadata_template
+        # metadata["content_type"] = "paragraph"
+        # metadata["heading_hierarchy"] = headings
+        # metadata["chunk_id"] = "$$"
+        # metadata["file_path"] = f"s3://{bucket}/{key}"
 
-            markdown_splitter = MarkdownHeaderTextSplitter(res_bucket)
-            doc_list = markdown_splitter.split_text(Document(page_content=content, metadata=metadata))
+        metadata = {"file_path": f"s3://{bucket}/{key}", "file_type": "md"}
+
+        markdown_splitter = MarkdownHeaderTextSplitter(res_bucket)
+        doc_list = markdown_splitter.split_text(Document(page_content=content, metadata=metadata))
 
     return doc_list

@@ -272,7 +272,7 @@ export class EtlStack extends NestedStack {
             resultPath: '$.mapResults',
         });
 
-        mapState.iterator(offlineGlueJob);
+        mapState.iterator(offlineGlueJob.addRetry({ errors: ['States.ALL'], interval: Duration.seconds(10), maxAttempts: 3 }));
 
         // multiplex the same glue job to offline and online
         const onlineGlueJob = new tasks.GlueStartJobRun(this, 'OnlineGlueJob', {
@@ -304,8 +304,8 @@ export class EtlStack extends NestedStack {
             message: sfn.TaskInput.fromText(`Glue job ${glueJob.jobName} completed!`),
         });
 
-        offlineChoice.when(sfn.Condition.booleanEquals('$.offline', true), mapState)
-            .when(sfn.Condition.booleanEquals('$.offline', false), onlineGlueJob)
+        offlineChoice.when(sfn.Condition.stringEquals('$.offline', 'true'), mapState)
+            .when(sfn.Condition.stringEquals('$.offline', 'false'), onlineGlueJob)
         
         // add the notify task to both online and offline branches
         mapState.next(notifyTask);
