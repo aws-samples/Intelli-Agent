@@ -140,7 +140,7 @@ def process_pdf(s3, pdf: bytes, **kwargs):
         # metadata["chunk_id"] = "$$"
         # metadata["file_path"] = f"s3://{bucket}/{key}"
 
-        metadata = {"file_path": f"s3://{bucket}/{key}", "file_type": "md"}
+        metadata = {"file_path": f"s3://{bucket}/{key}", "file_type": "pdf"}
 
         markdown_splitter = MarkdownHeaderTextSplitter(res_bucket)
         doc_list = markdown_splitter.split_text(Document(page_content=content, metadata=metadata))
