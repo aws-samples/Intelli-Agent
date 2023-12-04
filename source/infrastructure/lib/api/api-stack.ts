@@ -208,8 +208,8 @@ def handler(event, context):
         # TODO, Aggregate the bucket and key from the event object for S3 created event
         bucket = event['Records'][0]['s3']['bucket']['name']
         key = event['Records'][0]['s3']['object']['key']
-        # Pass the bucket and key to the Step Function, align with the input schema in etl-stack.ts, qaEnhance are optional with default false
-        inputPayload=json.dumps({'s3Bucket': bucket, 's3Prefix': key, 'offline': False, 'qaEnhance': 'false'})
+        # Pass the bucket and key to the Step Function, align with the input schema in etl-stack.ts
+        inputPayload=json.dumps({'s3Bucket': bucket, 's3Prefix': key, 'offline': 'false', 'qaEnhance': 'false'})
     else:
         print('API Gateway event detected')
         # Parse the body from the event object
