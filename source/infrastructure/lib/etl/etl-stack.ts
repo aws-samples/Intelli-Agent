@@ -175,9 +175,14 @@ export class EtlStack extends NestedStack {
                 '--EMBEDDING_MODEL_ENDPOINT': props._embeddingEndpoint,
                 '--ETL_MODEL_ENDPOINT': this._etlEndpoint,
                 '--DOC_INDEX_TABLE': props._OpenSearchIndex,
+                '--RES_BUCKET': _S3Bucket.bucketName,
+                '--ProcessedObjectsTable': table.tableName,
                 '--additional-python-modules': 'langchain==0.0.312,beautifulsoup4==4.12.2,requests-aws4auth==1.2.3,boto3==1.28.84,openai==0.28.1,pyOpenSSL==23.3.0,tenacity==8.2.3,markdownify==0.11.6,mammoth==1.6.0,chardet==5.2.0,python-docx==1.1.0,nltk==3.8.1,pdfminer.six==20221105',
                 // add multiple extra python files
-                '--extra-py-files': extraPythonFilesList
+                '--extra-py-files': extraPythonFilesList,
+                '--CONTENT_TYPE': 'ug',
+                '--EMBEDDING_LANG': 'zh,zh,en,en',
+                '--EMBEDDING_TYPE': 'similarity,relevance,similarity,relevance',
             }
         });
 
@@ -250,6 +255,9 @@ export class EtlStack extends NestedStack {
                 // Convert the numeric index to a string
                 '--BATCH_INDICE.$': 'States.Format(\'{}\', $.batchIndices)',
                 '--ProcessedObjectsTable': table.tableName,
+                '--CONTENT_TYPE': 'ug',
+                '--EMBEDDING_LANG': 'zh,zh,en,en',
+                '--EMBEDDING_TYPE': 'similarity,relevance,similarity,relevance',
             }),
         });
 
