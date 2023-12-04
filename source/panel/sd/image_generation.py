@@ -338,10 +338,6 @@ def generate_image(positive_prompts: str, negative_prompts: str, current_col, pr
             current_col.write("negative_prompt:")
             current_col.info(info["negative_prompt"])
 
-        if info["sd_model_name"] != "":
-            current_col.write("sd_model_name:")
-            current_col.info(info["sd_model_name"])
-
         for warning in st.session_state.warnings:
             current_col.warning(warning)
 
