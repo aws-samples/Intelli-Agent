@@ -304,7 +304,7 @@ def csdc_embedding(index: str, doc: Document):
         logger.error("error: {}".format(e))
         raise e
 
-def testdata_generate(docs: List[Document], llm: str = "bedrock"):
+def testdata_generate(docs: List[Document], llm: str = "bedrock", embedding: str = "bedrock"):
     """
     generate test data for evaluation
     """
@@ -313,9 +313,16 @@ def testdata_generate(docs: List[Document], llm: str = "bedrock"):
         critic_llm = LangchainLLM(llm=bedrock_llm)
     elif llm == "openai":
         generator_llm = LangchainLLM(llm=ChatOpenAI(model="gpt-3.5-turbo", openai_api_key=openaiApiKey, openai_api_base=openaiApiBase))
-        critic_llm = LangchainLLM(llm=ChatOpenAI(model="gpt-4"))
+        critic_llm = LangchainLLM(llm=ChatOpenAI(model="gpt-3.5-turbo", openai_api_key=openaiApiKey, openai_api_base=openaiApiBase))
+        # critic_llm = LangchainLLM(llm=ChatOpenAI(model="gpt-4"))
     else:
         raise ValueError(f"Unsupported llm: {llm}")
+
+    # check embedding model
+    if embedding == "bedrock":
+        embeddings_model = bedrock_embedding
+    elif embedding == "openai":
+        embeddings_model = OpenAIEmbeddings()
 
     # Change resulting question type distribution
     testset_distribution = {
@@ -331,7 +338,7 @@ def testdata_generate(docs: List[Document], llm: str = "bedrock"):
     test_generator = TestsetGenerator(
         generator_llm=generator_llm,
         critic_llm=critic_llm,
-        embeddings_model=bedrock_embedding,
+        embeddings_model=embeddings_model,
         testset_distribution=testset_distribution,
         chat_qa=chat_qa,
     )
@@ -439,7 +446,7 @@ if __name__ == "__main__":
     # prepare for QA dataset
     # loader_res = langchain_md_loader("md-sample-02.md")
     loader_res = langchain_unstructured_loader("pdf-sample-01.pdf")
-    testdata_generate(loader_res)
+    testdata_generate(loader_res, llm="openai", embedding="openai")
 
     # load
     # loader_res = langchain_unstructured_loader("benchmark.md")
