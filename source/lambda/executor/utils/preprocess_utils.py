@@ -1,7 +1,6 @@
 import re
 import boto3
-from .service_intent_recognition import get_service_name
-
+from service_intent_recognition.utils import get_service_name
 
 # language symbols
 CHINESE = 'zh'

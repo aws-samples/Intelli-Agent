@@ -4,7 +4,7 @@ import os
 import boto3
 import time
 import copy
-from preprocess import run_preprocess
+from preprocess_utils import run_preprocess
 from aos_utils import LLMBotOpenSearchClient
 from llmbot_utils import (
     QueryType,

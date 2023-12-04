@@ -1,4 +1,4 @@
-from service_intent_recognition import get_service_name  
+from utils import get_service_name  
 
 import unittest
 
