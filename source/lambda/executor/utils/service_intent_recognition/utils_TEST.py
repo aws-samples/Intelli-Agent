@@ -11,11 +11,11 @@ class TestDict(unittest.TestCase):
         },
         {
             "query":'AWS有支持Intel可信计算技术Software Guard Extensions (SGX) 功能的EC2实例吗？',
-            "service": ["Amazon EC2"]
+            "service": ["Amazon EC2 Image Builder", "Amazon EC2"]
         },
         {
             "query":'S3 CopyObject API最大可以复制多大的对象？',
-            "service": ["Amazon S3"]
+            "service": ['Amazon S3', 'AWS Cloud Control API', 'Amazon API Gateway']
         },
         {
             "query":'AWS Backup 支持对 Amazon S3 存储桶进行连续备份吗?',

@@ -1,4 +1,5 @@
 import os 
+import re
 
 SERVICE_NAME_PATH = os.path.join(
     os.path.dirname(__file__),
@@ -46,13 +47,27 @@ def exact_match(query):
         _type_: _description_
     """
     service_names_upper = get_all_service_names_upper()
-    query_upper = query.upper() 
-    ret = []
-    for service_name_upper in service_names_upper:
-        if service_name_upper in query_upper:
-            ret.append(service_names_upper[service_name_upper])
-    
-    return list(set(ret))
+    # query_upper = query.upper()
+    # ret = []
+    # for service_name_upper in service_names_upper:
+    #     if service_name_upper in query_upper:
+    #         ret.append(service_names_upper[service_name_upper])
+    #
+    # return list(set(ret))
+
+    matches = []
+    # extract all the alphabet characters and number from the query with proper blank space
+    query = re.sub(r'[^a-zA-Z0-9\s]', '', query)
+    # remove aws and amazon from the query consider the lower & upper case
+    query = re.sub(r'aws|amazon', '', query, flags=re.IGNORECASE)
+
+    # use regex to iterate through the service dictionary to find the full match with each word but partial match with whole string in the query and append to the matches list
+    for word in query.split():
+        for key in service_names_upper.keys():
+            if re.search(r'\b' + re.escape(word) + r'\b', key, flags=re.IGNORECASE):
+                if service_names_upper[key] not in matches:
+                    matches.append(service_names_upper[key])
+    return matches
 
 def match_service_using_knn(query):
     pass 
