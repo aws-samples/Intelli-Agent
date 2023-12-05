@@ -1,9 +1,11 @@
 ## LLM Bot
 
 ### Overall Architecture
-![image](https://github.com/aws-samples/llm-bot/assets/23544182/acb918e3-3253-4cef-82bb-da65d78b1249)
+This is the overall architecture to implement conversational bot based on Large Language Model (LLM), including online process to allow user upload documents to S3 bucket to trigger ETL instantly and offline process to batch processing documents in specified S3 bucket and prefix in parallel.
+![image](https://github.com/aws-samples/llm-bot/assets/23544182/f1b52f91-cc20-409b-bb28-8e7810e34543)
 
 ### ETL Workflow
+This is the basic workflow to handle documents inside S3 bucket, including document type detection, document handling and document enhancement, all branch will convert to markdown format to unify the processing.
 ![image](https://github.com/aws-samples/llm-bot/assets/23544182/f35915ee-69ef-4f15-af83-e0df1d1249be)
 
 ### Quick Start
