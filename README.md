@@ -188,7 +188,7 @@ BODY
   "operation": "embed_document",
   "body": {
     "documents": {
-      "page_content": "## Main Titile\n This is the main titlebe before such chapter",
+      "page_content": "## Main Title\n This is the main titlebe before such chapter",
       "metadata": {
         "content_type": "paragraph", 
         "heading_hierarchy": "{'Evaluation of LLM Retrievers': {}}", 
@@ -347,7 +347,7 @@ You should see output like this, the embedding vector is matched with the embedd
             0.03578857704997063,
             ...
           ],
-          "text": "## Main Titile\n This is the main titlebe before such chapter",
+          "text": "## Main Title\n This is the main titlebe before such chapter",
           "metadata": {
             "content_type": "paragraph",
             "heading_hierarchy": "{'Evaluation of LLM Retrievers': {}}",
