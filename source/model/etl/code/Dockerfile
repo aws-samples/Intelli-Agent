@@ -7,8 +7,6 @@ RUN apt update \
     && pip install --upgrade pip \
     && pip install wheel setuptools
 
-RUN apt install unzip
-
 ARG FUNCTION_DIR="/opt/ml/code"
 RUN python -m pip install paddlepaddle-gpu==2.5.2 -i https://mirror.baidu.com/pypi/simple
 RUN pip install markdownify flask gevent
@@ -20,8 +18,6 @@ RUN ln -s /usr/local/cuda-11.8/targets/x86_64-linux/lib/libcublas.so.11 /usr/lib
 ADD / ${FUNCTION_DIR}/
 
 RUN pip3 install -r ${FUNCTION_DIR}/requirements.txt
-
-RUN unzip ${FUNCTION_DIR}/weight.zip -d ${FUNCTION_DIR}/
 
 WORKDIR ${FUNCTION_DIR}
 ENV PYTHONUNBUFFERED=TRUE
