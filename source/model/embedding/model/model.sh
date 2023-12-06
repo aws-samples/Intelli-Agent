@@ -52,6 +52,12 @@ aws s3 cp --recursive $model_snapshot_path s3://$s3_bucket_name/buffer-embedding
 # Modify the content of serving.properties and re-tar the model
 cd ../code
 file_path="serving.properties"
-sed -i "s|option.s3url = s3://[^/]*/buffer-embedding-002-model/|option.s3url = s3://$s3_bucket_name/buffer-embedding-002-model/|" $file_path
+os_type=$(uname -s)
+
+if [ "$os_type" == "Darwin" ]; then
+  sed -i "" "s|option.s3url = s3://[^/]*/buffer-embedding-002-model/|option.s3url = s3://$s3_bucket_name/buffer-embedding-002-model/|g" $file_path
+else
+  sed -i "s|option.s3url = s3://[^/]*/buffer-embedding-002-model/|option.s3url = s3://$s3_bucket_name/buffer-embedding-002-model/|g" $file_path
+
 rm s2e_model.tar.gz
 tar czvf s2e_model.tar.gz *

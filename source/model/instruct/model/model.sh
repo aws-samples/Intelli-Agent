@@ -52,6 +52,13 @@ aws s3 cp --recursive $model_snapshot_path s3://$s3_bucket_name/buffer-instruct-
 # Modify the content of serving.properties and re-tar the model
 cd ../code
 file_path="serving.properties"
-sed -i "s|option.s3url = s3://[^/]*/buffer-instruct-003-model/|option.s3url = s3://$s3_bucket_name/buffer-instruct-003-model/|" $file_path
+os_type=$(uname -s)
+
+if [ "$os_type" == "Darwin" ]; then
+  # MacOS
+  sed -i "" "s|option.s3url = s3://[^/]*/buffer-instruct-003-model/|option.s3url = s3://$s3_bucket_name/buffer-instruct-003-model/|g" $file_path
+else
+  sed -i "s|option.s3url = s3://[^/]*/buffer-instruct-003-model/|option.s3url = s3://$s3_bucket_name/buffer-instruct-003-model/|g" $file_path
+
 rm model.tar.gz
 tar czvf model.tar.gz *
