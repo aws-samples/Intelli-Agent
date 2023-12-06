@@ -59,6 +59,6 @@ if [ "$os_type" == "Darwin" ]; then
   sed -i "" "s|option.s3url = s3://[^/]*/buffer-instruct-003-model/|option.s3url = s3://$s3_bucket_name/buffer-instruct-003-model/|g" $file_path
 else
   sed -i "s|option.s3url = s3://[^/]*/buffer-instruct-003-model/|option.s3url = s3://$s3_bucket_name/buffer-instruct-003-model/|g" $file_path
-
+fi
 rm model.tar.gz
 tar czvf model.tar.gz *
