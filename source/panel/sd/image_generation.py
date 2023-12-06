@@ -40,17 +40,6 @@ GENERATE_API_URL = COMMAND_API_URL + "inference/v2"
 STATUS_API_URL = COMMAND_API_URL + "inference/get-inference-job"
 PARAM_API_URL = COMMAND_API_URL + "inference/get-inference-job-param-output"
 IMAGE_API_URL = COMMAND_API_URL + "inference/get-inference-job-image-output"
-CHECKPOINTS_API_URL = COMMAND_API_URL + "checkpoints"
-
-support_model_list = []
-
-# fixed model list installed on sd solution, MUST align with prompt template
-prompt_model_list = [
-    {"sd_xl_base_1.0.safetensors", "default"},
-    {"majicmixRealistic_v7.safetensors", "realistic"},
-    {"x2AnimeFinal_gzku.safetensors", "anime"},
-    {"LahCuteCartoonSDXL_alpha.safetensors", "cartoon"}
-]
 
 default_models = ["sd_xl_base_1.0.safetensors"]
 
@@ -384,37 +373,7 @@ def get_inference_image_output(inference_id: str):
     return job.json()
 
 
-def get_checkpoints():
-    headers = {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-        'x-api-key': API_KEY
-    }
-
-    params = {
-        "username": API_USERNAME,
-        "status": "Active",
-    }
-
-    job = requests.get(CHECKPOINTS_API_URL, headers=headers, params=params)
-    checkpoints = []
-    if 'checkpoints' in job.json():
-        for checkpoint in job.json()['checkpoints']:
-            checkpoints.append(checkpoint['name'][0])
-
-    if len(checkpoints) == 0:
-        raise Exception("No checkpoint available.")
-
-    global support_model_list
-    support_model_list = checkpoints
-    # filter the model v1-5-pruned-emaonly.safetensors out of support list
-    support_model_list = [item for item in support_model_list if not item.startswith("v1-5-pruned-emaonly")]
-    logger.info("support_model_list: {}".format(support_model_list))
-    return support_model_list
-
-
 def create_inference_job(models: List[str]):
-    models = select_checkpoint(models)
 
     headers = {
         "Content-Type": "application/json",
@@ -659,18 +618,6 @@ def generate_llm_image_col(initial_prompt: str, col, progress_bar):
     generate_image(positive_prompt, negative_prompt, col, progress_bar)
 
 
-def select_checkpoint(user_list: List[str]):
-    global support_model_list
-    user_list = [item.strip() for item in user_list]
-    intersection = list(set(user_list).intersection(set(support_model_list)))
-    if len(intersection) == 0:
-        intersection = default_models
-        st.session_state.warnings.append("Use default model {}\nwhen LLM recommends {} not in support list:\n{}".format(
-            default_models, user_list, support_model_list))
-
-    return intersection
-
-
 # Generator function
 def image_generator(prompt, cols):
     for idx, col in enumerate(cols):
@@ -695,9 +642,6 @@ if __name__ == "__main__":
         # User input
         prompt = st.text_input("What image do you want to create today?", "A cute dog")
         button = st.button('Generate Image')
-
-        # Initialize checkpoints before user action
-        get_checkpoints()
 
         if button:
             st.session_state.warnings = []
