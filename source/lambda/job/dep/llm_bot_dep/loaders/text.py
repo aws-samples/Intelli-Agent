@@ -4,6 +4,8 @@ from typing import List, Optional
 from langchain.docstore.document import Document
 from langchain.document_loaders.text import TextLoader
 
+from ..splitter_utils import MarkdownHeaderTextSplitter
+
 logger = logging.getLogger(__name__)
 
 
@@ -35,7 +37,7 @@ class CustomTextLoader(TextLoader):
         """Load from file path."""
         metadata = {"file_path": self.file_path, "file_type": "txt"}
 
-        return [Document(page_content=text_content, metadata=metadata)]
+        return Document(page_content=text_content, metadata=metadata)
 
 
 def pre_process_text(text_content: str) -> str:
@@ -51,6 +53,9 @@ def process_text(file_content: str, **kwargs):
     bucket = kwargs['bucket']
     key = kwargs['key']
     loader = CustomTextLoader(file_path=f"s3://{bucket}/{key}")
-    data = loader.load(clean_text)
+    doc = loader.load(clean_text)
 
-    return data
+    splitter = MarkdownHeaderTextSplitter(kwargs['res_bucket'])
+    doc_list = splitter.split_text(doc)
+
+    return doc_list

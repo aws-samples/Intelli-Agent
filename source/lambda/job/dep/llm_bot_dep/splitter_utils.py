@@ -204,10 +204,16 @@ class MarkdownHeaderTextSplitter:
 
     def _is_markdown_table_row(self, line):
         return re.fullmatch(r"\|.*\|.*\|", line) is not None
-    
-    def _set_chunk_id(self, id_index_dict: dict, current_heading: str, metadata: dict, same_heading_dict: dict):
+
+    def _set_chunk_id(
+        self,
+        id_index_dict: dict,
+        current_heading: str,
+        metadata: dict,
+        same_heading_dict: dict,
+    ):
         """Set chunk id when there are multiple headings are the same.
-        Eg. 
+        Eg.
         # Heading 1
         ## Same heading
         # Heading 2
@@ -238,7 +244,7 @@ class MarkdownHeaderTextSplitter:
         if self.res_bucket is not None:
             save_content_to_s3(s3, text, self.res_bucket, SplittingType.BEFORE.value)
         else:
-            logger.error(
+            logger.warning(
                 "No resource bucket is defined, skip saving content into S3 bucket"
             )
 
@@ -266,17 +272,22 @@ class MarkdownHeaderTextSplitter:
                 if current_chunk_content:
                     metadata = text.metadata.copy()
                     metadata["content_type"] = "paragragh"
-                    metadata["heading_hierarchy"] = heading_hierarchy
                     metadata["current_heading"] = current_heading
                     current_heading = current_heading.replace("#", "").strip()
                     try:
-                        self._set_chunk_id(id_index_dict, current_heading, metadata, same_heading_dict)
+                        self._set_chunk_id(
+                            id_index_dict, current_heading, metadata, same_heading_dict
+                        )
                     except KeyError:
                         logger.info(
                             f"No standard heading found, check your document with {current_chunk_content}"
                         )
                         id_prefix = str(uuid.uuid4())[:8]
                         metadata["chunk_id"] = f"$0-{id_prefix}"
+                    if metadata["chunk_id"] in heading_hierarchy:
+                        metadata["heading_hierarchy"] = heading_hierarchy[
+                            metadata["chunk_id"]
+                        ]
                     chunks.append(
                         Document(
                             page_content="\n".join(current_chunk_content),
@@ -295,15 +306,20 @@ class MarkdownHeaderTextSplitter:
                 if table_content:
                     metadata = text.metadata.copy()
                     metadata["content_type"] = "table"
-                    metadata["heading_hierarchy"] = heading_hierarchy
                     metadata["current_heading"] = current_heading
                     current_heading = current_heading.replace("#", "").strip()
                     try:
-                        self._set_chunk_id(id_index_dict, current_heading, metadata, same_heading_dict)
+                        self._set_chunk_id(
+                            id_index_dict, current_heading, metadata, same_heading_dict
+                        )
                     except KeyError:
                         logger.info(f"No standard heading found")
                         id_prefix = str(uuid.uuid4())[:8]
                         metadata["chunk_id"] = f"$0-{id_prefix}"
+                    if metadata["chunk_id"] in heading_hierarchy:
+                        metadata["heading_hierarchy"] = heading_hierarchy[
+                            metadata["chunk_id"]
+                        ]
                     chunks.append(
                         Document(
                             page_content="\n".join(table_content), metadata=metadata
@@ -320,15 +336,18 @@ class MarkdownHeaderTextSplitter:
         if current_chunk_content:
             metadata = text.metadata.copy()
             metadata["content_type"] = "paragragh"
-            metadata["heading_hierarchy"] = heading_hierarchy
             metadata["current_heading"] = current_heading
             current_heading = current_heading.replace("#", "").strip()
             try:
-                self._set_chunk_id(id_index_dict, current_heading, metadata, same_heading_dict)
+                self._set_chunk_id(
+                    id_index_dict, current_heading, metadata, same_heading_dict
+                )
             except KeyError:
                 logger.info(f"No standard heading found")
                 id_prefix = str(uuid.uuid4())[:8]
                 metadata["chunk_id"] = f"$0-{id_prefix}"
+            if metadata["chunk_id"] in heading_hierarchy:
+                metadata["heading_hierarchy"] = heading_hierarchy[metadata["chunk_id"]]
             chunks.append(
                 Document(
                     page_content="\n".join(current_chunk_content), metadata=metadata

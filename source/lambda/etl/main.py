@@ -36,8 +36,8 @@ def lambda_handler(event, context):
         'fileCount': file_count,
         's3Bucket': bucket_name,
         's3Prefix': prefix,
-        'qaEnhance': event['qaEnhance'],
+        'qaEnhance': event['qaEnhance'].lower() if 'qaEnhance' in event else 'false',
         # boolean value to indicate if the lambda function is running in offline mode
-        'offline': event['offline'],
+        'offline': event['offline'].lower(),
         'batchIndices': batch_indices,
     }

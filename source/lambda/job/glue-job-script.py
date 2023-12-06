@@ -49,8 +49,16 @@ args = getResolvedOptions(
         "BATCH_INDICE",
         "ProcessedObjectsTable",
         "DOC_INDEX_TABLE",
+        "CONTENT_TYPE",
+        "EMBEDDING_TYPE",
+        "EMBEDDING_LANG"
     ],
 )
+
+# Online process triggered by S3 Object create event does not have batch indice
+# Set default value for BATCH_INDICE if it doesn't exist
+if "BATCH_INDICE" not in args:
+    args["BATCH_INDICE"] = "0"
 s3_bucket = args["S3_BUCKET"]
 s3_prefix = args["S3_PREFIX"]
 aosEndpoint = args["AOS_ENDPOINT"]
@@ -64,6 +72,17 @@ qa_enhancement = args["QA_ENHANCEMENT"]
 # TODO, pass the bucket and prefix need to handle in current job directly
 batchIndice = args["BATCH_INDICE"]
 processedObjectsTable = args["ProcessedObjectsTable"]
+content_type = args["CONTENT_TYPE"]
+_embedding_endpoint_name_list = args["EMBEDDING_MODEL_ENDPOINT"].split(",")
+_embedding_lang_list = args["EMBEDDING_LANG"].split(",")
+_embedding_type_list = args["EMBEDDING_TYPE"].split(",")
+embeddings_model_info_list = []
+for endpoint_name, lang, endpoint_type in zip(
+    _embedding_endpoint_name_list, _embedding_lang_list, _embedding_type_list
+):
+    embeddings_model_info_list.append(
+        {"endpoint_name": endpoint_name, "lang": lang, "type": endpoint_type}
+    )
 
 s3 = boto3.client("s3")
 smr_client = boto3.client("sagemaker-runtime")
@@ -82,6 +101,7 @@ awsauth = AWS4Auth(
     "es",
     session_token=credentials.token,
 )
+MAX_OS_DOCS_PER_PUT = 8
 
 # Set the NLTK data path to the /tmp directory for AWS Glue jobs
 nltk.data.path.append("/tmp/nltk_data")
@@ -116,8 +136,7 @@ def iterate_s3_files(bucket: str, prefix: str) -> Generator:
             # skip the prefix with slash, which is the folder name
             if key.endswith("/"):
                 continue
-
-            # skip the file if the index is not in the batchIndice
+            logger.info("Current batchIndice: {}, bucket: {}, key: {}".format(currentIndice, bucket, key))
             if currentIndice != int(batchIndice):
                 logger.info(
                     "currentIndice: {}, batchIndice: {}, skip file: {}".format(
@@ -194,6 +213,9 @@ def iterate_s3_files(bucket: str, prefix: str) -> Generator:
             elif file_type == "md":
                 yield "md", decode_file_content(file_content), kwargs
                 break
+            elif file_type == "json":
+                yield "json", decode_file_content(file_content), kwargs
+                break
             else:
                 logger.info(f"Unknown file type: {file_type}")
 
@@ -251,9 +273,10 @@ def aos_injection(
             temp_chunk_id = temp_document.metadata["chunk_id"]
             temp_split_size = len(temp_text_splitter.split_documents([temp_document]))
             # Add size in heading_hierarchy
-            temp_hierarchy = temp_document.metadata["heading_hierarchy"][temp_chunk_id]
-            temp_hierarchy["size"] = temp_split_size
-            updated_heading_hierarchy[temp_chunk_id] = temp_hierarchy
+            if "heading_hierarchy" in temp_document.metadata:
+                temp_hierarchy = temp_document.metadata["heading_hierarchy"]
+                temp_hierarchy["size"] = temp_split_size
+                updated_heading_hierarchy[temp_chunk_id] = temp_hierarchy
 
         for document in content:
             splits = text_splitter.split_documents([document])
@@ -261,8 +284,13 @@ def aos_injection(
             index = 1
             for split in splits:
                 chunk_id = split.metadata["chunk_id"]
+                logger.info(chunk_id)
                 split.metadata["chunk_id"] = f"{chunk_id}-{index}"
-                split.metadata["heading_hierarchy"] = updated_heading_hierarchy
+                if chunk_id in updated_heading_hierarchy:
+                    split.metadata["heading_hierarchy"] = updated_heading_hierarchy[
+                        chunk_id
+                    ]
+                    logger.info(split.metadata["heading_hierarchy"])
                 index += 1
                 yield split
 
@@ -299,7 +327,9 @@ def aos_injection(
                 try:
                     docsearch.add_documents(documents=[document])
                 except Exception as e:
-                    logger.info(f"Catch exception when adding document to OpenSearch: {e}")
+                    logger.info(
+                        f"Catch exception when adding document to OpenSearch: {e}"
+                    )
                 logger.info("Retry statistics: %s", _aos_injection.retry.statistics)
 
             # logger.info("Adding documents %s to OpenSearch with index %s", document, index_name)
@@ -311,10 +341,18 @@ def aos_injection(
 def main():
     logger.info("Starting Glue job with passing arguments: %s", args)
     # Check if offline mode
-    if offline == "true":
+    if offline == "true" or offline == "false":
         logger.info("Running in offline mode with consideration for large file size...")
         for file_type, file_content, kwargs in iterate_s3_files(s3_bucket, s3_prefix):
             try:
+                if file_type == "json":
+                    kwargs["embeddings_model_info_list"] = embeddings_model_info_list
+                    kwargs["aos_index"] = aos_index
+                    kwargs["aosEndpoint"] = aosEndpoint
+                    kwargs["region"] = region
+                    kwargs["awsauth"] = awsauth
+                    kwargs["content_type"] = content_type
+                    kwargs["max_os_docs_per_put"] = MAX_OS_DOCS_PER_PUT
                 res = cb_process_object(s3, file_type, file_content, **kwargs)
                 for document in res:
                     save_content_to_s3(
@@ -334,35 +372,34 @@ def main():
                         aos_index,
                         gen_chunk=False,
                     )
-                elif file_type == "html":
+                elif file_type in ["pdf", "txt", "doc", "md", "html"]:
                     aos_injection(res, embeddingModelEndpoint, aosEndpoint, aos_index)
-                elif file_type in ["pdf", "txt", "doc", "md"]:
-                    aos_injection(res, embeddingModelEndpoint, aosEndpoint, aos_index)
-                    if qa_enhancement == "true":
-                        # iterate the document to get the QA pairs
-                        for document in res:
-                            # prompt is not used in this case
-                            prompt = ""
-                            solution_title = "GCR Solution LLM Bot"
-                            # Make sure the document is Document object
+
+                if qa_enhancement == "true":
+                    # iterate the document to get the QA pairs
+                    for document in res:
+                        # prompt is not used in this case
+                        prompt = ""
+                        solution_title = "GCR Solution LLM Bot"
+                        # Make sure the document is Document object
+                        logger.info(
+                            "Enhancing document type: {} and content: {}".format(
+                                type(document), document
+                            )
+                        )
+                        ewb = EnhanceWithBedrock(prompt, solution_title, document)
+                        # This is should be optional for the user to choose the chunk size
+                        document_list = ewb.SplitDocumentByTokenNum(
+                            document, ENHANCE_CHUNK_SIZE
+                        )
+                        # test the function
+                        for document in document_list:
+                            enhanced_prompt = ewb.EnhanceWithClaude(
+                                prompt, solution_title, document
+                            )
                             logger.info(
-                                "Enhancing document type: {} and content: {}".format(
-                                    type(document), document
-                                )
+                                "Enhanced prompt: {}".format(enhanced_prompt)
                             )
-                            ewb = EnhanceWithBedrock(prompt, solution_title, document)
-                            # This is should be optional for the user to choose the chunk size
-                            document_list = ewb.SplitDocumentByTokenNum(
-                                document, ENHANCE_CHUNK_SIZE
-                            )
-                            # test the function
-                            for document in document_list:
-                                enhanced_prompt = ewb.EnhanceWithClaude(
-                                    prompt, solution_title, document
-                                )
-                                logger.info(
-                                    "Enhanced prompt: {}".format(enhanced_prompt)
-                                )
 
             except Exception as e:
                 logger.error(
