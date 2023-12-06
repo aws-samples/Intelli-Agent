@@ -143,7 +143,7 @@ def run_eval(
 
     else:
         print('loading data......')
-        data = load_eval_data(eval_data_path)[:10]
+        data = load_eval_data(eval_data_path)
         # get rag result 
         print(f'run rag, {len(data)} example......')
         data_to_eval = get_rag_result(
