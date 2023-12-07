@@ -22,7 +22,7 @@ from opensearchpy import RequestsHttpConnection
 from requests_aws4auth import AWS4Auth
 from llm_bot_dep.storage_utils import save_content_to_s3
 from llm_bot_dep.constant import SplittingType
-from tenacity import retry, stop_after_attempt
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -307,7 +307,7 @@ def aos_injection(
         # the batch are still list of Document objects, we need to iterate the list to inject the embeddings, the chunk size (500) should already be small enough to fit the embedding model
         for document in batch:
 
-            @retry(stop=stop_after_attempt(3))
+            @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
             def _aos_injection(document: Document) -> Document:
                 # TODO, parse the metadata to embed with different index, currently the index name is passed as cfn parameter with default value "chatbot-index"
                 docsearch = OpenSearchVectorSearch(
@@ -325,6 +325,7 @@ def aos_injection(
                     index_name,
                 )
                 try:
+                    # TODO, consider the max retry and initial backoff inside helper.bulk operation instead of using original LangChain
                     docsearch.add_documents(documents=[document])
                 except Exception as e:
                     logger.info(
