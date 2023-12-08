@@ -78,7 +78,20 @@ class OpenSearchClient:
         body_dict = json.loads(body)
         # fixed settings and mappings
         body = {
-            "settings": {"index": {"knn": True, "knn.algo_param.ef_search": 512}},
+            "settings": {
+                "index":
+                    {
+                        "knn": True,
+                        "knn.algo_param.ef_search": 512,
+                        "knn.memory.circuit_breaker.limit": "70%",
+                        "refresh_interval": "60s",
+                        # indexing threads
+                        "knn.algo_param.index_thread_qty": 8,
+                        "number_of_shards": 8,
+                        # disabel replica
+                        "number_of_replicas": 0,
+                    }
+                },
             "mappings": {
                 "properties": {
                     "vector_field": {
@@ -88,7 +101,11 @@ class OpenSearchClient:
                             "name": "hnsw",
                             "space_type": "l2",
                             "engine": "nmslib",
-                            "parameters": {"ef_construction": 512, "m": 16},
+                            "parameters": {
+                                "ef_construction": 128,
+                                "ef_search": 32,
+                                "m": 16
+                            },
                         },
                     }
                 }
