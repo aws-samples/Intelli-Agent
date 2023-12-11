@@ -22,7 +22,17 @@ from ragas.metrics import (
 )
 from ragas.metrics._answer_correctness import answer_correctness
 
-RAGAS_EVAL_METRICS = [answer_correctness,faithfulness]
+from rag_metrics_with_claude2 import context_recall as claude2_context_recall
+from rag_metrics_with_claude2 import context_precision as claude2_context_precision
+from rag_metrics_with_claude2 import faithfulness as claude2_faithfulness
+from rag_metrics_with_claude2 import answer_relevancy as claude2_answer_relevancy
+from rag_metrics_with_claude2 import answer_correctness as claude2_answer_correctness
+from rag_metrics_with_claude2 import context_relevancy as claude2_context_relevancy
+
+
+# RAGAS_EVAL_METRICS = [context_recall,answer_correctness,faithfulness]
+# RAGAS_EVAL_METRICS = [claude2_context_recall]
+
 
 def load_eval_data(eval_data_path):
     data = pd.read_csv(eval_data_path).to_dict(orient='records')
@@ -33,7 +43,6 @@ def load_eval_data(eval_data_path):
             "ground_truths": [d['ground truth']]
         })
     return ret 
-
 
 
 def csdc_rag_call(
@@ -61,20 +70,21 @@ def csdc_rag_call(
         if r.status_code == 200:
             ret = r.json()
             answer = ret['choices'][0]['message']['content']
-            contexts = [c['content'] for c in json.loads(ret['contexts'])]
+            
+            contexts = [c['content'] for c in ret['contexts']]
+                
             return {
                 "question": prompt,
                 "contexts": contexts,
                 "answer": answer,
                 "ground_truths": datum['ground_truths']
             } 
-        print(f'retry time: {retry_time}/{retry_times}, meet error: {r.json()}')
+        print(f'retry time: {retry_time}/{retry_times}, meet error: {r.json()},prompt: {prompt}')
         retry_time += 1
         time.sleep(10)
 
     raise RuntimeError(r.json())
     
-
 
 def get_rag_result(data,
                    rag_api_url=None,
@@ -101,7 +111,7 @@ def get_rag_result(data,
             try:
                 output_datum = future.result()
             except:
-                print(traceback.format_exc())
+                print(traceback.format_exc(),flush=True)
                 output_datum = None
             if output_datum is None:
                 datum = future.datum
@@ -110,30 +120,22 @@ def get_rag_result(data,
                 continue
             ret.append(output_datum)
     return ret 
-
-def run_ragas_eval(data,ret_save_profix=''):
-    # os.environ["OPENAI_API_KEY"] = openai_api_key
-    from ragas import evaluate
-    dataset = Dataset.from_pandas(pd.DataFrame(data))
     
-    results = evaluate(
-        dataset,
-        metrics=RAGAS_EVAL_METRICS
-        )
-    save_path = f'{ret_save_profix}_ragas_eval_res.csv'
-    print('saving ragas eval result to : ', save_path)
-    results.to_pandas().to_csv(save_path,index=False)
-    print('results: ',results)
-    return results
-
 def run_eval(
         eval_data_path,
         rag_api_url,
         rag_num_worker=1,
         llm_output_cache_path=None,
         ret_save_profix = '',
+        ragas_parameters: dict = None,
+        ragas_eval_metrics = None,
         **rag_parameters):
-    assert os.getenv('OPENAI_API_KEY'), 'ragas evaluation needs openai api key'
+    
+    # ragas_eval_llm_model_id = ragas_parameters['llm_model_id']
+    # if ragas_eval_llm_model_id == "openai":
+    #     assert os.getenv('OPENAI_API_KEY'), 'ragas evaluation needs openai api key'
+
+    ragas_parameters = ragas_parameters or {}
     # load eval_data
     if llm_output_cache_path is not None and \
           os.path.exists(llm_output_cache_path):
@@ -160,16 +162,42 @@ def run_eval(
              
     # call ragas 
     print(f'run ragas eval, data num: {len(data_to_eval)}')
-    ret = run_ragas_eval(data_to_eval,ret_save_profix)
-    return ret 
+    # filter None answer 
+    data_to_eval = [d for d in data_to_eval if \
+                    (d['answer'] is not  None \
+                     and d['ground_truths'] and d['ground_truths'][0] is not None\
+                     and d['contexts'] \
+                     and isinstance(d['ground_truths'][0],str)
+                     )]
+    print(f'run ragas eval, data num after filtered empty answer: {len(data_to_eval)}')
+    dataset = Dataset.from_pandas(pd.DataFrame(data_to_eval))
+    results = evaluate(
+        dataset,
+        metrics=ragas_eval_metrics
+    )
+    save_path = f'{ret_save_profix}_ragas_eval_res.csv'
+    print('saving ragas eval result to : ', save_path)
+    results.to_pandas().to_csv(save_path,index=False)
+    print('results: ',results)
+    return results
 
 
 if __name__ == "__main__":
+    RAGAS_EVAL_METRICS = [claude2_context_relevancy]
     rag_api_url = "https://5tzaajjzg7.execute-api.us-west-2.amazonaws.com/default/llm-bot-dev-qq-matching"
     eval_data_path = "TechBot QA Test-fifth-test.csv"
     eval_id = 'claude2-csds-retrive'
+    # llm_output_cache_path = f'{eval_id}-llm-output-cache-120.pkl'
     llm_output_cache_path = f'{eval_id}-llm-output-cache.pkl'
     ret_save_profix = f'{eval_id}-eval'
+    ragas_parameters = {
+        "region_name":'us-west-2',
+        "credentials_profile_name": "atl",
+        # "llm_model_id": "anthropic.claude-v2:1", # "openai", #"anthropic.claude-v2:1", #"anthropic.claude-v2:1"
+        "llm_model_generate_paramerters": {
+            "max_tokens_to_sample":2000
+        }
+    }
    
     rag_parameters = {
         'llm_model_id': "anthropic.claude-v2:1", 
@@ -183,6 +211,8 @@ if __name__ == "__main__":
         rag_num_worker=1,
         llm_output_cache_path=llm_output_cache_path,
         ret_save_profix=ret_save_profix,
+        ragas_parameters=ragas_parameters,
+        ragas_eval_metrics = RAGAS_EVAL_METRICS,
         **rag_parameters
     )
     print(r)
