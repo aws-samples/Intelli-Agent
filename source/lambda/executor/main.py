@@ -633,9 +633,17 @@ def lambda_handler(event, context):
     }
 
     # 2. return result
+    resp_header = {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "*"
+    }
     if get_contexts:
         llmbot_response["contexts"] = contexts
     if enable_debug:
         llmbot_response["debug_info"] = debug_info
     response["body"] = json.dumps(llmbot_response)
+    response["headers"] = resp_header
+
     return response
