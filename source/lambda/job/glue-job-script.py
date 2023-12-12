@@ -49,6 +49,7 @@ args = getResolvedOptions(
         "BATCH_INDICE",
         "ProcessedObjectsTable",
         "DOC_INDEX_TABLE",
+        "AOS_INDEX",
         "CONTENT_TYPE",
         "EMBEDDING_TYPE",
         "EMBEDDING_LANG"
@@ -63,6 +64,8 @@ s3_bucket = args["S3_BUCKET"]
 s3_prefix = args["S3_PREFIX"]
 aosEndpoint = args["AOS_ENDPOINT"]
 aos_index = args["DOC_INDEX_TABLE"]
+# This index is used for the AOS injection, to allow user customize the index, otherwise default value is "chatbot-index" or set in CloudFormation parameter
+aos_custom_index = args["AOS_INDEX"]
 embeddingModelEndpoint = args["EMBEDDING_MODEL_ENDPOINT"]
 etlModelEndpoint = args["ETL_MODEL_ENDPOINT"]
 region = args["REGION"]
@@ -309,7 +312,9 @@ def aos_injection(
 
             @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
             def _aos_injection(document: Document) -> Document:
-                # TODO, parse the metadata to embed with different index, currently the index name is passed as cfn parameter with default value "chatbot-index"
+                # if user customize the index, use the customized index as high priority, NOTE the custom index will be created with default AOS mapping in LangChain, use API to create the index with customized mapping before running the job if you want to customize the mapping
+                if aos_custom_index:
+                    index_name = aos_custom_index
                 docsearch = OpenSearchVectorSearch(
                     index_name=index_name,
                     embedding_function=embeddings,
