@@ -137,14 +137,14 @@ def iterate_s3_files(bucket: str, prefix: str) -> Generator:
             if key.endswith("/"):
                 continue
             logger.info("Current batchIndice: {}, bucket: {}, key: {}".format(currentIndice, bucket, key))
-            # if currentIndice != int(batchIndice):
-            #     logger.info(
-            #         "currentIndice: {}, batchIndice: {}, skip file: {}".format(
-            #             currentIndice, batchIndice, key
-            #         )
-            #     )
-            #     currentIndice += 1
-            #     continue
+            if currentIndice != int(batchIndice):
+                logger.info(
+                    "currentIndice: {}, batchIndice: {}, skip file: {}".format(
+                        currentIndice, batchIndice, key
+                    )
+                )
+                currentIndice += 1
+                continue
 
             # # Truncate to seconds with round()
             # current_time = int(round(time.time()))
@@ -393,7 +393,7 @@ def main():
                         document_list = ewb.SplitDocumentByTokenNum(
                             document, ENHANCE_CHUNK_SIZE
                         )
-                        # test the function
+                        # enhanced_prompt_list = []
                         for document in document_list:
                             enhanced_prompt = ewb.EnhanceWithClaude(
                                 prompt, solution_title, document
@@ -401,6 +401,17 @@ def main():
                             logger.info(
                                 "Enhanced prompt: {}".format(enhanced_prompt)
                             )
+                            # enhanced_prompt_list.append(enhanced_prompt)
+
+                        # aos_injection(
+                        #     enhanced_prompt_list,
+                        #     embeddingModelEndpoint,
+                        #     aosEndpoint,
+                        #     aos_index,
+                        #     gen_chunk=False,
+                        # )
+
+
 
             except Exception as e:
                 logger.error(
