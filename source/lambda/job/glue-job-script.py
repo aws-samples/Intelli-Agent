@@ -149,39 +149,39 @@ def iterate_s3_files(bucket: str, prefix: str) -> Generator:
                 currentIndice += 1
                 continue
 
-            # Truncate to seconds with round()
-            current_time = int(round(time.time()))
-            # Check for redundancy and expiry
-            response = table.query(
-                KeyConditionExpression=Key("ObjectKey").eq(key),
-                ScanIndexForward=False,  # Sort by ProcessTimestamp in descending order
-                Limit=1,  # We only need the latest record
-            )
+            # # Truncate to seconds with round()
+            # current_time = int(round(time.time()))
+            # # Check for redundancy and expiry
+            # response = table.query(
+            #     KeyConditionExpression=Key("ObjectKey").eq(key),
+            #     ScanIndexForward=False,  # Sort by ProcessTimestamp in descending order
+            #     Limit=1,  # We only need the latest record
+            # )
 
-            # If the object is found and has not expired, skip processing
-            if (
-                response["Items"]
-                and response["Items"][0]["ExpiryTimestamp"] > current_time
-            ):
-                logger.info(f"Object {key} has not expired yet and will be skipped.")
-                continue
+            # # If the object is found and has not expired, skip processing
+            # if (
+            #     response["Items"]
+            #     and response["Items"][0]["ExpiryTimestamp"] > current_time
+            # ):
+            #     logger.info(f"Object {key} has not expired yet and will be skipped.")
+            #     continue
 
-            # Record the processing of the S3 object with an updated expiry timestamp, and each job only update single object in table. TODO, current assume the object will be handled successfully
-            expiry_timestamp = current_time + OBJECT_EXPIRY_TIME
-            try:
-                table.put_item(
-                    Item={
-                        "ObjectKey": key,
-                        "ProcessTimestamp": current_time,
-                        "Bucket": bucket,
-                        "Prefix": "/".join(key.split("/")[:-1]),
-                        "ExpiryTimestamp": expiry_timestamp,
-                    }
-                )
-            except Exception as e:
-                logger.error(f"Error recording processed of S3 object {key}: {e}")
+            # # Record the processing of the S3 object with an updated expiry timestamp, and each job only update single object in table. TODO, current assume the object will be handled successfully
+            # expiry_timestamp = current_time + OBJECT_EXPIRY_TIME
+            # try:
+            #     table.put_item(
+            #         Item={
+            #             "ObjectKey": key,
+            #             "ProcessTimestamp": current_time,
+            #             "Bucket": bucket,
+            #             "Prefix": "/".join(key.split("/")[:-1]),
+            #             "ExpiryTimestamp": expiry_timestamp,
+            #         }
+            #     )
+            # except Exception as e:
+            #     logger.error(f"Error recording processed of S3 object {key}: {e}")
 
-            file_type = key.split(".")[-1]  # Extract file extension
+            file_type = key.split(".")[-1].lower()  # Extract file extension
             response = s3.get_object(Bucket=bucket, Key=key)
             file_content = response["Body"].read()
             # assemble bucket and key as args for the callback function
@@ -398,7 +398,7 @@ def main():
                         document_list = ewb.SplitDocumentByTokenNum(
                             document, ENHANCE_CHUNK_SIZE
                         )
-                        # test the function
+                        # enhanced_prompt_list = []
                         for document in document_list:
                             enhanced_prompt = ewb.EnhanceWithClaude(
                                 prompt, solution_title, document
@@ -406,6 +406,17 @@ def main():
                             logger.info(
                                 "Enhanced prompt: {}".format(enhanced_prompt)
                             )
+                            # enhanced_prompt_list.append(enhanced_prompt)
+
+                        # aos_injection(
+                        #     enhanced_prompt_list,
+                        #     embeddingModelEndpoint,
+                        #     aosEndpoint,
+                        #     aos_index,
+                        #     gen_chunk=False,
+                        # )
+
+
 
             except Exception as e:
                 logger.error(
