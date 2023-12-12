@@ -148,6 +148,25 @@ def organize_ug_results(response, index_name):
         results.append(result)
     return results
 
+def organize_results(response):
+    """
+    Organize results from aos response
+
+    :param query_type: query type
+    :param response: aos response json
+    """
+    results = []
+    aos_hits = response["hits"]["hits"]
+    for aos_hit in aos_hits:
+        result = {}
+        result["source"] = aos_hit['_source']['metadata']['file_path']
+        result["score"] = aos_hit["_score"]
+        result["detail"] = aos_hit['_source']
+        result["content"] = aos_hit['_source']['text']
+        result["doc"] = aos_hit['_source']['text']
+        results.append(result)
+    return results
+
 def remove_redundancy_debug_info(results):
     filtered_results = copy.deepcopy(results)
     for result in filtered_results:
@@ -202,7 +221,7 @@ def main_entry(
             stop=None,
         )
         opensearch_knn_respose = aos_client.search(
-            index_name=aos_index, query_type="knn", query_term=query_embedding
+            index_name=aos_index, query_type="knn", query_term=query_embedding, field="vector_field"
         )
         logger.info(json.dumps(opensearch_knn_respose, ensure_ascii=False))
         elpase_time = time.time() - start
@@ -219,7 +238,7 @@ def main_entry(
 
         # 4. combine these two opensearch_knn_respose and opensearch_query_response
         recall_knowledge = combine_recalls(
-            opensearch_knn_respose, opensearch_query_response
+            organize_results(opensearch_knn_respose), organize_results(opensearch_query_response)
         )
         logger.info(f"4. recall_knowledge: {recall_knowledge}")
 
@@ -287,16 +306,16 @@ def main_entry(
         answer = ""
 
     # 7. update_session
-    start = time.time()
-    update_session(
-        session_id=session_id,
-        chat_session_table=chat_session_table,
-        question=query_input,
-        answer=answer,
-        knowledge_sources=sources,
-    )
-    elpase_time = time.time() - start
-    logger.info(f"runing time of update_session : {elpase_time}s seconds")
+    # start = time.time()
+    # update_session(
+    #     session_id=session_id,
+    #     chat_session_table=chat_session_table,
+    #     question=query_input,
+    #     answer=answer,
+    #     knowledge_sources=sources,
+    # )
+    # elpase_time = time.time() - start
+    # logger.info(f"runing time of update_session : {elpase_time}s seconds")
 
     # 8. log results
     json_obj = {
@@ -536,11 +555,11 @@ def dgr_entry(
         query_type = QueryType.Conversation
 
     # 5. update_session
-    start = time.time()
-    update_session(session_id=session_id, chat_session_table=chat_session_table, 
-                   question=query_input, answer=answer, knowledge_sources=sources)
-    elpase_time = time.time() - start
-    logger.info(f'runing time of update_session : {elpase_time}s seconds')
+    # start = time.time()
+    # update_session(session_id=session_id, chat_session_table=chat_session_table, 
+    #                question=query_input, answer=answer, knowledge_sources=sources)
+    # elpase_time = time.time() - start
+    # logger.info(f'runing time of update_session : {elpase_time}s seconds')
 
     return answer, sources, contexts, debug_info
 
