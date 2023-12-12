@@ -38,7 +38,7 @@ export class RootStack extends Stack {
       description: 'The ECR image name which is used for ETL, eg. etl-model',
     });
 
-    // This assest stack is to mitigate issue that the model assets in s3 bucket can't be located immediately to create sagemaker model
+    // This asset stack is to mitigate issue that the model assets in s3 bucket can't be located immediately to create sagemaker model
     const _AssetsStack = new AssetsStack(this, 'assets-stack', {_s3ModelAssets:_S3ModelAssets.valueAsString, env:process.env});
     const _LLMStack = new LLMStack(this, 'llm-stack', {
         _s3ModelAssets:_S3ModelAssets.valueAsString,

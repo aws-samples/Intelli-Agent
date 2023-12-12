@@ -6,7 +6,7 @@
 # cd deployment
 # ./build-s3-dist.sh source-bucket-base-name solution-name version-code
 #
-# Paramenters:
+# Parameters:
 #  - source-bucket-base-name: Name for the S3 bucket location where the template will source the Lambda
 #    code from. The template will append '-[region_name]' to this bucket name.
 #    For example: ./build-s3-dist.sh solutions v1.0.0
@@ -53,7 +53,7 @@ echo "copy yaml templates and rename"
 cp $template_dir/*.yaml $template_dist_dir/
 cd $template_dist_dir
 # Rename all *.yaml to *.template
-for f in *.yaml; do 
+for f in *.yaml; do
     mv -- "$f" "${f%.yaml}.template"
 done
 
