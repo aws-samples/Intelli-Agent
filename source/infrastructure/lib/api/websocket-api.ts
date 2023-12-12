@@ -37,7 +37,7 @@ export class WebSocketStack extends Construct {
             code: lambda.Code.fromAsset(join(__dirname, "../../../lambda/websocket/disconnect")),
             role: lambdaRole,
             runtime: lambda.Runtime.PYTHON_3_11,
-            handler: 'disconnect-handler.handler',
+            handler: 'disconnect.lambda_handler',
             timeout: Duration.minutes(15),
         });
 
