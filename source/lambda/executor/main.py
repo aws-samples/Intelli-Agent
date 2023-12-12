@@ -162,7 +162,6 @@ def organize_ug_results(response, index_name):
         results.append(result)
     return results
 
-<<<<<<< HEAD
 def organize_results(response):
     """
     Organize results from aos response
