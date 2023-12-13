@@ -5,6 +5,7 @@ import time
 import boto3
 import requests
 import json
+import itertools
 
 from tenacity import retry, stop_after_attempt
 from itertools import product
@@ -37,6 +38,9 @@ load_dotenv(dotenv_path='.env')
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# set logger level to debug
+logger.setLevel(logging.DEBUG)
 
 embeddingModelEndpoint = os.getenv("EMBEDDING_MODEL_ENDPOINT")
 aosEndpoint = os.getenv("AOS_ENDPOINT")
@@ -83,16 +87,14 @@ def csdc_markdown_loader(file_path: str) -> List[Document]:
     key = "default"
 
     loader = CustomMarkdownLoader(aws_path=f"s3://{bucket}/{key}")
-    doc = loader.load(file_content)
-    markdown_splitter = MarkdownHeaderTextSplitter("default")
-    markdown_header_splits = markdown_splitter.split_text(doc)
-    logger.info("csdc markdown load data: {}".format(markdown_header_splits))
-    return markdown_header_splits
+    docs = loader.load(file_content)
+    logger.debug("csdc markdown load data: {}".format(docs))
+    return docs
 
 def nougat_loader(file_path: str) -> List[Document]:
     loader = NougatPDFLoader(file_path)
     docs = loader.load()
-    logger.info("nougat load data: {}".format(docs))
+    logger.debug("nougat load data: {}".format(docs))
 
 def llamaIndex_pdf_loader(file_path: str) -> List[Document]:
     try:
@@ -116,19 +118,19 @@ def llamaIndex_pdf_loader(file_path: str) -> List[Document]:
             page_label = pdf.page_labels[page]
 
             metadata = {"page_label": page_label, "file_name": file_path}
-            logger.info("page_text: {}, page_label: {}".format(page_text, page_label))
+            logger.debug("page_text: {}, page_label: {}".format(page_text, page_label))
             docs.append(Document(page_content=page_text, metadata=metadata))
 
 def langchain_md_loader(file_path: str) -> List[Document]:
     loader = UnstructuredMarkdownLoader(file_path, mode="elements")
     docs = loader.load()
-    logger.info("langchain md load data: {}".format(docs))
+    logger.debug("langchain md load data: {}".format(docs))
     return docs
 
 def langchain_unstructured_loader(file_path: str) -> List[Document]:
     loader = UnstructuredFileLoader(file_path, mode="elements")
     docs = loader.load()
-    logger.info("unstructured load data: {}".format(docs))
+    logger.debug("unstructured load data: {}".format(docs))
     return docs
 
 def recursive_splitter(docs: List[Document]) -> List[Document]:
@@ -139,14 +141,14 @@ def recursive_splitter(docs: List[Document]) -> List[Document]:
         add_start_index = True,
     )
     docs = text_splitter.split_documents(docs)
-    logger.info("langchain recursive splitter: {}".format(docs))
+    logger.debug("langchain recursive splitter: {}".format(docs))
     return docs
 
 def csdc_markdown_header_splitter(doc: Document) -> List[Document]:
-    markdown_splitter = MarkdownHeaderTextSplitter()
-    markdown_header_splits = markdown_splitter.split_text(doc)
-    logger.info("csdc markdown header splitter: {}".format(markdown_header_splits)) 
-    return markdown_header_splits
+    markdown_splitter = MarkdownHeaderTextSplitter("default")
+    docs = markdown_splitter.split_text(doc)
+    logger.debug("csdc markdown header splitter: {}".format(docs))
+    return docs
 
 def documents_to_strings(documents: List[Document]) -> List[str]:
     serialized_documents = []
@@ -164,7 +166,7 @@ def openai_embedding(docs: List[Document]) -> List[List[float]]:
     embeddings = OpenAIEmbeddings()
     docs = documents_to_strings(docs)
     embeddings.embed_documents(docs)
-    logger.info("openai embeddings: {}".format(embeddings))
+    logger.debug("openai embeddings: {}".format(embeddings))
     return embeddings
 
 @retry(stop=stop_after_attempt(3))
@@ -183,16 +185,16 @@ def _aos_injection(document: Document) -> List[str]:
         verify_certs = True,
         connection_class = RequestsHttpConnection
     )
-    logger.info("Adding documents %s to OpenSearch with index %s", document, default_aos_index_name)
+    logger.debug("Adding documents %s to OpenSearch with index %s", document, default_aos_index_name)
     res = docsearch.add_documents(documents=[document])
-    logger.info("Retry statistics: %s and response: %s", _aos_injection.retry.statistics, res)
+    logger.debug("Retry statistics: %s and response: %s", _aos_injection.retry.statistics, res)
     return res
 
 # this method require such aos was public accessible
 def csdc_embedding_public(docs: List[Document]):
     for doc in docs:
         res = _aos_injection(doc)
-        logger.info("aos injection result: {}".format(res))
+        logger.debug("aos injection result: {}".format(res))
     # TODO query the index with aos wrapper
 
 # utils to run embeddings with metrics of dimension and time
@@ -213,10 +215,10 @@ def run_embeddings(embeddings_list, docs: List[str]):
 def faiss_retriver(texts: List[str], query: str):
     retriever = FAISS.from_texts(texts, OpenAIEmbeddings()).as_retriever()
     docs = retriever.get_relevant_documents(query)
-    logger.info("retriever docs: {}".format(docs))
+    logger.debug("retriever docs: {}".format(docs))
     db = FAISS.from_texts(texts, OpenAIEmbeddings())
     docs_with_score = db.similarity_search_with_score(query, 3)
-    logger.info("docs_with_score: {}".format(docs_with_score))
+    logger.debug("docs_with_score: {}".format(docs_with_score))
     return docs_with_score
 
 def csdc_retriver(texts: List[str], query: str):
@@ -227,6 +229,7 @@ def csdc_retriver(texts: List[str], query: str):
         model_type="vector",
         stop=None,
     )
+
     # TODO, replace with aos wrapper
     # knn_respose = aos_client.search(
     #     index_name=default_aos_index_name, query_type="knn", query_term=query_embedding
@@ -296,10 +299,11 @@ def csdc_embedding(index: str, doc: Document):
         }
     })
     headers = {'Content-Type': 'application/json'}
-    logger.info("payload: {}, apiEndpoint: {}, headers: {}, type: {}".format(payload, apiEndpoint, headers, type(payload)))
+    logger.debug("payload: {}, apiEndpoint: {}, headers: {}, type: {}".format(payload, apiEndpoint, headers, type(payload)))
     try: 
         response = requests.request("POST", apiEndpoint + 'aos', headers=headers, data=payload)
-        logger.info("response: {}".format(response))
+        logger.debug("response: {}".format(json.loads(response.text)))
+        return json.loads(response.text)
     except Exception as e:
         logger.error("error: {}".format(e))
         raise e
@@ -345,7 +349,7 @@ def testdata_generate(docs: List[Document], llm: str = "bedrock", embedding: str
 
     testset = test_generator.generate(loader_res, test_size=10)
     test_df = testset.to_pandas()
-    logger.info("testdata head: {}".format(test_df.head()))
+    logger.debug("testdata head: {}".format(test_df.head()))
 
     # Saving to a csv and txt file for debugging purpose
     test_df.to_csv('test_data.csv', index=False)
@@ -428,6 +432,14 @@ embeddings_list = [openai_embedding]
 retriever_list = [faiss_retriver, csdc_retriver]
 evalutor_list = [langchain_evalutor]
 
+def batch_generator(generator, batch_size: int):
+    iterator = iter(generator)
+    while True:
+        batch = list(itertools.islice(iterator, batch_size))
+        if not batch:
+            break
+        yield batch
+
 # Debugging purpose
 if __name__ == "__main__":
     """
@@ -444,28 +456,29 @@ if __name__ == "__main__":
     10. average time of retrival
     """
     # prepare for QA dataset
-    loader_res = csdc_markdown_loader("md-sample-02.md")
-    testdata_generate(loader_res, llm="openai", embedding="openai")
+    loader_res = csdc_markdown_loader("md-sample-01.md")
+    # testdata_generate(loader_res, llm="openai", embedding="openai")
 
     # load, muliplex above result
     # loader_res = csdc_markdown_loader("md-sample-02.md")
 
-    # # split
-    # for doc in loader_res:
-    #     splitter_res = csdc_markdown_header_splitter(doc)
+    # split
+    splitter_res = csdc_markdown_header_splitter(loader_res)
 
     #     for doc in splitter_res:
     #         # embedding
     #         embedding_res = csdc_embedding(default_aos_index_name, doc)
 
     # embedding
-    # for doc in splitter_res:
-    #     csdc_embedding(default_aos_index_name, doc)
+    batches = batch_generator(splitter_res, batch_size=5)
+    for batch in batches:
+        for doc in batch:
+            embedding_res = csdc_embedding(default_aos_index_name, doc)
     # embedding_res = csdc_embedding(default_aos_index_name, splitter_res[0])
 
-    # # retriever
-    # query = "什么是思维链？"
-    # docs_with_score = faiss_retriver(docs, query = query)
+    # retriever
+    query = "什么是思维链？"
+    docs_with_score = faiss_retriver(docs, query = query)
 
     # # evaluator
     # result = langchain_evalutor(query, docs_with_score)
