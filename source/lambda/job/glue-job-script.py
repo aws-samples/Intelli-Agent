@@ -109,7 +109,6 @@ MAX_OS_DOCS_PER_PUT = 8
 # Set the NLTK data path to the /tmp directory for AWS Glue jobs
 nltk.data.path.append("/tmp/nltk_data")
 
-
 def decode_file_content(content: str, default_encoding: str = "utf-8"):
     """Decode the file content and auto detect the content encoding.
 
@@ -127,7 +126,6 @@ def decode_file_content(content: str, default_encoding: str = "utf-8"):
         decoded_content = content.decode(encoding)
 
     return decoded_content
-
 
 # such glue job is running as map job, the batchIndice is the index per file to handle in current job
 def iterate_s3_files(bucket: str, prefix: str) -> Generator:
@@ -148,7 +146,9 @@ def iterate_s3_files(bucket: str, prefix: str) -> Generator:
                 )
                 currentIndice += 1
                 continue
-
+            """
+            WHY this code block is commented out? we used to record the processed object in DynamoDB in case of redundant operation for the same object
+            """
             # # Truncate to seconds with round()
             # current_time = int(round(time.time()))
             # # Check for redundancy and expiry
@@ -219,9 +219,11 @@ def iterate_s3_files(bucket: str, prefix: str) -> Generator:
             elif file_type == "json":
                 yield "json", decode_file_content(file_content), kwargs
                 break
+            elif file_type == "jsonl":
+                yield "jsonl", file_content, kwargs
+                break
             else:
                 logger.info(f"Unknown file type: {file_type}")
-
 
 def batch_generator(generator, batch_size: int):
     iterator = iter(generator)
@@ -230,7 +232,6 @@ def batch_generator(generator, batch_size: int):
         if not batch:
             break
         yield batch
-
 
 def aos_injection(
     content: List[Document],
@@ -378,7 +379,7 @@ def main():
                         aos_index,
                         gen_chunk=False,
                     )
-                elif file_type in ["pdf", "txt", "doc", "md", "html"]:
+                elif file_type in ["pdf", "txt", "doc", "md", "html", "jsonl"]:
                     aos_injection(res, embeddingModelEndpoint, aosEndpoint, aos_index)
 
                 if qa_enhancement == "true":
