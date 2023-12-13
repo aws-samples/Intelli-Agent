@@ -50,13 +50,30 @@ class Claude2(Model):
         return bedrock
 
     @classmethod
-    def _generate(cls,prompt,**generate_kwargs):
+    def generate_stream(cls,body):
+        response = cls.client.invoke_model_with_response_stream(
+            modelId=cls.modelId, body=body
+        )
+        stream = response.get("body")
+        if stream:
+            for event in stream:
+                chunk = event.get("chunk")
+                if chunk:
+                    yield json.loads(chunk.get("bytes").decode())['completion']
+
+    @classmethod
+    def _generate(cls,prompt,use_default_prompt_template=True,stream=False,**generate_kwargs):
         if cls.client is None:
             cls.client = cls.create_client()
 
         generate_kwargs = dict(cls.default_generate_kwargs.copy(),**generate_kwargs)
         
-        body = json.dumps(dict(generate_kwargs,prompt=f"\n\nHuman:{prompt}\n\nAssistant:"))
+        if use_default_prompt_template:
+            prompt=f"\n\nHuman:{prompt}\n\nAssistant:"
+            
+        body = json.dumps(dict(generate_kwargs,prompt=prompt))
+        if stream:
+            return cls.generate_stream(body)
 
         response = cls.client.invoke_model(body=body, modelId=cls.modelId, accept=cls.accept, contentType=cls.contentType)
 

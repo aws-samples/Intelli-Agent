@@ -92,7 +92,7 @@ smr_client = boto3.client("sagemaker-runtime")
 dynamodb = boto3.resource("dynamodb")
 table = dynamodb.Table(processedObjectsTable)
 
-ENHANCE_CHUNK_SIZE = 500
+ENHANCE_CHUNK_SIZE = 25000
 # Make it 3600s for debugging purpose
 OBJECT_EXPIRY_TIME = 3600
 
@@ -382,41 +382,37 @@ def main():
                     aos_injection(res, embeddingModelEndpoint, aosEndpoint, aos_index)
 
                 if qa_enhancement == "true":
+                    enhanced_prompt_list = []
                     # iterate the document to get the QA pairs
                     for document in res:
-                        # prompt is not used in this case
+                        # Define your prompt or else it uses default prompt
                         prompt = ""
-                        solution_title = "GCR Solution LLM Bot"
                         # Make sure the document is Document object
                         logger.info(
                             "Enhancing document type: {} and content: {}".format(
                                 type(document), document
                             )
                         )
-                        ewb = EnhanceWithBedrock(prompt, solution_title, document)
+                        ewb = EnhanceWithBedrock(prompt, document)
                         # This is should be optional for the user to choose the chunk size
                         document_list = ewb.SplitDocumentByTokenNum(
                             document, ENHANCE_CHUNK_SIZE
                         )
-                        # enhanced_prompt_list = []
                         for document in document_list:
-                            enhanced_prompt = ewb.EnhanceWithClaude(
-                                prompt, solution_title, document
+                            enhanced_prompt_list = ewb.EnhanceWithClaude(
+                                prompt, document, enhanced_prompt_list
                             )
-                            logger.info(
-                                "Enhanced prompt: {}".format(enhanced_prompt)
-                            )
-                            # enhanced_prompt_list.append(enhanced_prompt)
+                        logger.info(
+                            f"Enhanced prompt: {enhanced_prompt_list}"
+                        )
 
-                        # aos_injection(
-                        #     enhanced_prompt_list,
-                        #     embeddingModelEndpoint,
-                        #     aosEndpoint,
-                        #     aos_index,
-                        #     gen_chunk=False,
-                        # )
-
-
+                    if len(enhanced_prompt_list) > 0:
+                        aos_injection(
+                            enhanced_prompt_list,
+                            embeddingModelEndpoint,
+                            aosEndpoint,
+                            aos_index
+                        )
 
             except Exception as e:
                 logger.error(
