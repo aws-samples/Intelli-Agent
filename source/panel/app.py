@@ -46,6 +46,7 @@ def get_job_runs(page_token=None):
     if page_token:
         response = glue.get_job_runs(JobName=glue_job_name, MaxResults=10, NextToken=page_token)
     else:
+        logger.info("glue_job_name: %s", glue_job_name)
         response = glue.get_job_runs(JobName=glue_job_name, MaxResults=10)
     # function only return running aws glue jobs
     job_runs = [job_run for job_run in response['JobRuns'] if job_run['JobRunState'] == 'RUNNING']

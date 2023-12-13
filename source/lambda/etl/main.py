@@ -13,6 +13,8 @@ def lambda_handler(event, context):
     # Retrieve bucket name and prefix from the event object passed by Step Function
     bucket_name = event['s3Bucket']
     prefix = event['s3Prefix']
+    # fetch index from event with default value none
+    aos_index = event['aosIndex'] if 'aosIndex' in event else None
     
     # Initialize the file count
     file_count = 0
@@ -40,4 +42,5 @@ def lambda_handler(event, context):
         # boolean value to indicate if the lambda function is running in offline mode
         'offline': event['offline'].lower(),
         'batchIndices': batch_indices,
+        'aosIndex': aos_index
     }

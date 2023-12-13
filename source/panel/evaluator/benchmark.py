@@ -84,10 +84,10 @@ def csdc_markdown_loader(file_path: str) -> List[Document]:
 
     loader = CustomMarkdownLoader(aws_path=f"s3://{bucket}/{key}")
     doc = loader.load(file_content)
-    splitter = MarkdownHeaderTextSplitter("default")
-    doc_list = splitter.split_text(doc)
-    logger.info("markdown load data: {}".format(doc_list))
-    return doc_list
+    markdown_splitter = MarkdownHeaderTextSplitter("default")
+    markdown_header_splits = markdown_splitter.split_text(doc)
+    logger.info("csdc markdown load data: {}".format(markdown_header_splits))
+    return markdown_header_splits
 
 def nougat_loader(file_path: str) -> List[Document]:
     loader = NougatPDFLoader(file_path)
@@ -144,9 +144,9 @@ def recursive_splitter(docs: List[Document]) -> List[Document]:
 
 def csdc_markdown_header_splitter(doc: Document) -> List[Document]:
     markdown_splitter = MarkdownHeaderTextSplitter()
-    md_header_splits = markdown_splitter.split_text(doc)
-    logger.info("csdc markdown header splitter: {}".format(md_header_splits)) 
-    return md_header_splits
+    markdown_header_splits = markdown_splitter.split_text(doc)
+    logger.info("csdc markdown header splitter: {}".format(markdown_header_splits)) 
+    return markdown_header_splits
 
 def documents_to_strings(documents: List[Document]) -> List[str]:
     serialized_documents = []
@@ -422,7 +422,7 @@ class WorkflowExecutor:
         return results_matrix
 
 # Preparing loader, splitter, and embeddings retriever list, iterate them to create comparasion matrix
-loader_list = [langchain_unstructured_loader, nougat_loader]
+loader_list = [langchain_unstructured_loader, nougat_loader, csdc_markdown_loader]
 splitter_list = [recursive_splitter, csdc_markdown_header_splitter]
 embeddings_list = [openai_embedding]
 retriever_list = [faiss_retriver, csdc_retriver]
@@ -444,13 +444,11 @@ if __name__ == "__main__":
     10. average time of retrival
     """
     # prepare for QA dataset
-    # loader_res = langchain_md_loader("md-sample-02.md")
-    loader_res = langchain_unstructured_loader("pdf-sample-01.pdf")
+    loader_res = csdc_markdown_loader("md-sample-02.md")
     testdata_generate(loader_res, llm="openai", embedding="openai")
 
-    # load
-    # loader_res = langchain_unstructured_loader("benchmark.md")
-    # loader_res = markdown_loader("benchmark.md")
+    # load, muliplex above result
+    # loader_res = csdc_markdown_loader("md-sample-02.md")
 
     # # split
     # for doc in loader_res:

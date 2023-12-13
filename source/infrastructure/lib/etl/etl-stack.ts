@@ -225,6 +225,7 @@ export class EtlStack extends NestedStack {
                     's3Prefix.$': '$.Payload.s3Prefix',
                     'qaEnhance.$': '$.Payload.qaEnhance',
                     'offline.$': '$.Payload.offline',
+                    'aosIndex.$': '$.Payload.aosIndex',
                 }
             },
             // we need the original input
@@ -254,6 +255,7 @@ export class EtlStack extends NestedStack {
                 '--QA_ENHANCEMENT.$': '$.qaEnhance',
                 // Convert the numeric index to a string
                 '--BATCH_INDICE.$': 'States.Format(\'{}\', $.batchIndices)',
+                '--AOS_INDEX.$': '$.aosIndex',
                 '--ProcessedObjectsTable': table.tableName,
                 '--CONTENT_TYPE': 'ug',
                 '--EMBEDDING_LANG': 'zh,zh,en,en',
@@ -274,6 +276,7 @@ export class EtlStack extends NestedStack {
                 's3Bucket.$': '$.s3Bucket',
                 's3Prefix.$': '$.s3Prefix',
                 'qaEnhance.$': '$.qaEnhance',
+                'aosIndex.$': '$.aosIndex',
                 // 'index' is a special variable within the Map state that represents the current index
                 'batchIndices.$': '$$.Map.Item.Index' // Add this if you need to know the index of the current item in the map state
             },
