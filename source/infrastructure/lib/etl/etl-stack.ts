@@ -39,6 +39,7 @@ export class EtlStack extends NestedStack {
     _jobArn;
     _processedObjectsTable;
     _etlEndpoint: string;
+    _resBucketName: string;
 
     constructor(scope: Construct, id: string, props: etlStackProps) {
         super(scope, id, props);
@@ -335,5 +336,6 @@ export class EtlStack extends NestedStack {
         this._jobName = glueJob.jobName;
         this._jobArn = glueJob.jobArn;
         this._processedObjectsTable = table.tableName
+        this._resBucketName = _S3Bucket.bucketName
     }
 }
