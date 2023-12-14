@@ -6,16 +6,6 @@ from langchain.docstore.document import Document
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-metadata_template = {
-    "content_type": "paragraph",
-    "heading_hierarchy": {},
-    "figure_list": [],
-    "chunk_id": "$$",
-    "file_path": "",
-    "keywords": [],
-    "summary": "",
-}
-
 def process_jsonl(s3, jsonl: bytes, **kwargs)->List[Document]:
     """
     Process the jsonl file include query and answer pairs or other k-v alike data, in format of:
@@ -46,6 +36,16 @@ def process_jsonl(s3, jsonl: bytes, **kwargs)->List[Document]:
         doc_list = []
         for jsonl_line in jsonl_list:
             try:
+                # instantiate the metadata template for each document
+                metadata_template = {
+                    "content_type": "paragraph",
+                    "heading_hierarchy": {},
+                    "figure_list": [],
+                    "chunk_id": "$$",
+                    "file_path": "",
+                    "keywords": [],
+                    "summary": "",
+                }
                 # load the jsonl line as a json object
                 json_obj = json.loads(jsonl_line)
                 # extract the question
@@ -54,6 +54,7 @@ def process_jsonl(s3, jsonl: bytes, **kwargs)->List[Document]:
                 metadata = metadata_template
                 metadata['jsonlAnswer'] = json_obj['answer']
                 metadata['file_path'] = f"s3://{bucket}/{key}"
+                logger.info("question: {}, answer: {}".format(json_obj['question'], json_obj['answer']))
                 # assemble the Document
                 doc = Document(page_content=page_content, metadata=metadata)
                 doc_list.append(doc)
@@ -68,19 +69,3 @@ def process_jsonl(s3, jsonl: bytes, **kwargs)->List[Document]:
 
     logger.info(f"processed jsonl_list: {doc_list} and if it is iterable: {isinstance(doc_list, Iterable)}")
     return doc_list
-
-# main entry point
-if __name__ == "__main__":
-    import boto3
-    import os
-
-    # set up logging
-    logging.basicConfig(level=logging.INFO)
-    logger = logging.getLogger(__name__)
-
-    # set up boto3
-    s3 = boto3.client("s3")
-    response = s3.get_object(Bucket='delete-me-jack-us-east-1', Key='llm-jsonl/jsonl.jsonl')
-    file_content = response["Body"].read()
-    
-    process_jsonl(s3, file_content, bucket='delete-me-jack-us-east-1', key='llm-jsonl/jsonl.jsonl')
