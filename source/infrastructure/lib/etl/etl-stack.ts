@@ -184,6 +184,7 @@ export class EtlStack extends NestedStack {
                 '--CONTENT_TYPE': 'ug',
                 '--EMBEDDING_LANG': 'zh,zh,en,en',
                 '--EMBEDDING_TYPE': 'similarity,relevance,similarity,relevance',
+                '--AOS_INDEX.$': sfn.JsonPath.stringAt('$.aosIndex'),
             }
         });
 
@@ -306,6 +307,7 @@ export class EtlStack extends NestedStack {
                 // set the batch indice to 0 since we are running online
                 '--BATCH_INDICE': '0',
                 '--ProcessedObjectsTable': table.tableName,
+                '--AOS_INDEX.$': '$.aosIndex',
             }),
         });
 
