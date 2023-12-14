@@ -92,7 +92,7 @@ smr_client = boto3.client("sagemaker-runtime")
 dynamodb = boto3.resource("dynamodb")
 table = dynamodb.Table(processedObjectsTable)
 
-ENHANCE_CHUNK_SIZE = 500
+ENHANCE_CHUNK_SIZE = 25000
 # Make it 3600s for debugging purpose
 OBJECT_EXPIRY_TIME = 3600
 
@@ -108,7 +108,6 @@ MAX_OS_DOCS_PER_PUT = 8
 
 # Set the NLTK data path to the /tmp directory for AWS Glue jobs
 nltk.data.path.append("/tmp/nltk_data")
-
 
 def decode_file_content(content: str, default_encoding: str = "utf-8"):
     """Decode the file content and auto detect the content encoding.
@@ -127,7 +126,6 @@ def decode_file_content(content: str, default_encoding: str = "utf-8"):
         decoded_content = content.decode(encoding)
 
     return decoded_content
-
 
 # such glue job is running as map job, the batchIndice is the index per file to handle in current job
 def iterate_s3_files(bucket: str, prefix: str) -> Generator:
@@ -148,7 +146,9 @@ def iterate_s3_files(bucket: str, prefix: str) -> Generator:
                 )
                 currentIndice += 1
                 continue
-
+            """
+            WHY this code block is commented out? we used to record the processed object in DynamoDB in case of redundant operation for the same object
+            """
             # # Truncate to seconds with round()
             # current_time = int(round(time.time()))
             # # Check for redundancy and expiry
@@ -219,9 +219,11 @@ def iterate_s3_files(bucket: str, prefix: str) -> Generator:
             elif file_type == "json":
                 yield "json", decode_file_content(file_content), kwargs
                 break
+            elif file_type == "jsonl":
+                yield "jsonl", file_content, kwargs
+                break
             else:
                 logger.info(f"Unknown file type: {file_type}")
-
 
 def batch_generator(generator, batch_size: int):
     iterator = iter(generator)
@@ -230,7 +232,6 @@ def batch_generator(generator, batch_size: int):
         if not batch:
             break
         yield batch
-
 
 def aos_injection(
     content: List[Document],
@@ -378,45 +379,41 @@ def main():
                         aos_index,
                         gen_chunk=False,
                     )
-                elif file_type in ["pdf", "txt", "doc", "md", "html"]:
+                elif file_type in ["pdf", "txt", "doc", "md", "html", "jsonl"]:
                     aos_injection(res, embeddingModelEndpoint, aosEndpoint, aos_index)
 
                 if qa_enhancement == "true":
+                    enhanced_prompt_list = []
                     # iterate the document to get the QA pairs
                     for document in res:
-                        # prompt is not used in this case
+                        # Define your prompt or else it uses default prompt
                         prompt = ""
-                        solution_title = "GCR Solution LLM Bot"
                         # Make sure the document is Document object
                         logger.info(
                             "Enhancing document type: {} and content: {}".format(
                                 type(document), document
                             )
                         )
-                        ewb = EnhanceWithBedrock(prompt, solution_title, document)
+                        ewb = EnhanceWithBedrock(prompt, document)
                         # This is should be optional for the user to choose the chunk size
                         document_list = ewb.SplitDocumentByTokenNum(
                             document, ENHANCE_CHUNK_SIZE
                         )
-                        # enhanced_prompt_list = []
                         for document in document_list:
-                            enhanced_prompt = ewb.EnhanceWithClaude(
-                                prompt, solution_title, document
+                            enhanced_prompt_list = ewb.EnhanceWithClaude(
+                                prompt, document, enhanced_prompt_list
                             )
-                            logger.info(
-                                "Enhanced prompt: {}".format(enhanced_prompt)
-                            )
-                            # enhanced_prompt_list.append(enhanced_prompt)
+                        logger.info(
+                            f"Enhanced prompt: {enhanced_prompt_list}"
+                        )
 
-                        # aos_injection(
-                        #     enhanced_prompt_list,
-                        #     embeddingModelEndpoint,
-                        #     aosEndpoint,
-                        #     aos_index,
-                        #     gen_chunk=False,
-                        # )
-
-
+                    if len(enhanced_prompt_list) > 0:
+                        aos_injection(
+                            enhanced_prompt_list,
+                            embeddingModelEndpoint,
+                            aosEndpoint,
+                            aos_index
+                        )
 
             except Exception as e:
                 logger.error(

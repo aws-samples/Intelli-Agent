@@ -11,6 +11,7 @@ from langchain.docstore.document import Document
 from langchain.vectorstores import OpenSearchVectorSearch
 
 from sm_utils import create_sagemaker_embeddings_from_js_model
+from sm_utils import SagemakerEndpointVectorOrCross
 
 import logging
 logger = logging.getLogger()
@@ -45,28 +46,6 @@ class OpenSearchClient:
         Args:
             index (str): The name of the index to create.
             body (dict): A dictionary containing the settings and mappings for the index.
-
-        Sample body:
-        {
-            "aos_index": "chatbot-index",
-            "operation": "create",
-            "body": {
-                "settings": {
-                "index": {
-                    "number_of_shards": 2,
-                    "number_of_replicas": 1
-                }
-                },
-                "mappings": {
-                "properties": {
-                    "vector_field": {
-                        "type": "knn_vector",
-                        "dimension": 1024
-                    }
-                }
-                }
-            }
-        }
         """
         # avoid NotFoundError: NotFoundError(404, 'index_not_found_exception'...
         if self.client.indices.exists(index=index):
@@ -77,21 +56,19 @@ class OpenSearchClient:
             }
         body_dict = json.loads(body)
         # fixed settings and mappings
+        # "knn.algo_param.index_thread_qty": 8,
+        # "knn.memory.circuit_breaker.limit": "70%",
         body = {
             "settings": {
-                "index":
-                    {
-                        "knn": True,
-                        "knn.algo_param.ef_search": 512,
-                        "knn.memory.circuit_breaker.limit": "70%",
-                        "refresh_interval": "60s",
-                        # indexing threads
-                        "knn.algo_param.index_thread_qty": 8,
-                        "number_of_shards": 8,
-                        # disabel replica
-                        "number_of_replicas": 0,
-                    }
-                },
+                "index": {
+                    "knn": True,
+                    "knn.algo_param.ef_search": 512,
+                    "refresh_interval": "60s",
+                    "number_of_shards": 8,
+                    # disabel replica
+                    "number_of_replicas": 0,
+                }
+            },
             "mappings": {
                 "properties": {
                     "vector_field": {
@@ -103,7 +80,6 @@ class OpenSearchClient:
                             "engine": "nmslib",
                             "parameters": {
                                 "ef_construction": 128,
-                                "ef_search": 32,
                                 "m": 16
                             },
                         },
@@ -113,6 +89,49 @@ class OpenSearchClient:
         }
         # Create the index with the specified settings and mappings
         response = self.client.indices.create(index=index, body=body)
+        return response
+
+    def update_index(self, index: str, body: str, _kwargs: dict):
+        """
+        Update an index in OpenSearch.
+
+        Args:
+            index (str): The name of the index to create.
+            body (dict): A dictionary containing the settings and mappings for the index.
+
+        Sample body:
+        {
+            "aos_index": "chatbot-index",
+            "operation": "update_index",
+            "body": {
+                "query": "heading_hierarchy",
+                "type": "long"
+            }
+        }
+        """
+        # check if the index exists before updating
+        if not self.client.indices.exists(index=index):
+            return {
+                'statusCode': 404,
+                'headers': {'Content-Type': 'application/json'},
+                'body': json.dumps({'error': f'index {index} does not exist'})
+            }
+        body_dict = json.loads(body)
+        property = str(body_dict.get('property'))
+        type = str(body_dict.get('type'))
+        # Define the new mapping for the field
+        new_mapping = {
+            "properties": {
+                property: {
+                    "properties": {
+                        "size": {"type": type}
+                    }
+                }
+            }
+        }
+        logger.info(f"index {index} new mapping: {new_mapping}")
+        # update the index with the specified settings and mappings
+        response = self.client.indices.put_mapping(index=index, body=new_mapping)
         return response
 
     def query_index(self, index: str, body: str, _kwargs: dict):
@@ -618,3 +637,23 @@ class OpenSearchClient:
             'body': {'document_id': res}
         }
         return response
+
+    def embed_query(self, index: str, body: str, _kwargs: dict):
+        # fetch query from body
+        body_dict = json.loads(body)
+        query = body_dict.get('query')
+        logger.info(f"query: {query}")
+        query_embedding = SagemakerEndpointVectorOrCross(
+            prompt = query,
+            endpoint_name = embeddingModelEndpoint,
+            region_name = region,
+            model_type = "vector",
+            stop = None,
+        )
+        opensearch_knn_respose = self.client.search(
+            index_name = index,
+            query_type = "knn",
+            query_term = query_embedding,
+            field = "vector_field"
+        )
+        logger.info(json.dumps(opensearch_knn_respose, ensure_ascii=False))

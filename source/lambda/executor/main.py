@@ -611,6 +611,7 @@ def dgr_entry(
     temperature: float,
     enable_q_q_match: bool,
     llm_model_id=None,
+    stream=False
 ):
     """
     Entry point for the Lambda function.
@@ -626,6 +627,7 @@ def dgr_entry(
     :param aos_ug_index: The ug index of the AOS engine.
     :param enable_knowledge_qa: Whether to enable knowledge QA.
     :param temperature: The temperature of the language model.
+    :param stream(Bool): Whether to use llm stream decoding output.
 
     return: answer(str)
     """
@@ -681,6 +683,7 @@ def dgr_entry(
                 context_num=context_num,
                 model_type="answer",
                 llm_model_endpoint=llm_model_endpoint,
+                stream=stream
             )
 
             llm_start_time = time.time()
@@ -742,6 +745,7 @@ def lambda_handler(event, context):
     enable_debug = event_body.get("enable_debug", False)
     retrieval_only = event_body.get("enable_debug", False)
     get_contexts = event_body.get("get_contexts", False)
+    stream = event_body.get("stream", False)
 
     history, question = process_input_messages(messages)
     role = "user"
@@ -777,6 +781,7 @@ def lambda_handler(event, context):
             knowledge_qa_flag,
             temperature,
             enable_q_q_match,
+            stream=stream
         )
 
     response = {"statusCode": 200, "headers": {"Content-Type": "application/json"}}
