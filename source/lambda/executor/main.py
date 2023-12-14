@@ -37,10 +37,12 @@ aos_faq_index = os.environ.get("aos_faq_index", "")
 aos_ug_index = os.environ.get("aos_ug_index", "")
 llm_endpoint = os.environ.get("llm_endpoint", "")
 chat_session_table = os.environ.get("chat_session_table", "")
-
+websocket_url = os.environ.get("websocket_url", "")
 sm_client = boto3.client("sagemaker-runtime")
 aos_client = LLMBotOpenSearchClient(aos_endpoint)
-
+ws_client = boto3.client(
+    "apigatewaymanagementapi", endpoint_url=websocket_url
+)
 
 class Type(Enum):
     COMMON = "common"
