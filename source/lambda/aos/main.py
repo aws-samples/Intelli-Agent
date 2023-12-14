@@ -38,11 +38,13 @@ def lambda_handler(event, _context):
         },
         'POST': {
             'create_index': lambda: aos_client.create_index(index_name, json.dumps(body), kwargs),
+            'update_index': lambda: aos_client.update_index(index_name, json.dumps(body), kwargs),
             'index': lambda: aos_client.index(index_name, json.dumps(body), kwargs),
             'bulk': lambda: aos_client.bulk(index_name, json.dumps(body), kwargs),
             'delete_index': lambda: aos_client.delete_index(index_name, json.dumps(body), kwargs),
             'delete_document': lambda: aos_client.delete_document(index_name, json.dumps(body), kwargs),
             'embed_document': lambda: aos_client.embed_document(index_name, json.dumps(body), kwargs),
+            'embed_query': lambda: aos_client.embed_query(index_name, json.dumps(body), kwargs),
         }
     }
 

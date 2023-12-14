@@ -107,6 +107,7 @@ export class RootStack extends Stack {
     new CfnOutput(this, 'Embedding Model Endpoint', {value:_LLMStack._embeddingEndPoint || 'No Embedding Endpoint Created'});
     new CfnOutput(this, 'Instruct Model Endpoint', {value:_LLMStack._instructEndPoint || 'No Instruct Endpoint Created'});
     new CfnOutput(this, 'Processed Object Table', {value:_EtlStack._processedObjectsTable});
+    new CfnOutput(this, 'Chunk Bucket', {value:_EtlStack._resBucketName});
   }
 }
 
