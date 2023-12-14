@@ -25,8 +25,11 @@ export class OpenSearchStack extends NestedStack {
             },
             securityGroups: [props._securityGroup],
             capacity: {
+                // 2 * c6g.4xlarge DataNode, 3 * m6g.large MasterNode
                 dataNodes: 2,
                 dataNodeInstanceType:'r6g.2xlarge.search',
+                // masterNodes: 3,
+                // masterNodeInstanceType: 'm6g.2xlarge.search',
             },
             ebs: {
                 volumeSize: 300,

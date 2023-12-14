@@ -22,7 +22,7 @@ from opensearchpy import RequestsHttpConnection
 from requests_aws4auth import AWS4Auth
 from llm_bot_dep.storage_utils import save_content_to_s3
 from llm_bot_dep.constant import SplittingType
-from tenacity import retry, stop_after_attempt
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -49,6 +49,7 @@ args = getResolvedOptions(
         "BATCH_INDICE",
         "ProcessedObjectsTable",
         "DOC_INDEX_TABLE",
+        "AOS_INDEX",
         "CONTENT_TYPE",
         "EMBEDDING_TYPE",
         "EMBEDDING_LANG"
@@ -63,6 +64,8 @@ s3_bucket = args["S3_BUCKET"]
 s3_prefix = args["S3_PREFIX"]
 aosEndpoint = args["AOS_ENDPOINT"]
 aos_index = args["DOC_INDEX_TABLE"]
+# This index is used for the AOS injection, to allow user customize the index, otherwise default value is "chatbot-index" or set in CloudFormation parameter
+aos_custom_index = args["AOS_INDEX"]
 embeddingModelEndpoint = args["EMBEDDING_MODEL_ENDPOINT"]
 etlModelEndpoint = args["ETL_MODEL_ENDPOINT"]
 region = args["REGION"]
@@ -89,7 +92,7 @@ smr_client = boto3.client("sagemaker-runtime")
 dynamodb = boto3.resource("dynamodb")
 table = dynamodb.Table(processedObjectsTable)
 
-ENHANCE_CHUNK_SIZE = 500
+ENHANCE_CHUNK_SIZE = 25000
 # Make it 3600s for debugging purpose
 OBJECT_EXPIRY_TIME = 3600
 
@@ -105,7 +108,6 @@ MAX_OS_DOCS_PER_PUT = 8
 
 # Set the NLTK data path to the /tmp directory for AWS Glue jobs
 nltk.data.path.append("/tmp/nltk_data")
-
 
 def decode_file_content(content: str, default_encoding: str = "utf-8"):
     """Decode the file content and auto detect the content encoding.
@@ -124,7 +126,6 @@ def decode_file_content(content: str, default_encoding: str = "utf-8"):
         decoded_content = content.decode(encoding)
 
     return decoded_content
-
 
 # such glue job is running as map job, the batchIndice is the index per file to handle in current job
 def iterate_s3_files(bucket: str, prefix: str) -> Generator:
@@ -145,40 +146,42 @@ def iterate_s3_files(bucket: str, prefix: str) -> Generator:
                 )
                 currentIndice += 1
                 continue
+            """
+            WHY this code block is commented out? we used to record the processed object in DynamoDB in case of redundant operation for the same object
+            """
+            # # Truncate to seconds with round()
+            # current_time = int(round(time.time()))
+            # # Check for redundancy and expiry
+            # response = table.query(
+            #     KeyConditionExpression=Key("ObjectKey").eq(key),
+            #     ScanIndexForward=False,  # Sort by ProcessTimestamp in descending order
+            #     Limit=1,  # We only need the latest record
+            # )
 
-            # Truncate to seconds with round()
-            current_time = int(round(time.time()))
-            # Check for redundancy and expiry
-            response = table.query(
-                KeyConditionExpression=Key("ObjectKey").eq(key),
-                ScanIndexForward=False,  # Sort by ProcessTimestamp in descending order
-                Limit=1,  # We only need the latest record
-            )
+            # # If the object is found and has not expired, skip processing
+            # if (
+            #     response["Items"]
+            #     and response["Items"][0]["ExpiryTimestamp"] > current_time
+            # ):
+            #     logger.info(f"Object {key} has not expired yet and will be skipped.")
+            #     continue
 
-            # If the object is found and has not expired, skip processing
-            if (
-                response["Items"]
-                and response["Items"][0]["ExpiryTimestamp"] > current_time
-            ):
-                logger.info(f"Object {key} has not expired yet and will be skipped.")
-                continue
+            # # Record the processing of the S3 object with an updated expiry timestamp, and each job only update single object in table. TODO, current assume the object will be handled successfully
+            # expiry_timestamp = current_time + OBJECT_EXPIRY_TIME
+            # try:
+            #     table.put_item(
+            #         Item={
+            #             "ObjectKey": key,
+            #             "ProcessTimestamp": current_time,
+            #             "Bucket": bucket,
+            #             "Prefix": "/".join(key.split("/")[:-1]),
+            #             "ExpiryTimestamp": expiry_timestamp,
+            #         }
+            #     )
+            # except Exception as e:
+            #     logger.error(f"Error recording processed of S3 object {key}: {e}")
 
-            # Record the processing of the S3 object with an updated expiry timestamp, and each job only update single object in table. TODO, current assume the object will be handled successfully
-            expiry_timestamp = current_time + OBJECT_EXPIRY_TIME
-            try:
-                table.put_item(
-                    Item={
-                        "ObjectKey": key,
-                        "ProcessTimestamp": current_time,
-                        "Bucket": bucket,
-                        "Prefix": "/".join(key.split("/")[:-1]),
-                        "ExpiryTimestamp": expiry_timestamp,
-                    }
-                )
-            except Exception as e:
-                logger.error(f"Error recording processed of S3 object {key}: {e}")
-
-            file_type = key.split(".")[-1]  # Extract file extension
+            file_type = key.split(".")[-1].lower()  # Extract file extension
             response = s3.get_object(Bucket=bucket, Key=key)
             file_content = response["Body"].read()
             # assemble bucket and key as args for the callback function
@@ -216,9 +219,11 @@ def iterate_s3_files(bucket: str, prefix: str) -> Generator:
             elif file_type == "json":
                 yield "json", decode_file_content(file_content), kwargs
                 break
+            elif file_type == "jsonl":
+                yield "jsonl", file_content, kwargs
+                break
             else:
                 logger.info(f"Unknown file type: {file_type}")
-
 
 def batch_generator(generator, batch_size: int):
     iterator = iter(generator)
@@ -227,7 +232,6 @@ def batch_generator(generator, batch_size: int):
         if not batch:
             break
         yield batch
-
 
 def aos_injection(
     content: List[Document],
@@ -307,9 +311,11 @@ def aos_injection(
         # the batch are still list of Document objects, we need to iterate the list to inject the embeddings, the chunk size (500) should already be small enough to fit the embedding model
         for document in batch:
 
-            @retry(stop=stop_after_attempt(3))
+            @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
             def _aos_injection(document: Document) -> Document:
-                # TODO, parse the metadata to embed with different index, currently the index name is passed as cfn parameter with default value "chatbot-index"
+                # if user customize the index, use the customized index as high priority, NOTE the custom index will be created with default AOS mapping in LangChain, use API to create the index with customized mapping before running the job if you want to customize the mapping
+                if aos_custom_index:
+                    index_name = aos_custom_index
                 docsearch = OpenSearchVectorSearch(
                     index_name=index_name,
                     embedding_function=embeddings,
@@ -325,6 +331,7 @@ def aos_injection(
                     index_name,
                 )
                 try:
+                    # TODO, consider the max retry and initial backoff inside helper.bulk operation instead of using original LangChain
                     docsearch.add_documents(documents=[document])
                 except Exception as e:
                     logger.info(
@@ -372,34 +379,41 @@ def main():
                         aos_index,
                         gen_chunk=False,
                     )
-                elif file_type in ["pdf", "txt", "doc", "md", "html"]:
+                elif file_type in ["pdf", "txt", "doc", "md", "html", "jsonl"]:
                     aos_injection(res, embeddingModelEndpoint, aosEndpoint, aos_index)
 
                 if qa_enhancement == "true":
+                    enhanced_prompt_list = []
                     # iterate the document to get the QA pairs
                     for document in res:
-                        # prompt is not used in this case
+                        # Define your prompt or else it uses default prompt
                         prompt = ""
-                        solution_title = "GCR Solution LLM Bot"
                         # Make sure the document is Document object
                         logger.info(
                             "Enhancing document type: {} and content: {}".format(
                                 type(document), document
                             )
                         )
-                        ewb = EnhanceWithBedrock(prompt, solution_title, document)
+                        ewb = EnhanceWithBedrock(prompt, document)
                         # This is should be optional for the user to choose the chunk size
                         document_list = ewb.SplitDocumentByTokenNum(
                             document, ENHANCE_CHUNK_SIZE
                         )
-                        # test the function
                         for document in document_list:
-                            enhanced_prompt = ewb.EnhanceWithClaude(
-                                prompt, solution_title, document
+                            enhanced_prompt_list = ewb.EnhanceWithClaude(
+                                prompt, document, enhanced_prompt_list
                             )
-                            logger.info(
-                                "Enhanced prompt: {}".format(enhanced_prompt)
-                            )
+                        logger.info(
+                            f"Enhanced prompt: {enhanced_prompt_list}"
+                        )
+
+                    if len(enhanced_prompt_list) > 0:
+                        aos_injection(
+                            enhanced_prompt_list,
+                            embeddingModelEndpoint,
+                            aosEndpoint,
+                            aos_index
+                        )
 
             except Exception as e:
                 logger.error(

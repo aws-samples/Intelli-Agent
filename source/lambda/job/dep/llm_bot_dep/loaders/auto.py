@@ -5,6 +5,8 @@ from .csv import process_csv
 from .html import process_html
 from .pdf import process_pdf
 from .image import process_image
+from .jsonl import process_jsonl
+
 import json
 import numpy as np
 import logging
@@ -54,5 +56,6 @@ def cb_process_object(s3, file_type: str, file_content, **kwargs):
                 kwargs["content_type"],
                 kwargs["max_os_docs_per_put"],
             )
-
+    elif file_type == 'jsonl':
+        res = process_jsonl(s3, file_content, **kwargs)
     return res

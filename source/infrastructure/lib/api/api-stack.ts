@@ -10,6 +10,8 @@ import * as sfn from 'aws-cdk-lib/aws-stepfunctions';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import { Construct } from 'constructs';
 import { join } from "path";
+import { WebSocketApi } from '@aws-cdk/aws-apigatewayv2-alpha';
+import { WebSocketStack } from './websocket-api';
 
 interface apiStackProps extends StackProps {
     _vpc: ec2.Vpc;
@@ -154,6 +156,18 @@ export class LLMApiStack extends NestedStack {
             endpointConfiguration: {
                 types: [apigw.EndpointType.REGIONAL]
             },
+            defaultCorsPreflightOptions: {
+                allowHeaders: [
+                    'Content-Type',
+                    'X-Amz-Date',
+                    'Authorization',
+                    'X-Api-Key',
+                    'X-Amz-Security-Token'
+                ],
+                allowMethods: apigw.Cors.ALL_METHODS,
+                allowCredentials: true,
+                allowOrigins: apigw.Cors.ALL_ORIGINS,
+            },
             deployOptions: {
                 stageName: 'v1',
                 metricsEnabled: true,
@@ -244,6 +258,10 @@ def handler(event, context):
         // add s3 event notification when file uploaded to the bucket
         _S3Bucket.addEventNotification(s3.EventType.OBJECT_CREATED, new s3n.LambdaDestination(lambdaStepFunction), { prefix: 'documents/' });
         _S3Bucket.grantReadWrite(lambdaStepFunction);
+
+        const webSocketApi = new WebSocketStack(this, 'WebSocketApi', {
+            sendMessageLambda: lambdaExecutor,
+        });
 
         this._apiEndpoint = api.url
         this._documentBucket = _S3Bucket.bucketName

@@ -5,6 +5,7 @@ from requests_aws4auth import AWS4Auth
 from opensearchpy import OpenSearch, RequestsHttpConnection
 
 credentials = boto3.Session().get_credentials()
+
 region = boto3.Session().region_name
 awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, region, 'es', session_token=credentials.token)
 
@@ -35,7 +36,7 @@ class LLMBotOpenSearchClient:
                             "exact": self._build_exactly_match_query,
                             "basic": self._build_basic_search_query}
     
-    def _build_basic_search_query(self, index_name, query_term, field, size):
+    def _build_basic_search_query(self, index_name, query_term, field, size, filter=None):
         """
         Build basic search query
 
@@ -50,7 +51,7 @@ class LLMBotOpenSearchClient:
                 "size": size,
                 "query": {
                     "bool":{
-                        "should": [ {"match": { field : query_term }} ]
+                        "should": [ {"match": { field : query_term }} ],
                     }
                 },
                 "sort": [
@@ -61,10 +62,12 @@ class LLMBotOpenSearchClient:
                     }
                 ]
             }
-        
+        if filter:
+            query["query"]["bool"]["filter"] = filter
+
         return query
     
-    def _build_knn_search_query(self, index_name, query_term, field, size):
+    def _build_knn_search_query(self, index_name, query_term, field, size, filter=None):
         """
         Build knn search query
 
@@ -75,18 +78,41 @@ class LLMBotOpenSearchClient:
         
         :return: aos response json
         """
-        query = {
-            "size": size,
-            "query": {
-                "knn": {
-                    "vector_field": {
-                        "vector": query_term,
-                        "k": size
+        if filter:
+            query = {
+                "size": size,
+                "query" : { 
+                    "bool": {
+                        "filter": {
+                            "bool": {
+                                "must": filter
+                            }
+                        },
+                        "must": [
+                            {
+                                "knn": {
+                                    field: {
+                                        "vector": query_term,
+                                        "k": size
+                                    }
+                                }
+                            }
+                        ]
                     }
                 }
             }
-        }
-        
+        else:
+            query = {
+                "size": size,
+                "query": {
+                    "knn": {
+                        field: {
+                            "vector": query_term,
+                            "k": size
+                        }
+                    }
+                }
+            }
         return query
     
     def _build_exactly_match_query(self, index_name, query_term, field, size):
@@ -121,18 +147,18 @@ class LLMBotOpenSearchClient:
         if query_type == "exact":
             for aos_hit in aos_hits:
                 doc = aos_hit['_source'][field]
-                source = aos_hit['_source']['metadata']['file_path']
+                source = aos_hit['_source']['metadata']['source']
                 score = aos_hit["_score"]
                 results.append({'doc': doc, 'score': score, 'source': source})
         else:
             for aos_hit in aos_hits:
                 doc = f"{aos_hit['_source'][field]}"
-                source = aos_hit['_source']['metadata']['file_path']
+                source = aos_hit['_source']['metadata']['source']
                 score = aos_hit["_score"]
                 results.append({'doc': doc, 'score': score, 'source': source})
         return results
 
-    def search(self, index_name, query_type, query_term, field: str = "text", size: int = 10):
+    def search(self, index_name, query_type, query_term, field: str = "text", size: int = 10, filter=None):
         """
         Perform search on aos
         
@@ -149,10 +175,9 @@ class LLMBotOpenSearchClient:
             self.client.indices.get(index=index_name)
         except not_found_error:
             return []
-        query = self.query_match[query_type](index_name, query_term, field, size)
+        query = self.query_match[query_type](index_name, query_term, field, size, filter)
         response = self.client.search(
             body=query,
             index=index_name
         )
-        result = self.organize_results(query_type, response, field)
-        return result
+        return response 
