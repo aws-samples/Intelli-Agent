@@ -185,7 +185,7 @@ def remove_redundancy_debug_info(results):
     filtered_results = copy.deepcopy(results)
     for result in filtered_results:
         for field in list(result["detail"].keys()):
-            if field.endswith("embedding"):
+            if field.endswith("embedding") or field.startswith("vector"):
                 del result["detail"][field]
     return filtered_results
 
@@ -217,13 +217,25 @@ def main_entry(
 
     return: answer(str)
     """
-    debug_info = {"query": query_input}
+    debug_info = {
+        "query": query_input,
+        "query_parser_info": {},
+        "q_q_match_info": {},
+        "knowledge_qa_knn_recall": {},
+        "knowledge_qa_boolean_recall": {},
+        "knowledge_qa_combined_recall": {},
+        "knowledge_qa_cross_model_sort": {},
+        "knowledge_qa_llm": {},
+        "knowledge_qa_rerank": {},
+    }
+
     if enable_knowledge_qa:
         # 1. concatenate query_input and history to unified prompt
         query_knowledge = "".join([query_input] + [row[0] for row in history][::-1])
         logger.info(f"1. query knowledge: {query_knowledge}")
 
         # 2. get AOS knn recall
+        knn_retrieval_size = 100
         start = time.time()
         query_embedding = SagemakerEndpointVectorOrCross(
             prompt="为这个句子生成表示以用于检索相关文章：" + query_knowledge,
@@ -233,7 +245,8 @@ def main_entry(
             stop=None,
         )
         opensearch_knn_respose = aos_client.search(
-            index_name=aos_index, query_type="knn", query_term=query_embedding, field="vector_field"
+            index_name=aos_index, query_type="knn", query_term=query_embedding,
+            field="vector_field", size=knn_retrieval_size
         )
         logger.info(json.dumps(opensearch_knn_respose, ensure_ascii=False))
         elpase_time = time.time() - start
@@ -249,13 +262,18 @@ def main_entry(
         logger.info(f"runing time of opensearch_query : {elpase_time}s seconds")
 
         # 4. combine these two opensearch_knn_respose and opensearch_query_response
+        opensearch_knn_results = organize_results(opensearch_knn_respose)
+        debug_info["knowledge_qa_knn_recall"] = remove_redundancy_debug_info(opensearch_knn_results)
+        opensearch_query_results = organize_results(opensearch_query_response)
+        debug_info["knowledge_qa_boolean_recall"] = remove_redundancy_debug_info(opensearch_query_results)
         recall_knowledge = combine_recalls(
-            organize_results(opensearch_knn_respose), organize_results(opensearch_query_response)
+            opensearch_knn_results, opensearch_query_results
         )
         logger.info(f"4. recall_knowledge: {recall_knowledge}")
 
         # 5. Predict correlation score using cross model
         recall_knowledge_cross = []
+        rerank_score_threshold = 0
         for knowledge in recall_knowledge:
             # get score using cross model
             score = float(
@@ -278,7 +296,7 @@ def main_entry(
                     ensure_ascii=False,
                 )
             )
-            if score > 0.8:
+            if score > rerank_score_threshold:
                 recall_knowledge_cross.append(
                     {
                         "doc": knowledge["doc"],
@@ -286,12 +304,14 @@ def main_entry(
                         "source": knowledge["source"],
                     }
                 )
+        debug_info["knowledge_qa_rerank"] = recall_knowledge_cross
 
         recall_knowledge_cross.sort(key=lambda x: x["score"], reverse=True)
 
-        recall_knowledge_str = concat_recall_knowledge(recall_knowledge_cross[:2])
+        final_retrieval_size = 5
+        recall_knowledge_str = concat_recall_knowledge(recall_knowledge_cross[:final_retrieval_size])
         logger.info(recall_knowledge_str)
-        sources = list(set([item["source"] for item in recall_knowledge_cross[:2]]))
+        sources = list(set([item["source"] for item in recall_knowledge_cross[:final_retrieval_size]]))
         query_type = QueryType.KnowledgeQuery
         elpase_time = time.time() - start
         logger.info(f"runing time of recall knowledge : {elpase_time}s seconds")
