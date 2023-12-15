@@ -5,6 +5,12 @@ import boto3
 import time
 import copy
 import traceback
+from enum import Enum
+
+logger = logging.getLogger()
+handler = logging.StreamHandler()
+logger.setLevel(logging.INFO)
+logger.addHandler(handler)
 
 from preprocess_utils import run_preprocess
 from aos_utils import LLMBotOpenSearchClient
@@ -17,13 +23,8 @@ from llmbot_utils import (
 from ddb_utils import get_session, update_session
 from sm_utils import SagemakerEndpointVectorOrCross
 from llm_utils import generate as llm_generate
-from enum import Enum
+from response_utils import process_response
 
-
-logger = logging.getLogger()
-handler = logging.StreamHandler()
-logger.setLevel(logging.INFO)
-logger.addHandler(handler)
 
 region = os.environ["AWS_REGION"]
 embedding_endpoint = os.environ.get("embedding_endpoint", "")
@@ -785,43 +786,23 @@ def lambda_handler(event, context):
             enable_q_q_match,
             stream=stream
         )
+    
+    return process_response(**dict(
+        stream=stream,
+        session_id=session_id,
+        model=model,
+        request_timestamp=request_timestamp,
+        answer=answer,
+        sources=sources,
+        get_contexts=get_contexts,
+        contexts=contexts,
+        enable_debug=enable_debug,
+        debug_info=debug_info,
+        ws_client=ws_client
+    ))
+    
+   
+        
 
-    response = {"statusCode": 200, "headers": {"Content-Type": "application/json"}}
 
-    main_entry_elpase = time.time() - main_entry_start
-    logger.info(f"runing time of main_entry : {main_entry_elpase}s seconds")
-
-    # 2. return rusult
-    llmbot_response = {
-        "id": session_id,
-        "object": "chat.completion",
-        "created": int(request_timestamp),
-        "model": model,
-        "usage": {"prompt_tokens": 13, "completion_tokens": 7, "total_tokens": 20},
-        "choices": [
-            {
-                "message": {
-                    "role": "assistant",
-                    "content": answer,
-                    "knowledge_sources": sources,
-                },
-                "finish_reason": "stop",
-                "index": 0,
-            }
-        ],
-    }
-
-    resp_header = {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "*"
-    }
-    if get_contexts:
-        llmbot_response["contexts"] = contexts
-    if enable_debug:
-        llmbot_response["debug_info"] = debug_info
-    response["body"] = json.dumps(llmbot_response)
-    response["headers"] = resp_header
-
-    return response
+    

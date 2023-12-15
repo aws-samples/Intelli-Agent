@@ -8,6 +8,20 @@ from sm_utils import SagemakerEndpointVectorOrCross
 from llmbot_utils import concat_recall_knowledge
 from prompt_template import claude2_rag_template_render
 
+class StreamResponse:
+    def __init__(self,raw_stream) -> None:
+        self.raw_stream = raw_stream
+    
+    def __iter__(self):
+        if self.raw_stream:
+            for event in self.raw_stream:
+                chunk = event.get("chunk")
+                if chunk:
+                    yield json.loads(chunk.get("bytes").decode())['completion']
+    
+    def close(self):
+        self.raw_stream.close()
+
 
 class ModelMeta(type):
     def __new__(cls, name, bases, attrs):
@@ -55,11 +69,8 @@ class Claude2(Model):
             modelId=cls.modelId, body=body
         )
         stream = response.get("body")
-        if stream:
-            for event in stream:
-                chunk = event.get("chunk")
-                if chunk:
-                    yield json.loads(chunk.get("bytes").decode())['completion']
+        return StreamResponse(stream)
+        
 
     @classmethod
     def _generate(cls,prompt,use_default_prompt_template=True,stream=False,**generate_kwargs):
