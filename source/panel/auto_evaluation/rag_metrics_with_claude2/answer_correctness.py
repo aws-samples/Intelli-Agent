@@ -1,4 +1,3 @@
-import typing as t
 from datasets import Dataset
 import re
 
@@ -12,4 +11,9 @@ class ClaudeAnswerCorrectness(AnswerCorrectness):
     answer_similarity = BedrockEmbeddings()
     faithfulness = faithfulness
 
-answer_correctness = ClaudeAnswerCorrectness()
+answer_correctness = AnswerCorrectness(
+    # answer_similarity = BedrockEmbeddings(),
+    faithfulness = faithfulness
+
+)
+answer_correctness.embeddings = BedrockEmbeddings()

@@ -163,12 +163,12 @@ def run_eval(
     # call ragas 
     print(f'run ragas eval, data num: {len(data_to_eval)}')
     # filter None answer 
-    data_to_eval = [d for d in data_to_eval if \
-                    (d['answer'] is not  None \
-                     and d['ground_truths'] and d['ground_truths'][0] is not None\
-                     and d['contexts'] \
-                     and isinstance(d['ground_truths'][0],str)
-                     )]
+    # data_to_eval = [d for d in data_to_eval if \
+    #                 (d['answer'] is not  None \
+    #                  and d['ground_truths'] and d['ground_truths'][0] is not None\
+    #                  and d['contexts'] \
+    #                  and isinstance(d['ground_truths'][0],str)
+    #                  )]
     print(f'run ragas eval, data num after filtered empty answer: {len(data_to_eval)}')
     dataset = Dataset.from_pandas(pd.DataFrame(data_to_eval))
     results = evaluate(
@@ -183,13 +183,22 @@ def run_eval(
 
 
 if __name__ == "__main__":
-    RAGAS_EVAL_METRICS = [claude2_context_relevancy]
+    # RAGAS_EVAL_METRICS = [answer_relevancy,
+    #         context_precision,
+    #         faithfulness]
+    RAGAS_EVAL_METRICS = [claude2_answer_relevancy,
+            claude2_context_precision,
+            claude2_faithfulness]
+    
     rag_api_url = "https://5tzaajjzg7.execute-api.us-west-2.amazonaws.com/default/llm-bot-dev-qq-matching"
     eval_data_path = "TechBot QA Test-fifth-test.csv"
-    eval_id = 'claude2-csds-retrive'
+    # eval_id = 'claude2-csds-retrive'
+    by = 'claude2'
+    eval_id = f'claude2-csds-retrive-by-{by}'
     # llm_output_cache_path = f'{eval_id}-llm-output-cache-120.pkl'
-    llm_output_cache_path = f'{eval_id}-llm-output-cache.pkl'
-    ret_save_profix = f'{eval_id}-eval'
+    # llm_output_cache_path = f'{eval_id}-llm-output-cache.pkl'
+    llm_output_cache_path = "techbot_question_dgr_res_6_80_without_gt.pkl"
+    ret_save_profix = f'{eval_id}-{llm_output_cache_path}-eval'
     ragas_parameters = {
         "region_name":'us-west-2',
         "credentials_profile_name": "atl",
