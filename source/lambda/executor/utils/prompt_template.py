@@ -1,5 +1,5 @@
 
-CLAUDE2_RAG_PROMPT_TEMPLTE = """
+CLAUDE2_RAG_PROMPT_TEMPLTE = """\n\nHuman:
 Here is a query:
 
 <query>
@@ -19,6 +19,7 @@ Once again, the user's query is:
 </query>
 
 Provide a response between <result> tags.
+\n\nAssistant:<result> 
 """
 
 CLAUDE2_RAG_CONTEXT_TEMPLATE="""
