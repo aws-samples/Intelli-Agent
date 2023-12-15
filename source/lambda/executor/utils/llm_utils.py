@@ -11,13 +11,20 @@ from prompt_template import claude2_rag_template_render
 class StreamResponse:
     def __init__(self,raw_stream) -> None:
         self.raw_stream = raw_stream
+
+    
+    @staticmethod
+    def postprocess(ret):
+        return ret
     
     def __iter__(self):
         if self.raw_stream:
             for event in self.raw_stream:
                 chunk = event.get("chunk")
                 if chunk:
-                    yield json.loads(chunk.get("bytes").decode())['completion']
+                    completion = json.loads(chunk.get("bytes").decode())['completion']
+                    yield self.postprocess(completion)
+
     
     def close(self):
         self.raw_stream.close()
@@ -47,19 +54,17 @@ class Claude2(Model):
     accept = 'application/json'
     contentType = 'application/json'
     client = None  
-    region_name = 'us-east-1'
 
     default_generate_kwargs = {
         "max_tokens_to_sample": 2000,
         "temperature": 0.7,
-        "top_p": 0.9,
+        "top_p": 0.9
     }
 
     @classmethod
     def create_client(cls):
         bedrock = boto3.client(
-            service_name='bedrock-runtime',
-            region_name=cls.region_name
+            service_name='bedrock-runtime'
             )
         return bedrock
 
@@ -76,13 +81,13 @@ class Claude2(Model):
     def _generate(cls,prompt,use_default_prompt_template=True,stream=False,**generate_kwargs):
         if cls.client is None:
             cls.client = cls.create_client()
-
         generate_kwargs = dict(cls.default_generate_kwargs.copy(),**generate_kwargs)
         
         if use_default_prompt_template:
             prompt=f"\n\nHuman:{prompt}\n\nAssistant:"
             
         body = json.dumps(dict(generate_kwargs,prompt=prompt))
+       
         if stream:
             return cls.generate_stream(body)
 
@@ -97,14 +102,23 @@ class Claude2(Model):
         query = kwargs['query']
         contexts = kwargs['contexts']
         context_num = kwargs.get('context_num',2)
+        stream = kwargs.get('stream',False)
+        
         prompt = claude2_rag_template_render(
             query,
             [context['doc'] for context in contexts[:context_num]]
         )
         extracted_generate_kwargs = {k:kwargs[k] for k in cls.default_generate_kwargs if k in kwargs}
-        answer = cls._generate(prompt,**extracted_generate_kwargs)
-        
-        answer = cls.postprocess(answer)
+    
+        answer = cls._generate(
+            prompt,
+            stream=stream,
+            use_default_prompt_template=False,
+            **extracted_generate_kwargs)
+        if not stream:
+            answer = cls.postprocess(answer)
+        else:
+            answer.postprocess = lambda x:x.rstrip('</result>')
         return {
             "answer":answer,
             "prompt":prompt
@@ -112,7 +126,7 @@ class Claude2(Model):
     
     @classmethod 
     def postprocess(cls,answer):
-        rets = re.findall('<result>(.*?)</result>',answer,re.S)
+        rets = re.findall('<result>(.*?)</result>','<result>'+ answer,re.S)
         rets = [ret.strip() for ret in rets]
         rets = [ret for ret in rets if ret]
         if not rets:

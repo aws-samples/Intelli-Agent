@@ -41,9 +41,7 @@ chat_session_table = os.environ.get("chat_session_table", "")
 websocket_url = os.environ.get("websocket_url", "")
 sm_client = boto3.client("sagemaker-runtime")
 aos_client = LLMBotOpenSearchClient(aos_endpoint)
-ws_client = boto3.client(
-    "apigatewaymanagementapi", endpoint_url=websocket_url
-)
+ws_client = None 
 
 class Type(Enum):
     COMMON = "common"
@@ -57,6 +55,15 @@ class APIException(Exception):
             super().__init__("[{}] {}".format(code, message))
         else:
             super().__init__(message)
+
+
+def load_ws_client():
+    global ws_client
+    if ws_client is None:
+        ws_client = boto3.client(
+        "apigatewaymanagementapi", endpoint_url=websocket_url
+        )
+    return ws_client
 
 
 def handle_error(func):
@@ -913,12 +920,15 @@ def lambda_handler(event, context):
     model = event_body["model"]
     messages = event_body["messages"]
     temperature = event_body["temperature"]
-    stream = _is_websocket_request(event) or event_body.get('stream',False)
-    logger.info('stream decode: ',stream)
+    stream = _is_websocket_request(event)
+    if stream:
+        load_ws_client()
 
+    logger.info(f'stream decode: {stream}')
     type = event_body.get("type", Type.COMMON.value)
     enable_q_q_match = event_body.get("enable_q_q_match", False)
     enable_debug = event_body.get("enable_debug", False)
+
     retrieval_only = event_body.get("enable_debug", False)
     get_contexts = event_body.get("get_contexts", False)
     # stream = event_body.get("stream", False)
@@ -977,7 +987,7 @@ def lambda_handler(event, context):
         )
 
     main_entry_elpase = time.time() - main_entry_start
-    logger.info(f"runing time of main_entry : {main_entry_elpase}s seconds")
+    logger.info(f"runing time of {type} entry : {main_entry_elpase}s seconds")
     
     return process_response(**dict(
         stream=stream,

@@ -2,18 +2,16 @@ import time
 import json 
 import logging 
 import traceback
-from enum import Enum
 
 logger = logging.getLogger()
 
 
-class StreamType(Enum):
+class StreamMessageType:
     START = "START"
     END = "END"
     ERROR = "ERROR"
-    CHUNCK = "CHUNCK"
+    CHUNK = "CHUNK"
     CONTEXT = "CONTEXT"
-
 
 
 class WebsocketClientError(Exception):
@@ -72,8 +70,8 @@ def stream_response(**kwargs):
     request_timestamp = kwargs['request_timestamp']
     answer = kwargs['answer']
     sources = kwargs['sources']
-    get_contexts = kwargs['get_contexts']
-    contexts = kwargs['contexts']
+    get_contexts = kwargs['get_contexts'] # bool
+    contexts = kwargs['contexts']  # retrieve result
     enable_debug = kwargs['enable_debug']
     debug_info = kwargs['debug_info']
     ws_client = kwargs['ws_client']
@@ -107,11 +105,11 @@ def stream_response(**kwargs):
     
     try:
         _send_to_ws_client({
-                "message_type": StreamType.START,
+                "message_type": StreamMessageType.START,
             })
         for i,ans in enumerate(answer):
             _send_to_ws_client({
-                        "message_type": StreamType.CHUNCK,
+                        "message_type": StreamMessageType.CHUNK,
                         "message": {
                             "role": "assistant",
                             "content": ans,
@@ -121,7 +119,7 @@ def stream_response(**kwargs):
                     })
         # sed source and contexts
         context_msg = {
-             "message_type": StreamType.CONTEXT,
+             "message_type": StreamMessageType.CONTEXT,
              "knowledge_sources": sources,
             }
         if get_contexts:
@@ -131,8 +129,8 @@ def stream_response(**kwargs):
 
         # send end
         _send_to_ws_client({
-                "message_type": StreamType.END,
-            })
+                "message_type": StreamMessageType.END,
+        })
     except WebsocketClientError:
         error = traceback.format_exc()
         logger.info(error)
@@ -142,8 +140,8 @@ def stream_response(**kwargs):
         error = traceback.format_exc()
         logger.info(error)
         _send_to_ws_client({
-             "message_type": StreamType.END,
-             "message": error
+             "message_type": StreamMessageType.ERROR,
+             "message": {'content':error}
         })
 
 def process_response(**kwargs):
