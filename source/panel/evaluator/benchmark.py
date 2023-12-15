@@ -15,13 +15,14 @@ from opensearchpy import RequestsHttpConnection
 
 from langchain.docstore.document import Document
 from langchain.embeddings import OpenAIEmbeddings
+from langchain.embeddings import BedrockEmbeddings
 from langchain.vectorstores import FAISS
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.document_loaders import UnstructuredFileLoader
 from langchain.document_loaders import UnstructuredMarkdownLoader
 from langchain.vectorstores import OpenSearchVectorSearch
+from langchain.evaluation import load_evaluator, EvaluatorType
 from langchain.llms.bedrock import Bedrock
-from langchain.embeddings import BedrockEmbeddings
 
 from llm_bot_dep.loaders.nougat_pdf import NougatPDFLoader
 from llm_bot_dep.loaders.markdown import process_md, CustomMarkdownLoader
@@ -42,6 +43,8 @@ logger = logging.getLogger(__name__)
 # set logger level to debug
 logger.setLevel(logging.DEBUG)
 
+AOS_API_SUFFIX = "aos"
+LLM_API_SUFFIX = "llm"
 embeddingModelEndpoint = os.getenv("EMBEDDING_MODEL_ENDPOINT")
 aosEndpoint = os.getenv("AOS_ENDPOINT")
 region = os.getenv("REGION")
@@ -169,112 +172,6 @@ def openai_embedding(docs: List[Document]) -> List[List[float]]:
     logger.debug("openai embeddings: {}".format(embeddings))
     return embeddings
 
-@retry(stop=stop_after_attempt(3))
-def _aos_injection(document: Document) -> List[str]:
-    """
-    Returns:
-        List of ids from adding the texts into the vectorstore.
-    """
-    embeddings = create_sagemaker_embeddings_from_js_model(embeddingModelEndpoint, region)
-    docsearch = OpenSearchVectorSearch(
-        index_name=default_aos_index_name,
-        embedding_function=embeddings,
-        opensearch_url="https://{}".format(aosEndpoint),
-        http_auth = awsauth,
-        use_ssl = True,
-        verify_certs = True,
-        connection_class = RequestsHttpConnection
-    )
-    logger.debug("Adding documents %s to OpenSearch with index %s", document, default_aos_index_name)
-    res = docsearch.add_documents(documents=[document])
-    logger.debug("Retry statistics: %s and response: %s", _aos_injection.retry.statistics, res)
-    return res
-
-# this method require such aos was public accessible
-def csdc_embedding_public(docs: List[Document]):
-    for doc in docs:
-        res = _aos_injection(doc)
-        logger.debug("aos injection result: {}".format(res))
-    # TODO query the index with aos wrapper
-
-# utils to run embeddings with metrics of dimension and time
-def run_embeddings(embeddings_list, docs: List[str]):
-    results = []
-    for embed_func in embeddings_list:
-        start = time.perf_counter()
-        embedding_result = embed_func.embed_documents(docs)
-        end = time.perf_counter()
-        time_elapsed = end - start
-        results.append({
-            'Model': embed_func.__class__.__name__,
-            'Dimensions': len(embedding_result[0]),
-            'time': round(time_elapsed, 4)
-        })
-    return results
-
-def faiss_retriver(texts: List[str], query: str):
-    retriever = FAISS.from_texts(texts, OpenAIEmbeddings()).as_retriever()
-    docs = retriever.get_relevant_documents(query)
-    logger.debug("retriever docs: {}".format(docs))
-    db = FAISS.from_texts(texts, OpenAIEmbeddings())
-    docs_with_score = db.similarity_search_with_score(query, 3)
-    logger.debug("docs_with_score: {}".format(docs_with_score))
-    return docs_with_score
-
-def csdc_retriver(texts: List[str], query: str):
-    query_embedding = SagemakerEndpointVectorOrCross(
-        prompt=query,
-        endpoint_name=embeddingModelEndpoint,
-        region_name=region,
-        model_type="vector",
-        stop=None,
-    )
-
-    # TODO, replace with aos wrapper
-    # knn_respose = aos_client.search(
-    #     index_name=default_aos_index_name, query_type="knn", query_term=query_embedding
-    # )
-    # return knn_respose
-
-def langchain_evalutor(query: str, docs_with_score: List[Tuple[str, float]]):
-    """
-    evaluate the retrieved documents with query and return summary result including metrics below:
-    1. # round of experiments
-    2. # of evaluation questions
-    3. chunk size and overlap size
-    4. split method
-    5. retrieval method
-    6. embedding algorithm & model
-    7. # of chunks retrieved
-    8. average relevance score of retrival
-    9. average similarity score of retrival
-    10. average time of retrival
-    """
-    pass
-
-def send_request(method: str, body=None):
-    """
-    Send a request to the specified URL with the given method and data.
-
-    Args:
-    url (str): The URL to which the request is sent.
-    method (str): HTTP method ('GET', 'POST', 'PUT', etc.).
-    data (dict, optional): The request body for methods like POST or PUT.
-
-    Returns:
-    Response object
-    """
-    if method.upper() == 'POST':
-        response = requests.post(apiEndpoint, json=body)
-    elif method.upper() == 'GET':
-        response = requests.get(apiEndpoint, params=body)
-    elif method.upper() == 'PUT':
-        response = requests.put(apiEndpoint, json=body)
-    else:
-        raise ValueError(f"Unsupported method: {method}")
-
-    return response
-
 def csdc_embedding(index: str, doc: Document):
     """
     Embeds the given documents using the CSDC embedding model.
@@ -307,6 +204,102 @@ def csdc_embedding(index: str, doc: Document):
     except Exception as e:
         logger.error("error: {}".format(e))
         raise e
+
+def _query_embedding(index: str = default_aos_index_name, query: str = "Hello World") -> List[float] :
+    """
+    Embeds the given query using the CSDC embedding model.
+
+    Args:
+        index (str): The name of the index to which the documents will be added, not used for now.
+        query (str): The query to embed.
+
+    Returns:
+        list: A list of floats with length of vector dimensions (1024).
+    """
+    headersList = {
+        "Accept": "*/*",
+        "Content-Type": "application/json",
+    }
+    payload = json.dumps({
+        "aos_index": index,
+        "operation": "embed_query",
+        "body": {
+            "query": query
+        }
+    })
+
+    try:
+        response = requests.request("POST", apiEndpoint + AOS_API_SUFFIX, data=payload, headers=headersList)
+        logger.info("response: {}".format(json.loads(response.text)))
+    except Exception as e:
+        logger.error("error: {}".format(e))
+        raise e
+    return response
+
+def aos_retriever(index: str, vector_field: List[float], size: int = 10):
+    """
+
+    """
+    headersList = {
+        "Accept": "*/*",
+        "Content-Type": "application/json",
+    }
+    logger.info("vector_field: {} and type: {}".format(vector_field, type(vector_field)))
+    payload = json.dumps({
+        "aos_index": index,
+        "operation": "query_knn",
+        "body": {
+            "query": vector_field,
+            "size": size,
+        }
+    })
+
+    try:
+        response = requests.request("GET", apiEndpoint + AOS_API_SUFFIX, data=payload, headers=headersList)
+        # parse the response and get the query result
+        response = json.loads(response.text)
+        logger.info("aos retriever response: {}".format(response))
+    except Exception as e:
+        logger.error("error: {}".format(e))
+        raise e
+    return response
+
+# utils to run embeddings with metrics of dimension and time
+def run_embeddings(embeddings_list, docs: List[str]):
+    results = []
+    for embed_func in embeddings_list:
+        start = time.perf_counter()
+        embedding_result = embed_func.embed_documents(docs)
+        end = time.perf_counter()
+        time_elapsed = end - start
+        results.append({
+            'Model': embed_func.__class__.__name__,
+            'Dimensions': len(embedding_result[0]),
+            'time': round(time_elapsed, 4)
+        })
+    return results
+
+def faiss_retriver(texts: List[str], query: str):
+    retriever = FAISS.from_texts(texts, OpenAIEmbeddings()).as_retriever()
+    docs = retriever.get_relevant_documents(query)
+    logger.debug("retriever docs: {}".format(docs))
+    db = FAISS.from_texts(texts, OpenAIEmbeddings())
+    docs_with_score = db.similarity_search_with_score(query, 3)
+    logger.debug("docs_with_score: {}".format(docs_with_score))
+    return docs_with_score
+
+def langchain_evalutor(prediction: str, reference: str, type: str):
+    """
+    
+    """
+    evaluator = load_evaluator(type)
+    response = evaluator.evaluate_strings(prediction=prediction, reference=reference)
+    logger.debug("evaluator response: {}".format(response))
+    # {'score': 0.09683692455291748}
+    return response
+
+def llama_index_evalutor(query: str, docs_with_score: List[Tuple[str, float]]):
+    pass
 
 def testdata_generate(docs: List[Document], llm: str = "bedrock", embedding: str = "bedrock"):
     """
@@ -428,8 +421,8 @@ class WorkflowExecutor:
 # Preparing loader, splitter, and embeddings retriever list, iterate them to create comparasion matrix
 loader_list = [langchain_unstructured_loader, nougat_loader, csdc_markdown_loader]
 splitter_list = [recursive_splitter, csdc_markdown_header_splitter]
-embeddings_list = [openai_embedding]
-retriever_list = [faiss_retriver, csdc_retriver]
+embeddings_list = [openai_embedding, csdc_embedding]
+retriever_list = [faiss_retriver, aos_retriever]
 evalutor_list = [langchain_evalutor]
 
 def batch_generator(generator, batch_size: int):
@@ -455,6 +448,7 @@ if __name__ == "__main__":
     9. average similarity score of retrival
     10. average time of retrival
     """
+    """
     # prepare for QA dataset
     loader_res = csdc_markdown_loader("md-sample-01.md")
     # testdata_generate(loader_res, llm="openai", embedding="openai")
@@ -465,23 +459,25 @@ if __name__ == "__main__":
     # split
     splitter_res = csdc_markdown_header_splitter(loader_res)
 
-    #     for doc in splitter_res:
-    #         # embedding
-    #         embedding_res = csdc_embedding(default_aos_index_name, doc)
-
     # embedding
     batches = batch_generator(splitter_res, batch_size=5)
     for batch in batches:
         for doc in batch:
             embedding_res = csdc_embedding(default_aos_index_name, doc)
-    # embedding_res = csdc_embedding(default_aos_index_name, splitter_res[0])
-
+    """
     # retriever
-    query = "什么是思维链？"
-    docs_with_score = faiss_retriver(docs, query = query)
-
-    # # evaluator
-    # result = langchain_evalutor(query, docs_with_score)
+    query = "question 6"
+    query_res = _query_embedding('jsonl', query)
+    retriver_res = aos_retriever('jsonl', json.loads(query_res.text), 10)
+    reference_list = []
+    for hit in retriver_res['hits']['hits']:
+        reference_list.append(hit['_source']['text'])
+    
+    # evaluator query with all the reference and save the score into a list
+    score_list = []
+    for reference in reference_list:
+        score_list.append(langchain_evalutor(prediction=query, reference=reference, type=EvaluatorType.EMBEDDING_DISTANCE)['score'])
+    logger.info("score_list: {}".format(score_list))
 
     # overall workflow
     # workflow = WorkflowExecutor()
