@@ -5,6 +5,12 @@ import boto3
 import time
 import copy
 import traceback
+from enum import Enum
+
+logger = logging.getLogger()
+handler = logging.StreamHandler()
+logger.setLevel(logging.INFO)
+logger.addHandler(handler)
 
 from preprocess_utils import run_preprocess
 from aos_utils import LLMBotOpenSearchClient
@@ -17,13 +23,8 @@ from llmbot_utils import (
 from ddb_utils import get_session, update_session
 from sm_utils import SagemakerEndpointVectorOrCross
 from llm_utils import generate as llm_generate
-from enum import Enum
+from response_utils import process_response
 
-
-logger = logging.getLogger()
-handler = logging.StreamHandler()
-logger.setLevel(logging.INFO)
-logger.addHandler(handler)
 
 region = os.environ["AWS_REGION"]
 embedding_endpoint = os.environ.get("embedding_endpoint", "")
@@ -40,13 +41,12 @@ chat_session_table = os.environ.get("chat_session_table", "")
 websocket_url = os.environ.get("websocket_url", "")
 sm_client = boto3.client("sagemaker-runtime")
 aos_client = LLMBotOpenSearchClient(aos_endpoint)
-ws_client = boto3.client(
-    "apigatewaymanagementapi", endpoint_url=websocket_url
-)
+ws_client = None 
 
 class Type(Enum):
     COMMON = "common"
     DGR = "dgr"
+    MARKET = "market"
 
 
 class APIException(Exception):
@@ -55,6 +55,15 @@ class APIException(Exception):
             super().__init__("[{}] {}".format(code, message))
         else:
             super().__init__(message)
+
+
+def load_ws_client():
+    global ws_client
+    if ws_client is None:
+        ws_client = boto3.client(
+        "apigatewaymanagementapi", endpoint_url=websocket_url
+        )
+    return ws_client
 
 
 def handle_error(func):
@@ -164,7 +173,7 @@ def organize_ug_results(response, index_name):
         results.append(result)
     return results
 
-def organize_results(response):
+def organize_results(response, aos_index=None):
     """
     Organize results from aos response
 
@@ -474,6 +483,66 @@ def q_q_match(parsed_query, debug_info):
 def get_relevant_documents(
     parsed_query,
     rerank_model_endpoint: str,
+    aos_index: str,
+    debug_info,
+):
+    # 1. get AOS knn recall
+    result_num = 20
+    start = time.time()
+    opensearch_knn_results = []
+    opensearch_knn_response = aos_client.search(
+        index_name=aos_index,
+        query_type="knn",
+        query_term=parsed_query["zh_query_relevance_embedding"],
+        field="vector_field",
+        size=result_num,
+    )
+    opensearch_knn_results.extend(
+        organize_results(opensearch_knn_response, aos_index)[:result_num]
+    )
+    recall_end_time = time.time()
+    elpase_time = recall_end_time - start
+    logger.info(f"runing time of recall : {elpase_time}s seconds")
+
+    # 2. get AOS invertedIndex recall
+    opensearch_query_results = []
+
+    # 3. combine these two opensearch_knn_response and opensearch_query_response
+    recall_knowledge = combine_recalls(opensearch_knn_results, opensearch_query_results)
+
+    rerank_pair = []
+    rerank_text_length = 1024 * 10
+    for knowledge in recall_knowledge:
+        # rerank_pair.append([parsed_query["query"], knowledge["content"]][:1024])
+        rerank_pair.append(
+            [parsed_query["zh_query"], knowledge["content"]][: rerank_text_length]
+        )
+    zh_score_list = json.loads(
+        SagemakerEndpointVectorOrCross(
+            prompt=json.dumps(rerank_pair),
+            endpoint_name=rerank_model_endpoint,
+            region_name=region,
+            model_type="rerank",
+            stop=None,
+        )
+    )
+    rerank_knowledge = []
+    for knowledge, score in zip(recall_knowledge, zh_score_list):
+        # if score > 0:
+        new_knowledge = knowledge.copy()
+        new_knowledge["rerank_score"] = score
+        rerank_knowledge.append(new_knowledge)
+    debug_info["knowledge_qa_rerank"] = rerank_knowledge
+
+    rerank_end_time = time.time()
+    elpase_time = rerank_end_time - recall_end_time
+    logger.info(f"runing time of rerank: {elpase_time}s seconds")
+
+    return rerank_knowledge
+
+def get_relevant_documents_dgr(
+    parsed_query,
+    rerank_model_endpoint: str,
     aos_faq_index: str,
     aos_ug_index: str,
     debug_info,
@@ -663,7 +732,7 @@ def dgr_entry(
                 if answer and sources:
                     return answer, sources, contexts, debug_info
             # 3. recall and rerank
-            knowledges = get_relevant_documents(
+            knowledges = get_relevant_documents_dgr(
                 parsed_query,
                 rerank_model_endpoint,
                 aos_faq_index,
@@ -688,6 +757,116 @@ def dgr_entry(
                 stream=stream
             )
 
+            llm_start_time = time.time()
+            ret = llm_generate(**generate_input)
+            llm_end_time = time.time()
+            elpase_time = llm_end_time - llm_start_time
+            logger.info(f"runing time of llm: {elpase_time}s seconds")
+            answer = ret["answer"]
+            debug_info["knowledge_qa_llm"] = ret
+        except Exception as e:
+            logger.info(f"Exception Query: {query_input}")
+            logger.info(f"{traceback.format_exc()}")
+            answer = ""
+        query_type = QueryType.KnowledgeQuery
+    else:
+        query_type = QueryType.Conversation
+
+    # 5. update_session
+    # start = time.time()
+    # update_session(session_id=session_id, chat_session_table=chat_session_table, 
+    #                question=query_input, answer=answer, knowledge_sources=sources)
+    # elpase_time = time.time() - start
+    # logger.info(f'runing time of update_session : {elpase_time}s seconds')
+
+    return answer, sources, contexts, debug_info
+
+def market_entry(
+    session_id: str,
+    query_input: str,
+    history: list,
+    zh_embedding_model_endpoint: str,
+    en_embedding_model_endpoint: str,
+    cross_model_endpoint: str,
+    rerank_model_endpoint: str,
+    llm_model_endpoint: str,
+    aos_index: str,
+    enable_knowledge_qa: bool,
+    temperature: float,
+    enable_q_q_match: bool,
+    llm_model_id=None,
+    stream=False
+):
+    """
+    Entry point for the Lambda function.
+
+    :param session_id: The ID of the session.
+    :param query_input: The query input.
+    :param history: The history of the conversation.
+    :param embedding_model_endpoint: The endpoint of the embedding model.
+    :param cross_model_endpoint: The endpoint of the cross model.
+    :param llm_model_endpoint: The endpoint of the language model.
+    :param llm_model_name: The name of the language model.
+    :param aos_index: The index of the AOS engine.
+    :param enable_knowledge_qa: Whether to enable knowledge QA.
+    :param temperature: The temperature of the language model.
+    :param stream(Bool): Whether to use llm stream decoding output.
+
+    return: answer(str)
+    """
+    debug_info = {
+        "query": query_input,
+        "query_parser_info": {},
+        "q_q_match_info": {},
+        "knowledge_qa_knn_recall": {},
+        "knowledge_qa_boolean_recall": {},
+        "knowledge_qa_combined_recall": {},
+        "knowledge_qa_cross_model_sort": {},
+        "knowledge_qa_llm": {},
+        "knowledge_qa_rerank": {},
+    }
+    contexts = []
+    sources = []
+    answer = ""
+    if enable_knowledge_qa:
+        try:
+            # 1. parse query
+            parsed_query = parse_query(
+                query_input,
+                history,
+                zh_embedding_model_endpoint,
+                en_embedding_model_endpoint,
+                debug_info,
+            )
+            # 2. query question match
+            if enable_q_q_match:
+                answer, sources = q_q_match(parsed_query, debug_info)
+                if answer and sources:
+                    return answer, sources, contexts, debug_info
+            # 3. recall and rerank
+            knowledges = get_relevant_documents(
+                parsed_query,
+                rerank_model_endpoint,
+                aos_index,
+                debug_info,
+            )
+            context_num = 2
+            sources = list(set([item["source"] for item in knowledges[:context_num]]))
+            contexts = knowledges[:context_num]
+            # 4. generate answer using question and recall_knowledge
+            parameters = {"temperature": temperature}
+            generate_input = dict(
+                model_id=llm_model_id,
+                query=query_input,
+                contexts=knowledges[:context_num],
+                history=history,
+                region_name=region,
+                parameters=parameters,
+                context_num=context_num,
+                model_type="answer",
+                llm_model_endpoint=llm_model_endpoint,
+                stream=stream
+            )
             llm_start_time = time.time()
             ret = llm_generate(**generate_input)
             llm_end_time = time.time()
@@ -741,13 +920,18 @@ def lambda_handler(event, context):
     model = event_body["model"]
     messages = event_body["messages"]
     temperature = event_body["temperature"]
+    stream = _is_websocket_request(event)
+    if stream:
+        load_ws_client()
 
+    logger.info(f'stream decode: {stream}')
     type = event_body.get("type", Type.COMMON.value)
     enable_q_q_match = event_body.get("enable_q_q_match", False)
     enable_debug = event_body.get("enable_debug", False)
+
     retrieval_only = event_body.get("enable_debug", False)
     get_contexts = event_body.get("get_contexts", False)
-    stream = event_body.get("stream", False)
+    # stream = event_body.get("stream", False)
 
     history, question = process_input_messages(messages)
     role = "user"
@@ -785,43 +969,42 @@ def lambda_handler(event, context):
             enable_q_q_match,
             stream=stream
         )
-
-    response = {"statusCode": 200, "headers": {"Content-Type": "application/json"}}
+    elif type.lower() == Type.MARKET.value:
+        answer, sources, context, debug_info = market_entry(
+            session_id,
+            question,
+            history,
+            zh_embedding_endpoint,
+            en_embedding_endpoint,
+            cross_endpoint,
+            rerank_endpoint,
+            llm_endpoint,
+            aos_index,
+            knowledge_qa_flag,
+            temperature,
+            enable_q_q_match,
+            stream=stream
+        )
 
     main_entry_elpase = time.time() - main_entry_start
-    logger.info(f"runing time of main_entry : {main_entry_elpase}s seconds")
+    logger.info(f"runing time of {type} entry : {main_entry_elpase}s seconds")
+    
+    return process_response(**dict(
+        stream=stream,
+        session_id=session_id,
+        model=model,
+        request_timestamp=request_timestamp,
+        answer=answer,
+        sources=sources,
+        get_contexts=get_contexts,
+        contexts=contexts,
+        enable_debug=enable_debug,
+        debug_info=debug_info,
+        ws_client=ws_client
+    ))
+    
+   
+        
 
-    # 2. return rusult
-    llmbot_response = {
-        "id": session_id,
-        "object": "chat.completion",
-        "created": int(request_timestamp),
-        "model": model,
-        "usage": {"prompt_tokens": 13, "completion_tokens": 7, "total_tokens": 20},
-        "choices": [
-            {
-                "message": {
-                    "role": "assistant",
-                    "content": answer,
-                    "knowledge_sources": sources,
-                },
-                "finish_reason": "stop",
-                "index": 0,
-            }
-        ],
-    }
 
-    resp_header = {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "*"
-    }
-    if get_contexts:
-        llmbot_response["contexts"] = contexts
-    if enable_debug:
-        llmbot_response["debug_info"] = debug_info
-    response["body"] = json.dumps(llmbot_response)
-    response["headers"] = resp_header
-
-    return response
+    
