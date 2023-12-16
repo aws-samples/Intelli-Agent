@@ -19,7 +19,7 @@ if [ -z "$s3_bucket_name" ] || ! command -v python &> /dev/null; then
 fi
 
 hf_names=("BAAI/bge-reranker-large") 
-model_names=("bge_reranker_large")
+model_names=("bge-reranker-large")
 commit_hashs=("27c9168d479987529781de8474dff94d69beca11")
 tensor_parallel_degree=(1)
 

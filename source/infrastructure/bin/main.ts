@@ -42,8 +42,12 @@ export class RootStack extends Stack {
     const _AssetsStack = new AssetsStack(this, 'assets-stack', {_s3ModelAssets:_S3ModelAssets.valueAsString, env:process.env});
     const _LLMStack = new LLMStack(this, 'llm-stack', {
         _s3ModelAssets:_S3ModelAssets.valueAsString,
-        _crossCodePrefix:_AssetsStack._crossCodePrefix,
-        _embeddingCodePrefix:_AssetsStack._embeddingCodePrefix,
+        // _crossCodePrefix:_AssetsStack._crossCodePrefix,
+        // _embeddingCodePrefix:_AssetsStack._embeddingCodePrefix,
+        _rerankModelPrefix:_AssetsStack._rerankModelPrefix,
+        _rerankModelVersion:_AssetsStack._rerankModelVersion,
+        _embeddingModelPrefix:_AssetsStack._embeddingModelPrefix,
+        _embeddingModelVersion:_AssetsStack._embeddingModelVersion,
         _instructCodePrefix:_AssetsStack._instructCodePrefix,
         env:process.env
     });
@@ -64,7 +68,7 @@ export class RootStack extends Stack {
 
     const _EtlStack = new EtlStack(this, 'etl-stack', {
       _domainEndpoint: _OsStack._domainEndpoint,
-      _embeddingEndpoint: _LLMStack._embeddingEndPoint ?? '',
+      _embeddingEndpoint: _LLMStack._embeddingEndPoints[0] ?? '',
       _region: props.env?.region || 'us-east-1',
       _subEmail: _SubEmail.valueAsString ?? '',
       _vpc: _VpcStack._vpc,
@@ -83,8 +87,8 @@ export class RootStack extends Stack {
         _vpc:_VpcStack._vpc,
         _securityGroup:_VpcStack._securityGroup,
         _domainEndpoint:_OsStack._domainEndpoint,
-        _crossEndPoint: _LLMStack._crossEndPoint ?? '',
-        _embeddingEndPoint:_LLMStack._embeddingEndPoint || '',
+        _crossEndPoint: _LLMStack._rerankEndPoint ?? '',
+        _embeddingEndPoint:_LLMStack._embeddingEndPoints[0] || '',
         _instructEndPoint:_LLMStack._instructEndPoint || '',
         _chatSessionTable: _DynamoDBStack._chatSessionTable,
         _sfnOutput: _EtlStack._sfnOutput,
@@ -103,8 +107,8 @@ export class RootStack extends Stack {
     // new CfnOutput(this, 'OpenSearch Dashboard', {value:`${_Ec2Stack._publicIP}:8081/_dashboards`});
     new CfnOutput(this, 'API Endpoint Address', {value:_ApiStack._apiEndpoint});
     new CfnOutput(this, 'Glue Job Name', {value:_EtlStack._jobName});
-    new CfnOutput(this, 'Cross Model Endpoint', {value:_LLMStack._crossEndPoint || 'No Cross Endpoint Created'});
-    new CfnOutput(this, 'Embedding Model Endpoint', {value:_LLMStack._embeddingEndPoint || 'No Embedding Endpoint Created'});
+    new CfnOutput(this, 'Cross Model Endpoint', {value:_LLMStack._rerankEndPoint || 'No Cross Endpoint Created'});
+    new CfnOutput(this, 'Embedding Model Endpoint', {value:_LLMStack._embeddingEndPoints[0] || 'No Embedding Endpoint Created'});
     new CfnOutput(this, 'Instruct Model Endpoint', {value:_LLMStack._instructEndPoint || 'No Instruct Endpoint Created'});
     new CfnOutput(this, 'Processed Object Table', {value:_EtlStack._processedObjectsTable});
     new CfnOutput(this, 'Chunk Bucket', {value:_EtlStack._resBucketName});

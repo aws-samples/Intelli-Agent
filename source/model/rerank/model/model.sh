@@ -72,8 +72,8 @@ else
 fi
 sed -i "s|option.tensor_parallel_degree=tpd|option.tensor_parallel_degree=$tensor_parallel_degree|g" $file_path
 
-rm cross_model.tar.gz
-tar czvf cross_model.tar.gz *
+rm rerank_model.tar.gz
+tar czvf rerank_model.tar.gz *
 
 code_path="${model_name}_deploy_code"
-aws s3 cp cross_model.tar.gz s3://$s3_bucket_name/$code_path/cross_model.tar.gz
+aws s3 cp rerank_model.tar.gz s3://$s3_bucket_name/$code_path/rerank_model.tar.gz
