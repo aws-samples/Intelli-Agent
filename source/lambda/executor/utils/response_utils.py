@@ -107,6 +107,7 @@ def stream_response(**kwargs):
         _send_to_ws_client({
                 "message_type": StreamMessageType.START,
             })
+        answer_str = ""
         for i,ans in enumerate(answer):
             _send_to_ws_client({
                         "message_type": StreamMessageType.CHUNK,
@@ -117,6 +118,7 @@ def stream_response(**kwargs):
                         },
                         "chunck_id": i,
                     })
+            answer_str += ans
         # sed source and contexts
         context_msg = {
              "message_type": StreamMessageType.CONTEXT,
@@ -125,8 +127,11 @@ def stream_response(**kwargs):
         if get_contexts:
             context_msg.update({"contexts":contexts})
         
+        if enable_debug:
+            debug_info['knowledge_qa_llm']['answer'] = answer_str
+            context_msg.update({"debug_info":debug_info})
+        
         _send_to_ws_client(context_msg)
-
         # send end
         _send_to_ws_client({
                 "message_type": StreamMessageType.END,
