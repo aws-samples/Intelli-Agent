@@ -1,9 +1,13 @@
 import json
 import logging
 import os
+import sys
+
 import boto3
+import sys 
 import time
 import copy
+import os
 import traceback
 from enum import Enum
 
@@ -11,6 +15,7 @@ logger = logging.getLogger()
 handler = logging.StreamHandler()
 logger.setLevel(logging.INFO)
 logger.addHandler(handler)
+
 
 from preprocess_utils import run_preprocess
 from aos_utils import LLMBotOpenSearchClient
@@ -933,9 +938,37 @@ def lambda_handler(event, context):
     get_contexts = event_body.get("get_contexts", False)
     # stream = event_body.get("stream", False)
 
+    if enable_debug:
+        logger.info({
+            "embedding_endpoint":embedding_endpoint,
+            "zh_embedding_endpoint": zh_embedding_endpoint,
+            "en_embedding_endpoint":en_embedding_endpoint,
+            "cross_endpoint": cross_endpoint,
+            "rerank_endpoint": rerank_endpoint,
+            "aos_endpoint": aos_endpoint,
+            "aos_index": aos_index,
+            "aos_faq_index": aos_faq_index,
+            "aos_ug_index": aos_ug_index,
+            "llm_endpoint":llm_endpoint,
+            "chat_session_table": chat_session_table,
+            "websocket_url":websocket_url
+        })
+        os.system(f'{sys.executable} -m pip list')
+        logger.info(f'{sys.executable}')
+        import inspect
+        logger.info(inspect.getabsfile(boto3))
+        logger.info(boto3.__version__)
+        logger.info(sys.path)
+
+
     history, question = process_input_messages(messages)
     role = "user"
-    session_id = f"{role}_{int(request_timestamp)}"
+    
+    if stream:
+        session_id = event['requestContext']['connectionId']
+    else:
+        session_id = f"{role}_{int(request_timestamp)}"
+
     knowledge_qa_flag = True if model == "knowledge_qa" else False
 
     main_entry_start = time.time()
