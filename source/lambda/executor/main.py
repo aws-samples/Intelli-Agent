@@ -1,10 +1,21 @@
 import json
 import logging
 import os
+import sys
+
 import boto3
+import sys 
 import time
 import copy
+import os
 import traceback
+from enum import Enum
+
+logger = logging.getLogger()
+handler = logging.StreamHandler()
+logger.setLevel(logging.INFO)
+logger.addHandler(handler)
+
 
 from preprocess_utils import run_preprocess
 from aos_utils import LLMBotOpenSearchClient
@@ -17,13 +28,8 @@ from llmbot_utils import (
 from ddb_utils import get_session, update_session
 from sm_utils import SagemakerEndpointVectorOrCross
 from llm_utils import generate as llm_generate
-from enum import Enum
+from response_utils import process_response
 
-
-logger = logging.getLogger()
-handler = logging.StreamHandler()
-logger.setLevel(logging.INFO)
-logger.addHandler(handler)
 
 region = os.environ["AWS_REGION"]
 embedding_endpoint = os.environ.get("embedding_endpoint", "")
@@ -40,9 +46,7 @@ chat_session_table = os.environ.get("chat_session_table", "")
 websocket_url = os.environ.get("websocket_url", "")
 sm_client = boto3.client("sagemaker-runtime")
 aos_client = LLMBotOpenSearchClient(aos_endpoint)
-ws_client = boto3.client(
-    "apigatewaymanagementapi", endpoint_url=websocket_url
-)
+ws_client = None 
 
 class Type(Enum):
     COMMON = "common"
@@ -57,6 +61,15 @@ class APIException(Exception):
             super().__init__("[{}] {}".format(code, message))
         else:
             super().__init__(message)
+
+
+def load_ws_client():
+    global ws_client
+    if ws_client is None:
+        ws_client = boto3.client(
+        "apigatewaymanagementapi", endpoint_url=websocket_url
+        )
+    return ws_client
 
 
 def handle_error(func):
@@ -946,7 +959,6 @@ def market_chain_entry(
     q_d_retriever = retriever.QueryDocumentRetriever()
     q_q_retriever = retriever.QueryQuestionRetriever()
 
-
     def format_docs(docs, top_k=2):
         return "\n\n".join(doc.page_content for doc in docs["docs"][:top_k])
     def format_sources(docs, top_k=2):
@@ -971,7 +983,7 @@ def market_chain_entry(
     q_q_branch = RunnableParallel(
         {"answer": q_q_retriever, "question": lambda x:x["question"]}) | RunnableBranch(
         (lambda x:x["answer"][0] is not None, lambda x:{"answer": x["answer"][0], "sources": x["answer"][1], "debug_info": lambda x:x["answer"][2]}),
-        rag_chain
+        {"question": lambda x:x["question"], "debug_info": lambda x:x["answer"][2]} | rag_chain
     )
     response = q_q_branch.invoke({"question": query_input, "debug_info": debug_info})
     answer = response["answer"]
@@ -1006,17 +1018,50 @@ def lambda_handler(event, context):
     model = event_body["model"]
     messages = event_body["messages"]
     temperature = event_body["temperature"]
+    stream = _is_websocket_request(event)
+    if stream:
+        load_ws_client()
 
+    logger.info(f'stream decode: {stream}')
     type = event_body.get("type", Type.COMMON.value)
     enable_q_q_match = event_body.get("enable_q_q_match", False)
     enable_debug = event_body.get("enable_debug", False)
+
     retrieval_only = event_body.get("enable_debug", False)
     get_contexts = event_body.get("get_contexts", False)
-    stream = event_body.get("stream", False)
+    # stream = event_body.get("stream", False)
+
+    if enable_debug:
+        logger.info({
+            "embedding_endpoint":embedding_endpoint,
+            "zh_embedding_endpoint": zh_embedding_endpoint,
+            "en_embedding_endpoint":en_embedding_endpoint,
+            "cross_endpoint": cross_endpoint,
+            "rerank_endpoint": rerank_endpoint,
+            "aos_endpoint": aos_endpoint,
+            "aos_index": aos_index,
+            "aos_faq_index": aos_faq_index,
+            "aos_ug_index": aos_ug_index,
+            "llm_endpoint":llm_endpoint,
+            "chat_session_table": chat_session_table,
+            "websocket_url":websocket_url
+        })
+        os.system(f'{sys.executable} -m pip list')
+        logger.info(f'{sys.executable}')
+        import inspect
+        logger.info(inspect.getabsfile(boto3))
+        logger.info(boto3.__version__)
+        logger.info(sys.path)
+
 
     history, question = process_input_messages(messages)
     role = "user"
-    session_id = f"{role}_{int(request_timestamp)}"
+    
+    if stream:
+        session_id = event['requestContext']['connectionId']
+    else:
+        session_id = f"{role}_{int(request_timestamp)}"
+
     knowledge_qa_flag = True if model == "knowledge_qa" else False
 
     main_entry_start = time.time()
@@ -1083,42 +1128,25 @@ def lambda_handler(event, context):
             stream=stream
         )
 
-    response = {"statusCode": 200, "headers": {"Content-Type": "application/json"}}
-
     main_entry_elpase = time.time() - main_entry_start
-    logger.info(f"runing time of main_entry : {main_entry_elpase}s seconds")
+    logger.info(f"runing time of {type} entry : {main_entry_elpase}s seconds")
+    
+    return process_response(**dict(
+        stream=stream,
+        session_id=session_id,
+        model=model,
+        request_timestamp=request_timestamp,
+        answer=answer,
+        sources=sources,
+        get_contexts=get_contexts,
+        contexts=contexts,
+        enable_debug=enable_debug,
+        debug_info=debug_info,
+        ws_client=ws_client
+    ))
+    
+   
+        
 
-    # 2. return rusult
-    llmbot_response = {
-        "id": session_id,
-        "object": "chat.completion",
-        "created": int(request_timestamp),
-        "model": model,
-        "usage": {"prompt_tokens": 13, "completion_tokens": 7, "total_tokens": 20},
-        "choices": [
-            {
-                "message": {
-                    "role": "assistant",
-                    "content": answer,
-                    "knowledge_sources": sources,
-                },
-                "finish_reason": "stop",
-                "index": 0,
-            }
-        ],
-    }
 
-    resp_header = {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "*"
-    }
-    if get_contexts:
-        llmbot_response["contexts"] = contexts
-    if enable_debug:
-        llmbot_response["debug_info"] = debug_info
-    response["body"] = json.dumps(llmbot_response)
-    response["headers"] = resp_header
-
-    return response
+    

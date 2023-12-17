@@ -527,9 +527,9 @@ class OpenSearchClient:
             }
         body_dict = json.loads(body)
         query = body_dict.get('query')
-        # optional size with default value 100
-        size = str(body_dict.get('size', 100))
-        logging.info(f"query: {query}, size: {size}")
+        # optional size with default value 10
+        size = str(body_dict.get('size', 10))
+        logging.info(f"knn query: {query}, size limit: {size}")
         body = {
             "size": size,
             "query": {
@@ -650,10 +650,11 @@ class OpenSearchClient:
             model_type = "vector",
             stop = None,
         )
-        opensearch_knn_respose = self.client.search(
-            index_name = index,
-            query_type = "knn",
-            query_term = query_embedding,
-            field = "vector_field"
-        )
-        logger.info(json.dumps(opensearch_knn_respose, ensure_ascii=False))
+        return query_embedding
+        # # assemble the body to multiplex the query_knn function
+        # body = {
+        #     "query": query_embedding,
+        #     "size": 10
+        # }
+        # response = self.query_knn(index, json.dumps(body), _kwargs)
+        # return response
