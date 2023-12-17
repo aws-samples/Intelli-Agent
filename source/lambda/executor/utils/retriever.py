@@ -298,7 +298,9 @@ class QueryDocumentRetriever(BaseRetriever):
             new_knowledge = knowledge.copy()
             new_knowledge["rerank_score"] = score
             rerank_knowledge.append(new_knowledge)
-            doc_list.append(Document(page_content=new_knowledge["content"], metadata={"source": new_knowledge["source"]}))
+            doc_list.append(Document(page_content=new_knowledge["content"], metadata={"source": new_knowledge["source"], "score": score}))
+        doc_list.sort(key=lambda x: x.metadata["score"], reverse=True)
+        rerank_knowledge.sort(key=lambda x: x["rerank_score"], reverse=True)
         debug_info["knowledge_qa_rerank"] = rerank_knowledge
 
         rerank_end_time = time.time()
