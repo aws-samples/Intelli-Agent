@@ -28,6 +28,7 @@ from llmbot_utils import (
 from ddb_utils import get_session, update_session
 from sm_utils import SagemakerEndpointVectorOrCross
 from llm_utils import generate as llm_generate
+from llm_utils import generate_for_chain as llm_generate_for_chain
 from response_utils import process_response
 
 
@@ -49,7 +50,7 @@ aos_client = LLMBotOpenSearchClient(aos_endpoint)
 ws_client = None 
 
 # get aos_index_dict
-aos_index_dict = json.loads(os.environ.get("aos_index_dict", ""))
+aos_index_dict = json.loads(os.environ.get("aos_index_dict", '{"aos_index_mkt_qd":"aws-cn-mkt-knowledge","aos_index_mkt_qq":"gcr-mkt-qq","aos_index_dgr_qd":"ug-index-3","aos_index_dgr_qq":"faq-index-2"}'))
 aos_index_mkt_qd = aos_index_dict['aos_index_mkt_qd']
 aos_index_mkt_qq = aos_index_dict['aos_index_mkt_qq']
 aos_index_dgr_qd = aos_index_dict['aos_index_dgr_qd']
@@ -963,38 +964,72 @@ def market_chain_entry(
     from langchain.globals import set_verbose
 
     set_verbose(True)
-    q_d_retriever = retriever.QueryDocumentRetriever()
-    q_q_retriever = retriever.QueryQuestionRetriever()
+    dgr_q_d_retriever = retriever.QueryDocumentRetriever(aos_index_dgr_qd, "embedding", "content", "source")
+    dgr_q_q_retriever = retriever.QueryQuestionRetriever(aos_index_dgr_qq, "embedding")
+    mkt_q_d_retriever = retriever.QueryDocumentRetriever(aos_index_mkt_qd, "vector_field", "text", "file_path")
+    mkt_q_q_retriever = retriever.QueryQuestionRetriever(aos_index_mkt_qq, "vector_field")
 
-    def format_docs(docs, top_k=2):
-        return "\n\n".join(doc.page_content for doc in docs["docs"][:top_k])
+    def format_docs(docs, top_k=1):
+        # return "\n\n".join(doc.page_content for doc in docs["docs"][:top_k])
+        contexts = []
+        contexts.extend([{"doc": doc.page_content} for doc in docs["dgr_docs"][:top_k]])
+        contexts.extend([{"doc": doc.page_content} for doc in docs["mkt_docs"][:top_k]])
+        return contexts
+
     def format_sources(docs, top_k=2):
-        return [doc.metadata["source"] for doc in docs["docs"][:top_k]]
+        # return [doc.metadata["source"] for doc in docs["docs"][:top_k]]
+        sources = []
+        sources.extend([{"doc": doc.metadata["source"]} for doc in docs["dgr_docs"][:top_k]])
+        sources.extend([{"doc": doc.metadata["source"]} for doc in docs["mkt_docs"][:top_k]])
+        return sources 
+
     template = """Answer the question based only on the following context:
     {context}
 
     Question: {question}
     """
     prompt = ChatPromptTemplate.from_template(template)
-    llm = CustomLLM()
+    llm = CustomLLM(model_id=llm_model_id, stream=stream)
     # output_parser = MarketOutputParser()
     # output_parser = PydanticOutputParser(pydantic_object=Answer)
     # output_parser = ListOutputParser(pydantic_object=Answer)
 
-    rag_chain = RunnableParallel(
-        {"docs": q_d_retriever, "question": lambda x:x["question"], "debug_info": lambda x:x["debug_info"]}
-        ) | RunnableParallel(
-        {"context": format_docs, "sources": format_sources, "question": lambda x:x["question"], "debug_info": lambda x:x["debug_info"]}
-        ) | RunnableParallel(
-        {"answer": prompt | llm, "sources": lambda x:x["sources"], "context": lambda x:x["context"], "debug_info": lambda x:x["debug_info"]})
-    q_q_branch = RunnableParallel(
-        {"answer": q_q_retriever, "question": lambda x:x["question"]}) | RunnableBranch(
-        (lambda x:x["answer"][0] is not None, lambda x:{"answer": x["answer"][0], "sources": x["answer"][1], "debug_info": lambda x:x["answer"][2]}),
-        {"question": lambda x:x["question"], "debug_info": lambda x:x["answer"][2]} | rag_chain
-    )
-    response = q_q_branch.invoke({"question": query_input, "debug_info": debug_info})
-    answer = response["answer"]
+    rag_chain = RunnableParallel({
+                "dgr_docs": dgr_q_d_retriever,
+                "mkt_docs": mkt_q_d_retriever,
+                "query": lambda x:x["query"],
+                "debug_info": lambda x:x["debug_info"],
+                "llm_params": lambda x:x["llm_params"]}
+            ) | RunnableParallel({
+                "contexts": format_docs,
+                "sources": format_sources,
+                "query": lambda x:x["query"],
+                "debug_info": lambda x:x["debug_info"],
+                "llm_params": lambda x:x["llm_params"]}
+            ) | RunnableParallel({
+                "answer": llm_generate_for_chain,
+                "sources": lambda x:x["sources"],
+                "contexts": lambda x:x["contexts"],
+                "debug_info": lambda x:x["debug_info"]})
+    q_q_branch = RunnableParallel({
+                "answer": dgr_q_q_retriever,
+                "query": lambda x:x["query"],
+                "llm_params": lambda x:x["llm_params"]}
+            ) | RunnableBranch((
+                lambda x:x["answer"][0] is not None,
+                    lambda x:{"answer": x["answer"][0],
+                              "sources": x["answer"][1],
+                              "debug_info": lambda x:x["answer"][2]}),
+                {"query": lambda x:x["query"],
+                 "debug_info": lambda x:x["answer"][2],
+                 "llm_params": lambda x:x["llm_params"]} | rag_chain)
+    llm_params = {"model_id": "anthropic.claude-v2", "stream": stream}
+    response = q_q_branch.invoke({"query": query_input,
+                                  "debug_info": debug_info,
+                                  "llm_params": llm_params})
+    answer = response["answer"]["answer"]
     sources = response["sources"]
+    contexts = response["contexts"]
     return answer, sources, contexts, debug_info
 
 def _is_websocket_request(event):

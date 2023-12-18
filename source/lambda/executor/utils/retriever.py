@@ -172,7 +172,7 @@ def organize_faq_results(response, index_name):
         results.append(result)
     return results
 
-def organize_results(response, aos_index=None):
+def organize_results(response, aos_index=None, source_field="file_path", text_field="text"):
     """
     Organize results from aos response
 
@@ -183,17 +183,24 @@ def organize_results(response, aos_index=None):
     aos_hits = response["hits"]["hits"]
     for aos_hit in aos_hits:
         result = {}
-        result["source"] = aos_hit['_source']['metadata']['file_path']
+        result["source"] = aos_hit['_source']['metadata'][source_field]
         result["score"] = aos_hit["_score"]
         result["detail"] = aos_hit['_source']
-        result["content"] = aos_hit['_source']['text']
-        result["doc"] = aos_hit['_source']['text']
+        result["content"] = aos_hit['_source'][text_field]
+        result["doc"] = aos_hit['_source'][text_field]
         results.append(result)
     return results
 
 class QueryQuestionRetriever(BaseRetriever):
+    index: Any
+    vector_field: Any
+    def __init__(self, index, vector_field):
+        super().__init__()
+        self.index = index
+        self.vector_field = vector_field
+
     def _get_relevant_documents(self, question: Dict, *, run_manager: CallbackManagerForRetrieverRun) -> List[Document]:
-        query = question["question"] 
+        query = question["query"] 
         debug_info = question["debug_info"]
         start = time.time()
         opensearch_knn_results = []
@@ -205,24 +212,24 @@ class QueryQuestionRetriever(BaseRetriever):
             debug_info,
         )
         opensearch_knn_response = aos_client.search(
-            index_name=aos_faq_index,
+            index_name=self.index,
             query_type="knn",
             query_term=parsed_query["zh_query_similarity_embedding"],
-            field="embedding",
+            field=self.vector_field,
             size=2,
         )
         opensearch_knn_results.extend(
-            organize_faq_results(opensearch_knn_response, aos_faq_index)
+            organize_faq_results(opensearch_knn_response, self.index)
         )
         opensearch_knn_response = aos_client.search(
-            index_name=aos_faq_index,
+            index_name=self.index,
             query_type="knn",
             query_term=parsed_query["en_query_similarity_embedding"],
-            field="embedding",
+            field=self.vector_field,
             size=2,
         )
         opensearch_knn_results.extend(
-            organize_faq_results(opensearch_knn_response, aos_faq_index)
+            organize_faq_results(opensearch_knn_response, self.index)
         )
         # logger.info(json.dumps(opensearch_knn_response, ensure_ascii=False))
         elpase_time = time.time() - start
@@ -241,8 +248,19 @@ class QueryQuestionRetriever(BaseRetriever):
         return answer, sources, debug_info
 
 class QueryDocumentRetriever(BaseRetriever):
+    index: Any
+    vector_field: Any
+    text_field: Any
+    source_field: Any
+    def __init__(self, index, vector_field, text_field,  source_field):
+        super().__init__()
+        self.index = index
+        self.vector_field = vector_field
+        self.text_field = text_field
+        self.source_field = source_field
+
     def _get_relevant_documents(self, question: Dict, *, run_manager: CallbackManagerForRetrieverRun) -> List[Document]:
-        query = question["question"] 
+        query = question["query"] 
         debug_info = question["debug_info"]
         parsed_query = parse_query(
             query,
@@ -256,14 +274,14 @@ class QueryDocumentRetriever(BaseRetriever):
         start = time.time()
         opensearch_knn_results = []
         opensearch_knn_response = aos_client.search(
-            index_name=aos_index,
+            index_name=self.index,
             query_type="knn",
             query_term=parsed_query["zh_query_relevance_embedding"],
-            field="vector_field",
+            field=self.vector_field,
             size=result_num,
         )
         opensearch_knn_results.extend(
-            organize_results(opensearch_knn_response, aos_index)[:result_num]
+            organize_results(opensearch_knn_response, self.index, self.source_field, self.text_field)[:result_num]
         )
         recall_end_time = time.time()
         elpase_time = recall_end_time - start
