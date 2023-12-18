@@ -16,15 +16,27 @@ sys.path.append(".")
 import aos_utils
 from requests_aws4auth import AWS4Auth
 import boto3
-region = "us-east-1"
-credentials = boto3.Session().get_credentials()
-aos_utils.awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, region, 'es', session_token=credentials.token)
+# region = "us-east-1"
+# credentials = boto3.Session().get_credentials()
+# aos_utils.awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, region, 'es', session_token=credentials.token)
 import main
 
-def generate_answer(query, temperature=0.7, enable_q_q_match=True, enable_debug=True, retrieval_only=False):
+class DummyWebSocket:
+    def post_to_connection(self,ConnectionId,Data):
+        data = json.loads(Data)
+        message = data['choices'][0].get('message',None)
+        if message is not None:
+            print(message['content'],end='',flush=True)
+
+main.ws_client = DummyWebSocket()
+
+def generate_answer(query, temperature=0.7, enable_q_q_match=False, enable_debug=True, retrieval_only=False):
     event = {
         "body": json.dumps(
             {
+                "requestContext":{
+                    "eventType":"MESSAGE"
+                },
                 "messages": [
                     {
                         "role": "user",
@@ -38,7 +50,9 @@ def generate_answer(query, temperature=0.7, enable_q_q_match=True, enable_debug=
                 "enable_q_q_match": enable_q_q_match,
                 "enable_debug": enable_debug,
                 "retrieval_only": retrieval_only,
-                "type": "common"
+                "type": "market_chain",
+                # "intent_type": "chat"
+                "intent_type": "knowledge_qa"
             }
         )
     }
@@ -128,4 +142,6 @@ def eval():
     json.dump(debug_info_list, debug_info_file, ensure_ascii=False)
 
 if __name__ == "__main__":
-    generate_answer("义乌华鼎锦纶股份有限公司董事会独立董事意见")
+    # generate_answer("Amazon Fraud Detector 中'entityId'和'eventId'的含义与注意事项")
+    # generate_answer("我想调用Amazon Bedrock中的基础模型，应该使用什么API?")
+    generate_answer("polly是什么？")
