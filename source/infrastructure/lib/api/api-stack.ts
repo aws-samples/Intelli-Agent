@@ -17,13 +17,14 @@ interface apiStackProps extends StackProps {
     _vpc: ec2.Vpc;
     _securityGroup: ec2.SecurityGroup;
     _domainEndpoint: string;
-    _crossEndPoint: string;
-    _embeddingEndPoint: string;
+    _rerankEndPoint: string;
+    _embeddingEndPoints: string[];
     _instructEndPoint: string;
     _chatSessionTable: string;
     // type of StepFunctions
     _sfnOutput: sfn.StateMachine;
     _OpenSearchIndex: string;
+    _OpenSearchIndexDict: string;
 }
 
 export class LLMApiStack extends NestedStack {
@@ -37,6 +38,7 @@ export class LLMApiStack extends NestedStack {
         const _securityGroup = props._securityGroup
         const _domainEndpoint = props._domainEndpoint
         const _aosIndex = props._OpenSearchIndex
+        const _aosIndexDict = props._OpenSearchIndexDict
         const _chatSessionTable = props._chatSessionTable
 
         // s3 bucket for storing documents
@@ -60,9 +62,12 @@ export class LLMApiStack extends NestedStack {
             environment: {
                 aos_endpoint: _domainEndpoint,
                 llm_endpoint: props._instructEndPoint,
-                embedding_endpoint: props._embeddingEndPoint,
-                cross_endpoint: props._crossEndPoint,
+                embedding_endpoint: props._embeddingEndPoints[0],
+                zh_embedding_endpoint: props._embeddingEndPoints[0],
+                en_embedding_endpoint: props._embeddingEndPoints[1],
+                rerank_endpoint: props._rerankEndPoint,
                 aos_index: _aosIndex,
+                aos_index_dict: _aosIndexDict,
                 chat_session_table: _chatSessionTable,
             },
         });
@@ -99,8 +104,8 @@ export class LLMApiStack extends NestedStack {
                 document_bucket: _S3Bucket.bucketName,
                 opensearch_cluster_domain: _domainEndpoint,
                 llm_endpoint: props._instructEndPoint,
-                embedding_endpoint: props._embeddingEndPoint,
-                cross_endpoint: props._crossEndPoint,
+                embedding_endpoint: props._embeddingEndPoints[0],
+                cross_endpoint: props._rerankEndPoint,
             },
         });
 
@@ -131,7 +136,7 @@ export class LLMApiStack extends NestedStack {
             architecture: Architecture.X86_64,
             environment: {
                 opensearch_cluster_domain: _domainEndpoint,
-                embedding_endpoint: props._embeddingEndPoint,
+                embedding_endpoint: props._embeddingEndPoints[0],
             },
         });
 

@@ -19,7 +19,7 @@ interface llmStackProps extends StackProps {
 
 export class LLMStack extends NestedStack {
     _rerankEndPoint;
-    _embeddingEndPoints;
+    _embeddingEndPoints: string[] = [];
     _instructEndPoint;
 
     constructor(scope: Construct, id: string, props: llmStackProps) {
@@ -122,10 +122,13 @@ export class LLMStack extends NestedStack {
             const codePrefix = modelPrefix+"_deploy_code";
             const versionId = props._embeddingModelVersion[i]
             const currentEndpointName = "embedding-"+modelPrefix+"-"+versionId.slice(0,5)
+            const stackModelName = "embedding-model-"+versionId.slice(0,5)
+            const stackConfigName = "embedding-endpoint-config-"+versionId.slice(0,5)
+            const stackEndpointName = "embedding-endpoint-name-"+versionId.slice(0,5)
             // EMBEDDING MODEL
             // Create model, BucketDeployment construct automatically handles dependencies to ensure model assets uploaded before creating the model in this.region
             const embeddingImageUrl = '763104351884.dkr.ecr.'+ this.region +'.amazonaws.com/djl-inference:0.21.0-deepspeed0.8.3-cu117'
-            const embeddingModel = new sagemaker.CfnModel(this, 'embedding-model', {
+            const embeddingModel = new sagemaker.CfnModel(this, stackModelName, {
                 executionRoleArn: executionRole.roleArn,
                 primaryContainer: {
                     image: embeddingImageUrl,
@@ -137,7 +140,7 @@ export class LLMStack extends NestedStack {
             });
 
             // Create endpoint configuration, refer to https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_sagemaker.CfnEndpointConfig.html for full options
-            const embeddingEndpointConfig = new sagemaker.CfnEndpointConfig(this, 'embedding-endpoint-config', {
+            const embeddingEndpointConfig = new sagemaker.CfnEndpointConfig(this, stackConfigName, {
                 productionVariants: [{
                     initialVariantWeight: 1.0,
                     modelName: embeddingModel.attrModelName,
@@ -156,13 +159,15 @@ export class LLMStack extends NestedStack {
 
             const tag_array = [tag]
 
-            const embeddingEndpoint = new sagemaker.CfnEndpoint(this, 'embedding-endpoint', {
+            const embeddingEndpoint = new sagemaker.CfnEndpoint(this, stackEndpointName, {
                 endpointConfigName: embeddingEndpointConfig.attrEndpointConfigName,
                 endpointName: currentEndpointName,
                 tags: tag_array,
             });
 
-            this._embeddingEndPoints.push(embeddingEndpoint.endpointName);
+            if (typeof embeddingEndpoint.endpointName != 'undefined'){
+                this._embeddingEndPoints.push(embeddingEndpoint.endpointName);
+            }
 
         }
 

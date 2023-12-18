@@ -33,6 +33,14 @@ export class RootStack extends Stack {
       default: 'chatbot-index',
     });
 
+    const _OpenSearchIndexDictDefaultValue = '{"aos_index_mkt_qd":"aws-cn-mkt-knowledge","aos_index_mkt_qq":"gcr-mkt-qq","aos_index_dgr_qd":"ug-index-3","aos_index_dgr_qq":"faq-index-2"}';
+
+    const _OpenSearchIndexDict = new CfnParameter(this, 'OpenSearchIndexDict', {
+      type: 'String',
+      description: 'OpenSearch index to store knowledge dict format',
+      default: _OpenSearchIndexDictDefaultValue,
+    });
+
     const _imageName = new CfnParameter(this, 'EtlImageName', {
       type: 'String',
       description: 'The ECR image name which is used for ETL, eg. etl-model',
@@ -87,12 +95,13 @@ export class RootStack extends Stack {
         _vpc:_VpcStack._vpc,
         _securityGroup:_VpcStack._securityGroup,
         _domainEndpoint:_OsStack._domainEndpoint,
-        _crossEndPoint: _LLMStack._rerankEndPoint ?? '',
-        _embeddingEndPoint:_LLMStack._embeddingEndPoints[0] || '',
+        _rerankEndPoint: _LLMStack._rerankEndPoint ?? '',
+        _embeddingEndPoints:_LLMStack._embeddingEndPoints || '',
         _instructEndPoint:_LLMStack._instructEndPoint || '',
         _chatSessionTable: _DynamoDBStack._chatSessionTable,
         _sfnOutput: _EtlStack._sfnOutput,
         _OpenSearchIndex: _OpenSearchIndex.valueAsString,
+        _OpenSearchIndexDict: _OpenSearchIndexDict.valueAsString,
         env:process.env
     });
     _ApiStack.addDependency(_VpcStack);

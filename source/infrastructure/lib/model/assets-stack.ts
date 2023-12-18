@@ -37,8 +37,8 @@ export class AssetsStack extends NestedStack {
         const rerankModelVersion = "27c9168d479987529781de8474dff94d69beca11"
         const rerankCodePrefix = "bge-reranker-large_deploy_code"
         // const embeddingModelPrefix = 'buffer-embedding-002-model'
-        const embeddingModelPrefix: readonly string[] = ['bge-large-zh-v1-5', 'bge-large-en-v1-5']
-        const embeddingModelVersion: readonly string[] = ['b5c9d86d763d9945f7c0a73e549a4a39c423d520', '5888da4a3a013e65d33dd6f612ecd4625eb87a7d']
+        const embeddingModelPrefix: string[] = ['bge-large-zh-v1-5', 'bge-large-en-v1-5']
+        const embeddingModelVersion: string[] = ['b5c9d86d763d9945f7c0a73e549a4a39c423d520', '5888da4a3a013e65d33dd6f612ecd4625eb87a7d']
         const embeddingCodePrefix = 'buffer_embedding_002_deploy_code'
         const instructModelPrefix = 'buffer-instruct-003-model'
         const instructCodePrefix = 'buffer_instruct_003_deploy_code'
