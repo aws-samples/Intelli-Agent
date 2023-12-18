@@ -52,6 +52,7 @@ class Type(Enum):
     COMMON = "common"
     DGR = "dgr"
     MARKET = "market"
+    MARKET_CHAIN = "market_chain"
 
 
 class APIException(Exception):
@@ -833,6 +834,7 @@ def market_entry(
     contexts = []
     sources = []
     answer = ""
+
     if enable_knowledge_qa:
         try:
             # 1. parse query
@@ -896,6 +898,97 @@ def market_entry(
 
     return answer, sources, contexts, debug_info
 
+def market_chain_entry(
+    session_id: str,
+    query_input: str,
+    history: list,
+    zh_embedding_model_endpoint: str,
+    en_embedding_model_endpoint: str,
+    cross_model_endpoint: str,
+    rerank_model_endpoint: str,
+    llm_model_endpoint: str,
+    aos_index: str,
+    enable_knowledge_qa: bool,
+    temperature: float,
+    enable_q_q_match: bool,
+    llm_model_id=None,
+    stream=False
+):
+    """
+    Entry point for the Lambda function.
+
+    :param session_id: The ID of the session.
+    :param query_input: The query input.
+    :param history: The history of the conversation.
+    :param embedding_model_endpoint: The endpoint of the embedding model.
+    :param cross_model_endpoint: The endpoint of the cross model.
+    :param llm_model_endpoint: The endpoint of the language model.
+    :param llm_model_name: The name of the language model.
+    :param aos_index: The index of the AOS engine.
+    :param enable_knowledge_qa: Whether to enable knowledge QA.
+    :param temperature: The temperature of the language model.
+    :param stream(Bool): Whether to use llm stream decoding output.
+
+    return: answer(str)
+    """
+    debug_info = {
+        "query": query_input,
+        "query_parser_info": {},
+        "q_q_match_info": {},
+        "knowledge_qa_knn_recall": {},
+        "knowledge_qa_boolean_recall": {},
+        "knowledge_qa_combined_recall": {},
+        "knowledge_qa_cross_model_sort": {},
+        "knowledge_qa_llm": {},
+        "knowledge_qa_rerank": {},
+    }
+    contexts = []
+    sources = []
+    answer = ""
+
+    import utils.retriever as retriever
+    from utils.llm_utils import CustomLLM
+    from langchain.prompts import ChatPromptTemplate
+    from langchain.output_parsers import PydanticOutputParser
+    from langchain.schema.runnable import RunnableParallel, RunnablePassthrough, RunnableBranch
+    from langchain.pydantic_v1 import BaseModel, Field, validator
+
+    from langchain.globals import set_verbose
+
+    set_verbose(True)
+    q_d_retriever = retriever.QueryDocumentRetriever()
+    q_q_retriever = retriever.QueryQuestionRetriever()
+
+    def format_docs(docs, top_k=2):
+        return "\n\n".join(doc.page_content for doc in docs["docs"][:top_k])
+    def format_sources(docs, top_k=2):
+        return [doc.metadata["source"] for doc in docs["docs"][:top_k]]
+    template = """Answer the question based only on the following context:
+    {context}
+
+    Question: {question}
+    """
+    prompt = ChatPromptTemplate.from_template(template)
+    llm = CustomLLM()
+    # output_parser = MarketOutputParser()
+    # output_parser = PydanticOutputParser(pydantic_object=Answer)
+    # output_parser = ListOutputParser(pydantic_object=Answer)
+
+    rag_chain = RunnableParallel(
+        {"docs": q_d_retriever, "question": lambda x:x["question"], "debug_info": lambda x:x["debug_info"]}
+        ) | RunnableParallel(
+        {"context": format_docs, "sources": format_sources, "question": lambda x:x["question"], "debug_info": lambda x:x["debug_info"]}
+        ) | RunnableParallel(
+        {"answer": prompt | llm, "sources": lambda x:x["sources"], "context": lambda x:x["context"], "debug_info": lambda x:x["debug_info"]})
+    q_q_branch = RunnableParallel(
+        {"answer": q_q_retriever, "question": lambda x:x["question"]}) | RunnableBranch(
+        (lambda x:x["answer"][0] is not None, lambda x:{"answer": x["answer"][0], "sources": x["answer"][1], "debug_info": lambda x:x["answer"][2]}),
+        {"question": lambda x:x["question"], "debug_info": lambda x:x["answer"][2]} | rag_chain
+    )
+    response = q_q_branch.invoke({"question": query_input, "debug_info": debug_info})
+    answer = response["answer"]
+    sources = response["sources"]
+    return answer, sources, contexts, debug_info
 
 def _is_websocket_request(event):
     """Check if the request is WebSocket or Restful
@@ -913,7 +1006,7 @@ def _is_websocket_request(event):
         return False
 
 
-@handle_error
+# @handle_error
 def lambda_handler(event, context):
     request_timestamp = time.time()
     logger.info(f"request_timestamp :{request_timestamp}")
@@ -1004,6 +1097,22 @@ def lambda_handler(event, context):
         )
     elif type.lower() == Type.MARKET.value:
         answer, sources, context, debug_info = market_entry(
+            session_id,
+            question,
+            history,
+            zh_embedding_endpoint,
+            en_embedding_endpoint,
+            cross_endpoint,
+            rerank_endpoint,
+            llm_endpoint,
+            aos_index,
+            knowledge_qa_flag,
+            temperature,
+            enable_q_q_match,
+            stream=stream
+        )
+    elif type.lower() == Type.MARKET_CHAIN.value:
+        answer, sources, context, debug_info = market_chain_entry(
             session_id,
             question,
             history,
