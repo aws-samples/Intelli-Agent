@@ -61,15 +61,15 @@ def generate_answer(query, temperature=0.7, enable_q_q_match=False, enable_debug
                 ],
                 "aos_faq_index": "chatbot-index-9",
                 "aos_ug_index": "chatbot-index-1",
-                "model": "knowledge_qa",
+                # "model": "knowledge_qa",
                 "temperature": temperature,
                 "enable_q_q_match": enable_q_q_match,
                 "enable_debug": enable_debug,
                 "retrieval_only": retrieval_only,
                 "type": "market_chain",
-                "intent_type": "chat"
-                # "intent_type": "strict_q_q"
-                # # "intent_type": "knowledge_qa"
+                # "model": "chat"
+                # "model": "strict_q_q"
+                # "model": "knowledge_qa"
             }
         )
     }

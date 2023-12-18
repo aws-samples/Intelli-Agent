@@ -1073,7 +1073,7 @@ def lambda_handler(event, context):
 
     retrieval_only = event_body.get("enable_debug", False)
     get_contexts = event_body.get("get_contexts", False)
-    intent_type = event_body.get("intent_type", IntentType.KNOWLEDGE_QA.value)
+    intent_type = event_body.get("model", IntentType.KNOWLEDGE_QA.value)
     # stream = event_body.get("stream", False)
 
     if enable_debug:
