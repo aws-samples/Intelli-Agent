@@ -48,6 +48,13 @@ sm_client = boto3.client("sagemaker-runtime")
 aos_client = LLMBotOpenSearchClient(aos_endpoint)
 ws_client = None 
 
+# get aos_index_dict
+aos_index_dict = json.loads(os.environ.get("aos_index_dict", ""))
+aos_index_mkt_qd = aos_index_dict['aos_index_mkt_qd']
+aos_index_mkt_qq = aos_index_dict['aos_index_mkt_qq']
+aos_index_dgr_qd = aos_index_dict['aos_index_dgr_qd']
+aos_index_dgr_qq = aos_index_dict['aos_index_dgr_qq']
+
 class Type(Enum):
     COMMON = "common"
     DGR = "dgr"
