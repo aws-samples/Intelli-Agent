@@ -183,6 +183,12 @@ def generate(model_id,**kwargs):
     ret = model_cls.generate(**kwargs)
     return ret 
 
+def generate_for_chain(llm_params):
+    model_id = 'anthropic.claude-v2:1'
+    model_cls = Model.get_model(model_id)
+    ret = model_cls.generate(**llm_params)
+    return ret 
+
 from typing import Any, List, Mapping, Optional
 
 from langchain.callbacks.manager import CallbackManagerForLLMRun
@@ -202,8 +208,11 @@ class CustomLLM(LLM):
     ) -> str:
         if stop is not None:
             raise ValueError("stop kwargs are not permitted.")
-        model_cls = Model.get_model("anthropic.claude-v2")
-        return model_cls._generate(prompt)
+        # model_cls = Model.get_model("anthropic.claude-v2")
+        # return model_cls._generate(prompt)
+        llm_params = json.loads(
+            kwargs.get("llm_params", '{"model_id": "anthropic.claude-v2"}'))
+        return generate(llm_params["model_id"], *kwargs)
 
     @property
     def _identifying_params(self) -> Mapping[str, Any]:

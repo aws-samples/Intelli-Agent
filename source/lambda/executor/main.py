@@ -50,7 +50,7 @@ aos_client = LLMBotOpenSearchClient(aos_endpoint)
 ws_client = None 
 
 # get aos_index_dict
-aos_index_dict = json.loads(os.environ.get("aos_index_dict", ""))
+aos_index_dict = json.loads(os.environ.get("aos_index_dict", '{"aos_index_mkt_qd":"aws-cn-mkt-knowledge","aos_index_mkt_qq":"gcr-mkt-qq","aos_index_dgr_qd":"ug-index-3","aos_index_dgr_qq":"faq-index-2"}'))
 aos_index_mkt_qd = aos_index_dict['aos_index_mkt_qd']
 aos_index_mkt_qq = aos_index_dict['aos_index_mkt_qq']
 aos_index_dgr_qd = aos_index_dict['aos_index_dgr_qd']
@@ -964,14 +964,25 @@ def market_chain_entry(
     from langchain.globals import set_verbose
 
     set_verbose(True)
-    q_d_retriever = retriever.QueryDocumentRetriever()
-    q_q_retriever = retriever.QueryQuestionRetriever()
+    dgr_q_d_retriever = retriever.QueryDocumentRetriever(aos_index_dgr_qd, "embedding", "content", "source")
+    dgr_q_q_retriever = retriever.QueryQuestionRetriever(aos_index_dgr_qq, "embedding")
+    mkt_q_d_retriever = retriever.QueryDocumentRetriever(aos_index_mkt_qd, "vector_field", "text", "file_path")
+    mkt_q_q_retriever = retriever.QueryQuestionRetriever(aos_index_mkt_qq, "vector_field")
 
-    def format_docs(docs, top_k=2):
+    def format_docs(docs, top_k=1):
         # return "\n\n".join(doc.page_content for doc in docs["docs"][:top_k])
-        return [{"doc": doc.page_content} for doc in docs["docs"][:top_k]]
+        contexts = []
+        contexts.extend([{"doc": doc.page_content} for doc in docs["dgr_docs"][:top_k]])
+        contexts.extend([{"doc": doc.page_content} for doc in docs["mkt_docs"][:top_k]])
+        return contexts
+
     def format_sources(docs, top_k=2):
-        return [doc.metadata["source"] for doc in docs["docs"][:top_k]]
+        # return [doc.metadata["source"] for doc in docs["docs"][:top_k]]
+        sources = []
+        sources.extend([{"doc": doc.metadata["source"]} for doc in docs["dgr_docs"][:top_k]])
+        sources.extend([{"doc": doc.metadata["source"]} for doc in docs["mkt_docs"][:top_k]])
+        return sources 
+
     template = """Answer the question based only on the following context:
     {context}
 
@@ -984,7 +995,8 @@ def market_chain_entry(
     # output_parser = ListOutputParser(pydantic_object=Answer)
 
     rag_chain = RunnableParallel({
-                "docs": q_d_retriever,
+                "dgr_docs": dgr_q_d_retriever,
+                "mkt_docs": mkt_q_d_retriever,
                 "query": lambda x:x["query"],
                 "debug_info": lambda x:x["debug_info"],
                 "llm_params": lambda x:x["llm_params"]}
@@ -1000,7 +1012,7 @@ def market_chain_entry(
                 "contexts": lambda x:x["contexts"],
                 "debug_info": lambda x:x["debug_info"]})
     q_q_branch = RunnableParallel({
-                "answer": q_q_retriever,
+                "answer": dgr_q_q_retriever,
                 "query": lambda x:x["query"],
                 "llm_params": lambda x:x["llm_params"]}
             ) | RunnableBranch((
@@ -1015,7 +1027,7 @@ def market_chain_entry(
     response = q_q_branch.invoke({"query": query_input,
                                   "debug_info": debug_info,
                                   "llm_params": llm_params})
-    answer = response["answer"]
+    answer = response["answer"]["answer"]
     sources = response["sources"]
     contexts = response["contexts"]
     return answer, sources, contexts, debug_info
