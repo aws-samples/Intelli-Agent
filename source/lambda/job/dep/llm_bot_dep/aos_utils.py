@@ -11,6 +11,7 @@ from langchain.docstore.document import Document
 from langchain.vectorstores import OpenSearchVectorSearch
 
 from sm_utils import create_sagemaker_embeddings_from_js_model
+from sm_utils import SagemakerEndpointVectorOrCross
 
 import logging
 logger = logging.getLogger()
@@ -38,16 +39,6 @@ class OpenSearchClient:
             region=region
         )
 
-    def validation(self, index: str, _body: str):
-        # avoid NotFoundError: NotFoundError(404, 'index_not_found_exception'...
-        if not self.client.indices.exists(index=index):
-            # hint to the caller that the index does not exist
-            return {
-                'statusCode': 404,
-                'headers': {'Content-Type': 'application/json'},
-                'body': json.dumps({'error': f'index {index} does not exist'})
-            }
-
     def create_index(self, index: str, body: str, _kwargs: dict):
         """
         Create an index in OpenSearch.
@@ -55,42 +46,112 @@ class OpenSearchClient:
         Args:
             index (str): The name of the index to create.
             body (dict): A dictionary containing the settings and mappings for the index.
-        
-        Sample body:
-        {
-            "aos_index": "chatbot-index",
-            "operation": "create",
-            "body": {
-                "settings": {
+        """
+        # avoid NotFoundError: NotFoundError(404, 'index_not_found_exception'...
+        if self.client.indices.exists(index=index):
+            return {
+                'statusCode': 404,
+                'headers': {'Content-Type': 'application/json'},
+                'body': json.dumps({'error': f'index {index} already exist'})
+            }
+        body_dict = json.loads(body)
+        # fixed settings and mappings
+        # "knn.algo_param.index_thread_qty": 8,
+        # "knn.memory.circuit_breaker.limit": "70%",
+        body = {
+            "settings": {
                 "index": {
-                    "number_of_shards": 2,
-                    "number_of_replicas": 1
+                    "knn": True,
+                    "knn.algo_param.ef_search": 512,
+                    "refresh_interval": "60s",
+                    "number_of_shards": 8,
+                    # disabel replica
+                    "number_of_replicas": 0,
                 }
-                },
-                "mappings": {
+            },
+            "mappings": {
                 "properties": {
                     "vector_field": {
                         "type": "knn_vector",
-                        "dimension": 1024
+                        "dimension": 1024,
+                        "method": {
+                            "name": "hnsw",
+                            "space_type": "l2",
+                            "engine": "nmslib",
+                            "parameters": {
+                                "ef_construction": 128,
+                                "m": 16
+                            },
+                        },
                     }
                 }
-                }
+            },
+        }
+        # Create the index with the specified settings and mappings
+        response = self.client.indices.create(index=index, body=body)
+        return response
+
+    def update_index(self, index: str, body: str, _kwargs: dict):
+        """
+        Update an index in OpenSearch.
+
+        Args:
+            index (str): The name of the index to create.
+            body (dict): A dictionary containing the settings and mappings for the index.
+
+        Sample body:
+        {
+            "aos_index": "chatbot-index",
+            "operation": "update_index",
+            "body": {
+                "query": "heading_hierarchy",
+                "type": "long"
             }
         }
         """
-        body_dict = json.loads(body)
-        # Extract the settings and mappings from the body
-        settings = body_dict.get('body', {}).get('settings', {})
-        mappings = body_dict.get('body', {}).get('mappings', {})
-
-        # Create the index with the specified settings and mappings
-        self.client.indices.create(
-            index=index,
-            body={
-                'settings': settings,
-                'mappings': mappings
+        # check if the index exists before updating
+        if not self.client.indices.exists(index=index):
+            return {
+                'statusCode': 404,
+                'headers': {'Content-Type': 'application/json'},
+                'body': json.dumps({'error': f'index {index} does not exist'})
             }
-        )
+        body_dict = json.loads(body)
+        property = str(body_dict.get('property'))
+        type = str(body_dict.get('type'))
+        # Define the new mapping for the field
+        new_mapping = {
+            "properties": {
+                property: {
+                    "properties": {
+                        "size": {"type": type}
+                    }
+                }
+            }
+        }
+        logger.info(f"index {index} new mapping: {new_mapping}")
+        # update the index with the specified settings and mappings
+        response = self.client.indices.put_mapping(index=index, body=new_mapping)
+        return response
+
+    def query_index(self, index: str, body: str, _kwargs: dict):
+        """
+        Get all mappings for specified index or indices.
+        :param index_name: Name of the index or '_all' for all indices.
+        :return: Mappings of the index or indices.
+        """
+        # avoid NotFoundError: NotFoundError(404, 'index_not_found_exception'...
+        if not self.client.indices.exists(index=index):
+            return {
+                'statusCode': 404,
+                'headers': {'Content-Type': 'application/json'},
+                'body': json.dumps({'error': f'index {index} does not exist'})
+            }
+        body_dict = json.loads(body)
+        # set default index to '_all' if index is not specified
+        if index == '':
+            index = '_all'
+        return self.client.indices.get_mapping(index=index)
 
     def delete_index(self, index: str, _body: str, _kwargs: dict):
         """
@@ -99,10 +160,17 @@ class OpenSearchClient:
         Args:
             index (str): The name of the index to delete.
         """
-        # break if the validation fails
-        self.validation(index, _body)
+        # avoid NotFoundError: NotFoundError(404, 'index_not_found_exception'...
+        if not self.client.indices.exists(index=index):
+            return {
+                'statusCode': 404,
+                'headers': {'Content-Type': 'application/json'},
+                'body': json.dumps({'error': f'index {index} does not exist'})
+            }
+        
         # delete the index
-        self.client.indices.delete(index=index)
+        response = self.client.indices.delete(index=index)
+        return response
 
     def delete_document(self, index: str, body: str, _kwargs: dict):
         """
@@ -121,7 +189,13 @@ class OpenSearchClient:
             }
         }
         """
-        self.validation(index, body)
+        # avoid NotFoundError: NotFoundError(404, 'index_not_found_exception'...
+        if not self.client.indices.exists(index=index):
+            return {
+                'statusCode': 404,
+                'headers': {'Content-Type': 'application/json'},
+                'body': json.dumps({'error': f'index {index} does not exist'})
+            }
         body_dict = json.loads(body)
         document_id = body_dict.get('body', {}).get('document_id', {})
         # delete the document
@@ -144,7 +218,13 @@ class OpenSearchClient:
             }
         }
         """
-        self.validation(index, body)
+        # avoid NotFoundError: NotFoundError(404, 'index_not_found_exception'...
+        if not self.client.indices.exists(index=index):
+            return {
+                'statusCode': 404,
+                'headers': {'Content-Type': 'application/json'},
+                'body': json.dumps({'error': f'index {index} does not exist'})
+            }
         body_dict = json.loads(body)
         document = body_dict.get('body', {})
         # bulk index the documents
@@ -167,7 +247,13 @@ class OpenSearchClient:
             }
         }
         """
-        self.validation(index, body)
+        # avoid NotFoundError: NotFoundError(404, 'index_not_found_exception'...
+        if not self.client.indices.exists(index=index):
+            return {
+                'statusCode': 404,
+                'headers': {'Content-Type': 'application/json'},
+                'body': json.dumps({'error': f'index {index} does not exist'})
+            }
         body_dict = json.loads(body)
         document = body_dict.get('body', {})
         # iterate through the documents and index them
@@ -178,7 +264,23 @@ class OpenSearchClient:
             except Exception as e:
                 logger.error(f"Error indexing document: {e}")
 
-    def query(self, index: str, body: str, _kwargs: dict):
+    def query_all(self, index: str, _body: str, _kwargs: dict):
+        # avoid NotFoundError: NotFoundError(404, 'index_not_found_exception'...
+        if not self.client.indices.exists(index=index):
+            return {
+                'statusCode': 404,
+                'headers': {'Content-Type': 'application/json'},
+                'body': json.dumps({'error': f'index {index} does not exist'})
+            }
+        body = {
+            "query": {
+                "match_all": {}
+            }
+        }
+        response = self.client.search(index=index, body=body)
+        return response
+
+    def query_full_text_match(self, index: str, body: str, _kwargs: dict):
         """
         Basic query with fixed result size
 
@@ -197,7 +299,13 @@ class OpenSearchClient:
             }
         }
         """
-        self.validation(index, body)
+        # avoid NotFoundError: NotFoundError(404, 'index_not_found_exception'...
+        if not self.client.indices.exists(index=index):
+            return {
+                'statusCode': 404,
+                'headers': {'Content-Type': 'application/json'},
+                'body': json.dumps({'error': f'index {index} does not exist'})
+            }
         body_dict = json.loads(body)
         field = str(body_dict.get('field'))
         value = str(body_dict.get('value'))
@@ -206,8 +314,11 @@ class OpenSearchClient:
         logger.info(f"field: {field}, value: {value}, size: {size}")
         body = {
             "query": {
+                # use term-level queries only for fields mapped as keyword
                 "match": {
                     field: value
+                    # "operator": "and",
+                    # "minimum_should_match": 2
                 }
             },
             "size": size,
@@ -222,19 +333,9 @@ class OpenSearchClient:
         response = self.client.search(index=index, body=body)
         return response
 
-    def query_all(self, index: str, _body: str, _kwargs: dict):
-        self.validation(index, _body)
-        body = {
-            "query": {
-                "match_all": {}
-            }
-        }
-        response = self.client.search(index=index, body=body)
-        return response
-
-    def query_with_must_and_filter(self, index: str, body: str, _kwargs: dict):
+    def query_full_text_multi_match(self, index: str, body: str, _kwargs: dict):
         """
-        Execute a search query using the query DSL, using bool query to filter on metadata.
+        Basic query with fixed result size
 
         Args:
             index (str): The name of the index to delete.
@@ -243,7 +344,63 @@ class OpenSearchClient:
         Sample body:
         {
             "aos_index": "chatbot-index",
-            "operation": "query_with_must_and_filter",
+            "operation": "query",
+            "body": {
+                "field": field,
+                "value": value,
+                "size": size
+            }
+        }
+        """
+        # avoid NotFoundError: NotFoundError(404, 'index_not_found_exception'...
+        if not self.client.indices.exists(index=index):
+            return {
+                'statusCode': 404,
+                'headers': {'Content-Type': 'application/json'},
+                'body': json.dumps({'error': f'index {index} does not exist'})
+            }
+        body_dict = json.loads(body)
+        field = str(body_dict.get('field'))
+        value = str(body_dict.get('value'))
+        # optional size with default value 100
+        size = str(body_dict.get('size', 100))
+        logger.info(f"field: {field}, value: {value}, size: {size}")
+        body = {
+            "query": {
+                # use term-level queries only for fields mapped as keyword
+                "multi_match": {
+                    "query": field,
+                    # sample: "fields": ["title", "body"]
+                    "fields": value,
+                    "type": "best_fields",
+                    # add (tie_breaker * _score) for all other matching fields
+                    # "tie_breaker": 0.3
+                }
+            },
+            "size": size,
+            "sort": [
+                {
+                    "_score": {
+                        "order": "desc"
+                    }
+                }
+            ]
+        }
+        response = self.client.search(index=index, body=body)
+        return response
+
+    def query_term(self, index: str, body: str, _kwargs: dict):
+        """
+        Execute a term-level query, documents returned by a term-level query are not sorted by their relevance scores.
+
+        Args:
+            index (str): The name of the index to delete.
+            body (str): The query body.
+
+        Sample body:
+        {
+            "aos_index": "chatbot-index",
+            "operation": "query_term",
             "body": {
                 "quey": query,
                 "filter": filter
@@ -251,28 +408,97 @@ class OpenSearchClient:
             }
         }
         """
-        self.validation(index, body)
+        # avoid NotFoundError: NotFoundError(404, 'index_not_found_exception'...
+        if not self.client.indices.exists(index=index):
+            return {
+                'statusCode': 404,
+                'headers': {'Content-Type': 'application/json'},
+                'body': json.dumps({'error': f'index {index} does not exist'})
+            }
         body_dict = json.loads(body)
-        query = str(body_dict.get('query'))
-        filter = str(body_dict.get('filter'))
+        field = str(body_dict.get('field'))
+        value = str(body_dict.get('value'))
         # optional size with default value 100
         size = str(body_dict.get('size', 100))
+        logger.info(f"field: {field}, value: {value}, size: {size}")
+        # With a filter context, OpenSearch returns matching documents without calculating a relevance score.
         body = {
             "query": {
-                "bool": {
-                    "must": [
-                        {"match": {"text": query}},
-                    ],
-                    # looking for documents where the metadata field exactly matches the value of filter
-                    "filter": [
-                        {"term": {"metadata": filter}}
-                    ]
+                # use term-level queries only for fields mapped as keyword
+                "term": {
+                    field:{
+                        "value": value,
+                        "case_insensitive": false
+                    }
                 }
-            }
+            },
+            "size": size,
+            "sort": [
+                {
+                    "_score": {
+                        "order": "desc"
+                    }
+                }
+            ]
         }
         response = self.client.search(index=index, body=body)
         return response
-    
+
+    def query_term_regex(self, index: str, body: str, _kwargs: dict):
+        """
+        Execute a term-level query, documents returned by a term-level query are not sorted by their relevance scores.
+
+        Args:
+            index (str): The name of the index to delete.
+            body (str): The query body.
+
+        Sample body:
+        {
+            "aos_index": "chatbot-index",
+            "operation": "query_term",
+            "body": {
+                "quey": query,
+                "filter": filter
+                "size": size
+            }
+        }
+        """
+        # avoid NotFoundError: NotFoundError(404, 'index_not_found_exception'...
+        if not self.client.indices.exists(index=index):
+            return {
+                'statusCode': 404,
+                'headers': {'Content-Type': 'application/json'},
+                'body': json.dumps({'error': f'index {index} does not exist'})
+            }
+        body_dict = json.loads(body)
+        field = str(body_dict.get('field'))
+        value = str(body_dict.get('value'))
+        # optional size with default value 100
+        size = str(body_dict.get('size', 100))
+        logger.info(f"field: {field}, value: {value}, size: {size}")
+        # With a filter context, OpenSearch returns matching documents without calculating a relevance score.
+        body = {
+            "query": {
+                # use term-level queries only for fields mapped as keyword
+                "regexp": {
+                    field:{
+                        "value": value,
+                        "case_insensitive": false
+                    }
+                }
+            },
+            "size": size,
+            "sort": [
+                {
+                    "_score": {
+                        "order": "desc"
+                    }
+                }
+            ]
+        }
+        response = self.client.search(index=index, body=body)
+        return response
+
     def query_knn(self, index: str, body: str, _kwargs: dict):
         """
         Execute a search query using knn.
@@ -292,12 +518,18 @@ class OpenSearchClient:
             }
         }
         """
-        self.validation(index, body)
+        # avoid NotFoundError: NotFoundError(404, 'index_not_found_exception'...
+        if not self.client.indices.exists(index=index):
+            return {
+                'statusCode': 404,
+                'headers': {'Content-Type': 'application/json'},
+                'body': json.dumps({'error': f'index {index} does not exist'})
+            }
         body_dict = json.loads(body)
-        query = str(body_dict.get('query'))
-        field = str(body_dict.get('field'))
-        # optional size with default value 100
-        size = str(body_dict.get('size', 100))
+        query = body_dict.get('query')
+        # optional size with default value 10
+        size = str(body_dict.get('size', 10))
+        logging.info(f"knn query: {query}, size limit: {size}")
         body = {
             "size": size,
             "query": {
@@ -311,7 +543,7 @@ class OpenSearchClient:
         }
         response = self.client.search(index=index, body=body)
         return response
-    
+
     def query_exact(self, index: str, body: str, _kwargs: dict):
         """
         Execute a search query using exact match.
@@ -331,7 +563,13 @@ class OpenSearchClient:
             }
         }
         """
-        self.validation(index, body)
+        # avoid NotFoundError: NotFoundError(404, 'index_not_found_exception'...
+        if not self.client.indices.exists(index=index):
+            return {
+                'statusCode': 404,
+                'headers': {'Content-Type': 'application/json'},
+                'body': json.dumps({'error': f'index {index} does not exist'})
+            }
         body_dict = json.loads(body)
         query = str(body_dict.get('query'))
         field = str(body_dict.get('field'))
@@ -347,7 +585,23 @@ class OpenSearchClient:
         response = self.client.search(index=index, body=body)
         return response
 
-    @retry(stop=stop_after_attempt(3))
+    # @retry(stop=stop_after_attempt(3))
+    def _embed_document(self, index: str, document: Document, _kwargs: dict):
+        embeddings = create_sagemaker_embeddings_from_js_model(embeddingModelEndpoint, region)
+        docsearch = OpenSearchVectorSearch(
+            index_name=index,
+            embedding_function=embeddings,
+            opensearch_url="https://{}".format(aosEndpoint),
+            http_auth = awsauth,
+            use_ssl = True,
+            verify_certs = True,
+            connection_class = RequestsHttpConnection
+        )
+        logger.info("Adding documents %s to OpenSearch with index %s", document, index)
+        # List of ids from adding the texts into the vectorstore.
+        return docsearch.add_documents(documents=[document])
+        # logger.info("Retry statistics: %s", _embed_document.retry.statistics)
+
     def embed_document(self, index: str, body: str, _kwargs: dict):
         """
         Returns:
@@ -361,7 +615,7 @@ class OpenSearchClient:
                 "documents": {
                     "page_content": "This is a test",
                     "metadata": {
-                        "heading_hierarchy": ...
+                        "heading_hierarchy": "Title 1"
                         ...
                     }
                 }
@@ -369,18 +623,38 @@ class OpenSearchClient:
         }
         """
         body_dict = json.loads(body)
-        document = body_dict.get('body', {}).get('documents', {})
-        embeddings = create_sagemaker_embeddings_from_js_model(embeddingModelEndpoint, region)
-        docsearch = OpenSearchVectorSearch(
-            index_name=index,
-            embedding_function=embeddings,
-            opensearch_url="https://{}".format(aosEndpoint),
-            http_auth = awsauth,
-            use_ssl = True,
-            verify_certs = True,
-            connection_class = RequestsHttpConnection
+        # assemble the document according to the Document class below:      
+        document = Document(
+            page_content=body_dict['documents']['page_content'],
+            metadata=body_dict['documents']['metadata']
         )
-        logger.info("Adding documents %s to OpenSearch with index %s", document, index)
-        res = docsearch.add_documents(documents=[document])
-        logger.info("Retry statistics: %s and response: %s", embed_document.retry.statistics, res)
-        return res
+        # if the embedding function execute successfully, return success with the document id
+        res = self._embed_document(index, document, _kwargs)
+        # assemble the response
+        response = {
+            'statusCode': 200,
+            'headers': {'Content-Type': 'application/json'},
+            'body': {'document_id': res}
+        }
+        return response
+
+    def embed_query(self, index: str, body: str, _kwargs: dict):
+        # fetch query from body
+        body_dict = json.loads(body)
+        query = body_dict.get('query')
+        logger.info(f"query: {query}")
+        query_embedding = SagemakerEndpointVectorOrCross(
+            prompt = query,
+            endpoint_name = embeddingModelEndpoint,
+            region_name = region,
+            model_type = "vector",
+            stop = None,
+        )
+        return query_embedding
+        # # assemble the body to multiplex the query_knn function
+        # body = {
+        #     "query": query_embedding,
+        #     "size": 10
+        # }
+        # response = self.query_knn(index, json.dumps(body), _kwargs)
+        # return response
