@@ -19,7 +19,7 @@ if [ -z "$s3_bucket_name" ] || ! command -v python &> /dev/null; then
 fi
 
 hf_names=("BAAI/bge-large-zh-v1.5" "BAAI/bge-large-en-v1.5")
-model_names=("bge_large_zh_v1_5" "bge_large_en_v1_5")
+model_names=("bge-large-zh-v1-5" "bge-large-en-v1-5")
 commit_hashs=("b5c9d86d763d9945f7c0a73e549a4a39c423d520" "5888da4a3a013e65d33dd6f612ecd4625eb87a7d")
 tensor_parallel_degree=(1 1)
 

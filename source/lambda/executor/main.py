@@ -36,7 +36,7 @@ region = os.environ["AWS_REGION"]
 embedding_endpoint = os.environ.get("embedding_endpoint", "")
 zh_embedding_endpoint = os.environ.get("zh_embedding_endpoint", "")
 en_embedding_endpoint = os.environ.get("en_embedding_endpoint", "")
-cross_endpoint = os.environ.get("cross_endpoint", "")
+cross_endpoint = os.environ.get("rerank_endpoint", "")
 rerank_endpoint = os.environ.get("rerank_endpoint", "")
 aos_endpoint = os.environ.get("aos_endpoint", "")
 aos_index = os.environ.get("aos_index", "")
@@ -48,6 +48,13 @@ websocket_url = os.environ.get("websocket_url", "")
 sm_client = boto3.client("sagemaker-runtime")
 aos_client = LLMBotOpenSearchClient(aos_endpoint)
 ws_client = None 
+
+# get aos_index_dict
+aos_index_dict = json.loads(os.environ.get("aos_index_dict", ""))
+aos_index_mkt_qd = aos_index_dict['aos_index_mkt_qd']
+aos_index_mkt_qq = aos_index_dict['aos_index_mkt_qq']
+aos_index_dgr_qd = aos_index_dict['aos_index_dgr_qd']
+aos_index_dgr_qq = aos_index_dict['aos_index_dgr_qq']
 
 class Type(Enum):
     COMMON = "common"
