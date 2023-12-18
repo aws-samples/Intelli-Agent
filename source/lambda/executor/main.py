@@ -28,6 +28,7 @@ from llmbot_utils import (
 from ddb_utils import get_session, update_session
 from sm_utils import SagemakerEndpointVectorOrCross
 from llm_utils import generate as llm_generate
+from llm_utils import generate_for_chain as llm_generate_for_chain
 from response_utils import process_response
 
 
@@ -960,7 +961,8 @@ def market_chain_entry(
     q_q_retriever = retriever.QueryQuestionRetriever()
 
     def format_docs(docs, top_k=2):
-        return "\n\n".join(doc.page_content for doc in docs["docs"][:top_k])
+        # return "\n\n".join(doc.page_content for doc in docs["docs"][:top_k])
+        return [{"doc": doc.page_content} for doc in docs["docs"][:top_k]]
     def format_sources(docs, top_k=2):
         return [doc.metadata["source"] for doc in docs["docs"][:top_k]]
     template = """Answer the question based only on the following context:
@@ -969,25 +971,46 @@ def market_chain_entry(
     Question: {question}
     """
     prompt = ChatPromptTemplate.from_template(template)
-    llm = CustomLLM()
+    llm = CustomLLM(model_id=llm_model_id, stream=stream)
     # output_parser = MarketOutputParser()
     # output_parser = PydanticOutputParser(pydantic_object=Answer)
     # output_parser = ListOutputParser(pydantic_object=Answer)
 
-    rag_chain = RunnableParallel(
-        {"docs": q_d_retriever, "question": lambda x:x["question"], "debug_info": lambda x:x["debug_info"]}
-        ) | RunnableParallel(
-        {"context": format_docs, "sources": format_sources, "question": lambda x:x["question"], "debug_info": lambda x:x["debug_info"]}
-        ) | RunnableParallel(
-        {"answer": prompt | llm, "sources": lambda x:x["sources"], "context": lambda x:x["context"], "debug_info": lambda x:x["debug_info"]})
-    q_q_branch = RunnableParallel(
-        {"answer": q_q_retriever, "question": lambda x:x["question"]}) | RunnableBranch(
-        (lambda x:x["answer"][0] is not None, lambda x:{"answer": x["answer"][0], "sources": x["answer"][1], "debug_info": lambda x:x["answer"][2]}),
-        {"question": lambda x:x["question"], "debug_info": lambda x:x["answer"][2]} | rag_chain
-    )
-    response = q_q_branch.invoke({"question": query_input, "debug_info": debug_info})
+    rag_chain = RunnableParallel({
+                "docs": q_d_retriever,
+                "query": lambda x:x["query"],
+                "debug_info": lambda x:x["debug_info"],
+                "llm_params": lambda x:x["llm_params"]}
+            ) | RunnableParallel({
+                "contexts": format_docs,
+                "sources": format_sources,
+                "query": lambda x:x["query"],
+                "debug_info": lambda x:x["debug_info"],
+                "llm_params": lambda x:x["llm_params"]}
+            ) | RunnableParallel({
+                "answer": llm_generate_for_chain,
+                "sources": lambda x:x["sources"],
+                "contexts": lambda x:x["contexts"],
+                "debug_info": lambda x:x["debug_info"]})
+    q_q_branch = RunnableParallel({
+                "answer": q_q_retriever,
+                "query": lambda x:x["query"],
+                "llm_params": lambda x:x["llm_params"]}
+            ) | RunnableBranch((
+                lambda x:x["answer"][0] is not None,
+                    lambda x:{"answer": x["answer"][0],
+                              "sources": x["answer"][1],
+                              "debug_info": lambda x:x["answer"][2]}),
+                {"query": lambda x:x["query"],
+                 "debug_info": lambda x:x["answer"][2],
+                 "llm_params": lambda x:x["llm_params"]} | rag_chain)
+    llm_params = {"model_id": "anthropic.claude-v2", "stream": stream}
+    response = q_q_branch.invoke({"query": query_input,
+                                  "debug_info": debug_info,
+                                  "llm_params": llm_params})
     answer = response["answer"]
     sources = response["sources"]
+    contexts = response["contexts"]
     return answer, sources, contexts, debug_info
 
 def _is_websocket_request(event):
