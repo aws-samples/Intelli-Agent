@@ -12,14 +12,11 @@ This is the basic workflow to handle documents inside S3 bucket, including docum
 
 1. Prepare model assets by executing script per model folder
 ```bash
-cd source/model/<cross/embedding/instruct>/model
-./model.sh       
-Make sure Python installed properly. Usage: ./model.sh -t TOKEN [-m MODEL_NAME] [-c COMMIT_HASH] [-s S3_BUCKET_NAME]
-  -t TOKEN            Hugging Face token (required)
-  -m MODEL_NAME       Model name (default: csdc-atl/buffer-cross-001)
-  -c COMMIT_HASH      Commit hash (default: 46d270928463db49b317e5ea469a8ac8152f4a13)
+cd source/model/<rerank/embedding>/model
+./prepare_model.sh       
+Make sure Python installed properly. Usage: ./prepare_model.sh -s S3_BUCKET_NAME
   -s S3_BUCKET_NAME   S3 bucket name to upload the model (default: llm-rag)
-./model.sh -t <Your Hugging Face Token> -s <Your S3 Bucket Name>
+./prepare_model.sh -s <Your S3 Bucket Name>
 
 cd source/model/etl/code
 sh model.sh ./Dockerfile <EtlImageName> <AWS_REGION>
