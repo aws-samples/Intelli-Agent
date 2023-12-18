@@ -194,6 +194,12 @@ from typing import Any, List, Mapping, Optional
 from langchain.callbacks.manager import CallbackManagerForLLMRun
 from langchain.llms.base import LLM
 class CustomLLM(LLM):
+    model_id: str = "anthropic.claude-v2" 
+    enable_stream: bool=False
+    def __init__(self, model_id, stream):
+        super().__init__()
+        self.model_id = model_id
+        self.enable_stream = stream
 
     @property
     def _llm_type(self) -> str:
@@ -210,9 +216,10 @@ class CustomLLM(LLM):
             raise ValueError("stop kwargs are not permitted.")
         # model_cls = Model.get_model("anthropic.claude-v2")
         # return model_cls._generate(prompt)
-        llm_params = json.loads(
-            kwargs.get("llm_params", '{"model_id": "anthropic.claude-v2"}'))
-        return generate(llm_params["model_id"], *kwargs)
+        prompt = json.loads(prompt)
+        query = prompt["query"]
+        contexts = prompt["contexts"]
+        return generate(query=query, contexts=contexts, model_id=self.model_id, stream=self.enable_stream, *kwargs)["answer"]
 
     @property
     def _identifying_params(self) -> Mapping[str, Any]:

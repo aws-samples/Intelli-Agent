@@ -62,6 +62,10 @@ class Type(Enum):
     MARKET = "market"
     MARKET_CHAIN = "market_chain"
 
+class IntentType(Enum):
+    KNOWLEDGE_QA = "knowledge_qa"
+    CHAT = "chat"
+    STRICT_QQ = "strict_q_q"
 
 class APIException(Exception):
     def __init__(self, message, code: str = None):
@@ -920,7 +924,8 @@ def market_chain_entry(
     temperature: float,
     enable_q_q_match: bool,
     llm_model_id=None,
-    stream=False
+    stream=False,
+    intent_type=IntentType.KNOWLEDGE_QA
 ):
     """
     Entry point for the Lambda function.
@@ -958,7 +963,7 @@ def market_chain_entry(
     from utils.llm_utils import CustomLLM
     from langchain.prompts import ChatPromptTemplate
     from langchain.output_parsers import PydanticOutputParser
-    from langchain.schema.runnable import RunnableParallel, RunnablePassthrough, RunnableBranch
+    from langchain.schema.runnable import RunnableParallel, RunnablePassthrough, RunnableBranch, RunnableLambda
     from langchain.pydantic_v1 import BaseModel, Field, validator
 
     from langchain.globals import set_verbose
@@ -983,54 +988,50 @@ def market_chain_entry(
         sources.extend([{"doc": doc.metadata["source"]} for doc in docs["mkt_docs"][:top_k]])
         return sources 
 
-    template = """Answer the question based only on the following context:
-    {context}
+    # llm = CustomLLM(model_id=llm_model_id, stream=stream)
 
-    Question: {question}
-    """
-    prompt = ChatPromptTemplate.from_template(template)
-    llm = CustomLLM(model_id=llm_model_id, stream=stream)
-    # output_parser = MarketOutputParser()
-    # output_parser = PydanticOutputParser(pydantic_object=Answer)
-    # output_parser = ListOutputParser(pydantic_object=Answer)
-
+    llm_chain = RunnableLambda(lambda x:json.dumps(x)) | CustomLLM(model_id="anthropic.claude-v2", stream=stream)
+    # llm_chain = RunnableLambda(llm_generate_for_chain)
     rag_chain = RunnableParallel({
                 "dgr_docs": dgr_q_d_retriever,
                 "mkt_docs": mkt_q_d_retriever,
                 "query": lambda x:x["query"],
-                "debug_info": lambda x:x["debug_info"],
-                "llm_params": lambda x:x["llm_params"]}
+                "debug_info": lambda x:x["debug_info"]}
             ) | RunnableParallel({
                 "contexts": format_docs,
                 "sources": format_sources,
                 "query": lambda x:x["query"],
-                "debug_info": lambda x:x["debug_info"],
-                "llm_params": lambda x:x["llm_params"]}
+                "debug_info": lambda x:x["debug_info"]}
             ) | RunnableParallel({
-                "answer": llm_generate_for_chain,
+                "answer": llm_chain,
                 "sources": lambda x:x["sources"],
                 "contexts": lambda x:x["contexts"],
                 "debug_info": lambda x:x["debug_info"]})
     q_q_branch = RunnableParallel({
                 "answer": dgr_q_q_retriever,
-                "query": lambda x:x["query"],
-                "llm_params": lambda x:x["llm_params"]}
+                "query": lambda x:x["query"]}
             ) | RunnableBranch((
                 lambda x:x["answer"][0] is not None,
                     lambda x:{"answer": x["answer"][0],
                               "sources": x["answer"][1],
                               "debug_info": lambda x:x["answer"][2]}),
                 {"query": lambda x:x["query"],
-                 "debug_info": lambda x:x["answer"][2],
-                 "llm_params": lambda x:x["llm_params"]} | rag_chain)
-    llm_params = {"model_id": "anthropic.claude-v2", "stream": stream}
-    response = q_q_branch.invoke({"query": query_input,
-                                  "debug_info": debug_info,
-                                  "llm_params": llm_params})
-    answer = response["answer"]["answer"]
-    sources = response["sources"]
-    contexts = response["contexts"]
-    return answer, sources, contexts, debug_info
+                 "debug_info": lambda x:x["answer"][2]} | rag_chain)
+    strict_q_q_branch = mkt_q_q_retriever
+    if intent_type == IntentType.KNOWLEDGE_QA.value:
+        response = q_q_branch.invoke({"query": query_input, "debug_info": debug_info})
+        answer = response["answer"]
+        sources = response["sources"]
+        contexts = response["contexts"]
+        return answer, sources, contexts, debug_info
+    elif intent_type == IntentType.CHAT.value:
+        response = llm_chain.invoke(json.dumps({"query": query_input, "contexts": []}))
+        return answer, sources, contexts, debug_info
+    elif intent_type == IntentType.STRICT_QQ.value:
+        strict_q_q_branch.invoke({"query": query_input})
+        return answer, sources, contexts, debug_info
+    else:
+        return answer, sources, contexts, debug_info
 
 def _is_websocket_request(event):
     """Check if the request is WebSocket or Restful
@@ -1071,6 +1072,7 @@ def lambda_handler(event, context):
 
     retrieval_only = event_body.get("enable_debug", False)
     get_contexts = event_body.get("get_contexts", False)
+    intent_type = event_body.get("intent_type", IntentType.KNOWLEDGE_QA.value)
     # stream = event_body.get("stream", False)
 
     if enable_debug:
@@ -1167,12 +1169,13 @@ def lambda_handler(event, context):
             knowledge_qa_flag,
             temperature,
             enable_q_q_match,
-            stream=stream
+            stream=stream,
+            intent_type=intent_type
         )
 
     main_entry_elpase = time.time() - main_entry_start
     logger.info(f"runing time of {type} entry : {main_entry_elpase}s seconds")
-    
+
     return process_response(**dict(
         stream=stream,
         session_id=session_id,

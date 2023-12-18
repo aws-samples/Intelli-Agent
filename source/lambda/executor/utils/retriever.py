@@ -142,7 +142,18 @@ def get_faq_content(source, index_name):
             return r["_source"]["content"]
     return ""
 
-
+def get_parent_content(source, index_name):
+    opensearch_query_response = aos_client.search(
+        index_name=index_name,
+        query_type="basic",
+        query_term=source,
+        field="metadata.source",
+        size=100,
+    )
+    for r in opensearch_query_response["hits"]["hits"]:
+        if r["_source"]["metadata"]["field"] == "all_text":
+            return r["_source"]["content"]
+    return ""
 
 def organize_faq_results(response, index_name):
     """
