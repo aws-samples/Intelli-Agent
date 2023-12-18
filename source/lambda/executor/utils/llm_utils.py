@@ -124,7 +124,7 @@ class Claude2(Model):
             "prompt":prompt
         }
     
-    @classmethod 
+    @classmethod
     def postprocess(cls,answer):
         rets = re.findall('<result>(.*?)</result>','<result>'+ answer,re.S)
         rets = [ret.strip() for ret in rets]
@@ -138,7 +138,6 @@ class Claude2(Model):
 
 class ClaudeInstance(Claude2):
     modelId = 'anthropic.claude-instant-v1'
-
 
 class Claude21(Claude2):
     modelId = 'anthropic.claude-v2:1'
@@ -193,7 +192,7 @@ from typing import Any, List, Mapping, Optional
 
 from langchain.callbacks.manager import CallbackManagerForLLMRun
 from langchain.llms.base import LLM
-class CustomLLM(LLM):
+class CustomLLM:
     model_id: str = "anthropic.claude-v2" 
     enable_stream: bool=False
     def __init__(self, model_id, stream):
@@ -205,7 +204,7 @@ class CustomLLM(LLM):
     def _llm_type(self) -> str:
         return "custom"
 
-    def _call(
+    def __call__(
         self,
         prompt: str,
         stop: Optional[List[str]] = None,

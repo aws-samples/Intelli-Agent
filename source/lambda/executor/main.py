@@ -970,9 +970,9 @@ def market_chain_entry(
 
     set_verbose(True)
     dgr_q_d_retriever = retriever.QueryDocumentRetriever(aos_index_dgr_qd, "embedding", "content", "source")
-    dgr_q_q_retriever = retriever.QueryQuestionRetriever(aos_index_dgr_qq, "embedding")
+    dgr_q_q_retriever = retriever.QueryQuestionRetriever(aos_index_dgr_qq, "embedding", "source")
     mkt_q_d_retriever = retriever.QueryDocumentRetriever(aos_index_mkt_qd, "vector_field", "text", "file_path")
-    mkt_q_q_retriever = retriever.QueryQuestionRetriever(aos_index_mkt_qq, "vector_field")
+    mkt_q_q_retriever = retriever.QueryQuestionRetriever(aos_index_mkt_qq, "vector_field", "file_path")
 
     def format_docs(docs, top_k=1):
         # return "\n\n".join(doc.page_content for doc in docs["docs"][:top_k])
@@ -990,8 +990,9 @@ def market_chain_entry(
 
     # llm = CustomLLM(model_id=llm_model_id, stream=stream)
 
-    llm_chain = RunnableLambda(lambda x:json.dumps(x)) | CustomLLM(model_id="anthropic.claude-v2", stream=stream)
-    # llm_chain = RunnableLambda(llm_generate_for_chain)
+    # llm_chain = RunnableLambda(lambda x:json.dumps(x)) | CustomLLM(model_id="anthropic.claude-v2", stream=stream)
+    llm_generate_for_chain = CustomLLM(model_id=llm_model_id, stream=stream)
+    llm_chain = RunnableLambda(lambda x:json.dumps(x)) | RunnableLambda(llm_generate_for_chain)
     rag_chain = RunnableParallel({
                 "dgr_docs": dgr_q_d_retriever,
                 "mkt_docs": mkt_q_d_retriever,
@@ -1025,12 +1026,12 @@ def market_chain_entry(
         contexts = response["contexts"]
         return answer, sources, contexts, debug_info
     elif intent_type == IntentType.CHAT.value:
-        response = llm_chain.invoke(json.dumps({"query": query_input, "contexts": []}))
-        return answer, sources, contexts, debug_info
+        response = llm_chain.invoke({"query": query_input, "contexts": []})
+        return response, sources, contexts, debug_info
     elif intent_type == IntentType.STRICT_QQ.value:
-        strict_q_q_branch.invoke({"query": query_input})
-        return answer, sources, contexts, debug_info
-    else:
+        response = strict_q_q_branch.invoke({"query": query_input, "debug_info": debug_info})
+        answer = response[0]
+        sources = response[1]
         return answer, sources, contexts, debug_info
 
 def _is_websocket_request(event):
