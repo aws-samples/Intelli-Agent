@@ -19,6 +19,12 @@ import boto3
 # region = "us-east-1"
 # credentials = boto3.Session().get_credentials()
 # aos_utils.awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, region, 'es', session_token=credentials.token)
+
+from dotenv import load_dotenv
+load_dotenv()
+# import os
+# region = os.environ["AWS_REGION"]
+# print(region)
 import main
 
 class DummyWebSocket:
@@ -61,7 +67,7 @@ def generate_answer(query, temperature=0.7, enable_q_q_match=False, enable_debug
                 ],
                 "aos_faq_index": "chatbot-index-9",
                 "aos_ug_index": "chatbot-index-1",
-                "model": "knowledge_qa",
+                # "model": "knowledge_qa",
                 "temperature": temperature,
                 "enable_q_q_match": enable_q_q_match,
                 "enable_debug": enable_debug,
@@ -69,7 +75,7 @@ def generate_answer(query, temperature=0.7, enable_q_q_match=False, enable_debug
                 "type": "market_chain",
                 # "type": "common",
                 # "model": "chat"
-                # "model": "strict_q_q"
+                "model": "strict_q_q",
                 # "model": "knowledge_qa"
             }
         )
@@ -166,4 +172,5 @@ if __name__ == "__main__":
     # generate_answer("我想调用Amazon Bedrock中的基础模型，应该使用什么API?")
     # generate_answer("polly是什么？")
     # generate_answer("只要我付款就可以收到发票吗")
-    generate_answer("发票内容有更新应怎么办")
+    generate_answer("找不到发票怎么办")
+    # generate_answer("发票内容有更新应怎么办")
