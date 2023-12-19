@@ -6,8 +6,8 @@ import boto3
 import requests
 import json
 import itertools
-
-from tenacity import retry, stop_after_attempt
+import time
+from tenacity import retry, stop_after_attempt, wait_exponential
 from itertools import product
 from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple
 from requests_aws4auth import AWS4Auth
@@ -30,7 +30,6 @@ from llm_bot_dep.splitter_utils import MarkdownHeaderTextSplitter
 from llm_bot_dep.sm_utils import create_sagemaker_embeddings_from_js_model, SagemakerEndpointVectorOrCross
 
 from ragas.testset import TestsetGenerator
-from langchain.embeddings import OpenAIEmbeddings
 from langchain.chat_models import ChatOpenAI
 from ragas.llms import LangchainLLM
 
@@ -41,7 +40,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # set logger level to debug
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 AOS_API_SUFFIX = "aos"
 LLM_API_SUFFIX = "llm"
@@ -75,10 +74,10 @@ bedrock_llm = Bedrock(
     client = bedrock_client,
     model_kwargs = {'temperature': 0}
 )
-bedrock_embedding = BedrockEmbeddings(
-    # model_id="amazon.titan-embed-text-v1", region_name="us-east-1"
+_bedrock_embedding = BedrockEmbeddings(
+    model_id="amazon.titan-embed-text-v1", region_name="us-east-1"
     # model_id="cohere.embed-multilingual-v3", region_name="us-east-1"
-    model_id = "amazon.titan-text-express-v1", region_name="us-east-1"
+    # model_id = "amazon.titan-text-express-v1", region_name="us-east-1"
 )
 
 def csdc_markdown_loader(file_path: str) -> List[Document]:
@@ -131,12 +130,21 @@ def langchain_md_loader(file_path: str) -> List[Document]:
     return docs
 
 def langchain_unstructured_loader(file_path: str) -> List[Document]:
+    """
+    Loads a document from a file path.
+
+    Args:
+        file_path (str): The path to the file.
+
+    Returns:
+        list[Document]: A list of Document objects.
+    """
     loader = UnstructuredFileLoader(file_path, mode="elements")
     docs = loader.load()
     logger.debug("unstructured load data: {}".format(docs))
     return docs
 
-def recursive_splitter(docs: List[Document]) -> List[Document]:
+def langchain_recursive_splitter(docs: List[Document]) -> List[Document]:
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size = 500,
         chunk_overlap  = 30,
@@ -165,14 +173,21 @@ def documents_to_strings(documents: List[Document]) -> List[str]:
         serialized_documents.append(serialized_doc)
     return serialized_documents
 
-def openai_embedding(docs: List[Document]) -> List[List[float]]:
+def openai_embedding(index: str, docs: List[Document]) -> List[List[float]]:
     embeddings = OpenAIEmbeddings()
     docs = documents_to_strings(docs)
     embeddings.embed_documents(docs)
     logger.debug("openai embeddings: {}".format(embeddings))
     return embeddings
 
-def csdc_embedding(index: str, doc: Document):
+def csdc_embedding(index: str, docs: List[Document]) -> List[List[str]]:
+    # embedding
+    batches = batch_generator(docs, batch_size=5)
+    for batch in batches:
+        for doc in batch:
+            embedding_res = csdc_embedding(default_aos_index_name, doc)
+
+def _csdc_embedding(index: str, doc: Document):
     """
     Embeds the given documents using the CSDC embedding model.
 
@@ -181,7 +196,11 @@ def csdc_embedding(index: str, doc: Document):
         document (Document): The document to embed.
 
     Returns:
-        list: A list of embeddings, one for each document.
+        document_id (str): The ID of the document in the index.
+        e.g. 
+        "document_id": [
+            "05d0f6bb-b5c6-40e0-8064-c79448bd2332"
+        ]
     """
     page_content = doc.page_content
     metadata = doc.metadata
@@ -199,11 +218,47 @@ def csdc_embedding(index: str, doc: Document):
     logger.debug("payload: {}, apiEndpoint: {}, headers: {}, type: {}".format(payload, apiEndpoint, headers, type(payload)))
     try: 
         response = requests.request("POST", apiEndpoint + 'aos', headers=headers, data=payload)
-        logger.debug("response: {}".format(json.loads(response.text)))
+        logger.info("csdc embedding: {}".format(json.loads(response.text)))
         return json.loads(response.text)
     except Exception as e:
         logger.error("error: {}".format(e))
         raise e
+
+def bedrock_embedding(index: str, docs: List[Document]) -> List[List[str]]:
+    """
+    Embeds the given documents using the Bedrock embedding model.
+
+    Args:
+        index (str): The name of the index to which the documents will be added.
+        document (Document): The document to embed.
+
+    Returns:
+        list: List of ids from adding the texts into the vectorstore.
+    """
+    opensearch_vector_search = OpenSearchVectorSearch(
+        opensearch_url="https://localhost:9200",
+        index_name=index,
+        embedding_function=_bedrock_embedding,
+        http_auth=("admin", "admin"),
+        use_ssl = False,
+        verify_certs = False,
+        ssl_assert_hostname = False,
+        ssl_show_warn = False,
+        bulk_size = 1024,
+    )
+    res_list = []
+    batches = batch_generator(docs, batch_size=5)
+    for batch in batches:
+        for doc in batch:
+            res = opensearch_vector_search.add_embeddings(
+                text_embeddings = [(doc.page_content, _bedrock_embedding.embed_documents([doc.page_content])[0])],
+                metadatas = None,
+                ids = None,
+                bulk_size = 1024,
+            )
+            res_list.append(res)
+    logger.debug("bedrock embedding: {}".format(res_list))
+    return res_list
 
 def _query_embedding(index: str = default_aos_index_name, query: str = "Hello World") -> List[float] :
     """
@@ -236,10 +291,10 @@ def _query_embedding(index: str = default_aos_index_name, query: str = "Hello Wo
         raise e
     return response
 
-def aos_retriever(index: str, vector_field: List[float], size: int = 10):
-    """
-
-    """
+def aos_retriever(index: str, query: str, size: int = 10):
+    # such aos running inside vpc created by solution template, we use request library to call the api backed by api gw & lambda
+    query_res = _query_embedding(index, query)
+    vector_field = json.loads(query_res.text)
     headersList = {
         "Accept": "*/*",
         "Content-Type": "application/json",
@@ -259,10 +314,54 @@ def aos_retriever(index: str, vector_field: List[float], size: int = 10):
         # parse the response and get the query result
         response = json.loads(response.text)
         logger.info("aos retriever response: {}".format(response))
+        # parse the response to get the score with following schema
+        """
+        {
+            "took": 2,
+            "timed_out": false,
+            "_shards": {
+                "total": 5,
+                "successful": 5,
+                "skipped": 0,
+                "failed": 0
+            },
+            "hits": {
+                "total": {
+                "value": 111,
+                "relation": "eq"
+                },
+                "max_score": 0.45040068,
+                "hits": [
+                {
+                    "_index": "jsonl",
+                    "_id": "df050ddf-98c2-4396-83e2-ce467164b440",
+                    "_score": 0.45040068,
+                    ...
+        """
+        score_list = [float(score['_score']) for score in response['hits']['hits']]
     except Exception as e:
         logger.error("error: {}".format(e))
         raise e
     return response
+
+def local_aos_retriever(index: str, query: str, size: int = 10):
+    # assure local aos is running, e.g. simplely using 'docker run -d -p 9200:9200 -p 9600:9600 -e "discovery.type=single-node" opensearchproject/opensearch:latest'
+    opensearch_vector_search = OpenSearchVectorSearch(
+        opensearch_url="https://localhost:9200",
+        index_name=index,
+        embedding_function=_bedrock_embedding,
+        http_auth=("admin", "admin"),
+        use_ssl = False,
+        verify_certs = False,
+        ssl_assert_hostname = False,
+        ssl_show_warn = False,
+        bulk_size = 1024,
+    )
+    response = opensearch_vector_search.similarity_search_with_score(query, k=size)
+    logger.info("local aos retriever response: {}".format(response))
+    # parse the response to get the score with type List[Tuple[Document, float]]
+    score_list = [float(score[1]) for score in response]
+    return response 
 
 # utils to run embeddings with metrics of dimension and time
 def run_embeddings(embeddings_list, docs: List[str]):
@@ -288,14 +387,22 @@ def faiss_retriver(texts: List[str], query: str):
     logger.debug("docs_with_score: {}".format(docs_with_score))
     return docs_with_score
 
-def langchain_evalutor(prediction: str, reference: str, type: str):
+@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
+def langchain_evaluator(prediction: str, reference: str, type: str):
     """
+    evaluate the retrieved documents with query and return summary result depend on the type of evaluator
+
+    Args:
+        prediction (str): The query to evaluate.
+        reference (str): The reference to evaluate.
+        type (str): The type of evaluator to use.
     
+    Returns:
+        dict: A dictionary of evaluation results, e.g. {'score': 0.1682955026626587}
     """
-    evaluator = load_evaluator(type)
+    evaluator = load_evaluator(type, llm=bedrock_llm)
     response = evaluator.evaluate_strings(prediction=prediction, reference=reference)
     logger.debug("evaluator response: {}".format(response))
-    # {'score': 0.09683692455291748}
     return response
 
 def llama_index_evalutor(query: str, docs_with_score: List[Tuple[str, float]]):
@@ -366,6 +473,9 @@ class WorkflowExecutor:
             'evaluators': []
         }
 
+        self.index = default_aos_index_name
+        self.size = 10
+
     def update_component(self, component_type, component, action):
         """
         Adds or removes a component to/from the respective component list.
@@ -386,12 +496,12 @@ class WorkflowExecutor:
         else:
             raise ValueError(f"Invalid component type: {component_type}")
 
-    def execute_workflow(self, input_document, query):
+    def execute_workflow(self, doc_path: str, query):
         """
         Executes the workflow with all combinations of components and returns the results.
 
         Args:
-            input_document (str): The input document to process.
+            doc_path (str): The path to the document to be loaded.
             query (str): The query for retrieval and evaluation.
 
         Returns:
@@ -401,7 +511,25 @@ class WorkflowExecutor:
 
         E2E LLM evaluation: construct dataset with ground truth and using exiting langchain or llama index library to evaluate the faithfulness, relevance and accuracy metrics, OpenAI or Claude will be used as judger to determine the final score.
         """
-        results_matrix = []
+        summary = {
+            'rounds_of_experiments': 0,
+            'number_of_evaluation_questions': len(query),
+            'chunk_size': None,  # Update this if you have chunk size information
+            'overlap_size': None, # Update this if you have overlap size information
+            'split_method': [],
+            'retrieval_method': [],
+            'embedding_algorithm_model': [],
+            'number_of_chunks_retrieved': 0,
+            'average_relevance_score': 0,
+            'average_similarity_score': 0,
+            'average_time_of_retrieval': 0
+        }
+
+        total_relevance_score = 0
+        total_similarity_score = 0
+        total_retrieval_time = 0
+
+        # results_matrix = []
         for loader, splitter, embedder, retriever, evaluator in product(
             self.components['loaders'],
             self.components['splitters'],
@@ -409,21 +537,41 @@ class WorkflowExecutor:
             self.components['retrievers'],
             self.components['evaluators']
         ):
-            docs = loader(input_document)
-            docs = splitter(docs)
-            vectors = embedder.embed_documents(docs)
-            retrieved_docs = retriever(docs, query)
-            metrics = evaluator(retrieved_docs)
-            results_matrix.append(metrics)
+            start_time = time.perf_counter()
+            loader_res = loader(doc_path)
+            splitter_res = splitter(loader_res)
+            embed_res = embedder(self.index, splitter_res)
+            retriever_res = retriever(self.index, query, self.size)
+            retrieval_time = time.perf_counter() - start_time
 
-        return results_matrix
+            total_retrieval_time += retrieval_time
+            summary['rounds_of_experiments'] += 1
+            summary['split_method'].append(splitter.__name__)
+            summary['retrieval_method'].append(retriever.__name__)
+            summary['embedding_algorithm_model'].append(embedder.__name__)
+            summary['number_of_chunks_retrieved'] += len(retriever_res)
+
+        #  openai required for now, bedrock is not working even setup the llm model explicitly
+            for reference in retriever_res:
+                score = evaluator(prediction=query, reference=reference.page_content, type=EvaluatorType.EMBEDDING_DISTANCE)['score']
+                total_similarity_score += score
+                # TODO, unified score parse method
+                # total_relevance_score += float(reference[1]) for langchain
+                # total_relevance_score += float(score['_score']) for score in reference['hits']['hits'] for csdc
+
+                # results_matrix.append(evaluator(prediction=query, reference=reference.page_content, type=EvaluatorType.EMBEDDING_DISTANCE)['score'])
+        summary['average_relevance_score'] = total_relevance_score / summary['number_of_chunks_retrieved']
+        summary['average_similarity_score'] = total_similarity_score / summary['number_of_chunks_retrieved']
+        summary['average_time_of_retrieval'] = total_retrieval_time / summary['rounds_of_experiments']
+
+        return summary
 
 # Preparing loader, splitter, and embeddings retriever list, iterate them to create comparasion matrix
 loader_list = [langchain_unstructured_loader, nougat_loader, csdc_markdown_loader]
-splitter_list = [recursive_splitter, csdc_markdown_header_splitter]
+splitter_list = [langchain_recursive_splitter, csdc_markdown_header_splitter]
 embeddings_list = [openai_embedding, csdc_embedding]
-retriever_list = [faiss_retriver, aos_retriever]
-evalutor_list = [langchain_evalutor]
+retriever_list = [faiss_retriver, aos_retriever, local_aos_retriever]
+evalutor_list = [langchain_evaluator]
 
 def batch_generator(generator, batch_size: int):
     iterator = iter(generator)
@@ -448,38 +596,99 @@ if __name__ == "__main__":
     9. average similarity score of retrival
     10. average time of retrival
     """
-    """
-    # prepare for QA dataset
-    loader_res = csdc_markdown_loader("md-sample-01.md")
+    legacy = WorkflowExecutor()
+    legacy.update_component('loaders', langchain_unstructured_loader, 'add')
+    legacy.update_component('splitters', langchain_recursive_splitter, 'add')
+    legacy.update_component('embedders', bedrock_embedding, 'add')
+    legacy.update_component('retrievers', local_aos_retriever, 'add')
+    legacy.update_component('evaluators', langchain_evaluator, 'add')
+    legacy.execute_workflow("pdf-sample-01.pdf", "请介绍什么是kindle以及它的主要功能？")
+
+    # csdc = WorkflowExecutor()
+    # csdc.update_component('loaders', csdc_markdown_loader, 'add')
+    # csdc.update_component('splitters', csdc_markdown_header_splitter, 'add')
+    # csdc.update_component('embedders', csdc_embedding, 'add')
+    # csdc.update_component('retrievers', aos_retriever, 'add')
+    # csdc.update_component('evaluators', langchain_evaluator, 'add')
+    # csdc.execute_workflow("md-sample-01.md", "请介绍什么是kindle以及它的主要功能？")
+
+    # load
+    # loader_res = langchain_unstructured_loader("pdf-sample-01.pdf")
+
+    # loader_res = csdc_markdown_loader("md-sample-01.md")
+
+    # prepare for QA dataset used in llm evaluation
     # testdata_generate(loader_res, llm="openai", embedding="openai")
 
-    # load, muliplex above result
-    # loader_res = csdc_markdown_loader("md-sample-02.md")
-
     # split
-    splitter_res = csdc_markdown_header_splitter(loader_res)
+    # splitter_res = langchain_recursive_splitter(loader_res)
 
-    # embedding
-    batches = batch_generator(splitter_res, batch_size=5)
-    for batch in batches:
-        for doc in batch:
-            embedding_res = csdc_embedding(default_aos_index_name, doc)
-    """
-    # retriever
-    query = "question 6"
-    query_res = _query_embedding('jsonl', query)
-    retriver_res = aos_retriever('jsonl', json.loads(query_res.text), 10)
-    reference_list = []
-    for hit in retriver_res['hits']['hits']:
-        reference_list.append(hit['_source']['text'])
+    # splitter_res = csdc_markdown_header_splitter(loader_res)
+
+    # # embedding
+    # batches = batch_generator(splitter_res, batch_size=5)
+    # for batch in batches:
+    #     for doc in batch:
+    #         embedding_res = csdc_embedding(default_aos_index_name, doc)
+
+    # query = "question 6"
+    # retriver_res = aos_retriever('jsonl', query, 10)
+    # reference_list = []
+    # for hit in retriver_res['hits']['hits']:
+    #     reference_list.append(hit['_source']['text'])
+
+    # embeddings = OpenAIEmbeddings()
+    # embeddings = BedrockEmbeddings()
+    # resp = embeddings.embed_documents(
+    #     ["This is a content of the document", "This is another document"]
+    # )
+    # _bedrock_embedding = BedrockEmbeddings()
+    # opensearch_vector_search = OpenSearchVectorSearch(
+    #     opensearch_url="https://localhost:9200",
+    #     index_name="llm-bot-index",
+    #     embedding_function=_bedrock_embedding,
+    #     http_auth=("admin", "admin"),
+    #     use_ssl = False,
+    #     verify_certs = False,
+    #     ssl_assert_hostname = False,
+    #     ssl_show_warn = False,
+    #     bulk_size = 1024,
+    # )
     
-    # evaluator query with all the reference and save the score into a list
-    score_list = []
-    for reference in reference_list:
-        score_list.append(langchain_evalutor(prediction=query, reference=reference, type=EvaluatorType.EMBEDDING_DISTANCE)['score'])
-    logger.info("score_list: {}".format(score_list))
+    # batches = batch_generator(splitter_res, batch_size=5)
+    # for batch in batches:
+    #     for doc in batch:
+    #         opensearch_vector_search.add_embeddings(
+    #             text_embeddings = [(doc.page_content, _bedrock_embedding.embed_documents([doc.page_content])[0])],
+    #             metadatas = None,
+    #             ids = None,
+    #             bulk_size = 1024,
+    #         )
 
-    # overall workflow
-    # workflow = WorkflowExecutor()
-    # workflow.update_component('loaders', langchain_unstructured_loader, 'add')
-    # workflow.update_component('splitters', recursive_splitter, 'add')
+    # embed_res = bedrock_embedding(default_aos_index_name, splitter_res)
+    # logger.info("embed_res: {}".format(embed_res))
+    # retriever
+
+    # query = "请介绍什么是kindle以及它的主要功能？"
+    # retriver_res = local_aos_retriever(default_aos_index_name, query, 10)
+
+    # retriver_res = opensearch_vector_search.similarity_search(query, k=10)
+    # logger.info("retriver_res: {} with type {}".format(retriver_res, type(retriver_res)))
+    # score_list = []
+    # for reference in retriver_res:
+    #     score_list.append(langchain_evaluator(prediction=query, reference=reference.page_content, type=EvaluatorType.EMBEDDING_DISTANCE)['score'])
+    # logger.info("score_list: {}".format(score_list))
+    
+    # retriever
+    # query = "question 6"
+    # query_res = _query_embedding('jsonl', query)
+    # retriver_res = aos_retriever('jsonl', json.loads(query_res.text), 10)
+    # reference_list = []
+    # for hit in retriver_res['hits']['hits']:
+    #     reference_list.append(hit['_source']['text'])
+    
+    # # evaluator query with all the reference and save the score into a list
+    # score_list = []
+    # for reference in reference_list:
+    #     score_list.append(langchain_evaluator(prediction=query, reference=reference, type=EvaluatorType.EMBEDDING_DISTANCE)['score'])
+    # logger.info("score_list: {}".format(score_list))
