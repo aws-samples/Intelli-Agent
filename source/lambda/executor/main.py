@@ -7,7 +7,6 @@ import boto3
 import sys 
 import time
 import copy
-import os
 import traceback
 from enum import Enum
 

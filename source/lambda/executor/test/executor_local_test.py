@@ -21,6 +21,9 @@ import boto3
 # aos_utils.awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, region, 'es', session_token=credentials.token)
 import main
 
+from dotenv import load_dotenv
+load_dotenv()
+
 class DummyWebSocket:
     def post_to_connection(self,ConnectionId,Data):
         data = json.loads(Data)
@@ -61,7 +64,7 @@ def generate_answer(query, temperature=0.7, enable_q_q_match=False, enable_debug
                 ],
                 "aos_faq_index": "chatbot-index-9",
                 "aos_ug_index": "chatbot-index-1",
-                "model": "knowledge_qa",
+                # "model": "knowledge_qa",
                 "temperature": temperature,
                 "enable_q_q_match": enable_q_q_match,
                 "enable_debug": enable_debug,
@@ -69,7 +72,7 @@ def generate_answer(query, temperature=0.7, enable_q_q_match=False, enable_debug
                 "type": "market_chain",
                 # "type": "common",
                 # "model": "chat"
-                # "model": "strict_q_q"
+                "model": "strict_q_q",
                 # "model": "knowledge_qa"
             }
         )
