@@ -66,7 +66,7 @@ file_path="serving.properties"
 os_type=$(uname -s)
 
 if [ "$os_type" == "Darwin" ]; then
-  sed -i "" "s|option.s3url = s3://[^/]*/$model_name/|option.s3url = s3://$s3_bucket_name/$model_name/|g" $file_path
+  sed -i "" "s|option.s3url = S3PATH|option.s3url = s3://$s3_bucket_name/$model_name/|g" $file_path
 else
   sed -i "s|option.s3url = S3PATH|option.s3url = s3://$s3_bucket_name/$model_name/|g" $file_path
 fi

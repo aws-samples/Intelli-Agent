@@ -19,19 +19,41 @@ import boto3
 # region = "us-east-1"
 # credentials = boto3.Session().get_credentials()
 # aos_utils.awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, region, 'es', session_token=credentials.token)
+
+from dotenv import load_dotenv
+load_dotenv()
+# import os
+# region = os.environ["AWS_REGION"]
+# print(region)
 import main
 
 class DummyWebSocket:
     def post_to_connection(self,ConnectionId,Data):
         data = json.loads(Data)
         message = data['choices'][0].get('message',None)
+        ret = data
         if message is not None:
-            print(message['content'],end='',flush=True)
+            message_type = ret['choices'][0]['message_type']
+            if message_type == "START":
+                pass
+            elif message_type == "CHUNK":
+                print(ret['choices'][0]['message']['content'],end="",flush=True)
+            elif message_type == "END":
+                return 
+            elif message_type == "ERROR":
+                print(ret['choices'][0]['message']['content'])
+                return 
+            elif message_type == "CONTEXT":
+                print('sources: ',ret['choices'][0]['knowledge_sources'])
 
 main.ws_client = DummyWebSocket()
 
 def generate_answer(query, temperature=0.7, enable_q_q_match=False, enable_debug=True, retrieval_only=False):
     event = {
+        "requestContext":{
+            "eventType":"MESSAGE",
+            "connectionId":"123"
+        },
         "body": json.dumps(
             {
                 "requestContext":{
@@ -45,19 +67,23 @@ def generate_answer(query, temperature=0.7, enable_q_q_match=False, enable_debug
                 ],
                 "aos_faq_index": "chatbot-index-9",
                 "aos_ug_index": "chatbot-index-1",
-                "model": "knowledge_qa",
+                # "model": "knowledge_qa",
                 "temperature": temperature,
                 "enable_q_q_match": enable_q_q_match,
                 "enable_debug": enable_debug,
                 "retrieval_only": retrieval_only,
-                "type": "market_chain",
-                # "intent_type": "chat"
-                "intent_type": "knowledge_qa"
+                # "type": "market_chain",
+                "type": "common",
+                # "model": "chat"
+                # "model": "strict_q_q",
+                "model": "knowledge_qa"
             }
         )
     }
     context = None
     response = main.lambda_handler(event, context)
+    if response is None:
+        return
     body = json.loads(response["body"])
     answer = body["choices"][0]["message"]["content"]
     knowledge_sources = body["choices"][0]["message"]["knowledge_sources"]
@@ -142,6 +168,12 @@ def eval():
     json.dump(debug_info_list, debug_info_file, ensure_ascii=False)
 
 if __name__ == "__main__":
+    # dgr
     # generate_answer("Amazon Fraud Detector 中'entityId'和'eventId'的含义与注意事项")
     # generate_answer("我想调用Amazon Bedrock中的基础模型，应该使用什么API?")
-    generate_answer("polly是什么？")
+    # generate_answer("polly是什么？")
+    # mkt
+    generate_answer("ECS容器中的日志，可以配置输出到S3上吗？")
+    # generate_answer("只要我付款就可以收到发票吗")
+    # generate_answer("找不到发票怎么办")
+    # generate_answer("发票内容有更新应怎么办")

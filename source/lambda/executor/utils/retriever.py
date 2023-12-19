@@ -117,16 +117,18 @@ def parse_query(
     logger.info(f"runing time of parse query: {elpase_time}s seconds")
     return parsed_query
 
-def get_faq_answer(source, index_name):
+def get_faq_answer(source, index_name, source_field):
     opensearch_query_response = aos_client.search(
         index_name=index_name,
         query_type="basic",
         query_term=source,
-        field="metadata.source",
+        field=f"metadata.{source_field}",
     )
     for r in opensearch_query_response["hits"]["hits"]:
-        if r["_source"]["metadata"]["field"] == "answer":
+        if "field" in r["_source"]["metadata"] and "answer" in r["_source"]["metadata"]["field"]:
             return r["_source"]["content"]
+        elif r["_source"]["metadata"]["jsonlAnswer"]["answer"]:
+            return r["_source"]["metadata"]["jsonlAnswer"]["answer"]
     return ""
 
 
@@ -142,20 +144,25 @@ def get_faq_content(source, index_name):
             return r["_source"]["content"]
     return ""
 
-def get_parent_content(source, index_name):
-    opensearch_query_response = aos_client.search(
-        index_name=index_name,
-        query_type="basic",
-        query_term=source,
-        field="metadata.source",
-        size=100,
-    )
-    for r in opensearch_query_response["hits"]["hits"]:
-        if r["_source"]["metadata"]["field"] == "all_text":
-            return r["_source"]["content"]
+def get_parent_content(previous_chunk_id, next_chunk_id, index_name):
+    content_list = []
+    while previous_chunk_id.startswith("$"):
+        opensearch_query_response = aos_client.search(
+            index_name=index_name,
+            query_type="basic",
+            query_term=previous_chunk_id,
+            field="metadata.chunk_id",
+            size=10,
+        )
+        if len(opensearch_query_response["hits"]["hits"]) > 0:
+            r = opensearch_query_response["hits"]["hits"][0]
+            previous_chunk_id = r["_source"]["metadata"]["chunk_id"]
+            content_list.append(r["_source"]["text"])
+            if r["_source"]["metadata"]["field"] == "all_text":
+                return r["_source"]["content"]
     return ""
 
-def organize_faq_results(response, index_name):
+def organize_faq_results(response, index_name, source_field="file_path", text_field="text"):
     """
     Organize results from aos response
 
@@ -169,12 +176,15 @@ def organize_faq_results(response, index_name):
     for aos_hit in aos_hits:
         result = {}
         try:
-            result["source"] = aos_hit["_source"]["metadata"]["source"]
+            result["source"] = aos_hit["_source"]["metadata"][source_field]
             result["score"] = aos_hit["_score"]
             result["detail"] = aos_hit["_source"]
-            result["content"] = aos_hit["_source"]["content"]
-            result["answer"] = get_faq_answer(result["source"], index_name)
-            result["doc"] = get_faq_content(result["source"], index_name)
+            result["content"] = aos_hit["_source"]["text"]
+            if "field" in aos_hit["_source"]["metadata"] and "answer" in aos_hit["_source"]["metadata"]["field"]:
+                result["answer"] = get_faq_answer(result["source"], index_name, source_field)
+            else:
+                result["answer"] = aos_hit["_source"]["metadata"]["jsonlAnswer"]["answer"]
+            # result["doc"] = get_faq_content(result["source"], index_name)
         except:
             print("index_error")
             print(aos_hit["_source"])
@@ -191,6 +201,10 @@ def organize_results(response, aos_index=None, source_field="file_path", text_fi
     :param response: aos response json
     """
     results = []
+
+    if not response:
+        return results
+    
     aos_hits = response["hits"]["hits"]
     for aos_hit in aos_hits:
         result = {}
@@ -205,10 +219,12 @@ def organize_results(response, aos_index=None, source_field="file_path", text_fi
 class QueryQuestionRetriever(BaseRetriever):
     index: Any
     vector_field: Any
-    def __init__(self, index, vector_field):
+    source_field: Any
+    def __init__(self, index, vector_field, source_field):
         super().__init__()
         self.index = index
         self.vector_field = vector_field
+        self.source_field = source_field
 
     def _get_relevant_documents(self, question: Dict, *, run_manager: CallbackManagerForRetrieverRun) -> List[Document]:
         query = question["query"] 
@@ -225,12 +241,13 @@ class QueryQuestionRetriever(BaseRetriever):
         opensearch_knn_response = aos_client.search(
             index_name=self.index,
             query_type="knn",
-            query_term=parsed_query["zh_query_similarity_embedding"],
+            query_term=parsed_query["zh_query_relevance_embedding"],
+            # query_term=parsed_query["zh_query_similarity_embedding"],
             field=self.vector_field,
             size=2,
         )
         opensearch_knn_results.extend(
-            organize_faq_results(opensearch_knn_response, self.index)
+            organize_faq_results(opensearch_knn_response, self.index, self.source_field)
         )
         opensearch_knn_response = aos_client.search(
             index_name=self.index,
@@ -240,7 +257,7 @@ class QueryQuestionRetriever(BaseRetriever):
             size=2,
         )
         opensearch_knn_results.extend(
-            organize_faq_results(opensearch_knn_response, self.index)
+            organize_faq_results(opensearch_knn_response, self.index, self.source_field)
         )
         # logger.info(json.dumps(opensearch_knn_response, ensure_ascii=False))
         elpase_time = time.time() - start
@@ -251,7 +268,7 @@ class QueryQuestionRetriever(BaseRetriever):
             debug_info["q_q_match_info"] = remove_redundancy_debug_info(
                 opensearch_knn_results[:3]
             )
-            if opensearch_knn_results[0]["score"] >= 0.9:
+            if opensearch_knn_results[0]["score"] >= 0.7:
                 source = opensearch_knn_results[0]["source"]
                 answer = opensearch_knn_results[0]["answer"]
                 sources = [source]
@@ -303,6 +320,8 @@ class QueryDocumentRetriever(BaseRetriever):
 
         # 3. combine these two opensearch_knn_response and opensearch_query_response
         recall_knowledge = combine_recalls(opensearch_knn_results, opensearch_query_results)
+        if len(recall_knowledge) == 0:
+            return []
 
         rerank_pair = []
         rerank_text_length = 1024 * 10

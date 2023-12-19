@@ -35,11 +35,11 @@ export class RootStack extends Stack {
 
     let _OpenSearchIndexDictDefaultValue: string|undefined;
 
-    try {
-      _OpenSearchIndexDictDefaultValue = process.env.AOSDictValue;
-    } catch (error) {
-      console.error('An error occurred:', error)
-    }
+    if (process.env.AOSDictValue !== undefined) {
+      _OpenSearchIndexDictDefaultValue = process.env.AOSDictValue
+    } else {
+      _OpenSearchIndexDictDefaultValue = '{"chatbot-index-key":"chat-index-value"}';
+    } 
 
     const _OpenSearchIndexDict = new CfnParameter(this, 'OpenSearchIndexDict', {
       type: 'String',
