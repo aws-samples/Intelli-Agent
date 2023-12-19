@@ -72,8 +72,8 @@ def generate_answer(query, temperature=0.7, enable_q_q_match=False, enable_debug
                 "enable_q_q_match": enable_q_q_match,
                 "enable_debug": enable_debug,
                 "retrieval_only": retrieval_only,
-                "type": "market_chain",
-                # "type": "common",
+                # "type": "market_chain",
+                "type": "common",
                 # "model": "chat"
                 # "model": "strict_q_q",
                 "model": "knowledge_qa"

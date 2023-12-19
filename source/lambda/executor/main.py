@@ -10,8 +10,8 @@ import copy
 import traceback
 from enum import Enum
 
-import utils.retriever as retriever
-from utils.llm_utils import CustomLLM
+import retriever as retriever
+from llm_utils import CustomLLM
 from langchain.prompts import ChatPromptTemplate
 from langchain.output_parsers import PydanticOutputParser
 from langchain.schema.runnable import RunnableParallel, RunnablePassthrough, RunnableBranch, RunnableLambda
