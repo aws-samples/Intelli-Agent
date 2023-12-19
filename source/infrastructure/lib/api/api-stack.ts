@@ -83,7 +83,8 @@ export class LLMApiStack extends NestedStack {
                 "es:*",
                 "dynamodb:*",
                 "secretsmanager:GetSecretValue",
-                "translate:*"
+                "translate:*",
+                "bedrock:*",
             ],
             effect: iam.Effect.ALLOW,
             resources: ['*'],
