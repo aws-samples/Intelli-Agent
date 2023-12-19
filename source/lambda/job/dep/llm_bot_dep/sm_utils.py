@@ -9,7 +9,7 @@ import traceback
 from typing import List, Dict, Any, Optional
 from langchain.embeddings import SagemakerEndpointEmbeddings
 from langchain.embeddings.sagemaker_endpoint import EmbeddingsContentHandler
-from langchain.llms.sagemaker_endpoint import LLMContentHandler, SagemakerEndpoint
+from langchain.llms.sagemaker_endpoint import SagemakerEndpoint
 from langchain.callbacks.manager import CallbackManagerForLLMRun
 from langchain.llms.utils import enforce_stop_tokens
 
@@ -118,40 +118,40 @@ class vectorContentHandler(EmbeddingsContentHandler):
         response_json = json.loads(output.read().decode("utf-8"))
         return response_json["sentence_embeddings"]
 
-class crossContentHandler(LLMContentHandler):
-    content_type = "application/json"
-    accepts = "application/json"
+# class crossContentHandler(LLMContentHandler):
+#     content_type = "application/json"
+#     accepts = "application/json"
 
-    def transform_input(self, prompt: str, model_kwargs: Dict) -> bytes:
-        input_str = json.dumps({"inputs": prompt, "docs":model_kwargs["context"]})
-        return input_str.encode('utf-8')
+#     def transform_input(self, prompt: str, model_kwargs: Dict) -> bytes:
+#         input_str = json.dumps({"inputs": prompt, "docs":model_kwargs["context"]})
+#         return input_str.encode('utf-8')
 
-    def transform_output(self, output: bytes) -> str:
-        response_json = json.loads(output.read().decode("utf-8"))
-        return response_json['scores'][0][1]
+#     def transform_output(self, output: bytes) -> str:
+#         response_json = json.loads(output.read().decode("utf-8"))
+#         return response_json['scores'][0][1]
 
-class answerContentHandler(LLMContentHandler):
-    content_type = "application/json"
-    accepts = "application/json"
+# class answerContentHandler(LLMContentHandler):
+#     content_type = "application/json"
+#     accepts = "application/json"
 
-    def transform_input(self, question: str, model_kwargs: Dict) -> bytes:
+#     def transform_input(self, question: str, model_kwargs: Dict) -> bytes:
 
-        template_1 = '以下context xml tag内的文本内容为背景知识：\n<context>\n{context}\n</context>\n请根据背景知识, 回答这个问题：{question}'
-        context = model_kwargs["context"]
+#         template_1 = '以下context xml tag内的文本内容为背景知识：\n<context>\n{context}\n</context>\n请根据背景知识, 回答这个问题：{question}'
+#         context = model_kwargs["context"]
         
-        if len(context) == 0:
-            prompt = question
-        else:
-            prompt = template_1.format(context = model_kwargs["context"], question = question)
+#         if len(context) == 0:
+#             prompt = question
+#         else:
+#             prompt = template_1.format(context = model_kwargs["context"], question = question)
 
-        input_str = json.dumps({"inputs": prompt,
-                                "history": model_kwargs["history"],
-                                "parameters": model_kwargs["parameters"]})
-        return input_str.encode('utf-8')
+#         input_str = json.dumps({"inputs": prompt,
+#                                 "history": model_kwargs["history"],
+#                                 "parameters": model_kwargs["parameters"]})
+#         return input_str.encode('utf-8')
 
-    def transform_output(self, output: bytes) -> str:
-        response_json = json.loads(output.read().decode("utf-8"))
-        return response_json['outputs']
+#     def transform_output(self, output: bytes) -> str:
+#         response_json = json.loads(output.read().decode("utf-8"))
+#         return response_json['outputs']
 
 class LineIterator:
     """
@@ -283,10 +283,10 @@ def SagemakerEndpointVectorOrCross(prompt: str, endpoint_name: str, region_name:
         )
         query_result = embeddings.embed_query(prompt)
         return query_result
-    elif model_type == "cross":
-        content_handler = crossContentHandler()
-    elif model_type == "answer":
-        content_handler = answerContentHandler()
+    # elif model_type == "cross":
+    #     content_handler = crossContentHandler()
+    # elif model_type == "answer":
+    #     content_handler = answerContentHandler()
     # TODO: replace with SagemakerEndpointStreaming
     genericModel = SagemakerEndpoint(
         endpoint_name = endpoint_name,
