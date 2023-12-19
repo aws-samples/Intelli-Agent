@@ -68,3 +68,4 @@ package-lock.json
 **/model/instruct/model/models--csdc-atl--buffer-instruct-InternLM-001
 .env_sd
 venv
+pem
