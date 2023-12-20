@@ -741,61 +741,57 @@ def dgr_entry(
     contexts = []
     sources = []
     answer = ""
-    if enable_knowledge_qa:
-        try:
-            # 1. parse query
-            parsed_query = parse_query(
-                query_input,
-                history,
-                zh_embedding_model_endpoint,
-                en_embedding_model_endpoint,
-                debug_info,
-            )
-            # 2. query question match
-            if enable_q_q_match:
-                answer, sources = q_q_match(parsed_query, debug_info)
-                if answer and sources:
-                    return answer, sources, contexts, debug_info
-            # 3. recall and rerank
-            knowledges = get_relevant_documents_dgr(
-                parsed_query,
-                rerank_model_endpoint,
-                aos_faq_index,
-                aos_ug_index,
-                debug_info,
-            )
-            context_num = 6
-            sources = list(set([item["source"] for item in knowledges[:context_num]]))
-            contexts = knowledges[:context_num]
-            # 4. generate answer using question and recall_knowledge
-            parameters = {"temperature": temperature}
-            generate_input = dict(
-                model_id=llm_model_id,
-                query=query_input,
-                contexts=knowledges[:context_num],
-                history=history,
-                region_name=region,
-                parameters=parameters,
-                context_num=context_num,
-                model_type="answer",
-                llm_model_endpoint=llm_model_endpoint,
-                stream=stream
-            )
+    try:
+        # 1. parse query
+        parsed_query = parse_query(
+            query_input,
+            history,
+            zh_embedding_model_endpoint,
+            en_embedding_model_endpoint,
+            debug_info,
+        )
+        # 2. query question match
+        if enable_q_q_match:
+            answer, sources = q_q_match(parsed_query, debug_info)
+            if answer and sources:
+                return answer, sources, contexts, debug_info
+        # 3. recall and rerank
+        knowledges = get_relevant_documents_dgr(
+            parsed_query,
+            rerank_model_endpoint,
+            aos_faq_index,
+            aos_ug_index,
+            debug_info,
+        )
+        context_num = 6
+        sources = list(set([item["source"] for item in knowledges[:context_num]]))
+        contexts = knowledges[:context_num]
+        # 4. generate answer using question and recall_knowledge
+        parameters = {"temperature": temperature}
+        generate_input = dict(
+            model_id=llm_model_id,
+            query=query_input,
+            contexts=knowledges[:context_num],
+            history=history,
+            region_name=region,
+            parameters=parameters,
+            context_num=context_num,
+            model_type="answer",
+            llm_model_endpoint=llm_model_endpoint,
+            stream=stream
+        )
 
-            llm_start_time = time.time()
-            ret = llm_generate(**generate_input)
-            llm_end_time = time.time()
-            elpase_time = llm_end_time - llm_start_time
-            logger.info(f"runing time of llm: {elpase_time}s seconds")
-            answer = ret["answer"]
-            debug_info["knowledge_qa_llm"] = ret
-        except Exception as e:
-            logger.info(f"Exception Query: {query_input}")
-            logger.info(f"{traceback.format_exc()}")
-            answer = ""
-        query_type = QueryType.KnowledgeQuery
-    else:
-        query_type = QueryType.Conversation
+        llm_start_time = time.time()
+        ret = llm_generate(**generate_input)
+        llm_end_time = time.time()
+        elpase_time = llm_end_time - llm_start_time
+        logger.info(f"runing time of llm: {elpase_time}s seconds")
+        answer = ret["answer"]
+        debug_info["knowledge_qa_llm"] = ret
+    except Exception as e:
+        logger.info(f"Exception Query: {query_input}")
+        logger.info(f"{traceback.format_exc()}")
+        answer = ""
 
     # 5. update_session
     # start = time.time()
