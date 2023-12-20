@@ -72,11 +72,11 @@ def generate_answer(query, temperature=0.7, enable_q_q_match=False, enable_debug
                 "enable_q_q_match": enable_q_q_match,
                 "enable_debug": enable_debug,
                 "retrieval_only": retrieval_only,
-                "type": "market_chain",
-                # "type": "common",
+                # "type": "market_chain",
+                "type": "common",
                 # "model": "chat"
-                "model": "strict_q_q",
-                # "model": "knowledge_qa"
+                # "model": "strict_q_q",
+                "model": "knowledge_qa"
             }
         )
     }
@@ -168,9 +168,12 @@ def eval():
     json.dump(debug_info_list, debug_info_file, ensure_ascii=False)
 
 if __name__ == "__main__":
+    # dgr
     # generate_answer("Amazon Fraud Detector 中'entityId'和'eventId'的含义与注意事项")
     # generate_answer("我想调用Amazon Bedrock中的基础模型，应该使用什么API?")
     # generate_answer("polly是什么？")
+    # mkt
+    generate_answer("ECS容器中的日志，可以配置输出到S3上吗？")
     # generate_answer("只要我付款就可以收到发票吗")
-    generate_answer("找不到发票怎么办")
+    # generate_answer("找不到发票怎么办")
     # generate_answer("发票内容有更新应怎么办")

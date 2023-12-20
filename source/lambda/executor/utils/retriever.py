@@ -216,6 +216,10 @@ def organize_results(response, aos_index=None, source_field="file_path", text_fi
     :param response: aos response json
     """
     results = []
+
+    if not response:
+        return results
+    
     aos_hits = response["hits"]["hits"]
     for aos_hit in aos_hits:
         result = {}
@@ -332,6 +336,8 @@ class QueryDocumentRetriever(BaseRetriever):
         # 3. combine these two opensearch_knn_response and opensearch_query_response
         recall_knowledge = combine_recalls(opensearch_knn_results, opensearch_query_results)
         debug_info["knowledge_qa_knn_recall"] = recall_knowledge 
+        if len(recall_knowledge) == 0:
+            return []
 
         rerank_pair = []
         rerank_text_length = 1024 * 10

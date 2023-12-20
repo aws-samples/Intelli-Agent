@@ -37,7 +37,7 @@ def detect_language(input):
     else:
         return 'en'
 
-def invoke_etl_model(smr_client, etl_model_endpoint, bucket, key, res_bucket, mode = "ppstructure"):
+def invoke_etl_model(smr_client, etl_model_endpoint, bucket, key, res_bucket, mode = "ppstructure", lang = "ch"):
     response_model = smr_client.invoke_endpoint(
         EndpointName=etl_model_endpoint,
         Body=json.dumps(
@@ -45,7 +45,8 @@ def invoke_etl_model(smr_client, etl_model_endpoint, bucket, key, res_bucket, mo
                 "s3_bucket": bucket,
                 "object_key": key,
                 "destination_bucket":  res_bucket,
-                "mode": mode
+                "mode": mode,
+                "lang": lang
             }
         ),
         ContentType="application/json",
@@ -114,12 +115,12 @@ def process_pdf(s3, pdf: bytes, **kwargs):
     else:
         if detected_lang == 'ch':
             logger.info("Detected language is Chinese, using default PDF loader...")
-            markdown_prefix = invoke_etl_model(smr_client, etl_model_endpoint, bucket, key, res_bucket, mode = "ppstructure")
+            markdown_prefix = invoke_etl_model(smr_client, etl_model_endpoint, bucket, key, res_bucket, mode = "ppstructure", lang = "ch")
             logger.info(f"Markdown file path: s3://{res_bucket}/{markdown_prefix}")
             content = load_content_from_s3(s3, res_bucket, markdown_prefix)
         else:
             logger.info("Detected language is English, using ETL model endpoint...")
-            markdown_prefix = invoke_etl_model(smr_client, etl_model_endpoint, bucket, key, res_bucket, mode = "nougat")
+            markdown_prefix = invoke_etl_model(smr_client, etl_model_endpoint, bucket, key, res_bucket, mode = "ppstructure", lang = "en")
             logger.info(f"Markdown file path: s3://{res_bucket}/{markdown_prefix}")
             content = load_content_from_s3(s3, res_bucket, markdown_prefix)
 
