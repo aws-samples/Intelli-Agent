@@ -67,10 +67,11 @@ os_type=$(uname -s)
 
 if [ "$os_type" == "Darwin" ]; then
   sed -i "" "s|option.s3url = S3PATH|option.s3url = s3://$s3_bucket_name/$model_name/|g" $file_path
+  sed -i "" "s|option.tensor_parallel_degree=tpd|option.tensor_parallel_degree=$tensor_parallel_degree|g" $file_path
 else
   sed -i "s|option.s3url = S3PATH|option.s3url = s3://$s3_bucket_name/$model_name/|g" $file_path
+  sed -i "s|option.tensor_parallel_degree=tpd|option.tensor_parallel_degree=$tensor_parallel_degree|g" $file_path
 fi
-sed -i "s|option.tensor_parallel_degree=tpd|option.tensor_parallel_degree=$tensor_parallel_degree|g" $file_path
 
 rm rerank_model.tar.gz
 tar czvf rerank_model.tar.gz *
