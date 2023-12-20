@@ -182,10 +182,10 @@ def process_pdf(bucket, object_key, destination_bucket, mode = 'ppstructure', la
     else:
         content = ppstructure_ch(local_path)
 
-    # write content to local markdown
-    output_path = Path("/home/ubuntu/icyxu/code/AWSLLMCode/llm-bot/tmp_deploy/etl_endpoint/test_result") / f"{file_path.stem}.md"
-    with output_path.open("w") as f:
-        f.write(content)
+    # # write content to local markdown
+    # output_path = Path("/home/ubuntu/icyxu/code/AWSLLMCode/llm-bot/tmp_deploy/etl_endpoint/test_result") / f"{file_path.stem}.md"
+    # with output_path.open("w") as f:
+    #     f.write(content)
     
     filename = file_path.stem
     destination_s3_path = upload_chunk_to_s3(content, destination_bucket, filename, "before-splitting")
