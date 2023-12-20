@@ -236,9 +236,13 @@ class MarkdownHeaderTextSplitter:
             else:
                 # Move one step to get the next chunk_id
                 same_heading_dict[current_heading] += 1
-                metadata["chunk_id"] = id_index_dict[current_heading][
-                    same_heading_dict[current_heading]
-                ]
+                if len(id_index_dict[current_heading]) > same_heading_dict[current_heading]:
+                    metadata["chunk_id"] = id_index_dict[current_heading][
+                        same_heading_dict[current_heading]
+                    ]
+                else:
+                    id_prefix = str(uuid.uuid4())[:8]
+                    metadata["chunk_id"] = f"$0-{id_prefix}"
 
     def split_text(self, text: Document) -> List[Document]:
         if self.res_bucket is not None:
