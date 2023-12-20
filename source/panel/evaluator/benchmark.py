@@ -56,6 +56,9 @@ awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, region, 'es',
 
 default_aos_index_name = "llm-bot-index"
 
+s3 = boto3.client("s3")
+glue = boto3.client('glue')
+
 metadata_template = {
     "content_type": "paragraph",
     "current_heading": 0,
@@ -144,7 +147,113 @@ def langchain_unstructured_loader(file_path: str) -> List[Document]:
     logger.debug("unstructured load data: {}".format(docs))
     return docs
 
+def csdc_unstructured_loader(file_path: str) -> List[Document]:
+    """
+    Loads a document from a file path.
+
+    Args:
+        file_path (str): The path to the file.
+
+    Returns:
+        list[Document]: A list of Document objects.
+    """
+    """
+    Such function include serveral steps to interact with solution deployed on AWS.
+    1. upload the file to s3 bucket, we use the DocumentBucket from cdk output, the whole s3 path is s3://<DocumentBucket>/demo/pdf-sample-01.pdf, pdf-sample-01 is the file name
+    2. trigger the offline etl job with api, we use the apiEndpoint from cdk output, the payload is {
+        "s3Bucket": "<DocumentBucket>",
+        "s3Prefix": "demo",
+        "aosIndex": "demo",
+        "qaEnhance": "false",
+        "offline": "true"
+    }
+    3. check the glue job status and wait for the job to finish with success status
+    4. fetch loaded files from s3 bucket, we use the ChunkBucket from cdk output, the whole s3 path is s3://<ChunkBucket>/pdf-sample-01/before-splitting/<%Y-%m-%d-%H>/<datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S-%f')>.log, pdf-sample-01 is the file name
+    """
+    # first get DocumentBucket and ChunkBucket from env variables
+    document_bucket = os.getenv("DocumentBucket")
+    chunk_bucket = os.getenv("ChunkBucket")
+
+    # step 1, upload the file to s3 bucket with fixed s3 prefix demo/<file name>
+    # extract file name also in consideration of file name with blank space
+    file_name = str(os.path.basename(file_path))
+    # make the s3 prefix unique
+    s3_prefix = "demo/" + file_name
+    # upload the file to s3 bucket
+    s3.upload_file(file_path, document_bucket, s3_prefix)
+
+    # step 2, trigger the offline etl job with api
+    # construct the payload
+    payload = json.dumps({
+        "s3Bucket": document_bucket,
+        "s3Prefix": s3_prefix,
+        "aosIndex": "demo",
+        "qaEnhance": "false",
+        "offline": "true"
+    })
+    headers = {'Content-Type': 'application/json'}
+    logger.debug("payload: {}, apiEndpoint: {}, headers: {}, type: {}".format(payload, apiEndpoint, headers, type(payload)))
+    try:
+        response = requests.request("POST", apiEndpoint + 'etl', headers=headers, data=payload)
+        logger.info("response: {}".format(json.loads(response.text)))
+    except Exception as e:
+        logger.error("error: {}".format(e))
+        raise e
+
+    # step 3, check the glue job status and wait for the job to finish with success status
+    # load the job name from environment variable and convert it to string like 'PythonShellJobB6964098-YYlLj16uCsAn'
+    glue_job_name = str(os.getenv('GLUE_JOB_NAME'))
+    # sleep 10 seconds to wait for the glue job to start
+    time.sleep(10)
+    # check the glue job status and wait for the job to finish with success status
+    response = glue.get_job_runs(JobName=glue_job_name, MaxResults=10)
+    # function only return running aws glue jobs
+    job_runs = [job_run for job_run in response['JobRuns'] if job_run['JobRunState'] == 'RUNNING']
+    while len(job_runs) > 0:
+        time.sleep(10)
+        logger.info("waiting for glue job to finish...")
+        response = glue.get_job_runs(JobName=glue_job_name, MaxResults=10)
+        job_runs = [job_run for job_run in response['JobRuns'] if job_run['JobRunState'] == 'RUNNING']
+
+    # step 4, fetch loaded files from s3 bucket
+    # scan the ChunkBucket s3://<ChunkBucket>/pdf-sample-01/before-splitting/
+    # construct the s3 prefix, note to strip the file type
+    s3_prefix = file_name.split('.')[0] + "/before-splitting/"
+    logger.info("s3_prefix: {}, chunk_bucket: {}".format(s3_prefix, chunk_bucket))
+    # find the latest timestamp folder then fetch the latest log file under that folder
+    response = s3.list_objects_v2(Bucket=chunk_bucket, Prefix=s3_prefix)
+    logger.info("list_objects_v2 response: {}".format(response))
+    # get the latest timestamp folder
+    latest_timestamp = max([content['Key'].split('/')[-2] for content in response['Contents']])
+    # construct the s3 prefix with latest timestamp folder
+    s3_prefix = s3_prefix + latest_timestamp + "/"
+    # find the latest log file
+    response = s3.list_objects_v2(Bucket=chunk_bucket, Prefix=s3_prefix)
+    logger.info("list_objects_v2 response: {}".format(response))
+    latest_log_file = max([content['Key'].split('/')[-1] for content in response['Contents']])
+    # construct the s3 prefix with latest log file
+    s3_prefix = s3_prefix + latest_log_file
+    # download the log file to local
+    s3.download_file(chunk_bucket, s3_prefix, file_name + ".log")
+
+    # read content from file_path
+    with open(file_name + ".log", "r") as f:
+        file_content = f.read()
+        logger.debug("file_content: {}".format(file_content))
+
+    # return the result of splitter (SplittingType.SEMANTIC) to integrate into current benchmark, TODO splitteris not working for now, need to fix it.
+    return file_content
+
 def langchain_recursive_splitter(docs: List[Document]) -> List[Document]:
+    """
+    Splits a document into chunks recursively.
+
+    Args:
+        docs (list[Document]): A list of Document objects.
+        
+    Returns:
+        list[Document]: A list of Document objects.
+    """
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size = 500,
         chunk_overlap  = 30,
@@ -185,7 +294,7 @@ def csdc_embedding(index: str, docs: List[Document]) -> List[List[str]]:
     batches = batch_generator(docs, batch_size=5)
     for batch in batches:
         for doc in batch:
-            embedding_res = csdc_embedding(default_aos_index_name, doc)
+            embedding_res = _csdc_embedding(default_aos_index_name, doc)
 
 def _csdc_embedding(index: str, doc: Document):
     """
@@ -344,7 +453,18 @@ def aos_retriever(index: str, query: str, size: int = 10):
         raise e
     return response
 
-def local_aos_retriever(index: str, query: str, size: int = 10):
+def local_aos_retriever(index: str, query: str, size: int = 10) -> List[Tuple[Document, float]]:
+    """
+    retrieve the similar documents with query from local aos
+
+    Args:
+        index (str): The name of the index to which the documents will be added.
+        query (str): The query to embed.
+        size (int): The number of documents to retrieve.
+
+    Returns:
+        list: A list of tuples with document and score, e.g. [(Document, float), (Document, float), ...]
+    """
     # assure local aos is running, e.g. simplely using 'docker run -d -p 9200:9200 -p 9600:9600 -e "discovery.type=single-node" opensearchproject/opensearch:latest'
     opensearch_vector_search = OpenSearchVectorSearch(
         opensearch_url="https://localhost:9200",
@@ -596,16 +716,16 @@ if __name__ == "__main__":
     9. average similarity score of retrival
     10. average time of retrival
     """
-    legacy = WorkflowExecutor()
-    legacy.update_component('loaders', langchain_unstructured_loader, 'add')
-    legacy.update_component('splitters', langchain_recursive_splitter, 'add')
-    legacy.update_component('embedders', bedrock_embedding, 'add')
-    legacy.update_component('retrievers', local_aos_retriever, 'add')
-    legacy.update_component('evaluators', langchain_evaluator, 'add')
-    legacy.execute_workflow("pdf-sample-01.pdf", "请介绍什么是kindle以及它的主要功能？")
+    # legacy = WorkflowExecutor()
+    # legacy.update_component('loaders', langchain_unstructured_loader, 'add')
+    # legacy.update_component('splitters', langchain_recursive_splitter, 'add')
+    # legacy.update_component('embedders', bedrock_embedding, 'add')
+    # legacy.update_component('retrievers', local_aos_retriever, 'add')
+    # legacy.update_component('evaluators', langchain_evaluator, 'add')
+    # legacy.execute_workflow("pdf-sample-01.pdf", "请介绍什么是kindle以及它的主要功能？")
 
     # csdc = WorkflowExecutor()
-    # csdc.update_component('loaders', csdc_markdown_loader, 'add')
+    # csdc.update_component('loaders', csdc_unstructured_loader, 'add')
     # csdc.update_component('splitters', csdc_markdown_header_splitter, 'add')
     # csdc.update_component('embedders', csdc_embedding, 'add')
     # csdc.update_component('retrievers', aos_retriever, 'add')
@@ -616,13 +736,13 @@ if __name__ == "__main__":
     # loader_res = langchain_unstructured_loader("pdf-sample-01.pdf")
 
     # loader_res = csdc_markdown_loader("md-sample-01.md")
-
+    load_res = csdc_unstructured_loader("pdf-sample-01.pdf")
+    logger.info("load_res: {}".format(load_res))
     # prepare for QA dataset used in llm evaluation
     # testdata_generate(loader_res, llm="openai", embedding="openai")
 
     # split
     # splitter_res = langchain_recursive_splitter(loader_res)
-
     # splitter_res = csdc_markdown_header_splitter(loader_res)
 
     # # embedding
@@ -630,12 +750,6 @@ if __name__ == "__main__":
     # for batch in batches:
     #     for doc in batch:
     #         embedding_res = csdc_embedding(default_aos_index_name, doc)
-
-    # query = "question 6"
-    # retriver_res = aos_retriever('jsonl', query, 10)
-    # reference_list = []
-    # for hit in retriver_res['hits']['hits']:
-    #     reference_list.append(hit['_source']['text'])
 
     # embeddings = OpenAIEmbeddings()
     # embeddings = BedrockEmbeddings()
@@ -667,7 +781,7 @@ if __name__ == "__main__":
 
     # embed_res = bedrock_embedding(default_aos_index_name, splitter_res)
     # logger.info("embed_res: {}".format(embed_res))
-    # retriever
+    # # retriever
 
     # query = "请介绍什么是kindle以及它的主要功能？"
     # retriver_res = local_aos_retriever(default_aos_index_name, query, 10)

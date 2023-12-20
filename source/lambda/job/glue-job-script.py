@@ -239,6 +239,7 @@ def aos_injection(
     aosEndpoint: str,
     index_name: str,
     chunk_size: int = 500,
+    chunk_overlap: int = 30,
     gen_chunk: bool = True,
 ) -> List[Document]:
     """
@@ -299,7 +300,7 @@ def aos_injection(
                 yield split
 
     if gen_chunk:
-        generator = chunk_generator(content, chunk_size=chunk_size)
+        generator = chunk_generator(content, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
     else:
         generator = content
 
@@ -381,7 +382,6 @@ def main():
                     )
                 elif file_type in ["pdf", "txt", "doc", "md", "html", "jsonl"]:
                     aos_injection(res, embeddingModelEndpoint, aosEndpoint, aos_index)
-
                 if qa_enhancement == "true":
                     enhanced_prompt_list = []
                     # iterate the document to get the QA pairs
