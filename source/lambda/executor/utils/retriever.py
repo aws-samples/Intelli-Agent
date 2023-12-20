@@ -145,7 +145,7 @@ def get_faq_content(source, index_name):
     return ""
 
 def get_parent_content(previous_chunk_id, next_chunk_id, index_name):
-    content_list = []
+    previous_content_list = []
     while previous_chunk_id.startswith("$"):
         opensearch_query_response = aos_client.search(
             index_name=index_name,
@@ -157,10 +157,25 @@ def get_parent_content(previous_chunk_id, next_chunk_id, index_name):
         if len(opensearch_query_response["hits"]["hits"]) > 0:
             r = opensearch_query_response["hits"]["hits"][0]
             previous_chunk_id = r["_source"]["metadata"]["chunk_id"]
-            content_list.append(r["_source"]["text"])
-            if r["_source"]["metadata"]["field"] == "all_text":
-                return r["_source"]["content"]
-    return ""
+            previous_content_list.append(r["_source"]["text"])
+        else:
+            break
+    next_content_list = []
+    while next_chunk_id.startswith("$"):
+        opensearch_query_response = aos_client.search(
+            index_name=index_name,
+            query_type="basic",
+            query_term=next_chunk_id,
+            field="metadata.chunk_id",
+            size=10,
+        )
+        if len(opensearch_query_response["hits"]["hits"]) > 0:
+            r = opensearch_query_response["hits"]["hits"][0]
+            next_chunk_id = r["_source"]["metadata"]["chunk_id"]
+            next_content_list.append(r["_source"]["text"])
+        else:
+            break
+    return [previous_content_list, next_content_list]
 
 def organize_faq_results(response, index_name, source_field="file_path", text_field="text"):
     """
@@ -316,6 +331,7 @@ class QueryDocumentRetriever(BaseRetriever):
 
         # 3. combine these two opensearch_knn_response and opensearch_query_response
         recall_knowledge = combine_recalls(opensearch_knn_results, opensearch_query_results)
+        debug_info["knowledge_qa_knn_recall"] = recall_knowledge 
 
         rerank_pair = []
         rerank_text_length = 1024 * 10
