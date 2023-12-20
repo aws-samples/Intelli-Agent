@@ -16,11 +16,17 @@ import re
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-table_engine = PPStructure(det_model_dir='weight/ch_PP-OCRv4_det_infer',
+table_engine_ch = PPStructure(det_model_dir='weight/ch_PP-OCRv4_det_infer',
                            rec_model_dir='weight/ch_PP-OCRv4_rec_infer',
                            table_model_dir='weight/ch_ppstructure_mobile_v2.0_SLANet_infer',
                            layout_model_dir='weight/picodet_lcnet_x1_0_fgd_layout_cdla_infer',
-                           show_log=True, recovery=True, type='structure')
+                           show_log=True, recovery=True, type='structure', lang="ch", use_pdf2docx_api=True)
+
+table_engine_en = PPStructure(det_model_dir='weight/en_PP-OCRv3_det_infer',
+                           rec_model_dir='weight/en_PP-OCRv4_rec_infer',
+                           table_model_dir='weight/en_ppstructure_mobile_v2.0_SLANet_infer',
+                           layout_model_dir='weight/picodet_lcnet_x1_0_fgd_layout_infer',
+                           show_log=True, recovery=True, type='structure', lang="en", use_pdf2docx_api=True)
 
 s3 = boto3.client("s3")
 
@@ -72,39 +78,13 @@ def upload_chunk_to_s3(logger_content: str, bucket: str, prefix: str, splitting_
         logger.error(f"Error uploading logger file to S3: {e}")
         return None
 
-def nougat(file_path: Path) -> str:
-    """Executes the `nougat` command to convert the specified PDF file to Markdown format.
-
-    Args:
-        file_path (Path): The path to the PDF file to be converted.
-
-    Returns:
-        str: The Markdown content resulting from the `nougat` conversion.
-    """
-    # nougat ./paperSnapshot.pdf --full-precision --markdown -m 0.1.0-base -o tmp --recompute
-    cli_command = ["nougat", str(file_path), "full-precision", "--markdown", "-m", "0.1.0-base", "-o", "/tmp", "--recompute"]
-
-    try:
-        result = subprocess.run(
-            cli_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-        )
-        result.check_returncode()
-        return result.stdout
-
-    except subprocess.CalledProcessError as e:
-        logger.info(
-            f"Nougat command failed with return code {e.returncode}: {e.stderr}"
-        )
-        raise RuntimeError("Nougat command failed.") from e
-
-
-def ppstructure(file_path: Path) -> str:
+def ppstructure_en(file_path: Path) -> str:
 
     img_list, flag_gif, flag_pdf = check_and_read(file_path)
 
     all_res = []
     for index, img in enumerate(img_list):
-        result = table_engine(img, img_idx=index)
+        result = table_engine_en(img, img_idx=index)
         if result != []:
             from copy import deepcopy
             from ppstructure.recovery.recovery_to_doc import sorted_layout_boxes
@@ -137,7 +117,46 @@ def ppstructure(file_path: Path) -> str:
     doc = re.sub('\n{2,}', '\n\n', doc.strip())
     return doc
 
-def process_pdf(bucket, object_key, destination_bucket, mode = 'unstructured', **kwargs):
+def ppstructure_ch(file_path: Path) -> str:
+
+    img_list, flag_gif, flag_pdf = check_and_read(file_path)
+
+    all_res = []
+    for index, img in enumerate(img_list):
+        result = table_engine_ch(img, img_idx=index)
+        if result != []:
+            from copy import deepcopy
+            from ppstructure.recovery.recovery_to_doc import sorted_layout_boxes
+            h, w, _ = img.shape
+            result_cp = deepcopy(result)
+            result_sorted = sorted_layout_boxes(result_cp, w)
+            all_res += result_sorted
+    doc = ''
+    flag = 1
+    for i, region in enumerate(all_res):
+        if len(region['res']) == 0:
+            continue
+        if flag == 2 and region['layout'] == 'single':
+            flag = 1
+        elif flag == 1 and region['layout'] == 'double':
+            flag = 2
+        img_idx = region['img_idx']
+        if region['type'].lower() == 'figure':
+            continue
+        elif region['type'].lower() == 'title':
+            doc += '## ' + region['res'][0]['text'] + '\n\n'
+        elif region['type'].lower() == 'table':
+            doc += md(region['res']['html'], strip=['b', 'img'], heading_style='ATX', newline_style='BACKSLASH')+ '\n\n'
+        elif region['type'].lower() in ('header', 'footer'):
+            continue
+        else:
+            for i, line in enumerate(region['res']):
+                doc += line['text'] + ' '
+        doc += '\n\n'
+    doc = re.sub('\n{2,}', '\n\n', doc.strip())
+    return doc
+
+def process_pdf(bucket, object_key, destination_bucket, mode = 'ppstructure', lang = 'ch', **kwargs):
     """
     Process a given PDF file and extracts structured information from it.
     
@@ -158,19 +177,15 @@ def process_pdf(bucket, object_key, destination_bucket, mode = 'unstructured', *
     logger.info(f"Downloading {object_key} to {local_path}")
     s3.download_file(Bucket=bucket, Key=object_key, Filename=local_path)
 
-    if mode == 'nougat':
-        nougat(local_path)
-        # Rest of your code for reading and processing the output
-        output_path = Path("/tmp") / f"{file_path.stem}.mmd"
-        with output_path.open("r") as f:
-            content = f.read()
+    if lang == 'en':
+        content = ppstructure_en(local_path)
     else:
-        content = ppstructure(local_path)
+        content = ppstructure_ch(local_path)
 
-        # write content to local markdown
-        # output_path = Path("/home/ubuntu/icyxu/code/AWSLLMCode/llm-bot/tmp_deploy/etl_endpoint/test_result") / f"{file_path.stem}.md"
-        # with output_path.open("w") as f:
-        #     f.write(content)
+    # write content to local markdown
+    output_path = Path("/home/ubuntu/icyxu/code/AWSLLMCode/llm-bot/tmp_deploy/etl_endpoint/test_result") / f"{file_path.stem}.md"
+    with output_path.open("w") as f:
+        f.write(content)
     
     filename = file_path.stem
     destination_s3_path = upload_chunk_to_s3(content, destination_bucket, filename, "before-splitting")
@@ -183,11 +198,13 @@ def process_pdf_pipeline(body):
     bucket = body["s3_bucket"]
     object_key = body["object_key"]
     destination_bucket = body["destination_bucket"]
-    mode = body["mode"]
+    mode = body.get("mode", 'ppstructure')
+    lang = body.get("lang", 'ch')
+    use_pdf2docx_api = body.get("use_pdf2docx_api", False)
 
     logging.info(f"Processing bucket: {bucket}, object_key: {object_key}")
 
-    destination_prefix = process_pdf(bucket, object_key, destination_bucket, mode)
+    destination_prefix = process_pdf(bucket, object_key, destination_bucket, mode, lang)
 
     result = {
         "destination_prefix": destination_prefix
@@ -199,9 +216,10 @@ def process_pdf_pipeline(body):
 if __name__ == "__main__":
     body = {
         "s3_bucket": "icyxu-llm-glue-assets",
-        "object_key": "test_data/test_glue_lib/cn_pdf/test_pdf_1122/E1 用户手册.pdf",
-        "destination_bucket": "llm-bot-dev-apistacknested-llmbotdocumentse383ebd9-xglohd46f8by",
-        "mode": "nougat"
+        "object_key": "test_data/test_glue_lib/cn_pdf/2023.ccl-2.6.pdf",
+        "destination_bucket": "llm-bot-document-results-icyxu",
+        "mode": "ppstructure",
+        "lang": "ch",
     }
 
     process_pdf_pipeline(body)
