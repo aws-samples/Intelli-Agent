@@ -241,7 +241,7 @@ def csdc_unstructured_loader(file_path: str) -> List[Document]:
         file_content = f.read()
         logger.debug("file_content: {}".format(file_content))
 
-    # return the result of splitter (SplittingType.SEMANTIC) to integrate into current benchmark, TODO splitteris not working for now, need to fix it.
+    # TODO: return the result of splitter (SplittingType.SEMANTIC) to integrate into current benchmark
     return file_content
 
 def langchain_recursive_splitter(docs: List[Document]) -> List[Document]:
@@ -264,11 +264,24 @@ def langchain_recursive_splitter(docs: List[Document]) -> List[Document]:
     logger.debug("langchain recursive splitter: {}".format(docs))
     return docs
 
-def csdc_markdown_header_splitter(doc: Document) -> List[Document]:
-    markdown_splitter = MarkdownHeaderTextSplitter("default")
-    docs = markdown_splitter.split_text(doc)
-    logger.debug("csdc markdown header splitter: {}".format(docs))
-    return docs
+def csdc_markdown_header_splitter(docs: List[Document]) -> List[Document]:
+    """
+    Splits a document into chunks recursively.
+
+    Args:
+        docs (list[Document]): A list of Document objects.
+
+    Returns:
+        list[Document]: A list of Document objects.
+    """
+    doc_list = []
+    for doc in docs:
+        # Split the document into chunks based on the headers
+        markdown_splitter = MarkdownHeaderTextSplitter("default")
+        docs = markdown_splitter.split_text(doc)
+        logger.debug("csdc markdown header splitter: {}".format(docs))
+        doc_list.extend(docs)
+    return doc_list
 
 def documents_to_strings(documents: List[Document]) -> List[str]:
     serialized_documents = []
@@ -448,6 +461,9 @@ def aos_retriever(index: str, query: str, size: int = 10):
                     ...
         """
         score_list = [float(score['_score']) for score in response['hits']['hits']]
+        # assemble the response with type as [(Document, score), (Document, score), ...], (hit['_source']['text']) is the document page_content
+        response = [(Document(page_content=hit['_source']['text']), score) for hit, score in zip(response['hits']['hits'], score_list)]
+            
     except Exception as e:
         logger.error("error: {}".format(e))
         raise e
@@ -616,7 +632,7 @@ class WorkflowExecutor:
         else:
             raise ValueError(f"Invalid component type: {component_type}")
 
-    def execute_workflow(self, doc_path: str, query):
+    def execute_workflow(self, doc_path: str, query, skip: bool = False):
         """
         Executes the workflow with all combinations of components and returns the results.
 
@@ -636,6 +652,7 @@ class WorkflowExecutor:
             'number_of_evaluation_questions': len(query),
             'chunk_size': None,  # Update this if you have chunk size information
             'overlap_size': None, # Update this if you have overlap size information
+            'load_method': [],
             'split_method': [],
             'retrieval_method': [],
             'embedding_algorithm_model': [],
@@ -659,13 +676,25 @@ class WorkflowExecutor:
         ):
             start_time = time.perf_counter()
             loader_res = loader(doc_path)
-            splitter_res = splitter(loader_res)
-            embed_res = embedder(self.index, splitter_res)
+
+            if not skip:
+                # Execute splitter and embedder if flag is not set to skip
+                splitter_res = splitter(loader_res)
+                embed_res = embedder(self.index, splitter_res)
+                summary['split_method'].append(splitter.__name__)
+                summary['embedding_algorithm_model'].append(embedder.__name__)
+            else:
+                # Skip splitter and embedder steps
+                logger.info("Skip splitter and embedder steps")
+                summary['split_method'].append("Skipped")
+                summary['embedding_algorithm_model'].append("Skipped")
+
             retriever_res = retriever(self.index, query, self.size)
             retrieval_time = time.perf_counter() - start_time
 
             total_retrieval_time += retrieval_time
             summary['rounds_of_experiments'] += 1
+            summary['load_method'].append(loader.__name__)
             summary['split_method'].append(splitter.__name__)
             summary['retrieval_method'].append(retriever.__name__)
             summary['embedding_algorithm_model'].append(embedder.__name__)
@@ -673,10 +702,11 @@ class WorkflowExecutor:
 
         #  openai required for now, bedrock is not working even setup the llm model explicitly
             for reference in retriever_res:
-                score = evaluator(prediction=query, reference=reference.page_content, type=EvaluatorType.EMBEDDING_DISTANCE)['score']
+                logger.info("reference: {} with type {}".format(reference, type(reference)))
+                score = evaluator(prediction=query, reference=reference[0].page_content, type=EvaluatorType.EMBEDDING_DISTANCE)['score']
                 total_similarity_score += score
                 # TODO, unified score parse method
-                # total_relevance_score += float(reference[1]) for langchain
+                total_relevance_score += float(reference[1])
                 # total_relevance_score += float(score['_score']) for score in reference['hits']['hits'] for csdc
 
                 # results_matrix.append(evaluator(prediction=query, reference=reference.page_content, type=EvaluatorType.EMBEDDING_DISTANCE)['score'])
@@ -716,93 +746,20 @@ if __name__ == "__main__":
     9. average similarity score of retrival
     10. average time of retrival
     """
-    # legacy = WorkflowExecutor()
-    # legacy.update_component('loaders', langchain_unstructured_loader, 'add')
-    # legacy.update_component('splitters', langchain_recursive_splitter, 'add')
-    # legacy.update_component('embedders', bedrock_embedding, 'add')
-    # legacy.update_component('retrievers', local_aos_retriever, 'add')
-    # legacy.update_component('evaluators', langchain_evaluator, 'add')
-    # legacy.execute_workflow("pdf-sample-01.pdf", "请介绍什么是kindle以及它的主要功能？")
+    legacy = WorkflowExecutor()
+    legacy.update_component('loaders', langchain_unstructured_loader, 'add')
+    legacy.update_component('splitters', langchain_recursive_splitter, 'add')
+    legacy.update_component('embedders', bedrock_embedding, 'add')
+    legacy.update_component('retrievers', local_aos_retriever, 'add')
+    legacy.update_component('evaluators', langchain_evaluator, 'add')
+    response = legacy.execute_workflow("pdf-sample-01.pdf", "请介绍什么是kindle以及它的主要功能？")
+    logger.info("test of legacy workflow: {}".format(response))
 
-    # csdc = WorkflowExecutor()
-    # csdc.update_component('loaders', csdc_unstructured_loader, 'add')
-    # csdc.update_component('splitters', csdc_markdown_header_splitter, 'add')
-    # csdc.update_component('embedders', csdc_embedding, 'add')
-    # csdc.update_component('retrievers', aos_retriever, 'add')
-    # csdc.update_component('evaluators', langchain_evaluator, 'add')
-    # csdc.execute_workflow("md-sample-01.md", "请介绍什么是kindle以及它的主要功能？")
-
-    # load
-    # loader_res = langchain_unstructured_loader("pdf-sample-01.pdf")
-
-    # loader_res = csdc_markdown_loader("md-sample-01.md")
-    load_res = csdc_unstructured_loader("pdf-sample-01.pdf")
-    logger.info("load_res: {}".format(load_res))
-    # prepare for QA dataset used in llm evaluation
-    # testdata_generate(loader_res, llm="openai", embedding="openai")
-
-    # split
-    # splitter_res = langchain_recursive_splitter(loader_res)
-    # splitter_res = csdc_markdown_header_splitter(loader_res)
-
-    # # embedding
-    # batches = batch_generator(splitter_res, batch_size=5)
-    # for batch in batches:
-    #     for doc in batch:
-    #         embedding_res = csdc_embedding(default_aos_index_name, doc)
-
-    # embeddings = OpenAIEmbeddings()
-    # embeddings = BedrockEmbeddings()
-    # resp = embeddings.embed_documents(
-    #     ["This is a content of the document", "This is another document"]
-    # )
-    # _bedrock_embedding = BedrockEmbeddings()
-    # opensearch_vector_search = OpenSearchVectorSearch(
-    #     opensearch_url="https://localhost:9200",
-    #     index_name="llm-bot-index",
-    #     embedding_function=_bedrock_embedding,
-    #     http_auth=("admin", "admin"),
-    #     use_ssl = False,
-    #     verify_certs = False,
-    #     ssl_assert_hostname = False,
-    #     ssl_show_warn = False,
-    #     bulk_size = 1024,
-    # )
-    
-    # batches = batch_generator(splitter_res, batch_size=5)
-    # for batch in batches:
-    #     for doc in batch:
-    #         opensearch_vector_search.add_embeddings(
-    #             text_embeddings = [(doc.page_content, _bedrock_embedding.embed_documents([doc.page_content])[0])],
-    #             metadatas = None,
-    #             ids = None,
-    #             bulk_size = 1024,
-    #         )
-
-    # embed_res = bedrock_embedding(default_aos_index_name, splitter_res)
-    # logger.info("embed_res: {}".format(embed_res))
-    # # retriever
-
-    # query = "请介绍什么是kindle以及它的主要功能？"
-    # retriver_res = local_aos_retriever(default_aos_index_name, query, 10)
-
-    # retriver_res = opensearch_vector_search.similarity_search(query, k=10)
-    # logger.info("retriver_res: {} with type {}".format(retriver_res, type(retriver_res)))
-    # score_list = []
-    # for reference in retriver_res:
-    #     score_list.append(langchain_evaluator(prediction=query, reference=reference.page_content, type=EvaluatorType.EMBEDDING_DISTANCE)['score'])
-    # logger.info("score_list: {}".format(score_list))
-    
-    # retriever
-    # query = "question 6"
-    # query_res = _query_embedding('jsonl', query)
-    # retriver_res = aos_retriever('jsonl', json.loads(query_res.text), 10)
-    # reference_list = []
-    # for hit in retriver_res['hits']['hits']:
-    #     reference_list.append(hit['_source']['text'])
-    
-    # # evaluator query with all the reference and save the score into a list
-    # score_list = []
-    # for reference in reference_list:
-    #     score_list.append(langchain_evaluator(prediction=query, reference=reference, type=EvaluatorType.EMBEDDING_DISTANCE)['score'])
-    # logger.info("score_list: {}".format(score_list))
+    csdc = WorkflowExecutor()
+    csdc.update_component('loaders', csdc_unstructured_loader, 'add')
+    csdc.update_component('splitters', csdc_markdown_header_splitter, 'add')
+    csdc.update_component('embedders', csdc_embedding, 'add')
+    csdc.update_component('retrievers', aos_retriever, 'add')
+    csdc.update_component('evaluators', langchain_evaluator, 'add')
+    response = csdc.execute_workflow("md-sample-01.md", "请介绍什么是kindle以及它的主要功能？", skip=True)
+    logger.info("test of csdc workflow: {}".format(response))
