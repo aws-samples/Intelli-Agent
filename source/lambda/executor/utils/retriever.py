@@ -6,6 +6,7 @@ import copy
 from typing import TYPE_CHECKING, Any, Dict, List, Optional 
 
 from langchain.schema.retriever import BaseRetriever, Document
+from langchain.retrievers import BM25Retriever, EnsembleRetriever
 from langchain.callbacks.manager import CallbackManagerForRetrieverRun
 from langchain.docstore.document import Document
 
@@ -199,6 +200,7 @@ def organize_faq_results(response, index_name, source_field="file_path", text_fi
                 result["answer"] = get_faq_answer(result["source"], index_name, source_field)
             else:
                 result["answer"] = aos_hit["_source"]["metadata"]["jsonlAnswer"]["answer"]
+                result["question"] = aos_hit["_source"]["metadata"]["jsonlAnswer"]["question"]
             # result["doc"] = get_faq_content(result["source"], index_name)
         except:
             print("index_error")
@@ -289,6 +291,52 @@ class QueryQuestionRetriever(BaseRetriever):
                 sources = [source]
                 return answer, sources
         return answer, sources, debug_info
+
+class StrictQueryQuestionRetriever(BaseRetriever):
+    index: Any
+    vector_field: Any
+    source_field: Any
+    def __init__(self, index, vector_field, source_field):
+        super().__init__()
+        self.index = index
+        self.vector_field = vector_field
+        self.source_field = source_field
+
+    def _get_relevant_documents(self, question: Dict, *, run_manager: CallbackManagerForRetrieverRun) -> List[Document]:
+        query = question["query"] 
+        debug_info = question["debug_info"]
+        start = time.time()
+        opensearch_knn_results = []
+        parsed_query = parse_query(
+            query,
+            [],
+            zh_embedding_model_endpoint,
+            en_embedding_model_endpoint,
+            debug_info,
+        )
+        opensearch_knn_response = aos_client.search(
+            index_name=self.index,
+            query_type="knn",
+            query_term=parsed_query["zh_query_relevance_embedding"],
+            # query_term=parsed_query["zh_query_similarity_embedding"],
+            field=self.vector_field,
+            size=10,
+        )
+        opensearch_knn_results.extend(
+            organize_faq_results(opensearch_knn_response, self.index, self.source_field)
+        )
+        # logger.info(json.dumps(opensearch_knn_response, ensure_ascii=False))
+        elpase_time = time.time() - start
+        logger.info(f"runing time of opensearch_knn : {elpase_time}s seconds")
+        doc_list = []
+        debug_info["q_q_match_info"] = remove_redundancy_debug_info(
+                opensearch_knn_results[:10]
+        )
+        for result in opensearch_knn_results:
+            result.pop("detail")
+            result.pop("content")
+            doc_list.append(result)
+        return json.dumps(doc_list, ensure_ascii=False)
 
 class QueryDocumentRetriever(BaseRetriever):
     index: Any
