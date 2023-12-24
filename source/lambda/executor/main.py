@@ -17,6 +17,8 @@ from langchain.output_parsers import PydanticOutputParser
 from langchain.schema.runnable import RunnableParallel, RunnablePassthrough, RunnableBranch, RunnableLambda
 from langchain.pydantic_v1 import BaseModel, Field, validator
 from langchain.globals import set_verbose
+from langchain.llms import OpenAI
+
 
 logger = logging.getLogger()
 handler = logging.StreamHandler()
@@ -968,13 +970,11 @@ def market_chain_entry(
     sources = []
     answer = ""
 
-
-
     set_verbose(True)
     dgr_q_d_retriever = retriever.QueryDocumentRetriever(aos_index_dgr_qd, "embedding", "content", "source")
     dgr_q_q_retriever = retriever.QueryQuestionRetriever(aos_index_dgr_qq, "embedding", "source")
     mkt_q_d_retriever = retriever.QueryDocumentRetriever(aos_index_mkt_qd, "vector_field", "text", "file_path")
-    mkt_q_q_retriever = retriever.QueryQuestionRetriever(aos_index_mkt_qq, "vector_field", "file_path")
+    mkt_q_q_retriever = retriever.StrictQueryQuestionRetriever(aos_index_mkt_qq, "vector_field", "file_path")
 
     def format_docs(docs, top_k=1):
         # return "\n\n".join(doc.page_content for doc in docs["docs"][:top_k])
@@ -1010,19 +1010,37 @@ def market_chain_entry(
                 "sources": lambda x:x["sources"],
                 "contexts": lambda x:x["contexts"],
                 "debug_info": lambda x:x["debug_info"]})
+    # rag_chain = RunnableParallel({
+    #             "dgr_docs": dgr_q_d_retriever,
+    #             "mkt_docs": mkt_q_d_retriever,
+    #             "query": lambda x:x["query"],
+    #             "debug_info": lambda x:x["debug_info"]}
+    #         ) | RunnableParallel({
+    #             "contexts": format_docs,
+    #             "sources": format_sources,
+    #             "query": lambda x:x["query"],
+    #             "debug_info": lambda x:x["debug_info"]}
+    #         )  | llm_chain
     q_q_branch = RunnableParallel({
                 "answer": dgr_q_q_retriever,
                 "query": lambda x:x["query"]}
             ) | RunnableBranch((
                 lambda x:x["answer"][0] is not None,
-                    lambda x:{"answer": x["answer"][0],
-                              "sources": x["answer"][1],
-                              "debug_info": lambda x:x["answer"][2]}),
+                lambda x:{"answer": x["answer"][0],
+                            "sources": x["answer"][1],
+                            "debug_info": lambda x:x["answer"][2]}),
                 {"query": lambda x:x["query"],
                  "debug_info": lambda x:x["answer"][2]} | rag_chain)
     strict_q_q_branch = mkt_q_q_retriever
     if intent_type == IntentType.KNOWLEDGE_QA.value:
         response = q_q_branch.invoke({"query": query_input, "debug_info": debug_info})
+        # if stream:
+        #     response = q_q_branch.stream({"query": query_input, "debug_info": debug_info})
+        #     for r in response:
+        #         for rr in r:
+        #             print(rr)
+        # else:
+        #     response = q_q_branch.invoke({"query": query_input, "debug_info": debug_info})
         answer = response["answer"]
         sources = response["sources"]
         contexts = response["contexts"]
@@ -1032,9 +1050,7 @@ def market_chain_entry(
         return response, sources, contexts, debug_info
     elif intent_type == IntentType.STRICT_QQ.value:
         response = strict_q_q_branch.invoke({"query": query_input, "debug_info": debug_info})
-        answer = response[0]
-        sources = response[1]
-        return answer, sources, contexts, debug_info
+        return response, sources, contexts, debug_info
 
 def main_chain_entry(
     session_id: str,
@@ -1286,9 +1302,3 @@ def lambda_handler(event, context):
         debug_info=debug_info,
         ws_client=ws_client
     ))
-    
-   
-        
-
-
-    
