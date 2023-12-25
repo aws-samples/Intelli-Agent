@@ -91,18 +91,45 @@ class ContentHandler(EmbeddingsContentHandler):
             return [embeddings[0]]
         return embeddings
 
-def create_sagemaker_embeddings_from_js_model(embeddings_model_endpoint_name: str, aws_region: str) -> SagemakerEndpointEmbeddingsJumpStart:
+
+def create_embedding_with_multiple_model(embeddings_model_list: List[str], aws_region: str, file_type: str):
+    embedding_dict = {}
+    if file_type.lower() == "jsonl":
+        for embedding_model in embeddings_model_list:
+            if "zh" in embedding_model.lower():
+                content_handler_zh = SimilarityZhContentHandler()
+                embedding_zh = create_sagemaker_embeddings_from_js_model(embedding_model, aws_region, content_handler_zh)
+                embedding_dict["zh"] = embedding_zh
+            elif "en" in embedding_model.lower():
+                content_handler_en = SimilarityEnContentHandler()
+                embedding_en = create_sagemaker_embeddings_from_js_model(embedding_model, aws_region, content_handler_en)
+                embedding_dict["en"] = embedding_en
+    else:
+        for embedding_model in embeddings_model_list:
+            if "zh" in embedding_model.lower():
+                content_handler_zh = RelevanceZhContentHandler()
+                embedding_zh = create_sagemaker_embeddings_from_js_model(embedding_model, aws_region, content_handler_zh)
+                embedding_dict["zh"] = embedding_zh
+            elif "en" in embedding_model.lower():
+                content_handler_en = RelevanceEnContentHandler()
+                embedding_en = create_sagemaker_embeddings_from_js_model(embedding_model, aws_region, content_handler_en)
+                embedding_dict["en"] = embedding_en
+
+    return embedding_dict
+
+
+def create_sagemaker_embeddings_from_js_model(embeddings_model_endpoint_name: str, aws_region: str, content_handler) -> SagemakerEndpointEmbeddingsJumpStart:
     # all set to create the objects for the ContentHandler and 
     # SagemakerEndpointEmbeddingsJumpStart classes
-    content_handler = ContentHandler()
     logger.info(f'content_handler: {content_handler}, embeddings_model_endpoint_name: {embeddings_model_endpoint_name}, aws_region: {aws_region}')
     # note the name of the LLM Sagemaker endpoint, this is the model that we would
     # be using for generating the embeddings
-    embeddings = SagemakerEndpointEmbeddingsJumpStart( 
+    embeddings = SagemakerEndpointEmbeddingsJumpStart(
         endpoint_name = embeddings_model_endpoint_name,
-        region_name = aws_region, 
+        region_name = aws_region,
         content_handler = content_handler
     )
+
     return embeddings
 
 # Migrate the class from sm_utils.py in executor to here, there are 3 models including vector, cross and answer wrapper into class SagemakerEndpointVectorOrCross. TODO, to merge the class along with the previous class SagemakerEndpointEmbeddingsJumpStart

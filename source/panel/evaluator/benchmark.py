@@ -7,6 +7,10 @@ import requests
 import json
 import itertools
 import time
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn
+
 from tenacity import retry, stop_after_attempt, wait_exponential
 from itertools import product
 from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple
@@ -23,6 +27,7 @@ from langchain.document_loaders import UnstructuredMarkdownLoader
 from langchain.vectorstores import OpenSearchVectorSearch
 from langchain.evaluation import load_evaluator, EvaluatorType
 from langchain.llms.bedrock import Bedrock
+# from langchain_core.language_models import BaseLanguageModel
 
 from llm_bot_dep.loaders.nougat_pdf import NougatPDFLoader
 from llm_bot_dep.loaders.markdown import process_md, CustomMarkdownLoader
@@ -73,7 +78,7 @@ metadata_template = {
 # prerequisite for testdata generation using ragas, or using OpenAIEmbeddings but need to set the OPENAI_API_KEY/OPENAI_API_BASE in env
 bedrock_client = boto3.client("bedrock-runtime", region_name="us-east-1")
 bedrock_llm = Bedrock(
-    model_id = "anthropic.claude-v2", 
+    model_id = "anthropic.claude-v2:1", 
     client = bedrock_client,
     model_kwargs = {'temperature': 0}
 )
@@ -144,8 +149,18 @@ def langchain_unstructured_loader(file_path: str) -> List[Document]:
     """
     loader = UnstructuredFileLoader(file_path, mode="elements")
     docs = loader.load()
-    logger.debug("unstructured load data: {}".format(docs))
+    logger.info("unstructured load data: {}".format(docs))
     return docs
+
+def parse_log_to_document_list(log_content: str) -> List[Document]:
+    # Split the log content into page content and metadata parts
+    parts = log_content.split("Metadata: ")
+    page_content = parts[0].replace("Page Content: ", "").strip()
+    metadata = json.loads(parts[1].strip()) if len(parts) > 1 else {}
+
+    # Create a Document object
+    doc = Document(page_content=page_content, metadata=metadata)
+    return [doc]
 
 def csdc_unstructured_loader(file_path: str) -> List[Document]:
     """
@@ -240,9 +255,12 @@ def csdc_unstructured_loader(file_path: str) -> List[Document]:
     with open(file_name + ".log", "r") as f:
         file_content = f.read()
         logger.debug("file_content: {}".format(file_content))
-
-    # TODO: return the result of splitter (SplittingType.SEMANTIC) to integrate into current benchmark
-    return file_content
+    
+    # transform to Document object
+    doc = parse_log_to_document_list(file_content)
+    logger.info("csdc unstructured load data: {} and type: {}".format(doc, type(doc)))
+    # return to raw extracted file contents to match with the function as any loader class. TODO: return the result of splitter (SplittingType.SEMANTIC) to integrate into current benchmark
+    return doc
 
 def langchain_recursive_splitter(docs: List[Document]) -> List[Document]:
     """
@@ -536,6 +554,12 @@ def langchain_evaluator(prediction: str, reference: str, type: str):
     Returns:
         dict: A dictionary of evaluation results, e.g. {'score': 0.1682955026626587}
     """
+    # explicitly set the llm model for bedrock
+    bedrock_llm = Bedrock(
+        model_id = "anthropic.claude-v2:1", 
+        client = bedrock_client,
+        model_kwargs = {'temperature': 0}
+    )
     evaluator = load_evaluator(type, llm=bedrock_llm)
     response = evaluator.evaluate_strings(prediction=prediction, reference=reference)
     logger.debug("evaluator response: {}".format(response))
@@ -544,7 +568,7 @@ def langchain_evaluator(prediction: str, reference: str, type: str):
 def llama_index_evalutor(query: str, docs_with_score: List[Tuple[str, float]]):
     pass
 
-def testdata_generate(docs: List[Document], llm: str = "bedrock", embedding: str = "bedrock"):
+def testdata_generate(doc: Document, llm: str = "bedrock", embedding: str = "bedrock", test_size: int = 3):
     """
     generate test data for evaluation
     """
@@ -583,13 +607,19 @@ def testdata_generate(docs: List[Document], llm: str = "bedrock", embedding: str
         chat_qa=chat_qa,
     )
 
-    testset = test_generator.generate(loader_res, test_size=10)
+    testset = test_generator.generate(doc, test_size=test_size)
     test_df = testset.to_pandas()
     logger.debug("testdata head: {}".format(test_df.head()))
 
     # Saving to a csv and txt file for debugging purpose
     test_df.to_csv('test_data.csv', index=False)
     test_df.to_csv('test_data.txt', sep='\t', index=False)
+    
+    # extract the question and answer from testset
+    question = test_df['question'].tolist()
+    question_type = test_df['question_type'].tolist()
+
+    return question, question_type
 
 class WorkflowExecutor:
     """
@@ -716,6 +746,38 @@ class WorkflowExecutor:
 
         return summary
 
+    def summary_viz(self, summary: List[Dict[str, Any]]):
+        """
+        Visualizes the summary data to gain insights on the best combination for relevance and retrieval score.
+
+        Args:
+            summary (list): Rounds of experiments with metrics of relevance and retrieval score.
+
+        Returns:
+            Display the bar charts of average relevance and retrieval score sperately with x axis as rounds of experiments and y axis as average score and similarity score.
+        """
+       # Convert the data to a DataFrame
+        df = pd.DataFrame(summary)
+
+        # Plotting
+        plt.figure(figsize=(12, 6))
+
+        # Plotting average_relevance_score and average_similarity_score as separate bar charts
+        plt.subplot(1, 2, 1)
+        seaborn.barplot(x='rounds_of_experiments', y='average_relevance_score', data=df, color='blue')
+        plt.title('Average Relevance Score per Round')
+        plt.xlabel('Rounds of Experiments')
+        plt.ylabel('Average Relevance Score')
+
+        plt.subplot(1, 2, 2)
+        seaborn.barplot(x='rounds_of_experiments', y='average_similarity_score', data=df, color='red')
+        plt.title('Average Similarity Score per Round')
+        plt.xlabel('Rounds of Experiments')
+        plt.ylabel('Average Similarity Score')
+
+        plt.tight_layout()
+        plt.show()
+
 # Preparing loader, splitter, and embeddings retriever list, iterate them to create comparasion matrix
 loader_list = [langchain_unstructured_loader, nougat_loader, csdc_markdown_loader]
 splitter_list = [langchain_recursive_splitter, csdc_markdown_header_splitter]
@@ -746,20 +808,36 @@ if __name__ == "__main__":
     9. average similarity score of retrival
     10. average time of retrival
     """
+    # initialization of workflow executor
     legacy = WorkflowExecutor()
     legacy.update_component('loaders', langchain_unstructured_loader, 'add')
     legacy.update_component('splitters', langchain_recursive_splitter, 'add')
     legacy.update_component('embedders', bedrock_embedding, 'add')
     legacy.update_component('retrievers', local_aos_retriever, 'add')
     legacy.update_component('evaluators', langchain_evaluator, 'add')
-    response = legacy.execute_workflow("pdf-sample-01.pdf", "请介绍什么是kindle以及它的主要功能？")
-    logger.info("test of legacy workflow: {}".format(response))
+    # response = legacy.execute_workflow("pdf-sample-01.pdf", "请介绍什么是kindle以及它的主要功能？")
+    # logger.info("test of legacy workflow: {}".format(response))
 
-    csdc = WorkflowExecutor()
-    csdc.update_component('loaders', csdc_unstructured_loader, 'add')
-    csdc.update_component('splitters', csdc_markdown_header_splitter, 'add')
-    csdc.update_component('embedders', csdc_embedding, 'add')
-    csdc.update_component('retrievers', aos_retriever, 'add')
-    csdc.update_component('evaluators', langchain_evaluator, 'add')
-    response = csdc.execute_workflow("md-sample-01.md", "请介绍什么是kindle以及它的主要功能？", skip=True)
-    logger.info("test of csdc workflow: {}".format(response))
+    loader_res = langchain_unstructured_loader("pdf-sample-01-eng.pdf")
+    question_list, question_type_list = testdata_generate(loader_res, llm="bedrock", embedding="bedrock", test_size=2)
+    
+    # iterate the question list to execute the workflow
+    response_list = []
+    for question in question_list:
+        response = legacy.execute_workflow("pdf-sample-01-eng.pdf", question)
+        logger.info("test of legacy workflow: {}".format(response))
+        response_list.append(response)
+
+    logger.info("response_list: {}".format(response_list))
+
+    # visualize the summary
+    legacy.summary_viz(response_list)
+
+    # csdc = WorkflowExecutor()
+    # csdc.update_component('loaders', csdc_unstructured_loader, 'add')
+    # csdc.update_component('splitters', csdc_markdown_header_splitter, 'add')
+    # csdc.update_component('embedders', csdc_embedding, 'add')
+    # csdc.update_component('retrievers', aos_retriever, 'add')
+    # csdc.update_component('evaluators', langchain_evaluator, 'add')
+    # response = csdc.execute_workflow("md-sample-01.md", "请介绍什么是kindle以及它的主要功能？", skip=True)
+    # logger.info("test of csdc workflow: {}".format(response))

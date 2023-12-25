@@ -117,7 +117,7 @@ export class LLMStack extends NestedStack {
 
         this._rerankEndPoint = rerankEndpoint.endpointName;
 
-        for(let i=0; i<props._embeddingModelPrefix.length;i++) {
+        for (let i = 0; i < props._embeddingModelPrefix.length; i++) {
             const modelPrefix = props._embeddingModelPrefix[i];
             const codePrefix = modelPrefix+"_deploy_code";
             const versionId = props._embeddingModelVersion[i]
