@@ -388,7 +388,7 @@ def main():
                         file_type,
                         gen_chunk=False,
                     )
-                elif file_type in ["pdf", "txt", "doc", "md", "html", "jsonl"]:
+                elif file_type in ["pdf", "txt", "doc", "md", "html", "json", "jsonl"]:
                     aos_injection(res, embeddingModelEndpointList, aosEndpoint, aos_index, file_type)
                 if qa_enhancement == "true":
                     enhanced_prompt_list = []
