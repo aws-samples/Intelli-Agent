@@ -8,7 +8,7 @@ except ModuleNotFoundError:
 import json 
 
 # find ws_url from api gateway
-ws_url = ""
+ws_url = "wss://omjou492fe.execute-api.us-west-2.amazonaws.com/prod/"
 
 ws = create_connection(ws_url)
 
@@ -17,7 +17,7 @@ body = {
     "model": "knowledge_qa",
     "messages": [{"role": "user","content": "要在Amazon EC2控制台中创建一个EBS卷快照,需要采取哪些步骤?"}],
     "temperature": 0.7,
-    "type" : "dgr", 
+    "type" : "market_chain", 
     "enable_q_q_match": True,
     "enable_debug": False,
     "llm_model_id":'anthropic.claude-v2'

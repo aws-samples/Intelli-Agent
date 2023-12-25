@@ -2,6 +2,7 @@ import time
 import json 
 import logging 
 import traceback
+import copy
 
 logger = logging.getLogger()
 
@@ -16,6 +17,7 @@ class StreamMessageType:
 
 class WebsocketClientError(Exception):
     pass
+
 
 def api_response(**kwargs):
     response = {"statusCode": 200, "headers": {"Content-Type": "application/json"}}
@@ -64,6 +66,7 @@ def api_response(**kwargs):
 
     return response
 
+
 def stream_response(**kwargs):
     session_id = kwargs['session_id']
     model = kwargs['model']
@@ -80,8 +83,9 @@ def stream_response(**kwargs):
         answer = [answer]
 
     def _stop_stream():
-        if not isinstance(answer,list):
-            answer.close()
+        pass
+        # if not isinstance(answer,list):
+        #     answer.close()
     
     def _send_to_ws_client(message:dict):
         try:
@@ -148,6 +152,20 @@ def stream_response(**kwargs):
              "message_type": StreamMessageType.ERROR,
              "message": {'content':error}
         })
+
+
+class WebSocketCallback:
+    def __init__(self,**kwargs):
+        self.kwargs = kwargs 
+
+    def __call__(self, answer, contexts):
+        kwargs = {
+            "answer": answer,
+            "contexts": contexts
+        }
+        kwargs.update(**self.kwargs)
+
+        return stream_response(**kwargs)
 
 def process_response(**kwargs):
     stream = kwargs['stream']

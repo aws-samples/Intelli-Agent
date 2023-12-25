@@ -13,7 +13,13 @@ class ClaudeAnswerCorrectness(AnswerCorrectness):
 
 answer_correctness = AnswerCorrectness(
     # answer_similarity = BedrockEmbeddings(),
-    faithfulness = faithfulness
+    faithfulness = faithfulness,
+    answer_similarity = AnswerSimilarity(threshold=0)
 
 )
 answer_correctness.embeddings = BedrockEmbeddings()
+
+
+answer_similarity = AnswerSimilarity(threshold=0)
+answer_similarity.embeddings = BedrockEmbeddings()
+

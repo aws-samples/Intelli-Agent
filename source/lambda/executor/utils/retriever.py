@@ -3,6 +3,7 @@ import os
 import logging
 import json
 import copy
+import traceback 
 from typing import TYPE_CHECKING, Any, Dict, List, Optional 
 
 from langchain.schema.retriever import BaseRetriever, Document
@@ -204,6 +205,7 @@ def organize_faq_results(response, index_name, source_field="file_path", text_fi
             # result["doc"] = get_faq_content(result["source"], index_name)
         except:
             print("index_error")
+            print(traceback.format_exc())
             print(aos_hit["_source"])
             continue
         # result.update(aos_hit["_source"])
