@@ -24,7 +24,7 @@ interface etlStackProps extends StackProps {
     _subnets: ec2.ISubnet[];
     _securityGroups: ec2.SecurityGroup;
     _domainEndpoint: string;
-    _embeddingEndpoint: string;
+    _embeddingEndpoint: string[];
     _region: string;
     _subEmail: string;
     _etlCodePrefix: string;
@@ -173,7 +173,7 @@ export class EtlStack extends NestedStack {
                 '--QA_ENHANCEMENT.$': sfn.JsonPath.stringAt('$.qaEnhance'),
                 '--AOS_ENDPOINT': props._domainEndpoint,
                 '--REGION': props._region,
-                '--EMBEDDING_MODEL_ENDPOINT': props._embeddingEndpoint,
+                '--EMBEDDING_MODEL_ENDPOINT': props._embeddingEndpoint.join(','),
                 '--ETL_MODEL_ENDPOINT': this._etlEndpoint,
                 '--DOC_INDEX_TABLE': props._OpenSearchIndex,
                 '--RES_BUCKET': _S3Bucket.bucketName,
@@ -248,7 +248,7 @@ export class EtlStack extends NestedStack {
                 '--S3_BUCKET.$': '$.s3Bucket',
                 '--S3_PREFIX.$': '$.s3Prefix',
                 '--AOS_ENDPOINT': props._domainEndpoint,
-                '--EMBEDDING_MODEL_ENDPOINT': props._embeddingEndpoint,
+                '--EMBEDDING_MODEL_ENDPOINT': props._embeddingEndpoint.join(','),
                 '--ETL_MODEL_ENDPOINT': this._etlEndpoint,
                 '--DOC_INDEX_TABLE': props._OpenSearchIndex,
                 '--REGION': props._region,
@@ -297,7 +297,7 @@ export class EtlStack extends NestedStack {
                 '--S3_BUCKET.$': '$.s3Bucket',
                 '--S3_PREFIX.$': '$.s3Prefix',
                 '--AOS_ENDPOINT': props._domainEndpoint,
-                '--EMBEDDING_MODEL_ENDPOINT': props._embeddingEndpoint,
+                '--EMBEDDING_MODEL_ENDPOINT': props._embeddingEndpoint.join(','),
                 '--ETL_MODEL_ENDPOINT': this._etlEndpoint,
                 '--DOC_INDEX_TABLE': props._OpenSearchIndex,
                 '--REGION': props._region,
