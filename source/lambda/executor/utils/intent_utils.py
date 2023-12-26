@@ -2,7 +2,7 @@ import retriever as retriever
 from constant import IntentType
 from llm_utils import Claude21
 import re 
-from prompt_template import INTENT_RECOGINITION_EXAMPLE_TEMPLATE,INTENT_RECOGINITION_PROMPT_TEMPLATE
+from prompt_template import INTENT_RECOGINITION_PROMPT_TEMPLATE_CLUADE21,INTENT_RECOGINITION_EXAMPLE_TEMPLATE
 import os 
 import json 
 from random import Random
@@ -12,7 +12,6 @@ intent_map = {
     "闲聊": IntentType.CHAT,
     "知识问答": IntentType.KNOWLEDGE_QA
 }
-
 
 def create_few_shot_example_string(examples):
     example_strs = []
@@ -40,7 +39,7 @@ def postprocess(output:str):
     r = [rr for rr in r if rr]
     return r[0] 
 
-def get_intent_with_claude2(
+def get_intent_with_claude(
         query,
         chit_chat_examples_path = os.path.join(abs_file_dir,"intent_examples/chit_chat.example"),
         knowledge_qa_examples_path = os.path.join(abs_file_dir,"intent_examples/chit_chat.example"),
@@ -52,7 +51,7 @@ def get_intent_with_claude2(
         knowledge_qa_examples_fs = Random(42).choices(knowledge_qa_examples,k=few_shot_num)
         examples_fs = chit_chat_examples_fs + knowledge_qa_examples_fs 
         labels = list(set([e['label'] for e in examples_fs])) 
-        prompt = INTENT_RECOGINITION_PROMPT_TEMPLATE.format(
+        prompt = INTENT_RECOGINITION_PROMPT_TEMPLATE_CLUADE21.format(
             few_shot_examples = create_few_shot_example_string(examples_fs),
             all_labels = create_all_labels_string(labels),
             query=query)
@@ -68,10 +67,4 @@ def get_intent(query,intent_type,qq_index=None):
     if intent_type != IntentType.AUTO:
         return intent_type 
     
-    # stric_q_q
-    assert qq_index is not None, qq_index
-    qq_retriever = retriever.StrictQueryQuestionRetriever(qq_index, "vector_field", "file_path")
-    res = qq_retriever.invoke({"query": query, "debug_info": {}})
-    if res['sources']:
-        return IntentType.STRICT_QQ
-     
+    return get_intent_with_claude(query)

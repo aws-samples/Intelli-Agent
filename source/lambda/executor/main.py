@@ -69,7 +69,6 @@ class APIException(Exception):
         else:
             super().__init__(message)
 
-
 def load_ws_client():
     global ws_client
     if ws_client is None:

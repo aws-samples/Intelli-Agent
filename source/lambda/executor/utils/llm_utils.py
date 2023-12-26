@@ -15,6 +15,7 @@ from langchain.llms import Bedrock
 
 from prompt_template import claude2_rag_template_render, \
     claude2_rag_api_postprocess, claude2_rag_stream_postprocess
+import prompt_template  
 
 from response_utils import api_response, stream_response
 
@@ -272,11 +273,14 @@ class RagLLMChain(metaclass=RagLLMChainMeta):
     
 class Claude2RagLLMChain(RagLLMChain):
     model_id = 'anthropic.claude-v2'
+    template_render = claude2_rag_template_render
+    stream_postprocess = claude2_rag_stream_postprocess
+    api_postprocess = claude2_rag_api_postprocess
 
     @classmethod
     def create_chain(cls, model_kwargs=None, **kwargs):
         prompt = RunnableLambda(
-            lambda x: claude2_rag_template_render(x['query'],x['contexts'])
+            lambda x: cls.template_render(x['query'],x['contexts'])
             )
         llm = Model.get_model(
             cls.model_id,
@@ -286,15 +290,27 @@ class Claude2RagLLMChain(RagLLMChain):
         stream = kwargs.get('stream',False)
         if stream:
             llm_fn = RunnableLambda(llm.stream)
-            postprocess_fn = RunnableLambda(claude2_rag_stream_postprocess)
+            postprocess_fn = RunnableLambda(cls.stream_postprocess)
         else:
             llm_fn = RunnableLambda(llm.predict)
-            postprocess_fn = RunnableLambda(claude2_rag_api_postprocess)
+            postprocess_fn = RunnableLambda(cls.api_postprocess)
         
         chain = prompt | llm_fn | postprocess_fn
         return chain 
 
-    
+class Claude21RagLLMChain(Claude2RagLLMChain):
+    model_id = 'anthropic.claude-v2:1'
+    template_render = prompt_template.claude21_rag_template_render 
+    stream_postprocess = prompt_template.claude21_rag_stream_postprocess 
+    api_postprocess = prompt_template.claude21_rag_api_postprocess
+
+
+class ClaudeInstance(Claude2RagLLMChain):
+    model_id = 'anthropic.claude-instant-v1'
+    template_render = prompt_template.claude2_rag_template_render
+    stream_postprocess = prompt_template.claude2_rag_stream_postprocess
+    api_postprocess = prompt_template.claude2_rag_api_postprocess
+
 
 def get_rag_llm_chain(model_id, model_kwargs=None, **kwargs):
     return RagLLMChain.get_chain(
