@@ -10,7 +10,7 @@ from opensearchpy import OpenSearch, RequestsHttpConnection
 from langchain.docstore.document import Document
 from langchain.vectorstores import OpenSearchVectorSearch
 
-from sm_utils import create_sagemaker_embeddings_from_js_model
+from sm_utils import ContentHandler, create_sagemaker_embeddings_from_js_model
 from sm_utils import SagemakerEndpointVectorOrCross
 
 import logging
@@ -586,8 +586,8 @@ class OpenSearchClient:
         return response
 
     # @retry(stop=stop_after_attempt(3))
-    def _embed_document(self, index: str, document: Document, _kwargs: dict):
-        embeddings = create_sagemaker_embeddings_from_js_model(embeddingModelEndpoint, region)
+    def _embed_document(self, index: str, document: Document, content_handler: ContentHandler, _kwargs: dict):
+        embeddings = create_sagemaker_embeddings_from_js_model(embeddingModelEndpoint, region, content_handler)
         docsearch = OpenSearchVectorSearch(
             index_name=index,
             embedding_function=embeddings,
@@ -629,7 +629,8 @@ class OpenSearchClient:
             metadata=body_dict['documents']['metadata']
         )
         # if the embedding function execute successfully, return success with the document id
-        res = self._embed_document(index, document, _kwargs)
+        content_handler = ContentHandler()
+        res = self._embed_document(index, document, content_handler, _kwargs)
         # assemble the response
         response = {
             'statusCode': 200,

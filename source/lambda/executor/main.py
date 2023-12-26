@@ -8,13 +8,15 @@ import sys
 import time
 import copy
 import traceback
-from enum import Enum
+
 
 import retriever as retriever
-from llm_utils import CustomLLM
+# from llm_utils import CustomLLM
 from langchain.prompts import ChatPromptTemplate
 from langchain.output_parsers import PydanticOutputParser
 from langchain.schema.runnable import RunnableParallel, RunnablePassthrough, RunnableBranch, RunnableLambda
+
+
 from langchain.pydantic_v1 import BaseModel, Field, validator
 from langchain.globals import set_verbose
 from langchain.llms import OpenAI
@@ -36,10 +38,10 @@ from llmbot_utils import (
 )
 from ddb_utils import get_session, update_session
 from sm_utils import SagemakerEndpointVectorOrCross
-from llm_utils import generate as llm_generate
-from llm_utils import generate_for_chain as llm_generate_for_chain
+# from llm_utils import generate as llm_generate
+from llm_utils import get_rag_llm_chain
 from response_utils import process_response
-
+from constant import Type,IntentType
 
 region = os.environ["AWS_REGION"]
 embedding_endpoint = os.environ.get("embedding_endpoint", "")
@@ -60,24 +62,12 @@ ws_client = None
 
 # get aos_index_dict
 
-class Type(Enum):
-    COMMON = "common"
-    DGR = "dgr"
-    MARKET = "market"
-    MARKET_CHAIN = "market_chain"
-
-class IntentType(Enum):
-    KNOWLEDGE_QA = "knowledge_qa"
-    CHAT = "chat"
-    STRICT_QQ = "strict_q_q"
-
 class APIException(Exception):
     def __init__(self, message, code: str = None):
         if code:
             super().__init__("[{}] {}".format(code, message))
         else:
             super().__init__(message)
-
 
 def load_ws_client():
     global ws_client
@@ -776,7 +766,7 @@ def dgr_entry(
             contexts=knowledges[:context_num],
             history=history,
             region_name=region,
-            parameters=parameters,
+            model_kwargs=parameters,
             context_num=context_num,
             model_type="answer",
             llm_model_endpoint=llm_model_endpoint,
@@ -784,12 +774,17 @@ def dgr_entry(
         )
 
         llm_start_time = time.time()
-        ret = llm_generate(**generate_input)
+        llm_chain = get_rag_llm_chain(
+            **generate_input
+        )
+        llm_chain.invoke()
+
+        answer = llm_generate(**generate_input)
         llm_end_time = time.time()
         elpase_time = llm_end_time - llm_start_time
         logger.info(f"runing time of llm: {elpase_time}s seconds")
-        answer = ret["answer"]
-        debug_info["knowledge_qa_llm"] = ret
+        # answer = ret["answer"]
+        debug_info["knowledge_qa_llm"] = answer
     except Exception as e:
         logger.info(f"Exception Query: {query_input}")
         logger.info(f"{traceback.format_exc()}")
@@ -989,12 +984,27 @@ def market_chain_entry(
         sources.extend([{"doc": doc.metadata["source"]} for doc in docs["dgr_docs"][:top_k]])
         sources.extend([{"doc": doc.metadata["source"]} for doc in docs["mkt_docs"][:top_k]])
         return sources 
+    
+    def contexts_trunc(contexts:list,context_num=2):
+        return [context['doc'] for context in contexts[:context_num]]
+ 
+    contexts_trunc_stage = RunnableLambda(
+        lambda x: {"query": x["query"], "contexts": contexts_trunc(x["contexts"], context_num=2)}
+        )
 
     # llm = CustomLLM(model_id=llm_model_id, stream=stream)
 
     # llm_chain = RunnableLambda(lambda x:json.dumps(x)) | CustomLLM(model_id="anthropic.claude-v2", stream=stream)
-    llm_generate_for_chain = CustomLLM(model_id=llm_model_id, stream=stream)
-    llm_chain = RunnableLambda(lambda x:json.dumps(x)) | RunnableLambda(llm_generate_for_chain)
+    # llm_generate_for_chain = CustomLLM(model_id=llm_model_id, stream=stream)
+    # input [query,contexts], output: answer
+    llm_chain = get_rag_llm_chain(
+        model_id=llm_model_id, 
+        model_kwargs=None,  # TODO 
+        stream=stream
+        )
+    llm_chain = contexts_trunc_stage | llm_chain
+    # llm_chain = RunnableLambda(lambda x:json.dumps(x)) | RunnableLambda(llm_generate_for_chain)
+    
     rag_chain = RunnableParallel({
                 "dgr_docs": dgr_q_d_retriever,
                 "mkt_docs": mkt_q_d_retriever,
@@ -1119,8 +1129,8 @@ def main_chain_entry(
     # llm = CustomLLM(model_id=llm_model_id, stream=stream)
 
     # llm_chain = RunnableLambda(lambda x:json.dumps(x)) | CustomLLM(model_id="anthropic.claude-v2", stream=stream)
-    llm_generate_for_chain = CustomLLM(model_id=llm_model_id, stream=stream)
-    llm_chain = RunnableLambda(lambda x:json.dumps(x)) | RunnableLambda(llm_generate_for_chain)
+    # llm_generate_for_chain = CustomLLM(model_id=llm_model_id, stream=stream)
+    # llm_chain = RunnableLambda(lambda x:json.dumps(x)) | RunnableLambda(llm_generate_for_chain)
     rag_chain = RunnableParallel({
                 "docs": q_d_retriever,
                 "query": lambda x:x["query"],
@@ -1180,31 +1190,8 @@ def lambda_handler(event, context):
 
     retrieval_only = event_body.get("enable_debug", False)
     get_contexts = event_body.get("get_contexts", False)
-    intent_type = event_body.get("model", IntentType.KNOWLEDGE_QA.value)
+    intent_type = event_body.get("intent", IntentType.KNOWLEDGE_QA.value)
     # stream = event_body.get("stream", False)
-
-    if enable_debug:
-        logger.info({
-            "embedding_endpoint":embedding_endpoint,
-            "zh_embedding_endpoint": zh_embedding_endpoint,
-            "en_embedding_endpoint":en_embedding_endpoint,
-            "cross_endpoint": cross_endpoint,
-            "rerank_endpoint": rerank_endpoint,
-            "aos_endpoint": aos_endpoint,
-            "aos_index": aos_index,
-            "aos_faq_index": aos_faq_index,
-            "aos_ug_index": aos_ug_index,
-            "llm_endpoint":llm_endpoint,
-            "chat_session_table": chat_session_table,
-            "websocket_url":websocket_url
-        })
-        os.system(f'{sys.executable} -m pip list')
-        logger.info(f'{sys.executable}')
-        import inspect
-        logger.info(inspect.getabsfile(boto3))
-        logger.info(boto3.__version__)
-        logger.info(sys.path)
-
 
     history, question = process_input_messages(messages)
     role = "user"
@@ -1283,6 +1270,7 @@ def lambda_handler(event, context):
             temperature,
             enable_q_q_match,
             stream=stream,
+            llm_model_id=event_body['llm_model_id'],
             intent_type=intent_type
         )
 
