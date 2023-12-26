@@ -159,9 +159,9 @@ class Claude2(Model):
     @classmethod
     def create_model(cls,model_kwargs=None, **kwargs):
         credentials_profile_name = kwargs.get('credentials_profile_name',None) \
-                    or os.environ.get('credentials_profile_name',None) or None 
+                    or os.environ.get('AWS_PROFILE',None) or None 
         region_name = kwargs.get('region_name',None) \
-            or os.environ.get('region_name', None) or None
+            or os.environ.get('AWS_REGION', None) or None
         model_kwargs = kwargs.get('model_kwargs',None) 
         llm = Bedrock(
                     credentials_profile_name=credentials_profile_name,
