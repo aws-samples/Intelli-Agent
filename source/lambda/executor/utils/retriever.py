@@ -127,9 +127,9 @@ def get_faq_answer(source, index_name, source_field):
         field=f"metadata.{source_field}",
     )
     for r in opensearch_query_response["hits"]["hits"]:
-        if "field" in r["_source"]["metadata"] and "answer" in r["_source"]["metadata"]["field"]:
+        if "field" in r["_source"]["metadata"] and "answer" == r["_source"]["metadata"]["field"]:
             return r["_source"]["content"]
-        elif r["_source"]["metadata"]["jsonlAnswer"]["answer"]:
+        elif "jsonlAnswer" in r["_source"]["metadata"]:
             return r["_source"]["metadata"]["jsonlAnswer"]["answer"]
     return ""
 
@@ -193,15 +193,17 @@ def organize_faq_results(response, index_name, source_field="file_path", text_fi
     for aos_hit in aos_hits:
         result = {}
         try:
-            result["source"] = aos_hit["_source"]["metadata"][source_field]
+            result[source_field] = aos_hit["_source"]["metadata"][source_field]
             result["score"] = aos_hit["_score"]
             result["detail"] = aos_hit["_source"]
-            result["content"] = aos_hit["_source"]["text"]
-            if "field" in aos_hit["_source"]["metadata"] and "answer" in aos_hit["_source"]["metadata"]["field"]:
+            if "field" in aos_hit["_source"]["metadata"] and "question" == aos_hit["_source"]["metadata"]["field"]:
                 result["answer"] = get_faq_answer(result["source"], index_name, source_field)
+                result["content"] = aos_hit["_source"]["content"]
+                result["question"] = aos_hit["_source"]["content"]
             else:
                 result["answer"] = aos_hit["_source"]["metadata"]["jsonlAnswer"]["answer"]
                 result["question"] = aos_hit["_source"]["metadata"]["jsonlAnswer"]["question"]
+                result["content"] = aos_hit["_source"]["text"]
             # result["doc"] = get_faq_content(result["source"], index_name)
         except:
             print("index_error")
@@ -239,11 +241,13 @@ class QueryQuestionRetriever(BaseRetriever):
     index: Any
     vector_field: Any
     source_field: Any
-    def __init__(self, index, vector_field, source_field):
+    size: Any
+    def __init__(self, index: str, vector_field: str, source_field: str, size: float):
         super().__init__()
         self.index = index
         self.vector_field = vector_field
         self.source_field = source_field
+        self.size = size
 
     def _get_relevant_documents(self, question: Dict, *, run_manager: CallbackManagerForRetrieverRun) -> List[Document]:
         query = question["query"] 
@@ -260,10 +264,10 @@ class QueryQuestionRetriever(BaseRetriever):
         opensearch_knn_response = aos_client.search(
             index_name=self.index,
             query_type="knn",
-            query_term=parsed_query["zh_query_relevance_embedding"],
-            # query_term=parsed_query["zh_query_similarity_embedding"],
+            # query_term=parsed_query["zh_query_relevance_embedding"],
+            query_term=parsed_query["zh_query_similarity_embedding"],
             field=self.vector_field,
-            size=2,
+            size=self.size,
         )
         opensearch_knn_results.extend(
             organize_faq_results(opensearch_knn_response, self.index, self.source_field)
@@ -273,7 +277,7 @@ class QueryQuestionRetriever(BaseRetriever):
             query_type="knn",
             query_term=parsed_query["en_query_similarity_embedding"],
             field=self.vector_field,
-            size=2,
+            size=self.size,
         )
         opensearch_knn_results.extend(
             organize_faq_results(opensearch_knn_response, self.index, self.source_field)
@@ -281,64 +285,13 @@ class QueryQuestionRetriever(BaseRetriever):
         # logger.info(json.dumps(opensearch_knn_response, ensure_ascii=False))
         elpase_time = time.time() - start
         logger.info(f"runing time of opensearch_knn : {elpase_time}s seconds")
-        answer = None
-        sources = None
-        if len(opensearch_knn_results) > 0:
-            debug_info["q_q_match_info"] = remove_redundancy_debug_info(
-                opensearch_knn_results[:3]
-            )
-            if opensearch_knn_results[0]["score"] >= 0.7:
-                source = opensearch_knn_results[0]["source"]
-                answer = opensearch_knn_results[0]["answer"]
-                sources = [source]
-                return answer, sources
-        return answer, sources, debug_info
-
-class StrictQueryQuestionRetriever(BaseRetriever):
-    index: Any
-    vector_field: Any
-    source_field: Any
-    def __init__(self, index, vector_field, source_field):
-        super().__init__()
-        self.index = index
-        self.vector_field = vector_field
-        self.source_field = source_field
-
-    def _get_relevant_documents(self, question: Dict, *, run_manager: CallbackManagerForRetrieverRun) -> List[Document]:
-        query = question["query"] 
-        debug_info = question["debug_info"]
-        start = time.time()
-        opensearch_knn_results = []
-        parsed_query = parse_query(
-            query,
-            [],
-            zh_embedding_model_endpoint,
-            en_embedding_model_endpoint,
-            debug_info,
-        )
-        opensearch_knn_response = aos_client.search(
-            index_name=self.index,
-            query_type="knn",
-            query_term=parsed_query["zh_query_relevance_embedding"],
-            # query_term=parsed_query["zh_query_similarity_embedding"],
-            field=self.vector_field,
-            size=10,
-        )
-        opensearch_knn_results.extend(
-            organize_faq_results(opensearch_knn_response, self.index, self.source_field)
-        )
-        # logger.info(json.dumps(opensearch_knn_response, ensure_ascii=False))
-        elpase_time = time.time() - start
-        logger.info(f"runing time of opensearch_knn : {elpase_time}s seconds")
-        doc_list = []
-        debug_info["q_q_match_info"] = remove_redundancy_debug_info(
-                opensearch_knn_results[:10]
-        )
+        debug_info["q_q_match_info"] = remove_redundancy_debug_info(opensearch_knn_results)
+        docs = []
         for result in opensearch_knn_results:
-            result.pop("detail")
-            result.pop("content")
-            doc_list.append(result)
-        return json.dumps(doc_list, ensure_ascii=False)
+            docs.append(Document(page_content=result["content"], metadata={
+                "source": result[self.source_field], "score":result["score"],
+                "answer": result["answer"], "question": result["question"]}))
+        return docs
 
 class QueryDocumentRetriever(BaseRetriever):
     index: Any
