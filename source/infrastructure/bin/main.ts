@@ -2,7 +2,7 @@ import { App, CfnOutput, CfnParameter, Stack, StackProps } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as dotenv from "dotenv";
 import { LLMApiStack } from '../lib/api/api-stack';
-import { DynamoDBStack } from '../lib/ddb-stack';
+import { DynamoDBStack } from '../lib/ddb/ddb-stack';
 import { EtlStack } from '../lib/etl/etl-stack';
 import { AssetsStack } from '../lib/model/assets-stack';
 import { LLMStack } from '../lib/model/llm-stack';

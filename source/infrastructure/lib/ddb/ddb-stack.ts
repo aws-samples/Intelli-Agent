@@ -1,8 +1,8 @@
 import { NestedStack, StackProps, Duration, CfnOutput,NestedStackProps, RemovalPolicy } from "aws-cdk-lib";
 import { Construct } from "constructs";
-import { Table, AttributeType } from "aws-cdk-lib/aws-dynamodb";
 import { Function, Runtime, Code } from "aws-cdk-lib/aws-lambda";
 import { LambdaIntegration, RestApi } from "aws-cdk-lib/aws-apigateway";
+import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
@@ -18,27 +18,40 @@ interface ddbStackProps extends StackProps {
 export class DynamoDBStack extends NestedStack {
 
   _chatSessionTable;
+  public readonly byUserIdIndex: string = "byUserId";
+
   constructor(scope: Construct, id: string, props: ddbStackProps) {
     super(scope, id, props);
     const _vpc = props._vpc;
     
     // Create the DynamoDB table
-    const table = new Table(this, "modelRatingTable", {
-      // tableName: "modelRatingInfo",
+    const sessionsTable = new dynamodb.Table(this, "SessionsTable", {
       partitionKey: {
-        name: "session_id",
-        type: AttributeType.STRING,
+        name: "SessionId",
+        type: dynamodb.AttributeType.STRING,
       },
-    //   removalPolicy: RemovalPolicy.DESTROY, 
+      sortKey: {
+        name: "UserId",
+        type: dynamodb.AttributeType.STRING,
+      },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      encryption: dynamodb.TableEncryption.AWS_MANAGED,
+      removalPolicy: RemovalPolicy.DESTROY,
+    });
+
+    sessionsTable.addGlobalSecondaryIndex({
+      indexName: this.byUserIdIndex,
+      partitionKey: { name: "UserId", type: dynamodb.AttributeType.STRING },
     });
 
     // Create the Lambda functions
     const postFn = new lambda.Function(this, "PostRatingFunction", {
       runtime:lambda.Runtime.PYTHON_3_7,
       handler: "rating.lambda_handler",
-      code: Code.fromAsset(join(__dirname, "../../lambda/ddb")),
+      code: Code.fromAsset(join(__dirname, "../../../lambda/ddb")),
       environment: {
-        TABLE_NAME: table.tableName,
+        SESSIONS_TABLE_NAME: sessionsTable.tableName,
+        SESSIONS_BY_USER_ID_INDEX_NAME: this.byUserIdIndex,
       },
       vpc: _vpc,
         vpcSubnets: {
@@ -58,7 +71,7 @@ export class DynamoDBStack extends NestedStack {
 
     
     // Grant permissions to the Lambda functions to access the DynamoDB table
-    table.grantReadWriteData(postFn);
+    sessionsTable.grantReadWriteData(postFn);
 
     const api = new apigw.RestApi(this, 'ddbApi', {
         restApiName: 'ddbApi',
@@ -78,6 +91,6 @@ export class DynamoDBStack extends NestedStack {
     const session = api.root.addResource('rating');
     session.addMethod("POST", new LambdaIntegration(postFn));
   
-    this._chatSessionTable = table.tableName;
+    this._chatSessionTable = sessionsTable.tableName;
   }
 }
