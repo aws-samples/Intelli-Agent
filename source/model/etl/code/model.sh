@@ -28,8 +28,10 @@ image_name="${image}"
 # Check if aws-cn is in the ARN
 if [ "$(aws sts get-caller-identity --query Arn --output text | cut -d':' -f2)" == "aws-cn" ]; then
     fullname="${account}.dkr.ecr.${region}.amazonaws.com.cn/${image_name}:latest"
+    aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ${account}.dkr.ecr.${region}.amazonaws.com.cn
 else
     fullname="${account}.dkr.ecr.${region}.amazonaws.com/${image_name}:latest"
+    aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ${account}.dkr.ecr.${region}.amazonaws.com
 fi
 
 # If the repository doesn't exist in ECR, create it.
