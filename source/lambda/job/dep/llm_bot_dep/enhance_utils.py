@@ -98,7 +98,7 @@ class EnhanceWithBedrock:
         body = json.dumps(
             {
                 "prompt": prompt,
-                "temperature": 0.7,
+                "temperature": 0.1,
                 "top_p": 1,
                 "top_k": 0,
                 "max_tokens_to_sample": 500,

@@ -24,7 +24,15 @@ fi
 
 # Get the region defined in the current configuration (default to us-west-2 if none defined)
 image_name="${image}"
-fullname="${account}.dkr.ecr.${region}.amazonaws.com/${image_name}:latest"
+
+# Check if aws-cn is in the ARN
+if [ "$(aws sts get-caller-identity --query Arn --output text | cut -d':' -f2)" == "aws-cn" ]; then
+    fullname="${account}.dkr.ecr.${region}.amazonaws.com.cn/${image_name}:latest"
+    aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ${account}.dkr.ecr.${region}.amazonaws.com.cn
+else
+    fullname="${account}.dkr.ecr.${region}.amazonaws.com/${image_name}:latest"
+    aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ${account}.dkr.ecr.${region}.amazonaws.com
+fi
 
 # If the repository doesn't exist in ECR, create it.
 desc_output=$(aws ecr describe-repositories --repository-names ${image_name} 2>&1)
@@ -39,8 +47,12 @@ then
     fi
 fi
 
-aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 763104351884.dkr.ecr.us-east-1.amazonaws.com
-aws ecr get-login-password --region ${region} | docker login -u AWS --password-stdin ${account}.dkr.ecr.${region}.amazonaws.com
+# Get the login command from ECR and execute it directly, check the aws-cn for different partition
+if [ "$(aws sts get-caller-identity --query Arn --output text | cut -d':' -f2)" == "aws-cn" ]; then
+    aws ecr get-login-password --region cn-north-1 | docker login --username AWS --password-stdin 727897471807.dkr.ecr.cn-north-1.amazonaws.com.cn
+else
+    aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 763104351884.dkr.ecr.us-east-1.amazonaws.com
+fi
 
 # mkdir build
 cp ${dockerfile} .
@@ -49,3 +61,4 @@ docker build -t ${image_name} -f ${dockerfile} .
 docker tag ${image_name} ${fullname}
 
 docker push ${fullname}
+

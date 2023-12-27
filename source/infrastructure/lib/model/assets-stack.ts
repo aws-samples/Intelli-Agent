@@ -13,8 +13,10 @@ interface assetsStackProps extends StackProps {
 }
 
 export class AssetsStack extends NestedStack {
-    _crossCodePrefix;
-    _embeddingCodePrefix;
+    _rerankModelPrefix;
+    _rerankModelVersion;
+    _embeddingModelPrefix;
+    _embeddingModelVersion;
     _instructCodePrefix;
     _etlCodePrefix;
 
@@ -30,28 +32,33 @@ export class AssetsStack extends NestedStack {
             blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
         });
 
-        // const crossModelPrefix = props._s3BucketPrefix
-        const crossModelPrefix = 'buffer-cross-001-model'
-        const crossCodePrefix = 'buffer_cross_001_deploy_code'
-        const embeddingModelPrefix = 'buffer-embedding-002-model'
+        // const rerankModelPrefix = props._s3BucketPrefix
+        const rerankModelPrefix = "bge-reranker-large"
+        const rerankModelVersion = "27c9168d479987529781de8474dff94d69beca11"
+        const rerankCodePrefix = "bge-reranker-large_deploy_code"
+        // const embeddingModelPrefix = 'buffer-embedding-002-model'
+        const embeddingModelPrefix: string[] = ['bge-large-zh-v1-5', 'bge-large-en-v1-5']
+        const embeddingModelVersion: string[] = ['b5c9d86d763d9945f7c0a73e549a4a39c423d520', '5888da4a3a013e65d33dd6f612ecd4625eb87a7d']
         const embeddingCodePrefix = 'buffer_embedding_002_deploy_code'
         const instructModelPrefix = 'buffer-instruct-003-model'
         const instructCodePrefix = 'buffer_instruct_003_deploy_code'
         // const etlModelPrefix = 'buffer-etl-model'
         const etlCodePrefix = 'buffer_etl_deploy_code'
 
-        // CROSS MODEL
+        // rerank MODEL
         // Define a local asset for code
-        const crossCodeAsset = new s3assets.Asset(this, 'crossCodeAsset', {
-            path: join(__dirname, '../../../model/cross/code'),
+        const rerankCodeAsset = new s3assets.Asset(this, 'rerankCodeAsset', {
+            path: join(__dirname, '../../../model/rerank/code'),
         });
 
-        const crossCodeAssetDeployment = new s3deploy.BucketDeployment(this, 'crossCodeAssetDeployment', {
-            sources: [s3deploy.Source.asset(join(__dirname, '../../../model/cross/code'))],
+        const rerankCodeAssetDeployment = new s3deploy.BucketDeployment(this, 'rerankCodeAssetDeployment', {
+            sources: [s3deploy.Source.asset(join(__dirname, '../../../model/rerank/code'))],
             destinationBucket: _S3Bucket,
-            destinationKeyPrefix: crossCodePrefix,
+            destinationKeyPrefix: rerankCodePrefix,
         });
-        this._crossCodePrefix = crossCodePrefix
+        // this._rerankCodePrefix = rerankCodePrefix
+        this._rerankModelPrefix = rerankModelPrefix
+        this._rerankModelVersion = rerankModelVersion 
 
         // EMBEDDING MODEL
         // Define a local asset for code
@@ -64,7 +71,9 @@ export class AssetsStack extends NestedStack {
             destinationBucket: _S3Bucket,
             destinationKeyPrefix: embeddingCodePrefix,
         });
-        this._embeddingCodePrefix = embeddingCodePrefix
+        // this._embeddingCodePrefix = embeddingCodePrefix
+        this._embeddingModelPrefix = embeddingModelPrefix
+        this._embeddingModelVersion = embeddingModelVersion
 
         // INSTRUCT MODEL
         // Define a local asset for code
@@ -95,13 +104,13 @@ export class AssetsStack extends NestedStack {
         // Skip the deployment if _s3ModelAssets is provided
         if (!props._s3ModelAssets) {
             // Define a local asset for model
-            const crossModelAsset = new s3assets.Asset(this, 'ModelAsset', {
-                path: join(__dirname, '../../../model/cross/model'),
+            const rerankModelAsset = new s3assets.Asset(this, 'ModelAsset', {
+                path: join(__dirname, '../../../model/rerank/model'),
             });
-            const crossModelAssetDeployment = new s3deploy.BucketDeployment(this, 'crossModelAssetDeployment', {
-                sources: [s3deploy.Source.asset(join(__dirname, '../../../model/cross/model'))],
+            const rerankModelAssetDeployment = new s3deploy.BucketDeployment(this, 'rerankModelAssetDeployment', {
+                sources: [s3deploy.Source.asset(join(__dirname, '../../../model/rerank/model'))],
                 destinationBucket: _S3Bucket,
-                destinationKeyPrefix: crossModelPrefix,
+                destinationKeyPrefix: rerankModelPrefix,
                 // memoryLimit: 4096,
             });
 
@@ -112,7 +121,7 @@ export class AssetsStack extends NestedStack {
             const embeddingModelAssetDeployment = new s3deploy.BucketDeployment(this, 'embeddingModelAssetDeployment', {
                 sources: [s3deploy.Source.asset(join(__dirname, '../../../model/embedding/model'))],
                 destinationBucket: _S3Bucket,
-                destinationKeyPrefix: embeddingModelPrefix,
+                destinationKeyPrefix: embeddingModelPrefix[0],
             });
 
             // Define a local asset for model

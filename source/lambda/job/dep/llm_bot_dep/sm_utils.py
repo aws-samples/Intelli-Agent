@@ -9,7 +9,7 @@ import traceback
 from typing import List, Dict, Any, Optional
 from langchain.embeddings import SagemakerEndpointEmbeddings
 from langchain.embeddings.sagemaker_endpoint import EmbeddingsContentHandler
-from langchain.llms.sagemaker_endpoint import LLMContentHandler, SagemakerEndpoint
+from langchain.llms.sagemaker_endpoint import SagemakerEndpoint
 from langchain.callbacks.manager import CallbackManagerForLLMRun
 from langchain.llms.utils import enforce_stop_tokens
 
@@ -91,18 +91,45 @@ class ContentHandler(EmbeddingsContentHandler):
             return [embeddings[0]]
         return embeddings
 
-def create_sagemaker_embeddings_from_js_model(embeddings_model_endpoint_name: str, aws_region: str) -> SagemakerEndpointEmbeddingsJumpStart:
+
+def create_embedding_with_multiple_model(embeddings_model_list: List[str], aws_region: str, file_type: str):
+    embedding_dict = {}
+    if file_type.lower() == "jsonl":
+        for embedding_model in embeddings_model_list:
+            if "zh" in embedding_model.lower():
+                content_handler_zh = SimilarityZhContentHandler()
+                embedding_zh = create_sagemaker_embeddings_from_js_model(embedding_model, aws_region, content_handler_zh)
+                embedding_dict["zh"] = embedding_zh
+            elif "en" in embedding_model.lower():
+                content_handler_en = SimilarityEnContentHandler()
+                embedding_en = create_sagemaker_embeddings_from_js_model(embedding_model, aws_region, content_handler_en)
+                embedding_dict["en"] = embedding_en
+    else:
+        for embedding_model in embeddings_model_list:
+            if "zh" in embedding_model.lower():
+                content_handler_zh = RelevanceZhContentHandler()
+                embedding_zh = create_sagemaker_embeddings_from_js_model(embedding_model, aws_region, content_handler_zh)
+                embedding_dict["zh"] = embedding_zh
+            elif "en" in embedding_model.lower():
+                content_handler_en = RelevanceEnContentHandler()
+                embedding_en = create_sagemaker_embeddings_from_js_model(embedding_model, aws_region, content_handler_en)
+                embedding_dict["en"] = embedding_en
+
+    return embedding_dict
+
+
+def create_sagemaker_embeddings_from_js_model(embeddings_model_endpoint_name: str, aws_region: str, content_handler) -> SagemakerEndpointEmbeddingsJumpStart:
     # all set to create the objects for the ContentHandler and 
     # SagemakerEndpointEmbeddingsJumpStart classes
-    content_handler = ContentHandler()
     logger.info(f'content_handler: {content_handler}, embeddings_model_endpoint_name: {embeddings_model_endpoint_name}, aws_region: {aws_region}')
     # note the name of the LLM Sagemaker endpoint, this is the model that we would
     # be using for generating the embeddings
-    embeddings = SagemakerEndpointEmbeddingsJumpStart( 
+    embeddings = SagemakerEndpointEmbeddingsJumpStart(
         endpoint_name = embeddings_model_endpoint_name,
-        region_name = aws_region, 
+        region_name = aws_region,
         content_handler = content_handler
     )
+
     return embeddings
 
 # Migrate the class from sm_utils.py in executor to here, there are 3 models including vector, cross and answer wrapper into class SagemakerEndpointVectorOrCross. TODO, to merge the class along with the previous class SagemakerEndpointEmbeddingsJumpStart
@@ -118,40 +145,40 @@ class vectorContentHandler(EmbeddingsContentHandler):
         response_json = json.loads(output.read().decode("utf-8"))
         return response_json["sentence_embeddings"]
 
-class crossContentHandler(LLMContentHandler):
-    content_type = "application/json"
-    accepts = "application/json"
+# class crossContentHandler(LLMContentHandler):
+#     content_type = "application/json"
+#     accepts = "application/json"
 
-    def transform_input(self, prompt: str, model_kwargs: Dict) -> bytes:
-        input_str = json.dumps({"inputs": prompt, "docs":model_kwargs["context"]})
-        return input_str.encode('utf-8')
+#     def transform_input(self, prompt: str, model_kwargs: Dict) -> bytes:
+#         input_str = json.dumps({"inputs": prompt, "docs":model_kwargs["context"]})
+#         return input_str.encode('utf-8')
 
-    def transform_output(self, output: bytes) -> str:
-        response_json = json.loads(output.read().decode("utf-8"))
-        return response_json['scores'][0][1]
+#     def transform_output(self, output: bytes) -> str:
+#         response_json = json.loads(output.read().decode("utf-8"))
+#         return response_json['scores'][0][1]
 
-class answerContentHandler(LLMContentHandler):
-    content_type = "application/json"
-    accepts = "application/json"
+# class answerContentHandler(LLMContentHandler):
+#     content_type = "application/json"
+#     accepts = "application/json"
 
-    def transform_input(self, question: str, model_kwargs: Dict) -> bytes:
+#     def transform_input(self, question: str, model_kwargs: Dict) -> bytes:
 
-        template_1 = '以下context xml tag内的文本内容为背景知识：\n<context>\n{context}\n</context>\n请根据背景知识, 回答这个问题：{question}'
-        context = model_kwargs["context"]
+#         template_1 = '以下context xml tag内的文本内容为背景知识：\n<context>\n{context}\n</context>\n请根据背景知识, 回答这个问题：{question}'
+#         context = model_kwargs["context"]
         
-        if len(context) == 0:
-            prompt = question
-        else:
-            prompt = template_1.format(context = model_kwargs["context"], question = question)
+#         if len(context) == 0:
+#             prompt = question
+#         else:
+#             prompt = template_1.format(context = model_kwargs["context"], question = question)
 
-        input_str = json.dumps({"inputs": prompt,
-                                "history": model_kwargs["history"],
-                                "parameters": model_kwargs["parameters"]})
-        return input_str.encode('utf-8')
+#         input_str = json.dumps({"inputs": prompt,
+#                                 "history": model_kwargs["history"],
+#                                 "parameters": model_kwargs["parameters"]})
+#         return input_str.encode('utf-8')
 
-    def transform_output(self, output: bytes) -> str:
-        response_json = json.loads(output.read().decode("utf-8"))
-        return response_json['outputs']
+#     def transform_output(self, output: bytes) -> str:
+#         response_json = json.loads(output.read().decode("utf-8"))
+#         return response_json['outputs']
 
 class LineIterator:
     """
@@ -283,10 +310,10 @@ def SagemakerEndpointVectorOrCross(prompt: str, endpoint_name: str, region_name:
         )
         query_result = embeddings.embed_query(prompt)
         return query_result
-    elif model_type == "cross":
-        content_handler = crossContentHandler()
-    elif model_type == "answer":
-        content_handler = answerContentHandler()
+    # elif model_type == "cross":
+    #     content_handler = crossContentHandler()
+    # elif model_type == "answer":
+    #     content_handler = answerContentHandler()
     # TODO: replace with SagemakerEndpointStreaming
     genericModel = SagemakerEndpoint(
         endpoint_name = endpoint_name,

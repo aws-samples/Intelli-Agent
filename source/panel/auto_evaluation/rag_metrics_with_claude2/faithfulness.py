@@ -4,6 +4,7 @@ from langchain.callbacks.manager import CallbackManager, trace_as_chain_group
 from datasets import Dataset
 from llm_model import Claude21
 import re
+from tqdm import tqdm 
 
 
 # find statments from answer
@@ -114,12 +115,11 @@ class ClaudeFaithfulness(Faithfulness):
         """
         returns the NLI score for each (q, c, a) pair
         """
-
         question, answer, contexts = ds["question"], ds["answer"], ds["contexts"]
         prompts = []
         list_statements: list[list[str]] = []
-        
-        for q, a in zip(question, answer):
+    
+        for q, a in tqdm(zip(question, answer),total=len(question)):
             human_prompt = CLAUDE_LONG_FORM_ANSWER_PROMPT.format(question=q, answer=a)
             prompts.append(human_prompt)
             r = Claude21.generate(

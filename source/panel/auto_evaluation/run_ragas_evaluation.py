@@ -20,7 +20,8 @@ from ragas.metrics import (
             context_recall,
             faithfulness
 )
-from ragas.metrics._answer_correctness import answer_correctness
+from ragas.metrics._answer_correctness import answer_correctness,AnswerCorrectness
+from ragas.metrics._answer_similarity import answer_similarity,AnswerSimilarity
 
 from rag_metrics_with_claude2 import context_recall as claude2_context_recall
 from rag_metrics_with_claude2 import context_precision as claude2_context_precision
@@ -28,6 +29,7 @@ from rag_metrics_with_claude2 import faithfulness as claude2_faithfulness
 from rag_metrics_with_claude2 import answer_relevancy as claude2_answer_relevancy
 from rag_metrics_with_claude2 import answer_correctness as claude2_answer_correctness
 from rag_metrics_with_claude2 import context_relevancy as claude2_context_relevancy
+from rag_metrics_with_claude2 import answer_similarity as claude2_answer_similarity
 
 
 # RAGAS_EVAL_METRICS = [context_recall,answer_correctness,faithfulness]
@@ -163,12 +165,12 @@ def run_eval(
     # call ragas 
     print(f'run ragas eval, data num: {len(data_to_eval)}')
     # filter None answer 
-    data_to_eval = [d for d in data_to_eval if \
-                    (d['answer'] is not  None \
-                     and d['ground_truths'] and d['ground_truths'][0] is not None\
-                     and d['contexts'] \
-                     and isinstance(d['ground_truths'][0],str)
-                     )]
+    # data_to_eval = [d for d in data_to_eval if \
+    #                 (d['answer'] is not  None \
+    #                  and d['ground_truths'] and d['ground_truths'][0] is not None\
+    #                  and d['contexts'] \
+    #                  and isinstance(d['ground_truths'][0],str)
+    #                  )]
     print(f'run ragas eval, data num after filtered empty answer: {len(data_to_eval)}')
     dataset = Dataset.from_pandas(pd.DataFrame(data_to_eval))
     results = evaluate(
@@ -183,19 +185,28 @@ def run_eval(
 
 
 if __name__ == "__main__":
-    RAGAS_EVAL_METRICS = [claude2_context_relevancy]
+    RAGAS_EVAL_METRICS = [
+        AnswerCorrectness(answer_similarity=AnswerSimilarity(threshold=0))
+        ]
+    # RAGAS_EVAL_METRICS = [
+    #     claude2_answer_similarity
+    #     ]
+    
     rag_api_url = "https://5tzaajjzg7.execute-api.us-west-2.amazonaws.com/default/llm-bot-dev-qq-matching"
     eval_data_path = "TechBot QA Test-fifth-test.csv"
-    eval_id = 'claude2-csds-retrive'
+    # eval_id = 'claude2-csds-retrive'
+    by = 'openai-answer_correctness' #'claude2'
+    eval_id = f'claude2-csdc-retrive-by-{by}'
     # llm_output_cache_path = f'{eval_id}-llm-output-cache-120.pkl'
-    llm_output_cache_path = f'{eval_id}-llm-output-cache.pkl'
-    ret_save_profix = f'{eval_id}-eval'
+    # llm_output_cache_path = f'{eval_id}-llm-output-cache.pkl'
+    llm_output_cache_path = "techbot_question_dgr_res_6_120_with_gt.pkl"
+    ret_save_profix = f'{eval_id}-{llm_output_cache_path}-eval'
     ragas_parameters = {
         "region_name":'us-west-2',
         "credentials_profile_name": "atl",
         # "llm_model_id": "anthropic.claude-v2:1", # "openai", #"anthropic.claude-v2:1", #"anthropic.claude-v2:1"
         "llm_model_generate_paramerters": {
-            "max_tokens_to_sample":2000
+            "max_tokens_to_sample": 2000
         }
     }
    

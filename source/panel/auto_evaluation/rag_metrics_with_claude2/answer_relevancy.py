@@ -44,7 +44,7 @@ class ClaudeAnswerRelevancy(AnswerRelevancy):
         results = []
         for ans in answers:
             human_prompt = CLAUDE_QUESTION_GEN.format(answer=ans)
-            questions = []
+            _questions = []
             for _ in range(self.strictness):
                 r = Claude21.generate(
                     prompt=human_prompt,
@@ -55,9 +55,9 @@ class ClaudeAnswerRelevancy(AnswerRelevancy):
                 rets = [ret.strip() for ret in rets]
                 if not rets and len(rets) > 1:
                     raise RuntimeError(f'invalid claude generation,prompt:\n{human_prompt}, \noutput: {r}')
-                questions.append(rets[0])
+                _questions.append(rets[0])
 
-            results.append(questions)
+            results.append(_questions)
         
         scores = []
         for question, gen_questions in zip(questions, results):

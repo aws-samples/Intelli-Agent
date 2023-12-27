@@ -66,7 +66,7 @@ aosEndpoint = args["AOS_ENDPOINT"]
 aos_index = args["DOC_INDEX_TABLE"]
 # This index is used for the AOS injection, to allow user customize the index, otherwise default value is "chatbot-index" or set in CloudFormation parameter
 aos_custom_index = args["AOS_INDEX"]
-embeddingModelEndpoint = args["EMBEDDING_MODEL_ENDPOINT"]
+embeddingModelEndpointList = args["EMBEDDING_MODEL_ENDPOINT"].split(",")
 etlModelEndpoint = args["ETL_MODEL_ENDPOINT"]
 region = args["REGION"]
 res_bucket = args["RES_BUCKET"]
@@ -233,12 +233,15 @@ def batch_generator(generator, batch_size: int):
             break
         yield batch
 
+
 def aos_injection(
     content: List[Document],
-    embeddingModelEndpoint: str,
+    embeddingModelEndpointList: List[str],
     aosEndpoint: str,
     index_name: str,
+    file_type: str,
     chunk_size: int = 500,
+    chunk_overlap: int = 30,
     gen_chunk: bool = True,
 ) -> List[Document]:
     """
@@ -248,18 +251,19 @@ def aos_injection(
     3. call the AOS to index the chunk with the embeddings;
     Parameters:
     content (list): A list of Document objects, each representing a semantically grouped section of the PDF file. Each Document object contains a metadata dictionary with details about the heading hierarchy etc.
-    embeddingModelEndpoint (str): The endpoint of the embedding model.
+    embeddingModelEndpointList (List[str]): The endpoint list of the embedding model.
     aosEndpoint (str): The endpoint of the AOS.
     index_name (str): The name of the index to be created in the AOS.
     chunk_size (int): The size of each chunk to be indexed in the AOS.
+    file_type (str): The file type of the document.
     gen_chunk (bool): Whether generate chunks or not.
 
     Returns:
 
     Note:
     """
-    embeddings = sm_utils.create_sagemaker_embeddings_from_js_model(
-        embeddingModelEndpoint, region
+    embedding_list = sm_utils.create_embedding_with_multiple_model(
+        embeddingModelEndpointList, region, file_type
     )
 
     def chunk_generator(
@@ -299,7 +303,7 @@ def aos_injection(
                 yield split
 
     if gen_chunk:
-        generator = chunk_generator(content, chunk_size=chunk_size)
+        generator = chunk_generator(content, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
     else:
         generator = content
 
@@ -313,31 +317,35 @@ def aos_injection(
 
             @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
             def _aos_injection(document: Document) -> Document:
-                # if user customize the index, use the customized index as high priority, NOTE the custom index will be created with default AOS mapping in LangChain, use API to create the index with customized mapping before running the job if you want to customize the mapping
+                # If user customize the index, use the customized index as high priority, NOTE the custom index will be created with default AOS mapping in LangChain, use API to create the index with customized mapping before running the job if you want to customize the mapping
                 if aos_custom_index:
                     index_name = aos_custom_index
-                docsearch = OpenSearchVectorSearch(
-                    index_name=index_name,
-                    embedding_function=embeddings,
-                    opensearch_url="https://{}".format(aosEndpoint),
-                    http_auth=awsauth,
-                    use_ssl=True,
-                    verify_certs=True,
-                    connection_class=RequestsHttpConnection,
-                )
-                logger.info(
-                    "Adding documents %s to OpenSearch with index %s",
-                    document,
-                    index_name,
-                )
-                try:
-                    # TODO, consider the max retry and initial backoff inside helper.bulk operation instead of using original LangChain
-                    docsearch.add_documents(documents=[document])
-                except Exception as e:
-                    logger.info(
-                        f"Catch exception when adding document to OpenSearch: {e}"
+                
+                for embedding in embedding_list.values():
+                    document.metadata["embedding_endpoint_name"] = embedding.endpoint_name
+                    docsearch = OpenSearchVectorSearch(
+                        index_name=index_name,
+                        embedding_function=embedding,
+                        opensearch_url="https://{}".format(aosEndpoint),
+                        http_auth=awsauth,
+                        use_ssl=True,
+                        verify_certs=True,
+                        connection_class=RequestsHttpConnection,
                     )
-                logger.info("Retry statistics: %s", _aos_injection.retry.statistics)
+                    logger.info(
+                        "Adding documents %s to OpenSearch with index %s",
+                        document,
+                        index_name,
+                    )
+                    # TODO: add endpoint name as a metadata of document
+                    try:
+                        # TODO, consider the max retry and initial backoff inside helper.bulk operation instead of using original LangChain
+                        docsearch.add_documents(documents=[document])
+                    except Exception as e:
+                        logger.info(
+                            f"Catch exception when adding document to OpenSearch: {e}"
+                        )
+                    logger.info("Retry statistics: %s", _aos_injection.retry.statistics)
 
             # logger.info("Adding documents %s to OpenSearch with index %s", document, index_name)
             save_content_to_s3(s3, document, res_bucket, SplittingType.CHUNK.value)
@@ -374,14 +382,14 @@ def main():
                     # CSV page document has been splited into chunk, no more spliting is needed
                     aos_injection(
                         res,
-                        embeddingModelEndpoint,
+                        embeddingModelEndpointList,
                         aosEndpoint,
                         aos_index,
+                        file_type,
                         gen_chunk=False,
                     )
-                elif file_type in ["pdf", "txt", "doc", "md", "html", "jsonl"]:
-                    aos_injection(res, embeddingModelEndpoint, aosEndpoint, aos_index)
-
+                elif file_type in ["pdf", "txt", "doc", "md", "html", "json", "jsonl"]:
+                    aos_injection(res, embeddingModelEndpointList, aosEndpoint, aos_index, file_type)
                 if qa_enhancement == "true":
                     enhanced_prompt_list = []
                     # iterate the document to get the QA pairs
@@ -410,9 +418,10 @@ def main():
                     if len(enhanced_prompt_list) > 0:
                         aos_injection(
                             enhanced_prompt_list,
-                            embeddingModelEndpoint,
+                            embeddingModelEndpointList,
                             aosEndpoint,
-                            aos_index
+                            aos_index,
+                            "qa"
                         )
 
             except Exception as e:
