@@ -78,6 +78,11 @@ def upload_chunk_to_s3(logger_content: str, bucket: str, prefix: str, splitting_
         logger.error(f"Error uploading logger file to S3: {e}")
         return None
 
+def remove_symbols(text):
+    # Remove symbols using regular expression
+    cleaned_text = re.sub(r'[^\w\s\u4e00-\u9fff]', '', text)
+    return cleaned_text
+
 def ppstructure_en(file_path: Path) -> str:
 
     img_list, flag_gif, flag_pdf = check_and_read(file_path)
@@ -93,6 +98,7 @@ def ppstructure_en(file_path: Path) -> str:
             result_sorted = sorted_layout_boxes(result_cp, w)
             all_res += result_sorted
     doc = ''
+    prev_region_text = ''
     flag = 1
     for i, region in enumerate(all_res):
         if len(region['res']) == 0:
@@ -111,8 +117,13 @@ def ppstructure_en(file_path: Path) -> str:
         elif region['type'].lower() in ('header', 'footer'):
             continue
         else:
+            region_text = ''
             for i, line in enumerate(region['res']):
-                doc += line['text'] + ' '
+                region_text += line['text'] + ' '
+            if remove_symbols(region_text) != remove_symbols(prev_region_text):
+                doc += region_text
+                prev_region_text = region_text
+            
         doc += '\n\n'
     doc = re.sub('\n{2,}', '\n\n', doc.strip())
     return doc
@@ -132,6 +143,7 @@ def ppstructure_ch(file_path: Path) -> str:
             result_sorted = sorted_layout_boxes(result_cp, w)
             all_res += result_sorted
     doc = ''
+    prev_region_text = ''
     flag = 1
     for i, region in enumerate(all_res):
         if len(region['res']) == 0:
@@ -150,9 +162,15 @@ def ppstructure_ch(file_path: Path) -> str:
         elif region['type'].lower() in ('header', 'footer'):
             continue
         else:
+            region_text = ''
             for i, line in enumerate(region['res']):
-                doc += line['text'] + ' '
+                region_text += line['text'] + ' '
+            if remove_symbols(region_text) != remove_symbols(prev_region_text):
+                doc += region_text
+                prev_region_text = region_text
+
         doc += '\n\n'
+        
     doc = re.sub('\n{2,}', '\n\n', doc.strip())
     return doc
 
@@ -216,10 +234,10 @@ def process_pdf_pipeline(body):
 if __name__ == "__main__":
     body = {
         "s3_bucket": "icyxu-llm-glue-assets",
-        "object_key": "test_data/test_glue_lib/cn_pdf/2023.ccl-2.6.pdf",
+        "object_key": "test_data/test_glue_lib/en_pdf/IBM.pdf",
         "destination_bucket": "llm-bot-document-results-icyxu",
         "mode": "ppstructure",
-        "lang": "ch",
+        "lang": "en",
     }
 
     process_pdf_pipeline(body)
