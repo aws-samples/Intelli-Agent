@@ -191,3 +191,30 @@ def group_broken_paragraphs(
             clean_paragraphs.append(re.sub(PARAGRAPH_PATTERN, " ", paragraph))
 
     return "\n\n".join(clean_paragraphs)
+
+def remove_duplicate_sections(text: str) -> str:
+    # Split the text into paragraphs
+    paragraphs = text.split('\n\n')
+
+    # Function to remove punctuation from a string
+    def remove_punctuation(s):
+        no_punc = re.sub(r'[^\w\s]', '', s)
+        # revmoe extra spaces between words
+        normal = re.sub(r'\s+', ' ', no_punc)
+        return normal.lower()
+
+    # Remove punctuation and convert paragraphs to lower case for comparison
+    cleaned_paragraphs = [remove_punctuation(p) for p in paragraphs]
+
+    # Remove duplicate paragraphs (considering punctuation and case-insensitivity)
+    unique_paragraphs = []
+    seen = set()
+    for original, cleaned in zip(paragraphs, cleaned_paragraphs):
+        if cleaned not in seen:
+            unique_paragraphs.append(original)
+            seen.add(cleaned)
+
+    # Join the unique paragraphs back into a single text
+    cleaned_text = '\n\n'.join(unique_paragraphs)
+
+    return cleaned_text
