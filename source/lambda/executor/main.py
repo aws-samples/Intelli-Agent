@@ -1035,6 +1035,21 @@ def main_chain_entry(
     # llm_chain = RunnableLambda(lambda x:json.dumps(x)) | CustomLLM(model_id="anthropic.claude-v2", stream=stream)
     # llm_generate_for_chain = CustomLLM(model_id=llm_model_id, stream=stream)
     # llm_chain = RunnableLambda(lambda x:json.dumps(x)) | RunnableLambda(llm_generate_for_chain)
+
+    def contexts_trunc(contexts:list,context_num=2):
+        return [context['doc'] for context in contexts[:context_num]]
+ 
+    contexts_trunc_stage = RunnableLambda(
+        lambda x: {"query": x["query"], "contexts": contexts_trunc(x["contexts"], context_num=2)}
+        )
+    
+    llm_chain = get_rag_llm_chain(
+        model_id=llm_model_id, 
+        model_kwargs=None,  # TODO 
+        stream=stream
+        )
+    llm_chain = contexts_trunc_stage | llm_chain
+
     rag_chain = RunnableParallel({
                 "docs": q_d_retriever,
                 "query": lambda x:x["query"],
@@ -1125,6 +1140,7 @@ def lambda_handler(event, context):
             temperature,
             enable_q_q_match,
             stream=stream,
+            llm_model_id=llm_model_id,
             intent_type=intent_type
         )
     elif type.lower() == Type.DGR.value:
