@@ -8,6 +8,7 @@ import sys
 import time
 import copy
 import traceback
+import uuid
 
 
 import retriever as retriever
@@ -36,7 +37,7 @@ from llmbot_utils import (
     concat_recall_knowledge,
     process_input_messages,
 )
-from ddb_utils import get_session, update_session
+from ddb_utils import DynamoDBChatMessageHistory
 from sm_utils import SagemakerEndpointVectorOrCross
 # from llm_utils import generate as llm_generate
 from llm_utils import get_rag_llm_chain
@@ -1120,6 +1121,12 @@ def lambda_handler(event, context):
         session_id = event['requestContext']['connectionId']
     else:
         session_id = f"{role}_{int(request_timestamp)}"
+    user_id = event_body.get("user_id", str(uuid.uuid4()))
+    chat_history = DynamoDBChatMessageHistory(
+        table_name = chat_session_table,
+        session_id = session_id,
+        user_id = user_id,
+    )
 
     knowledge_qa_flag = True if model == "knowledge_qa" else False
 
