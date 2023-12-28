@@ -30,6 +30,10 @@ def api_response(**kwargs):
     contexts = kwargs['contexts']
     enable_debug = kwargs['enable_debug']
     debug_info = kwargs['debug_info']
+    chat_history = kwargs['chat_history']
+    message_id = kwargs['message_id']
+
+    chat_history.add_ai_message(f"ai_{message_id}", answer)
     
     # 2. return rusult
     llmbot_response = {
@@ -78,6 +82,8 @@ def stream_response(**kwargs):
     enable_debug = kwargs['enable_debug']
     debug_info = kwargs['debug_info']
     ws_client = kwargs['ws_client']
+    chat_history = kwargs['chat_history']
+    message_id = kwargs['message_id']
     
     if isinstance(answer,str):
         answer = [answer]
@@ -123,6 +129,9 @@ def stream_response(**kwargs):
                         "chunck_id": i,
                     })
             answer_str += ans
+        
+        # add to chat history ddb table
+        chat_history.add_ai_message(f"ai_{message_id}", answer_str)
         # sed source and contexts
         context_msg = {
              "message_type": StreamMessageType.CONTEXT,

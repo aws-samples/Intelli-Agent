@@ -153,6 +153,7 @@ def add_feedback(table, session_id, user_id, feedback_message_id, output_message
     message_content_for_feedback = output_messages[-1].get("content", "") if output_messages else ""
 
     for message in messages:
+        
         ddb_message_id = message.get("data", {}).get("additional_kwargs", {}).get("message_id", "")
         ddb_message_content = message.get("data", {}).get("content", "")
         if feedback_message_id and ddb_message_id == feedback_message_id:
@@ -240,7 +241,7 @@ def lambda_handler(event, context):
             'list_sessions_by_user_id': lambda: list_sessions_by_user_id(session_table, user_id, SESSIONS_BY_USER_ID_INDEX_NAME),
             'add_messages': lambda: add_messages(session_table, session_id, user_id, messages),
             'add_metadata': lambda: add_metadata(session_table, session_id, user_id, metadata),
-            'add_feedback': lambda: add_feedback(session_table, session_id, user_id, output_messages, message_id, feedback),
+            'add_feedback': lambda: add_feedback(session_table, session_id, user_id, message_id, output_messages, feedback),
             'delete_session': lambda: delete_session(session_table, session_id, user_id),
             'delete_user_sessions': lambda: delete_user_sessions(session_table, user_id, SESSIONS_BY_USER_ID_INDEX_NAME)
         }

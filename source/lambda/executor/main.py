@@ -1120,13 +1120,15 @@ def lambda_handler(event, context):
     if stream:
         session_id = event['requestContext']['connectionId']
     else:
-        session_id = f"{role}_{int(request_timestamp)}"
-    user_id = event_body.get("user_id", str(uuid.uuid4()))
+        session_id = f"session_{int(request_timestamp)}"
+    user_id = event_body.get("user_id", "default_user_id")
+    message_id = str(uuid.uuid4())
     chat_history = DynamoDBChatMessageHistory(
         table_name = chat_session_table,
         session_id = session_id,
         user_id = user_id,
     )
+    chat_history.add_user_message(f"user_{message_id}", question)
 
     knowledge_qa_flag = True if model == "knowledge_qa" else False
 
@@ -1200,5 +1202,7 @@ def lambda_handler(event, context):
         contexts=contexts,
         enable_debug=enable_debug,
         debug_info=debug_info,
-        ws_client=ws_client
+        ws_client=ws_client,
+        chat_history=chat_history,
+        message_id=message_id,
     ))
