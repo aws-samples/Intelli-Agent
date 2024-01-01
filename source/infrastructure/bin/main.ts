@@ -8,6 +8,8 @@ import { AssetsStack } from '../lib/model/assets-stack';
 import { LLMStack } from '../lib/model/llm-stack';
 import { VpcStack } from '../lib/shared/vpc-stack';
 import { OpenSearchStack } from '../lib/vector-store/os-stack';
+import { ConnectorStack } from '../lib/connector/connector-stack';
+
 dotenv.config();
 
 export class RootStack extends Stack {
@@ -114,6 +116,19 @@ export class RootStack extends Stack {
     _ApiStack.addDependency(_OsStack);
     _ApiStack.addDependency(_LLMStack);
     _ApiStack.addDependency(_DynamoDBStack);
+
+    const _ConnectorStack = new ConnectorStack(this, 'connector-stack', {
+        _vpc:_VpcStack._vpc,
+        _securityGroup:_VpcStack._securityGroup,
+        _domainEndpoint:_OsStack._domainEndpoint,
+        _embeddingEndPoints:_LLMStack._embeddingEndPoints || '',
+        _OpenSearchIndex: _OpenSearchIndex.valueAsString,
+        _OpenSearchIndexDict: _OpenSearchIndexDict.valueAsString,
+        env:process.env
+    });
+    _ConnectorStack.addDependency(_VpcStack);
+    _ConnectorStack.addDependency(_OsStack);
+    _ConnectorStack.addDependency(_LLMStack);
 
     new CfnOutput(this, 'VPC', {value:_VpcStack._vpc.vpcId});
     new CfnOutput(this, 'OpenSearch Endpoint', {value:_OsStack._domainEndpoint});
