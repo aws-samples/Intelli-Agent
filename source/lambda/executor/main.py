@@ -8,15 +8,21 @@ import sys
 import time
 import copy
 import traceback
+import uuid
 
 
-import retriever as retriever
+from retriever import QueryDocumentRetriever, QueryQuestionRetriever, GoogleRetriever
+from reranker import BGEReranker
 # from llm_utils import CustomLLM
+from langchain.retrievers.merger_retriever import MergerRetriever
 from langchain.prompts import ChatPromptTemplate
 from langchain.output_parsers import PydanticOutputParser
 from langchain.schema.runnable import RunnableParallel, RunnablePassthrough, RunnableBranch, RunnableLambda
-
-
+from langchain.retrievers.web_research import WebResearchRetriever
+from langchain.utilities import GoogleSearchAPIWrapper
+from langchain.retrievers import ContextualCompressionRetriever
+from langchain.retrievers.document_compressors import CohereRerank
+from langchain.callbacks.base import BaseCallbackHandler
 from langchain.pydantic_v1 import BaseModel, Field, validator
 from langchain.globals import set_verbose
 from langchain.llms import OpenAI
@@ -36,7 +42,7 @@ from llmbot_utils import (
     concat_recall_knowledge,
     process_input_messages,
 )
-from ddb_utils import get_session, update_session
+from ddb_utils import DynamoDBChatMessageHistory
 from sm_utils import SagemakerEndpointVectorOrCross
 # from llm_utils import generate as llm_generate
 from llm_utils import get_rag_llm_chain
@@ -799,6 +805,61 @@ def dgr_entry(
 
     return answer, sources, contexts, debug_info
 
+from typing import Any, Dict, List, Optional, Sequence, TypeVar, Union
+from uuid import UUID
+class MyCustomHandler(BaseCallbackHandler):
+    def on_retriever_end(
+        self,
+        documents,
+        *,
+        run_id: UUID,
+        parent_run_id: Optional[UUID] = None,
+        **kwargs: Any,
+    ) -> Any:
+        print(f"doc: {documents}")
+
+
+from typing import Any, Dict, List, Optional, Sequence, TypeVar, Union
+from uuid import UUID
+class MyCustomHandler(BaseCallbackHandler):
+    def on_retriever_end(
+        self,
+        documents,
+        *,
+        run_id: UUID,
+        parent_run_id: Optional[UUID] = None,
+        **kwargs: Any,
+    ) -> Any:
+        print(f"doc: {documents}")
+
+
+from typing import Any, Dict, List, Optional, Sequence, TypeVar, Union
+from uuid import UUID
+class MyCustomHandler(BaseCallbackHandler):
+    def on_retriever_end(
+        self,
+        documents,
+        *,
+        run_id: UUID,
+        parent_run_id: Optional[UUID] = None,
+        **kwargs: Any,
+    ) -> Any:
+        print(f"doc: {documents}")
+
+
+from typing import Any, Dict, List, Optional, Sequence, TypeVar, Union
+from uuid import UUID
+class MyCustomHandler(BaseCallbackHandler):
+    def on_retriever_end(
+        self,
+        documents,
+        *,
+        run_id: UUID,
+        parent_run_id: Optional[UUID] = None,
+        **kwargs: Any,
+    ) -> Any:
+        print(f"doc: {documents}")
+
 def market_chain_entry(
     session_id: str,
     query_input: str,
@@ -854,26 +915,25 @@ def market_chain_entry(
     sources = []
     answer = ""
 
-    dgr_q_d_retriever = retriever.QueryDocumentRetriever(aos_index_dgr_qd, "embedding", "content", "source")
-    dgr_q_q_retriever = retriever.QueryQuestionRetriever(
+    dgr_q_d_retriever = QueryDocumentRetriever(aos_index_dgr_qd, "embedding", "content", "source")
+    dgr_q_q_retriever = QueryQuestionRetriever(
         index=aos_index_dgr_qq, vector_field="embedding", source_field="source", size=5)
-    mkt_q_d_retriever = retriever.QueryDocumentRetriever(aos_index_mkt_qd, "vector_field", "text", "file_path")
-    mkt_q_q_retriever = retriever.QueryQuestionRetriever(
+    mkt_q_d_retriever = QueryDocumentRetriever(aos_index_mkt_qd, "vector_field", "text", "file_path")
+    mkt_q_q_retriever = QueryQuestionRetriever(
         index=aos_index_mkt_qq, vector_field="vector_field", source_field="file_path", size=5)
+    google_retriever = GoogleRetriever(result_num=10)
+    lotr = MergerRetriever(retrievers=[dgr_q_d_retriever, mkt_q_d_retriever])
+    compressor = BGEReranker(top_n = 5)
+    compression_retriever = ContextualCompressionRetriever(
+        base_compressor=compressor, base_retriever=lotr
+    )
 
-    def format_docs(docs, top_k=1):
+    def format_docs(docs, top_k=2):
         # return "\n\n".join(doc.page_content for doc in docs["docs"][:top_k])
-        contexts = []
-        contexts.extend([{"doc": doc.page_content} for doc in docs["dgr_docs"][:top_k]])
-        contexts.extend([{"doc": doc.page_content} for doc in docs["mkt_docs"][:top_k]])
-        return contexts
+        return [doc.page_content for doc in docs["docs"][:top_k]]
 
     def format_sources(docs, top_k=2):
-        # return [doc.metadata["source"] for doc in docs["docs"][:top_k]]
-        sources = []
-        sources.extend([{"doc": doc.metadata["source"]} for doc in docs["dgr_docs"][:top_k]])
-        sources.extend([{"doc": doc.metadata["source"]} for doc in docs["mkt_docs"][:top_k]])
-        return sources 
+        return [doc.metadata["source"] for doc in docs["docs"][:top_k]]
 
     def get_qq_result(docs, threshold=0.7):
         if len(docs) > 0 and docs[0]["score"]:
@@ -902,11 +962,11 @@ def market_chain_entry(
             output["contexts"] = raw_output.get("contexts", [])
         return output
  
-    def contexts_trunc(contexts:list,context_num=2):
-        return [context['doc'] for context in contexts[:context_num]]
+    def contexts_trunc(docs:list,context_num=2):
+        return [doc.page_content for doc in docs[:context_num]]
  
     contexts_trunc_stage = RunnableLambda(
-        lambda x: {"query": x["query"], "contexts": contexts_trunc(x["contexts"], context_num=2)}
+        lambda x: {"query": x["query"], "contexts": contexts_trunc(x["docs"], context_num=2)}
         )
 
     llm_chain = get_rag_llm_chain(
@@ -916,19 +976,13 @@ def market_chain_entry(
         )
     llm_chain = contexts_trunc_stage | llm_chain
     qd_llm_chain = RunnableParallel({
-                "dgr_docs": dgr_q_d_retriever,
-                "mkt_docs": mkt_q_d_retriever,
-                "query": lambda x:x["query"],
-                "debug_info": lambda x:x["debug_info"]}
-            ) | RunnableParallel({
-                "contexts": format_docs,
-                "sources": format_sources,
+                "docs": compression_retriever,
                 "query": lambda x:x["query"],
                 "debug_info": lambda x:x["debug_info"]}
             ) | RunnableParallel({
                 "answer": llm_chain,
-                "sources": lambda x:x["sources"],
-                "contexts": lambda x:x["contexts"],
+                "contexts": format_docs,
+                "sources": format_sources,
                 "debug_info": lambda x:x["debug_info"]})
     qq_chain = dgr_q_q_retriever
     def qq_route(info, threshold=0.9):
@@ -949,7 +1003,7 @@ def market_chain_entry(
 
     def route(info):
         if info["intent_type"] == IntentType.AUTO.value:
-            return qq_qd_llm_chain
+            return google_retriever
         elif info["intent_type"] == IntentType.KNOWLEDGE_QA.value:
             return qq_qd_llm_chain
         elif info["intent_type"] == IntentType.CHAT.value:
@@ -1119,7 +1173,15 @@ def lambda_handler(event, context):
     if stream:
         session_id = event['requestContext']['connectionId']
     else:
-        session_id = f"{role}_{int(request_timestamp)}"
+        session_id = f"session_{int(request_timestamp)}"
+    user_id = event_body.get("user_id", "default_user_id")
+    message_id = str(uuid.uuid4())
+    chat_history = DynamoDBChatMessageHistory(
+        table_name = chat_session_table,
+        session_id = session_id,
+        user_id = user_id,
+    )
+    chat_history.add_user_message(f"user_{message_id}", question)
 
     knowledge_qa_flag = True if model == "knowledge_qa" else False
 
@@ -1193,5 +1255,7 @@ def lambda_handler(event, context):
         contexts=contexts,
         enable_debug=enable_debug,
         debug_info=debug_info,
-        ws_client=ws_client
+        ws_client=ws_client,
+        chat_history=chat_history,
+        message_id=message_id,
     ))

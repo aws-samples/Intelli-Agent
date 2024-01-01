@@ -19,9 +19,10 @@ Make sure Python installed properly. Usage: ./prepare_model.sh -s S3_BUCKET_NAME
 ./prepare_model.sh -s <Your S3 Bucket Name>
 
 cd source/model/etl/code
-sh model.sh ./Dockerfile <EtlImageName> <AWS_REGION>
+# Use ./Dockerfile for standard regions, use ./DockerfileCN for GCR(Greater China) region
+sh model.sh <./Dockerfile>|<./DockerfileCN> <EtlImageName> <AWS_REGION>
 ```
-The ETL image will be pushed to your ECR repo with the image name you specified when executing the command sh model.sh ./Dockerfile <EtlImageName> <AWS_REGION>, AWS_REGION is like us-east-1, us-west-2, etc.
+The ETL image will be pushed to your ECR repo with the image name you specified when executing the command sh model.sh ./Dockerfile <EtlImageName> <AWS_REGION>, AWS_REGION is like us-east-1, us-west-2, etc. Dockerfile is for deployment in standard regions. DockerfileCN is for GCR(Greater China) region. For example, to deploy it in GCR region, the command is: sh model.sh ./DockerfileCN llm-bot-cn cn-northwest-1
 
 
 2. Deploy CDK template (add sudo if you are using Linux), make sure DOCKER is installed properly
