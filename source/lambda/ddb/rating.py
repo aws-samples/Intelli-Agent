@@ -246,6 +246,13 @@ def lambda_handler(event, context):
             'delete_user_sessions': lambda: delete_user_sessions(session_table, user_id, SESSIONS_BY_USER_ID_INDEX_NAME)
         }
     }
+
+    resp_header = {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "*"
+    }
     
     try:
         if http_method in operations_mapping and operation in operations_mapping[http_method]:
@@ -253,7 +260,7 @@ def lambda_handler(event, context):
             logger.info("http_method: {}, operation: {}, response: {}".format(http_method, operation, response))
             return {
                 'statusCode': 200,
-                'headers': {'Content-Type': 'application/json'},
+                'headers': resp_header,
                 'body': json.dumps(response)
             }
         else:
