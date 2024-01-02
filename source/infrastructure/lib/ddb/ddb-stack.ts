@@ -79,6 +79,18 @@ export class DynamoDBStack extends NestedStack {
         endpointConfiguration: {
             types: [apigw.EndpointType.REGIONAL]
         },
+        defaultCorsPreflightOptions: {
+            allowHeaders: [
+                'Content-Type',
+                'X-Amz-Date',
+                'Authorization',
+                'X-Api-Key',
+                'X-Amz-Security-Token'
+            ],
+            allowMethods: apigw.Cors.ALL_METHODS,
+            allowCredentials: true,
+            allowOrigins: apigw.Cors.ALL_ORIGINS,
+        },
         deployOptions: {
             stageName: 'v1',
             metricsEnabled: true,

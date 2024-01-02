@@ -8,6 +8,8 @@ import { AssetsStack } from '../lib/model/assets-stack';
 import { LLMStack } from '../lib/model/llm-stack';
 import { VpcStack } from '../lib/shared/vpc-stack';
 import { OpenSearchStack } from '../lib/vector-store/os-stack';
+import { ConnectorStack } from '../lib/connector/connector-stack';
+
 dotenv.config();
 
 export class RootStack extends Stack {
@@ -97,6 +99,19 @@ export class RootStack extends Stack {
     _EtlStack.addDependency(_OsStack);
     _EtlStack.addDependency(_LLMStack);
 
+    const _ConnectorStack = new ConnectorStack(this, 'connector-stack', {
+      _vpc:_VpcStack._vpc,
+      _securityGroup:_VpcStack._securityGroup,
+      _domainEndpoint:_OsStack._domainEndpoint,
+      _embeddingEndPoints:_LLMStack._embeddingEndPoints || '',
+      _OpenSearchIndex: _OpenSearchIndex.valueAsString,
+      _OpenSearchIndexDict: _OpenSearchIndexDict.valueAsString,
+      env:process.env
+    });
+    _ConnectorStack.addDependency(_VpcStack);
+    _ConnectorStack.addDependency(_OsStack);
+    _ConnectorStack.addDependency(_LLMStack);
+
     const _ApiStack = new LLMApiStack(this, 'api-stack', {
         _vpc:_VpcStack._vpc,
         _securityGroup:_VpcStack._securityGroup,
@@ -108,12 +123,16 @@ export class RootStack extends Stack {
         _sfnOutput: _EtlStack._sfnOutput,
         _OpenSearchIndex: _OpenSearchIndex.valueAsString,
         _OpenSearchIndexDict: _OpenSearchIndexDict.valueAsString,
+        _jobName: _ConnectorStack._jobName,
+        _jobQueueArn: _ConnectorStack._jobQueueArn,
+        _jobDefinitionArn: _ConnectorStack._jobDefinitionArn,
         env:process.env
     });
     _ApiStack.addDependency(_VpcStack);
     _ApiStack.addDependency(_OsStack);
     _ApiStack.addDependency(_LLMStack);
     _ApiStack.addDependency(_DynamoDBStack);
+    _ApiStack.addDependency(_ConnectorStack);
 
     new CfnOutput(this, 'VPC', {value:_VpcStack._vpc.vpcId});
     new CfnOutput(this, 'OpenSearch Endpoint', {value:_OsStack._domainEndpoint});

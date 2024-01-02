@@ -8,6 +8,7 @@ from langchain.document_loaders.pdf import BasePDFLoader
 from langchain.document_loaders import PDFMinerPDFasHTMLLoader
 
 from ..splitter_utils import extract_headings, MarkdownHeaderTextSplitter
+from ..cleaning import remove_duplicate_sections
 from .html import CustomHtmlLoader
 
 logging.basicConfig(level=logging.INFO)
@@ -140,6 +141,9 @@ def process_pdf(s3, pdf: bytes, **kwargs):
         # metadata["heading_hierarchy"] = headings
         # metadata["chunk_id"] = "$$"
         # metadata["file_path"] = f"s3://{bucket}/{key}"
+
+        # remove duplicate sections
+        content = remove_duplicate_sections(content)
 
         metadata = {"file_path": f"s3://{bucket}/{key}", "file_type": "pdf"}
 
