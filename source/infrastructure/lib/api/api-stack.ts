@@ -25,6 +25,9 @@ interface apiStackProps extends StackProps {
     _sfnOutput: sfn.StateMachine;
     _OpenSearchIndex: string;
     _OpenSearchIndexDict: string;
+    _jobName: string;
+    _jobQueueArn: string;
+    _jobDefinitionArn: string;
 }
 
 export class LLMApiStack extends NestedStack {
@@ -40,6 +43,8 @@ export class LLMApiStack extends NestedStack {
         const _aosIndex = props._OpenSearchIndex
         const _aosIndexDict = props._OpenSearchIndexDict
         const _chatSessionTable = props._chatSessionTable
+        const _jobQueueArn = props._jobQueueArn
+        const _jobDefinitionArn = props._jobDefinitionArn
 
         // s3 bucket for storing documents
         const _S3Bucket = new s3.Bucket(this, 'llm-bot-documents', {
@@ -269,6 +274,48 @@ def handler(event, context):
         const webSocketApi = new WebSocketStack(this, 'WebSocketApi', {
             sendMessageLambda: lambdaExecutor,
         });
+
+        const lambdaBatch = new DockerImageFunction(this,
+            "lambdaBatch", {
+            code: DockerImageCode.fromImageAsset(join(__dirname, "../../../lambda/batch")),
+            timeout: Duration.minutes(15),
+            memorySize: 1024,
+            vpc: _vpc,
+            vpcSubnets: {
+                subnets: _vpc.privateSubnets,
+            },
+            securityGroups: [_securityGroup],
+            architecture: Architecture.X86_64,
+            environment: {
+                document_bucket: _S3Bucket.bucketName,
+                opensearch_cluster_domain: _domainEndpoint,
+                embedding_endpoint: props._embeddingEndPoints[0],
+                jobName: props._jobName,
+                jobQueueArn: props._jobQueueArn,
+                jobDefinitionArn: props._jobDefinitionArn,
+            },
+        });
+
+        lambdaBatch.addToRolePolicy(new iam.PolicyStatement({
+            actions: [
+                "sagemaker:InvokeEndpointAsync",
+                "sagemaker:InvokeEndpoint",
+                "s3:List*",
+                "s3:Put*",
+                "s3:Get*",
+                "es:*",
+                "batch:*",
+            ],
+            effect: iam.Effect.ALLOW,
+            resources: ['*'],
+            }
+        ))
+        // Define the API Gateway Lambda Integration to invoke Batch job
+        const lambdaBatchIntegration = new apigw.LambdaIntegration(lambdaBatch, { proxy: true, });
+
+        // Define the API Gateway Method
+        const apiResourceBatch = api.root.addResource('batch');
+        apiResourceBatch.addMethod('POST', lambdaBatchIntegration);
 
         this._apiEndpoint = api.url
         this._documentBucket = _S3Bucket.bucketName
