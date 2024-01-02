@@ -48,35 +48,21 @@ class CustomJsonLoader(BaseLoader):
                     "summary": "",
                     "file_type": "json"
                 }
-        json_type = "repost"
+        item = json.loads(content)
+        content = item['content']
+        source_url = item['source'] if 'source' in item else item.get('url', 'N/A')
+        source_url = source_url if isinstance(source_url, str) else "N/A"
 
-        items = json.loads(content)
-        document_list = []
+        item_metadata = copy.deepcopy(metadata)
+        item_metadata['file_path'] = source_url
 
-        sample_item = items[0]
-        if "source" in sample_item:
-            json_type = "repost"
-        elif "url" in sample_item:
-            json_type = "userguide"
-    
-        for item in items:
-            content = item['content']
-            source_url = item['source'] if 'source' in item else item.get('url', 'N/A')
-            source_url = source_url if isinstance(source_url, str) else "N/A"
+        for key, values in item.items():
+            if key not in ['content', 'source', 'url']:
+                item_metadata[key] = values
+        
+        doc = Document(page_content=content, metadata=item_metadata)
 
-            item_metadata = copy.deepcopy(metadata)
-            item_metadata['file_path'] = source_url
-
-            for key, values in item.items():
-                if key not in ['content', 'source', 'url']:
-                    item_metadata[key] = values
-            
-            if json_type == "userguide":
-                document_list.extend(self.splitter.split_text(Document(page_content=content, metadata=item_metadata)))
-            else:
-                document_list.append(Document(page_content=content, metadata=item_metadata))
-
-        return document_list
+        return doc
 
 
 def process_json(file_content: str, **kwargs):
@@ -84,11 +70,7 @@ def process_json(file_content: str, **kwargs):
     key = kwargs['key']
     res_bucket = kwargs['res_bucket']
     loader = CustomJsonLoader(aws_path=f"s3://{bucket}/{key}", res_bucket=res_bucket)
-    raw_doc_list = loader.load(file_content)
-    doc_list = []
+    doc = loader.load(file_content)
     splitter = MarkdownHeaderTextSplitter(kwargs['res_bucket'])
-
-    for raw_doc in raw_doc_list:
-        doc_list.extend(splitter.split_text(raw_doc))
-
+    doc_list = splitter.split_text(doc)
     return doc_list
