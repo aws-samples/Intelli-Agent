@@ -48,17 +48,10 @@ class DummyWebSocket:
 
 main.ws_client = DummyWebSocket()
 
-def generate_answer(query, temperature=0.7, enable_q_q_match=False, enable_debug=True, retrieval_only=False):
+def generate_answer(query, temperature=0.7, enable_q_q_match=False, enable_debug=True, retrieval_only=False, model="knowledge_qa", stream=False):
     event = {
-        "requestContext":{
-            "eventType":"MESSAGE",
-            "connectionId":"123"
-        },
         "body": json.dumps(
             {
-                "requestContext":{
-                    "eventType":"MESSAGE"
-                },
                 "messages": [
                     {
                         "role": "user",
@@ -67,19 +60,27 @@ def generate_answer(query, temperature=0.7, enable_q_q_match=False, enable_debug
                 ],
                 "aos_faq_index": "chatbot-index-9",
                 "aos_ug_index": "chatbot-index-1",
-                # "model": "knowledge_qa",
+                "model": "knowledge_qa",
                 "temperature": temperature,
                 "enable_q_q_match": enable_q_q_match,
                 "enable_debug": enable_debug,
                 "retrieval_only": retrieval_only,
-                # "type": "market_chain",
-                "type": "common",
+                "type": "market_chain",
+                # "type": "common",
+                # "model": "chat"
+                "model": model,
+                # "type": "dgr",
                 # "model": "chat"
                 # "model": "strict_q_q",
-                "model": "knowledge_qa"
+                # "model": "knowledge_qa"
             }
         )
     }
+    if stream:
+        event["requestContext"] = {
+            "eventType":"MESSAGE",
+            "connectionId":"123"
+        }
     context = None
     response = main.lambda_handler(event, context)
     if response is None:
@@ -171,9 +172,15 @@ if __name__ == "__main__":
     # dgr
     # generate_answer("Amazon Fraud Detector 中'entityId'和'eventId'的含义与注意事项")
     # generate_answer("我想调用Amazon Bedrock中的基础模型，应该使用什么API?")
+    # LLM
+    # generate_answer("polly是什么？", model="knowledge_qa", stream=True)
+    # Q-Q
+    # generate_answer("在相同的EMR Serverless应用程序中，不同的Job可以共享Worker吗？", model="knowledge_qa", stream=True)
+    # generate_answer("polly是什么？", model="auto")
+    generate_answer("我想调用Amazon Bedrock中的基础模型，应该使用什么API?")
     # generate_answer("polly是什么？")
     # mkt
-    generate_answer("ECS容器中的日志，可以配置输出到S3上吗？")
+    # generate_answer("ECS容器中的日志，可以配置输出到S3上吗？")
     # generate_answer("只要我付款就可以收到发票吗")
     # generate_answer("找不到发票怎么办")
     # generate_answer("发票内容有更新应怎么办")
