@@ -74,5 +74,5 @@ def batch_entry():
         vectors = send_to_embedding_model(chunk)
         ingest_to_opensearch(opensearch_host, opensearch_port, vectors)
 
-# if __name__ == "__main__":
-#     batch_entry()
+if __name__ == "__main__":
+    batch_entry()
