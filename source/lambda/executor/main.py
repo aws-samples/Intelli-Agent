@@ -218,189 +218,6 @@ def remove_redundancy_debug_info(results):
                 del result["detail"][field]
     return filtered_results
 
-
-def main_entry(
-    session_id: str,
-    query_input: str,
-    history: list,
-    embedding_model_endpoint: str,
-    cross_model_endpoint: str,
-    llm_model_endpoint: str,
-    aos_index: str,
-    enable_knowledge_qa: bool,
-    temperature: float,
-):
-    """
-    Entry point for the Lambda function.
-
-    :param session_id: The ID of the session.
-    :param query_input: The query input.
-    :param history: The history of the conversation.
-    :param embedding_model_endpoint: The endpoint of the embedding model.
-    :param cross_model_endpoint: The endpoint of the cross model.
-    :param llm_model_endpoint: The endpoint of the language model.
-    :param llm_model_name: The name of the language model.
-    :param aos_index: The index of the AOS engine.
-    :param enable_knowledge_qa: Whether to enable knowledge QA.
-    :param temperature: The temperature of the language model.
-
-    return: answer(str)
-    """
-    debug_info = {
-        "query": query_input,
-        "query_parser_info": {},
-        "q_q_match_info": {},
-        "knowledge_qa_knn_recall": {},
-        "knowledge_qa_boolean_recall": {},
-        "knowledge_qa_combined_recall": {},
-        "knowledge_qa_cross_model_sort": {},
-        "knowledge_qa_llm": {},
-        "knowledge_qa_rerank": {},
-    }
-
-    if enable_knowledge_qa:
-        # 1. concatenate query_input and history to unified prompt
-        query_knowledge = "".join([query_input] + [row[0] for row in history][::-1])
-        logger.info(f"1. query knowledge: {query_knowledge}")
-
-        # 2. get AOS knn recall
-        knn_retrieval_size = 10
-        start = time.time()
-        query_embedding = SagemakerEndpointVectorOrCross(
-            prompt="为这个句子生成表示以用于检索相关文章：" + query_knowledge,
-            endpoint_name=embedding_model_endpoint,
-            region_name=region,
-            model_type="vector",
-            stop=None,
-        )
-        opensearch_knn_respose = aos_client.search(
-            index_name=aos_index, query_type="knn", query_term=query_embedding,
-            field="vector_field", size=knn_retrieval_size
-        )
-        logger.info(json.dumps(opensearch_knn_respose, ensure_ascii=False))
-        elpase_time = time.time() - start
-        logger.info(f"runing time of opensearch_knn : {elpase_time}s seconds")
-
-        # 3. get AOS invertedIndex recall
-        start = time.time()
-        opensearch_query_response = aos_client.search(
-            index_name=aos_index, query_type="basic", query_term=query_knowledge
-        )
-        logger.info(json.dumps(opensearch_query_response, ensure_ascii=False))
-        elpase_time = time.time() - start
-        logger.info(f"runing time of opensearch_query : {elpase_time}s seconds")
-
-        # 4. combine these two opensearch_knn_respose and opensearch_query_response
-        opensearch_knn_results = organize_results(opensearch_knn_respose)
-        debug_info["knowledge_qa_knn_recall"] = remove_redundancy_debug_info(opensearch_knn_results)
-        opensearch_query_results = organize_results(opensearch_query_response)
-        debug_info["knowledge_qa_boolean_recall"] = remove_redundancy_debug_info(opensearch_query_results)
-        recall_knowledge = combine_recalls(
-            opensearch_knn_results, opensearch_query_results
-        )
-        logger.info(f"4. recall_knowledge: {recall_knowledge}")
-
-        # 5. Predict correlation score using cross model
-        recall_knowledge_cross = []
-        rerank_score_threshold = 0
-        for knowledge in recall_knowledge:
-            # get score using cross model
-            score = float(
-                SagemakerEndpointVectorOrCross(
-                    prompt=query_knowledge,
-                    endpoint_name=cross_model_endpoint,
-                    region_name=region,
-                    model_type="cross",
-                    stop=None,
-                    context=knowledge["doc"],
-                )
-            )
-            logger.info(
-                json.dumps(
-                    {
-                        "doc": knowledge["doc"],
-                        "score": score,
-                        "source": knowledge["source"],
-                    },
-                    ensure_ascii=False,
-                )
-            )
-            if score > rerank_score_threshold:
-                recall_knowledge_cross.append(
-                    {
-                        "doc": knowledge["doc"],
-                        "score": score,
-                        "source": knowledge["source"],
-                    }
-                )
-        debug_info["knowledge_qa_rerank"] = recall_knowledge_cross
-
-        # recall_knowledge_cross.sort(key=lambda x: x["score"], reverse=True)
-
-        final_retrieval_size = 5
-        recall_knowledge_str = concat_recall_knowledge(recall_knowledge_cross[:final_retrieval_size])
-        logger.info(recall_knowledge_str)
-        sources = list(set([item["source"] for item in recall_knowledge_cross[:final_retrieval_size]]))
-        query_type = QueryType.KnowledgeQuery
-        elpase_time = time.time() - start
-        logger.info(f"runing time of recall knowledge : {elpase_time}s seconds")
-    else:
-        recall_knowledge_str = ""
-        query_type = QueryType.Conversation
-
-    # 6. generate answer using question and recall_knowledge
-    parameters = {"temperature": temperature}
-    try:
-        # generate_answer
-        answer = SagemakerEndpointVectorOrCross(
-            prompt=query_input,
-            endpoint_name=llm_model_endpoint,
-            region_name=region,
-            model_type="answer",
-            stop=None,
-            history=history,
-            parameters=parameters,
-            context=recall_knowledge_str,
-        )
-    except Exception as e:
-        logger.info(f"Exceptions: str({e})")
-        answer = ""
-
-    debug_info["knowledge_qa_llm"] = {
-        "context": recall_knowledge_str,
-        "answer": answer 
-    }
-
-    # 7. update_session
-    # start = time.time()
-    # update_session(
-    #     session_id=session_id,
-    #     chat_session_table=chat_session_table,
-    #     question=query_input,
-    #     answer=answer,
-    #     knowledge_sources=sources,
-    # )
-    # elpase_time = time.time() - start
-    # logger.info(f"runing time of update_session : {elpase_time}s seconds")
-
-    # 8. log results
-    json_obj = {
-        "session_id": session_id,
-        "query": query_input,
-        "recall_knowledge_cross_str": recall_knowledge_str,
-        "detect_query_type": str(query_type),
-        "history": history,
-        "chatbot_answer": answer,
-        "sources": sources,
-        "timestamp": int(time.time()),
-    }
-
-    json_obj_str = json.dumps(json_obj, ensure_ascii=False)
-    logger.info(json_obj_str)
-
-    return answer, sources, debug_info
-
-
 def parse_query(
     query_input: str,
     history: list,
@@ -462,7 +279,6 @@ def parse_query(
     logger.info(f"runing time of parse query: {elpase_time}s seconds")
     return parsed_query
 
-
 def q_q_match(parsed_query, debug_info):
     start = time.time()
     opensearch_knn_results = []
@@ -501,67 +317,6 @@ def q_q_match(parsed_query, debug_info):
             sources = [source]
             return answer, sources
     return answer, sources
-
-
-def get_relevant_documents(
-    parsed_query,
-    rerank_model_endpoint: str,
-    aos_index: str,
-    debug_info,
-):
-    # 1. get AOS knn recall
-    result_num = 20
-    start = time.time()
-    opensearch_knn_results = []
-    opensearch_knn_response = aos_client.search(
-        index_name=aos_index,
-        query_type="knn",
-        query_term=parsed_query["zh_query_relevance_embedding"],
-        field="vector_field",
-        size=result_num,
-    )
-    opensearch_knn_results.extend(
-        organize_results(opensearch_knn_response, aos_index)[:result_num]
-    )
-    recall_end_time = time.time()
-    elpase_time = recall_end_time - start
-    logger.info(f"runing time of recall : {elpase_time}s seconds")
-
-    # 2. get AOS invertedIndex recall
-    opensearch_query_results = []
-
-    # 3. combine these two opensearch_knn_response and opensearch_query_response
-    recall_knowledge = combine_recalls(opensearch_knn_results, opensearch_query_results)
-
-    rerank_pair = []
-    rerank_text_length = 1024 * 10
-    for knowledge in recall_knowledge:
-        # rerank_pair.append([parsed_query["query"], knowledge["content"]][:1024])
-        rerank_pair.append(
-            [parsed_query["zh_query"], knowledge["content"]][: rerank_text_length]
-        )
-    zh_score_list = json.loads(
-        SagemakerEndpointVectorOrCross(
-            prompt=json.dumps(rerank_pair),
-            endpoint_name=rerank_model_endpoint,
-            region_name=region,
-            model_type="rerank",
-            stop=None,
-        )
-    )
-    rerank_knowledge = []
-    for knowledge, score in zip(recall_knowledge, zh_score_list):
-        # if score > 0:
-        new_knowledge = knowledge.copy()
-        new_knowledge["rerank_score"] = score
-        rerank_knowledge.append(new_knowledge)
-    debug_info["knowledge_qa_rerank"] = rerank_knowledge
-
-    rerank_end_time = time.time()
-    elpase_time = rerank_end_time - recall_end_time
-    logger.info(f"runing time of rerank: {elpase_time}s seconds")
-
-    return rerank_knowledge
 
 def get_relevant_documents_dgr(
     parsed_query,
@@ -689,7 +444,6 @@ def get_relevant_documents_dgr(
 
     return rerank_knowledge
 
-
 def dgr_entry(
     session_id: str,
     query_input: str,
@@ -805,74 +559,81 @@ def dgr_entry(
 
     return answer, sources, contexts, debug_info
 
-from typing import Any, Dict, List, Optional, Sequence, TypeVar, Union
-from uuid import UUID
-class MyCustomHandler(BaseCallbackHandler):
-    def on_retriever_end(
-        self,
-        documents,
-        *,
-        run_id: UUID,
-        parent_run_id: Optional[UUID] = None,
-        **kwargs: Any,
-    ) -> Any:
-        print(f"doc: {documents}")
+def get_strict_qq_chain(strict_q_q_index):
+    def get_strict_qq_result(docs, threshold=0.7):
+        results = []
+        for doc in docs:
+            results.append({"score": doc.metadata["score"], 
+                            "source": doc.metadata["source"],
+                            "answer": doc.metadata["answer"],
+                            "question": doc.metadata["question"]})
+        output = {"answer": json.dumps(results, ensure_ascii=False), "sources": [], "contexts": []}
+        return output
+    mkt_q_q_retriever = QueryQuestionRetriever(
+        index=strict_q_q_index, vector_field="vector_field", source_field="file_path", size=5)
+    strict_q_q_chain = mkt_q_q_retriever | RunnableLambda(get_strict_qq_result)
+    return strict_q_q_chain
 
+def get_llm_chain(llm_model_id, stream):
+    contexts_trunc_stage = RunnableLambda(
+        lambda x: {"query": x["query"], "contexts": contexts_trunc(x["docs"], context_num=2)}
+        )
+    llm_chain = get_rag_llm_chain(
+        model_id=llm_model_id, 
+        model_kwargs=None,  # TODO 
+        stream=stream
+        )
+    def contexts_trunc(docs:list,context_num=2):
+        return [doc.page_content for doc in docs[:context_num]]
+    llm_chain = contexts_trunc_stage | llm_chain
+    return llm_chain
 
-from typing import Any, Dict, List, Optional, Sequence, TypeVar, Union
-from uuid import UUID
-class MyCustomHandler(BaseCallbackHandler):
-    def on_retriever_end(
-        self,
-        documents,
-        *,
-        run_id: UUID,
-        parent_run_id: Optional[UUID] = None,
-        **kwargs: Any,
-    ) -> Any:
-        print(f"doc: {documents}")
+def get_qd_llm_chain(aos_index_list, llm_model_id, stream=False, top_n=5):
+    retriever_list = [QueryDocumentRetriever(index, "vector_field", "text", "file_path") for index in aos_index_list]
+    lotr = MergerRetriever(retrievers=retriever_list)
+    compressor = BGEReranker(top_n=top_n)
+    compression_retriever = ContextualCompressionRetriever(
+        base_compressor=compressor, base_retriever=lotr
+    )
 
+    def format_docs(docs, top_k=2):
+        # return "\n\n".join(doc.page_content for doc in docs["docs"][:top_k])
+        return [doc.page_content for doc in docs["docs"][:top_k]]
 
-from typing import Any, Dict, List, Optional, Sequence, TypeVar, Union
-from uuid import UUID
-class MyCustomHandler(BaseCallbackHandler):
-    def on_retriever_end(
-        self,
-        documents,
-        *,
-        run_id: UUID,
-        parent_run_id: Optional[UUID] = None,
-        **kwargs: Any,
-    ) -> Any:
-        print(f"doc: {documents}")
+    def format_sources(docs, top_k=2):
+        return [doc.metadata["source"] for doc in docs["docs"][:top_k]]
 
+    llm_chain = get_llm_chain(llm_model_id, stream)
+    qd_llm_chain = RunnableParallel({
+                "docs": compression_retriever,
+                "query": lambda x:x["query"],
+                "debug_info": lambda x:x["debug_info"]}
+            ) | RunnableParallel({
+                "answer": llm_chain,
+                "contexts": format_docs,
+                "sources": format_sources,
+                "debug_info": lambda x:x["debug_info"]})
+    return qd_llm_chain
 
-from typing import Any, Dict, List, Optional, Sequence, TypeVar, Union
-from uuid import UUID
-class MyCustomHandler(BaseCallbackHandler):
-    def on_retriever_end(
-        self,
-        documents,
-        *,
-        run_id: UUID,
-        parent_run_id: Optional[UUID] = None,
-        **kwargs: Any,
-    ) -> Any:
-        print(f"doc: {documents}")
+def get_qq_result(docs, threshold=0.7):
+    if len(docs) > 0 and docs[0]["score"]:
+        source = docs[0]["source"]
+        answer = docs[0]["answer"]
+        sources = [source]
+        return answer, sources
+    else:
+        return None, []
+
+def output_postprocess(raw_output):
+    output = {"answer": "", "sources": [], "contexts": []}
+    if raw_output is not None:
+        output["answer"] = raw_output.get("answer", "")
+        output["sources"] = raw_output.get("sources", [])
+        output["contexts"] = raw_output.get("contexts", [])
+    return output
 
 def market_chain_entry(
-    session_id: str,
     query_input: str,
-    history: list,
-    zh_embedding_model_endpoint: str,
-    en_embedding_model_endpoint: str,
-    cross_model_endpoint: str,
-    rerank_model_endpoint: str,
-    llm_model_endpoint: str,
-    aos_index: str,
-    enable_knowledge_qa: bool,
-    temperature: float,
-    enable_q_q_match: bool,
     llm_model_id=None,
     stream=False,
     intent_type=IntentType.KNOWLEDGE_QA
@@ -880,18 +641,9 @@ def market_chain_entry(
     """
     Entry point for the Lambda function.
 
-    :param session_id: The ID of the session.
     :param query_input: The query input.
-    :param history: The history of the conversation.
-    :param embedding_model_endpoint: The endpoint of the embedding model.
-    :param cross_model_endpoint: The endpoint of the cross model.
-    :param llm_model_endpoint: The endpoint of the language model.
-    :param llm_model_name: The name of the language model.
     :param aos_index: The index of the AOS engine.
-    :param enable_knowledge_qa: Whether to enable knowledge QA.
-    :param temperature: The temperature of the language model.
     :param stream(Bool): Whether to use llm stream decoding output.
-
     return: answer(str)
     """
     aos_index_dict = json.loads(os.environ.get("aos_index_dict", '{"aos_index_mkt_qd":"aws-cn-mkt-knowledge","aos_index_mkt_qq":"gcr-mkt-qq","aos_index_dgr_qd":"ug-index","aos_index_dgr_qq":"faq-index-2"}'))
@@ -915,76 +667,19 @@ def market_chain_entry(
     sources = []
     answer = ""
 
-    dgr_q_d_retriever = QueryDocumentRetriever(aos_index_dgr_qd, "vector_field", "text", "file_path")
+    # 1. Strict Query Question Intent
+    # 1.1. strict query question retrieval.
+    strict_q_q_chain = get_strict_qq_chain(aos_index_mkt_qq)
+
+    # 2. Knowledge QA Intent
+    # 2.1 query question retrieval.
     dgr_q_q_retriever = QueryQuestionRetriever(
         index=aos_index_dgr_qq, vector_field="embedding", source_field="source", size=5)
-    mkt_q_d_retriever = QueryDocumentRetriever(aos_index_mkt_qd, "vector_field", "text", "file_path")
-    mkt_q_q_retriever = QueryQuestionRetriever(
-        index=aos_index_mkt_qq, vector_field="vector_field", source_field="file_path", size=5)
-    # google_retriever = GoogleRetriever(result_num=10)
-    lotr = MergerRetriever(retrievers=[dgr_q_d_retriever, mkt_q_d_retriever])
-    compressor = BGEReranker(top_n = 5)
-    compression_retriever = ContextualCompressionRetriever(
-        base_compressor=compressor, base_retriever=lotr
-    )
 
-    def format_docs(docs, top_k=2):
-        # return "\n\n".join(doc.page_content for doc in docs["docs"][:top_k])
-        return [doc.page_content for doc in docs["docs"][:top_k]]
+    # 2.2 query document retrieval + LLM.
+    qd_llm_chain = get_qd_llm_chain([aos_index_dgr_qd, aos_index_mkt_qd], llm_model_id, stream, top_n=5)
 
-    def format_sources(docs, top_k=2):
-        return [doc.metadata["source"] for doc in docs["docs"][:top_k]]
-
-    def get_qq_result(docs, threshold=0.7):
-        if len(docs) > 0 and docs[0]["score"]:
-            source = docs[0]["source"]
-            answer = docs[0]["answer"]
-            sources = [source]
-            return answer, sources
-        else:
-            return None, []
-
-    def get_strict_qq_result(docs, threshold=0.7):
-        results = []
-        for doc in docs:
-            results.append({"score": doc.metadata["score"], 
-                            "source": doc.metadata["source"],
-                            "answer": doc.metadata["answer"],
-                            "question": doc.metadata["question"]})
-        output = {"answer": json.dumps(results, ensure_ascii=False), "sources": [], "contexts": []}
-        return output
-
-    def output_postprocess(raw_output):
-        output = {"answer": "", "sources": [], "contexts": []}
-        if raw_output is not None:
-            output["answer"] = raw_output.get("answer", "")
-            output["sources"] = raw_output.get("sources", [])
-            output["contexts"] = raw_output.get("contexts", [])
-        return output
- 
-    def contexts_trunc(docs:list,context_num=2):
-        return [doc.page_content for doc in docs[:context_num]]
- 
-    contexts_trunc_stage = RunnableLambda(
-        lambda x: {"query": x["query"], "contexts": contexts_trunc(x["docs"], context_num=2)}
-        )
-
-    llm_chain = get_rag_llm_chain(
-        model_id=llm_model_id, 
-        model_kwargs=None,  # TODO 
-        stream=stream
-        )
-    llm_chain = contexts_trunc_stage | llm_chain
-    qd_llm_chain = RunnableParallel({
-                "docs": compression_retriever,
-                "query": lambda x:x["query"],
-                "debug_info": lambda x:x["debug_info"]}
-            ) | RunnableParallel({
-                "answer": llm_chain,
-                "contexts": format_docs,
-                "sources": format_sources,
-                "debug_info": lambda x:x["debug_info"]})
-    qq_chain = dgr_q_q_retriever
+    # 2.3 query question router.
     def qq_route(info, threshold=0.9):
         for doc in info["docs"]:
             if doc.metadata["score"] > threshold:
@@ -992,15 +687,17 @@ def market_chain_entry(
                           "contexts": [], "debug_info": lambda x:x["debug_info"]}
                 return output
         return qd_llm_chain
-
+    qq_chain = dgr_q_q_retriever
     qq_qd_llm_chain = RunnableParallel({
                 "docs": qq_chain,
                 "query": lambda x:x["query"],
                 "debug_info": lambda x:x["debug_info"]}
             ) | RunnableLambda(qq_route)
 
-    strict_q_q_chain = mkt_q_q_retriever | RunnableLambda(get_strict_qq_result)
+    # 3. Chat Intent
+    llm_chain = get_llm_chain(llm_model_id, stream)
 
+    # general router.
     def route(info):
         if info["intent_type"] == IntentType.AUTO.value:
             return qq_qd_llm_chain
@@ -1021,36 +718,16 @@ def market_chain_entry(
     return answer, sources, contexts, debug_info
 
 def main_chain_entry(
-    session_id: str,
     query_input: str,
-    history: list,
-    zh_embedding_model_endpoint: str,
-    en_embedding_model_endpoint: str,
-    cross_model_endpoint: str,
-    rerank_model_endpoint: str,
-    llm_model_endpoint: str,
     aos_index: str,
-    enable_knowledge_qa: bool,
-    temperature: float,
-    enable_q_q_match: bool,
     llm_model_id=None,
     stream=False,
-    intent_type=IntentType.KNOWLEDGE_QA
 ):
     """
     Entry point for the Lambda function.
 
-    :param session_id: The ID of the session.
     :param query_input: The query input.
-    :param history: The history of the conversation.
-    :param embedding_model_endpoint: The endpoint of the embedding model.
-    :param cross_model_endpoint: The endpoint of the cross model.
-    :param llm_model_endpoint: The endpoint of the language model.
-    :param llm_model_name: The name of the language model.
     :param aos_index: The index of the AOS engine.
-    :param enable_knowledge_qa: Whether to enable knowledge QA.
-    :param temperature: The temperature of the language model.
-    :param stream(Bool): Whether to use llm stream decoding output.
 
     return: answer(str)
     """
@@ -1083,12 +760,6 @@ def main_chain_entry(
         sources = []
         sources.extend([{"doc": doc.metadata["source"]} for doc in docs["docs"][:top_k]])
         return sources 
-
-    # llm = CustomLLM(model_id=llm_model_id, stream=stream)
-
-    # llm_chain = RunnableLambda(lambda x:json.dumps(x)) | CustomLLM(model_id="anthropic.claude-v2", stream=stream)
-    # llm_generate_for_chain = CustomLLM(model_id=llm_model_id, stream=stream)
-    # llm_chain = RunnableLambda(lambda x:json.dumps(x)) | RunnableLambda(llm_generate_for_chain)
 
     def contexts_trunc(contexts:list,context_num=2):
         return [context['doc'] for context in contexts[:context_num]]
@@ -1224,18 +895,7 @@ def lambda_handler(event, context):
         )
     elif type.lower() == Type.MARKET_CHAIN.value:
         answer, sources, context, debug_info = market_chain_entry(
-            session_id,
             question,
-            history,
-            zh_embedding_endpoint,
-            en_embedding_endpoint,
-            cross_endpoint,
-            rerank_endpoint,
-            llm_endpoint,
-            aos_index,
-            knowledge_qa_flag,
-            temperature,
-            enable_q_q_match,
             stream=stream,
             llm_model_id=llm_model_id,
             intent_type=intent_type

@@ -154,14 +154,53 @@ def get_doc(file_path, index_name):
     chunk_list = []
     chunk_id_set = set()
     for r in opensearch_query_response["hits"]["hits"]:
+        if "chunk_id" not in r["_source"]["metadata"]:
+            continue
         chunk_id = r["_source"]["metadata"]["chunk_id"]
+        chunk_group_id = int(chunk_id.split("-")[0].strip("$"))
+        chunk_section_id = int(chunk_id.split("-")[-1])
         if chunk_id in chunk_id_set:
             continue
         chunk_id_set.add(chunk_id)
-        chunk_list.append((chunk_id, r["_source"]["text"]))
-    sorted_chunk_list = sorted(chunk_list, key=lambda x: x[0])
-    chunk_text_list = [x[0] for x in sorted_chunk_list]
+        chunk_list.append((chunk_id, chunk_group_id, chunk_section_id, r["_source"]["text"]))
+    sorted_chunk_list = sorted(chunk_list, key=lambda x: (x[1], x[2]))
+    chunk_text_list = [x[3] for x in sorted_chunk_list]
     return "\n".join(chunk_text_list)
+
+def get_context_window(previous_chunk_id, next_chunk_id, index_name, window_size):
+    previous_content_list = []
+    previous_pos = 0
+    next_pos = 0
+    while previous_chunk_id.startswith("$") and previous_pos < window_size:
+        opensearch_query_response = aos_client.search(
+            index_name=index_name,
+            query_type="basic",
+            query_term=previous_chunk_id,
+            field="metadata.chunk_id",
+            size=10,
+        )
+        if len(opensearch_query_response["hits"]["hits"]) > 0:
+            r = opensearch_query_response["hits"]["hits"][0]
+            previous_chunk_id = r["_source"]["metadata"]["chunk_id"]
+            previous_content_list.append(r["_source"]["text"])
+        else:
+            break
+    next_content_list = []
+    while next_chunk_id.startswith("$") and next_pos < window_size:
+        opensearch_query_response = aos_client.search(
+            index_name=index_name,
+            query_type="basic",
+            query_term=next_chunk_id,
+            field="metadata.chunk_id",
+            size=10,
+        )
+        if len(opensearch_query_response["hits"]["hits"]) > 0:
+            r = opensearch_query_response["hits"]["hits"][0]
+            next_chunk_id = r["_source"]["metadata"]["chunk_id"]
+            next_content_list.append(r["_source"]["text"])
+        else:
+            break
+    return [previous_content_list, next_content_list]
 
 def get_parent_content(previous_chunk_id, next_chunk_id, index_name):
     previous_content_list = []
@@ -250,8 +289,12 @@ def organize_results(response, aos_index=None, source_field="file_path", text_fi
         result["score"] = aos_hit["_score"]
         result["detail"] = aos_hit['_source']
         # result["content"] = aos_hit['_source'][text_field]
-        result["doc"] = get_doc(result["source"], aos_index)
         result["content"] = aos_hit['_source'][text_field]
+        doc = get_doc(result["source"], aos_index)
+        if doc:
+            result["doc"] = doc
+        else:
+            result["doc"] = result["content"]
         results.append(result)
     return results
 
@@ -360,8 +403,10 @@ class QueryDocumentRetriever(BaseRetriever):
 
         doc_list = []
         for result in final_results:
-            doc_list.append(Document(page_content=result["content"],
-                                     metadata={"source": result["source"], "retrieval_score": result["score"]}))
+            doc_list.append(Document(page_content=result["doc"],
+                                     metadata={"source": result["source"],
+                                               "retrieval_content": result["content"],
+                                               "retrieval_score": result["score"]}))
         return doc_list
 
 class GoogleRetriever(BaseRetriever):
