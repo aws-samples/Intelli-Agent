@@ -29,9 +29,6 @@ logger.setLevel(logging.INFO)
 logger.addHandler(handler)
 
 region = os.environ["AWS_REGION"]
-rerank_model_endpoint = os.environ.get("rerank_endpoint", "")
-aos_index = os.environ.get("aos_index", "")
-aos_faq_index = os.environ.get("aos_faq_index", "")
 zh_embedding_model_endpoint = os.environ.get("zh_embedding_endpoint", "")
 en_embedding_model_endpoint = os.environ.get("en_embedding_endpoint", "")
 aos_endpoint = os.environ.get("aos_endpoint", "")
@@ -146,6 +143,26 @@ def get_faq_content(source, index_name):
             return r["_source"]["content"]
     return ""
 
+def get_doc(file_path, index_name):
+    opensearch_query_response = aos_client.search(
+        index_name=index_name,
+        query_type="basic",
+        query_term=file_path,
+        field="metadata.file_path",
+        size=100,
+    )
+    chunk_list = []
+    chunk_id_set = set()
+    for r in opensearch_query_response["hits"]["hits"]:
+        chunk_id = r["_source"]["metadata"]["chunk_id"]
+        if chunk_id in chunk_id_set:
+            continue
+        chunk_id_set.add(chunk_id)
+        chunk_list.append((chunk_id, r["_source"]["text"]))
+    sorted_chunk_list = sorted(chunk_list, key=lambda x: x[0])
+    chunk_text_list = [x[0] for x in sorted_chunk_list]
+    return "\n".join(chunk_text_list)
+
 def get_parent_content(previous_chunk_id, next_chunk_id, index_name):
     previous_content_list = []
     while previous_chunk_id.startswith("$"):
@@ -196,11 +213,11 @@ def organize_faq_results(response, index_name, source_field="file_path", text_fi
             result[source_field] = aos_hit["_source"]["metadata"][source_field]
             result["score"] = aos_hit["_score"]
             result["detail"] = aos_hit["_source"]
-            if "field" in aos_hit["_source"]["metadata"] and "question" == aos_hit["_source"]["metadata"]["field"]:
+            if "field" in aos_hit["_source"]["metadata"]:
                 result["answer"] = get_faq_answer(result["source"], index_name, source_field)
                 result["content"] = aos_hit["_source"]["content"]
                 result["question"] = aos_hit["_source"]["content"]
-            else:
+            elif "jsonlAnswer" in aos_hit["_source"]["metadata"]:
                 result["answer"] = aos_hit["_source"]["metadata"]["jsonlAnswer"]["answer"]
                 result["question"] = aos_hit["_source"]["metadata"]["jsonlAnswer"]["question"]
                 result["content"] = aos_hit["_source"]["text"]
@@ -232,8 +249,9 @@ def organize_results(response, aos_index=None, source_field="file_path", text_fi
         result["source"] = aos_hit['_source']['metadata'][source_field]
         result["score"] = aos_hit["_score"]
         result["detail"] = aos_hit['_source']
+        # result["content"] = aos_hit['_source'][text_field]
+        result["doc"] = get_doc(result["source"], aos_index)
         result["content"] = aos_hit['_source'][text_field]
-        result["doc"] = aos_hit['_source'][text_field]
         results.append(result)
     return results
 
@@ -337,41 +355,26 @@ class QueryDocumentRetriever(BaseRetriever):
         opensearch_query_results = []
 
         # 3. combine these two opensearch_knn_response and opensearch_query_response
-        recall_knowledge = combine_recalls(opensearch_knn_results, opensearch_query_results)
-        debug_info["knowledge_qa_knn_recall"] = recall_knowledge 
-        if len(recall_knowledge) == 0:
-            return []
+        final_results = opensearch_knn_results + opensearch_query_results
+        debug_info["knowledge_qa_knn_recall"][self.index] = final_results
 
-        rerank_pair = []
-        rerank_text_length = 1024 * 10
-        for knowledge in recall_knowledge:
-            # rerank_pair.append([parsed_query["query"], knowledge["content"]][:1024])
-            rerank_pair.append(
-                [parsed_query["zh_query"], knowledge["content"]][: rerank_text_length]
-            )
-        zh_score_list = json.loads(
-            SagemakerEndpointVectorOrCross(
-                prompt=json.dumps(rerank_pair),
-                endpoint_name=rerank_model_endpoint,
-                region_name=region,
-                model_type="rerank",
-                stop=None,
-            )
-        )
-        rerank_knowledge = []
         doc_list = []
-        for knowledge, score in zip(recall_knowledge, zh_score_list):
-            # if score > 0:
-            new_knowledge = knowledge.copy()
-            new_knowledge["rerank_score"] = score
-            rerank_knowledge.append(new_knowledge)
-            doc_list.append(Document(page_content=new_knowledge["content"], metadata={"source": new_knowledge["source"], "score": score}))
-        doc_list.sort(key=lambda x: x.metadata["score"], reverse=True)
-        rerank_knowledge.sort(key=lambda x: x["rerank_score"], reverse=True)
-        debug_info["knowledge_qa_rerank"] = rerank_knowledge
-
-        rerank_end_time = time.time()
-        elpase_time = rerank_end_time - recall_end_time
-        logger.info(f"runing time of rerank: {elpase_time}s seconds")
-
+        for result in final_results:
+            doc_list.append(Document(page_content=result["content"],
+                                     metadata={"source": result["source"], "retrieval_score": result["score"]}))
         return doc_list
+
+class GoogleRetriever(BaseRetriever):
+    search: Any
+    result_num: Any
+    def __init__(self, result_num):
+        super().__init__()
+        from langchain.tools import Tool
+        from langchain.utilities import GoogleSearchAPIWrapper
+        self.search = GoogleSearchAPIWrapper()
+        self.result_num = result_num
+
+    def _get_relevant_documents(self, question: Dict, *, run_manager: CallbackManagerForRetrieverRun) -> List[Document]:
+        results = self.search.results(question["query"], self.result_num)
+        for result in results:
+            print(result)

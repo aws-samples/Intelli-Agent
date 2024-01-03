@@ -51,7 +51,7 @@ class LLMBotOpenSearchClient:
                 "size": size,
                 "query": {
                     "bool":{
-                        "should": [ {"match": { field : query_term }} ],
+                        "should": [ {"match_phrase": { field : query_term }} ],
                     }
                 },
                 "sort": [
