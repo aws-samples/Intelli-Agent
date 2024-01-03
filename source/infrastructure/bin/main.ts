@@ -133,6 +133,7 @@ export class RootStack extends Stack {
     _ApiStack.addDependency(_LLMStack);
     _ApiStack.addDependency(_DynamoDBStack);
     _ApiStack.addDependency(_ConnectorStack);
+    _ApiStack.addDependency(_DynamoDBStack);
 
     new CfnOutput(this, 'VPC', {value:_VpcStack._vpc.vpcId});
     new CfnOutput(this, 'OpenSearch Endpoint', {value:_OsStack._domainEndpoint});

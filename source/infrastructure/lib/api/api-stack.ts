@@ -161,6 +161,30 @@ export class LLMApiStack extends NestedStack {
         }
         ))
 
+        const lambdaDdb = new lambda.Function(this, "lambdaDdb", {
+            runtime:lambda.Runtime.PYTHON_3_7,
+            handler: "rating.lambda_handler",
+            code: lambda.Code.fromAsset(join(__dirname, "../../../lambda/ddb")),
+            environment: {
+                SESSIONS_TABLE_NAME: _chatSessionTable,
+                SESSIONS_BY_USER_ID_INDEX_NAME: "byUserId",
+            },
+            vpc: _vpc,
+                vpcSubnets: {
+                    subnets: _vpc.privateSubnets,
+                },
+                securityGroups: [props._securityGroup]
+            });
+
+        lambdaDdb.addToRolePolicy(new iam.PolicyStatement({
+                actions: [
+                "dynamodb:*"
+                ],
+                effect: iam.Effect.ALLOW,
+                resources: ['*'],
+                }
+            ))
+
         // Define the API Gateway
         const api = new apigw.RestApi(this, 'llmApi', {
             restApiName: 'llmApi',
@@ -215,6 +239,13 @@ export class LLMApiStack extends NestedStack {
 
         // Add Get method to query & search index in OpenSearch, such embedding lambda will be updated for online process
         apiResourceAos.addMethod('GET', lambdaAosIntegration);
+
+        // Define the API Gateway Lambda Integration with proxy and no integration responses
+        const lambdaDdbIntegration = new apigw.LambdaIntegration(lambdaDdb, { proxy: true, });
+
+        // All AOS wrapper should be within such lambda
+        const apiResourceDdb = api.root.addResource('ddb');
+        apiResourceDdb.addMethod('POST', lambdaDdbIntegration);
 
         // Integration with Step Function to trigger ETL process
         // Lambda function to trigger Step Function
