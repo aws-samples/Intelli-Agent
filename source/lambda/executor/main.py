@@ -11,7 +11,7 @@ import traceback
 import uuid
 
 
-from retriever import QueryDocumentRetriever, QueryQuestionRetriever, GoogleRetriever
+from retriever import QueryDocumentRetriever, QueryQuestionRetriever
 from reranker import BGEReranker
 # from llm_utils import CustomLLM
 from langchain.retrievers.merger_retriever import MergerRetriever
@@ -894,7 +894,7 @@ def market_chain_entry(
 
     return: answer(str)
     """
-    aos_index_dict = json.loads(os.environ.get("aos_index_dict", '{"aos_index_mkt_qd":"aws-cn-mkt-knowledge","aos_index_mkt_qq":"gcr-mkt-qq","aos_index_dgr_qd":"ug-index-3","aos_index_dgr_qq":"faq-index-2"}'))
+    aos_index_dict = json.loads(os.environ.get("aos_index_dict", '{"aos_index_mkt_qd":"aws-cn-mkt-knowledge","aos_index_mkt_qq":"gcr-mkt-qq","aos_index_dgr_qd":"ug-index","aos_index_dgr_qq":"faq-index-2"}'))
     aos_index_mkt_qd = aos_index_dict['aos_index_mkt_qd']
     aos_index_mkt_qq = aos_index_dict['aos_index_mkt_qq']
     aos_index_dgr_qd = aos_index_dict['aos_index_dgr_qd']
@@ -915,13 +915,13 @@ def market_chain_entry(
     sources = []
     answer = ""
 
-    dgr_q_d_retriever = QueryDocumentRetriever(aos_index_dgr_qd, "embedding", "content", "source")
+    dgr_q_d_retriever = QueryDocumentRetriever(aos_index_dgr_qd, "vector_field", "text", "file_path")
     dgr_q_q_retriever = QueryQuestionRetriever(
         index=aos_index_dgr_qq, vector_field="embedding", source_field="source", size=5)
     mkt_q_d_retriever = QueryDocumentRetriever(aos_index_mkt_qd, "vector_field", "text", "file_path")
     mkt_q_q_retriever = QueryQuestionRetriever(
         index=aos_index_mkt_qq, vector_field="vector_field", source_field="file_path", size=5)
-    google_retriever = GoogleRetriever(result_num=10)
+    # google_retriever = GoogleRetriever(result_num=10)
     lotr = MergerRetriever(retrievers=[dgr_q_d_retriever, mkt_q_d_retriever])
     compressor = BGEReranker(top_n = 5)
     compression_retriever = ContextualCompressionRetriever(
@@ -1003,7 +1003,7 @@ def market_chain_entry(
 
     def route(info):
         if info["intent_type"] == IntentType.AUTO.value:
-            return google_retriever
+            return qq_qd_llm_chain
         elif info["intent_type"] == IntentType.KNOWLEDGE_QA.value:
             return qq_qd_llm_chain
         elif info["intent_type"] == IntentType.CHAT.value:
@@ -1070,7 +1070,7 @@ def main_chain_entry(
     answer = ""
 
     set_verbose(True)
-    q_d_retriever = retriever.QueryDocumentRetriever(aos_index, "vector_field", "text", "file_path")
+    q_d_retriever = QueryDocumentRetriever(aos_index, "vector_field", "text", "file_path")
 
     def format_docs(docs, top_k=6):
         # return "\n\n".join(doc.page_content for doc in docs["docs"][:top_k])
