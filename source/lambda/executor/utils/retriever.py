@@ -390,6 +390,18 @@ class QueryDocumentRetriever(BaseRetriever):
         opensearch_knn_results.extend(
             organize_results(opensearch_knn_response, self.index, self.source_field, self.text_field)[:result_num]
         )
+
+        result_num = 20
+        opensearch_knn_response = aos_client.search(
+            index_name=self.index,
+            query_type="knn",
+            query_term=parsed_query["en_query_relevance_embedding"],
+            field=self.vector_field,
+            size=result_num,
+        )
+        opensearch_knn_results.extend(
+            organize_results(opensearch_knn_response, self.index, self.source_field, self.text_field)[:result_num]
+        )
         recall_end_time = time.time()
         elpase_time = recall_end_time - start
         logger.info(f"runing time of recall : {elpase_time}s seconds")
