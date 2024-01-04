@@ -32,6 +32,9 @@ def api_response(**kwargs):
     debug_info = kwargs['debug_info']
     chat_history = kwargs['chat_history']
     message_id = kwargs['message_id']
+    
+    if not isinstance(answer, str):
+        answer = json.dumps(answer,ensure_ascii=False)
 
     chat_history.add_ai_message(f"ai_{message_id}", answer)
     

@@ -11,7 +11,7 @@ import traceback
 import uuid
 
 
-from retriever import QueryDocumentRetriever, QueryQuestionRetriever, GoogleRetriever
+from retriever import QueryDocumentRetriever, QueryQuestionRetriever, index_results_format
 from reranker import BGEReranker
 # from llm_utils import CustomLLM
 from langchain.retrievers.merger_retriever import MergerRetriever
@@ -45,9 +45,12 @@ from llmbot_utils import (
 from ddb_utils import DynamoDBChatMessageHistory
 from sm_utils import SagemakerEndpointVectorOrCross
 # from llm_utils import generate as llm_generate
-from llm_utils import get_rag_llm_chain
+from llm_utils import get_llm_chain
 from response_utils import process_response
 from constant import Type,IntentType
+from intent_utils import auto_intention_recoginition_chain
+from langchain_utils import create_identity_lambda
+
 
 region = os.environ["AWS_REGION"]
 embedding_endpoint = os.environ.get("embedding_endpoint", "")
@@ -921,7 +924,7 @@ def market_chain_entry(
     mkt_q_d_retriever = QueryDocumentRetriever(aos_index_mkt_qd, "vector_field", "text", "file_path")
     mkt_q_q_retriever = QueryQuestionRetriever(
         index=aos_index_mkt_qq, vector_field="vector_field", source_field="file_path", size=5)
-    google_retriever = GoogleRetriever(result_num=10)
+    # google_retriever = GoogleRetriever(result_num=10)
     lotr = MergerRetriever(retrievers=[dgr_q_d_retriever, mkt_q_d_retriever])
     compressor = BGEReranker(top_n = 5)
     compression_retriever = ContextualCompressionRetriever(
@@ -935,32 +938,32 @@ def market_chain_entry(
     def format_sources(docs, top_k=2):
         return [doc.metadata["source"] for doc in docs["docs"][:top_k]]
 
-    def get_qq_result(docs, threshold=0.7):
-        if len(docs) > 0 and docs[0]["score"]:
-            source = docs[0]["source"]
-            answer = docs[0]["answer"]
-            sources = [source]
-            return answer, sources
-        else:
-            return None, []
+    # def get_qq_result(docs, threshold=0.7):
+    #     if len(docs) > 0 and docs[0]["score"]:
+    #         source = docs[0]["source"]
+    #         answer = docs[0]["answer"]
+    #         sources = [source]
+    #         return answer, sources
+    #     else:
+    #         return None, []
 
-    def get_strict_qq_result(docs, threshold=0.7):
-        results = []
-        for doc in docs:
-            results.append({"score": doc.metadata["score"], 
-                            "source": doc.metadata["source"],
-                            "answer": doc.metadata["answer"],
-                            "question": doc.metadata["question"]})
-        output = {"answer": json.dumps(results, ensure_ascii=False), "sources": [], "contexts": []}
-        return output
+    # def get_strict_qq_result(docs, threshold=0.7):
+    #     results = []
+    #     for doc in docs:
+    #         results.append({"score": doc.metadata["score"], 
+    #                         "source": doc.metadata["source"],
+    #                         "answer": doc.metadata["answer"],
+    #                         "question": doc.metadata["question"]})
+    #     output = {"answer": json.dumps(results, ensure_ascii=False), "sources": [], "contexts": []}
+    #     return output
 
-    def output_postprocess(raw_output):
-        output = {"answer": "", "sources": [], "contexts": []}
-        if raw_output is not None:
-            output["answer"] = raw_output.get("answer", "")
-            output["sources"] = raw_output.get("sources", [])
-            output["contexts"] = raw_output.get("contexts", [])
-        return output
+    # def output_postprocess(raw_output):
+    #     output = {"answer": "", "sources": [], "contexts": []}
+    #     if raw_output is not None:
+    #         output["answer"] = raw_output.get("answer", "")
+    #         output["sources"] = raw_output.get("sources", [])
+    #         output["contexts"] = raw_output.get("contexts", [])
+    #     return output
  
     def contexts_trunc(docs:list,context_num=2):
         return [doc.page_content for doc in docs[:context_num]]
@@ -969,11 +972,21 @@ def market_chain_entry(
         lambda x: {"query": x["query"], "contexts": contexts_trunc(x["docs"], context_num=2)}
         )
 
-    llm_chain = get_rag_llm_chain(
+    llm_chain = get_llm_chain(
         model_id=llm_model_id, 
+        intent_type=IntentType.KNOWLEDGE_QA.value,
         model_kwargs=None,  # TODO 
         stream=stream
         )
+    
+    # TODO design chat chain
+    chat_llm_chain = get_llm_chain(
+        model_id=llm_model_id, 
+        intent_type=IntentType.CHAT.value,
+        model_kwargs=None,  # TODO 
+        stream=stream
+        ) | {'answer': lambda x:x,"sources":lambda x: [],"contexts":lambda x: [],"intent_type":IntentType.CHAT.value}
+    
     llm_chain = contexts_trunc_stage | llm_chain
     qd_llm_chain = RunnableParallel({
                 "docs": compression_retriever,
@@ -999,22 +1012,23 @@ def market_chain_entry(
                 "debug_info": lambda x:x["debug_info"]}
             ) | RunnableLambda(qq_route)
 
-    strict_q_q_chain = mkt_q_q_retriever | RunnableLambda(get_strict_qq_result)
+    strict_q_q_chain = mkt_q_q_retriever | RunnableLambda(index_results_format)
 
-    def route(info):
-        if info["intent_type"] == IntentType.AUTO.value:
-            return google_retriever
-        elif info["intent_type"] == IntentType.KNOWLEDGE_QA.value:
-            return qq_qd_llm_chain
-        elif info["intent_type"] == IntentType.CHAT.value:
-            return llm_chain
-        elif info["intent_type"] == IntentType.STRICT_QQ.value:
-            return strict_q_q_chain
-        else:
-            return qq_qd_llm_chain
 
-    full_chain = RunnableLambda(route)
+    intent_recognition_chain = RunnablePassthrough.assign(
+        intent_type=auto_intention_recoginition_chain(aos_index_mkt_qq)
+    )
+
+    full_chain = intent_recognition_chain | RunnableBranch(
+        (lambda x:x['intent_type'] == IntentType.STRICT_QQ.value, strict_q_q_chain),
+        (lambda x:x['intent_type'] == IntentType.KNOWLEDGE_QA.value, qq_qd_llm_chain),
+        chat_llm_chain # chat 
+    )
+    # full_chain = intent_recognition_chain
+    # full_chain = RunnableLambda(route)
     response = full_chain.invoke({"query": query_input, "debug_info": debug_info, "intent_type": intent_type})
+    
+    
     answer = response["answer"]
     sources = response["sources"]
     contexts = response["contexts"]
@@ -1163,8 +1177,8 @@ def lambda_handler(event, context):
 
     retrieval_only = event_body.get("enable_debug", False)
     get_contexts = event_body.get("get_contexts", False)
-    intent_type = event_body.get("model", IntentType.KNOWLEDGE_QA.value)
-    llm_model_id = event_body.get("llm_model_id", "anthropic.claude-v2")
+    intent_type = event_body.get("intent", None) or  event_body.get("model", None) or IntentType.KNOWLEDGE_QA.value
+    llm_model_id = event_body.get("llm_model_id",'anthropic.claude-v2:1')
     # stream = event_body.get("stream", False)
 
     history, question = process_input_messages(messages)

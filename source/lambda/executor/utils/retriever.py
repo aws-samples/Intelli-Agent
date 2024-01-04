@@ -254,6 +254,7 @@ class QueryQuestionRetriever(BaseRetriever):
         debug_info = question["debug_info"]
         start = time.time()
         opensearch_knn_results = []
+
         parsed_query = parse_query(
             query,
             [],
@@ -375,3 +376,16 @@ class QueryDocumentRetriever(BaseRetriever):
         logger.info(f"runing time of rerank: {elpase_time}s seconds")
 
         return doc_list
+
+def index_results_format(docs:list, threshold=-1):
+    results = []
+    for doc in docs:
+        if doc.metadata["score"] < threshold:
+            continue
+        results.append({"score": doc.metadata["score"], 
+                        "source": doc.metadata["source"],
+                        "answer": doc.metadata["answer"],
+                        "question": doc.metadata["question"]})
+    # output = {"answer": json.dumps(results, ensure_ascii=False), "sources": [], "contexts": []}
+    output = {"answer": results, "sources": [], "contexts": []}
+    return output

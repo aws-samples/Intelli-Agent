@@ -54,7 +54,6 @@ CLAUDE2_RAG_CONTEXT_TEMPLATE="""
 """
 
 
-
 INTENT_RECOGINITION_PROMPT_TEMPLATE_CLUADE21 = """\n\nHuman: You are a customer service agent that is classifying user's query wrapped by <query></query>.
 The all categories and their few-shot examples are shown below.
 
@@ -72,6 +71,11 @@ User's query:
 """
 
 INTENT_RECOGINITION_EXAMPLE_TEMPLATE = """<example>\n<query>{query}</query>\n<category>{label}</category>\n</example>"""
+
+
+CHAT_PROMPT_TEMPLATE_CLAUDE = """\n\nHuman:{query}
+\n\nAssistant:
+"""
 
 
 def claude2_rag_template_render(
@@ -129,6 +133,9 @@ def claude2_rag_api_postprocess(answer):
         return answer  
     return rets[0]
 
+
+def claude_chat_template_render(query:str):
+    return CHAT_PROMPT_TEMPLATE_CLAUDE.format(query=query)
 
 claude21_rag_api_postprocess = claude2_rag_api_postprocess
 
