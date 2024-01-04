@@ -154,7 +154,7 @@ def get_doc(file_path, index_name):
     chunk_list = []
     chunk_id_set = set()
     for r in opensearch_query_response["hits"]["hits"]:
-        if "chunk_id" not in r["_source"]["metadata"]:
+        if "chunk_id" not in r["_source"]["metadata"] or not r["_source"]["metadata"]["chunk_id"].startswith("$"):
             continue
         chunk_id = r["_source"]["metadata"]["chunk_id"]
         chunk_group_id = int(chunk_id.split("-")[0].strip("$"))

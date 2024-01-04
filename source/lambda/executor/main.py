@@ -577,17 +577,18 @@ def get_strict_qq_chain(strict_q_q_index):
     strict_q_q_chain = mkt_q_q_retriever | RunnableLambda(get_strict_qq_result)
     return strict_q_q_chain
 
-def get_llm_chain(llm_model_id, stream):
+def get_rag_llm_chain(llm_model_id, stream):
+    def contexts_trunc(docs:list,context_num=2):
+        return [doc.page_content for doc in docs[:context_num]]
     contexts_trunc_stage = RunnableLambda(
         lambda x: {"query": x["query"], "contexts": contexts_trunc(x["docs"], context_num=2)}
         )
-    llm_chain = get_rag_llm_chain(
+    llm_chain = get_llm_chain(
         model_id=llm_model_id, 
+        intent_type=IntentType.KNOWLEDGE_QA.value,
         model_kwargs=None,  # TODO 
         stream=stream
         )
-    def contexts_trunc(docs:list,context_num=2):
-        return [doc.page_content for doc in docs[:context_num]]
     llm_chain = contexts_trunc_stage | llm_chain
     return llm_chain
 
@@ -606,7 +607,7 @@ def get_qd_llm_chain(aos_index_list, llm_model_id, stream=False, top_n=5):
     def format_sources(docs, top_k=2):
         return [doc.metadata["source"] for doc in docs["docs"][:top_k]]
 
-    llm_chain = get_llm_chain(llm_model_id, stream)
+    llm_chain = get_rag_llm_chain(llm_model_id, stream)
     qd_llm_chain = RunnableParallel({
                 "docs": compression_retriever,
                 "query": lambda x:x["query"],
@@ -678,83 +679,9 @@ def market_chain_entry(
     # 2.1 query question retrieval.
     dgr_q_q_retriever = QueryQuestionRetriever(
         index=aos_index_dgr_qq, vector_field="embedding", source_field="source", size=5)
-    mkt_q_d_retriever = QueryDocumentRetriever(aos_index_mkt_qd, "vector_field", "text", "file_path")
-    mkt_q_q_retriever = QueryQuestionRetriever(
-        index=aos_index_mkt_qq, vector_field="vector_field", source_field="file_path", size=5)
-    # google_retriever = GoogleRetriever(result_num=10)
-    lotr = MergerRetriever(retrievers=[dgr_q_d_retriever, mkt_q_d_retriever])
-    compressor = BGEReranker(top_n = 5)
-    compression_retriever = ContextualCompressionRetriever(
-        base_compressor=compressor, base_retriever=lotr
-    )
-
-    def format_docs(docs, top_k=2):
-        # return "\n\n".join(doc.page_content for doc in docs["docs"][:top_k])
-        return [doc.page_content for doc in docs["docs"][:top_k]]
-
-    def format_sources(docs, top_k=2):
-        return [doc.metadata["source"] for doc in docs["docs"][:top_k]]
-
-    # def get_qq_result(docs, threshold=0.7):
-    #     if len(docs) > 0 and docs[0]["score"]:
-    #         source = docs[0]["source"]
-    #         answer = docs[0]["answer"]
-    #         sources = [source]
-    #         return answer, sources
-    #     else:
-    #         return None, []
-
-    # def get_strict_qq_result(docs, threshold=0.7):
-    #     results = []
-    #     for doc in docs:
-    #         results.append({"score": doc.metadata["score"], 
-    #                         "source": doc.metadata["source"],
-    #                         "answer": doc.metadata["answer"],
-    #                         "question": doc.metadata["question"]})
-    #     output = {"answer": json.dumps(results, ensure_ascii=False), "sources": [], "contexts": []}
-    #     return output
-
-    # def output_postprocess(raw_output):
-    #     output = {"answer": "", "sources": [], "contexts": []}
-    #     if raw_output is not None:
-    #         output["answer"] = raw_output.get("answer", "")
-    #         output["sources"] = raw_output.get("sources", [])
-    #         output["contexts"] = raw_output.get("contexts", [])
-    #     return output
- 
-    def contexts_trunc(docs:list,context_num=2):
-        return [doc.page_content for doc in docs[:context_num]]
- 
-    contexts_trunc_stage = RunnableLambda(
-        lambda x: {"query": x["query"], "contexts": contexts_trunc(x["docs"], context_num=2)}
-        )
-
-    llm_chain = get_llm_chain(
-        model_id=llm_model_id, 
-        intent_type=IntentType.KNOWLEDGE_QA.value,
-        model_kwargs=None,  # TODO 
-        stream=stream
-        )
-    
-    # TODO design chat chain
-    chat_llm_chain = get_llm_chain(
-        model_id=llm_model_id, 
-        intent_type=IntentType.CHAT.value,
-        model_kwargs=None,  # TODO 
-        stream=stream
-        ) | {'answer': lambda x:x,"sources":lambda x: [],"contexts":lambda x: [],"intent_type":IntentType.CHAT.value}
-    
-    llm_chain = contexts_trunc_stage | llm_chain
-    qd_llm_chain = RunnableParallel({
-                "docs": compression_retriever,
-                "query": lambda x:x["query"],
-                "debug_info": lambda x:x["debug_info"]}
-            ) | RunnableParallel({
-                "answer": llm_chain,
-                "contexts": format_docs,
-                "sources": format_sources,
-                "debug_info": lambda x:x["debug_info"]})
-    qq_chain = dgr_q_q_retriever
+    # 2.2 query document retrieval + LLM.
+    qd_llm_chain = get_qd_llm_chain([aos_index_dgr_qd, aos_index_mkt_qd], llm_model_id, stream, top_n=5)
+    # 2.3 query question router.
     def qq_route(info, threshold=0.9):
         for doc in info["docs"]:
             if doc.metadata["score"] > threshold:
@@ -768,10 +695,15 @@ def market_chain_entry(
                 "query": lambda x:x["query"],
                 "debug_info": lambda x:x["debug_info"]}
             ) | RunnableLambda(qq_route)
-
-    strict_q_q_chain = mkt_q_q_retriever | RunnableLambda(index_results_format)
-
-
+ 
+    # TODO design chat chain
+    chat_llm_chain = get_llm_chain(
+        model_id=llm_model_id, 
+        intent_type=IntentType.CHAT.value,
+        model_kwargs=None,  # TODO 
+        stream=stream
+        ) | {'answer': lambda x:x,"sources":lambda x: [],"contexts":lambda x: [],"intent_type":lambda x: IntentType.CHAT.value}
+    
     intent_recognition_chain = RunnablePassthrough.assign(
         intent_type=auto_intention_recoginition_chain(aos_index_mkt_qq)
     )
@@ -784,8 +716,7 @@ def market_chain_entry(
     # full_chain = intent_recognition_chain
     # full_chain = RunnableLambda(route)
     response = full_chain.invoke({"query": query_input, "debug_info": debug_info, "intent_type": intent_type})
-    
-    
+
     answer = response["answer"]
     sources = response["sources"]
     contexts = response["contexts"]
@@ -819,51 +750,8 @@ def main_chain_entry(
     contexts = []
     sources = []
     answer = ""
-
-    set_verbose(True)
-    q_d_retriever = QueryDocumentRetriever(aos_index, "vector_field", "text", "file_path")
-
-    def format_docs(docs, top_k=6):
-        # return "\n\n".join(doc.page_content for doc in docs["docs"][:top_k])
-        contexts = []
-        contexts.extend([{"doc": doc.page_content} for doc in docs["docs"][:top_k]])
-        return contexts
-
-    def format_sources(docs, top_k=1):
-        # return [doc.metadata["source"] for doc in docs["docs"][:top_k]]
-        sources = []
-        sources.extend([{"doc": doc.metadata["source"]} for doc in docs["docs"][:top_k]])
-        return sources 
-
-    def contexts_trunc(contexts:list,context_num=2):
-        return [context['doc'] for context in contexts[:context_num]]
- 
-    contexts_trunc_stage = RunnableLambda(
-        lambda x: {"query": x["query"], "contexts": contexts_trunc(x["contexts"], context_num=2)}
-        )
-    
-    llm_chain = get_rag_llm_chain(
-        model_id=llm_model_id, 
-        model_kwargs=None,  # TODO 
-        stream=stream
-        )
-    llm_chain = contexts_trunc_stage | llm_chain
-
-    rag_chain = RunnableParallel({
-                "docs": q_d_retriever,
-                "query": lambda x:x["query"],
-                "debug_info": lambda x:x["debug_info"]}
-            ) | RunnableParallel({
-                "contexts": format_docs,
-                "sources": format_sources,
-                "query": lambda x:x["query"],
-                "debug_info": lambda x:x["debug_info"]}
-            ) | RunnableParallel({
-                "answer": llm_chain,
-                "sources": lambda x:x["sources"],
-                "contexts": lambda x:x["contexts"],
-                "debug_info": lambda x:x["debug_info"]})
-    response = rag_chain.invoke({"query": query_input, "debug_info": debug_info})
+    full_chain = get_qd_llm_chain([aos_index], llm_model_id, stream)
+    response = full_chain.invoke({"query": query_input, "debug_info": debug_info})
     answer = response["answer"]
     sources = response["sources"]
     contexts = response["contexts"]
@@ -934,21 +822,10 @@ def lambda_handler(event, context):
     contexts = []
     if type.lower() == Type.COMMON.value:
         answer, sources, context, debug_info = main_chain_entry(
-            session_id,
             question,
-            history,
-            zh_embedding_endpoint,
-            en_embedding_endpoint,
-            cross_endpoint,
-            rerank_endpoint,
-            llm_endpoint,
             aos_index,
-            knowledge_qa_flag,
-            temperature,
-            enable_q_q_match,
             stream=stream,
             llm_model_id=llm_model_id,
-            intent_type=intent_type
         )
     elif type.lower() == Type.DGR.value:
         answer, sources, context, debug_info = dgr_entry(
