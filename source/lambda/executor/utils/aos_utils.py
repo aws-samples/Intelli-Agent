@@ -51,7 +51,7 @@ class LLMBotOpenSearchClient:
                 "size": size,
                 "query": {
                     "bool":{
-                        "should": [ {"match": { field : query_term }} ],
+                        "should": [ {"match_phrase": { field : query_term }} ],
                     }
                 },
                 "sort": [
@@ -167,6 +167,7 @@ class LLMBotOpenSearchClient:
         :param query_term: query term
         :param field: search field
         :param size: number of results to return from aos
+        :param filter: filter query
         
         :return: aos response json
         """

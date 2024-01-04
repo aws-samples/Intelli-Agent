@@ -35,8 +35,8 @@ done
 # fi
 
 # # Install necessary packages
-# pip install huggingface-hub -Uqq
-# pip install -U sagemaker
+pip install huggingface-hub -Uqq
+pip install -U sagemaker
 
 # Define local model path
 local_model_path="./${model_name}"
