@@ -1,5 +1,8 @@
 import retriever as retriever
+from retriever import QueryDocumentRetriever, QueryQuestionRetriever,index_results_format
 from constant import IntentType
+from functools import partial
+from langchain.schema.runnable import RunnableParallel, RunnablePassthrough, RunnableBranch, RunnableLambda
 from llm_utils import Claude21
 import re 
 from prompt_template import INTENT_RECOGINITION_PROMPT_TEMPLATE_CLUADE21,INTENT_RECOGINITION_EXAMPLE_TEMPLATE
@@ -68,3 +71,46 @@ def get_intent(query,intent_type,qq_index=None):
         return intent_type 
     
     return get_intent_with_claude(query)
+
+
+def auto_intention_recoginition_chain(index_q_q, q_q_match_threshold=0.9):
+    """
+
+    Args:
+        index_q_q (_type_): _description_
+        q_q_match_threshold (float, optional): _description_. Defaults to 0.9.
+    """
+    def get_custom_intent_type(x):
+        assert IntentType.has_value(x["intent_type"]), x["intent_type"]
+        return x["intent_type"]
+    
+    q_q_retriever = QueryQuestionRetriever(
+        index=index_q_q, vector_field="vector_field", source_field="file_path", size=5)
+     
+    strict_q_q_chain = q_q_retriever | RunnableLambda(partial(index_results_format,threshold=q_q_match_threshold))
+    
+    intent_auto_recognition_chain = RunnableParallel({
+        "query": lambda x: x['query'],
+        "q_q_match_res": strict_q_q_chain
+    }) | RunnableBranch(
+        (lambda x: len(x['q_q_match_res']["answer"]) > 0, RunnableLambda(lambda x: IntentType.STRICT_QQ.value)),
+        RunnableLambda(lambda x: get_intent_with_claude(x['query']))
+    )
+
+    chain = RunnableBranch(
+        (lambda x:x["intent_type"] == IntentType.AUTO.value,intent_auto_recognition_chain),
+        RunnableLambda(get_custom_intent_type)
+    )
+
+    return chain
+
+
+    
+
+
+
+
+
+
+
+

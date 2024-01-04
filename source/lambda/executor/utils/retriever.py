@@ -315,6 +315,7 @@ class QueryQuestionRetriever(BaseRetriever):
         debug_info = question["debug_info"]
         start = time.time()
         opensearch_knn_results = []
+
         parsed_query = parse_query(
             query,
             [],
@@ -431,7 +432,24 @@ class GoogleRetriever(BaseRetriever):
         self.search = GoogleSearchAPIWrapper()
         self.result_num = result_num
 
+        return doc_list
+
     def _get_relevant_documents(self, question: Dict, *, run_manager: CallbackManagerForRetrieverRun) -> List[Document]:
         results = self.search.results(question["query"], self.result_num)
         for result in results:
             print(result)
+
+
+
+def index_results_format(docs:list, threshold=-1):
+    results = []
+    for doc in docs:
+        if doc.metadata["score"] < threshold:
+            continue
+        results.append({"score": doc.metadata["score"], 
+                        "source": doc.metadata["source"],
+                        "answer": doc.metadata["answer"],
+                        "question": doc.metadata["question"]})
+    # output = {"answer": json.dumps(results, ensure_ascii=False), "sources": [], "contexts": []}
+    output = {"answer": results, "sources": [], "contexts": []}
+    return output
