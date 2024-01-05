@@ -1,7 +1,12 @@
 
 import re 
 
-CLAUDE21_RAG_PROMPT_TEMPLTE = """You are a customer service agent, and answering user's query.
+CLAUDE21_RAG_PROMPT_TEMPLTE = """You are a customer service agent, and answering user's query. You ALWAYS follow these guidelines when writing your response:
+<guidelines>
+- NERVER say "根据搜索结果/大家好/谢谢...".
+- ALWAYS response with Chinese.
+</guidelines>
+
 Here are some documents for you to reference for your query:
 <docs>
 {context}
@@ -11,8 +16,6 @@ Here are some documents for you to reference for your query:
 <query>
 {query}
 </query>
-
-NERVER say "根据搜索结果...".
 
 Provide a response between <result> tags.
 \n\nAssistant:<result> 
@@ -54,23 +57,46 @@ CLAUDE2_RAG_CONTEXT_TEMPLATE="""
 """
 
 
-INTENT_RECOGINITION_PROMPT_TEMPLATE_CLUADE21 = """\n\nHuman: You are a customer service agent that is classifying user's query wrapped by <query></query>.
-The all categories and their few-shot examples are shown below.
+# You ALWAYS follow these guidelines when writing your response:
+# <guidelines>
+# - Only answer with one category and wraper with xml tag <category></category>, NERVER provide any explanation for your answer.
+# </guidelines>
 
-{few_shot_examples}
 
-Categories are:
-{all_labels}
+INTENT_RECOGINITION_PROMPT_TEMPLATE_CLUADE = """
 
-User's query:
-<query>
-{query}
-</query>
+Human: Please classify this query: <query>{query}</query>. The categories are:
 
-\n\nAssistant: My answer is <category>
-"""
+{categories}
 
-INTENT_RECOGINITION_EXAMPLE_TEMPLATE = """<example>\n<query>{query}</query>\n<category>{label}</category>\n</example>"""
+Some examples of how to classify queries:
+{examples}
+
+Now classify the original query. Respond with just one letter corresponding to the correct category.
+
+
+Assistant:"""
+
+# """You are a customer service agent that is classifying user's query wrapped by <query></query>. The all categories and their few-shot examples are shown below.
+
+# All categories are:
+# <categories>
+# {all_labels}
+# </categories>
+
+# All few-shot examples are:
+# <examples>
+# {few_shot_examples}
+# </examples>
+# \n\nHuman: 
+# User's query:
+# <query>
+# {query}
+# </query>
+# \n\nAssistant:My answer is <category>
+# """
+
+INTENT_RECOGINITION_EXAMPLE_TEMPLATE = """<query>{query}</query>\n{label}"""
 
 
 CHAT_PROMPT_TEMPLATE_CLAUDE = """\n\nHuman:{query}

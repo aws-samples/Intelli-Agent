@@ -1,0 +1,30 @@
+{
+  "intents": [
+    {
+      "intent": "chat",
+      "describe": "casual chat",
+      "index": "A"
+    },
+    {
+      "intent": "knowledge_qa",
+      "describe": "Question and Answer (Q&A)",
+      "index": "B"
+    }
+  ],
+  "examples": {
+    "chat": [
+      "我能问你一个问题吗?",
+      "早上好，你好吗?",
+      "你是谁?",
+      "你最喜欢什么书?",
+      "你喜欢什么食物?"
+    ],
+    "knowledge_qa": [
+      "what is FOOB?",
+      "什么是 AWS Organizations？",
+      "FOOB Ticket 的链接是什么",
+      "Amazon EMR有哪些优势",
+      "what if the customer has EBS requirement"
+    ]
+  }
+}

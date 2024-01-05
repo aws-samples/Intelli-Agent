@@ -41,7 +41,6 @@ class Model(metaclass=ModelMeta):
             model_kwargs=model_kwargs, **kwargs
         )
 
-
 class Claude2(Model):
     model_id = 'anthropic.claude-v2'
 
@@ -51,7 +50,6 @@ class Claude2(Model):
                     or os.environ.get('AWS_PROFILE',None) or None 
         region_name = kwargs.get('region_name',None) \
             or os.environ.get('AWS_REGION', None) or None
-        model_kwargs = kwargs.get('model_kwargs',None) 
         llm = Bedrock(
                     credentials_profile_name=credentials_profile_name,
                     region_name=region_name,
@@ -59,7 +57,6 @@ class Claude2(Model):
                     model_kwargs=model_kwargs
         )
         return llm
-
 
 class ClaudeInstance(Claude2):
     model_id = 'anthropic.claude-instant-v1'

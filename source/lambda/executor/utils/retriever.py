@@ -440,7 +440,6 @@ class GoogleRetriever(BaseRetriever):
             print(result)
 
 
-
 def index_results_format(docs:list, threshold=-1):
     results = []
     for doc in docs:
