@@ -53,8 +53,12 @@ class BGEReranker(BaseDocumentCompressor):
             )
         )
         final_results = []
+        debug_info = query["debug_info"]
+        debug_info["knowledge_qa_rerank"] = []
         for doc, score in zip(doc_list, score_list):
             doc.metadata["rerank_score"] = score
             final_results.append(doc)
+            debug_info["knowledge_qa_rerank"].append((doc.page_content, doc.metadata["source"], score))
         final_results.sort(key=lambda x: x.metadata["rerank_score"], reverse=True)
+        debug_info["knowledge_qa_rerank"].sort(key=lambda x: x[2], reverse=True)
         return final_results

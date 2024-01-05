@@ -412,7 +412,7 @@ class QueryDocumentRetriever(BaseRetriever):
 
         # 3. combine these two opensearch_knn_response and opensearch_query_response
         final_results = opensearch_knn_results + opensearch_query_results
-        debug_info["knowledge_qa_knn_recall"][self.index] = final_results
+        debug_info["knowledge_qa_knn_recall"][self.index] = remove_redundancy_debug_info(final_results)
 
         doc_list = []
         for result in final_results:
