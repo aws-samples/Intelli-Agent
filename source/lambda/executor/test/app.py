@@ -103,6 +103,6 @@ with gr.Blocks() as demo:
         cache_examples=False,
     )
 
-load_raw_data()
+# load_raw_data()
 demo.queue()
 demo.launch(server_name="0.0.0.0", share=True, server_port=3306)
