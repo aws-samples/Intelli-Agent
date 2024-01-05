@@ -77,7 +77,8 @@ BODY
     "s3Bucket": "<Your S3 bucket>", eg. "llm-bot-resource"
     "s3Prefix": "<Your S3 prefix>", eg. "input_samples/"
     "offline": "true",
-    "qaEnhance": "false"
+    "qaEnhance": "false",
+    "aosIndex": "<Your OpenSearch index>", eg. "dev"
 }
 
 ```
