@@ -113,7 +113,7 @@ def parse_query(
         stop=None,
     )
     elpase_time = time.time() - start
-    logger.info(f"runing time of parse query: {elpase_time}s seconds")
+    print(f"runing time of parse query: {elpase_time}s seconds")
     return parsed_query
 
 def get_faq_answer(source, index_name, source_field):
@@ -347,7 +347,7 @@ class QueryQuestionRetriever(BaseRetriever):
         )
         # logger.info(json.dumps(opensearch_knn_response, ensure_ascii=False))
         elpase_time = time.time() - start
-        logger.info(f"runing time of opensearch_knn : {elpase_time}s seconds")
+        print(f"runing time of opensearch_knn : {elpase_time}s seconds")
         debug_info["q_q_match_info"] = remove_redundancy_debug_info(opensearch_knn_results)
         docs = []
         for result in opensearch_knn_results:
@@ -406,7 +406,7 @@ class QueryDocumentRetriever(BaseRetriever):
         )
         recall_end_time = time.time()
         elpase_time = recall_end_time - start
-        logger.info(f"runing time of recall : {elpase_time}s seconds")
+        print(f"runing time of recall : {elpase_time}s seconds")
 
         # 2. get AOS invertedIndex recall
         opensearch_query_results = []
