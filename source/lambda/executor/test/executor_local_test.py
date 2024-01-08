@@ -11,6 +11,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+sys.path.append("llm-bot/source/lambda/executor/utils")
+sys.path.append("llm-bot/source/lambda/executor")
 sys.path.append("utils")
 sys.path.append(".")
 import aos_utils

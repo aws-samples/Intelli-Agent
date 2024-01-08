@@ -29,10 +29,12 @@ from langchain.llms import OpenAI
 
 
 logger = logging.getLogger()
-handler = logging.StreamHandler()
-logger.setLevel(logging.ERROR)
-logger.addHandler(handler)
+# handler = logging.StreamHandler()
+logger.setLevel(logging.INFO)
+# logger.addHandler(handler)
 
+aos_logger = logging.getLogger("opensearch")
+aos_logger.setLevel(logging.ERROR)
 
 from preprocess_utils import run_preprocess
 from aos_utils import LLMBotOpenSearchClient
@@ -152,8 +154,8 @@ def organize_faq_results(response, index_name):
             result["answer"] = get_faq_answer(result["source"], index_name)
             result["doc"] = get_faq_content(result["source"], index_name)
         except:
-            print("index_error")
-            print(aos_hit["_source"])
+            logger.info("index_error")
+            logger.info(aos_hit["_source"])
             continue
         # result.update(aos_hit["_source"])
         results.append(result)
@@ -279,7 +281,7 @@ def parse_query(
         stop=None,
     )
     elpase_time = time.time() - start
-    print(f"runing time of parse query: {elpase_time}s seconds")
+    logger.info(f"runing time of parse query: {elpase_time}s seconds")
     return parsed_query
 
 def q_q_match(parsed_query, debug_info):
@@ -307,7 +309,7 @@ def q_q_match(parsed_query, debug_info):
     )
     # logger.info(json.dumps(opensearch_knn_response, ensure_ascii=False))
     elpase_time = time.time() - start
-    print(f"runing time of opensearch_knn : {elpase_time}s seconds")
+    logger.info(f"runing time of opensearch_knn : {elpase_time}s seconds")
     answer = None
     sources = None
     if len(opensearch_knn_results) > 0:
@@ -356,7 +358,7 @@ def get_relevant_documents_dgr(
     # logger.info(json.dumps(opensearch_knn_response, ensure_ascii=False))
     faq_recall_end_time = time.time()
     elpase_time = faq_recall_end_time - start
-    print(f"runing time of faq recall : {elpase_time}s seconds")
+    logger.info(f"runing time of faq recall : {elpase_time}s seconds")
     filter = None
     if parsed_query["is_api_query"]:
         filter = [{"term": {"metadata.is_api": True}}]
@@ -389,7 +391,7 @@ def get_relevant_documents_dgr(
     )
     ug_recall_end_time = time.time()
     elpase_time = ug_recall_end_time - faq_recall_end_time
-    print(f"runing time of ug recall: {elpase_time}s seconds")
+    logger.info(f"runing time of ug recall: {elpase_time}s seconds")
 
     # 2. get AOS invertedIndex recall
     opensearch_query_results = []
@@ -443,7 +445,7 @@ def get_relevant_documents_dgr(
 
     rerank_end_time = time.time()
     elpase_time = rerank_end_time - ug_recall_end_time
-    print(f"runing time of rerank: {elpase_time}s seconds")
+    logger.info(f"runing time of rerank: {elpase_time}s seconds")
 
     return rerank_knowledge
 
@@ -545,12 +547,12 @@ def dgr_entry(
         answer = llm_generate(**generate_input)
         llm_end_time = time.time()
         elpase_time = llm_end_time - llm_start_time
-        print(f"runing time of llm: {elpase_time}s seconds")
+        logger.info(f"runing time of llm: {elpase_time}s seconds")
         # answer = ret["answer"]
         debug_info["knowledge_qa_llm"] = answer
     except Exception as e:
-        print(f"Exception Query: {query_input}")
-        print(f"{traceback.format_exc()}")
+        logger.info(f"Exception Query: {query_input}")
+        logger.info(f"{traceback.format_exc()}")
         answer = ""
 
     # 5. update_session
@@ -576,6 +578,19 @@ def get_strict_qq_chain(strict_q_q_index):
         index=strict_q_q_index, vector_field="vector_field", source_field="file_path", size=5)
     strict_q_q_chain = mkt_q_q_retriever | RunnableLambda(get_strict_qq_result)
     return strict_q_q_chain
+
+def return_strict_qq_result(x):
+    # def get_strict_qq_result(docs, threshold=0.7):
+    #     results = []
+    #     for doc in docs:
+    #         results.append({"score": doc.metadata["score"], 
+    #                         "source": doc.metadata["source"],
+    #                         "answer": doc.metadata["answer"],
+    #                         "question": doc.metadata["question"]})
+    #     output = {"answer": json.dumps(results, ensure_ascii=False), "sources": [], "contexts": []}
+    #     return output
+    # return get_strict_qq_result(x["intent_info"]["strict_qq_intent_result"])
+    return {"answer": json.dumps(x["intent_info"]["strict_qq_intent_result"], ensure_ascii=False), "sources": [], "contexts": []}
 
 def get_rag_llm_chain(llm_model_id, stream):
     def contexts_trunc(docs:list,context_num=2):
@@ -640,7 +655,8 @@ def market_chain_entry(
     query_input: str,
     llm_model_id=None,
     stream=False,
-    intent_type=IntentType.KNOWLEDGE_QA
+    intent_type=IntentType.KNOWLEDGE_QA,
+    manual_input_intent=None
 ):
     """
     Entry point for the Lambda function.
@@ -670,10 +686,14 @@ def market_chain_entry(
     contexts = []
     sources = []
     answer = ""
+    intent_info = {
+        "manual_input_intent": manual_input_intent,
+        "strict_qq_intent_result": {},
+    }
 
     # 1. Strict Query Question Intent
     # 1.1. strict query question retrieval.
-    strict_q_q_chain = get_strict_qq_chain(aos_index_mkt_qq)
+    # strict_q_q_chain = get_strict_qq_chain(aos_index_mkt_qq)
 
     # 2. Knowledge QA Intent
     # 2.1 query question retrieval.
@@ -709,13 +729,14 @@ def market_chain_entry(
     )
 
     full_chain = intent_recognition_chain | RunnableBranch(
-        (lambda x:x['intent_type'] == IntentType.STRICT_QQ.value, strict_q_q_chain),
         (lambda x:x['intent_type'] == IntentType.KNOWLEDGE_QA.value, qq_qd_llm_chain),
+        (lambda x:x['intent_type'] == IntentType.STRICT_QQ.value, return_strict_qq_result),
+        # (lambda x:x['intent_type'] == IntentType.STRICT_QQ.value, strict_q_q_chain),
         chat_llm_chain # chat 
     )
     # full_chain = intent_recognition_chain
     # full_chain = RunnableLambda(route)
-    response = full_chain.invoke({"query": query_input, "debug_info": debug_info, "intent_type": intent_type})
+    response = full_chain.invoke({"query": query_input, "debug_info": debug_info, "intent_type": intent_type, "intent_info": intent_info})
 
     answer = response["answer"]
     sources = response["sources"]
@@ -776,9 +797,9 @@ def _is_websocket_request(event):
 # @handle_error
 def lambda_handler(event, context):
     request_timestamp = time.time()
-    print(f"request_timestamp :{request_timestamp}")
-    print(f"event:{event}")
-    print(f"context:{context}")
+    logger.info(f"request_timestamp :{request_timestamp}")
+    logger.info(f"event:{event}")
+    logger.info(f"context:{context}")
 
     # Get request body
     event_body = json.loads(event["body"])
@@ -789,7 +810,7 @@ def lambda_handler(event, context):
     if stream:
         load_ws_client()
 
-    print(f'stream decode: {stream}')
+    logger.info(f'stream decode: {stream}')
     type = event_body.get("type", Type.COMMON.value)
     enable_q_q_match = event_body.get("enable_q_q_match", False)
     enable_debug = event_body.get("enable_debug", False)
@@ -853,7 +874,7 @@ def lambda_handler(event, context):
         )
 
     main_entry_elpase = time.time() - main_entry_start
-    print(f"runing time of {type} entry : {main_entry_elpase}s seconds")
+    logger.info(f"runing time of {type} entry : {main_entry_elpase}s seconds")
 
     return process_response(**dict(
         stream=stream,

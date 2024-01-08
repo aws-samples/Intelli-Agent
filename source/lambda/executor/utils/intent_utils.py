@@ -148,23 +148,47 @@ def auto_intention_recoginition_chain(
         assert IntentType.has_value(x["intent_type"]), x["intent_type"]
         return x["intent_type"]
     
+    def get_strict_intent(x):
+        x["intent_type"] = IntentType.STRICT_QQ.value
+        x["intent_info"]["strict_qq_intent_result"] = x["q_q_match_res"]["answer"]
+        return x["intent_type"]
     
     q_q_retriever = QueryQuestionRetriever(
         index=index_q_q, vector_field="vector_field", source_field="file_path", size=5)
      
-    strict_q_q_chain = q_q_retriever | RunnableLambda(partial(index_results_format,threshold=q_q_match_threshold))
+    strict_q_q_chain = q_q_retriever | RunnableLambda(partial(index_results_format,threshold=0))
     
     intent_auto_recognition_chain = RunnablePassthrough.assign(
         q_q_match_res=strict_q_q_chain
     ) | RunnableBranch(
-        (lambda x: len(x['q_q_match_res']["answer"]) > 0, RunnableLambda(lambda x: IntentType.STRICT_QQ.value)),
-        RunnableLambda(lambda x: get_intent_with_claude(x['query'],intent_if_fail,x['debug_info']) )
+        # (lambda x: len(x['q_q_match_res']["answer"]) > 0, RunnableLambda(lambda x: IntentType.STRICT_QQ.value)),
+        (lambda x: len(x['q_q_match_res']["answer"]) > 0, RunnableLambda(lambda x: get_strict_intent(x))),
+        RunnableBranch(
+        (lambda x:x["intent_type"] == IntentType.AUTO, RunnableLambda(lambda x: get_intent_with_claude(x['query'],intent_if_fail,x['debug_info']))),
+        RunnableLambda(lambda x: get_strict_intent(x)))
     )
 
     chain = RunnableBranch(
-        (lambda x:x["intent_type"] == IntentType.AUTO.value,intent_auto_recognition_chain),
+        (lambda x:x["intent_type"] == IntentType.AUTO or x["intent_type"] == IntentType.STRICT_QQ.value,intent_auto_recognition_chain),
         RunnableLambda(get_custom_intent_type)
     )
+
+    intent_type_auto_recognition_chain = RunnablePassthrough.assign(
+        q_q_match_res=strict_q_q_chain
+    ) | RunnableBranch(
+        # (lambda x: len(x['q_q_match_res']["answer"]) > 0, RunnableLambda(lambda x: IntentType.STRICT_QQ.value)),
+        (lambda x: x['q_q_match_res']["answer"][0]["score"] < q_q_match_threshold and x["intent_type"] == IntentType.AUTO.value, RunnableLambda(lambda x: get_intent_with_claude(x['query'],intent_if_fail,x['debug_info']))),
+        RunnableLambda(lambda x: get_strict_intent(x))
+    )
+
+    intent_type_chain = RunnableBranch(
+        (lambda x:x["intent_type"] == IntentType.AUTO.value or x["intent_type"] == IntentType.STRICT_QQ.value,intent_type_auto_recognition_chain),
+        RunnableLambda(get_custom_intent_type)
+    )
+
+    #TODO add 2nd stage intent chain here, e.g. knowledge_qa
+
+    chain = intent_type_chain
 
     return chain
 

@@ -24,9 +24,9 @@ from llmbot_utils import (
 )
 
 logger = logging.getLogger()
-handler = logging.StreamHandler()
+# handler = logging.StreamHandler()
 logger.setLevel(logging.INFO)
-logger.addHandler(handler)
+# logger.addHandler(handler)
 
 region = os.environ["AWS_REGION"]
 zh_embedding_model_endpoint = os.environ.get("zh_embedding_endpoint", "")
@@ -113,7 +113,7 @@ def parse_query(
         stop=None,
     )
     elpase_time = time.time() - start
-    print(f"runing time of parse query: {elpase_time}s seconds")
+    logger.info(f"runing time of parse query: {elpase_time}s seconds")
     return parsed_query
 
 def get_faq_answer(source, index_name, source_field):
@@ -260,12 +260,15 @@ def organize_faq_results(response, index_name, source_field="file_path", text_fi
                 result["answer"] = aos_hit["_source"]["metadata"]["jsonlAnswer"]["answer"]
                 result["question"] = aos_hit["_source"]["metadata"]["jsonlAnswer"]["question"]
                 result["content"] = aos_hit["_source"]["text"]
-                result[source_field] = aos_hit["_source"]["metadata"]["jsonlAnswer"][source_field]
+                if source_field in aos_hit["_source"]["metadata"]["jsonlAnswer"].keys():
+                    result[source_field] = aos_hit["_source"]["metadata"]["jsonlAnswer"][source_field]
+                else:
+                    result[source_field] = aos_hit["_source"]["metadata"][source_field]
             # result["doc"] = get_faq_content(result["source"], index_name)
         except:
-            print("index_error")
-            print(traceback.format_exc())
-            print(aos_hit["_source"])
+            logger.info("index_error")
+            logger.info(traceback.format_exc())
+            logger.info(aos_hit["_source"])
             continue
         # result.update(aos_hit["_source"])
         results.append(result)
@@ -347,7 +350,7 @@ class QueryQuestionRetriever(BaseRetriever):
         )
         # logger.info(json.dumps(opensearch_knn_response, ensure_ascii=False))
         elpase_time = time.time() - start
-        print(f"runing time of opensearch_knn : {elpase_time}s seconds")
+        logger.info(f"runing time of opensearch_knn : {elpase_time}s seconds")
         debug_info["q_q_match_info"] = remove_redundancy_debug_info(opensearch_knn_results)
         docs = []
         for result in opensearch_knn_results:
@@ -406,7 +409,7 @@ class QueryDocumentRetriever(BaseRetriever):
         )
         recall_end_time = time.time()
         elpase_time = recall_end_time - start
-        print(f"runing time of recall : {elpase_time}s seconds")
+        logger.info(f"runing time of recall : {elpase_time}s seconds")
 
         # 2. get AOS invertedIndex recall
         opensearch_query_results = []
@@ -438,7 +441,7 @@ class GoogleRetriever(BaseRetriever):
     def _get_relevant_documents(self, question: Dict, *, run_manager: CallbackManagerForRetrieverRun) -> List[Document]:
         results = self.search.results(question["query"], self.result_num)
         for result in results:
-            print(result)
+            logger.info(result)
 
 
 def index_results_format(docs:list, threshold=-1):
