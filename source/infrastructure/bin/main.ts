@@ -141,6 +141,7 @@ export class RootStack extends Stack {
     // deprecate for now since proxy in ec2 instance is not allowed according to policy
     // new CfnOutput(this, 'OpenSearch Dashboard', {value:`${_Ec2Stack._publicIP}:8081/_dashboards`});
     new CfnOutput(this, 'API Endpoint Address', {value:_ApiStack._apiEndpoint});
+    new CfnOutput(this, 'WebSocket Endpoint Address', {value:_ApiStack._wsEndpoint});
     new CfnOutput(this, 'Glue Job Name', {value:_EtlStack._jobName});
     new CfnOutput(this, 'Cross Model Endpoint', {value:_LLMStack._rerankEndPoint || 'No Cross Endpoint Created'});
     new CfnOutput(this, 'Embedding Model Endpoint', {value:_LLMStack._embeddingEndPoints[0] || 'No Embedding Endpoint Created'});

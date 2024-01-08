@@ -12,6 +12,8 @@ import { Construct } from 'constructs';
 import { join } from "path";
 import { WebSocketApi } from '@aws-cdk/aws-apigatewayv2-alpha';
 import { WebSocketStack } from './websocket-api';
+import { ApiQueueStack } from './api-queue';
+import * as lambdaEventSources from 'aws-cdk-lib/aws-lambda-event-sources';
 
 interface apiStackProps extends StackProps {
     _vpc: ec2.Vpc;
@@ -34,6 +36,7 @@ export class LLMApiStack extends NestedStack {
 
     _apiEndpoint;
     _documentBucket;
+    _wsEndpoint
     constructor(scope: Construct, id: string, props: apiStackProps) {
         super(scope, id, props);
 
@@ -45,6 +48,10 @@ export class LLMApiStack extends NestedStack {
         const _chatSessionTable = props._chatSessionTable
         const _jobQueueArn = props._jobQueueArn
         const _jobDefinitionArn = props._jobDefinitionArn
+
+        const queueStack = new ApiQueueStack(this, 'LLMQueueStack');
+        const sqsStatement = queueStack.sqsStatement;
+        const messageQueue = queueStack.messageQueue;
 
         // s3 bucket for storing documents
         const _S3Bucket = new s3.Bucket(this, 'llm-bot-documents', {
@@ -77,6 +84,22 @@ export class LLMApiStack extends NestedStack {
             },
         });
 
+        const lambdaDispatcher = new DockerImageFunction(this,
+            "lambdaDispatcher", {
+            code: DockerImageCode.fromImageAsset(join(__dirname, "../../../lambda/dispatcher")),
+            timeout: Duration.minutes(15),
+            memorySize: 1024,
+            vpc: _vpc,
+            vpcSubnets: {
+                subnets: _vpc.privateSubnets,
+            },
+            securityGroups: [_securityGroup],
+            architecture: Architecture.X86_64,
+            environment: {
+                SQS_QUEUE_URL: messageQueue.queueUrl,
+            },
+        });
+
         lambdaExecutor.addToRolePolicy(new iam.PolicyStatement({
             // principals: [new iam.AnyPrincipal()],
             actions: [
@@ -95,6 +118,9 @@ export class LLMApiStack extends NestedStack {
             resources: ['*'],
         }
         ))
+        lambdaExecutor.addToRolePolicy(sqsStatement);
+        lambdaExecutor.addEventSource(new lambdaEventSources.SqsEventSource(messageQueue));
+        lambdaDispatcher.addToRolePolicy(sqsStatement);
 
         const lambdaEmbedding = new DockerImageFunction(this,
             "lambdaEmbedding", {
@@ -303,6 +329,7 @@ def handler(event, context):
         _S3Bucket.grantReadWrite(lambdaStepFunction);
 
         const webSocketApi = new WebSocketStack(this, 'WebSocketApi', {
+            dispatcherLambda: lambdaDispatcher,
             sendMessageLambda: lambdaExecutor,
         });
 
@@ -350,5 +377,6 @@ def handler(event, context):
 
         this._apiEndpoint = api.url
         this._documentBucket = _S3Bucket.bucketName
+        this._wsEndpoint = webSocketApi.websocketApiStage.api.apiEndpoint
     }
 }
