@@ -249,17 +249,18 @@ def organize_faq_results(response, index_name, source_field="file_path", text_fi
     for aos_hit in aos_hits:
         result = {}
         try:
-            result[source_field] = aos_hit["_source"]["metadata"][source_field]
             result["score"] = aos_hit["_score"]
             result["detail"] = aos_hit["_source"]
             if "field" in aos_hit["_source"]["metadata"]:
                 result["answer"] = get_faq_answer(result["source"], index_name, source_field)
                 result["content"] = aos_hit["_source"]["content"]
                 result["question"] = aos_hit["_source"]["content"]
+                result[source_field] = aos_hit["_source"]["metadata"][source_field]
             elif "jsonlAnswer" in aos_hit["_source"]["metadata"]:
                 result["answer"] = aos_hit["_source"]["metadata"]["jsonlAnswer"]["answer"]
                 result["question"] = aos_hit["_source"]["metadata"]["jsonlAnswer"]["question"]
                 result["content"] = aos_hit["_source"]["text"]
+                result[source_field] = aos_hit["_source"]["metadata"]["jsonlAnswer"][source_field]
             # result["doc"] = get_faq_content(result["source"], index_name)
         except:
             print("index_error")

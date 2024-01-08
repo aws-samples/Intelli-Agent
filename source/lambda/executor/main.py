@@ -30,7 +30,7 @@ from langchain.llms import OpenAI
 
 logger = logging.getLogger()
 handler = logging.StreamHandler()
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.ERROR)
 logger.addHandler(handler)
 
 
@@ -279,7 +279,7 @@ def parse_query(
         stop=None,
     )
     elpase_time = time.time() - start
-    logger.info(f"runing time of parse query: {elpase_time}s seconds")
+    print(f"runing time of parse query: {elpase_time}s seconds")
     return parsed_query
 
 def q_q_match(parsed_query, debug_info):
@@ -307,7 +307,7 @@ def q_q_match(parsed_query, debug_info):
     )
     # logger.info(json.dumps(opensearch_knn_response, ensure_ascii=False))
     elpase_time = time.time() - start
-    logger.info(f"runing time of opensearch_knn : {elpase_time}s seconds")
+    print(f"runing time of opensearch_knn : {elpase_time}s seconds")
     answer = None
     sources = None
     if len(opensearch_knn_results) > 0:
@@ -356,7 +356,7 @@ def get_relevant_documents_dgr(
     # logger.info(json.dumps(opensearch_knn_response, ensure_ascii=False))
     faq_recall_end_time = time.time()
     elpase_time = faq_recall_end_time - start
-    logger.info(f"runing time of faq recall : {elpase_time}s seconds")
+    print(f"runing time of faq recall : {elpase_time}s seconds")
     filter = None
     if parsed_query["is_api_query"]:
         filter = [{"term": {"metadata.is_api": True}}]
@@ -389,7 +389,7 @@ def get_relevant_documents_dgr(
     )
     ug_recall_end_time = time.time()
     elpase_time = ug_recall_end_time - faq_recall_end_time
-    logger.info(f"runing time of ug recall: {elpase_time}s seconds")
+    print(f"runing time of ug recall: {elpase_time}s seconds")
 
     # 2. get AOS invertedIndex recall
     opensearch_query_results = []
@@ -443,7 +443,7 @@ def get_relevant_documents_dgr(
 
     rerank_end_time = time.time()
     elpase_time = rerank_end_time - ug_recall_end_time
-    logger.info(f"runing time of rerank: {elpase_time}s seconds")
+    print(f"runing time of rerank: {elpase_time}s seconds")
 
     return rerank_knowledge
 
@@ -545,12 +545,12 @@ def dgr_entry(
         answer = llm_generate(**generate_input)
         llm_end_time = time.time()
         elpase_time = llm_end_time - llm_start_time
-        logger.info(f"runing time of llm: {elpase_time}s seconds")
+        print(f"runing time of llm: {elpase_time}s seconds")
         # answer = ret["answer"]
         debug_info["knowledge_qa_llm"] = answer
     except Exception as e:
-        logger.info(f"Exception Query: {query_input}")
-        logger.info(f"{traceback.format_exc()}")
+        print(f"Exception Query: {query_input}")
+        print(f"{traceback.format_exc()}")
         answer = ""
 
     # 5. update_session
@@ -678,7 +678,7 @@ def market_chain_entry(
     # 2. Knowledge QA Intent
     # 2.1 query question retrieval.
     dgr_q_q_retriever = QueryQuestionRetriever(
-        index=aos_index_dgr_qq, vector_field="embedding", source_field="source", size=5)
+        index=aos_index_dgr_qq, vector_field="vector_field", source_field="source", size=5)
     # 2.2 query document retrieval + LLM.
     qd_llm_chain = get_qd_llm_chain([aos_index_dgr_qd, aos_index_mkt_qd], llm_model_id, stream, top_n=5)
     # 2.3 query question router.
@@ -776,9 +776,9 @@ def _is_websocket_request(event):
 # @handle_error
 def lambda_handler(event, context):
     request_timestamp = time.time()
-    logger.info(f"request_timestamp :{request_timestamp}")
-    logger.info(f"event:{event}")
-    logger.info(f"context:{context}")
+    print(f"request_timestamp :{request_timestamp}")
+    print(f"event:{event}")
+    print(f"context:{context}")
 
     # Get request body
     event_body = json.loads(event["body"])
@@ -789,7 +789,7 @@ def lambda_handler(event, context):
     if stream:
         load_ws_client()
 
-    logger.info(f'stream decode: {stream}')
+    print(f'stream decode: {stream}')
     type = event_body.get("type", Type.COMMON.value)
     enable_q_q_match = event_body.get("enable_q_q_match", False)
     enable_debug = event_body.get("enable_debug", False)
@@ -853,7 +853,7 @@ def lambda_handler(event, context):
         )
 
     main_entry_elpase = time.time() - main_entry_start
-    logger.info(f"runing time of {type} entry : {main_entry_elpase}s seconds")
+    print(f"runing time of {type} entry : {main_entry_elpase}s seconds")
 
     return process_response(**dict(
         stream=stream,

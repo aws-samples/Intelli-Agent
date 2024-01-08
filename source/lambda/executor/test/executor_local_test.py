@@ -26,6 +26,9 @@ load_dotenv()
 # region = os.environ["AWS_REGION"]
 # print(region)
 import main
+import os
+aos_index_dict = json.loads(os.environ.get("aos_index_dict", ""))
+print(f"aos index {aos_index_dict}")
 
 class DummyWebSocket:
     def post_to_connection(self,ConnectionId,Data):
