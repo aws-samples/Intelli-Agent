@@ -53,7 +53,7 @@ class DummyWebSocket:
 
 main.ws_client = DummyWebSocket()
 
-def generate_answer(query, temperature=0.7, enable_q_q_match=False, enable_debug=True, retrieval_only=False, model="knowledge_qa", stream=False):
+def generate_answer(query, temperature=0.7, enable_q_q_match=False, enable_debug=True, retrieval_only=False, model="knowledge_qa", stream=True):
     event = {
         "body": json.dumps(
             {
@@ -90,13 +90,14 @@ def generate_answer(query, temperature=0.7, enable_q_q_match=False, enable_debug
     response = main.lambda_handler(event, context)
     if response is None:
         return
-    body = json.loads(response["body"])
-    answer = body["choices"][0]["message"]["content"]
-    knowledge_sources = body["choices"][0]["message"]["knowledge_sources"]
-    debug_info = body["debug_info"]
-    return (answer,
-            knowledge_sources,
-            debug_info)
+    if not stream:
+        body = json.loads(response["body"])
+        answer = body["choices"][0]["message"]["content"]
+        knowledge_sources = body["choices"][0]["message"]["knowledge_sources"]
+        debug_info = body["debug_info"]
+        return (answer,
+                knowledge_sources,
+                debug_info)
 
 def retrieval(query, temperature=0.7, enable_q_q_match=False, enable_debug=True, retrieval_only=True):
     event = {
