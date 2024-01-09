@@ -36,6 +36,9 @@ logger.setLevel(logging.INFO)
 aos_logger = logging.getLogger("opensearch")
 aos_logger.setLevel(logging.ERROR)
 
+boto3_logger = logging.getLogger("botocore")
+boto3_logger.setLevel(logging.ERROR)
+
 from preprocess_utils import run_preprocess
 from aos_utils import LLMBotOpenSearchClient
 from llmbot_utils import (

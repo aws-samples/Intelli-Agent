@@ -47,7 +47,7 @@ text = [
 ]
 
 def get_answer(query_input):
-    answer, source, debug_info = generate_answer(query_input, enable_q_q_match=False, model="auto")
+    answer, source, debug_info = generate_answer(query_input, enable_q_q_match=False, model="knowledge_qa")
     return (answer,
             source,
             debug_info.get("query_parser_info", ""),
