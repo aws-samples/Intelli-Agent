@@ -848,14 +848,14 @@ def lambda_handler(event, context):
         main_entry_start = time.time()
         contexts = []
         if biz_type.lower() == Type.COMMON.value:
-            answer, sources, context, debug_info = main_chain_entry(
+            answer, sources, contexts, debug_info = main_chain_entry(
                 question,
                 aos_index,
                 stream=stream,
                 llm_model_id=llm_model_id,
             )
         elif biz_type.lower() == Type.DGR.value:
-            answer, sources, context, debug_info = dgr_entry(
+            answer, sources, contexts, debug_info = dgr_entry(
                 session_id,
                 question,
                 history,
@@ -872,7 +872,7 @@ def lambda_handler(event, context):
                 stream=stream
             )
         elif biz_type.lower() == Type.MARKET_CHAIN.value:
-            answer, sources, context, debug_info = market_chain_entry(
+            answer, sources, contexts, debug_info = market_chain_entry(
                 question,
                 stream=stream,
                 llm_model_id=llm_model_id,
