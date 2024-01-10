@@ -647,7 +647,7 @@ def get_rag_llm_chain(llm_model_id, stream, model_kwargs=None):
                 context_docs.append({
                     "doc": content,
                     "source": doc.metadata["source"],
-                    "score": doc.metadata["score"]
+                    # "score": doc.metadata["score"]
                     })
                 context_sources.append(doc.metadata["source"])
         return {
