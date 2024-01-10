@@ -43,9 +43,16 @@ class Model(metaclass=ModelMeta):
 
 class Claude2(Model):
     model_id = 'anthropic.claude-v2'
+    default_model_kwargs = {
+            "max_tokens_to_sample": 2000,
+            "temperature": 0.7,
+            "top_p": 0.9
+        }
 
     @classmethod
-    def create_model(cls,model_kwargs=None, **kwargs):
+    def create_model(cls,model_kwargs=None, **kwargs
+        ):
+        model_kwargs  = model_kwargs or cls.default_model_kwargs
         credentials_profile_name = kwargs.get('credentials_profile_name',None) \
                     or os.environ.get('AWS_PROFILE',None) or None 
         region_name = kwargs.get('region_name',None) \
