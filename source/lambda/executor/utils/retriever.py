@@ -245,22 +245,26 @@ def organize_faq_results(response, index_name, source_field="file_path", text_fi
     for aos_hit in aos_hits:
         result = {}
         try:
-            result[source_field] = aos_hit["_source"]["metadata"][source_field]
             result["score"] = aos_hit["_score"]
             result["detail"] = aos_hit["_source"]
             if "field" in aos_hit["_source"]["metadata"]:
                 result["answer"] = get_faq_answer(result["source"], index_name, source_field)
                 result["content"] = aos_hit["_source"]["content"]
                 result["question"] = aos_hit["_source"]["content"]
+                result[source_field] = aos_hit["_source"]["metadata"][source_field]
             elif "jsonlAnswer" in aos_hit["_source"]["metadata"]:
                 result["answer"] = aos_hit["_source"]["metadata"]["jsonlAnswer"]["answer"]
                 result["question"] = aos_hit["_source"]["metadata"]["jsonlAnswer"]["question"]
                 result["content"] = aos_hit["_source"]["text"]
+                if source_field in aos_hit["_source"]["metadata"]["jsonlAnswer"].keys():
+                    result[source_field] = aos_hit["_source"]["metadata"]["jsonlAnswer"][source_field]
+                else:
+                    result[source_field] = aos_hit["_source"]["metadata"][source_field]
             # result["doc"] = get_faq_content(result["source"], index_name)
         except:
-            print("index_error")
-            print(traceback.format_exc())
-            print(aos_hit["_source"])
+            logger.info("index_error")
+            logger.info(traceback.format_exc())
+            logger.info(aos_hit["_source"])
             continue
         # result.update(aos_hit["_source"])
         results.append(result)
@@ -435,8 +439,7 @@ class GoogleRetriever(BaseRetriever):
     def _get_relevant_documents(self, question: Dict, *, run_manager: CallbackManagerForRetrieverRun) -> List[Document]:
         results = self.search.results(question["query"], self.result_num)
         for result in results:
-            print(result)
-
+            logger.info(result)
 
 
 def index_results_format(docs:list, threshold=-1):

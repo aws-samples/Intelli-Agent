@@ -34,7 +34,8 @@ logger.setLevel(logging.INFO)
 # logger.addHandler(handler)
 opensearch_logger = logging.getLogger("opensearch")
 opensearch_logger.setLevel(logging.ERROR)
-
+boto3_logger = logging.getLogger("botocore")
+boto3_logger.setLevel(logging.ERROR)
 
 from preprocess_utils import run_preprocess
 from aos_utils import LLMBotOpenSearchClient
@@ -154,8 +155,8 @@ def organize_faq_results(response, index_name):
             result["answer"] = get_faq_answer(result["source"], index_name)
             result["doc"] = get_faq_content(result["source"], index_name)
         except:
-            print("index_error")
-            print(aos_hit["_source"])
+            logger.info("index_error")
+            logger.info(aos_hit["_source"])
             continue
         # result.update(aos_hit["_source"])
         results.append(result)
@@ -579,6 +580,19 @@ def get_strict_qq_chain(strict_q_q_index):
     strict_q_q_chain = mkt_q_q_retriever | RunnableLambda(get_strict_qq_result)
     return strict_q_q_chain
 
+def return_strict_qq_result(x):
+    # def get_strict_qq_result(docs, threshold=0.7):
+    #     results = []
+    #     for doc in docs:
+    #         results.append({"score": doc.metadata["score"], 
+    #                         "source": doc.metadata["source"],
+    #                         "answer": doc.metadata["answer"],
+    #                         "question": doc.metadata["question"]})
+    #     output = {"answer": json.dumps(results, ensure_ascii=False), "sources": [], "contexts": []}
+    #     return output
+    # return get_strict_qq_result(x["intent_info"]["strict_qq_intent_result"])
+    return {"answer": json.dumps(x["intent_info"]["strict_qq_intent_result"], ensure_ascii=False), "sources": [], "contexts": []}
+
 def get_rag_llm_chain(llm_model_id, stream):
     def contexts_trunc(docs:list,context_num=2):
         return [doc.page_content for doc in docs[:context_num]]
@@ -642,7 +656,8 @@ def market_chain_entry(
     query_input: str,
     llm_model_id=None,
     stream=False,
-    intent_type=IntentType.KNOWLEDGE_QA
+    intent_type=IntentType.KNOWLEDGE_QA,
+    manual_input_intent=None
 ):
     """
     Entry point for the Lambda function.
@@ -673,15 +688,19 @@ def market_chain_entry(
     contexts = []
     sources = []
     answer = ""
+    intent_info = {
+        "manual_input_intent": manual_input_intent,
+        "strict_qq_intent_result": {},
+    }
 
     # 1. Strict Query Question Intent
     # 1.1. strict query question retrieval.
-    strict_q_q_chain = get_strict_qq_chain(aos_index_mkt_qq)
+    # strict_q_q_chain = get_strict_qq_chain(aos_index_mkt_qq)
 
     # 2. Knowledge QA Intent
     # 2.1 query question retrieval.
     dgr_q_q_retriever = QueryQuestionRetriever(
-        index=aos_index_dgr_qq, vector_field="embedding", source_field="source", size=5)
+        index=aos_index_dgr_qq, vector_field="vector_field", source_field="source", size=5)
     # 2.2 query document retrieval + LLM.
     qd_llm_chain = get_qd_llm_chain([aos_index_dgr_qd, aos_index_dgr_faq_qd, aos_index_mkt_qd], llm_model_id, stream, top_n=5)
     # 2.3 query question router.
@@ -712,13 +731,14 @@ def market_chain_entry(
     )
 
     full_chain = intent_recognition_chain | RunnableBranch(
-        (lambda x:x['intent_type'] == IntentType.STRICT_QQ.value, strict_q_q_chain),
         (lambda x:x['intent_type'] == IntentType.KNOWLEDGE_QA.value, qq_qd_llm_chain),
+        (lambda x:x['intent_type'] == IntentType.STRICT_QQ.value, return_strict_qq_result),
+        # (lambda x:x['intent_type'] == IntentType.STRICT_QQ.value, strict_q_q_chain),
         chat_llm_chain # chat 
     )
     # full_chain = intent_recognition_chain
     # full_chain = RunnableLambda(route)
-    response = full_chain.invoke({"query": query_input, "debug_info": debug_info, "intent_type": intent_type})
+    response = full_chain.invoke({"query": query_input, "debug_info": debug_info, "intent_type": intent_type, "intent_info": intent_info})
 
     answer = response["answer"]
     sources = response["sources"]
@@ -782,94 +802,116 @@ def lambda_handler(event, context):
     logger.info(f"request_timestamp :{request_timestamp}")
     logger.info(f"event:{event}")
     logger.info(f"context:{context}")
+    if "Records" not in event:
+        # Restful API invocation
+        event["Records"] = [{"body": json.dumps(event)}]
+    for record in event["Records"]:
+        record_event = json.loads(record["body"])
+        # Get request body
+        event_body = json.loads(record_event["body"])
+        model = event_body["model"]
+        messages = event_body["messages"]
+        temperature = event_body["temperature"]
+        stream = _is_websocket_request(record_event)
+        if stream:
+            load_ws_client()
 
-    # Get request body
-    event_body = json.loads(event["body"])
-    model = event_body["model"]
-    messages = event_body["messages"]
-    temperature = event_body["temperature"]
-    stream = _is_websocket_request(event)
-    if stream:
-        load_ws_client()
+        logger.info(f'stream decode: {stream}')
+        biz_type = event_body.get("type", Type.COMMON.value)
+        enable_q_q_match = event_body.get("enable_q_q_match", False)
+        enable_debug = event_body.get("enable_debug", False)
 
-    logger.info(f'stream decode: {stream}')
-    type = event_body.get("type", Type.COMMON.value)
-    enable_q_q_match = event_body.get("enable_q_q_match", False)
-    enable_debug = event_body.get("enable_debug", False)
+        retrieval_only = event_body.get("enable_debug", False)
+        get_contexts = event_body.get("get_contexts", False)
+        intent_type = event_body.get("intent", None) or  event_body.get("model", None) or IntentType.KNOWLEDGE_QA.value
+        llm_model_id = event_body.get("llm_model_id",'anthropic.claude-v2:1')
+        # stream = event_body.get("stream", False)
 
-    retrieval_only = event_body.get("enable_debug", False)
-    get_contexts = event_body.get("get_contexts", False)
-    intent_type = event_body.get("intent", None) or  event_body.get("model", None) or IntentType.KNOWLEDGE_QA.value
-    llm_model_id = event_body.get("llm_model_id",'anthropic.claude-v2:1')
-    # stream = event_body.get("stream", False)
+        history, question = process_input_messages(messages)
+        role = "user"
+        
+        if stream:
+            session_id = record_event['requestContext']['connectionId']
+        else:
+            session_id = f"session_{int(request_timestamp)}"
+        user_id = event_body.get("user_id", "default_user_id")
+        message_id = str(uuid.uuid4())
+        chat_history = DynamoDBChatMessageHistory(
+            table_name = chat_session_table,
+            session_id = session_id,
+            user_id = user_id,
+        )
+        chat_history.add_user_message(f"user_{message_id}", question)
 
-    history, question = process_input_messages(messages)
-    role = "user"
+        knowledge_qa_flag = True if model == "knowledge_qa" else False
+
+        main_entry_start = time.time()
+        contexts = []
+        if biz_type.lower() == Type.COMMON.value:
+            answer, sources, context, debug_info = main_chain_entry(
+                question,
+                aos_index,
+                stream=stream,
+                llm_model_id=llm_model_id,
+            )
+        elif biz_type.lower() == Type.DGR.value:
+            answer, sources, context, debug_info = dgr_entry(
+                session_id,
+                question,
+                history,
+                zh_embedding_endpoint,
+                en_embedding_endpoint,
+                cross_endpoint,
+                rerank_endpoint,
+                llm_endpoint,
+                aos_faq_index,
+                aos_ug_index,
+                knowledge_qa_flag,
+                temperature,
+                enable_q_q_match,
+                stream=stream
+            )
+        elif biz_type.lower() == Type.MARKET_CHAIN.value:
+            answer, sources, context, debug_info = market_chain_entry(
+                question,
+                stream=stream,
+                llm_model_id=llm_model_id,
+                intent_type=intent_type
+            )
+
+        main_entry_elpase = time.time() - main_entry_start
+        logger.info(f"runing time of {biz_type} entry : {main_entry_elpase}s seconds")
+
+        if not stream:
+            return process_response(**dict(
+                stream=stream,
+                session_id=session_id,
+                model=model,
+                request_timestamp=request_timestamp,
+                answer=answer,
+                sources=sources,
+                get_contexts=get_contexts,
+                contexts=contexts,
+                enable_debug=enable_debug,
+                debug_info=debug_info,
+                ws_client=ws_client,
+                chat_history=chat_history,
+                message_id=message_id,
+            ))
+        process_response(**dict(
+            stream=stream,
+            session_id=session_id,
+            model=model,
+            request_timestamp=request_timestamp,
+            answer=answer,
+            sources=sources,
+            get_contexts=get_contexts,
+            contexts=contexts,
+            enable_debug=enable_debug,
+            debug_info=debug_info,
+            ws_client=ws_client,
+            chat_history=chat_history,
+            message_id=message_id,
+        ))
     
-    if stream:
-        session_id = event['requestContext']['connectionId']
-    else:
-        session_id = f"session_{int(request_timestamp)}"
-    user_id = event_body.get("user_id", "default_user_id")
-    message_id = str(uuid.uuid4())
-    chat_history = DynamoDBChatMessageHistory(
-        table_name = chat_session_table,
-        session_id = session_id,
-        user_id = user_id,
-    )
-    chat_history.add_user_message(f"user_{message_id}", question)
-
-    knowledge_qa_flag = True if model == "knowledge_qa" else False
-
-    main_entry_start = time.time()
-    contexts = []
-    if type.lower() == Type.COMMON.value:
-        answer, sources, context, debug_info = main_chain_entry(
-            question,
-            aos_index,
-            stream=stream,
-            llm_model_id=llm_model_id,
-        )
-    elif type.lower() == Type.DGR.value:
-        answer, sources, context, debug_info = dgr_entry(
-            session_id,
-            question,
-            history,
-            zh_embedding_endpoint,
-            en_embedding_endpoint,
-            cross_endpoint,
-            rerank_endpoint,
-            llm_endpoint,
-            aos_faq_index,
-            aos_ug_index,
-            knowledge_qa_flag,
-            temperature,
-            enable_q_q_match,
-            stream=stream
-        )
-    elif type.lower() == Type.MARKET_CHAIN.value:
-        answer, sources, context, debug_info = market_chain_entry(
-            question,
-            stream=stream,
-            llm_model_id=llm_model_id,
-            intent_type=intent_type
-        )
-
-    main_entry_elpase = time.time() - main_entry_start
-    logger.info(f"runing time of {type} entry : {main_entry_elpase}s seconds")
-
-    return process_response(**dict(
-        stream=stream,
-        session_id=session_id,
-        model=model,
-        request_timestamp=request_timestamp,
-        answer=answer,
-        sources=sources,
-        get_contexts=get_contexts,
-        contexts=contexts,
-        enable_debug=enable_debug,
-        debug_info=debug_info,
-        ws_client=ws_client,
-        chat_history=chat_history,
-        message_id=message_id,
-    ))
+    return {"statusCode": 200, "body": "All records have been processed"}

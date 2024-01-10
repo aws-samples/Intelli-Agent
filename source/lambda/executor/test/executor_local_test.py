@@ -11,6 +11,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+sys.path.append("llm-bot/source/lambda/executor/utils")
+sys.path.append("llm-bot/source/lambda/executor")
 sys.path.append("utils")
 sys.path.append(".")
 import aos_utils
@@ -26,6 +28,9 @@ load_dotenv()
 # region = os.environ["AWS_REGION"]
 # print(region)
 import main
+import os
+aos_index_dict = json.loads(os.environ.get("aos_index_dict", ""))
+print(f"aos index {aos_index_dict}")
 
 class DummyWebSocket:
     def post_to_connection(self,ConnectionId,Data):
@@ -79,13 +84,14 @@ def generate_answer(query, temperature=0.7, enable_q_q_match=False, enable_debug
     response = main.lambda_handler(event, context)
     if response is None:
         return
-    body = json.loads(response["body"])
-    answer = body["choices"][0]["message"]["content"]
-    knowledge_sources = body["choices"][0]["message"]["knowledge_sources"]
-    debug_info = body["debug_info"]
-    return (answer,
-            knowledge_sources,
-            debug_info)
+    if not stream:
+        body = json.loads(response["body"])
+        answer = body["choices"][0]["message"]["content"]
+        knowledge_sources = body["choices"][0]["message"]["knowledge_sources"]
+        debug_info = body["debug_info"]
+        return (answer,
+                knowledge_sources,
+                debug_info)
 
 def retrieval(query, temperature=0.7, enable_q_q_match=False, enable_debug=True, retrieval_only=True):
     event = {

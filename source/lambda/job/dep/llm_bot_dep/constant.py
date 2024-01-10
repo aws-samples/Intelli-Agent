@@ -9,3 +9,4 @@ class SplittingType(Enum):
     BEFORE = "before-splitting"
     SEMANTIC = "semantic-splitting"
     CHUNK = "chunk-size-splitting"
+    QA_ENHANCEMENT = "qa-enhancement"
