@@ -632,18 +632,35 @@ def return_strict_qq_result(x):
 
 def get_rag_llm_chain(llm_model_id, stream, model_kwargs=None):
     def contexts_trunc(docs: list, context_num=2):
-        _ret = [doc.page_content for doc in docs[:context_num]]
+        docs = [doc for doc in docs[:context_num]]
         # filter same docs
         s = set()
-        ret = []
-        for r in _ret:
-            if r not in s:
-                ret.append(r)
-                s.add(r)
-        return ret
+        context_strs = []
+        context_docs = []
+        context_sources = []
 
+        for doc in docs:
+            content = doc.page_content
+            if content not in s:
+                context_strs.append(content)
+                s.add(content)
+                context_docs.append({
+                    "doc": content,
+                    "source": doc.metadata["source"],
+                    "score": doc.metadata["score"]
+                    })
+                context_sources.append(doc.metadata["source"])
+        return {
+            "contexts": context_strs,
+            "context_docs": context_docs,
+            "context_sources":context_sources
+        }
+    
+    # TODO opt with efficiency
     contexts_trunc_stage = RunnablePassthrough.assign(
-        contexts=lambda x: contexts_trunc(x["docs"], context_num=5)
+        contexts=lambda x: contexts_trunc(x["docs"], context_num=5)['contexts'],
+        context_docs=lambda x: contexts_trunc(x["docs"], context_num=5)['context_docs'],
+        context_sources=lambda x: contexts_trunc(x["docs"], context_num=5)['context_sources'],
     )
  
     llm_chain = get_llm_chain(
@@ -671,12 +688,12 @@ def get_qd_llm_chain(
         base_compressor=compressor, base_retriever=lotr
     )
 
-    def format_docs(docs, top_k=2):
-        # return "\n\n".join(doc.page_content for doc in docs["docs"][:top_k])
-        return [doc.page_content for doc in docs["docs"][:top_k]]
+    # def format_docs(docs, top_k=2):
+    #     # return "\n\n".join(doc.page_content for doc in docs["docs"][:top_k])
+    #     return [doc.page_content for doc in docs["docs"][:top_k]]
 
-    def format_sources(docs, top_k=2):
-        return [doc.metadata["source"] for doc in docs["docs"][:top_k]]
+    # def format_sources(docs, top_k=2):
+    #     return [doc.metadata["source"] for doc in docs["docs"][:top_k]]
 
     llm_chain = get_rag_llm_chain(llm_model_id, stream)
     qd_llm_chain = RunnableParallel(
@@ -685,14 +702,17 @@ def get_qd_llm_chain(
             "query": lambda x: x["query"],
             "debug_info": lambda x: x["debug_info"],
         }
-    ) | RunnableParallel(
-        {
-            "answer": llm_chain,
-            "contexts": format_docs,
-            "sources": format_sources,
-            "debug_info": lambda x: x["debug_info"],
-        }
-    )
+    ) |  llm_chain
+    
+    
+    # RunnableParallel(
+    #     {
+    #         "answer": llm_chain,
+    #         # "contexts": format_docs,
+    #         # "sources": format_sources,
+    #         "debug_info": lambda x: x["debug_info"],
+    #     }
+    # )
     return qd_llm_chain
 
 
@@ -846,8 +866,9 @@ def market_chain_entry(
     )
 
     answer = response["answer"]
-    sources = response["sources"]
-    contexts = response["contexts"]
+    sources = response["context_sources"]
+    contexts = response["context_docs"]
+
     return answer, sources, contexts, debug_info
 
 
@@ -996,7 +1017,7 @@ def lambda_handler(event, context):
 
         main_entry_elpase = time.time() - main_entry_start
         logger.info(f"runing time of {biz_type} entry : {main_entry_elpase}s seconds")
-
+        
         if not stream:
             return process_response(
                 **dict(
