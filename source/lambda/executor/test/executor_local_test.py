@@ -48,7 +48,7 @@ class DummyWebSocket:
 
 main.ws_client = DummyWebSocket()
 
-def generate_answer(query, temperature=0.7, enable_q_q_match=False, enable_debug=True, retrieval_only=False, model="knowledge_qa", stream=False):
+def generate_answer(query, temperature=0.7, enable_q_q_match=False, enable_debug=True, retrieval_only=False, type="market_chain", model="knowledge_qa", stream=False):
     event = {
         "body": json.dumps(
             {
@@ -65,14 +65,8 @@ def generate_answer(query, temperature=0.7, enable_q_q_match=False, enable_debug
                 "enable_q_q_match": enable_q_q_match,
                 "enable_debug": enable_debug,
                 "retrieval_only": retrieval_only,
-                "type": "market_chain",
-                # "type": "common",
-                # "model": "chat"
+                "type": type,
                 "model": model,
-                # "type": "dgr",
-                # "model": "chat"
-                # "model": "strict_q_q",
-                # "model": "knowledge_qa"
             }
         )
     }
@@ -173,14 +167,16 @@ if __name__ == "__main__":
     # generate_answer("Amazon Fraud Detector 中'entityId'和'eventId'的含义与注意事项")
     # generate_answer("我想调用Amazon Bedrock中的基础模型，应该使用什么API?")
     # LLM
-    # generate_answer("polly是什么？", model="knowledge_qa", stream=True)
+    generate_answer("Amazon EC2 提供了哪些功能来支持不同区域之间的数据恢复?", model="knowledge_qa", stream=False)
+    # generate_answer("什么是 CodeDeploy？", model="knowledge_qa", stream=True)
     # Q-Q
     # generate_answer("在相同的EMR Serverless应用程序中，不同的Job可以共享Worker吗？", model="knowledge_qa", stream=True)
     # generate_answer("polly是什么？", model="auto")
-    generate_answer("我想调用Amazon Bedrock中的基础模型，应该使用什么API?")
+    # generate_answer("DynamoDB API\n要使用 Amazon DynamoDB，您的应用程序必须使用一些简单的 API 操作。下面汇总了这些操作（按类别组织）。")
     # generate_answer("polly是什么？")
     # mkt
     # generate_answer("ECS容器中的日志，可以配置输出到S3上吗？")
     # generate_answer("只要我付款就可以收到发票吗")
     # generate_answer("找不到发票怎么办")
     # generate_answer("发票内容有更新应怎么办")
+    generate_answer("发票内容有更新应怎么办", type="common", stream=False)
