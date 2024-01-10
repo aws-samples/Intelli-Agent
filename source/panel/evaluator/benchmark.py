@@ -10,6 +10,7 @@ import time
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn
+import csv
 
 from tenacity import retry, stop_after_attempt, wait_exponential
 from itertools import product
@@ -149,7 +150,7 @@ def langchain_unstructured_loader(file_path: str) -> List[Document]:
     """
     loader = UnstructuredFileLoader(file_path, mode="elements")
     docs = loader.load()
-    logger.info("unstructured load data: {}".format(docs))
+    logger.debug("unstructured load data: {}".format(docs))
     return docs
 
 def parse_log_to_document_list(log_content: str) -> List[Document]:
@@ -210,7 +211,7 @@ def csdc_unstructured_loader(file_path: str) -> List[Document]:
     logger.debug("payload: {}, apiEndpoint: {}, headers: {}, type: {}".format(payload, apiEndpoint, headers, type(payload)))
     try:
         response = requests.request("POST", apiEndpoint + 'etl', headers=headers, data=payload)
-        logger.info("response: {}".format(json.loads(response.text)))
+        logger.debug("response: {}".format(json.loads(response.text)))
     except Exception as e:
         logger.error("error: {}".format(e))
         raise e
@@ -226,7 +227,7 @@ def csdc_unstructured_loader(file_path: str) -> List[Document]:
     job_runs = [job_run for job_run in response['JobRuns'] if job_run['JobRunState'] == 'RUNNING']
     while len(job_runs) > 0:
         time.sleep(10)
-        logger.info("waiting for glue job to finish...")
+        logger.debug("waiting for glue job to finish...")
         response = glue.get_job_runs(JobName=glue_job_name, MaxResults=10)
         job_runs = [job_run for job_run in response['JobRuns'] if job_run['JobRunState'] == 'RUNNING']
 
@@ -234,17 +235,17 @@ def csdc_unstructured_loader(file_path: str) -> List[Document]:
     # scan the ChunkBucket s3://<ChunkBucket>/pdf-sample-01/before-splitting/
     # construct the s3 prefix, note to strip the file type
     s3_prefix = file_name.split('.')[0] + "/before-splitting/"
-    logger.info("s3_prefix: {}, chunk_bucket: {}".format(s3_prefix, chunk_bucket))
+    logger.debug("s3_prefix: {}, chunk_bucket: {}".format(s3_prefix, chunk_bucket))
     # find the latest timestamp folder then fetch the latest log file under that folder
     response = s3.list_objects_v2(Bucket=chunk_bucket, Prefix=s3_prefix)
-    logger.info("list_objects_v2 response: {}".format(response))
+    logger.debug("list_objects_v2 response: {}".format(response))
     # get the latest timestamp folder
     latest_timestamp = max([content['Key'].split('/')[-2] for content in response['Contents']])
     # construct the s3 prefix with latest timestamp folder
     s3_prefix = s3_prefix + latest_timestamp + "/"
     # find the latest log file
     response = s3.list_objects_v2(Bucket=chunk_bucket, Prefix=s3_prefix)
-    logger.info("list_objects_v2 response: {}".format(response))
+    logger.debug("list_objects_v2 response: {}".format(response))
     latest_log_file = max([content['Key'].split('/')[-1] for content in response['Contents']])
     # construct the s3 prefix with latest log file
     s3_prefix = s3_prefix + latest_log_file
@@ -258,7 +259,7 @@ def csdc_unstructured_loader(file_path: str) -> List[Document]:
     
     # transform to Document object
     doc = parse_log_to_document_list(file_content)
-    logger.info("csdc unstructured load data: {} and type: {}".format(doc, type(doc)))
+    logger.debug("csdc unstructured load data: {} and type: {}".format(doc, type(doc)))
     # return to raw extracted file contents to match with the function as any loader class. TODO: return the result of splitter (SplittingType.SEMANTIC) to integrate into current benchmark
     return doc
 
@@ -358,12 +359,13 @@ def _csdc_embedding(index: str, doc: Document):
     logger.debug("payload: {}, apiEndpoint: {}, headers: {}, type: {}".format(payload, apiEndpoint, headers, type(payload)))
     try: 
         response = requests.request("POST", apiEndpoint + 'aos', headers=headers, data=payload)
-        logger.info("csdc embedding: {}".format(json.loads(response.text)))
+        logger.debug("csdc embedding: {}".format(json.loads(response.text)))
         return json.loads(response.text)
     except Exception as e:
         logger.error("error: {}".format(e))
         raise e
 
+@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
 def bedrock_embedding(index: str, docs: List[Document]) -> List[List[str]]:
     """
     Embeds the given documents using the Bedrock embedding model.
@@ -425,7 +427,7 @@ def _query_embedding(index: str = default_aos_index_name, query: str = "Hello Wo
 
     try:
         response = requests.request("POST", apiEndpoint + AOS_API_SUFFIX, data=payload, headers=headersList)
-        logger.info("response: {}".format(json.loads(response.text)))
+        logger.debug("response: {}".format(json.loads(response.text)))
     except Exception as e:
         logger.error("error: {}".format(e))
         raise e
@@ -439,7 +441,7 @@ def aos_retriever(index: str, query: str, size: int = 10):
         "Accept": "*/*",
         "Content-Type": "application/json",
     }
-    logger.info("vector_field: {} and type: {}".format(vector_field, type(vector_field)))
+    logger.debug("vector_field: {} and type: {}".format(vector_field, type(vector_field)))
     payload = json.dumps({
         "aos_index": index,
         "operation": "query_knn",
@@ -453,7 +455,7 @@ def aos_retriever(index: str, query: str, size: int = 10):
         response = requests.request("GET", apiEndpoint + AOS_API_SUFFIX, data=payload, headers=headersList)
         # parse the response and get the query result
         response = json.loads(response.text)
-        logger.info("aos retriever response: {}".format(response))
+        logger.debug("aos retriever response: {}".format(response))
         # parse the response to get the score with following schema
         """
         {
@@ -512,7 +514,7 @@ def local_aos_retriever(index: str, query: str, size: int = 10) -> List[Tuple[Do
         bulk_size = 1024,
     )
     response = opensearch_vector_search.similarity_search_with_score(query, k=size)
-    logger.info("local aos retriever response: {}".format(response))
+    logger.debug("local aos retriever response: {}".format(response))
     # parse the response to get the score with type List[Tuple[Document, float]]
     score_list = [float(score[1]) for score in response]
     return response 
@@ -577,7 +579,7 @@ def testdata_generate(doc: Document, llm: str = "bedrock", embedding: str = "bed
         critic_llm = LangchainLLM(llm=bedrock_llm)
     elif llm == "openai":
         generator_llm = LangchainLLM(llm=ChatOpenAI(model="gpt-3.5-turbo", openai_api_key=openaiApiKey, openai_api_base=openaiApiBase))
-        critic_llm = LangchainLLM(llm=ChatOpenAI(model="gpt-3.5-turbo", openai_api_key=openaiApiKey, openai_api_base=openaiApiBase))
+        critic_llm = LangchainLLM(llm=ChatOpenAI(model="gpt-4-1106-preview", openai_api_key=openaiApiKey, openai_api_base=openaiApiBase))
         # critic_llm = LangchainLLM(llm=ChatOpenAI(model="gpt-4"))
     else:
         raise ValueError(f"Unsupported llm: {llm}")
@@ -705,17 +707,17 @@ class WorkflowExecutor:
             self.components['evaluators']
         ):
             start_time = time.perf_counter()
-            loader_res = loader(doc_path)
 
             if not skip:
                 # Execute splitter and embedder if flag is not set to skip
+                loader_res = loader(doc_path)
                 splitter_res = splitter(loader_res)
-                embed_res = embedder(self.index, splitter_res)
+                embedder(self.index, splitter_res)
                 summary['split_method'].append(splitter.__name__)
                 summary['embedding_algorithm_model'].append(embedder.__name__)
             else:
-                # Skip splitter and embedder steps
-                logger.info("Skip splitter and embedder steps")
+                # Skip loader, splitter, embedder steps
+                logger.info("Skipping loader, splitter, embedder steps")
                 summary['split_method'].append("Skipped")
                 summary['embedding_algorithm_model'].append("Skipped")
 
@@ -732,7 +734,7 @@ class WorkflowExecutor:
 
         #  openai required for now, bedrock is not working even setup the llm model explicitly
             for reference in retriever_res:
-                logger.info("reference: {} with type {}".format(reference, type(reference)))
+                logger.debug("reference: {} with type {}".format(reference, type(reference)))
                 score = evaluator(prediction=query, reference=reference[0].page_content, type=EvaluatorType.EMBEDDING_DISTANCE)['score']
                 total_similarity_score += score
                 # TODO, unified score parse method
@@ -778,6 +780,55 @@ class WorkflowExecutor:
         plt.tight_layout()
         plt.show()
 
+        # save image to local folder
+        plt.savefig('summary.png')
+
+    def summary_comparison(summary_original: List[Dict[str, Any]], summary: List[Dict[str, Any]]):
+        """
+        Visualizes both summary data on the same bar chart to compare the results, separate the bar chart per metric include average_relevance_score, average_similarity_score
+
+        Args:
+            summary_original (list): Rounds of experibenchmark.pyments with metrics of relevance and retrieval score.
+            summary (list): Rounds of experiments with metrics of relevance and retrieval score.
+
+        Returns:
+            Display the separate bar charts of average relevance and retrieval score separately with x-axis as rounds of experiments and y-axis as average score and similarity score.
+        """
+        # Convert the data to a DataFrame
+        df_original = pd.DataFrame(summary_original)
+        df_original['Type'] = 'LangChain'
+        
+        df = pd.DataFrame(summary)
+        df['Type'] = 'CSDC'
+
+        # Combine the two dataframes
+        df_combined = pd.concat([df_original, df], ignore_index=True)
+
+        # Plotting
+        plt.figure(figsize=(14, 6))
+
+        # Plotting average_relevance_score for both summary and summary_original in the same bar chart
+        plt.subplot(1, 2, 1)
+        seaborn.barplot(x='rounds_of_experiments', y='average_relevance_score', hue='Type', data=df_combined)
+        plt.title('Average Relevance Score per Round')
+        plt.xlabel('Rounds of Experiments')
+        plt.ylabel('Average Relevance Score')
+
+        # Plotting average_similarity_score for both summary and summary_original in the same bar chart
+        plt.subplot(1, 2, 2)
+        seaborn.barplot(x='rounds_of_experiments', y='average_similarity_score', hue='Type', data=df_combined)
+        plt.title('Average Similarity Score per Round')
+        plt.xlabel('Rounds of Experiments')
+        plt.ylabel('Average Similarity Score')
+
+        plt.tight_layout()
+
+        # Save image to local folder before plt.show()
+        plt.savefig('summary_comparison.png')
+
+        # Show the plot
+        plt.show()
+
 # Preparing loader, splitter, and embeddings retriever list, iterate them to create comparasion matrix
 loader_list = [langchain_unstructured_loader, nougat_loader, csdc_markdown_loader]
 splitter_list = [langchain_recursive_splitter, csdc_markdown_header_splitter]
@@ -815,16 +866,28 @@ if __name__ == "__main__":
     legacy.update_component('embedders', bedrock_embedding, 'add')
     legacy.update_component('retrievers', local_aos_retriever, 'add')
     legacy.update_component('evaluators', langchain_evaluator, 'add')
-    # response = legacy.execute_workflow("pdf-sample-01.pdf", "请介绍什么是kindle以及它的主要功能？")
-    # logger.info("test of legacy workflow: {}".format(response))
 
-    loader_res = langchain_unstructured_loader("pdf-sample-01-eng.pdf")
-    question_list, question_type_list = testdata_generate(loader_res, llm="bedrock", embedding="bedrock", test_size=2)
-    
+    # response = legacy.execute_workflow("pdf-sample-01.pdf", "请介绍什么是kindle以及它的主要功能？")
+
+    # loader_res = langchain_unstructured_loader("pdf-sample-01.pdf")
+    # question_list, question_type_list = testdata_generate(loader_res, llm="openai", embedding="openai", test_size=10)
+
+    # workaround for inconsistent network issue, if you have already generated the test data as sample schema below
+    """
+    question,ground_truth_context,ground_truth,question_type,episode_done
+    How can you navigate to the next page on the screen?,['- 要翻到下一页，请用手指在屏幕上从右往左滑动。\n- 要翻到上一页，请用手指在屏幕上从左往右滑动。\n- 您还可以使用屏幕一侧的控件来翻页。'],"['To navigate to the next page on the screen, you can swipe your finger from right to left on the screen.']",simple,True
+    What are the steps for restarting an unresponsive or non-turning on Kindle device?,['- 如果您的 Kindle 无法开机或使用过程中停止响应而需要重启，请按住电源开关 7 秒，直 至【电源】对话框出现，然后选择【重新启动】。\n- 如果【电源】对话框不出现，请按住电 源开关 40 秒或直至 LED 灯停止闪烁。'],"['The steps for restarting an unresponsive or non-turning on Kindle device are as follows:\n1. Press and hold the power button for 7 seconds until the ""Power"" dialog box appears.\n2. Select ""Restart"" from the dialog box.\n3. If the ""Power"" dialog box does not appear, press and hold the power button for 40 seconds or until the LED light stops flashing.']",conditional,True
+    """
+    question_list = []
+    with open('test_data.csv', 'r') as f:
+        reader = csv.reader(f)
+        for row in reader:
+            question_list.append(row[0])
+
     # iterate the question list to execute the workflow
     response_list = []
     for question in question_list:
-        response = legacy.execute_workflow("pdf-sample-01-eng.pdf", question)
+        response = legacy.execute_workflow("pdf-sample-01.pdf", question, skip=False)
         logger.info("test of legacy workflow: {}".format(response))
         response_list.append(response)
 
@@ -833,11 +896,36 @@ if __name__ == "__main__":
     # visualize the summary
     legacy.summary_viz(response_list)
 
+    # initialization of workflow executor
     # csdc = WorkflowExecutor()
     # csdc.update_component('loaders', csdc_unstructured_loader, 'add')
     # csdc.update_component('splitters', csdc_markdown_header_splitter, 'add')
     # csdc.update_component('embedders', csdc_embedding, 'add')
     # csdc.update_component('retrievers', aos_retriever, 'add')
     # csdc.update_component('evaluators', langchain_evaluator, 'add')
-    # response = csdc.execute_workflow("md-sample-01.md", "请介绍什么是kindle以及它的主要功能？", skip=True)
-    # logger.info("test of csdc workflow: {}".format(response))
+
+    # loader_res = langchain_unstructured_loader("pdf-sample-01.pdf")
+    # # question_list, question_type_list = testdata_generate(loader_res, llm="openai", embedding="openai", test_size=10)
+    
+    # # workaround for inconsistent network issue, if you have already generated the test data as sample schema below
+    # """
+    # question,ground_truth_context,ground_truth,question_type,episode_done
+    # How can you navigate to the next page on the screen?,['- 要翻到下一页，请用手指在屏幕上从右往左滑动。\n- 要翻到上一页，请用手指在屏幕上从左往右滑动。\n- 您还可以使用屏幕一侧的控件来翻页。'],"['To navigate to the next page on the screen, you can swipe your finger from right to left on the screen.']",simple,True
+    # What are the steps for restarting an unresponsive or non-turning on Kindle device?,['- 如果您的 Kindle 无法开机或使用过程中停止响应而需要重启，请按住电源开关 7 秒，直 至【电源】对话框出现，然后选择【重新启动】。\n- 如果【电源】对话框不出现，请按住电 源开关 40 秒或直至 LED 灯停止闪烁。'],"['The steps for restarting an unresponsive or non-turning on Kindle device are as follows:\n1. Press and hold the power button for 7 seconds until the ""Power"" dialog box appears.\n2. Select ""Restart"" from the dialog box.\n3. If the ""Power"" dialog box does not appear, press and hold the power button for 40 seconds or until the LED light stops flashing.']",conditional,True
+    # """
+    # question_list = []
+    # with open('test_data.csv', 'r') as f:
+    #     reader = csv.reader(f)
+    #     for row in reader:
+    #         question_list.append(row[0])
+    # # iterate the question list to execute the workflow
+    # response_list = []
+    # for question in question_list:
+    #     response = csdc.execute_workflow("pdf-sample-01.pdf", question, skip=True)
+    #     logger.debug("test of csdc workflow: {}".format(response))
+    #     response_list.append(response)
+
+    # logger.info("response_list: {}".format(response_list))
+
+    # # visualize the summary
+    # csdc.summary_viz(response_list)

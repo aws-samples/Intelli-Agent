@@ -43,7 +43,7 @@ curl -XPUT "https://localhost:9200/llm-bot-index" -k -u 'admin:admin' -H 'Conten
 }'
 '''
 
-Check if index actually indexed
+Check if index actually indexed.
 '''
 curl -XGET "https://localhost:9200/_search" -k -u 'admin:admin' -H 'Content-Type: application/json' -d'
 {
@@ -53,7 +53,18 @@ curl -XGET "https://localhost:9200/_search" -k -u 'admin:admin' -H 'Content-Type
 }'
 '''
 
-Delete the index and start over if needed
+Remove the Read-Only Block in case the throttling error like [TOO_MANY_REQUESTS/12/disk usage exceeded flood-stage watermark, index has read-only-allow-delete block]'.
+'''
+curl -X PUT "http://localhost:9200/llm-bot-index/_settings" -k -u 'admin:admin' -H "Content-Type: application/json" -d'
+{
+  "index.blocks.read_only_allow_delete": false
+}
+'
+
+du -ah -d 1 | sort -hr | head -n 10 //List disk usage sorted by size and remove the unwanted files to free up space.
+'''
+
+Delete the index and start over if needed if all index messed up.
 '''
 curl -X DELETE "https://localhost:9200/llm-bot-index" -ku 'admin:admin'
 '''
