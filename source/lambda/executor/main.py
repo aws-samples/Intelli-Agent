@@ -632,18 +632,22 @@ def return_strict_qq_result(x):
 
 def get_rag_llm_chain(llm_model_id, stream, model_kwargs=None):
     def contexts_trunc(docs: list, context_num=2):
-        _ret = [doc.page_content for doc in docs[:context_num]]
+        contexts = [doc.page_content for doc in docs[:context_num]]
+        sources = [doc.metadata["source"] for doc in docs[:context_num]]
         # filter same docs
-        s = set()
-        ret = []
-        for r in _ret:
-            if r not in s:
-                ret.append(r)
-                s.add(r)
-        return ret
+        context_set = set()
+        trunced_contexts = []
+        trunced_sources = []
+        for c, s in zip(contexts, sources):
+            if c not in context_set:
+                trunced_contexts.append(c)
+                trunced_sources.append(s)
+                context_set.add(c)
+        return trunced_contexts, trunced_sources
 
     contexts_trunc_stage = RunnablePassthrough.assign(
-        contexts=lambda x: contexts_trunc(x["docs"], context_num=5)
+        contexts=lambda x: contexts_trunc(x["docs"], context_num=5)[0],
+        sources=lambda x: contexts_trunc(x["docs"], context_num=5)[1]
     )
  
     llm_chain = get_llm_chain(
@@ -679,20 +683,7 @@ def get_qd_llm_chain(
         return [doc.metadata["source"] for doc in docs["docs"][:top_k]]
 
     llm_chain = get_rag_llm_chain(llm_model_id, stream)
-    qd_llm_chain = RunnableParallel(
-        {
-            "docs": compression_retriever,
-            "query": lambda x: x["query"],
-            "debug_info": lambda x: x["debug_info"],
-        }
-    ) | RunnableParallel(
-        {
-            "answer": llm_chain,
-            "contexts": format_docs,
-            "sources": format_sources,
-            "debug_info": lambda x: x["debug_info"],
-        }
-    )
+    qd_llm_chain = RunnablePassthrough.assign(docs=compression_retriever) | llm_chain
     return qd_llm_chain
 
 
@@ -783,7 +774,7 @@ def market_chain_entry(
 
     # 2.3 query question router.
     def qq_route(info, threshold=0.9):
-        for doc in info["docs"]:
+        for doc in info["qq_result"]:
             if doc.metadata["score"] > threshold:
                 output = {
                     "answer": doc.metadata["answer"],
@@ -794,14 +785,8 @@ def market_chain_entry(
                 return output
         return qd_llm_chain
 
-    qq_chain = dgr_q_q_retriever
-    qq_qd_llm_chain = RunnableParallel(
-        {
-            "docs": qq_chain,
-            "query": lambda x: x["query"],
-            "debug_info": lambda x: x["debug_info"],
-        }
-    ) | RunnableLambda(qq_route)
+    qq_chain = RunnablePassthrough.assign(qq_result=dgr_q_q_retriever)
+    qq_qd_llm_chain = qq_chain | RunnableLambda(qq_route)
 
     # TODO design chat chain
     chat_llm_chain = get_llm_chain(
