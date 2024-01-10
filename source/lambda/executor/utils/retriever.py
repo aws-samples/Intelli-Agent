@@ -434,13 +434,10 @@ class GoogleRetriever(BaseRetriever):
         self.search = GoogleSearchAPIWrapper()
         self.result_num = result_num
 
-        return doc_list
-
     def _get_relevant_documents(self, question: Dict, *, run_manager: CallbackManagerForRetrieverRun) -> List[Document]:
         results = self.search.results(question["query"], self.result_num)
         for result in results:
             logger.info(result)
-
 
 def index_results_format(docs:list, threshold=-1):
     results = []
