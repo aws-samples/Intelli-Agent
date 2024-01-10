@@ -28,6 +28,8 @@ interface apiStackProps extends StackProps {
     _jobName: string;
     _jobQueueArn: string;
     _jobDefinitionArn: string;
+    _etlEndpoint: string;
+    _resBucketName: string;
 }
 
 export class LLMApiStack extends NestedStack {
@@ -45,6 +47,8 @@ export class LLMApiStack extends NestedStack {
         const _chatSessionTable = props._chatSessionTable
         const _jobQueueArn = props._jobQueueArn
         const _jobDefinitionArn = props._jobDefinitionArn
+        const _etlEndpoint = props._etlEndpoint
+        const _resBucketName = props._resBucketName
 
         // s3 bucket for storing documents
         const _S3Bucket = new s3.Bucket(this, 'llm-bot-documents', {
@@ -108,11 +112,9 @@ export class LLMApiStack extends NestedStack {
             securityGroups: [_securityGroup],
             architecture: Architecture.X86_64,
             environment: {
-                document_bucket: _S3Bucket.bucketName,
-                opensearch_cluster_domain: _domainEndpoint,
-                llm_endpoint: props._instructEndPoint,
-                embedding_endpoint: props._embeddingEndPoints[0],
-                cross_endpoint: props._rerankEndPoint,
+                ETL_MODEL_ENDPOINT: _etlEndpoint,
+                REGION: Aws.REGION,
+                RES_BUCKET: _resBucketName,
             },
         });
 
@@ -224,11 +226,8 @@ export class LLMApiStack extends NestedStack {
         const lambdaEmbeddingIntegration = new apigw.LambdaIntegration(lambdaEmbedding, { proxy: true, });
 
         // Define the API Gateway Method
-        const apiResourceEmbedding = api.root.addResource('embedding');
+        const apiResourceEmbedding = api.root.addResource('extract');
         apiResourceEmbedding.addMethod('POST', lambdaEmbeddingIntegration);
-
-        // Add Get method to query & search index in OpenSearch, such embedding lambda will be updated for online process
-        apiResourceEmbedding.addMethod('GET', lambdaEmbeddingIntegration);
 
         // Define the API Gateway Lambda Integration with proxy and no integration responses
         const lambdaAosIntegration = new apigw.LambdaIntegration(lambdaAos, { proxy: true, });

@@ -126,6 +126,8 @@ export class RootStack extends Stack {
         _jobName: _ConnectorStack._jobName,
         _jobQueueArn: _ConnectorStack._jobQueueArn,
         _jobDefinitionArn: _ConnectorStack._jobDefinitionArn,
+        _etlEndpoint: _EtlStack._etlEndpoint,
+        _resBucketName: _EtlStack._resBucketName,
         env:process.env
     });
     _ApiStack.addDependency(_VpcStack);
@@ -134,6 +136,7 @@ export class RootStack extends Stack {
     _ApiStack.addDependency(_DynamoDBStack);
     _ApiStack.addDependency(_ConnectorStack);
     _ApiStack.addDependency(_DynamoDBStack);
+    _ApiStack.addDependency(_EtlStack);
 
     new CfnOutput(this, 'VPC', {value:_VpcStack._vpc.vpcId});
     new CfnOutput(this, 'OpenSearch Endpoint', {value:_OsStack._domainEndpoint});
