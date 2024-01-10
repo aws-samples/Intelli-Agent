@@ -60,6 +60,11 @@ from llmbot_utils import (
 from preprocess_utils import run_preprocess
 from response_utils import process_response
 from sm_utils import SagemakerEndpointVectorOrCross
+from constant import Type,IntentType
+from intent_utils import auto_intention_recoginition_chain
+from langchain_utils import add_key_to_debug
+from query_expansion_utils import get_query_expansion_chain
+
 
 region = os.environ["AWS_REGION"]
 embedding_endpoint = os.environ.get("embedding_endpoint", "")
@@ -625,23 +630,29 @@ def return_strict_qq_result(x):
     }
 
 
-def get_rag_llm_chain(llm_model_id, stream):
+def get_rag_llm_chain(llm_model_id, stream, model_kwargs=None):
     def contexts_trunc(docs: list, context_num=2):
-        return [doc.page_content for doc in docs[:context_num]]
+        _ret = [doc.page_content for doc in docs[:context_num]]
+        # filter same docs
+        s = set()
+        ret = []
+        for r in _ret:
+            if r not in s:
+                ret.append(r)
+                s.add(r)
+        return ret
 
-    contexts_trunc_stage = RunnableLambda(
-        lambda x: {
-            "query": x["query"],
-            "contexts": contexts_trunc(x["docs"], context_num=5),
-        }
+    contexts_trunc_stage = RunnablePassthrough.assign(
+        contexts=lambda x: contexts_trunc(x["docs"], context_num=5)
     )
+ 
     llm_chain = get_llm_chain(
         model_id=llm_model_id,
         intent_type=IntentType.KNOWLEDGE_QA.value,
-        model_kwargs=None,  # TODO
+        model_kwargs=model_kwargs,  # TODO
         stream=stream,
     )
-    llm_chain = contexts_trunc_stage | llm_chain
+    llm_chain = contexts_trunc_stage | RunnablePassthrough.assign(answer=llm_chain)
     return llm_chain
 
 
@@ -804,17 +815,22 @@ def market_chain_entry(
         "contexts": lambda x: [],
         "intent_type": lambda x: IntentType.CHAT.value,
     }
+    
+    # query expansion
+    query_expansion_chain = RunnablePassthrough.assign(
+        query_expansions=get_query_expansion_chain(
+            llm_model_id=llm_model_id
+        )
+    ) | add_key_to_debug(add_key='query_expansions',debug_key="debug_info")
 
+    # intent recognition
     intent_recognition_chain = RunnablePassthrough.assign(
         intent_type=auto_intention_recoginition_chain(aos_index_mkt_qq)
     )
-
-    full_chain = intent_recognition_chain | RunnableBranch(
-        (lambda x: x["intent_type"] == IntentType.KNOWLEDGE_QA.value, qq_qd_llm_chain),
-        (
-            lambda x: x["intent_type"] == IntentType.STRICT_QQ.value,
-            return_strict_qq_result,
-        ),
+   
+    full_chain = query_expansion_chain | intent_recognition_chain  | RunnableBranch(
+        (lambda x:x['intent_type'] == IntentType.KNOWLEDGE_QA.value, qq_qd_llm_chain),
+        (lambda x:x['intent_type'] == IntentType.STRICT_QQ.value, return_strict_qq_result),
         # (lambda x:x['intent_type'] == IntentType.STRICT_QQ.value, strict_q_q_chain),
         chat_llm_chain,  # chat
     )
