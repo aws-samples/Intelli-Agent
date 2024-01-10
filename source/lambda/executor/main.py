@@ -29,9 +29,11 @@ from langchain.llms import OpenAI
 
 
 logger = logging.getLogger()
-handler = logging.StreamHandler()
+# handler = logging.StreamHandler()
 logger.setLevel(logging.INFO)
-logger.addHandler(handler)
+# logger.addHandler(handler)
+opensearch_logger = logging.getLogger("opensearch")
+opensearch_logger.setLevel(logging.ERROR)
 
 
 from preprocess_utils import run_preprocess
@@ -581,7 +583,7 @@ def get_rag_llm_chain(llm_model_id, stream):
     def contexts_trunc(docs:list,context_num=2):
         return [doc.page_content for doc in docs[:context_num]]
     contexts_trunc_stage = RunnableLambda(
-        lambda x: {"query": x["query"], "contexts": contexts_trunc(x["docs"], context_num=2)}
+        lambda x: {"query": x["query"], "contexts": contexts_trunc(x["docs"], context_num=5)}
         )
     llm_chain = get_llm_chain(
         model_id=llm_model_id, 
@@ -592,8 +594,8 @@ def get_rag_llm_chain(llm_model_id, stream):
     llm_chain = contexts_trunc_stage | llm_chain
     return llm_chain
 
-def get_qd_llm_chain(aos_index_list, llm_model_id, stream=False, top_n=5):
-    retriever_list = [QueryDocumentRetriever(index, "vector_field", "text", "file_path") for index in aos_index_list]
+def get_qd_llm_chain(aos_index_list, llm_model_id, stream=False, top_n=5, using_whole_doc=True):
+    retriever_list = [QueryDocumentRetriever(index, "vector_field", "text", "file_path", using_whole_doc) for index in aos_index_list]
     lotr = MergerRetriever(retrievers=retriever_list)
     compressor = BGEReranker(top_n=top_n)
     compression_retriever = ContextualCompressionRetriever(
@@ -654,6 +656,7 @@ def market_chain_entry(
     aos_index_mkt_qd = aos_index_dict['aos_index_mkt_qd']
     aos_index_mkt_qq = aos_index_dict['aos_index_mkt_qq']
     aos_index_dgr_qd = aos_index_dict['aos_index_dgr_qd']
+    aos_index_dgr_faq_qd = aos_index_dict['aos_index_dgr_faq_qd']
     aos_index_dgr_qq = aos_index_dict['aos_index_dgr_qq']
 
     debug_info = {
@@ -680,7 +683,7 @@ def market_chain_entry(
     dgr_q_q_retriever = QueryQuestionRetriever(
         index=aos_index_dgr_qq, vector_field="embedding", source_field="source", size=5)
     # 2.2 query document retrieval + LLM.
-    qd_llm_chain = get_qd_llm_chain([aos_index_dgr_qd, aos_index_mkt_qd], llm_model_id, stream, top_n=5)
+    qd_llm_chain = get_qd_llm_chain([aos_index_dgr_qd, aos_index_dgr_faq_qd, aos_index_mkt_qd], llm_model_id, stream, top_n=5)
     # 2.3 query question router.
     def qq_route(info, threshold=0.9):
         for doc in info["docs"]:
@@ -750,7 +753,7 @@ def main_chain_entry(
     contexts = []
     sources = []
     answer = ""
-    full_chain = get_qd_llm_chain([aos_index], llm_model_id, stream)
+    full_chain = get_qd_llm_chain([aos_index], llm_model_id, stream, using_whole_doc=False)
     response = full_chain.invoke({"query": query_input, "debug_info": debug_info})
     answer = response["answer"]
     sources = response["sources"]
