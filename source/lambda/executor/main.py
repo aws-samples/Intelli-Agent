@@ -1,56 +1,65 @@
+import copy
 import json
 import logging
 import os
 import sys
-
-import boto3
-import sys 
 import time
-import copy
 import traceback
 import uuid
 
-
-from retriever import QueryDocumentRetriever, QueryQuestionRetriever, index_results_format
-from reranker import BGEReranker
-# from llm_utils import CustomLLM
-from langchain.retrievers.merger_retriever import MergerRetriever
-from langchain.prompts import ChatPromptTemplate
-from langchain.output_parsers import PydanticOutputParser
-from langchain.schema.runnable import RunnableParallel, RunnablePassthrough, RunnableBranch, RunnableLambda
-from langchain.retrievers.web_research import WebResearchRetriever
-from langchain.utilities import GoogleSearchAPIWrapper
-from langchain.retrievers import ContextualCompressionRetriever
-from langchain.retrievers.document_compressors import CohereRerank
+import boto3
 from langchain.callbacks.base import BaseCallbackHandler
-from langchain.pydantic_v1 import BaseModel, Field, validator
 from langchain.globals import set_verbose
 from langchain.llms import OpenAI
+from langchain.output_parsers import PydanticOutputParser
+from langchain.prompts import ChatPromptTemplate
+from langchain.pydantic_v1 import BaseModel, Field, validator
+from langchain.retrievers import ContextualCompressionRetriever
+from langchain.retrievers.document_compressors import CohereRerank
 
+# from llm_utils import CustomLLM
+from langchain.retrievers.merger_retriever import MergerRetriever
+from langchain.retrievers.web_research import WebResearchRetriever
+from langchain.schema.runnable import (
+    RunnableBranch,
+    RunnableLambda,
+    RunnableParallel,
+    RunnablePassthrough,
+)
+from langchain.utilities import GoogleSearchAPIWrapper
+from reranker import BGEReranker
+from retriever import (
+    QueryDocumentRetriever,
+    QueryQuestionRetriever,
+    index_results_format,
+)
 
 logger = logging.getLogger()
-handler = logging.StreamHandler()
+# handler = logging.StreamHandler()
 logger.setLevel(logging.INFO)
-logger.addHandler(handler)
+# logger.addHandler(handler)
+opensearch_logger = logging.getLogger("opensearch")
+opensearch_logger.setLevel(logging.ERROR)
+boto3_logger = logging.getLogger("botocore")
+boto3_logger.setLevel(logging.ERROR)
 
-
-from preprocess_utils import run_preprocess
 from aos_utils import LLMBotOpenSearchClient
+from constant import IntentType, Type
+from ddb_utils import DynamoDBChatMessageHistory
+from intent_utils import auto_intention_recoginition_chain
+from langchain_utils import create_identity_lambda
+
+# from llm_utils import generate as llm_generate
+from llm_utils import get_llm_chain
 from llmbot_utils import (
     QueryType,
     combine_recalls,
     concat_recall_knowledge,
     process_input_messages,
 )
-from ddb_utils import DynamoDBChatMessageHistory
-from sm_utils import SagemakerEndpointVectorOrCross
-# from llm_utils import generate as llm_generate
-from llm_utils import get_llm_chain
+from preprocess_utils import run_preprocess
 from response_utils import process_response
-from constant import Type,IntentType
-from intent_utils import auto_intention_recoginition_chain
-from langchain_utils import create_identity_lambda
-
+from sm_utils import SagemakerEndpointVectorOrCross
 
 region = os.environ["AWS_REGION"]
 embedding_endpoint = os.environ.get("embedding_endpoint", "")
@@ -67,9 +76,10 @@ chat_session_table = os.environ.get("chat_session_table", "")
 websocket_url = os.environ.get("websocket_url", "")
 sm_client = boto3.client("sagemaker-runtime")
 aos_client = LLMBotOpenSearchClient(aos_endpoint)
-ws_client = None 
+ws_client = None
 
 # get aos_index_dict
+
 
 class APIException(Exception):
     def __init__(self, message, code: str = None):
@@ -78,12 +88,11 @@ class APIException(Exception):
         else:
             super().__init__(message)
 
+
 def load_ws_client():
     global ws_client
     if ws_client is None:
-        ws_client = boto3.client(
-        "apigatewaymanagementapi", endpoint_url=websocket_url
-        )
+        ws_client = boto3.client("apigatewaymanagementapi", endpoint_url=websocket_url)
     return ws_client
 
 
@@ -152,8 +161,8 @@ def organize_faq_results(response, index_name):
             result["answer"] = get_faq_answer(result["source"], index_name)
             result["doc"] = get_faq_content(result["source"], index_name)
         except:
-            print("index_error")
-            print(aos_hit["_source"])
+            logger.info("index_error")
+            logger.info(aos_hit["_source"])
             continue
         # result.update(aos_hit["_source"])
         results.append(result)
@@ -194,6 +203,7 @@ def organize_ug_results(response, index_name):
         results.append(result)
     return results
 
+
 def organize_results(response, aos_index=None):
     """
     Organize results from aos response
@@ -205,13 +215,14 @@ def organize_results(response, aos_index=None):
     aos_hits = response["hits"]["hits"]
     for aos_hit in aos_hits:
         result = {}
-        result["source"] = aos_hit['_source']['metadata']['file_path']
+        result["source"] = aos_hit["_source"]["metadata"]["file_path"]
         result["score"] = aos_hit["_score"]
-        result["detail"] = aos_hit['_source']
-        result["content"] = aos_hit['_source']['text']
-        result["doc"] = aos_hit['_source']['text']
+        result["detail"] = aos_hit["_source"]
+        result["content"] = aos_hit["_source"]["text"]
+        result["doc"] = aos_hit["_source"]["text"]
         results.append(result)
     return results
+
 
 def remove_redundancy_debug_info(results):
     filtered_results = copy.deepcopy(results)
@@ -220,6 +231,7 @@ def remove_redundancy_debug_info(results):
             if field.endswith("embedding") or field.startswith("vector"):
                 del result["detail"][field]
     return filtered_results
+
 
 def parse_query(
     query_input: str,
@@ -282,6 +294,7 @@ def parse_query(
     logger.info(f"runing time of parse query: {elpase_time}s seconds")
     return parsed_query
 
+
 def q_q_match(parsed_query, debug_info):
     start = time.time()
     opensearch_knn_results = []
@@ -320,6 +333,7 @@ def q_q_match(parsed_query, debug_info):
             sources = [source]
             return answer, sources
     return answer, sources
+
 
 def get_relevant_documents_dgr(
     parsed_query,
@@ -447,6 +461,7 @@ def get_relevant_documents_dgr(
 
     return rerank_knowledge
 
+
 def dgr_entry(
     session_id: str,
     query_input: str,
@@ -462,7 +477,7 @@ def dgr_entry(
     temperature: float,
     enable_q_q_match: bool,
     llm_model_id=None,
-    stream=False
+    stream=False,
 ):
     """
     Entry point for the Lambda function.
@@ -533,13 +548,11 @@ def dgr_entry(
             context_num=context_num,
             model_type="answer",
             llm_model_endpoint=llm_model_endpoint,
-            stream=stream
+            stream=stream,
         )
 
         llm_start_time = time.time()
-        llm_chain = get_rag_llm_chain(
-            **generate_input
-        )
+        llm_chain = get_rag_llm_chain(**generate_input)
         llm_chain.invoke()
 
         answer = llm_generate(**generate_input)
@@ -555,45 +568,92 @@ def dgr_entry(
 
     # 5. update_session
     # start = time.time()
-    # update_session(session_id=session_id, chat_session_table=chat_session_table, 
+    # update_session(session_id=session_id, chat_session_table=chat_session_table,
     #                question=query_input, answer=answer, knowledge_sources=sources)
     # elpase_time = time.time() - start
     # logger.info(f'runing time of update_session : {elpase_time}s seconds')
 
     return answer, sources, contexts, debug_info
 
+
 def get_strict_qq_chain(strict_q_q_index):
     def get_strict_qq_result(docs, threshold=0.7):
         results = []
         for doc in docs:
-            results.append({"score": doc.metadata["score"], 
-                            "source": doc.metadata["source"],
-                            "answer": doc.metadata["answer"],
-                            "question": doc.metadata["question"]})
-        output = {"answer": json.dumps(results, ensure_ascii=False), "sources": [], "contexts": []}
+            results.append(
+                {
+                    "score": doc.metadata["score"],
+                    "source": doc.metadata["source"],
+                    "answer": doc.metadata["answer"],
+                    "question": doc.metadata["question"],
+                }
+            )
+        output = {
+            "answer": json.dumps(results, ensure_ascii=False),
+            "sources": [],
+            "contexts": [],
+        }
         return output
+
     mkt_q_q_retriever = QueryQuestionRetriever(
-        index=strict_q_q_index, vector_field="vector_field", source_field="file_path", size=5)
+        index=strict_q_q_index,
+        vector_field="vector_field",
+        source_field="file_path",
+        size=5,
+    )
     strict_q_q_chain = mkt_q_q_retriever | RunnableLambda(get_strict_qq_result)
     return strict_q_q_chain
 
+
+def return_strict_qq_result(x):
+    # def get_strict_qq_result(docs, threshold=0.7):
+    #     results = []
+    #     for doc in docs:
+    #         results.append({"score": doc.metadata["score"],
+    #                         "source": doc.metadata["source"],
+    #                         "answer": doc.metadata["answer"],
+    #                         "question": doc.metadata["question"]})
+    #     output = {"answer": json.dumps(results, ensure_ascii=False), "sources": [], "contexts": []}
+    #     return output
+    # return get_strict_qq_result(x["intent_info"]["strict_qq_intent_result"])
+    return {
+        "answer": json.dumps(
+            x["intent_info"]["strict_qq_intent_result"], ensure_ascii=False
+        ),
+        "sources": [],
+        "contexts": [],
+    }
+
+
 def get_rag_llm_chain(llm_model_id, stream):
-    def contexts_trunc(docs:list,context_num=2):
+    def contexts_trunc(docs: list, context_num=2):
         return [doc.page_content for doc in docs[:context_num]]
+
     contexts_trunc_stage = RunnableLambda(
-        lambda x: {"query": x["query"], "contexts": contexts_trunc(x["docs"], context_num=2)}
-        )
+        lambda x: {
+            "query": x["query"],
+            "contexts": contexts_trunc(x["docs"], context_num=5),
+        }
+    )
     llm_chain = get_llm_chain(
-        model_id=llm_model_id, 
+        model_id=llm_model_id,
         intent_type=IntentType.KNOWLEDGE_QA.value,
-        model_kwargs=None,  # TODO 
-        stream=stream
-        )
+        model_kwargs=None,  # TODO
+        stream=stream,
+    )
     llm_chain = contexts_trunc_stage | llm_chain
     return llm_chain
 
-def get_qd_llm_chain(aos_index_list, llm_model_id, stream=False, top_n=5):
-    retriever_list = [QueryDocumentRetriever(index, "vector_field", "text", "file_path") for index in aos_index_list]
+
+def get_qd_llm_chain(
+    aos_index_list, llm_model_id, stream=False, top_n=5, using_whole_doc=True
+):
+    retriever_list = [
+        QueryDocumentRetriever(
+            index, "vector_field", "text", "file_path", using_whole_doc
+        )
+        for index in aos_index_list
+    ]
     lotr = MergerRetriever(retrievers=retriever_list)
     compressor = BGEReranker(top_n=top_n)
     compression_retriever = ContextualCompressionRetriever(
@@ -608,16 +668,22 @@ def get_qd_llm_chain(aos_index_list, llm_model_id, stream=False, top_n=5):
         return [doc.metadata["source"] for doc in docs["docs"][:top_k]]
 
     llm_chain = get_rag_llm_chain(llm_model_id, stream)
-    qd_llm_chain = RunnableParallel({
-                "docs": compression_retriever,
-                "query": lambda x:x["query"],
-                "debug_info": lambda x:x["debug_info"]}
-            ) | RunnableParallel({
-                "answer": llm_chain,
-                "contexts": format_docs,
-                "sources": format_sources,
-                "debug_info": lambda x:x["debug_info"]})
+    qd_llm_chain = RunnableParallel(
+        {
+            "docs": compression_retriever,
+            "query": lambda x: x["query"],
+            "debug_info": lambda x: x["debug_info"],
+        }
+    ) | RunnableParallel(
+        {
+            "answer": llm_chain,
+            "contexts": format_docs,
+            "sources": format_sources,
+            "debug_info": lambda x: x["debug_info"],
+        }
+    )
     return qd_llm_chain
+
 
 def get_qq_result(docs, threshold=0.7):
     if len(docs) > 0 and docs[0]["score"]:
@@ -628,6 +694,7 @@ def get_qq_result(docs, threshold=0.7):
     else:
         return None, []
 
+
 def output_postprocess(raw_output):
     output = {"answer": "", "sources": [], "contexts": []}
     if raw_output is not None:
@@ -636,11 +703,13 @@ def output_postprocess(raw_output):
         output["contexts"] = raw_output.get("contexts", [])
     return output
 
+
 def market_chain_entry(
     query_input: str,
     llm_model_id=None,
     stream=False,
-    intent_type=IntentType.KNOWLEDGE_QA
+    intent_type=IntentType.KNOWLEDGE_QA,
+    manual_input_intent=None,
 ):
     """
     Entry point for the Lambda function.
@@ -650,11 +719,17 @@ def market_chain_entry(
     :param stream(Bool): Whether to use llm stream decoding output.
     return: answer(str)
     """
-    aos_index_dict = json.loads(os.environ.get("aos_index_dict", '{"aos_index_mkt_qd":"aws-cn-mkt-knowledge","aos_index_mkt_qq":"gcr-mkt-qq","aos_index_dgr_qd":"ug-index","aos_index_dgr_qq":"faq-index-2"}'))
-    aos_index_mkt_qd = aos_index_dict['aos_index_mkt_qd']
-    aos_index_mkt_qq = aos_index_dict['aos_index_mkt_qq']
-    aos_index_dgr_qd = aos_index_dict['aos_index_dgr_qd']
-    aos_index_dgr_qq = aos_index_dict['aos_index_dgr_qq']
+    aos_index_dict = json.loads(
+        os.environ.get(
+            "aos_index_dict",
+            '{"aos_index_mkt_qd":"aws-cn-mkt-knowledge","aos_index_mkt_qq":"gcr-mkt-qq","aos_index_dgr_qd":"ug-index","aos_index_dgr_qq":"faq-index-2"}',
+        )
+    )
+    aos_index_mkt_qd = aos_index_dict["aos_index_mkt_qd"]
+    aos_index_mkt_qq = aos_index_dict["aos_index_mkt_qq"]
+    aos_index_dgr_qd = aos_index_dict["aos_index_dgr_qd"]
+    aos_index_dgr_faq_qd = aos_index_dict["aos_index_dgr_faq_qd"]
+    aos_index_dgr_qq = aos_index_dict["aos_index_dgr_qq"]
 
     debug_info = {
         "query": query_input,
@@ -670,57 +745,95 @@ def market_chain_entry(
     contexts = []
     sources = []
     answer = ""
+    intent_info = {
+        "manual_input_intent": manual_input_intent,
+        "strict_qq_intent_result": {},
+    }
 
     # 1. Strict Query Question Intent
     # 1.1. strict query question retrieval.
-    strict_q_q_chain = get_strict_qq_chain(aos_index_mkt_qq)
+    # strict_q_q_chain = get_strict_qq_chain(aos_index_mkt_qq)
 
     # 2. Knowledge QA Intent
     # 2.1 query question retrieval.
     dgr_q_q_retriever = QueryQuestionRetriever(
-        index=aos_index_dgr_qq, vector_field="embedding", source_field="source", size=5)
+        index=aos_index_dgr_qq,
+        vector_field="vector_field",
+        source_field="source",
+        size=5,
+    )
     # 2.2 query document retrieval + LLM.
-    qd_llm_chain = get_qd_llm_chain([aos_index_dgr_qd, aos_index_mkt_qd], llm_model_id, stream, top_n=5)
+    qd_llm_chain = get_qd_llm_chain(
+        [aos_index_dgr_qd, aos_index_dgr_faq_qd, aos_index_mkt_qd],
+        llm_model_id,
+        stream,
+        top_n=5,
+    )
+
     # 2.3 query question router.
     def qq_route(info, threshold=0.9):
         for doc in info["docs"]:
             if doc.metadata["score"] > threshold:
-                output = {"answer": doc.metadata["answer"], "sources": doc.metadata["source"],
-                          "contexts": [], "debug_info": lambda x:x["debug_info"]}
+                output = {
+                    "answer": doc.metadata["answer"],
+                    "sources": doc.metadata["source"],
+                    "contexts": [],
+                    "debug_info": lambda x: x["debug_info"],
+                }
                 return output
         return qd_llm_chain
+
     qq_chain = dgr_q_q_retriever
-    qq_qd_llm_chain = RunnableParallel({
-                "docs": qq_chain,
-                "query": lambda x:x["query"],
-                "debug_info": lambda x:x["debug_info"]}
-            ) | RunnableLambda(qq_route)
- 
+    qq_qd_llm_chain = RunnableParallel(
+        {
+            "docs": qq_chain,
+            "query": lambda x: x["query"],
+            "debug_info": lambda x: x["debug_info"],
+        }
+    ) | RunnableLambda(qq_route)
+
     # TODO design chat chain
     chat_llm_chain = get_llm_chain(
-        model_id=llm_model_id, 
+        model_id=llm_model_id,
         intent_type=IntentType.CHAT.value,
-        model_kwargs=None,  # TODO 
-        stream=stream
-        ) | {'answer': lambda x:x,"sources":lambda x: [],"contexts":lambda x: [],"intent_type":lambda x: IntentType.CHAT.value}
-    
+        model_kwargs=None,  # TODO
+        stream=stream,
+    ) | {
+        "answer": lambda x: x,
+        "sources": lambda x: [],
+        "contexts": lambda x: [],
+        "intent_type": lambda x: IntentType.CHAT.value,
+    }
+
     intent_recognition_chain = RunnablePassthrough.assign(
         intent_type=auto_intention_recoginition_chain(aos_index_mkt_qq)
     )
 
     full_chain = intent_recognition_chain | RunnableBranch(
-        (lambda x:x['intent_type'] == IntentType.STRICT_QQ.value, strict_q_q_chain),
-        (lambda x:x['intent_type'] == IntentType.KNOWLEDGE_QA.value, qq_qd_llm_chain),
-        chat_llm_chain # chat 
+        (lambda x: x["intent_type"] == IntentType.KNOWLEDGE_QA.value, qq_qd_llm_chain),
+        (
+            lambda x: x["intent_type"] == IntentType.STRICT_QQ.value,
+            return_strict_qq_result,
+        ),
+        # (lambda x:x['intent_type'] == IntentType.STRICT_QQ.value, strict_q_q_chain),
+        chat_llm_chain,  # chat
     )
     # full_chain = intent_recognition_chain
     # full_chain = RunnableLambda(route)
-    response = full_chain.invoke({"query": query_input, "debug_info": debug_info, "intent_type": intent_type})
+    response = full_chain.invoke(
+        {
+            "query": query_input,
+            "debug_info": debug_info,
+            "intent_type": intent_type,
+            "intent_info": intent_info,
+        }
+    )
 
     answer = response["answer"]
     sources = response["sources"]
     contexts = response["contexts"]
     return answer, sources, contexts, debug_info
+
 
 def main_chain_entry(
     query_input: str,
@@ -750,12 +863,15 @@ def main_chain_entry(
     contexts = []
     sources = []
     answer = ""
-    full_chain = get_qd_llm_chain([aos_index], llm_model_id, stream)
+    full_chain = get_qd_llm_chain(
+        [aos_index], llm_model_id, stream, using_whole_doc=False
+    )
     response = full_chain.invoke({"query": query_input, "debug_info": debug_info})
     answer = response["answer"]
     sources = response["sources"]
     contexts = response["contexts"]
     return answer, sources, contexts, debug_info
+
 
 def _is_websocket_request(event):
     """Check if the request is WebSocket or Restful
@@ -779,94 +895,126 @@ def lambda_handler(event, context):
     logger.info(f"request_timestamp :{request_timestamp}")
     logger.info(f"event:{event}")
     logger.info(f"context:{context}")
+    if "Records" not in event:
+        # Restful API invocation
+        event["Records"] = [{"body": json.dumps(event)}]
+    for record in event["Records"]:
+        record_event = json.loads(record["body"])
+        # Get request body
+        event_body = json.loads(record_event["body"])
+        model = event_body["model"]
+        session_id = event_body.get("session_id", "N/A")
+        messages = event_body["messages"]
+        temperature = event_body["temperature"]
+        stream = _is_websocket_request(record_event)
+        if stream:
+            load_ws_client()
 
-    # Get request body
-    event_body = json.loads(event["body"])
-    model = event_body["model"]
-    messages = event_body["messages"]
-    temperature = event_body["temperature"]
-    stream = _is_websocket_request(event)
-    if stream:
-        load_ws_client()
+        logger.info(f"stream decode: {stream}")
+        biz_type = event_body.get("type", Type.COMMON.value)
+        enable_q_q_match = event_body.get("enable_q_q_match", False)
+        enable_debug = event_body.get("enable_debug", False)
 
-    logger.info(f'stream decode: {stream}')
-    type = event_body.get("type", Type.COMMON.value)
-    enable_q_q_match = event_body.get("enable_q_q_match", False)
-    enable_debug = event_body.get("enable_debug", False)
-
-    retrieval_only = event_body.get("enable_debug", False)
-    get_contexts = event_body.get("get_contexts", False)
-    intent_type = event_body.get("intent", None) or  event_body.get("model", None) or IntentType.KNOWLEDGE_QA.value
-    llm_model_id = event_body.get("llm_model_id",'anthropic.claude-v2:1')
-    # stream = event_body.get("stream", False)
-
-    history, question = process_input_messages(messages)
-    role = "user"
-    
-    if stream:
-        session_id = event['requestContext']['connectionId']
-    else:
-        session_id = f"session_{int(request_timestamp)}"
-    user_id = event_body.get("user_id", "default_user_id")
-    message_id = str(uuid.uuid4())
-    chat_history = DynamoDBChatMessageHistory(
-        table_name = chat_session_table,
-        session_id = session_id,
-        user_id = user_id,
-    )
-    chat_history.add_user_message(f"user_{message_id}", question)
-
-    knowledge_qa_flag = True if model == "knowledge_qa" else False
-
-    main_entry_start = time.time()
-    contexts = []
-    if type.lower() == Type.COMMON.value:
-        answer, sources, context, debug_info = main_chain_entry(
-            question,
-            aos_index,
-            stream=stream,
-            llm_model_id=llm_model_id,
+        retrieval_only = event_body.get("enable_debug", False)
+        get_contexts = event_body.get("get_contexts", False)
+        intent_type = (
+            event_body.get("intent", None)
+            or event_body.get("model", None)
+            or IntentType.KNOWLEDGE_QA.value
         )
-    elif type.lower() == Type.DGR.value:
-        answer, sources, context, debug_info = dgr_entry(
-            session_id,
-            question,
-            history,
-            zh_embedding_endpoint,
-            en_embedding_endpoint,
-            cross_endpoint,
-            rerank_endpoint,
-            llm_endpoint,
-            aos_faq_index,
-            aos_ug_index,
-            knowledge_qa_flag,
-            temperature,
-            enable_q_q_match,
-            stream=stream
+        llm_model_id = event_body.get("llm_model_id", "anthropic.claude-v2:1")
+        # stream = event_body.get("stream", False)
+
+        history, question = process_input_messages(messages)
+        role = "user"
+
+        if not session_id:
+            if stream:
+                session_id = record_event["requestContext"]["connectionId"]
+            else:
+                session_id = f"session_{int(request_timestamp)}"
+        user_id = event_body.get("user_id", "default_user_id")
+        message_id = str(uuid.uuid4())
+        chat_history = DynamoDBChatMessageHistory(
+            table_name=chat_session_table,
+            session_id=session_id,
+            user_id=user_id,
         )
-    elif type.lower() == Type.MARKET_CHAIN.value:
-        answer, sources, context, debug_info = market_chain_entry(
-            question,
-            stream=stream,
-            llm_model_id=llm_model_id,
-            intent_type=intent_type
+        chat_history.add_user_message(f"user_{message_id}", question)
+
+        knowledge_qa_flag = True if model == "knowledge_qa" else False
+
+        main_entry_start = time.time()
+        contexts = []
+        if biz_type.lower() == Type.COMMON.value:
+            answer, sources, contexts, debug_info = main_chain_entry(
+                question,
+                aos_index,
+                stream=stream,
+                llm_model_id=llm_model_id,
+            )
+        elif biz_type.lower() == Type.DGR.value:
+            answer, sources, contexts, debug_info = dgr_entry(
+                session_id,
+                question,
+                history,
+                zh_embedding_endpoint,
+                en_embedding_endpoint,
+                cross_endpoint,
+                rerank_endpoint,
+                llm_endpoint,
+                aos_faq_index,
+                aos_ug_index,
+                knowledge_qa_flag,
+                temperature,
+                enable_q_q_match,
+                stream=stream,
+            )
+        elif biz_type.lower() == Type.MARKET_CHAIN.value:
+            answer, sources, contexts, debug_info = market_chain_entry(
+                question,
+                stream=stream,
+                llm_model_id=llm_model_id,
+                intent_type=intent_type,
+            )
+
+        main_entry_elpase = time.time() - main_entry_start
+        logger.info(f"runing time of {biz_type} entry : {main_entry_elpase}s seconds")
+
+        if not stream:
+            return process_response(
+                **dict(
+                    stream=stream,
+                    session_id=session_id,
+                    model=model,
+                    request_timestamp=request_timestamp,
+                    answer=answer,
+                    sources=sources,
+                    get_contexts=get_contexts,
+                    contexts=contexts,
+                    enable_debug=enable_debug,
+                    debug_info=debug_info,
+                    ws_client=ws_client,
+                    chat_history=chat_history,
+                    message_id=message_id,
+                )
+            )
+        process_response(
+            **dict(
+                stream=stream,
+                session_id=session_id,
+                model=model,
+                request_timestamp=request_timestamp,
+                answer=answer,
+                sources=sources,
+                get_contexts=get_contexts,
+                contexts=contexts,
+                enable_debug=enable_debug,
+                debug_info=debug_info,
+                ws_client=ws_client,
+                chat_history=chat_history,
+                message_id=message_id,
+            )
         )
 
-    main_entry_elpase = time.time() - main_entry_start
-    logger.info(f"runing time of {type} entry : {main_entry_elpase}s seconds")
-
-    return process_response(**dict(
-        stream=stream,
-        session_id=session_id,
-        model=model,
-        request_timestamp=request_timestamp,
-        answer=answer,
-        sources=sources,
-        get_contexts=get_contexts,
-        contexts=contexts,
-        enable_debug=enable_debug,
-        debug_info=debug_info,
-        ws_client=ws_client,
-        chat_history=chat_history,
-        message_id=message_id,
-    ))
+    return {"statusCode": 200, "body": "All records have been processed"}

@@ -12,10 +12,15 @@ import json
 ws_url = "wss://omjou492fe.execute-api.us-west-2.amazonaws.com/prod/"
 ws = create_connection(ws_url)
 
+question_library = [
+    "如何在Amazon Forecast上导出已经训练好的模型，以便在其他地方部署？",
+    "如何将Kinesis Data Streams配置为AWS Lambda的事件源？"
+]
+
 body = {
     "action": "sendMessage",
     "model": "knowledge_qa",
-    "messages": [{"role": "user","content": "如何将Kinesis Data Streams配置为AWS Lambda的事件源？"}],
+    "messages": [{"role": "user","content": question_library[0]}],
     "temperature": 0.7,
     "type" : "market_chain", 
     "enable_q_q_match": True,

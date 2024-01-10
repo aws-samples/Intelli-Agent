@@ -11,9 +11,7 @@ from langchain.retrievers import BM25Retriever, EnsembleRetriever
 from langchain.callbacks.manager import CallbackManagerForRetrieverRun
 from langchain.docstore.document import Document
 
-
 from aos_utils import LLMBotOpenSearchClient
-
 from preprocess_utils import run_preprocess
 from sm_utils import SagemakerEndpointVectorOrCross
 from llmbot_utils import (
@@ -24,9 +22,7 @@ from llmbot_utils import (
 )
 
 logger = logging.getLogger()
-handler = logging.StreamHandler()
 logger.setLevel(logging.INFO)
-logger.addHandler(handler)
 
 region = os.environ["AWS_REGION"]
 zh_embedding_model_endpoint = os.environ.get("zh_embedding_endpoint", "")
@@ -249,28 +245,32 @@ def organize_faq_results(response, index_name, source_field="file_path", text_fi
     for aos_hit in aos_hits:
         result = {}
         try:
-            result[source_field] = aos_hit["_source"]["metadata"][source_field]
             result["score"] = aos_hit["_score"]
             result["detail"] = aos_hit["_source"]
             if "field" in aos_hit["_source"]["metadata"]:
                 result["answer"] = get_faq_answer(result["source"], index_name, source_field)
                 result["content"] = aos_hit["_source"]["content"]
                 result["question"] = aos_hit["_source"]["content"]
+                result[source_field] = aos_hit["_source"]["metadata"][source_field]
             elif "jsonlAnswer" in aos_hit["_source"]["metadata"]:
                 result["answer"] = aos_hit["_source"]["metadata"]["jsonlAnswer"]["answer"]
                 result["question"] = aos_hit["_source"]["metadata"]["jsonlAnswer"]["question"]
                 result["content"] = aos_hit["_source"]["text"]
+                if source_field in aos_hit["_source"]["metadata"]["jsonlAnswer"].keys():
+                    result[source_field] = aos_hit["_source"]["metadata"]["jsonlAnswer"][source_field]
+                else:
+                    result[source_field] = aos_hit["_source"]["metadata"][source_field]
             # result["doc"] = get_faq_content(result["source"], index_name)
         except:
-            print("index_error")
-            print(traceback.format_exc())
-            print(aos_hit["_source"])
+            logger.info("index_error")
+            logger.info(traceback.format_exc())
+            logger.info(aos_hit["_source"])
             continue
         # result.update(aos_hit["_source"])
         results.append(result)
     return results
 
-def organize_results(response, aos_index=None, source_field="file_path", text_field="text"):
+def organize_results(response, aos_index=None, source_field="file_path", text_field="text", using_whole_doc=True):
     """
     Organize results from aos response
 
@@ -290,11 +290,11 @@ def organize_results(response, aos_index=None, source_field="file_path", text_fi
         result["detail"] = aos_hit['_source']
         # result["content"] = aos_hit['_source'][text_field]
         result["content"] = aos_hit['_source'][text_field]
-        doc = get_doc(result["source"], aos_index)
-        if doc:
-            result["doc"] = doc
-        else:
-            result["doc"] = result["content"]
+        result["doc"] = result["content"]
+        if using_whole_doc:
+            doc = get_doc(result["source"], aos_index)
+            if doc:
+                result["doc"] = doc
         results.append(result)
     return results
 
@@ -360,12 +360,14 @@ class QueryDocumentRetriever(BaseRetriever):
     vector_field: Any
     text_field: Any
     source_field: Any
-    def __init__(self, index, vector_field, text_field,  source_field):
+    using_whole_doc: Any
+    def __init__(self, index, vector_field, text_field,  source_field, using_whole_doc):
         super().__init__()
         self.index = index
         self.vector_field = vector_field
         self.text_field = text_field
         self.source_field = source_field
+        self.using_whole_doc = using_whole_doc
 
     def _get_relevant_documents(self, question: Dict, *, run_manager: CallbackManagerForRetrieverRun) -> List[Document]:
         query = question["query"] 
@@ -389,7 +391,7 @@ class QueryDocumentRetriever(BaseRetriever):
             size=result_num,
         )
         opensearch_knn_results.extend(
-            organize_results(opensearch_knn_response, self.index, self.source_field, self.text_field)[:result_num]
+            organize_results(opensearch_knn_response, self.index, self.source_field, self.text_field, self.using_whole_doc)[:result_num]
         )
 
         result_num = 20
@@ -401,7 +403,7 @@ class QueryDocumentRetriever(BaseRetriever):
             size=result_num,
         )
         opensearch_knn_results.extend(
-            organize_results(opensearch_knn_response, self.index, self.source_field, self.text_field)[:result_num]
+            organize_results(opensearch_knn_response, self.index, self.source_field, self.text_field, self.using_whole_doc)[:result_num]
         )
         recall_end_time = time.time()
         elpase_time = recall_end_time - start
@@ -437,7 +439,7 @@ class GoogleRetriever(BaseRetriever):
     def _get_relevant_documents(self, question: Dict, *, run_manager: CallbackManagerForRetrieverRun) -> List[Document]:
         results = self.search.results(question["query"], self.result_num)
         for result in results:
-            print(result)
+            logger.info(result)
 
 
 def index_results_format(docs:list, threshold=-1):
