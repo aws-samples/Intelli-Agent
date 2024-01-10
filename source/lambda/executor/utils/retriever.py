@@ -58,12 +58,14 @@ def parse_query(
     en_embedding_model_endpoint: str,
     debug_info: dict,
 ):
+    print('query_input',query_input)
     start = time.time()
     # concatenate query_input and history to unified prompt
     query_knowledge = "".join([query_input] + [row[0] for row in history][::-1])
 
     # get query embedding
     parsed_query = run_preprocess(query_knowledge)
+    print('run_preprocess time: ',time.time()-start)
     debug_info["query_parser_info"] = parsed_query
     if parsed_query["query_lang"] == "zh":
         parsed_query["zh_query"] = query_knowledge
@@ -80,6 +82,8 @@ def parse_query(
         "Represent this sentence for searching relevant passages: "
         + parsed_query["en_query"]
     )
+    
+    # t0 = time.time()
     parsed_query["zh_query_similarity_embedding"] = SagemakerEndpointVectorOrCross(
         prompt=zh_query_similarity_embedding_prompt,
         endpoint_name=zh_embedding_model_endpoint,
@@ -87,6 +91,7 @@ def parse_query(
         model_type="vector",
         stop=None,
     )
+    # print('SagemakerEndpointVectorOrCross: ',time.time()-t0)
     parsed_query["zh_query_relevance_embedding"] = SagemakerEndpointVectorOrCross(
         prompt=zh_query_relevance_embedding_prompt,
         endpoint_name=zh_embedding_model_endpoint,
@@ -434,13 +439,10 @@ class GoogleRetriever(BaseRetriever):
         self.search = GoogleSearchAPIWrapper()
         self.result_num = result_num
 
-        return doc_list
-
     def _get_relevant_documents(self, question: Dict, *, run_manager: CallbackManagerForRetrieverRun) -> List[Document]:
         results = self.search.results(question["query"], self.result_num)
         for result in results:
             logger.info(result)
-
 
 def index_results_format(docs:list, threshold=-1):
     results = []

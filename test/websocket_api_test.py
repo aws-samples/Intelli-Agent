@@ -20,12 +20,13 @@ question_library = [
 body = {
     "action": "sendMessage",
     "model": "knowledge_qa",
-    "messages": [{"role": "user","content": question_library[0]}],
+    "messages": [{"role": "user","content": question_library[1]}],
     "temperature": 0.7,
     "type" : "market_chain", 
     "enable_q_q_match": True,
     "enable_debug": False,
-    "llm_model_id":'anthropic.claude-v2:1'
+    "llm_model_id":'anthropic.claude-v2:1',
+    "get_contexts":True
 }
 ws.send(json.dumps(body))
 start_time = time.time()
@@ -47,6 +48,7 @@ while True:
         print(ret['choices'][0]['message']['content'])
         break 
     elif message_type == "CONTEXT":
+        print('contexts',ret)
         print('sources: ',ret['choices'][0]['knowledge_sources'])
 
 ws.close()  

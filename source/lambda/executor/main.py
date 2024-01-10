@@ -60,6 +60,11 @@ from llmbot_utils import (
 from preprocess_utils import run_preprocess
 from response_utils import process_response
 from sm_utils import SagemakerEndpointVectorOrCross
+from constant import Type,IntentType
+from intent_utils import auto_intention_recoginition_chain
+from langchain_utils import add_key_to_debug
+from query_expansion_utils import get_query_expansion_chain
+
 
 region = os.environ["AWS_REGION"]
 embedding_endpoint = os.environ.get("embedding_endpoint", "")
@@ -625,23 +630,46 @@ def return_strict_qq_result(x):
     }
 
 
-def get_rag_llm_chain(llm_model_id, stream):
+def get_rag_llm_chain(llm_model_id, stream, model_kwargs=None):
     def contexts_trunc(docs: list, context_num=2):
-        return [doc.page_content for doc in docs[:context_num]]
+        docs = [doc for doc in docs[:context_num]]
+        # filter same docs
+        s = set()
+        context_strs = []
+        context_docs = []
+        context_sources = []
 
-    contexts_trunc_stage = RunnableLambda(
-        lambda x: {
-            "query": x["query"],
-            "contexts": contexts_trunc(x["docs"], context_num=5),
+        for doc in docs:
+            content = doc.page_content
+            if content not in s:
+                context_strs.append(content)
+                s.add(content)
+                context_docs.append({
+                    "doc": content,
+                    "source": doc.metadata["source"],
+                    # "score": doc.metadata["score"]
+                    })
+                context_sources.append(doc.metadata["source"])
+        return {
+            "contexts": context_strs,
+            "context_docs": context_docs,
+            "context_sources":context_sources
         }
+    
+    # TODO opt with efficiency
+    contexts_trunc_stage = RunnablePassthrough.assign(
+        contexts=lambda x: contexts_trunc(x["docs"], context_num=5)['contexts'],
+        context_docs=lambda x: contexts_trunc(x["docs"], context_num=5)['context_docs'],
+        context_sources=lambda x: contexts_trunc(x["docs"], context_num=5)['context_sources'],
     )
+ 
     llm_chain = get_llm_chain(
         model_id=llm_model_id,
         intent_type=IntentType.KNOWLEDGE_QA.value,
-        model_kwargs=None,  # TODO
+        model_kwargs=model_kwargs,  # TODO
         stream=stream,
     )
-    llm_chain = contexts_trunc_stage | llm_chain
+    llm_chain = contexts_trunc_stage | RunnablePassthrough.assign(answer=llm_chain)
     return llm_chain
 
 
@@ -660,28 +688,15 @@ def get_qd_llm_chain(
         base_compressor=compressor, base_retriever=lotr
     )
 
-    def format_docs(docs, top_k=2):
-        # return "\n\n".join(doc.page_content for doc in docs["docs"][:top_k])
-        return [doc.page_content for doc in docs["docs"][:top_k]]
+    # def format_docs(docs, top_k=2):
+    #     # return "\n\n".join(doc.page_content for doc in docs["docs"][:top_k])
+    #     return [doc.page_content for doc in docs["docs"][:top_k]]
 
-    def format_sources(docs, top_k=2):
-        return [doc.metadata["source"] for doc in docs["docs"][:top_k]]
+    # def format_sources(docs, top_k=2):
+    #     return [doc.metadata["source"] for doc in docs["docs"][:top_k]]
 
     llm_chain = get_rag_llm_chain(llm_model_id, stream)
-    qd_llm_chain = RunnableParallel(
-        {
-            "docs": compression_retriever,
-            "query": lambda x: x["query"],
-            "debug_info": lambda x: x["debug_info"],
-        }
-    ) | RunnableParallel(
-        {
-            "answer": llm_chain,
-            "contexts": format_docs,
-            "sources": format_sources,
-            "debug_info": lambda x: x["debug_info"],
-        }
-    )
+    qd_llm_chain = RunnablePassthrough.assign(docs=compression_retriever) | llm_chain
     return qd_llm_chain
 
 
@@ -772,7 +787,7 @@ def market_chain_entry(
 
     # 2.3 query question router.
     def qq_route(info, threshold=0.9):
-        for doc in info["docs"]:
+        for doc in info["qq_result"]:
             if doc.metadata["score"] > threshold:
                 output = {
                     "answer": doc.metadata["answer"],
@@ -783,14 +798,8 @@ def market_chain_entry(
                 return output
         return qd_llm_chain
 
-    qq_chain = dgr_q_q_retriever
-    qq_qd_llm_chain = RunnableParallel(
-        {
-            "docs": qq_chain,
-            "query": lambda x: x["query"],
-            "debug_info": lambda x: x["debug_info"],
-        }
-    ) | RunnableLambda(qq_route)
+    qq_chain = RunnablePassthrough.assign(qq_result=dgr_q_q_retriever)
+    qq_qd_llm_chain = qq_chain | RunnableLambda(qq_route)
 
     # TODO design chat chain
     chat_llm_chain = get_llm_chain(
@@ -804,17 +813,22 @@ def market_chain_entry(
         "contexts": lambda x: [],
         "intent_type": lambda x: IntentType.CHAT.value,
     }
+    
+    # query expansion
+    query_expansion_chain = RunnablePassthrough.assign(
+        query_expansions=get_query_expansion_chain(
+            llm_model_id=llm_model_id
+        )
+    ) | add_key_to_debug(add_key='query_expansions',debug_key="debug_info")
 
+    # intent recognition
     intent_recognition_chain = RunnablePassthrough.assign(
         intent_type=auto_intention_recoginition_chain(aos_index_mkt_qq)
     )
-
-    full_chain = intent_recognition_chain | RunnableBranch(
-        (lambda x: x["intent_type"] == IntentType.KNOWLEDGE_QA.value, qq_qd_llm_chain),
-        (
-            lambda x: x["intent_type"] == IntentType.STRICT_QQ.value,
-            return_strict_qq_result,
-        ),
+   
+    full_chain = query_expansion_chain | intent_recognition_chain  | RunnableBranch(
+        (lambda x:x['intent_type'] == IntentType.KNOWLEDGE_QA.value, qq_qd_llm_chain),
+        (lambda x:x['intent_type'] == IntentType.STRICT_QQ.value, return_strict_qq_result),
         # (lambda x:x['intent_type'] == IntentType.STRICT_QQ.value, strict_q_q_chain),
         chat_llm_chain,  # chat
     )
@@ -830,8 +844,9 @@ def market_chain_entry(
     )
 
     answer = response["answer"]
-    sources = response["sources"]
-    contexts = response["contexts"]
+    sources = response["context_sources"]
+    contexts = response["context_docs"]
+
     return answer, sources, contexts, debug_info
 
 
@@ -868,8 +883,8 @@ def main_chain_entry(
     )
     response = full_chain.invoke({"query": query_input, "debug_info": debug_info})
     answer = response["answer"]
-    sources = response["sources"]
-    contexts = response["contexts"]
+    sources = response["context_sources"]
+    contexts = response["context_docs"]
     return answer, sources, contexts, debug_info
 
 
@@ -980,7 +995,7 @@ def lambda_handler(event, context):
 
         main_entry_elpase = time.time() - main_entry_start
         logger.info(f"runing time of {biz_type} entry : {main_entry_elpase}s seconds")
-
+        
         if not stream:
             return process_response(
                 **dict(
