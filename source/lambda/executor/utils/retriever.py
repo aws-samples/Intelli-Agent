@@ -454,5 +454,5 @@ def index_results_format(docs:list, threshold=-1):
                         "answer": doc.metadata["answer"],
                         "question": doc.metadata["question"]})
     # output = {"answer": json.dumps(results, ensure_ascii=False), "sources": [], "contexts": []}
-    output = {"answer": results, "sources": [], "contexts": []}
+    output = {"answer": results, "sources": [], "contexts": [], "context_docs": [], "context_sources": []}
     return output
