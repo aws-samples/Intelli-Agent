@@ -5,6 +5,7 @@ import json
 import boto3
 import logging
 import datetime
+import layout_predictor_patches
 import subprocess
 from pathlib import Path
 
@@ -12,6 +13,7 @@ from paddleocr import PPStructure
 from ppocr.utils.utility import check_and_read
 from markdownify import markdownify as md
 import re
+from xycut import recursive_xy_cut
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -27,6 +29,11 @@ table_engine_en = PPStructure(det_model_dir='weight/en_PP-OCRv3_det_infer',
                            table_model_dir='weight/en_ppstructure_mobile_v2.0_SLANet_infer',
                            layout_model_dir='weight/picodet_lcnet_x1_0_fgd_layout_infer',
                            show_log=True, recovery=True, type='structure', lang="en", use_pdf2docx_api=True)
+
+
+layout_predictor = layout_predictor_patches.LayoutPredictor('weight/picodet_lcnet_x1_0_fgd_layout_cdla_infer')
+table_engine_ch.layout_predictor = layout_predictor
+table_engine_en.layout_predictor = layout_predictor
 
 s3 = boto3.client("s3")
 
@@ -91,11 +98,10 @@ def ppstructure_en(file_path: Path) -> str:
     for index, img in enumerate(img_list):
         result = table_engine_en(img, img_idx=index)
         if result != []:
-            from copy import deepcopy
-            from ppstructure.recovery.recovery_to_doc import sorted_layout_boxes
-            h, w, _ = img.shape
-            result_cp = deepcopy(result)
-            result_sorted = sorted_layout_boxes(result_cp, w)
+            boxes = [row['bbox'] for row in result]
+            res = []
+            recursive_xy_cut(np.asarray(boxes).astype(int), np.arange(len(boxes)), res)
+            result_sorted = [result[idx] for idx in res]
             all_res += result_sorted
     doc = ''
     prev_region_text = ''
@@ -103,16 +109,16 @@ def ppstructure_en(file_path: Path) -> str:
     for i, region in enumerate(all_res):
         if len(region['res']) == 0:
             continue
-        if flag == 2 and region['layout'] == 'single':
-            flag = 1
-        elif flag == 1 and region['layout'] == 'double':
-            flag = 2
         img_idx = region['img_idx']
         if region['type'].lower() == 'figure':
-            continue
+            region_text = ''
+            for i, line in enumerate(region['res']):
+                region_text += line['text']
         elif region['type'].lower() == 'title':
             doc += '## ' + region['res'][0]['text'] + '\n\n'
         elif region['type'].lower() == 'table':
+            if '<thead>' not in region['res']['html']:
+                region['res']['html'] = region['res']['html'].replace('<tr>', '<thead><tr>', 1).replace('</tr>', '</thead></tr>', 1)
             doc += md(region['res']['html'], strip=['b', 'img'], heading_style='ATX', newline_style='BACKSLASH')+ '\n\n'
         elif region['type'].lower() in ('header', 'footer'):
             continue
@@ -136,11 +142,10 @@ def ppstructure_ch(file_path: Path) -> str:
     for index, img in enumerate(img_list):
         result = table_engine_ch(img, img_idx=index)
         if result != []:
-            from copy import deepcopy
-            from ppstructure.recovery.recovery_to_doc import sorted_layout_boxes
-            h, w, _ = img.shape
-            result_cp = deepcopy(result)
-            result_sorted = sorted_layout_boxes(result_cp, w)
+            boxes = [row['bbox'] for row in result]
+            res = []
+            recursive_xy_cut(np.asarray(boxes).astype(int), np.arange(len(boxes)), res)
+            result_sorted = [result[idx] for idx in res]
             all_res += result_sorted
     doc = ''
     prev_region_text = ''
@@ -148,23 +153,23 @@ def ppstructure_ch(file_path: Path) -> str:
     for i, region in enumerate(all_res):
         if len(region['res']) == 0:
             continue
-        if flag == 2 and region['layout'] == 'single':
-            flag = 1
-        elif flag == 1 and region['layout'] == 'double':
-            flag = 2
         img_idx = region['img_idx']
         if region['type'].lower() == 'figure':
-            continue
+            region_text = ''
+            for i, line in enumerate(region['res']):
+                region_text += line['text']
         elif region['type'].lower() == 'title':
             doc += '## ' + region['res'][0]['text'] + '\n\n'
         elif region['type'].lower() == 'table':
+            if '<thead>' not in region['res']['html']:
+                region['res']['html'] = region['res']['html'].replace('<tr>', '<thead><tr>', 1).replace('</tr>', '</thead></tr>', 1)
             doc += md(region['res']['html'], strip=['b', 'img'], heading_style='ATX', newline_style='BACKSLASH')+ '\n\n'
         elif region['type'].lower() in ('header', 'footer'):
             continue
         else:
             region_text = ''
             for i, line in enumerate(region['res']):
-                region_text += line['text'] + ' '
+                region_text += line['text']
             if remove_symbols(region_text) != remove_symbols(prev_region_text):
                 doc += region_text
                 prev_region_text = region_text
