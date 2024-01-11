@@ -647,7 +647,7 @@ def get_rag_llm_chain(llm_model_id, stream, model_kwargs=None):
                 context_docs.append({
                     "doc": content,
                     "source": doc.metadata["source"],
-                    # "score": doc.metadata["score"]
+                    "score": doc.metadata["rerank_score"]
                     })
                 context_sources.append(doc.metadata["source"])
         return {
@@ -672,6 +672,22 @@ def get_rag_llm_chain(llm_model_id, stream, model_kwargs=None):
     llm_chain = contexts_trunc_stage | RunnablePassthrough.assign(answer=llm_chain)
     return llm_chain
 
+def get_qd_chain(
+    aos_index_list, top_n=5, using_whole_doc=True
+):
+    retriever_list = [
+        QueryDocumentRetriever(
+            index, "vector_field", "text", "file_path", using_whole_doc
+        )
+        for index in aos_index_list
+    ]
+    lotr = MergerRetriever(retrievers=retriever_list)
+    compressor = BGEReranker(top_n=top_n)
+    compression_retriever = ContextualCompressionRetriever(
+        base_compressor=compressor, base_retriever=lotr
+    )
+    qd_chain = RunnablePassthrough.assign(docs=compression_retriever)
+    return qd_chain
 
 def get_qd_llm_chain(
     aos_index_list, llm_model_id, stream=False, top_n=5, using_whole_doc=True
@@ -793,9 +809,10 @@ def market_chain_entry(
                     "answer": doc.metadata["answer"],
                     "sources": doc.metadata["source"],
                     "contexts": [],
-                    "debug_info": lambda x: x["debug_info"],
+                    # "debug_info": lambda x: x["debug_info"],
                 }
-                return output
+                info.update(output)
+                return info
         return qd_llm_chain
 
     qq_chain = RunnablePassthrough.assign(qq_result=dgr_q_q_retriever)
@@ -849,6 +866,37 @@ def market_chain_entry(
 
     return answer, sources, contexts, debug_info
 
+def main_retriever_entry(
+    query_input: str,
+    aos_index: str,
+):
+    """
+    Entry point for the Lambda function.
+
+    :param query_input: The query input.
+    :param aos_index: The index of the AOS engine.
+
+    return: answer(str)
+    """
+    debug_info = {
+        "query": query_input,
+        "query_parser_info": {},
+        "q_q_match_info": {},
+        "knowledge_qa_knn_recall": {},
+        "knowledge_qa_boolean_recall": {},
+        "knowledge_qa_combined_recall": {},
+        "knowledge_qa_cross_model_sort": {},
+        "knowledge_qa_llm": {},
+        "knowledge_qa_rerank": {},
+    }
+    full_chain = get_qd_chain(
+        [aos_index], using_whole_doc=False
+    )
+    response = full_chain.invoke({"query": query_input, "debug_info": debug_info})
+    doc_list = []
+    for doc in response["docs"]:
+        doc_list.append({"page_content": doc.page_content, "metadata": doc.metadata})
+    return doc_list
 
 def main_chain_entry(
     query_input: str,
@@ -886,7 +934,6 @@ def main_chain_entry(
     sources = response["context_sources"]
     contexts = response["context_docs"]
     return answer, sources, contexts, debug_info
-
 
 def _is_websocket_request(event):
     """Check if the request is WebSocket or Restful
@@ -930,7 +977,6 @@ def lambda_handler(event, context):
         enable_q_q_match = event_body.get("enable_q_q_match", False)
         enable_debug = event_body.get("enable_debug", False)
 
-        retrieval_only = event_body.get("enable_debug", False)
         get_contexts = event_body.get("get_contexts", False)
         intent_type = (
             event_body.get("intent", None)
@@ -968,6 +1014,21 @@ def lambda_handler(event, context):
                 stream=stream,
                 llm_model_id=llm_model_id,
             )
+        elif biz_type.lower() == Type.RETRIEVER.value:
+            retriever_response = main_retriever_entry(
+                question,
+                aos_index
+            )
+            resp_header = {
+                "Content-Type": "application/json",
+                "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "*",
+            }
+            response = {"statusCode": 200, "headers": {"Content-Type": "application/json"}}
+            response["body"] = json.dumps(retriever_response)
+            response["headers"] = resp_header
+            return response
         elif biz_type.lower() == Type.DGR.value:
             answer, sources, contexts, debug_info = dgr_entry(
                 session_id,
