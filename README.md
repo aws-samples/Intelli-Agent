@@ -19,9 +19,10 @@ Make sure Python installed properly. Usage: ./prepare_model.sh -s S3_BUCKET_NAME
 ./prepare_model.sh -s <Your S3 Bucket Name>
 
 cd source/model/etl/code
-sh model.sh ./Dockerfile <EtlImageName> <AWS_REGION>
+# Use ./Dockerfile for standard regions, use ./DockerfileCN for GCR(Greater China) region
+sh model.sh <./Dockerfile>|<./DockerfileCN> <EtlImageName> <AWS_REGION>
 ```
-The ETL image will be pushed to your ECR repo with the image name you specified when executing the command sh model.sh ./Dockerfile <EtlImageName> <AWS_REGION>, AWS_REGION is like us-east-1, us-west-2, etc.
+The ETL image will be pushed to your ECR repo with the image name you specified when executing the command sh model.sh ./Dockerfile <EtlImageName> <AWS_REGION>, AWS_REGION is like us-east-1, us-west-2, etc. Dockerfile is for deployment in standard regions. DockerfileCN is for GCR(Greater China) region. For example, to deploy it in GCR region, the command is: sh model.sh ./DockerfileCN llm-bot-cn cn-northwest-1
 
 
 2. Deploy CDK template (add sudo if you are using Linux), make sure DOCKER is installed properly
@@ -67,27 +68,39 @@ arn:aws:cloudformation:us-east-1:<Your account id>:stack/llm-bot-dev/xx
 
 3. Test the API connection
 
-Use Postman/cURL to test the API connection, the API endpoint is the output of CloudFormation Stack with prefix 'embedding' or 'llm', the sample URL will be like "https://xxxx.execute-api.us-east-1.amazonaws.com/v1/embedding", the API request body is as follows:
+Use Postman/cURL to test the API connection, the API endpoint is the output of CloudFormation Stack with methods 'extract', 'etl' or 'llm', the sample URL will be like "https://xxxx.execute-api.us-east-1.amazonaws.com/v1/<method>", the API request body is as follows:
 
-**Offline process to pre-process file specified in S3 bucket and prefix, POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/etl**
+**Quick Start Tuturial**
+
+**Extract document from specified S3 bucket and prefix, POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/extract, use flag need_split to configure if extracted document need to be splitted semantically or keep with original content**
+```bash
+BODY
+{
+    "s3Bucket": "<Your S3 bucket>", eg. "llm-bot-resource"
+    "s3Prefix": "<Your S3 prefix>", eg. "input_samples/"
+    "need_split": true
+}
+```
+
+**Offline (asychronous) process to batch processing documents specified in S3 bucket and prefix, such process include extracting, splitting document content, converting to vector representation and injecting into Amazon Open Search (AOS). POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/etl**
 ```bash
 BODY
 {
     "s3Bucket": "<Your S3 bucket>", eg. "llm-bot-resource"
     "s3Prefix": "<Your S3 prefix>", eg. "input_samples/"
     "offline": "true",
-    "qaEnhance": "false"
+    "qaEnhance": "false",
+    "aosIndex": "<Your OpenSearch index>", eg. "dev"
 }
 
 ```
 
-
-You should see output like this:
+You should see similar outputs like this:
 ```bash
 "Step Function triggered, Step Function ARN: arn:aws:states:us-east-1:xxxx:execution:xx-xxx:xx-xx-xx-xx-xx, Input Payload: {\"s3Bucket\": \"<Your S3 bucket>\", \"s3Prefix\": \"<Your S3 prefix>\", \"offline\": \"true\"}"
 ```
 
-**Then you can query embeddings in AOS, POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/aos**, other operation including index, delete, query are also provided for debugging purpose.
+**You can query the embeddings injected into AOS after the ETL process complete, note the execution time largly depend on file size and number, and the estimate time is around 3~5 minutes per documents. POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/aos**, other operation including index, delete, query are also provided for debugging purpose.
 ```bash
 BODY
 {
@@ -145,7 +158,7 @@ You should see output like this:
 }
 ```
 
-**Delete initial index in AOS, POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/aos for debugging purpose**
+**Delete initial index in AOS if you want to setup your customized one instead of built-in index, POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/aos for debugging purpose**
 ```bash
 {
   "aos_index": "chatbot-index",
@@ -161,7 +174,7 @@ You should see output like this:
 }
 ```
 
-**Create other index in AOS, POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/aos for debugging purpose, note the index "chatbot-index" will create by default to use directly**
+**Create new index in AOS, POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/aos for debugging purpose, note the index "chatbot-index" will create by default to use directly**
 ```bash
 {
   "aos_index": "llm-bot-index",
@@ -179,7 +192,7 @@ You should see output like this:
 }
 ```
 
-**Online process to embedding & inject document directly, POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/aos**
+**Ad-hoc to embedding & inject document directly instead of full ETL process, POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/aos**
 ```bash
 BODY
 {
@@ -277,7 +290,7 @@ You should see output like this, the metadata.file_path field is matched with th
   }
 }
 ```
-**Query the embedding with KNN, GET https://xxxx.execute-api.us-east-1.amazonaws.com/v1/aos**
+**Query the embedding with KNN, note the floating number are vector representation for such query, e.g. "How are you?", GET https://xxxx.execute-api.us-east-1.amazonaws.com/v1/aos**
 ```bash
 {
   "aos_index": "llm-bot-index",
@@ -461,7 +474,7 @@ You should see output like this, the index mapping configuration is returned:
 There are other operations including 'bulk', 'delete_index', 'delete_document' etc. for debugging purpose, the sample body will be update soon. User will not need to use proxy instance to access the AOS inside VPC, the API gateway with Lambda proxy integration are wrapped to access the AOS directly.
 
 
-4. [Optional] Launch dashboard to check and debug the ETL & QA process
+1. [Optional] Launch dashboard to check and debug the ETL & QA process
 
 ```bash
 cd /source/panel
@@ -472,7 +485,7 @@ python -m streamlit run app.py --server.runOnSave true --server.port 8088 --brow
 ```
 login with IP/localhost:8088, you should see the dashboard to operate.
 
-5. [Optional] Upload embedding file to S3 bucket created in the previous step, the format is like below:
+2. [Optional] Upload embedding file to S3 bucket created in the previous step, the format is like below:
 ```bash
 aws s3 cp <Your documents> s3://llm-bot-documents-<Your account id>-<region>/<Your S3 bucket prefix>/
 ```

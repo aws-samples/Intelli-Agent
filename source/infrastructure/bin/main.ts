@@ -2,12 +2,14 @@ import { App, CfnOutput, CfnParameter, Stack, StackProps } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as dotenv from "dotenv";
 import { LLMApiStack } from '../lib/api/api-stack';
-import { DynamoDBStack } from '../lib/ddb-stack';
+import { DynamoDBStack } from '../lib/ddb/ddb-stack';
 import { EtlStack } from '../lib/etl/etl-stack';
 import { AssetsStack } from '../lib/model/assets-stack';
 import { LLMStack } from '../lib/model/llm-stack';
 import { VpcStack } from '../lib/shared/vpc-stack';
 import { OpenSearchStack } from '../lib/vector-store/os-stack';
+import { ConnectorStack } from '../lib/connector/connector-stack';
+
 dotenv.config();
 
 export class RootStack extends Stack {
@@ -97,6 +99,19 @@ export class RootStack extends Stack {
     _EtlStack.addDependency(_OsStack);
     _EtlStack.addDependency(_LLMStack);
 
+    const _ConnectorStack = new ConnectorStack(this, 'connector-stack', {
+      _vpc:_VpcStack._vpc,
+      _securityGroup:_VpcStack._securityGroup,
+      _domainEndpoint:_OsStack._domainEndpoint,
+      _embeddingEndPoints:_LLMStack._embeddingEndPoints || '',
+      _OpenSearchIndex: _OpenSearchIndex.valueAsString,
+      _OpenSearchIndexDict: _OpenSearchIndexDict.valueAsString,
+      env:process.env
+    });
+    _ConnectorStack.addDependency(_VpcStack);
+    _ConnectorStack.addDependency(_OsStack);
+    _ConnectorStack.addDependency(_LLMStack);
+
     const _ApiStack = new LLMApiStack(this, 'api-stack', {
         _vpc:_VpcStack._vpc,
         _securityGroup:_VpcStack._securityGroup,
@@ -108,12 +123,20 @@ export class RootStack extends Stack {
         _sfnOutput: _EtlStack._sfnOutput,
         _OpenSearchIndex: _OpenSearchIndex.valueAsString,
         _OpenSearchIndexDict: _OpenSearchIndexDict.valueAsString,
+        _jobName: _ConnectorStack._jobName,
+        _jobQueueArn: _ConnectorStack._jobQueueArn,
+        _jobDefinitionArn: _ConnectorStack._jobDefinitionArn,
+        _etlEndpoint: _EtlStack._etlEndpoint,
+        _resBucketName: _EtlStack._resBucketName,
         env:process.env
     });
     _ApiStack.addDependency(_VpcStack);
     _ApiStack.addDependency(_OsStack);
     _ApiStack.addDependency(_LLMStack);
     _ApiStack.addDependency(_DynamoDBStack);
+    _ApiStack.addDependency(_ConnectorStack);
+    _ApiStack.addDependency(_DynamoDBStack);
+    _ApiStack.addDependency(_EtlStack);
 
     new CfnOutput(this, 'VPC', {value:_VpcStack._vpc.vpcId});
     new CfnOutput(this, 'OpenSearch Endpoint', {value:_OsStack._domainEndpoint});
@@ -121,6 +144,7 @@ export class RootStack extends Stack {
     // deprecate for now since proxy in ec2 instance is not allowed according to policy
     // new CfnOutput(this, 'OpenSearch Dashboard', {value:`${_Ec2Stack._publicIP}:8081/_dashboards`});
     new CfnOutput(this, 'API Endpoint Address', {value:_ApiStack._apiEndpoint});
+    new CfnOutput(this, 'WebSocket Endpoint Address', {value:_ApiStack._wsEndpoint});
     new CfnOutput(this, 'Glue Job Name', {value:_EtlStack._jobName});
     new CfnOutput(this, 'Cross Model Endpoint', {value:_LLMStack._rerankEndPoint || 'No Cross Endpoint Created'});
     new CfnOutput(this, 'Embedding Model Endpoint', {value:_LLMStack._embeddingEndPoints[0] || 'No Embedding Endpoint Created'});

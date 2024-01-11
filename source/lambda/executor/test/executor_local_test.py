@@ -11,6 +11,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+sys.path.append("llm-bot/source/lambda/executor/utils")
+sys.path.append("llm-bot/source/lambda/executor")
 sys.path.append("utils")
 sys.path.append(".")
 import aos_utils
@@ -26,6 +28,9 @@ load_dotenv()
 # region = os.environ["AWS_REGION"]
 # print(region)
 import main
+import os
+aos_index_dict = json.loads(os.environ.get("aos_index_dict", ""))
+print(f"aos index {aos_index_dict}")
 
 class DummyWebSocket:
     def post_to_connection(self,ConnectionId,Data):
@@ -48,17 +53,10 @@ class DummyWebSocket:
 
 main.ws_client = DummyWebSocket()
 
-def generate_answer(query, temperature=0.7, enable_q_q_match=False, enable_debug=True, retrieval_only=False):
+def generate_answer(query, temperature=0.7, enable_q_q_match=False, enable_debug=True, retrieval_only=False, type="market_chain", model="knowledge_qa", stream=False):
     event = {
-        "requestContext":{
-            "eventType":"MESSAGE",
-            "connectionId":"123"
-        },
         "body": json.dumps(
             {
-                "requestContext":{
-                    "eventType":"MESSAGE"
-                },
                 "messages": [
                     {
                         "role": "user",
@@ -67,30 +65,33 @@ def generate_answer(query, temperature=0.7, enable_q_q_match=False, enable_debug
                 ],
                 "aos_faq_index": "chatbot-index-9",
                 "aos_ug_index": "chatbot-index-1",
-                # "model": "knowledge_qa",
+                "model": "knowledge_qa",
                 "temperature": temperature,
                 "enable_q_q_match": enable_q_q_match,
                 "enable_debug": enable_debug,
                 "retrieval_only": retrieval_only,
-                # "type": "market_chain",
-                "type": "common",
-                # "model": "chat"
-                # "model": "strict_q_q",
-                "model": "knowledge_qa"
+                "type": type,
+                "model": model,
             }
         )
     }
+    if stream:
+        event["requestContext"] = {
+            "eventType":"MESSAGE",
+            "connectionId":"123"
+        }
     context = None
     response = main.lambda_handler(event, context)
     if response is None:
         return
-    body = json.loads(response["body"])
-    answer = body["choices"][0]["message"]["content"]
-    knowledge_sources = body["choices"][0]["message"]["knowledge_sources"]
-    debug_info = body["debug_info"]
-    return (answer,
-            knowledge_sources,
-            debug_info)
+    if not stream:
+        body = json.loads(response["body"])
+        answer = body["choices"][0]["message"]["content"]
+        knowledge_sources = body["choices"][0]["message"]["knowledge_sources"]
+        debug_info = body["debug_info"]
+        return (answer,
+                knowledge_sources,
+                debug_info)
 
 def retrieval(query, temperature=0.7, enable_q_q_match=False, enable_debug=True, retrieval_only=True):
     event = {
@@ -171,9 +172,17 @@ if __name__ == "__main__":
     # dgr
     # generate_answer("Amazon Fraud Detector 中'entityId'和'eventId'的含义与注意事项")
     # generate_answer("我想调用Amazon Bedrock中的基础模型，应该使用什么API?")
+    # LLM
+    generate_answer("Amazon EC2 提供了哪些功能来支持不同区域之间的数据恢复?", model="knowledge_qa", stream=False)
+    # generate_answer("什么是 CodeDeploy？", model="knowledge_qa", stream=True)
+    # Q-Q
+    # generate_answer("在相同的EMR Serverless应用程序中，不同的Job可以共享Worker吗？", model="knowledge_qa", stream=True)
+    # generate_answer("polly是什么？", model="auto")
+    # generate_answer("DynamoDB API\n要使用 Amazon DynamoDB，您的应用程序必须使用一些简单的 API 操作。下面汇总了这些操作（按类别组织）。")
     # generate_answer("polly是什么？")
     # mkt
-    generate_answer("ECS容器中的日志，可以配置输出到S3上吗？")
+    # generate_answer("ECS容器中的日志，可以配置输出到S3上吗？")
     # generate_answer("只要我付款就可以收到发票吗")
     # generate_answer("找不到发票怎么办")
     # generate_answer("发票内容有更新应怎么办")
+    generate_answer("发票内容有更新应怎么办", type="common", stream=False)

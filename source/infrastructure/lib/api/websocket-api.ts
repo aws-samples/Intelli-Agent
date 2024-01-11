@@ -8,6 +8,7 @@ import * as iam from 'aws-cdk-lib/aws-iam';
 import { createBasicLambdaPolicy } from '../shared/utils';
 
 interface WebSocketProps extends StackProps {
+    dispatcherLambda: lambda.Function;
     sendMessageLambda: lambda.Function;
 }
 
@@ -50,7 +51,7 @@ export class WebSocketStack extends Construct {
                 integration: new WebSocketLambdaIntegration('DisconnectIntegration', onDisconnectLambda)
             },
             defaultRouteOptions: {
-                integration: new WebSocketLambdaIntegration('DefaultRouteIntegration', props.sendMessageLambda)
+                integration: new WebSocketLambdaIntegration('DefaultRouteIntegration', props.dispatcherLambda)
             }
         });
 
@@ -61,11 +62,12 @@ export class WebSocketStack extends Construct {
         });
 
         webSocketApi.addRoute('sendMessage', {
-            integration: new WebSocketLambdaIntegration('MessageIntegration', props.sendMessageLambda)
+            integration: new WebSocketLambdaIntegration('MessageIntegration', props.dispatcherLambda)
         });
 
         props.sendMessageLambda.addEnvironment('websocket_url', stage.callbackUrl);
         webSocketApi.grantManageConnections(props.sendMessageLambda);
+        webSocketApi.grantManageConnections(props.dispatcherLambda);
 
         this.webSocketApi = webSocketApi;
         this.websocketApiStage = stage;

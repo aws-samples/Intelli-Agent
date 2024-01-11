@@ -23,7 +23,7 @@ Here is snippet of document
 {page}
 ```
 Please generate {question_num} questions and corresponding answers based on these document fragments, with the questions being as diverse as possible and containing details, following the rules below:
-1. The question part needs to start with "Question: ", the answer part needs to start with "Answer: ", for example: "Question: 什么是EC2？\nAnswer: EC2是Amazon Web Services（AWS）提供的服务，它按需提供可扩展的计算容量。"
+1. The question part needs to start with "question: ", the answer part needs to start with "answer: ", for example: "question: 什么是EC2？\nanswer: EC2是Amazon Web Services（AWS）提供的服务，它按需提供可扩展的计算容量。"
 2. All questions and answers need to be in Chinese
 3. All questions and answers should be in markdown format
 4. The total word count of each question and corresponding answer should be less than 300
@@ -35,7 +35,7 @@ zh_prompt_template = """
 {page}
 ```
 请基于这些文档片段自动生成{question_num}个问题以及对应答案, 问题需要尽可能多样化并包含细节, 且遵循如下规则:
-1. 问题需要以"Question: "开始, 答案需要以"Answer: "开始, 例如: "Question: 什么是EC2？\nAnswer: EC2是Amazon Web Services提供的服务，它按需提供可扩展的计算容量。"
+1. 问题需要以"question: "开始, 答案需要以"answer: "开始, 例如: "question: 什么是EC2？\nanswer: EC2是Amazon Web Services提供的服务，它按需提供可扩展的计算容量。"
 2. 所有问题和答案需要为中文
 3. 所有问题和答案需要是Markdown格式
 4. 每个问题以及对应答案的总字数控制在300个字之内
@@ -120,9 +120,9 @@ class EnhanceWithBedrock:
         for line in raw_completion:
             line = line.strip()
             # Check if the line contains a question
-            if line.startswith("Question:"):
+            if line.startswith("question:"):
                 question = line
-            elif line.startswith("Answer:"):
+            elif line.startswith("answer:"):
                 answer = line
                 qa_content = f"{question}\n{answer}"
                 enhanced_prompt_list.append(

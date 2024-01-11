@@ -4,9 +4,13 @@ from executor_local_test import generate_answer
 
 doc_dict = {}
 
-def load_raw_data(file_name="/home/ubuntu/Project/llm-bot/src/lambda/test/webcrawl_industry_aws_20231205_ug_en.json"):
+def load_raw_data():
     global doc_dict
-    raw_data = json.load(open(file_name))
+    raw_data = json.load(open("/home/ubuntu/Project/llm-bot/src/lambda/test/dgr_csdc_0830_1013_doc.json"))
+    for data in raw_data:
+        doc_dict[data["source"]] = json.dumps(data)
+    raw_data = json.load(open("/home/ubuntu/Project/llm-bot/src/lambda/test/ug_add_api_tag.json"))
+    # raw_data = json.load(open("/home/ubuntu/Project/llm-bot/src/lambda/test/webcrawl_industry_aws_20231205_ug_en.json"))
     for data in raw_data:
         doc_dict[data["url"]] = json.dumps(data)
 
@@ -16,31 +20,34 @@ def check_data(url):
     return {"error": "url not found"}
 
 text = [
+    # [
+    #     "在相同的EMR Serverless应用程序中，不同的Job可以共享Worker吗？",
+    # ],
+    # [
+    #     "如何授予用户对Athena只读权限?",
+    # ],
+    # [
+    #     "是否可以在Site to Site VPN连接上设置BGP秘钥？",
+    # ],
+    # [
+    #     "可以在AWS Application Loadbalancer中启用预热功能么？",
+    # ],
     [
-        "在相同的EMR Serverless应用程序中，不同的Job可以共享Worker吗？",
+        "建发股份和四川永丰浆纸股份有限公司及其子公司向关联人销 售商品、提供劳务交易预计总金额总计多少",
     ],
     [
-        "如何授予用户对Athena只读权限?",
+        "建发股份向关联人销 售商品、提供 劳务2024年预计总金额交是多少",
     ],
     [
-        "是否可以在Site to Site VPN连接上设置BGP秘钥？",
+        "义乌华鼎锦纶股份有限公司远期结售汇交易金额上限",
     ],
     [
-        "可以在AWS Application Loadbalancer中启用预热功能么？",
-    ],
-    [
-        "同一个区域一个VPC是否可以连接到多个Transit Gateway？",
-    ],
-    [
-        "什么是Athena?",
-    ],
-    [
-        "什么是阿里云?",
+        "天工国际更正原因",
     ]
 ]
 
 def get_answer(query_input):
-    answer, source, debug_info = generate_answer(query_input, enable_q_q_match=False)
+    answer, source, debug_info = generate_answer(query_input, enable_q_q_match=False, type="market_chain")
     return (answer,
             source,
             debug_info.get("query_parser_info", ""),
@@ -98,4 +105,4 @@ with gr.Blocks() as demo:
 
 # load_raw_data()
 demo.queue()
-demo.launch(server_name="0.0.0.0", server_port=8080)
+demo.launch(server_name="0.0.0.0", share=True, server_port=3306)

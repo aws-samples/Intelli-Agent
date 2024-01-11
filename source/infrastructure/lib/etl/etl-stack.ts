@@ -118,11 +118,11 @@ export class EtlStack extends NestedStack {
             blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
         });
 
-        const extraPythonFiles = new s3deploy.BucketDeployment(this, 'extraPythonFiles', {
-            sources: [s3deploy.Source.asset(join(__dirname, '../../../lambda/job/dep/dist'))],
-            destinationBucket: _S3Bucket,
-            // destinationKeyPrefix: 'llm_bot_dep-0.1.0-py3-none-any.whl',
-        });
+        // const extraPythonFiles = new s3deploy.BucketDeployment(this, 'extraPythonFiles', {
+        //     sources: [s3deploy.Source.asset(join(__dirname, '../../../lambda/job/dep/dist'))],
+        //     destinationBucket: _S3Bucket,
+        //     // destinationKeyPrefix: 'llm_bot_dep-0.1.0-py3-none-any.whl',
+        // });
 
         // Assemble the extra python files list using _S3Bucket.s3UrlForObject('llm_bot_dep-0.1.0-py3-none-any.whl') and _S3Bucket.s3UrlForObject('nougat_ocr-0.1.17-py3-none-any.whl') and convert to string
         const extraPythonFilesList = [_S3Bucket.s3UrlForObject('llm_bot_dep-0.1.0-py3-none-any.whl')].join(',');

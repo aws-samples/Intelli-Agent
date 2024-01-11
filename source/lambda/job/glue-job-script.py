@@ -416,6 +416,13 @@ def main():
                         )
 
                     if len(enhanced_prompt_list) > 0:
+                        for document in enhanced_prompt_list:
+                            save_content_to_s3(
+                                s3,
+                                document,
+                                res_bucket,
+                                SplittingType.QA_ENHANCEMENT.value,
+                            )
                         aos_injection(
                             enhanced_prompt_list,
                             embeddingModelEndpointList,

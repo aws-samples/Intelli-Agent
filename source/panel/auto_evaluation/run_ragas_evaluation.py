@@ -3,6 +3,7 @@ Note that the ragas version is 0.0.21 in current test
 """
 
 import json 
+import sys
 import pandas as pd 
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import as_completed
@@ -32,6 +33,11 @@ from rag_metrics_with_claude2 import context_relevancy as claude2_context_releva
 from rag_metrics_with_claude2 import answer_similarity as claude2_answer_similarity
 
 
+try:
+    from websocket import create_connection
+except ModuleNotFoundError:
+    os.system(f'{sys.executable} -m pip install websocket-client')
+    from websocket import create_connection
 # RAGAS_EVAL_METRICS = [context_recall,answer_correctness,faithfulness]
 # RAGAS_EVAL_METRICS = [claude2_context_recall]
 
@@ -86,12 +92,69 @@ def csdc_rag_call(
         time.sleep(10)
 
     raise RuntimeError(r.json())
+
+
+def websocket_call(
+    datum,
+    ws_url="wss://omjou492fe.execute-api.us-west-2.amazonaws.com/prod/"
+    ):
+    prompt = datum['question']
+    ws = create_connection(ws_url)
+    body = {
+        "action": "sendMessage",
+        "model": "knowledge_qa",
+        "messages": [{"role": "user","content": prompt}],
+        "temperature": 0.7,
+        "type" : "market_chain", 
+        "enable_q_q_match": True,
+        "enable_debug": False,
+        "llm_model_id":'anthropic.claude-v2:1'
+        }
+    ws.send(json.dumps(body))
+    start_time = time.time()
+    answer = ""
+    contexts = None
+    while True:
+        ret = json.loads(ws.recv())
+        try:
+            message_type = ret['choices'][0]['message_type']
+        except:
+            print(ret)
+            print(f'total time: {time.time()-start_time}' )
+            raise
+        if message_type == "START":
+            continue 
+        elif message_type == "CHUNK":
+            answer += ret['choices'][0]['message']['content']
+        elif message_type == "END":
+            break
+        elif message_type == "ERROR":
+            print(ret['choices'][0]['message']['content'])
+            break 
+        elif message_type == "CONTEXT":
+            print('sources: ',ret['choices'][0]['knowledge_sources'])
+    ws.close()  
+    return {"answer":r}
+
+def csdc_rag_call_stream(datum,
+        rag_api_url,
+        retry_times=3,
+        **rag_parameters):
+    ret = websocket_call(datum,rag_api_url)
+    ret = {
+                "question": datum['question'],
+                "contexts": contexts,
+                "answer": answer,
+                "ground_truths": datum['ground_truths']
+            } 
+    return ret
     
 
 def get_rag_result(data,
                    rag_api_url=None,
                    num_worker=1,
-                   **rag_parameters
+                   stream=True,
+                   **rag_parameters,
                    ):
     """_summary_
 
@@ -102,10 +165,14 @@ def get_rag_result(data,
     """
     futures = []
     ret = []
+    if stream:
+        func = csdc_rag_call_stream
+    else:
+        func = csdc_rag_call
     with ThreadPoolExecutor(num_worker) as pool:
         for datum in data:
             # question = datum['question']
-            future = pool.submit(csdc_rag_call,datum,rag_api_url,**rag_parameters)
+            future = pool.submit(func,datum,rag_api_url,**rag_parameters)
             future.datum = datum
             futures.append(future)
         # futures = [pool.submit(Claude2.generate,prompt) for prompt in prompts]
@@ -131,6 +198,7 @@ def run_eval(
         ret_save_profix = '',
         ragas_parameters: dict = None,
         ragas_eval_metrics = None,
+        stream=True,
         **rag_parameters):
     
     # ragas_eval_llm_model_id = ragas_parameters['llm_model_id']
@@ -154,6 +222,7 @@ def run_eval(
             data,
             rag_api_url=rag_api_url,
             num_worker=rag_num_worker,
+            stream=stream,
             **rag_parameters
         )
         print(data_to_eval[0])
@@ -192,14 +261,15 @@ if __name__ == "__main__":
     #     claude2_answer_similarity
     #     ]
     
-    rag_api_url = "https://5tzaajjzg7.execute-api.us-west-2.amazonaws.com/default/llm-bot-dev-qq-matching"
+    # rag_api_url = "https://5tzaajjzg7.execute-api.us-west-2.amazonaws.com/default/llm-bot-dev-qq-matching"
+    rag_api_url =  "wss://omjou492fe.execute-api.us-west-2.amazonaws.com/prod/"
     eval_data_path = "TechBot QA Test-fifth-test.csv"
     # eval_id = 'claude2-csds-retrive'
     by = 'openai-answer_correctness' #'claude2'
     eval_id = f'claude2-csdc-retrive-by-{by}'
     # llm_output_cache_path = f'{eval_id}-llm-output-cache-120.pkl'
     # llm_output_cache_path = f'{eval_id}-llm-output-cache.pkl'
-    llm_output_cache_path = "techbot_question_dgr_res_6_120_with_gt.pkl"
+    llm_output_cache_path = "techbot_question_dgr_res_1_9_120_with_gt.pkl"
     ret_save_profix = f'{eval_id}-{llm_output_cache_path}-eval'
     ragas_parameters = {
         "region_name":'us-west-2',
