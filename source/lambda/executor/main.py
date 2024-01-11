@@ -627,6 +627,8 @@ def return_strict_qq_result(x):
         ),
         "sources": [],
         "contexts": [],
+        "context_docs": [],
+        "context_sources": [],
     }
 
 
@@ -818,6 +820,8 @@ def market_chain_entry(
         "sources": lambda x: [],
         "contexts": lambda x: [],
         "intent_type": lambda x: IntentType.CHAT.value,
+        "context_docs": lambda x: [],
+        "context_sources": lambda x: [],
     }
     
     # query expansion
