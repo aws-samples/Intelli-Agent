@@ -943,7 +943,7 @@ def lambda_handler(event, context):
         history, question = process_input_messages(messages)
         role = "user"
 
-        if not session_id:
+        if session_id == 'N/A':
             if stream:
                 session_id = record_event["requestContext"]["connectionId"]
             else:
@@ -995,41 +995,42 @@ def lambda_handler(event, context):
 
         main_entry_elpase = time.time() - main_entry_start
         logger.info(f"runing time of {biz_type} entry : {main_entry_elpase}s seconds")
-        
-        # if not stream:
-        return process_response(
-                **dict(
-                    stream=stream,
-                    session_id=session_id,
-                    model=model,
-                    request_timestamp=request_timestamp,
-                    answer=answer,
-                    sources=sources,
-                    get_contexts=get_contexts,
-                    contexts=contexts,
-                    enable_debug=enable_debug,
-                    debug_info=debug_info,
-                    ws_client=ws_client,
-                    chat_history=chat_history,
-                    message_id=message_id,
-                )
-        )
-        # process_response(
-        #     **dict(
-        #         stream=stream,
-        #         session_id=session_id,
-        #         model=model,
-        #         request_timestamp=request_timestamp,
-        #         answer=answer,
-        #         sources=sources,
-        #         get_contexts=get_contexts,
-        #         contexts=contexts,
-        #         enable_debug=enable_debug,
-        #         debug_info=debug_info,
-        #         ws_client=ws_client,
-        #         chat_history=chat_history,
-        #         message_id=message_id,
-        #     )
-        # )
 
-    # return {"statusCode": 200, "body": "All records have been processed"}
+    if not stream:
+        return process_response(
+            **dict(
+                stream=stream,
+                session_id=session_id,
+                model=model,
+                request_timestamp=request_timestamp,
+                answer=answer,
+                sources=sources,
+                get_contexts=get_contexts,
+                contexts=contexts,
+                enable_debug=enable_debug,
+                debug_info=debug_info,
+                ws_client=ws_client,
+                chat_history=chat_history,
+                message_id=message_id,
+            )
+        )
+
+    process_response(
+        **dict(
+            stream=stream,
+            session_id=session_id,
+            model=model,
+            request_timestamp=request_timestamp,
+            answer=answer,
+            sources=sources,
+            get_contexts=get_contexts,
+            contexts=contexts,
+            enable_debug=enable_debug,
+            debug_info=debug_info,
+            ws_client=ws_client,
+            chat_history=chat_history,
+            message_id=message_id,
+        )
+    )
+
+    return {"statusCode": 200, "body": "All records have been processed"} 
