@@ -627,10 +627,12 @@ def return_strict_qq_result(x):
         ),
         "sources": [],
         "contexts": [],
+        "context_docs": [],
+        "context_sources": [],
     }
 
 
-def get_rag_llm_chain(llm_model_id, stream, model_kwargs=None):
+def get_rag_llm_chain(generator_llm_config, stream):
     def contexts_trunc(docs: list, context_num=2):
         docs = [doc for doc in docs[:context_num]]
         # filter same docs
@@ -664,9 +666,9 @@ def get_rag_llm_chain(llm_model_id, stream, model_kwargs=None):
     )
  
     llm_chain = get_llm_chain(
-        model_id=llm_model_id,
+        model_id=generator_llm_config['model_id'],
         intent_type=IntentType.KNOWLEDGE_QA.value,
-        model_kwargs=model_kwargs,  # TODO
+        model_kwargs=generator_llm_config['model_kwargs'],  # TODO
         stream=stream,
     )
     llm_chain = contexts_trunc_stage | RunnablePassthrough.assign(answer=llm_chain)
@@ -690,7 +692,11 @@ def get_qd_chain(
     return qd_chain
 
 def get_qd_llm_chain(
-    aos_index_list, llm_model_id, stream=False, top_n=5, using_whole_doc=True
+    aos_index_list, 
+    generator_llm_config, 
+    stream=False, 
+    top_n=5,
+    using_whole_doc=True,
 ):
     retriever_list = [
         QueryDocumentRetriever(
@@ -711,7 +717,7 @@ def get_qd_llm_chain(
     # def format_sources(docs, top_k=2):
     #     return [doc.metadata["source"] for doc in docs["docs"][:top_k]]
 
-    llm_chain = get_rag_llm_chain(llm_model_id, stream)
+    llm_chain = get_rag_llm_chain(generator_llm_config, stream)
     qd_llm_chain = RunnablePassthrough.assign(docs=compression_retriever) | llm_chain
     return qd_llm_chain
 
@@ -737,10 +743,11 @@ def output_postprocess(raw_output):
 
 def market_chain_entry(
     query_input: str,
-    llm_model_id=None,
+    # llm_model_id=None,
     stream=False,
     intent_type=IntentType.KNOWLEDGE_QA,
     manual_input_intent=None,
+    generator_llm_config=None
 ):
     """
     Entry point for the Lambda function.
@@ -750,6 +757,7 @@ def market_chain_entry(
     :param stream(Bool): Whether to use llm stream decoding output.
     return: answer(str)
     """
+    assert generator_llm_config is not None
     aos_index_dict = json.loads(
         os.environ.get(
             "aos_index_dict",
@@ -796,9 +804,9 @@ def market_chain_entry(
     # 2.2 query document retrieval + LLM.
     qd_llm_chain = get_qd_llm_chain(
         [aos_index_dgr_qd, aos_index_dgr_faq_qd, aos_index_mkt_qd],
-        llm_model_id,
+        generator_llm_config,
         stream,
-        top_n=5,
+        top_n=5
     )
 
     # 2.3 query question router.
@@ -820,21 +828,23 @@ def market_chain_entry(
 
     # TODO design chat chain
     chat_llm_chain = get_llm_chain(
-        model_id=llm_model_id,
+        model_id=generator_llm_config['model_id'],
         intent_type=IntentType.CHAT.value,
-        model_kwargs=None,  # TODO
+        model_kwargs=generator_llm_config['model_kwargs'],  # TODO
         stream=stream,
     ) | {
         "answer": lambda x: x,
         "sources": lambda x: [],
         "contexts": lambda x: [],
         "intent_type": lambda x: IntentType.CHAT.value,
+        "context_docs": lambda x: [],
+        "context_sources": lambda x: [],
     }
     
     # query expansion
     query_expansion_chain = RunnablePassthrough.assign(
         query_expansions=get_query_expansion_chain(
-            llm_model_id=llm_model_id
+            llm_model_id=generator_llm_config['model_id']
         )
     ) | add_key_to_debug(add_key='query_expansions',debug_key="debug_info")
 
@@ -967,7 +977,18 @@ def lambda_handler(event, context):
         model = event_body["model"]
         session_id = event_body.get("session_id", "N/A")
         messages = event_body["messages"]
-        temperature = event_body["temperature"]
+        temperature = event_body.get("temperature",0.7)
+        llm_model_id = event_body.get("llm_model_id", "anthropic.claude-v2:1")
+        # rag llm config 
+        generator_llm_config = {
+            "model_kwargs":{
+            "max_tokens_to_sample": 2000,
+            "temperature": temperature,
+            "top_p": 0.9
+            },
+            "model_id":llm_model_id
+        }
+
         stream = _is_websocket_request(record_event)
         if stream:
             load_ws_client()
@@ -983,13 +1004,13 @@ def lambda_handler(event, context):
             or event_body.get("model", None)
             or IntentType.KNOWLEDGE_QA.value
         )
-        llm_model_id = event_body.get("llm_model_id", "anthropic.claude-v2:1")
+        
         # stream = event_body.get("stream", False)
 
         history, question = process_input_messages(messages)
         role = "user"
 
-        if not session_id:
+        if session_id == 'N/A':
             if stream:
                 session_id = record_event["requestContext"]["connectionId"]
             else:
@@ -1050,47 +1071,48 @@ def lambda_handler(event, context):
             answer, sources, contexts, debug_info = market_chain_entry(
                 question,
                 stream=stream,
-                llm_model_id=llm_model_id,
                 intent_type=intent_type,
+                generator_llm_config=generator_llm_config
             )
 
         main_entry_elpase = time.time() - main_entry_start
         logger.info(f"runing time of {biz_type} entry : {main_entry_elpase}s seconds")
-        
-        # if not stream:
-        return process_response(
-                **dict(
-                    stream=stream,
-                    session_id=session_id,
-                    model=model,
-                    request_timestamp=request_timestamp,
-                    answer=answer,
-                    sources=sources,
-                    get_contexts=get_contexts,
-                    contexts=contexts,
-                    enable_debug=enable_debug,
-                    debug_info=debug_info,
-                    ws_client=ws_client,
-                    chat_history=chat_history,
-                    message_id=message_id,
-                )
-        )
-        # process_response(
-        #     **dict(
-        #         stream=stream,
-        #         session_id=session_id,
-        #         model=model,
-        #         request_timestamp=request_timestamp,
-        #         answer=answer,
-        #         sources=sources,
-        #         get_contexts=get_contexts,
-        #         contexts=contexts,
-        #         enable_debug=enable_debug,
-        #         debug_info=debug_info,
-        #         ws_client=ws_client,
-        #         chat_history=chat_history,
-        #         message_id=message_id,
-        #     )
-        # )
 
-    # return {"statusCode": 200, "body": "All records have been processed"}
+    if not stream:
+        return process_response(
+            **dict(
+                stream=stream,
+                session_id=session_id,
+                model=model,
+                request_timestamp=request_timestamp,
+                answer=answer,
+                sources=sources,
+                get_contexts=get_contexts,
+                contexts=contexts,
+                enable_debug=enable_debug,
+                debug_info=debug_info,
+                ws_client=ws_client,
+                chat_history=chat_history,
+                message_id=message_id,
+            )
+        )
+
+    process_response(
+        **dict(
+            stream=stream,
+            session_id=session_id,
+            model=model,
+            request_timestamp=request_timestamp,
+            answer=answer,
+            sources=sources,
+            get_contexts=get_contexts,
+            contexts=contexts,
+            enable_debug=enable_debug,
+            debug_info=debug_info,
+            ws_client=ws_client,
+            chat_history=chat_history,
+            message_id=message_id,
+        )
+    )
+
+    return {"statusCode": 200, "body": "All records have been processed"} 
