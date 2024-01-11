@@ -40,7 +40,7 @@ export class RootStack extends Stack {
     if (process.env.AOSDictValue !== undefined) {
       _OpenSearchIndexDictDefaultValue = process.env.AOSDictValue
     } else {
-      _OpenSearchIndexDictDefaultValue = '{"aos_index_mkt_qd":"aws-cn-mkt-knowledge","aos_index_mkt_qq":"gcr-mkt-qq","aos_index_dgr_qd":"ug-index-3","aos_index_dgr_qq":"faq-index-2"}';
+      _OpenSearchIndexDictDefaultValue = '{"aos_index_mkt_qd":"aws-cn-mkt-knowledge","aos_index_mkt_qq":"gcr-mkt-qq","aos_index_dgr_qd":"ug-index-20240108","aos_index_dgr_qq":"gcr-dgr-qq", "aos_index_dgr_faq_qd":"faq-index-20240110"}';
     } 
 
     const _OpenSearchIndexDict = new CfnParameter(this, 'OpenSearchIndexDict', {

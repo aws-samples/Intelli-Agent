@@ -48,7 +48,8 @@ while True:
         print(ret['choices'][0]['message']['content'])
         break 
     elif message_type == "CONTEXT":
+        print()
         print('contexts',ret)
-        print('sources: ',ret['choices'][0]['knowledge_sources'])
+        # print('sources: ',ret['choices'][0]['knowledge_sources'])
 
 ws.close()  
