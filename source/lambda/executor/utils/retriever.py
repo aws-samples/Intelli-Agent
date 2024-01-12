@@ -168,7 +168,7 @@ def get_doc(file_path, index_name):
     chunk_text_list = [x[3] for x in sorted_chunk_list]
     return "\n".join(chunk_text_list)
 
-def get_context_window(previous_chunk_id, next_chunk_id, index_name, window_size):
+def get_context(previous_chunk_id, next_chunk_id, index_name, window_size):
     previous_content_list = []
     previous_pos = 0
     next_pos = 0
@@ -275,7 +275,7 @@ def organize_faq_results(response, index_name, source_field="file_path", text_fi
         results.append(result)
     return results
 
-def organize_results(response, aos_index=None, source_field="file_path", text_field="text", using_whole_doc=True):
+def organize_results(response, aos_index=None, source_field="file_path", text_field="text", using_whole_doc=True, context_size=0):
     """
     Organize results from aos response
 
@@ -300,6 +300,10 @@ def organize_results(response, aos_index=None, source_field="file_path", text_fi
             doc = get_doc(result["source"], aos_index)
             if doc:
                 result["doc"] = doc
+        elif context_size:
+            context = get_context(result["source"], result["source"], aos_index, context_size)
+            if context:
+                result["doc"] = context
         results.append(result)
     return results
 
@@ -366,13 +370,15 @@ class QueryDocumentRetriever(BaseRetriever):
     text_field: Any
     source_field: Any
     using_whole_doc: Any
-    def __init__(self, index, vector_field, text_field,  source_field, using_whole_doc):
+    context_num: Any
+    def __init__(self, index, vector_field, text_field,  source_field, using_whole_doc, context_num):
         super().__init__()
         self.index = index
         self.vector_field = vector_field
         self.text_field = text_field
         self.source_field = source_field
         self.using_whole_doc = using_whole_doc
+        self.context_num = context_num
 
     def _get_relevant_documents(self, question: Dict, *, run_manager: CallbackManagerForRetrieverRun) -> List[Document]:
         query = question["query"] 
@@ -396,7 +402,7 @@ class QueryDocumentRetriever(BaseRetriever):
             size=result_num,
         )
         opensearch_knn_results.extend(
-            organize_results(opensearch_knn_response, self.index, self.source_field, self.text_field, self.using_whole_doc)[:result_num]
+            organize_results(opensearch_knn_response, self.index, self.source_field, self.text_field, self.using_whole_doc, self.context_num)[:result_num]
         )
 
         result_num = 20
@@ -408,7 +414,7 @@ class QueryDocumentRetriever(BaseRetriever):
             size=result_num,
         )
         opensearch_knn_results.extend(
-            organize_results(opensearch_knn_response, self.index, self.source_field, self.text_field, self.using_whole_doc)[:result_num]
+            organize_results(opensearch_knn_response, self.index, self.source_field, self.text_field, self.using_whole_doc, self.context_num)[:result_num]
         )
         recall_end_time = time.time()
         elpase_time = recall_end_time - start
