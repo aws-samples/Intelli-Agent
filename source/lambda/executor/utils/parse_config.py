@@ -1,5 +1,6 @@
 import collections.abc
 import copy
+from constant import IntentType
 
 # update nest dict
 def update_nest_dict(d, u):
@@ -27,6 +28,7 @@ rag_default_config = {
     },
     # intent_config
     "intent_config":{
+        "intent_type":IntentType.KNOWLEDGE_QA.value,
         "model_id":"anthropic.claude-v2:1",
         "model_kwargs":{"temperature":0,
                         "max_tokens_to_sample": 2000,
@@ -59,4 +61,8 @@ def parse_rag_config(event_body):
     if temperature:
         new_event_config['generator_llm_config']['model_kwargs']['temperature'] = temperature
     
+    intent = event_body.get("intent", None) or event_body.get("model", None)
+    if intent:
+        new_event_config['intent_config']['intent_type'] = intent
+            
     return new_event_config

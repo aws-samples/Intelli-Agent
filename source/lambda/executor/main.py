@@ -2,6 +2,7 @@ import copy
 import json
 import logging
 import os
+os.environ["PYTHONUNBUFFERED"]="1"
 import sys
 import time
 import traceback
@@ -741,7 +742,6 @@ def market_chain_entry(
     query_input: str,
     # llm_model_id=None,
     stream=False,
-    intent_type=IntentType.KNOWLEDGE_QA,
     manual_input_intent=None,
     rag_config=None
 ):
@@ -755,6 +755,7 @@ def market_chain_entry(
     """
     assert rag_config is not None
     generator_llm_config = rag_config['generator_llm_config']
+    intent_type = rag_config['intent_config']['intent_type']
     aos_index_dict = json.loads(
         os.environ.get(
             "aos_index_dict",
@@ -815,8 +816,11 @@ def market_chain_entry(
                     "answer": doc.metadata["answer"],
                     "sources": doc.metadata["source"],
                     "contexts": [],
+                    "context_docs": [],
+                    "context_sources": [],
                     # "debug_info": lambda x: x["debug_info"],
                 }
+                logger.info('qq matched...')
                 info.update(output)
                 return info
         return qd_llm_chain
@@ -1025,11 +1029,12 @@ def lambda_handler(event, context):
         enable_debug = event_body.get("enable_debug", False)
 
         get_contexts = event_body.get("get_contexts", False)
-        intent_type = (
-            event_body.get("intent", None)
-            or event_body.get("model", None)
-            or IntentType.KNOWLEDGE_QA.value
-        )
+
+        # intent_type = (
+        #     event_body.get("intent", None)
+        #     or event_body.get("model", None)
+        #     or IntentType.KNOWLEDGE_QA.value
+        # )
 
         # all rag related params can be found in rag_config
         rag_config = parse_config.parse_rag_config(event_body)
@@ -1100,7 +1105,6 @@ def lambda_handler(event, context):
             answer, sources, contexts, debug_info = market_chain_entry(
                 question,
                 stream=stream,
-                intent_type=intent_type,
                 rag_config=rag_config
             )
 

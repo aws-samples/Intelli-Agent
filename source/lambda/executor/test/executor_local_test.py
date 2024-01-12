@@ -1,6 +1,10 @@
 import json
 import sys
 import csv
+import os 
+os.environ['AWS_PROFILE'] = "atl"
+os.environ['AWS_DEFAULT_REGION'] = "us-west-2"
+os.environ['aos_index_dict'] = '{"aos_index_mkt_qd":"aws-cn-mkt-knowledge","aos_index_mkt_qq":"gcr-mkt-qq","aos_index_dgr_qd":"ug-index-20240108","aos_index_dgr_qq":"gcr-dgr-qq", "aos_index_dgr_faq_qd":"faq-index-20240110"}'
 
 import logging
 log_level = logging.INFO
@@ -16,8 +20,8 @@ sys.path.append("llm-bot/source/lambda/executor")
 sys.path.append("utils")
 sys.path.append(".")
 import aos_utils
-from requests_aws4auth import AWS4Auth
-import boto3
+# from requests_aws4auth import AWS4Auth
+# import boto3
 # region = "us-east-1"
 # credentials = boto3.Session().get_credentials()
 # aos_utils.awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, region, 'es', session_token=credentials.token)
@@ -53,7 +57,17 @@ class DummyWebSocket:
 
 main.ws_client = DummyWebSocket()
 
-def generate_answer(query, temperature=0.7, enable_q_q_match=False, enable_debug=True, retrieval_only=False, type="market_chain", model="knowledge_qa", stream=False):
+def generate_answer(
+        query, 
+        temperature=0.7, 
+        enable_q_q_match=False, 
+        enable_debug=True, 
+        retrieval_only=False, 
+        type="market_chain", 
+        model="knowledge_qa", 
+        stream=False,
+        intent='auto'
+    ):
     event = {
         "body": json.dumps(
             {
@@ -63,15 +77,16 @@ def generate_answer(query, temperature=0.7, enable_q_q_match=False, enable_debug
                         "content": query
                     }
                 ],
-                "aos_faq_index": "chatbot-index-9",
-                "aos_ug_index": "chatbot-index-1",
-                "model": "knowledge_qa",
+                # "aos_faq_index": "chatbot-index-9",
+                # "aos_ug_index": "chatbot-index-1",
+                # "model": "knowledge_qa",
                 "temperature": temperature,
-                "enable_q_q_match": enable_q_q_match,
+                # "enable_q_q_match": enable_q_q_match,
                 "enable_debug": enable_debug,
                 "retrieval_only": retrieval_only,
                 "type": type,
                 "model": model,
+                "intent":intent
             }
         )
     }
@@ -167,6 +182,40 @@ def eval():
             debug_info_list.append(debug_info)
     json.dump(result_list, result_file, ensure_ascii=False)
     json.dump(debug_info_list, debug_info_file, ensure_ascii=False)
+
+def market_deploy_test():
+    generate_answer(
+        "Amazon EC2 提供了哪些功能来支持不同区域之间的数据恢复?", 
+        model="knowledge_qa", 
+        stream=False,
+        intent='auto',
+        type="market_chain", 
+    )
+    generate_answer(
+        "Amazon EC2 提供了哪些功能来支持不同区域之间的数据恢复?", 
+        model="knowledge_qa", 
+        stream=True,
+        type="market_chain", 
+    )
+    generate_answer(
+        "今天天气怎么样？", 
+        model="auto", 
+        stream=True,
+        type="market_chain", 
+    )
+    generate_answer(
+        "今天天气怎么样？", 
+        model="auto", 
+        stream=False,
+        type="market_chain", 
+    )
+    generate_answer(
+        "IoT Core是否支持Qos2？", 
+        model="knowledge_qa", 
+        stream=True,
+        type="market_chain", 
+    )
+
 
 if __name__ == "__main__":
     # dgr
