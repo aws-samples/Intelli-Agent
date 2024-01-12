@@ -674,11 +674,11 @@ def get_rag_llm_chain(generator_llm_config, stream):
     return llm_chain
 
 def get_qd_chain(
-    aos_index_list, top_n=5, using_whole_doc=True
+    aos_index_list, top_n=5, using_whole_doc=True, context_num=0
 ):
     retriever_list = [
         QueryDocumentRetriever(
-            index, "vector_field", "text", "file_path", using_whole_doc
+            index, "vector_field", "text", "file_path", using_whole_doc, context_num
         )
         for index in aos_index_list
     ]
@@ -696,10 +696,11 @@ def get_qd_llm_chain(
     stream=False, 
     top_n=5,
     using_whole_doc=True,
+    context_num=0,
 ):
     retriever_list = [
         QueryDocumentRetriever(
-            index, "vector_field", "text", "file_path", using_whole_doc
+            index, "vector_field", "text", "file_path", using_whole_doc, context_num
         )
         for index in aos_index_list
     ]
@@ -799,7 +800,8 @@ def market_chain_entry(
         [aos_index_dgr_qd, aos_index_dgr_faq_qd, aos_index_mkt_qd],
         rag_config['generator_llm_config'],
         stream,
-        top_n=5
+        top_n=5,
+        context_num=3
     )
 
     # 2.3 query question router.
@@ -957,7 +959,7 @@ def main_chain_entry(
     sources = []
     answer = ""
     full_chain = get_qd_llm_chain(
-        [aos_index], llm_model_id, stream, using_whole_doc=False
+        [aos_index], rag_config['generator_llm_config'], stream, using_whole_doc=False, context_num=5
     )
     response = full_chain.invoke({"query": query_input, "debug_info": debug_info})
     answer = response["answer"]
@@ -988,7 +990,7 @@ def get_retriever_response(docs):
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "*",
     }
-    response["body"] = {"docs": docs}
+    response["body"] = {"docs": json.dumps(docs)}
     response["headers"] = resp_header
     return response
 
@@ -1057,8 +1059,7 @@ def lambda_handler(event, context):
             answer, sources, contexts, debug_info = main_chain_entry(
                 question,
                 aos_index,
-                stream=stream,
-                llm_model_id=llm_model_id,
+                stream=stream
             )
         elif biz_type.lower() == Type.QD_RETRIEVER.value:
             retriever_index = event_body.get("retriever_index", "test-index")
