@@ -38,6 +38,7 @@ def handler(event, context):
         "statusCode": 200,
         "body": json.dumps(
             {
+                "execution_id": response["executionArn"].split(":")[-1],
                 "step_function_arn": response["executionArn"],
                 "input_payload": inputPayload,
             }

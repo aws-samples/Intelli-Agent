@@ -585,6 +585,8 @@ def get_strict_qq_chain(strict_q_q_index):
     def get_strict_qq_result(docs, threshold=0.7):
         results = []
         for doc in docs:
+            if doc.metadata["score"] < threshold:
+                break 
             results.append(
                 {
                     "score": doc.metadata["score"],
@@ -593,12 +595,7 @@ def get_strict_qq_chain(strict_q_q_index):
                     "question": doc.metadata["question"],
                 }
             )
-        output = {
-            "answer": json.dumps(results, ensure_ascii=False),
-            "sources": [],
-            "contexts": [],
-        }
-        return output
+        return results
 
     mkt_q_q_retriever = QueryQuestionRetriever(
         index=strict_q_q_index,
@@ -679,6 +676,22 @@ def get_rag_llm_chain(generator_llm_config, stream):
     llm_chain = contexts_trunc_stage | RunnablePassthrough.assign(answer=llm_chain)
     return llm_chain
 
+def get_qd_chain(
+    aos_index_list, top_n=5, using_whole_doc=True
+):
+    retriever_list = [
+        QueryDocumentRetriever(
+            index, "vector_field", "text", "file_path", using_whole_doc
+        )
+        for index in aos_index_list
+    ]
+    lotr = MergerRetriever(retrievers=retriever_list)
+    compressor = BGEReranker(top_n=top_n)
+    compression_retriever = ContextualCompressionRetriever(
+        base_compressor=compressor, base_retriever=lotr
+    )
+    qd_chain = RunnablePassthrough.assign(docs=compression_retriever)
+    return qd_chain
 
 def get_qd_llm_chain(
     aos_index_list, 
@@ -800,9 +813,10 @@ def market_chain_entry(
                     "answer": doc.metadata["answer"],
                     "sources": doc.metadata["source"],
                     "contexts": [],
-                    "debug_info": lambda x: x["debug_info"],
+                    # "debug_info": lambda x: x["debug_info"],
                 }
-                return output
+                info.update(output)
+                return info
         return qd_llm_chain
 
     qq_chain = RunnablePassthrough.assign(qq_result=dgr_q_q_retriever)
@@ -858,6 +872,64 @@ def market_chain_entry(
 
     return answer, sources, contexts, debug_info
 
+def main_qd_retriever_entry(
+    query_input: str,
+    aos_index: str,
+):
+    """
+    Entry point for the Lambda function.
+
+    :param query_input: The query input.
+    :param aos_index: The index of the AOS engine.
+
+    return: answer(str)
+    """
+    debug_info = {
+        "query": query_input,
+        "query_parser_info": {},
+        "q_q_match_info": {},
+        "knowledge_qa_knn_recall": {},
+        "knowledge_qa_boolean_recall": {},
+        "knowledge_qa_combined_recall": {},
+        "knowledge_qa_cross_model_sort": {},
+        "knowledge_qa_llm": {},
+        "knowledge_qa_rerank": {},
+    }
+    full_chain = get_qd_chain(
+        [aos_index], using_whole_doc=False
+    )
+    response = full_chain.invoke({"query": query_input, "debug_info": debug_info})
+    doc_list = []
+    for doc in response["docs"]:
+        doc_list.append({"page_content": doc.page_content, "metadata": doc.metadata})
+    return doc_list
+
+def main_qq_retriever_entry(
+    query_input: str,
+    aos_index: str,
+):
+    """
+    Entry point for the Lambda function.
+
+    :param query_input: The query input.
+    :param aos_index: The index of the AOS engine.
+
+    return: answer(str)
+    """
+    debug_info = {
+        "query": query_input,
+        "query_parser_info": {},
+        "q_q_match_info": {},
+        "knowledge_qa_knn_recall": {},
+        "knowledge_qa_boolean_recall": {},
+        "knowledge_qa_combined_recall": {},
+        "knowledge_qa_cross_model_sort": {},
+        "knowledge_qa_llm": {},
+        "knowledge_qa_rerank": {},
+    }
+    full_chain = get_strict_qq_chain(aos_index)
+    response = full_chain.invoke({"query": query_input, "debug_info": debug_info})
+    return response
 
 def main_chain_entry(
         query_input: str,
@@ -896,7 +968,6 @@ def main_chain_entry(
     contexts = response["context_docs"]
     return answer, sources, contexts, debug_info
 
-
 def _is_websocket_request(event):
     """Check if the request is WebSocket or Restful
 
@@ -912,6 +983,17 @@ def _is_websocket_request(event):
     else:
         return False
 
+def get_retriever_response(docs):
+    response = {"statusCode": 200, "headers": {"Content-Type": "application/json"}}
+    resp_header = {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "*",
+    }
+    response["body"] = {"docs": docs}
+    response["headers"] = resp_header
+    return response
 
 # @handle_error
 def lambda_handler(event, context):
@@ -940,7 +1022,6 @@ def lambda_handler(event, context):
         enable_q_q_match = event_body.get("enable_q_q_match", False)
         enable_debug = event_body.get("enable_debug", False)
 
-        retrieval_only = event_body.get("enable_debug", False)
         get_contexts = event_body.get("get_contexts", False)
         intent_type = (
             event_body.get("intent", None)
@@ -982,6 +1063,20 @@ def lambda_handler(event, context):
                 stream=stream,
                 rag_config=rag_config
             )
+        elif biz_type.lower() == Type.QD_RETRIEVER.value:
+            retriever_index = event_body.get("retriever_index", "test-index")
+            docs = main_qd_retriever_entry(
+                question,
+                retriever_index
+            )
+            return get_retriever_response(docs)
+        elif biz_type.lower() == Type.QQ_RETRIEVER.value:
+            retriever_index = event_body.get("retriever_index", "test-index")
+            docs = main_qq_retriever_entry(
+                question,
+                retriever_index
+            )
+            return get_retriever_response(docs)
         elif biz_type.lower() == Type.DGR.value:
             answer, sources, contexts, debug_info = dgr_entry(
                 session_id,
