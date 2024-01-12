@@ -585,6 +585,8 @@ def get_strict_qq_chain(strict_q_q_index):
     def get_strict_qq_result(docs, threshold=0.7):
         results = []
         for doc in docs:
+            if doc.metadata["score"] < threshold:
+                break 
             results.append(
                 {
                     "score": doc.metadata["score"],
@@ -593,12 +595,7 @@ def get_strict_qq_chain(strict_q_q_index):
                     "question": doc.metadata["question"],
                 }
             )
-        output = {
-            "answer": json.dumps(results, ensure_ascii=False),
-            "sources": [],
-            "contexts": [],
-        }
-        return output
+        return results
 
     mkt_q_q_retriever = QueryQuestionRetriever(
         index=strict_q_q_index,
@@ -876,7 +873,7 @@ def market_chain_entry(
 
     return answer, sources, contexts, debug_info
 
-def main_retriever_entry(
+def main_qd_retriever_entry(
     query_input: str,
     aos_index: str,
 ):
@@ -907,6 +904,33 @@ def main_retriever_entry(
     for doc in response["docs"]:
         doc_list.append({"page_content": doc.page_content, "metadata": doc.metadata})
     return doc_list
+
+def main_qq_retriever_entry(
+    query_input: str,
+    aos_index: str,
+):
+    """
+    Entry point for the Lambda function.
+
+    :param query_input: The query input.
+    :param aos_index: The index of the AOS engine.
+
+    return: answer(str)
+    """
+    debug_info = {
+        "query": query_input,
+        "query_parser_info": {},
+        "q_q_match_info": {},
+        "knowledge_qa_knn_recall": {},
+        "knowledge_qa_boolean_recall": {},
+        "knowledge_qa_combined_recall": {},
+        "knowledge_qa_cross_model_sort": {},
+        "knowledge_qa_llm": {},
+        "knowledge_qa_rerank": {},
+    }
+    full_chain = get_strict_qq_chain(aos_index)
+    response = full_chain.invoke({"query": query_input, "debug_info": debug_info})
+    return response
 
 def main_chain_entry(
     query_input: str,
@@ -1035,10 +1059,27 @@ def lambda_handler(event, context):
                 stream=stream,
                 llm_model_id=llm_model_id,
             )
-        elif biz_type.lower() == Type.RETRIEVER.value:
-            retriever_response = main_retriever_entry(
+        elif biz_type.lower() == Type.QD_RETRIEVER.value:
+            retriever_index = event_body.get("retriever_index", "test-index")
+            retriever_response = main_qd_retriever_entry(
                 question,
-                aos_index
+                retriever_index
+            )
+            resp_header = {
+                "Content-Type": "application/json",
+                "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "*",
+            }
+            response = {"statusCode": 200, "headers": {"Content-Type": "application/json"}}
+            response["body"] = json.dumps(retriever_response)
+            response["headers"] = resp_header
+            return response
+        elif biz_type.lower() == Type.QQ_RETRIEVER.value:
+            retriever_index = event_body.get("retriever_index", "test-index")
+            retriever_response = main_qq_retriever_entry(
+                question,
+                retriever_index
             )
             resp_header = {
                 "Content-Type": "application/json",
