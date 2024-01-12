@@ -4,7 +4,6 @@ import re
 CLAUDE21_RAG_PROMPT_TEMPLTE = """You are a customer service agent, and answering user's query. You ALWAYS follow these guidelines when writing your response:
 <guidelines>
 - NERVER say "根据搜索结果/大家好/谢谢...".
-- ALWAYS response with Chinese.
 </guidelines>
 
 Here are some documents for you to reference for your query:
