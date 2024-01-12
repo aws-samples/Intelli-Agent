@@ -980,6 +980,17 @@ def _is_websocket_request(event):
     else:
         return False
 
+def get_retriever_response(docs):
+    response = {"statusCode": 200, "headers": {"Content-Type": "application/json"}}
+    resp_header = {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "*",
+    }
+    response["body"] = {"docs": docs}
+    response["headers"] = resp_header
+    return response
 
 # @handle_error
 def lambda_handler(event, context):
@@ -1051,36 +1062,18 @@ def lambda_handler(event, context):
             )
         elif biz_type.lower() == Type.QD_RETRIEVER.value:
             retriever_index = event_body.get("retriever_index", "test-index")
-            retriever_response = main_qd_retriever_entry(
+            docs = main_qd_retriever_entry(
                 question,
                 retriever_index
             )
-            resp_header = {
-                "Content-Type": "application/json",
-                "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
-                "Access-Control-Allow-Origin": "*",
-                "Access-Control-Allow-Methods": "*",
-            }
-            response = {"statusCode": 200, "headers": {"Content-Type": "application/json"}}
-            response["body"] = json.dumps(retriever_response)
-            response["headers"] = resp_header
-            return response
+            return get_retriever_response(docs)
         elif biz_type.lower() == Type.QQ_RETRIEVER.value:
             retriever_index = event_body.get("retriever_index", "test-index")
-            retriever_response = main_qq_retriever_entry(
+            docs = main_qq_retriever_entry(
                 question,
                 retriever_index
             )
-            resp_header = {
-                "Content-Type": "application/json",
-                "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
-                "Access-Control-Allow-Origin": "*",
-                "Access-Control-Allow-Methods": "*",
-            }
-            response = {"statusCode": 200, "headers": {"Content-Type": "application/json"}}
-            response["body"] = json.dumps(retriever_response)
-            response["headers"] = resp_header
-            return response
+            return get_retriever_response(docs)
         elif biz_type.lower() == Type.DGR.value:
             answer, sources, contexts, debug_info = dgr_entry(
                 session_id,
