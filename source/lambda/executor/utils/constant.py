@@ -5,7 +5,8 @@ class Type(Enum):
     DGR = "dgr"
     MARKET = "market"
     MARKET_CHAIN = "market_chain"
-    RETRIEVER = "retriever"
+    QQ_RETRIEVER = "qq_retriever"
+    QD_RETRIEVER = "qd_retriever"
     @classmethod
     def has_value(cls, value):
         return value in cls._value2member_map_ 
