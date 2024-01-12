@@ -1,6 +1,6 @@
 python-dotenv
 PyPDF2
-streamlit==1.21.0
+streamlit==1.30.0
 langchain==0.0.339
 openai==1.1.0
 tiktoken==0.5.1
