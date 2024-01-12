@@ -634,6 +634,7 @@ def return_strict_qq_result(x):
 
 def get_rag_llm_chain(generator_llm_config, stream):
     def contexts_trunc(docs: list, context_num=2):
+        # print('docs len',len(docs))
         docs = [doc for doc in docs[:context_num]]
         # the most related doc will be placed last
         docs.sort(key=lambda x: x.metadata["rerank_score"])
@@ -653,6 +654,8 @@ def get_rag_llm_chain(generator_llm_config, stream):
                     "score": doc.metadata["rerank_score"]
                     })
                 context_sources.append(doc.metadata["source"])
+        # print(len(context_docs))
+        # print(sg)
         return {
             "contexts": context_strs,
             "context_docs": context_docs,
@@ -857,10 +860,10 @@ def market_chain_entry(
 
 
 def main_chain_entry(
-    query_input: str,
-    aos_index: str,
-    llm_model_id=None,
-    stream=False,
+        query_input: str,
+        aos_index: str,
+        stream=False,
+        rag_config=None
 ):
     """
     Entry point for the Lambda function.
@@ -885,7 +888,7 @@ def main_chain_entry(
     sources = []
     answer = ""
     full_chain = get_qd_llm_chain(
-        [aos_index], llm_model_id, stream, using_whole_doc=False
+        [aos_index], rag_config['generator_llm_config'], stream, using_whole_doc=False
     )
     response = full_chain.invoke({"query": query_input, "debug_info": debug_info})
     answer = response["answer"]
@@ -977,7 +980,7 @@ def lambda_handler(event, context):
                 question,
                 aos_index,
                 stream=stream,
-                llm_model_id=llm_model_id,
+                rag_config=rag_config
             )
         elif biz_type.lower() == Type.DGR.value:
             answer, sources, contexts, debug_info = dgr_entry(
