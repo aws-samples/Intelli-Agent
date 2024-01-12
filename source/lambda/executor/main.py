@@ -677,11 +677,11 @@ def get_rag_llm_chain(generator_llm_config, stream):
     return llm_chain
 
 def get_qd_chain(
-    aos_index_list, top_n=5, using_whole_doc=True, context_num=0
+    aos_index_list, top_n=5, using_whole_doc=True, chunk_num=0
 ):
     retriever_list = [
         QueryDocumentRetriever(
-            index, "vector_field", "text", "file_path", using_whole_doc, context_num
+            index, "vector_field", "text", "file_path", using_whole_doc, chunk_num
         )
         for index in aos_index_list
     ]
@@ -699,11 +699,11 @@ def get_qd_llm_chain(
     stream=False, 
     top_n=5,
     using_whole_doc=True,
-    context_num=0,
+    chunk_num=0,
 ):
     retriever_list = [
         QueryDocumentRetriever(
-            index, "vector_field", "text", "file_path", using_whole_doc, context_num
+            index, "vector_field", "text", "file_path", using_whole_doc, chunk_num 
         )
         for index in aos_index_list
     ]
@@ -804,7 +804,7 @@ def market_chain_entry(
         rag_config['generator_llm_config'],
         stream,
         top_n=5,
-        context_num=3
+        chunk_num=0
     )
 
     # 2.3 query question router.
@@ -962,7 +962,7 @@ def main_chain_entry(
     sources = []
     answer = ""
     full_chain = get_qd_llm_chain(
-        [aos_index], rag_config['generator_llm_config'], stream, using_whole_doc=False, context_num=5
+        [aos_index], rag_config['generator_llm_config'], stream, using_whole_doc=False, chunk_num=0
     )
     response = full_chain.invoke({"query": query_input, "debug_info": debug_info})
     answer = response["answer"]
@@ -993,7 +993,7 @@ def get_retriever_response(docs):
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "*",
     }
-    response["body"] = {"docs": json.dumps(docs)}
+    response["body"] = json.dumps({"docs": docs})
     response["headers"] = resp_header
     return response
 
@@ -1066,14 +1066,14 @@ def lambda_handler(event, context):
                 rag_config=rag_config
             )
         elif biz_type.lower() == Type.QD_RETRIEVER.value:
-            retriever_index = event_body.get("retriever_index", "test-index")
+            retriever_index = event_body.get("retriever_index", aos_index)
             docs = main_qd_retriever_entry(
                 question,
                 retriever_index
             )
             return get_retriever_response(docs)
         elif biz_type.lower() == Type.QQ_RETRIEVER.value:
-            retriever_index = event_body.get("retriever_index", "test-index")
+            retriever_index = event_body.get("retriever_index", aos_index)
             docs = main_qq_retriever_entry(
                 question,
                 retriever_index
