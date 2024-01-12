@@ -64,7 +64,7 @@ from constant import Type,IntentType
 from intent_utils import auto_intention_recoginition_chain
 from langchain_utils import add_key_to_debug
 from query_expansion_utils import get_query_expansion_chain
-
+import parse_config
 
 region = os.environ["AWS_REGION"]
 embedding_endpoint = os.environ.get("embedding_endpoint", "")
@@ -632,12 +632,13 @@ def return_strict_qq_result(x):
 def get_rag_llm_chain(generator_llm_config, stream):
     def contexts_trunc(docs: list, context_num=2):
         docs = [doc for doc in docs[:context_num]]
+        # the most related doc will be placed last
+        docs.sort(key=lambda x: x.metadata["rerank_score"])
         # filter same docs
         s = set()
         context_strs = []
         context_docs = []
         context_sources = []
-
         for doc in docs:
             content = doc.page_content
             if content not in s:
@@ -656,10 +657,11 @@ def get_rag_llm_chain(generator_llm_config, stream):
         }
     
     # TODO opt with efficiency
+    context_num = generator_llm_config['context_num']
     contexts_trunc_stage = RunnablePassthrough.assign(
-        contexts=lambda x: contexts_trunc(x["docs"], context_num=5)['contexts'],
-        context_docs=lambda x: contexts_trunc(x["docs"], context_num=5)['context_docs'],
-        context_sources=lambda x: contexts_trunc(x["docs"], context_num=5)['context_sources'],
+        contexts=lambda x: contexts_trunc(x["docs"], context_num=context_num)['contexts'],
+        context_docs=lambda x: contexts_trunc(x["docs"], context_num=context_num)['context_docs'],
+        context_sources=lambda x: contexts_trunc(x["docs"], context_num=context_num)['context_sources'],
     )
  
     llm_chain = get_llm_chain(
@@ -707,13 +709,6 @@ def get_qd_llm_chain(
         base_compressor=compressor, base_retriever=lotr
     )
 
-    # def format_docs(docs, top_k=2):
-    #     # return "\n\n".join(doc.page_content for doc in docs["docs"][:top_k])
-    #     return [doc.page_content for doc in docs["docs"][:top_k]]
-
-    # def format_sources(docs, top_k=2):
-    #     return [doc.metadata["source"] for doc in docs["docs"][:top_k]]
-
     llm_chain = get_rag_llm_chain(generator_llm_config, stream)
     qd_llm_chain = RunnablePassthrough.assign(docs=compression_retriever) | llm_chain
     return qd_llm_chain
@@ -744,7 +739,7 @@ def market_chain_entry(
     stream=False,
     intent_type=IntentType.KNOWLEDGE_QA,
     manual_input_intent=None,
-    generator_llm_config=None
+    rag_config=None
 ):
     """
     Entry point for the Lambda function.
@@ -754,7 +749,8 @@ def market_chain_entry(
     :param stream(Bool): Whether to use llm stream decoding output.
     return: answer(str)
     """
-    assert generator_llm_config is not None
+    assert rag_config is not None
+    generator_llm_config = rag_config['generator_llm_config']
     aos_index_dict = json.loads(
         os.environ.get(
             "aos_index_dict",
@@ -801,7 +797,7 @@ def market_chain_entry(
     # 2.2 query document retrieval + LLM.
     qd_llm_chain = get_qd_llm_chain(
         [aos_index_dgr_qd, aos_index_dgr_faq_qd, aos_index_mkt_qd],
-        generator_llm_config,
+        rag_config['generator_llm_config'],
         stream,
         top_n=5
     )
@@ -1001,18 +997,8 @@ def lambda_handler(event, context):
         model = event_body["model"]
         session_id = event_body.get("session_id", "N/A")
         messages = event_body["messages"]
-        temperature = event_body.get("temperature",0.7)
-        llm_model_id = event_body.get("llm_model_id", "anthropic.claude-v2:1")
-        # rag llm config 
-        generator_llm_config = {
-            "model_kwargs":{
-            "max_tokens_to_sample": 2000,
-            "temperature": temperature,
-            "top_p": 0.9
-            },
-            "model_id":llm_model_id
-        }
-
+        
+        # deal with stream parameter
         stream = _is_websocket_request(record_event)
         if stream:
             load_ws_client()
@@ -1028,6 +1014,10 @@ def lambda_handler(event, context):
             or event_body.get("model", None)
             or IntentType.KNOWLEDGE_QA.value
         )
+
+        # all rag related params can be found in rag_config
+        rag_config = parse_config.parse_rag_config(event_body)
+        logger.info(f'rag configs:\n {json.dumps(rag_config,indent=2,ensure_ascii=False)}')
         
         # stream = event_body.get("stream", False)
 
@@ -1113,47 +1103,30 @@ def lambda_handler(event, context):
                 question,
                 stream=stream,
                 intent_type=intent_type,
-                generator_llm_config=generator_llm_config
+                rag_config=rag_config
             )
 
         main_entry_elpase = time.time() - main_entry_start
         logger.info(f"runing time of {biz_type} entry : {main_entry_elpase}s seconds")
-
-    if not stream:
-        return process_response(
-            **dict(
-                stream=stream,
-                session_id=session_id,
-                model=model,
-                request_timestamp=request_timestamp,
-                answer=answer,
-                sources=sources,
-                get_contexts=get_contexts,
-                contexts=contexts,
-                enable_debug=enable_debug,
-                debug_info=debug_info,
-                ws_client=ws_client,
-                chat_history=chat_history,
-                message_id=message_id,
-            )
-        )
-
-    process_response(
-        **dict(
-            stream=stream,
-            session_id=session_id,
-            model=model,
-            request_timestamp=request_timestamp,
-            answer=answer,
-            sources=sources,
-            get_contexts=get_contexts,
-            contexts=contexts,
-            enable_debug=enable_debug,
-            debug_info=debug_info,
-            ws_client=ws_client,
-            chat_history=chat_history,
-            message_id=message_id,
-        )
+     
+    response_kwargs = dict(
+        stream=stream,
+        session_id=session_id,
+        model=model,
+        request_timestamp=request_timestamp,
+        answer=answer,
+        sources=sources,
+        get_contexts=get_contexts,
+        contexts=contexts,
+        enable_debug=enable_debug,
+        debug_info=debug_info,
+        ws_client=ws_client,
+        chat_history=chat_history,
+        message_id=message_id,
     )
-
+    r = process_response(
+            **response_kwargs
+        )
+    if not stream:
+        return r
     return {"statusCode": 200, "body": "All records have been processed"} 

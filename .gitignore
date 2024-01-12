@@ -55,6 +55,7 @@ cdk.context.json
 package-lock.json
 .idea
 .env
+**/__pycache__/**
 **/llm_bot_dep.egg-info
 **/llm_bot_dep/__pycache__
 **/llm_bot_dep/loaders/__pycache__
