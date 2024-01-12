@@ -68,6 +68,7 @@ def api_response(**kwargs):
     if get_contexts:
         llmbot_response["contexts"] = contexts
     if enable_debug:
+        debug_info["contexts"] = contexts
         llmbot_response["debug_info"] = debug_info
     response["body"] = json.dumps(llmbot_response)
     response["headers"] = resp_header

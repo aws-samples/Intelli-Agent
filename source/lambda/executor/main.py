@@ -898,7 +898,7 @@ def main_qd_retriever_entry(
         "knowledge_qa_rerank": {},
     }
     full_chain = get_qd_chain(
-        [aos_index], using_whole_doc=False
+        [aos_index], using_whole_doc=False, chunk_num=2
     )
     response = full_chain.invoke({"query": query_input, "debug_info": debug_info})
     doc_list = []
