@@ -168,11 +168,11 @@ def get_doc(file_path, index_name):
     chunk_text_list = [x[3] for x in sorted_chunk_list]
     return "\n".join(chunk_text_list)
 
-def get_context_window(previous_chunk_id, next_chunk_id, index_name, window_size):
+def get_context(previous_chunk_id, next_chunk_id, index_name, window_size):
     previous_content_list = []
     previous_pos = 0
     next_pos = 0
-    while previous_chunk_id.startswith("$") and previous_pos < window_size:
+    while previous_chunk_id and previous_chunk_id.startswith("$") and previous_pos < window_size:
         opensearch_query_response = aos_client.search(
             index_name=index_name,
             query_type="basic",
@@ -182,12 +182,13 @@ def get_context_window(previous_chunk_id, next_chunk_id, index_name, window_size
         )
         if len(opensearch_query_response["hits"]["hits"]) > 0:
             r = opensearch_query_response["hits"]["hits"][0]
-            previous_chunk_id = r["_source"]["metadata"]["chunk_id"]
+            previous_chunk_id = r["_source"]["metadata"]["heading_hierarchy"]["previous"]
             previous_content_list.append(r["_source"]["text"])
+            previous_pos += 1
         else:
             break
     next_content_list = []
-    while next_chunk_id.startswith("$") and next_pos < window_size:
+    while next_chunk_id and next_chunk_id.startswith("$") and next_pos < window_size:
         opensearch_query_response = aos_client.search(
             index_name=index_name,
             query_type="basic",
@@ -197,8 +198,9 @@ def get_context_window(previous_chunk_id, next_chunk_id, index_name, window_size
         )
         if len(opensearch_query_response["hits"]["hits"]) > 0:
             r = opensearch_query_response["hits"]["hits"][0]
-            next_chunk_id = r["_source"]["metadata"]["chunk_id"]
+            next_chunk_id = r["_source"]["metadata"]["heading_hierarchy"]["next"]
             next_content_list.append(r["_source"]["text"])
+            next_pos += 1
         else:
             break
     return [previous_content_list, next_content_list]
@@ -275,7 +277,7 @@ def organize_faq_results(response, index_name, source_field="file_path", text_fi
         results.append(result)
     return results
 
-def organize_results(response, aos_index=None, source_field="file_path", text_field="text", using_whole_doc=True):
+def organize_results(response, aos_index=None, source_field="file_path", text_field="text", using_whole_doc=True, context_size=0):
     """
     Organize results from aos response
 
@@ -300,6 +302,13 @@ def organize_results(response, aos_index=None, source_field="file_path", text_fi
             doc = get_doc(result["source"], aos_index)
             if doc:
                 result["doc"] = doc
+        elif context_size:
+            context = get_context(aos_hit['_source']["metadata"]["heading_hierarchy"]["previous"],
+                                  aos_hit['_source']["metadata"]["heading_hierarchy"]["next"],
+                                  aos_index,
+                                  context_size)
+            if context:
+                result["doc"] = "\n".join(context[0] + [result["doc"]] + context[1])
         results.append(result)
     return results
 
@@ -366,13 +375,15 @@ class QueryDocumentRetriever(BaseRetriever):
     text_field: Any
     source_field: Any
     using_whole_doc: Any
-    def __init__(self, index, vector_field, text_field,  source_field, using_whole_doc):
+    context_num: Any
+    def __init__(self, index, vector_field, text_field,  source_field, using_whole_doc, context_num):
         super().__init__()
         self.index = index
         self.vector_field = vector_field
         self.text_field = text_field
         self.source_field = source_field
         self.using_whole_doc = using_whole_doc
+        self.context_num = context_num
 
     def _get_relevant_documents(self, question: Dict, *, run_manager: CallbackManagerForRetrieverRun) -> List[Document]:
         query = question["query"] 
@@ -396,7 +407,7 @@ class QueryDocumentRetriever(BaseRetriever):
             size=result_num,
         )
         opensearch_knn_results.extend(
-            organize_results(opensearch_knn_response, self.index, self.source_field, self.text_field, self.using_whole_doc)[:result_num]
+            organize_results(opensearch_knn_response, self.index, self.source_field, self.text_field, self.using_whole_doc, self.context_num)[:result_num]
         )
 
         result_num = 20
@@ -408,7 +419,7 @@ class QueryDocumentRetriever(BaseRetriever):
             size=result_num,
         )
         opensearch_knn_results.extend(
-            organize_results(opensearch_knn_response, self.index, self.source_field, self.text_field, self.using_whole_doc)[:result_num]
+            organize_results(opensearch_knn_response, self.index, self.source_field, self.text_field, self.using_whole_doc, self.context_num)[:result_num]
         )
         recall_end_time = time.time()
         elpase_time = recall_end_time - start
@@ -422,7 +433,11 @@ class QueryDocumentRetriever(BaseRetriever):
         debug_info["knowledge_qa_knn_recall"][self.index] = remove_redundancy_debug_info(final_results)
 
         doc_list = []
+        content_set = set()
         for result in final_results:
+            if result["content"] in content_set:
+                continue
+            content_set.add(result["content"])
             doc_list.append(Document(page_content=result["doc"],
                                      metadata={"source": result["source"],
                                                "retrieval_content": result["content"],

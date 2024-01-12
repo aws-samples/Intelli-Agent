@@ -2,6 +2,7 @@ import copy
 import json
 import logging
 import os
+os.environ["PYTHONUNBUFFERED"]="1"
 import sys
 import time
 import traceback
@@ -677,11 +678,11 @@ def get_rag_llm_chain(generator_llm_config, stream):
     return llm_chain
 
 def get_qd_chain(
-    aos_index_list, top_n=5, using_whole_doc=True
+    aos_index_list, top_n=5, using_whole_doc=True, chunk_num=0
 ):
     retriever_list = [
         QueryDocumentRetriever(
-            index, "vector_field", "text", "file_path", using_whole_doc
+            index, "vector_field", "text", "file_path", using_whole_doc, chunk_num
         )
         for index in aos_index_list
     ]
@@ -699,10 +700,11 @@ def get_qd_llm_chain(
     stream=False, 
     top_n=5,
     using_whole_doc=True,
+    chunk_num=0,
 ):
     retriever_list = [
         QueryDocumentRetriever(
-            index, "vector_field", "text", "file_path", using_whole_doc
+            index, "vector_field", "text", "file_path", using_whole_doc, chunk_num 
         )
         for index in aos_index_list
     ]
@@ -740,7 +742,6 @@ def market_chain_entry(
     query_input: str,
     # llm_model_id=None,
     stream=False,
-    intent_type=IntentType.KNOWLEDGE_QA,
     manual_input_intent=None,
     rag_config=None
 ):
@@ -754,6 +755,7 @@ def market_chain_entry(
     """
     assert rag_config is not None
     generator_llm_config = rag_config['generator_llm_config']
+    intent_type = rag_config['intent_config']['intent_type']
     aos_index_dict = json.loads(
         os.environ.get(
             "aos_index_dict",
@@ -802,7 +804,8 @@ def market_chain_entry(
         [aos_index_dgr_qd, aos_index_dgr_faq_qd, aos_index_mkt_qd],
         rag_config['generator_llm_config'],
         stream,
-        top_n=5
+        top_n=5,
+        chunk_num=0
     )
 
     # 2.3 query question router.
@@ -813,8 +816,11 @@ def market_chain_entry(
                     "answer": doc.metadata["answer"],
                     "sources": doc.metadata["source"],
                     "contexts": [],
+                    "context_docs": [],
+                    "context_sources": [],
                     # "debug_info": lambda x: x["debug_info"],
                 }
+                logger.info('qq matched...')
                 info.update(output)
                 return info
         return qd_llm_chain
@@ -896,7 +902,7 @@ def main_qd_retriever_entry(
         "knowledge_qa_rerank": {},
     }
     full_chain = get_qd_chain(
-        [aos_index], using_whole_doc=False
+        [aos_index], using_whole_doc=False, chunk_num=2
     )
     response = full_chain.invoke({"query": query_input, "debug_info": debug_info})
     doc_list = []
@@ -960,7 +966,7 @@ def main_chain_entry(
     sources = []
     answer = ""
     full_chain = get_qd_llm_chain(
-        [aos_index], rag_config['generator_llm_config'], stream, using_whole_doc=False
+        [aos_index], rag_config['generator_llm_config'], stream, using_whole_doc=False, chunk_num=0
     )
     response = full_chain.invoke({"query": query_input, "debug_info": debug_info})
     answer = response["answer"]
@@ -991,7 +997,7 @@ def get_retriever_response(docs):
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "*",
     }
-    response["body"] = {"docs": docs}
+    response["body"] = json.dumps({"docs": docs})
     response["headers"] = resp_header
     return response
 
@@ -1023,11 +1029,12 @@ def lambda_handler(event, context):
         enable_debug = event_body.get("enable_debug", False)
 
         get_contexts = event_body.get("get_contexts", False)
-        intent_type = (
-            event_body.get("intent", None)
-            or event_body.get("model", None)
-            or IntentType.KNOWLEDGE_QA.value
-        )
+
+        # intent_type = (
+        #     event_body.get("intent", None)
+        #     or event_body.get("model", None)
+        #     or IntentType.KNOWLEDGE_QA.value
+        # )
 
         # all rag related params can be found in rag_config
         rag_config = parse_config.parse_rag_config(event_body)
@@ -1064,14 +1071,14 @@ def lambda_handler(event, context):
                 rag_config=rag_config
             )
         elif biz_type.lower() == Type.QD_RETRIEVER.value:
-            retriever_index = event_body.get("retriever_index", "test-index")
+            retriever_index = event_body.get("retriever_index", aos_index)
             docs = main_qd_retriever_entry(
                 question,
                 retriever_index
             )
             return get_retriever_response(docs)
         elif biz_type.lower() == Type.QQ_RETRIEVER.value:
-            retriever_index = event_body.get("retriever_index", "test-index")
+            retriever_index = event_body.get("retriever_index", aos_index)
             docs = main_qq_retriever_entry(
                 question,
                 retriever_index
@@ -1098,7 +1105,6 @@ def lambda_handler(event, context):
             answer, sources, contexts, debug_info = market_chain_entry(
                 question,
                 stream=stream,
-                intent_type=intent_type,
                 rag_config=rag_config
             )
 
