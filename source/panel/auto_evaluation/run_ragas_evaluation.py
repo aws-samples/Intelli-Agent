@@ -96,7 +96,8 @@ def csdc_rag_call(
 
 def websocket_call(
     datum,
-    ws_url="wss://omjou492fe.execute-api.us-west-2.amazonaws.com/prod/"
+    ws_url="wss://omjou492fe.execute-api.us-west-2.amazonaws.com/prod/",
+    **rag_parameters
     ):
     prompt = datum['question']
     ws = create_connection(ws_url)
@@ -108,8 +109,9 @@ def websocket_call(
         "type" : "market_chain", 
         "enable_q_q_match": True,
         "enable_debug": False,
-        "llm_model_id":'anthropic.claude-v2:1'
+        "llm_model_id":'anthropic.claude-v2:1',
         }
+    body.update(**rag_parameters)
     ws.send(json.dumps(body))
     start_time = time.time()
     answer = ""
@@ -129,24 +131,23 @@ def websocket_call(
         elif message_type == "END":
             break
         elif message_type == "ERROR":
-            print(ret['choices'][0]['message']['content'])
-            break 
+            raise RuntimeError(ret['choices'][0]['message']['content'])
         elif message_type == "CONTEXT":
+            contexts = ret
             print('sources: ',ret['choices'][0]['knowledge_sources'])
     ws.close()  
-    return {"answer":r}
+    return {"answer": answer, "contexts": contexts}
 
 def csdc_rag_call_stream(datum,
         rag_api_url,
         retry_times=3,
         **rag_parameters):
-    ret = websocket_call(datum,rag_api_url)
+    _ret = websocket_call(datum,rag_api_url,**rag_parameters)
     ret = {
                 "question": datum['question'],
-                "contexts": contexts,
-                "answer": answer,
                 "ground_truths": datum['ground_truths']
             } 
+    ret.update(_ret)
     return ret
     
 
@@ -234,12 +235,12 @@ def run_eval(
     # call ragas 
     print(f'run ragas eval, data num: {len(data_to_eval)}')
     # filter None answer 
-    # data_to_eval = [d for d in data_to_eval if \
-    #                 (d['answer'] is not  None \
-    #                  and d['ground_truths'] and d['ground_truths'][0] is not None\
-    #                  and d['contexts'] \
-    #                  and isinstance(d['ground_truths'][0],str)
-    #                  )]
+    data_to_eval = [d for d in data_to_eval if \
+                    (d['answer'] is not  None \
+                     and d['ground_truths'] and d['ground_truths'][0] is not None\
+                     and d['contexts'] \
+                     and isinstance(d['ground_truths'][0],str)
+                     )]
     print(f'run ragas eval, data num after filtered empty answer: {len(data_to_eval)}')
     dataset = Dataset.from_pandas(pd.DataFrame(data_to_eval))
     results = evaluate(
@@ -269,7 +270,7 @@ if __name__ == "__main__":
     eval_id = f'claude2-csdc-retrive-by-{by}'
     # llm_output_cache_path = f'{eval_id}-llm-output-cache-120.pkl'
     # llm_output_cache_path = f'{eval_id}-llm-output-cache.pkl'
-    llm_output_cache_path = "techbot_question_dgr_res_1_9_120_with_gt.pkl"
+    llm_output_cache_path = "techbot_question_dgr_res_1_12_120_with_gt.pkl"
     ret_save_profix = f'{eval_id}-{llm_output_cache_path}-eval'
     ragas_parameters = {
         "region_name":'us-west-2',
