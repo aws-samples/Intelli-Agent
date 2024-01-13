@@ -37,7 +37,7 @@ class BGEReranker(BaseDocumentCompressor):
         if len(documents) == 0:  # to avoid empty api call
             return []
         doc_list = list(documents)
-        _docs = [d.page_content for d in doc_list]
+        _docs = [d.metadata["retrieval_content"] for d in doc_list]
 
         rerank_pair = []
         rerank_text_length = 1024 * 10

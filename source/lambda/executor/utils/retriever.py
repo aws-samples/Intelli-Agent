@@ -183,7 +183,7 @@ def get_context(previous_chunk_id, next_chunk_id, index_name, window_size):
         if len(opensearch_query_response["hits"]["hits"]) > 0:
             r = opensearch_query_response["hits"]["hits"][0]
             previous_chunk_id = r["_source"]["metadata"]["heading_hierarchy"]["previous"]
-            previous_content_list.append(r["_source"]["text"])
+            previous_content_list.insert(0, r["_source"]["text"])
             previous_pos += 1
         else:
             break
@@ -302,7 +302,8 @@ def organize_results(response, aos_index=None, source_field="file_path", text_fi
             doc = get_doc(result["source"], aos_index)
             if doc:
                 result["doc"] = doc
-        elif context_size:
+        elif context_size and ("previous" in aos_hit['_source']["metadata"]["heading_hierarchy"] and
+                               "next" in aos_hit['_source']["metadata"]["heading_hierarchy"]):
             context = get_context(aos_hit['_source']["metadata"]["heading_hierarchy"]["previous"],
                                   aos_hit['_source']["metadata"]["heading_hierarchy"]["next"],
                                   aos_index,
