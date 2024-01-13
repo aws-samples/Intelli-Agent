@@ -133,7 +133,8 @@ def websocket_call(
         elif message_type == "ERROR":
             raise RuntimeError(ret['choices'][0]['message']['content'])
         elif message_type == "CONTEXT":
-            contexts = ret
+            # contexts = ret
+            contexts = [i['doc'] for i in ret['choices'][0]['contexts']]
             print('sources: ',ret['choices'][0]['knowledge_sources'])
     ws.close()  
     return {"answer": answer, "contexts": contexts}
@@ -256,7 +257,10 @@ def run_eval(
 
 if __name__ == "__main__":
     RAGAS_EVAL_METRICS = [
-        AnswerCorrectness(answer_similarity=AnswerSimilarity(threshold=0))
+        AnswerCorrectness(
+            answer_similarity=AnswerSimilarity(threshold=0),
+            batch_size=15
+            )
         ]
     # RAGAS_EVAL_METRICS = [
     #     claude2_answer_similarity
@@ -270,7 +274,8 @@ if __name__ == "__main__":
     eval_id = f'claude2-csdc-retrive-by-{by}'
     # llm_output_cache_path = f'{eval_id}-llm-output-cache-120.pkl'
     # llm_output_cache_path = f'{eval_id}-llm-output-cache.pkl'
-    llm_output_cache_path = "techbot_question_dgr_res_1_12_120_with_gt.pkl"
+    # llm_output_cache_path = "techbot_question_dgr_res_1_12_120_with_gt.pkl"
+    llm_output_cache_path = "techbot_question_dgr_res_1_3_120_with_gt_context_1.pkl"
     ret_save_profix = f'{eval_id}-{llm_output_cache_path}-eval'
     ragas_parameters = {
         "region_name":'us-west-2',
@@ -278,6 +283,9 @@ if __name__ == "__main__":
         # "llm_model_id": "anthropic.claude-v2:1", # "openai", #"anthropic.claude-v2:1", #"anthropic.claude-v2:1"
         "llm_model_generate_paramerters": {
             "max_tokens_to_sample": 2000
+        },
+        "generator_llm_config":{
+            "context_num":1
         }
     }
    

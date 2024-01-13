@@ -34,15 +34,8 @@ from retriever import (
     QueryQuestionRetriever,
     index_results_format,
 )
+from logger_utils import logger,opensearch_logger,boto3_logger
 
-logger = logging.getLogger()
-# handler = logging.StreamHandler()
-logger.setLevel(logging.INFO)
-# logger.addHandler(handler)
-opensearch_logger = logging.getLogger("opensearch")
-opensearch_logger.setLevel(logging.ERROR)
-boto3_logger = logging.getLogger("botocore")
-boto3_logger.setLevel(logging.ERROR)
 
 from aos_utils import LLMBotOpenSearchClient
 from constant import IntentType, Type
@@ -63,7 +56,7 @@ from response_utils import process_response
 from sm_utils import SagemakerEndpointVectorOrCross
 from constant import Type,IntentType
 from intent_utils import auto_intention_recoginition_chain
-from langchain_utils import add_key_to_debug
+from langchain_utils import add_key_to_debug,chain_logger
 from query_expansion_utils import get_query_expansion_chain
 import parse_config
 
@@ -85,7 +78,6 @@ aos_client = LLMBotOpenSearchClient(aos_endpoint)
 ws_client = None
 
 # get aos_index_dict
-
 
 class APIException(Exception):
     def __init__(self, message, code: str = None):
@@ -715,7 +707,7 @@ def get_qd_llm_chain(
     )
 
     llm_chain = get_rag_llm_chain(generator_llm_config, stream)
-    qd_llm_chain = RunnablePassthrough.assign(docs=compression_retriever) | llm_chain
+    qd_llm_chain = chain_logger(RunnablePassthrough.assign(docs=compression_retriever),'qd_retriever') | chain_logger(llm_chain,'llm_chain')
     return qd_llm_chain
 
 
@@ -740,7 +732,6 @@ def output_postprocess(raw_output):
 
 def market_chain_entry(
     query_input: str,
-    # llm_model_id=None,
     stream=False,
     manual_input_intent=None,
     rag_config=None
@@ -826,6 +817,7 @@ def market_chain_entry(
         return qd_llm_chain
 
     qq_chain = RunnablePassthrough.assign(qq_result=dgr_q_q_retriever)
+    qq_chain = chain_logger(qq_chain,'qq_chain')
     qq_qd_llm_chain = qq_chain | RunnableLambda(qq_route)
 
     # TODO design chat chain
@@ -849,10 +841,19 @@ def market_chain_entry(
             llm_model_id=generator_llm_config['model_id']
         )
     ) | add_key_to_debug(add_key='query_expansions',debug_key="debug_info")
-
+    
+    query_expansion_chain = chain_logger(
+        query_expansion_chain,
+        "query rewrite module"
+    )
     # intent recognition
     intent_recognition_chain = RunnablePassthrough.assign(
         intent_type=auto_intention_recoginition_chain(aos_index_mkt_qq)
+    )
+
+    intent_recognition_chain = chain_logger(
+        intent_recognition_chain,
+        'intention module'
     )
    
     full_chain = query_expansion_chain | intent_recognition_chain  | RunnableBranch(
@@ -1030,17 +1031,12 @@ def lambda_handler(event, context):
 
         get_contexts = event_body.get("get_contexts", False)
 
-        # intent_type = (
-        #     event_body.get("intent", None)
-        #     or event_body.get("model", None)
-        #     or IntentType.KNOWLEDGE_QA.value
-        # )
-
         # all rag related params can be found in rag_config
         rag_config = parse_config.parse_rag_config(event_body)
+
         logger.info(f'rag configs:\n {json.dumps(rag_config,indent=2,ensure_ascii=False)}')
-        
-        # stream = event_body.get("stream", False)
+        debug_level = int(rag_config['debug_level'])
+        logger.setLevel(debug_level)
 
         history, question = process_input_messages(messages)
         role = "user"

@@ -58,14 +58,14 @@ def parse_query(
     en_embedding_model_endpoint: str,
     debug_info: dict,
 ):
-    print('query_input',query_input)
+    # print('query_input',query_input)
     start = time.time()
     # concatenate query_input and history to unified prompt
     query_knowledge = "".join([query_input] + [row[0] for row in history][::-1])
 
     # get query embedding
     parsed_query = run_preprocess(query_knowledge)
-    print('run_preprocess time: ',time.time()-start)
+    # print('run_preprocess time: ',time.time()-start)
     debug_info["query_parser_info"] = parsed_query
     if parsed_query["query_lang"] == "zh":
         parsed_query["zh_query"] = query_knowledge

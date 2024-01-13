@@ -1,5 +1,6 @@
 import collections.abc
 import copy
+import logging
 from constant import IntentType
 
 # update nest dict
@@ -45,6 +46,7 @@ rag_default_config = {
         "model_id": "anthropic.claude-v2:1",
         "context_num": 2
     },
+    "debug_level": logging.INFO
 }
 
 
