@@ -3,10 +3,10 @@
 # Build the docker image and push it to ECR
 
 # The arguments to this script are the docker file, image name, AWS region, and the tag for the image.
-dockerfile=\$1
-image=\$2
-region=\$3
-tag=\$4  # New argument for the tag
+dockerfile=$1
+image=$2
+region=$3
+tag=$4  # New argument for the tag
 
 if [ "$image" = "" ] || [ "$dockerfile" = "" ] || [ "$region" = "" ] || [ "$tag" = "" ]
 then

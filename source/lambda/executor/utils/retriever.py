@@ -172,7 +172,7 @@ def get_context(previous_chunk_id, next_chunk_id, index_name, window_size):
     previous_content_list = []
     previous_pos = 0
     next_pos = 0
-    while previous_chunk_id.startswith("$") and previous_pos < window_size:
+    while previous_chunk_id and previous_chunk_id.startswith("$") and previous_pos < window_size:
         opensearch_query_response = aos_client.search(
             index_name=index_name,
             query_type="basic",
@@ -182,12 +182,13 @@ def get_context(previous_chunk_id, next_chunk_id, index_name, window_size):
         )
         if len(opensearch_query_response["hits"]["hits"]) > 0:
             r = opensearch_query_response["hits"]["hits"][0]
-            previous_chunk_id = r["_source"]["metadata"]["chunk_id"]
-            previous_content_list.append(r["_source"]["text"])
+            previous_chunk_id = r["_source"]["metadata"]["heading_hierarchy"]["previous"]
+            previous_content_list.insert(0, r["_source"]["text"])
+            previous_pos += 1
         else:
             break
     next_content_list = []
-    while next_chunk_id.startswith("$") and next_pos < window_size:
+    while next_chunk_id and next_chunk_id.startswith("$") and next_pos < window_size:
         opensearch_query_response = aos_client.search(
             index_name=index_name,
             query_type="basic",
@@ -197,8 +198,9 @@ def get_context(previous_chunk_id, next_chunk_id, index_name, window_size):
         )
         if len(opensearch_query_response["hits"]["hits"]) > 0:
             r = opensearch_query_response["hits"]["hits"][0]
-            next_chunk_id = r["_source"]["metadata"]["chunk_id"]
+            next_chunk_id = r["_source"]["metadata"]["heading_hierarchy"]["next"]
             next_content_list.append(r["_source"]["text"])
+            next_pos += 1
         else:
             break
     return [previous_content_list, next_content_list]
@@ -300,10 +302,14 @@ def organize_results(response, aos_index=None, source_field="file_path", text_fi
             doc = get_doc(result["source"], aos_index)
             if doc:
                 result["doc"] = doc
-        elif context_size:
-            context = get_context(result["source"], result["source"], aos_index, context_size)
+        elif context_size and ("previous" in aos_hit['_source']["metadata"]["heading_hierarchy"] and
+                               "next" in aos_hit['_source']["metadata"]["heading_hierarchy"]):
+            context = get_context(aos_hit['_source']["metadata"]["heading_hierarchy"]["previous"],
+                                  aos_hit['_source']["metadata"]["heading_hierarchy"]["next"],
+                                  aos_index,
+                                  context_size)
             if context:
-                result["doc"] = context
+                result["doc"] = "\n".join(context[0] + [result["doc"]] + context[1])
         results.append(result)
     return results
 
@@ -428,7 +434,11 @@ class QueryDocumentRetriever(BaseRetriever):
         debug_info["knowledge_qa_knn_recall"][self.index] = remove_redundancy_debug_info(final_results)
 
         doc_list = []
+        content_set = set()
         for result in final_results:
+            if result["content"] in content_set:
+                continue
+            content_set.add(result["content"])
             doc_list.append(Document(page_content=result["doc"],
                                      metadata={"source": result["source"],
                                                "retrieval_content": result["content"],
