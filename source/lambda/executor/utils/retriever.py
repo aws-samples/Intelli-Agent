@@ -6,7 +6,7 @@ import copy
 import traceback 
 from typing import TYPE_CHECKING, Any, Dict, List, Optional 
 
-from langchain.schema.retriever import BaseRetriever, Document
+from langchain.schema.retriever import BaseRetriever
 from langchain.retrievers import BM25Retriever, EnsembleRetriever
 from langchain.callbacks.manager import CallbackManagerForRetrieverRun
 from langchain.docstore.document import Document

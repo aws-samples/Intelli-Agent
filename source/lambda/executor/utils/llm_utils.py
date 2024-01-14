@@ -23,7 +23,8 @@ from response_utils import api_response, stream_response
 
 from langchain.schema.runnable import RunnableLambda
 from constant import IntentType
-
+from prompt_template import get_claude_chat_rag_prompt,get_chit_chat_prompt
+from langchain_community.chat_models import BedrockChat
 
 class ModelMeta(type):
     def __new__(cls, name, bases, attrs):
@@ -58,12 +59,22 @@ class Claude2(Model):
                     or os.environ.get('AWS_PROFILE',None) or None 
         region_name = kwargs.get('region_name',None) \
             or os.environ.get('AWS_REGION', None) or None
-        llm = Bedrock(
-                    credentials_profile_name=credentials_profile_name,
-                    region_name=region_name,
-                    model_id=cls.model_id,
-                    model_kwargs=model_kwargs
-        )
+        return_chat_model=kwargs.get('return_chat_model',False)
+        if return_chat_model:
+            llm = BedrockChat(
+                        credentials_profile_name=credentials_profile_name,
+                        region_name=region_name,
+                        model_id=cls.model_id,
+                        model_kwargs=model_kwargs
+            )
+        else:
+            llm = Bedrock(
+                        credentials_profile_name=credentials_profile_name,
+                        region_name=region_name,
+                        model_id=cls.model_id,
+                        model_kwargs=model_kwargs
+            )
+
         return llm
 
 class ClaudeInstance(Claude2):
@@ -133,68 +144,89 @@ class LLMChain(metaclass=LLMChainMeta):
 class Claude2RagLLMChain(LLMChain):
     model_id = 'anthropic.claude-v2'
     intent_type = IntentType.KNOWLEDGE_QA.value
-    template_render = claude2_rag_template_render
-    stream_postprocess = claude2_rag_stream_postprocess
-    api_postprocess = claude2_rag_api_postprocess
+    # template_render = claude2_rag_template_render
+    # stream_postprocess = claude2_rag_stream_postprocess
+    # api_postprocess = claude2_rag_api_postprocess
 
     @classmethod
     def create_chain(cls, model_kwargs=None, **kwargs):
-        prompt = RunnableLambda(
-            lambda x: cls.template_render(x['query'],x['contexts'])
-            )
+        stream = kwargs.get('stream',False)
+        chat_history = kwargs.get('chat_history',[])
+        prompt = get_claude_chat_rag_prompt(chat_history)
+        # prompt = RunnableLambda(
+        #     lambda x: cls.template_render(x['query'],x['contexts'])
+        #     )
+        kwargs.update({'return_chat_model':True})
         llm = Model.get_model(
             cls.model_id,
             model_kwargs=model_kwargs,
             **kwargs
             )
-        stream = kwargs.get('stream',False)
+
         if stream:
-            llm_fn = RunnableLambda(llm.stream)
-            postprocess_fn = RunnableLambda(cls.stream_postprocess)
+            chain = prompt | RunnableLambda(lambda x: llm.stream(x.messages)) | RunnableLambda(lambda x:(i.content for i in x))
+            # llm_fn = RunnableLambda(llm.stream)
+        #     postprocess_fn = RunnableLambda(cls.stream_postprocess)
         else:
-            llm_fn = RunnableLambda(llm.predict)
-            postprocess_fn = RunnableLambda(cls.api_postprocess)
+            chain = prompt | llm | RunnableLambda(lambda x:x.dict()['content'])
+            # llm_fn = RunnableLambda(llm.predict)
+        #     postprocess_fn = RunnableLambda(cls.api_postprocess)
         
-        chain = prompt | llm_fn | postprocess_fn
+        # chain = prompt | llm_fn | postprocess_fn
         return chain 
 
 class Claude21RagLLMChain(Claude2RagLLMChain):
     model_id = 'anthropic.claude-v2:1'
-    template_render = prompt_template.claude21_rag_template_render 
-    stream_postprocess = prompt_template.claude21_rag_stream_postprocess 
-    api_postprocess = prompt_template.claude21_rag_api_postprocess
+    # template_render = prompt_template.claude21_rag_template_render 
+    # stream_postprocess = prompt_template.claude21_rag_stream_postprocess 
+    # api_postprocess = prompt_template.claude21_rag_api_postprocess
 
 
 class ClaudeRagInstance(Claude2RagLLMChain):
     model_id = 'anthropic.claude-instant-v1'
-    template_render = prompt_template.claude2_rag_template_render
-    stream_postprocess = prompt_template.claude2_rag_stream_postprocess
-    api_postprocess = prompt_template.claude2_rag_api_postprocess
-
-
+    # template_render = prompt_template.claude2_rag_template_render
+    # stream_postprocess = prompt_template.claude2_rag_stream_postprocess
+    # api_postprocess = prompt_template.claude2_rag_api_postprocess
 
 class Claude2ChatChain(LLMChain):
     model_id = 'anthropic.claude-v2'
     intent_type = IntentType.CHAT.value
-    template_render = prompt_template.claude_chat_template_render
+    # template_render = prompt_template.claude_chat_template_render
 
     @classmethod
     def create_chain(cls, model_kwargs=None, **kwargs):
-        prompt = RunnableLambda(
-            lambda x: cls.template_render(x['query'])
-            )
+        stream = kwargs.get('stream',False)
+        chat_history = kwargs.get('chat_history',[])
+        prompt = get_chit_chat_prompt(chat_history)
+        # prompt = RunnableLambda(
+        #     lambda x: cls.template_render(x['query'])
+        #     )
+        kwargs.update({'return_chat_model':True})
         llm = Model.get_model(
             cls.model_id,
             model_kwargs=model_kwargs,
             **kwargs
         )
-        stream = kwargs.get('stream',False)
+        chain = prompt | llm
+
         if stream:
-            llm_fn = RunnableLambda(llm.stream)
+            chain = prompt | RunnableLambda(lambda x: llm.stream(x.messages)) | RunnableLambda(lambda x:(i.content for i in x))
+            # llm_fn = RunnableLambda(llm.stream)
+        #     postprocess_fn = RunnableLambda(cls.stream_postprocess)
         else:
-            llm_fn = RunnableLambda(llm.predict)
-        chain = prompt | llm_fn
+            chain = prompt | llm | RunnableLambda(lambda x:x.dict()['content'])
+            # llm_fn = RunnableLambda(llm.predict)
+        #     postprocess_fn = RunnableLambda(cls.api_postprocess)
+        
+        # chain = prompt | llm_fn | postprocess_fn
         return chain 
+        # stream = kwargs.get('stream',False)
+        # if stream:
+        #     llm_fn = RunnableLambda(llm.stream)
+        # else:
+        #     llm_fn = RunnableLambda(llm.predict)
+        # chain = prompt | llm_fn
+        # return chain 
 
 class Claude21ChatChain(Claude2ChatChain):
     model_id = 'anthropic.claude-v2:1'

@@ -57,7 +57,7 @@ from sm_utils import SagemakerEndpointVectorOrCross
 from constant import Type,IntentType
 from intent_utils import auto_intention_recoginition_chain
 from langchain_utils import add_key_to_debug,chain_logger
-from query_expansion_utils import get_query_expansion_chain
+from query_process_utils import get_query_rewrite_chain
 import parse_config
 
 region = os.environ["AWS_REGION"]
@@ -96,7 +96,6 @@ def load_ws_client():
 
 def handle_error(func):
     """Decorator for exception handling"""
-
     def wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
@@ -837,7 +836,7 @@ def market_chain_entry(
     
     # query expansion
     query_expansion_chain = RunnablePassthrough.assign(
-        query_expansions=get_query_expansion_chain(
+        query_expansions=get_query_rewrite_chain(
             llm_model_id=generator_llm_config['model_id']
         )
     ) | add_key_to_debug(add_key='query_expansions',debug_key="debug_info")

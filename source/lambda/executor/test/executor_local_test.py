@@ -3,6 +3,7 @@ import sys
 import csv
 import os 
 os.environ['AWS_PROFILE'] = "atl"
+os.environ["AWS_REGION"] = "us-west-2"
 os.environ['AWS_DEFAULT_REGION'] = "us-west-2"
 os.environ['aos_index_dict'] = '{"aos_index_mkt_qd":"aws-cn-mkt-knowledge","aos_index_mkt_qq":"gcr-mkt-qq","aos_index_dgr_qd":"ug-index-20240108","aos_index_dgr_qq":"gcr-dgr-qq", "aos_index_dgr_faq_qd":"faq-index-20240110"}'
 
@@ -60,7 +61,7 @@ main.ws_client = DummyWebSocket()
 def generate_answer(
         query, 
         temperature=0.7, 
-        enable_q_q_match=False, 
+        # enable_q_q_match=False, 
         enable_debug=True, 
         retrieval_only=False, 
         type="market_chain", 

@@ -1,5 +1,13 @@
 
 import re 
+from langchain.prompts import PromptTemplate,ChatPromptTemplate
+from langchain.schema.runnable import (
+    RunnableBranch,
+    RunnableLambda,
+    RunnableParallel,
+    RunnablePassthrough,
+)
+
 
 CLAUDE21_RAG_PROMPT_TEMPLTE = """You are a customer service agent, and answering user's query. You ALWAYS follow these guidelines when writing your response:
 <guidelines>
@@ -173,3 +181,50 @@ def claude2_rag_stream_postprocess(answer):
 claude21_rag_stream_postprocess = claude2_rag_stream_postprocess
 
 
+
+# rag prompt template chain
+
+def get_claude_rag_context(contexts:list):
+    assert isinstance(contexts,list), contexts
+    context_xmls = []
+    context_template = """<doc index="{index}">\n{content}\n</doc>"""
+    for i,context in enumerate(contexts):
+        context_xml = context_template.format(
+            index = i+1,
+            content = context
+        )
+        context_xmls.append(context_xml)
+    
+    context = "\n".join(context_xmls)
+    return context
+    
+
+bedrock_rag_chat_system_prompt = """You are a customer service agent, and answering user's query. You ALWAYS follow these guidelines when writing your response:
+<guidelines>
+- NERVER say "根据搜索结果/大家好/谢谢...".
+</guidelines>
+
+Here are some documents for you to reference for your query:
+<docs>
+{context}
+</docs>"""
+
+def get_claude_chat_rag_prompt(chat_history:list):
+    chat_messages = [("system",bedrock_rag_chat_system_prompt)]
+    chat_messages = chat_messages + chat_history 
+    chat_messages += [("user","{query}")]
+    context_chain = RunnablePassthrough.assign(context=RunnableLambda(lambda x:get_claude_rag_context(x['contexts'])))
+
+    return context_chain | ChatPromptTemplate.from_messages(chat_messages)
+
+
+# chit-chat template
+def get_chit_chat_system_prompt():
+    system_prompt = """You are a helpful AI Assistant"""
+    return system_prompt
+
+
+def get_chit_chat_prompt(chat_history:list):
+    chat_messages = [("system",get_chit_chat_system_prompt())]
+    chat_messages = chat_messages + chat_history 
+    return ChatPromptTemplate.from_messages(chat_messages)
