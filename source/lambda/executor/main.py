@@ -57,7 +57,7 @@ from sm_utils import SagemakerEndpointVectorOrCross
 from constant import Type,IntentType
 from intent_utils import auto_intention_recoginition_chain
 from langchain_utils import add_key_to_debug,chain_logger
-from query_process_utils import get_query_rewrite_chain
+from query_process_utils import get_query_process_chain
 import parse_config
 
 region = os.environ["AWS_REGION"]
@@ -621,7 +621,7 @@ def return_strict_qq_result(x):
     }
 
 
-def get_rag_llm_chain(generator_llm_config, stream):
+def get_rag_llm_chain(rag_config, stream):
     def contexts_trunc(docs: list, context_num=2):
         # print('docs len',len(docs))
         docs = [doc for doc in docs[:context_num]]
@@ -651,6 +651,7 @@ def get_rag_llm_chain(generator_llm_config, stream):
             "context_sources":context_sources
         }
     
+    generator_llm_config = rag_config['generator_llm_config']
     # TODO opt with efficiency
     context_num = generator_llm_config['context_num']
     contexts_trunc_stage = RunnablePassthrough.assign(
@@ -664,6 +665,7 @@ def get_rag_llm_chain(generator_llm_config, stream):
         intent_type=IntentType.KNOWLEDGE_QA.value,
         model_kwargs=generator_llm_config['model_kwargs'],  # TODO
         stream=stream,
+        chat_history=rag_config['chat_history']
     )
     llm_chain = contexts_trunc_stage | RunnablePassthrough.assign(answer=llm_chain)
     return llm_chain
@@ -687,12 +689,13 @@ def get_qd_chain(
 
 def get_qd_llm_chain(
     aos_index_list, 
-    generator_llm_config, 
+    rag_config, 
     stream=False, 
     top_n=5,
     using_whole_doc=True,
     chunk_num=0,
 ):
+    generator_llm_config = rag_config['generator_llm_config']
     retriever_list = [
         QueryDocumentRetriever(
             index, "vector_field", "text", "file_path", using_whole_doc, chunk_num 
@@ -705,7 +708,7 @@ def get_qd_llm_chain(
         base_compressor=compressor, base_retriever=lotr
     )
 
-    llm_chain = get_rag_llm_chain(generator_llm_config, stream)
+    llm_chain = get_rag_llm_chain(rag_config, stream)
     qd_llm_chain = chain_logger(RunnablePassthrough.assign(docs=compression_retriever),'qd_retriever') | chain_logger(llm_chain,'llm_chain')
     return qd_llm_chain
 
@@ -792,7 +795,7 @@ def market_chain_entry(
     # 2.2 query document retrieval + LLM.
     qd_llm_chain = get_qd_llm_chain(
         [aos_index_dgr_qd, aos_index_dgr_faq_qd, aos_index_mkt_qd],
-        rag_config['generator_llm_config'],
+        rag_config,
         stream,
         top_n=5,
         chunk_num=0
@@ -834,17 +837,19 @@ def market_chain_entry(
         "context_sources": lambda x: [],
     }
     
-    # query expansion
-    query_expansion_chain = RunnablePassthrough.assign(
-        query_expansions=get_query_rewrite_chain(
-            llm_model_id=generator_llm_config['model_id']
-        )
-    ) | add_key_to_debug(add_key='query_expansions',debug_key="debug_info")
     
-    query_expansion_chain = chain_logger(
-        query_expansion_chain,
-        "query rewrite module"
-    )
+    # query process chain
+    query_process_chain = get_query_process_chain(
+        rag_config['chat_history'],
+        rag_config['query_process_config']['query_rewrite_config'],
+        rag_config['query_process_config']['conversation_query_rewrite_config']
+    ) | add_key_to_debug(add_key='conversation_query_rewrite',debug_key="debug_info") \
+      | add_key_to_debug(add_key='query_rewrite',debug_key="debug_info")
+    
+    # query_rewrite_chain = chain_logger(
+    #     query_rewrite_chain,
+    #     "query rewrite module"
+    # )
     # intent recognition
     intent_recognition_chain = RunnablePassthrough.assign(
         intent_type=auto_intention_recoginition_chain(aos_index_mkt_qq)
@@ -855,7 +860,7 @@ def market_chain_entry(
         'intention module'
     )
    
-    full_chain = query_expansion_chain | intent_recognition_chain  | RunnableBranch(
+    full_chain = query_process_chain | intent_recognition_chain  | RunnableBranch(
         (lambda x:x['intent_type'] == IntentType.KNOWLEDGE_QA.value, qq_qd_llm_chain),
         (lambda x:x['intent_type'] == IntentType.STRICT_QQ.value, return_strict_qq_result),
         # (lambda x:x['intent_type'] == IntentType.STRICT_QQ.value, strict_q_q_chain),
@@ -966,7 +971,7 @@ def main_chain_entry(
     sources = []
     answer = ""
     full_chain = get_qd_llm_chain(
-        [aos_index], rag_config['generator_llm_config'], stream, using_whole_doc=False, chunk_num=0
+        [aos_index], rag_config, stream, using_whole_doc=False, chunk_num=0
     )
     response = full_chain.invoke({"query": query_input, "debug_info": debug_info})
     answer = response["answer"]
@@ -1033,11 +1038,10 @@ def lambda_handler(event, context):
         # all rag related params can be found in rag_config
         rag_config = parse_config.parse_rag_config(event_body)
 
-        logger.info(f'rag configs:\n {json.dumps(rag_config,indent=2,ensure_ascii=False)}')
         debug_level = int(rag_config['debug_level'])
         logger.setLevel(debug_level)
 
-        history, question = process_input_messages(messages)
+        _, question = process_input_messages(messages)
         role = "user"
 
         if session_id == 'N/A':
@@ -1052,8 +1056,10 @@ def lambda_handler(event, context):
             session_id=session_id,
             user_id=user_id,
         )
-        chat_history.add_user_message(f"user_{message_id}", question)
-
+        history_messages = chat_history.message_as_langchain
+        rag_config['chat_history'] = history_messages
+        logger.info(f'rag configs:\n {json.dumps(rag_config,indent=2,ensure_ascii=False)}')
+        
         knowledge_qa_flag = True if model == "knowledge_qa" else False
 
         main_entry_start = time.time()
@@ -1110,6 +1116,7 @@ def lambda_handler(event, context):
         stream=stream,
         session_id=session_id,
         model=model,
+        question=question,
         request_timestamp=request_timestamp,
         answer=answer,
         sources=sources,
