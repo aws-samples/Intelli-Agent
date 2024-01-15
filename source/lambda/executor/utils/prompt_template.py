@@ -228,3 +228,35 @@ def get_chit_chat_prompt(chat_history:list):
     chat_messages = [("system",get_chit_chat_system_prompt())]
     chat_messages = chat_messages + chat_history 
     return ChatPromptTemplate.from_messages(chat_messages)
+
+
+
+cqr_system_prompt = """Given a question and its context, decontextualize the question by addressing coreference and omission issues. The resulting question should retain its original meaning and be as informative as possible, and should not duplicate any previously asked questions in the context.
+Context: [Q: When was Born to Fly released?
+A: Sara Evans’s third studio album, Born to Fly, was released on October 10, 2000.
+]
+Question: Was Born to Fly well received by critics?
+Rewrite: Was Born to Fly well received by critics?
+
+Context: [Q: When was Keith Carradine born?
+A: Keith Ian Carradine was born August 8, 1949.
+Q: Is he married?
+A: Keith Carradine married Sandra Will on February 6, 1982. ]
+Question: Do they have any children?
+Rewrite: Do Keith Carradine and Sandra Will have any children?"""
+def get_conversation_query_rewrite_prompt(chat_history:list):
+
+    # for message in chat_history:
+    #     if message['type']
+    
+    cqr_template = ChatPromptTemplate.from_messages(
+            [
+                (
+                    "system",
+                    cqr_system_prompt,
+                ),
+                # New question
+                ("user", "\nContext: {conversational_context}\nQuestion: {query}\nRewrite: ")
+            ]
+            )
+    

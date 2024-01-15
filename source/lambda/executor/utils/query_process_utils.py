@@ -21,4 +21,18 @@ def get_query_rewrite_chain(
     return chain
 
 def get_conversation_query_rewrite_chain():
-    pass
+    cqr_template = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            "Given a question and its context, decontextualize the question by addressing coreference and omission issues. The resulting question should retain its original meaning and be as informative as possible, and should not duplicate any previously asked questions in the context.",
+        ),
+        # Few shot examples
+        (
+            "system",
+            "{cqr_context}"
+        ),
+        # New question
+        ("user", "\n{conversational_context}\nQuestion: {question}\nRewrite: ")
+    ]
+)
