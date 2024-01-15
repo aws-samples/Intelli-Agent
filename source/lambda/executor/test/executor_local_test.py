@@ -58,7 +58,17 @@ class DummyWebSocket:
 
 main.ws_client = DummyWebSocket()
 
-def generate_answer(query, temperature=0.7, enable_q_q_match=False, enable_debug=True, retrieval_only=False, type="common", model="knowledge_qa", stream=False):
+def generate_answer(
+        query, 
+        temperature=0.7, 
+        # enable_q_q_match=False, 
+        enable_debug=True, 
+        retrieval_only=False, 
+        type="market_chain", 
+        model="knowledge_qa", 
+        stream=False,
+        intent='auto'
+    ):
     event = {
         "body": json.dumps(
             {
