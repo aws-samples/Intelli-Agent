@@ -20,9 +20,9 @@ Make sure Python installed properly. Usage: ./prepare_model.sh -s S3_BUCKET_NAME
 
 cd source/model/etl/code
 # Use ./Dockerfile for standard regions, use ./DockerfileCN for GCR(Greater China) region
-sh model.sh <./Dockerfile>|<./DockerfileCN> <EtlImageName> <AWS_REGION>
+sh model.sh <./Dockerfile>|<./DockerfileCN> <EtlImageName> <AWS_REGION> <EtlImageTag>
 ```
-The ETL image will be pushed to your ECR repo with the image name you specified when executing the command sh model.sh ./Dockerfile <EtlImageName> <AWS_REGION>, AWS_REGION is like us-east-1, us-west-2, etc. Dockerfile is for deployment in standard regions. DockerfileCN is for GCR(Greater China) region. For example, to deploy it in GCR region, the command is: sh model.sh ./DockerfileCN llm-bot-cn cn-northwest-1
+The ETL image will be pushed to your ECR repo with the image name you specified when executing the command sh model.sh ./Dockerfile <EtlImageName> <AWS_REGION>, AWS_REGION is like us-east-1, us-west-2, etc. Dockerfile is for deployment in standard regions. DockerfileCN is for GCR(Greater China) region. For example, to deploy it in GCR region, the command is: sh model.sh ./DockerfileCN llm-bot-cn cn-northwest-1 latest
 
 
 2. Deploy CDK template (add sudo if you are using Linux), make sure DOCKER is installed properly
@@ -38,7 +38,7 @@ npx cdk deploy
 cd source/infrastructure
 aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
 npm install
-npx cdk deploy --rollback false --parameters S3ModelAssets=<Your S3 Bucket Name> --parameters SubEmail=<Your email address> --parameters OpenSearchIndex=<Your OpenSearch Index Name> --parameters EtlImageName=<Your ETL model name>
+npx cdk deploy --rollback false --parameters S3ModelAssets=<Your S3 Bucket Name> --parameters SubEmail=<Your email address> --parameters OpenSearchIndex=<Your OpenSearch Index Name> --parameters EtlImageName=<Your ETL model name> --parameters ETLTag=<Your ETL tag name>
 ```
 
 **Deployment parameters**
@@ -49,6 +49,7 @@ npx cdk deploy --rollback false --parameters S3ModelAssets=<Your S3 Bucket Name>
 | SubEmail | Your email address to receive notifications |
 | OpenSearchIndex | OpenSearch index name to store the knowledge, if the index is not existed, the solution will create one |
 | EtlImageName | ETL image name, eg. etl-model, it is set when you executing source/model/etl/code/model.sh script |
+| EtlTag | ETL tag, eg. latest, v1.0, v2.0, the default value is latest, it is set when you executing source/model/etl/code/model.sh script |
 
 You can update us-east-1 to any other available region according to your need. You will get output similar like below:
 ```

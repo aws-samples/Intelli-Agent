@@ -35,6 +35,12 @@ export class RootStack extends Stack {
       default: 'chatbot-index',
     });
 
+    const _etlTag = new CfnParameter(this, 'ETLTag', {
+      type: 'String',
+      description: 'ETL image tag, the default is latest',
+      default: 'latest',
+    });
+
     let _OpenSearchIndexDictDefaultValue: string|undefined;
 
 
@@ -95,6 +101,7 @@ export class RootStack extends Stack {
       _s3ModelAssets:_S3ModelAssets.valueAsString,
       _OpenSearchIndex: _OpenSearchIndex.valueAsString,
       _imageName: _imageName.valueAsString,
+      _etlTag: _etlTag.valueAsString,
     });
     _EtlStack.addDependency(_VpcStack);
     _EtlStack.addDependency(_OsStack);

@@ -33,21 +33,18 @@ text = [
     #     "可以在AWS Application Loadbalancer中启用预热功能么？",
     # ],
     [
-        "建发股份和四川永丰浆纸股份有限公司及其子公司向关联人销 售商品、提供劳务交易预计总金额总计多少",
+        "What is MaxiCharger AC Elite (residential)",
     ],
     [
-        "建发股份向关联人销 售商品、提供 劳务2024年预计总金额交是多少",
+        "How to install the holster",
     ],
     [
-        "义乌华鼎锦纶股份有限公司远期结售汇交易金额上限",
-    ],
-    [
-        "天工国际更正原因",
+        "What is the intended use of Autel MaxiCharger AC Wallbox",
     ]
 ]
 
 def get_answer(query_input):
-    answer, source, debug_info = generate_answer(query_input, enable_q_q_match=False, type="market_chain")
+    answer, source, debug_info = generate_answer(query_input, enable_q_q_match=False, type="common")
     return (answer,
             source,
             debug_info.get("query_parser_info", ""),
