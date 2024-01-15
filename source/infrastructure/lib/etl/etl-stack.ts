@@ -31,6 +31,7 @@ interface etlStackProps extends StackProps {
     _s3ModelAssets: string;
     _OpenSearchIndex: string;
     _imageName: string;
+    _etlTag: string;
 }
 
 export class EtlStack extends NestedStack {
@@ -54,7 +55,7 @@ export class EtlStack extends NestedStack {
         });
 
         // Create model, BucketDeployment construct automatically handles dependencies to ensure model assets uploaded before creating the model in this.region
-        const imageUrl = this.account + '.dkr.ecr.' + this.region +'.amazonaws.com/' + props._imageName
+        const imageUrl = this.account + '.dkr.ecr.' + this.region +'.amazonaws.com/' + props._imageName + ":" + props._etlTag;
         const model = new sagemaker.CfnModel(this, 'etl-model', {
             executionRoleArn: endpointRole.roleArn,
             primaryContainer: {
@@ -118,11 +119,11 @@ export class EtlStack extends NestedStack {
             blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
         });
 
-        const extraPythonFiles = new s3deploy.BucketDeployment(this, 'extraPythonFiles', {
-            sources: [s3deploy.Source.asset(join(__dirname, '../../../lambda/job/dep/dist'))],
-            destinationBucket: _S3Bucket,
-            // destinationKeyPrefix: 'llm_bot_dep-0.1.0-py3-none-any.whl',
-        });
+        // const extraPythonFiles = new s3deploy.BucketDeployment(this, 'extraPythonFiles', {
+        //     sources: [s3deploy.Source.asset(join(__dirname, '../../../lambda/job/dep/dist'))],
+        //     destinationBucket: _S3Bucket,
+        //     // destinationKeyPrefix: 'llm_bot_dep-0.1.0-py3-none-any.whl',
+        // });
 
         // Assemble the extra python files list using _S3Bucket.s3UrlForObject('llm_bot_dep-0.1.0-py3-none-any.whl') and _S3Bucket.s3UrlForObject('nougat_ocr-0.1.17-py3-none-any.whl') and convert to string
         const extraPythonFilesList = [_S3Bucket.s3UrlForObject('llm_bot_dep-0.1.0-py3-none-any.whl')].join(',');

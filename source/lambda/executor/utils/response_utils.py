@@ -1,8 +1,8 @@
-import time 
-import json 
-import logging 
-import traceback
 import copy
+import json
+import logging
+import time
+import traceback
 
 logger = logging.getLogger()
 
@@ -21,16 +21,23 @@ class WebsocketClientError(Exception):
 
 def api_response(**kwargs):
     response = {"statusCode": 200, "headers": {"Content-Type": "application/json"}}
-    session_id = kwargs['session_id']
-    model = kwargs['model']
-    request_timestamp = kwargs['request_timestamp']
-    answer = kwargs['answer']
-    sources = kwargs['sources']
-    get_contexts = kwargs['get_contexts']
-    contexts = kwargs['contexts']
-    enable_debug = kwargs['enable_debug']
-    debug_info = kwargs['debug_info']
-    
+    session_id = kwargs["session_id"]
+    model = kwargs["model"]
+    request_timestamp = kwargs["request_timestamp"]
+    answer = kwargs["answer"]
+    sources = kwargs["sources"]
+    get_contexts = kwargs["get_contexts"]
+    contexts = kwargs["contexts"]
+    enable_debug = kwargs["enable_debug"]
+    debug_info = kwargs["debug_info"]
+    chat_history = kwargs["chat_history"]
+    message_id = kwargs["message_id"]
+
+    if not isinstance(answer, str):
+        answer = json.dumps(answer, ensure_ascii=False)
+
+    chat_history.add_ai_message(f"ai_{message_id}", answer)
+
     # 2. return rusult
     llmbot_response = {
         "id": session_id,
@@ -45,6 +52,7 @@ def api_response(**kwargs):
                     "content": answer,
                     "knowledge_sources": sources,
                 },
+                "message_id": f"ai_{message_id}",
                 "finish_reason": "stop",
                 "index": 0,
             }
@@ -55,11 +63,12 @@ def api_response(**kwargs):
         "Content-Type": "application/json",
         "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
         "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "*"
+        "Access-Control-Allow-Methods": "*",
     }
     if get_contexts:
         llmbot_response["contexts"] = contexts
     if enable_debug:
+        debug_info["contexts"] = contexts
         llmbot_response["debug_info"] = debug_info
     response["body"] = json.dumps(llmbot_response)
     response["headers"] = resp_header
@@ -68,78 +77,95 @@ def api_response(**kwargs):
 
 
 def stream_response(**kwargs):
-    session_id = kwargs['session_id']
-    model = kwargs['model']
-    request_timestamp = kwargs['request_timestamp']
-    answer = kwargs['answer']
-    sources = kwargs['sources']
-    get_contexts = kwargs['get_contexts'] # bool
-    contexts = kwargs['contexts']  # retrieve result
-    enable_debug = kwargs['enable_debug']
-    debug_info = kwargs['debug_info']
-    ws_client = kwargs['ws_client']
-    
-    if isinstance(answer,str):
+    session_id = kwargs["session_id"]
+    model = kwargs["model"]
+    request_timestamp = kwargs["request_timestamp"]
+    answer = kwargs["answer"]
+    sources = kwargs["sources"]
+    get_contexts = kwargs["get_contexts"]  # bool
+    contexts = kwargs["contexts"]  # retrieve result
+    enable_debug = kwargs["enable_debug"]
+    debug_info = kwargs["debug_info"]
+    ws_client = kwargs["ws_client"]
+    chat_history = kwargs["chat_history"]
+    message_id = kwargs["message_id"]
+
+    if isinstance(answer, str):
         answer = [answer]
 
     def _stop_stream():
         pass
         # if not isinstance(answer,list):
         #     answer.close()
-    
-    def _send_to_ws_client(message:dict):
+
+    def _send_to_ws_client(message: dict):
         try:
             llmbot_response = {
                 "id": session_id,
                 "object": "chat.completion",
                 "created": int(request_timestamp),
                 "model": model,
-                "usage": {"prompt_tokens": 13, "completion_tokens": 7, "total_tokens": 20},
-                "choices": [
-                    message
-                ]
+                "usage": {
+                    "prompt_tokens": 13,
+                    "completion_tokens": 7,
+                    "total_tokens": 20,
+                },
+                "choices": [message],
             }
             ws_client.post_to_connection(
                 ConnectionId=session_id,
-                Data=json.dumps(llmbot_response).encode('utf-8')
+                Data=json.dumps(llmbot_response).encode("utf-8"),
             )
         except:
             # convert to websocket error
             raise WebsocketClientError
-    
+
     try:
-        _send_to_ws_client({
+        _send_to_ws_client(
+            {
                 "message_type": StreamMessageType.START,
-            })
+                "message_id": f"ai_{message_id}",
+            }
+        )
         answer_str = ""
-        for i,ans in enumerate(answer):
-            _send_to_ws_client({
-                        "message_type": StreamMessageType.CHUNK,
-                        "message": {
-                            "role": "assistant",
-                            "content": ans,
-                            # "knowledge_sources": sources,
-                        },
-                        "chunck_id": i,
-                    })
+        for i, ans in enumerate(answer):
+            _send_to_ws_client(
+                {
+                    "message_type": StreamMessageType.CHUNK,
+                    "message_id": f"ai_{message_id}",
+                    "message": {
+                        "role": "assistant",
+                        "content": ans,
+                        # "knowledge_sources": sources,
+                    },
+                    "chunck_id": i,
+                }
+            )
             answer_str += ans
+
+        # add to chat history ddb table
+        chat_history.add_ai_message(f"ai_{message_id}", answer_str)
         # sed source and contexts
         context_msg = {
-             "message_type": StreamMessageType.CONTEXT,
-             "knowledge_sources": sources,
-            }
+            "message_type": StreamMessageType.CONTEXT,
+            "message_id": f"ai_{message_id}",
+            "knowledge_sources": sources,
+        }
         if get_contexts:
-            context_msg.update({"contexts":contexts})
-        
+            context_msg.update({"contexts": contexts})
+
         if enable_debug:
-            debug_info['knowledge_qa_llm']['answer'] = answer_str
-            context_msg.update({"debug_info":debug_info})
-        
+            debug_info["knowledge_qa_llm"]["answer"] = answer_str
+            context_msg.update({"debug_info": debug_info})
+
         _send_to_ws_client(context_msg)
         # send end
-        _send_to_ws_client({
+        _send_to_ws_client(
+            {
                 "message_type": StreamMessageType.END,
-        })
+                "message_id": f"ai_{message_id}",
+            }
+        )
     except WebsocketClientError:
         error = traceback.format_exc()
         logger.info(error)
@@ -148,27 +174,28 @@ def stream_response(**kwargs):
         # bedrock error
         error = traceback.format_exc()
         logger.info(error)
-        _send_to_ws_client({
-             "message_type": StreamMessageType.ERROR,
-             "message": {'content':error}
-        })
+        _send_to_ws_client(
+            {
+                "message_type": StreamMessageType.ERROR,
+                "message_id": f"ai_{message_id}",
+                "message": {"content": error},
+            }
+        )
 
 
 class WebSocketCallback:
-    def __init__(self,**kwargs):
-        self.kwargs = kwargs 
+    def __init__(self, **kwargs):
+        self.kwargs = kwargs
 
     def __call__(self, answer, contexts):
-        kwargs = {
-            "answer": answer,
-            "contexts": contexts
-        }
+        kwargs = {"answer": answer, "contexts": contexts}
         kwargs.update(**self.kwargs)
 
         return stream_response(**kwargs)
 
+
 def process_response(**kwargs):
-    stream = kwargs['stream']
+    stream = kwargs["stream"]
     if stream:
         return stream_response(**kwargs)
     return api_response(**kwargs)

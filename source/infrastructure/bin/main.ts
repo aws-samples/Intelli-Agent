@@ -2,12 +2,14 @@ import { App, CfnOutput, CfnParameter, Stack, StackProps } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as dotenv from "dotenv";
 import { LLMApiStack } from '../lib/api/api-stack';
-import { DynamoDBStack } from '../lib/ddb-stack';
+import { DynamoDBStack } from '../lib/ddb/ddb-stack';
 import { EtlStack } from '../lib/etl/etl-stack';
 import { AssetsStack } from '../lib/model/assets-stack';
 import { LLMStack } from '../lib/model/llm-stack';
 import { VpcStack } from '../lib/shared/vpc-stack';
 import { OpenSearchStack } from '../lib/vector-store/os-stack';
+import { ConnectorStack } from '../lib/connector/connector-stack';
+
 dotenv.config();
 
 export class RootStack extends Stack {
@@ -33,12 +35,19 @@ export class RootStack extends Stack {
       default: 'chatbot-index',
     });
 
+    const _etlTag = new CfnParameter(this, 'ETLTag', {
+      type: 'String',
+      description: 'ETL image tag, the default is latest',
+      default: 'latest',
+    });
+
     let _OpenSearchIndexDictDefaultValue: string|undefined;
+
 
     if (process.env.AOSDictValue !== undefined) {
       _OpenSearchIndexDictDefaultValue = process.env.AOSDictValue
     } else {
-      _OpenSearchIndexDictDefaultValue = '{"aos_index_mkt_qd":"aws-cn-mkt-knowledge","aos_index_mkt_qq":"gcr-mkt-qq","aos_index_dgr_qd":"ug-index-3","aos_index_dgr_qq":"faq-index-2"}';
+      _OpenSearchIndexDictDefaultValue = '{"aos_index_mkt_qd":"aws-cn-mkt-knowledge","aos_index_mkt_qq":"gcr-mkt-qq","aos_index_dgr_qd":"ug-index-20240108","aos_index_dgr_qq":"gcr-dgr-qq", "aos_index_dgr_faq_qd":"faq-index-20240110", "dummpy_key":"dummpy_value"}';
     } 
 
     const _OpenSearchIndexDict = new CfnParameter(this, 'OpenSearchIndexDict', {
@@ -92,10 +101,24 @@ export class RootStack extends Stack {
       _s3ModelAssets:_S3ModelAssets.valueAsString,
       _OpenSearchIndex: _OpenSearchIndex.valueAsString,
       _imageName: _imageName.valueAsString,
+      _etlTag: _etlTag.valueAsString,
     });
     _EtlStack.addDependency(_VpcStack);
     _EtlStack.addDependency(_OsStack);
     _EtlStack.addDependency(_LLMStack);
+
+    const _ConnectorStack = new ConnectorStack(this, 'connector-stack', {
+      _vpc:_VpcStack._vpc,
+      _securityGroup:_VpcStack._securityGroup,
+      _domainEndpoint:_OsStack._domainEndpoint,
+      _embeddingEndPoints:_LLMStack._embeddingEndPoints || '',
+      _OpenSearchIndex: _OpenSearchIndex.valueAsString,
+      _OpenSearchIndexDict: _OpenSearchIndexDict.valueAsString,
+      env:process.env
+    });
+    _ConnectorStack.addDependency(_VpcStack);
+    _ConnectorStack.addDependency(_OsStack);
+    _ConnectorStack.addDependency(_LLMStack);
 
     const _ApiStack = new LLMApiStack(this, 'api-stack', {
         _vpc:_VpcStack._vpc,
@@ -108,12 +131,20 @@ export class RootStack extends Stack {
         _sfnOutput: _EtlStack._sfnOutput,
         _OpenSearchIndex: _OpenSearchIndex.valueAsString,
         _OpenSearchIndexDict: _OpenSearchIndexDict.valueAsString,
+        _jobName: _ConnectorStack._jobName,
+        _jobQueueArn: _ConnectorStack._jobQueueArn,
+        _jobDefinitionArn: _ConnectorStack._jobDefinitionArn,
+        _etlEndpoint: _EtlStack._etlEndpoint,
+        _resBucketName: _EtlStack._resBucketName,
         env:process.env
     });
     _ApiStack.addDependency(_VpcStack);
     _ApiStack.addDependency(_OsStack);
     _ApiStack.addDependency(_LLMStack);
     _ApiStack.addDependency(_DynamoDBStack);
+    _ApiStack.addDependency(_ConnectorStack);
+    _ApiStack.addDependency(_DynamoDBStack);
+    _ApiStack.addDependency(_EtlStack);
 
     new CfnOutput(this, 'VPC', {value:_VpcStack._vpc.vpcId});
     new CfnOutput(this, 'OpenSearch Endpoint', {value:_OsStack._domainEndpoint});
@@ -121,6 +152,7 @@ export class RootStack extends Stack {
     // deprecate for now since proxy in ec2 instance is not allowed according to policy
     // new CfnOutput(this, 'OpenSearch Dashboard', {value:`${_Ec2Stack._publicIP}:8081/_dashboards`});
     new CfnOutput(this, 'API Endpoint Address', {value:_ApiStack._apiEndpoint});
+    new CfnOutput(this, 'WebSocket Endpoint Address', {value:_ApiStack._wsEndpoint});
     new CfnOutput(this, 'Glue Job Name', {value:_EtlStack._jobName});
     new CfnOutput(this, 'Cross Model Endpoint', {value:_LLMStack._rerankEndPoint || 'No Cross Endpoint Created'});
     new CfnOutput(this, 'Embedding Model Endpoint', {value:_LLMStack._embeddingEndPoints[0] || 'No Embedding Endpoint Created'});

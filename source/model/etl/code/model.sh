@@ -2,15 +2,15 @@
 
 # Build the docker image and push it to ECR
 
-# The argument to this script is the image name. This will be used as the image on the local
-# machine and combined with the account and region to form the repository name for ECR.
+# The arguments to this script are the docker file, image name, AWS region, and the tag for the image.
 dockerfile=$1
 image=$2
 region=$3
+tag=$4  # New argument for the tag
 
-if [ "$image" = "" ] || [ "$dockerfile" = "" ] || [ "$region" = "" ]
+if [ "$image" = "" ] || [ "$dockerfile" = "" ] || [ "$region" = "" ] || [ "$tag" = "" ]
 then
-    echo "Usage: $0 <docker-file> <image-name> <aws-region>"
+    echo "Usage: \$0 <docker-file> <image-name> <aws-region> <tag>"
     exit 1
 fi
 
@@ -22,15 +22,15 @@ then
     exit 255
 fi
 
-# Get the region defined in the current configuration (default to us-west-2 if none defined)
+# Get the region defined in the current configuration
 image_name="${image}"
 
 # Check if aws-cn is in the ARN
 if [ "$(aws sts get-caller-identity --query Arn --output text | cut -d':' -f2)" == "aws-cn" ]; then
-    fullname="${account}.dkr.ecr.${region}.amazonaws.com.cn/${image_name}:latest"
+    fullname="${account}.dkr.ecr.${region}.amazonaws.com.cn/${image_name}:${tag}"  # Use the provided tag
     aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ${account}.dkr.ecr.${region}.amazonaws.com.cn
 else
-    fullname="${account}.dkr.ecr.${region}.amazonaws.com/${image_name}:latest"
+    fullname="${account}.dkr.ecr.${region}.amazonaws.com/${image_name}:${tag}"  # Use the provided tag
     aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ${account}.dkr.ecr.${region}.amazonaws.com
 fi
 
@@ -61,4 +61,3 @@ docker build -t ${image_name} -f ${dockerfile} .
 docker tag ${image_name} ${fullname}
 
 docker push ${fullname}
-

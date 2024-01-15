@@ -31,7 +31,7 @@ When is the scheduled launch date and time for the PSLV-C56 mission, and where w
 
 
 class ClaudeAnswerRelevancy(AnswerRelevancy):
-    embeddings = BedrockEmbeddings()
+    embeddings = BedrockEmbeddings(model_id = "cohere.embed-multilingual-v3")
 
     def _score_batch(
         self,

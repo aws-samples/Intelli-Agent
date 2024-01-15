@@ -12,6 +12,8 @@ import { Construct } from 'constructs';
 import { join } from "path";
 import { WebSocketApi } from '@aws-cdk/aws-apigatewayv2-alpha';
 import { WebSocketStack } from './websocket-api';
+import { ApiQueueStack } from './api-queue';
+import * as lambdaEventSources from 'aws-cdk-lib/aws-lambda-event-sources';
 
 interface apiStackProps extends StackProps {
     _vpc: ec2.Vpc;
@@ -25,12 +27,18 @@ interface apiStackProps extends StackProps {
     _sfnOutput: sfn.StateMachine;
     _OpenSearchIndex: string;
     _OpenSearchIndexDict: string;
+    _jobName: string;
+    _jobQueueArn: string;
+    _jobDefinitionArn: string;
+    _etlEndpoint: string;
+    _resBucketName: string;
 }
 
 export class LLMApiStack extends NestedStack {
 
     _apiEndpoint;
     _documentBucket;
+    _wsEndpoint
     constructor(scope: Construct, id: string, props: apiStackProps) {
         super(scope, id, props);
 
@@ -40,6 +48,14 @@ export class LLMApiStack extends NestedStack {
         const _aosIndex = props._OpenSearchIndex
         const _aosIndexDict = props._OpenSearchIndexDict
         const _chatSessionTable = props._chatSessionTable
+        const _jobQueueArn = props._jobQueueArn
+        const _jobDefinitionArn = props._jobDefinitionArn
+        const _etlEndpoint = props._etlEndpoint
+        const _resBucketName = props._resBucketName
+
+        const queueStack = new ApiQueueStack(this, 'LLMQueueStack');
+        const sqsStatement = queueStack.sqsStatement;
+        const messageQueue = queueStack.messageQueue;
 
         // s3 bucket for storing documents
         const _S3Bucket = new s3.Bucket(this, 'llm-bot-documents', {
@@ -72,6 +88,22 @@ export class LLMApiStack extends NestedStack {
             },
         });
 
+        const lambdaDispatcher = new DockerImageFunction(this,
+            "lambdaDispatcher", {
+            code: DockerImageCode.fromImageAsset(join(__dirname, "../../../lambda/dispatcher")),
+            timeout: Duration.minutes(15),
+            memorySize: 1024,
+            vpc: _vpc,
+            vpcSubnets: {
+                subnets: _vpc.privateSubnets,
+            },
+            securityGroups: [_securityGroup],
+            architecture: Architecture.X86_64,
+            environment: {
+                SQS_QUEUE_URL: messageQueue.queueUrl,
+            },
+        });
+
         lambdaExecutor.addToRolePolicy(new iam.PolicyStatement({
             // principals: [new iam.AnyPrincipal()],
             actions: [
@@ -90,6 +122,9 @@ export class LLMApiStack extends NestedStack {
             resources: ['*'],
         }
         ))
+        lambdaExecutor.addToRolePolicy(sqsStatement);
+        lambdaExecutor.addEventSource(new lambdaEventSources.SqsEventSource(messageQueue));
+        lambdaDispatcher.addToRolePolicy(sqsStatement);
 
         const lambdaEmbedding = new DockerImageFunction(this,
             "lambdaEmbedding", {
@@ -103,11 +138,9 @@ export class LLMApiStack extends NestedStack {
             securityGroups: [_securityGroup],
             architecture: Architecture.X86_64,
             environment: {
-                document_bucket: _S3Bucket.bucketName,
-                opensearch_cluster_domain: _domainEndpoint,
-                llm_endpoint: props._instructEndPoint,
-                embedding_endpoint: props._embeddingEndPoints[0],
-                cross_endpoint: props._rerankEndPoint,
+                ETL_MODEL_ENDPOINT: _etlEndpoint,
+                REGION: Aws.REGION,
+                RES_BUCKET: _resBucketName,
             },
         });
 
@@ -156,6 +189,30 @@ export class LLMApiStack extends NestedStack {
         }
         ))
 
+        const lambdaDdb = new lambda.Function(this, "lambdaDdb", {
+            runtime:lambda.Runtime.PYTHON_3_7,
+            handler: "rating.lambda_handler",
+            code: lambda.Code.fromAsset(join(__dirname, "../../../lambda/ddb")),
+            environment: {
+                SESSIONS_TABLE_NAME: _chatSessionTable,
+                SESSIONS_BY_USER_ID_INDEX_NAME: "byUserId",
+            },
+            vpc: _vpc,
+                vpcSubnets: {
+                    subnets: _vpc.privateSubnets,
+                },
+                securityGroups: [props._securityGroup]
+            });
+
+        lambdaDdb.addToRolePolicy(new iam.PolicyStatement({
+                actions: [
+                "dynamodb:*"
+                ],
+                effect: iam.Effect.ALLOW,
+                resources: ['*'],
+                }
+            ))
+
         // Define the API Gateway
         const api = new apigw.RestApi(this, 'llmApi', {
             restApiName: 'llmApi',
@@ -195,11 +252,8 @@ export class LLMApiStack extends NestedStack {
         const lambdaEmbeddingIntegration = new apigw.LambdaIntegration(lambdaEmbedding, { proxy: true, });
 
         // Define the API Gateway Method
-        const apiResourceEmbedding = api.root.addResource('embedding');
+        const apiResourceEmbedding = api.root.addResource('extract');
         apiResourceEmbedding.addMethod('POST', lambdaEmbeddingIntegration);
-
-        // Add Get method to query & search index in OpenSearch, such embedding lambda will be updated for online process
-        apiResourceEmbedding.addMethod('GET', lambdaEmbeddingIntegration);
 
         // Define the API Gateway Lambda Integration with proxy and no integration responses
         const lambdaAosIntegration = new apigw.LambdaIntegration(lambdaAos, { proxy: true, });
@@ -211,43 +265,19 @@ export class LLMApiStack extends NestedStack {
         // Add Get method to query & search index in OpenSearch, such embedding lambda will be updated for online process
         apiResourceAos.addMethod('GET', lambdaAosIntegration);
 
+        // Define the API Gateway Lambda Integration with proxy and no integration responses
+        const lambdaDdbIntegration = new apigw.LambdaIntegration(lambdaDdb, { proxy: true, });
+
+        // All AOS wrapper should be within such lambda
+        const apiResourceDdb = api.root.addResource('ddb');
+        apiResourceDdb.addMethod('POST', lambdaDdbIntegration);
+
         // Integration with Step Function to trigger ETL process
         // Lambda function to trigger Step Function
         const lambdaStepFunction = new lambda.Function(this, 'lambdaStepFunction', {
             // format to avoid indent error, using inline for simplicity no more container pack time needed
-            code: lambda.Code.fromInline
-            (`
-import json
-import boto3
-import os
-client = boto3.client('stepfunctions')
-def handler(event, context):
-    # First check the event for possible S3 created event
-    inputPayload = {}
-    if 'Records' in event:
-        print('S3 created event detected')
-        # TODO, Aggregate the bucket and key from the event object for S3 created event
-        bucket = event['Records'][0]['s3']['bucket']['name']
-        key = event['Records'][0]['s3']['object']['key']
-        # Pass the bucket and key to the Step Function, align with the input schema in etl-stack.ts
-        inputPayload=json.dumps({'s3Bucket': bucket, 's3Prefix': key, 'offline': 'false', 'qaEnhance': 'false'})
-    else:
-        print('API Gateway event detected')
-        # Parse the body from the event object
-        body = json.loads(event['body'])
-        # Pass the parsed body to the Step Function
-        inputPayload=json.dumps(body)
-
-    response = client.start_execution(
-        stateMachineArn=os.environ['sfn_arn'],
-        input=inputPayload
-    )
-    return {
-        'statusCode': 200,
-        'body': json.dumps('Step Function triggered, Step Function ARN: ' + response['executionArn'] + ' Input Payload: ' + inputPayload)
-    }
-            `),
-            handler: 'index.handler',
+            code: lambda.Code.fromAsset(join(__dirname, "../../../lambda/etl")),
+            handler: 'sfn_handler.handler',
             runtime: lambda.Runtime.PYTHON_3_9,
             timeout: Duration.seconds(30),
             environment: {
@@ -267,10 +297,54 @@ def handler(event, context):
         _S3Bucket.grantReadWrite(lambdaStepFunction);
 
         const webSocketApi = new WebSocketStack(this, 'WebSocketApi', {
+            dispatcherLambda: lambdaDispatcher,
             sendMessageLambda: lambdaExecutor,
         });
 
+        const lambdaBatch = new DockerImageFunction(this,
+            "lambdaBatch", {
+            code: DockerImageCode.fromImageAsset(join(__dirname, "../../../lambda/batch")),
+            timeout: Duration.minutes(15),
+            memorySize: 1024,
+            vpc: _vpc,
+            vpcSubnets: {
+                subnets: _vpc.privateSubnets,
+            },
+            securityGroups: [_securityGroup],
+            architecture: Architecture.X86_64,
+            environment: {
+                document_bucket: _S3Bucket.bucketName,
+                opensearch_cluster_domain: _domainEndpoint,
+                embedding_endpoint: props._embeddingEndPoints[0],
+                jobName: props._jobName,
+                jobQueueArn: props._jobQueueArn,
+                jobDefinitionArn: props._jobDefinitionArn,
+            },
+        });
+
+        lambdaBatch.addToRolePolicy(new iam.PolicyStatement({
+            actions: [
+                "sagemaker:InvokeEndpointAsync",
+                "sagemaker:InvokeEndpoint",
+                "s3:List*",
+                "s3:Put*",
+                "s3:Get*",
+                "es:*",
+                "batch:*",
+            ],
+            effect: iam.Effect.ALLOW,
+            resources: ['*'],
+            }
+        ))
+        // Define the API Gateway Lambda Integration to invoke Batch job
+        const lambdaBatchIntegration = new apigw.LambdaIntegration(lambdaBatch, { proxy: true, });
+
+        // Define the API Gateway Method
+        const apiResourceBatch = api.root.addResource('batch');
+        apiResourceBatch.addMethod('POST', lambdaBatchIntegration);
+
         this._apiEndpoint = api.url
         this._documentBucket = _S3Bucket.bucketName
+        this._wsEndpoint = webSocketApi.websocketApiStage.api.apiEndpoint
     }
 }

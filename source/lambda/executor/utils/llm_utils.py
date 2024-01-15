@@ -14,31 +14,17 @@ from langchain.llms.base import LLM
 from langchain.llms import Bedrock
 
 from prompt_template import claude2_rag_template_render, \
-    claude2_rag_api_postprocess, claude2_rag_stream_postprocess
+    claude2_rag_api_postprocess, claude2_rag_stream_postprocess, \
+        claude_chat_template_render
+    
 import prompt_template  
 
 from response_utils import api_response, stream_response
 
 from langchain.schema.runnable import RunnableLambda
-
-# class StreamResponse:
-#     def __init__(self,raw_stream) -> None:
-#         self.raw_stream = raw_stream
-
-#     @staticmethod
-#     def postprocess(ret):
-#         return ret
-    
-#     def __iter__(self):
-#         if self.raw_stream:
-#             for event in self.raw_stream:
-#                 chunk = event.get("chunk")
-#                 if chunk:
-#                     completion = json.loads(chunk.get("bytes").decode())['completion']
-#                     yield self.postprocess(completion)
-
-#     def close(self):
-#         self.raw_stream.close()
+from constant import IntentType
+from prompt_template import get_claude_chat_rag_prompt,get_chit_chat_prompt
+from langchain_community.chat_models import BedrockChat
 
 class ModelMeta(type):
     def __new__(cls, name, bases, attrs):
@@ -56,121 +42,40 @@ class Model(metaclass=ModelMeta):
             model_kwargs=model_kwargs, **kwargs
         )
 
-    # def generate(self,*args,**kwargs):
-    #     raise NotImplementedError
-    
-    # def generate_with_stream(cls,*args,**kwargs):
-    #     raise NotImplementedError
-    
-    # def __call__(self,*args,**kwargs):
-    #     raise NotImplementedError
-
-
-# class __Claude2(Model):
-#     modelId = 'anthropic.claude-v2'
-#     accept = 'application/json'
-#     contentType = 'application/json'
-#     client = None  
-
-#     default_generate_kwargs = {
-#         "max_tokens_to_sample": 2000,
-#         "temperature": 0.7,
-#         "top_p": 0.9
-#     }
-
-#     @classmethod
-#     def create_client(cls):
-#         bedrock = boto3.client(
-#             service_name='bedrock-runtime'
-#             )
-#         return bedrock
-
-#     @classmethod
-#     def generate_stream(cls,body):
-#         response = cls.client.invoke_model_with_response_stream(
-#             modelId=cls.modelId, body=body
-#         )
-#         stream = response.get("body")
-#         return StreamResponse(stream)
-        
-
-#     @classmethod
-#     def _generate(cls,prompt,use_default_prompt_template=True,stream=False,**generate_kwargs):
-#         if cls.client is None:
-#             cls.client = cls.create_client()
-#         generate_kwargs = dict(cls.default_generate_kwargs.copy(),**generate_kwargs)
-        
-#         if use_default_prompt_template:
-#             prompt=f"\n\nHuman:{prompt}\n\nAssistant:"
-            
-#         body = json.dumps(dict(generate_kwargs,prompt=prompt))
-       
-#         if stream:
-#             return cls.generate_stream(body)
-
-#         response = cls.client.invoke_model(body=body, modelId=cls.modelId, accept=cls.accept, contentType=cls.contentType)
-
-#         response_body = json.loads(response.get('body').read())
-#         # text
-#         return response_body.get('completion')
-    
-#     @classmethod
-#     def generate_rag(cls,**kwargs):
-#         query = kwargs['query']
-#         contexts = kwargs['contexts']
-#         context_num = kwargs.get('context_num',2)
-#         stream = kwargs.get('stream',False)
-        
-#         prompt = claude2_rag_template_render(
-#             query,
-#             [context['doc'] for context in contexts[:context_num]]
-#         )
-#         extracted_generate_kwargs = {k:kwargs[k] for k in cls.default_generate_kwargs if k in kwargs}
-    
-#         answer = cls._generate(
-#             prompt,
-#             stream=stream,
-#             use_default_prompt_template=False,
-#             **extracted_generate_kwargs)
-#         if not stream:
-#             answer = cls.postprocess(answer)
-#         else:
-#             answer.postprocess = lambda x:x.rstrip('</result>')
-#         return {
-#             "answer":answer,
-#             "prompt":prompt
-#         }
-    
-#     @classmethod
-#     def postprocess(cls,answer):
-#         rets = re.findall('<result>(.*?)</result>','<result>'+ answer,re.S)
-#         rets = [ret.strip() for ret in rets]
-#         rets = [ret for ret in rets if ret]
-#         if not rets:
-#             return answer  
-#         return rets[0]
-        
-#     generate = generate_rag
-
-
 class Claude2(Model):
     model_id = 'anthropic.claude-v2'
+    default_model_kwargs = {
+            "max_tokens_to_sample": 2000,
+            "temperature": 0.7,
+            "top_p": 0.9
+        }
 
     @classmethod
-    def create_model(cls,model_kwargs=None, **kwargs):
+    def create_model(cls,model_kwargs=None, **kwargs
+        ):
+        model_kwargs  = model_kwargs or cls.default_model_kwargs
+
         credentials_profile_name = kwargs.get('credentials_profile_name',None) \
                     or os.environ.get('AWS_PROFILE',None) or None 
         region_name = kwargs.get('region_name',None) \
             or os.environ.get('AWS_REGION', None) or None
-        model_kwargs = kwargs.get('model_kwargs',None) 
-        llm = Bedrock(
-                    credentials_profile_name=credentials_profile_name,
-                    region_name=region_name,
-                    model_id=cls.model_id,
-                    model_kwargs=model_kwargs
-        )
-        return llm
+        return_chat_model=kwargs.get('return_chat_model',False)
+        if return_chat_model:
+            llm = BedrockChat(
+                        credentials_profile_name=credentials_profile_name,
+                        region_name=region_name,
+                        model_id=cls.model_id,
+                        model_kwargs=model_kwargs
+            )
+        else:
+            llm = Bedrock(
+                        credentials_profile_name=credentials_profile_name,
+                        region_name=region_name,
+                        model_id=cls.model_id,
+                        model_kwargs=model_kwargs
+            )
 
+        return llm
 
 class ClaudeInstance(Claude2):
     model_id = 'anthropic.claude-instant-v1'
@@ -210,145 +115,129 @@ class CSDCDGRModel(Model):
         return ret
 
 
-# def generate(model_id,**kwargs):
-#     if model_id is None:
-#         model_id = 'anthropic.claude-v2:1'
-#     model_cls = Model.get_model(model_id)
-#     ret = model_cls.generate(**kwargs)
-#     return ret 
 
-# def generate_for_chain(llm_params):
-#     model_id = 'anthropic.claude-v2:1'
-#     model_cls = Model.get_model(model_id)
-#     ret = model_cls.generate(**llm_params)
-#     return ret 
-
-
-# class LLMFactory:
-#     @classmethod
-#     def get_llm_model(cls, model_id, provider='bedrock', model_kwargs=None, **kwargs):
-#         if provider == 'bedrock':
-#             if model_id in ['anthropic.claude-v2:1','anthropic.claude-instant-v1','anthropic.claude-v2']:
-#                 credentials_profile_name = kwargs.get('credentials_profile_name',None) \
-#                     or os.environ.get('credentials_profile_name',None) or None 
-#                 region_name = kwargs.get('region_name',None) \
-#                     or os.environ.get('region_name', None) or None
-#                 model_kwargs = kwargs.get('model_kwargs',None) 
-#                 llm = Bedrock(
-#                     credentials_profile_name=credentials_profile_name,
-#                     region_name=region_name,
-#                     model_id=model_id,
-#                     model_kwargs=model_kwargs
-#                 )
-#                 return llm
-            
-#         raise RuntimeError(f'Invalid model_id: {model_id}')
-
-# class RagPromptTemplateFactory:
-#     @classmethod
-#     def get_prompt_template(cls,model_id, provider='bedrock'):
-#         if provider == 'bedrock':
-#             if model_id in ['anthropic.claude-v2:1','anthropic.claude-instant-v1','anthropic.claude-v2']:
-#                 return claude2_rag_template_render
-#             elif model_id in ['']
-#         raise RuntimeError(f'Invalid model_id: {model_id}')
-
-
-class RagLLMChainMeta(type):
+class LLMChainMeta(type):
     def __new__(cls, name, bases, attrs):
         new_cls = type.__new__(cls, name, bases, attrs)
-        if name == 'RagLLMChain':
+        if name == 'LLMChain':
             return new_cls
-        new_cls.model_map[new_cls.model_id] = new_cls
+        new_cls.model_map[new_cls.get_chain_id()] = new_cls
         return new_cls
     
-class RagLLMChain(metaclass=RagLLMChainMeta):
+class LLMChain(metaclass=LLMChainMeta):
     model_map = {}
+    @classmethod
+    def get_chain_id(cls):
+        return cls._get_chain_id(cls.model_id,cls.intent_type)
+    
+    @staticmethod
+    def _get_chain_id(model_id,intent_type):
+        return f"{model_id}__{intent_type}"
+
 
     @classmethod
-    def get_chain(cls,model_id,model_kwargs=None, **kwargs):
-        return cls.model_map[model_id].create_chain(
+    def get_chain(cls,model_id,intent_type,model_kwargs=None, **kwargs):
+        return cls.model_map[cls._get_chain_id(model_id,intent_type)].create_chain(
             model_kwargs=model_kwargs, **kwargs
         )
     
-class Claude2RagLLMChain(RagLLMChain):
+class Claude2RagLLMChain(LLMChain):
     model_id = 'anthropic.claude-v2'
-    template_render = claude2_rag_template_render
-    stream_postprocess = claude2_rag_stream_postprocess
-    api_postprocess = claude2_rag_api_postprocess
+    intent_type = IntentType.KNOWLEDGE_QA.value
+    # template_render = claude2_rag_template_render
+    # stream_postprocess = claude2_rag_stream_postprocess
+    # api_postprocess = claude2_rag_api_postprocess
 
     @classmethod
     def create_chain(cls, model_kwargs=None, **kwargs):
-        prompt = RunnableLambda(
-            lambda x: cls.template_render(x['query'],x['contexts'])
-            )
+        stream = kwargs.get('stream',False)
+        chat_history = kwargs.get('chat_history',[])
+        prompt = get_claude_chat_rag_prompt(chat_history)
+        # prompt = RunnableLambda(
+        #     lambda x: cls.template_render(x['query'],x['contexts'])
+        #     )
+        kwargs.update({'return_chat_model':True})
         llm = Model.get_model(
             cls.model_id,
             model_kwargs=model_kwargs,
             **kwargs
             )
-        stream = kwargs.get('stream',False)
+
         if stream:
-            llm_fn = RunnableLambda(llm.stream)
-            postprocess_fn = RunnableLambda(cls.stream_postprocess)
+            chain = prompt | RunnableLambda(lambda x: llm.stream(x.messages)) | RunnableLambda(lambda x:(i.content for i in x))
+            # llm_fn = RunnableLambda(llm.stream)
+        #     postprocess_fn = RunnableLambda(cls.stream_postprocess)
         else:
-            llm_fn = RunnableLambda(llm.predict)
-            postprocess_fn = RunnableLambda(cls.api_postprocess)
+            chain = prompt | llm | RunnableLambda(lambda x:x.dict()['content'])
+            # llm_fn = RunnableLambda(llm.predict)
+        #     postprocess_fn = RunnableLambda(cls.api_postprocess)
         
-        chain = prompt | llm_fn | postprocess_fn
+        # chain = prompt | llm_fn | postprocess_fn
         return chain 
 
 class Claude21RagLLMChain(Claude2RagLLMChain):
     model_id = 'anthropic.claude-v2:1'
-    template_render = prompt_template.claude21_rag_template_render 
-    stream_postprocess = prompt_template.claude21_rag_stream_postprocess 
-    api_postprocess = prompt_template.claude21_rag_api_postprocess
+    # template_render = prompt_template.claude21_rag_template_render 
+    # stream_postprocess = prompt_template.claude21_rag_stream_postprocess 
+    # api_postprocess = prompt_template.claude21_rag_api_postprocess
 
 
-class ClaudeInstance(Claude2RagLLMChain):
+class ClaudeRagInstance(Claude2RagLLMChain):
     model_id = 'anthropic.claude-instant-v1'
-    template_render = prompt_template.claude2_rag_template_render
-    stream_postprocess = prompt_template.claude2_rag_stream_postprocess
-    api_postprocess = prompt_template.claude2_rag_api_postprocess
+    # template_render = prompt_template.claude2_rag_template_render
+    # stream_postprocess = prompt_template.claude2_rag_stream_postprocess
+    # api_postprocess = prompt_template.claude2_rag_api_postprocess
 
+class Claude2ChatChain(LLMChain):
+    model_id = 'anthropic.claude-v2'
+    intent_type = IntentType.CHAT.value
+    # template_render = prompt_template.claude_chat_template_render
 
-def get_rag_llm_chain(model_id, model_kwargs=None, **kwargs):
-    return RagLLMChain.get_chain(
+    @classmethod
+    def create_chain(cls, model_kwargs=None, **kwargs):
+        stream = kwargs.get('stream',False)
+        chat_history = kwargs.get('chat_history',[])
+        prompt = get_chit_chat_prompt(chat_history)
+        # prompt = RunnableLambda(
+        #     lambda x: cls.template_render(x['query'])
+        #     )
+        kwargs.update({'return_chat_model':True})
+        llm = Model.get_model(
+            cls.model_id,
+            model_kwargs=model_kwargs,
+            **kwargs
+        )
+        chain = prompt | llm
+
+        if stream:
+            chain = prompt | RunnableLambda(lambda x: llm.stream(x.messages)) | RunnableLambda(lambda x:(i.content for i in x))
+            # llm_fn = RunnableLambda(llm.stream)
+        #     postprocess_fn = RunnableLambda(cls.stream_postprocess)
+        else:
+            chain = prompt | llm | RunnableLambda(lambda x:x.dict()['content'])
+            # llm_fn = RunnableLambda(llm.predict)
+        #     postprocess_fn = RunnableLambda(cls.api_postprocess)
+        
+        # chain = prompt | llm_fn | postprocess_fn
+        return chain 
+        # stream = kwargs.get('stream',False)
+        # if stream:
+        #     llm_fn = RunnableLambda(llm.stream)
+        # else:
+        #     llm_fn = RunnableLambda(llm.predict)
+        # chain = prompt | llm_fn
+        # return chain 
+
+class Claude21ChatChain(Claude2ChatChain):
+    model_id = 'anthropic.claude-v2:1'
+
+class ClaudeInstanceChatChain(Claude2ChatChain):
+    model_id = 'anthropic.claude-instant-v1'
+
+def get_llm_chain(model_id, intent_type,model_kwargs=None, **kwargs):
+    return LLMChain.get_chain(
         model_id,
+        intent_type,
         model_kwargs=model_kwargs,
         **kwargs
     )
-    
-
-# class CustomLLM:
-#     model_id: str = "anthropic.claude-v2" 
-#     enable_stream: bool=False
-#     def __init__(self, model_id, stream):
-#         super().__init__()
-#         self.model_id = model_id
-#         self.enable_stream = stream
-
-#     @property
-#     def _llm_type(self) -> str:
-#         return "custom"
-
-#     def __call__(
-#         self,
-#         prompt: str,
-#         stop: Optional[List[str]] = None,
-#         run_manager: Optional[CallbackManagerForLLMRun] = None,
-#         **kwargs: Any,
-#     ) -> str:
-#         if stop is not None:
-#             raise ValueError("stop kwargs are not permitted.")
-#         # model_cls = Model.get_model("anthropic.claude-v2")
-#         # return model_cls._generate(prompt)
-#         prompt = json.loads(prompt)
-#         query = prompt["query"]
-#         contexts = prompt["contexts"]
-#         return generate(query=query, contexts=contexts, model_id=self.model_id, stream=self.enable_stream, *kwargs)["answer"]
-
-#     @property
-#     def _identifying_params(self) -> Mapping[str, Any]:
-#         """Get the identifying parameters."""
-#         return {}
