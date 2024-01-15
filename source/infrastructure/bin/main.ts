@@ -37,10 +37,11 @@ export class RootStack extends Stack {
 
     let _OpenSearchIndexDictDefaultValue: string|undefined;
 
+
     if (process.env.AOSDictValue !== undefined) {
       _OpenSearchIndexDictDefaultValue = process.env.AOSDictValue
     } else {
-      _OpenSearchIndexDictDefaultValue = '{"aos_index_mkt_qd":"aws-cn-mkt-knowledge","aos_index_mkt_qq":"gcr-mkt-qq","aos_index_dgr_qd":"ug-index-20240108","aos_index_dgr_qq":"gcr-dgr-qq", "aos_index_dgr_faq_qd":"faq-index-20240110"}';
+      _OpenSearchIndexDictDefaultValue = '{"aos_index_mkt_qd":"aws-cn-mkt-knowledge","aos_index_mkt_qq":"gcr-mkt-qq","aos_index_dgr_qd":"ug-index-20240108","aos_index_dgr_qq":"gcr-dgr-qq", "aos_index_dgr_faq_qd":"faq-index-20240110", "dummpy_key":"dummpy_value"}';
     } 
 
     const _OpenSearchIndexDict = new CfnParameter(this, 'OpenSearchIndexDict', {
