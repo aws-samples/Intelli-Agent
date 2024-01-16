@@ -296,6 +296,13 @@ class MarkdownHeaderTextSplitter:
                     metadata["current_heading"] = current_heading
                     current_heading_list = self._get_current_heading_list(current_heading, current_heading_level_map)
                     current_heading = current_heading.replace("#", "").strip()
+                    split_words = '*' * 100
+                    logger.info(f"{split_words}")
+                    logger.info(f"current line is {line}")
+                    logger.info(f"current metadata is {text.metadata}")
+                    logger.info(f"current heading list is {current_heading_list}")
+                    logger.info(f"current heading level map is {current_heading_level_map}")
+                    logger.info(f"{split_words}")
                     try:
                         self._set_chunk_id(
                             id_index_dict, current_heading, metadata, same_heading_dict
