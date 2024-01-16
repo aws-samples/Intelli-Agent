@@ -314,6 +314,8 @@ def aos_injection(
             continue
         # the batch are still list of Document objects, we need to iterate the list to inject the embeddings, the chunk size (500) should already be small enough to fit the embedding model
         for document in batch:
+            # update document with complete_heading
+            document.page_content = document.metadata["complete_heading"] + ' ' + document.page_content
 
             @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
             def _aos_injection(document: Document) -> Document:

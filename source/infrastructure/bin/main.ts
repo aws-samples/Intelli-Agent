@@ -35,12 +35,19 @@ export class RootStack extends Stack {
       default: 'chatbot-index',
     });
 
+    const _etlTag = new CfnParameter(this, 'ETLTag', {
+      type: 'String',
+      description: 'ETL image tag, the default is latest',
+      default: 'latest',
+    });
+
     let _OpenSearchIndexDictDefaultValue: string|undefined;
+
 
     if (process.env.AOSDictValue !== undefined) {
       _OpenSearchIndexDictDefaultValue = process.env.AOSDictValue
     } else {
-      _OpenSearchIndexDictDefaultValue = '{"aos_index_mkt_qd":"aws-cn-mkt-knowledge","aos_index_mkt_qq":"gcr-mkt-qq","aos_index_dgr_qd":"ug-index-20240108","aos_index_dgr_qq":"gcr-dgr-qq", "aos_index_dgr_faq_qd":"faq-index-20240110"}';
+      _OpenSearchIndexDictDefaultValue = '{"aos_index_mkt_qd":"aws-cn-mkt-knowledge","aos_index_mkt_qq":"gcr-mkt-qq","aos_index_dgr_qd":"ug-index-20240108","aos_index_dgr_qq":"gcr-dgr-qq", "aos_index_dgr_faq_qd":"faq-index-20240110", "dummpy_key":"dummpy_value"}';
     } 
 
     const _OpenSearchIndexDict = new CfnParameter(this, 'OpenSearchIndexDict', {
@@ -94,6 +101,7 @@ export class RootStack extends Stack {
       _s3ModelAssets:_S3ModelAssets.valueAsString,
       _OpenSearchIndex: _OpenSearchIndex.valueAsString,
       _imageName: _imageName.valueAsString,
+      _etlTag: _etlTag.valueAsString,
     });
     _EtlStack.addDependency(_VpcStack);
     _EtlStack.addDependency(_OsStack);
