@@ -42,7 +42,8 @@ rag_default_config = {
         "model_kwargs":{"temperature":0,
                         "max_tokens_to_sample": 2000,
                         "stop_sequences": ["\n\n","\n\nHuman:"]
-    }
+                        },
+        "sub_intent":{}
     },
     # generator config 
     "generator_llm_config":{
@@ -54,7 +55,8 @@ rag_default_config = {
         "model_id": "anthropic.claude-v2:1",
         "context_num": 2
     },
-    "debug_level": logging.INFO
+    "debug_level": logging.INFO,
+    "session_id": None,
 }
 
 

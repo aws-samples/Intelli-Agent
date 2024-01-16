@@ -4,6 +4,7 @@ from llm_utils import Model as LLM_Model
 from langchain.schema.runnable import RunnableLambda,RunnablePassthrough
 from prompt_template import get_conversation_query_rewrite_prompt
 from langchain_utils import chain_logger
+from preprocess_utils import is_api_query, language_check,query_translate,get_service_name
 
 
 def query_rewrite_postprocess(r):
@@ -63,15 +64,28 @@ def get_query_process_chain(
 
     conversation_query_rewrite_chain = chain_logger(
         conversation_query_rewrite_chain,
-        "conversation query rewrite module",
-        
+        "conversation query rewrite module" 
+    )
+
+    preprocess_chain = RunnablePassthrough.assign(
+          query_lang = RunnableLambda(lambda x:language_check(x['query'])),  
+      ) | RunnablePassthrough.assign(
+          translated_text = RunnableLambda(lambda x: query_translate(x['query'],lang=x['query_lang'])),
+      )
+
+    preprocess_chain = chain_logger(
+        preprocess_chain,
+        'preprocess module',
+        log_output_template='\nquery lang:{query_lang},\nquery translated: {translated_text}'
     )
 
     query_process_chain = RunnablePassthrough.assign(
         conversation_query_rewrite=conversation_query_rewrite_chain
     ) | RunnablePassthrough.assign(
-        query_rewrite=query_rewrite_chain)
-
+        query_rewrite=query_rewrite_chain) \
+      | preprocess_chain
+      
+    
     query_process_chain = chain_logger(
         query_process_chain,
         "query process module",

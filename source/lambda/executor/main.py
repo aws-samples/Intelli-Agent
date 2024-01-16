@@ -695,7 +695,6 @@ def get_qd_llm_chain(
     using_whole_doc=True,
     chunk_num=0,
 ):
-    generator_llm_config = rag_config['generator_llm_config']
     retriever_list = [
         QueryDocumentRetriever(
             index, "vector_field", "text", "file_path", using_whole_doc, chunk_num 
@@ -828,6 +827,7 @@ def market_chain_entry(
         intent_type=IntentType.CHAT.value,
         model_kwargs=generator_llm_config['model_kwargs'],  # TODO
         stream=stream,
+        chat_history=rag_config['chat_history']
     ) | {
         "answer": lambda x: x,
         "sources": lambda x: [],
@@ -851,13 +851,13 @@ def market_chain_entry(
     #     "query rewrite module"
     # )
     # intent recognition
-    intent_recognition_chain = RunnablePassthrough.assign(
-        intent_type=auto_intention_recoginition_chain(aos_index_mkt_qq)
-    )
+    intent_recognition_chain = auto_intention_recoginition_chain(aos_index_mkt_qq)
 
     intent_recognition_chain = chain_logger(
         intent_recognition_chain,
-        'intention module'
+        'intention module',
+        log_output_template='intent chain output: {intent_type}'
+        
     )
    
     full_chain = query_process_chain | intent_recognition_chain  | RunnableBranch(
@@ -1020,7 +1020,7 @@ def lambda_handler(event, context):
         # Get request body
         event_body = json.loads(record_event["body"])
         model = event_body["model"]
-        session_id = event_body.get("session_id", "N/A")
+        session_id = event_body.get("session_id",None) or  "N/A"
         messages = event_body["messages"]
         
         # deal with stream parameter
@@ -1042,18 +1042,18 @@ def lambda_handler(event, context):
         logger.setLevel(debug_level)
 
         _, question = process_input_messages(messages)
-        role = "user"
+        # role = "user"
 
         if session_id == 'N/A':
             if stream:
-                session_id = record_event["requestContext"]["connectionId"]
+                rag_config['session_id'] = record_event["requestContext"]["connectionId"]
             else:
-                session_id = f"session_{int(request_timestamp)}"
+                rag_config['session_id'] = f"session_{int(request_timestamp)}"
         user_id = event_body.get("user_id", "default_user_id")
         message_id = str(uuid.uuid4())
         chat_history = DynamoDBChatMessageHistory(
             table_name=chat_session_table,
-            session_id=session_id,
+            session_id=rag_config['session_id'],
             user_id=user_id,
         )
         history_messages = chat_history.message_as_langchain

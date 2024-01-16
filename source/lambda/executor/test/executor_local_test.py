@@ -2,26 +2,11 @@ import json
 import sys
 import csv
 import os 
+import time 
 os.environ['AWS_PROFILE'] = "atl"
 os.environ["AWS_REGION"] = "us-west-2"
 os.environ['AWS_DEFAULT_REGION'] = "us-west-2"
 os.environ['AWS_REGION'] = "us-west-2"
-# os.environ["en_embedding_endpoint"] = "bge-large-en-v1-5-2023-11-15-06-19-29-526-endpoint"
-# os.environ["zh_embedding_endpoint"] = "bge-large-zh-v1-5-2023-11-15-06-52-26-105-endpoint"
-# # os.environ["embedding_endpoint"] = "embedding-endpoint-icyxu-test"
-# os.environ["cross_endpoint"] = "cross-endpoint"
-# os.environ["rerank_endpoint"] = "bge-reranker-large-2023-11-21-06-11-35-036-endpoint"
-# # os.environ["aos_endpoint"] = "search-llm-bot-test-2-k7grhi5u2r336elfd5sb7o3lqe.us-east-1.es.amazonaws.com"
-# os.environ["aos_endpoint"] = "vpc-domain66ac69e0-prbg1iy4iido-ksu2bpd7eblmz6buvk5viespdq.us-west-2.es.amazonaws.com"
-# # os.environ["aos_endpoint"] = "ec2-user@ec2-34-211-231-159.us-west-2.compute.amazonaws.com"
-# # os.environ["aos_endpoint"] = "127.0.0.1"
-# os.environ["aos_faq_index"] = "gcr-mkt-qq"
-# os.environ["aos_ug_index"] = "aws-cn-mkt-knowledge"
-# os.environ['aos_index'] = 'aws-cn-mkt-knowledge'
-# os.environ['llm_endpoint'] = "instruct-endpoint"
-# os.environ['chat_session_table'] = "llm-bot-dev-ddbstackNestedStackddbstackNestedStackResource15CAFC2B-P7L31EP2GQIJ-SessionsTable7C302024-10GDLROO4UTAA"
-# os.environ['aos_index_dict'] = '{"aos_index_mkt_qd":"aws-cn-mkt-knowledge","aos_index_mkt_qq":"gcr-mkt-qq","aos_index_dgr_qd":"ug-index-20240108","aos_index_dgr_qq":"gcr-dgr-qq", "aos_index_dgr_faq_qd":"faq-index-20240110"}'
-
 import logging
 log_level = logging.INFO
 logging.basicConfig(
@@ -82,7 +67,8 @@ def generate_answer(
         type="market_chain", 
         model="knowledge_qa", 
         stream=False,
-        intent='auto'
+        session_id=None
+        # intent='auto'
     ):
     event = {
         "body": json.dumps(
@@ -102,14 +88,15 @@ def generate_answer(
                 "retrieval_only": retrieval_only,
                 "type": type,
                 "model": model,
-                "intent":intent
+                # "intent":intent
+                "session_id":session_id
             }
         )
     }
     if stream:
         event["requestContext"] = {
             "eventType":"MESSAGE",
-            "connectionId":"123"
+            "connectionId":f'test_{int(time.time())}'
         }
     context = None
     response = main.lambda_handler(event, context)
@@ -199,14 +186,31 @@ def eval():
     json.dump(result_list, result_file, ensure_ascii=False)
     json.dump(debug_info_list, debug_info_file, ensure_ascii=False)
 
+
+def multiturn_chat_test():
+    session_id = f'test_{int(time.time())}'
+    generate_answer(
+        "《七里香》的演唱者是谁？",
+        model='chat',
+        stream=True,
+        session_id=session_id
+        )
+    generate_answer(
+        "他还有其他什么歌曲",
+        model='chat',
+        stream=True,
+        session_id=session_id
+        )
+
 def market_deploy_test():
-    generate_answer(
+    multiturn_chat_test()
+    r = generate_answer(
         "Amazon EC2 提供了哪些功能来支持不同区域之间的数据恢复?", 
         model="knowledge_qa", 
         stream=False,
-        intent='auto',
         type="market_chain", 
     )
+    print(r[0])
     generate_answer(
         "Amazon EC2 提供了哪些功能来支持不同区域之间的数据恢复?", 
         model="knowledge_qa", 
@@ -217,28 +221,22 @@ def market_deploy_test():
         "今天天气怎么样？", 
         model="auto", 
         stream=True,
-        type="market_chain", 
-    )
-    generate_answer(
-        "今天天气怎么样？", 
-        model="auto", 
-        stream=False,
         type="market_chain", 
     )
     generate_answer(
         "IoT Core是否支持Qos2？", 
-        model="knowledge_qa", 
+        model="auto", 
         stream=True,
         type="market_chain", 
     )
 
 
 if __name__ == "__main__":
-    # market_deploy_test()
+    market_deploy_test()
     # dgr
     # generate_answer("Amazon Fraud Detector 中'entityId'和'eventId'的含义与注意事项")
-    r = generate_answer("请写一首诗",model='caht')
-    print(r[0])
+    # r = generate_answer("请写一首诗",model='caht')
+    # multiturn_chat_test()
     # generate_answer("我想调用Amazon Bedrock中的基础模型，应该使用什么API?")
     # LLM
     # generate_answer("Amazon EC2 提供了哪些功能来支持不同区域之间的数据恢复?", model="knowledge_qa", stream=False)
