@@ -5,7 +5,22 @@ import os
 os.environ['AWS_PROFILE'] = "atl"
 os.environ["AWS_REGION"] = "us-west-2"
 os.environ['AWS_DEFAULT_REGION'] = "us-west-2"
-os.environ['aos_index_dict'] = '{"aos_index_mkt_qd":"aws-cn-mkt-knowledge","aos_index_mkt_qq":"gcr-mkt-qq","aos_index_dgr_qd":"ug-index-20240108","aos_index_dgr_qq":"gcr-dgr-qq", "aos_index_dgr_faq_qd":"faq-index-20240110"}'
+os.environ['AWS_REGION'] = "us-west-2"
+# os.environ["en_embedding_endpoint"] = "bge-large-en-v1-5-2023-11-15-06-19-29-526-endpoint"
+# os.environ["zh_embedding_endpoint"] = "bge-large-zh-v1-5-2023-11-15-06-52-26-105-endpoint"
+# # os.environ["embedding_endpoint"] = "embedding-endpoint-icyxu-test"
+# os.environ["cross_endpoint"] = "cross-endpoint"
+# os.environ["rerank_endpoint"] = "bge-reranker-large-2023-11-21-06-11-35-036-endpoint"
+# # os.environ["aos_endpoint"] = "search-llm-bot-test-2-k7grhi5u2r336elfd5sb7o3lqe.us-east-1.es.amazonaws.com"
+# os.environ["aos_endpoint"] = "vpc-domain66ac69e0-prbg1iy4iido-ksu2bpd7eblmz6buvk5viespdq.us-west-2.es.amazonaws.com"
+# # os.environ["aos_endpoint"] = "ec2-user@ec2-34-211-231-159.us-west-2.compute.amazonaws.com"
+# # os.environ["aos_endpoint"] = "127.0.0.1"
+# os.environ["aos_faq_index"] = "gcr-mkt-qq"
+# os.environ["aos_ug_index"] = "aws-cn-mkt-knowledge"
+# os.environ['aos_index'] = 'aws-cn-mkt-knowledge'
+# os.environ['llm_endpoint'] = "instruct-endpoint"
+# os.environ['chat_session_table'] = "llm-bot-dev-ddbstackNestedStackddbstackNestedStackResource15CAFC2B-P7L31EP2GQIJ-SessionsTable7C302024-10GDLROO4UTAA"
+# os.environ['aos_index_dict'] = '{"aos_index_mkt_qd":"aws-cn-mkt-knowledge","aos_index_mkt_qq":"gcr-mkt-qq","aos_index_dgr_qd":"ug-index-20240108","aos_index_dgr_qq":"gcr-dgr-qq", "aos_index_dgr_faq_qd":"faq-index-20240110"}'
 
 import logging
 log_level = logging.INFO
@@ -219,11 +234,12 @@ def market_deploy_test():
 
 
 if __name__ == "__main__":
+    # market_deploy_test()
     # dgr
-    # generate_answer("Amazon Fraud Detector 中'entityId'和'eventId'的含义与注意事项")
+    generate_answer("Amazon Fraud Detector 中'entityId'和'eventId'的含义与注意事项")
     # generate_answer("我想调用Amazon Bedrock中的基础模型，应该使用什么API?")
     # LLM
-    generate_answer("Amazon EC2 提供了哪些功能来支持不同区域之间的数据恢复?", model="knowledge_qa", stream=False)
+    # generate_answer("Amazon EC2 提供了哪些功能来支持不同区域之间的数据恢复?", model="knowledge_qa", stream=False)
     # generate_answer("什么是 CodeDeploy？", model="knowledge_qa", stream=True)
     # Q-Q
     # generate_answer("在相同的EMR Serverless应用程序中，不同的Job可以共享Worker吗？", model="knowledge_qa", stream=True)
@@ -235,4 +251,4 @@ if __name__ == "__main__":
     # generate_answer("只要我付款就可以收到发票吗")
     # generate_answer("找不到发票怎么办")
     # generate_answer("发票内容有更新应怎么办")
-    generate_answer("发票内容有更新应怎么办", type="common", stream=False)
+    # generate_answer("发票内容有更新应怎么办", type="common", stream=False)
