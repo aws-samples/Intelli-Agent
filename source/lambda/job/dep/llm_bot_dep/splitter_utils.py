@@ -252,8 +252,8 @@ class MarkdownHeaderTextSplitter:
             else:
                 break
         current_heading_level_map[title_symble_count] = current_heading
-        title_list = ''
-        for title_level in range(1,title_symble_count+1):
+        title_list = []
+        for title_level in range(1,title_symble_count):
             title_list.append(current_heading_level_map[title_level])
         joint_title_list = ' '.join(title_list)
         return joint_title_list
@@ -318,7 +318,7 @@ class MarkdownHeaderTextSplitter:
                             metadata["chunk_id"]
                         ]
                     page_content="\n".join(current_chunk_content)
-                    page_content = current_heading_list+' '+page_content
+                    page_content = metadata['service']+' '+current_heading_list+' '+page_content
                     chunks.append(
                         Document(
                             page_content=page_content,
