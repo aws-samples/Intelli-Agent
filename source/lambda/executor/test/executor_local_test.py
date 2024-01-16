@@ -236,7 +236,9 @@ def market_deploy_test():
 if __name__ == "__main__":
     # market_deploy_test()
     # dgr
-    generate_answer("Amazon Fraud Detector 中'entityId'和'eventId'的含义与注意事项")
+    # generate_answer("Amazon Fraud Detector 中'entityId'和'eventId'的含义与注意事项")
+    r = generate_answer("请写一首诗",model='caht')
+    print(r[0])
     # generate_answer("我想调用Amazon Bedrock中的基础模型，应该使用什么API?")
     # LLM
     # generate_answer("Amazon EC2 提供了哪些功能来支持不同区域之间的数据恢复?", model="knowledge_qa", stream=False)

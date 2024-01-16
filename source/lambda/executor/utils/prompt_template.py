@@ -223,12 +223,12 @@ def get_chit_chat_system_prompt():
     system_prompt = """You are a helpful AI Assistant"""
     return system_prompt
 
-
 def get_chit_chat_prompt(chat_history:list):
     chat_messages = [("system",get_chit_chat_system_prompt())]
-    chat_messages = chat_messages + chat_history 
-    return ChatPromptTemplate.from_messages(chat_messages)
+    chat_messages += chat_history 
+    chat_messages += [('user',"{query}")]
 
+    return ChatPromptTemplate.from_messages(chat_messages)
 
 cqr_system_prompt = """Given a question and its context, decontextualize the question by addressing coreference and omission issues. The resulting question should retain its original meaning and be as informative as possible, and should not duplicate any previously asked questions in the context.
 Context: [Q: When was Born to Fly released?
