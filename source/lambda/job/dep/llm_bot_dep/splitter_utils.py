@@ -253,7 +253,7 @@ class MarkdownHeaderTextSplitter:
                 break
         current_heading_level_map[title_symble_count] = current_heading
         title_list = []
-        for title_level in range(1,title_symble_count):
+        for title_level in range(1,title_symble_count+1):
             title_list.append(current_heading_level_map[title_level])
         joint_title_list = ' '.join(title_list)
         return joint_title_list
@@ -318,7 +318,7 @@ class MarkdownHeaderTextSplitter:
                             metadata["chunk_id"]
                         ]
                     page_content="\n".join(current_chunk_content)
-                    page_content = metadata['service']+' '+current_heading_list+' '+page_content
+                    metadata['complete_heading'] = metadata['service'] + " " + current_heading_list
                     chunks.append(
                         Document(
                             page_content=page_content,
@@ -338,6 +338,7 @@ class MarkdownHeaderTextSplitter:
                     metadata = text.metadata.copy()
                     metadata["content_type"] = "table"
                     metadata["current_heading"] = current_heading
+                    current_heading_list = self._get_current_heading_list(current_heading, current_heading_level_map)
                     current_heading = current_heading.replace("#", "").strip()
                     try:
                         self._set_chunk_id(
@@ -351,6 +352,7 @@ class MarkdownHeaderTextSplitter:
                         metadata["heading_hierarchy"] = heading_hierarchy[
                             metadata["chunk_id"]
                         ]
+                    metadata['complete_heading'] = metadata['service'] + " " + current_heading_list
                     chunks.append(
                         Document(
                             page_content="\n".join(table_content), metadata=metadata
@@ -381,7 +383,7 @@ class MarkdownHeaderTextSplitter:
             if metadata["chunk_id"] in heading_hierarchy:
                 metadata["heading_hierarchy"] = heading_hierarchy[metadata["chunk_id"]]
             page_content="\n".join(current_chunk_content)
-            page_content = metadata['service']+' '+current_heading_list+' '+page_content
+            metadata['complete_heading'] = metadata['service'] + " " + current_heading_list
             chunks.append(
                 Document(
                     page_content=page_content,
