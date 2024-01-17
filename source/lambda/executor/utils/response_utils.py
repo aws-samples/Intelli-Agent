@@ -32,10 +32,12 @@ def api_response(**kwargs):
     debug_info = kwargs["debug_info"]
     chat_history = kwargs["chat_history"]
     message_id = kwargs["message_id"]
+    question=kwargs['question']
 
     if not isinstance(answer, str):
         answer = json.dumps(answer, ensure_ascii=False)
-
+     
+    chat_history.add_user_message(f"user_{message_id}", question)
     chat_history.add_ai_message(f"ai_{message_id}", answer)
 
     # 2. return rusult
@@ -89,6 +91,7 @@ def stream_response(**kwargs):
     ws_client = kwargs["ws_client"]
     chat_history = kwargs["chat_history"]
     message_id = kwargs["message_id"]
+    question=kwargs['question']
 
     if isinstance(answer, str):
         answer = [answer]
@@ -144,6 +147,7 @@ def stream_response(**kwargs):
             answer_str += ans
 
         # add to chat history ddb table
+        chat_history.add_user_message(f"user_{message_id}", question)
         chat_history.add_ai_message(f"ai_{message_id}", answer_str)
         # sed source and contexts
         context_msg = {

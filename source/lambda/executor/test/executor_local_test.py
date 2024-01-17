@@ -2,10 +2,11 @@ import json
 import sys
 import csv
 import os 
+import time 
 os.environ['AWS_PROFILE'] = "atl"
+os.environ["AWS_REGION"] = "us-west-2"
 os.environ['AWS_DEFAULT_REGION'] = "us-west-2"
-os.environ['aos_index_dict'] = '{"aos_index_mkt_qd":"aws-cn-mkt-knowledge","aos_index_mkt_qq":"gcr-mkt-qq","aos_index_dgr_qd":"ug-index-20240108","aos_index_dgr_qq":"gcr-dgr-qq", "aos_index_dgr_faq_qd":"faq-index-20240110"}'
-
+os.environ['AWS_REGION'] = "us-west-2"
 import logging
 log_level = logging.INFO
 logging.basicConfig(
@@ -60,13 +61,14 @@ main.ws_client = DummyWebSocket()
 def generate_answer(
         query, 
         temperature=0.7, 
-        enable_q_q_match=False, 
+        # enable_q_q_match=False, 
         enable_debug=True, 
         retrieval_only=False, 
         type="market_chain", 
         model="knowledge_qa", 
         stream=False,
-        intent='auto'
+        session_id=None
+        # intent='auto'
     ):
     event = {
         "body": json.dumps(
@@ -86,14 +88,15 @@ def generate_answer(
                 "retrieval_only": retrieval_only,
                 "type": type,
                 "model": model,
-                "intent":intent
+                # "intent":intent
+                "session_id":session_id
             }
         )
     }
     if stream:
         event["requestContext"] = {
             "eventType":"MESSAGE",
-            "connectionId":"123"
+            "connectionId":f'test_{int(time.time())}'
         }
     context = None
     response = main.lambda_handler(event, context)
@@ -183,14 +186,31 @@ def eval():
     json.dump(result_list, result_file, ensure_ascii=False)
     json.dump(debug_info_list, debug_info_file, ensure_ascii=False)
 
+
+def multiturn_chat_test():
+    session_id = f'test_{int(time.time())}'
+    generate_answer(
+        "《七里香》的演唱者是谁？",
+        model='chat',
+        stream=True,
+        session_id=session_id
+        )
+    generate_answer(
+        "他还有其他什么歌曲",
+        model='chat',
+        stream=True,
+        session_id=session_id
+        )
+
 def market_deploy_test():
-    generate_answer(
+    multiturn_chat_test()
+    r = generate_answer(
         "Amazon EC2 提供了哪些功能来支持不同区域之间的数据恢复?", 
         model="knowledge_qa", 
         stream=False,
-        intent='auto',
         type="market_chain", 
     )
+    print(r[0])
     generate_answer(
         "Amazon EC2 提供了哪些功能来支持不同区域之间的数据恢复?", 
         model="knowledge_qa", 
@@ -201,28 +221,25 @@ def market_deploy_test():
         "今天天气怎么样？", 
         model="auto", 
         stream=True,
-        type="market_chain", 
-    )
-    generate_answer(
-        "今天天气怎么样？", 
-        model="auto", 
-        stream=False,
         type="market_chain", 
     )
     generate_answer(
         "IoT Core是否支持Qos2？", 
-        model="knowledge_qa", 
+        model="auto", 
         stream=True,
         type="market_chain", 
     )
 
 
 if __name__ == "__main__":
+    market_deploy_test()
     # dgr
     # generate_answer("Amazon Fraud Detector 中'entityId'和'eventId'的含义与注意事项")
+    # r = generate_answer("请写一首诗",model='caht')
+    # multiturn_chat_test()
     # generate_answer("我想调用Amazon Bedrock中的基础模型，应该使用什么API?")
     # LLM
-    generate_answer("Amazon EC2 提供了哪些功能来支持不同区域之间的数据恢复?", model="knowledge_qa", stream=False)
+    # generate_answer("Amazon EC2 提供了哪些功能来支持不同区域之间的数据恢复?", model="knowledge_qa", stream=False)
     # generate_answer("什么是 CodeDeploy？", model="knowledge_qa", stream=True)
     # Q-Q
     # generate_answer("在相同的EMR Serverless应用程序中，不同的Job可以共享Worker吗？", model="knowledge_qa", stream=True)
@@ -234,4 +251,4 @@ if __name__ == "__main__":
     # generate_answer("只要我付款就可以收到发票吗")
     # generate_answer("找不到发票怎么办")
     # generate_answer("发票内容有更新应怎么办")
-    generate_answer("发票内容有更新应怎么办", type="common", stream=False)
+    # generate_answer("发票内容有更新应怎么办", type="common", stream=False)

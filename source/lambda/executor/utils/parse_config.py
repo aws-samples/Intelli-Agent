@@ -1,5 +1,6 @@
 import collections.abc
 import copy
+import logging
 from constant import IntentType
 
 # update nest dict
@@ -17,8 +18,16 @@ rag_default_config = {
     # retriver config
     # query process config
     "query_process_config":{
-        "query_rewrite":{
+        "query_rewrite_config":{
                 "model_id":"anthropic.claude-v2:1",
+                "model_kwargs":{
+                "max_tokens_to_sample": 2000,
+                "temperature": 0.7,
+                "top_p": 0.9
+            }
+        },
+        "conversation_query_rewrite_config":{
+            "model_id":"anthropic.claude-v2:1",
                 "model_kwargs":{
                 "max_tokens_to_sample": 2000,
                 "temperature": 0.7,
@@ -33,7 +42,8 @@ rag_default_config = {
         "model_kwargs":{"temperature":0,
                         "max_tokens_to_sample": 2000,
                         "stop_sequences": ["\n\n","\n\nHuman:"]
-    }
+                        },
+        "sub_intent":{}
     },
     # generator config 
     "generator_llm_config":{
@@ -45,12 +55,17 @@ rag_default_config = {
         "model_id": "anthropic.claude-v2:1",
         "context_num": 2
     },
+    "debug_level": logging.INFO,
+    "session_id": None,
 }
 
 
 def parse_rag_config(event_body):
     event_body = copy.deepcopy(event_body)
-    new_event_config = update_nest_dict(rag_default_config,event_body)
+    new_event_config = update_nest_dict(
+        copy.deepcopy(rag_default_config),
+        event_body
+        )
 
     # adapting before setting
     temperature = event_body.get("temperature")

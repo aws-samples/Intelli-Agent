@@ -1,5 +1,13 @@
 
 import re 
+from langchain.prompts import PromptTemplate,ChatPromptTemplate
+from langchain.schema.runnable import (
+    RunnableBranch,
+    RunnableLambda,
+    RunnableParallel,
+    RunnablePassthrough,
+)
+
 
 CLAUDE21_RAG_PROMPT_TEMPLTE = """You are a customer service agent, and answering user's query. You ALWAYS follow these guidelines when writing your response:
 <guidelines>
@@ -173,3 +181,89 @@ def claude2_rag_stream_postprocess(answer):
 claude21_rag_stream_postprocess = claude2_rag_stream_postprocess
 
 
+
+# rag prompt template chain
+
+def get_claude_rag_context(contexts:list):
+    assert isinstance(contexts,list), contexts
+    context_xmls = []
+    context_template = """<doc index="{index}">\n{content}\n</doc>"""
+    for i,context in enumerate(contexts):
+        context_xml = context_template.format(
+            index = i+1,
+            content = context
+        )
+        context_xmls.append(context_xml)
+    
+    context = "\n".join(context_xmls)
+    return context
+    
+
+bedrock_rag_chat_system_prompt = """You are a customer service agent, and answering user's query. You ALWAYS follow these guidelines when writing your response:
+<guidelines>
+- NERVER say "根据搜索结果/大家好/谢谢...".
+</guidelines>
+
+Here are some documents for you to reference for your query:
+<docs>
+{context}
+</docs>"""
+
+def get_claude_chat_rag_prompt(chat_history:list):
+    chat_messages = [("system",bedrock_rag_chat_system_prompt)]
+    chat_messages = chat_messages + chat_history 
+    chat_messages += [("user","{query}")]
+    context_chain = RunnablePassthrough.assign(context=RunnableLambda(lambda x:get_claude_rag_context(x['contexts'])))
+
+    return context_chain | ChatPromptTemplate.from_messages(chat_messages)
+
+
+# chit-chat template
+def get_chit_chat_system_prompt():
+    system_prompt = """You are a helpful AI Assistant"""
+    return system_prompt
+
+def get_chit_chat_prompt(chat_history:list):
+    chat_messages = [("system",get_chit_chat_system_prompt())]
+    chat_messages += chat_history 
+    chat_messages += [('user',"{query}")]
+
+    return ChatPromptTemplate.from_messages(chat_messages)
+
+cqr_system_prompt = """Given a question and its context, decontextualize the question by addressing coreference and omission issues. The resulting question should retain its original meaning and be as informative as possible, and should not duplicate any previously asked questions in the context.
+Context: [Q: When was Born to Fly released?
+A: Sara Evans’s third studio album, Born to Fly, was released on October 10, 2000.
+]
+Question: Was Born to Fly well received by critics?
+Rewrite: Was Born to Fly well received by critics?
+
+Context: [Q: When was Keith Carradine born?
+A: Keith Ian Carradine was born August 8, 1949.
+Q: Is he married?
+A: Keith Carradine married Sandra Will on February 6, 1982. ]
+Question: Do they have any children?
+Rewrite: Do Keith Carradine and Sandra Will have any children?"""
+def get_conversation_query_rewrite_prompt(chat_history:list):
+    conversational_contexts = []
+    for his in chat_history:
+        assert his[0] in ['user','ai']
+        if his[0] == 'user':
+            conversational_contexts.append(f"Q: {his[1]}")
+        else:
+            conversational_contexts.append(f"A: {his[1]}")
+    
+    conversational_context = "\n".join(conversational_contexts)
+    conversational_context = f'[{conversational_context}]'
+
+    cqr_template = ChatPromptTemplate.from_messages(
+            [
+                (
+                    "system",
+                    cqr_system_prompt,
+                ),
+                # New question
+                ("user", f"\nContext: {conversational_context}\nQuestion: {{query}}\nRewrite: ")
+            ]
+            )
+    return cqr_template
+    

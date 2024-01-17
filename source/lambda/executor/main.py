@@ -34,15 +34,8 @@ from retriever import (
     QueryQuestionRetriever,
     index_results_format,
 )
+from logger_utils import logger,opensearch_logger,boto3_logger
 
-logger = logging.getLogger()
-# handler = logging.StreamHandler()
-logger.setLevel(logging.INFO)
-# logger.addHandler(handler)
-opensearch_logger = logging.getLogger("opensearch")
-opensearch_logger.setLevel(logging.ERROR)
-boto3_logger = logging.getLogger("botocore")
-boto3_logger.setLevel(logging.ERROR)
 
 from aos_utils import LLMBotOpenSearchClient
 from constant import IntentType, Type
@@ -63,8 +56,8 @@ from response_utils import process_response
 from sm_utils import SagemakerEndpointVectorOrCross
 from constant import Type,IntentType
 from intent_utils import auto_intention_recoginition_chain
-from langchain_utils import add_key_to_debug
-from query_expansion_utils import get_query_expansion_chain
+from langchain_utils import add_key_to_debug,chain_logger
+from query_process_utils import get_query_process_chain
 import parse_config
 
 region = os.environ["AWS_REGION"]
@@ -86,7 +79,6 @@ ws_client = None
 
 # get aos_index_dict
 
-
 class APIException(Exception):
     def __init__(self, message, code: str = None):
         if code:
@@ -104,7 +96,6 @@ def load_ws_client():
 
 def handle_error(func):
     """Decorator for exception handling"""
-
     def wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
@@ -630,7 +621,7 @@ def return_strict_qq_result(x):
     }
 
 
-def get_rag_llm_chain(generator_llm_config, stream):
+def get_rag_llm_chain(rag_config, stream):
     def contexts_trunc(docs: list, context_num=2):
         # print('docs len',len(docs))
         docs = [doc for doc in docs[:context_num]]
@@ -660,6 +651,7 @@ def get_rag_llm_chain(generator_llm_config, stream):
             "context_sources":context_sources
         }
     
+    generator_llm_config = rag_config['generator_llm_config']
     # TODO opt with efficiency
     context_num = generator_llm_config['context_num']
     contexts_trunc_stage = RunnablePassthrough.assign(
@@ -673,6 +665,7 @@ def get_rag_llm_chain(generator_llm_config, stream):
         intent_type=IntentType.KNOWLEDGE_QA.value,
         model_kwargs=generator_llm_config['model_kwargs'],  # TODO
         stream=stream,
+        chat_history=rag_config['chat_history']
     )
     llm_chain = contexts_trunc_stage | RunnablePassthrough.assign(answer=llm_chain)
     return llm_chain
@@ -696,15 +689,16 @@ def get_qd_chain(
 
 def get_qd_llm_chain(
     aos_index_list, 
-    generator_llm_config, 
+    rag_config, 
     stream=False, 
     top_n=5,
     using_whole_doc=True,
     chunk_num=0,
 ):
-    llm_chain = get_rag_llm_chain(generator_llm_config, stream)
-    qd_llm_chain = get_qd_chain(aos_index_list, using_whole_doc=False,
-                            chunk_num=2, retriever_top_k=20, reranker_top_k=10) | llm_chain
+    llm_chain = get_rag_llm_chain(rag_config, stream)
+    qd_chain = get_qd_chain(aos_index_list, using_whole_doc=False,
+                            chunk_num=2, retriever_top_k=20, reranker_top_k=10)
+    qd_llm_chain = chain_logger(qd_chain, 'qd_retriever') | chain_logger(llm_chain,'llm_chain')
     return qd_llm_chain
 
 
@@ -729,7 +723,6 @@ def output_postprocess(raw_output):
 
 def market_chain_entry(
     query_input: str,
-    # llm_model_id=None,
     stream=False,
     manual_input_intent=None,
     rag_config=None
@@ -791,7 +784,7 @@ def market_chain_entry(
     # 2.2 query document retrieval + LLM.
     qd_llm_chain = get_qd_llm_chain(
         [aos_index_dgr_qd, aos_index_dgr_faq_qd, aos_index_mkt_qd],
-        rag_config['generator_llm_config'],
+        rag_config,
         stream,
         top_n=5,
         chunk_num=0
@@ -815,6 +808,7 @@ def market_chain_entry(
         return qd_llm_chain
 
     qq_chain = RunnablePassthrough.assign(qq_result=dgr_q_q_retriever)
+    qq_chain = chain_logger(qq_chain,'qq_chain')
     qq_qd_llm_chain = qq_chain | RunnableLambda(qq_route)
 
     # TODO design chat chain
@@ -823,6 +817,7 @@ def market_chain_entry(
         intent_type=IntentType.CHAT.value,
         model_kwargs=generator_llm_config['model_kwargs'],  # TODO
         stream=stream,
+        chat_history=rag_config['chat_history']
     ) | {
         "answer": lambda x: x,
         "sources": lambda x: [],
@@ -832,19 +827,30 @@ def market_chain_entry(
         "context_sources": lambda x: [],
     }
     
-    # query expansion
-    query_expansion_chain = RunnablePassthrough.assign(
-        query_expansions=get_query_expansion_chain(
-            llm_model_id=generator_llm_config['model_id']
-        )
-    ) | add_key_to_debug(add_key='query_expansions',debug_key="debug_info")
-
+    
+    # query process chain
+    query_process_chain = get_query_process_chain(
+        rag_config['chat_history'],
+        rag_config['query_process_config']['query_rewrite_config'],
+        rag_config['query_process_config']['conversation_query_rewrite_config']
+    ) | add_key_to_debug(add_key='conversation_query_rewrite',debug_key="debug_info") \
+      | add_key_to_debug(add_key='query_rewrite',debug_key="debug_info")
+    
+    # query_rewrite_chain = chain_logger(
+    #     query_rewrite_chain,
+    #     "query rewrite module"
+    # )
     # intent recognition
-    intent_recognition_chain = RunnablePassthrough.assign(
-        intent_type=auto_intention_recoginition_chain(aos_index_mkt_qq)
+    intent_recognition_chain = auto_intention_recoginition_chain(aos_index_mkt_qq)
+
+    intent_recognition_chain = chain_logger(
+        intent_recognition_chain,
+        'intention module',
+        log_output_template='intent chain output: {intent_type}'
+        
     )
    
-    full_chain = query_expansion_chain | intent_recognition_chain  | RunnableBranch(
+    full_chain = query_process_chain | intent_recognition_chain  | RunnableBranch(
         (lambda x:x['intent_type'] == IntentType.KNOWLEDGE_QA.value, qq_qd_llm_chain),
         (lambda x:x['intent_type'] == IntentType.STRICT_QQ.value, return_strict_qq_result),
         # (lambda x:x['intent_type'] == IntentType.STRICT_QQ.value, strict_q_q_chain),
@@ -891,13 +897,13 @@ def main_qd_retriever_entry(
         "knowledge_qa_rerank": {},
     }
     full_chain = get_qd_chain(
-        [aos_index], using_whole_doc=False, chunk_num=2, retriever_top_k=100, reranker_top_k=10
+        [aos_index], using_whole_doc=True, chunk_num=2, retriever_top_k=100, reranker_top_k=10
     )
     response = full_chain.invoke({"query": query_input, "debug_info": debug_info})
     doc_list = []
     for doc in response["docs"]:
         doc_list.append({"page_content": doc.page_content, "metadata": doc.metadata})
-    return doc_list
+    return doc_list, debug_info
 
 def main_qq_retriever_entry(
     query_input: str,
@@ -955,7 +961,7 @@ def main_chain_entry(
     sources = []
     answer = ""
     full_chain = get_qd_llm_chain(
-        [aos_index], rag_config['generator_llm_config'], stream, using_whole_doc=False, chunk_num=3
+        [aos_index], rag_config, stream, using_whole_doc=False, chunk_num=3
     )
     response = full_chain.invoke({"query": query_input, "debug_info": debug_info})
     answer = response["answer"]
@@ -978,7 +984,7 @@ def _is_websocket_request(event):
     else:
         return False
 
-def get_retriever_response(docs):
+def get_retriever_response(docs, debug_info):
     response = {"statusCode": 200, "headers": {"Content-Type": "application/json"}}
     resp_header = {
         "Content-Type": "application/json",
@@ -986,7 +992,7 @@ def get_retriever_response(docs):
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "*",
     }
-    response["body"] = json.dumps({"docs": docs})
+    response["body"] = json.dumps({"docs": docs, "debug_info": debug_info})
     response["headers"] = resp_header
     return response
 
@@ -1004,7 +1010,7 @@ def lambda_handler(event, context):
         # Get request body
         event_body = json.loads(record_event["body"])
         model = event_body["model"]
-        session_id = event_body.get("session_id", "N/A")
+        session_id = event_body.get("session_id",None) or  "N/A"
         messages = event_body["messages"]
         
         # deal with stream parameter
@@ -1019,35 +1025,31 @@ def lambda_handler(event, context):
 
         get_contexts = event_body.get("get_contexts", False)
 
-        # intent_type = (
-        #     event_body.get("intent", None)
-        #     or event_body.get("model", None)
-        #     or IntentType.KNOWLEDGE_QA.value
-        # )
-
         # all rag related params can be found in rag_config
         rag_config = parse_config.parse_rag_config(event_body)
-        logger.info(f'rag configs:\n {json.dumps(rag_config,indent=2,ensure_ascii=False)}')
-        
-        # stream = event_body.get("stream", False)
 
-        history, question = process_input_messages(messages)
-        role = "user"
+        debug_level = int(rag_config['debug_level'])
+        logger.setLevel(debug_level)
+
+        _, question = process_input_messages(messages)
+        # role = "user"
 
         if session_id == 'N/A':
             if stream:
-                session_id = record_event["requestContext"]["connectionId"]
+                rag_config['session_id'] = record_event["requestContext"]["connectionId"]
             else:
-                session_id = f"session_{int(request_timestamp)}"
+                rag_config['session_id'] = f"session_{int(request_timestamp)}"
         user_id = event_body.get("user_id", "default_user_id")
         message_id = str(uuid.uuid4())
         chat_history = DynamoDBChatMessageHistory(
             table_name=chat_session_table,
-            session_id=session_id,
+            session_id=rag_config['session_id'],
             user_id=user_id,
         )
-        chat_history.add_user_message(f"user_{message_id}", question)
-
+        history_messages = chat_history.message_as_langchain
+        rag_config['chat_history'] = history_messages
+        logger.info(f'rag configs:\n {json.dumps(rag_config,indent=2,ensure_ascii=False)}')
+        
         knowledge_qa_flag = True if model == "knowledge_qa" else False
 
         main_entry_start = time.time()
@@ -1061,11 +1063,11 @@ def lambda_handler(event, context):
             )
         elif biz_type.lower() == Type.QD_RETRIEVER.value:
             retriever_index = event_body.get("retriever_index", aos_index)
-            docs = main_qd_retriever_entry(
+            docs, debug_info = main_qd_retriever_entry(
                 question,
                 retriever_index
             )
-            return get_retriever_response(docs)
+            return get_retriever_response(docs, debug_info)
         elif biz_type.lower() == Type.QQ_RETRIEVER.value:
             retriever_index = event_body.get("retriever_index", aos_index)
             docs = main_qq_retriever_entry(
@@ -1104,6 +1106,7 @@ def lambda_handler(event, context):
         stream=stream,
         session_id=session_id,
         model=model,
+        question=question,
         request_timestamp=request_timestamp,
         answer=answer,
         sources=sources,

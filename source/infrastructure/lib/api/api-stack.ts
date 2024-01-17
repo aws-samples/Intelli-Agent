@@ -275,7 +275,6 @@ export class LLMApiStack extends NestedStack {
         // Integration with Step Function to trigger ETL process
         // Lambda function to trigger Step Function
         const lambdaStepFunction = new lambda.Function(this, 'lambdaStepFunction', {
-            // format to avoid indent error, using inline for simplicity no more container pack time needed
             code: lambda.Code.fromAsset(join(__dirname, "../../../lambda/etl")),
             handler: 'sfn_handler.handler',
             runtime: lambda.Runtime.PYTHON_3_9,
@@ -295,6 +294,27 @@ export class LLMApiStack extends NestedStack {
         // add s3 event notification when file uploaded to the bucket
         _S3Bucket.addEventNotification(s3.EventType.OBJECT_CREATED, new s3n.LambdaDestination(lambdaStepFunction), { prefix: 'documents/' });
         _S3Bucket.grantReadWrite(lambdaStepFunction);
+
+        const lambdaGetETLStatus = new lambda.Function(this, "lambdaGetETLStatus", {
+            code: lambda.Code.fromAsset(join(__dirname, "../../../lambda/etl")),
+            handler: "get_status.lambda_handler",
+            runtime: lambda.Runtime.PYTHON_3_9,
+            timeout: Duration.minutes(5),
+            environment: {
+                sfn_arn: props._sfnOutput.stateMachineArn,
+            },
+            memorySize: 256,
+        });
+
+        lambdaGetETLStatus.addToRolePolicy(new iam.PolicyStatement({
+            actions: [
+                "states:DescribeExecution",
+            ],
+            effect: iam.Effect.ALLOW,
+            resources: ['*'],
+        }));
+        const apiResourceETLStatus = apiResourceStepFunction.addResource("status")
+        apiResourceETLStatus.addMethod('GET', new apigw.LambdaIntegration(lambdaGetETLStatus));
 
         const webSocketApi = new WebSocketStack(this, 'WebSocketApi', {
             dispatcherLambda: lambdaDispatcher,
