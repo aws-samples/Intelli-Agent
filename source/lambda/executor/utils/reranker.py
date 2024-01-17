@@ -1,5 +1,10 @@
 import json
 import os
+import time
+import logging
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
 from typing import TYPE_CHECKING, Dict, Optional, Sequence
 
 from langchain.callbacks.manager import Callbacks
@@ -24,7 +29,7 @@ class BGEReranker(BaseDocumentCompressor):
         callbacks: Optional[Callbacks] = None,
     ) -> Sequence[Document]:
         """
-        Compress documents using Cohere's rerank API.
+        Compress documents using BGE rerank model.
 
         Args:
             documents: A sequence of documents to compress.
@@ -34,22 +39,29 @@ class BGEReranker(BaseDocumentCompressor):
         Returns:
             A sequence of compressed documents.
         """
+        start = time.time()
         if len(documents) == 0:  # to avoid empty api call
             return []
         doc_list = list(documents)
-        _docs = [d.metadata["retrieval_content"] for d in doc_list]
+        # _docs = [d.metadata["retrieval_content"] for d in doc_list]
+        _docs = [d.page_content for d in doc_list]
 
         rerank_pair = []
         rerank_text_length = 1024 * 10
         for doc in _docs:
             rerank_pair.append([query["query"], doc[:rerank_text_length]])
-        score_list = json.loads(
-            SagemakerEndpointVectorOrCross(
-                prompt=json.dumps(rerank_pair),
-                endpoint_name=rerank_model_endpoint,
-                region_name=region,
-                model_type="rerank",
-                stop=None,
+        batch_size = 64
+        score_list = []
+        for batch_start in range(0, len(rerank_pair), batch_size):
+            batch = rerank_pair[batch_start:batch_start + batch_size]
+            score_list.extend(json.loads(
+                SagemakerEndpointVectorOrCross(
+                    prompt=json.dumps(batch),
+                    endpoint_name=rerank_model_endpoint,
+                    region_name=region,
+                    model_type="rerank",
+                    stop=None,
+                )
             )
         )
         final_results = []
@@ -58,7 +70,10 @@ class BGEReranker(BaseDocumentCompressor):
         for doc, score in zip(doc_list, score_list):
             doc.metadata["rerank_score"] = score
             final_results.append(doc)
-            debug_info["knowledge_qa_rerank"].append((doc.page_content, doc.metadata["source"], score))
+            debug_info["knowledge_qa_rerank"].append((doc.page_content, doc.metadata["retrieval_content"], doc.metadata["source"], score))
         final_results.sort(key=lambda x: x.metadata["rerank_score"], reverse=True)
-        debug_info["knowledge_qa_rerank"].sort(key=lambda x: x[2], reverse=True)
+        debug_info["knowledge_qa_rerank"].sort(key=lambda x: x[-1], reverse=True)
+        recall_end_time = time.time()
+        elpase_time = recall_end_time - start
+        logger.info(f"runing time of rerank: {elpase_time}s seconds")
         return final_results
