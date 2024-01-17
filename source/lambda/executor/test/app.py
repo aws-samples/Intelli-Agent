@@ -3,6 +3,8 @@ import json
 import requests
 import boto3
 from executor_local_test import generate_answer
+from langchain_community.document_loaders import UnstructuredPDFLoader
+
 
 doc_dict = {}
 s3 = boto3.client('s3')
@@ -159,8 +161,18 @@ def load_s3_bucket():
 def load_s3_doc(s3_bucket_dropdown, s3_prefix_compare):
     response = s3.get_object(Bucket=s3_bucket_dropdown, Key=s3_prefix_compare)
     content = response['Body'].read().decode('utf-8')
-    print(content)
+    
     return content
+
+
+def load_by_langchain(s3_bucket_dropdown, s3_prefix_compare):
+    file_name = s3_prefix_compare.split("/")[-1]
+    local_file_path = f"./{file_name}"
+    resp = s3.download_file(s3_bucket_dropdown, s3_prefix_compare, local_file_path)
+    loader = UnstructuredPDFLoader(local_file_path)
+    data = loader.load()
+
+    return data
 
 
 with gr.Blocks() as demo:
@@ -289,7 +301,7 @@ with gr.Blocks() as demo:
                     info="Wether to split the content as chunks, default is false",
                 )
         process_online_button = gr.Button("Process Online")
-        with gr.Accordion("Online Result", open=False):
+        with gr.Accordion("Online Result", open=True):
             online_result = gr.JSON()
         process_online_button.click(
             fn=invoke_etl_online,
@@ -300,6 +312,20 @@ with gr.Blocks() as demo:
                 need_split_dropdown,
             ],
             outputs=[online_result],
+        )
+        with gr.Row():
+            with gr.Column():
+                lc_button = gr.Button("Compare with Unstructured")
+            with gr.Column():
+                pp_button = gr.Button("Compare with PPStructure")
+        unstructured_md = gr.TextArea(label="Unstructured Output")
+        lc_button.click(
+            fn=load_by_langchain,
+            inputs=[
+                s3_bucket_chunk_input,
+                s3_prefix_chunk_input,
+            ],
+            outputs=[unstructured_md],
         )
 
         with gr.Row():
@@ -323,11 +349,7 @@ with gr.Blocks() as demo:
             ],
             outputs=[solution_md],
         )
-        with gr.Row():
-            with gr.Column():
-                lc_button = gr.Button("Compare with Langchain")
-            with gr.Column():
-                pp_button = gr.Button("Compare with PPStructure")
+
 
 # load_raw_data()
 if __name__ == "__main__":
