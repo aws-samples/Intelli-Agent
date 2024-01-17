@@ -1,9 +1,13 @@
 import gradio as gr
 import json
 import requests
+import boto3
 from executor_local_test import generate_answer
+from langchain_community.document_loaders import UnstructuredPDFLoader
+
 
 doc_dict = {}
+s3 = boto3.client('s3')
 
 
 def load_raw_data():
@@ -59,8 +63,8 @@ text = [
         "建发股份向关联人销 售商品、提供 劳务2024年预计总金额交是多少",
     ],
     [
-        "建发股份和四川永丰浆纸股份有限公司及其子公司向关联人销 售商品、提供劳务交易预计总金额总计多少",      
-    ]
+        "建发股份和四川永丰浆纸股份有限公司及其子公司向关联人销 售商品、提供劳务交易预计总金额总计多少",
+    ],
 ]
 
 
@@ -81,22 +85,24 @@ def get_answer(query_input):
     )
 
 
-# def invoke_etl_online(url_input, s3_bucket_input, s3_prefix_input, offline_dropdown, qa_dropdown, aos_index_input):
-#     request_body = {
-#         "s3Bucket": s3_bucket_input,
-#         "s3Prefix": s3_prefix_input,
-#         "need_split": offline_dropdown,
-#     }
+def invoke_etl_online(
+    url_input, s3_bucket_chunk_input, s3_prefix_chunk_input, need_split_dropdown
+):
+    request_body = {
+        "s3_bucket": s3_bucket_chunk_input,
+        "s3_prefix": s3_prefix_chunk_input,
+        "need_split": need_split_dropdown,
+    }
 
-#     response = requests.post(
-#         url_input + "/extract",
-#         json=request_body,
-#         headers={"Content-Type": "application/json"},
-#     )
-#     response_json = response.json()
-#     print("Response JSON:", response_json)
+    response = requests.post(
+        url_input + "/extract",
+        json=request_body,
+        headers={"Content-Type": "application/json"},
+    )
+    response_json = response.json()
+    print("Response JSON:", response_json)
 
-#     return response_json, response_json["step_function_arn"]
+    return response_json
 
 
 def get_etl_status(url_input, sfn_input):
@@ -145,7 +151,32 @@ def invoke_etl_offline(
     return response_json, response_json["step_function_arn"]
 
 
+def load_s3_bucket():
+    s3_buckets = s3.list_buckets()
+    s3_bucket_names = [bucket['Name'] for bucket in s3_buckets['Buckets']]
+
+    return s3_bucket_names
+
+
+def load_s3_doc(s3_bucket_dropdown, s3_prefix_compare):
+    response = s3.get_object(Bucket=s3_bucket_dropdown, Key=s3_prefix_compare)
+    content = response['Body'].read().decode('utf-8')
+    
+    return content
+
+
+def load_by_langchain(s3_bucket_dropdown, s3_prefix_compare):
+    file_name = s3_prefix_compare.split("/")[-1]
+    local_file_path = f"./{file_name}"
+    resp = s3.download_file(s3_bucket_dropdown, s3_prefix_compare, local_file_path)
+    loader = UnstructuredPDFLoader(local_file_path)
+    data = loader.load()
+
+    return data
+
+
 with gr.Blocks() as demo:
+    s3_bucket_name_list = load_s3_bucket()
     gr.Markdown("LLM Bot Debug UI")
     url_input = gr.Text(
         label="Url, eg. https://f2zgexpo47.execute-api.us-east-1.amazonaws.com/v1/"
@@ -199,7 +230,11 @@ with gr.Blocks() as demo:
     with gr.Tab("Data Process Offline"):
         with gr.Row():
             with gr.Column():
-                s3_bucket_input = gr.Textbox(label="S3 bucket name, eg. llm-bot")
+                s3_bucket_input = gr.Dropdown(
+                    choices=s3_bucket_name_list,
+                    label="S3 Bucket",
+                    info="S3 bucket name, eg. llm-bot",
+                )
             with gr.Column():
                 s3_prefix_input = gr.Textbox(
                     label="S3 prefix, eg. demo_folder/demo.pdf"
@@ -247,9 +282,76 @@ with gr.Blocks() as demo:
             ],
             outputs=[status_output_json],
         )
+    with gr.Tab("Chunk Comparison"):
+        with gr.Row():
+            with gr.Column():
+                s3_bucket_chunk_input = gr.Dropdown(
+                    choices=s3_bucket_name_list,
+                    label="S3 Bucket",
+                    info="S3 bucket name, eg. llm-bot",
+                )
+            with gr.Column():
+                s3_prefix_chunk_input = gr.Textbox(
+                    label="S3 prefix, eg. demo_folder/demo.pdf"
+                )
+            with gr.Column():
+                need_split_dropdown = gr.Dropdown(
+                    choices=["true", "false"],
+                    label="Need split",
+                    info="Wether to split the content as chunks, default is false",
+                )
+        process_online_button = gr.Button("Process Online")
+        with gr.Accordion("Online Result", open=True):
+            online_result = gr.JSON()
+        process_online_button.click(
+            fn=invoke_etl_online,
+            inputs=[
+                url_input,
+                s3_bucket_chunk_input,
+                s3_prefix_chunk_input,
+                need_split_dropdown,
+            ],
+            outputs=[online_result],
+        )
+        with gr.Row():
+            with gr.Column():
+                lc_button = gr.Button("Compare with Unstructured")
+            with gr.Column():
+                pp_button = gr.Button("Compare with PPStructure")
+        unstructured_md = gr.TextArea(label="Unstructured Output")
+        lc_button.click(
+            fn=load_by_langchain,
+            inputs=[
+                s3_bucket_chunk_input,
+                s3_prefix_chunk_input,
+            ],
+            outputs=[unstructured_md],
+        )
+
+        with gr.Row():
+            with gr.Column():
+                s3_bucket_dropdown = gr.Dropdown(
+                    choices=s3_bucket_name_list,
+                    label="S3 Bucket",
+                    info="S3 bucket name, eg. llm-bot",
+                )
+            with gr.Column():
+                s3_prefix_compare = gr.Textbox(
+                    label="S3 prefix, eg. demo_folder/demo.pdf"
+                )
+        load_button = gr.Button("Load")
+        solution_md = gr.TextArea(label="Output")
+        load_button.click(
+            fn=load_s3_doc,
+            inputs=[
+                s3_bucket_dropdown,
+                s3_prefix_compare,
+            ],
+            outputs=[solution_md],
+        )
 
 
 # load_raw_data()
 if __name__ == "__main__":
     demo.queue()
-    demo.launch(server_name="0.0.0.0", share=True, server_port=3309)
+    demo.launch(server_name="0.0.0.0", share=False, server_port=3309)

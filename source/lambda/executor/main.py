@@ -1035,10 +1035,11 @@ def lambda_handler(event, context):
         # role = "user"
 
         if session_id == 'N/A':
-            if stream:
-                rag_config['session_id'] = record_event["requestContext"]["connectionId"]
-            else:
-                rag_config['session_id'] = f"session_{int(request_timestamp)}"
+            rag_config['session_id'] = f"session_{int(request_timestamp)}"
+        
+        if stream:
+            rag_config['ws_connection_id'] = record_event["requestContext"]["connectionId"]
+        
         user_id = event_body.get("user_id", "default_user_id")
         message_id = str(uuid.uuid4())
         chat_history = DynamoDBChatMessageHistory(
@@ -1102,25 +1103,26 @@ def lambda_handler(event, context):
         main_entry_elpase = time.time() - main_entry_start
         logger.info(f"runing time of {biz_type} entry : {main_entry_elpase}s seconds")
      
-    response_kwargs = dict(
-        stream=stream,
-        session_id=session_id,
-        model=model,
-        question=question,
-        request_timestamp=request_timestamp,
-        answer=answer,
-        sources=sources,
-        get_contexts=get_contexts,
-        contexts=contexts,
-        enable_debug=enable_debug,
-        debug_info=debug_info,
-        ws_client=ws_client,
-        chat_history=chat_history,
-        message_id=message_id,
-    )
-    r = process_response(
-            **response_kwargs
+        response_kwargs = dict(
+            stream=stream,
+            session_id=rag_config['session_id'],
+            ws_connection_id=rag_config['ws_connection_id'],
+            model=model,
+            question=question,
+            request_timestamp=request_timestamp,
+            answer=answer,
+            sources=sources,
+            get_contexts=get_contexts,
+            contexts=contexts,
+            enable_debug=enable_debug,
+            debug_info=debug_info,
+            ws_client=ws_client,
+            chat_history=chat_history,
+            message_id=message_id,
         )
+        r = process_response(
+                **response_kwargs
+            )
     if not stream:
         return r
     return {"statusCode": 200, "body": "All records have been processed"} 
