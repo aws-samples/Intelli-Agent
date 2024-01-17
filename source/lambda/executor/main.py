@@ -678,16 +678,16 @@ def get_rag_llm_chain(generator_llm_config, stream):
     return llm_chain
 
 def get_qd_chain(
-    aos_index_list, top_n=5, using_whole_doc=True, chunk_num=0
+    aos_index_list, retriever_top_k=100, reranker_top_k=5, using_whole_doc=True, chunk_num=0
 ):
     retriever_list = [
         QueryDocumentRetriever(
-            index, "vector_field", "text", "file_path", using_whole_doc, chunk_num
+            index, "vector_field", "text", "file_path", using_whole_doc, chunk_num, retriever_top_k
         )
         for index in aos_index_list
     ]
     lotr = MergerRetriever(retrievers=retriever_list)
-    compressor = BGEReranker(top_n=top_n)
+    compressor = BGEReranker(top_n=reranker_top_k)
     compression_retriever = ContextualCompressionRetriever(
         base_compressor=compressor, base_retriever=lotr
     )
@@ -702,20 +702,9 @@ def get_qd_llm_chain(
     using_whole_doc=True,
     chunk_num=0,
 ):
-    retriever_list = [
-        QueryDocumentRetriever(
-            index, "vector_field", "text", "file_path", using_whole_doc, chunk_num 
-        )
-        for index in aos_index_list
-    ]
-    lotr = MergerRetriever(retrievers=retriever_list)
-    compressor = BGEReranker(top_n=top_n)
-    compression_retriever = ContextualCompressionRetriever(
-        base_compressor=compressor, base_retriever=lotr
-    )
-
     llm_chain = get_rag_llm_chain(generator_llm_config, stream)
-    qd_llm_chain = RunnablePassthrough.assign(docs=compression_retriever) | llm_chain
+    qd_llm_chain = get_qd_chain(aos_index_list, using_whole_doc=False,
+                            chunk_num=2, retriever_top_k=20, reranker_top_k=10) | llm_chain
     return qd_llm_chain
 
 
@@ -902,7 +891,7 @@ def main_qd_retriever_entry(
         "knowledge_qa_rerank": {},
     }
     full_chain = get_qd_chain(
-        [aos_index], using_whole_doc=False, chunk_num=2
+        [aos_index], using_whole_doc=False, chunk_num=2, retriever_top_k=100, reranker_top_k=10
     )
     response = full_chain.invoke({"query": query_input, "debug_info": debug_info})
     doc_list = []
@@ -966,7 +955,7 @@ def main_chain_entry(
     sources = []
     answer = ""
     full_chain = get_qd_llm_chain(
-        [aos_index], rag_config['generator_llm_config'], stream, using_whole_doc=False, chunk_num=0
+        [aos_index], rag_config['generator_llm_config'], stream, using_whole_doc=False, chunk_num=3
     )
     response = full_chain.invoke({"query": query_input, "debug_info": debug_info})
     answer = response["answer"]
