@@ -113,6 +113,9 @@ def parse_query(
         model_type="vector",
         stop=None,
     )
+    parsed_query["filter"] = []
+    if parsed_query["is_api_query"]:
+        parsed_query["filter"].append({"term": {"metadata.is_api": True}})
     elpase_time = time.time() - start
     logger.info(f"runing time of parse query: {elpase_time}s seconds")
     return parsed_query
@@ -302,7 +305,8 @@ def organize_results(response, aos_index=None, source_field="file_path", text_fi
             doc = get_doc(result["source"], aos_index)
             if doc:
                 result["doc"] = doc
-        elif context_size and ("previous" in aos_hit['_source']["metadata"]["heading_hierarchy"] and
+        elif context_size and ("heading_hierarchy" in aos_hit['_source']["metadata"] and 
+                               "previous" in aos_hit['_source']["metadata"]["heading_hierarchy"] and
                                "next" in aos_hit['_source']["metadata"]["heading_hierarchy"]):
             context = get_context(aos_hit['_source']["metadata"]["heading_hierarchy"]["previous"],
                                   aos_hit['_source']["metadata"]["heading_hierarchy"]["next"],
@@ -377,7 +381,8 @@ class QueryDocumentRetriever(BaseRetriever):
     source_field: Any
     using_whole_doc: Any
     context_num: Any
-    def __init__(self, index, vector_field, text_field,  source_field, using_whole_doc, context_num):
+    top_k: Any
+    def __init__(self, index, vector_field, text_field,  source_field, using_whole_doc, context_num, top_k):
         super().__init__()
         self.index = index
         self.vector_field = vector_field
@@ -385,6 +390,7 @@ class QueryDocumentRetriever(BaseRetriever):
         self.source_field = source_field
         self.using_whole_doc = using_whole_doc
         self.context_num = context_num
+        self.top_k = top_k
 
     def _get_relevant_documents(self, question: Dict, *, run_manager: CallbackManagerForRetrieverRun) -> List[Document]:
         query = question["query"] 
@@ -397,7 +403,6 @@ class QueryDocumentRetriever(BaseRetriever):
             debug_info,
         )
         # 1. get AOS knn recall
-        result_num = 20
         start = time.time()
         opensearch_knn_results = []
         opensearch_knn_response = aos_client.search(
@@ -405,26 +410,24 @@ class QueryDocumentRetriever(BaseRetriever):
             query_type="knn",
             query_term=parsed_query["zh_query_relevance_embedding"],
             field=self.vector_field,
-            size=result_num,
+            size=self.top_k,
+            filter=parsed_query["filter"]
         )
         opensearch_knn_results.extend(
-            organize_results(opensearch_knn_response, self.index, self.source_field, self.text_field, self.using_whole_doc, self.context_num)[:result_num]
+            organize_results(opensearch_knn_response, self.index, self.source_field, self.text_field, self.using_whole_doc, self.context_num)[:self.top_k]
         )
 
-        result_num = 20
         opensearch_knn_response = aos_client.search(
             index_name=self.index,
             query_type="knn",
             query_term=parsed_query["en_query_relevance_embedding"],
             field=self.vector_field,
-            size=result_num,
+            size=self.top_k,
+            filter=parsed_query["filter"]
         )
         opensearch_knn_results.extend(
-            organize_results(opensearch_knn_response, self.index, self.source_field, self.text_field, self.using_whole_doc, self.context_num)[:result_num]
+            organize_results(opensearch_knn_response, self.index, self.source_field, self.text_field, self.using_whole_doc, self.context_num)[:self.top_k]
         )
-        recall_end_time = time.time()
-        elpase_time = recall_end_time - start
-        logger.info(f"runing time of recall : {elpase_time}s seconds")
 
         # 2. get AOS invertedIndex recall
         opensearch_query_results = []
@@ -436,13 +439,17 @@ class QueryDocumentRetriever(BaseRetriever):
         doc_list = []
         content_set = set()
         for result in final_results:
-            if result["content"] in content_set:
+            if result["doc"] in content_set:
                 continue
-            content_set.add(result["content"])
+            content_set.add(result["doc"])
             doc_list.append(Document(page_content=result["doc"],
                                      metadata={"source": result["source"],
                                                "retrieval_content": result["content"],
                                                "retrieval_score": result["score"]}))
+
+        recall_end_time = time.time()
+        elpase_time = recall_end_time - start
+        logger.info(f"runing time of recall : {elpase_time}s seconds")
         return doc_list
 
 class GoogleRetriever(BaseRetriever):
