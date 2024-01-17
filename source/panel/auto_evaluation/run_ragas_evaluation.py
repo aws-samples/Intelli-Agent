@@ -256,26 +256,26 @@ def run_eval(
 
 
 if __name__ == "__main__":
-    RAGAS_EVAL_METRICS = [
-        AnswerCorrectness(
-            answer_similarity=AnswerSimilarity(threshold=0),
-            batch_size=15
-            )
-        ]
     # RAGAS_EVAL_METRICS = [
-    #     claude2_answer_similarity
+    #     AnswerCorrectness(
+    #         answer_similarity=AnswerSimilarity(threshold=0),
+    #         batch_size=15
+    #         )
     #     ]
+    RAGAS_EVAL_METRICS = [
+        claude2_answer_correctness
+        ]
     
     # rag_api_url = "https://5tzaajjzg7.execute-api.us-west-2.amazonaws.com/default/llm-bot-dev-qq-matching"
     rag_api_url =  "wss://omjou492fe.execute-api.us-west-2.amazonaws.com/prod/"
     eval_data_path = "TechBot QA Test-fifth-test.csv"
     # eval_id = 'claude2-csds-retrive'
-    by = 'openai-answer_correctness' #'claude2'
+    by = 'claude2-answer_correctness' #'claude2'
     eval_id = f'claude2-csdc-retrive-by-{by}'
     # llm_output_cache_path = f'{eval_id}-llm-output-cache-120.pkl'
     # llm_output_cache_path = f'{eval_id}-llm-output-cache.pkl'
-    # llm_output_cache_path = "techbot_question_dgr_res_1_12_120_with_gt.pkl"
-    llm_output_cache_path = "techbot_question_dgr_res_1_3_120_with_gt_context_1.pkl"
+    llm_output_cache_path = "techbot_question_dgr_res_1_16_120_with_gt.pkl"
+    # llm_output_cache_path = "techbot_question_dgr_res_1_16_120_with_gt_context_1.pkl"
     ret_save_profix = f'{eval_id}-{llm_output_cache_path}-eval'
     ragas_parameters = {
         "region_name":'us-west-2',
@@ -285,14 +285,14 @@ if __name__ == "__main__":
             "max_tokens_to_sample": 2000
         },
         "generator_llm_config":{
-            "context_num":1
+            "context_num":2
         }
     }
    
     rag_parameters = {
         'llm_model_id': "anthropic.claude-v2:1", 
         "temperature": 0.7,
-        "enable_q_q_match": True,
+        # "enable_q_q_match": True,
         "get_contexts": True
     }
     r = run_eval(

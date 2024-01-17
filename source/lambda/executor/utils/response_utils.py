@@ -92,6 +92,7 @@ def stream_response(**kwargs):
     chat_history = kwargs["chat_history"]
     message_id = kwargs["message_id"]
     question=kwargs['question']
+    ws_connection_id = kwargs['ws_connection_id']
 
     if isinstance(answer, str):
         answer = [answer]
@@ -116,7 +117,7 @@ def stream_response(**kwargs):
                 "choices": [message],
             }
             ws_client.post_to_connection(
-                ConnectionId=session_id,
+                ConnectionId=ws_connection_id,
                 Data=json.dumps(llmbot_response).encode("utf-8"),
             )
         except:

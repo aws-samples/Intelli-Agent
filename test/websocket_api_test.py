@@ -31,7 +31,8 @@ body = {
     "enable_q_q_match": True,
     "enable_debug": False,
     "llm_model_id":'anthropic.claude-v2:1',
-    "get_contexts":True
+    "get_contexts":True,
+    # "session_id":f"test_{int(time.time())}"
 }
 ws.send(json.dumps(body))
 start_time = time.time()

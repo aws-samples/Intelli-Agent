@@ -57,6 +57,7 @@ rag_default_config = {
     },
     "debug_level": logging.INFO,
     "session_id": None,
+    "ws_connection_id": None
 }
 
 
