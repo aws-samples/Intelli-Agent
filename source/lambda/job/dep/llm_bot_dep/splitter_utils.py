@@ -318,7 +318,10 @@ class MarkdownHeaderTextSplitter:
                             metadata["chunk_id"]
                         ]
                     page_content="\n".join(current_chunk_content)
-                    metadata['complete_heading'] = metadata['service'] + " " + current_heading_list
+                    if "service" in metadata:
+                        metadata['complete_heading'] = metadata['service'] + " " + current_heading_list
+                    else:
+                        metadata['complete_heading'] = current_heading_list
                     chunks.append(
                         Document(
                             page_content=page_content,
@@ -352,7 +355,10 @@ class MarkdownHeaderTextSplitter:
                         metadata["heading_hierarchy"] = heading_hierarchy[
                             metadata["chunk_id"]
                         ]
-                    metadata['complete_heading'] = metadata['service'] + " " + current_heading_list
+                    if "service" in metadata:
+                        metadata['complete_heading'] = metadata['service'] + " " + current_heading_list
+                    else:
+                        metadata['complete_heading'] = current_heading_list
                     chunks.append(
                         Document(
                             page_content="\n".join(table_content), metadata=metadata
@@ -383,7 +389,10 @@ class MarkdownHeaderTextSplitter:
             if metadata["chunk_id"] in heading_hierarchy:
                 metadata["heading_hierarchy"] = heading_hierarchy[metadata["chunk_id"]]
             page_content="\n".join(current_chunk_content)
-            metadata['complete_heading'] = metadata['service'] + " " + current_heading_list
+            if "service" in metadata:
+                metadata['complete_heading'] = metadata['service'] + " " + current_heading_list
+            else:
+                metadata['complete_heading'] = current_heading_list
             chunks.append(
                 Document(
                     page_content=page_content,
