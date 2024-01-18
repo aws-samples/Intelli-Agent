@@ -245,17 +245,22 @@ class MarkdownHeaderTextSplitter:
                     metadata["chunk_id"] = f"$0-{id_prefix}"
     
     def _get_current_heading_list(self, current_heading, current_heading_level_map):
-        title_symble_count = 0
-        for char in current_heading:
-            if char == '#':
-                title_symble_count += 1
-            else:
-                break
-        current_heading_level_map[title_symble_count] = current_heading
-        title_list = []
-        for title_level in range(1,title_symble_count+1):
-            title_list.append(current_heading_level_map[title_level])
-        joint_title_list = ' '.join(title_list)
+        try:
+            title_symble_count = 0
+            for char in current_heading:
+                if char == '#':
+                    title_symble_count += 1
+                else:
+                    break
+            current_heading_level_map[title_symble_count] = current_heading
+            title_list = []
+            for title_level in range(1,title_symble_count+1):
+                title_list.append(current_heading_level_map[title_level])
+            joint_title_list = ' '.join(title_list)
+        except Exception as e:
+            print(f"Error: {e}")
+            return ""
+        
         return joint_title_list
 
     def split_text(self, text: Document) -> List[Document]:
