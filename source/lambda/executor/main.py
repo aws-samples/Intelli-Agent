@@ -34,6 +34,7 @@ from retriever import (
     QueryQuestionRetriever,
     index_results_format,
 )
+from langchain.retrievers.multi_query import MultiQueryRetriever
 from logger_utils import logger,opensearch_logger,boto3_logger
 
 
@@ -858,14 +859,15 @@ def market_chain_entry(
     )
     # full_chain = intent_recognition_chain
     # full_chain = RunnableLambda(route)
-    response = full_chain.invoke(
+    import asyncio
+    response = asyncio.run(full_chain.ainvoke(
         {
             "query": query_input,
             "debug_info": debug_info,
             "intent_type": intent_type,
             "intent_info": intent_info,
         }
-    )
+    ))
 
     answer = response["answer"]
     sources = response["context_sources"]
