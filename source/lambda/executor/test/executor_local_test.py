@@ -58,18 +58,15 @@ class DummyWebSocket:
 
 main.ws_client = DummyWebSocket()
 
-def generate_answer(
-        query, 
-        temperature=0.7, 
-        # enable_q_q_match=False, 
-        enable_debug=True, 
-        retrieval_only=False, 
-        type="market_chain", 
-        model="knowledge_qa", 
-        stream=False,
-        session_id=None
-        # intent='auto'
-    ):
+def generate_answer(query,
+                    temperature=0.7,
+                    enable_debug=True,
+                    retrieval_only=False,
+                    type="market_chain",
+                    model="knowledge_qa",
+                    stream=False,
+                    retriever_index="test-index",
+                    session_id=None):
     event = {
         "body": json.dumps(
             {
@@ -79,16 +76,12 @@ def generate_answer(
                         "content": query
                     }
                 ],
-                # "aos_faq_index": "chatbot-index-9",
-                # "aos_ug_index": "chatbot-index-1",
-                # "model": "knowledge_qa",
                 "temperature": temperature,
-                # "enable_q_q_match": enable_q_q_match,
                 "enable_debug": enable_debug,
                 "retrieval_only": retrieval_only,
+                "retriever_index": retriever_index,
                 "type": type,
                 "model": model,
-                # "intent":intent
                 "session_id":session_id
             }
         )
@@ -141,22 +134,27 @@ def retrieval(query, temperature=0.7, enable_q_q_match=False, enable_debug=True,
 
 def retrieval_test(top_k = 20):
     error_log = open("error.log", "w")
+    debug_log = open("debug.log", "w")
     with open('test/techbot-qa-test-3.csv') as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
             if row["URL"] == "repost-qa-csdc/20230915" or row["URL"].startswith("https://repost"):
                 continue
             query = row["TechBot Question"]
-            knowledges, debug_info = retrieval(query)
+            docs, debug_info = retrieval(query)
             source_list = []
-            for knowledge in knowledges[:top_k]:
-                source_list.append(knowledge["source"])
+            for doc in docs[:top_k]:
+                source_list.append(doc["metadata"]["source"].lower())
             # gt_answer = row['Answer'].replace('\n', ' ')
-            correct_url = row['URL'].split('#')[0]
+            correct_url = row['URL'].split('#')[0].lower()
             correct_url_2 = correct_url.replace("zh_cn/", "")
-            if correct_url not in source_list and correct_url_2 not in source_list:
-                logger.info(f"QUERY:{query} URL: {source_list} CORRECT URL: {correct_url}")
+            correct_url_3 = correct_url.replace("userguide/", "windowsguide/")
+            if correct_url not in source_list and correct_url_2 not in source_list and correct_url_3 not in source_list:
+                logger.info(f"ERROR QUERY:{query} URL: {source_list} CORRECT URL: {correct_url}")
                 error_log.write(f"{query}\t{source_list}\t{correct_url}\n")
+            else:
+                logger.info(f"CORRECT QUERY:{query} URL: {source_list} CORRECT URL: {correct_url}")
+            debug_log.write(f"{query}\n{json.dumps(debug_info, indent=4, ensure_ascii=False)}\n")
     error_log.close()
 
 def eval():

@@ -2,12 +2,13 @@ import gradio as gr
 import json
 import requests
 import boto3
-from executor_local_test import generate_answer
+from executor_local_test_2 import generate_answer
 from langchain_community.document_loaders import UnstructuredPDFLoader
 
 
 doc_dict = {}
 s3 = boto3.client('s3')
+max_debug_block = 20
 
 
 def load_raw_data():
@@ -72,16 +73,28 @@ def get_answer(query_input):
     answer, source, debug_info = generate_answer(
         query_input, enable_q_q_match=False, type="market_chain"
     )
+    tab_list = []
+    json_list = []
+    json_count = 0
+    accordion_count = 0
+    for i, info_key in enumerate(debug_info.keys()):
+        tab_list.append(gr.Tab(label=info_key, visible=True))
+        accordion_count += 1
+        if type(debug_info[info_key]) == str:
+            json_value = {info_key: debug_info[info_key]}
+        else:
+            json_value = debug_info[info_key]
+        json_list.append(gr.JSON(value=json_value, visible=True))
+        json_count += 1
+    for i in range(max_debug_block-accordion_count):
+        tab_list.append(gr.Tab(visible=False))
+    for i in range(max_debug_block-json_count):
+        json_list.append(gr.JSON(value=["dummy"], visible=False))
     return (
         answer,
         source,
-        debug_info.get("query_parser_info", ""),
-        debug_info.get("q_q_match_info", ""),
-        debug_info.get("knowledge_qa_knn_recall", ""),
-        # debug_info["knowledge_qa_boolean_recall"],
-        # debug_info["knowledge_qa_combined_recall"],
-        debug_info.get("knowledge_qa_rerank", ""),
-        debug_info.get("knowledge_qa_llm", ""),
+        *tab_list,
+        *json_list,
     )
 
 
@@ -185,20 +198,30 @@ with gr.Blocks() as demo:
         query_input = gr.Text(label="Query")
         answer_output = gr.Text(label="Anwser", show_label=True)
         sources_output = gr.Text(label="Sources", show_label=True)
-        with gr.Accordion("QueryParserDebugInfo", open=False):
-            query_parser_debuge_info = gr.JSON()
-        with gr.Accordion("QQMatcherDebugInfo", open=False):
-            qq_match_debuge_info = gr.JSON()
-        with gr.Accordion("KNNRetrieverDebugInfo", open=False):
-            knn_retriever_debug_info = gr.JSON()
+        tab_list = []
+        json_list = []
+        for i in range(max_debug_block):
+            with gr.Tab(visible=False) as tab:
+                tab_list.append(tab)
+                json_block = gr.JSON(visible=False)
+                json_list.append(json_block)
+
+        # with gr.Accordion("QueryParserDebugInfo", open=False):
+        #     query_parser_debuge_info = gr.JSON()
+        # with gr.Accordion("QQMatcherDebugInfo", open=False):
+        #     qq_match_debuge_info = gr.JSON()
+        # with gr.Accordion("KNNRetrieverDebugInfo", open=False):
+        #     knn_retriever_debug_info = gr.JSON()
+        #     with gr.Accordion("index-1", open=False):
+        #         knn_retriever_debug_info = gr.JSON()
         # with gr.Accordion("BooleanRetrieverDebugInfo", open=False):
         #     boolean_retriever_debug_info = gr.JSON()
         # with gr.Accordion("CombineRetrieverDebugInfo", open=False):
         #     combine_retriever_debug_info = gr.JSON()
-        with gr.Accordion("CrossModelDebugInfo", open=False):
-            cross_model_debug_info = gr.JSON()
-        with gr.Accordion("LLMDebugInfo", open=False):
-            llm_debug_info = gr.JSON()
+        # with gr.Accordion("CrossModelDebugInfo", open=False):
+        #     cross_model_debug_info = gr.JSON()
+        # with gr.Accordion("LLMDebugInfo", open=False):
+        #     llm_debug_info = gr.JSON()
         answer_btn = gr.Button(value="Answer")
         context = None
         answer_btn.click(
@@ -207,13 +230,8 @@ with gr.Blocks() as demo:
             outputs=[
                 answer_output,
                 sources_output,
-                query_parser_debuge_info,
-                qq_match_debuge_info,
-                knn_retriever_debug_info,
-                # boolean_retriever_debug_info,
-                # combine_retriever_debug_info,
-                cross_model_debug_info,
-                llm_debug_info,
+                *tab_list,
+                *json_list
             ],
         )
 
