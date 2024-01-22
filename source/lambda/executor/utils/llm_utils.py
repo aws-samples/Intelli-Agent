@@ -13,13 +13,13 @@ from langchain.callbacks.manager import CallbackManagerForLLMRun
 from langchain.llms.base import LLM
 from langchain.llms import Bedrock
 
-from prompt_template import claude2_rag_template_render, \
-    claude2_rag_api_postprocess, claude2_rag_stream_postprocess, \
-        claude_chat_template_render
+# from prompt_template import claude2_rag_template_render, \
+#     claude2_rag_api_postprocess, claude2_rag_stream_postprocess, \
+#         claude_chat_template_render
     
-import prompt_template  
+# import prompt_template  
 
-from response_utils import api_response, stream_response
+# from response_utils import api_response, stream_response
 
 from langchain.schema.runnable import RunnableLambda
 from constant import IntentType

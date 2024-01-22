@@ -263,7 +263,7 @@ if __name__ == "__main__":
     #         )
     #     ]
     RAGAS_EVAL_METRICS = [
-        claude2_answer_correctness
+        claude2_answer_similarity
         ]
     
     # rag_api_url = "https://5tzaajjzg7.execute-api.us-west-2.amazonaws.com/default/llm-bot-dev-qq-matching"
@@ -274,8 +274,10 @@ if __name__ == "__main__":
     eval_id = f'claude2-csdc-retrive-by-{by}'
     # llm_output_cache_path = f'{eval_id}-llm-output-cache-120.pkl'
     # llm_output_cache_path = f'{eval_id}-llm-output-cache.pkl'
-    llm_output_cache_path = "techbot_question_dgr_res_1_16_120_with_gt.pkl"
-    # llm_output_cache_path = "techbot_question_dgr_res_1_16_120_with_gt_context_1.pkl"
+    # llm_output_cache_path = "techbot_question_dgr_res_1_16_120_with_gt.pkl"
+    # llm_output_cache_path = "techbot_question_dgr_res_6_120_with_gt.pkl"
+    # llm_output_cache_path = "techbot_question_dgr_res_1_16_120_with_gt.pkl"
+    llm_output_cache_path = "techbot_question_dgr_res_1_3_120_with_gt_context_4.pkl"
     ret_save_profix = f'{eval_id}-{llm_output_cache_path}-eval'
     ragas_parameters = {
         "region_name":'us-west-2',
