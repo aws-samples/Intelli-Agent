@@ -19,7 +19,7 @@ rag_default_config = {
     # query process config
     "query_process_config":{
         "query_rewrite_config":{
-                "model_id":"anthropic.claude-v2:1",
+                "model_id":"anthropic.claude-instant-v1",
                 "model_kwargs":{
                 "max_tokens_to_sample": 2000,
                 "temperature": 0.7,
@@ -27,8 +27,16 @@ rag_default_config = {
             }
         },
         "conversation_query_rewrite_config":{
-            "model_id":"anthropic.claude-v2:1",
+            "model_id":"anthropic.claude-instant-v1",
                 "model_kwargs":{
+                "max_tokens_to_sample": 2000,
+                "temperature": 0.7,
+                "top_p": 0.9
+            }
+        },
+        "hyde_config":{
+            "model_id":"anthropic.claude-instant-v1",
+            "model_kwargs":{
                 "max_tokens_to_sample": 2000,
                 "temperature": 0.7,
                 "top_p": 0.9

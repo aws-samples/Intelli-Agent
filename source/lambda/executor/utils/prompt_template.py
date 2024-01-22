@@ -84,25 +84,6 @@ Now classify the original query. Respond with just one letter corresponding to t
 
 Assistant:"""
 
-# """You are a customer service agent that is classifying user's query wrapped by <query></query>. The all categories and their few-shot examples are shown below.
-
-# All categories are:
-# <categories>
-# {all_labels}
-# </categories>
-
-# All few-shot examples are:
-# <examples>
-# {few_shot_examples}
-# </examples>
-# \n\nHuman: 
-# User's query:
-# <query>
-# {query}
-# </query>
-# \n\nAssistant:My answer is <category>
-# """
-
 INTENT_RECOGINITION_EXAMPLE_TEMPLATE = """<query>{query}</query>\n{label}"""
 
 
@@ -110,79 +91,77 @@ CHAT_PROMPT_TEMPLATE_CLAUDE = """\n\nHuman:{query}
 \n\nAssistant:
 """
 
+# def claude2_rag_template_render(
+#         query:str,contexts:list,
+#         rag_context_template=CLAUDE2_RAG_CONTEXT_TEMPLATE,
+#         rag_template = CLAUDE2_RAG_PROMPT_TEMPLTE
+#         ):
+#     """use claude2 offical rag prompte template
 
-def claude2_rag_template_render(
-        query:str,contexts:list,
-        rag_context_template=CLAUDE2_RAG_CONTEXT_TEMPLATE,
-        rag_template = CLAUDE2_RAG_PROMPT_TEMPLTE
-        ):
-    """use claude2 offical rag prompte template
+#     Args:
+#         query (str): _description_
+#         contexts (list): _description_
+#     """
 
-    Args:
-        query (str): _description_
-        contexts (list): _description_
-    """
-
-    assert isinstance(contexts,list), contexts
-    context_xmls = []
-    for i,context in enumerate(contexts):
-        context_xml = rag_context_template.format(
-            index = i+1,
-            content = context
-        )
-        context_xmls.append(context_xml)
+#     assert isinstance(contexts,list), contexts
+#     context_xmls = []
+#     for i,context in enumerate(contexts):
+#         context_xml = rag_context_template.format(
+#             index = i+1,
+#             content = context
+#         )
+#         context_xmls.append(context_xml)
     
-    context = "\n".join(context_xmls)
-    prompt = rag_template.format(query=query,context=context)
-    return prompt
+#     context = "\n".join(context_xmls)
+#     prompt = rag_template.format(query=query,context=context)
+#     return prompt
+
+
+# def claude21_rag_template_render(
+#         query:str,
+#         contexts:list,
+#         rag_context_template=CLAUDE21_RAG_CONTEXT_TEMPLATE,
+#         rag_template = CLAUDE21_RAG_PROMPT_TEMPLTE
+#         ):
+#     """use claude2 offical rag prompte template
+
+#     Args:
+#         query (str): _description_
+#         contexts (list): _description_
+#     """
+#     return claude2_rag_template_render(
+#         query,
+#         contexts,
+#         rag_context_template=rag_context_template,
+#         rag_template=rag_template
+#         )
+
+
+# def claude2_rag_api_postprocess(answer):
+#     rets = re.findall('<result>(.*?)</result>','<result>'+ answer,re.S)
+#     rets = [ret.strip() for ret in rets]
+#     rets = [ret for ret in rets if ret]
+#     if not rets:
+#         return answer  
+#     return rets[0]
+
+
+# def claude_chat_template_render(query:str):
+#     return CHAT_PROMPT_TEMPLATE_CLAUDE.format(query=query)
+
+# claude21_rag_api_postprocess = claude2_rag_api_postprocess
+
+# def claude2_rag_stream_postprocess(answer):
+#     assert not isinstance(answer,str), answer
+#     for answer_chunk in answer:
+#         yield answer_chunk.rstrip('</result>')
+
+
+# claude21_rag_stream_postprocess = claude2_rag_stream_postprocess
 
 
 
-def claude21_rag_template_render(
-        query:str,
-        contexts:list,
-        rag_context_template=CLAUDE21_RAG_CONTEXT_TEMPLATE,
-        rag_template = CLAUDE21_RAG_PROMPT_TEMPLTE
-        ):
-    """use claude2 offical rag prompte template
-
-    Args:
-        query (str): _description_
-        contexts (list): _description_
-    """
-    return claude2_rag_template_render(
-        query,
-        contexts,
-        rag_context_template=rag_context_template,
-        rag_template=rag_template
-        )
-
-
-def claude2_rag_api_postprocess(answer):
-    rets = re.findall('<result>(.*?)</result>','<result>'+ answer,re.S)
-    rets = [ret.strip() for ret in rets]
-    rets = [ret for ret in rets if ret]
-    if not rets:
-        return answer  
-    return rets[0]
-
-
-def claude_chat_template_render(query:str):
-    return CHAT_PROMPT_TEMPLATE_CLAUDE.format(query=query)
-
-claude21_rag_api_postprocess = claude2_rag_api_postprocess
-
-def claude2_rag_stream_postprocess(answer):
-    assert not isinstance(answer,str), answer
-    for answer_chunk in answer:
-        yield answer_chunk.rstrip('</result>')
-
-
-claude21_rag_stream_postprocess = claude2_rag_stream_postprocess
-
-
-
-# rag prompt template chain
+############ rag prompt template chain ###############
 
 def get_claude_rag_context(contexts:list):
     assert isinstance(contexts,list), contexts
@@ -218,7 +197,7 @@ def get_claude_chat_rag_prompt(chat_history:list):
     return context_chain | ChatPromptTemplate.from_messages(chat_messages)
 
 
-# chit-chat template
+############### chit-chat template #####################
 def get_chit_chat_system_prompt():
     system_prompt = """You are a helpful AI Assistant"""
     return system_prompt
@@ -266,4 +245,13 @@ def get_conversation_query_rewrite_prompt(chat_history:list):
             ]
             )
     return cqr_template
+
+
+####### hyde prompt ###############
+
+web_search_template = """Please write a passage to answer the question 
+Question: {query}
+Passage:"""
+hyde_web_search_template = PromptTemplate(template=web_search_template, input_variables=["query"])
+
     

@@ -16,10 +16,12 @@ answer_correctness = AnswerCorrectness(
     faithfulness = faithfulness,
     answer_similarity = AnswerSimilarity(threshold=0)
 )
-answer_correctness.embeddings = BedrockEmbeddings(
+answer_correctness.answer_similarity.embeddings = BedrockEmbeddings(
     model_id = "cohere.embed-multilingual-v3"
 )
 
 answer_similarity = AnswerSimilarity(threshold=0)
-answer_similarity.embeddings = BedrockEmbeddings()
+answer_similarity.embeddings = BedrockEmbeddings(
+    model_id = "cohere.embed-multilingual-v3"
+)
 

@@ -50,7 +50,7 @@ class LogTimeListener:
         self.log_output_template = log_output_template
 
     def on_start(self,run):
-        logger.info(f'Enter chain: {self.chain_name}')
+        logger.info(f'Enter: {self.chain_name}')
         if self.log_input:
             logger.info(f"Inputs({self.chain_name}): {run.inputs}")
         if self.log_input_template:
@@ -63,7 +63,7 @@ class LogTimeListener:
             logger.info(self.log_output_template.format(**run.outputs))
             
         exe_time = (run.end_time - run.start_time).total_seconds()
-        logger.info(f'Exit chain: {self.chain_name}, elpase time(s): {exe_time}')
+        logger.info(f'Exit: {self.chain_name}, elpase time(s): {exe_time}')
         
     def on_error(self,run):
         logger.info(f"Error in run chain: {self.chain_name}.")

@@ -2,16 +2,14 @@ from langchain import hub
 import re
 from llm_utils import Model as LLM_Model
 from langchain.schema.runnable import RunnableLambda,RunnablePassthrough
-from prompt_template import get_conversation_query_rewrite_prompt
+from prompt_template import get_conversation_query_rewrite_prompt,hyde_web_search_template
 from langchain_utils import chain_logger
 from preprocess_utils import is_api_query, language_check,query_translate,get_service_name
 
-
 def query_rewrite_postprocess(r):
-    ret = re.findall('<questions>.*?</questions>',r,re.S)[0]
+    ret = re.findall('<questions>.*?</questions>',r,re.S)[0] 
     questions  = re.findall('- (.*?)\n',ret,re.S)
     return questions
-
 
 def get_query_rewrite_chain(
         llm_model_id,
@@ -42,10 +40,27 @@ def get_conversation_query_rewrite_chain(
     return cqr_chain
 
 
+def get_hyde_chain(
+    llm_model_id,
+    model_kwargs=None,
+    query_key='query'
+    ):
+    llm = LLM_Model.get_model(
+        model_id=llm_model_id,
+          model_kwargs=model_kwargs,
+          return_chat_model=False
+          )
+    chain = RunnablePassthrough.assign(
+        hyde_doc = RunnableLambda(lambda x: hyde_web_search_template.invoke({"query": x[query_key]})) | llm
+    )
+    
+    return chain
+    
 def get_query_process_chain(
         chat_history,
         query_rewrite_config,
-        conversation_query_rewrite_config
+        conversation_query_rewrite_config,
+        hyde_config
         ):
     query_rewrite_chain = get_query_rewrite_chain(
         llm_model_id = query_rewrite_config['model_id'],
@@ -79,11 +94,23 @@ def get_query_process_chain(
         log_output_template='\nquery lang:{query_lang},\nquery translated: {translated_text}'
     )
 
+    hyde_chain = get_hyde_chain(
+        hyde_config['model_id'],
+        hyde_config['model_kwargs']
+    )
+
+    hyde_chain = chain_logger(
+        hyde_chain,
+        "hyde chain",
+        log_output_template="\nhyde generate passage: {hyde_doc}"
+    )
+
+
     query_process_chain = RunnablePassthrough.assign(
         conversation_query_rewrite=conversation_query_rewrite_chain
     ) | RunnablePassthrough.assign(
         query_rewrite=query_rewrite_chain) \
-      | preprocess_chain
+      | preprocess_chain | hyde_chain
       
     
     query_process_chain = chain_logger(
@@ -91,6 +118,10 @@ def get_query_process_chain(
         "query process module",
         log_output_template='\nconversation_query_rewrite result: {conversation_query_rewrite}.\nquery_rewrite result: {query_rewrite}'
    )
+
+   
     
     return query_process_chain
+
+
 
