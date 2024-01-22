@@ -751,17 +751,18 @@ def market_chain_entry(
     aos_index_dgr_faq_qd = aos_index_dict["aos_index_dgr_faq_qd"]
     aos_index_dgr_qq = aos_index_dict["aos_index_dgr_qq"]
 
-    debug_info = {
-        "query": query_input,
-        "query_parser_info": {},
-        "q_q_match_info": {},
-        "knowledge_qa_knn_recall": {},
-        "knowledge_qa_boolean_recall": {},
-        "knowledge_qa_combined_recall": {},
-        "knowledge_qa_cross_model_sort": {},
-        "knowledge_qa_llm": {},
-        "knowledge_qa_rerank": {},
-    }
+    # debug_info = {
+    #     "query": query_input,
+    #     "query_parser_info": {},
+    #     "q_q_match_info": {},
+    #     "knowledge_qa_knn_recall": {},
+    #     "knowledge_qa_boolean_recall": {},
+    #     "knowledge_qa_combined_recall": {},
+    #     "knowledge_qa_cross_model_sort": {},
+    #     "knowledge_qa_llm": {},
+    #     "knowledge_qa_rerank": {},
+    # }
+    debug_info = {}
     contexts = []
     sources = []
     answer = ""
