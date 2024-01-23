@@ -3,10 +3,6 @@ import sys
 import csv
 import os 
 import time 
-os.environ['AWS_PROFILE'] = "atl"
-os.environ["AWS_REGION"] = "us-west-2"
-os.environ['AWS_DEFAULT_REGION'] = "us-west-2"
-os.environ['AWS_REGION'] = "us-west-2"
 import logging
 log_level = logging.INFO
 logging.basicConfig(
@@ -252,5 +248,5 @@ if __name__ == "__main__":
     # generate_answer("ECS容器中的日志，可以配置输出到S3上吗？")
     # generate_answer("只要我付款就可以收到发票吗")
     # generate_answer("找不到发票怎么办")
-    # generate_answer("发票内容有更新应怎么办")
+    # generate_answer("发票内容有更新应怎么办", model="strict_q_q")
     # generate_answer("发票内容有更新应怎么办", type="common", stream=False)
