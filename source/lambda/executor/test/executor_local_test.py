@@ -3,10 +3,6 @@ import sys
 import csv
 import os 
 import time 
-os.environ['AWS_PROFILE'] = "atl"
-os.environ["AWS_REGION"] = "us-west-2"
-os.environ['AWS_DEFAULT_REGION'] = "us-west-2"
-os.environ['AWS_REGION'] = "us-west-2"
 import logging
 log_level = logging.INFO
 logging.basicConfig(
