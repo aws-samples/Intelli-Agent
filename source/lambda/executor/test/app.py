@@ -10,6 +10,7 @@ doc_dict = {}
 s3 = boto3.client('s3')
 max_debug_block = 20
 
+import os
 
 def load_raw_data():
     global doc_dict
@@ -66,12 +67,15 @@ text = [
     [
         "建发股份和四川永丰浆纸股份有限公司及其子公司向关联人销 售商品、提供劳务交易预计总金额总计多少",
     ],
+    [
+        "员工连续旷工两天会被处以什么处分？"
+    ],
 ]
 
 
-def get_answer(query_input):
+def get_answer(query_input, entry_type):
     answer, source, debug_info = generate_answer(
-        query_input, enable_q_q_match=False, type="market_chain"
+        query_input, enable_q_q_match=False, type=entry_type
     )
     tab_list = []
     json_list = []
@@ -172,10 +176,29 @@ def load_s3_bucket():
 
 
 def load_s3_doc(s3_bucket_dropdown, s3_prefix_compare):
+    if not s3_bucket_dropdown:
+        return []
     response = s3.get_object(Bucket=s3_bucket_dropdown, Key=s3_prefix_compare)
     content = response['Body'].read().decode('utf-8')
     
     return content
+
+def get_all_keys(bucket_name, prefix):
+    if not bucket_name:
+        return []
+    key_list = []
+    # Create a reusable Paginator
+    paginator = s3.get_paginator('list_objects_v2')
+
+    # Create a PageIterator from the Paginator
+    page_iterator = paginator.paginate(Bucket=bucket_name, Prefix=prefix)
+
+    for page in page_iterator:
+        if "Contents" in page:
+            # Print the keys (file names)
+            for key in page['Contents']:
+                key_list.append(key['Key'])
+    return key_list
 
 
 def load_by_langchain(s3_bucket_dropdown, s3_prefix_compare):
@@ -196,6 +219,7 @@ with gr.Blocks() as demo:
     )
     with gr.Tab("Chat"):
         query_input = gr.Text(label="Query")
+        entry_input = gr.Dropdown(label="Entry", choices=["common", "market_chain"], value="common")
         answer_output = gr.Text(label="Anwser", show_label=True)
         sources_output = gr.Text(label="Sources", show_label=True)
         tab_list = []
@@ -226,7 +250,7 @@ with gr.Blocks() as demo:
         context = None
         answer_btn.click(
             get_answer,
-            inputs=[query_input],
+            inputs=[query_input, entry_input],
             outputs=[
                 answer_output,
                 sources_output,
@@ -353,17 +377,28 @@ with gr.Blocks() as demo:
                     label="S3 Bucket",
                     info="S3 bucket name, eg. llm-bot",
                 )
-            with gr.Column():
-                s3_prefix_compare = gr.Textbox(
+                s3_prefix_text = gr.Textbox(
                     label="S3 prefix, eg. demo_folder/demo.pdf"
                 )
-        load_button = gr.Button("Load")
-        solution_md = gr.TextArea(label="Output")
+                get_split_file_button = gr.Button(value="List Files")
+            with gr.Column():
+                s3_prefix_dropdown = gr.Dropdown(
+                    choices=[],
+                    label="S3 prefix, eg. demo_folder/demo.pdf"
+                )
+                def update_s3_prefix_dropdown(s3_bucket, s3_prefix):
+                    return gr.Dropdown(choices=get_all_keys(s3_bucket, s3_prefix))
+                get_split_file_button.click(
+                    fn=update_s3_prefix_dropdown,
+                    inputs=[s3_bucket_dropdown, s3_prefix_text],
+                    outputs=[s3_prefix_dropdown])
+                load_button = gr.Button("Load")
+        solution_md = gr.Markdown(label="Output")
         load_button.click(
             fn=load_s3_doc,
             inputs=[
                 s3_bucket_dropdown,
-                s3_prefix_compare,
+                s3_prefix_dropdown,
             ],
             outputs=[solution_md],
         )
