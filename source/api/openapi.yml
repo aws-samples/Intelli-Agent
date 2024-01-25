@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: Example API
+  title: LLM Bot API
   version: '1.0'
 servers:
   - url: 'https://<api-id>.execute-api.us-east-1.amazonaws.com/v1'
@@ -140,7 +140,7 @@ paths:
       summary: Embed & Inject document into specific AOS index asynchronously
       operationId: documentOfflineProcess
       requestBody:
-        required: true
+        required: false
         content:
           application/json:
             schema:
