@@ -28,7 +28,7 @@ from langchain.schema.runnable import (
     RunnablePassthrough,
 )
 from langchain.utilities import GoogleSearchAPIWrapper
-from reranker import BGEReranker
+from reranker import BGEReranker, MergeReranker
 from retriever import (
     QueryDocumentRetriever,
     QueryQuestionRetriever,
@@ -627,7 +627,7 @@ def get_rag_llm_chain(rag_config, stream):
         # print('docs len',len(docs))
         docs = [doc for doc in docs[:context_num]]
         # the most related doc will be placed last
-        docs.sort(key=lambda x: x.metadata["rerank_score"])
+        docs.sort(key=lambda x: x.metadata["score"])
         # filter same docs
         s = set()
         context_strs = []
@@ -641,7 +641,7 @@ def get_rag_llm_chain(rag_config, stream):
                 context_docs.append({
                     "doc": content,
                     "source": doc.metadata["source"],
-                    "score": doc.metadata["rerank_score"]
+                    "score": doc.metadata["score"]
                     })
                 context_sources.append(doc.metadata["source"])
         # print(len(context_docs))
@@ -672,7 +672,7 @@ def get_rag_llm_chain(rag_config, stream):
     return llm_chain
 
 def get_qd_chain(
-    aos_index_list, retriever_top_k=100, reranker_top_k=5, using_whole_doc=True, chunk_num=0
+    aos_index_list, retriever_top_k=100, reranker_top_k=5, using_whole_doc=True, chunk_num=0, enable_reranker=True
 ):
     retriever_list = [
         QueryDocumentRetriever(
@@ -681,11 +681,14 @@ def get_qd_chain(
         for index in aos_index_list
     ]
     lotr = MergerRetriever(retrievers=retriever_list)
-    compressor = BGEReranker(top_n=reranker_top_k)
+    if enable_reranker:
+        compressor = BGEReranker(top_n=reranker_top_k)
+    else:
+        compressor = MergeReranker(top_n=reranker_top_k)
     compression_retriever = ContextualCompressionRetriever(
         base_compressor=compressor, base_retriever=lotr
     )
-    qd_chain = RunnablePassthrough.assign(docs=compression_retriever)
+    qd_chain = RunnablePassthrough.assign(docs=compression_retriever) 
     return qd_chain
 
 def get_qd_llm_chain(
@@ -698,10 +701,12 @@ def get_qd_llm_chain(
     chunk_num = rag_config['retriver_config']['chunk_num']
     retriever_top_k = rag_config['retriver_config']['retriever_top_k']
     reranker_top_k = rag_config['retriver_config']['reranker_top_k']
+    enable_reranker = rag_config['retriver_config']['enable_reranker']
     
     llm_chain = get_rag_llm_chain(rag_config, stream)
     qd_chain = get_qd_chain(aos_index_list, using_whole_doc=using_whole_doc,
-                            chunk_num=chunk_num, retriever_top_k=retriever_top_k, reranker_top_k=reranker_top_k)
+                            chunk_num=chunk_num, retriever_top_k=retriever_top_k,
+                            reranker_top_k=reranker_top_k, enable_reranker=enable_reranker)
     qd_llm_chain = chain_logger(qd_chain, 'qd_retriever') | chain_logger(llm_chain,'llm_chain')
     return qd_llm_chain
 
@@ -904,7 +909,7 @@ def main_qd_retriever_entry(
         "knowledge_qa_rerank": {},
     }
     full_chain = get_qd_chain(
-        [aos_index], using_whole_doc=True, chunk_num=2, retriever_top_k=100, reranker_top_k=10
+        [aos_index], using_whole_doc=True, chunk_num=2, retriever_top_k=20, reranker_top_k=10
     )
     response = full_chain.invoke({"query": query_input, "debug_info": debug_info})
     doc_list = []
@@ -968,7 +973,7 @@ def main_chain_entry(
     sources = []
     answer = ""
     full_chain = get_qd_llm_chain(
-        [aos_index], rag_config, stream, using_whole_doc=False, chunk_num=3
+        [aos_index], rag_config, stream
     )
     response = full_chain.invoke({"query": query_input, "debug_info": debug_info})
     answer = response["answer"]
