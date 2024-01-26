@@ -233,7 +233,6 @@ def get_conversation_query_rewrite_prompt(chat_history:list):
     
     conversational_context = "\n".join(conversational_contexts)
     conversational_context = f'[{conversational_context}]'
-
     cqr_template = ChatPromptTemplate.from_messages(
             [
                 (

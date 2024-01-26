@@ -160,7 +160,7 @@ def stream_response(**kwargs):
             context_msg.update({"contexts": contexts})
 
         if enable_debug:
-            debug_info["knowledge_qa_llm"]["answer"] = answer_str
+            debug_info["stream_full_answer"] = answer_str
             context_msg.update({"debug_info": debug_info})
 
         _send_to_ws_client(context_msg)
