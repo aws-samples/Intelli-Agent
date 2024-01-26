@@ -68,19 +68,23 @@ def get_query_process_chain(
         query_key='conversation_query_rewrite'
     )
     query_rewrite_chain = chain_logger(
-        query_rewrite_chain,'query rewrite module'
+        query_rewrite_chain,
+        'query rewrite module',
+        log_output_template='query_rewrite result: {query_rewrite}.'
         )
     
-    conversation_query_rewrite_chain = get_conversation_query_rewrite_chain(
-        chat_history,
-        llm_model_id = conversation_query_rewrite_config['model_id'],
-        model_kwargs = conversation_query_rewrite_config['model_kwargs']
-    )
+    # conversation_query_rewrite_chain = RunnablePassthrough.assign(
+    #     conversation_query_rewrite=get_conversation_query_rewrite_chain(
+    #         chat_history,
+    #         llm_model_id = conversation_query_rewrite_config['model_id'],
+    #         model_kwargs = conversation_query_rewrite_config['model_kwargs']
+    #     ))
 
-    conversation_query_rewrite_chain = chain_logger(
-        conversation_query_rewrite_chain,
-        "conversation query rewrite module" 
-    )
+    # conversation_query_rewrite_chain = chain_logger(
+    #     conversation_query_rewrite_chain,
+    #     "conversation query rewrite module",
+    #     log_output_template='conversation_query_rewrite result: {conversation_query_rewrite}.'
+    # )
 
     preprocess_chain = RunnablePassthrough.assign(
           query_lang = RunnableLambda(lambda x:language_check(x['query'])),  
@@ -105,21 +109,15 @@ def get_query_process_chain(
         log_output_template="\nhyde generate passage: {hyde_doc}"
     )
 
-
-    query_process_chain = RunnablePassthrough.assign(
-        conversation_query_rewrite=conversation_query_rewrite_chain
-    ) | RunnablePassthrough.assign(
-        query_rewrite=query_rewrite_chain) \
-      | preprocess_chain | hyde_chain
+    # 
+    query_process_chain = preprocess_chain
+    # query_process_chain = conversation_query_rewrite_chain | preprocess_chain 
       
     
     query_process_chain = chain_logger(
         query_process_chain,
-        "query process module",
-        log_output_template='\nconversation_query_rewrite result: {conversation_query_rewrite}.\nquery_rewrite result: {query_rewrite}'
+        "query process module"
    )
-
-   
     
     return query_process_chain
 

@@ -17,6 +17,12 @@ def update_nest_dict(d, u):
 rag_default_config = {
     # retriver config
     # query process config
+    "retriver_config":{
+        "retriever_top_k": 20,
+        "chunk_num": 2,
+        "using_whole_doc": True,
+        "reranker_top_k": 10
+    },
     "query_process_config":{
         "query_rewrite_config":{
                 "model_id":"anthropic.claude-instant-v1",

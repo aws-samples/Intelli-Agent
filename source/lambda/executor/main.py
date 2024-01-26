@@ -692,13 +692,16 @@ def get_qd_llm_chain(
     aos_index_list, 
     rag_config, 
     stream=False, 
-    top_n=5,
-    using_whole_doc=True,
-    chunk_num=0,
+    # top_n=5
 ):
+    using_whole_doc = rag_config['retriver_config']['using_whole_doc']
+    chunk_num = rag_config['retriver_config']['chunk_num']
+    retriever_top_k = rag_config['retriver_config']['retriever_top_k']
+    reranker_top_k = rag_config['retriver_config']['reranker_top_k']
+    
     llm_chain = get_rag_llm_chain(rag_config, stream)
-    qd_chain = get_qd_chain(aos_index_list, using_whole_doc=False,
-                            chunk_num=2, retriever_top_k=20, reranker_top_k=10)
+    qd_chain = get_qd_chain(aos_index_list, using_whole_doc=using_whole_doc,
+                            chunk_num=chunk_num, retriever_top_k=retriever_top_k, reranker_top_k=reranker_top_k)
     qd_llm_chain = chain_logger(qd_chain, 'qd_retriever') | chain_logger(llm_chain,'llm_chain')
     return qd_llm_chain
 
@@ -788,8 +791,8 @@ def market_chain_entry(
         [aos_index_dgr_qd, aos_index_dgr_faq_qd, aos_index_mkt_qd],
         rag_config,
         stream,
-        top_n=5,
-        chunk_num=0
+        # top_n=5,
+        # chunk_num=0
     )
 
     # 2.3 query question router.
@@ -835,8 +838,9 @@ def market_chain_entry(
         rag_config['query_process_config']['query_rewrite_config'],
         rag_config['query_process_config']['conversation_query_rewrite_config'],
         rag_config['query_process_config']['hyde_config']
-    ) | add_key_to_debug(add_key='conversation_query_rewrite',debug_key="debug_info") \
-      | add_key_to_debug(add_key='query_rewrite',debug_key="debug_info")
+    )
+    # | add_key_to_debug(add_key='conversation_query_rewrite',debug_key="debug_info")
+    #   | add_key_to_debug(add_key='query_rewrite',debug_key="debug_info")
     
     # query_rewrite_chain = chain_logger(
     #     query_rewrite_chain,

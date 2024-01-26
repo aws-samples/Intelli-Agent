@@ -3,6 +3,9 @@ import sys
 import csv
 import os 
 import time 
+from dotenv import load_dotenv
+load_dotenv()
+
 import logging
 log_level = logging.INFO
 logging.basicConfig(
@@ -23,8 +26,6 @@ import aos_utils
 # credentials = boto3.Session().get_credentials()
 # aos_utils.awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, region, 'es', session_token=credentials.token)
 
-from dotenv import load_dotenv
-load_dotenv()
 # import os
 # region = os.environ["AWS_REGION"]
 # print(region)
@@ -196,7 +197,33 @@ def multiturn_chat_test():
         session_id=session_id
         )
 
+
+def multiturn_strict_qq_test():
+    session_id = f'test_{int(time.time())}'
+    generate_answer(
+        "IoT Core是否支持Qos2？", 
+        model='strict_q_q',
+        stream=True,
+        session_id=session_id
+        )
+    generate_answer(
+        "IoT Core是否支持Qos2？", 
+        model='strict_q_q',
+        stream=True,
+        session_id=session_id
+        )
+
+def qq_match_test():
+    r = generate_answer(
+        "IoT Core是否支持Qos2？", 
+        # model="auto", 
+        model="strict_q_q", 
+        stream=True,
+        type="market_chain", 
+    )
+
 def market_deploy_test():
+    multiturn_strict_qq_test()
     multiturn_chat_test()
     r = generate_answer(
         "Amazon EC2 提供了哪些功能来支持不同区域之间的数据恢复?", 
@@ -217,15 +244,12 @@ def market_deploy_test():
         stream=True,
         type="market_chain", 
     )
-    generate_answer(
-        "IoT Core是否支持Qos2？", 
-        model="auto", 
-        stream=True,
-        type="market_chain", 
-    )
+    qq_match_test()
+    
 
 
 if __name__ == "__main__":
+    # market_deploy_test()
     market_deploy_test()
     # dgr
     # generate_answer("Amazon Fraud Detector 中'entityId'和'eventId'的含义与注意事项")

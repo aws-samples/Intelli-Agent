@@ -66,7 +66,8 @@ class LogTimeListener:
         logger.info(f'Exit: {self.chain_name}, elpase time(s): {exe_time}')
         
     def on_error(self,run):
-        logger.info(f"Error in run chain: {self.chain_name}.")
+        raise 
+        # logger.info(f"Error in run chain: {self.chain_name}.")
 
 
 def chain_logger(
