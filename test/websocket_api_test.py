@@ -28,6 +28,10 @@ body = {
     "messages": [{"role": "user","content": question_library[-1]}],
     "temperature": 0.7,
     "type" : "market_chain", 
+    "retriver_config":{
+        "using_whole_doc": False,
+        "chunk_num": 2,
+    },
     # "enable_q_q_match": True,
     # "enable_debug": False,
     "llm_model_id":'anthropic.claude-v2:1',
