@@ -79,7 +79,10 @@ def generate_answer(query,
                 "retriever_index": retriever_index,
                 "type": type,
                 "model": model,
-                "session_id":session_id
+                "session_id":session_id,
+                "retriver_config": {
+                    "retriever_top_k" : 20
+                }
             }
         )
     }
