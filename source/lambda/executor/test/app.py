@@ -2,7 +2,7 @@ import gradio as gr
 import json
 import requests
 import boto3
-from executor_local_test_2 import generate_answer
+from executor_local_test import generate_answer
 from langchain_community.document_loaders import UnstructuredPDFLoader
 
 
@@ -75,7 +75,7 @@ text = [
 
 def get_answer(query_input, entry_type):
     answer, source, debug_info = generate_answer(
-        query_input, enable_q_q_match=False, type=entry_type
+        query_input, type=entry_type
     )
     tab_list = []
     json_list = []
