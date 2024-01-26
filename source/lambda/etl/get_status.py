@@ -1,7 +1,8 @@
-import boto3
 import json
 import logging
 import os
+
+import boto3
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -15,6 +16,13 @@ def lambda_handler(event, context):
         state_machine_arn.replace("stateMachine", "execution") + ":" + execution_id
     )
 
+    resp_header = {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "*",
+    }
+
     try:
         response = sf_client.describe_execution(executionArn=execution_arn)
 
@@ -23,6 +31,7 @@ def lambda_handler(event, context):
 
         return {
             "statusCode": 200,
+            "headers": resp_header,
             "body": json.dumps(
                 {"execution_id": execution_id, "execution_status": execution_status}
             ),
@@ -30,4 +39,8 @@ def lambda_handler(event, context):
     except Exception as e:
         logger.error(f"Error: {str(e)}")
 
-        return {"statusCode": 500, "body": json.dumps(f"Error: {str(e)}")}
+        return {
+            "statusCode": 500,
+            "headers": resp_header,
+            "body": json.dumps(f"Error: {str(e)}"),
+        }
