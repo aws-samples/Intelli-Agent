@@ -445,7 +445,9 @@ class QueryDocumentRetriever(BaseRetriever):
             doc_list.append(Document(page_content=result["doc"],
                                      metadata={"source": result["source"],
                                                "retrieval_content": result["content"],
-                                               "retrieval_score": result["score"]}))
+                                               "retrieval_score": result["score"],
+                                                # set common score for llm.
+                                               "score": result["score"]}))
 
         recall_end_time = time.time()
         elpase_time = recall_end_time - start
