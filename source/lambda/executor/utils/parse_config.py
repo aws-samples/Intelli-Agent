@@ -21,7 +21,8 @@ rag_default_config = {
         "retriever_top_k": 20,
         "chunk_num": 2,
         "using_whole_doc": True,
-        "reranker_top_k": 10
+        "reranker_top_k": 10,
+        "enable_reranker": True
     },
     "query_process_config":{
         "query_rewrite_config":{
