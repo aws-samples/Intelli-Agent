@@ -150,7 +150,12 @@ def ppstructure_en(file_path: Path) -> str:
             for _, line in enumerate(region["res"]):
                 region_text += line["text"]
         elif region["type"].lower() == "title":
-            doc += "## " + region["res"][0]["text"] + "\n\n"
+            region_text = ''
+            for i, line in enumerate(region['res']):
+                region_text += line['text'] + ''
+            if remove_symbols(region_text) != remove_symbols(prev_region_text):
+                doc += '## ' + region_text + '\n\n'
+                prev_region_text = region_text
         elif region["type"].lower() == "table":
             if "<thead>" not in region["res"]["html"]:
                 region["res"]["html"] = (
@@ -217,7 +222,12 @@ def ppstructure_zh(file_path: Path) -> str:
             for _, line in enumerate(region["res"]):
                 region_text += line["text"]
         elif region["type"].lower() == "title":
-            doc += "## " + region["res"][0]["text"] + "\n\n"
+            region_text = ''
+            for i, line in enumerate(region['res']):
+                region_text += line['text'] + ''
+            if remove_symbols(region_text) != remove_symbols(prev_region_text):
+                doc += '## ' + region_text + '\n\n'
+                prev_region_text = region_text
         elif region["type"].lower() == "table":
             if "<thead>" not in region["res"]["html"]:
                 region["res"]["html"] = (
