@@ -63,9 +63,9 @@ rag_default_config = {
     # generator config 
     "generator_llm_config":{
         "model_kwargs":{
-            "max_tokens_to_sample": 2000,
-            "temperature": 0.7,
-            "top_p": 0.9
+            # "max_tokens_to_sample": 2000,
+            # "temperature": 0.7,
+            # "top_p": 0.9
         },
         "model_id": "anthropic.claude-v2:1",
         "context_num": 2

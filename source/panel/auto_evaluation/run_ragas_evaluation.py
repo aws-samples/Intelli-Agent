@@ -279,8 +279,8 @@ if __name__ == "__main__":
     # llm_output_cache_path = "techbot_question_dgr_res_1_16_120_with_gt.pkl"
     # llm_output_cache_path = "techbot_question_dgr_res_6_120_with_gt.pkl"
     # llm_output_cache_path = "techbot_question_dgr_res_1_16_120_with_gt.pkl"
-    llm_output_cache_path = "techbot_question_dgr_res_1_3_120_with_gt_context_1.pkl"
-    # llm_output_cache_path = "techbot_question_dgr_res_1_23_120_with_gt_context_1_with_with_whole_doc_claude21.max_new_2000_token.debug.pkl"
+    # llm_output_cache_path = "techbot_question_dgr_res_1_3_120_with_gt_context_1.pkl"
+    llm_output_cache_path = "techbot_question_dgr_res_1_26_120_with_gt_context_1_with_with_whole_doc_claude21.max_new_2000_token.pkl"
     # llm_output_cache_path = "techbot_question_dgr_res_1_23_120_with_gt_context_2_with_whole_doc.pkl"
     ret_save_profix = f'{eval_id}-{llm_output_cache_path}-eval'
     # ragas_parameters = {
@@ -304,6 +304,7 @@ if __name__ == "__main__":
         "retriver_config":{
             "using_whole_doc": True,
             "chunk_num": 4,
+            "retriever_top_k": 20
             },
         "generator_llm_config":{
             # "model_id": "anthropic.claude-instant-v1",
