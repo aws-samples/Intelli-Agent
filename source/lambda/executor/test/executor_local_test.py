@@ -63,34 +63,35 @@ def generate_answer(query,
                     model="knowledge_qa",
                     stream=False,
                     retriever_index="test-index",
-                    session_id=None):
-    event = {
-        "body": json.dumps(
-            {
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": query
-                    }
-                ],
-                "temperature": temperature,
-                "enable_debug": enable_debug,
-                "retrieval_only": retrieval_only,
-                "retriever_index": retriever_index,
-                "type": type,
-                "model": model,
-                "session_id":session_id,
-                "retriver_config": {
-                    "retriever_top_k" : 20
+                    session_id=None,
+                    rag_parameters=None
+                    ):
+    rag_parameters = rag_parameters or {}
+    body = {
+            "messages": [
+                {
+                    "role": "user",
+                    "content": query
                 }
+            ],
+            "temperature": temperature,
+            "enable_debug": enable_debug,
+            "retrieval_only": retrieval_only,
+            "retriever_index": retriever_index,
+            "type": type,
+            "model": model,
+            "session_id":session_id,
             }
-        )
+    body.update(rag_parameters)
+    event = {
+        "body": json.dumps(body)
     }
     if stream:
         event["requestContext"] = {
             "eventType":"MESSAGE",
             "connectionId":f'test_{int(time.time())}'
         }
+
     context = None
     response = main.lambda_handler(event, context)
     if response is None:
@@ -225,9 +226,15 @@ def qq_match_test():
         type="market_chain", 
     )
 
-def market_deploy_test():
-    multiturn_strict_qq_test()
-    multiturn_chat_test()
+def knowledge_qa_test():
+    r = generate_answer(
+        "如何将Kinesis Data Streams配置为AWS Lambda的事件源？", 
+        model="knowledge_qa", 
+        stream=True,
+        type="market_chain", 
+    )
+    # print(r[0])
+
     r = generate_answer(
         "Amazon EC2 提供了哪些功能来支持不同区域之间的数据恢复?", 
         model="knowledge_qa", 
@@ -242,18 +249,115 @@ def market_deploy_test():
         type="market_chain", 
     )
     generate_answer(
+        "Amazon EC2 提供了哪些功能来支持不同区域之间的数据恢复?", 
+        model="knowledge_qa", 
+        stream=True,
+        type="market_chain", 
+    )
+
+def test_baichuan_model():
+    session_id=f'test_{time.time()}'
+    # generate_answer(
+    #     "《夜曲》是谁演唱的？", 
+    #     session_id=session_id,
+    #     model="chat", 
+    #     type="market_chain", 
+    #     stream=True,
+    #     rag_parameters=dict(
+    #         generator_llm_config={
+    #                 "model_kwargs":{
+    #                     "max_new_tokens": 2000,
+    #                     "temperature": 0.1,
+    #                     "top_p": 0.9
+    #                 },
+    #                 "model_id": "Baichuan2-13B-Chat-4bits",
+    #                 "endpoint_name": "baichuan2-13b-chat-4bits-2024-01-28-15-46-43-013",
+    #                 "context_num": 2
+    #     })
+    # )
+    # generate_answer(
+    #     "他还有哪些其他歌曲？", 
+    #     session_id=session_id,
+    #     model="chat", 
+    #     type="market_chain", 
+    #     stream=True,
+    #     rag_parameters=dict(
+    #         generator_llm_config={
+    #                 "model_kwargs":{
+    #                     "max_new_tokens": 2000,
+    #                     "temperature": 0.1,
+    #                     "top_p": 0.9
+    #                 },
+    #                 "model_id": "Baichuan2-13B-Chat-4bits",
+    #                 "endpoint_name": "baichuan2-13b-chat-4bits-2024-01-28-15-46-43-013",
+    #                 "context_num": 2
+    #     })
+    # )
+
+    # r = generate_answer(
+    #     "解释一下“温故而知新”", 
+    #     model="chat", 
+    #     type="market_chain", 
+    #     stream=False,
+    #     rag_parameters=dict(
+    #         generator_llm_config={
+    #                 "model_kwargs":{
+    #                     "max_new_tokens": 2000,
+    #                     "temperature": 0.1,
+    #                     "top_p": 0.9
+    #                 },
+    #                 "model_id": "Baichuan2-13B-Chat-4bits",
+    #                 "endpoint_name": "baichuan2-13b-chat-4bits-2024-01-28-15-46-43-013",
+    #                 "context_num": 2
+    #     })
+    # )
+    # print(r[0])
+
+    generate_answer(
+        "Amazon EC2 提供了哪些功能来支持不同区域之间的数据恢复?", 
+        model="knowledge_qa", 
+        type="market_chain", 
+        stream=True,
+        rag_parameters=dict(
+            generator_llm_config={
+                    "model_kwargs":{
+                        "max_new_tokens": 2000,
+                        "temperature": 0.1,
+                        "top_p": 0.9
+                    },
+                    "model_id": "Baichuan2-13B-Chat-4bits",
+                    "endpoint_name": "baichuan2-13b-chat-4bits-2024-01-28-15-46-43-013",
+                    "context_num": 1
+        })
+    )
+    
+
+
+def market_deploy_test():
+    multiturn_strict_qq_test()
+    multiturn_chat_test()
+    knowledge_qa_test()
+    
+    generate_answer(
         "今天天气怎么样？", 
         model="auto", 
         stream=True,
         type="market_chain", 
     )
     qq_match_test()
-    
-
 
 if __name__ == "__main__":
     # market_deploy_test()
-    market_deploy_test()
+    # knowledge_qa_test()
+    # r = generate_answer(
+    #     "如何将Kinesis Data Streams配置为AWS Lambda的事件源？", 
+    #     model="knowledge_qa", 
+    #     stream=True,
+    #     type="market_chain", 
+    # )
+    test_baichuan_model()
+    
+    # market_deploy_test()
     # dgr
     # generate_answer("Amazon Fraud Detector 中'entityId'和'eventId'的含义与注意事项")
     # r = generate_answer("请写一首诗",model='caht')

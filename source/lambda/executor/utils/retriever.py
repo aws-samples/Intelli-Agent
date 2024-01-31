@@ -82,8 +82,6 @@ def parse_query(
         "Represent this sentence for searching relevant passages: "
         + parsed_query["en_query"]
     )
-    
-    # t0 = time.time()
     parsed_query["zh_query_similarity_embedding"] = SagemakerEndpointVectorOrCross(
         prompt=zh_query_similarity_embedding_prompt,
         endpoint_name=zh_embedding_model_endpoint,
@@ -91,7 +89,6 @@ def parse_query(
         model_type="vector",
         stop=None,
     )
-    # print('SagemakerEndpointVectorOrCross: ',time.time()-t0)
     parsed_query["zh_query_relevance_embedding"] = SagemakerEndpointVectorOrCross(
         prompt=zh_query_relevance_embedding_prompt,
         endpoint_name=zh_embedding_model_endpoint,
@@ -391,6 +388,7 @@ class QueryDocumentRetriever(BaseRetriever):
         self.using_whole_doc = using_whole_doc
         self.context_num = context_num
         self.top_k = top_k
+    
 
     def _get_relevant_documents(self, question: Dict, *, run_manager: CallbackManagerForRetrieverRun) -> List[Document]:
         query = question["query"] 
@@ -416,7 +414,6 @@ class QueryDocumentRetriever(BaseRetriever):
         opensearch_knn_results.extend(
             organize_results(opensearch_knn_response, self.index, self.source_field, self.text_field, self.using_whole_doc, self.context_num)[:self.top_k]
         )
-
         opensearch_knn_response = aos_client.search(
             index_name=self.index,
             query_type="knn",
