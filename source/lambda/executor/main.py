@@ -11,7 +11,7 @@ import uuid
 import boto3
 from langchain.callbacks.base import BaseCallbackHandler
 from langchain.globals import set_verbose
-from langchain.llms import OpenAI
+# from langchain.llms import OpenAI
 from langchain.output_parsers import PydanticOutputParser
 from langchain.prompts import ChatPromptTemplate
 from langchain.pydantic_v1 import BaseModel, Field, validator
@@ -660,13 +660,16 @@ def get_rag_llm_chain(rag_config, stream):
         context_docs=lambda x: contexts_trunc(x["docs"], context_num=context_num)['context_docs'],
         context_sources=lambda x: contexts_trunc(x["docs"], context_num=context_num)['context_sources'],
     )
- 
+    other_llm_config = copy.deepcopy(generator_llm_config)
+    other_llm_config.pop('model_id')
+    other_llm_config.pop('model_kwargs')
     llm_chain = get_llm_chain(
         model_id=generator_llm_config['model_id'],
         intent_type=IntentType.KNOWLEDGE_QA.value,
         model_kwargs=generator_llm_config['model_kwargs'],  # TODO
         stream=stream,
-        chat_history=rag_config['chat_history']
+        chat_history=rag_config['chat_history'],
+        **other_llm_config
     )
     llm_chain = contexts_trunc_stage | RunnablePassthrough.assign(answer=llm_chain)
     return llm_chain
@@ -822,12 +825,16 @@ def market_chain_entry(
     qq_qd_llm_chain = qq_chain | RunnableLambda(qq_route)
 
     # TODO design chat chain
+    other_llm_config = copy.deepcopy(generator_llm_config)
+    other_llm_config.pop('model_id')
+    other_llm_config.pop('model_kwargs')
     chat_llm_chain = get_llm_chain(
         model_id=generator_llm_config['model_id'],
         intent_type=IntentType.CHAT.value,
         model_kwargs=generator_llm_config['model_kwargs'],  # TODO
         stream=stream,
-        chat_history=rag_config['chat_history']
+        chat_history=rag_config['chat_history'],
+        **other_llm_config
     ) | {
         "answer": lambda x: x,
         "sources": lambda x: [],

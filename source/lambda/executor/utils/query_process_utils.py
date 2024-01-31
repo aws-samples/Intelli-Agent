@@ -5,6 +5,8 @@ from langchain.schema.runnable import RunnableLambda,RunnablePassthrough
 from prompt_template import get_conversation_query_rewrite_prompt,hyde_web_search_template
 from langchain_utils import chain_logger
 from preprocess_utils import is_api_query, language_check,query_translate,get_service_name
+from langchain.memory import ConversationSummaryMemory, ChatMessageHistory
+
 
 def query_rewrite_postprocess(r):
     ret = re.findall('<questions>.*?</questions>',r,re.S)[0] 
