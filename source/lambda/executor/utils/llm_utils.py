@@ -48,7 +48,8 @@ class Claude2(Model):
     @classmethod
     def create_model(cls,model_kwargs=None, **kwargs
         ):
-        model_kwargs  = model_kwargs or cls.default_model_kwargs
+        model_kwargs  = model_kwargs or {}
+        model_kwargs = {**cls.default_model_kwargs,**model_kwargs}
 
         credentials_profile_name = kwargs.get('credentials_profile_name',None) \
                     or os.environ.get('AWS_PROFILE',None) or None 
@@ -397,3 +398,6 @@ def get_llm_chain(model_id, intent_type,model_kwargs=None, **kwargs):
         model_kwargs=model_kwargs,
         **kwargs
     )
+
+def get_llm_model(model_id,model_kwargs=None):
+    return Model.get_model(model_id,model_kwargs=model_kwargs)
