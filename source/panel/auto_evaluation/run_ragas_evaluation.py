@@ -93,7 +93,6 @@ def csdc_rag_call(
 
     raise RuntimeError(r.json())
 
-
 def websocket_call(
     datum,
     ws_url="wss://omjou492fe.execute-api.us-west-2.amazonaws.com/prod/",
@@ -270,7 +269,8 @@ if __name__ == "__main__":
     
     # rag_api_url = "https://5tzaajjzg7.execute-api.us-west-2.amazonaws.com/default/llm-bot-dev-qq-matching"
     rag_api_url =  "wss://omjou492fe.execute-api.us-west-2.amazonaws.com/prod/"
-    eval_data_path = "TechBot QA Test-fifth-test.csv"
+    # eval_data_path = "TechBot QA Test-fifth-test.csv"
+    eval_data_path = "TechBot QA Test-fifth-test-sample-50.csv"
     # eval_id = 'claude2-csds-retrive'
     by = 'claude2-answer_correctness' #'claude2'
     eval_id = f'claude2-csdc-retrive-by-{by}'
@@ -280,7 +280,13 @@ if __name__ == "__main__":
     # llm_output_cache_path = "techbot_question_dgr_res_6_120_with_gt.pkl"
     # llm_output_cache_path = "techbot_question_dgr_res_1_16_120_with_gt.pkl"
     # llm_output_cache_path = "techbot_question_dgr_res_1_3_120_with_gt_context_1.pkl"
-    llm_output_cache_path = "techbot_question_dgr_res_1_26_120_with_gt_context_1_with_with_whole_doc_claude21.max_new_2000_token.pkl"
+    # llm_output_cache_path = "techbot_question_dgr_res_2_1_120_with_gt_context_1_with_whole_doc_baichuan2_13b_4bits.max_new_2000_token.pkl"
+    # llm_output_cache_path = "techbot_question_dgr_res_2_1_120_with_gt_context_1_with_whole_doc_baichuan2_13b_4bits.max_new_2000_token.pkl.internlm2-7b-hf-4bits.tranc.to.2048.pkl"
+    # llm_output_cache_path = "techbot_question_dgr_res_2_1_120_with_gt_context_1_with_whole_doc_baichuan2_13b_4bits.max_new_2000_token.pkl.internlm2-7b-hf-4bits.pkl"
+    # llm_output_cache_path = "techbot_question_dgr_res_2_1_120_with_gt_context_1_with_whole_doc_baichuan2_13b_4bits.max_new_2000_token.pkl.internlm2-20b-hf-4bits.trunc.2048.pkl"
+    # llm_output_cache_path = "techbot_question_dgr_res_2_1_120_with_gt_context_1_with_whole_doc_baichuan2_13b_4bits.max_new_2000_token.pkl.OrionStar-Yi-34B-Chat-Llama-AWQ.pkl"
+    # llm_output_cache_path = "techbot_question_dgr_res_2_1_120_with_gt_context_1_with_whole_doc_baichuan2_13b_4bits.max_new_2000_token.pkl.qianwen.72b.gptq.pkl"
+    llm_output_cache_path = "techbot_question_dgr_res_2_1_120_with_gt_context_1_with_whole_doc_baichuan2_13b_4bits.max_new_2000_token.pkl.Yi-34B-Chat-hf-4bits.pkl"
     # llm_output_cache_path = "techbot_question_dgr_res_1_23_120_with_gt_context_2_with_whole_doc.pkl"
     ret_save_profix = f'{eval_id}-{llm_output_cache_path}-eval'
     # ragas_parameters = {
@@ -295,6 +301,29 @@ if __name__ == "__main__":
     #     # }
     # }
    
+    # rag_parameters = {
+    #     # 'llm_model_id': "anthropic.claude-v2:1", 
+    #     # 'llm_model_id': "anthropic.claude-v2:1", 
+    #     # "temperature": 0.7,
+    #     # "enable_q_q_match": True,
+    #     "get_contexts": True,
+    #     "retriver_config":{
+    #         "using_whole_doc": True,
+    #         "chunk_num": 4,
+    #         "retriever_top_k": 20
+    #         },
+    #     "generator_llm_config":{
+    #         # "model_id": "anthropic.claude-instant-v1",
+    #         "model_id": "anthropic.claude-v2:1",
+    #         "model_kwargs":{
+    #             "max_tokens_to_sample": 2000,
+    #             "temperature": 0.7,
+    #             "top_p": 0.9
+    #         },
+    #     # "model_id": "anthropic.claude-v2:1",
+    #         "context_num": 1
+    # }
+    # }
     rag_parameters = {
         # 'llm_model_id': "anthropic.claude-v2:1", 
         # 'llm_model_id': "anthropic.claude-v2:1", 
@@ -302,19 +331,19 @@ if __name__ == "__main__":
         # "enable_q_q_match": True,
         "get_contexts": True,
         "retriver_config":{
-            "using_whole_doc": True,
-            "chunk_num": 4,
+            "using_whole_doc": False,
+            "chunk_num": 1,
             "retriever_top_k": 20
             },
         "generator_llm_config":{
             # "model_id": "anthropic.claude-instant-v1",
-            "model_id": "anthropic.claude-v2:1",
             "model_kwargs":{
-                "max_tokens_to_sample": 2000,
-                "temperature": 0.7,
-                "top_p": 0.9
-            },
-        # "model_id": "anthropic.claude-v2:1",
+                        "max_new_tokens": 1000,
+                        "temperature": 0.1,
+                        "top_p": 0.9
+                    },
+            "model_id": "Baichuan2-13B-Chat-4bits",
+            "endpoint_name": "baichuan2-13b-chat-4bits-2024-02-01-03-58-29-048",
             "context_num": 1
     }
     }
@@ -326,6 +355,7 @@ if __name__ == "__main__":
         ret_save_profix=ret_save_profix,
         # ragas_parameters=ragas_parameters,
         ragas_eval_metrics = RAGAS_EVAL_METRICS,
+        stream=True,
         rag_parameters=rag_parameters
     )
     print(r)

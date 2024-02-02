@@ -8,6 +8,9 @@ from langchain.schema.runnable import (
     RunnablePassthrough,
 )
 
+def convert_text_from_fstring_format(text):
+    return text.replace('{','{{').replace('}','}}')
+
 
 CLAUDE21_RAG_PROMPT_TEMPLTE = """You are a customer service agent, and answering user's query. You ALWAYS follow these guidelines when writing your response:
 <guidelines>
@@ -189,10 +192,17 @@ Here are some documents for you to reference for your query:
 </docs>"""
 
 def get_claude_chat_rag_prompt(chat_history:list):
+    chat_history = [(ch[0],convert_text_from_fstring_format(ch[1])) for ch in chat_history]
     chat_messages = [("system",bedrock_rag_chat_system_prompt)]
     chat_messages = chat_messages + chat_history 
     chat_messages += [("user","{query}")]
-    context_chain = RunnablePassthrough.assign(context=RunnableLambda(lambda x:get_claude_rag_context(x['contexts'])))
+    context_chain = RunnablePassthrough.assign(
+        context=RunnableLambda(
+            lambda x:convert_text_from_fstring_format(
+                get_claude_rag_context(x['contexts'])
+                )
+            )
+        )
 
     return context_chain | ChatPromptTemplate.from_messages(chat_messages)
 
@@ -203,10 +213,10 @@ def get_chit_chat_system_prompt():
     return system_prompt
 
 def get_chit_chat_prompt(chat_history:list):
+    chat_history = [(ch[0],convert_text_from_fstring_format(ch[1])) for ch in chat_history]
     chat_messages = [("system",get_chit_chat_system_prompt())]
     chat_messages += chat_history 
     chat_messages += [('user',"{query}")]
-
     return ChatPromptTemplate.from_messages(chat_messages)
 
 cqr_system_prompt = """Given a question and its context, decontextualize the question by addressing coreference and omission issues. The resulting question should retain its original meaning and be as informative as possible, and should not duplicate any previously asked questions in the context.
@@ -232,7 +242,7 @@ def get_conversation_query_rewrite_prompt(chat_history:list):
             conversational_contexts.append(f"A: {his[1]}")
     
     conversational_context = "\n".join(conversational_contexts)
-    conversational_context = f'[{conversational_context}]'
+    conversational_context = convert_text_from_fstring_format(f'[{conversational_context}]')
     cqr_template = ChatPromptTemplate.from_messages(
             [
                 (
