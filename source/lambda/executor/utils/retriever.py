@@ -448,7 +448,7 @@ class QueryDocumentRetriever(BaseRetriever):
 
         recall_end_time = time.time()
         elpase_time = recall_end_time - start
-        logger.info(f"runing time of recall : {elpase_time}s seconds")
+        logger.info(f"get_relevant_documents runing time of recall : {elpase_time}s seconds")
         return doc_list
 
 class GoogleRetriever(BaseRetriever):

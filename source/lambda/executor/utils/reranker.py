@@ -52,6 +52,7 @@ class BGEReranker(BaseDocumentCompressor):
             rerank_pair.append([query["query"], doc[:rerank_text_length]])
         batch_size = 64
         score_list = []
+        logger.info(f'rerank pair num {len(rerank_pair)}, endpoint_name: {rerank_model_endpoint}')
         for batch_start in range(0, len(rerank_pair), batch_size):
             batch = rerank_pair[batch_start:batch_start + batch_size]
             score_list.extend(json.loads(
