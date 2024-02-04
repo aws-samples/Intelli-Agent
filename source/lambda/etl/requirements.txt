@@ -6,4 +6,4 @@ numpy==1.22.0
 # nltk==3.8.1
 requests-aws4auth==1.2.3
 unstructured==0.10.5
-unstructured[pdf]
+# unstructured[pdf]
