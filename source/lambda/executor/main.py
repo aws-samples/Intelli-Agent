@@ -11,7 +11,7 @@ import uuid
 import boto3
 from langchain.callbacks.base import BaseCallbackHandler
 from langchain.globals import set_verbose
-from langchain.llms import OpenAI
+# from langchain.llms import OpenAI
 from langchain.output_parsers import PydanticOutputParser
 from langchain.prompts import ChatPromptTemplate
 from langchain.pydantic_v1 import BaseModel, Field, validator
@@ -27,6 +27,7 @@ from langchain.schema.runnable import (
     RunnableParallel,
     RunnablePassthrough,
 )
+from langchain.memory import ConversationSummaryMemory, ChatMessageHistory
 from langchain.utilities import GoogleSearchAPIWrapper
 from reranker import BGEReranker, MergeReranker
 from retriever import (
@@ -45,7 +46,7 @@ from intent_utils import auto_intention_recoginition_chain
 from langchain_utils import create_identity_lambda
 
 # from llm_utils import generate as llm_generate
-from llm_utils import get_llm_chain
+from llm_utils import get_llm_chain,get_llm_model
 from llmbot_utils import (
     QueryType,
     combine_recalls,
@@ -660,19 +661,22 @@ def get_rag_llm_chain(rag_config, stream):
         context_docs=lambda x: contexts_trunc(x["docs"], context_num=context_num)['context_docs'],
         context_sources=lambda x: contexts_trunc(x["docs"], context_num=context_num)['context_sources'],
     )
- 
+    other_llm_config = copy.deepcopy(generator_llm_config)
+    other_llm_config.pop('model_id')
+    other_llm_config.pop('model_kwargs')
     llm_chain = get_llm_chain(
         model_id=generator_llm_config['model_id'],
         intent_type=IntentType.KNOWLEDGE_QA.value,
         model_kwargs=generator_llm_config['model_kwargs'],  # TODO
         stream=stream,
-        chat_history=rag_config['chat_history']
+        chat_history=rag_config['chat_history'],
+        **other_llm_config
     )
     llm_chain = contexts_trunc_stage | RunnablePassthrough.assign(answer=llm_chain)
     return llm_chain
 
 def get_qd_chain(
-    aos_index_list, retriever_top_k=100, reranker_top_k=5, using_whole_doc=True, chunk_num=0, enable_reranker=True
+    aos_index_list, retriever_top_k=10, reranker_top_k=5, using_whole_doc=True, chunk_num=0, enable_reranker=True
 ):
     retriever_list = [
         QueryDocumentRetriever(
@@ -792,13 +796,13 @@ def market_chain_entry(
         size=5,
     )
     # 2.2 query document retrieval + LLM.
-    qd_llm_chain = get_qd_llm_chain(
-        [aos_index_dgr_qd, aos_index_dgr_faq_qd, aos_index_mkt_qd],
-        rag_config,
-        stream,
-        # top_n=5,
-        # chunk_num=0
-    )
+    # qd_llm_chain = get_qd_llm_chain(
+    #     [aos_index_dgr_qd, aos_index_dgr_faq_qd, aos_index_mkt_qd],
+    #     rag_config,
+    #     stream,
+    #     # top_n=5,
+    #     # chunk_num=0
+    # )
 
     # 2.3 query question router.
     def qq_route(info, threshold=0.9):
@@ -815,6 +819,13 @@ def market_chain_entry(
                 logger.info('qq matched...')
                 info.update(output)
                 return info
+        qd_llm_chain = get_qd_llm_chain(
+            [aos_index_dgr_qd, aos_index_dgr_faq_qd, aos_index_mkt_qd],
+            rag_config,
+            stream,
+            # top_n=5,
+            # chunk_num=0
+        )
         return qd_llm_chain
 
     qq_chain = RunnablePassthrough.assign(qq_result=dgr_q_q_retriever)
@@ -822,12 +833,16 @@ def market_chain_entry(
     qq_qd_llm_chain = qq_chain | RunnableLambda(qq_route)
 
     # TODO design chat chain
+    other_llm_config = copy.deepcopy(generator_llm_config)
+    other_llm_config.pop('model_id')
+    other_llm_config.pop('model_kwargs')
     chat_llm_chain = get_llm_chain(
         model_id=generator_llm_config['model_id'],
         intent_type=IntentType.CHAT.value,
         model_kwargs=generator_llm_config['model_kwargs'],  # TODO
         stream=stream,
-        chat_history=rag_config['chat_history']
+        chat_history=rag_config['chat_history'],
+        **other_llm_config
     ) | {
         "answer": lambda x: x,
         "sources": lambda x: [],
@@ -884,6 +899,29 @@ def market_chain_entry(
     contexts = response["context_docs"]
 
     return answer, sources, contexts, debug_info
+
+
+def market_conversation_summary_entry(
+        messages:list[dict],
+        rag_config=None,
+        stream=False
+    ):
+
+    if not rag_config['chat_history']:
+        assert messages,messages
+        chat_history = []
+        for message in messages:
+            chat_history.append((message['role'],message['content']))
+        rag_config['chat_history'] = chat_history
+
+    rag_config['intent_config']['intent_type'] = IntentType.CHAT.value
+    
+    query_input = """请简要总结上述对话中的内容,每一个对话单独一个总结，并用 '- '开头。 每一个总结要先说明问题。\n"""
+    return market_chain_entry(
+        query_input=query_input,
+        rag_config=rag_config,
+        stream=stream
+    )
 
 def main_qd_retriever_entry(
     query_input: str,
@@ -1021,9 +1059,9 @@ def lambda_handler(event, context):
         record_event = json.loads(record["body"])
         # Get request body
         event_body = json.loads(record_event["body"])
-        model = event_body["model"]
+        # model = event_body['model']
         session_id = event_body.get("session_id",None) or  "N/A"
-        messages = event_body["messages"]
+        messages = event_body.get("messages",[])
         
         # deal with stream parameter
         stream = _is_websocket_request(record_event)
@@ -1042,8 +1080,14 @@ def lambda_handler(event, context):
 
         debug_level = int(rag_config['debug_level'])
         logger.setLevel(debug_level)
+        
+        if messages and biz_type.lower() != Type.MARKET_CONVERSATION_SUMMARY.value:
+            assert len(messages) == 1
+            question = messages[-1]['content']
+        else:
+            question = "" # MARKET_CONVERSATION_SUMMARY 
 
-        _, question = process_input_messages(messages)
+        # _, question = process_input_messages(messages)
         # role = "user"
 
         if session_id == 'N/A':
@@ -1062,8 +1106,8 @@ def lambda_handler(event, context):
         history_messages = chat_history.message_as_langchain
         rag_config['chat_history'] = history_messages
         logger.info(f'rag configs:\n {json.dumps(rag_config,indent=2,ensure_ascii=False)}')
-        
-        knowledge_qa_flag = True if model == "knowledge_qa" else False
+        # 
+        # knowledge_qa_flag = True if model == "knowledge_qa" else False
 
         main_entry_start = time.time()
         contexts = []
@@ -1089,6 +1133,10 @@ def lambda_handler(event, context):
             )
             return get_retriever_response(docs)
         elif biz_type.lower() == Type.DGR.value:
+            history = []
+            model = event_body.get('model','chat')
+            temperature = event_body.get('temperature',0.5)
+            knowledge_qa_flag = True if model == "knowledge_qa" else False
             answer, sources, contexts, debug_info = dgr_entry(
                 session_id,
                 question,
@@ -1111,7 +1159,13 @@ def lambda_handler(event, context):
                 stream=stream,
                 rag_config=rag_config
             )
-
+        elif biz_type.lower() == Type.MARKET_CONVERSATION_SUMMARY.value:
+            answer, sources, contexts, debug_info = market_conversation_summary_entry(
+                messages=messages,
+                rag_config=rag_config,
+                stream=stream
+            )
+        
         main_entry_elpase = time.time() - main_entry_start
         logger.info(f"runing time of {biz_type} entry : {main_entry_elpase}s seconds")
      
@@ -1119,7 +1173,8 @@ def lambda_handler(event, context):
             stream=stream,
             session_id=rag_config['session_id'],
             ws_connection_id=rag_config['ws_connection_id'],
-            model=model,
+            # model=model,
+            entry_type=biz_type.lower(),
             question=question,
             request_timestamp=request_timestamp,
             answer=answer,

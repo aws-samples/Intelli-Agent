@@ -23,7 +23,7 @@ import onnxruntime
 class LayoutPredictor(object):
     def __init__(self, layout_model_dir):
         self.ort_session = onnxruntime.InferenceSession(os.path.join(layout_model_dir, 'yolox_l_mix.onnx'), providers=['CUDAExecutionProvider'])
-        print(self.ort_session)
+        _ = self.ort_session.run(['output'], {'images': np.zeros((1,3,640,640), dtype='float32')})[0]
         self.categorys = ['text', 'title', 'figure', 'table']
     def __call__(self, img):
         ori_im = img.copy()
