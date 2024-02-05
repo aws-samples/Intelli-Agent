@@ -3,6 +3,7 @@ import json
 import logging
 import time
 import traceback
+from constant import EntryType
 
 logger = logging.getLogger()
 
@@ -18,11 +19,11 @@ class StreamMessageType:
 class WebsocketClientError(Exception):
     pass
 
-
 def api_response(**kwargs):
     response = {"statusCode": 200, "headers": {"Content-Type": "application/json"}}
     session_id = kwargs["session_id"]
-    model = kwargs["model"]
+    entry_type = kwargs['entry_type']
+    # model = kwargs["model"]
     request_timestamp = kwargs["request_timestamp"]
     answer = kwargs["answer"]
     sources = kwargs["sources"]
@@ -36,17 +37,18 @@ def api_response(**kwargs):
 
     if not isinstance(answer, str):
         answer = json.dumps(answer, ensure_ascii=False)
-     
-    chat_history.add_user_message(f"user_{message_id}", question)
-    chat_history.add_ai_message(f"ai_{message_id}", answer)
+    
+    if entry_type != EntryType.MARKET_CONVERSATION_SUMMARY.value:
+        chat_history.add_user_message(f"user_{message_id}", question)
+        chat_history.add_ai_message(f"ai_{message_id}", answer)
 
     # 2. return rusult
     llmbot_response = {
         "id": session_id,
         "object": "chat.completion",
         "created": int(request_timestamp),
-        "model": model,
-        "usage": {"prompt_tokens": 13, "completion_tokens": 7, "total_tokens": 20},
+        # "model": model,
+        # "usage": {"prompt_tokens": 13, "completion_tokens": 7, "total_tokens": 20},
         "choices": [
             {
                 "message": {
@@ -80,7 +82,7 @@ def api_response(**kwargs):
 
 def stream_response(**kwargs):
     session_id = kwargs["session_id"]
-    model = kwargs["model"]
+    # model = kwargs.["model"]
     request_timestamp = kwargs["request_timestamp"]
     answer = kwargs["answer"]
     sources = kwargs["sources"]
@@ -92,6 +94,7 @@ def stream_response(**kwargs):
     chat_history = kwargs["chat_history"]
     message_id = kwargs["message_id"]
     question=kwargs['question']
+    entry_type = kwargs['entry_type']
     ws_connection_id = kwargs['ws_connection_id']
 
     if isinstance(answer, str):
@@ -108,12 +111,12 @@ def stream_response(**kwargs):
                 "id": session_id,
                 "object": "chat.completion",
                 "created": int(request_timestamp),
-                "model": model,
-                "usage": {
-                    "prompt_tokens": 13,
-                    "completion_tokens": 7,
-                    "total_tokens": 20,
-                },
+                # "model": '',
+                # "usage": {
+                #     "prompt_tokens": 13,
+                #     "completion_tokens": 7,
+                #     "total_tokens": 20,
+                # },
                 "choices": [message],
             }
             ws_client.post_to_connection(
@@ -142,14 +145,15 @@ def stream_response(**kwargs):
                         "content": ans,
                         # "knowledge_sources": sources,
                     },
-                    "chunck_id": i,
+                    "chunk_id": i,
                 }
             )
             answer_str += ans
 
         # add to chat history ddb table
-        chat_history.add_user_message(f"user_{message_id}", question)
-        chat_history.add_ai_message(f"ai_{message_id}", answer_str)
+        if entry_type != EntryType.MARKET_CONVERSATION_SUMMARY.value:
+            chat_history.add_user_message(f"user_{message_id}", question)
+            chat_history.add_ai_message(f"ai_{message_id}", answer_str)
         # sed source and contexts
         context_msg = {
             "message_type": StreamMessageType.CONTEXT,
@@ -186,7 +190,6 @@ def stream_response(**kwargs):
                 "message": {"content": error},
             }
         )
-
 
 class WebSocketCallback:
     def __init__(self, **kwargs):

@@ -2,6 +2,7 @@ import json
 import os
 import time
 import logging
+import asyncio
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
@@ -21,6 +22,25 @@ class BGEReranker(BaseDocumentCompressor):
 
     """Number of documents to return."""
     top_n: int = 3
+
+    async def __ainvoke_rerank_model(self, batch, loop):
+        # await asyncio.sleep(2)
+        return await loop.run_in_executor(None,
+                                          SagemakerEndpointVectorOrCross,
+                                          json.dumps(batch),
+                                          rerank_model_endpoint,
+                                          region,
+                                          "rerank",
+                                          None)
+
+    async def __spawn_task(self, rerank_pair):
+        batch_size = 16
+        task_list = []
+        loop = asyncio.get_event_loop()
+        for batch_start in range(0, len(rerank_pair), batch_size):
+            task = asyncio.create_task(self.__ainvoke_rerank_model(rerank_pair[batch_start:batch_start + batch_size], loop))
+            task_list.append(task)
+        return await asyncio.gather(*task_list)
 
     def compress_documents(
         self,
@@ -43,27 +63,18 @@ class BGEReranker(BaseDocumentCompressor):
         if len(documents) == 0:  # to avoid empty api call
             return []
         doc_list = list(documents)
-        # _docs = [d.metadata["retrieval_content"] for d in doc_list]
-        _docs = [d.page_content for d in doc_list]
+        _docs = [d.metadata["retrieval_content"] for d in doc_list]
+        # _docs = [d.page_content for d in doc_list]
 
         rerank_pair = []
         rerank_text_length = 1024 * 10
         for doc in _docs:
             rerank_pair.append([query["query"], doc[:rerank_text_length]])
-        batch_size = 64
         score_list = []
-        for batch_start in range(0, len(rerank_pair), batch_size):
-            batch = rerank_pair[batch_start:batch_start + batch_size]
-            score_list.extend(json.loads(
-                SagemakerEndpointVectorOrCross(
-                    prompt=json.dumps(batch),
-                    endpoint_name=rerank_model_endpoint,
-                    region_name=region,
-                    model_type="rerank",
-                    stop=None,
-                )
-            )
-        )
+        logger.info(f'rerank pair num {len(rerank_pair)}, endpoint_name: {rerank_model_endpoint}')
+        response_list = asyncio.run(self.__spawn_task(rerank_pair))
+        for response in response_list:
+            score_list.extend(json.loads(response))
         final_results = []
         debug_info = query["debug_info"]
         debug_info["knowledge_qa_rerank"] = []

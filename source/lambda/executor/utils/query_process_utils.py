@@ -5,6 +5,8 @@ from langchain.schema.runnable import RunnableLambda,RunnablePassthrough
 from prompt_template import get_conversation_query_rewrite_prompt,hyde_web_search_template
 from langchain_utils import chain_logger
 from preprocess_utils import is_api_query, language_check,query_translate,get_service_name
+from langchain.memory import ConversationSummaryMemory, ChatMessageHistory
+
 
 def query_rewrite_postprocess(r):
     ret = re.findall('<questions>.*?</questions>',r,re.S)[0] 
@@ -73,18 +75,18 @@ def get_query_process_chain(
         log_output_template='query_rewrite result: {query_rewrite}.'
         )
     
-    # conversation_query_rewrite_chain = RunnablePassthrough.assign(
-    #     conversation_query_rewrite=get_conversation_query_rewrite_chain(
-    #         chat_history,
-    #         llm_model_id = conversation_query_rewrite_config['model_id'],
-    #         model_kwargs = conversation_query_rewrite_config['model_kwargs']
-    #     ))
+    conversation_query_rewrite_chain = RunnablePassthrough.assign(
+        conversation_query_rewrite=get_conversation_query_rewrite_chain(
+            chat_history,
+            llm_model_id = conversation_query_rewrite_config['model_id'],
+            model_kwargs = conversation_query_rewrite_config['model_kwargs']
+        ))
 
-    # conversation_query_rewrite_chain = chain_logger(
-    #     conversation_query_rewrite_chain,
-    #     "conversation query rewrite module",
-    #     log_output_template='conversation_query_rewrite result: {conversation_query_rewrite}.'
-    # )
+    conversation_query_rewrite_chain = chain_logger(
+        conversation_query_rewrite_chain,
+        "conversation query rewrite module",
+        log_output_template='conversation_query_rewrite result: {conversation_query_rewrite}.'
+    )
 
     preprocess_chain = RunnablePassthrough.assign(
           query_lang = RunnableLambda(lambda x:language_check(x['query'])),  
@@ -111,7 +113,7 @@ def get_query_process_chain(
 
     # 
     query_process_chain = preprocess_chain
-    # query_process_chain = conversation_query_rewrite_chain | preprocess_chain 
+    query_process_chain = conversation_query_rewrite_chain | preprocess_chain 
       
     
     query_process_chain = chain_logger(

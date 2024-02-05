@@ -17,10 +17,10 @@ def update_nest_dict(d, u):
 rag_default_config = {
     # retriver config
     # query process config
-    "retriver_config":{
+    "retriever_config":{
         "retriever_top_k": 20,
         "chunk_num": 2,
-        "using_whole_doc": True,
+        "using_whole_doc": False,
         "reranker_top_k": 10,
         "enable_reranker": True
     },
@@ -63,9 +63,9 @@ rag_default_config = {
     # generator config 
     "generator_llm_config":{
         "model_kwargs":{
-            "max_tokens_to_sample": 2000,
-            "temperature": 0.7,
-            "top_p": 0.9
+            # "max_tokens_to_sample": 2000,
+            # "temperature": 0.7,
+            # "top_p": 0.9
         },
         "model_id": "anthropic.claude-v2:1",
         "context_num": 2
