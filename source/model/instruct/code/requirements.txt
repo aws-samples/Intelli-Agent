@@ -1,4 +1,7 @@
-torch==2.0.1
-transformers==4.33.1
-accelerate==0.20.3
-transformers_stream_generator
+torch==2.1.2
+sentencepiece==0.1.99
+accelerate==0.25.0
+bitsandbytes==0.41.1
+transformers==4.37.1
+einops==0.7.0
+flash-attn==2.5.0
