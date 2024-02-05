@@ -17,7 +17,7 @@ def update_nest_dict(d, u):
 rag_default_config = {
     # retriver config
     # query process config
-    "retriver_config":{
+    "retriever_config":{
         "retriever_top_k": 20,
         "chunk_num": 2,
         "using_whole_doc": False,
