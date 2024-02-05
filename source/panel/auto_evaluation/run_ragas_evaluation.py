@@ -286,7 +286,8 @@ if __name__ == "__main__":
     # llm_output_cache_path = "techbot_question_dgr_res_2_1_120_with_gt_context_1_with_whole_doc_baichuan2_13b_4bits.max_new_2000_token.pkl.internlm2-20b-hf-4bits.trunc.2048.pkl"
     # llm_output_cache_path = "techbot_question_dgr_res_2_1_120_with_gt_context_1_with_whole_doc_baichuan2_13b_4bits.max_new_2000_token.pkl.OrionStar-Yi-34B-Chat-Llama-AWQ.pkl"
     # llm_output_cache_path = "techbot_question_dgr_res_2_1_120_with_gt_context_1_with_whole_doc_baichuan2_13b_4bits.max_new_2000_token.pkl.qianwen.72b.gptq.pkl"
-    llm_output_cache_path = "techbot_question_dgr_res_2_1_120_with_gt_context_1_with_whole_doc_baichuan2_13b_4bits.max_new_2000_token.pkl.Yi-34B-Chat-hf-4bits.pkl"
+    # llm_output_cache_path = "techbot_question_dgr_res_2_1_120_with_gt_context_1_with_whole_doc_baichuan2_13b_4bits.max_new_2000_token.pkl.Yi-34B-Chat-hf-4bits.pkl"
+    llm_output_cache_path = "techbot_question_dgr_res_2_1_120_with_gt_context_1_with_whole_doc_baichuan2_13b_4bits.max_new_2000_token.pkl.internlm2-20b-hf-4bits.g4dn.pkl"
     # llm_output_cache_path = "techbot_question_dgr_res_1_23_120_with_gt_context_2_with_whole_doc.pkl"
     ret_save_profix = f'{eval_id}-{llm_output_cache_path}-eval'
     # ragas_parameters = {

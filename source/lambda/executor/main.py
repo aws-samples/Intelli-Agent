@@ -203,24 +203,24 @@ def organize_ug_results(response, index_name):
     return results
 
 
-def organize_results(response, aos_index=None):
-    """
-    Organize results from aos response
+# def organize_results(response, aos_index=None):
+#     """
+#     Organize results from aos response
 
-    :param query_type: query type
-    :param response: aos response json
-    """
-    results = []
-    aos_hits = response["hits"]["hits"]
-    for aos_hit in aos_hits:
-        result = {}
-        result["source"] = aos_hit["_source"]["metadata"]["file_path"]
-        result["score"] = aos_hit["_score"]
-        result["detail"] = aos_hit["_source"]
-        result["content"] = aos_hit["_source"]["text"]
-        result["doc"] = aos_hit["_source"]["text"]
-        results.append(result)
-    return results
+#     :param query_type: query type
+#     :param response: aos response json
+#     """
+#     results = []
+#     aos_hits = response["hits"]["hits"]
+#     for aos_hit in aos_hits:
+#         result = {}
+#         result["source"] = aos_hit["_source"]["metadata"]["file_path"]
+#         result["score"] = aos_hit["_score"]
+#         result["detail"] = aos_hit["_source"]
+#         result["content"] = aos_hit["_source"]["text"]
+#         result["doc"] = aos_hit["_source"]["text"]
+#         results.append(result)
+#     return results
 
 
 def remove_redundancy_debug_info(results):
@@ -669,10 +669,12 @@ def get_rag_llm_chain(rag_config, stream):
         intent_type=IntentType.KNOWLEDGE_QA.value,
         model_kwargs=generator_llm_config['model_kwargs'],  # TODO
         stream=stream,
-        chat_history=rag_config['chat_history'],
+        # chat_history=rag_config['chat_history'],
         **other_llm_config
     )
-    llm_chain = contexts_trunc_stage | RunnablePassthrough.assign(answer=llm_chain)
+    llm_chain = contexts_trunc_stage |\
+          RunnablePassthrough.assign(chat_history=lambda x:rag_config['chat_history']) |\
+          RunnablePassthrough.assign(answer=llm_chain)
     return llm_chain
 
 def get_qd_chain(
@@ -715,23 +717,50 @@ def get_qd_llm_chain(
     return qd_llm_chain
 
 
-def get_qq_result(docs, threshold=0.7):
-    if len(docs) > 0 and docs[0]["score"]:
-        source = docs[0]["source"]
-        answer = docs[0]["answer"]
-        sources = [source]
-        return answer, sources
-    else:
-        return None, []
+
+def get_chat_llm_chain(
+        rag_config,
+        stream=False
+        ):
+    generator_llm_config = rag_config['generator_llm_config']
+    other_llm_config = copy.deepcopy(generator_llm_config)
+    other_llm_config.pop('model_id')
+    other_llm_config.pop('model_kwargs')
+
+    chat_llm_chain = get_llm_chain(
+        model_id=generator_llm_config['model_id'],
+        intent_type=IntentType.CHAT.value,
+        model_kwargs=generator_llm_config['model_kwargs'],  # TODO
+        stream=stream,
+        # chat_history=rag_config['chat_history'],
+        **other_llm_config
+    ) | {
+        "answer": lambda x: x,
+        "sources": lambda x: [],
+        "contexts": lambda x: [],
+        "intent_type": lambda x: IntentType.CHAT.value,
+        "context_docs": lambda x: [],
+        "context_sources": lambda x: [],
+    }
+    return chat_llm_chain
+    
+# def get_qq_result(docs, threshold=0.7):
+#     if len(docs) > 0 and docs[0]["score"]:
+#         source = docs[0]["source"]
+#         answer = docs[0]["answer"]
+#         sources = [source]
+#         return answer, sources
+#     else:
+#         return None, []
 
 
-def output_postprocess(raw_output):
-    output = {"answer": "", "sources": [], "contexts": []}
-    if raw_output is not None:
-        output["answer"] = raw_output.get("answer", "")
-        output["sources"] = raw_output.get("sources", [])
-        output["contexts"] = raw_output.get("contexts", [])
-    return output
+# def output_postprocess(raw_output):
+#     output = {"answer": "", "sources": [], "contexts": []}
+#     if raw_output is not None:
+#         output["answer"] = raw_output.get("answer", "")
+#         output["sources"] = raw_output.get("sources", [])
+#         output["contexts"] = raw_output.get("contexts", [])
+#     return output
 
 
 def market_chain_entry(
@@ -833,24 +862,26 @@ def market_chain_entry(
     qq_qd_llm_chain = qq_chain | RunnableLambda(qq_route)
 
     # TODO design chat chain
-    other_llm_config = copy.deepcopy(generator_llm_config)
-    other_llm_config.pop('model_id')
-    other_llm_config.pop('model_kwargs')
-    chat_llm_chain = get_llm_chain(
-        model_id=generator_llm_config['model_id'],
-        intent_type=IntentType.CHAT.value,
-        model_kwargs=generator_llm_config['model_kwargs'],  # TODO
-        stream=stream,
-        chat_history=rag_config['chat_history'],
-        **other_llm_config
-    ) | {
-        "answer": lambda x: x,
-        "sources": lambda x: [],
-        "contexts": lambda x: [],
-        "intent_type": lambda x: IntentType.CHAT.value,
-        "context_docs": lambda x: [],
-        "context_sources": lambda x: [],
-    }
+    # other_llm_config = copy.deepcopy(generator_llm_config)
+    # other_llm_config.pop('model_id')
+    # other_llm_config.pop('model_kwargs')
+
+    
+    # chat_llm_chain = get_llm_chain(
+    #     model_id=generator_llm_config['model_id'],
+    #     intent_type=IntentType.CHAT.value,
+    #     model_kwargs=generator_llm_config['model_kwargs'],  # TODO
+    #     stream=stream,
+    #     # chat_history=rag_config['chat_history'],
+    #     **other_llm_config
+    # ) | {
+    #     "answer": lambda x: x,
+    #     "sources": lambda x: [],
+    #     "contexts": lambda x: [],
+    #     "intent_type": lambda x: IntentType.CHAT.value,
+    #     "context_docs": lambda x: [],
+    #     "context_sources": lambda x: [],
+    # }
     
     # query process chain
     query_process_chain = get_query_process_chain(
@@ -873,14 +904,13 @@ def market_chain_entry(
         intent_recognition_chain,
         'intention module',
         log_output_template='intent chain output: {intent_type}'
-        
     )
    
     full_chain = query_process_chain | intent_recognition_chain  | RunnableBranch(
         (lambda x:x['intent_type'] == IntentType.KNOWLEDGE_QA.value, qq_qd_llm_chain),
         (lambda x:x['intent_type'] == IntentType.STRICT_QQ.value, return_strict_qq_result),
         # (lambda x:x['intent_type'] == IntentType.STRICT_QQ.value, strict_q_q_chain),
-        chat_llm_chain,  # chat
+        get_chat_llm_chain(rag_config=rag_config,stream=stream),  # chat
     )
     # full_chain = intent_recognition_chain
     # full_chain = RunnableLambda(route)
@@ -891,6 +921,7 @@ def market_chain_entry(
             "debug_info": debug_info,
             "intent_type": intent_type,
             "intent_info": intent_info,
+            "chat_history": rag_config['chat_history']
         }
     ))
 
