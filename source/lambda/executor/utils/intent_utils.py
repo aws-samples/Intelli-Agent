@@ -136,7 +136,9 @@ def get_intent_with_claude(query,intent_if_fail,debug_info):
     # return get_intent_with_claude(query)
 
 def auto_intention_recoginition_chain(
-        index_q_q, 
+        index_q_q,
+        lang="zh",
+        embedding_endpoint="",
         q_q_match_threshold=0.9,
         intent_if_fail=IntentType.KNOWLEDGE_QA.value
     ):
@@ -156,7 +158,7 @@ def auto_intention_recoginition_chain(
         return x["intent_type"]
     
     q_q_retriever = QueryQuestionRetriever(
-        index=index_q_q, vector_field="vector_field", source_field="file_path", size=5)
+        index=index_q_q, vector_field="vector_field", source_field="file_path", size=5, lang=lang, embedding_model_endpoint=embedding_endpoint)
      
     strict_q_q_chain = q_q_retriever | RunnableLambda(partial(index_results_format,threshold=0))
     
