@@ -17,10 +17,33 @@ def update_nest_dict(d, u):
 rag_default_config = {
     # retriver config
     # query process config
+    "retriever_config":{
+        "retriever_top_k": 20,
+        "chunk_num": 2,
+        "using_whole_doc": False,
+        "reranker_top_k": 10,
+        "enable_reranker": True
+    },
     "query_process_config":{
-        "query_rewrite":{
-                "model_id":"anthropic.claude-v2:1",
+        "query_rewrite_config":{
+                "model_id":"anthropic.claude-instant-v1",
                 "model_kwargs":{
+                "max_tokens_to_sample": 2000,
+                "temperature": 0.7,
+                "top_p": 0.9
+            }
+        },
+        "conversation_query_rewrite_config":{
+            "model_id":"anthropic.claude-instant-v1",
+                "model_kwargs":{
+                "max_tokens_to_sample": 2000,
+                "temperature": 0.7,
+                "top_p": 0.9
+            }
+        },
+        "hyde_config":{
+            "model_id":"anthropic.claude-instant-v1",
+            "model_kwargs":{
                 "max_tokens_to_sample": 2000,
                 "temperature": 0.7,
                 "top_p": 0.9
@@ -34,25 +57,31 @@ rag_default_config = {
         "model_kwargs":{"temperature":0,
                         "max_tokens_to_sample": 2000,
                         "stop_sequences": ["\n\n","\n\nHuman:"]
-    }
+                        },
+        "sub_intent":{}
     },
     # generator config 
     "generator_llm_config":{
         "model_kwargs":{
-            "max_tokens_to_sample": 2000,
-            "temperature": 0.7,
-            "top_p": 0.9
+            # "max_tokens_to_sample": 2000,
+            # "temperature": 0.7,
+            # "top_p": 0.9
         },
         "model_id": "anthropic.claude-v2:1",
         "context_num": 2
     },
-    "debug_level": logging.INFO
+    "debug_level": logging.INFO,
+    "session_id": None,
+    "ws_connection_id": None
 }
 
 
 def parse_rag_config(event_body):
     event_body = copy.deepcopy(event_body)
-    new_event_config = update_nest_dict(rag_default_config,event_body)
+    new_event_config = update_nest_dict(
+        copy.deepcopy(rag_default_config),
+        event_body
+        )
 
     # adapting before setting
     temperature = event_body.get("temperature")
