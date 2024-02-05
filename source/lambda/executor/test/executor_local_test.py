@@ -263,6 +263,7 @@ def knowledge_qa_test():
 
 def test_baichuan_model():
     session_id=f'test_{time.time()}'
+    endpoint_name = 'baichuan2-13b-chat-4bits-2024-02-01-03-58-29-048'
     generate_answer(
         "《夜曲》是谁演唱的？", 
         session_id=session_id,
@@ -277,7 +278,7 @@ def test_baichuan_model():
                         "top_p": 0.9
                     },
                     "model_id": "Baichuan2-13B-Chat-4bits",
-                    "endpoint_name": "baichuan2-13b-chat-4bits-2024-01-28-15-46-43-013",
+                    "endpoint_name": endpoint_name,
                     "context_num": 2
         })
     )
@@ -295,7 +296,7 @@ def test_baichuan_model():
                         "top_p": 0.9
                     },
                     "model_id": "Baichuan2-13B-Chat-4bits",
-                    "endpoint_name": "baichuan2-13b-chat-4bits-2024-01-28-15-46-43-013",
+                    "endpoint_name": endpoint_name,
                     "context_num": 2
         })
     )
@@ -313,7 +314,7 @@ def test_baichuan_model():
                         "top_p": 0.9
                     },
                     "model_id": "Baichuan2-13B-Chat-4bits",
-                    "endpoint_name": "baichuan2-13b-chat-4bits-2024-01-28-15-46-43-013",
+                    "endpoint_name": endpoint_name,
                     "context_num": 2
         })
     )
@@ -332,11 +333,89 @@ def test_baichuan_model():
                         "top_p": 0.9
                     },
                     "model_id": "Baichuan2-13B-Chat-4bits",
-                    "endpoint_name": "baichuan2-13b-chat-4bits-2024-01-28-15-46-43-013",
+                    "endpoint_name": endpoint_name,
                     "context_num": 1
         })
     )
-    
+
+def test_internlm_model():
+    session_id=f'test_{time.time()}'
+    endpoint_name = 'internlm2-chat-7b-2024-02-04-11-35-08-733'
+    model_id = "internlm2-chat-7b"
+    generate_answer(
+        "《夜曲》是谁演唱的？", 
+        session_id=session_id,
+        model="chat", 
+        type="market_chain", 
+        stream=True,
+        rag_parameters=dict(
+            generator_llm_config={
+                    "model_kwargs":{
+                        "max_new_tokens": 2000,
+                        "temperature": 0.1,
+                        "top_p": 0.9
+                    },
+                    "model_id": model_id,
+                    "endpoint_name": endpoint_name,
+                    "context_num": 2
+        })
+    )
+    generate_answer(
+        "他还有哪些其他歌曲？", 
+        session_id=session_id,
+        model="chat", 
+        type="market_chain", 
+        stream=True,
+        rag_parameters=dict(
+            generator_llm_config={
+                    "model_kwargs":{
+                        "max_new_tokens": 2000,
+                        "temperature": 0.1,
+                        "top_p": 0.9
+                    },
+                    "model_id": model_id,
+                    "endpoint_name": endpoint_name,
+                    "context_num": 2
+        })
+    )
+
+    r = generate_answer(
+        "解释一下“温故而知新”", 
+        model="chat", 
+        type="market_chain", 
+        stream=False,
+        rag_parameters=dict(
+            generator_llm_config={
+                    "model_kwargs":{
+                        "max_new_tokens": 2000,
+                        "temperature": 0.1,
+                        "top_p": 0.9
+                    },
+                    "model_id": model_id,
+                    "endpoint_name": endpoint_name,
+                    "context_num": 2
+        })
+    )
+    print(r[0])
+
+    generate_answer(
+        "Amazon EC2 提供了哪些功能来支持不同区域之间的数据恢复?", 
+        model="knowledge_qa", 
+        type="market_chain", 
+        stream=True,
+        rag_parameters=dict(
+            generator_llm_config={
+                    "model_kwargs":{
+                        "max_new_tokens": 2000,
+                        "temperature": 0.1,
+                        "top_p": 0.9
+                    },
+                    "model_id": model_id,
+                    "endpoint_name": endpoint_name,
+                    "context_num": 1
+        })
+    )
+
 def market_summary_test():
     session_id = f'test_{int(time.time())}'
     generate_answer(
@@ -453,7 +532,7 @@ if __name__ == "__main__":
     # market_summary_test()
     # code_chat_test()
     # market_summary_test2()
-    market_deploy_test()
+    # market_deploy_test()
 
     # generate_answer(
     #     "Amazon EC2 提供了哪些功能来支持不同区域之间的数据恢复?", 
@@ -469,6 +548,9 @@ if __name__ == "__main__":
     #     stream=True,
     #     type="market_chain", 
     # )
+    # market_deploy_test()
+    # test_baichuan_model()
+    test_internlm_model()
     # test_baichuan_model()
     
     # market_deploy_test()
