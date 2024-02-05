@@ -4,6 +4,7 @@ import logging
 import json
 import copy
 import traceback 
+import asyncio
 from typing import TYPE_CHECKING, Any, Dict, List, Optional 
 
 from langchain.schema.retriever import BaseRetriever
@@ -11,6 +12,7 @@ from langchain.retrievers import BM25Retriever, EnsembleRetriever
 from langchain.callbacks.manager import CallbackManagerForRetrieverRun
 from langchain.docstore.document import Document
 
+from time_utils import timeit
 from aos_utils import LLMBotOpenSearchClient
 from preprocess_utils import run_preprocess
 from sm_utils import SagemakerEndpointVectorOrCross
@@ -51,7 +53,7 @@ def remove_redundancy_debug_info(results):
                 del result["detail"][field]
     return filtered_results
 
-def parse_query(
+def parse_qq_query(
     query_input: str,
     history: list,
     zh_embedding_model_endpoint: str,
@@ -117,6 +119,53 @@ def parse_query(
     logger.info(f"runing time of parse query: {elpase_time}s seconds")
     return parsed_query
 
+@timeit
+def get_similarity_embedding(
+    query: str,
+    embedding_model_endpoint: str,
+):
+    query_similarity_embedding_prompt = query
+    query_embedding = SagemakerEndpointVectorOrCross(
+        prompt=query_similarity_embedding_prompt,
+        endpoint_name=embedding_model_endpoint,
+        region_name=region,
+        model_type="vector",
+        stop=None,
+    )
+    return query_embedding
+
+@timeit
+def get_relevance_embedding(
+    query: str,
+    query_lang: str,
+    embedding_model_endpoint: str,
+):
+    if query_lang == "zh":
+        query_relevance_embedding_prompt = (
+            "为这个句子生成表示以用于检索相关文章：" + query
+        )
+    elif query_lang == "en":
+        query_relevance_embedding_prompt = (
+            "Represent this sentence for searching relevant passages: "
+            + query
+        )
+    query_embedding = SagemakerEndpointVectorOrCross(
+        prompt=query_relevance_embedding_prompt,
+        endpoint_name=embedding_model_endpoint,
+        region_name=region,
+        model_type="vector",
+        stop=None,
+    )
+    return query_embedding
+
+def get_filter_list(parsed_query: dict):
+    filter_list = []
+    if parsed_query["is_api_query"]:
+        filter_list.append({"term": {"metadata.is_api": True}})
+    return filter_list
+
+
+
 def get_faq_answer(source, index_name, source_field):
     opensearch_query_response = aos_client.search(
         index_name=index_name,
@@ -158,14 +207,15 @@ def get_doc(file_path, index_name):
         if "chunk_id" not in r["_source"]["metadata"] or not r["_source"]["metadata"]["chunk_id"].startswith("$"):
             continue
         chunk_id = r["_source"]["metadata"]["chunk_id"]
+        content_type = r["_source"]["metadata"]["content_type"]
         chunk_group_id = int(chunk_id.split("-")[0].strip("$"))
         chunk_section_id = int(chunk_id.split("-")[-1])
-        if chunk_id in chunk_id_set:
+        if (chunk_id, content_type) in chunk_id_set:
             continue
-        chunk_id_set.add(chunk_id)
-        chunk_list.append((chunk_id, chunk_group_id, chunk_section_id, r["_source"]["text"]))
-    sorted_chunk_list = sorted(chunk_list, key=lambda x: (x[1], x[2]))
-    chunk_text_list = [x[3] for x in sorted_chunk_list]
+        chunk_id_set.add((chunk_id, content_type))
+        chunk_list.append((chunk_id, chunk_group_id, content_type, chunk_section_id, r["_source"]["text"]))
+    sorted_chunk_list = sorted(chunk_list, key=lambda x: (x[1], x[2], x[3]))
+    chunk_text_list = [x[4] for x in sorted_chunk_list]
     return "\n".join(chunk_text_list)
 
 def get_context(previous_chunk_id, next_chunk_id, index_name, window_size):
@@ -178,7 +228,7 @@ def get_context(previous_chunk_id, next_chunk_id, index_name, window_size):
             query_type="basic",
             query_term=previous_chunk_id,
             field="metadata.chunk_id",
-            size=10,
+            size=1,
         )
         if len(opensearch_query_response["hits"]["hits"]) > 0:
             r = opensearch_query_response["hits"]["hits"][0]
@@ -194,7 +244,7 @@ def get_context(previous_chunk_id, next_chunk_id, index_name, window_size):
             query_type="basic",
             query_term=next_chunk_id,
             field="metadata.chunk_id",
-            size=10,
+            size=1,
         )
         if len(opensearch_query_response["hits"]["hits"]) > 0:
             r = opensearch_query_response["hits"]["hits"][0]
@@ -277,92 +327,41 @@ def organize_faq_results(response, index_name, source_field="file_path", text_fi
         results.append(result)
     return results
 
-def organize_results(response, aos_index=None, source_field="file_path", text_field="text", using_whole_doc=True, context_size=0):
-    """
-    Organize results from aos response
-
-    :param query_type: query type
-    :param response: aos response json
-    """
-    results = []
-
-    if not response:
-        return results
-    
-    aos_hits = response["hits"]["hits"]
-    for aos_hit in aos_hits:
-        result = {}
-        result["source"] = aos_hit['_source']['metadata'][source_field]
-        result["score"] = aos_hit["_score"]
-        result["detail"] = aos_hit['_source']
-        # result["content"] = aos_hit['_source'][text_field]
-        result["content"] = aos_hit['_source'][text_field]
-        result["doc"] = result["content"]
-        if using_whole_doc:
-            doc = get_doc(result["source"], aos_index)
-            if doc:
-                result["doc"] = doc
-        elif context_size and ("heading_hierarchy" in aos_hit['_source']["metadata"] and 
-                               "previous" in aos_hit['_source']["metadata"]["heading_hierarchy"] and
-                               "next" in aos_hit['_source']["metadata"]["heading_hierarchy"]):
-            context = get_context(aos_hit['_source']["metadata"]["heading_hierarchy"]["previous"],
-                                  aos_hit['_source']["metadata"]["heading_hierarchy"]["next"],
-                                  aos_index,
-                                  context_size)
-            if context:
-                result["doc"] = "\n".join(context[0] + [result["doc"]] + context[1])
-        results.append(result)
-    return results
-
 class QueryQuestionRetriever(BaseRetriever):
     index: Any
     vector_field: Any
     source_field: Any
     size: Any
-    def __init__(self, index: str, vector_field: str, source_field: str, size: float):
+    lang: Any
+    embedding_model_endpoint: Any
+
+    def __init__(self, index: str, vector_field: str, source_field: str,
+                 size: float, lang: str, embedding_model_endpoint: str):
         super().__init__()
         self.index = index
         self.vector_field = vector_field
         self.source_field = source_field
         self.size = size
+        self.lang = lang
+        self.embedding_model_endpoint = embedding_model_endpoint
 
+    @timeit
     def _get_relevant_documents(self, question: Dict, *, run_manager: CallbackManagerForRetrieverRun) -> List[Document]:
         query = question["query"] 
         debug_info = question["debug_info"]
         start = time.time()
         opensearch_knn_results = []
-
-        parsed_query = parse_query(
-            query,
-            [],
-            zh_embedding_model_endpoint,
-            en_embedding_model_endpoint,
-            debug_info,
-        )
+        query_embedding = get_similarity_embedding(query, self.embedding_model_endpoint)
         opensearch_knn_response = aos_client.search(
             index_name=self.index,
             query_type="knn",
-            # query_term=parsed_query["zh_query_relevance_embedding"],
-            query_term=parsed_query["zh_query_similarity_embedding"],
+            query_term=query_embedding,
             field=self.vector_field,
             size=self.size,
         )
         opensearch_knn_results.extend(
             organize_faq_results(opensearch_knn_response, self.index, self.source_field)
         )
-        opensearch_knn_response = aos_client.search(
-            index_name=self.index,
-            query_type="knn",
-            query_term=parsed_query["en_query_similarity_embedding"],
-            field=self.vector_field,
-            size=self.size,
-        )
-        opensearch_knn_results.extend(
-            organize_faq_results(opensearch_knn_response, self.index, self.source_field)
-        )
-        # logger.info(json.dumps(opensearch_knn_response, ensure_ascii=False))
-        elpase_time = time.time() - start
-        logger.info(f"runing time of opensearch_knn : {elpase_time}s seconds")
         debug_info[f"q_q_match_info_{self.index}"] = remove_redundancy_debug_info(opensearch_knn_results)
         docs = []
         for result in opensearch_knn_results:
@@ -379,7 +378,11 @@ class QueryDocumentRetriever(BaseRetriever):
     using_whole_doc: Any
     context_num: Any
     top_k: Any
-    def __init__(self, index, vector_field, text_field,  source_field, using_whole_doc, context_num, top_k):
+    lang: Any
+    embedding_model_endpoint: Any
+
+    def __init__(self, index, vector_field, text_field,  source_field, using_whole_doc,
+                 context_num, top_k, lang, embedding_model_endpoint):
         super().__init__()
         self.index = index
         self.vector_field = vector_field
@@ -388,45 +391,94 @@ class QueryDocumentRetriever(BaseRetriever):
         self.using_whole_doc = using_whole_doc
         self.context_num = context_num
         self.top_k = top_k
-    
+        self.lang = lang
+        self.embedding_model_endpoint = embedding_model_endpoint
 
+    async def __ainvoke_get_context(self, previous_chunk_id, next_chunk_id, window_size, loop):
+        return await loop.run_in_executor(None,
+                                          get_context,
+                                          previous_chunk_id,
+                                          next_chunk_id,
+                                          self.index,
+                                          window_size)
+
+    async def __spawn_task(self, aos_hits, context_size):
+        loop = asyncio.get_event_loop()
+        task_list = []
+        for aos_hit in aos_hits:
+            if context_size and ("heading_hierarchy" in aos_hit['_source']["metadata"] and 
+                                    "previous" in aos_hit['_source']["metadata"]["heading_hierarchy"] and
+                                    "next" in aos_hit['_source']["metadata"]["heading_hierarchy"]):
+                    task = asyncio.create_task(
+                        self.__ainvoke_get_context(
+                            aos_hit['_source']["metadata"]["heading_hierarchy"]["previous"],
+                            aos_hit['_source']["metadata"]["heading_hierarchy"]["next"],
+                            context_size,
+                            loop))
+                    task_list.append(task)
+        return await asyncio.gather(*task_list)
+
+    @timeit
+    def organize_results(self, response, aos_index=None, source_field="file_path", text_field="text", using_whole_doc=True, context_size=0):
+        """
+        Organize results from aos response
+
+        :param query_type: query type
+        :param response: aos response json
+        """
+        results = []
+        if not response:
+            return results
+        aos_hits = response["hits"]["hits"]
+        for aos_hit in aos_hits:
+            result = {}
+            result["source"] = aos_hit['_source']['metadata'][source_field]
+            result["score"] = aos_hit["_score"]
+            result["detail"] = aos_hit['_source']
+            # result["content"] = aos_hit['_source'][text_field]
+            result["content"] = aos_hit['_source'][text_field]
+            result["doc"] = result["content"]
+            results.append(result)
+        if using_whole_doc:
+            for result in results:
+                doc = get_doc(result["source"], aos_index)
+                if doc:
+                    result["doc"] = doc
+        else:
+            if context_size and ("heading_hierarchy" in aos_hit['_source']["metadata"] and 
+                            "previous" in aos_hit['_source']["metadata"]["heading_hierarchy"] and
+                            "next" in aos_hit['_source']["metadata"]["heading_hierarchy"]):
+                response_list = asyncio.run(self.__spawn_task(aos_hits, context_size))
+                for context, result in zip(response_list, results):
+                    result["doc"] = "\n".join(context[0] + [result["doc"]] + context[1])
+                # context = get_context(aos_hit['_source']["metadata"]["heading_hierarchy"]["previous"],
+                #                     aos_hit['_source']["metadata"]["heading_hierarchy"]["next"],
+                #                     aos_index,
+                #                     context_size)
+                # if context:
+                #     result["doc"] = "\n".join(context[0] + [result["doc"]] + context[1])
+        return results
+
+    @timeit
     def _get_relevant_documents(self, question: Dict, *, run_manager: CallbackManagerForRetrieverRun) -> List[Document]:
         query = question["query"] 
         debug_info = question["debug_info"]
-        parsed_query = parse_query(
-            query,
-            [],
-            zh_embedding_model_endpoint,
-            en_embedding_model_endpoint,
-            debug_info,
-        )
-        # 1. get AOS knn recall
-        start = time.time()
         opensearch_knn_results = []
+        query_embedding = get_relevance_embedding(query, self.lang, self.embedding_model_endpoint)
+        filter = get_filter_list(question)
         opensearch_knn_response = aos_client.search(
             index_name=self.index,
             query_type="knn",
-            query_term=parsed_query["zh_query_relevance_embedding"],
+            query_term=query_embedding,
             field=self.vector_field,
             size=self.top_k,
-            filter=parsed_query["filter"]
+            filter=filter
         )
         opensearch_knn_results.extend(
-            organize_results(opensearch_knn_response, self.index, self.source_field, self.text_field, self.using_whole_doc, self.context_num)[:self.top_k]
-        )
-        opensearch_knn_response = aos_client.search(
-            index_name=self.index,
-            query_type="knn",
-            query_term=parsed_query["en_query_relevance_embedding"],
-            field=self.vector_field,
-            size=self.top_k,
-            filter=parsed_query["filter"]
-        )
-        opensearch_knn_results.extend(
-            organize_results(opensearch_knn_response, self.index, self.source_field, self.text_field, self.using_whole_doc, self.context_num)[:self.top_k]
+            self.organize_results(opensearch_knn_response, self.index, self.source_field, self.text_field, self.using_whole_doc, self.context_num)[:self.top_k]
         )
 
-        # 2. get AOS invertedIndex recall
+       # 2. get AOS invertedIndex recall
         opensearch_query_results = []
 
         # 3. combine these two opensearch_knn_response and opensearch_query_response
@@ -438,17 +490,13 @@ class QueryDocumentRetriever(BaseRetriever):
         for result in final_results:
             if result["doc"] in content_set:
                 continue
-            content_set.add(result["doc"])
+            content_set.add(result["content"])
             doc_list.append(Document(page_content=result["doc"],
                                      metadata={"source": result["source"],
                                                "retrieval_content": result["content"],
                                                "retrieval_score": result["score"],
                                                 # set common score for llm.
                                                "score": result["score"]}))
-
-        recall_end_time = time.time()
-        elpase_time = recall_end_time - start
-        logger.info(f"get_relevant_documents runing time of recall : {elpase_time}s seconds")
         return doc_list
 
 class GoogleRetriever(BaseRetriever):
