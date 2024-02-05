@@ -73,3 +73,4 @@ package-lock.json
 .env_sd
 venv
 pem
+*/ingestion.py
