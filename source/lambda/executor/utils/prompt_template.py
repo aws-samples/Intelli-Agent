@@ -8,9 +8,6 @@ from langchain.schema.runnable import (
     RunnablePassthrough,
 )
 
-def convert_text_from_fstring_format(text):
-    return text.replace('{','{{').replace('}','}}')
-
 
 CLAUDE21_RAG_PROMPT_TEMPLTE = """You are a customer service agent, and answering user's query. You ALWAYS follow these guidelines when writing your response:
 <guidelines>
@@ -87,6 +84,25 @@ Now classify the original query. Respond with just one letter corresponding to t
 
 Assistant:"""
 
+# """You are a customer service agent that is classifying user's query wrapped by <query></query>. The all categories and their few-shot examples are shown below.
+
+# All categories are:
+# <categories>
+# {all_labels}
+# </categories>
+
+# All few-shot examples are:
+# <examples>
+# {few_shot_examples}
+# </examples>
+# \n\nHuman: 
+# User's query:
+# <query>
+# {query}
+# </query>
+# \n\nAssistant:My answer is <category>
+# """
+
 INTENT_RECOGINITION_EXAMPLE_TEMPLATE = """<query>{query}</query>\n{label}"""
 
 
@@ -94,77 +110,79 @@ CHAT_PROMPT_TEMPLATE_CLAUDE = """\n\nHuman:{query}
 \n\nAssistant:
 """
 
-# def claude2_rag_template_render(
-#         query:str,contexts:list,
-#         rag_context_template=CLAUDE2_RAG_CONTEXT_TEMPLATE,
-#         rag_template = CLAUDE2_RAG_PROMPT_TEMPLTE
-#         ):
-#     """use claude2 offical rag prompte template
 
-#     Args:
-#         query (str): _description_
-#         contexts (list): _description_
-#     """
+def claude2_rag_template_render(
+        query:str,contexts:list,
+        rag_context_template=CLAUDE2_RAG_CONTEXT_TEMPLATE,
+        rag_template = CLAUDE2_RAG_PROMPT_TEMPLTE
+        ):
+    """use claude2 offical rag prompte template
 
-#     assert isinstance(contexts,list), contexts
-#     context_xmls = []
-#     for i,context in enumerate(contexts):
-#         context_xml = rag_context_template.format(
-#             index = i+1,
-#             content = context
-#         )
-#         context_xmls.append(context_xml)
+    Args:
+        query (str): _description_
+        contexts (list): _description_
+    """
+
+    assert isinstance(contexts,list), contexts
+    context_xmls = []
+    for i,context in enumerate(contexts):
+        context_xml = rag_context_template.format(
+            index = i+1,
+            content = context
+        )
+        context_xmls.append(context_xml)
     
-#     context = "\n".join(context_xmls)
-#     prompt = rag_template.format(query=query,context=context)
-#     return prompt
-
-
-# def claude21_rag_template_render(
-#         query:str,
-#         contexts:list,
-#         rag_context_template=CLAUDE21_RAG_CONTEXT_TEMPLATE,
-#         rag_template = CLAUDE21_RAG_PROMPT_TEMPLTE
-#         ):
-#     """use claude2 offical rag prompte template
-
-#     Args:
-#         query (str): _description_
-#         contexts (list): _description_
-#     """
-#     return claude2_rag_template_render(
-#         query,
-#         contexts,
-#         rag_context_template=rag_context_template,
-#         rag_template=rag_template
-#         )
-
-
-# def claude2_rag_api_postprocess(answer):
-#     rets = re.findall('<result>(.*?)</result>','<result>'+ answer,re.S)
-#     rets = [ret.strip() for ret in rets]
-#     rets = [ret for ret in rets if ret]
-#     if not rets:
-#         return answer  
-#     return rets[0]
-
-
-# def claude_chat_template_render(query:str):
-#     return CHAT_PROMPT_TEMPLATE_CLAUDE.format(query=query)
-
-# claude21_rag_api_postprocess = claude2_rag_api_postprocess
-
-# def claude2_rag_stream_postprocess(answer):
-#     assert not isinstance(answer,str), answer
-#     for answer_chunk in answer:
-#         yield answer_chunk.rstrip('</result>')
-
-
-# claude21_rag_stream_postprocess = claude2_rag_stream_postprocess
+    context = "\n".join(context_xmls)
+    prompt = rag_template.format(query=query,context=context)
+    return prompt
 
 
 
-############ rag prompt template chain ###############
+def claude21_rag_template_render(
+        query:str,
+        contexts:list,
+        rag_context_template=CLAUDE21_RAG_CONTEXT_TEMPLATE,
+        rag_template = CLAUDE21_RAG_PROMPT_TEMPLTE
+        ):
+    """use claude2 offical rag prompte template
+
+    Args:
+        query (str): _description_
+        contexts (list): _description_
+    """
+    return claude2_rag_template_render(
+        query,
+        contexts,
+        rag_context_template=rag_context_template,
+        rag_template=rag_template
+        )
+
+
+def claude2_rag_api_postprocess(answer):
+    rets = re.findall('<result>(.*?)</result>','<result>'+ answer,re.S)
+    rets = [ret.strip() for ret in rets]
+    rets = [ret for ret in rets if ret]
+    if not rets:
+        return answer  
+    return rets[0]
+
+
+def claude_chat_template_render(query:str):
+    return CHAT_PROMPT_TEMPLATE_CLAUDE.format(query=query)
+
+claude21_rag_api_postprocess = claude2_rag_api_postprocess
+
+def claude2_rag_stream_postprocess(answer):
+    assert not isinstance(answer,str), answer
+    for answer_chunk in answer:
+        yield answer_chunk.rstrip('</result>')
+
+
+claude21_rag_stream_postprocess = claude2_rag_stream_postprocess
+
+
+
+# rag prompt template chain
 
 def get_claude_rag_context(contexts:list):
     assert isinstance(contexts,list), contexts
@@ -192,32 +210,26 @@ Here are some documents for you to reference for your query:
 </docs>"""
 
 def get_claude_chat_rag_prompt(chat_history:list):
-    chat_history = [(ch[0],convert_text_from_fstring_format(ch[1])) for ch in chat_history]
     chat_messages = [("system",bedrock_rag_chat_system_prompt)]
     chat_messages = chat_messages + chat_history 
     chat_messages += [("user","{query}")]
-    context_chain = RunnablePassthrough.assign(
-        context=RunnableLambda(
-            lambda x:convert_text_from_fstring_format(
-                get_claude_rag_context(x['contexts'])
-                )
-            )
-        )
+    context_chain = RunnablePassthrough.assign(context=RunnableLambda(lambda x:get_claude_rag_context(x['contexts'])))
 
     return context_chain | ChatPromptTemplate.from_messages(chat_messages)
 
 
-############### chit-chat template #####################
+# chit-chat template
 def get_chit_chat_system_prompt():
     system_prompt = """You are a helpful AI Assistant"""
     return system_prompt
 
+
 def get_chit_chat_prompt(chat_history:list):
-    chat_history = [(ch[0],convert_text_from_fstring_format(ch[1])) for ch in chat_history]
     chat_messages = [("system",get_chit_chat_system_prompt())]
-    chat_messages += chat_history 
-    chat_messages += [('user',"{query}")]
+    chat_messages = chat_messages + chat_history 
     return ChatPromptTemplate.from_messages(chat_messages)
+
+
 
 cqr_system_prompt = """Given a question and its context, decontextualize the question by addressing coreference and omission issues. The resulting question should retain its original meaning and be as informative as possible, and should not duplicate any previously asked questions in the context.
 Context: [Q: When was Born to Fly released?
@@ -233,16 +245,10 @@ A: Keith Carradine married Sandra Will on February 6, 1982. ]
 Question: Do they have any children?
 Rewrite: Do Keith Carradine and Sandra Will have any children?"""
 def get_conversation_query_rewrite_prompt(chat_history:list):
-    conversational_contexts = []
-    for his in chat_history:
-        assert his[0] in ['user','ai']
-        if his[0] == 'user':
-            conversational_contexts.append(f"Q: {his[1]}")
-        else:
-            conversational_contexts.append(f"A: {his[1]}")
+
+    # for message in chat_history:
+    #     if message['type']
     
-    conversational_context = "\n".join(conversational_contexts)
-    conversational_context = convert_text_from_fstring_format(f'[{conversational_context}]')
     cqr_template = ChatPromptTemplate.from_messages(
             [
                 (
@@ -250,17 +256,7 @@ def get_conversation_query_rewrite_prompt(chat_history:list):
                     cqr_system_prompt,
                 ),
                 # New question
-                ("user", f"\nContext: {conversational_context}\nQuestion: {{query}}\nRewrite: ")
+                ("user", "\nContext: {conversational_context}\nQuestion: {query}\nRewrite: ")
             ]
             )
-    return cqr_template
-
-
-####### hyde prompt ###############
-
-web_search_template = """Please write a passage to answer the question 
-Question: {query}
-Passage:"""
-hyde_web_search_template = PromptTemplate(template=web_search_template, input_variables=["query"])
-
     

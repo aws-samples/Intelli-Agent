@@ -1,5 +1,5 @@
 function usage {
-  echo "Make sure python3 installed properly. Usage: $0 -t TOKEN [-m MODEL_NAME] [-c COMMIT_HASH] [-s S3_BUCKET_NAME]"
+  echo "Make sure Python installed properly. Usage: $0 -t TOKEN [-m MODEL_NAME] [-c COMMIT_HASH] [-s S3_BUCKET_NAME]"
   echo "  -t TOKEN                             Hugging Face token "
   echo "  -h Hugging Face Repo Name            Hugging Face repo "
   echo "  -m MODEL_NAME                        Model name (default: csdc-atl/buffer-cross-001)"
@@ -29,8 +29,8 @@ while getopts ":t:h:m:c:p:s:" opt; do
 done
 
 
-# # Validate the hf_token and python3 interpreter exist
-# if [ -z "$hf_token" ] || ! command -v python3 &> /dev/null; then
+# # Validate the hf_token and python interpreter exist
+# if [ -z "$hf_token" ] || ! command -v python &> /dev/null; then
 #   usage
 # fi
 
@@ -45,8 +45,8 @@ local_model_path="./${model_name}"
 # mkdir -p $local_model_path
 
 # Download model snapshot in current folder without model prefix added
-# python3 -c "from huggingface_hub import snapshot_download; from pathlib import Path; snapshot_download(repo_id='$model_name', revision='$commit_hash', cache_dir=Path('.'), token='$hf_token')"
-python3 -c "from huggingface_hub import snapshot_download; from pathlib import Path; snapshot_download(repo_id='$hf_name', revision='$commit_hash', cache_dir='$local_model_path')"
+# python -c "from huggingface_hub import snapshot_download; from pathlib import Path; snapshot_download(repo_id='$model_name', revision='$commit_hash', cache_dir=Path('.'), token='$hf_token')"
+python -c "from huggingface_hub import snapshot_download; from pathlib import Path; snapshot_download(repo_id='$hf_name', revision='$commit_hash', cache_dir='$local_model_path')"
 
 # Find model snapshot path with the first search result
 model_snapshot_path=$(find $local_model_path -path '*/snapshots/*' -type d -print -quit)

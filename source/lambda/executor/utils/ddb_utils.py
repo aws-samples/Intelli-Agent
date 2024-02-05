@@ -6,7 +6,6 @@ from typing import List
 from decimal import Decimal
 from datetime import datetime
 from botocore.exceptions import ClientError
-from logger_utils import logger
 
 from langchain.schema import BaseChatMessageHistory
 from langchain.schema.messages import (
@@ -51,26 +50,11 @@ class DynamoDBChatMessageHistory(BaseChatMessageHistory):
 
         return items
 
-    @property
-    def message_as_langchain(self):
-        response = self.table.get_item(
-             Key={"SessionId": self.session_id, "UserId": self.user_id}
-             )
-        item = response.get('Item',[])
-        if not item:
-            return []
-        history = response["Item"]["History"]
-        ret = []
-        for his in history:
-            assert his['type'] in ['user','ai']
-            ret.append((his['type'],his['data']['content']))
-        return ret 
-
     def add_message(self, message) -> None:
         """Append the message to the record in DynamoDB"""
         messages = self.messages
         messages.append(message)
-     
+
         try:
             response = self.table.put_item(
                 Item={

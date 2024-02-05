@@ -60,15 +60,6 @@ export class LLMStack extends NestedStack {
         //     policy: cr.AwsCustomResourcePolicy.fromSdkCalls({resources: cr.AwsCustomResourcePolicy.ANY_RESOURCE}),
         // });
 
-
-        const llmImageUrlDomain = (this.region === 'cn-north-1' || this.region === 'cn-northwest-1') 
-            ? '.amazonaws.com.cn/' 
-            : '.amazonaws.com/';
-        
-        const llmImageUrlAccount = (this.region === 'cn-north-1' || this.region === 'cn-northwest-1') 
-            ? '727897471807.dkr.ecr.' 
-            : '763104351884.dkr.ecr.';
-
         // Create IAM execution role
         const executionRole = new iam.Role(this, 'rerank-execution-role', {
             assumedBy: new iam.ServicePrincipal('sagemaker.amazonaws.com'),
@@ -85,7 +76,7 @@ export class LLMStack extends NestedStack {
         const rerankVersionId = props._rerankModelVersion
         const rerankEndpointName = "rerank-"+rerankModelPrefix+"-"+rerankVersionId.slice(0,5)
         // Create model, BucketDeployment construct automatically handles dependencies to ensure model assets uploaded before creating the model in this.region
-        const rerankImageUrl = llmImageUrlAccount + this.region + llmImageUrlDomain + 'djl-inference:0.21.0-deepspeed0.8.3-cu117'
+        const rerankImageUrl = '763104351884.dkr.ecr.'+ this.region +'.amazonaws.com/djl-inference:0.21.0-deepspeed0.8.3-cu117'
         const rerankModel = new sagemaker.CfnModel(this, 'rerank-model', {
             executionRoleArn: executionRole.roleArn,
             primaryContainer: {
@@ -136,7 +127,7 @@ export class LLMStack extends NestedStack {
             const stackEndpointName = "embedding-endpoint-name-"+versionId.slice(0,5)
             // EMBEDDING MODEL
             // Create model, BucketDeployment construct automatically handles dependencies to ensure model assets uploaded before creating the model in this.region
-            const embeddingImageUrl = llmImageUrlAccount + this.region + llmImageUrlDomain + 'djl-inference:0.21.0-deepspeed0.8.3-cu117'
+            const embeddingImageUrl = '763104351884.dkr.ecr.'+ this.region +'.amazonaws.com/djl-inference:0.21.0-deepspeed0.8.3-cu117'
             const embeddingModel = new sagemaker.CfnModel(this, stackModelName, {
                 executionRoleArn: executionRole.roleArn,
                 primaryContainer: {

@@ -1,25 +1,12 @@
 import json
 import re
 import io
-from typing import Any, Dict, Generic, Iterator, List, Mapping, Optional, TypeVar, Union
 from langchain.llms.sagemaker_endpoint import LLMContentHandler, SagemakerEndpoint
 from langchain.embeddings import SagemakerEndpointEmbeddings
 from langchain.embeddings.sagemaker_endpoint import EmbeddingsContentHandler
 from langchain.callbacks.manager import CallbackManagerForLLMRun
 from langchain.llms.utils import enforce_stop_tokens
-from typing import Dict, List, Optional, Any,Iterator
-from langchain_core.outputs import GenerationChunk
-import boto3
-from langchain_core.pydantic_v1 import Extra, root_validator
-from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_core.messages import (
-    AIMessage,
-    AnyMessage,
-    BaseMessage,
-    BaseMessageChunk,
-    HumanMessage,
-    message_chunk_to_message,
-)
+from typing import Dict, List, Optional, Any
 
 import logging
 logger = logging.getLogger()
@@ -137,225 +124,62 @@ class LineIterator:
             self.buffer.seek(0, io.SEEK_END)
             self.buffer.write(chunk['PayloadPart']['Bytes'])
 
-            
-class SagemakerEndpointWithStreaming(SagemakerEndpoint):
-    chat_history: List[Dict] = None
-
-    def _stream(
-            self,
-            prompt: str,
-            stop: Optional[List[str]] = None,
-            run_manager: Optional[CallbackManagerForLLMRun] = None,
-            **kwargs: Any,
-    ) -> Iterator[GenerationChunk]:
-        _model_kwargs = self.model_kwargs or {}
-        _model_kwargs = {**_model_kwargs, **kwargs}
-        _endpoint_kwargs = self.endpoint_kwargs or {}
-
-        body = self.content_handler.transform_input(prompt, self.chat_history, _model_kwargs)
-        # content_type = self.content_handler.content_type
-        # accepts = self.content_handler.accepts
-        resp = self.client.invoke_endpoint_with_response_stream(
-                    EndpointName=self.endpoint_name,
-                    Body=body,
-                    ContentType=self.content_handler.content_type,
-                    **_endpoint_kwargs,
-                )
-        iterator = LineIterator(resp["Body"])
-
-        for line in iterator:
-            resp = json.loads(line)
-            resp_output = resp.get("outputs")
-            if stop is not None:
-                # Uses same approach as below
-                resp_output = enforce_stop_tokens(resp_output, stop)
-            # run_manager.on_llm_new_token(resp_output)
-            yield GenerationChunk(text=resp_output)
-
-class SagemakerEndpointChat(BaseChatModel):
-    client: Any = None
-    """Boto3 client for sagemaker runtime"""
-
-    endpoint_name: str = ""
-    """The name of the endpoint from the deployed Sagemaker model.
-    Must be unique within an AWS Region."""
-
-    region_name: str = ""
-    """The aws region where the Sagemaker model is deployed, eg. `us-west-2`."""
-
-    credentials_profile_name: Optional[str] = None
-    """The name of the profile in the ~/.aws/credentials or ~/.aws/config files, which
-    has either access keys or role information specified.
-    If not specified, the default credential profile or, if on an EC2 instance,
-    credentials from IMDS will be used.
-    See: https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html
-    """
-
-    content_handler: LLMContentHandler =None
-    """The content handler class that provides an input and
-    output transform functions to handle formats between LLM
-    and the endpoint.
-    """
-
-    streaming: bool = False
-    """Whether to stream the results."""
-
-    """
-     Example:
-        .. code-block:: python
-
-        from langchain_community.llms.sagemaker_endpoint import LLMContentHandler
-
-        class ContentHandler(LLMContentHandler):
-                content_type = "application/json"
-                accepts = "application/json"
-
-                def transform_input(self, prompt: str, model_kwargs: Dict) -> bytes:
-                    input_str = json.dumps({prompt: prompt, **model_kwargs})
-                    return input_str.encode('utf-8')
-                
-                def transform_output(self, output: bytes) -> str:
-                    response_json = json.loads(output.read().decode("utf-8"))
-                    return response_json[0]["generated_text"]
-    """
-
-    model_kwargs: Optional[Dict] = None
-    """Keyword arguments to pass to the model."""
-
-    endpoint_kwargs: Optional[Dict] = None
-    """Optional attributes passed to the invoke_endpoint
-    function. See `boto3`_. docs for more info.
-    .. _boto3: <https://boto3.amazonaws.com/v1/documentation/api/latest/index.html>
-    """
-    content_type = "application/json"
-    accepts = "application/json"
-    class Config:
-        """Configuration for this pydantic object."""
-
-        extra = Extra.forbid
-
-    @root_validator()
-    def validate_environment(cls, values: Dict) -> Dict:
-        """Dont do anything if client provided externally"""
-        if values.get("client") is not None:
-            return values
-
-        """Validate that AWS credentials to and python package exists in environment."""
-        try:
-            import boto3
-
-            try:
-                if values["credentials_profile_name"] is not None:
-                    session = boto3.Session(
-                        profile_name=values["credentials_profile_name"]
-                    )
-                else:
-                    # use default credentials
-                    session = boto3.Session()
-
-                values["client"] = session.client(
-                    "sagemaker-runtime", region_name=values["region_name"]
-                )
-
-            except Exception as e:
-                raise ValueError(
-                    "Could not load credentials to authenticate with AWS client. "
-                    "Please check that credentials in the specified "
-                    "profile name are valid."
-                ) from e
-
-        except ImportError:
-            raise ImportError(
-                "Could not import boto3 python package. "
-                "Please install it with `pip install boto3`."
-            )
-        return values
-
-    @property
-    def _identifying_params(self) -> Mapping[str, Any]:
-        """Get the identifying parameters."""
-        _model_kwargs = self.model_kwargs or {}
-        return {
-            **{"endpoint_name": self.endpoint_name},
-            **{"model_kwargs": _model_kwargs},
-        }
-
-    @property
-    def _llm_type(self) -> str:
-        """Return type of llm."""
-        return "sagemaker_endpoint"
-    def _stream(
-            self,
-            messages: List[BaseMessage],
-            stop: Optional[List[str]] = None,
-            run_manager: Optional[CallbackManagerForLLMRun] = None,
-            **kwargs: Any,
-    ) -> Iterator[GenerationChunk]:
-        _model_kwargs = self.model_kwargs or {}
-        _model_kwargs = {**_model_kwargs, **kwargs}
-        _endpoint_kwargs = self.endpoint_kwargs or {}
-
-        # body = self.content_handler.transform_input(prompt, self.chat_history, _model_kwargs)
-        body = json.dumps({
-                "messages" : messages,
-                "parameters" : {**_model_kwargs}
-            })
-        # print(body)
-        # # print(sdg)
-        # content_type = self.content_handler.content_type
-        # accepts = self.content_handler.accepts
-        resp = self.client.invoke_endpoint_with_response_stream(
-                    EndpointName=self.endpoint_name,
-                    Body=body,
-                    ContentType=self.content_type,
-                    **_endpoint_kwargs,
-                )
-        iterator = LineIterator(resp["Body"])
-
-        for line in iterator:
-            resp = json.loads(line)
-            resp_output = resp.get("outputs")
-            if stop is not None:
-                # Uses same approach as below
-                resp_output = enforce_stop_tokens(resp_output, stop)
-            # run_manager.on_llm_new_token(resp_output)
-            yield resp_output
-
-    def _generate(self,
-        messages: List[BaseMessage],
+class SagemakerEndpointStreaming(SagemakerEndpoint):
+    # override the _call function to support streaming function with invoke_endpoint_with_response_stream
+    def _call(
+        self,
+        prompt: str,
         stop: Optional[List[str]] = None,
         run_manager: Optional[CallbackManagerForLLMRun] = None,
         **kwargs: Any,
     ) -> str:
+        """Call out to Sagemaker inference endpoint.
+
+        Args:
+            prompt: The prompt to pass into the model.
+            stop: Optional list of stop words to use when generating.
+
+        Returns:
+            The string generated by the model.
+
+        Example:
+            .. code-block:: python
+
+                response = se("Tell me a joke.")
+        """
         _model_kwargs = self.model_kwargs or {}
         _model_kwargs = {**_model_kwargs, **kwargs}
         _endpoint_kwargs = self.endpoint_kwargs or {}
 
-        # body = self.content_handler.transform_input(prompt, self.chat_history, _model_kwargs)
-        body = json.dumps({
-                "messages" : messages,
-                "parameters" : {**_model_kwargs}
-            })
+        body = self.content_handler.transform_input(prompt, _model_kwargs)
+        # the content type should be application/json if we are using LMI container
+        content_type = self.content_handler.content_type
+        accepts = self.content_handler.accepts
+
+        # send request
         try:
-            response = self.client.invoke_endpoint(
+            response = self.client.invoke_endpoint_with_response_stream(
                 EndpointName=self.endpoint_name,
                 Body=body,
-                ContentType=self.content_type,
-                Accept=self.accepts,
+                ContentType=content_type,
+                Accept=accepts,
                 **_endpoint_kwargs,
             )
         except Exception as e:
             raise ValueError(f"Error raised by inference endpoint: {e}")
 
-        # text = self.content_handler.transform_output(response["Body"])
-        text = json.loads(response["Body"].read().decode("utf-8"))
-        
+        # transform_output is not used here because the response is a stream
+        for line in LineIterator(response['Body']):
+            resp = json.loads(line)
+            logging.info(resp.get("outputs")[0], end='')
+
+        # enforce stop tokens if they are provided
         if stop is not None:
             # This is a bit hacky, but I can't figure out a better way to enforce
             # stop tokens when making calls to the sagemaker endpoint.
             text = enforce_stop_tokens(text, stop)
-        return text
-        
+
+        return resp.get("outputs")[0]
 
 def SagemakerEndpointVectorOrCross(prompt: str, endpoint_name: str, region_name: str, model_type: str, stop: List[str], **kwargs) -> SagemakerEndpoint:
     """
@@ -368,19 +192,12 @@ def SagemakerEndpointVectorOrCross(prompt: str, endpoint_name: str, region_name:
             **_endpoint_kwargs,
         )
     """
-    client = boto3.client(
-            "sagemaker-runtime",
-            region_name=region_name
-        )
     if model_type == "vector":
         content_handler = vectorContentHandler()
         embeddings = SagemakerEndpointEmbeddings(
-            client=client,
             endpoint_name=endpoint_name,
+            region_name=region_name,
             content_handler=content_handler
-            # endpoint_name=endpoint_name,
-            # region_name=region_name,
-            # content_handler=content_handler
         )
         query_result = embeddings.embed_query(prompt)
         return query_result
@@ -392,9 +209,8 @@ def SagemakerEndpointVectorOrCross(prompt: str, endpoint_name: str, region_name:
         content_handler = rerankContentHandler()
     # TODO: replace with SagemakerEndpointStreaming
     genericModel = SagemakerEndpoint(
-        client=client,
         endpoint_name = endpoint_name,
-        # region_name = region_name,
+        region_name = region_name,
         content_handler = content_handler
     )
     return genericModel(prompt=prompt, stop=stop, **kwargs)

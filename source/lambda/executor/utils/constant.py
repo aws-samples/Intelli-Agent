@@ -1,18 +1,16 @@
 from enum import Enum
 
-class EntryType(Enum):
+class Type(Enum):
     COMMON = "common"
     DGR = "dgr"
     MARKET = "market"
     MARKET_CHAIN = "market_chain"
     QQ_RETRIEVER = "qq_retriever"
     QD_RETRIEVER = "qd_retriever"
-    MARKET_CONVERSATION_SUMMARY = "market_conversation_summary"
     @classmethod
     def has_value(cls, value):
         return value in cls._value2member_map_ 
 
-Type = EntryType
 class IntentType(Enum):
     KNOWLEDGE_QA = "knowledge_qa"
     CHAT = "chat"

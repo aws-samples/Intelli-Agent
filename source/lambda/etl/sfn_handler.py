@@ -30,20 +30,12 @@ def handler(event, context):
         # Pass the parsed body to the Step Function
         inputPayload = json.dumps(body)
 
-    resp_header = {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "*",
-    }
-
     response = client.start_execution(
         stateMachineArn=os.environ["sfn_arn"], input=inputPayload
     )
 
     return {
         "statusCode": 200,
-        "headers": resp_header,
         "body": json.dumps(
             {
                 "execution_id": response["executionArn"].split(":")[-1],

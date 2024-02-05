@@ -1,6 +1,4 @@
 import { App, CfnOutput, CfnParameter, Stack, StackProps } from 'aws-cdk-lib';
-import {Runtime, Code, LayerVersion} from 'aws-cdk-lib/aws-lambda';
-import * as path from 'path';
 import { Construct } from 'constructs';
 import * as dotenv from "dotenv";
 import { LLMApiStack } from '../lib/api/api-stack';
@@ -8,9 +6,7 @@ import { DynamoDBStack } from '../lib/ddb/ddb-stack';
 import { EtlStack } from '../lib/etl/etl-stack';
 import { AssetsStack } from '../lib/model/assets-stack';
 import { LLMStack } from '../lib/model/llm-stack';
-import { BuildConfig } from '../lib/shared/build-config';
 import { VpcStack } from '../lib/shared/vpc-stack';
-import { LambdaLayers } from '../lib/shared/lambda-layers';
 import { OpenSearchStack } from '../lib/vector-store/os-stack';
 import { ConnectorStack } from '../lib/connector/connector-stack';
 
@@ -19,8 +15,6 @@ dotenv.config();
 export class RootStack extends Stack {
   constructor(scope: Construct, id: string, props: StackProps = {}) {
     super(scope, id, props);
-
-    this.setBuildConfig();
 
     // add cdk input parameters for user to specify s3 bucket store model assets
     // using npx cdk deploy --rollback false --parameters S3ModelAssets=llm-rag --parameters SubEmail=example@example.org --parameters EtlImageName=etl-image to deploy
@@ -66,10 +60,6 @@ export class RootStack extends Stack {
       type: 'String',
       description: 'The ECR image name which is used for ETL, eg. etl-model',
     });
-    
-    const lambdaLayers = new LambdaLayers(this);
-    const _LambdaExecutorLayer = lambdaLayers.createExecutorLayer();
-    const _LambdaEmbeddingLayer = lambdaLayers.createEmbeddingLayer();
 
     // This assest stack is to mitigate issue that the model assets in s3 bucket can't be located immediately to create sagemaker model
     const _AssetsStack = new AssetsStack(this, 'assets-stack', {_s3ModelAssets:_S3ModelAssets.valueAsString, env:process.env});
@@ -146,8 +136,6 @@ export class RootStack extends Stack {
         _jobDefinitionArn: _ConnectorStack._jobDefinitionArn,
         _etlEndpoint: _EtlStack._etlEndpoint,
         _resBucketName: _EtlStack._resBucketName,
-        _ApiLambdaExecutorLayer: _LambdaExecutorLayer,
-        _ApiLambdaEmbeddingLayer: _LambdaEmbeddingLayer,
         env:process.env
     });
     _ApiStack.addDependency(_VpcStack);
@@ -171,10 +159,6 @@ export class RootStack extends Stack {
     new CfnOutput(this, 'Instruct Model Endpoint', {value:_LLMStack._instructEndPoint || 'No Instruct Endpoint Created'});
     new CfnOutput(this, 'Processed Object Table', {value:_EtlStack._processedObjectsTable});
     new CfnOutput(this, 'Chunk Bucket', {value:_EtlStack._resBucketName});
-  }
-
-  private setBuildConfig() {
-    BuildConfig.PIP_PARAMETER = this.node.tryGetContext('PipParameter') ?? '';
   }
 }
 

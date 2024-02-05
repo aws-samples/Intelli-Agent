@@ -77,8 +77,8 @@ Use Postman/cURL to test the API connection, the API endpoint is the output of C
 ```bash
 BODY
 {
-    "s3_bucket": "<Your S3 bucket>", eg. "llm-bot-resource"
-    "s3_prefix": "<Your S3 prefix>", eg. "input_samples/"
+    "s3Bucket": "<Your S3 bucket>", eg. "llm-bot-resource"
+    "s3Prefix": "<Your S3 prefix>", eg. "input_samples/"
     "need_split": true
 }
 ```
@@ -98,30 +98,8 @@ BODY
 
 You should see similar outputs like this:
 ```bash
-{
-    "execution_id": "4dd19f1c-45e1-4d18-9d70-7593f96d001a"
-    "step_function_arn": "arn:aws:states:us-east-1:<account_id>:execution:ETLStateA5DEA10E-Tgtw66LqdlNH:4dd19f1c-45e1-4d18-9d70-7593f96d001a",
-    "input_payload": "{\"s3Bucket\": \"<Your S3 bucket>\", \"s3Prefix\": \"<Your S3 prefix>\", \"offline\": \"true\", \"qaEnhance\": \"false\", \"aosIndex\": \"<Your OpenSearch index>\"}"
-}
+"Step Function triggered, Step Function ARN: arn:aws:states:us-east-1:xxxx:execution:xx-xxx:xx-xx-xx-xx-xx, Input Payload: {\"s3Bucket\": \"<Your S3 bucket>\", \"s3Prefix\": \"<Your S3 prefix>\", \"offline\": \"true\"}"
 ```
-
-**Get ETL status by execution id. GET https://xxxx.execute-api.us-east-1.amazonaws.com/v1/etl/status**
-```bash
-Params
-https://xxxx.execute-api.us-east-1.amazonaws.com/v1/etl/status?executionId=24c9bfdb-f604-4bb2-9495-187b3a38be75
-
-```
-
-You should see similar outputs like this:
-```bash
-{
-    "execution_id": "4dd19f1c-45e1-4d18-9d70-7593f96d001a",
-    "execution_status": "FAILED"
-}
-```
-
-
-
 
 **You can query the embeddings injected into AOS after the ETL process complete, note the execution time largly depend on file size and number, and the estimate time is around 3~5 minutes per documents. POST https://xxxx.execute-api.us-east-1.amazonaws.com/v1/aos**, other operation including index, delete, query are also provided for debugging purpose.
 ```bash

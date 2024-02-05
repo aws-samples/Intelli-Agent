@@ -1,5 +1,5 @@
 function usage {
-  echo "Make sure python3 installed properly. Usage: $0 -s S3_BUCKET_NAME"
+  echo "Make sure Python installed properly. Usage: $0 -s S3_BUCKET_NAME"
   echo "  -s S3_BUCKET_NAME   S3 bucket name to upload the model"
   exit 1
 }
@@ -13,8 +13,8 @@ while getopts ":s:" opt; do
   esac
 done
 
-# Validate the hf_token and python3 interpreter exist
-if [ -z "$s3_bucket_name" ] || ! command -v python3 &> /dev/null; then
+# Validate the hf_token and python interpreter exist
+if [ -z "$s3_bucket_name" ] || ! command -v python &> /dev/null; then
   usage
 fi
 

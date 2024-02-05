@@ -57,7 +57,7 @@ def csdc_rag_call(
         datum,
         rag_api_url,
         retry_times=3,
-        rag_parameters=None):
+        **rag_parameters):
     prompt = datum['question']
     json_data = {
                 "model": "knowledge_qa",
@@ -93,10 +93,11 @@ def csdc_rag_call(
 
     raise RuntimeError(r.json())
 
+
 def websocket_call(
     datum,
     ws_url="wss://omjou492fe.execute-api.us-west-2.amazonaws.com/prod/",
-    rag_parameters=None
+    **rag_parameters
     ):
     prompt = datum['question']
     ws = create_connection(ws_url)
@@ -104,12 +105,12 @@ def websocket_call(
         "action": "sendMessage",
         "model": "knowledge_qa",
         "messages": [{"role": "user","content": prompt}],
-        # "temperature": 0.7,
+        "temperature": 0.7,
         "type" : "market_chain", 
         "enable_q_q_match": True,
         "enable_debug": False,
-        # "llm_model_id":'anthropic.claude-v2:1',
-    }
+        "llm_model_id":'anthropic.claude-v2:1',
+        }
     body.update(**rag_parameters)
     ws.send(json.dumps(body))
     start_time = time.time()
@@ -141,8 +142,8 @@ def websocket_call(
 def csdc_rag_call_stream(datum,
         rag_api_url,
         retry_times=3,
-        rag_parameters=None):
-    _ret = websocket_call(datum,rag_api_url,rag_parameters=rag_parameters)
+        **rag_parameters):
+    _ret = websocket_call(datum,rag_api_url,**rag_parameters)
     ret = {
                 "question": datum['question'],
                 "ground_truths": datum['ground_truths']
@@ -155,7 +156,7 @@ def get_rag_result(data,
                    rag_api_url=None,
                    num_worker=1,
                    stream=True,
-                   rag_parameters=None,
+                   **rag_parameters,
                    ):
     """_summary_
 
@@ -164,7 +165,6 @@ def get_rag_result(data,
         rag_api_url (_type_, optional): _description_. Defaults to None.
         num_worker (int, optional): _description_. Defaults to 1.
     """
-    rag_parameters = rag_parameters or {}
     futures = []
     ret = []
     if stream:
@@ -174,8 +174,7 @@ def get_rag_result(data,
     with ThreadPoolExecutor(num_worker) as pool:
         for datum in data:
             # question = datum['question']
-            
-            future = pool.submit(func,datum,rag_api_url,rag_parameters=rag_parameters)
+            future = pool.submit(func,datum,rag_api_url,**rag_parameters)
             future.datum = datum
             futures.append(future)
         # futures = [pool.submit(Claude2.generate,prompt) for prompt in prompts]
@@ -199,16 +198,16 @@ def run_eval(
         rag_num_worker=1,
         llm_output_cache_path=None,
         ret_save_profix = '',
-        # ragas_parameters: dict = None,
+        ragas_parameters: dict = None,
         ragas_eval_metrics = None,
         stream=True,
-        rag_parameters=None):
+        **rag_parameters):
     
     # ragas_eval_llm_model_id = ragas_parameters['llm_model_id']
     # if ragas_eval_llm_model_id == "openai":
     #     assert os.getenv('OPENAI_API_KEY'), 'ragas evaluation needs openai api key'
 
-    # ragas_parameters = ragas_parameters or {}
+    ragas_parameters = ragas_parameters or {}
     # load eval_data
     if llm_output_cache_path is not None and \
           os.path.exists(llm_output_cache_path):
@@ -226,7 +225,7 @@ def run_eval(
             rag_api_url=rag_api_url,
             num_worker=rag_num_worker,
             stream=stream,
-            rag_parameters=rag_parameters
+            **rag_parameters
         )
         print(data_to_eval[0])
         if llm_output_cache_path is not None:
@@ -257,96 +256,44 @@ def run_eval(
 
 
 if __name__ == "__main__":
-    # RAGAS_EVAL_METRICS = [
-    #     AnswerCorrectness(
-    #         answer_similarity=AnswerSimilarity(threshold=0),
-    #         batch_size=15
-    #         )
-    #     ]
     RAGAS_EVAL_METRICS = [
-        claude2_answer_correctness
+        AnswerCorrectness(
+            answer_similarity=AnswerSimilarity(threshold=0),
+            batch_size=15
+            )
         ]
+    # RAGAS_EVAL_METRICS = [
+    #     claude2_answer_similarity
+    #     ]
     
     # rag_api_url = "https://5tzaajjzg7.execute-api.us-west-2.amazonaws.com/default/llm-bot-dev-qq-matching"
     rag_api_url =  "wss://omjou492fe.execute-api.us-west-2.amazonaws.com/prod/"
-    # eval_data_path = "TechBot QA Test-fifth-test.csv"
-    eval_data_path = "TechBot QA Test-fifth-test-sample-50.csv"
+    eval_data_path = "TechBot QA Test-fifth-test.csv"
     # eval_id = 'claude2-csds-retrive'
-    by = 'claude2-answer_correctness' #'claude2'
+    by = 'openai-answer_correctness' #'claude2'
     eval_id = f'claude2-csdc-retrive-by-{by}'
     # llm_output_cache_path = f'{eval_id}-llm-output-cache-120.pkl'
     # llm_output_cache_path = f'{eval_id}-llm-output-cache.pkl'
-    # llm_output_cache_path = "techbot_question_dgr_res_1_16_120_with_gt.pkl"
-    # llm_output_cache_path = "techbot_question_dgr_res_6_120_with_gt.pkl"
-    # llm_output_cache_path = "techbot_question_dgr_res_1_16_120_with_gt.pkl"
-    # llm_output_cache_path = "techbot_question_dgr_res_1_3_120_with_gt_context_1.pkl"
-    # llm_output_cache_path = "techbot_question_dgr_res_2_1_120_with_gt_context_1_with_whole_doc_baichuan2_13b_4bits.max_new_2000_token.pkl"
-    # llm_output_cache_path = "techbot_question_dgr_res_2_1_120_with_gt_context_1_with_whole_doc_baichuan2_13b_4bits.max_new_2000_token.pkl.internlm2-7b-hf-4bits.tranc.to.2048.pkl"
-    # llm_output_cache_path = "techbot_question_dgr_res_2_1_120_with_gt_context_1_with_whole_doc_baichuan2_13b_4bits.max_new_2000_token.pkl.internlm2-7b-hf-4bits.pkl"
-    # llm_output_cache_path = "techbot_question_dgr_res_2_1_120_with_gt_context_1_with_whole_doc_baichuan2_13b_4bits.max_new_2000_token.pkl.internlm2-20b-hf-4bits.trunc.2048.pkl"
-    # llm_output_cache_path = "techbot_question_dgr_res_2_1_120_with_gt_context_1_with_whole_doc_baichuan2_13b_4bits.max_new_2000_token.pkl.OrionStar-Yi-34B-Chat-Llama-AWQ.pkl"
-    # llm_output_cache_path = "techbot_question_dgr_res_2_1_120_with_gt_context_1_with_whole_doc_baichuan2_13b_4bits.max_new_2000_token.pkl.qianwen.72b.gptq.pkl"
-    # llm_output_cache_path = "techbot_question_dgr_res_2_1_120_with_gt_context_1_with_whole_doc_baichuan2_13b_4bits.max_new_2000_token.pkl.Yi-34B-Chat-hf-4bits.pkl"
-    llm_output_cache_path = "techbot_question_dgr_res_2_1_120_with_gt_context_1_with_whole_doc_baichuan2_13b_4bits.max_new_2000_token.pkl.internlm2-20b-hf-4bits.g4dn.pkl"
-    # llm_output_cache_path = "techbot_question_dgr_res_1_23_120_with_gt_context_2_with_whole_doc.pkl"
+    # llm_output_cache_path = "techbot_question_dgr_res_1_12_120_with_gt.pkl"
+    llm_output_cache_path = "techbot_question_dgr_res_1_3_120_with_gt_context_1.pkl"
     ret_save_profix = f'{eval_id}-{llm_output_cache_path}-eval'
-    # ragas_parameters = {
-    #     "region_name":'us-west-2',
-    #     "credentials_profile_name": "atl",
-    #     # "llm_model_id": "anthropic.claude-v2:1", # "openai", #"anthropic.claude-v2:1", #"anthropic.claude-v2:1"
-    #     "llm_model_generate_paramerters": {
-    #         "max_tokens_to_sample": 2000
-    #     },
-    #     # "generator_llm_config":{
-    #     #     "context_num":2
-    #     # }
-    # }
-   
-    # rag_parameters = {
-    #     # 'llm_model_id': "anthropic.claude-v2:1", 
-    #     # 'llm_model_id': "anthropic.claude-v2:1", 
-    #     # "temperature": 0.7,
-    #     # "enable_q_q_match": True,
-    #     "get_contexts": True,
-    #     "retriever_config":{
-    #         "using_whole_doc": True,
-    #         "chunk_num": 4,
-    #         "retriever_top_k": 20
-    #         },
-    #     "generator_llm_config":{
-    #         # "model_id": "anthropic.claude-instant-v1",
-    #         "model_id": "anthropic.claude-v2:1",
-    #         "model_kwargs":{
-    #             "max_tokens_to_sample": 2000,
-    #             "temperature": 0.7,
-    #             "top_p": 0.9
-    #         },
-    #     # "model_id": "anthropic.claude-v2:1",
-    #         "context_num": 1
-    # }
-    # }
-    rag_parameters = {
-        # 'llm_model_id': "anthropic.claude-v2:1", 
-        # 'llm_model_id': "anthropic.claude-v2:1", 
-        # "temperature": 0.7,
-        # "enable_q_q_match": True,
-        "get_contexts": True,
-        "retriever_config":{
-            "using_whole_doc": False,
-            "chunk_num": 1,
-            "retriever_top_k": 20
-            },
+    ragas_parameters = {
+        "region_name":'us-west-2',
+        "credentials_profile_name": "atl",
+        # "llm_model_id": "anthropic.claude-v2:1", # "openai", #"anthropic.claude-v2:1", #"anthropic.claude-v2:1"
+        "llm_model_generate_paramerters": {
+            "max_tokens_to_sample": 2000
+        },
         "generator_llm_config":{
-            # "model_id": "anthropic.claude-instant-v1",
-            "model_kwargs":{
-                        "max_new_tokens": 1000,
-                        "temperature": 0.1,
-                        "top_p": 0.9
-                    },
-            "model_id": "Baichuan2-13B-Chat-4bits",
-            "endpoint_name": "baichuan2-13b-chat-4bits-2024-02-01-03-58-29-048",
-            "context_num": 1
+            "context_num":1
+        }
     }
+   
+    rag_parameters = {
+        'llm_model_id': "anthropic.claude-v2:1", 
+        "temperature": 0.7,
+        "enable_q_q_match": True,
+        "get_contexts": True
     }
     r = run_eval(
         eval_data_path,
@@ -354,10 +301,9 @@ if __name__ == "__main__":
         rag_num_worker=1,
         llm_output_cache_path=llm_output_cache_path,
         ret_save_profix=ret_save_profix,
-        # ragas_parameters=ragas_parameters,
+        ragas_parameters=ragas_parameters,
         ragas_eval_metrics = RAGAS_EVAL_METRICS,
-        stream=True,
-        rag_parameters=rag_parameters
+        **rag_parameters
     )
     print(r)
 
