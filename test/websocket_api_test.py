@@ -31,7 +31,7 @@ body = {
     "messages": [{"role": "user","content": 'live chat'}],
     "temperature": 0.7,
     "type" : "market_chain", 
-    "retriver_config":{
+    "retriever_config":{
         "using_whole_doc": False,
         "chunk_num": 2,
     },
