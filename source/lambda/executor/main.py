@@ -7,6 +7,7 @@ import sys
 import time
 import traceback
 import uuid
+import asyncio
 
 import boto3
 from langchain.callbacks.base import BaseCallbackHandler
@@ -53,6 +54,7 @@ from llmbot_utils import (
     concat_recall_knowledge,
     process_input_messages,
 )
+from time_utils import timeit
 from preprocess_utils import run_preprocess
 from response_utils import process_response
 from sm_utils import SagemakerEndpointVectorOrCross
@@ -682,7 +684,12 @@ def get_qd_chain(
 ):
     retriever_list = [
         QueryDocumentRetriever(
-            index, "vector_field", "text", "file_path", using_whole_doc, chunk_num, retriever_top_k
+            index, "vector_field", "text", "file_path", using_whole_doc, chunk_num, retriever_top_k, "zh", zh_embedding_endpoint
+        )
+        for index in aos_index_list
+    ] + [
+        QueryDocumentRetriever(
+            index, "vector_field", "text", "file_path", using_whole_doc, chunk_num, retriever_top_k, "en", en_embedding_endpoint
         )
         for index in aos_index_list
     ]
@@ -703,11 +710,11 @@ def get_qd_llm_chain(
     stream=False, 
     # top_n=5
 ):
-    using_whole_doc = rag_config['retriver_config']['using_whole_doc']
-    chunk_num = rag_config['retriver_config']['chunk_num']
-    retriever_top_k = rag_config['retriver_config']['retriever_top_k']
-    reranker_top_k = rag_config['retriver_config']['reranker_top_k']
-    enable_reranker = rag_config['retriver_config']['enable_reranker']
+    using_whole_doc = rag_config['retriever_config']['using_whole_doc']
+    chunk_num = rag_config['retriever_config']['chunk_num']
+    retriever_top_k = rag_config['retriever_config']['retriever_top_k']
+    reranker_top_k = rag_config['retriever_config']['reranker_top_k']
+    enable_reranker = rag_config['retriever_config']['enable_reranker']
     
     llm_chain = get_rag_llm_chain(rag_config, stream)
     qd_chain = get_qd_chain(aos_index_list, using_whole_doc=using_whole_doc,
@@ -823,6 +830,8 @@ def market_chain_entry(
         vector_field="vector_field",
         source_field="source",
         size=5,
+        lang="zh",
+        embedding_model_endpoint=zh_embedding_endpoint
     )
     # 2.2 query document retrieval + LLM.
     # qd_llm_chain = get_qd_llm_chain(
@@ -898,7 +907,7 @@ def market_chain_entry(
     #     "query rewrite module"
     # )
     # intent recognition
-    intent_recognition_chain = auto_intention_recoginition_chain(aos_index_mkt_qq)
+    intent_recognition_chain = auto_intention_recoginition_chain(aos_index_mkt_qq, "zh", zh_embedding_endpoint)
 
     intent_recognition_chain = chain_logger(
         intent_recognition_chain,
@@ -914,7 +923,6 @@ def market_chain_entry(
     )
     # full_chain = intent_recognition_chain
     # full_chain = RunnableLambda(route)
-    import asyncio
     response = asyncio.run(full_chain.ainvoke(
         {
             "query": query_input,
@@ -954,9 +962,12 @@ def market_conversation_summary_entry(
         stream=stream
     )
 
+@timeit
 def main_qd_retriever_entry(
     query_input: str,
     aos_index: str,
+    rag_config=None,
+    manual_input_intent=None
 ):
     """
     Entry point for the Lambda function.
@@ -977,10 +988,37 @@ def main_qd_retriever_entry(
         "knowledge_qa_llm": {},
         "knowledge_qa_rerank": {},
     }
-    full_chain = get_qd_chain(
-        [aos_index], using_whole_doc=True, chunk_num=2, retriever_top_k=20, reranker_top_k=10
+    retriever_top_k = rag_config['retriever_config']['retriever_top_k']
+    using_whole_doc = rag_config['retriever_config']['using_whole_doc']
+    chunk_num = rag_config['retriever_config']['chunk_num']
+    query_process_chain = get_query_process_chain(
+        rag_config['chat_history'],
+        rag_config['query_process_config']['query_rewrite_config'],
+        rag_config['query_process_config']['conversation_query_rewrite_config'],
+        rag_config['query_process_config']['hyde_config']
     )
-    response = full_chain.invoke({"query": query_input, "debug_info": debug_info})
+    intent_type = rag_config['intent_config']['intent_type']
+    intent_info = {
+        "manual_input_intent": manual_input_intent,
+        "strict_qq_intent_result": {},
+    }
+    intent_recognition_chain = auto_intention_recoginition_chain("aos_index_mkt_qq")
+    intent_recognition_chain = chain_logger(
+        intent_recognition_chain,
+        'intention module',
+        log_output_template='intent chain output: {intent_type}'
+        
+    )
+    qd_chain = get_qd_chain(
+        [aos_index], using_whole_doc=using_whole_doc, chunk_num=chunk_num, retriever_top_k=retriever_top_k, reranker_top_k=10
+    )
+    full_chain = query_process_chain | intent_recognition_chain | qd_chain
+    response = asyncio.run(full_chain.ainvoke({
+            "query": query_input,
+            "debug_info": debug_info,
+            "intent_type": intent_type,
+            "intent_info": intent_info,
+    }))
     doc_list = []
     for doc in response["docs"]:
         doc_list.append({"page_content": doc.page_content, "metadata": doc.metadata})
@@ -1153,7 +1191,8 @@ def lambda_handler(event, context):
             retriever_index = event_body.get("retriever_index", aos_index)
             docs, debug_info = main_qd_retriever_entry(
                 question,
-                retriever_index
+                retriever_index,
+                rag_config=rag_config
             )
             return get_retriever_response(docs, debug_info)
         elif biz_type.lower() == Type.QQ_RETRIEVER.value:
