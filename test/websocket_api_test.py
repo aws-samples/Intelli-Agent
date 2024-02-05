@@ -65,6 +65,20 @@ body = {
     "type":"market_conversation_summary"
 }
 
+body = {
+    "action": "sendMessage",
+    "session_id": "869272a2-493d-4908-b088-fd7cb033bf5e",
+    "model": "knowledge_qa",
+    "messages": [
+        {
+            "role": "user",
+            "content": "Lambda冷启动怎么解决？"
+        }
+    ],
+    "type": "market_chain",
+    "temperature": 0.1
+}
+
 # body = {
 #     "action": "sendMessage",
 #     "model": "chat",
