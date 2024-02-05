@@ -2,7 +2,6 @@ import { NestedStack, StackProps, RemovalPolicy, Duration, Aws } from 'aws-cdk-l
 import { Construct } from 'constructs';
 
 import * as iam from 'aws-cdk-lib/aws-iam';
-import * as api from 'aws-cdk-lib/aws-apigateway';
 import * as glue from '@aws-cdk/aws-glue-alpha';
 import * as sfn from 'aws-cdk-lib/aws-stepfunctions';
 import * as tasks from 'aws-cdk-lib/aws-stepfunctions-tasks';
@@ -10,14 +9,15 @@ import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as sns from 'aws-cdk-lib/aws-sns';
 import * as subscriptions from 'aws-cdk-lib/aws-sns-subscriptions';
 import * as s3 from 'aws-cdk-lib/aws-s3';
-import * as s3assets from 'aws-cdk-lib/aws-s3-assets';
-import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
-import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as sagemaker from 'aws-cdk-lib/aws-sagemaker';
-import { DockerImageCode, Architecture, DockerImageFunction} from 'aws-cdk-lib/aws-lambda';
+import { Function, Runtime, Code, Architecture } from 'aws-cdk-lib/aws-lambda';
 import { join } from "path";
-import { off } from 'process';
+
+// import * as api from 'aws-cdk-lib/aws-apigateway';
+// import { off } from 'process';
+// import * as s3assets from 'aws-cdk-lib/aws-s3-assets';
+// import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
 
 interface etlStackProps extends StackProps {
     _vpc: ec2.Vpc;
@@ -53,9 +53,13 @@ export class EtlStack extends NestedStack {
                 iam.ManagedPolicy.fromAwsManagedPolicyName('CloudWatchLogsFullAccess'),
             ],
         });
+        
+        const imageUrlDomain = (this.region === 'cn-north-1' || this.region === 'cn-northwest-1') 
+            ? '.amazonaws.com.cn/' 
+            : '.amazonaws.com/';
 
         // Create model, BucketDeployment construct automatically handles dependencies to ensure model assets uploaded before creating the model in this.region
-        const imageUrl = this.account + '.dkr.ecr.' + this.region +'.amazonaws.com/' + props._imageName + ":" + props._etlTag;
+        const imageUrl = this.account + '.dkr.ecr.' + this.region + imageUrlDomain + props._imageName + ":" + props._etlTag;
         const model = new sagemaker.CfnModel(this, 'etl-model', {
             executionRoleArn: endpointRole.roleArn,
             primaryContainer: {
@@ -197,9 +201,11 @@ export class EtlStack extends NestedStack {
         topic.addSubscription(new subscriptions.EmailSubscription(props._subEmail));
 
         // Lambda function to for file deduplication and glue job allocation based on file number
-        const lambdaETL = new DockerImageFunction(this,
+        const lambdaETL = new Function(this,
             "lambdaETL", {
-            code: DockerImageCode.fromImageAsset(join(__dirname, "../../../lambda/etl")),
+            code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
+            handler: "main.lambda_handler",
+            runtime: Runtime.PYTHON_3_11,
             timeout: Duration.minutes(15),
             memorySize: 1024,
             architecture: Architecture.X86_64,

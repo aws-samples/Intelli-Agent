@@ -7,11 +7,12 @@ import sys
 import time
 import traceback
 import uuid
+import asyncio
 
 import boto3
 from langchain.callbacks.base import BaseCallbackHandler
 from langchain.globals import set_verbose
-from langchain.llms import OpenAI
+# from langchain.llms import OpenAI
 from langchain.output_parsers import PydanticOutputParser
 from langchain.prompts import ChatPromptTemplate
 from langchain.pydantic_v1 import BaseModel, Field, validator
@@ -27,13 +28,15 @@ from langchain.schema.runnable import (
     RunnableParallel,
     RunnablePassthrough,
 )
+from langchain.memory import ConversationSummaryMemory, ChatMessageHistory
 from langchain.utilities import GoogleSearchAPIWrapper
-from reranker import BGEReranker
+from reranker import BGEReranker, MergeReranker
 from retriever import (
     QueryDocumentRetriever,
     QueryQuestionRetriever,
     index_results_format,
 )
+from langchain.retrievers.multi_query import MultiQueryRetriever
 from logger_utils import logger,opensearch_logger,boto3_logger
 
 
@@ -44,20 +47,21 @@ from intent_utils import auto_intention_recoginition_chain
 from langchain_utils import create_identity_lambda
 
 # from llm_utils import generate as llm_generate
-from llm_utils import get_llm_chain
+from llm_utils import get_llm_chain,get_llm_model
 from llmbot_utils import (
     QueryType,
     combine_recalls,
     concat_recall_knowledge,
     process_input_messages,
 )
+from time_utils import timeit
 from preprocess_utils import run_preprocess
 from response_utils import process_response
 from sm_utils import SagemakerEndpointVectorOrCross
 from constant import Type,IntentType
 from intent_utils import auto_intention_recoginition_chain
 from langchain_utils import add_key_to_debug,chain_logger
-from query_process_utils import get_query_rewrite_chain
+from query_process_utils import get_query_process_chain
 import parse_config
 
 region = os.environ["AWS_REGION"]
@@ -201,24 +205,24 @@ def organize_ug_results(response, index_name):
     return results
 
 
-def organize_results(response, aos_index=None):
-    """
-    Organize results from aos response
+# def organize_results(response, aos_index=None):
+#     """
+#     Organize results from aos response
 
-    :param query_type: query type
-    :param response: aos response json
-    """
-    results = []
-    aos_hits = response["hits"]["hits"]
-    for aos_hit in aos_hits:
-        result = {}
-        result["source"] = aos_hit["_source"]["metadata"]["file_path"]
-        result["score"] = aos_hit["_score"]
-        result["detail"] = aos_hit["_source"]
-        result["content"] = aos_hit["_source"]["text"]
-        result["doc"] = aos_hit["_source"]["text"]
-        results.append(result)
-    return results
+#     :param query_type: query type
+#     :param response: aos response json
+#     """
+#     results = []
+#     aos_hits = response["hits"]["hits"]
+#     for aos_hit in aos_hits:
+#         result = {}
+#         result["source"] = aos_hit["_source"]["metadata"]["file_path"]
+#         result["score"] = aos_hit["_score"]
+#         result["detail"] = aos_hit["_source"]
+#         result["content"] = aos_hit["_source"]["text"]
+#         result["doc"] = aos_hit["_source"]["text"]
+#         results.append(result)
+#     return results
 
 
 def remove_redundancy_debug_info(results):
@@ -621,12 +625,12 @@ def return_strict_qq_result(x):
     }
 
 
-def get_rag_llm_chain(generator_llm_config, stream):
+def get_rag_llm_chain(rag_config, stream):
     def contexts_trunc(docs: list, context_num=2):
         # print('docs len',len(docs))
         docs = [doc for doc in docs[:context_num]]
         # the most related doc will be placed last
-        docs.sort(key=lambda x: x.metadata["rerank_score"])
+        docs.sort(key=lambda x: x.metadata["score"])
         # filter same docs
         s = set()
         context_strs = []
@@ -640,7 +644,7 @@ def get_rag_llm_chain(generator_llm_config, stream):
                 context_docs.append({
                     "doc": content,
                     "source": doc.metadata["source"],
-                    "score": doc.metadata["rerank_score"]
+                    "score": doc.metadata["score"]
                     })
                 context_sources.append(doc.metadata["source"])
         # print(len(context_docs))
@@ -651,6 +655,7 @@ def get_rag_llm_chain(generator_llm_config, stream):
             "context_sources":context_sources
         }
     
+    generator_llm_config = rag_config['generator_llm_config']
     # TODO opt with efficiency
     context_num = generator_llm_config['context_num']
     contexts_trunc_stage = RunnablePassthrough.assign(
@@ -658,75 +663,111 @@ def get_rag_llm_chain(generator_llm_config, stream):
         context_docs=lambda x: contexts_trunc(x["docs"], context_num=context_num)['context_docs'],
         context_sources=lambda x: contexts_trunc(x["docs"], context_num=context_num)['context_sources'],
     )
- 
+    other_llm_config = copy.deepcopy(generator_llm_config)
+    other_llm_config.pop('model_id')
+    other_llm_config.pop('model_kwargs')
     llm_chain = get_llm_chain(
         model_id=generator_llm_config['model_id'],
         intent_type=IntentType.KNOWLEDGE_QA.value,
         model_kwargs=generator_llm_config['model_kwargs'],  # TODO
         stream=stream,
+        # chat_history=rag_config['chat_history'],
+        **other_llm_config
     )
-    llm_chain = contexts_trunc_stage | RunnablePassthrough.assign(answer=llm_chain)
+    llm_chain = contexts_trunc_stage |\
+          RunnablePassthrough.assign(chat_history=lambda x:rag_config['chat_history']) |\
+          RunnablePassthrough.assign(answer=llm_chain)
     return llm_chain
 
 def get_qd_chain(
-    aos_index_list, top_n=5, using_whole_doc=True, chunk_num=0
+    aos_index_list, retriever_top_k=10, reranker_top_k=5, using_whole_doc=True, chunk_num=0, enable_reranker=True
 ):
     retriever_list = [
         QueryDocumentRetriever(
-            index, "vector_field", "text", "file_path", using_whole_doc, chunk_num
+            index, "vector_field", "text", "file_path", using_whole_doc, chunk_num, retriever_top_k, "zh", zh_embedding_endpoint
+        )
+        for index in aos_index_list
+    ] + [
+        QueryDocumentRetriever(
+            index, "vector_field", "text", "file_path", using_whole_doc, chunk_num, retriever_top_k, "en", en_embedding_endpoint
         )
         for index in aos_index_list
     ]
     lotr = MergerRetriever(retrievers=retriever_list)
-    compressor = BGEReranker(top_n=top_n)
+    if enable_reranker:
+        compressor = BGEReranker(top_n=reranker_top_k)
+    else:
+        compressor = MergeReranker(top_n=reranker_top_k)
     compression_retriever = ContextualCompressionRetriever(
         base_compressor=compressor, base_retriever=lotr
     )
-    qd_chain = RunnablePassthrough.assign(docs=compression_retriever)
+    qd_chain = RunnablePassthrough.assign(docs=compression_retriever) 
     return qd_chain
 
 def get_qd_llm_chain(
     aos_index_list, 
-    generator_llm_config, 
+    rag_config, 
     stream=False, 
-    top_n=5,
-    using_whole_doc=True,
-    chunk_num=0,
+    # top_n=5
 ):
-    retriever_list = [
-        QueryDocumentRetriever(
-            index, "vector_field", "text", "file_path", using_whole_doc, chunk_num 
-        )
-        for index in aos_index_list
-    ]
-    lotr = MergerRetriever(retrievers=retriever_list)
-    compressor = BGEReranker(top_n=top_n)
-    compression_retriever = ContextualCompressionRetriever(
-        base_compressor=compressor, base_retriever=lotr
-    )
-
-    llm_chain = get_rag_llm_chain(generator_llm_config, stream)
-    qd_llm_chain = chain_logger(RunnablePassthrough.assign(docs=compression_retriever),'qd_retriever') | chain_logger(llm_chain,'llm_chain')
+    using_whole_doc = rag_config['retriever_config']['using_whole_doc']
+    chunk_num = rag_config['retriever_config']['chunk_num']
+    retriever_top_k = rag_config['retriever_config']['retriever_top_k']
+    reranker_top_k = rag_config['retriever_config']['reranker_top_k']
+    enable_reranker = rag_config['retriever_config']['enable_reranker']
+    
+    llm_chain = get_rag_llm_chain(rag_config, stream)
+    qd_chain = get_qd_chain(aos_index_list, using_whole_doc=using_whole_doc,
+                            chunk_num=chunk_num, retriever_top_k=retriever_top_k,
+                            reranker_top_k=reranker_top_k, enable_reranker=enable_reranker)
+    qd_llm_chain = chain_logger(qd_chain, 'qd_retriever') | chain_logger(llm_chain,'llm_chain')
     return qd_llm_chain
 
 
-def get_qq_result(docs, threshold=0.7):
-    if len(docs) > 0 and docs[0]["score"]:
-        source = docs[0]["source"]
-        answer = docs[0]["answer"]
-        sources = [source]
-        return answer, sources
-    else:
-        return None, []
+
+def get_chat_llm_chain(
+        rag_config,
+        stream=False
+        ):
+    generator_llm_config = rag_config['generator_llm_config']
+    other_llm_config = copy.deepcopy(generator_llm_config)
+    other_llm_config.pop('model_id')
+    other_llm_config.pop('model_kwargs')
+
+    chat_llm_chain = get_llm_chain(
+        model_id=generator_llm_config['model_id'],
+        intent_type=IntentType.CHAT.value,
+        model_kwargs=generator_llm_config['model_kwargs'],  # TODO
+        stream=stream,
+        # chat_history=rag_config['chat_history'],
+        **other_llm_config
+    ) | {
+        "answer": lambda x: x,
+        "sources": lambda x: [],
+        "contexts": lambda x: [],
+        "intent_type": lambda x: IntentType.CHAT.value,
+        "context_docs": lambda x: [],
+        "context_sources": lambda x: [],
+    }
+    return chat_llm_chain
+    
+# def get_qq_result(docs, threshold=0.7):
+#     if len(docs) > 0 and docs[0]["score"]:
+#         source = docs[0]["source"]
+#         answer = docs[0]["answer"]
+#         sources = [source]
+#         return answer, sources
+#     else:
+#         return None, []
 
 
-def output_postprocess(raw_output):
-    output = {"answer": "", "sources": [], "contexts": []}
-    if raw_output is not None:
-        output["answer"] = raw_output.get("answer", "")
-        output["sources"] = raw_output.get("sources", [])
-        output["contexts"] = raw_output.get("contexts", [])
-    return output
+# def output_postprocess(raw_output):
+#     output = {"answer": "", "sources": [], "contexts": []}
+#     if raw_output is not None:
+#         output["answer"] = raw_output.get("answer", "")
+#         output["sources"] = raw_output.get("sources", [])
+#         output["contexts"] = raw_output.get("contexts", [])
+#     return output
 
 
 def market_chain_entry(
@@ -758,17 +799,18 @@ def market_chain_entry(
     aos_index_dgr_faq_qd = aos_index_dict["aos_index_dgr_faq_qd"]
     aos_index_dgr_qq = aos_index_dict["aos_index_dgr_qq"]
 
-    debug_info = {
-        "query": query_input,
-        "query_parser_info": {},
-        "q_q_match_info": {},
-        "knowledge_qa_knn_recall": {},
-        "knowledge_qa_boolean_recall": {},
-        "knowledge_qa_combined_recall": {},
-        "knowledge_qa_cross_model_sort": {},
-        "knowledge_qa_llm": {},
-        "knowledge_qa_rerank": {},
-    }
+    # debug_info = {
+    #     "query": query_input,
+    #     "query_parser_info": {},
+    #     "q_q_match_info": {},
+    #     "knowledge_qa_knn_recall": {},
+    #     "knowledge_qa_boolean_recall": {},
+    #     "knowledge_qa_combined_recall": {},
+    #     "knowledge_qa_cross_model_sort": {},
+    #     "knowledge_qa_llm": {},
+    #     "knowledge_qa_rerank": {},
+    # }
+    debug_info = {}
     contexts = []
     sources = []
     answer = ""
@@ -788,15 +830,17 @@ def market_chain_entry(
         vector_field="vector_field",
         source_field="source",
         size=5,
+        lang="zh",
+        embedding_model_endpoint=zh_embedding_endpoint
     )
     # 2.2 query document retrieval + LLM.
-    qd_llm_chain = get_qd_llm_chain(
-        [aos_index_dgr_qd, aos_index_dgr_faq_qd, aos_index_mkt_qd],
-        rag_config['generator_llm_config'],
-        stream,
-        top_n=5,
-        chunk_num=0
-    )
+    # qd_llm_chain = get_qd_llm_chain(
+    #     [aos_index_dgr_qd, aos_index_dgr_faq_qd, aos_index_mkt_qd],
+    #     rag_config,
+    #     stream,
+    #     # top_n=5,
+    #     # chunk_num=0
+    # )
 
     # 2.3 query question router.
     def qq_route(info, threshold=0.9):
@@ -813,6 +857,13 @@ def market_chain_entry(
                 logger.info('qq matched...')
                 info.update(output)
                 return info
+        qd_llm_chain = get_qd_llm_chain(
+            [aos_index_dgr_qd, aos_index_dgr_faq_qd, aos_index_mkt_qd],
+            rag_config,
+            stream,
+            # top_n=5,
+            # chunk_num=0
+        )
         return qd_llm_chain
 
     qq_chain = RunnablePassthrough.assign(qq_result=dgr_q_q_retriever)
@@ -820,57 +871,67 @@ def market_chain_entry(
     qq_qd_llm_chain = qq_chain | RunnableLambda(qq_route)
 
     # TODO design chat chain
-    chat_llm_chain = get_llm_chain(
-        model_id=generator_llm_config['model_id'],
-        intent_type=IntentType.CHAT.value,
-        model_kwargs=generator_llm_config['model_kwargs'],  # TODO
-        stream=stream,
-    ) | {
-        "answer": lambda x: x,
-        "sources": lambda x: [],
-        "contexts": lambda x: [],
-        "intent_type": lambda x: IntentType.CHAT.value,
-        "context_docs": lambda x: [],
-        "context_sources": lambda x: [],
-    }
+    # other_llm_config = copy.deepcopy(generator_llm_config)
+    # other_llm_config.pop('model_id')
+    # other_llm_config.pop('model_kwargs')
+
     
-    # query expansion
-    query_expansion_chain = RunnablePassthrough.assign(
-        query_expansions=get_query_rewrite_chain(
-            llm_model_id=generator_llm_config['model_id']
-        )
-    ) | add_key_to_debug(add_key='query_expansions',debug_key="debug_info")
+    # chat_llm_chain = get_llm_chain(
+    #     model_id=generator_llm_config['model_id'],
+    #     intent_type=IntentType.CHAT.value,
+    #     model_kwargs=generator_llm_config['model_kwargs'],  # TODO
+    #     stream=stream,
+    #     # chat_history=rag_config['chat_history'],
+    #     **other_llm_config
+    # ) | {
+    #     "answer": lambda x: x,
+    #     "sources": lambda x: [],
+    #     "contexts": lambda x: [],
+    #     "intent_type": lambda x: IntentType.CHAT.value,
+    #     "context_docs": lambda x: [],
+    #     "context_sources": lambda x: [],
+    # }
     
-    query_expansion_chain = chain_logger(
-        query_expansion_chain,
-        "query rewrite module"
+    # query process chain
+    query_process_chain = get_query_process_chain(
+        rag_config['chat_history'],
+        rag_config['query_process_config']['query_rewrite_config'],
+        rag_config['query_process_config']['conversation_query_rewrite_config'],
+        rag_config['query_process_config']['hyde_config']
     )
+    # | add_key_to_debug(add_key='conversation_query_rewrite',debug_key="debug_info")
+    #   | add_key_to_debug(add_key='query_rewrite',debug_key="debug_info")
+    
+    # query_rewrite_chain = chain_logger(
+    #     query_rewrite_chain,
+    #     "query rewrite module"
+    # )
     # intent recognition
-    intent_recognition_chain = RunnablePassthrough.assign(
-        intent_type=auto_intention_recoginition_chain(aos_index_mkt_qq)
-    )
+    intent_recognition_chain = auto_intention_recoginition_chain(aos_index_mkt_qq, "zh", zh_embedding_endpoint)
 
     intent_recognition_chain = chain_logger(
         intent_recognition_chain,
-        'intention module'
+        'intention module',
+        log_output_template='intent chain output: {intent_type}'
     )
    
-    full_chain = query_expansion_chain | intent_recognition_chain  | RunnableBranch(
+    full_chain = query_process_chain | intent_recognition_chain  | RunnableBranch(
         (lambda x:x['intent_type'] == IntentType.KNOWLEDGE_QA.value, qq_qd_llm_chain),
         (lambda x:x['intent_type'] == IntentType.STRICT_QQ.value, return_strict_qq_result),
         # (lambda x:x['intent_type'] == IntentType.STRICT_QQ.value, strict_q_q_chain),
-        chat_llm_chain,  # chat
+        get_chat_llm_chain(rag_config=rag_config,stream=stream),  # chat
     )
     # full_chain = intent_recognition_chain
     # full_chain = RunnableLambda(route)
-    response = full_chain.invoke(
+    response = asyncio.run(full_chain.ainvoke(
         {
             "query": query_input,
             "debug_info": debug_info,
             "intent_type": intent_type,
             "intent_info": intent_info,
+            "chat_history": rag_config['chat_history']
         }
-    )
+    ))
 
     answer = response["answer"]
     sources = response["context_sources"]
@@ -878,9 +939,35 @@ def market_chain_entry(
 
     return answer, sources, contexts, debug_info
 
+
+def market_conversation_summary_entry(
+        messages:list[dict],
+        rag_config=None,
+        stream=False
+    ):
+
+    if not rag_config['chat_history']:
+        assert messages,messages
+        chat_history = []
+        for message in messages:
+            chat_history.append((message['role'],message['content']))
+        rag_config['chat_history'] = chat_history
+
+    rag_config['intent_config']['intent_type'] = IntentType.CHAT.value
+    
+    query_input = """请简要总结上述对话中的内容,每一个对话单独一个总结，并用 '- '开头。 每一个总结要先说明问题。\n"""
+    return market_chain_entry(
+        query_input=query_input,
+        rag_config=rag_config,
+        stream=stream
+    )
+
+@timeit
 def main_qd_retriever_entry(
     query_input: str,
     aos_index: str,
+    rag_config=None,
+    manual_input_intent=None
 ):
     """
     Entry point for the Lambda function.
@@ -901,14 +988,41 @@ def main_qd_retriever_entry(
         "knowledge_qa_llm": {},
         "knowledge_qa_rerank": {},
     }
-    full_chain = get_qd_chain(
-        [aos_index], using_whole_doc=False, chunk_num=2
+    retriever_top_k = rag_config['retriever_config']['retriever_top_k']
+    using_whole_doc = rag_config['retriever_config']['using_whole_doc']
+    chunk_num = rag_config['retriever_config']['chunk_num']
+    query_process_chain = get_query_process_chain(
+        rag_config['chat_history'],
+        rag_config['query_process_config']['query_rewrite_config'],
+        rag_config['query_process_config']['conversation_query_rewrite_config'],
+        rag_config['query_process_config']['hyde_config']
     )
-    response = full_chain.invoke({"query": query_input, "debug_info": debug_info})
+    intent_type = rag_config['intent_config']['intent_type']
+    intent_info = {
+        "manual_input_intent": manual_input_intent,
+        "strict_qq_intent_result": {},
+    }
+    intent_recognition_chain = auto_intention_recoginition_chain("aos_index_mkt_qq")
+    intent_recognition_chain = chain_logger(
+        intent_recognition_chain,
+        'intention module',
+        log_output_template='intent chain output: {intent_type}'
+        
+    )
+    qd_chain = get_qd_chain(
+        [aos_index], using_whole_doc=using_whole_doc, chunk_num=chunk_num, retriever_top_k=retriever_top_k, reranker_top_k=10
+    )
+    full_chain = query_process_chain | intent_recognition_chain | qd_chain
+    response = asyncio.run(full_chain.ainvoke({
+            "query": query_input,
+            "debug_info": debug_info,
+            "intent_type": intent_type,
+            "intent_info": intent_info,
+    }))
     doc_list = []
     for doc in response["docs"]:
         doc_list.append({"page_content": doc.page_content, "metadata": doc.metadata})
-    return doc_list
+    return doc_list, debug_info
 
 def main_qq_retriever_entry(
     query_input: str,
@@ -966,7 +1080,7 @@ def main_chain_entry(
     sources = []
     answer = ""
     full_chain = get_qd_llm_chain(
-        [aos_index], rag_config['generator_llm_config'], stream, using_whole_doc=False, chunk_num=0
+        [aos_index], rag_config, stream
     )
     response = full_chain.invoke({"query": query_input, "debug_info": debug_info})
     answer = response["answer"]
@@ -989,7 +1103,7 @@ def _is_websocket_request(event):
     else:
         return False
 
-def get_retriever_response(docs):
+def get_retriever_response(docs, debug_info):
     response = {"statusCode": 200, "headers": {"Content-Type": "application/json"}}
     resp_header = {
         "Content-Type": "application/json",
@@ -997,7 +1111,7 @@ def get_retriever_response(docs):
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "*",
     }
-    response["body"] = json.dumps({"docs": docs})
+    response["body"] = json.dumps({"docs": docs, "debug_info": debug_info})
     response["headers"] = resp_header
     return response
 
@@ -1014,9 +1128,9 @@ def lambda_handler(event, context):
         record_event = json.loads(record["body"])
         # Get request body
         event_body = json.loads(record_event["body"])
-        model = event_body["model"]
-        session_id = event_body.get("session_id", "N/A")
-        messages = event_body["messages"]
+        # model = event_body['model']
+        session_id = event_body.get("session_id",None) or  "N/A"
+        messages = event_body.get("messages",[])
         
         # deal with stream parameter
         stream = _is_websocket_request(record_event)
@@ -1033,28 +1147,36 @@ def lambda_handler(event, context):
         # all rag related params can be found in rag_config
         rag_config = parse_config.parse_rag_config(event_body)
 
-        logger.info(f'rag configs:\n {json.dumps(rag_config,indent=2,ensure_ascii=False)}')
         debug_level = int(rag_config['debug_level'])
         logger.setLevel(debug_level)
+        
+        if messages and biz_type.lower() != Type.MARKET_CONVERSATION_SUMMARY.value:
+            assert len(messages) == 1
+            question = messages[-1]['content']
+        else:
+            question = "" # MARKET_CONVERSATION_SUMMARY 
 
-        history, question = process_input_messages(messages)
-        role = "user"
+        # _, question = process_input_messages(messages)
+        # role = "user"
 
         if session_id == 'N/A':
-            if stream:
-                session_id = record_event["requestContext"]["connectionId"]
-            else:
-                session_id = f"session_{int(request_timestamp)}"
+            rag_config['session_id'] = f"session_{int(request_timestamp)}"
+        
+        if stream:
+            rag_config['ws_connection_id'] = record_event["requestContext"]["connectionId"]
+        
         user_id = event_body.get("user_id", "default_user_id")
         message_id = str(uuid.uuid4())
         chat_history = DynamoDBChatMessageHistory(
             table_name=chat_session_table,
-            session_id=session_id,
+            session_id=rag_config['session_id'],
             user_id=user_id,
         )
-        chat_history.add_user_message(f"user_{message_id}", question)
-
-        knowledge_qa_flag = True if model == "knowledge_qa" else False
+        history_messages = chat_history.message_as_langchain
+        rag_config['chat_history'] = history_messages
+        logger.info(f'rag configs:\n {json.dumps(rag_config,indent=2,ensure_ascii=False)}')
+        # 
+        # knowledge_qa_flag = True if model == "knowledge_qa" else False
 
         main_entry_start = time.time()
         contexts = []
@@ -1067,11 +1189,12 @@ def lambda_handler(event, context):
             )
         elif biz_type.lower() == Type.QD_RETRIEVER.value:
             retriever_index = event_body.get("retriever_index", aos_index)
-            docs = main_qd_retriever_entry(
+            docs, debug_info = main_qd_retriever_entry(
                 question,
-                retriever_index
+                retriever_index,
+                rag_config=rag_config
             )
-            return get_retriever_response(docs)
+            return get_retriever_response(docs, debug_info)
         elif biz_type.lower() == Type.QQ_RETRIEVER.value:
             retriever_index = event_body.get("retriever_index", aos_index)
             docs = main_qq_retriever_entry(
@@ -1080,6 +1203,10 @@ def lambda_handler(event, context):
             )
             return get_retriever_response(docs)
         elif biz_type.lower() == Type.DGR.value:
+            history = []
+            model = event_body.get('model','chat')
+            temperature = event_body.get('temperature',0.5)
+            knowledge_qa_flag = True if model == "knowledge_qa" else False
             answer, sources, contexts, debug_info = dgr_entry(
                 session_id,
                 question,
@@ -1102,28 +1229,37 @@ def lambda_handler(event, context):
                 stream=stream,
                 rag_config=rag_config
             )
-
+        elif biz_type.lower() == Type.MARKET_CONVERSATION_SUMMARY.value:
+            answer, sources, contexts, debug_info = market_conversation_summary_entry(
+                messages=messages,
+                rag_config=rag_config,
+                stream=stream
+            )
+        
         main_entry_elpase = time.time() - main_entry_start
         logger.info(f"runing time of {biz_type} entry : {main_entry_elpase}s seconds")
      
-    response_kwargs = dict(
-        stream=stream,
-        session_id=session_id,
-        model=model,
-        request_timestamp=request_timestamp,
-        answer=answer,
-        sources=sources,
-        get_contexts=get_contexts,
-        contexts=contexts,
-        enable_debug=enable_debug,
-        debug_info=debug_info,
-        ws_client=ws_client,
-        chat_history=chat_history,
-        message_id=message_id,
-    )
-    r = process_response(
-            **response_kwargs
+        response_kwargs = dict(
+            stream=stream,
+            session_id=rag_config['session_id'],
+            ws_connection_id=rag_config['ws_connection_id'],
+            # model=model,
+            entry_type=biz_type.lower(),
+            question=question,
+            request_timestamp=request_timestamp,
+            answer=answer,
+            sources=sources,
+            get_contexts=get_contexts,
+            contexts=contexts,
+            enable_debug=enable_debug,
+            debug_info=debug_info,
+            ws_client=ws_client,
+            chat_history=chat_history,
+            message_id=message_id,
         )
+        r = process_response(
+                **response_kwargs
+            )
     if not stream:
         return r
     return {"statusCode": 200, "body": "All records have been processed"} 
