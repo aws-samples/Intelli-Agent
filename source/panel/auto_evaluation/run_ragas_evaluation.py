@@ -308,7 +308,7 @@ if __name__ == "__main__":
     #     # "temperature": 0.7,
     #     # "enable_q_q_match": True,
     #     "get_contexts": True,
-    #     "retriver_config":{
+    #     "retriever_config":{
     #         "using_whole_doc": True,
     #         "chunk_num": 4,
     #         "retriever_top_k": 20
@@ -331,7 +331,7 @@ if __name__ == "__main__":
         # "temperature": 0.7,
         # "enable_q_q_match": True,
         "get_contexts": True,
-        "retriver_config":{
+        "retriever_config":{
             "using_whole_doc": False,
             "chunk_num": 1,
             "retriever_top_k": 20
