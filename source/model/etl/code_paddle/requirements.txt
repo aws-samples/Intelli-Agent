@@ -1,0 +1,5 @@
+boto3==1.28.85
+torch==2.1.0
+opencv-contrib-python-headless==4.8.1.78
+nougat-ocr==0.1.17
+onnxruntime-gpu
