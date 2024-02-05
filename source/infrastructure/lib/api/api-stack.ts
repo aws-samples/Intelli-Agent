@@ -1,6 +1,5 @@
 import { NestedStack, StackProps, Duration, Aws } from 'aws-cdk-lib';
-import { DockerImageFunction, Handler }  from 'aws-cdk-lib/aws-lambda';
-import { DockerImageCode, Architecture } from 'aws-cdk-lib/aws-lambda';
+import { Function, Runtime, Code, Architecture } from 'aws-cdk-lib/aws-lambda';
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as apigw from 'aws-cdk-lib/aws-apigateway';
@@ -14,6 +13,9 @@ import { WebSocketApi } from '@aws-cdk/aws-apigatewayv2-alpha';
 import { WebSocketStack } from './websocket-api';
 import { ApiQueueStack } from './api-queue';
 import * as lambdaEventSources from 'aws-cdk-lib/aws-lambda-event-sources';
+
+// import { DockerImageFunction, Handler } from 'aws-cdk-lib/aws-lambda';
+// import { DockerImageCode } from 'aws-cdk-lib/aws-lambda';
 
 interface apiStackProps extends StackProps {
     _vpc: ec2.Vpc;
@@ -32,6 +34,8 @@ interface apiStackProps extends StackProps {
     _jobDefinitionArn: string;
     _etlEndpoint: string;
     _resBucketName: string;
+    _ApiLambdaExecutorLayer: lambda.LayerVersion;
+    _ApiLambdaEmbeddingLayer: lambda.LayerVersion;
 }
 
 export class LLMApiStack extends NestedStack {
@@ -52,6 +56,9 @@ export class LLMApiStack extends NestedStack {
         const _jobDefinitionArn = props._jobDefinitionArn
         const _etlEndpoint = props._etlEndpoint
         const _resBucketName = props._resBucketName
+        const _ApiLambdaExecutorLayer = props._ApiLambdaExecutorLayer
+        const _ApiLambdaEmbeddingLayer = props._ApiLambdaEmbeddingLayer
+
 
         const queueStack = new ApiQueueStack(this, 'LLMQueueStack');
         const sqsStatement = queueStack.sqsStatement;
@@ -64,9 +71,11 @@ export class LLMApiStack extends NestedStack {
             blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
         });
 
-        const lambdaExecutor = new DockerImageFunction(this,
+        const lambdaExecutor = new Function(this,
             "lambdaExecutor", {
-            code: DockerImageCode.fromImageAsset(join(__dirname, "../../../lambda/executor")),
+            runtime: Runtime.PYTHON_3_11,
+            handler: "main.lambda_handler",
+            code: Code.fromAsset(join(__dirname, "../../../lambda/executor")),
             timeout: Duration.minutes(15),
             memorySize: 1024,
             vpc: _vpc,
@@ -86,22 +95,7 @@ export class LLMApiStack extends NestedStack {
                 aos_index_dict: _aosIndexDict,
                 chat_session_table: _chatSessionTable,
             },
-        });
-
-        const lambdaDispatcher = new DockerImageFunction(this,
-            "lambdaDispatcher", {
-            code: DockerImageCode.fromImageAsset(join(__dirname, "../../../lambda/dispatcher")),
-            timeout: Duration.minutes(15),
-            memorySize: 1024,
-            vpc: _vpc,
-            vpcSubnets: {
-                subnets: _vpc.privateSubnets,
-            },
-            securityGroups: [_securityGroup],
-            architecture: Architecture.X86_64,
-            environment: {
-                SQS_QUEUE_URL: messageQueue.queueUrl,
-            },
+            layers: [_ApiLambdaExecutorLayer]
         });
 
         lambdaExecutor.addToRolePolicy(new iam.PolicyStatement({
@@ -124,11 +118,32 @@ export class LLMApiStack extends NestedStack {
         ))
         lambdaExecutor.addToRolePolicy(sqsStatement);
         lambdaExecutor.addEventSource(new lambdaEventSources.SqsEventSource(messageQueue));
+
+
+        const lambdaDispatcher = new Function(this,
+            "lambdaDispatcher", {
+            runtime: Runtime.PYTHON_3_11,
+            handler: "main.lambda_handler",
+            code: Code.fromAsset(join(__dirname, "../../../lambda/dispatcher")),
+            timeout: Duration.minutes(15),
+            memorySize: 1024,
+            vpc: _vpc,
+            vpcSubnets: {
+                subnets: _vpc.privateSubnets,
+            },
+            securityGroups: [_securityGroup],
+            architecture: Architecture.X86_64,
+            environment: {
+                SQS_QUEUE_URL: messageQueue.queueUrl,
+            }
+        });
         lambdaDispatcher.addToRolePolicy(sqsStatement);
 
-        const lambdaEmbedding = new DockerImageFunction(this,
+        const lambdaEmbedding = new Function(this,
             "lambdaEmbedding", {
-            code: DockerImageCode.fromImageAsset(join(__dirname, "../../../lambda/embedding")),
+            runtime: Runtime.PYTHON_3_11,
+            handler: "main.lambda_handler",
+            code: Code.fromAsset(join(__dirname, "../../../lambda/embedding")),
             timeout: Duration.minutes(15),
             memorySize: 4096,
             vpc: _vpc,
@@ -142,6 +157,7 @@ export class LLMApiStack extends NestedStack {
                 REGION: Aws.REGION,
                 RES_BUCKET: _resBucketName,
             },
+            layers: [_ApiLambdaEmbeddingLayer]
         });
 
         lambdaEmbedding.addToRolePolicy(new iam.PolicyStatement({
@@ -158,9 +174,11 @@ export class LLMApiStack extends NestedStack {
         }
         ))
 
-        const lambdaAos = new DockerImageFunction(this,
+        const lambdaAos = new Function(this,
             "lambdaAos", {
-            code: DockerImageCode.fromImageAsset(join(__dirname, "../../../lambda/aos")),
+            runtime: Runtime.PYTHON_3_11,
+            handler: "main.lambda_handler",
+            code: Code.fromAsset(join(__dirname, "../../../lambda/aos")),
             timeout: Duration.minutes(15),
             memorySize: 1024,
             vpc: _vpc,
@@ -173,6 +191,7 @@ export class LLMApiStack extends NestedStack {
                 opensearch_cluster_domain: _domainEndpoint,
                 embedding_endpoint: props._embeddingEndPoints[0],
             },
+            layers: [_ApiLambdaEmbeddingLayer]
         });
 
         lambdaAos.addToRolePolicy(new iam.PolicyStatement({
@@ -190,7 +209,7 @@ export class LLMApiStack extends NestedStack {
         ))
 
         const lambdaDdb = new lambda.Function(this, "lambdaDdb", {
-            runtime:lambda.Runtime.PYTHON_3_7,
+            runtime:lambda.Runtime.PYTHON_3_11,
             handler: "rating.lambda_handler",
             code: lambda.Code.fromAsset(join(__dirname, "../../../lambda/ddb")),
             environment: {
@@ -277,7 +296,7 @@ export class LLMApiStack extends NestedStack {
         const lambdaStepFunction = new lambda.Function(this, 'lambdaStepFunction', {
             code: lambda.Code.fromAsset(join(__dirname, "../../../lambda/etl")),
             handler: 'sfn_handler.handler',
-            runtime: lambda.Runtime.PYTHON_3_9,
+            runtime: lambda.Runtime.PYTHON_3_11,
             timeout: Duration.seconds(30),
             environment: {
                 sfn_arn: props._sfnOutput.stateMachineArn,
@@ -298,7 +317,7 @@ export class LLMApiStack extends NestedStack {
         const lambdaGetETLStatus = new lambda.Function(this, "lambdaGetETLStatus", {
             code: lambda.Code.fromAsset(join(__dirname, "../../../lambda/etl")),
             handler: "get_status.lambda_handler",
-            runtime: lambda.Runtime.PYTHON_3_9,
+            runtime: lambda.Runtime.PYTHON_3_11,
             timeout: Duration.minutes(5),
             environment: {
                 sfn_arn: props._sfnOutput.stateMachineArn,
@@ -321,9 +340,11 @@ export class LLMApiStack extends NestedStack {
             sendMessageLambda: lambdaExecutor,
         });
 
-        const lambdaBatch = new DockerImageFunction(this,
+        const lambdaBatch = new Function(this,
             "lambdaBatch", {
-            code: DockerImageCode.fromImageAsset(join(__dirname, "../../../lambda/batch")),
+            code: lambda.Code.fromAsset(join(__dirname, "../../../lambda/batch")),
+            handler: "main.lambda_handler",
+            runtime: lambda.Runtime.PYTHON_3_11,
             timeout: Duration.minutes(15),
             memorySize: 1024,
             vpc: _vpc,
