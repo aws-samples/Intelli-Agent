@@ -8,6 +8,7 @@ import time
 import traceback
 import uuid
 import asyncio
+import math
 
 import boto3
 from langchain.callbacks.base import BaseCallbackHandler
@@ -28,8 +29,13 @@ from langchain.schema.runnable import (
     RunnableParallel,
     RunnablePassthrough,
 )
-from langchain.memory import ConversationSummaryMemory, ChatMessageHistory
-from langchain.utilities import GoogleSearchAPIWrapper
+from langchain.schema.messages import (
+    HumanMessage,AIMessage,SystemMessage
+)
+# from langchain.memory import ConversationSummaryMemory, ChatMessageHistory
+# from langchain.utilities import GoogleSearchAPIWrapper
+from dateutil import parser
+
 from reranker import BGEReranker, MergeReranker
 from retriever import (
     QueryDocumentRetriever,
@@ -44,15 +50,15 @@ from aos_utils import LLMBotOpenSearchClient
 from constant import IntentType, Type
 from ddb_utils import DynamoDBChatMessageHistory
 from intent_utils import auto_intention_recoginition_chain
-from langchain_utils import create_identity_lambda
+# from langchain_utils import create_identity_lambda
 
 # from llm_utils import generate as llm_generate
 from llm_utils import get_llm_chain,get_llm_model
 from llmbot_utils import (
-    QueryType,
+    # QueryType,
     combine_recalls,
-    concat_recall_knowledge,
-    process_input_messages,
+    # concat_recall_knowledge,
+    # process_input_messages,
 )
 from time_utils import timeit
 from preprocess_utils import run_preprocess
@@ -63,6 +69,7 @@ from intent_utils import auto_intention_recoginition_chain
 from langchain_utils import add_key_to_debug,chain_logger
 from query_process_utils import get_query_process_chain
 import parse_config
+from serialization_utils import JSONEncoder
 
 region = os.environ["AWS_REGION"]
 embedding_endpoint = os.environ.get("embedding_endpoint", "")
@@ -204,27 +211,6 @@ def organize_ug_results(response, index_name):
         results.append(result)
     return results
 
-
-# def organize_results(response, aos_index=None):
-#     """
-#     Organize results from aos response
-
-#     :param query_type: query type
-#     :param response: aos response json
-#     """
-#     results = []
-#     aos_hits = response["hits"]["hits"]
-#     for aos_hit in aos_hits:
-#         result = {}
-#         result["source"] = aos_hit["_source"]["metadata"]["file_path"]
-#         result["score"] = aos_hit["_score"]
-#         result["detail"] = aos_hit["_source"]
-#         result["content"] = aos_hit["_source"]["text"]
-#         result["doc"] = aos_hit["_source"]["text"]
-#         results.append(result)
-#     return results
-
-
 def remove_redundancy_debug_info(results):
     filtered_results = copy.deepcopy(results)
     for result in filtered_results:
@@ -232,7 +218,6 @@ def remove_redundancy_debug_info(results):
             if field.endswith("embedding") or field.startswith("vector"):
                 del result["detail"][field]
     return filtered_results
-
 
 def parse_query(
     query_input: str,
@@ -724,7 +709,6 @@ def get_qd_llm_chain(
     return qd_llm_chain
 
 
-
 def get_chat_llm_chain(
         rag_config,
         stream=False
@@ -750,25 +734,6 @@ def get_chat_llm_chain(
         "context_sources": lambda x: [],
     }
     return chat_llm_chain
-    
-# def get_qq_result(docs, threshold=0.7):
-#     if len(docs) > 0 and docs[0]["score"]:
-#         source = docs[0]["source"]
-#         answer = docs[0]["answer"]
-#         sources = [source]
-#         return answer, sources
-#     else:
-#         return None, []
-
-
-# def output_postprocess(raw_output):
-#     output = {"answer": "", "sources": [], "contexts": []}
-#     if raw_output is not None:
-#         output["answer"] = raw_output.get("answer", "")
-#         output["sources"] = raw_output.get("sources", [])
-#         output["contexts"] = raw_output.get("contexts", [])
-#     return output
-
 
 def market_chain_entry(
     query_input: str,
@@ -933,12 +898,13 @@ def market_chain_entry(
         }
     ))
 
+    
+
     answer = response["answer"]
     sources = response["context_sources"]
     contexts = response["context_docs"]
 
     return answer, sources, contexts, debug_info
-
 
 def market_conversation_summary_entry(
         messages:list[dict],
@@ -950,8 +916,22 @@ def market_conversation_summary_entry(
         assert messages,messages
         chat_history = []
         for message in messages:
-            chat_history.append((message['role'],message['content']))
+            role = message['role']
+            content = message['content']
+            assert role in ['user','ai']
+            if role == 'user':
+                chat_history.append(HumanMessage(content=content))
+            else:
+                chat_history.append(AIMessage(content=content))
         rag_config['chat_history'] = chat_history
+    
+    else:
+        # filter by the window time
+        time_window = rag_config.get('time_window',{})
+        start_time = time_window.get('start_time',-math.inf)
+        end_time = time_window.get('end_time',math.inf)
+        assert isinstance(start_time, float) and isinstance(end_time, float), (start_time, end_time)
+        chat_history = rag_config['chat_history']
 
     rag_config['intent_config']['intent_type'] = IntentType.CHAT.value
     
@@ -1174,7 +1154,7 @@ def lambda_handler(event, context):
         )
         history_messages = chat_history.message_as_langchain
         rag_config['chat_history'] = history_messages
-        logger.info(f'rag configs:\n {json.dumps(rag_config,indent=2,ensure_ascii=False)}')
+        logger.info(f'rag configs:\n {json.dumps(rag_config,indent=2,ensure_ascii=False,cls=JSONEncoder)}')
         # 
         # knowledge_qa_flag = True if model == "knowledge_qa" else False
 

@@ -8,8 +8,12 @@ from langchain.llms import Bedrock
 
 from langchain.schema.runnable import RunnableLambda,RunnablePassthrough
 from constant import IntentType
-from prompt_template import get_claude_chat_rag_prompt,get_chit_chat_prompt
+from prompt_template import (
+    get_claude_chat_rag_prompt,get_chit_chat_prompt,
+    CHIT_CHAT_SYSTEM_TEMPLATE
+)
 from .llm_models import Model
+from constant import HUMAN_MESSAGE_TYPE,AI_MESSAGE_TYPE,SYSTEM_MESSAGE_TYPE
 
 
 class LLMChainMeta(type):
@@ -86,11 +90,7 @@ class Claude2ChatChain(LLMChain):
     @classmethod
     def create_chain(cls, model_kwargs=None, **kwargs):
         stream = kwargs.get('stream',False)
-        # chat_history = kwargs.get('chat_history',[])
-        prompt = RunnableLambda(lambda x:get_chit_chat_prompt(x['chat_history']))
-        # prompt = RunnableLambda(
-        #     lambda x: cls.template_render(x['query'])
-        #     )
+        prompt = RunnableLambda(lambda x: get_chit_chat_prompt(x['chat_history']))
         kwargs.update({'return_chat_model':True})
         llm = Model.get_model(
             cls.model_id,
@@ -177,7 +177,7 @@ class Iternlm2Chat7BChatChain(LLMChain):
 
     @classmethod
     def add_meta_instruction(cls,x):
-        meta_instruction = "You are a helpful AI Assistant."
+        meta_instruction = CHIT_CHAT_SYSTEM_TEMPLATE
         return meta_instruction
         
     @classmethod
@@ -217,4 +217,4 @@ class Iternlm2Chat7BKnowledgeQaChain(Iternlm2Chat7BChatChain):
         
     @classmethod
     def add_query(cls,x):
-        return f"问题: {x['query']}"
+        return f"问题: {x['query']}\n答案:"

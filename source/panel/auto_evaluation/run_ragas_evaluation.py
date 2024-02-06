@@ -287,8 +287,9 @@ if __name__ == "__main__":
     # llm_output_cache_path = "techbot_question_dgr_res_2_1_120_with_gt_context_1_with_whole_doc_baichuan2_13b_4bits.max_new_2000_token.pkl.OrionStar-Yi-34B-Chat-Llama-AWQ.pkl"
     # llm_output_cache_path = "techbot_question_dgr_res_2_1_120_with_gt_context_1_with_whole_doc_baichuan2_13b_4bits.max_new_2000_token.pkl.qianwen.72b.gptq.pkl"
     # llm_output_cache_path = "techbot_question_dgr_res_2_1_120_with_gt_context_1_with_whole_doc_baichuan2_13b_4bits.max_new_2000_token.pkl.Yi-34B-Chat-hf-4bits.pkl"
-    llm_output_cache_path = "techbot_question_dgr_res_2_1_120_with_gt_context_1_with_whole_doc_baichuan2_13b_4bits.max_new_2000_token.pkl.internlm2-20b-hf-4bits.g4dn.pkl"
+    # llm_output_cache_path = "techbot_question_dgr_res_2_1_120_with_gt_context_1_with_whole_doc_baichuan2_13b_4bits.max_new_2000_token.pkl.internlm2-20b-hf-4bits.g4dn.pkl"
     # llm_output_cache_path = "techbot_question_dgr_res_1_23_120_with_gt_context_2_with_whole_doc.pkl"
+    llm_output_cache_path = "techbot_question_dgr_res_2_5_120_with_gt_context_1.claude21.pkl"
     ret_save_profix = f'{eval_id}-{llm_output_cache_path}-eval'
     # ragas_parameters = {
     #     "region_name":'us-west-2',
@@ -332,19 +333,20 @@ if __name__ == "__main__":
         # "enable_q_q_match": True,
         "get_contexts": True,
         "retriever_config":{
-            "using_whole_doc": False,
+            "using_whole_doc": True,
             "chunk_num": 1,
             "retriever_top_k": 20
             },
         "generator_llm_config":{
             # "model_id": "anthropic.claude-instant-v1",
             "model_kwargs":{
-                        "max_new_tokens": 1000,
+                        "max_new_tokens": 2000,
                         "temperature": 0.1,
                         "top_p": 0.9
                     },
-            "model_id": "Baichuan2-13B-Chat-4bits",
-            "endpoint_name": "baichuan2-13b-chat-4bits-2024-02-01-03-58-29-048",
+            "model_id":"anthropic.claude-v2:1",
+            # "model_id": "Baichuan2-13B-Chat-4bits",
+            # "endpoint_name": "baichuan2-13b-chat-4bits-2024-02-01-03-58-29-048",
             "context_num": 1
     }
     }

@@ -21,3 +21,8 @@ class IntentType(Enum):
     @classmethod
     def has_value(cls, value):
         return value in cls._value2member_map_ 
+
+
+HUMAN_MESSAGE_TYPE = 'human'
+AI_MESSAGE_TYPE = 'ai'
+SYSTEM_MESSAGE_TYPE = 'system'
