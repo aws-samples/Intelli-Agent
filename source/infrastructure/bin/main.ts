@@ -81,7 +81,8 @@ export class RootStack extends Stack {
         _rerankModelVersion:_AssetsStack._rerankModelVersion,
         _embeddingModelPrefix:_AssetsStack._embeddingModelPrefix,
         _embeddingModelVersion:_AssetsStack._embeddingModelVersion,
-        _instructCodePrefix:_AssetsStack._instructCodePrefix,
+        _instructModelPrefix:_AssetsStack._instructModelPrefix,
+        _instructModelVersion:_AssetsStack._instructModelVersion,
         env:process.env
     });
     _LLMStack.addDependency(_AssetsStack);

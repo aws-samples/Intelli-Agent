@@ -14,7 +14,8 @@ interface llmStackProps extends StackProps {
     _rerankModelVersion: string;
     _embeddingModelPrefix: string[];
     _embeddingModelVersion: string[];
-    _instructCodePrefix: string;
+    _instructModelPrefix: string;
+    _instructModelVersion: string;
 }
 
 export class LLMStack extends NestedStack {
@@ -180,39 +181,52 @@ export class LLMStack extends NestedStack {
 
         }
 
-        //// INSTRUCT MODEL
-        //// Create model, BucketDeployment construct automatically handles dependencies to ensure model assets uploaded before creating the model in this.region
-        //const instructImageUrl = '763104351884.dkr.ecr.'+ this.region +'.amazonaws.com/djl-inference:0.21.0-deepspeed0.8.3-cu117'
-        //const instructModel = new sagemaker.CfnModel(this, 'instruct-model', {
-        //    executionRoleArn: executionRole.roleArn,
-        //    primaryContainer: {
-        //        image: instructImageUrl,
-        //        modelDataUrl: `s3://${props._s3ModelAssets}/${props._instructCodePrefix}/model.tar.gz`,
-        //        environment: {
-        //            S3_CODE_PREFIX: props._instructCodePrefix,
-        //        },
-        //    },
-        //});
+        // INSTRUCT MODEL
+        // Create model, BucketDeployment construct automatically handles dependencies to ensure model assets uploaded before creating the model in this.region
+        // Instruct MODEL
+        const InstructModelPrefix = props._instructModelPrefix;
+        const InstructCodePrefix = InstructModelPrefix+"_deploy_code";
+        const InstructVersionId = props._instructModelVersion;
+        const InstructEndpointName = "instruct-"+InstructModelPrefix+"-"+InstructVersionId.slice(0,5)
+        
+        const instructImageUrl = llmImageUrlAccount + this.region + llmImageUrlDomain + 'djl-inference:0.25.0-deepspeed0.11.0-cu118'
+        const instructModel = new sagemaker.CfnModel(this, 'instruct-model', {
+           executionRoleArn: executionRole.roleArn,
+           primaryContainer: {
+               image: instructImageUrl,
+               modelDataUrl: `s3://${props._s3ModelAssets}/${InstructCodePrefix}/llm_model.tar.gz`,
+               environment: {
+                   S3_CODE_PREFIX: InstructCodePrefix,
+               },
+           },
+        });
 
-        //// Create endpoint configuration, refer to https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_sagemaker.CfnEndpointConfig.html for full options
-        //const instructEndpointConfig = new sagemaker.CfnEndpointConfig(this, 'instruct-endpoint-config', {
-        //    productionVariants: [{
-        //        initialVariantWeight: 1.0,
-        //        modelName: instructModel.attrModelName,
-        //        variantName: 'variantProd',
-        //        containerStartupHealthCheckTimeoutInSeconds: 15*60,
-        //        initialInstanceCount: 1,
-        //        instanceType: 'ml.g5.4xlarge',
-        //    }],
-        //});
+        // Create endpoint configuration, refer to https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_sagemaker.CfnEndpointConfig.html for full options
+        const instructEndpointConfig = new sagemaker.CfnEndpointConfig(this, 'instruct-endpoint-config', {
+           productionVariants: [{
+               initialVariantWeight: 1.0,
+               modelName: instructModel.attrModelName,
+               variantName: 'variantProd',
+               containerStartupHealthCheckTimeoutInSeconds: 15*60,
+               initialInstanceCount: 1,
+               instanceType: 'ml.g4dn.4xlarge',
+           }],
+        });
 
-        //// Create endpoint
-        //const instructEndpoint = new sagemaker.CfnEndpoint(this, 'instruct-endpoint', {
-        //    endpointConfigName: instructEndpointConfig.attrEndpointConfigName,
-        //    endpointName: 'instruct-endpoint',
-        //});
+        const instruct_tag: cdk.CfnTag = {
+            key: 'version',
+            value: InstructVersionId,
+        };
 
-        //this._instructEndPoint = instructEndpoint.endpointName;
-        this._instructEndPoint = "not implemented";
+        const instruct_tag_array = [instruct_tag]
+
+        // Create endpoint
+        const InstructEndpoint = new sagemaker.CfnEndpoint(this, 'instruct-endpoint', {
+            endpointConfigName: instructEndpointConfig.attrEndpointConfigName,
+            endpointName: InstructEndpointName,
+            tags: instruct_tag_array,
+        });
+
+        this._instructEndPoint = InstructEndpoint.endpointName;
     }
 }
