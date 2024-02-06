@@ -1,3 +1,8 @@
+import traceback
+import sys
+import torch
+import gc
+from typing import List,Tuple
 try:
     from transformers.generation.streamers import BaseStreamer
 except:  # noqa # pylint: disable=bare-except
@@ -6,11 +11,12 @@ import queue
 import threading
 import time 
 from queue import  Empty
-import traceback
-import sys
+from djl_python import Input, Output
+import os
 import torch
-import gc
-from typing import List,Tuple
+import json
+from transformers import pipeline, AutoModelForCausalLM, AutoTokenizer
+from transformers.generation.utils import GenerationConfig
 
 @torch.no_grad()
 def _stream_chat(
@@ -102,7 +108,11 @@ def _stream_chat(
             try:
                 res = response_queue.get(timeout=timeout-(time.time()-start_time))
             except queue.Empty:
-                raise TimeoutError(f'max generate time is set as: {timeout}s')
+                error = f'TimeoutError: exceed the max generation time {timeout}s.'
+                print(error)
+                error = json.dumps({"error_msg":error}) + "\n"
+                raise RuntimeError(error)
+                # raise TimeoutError(f'max generate time is set as: {timeout}s')
             if res is None:
                 return 
             if isinstance(res,BaseException):
@@ -137,12 +147,6 @@ def generate(model,tokenizer,stream=False,**kwargs):
         r += rr 
     return r
 
-from djl_python import Input, Output
-import os
-import torch
-from transformers import pipeline, AutoModelForCausalLM, AutoTokenizer
-from transformers.generation.utils import GenerationConfig
-import os
 
 tokenizer = None
 model = None
@@ -166,7 +170,7 @@ def get_model(properties):
         device_map='auto',
         )
     tokenizer = AutoTokenizer.from_pretrained(
-        model_path, trust_remote_code=True
+        model_path, trust_remote_code=True,use_fast=True
         )
     model = model.eval()
     return tokenizer, model
@@ -185,6 +189,6 @@ def handle(inputs: Input) -> None:
     stream = body.get('stream',False)
     response = generate(model,tokenizer,**body)
     if stream:
-        return Output().add_stream_content(response)
+        return Output().add_stream_content(response,output_formatter=Output._default_stream_output_formatter)
     else:
         return Output().add_as_json(response)
