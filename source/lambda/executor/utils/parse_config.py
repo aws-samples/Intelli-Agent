@@ -1,7 +1,7 @@
 import collections.abc
 import copy
 import logging
-from constant import IntentType
+from .constant import IntentType
 
 # update nest dict
 def update_nest_dict(d, u):

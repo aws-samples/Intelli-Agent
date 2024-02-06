@@ -1,18 +1,18 @@
-import retriever as retriever
-from retriever import QueryDocumentRetriever, QueryQuestionRetriever,index_results_format
-from constant import IntentType
+from  . import retriever
+from .retriever import QueryDocumentRetriever, QueryQuestionRetriever,index_results_format
+from .constant import IntentType
 from functools import partial
 from langchain.schema.runnable import RunnablePassthrough, RunnableBranch, RunnableLambda
-from llm_utils import Model as LLM_Model
+from .llm_utils import Model as LLM_Model
 from langchain.prompts import PromptTemplate
 import re 
 import traceback
-from prompt_template import INTENT_RECOGINITION_PROMPT_TEMPLATE_CLUADE,INTENT_RECOGINITION_EXAMPLE_TEMPLATE
+from .prompt_template import INTENT_RECOGINITION_PROMPT_TEMPLATE_CLUADE,INTENT_RECOGINITION_EXAMPLE_TEMPLATE
 import os 
 import json 
 from random import Random
-from preprocess_utils import is_api_query,get_service_name
-from langchain_utils import chain_logger
+from .preprocess_utils import is_api_query,get_service_name
+from .langchain_utils import chain_logger
 abs_file_dir = os.path.dirname(__file__)
 
 # intent_map = {

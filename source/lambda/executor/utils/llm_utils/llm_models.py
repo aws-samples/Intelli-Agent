@@ -2,7 +2,7 @@ import boto3
 import json 
 import os 
 
-from llmbot_utils import concat_recall_knowledge
+# from llmbot_utils import concat_recall_knowledge
 from typing import Any, List, Mapping, Optional
 
 from langchain.llms.base import LLM
@@ -11,7 +11,7 @@ from langchain.llms import Bedrock
 
 from langchain_community.chat_models import BedrockChat
 from langchain_community.llms.sagemaker_endpoint import LineIterator
-from constant import HUMAN_MESSAGE_TYPE,AI_MESSAGE_TYPE,SYSTEM_MESSAGE_TYPE
+from ..constant import HUMAN_MESSAGE_TYPE,AI_MESSAGE_TYPE,SYSTEM_MESSAGE_TYPE
 
 class ModelMeta(type):
     def __new__(cls, name, bases, attrs):

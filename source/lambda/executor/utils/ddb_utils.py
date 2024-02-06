@@ -6,7 +6,7 @@ from typing import List
 from decimal import Decimal
 from datetime import datetime
 from botocore.exceptions import ClientError
-from logger_utils import logger
+from .logger_utils import logger
 import time 
 from decimal import Decimal
 from langchain.schema import BaseChatMessageHistory
@@ -17,7 +17,7 @@ from langchain.schema.messages import (
     messages_to_dict,
     _message_from_dict
 )
-from constant import HUMAN_MESSAGE_TYPE,AI_MESSAGE_TYPE,SYSTEM_MESSAGE_TYPE
+from .constant import HUMAN_MESSAGE_TYPE,AI_MESSAGE_TYPE,SYSTEM_MESSAGE_TYPE
 
 
 client = boto3.resource("dynamodb")

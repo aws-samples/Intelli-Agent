@@ -15,7 +15,7 @@ from langchain.schema.runnable import (
     RunnablePassthrough,
 )
 
-from constant import HUMAN_MESSAGE_TYPE,AI_MESSAGE_TYPE,SYSTEM_MESSAGE_TYPE
+from .constant import HUMAN_MESSAGE_TYPE,AI_MESSAGE_TYPE,SYSTEM_MESSAGE_TYPE
 
 def convert_text_from_fstring_format(text):
     return text.replace('{','{{').replace('}','}}')

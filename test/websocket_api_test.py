@@ -9,7 +9,8 @@ except ModuleNotFoundError:
 import json 
 
 # find ws_url from api gateway
-ws_url = "wss://omjou492fe.execute-api.us-west-2.amazonaws.com/prod/"
+# ws_url = "wss://omjou492fe.execute-api.us-west-2.amazonaws.com/prod/"
+ws_url = "wss://2ogbgobue2.execute-api.us-west-2.amazonaws.com/prod/"
 ws = create_connection(ws_url)
 
 question_library = [
@@ -37,18 +38,18 @@ body = {
     },
     # "enable_q_q_match": True,
     # "enable_debug": False,
-    # "llm_model_id":'anthropic.claude-v2:1',
+    "llm_model_id":'anthropic.claude-v2:1',
     "get_contexts":True,
-    "generator_llm_config":{
-        "model_kwargs":{
-            "max_new_tokens": 2000,
-            "temperature": 0.1,
-            "top_p": 0.9
-        },
-        "model_id": "Baichuan2-13B-Chat-4bits",
-        "endpoint_name": "baichuan2-13b-chat-4bits-2024-02-01-03-58-29-048",#"baichuan2-13b-chat-4bits-2024-01-28-15-46-43-013",
-        "context_num": 1
-    }
+    # "generator_llm_config":{
+    #     "model_kwargs":{
+    #         "max_new_tokens": 2000,
+    #         "temperature": 0.1,
+    #         "top_p": 0.9
+    #     },
+    #     "model_id": "Baichuan2-13B-Chat-4bits",
+    #     "endpoint_name": "baichuan2-13b-chat-4bits-2024-02-01-03-58-29-048",#"baichuan2-13b-chat-4bits-2024-01-28-15-46-43-013",
+    #     "context_num": 1
+    # }
     # "session_id":f"test_{int(time.time())}"
 }
 
@@ -60,24 +61,24 @@ body.update({"retriever_top_k": 1,
             "enable_reranker": True})
 
 
-body = {
-    "session_id":"325e217e-5023-4fbc-ace9-fb053c3188a5",
-    "type":"market_conversation_summary"
-}
+# body = {
+#     "session_id":"325e217e-5023-4fbc-ace9-fb053c3188a5",
+#     "type":"market_conversation_summary"
+# }
 
-body = {
-    "action": "sendMessage",
-    "session_id": "869272a2-493d-4908-b088-fd7cb033bf5e",
-    "model": "knowledge_qa",
-    "messages": [
-        {
-            "role": "user",
-            "content": "Lambda冷启动怎么解决？"
-        }
-    ],
-    "type": "market_chain",
-    "temperature": 0.1
-}
+# body = {
+#     "action": "sendMessage",
+#     "session_id": "869272a2-493d-4908-b088-fd7cb033bf5e",
+#     "model": "knowledge_qa",
+#     "messages": [
+#         {
+#             "role": "user",
+#             "content": "Lambda冷启动怎么解决？"
+#         }
+#     ],
+#     "type": "market_chain",
+#     "temperature": 0.1
+# }
 
 # body = {
 #     "action": "sendMessage",
