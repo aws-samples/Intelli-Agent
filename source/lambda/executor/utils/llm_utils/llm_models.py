@@ -11,6 +11,7 @@ from langchain.llms import Bedrock
 
 from langchain_community.chat_models import BedrockChat
 from langchain_community.llms.sagemaker_endpoint import LineIterator
+from constant import HUMAN_MESSAGE_TYPE,AI_MESSAGE_TYPE,SYSTEM_MESSAGE_TYPE
 
 class ModelMeta(type):
     def __new__(cls, name, bases, attrs):
@@ -73,7 +74,7 @@ class Claude21(Claude2):
 
 
 class SagemakerModelBase(Model):
-    default_model_kwarg = None
+    default_model_kwargs = None
     content_type = "application/json"
     accepts = "application/json"
     
@@ -87,7 +88,7 @@ class SagemakerModelBase(Model):
 
     def __init__(self,model_kwargs=None,**kwargs) -> None:
         self.model_kwargs = model_kwargs or {}
-        if self.default_model_kwarg is not None:
+        if self.default_model_kwargs is not None:
             self.model_kwargs = {**self.default_model_kwargs,**self.model_kwargs}
         
         self.region_name = kwargs.get('region_name',None) \
@@ -139,53 +140,6 @@ class SagemakerModelBase(Model):
             return self._stream(x)
         else:
             return self._invoke(x)
-        
-# class Baichuan2ContentHandlerChat(LLMContentHandler):
-#         content_type = "application/json"
-#         accepts = "application/json"
-
-#         def transform_input(self, prompt: str, chat_history:list, model_kwargs: dict) -> bytes:
-#             _messages = chat_history + [{
-#                 "role":"user",
-#                 "content": prompt
-#             }]
-
-#             messages = []
-#             system_messages = []
-#             for message in _messages:
-#                 if message['role'] == 'system':
-#                     system_messages.append(message)
-#                 else:
-#                     messages.append(message)
-            
-#             if system_messages:
-#                 system_prompt = "\n".join([s['content'] for s in system_messages])
-#                 first_content = messages[0]['content']
-#                 messages[0]['content'] = f'{system_prompt}\n{first_content}'
-
-#             input_str = json.dumps({
-#                 "messages" : messages,
-#                 "parameters" : {**model_kwargs}
-#             })
-
-#             return input_str.encode('utf-8')
-        
-#         def transform_output(self, output: bytes) -> str: 
-#             response_json = json.loads(output.read().decode("utf-8"))
-#             return response_json
-
-# # class Baichuan2ContentHandlerRag(Baichuan2ContentHandlerChat):
-# #     def transform_input(self, prompt: str, chat_history:list, model_kwargs: dict) -> bytes:
-# #         assert len(chat_history) == 0
-# #         messages = chat_history + [{
-# #                 "role":"user",
-# #                 "content": prompt
-# #             }]
-# #         input_str = json.dumps({
-# #             "messages" : messages,
-# #             "parameters" : {**model_kwargs}
-# #         })
-# #         return input_str.encode('utf-8')
 
 class Baichuan2Chat13B4Bits(SagemakerModelBase):
     model_id = "Baichuan2-13B-Chat-4bits"
@@ -202,29 +156,30 @@ class Baichuan2Chat13B4Bits(SagemakerModelBase):
     def transform_input(self, x):
         query = x['query']
         _chat_history = x['chat_history']
-
-        _chat_history = [{"role":role,"content":content} for role,content in _chat_history]
+        _chat_history = [{"role":message.type,"content":message.content} for message in _chat_history]
         
-        # print('_chat_history',_chat_history)
         chat_history = []
         for message in _chat_history:
             content = message['content']
             role = message['role']
-            assert role in ['user','ai','system'],f'invalid role: {role}'
-            if role == 'ai':
-                role = 'assistant'        
+            assert role in [HUMAN_MESSAGE_TYPE,AI_MESSAGE_TYPE,SYSTEM_MESSAGE_TYPE],f'invalid role: {role}'
+            if role == AI_MESSAGE_TYPE:
+                role = 'assistant'  
+            elif role == HUMAN_MESSAGE_TYPE:
+                role = 'user'      
+            
             chat_history.append({
                 "role":role,
                 "content":content
             })  
         _messages = chat_history + [{
-                "role":"user",
+                "role": "user",
                 "content": query
             }] 
         messages = []
         system_messages = []
         for message in _messages:
-            if message['role'] == 'system':
+            if message['role'] == SYSTEM_MESSAGE_TYPE:
                 system_messages.append(message)
             else:
                 messages.append(message)
@@ -248,29 +203,19 @@ class Internlm2Chat7B(SagemakerModelBase):
             "timeout":60,
             "do_sample":True,
             "temperature": 0.8,
-            "top_p": 0.8,
-            # "temperature": 0.3,
-            # "top_k": 5,
-            # "top_p": 0.85,
-            # "repetition_penalty": 1.05,
-            # "do_sample": True,
+            "top_p": 0.8
         }
     
     def transform_input(self, x):
-        # question = x['query']
-        # contexts = x['contexts']
-        # context = "\n".join(contexts)
-        # meta_instruction = f"请根据下面的背景知识回答问题.\n背景知识: {context}\n"
-        # query = f"问题: {question}"
         chat_history = x['chat_history']
         assert len(chat_history) % 2 == 0, chat_history
         history = []
         for i in range(0,len(chat_history),2):
             user_message = chat_history[i]
             ai_message = chat_history[i+1]
-            assert user_message[0] == 'user' and ai_message[0] == 'ai', chat_history
-            history.append((user_message[1],ai_message[1]))
-        
+            assert user_message.type == HUMAN_MESSAGE_TYPE \
+                  and ai_message.type == AI_MESSAGE_TYPE , chat_history
+            history.append((user_message.content,ai_message.content))
         body = {
             "query": x['_query'],
             "meta_instruction": x['meta_instruction'],

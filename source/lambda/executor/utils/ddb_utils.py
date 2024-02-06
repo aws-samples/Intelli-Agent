@@ -7,14 +7,18 @@ from decimal import Decimal
 from datetime import datetime
 from botocore.exceptions import ClientError
 from logger_utils import logger
-
+import time 
+from decimal import Decimal
 from langchain.schema import BaseChatMessageHistory
 from langchain.schema.messages import (
     BaseMessage,
     _message_to_dict,
     messages_from_dict,
     messages_to_dict,
+    _message_from_dict
 )
+from constant import HUMAN_MESSAGE_TYPE,AI_MESSAGE_TYPE,SYSTEM_MESSAGE_TYPE
+
 
 client = boto3.resource("dynamodb")
 
@@ -62,8 +66,10 @@ class DynamoDBChatMessageHistory(BaseChatMessageHistory):
         history = response["Item"]["History"]
         ret = []
         for his in history:
-            assert his['type'] in ['user','ai']
-            ret.append((his['type'],his['data']['content']))
+            assert his['type'] in [AI_MESSAGE_TYPE,HUMAN_MESSAGE_TYPE]
+            create_time = his['data']['additional_kwargs']['create_time']
+            his['data']['additional_kwargs']['create_time'] = float(create_time)
+            ret.append(_message_from_dict(his))
         return ret 
 
     def add_message(self, message) -> None:
@@ -85,12 +91,35 @@ class DynamoDBChatMessageHistory(BaseChatMessageHistory):
 
     def add_user_message(self, message_id, content) -> None:
         """Append the user message to the record in DynamoDB"""
-        message = {'type': 'user', 'data': {'type': 'user', 'content': content, 'additional_kwargs': {"message_id": message_id}, 'example': False}}
+        message = {
+            'type': HUMAN_MESSAGE_TYPE,
+            'data': {
+                'type': HUMAN_MESSAGE_TYPE,
+                'content': content,
+                'additional_kwargs':{
+                    "message_id": message_id,
+                    "create_time": Decimal.from_float(time.time())
+                }, 
+                # 'example': False,
+                }
+            }
         self.add_message(message)
     
     def add_ai_message(self, message_id, content) -> None:
         """Append the ai message to the record in DynamoDB"""
-        message = {'type': 'ai', 'data': {'type': 'ai', 'content': content, 'additional_kwargs': {"message_id": message_id}, 'example': False}}
+        message = {
+            'type': AI_MESSAGE_TYPE,
+            'data': 
+            {
+                'type': AI_MESSAGE_TYPE, 
+                'content': content, 
+                'additional_kwargs': {
+                    "message_id": message_id,
+                    "create_time": Decimal.from_float(time.time())
+                    }, 
+                # 'example': False,
+                }
+            }
         self.add_message(message)
 
     def add_metadata(self, metadata) -> None:

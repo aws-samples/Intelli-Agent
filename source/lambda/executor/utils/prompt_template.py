@@ -1,6 +1,13 @@
 
 import re 
-from langchain.prompts import PromptTemplate,ChatPromptTemplate
+from langchain.prompts import (
+    PromptTemplate,ChatPromptTemplate,
+    HumanMessagePromptTemplate,AIMessagePromptTemplate,SystemMessagePromptTemplate,
+  
+)
+from langchain.schema.messages import (
+    BaseMessage,_message_from_dict,SystemMessage
+)
 from langchain.schema.runnable import (
     RunnableBranch,
     RunnableLambda,
@@ -8,9 +15,37 @@ from langchain.schema.runnable import (
     RunnablePassthrough,
 )
 
+from constant import HUMAN_MESSAGE_TYPE,AI_MESSAGE_TYPE,SYSTEM_MESSAGE_TYPE
+
 def convert_text_from_fstring_format(text):
     return text.replace('{','{{').replace('}','}}')
 
+def convert_chat_history_from_fstring_format(chat_history:list[BaseMessage]):
+    assert isinstance(chat_history,list)
+    new_chat_history = []
+    for message in chat_history:
+        assert isinstance(message,BaseMessage), message
+        converted_content = convert_text_from_fstring_format(message.content)
+        if message.type == AI_MESSAGE_TYPE:
+            message_template = AIMessagePromptTemplate.from_template(converted_content)
+        elif message.type == HUMAN_MESSAGE_TYPE:
+            message_template = HumanMessagePromptTemplate.from_template(converted_content)
+        elif message.type == SYSTEM_MESSAGE_TYPE:
+            message_template = SystemMessagePromptTemplate.from_template(converted_content)
+        else:
+            raise ValueError(f'invalid message type: {message.type},{message}')
+        new_chat_history.append(message_template)
+        # new_chat_history.append(_message_from_dict({
+        #     "type": message.type,
+        #     "data":{
+        #         "content": convert_text_from_fstring_format(message.content),
+        #         "additional_kwargs": message.additional_kwargs,
+        #         "type": message.type
+        #         }
+        # }))
+    
+    return new_chat_history
+        
 
 CLAUDE21_RAG_PROMPT_TEMPLTE = """You are a customer service agent, and answering user's query. You ALWAYS follow these guidelines when writing your response:
 <guidelines>
@@ -67,11 +102,6 @@ CLAUDE2_RAG_CONTEXT_TEMPLATE="""
 """
 
 
-# You ALWAYS follow these guidelines when writing your response:
-# <guidelines>
-# - Only answer with one category and wraper with xml tag <category></category>, NERVER provide any explanation for your answer.
-# </guidelines>
-
 
 INTENT_RECOGINITION_PROMPT_TEMPLATE_CLUADE = """
 
@@ -94,74 +124,6 @@ CHAT_PROMPT_TEMPLATE_CLAUDE = """\n\nHuman:{query}
 \n\nAssistant:
 """
 
-# def claude2_rag_template_render(
-#         query:str,contexts:list,
-#         rag_context_template=CLAUDE2_RAG_CONTEXT_TEMPLATE,
-#         rag_template = CLAUDE2_RAG_PROMPT_TEMPLTE
-#         ):
-#     """use claude2 offical rag prompte template
-
-#     Args:
-#         query (str): _description_
-#         contexts (list): _description_
-#     """
-
-#     assert isinstance(contexts,list), contexts
-#     context_xmls = []
-#     for i,context in enumerate(contexts):
-#         context_xml = rag_context_template.format(
-#             index = i+1,
-#             content = context
-#         )
-#         context_xmls.append(context_xml)
-    
-#     context = "\n".join(context_xmls)
-#     prompt = rag_template.format(query=query,context=context)
-#     return prompt
-
-
-# def claude21_rag_template_render(
-#         query:str,
-#         contexts:list,
-#         rag_context_template=CLAUDE21_RAG_CONTEXT_TEMPLATE,
-#         rag_template = CLAUDE21_RAG_PROMPT_TEMPLTE
-#         ):
-#     """use claude2 offical rag prompte template
-
-#     Args:
-#         query (str): _description_
-#         contexts (list): _description_
-#     """
-#     return claude2_rag_template_render(
-#         query,
-#         contexts,
-#         rag_context_template=rag_context_template,
-#         rag_template=rag_template
-#         )
-
-
-# def claude2_rag_api_postprocess(answer):
-#     rets = re.findall('<result>(.*?)</result>','<result>'+ answer,re.S)
-#     rets = [ret.strip() for ret in rets]
-#     rets = [ret for ret in rets if ret]
-#     if not rets:
-#         return answer  
-#     return rets[0]
-
-
-# def claude_chat_template_render(query:str):
-#     return CHAT_PROMPT_TEMPLATE_CLAUDE.format(query=query)
-
-# claude21_rag_api_postprocess = claude2_rag_api_postprocess
-
-# def claude2_rag_stream_postprocess(answer):
-#     assert not isinstance(answer,str), answer
-#     for answer_chunk in answer:
-#         yield answer_chunk.rstrip('</result>')
-
-
-# claude21_rag_stream_postprocess = claude2_rag_stream_postprocess
-
 
 
 ############ rag prompt template chain ###############
@@ -181,7 +143,7 @@ def get_claude_rag_context(contexts:list):
     return context
     
 
-bedrock_rag_chat_system_prompt = """You are a customer service agent, and answering user's query. You ALWAYS follow these guidelines when writing your response:
+BEDROCK_RAG_CHAT_SYSTEM_PROMPT = """You are a customer service agent, and answering user's query. You ALWAYS follow these guidelines when writing your response:
 <guidelines>
 - NERVER say "根据搜索结果/大家好/谢谢...".
 </guidelines>
@@ -191,14 +153,20 @@ Here are some documents for you to reference for your query:
 {context}
 </docs>"""
 
-def get_claude_chat_rag_prompt(chat_history:list):
-    chat_history = [(ch[0],convert_text_from_fstring_format(ch[1])) for ch in chat_history]
-    chat_messages = [("system",bedrock_rag_chat_system_prompt)]
+def get_claude_chat_rag_prompt(chat_history:list[BaseMessage]):
+    chat_history = convert_chat_history_from_fstring_format(chat_history)
+    # chat_history = [(ch[0],convert_text_from_fstring_format(ch[1])) for ch in chat_history]
+    chat_messages = [
+        SystemMessagePromptTemplate.from_template(BEDROCK_RAG_CHAT_SYSTEM_PROMPT)
+    ]
+    
     chat_messages = chat_messages + chat_history 
-    chat_messages += [("user","{query}")]
+    chat_messages += [
+        HumanMessagePromptTemplate.from_template("{query}")
+        ]
     context_chain = RunnablePassthrough.assign(
         context=RunnableLambda(
-            lambda x:convert_text_from_fstring_format(
+            lambda x: convert_text_from_fstring_format(
                 get_claude_rag_context(x['contexts'])
                 )
             )
@@ -208,18 +176,25 @@ def get_claude_chat_rag_prompt(chat_history:list):
 
 
 ############### chit-chat template #####################
-def get_chit_chat_system_prompt():
-    system_prompt = """You are a helpful AI Assistant"""
-    return system_prompt
+CHIT_CHAT_SYSTEM_TEMPLATE = """You are a helpful AI Assistant"""
 
-def get_chit_chat_prompt(chat_history:list):
-    chat_history = [(ch[0],convert_text_from_fstring_format(ch[1])) for ch in chat_history]
-    chat_messages = [("system",get_chit_chat_system_prompt())]
+def get_chit_chat_prompt(chat_history:list[BaseMessage]):
+    chat_history = convert_chat_history_from_fstring_format(
+        chat_history
+    )
+    # chat_history = [(ch[0],convert_text_from_fstring_format(ch[1])) for ch in chat_history]
+    chat_messages = [
+        SystemMessagePromptTemplate.from_template(CHIT_CHAT_SYSTEM_TEMPLATE)
+    ]
     chat_messages += chat_history 
-    chat_messages += [('user',"{query}")]
+    chat_messages += [
+        HumanMessagePromptTemplate.from_template("{query}")
+        ]
     return ChatPromptTemplate.from_messages(chat_messages)
 
-cqr_system_prompt = """Given a question and its context, decontextualize the question by addressing coreference and omission issues. The resulting question should retain its original meaning and be as informative as possible, and should not duplicate any previously asked questions in the context.
+
+############### conversation summary template #####################
+CQR_SYSTEM_PROMPT = """Given a question and its context, decontextualize the question by addressing coreference and omission issues. The resulting question should retain its original meaning and be as informative as possible, and should not duplicate any previously asked questions in the context.
 Context: [Q: When was Born to Fly released?
 A: Sara Evans’s third studio album, Born to Fly, was released on October 10, 2000.
 ]
@@ -232,35 +207,35 @@ Q: Is he married?
 A: Keith Carradine married Sandra Will on February 6, 1982. ]
 Question: Do they have any children?
 Rewrite: Do Keith Carradine and Sandra Will have any children?"""
-def get_conversation_query_rewrite_prompt(chat_history:list):
+def get_conversation_query_rewrite_prompt(chat_history:list[BaseMessage]):
     conversational_contexts = []
     for his in chat_history:
-        assert his[0] in ['user','ai']
-        if his[0] == 'user':
-            conversational_contexts.append(f"Q: {his[1]}")
+        assert his.type in [HUMAN_MESSAGE_TYPE,AI_MESSAGE_TYPE]
+        if his.type == HUMAN_MESSAGE_TYPE:
+            conversational_contexts.append(f"Q: {his.content}")
         else:
-            conversational_contexts.append(f"A: {his[1]}")
+            conversational_contexts.append(f"A: {his.content}")
     
     conversational_context = "\n".join(conversational_contexts)
     conversational_context = convert_text_from_fstring_format(f'[{conversational_context}]')
+    
+    
     cqr_template = ChatPromptTemplate.from_messages(
             [
-                (
-                    "system",
-                    cqr_system_prompt,
-                ),
-                # New question
-                ("user", f"\nContext: {conversational_context}\nQuestion: {{query}}\nRewrite: ")
+                SystemMessage(content=CQR_SYSTEM_PROMPT),
+                HumanMessagePromptTemplate.from_template(
+                    f"\nContext: {conversational_context}\nQuestion: {{query}}\nRewrite: "
+                )
             ]
-            )
+        )
     return cqr_template
 
 
 ####### hyde prompt ###############
 
-web_search_template = """Please write a passage to answer the question 
+WEB_SEARCH_TEMPLATE = """Please write a passage to answer the question 
 Question: {query}
 Passage:"""
-hyde_web_search_template = PromptTemplate(template=web_search_template, input_variables=["query"])
+HYDE_WEB_SEARCH_TEMPLATE = PromptTemplate(template=WEB_SEARCH_TEMPLATE, input_variables=["query"])
 
     

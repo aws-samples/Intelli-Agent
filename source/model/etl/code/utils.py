@@ -1,14 +1,22 @@
 #!/usr/bin/env python3
 # -*- coding:utf-8 -*-
 # Copyright (c) Megvii Inc. All rights reserved.
-import cv2
 import os
 
+import cv2
 import numpy as np
 
-from transformers import StoppingCriteria
+# from transformers import StoppingCriteria
 
-__all__ = ["preprocess", "nms", "multiclass_nms", "postprocess", "StoppingCriteriaScores", "markdown_compatible"]
+__all__ = [
+    "preprocess",
+    "nms",
+    "multiclass_nms",
+    "postprocess",
+    "StoppingCriteriaScores",
+    "markdown_compatible",
+]
+
 
 def preprocess(img, input_size, swap=(2, 0, 1)):
     if len(img.shape) == 3:
@@ -27,6 +35,7 @@ def preprocess(img, input_size, swap=(2, 0, 1)):
     padded_img = padded_img.transpose(swap)
     padded_img = np.ascontiguousarray(padded_img, dtype=np.float32)
     return padded_img, r
+
 
 def nms(boxes, scores, nms_thr):
     """Single class NMS implemented in Numpy."""
@@ -137,21 +146,23 @@ def postprocess(outputs, img_size, p6=False):
 
     return outputs
 
+
 def check_and_read(img_path):
-    if os.path.basename(img_path)[-3:].lower() == 'gif':
+    if os.path.basename(img_path)[-3:].lower() == "gif":
         gif = cv2.VideoCapture(img_path)
         ret, frame = gif.read()
         if not ret:
-            logger = logging.getLogger('ppocr')
+            logger = logging.getLogger("ppocr")
             logger.info("Cannot read {}. This gif image maybe corrupted.")
             return None, False
         if len(frame.shape) == 2 or frame.shape[-1] == 1:
             frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2RGB)
         imgvalue = frame[:, :, ::-1]
         return imgvalue, True, False
-    elif os.path.basename(img_path)[-3:].lower() == 'pdf':
+    elif os.path.basename(img_path)[-3:].lower() == "pdf":
         import fitz
         from PIL import Image
+
         imgs = []
         with fitz.open(img_path) as pdf:
             for pg in range(0, pdf.page_count):

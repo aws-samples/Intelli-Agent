@@ -208,7 +208,6 @@ def multiturn_chat_test():
         session_id=session_id
         )
     
-
 def multiturn_strict_qq_test():
     session_id = f'test_{int(time.time())}'
     generate_answer(
@@ -234,6 +233,12 @@ def qq_match_test():
     )
 
 def knowledge_qa_test():
+    r = generate_answer(
+        "什么是Amazon Bedrock", 
+        model="knowledge_qa", 
+        stream=True,
+        type="market_chain", 
+    )
     r = generate_answer(
         "如何将Kinesis Data Streams配置为AWS Lambda的事件源？", 
         model="knowledge_qa", 
@@ -342,6 +347,32 @@ def test_internlm_model():
     session_id=f'test_{time.time()}'
     endpoint_name = 'internlm2-chat-7b-2024-02-04-11-35-08-733'
     model_id = "internlm2-chat-7b"
+
+    generate_answer(
+        "什么是Amazon Bedrock", 
+        model="knowledge_qa", 
+        type="market_chain", 
+        stream=True,
+        rag_parameters=dict(
+            retriever_config =dict({
+                "retriever_top_k": 20,
+                "chunk_num": 2,
+                "using_whole_doc": True,
+                "reranker_top_k": 10,
+                "enable_reranker": True
+            }),
+            generator_llm_config={
+                    "model_kwargs":{
+                        "max_new_tokens": 2000,
+                        "temperature": 0.1,
+                        "top_p": 0.9
+                    },
+                    "model_id": model_id,
+                    "endpoint_name": endpoint_name,
+                    "context_num": 1
+        })
+    )
+
     generate_answer(
         "《夜曲》是谁演唱的？", 
         session_id=session_id,
@@ -548,9 +579,12 @@ if __name__ == "__main__":
     #     stream=True,
     #     type="market_chain", 
     # )
-    # market_deploy_test()
+    # knowledge_qa_test()
+
+    
+    market_deploy_test()
     # test_baichuan_model()
-    test_internlm_model()
+    # test_internlm_model()
     # test_baichuan_model()
     
     # market_deploy_test()
