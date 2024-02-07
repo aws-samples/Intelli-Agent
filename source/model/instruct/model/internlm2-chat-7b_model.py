@@ -1,8 +1,3 @@
-import traceback
-import sys
-import torch
-import gc
-from typing import List,Tuple
 try:
     from transformers.generation.streamers import BaseStreamer
 except:  # noqa # pylint: disable=bare-except
@@ -11,14 +6,13 @@ import gc
 import queue
 import sys
 import threading
-import time 
-from queue import  Empty
-from djl_python import Input, Output
-import os
+import time
+import traceback
+from queue import Empty
+from typing import List, Tuple
+
 import torch
-import json
-from transformers import pipeline, AutoModelForCausalLM, AutoTokenizer
-from transformers.generation.utils import GenerationConfig
+
 
 @torch.no_grad()
 def _stream_chat(
@@ -110,11 +104,7 @@ def _stream_chat(
             try:
                 res = response_queue.get(timeout=timeout - (time.time() - start_time))
             except queue.Empty:
-                error = f'TimeoutError: exceed the max generation time {timeout}s.'
-                print(error)
-                error = json.dumps({"error_msg":error}) + "\n"
-                raise RuntimeError(error)
-                # raise TimeoutError(f'max generate time is set as: {timeout}s')
+                raise TimeoutError(f"max generate time is set as: {timeout}s")
             if res is None:
                 return
             if isinstance(res, BaseException):
@@ -149,6 +139,13 @@ def generate(model, tokenizer, stream=False, **kwargs):
     return r
 
 
+import os
+
+import torch
+from djl_python import Input, Output
+from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
+from transformers.generation.utils import GenerationConfig
+
 tokenizer = None
 model = None
 
@@ -169,11 +166,9 @@ def get_model(properties):
         trust_remote_code=True,
         load_in_4bit=True,
         attn_implementation=attn_implementation,
-        device_map='auto',
-        )
-    tokenizer = AutoTokenizer.from_pretrained(
-        model_path, trust_remote_code=True,use_fast=False
-        )
+        device_map="auto",
+    )
+    tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
     model = model.eval()
     return tokenizer, model
 
@@ -192,6 +187,6 @@ def handle(inputs: Input) -> None:
     stream = body.get("stream", False)
     response = generate(model, tokenizer, **body)
     if stream:
-        return Output().add_stream_content(response,output_formatter=Output._default_stream_output_formatter)
+        return Output().add_stream_content(response)
     else:
         return Output().add_as_json(response)

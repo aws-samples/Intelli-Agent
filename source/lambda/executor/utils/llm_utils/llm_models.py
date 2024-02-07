@@ -202,7 +202,7 @@ class Internlm2Chat7B(SagemakerModelBase):
             "max_new_tokens": 1024,
             "timeout":60,
             "do_sample":True,
-            "temperature": 0.8,
+            "temperature": 0.1,
             "top_p": 0.8
         }
     

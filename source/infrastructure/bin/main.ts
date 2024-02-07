@@ -55,6 +55,8 @@ export class RootStack extends Stack {
     } else {
       _OpenSearchIndexDictDefaultValue = '{"aos_index_mkt_qd":"aws-cn-mkt-knowledge","aos_index_mkt_qq":"gcr-mkt-qq","aos_index_dgr_qd":"ug-index-20240108","aos_index_dgr_qq":"gcr-dgr-qq", "aos_index_dgr_faq_qd":"faq-index-20240110", "dummpy_key":"dummpy_value"}';
     } 
+    
+    // console.log(sfg)
 
     const _OpenSearchIndexDict = new CfnParameter(this, 'OpenSearchIndexDict', {
       type: 'String',
@@ -81,7 +83,8 @@ export class RootStack extends Stack {
         _rerankModelVersion:_AssetsStack._rerankModelVersion,
         _embeddingModelPrefix:_AssetsStack._embeddingModelPrefix,
         _embeddingModelVersion:_AssetsStack._embeddingModelVersion,
-        _instructCodePrefix:_AssetsStack._instructCodePrefix,
+        _instructModelPrefix:_AssetsStack._instructModelPrefix,
+        _instructModelVersion:_AssetsStack._instructModelVersion,
         env:process.env
     });
     _LLMStack.addDependency(_AssetsStack);
@@ -171,6 +174,7 @@ export class RootStack extends Stack {
     new CfnOutput(this, 'Instruct Model Endpoint', {value:_LLMStack._instructEndPoint || 'No Instruct Endpoint Created'});
     new CfnOutput(this, 'Processed Object Table', {value:_EtlStack._processedObjectsTable});
     new CfnOutput(this, 'Chunk Bucket', {value:_EtlStack._resBucketName});
+    new CfnOutput(this, '_aosIndexDict', {value:_OpenSearchIndexDict.valueAsString});
   }
 
   private setBuildConfig() {
