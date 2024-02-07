@@ -1,3 +1,5 @@
+import os
+os.environ['PYTHONUNBUFFERED'] = "1"
 import traceback
 import sys
 import torch
@@ -7,18 +9,16 @@ try:
     from transformers.generation.streamers import BaseStreamer
 except:  # noqa # pylint: disable=bare-except
     BaseStreamer = None
-import gc
 import queue
-import sys
 import threading
 import time 
 from queue import  Empty
 from djl_python import Input, Output
-import os
 import torch
 import json
 from transformers import pipeline, AutoModelForCausalLM, AutoTokenizer
 from transformers.generation.utils import GenerationConfig
+import traceback
 
 @torch.no_grad()
 def _stream_chat(
@@ -100,7 +100,7 @@ def _stream_chat(
         except BaseException as e:
             response_queue.put(e)
             return
-
+            
     def consumer():
         producer = threading.Thread(target=stream_producer)
         producer.daemon = True
@@ -108,60 +108,64 @@ def _stream_chat(
         start_time = time.time()
         while True:
             try:
-                res = response_queue.get(timeout=timeout - (time.time() - start_time))
+                res = response_queue.get(timeout=timeout-(time.time()-start_time))
             except queue.Empty:
                 error = f'TimeoutError: exceed the max generation time {timeout}s.'
-                print(error)
-                error = json.dumps({"error_msg":error}) + "\n"
-                raise RuntimeError(error)
-                # raise TimeoutError(f'max generate time is set as: {timeout}s')
+                # print(error)
+                # yield {"error_msg":error}
+                raise TimeoutError(error)
             if res is None:
-                return
-            if isinstance(res, BaseException):
+                return 
+            if isinstance(res,BaseException):
                 raise res
             yield res
-
     return consumer()
 
-
-def stream_chat(model, tokenizer, **kwargs):
+def stream_chat(model,tokenizer,**kwargs):
     try:
-        response = _stream_chat(model, tokenizer, **kwargs)
+        response = _stream_chat(
+            model,
+            tokenizer,
+            **kwargs
+        )
         history = ""
         for i in response:
-            yield i[0][len(history) :]
+            yield i[0][len(history):]
             history = i[0]
-    finally:
+    
+    except Exception as e:
+        print(traceback.format_exc())
+        yield e
+        return 
+    finally: 
         traceback.clear_frames(sys.exc_info()[2])
         gc.collect()
         torch.cuda.empty_cache()
-        if "response" in locals():
+        if 'response' in locals():
             response.close()
-
-
-def generate(model, tokenizer, stream=False, **kwargs):
-    generator = stream_chat(model, tokenizer, **kwargs)
+              
+def generate(model,tokenizer,stream=False,**kwargs):
+    generator = stream_chat(model,tokenizer,**kwargs)
     if stream:
         return generator
-    r = ""
+    r = ''
     for rr in generator:
-        r += rr
+        r += rr 
     return r
 
 
 tokenizer = None
 model = None
 
-attn_implementation = os.environ.get("attn_implementation", "eager")
-
+attn_implementation = os.environ.get('attn_implementation','eager')
 
 def get_model(properties):
-    model_dir = properties["model_dir"]
-    model_path = os.path.join(model_dir, "hf_model/")
+    model_dir =  properties['model_dir']
+    model_path = os.path.join(model_dir, 'hf_model/')
     if "model_id" in properties:
-        model_path = properties["model_id"]
-    print("properties", properties)
-    print("model_path", model_path)
+        model_path = properties['model_id']
+    print('properties',properties)
+    print('model_path',model_path)
     # local_rank = int(os.getenv('LOCAL_RANK', '0'))
     model = AutoModelForCausalLM.from_pretrained(
         model_path,
@@ -177,6 +181,13 @@ def get_model(properties):
     model = model.eval()
     return tokenizer, model
 
+def _default_stream_output_formatter(token_texts):
+    if isinstance(token_texts,Exception):
+        token_texts = {'error_msg':str(token_texts)}
+    else:
+        token_texts = {"outputs": token_texts}
+    json_encoded_str = json.dumps(token_texts) + "\n"
+    return bytearray(json_encoded_str.encode("utf-8"))
 
 def handle(inputs: Input) -> None:
     torch.cuda.empty_cache()
@@ -188,10 +199,10 @@ def handle(inputs: Input) -> None:
         # Model server makes an empty call to warmup the model on startup
         return None
     body = inputs.get_as_json()
-    print("body: ", body)
-    stream = body.get("stream", False)
-    response = generate(model, tokenizer, **body)
+    print('body: ',body)
+    stream = body.get('stream',False)
+    response = generate(model,tokenizer,**body)
     if stream:
-        return Output().add_stream_content(response,output_formatter=Output._default_stream_output_formatter)
+        return Output().add_stream_content(response,output_formatter=_default_stream_output_formatter)
     else:
         return Output().add_as_json(response)

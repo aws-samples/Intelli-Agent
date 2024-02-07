@@ -6,6 +6,7 @@ import os
 from typing import Any, List, Mapping, Optional
 
 from langchain.llms.base import LLM
+from langchain.llms.sagemaker_endpoint import SagemakerEndpoint
 from langchain.llms.sagemaker_endpoint import LLMContentHandler
 from langchain.llms import Bedrock
 
@@ -118,6 +119,9 @@ class SagemakerModelBase(Model):
         iterator = LineIterator(resp["Body"])
         for line in iterator:
             resp = json.loads(line)
+            error_msg = resp.get('error_msg',None)
+            if error_msg:
+                raise RuntimeError(error_msg)
             resp_output = resp.get("outputs")
             yield resp_output
     
