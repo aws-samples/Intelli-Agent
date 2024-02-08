@@ -430,6 +430,8 @@ class QueryDocumentRetriever(BaseRetriever):
         if not response:
             return results
         aos_hits = response["hits"]["hits"]
+        if len(aos_hits) == 0:
+            return results
         for aos_hit in aos_hits:
             result = {}
             result["source"] = aos_hit['_source']['metadata'][source_field]
@@ -445,18 +447,15 @@ class QueryDocumentRetriever(BaseRetriever):
                 if doc:
                     result["doc"] = doc
         else:
-            if context_size and ("heading_hierarchy" in aos_hit['_source']["metadata"] and 
-                            "previous" in aos_hit['_source']["metadata"]["heading_hierarchy"] and
-                            "next" in aos_hit['_source']["metadata"]["heading_hierarchy"]):
-                response_list = asyncio.run(self.__spawn_task(aos_hits, context_size))
-                for context, result in zip(response_list, results):
-                    result["doc"] = "\n".join(context[0] + [result["doc"]] + context[1])
-                # context = get_context(aos_hit['_source']["metadata"]["heading_hierarchy"]["previous"],
-                #                     aos_hit['_source']["metadata"]["heading_hierarchy"]["next"],
-                #                     aos_index,
-                #                     context_size)
-                # if context:
-                #     result["doc"] = "\n".join(context[0] + [result["doc"]] + context[1])
+            response_list = asyncio.run(self.__spawn_task(aos_hits, context_size))
+            for context, result in zip(response_list, results):
+                result["doc"] = "\n".join(context[0] + [result["doc"]] + context[1])
+            # context = get_context(aos_hit['_source']["metadata"]["heading_hierarchy"]["previous"],
+            #                     aos_hit['_source']["metadata"]["heading_hierarchy"]["next"],
+            #                     aos_index,
+            #                     context_size)
+            # if context:
+            #     result["doc"] = "\n".join(context[0] + [result["doc"]] + context[1])
         return results
 
     @timeit
