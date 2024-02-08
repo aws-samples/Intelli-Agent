@@ -44,12 +44,12 @@ body = {
     "generator_llm_config":{
         "model_kwargs":{
             "max_new_tokens": 1000,
-            "temperature": 0.1,
+            "temperature": 0.01,
             "top_p": 0.9,
             "timeout":120
         },
         "model_id": "internlm2-chat-7b",
-        "endpoint_name": "internlm2-chat-7b-2024-02-04-11-35-08-733",#"baichuan2-13b-chat-4bits-2024-01-28-15-46-43-013",
+        "endpoint_name": "internlm2-chat-7b-2024-02-07-08-10-40-119",#"baichuan2-13b-chat-4bits-2024-01-28-15-46-43-013",
         "context_num": 1
     }
     # "session_id":f"test_{int(time.time())}"

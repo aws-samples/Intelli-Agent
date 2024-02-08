@@ -345,7 +345,7 @@ def test_baichuan_model():
 
 def test_internlm_model():
     session_id=f'test_{time.time()}'
-    endpoint_name = 'internlm2-chat-7b-2024-02-04-11-35-08-733'
+    endpoint_name = 'internlm2-chat-7b-2024-02-06-14-58-15-187'
     model_id = "internlm2-chat-7b"
 
     generate_answer(
@@ -582,9 +582,38 @@ if __name__ == "__main__":
     # knowledge_qa_test()
 
     
-    market_deploy_test()
+    # market_deploy_test()
     # test_baichuan_model()
     # test_internlm_model()
+    
+    endpoint_name = 'internlm2-chat-7b-2024-02-07-08-10-40-119'
+    model_id = "internlm2-chat-7b"
+    generate_answer(
+        "什么是Amazon Bedrock", 
+        model="knowledge_qa", 
+        type="market_chain", 
+        stream=True,
+        rag_parameters=dict(
+            retriever_config =dict({
+                "retriever_top_k": 20,
+                "chunk_num": 2,
+                "using_whole_doc": True,
+                "reranker_top_k": 10,
+                "enable_reranker": True
+            }),
+            generator_llm_config={
+                    "model_kwargs":{
+                        "max_new_tokens": 2000,
+                        "temperature": 0.1,
+                        "top_p": 0.9,
+                        "timeout":60
+                    },
+                    "model_id": model_id,
+                    "endpoint_name": endpoint_name,
+                    "context_num": 1
+        })
+    )
+
     # test_baichuan_model()
     
     # market_deploy_test()
