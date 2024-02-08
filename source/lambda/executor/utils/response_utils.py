@@ -3,7 +3,7 @@ import json
 import logging
 import time
 import traceback
-from constant import EntryType
+from .constant import EntryType
 
 logger = logging.getLogger()
 

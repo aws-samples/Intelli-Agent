@@ -2,16 +2,17 @@ import boto3
 import json 
 import os 
 
-from llmbot_utils import concat_recall_knowledge
+# from llmbot_utils import concat_recall_knowledge
 from typing import Any, List, Mapping, Optional
 
 from langchain.llms.base import LLM
+from langchain.llms.sagemaker_endpoint import SagemakerEndpoint
 from langchain.llms.sagemaker_endpoint import LLMContentHandler
 from langchain.llms import Bedrock
 
 from langchain_community.chat_models import BedrockChat
 from langchain_community.llms.sagemaker_endpoint import LineIterator
-from constant import HUMAN_MESSAGE_TYPE,AI_MESSAGE_TYPE,SYSTEM_MESSAGE_TYPE
+from ..constant import HUMAN_MESSAGE_TYPE,AI_MESSAGE_TYPE,SYSTEM_MESSAGE_TYPE
 
 class ModelMeta(type):
     def __new__(cls, name, bases, attrs):
@@ -118,6 +119,9 @@ class SagemakerModelBase(Model):
         iterator = LineIterator(resp["Body"])
         for line in iterator:
             resp = json.loads(line)
+            error_msg = resp.get('error_msg',None)
+            if error_msg:
+                raise RuntimeError(error_msg)
             resp_output = resp.get("outputs")
             yield resp_output
     
@@ -202,7 +206,7 @@ class Internlm2Chat7B(SagemakerModelBase):
             "max_new_tokens": 1024,
             "timeout":60,
             "do_sample":True,
-            "temperature": 0.8,
+            "temperature": 0.1,
             "top_p": 0.8
         }
     

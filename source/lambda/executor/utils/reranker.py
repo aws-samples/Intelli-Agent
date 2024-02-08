@@ -12,7 +12,7 @@ from langchain.callbacks.manager import Callbacks
 from langchain.schema import Document
 from langchain.retrievers.document_compressors.base import BaseDocumentCompressor
 
-from sm_utils import SagemakerEndpointVectorOrCross
+from .sm_utils import SagemakerEndpointVectorOrCross
 
 rerank_model_endpoint = os.environ.get("rerank_endpoint", "")
 region = os.environ["AWS_REGION"]

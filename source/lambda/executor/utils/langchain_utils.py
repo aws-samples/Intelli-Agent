@@ -2,9 +2,9 @@ from langchain.schema.runnable.base import Runnable,RunnableLambda
 from langchain.schema.runnable import RunnablePassthrough
 from functools import partial
 from langchain.schema.callbacks.base import BaseCallbackHandler
-import threading
-import time 
-from logger_utils import logger
+# import threading
+# import time 
+from .logger_utils import logger
 
 
 class LmabdaDict(dict):

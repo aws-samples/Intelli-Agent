@@ -15,11 +15,11 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-sys.path.append("llm-bot/source/lambda/executor/utils")
-sys.path.append("llm-bot/source/lambda/executor")
-sys.path.append("utils")
-sys.path.append(".")
-import aos_utils
+# sys.path.append("llm-bot/source/lambda/executor/utils")
+sys.path.append("../executor")
+# sys.path.append("utils")
+# sys.path.append(".")
+# import aos_utils
 # from requests_aws4auth import AWS4Auth
 # import boto3
 # region = "us-east-1"

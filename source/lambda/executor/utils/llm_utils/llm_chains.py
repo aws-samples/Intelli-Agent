@@ -1,5 +1,5 @@
 
-from llmbot_utils import concat_recall_knowledge
+# from llmbot_utils import concat_recall_knowledge
 from typing import Any, List, Mapping, Optional
 
 
@@ -7,13 +7,13 @@ from typing import Any, List, Mapping, Optional
 from langchain.llms import Bedrock
 
 from langchain.schema.runnable import RunnableLambda,RunnablePassthrough
-from constant import IntentType
-from prompt_template import (
+from ..constant import IntentType
+from ..prompt_template import (
     get_claude_chat_rag_prompt,get_chit_chat_prompt,
     CHIT_CHAT_SYSTEM_TEMPLATE
 )
 from .llm_models import Model
-from constant import HUMAN_MESSAGE_TYPE,AI_MESSAGE_TYPE,SYSTEM_MESSAGE_TYPE
+# from ..constant import HUMAN_MESSAGE_TYPE,AI_MESSAGE_TYPE,SYSTEM_MESSAGE_TYPE
 
 
 class LLMChainMeta(type):
