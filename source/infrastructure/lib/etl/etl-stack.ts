@@ -9,6 +9,7 @@ import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as sns from 'aws-cdk-lib/aws-sns';
 import * as subscriptions from 'aws-cdk-lib/aws-sns-subscriptions';
 import * as s3 from 'aws-cdk-lib/aws-s3';
+import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as sagemaker from 'aws-cdk-lib/aws-sagemaker';
 import { Function, Runtime, Code, Architecture } from 'aws-cdk-lib/aws-lambda';
@@ -118,16 +119,16 @@ export class EtlStack extends NestedStack {
             // No sort key for this index
         });
 
-        const _S3Bucket = new s3.Bucket(this, 'llm-bot-glue-lib', {
+        const _S3Bucket = new s3.Bucket(this, 'llm-bot-glue-res-bucket', {
             // bucketName: `llm-bot-glue-lib-${Aws.ACCOUNT_ID}-${Aws.REGION}`,
             blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
         });
 
-        // const extraPythonFiles = new s3deploy.BucketDeployment(this, 'extraPythonFiles', {
-        //     sources: [s3deploy.Source.asset(join(__dirname, '../../../lambda/job/dep/dist'))],
-        //     destinationBucket: _S3Bucket,
-        //     // destinationKeyPrefix: 'llm_bot_dep-0.1.0-py3-none-any.whl',
-        // });
+        const extraPythonFiles = new s3deploy.BucketDeployment(this, 'extraPythonFiles', {
+            sources: [s3deploy.Source.asset(join(__dirname, '../../../lambda/job/dep/dist'))],
+            destinationBucket: _S3Bucket,
+            // destinationKeyPrefix: 'llm_bot_dep-0.1.0-py3-none-any.whl',
+        });
 
         // Assemble the extra python files list using _S3Bucket.s3UrlForObject('llm_bot_dep-0.1.0-py3-none-any.whl') and _S3Bucket.s3UrlForObject('nougat_ocr-0.1.17-py3-none-any.whl') and convert to string
         const extraPythonFilesList = [_S3Bucket.s3UrlForObject('llm_bot_dep-0.1.0-py3-none-any.whl')].join(',');
