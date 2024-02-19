@@ -1,7 +1,8 @@
-import re
 import logging
+import re
 import uuid
 from typing import Any, Dict, Iterator, List, Optional, Union
+
 import boto3
 from langchain.docstore.document import Document
 from langchain.text_splitter import (
@@ -9,9 +10,9 @@ from langchain.text_splitter import (
     RecursiveCharacterTextSplitter,
     TextSplitter,
 )
-from storage_utils import save_content_to_s3
-from constant import SplittingType
 
+from .constant import SplittingType
+from .storage_utils import save_content_to_s3
 
 s3 = boto3.client("s3")
 logger = logging.getLogger()
@@ -236,7 +237,10 @@ class MarkdownHeaderTextSplitter:
             else:
                 # Move one step to get the next chunk_id
                 same_heading_dict[current_heading] += 1
-                if len(id_index_dict[current_heading]) > same_heading_dict[current_heading]:
+                if (
+                    len(id_index_dict[current_heading])
+                    > same_heading_dict[current_heading]
+                ):
                     metadata["chunk_id"] = id_index_dict[current_heading][
                         same_heading_dict[current_heading]
                     ]

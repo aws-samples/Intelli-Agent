@@ -3,14 +3,16 @@
 # from .text import process_text
 # from .csvx import process_csv
 # from .htmlx import process_html
-from pdf import process_pdf
 # from .image import process_image
 # from .json import process_json
 # from .jsonl import process_jsonl
 import logging
 
+from .pdf import process_pdf
+
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
+
 
 def cb_process_object(s3, file_type: str, file_content, **kwargs):
     logger.info(f"Processing file type: {file_type}")

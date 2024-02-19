@@ -8,20 +8,20 @@ import asyncio
 from typing import TYPE_CHECKING, Any, Dict, List, Optional 
 
 from langchain.schema.retriever import BaseRetriever
-from langchain.retrievers import BM25Retriever, EnsembleRetriever
+# from langchain.retrievers import BM25Retriever, EnsembleRetriever
 from langchain.callbacks.manager import CallbackManagerForRetrieverRun
 from langchain.docstore.document import Document
 
-from time_utils import timeit
-from aos_utils import LLMBotOpenSearchClient
-from preprocess_utils import run_preprocess
-from sm_utils import SagemakerEndpointVectorOrCross
-from llmbot_utils import (
-    QueryType,
-    combine_recalls,
-    concat_recall_knowledge,
-    process_input_messages,
-)
+from .time_utils import timeit
+from .aos_utils import LLMBotOpenSearchClient
+from .preprocess_utils import run_preprocess
+from .sm_utils import SagemakerEndpointVectorOrCross
+# from .llmbot_utils import (
+#     QueryType,
+#     combine_recalls,
+#     concat_recall_knowledge,
+#     process_input_messages,
+# )
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -430,6 +430,8 @@ class QueryDocumentRetriever(BaseRetriever):
         if not response:
             return results
         aos_hits = response["hits"]["hits"]
+        if len(aos_hits) == 0:
+            return results
         for aos_hit in aos_hits:
             result = {}
             result["source"] = aos_hit['_source']['metadata'][source_field]
@@ -445,18 +447,15 @@ class QueryDocumentRetriever(BaseRetriever):
                 if doc:
                     result["doc"] = doc
         else:
-            if context_size and ("heading_hierarchy" in aos_hit['_source']["metadata"] and 
-                            "previous" in aos_hit['_source']["metadata"]["heading_hierarchy"] and
-                            "next" in aos_hit['_source']["metadata"]["heading_hierarchy"]):
-                response_list = asyncio.run(self.__spawn_task(aos_hits, context_size))
-                for context, result in zip(response_list, results):
-                    result["doc"] = "\n".join(context[0] + [result["doc"]] + context[1])
-                # context = get_context(aos_hit['_source']["metadata"]["heading_hierarchy"]["previous"],
-                #                     aos_hit['_source']["metadata"]["heading_hierarchy"]["next"],
-                #                     aos_index,
-                #                     context_size)
-                # if context:
-                #     result["doc"] = "\n".join(context[0] + [result["doc"]] + context[1])
+            response_list = asyncio.run(self.__spawn_task(aos_hits, context_size))
+            for context, result in zip(response_list, results):
+                result["doc"] = "\n".join(context[0] + [result["doc"]] + context[1])
+            # context = get_context(aos_hit['_source']["metadata"]["heading_hierarchy"]["previous"],
+            #                     aos_hit['_source']["metadata"]["heading_hierarchy"]["next"],
+            #                     aos_index,
+            #                     context_size)
+            # if context:
+            #     result["doc"] = "\n".join(context[0] + [result["doc"]] + context[1])
         return results
 
     @timeit

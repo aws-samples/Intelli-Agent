@@ -69,6 +69,7 @@ package-lock.json
 **/model/embedding/model/bge-large-en-v1-5
 **/model/embedding/model/bge-large-zh-v1-5
 **/model/instruct/model/models--csdc-atl--buffer-instruct-InternLM-001
+**/model/instruct/model/internlm2-chat-7b
 **/model/rerank/model/bge-reranker-large
 .env_sd
 venv
