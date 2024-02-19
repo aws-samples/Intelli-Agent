@@ -1,10 +1,17 @@
 import re
 import boto3
 from .service_intent_recognition.utils import get_service_name
-
+from .llm_utils.llm_models import Model
+from .llm_utils.llm_chains import LLMChain
+from .constant import QUERY_TRANSLATE_TYPE
 # language symbols
 CHINESE = 'zh'
 ENGLISH = 'en'
+
+language_text_map = {
+    CHINESE : "中文"
+    ENGLISH : "英文"
+}
 
 
 def language_check(query):
@@ -60,6 +67,24 @@ class Translator:
         )
         return r['TranslatedText']
 
+class LLMTranslator:
+    def __init__(self,model_id,model_kwargs=None,**kwargs) -> None:
+        self.translate_chain =  LLMChain.get_chain(
+            model_id,intent_type=QUERY_TRANSLATE_TYPE,
+            model_kwargs=model_kwargs
+        )
+       
+    
+    def translate(self,query,source_lang,target_lang):
+        """
+        Args:
+            query (_type_): _description_
+            source_lang (_type_): _description_
+            target_lang (_type_): _description_
+        """
+        r = self.translate_chain.invoke({"query":query,"target_lang":language_text_map[target_lang]})
+        return r
+
 def query_translate(query,lang):
     source_lang = lang 
 
@@ -67,7 +92,10 @@ def query_translate(query,lang):
         target_lang = ENGLISH
     else:
         target_lang = CHINESE
-    
+
+    # translated_text = LLMTranslator().translate(
+        # query,source_lang,target_lang
+    # )
     translated_text = Translator.translate(
         query,source_lang,target_lang
         )

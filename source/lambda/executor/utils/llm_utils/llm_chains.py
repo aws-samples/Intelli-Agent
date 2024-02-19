@@ -7,7 +7,7 @@ from typing import Any, List, Mapping, Optional
 from langchain.llms import Bedrock
 
 from langchain.schema.runnable import RunnableLambda,RunnablePassthrough
-from ..constant import IntentType
+from ..constant import IntentType,QUERY_TRANSLATE_TYPE
 from ..prompt_template import (
     get_claude_chat_rag_prompt,get_chit_chat_prompt,
     CHIT_CHAT_SYSTEM_TEMPLATE
@@ -218,3 +218,17 @@ class Iternlm2Chat7BKnowledgeQaChain(Iternlm2Chat7BChatChain):
     @classmethod
     def add_query(cls,x):
         return f"问题: {x['query']}\n答案:"
+
+
+class Iternlm2Chat7BTranslateChain(Iternlm2Chat7BChatChain):
+    intent_type = QUERY_TRANSLATE_TYPE
+    @classmethod
+    def add_meta_instruction(cls,x):
+        meta_instruction = f'你是一个有经验的翻译助理, 正在将用户的问题翻译成{x["target_lang"]}，请不要试图去回答用户的问题，仅仅做翻译。'
+        return meta_instruction
+        
+    @classmethod
+    def add_query(cls,x):
+        query = x['query']
+        target_lang = x['target_lang']
+        return f'请将文本:\n "{query}" \n 翻译成{target_lang}。\n 请直接翻译文本，不要输出多余的文本。'

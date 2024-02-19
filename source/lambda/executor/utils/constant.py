@@ -22,6 +22,7 @@ class IntentType(Enum):
     def has_value(cls, value):
         return value in cls._value2member_map_ 
 
+QUERY_TRANSLATE_TYPE = "query_translate"  # for query translate purpose
 
 HUMAN_MESSAGE_TYPE = 'human'
 AI_MESSAGE_TYPE = 'ai'

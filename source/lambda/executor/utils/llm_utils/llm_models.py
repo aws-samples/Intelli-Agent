@@ -209,9 +209,11 @@ class Internlm2Chat7B(SagemakerModelBase):
             "temperature": 0.1,
             "top_p": 0.8
         }
+   
+    meta_instruction = "You are a helpful AI Assistant"
     
     def transform_input(self, x):
-        chat_history = x['chat_history']
+        chat_history = x.get('chat_history',[])
         assert len(chat_history) % 2 == 0, chat_history
         history = []
         for i in range(0,len(chat_history),2):
@@ -222,7 +224,7 @@ class Internlm2Chat7B(SagemakerModelBase):
             history.append((user_message.content,ai_message.content))
         body = {
             "query": x['_query'],
-            "meta_instruction": x['meta_instruction'],
+            "meta_instruction": x.get('meta_instruction',self.meta_instruction),
             "stream": x['stream'],
             "history": history
         }
