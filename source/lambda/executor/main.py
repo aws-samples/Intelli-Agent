@@ -48,7 +48,7 @@ from utils.logger_utils import logger,opensearch_logger,boto3_logger
 
 from utils.aos_utils import LLMBotOpenSearchClient
 from utils.constant import IntentType, Type
-from utils.ddb_utils import DynamoDBChatMessageHistory
+from utils.ddb_utils import DynamoDBChatMessageHistory,filter_chat_history_by_time
 from utils.intent_utils import auto_intention_recoginition_chain
 # from langchain_utils import create_identity_lambda
 
@@ -932,7 +932,8 @@ def market_conversation_summary_entry(
         end_time = time_window.get('end_time',math.inf)
         assert isinstance(start_time, float) and isinstance(end_time, float), (start_time, end_time)
         chat_history = rag_config['chat_history']
-
+        chat_history = filter_chat_history_by_time(chat_history,start_time=start_time,end_time=end_time)
+        rag_config['chat_history'] = chat_history
     rag_config['intent_config']['intent_type'] = IntentType.CHAT.value
     
     query_input = """请简要总结上述对话中的内容,每一个对话单独一个总结，并用 '- '开头。 每一个总结要先说明问题。\n"""
