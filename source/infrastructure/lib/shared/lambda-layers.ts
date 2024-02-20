@@ -15,7 +15,7 @@ export class LambdaLayers {
           command: [
             'bash',
             '-c',
-            `pip install -r requirements.txt ${BuildConfig.PIP_PARAMETER} -t /asset-output/python`,
+            `pip install -r requirements.txt ${BuildConfig.PIP_OPTION} -t /asset-output/python`,
           ],
         },
       }),
@@ -33,7 +33,7 @@ export class LambdaLayers {
           command: [
             'bash',
             '-c',
-            `pip install -r requirements.txt ${BuildConfig.PIP_PARAMETER} -t /asset-output/python`,
+            `pip install -r requirements.txt ${BuildConfig.PIP_OPTION} -t /asset-output/python`,
           ],
         },
       }),

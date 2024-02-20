@@ -12,7 +12,6 @@ import { join } from "path";
 interface ddbStackProps extends StackProps {
     _vpc: ec2.Vpc;
     _securityGroup: ec2.SecurityGroup;
-    _domainEndpoint: string;
 }
 
 export class DynamoDBStack extends NestedStack {

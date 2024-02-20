@@ -13,5 +13,7 @@
 
 // Reference: https://github.com/awslabs/sensitive-data-protection-on-aws/blob/main/source/constructs/lib/common/build-config.ts
 export class BuildConfig {
-    static PIP_PARAMETER = '';
+    static PIP_OPTION = '';
+    // There are three mode for deployment: OFFLINE_EXTRACT, OFFLINE_OPENSEARCH, ALL
+    static DEPLOYMENT_MODE = 'ALL';
   }

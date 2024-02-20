@@ -28,7 +28,6 @@ interface etlStackProps extends StackProps {
     _embeddingEndpoint: string[];
     _region: string;
     _subEmail: string;
-    _etlCodePrefix: string;
     _s3ModelAssets: string;
     _OpenSearchIndex: string;
     _imageName: string;
@@ -64,10 +63,7 @@ export class EtlStack extends NestedStack {
         const model = new sagemaker.CfnModel(this, 'etl-model', {
             executionRoleArn: endpointRole.roleArn,
             primaryContainer: {
-                image: imageUrl,
-                environment: {
-                    S3_CODE_PREFIX: props._etlCodePrefix,
-                },
+                image: imageUrl
             },
         });
 

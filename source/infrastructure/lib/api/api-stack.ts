@@ -9,10 +9,10 @@ import * as sfn from 'aws-cdk-lib/aws-stepfunctions';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import { Construct } from 'constructs';
 import { join } from "path";
-import { WebSocketApi } from '@aws-cdk/aws-apigatewayv2-alpha';
 import { WebSocketStack } from './websocket-api';
 import { ApiQueueStack } from './api-queue';
 import * as lambdaEventSources from 'aws-cdk-lib/aws-lambda-event-sources';
+import { LambdaLayers } from '../shared/lambda-layers';
 
 // import { DockerImageFunction, Handler } from 'aws-cdk-lib/aws-lambda';
 // import { DockerImageCode } from 'aws-cdk-lib/aws-lambda';
@@ -34,8 +34,6 @@ interface apiStackProps extends StackProps {
     _jobDefinitionArn: string;
     _etlEndpoint: string;
     _resBucketName: string;
-    _ApiLambdaExecutorLayer: lambda.LayerVersion;
-    _ApiLambdaEmbeddingLayer: lambda.LayerVersion;
 }
 
 export class LLMApiStack extends NestedStack {
@@ -56,13 +54,15 @@ export class LLMApiStack extends NestedStack {
         const _jobDefinitionArn = props._jobDefinitionArn
         const _etlEndpoint = props._etlEndpoint
         const _resBucketName = props._resBucketName
-        const _ApiLambdaExecutorLayer = props._ApiLambdaExecutorLayer
-        const _ApiLambdaEmbeddingLayer = props._ApiLambdaEmbeddingLayer
 
 
         const queueStack = new ApiQueueStack(this, 'LLMQueueStack');
         const sqsStatement = queueStack.sqsStatement;
         const messageQueue = queueStack.messageQueue;
+
+        const lambdaLayers = new LambdaLayers(this);
+        const _ApiLambdaExecutorLayer = lambdaLayers.createExecutorLayer();
+        const _ApiLambdaEmbeddingLayer = lambdaLayers.createEmbeddingLayer();
 
         // s3 bucket for storing documents
         const _S3Bucket = new s3.Bucket(this, 'llm-bot-documents', {
