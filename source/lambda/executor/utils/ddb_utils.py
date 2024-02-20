@@ -17,6 +17,7 @@ from langchain.schema.messages import (
     messages_to_dict,
     _message_from_dict
 )
+import math
 from .constant import HUMAN_MESSAGE_TYPE,AI_MESSAGE_TYPE,SYSTEM_MESSAGE_TYPE
 
 
@@ -152,3 +153,30 @@ class DynamoDBChatMessageHistory(BaseChatMessageHistory):
             )
         except ClientError as err:
             print(err)
+
+
+def filter_chat_history_by_time(
+        chat_history:list[BaseMessage],
+        start_time=-math.inf,
+        end_time=math.inf
+    ):
+    chat_history = sorted(chat_history,key=lambda x:x.additional_kwargs['create_time'])
+    selected_indexes = []
+    for i,message in enumerate(chat_history):
+        create_time =  message.additional_kwargs['create_time']
+        if start_time <= create_time <= end_time:
+            selected_indexes.append(i)
+    
+
+    # deal with boundry condition
+    if selected_indexes:
+        start_index = selected_indexes[0]
+        end_index = selected_indexes[-1]
+
+        if chat_history[start_index].type == AI_MESSAGE_TYPE and start_index != 0:
+            selected_indexes.insert(0,start_index -1)
+        
+        if chat_history[end_index].type == HUMAN_MESSAGE_TYPE and end_index != (len(chat_history) -1 ):
+            selected_indexes.append(end_index + 1) 
+    ret = [chat_history[i] for i in selected_indexes]
+    return ret

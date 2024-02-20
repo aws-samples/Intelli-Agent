@@ -1,16 +1,16 @@
 import itertools
-import logging
 import json
+import logging
 import os
 import sys
-import boto3
-import chardet
 from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple
 
+import boto3
+import chardet
 from langchain.docstore.document import Document
-from auto import cb_process_object
-from storage_utils import save_content_to_s3
-from constant import SplittingType
+from utils.auto import cb_process_object
+from utils.constant import SplittingType
+from utils.storage_utils import save_content_to_s3
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -21,6 +21,7 @@ res_bucket = os.environ.get("RES_BUCKET")
 
 s3 = boto3.client("s3")
 smr_client = boto3.client("sagemaker-runtime")
+
 
 def decode_file_content(content: str, default_encoding: str = "utf-8"):
     """Decode the file content and auto detect the content encoding.
@@ -40,6 +41,7 @@ def decode_file_content(content: str, default_encoding: str = "utf-8"):
 
     return decoded_content
 
+
 def iterate_s3_files(bucket: str, key: str, need_split: bool) -> Generator:
     # extract the file type from the key, e.g. llm/pdf-sample-01.pdf
     file_type = key.split(".")[-1]
@@ -53,7 +55,7 @@ def iterate_s3_files(bucket: str, key: str, need_split: bool) -> Generator:
         "etl_model_endpoint": etlModelEndpoint,
         "smr_client": smr_client,
         "res_bucket": res_bucket,
-        "need_split": need_split
+        "need_split": need_split,
     }
     if file_type == "txt":
         yield "txt", decode_file_content(file_content), kwargs
@@ -78,6 +80,7 @@ def iterate_s3_files(bucket: str, key: str, need_split: bool) -> Generator:
     else:
         logger.info(f"Unknown file type: {file_type}")
 
+
 def batch_generator(generator, batch_size: int):
     iterator = iter(generator)
     while True:
@@ -85,6 +88,7 @@ def batch_generator(generator, batch_size: int):
         if not batch:
             break
         yield batch
+
 
 def document_to_dict(document: Document) -> dict:
     """
@@ -94,10 +98,11 @@ def document_to_dict(document: Document) -> dict:
     :return: A dictionary representation of the Document.
     """
     return {
-        'page_content': document.page_content,
-        'metadata': document.metadata,
+        "page_content": document.page_content,
+        "metadata": document.metadata,
         # 'type': document.type,
     }
+
 
 def serialize_documents(documents: List[Document]) -> str:
     """
@@ -109,16 +114,19 @@ def serialize_documents(documents: List[Document]) -> str:
     res_dicts = [document_to_dict(doc) for doc in documents]
     return json.dumps(res_dicts)
 
+
 def lambda_handler(event, context):
     logger.info(f"Event: {event}")
     # get the bucket name and key from the event
-    s3_bucket = json.loads(event['body'])['s3_bucket']
-    s3_prefix = json.loads(event['body'])['s3_prefix']
-    need_split = json.loads(event['body'])['need_split']
+    s3_bucket = json.loads(event["body"])["s3_bucket"]
+    s3_prefix = json.loads(event["body"])["s3_prefix"]
+    need_split = json.loads(event["body"])["need_split"]
 
     # Type List[List[Document]
     resp_list = []
-    for file_type, file_content, kwargs in iterate_s3_files(s3_bucket, s3_prefix, need_split):
+    for file_type, file_content, kwargs in iterate_s3_files(
+        s3_bucket, s3_prefix, need_split
+    ):
         try:
             response = cb_process_object(s3, file_type, file_content, **kwargs)
             # for document in response:
@@ -128,7 +136,9 @@ def lambda_handler(event, context):
             # logger.info(f"Response: {response} type: {type(response)}, serialize_documents: {serialize_documents(response)}")
             resp_list.append(serialize_documents(response))
         except Exception as e:
-            logger.error(f"Error processing file: {kwargs['key']} in bucket: {kwargs['bucket']}")
+            logger.error(
+                f"Error processing file: {kwargs['key']} in bucket: {kwargs['bucket']}"
+            )
             logger.error(e)
             raise e
     # logger.info(f"responseList: {resp_list} type: {type(resp_list)}")
@@ -138,7 +148,7 @@ def lambda_handler(event, context):
             {
                 "bucket": s3_bucket,
                 "prefix": s3_prefix,
-                "content": json.loads(resp_list[0])
+                "content": json.loads(resp_list[0]),
             }
         ),
     }

@@ -1,10 +1,10 @@
+import datetime
 import itertools
+import json
 import logging
 import os
 import sys
 import time
-import json
-import datetime
 from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple
 import traceback
 
@@ -17,12 +17,12 @@ from langchain.docstore.document import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores import OpenSearchVectorSearch
 from llm_bot_dep import sm_utils
+from llm_bot_dep.constant import SplittingType
 from llm_bot_dep.enhance_utils import EnhanceWithBedrock
 from llm_bot_dep.loaders.auto import cb_process_object
+from llm_bot_dep.storage_utils import save_content_to_s3
 from opensearchpy import RequestsHttpConnection
 from requests_aws4auth import AWS4Auth
-from llm_bot_dep.storage_utils import save_content_to_s3
-from llm_bot_dep.constant import SplittingType
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 logger = logging.getLogger()
@@ -53,7 +53,7 @@ args = getResolvedOptions(
         "AOS_INDEX",
         "CONTENT_TYPE",
         "EMBEDDING_TYPE",
-        "EMBEDDING_LANG"
+        "EMBEDDING_LANG",
     ],
 )
 
@@ -110,6 +110,7 @@ MAX_OS_DOCS_PER_PUT = 8
 # Set the NLTK data path to the /tmp directory for AWS Glue jobs
 nltk.data.path.append("/tmp/nltk_data")
 
+
 def decode_file_content(content: str, default_encoding: str = "utf-8"):
     """Decode the file content and auto detect the content encoding.
 
@@ -128,6 +129,7 @@ def decode_file_content(content: str, default_encoding: str = "utf-8"):
 
     return decoded_content
 
+
 # such glue job is running as map job, the batchIndice is the index per file to handle in current job
 def iterate_s3_files(bucket: str, prefix: str) -> Generator:
     paginator = s3.get_paginator("list_objects_v2")
@@ -138,7 +140,11 @@ def iterate_s3_files(bucket: str, prefix: str) -> Generator:
             # skip the prefix with slash, which is the folder name
             if key.endswith("/"):
                 continue
-            logger.info("Current batchIndice: {}, bucket: {}, key: {}".format(currentIndice, bucket, key))
+            logger.info(
+                "Current batchIndice: {}, bucket: {}, key: {}".format(
+                    currentIndice, bucket, key
+                )
+            )
             if currentIndice != int(batchIndice):
                 logger.info(
                     "currentIndice: {}, batchIndice: {}, skip file: {}".format(
@@ -226,6 +232,7 @@ def iterate_s3_files(bucket: str, prefix: str) -> Generator:
             else:
                 logger.info(f"Unknown file type: {file_type}")
 
+
 def batch_generator(generator, batch_size: int):
     iterator = iter(generator)
     while True:
@@ -304,7 +311,9 @@ def aos_injection(
                 yield split
 
     if gen_chunk:
-        generator = chunk_generator(content, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+        generator = chunk_generator(
+            content, chunk_size=chunk_size, chunk_overlap=chunk_overlap
+        )
     else:
         generator = content
 
@@ -317,16 +326,24 @@ def aos_injection(
         for document in batch:
             # update document with complete_heading
             if "complete_heading" in document.metadata:
-                document.page_content = document.metadata["complete_heading"] + ' ' + document.page_content
-
-            @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
+                document.page_content = (
+                    document.metadata["complete_heading"] + " " + document.page_content
+                )
+            else:
+                document.page_content = (document.page_content)
+            @retry(
+                stop=stop_after_attempt(3),
+                wait=wait_exponential(multiplier=1, min=4, max=10),
+            )
             def _aos_injection(document: Document) -> Document:
                 # If user customize the index, use the customized index as high priority, NOTE the custom index will be created with default AOS mapping in LangChain, use API to create the index with customized mapping before running the job if you want to customize the mapping
                 if aos_custom_index:
                     index_name = aos_custom_index
-                
+
                 for embedding in embedding_list.values():
-                    document.metadata["embedding_endpoint_name"] = embedding.endpoint_name
+                    document.metadata["embedding_endpoint_name"] = (
+                        embedding.endpoint_name
+                    )
                     docsearch = OpenSearchVectorSearch(
                         index_name=index_name,
                         embedding_function=embedding,
@@ -393,7 +410,13 @@ def main():
                         gen_chunk=False,
                     )
                 elif file_type in ["pdf", "txt", "doc", "md", "html", "json", "jsonl"]:
-                    aos_injection(res, embeddingModelEndpointList, aosEndpoint, aos_index, file_type)
+                    aos_injection(
+                        res,
+                        embeddingModelEndpointList,
+                        aosEndpoint,
+                        aos_index,
+                        file_type,
+                    )
                 if qa_enhancement == "true":
                     enhanced_prompt_list = []
                     # iterate the document to get the QA pairs
@@ -415,9 +438,7 @@ def main():
                             enhanced_prompt_list = ewb.EnhanceWithClaude(
                                 prompt, document, enhanced_prompt_list
                             )
-                        logger.info(
-                            f"Enhanced prompt: {enhanced_prompt_list}"
-                        )
+                        logger.info(f"Enhanced prompt: {enhanced_prompt_list}")
 
                     if len(enhanced_prompt_list) > 0:
                         for document in enhanced_prompt_list:
@@ -432,7 +453,7 @@ def main():
                             embeddingModelEndpointList,
                             aosEndpoint,
                             aos_index,
-                            "qa"
+                            "qa",
                         )
 
             except Exception as e:
@@ -450,12 +471,12 @@ def main():
 if __name__ == "__main__":
     logger.info("boto3 version: %s", boto3.__version__)
 
-    # Set the NLTK data path to the /tmp directory for AWS Glue jobs
-    nltk.data.path.append("/tmp")
-    # List of NLTK packages to download
-    nltk_packages = ["words", "punkt"]
-    # Download the required NLTK packages to /tmp
-    for package in nltk_packages:
-        # Download the package to /tmp/nltk_data
-        nltk.download(package, download_dir="/tmp/nltk_data")
+    # # Set the NLTK data path to the /tmp directory for AWS Glue jobs
+    # nltk.data.path.append("/tmp")
+    # # List of NLTK packages to download
+    # nltk_packages = ["words", "punkt"]
+    # # Download the required NLTK packages to /tmp
+    # for package in nltk_packages:
+    #     # Download the package to /tmp/nltk_data
+    #     nltk.download(package, download_dir="/tmp/nltk_data")
     main()
