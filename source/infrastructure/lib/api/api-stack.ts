@@ -13,6 +13,7 @@ import { WebSocketStack } from './websocket-api';
 import { ApiQueueStack } from './api-queue';
 import * as lambdaEventSources from 'aws-cdk-lib/aws-lambda-event-sources';
 import { LambdaLayers } from '../shared/lambda-layers';
+import { BuildConfig } from '../../lib/shared/build-config';
 
 // import { DockerImageFunction, Handler } from 'aws-cdk-lib/aws-lambda';
 // import { DockerImageCode } from 'aws-cdk-lib/aws-lambda';
@@ -38,9 +39,9 @@ interface apiStackProps extends StackProps {
 
 export class LLMApiStack extends NestedStack {
 
-    _apiEndpoint;
-    _documentBucket;
-    _wsEndpoint
+    _apiEndpoint: string = '';
+    _documentBucket: string = '';
+    _wsEndpoint: string = '';
     constructor(scope: Construct, id: string, props: apiStackProps) {
         super(scope, id, props);
 
@@ -70,74 +71,6 @@ export class LLMApiStack extends NestedStack {
             // bucketName: Aws.STACK_NAME + '-' + Aws.ACCOUNT_ID + '-' + Aws.REGION + '-documents',
             blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
         });
-
-        const lambdaExecutor = new Function(this,
-            "lambdaExecutor", {
-            runtime: Runtime.PYTHON_3_11,
-            handler: "main.lambda_handler",
-            code: Code.fromAsset(join(__dirname, "../../../lambda/executor")),
-            timeout: Duration.minutes(15),
-            memorySize: 1024,
-            vpc: _vpc,
-            vpcSubnets: {
-                subnets: _vpc.privateSubnets,
-            },
-            securityGroups: [_securityGroup],
-            architecture: Architecture.X86_64,
-            environment: {
-                aos_endpoint: _domainEndpoint,
-                llm_endpoint: props._instructEndPoint,
-                embedding_endpoint: props._embeddingEndPoints[0],
-                zh_embedding_endpoint: props._embeddingEndPoints[0],
-                en_embedding_endpoint: props._embeddingEndPoints[1],
-                rerank_endpoint: props._rerankEndPoint,
-                aos_index: _aosIndex,
-                aos_index_dict: _aosIndexDict,
-                chat_session_table: _chatSessionTable,
-            },
-            layers: [_ApiLambdaExecutorLayer]
-        });
-
-        lambdaExecutor.addToRolePolicy(new iam.PolicyStatement({
-            // principals: [new iam.AnyPrincipal()],
-            actions: [
-                "sagemaker:InvokeEndpointAsync",
-                "sagemaker:InvokeEndpoint",
-                "s3:List*",
-                "s3:Put*",
-                "s3:Get*",
-                "es:*",
-                "dynamodb:*",
-                "secretsmanager:GetSecretValue",
-                "translate:*",
-                "bedrock:*",
-            ],
-            effect: iam.Effect.ALLOW,
-            resources: ['*'],
-        }
-        ))
-        lambdaExecutor.addToRolePolicy(sqsStatement);
-        lambdaExecutor.addEventSource(new lambdaEventSources.SqsEventSource(messageQueue));
-
-
-        const lambdaDispatcher = new Function(this,
-            "lambdaDispatcher", {
-            runtime: Runtime.PYTHON_3_11,
-            handler: "main.lambda_handler",
-            code: Code.fromAsset(join(__dirname, "../../../lambda/dispatcher")),
-            timeout: Duration.minutes(15),
-            memorySize: 1024,
-            vpc: _vpc,
-            vpcSubnets: {
-                subnets: _vpc.privateSubnets,
-            },
-            securityGroups: [_securityGroup],
-            architecture: Architecture.X86_64,
-            environment: {
-                SQS_QUEUE_URL: messageQueue.queueUrl,
-            }
-        });
-        lambdaDispatcher.addToRolePolicy(sqsStatement);
 
         const lambdaEmbedding = new Function(this,
             "lambdaEmbedding", {
@@ -209,7 +142,7 @@ export class LLMApiStack extends NestedStack {
         ))
 
         const lambdaDdb = new lambda.Function(this, "lambdaDdb", {
-            runtime:lambda.Runtime.PYTHON_3_11,
+            runtime: lambda.Runtime.PYTHON_3_11,
             handler: "rating.lambda_handler",
             code: lambda.Code.fromAsset(join(__dirname, "../../../lambda/ddb")),
             environment: {
@@ -217,79 +150,20 @@ export class LLMApiStack extends NestedStack {
                 SESSIONS_BY_USER_ID_INDEX_NAME: "byUserId",
             },
             vpc: _vpc,
-                vpcSubnets: {
-                    subnets: _vpc.privateSubnets,
-                },
-                securityGroups: [props._securityGroup]
-            });
-
-        lambdaDdb.addToRolePolicy(new iam.PolicyStatement({
-                actions: [
-                "dynamodb:*"
-                ],
-                effect: iam.Effect.ALLOW,
-                resources: ['*'],
-                }
-            ))
-
-        // Define the API Gateway
-        const api = new apigw.RestApi(this, 'llmApi', {
-            restApiName: 'llmApi',
-            description: 'This service serves the LLM API.',
-            endpointConfiguration: {
-                types: [apigw.EndpointType.REGIONAL]
+            vpcSubnets: {
+                subnets: _vpc.privateSubnets,
             },
-            defaultCorsPreflightOptions: {
-                allowHeaders: [
-                    'Content-Type',
-                    'X-Amz-Date',
-                    'Authorization',
-                    'X-Api-Key',
-                    'X-Amz-Security-Token'
-                ],
-                allowMethods: apigw.Cors.ALL_METHODS,
-                allowCredentials: true,
-                allowOrigins: apigw.Cors.ALL_ORIGINS,
-            },
-            deployOptions: {
-                stageName: 'v1',
-                metricsEnabled: true,
-                loggingLevel: apigw.MethodLoggingLevel.INFO,
-                dataTraceEnabled: true,
-                tracingEnabled: true,
-            },
+            securityGroups: [props._securityGroup]
         });
 
-        // Define the API Gateway Lambda Integration with proxy and no integration responses
-        const lambdaExecutorIntegration = new apigw.LambdaIntegration(lambdaExecutor, { proxy: true, });
-
-        // Define the API Gateway Method
-        const apiResourceLLM = api.root.addResource('llm');
-        apiResourceLLM.addMethod('POST', lambdaExecutorIntegration);
-
-        // Define the API Gateway Lambda Integration with proxy and no integration responses
-        const lambdaEmbeddingIntegration = new apigw.LambdaIntegration(lambdaEmbedding, { proxy: true, });
-
-        // Define the API Gateway Method
-        const apiResourceEmbedding = api.root.addResource('extract');
-        apiResourceEmbedding.addMethod('POST', lambdaEmbeddingIntegration);
-
-        // Define the API Gateway Lambda Integration with proxy and no integration responses
-        const lambdaAosIntegration = new apigw.LambdaIntegration(lambdaAos, { proxy: true, });
-
-        // All AOS wrapper should be within such lambda
-        const apiResourceAos = api.root.addResource('aos');
-        apiResourceAos.addMethod('POST', lambdaAosIntegration);
-
-        // Add Get method to query & search index in OpenSearch, such embedding lambda will be updated for online process
-        apiResourceAos.addMethod('GET', lambdaAosIntegration);
-
-        // Define the API Gateway Lambda Integration with proxy and no integration responses
-        const lambdaDdbIntegration = new apigw.LambdaIntegration(lambdaDdb, { proxy: true, });
-
-        // All AOS wrapper should be within such lambda
-        const apiResourceDdb = api.root.addResource('ddb');
-        apiResourceDdb.addMethod('POST', lambdaDdbIntegration);
+        lambdaDdb.addToRolePolicy(new iam.PolicyStatement({
+            actions: [
+                "dynamodb:*"
+            ],
+            effect: iam.Effect.ALLOW,
+            resources: ['*'],
+        }
+        ))
 
         // Integration with Step Function to trigger ETL process
         // Lambda function to trigger Step Function
@@ -306,9 +180,6 @@ export class LLMApiStack extends NestedStack {
 
         // grant lambda function to invoke step function
         props._sfnOutput.grantStartExecution(lambdaStepFunction);
-
-        const apiResourceStepFunction = api.root.addResource('etl');
-        apiResourceStepFunction.addMethod('POST', new apigw.LambdaIntegration(lambdaStepFunction));
 
         // add s3 event notification when file uploaded to the bucket
         _S3Bucket.addEventNotification(s3.EventType.OBJECT_CREATED, new s3n.LambdaDestination(lambdaStepFunction), { prefix: 'documents/' });
@@ -332,13 +203,6 @@ export class LLMApiStack extends NestedStack {
             effect: iam.Effect.ALLOW,
             resources: ['*'],
         }));
-        const apiResourceETLStatus = apiResourceStepFunction.addResource("status")
-        apiResourceETLStatus.addMethod('GET', new apigw.LambdaIntegration(lambdaGetETLStatus));
-
-        const webSocketApi = new WebSocketStack(this, 'WebSocketApi', {
-            dispatcherLambda: lambdaDispatcher,
-            sendMessageLambda: lambdaExecutor,
-        });
 
         const lambdaBatch = new Function(this,
             "lambdaBatch", {
@@ -375,8 +239,67 @@ export class LLMApiStack extends NestedStack {
             ],
             effect: iam.Effect.ALLOW,
             resources: ['*'],
-            }
+        }
         ))
+
+        // Define the API Gateway
+        const api = new apigw.RestApi(this, 'llmApi', {
+            restApiName: 'llmApi',
+            description: 'This service serves the LLM API.',
+            endpointConfiguration: {
+                types: [apigw.EndpointType.REGIONAL]
+            },
+            defaultCorsPreflightOptions: {
+                allowHeaders: [
+                    'Content-Type',
+                    'X-Amz-Date',
+                    'Authorization',
+                    'X-Api-Key',
+                    'X-Amz-Security-Token'
+                ],
+                allowMethods: apigw.Cors.ALL_METHODS,
+                allowCredentials: true,
+                allowOrigins: apigw.Cors.ALL_ORIGINS,
+            },
+            deployOptions: {
+                stageName: 'v1',
+                metricsEnabled: true,
+                loggingLevel: apigw.MethodLoggingLevel.INFO,
+                dataTraceEnabled: true,
+                tracingEnabled: true,
+            },
+        });
+
+        // Define the API Gateway Lambda Integration with proxy and no integration responses
+        const lambdaEmbeddingIntegration = new apigw.LambdaIntegration(lambdaEmbedding, { proxy: true, });
+
+        // Define the API Gateway Method
+        const apiResourceEmbedding = api.root.addResource('extract');
+        apiResourceEmbedding.addMethod('POST', lambdaEmbeddingIntegration);
+
+        // Define the API Gateway Lambda Integration with proxy and no integration responses
+        const lambdaAosIntegration = new apigw.LambdaIntegration(lambdaAos, { proxy: true, });
+
+        // All AOS wrapper should be within such lambda
+        const apiResourceAos = api.root.addResource('aos');
+        apiResourceAos.addMethod('POST', lambdaAosIntegration);
+
+        // Add Get method to query & search index in OpenSearch, such embedding lambda will be updated for online process
+        apiResourceAos.addMethod('GET', lambdaAosIntegration);
+
+        // Define the API Gateway Lambda Integration with proxy and no integration responses
+        const lambdaDdbIntegration = new apigw.LambdaIntegration(lambdaDdb, { proxy: true, });
+
+        // All AOS wrapper should be within such lambda
+        const apiResourceDdb = api.root.addResource('ddb');
+        apiResourceDdb.addMethod('POST', lambdaDdbIntegration);
+
+        const apiResourceStepFunction = api.root.addResource('etl');
+        apiResourceStepFunction.addMethod('POST', new apigw.LambdaIntegration(lambdaStepFunction));
+
+        const apiResourceETLStatus = apiResourceStepFunction.addResource("status")
+        apiResourceETLStatus.addMethod('GET', new apigw.LambdaIntegration(lambdaGetETLStatus));
+
         // Define the API Gateway Lambda Integration to invoke Batch job
         const lambdaBatchIntegration = new apigw.LambdaIntegration(lambdaBatch, { proxy: true, });
 
@@ -384,8 +307,91 @@ export class LLMApiStack extends NestedStack {
         const apiResourceBatch = api.root.addResource('batch');
         apiResourceBatch.addMethod('POST', lambdaBatchIntegration);
 
+        if (BuildConfig.DEPLOYMENT_MODE === 'ALL') {
+            const lambdaExecutor = new Function(this,
+                "lambdaExecutor", {
+                runtime: Runtime.PYTHON_3_11,
+                handler: "main.lambda_handler",
+                code: Code.fromAsset(join(__dirname, "../../../lambda/executor")),
+                timeout: Duration.minutes(15),
+                memorySize: 1024,
+                vpc: _vpc,
+                vpcSubnets: {
+                    subnets: _vpc.privateSubnets,
+                },
+                securityGroups: [_securityGroup],
+                architecture: Architecture.X86_64,
+                environment: {
+                    aos_endpoint: _domainEndpoint,
+                    llm_endpoint: props._instructEndPoint,
+                    embedding_endpoint: props._embeddingEndPoints[0],
+                    zh_embedding_endpoint: props._embeddingEndPoints[0],
+                    en_embedding_endpoint: props._embeddingEndPoints[1],
+                    rerank_endpoint: props._rerankEndPoint,
+                    aos_index: _aosIndex,
+                    aos_index_dict: _aosIndexDict,
+                    chat_session_table: _chatSessionTable,
+                },
+                layers: [_ApiLambdaExecutorLayer]
+            });
+
+            lambdaExecutor.addToRolePolicy(new iam.PolicyStatement({
+                // principals: [new iam.AnyPrincipal()],
+                actions: [
+                    "sagemaker:InvokeEndpointAsync",
+                    "sagemaker:InvokeEndpoint",
+                    "s3:List*",
+                    "s3:Put*",
+                    "s3:Get*",
+                    "es:*",
+                    "dynamodb:*",
+                    "secretsmanager:GetSecretValue",
+                    "translate:*",
+                    "bedrock:*",
+                ],
+                effect: iam.Effect.ALLOW,
+                resources: ['*'],
+            }
+            ))
+            lambdaExecutor.addToRolePolicy(sqsStatement);
+            lambdaExecutor.addEventSource(new lambdaEventSources.SqsEventSource(messageQueue));
+
+            // Define the API Gateway Lambda Integration with proxy and no integration responses
+            const lambdaExecutorIntegration = new apigw.LambdaIntegration(lambdaExecutor, { proxy: true, });
+
+            // Define the API Gateway Method
+            const apiResourceLLM = api.root.addResource('llm');
+            apiResourceLLM.addMethod('POST', lambdaExecutorIntegration);
+
+            const lambdaDispatcher = new Function(this,
+                "lambdaDispatcher", {
+                runtime: Runtime.PYTHON_3_11,
+                handler: "main.lambda_handler",
+                code: Code.fromAsset(join(__dirname, "../../../lambda/dispatcher")),
+                timeout: Duration.minutes(15),
+                memorySize: 1024,
+                vpc: _vpc,
+                vpcSubnets: {
+                    subnets: _vpc.privateSubnets,
+                },
+                securityGroups: [_securityGroup],
+                architecture: Architecture.X86_64,
+                environment: {
+                    SQS_QUEUE_URL: messageQueue.queueUrl,
+                }
+            });
+            lambdaDispatcher.addToRolePolicy(sqsStatement);
+
+            const webSocketApi = new WebSocketStack(this, 'WebSocketApi', {
+                dispatcherLambda: lambdaDispatcher,
+                sendMessageLambda: lambdaExecutor,
+            });
+
+            this._wsEndpoint = webSocketApi.websocketApiStage.api.apiEndpoint;
+        }
+
+
         this._apiEndpoint = api.url
         this._documentBucket = _S3Bucket.bucketName
-        this._wsEndpoint = webSocketApi.websocketApiStage.api.apiEndpoint
     }
 }

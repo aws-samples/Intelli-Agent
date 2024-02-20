@@ -106,9 +106,7 @@ export class LLMStack extends NestedStack {
             }
         }
 
-        if (BuildConfig.DEPLOYMENT_MODE === 'OFFLINE_OPENSEARCH') {
-            console.log('Value is true');
-        } else if (BuildConfig.DEPLOYMENT_MODE === 'ALL') {
+        if (BuildConfig.DEPLOYMENT_MODE === 'ALL') {
             // Rerank MODEL
             const rerankModelPrefix = props._rerankModelPrefix;
             const rerankCodePrefix = rerankModelPrefix + "_deploy_code";
