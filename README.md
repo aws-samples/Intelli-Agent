@@ -31,7 +31,7 @@ Follow these steps to get started:
 ### Prerequisites
 First, you need to clone the repository. You can do this by executing the following command:
 ```bash
-git clone git@github.com:aws-samples/llm-bot.git
+git clone <this repo>
 ```
 
 Then, you need to install the following prerequisites:
