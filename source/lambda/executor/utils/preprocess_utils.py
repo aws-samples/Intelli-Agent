@@ -8,11 +8,9 @@ from .constant import QUERY_TRANSLATE_TYPE
 CHINESE = 'zh'
 ENGLISH = 'en'
 
-language_text_map = {
-    CHINESE : "中文"
-    ENGLISH : "英文"
-}
-
+language_text_map = {}
+language_text_map[CHINESE] = "中文"
+language_text_map[ENGLISH] = "英文"
 
 def language_check(query):
     """直接通过是否包含中文字符来判断
@@ -71,10 +69,10 @@ class LLMTranslator:
     def __init__(self,model_id,model_kwargs=None,**kwargs) -> None:
         self.translate_chain =  LLMChain.get_chain(
             model_id,intent_type=QUERY_TRANSLATE_TYPE,
-            model_kwargs=model_kwargs
+            model_kwargs=model_kwargs,
+            **kwargs
         )
        
-    
     def translate(self,query,source_lang,target_lang):
         """
         Args:
@@ -93,12 +91,17 @@ def query_translate(query,lang):
     else:
         target_lang = CHINESE
 
-    # translated_text = LLMTranslator().translate(
-        # query,source_lang,target_lang
-    # )
-    translated_text = Translator.translate(
+    translated_text = LLMTranslator(
+        model_id="internlm2-chat-7b",
+        model_kwargs={"do_sample":False,"max_new_tokens":100},
+        endpoint_name="instruct-internlm2-chat-7b-f7dc2"
+
+    ).translate(
         query,source_lang,target_lang
-        )
+    )
+    # translated_text = Translator.translate(
+    #     query,source_lang,target_lang
+    #     )
     
     return translated_text
 

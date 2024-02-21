@@ -345,7 +345,7 @@ def test_baichuan_model():
 
 def test_internlm_model():
     session_id=f'test_{time.time()}'
-    endpoint_name = 'internlm2-chat-7b-2024-02-04-11-35-08-733'
+    endpoint_name = 'instruct-internlm2-chat-7b-f7dc2'
     model_id = "internlm2-chat-7b"
 
     generate_answer(
@@ -357,7 +357,7 @@ def test_internlm_model():
             retriever_config =dict({
                 "retriever_top_k": 20,
                 "chunk_num": 2,
-                "using_whole_doc": True,
+                "using_whole_doc": False,
                 "reranker_top_k": 10,
                 "enable_reranker": True
             }),
@@ -429,23 +429,23 @@ def test_internlm_model():
     )
     print(r[0])
 
-    generate_answer(
-        "Amazon EC2 提供了哪些功能来支持不同区域之间的数据恢复?", 
-        model="knowledge_qa", 
-        type="market_chain", 
-        stream=True,
-        rag_parameters=dict(
-            generator_llm_config={
-                    "model_kwargs":{
-                        "max_new_tokens": 2000,
-                        "temperature": 0.1,
-                        "top_p": 0.9
-                    },
-                    "model_id": model_id,
-                    "endpoint_name": endpoint_name,
-                    "context_num": 1
-        })
-    )
+    # generate_answer(
+    #     "Amazon EC2 提供了哪些功能来支持不同区域之间的数据恢复?", 
+    #     model="knowledge_qa", 
+    #     type="market_chain", 
+    #     stream=True,
+    #     rag_parameters=dict(
+    #         generator_llm_config={
+    #                 "model_kwargs":{
+    #                     "max_new_tokens": 2000,
+    #                     "temperature": 0.1,
+    #                     "top_p": 0.9
+    #                 },
+    #                 "model_id": model_id,
+    #                 "endpoint_name": endpoint_name,
+    #                 "context_num": 1
+    #     })
+    # )
 
 def market_summary_test():
     session_id = f'test_{int(time.time())}'
@@ -582,9 +582,9 @@ if __name__ == "__main__":
     # knowledge_qa_test()
 
     
-    market_deploy_test()
+    # market_deploy_test()
     # test_baichuan_model()
-    # test_internlm_model()
+    test_internlm_model()
     # test_baichuan_model()
     
     # market_deploy_test()

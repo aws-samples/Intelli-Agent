@@ -19,9 +19,7 @@ from langchain.schema.messages import (
 )
 from .constant import HUMAN_MESSAGE_TYPE,AI_MESSAGE_TYPE,SYSTEM_MESSAGE_TYPE
 
-
 client = boto3.resource("dynamodb")
-
 
 class DynamoDBChatMessageHistory(BaseChatMessageHistory):
     def __init__(

@@ -1,9 +1,6 @@
 
 # from llmbot_utils import concat_recall_knowledge
 from typing import Any, List, Mapping, Optional
-
-
-
 from langchain.llms import Bedrock
 
 from langchain.schema.runnable import RunnableLambda,RunnablePassthrough
@@ -187,7 +184,6 @@ class Iternlm2Chat7BChatChain(LLMChain):
     @classmethod
     def create_chain(cls, model_kwargs=None, **kwargs):
         stream = kwargs.get('stream',False)
-
         llm = Model.get_model(
             cls.model_id,
             model_kwargs=model_kwargs,
@@ -232,3 +228,9 @@ class Iternlm2Chat7BTranslateChain(Iternlm2Chat7BChatChain):
         query = x['query']
         target_lang = x['target_lang']
         return f'请将文本:\n "{query}" \n 翻译成{target_lang}。\n 请直接翻译文本，不要输出多余的文本。'
+
+    @classmethod
+    def create_chain(cls, model_kwargs=None, **kwargs):
+        llm_chain = super().create_chain(model_kwargs=model_kwargs,**kwargs)
+        llm_chain = llm_chain | RunnableLambda(lambda x:x.strip('"'))  # postprocess
+        return llm_chain 
