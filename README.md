@@ -68,7 +68,14 @@ Deploy the CDK template. Make sure DOCKER is installed properly.
 
 ```bash
 cd source/infrastructure
-npx cdk deploy --rollback false --parameters S3ModelAssets=<Your S3 Bucket Name> --parameters SubEmail=<Your email address> --parameters OpenSearchIndex=<Your OpenSearch Index Name> --parameters EtlImageName=<Your ETL model name> --parameters ETLTag=<Your ETL tag name>
+npx cdk deploy --parameters S3ModelAssets=<Your S3 Bucket Name> --parameters SubEmail=<Your email address> --parameters OpenSearchIndex=<Your OpenSearch Index Name> --parameters EtlImageName=<Your ETL model name> --parameters ETLTag=<Your ETL tag name>
+```
+
+To deploy the offline process only, you can configure context parameters to skip the online process. 
+
+```bash
+npx cdk deploy --parameters S3ModelAssets=<Your S3 Bucket Name> --parameters SubEmail=<Your email address> --parameters OpenSearchIndex=<Your OpenSearch Index Name> --parameters EtlImageName=<Your ETL model name> --parameters ETLTag=<Your ETL tag name> --context DeploymentMode="OFFLINE_EXTRACT"
+
 ```
 
 ## Deployment Parameters
@@ -80,8 +87,14 @@ npx cdk deploy --rollback false --parameters S3ModelAssets=<Your S3 Bucket Name>
 | EtlImageName | ETL image name, eg. etl-model, it is set when you executing source/model/etl/code/model.sh script |
 | EtlTag | ETL tag, eg. latest, v1.0, v2.0, the default value is latest, it is set when you executing source/model/etl/code/model.sh script |
 
+| Context | Description |
+|---------|-------------|
+| PipOption | The configuration option for the Python package installer (pip). |
+| DeploymentMode | The mode for deployment. There are three modes: `OFFLINE_EXTRACT`, `OFFLINE_OPENSEARCH`, and `ALL`. |
+
+
 ## Testing API Connection
-Use Postman/cURL to test the API connection. Please refer to this file for detailed API usage: [AOS API Schema](https://github.com/aws-samples/llm-bot/tree/main/docs/AOS_API_SCHEMA.md), [ETL API Schema](https://github.com/aws-samples/llm-bot/tree/main/docs/ETL_API_SCHEMA.md)
+Use Postman/cURL to test the API connection. Please refer to the following API invocation guides for detailed API usage: [AOS API Schema](https://github.com/aws-samples/llm-bot/tree/main/docs/AOS_API_SCHEMA.md), [ETL API Schema](https://github.com/aws-samples/llm-bot/tree/main/docs/ETL_API_SCHEMA.md)
 
 ## Optional Steps
 1. [Launch Dashboard](#launch-dashboard)
