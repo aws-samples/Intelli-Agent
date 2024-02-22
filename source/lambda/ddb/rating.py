@@ -1,15 +1,25 @@
-from datetime import datetime
 import json
-import boto3
+import logging
 import os
 import uuid
-import logging
+from datetime import datetime
 from decimal import Decimal
+
+import boto3
 from botocore.exceptions import ClientError
 
 logger = logging.getLogger()
 # logging.basicConfig(format='%(asctime)s,%(module)s,%(processName)s,%(levelname)s,%(message)s', level=logging.INFO, stream=sys.stderr)
 logger.setLevel(logging.INFO)
+
+
+# Custom JSON encoder to handle decimal values
+class DecimalEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, Decimal):
+            return str(o)  # Convert decimal to string
+        return super(DecimalEncoder, self).default(o)
+
 
 """
 Sample Item:
@@ -19,6 +29,7 @@ Sample Item:
 'SessionId': 'cc8700e8-f8ea-4f43-8951-964d813e5a96', 
 'StartTime': '2023-12-25T06:52:42.618249'}
 """
+
 
 def convert_to_langchain_format(openai_message):
     """
@@ -31,21 +42,24 @@ def convert_to_langchain_format(openai_message):
         ]
     }
     """
-    message_type = openai_message['role']
-    message_content = openai_message['content']
-    message_sources = openai_message.get('knowledge_sources', [])
-    additional_kwargs = {'knowledge_sources': message_sources} if message_sources else {}
+    message_type = openai_message["role"]
+    message_content = openai_message["content"]
+    message_sources = openai_message.get("knowledge_sources", [])
+    additional_kwargs = (
+        {"knowledge_sources": message_sources} if message_sources else {}
+    )
 
     converted_message = {
-        'type': 'human',
-        'data': {
-            'type': message_type,
-            'content': message_content,
-            'additional_kwargs': additional_kwargs,
-            'example': False
-        }
+        "type": "human",
+        "data": {
+            "type": message_type,
+            "content": message_content,
+            "additional_kwargs": additional_kwargs,
+            "example": False,
+        },
     }
     return converted_message
+
 
 def get_session(table, session_id, user_id):
     response = {}
@@ -56,8 +70,9 @@ def get_session(table, session_id, user_id):
             print("No record found with session id: %s", session_id)
         else:
             print(error)
-    
+
     return response.get("Item", {})
+
 
 # SESSIONS_BY_USER_ID_INDEX_NAME = "byUserId"
 def list_sessions_by_user_id(table, user_id, SESSIONS_BY_USER_ID_INDEX_NAME):
@@ -76,6 +91,7 @@ def list_sessions_by_user_id(table, user_id, SESSIONS_BY_USER_ID_INDEX_NAME):
 
     return response.get("Items", [])
 
+
 def add_messages(table, session_id, user_id, messages):
     """Append the message to the record in DynamoDB"""
     response = {}
@@ -93,12 +109,11 @@ def add_messages(table, session_id, user_id, messages):
     except ClientError as err:
         print(err)
         response = {"added": False, "error": str(err)}
-    
-    return response
-    
-    
 
-def add_metadata(table, session_id, user_id, metadata, message_id = -1):
+    return response
+
+
+def add_metadata(table, session_id, user_id, message_id, metadata):
     """Add additional metadata to the last message"""
     response = {}
 
@@ -107,10 +122,24 @@ def add_metadata(table, session_id, user_id, metadata, message_id = -1):
     start_time = session.get("StartTime", "")
 
     if not messages:
-        return {"added" : False, "error": "Failed to add metadata. No messages found in session."}
+        return {
+            "added": False,
+            "error": "Failed to add feedback. No messages found in session.",
+        }
+    elif not message_id:
+        return {
+            "added": False,
+            "error": "Failed to add feedback. Please specify the message_id in the request to add feedback.",
+        }
 
-    metadata = json.loads(json.dumps(metadata), parse_float=Decimal)
-    messages[message_id]["data"]["additional_kwargs"] = metadata
+    for message in messages:
+
+        ddb_message_id = (
+            message.get("data", {}).get("additional_kwargs", {}).get("message_id", "")
+        )
+        if message_id == ddb_message_id:
+            message["data"]["additional_kwargs"]["metadata"] = metadata
+            break
 
     try:
         table.put_item(
@@ -126,10 +155,11 @@ def add_metadata(table, session_id, user_id, metadata, message_id = -1):
     except Exception as err:
         print(err)
         response = {"added": False, "error": str(err)}
-    
+
     return response
 
-def add_feedback(table, session_id, user_id, feedback_message_id, output_messages, feedback) -> None:
+
+def add_feedback(table, session_id, user_id, message_id, feedback) -> None:
     """
     Sample feedback:
     {
@@ -146,20 +176,22 @@ def add_feedback(table, session_id, user_id, feedback_message_id, output_message
     start_time = session.get("StartTime", "")
 
     if not messages:
-        return {"added": False, "error": "Failed to add feedback. No messages found in session."}
-    elif not output_messages and not feedback_message_id:
-        return {"added": False, "error": "Failed to add feedback. Please specify the output_messages or the message_id in the request to add feedback."}
-    
-    message_content_for_feedback = output_messages[-1].get("content", "") if output_messages else ""
+        return {
+            "added": False,
+            "error": "Failed to add feedback. No messages found in session.",
+        }
+    elif not message_id:
+        return {
+            "added": False,
+            "error": "Failed to add feedback. Please specify the message_id in the request to add feedback.",
+        }
 
     for message in messages:
-        
-        ddb_message_id = message.get("data", {}).get("additional_kwargs", {}).get("message_id", "")
-        ddb_message_content = message.get("data", {}).get("content", "")
-        if feedback_message_id and ddb_message_id == feedback_message_id:
-            message["data"]["additional_kwargs"]["feedback"] = feedback
-            break
-        elif message_content_for_feedback and ddb_message_content == message_content_for_feedback:
+
+        ddb_message_id = (
+            message.get("data", {}).get("additional_kwargs", {}).get("message_id", "")
+        )
+        if message_id == ddb_message_id:
             message["data"]["additional_kwargs"]["feedback"] = feedback
             break
 
@@ -177,7 +209,7 @@ def add_feedback(table, session_id, user_id, feedback_message_id, output_message
     except Exception as err:
         print(err)
         response = {"added": False, "error": str(err)}
-    
+
     return response
 
 
@@ -205,45 +237,61 @@ def delete_user_sessions(table, user_id, SESSIONS_BY_USER_ID_INDEX_NAME):
 
     return ret_value
 
+
 def lambda_handler(event, context):
-    dynamodb = boto3.resource('dynamodb')
-    table_name = os.getenv('SESSIONS_TABLE_NAME')
-    SESSIONS_BY_USER_ID_INDEX_NAME = os.getenv('SESSIONS_BY_USER_ID_INDEX_NAME')
+    dynamodb = boto3.resource("dynamodb")
+    table_name = os.getenv("SESSIONS_TABLE_NAME")
+    SESSIONS_BY_USER_ID_INDEX_NAME = os.getenv("SESSIONS_BY_USER_ID_INDEX_NAME")
 
     session_table = dynamodb.Table(table_name)
 
-    http_method = event['httpMethod']
-    body = json.loads(event['body'])
+    http_method = event["httpMethod"]
+    body = json.loads(event["body"])
 
-    required_fields = ["operation", "session_id"]
-    
+    required_fields = ["operation"]
+
     if not all(field in body for field in required_fields):
         return {
-            'statusCode': 400,
-            'body': json.dumps({
-                'message': 'Missing required fields'
-            })
+            "statusCode": 400,
+            "body": json.dumps({"message": "Missing required fields"}),
         }
 
-    operation = body['operation']
-    session_id = body['session_id']
-    user_id = body.get('user_id', 'default_user_id')
-    messages = body.get('messages', [])
-    input_messages = body.get('input_messages', [])
-    output_messages = body.get('output_messages', [])
-    message_id = body.get('message_id', None)
-    feedback = body.get('feedback', [])
-    metadata = body.get('metadata', {})
+    operation = body["operation"]
+    session_id = body.get("session_id", "")
+    user_id = body.get("user_id", "default_user_id")
+    messages = body.get("messages", [])
+    message_id = body.get("message_id", None)
+    feedback = body.get("feedback", [])
+    metadata = body.get("metadata", {})
+
+    messages = json.loads(json.dumps(messages), parse_float=Decimal)
+    metadata = json.loads(json.dumps(metadata), parse_float=Decimal)
 
     operations_mapping = {
-        'POST': {
-            'get_session': lambda: get_session(session_table, session_id, user_id),
-            'list_sessions_by_user_id': lambda: list_sessions_by_user_id(session_table, user_id, SESSIONS_BY_USER_ID_INDEX_NAME),
-            'add_messages': lambda: add_messages(session_table, session_id, user_id, messages),
-            'add_metadata': lambda: add_metadata(session_table, session_id, user_id, metadata),
-            'add_feedback': lambda: add_feedback(session_table, session_id, user_id, message_id, output_messages, feedback),
-            'delete_session': lambda: delete_session(session_table, session_id, user_id),
-            'delete_user_sessions': lambda: delete_user_sessions(session_table, user_id, SESSIONS_BY_USER_ID_INDEX_NAME)
+        "POST": {
+            "get_session": lambda: get_session(session_table, session_id, user_id),
+            "list_sessions_by_user_id": lambda: list_sessions_by_user_id(
+                session_table, user_id, SESSIONS_BY_USER_ID_INDEX_NAME
+            ),
+            "add_messages": lambda: add_messages(
+                session_table, session_id, user_id, messages
+            ),
+            "add_metadata": lambda: add_metadata(
+                session_table, session_id, user_id, message_id, metadata
+            ),
+            "add_feedback": lambda: add_feedback(
+                session_table,
+                session_id,
+                user_id,
+                message_id,
+                feedback,
+            ),
+            "delete_session": lambda: delete_session(
+                session_table, session_id, user_id
+            ),
+            "delete_user_sessions": lambda: delete_user_sessions(
+                session_table, user_id, SESSIONS_BY_USER_ID_INDEX_NAME
+            ),
         }
     }
 
@@ -251,24 +299,27 @@ def lambda_handler(event, context):
         "Content-Type": "application/json",
         "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
         "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "*"
+        "Access-Control-Allow-Methods": "*",
     }
-    
+
     try:
-        if http_method in operations_mapping and operation in operations_mapping[http_method]:
+        if (
+            http_method in operations_mapping
+            and operation in operations_mapping[http_method]
+        ):
             response = operations_mapping[http_method][operation]()
-            logger.info("http_method: {}, operation: {}, response: {}".format(http_method, operation, response))
+            logger.info(
+                "http_method: {}, operation: {}, response: {}".format(
+                    http_method, operation, response
+                )
+            )
             return {
-                'statusCode': 200,
-                'headers': resp_header,
-                'body': json.dumps(response)
+                "statusCode": 200,
+                "headers": resp_header,
+                "body": json.dumps(response, cls=DecimalEncoder),
             }
         else:
-            raise Exception(f'Invalid {http_method} operation: {operation}')
+            raise Exception(f"Invalid {http_method} operation: {operation}")
     except Exception as e:
         # Return an error response
-        return {
-            'statusCode': 500,
-            'body': json.dumps({'error': str(e)})
-        }
-        
+        return {"statusCode": 500, "body": json.dumps({"error": str(e)})}
