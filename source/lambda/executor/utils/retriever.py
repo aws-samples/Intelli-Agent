@@ -33,18 +33,6 @@ aos_endpoint = os.environ.get("aos_endpoint", "")
 
 aos_client = LLMBotOpenSearchClient(aos_endpoint)
 
-# debug_info = {
-#     "query": "",
-#     "query_parser_info": {},
-#     "q_q_match_info": {},
-#     "knowledge_qa_knn_recall": {},
-#     "knowledge_qa_boolean_recall": {},
-#     "knowledge_qa_combined_recall": {},
-#     "knowledge_qa_cross_model_sort": {},
-#     "knowledge_qa_llm": {},
-#     "knowledge_qa_rerank": {},
-# }
-
 def remove_redundancy_debug_info(results):
     filtered_results = copy.deepcopy(results)
     for result in filtered_results:
@@ -52,72 +40,6 @@ def remove_redundancy_debug_info(results):
             if field.endswith("embedding") or field.startswith("vector"):
                 del result["detail"][field]
     return filtered_results
-
-def parse_qq_query(
-    query_input: str,
-    history: list,
-    zh_embedding_model_endpoint: str,
-    en_embedding_model_endpoint: str,
-    debug_info: dict,
-):
-    # print('query_input',query_input)
-    start = time.time()
-    # concatenate query_input and history to unified prompt
-    query_knowledge = "".join([query_input] + [row[0] for row in history][::-1])
-
-    # get query embedding
-    parsed_query = run_preprocess(query_knowledge)
-    # print('run_preprocess time: ',time.time()-start)
-    debug_info["query_parser_info"] = parsed_query
-    if parsed_query["query_lang"] == "zh":
-        parsed_query["zh_query"] = query_knowledge
-        parsed_query["en_query"] = parsed_query["translated_text"]
-    elif parsed_query["query_lang"] == "en":
-        parsed_query["zh_query"] = parsed_query["translated_text"]
-        parsed_query["en_query"] = query_knowledge
-    zh_query_similarity_embedding_prompt = parsed_query["zh_query"]
-    en_query_similarity_embedding_prompt = parsed_query["en_query"]
-    zh_query_relevance_embedding_prompt = (
-        "为这个句子生成表示以用于检索相关文章：" + parsed_query["zh_query"]
-    )
-    en_query_relevance_embedding_prompt = (
-        "Represent this sentence for searching relevant passages: "
-        + parsed_query["en_query"]
-    )
-    parsed_query["zh_query_similarity_embedding"] = SagemakerEndpointVectorOrCross(
-        prompt=zh_query_similarity_embedding_prompt,
-        endpoint_name=zh_embedding_model_endpoint,
-        region_name=region,
-        model_type="vector",
-        stop=None,
-    )
-    parsed_query["zh_query_relevance_embedding"] = SagemakerEndpointVectorOrCross(
-        prompt=zh_query_relevance_embedding_prompt,
-        endpoint_name=zh_embedding_model_endpoint,
-        region_name=region,
-        model_type="vector",
-        stop=None,
-    )
-    parsed_query["en_query_similarity_embedding"] = SagemakerEndpointVectorOrCross(
-        prompt=en_query_similarity_embedding_prompt,
-        endpoint_name=en_embedding_model_endpoint,
-        region_name=region,
-        model_type="vector",
-        stop=None,
-    )
-    parsed_query["en_query_relevance_embedding"] = SagemakerEndpointVectorOrCross(
-        prompt=en_query_relevance_embedding_prompt,
-        endpoint_name=en_embedding_model_endpoint,
-        region_name=region,
-        model_type="vector",
-        stop=None,
-    )
-    parsed_query["filter"] = []
-    if parsed_query["is_api_query"]:
-        parsed_query["filter"].append({"term": {"metadata.is_api": True}})
-    elpase_time = time.time() - start
-    logger.info(f"runing time of parse query: {elpase_time}s seconds")
-    return parsed_query
 
 @timeit
 def get_similarity_embedding(
@@ -160,11 +82,9 @@ def get_relevance_embedding(
 
 def get_filter_list(parsed_query: dict):
     filter_list = []
-    if parsed_query["is_api_query"]:
+    if "is_api_query" in parsed_query and parsed_query["is_api_query"]:
         filter_list.append({"term": {"metadata.is_api": True}})
     return filter_list
-
-
 
 def get_faq_answer(source, index_name, source_field):
     opensearch_query_response = aos_client.search(
@@ -179,7 +99,6 @@ def get_faq_answer(source, index_name, source_field):
         elif "jsonlAnswer" in r["_source"]["metadata"]:
             return r["_source"]["metadata"]["jsonlAnswer"]["answer"]
     return ""
-
 
 def get_faq_content(source, index_name):
     opensearch_query_response = aos_client.search(
@@ -204,13 +123,17 @@ def get_doc(file_path, index_name):
     chunk_list = []
     chunk_id_set = set()
     for r in opensearch_query_response["hits"]["hits"]:
-        if "chunk_id" not in r["_source"]["metadata"] or not r["_source"]["metadata"]["chunk_id"].startswith("$"):
-            continue
-        chunk_id = r["_source"]["metadata"]["chunk_id"]
-        content_type = r["_source"]["metadata"]["content_type"]
-        chunk_group_id = int(chunk_id.split("-")[0].strip("$"))
-        chunk_section_id = int(chunk_id.split("-")[-1])
-        if (chunk_id, content_type) in chunk_id_set:
+        try:
+            if "chunk_id" not in r["_source"]["metadata"] or not r["_source"]["metadata"]["chunk_id"].startswith("$"):
+                continue
+            chunk_id = r["_source"]["metadata"]["chunk_id"]
+            content_type = r["_source"]["metadata"]["content_type"]
+            chunk_group_id = int(chunk_id.split("-")[0].strip("$"))
+            chunk_section_id = int(chunk_id.split("-")[-1])
+            if (chunk_id, content_type) in chunk_id_set:
+                continue
+        except Exception as e:
+            logger.error(traceback.format_exc())
             continue
         chunk_id_set.add((chunk_id, content_type))
         chunk_list.append((chunk_id, chunk_group_id, content_type, chunk_section_id, r["_source"]["text"]))
