@@ -345,7 +345,7 @@ def test_baichuan_model():
 
 def test_internlm_model():
     session_id=f'test_{time.time()}'
-    endpoint_name = 'internlm2-chat-7b-2024-02-06-14-58-15-187'
+    endpoint_name = 'instruct-internlm2-chat-7b-f7dc2'
     model_id = "internlm2-chat-7b"
 
     generate_answer(
