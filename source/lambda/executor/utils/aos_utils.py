@@ -1,6 +1,7 @@
 import json
 import boto3
 import requests
+import os
 from requests_aws4auth import AWS4Auth
 from opensearchpy import OpenSearch, RequestsHttpConnection
 
@@ -26,7 +27,10 @@ class LLMBotOpenSearchClient:
         Initialize OpenSearch client using OpenSearch Endpoint
         """
         self.client = OpenSearch(
-            hosts = [{'host': host.replace("https://", ""), 'port': 443}],
+            hosts = [{
+                'host': host.replace("https://", ""), 
+                'port': int(os.environ.get('AOS_PORT',443))
+                }],
             http_auth=awsauth,
             use_ssl=True,
             verify_certs=True,

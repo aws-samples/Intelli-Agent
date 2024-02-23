@@ -4,8 +4,9 @@ import csv
 import os 
 import time 
 from dotenv import load_dotenv
+
 load_dotenv(
-    dotenv_path=os.path.join(os.path.dirname(__file__),'.env_global')
+    dotenv_path=os.path.join(os.path.dirname(__file__),'.env_cn')
 )
 
 import logging
@@ -542,61 +543,61 @@ def market_deploy_test():
 
     market_summary_test2()
 
-# def market_deploy_cn_test():
-#     model_id = "internlm2-chat-7b"
-#     endpoint_name = "internlm2-chat-7b-2024-02-23-07-29-02-632"
-#     rag_parameters = {
-#         "query_process_config":{
-#             "conversation_query_rewrite_config":{
-#                 "model_id":model_id,
-#                 "endpoint_name":endpoint_name
-#             },
-#             "translate_config":{
-#                 "model_id":model_id,
-#                 "endpoint_name": endpoint_name
-#             }
-#         },
-#         "intent_config": { 
-#             "model_id": model_id,
-#             "endpoint_name": endpoint_name
-#         },
-#         "generator_llm_config":{
-#             "model_kwargs":{
-#                 "max_new_tokens": 2000,
-#                 "temperature": 0.1,
-#                 "top_p": 0.9
-#             },
-#             "model_id": model_id,
-#             "endpoint_name": endpoint_name,
-#             "context_num": 1
-#         }
-#     }
-#     generate_answer(
-#         "什么是Amazon Bedrock", 
-#         model="auto", 
-#         stream=True,
-#         type="market_chain", 
-#         rag_parameters=rag_parameters
-#     )
+def market_deploy_cn_test():
+    model_id = "internlm2-chat-7b"
+    endpoint_name = "internlm2-chat-7b-2024-02-23-07-29-02-632"
+    rag_parameters = {
+        "query_process_config":{
+            "conversation_query_rewrite_config":{
+                "model_id":model_id,
+                "endpoint_name":endpoint_name
+            },
+            "translate_config":{
+                "model_id":model_id,
+                "endpoint_name": endpoint_name
+            }
+        },
+        "intent_config": { 
+            "model_id": model_id,
+            "endpoint_name": endpoint_name
+        },
+        "generator_llm_config":{
+            "model_kwargs":{
+                "max_new_tokens": 2000,
+                "temperature": 0.1,
+                "top_p": 0.9
+            },
+            "model_id": model_id,
+            "endpoint_name": endpoint_name,
+            "context_num": 1
+        }
+    }
+    generate_answer(
+        "什么是Amazon Bedrock", 
+        model="auto", 
+        stream=True,
+        type="market_chain", 
+        rag_parameters=rag_parameters
+    )
 
 
-#     session_id = f'test_{int(time.time())}'
-#     generate_answer(
-#         "《夜曲》是谁演唱的？", 
-#         session_id=session_id,
-#         model="chat", 
-#         type="market_chain", 
-#         stream=True,
-#         rag_parameters=rag_parameters
-#     )
-#     generate_answer(
-#         "他还有哪些其他歌曲？", 
-#         session_id=session_id,
-#         model="chat", 
-#         type="market_chain", 
-#         stream=True,
-#         rag_parameters=rag_parameters
-#     )
+    session_id = f'test_{int(time.time())}'
+    generate_answer(
+        "《夜曲》是谁演唱的？", 
+        session_id=session_id,
+        model="chat", 
+        type="market_chain", 
+        stream=True,
+        rag_parameters=rag_parameters
+    )
+    generate_answer(
+        "他还有哪些其他歌曲？", 
+        session_id=session_id,
+        model="chat", 
+        type="market_chain", 
+        stream=True,
+        rag_parameters=rag_parameters
+    )
 
 
 if __name__ == "__main__":
@@ -605,8 +606,8 @@ if __name__ == "__main__":
     # market_summary_test()
     # code_chat_test()
     # market_summary_test2()
-    market_deploy_test()
-    # market_deploy_cn_test()
+    # market_deploy_test()
+    market_deploy_cn_test()
 
     # generate_answer(
     #     "Amazon EC2 提供了哪些功能来支持不同区域之间的数据恢复?", 
