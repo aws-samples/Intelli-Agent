@@ -3,7 +3,8 @@ import boto3
 from .service_intent_recognition.utils import get_service_name
 from .llm_utils.llm_models import Model
 from .llm_utils.llm_chains import LLMChain
-from .constant import QUERY_TRANSLATE_TYPE,AWS_TRANSLATE_SERVICE_MODEL_ID
+from .constant import QUERY_TRANSLATE_TYPE,AWS_TRANSLATE_SERVICE_MODEL_ID,\
+QUERY_TRANSLATE_IDENTITY_TYPE
 # language symbols
 CHINESE = 'zh'
 ENGLISH = 'en'
@@ -96,7 +97,7 @@ def query_translate(query,lang,translate_config:dict):
         translated_text = Translator.translate(
             query,source_lang,target_lang
         )
-    elif model_id == "same":
+    elif model_id == QUERY_TRANSLATE_IDENTITY_TYPE:
         return query
     else:
         translated_text = LLMTranslator(

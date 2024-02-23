@@ -25,6 +25,7 @@ class IntentType(Enum):
 QUERY_TRANSLATE_TYPE = "query_translate"  # for query translate purpose
 INTENT_RECOGNITION_TYPE = "intent_recognition" # for intent recognition
 AWS_TRANSLATE_SERVICE_MODEL_ID = "Amazon Translate"
+QUERY_TRANSLATE_IDENTITY_TYPE = "identity"
 QUERY_REWRITE_TYPE = "query_rewrite"
 CONVERSATION_SUMMARY_TYPE = "conversation_summary"
 
