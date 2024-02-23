@@ -6,6 +6,7 @@ import os
 import sys
 import time
 from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple
+import traceback
 
 import boto3
 import chardet
@@ -324,10 +325,12 @@ def aos_injection(
         # the batch are still list of Document objects, we need to iterate the list to inject the embeddings, the chunk size (500) should already be small enough to fit the embedding model
         for document in batch:
             # update document with complete_heading
-            document.page_content = (
-                document.metadata["complete_heading"] + " " + document.page_content
-            )
-
+            if "complete_heading" in document.metadata:
+                document.page_content = (
+                    document.metadata["complete_heading"] + " " + document.page_content
+                )
+            else:
+                document.page_content = (document.page_content)
             @retry(
                 stop=stop_after_attempt(3),
                 wait=wait_exponential(multiplier=1, min=4, max=10),
@@ -459,6 +462,8 @@ def main():
                     kwargs["bucket"] + "/" + kwargs["key"],
                     e,
                 )
+                traceback.print_exc()
+
     else:
         logger.info("Running in online mode, assume file number is small...")
 

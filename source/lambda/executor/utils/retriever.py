@@ -33,18 +33,6 @@ aos_endpoint = os.environ.get("aos_endpoint", "")
 
 aos_client = LLMBotOpenSearchClient(aos_endpoint)
 
-# debug_info = {
-#     "query": "",
-#     "query_parser_info": {},
-#     "q_q_match_info": {},
-#     "knowledge_qa_knn_recall": {},
-#     "knowledge_qa_boolean_recall": {},
-#     "knowledge_qa_combined_recall": {},
-#     "knowledge_qa_cross_model_sort": {},
-#     "knowledge_qa_llm": {},
-#     "knowledge_qa_rerank": {},
-# }
-
 def remove_redundancy_debug_info(results):
     filtered_results = copy.deepcopy(results)
     for result in filtered_results:
@@ -53,6 +41,7 @@ def remove_redundancy_debug_info(results):
                 del result["detail"][field]
     return filtered_results
 
+<<<<<<< HEAD
 # def parse_qq_query(
 #     query_input: str,
 #     history: list,
@@ -119,6 +108,8 @@ def remove_redundancy_debug_info(results):
 #     logger.info(f"runing time of parse query: {elpase_time}s seconds")
 #     return parsed_query
 
+=======
+>>>>>>> f6c63c4fe4d1c78309e5bd272a23b5f4a7931336
 @timeit
 def get_similarity_embedding(
     query: str,
@@ -160,11 +151,9 @@ def get_relevance_embedding(
 
 def get_filter_list(parsed_query: dict):
     filter_list = []
-    if parsed_query["is_api_query"]:
+    if "is_api_query" in parsed_query and parsed_query["is_api_query"]:
         filter_list.append({"term": {"metadata.is_api": True}})
     return filter_list
-
-
 
 def get_faq_answer(source, index_name, source_field):
     opensearch_query_response = aos_client.search(
@@ -179,7 +168,6 @@ def get_faq_answer(source, index_name, source_field):
         elif "jsonlAnswer" in r["_source"]["metadata"]:
             return r["_source"]["metadata"]["jsonlAnswer"]["answer"]
     return ""
-
 
 def get_faq_content(source, index_name):
     opensearch_query_response = aos_client.search(
@@ -204,13 +192,17 @@ def get_doc(file_path, index_name):
     chunk_list = []
     chunk_id_set = set()
     for r in opensearch_query_response["hits"]["hits"]:
-        if "chunk_id" not in r["_source"]["metadata"] or not r["_source"]["metadata"]["chunk_id"].startswith("$"):
-            continue
-        chunk_id = r["_source"]["metadata"]["chunk_id"]
-        content_type = r["_source"]["metadata"]["content_type"]
-        chunk_group_id = int(chunk_id.split("-")[0].strip("$"))
-        chunk_section_id = int(chunk_id.split("-")[-1])
-        if (chunk_id, content_type) in chunk_id_set:
+        try:
+            if "chunk_id" not in r["_source"]["metadata"] or not r["_source"]["metadata"]["chunk_id"].startswith("$"):
+                continue
+            chunk_id = r["_source"]["metadata"]["chunk_id"]
+            content_type = r["_source"]["metadata"]["content_type"]
+            chunk_group_id = int(chunk_id.split("-")[0].strip("$"))
+            chunk_section_id = int(chunk_id.split("-")[-1])
+            if (chunk_id, content_type) in chunk_id_set:
+                continue
+        except Exception as e:
+            logger.error(traceback.format_exc())
             continue
         chunk_id_set.add((chunk_id, content_type))
         chunk_list.append((chunk_id, chunk_group_id, content_type, chunk_section_id, r["_source"]["text"]))
