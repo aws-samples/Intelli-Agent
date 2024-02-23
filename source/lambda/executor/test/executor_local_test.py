@@ -569,13 +569,13 @@ def market_deploy_cn_test():
             "context_num": 1
         }
     }
-    # generate_answer(
-    #     "什么是Amazon Bedrock", 
-    #     model="auto", 
-    #     stream=True,
-    #     type="market_chain", 
-    #     rag_parameters=rag_parameters
-    # )
+    generate_answer(
+        "什么是Amazon Bedrock", 
+        model="auto", 
+        stream=True,
+        type="market_chain", 
+        rag_parameters=rag_parameters
+    )
 
 
     session_id = f'test_{int(time.time())}'

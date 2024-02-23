@@ -96,6 +96,8 @@ def query_translate(query,lang,translate_config:dict):
         translated_text = Translator.translate(
             query,source_lang,target_lang
         )
+    elif model_id == "same":
+        return query
     else:
         translated_text = LLMTranslator(
         **translate_config
