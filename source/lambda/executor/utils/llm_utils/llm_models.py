@@ -199,7 +199,6 @@ class Baichuan2Chat13B4Bits(SagemakerModelBase):
         })
         return input_str
 
-
 class Internlm2Chat7B(SagemakerModelBase):
     model_id = "internlm2-chat-7b"
     default_model_kwargs = {
@@ -210,23 +209,23 @@ class Internlm2Chat7B(SagemakerModelBase):
             "top_p": 0.8
         }
    
-    meta_instruction = "You are a helpful AI Assistant"
+    # meta_instruction = "You are a helpful AI Assistant"
     
     def transform_input(self, x):
-        chat_history = x.get('chat_history',[])
-        assert len(chat_history) % 2 == 0, chat_history
-        history = []
-        for i in range(0,len(chat_history),2):
-            user_message = chat_history[i]
-            ai_message = chat_history[i+1]
-            assert user_message.type == HUMAN_MESSAGE_TYPE \
-                  and ai_message.type == AI_MESSAGE_TYPE , chat_history
-            history.append((user_message.content,ai_message.content))
+        # chat_history = x.get('chat_history',[])
+        # assert len(chat_history) % 2 == 0, chat_history
+        # history = []
+        # for i in range(0,len(chat_history),2):
+        #     user_message = chat_history[i]
+        #     ai_message = chat_history[i+1]
+        #     assert user_message.type == HUMAN_MESSAGE_TYPE \
+        #           and ai_message.type == AI_MESSAGE_TYPE , chat_history
+        #     history.append((user_message.content,ai_message.content))
         body = {
-            "query": x['_query'],
-            "meta_instruction": x.get('meta_instruction',self.meta_instruction),
-            "stream": x['stream'],
-            "history": history
+            "query": x['prompt'],
+            # "meta_instruction": x.get('meta_instruction',self.meta_instruction),
+            "stream": x['stream']
+            # "history": history
         }
         body.update(self.model_kwargs)
         input_str = json.dumps(body)

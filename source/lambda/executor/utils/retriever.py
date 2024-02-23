@@ -53,71 +53,71 @@ def remove_redundancy_debug_info(results):
                 del result["detail"][field]
     return filtered_results
 
-def parse_qq_query(
-    query_input: str,
-    history: list,
-    zh_embedding_model_endpoint: str,
-    en_embedding_model_endpoint: str,
-    debug_info: dict,
-):
-    # print('query_input',query_input)
-    start = time.time()
-    # concatenate query_input and history to unified prompt
-    query_knowledge = "".join([query_input] + [row[0] for row in history][::-1])
+# def parse_qq_query(
+#     query_input: str,
+#     history: list,
+#     zh_embedding_model_endpoint: str,
+#     en_embedding_model_endpoint: str,
+#     debug_info: dict,
+# ):
+#     # print('query_input',query_input)
+#     start = time.time()
+#     # concatenate query_input and history to unified prompt
+#     query_knowledge = "".join([query_input] + [row[0] for row in history][::-1])
 
-    # get query embedding
-    parsed_query = run_preprocess(query_knowledge)
-    # print('run_preprocess time: ',time.time()-start)
-    debug_info["query_parser_info"] = parsed_query
-    if parsed_query["query_lang"] == "zh":
-        parsed_query["zh_query"] = query_knowledge
-        parsed_query["en_query"] = parsed_query["translated_text"]
-    elif parsed_query["query_lang"] == "en":
-        parsed_query["zh_query"] = parsed_query["translated_text"]
-        parsed_query["en_query"] = query_knowledge
-    zh_query_similarity_embedding_prompt = parsed_query["zh_query"]
-    en_query_similarity_embedding_prompt = parsed_query["en_query"]
-    zh_query_relevance_embedding_prompt = (
-        "为这个句子生成表示以用于检索相关文章：" + parsed_query["zh_query"]
-    )
-    en_query_relevance_embedding_prompt = (
-        "Represent this sentence for searching relevant passages: "
-        + parsed_query["en_query"]
-    )
-    parsed_query["zh_query_similarity_embedding"] = SagemakerEndpointVectorOrCross(
-        prompt=zh_query_similarity_embedding_prompt,
-        endpoint_name=zh_embedding_model_endpoint,
-        region_name=region,
-        model_type="vector",
-        stop=None,
-    )
-    parsed_query["zh_query_relevance_embedding"] = SagemakerEndpointVectorOrCross(
-        prompt=zh_query_relevance_embedding_prompt,
-        endpoint_name=zh_embedding_model_endpoint,
-        region_name=region,
-        model_type="vector",
-        stop=None,
-    )
-    parsed_query["en_query_similarity_embedding"] = SagemakerEndpointVectorOrCross(
-        prompt=en_query_similarity_embedding_prompt,
-        endpoint_name=en_embedding_model_endpoint,
-        region_name=region,
-        model_type="vector",
-        stop=None,
-    )
-    parsed_query["en_query_relevance_embedding"] = SagemakerEndpointVectorOrCross(
-        prompt=en_query_relevance_embedding_prompt,
-        endpoint_name=en_embedding_model_endpoint,
-        region_name=region,
-        model_type="vector",
-        stop=None,
-    )
-    parsed_query["filter"] = []
-    if parsed_query["is_api_query"]:
-        parsed_query["filter"].append({"term": {"metadata.is_api": True}})
-    elpase_time = time.time() - start
-    logger.info(f"runing time of parse query: {elpase_time}s seconds")
-    return parsed_query
+#     # get query embedding
+#     parsed_query = run_preprocess(query_knowledge)
+#     # print('run_preprocess time: ',time.time()-start)
+#     debug_info["query_parser_info"] = parsed_query
+#     if parsed_query["query_lang"] == "zh":
+#         parsed_query["zh_query"] = query_knowledge
+#         parsed_query["en_query"] = parsed_query["translated_text"]
+#     elif parsed_query["query_lang"] == "en":
+#         parsed_query["zh_query"] = parsed_query["translated_text"]
+#         parsed_query["en_query"] = query_knowledge
+#     zh_query_similarity_embedding_prompt = parsed_query["zh_query"]
+#     en_query_similarity_embedding_prompt = parsed_query["en_query"]
+#     zh_query_relevance_embedding_prompt = (
+#         "为这个句子生成表示以用于检索相关文章：" + parsed_query["zh_query"]
+#     )
+#     en_query_relevance_embedding_prompt = (
+#         "Represent this sentence for searching relevant passages: "
+#         + parsed_query["en_query"]
+#     )
+#     parsed_query["zh_query_similarity_embedding"] = SagemakerEndpointVectorOrCross(
+#         prompt=zh_query_similarity_embedding_prompt,
+#         endpoint_name=zh_embedding_model_endpoint,
+#         region_name=region,
+#         model_type="vector",
+#         stop=None,
+#     )
+#     parsed_query["zh_query_relevance_embedding"] = SagemakerEndpointVectorOrCross(
+#         prompt=zh_query_relevance_embedding_prompt,
+#         endpoint_name=zh_embedding_model_endpoint,
+#         region_name=region,
+#         model_type="vector",
+#         stop=None,
+#     )
+#     parsed_query["en_query_similarity_embedding"] = SagemakerEndpointVectorOrCross(
+#         prompt=en_query_similarity_embedding_prompt,
+#         endpoint_name=en_embedding_model_endpoint,
+#         region_name=region,
+#         model_type="vector",
+#         stop=None,
+#     )
+#     parsed_query["en_query_relevance_embedding"] = SagemakerEndpointVectorOrCross(
+#         prompt=en_query_relevance_embedding_prompt,
+#         endpoint_name=en_embedding_model_endpoint,
+#         region_name=region,
+#         model_type="vector",
+#         stop=None,
+#     )
+#     parsed_query["filter"] = []
+#     if parsed_query["is_api_query"]:
+#         parsed_query["filter"].append({"term": {"metadata.is_api": True}})
+#     elpase_time = time.time() - start
+#     logger.info(f"runing time of parse query: {elpase_time}s seconds")
+#     return parsed_query
 
 @timeit
 def get_similarity_embedding(

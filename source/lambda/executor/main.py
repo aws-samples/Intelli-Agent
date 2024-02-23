@@ -860,9 +860,7 @@ def market_chain_entry(
     # query process chain
     query_process_chain = get_query_process_chain(
         rag_config['chat_history'],
-        rag_config['query_process_config']['query_rewrite_config'],
-        rag_config['query_process_config']['conversation_query_rewrite_config'],
-        rag_config['query_process_config']['hyde_config']
+        rag_config['query_process_config']
     )
     # | add_key_to_debug(add_key='conversation_query_rewrite',debug_key="debug_info")
     #   | add_key_to_debug(add_key='query_rewrite',debug_key="debug_info")
@@ -872,7 +870,15 @@ def market_chain_entry(
     #     "query rewrite module"
     # )
     # intent recognition
-    intent_recognition_chain = auto_intention_recoginition_chain(aos_index_mkt_qq, "zh", zh_embedding_endpoint)
+    intent_recognition_chain = auto_intention_recoginition_chain(
+        q_q_retriever_config={
+            "index_q_q":aos_index_mkt_qq,
+            'lang':'zh',
+            'embedding_endpoint':zh_embedding_endpoint,
+            "q_q_match_threshold": rag_config['retriever_config']['q_q_match_threshold']
+        },
+        intent_config=rag_config['intent_config']
+    )
 
     intent_recognition_chain = chain_logger(
         intent_recognition_chain,
@@ -897,8 +903,6 @@ def market_chain_entry(
             "chat_history": rag_config['chat_history']
         }
     ))
-
-    
 
     answer = response["answer"]
     sources = response["context_sources"]

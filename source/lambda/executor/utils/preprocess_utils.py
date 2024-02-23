@@ -3,7 +3,7 @@ import boto3
 from .service_intent_recognition.utils import get_service_name
 from .llm_utils.llm_models import Model
 from .llm_utils.llm_chains import LLMChain
-from .constant import QUERY_TRANSLATE_TYPE
+from .constant import QUERY_TRANSLATE_TYPE,AWS_TRANSLATE_SERVICE_MODEL_ID
 # language symbols
 CHINESE = 'zh'
 ENGLISH = 'en'
@@ -83,7 +83,7 @@ class LLMTranslator:
         r = self.translate_chain.invoke({"query":query,"target_lang":language_text_map[target_lang]})
         return r
 
-def query_translate(query,lang):
+def query_translate(query,lang,translate_config:dict):
     source_lang = lang 
 
     if lang == CHINESE:
@@ -91,17 +91,17 @@ def query_translate(query,lang):
     else:
         target_lang = CHINESE
 
-    translated_text = LLMTranslator(
-        model_id="internlm2-chat-7b",
-        model_kwargs={"do_sample":False,"max_new_tokens":100},
-        endpoint_name="instruct-internlm2-chat-7b-f7dc2"
-
+    model_id = translate_config['model_id']
+    if model_id == AWS_TRANSLATE_SERVICE_MODEL_ID:
+        translated_text = Translator.translate(
+            query,source_lang,target_lang
+        )
+    else:
+        translated_text = LLMTranslator(
+        **translate_config
     ).translate(
         query,source_lang,target_lang
     )
-    # translated_text = Translator.translate(
-    #     query,source_lang,target_lang
-    #     )
     
     return translated_text
 
