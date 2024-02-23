@@ -86,11 +86,12 @@ def _stream_chat(
     def stream_producer():
         # new code added
         try:
-            return self.chat(
+            return _chat(
+                model,
                 tokenizer=tokenizer,
                 query=query,
                 streamer=ChatStreamer(tokenizer=tokenizer),
-                history=history,
+#                 history=history,
                 max_new_tokens=max_new_tokens,
                 do_sample=do_sample,
                 temperature=temperature,
@@ -110,16 +111,74 @@ def _stream_chat(
             try:
                 res = response_queue.get(timeout=timeout-(time.time()-start_time))
             except queue.Empty:
-                error = f'TimeoutError: exceed the max generation time {timeout}s.'
-                # print(error)
-                # yield {"error_msg":error}
-                raise TimeoutError(error)
+                raise TimeoutError(f'max generate time is set as: {timeout}s')
             if res is None:
                 return 
             if isinstance(res,BaseException):
                 raise res
             yield res
     return consumer()
+
+
+
+def build_prompt(tokenizer, query: str, history: List[Tuple[str, str]] = [], meta_instruction=None):
+    if tokenizer.add_bos_token:
+        prompt = ""
+    else:
+        prompt = tokenizer.bos_token
+    if meta_instruction:
+        prompt += f"""<|im_start|>system\n{meta_instruction}<|im_end|>\n"""
+    for record in history:
+        prompt += f"""<|im_start|>user\n{record[0]}<|im_end|>\n<|im_start|>assistant\n{record[1]}<|im_end|>\n"""
+    prompt += f"""<|im_start|>user\n{query}<|im_end|>\n<|im_start|>assistant\n"""
+    return prompt
+
+
+@torch.no_grad()
+def _chat(
+    self,
+    tokenizer,
+    query: str,
+#     history: List[Tuple[str, str]] = [],
+    streamer = None,
+    max_new_tokens: int = 1024,
+    do_sample: bool = True,
+    temperature: float = 0.8,
+    top_p: float = 0.8,
+    stop_tokens:list[str] = None,
+#     meta_instruction: str = "You are an AI assistant whose name is InternLM (书生·浦语).\n"
+#     "- InternLM (书生·浦语) is a conversational language model that is developed by Shanghai AI Laboratory (上海人工智能实验室). It is designed to be helpful, honest, and harmless.\n"
+#     "- InternLM (书生·浦语) can understand and communicate fluently in the language chosen by the user such as English and 中文.",
+    **kwargs,
+):
+    inputs = tokenizer([query], return_tensors="pt")
+    inputs = {k: v.to(self.device) for k, v in inputs.items() if torch.is_tensor(v)}
+    # also add end-of-assistant token in eos token id to avoid unnecessary generation
+    eos_token_id = [tokenizer.eos_token_id, tokenizer.convert_tokens_to_ids(["<|im_end|>"])[0]]
+    if stop_tokens:
+        assert isinstance(stop_tokens,list),stop_tokens
+        for token in stop_tokens:
+            token_ids = tokenizer.convert_tokens_to_ids([token])
+            assert len(token_ids) == 1, f'invalid stop token: {token}'
+            eos_token_id.append(token_ids[0])
+        
+        
+    outputs = self.generate(
+        **inputs,
+        streamer=streamer,
+        max_new_tokens=max_new_tokens,
+        do_sample=do_sample,
+        temperature=temperature,
+        top_p=top_p,
+        eos_token_id=eos_token_id,
+        **kwargs,
+    )
+    outputs = outputs[0].cpu().tolist()[len(inputs["input_ids"][0]) :]
+    response = tokenizer.decode(outputs, skip_special_tokens=True)
+    response = response.split("<|im_end|>")[0]
+    history = history + [(query, response)]
+    return response, history
+
 
 def stream_chat(model,tokenizer,**kwargs):
     try:
@@ -132,18 +191,14 @@ def stream_chat(model,tokenizer,**kwargs):
         for i in response:
             yield i[0][len(history):]
             history = i[0]
-    
-    except Exception as e:
-        print(traceback.format_exc())
-        yield e
-        return 
     finally: 
         traceback.clear_frames(sys.exc_info()[2])
         gc.collect()
         torch.cuda.empty_cache()
         if 'response' in locals():
             response.close()
-              
+      
+    
 def generate(model,tokenizer,stream=False,**kwargs):
     generator = stream_chat(model,tokenizer,**kwargs)
     if stream:
