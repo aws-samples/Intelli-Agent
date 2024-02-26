@@ -74,8 +74,37 @@ text = [
 
 
 def get_answer(query_input, entry_type):
+    model_id = "internlm2-chat-7b"
+    endpoint_name = "instruct-internlm2-chat-7b-f7dc2"
+    rag_parameters=dict(
+        query_process_config = {
+            "conversation_query_rewrite_config":{
+                "model_id":model_id,
+                "endpoint_name":endpoint_name
+            },
+            "translate_config":{
+                "model_id":model_id,
+                "endpoint_name": endpoint_name
+            }
+        },
+        retriever_config = {
+            "chunk_num": 0,
+            "using_whole_doc": False,
+            "enable_reranker": True,
+            "retriever_top_k": 2
+        },
+        generator_llm_config ={
+            "model_kwargs":{
+                "max_new_tokens": 2000,
+                "temperature": 0.1,
+                "top_p": 0.9
+            },
+            "model_id": model_id,
+            "endpoint_name": endpoint_name,
+            "context_num": 1
+        })
     answer, source, debug_info = generate_answer(
-        query_input, type=entry_type
+        query_input, type=entry_type, rag_parameters=rag_parameters
     )
     tab_list = []
     json_list = []
