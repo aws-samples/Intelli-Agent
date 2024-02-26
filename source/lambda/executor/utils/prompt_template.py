@@ -1,5 +1,5 @@
-
 import re 
+from typing import List
 from langchain.prompts import (
     PromptTemplate,ChatPromptTemplate,
     HumanMessagePromptTemplate,AIMessagePromptTemplate,SystemMessagePromptTemplate,
@@ -20,7 +20,7 @@ from .constant import HUMAN_MESSAGE_TYPE,AI_MESSAGE_TYPE,SYSTEM_MESSAGE_TYPE
 def convert_text_from_fstring_format(text):
     return text.replace('{','{{').replace('}','}}')
 
-def convert_chat_history_from_fstring_format(chat_history:list[BaseMessage]):
+def convert_chat_history_from_fstring_format(chat_history: List[BaseMessage]):
     assert isinstance(chat_history,list)
     new_chat_history = []
     for message in chat_history:
@@ -153,7 +153,7 @@ Here are some documents for you to reference for your query:
 {context}
 </docs>"""
 
-def get_claude_chat_rag_prompt(chat_history:list[BaseMessage]):
+def get_claude_chat_rag_prompt(chat_history:List[BaseMessage]):
     chat_history = convert_chat_history_from_fstring_format(chat_history)
     # chat_history = [(ch[0],convert_text_from_fstring_format(ch[1])) for ch in chat_history]
     chat_messages = [
@@ -178,7 +178,7 @@ def get_claude_chat_rag_prompt(chat_history:list[BaseMessage]):
 ############### chit-chat template #####################
 CHIT_CHAT_SYSTEM_TEMPLATE = """You are a helpful AI Assistant"""
 
-def get_chit_chat_prompt(chat_history:list[BaseMessage]):
+def get_chit_chat_prompt(chat_history:List[BaseMessage]):
     chat_history = convert_chat_history_from_fstring_format(
         chat_history
     )
@@ -207,7 +207,7 @@ Q: Is he married?
 A: Keith Carradine married Sandra Will on February 6, 1982. ]
 Question: Do they have any children?
 Rewrite: Do Keith Carradine and Sandra Will have any children?"""
-def get_conversation_query_rewrite_prompt(chat_history:list[BaseMessage]):
+def get_conversation_query_rewrite_prompt(chat_history:List[BaseMessage]):
     conversational_contexts = []
     for his in chat_history:
         assert his.type in [HUMAN_MESSAGE_TYPE,AI_MESSAGE_TYPE]

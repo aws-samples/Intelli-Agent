@@ -1,7 +1,7 @@
 import collections.abc
 import copy
 import logging
-from .constant import IntentType
+from .constant import IntentType,AWS_TRANSLATE_SERVICE_MODEL_ID
 
 # update nest dict
 def update_nest_dict(d, u):
@@ -22,42 +22,47 @@ rag_default_config = {
         "chunk_num": 2,
         "using_whole_doc": False,
         "reranker_top_k": 10,
-        "enable_reranker": True
+        "enable_reranker": True,
+        "q_q_match_threshold": 0.9
     },
     "query_process_config":{
         "query_rewrite_config":{
                 "model_id":"anthropic.claude-instant-v1",
-                "model_kwargs":{
-                "max_tokens_to_sample": 2000,
-                "temperature": 0.7,
-                "top_p": 0.9
-            }
+            #     "model_kwargs":{
+            #     "max_tokens_to_sample": 2000,
+            #     "temperature": 0.7,
+            #     "top_p": 0.9
+            # }
         },
         "conversation_query_rewrite_config":{
             "model_id":"anthropic.claude-instant-v1",
-                "model_kwargs":{
-                "max_tokens_to_sample": 2000,
-                "temperature": 0.7,
-                "top_p": 0.9
-            }
+            #     "model_kwargs":{
+            #     "max_tokens_to_sample": 2000,
+            #     "temperature": 0.7,
+            #     "top_p": 0.9
+            # }
         },
         "hyde_config":{
             "model_id":"anthropic.claude-instant-v1",
-            "model_kwargs":{
-                "max_tokens_to_sample": 2000,
-                "temperature": 0.7,
-                "top_p": 0.9
-            }
+            # "model_kwargs":{
+            #     "max_tokens_to_sample": 2000,
+            #     "temperature": 0.7,
+            #     "top_p": 0.9
+            # }
+        },
+        "translate_config":{
+            # default use Amazon Translate service
+            "model_id": AWS_TRANSLATE_SERVICE_MODEL_ID
         }
     },
     # intent_config
     "intent_config":{
         "intent_type":IntentType.KNOWLEDGE_QA.value,
         "model_id":"anthropic.claude-v2:1",
-        "model_kwargs":{"temperature":0,
-                        "max_tokens_to_sample": 2000,
-                        "stop_sequences": ["\n\n","\n\nHuman:"]
-                        },
+        # "model_kwargs":{"temperature":0,
+        #                 "max_tokens_to_sample": 2000,
+        #                 "stop_sequences": ["\n\n","\n\nHuman:"]
+        #                 },
         "sub_intent":{}
     },
     # generator config 

@@ -63,6 +63,12 @@ For example, to prepare ETL model asset in the GCR (Greater China) region, the c
 sh model.sh ./DockerfileCN llm-bot-cn cn-northwest-1 latest
 ```
 
+Finally, if this is the first time using Amazon OpenSearch in this account, you will need to create a service-linked role for Amazon OpenSearch Service. This role is necessary to allow Amazon OpenSearch Service to manage resources on your behalf.
+
+```bash
+aws iam create-service-linked-role --aws-service-name es.amazonaws.com
+```
+
 ### Deploy CDK Template
 Deploy the CDK template. Make sure DOCKER is installed properly.
 
