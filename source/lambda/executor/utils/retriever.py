@@ -285,7 +285,7 @@ class QueryQuestionRetriever(BaseRetriever):
         opensearch_knn_results.extend(
             organize_faq_results(opensearch_knn_response, self.index, self.source_field)
         )
-        debug_info[f"q_q_match_info_{self.index}"] = remove_redundancy_debug_info(opensearch_knn_results)
+        debug_info[f"q_q_match_info_{self.index}_{self.lang}"] = remove_redundancy_debug_info(opensearch_knn_results)
         docs = []
         for result in opensearch_knn_results:
             docs.append(Document(page_content=result["content"], metadata={
@@ -405,7 +405,7 @@ class QueryDocumentRetriever(BaseRetriever):
 
         # 3. combine these two opensearch_knn_response and opensearch_query_response
         final_results = opensearch_knn_results + opensearch_query_results
-        debug_info[f"knowledge_qa_knn_recall_{self.index}"] = remove_redundancy_debug_info(final_results)
+        debug_info[f"knowledge_qa_knn_recall_{self.index}_{self.lang}"] = remove_redundancy_debug_info(final_results)
 
         doc_list = []
         content_set = set()
