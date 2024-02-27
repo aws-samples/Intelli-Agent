@@ -3,6 +3,7 @@ import json
 import logging
 import time
 import traceback
+
 from .constant import EntryType
 
 logger = logging.getLogger()
@@ -19,10 +20,11 @@ class StreamMessageType:
 class WebsocketClientError(Exception):
     pass
 
+
 def api_response(**kwargs):
     response = {"statusCode": 200, "headers": {"Content-Type": "application/json"}}
     session_id = kwargs["session_id"]
-    entry_type = kwargs['entry_type']
+    entry_type = kwargs["entry_type"]
     # model = kwargs["model"]
     request_timestamp = kwargs["request_timestamp"]
     answer = kwargs["answer"]
@@ -33,14 +35,14 @@ def api_response(**kwargs):
     debug_info = kwargs["debug_info"]
     chat_history = kwargs["chat_history"]
     message_id = kwargs["message_id"]
-    question=kwargs['question']
+    question = kwargs["question"]
 
     if not isinstance(answer, str):
         answer = json.dumps(answer, ensure_ascii=False)
-    
+
     if entry_type != EntryType.MARKET_CONVERSATION_SUMMARY.value:
-        chat_history.add_user_message(f"user_{message_id}", question)
-        chat_history.add_ai_message(f"ai_{message_id}", answer)
+        chat_history.add_user_message(f"user_{message_id}", question, entry_type)
+        chat_history.add_ai_message(f"ai_{message_id}", answer, entry_type)
 
     # 2. return rusult
     llmbot_response = {
@@ -61,6 +63,7 @@ def api_response(**kwargs):
                 "index": 0,
             }
         ],
+        "entry_type": entry_type,
     }
 
     resp_header = {
@@ -93,9 +96,9 @@ def stream_response(**kwargs):
     ws_client = kwargs["ws_client"]
     chat_history = kwargs["chat_history"]
     message_id = kwargs["message_id"]
-    question=kwargs['question']
-    entry_type = kwargs['entry_type']
-    ws_connection_id = kwargs['ws_connection_id']
+    question = kwargs["question"]
+    entry_type = kwargs["entry_type"]
+    ws_connection_id = kwargs["ws_connection_id"]
 
     if isinstance(answer, str):
         answer = [answer]
@@ -118,6 +121,7 @@ def stream_response(**kwargs):
                 #     "total_tokens": 20,
                 # },
                 "choices": [message],
+                "entry_type": entry_type,
             }
             ws_client.post_to_connection(
                 ConnectionId=ws_connection_id,
@@ -152,8 +156,8 @@ def stream_response(**kwargs):
 
         # add to chat history ddb table
         if entry_type != EntryType.MARKET_CONVERSATION_SUMMARY.value:
-            chat_history.add_user_message(f"user_{message_id}", question)
-            chat_history.add_ai_message(f"ai_{message_id}", answer_str)
+            chat_history.add_user_message(f"user_{message_id}", question, entry_type)
+            chat_history.add_ai_message(f"ai_{message_id}", answer_str, entry_type)
         # sed source and contexts
         context_msg = {
             "message_type": StreamMessageType.CONTEXT,
@@ -190,6 +194,7 @@ def stream_response(**kwargs):
                 "message": {"content": error},
             }
         )
+
 
 class WebSocketCallback:
     def __init__(self, **kwargs):
