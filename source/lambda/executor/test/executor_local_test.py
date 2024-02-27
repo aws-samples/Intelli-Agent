@@ -83,6 +83,7 @@ def generate_answer(query,
             "type": type,
             "model": model,
             "session_id":session_id,
+            "enable_debug":True,
             }
     body.update(rag_parameters)
     event = {
