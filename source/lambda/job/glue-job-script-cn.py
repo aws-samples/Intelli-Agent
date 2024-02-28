@@ -5,8 +5,8 @@ import logging
 import os
 import sys
 import time
-import traceback
 from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple
+import traceback
 
 import boto3
 import chardet
@@ -330,8 +330,7 @@ def aos_injection(
                     document.metadata["complete_heading"] + " " + document.page_content
                 )
             else:
-                document.page_content = document.page_content
-
+                document.page_content = (document.page_content)
             @retry(
                 stop=stop_after_attempt(3),
                 wait=wait_exponential(multiplier=1, min=4, max=10),
@@ -472,12 +471,12 @@ def main():
 if __name__ == "__main__":
     logger.info("boto3 version: %s", boto3.__version__)
 
-    # Set the NLTK data path to the /tmp directory for AWS Glue jobs
-    nltk.data.path.append("/tmp")
-    # List of NLTK packages to download
-    nltk_packages = ["words", "punkt"]
-    # Download the required NLTK packages to /tmp
-    for package in nltk_packages:
-        # Download the package to /tmp/nltk_data
-        nltk.download(package, download_dir="/tmp/nltk_data")
+    # # Set the NLTK data path to the /tmp directory for AWS Glue jobs
+    # nltk.data.path.append("/tmp")
+    # # List of NLTK packages to download
+    # nltk_packages = ["words", "punkt"]
+    # # Download the required NLTK packages to /tmp
+    # for package in nltk_packages:
+    #     # Download the package to /tmp/nltk_data
+    #     nltk.download(package, download_dir="/tmp/nltk_data")
     main()

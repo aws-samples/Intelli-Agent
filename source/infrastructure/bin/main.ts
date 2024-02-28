@@ -119,8 +119,9 @@ export class RootStack extends Stack {
   }
 
   private setBuildConfig() {
-    BuildConfig.PIP_OPTION = this.node.tryGetContext('PipOption') ?? '';
     BuildConfig.DEPLOYMENT_MODE = this.node.tryGetContext('DeploymentMode') ?? 'ALL';
+    BuildConfig.LAYER_PIP_OPTION = this.node.tryGetContext('LayerPipOption') ?? '';
+    BuildConfig.JOB_PIP_OPTION = this.node.tryGetContext('JobPipOption') ?? '';
   }
 
 }
