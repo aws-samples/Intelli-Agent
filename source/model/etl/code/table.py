@@ -46,7 +46,7 @@ class TableStructurer(object):
         self.preprocess_op = create_operators(pre_process_list)
         self.postprocess_op = build_post_process(postprocess_params)
         
-        sess = ort.InferenceSession(os.environ['MODEL_PATH'] + 'table_sim.onnx') #, sess_options=sess_options, providers=[("CUDAExecutionProvider", {"cudnn_conv_algo_search": "DEFAULT"})]
+        sess = ort.InferenceSession(os.environ['MODEL_PATH'] + 'table_sim.onnx', providers=["CPUExecutionProvider"]) #, sess_options=sess_options, providers=[("CUDAExecutionProvider", {"cudnn_conv_algo_search": "DEFAULT"})]
         #sess = ort.InferenceSession('/home/ubuntu/notebooks/版面分析/ppstructure改进/PaddleOCR/inference/ppstructure/model_fp16.onnx')
         #_ = sess.run(None, {'x': np.zeros((1, 3, 488, 488), dtype='float32')})
         self.predictor, self.input_tensor, self.output_tensors, self.config = sess, sess.get_inputs()[0], None, None

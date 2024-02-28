@@ -1,26 +1,27 @@
-from datetime import date
 import json
-import boto3
 import logging
+import math
+import time
+from datetime import date, datetime
+from decimal import Decimal
 from typing import List
-from decimal import Decimal
-from datetime import datetime
+
+import boto3
 from botocore.exceptions import ClientError
-from .logger_utils import logger
-import time 
-from decimal import Decimal
 from langchain.schema import BaseChatMessageHistory
 from langchain.schema.messages import (
     BaseMessage,
+    _message_from_dict,
     _message_to_dict,
     messages_from_dict,
     messages_to_dict,
-    _message_from_dict
 )
-import math
-from .constant import HUMAN_MESSAGE_TYPE,AI_MESSAGE_TYPE,SYSTEM_MESSAGE_TYPE
+
+from .constant import AI_MESSAGE_TYPE, HUMAN_MESSAGE_TYPE, SYSTEM_MESSAGE_TYPE
+from .logger_utils import logger
 
 client = boto3.resource("dynamodb")
+
 
 class DynamoDBChatMessageHistory(BaseChatMessageHistory):
     def __init__(
@@ -57,25 +58,25 @@ class DynamoDBChatMessageHistory(BaseChatMessageHistory):
     @property
     def message_as_langchain(self):
         response = self.table.get_item(
-             Key={"SessionId": self.session_id, "UserId": self.user_id}
-             )
-        item = response.get('Item',[])
+            Key={"SessionId": self.session_id, "UserId": self.user_id}
+        )
+        item = response.get("Item", [])
         if not item:
             return []
         history = response["Item"]["History"]
         ret = []
         for his in history:
-            assert his['type'] in [AI_MESSAGE_TYPE,HUMAN_MESSAGE_TYPE]
-            create_time = his['data']['additional_kwargs']['create_time']
-            his['data']['additional_kwargs']['create_time'] = float(create_time)
+            assert his["type"] in [AI_MESSAGE_TYPE, HUMAN_MESSAGE_TYPE]
+            create_time = his["data"]["additional_kwargs"]["create_time"]
+            his["data"]["additional_kwargs"]["create_time"] = float(create_time)
             ret.append(_message_from_dict(his))
-        return ret 
+        return ret
 
     def add_message(self, message) -> None:
         """Append the message to the record in DynamoDB"""
         messages = self.messages
         messages.append(message)
-     
+
         try:
             response = self.table.put_item(
                 Item={
@@ -88,37 +89,38 @@ class DynamoDBChatMessageHistory(BaseChatMessageHistory):
         except ClientError as err:
             print(f"Error adding message: {err}")
 
-    def add_user_message(self, message_id, content) -> None:
+    def add_user_message(self, message_id, content, entry_type) -> None:
         """Append the user message to the record in DynamoDB"""
         message = {
-            'type': HUMAN_MESSAGE_TYPE,
-            'data': {
-                'type': HUMAN_MESSAGE_TYPE,
-                'content': content,
-                'additional_kwargs':{
+            "type": HUMAN_MESSAGE_TYPE,
+            "data": {
+                "type": HUMAN_MESSAGE_TYPE,
+                "content": content,
+                "additional_kwargs": {
                     "message_id": message_id,
-                    "create_time": Decimal.from_float(time.time())
-                }, 
+                    "create_time": Decimal.from_float(time.time()),
+                    "entry_type": entry_type,
+                },
                 # 'example': False,
-                }
-            }
+            },
+        }
         self.add_message(message)
-    
-    def add_ai_message(self, message_id, content) -> None:
+
+    def add_ai_message(self, message_id, content, entry_type) -> None:
         """Append the ai message to the record in DynamoDB"""
         message = {
-            'type': AI_MESSAGE_TYPE,
-            'data': 
-            {
-                'type': AI_MESSAGE_TYPE, 
-                'content': content, 
-                'additional_kwargs': {
+            "type": AI_MESSAGE_TYPE,
+            "data": {
+                "type": AI_MESSAGE_TYPE,
+                "content": content,
+                "additional_kwargs": {
                     "message_id": message_id,
-                    "create_time": Decimal.from_float(time.time())
-                    }, 
+                    "create_time": Decimal.from_float(time.time()),
+                    "entry_type": entry_type,
+                },
                 # 'example': False,
-                }
-            }
+            },
+        }
         self.add_message(message)
 
     def add_metadata(self, metadata) -> None:
@@ -154,17 +156,16 @@ class DynamoDBChatMessageHistory(BaseChatMessageHistory):
 
 
 def filter_chat_history_by_time(
-        chat_history:list[BaseMessage],
-        start_time=-math.inf,
-        end_time=math.inf
-    ):
-    chat_history = sorted(chat_history,key=lambda x:x.additional_kwargs['create_time'])
+    chat_history: list[BaseMessage], start_time=-math.inf, end_time=math.inf
+):
+    chat_history = sorted(
+        chat_history, key=lambda x: x.additional_kwargs["create_time"]
+    )
     selected_indexes = []
-    for i,message in enumerate(chat_history):
-        create_time =  message.additional_kwargs['create_time']
+    for i, message in enumerate(chat_history):
+        create_time = message.additional_kwargs["create_time"]
         if start_time <= create_time <= end_time:
             selected_indexes.append(i)
-    
 
     # deal with boundry condition
     if selected_indexes:
@@ -172,9 +173,11 @@ def filter_chat_history_by_time(
         end_index = selected_indexes[-1]
 
         if chat_history[start_index].type == AI_MESSAGE_TYPE and start_index != 0:
-            selected_indexes.insert(0,start_index -1)
-        
-        if chat_history[end_index].type == HUMAN_MESSAGE_TYPE and end_index != (len(chat_history) -1 ):
-            selected_indexes.append(end_index + 1) 
+            selected_indexes.insert(0, start_index - 1)
+
+        if chat_history[end_index].type == HUMAN_MESSAGE_TYPE and end_index != (
+            len(chat_history) - 1
+        ):
+            selected_indexes.append(end_index + 1)
     ret = [chat_history[i] for i in selected_indexes]
     return ret
