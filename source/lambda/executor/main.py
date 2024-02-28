@@ -70,6 +70,7 @@ from utils.langchain_utils import add_key_to_debug,chain_logger
 from utils.query_process_utils import get_query_process_chain
 import utils.parse_config as parse_config
 from utils.serialization_utils import JSONEncoder
+from utils.constant import MKT_CONVERSATION_SUMMARY_TYPE
 
 region = os.environ["AWS_REGION"]
 embedding_endpoint = os.environ.get("embedding_endpoint", "")
@@ -938,14 +939,19 @@ def market_conversation_summary_entry(
         chat_history = rag_config['chat_history']
         chat_history = filter_chat_history_by_time(chat_history,start_time=start_time,end_time=end_time)
         rag_config['chat_history'] = chat_history
-    rag_config['intent_config']['intent_type'] = IntentType.CHAT.value
+    # rag_config['intent_config']['intent_type'] = IntentType.CHAT.value
     
-    query_input = """请简要总结上述对话中的内容,每一个对话单独一个总结，并用 '- '开头。 每一个总结要先说明问题。\n"""
-    return market_chain_entry(
-        query_input=query_input,
-        rag_config=rag_config,
-        stream=stream
+    # query_input = """请简要总结上述对话中的内容,每一个对话单独一个总结，并用 '- '开头。 每一个总结要先说明问题。\n"""
+    mkt_conversation_summary_config = rag_config["mkt_conversation_summary_config"]
+    llm_chain = get_llm_chain(
+        intent_type=MKT_CONVERSATION_SUMMARY_TYPE,
+        stream=stream,
+        **mkt_conversation_summary_config, 
     )
+    response = llm_chain.invoke({
+        "chat_history": rag_config['chat_history'],
+    })
+    return response, [], {}, {}
 
 @timeit
 def main_qd_retriever_entry(

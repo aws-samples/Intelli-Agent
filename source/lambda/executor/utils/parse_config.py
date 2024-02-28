@@ -75,6 +75,9 @@ rag_default_config = {
         "model_id": "anthropic.claude-v2:1",
         "context_num": 2
     },
+    "mkt_conversation_summary_config": {
+        "model_id":"anthropic.claude-v2:1",
+    },
     "debug_level": logging.INFO,
     "session_id": None,
     "ws_connection_id": None

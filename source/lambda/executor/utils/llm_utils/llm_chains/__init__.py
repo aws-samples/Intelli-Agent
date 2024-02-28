@@ -8,10 +8,10 @@ from .chat_chain import (
 )
 
 from .conversation_summary_chain import (
-    Claude21IntentRecognitionChain,
-    Claude2IntentRecognitionChain,
-    ClaudeInstanceIntentRecognitionChain,
-    Iternlm2Chat7BIntentRecognitionChain
+    Iternlm2Chat7BConversationSummaryChain,
+    Claude2ConversationSummaryChain,
+    Claude21ConversationSummaryChain,
+    Iternlm2Chat7BConversationSummaryChain
 )
 
 from .intention_chain import (
@@ -32,4 +32,12 @@ from .rag_chain import (
 
 from .translate_chain import (
     Iternlm2Chat7BChatChain
+)
+
+
+from .mkt_conversation_summary import (
+    Claude21MKTConversationSummaryChain,
+    ClaudeInstanceMKTConversationSummaryChain,
+    Claude2MKTConversationSummaryChain,
+    Iternlm2Chat7BMKTConversationSummaryChain
 )

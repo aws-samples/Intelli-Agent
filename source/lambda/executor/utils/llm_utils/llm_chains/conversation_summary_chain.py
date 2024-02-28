@@ -12,7 +12,7 @@ from langchain.schema.runnable import RunnablePassthrough, RunnableBranch, Runna
 from .chat_chain import Iternlm2Chat7BChatChain
 from ...prompt_template import get_conversation_query_rewrite_prompt
 
-class Iternlm2Chat7BIntentRecognitionChain(Iternlm2Chat7BChatChain):
+class Iternlm2Chat7BConversationSummaryChain(Iternlm2Chat7BChatChain):
     model_id = "internlm2-chat-7b"
     intent_type = CONVERSATION_SUMMARY_TYPE
     meta_instruction_prompt_template = """Given a question and its context, decontextualize the question by addressing coreference and omission issues. The resulting question should retain its original meaning and be as informative as possible, and should not duplicate any previously asked questions in the context.
@@ -34,7 +34,7 @@ Question: {question}
 """
     default_model_kwargs = {
                 "max_new_tokens": 300,
-                "do_sample": False
+                "temperature": 0.0
             }
     @classmethod
     def create_prompt(cls,x):
@@ -63,13 +63,13 @@ Question: {question}
         return super().create_chain(model_kwargs=model_kwargs,**kwargs)
 
 
-class Claude2IntentRecognitionChain(LLMChain):
+class Claude2ConversationSummaryChain(LLMChain):
     model_id = 'anthropic.claude-v2'
     intent_type = CONVERSATION_SUMMARY_TYPE
 
     default_model_kwargs = {
                 "max_tokens_to_sample": 2000,
-                "temperature": 0.7,
+                "temperature": 0.1,
                 "top_p": 0.9
             }
 
@@ -87,12 +87,12 @@ class Claude2IntentRecognitionChain(LLMChain):
         return cqr_chain
 
 
-class Claude21IntentRecognitionChain(Claude2IntentRecognitionChain):
+class Claude21ConversationSummaryChain(Claude2ConversationSummaryChain):
     model_id = 'anthropic.claude-v2:1'
     intent_type = CONVERSATION_SUMMARY_TYPE
 
 
-class ClaudeInstanceIntentRecognitionChain(Claude2IntentRecognitionChain):
+class ClaudeConversationSummaryChain(Claude2ConversationSummaryChain):
     model_id = 'anthropic.claude-instant-v1'
     intent_type = CONVERSATION_SUMMARY_TYPE
 

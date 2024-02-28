@@ -49,7 +49,7 @@ class Iternlm2Chat7BIntentRecognitionChain(Iternlm2Chat7BChatChain):
     intent_type = INTENT_RECOGNITION_TYPE
 
     default_model_kwargs = {
-        "do_sample":False,
+        "temperature":0.0,
         "max_new_tokens": 100,
         "stop_tokens": ["\n",'。']
     }

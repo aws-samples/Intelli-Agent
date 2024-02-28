@@ -6,7 +6,6 @@ from langchain.schema.callbacks.base import BaseCallbackHandler
 # import time 
 from .logger_utils import logger
 
-
 class LmabdaDict(dict):
     """add lambda to value"""
     def __init__(self,**kwargs):

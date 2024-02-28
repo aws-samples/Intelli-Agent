@@ -28,6 +28,8 @@ AWS_TRANSLATE_SERVICE_MODEL_ID = "Amazon Translate"
 QUERY_TRANSLATE_IDENTITY_TYPE = "identity"
 QUERY_REWRITE_TYPE = "query_rewrite"
 CONVERSATION_SUMMARY_TYPE = "conversation_summary"
+MKT_CONVERSATION_SUMMARY_TYPE = "mkt_conversation_summary"
+
 
 HUMAN_MESSAGE_TYPE = 'human'
 AI_MESSAGE_TYPE = 'ai'
