@@ -81,6 +81,10 @@ from .chat_chain import Iternlm2Chat7BChatChain
 class Iternlm2Chat7BKnowledgeQaChain(Iternlm2Chat7BChatChain):
     mdoel_id = "internlm2-chat-7b"
     intent_type = IntentType.KNOWLEDGE_QA.value
+    default_model_kwargs = {
+        "temperature":0.1,
+        "max_new_tokens": 1000
+    }
 
     @classmethod
     def create_prompt(cls,x):
@@ -90,12 +94,12 @@ class Iternlm2Chat7BKnowledgeQaChain(Iternlm2Chat7BChatChain):
         history = cls.create_history(x)
         
         context = "\n".join(contexts)
-        meta_instruction = f"请根据下面的背景知识回答问题.\n背景知识: {context}\n"
+        meta_instruction = f"你是一个Amazon AWS的客服助理，帮助用户回答使用AWS过程中的各种问题。面对用户的问题，你需要给出诚实并且有帮助的回答。\n背景知识: {context}\n"
         query = f"问题: {query}\n"
         prompt = cls.build_prompt(
             query=query,
             history=history,
             meta_instruction=meta_instruction
         ) 
-        prompt = prompt + "答案:"
+        prompt = prompt + "答案: 结合背景知识，经过深入的思考，我认为这个问题的答案是:"
         return prompt

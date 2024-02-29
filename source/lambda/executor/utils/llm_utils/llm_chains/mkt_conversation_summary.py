@@ -5,6 +5,7 @@ from ...prompt_template import get_chit_chat_prompt,CHIT_CHAT_SYSTEM_TEMPLATE
 import json 
 import os
 import sys
+import threading
 from random import Random
 from functools import lru_cache
 from langchain.prompts import PromptTemplate
@@ -12,13 +13,16 @@ from langchain.schema.runnable import RunnablePassthrough, RunnableBranch, Runna
 from .chat_chain import Iternlm2Chat7BChatChain,Claude2ChatChain
 
 
-
 class Iternlm2Chat7BMKTConversationSummaryChain(Iternlm2Chat7BChatChain):
     model_id = "internlm2-chat-7b"
     intent_type = MKT_CONVERSATION_SUMMARY_TYPE
-
+    
     @classmethod
     def create_prompt(cls,x):
+        return x['prompt']
+
+    @classmethod
+    def _create_prompt(cls,x):
         chat_history = x['chat_history']
         assert len(chat_history) % 2 == 0, chat_history
         
@@ -30,7 +34,6 @@ class Iternlm2Chat7BMKTConversationSummaryChain(Iternlm2Chat7BChatChain):
             questions.append(chat_history[i].content)
             history.append((chat_history[i].content,chat_history[i+1].content))
         
-
         questions_str = ''
         for i,question in enumerate(questions):
             questions_str += f"问题{i+1}: {question}\n"
@@ -40,17 +43,34 @@ class Iternlm2Chat7BMKTConversationSummaryChain(Iternlm2Chat7BChatChain):
             meta_instruction=CHIT_CHAT_SYSTEM_TEMPLATE,
             history=history,
             query=query_input
-        ) + f"好的，根据提供历史对话信息，共有{len(history)}段对话:\n{questions_str}\n对它们的总结如下(每一个总结要先复述一下问题):\n"
+        ) 
+        prompt_assist = f"好的，根据提供历史对话信息，共有{len(history)}段对话:\n{questions_str}\n对它们的总结如下(每一个总结要先复述一下问题):\n"
+        prefix = f"问题1: {questions[0]}\n总结:"
+        # thread_local.mkt_conversation_prefix = prefix
+        # print(thread_local,thread_local.mkt_conversation_prefix)
+        prompt = prompt + prompt_assist + prefix 
         # prompt = prompt
-        return prompt
+        return {"prompt":prompt,"prefix":prefix}
 
+    @staticmethod
+    def stream_postprocess_fn(x):
+        yield x['prefix']
+        yield from x['llm_output']
+            
     @classmethod
     def create_chain(cls, model_kwargs=None, **kwargs):
         model_kwargs = model_kwargs or {}
-        
-        # model_kwargs = {**cls.default_model_kwargs,**model_kwargs}
-        return super().create_chain(model_kwargs=model_kwargs,**kwargs)
-
+        stream = kwargs.get('stream',False)
+        llm_chain = super().create_chain(model_kwargs=model_kwargs,**kwargs)
+        chain = RunnablePassthrough.assign(
+            prompt_dict=lambda x:cls._create_prompt(x)
+        ) | RunnablePassthrough.assign(prompt=lambda x:x['prompt_dict']['prompt'], prefix=lambda x:x['prompt_dict']['prefix']) \
+        | RunnablePassthrough.assign(llm_output=llm_chain)
+        if stream:
+            chain = chain | RunnableLambda(lambda x: cls.stream_postprocess_fn(x))
+        else:
+            chain = chain | RunnableLambda(lambda x: x['prefix'] + x['llm_output'])
+        return chain
 
 class Claude2MKTConversationSummaryChain(Claude2ChatChain):
     model_id = 'anthropic.claude-v2'

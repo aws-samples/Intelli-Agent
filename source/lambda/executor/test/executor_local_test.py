@@ -349,6 +349,13 @@ def test_internlm_model():
     endpoint_name = 'internlm2-chat-7b-4bits-2024-02-28-07-08-57-839'
     model_id = "internlm2-chat-7b"
     rag_parameters = {
+         "retriever_config":{
+            "retriever_top_k": 20,
+            "chunk_num": 2,
+            "using_whole_doc": True,
+            "reranker_top_k": 10,
+            "q_q_match_threshold": 0.9
+        },
         "query_process_config":{
             "conversation_query_rewrite_config":{
                 "model_id":model_id,
@@ -376,16 +383,23 @@ def test_internlm_model():
         }
     }
     
-    
-
     qq_match_test()
     generate_answer(
-        "什么是Amazon Bedrock", 
-        model="knowledge_qa", 
+        "什么是Amazon bedrock？", 
+        model="auto", 
         type="market_chain", 
         stream=True,
         rag_parameters=rag_parameters
     )
+
+    generate_answer(
+        "介绍一下Amazon EC2", 
+        model="auto", 
+        type="market_chain", 
+        stream=True,
+        rag_parameters=rag_parameters
+    )
+    print(sdg)
 
     generate_answer(
         "《夜曲》是谁演唱的？", 
@@ -472,7 +486,7 @@ def market_summary_test2():
             }
         ]
      
-    endpoint_name = 'internlm2-chat-7b-4bits-2024-02-28-04-23-11-534'
+    endpoint_name = 'internlm2-chat-7b-4bits-2024-02-28-07-08-57-839'
     model_id = "internlm2-chat-7b"
     body = {
             "messages": messages,

@@ -51,7 +51,7 @@ class Iternlm2Chat7BIntentRecognitionChain(Iternlm2Chat7BChatChain):
     default_model_kwargs = {
         "temperature":0.0,
         "max_new_tokens": 100,
-        "stop_tokens": ["\n",'。']
+        "stop_tokens": ["\n",'。','.']
     }
 
     @classmethod
@@ -81,7 +81,7 @@ class Iternlm2Chat7BIntentRecognitionChain(Iternlm2Chat7BChatChain):
     
     @staticmethod
     def postprocess(intent):
-        intent = intent.replace('。',"").strip()
+        intent = intent.replace('。',"").replace('.',"").strip()
         r = load_intention_file(intent_save_path)
         intent_indexs = r['intent_indexs']
         assert intent in intent_indexs, (intent,intent_indexs)
