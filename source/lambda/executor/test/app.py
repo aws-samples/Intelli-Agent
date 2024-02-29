@@ -2,7 +2,8 @@ import gradio as gr
 import json
 import requests
 import boto3
-from executor_local_test import generate_answer
+from websocket import create_connection
+# from executor_local_test import generate_answer
 from langchain_community.document_loaders import UnstructuredPDFLoader
 
 
@@ -72,10 +73,25 @@ text = [
     ],
 ]
 
+def generate_answer_from_api(url, query_input, type, rag_parameters):
+    data = {
+        "model": "knowledge_qa",
+        "messages": [{"role": "user", "content": query_input}],
+        "type": type,
+    }
+    data.update(rag_parameters)
+    response = requests.post(url, json.dumps(data))
+    return response
 
-def get_answer(query_input, entry_type):
+def generate_answer_from_ws(url, query_input, type, rag_parameters):
+    for i in range(max_debug_block):
+        with gr.Tab(visible=False) as tab:
+            tab_list.append(tab)
+            json_block = gr.JSON(visible=False)
+            json_list.append(json_block)
     model_id = "internlm2-chat-7b"
-    endpoint_name = "instruct-internlm2-chat-7b-f7dc2"
+    # endpoint_name = "instruct-internlm2-chat-7b-f7dc2"
+    endpoint_name = "internlm2-chat-7b-2024-02-23-07-29-02-632"
     rag_parameters=dict(
         query_process_config = {
             "conversation_query_rewrite_config":{
@@ -103,9 +119,85 @@ def get_answer(query_input, entry_type):
             "endpoint_name": endpoint_name,
             "context_num": 1
         })
-    answer, source, debug_info = generate_answer(
-        query_input, type=entry_type, rag_parameters=rag_parameters
+    sources = []
+    debug_info = []
+    ws = create_connection(url)
+    data = {
+        "model": "knowledge_qa",
+        "messages": [{"role": "user", "content": query_input}],
+        "type": type,
+        "get_contexts": True,
+        "enable_debug": True,
+    }
+    data.update(rag_parameters)
+    ws.send(json.dumps(data))
+    answer = ""
+    while True:
+        ret = json.loads(ws.recv())
+        try:
+            message_type = ret['choices'][0]['message_type']
+        except:
+            print(ret)
+            raise
+        if message_type == "START":
+            continue 
+        elif message_type == "CHUNK":
+            print(ret['choices'][0]['message']['content'],end="",flush=True)
+            answer += ret['choices'][0]['message']['content']
+            yield answer, "", *tab_list, *json_list
+        elif message_type == "END":
+            break
+        elif message_type == "ERROR":
+            print(ret['choices'][0]['message']['content'])
+            break 
+        elif message_type == "CONTEXT":
+            print()
+            print('contexts',ret)
+            sources = ret['choices'][0]["knowledge_sources"]
+            debug_info = ret['choices'][0]["debug_info"]
+            yield answer, sources, *render_debug_info(debug_info)
+    ws.close()
+
+def get_answer(url_input, query_input, entry_type):
+    rag_url = url_input
+    model_id = "internlm2-chat-7b"
+    # endpoint_name = "instruct-internlm2-chat-7b-f7dc2"
+    endpoint_name = "internlm2-chat-7b-2024-02-23-07-29-02-632"
+    rag_parameters=dict(
+        query_process_config = {
+            "conversation_query_rewrite_config":{
+                "model_id":model_id,
+                "endpoint_name":endpoint_name
+            },
+            "translate_config":{
+                "model_id":model_id,
+                "endpoint_name": endpoint_name
+            }
+        },
+        retriever_config = {
+            "chunk_num": 0,
+            "using_whole_doc": False,
+            "enable_reranker": True,
+            "retriever_top_k": 2
+        },
+        generator_llm_config ={
+            "model_kwargs":{
+                "max_new_tokens": 2000,
+                "temperature": 0.1,
+                "top_p": 0.9
+            },
+            "model_id": model_id,
+            "endpoint_name": endpoint_name,
+            "context_num": 1
+        })
+    sources = []
+    debug_info = []
+    answer, sources = generate_answer(
+        rag_url, query_input, type=entry_type, rag_parameters=rag_parameters,
+        sources=sources, debug_info=debug_info
     )
+
+def render_debug_info(debug_info):
     tab_list = []
     json_list = []
     json_count = 0
@@ -123,13 +215,7 @@ def get_answer(query_input, entry_type):
         tab_list.append(gr.Tab(visible=False))
     for i in range(max_debug_block-json_count):
         json_list.append(gr.JSON(value=["dummy"], visible=False))
-    return (
-        answer,
-        source,
-        *tab_list,
-        *json_list,
-    )
-
+    return *tab_list, *json_list
 
 def invoke_etl_online(
     url_input, s3_bucket_chunk_input, s3_prefix_chunk_input, need_split_dropdown
@@ -246,6 +332,9 @@ with gr.Blocks() as demo:
     url_input = gr.Text(
         label="Url, eg. https://f2zgexpo47.execute-api.us-east-1.amazonaws.com/v1/"
     )
+    websocket_input = gr.Text(
+        label="Websocket, eg. wss://5nnxrqr4ya.execute-api.cn-north-1.amazonaws.com.cn/prod/"
+    )
     with gr.Tab("Chat"):
         query_input = gr.Text(label="Query")
         entry_input = gr.Dropdown(label="Entry", choices=["common", "market_chain"], value="common")
@@ -278,8 +367,8 @@ with gr.Blocks() as demo:
         answer_btn = gr.Button(value="Answer")
         context = None
         answer_btn.click(
-            get_answer,
-            inputs=[query_input, entry_input],
+            generate_answer_from_ws,
+            inputs=[websocket_input, query_input, entry_input],
             outputs=[
                 answer_output,
                 sources_output,
@@ -288,14 +377,14 @@ with gr.Blocks() as demo:
             ],
         )
 
-        with gr.Accordion("RawDataDebugInfo", open=False):
-            raw_data = gr.JSON()
-        check_btn = gr.Button(value="Check")
-        check_btn.click(check_data, inputs=[url_input], outputs=[raw_data])
+        # with gr.Accordion("RawDataDebugInfo", open=False):
+        #     raw_data = gr.JSON()
+        # check_btn = gr.Button(value="Check")
+        # check_btn.click(check_data, inputs=[url_input], outputs=[raw_data])
         gr.Examples(
             examples=text,
-            inputs=[query_input],
-            fn=generate_answer,
+            inputs=[websocket_input, query_input, entry_input],
+            fn=get_answer,
             cache_examples=False,
         )
     with gr.Tab("Data Process Offline"):
@@ -431,7 +520,6 @@ with gr.Blocks() as demo:
             ],
             outputs=[solution_md],
         )
-
 
 # load_raw_data()
 if __name__ == "__main__":
