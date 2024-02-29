@@ -39,21 +39,19 @@ print(f"aos index {aos_index_dict}")
 class DummyWebSocket:
     def post_to_connection(self,ConnectionId,Data):
         data = json.loads(Data)
-        message = data['choices'][0].get('message',None)
         ret = data
-        if message is not None:
-            message_type = ret['choices'][0]['message_type']
-            if message_type == "START":
-                pass
-            elif message_type == "CHUNK":
-                print(ret['choices'][0]['message']['content'],end="",flush=True)
-            elif message_type == "END":
-                return 
-            elif message_type == "ERROR":
-                print(ret['choices'][0]['message']['content'])
-                return 
-            elif message_type == "CONTEXT":
-                print('sources: ',ret['choices'][0]['knowledge_sources'])
+        message_type = ret['choices'][0]['message_type']
+        if message_type == "START":
+            pass
+        elif message_type == "CHUNK":
+            print(ret['choices'][0]['message']['content'],end="",flush=True)
+        elif message_type == "END":
+            return 
+        elif message_type == "ERROR":
+            print(ret['choices'][0]['message']['content'])
+            return 
+        elif message_type == "CONTEXT":
+            print('sources: ',ret['choices'][0]['knowledge_sources'])
 
 main.ws_client = DummyWebSocket()
 
@@ -348,33 +346,60 @@ def test_baichuan_model():
 
 def test_internlm_model():
     session_id=f'test_{time.time()}'
-    endpoint_name = 'instruct-internlm2-chat-7b-f7dc2'
+    endpoint_name = 'internlm2-chat-7b-4bits-2024-02-28-07-08-57-839'
     model_id = "internlm2-chat-7b"
+    rag_parameters = {
+         "retriever_config":{
+            "retriever_top_k": 20,
+            "chunk_num": 2,
+            "using_whole_doc": True,
+            "reranker_top_k": 10,
+            "q_q_match_threshold": 0.9
+        },
+        "query_process_config":{
+            "conversation_query_rewrite_config":{
+                "model_id":model_id,
+                "endpoint_name":endpoint_name
+            },
+            "translate_config":{
+                "model_id":model_id,
+                "endpoint_name": endpoint_name
+            }
+        },
+        "intent_config": {
+            "model_id": model_id,
+            "endpoint_name": endpoint_name
+        },
+        "generator_llm_config":{
+            "model_kwargs":{
+                "max_new_tokens": 2000,
+                "temperature": 0.1,
+                "top_p": 0.9,
+                'repetition_penalty':1.2
+            },
+            "model_id": model_id,
+            "endpoint_name": endpoint_name,
+            "context_num": 1
+        }
+    }
+    
     qq_match_test()
     generate_answer(
-        "什么是Amazon Bedrock", 
-        model="knowledge_qa", 
+        "什么是Amazon bedrock？", 
+        model="auto", 
         type="market_chain", 
         stream=True,
-        rag_parameters=dict(
-            retriever_config =dict({
-                "retriever_top_k": 20,
-                "chunk_num": 2,
-                "using_whole_doc": False,
-                "reranker_top_k": 10,
-                "enable_reranker": True
-            }),
-            generator_llm_config={
-                    "model_kwargs":{
-                        "max_new_tokens": 2000,
-                        "temperature": 0.1,
-                        "top_p": 0.9
-                    },
-                    "model_id": model_id,
-                    "endpoint_name": endpoint_name,
-                    "context_num": 1
-        })
+        rag_parameters=rag_parameters
     )
+
+    generate_answer(
+        "介绍一下Amazon EC2", 
+        model="auto", 
+        type="market_chain", 
+        stream=True,
+        rag_parameters=rag_parameters
+    )
+    print(sdg)
 
     generate_answer(
         "《夜曲》是谁演唱的？", 
@@ -382,17 +407,7 @@ def test_internlm_model():
         model="chat", 
         type="market_chain", 
         stream=True,
-        rag_parameters=dict(
-            generator_llm_config={
-                    "model_kwargs":{
-                        "max_new_tokens": 2000,
-                        "temperature": 0.1,
-                        "top_p": 0.9
-                    },
-                    "model_id": model_id,
-                    "endpoint_name": endpoint_name,
-                    "context_num": 2
-        })
+        rag_parameters=rag_parameters
     )
     generate_answer(
         "他还有哪些其他歌曲？", 
@@ -400,35 +415,15 @@ def test_internlm_model():
         model="chat", 
         type="market_chain", 
         stream=True,
-        rag_parameters=dict(
-            generator_llm_config={
-                    "model_kwargs":{
-                        "max_new_tokens": 2000,
-                        "temperature": 0.1,
-                        "top_p": 0.9
-                    },
-                    "model_id": model_id,
-                    "endpoint_name": endpoint_name,
-                    "context_num": 2
-        })
+        rag_parameters=rag_parameters
     )
 
     r = generate_answer(
         "解释一下“温故而知新”", 
-        model="chat", 
+        model="auto", 
         type="market_chain", 
         stream=False,
-        rag_parameters=dict(
-            generator_llm_config={
-                    "model_kwargs":{
-                        "max_new_tokens": 2000,
-                        "temperature": 0.1,
-                        "top_p": 0.9
-                    },
-                    "model_id": model_id,
-                    "endpoint_name": endpoint_name,
-                    "context_num": 2
-        })
+        rag_parameters=rag_parameters
     )
     print(r[0])
 
@@ -490,10 +485,16 @@ def market_summary_test2():
                 "content":" 抱歉,我没有访问当前日期的方式。作为一个AI助手,我不知道“今天”具体指的是哪一天。我建议您直接问我您想知道的具体日期,例如“2022年2月14日是星期几”。或者您也可以询问能够访问当前日期的人这个问题。请让我知道还有什么可以帮助您的!"
             }
         ]
-
+     
+    endpoint_name = 'internlm2-chat-7b-4bits-2024-02-28-07-08-57-839'
+    model_id = "internlm2-chat-7b"
     body = {
             "messages": messages,
             "type": 'market_conversation_summary',
+            "mkt_conversation_summary_config": {
+                "model_id": model_id,
+                "endpoint_name": endpoint_name
+            }
             # "model":"chat"
             }
     event = {
@@ -606,7 +607,7 @@ if __name__ == "__main__":
     # market_summary_test()
     # code_chat_test()
     # market_summary_test2()
-    market_deploy_test()
+    # market_deploy_test()
     # market_deploy_cn_test()
 
     # generate_answer(
@@ -628,7 +629,7 @@ if __name__ == "__main__":
     
     # market_deploy_test()
     # test_baichuan_model()
-    # test_internlm_model()
+    test_internlm_model()
     # test_baichuan_model()
     
     # market_deploy_test()

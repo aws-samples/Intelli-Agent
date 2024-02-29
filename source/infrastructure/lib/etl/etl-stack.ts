@@ -14,6 +14,7 @@ import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as sagemaker from 'aws-cdk-lib/aws-sagemaker';
 import { Function, Runtime, Code, Architecture } from 'aws-cdk-lib/aws-lambda';
 import { join } from "path";
+import { BuildConfig } from '../shared/build-config';
 
 // import * as api from 'aws-cdk-lib/aws-apigateway';
 // import { off } from 'process';
@@ -57,6 +58,11 @@ export class EtlStack extends NestedStack {
         const imageUrlDomain = (this.region === 'cn-north-1' || this.region === 'cn-northwest-1') 
             ? '.amazonaws.com.cn/' 
             : '.amazonaws.com/';
+        
+        // If this.region is cn-notrh-1 or cn-northwest-1, use the glue-job-script-cn.py
+        const glueJobScript = (this.region === 'cn-north-1' || this.region === 'cn-northwest-1')
+            ? 'glue-job-script-cn.py'
+            : 'glue-job-script.py';
 
         // Create model, BucketDeployment construct automatically handles dependencies to ensure model assets uploaded before creating the model in this.region
         const imageUrl = this.account + '.dkr.ecr.' + this.region + imageUrlDomain + props._imageName + ":" + props._etlTag;
@@ -159,7 +165,7 @@ export class EtlStack extends NestedStack {
             executable: glue.JobExecutable.pythonShell({
                 glueVersion: glue.GlueVersion.V3_0,
                 pythonVersion: glue.PythonVersion.THREE_NINE,
-                script: glue.Code.fromAsset(join(__dirname, '../../../lambda/job/glue-job-script.py')),
+                script: glue.Code.fromAsset(join(__dirname, "../../../lambda/job", glueJobScript)),
             }),
             // Worker Type is not supported for Job Command pythonshell and Both workerType and workerCount must be set...
             // workerType: glue.WorkerType.G_2X,
@@ -181,7 +187,7 @@ export class EtlStack extends NestedStack {
                 '--RES_BUCKET': _S3Bucket.bucketName,
                 '--ProcessedObjectsTable': table.tableName,
                 '--additional-python-modules': 'langchain==0.0.312,beautifulsoup4==4.12.2,requests-aws4auth==1.2.3,boto3==1.28.84,openai==0.28.1,pyOpenSSL==23.3.0,tenacity==8.2.3,markdownify==0.11.6,mammoth==1.6.0,chardet==5.2.0,python-docx==1.1.0,nltk==3.8.1,pdfminer.six==20221105',
-                // '--python-modules-installer-option': '-i https://pypi.tuna.tsinghua.edu.cn/simple',
+                '--python-modules-installer-option': BuildConfig.JOB_PIP_OPTION,
                 // add multiple extra python files
                 '--extra-py-files': extraPythonFilesList,
                 '--CONTENT_TYPE': 'ug',

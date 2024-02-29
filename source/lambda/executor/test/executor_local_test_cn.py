@@ -40,21 +40,20 @@ print(f"aos index {aos_index_dict}")
 class DummyWebSocket:
     def post_to_connection(self,ConnectionId,Data):
         data = json.loads(Data)
-        message = data['choices'][0].get('message',None)
+        # message = data['choices'][0].get('message',None)
         ret = data
-        if message is not None:
-            message_type = ret['choices'][0]['message_type']
-            if message_type == "START":
-                pass
-            elif message_type == "CHUNK":
-                print(ret['choices'][0]['message']['content'],end="",flush=True)
-            elif message_type == "END":
-                return 
-            elif message_type == "ERROR":
-                print(ret['choices'][0]['message']['content'])
-                return 
-            elif message_type == "CONTEXT":
-                print('sources: ',ret['choices'][0]['knowledge_sources'])
+        message_type = ret['choices'][0]['message_type']
+        if message_type == "START":
+            pass
+        elif message_type == "CHUNK":
+            print(ret['choices'][0]['message']['content'],end="",flush=True)
+        elif message_type == "END":
+            return 
+        elif message_type == "ERROR":
+            print(ret['choices'][0]['message']['content'])
+            return 
+        elif message_type == "CONTEXT":
+            print('contexts', ret)
 
 main.ws_client = DummyWebSocket()
 
@@ -67,7 +66,8 @@ def generate_answer(query,
                     stream=False,
                     retriever_index="test-index",
                     session_id=None,
-                    rag_parameters=None
+                    rag_parameters=None,
+                    get_contexts=False
                     ):
     rag_parameters = rag_parameters or {}
     body = {
@@ -84,6 +84,7 @@ def generate_answer(query,
             "type": type,
             "model": model,
             "session_id":session_id,
+            "get_contexts":get_contexts
             }
     body.update(rag_parameters)
     event = {
@@ -577,8 +578,11 @@ def market_deploy_cn_test():
         model="auto", 
         stream=True,
         type="market_chain", 
+        get_contexts=True,
         rag_parameters=rag_parameters
     )
+
+    print(xfg)
 
 
     session_id = f'test_{int(time.time())}'

@@ -77,6 +77,11 @@ class Iternlm2Chat7BChatChain(LLMChain):
     model_id = "internlm2-chat-7b"
     intent_type = IntentType.CHAT.value
 
+    default_model_kwargs = {
+        "temperature":0.5,
+        "max_new_tokens": 1000
+    }
+
     @staticmethod
     def build_prompt(
             query: str, 
@@ -127,6 +132,8 @@ class Iternlm2Chat7BChatChain(LLMChain):
         
     @classmethod
     def create_chain(cls, model_kwargs=None, **kwargs):
+        model_kwargs = model_kwargs or {}
+        model_kwargs = {**cls.default_model_kwargs,**model_kwargs}
         stream = kwargs.get('stream',False)
         llm = Model.get_model(
                 cls.model_id,

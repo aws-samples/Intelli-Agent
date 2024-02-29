@@ -1,13 +1,14 @@
+
 import requests 
 
-api_url = "https://9nb7vey1u7.execute-api.us-west-2.amazonaws.com/v1/llm"
+api_url = "https://59ps8acy4f.execute-api.cn-north-1.amazonaws.com.cn/v1/llm/"
            
 # llm_model_id = "anthropic.claude-v2:1" #"csdc-internlm-7b" # "anthropic.claude-v2:1"
 endpoint_name = 'instruct-internlm2-chat-7b-f7dc2'
 model_id = "internlm2-chat-7b"
 
-prompt = "如何在不使用Red Hat共享的AMI的情况下将按需RHEL实例转换为BYOL，而不用重新部署每台RHEL服务器？"
-# prompt = "你好"
+# prompt = "如何在不使用Red Hat共享的AMI的情况下将按需RHEL实例转换为BYOL，而不用重新部署每台RHEL服务器？"
+prompt = "你好"
 r = requests.post(
     api_url,
     json={
@@ -60,4 +61,3 @@ print(r.status_code)
 print(r.json())
 contexts = r.json()['contexts']
 print(type(contexts))
-

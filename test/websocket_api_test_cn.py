@@ -10,7 +10,7 @@ import json
 
 # find ws_url from api gateway
 # ws_url = "wss://omjou492fe.execute-api.us-west-2.amazonaws.com/prod/"
-ws_url = "wss://2ogbgobue2.execute-api.us-west-2.amazonaws.com/prod/"
+ws_url = "wss://5nnxrqr4ya.execute-api.cn-north-1.amazonaws.com.cn/prod/"
 ws = create_connection(ws_url)
 
 question_library = [
@@ -25,76 +25,60 @@ question_library = [
     "Amazon EC2 提供了哪些功能来支持不同区域之间的数据恢复?"
 ]
 
+endpoint_name = 'instruct-internlm2-chat-7b-f7dc2'
+model_id = "internlm2-chat-7b"
+
 body = {
-    "action": "sendMessage",
+    # "action": "sendMessage",
     "model": "knowledge_qa",
     # "messages": [{"role": "user","content": question_library[-1]}],
     # "messages": [{"role": "user","content": question_library[-1]}],
     "messages": [{"role": "user","content": '什么是Bedrock？'}],
     "temperature": 0.7,
     "type" : "market_chain", 
+    "get_contexts" : True,
     "retriever_config":{
-        "using_whole_doc": False,
-        "chunk_num": 2,
-    },
-    # "enable_q_q_match": True,
-    # "enable_debug": False,
-    # "llm_model_id":'anthropic.claude-v2:1',
-    "get_contexts":True,
-    "generator_llm_config":{
-        "model_kwargs":{
-            "max_new_tokens": 1000,
-            "temperature": 0.01,
-            "top_p": 0.9,
-            "timeout":120
-        },
-        "model_id": "internlm2-chat-7b",
-        # "endpoint_name": "instruct-internlm2-chat-7b-f7dc2",
-        "endpoint_name": "internlm2-chat-7b-4bits-2024-02-28-07-08-57-839",#"baichuan2-13b-chat-4bits-2024-01-28-15-46-43-013",
-        "context_num": 1
-    }
-    # "session_id":f"test_{int(time.time())}"
-}
-
-
-body.update({"retriever_top_k": 1,
+            "retriever_top_k": 20,
             "chunk_num": 2,
             "using_whole_doc": False,
             "reranker_top_k": 10,
-            "enable_reranker": True})
+            "enable_reranker": True
+            },
+    "generator_llm_config":{
+        "model_kwargs":{
+            "max_new_tokens": 2000,
+            "temperature": 0.1,
+            "top_p": 0.9
+        },
+        "model_id": model_id,
+        "endpoint_name": endpoint_name,
+        "context_num": 1
+    },
+    "query_process_config":{
+        "conversation_query_rewrite_config":{
+            "model_id":model_id,
+            "endpoint_name":endpoint_name
+        },
+        "translate_config":{
+            "model_id":model_id,
+            "endpoint_name": endpoint_name
+        }
+    },
+    "intent_config":{ 
+        "model_id": model_id,
+        "endpoint_name": endpoint_name
+    }
+}
+    # "session_id":f"test_{int(time.time())}"
 
 
-# body = {
-#     "session_id":"325e217e-5023-4fbc-ace9-fb053c3188a5",
-#     "type":"market_conversation_summary"
-# }
+# body.update({"retriever_top_k": 1,
+#             "chunk_num": 2,
+#             "using_whole_doc": False,
+#             "reranker_top_k": 10,
+#             "enable_reranker": True})
 
-# body = {
-#     "action": "sendMessage",
-#     "session_id": "869272a2-493d-4908-b088-fd7cb033bf5e",
-#     "model": "knowledge_qa",
-#     "messages": [
-#         {
-#             "role": "user",
-#             "content": "Lambda冷启动怎么解决？"
-#         }
-#     ],
-#     "type": "market_chain",
-#     "temperature": 0.1
-# }
 
-# body = {
-#     "action": "sendMessage",
-#     "model": "chat",
-#     "messages": [{"role": "user","content": "今天天气怎么样"}],
-#     "temperature": 0.7,
-#     "type" : "market_chain", 
-#     # "enable_q_q_match": True,
-#     # "enable_debug": False,
-#     "llm_model_id":'anthropic.claude-v2:1',
-#     "get_contexts":True,
-#     # "session_id":f"test_{int(time.time())}"
-# }
 ws.send(json.dumps(body))
 start_time = time.time()
 while True:

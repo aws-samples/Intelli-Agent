@@ -204,7 +204,8 @@ class Internlm2Chat7B(SagemakerModelBase):
     default_model_kwargs = {
             "max_new_tokens": 1024,
             "timeout":60,
-            "do_sample":True,
+            'repetition_penalty':1.2,
+            # "do_sample":True,
             "temperature": 0.1,
             "top_p": 0.8
         }

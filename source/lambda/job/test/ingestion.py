@@ -1,29 +1,30 @@
-import datetime
 import itertools
-import json
 import logging
 import os
 import sys
 import time
-import traceback
+import json
+import datetime
 from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple
 
 import boto3
 import chardet
 import nltk
-from awsglue.utils import getResolvedOptions
 from boto3.dynamodb.conditions import Attr, Key
 from langchain.docstore.document import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores import OpenSearchVectorSearch
 from llm_bot_dep import sm_utils
-from llm_bot_dep.constant import SplittingType
 from llm_bot_dep.enhance_utils import EnhanceWithBedrock
 from llm_bot_dep.loaders.auto import cb_process_object
-from llm_bot_dep.storage_utils import save_content_to_s3
 from opensearchpy import RequestsHttpConnection
 from requests_aws4auth import AWS4Auth
+from llm_bot_dep.storage_utils import save_content_to_s3
+from llm_bot_dep.constant import SplittingType
 from tenacity import retry, stop_after_attempt, wait_exponential
+
+
+print(sys.path)
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -34,28 +35,29 @@ os.environ["NOUGAT_CHECKPOINT"] = "/tmp/nougat_checkpoint"
 os.environ["NLTK_DATA"] = "/tmp/nltk_data"
 
 # Parse arguments
-args = getResolvedOptions(
-    sys.argv,
-    [
-        "JOB_NAME",
-        "S3_BUCKET",
-        "S3_PREFIX",
-        "AOS_ENDPOINT",
-        "EMBEDDING_MODEL_ENDPOINT",
-        "ETL_MODEL_ENDPOINT",
-        "REGION",
-        "RES_BUCKET",
-        "OFFLINE",
-        "QA_ENHANCEMENT",
-        "BATCH_INDICE",
-        "ProcessedObjectsTable",
-        "DOC_INDEX_TABLE",
-        "AOS_INDEX",
-        "CONTENT_TYPE",
-        "EMBEDDING_TYPE",
-        "EMBEDDING_LANG",
-    ],
-)
+args = {
+    "JOB_NAME": "",
+    "S3_BUCKET": "aws-chatbot-knowledge-base",
+    # "S3_PREFIX": "ug-data-2",
+    # "S3_PREFIX": "faq-data",
+    "S3_PREFIX": "offline-experiment-mkt",
+    "AOS_ENDPOINT": "vpc-domain66ac69e0-prbg1iy4iido-ksu2bpd7eblmz6buvk5viespdq.us-west-2.es.amazonaws.com",
+    "EMBEDDING_MODEL_ENDPOINT": "embedding-bge-large-zh-v1-5-b5c9d,embedding-bge-large-en-v1-5-5888d",
+    "ETL_MODEL_ENDPOINT": "etl-endpoint",
+    "REGION": "us-west-2",
+    "RES_BUCKET": "llm-bot-dev-etlstacknestedst-llmbotgluelib973c0df4-obmcpq1xv1pe",
+    "OFFLINE": "true",
+    "QA_ENHANCEMENT": "false",
+    "BATCH_INDICE": "0",
+    "ProcessedObjectsTable": "llm-bot-dev-etlstackNestedStacketlstackNestedStackResource5A19705C-1IOMQY29GJHU3-ProcessedObjects1A59B3C3-4WN1FHIM4ZMI",
+    "DOC_INDEX_TABLE": "dev",
+    # "AOS_INDEX": "ug-index-20240108",
+    # "AOS_INDEX": "faq-index-20240110",
+    "AOS_INDEX": "offline-test-mkt",
+    "CONTENT_TYPE": "ug",
+    "EMBEDDING_TYPE": "similarity,relevance,similarity,relevance",
+    "EMBEDDING_LANG": "zh,zh,en,en",
+}
 
 # Online process triggered by S3 Object create event does not have batch indice
 # Set default value for BATCH_INDICE if it doesn't exist
@@ -110,7 +112,6 @@ MAX_OS_DOCS_PER_PUT = 8
 # Set the NLTK data path to the /tmp directory for AWS Glue jobs
 nltk.data.path.append("/tmp/nltk_data")
 
-
 def decode_file_content(content: str, default_encoding: str = "utf-8"):
     """Decode the file content and auto detect the content encoding.
 
@@ -129,30 +130,30 @@ def decode_file_content(content: str, default_encoding: str = "utf-8"):
 
     return decoded_content
 
-
 # such glue job is running as map job, the batchIndice is the index per file to handle in current job
-def iterate_s3_files(bucket: str, prefix: str) -> Generator:
+def iterate_s3_files(bucket: str, prefix: str, batchIndice=0) -> Generator:
     paginator = s3.get_paginator("list_objects_v2")
     currentIndice = 0
     for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
         for obj in page.get("Contents", []):
+            currentIndice += 1
             key = obj["Key"]
             # skip the prefix with slash, which is the folder name
             if key.endswith("/"):
                 continue
-            logger.info(
-                "Current batchIndice: {}, bucket: {}, key: {}".format(
-                    currentIndice, bucket, key
-                )
-            )
-            if currentIndice != int(batchIndice):
+            logger.info("Current batchIndice: {}, bucket: {}, key: {}".format(currentIndice, bucket, key))
+            if (currentIndice-1) // 100 != int(batchIndice):
                 logger.info(
                     "currentIndice: {}, batchIndice: {}, skip file: {}".format(
                         currentIndice, batchIndice, key
                     )
                 )
-                currentIndice += 1
                 continue
+            logger.info(
+                    "Processing {} doc in {} batch, key: {}".format(
+                        currentIndice, batchIndice, key
+                    )
+                )
             """
             WHY this code block is commented out? we used to record the processed object in DynamoDB in case of redundant operation for the same object
             """
@@ -225,13 +226,12 @@ def iterate_s3_files(bucket: str, prefix: str) -> Generator:
                 break
             elif file_type == "json":
                 yield "json", decode_file_content(file_content), kwargs
-                break
+                # break
             elif file_type == "jsonl":
                 yield "jsonl", file_content, kwargs
                 break
             else:
                 logger.info(f"Unknown file type: {file_type}")
-
 
 def batch_generator(generator, batch_size: int):
     iterator = iter(generator)
@@ -311,9 +311,7 @@ def aos_injection(
                 yield split
 
     if gen_chunk:
-        generator = chunk_generator(
-            content, chunk_size=chunk_size, chunk_overlap=chunk_overlap
-        )
+        generator = chunk_generator(content, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
     else:
         generator = content
 
@@ -325,26 +323,16 @@ def aos_injection(
         # the batch are still list of Document objects, we need to iterate the list to inject the embeddings, the chunk size (500) should already be small enough to fit the embedding model
         for document in batch:
             # update document with complete_heading
-            if "complete_heading" in document.metadata:
-                document.page_content = (
-                    document.metadata["complete_heading"] + " " + document.page_content
-                )
-            else:
-                document.page_content = document.page_content
+            document.page_content = document.metadata["complete_heading"] + ' ' + document.page_content
 
-            @retry(
-                stop=stop_after_attempt(3),
-                wait=wait_exponential(multiplier=1, min=4, max=10),
-            )
+            @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
             def _aos_injection(document: Document) -> Document:
                 # If user customize the index, use the customized index as high priority, NOTE the custom index will be created with default AOS mapping in LangChain, use API to create the index with customized mapping before running the job if you want to customize the mapping
                 if aos_custom_index:
                     index_name = aos_custom_index
-
+                
                 for embedding in embedding_list.values():
-                    document.metadata["embedding_endpoint_name"] = (
-                        embedding.endpoint_name
-                    )
+                    document.metadata["embedding_endpoint_name"] = embedding.endpoint_name
                     docsearch = OpenSearchVectorSearch(
                         index_name=index_name,
                         embedding_function=embedding,
@@ -375,12 +363,12 @@ def aos_injection(
 
 
 # Main function to be called by Glue job script
-def main():
+def main(batchIndice):
     logger.info("Starting Glue job with passing arguments: %s", args)
     # Check if offline mode
     if offline == "true" or offline == "false":
         logger.info("Running in offline mode with consideration for large file size...")
-        for file_type, file_content, kwargs in iterate_s3_files(s3_bucket, s3_prefix):
+        for file_type, file_content, kwargs in iterate_s3_files(s3_bucket, s3_prefix, batchIndice):
             try:
                 if file_type == "json":
                     kwargs["embeddings_model_info_list"] = embeddings_model_info_list
@@ -411,13 +399,7 @@ def main():
                         gen_chunk=False,
                     )
                 elif file_type in ["pdf", "txt", "doc", "md", "html", "json", "jsonl"]:
-                    aos_injection(
-                        res,
-                        embeddingModelEndpointList,
-                        aosEndpoint,
-                        aos_index,
-                        file_type,
-                    )
+                    aos_injection(res, embeddingModelEndpointList, aosEndpoint, aos_index, file_type)
                 if qa_enhancement == "true":
                     enhanced_prompt_list = []
                     # iterate the document to get the QA pairs
@@ -439,22 +421,17 @@ def main():
                             enhanced_prompt_list = ewb.EnhanceWithClaude(
                                 prompt, document, enhanced_prompt_list
                             )
-                        logger.info(f"Enhanced prompt: {enhanced_prompt_list}")
+                        logger.info(
+                            f"Enhanced prompt: {enhanced_prompt_list}"
+                        )
 
                     if len(enhanced_prompt_list) > 0:
-                        for document in enhanced_prompt_list:
-                            save_content_to_s3(
-                                s3,
-                                document,
-                                res_bucket,
-                                SplittingType.QA_ENHANCEMENT.value,
-                            )
                         aos_injection(
                             enhanced_prompt_list,
                             embeddingModelEndpointList,
                             aosEndpoint,
                             aos_index,
-                            "qa",
+                            "qa"
                         )
 
             except Exception as e:
@@ -463,10 +440,9 @@ def main():
                     kwargs["bucket"] + "/" + kwargs["key"],
                     e,
                 )
-                traceback.print_exc()
-
     else:
         logger.info("Running in online mode, assume file number is small...")
+    return "finish"
 
 
 if __name__ == "__main__":

@@ -269,6 +269,7 @@ if __name__ == "__main__":
     
     # rag_api_url = "https://5tzaajjzg7.execute-api.us-west-2.amazonaws.com/default/llm-bot-dev-qq-matching"
     rag_api_url =  "wss://omjou492fe.execute-api.us-west-2.amazonaws.com/prod/"
+    
     # eval_data_path = "TechBot QA Test-fifth-test.csv"
     eval_data_path = "TechBot QA Test-fifth-test-sample-50.csv"
     # eval_id = 'claude2-csds-retrive'

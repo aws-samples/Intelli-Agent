@@ -109,7 +109,7 @@ def process_pdf(s3, pdf: bytes, **kwargs):
     # entire PDF is loaded as a single Document
     file_content = loader.load()[0].page_content
 
-    detected_lang = detect_language(file_content[:1000])
+    detected_lang = detect_language(file_content[:100000])
     logger.info(f"Detected language: {detected_lang}")
 
     if not etl_model_endpoint or not smr_client or not res_bucket:

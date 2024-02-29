@@ -95,8 +95,9 @@ npx cdk deploy --parameters S3ModelAssets=<Your S3 Bucket Name> --parameters Sub
 
 | Context | Description |
 |---------|-------------|
-| PipOption | The configuration option for the Python package installer (pip). |
 | DeploymentMode | The mode for deployment. There are three modes: `OFFLINE_EXTRACT`, `OFFLINE_OPENSEARCH`, and `ALL`. |
+| LayerPipOption | The configuration option for the Python package installer (pip) for the Lambda layer. Please use it when the instance you are using is in China. |
+| JobPipOption | The configuration option for the Python package installer (pip). Please use it when this solution is deployed in GCR region. |
 
 
 ## Testing API Connection

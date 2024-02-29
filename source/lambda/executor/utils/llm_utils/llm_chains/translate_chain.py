@@ -1,5 +1,4 @@
 # translate chain
-
 from langchain.schema.runnable import RunnableLambda
 from ...constant import QUERY_TRANSLATE_TYPE
 
@@ -7,7 +6,7 @@ from .chat_chain import Iternlm2Chat7BChatChain
 class Iternlm2Chat7BTranslateChain(Iternlm2Chat7BChatChain):
     intent_type = QUERY_TRANSLATE_TYPE
     default_model_kwargs = {
-        "do_sample": False,
+        "temperature": 0.0,
         "max_new_tokens": 200
     }
 
