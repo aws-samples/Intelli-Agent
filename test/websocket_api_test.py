@@ -34,7 +34,7 @@ body = {
     "temperature": 0.7,
     "type" : "market_chain", 
     "retriever_config":{
-        "using_whole_doc": True,
+        "using_whole_doc": False,
         "chunk_num": 2,
     },
     # "enable_q_q_match": True,
@@ -49,7 +49,8 @@ body = {
             "timeout":120
         },
         "model_id": "internlm2-chat-7b",
-        "endpoint_name": "internlm2-chat-7b-2024-02-07-08-10-40-119",#"baichuan2-13b-chat-4bits-2024-01-28-15-46-43-013",
+        # "endpoint_name": "instruct-internlm2-chat-7b-f7dc2",
+        "endpoint_name": "internlm2-chat-7b-4bits-2024-02-28-07-08-57-839",#"baichuan2-13b-chat-4bits-2024-01-28-15-46-43-013",
         "context_num": 1
     }
     # "session_id":f"test_{int(time.time())}"
