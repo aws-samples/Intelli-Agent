@@ -1,16 +1,17 @@
-import gradio as gr
 import json
-import requests
+
 import boto3
+import gradio as gr
+import requests
 from executor_local_test import generate_answer
 from langchain_community.document_loaders import UnstructuredPDFLoader
 
-
 doc_dict = {}
-s3 = boto3.client('s3')
+s3 = boto3.client("s3")
 max_debug_block = 20
 
 import os
+
 
 def load_raw_data():
     global doc_dict
@@ -67,45 +68,35 @@ text = [
     [
         "建发股份和四川永丰浆纸股份有限公司及其子公司向关联人销 售商品、提供劳务交易预计总金额总计多少",
     ],
-    [
-        "员工连续旷工两天会被处以什么处分？"
-    ],
+    ["员工连续旷工两天会被处以什么处分？"],
 ]
 
 
 def get_answer(query_input, entry_type):
     model_id = "internlm2-chat-7b"
     endpoint_name = "instruct-internlm2-chat-7b-f7dc2"
-    rag_parameters=dict(
-        query_process_config = {
-            "conversation_query_rewrite_config":{
-                "model_id":model_id,
-                "endpoint_name":endpoint_name
+    rag_parameters = dict(
+        query_process_config={
+            "conversation_query_rewrite_config": {
+                "model_id": model_id,
+                "endpoint_name": endpoint_name,
             },
-            "translate_config":{
-                "model_id":model_id,
-                "endpoint_name": endpoint_name
-            }
+            "translate_config": {"model_id": model_id, "endpoint_name": endpoint_name},
         },
-        retriever_config = {
+        retriever_config={
             "chunk_num": 0,
             "using_whole_doc": False,
             "enable_reranker": True,
-            "retriever_top_k": 2
+            "retriever_top_k": 2,
         },
-        generator_llm_config ={
-            "model_kwargs":{
-                "max_new_tokens": 2000,
-                "temperature": 0.1,
-                "top_p": 0.9
-            },
+        generator_llm_config={
+            "model_kwargs": {"max_new_tokens": 2000, "temperature": 0.1, "top_p": 0.9},
             "model_id": model_id,
             "endpoint_name": endpoint_name,
-            "context_num": 1
-        })
-    answer, source, debug_info = generate_answer(
-        query_input, type=entry_type, rag_parameters=rag_parameters
+            "context_num": 1,
+        },
     )
+    answer, source, debug_info = generate_answer(query_input, type=entry_type)
     tab_list = []
     json_list = []
     json_count = 0
@@ -119,9 +110,9 @@ def get_answer(query_input, entry_type):
             json_value = debug_info[info_key]
         json_list.append(gr.JSON(value=json_value, visible=True))
         json_count += 1
-    for i in range(max_debug_block-accordion_count):
+    for i in range(max_debug_block - accordion_count):
         tab_list.append(gr.Tab(visible=False))
-    for i in range(max_debug_block-json_count):
+    for i in range(max_debug_block - json_count):
         json_list.append(gr.JSON(value=["dummy"], visible=False))
     return (
         answer,
@@ -199,7 +190,7 @@ def invoke_etl_offline(
 
 def load_s3_bucket():
     s3_buckets = s3.list_buckets()
-    s3_bucket_names = [bucket['Name'] for bucket in s3_buckets['Buckets']]
+    s3_bucket_names = [bucket["Name"] for bucket in s3_buckets["Buckets"]]
 
     return s3_bucket_names
 
@@ -208,16 +199,17 @@ def load_s3_doc(s3_bucket_dropdown, s3_prefix_compare):
     if not s3_bucket_dropdown:
         return []
     response = s3.get_object(Bucket=s3_bucket_dropdown, Key=s3_prefix_compare)
-    content = response['Body'].read().decode('utf-8')
-    
+    content = response["Body"].read().decode("utf-8")
+
     return content
+
 
 def get_all_keys(bucket_name, prefix):
     if not bucket_name:
         return []
     key_list = []
     # Create a reusable Paginator
-    paginator = s3.get_paginator('list_objects_v2')
+    paginator = s3.get_paginator("list_objects_v2")
 
     # Create a PageIterator from the Paginator
     page_iterator = paginator.paginate(Bucket=bucket_name, Prefix=prefix)
@@ -225,8 +217,8 @@ def get_all_keys(bucket_name, prefix):
     for page in page_iterator:
         if "Contents" in page:
             # Print the keys (file names)
-            for key in page['Contents']:
-                key_list.append(key['Key'])
+            for key in page["Contents"]:
+                key_list.append(key["Key"])
     return key_list
 
 
@@ -248,7 +240,9 @@ with gr.Blocks() as demo:
     )
     with gr.Tab("Chat"):
         query_input = gr.Text(label="Query")
-        entry_input = gr.Dropdown(label="Entry", choices=["common", "market_chain"], value="common")
+        entry_input = gr.Dropdown(
+            label="Entry", choices=["common", "market_chain"], value="common"
+        )
         answer_output = gr.Text(label="Anwser", show_label=True)
         sources_output = gr.Text(label="Sources", show_label=True)
         tab_list = []
@@ -280,12 +274,7 @@ with gr.Blocks() as demo:
         answer_btn.click(
             get_answer,
             inputs=[query_input, entry_input],
-            outputs=[
-                answer_output,
-                sources_output,
-                *tab_list,
-                *json_list
-            ],
+            outputs=[answer_output, sources_output, *tab_list, *json_list],
         )
 
         with gr.Accordion("RawDataDebugInfo", open=False):
@@ -406,21 +395,21 @@ with gr.Blocks() as demo:
                     label="S3 Bucket",
                     info="S3 bucket name, eg. llm-bot",
                 )
-                s3_prefix_text = gr.Textbox(
-                    label="S3 prefix, eg. demo_folder/demo.pdf"
-                )
+                s3_prefix_text = gr.Textbox(label="S3 prefix, eg. demo_folder/demo.pdf")
                 get_split_file_button = gr.Button(value="List Files")
             with gr.Column():
                 s3_prefix_dropdown = gr.Dropdown(
-                    choices=[],
-                    label="S3 prefix, eg. demo_folder/demo.pdf"
+                    choices=[], label="S3 prefix, eg. demo_folder/demo.pdf"
                 )
+
                 def update_s3_prefix_dropdown(s3_bucket, s3_prefix):
                     return gr.Dropdown(choices=get_all_keys(s3_bucket, s3_prefix))
+
                 get_split_file_button.click(
                     fn=update_s3_prefix_dropdown,
                     inputs=[s3_bucket_dropdown, s3_prefix_text],
-                    outputs=[s3_prefix_dropdown])
+                    outputs=[s3_prefix_dropdown],
+                )
                 load_button = gr.Button("Load")
         solution_md = gr.Markdown(label="Output")
         load_button.click(
@@ -436,4 +425,4 @@ with gr.Blocks() as demo:
 # load_raw_data()
 if __name__ == "__main__":
     demo.queue()
-    demo.launch(server_name="0.0.0.0", share=False, server_port=3309)
+    demo.launch(server_name="0.0.0.0", share=True, server_port=3309)

@@ -31,8 +31,6 @@ interface etlStackProps extends StackProps {
     _subEmail: string;
     _s3ModelAssets: string;
     _OpenSearchIndex: string;
-    _imageName: string;
-    _etlTag: string;
 }
 
 export class EtlStack extends NestedStack {
@@ -40,62 +38,16 @@ export class EtlStack extends NestedStack {
     _jobName;
     _jobArn;
     _processedObjectsTable;
-    _etlEndpoint: string;
+    _etlEndpoint: string = 'not-set';
     _resBucketName: string;
 
     constructor(scope: Construct, id: string, props: etlStackProps) {
         super(scope, id, props);
-
-        const endpointRole = new iam.Role(this, 'etl-endpoint-role', {
-            assumedBy: new iam.ServicePrincipal('sagemaker.amazonaws.com'),
-            managedPolicies: [
-                iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonSageMakerFullAccess'),
-                iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonS3FullAccess'),
-                iam.ManagedPolicy.fromAwsManagedPolicyName('CloudWatchLogsFullAccess'),
-            ],
-        });
-        
-        const imageUrlDomain = (this.region === 'cn-north-1' || this.region === 'cn-northwest-1') 
-            ? '.amazonaws.com.cn/' 
-            : '.amazonaws.com/';
         
         // If this.region is cn-notrh-1 or cn-northwest-1, use the glue-job-script-cn.py
         const glueJobScript = (this.region === 'cn-north-1' || this.region === 'cn-northwest-1')
             ? 'glue-job-script-cn.py'
             : 'glue-job-script.py';
-
-        // Create model, BucketDeployment construct automatically handles dependencies to ensure model assets uploaded before creating the model in this.region
-        const imageUrl = this.account + '.dkr.ecr.' + this.region + imageUrlDomain + props._imageName + ":" + props._etlTag;
-        const model = new sagemaker.CfnModel(this, 'etl-model', {
-            executionRoleArn: endpointRole.roleArn,
-            primaryContainer: {
-                image: imageUrl
-            },
-        });
-
-        // Create endpoint configuration
-        const endpointConfig = new sagemaker.CfnEndpointConfig(this, 'etl-endpoint-config', {
-            productionVariants: [{
-                initialVariantWeight: 1.0,
-                modelName: model.attrModelName,
-                variantName: 'variantProd',
-                containerStartupHealthCheckTimeoutInSeconds: 15*60,
-                initialInstanceCount: 1,
-                instanceType: 'ml.g4dn.2xlarge',
-            }],
-        });
-
-        // Create endpoint
-        const etlEndpoint = new sagemaker.CfnEndpoint(this, 'etl-endpoint', {
-            endpointConfigName: endpointConfig.attrEndpointConfigName,
-            endpointName: 'etl-endpoint',
-        });
-        
-        if (typeof etlEndpoint.endpointName === 'undefined') {
-            throw new Error('etlEndpoint.endpointName is undefined');
-        }
-
-        this._etlEndpoint = etlEndpoint.endpointName;
 
         const connection = new glue.Connection(this, 'GlueJobConnection', {
             type: glue.ConnectionType.NETWORK,

@@ -195,8 +195,6 @@ def iterate_s3_files(bucket: str, prefix: str) -> Generator:
             kwargs = {
                 "bucket": bucket,
                 "key": key,
-                "etl_model_endpoint": etlModelEndpoint,
-                "smr_client": smr_client,
                 "res_bucket": res_bucket,
             }
 

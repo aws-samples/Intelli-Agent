@@ -5,8 +5,8 @@ import logging
 import os
 import sys
 import time
-from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple
 import traceback
+from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple
 
 import boto3
 import chardet
@@ -195,8 +195,6 @@ def iterate_s3_files(bucket: str, prefix: str) -> Generator:
             kwargs = {
                 "bucket": bucket,
                 "key": key,
-                "etl_model_endpoint": etlModelEndpoint,
-                "smr_client": smr_client,
                 "res_bucket": res_bucket,
             }
 
@@ -330,7 +328,8 @@ def aos_injection(
                     document.metadata["complete_heading"] + " " + document.page_content
                 )
             else:
-                document.page_content = (document.page_content)
+                document.page_content = document.page_content
+
             @retry(
                 stop=stop_after_attempt(3),
                 wait=wait_exponential(multiplier=1, min=4, max=10),

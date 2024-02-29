@@ -5,18 +5,14 @@ interface CdkParameters {
     _S3ModelAssets: CfnParameter;
     _SubEmail: CfnParameter;
     _OpenSearchIndex: CfnParameter;
-    _ETLImageTag: CfnParameter;
     _OpenSearchIndexDict: CfnParameter;
-    _EtlImageName: CfnParameter;
 }
 
 export class DeploymentParameters implements CdkParameters {
     _S3ModelAssets: CfnParameter;
     _SubEmail: CfnParameter;
     _OpenSearchIndex: CfnParameter;
-    _ETLImageTag: CfnParameter;
     _OpenSearchIndexDict: CfnParameter;
-    _EtlImageName: CfnParameter;
 
     constructor(scope: Construct) {
         this._S3ModelAssets = new CfnParameter(scope, 'S3ModelAssets', {
@@ -35,12 +31,6 @@ export class DeploymentParameters implements CdkParameters {
             default: 'chatbot-index',
         });
 
-        this._ETLImageTag = new CfnParameter(scope, 'ETLTag', {
-            type: 'String',
-            description: 'ETL image tag, the default is latest',
-            default: 'latest',
-        });
-
         let OpenSearchIndexDictDefaultValue: string | undefined;
 
         if (process.env.AOSDictValue !== undefined) {
@@ -53,11 +43,6 @@ export class DeploymentParameters implements CdkParameters {
             type: 'String',
             description: 'OpenSearch index to store knowledge dict format',
             default: OpenSearchIndexDictDefaultValue,
-        });
-
-        this._EtlImageName = new CfnParameter(scope, 'EtlImageName', {
-            type: 'String',
-            description: 'The ECR image name which is used for ETL, eg. etl-model',
         });
     }
 }
