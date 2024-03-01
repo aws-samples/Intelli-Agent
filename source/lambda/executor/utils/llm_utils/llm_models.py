@@ -204,7 +204,7 @@ class Internlm2Chat7B(SagemakerModelBase):
     default_model_kwargs = {
             "max_new_tokens": 1024,
             "timeout":60,
-            'repetition_penalty':1.2,
+            'repetition_penalty':1.05,
             # "do_sample":True,
             "temperature": 0.1,
             "top_p": 0.8
@@ -231,3 +231,7 @@ class Internlm2Chat7B(SagemakerModelBase):
         body.update(self.model_kwargs)
         input_str = json.dumps(body)
         return input_str
+
+
+class Internlm2Chat20B(Internlm2Chat7B):
+    model_id = "internlm2-chat-20b"

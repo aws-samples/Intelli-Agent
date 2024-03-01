@@ -13,7 +13,7 @@ from .chat_chain import Iternlm2Chat7BChatChain
 
 
 
-class Iternlm2Chat7BIntentRecognitionChain(Iternlm2Chat7BChatChain):
+class Iternlm2Chat7BQueryRewriteChain(Iternlm2Chat7BChatChain):
     model_id = "internlm2-chat-7b"
     intent_type = QUERY_REWRITE_TYPE
 

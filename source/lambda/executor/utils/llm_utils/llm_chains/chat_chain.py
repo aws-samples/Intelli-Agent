@@ -147,3 +147,7 @@ class Iternlm2Chat7BChatChain(LLMChain):
         llm_chain = prompt_template | RunnableLambda(lambda x:llm.invoke(x,stream=stream))
         return llm_chain
     
+
+
+class Iternlm2Chat20BChatChain(Iternlm2Chat7BChatChain):
+    model_id = "internlm2-chat-20b"

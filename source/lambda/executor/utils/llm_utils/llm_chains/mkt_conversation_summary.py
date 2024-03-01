@@ -72,6 +72,10 @@ class Iternlm2Chat7BMKTConversationSummaryChain(Iternlm2Chat7BChatChain):
             chain = chain | RunnableLambda(lambda x: x['prefix'] + x['llm_output'])
         return chain
 
+
+class Iternlm2Chat20BMKTConversationSummaryChain(Iternlm2Chat7BMKTConversationSummaryChain):
+    model_id = "internlm2-chat-20b"
+
 class Claude2MKTConversationSummaryChain(Claude2ChatChain):
     model_id = 'anthropic.claude-v2'
     intent_type = MKT_CONVERSATION_SUMMARY_TYPE

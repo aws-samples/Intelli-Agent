@@ -81,7 +81,7 @@ class Iternlm2Chat7BIntentRecognitionChain(Iternlm2Chat7BChatChain):
     
     @staticmethod
     def postprocess(intent):
-        intent = intent.replace('。',"").replace('.',"").strip()
+        intent = intent.replace('。',"").replace('.',"").strip().strip('**')
         r = load_intention_file(intent_save_path)
         intent_indexs = r['intent_indexs']
         assert intent in intent_indexs, (intent,intent_indexs)
@@ -98,6 +98,8 @@ class Iternlm2Chat7BIntentRecognitionChain(Iternlm2Chat7BChatChain):
         chain = chain | RunnableLambda(lambda x:cls.postprocess(x))
         return chain
 
+class Iternlm2Chat20BIntentRecognitionChain(Iternlm2Chat7BIntentRecognitionChain):
+    model_id = "internlm2-chat-20b"
 
 class Claude2IntentRecognitionChain(LLMChain):
     model_id = 'anthropic.claude-v2'

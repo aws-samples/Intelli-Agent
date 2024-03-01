@@ -32,3 +32,7 @@ class Iternlm2Chat7BTranslateChain(Iternlm2Chat7BChatChain):
         llm_chain = super().create_chain(model_kwargs=model_kwargs,**kwargs)
         llm_chain = llm_chain | RunnableLambda(lambda x:x.strip('"'))  # postprocess
         return llm_chain 
+
+
+class Iternlm2Chat20BTranslateChain(Iternlm2Chat7BTranslateChain):
+    model_id = "internlm2-chat-20b"

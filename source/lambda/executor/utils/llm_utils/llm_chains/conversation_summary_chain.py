@@ -63,6 +63,9 @@ Question: {question}
         return super().create_chain(model_kwargs=model_kwargs,**kwargs)
 
 
+class Iternlm2Chat20BConversationSummaryChain(Iternlm2Chat7BConversationSummaryChain):
+    model_id = "internlm2-chat-20b"
+
 class Claude2ConversationSummaryChain(LLMChain):
     model_id = 'anthropic.claude-v2'
     intent_type = CONVERSATION_SUMMARY_TYPE

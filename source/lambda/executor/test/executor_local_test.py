@@ -51,7 +51,11 @@ class DummyWebSocket:
             print(ret['choices'][0]['message']['content'])
             return 
         elif message_type == "CONTEXT":
-            print('sources: ',ret['choices'][0]['knowledge_sources'])
+            print('knowledge_sources num',ret['choices'][0]['knowledge_sources'])
+            if ret['choices'][0].get('contexts'):
+                print('contexts num',len(ret['choices'][0].get('contexts')))
+                print('contexts avg len: ', sum(len(i) for i in ret['choices'][0]['contexts'])/len(ret['choices'][0]['contexts']))
+                print('sources: ',ret['choices'][0]['contexts'])
 
 main.ws_client = DummyWebSocket()
 
@@ -346,15 +350,20 @@ def test_baichuan_model():
 
 def test_internlm_model():
     session_id=f'test_{time.time()}'
-    endpoint_name = 'internlm2-chat-7b-4bits-2024-02-28-07-08-57-839'
-    model_id = "internlm2-chat-7b"
+    # endpoint_name = 'internlm2-chat-7b-4bits-2024-02-28-07-08-57-839'
+    # model_id = "internlm2-chat-7b"
+
+    endpoint_name = 'internlm2-chat-20b-4bits-2024-02-29-05-37-42-885'
+    model_id = "internlm2-chat-20b"
+
     rag_parameters = {
+        "get_contexts":True,
          "retriever_config":{
-            "retriever_top_k": 20,
-            "chunk_num": 2,
-            "using_whole_doc": True,
-            "reranker_top_k": 10,
-            "q_q_match_threshold": 0.9
+            "retriever_top_k": 1,
+                "chunk_num": 2,
+                "using_whole_doc": True,
+                "reranker_top_k": 10,
+                "enable_reranker": True
         },
         "query_process_config":{
             "conversation_query_rewrite_config":{
@@ -375,7 +384,7 @@ def test_internlm_model():
                 "max_new_tokens": 2000,
                 "temperature": 0.1,
                 "top_p": 0.9,
-                'repetition_penalty':1.2
+                'repetition_penalty':1.1
             },
             "model_id": model_id,
             "endpoint_name": endpoint_name,
@@ -385,12 +394,30 @@ def test_internlm_model():
     
     qq_match_test()
     generate_answer(
+        "AWS支持上海region吗？", 
+        model="auto", 
+        type="market_chain", 
+        stream=True,
+        rag_parameters=rag_parameters
+    )
+    # print(sfg)
+    generate_answer(
+        "介绍一下Amazon EC2", 
+        model="auto", 
+        type="market_chain", 
+        stream=True,
+        rag_parameters=rag_parameters
+    )
+    # print(xfg)
+    generate_answer(
         "什么是Amazon bedrock？", 
         model="auto", 
         type="market_chain", 
         stream=True,
         rag_parameters=rag_parameters
     )
+
+    print(sgf)
 
     generate_answer(
         "介绍一下Amazon EC2", 
@@ -634,23 +661,24 @@ if __name__ == "__main__":
     
     # market_deploy_test()
     # dgr
-    # generate_answer(
-    #     # "如何将Kinesis Data Streams配置为AWS Lambda的事件源？",
-    #     # "Amazon EC2 提供了哪些功能来支持不同区域之间的数据恢复?",
-    #     "live chat",
-    #     model="knowledge_qa", 
-    #     stream=True,
-    #     type="market_chain", 
-    #     rag_parameters=dict(
-    #         retriver_config={
-    #             "retriever_top_k": 1,
-    #             "chunk_num": 2,
-    #             "using_whole_doc": True,
-    #             "reranker_top_k": 10,
-    #             "enable_reranker": True
-    # },
-    # )
-    # )
+    generate_answer(
+        # "如何将Kinesis Data Streams配置为AWS Lambda的事件源？",
+        # "Amazon EC2 提供了哪些功能来支持不同区域之间的数据恢复?",
+        "什么是Amazon bedrock？",
+        model="knowledge_qa", 
+        stream=True,
+        type="market_chain", 
+        rag_parameters=dict(
+            get_contexts = True,
+            retriever_config={
+                "retriever_top_k": 1,
+                "chunk_num": 2,
+                "using_whole_doc": False,
+                "reranker_top_k": 10,
+                "enable_reranker": True
+    },
+    )
+    )
 
     # r = generate_answer("请写一首诗",model='caht')
     # multiturn_chat_test()
