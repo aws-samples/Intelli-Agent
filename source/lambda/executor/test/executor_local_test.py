@@ -384,7 +384,7 @@ def test_internlm_model():
                 "max_new_tokens": 2000,
                 "temperature": 0.1,
                 "top_p": 0.9,
-                'repetition_penalty':1.1
+                # 'repetition_penalty':1.1
             },
             "model_id": model_id,
             "endpoint_name": endpoint_name,
@@ -416,17 +416,6 @@ def test_internlm_model():
         stream=True,
         rag_parameters=rag_parameters
     )
-
-    print(sgf)
-
-    generate_answer(
-        "介绍一下Amazon EC2", 
-        model="auto", 
-        type="market_chain", 
-        stream=True,
-        rag_parameters=rag_parameters
-    )
-    print(sdg)
 
     generate_answer(
         "《夜曲》是谁演唱的？", 

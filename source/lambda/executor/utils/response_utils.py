@@ -99,6 +99,7 @@ def stream_response(**kwargs):
     question = kwargs["question"]
     entry_type = kwargs["entry_type"]
     ws_connection_id = kwargs["ws_connection_id"]
+    log_first_token_time = kwargs.get('log_first_token_time',True)
 
     if isinstance(answer, str):
         answer = [answer]
@@ -140,6 +141,11 @@ def stream_response(**kwargs):
         )
         answer_str = ""
         for i, ans in enumerate(answer):
+            if i ==0 and log_first_token_time:
+                logger.info(
+                    f'execute time until first token generated: {time.time()-request_timestamp}s'
+                )
+
             _send_to_ws_client(
                 {
                     "message_type": StreamMessageType.CHUNK,

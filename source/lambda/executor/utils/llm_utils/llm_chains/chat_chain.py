@@ -51,7 +51,7 @@ class Baichuan2Chat13B4BitsChatChain(LLMChain):
         "temperature": 0.3,
         "top_k": 5,
         "top_p": 0.85,
-        "repetition_penalty": 1.05,
+        # "repetition_penalty": 1.05,
         "do_sample": True
     }
      
@@ -59,7 +59,6 @@ class Baichuan2Chat13B4BitsChatChain(LLMChain):
     def create_chain(cls, model_kwargs=None, **kwargs):
         stream = kwargs.get('stream',False)
         # chat_history = kwargs.pop('chat_history',[])
-    
         model_kwargs = model_kwargs or {}
         model_kwargs.update({"stream": stream})
         model_kwargs = {**cls.default_model_kwargs,**model_kwargs}
@@ -71,7 +70,6 @@ class Baichuan2Chat13B4BitsChatChain(LLMChain):
             )
         llm_chain =  RunnableLambda(lambda x:llm.invoke(x,stream=stream))
         return llm_chain
-
 
 class Iternlm2Chat7BChatChain(LLMChain):
     model_id = "internlm2-chat-7b"

@@ -546,7 +546,7 @@ def market_deploy_test():
 
 def market_deploy_cn_test():
     model_id = "internlm2-chat-7b"
-    endpoint_name = "internlm2-chat-7b-2024-02-23-07-29-02-632"
+    endpoint_name = "instruct-internlm2-chat-7b-f7dc2"
     rag_parameters = {
         "query_process_config":{
             "conversation_query_rewrite_config":{
@@ -573,6 +573,18 @@ def market_deploy_cn_test():
             "context_num": 1
         }
     }
+
+    # generate_answer(
+    #     "什么是Amazon Bedrock", 
+    #     model="auto", 
+    #     stream=True,
+    #     type="market_chain", 
+    #     get_contexts=True,
+    #     rag_parameters=rag_parameters
+    # )
+    # # 
+
+
     generate_answer(
         "什么是Amazon Bedrock", 
         model="auto", 
@@ -581,9 +593,6 @@ def market_deploy_cn_test():
         get_contexts=True,
         rag_parameters=rag_parameters
     )
-
-    print(xfg)
-
 
     session_id = f'test_{int(time.time())}'
     generate_answer(

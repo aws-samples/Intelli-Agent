@@ -91,7 +91,7 @@ class SagemakerModelBase(Model):
         self.model_kwargs = model_kwargs or {}
         if self.default_model_kwargs is not None:
             self.model_kwargs = {**self.default_model_kwargs,**self.model_kwargs}
-        
+
         self.region_name = kwargs.get('region_name',None) \
             or os.environ.get('AWS_REGION', None) or None
         self.kwargs = kwargs
@@ -153,7 +153,7 @@ class Baichuan2Chat13B4Bits(SagemakerModelBase):
             "temperature": 0.3,
             "top_k": 5,
             "top_p": 0.85,
-            "repetition_penalty": 1.05,
+            # "repetition_penalty": 1.05,
             "do_sample": True,
             "timeout":60
         }
@@ -204,7 +204,7 @@ class Internlm2Chat7B(SagemakerModelBase):
     default_model_kwargs = {
             "max_new_tokens": 1024,
             "timeout":60,
-            'repetition_penalty':1.05,
+            # 'repetition_penalty':1.05,
             # "do_sample":True,
             "temperature": 0.1,
             "top_p": 0.8
@@ -229,6 +229,7 @@ class Internlm2Chat7B(SagemakerModelBase):
             # "history": history
         }
         body.update(self.model_kwargs)
+        # print('body',body)
         input_str = json.dumps(body)
         return input_str
 
