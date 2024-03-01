@@ -52,7 +52,6 @@ class ClaudeRagInstance(Claude2RagLLMChain):
     model_id = 'anthropic.claude-instant-v1'
 
 
-
 from .chat_chain import Baichuan2Chat13B4BitsChatChain
 
 class Baichuan2Chat13B4BitsKnowledgeQaChain(Baichuan2Chat13B4BitsChatChain):

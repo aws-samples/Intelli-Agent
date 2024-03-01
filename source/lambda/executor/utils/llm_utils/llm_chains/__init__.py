@@ -46,3 +46,11 @@ from .mkt_conversation_summary import (
     Iternlm2Chat7BMKTConversationSummaryChain,
     Iternlm2Chat20BMKTConversationSummaryChain
 )
+
+from .stepback_chain import (
+    Claude21StepBackChain,
+    ClaudeInstanceStepBackChain,
+    Claude2StepBackChain,
+    Iternlm2Chat7BStepBackChain,
+    Iternlm2Chat20BStepBackChain
+)

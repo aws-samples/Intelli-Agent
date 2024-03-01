@@ -373,6 +373,10 @@ def test_internlm_model():
             "translate_config":{
                 "model_id":model_id,
                 "endpoint_name": endpoint_name
+            },
+            "stepback_config":{
+                "model_id":model_id,
+                "endpoint_name": endpoint_name
             }
         },
         "intent_config": {
@@ -645,6 +649,7 @@ if __name__ == "__main__":
     
     # market_deploy_test()
     # test_baichuan_model()
+    # market_summary_test2()
     test_internlm_model()
     # test_baichuan_model()
     

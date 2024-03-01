@@ -18,7 +18,7 @@ rag_default_config = {
     # retriver config
     # query process config
     "retriever_config":{
-        "retriever_top_k": 20,
+        "retriever_top_k": 5,
         "chunk_num": 2,
         "using_whole_doc": False,
         "reranker_top_k": 10,
@@ -28,27 +28,15 @@ rag_default_config = {
     "query_process_config":{
         "query_rewrite_config":{
                 "model_id":"anthropic.claude-instant-v1",
-            #     "model_kwargs":{
-            #     "max_tokens_to_sample": 2000,
-            #     "temperature": 0.7,
-            #     "top_p": 0.9
-            # }
         },
         "conversation_query_rewrite_config":{
             "model_id":"anthropic.claude-instant-v1",
-            #     "model_kwargs":{
-            #     "max_tokens_to_sample": 2000,
-            #     "temperature": 0.7,
-            #     "top_p": 0.9
-            # }
         },
         "hyde_config":{
             "model_id":"anthropic.claude-instant-v1",
-            # "model_kwargs":{
-            #     "max_tokens_to_sample": 2000,
-            #     "temperature": 0.7,
-            #     "top_p": 0.9
-            # }
+        },
+        "stepback_config":{
+            "model_id":"anthropic.claude-instant-v1",
         },
         "translate_config":{
             # default use Amazon Translate service

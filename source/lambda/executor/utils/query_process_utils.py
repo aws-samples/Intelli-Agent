@@ -7,7 +7,7 @@ from .prompt_template import get_conversation_query_rewrite_prompt, HYDE_WEB_SEA
 from .langchain_utils import chain_logger
 from .preprocess_utils import is_api_query, language_check,query_translate,get_service_name
 # from langchain.memory import ConversationSummaryMemory, ChatMessageHistory
-from .constant import CONVERSATION_SUMMARY_TYPE
+from .constant import CONVERSATION_SUMMARY_TYPE,STEPBACK_PROMPTING_TYPE
 
 def query_rewrite_postprocess(r):
     ret = re.findall('<questions>.*?</questions>',r,re.S)[0] 
@@ -110,8 +110,21 @@ def get_query_process_chain(
 
     hyde_chain = get_hyde_chain(
         **hyde_config
-      
     )
+
+    stepback_promping_chain = RunnablePassthrough.assign(
+        stepback_query = LLMChain.get_chain(
+        intent_type=STEPBACK_PROMPTING_TYPE,
+        **query_process_config['stepback_config']
+        )
+    )
+
+    stepback_promping_chain = chain_logger(
+        stepback_promping_chain,
+        "stepback promping chain",
+        log_output_template="stepback_promping_chain query: {stepback_query}"
+    )
+
 
     hyde_chain = chain_logger(
         hyde_chain,
@@ -121,9 +134,9 @@ def get_query_process_chain(
 
     # 
     query_process_chain = preprocess_chain
-    query_process_chain = conversation_query_rewrite_chain | preprocess_chain 
+    query_process_chain = conversation_query_rewrite_chain | preprocess_chain #  | stepback_promping_chain
       
-    
+
     query_process_chain = chain_logger(
         query_process_chain,
         "query process module"
