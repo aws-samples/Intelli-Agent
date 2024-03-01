@@ -5,16 +5,38 @@ from langchain.schema.callbacks.base import BaseCallbackHandler
 # import threading
 # import time 
 from .logger_utils import logger
+from langchain.schema.runnable import RunnableLambda,RunnablePassthrough
 
-class LmabdaDict(dict):
-    """add lambda to value"""
-    def __init__(self,**kwargs):
-        super().__init__(**kwargs)
-        for k in list(self.keys()):
-            v = self[k]
-            if not callable(v) or not isinstance(v,Runnable):
-                self[k] = lambda x:x
-        
+# class LmabdaDict(dict):
+#     """add lambda to value"""
+#     def __init__(self,**kwargs):
+#         super().__init__(**kwargs)
+#         for k in list(self.keys()):
+#             v = self[k]
+#             if not callable(v) or not isinstance(v,Runnable):
+#                 self[k] = lambda x:x
+
+class RunnableDictAssign:
+    """
+    example:
+      def fn(x):
+          return {"a":1,"b":2}
+      
+       chain = RunnableDictAssign(fn)
+       chain.invoke({"c":3})
+
+       ## output
+       {"c":3,"a":1,"b":2}
+    """
+    def __new__(cls,fn):
+        assert callable(fn)
+        def _merge_keys(x:dict,key='temp_dict'):
+            d = x.pop(key)
+            return {**x,**d}
+        chain = RunnablePassthrough.assign(temp_dict=fn) | RunnableLambda(lambda x: _merge_keys(x))
+        return chain
+
+
 def create_identity_lambda(keys:list):
     if isinstance(keys,str):
         keys = [keys]
@@ -67,7 +89,6 @@ class LogTimeListener:
     def on_error(self,run):
         raise 
         # logger.info(f"Error in run chain: {self.chain_name}.")
-
 
 def chain_logger(
         chain,

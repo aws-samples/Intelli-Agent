@@ -1,6 +1,7 @@
 import boto3 
 import json 
 import os 
+import logging
 
 # from llmbot_utils import concat_recall_knowledge
 from typing import Any, List, Mapping, Optional
@@ -13,6 +14,10 @@ from langchain.llms import Bedrock
 from langchain_community.chat_models import BedrockChat
 from langchain_community.llms.sagemaker_endpoint import LineIterator
 from ..constant import HUMAN_MESSAGE_TYPE,AI_MESSAGE_TYPE,SYSTEM_MESSAGE_TYPE
+from ..logger_utils import logger
+
+logger = logging.getLogger("llm_model")
+logger.setLevel(logging.INFO)
 
 class ModelMeta(type):
     def __new__(cls, name, bases, attrs):
@@ -222,6 +227,7 @@ class Internlm2Chat7B(SagemakerModelBase):
         #     assert user_message.type == HUMAN_MESSAGE_TYPE \
         #           and ai_message.type == AI_MESSAGE_TYPE , chat_history
         #     history.append((user_message.content,ai_message.content))
+        logger.info(f'prompt char num: {len(x["prompt"])}')
         body = {
             "query": x['prompt'],
             # "meta_instruction": x.get('meta_instruction',self.meta_instruction),

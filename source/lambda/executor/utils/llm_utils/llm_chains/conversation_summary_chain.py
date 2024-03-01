@@ -34,7 +34,7 @@ Question: {question}
 """
     default_model_kwargs = {
                 "max_new_tokens": 300,
-                "temperature": 0.0
+                "temperature": 0.1
             }
     @classmethod
     def create_prompt(cls,x):

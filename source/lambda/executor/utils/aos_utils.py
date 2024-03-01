@@ -2,8 +2,11 @@ import json
 import boto3
 import requests
 import os
+import threading 
 from requests_aws4auth import AWS4Auth
 from opensearchpy import OpenSearch, RequestsHttpConnection
+
+open_search_client_lock = threading.Lock()
 
 credentials = boto3.Session().get_credentials()
 
@@ -22,6 +25,14 @@ def _import_not_found_error():
     return NotFoundError
 
 class LLMBotOpenSearchClient:
+    instance = None
+    def __new__(cls,host):
+        with open_search_client_lock:
+            if cls.instance is not None:
+                return cls.instance
+            obj = object.__new__(cls)
+            cls.instance = obj
+            return obj
     def __init__(self, host):
         """
         Initialize OpenSearch client using OpenSearch Endpoint

@@ -8,7 +8,6 @@ from .constant import EntryType
 
 logger = logging.getLogger()
 
-
 class StreamMessageType:
     START = "START"
     END = "END"
@@ -16,10 +15,8 @@ class StreamMessageType:
     CHUNK = "CHUNK"
     CONTEXT = "CONTEXT"
 
-
 class WebsocketClientError(Exception):
     pass
-
 
 def api_response(**kwargs):
     response = {"statusCode": 200, "headers": {"Content-Type": "application/json"}}

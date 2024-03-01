@@ -55,7 +55,7 @@ class DummyWebSocket:
             if ret['choices'][0].get('contexts'):
                 print('contexts num',len(ret['choices'][0].get('contexts')))
                 print('contexts avg len: ', sum(len(i) for i in ret['choices'][0]['contexts'])/len(ret['choices'][0]['contexts']))
-                print('sources: ',ret['choices'][0]['contexts'])
+                # print('sources: ',ret['choices'][0]['contexts'])
 
 main.ws_client = DummyWebSocket()
 
@@ -650,24 +650,24 @@ if __name__ == "__main__":
     
     # market_deploy_test()
     # dgr
-    generate_answer(
-        # "如何将Kinesis Data Streams配置为AWS Lambda的事件源？",
-        # "Amazon EC2 提供了哪些功能来支持不同区域之间的数据恢复?",
-        "什么是Amazon bedrock？",
-        model="knowledge_qa", 
-        stream=True,
-        type="market_chain", 
-        rag_parameters=dict(
-            get_contexts = True,
-            retriever_config={
-                "retriever_top_k": 1,
-                "chunk_num": 2,
-                "using_whole_doc": False,
-                "reranker_top_k": 10,
-                "enable_reranker": True
-    },
-    )
-    )
+    # generate_answer(
+    #     # "如何将Kinesis Data Streams配置为AWS Lambda的事件源？",
+    #     # "Amazon EC2 提供了哪些功能来支持不同区域之间的数据恢复?",
+    #     "什么是Amazon bedrock？",
+    #     model="knowledge_qa", 
+    #     stream=True,
+    #     type="market_chain", 
+    #     rag_parameters=dict(
+    #         get_contexts = True,
+    #         retriever_config={
+    #             "retriever_top_k": 1,
+    #             "chunk_num": 2,
+    #             "using_whole_doc": False,
+    #             "reranker_top_k": 10,
+    #             "enable_reranker": True
+    # },
+    # )
+    # )
 
     # r = generate_answer("请写一首诗",model='caht')
     # multiturn_chat_test()
