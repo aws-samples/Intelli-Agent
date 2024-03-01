@@ -383,7 +383,10 @@ class QueryDocumentRetriever(BaseRetriever):
 
     @timeit
     def _get_relevant_documents(self, question: Dict, *, run_manager: CallbackManagerForRetrieverRun) -> List[Document]:
-        query = question["query"] 
+        if question["query_lang"] == self.lang:
+            query = question["query"]
+        else:
+            query = question["translated_text"]
         debug_info = question["debug_info"]
         opensearch_knn_results = []
         query_embedding = get_relevance_embedding(query, self.lang, self.embedding_model_endpoint)
