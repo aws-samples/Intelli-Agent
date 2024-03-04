@@ -135,7 +135,7 @@ def lambda_handler(event, context):
             custom_message_id = messages[-1].get("custom_message_id", None)
         else:
             question = ""  # MARKET_CONVERSATION_SUMMARY
-            custom_message_id = None
+            custom_message_id = event.get("custom_message_id", None)
 
         # _, question = process_input_messages(messages)
         # role = "user"
