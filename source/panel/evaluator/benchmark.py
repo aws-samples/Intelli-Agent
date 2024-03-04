@@ -89,6 +89,8 @@ _bedrock_embedding = BedrockEmbeddings(
     # model_id = "amazon.titan-text-express-v1", region_name="us-east-1"
 )
 
+_openai_embedding = OpenAIEmbeddings()
+
 def csdc_markdown_loader(file_path: str) -> List[Document]:
     # read content from file_path
     with open(file_path, "r") as f:
@@ -150,7 +152,7 @@ def langchain_unstructured_loader(file_path: str) -> List[Document]:
     """
     loader = UnstructuredFileLoader(file_path, mode="elements")
     docs = loader.load()
-    logger.debug("unstructured load data: {}".format(docs))
+    logger.info("unstructured load data: {} type: {}".format(docs, type(docs)))
     return docs
 
 def parse_log_to_document_list(log_content: str) -> List[Document]:
@@ -380,7 +382,8 @@ def bedrock_embedding(index: str, docs: List[Document]) -> List[List[str]]:
     opensearch_vector_search = OpenSearchVectorSearch(
         opensearch_url="https://localhost:9200",
         index_name=index,
-        embedding_function=_bedrock_embedding,
+        # embedding_function=_bedrock_embedding,
+        embedding_function=_openai_embedding,
         http_auth=("admin", "admin"),
         use_ssl = False,
         verify_certs = False,
@@ -393,7 +396,8 @@ def bedrock_embedding(index: str, docs: List[Document]) -> List[List[str]]:
     for batch in batches:
         for doc in batch:
             res = opensearch_vector_search.add_embeddings(
-                text_embeddings = [(doc.page_content, _bedrock_embedding.embed_documents([doc.page_content])[0])],
+                # text_embeddings = [(doc.page_content, _bedrock_embedding.embed_documents([doc.page_content])[0])],
+                text_embeddings = [(doc.page_content, _openai_embedding.embed_documents([doc.page_content])[0])],
                 metadatas = None,
                 ids = None,
                 bulk_size = 1024,
@@ -505,7 +509,8 @@ def local_aos_retriever(index: str, query: str, size: int = 10) -> List[Tuple[Do
     opensearch_vector_search = OpenSearchVectorSearch(
         opensearch_url="https://localhost:9200",
         index_name=index,
-        embedding_function=_bedrock_embedding,
+        # embedding_function=_bedrock_embedding,
+        embedding_function=_openai_embedding,
         http_auth=("admin", "admin"),
         use_ssl = False,
         verify_certs = False,
@@ -609,9 +614,10 @@ def testdata_generate(doc: Document, llm: str = "bedrock", embedding: str = "bed
         chat_qa=chat_qa,
     )
 
+    logger.info("doc input to testdata_generate: {} with type: {}".format(doc, type(doc)))
     testset = test_generator.generate(doc, test_size=test_size)
     test_df = testset.to_pandas()
-    logger.debug("testdata head: {}".format(test_df.head()))
+    logger.info("testdata head: {}".format(test_df.head()))
 
     # Saving to a csv and txt file for debugging purpose
     test_df.to_csv('test_data.csv', index=False)
@@ -859,18 +865,19 @@ if __name__ == "__main__":
     9. average similarity score of retrival
     10. average time of retrival
     """
+    loader_res = langchain_unstructured_loader("pdf-sample-01.pdf")
+    # loader_res = csdc_unstructured_loader("pdf-sample-01.pdf")
+    question_list, question_type_list = testdata_generate(loader_res, llm="openai", embedding="openai", test_size=10)
+
     # initialization of workflow executor
-    legacy = WorkflowExecutor()
-    legacy.update_component('loaders', langchain_unstructured_loader, 'add')
-    legacy.update_component('splitters', langchain_recursive_splitter, 'add')
-    legacy.update_component('embedders', bedrock_embedding, 'add')
-    legacy.update_component('retrievers', local_aos_retriever, 'add')
-    legacy.update_component('evaluators', langchain_evaluator, 'add')
+    # legacy = WorkflowExecutor()
+    # legacy.update_component('loaders', langchain_unstructured_loader, 'add')
+    # legacy.update_component('splitters', langchain_recursive_splitter, 'add')
+    # legacy.update_component('embedders', bedrock_embedding, 'add')
+    # legacy.update_component('retrievers', local_aos_retriever, 'add')
+    # legacy.update_component('evaluators', langchain_evaluator, 'add')
 
     # response = legacy.execute_workflow("pdf-sample-01.pdf", "请介绍什么是kindle以及它的主要功能？")
-
-    # loader_res = langchain_unstructured_loader("pdf-sample-01.pdf")
-    # question_list, question_type_list = testdata_generate(loader_res, llm="openai", embedding="openai", test_size=10)
 
     # workaround for inconsistent network issue, if you have already generated the test data as sample schema below
     """
@@ -878,23 +885,23 @@ if __name__ == "__main__":
     How can you navigate to the next page on the screen?,['- 要翻到下一页，请用手指在屏幕上从右往左滑动。\n- 要翻到上一页，请用手指在屏幕上从左往右滑动。\n- 您还可以使用屏幕一侧的控件来翻页。'],"['To navigate to the next page on the screen, you can swipe your finger from right to left on the screen.']",simple,True
     What are the steps for restarting an unresponsive or non-turning on Kindle device?,['- 如果您的 Kindle 无法开机或使用过程中停止响应而需要重启，请按住电源开关 7 秒，直 至【电源】对话框出现，然后选择【重新启动】。\n- 如果【电源】对话框不出现，请按住电 源开关 40 秒或直至 LED 灯停止闪烁。'],"['The steps for restarting an unresponsive or non-turning on Kindle device are as follows:\n1. Press and hold the power button for 7 seconds until the ""Power"" dialog box appears.\n2. Select ""Restart"" from the dialog box.\n3. If the ""Power"" dialog box does not appear, press and hold the power button for 40 seconds or until the LED light stops flashing.']",conditional,True
     """
-    question_list = []
-    with open('test_data.csv', 'r') as f:
-        reader = csv.reader(f)
-        for row in reader:
-            question_list.append(row[0])
+    # question_list = []
+    # with open('test_data.csv', 'r') as f:
+    #     reader = csv.reader(f)
+    #     for row in reader:
+    #         question_list.append(row[0])
 
-    # iterate the question list to execute the workflow
-    response_list = []
-    for question in question_list:
-        response = legacy.execute_workflow("pdf-sample-01.pdf", question, skip=False)
-        logger.info("test of legacy workflow: {}".format(response))
-        response_list.append(response)
+    # # iterate the question list to execute the workflow
+    # response_list = []
+    # for question in question_list:
+    #     response = legacy.execute_workflow("pdf-sample-01.pdf", question, skip=True)
+    #     logger.info("test of legacy workflow: {}".format(response))
+    #     response_list.append(response)
 
-    logger.info("response_list: {}".format(response_list))
+    # logger.info("response_list: {}".format(response_list))
 
-    # visualize the summary
-    legacy.summary_viz(response_list)
+    # # visualize the summary
+    # legacy.summary_viz(response_list)
 
     # initialization of workflow executor
     # csdc = WorkflowExecutor()
