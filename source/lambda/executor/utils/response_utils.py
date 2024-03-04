@@ -43,8 +43,12 @@ def api_response(**kwargs):
         answer = json.dumps(answer, ensure_ascii=False)
 
     if entry_type != EntryType.MARKET_CONVERSATION_SUMMARY.value:
-        chat_history.add_user_message(f"user_{message_id}", question, entry_type)
-        chat_history.add_ai_message(f"ai_{message_id}", answer, entry_type)
+        chat_history.add_user_message(
+            question, f"user_{message_id}", custom_message_id, entry_type
+        )
+        chat_history.add_ai_message(
+            answer, f"ai_{message_id}", custom_message_id, entry_type
+        )
 
     # 2. return rusult
     llmbot_response = {
@@ -165,8 +169,12 @@ def stream_response(**kwargs):
 
         # add to chat history ddb table
         if entry_type != EntryType.MARKET_CONVERSATION_SUMMARY.value:
-            chat_history.add_user_message(f"user_{message_id}", question, entry_type)
-            chat_history.add_ai_message(f"ai_{message_id}", answer_str, entry_type)
+            chat_history.add_user_message(
+                question, f"user_{message_id}", custom_message_id, entry_type
+            )
+            chat_history.add_ai_message(
+                answer_str, f"ai_{message_id}", custom_message_id, entry_type
+            )
         # sed source and contexts
         context_msg = {
             "message_type": StreamMessageType.CONTEXT,

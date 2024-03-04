@@ -154,6 +154,7 @@ def lambda_handler(event, context):
             table_name=chat_session_table,
             session_id=rag_config["session_id"],
             user_id=user_id,
+            client_type=client_type,
         )
         history_messages = chat_history.message_as_langchain
         rag_config["chat_history"] = history_messages
