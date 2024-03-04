@@ -39,7 +39,8 @@ export class EtlStack extends NestedStack {
     _sfnOutput;
     _jobName;
     _jobArn;
-    _processedObjectsTable;
+    _processedObjectsTableName;
+    _workspaceTableName;
     _etlEndpoint: string;
     _resBucketName: string;
 
@@ -121,6 +122,33 @@ export class EtlStack extends NestedStack {
             // No sort key for this index
         });
 
+        const workspacesTable = new dynamodb.Table(this, "WorkspacesTable", {
+            partitionKey: {
+              name: "workspace_id",
+              type: dynamodb.AttributeType.STRING,
+            },
+            sortKey: {
+              name: "object_type",
+              type: dynamodb.AttributeType.STRING,
+            },
+            billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+            encryption: dynamodb.TableEncryption.AWS_MANAGED,
+            pointInTimeRecovery: true,
+            removalPolicy: RemovalPolicy.DESTROY,
+          });
+      
+        workspacesTable.addGlobalSecondaryIndex({
+            indexName: "by_object_type_idx",
+            partitionKey: {
+                name: "object_type",
+                type: dynamodb.AttributeType.STRING,
+            },
+            sortKey: {
+                name: "created_at",
+                type: dynamodb.AttributeType.STRING,
+            },
+        });
+
         const _S3Bucket = new s3.Bucket(this, 'llm-bot-glue-res-bucket', {
             // bucketName: `llm-bot-glue-lib-${Aws.ACCOUNT_ID}-${Aws.REGION}`,
             blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
@@ -186,6 +214,7 @@ export class EtlStack extends NestedStack {
                 '--DOC_INDEX_TABLE': props._OpenSearchIndex,
                 '--RES_BUCKET': _S3Bucket.bucketName,
                 '--ProcessedObjectsTable': table.tableName,
+                '--WORKSPACES_TABLE': workspacesTable.tableName,
                 '--additional-python-modules': 'langchain==0.0.312,beautifulsoup4==4.12.2,requests-aws4auth==1.2.3,boto3==1.28.84,openai==0.28.1,pyOpenSSL==23.3.0,tenacity==8.2.3,markdownify==0.11.6,mammoth==1.6.0,chardet==5.2.0,python-docx==1.1.0,nltk==3.8.1,pdfminer.six==20221105',
                 '--python-modules-installer-option': BuildConfig.JOB_PIP_OPTION,
                 // add multiple extra python files
@@ -348,7 +377,8 @@ export class EtlStack extends NestedStack {
         this._sfnOutput = sfnStateMachine;
         this._jobName = glueJob.jobName;
         this._jobArn = glueJob.jobArn;
-        this._processedObjectsTable = table.tableName
+        this._processedObjectsTableName = table.tableName;
+        this._workspaceTableName = workspacesTable.tableName;
         this._resBucketName = _S3Bucket.bucketName
     }
 }

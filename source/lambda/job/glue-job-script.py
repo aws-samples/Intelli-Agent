@@ -18,6 +18,8 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores import OpenSearchVectorSearch
 from llm_bot_dep import sm_utils
 from llm_bot_dep.constant import SplittingType
+from llm_bot_dep.ddb_utils import WorkspaceManager
+from llm_bot_dep.embeddings import get_embedding_info
 from llm_bot_dep.enhance_utils import EnhanceWithBedrock
 from llm_bot_dep.loaders.auto import cb_process_object
 from llm_bot_dep.storage_utils import save_content_to_s3
@@ -64,10 +66,8 @@ if "BATCH_INDICE" not in args:
 s3_bucket = args["S3_BUCKET"]
 s3_prefix = args["S3_PREFIX"]
 aosEndpoint = args["AOS_ENDPOINT"]
-aos_index = args["DOC_INDEX_TABLE"]
-# This index is used for the AOS injection, to allow user customize the index, otherwise default value is "chatbot-index" or set in CloudFormation parameter
-aos_custom_index = args["AOS_INDEX"]
-embeddingModelEndpointList = args["EMBEDDING_MODEL_ENDPOINT"].split(",")
+
+embeddingModelEndpoint = args["EMBEDDING_MODEL_ENDPOINT"]
 etlModelEndpoint = args["ETL_MODEL_ENDPOINT"]
 region = args["REGION"]
 res_bucket = args["RES_BUCKET"]
@@ -76,22 +76,16 @@ qa_enhancement = args["QA_ENHANCEMENT"]
 # TODO, pass the bucket and prefix need to handle in current job directly
 batchIndice = args["BATCH_INDICE"]
 processedObjectsTable = args["ProcessedObjectsTable"]
+workspace_name = args["WORKSPACE_NAME"]
+workspaces_table = args["WORKSPACES_TABLE"]
 content_type = args["CONTENT_TYPE"]
-_embedding_endpoint_name_list = args["EMBEDDING_MODEL_ENDPOINT"].split(",")
-_embedding_lang_list = args["EMBEDDING_LANG"].split(",")
-_embedding_type_list = args["EMBEDDING_TYPE"].split(",")
-embeddings_model_info_list = []
-for endpoint_name, lang, endpoint_type in zip(
-    _embedding_endpoint_name_list, _embedding_lang_list, _embedding_type_list
-):
-    embeddings_model_info_list.append(
-        {"endpoint_name": endpoint_name, "lang": lang, "type": endpoint_type}
-    )
 
 s3 = boto3.client("s3")
 smr_client = boto3.client("sagemaker-runtime")
 dynamodb = boto3.resource("dynamodb")
 table = dynamodb.Table(processedObjectsTable)
+workspaces_table = dynamodb.Table(workspaces_table)
+workspaces_manager = WorkspaceManager(workspaces_table)
 
 ENHANCE_CHUNK_SIZE = 25000
 # Make it 3600s for debugging purpose
@@ -109,6 +103,8 @@ MAX_OS_DOCS_PER_PUT = 8
 
 # Set the NLTK data path to the /tmp directory for AWS Glue jobs
 nltk.data.path.append("/tmp/nltk_data")
+
+supported_file_types = ["pdf", "txt", "doc", "md", "html", "json", "jsonl", "csv"]
 
 
 def decode_file_content(content: str, default_encoding: str = "utf-8"):
@@ -153,40 +149,6 @@ def iterate_s3_files(bucket: str, prefix: str) -> Generator:
                 )
                 currentIndice += 1
                 continue
-            """
-            WHY this code block is commented out? we used to record the processed object in DynamoDB in case of redundant operation for the same object
-            """
-            # # Truncate to seconds with round()
-            # current_time = int(round(time.time()))
-            # # Check for redundancy and expiry
-            # response = table.query(
-            #     KeyConditionExpression=Key("ObjectKey").eq(key),
-            #     ScanIndexForward=False,  # Sort by ProcessTimestamp in descending order
-            #     Limit=1,  # We only need the latest record
-            # )
-
-            # # If the object is found and has not expired, skip processing
-            # if (
-            #     response["Items"]
-            #     and response["Items"][0]["ExpiryTimestamp"] > current_time
-            # ):
-            #     logger.info(f"Object {key} has not expired yet and will be skipped.")
-            #     continue
-
-            # # Record the processing of the S3 object with an updated expiry timestamp, and each job only update single object in table. TODO, current assume the object will be handled successfully
-            # expiry_timestamp = current_time + OBJECT_EXPIRY_TIME
-            # try:
-            #     table.put_item(
-            #         Item={
-            #             "ObjectKey": key,
-            #             "ProcessTimestamp": current_time,
-            #             "Bucket": bucket,
-            #             "Prefix": "/".join(key.split("/")[:-1]),
-            #             "ExpiryTimestamp": expiry_timestamp,
-            #         }
-            #     )
-            # except Exception as e:
-            #     logger.error(f"Error recording processed of S3 object {key}: {e}")
 
             file_type = key.split(".")[-1].lower()  # Extract file extension
             response = s3.get_object(Bucket=bucket, Key=key)
@@ -244,7 +206,7 @@ def batch_generator(generator, batch_size: int):
 
 def aos_injection(
     content: List[Document],
-    embeddingModelEndpointList: List[str],
+    embeddingModelEndpoint: str,
     aosEndpoint: str,
     index_name: str,
     file_type: str,
@@ -270,8 +232,8 @@ def aos_injection(
 
     Note:
     """
-    embedding_list = sm_utils.create_embedding_with_multiple_model(
-        embeddingModelEndpointList, region, file_type
+    embeddings = sm_utils.create_embeddings_with_single_model(
+        embeddingModelEndpoint, region, file_type
     )
 
     def chunk_generator(
@@ -337,37 +299,31 @@ def aos_injection(
                 wait=wait_exponential(multiplier=1, min=4, max=10),
             )
             def _aos_injection(document: Document) -> Document:
-                # If user customize the index, use the customized index as high priority, NOTE the custom index will be created with default AOS mapping in LangChain, use API to create the index with customized mapping before running the job if you want to customize the mapping
-                if aos_custom_index:
-                    index_name = aos_custom_index
 
-                for embedding in embedding_list.values():
-                    document.metadata["embedding_endpoint_name"] = (
-                        embedding.endpoint_name
-                    )
-                    docsearch = OpenSearchVectorSearch(
-                        index_name=index_name,
-                        embedding_function=embedding,
-                        opensearch_url="https://{}".format(aosEndpoint),
-                        http_auth=awsauth,
-                        use_ssl=True,
-                        verify_certs=True,
-                        connection_class=RequestsHttpConnection,
-                    )
+                document.metadata["embedding_endpoint_name"] = embeddingModelEndpoint
+                docsearch = OpenSearchVectorSearch(
+                    index_name=index_name,
+                    embedding_function=embeddings,
+                    opensearch_url="https://{}".format(aosEndpoint),
+                    http_auth=awsauth,
+                    use_ssl=True,
+                    verify_certs=True,
+                    connection_class=RequestsHttpConnection,
+                )
+                logger.info(
+                    "Adding documents %s to OpenSearch with index %s",
+                    document,
+                    index_name,
+                )
+                # TODO: add endpoint name as a metadata of document
+                try:
+                    # TODO, consider the max retry and initial backoff inside helper.bulk operation instead of using original LangChain
+                    docsearch.add_documents(documents=[document])
+                except Exception as e:
                     logger.info(
-                        "Adding documents %s to OpenSearch with index %s",
-                        document,
-                        index_name,
+                        f"Catch exception when adding document to OpenSearch: {e}"
                     )
-                    # TODO: add endpoint name as a metadata of document
-                    try:
-                        # TODO, consider the max retry and initial backoff inside helper.bulk operation instead of using original LangChain
-                        docsearch.add_documents(documents=[document])
-                    except Exception as e:
-                        logger.info(
-                            f"Catch exception when adding document to OpenSearch: {e}"
-                        )
-                    logger.info("Retry statistics: %s", _aos_injection.retry.statistics)
+                logger.info("Retry statistics: %s", _aos_injection.retry.statistics)
 
             # logger.info("Adding documents %s to OpenSearch with index %s", document, index_name)
             save_content_to_s3(s3, document, res_bucket, SplittingType.CHUNK.value)
@@ -377,96 +333,91 @@ def aos_injection(
 # Main function to be called by Glue job script
 def main():
     logger.info("Starting Glue job with passing arguments: %s", args)
-    # Check if offline mode
-    if offline == "true" or offline == "false":
-        logger.info("Running in offline mode with consideration for large file size...")
-        for file_type, file_content, kwargs in iterate_s3_files(s3_bucket, s3_prefix):
-            try:
-                if file_type == "json":
-                    kwargs["embeddings_model_info_list"] = embeddings_model_info_list
-                    kwargs["aos_index"] = aos_index
-                    kwargs["aosEndpoint"] = aosEndpoint
-                    kwargs["region"] = region
-                    kwargs["awsauth"] = awsauth
-                    kwargs["content_type"] = content_type
-                    kwargs["max_os_docs_per_put"] = MAX_OS_DOCS_PER_PUT
-                res = cb_process_object(s3, file_type, file_content, **kwargs)
-                for document in res:
-                    save_content_to_s3(
-                        s3, document, res_bucket, SplittingType.SEMANTIC.value
-                    )
+    logger.info("Running in offline mode with consideration for large file size...")
 
-                # the res is unified to list[Doucment] type, store the res to S3 for observation
-                # TODO, parse the metadata to embed with different index
-                if res:
-                    logger.info("Result: %s", res)
-                if file_type == "csv":
-                    # CSV page document has been splited into chunk, no more spliting is needed
-                    aos_injection(
-                        res,
-                        embeddingModelEndpointList,
-                        aosEndpoint,
-                        aos_index,
-                        file_type,
-                        gen_chunk=False,
-                    )
-                elif file_type in ["pdf", "txt", "doc", "md", "html", "json", "jsonl"]:
-                    aos_injection(
-                        res,
-                        embeddingModelEndpointList,
-                        aosEndpoint,
-                        aos_index,
-                        file_type,
-                    )
-                if qa_enhancement == "true":
-                    enhanced_prompt_list = []
-                    # iterate the document to get the QA pairs
-                    for document in res:
-                        # Define your prompt or else it uses default prompt
-                        prompt = ""
-                        # Make sure the document is Document object
-                        logger.info(
-                            "Enhancing document type: {} and content: {}".format(
-                                type(document), document
-                            )
-                        )
-                        ewb = EnhanceWithBedrock(prompt, document)
-                        # This is should be optional for the user to choose the chunk size
-                        document_list = ewb.SplitDocumentByTokenNum(
-                            document, ENHANCE_CHUNK_SIZE
-                        )
-                        for document in document_list:
-                            enhanced_prompt_list = ewb.EnhanceWithClaude(
-                                prompt, document, enhanced_prompt_list
-                            )
-                        logger.info(f"Enhanced prompt: {enhanced_prompt_list}")
+    embeddings_model_provider, embeddings_model_name, embeddings_model_dimensions = (
+        get_embedding_info(embeddingModelEndpoint)
+    )
 
-                    if len(enhanced_prompt_list) > 0:
-                        for document in enhanced_prompt_list:
-                            save_content_to_s3(
-                                s3,
-                                document,
-                                res_bucket,
-                                SplittingType.QA_ENHANCEMENT.value,
-                            )
-                        aos_injection(
-                            enhanced_prompt_list,
-                            embeddingModelEndpointList,
-                            aosEndpoint,
-                            aos_index,
-                            "qa",
-                        )
-
-            except Exception as e:
-                logger.error(
-                    "Error processing object %s: %s",
-                    kwargs["bucket"] + "/" + kwargs["key"],
-                    e,
+    for file_type, file_content, kwargs in iterate_s3_files(s3_bucket, s3_prefix):
+        try:
+            res = cb_process_object(s3, file_type, file_content, **kwargs)
+            for document in res:
+                save_content_to_s3(
+                    s3, document, res_bucket, SplittingType.SEMANTIC.value
                 )
-                traceback.print_exc()
 
-    else:
-        logger.info("Running in online mode, assume file number is small...")
+            # the res is unified to list[Doucment] type, store the res to S3 for observation
+            # TODO, parse the metadata to embed with different index
+            if res:
+                logger.info("Result: %s", res)
+
+            workspace_id, aos_index = workspaces_manager.update_workspace_open_search(
+                workspace_name,
+                embeddings_model_provider,
+                embeddings_model_name,
+                embeddings_model_dimensions,
+                ["zh"],
+                [file_type],
+            )
+
+            gen_chunk_flag = False if file_type == "csv" else True
+            if file_type in supported_file_types:
+                aos_injection(
+                    res,
+                    embeddingModelEndpoint,
+                    aosEndpoint,
+                    aos_index,
+                    file_type,
+                    gen_chunk=gen_chunk_flag,
+                )
+
+            if qa_enhancement == "true":
+                enhanced_prompt_list = []
+                # iterate the document to get the QA pairs
+                for document in res:
+                    # Define your prompt or else it uses default prompt
+                    prompt = ""
+                    # Make sure the document is Document object
+                    logger.info(
+                        "Enhancing document type: {} and content: {}".format(
+                            type(document), document
+                        )
+                    )
+                    ewb = EnhanceWithBedrock(prompt, document)
+                    # This is should be optional for the user to choose the chunk size
+                    document_list = ewb.SplitDocumentByTokenNum(
+                        document, ENHANCE_CHUNK_SIZE
+                    )
+                    for document in document_list:
+                        enhanced_prompt_list = ewb.EnhanceWithClaude(
+                            prompt, document, enhanced_prompt_list
+                        )
+                    logger.info(f"Enhanced prompt: {enhanced_prompt_list}")
+
+                if len(enhanced_prompt_list) > 0:
+                    for document in enhanced_prompt_list:
+                        save_content_to_s3(
+                            s3,
+                            document,
+                            res_bucket,
+                            SplittingType.QA_ENHANCEMENT.value,
+                        )
+                    aos_injection(
+                        enhanced_prompt_list,
+                        embeddingModelEndpoint,
+                        aosEndpoint,
+                        aos_index,
+                        "qa",
+                    )
+
+        except Exception as e:
+            logger.error(
+                "Error processing object %s: %s",
+                kwargs["bucket"] + "/" + kwargs["key"],
+                e,
+            )
+            traceback.print_exc()
 
 
 if __name__ == "__main__":
