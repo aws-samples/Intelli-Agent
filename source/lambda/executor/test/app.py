@@ -3,7 +3,7 @@ import json
 import requests
 import boto3
 from websocket import create_connection
-# from executor_local_test import generate_answer
+from executor_local_test import generate_answer
 from langchain_community.document_loaders import UnstructuredPDFLoader
 
 
@@ -91,7 +91,8 @@ def generate_answer_from_ws(url, query_input, type, rag_parameters):
             json_list.append(json_block)
     model_id = "internlm2-chat-7b"
     # endpoint_name = "instruct-internlm2-chat-7b-f7dc2"
-    endpoint_name = "internlm2-chat-7b-2024-02-23-07-29-02-632"
+    # endpoint_name = "internlm2-chat-7b-2024-02-23-07-29-02-632"
+    endpoint_name = "internlm2-chat-20b-4bits-2024-02-29-05-37-42-885"
     rag_parameters=dict(
         query_process_config = {
             "conversation_query_rewrite_config":{
@@ -117,7 +118,7 @@ def generate_answer_from_ws(url, query_input, type, rag_parameters):
             },
             "model_id": model_id,
             "endpoint_name": endpoint_name,
-            "context_num": 1
+            "context_num": 2
         })
     sources = []
     debug_info = []
@@ -158,11 +159,11 @@ def generate_answer_from_ws(url, query_input, type, rag_parameters):
             yield answer, sources, *render_debug_info(debug_info)
     ws.close()
 
-def get_answer(url_input, query_input, entry_type):
-    rag_url = url_input
+def generate_answer_from_local(query_input, entry_type):
     model_id = "internlm2-chat-7b"
-    # endpoint_name = "instruct-internlm2-chat-7b-f7dc2"
-    endpoint_name = "internlm2-chat-7b-2024-02-23-07-29-02-632"
+    endpoint_name = "instruct-internlm2-chat-7b-f7dc2"
+    # endpoint_name = "internlm2-chat-7b-2024-02-23-07-29-02-632"
+    # endpoint_name = "internlm2-chat-7b-4bits-2024-02-28-07-08-57-839"
     rag_parameters=dict(
         query_process_config = {
             "conversation_query_rewrite_config":{
@@ -192,10 +193,15 @@ def get_answer(url_input, query_input, entry_type):
         })
     sources = []
     debug_info = []
-    answer, sources = generate_answer(
-        rag_url, query_input, type=entry_type, rag_parameters=rag_parameters,
-        sources=sources, debug_info=debug_info
-    )
+    answer, sources, debug_info = generate_answer(
+        query=query_input, type=entry_type, rag_parameters=rag_parameters)
+    return answer, sources, *render_debug_info(debug_info) 
+
+def generate_func(api_type, url_input, query_input, entry_type):
+    if api_type == "local":
+        return generate_answer_from_local(query_input, entry_type)
+    elif api_type == "cloud":
+        return generate_answer_from_ws(url_input, query_input, entry_type)
 
 def render_debug_info(debug_info):
     tab_list = []
@@ -336,8 +342,9 @@ with gr.Blocks() as demo:
         label="Websocket, eg. wss://5nnxrqr4ya.execute-api.cn-north-1.amazonaws.com.cn/prod/"
     )
     with gr.Tab("Chat"):
-        query_input = gr.Text(label="Query")
+        api_type = gr.Dropdown(label="API", choices=["local", "cloud"], value="local")
         entry_input = gr.Dropdown(label="Entry", choices=["common", "market_chain"], value="common")
+        query_input = gr.Text(label="Query")
         answer_output = gr.Text(label="Anwser", show_label=True)
         sources_output = gr.Text(label="Sources", show_label=True)
         tab_list = []
@@ -367,8 +374,8 @@ with gr.Blocks() as demo:
         answer_btn = gr.Button(value="Answer")
         context = None
         answer_btn.click(
-            generate_answer_from_ws,
-            inputs=[websocket_input, query_input, entry_input],
+            generate_func,
+            inputs=[api_type, websocket_input, query_input, entry_input],
             outputs=[
                 answer_output,
                 sources_output,
@@ -384,7 +391,7 @@ with gr.Blocks() as demo:
         gr.Examples(
             examples=text,
             inputs=[websocket_input, query_input, entry_input],
-            fn=get_answer,
+            fn=generate_func,
             cache_examples=False,
         )
     with gr.Tab("Data Process Offline"):

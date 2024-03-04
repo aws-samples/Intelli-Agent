@@ -383,9 +383,8 @@ class QueryDocumentRetriever(BaseRetriever):
 
     @timeit
     def _get_relevant_documents(self, question: Dict, *, run_manager: CallbackManagerForRetrieverRun) -> List[Document]:
-        if question["query_lang"] == self.lang:
-            query = question["query"]
-        else:
+        query = question["query"]
+        if "query_lang" in question and question["query_lang"] != self.lang and "translated_text" in question:
             query = question["translated_text"]
         debug_info = question["debug_info"]
         opensearch_knn_results = []
