@@ -54,3 +54,20 @@ from .stepback_chain import (
     Iternlm2Chat7BStepBackChain,
     Iternlm2Chat20BStepBackChain
 )
+
+
+from .hyde_chain import (
+    Claude21HydeChain,
+    Claude2HydeChain,
+    ClaudeInstanceHydeChain,
+    Iternlm2Chat20BHydeChain,
+    Iternlm2Chat7BHydeChain
+)
+
+from .query_rewrite_chain import (
+    Claude21QueryRewriteChain,
+    Claude2QueryRewriteChain,
+    ClaudeInstanceQueryRewriteChain,
+    Iternlm2Chat20BQueryRewriteChain,
+    Iternlm2Chat7BQueryRewriteChain
+)
