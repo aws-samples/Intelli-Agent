@@ -1,4 +1,4 @@
-import { CfnParameter } from 'aws-cdk-lib';
+import { CfnParameter, Environment } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
 interface CdkParameters {
@@ -8,21 +8,28 @@ interface CdkParameters {
     _OpenSearchIndexDict: CfnParameter;
 }
 
+interface CdkProps {
+    env: any;
+}
+
 export class DeploymentParameters implements CdkParameters {
     _S3ModelAssets: CfnParameter;
     _SubEmail: CfnParameter;
     _OpenSearchIndex: CfnParameter;
     _OpenSearchIndexDict: CfnParameter;
 
-    constructor(scope: Construct) {
+    constructor(scope: Construct, props: CdkProps) {
+
         this._S3ModelAssets = new CfnParameter(scope, 'S3ModelAssets', {
             type: 'String',
             description: 'S3 Bucket for model & code assets',
+            default: `ChatBot-S3ModelAsset-${props.env.stage}-${props.env.region}`
         });
 
         this._SubEmail = new CfnParameter(scope, 'SubEmail', {
             type: 'String',
             description: 'Email address for SNS notification',
+            default: 'default@default.com'
         });
 
         this._OpenSearchIndex = new CfnParameter(scope, 'OpenSearchIndex', {

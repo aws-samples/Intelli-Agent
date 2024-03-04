@@ -1,5 +1,5 @@
 import { App, CfnOutput, CfnParameter, Stack, StackProps } from 'aws-cdk-lib';
-import {Runtime, Code, LayerVersion} from 'aws-cdk-lib/aws-lambda';
+import { Runtime, Code, LayerVersion } from 'aws-cdk-lib/aws-lambda';
 import * as path from 'path';
 import { Construct } from 'constructs';
 import * as dotenv from "dotenv";
@@ -21,7 +21,7 @@ export class RootStack extends Stack {
 
     this.setBuildConfig();
 
-    const _CdkParameters = new DeploymentParameters(this);
+    const _CdkParameters = new DeploymentParameters(this, { env: props.env });
 
     const _AssetsStack = new AssetsStack(this, 'assets-stack', { _s3ModelAssets: _CdkParameters._S3ModelAssets.valueAsString, env: process.env });
     const _LLMStack = new LLMStack(this, 'llm-stack', {
@@ -59,14 +59,14 @@ export class RootStack extends Stack {
     _EtlStack.addDependency(_VpcStack);
     _EtlStack.addDependency(_OsStack);
     _EtlStack.addDependency(_LLMStack);
-    
+
     const _ApiStack = new LLMApiStack(this, 'api-stack', {
-      _vpc:_VpcStack._vpc,
-      _securityGroup:_VpcStack._securityGroup,
-      _domainEndpoint:_OsStack._domainEndpoint || '',
+      _vpc: _VpcStack._vpc,
+      _securityGroup: _VpcStack._securityGroup,
+      _domainEndpoint: _OsStack._domainEndpoint || '',
       _rerankEndPoint: _LLMStack._rerankEndPoint ?? '',
-      _embeddingEndPoints:_LLMStack._embeddingEndPoints || '',
-      _instructEndPoint:_LLMStack._instructEndPoint || '',
+      _embeddingEndPoints: _LLMStack._embeddingEndPoints || '',
+      _instructEndPoint: _LLMStack._instructEndPoint || '',
       _chatSessionTable: _DynamoDBStack._chatSessionTable,
       _sfnOutput: _EtlStack._sfnOutput,
       _OpenSearchIndex: _CdkParameters._OpenSearchIndex.valueAsString,
@@ -82,26 +82,26 @@ export class RootStack extends Stack {
     _ApiStack.addDependency(_DynamoDBStack);
     _ApiStack.addDependency(_EtlStack);
 
-    new CfnOutput(this, 'VPC', {value:_VpcStack._vpc.vpcId});
-    new CfnOutput(this, 'OpenSearch Endpoint', {value:_OsStack._domainEndpoint || 'No OpenSearch Endpoint Created'});
-    new CfnOutput(this, 'Document Bucket', {value:_ApiStack._documentBucket});
+    new CfnOutput(this, 'VPC', { value: _VpcStack._vpc.vpcId });
+    new CfnOutput(this, 'OpenSearch Endpoint', { value: _OsStack._domainEndpoint || 'No OpenSearch Endpoint Created' });
+    new CfnOutput(this, 'Document Bucket', { value: _ApiStack._documentBucket });
     // deprecate for now since proxy in ec2 instance is not allowed according to policy
     // new CfnOutput(this, 'OpenSearch Dashboard', {value:`${_Ec2Stack._publicIP}:8081/_dashboards`});
-    new CfnOutput(this, 'API Endpoint Address', {value:_ApiStack._apiEndpoint});
-    new CfnOutput(this, 'WebSocket Endpoint Address', {value:_ApiStack._wsEndpoint});
-    new CfnOutput(this, 'Glue Job Name', {value:_EtlStack._jobName});
-    new CfnOutput(this, 'Cross Model Endpoint', {value:_LLMStack._rerankEndPoint || 'No Cross Endpoint Created'});
-    new CfnOutput(this, 'Embedding Model Endpoint', {value:_LLMStack._embeddingEndPoints[0] || 'No Embedding Endpoint Created'});
-    new CfnOutput(this, 'Instruct Model Endpoint', {value:_LLMStack._instructEndPoint || 'No Instruct Endpoint Created'});
-    new CfnOutput(this, 'Processed Object Table', {value:_EtlStack._processedObjectsTable});
-    new CfnOutput(this, 'Chunk Bucket', {value:_EtlStack._resBucketName});
-    new CfnOutput(this, '_aosIndexDict', {value:_CdkParameters._OpenSearchIndexDict.valueAsString});
+    new CfnOutput(this, 'API Endpoint Address', { value: _ApiStack._apiEndpoint });
+    new CfnOutput(this, 'WebSocket Endpoint Address', { value: _ApiStack._wsEndpoint });
+    new CfnOutput(this, 'Glue Job Name', { value: _EtlStack._jobName });
+    new CfnOutput(this, 'Cross Model Endpoint', { value: _LLMStack._rerankEndPoint || 'No Cross Endpoint Created' });
+    new CfnOutput(this, 'Embedding Model Endpoint', { value: _LLMStack._embeddingEndPoints[0] || 'No Embedding Endpoint Created' });
+    new CfnOutput(this, 'Instruct Model Endpoint', { value: _LLMStack._instructEndPoint || 'No Instruct Endpoint Created' });
+    new CfnOutput(this, 'Processed Object Table', { value: _EtlStack._processedObjectsTable });
+    new CfnOutput(this, 'Chunk Bucket', { value: _EtlStack._resBucketName });
+    new CfnOutput(this, '_aosIndexDict', { value: _CdkParameters._OpenSearchIndexDict.valueAsString });
   }
 
   private setBuildConfig() {
     BuildConfig.DEPLOYMENT_MODE = this.node.tryGetContext('DeploymentMode') ?? 'ALL';
-    BuildConfig.LAYER_PIP_OPTION = this.node.tryGetContext('LayerPipOption') ?? '';
-    BuildConfig.JOB_PIP_OPTION = this.node.tryGetContext('JobPipOption') ?? '';
+    BuildConfig.LAYER_PIP_OPTION = this.node.tryGetContext('LayerPipOption') ?? '-i https://pypi.tuna.tsinghua.edu.cn/simple';
+    BuildConfig.JOB_PIP_OPTION = this.node.tryGetContext('JobPipOption') ?? '-i https://pypi.tuna.tsinghua.edu.cn/simple';
   }
 
 }
@@ -110,6 +110,7 @@ export class RootStack extends Stack {
 const devEnv = {
   account: process.env.CDK_DEFAULT_ACCOUNT,
   region: process.env.CDK_DEFAULT_REGION,
+  stage: 'dev'
 };
 
 const app = new App();
