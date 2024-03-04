@@ -50,19 +50,6 @@ cd source/model/<rerank/embedding/instruct>/model
 ./prepare_model.sh -s <Your S3 Bucket Name>
 ```
 
-Next, navigate to the ETL code directory. Depending on your region, you will use either the Dockerfile or DockerfileCN. The model.sh script requires the Dockerfile, ETL image name, AWS region, and ETL image tag as arguments. The ETL image will be pushed to your ECR repo with the image name you specified.
-
-```bash
-cd source/model/etl/code
-sh model.sh <./Dockerfile or ./DockerfileCN> <EtlImageName> <AWS_REGION> <EtlImageTag>
-```
-
-For example, to prepare ETL model asset in the GCR (Greater China) region, the command is:
-
-```bash
-sh model.sh ./DockerfileCN llm-bot-cn cn-northwest-1 latest
-```
-
 Finally, if this is the first time using Amazon OpenSearch in this account, you will need to create a service-linked role for Amazon OpenSearch Service. This role is necessary to allow Amazon OpenSearch Service to manage resources on your behalf.
 
 ```bash
@@ -74,7 +61,7 @@ Deploy the CDK template. Make sure DOCKER is installed properly.
 
 ```bash
 cd source/infrastructure
-npx cdk deploy --parameters S3ModelAssets=<Your S3 Bucket Name> --parameters SubEmail=<Your email address> --parameters OpenSearchIndex=<Your OpenSearch Index Name> --parameters EtlImageName=<Your ETL model name> --parameters ETLTag=<Your ETL tag name>
+npx cdk deploy 
 ```
 
 To deploy the offline process only, you can configure context parameters to skip the online process. 
