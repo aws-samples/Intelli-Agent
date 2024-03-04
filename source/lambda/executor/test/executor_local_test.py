@@ -60,7 +60,7 @@ class DummyWebSocket:
 main.ws_client = DummyWebSocket()
 
 def generate_answer(query,
-                    temperature=0.7,
+                    # temperature=0.7,
                     enable_debug=True,
                     retrieval_only=False,
                     type="market_chain",
@@ -78,7 +78,7 @@ def generate_answer(query,
                     "content": query
                 }
             ],
-            "temperature": temperature,
+            # "temperature": temperature,
             # "enable_debug": enable_debug,
             # "retrieval_only": retrieval_only,
             # "retriever_index": retriever_index,
@@ -448,6 +448,73 @@ def test_internlm_model():
     print(r[0])
 
 
+def test_internlm_model_mkt():
+    session_id=f'test_{time.time()}'
+    # endpoint_name = 'internlm2-chat-7b-4bits-2024-02-28-07-08-57-839'
+    # model_id = "internlm2-chat-7b"
+
+    endpoint_name = 'internlm2-chat-20b-4bits-2024-03-04-06-32-53-653'
+    model_id = "internlm2-chat-20b"
+
+    os.environ['llm_model_id'] = model_id
+    os.environ['llm_model_endpoint_name'] = endpoint_name
+
+    rag_parameters = {
+        "get_contexts":True,
+    }
+    
+    qq_match_test()
+    generate_answer(
+        "AWS支持上海region吗？", 
+        model="auto", 
+        type="market_chain", 
+        stream=True,
+        rag_parameters=rag_parameters
+    )
+    # print(sfg)
+    generate_answer(
+        "介绍一下Amazon EC2", 
+        model="auto", 
+        type="market_chain", 
+        stream=True,
+        rag_parameters=rag_parameters
+    )
+    # print(xfg)
+    generate_answer(
+        "什么是Amazon bedrock？", 
+        model="auto", 
+        type="market_chain", 
+        stream=True,
+        rag_parameters=rag_parameters
+    )
+
+    generate_answer(
+        "《夜曲》是谁演唱的？", 
+        session_id=session_id,
+        model="chat", 
+        type="market_chain", 
+        stream=True,
+        rag_parameters=rag_parameters
+    )
+    generate_answer(
+        "他还有哪些其他歌曲？", 
+        session_id=session_id,
+        model="chat", 
+        type="market_chain", 
+        stream=True,
+        rag_parameters=rag_parameters
+    )
+
+    r = generate_answer(
+        "解释一下“温故而知新”", 
+        model="auto", 
+        type="market_chain", 
+        stream=False,
+        rag_parameters=rag_parameters
+    )
+    print(r[0])
+
+
 def market_summary_test():
     session_id = f'test_{int(time.time())}'
     generate_answer(
@@ -650,7 +717,8 @@ if __name__ == "__main__":
     # market_deploy_test()
     # test_baichuan_model()
     # market_summary_test2()
-    test_internlm_model()
+    # test_internlm_model()
+    test_internlm_model_mkt()
     # test_baichuan_model()
     
     # market_deploy_test()

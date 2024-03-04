@@ -1,7 +1,7 @@
 import asyncio
 import json 
 
-from .mkt_entry import (
+from .mkt_entry_core import (
     QueryQuestionRetriever,
     get_query_process_chain,
     auto_intention_recoginition_chain,

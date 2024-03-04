@@ -1,5 +1,5 @@
 
-from .mkt_entry import get_qd_llm_chain      
+from .mkt_entry_core import get_qd_llm_chain      
 
 def main_chain_entry(
         query_input: str,
