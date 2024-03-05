@@ -1,11 +1,12 @@
 
-from .mkt_entry_core import get_qd_llm_chain      
+from .mkt_entry_core import get_qd_llm_chain   
+from  .. import parse_config   
 
 def main_chain_entry(
         query_input: str,
         index: str,
         stream=False,
-        rag_config=None
+        event_body=None
 ):
     """
     Entry point for the Lambda function.
@@ -15,6 +16,7 @@ def main_chain_entry(
 
     return: answer(str)
     """
+    rag_config=parse_config.parse_rag_config(event_body)
     debug_info = {
         "query": query_input,
         "query_parser_info": {},
