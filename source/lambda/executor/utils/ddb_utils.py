@@ -29,10 +29,12 @@ class DynamoDBChatMessageHistory(BaseChatMessageHistory):
         table_name: str,
         session_id: str,
         user_id: str,
+        client_type: str,
     ):
         self.table = client.Table(table_name)
         self.session_id = session_id
         self.user_id = user_id
+        self.client_type = client_type
 
     @property
     def messages(self):
@@ -82,6 +84,7 @@ class DynamoDBChatMessageHistory(BaseChatMessageHistory):
                 Item={
                     "SessionId": self.session_id,
                     "UserId": self.user_id,
+                    "ClientType": self.client_type,
                     "StartTime": datetime.now().isoformat(),
                     "History": messages,
                 }
@@ -89,7 +92,9 @@ class DynamoDBChatMessageHistory(BaseChatMessageHistory):
         except ClientError as err:
             print(f"Error adding message: {err}")
 
-    def add_user_message(self, message_id, content, entry_type) -> None:
+    def add_user_message(
+        self, content, message_id, custom_message_id, entry_type
+    ) -> None:
         """Append the user message to the record in DynamoDB"""
         message = {
             "type": HUMAN_MESSAGE_TYPE,
@@ -98,6 +103,7 @@ class DynamoDBChatMessageHistory(BaseChatMessageHistory):
                 "content": content,
                 "additional_kwargs": {
                     "message_id": message_id,
+                    "custom_message_id": custom_message_id,
                     "create_time": Decimal.from_float(time.time()),
                     "entry_type": entry_type,
                 },
@@ -106,7 +112,9 @@ class DynamoDBChatMessageHistory(BaseChatMessageHistory):
         }
         self.add_message(message)
 
-    def add_ai_message(self, message_id, content, entry_type) -> None:
+    def add_ai_message(
+        self, content, message_id, custom_message_id, entry_type
+    ) -> None:
         """Append the ai message to the record in DynamoDB"""
         message = {
             "type": AI_MESSAGE_TYPE,
@@ -115,6 +123,7 @@ class DynamoDBChatMessageHistory(BaseChatMessageHistory):
                 "content": content,
                 "additional_kwargs": {
                     "message_id": message_id,
+                    "custom_message_id": custom_message_id,
                     "create_time": Decimal.from_float(time.time()),
                     "entry_type": entry_type,
                 },

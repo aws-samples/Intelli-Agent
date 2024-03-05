@@ -8,6 +8,7 @@ from .constant import EntryType
 
 logger = logging.getLogger()
 
+
 class StreamMessageType:
     START = "START"
     END = "END"
@@ -15,8 +16,10 @@ class StreamMessageType:
     CHUNK = "CHUNK"
     CONTEXT = "CONTEXT"
 
+
 class WebsocketClientError(Exception):
     pass
+
 
 def api_response(**kwargs):
     response = {"statusCode": 200, "headers": {"Content-Type": "application/json"}}
@@ -33,17 +36,24 @@ def api_response(**kwargs):
     chat_history = kwargs["chat_history"]
     message_id = kwargs["message_id"]
     question = kwargs["question"]
+    client_type = kwargs["client_type"]
+    custom_message_id = kwargs["custom_message_id"]
 
     if not isinstance(answer, str):
         answer = json.dumps(answer, ensure_ascii=False)
 
     if entry_type != EntryType.MARKET_CONVERSATION_SUMMARY.value:
-        chat_history.add_user_message(f"user_{message_id}", question, entry_type)
-        chat_history.add_ai_message(f"ai_{message_id}", answer, entry_type)
+        chat_history.add_user_message(
+            question, f"user_{message_id}", custom_message_id, entry_type
+        )
+        chat_history.add_ai_message(
+            answer, f"ai_{message_id}", custom_message_id, entry_type
+        )
 
     # 2. return rusult
     llmbot_response = {
-        "id": session_id,
+        "session_id": session_id,
+        "client_type": client_type,
         "object": "chat.completion",
         "created": int(request_timestamp),
         # "model": model,
@@ -56,6 +66,7 @@ def api_response(**kwargs):
                     "knowledge_sources": sources,
                 },
                 "message_id": f"ai_{message_id}",
+                "custom_message_id": custom_message_id,
                 "finish_reason": "stop",
                 "index": 0,
             }
@@ -96,7 +107,9 @@ def stream_response(**kwargs):
     question = kwargs["question"]
     entry_type = kwargs["entry_type"]
     ws_connection_id = kwargs["ws_connection_id"]
-    log_first_token_time = kwargs.get('log_first_token_time',True)
+    log_first_token_time = kwargs.get("log_first_token_time", True)
+    client_type = kwargs["client_type"]
+    custom_message_id = kwargs["custom_message_id"]
 
     if isinstance(answer, str):
         answer = [answer]
@@ -109,15 +122,10 @@ def stream_response(**kwargs):
     def _send_to_ws_client(message: dict):
         try:
             llmbot_response = {
-                "id": session_id,
+                "session_id": session_id,
+                "client_type": client_type,
                 "object": "chat.completion",
                 "created": int(request_timestamp),
-                # "model": '',
-                # "usage": {
-                #     "prompt_tokens": 13,
-                #     "completion_tokens": 7,
-                #     "total_tokens": 20,
-                # },
                 "choices": [message],
                 "entry_type": entry_type,
             }
@@ -134,19 +142,21 @@ def stream_response(**kwargs):
             {
                 "message_type": StreamMessageType.START,
                 "message_id": f"ai_{message_id}",
+                "custom_message_id": custom_message_id,
             }
         )
         answer_str = ""
         for i, ans in enumerate(answer):
-            if i ==0 and log_first_token_time:
+            if i == 0 and log_first_token_time:
                 logger.info(
-                    f'execute time until first token generated: {time.time()-request_timestamp}s'
+                    f"execute time until first token generated: {time.time()-request_timestamp}s"
                 )
 
             _send_to_ws_client(
                 {
                     "message_type": StreamMessageType.CHUNK,
                     "message_id": f"ai_{message_id}",
+                    "custom_message_id": custom_message_id,
                     "message": {
                         "role": "assistant",
                         "content": ans,
@@ -159,12 +169,17 @@ def stream_response(**kwargs):
 
         # add to chat history ddb table
         if entry_type != EntryType.MARKET_CONVERSATION_SUMMARY.value:
-            chat_history.add_user_message(f"user_{message_id}", question, entry_type)
-            chat_history.add_ai_message(f"ai_{message_id}", answer_str, entry_type)
+            chat_history.add_user_message(
+                question, f"user_{message_id}", custom_message_id, entry_type
+            )
+            chat_history.add_ai_message(
+                answer_str, f"ai_{message_id}", custom_message_id, entry_type
+            )
         # sed source and contexts
         context_msg = {
             "message_type": StreamMessageType.CONTEXT,
             "message_id": f"ai_{message_id}",
+            "custom_message_id": custom_message_id,
             "knowledge_sources": sources,
         }
         if get_contexts:
@@ -180,6 +195,7 @@ def stream_response(**kwargs):
             {
                 "message_type": StreamMessageType.END,
                 "message_id": f"ai_{message_id}",
+                "custom_message_id": custom_message_id,
             }
         )
     except WebsocketClientError:
@@ -194,6 +210,7 @@ def stream_response(**kwargs):
             {
                 "message_type": StreamMessageType.ERROR,
                 "message_id": f"ai_{message_id}",
+                "custom_message_id": custom_message_id,
                 "message": {"content": error},
             }
         )

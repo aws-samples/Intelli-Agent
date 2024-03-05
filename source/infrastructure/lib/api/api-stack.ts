@@ -291,7 +291,7 @@ export class LLMApiStack extends NestedStack {
         const lambdaDdbIntegration = new apigw.LambdaIntegration(lambdaDdb, { proxy: true, });
 
         // All AOS wrapper should be within such lambda
-        const apiResourceDdb = api.root.addResource('ddb');
+        const apiResourceDdb = api.root.addResource('feedback');
         apiResourceDdb.addMethod('POST', lambdaDdbIntegration);
 
         const apiResourceStepFunction = api.root.addResource('etl');
