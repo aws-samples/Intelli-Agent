@@ -378,14 +378,25 @@ def SagemakerEndpointVectorOrCross(prompt: str, endpoint_name: str, region_name:
             client=client,
             endpoint_name=endpoint_name,
             content_handler=content_handler
-            # endpoint_name=endpoint_name,
-            # region_name=region_name,
-            # content_handler=content_handler
         )
         query_result = embeddings.embed_query(prompt)
         return query_result
     elif model_type == "cross":
         content_handler = crossContentHandler()
+    elif model_type == "multi-vector":
+        content_handler = vectorContentHandler()
+        model_kwargs = {}
+        model_kwargs['batch_size'] = 12
+        model_kwargs['max_length'] = 512
+        model_kwargs['return_type'] = 'all'
+        embeddings = SagemakerEndpointEmbeddings(
+            client=client,
+            endpoint_name=endpoint_name,
+            content_handler=content_handler,
+            model_kwargs=model_kwargs
+        )
+        query_result = embeddings.embed_query(prompt)
+        return query_result
     elif model_type == "answer":
         content_handler = answerContentHandler()
     elif model_type == "rerank":
