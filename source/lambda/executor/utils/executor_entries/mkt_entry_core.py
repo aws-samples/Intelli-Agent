@@ -76,22 +76,6 @@ def get_qd_chain(
     qd_chain = RunnablePassthrough.assign(docs=compression_retriever) 
     return qd_chain
 
-def get_qq_chain(aos_index_list, retriever_top_k=5):
-    retriever_list = [
-        QueryQuestionRetriever(
-            index=index["name"],
-            vector_field=index["vector_field"],
-            source_field=index["source_field"],
-            size=retriever_top_k,
-            lang=index["lang"],
-            embedding_model_endpoint=index["embedding_endpoint"]
-        )
-        for index in aos_index_list
-    ]
-    qq_chain = MergerRetriever(retrievers=retriever_list)
-    qq_chain = RunnablePassthrough.assign(qq_result=qq_chain)
-    qq_chain = chain_logger(qq_chain, 'qq_chain')
-    return qq_chain
 
 def get_qd_llm_chain(
     aos_index_list, 
@@ -124,6 +108,7 @@ def get_qd_llm_chain(
                 
     qd_llm_chain = chain_logger(qd_chain, 'qd_retriever') | chain_logger(llm_chain,'llm_chain')
     return qd_llm_chain
+
 
 def get_chat_llm_chain(
         rag_config,
@@ -164,11 +149,11 @@ def market_chain_entry(
     aos_index_dict = json.loads(os.environ["aos_index_dict"])
         
     aos_index_mkt_qd = aos_index_dict["aos_index_mkt_qd"]
-    aos_index_mkt_qq_name = aos_index_dict["aos_index_mkt_qq"]
+    aos_index_mkt_qq = aos_index_dict["aos_index_mkt_qq"]
     aos_index_dgr_qd = aos_index_dict["aos_index_dgr_qd"]
     aos_index_dgr_faq_qd = aos_index_dict["aos_index_dgr_faq_qd"]
-    aos_index_dgr_qq_name = aos_index_dict["aos_index_dgr_qq"]
-
+    aos_index_dgr_qq = aos_index_dict["aos_index_dgr_qq"]
+# 
     debug_info = {}
     contexts = []
     sources = []
@@ -184,28 +169,22 @@ def market_chain_entry(
 
     # 2. Knowledge QA Intent
     # 2.1 query question retrieval.
-    aos_index_dgr_qq = {
-        "name": aos_index_dgr_qq_name,
-        "lang": "zh",
-        "embedding_endpoint": zh_embedding_endpoint,
-        "source_field": "source",
-        "vector_field": "vector_field" 
-    }
-    aos_index_mkt_qq = {
-        "name": aos_index_mkt_qq_name,
-        "lang": "zh",
-        "embedding_endpoint": zh_embedding_endpoint,
-        "source_field": "file_path",
-        "vector_field": "vector_field" 
-    }
-    qq_chain = get_qq_chain([aos_index_dgr_qq, aos_index_mkt_qq])
-
-    # 2.2 query document retrieval + LLM.
-    qd_llm_chain = get_qd_llm_chain(
-        [aos_index_dgr_qd, aos_index_dgr_faq_qd, aos_index_mkt_qd],
-        rag_config,
-        stream,
+    dgr_q_q_retriever = QueryQuestionRetriever(
+        index=aos_index_dgr_qq,
+        vector_field="vector_field",
+        source_field="source",
+        size=5,
+        lang="zh",
+        embedding_model_endpoint=zh_embedding_endpoint
     )
+    # 2.2 query document retrieval + LLM.
+    # qd_llm_chain = get_qd_llm_chain(
+    #     [aos_index_dgr_qd, aos_index_dgr_faq_qd, aos_index_mkt_qd],
+    #     rag_config,
+    #     stream,
+    #     # top_n=5,
+    #     # chunk_num=0
+    # )
 
     # 2.3 query question router.
     def qq_route(info, threshold=0.9):
@@ -222,8 +201,17 @@ def market_chain_entry(
                 logger.info('qq matched...')
                 info.update(output)
                 return info
+        qd_llm_chain = get_qd_llm_chain(
+            [aos_index_dgr_qd, aos_index_dgr_faq_qd, aos_index_mkt_qd],
+            rag_config,
+            stream,
+            # top_n=5,
+            # chunk_num=0
+        )
         return qd_llm_chain
 
+    qq_chain = RunnablePassthrough.assign(qq_result=dgr_q_q_retriever)
+    qq_chain = chain_logger(qq_chain,'qq_chain')
     qq_qd_llm_chain = qq_chain | RunnableLambda(qq_route)
 
     # query process chain

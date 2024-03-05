@@ -58,7 +58,7 @@ class DummyWebSocket:
 main.ws_client = DummyWebSocket()
 
 def generate_answer(query,
-                    temperature=0.7,
+                    # temperature=0.7,
                     enable_debug=True,
                     retrieval_only=False,
                     type="market_chain",
@@ -77,7 +77,7 @@ def generate_answer(query,
                     "content": query
                 }
             ],
-            "temperature": temperature,
+            # "temperature": temperature,
             # "enable_debug": enable_debug,
             # "retrieval_only": retrieval_only,
             # "retriever_index": retriever_index,
@@ -546,8 +546,17 @@ def market_deploy_test():
 
 def market_deploy_cn_test():
     model_id = "internlm2-chat-7b"
-    endpoint_name = "instruct-internlm2-chat-7b-f7dc2"
+    # endpoint_name = "instruct-internlm2-chat-7b-f7dc2"
+    endpoint_name = "internlm2-chat-7b-llama-exl2-2024-03-04-01-49-46-235"
     rag_parameters = {
+        "get_contexts":True,
+        "retriever_config":{
+            "retriever_top_k": 1,
+                "chunk_num": 2,
+                "using_whole_doc": True,
+                "reranker_top_k": 10,
+                "enable_reranker": True
+        },
         "query_process_config":{
             "conversation_query_rewrite_config":{
                 "model_id":model_id,
@@ -565,7 +574,7 @@ def market_deploy_cn_test():
         "generator_llm_config":{
             "model_kwargs":{
                 "max_new_tokens": 2000,
-                "temperature": 0.1,
+                "temperature": 0.05,
                 "top_p": 0.9
             },
             "model_id": model_id,
@@ -583,6 +592,22 @@ def market_deploy_cn_test():
     #     rag_parameters=rag_parameters
     # )
     # # 
+
+    generate_answer(
+        "AWS支持上海region吗？", 
+        model="auto", 
+        type="market_chain", 
+        stream=True,
+        rag_parameters=rag_parameters
+    )
+    print(sfg)
+    generate_answer(
+        "介绍一下Amazon EC2", 
+        model="auto", 
+        type="market_chain", 
+        stream=True,
+        rag_parameters=rag_parameters
+    )
 
 
     generate_answer(
