@@ -5,7 +5,7 @@ from langchain.schema.callbacks.base import BaseCallbackHandler
 # import threading
 # import time 
 from .logger_utils import logger
-from langchain.schema.runnable import RunnableLambda,RunnablePassthrough
+from langchain.schema.runnable import RunnableLambda,RunnablePassthrough,RunnableParallel
 
 # class LmabdaDict(dict):
 #     """add lambda to value"""
@@ -30,11 +30,53 @@ class RunnableDictAssign:
     """
     def __new__(cls,fn):
         assert callable(fn)
-        def _merge_keys(x:dict,key='temp_dict'):
+        def _merge_keys(x:dict,key='__temp_dict'):
             d = x.pop(key)
             return {**x,**d}
-        chain = RunnablePassthrough.assign(temp_dict=fn) | RunnableLambda(lambda x: _merge_keys(x))
+        chain = RunnablePassthrough.assign(__temp_dict=fn) | RunnableLambda(lambda x: _merge_keys(x))
         return chain
+
+class RunnableParallelAssign:
+    """
+    example:
+      def fn(x):
+          return {"a":1,"b":2}
+      
+       chain = RunnableDictAssign(fn)
+       chain.invoke({"c":3})
+
+       ## output
+       {"c":3,"a":1,"b":2}
+    """
+    def __new__(cls,**kwargs):
+        def _merge_keys(x:dict,key='__temp_dict'):
+            d = x.pop(key)
+            return {**x,**d}
+        chain = RunnablePassthrough.assign(__temp_dict=RunnableParallel(**kwargs)) | RunnableLambda(lambda x: _merge_keys(x))
+        return chain
+
+
+class RunnableNoneAssign:
+    """
+    example:
+      def fn(x):
+          return None
+      
+       chain = RunnableNoneAssign(fn)
+       chain.invoke({"c":3})
+
+       ## output
+       {"c":3}
+    """
+    def __new__(cls,fn):
+        assert callable(fn)
+        def _remove_keys(x:dict,key='__temp_dict'):
+            x.pop(key)
+            return x
+        chain = RunnablePassthrough.assign(__temp_dict=fn) | RunnableLambda(lambda x: _remove_keys(x))
+        return chain
+
+
 
 
 def create_identity_lambda(keys:list):
