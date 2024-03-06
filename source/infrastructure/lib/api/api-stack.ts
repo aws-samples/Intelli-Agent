@@ -26,6 +26,7 @@ interface apiStackProps extends StackProps {
     _embeddingEndPoints: string[];
     _instructEndPoint: string;
     _chatSessionTable: string;
+    _workspaceTable: string;
     // type of StepFunctions
     _sfnOutput: sfn.StateMachine;
     _OpenSearchIndex: string;
@@ -51,6 +52,7 @@ export class LLMApiStack extends NestedStack {
         const _aosIndex = props._OpenSearchIndex
         const _aosIndexDict = props._OpenSearchIndexDict
         const _chatSessionTable = props._chatSessionTable
+        const _workspaceTable = props._workspaceTable
         const _jobQueueArn = props._jobQueueArn
         const _jobDefinitionArn = props._jobDefinitionArn
         const _etlEndpoint = props._etlEndpoint
@@ -331,6 +333,7 @@ export class LLMApiStack extends NestedStack {
                     aos_index: _aosIndex,
                     aos_index_dict: _aosIndexDict,
                     chat_session_table: _chatSessionTable,
+                    workspace_table: _workspaceTable,
                 },
                 layers: [_ApiLambdaExecutorLayer]
             });
