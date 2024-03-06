@@ -52,7 +52,7 @@ def market_chain_knowledge_entry(
     manual_input_intent=None,
     event_body=None,
     rag_config=None,
-    message_id=message_id
+    message_id=None
 ):
     """
     Entry point for the Lambda function.
