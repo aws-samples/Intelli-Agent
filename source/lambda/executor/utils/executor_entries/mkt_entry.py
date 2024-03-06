@@ -44,7 +44,7 @@ def market_chain_entry(
             "using_whole_doc": False,
             "reranker_top_k": 10,
             "enable_reranker": rag_config["retriever_config"]["enable_reranker"],
-            "q_q_match_threshold": 0.9,
+            "q_q_match_threshold": 0.8,
         },
         "query_process_config": {
             "query_rewrite_config": {

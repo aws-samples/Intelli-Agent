@@ -141,11 +141,20 @@ def get_doc(file_path, index_name):
     chunk_text_list = [x[4] for x in sorted_chunk_list]
     return "\n".join(chunk_text_list)
 
-def get_context(previous_chunk_id, next_chunk_id, index_name, window_size):
+def get_inner_context(chunk_id, index_name, window_size):
+    next_content_list = []
     previous_content_list = []
     previous_pos = 0
     next_pos = 0
-    while previous_chunk_id and previous_chunk_id.startswith("$") and previous_pos < window_size:
+    chunk_id_prefix = "-".join(chunk_id.split("-")[:-1])
+    section_id = int(chunk_id.split("-")[-1])
+    previous_section_id = section_id
+    next_section_id = section_id
+    while previous_pos < window_size:
+        previous_section_id -= 1
+        if previous_section_id < 1:
+            break
+        previous_chunk_id = f"{chunk_id_prefix}-{previous_section_id}"
         opensearch_query_response = aos_client.search(
             index_name=index_name,
             query_type="basic",
@@ -155,13 +164,13 @@ def get_context(previous_chunk_id, next_chunk_id, index_name, window_size):
         )
         if len(opensearch_query_response["hits"]["hits"]) > 0:
             r = opensearch_query_response["hits"]["hits"][0]
-            previous_chunk_id = r["_source"]["metadata"]["heading_hierarchy"]["previous"]
             previous_content_list.insert(0, r["_source"]["text"])
             previous_pos += 1
         else:
             break
-    next_content_list = []
-    while next_chunk_id and next_chunk_id.startswith("$") and next_pos < window_size:
+    while next_pos < window_size:
+        next_section_id += 1
+        next_chunk_id = f"{chunk_id_prefix}-{next_section_id}"
         opensearch_query_response = aos_client.search(
             index_name=index_name,
             query_type="basic",
@@ -171,11 +180,60 @@ def get_context(previous_chunk_id, next_chunk_id, index_name, window_size):
         )
         if len(opensearch_query_response["hits"]["hits"]) > 0:
             r = opensearch_query_response["hits"]["hits"][0]
-            next_chunk_id = r["_source"]["metadata"]["heading_hierarchy"]["next"]
-            next_content_list.append(r["_source"]["text"])
+            next_content_list.insert(0, r["_source"]["text"])
             next_pos += 1
         else:
             break
+    return [previous_content_list, next_content_list]
+
+def get_context(aos_hit, index_name, window_size):
+    previous_content_list = []
+    next_content_list = []
+    if "chunk_id" not in aos_hit['_source']["metadata"]:
+        return previous_content_list, next_content_list
+    chunk_id = aos_hit["_source"]["metadata"]["chunk_id"]
+    inner_previous_content_list, inner_next_content_list = get_inner_context(chunk_id, index_name, window_size)
+    if len(inner_previous_content_list) == window_size and len(inner_next_content_list) == window_size:
+        return inner_previous_content_list, inner_next_content_list
+
+    if "heading_hierarchy" not in aos_hit['_source']["metadata"]:
+        return [previous_content_list, next_content_list]
+    if "previous" in aos_hit['_source']["metadata"]["heading_hierarchy"]:
+        previous_chunk_id = aos_hit['_source']["metadata"]["heading_hierarchy"]["previous"]
+        previous_pos = 0
+        while previous_chunk_id and previous_chunk_id.startswith("$") and previous_pos < window_size:
+            opensearch_query_response = aos_client.search(
+                index_name=index_name,
+                query_type="basic",
+                query_term=previous_chunk_id,
+                field="metadata.chunk_id",
+                size=1,
+            )
+            if len(opensearch_query_response["hits"]["hits"]) > 0:
+                r = opensearch_query_response["hits"]["hits"][0]
+                previous_chunk_id = r["_source"]["metadata"]["heading_hierarchy"]["previous"]
+                previous_content_list.insert(0, r["_source"]["text"])
+                previous_pos += 1
+            else:
+                break
+    if "next" in aos_hit['_source']["metadata"]["heading_hierarchy"]:
+        next_chunk_id = aos_hit['_source']["metadata"]["heading_hierarchy"]["next"]
+        next_pos = 0
+        while next_chunk_id and next_chunk_id.startswith("$") and next_pos < window_size:
+            opensearch_query_response = aos_client.search(
+                index_name=index_name,
+                query_type="basic",
+                query_term=next_chunk_id,
+                field="metadata.chunk_id",
+                size=1,
+            )
+            if len(opensearch_query_response["hits"]["hits"]) > 0:
+                r = opensearch_query_response["hits"]["hits"][0]
+                next_chunk_id = r["_source"]["metadata"]["heading_hierarchy"]["next"]
+                next_content_list.append(r["_source"]["text"])
+                next_pos += 1
+            else:
+                break
     return [previous_content_list, next_content_list]
 
 def get_parent_content(previous_chunk_id, next_chunk_id, index_name):
@@ -285,7 +343,7 @@ class QueryQuestionRetriever(BaseRetriever):
         opensearch_knn_results.extend(
             organize_faq_results(opensearch_knn_response, self.index, self.source_field)
         )
-        debug_info[f"q_q_match_info_{self.index}_{self.lang}"] = remove_redundancy_debug_info(opensearch_knn_results)
+        debug_info[f"qq-knn-recall-{self.index}-{self.lang}"] = remove_redundancy_debug_info(opensearch_knn_results)
         docs = []
         for result in opensearch_knn_results:
             docs.append(Document(page_content=result["content"], metadata={
@@ -317,11 +375,10 @@ class QueryDocumentRetriever(BaseRetriever):
         self.lang = lang
         self.embedding_model_endpoint = embedding_model_endpoint
 
-    async def __ainvoke_get_context(self, previous_chunk_id, next_chunk_id, window_size, loop):
+    async def __ainvoke_get_context(self, aos_hit, window_size, loop):
         return await loop.run_in_executor(None,
                                           get_context,
-                                          previous_chunk_id,
-                                          next_chunk_id,
+                                          aos_hit,
                                           self.index,
                                           window_size)
 
@@ -329,16 +386,13 @@ class QueryDocumentRetriever(BaseRetriever):
         loop = asyncio.get_event_loop()
         task_list = []
         for aos_hit in aos_hits:
-            if context_size and ("heading_hierarchy" in aos_hit['_source']["metadata"] and 
-                                    "previous" in aos_hit['_source']["metadata"]["heading_hierarchy"] and
-                                    "next" in aos_hit['_source']["metadata"]["heading_hierarchy"]):
-                    task = asyncio.create_task(
-                        self.__ainvoke_get_context(
-                            aos_hit['_source']["metadata"]["heading_hierarchy"]["previous"],
-                            aos_hit['_source']["metadata"]["heading_hierarchy"]["next"],
-                            context_size,
-                            loop))
-                    task_list.append(task)
+            if context_size:
+                task = asyncio.create_task(
+                    self.__ainvoke_get_context(
+                        aos_hit,
+                        context_size,
+                        loop))
+                task_list.append(task)
         return await asyncio.gather(*task_list)
 
     @timeit
@@ -407,7 +461,7 @@ class QueryDocumentRetriever(BaseRetriever):
 
         # 3. combine these two opensearch_knn_response and opensearch_query_response
         final_results = opensearch_knn_results + opensearch_query_results
-        debug_info[f"knowledge_qa_knn_recall_{self.index}_{self.lang}"] = remove_redundancy_debug_info(final_results)
+        debug_info[f"qd-knn-recall-{self.index}-{self.lang}"] = remove_redundancy_debug_info(final_results)
 
         doc_list = []
         content_set = set()

@@ -83,7 +83,7 @@ def generate_answer_from_api(url, query_input, type, rag_parameters):
     response = requests.post(url, json.dumps(data))
     return response
 
-def generate_answer_from_ws(url, query_input, type, rag_parameters):
+def generate_answer_from_ws(url, query_input, type):
     for i in range(max_debug_block):
         with gr.Tab(visible=False) as tab:
             tab_list.append(tab)

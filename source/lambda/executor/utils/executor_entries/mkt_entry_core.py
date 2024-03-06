@@ -167,6 +167,7 @@ def market_chain_entry(
     aos_index_dgr_qd = aos_index_dict["aos_index_dgr_qd"]
     aos_index_dgr_faq_qd = aos_index_dict["aos_index_dgr_faq_qd"]
     aos_index_dgr_qq_name = aos_index_dict["aos_index_dgr_qq"]
+    aos_index_acts_qd = "acts-qd-index-20240305"
 
     debug_info = {}
     contexts = []
@@ -195,21 +196,21 @@ def market_chain_entry(
         "lang": "zh",
         "embedding_endpoint": zh_embedding_endpoint,
         "source_field": "file_path",
-        "vector_field": "vector_field" 
+        "vector_field": "vector_field"
     }
     qq_chain = get_qq_chain([aos_index_dgr_qq, aos_index_mkt_qq])
 
     # 2.2 query document retrieval + LLM.
     qd_llm_chain = get_qd_llm_chain(
-        [aos_index_dgr_qd, aos_index_dgr_faq_qd, aos_index_mkt_qd],
+        [aos_index_dgr_qd, aos_index_dgr_faq_qd, aos_index_mkt_qd, aos_index_acts_qd],
         rag_config,
         stream,
     )
 
     # 2.3 query question router.
-    def qq_route(info, threshold=0.9):
+    def qq_route(info):
         for doc in info["qq_result"]:
-            if doc.metadata["score"] > threshold:
+            if doc.metadata["score"] > rag_config["retriever_config"]["q_q_match_threshold"]:
                 output = {
                     "answer": doc.metadata["answer"],
                     "sources": doc.metadata["source"],
