@@ -3,7 +3,6 @@ import json
 import logging
 import time
 import traceback
-
 from .constant import EntryType
 
 logger = logging.getLogger()
@@ -110,6 +109,7 @@ def stream_response(**kwargs):
     log_first_token_time = kwargs.get("log_first_token_time", True)
     client_type = kwargs["client_type"]
     custom_message_id = kwargs["custom_message_id"]
+    main_entry_end = kwargs["main_entry_end"]
 
     if isinstance(answer, str):
         answer = [answer]
@@ -148,8 +148,12 @@ def stream_response(**kwargs):
         answer_str = ""
         for i, ans in enumerate(answer):
             if i == 0 and log_first_token_time:
+                first_token_time = time.time()
                 logger.info(
-                    f"execute time until first token generated: {time.time()-request_timestamp}s"
+                    f"{custom_message_id} running time of first token generated {entry_type} : {first_token_time-main_entry_end}s"
+                )
+                logger.info(
+                    f"{custom_message_id} running time of first token whole {entry_type} : {first_token_time-request_timestamp}s"
                 )
 
             _send_to_ws_client(
@@ -166,6 +170,11 @@ def stream_response(**kwargs):
                 }
             )
             answer_str += ans
+
+        if log_first_token_time:
+            logger.info(
+                f"{custom_message_id} running time of last token whole {entry_type} : {time.time()-request_timestamp}s"
+            )
 
         # add to chat history ddb table
         if entry_type != EntryType.MARKET_CONVERSATION_SUMMARY.value:

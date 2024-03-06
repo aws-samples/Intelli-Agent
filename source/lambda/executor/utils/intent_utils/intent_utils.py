@@ -1,19 +1,20 @@
-from  . import retriever
-from .retriever import QueryDocumentRetriever, QueryQuestionRetriever,index_results_format
-from .constant import IntentType,INTENT_RECOGNITION_TYPE
+from  .. import retriever
+from ..retriever import QueryDocumentRetriever, QueryQuestionRetriever,index_results_format
+from ..constant import IntentType,INTENT_RECOGNITION_TYPE
 from functools import partial
 from langchain.schema.runnable import RunnablePassthrough, RunnableBranch, RunnableLambda
-from .llm_utils import Model as LLM_Model
-from .llm_utils.llm_chains import LLMChain
-from langchain.prompts import PromptTemplate
+# from ..llm_utils import Model as LLM_Model
+from ..llm_utils.llm_chains import LLMChain
+# from langchain.prompts import PromptTemplate
 import re 
 import traceback
-from .prompt_template import INTENT_RECOGINITION_PROMPT_TEMPLATE_CLUADE,INTENT_RECOGINITION_EXAMPLE_TEMPLATE
+# from ..prompt_template import INTENT_RECOGINITION_PROMPT_TEMPLATE_CLUADE,INTENT_RECOGINITION_EXAMPLE_TEMPLATE
 import os 
 import json 
 from random import Random
-from .preprocess_utils import is_api_query,get_service_name
-from .langchain_utils import chain_logger
+from ..preprocess_utils import is_api_query,get_service_name
+from ..langchain_utils import chain_logger
+
 abs_file_dir = os.path.dirname(__file__)
 
 # intent_map = {
@@ -21,65 +22,65 @@ abs_file_dir = os.path.dirname(__file__)
 #     "知识问答": IntentType.KNOWLEDGE_QA.value
 # }
 
-class IntentUtils:
-    def __init__(self,
-                 intent_save_path=os.path.join(abs_file_dir,"intent_examples/examples.json"),
-                 example_template=INTENT_RECOGINITION_EXAMPLE_TEMPLATE,
-                 llm_model_id = 'anthropic.claude-v2:1',
-                 llm_model_kwargs={"temperature":0,
-                                "max_tokens_to_sample": 2000,
-                                "stop_sequences": ["\n\n","\n\nHuman:"]
-                                },
-                 seed = 42
-                 ):
-        self.intent_few_shot_examples = json.load(open(intent_save_path))
-        self.intent_indexs = {intent_d['intent']:intent_d['index'] for intent_d in self.intent_few_shot_examples['intents']}
-        self.index_intents = {v:k for k,v in  self.intent_indexs.items()}
-        self.intents = list(self.intent_few_shot_examples['examples'].keys())
-        self.few_shot_examples = self.create_few_shot_examples()
-        Random(seed).shuffle(self.few_shot_examples)
-        self.examples_str = self.create_few_shot_example_string(example_template=example_template)
-        self.categories_str = self.create_all_labels_string()
-        self.intent_recognition_template = PromptTemplate.from_template(INTENT_RECOGINITION_PROMPT_TEMPLATE_CLUADE)
-        self.llm = LLM_Model.get_model(llm_model_id,model_kwargs=llm_model_kwargs)
-        self.intent_recognition_llm_chain = self.intent_recognition_template | self.llm 
-    def create_few_shot_examples(self):
-        ret = []
-        for intent in self.intents:
-            examples = self.intent_few_shot_examples['examples'][intent]
-            for query in examples:
-                ret.append({
-                    "intent":intent,
-                    "query": query
-                })
-        return ret
+# class IntentUtils:
+#     def __init__(self,
+#                  intent_save_path=os.path.join(abs_file_dir,"intent_examples/examples.json"),
+#                  example_template=INTENT_RECOGINITION_EXAMPLE_TEMPLATE,
+#                  llm_model_id = 'anthropic.claude-v2:1',
+#                  llm_model_kwargs={"temperature":0,
+#                                 "max_tokens_to_sample": 2000,
+#                                 "stop_sequences": ["\n\n","\n\nHuman:"]
+#                                 },
+#                  seed = 42
+#                  ):
+#         self.intent_few_shot_examples = json.load(open(intent_save_path))
+#         self.intent_indexs = {intent_d['intent']:intent_d['index'] for intent_d in self.intent_few_shot_examples['intents']}
+#         self.index_intents = {v:k for k,v in  self.intent_indexs.items()}
+#         self.intents = list(self.intent_few_shot_examples['examples'].keys())
+#         self.few_shot_examples = self.create_few_shot_examples()
+#         Random(seed).shuffle(self.few_shot_examples)
+#         self.examples_str = self.create_few_shot_example_string(example_template=example_template)
+#         self.categories_str = self.create_all_labels_string()
+#         self.intent_recognition_template = PromptTemplate.from_template(INTENT_RECOGINITION_PROMPT_TEMPLATE_CLUADE)
+#         self.llm = LLM_Model.get_model(llm_model_id,model_kwargs=llm_model_kwargs)
+#         self.intent_recognition_llm_chain = self.intent_recognition_template | self.llm 
+#     def create_few_shot_examples(self):
+#         ret = []
+#         for intent in self.intents:
+#             examples = self.intent_few_shot_examples['examples'][intent]
+#             for query in examples:
+#                 ret.append({
+#                     "intent":intent,
+#                     "query": query
+#                 })
+#         return ret
 
-    def create_few_shot_example_string(self,example_template=INTENT_RECOGINITION_EXAMPLE_TEMPLATE):
-        example_strs = []
-        intent_indexs = self.intent_indexs
-        for example in self.few_shot_examples:
-            example_strs.append(
-                example_template.format(
-                    label=intent_indexs[example['intent']],
-                    query=example['query']
-                    )
-            )
-        return '\n\n'.join(example_strs)
+#     def create_few_shot_example_string(self,example_template=INTENT_RECOGINITION_EXAMPLE_TEMPLATE):
+#         example_strs = []
+#         intent_indexs = self.intent_indexs
+#         for example in self.few_shot_examples:
+#             example_strs.append(
+#                 example_template.format(
+#                     label=intent_indexs[example['intent']],
+#                     query=example['query']
+#                     )
+#             )
+#         return '\n\n'.join(example_strs)
 
-    def create_all_labels_string(self):
-        intent_few_shot_examples = self.intent_few_shot_examples
-        label_strs = []
-        labels = intent_few_shot_examples['intents']
-        for i,label in enumerate(labels):
-            label_strs.append(f"({label['index']}) {label['describe']}")
-        return "\n".join(label_strs)
+#     def create_all_labels_string(self):
+#         intent_few_shot_examples = self.intent_few_shot_examples
+#         label_strs = []
+#         labels = intent_few_shot_examples['intents']
+#         for i,label in enumerate(labels):
+#             label_strs.append(f"({label['index']}) {label['describe']}")
+#         return "\n".join(label_strs)
 
-    def postprocess(self,output:str):
-        out = output.strip()
-        assert out, output
-        return self.index_intents[out[0]]
+#     def postprocess(self,output:str):
+#         out = output.strip()
+#         assert out, output
+#         return self.index_intents[out[0]]
 
-intention_obj = IntentUtils()
+# intention_obj = IntentUtils()
 
 # def create_few_shot_example_string(examples):
 #     example_strs = []
@@ -108,26 +109,26 @@ intention_obj = IntentUtils()
 #     assert r, output
 #     return r[0] 
 
-def get_intent_with_claude(query,intent_if_fail,debug_info):
-    predict_label = None
-    try:
-        r = intention_obj.intent_recognition_llm_chain.invoke({
-            "categories":intention_obj.categories_str,
-            "examples":intention_obj.examples_str,
-            'query':query})
-        predict_label = intention_obj.postprocess(r)
-    except:
-        print(traceback.format_exc())
-        predict_label
+# def get_intent_with_claude(query,intent_if_fail,debug_info):
+#     predict_label = None
+#     try:
+#         r = intention_obj.intent_recognition_llm_chain.invoke({
+#             "categories":intention_obj.categories_str,
+#             "examples":intention_obj.examples_str,
+#             'query':query})
+#         predict_label = intention_obj.postprocess(r)
+#     except:
+#         print(traceback.format_exc())
+#         predict_label
     
 
-    intent = predict_label or intent_if_fail
-    debug_info['intent_debug_info'] = {
-        'llm_output':r,
-        'origin_intent':predict_label,
-        'intent': intent
-        }
-    return intent
+#     intent = predict_label or intent_if_fail
+#     debug_info['intent_debug_info'] = {
+#         'llm_output':r,
+#         'origin_intent':predict_label,
+#         'intent': intent
+#         }
+#     return intent
 
 # def get_intent(query,intent_type,qq_index=None):
 #     assert IntentType.has_value(intent_type),intent_type

@@ -84,6 +84,7 @@ export class RootStack extends Stack {
       _embeddingEndPoints:_LLMStack._embeddingEndPoints || '',
       _instructEndPoint:_LLMStack._instructEndPoint || '',
       _chatSessionTable: _DynamoDBStack._chatSessionTable,
+      _workspaceTable: _EtlStack._workspaceTableName,
       _sfnOutput: _EtlStack._sfnOutput,
       _OpenSearchIndex: _CdkParameters._OpenSearchIndex.valueAsString,
       _OpenSearchIndexDict: _CdkParameters._OpenSearchIndexDict.valueAsString,

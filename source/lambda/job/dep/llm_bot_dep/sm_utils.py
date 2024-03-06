@@ -102,7 +102,7 @@ class ContentHandler(EmbeddingsContentHandler):
         return embeddings
 
 
-def create_embedding_with_single_model(
+def create_embeddings_with_single_model(
     embeddings_model: str, aws_region: str, file_type: str
 ):
     embeddings_result = None

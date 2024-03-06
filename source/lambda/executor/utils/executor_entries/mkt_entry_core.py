@@ -68,20 +68,21 @@ def get_qd_chain(
     qd_chain = RunnablePassthrough.assign(docs=compression_retriever) 
     return qd_chain
 
-def get_qq_chain(aos_index_list, retriever_top_k=5):
+def get_qq_chain(aos_index_list, message_id=None, retriever_top_k=5):
     retriever_list = [
         QueryQuestionRetriever(index, size=retriever_top_k)
         for index in aos_index_list
     ]
     qq_chain = MergerRetriever(retrievers=retriever_list)
     qq_chain = RunnablePassthrough.assign(qq_result=qq_chain)
-    qq_chain = chain_logger(qq_chain, 'qq_chain')
+    qq_chain = chain_logger(qq_chain, 'qq_chain', message_id)
     return qq_chain
 
 def get_qd_llm_chain(
     aos_index_list, 
     rag_config, 
     stream=False, 
+    message_id=None,
     # top_n=5
 ):
     using_whole_doc = rag_config['retriever_config']['using_whole_doc']
@@ -107,7 +108,7 @@ def get_qd_llm_chain(
                 chat_history=lambda x:rag_config['chat_history']
           )
 
-    qd_llm_chain = chain_logger(qd_chain, 'qd_retriever') | chain_logger(llm_chain,'llm_chain')
+    qd_llm_chain = chain_logger(qd_chain, 'qd_retriever', message_id) | chain_logger(llm_chain, 'llm_chain', message_id)
     return qd_llm_chain
 
 def get_chat_llm_chain(
@@ -134,7 +135,8 @@ def market_chain_entry(
     stream=False,
     manual_input_intent=None,
     event_body=None,
-    rag_config=None
+    rag_config=None,
+    message_id=None
 ):
     """
     Entry point for the Lambda function.
@@ -193,7 +195,7 @@ def market_chain_entry(
         "vector_field": "vector_field",
         "model_type": "vector"
     }
-    qq_chain = get_qq_chain([aos_index_dgr_qq, aos_index_mkt_qq])
+    qq_chain = get_qq_chain([aos_index_dgr_qq, aos_index_mkt_qq], message_id)
 
     # 2.2 query document retrieval + LLM.
     aos_index_acts_qd = {
@@ -209,6 +211,7 @@ def market_chain_entry(
         [aos_index_acts_qd],
         rag_config,
         stream,
+        message_id
     )
 
     # 2.3 query question router.
@@ -233,7 +236,8 @@ def market_chain_entry(
     # query process chain
     query_process_chain = get_query_process_chain(
         rag_config['chat_history'],
-        rag_config['query_process_config']
+        rag_config['query_process_config'],
+        message_id=message_id
     )
     # | add_key_to_debug(add_key='conversation_query_rewrite',debug_key="debug_info")
     #   | add_key_to_debug(add_key='query_rewrite',debug_key="debug_info")
@@ -250,13 +254,21 @@ def market_chain_entry(
             'embedding_endpoint':zh_embedding_endpoint,
             "q_q_match_threshold": rag_config['retriever_config']['q_q_match_threshold']
         },
-        intent_config=rag_config['intent_config']
+        intent_config=rag_config['intent_config'],
+        message_id=message_id
     )
 
     intent_recognition_chain = chain_logger(
         intent_recognition_chain,
         'intention module',
-        log_output_template='intent chain output: {intent_type}'
+        log_output_template='intent chain output: {intent_type}',
+        message_id=message_id
+    )
+
+    qq_qd_llm_chain = chain_logger(
+        qq_qd_llm_chain,
+        'retrieve module',
+        message_id=message_id
     )
    
     full_chain = query_process_chain | intent_recognition_chain  | RunnableBranch(

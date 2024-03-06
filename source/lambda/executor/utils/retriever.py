@@ -493,3 +493,15 @@ def index_results_format(docs:list, threshold=-1):
     # output = {"answer": json.dumps(results, ensure_ascii=False), "sources": [], "contexts": []}
     output = {"answer": results, "sources": [], "contexts": [], "context_docs": [], "context_sources": []}
     return output
+
+def index_results_format_and_filter(docs:list, threshold=-1):
+    results = []
+    for doc in docs:
+        if doc.metadata["score"] < threshold:
+            continue
+        results.append({"score": doc.metadata["score"], 
+                        "source": doc.metadata["source"],
+                        "answer": doc.metadata.get("answer",""),
+                        "question": doc.metadata.get("question","")
+        })
+    return results

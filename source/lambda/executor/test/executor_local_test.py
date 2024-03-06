@@ -512,6 +512,115 @@ def test_internlm_model_mkt():
     print(r[0])
 
 
+def test_internlm_model_mkt_knowledge_entry():
+    session_id=f'test_{time.time()}'
+    # endpoint_name = 'internlm2-chat-7b-4bits-2024-02-28-07-08-57-839'
+    # model_id = "internlm2-chat-7b"
+    endpoint_name = 'internlm2-chat-20b-4bits-2024-03-04-06-32-53-653'
+    model_id = "internlm2-chat-20b"
+    entry_type = "market_chain_knowledge"
+
+    os.environ['llm_model_id'] = model_id
+    os.environ['llm_model_endpoint_name'] = endpoint_name
+
+    rag_parameters = {
+        "get_contexts":True,
+        # "retriever_config": {
+        #     # "retriever_top_k": 5,
+        #     # "chunk_num": 2,
+        #     # "using_whole_doc": false,
+        #     # "reranker_top_k": 10,
+        #     # "enable_reranker": true,
+        #     # "q_q_match_threshold": 0.9,
+        #     "qd_match_threshold": 4
+        # },
+    }
+    generate_answer(
+        "今天是几月几号？", 
+        model="knowledge_qa", 
+        type=entry_type, 
+        stream=True,
+        rag_parameters=rag_parameters
+    )
+
+    generate_answer(
+        "我上一个问题是什么？", 
+        model="knowledge_qa", 
+        type=entry_type, 
+        stream=True,
+        rag_parameters=rag_parameters
+    )
+    # qq_match_test()
+    generate_answer(
+        "AWS支持上海region吗？", 
+        model="knowledge_qa", 
+        type=entry_type, 
+        stream=True,
+        rag_parameters= {
+        "get_contexts":True
+    }
+    )
+
+    generate_answer(
+        "AWS支持上海region吗？", 
+        model="knowledge_qa", 
+        type=entry_type, 
+        stream=True,
+        rag_parameters={
+            "get_contexts":True,
+            "retriever_config": {
+                # "retriever_top_k": 5,
+                # "chunk_num": 2,
+                # "using_whole_doc": false,
+                # "reranker_top_k": 10,
+                # "enable_reranker": true,
+                # "q_q_match_threshold": 0.9,
+                "qd_match_threshold": 4
+            }}
+    )
+    print(sfg)
+    generate_answer(
+        "介绍一下Amazon EC2", 
+        model="auto", 
+        type=entry_type, 
+        stream=True,
+        rag_parameters=rag_parameters
+    )
+    # print(xfg)
+    generate_answer(
+        "什么是Amazon bedrock？", 
+        model="auto", 
+        type=entry_type, 
+        stream=True,
+        rag_parameters=rag_parameters
+    )
+
+    generate_answer(
+        "《夜曲》是谁演唱的？", 
+        session_id=session_id,
+        model="chat", 
+        type=entry_type, 
+        stream=True,
+        rag_parameters=rag_parameters
+    )
+    generate_answer(
+        "他还有哪些其他歌曲？", 
+        session_id=session_id,
+        model="chat", 
+        type=entry_type, 
+        stream=True,
+        rag_parameters=rag_parameters
+    )
+
+    r = generate_answer(
+        "解释一下“温故而知新”", 
+        model="auto", 
+        type=entry_type, 
+        stream=False,
+        rag_parameters=rag_parameters
+    )
+    print(r[0])
+
 def market_summary_test():
     session_id = f'test_{int(time.time())}'
     generate_answer(
@@ -628,62 +737,6 @@ def market_deploy_test():
 
     market_summary_test2()
 
-# def market_deploy_cn_test():
-#     model_id = "internlm2-chat-7b"
-#     endpoint_name = "internlm2-chat-7b-2024-02-23-07-29-02-632"
-#     rag_parameters = {
-#         "query_process_config":{
-#             "conversation_query_rewrite_config":{
-#                 "model_id":model_id,
-#                 "endpoint_name":endpoint_name
-#             },
-#             "translate_config":{
-#                 "model_id":model_id,
-#                 "endpoint_name": endpoint_name
-#             }
-#         },
-#         "intent_config": { 
-#             "model_id": model_id,
-#             "endpoint_name": endpoint_name
-#         },
-#         "generator_llm_config":{
-#             "model_kwargs":{
-#                 "max_new_tokens": 2000,
-#                 "temperature": 0.1,
-#                 "top_p": 0.9
-#             },
-#             "model_id": model_id,
-#             "endpoint_name": endpoint_name,
-#             "context_num": 1
-#         }
-#     }
-#     generate_answer(
-#         "什么是Amazon Bedrock", 
-#         model="auto", 
-#         stream=True,
-#         type="market_chain", 
-#         rag_parameters=rag_parameters
-#     )
-
-
-#     session_id = f'test_{int(time.time())}'
-#     generate_answer(
-#         "《夜曲》是谁演唱的？", 
-#         session_id=session_id,
-#         model="chat", 
-#         type="market_chain", 
-#         stream=True,
-#         rag_parameters=rag_parameters
-#     )
-#     generate_answer(
-#         "他还有哪些其他歌曲？", 
-#         session_id=session_id,
-#         model="chat", 
-#         type="market_chain", 
-#         stream=True,
-#         rag_parameters=rag_parameters
-#     )
-
 
 if __name__ == "__main__":
     # market_summary_test()
@@ -715,7 +768,7 @@ if __name__ == "__main__":
     # test_baichuan_model()
     # market_summary_test2()
     # test_internlm_model()
-    test_internlm_model_mkt()
+    test_internlm_model_mkt_knowledge_entry()
     # test_baichuan_model()
     
     # market_deploy_test()

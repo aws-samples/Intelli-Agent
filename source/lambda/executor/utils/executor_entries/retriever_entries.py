@@ -77,7 +77,8 @@ def main_qd_retriever_entry(
     query_input: str,
     aos_index: str,
     event_body=None,
-    manual_input_intent=None
+    manual_input_intent=None,
+    message_id=None
 ):
     """
     Entry point for the Lambda function.
@@ -115,12 +116,12 @@ def main_qd_retriever_entry(
         "manual_input_intent": manual_input_intent,
         "strict_qq_intent_result": {},
     }
-    intent_recognition_chain = auto_intention_recoginition_chain("aos_index_mkt_qq")
+    intent_recognition_chain = auto_intention_recoginition_chain("aos_index_mkt_qq", message_id=message_id)
     intent_recognition_chain = chain_logger(
         intent_recognition_chain,
         'intention module',
-        log_output_template='intent chain output: {intent_type}'
-        
+        log_output_template='intent chain output: {intent_type}',
+        message_id=message_id
     )
     qd_chain = get_qd_chain(
         [aos_index], using_whole_doc=using_whole_doc, chunk_num=chunk_num, retriever_top_k=retriever_top_k, reranker_top_k=10
