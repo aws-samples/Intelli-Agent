@@ -253,6 +253,7 @@ def auto_intention_recoginition_chain(
         x["intent_info"]["strict_qq_intent_result"] = x["q_q_match_res"]["answer"]
         return x["intent_type"]
     
+    
     q_q_retriever = QueryQuestionRetriever(
         index=q_q_retriever_config['index_q_q'],
         vector_field="vector_field", 
@@ -303,6 +304,19 @@ def auto_intention_recoginition_chain(
     )     
 
     return chain
+
+
+
+
+# intent_recognition_with_opensearch
+def create_opensearch_index(opensearch_client):
+    pass
+
+
+def intent_recognition_with_openserach_chain(opensearch_client,top_k=5):
+    pass
+
+    
     
 
 

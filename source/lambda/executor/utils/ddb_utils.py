@@ -42,7 +42,7 @@ class DynamoDBChatMessageHistory(BaseChatMessageHistory):
         response = None
         try:
             response = self.table.get_item(
-                Key={"SessionId": self.session_id, "UserId": self.user_id}
+                Key={"SessionId": self.session_id, "UserId": self.user_id,}
             )
         except ClientError as error:
             if error.response["Error"]["Code"] == "ResourceNotFoundException":

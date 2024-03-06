@@ -450,7 +450,6 @@ def test_internlm_model_mkt():
     session_id=f'test_{time.time()}'
     # endpoint_name = 'internlm2-chat-7b-4bits-2024-02-28-07-08-57-839'
     # model_id = "internlm2-chat-7b"
-
     endpoint_name = 'internlm2-chat-20b-4bits-2024-03-04-06-32-53-653'
     model_id = "internlm2-chat-20b"
 

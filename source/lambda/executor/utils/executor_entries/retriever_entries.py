@@ -15,6 +15,7 @@ from langchain.schema.runnable import (
 )
 from ..time_utils import timeit
 from ..langchain_utils import chain_logger
+from .. import parse_config
 
 def get_strict_qq_chain(strict_q_q_index):
     def get_strict_qq_result(docs, threshold=0.7):
@@ -75,7 +76,7 @@ def main_qq_retriever_entry(
 def main_qd_retriever_entry(
     query_input: str,
     aos_index: str,
-    rag_config=None,
+    event_body=None,
     manual_input_intent=None
 ):
     """
@@ -86,6 +87,9 @@ def main_qd_retriever_entry(
 
     return: answer(str)
     """
+
+    rag_config=parse_config.parse_rag_config(event_body)
+
     debug_info = {
         "query": query_input,
         "query_parser_info": {},

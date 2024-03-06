@@ -18,7 +18,7 @@ from ..retriever import (
     QueryQuestionRetriever,
     index_results_format,
 )
-
+from ..serialization_utils import JSONEncoder
 from ..reranker import BGEReranker, MergeReranker
 from ..retriever import (
     QueryDocumentRetriever,
@@ -33,7 +33,7 @@ from ..llm_utils import LLMChain
 from ..constant import IntentType
 from ..query_process_utils import get_query_process_chain
 from ..intent_utils import auto_intention_recoginition_chain
-
+from .. import parse_config
 
 zh_embedding_endpoint = os.environ.get("zh_embedding_endpoint", "")
 en_embedding_endpoint = os.environ.get("en_embedding_endpoint", "")
@@ -147,6 +147,7 @@ def market_chain_entry(
     query_input: str,
     stream=False,
     manual_input_intent=None,
+    event_body=None,
     rag_config=None
 ):
     """
@@ -157,7 +158,13 @@ def market_chain_entry(
     :param stream(Bool): Whether to use llm stream decoding output.
     return: answer(str)
     """
+    if rag_config is None:
+        rag_config = parse_config.parse_mkt_entry_core_config(event_body)
+
     assert rag_config is not None
+
+    logger.info(f'market rag configs:\n {json.dumps(rag_config,indent=2,ensure_ascii=False,cls=JSONEncoder)}')
+
     generator_llm_config = rag_config['generator_llm_config']
     intent_type = rag_config['intent_config']['intent_type']
     aos_index_dict = json.loads(os.environ["aos_index_dict"])
@@ -241,7 +248,7 @@ def market_chain_entry(
     # intent recognition
     intent_recognition_chain = auto_intention_recoginition_chain(
         q_q_retriever_config={
-            "index_q_q":aos_index_mkt_qq,
+            "index_q_q":aos_index_mkt_qq_name,
             'lang':'zh',
             'embedding_endpoint':zh_embedding_endpoint,
             "q_q_match_threshold": rag_config['retriever_config']['q_q_match_threshold']

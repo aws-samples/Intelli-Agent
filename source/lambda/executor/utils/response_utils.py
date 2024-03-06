@@ -33,7 +33,7 @@ def api_response(**kwargs):
     contexts = kwargs["contexts"]
     enable_debug = kwargs["enable_debug"]
     debug_info = kwargs["debug_info"]
-    chat_history = kwargs["chat_history"]
+    ddb_history_obj = kwargs["ddb_history_obj"]
     message_id = kwargs["message_id"]
     question = kwargs["question"]
     client_type = kwargs["client_type"]
@@ -43,10 +43,10 @@ def api_response(**kwargs):
         answer = json.dumps(answer, ensure_ascii=False)
 
     if entry_type != EntryType.MARKET_CONVERSATION_SUMMARY.value:
-        chat_history.add_user_message(
+        ddb_history_obj.add_user_message(
             question, f"user_{message_id}", custom_message_id, entry_type
         )
-        chat_history.add_ai_message(
+        ddb_history_obj.add_ai_message(
             answer, f"ai_{message_id}", custom_message_id, entry_type
         )
 
@@ -102,7 +102,7 @@ def stream_response(**kwargs):
     enable_debug = kwargs["enable_debug"]
     debug_info = kwargs["debug_info"]
     ws_client = kwargs["ws_client"]
-    chat_history = kwargs["chat_history"]
+    ddb_history_obj = kwargs["ddb_history_obj"]
     message_id = kwargs["message_id"]
     question = kwargs["question"]
     entry_type = kwargs["entry_type"]
@@ -169,10 +169,10 @@ def stream_response(**kwargs):
 
         # add to chat history ddb table
         if entry_type != EntryType.MARKET_CONVERSATION_SUMMARY.value:
-            chat_history.add_user_message(
+            ddb_history_obj.add_user_message(
                 question, f"user_{message_id}", custom_message_id, entry_type
             )
-            chat_history.add_ai_message(
+            ddb_history_obj.add_ai_message(
                 answer_str, f"ai_{message_id}", custom_message_id, entry_type
             )
         # sed source and contexts
