@@ -39,7 +39,8 @@ class WorkspaceManager:
 
     def create_workspace_open_search(
         self,
-        workspace_name: str,
+        workspace_id: str,
+        embeddings_model_endpoint: str,
         embeddings_model_provider: str,
         embeddings_model_name: str,
         embeddings_model_dimensions: int,
@@ -47,7 +48,7 @@ class WorkspaceManager:
         workspace_file_types: List[str],
         open_search_index_name: str = None,
     ):
-        workspace_id = f"{workspace_name}_{str(uuid.uuid4())}"
+
         open_search_index_name = (
             f"{workspace_id}_index"
             if not open_search_index_name
@@ -59,9 +60,10 @@ class WorkspaceManager:
             "workspace_id": workspace_id,
             "object_type": WORKSPACE_OBJECT_TYPE,
             "format_version": 1,
-            "name": workspace_name,
+            "name": workspace_id,
             "engine": "opensearch",
             "status": "submitted",
+            "embeddings_model_endpoint": embeddings_model_endpoint,
             "embeddings_model_provider": embeddings_model_provider,
             "embeddings_model_name": embeddings_model_name,
             "embeddings_model_dimensions": embeddings_model_dimensions,
@@ -81,11 +83,12 @@ class WorkspaceManager:
 
         logging.info(f"Created workspace with response: {response}")
 
-        return workspace_id, open_search_index_name
+        return open_search_index_name
 
     def update_workspace_open_search(
         self,
-        workspace_name: str,
+        workspace_id: str,
+        embeddings_model_endpoint: str,
         embeddings_model_provider: str,
         embeddings_model_name: str,
         embeddings_model_dimensions: int,
@@ -95,13 +98,12 @@ class WorkspaceManager:
     ):
         timestamp = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
-        # Get the proper workspace_id
-        workspace_id = self.get_workspace_id(workspace_name, embeddings_model_name)
-
+        item = self.get_workspace(workspace_id)
         # If the item not exist, create the item
-        if not workspace_id:
-            workspace_id, open_search_index_name = self.create_workspace_open_search(
-                workspace_name,
+        if not item:
+            open_search_index_name = self.create_workspace_open_search(
+                workspace_id,
+                embeddings_model_endpoint,
                 embeddings_model_provider,
                 embeddings_model_name,
                 embeddings_model_dimensions,
@@ -111,8 +113,6 @@ class WorkspaceManager:
             )
 
         else:
-            item = self.get_workspace(workspace_id)
-
             # Get the current workspace_file_types, or an empty list if it doesn't exist
             current_workspace_file_types = item.get("workspace_file_types", [])
             open_search_index_name = item.get("open_search_index_name")
@@ -138,4 +138,4 @@ class WorkspaceManager:
 
             logging.info(f"Updated workspace with response: {response}")
 
-        return workspace_id, open_search_index_name
+        return open_search_index_name

@@ -51,11 +51,8 @@ args = getResolvedOptions(
         "QA_ENHANCEMENT",
         "BATCH_INDICE",
         "ProcessedObjectsTable",
-        "DOC_INDEX_TABLE",
-        "AOS_INDEX",
-        "CONTENT_TYPE",
-        "EMBEDDING_TYPE",
-        "EMBEDDING_LANG",
+        "WORKSPACE_ID",
+        "WORKSPACE_TABLE",
     ],
 )
 
@@ -76,16 +73,15 @@ qa_enhancement = args["QA_ENHANCEMENT"]
 # TODO, pass the bucket and prefix need to handle in current job directly
 batchIndice = args["BATCH_INDICE"]
 processedObjectsTable = args["ProcessedObjectsTable"]
-workspace_name = args["WORKSPACE_NAME"]
-workspaces_table = args["WORKSPACES_TABLE"]
-content_type = args["CONTENT_TYPE"]
+workspace_id = args["WORKSPACE_ID"]
+workspace_table = args["WORKSPACE_TABLE"]
 
 s3 = boto3.client("s3")
 smr_client = boto3.client("sagemaker-runtime")
 dynamodb = boto3.resource("dynamodb")
 table = dynamodb.Table(processedObjectsTable)
-workspaces_table = dynamodb.Table(workspaces_table)
-workspaces_manager = WorkspaceManager(workspaces_table)
+workspace_table = dynamodb.Table(workspace_table)
+workspace_manager = WorkspaceManager(workspace_table)
 
 ENHANCE_CHUNK_SIZE = 25000
 # Make it 3600s for debugging purpose
@@ -352,8 +348,9 @@ def main():
             if res:
                 logger.info("Result: %s", res)
 
-            workspace_id, aos_index = workspaces_manager.update_workspace_open_search(
-                workspace_name,
+            aos_index = workspace_manager.update_workspace_open_search(
+                workspace_id,
+                embeddingModelEndpoint,
                 embeddings_model_provider,
                 embeddings_model_name,
                 embeddings_model_dimensions,
