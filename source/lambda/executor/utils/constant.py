@@ -18,6 +18,7 @@ Type = EntryType
 class IntentType(Enum):
     KNOWLEDGE_QA = "knowledge_qa"
     CHAT = "chat"
+    MARKET_EVENT = 'market_event'
     STRICT_QQ = "strict_q_q"
     AUTO = "auto"
     @classmethod

@@ -101,7 +101,7 @@ class LogTimeListener:
     def __init__(
             self,
             chain_name,
-            message_id,
+            message_id="",
             log_input=False,
             log_output=False,
             log_input_template=None,
@@ -113,6 +113,7 @@ class LogTimeListener:
         self.log_output = log_output
         self.log_input_template = log_input_template
         self.log_output_template = log_output_template
+        self.message_id = message_id
 
     def on_start(self,run):
         logger.info(f'{self.message_id} Enter: {self.chain_name}')

@@ -535,6 +535,35 @@ def test_internlm_model_mkt_knowledge_entry():
         #     "qd_match_threshold": 4
         # },
     }
+    
+    generate_answer(
+        "日志通是什么？", 
+        model="knowledge_qa", 
+        type=entry_type, 
+        stream=True,
+        rag_parameters={
+        "get_contexts":True,
+        "retriever_config":{
+            "qd_match_threshold": 2,
+            "using_whole_doc": True
+        }
+        }
+    )
+
+    generate_answer(
+        "Amazon Lambda函数是什么？", 
+        model="knowledge_qa", 
+        type=entry_type, 
+        stream=True,
+        rag_parameters={
+        "get_contexts":True,
+        "retriever_config":{
+            "qd_match_threshold": 2,
+            "using_whole_doc": True
+        }
+        }
+    )
+    
     generate_answer(
         "今天是几月几号？", 
         model="knowledge_qa", 
