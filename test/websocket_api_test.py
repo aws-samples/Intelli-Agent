@@ -30,7 +30,7 @@ body = {
     "model": "knowledge_qa",
     # "messages": [{"role": "user","content": question_library[-1]}],
     # "messages": [{"role": "user","content": question_library[-1]}],
-    "messages": [{"role": "user","content": '什么是Bedrock？'}],
+    "messages": [{"role": "user","content": '什么是Bedrock？', "custom_message_id": f"test_dashboard_{time.time()}"}],
     "temperature": 0.7,
     "type" : "market_chain", 
     "retriever_config":{
@@ -63,6 +63,7 @@ body = {
     # "endpoint_name": "instruct-internlm2-chat-7b-f7dc2",
     "llm_model_endpoint_name": "internlm2-chat-20b-4bits-2024-03-04-06-32-53-653",#"baichuan2-13b-chat-4bits-2024-01-28-15-46-43-013",
     "context_num": 1,
+    "custom_message_id": f"test_dashboard_{int(time.time())}"
     # "session_id":f"test_{int(time.time())}"
 }
 

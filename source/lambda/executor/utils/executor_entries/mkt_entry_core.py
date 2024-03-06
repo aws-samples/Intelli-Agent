@@ -267,6 +267,12 @@ def market_chain_entry(
         log_output_template='intent chain output: {intent_type}',
         message_id=message_id
     )
+
+    qq_qd_llm_chain = chain_logger(
+        qq_qd_llm_chain,
+        'retrieve module',
+        message_id=message_id
+    )
    
     full_chain = query_process_chain | intent_recognition_chain  | RunnableBranch(
         (lambda x:x['intent_type'] == IntentType.KNOWLEDGE_QA.value, qq_qd_llm_chain),

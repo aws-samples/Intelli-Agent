@@ -66,6 +66,7 @@ class LogTimeListener:
             log_output_template=None
         ):
         self.chain_name = chain_name
+        self.message_id = message_id
         self.log_input = log_input
         self.log_output = log_output
         self.log_input_template = log_input_template
