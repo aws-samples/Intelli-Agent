@@ -51,7 +51,8 @@ def market_chain_knowledge_entry(
     stream=False,
     manual_input_intent=None,
     event_body=None,
-    rag_config=None
+    rag_config=None,
+    message_id=message_id
 ):
     """
     Entry point for the Lambda function.
@@ -107,7 +108,8 @@ def market_chain_knowledge_entry(
             query=cqr_llm_chain
         ),
         "conversation_summary_chain",
-        log_output_template='conversation_summary_chain result: {query}.'
+        log_output_template='conversation_summary_chain result: {query}.',
+        message_id=message_id
     )
 
 
@@ -117,14 +119,16 @@ def market_chain_knowledge_entry(
     intent_recognition_index = IntentRecognitionAOSIndex(embedding_endpoint_name=zh_embedding_endpoint)
     intent_index_ingestion_chain = chain_logger(
         intent_recognition_index.as_ingestion_chain(),
-        "intent_index_ingestion_chain"
+        "intent_index_ingestion_chain",
+        message_id=message_id
     )
     intent_index_check_exist_chain = RunnablePassthrough.assign(
         is_intent_index_exist = intent_recognition_index.as_check_index_exist_chain()
     )
     intent_index_search_chain = chain_logger(
         intent_recognition_index.as_search_chain(top_k=5),
-        "intent_index_search_chain"
+        "intent_index_search_chain",
+        message_id=message_id
     )
     inten_postprocess_chain = intent_recognition_index.as_intent_postprocess_chain(method='top_1')
     
@@ -225,7 +229,7 @@ def market_chain_knowledge_entry(
                 chat_history=lambda x:rag_config['chat_history']
           )
 
-    llm_chain = chain_logger(llm_chain,'llm_chain')
+    llm_chain = chain_logger(llm_chain,'llm_chain', message_id=message_id)
 
     qd_fast_reply_branch = RunnableBranch(
         (
@@ -243,7 +247,8 @@ def market_chain_knowledge_entry(
             intent_type=intent_recognition_chain
         ),
         "qq_and_intention_type_recognition_chain",
-        log_output_template='\nqq_result num: {qq_result},intent recognition type: {intent_type}'
+        log_output_template='\nqq_result num: {qq_result},intent recognition type: {intent_type}',
+        message_id=message_id
     )
 
     qq_and_intent_fast_reply_branch = RunnableBranch(
