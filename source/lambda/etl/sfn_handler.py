@@ -21,6 +21,7 @@ def handler(event, context):
                 "s3Prefix": key,
                 "offline": "false",
                 "qaEnhance": "false",
+                "worksapceId": "default-workspace-id",
             }
         )
     else:

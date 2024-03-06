@@ -122,7 +122,7 @@ export class EtlStack extends NestedStack {
             // No sort key for this index
         });
 
-        const workspacesTable = new dynamodb.Table(this, "WorkspacesTable", {
+        const workspaceTable = new dynamodb.Table(this, "WorkspaceTable", {
             partitionKey: {
               name: "workspace_id",
               type: dynamodb.AttributeType.STRING,
@@ -137,7 +137,7 @@ export class EtlStack extends NestedStack {
             removalPolicy: RemovalPolicy.DESTROY,
           });
       
-        workspacesTable.addGlobalSecondaryIndex({
+        workspaceTable.addGlobalSecondaryIndex({
             indexName: "by_object_type_idx",
             partitionKey: {
                 name: "object_type",
@@ -209,12 +209,13 @@ export class EtlStack extends NestedStack {
                 '--QA_ENHANCEMENT.$': sfn.JsonPath.stringAt('$.qaEnhance'),
                 '--AOS_ENDPOINT': props._domainEndpoint,
                 '--REGION': props._region,
-                '--EMBEDDING_MODEL_ENDPOINT': props._embeddingEndpoint.join(','),
+                '--EMBEDDING_MODEL_ENDPOINT': props._embeddingEndpoint[0],
                 '--ETL_MODEL_ENDPOINT': this._etlEndpoint,
                 '--DOC_INDEX_TABLE': props._OpenSearchIndex,
                 '--RES_BUCKET': _S3Bucket.bucketName,
                 '--ProcessedObjectsTable': table.tableName,
-                '--WORKSPACES_TABLE': workspacesTable.tableName,
+                '--WORKSPACE_TABLE': workspaceTable.tableName,
+                '--WORKSPACE_ID.$': sfn.JsonPath.stringAt('$.workspaceId'),
                 '--additional-python-modules': 'langchain==0.0.312,beautifulsoup4==4.12.2,requests-aws4auth==1.2.3,boto3==1.28.84,openai==0.28.1,pyOpenSSL==23.3.0,tenacity==8.2.3,markdownify==0.11.6,mammoth==1.6.0,chardet==5.2.0,python-docx==1.1.0,nltk==3.8.1,pdfminer.six==20221105',
                 '--python-modules-installer-option': BuildConfig.JOB_PIP_OPTION,
                 // add multiple extra python files
@@ -222,7 +223,6 @@ export class EtlStack extends NestedStack {
                 '--CONTENT_TYPE': 'ug',
                 '--EMBEDDING_LANG': 'zh,zh,en,en',
                 '--EMBEDDING_TYPE': 'similarity,relevance,similarity,relevance',
-                '--AOS_INDEX.$': sfn.JsonPath.stringAt('$.aosIndex'),
             }
         });
 
@@ -267,7 +267,7 @@ export class EtlStack extends NestedStack {
                     's3Prefix.$': '$.Payload.s3Prefix',
                     'qaEnhance.$': '$.Payload.qaEnhance',
                     'offline.$': '$.Payload.offline',
-                    'aosIndex.$': '$.Payload.aosIndex',
+                    'workspaceId.$': '$.Payload.workspaceId',
                 }
             },
             // we need the original input
@@ -288,16 +288,16 @@ export class EtlStack extends NestedStack {
                 '--S3_BUCKET.$': '$.s3Bucket',
                 '--S3_PREFIX.$': '$.s3Prefix',
                 '--AOS_ENDPOINT': props._domainEndpoint,
-                '--EMBEDDING_MODEL_ENDPOINT': props._embeddingEndpoint.join(','),
+                '--EMBEDDING_MODEL_ENDPOINT': props._embeddingEndpoint[0],
                 '--ETL_MODEL_ENDPOINT': this._etlEndpoint,
                 '--DOC_INDEX_TABLE': props._OpenSearchIndex,
                 '--REGION': props._region,
                 '--RES_BUCKET': _S3Bucket.bucketName,
                 '--OFFLINE': 'true',
                 '--QA_ENHANCEMENT.$': '$.qaEnhance',
+                '--WORKSPACE_ID.$': '$.workspaceId',
                 // Convert the numeric index to a string
                 '--BATCH_INDICE.$': 'States.Format(\'{}\', $.batchIndices)',
-                '--AOS_INDEX.$': '$.aosIndex',
                 '--ProcessedObjectsTable': table.tableName,
                 '--CONTENT_TYPE': 'ug',
                 '--EMBEDDING_LANG': 'zh,zh,en,en',
@@ -318,7 +318,7 @@ export class EtlStack extends NestedStack {
                 's3Bucket.$': '$.s3Bucket',
                 's3Prefix.$': '$.s3Prefix',
                 'qaEnhance.$': '$.qaEnhance',
-                'aosIndex.$': '$.aosIndex',
+                'workspaceId.$': '$.workspaceId',
                 // 'index' is a special variable within the Map state that represents the current index
                 'batchIndices.$': '$$.Map.Item.Index' // Add this if you need to know the index of the current item in the map state
             },
@@ -337,17 +337,17 @@ export class EtlStack extends NestedStack {
                 '--S3_BUCKET.$': '$.s3Bucket',
                 '--S3_PREFIX.$': '$.s3Prefix',
                 '--AOS_ENDPOINT': props._domainEndpoint,
-                '--EMBEDDING_MODEL_ENDPOINT': props._embeddingEndpoint.join(','),
+                '--EMBEDDING_MODEL_ENDPOINT': props._embeddingEndpoint[0],
                 '--ETL_MODEL_ENDPOINT': this._etlEndpoint,
                 '--DOC_INDEX_TABLE': props._OpenSearchIndex,
                 '--REGION': props._region,
                 '--RES_BUCKET': _S3Bucket.bucketName,
                 '--OFFLINE': 'false',
                 '--QA_ENHANCEMENT.$': '$.qaEnhance',
+                '--WORKSPACE_ID.$': '$.workspaceId',
                 // set the batch indice to 0 since we are running online
                 '--BATCH_INDICE': '0',
                 '--ProcessedObjectsTable': table.tableName,
-                '--AOS_INDEX.$': '$.aosIndex',
             }),
         });
 
@@ -378,7 +378,7 @@ export class EtlStack extends NestedStack {
         this._jobName = glueJob.jobName;
         this._jobArn = glueJob.jobArn;
         this._processedObjectsTableName = table.tableName;
-        this._workspaceTableName = workspacesTable.tableName;
+        this._workspaceTableName = workspaceTable.tableName;
         this._resBucketName = _S3Bucket.bucketName
     }
 }
