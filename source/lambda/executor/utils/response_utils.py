@@ -110,6 +110,7 @@ def stream_response(**kwargs):
     log_first_token_time = kwargs.get("log_first_token_time", True)
     client_type = kwargs["client_type"]
     custom_message_id = kwargs["custom_message_id"]
+    main_entry_end = kwargs["main_entry_end"]
 
     if isinstance(answer, str):
         answer = [answer]
@@ -148,8 +149,12 @@ def stream_response(**kwargs):
         answer_str = ""
         for i, ans in enumerate(answer):
             if i == 0 and log_first_token_time:
+                first_token_time = time.time()
                 logger.info(
-                    f"execute time until first token generated: {time.time()-request_timestamp}s"
+                    f"{custom_message_id} running time of first token generated: {first_token_time-request_timestamp}s"
+                )
+                logger.info(
+                    f"{custom_message_id} running time of first token whole: {first_token_time-main_entry_end}s"
                 )
 
             _send_to_ws_client(

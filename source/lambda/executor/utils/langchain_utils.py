@@ -59,6 +59,7 @@ class LogTimeListener:
     def __init__(
             self,
             chain_name,
+            message_id,
             log_input=False,
             log_output=False,
             log_input_template=None,
@@ -71,7 +72,7 @@ class LogTimeListener:
         self.log_output_template = log_output_template
 
     def on_start(self,run):
-        logger.info(f'Enter: {self.chain_name}')
+        logger.info(f'{self.message_id} Enter: {self.chain_name}')
         if self.log_input:
             logger.info(f"Inputs({self.chain_name}): {run.inputs}")
         if self.log_input_template:
@@ -84,7 +85,8 @@ class LogTimeListener:
             logger.info(self.log_output_template.format(**run.outputs))
             
         exe_time = (run.end_time - run.start_time).total_seconds()
-        logger.info(f'Exit: {self.chain_name}, elpase time(s): {exe_time}')
+        logger.info(f'{self.message_id} Exit: {self.chain_name}, elpase time(s): {exe_time}')
+        logger.info(f'{self.message_id} running time of {self.chain_name}: {exe_time}s')
         
     def on_error(self,run):
         raise 
@@ -93,6 +95,7 @@ class LogTimeListener:
 def chain_logger(
         chain,
         chain_name,
+        message_id=None,
         log_input=False,
         log_output=False,
         log_input_template=None,
@@ -100,6 +103,7 @@ def chain_logger(
         ):
     obj = LogTimeListener(
         chain_name,
+        message_id,
         log_input=log_input,
         log_output=log_output,log_input_template=log_input_template,
         log_output_template=log_output_template

@@ -48,11 +48,21 @@ body = {
             "top_p": 0.9,
             "timeout":120
         },
-        "model_id": "internlm2-chat-7b",
+        "llm_model_id": "internlm2-chat-7b",
         # "endpoint_name": "instruct-internlm2-chat-7b-f7dc2",
-        "endpoint_name": "internlm2-chat-7b-4bits-2024-02-28-07-08-57-839",#"baichuan2-13b-chat-4bits-2024-01-28-15-46-43-013",
+        "llm_model_endpoint_name": "internlm2-chat-20b-4bits-2024-03-04-06-32-53-653",#"baichuan2-13b-chat-4bits-2024-01-28-15-46-43-013",
         "context_num": 1
-    }
+    },
+    "model_kwargs":{
+        "max_new_tokens": 1000,
+        "temperature": 0.01,
+        "top_p": 0.9,
+        "timeout":120
+    },
+    "llm_model_id": "internlm2-chat-20b",
+    # "endpoint_name": "instruct-internlm2-chat-7b-f7dc2",
+    "llm_model_endpoint_name": "internlm2-chat-20b-4bits-2024-03-04-06-32-53-653",#"baichuan2-13b-chat-4bits-2024-01-28-15-46-43-013",
+    "context_num": 1,
     # "session_id":f"test_{int(time.time())}"
 }
 

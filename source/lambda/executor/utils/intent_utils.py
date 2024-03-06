@@ -235,7 +235,7 @@ def auto_intention_recoginition_chain(
         # embedding_endpoint="",
         # q_q_match_threshold=0.9,
         intent_if_fail=IntentType.KNOWLEDGE_QA.value,
-        
+        message_id=None
     ):
     """
 
@@ -295,7 +295,8 @@ def auto_intention_recoginition_chain(
     sub_intent_chain = chain_logger(
         sub_intent_chain,
         "sub intent chain",
-        log_output_template='\nis_api_query: {is_api_query}.\nservice_names: {service_names}'
+        log_output_template='\nis_api_query: {is_api_query}.\nservice_names: {service_names}',
+        message_id=message_id
     )
 
     chain = intent_type_chain | RunnableBranch(

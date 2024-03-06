@@ -57,6 +57,7 @@ def get_conversation_query_rewrite_chain(
 def get_query_process_chain(
         chat_history,
         query_process_config,
+        message_id=None
         ):
     query_rewrite_config = query_process_config['query_rewrite_config']
     conversation_query_rewrite_config = query_process_config['conversation_query_rewrite_config']
@@ -72,7 +73,8 @@ def get_query_process_chain(
     query_rewrite_chain = chain_logger(
         query_rewrite_chain,
         'query rewrite module',
-        log_output_template='query_rewrite result: {query_rewrite}.'
+        log_output_template='query_rewrite result: {query_rewrite}.',
+        message_id=message_id
         )
     
     conversation_query_rewrite_chain = RunnablePassthrough.assign(
@@ -86,7 +88,8 @@ def get_query_process_chain(
     conversation_query_rewrite_chain = chain_logger(
         conversation_query_rewrite_chain,
         "conversation query rewrite module",
-        log_output_template='conversation_query_rewrite result: {conversation_query_rewrite}.'
+        log_output_template='conversation_query_rewrite result: {conversation_query_rewrite}.',
+        message_id=message_id
     )
 
     preprocess_chain = RunnablePassthrough.assign(
@@ -103,7 +106,8 @@ def get_query_process_chain(
     preprocess_chain = chain_logger(
         preprocess_chain,
         'preprocess module',
-        log_output_template='\nquery lang:{query_lang},\nquery translated: {translated_text}'
+        log_output_template='\nquery lang:{query_lang},\nquery translated: {translated_text}',
+        message_id=message_id
     )
 
     hyde_chain = RunnablePassthrough.assign(
@@ -117,7 +121,8 @@ def get_query_process_chain(
     hyde_chain = chain_logger(
         hyde_chain,
         "hyde chain",
-        log_output_template="\nhyde generate passage: {hyde_doc}"
+        log_output_template="\nhyde generate passage: {hyde_doc}",
+        message_id=message_id
     )
 
     stepback_promping_chain = RunnablePassthrough.assign(
@@ -130,7 +135,8 @@ def get_query_process_chain(
     stepback_promping_chain = chain_logger(
         stepback_promping_chain,
         "stepback promping chain",
-        log_output_template="stepback_promping_chain query: {stepback_query}"
+        log_output_template="stepback_promping_chain query: {stepback_query}",
+        message_id=message_id
     )
 
     # 
@@ -140,7 +146,8 @@ def get_query_process_chain(
 
     query_process_chain = chain_logger(
         query_process_chain,
-        "query process module"
+        "query process module",
+        message_id=message_id
    )
     
     return query_process_chain

@@ -187,6 +187,7 @@ def lambda_handler(event, context):
                 question,
                 retriever_index,
                 event_body=event_body,
+                message_id=custom_message_id
             )
             return get_retriever_response(docs, debug_info)
         elif entry_type == Type.QQ_RETRIEVER.value:
@@ -218,14 +219,15 @@ def lambda_handler(event, context):
             answer, sources, contexts, debug_info = market_chain_entry_core(
                 question,
                 stream=stream,
-                event_body=event_body
+                event_body=event_body,
+                message_id=custom_message_id
             )
-
         elif entry_type == Type.MARKET_CHAIN.value:
             answer, sources, contexts, debug_info = market_chain_entry(
                 question,
                 stream=stream,
-                event_body=event_body
+                event_body=event_body,
+                message_id=custom_message_id
             )
         elif entry_type == Type.MARKET_CONVERSATION_SUMMARY.value:
             answer, sources, contexts, debug_info = market_conversation_summary_entry(
@@ -234,8 +236,9 @@ def lambda_handler(event, context):
                 stream=stream
             )
 
-        main_entry_elpase = time.time() - main_entry_start
-        logger.info(f"runing time of {entry_type} entry : {main_entry_elpase}s seconds")
+        main_entry_end = time.time()
+        main_entry_elpase = main_entry_end - main_entry_start
+        logger.info(f"{custom_message_id} running time of main entry {entry_type} : {main_entry_elpase}s")
      
         response_kwargs = dict(
             stream=stream,
@@ -256,6 +259,7 @@ def lambda_handler(event, context):
             message_id=message_id,
             client_type=client_type,
             custom_message_id=custom_message_id,
+            main_entry_end=main_entry_end
         )
         r = process_response(**response_kwargs)
     if not stream:
