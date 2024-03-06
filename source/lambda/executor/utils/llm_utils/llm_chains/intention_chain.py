@@ -16,6 +16,7 @@ abs_dir = os.path.dirname(__file__)
 
 intent_save_path = os.path.join(
     os.path.dirname(os.path.dirname(abs_dir)),
+    'intent_utils',
     "intent_examples",
     "examples.json"
 )

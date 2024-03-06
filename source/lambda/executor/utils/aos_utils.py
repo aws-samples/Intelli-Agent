@@ -28,7 +28,7 @@ class LLMBotOpenSearchClient:
     instance = None
     def __new__(cls,host):
         with open_search_client_lock:
-            if cls.instance is not None:
+            if cls.instance is not None and cls.instance.host == host:
                 return cls.instance
             obj = object.__new__(cls)
             cls.instance = obj
@@ -37,6 +37,7 @@ class LLMBotOpenSearchClient:
         """
         Initialize OpenSearch client using OpenSearch Endpoint
         """
+        self.host = host
         self.client = OpenSearch(
             hosts = [{
                 'host': host.replace("https://", ""), 
@@ -197,3 +198,5 @@ class LLMBotOpenSearchClient:
             index=index_name
         )
         return response 
+
+
