@@ -1,4 +1,4 @@
-langchain==0.1.0
+langchain==0.1.11
 langchainhub==0.1.14
 opensearch-py==2.2.0
 requests_aws4auth==1.2.2
