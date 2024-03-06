@@ -44,14 +44,14 @@ def remove_redundancy_debug_info(results):
 @timeit
 def get_similarity_embedding(
     query: str,
-    embedding_model_endpoint: str,
+    index
 ):
     query_similarity_embedding_prompt = query
     query_embedding = SagemakerEndpointVectorOrCross(
         prompt=query_similarity_embedding_prompt,
-        endpoint_name=embedding_model_endpoint,
+        endpoint_name=index["embedding_endpoint"],
         region_name=region,
-        model_type="vector",
+        model_type=index["vector"],
         stop=None,
     )
     return query_embedding
@@ -61,16 +61,20 @@ def get_relevance_embedding(
     query: str,
     query_lang: str,
     embedding_model_endpoint: str,
+    model_type: str = "vector"
 ):
-    if query_lang == "zh":
-        query_relevance_embedding_prompt = (
-            "为这个句子生成表示以用于检索相关文章：" + query
+    if model_type == "vector":
+        if query_lang == "zh":
+            query_relevance_embedding_prompt = (
+                "为这个句子生成表示以用于检索相关文章：" + query
+            )
+        elif query_lang == "en":
+            query_relevance_embedding_prompt = (
+                "Represent this sentence for searching relevant passages: "
+                + query
         )
-    elif query_lang == "en":
-        query_relevance_embedding_prompt = (
-            "Represent this sentence for searching relevant passages: "
-            + query
-        )
+    elif model_type == "m3":
+        query_relevance_embedding_prompt = query
     query_embedding = SagemakerEndpointVectorOrCross(
         prompt=query_relevance_embedding_prompt,
         endpoint_name=embedding_model_endpoint,
@@ -310,34 +314,24 @@ def organize_faq_results(response, index_name, source_field="file_path", text_fi
 
 class QueryQuestionRetriever(BaseRetriever):
     index: Any
-    vector_field: Any
-    source_field: Any
     size: Any
-    lang: Any
-    embedding_model_endpoint: Any
 
-    def __init__(self, index: str, vector_field: str, source_field: str,
-                 size: float, lang: str, embedding_model_endpoint: str):
+    def __init__(self, index: str, size: int):
         super().__init__()
         self.index = index
-        self.vector_field = vector_field
-        self.source_field = source_field
         self.size = size
-        self.lang = lang
-        self.embedding_model_endpoint = embedding_model_endpoint
 
     @timeit
     def _get_relevant_documents(self, question: Dict, *, run_manager: CallbackManagerForRetrieverRun) -> List[Document]:
         query = question["query"] 
         debug_info = question["debug_info"]
-        start = time.time()
         opensearch_knn_results = []
-        query_embedding = get_similarity_embedding(query, self.embedding_model_endpoint)
+        query_embedding = get_similarity_embedding(query, self.index)
         opensearch_knn_response = aos_client.search(
-            index_name=self.index,
+            index_name=self.index["index_name"],
             query_type="knn",
             query_term=query_embedding,
-            field=self.vector_field,
+            field=self.index["vector_field"],
             size=self.size,
         )
         opensearch_knn_results.extend(
@@ -362,18 +356,12 @@ class QueryDocumentRetriever(BaseRetriever):
     lang: Any
     embedding_model_endpoint: Any
 
-    def __init__(self, index, vector_field, text_field,  source_field, using_whole_doc,
-                 context_num, top_k, lang, embedding_model_endpoint):
+    def __init__(self, index, using_whole_doc, context_num, top_k):
         super().__init__()
         self.index = index
-        self.vector_field = vector_field
-        self.text_field = text_field
-        self.source_field = source_field
         self.using_whole_doc = using_whole_doc
         self.context_num = context_num
         self.top_k = top_k
-        self.lang = lang
-        self.embedding_model_endpoint = embedding_model_endpoint
 
     async def __ainvoke_get_context(self, aos_hit, window_size, loop):
         return await loop.run_in_executor(None,
@@ -438,22 +426,23 @@ class QueryDocumentRetriever(BaseRetriever):
     @timeit
     def _get_relevant_documents(self, question: Dict, *, run_manager: CallbackManagerForRetrieverRun) -> List[Document]:
         query = question["query"]
-        if "query_lang" in question and question["query_lang"] != self.lang and "translated_text" in question:
+        if self.index["model_type"] != "m3" and "query_lang" in question \
+                and question["query_lang"] != self.index["lang"] and "translated_text" in question:
             query = question["translated_text"]
         debug_info = question["debug_info"]
         opensearch_knn_results = []
-        query_embedding = get_relevance_embedding(query, self.lang, self.embedding_model_endpoint)
+        query_embedding = get_relevance_embedding(query, self.index)
         filter = get_filter_list(question)
         opensearch_knn_response = aos_client.search(
-            index_name=self.index,
+            index_name=self.index["index_name"],
             query_type="knn",
             query_term=query_embedding,
-            field=self.vector_field,
+            field=self.index["vector_field"],
             size=self.top_k,
             filter=filter
         )
         opensearch_knn_results.extend(
-            self.organize_results(opensearch_knn_response, self.index, self.source_field, self.text_field, self.using_whole_doc, self.context_num)[:self.top_k]
+            self.organize_results(opensearch_knn_response, self.index, self.using_whole_doc, self.context_num)[:self.top_k]
         )
 
        # 2. get AOS invertedIndex recall
@@ -461,7 +450,7 @@ class QueryDocumentRetriever(BaseRetriever):
 
         # 3. combine these two opensearch_knn_response and opensearch_query_response
         final_results = opensearch_knn_results + opensearch_query_results
-        debug_info[f"qd-knn-recall-{self.index}-{self.lang}"] = remove_redundancy_debug_info(final_results)
+        debug_info[f"qd-knn-recall-{self.index['index_name']}-{self.index['lang']}"] = remove_redundancy_debug_info(final_results)
 
         doc_list = []
         content_set = set()

@@ -54,14 +54,7 @@ def get_qd_chain(
     aos_index_list, retriever_top_k=10, reranker_top_k=5, using_whole_doc=True, chunk_num=0, enable_reranker=True
 ):
     retriever_list = [
-        QueryDocumentRetriever(
-            index, "vector_field", "text", "file_path", using_whole_doc, chunk_num, retriever_top_k, "zh", zh_embedding_endpoint
-        )
-        for index in aos_index_list
-    ] + [
-        QueryDocumentRetriever(
-            index, "vector_field", "text", "file_path", using_whole_doc, chunk_num, retriever_top_k, "en", en_embedding_endpoint
-        )
+        QueryDocumentRetriever(index, using_whole_doc, chunk_num, retriever_top_k)
         for index in aos_index_list
     ]
     lotr = MergerRetriever(retrievers=retriever_list)
@@ -77,14 +70,7 @@ def get_qd_chain(
 
 def get_qq_chain(aos_index_list, retriever_top_k=5):
     retriever_list = [
-        QueryQuestionRetriever(
-            index=index["name"],
-            vector_field=index["vector_field"],
-            source_field=index["source_field"],
-            size=retriever_top_k,
-            lang=index["lang"],
-            embedding_model_endpoint=index["embedding_endpoint"]
-        )
+        QueryQuestionRetriever(index, size=retriever_top_k)
         for index in aos_index_list
     ]
     qq_chain = MergerRetriever(retrievers=retriever_list)
@@ -169,12 +155,12 @@ def market_chain_entry(
     intent_type = rag_config['intent_config']['intent_type']
     aos_index_dict = json.loads(os.environ["aos_index_dict"])
         
-    aos_index_mkt_qd = aos_index_dict["aos_index_mkt_qd"]
+    aos_index_mkt_qd_name = aos_index_dict["aos_index_mkt_qd"]
     aos_index_mkt_qq_name = aos_index_dict["aos_index_mkt_qq"]
-    aos_index_dgr_qd = aos_index_dict["aos_index_dgr_qd"]
-    aos_index_dgr_faq_qd = aos_index_dict["aos_index_dgr_faq_qd"]
+    aos_index_dgr_qd_name = aos_index_dict["aos_index_dgr_qd"]
+    aos_index_dgr_faq_qd_name = aos_index_dict["aos_index_dgr_faq_qd"]
     aos_index_dgr_qq_name = aos_index_dict["aos_index_dgr_qq"]
-    aos_index_acts_qd = "acts-qd-index-20240305"
+    aos_index_acts_qd_name = "acts-qd-index-20240305"
 
     debug_info = {}
     contexts = []
@@ -192,24 +178,35 @@ def market_chain_entry(
     # 2. Knowledge QA Intent
     # 2.1 query question retrieval.
     aos_index_dgr_qq = {
-        "name": aos_index_dgr_qq_name,
+        "index_name": aos_index_dgr_qq_name,
         "lang": "zh",
         "embedding_endpoint": zh_embedding_endpoint,
         "source_field": "source",
-        "vector_field": "vector_field" 
+        "vector_field": "vector_field",
+        "model_type": "vector"
     }
     aos_index_mkt_qq = {
-        "name": aos_index_mkt_qq_name,
+        "index_name": aos_index_mkt_qq_name,
         "lang": "zh",
         "embedding_endpoint": zh_embedding_endpoint,
         "source_field": "file_path",
-        "vector_field": "vector_field"
+        "vector_field": "vector_field",
+        "model_type": "vector"
     }
     qq_chain = get_qq_chain([aos_index_dgr_qq, aos_index_mkt_qq])
 
     # 2.2 query document retrieval + LLM.
+    aos_index_acts_qd = {
+        "index_name": aos_index_acts_qd_name,
+        "lang": "zh",
+        "embedding_endpoint": zh_embedding_endpoint,
+        "source_field": "source",
+        "vector_field": "vector_field",
+        "model_type": "m3"
+    }
+
     qd_llm_chain = get_qd_llm_chain(
-        [aos_index_dgr_qd, aos_index_dgr_faq_qd, aos_index_mkt_qd, aos_index_acts_qd],
+        [aos_index_acts_qd],
         rag_config,
         stream,
     )
