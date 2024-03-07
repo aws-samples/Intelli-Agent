@@ -159,18 +159,7 @@ def market_chain_entry(
     assert rag_config is not None
 
     logger.info(f'market rag configs:\n {json.dumps(rag_config,indent=2,ensure_ascii=False,cls=JSONEncoder)}')
-
-
-    generator_llm_config = rag_config['generator_llm_config']
     intent_type = rag_config['intent_config']['intent_type']
-    aos_index_dict = json.loads(os.environ["aos_index_dict"])
-        
-    aos_index_mkt_qd_name = aos_index_dict["aos_index_mkt_qd"]
-    aos_index_mkt_qq_name = aos_index_dict["aos_index_mkt_qq"]
-    aos_index_dgr_qd_name = aos_index_dict["aos_index_dgr_qd"]
-    aos_index_dgr_faq_qd_name = aos_index_dict["aos_index_dgr_faq_qd"]
-    aos_index_dgr_qq_name = aos_index_dict["aos_index_dgr_qq"]
-    aos_index_acts_qd_name = "acts-qd-index-20240305"
 
     workspace_ids = rag_config["retriever_config"]["workspace_ids"]
     qq_workspace_list = []
