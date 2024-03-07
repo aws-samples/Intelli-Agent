@@ -32,7 +32,7 @@ body = {
     # "messages": [{"role": "user","content": question_library[-1]}],
     "messages": [{"role": "user","content": '什么是Bedrock？', "custom_message_id": f"test_dashboard_{time.time()}"}],
     "temperature": 0.7,
-    "type" : "market_chain", 
+    "type" : "market_chain_knowledge", 
     "retriever_config":{
         "using_whole_doc": False,
         "chunk_num": 2,
@@ -72,7 +72,7 @@ body.update({"retriever_top_k": 1,
             "chunk_num": 2,
             "using_whole_doc": False,
             "reranker_top_k": 10,
-            "enable_reranker": True})
+            "reranker_type": "no_reranker"})
 
 
 # body = {

@@ -12,11 +12,41 @@ from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple
 import boto3
 import chardet
 import nltk
-from awsglue.utils import getResolvedOptions
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
+try:
+    from awsglue.utils import getResolvedOptions
+    args = getResolvedOptions(
+        sys.argv,
+        [
+            "JOB_NAME",
+            "S3_BUCKET",
+            "S3_PREFIX",
+            "AOS_ENDPOINT",
+            "EMBEDDING_MODEL_ENDPOINT",
+            "ETL_MODEL_ENDPOINT",
+            "REGION",
+            "RES_BUCKET",
+            "OFFLINE",
+            "QA_ENHANCEMENT",
+            "BATCH_INDICE",
+            "ProcessedObjectsTable",
+            "WORKSPACE_ID",
+            "WORKSPACE_TABLE",
+        ],
+    )
+except Exception as e:
+    logger.warning("Running locally")
+    sys.path.append("dep")
+    args = json.load(open(sys.argv[1]))
+
 from boto3.dynamodb.conditions import Attr, Key
 from langchain.docstore.document import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores import OpenSearchVectorSearch
+
 from llm_bot_dep import sm_utils
 from llm_bot_dep.constant import SplittingType
 from llm_bot_dep.ddb_utils import WorkspaceManager
@@ -28,8 +58,6 @@ from opensearchpy import RequestsHttpConnection
 from requests_aws4auth import AWS4Auth
 from tenacity import retry, stop_after_attempt, wait_exponential
 
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
 
 # Adaption to allow nougat to run in AWS Glue with writable /tmp
 os.environ["TRANSFORMERS_CACHE"] = "/tmp/transformers_cache"
@@ -37,25 +65,7 @@ os.environ["NOUGAT_CHECKPOINT"] = "/tmp/nougat_checkpoint"
 os.environ["NLTK_DATA"] = "/tmp/nltk_data"
 
 # Parse arguments
-args = getResolvedOptions(
-    sys.argv,
-    [
-        "JOB_NAME",
-        "S3_BUCKET",
-        "S3_PREFIX",
-        "AOS_ENDPOINT",
-        "EMBEDDING_MODEL_ENDPOINT",
-        "ETL_MODEL_ENDPOINT",
-        "REGION",
-        "RES_BUCKET",
-        "OFFLINE",
-        "QA_ENHANCEMENT",
-        "BATCH_INDICE",
-        "ProcessedObjectsTable",
-        "WORKSPACE_ID",
-        "WORKSPACE_TABLE",
-    ],
-)
+
 
 # Online process triggered by S3 Object create event does not have batch indice
 # Set default value for BATCH_INDICE if it doesn't exist
