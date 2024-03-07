@@ -12,6 +12,11 @@ def get_embedding_info(embedding_endpoint_name):
         embeddings_model_provider = "BAAI"
         embeddings_model_name = "bge-large-en-v1-5"
         embeddings_model_dimensions = 1024
+    
+    elif "bge-m3" in embedding_endpoint_name:
+        embeddings_model_provider = "BAAI"
+        embeddings_model_name = "bge-m3"
+        embeddings_model_dimensions = 1024
 
     else:
         embeddings_model_provider = "Not Found"

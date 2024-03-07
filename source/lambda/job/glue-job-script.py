@@ -228,7 +228,8 @@ def aos_injection(
 
     Note:
     """
-    embeddings = sm_utils.create_embeddings_with_single_model(
+    print(f"embeddingModelEndpoint: {embeddingModelEndpoint}")
+    embeddings = sm_utils.create_embeddings_with_m3_model(
         embeddingModelEndpoint, region, file_type
     )
 
@@ -312,13 +313,13 @@ def aos_injection(
                     index_name,
                 )
                 # TODO: add endpoint name as a metadata of document
-                try:
-                    # TODO, consider the max retry and initial backoff inside helper.bulk operation instead of using original LangChain
-                    docsearch.add_documents(documents=[document])
-                except Exception as e:
-                    logger.info(
-                        f"Catch exception when adding document to OpenSearch: {e}"
-                    )
+                # try:
+                # TODO, consider the max retry and initial backoff inside helper.bulk operation instead of using original LangChain
+                docsearch.add_documents(documents=[document])
+                # except Exception as e:
+                #     logger.info(
+                #         f"Catch exception when adding document to OpenSearch: {e}"
+                #     )
                 logger.info("Retry statistics: %s", _aos_injection.retry.statistics)
 
             # logger.info("Adding documents %s to OpenSearch with index %s", document, index_name)
