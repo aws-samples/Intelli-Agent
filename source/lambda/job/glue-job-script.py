@@ -41,6 +41,7 @@ except Exception as e:
     logger.warning("Running locally")
     sys.path.append("dep")
     args = json.load(open(sys.argv[1]))
+    args["BATCH_INDICE"] = sys.argv[2]
 
 from boto3.dynamodb.conditions import Attr, Key
 from langchain.docstore.document import Document
@@ -139,6 +140,7 @@ def iterate_s3_files(bucket: str, prefix: str) -> Generator:
     currentIndice = 0
     for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
         for obj in page.get("Contents", []):
+            currentIndice += 1
             key = obj["Key"]
             # skip the prefix with slash, which is the folder name
             if key.endswith("/"):
@@ -148,15 +150,18 @@ def iterate_s3_files(bucket: str, prefix: str) -> Generator:
                     currentIndice, bucket, key
                 )
             )
-            if currentIndice != int(batchIndice):
+            if (currentIndice-1) // 100 != int(batchIndice):
                 logger.info(
                     "currentIndice: {}, batchIndice: {}, skip file: {}".format(
                         currentIndice, batchIndice, key
                     )
                 )
-                currentIndice += 1
                 continue
-
+            logger.info(
+                    "Processing {} doc in {} batch, key: {}".format(
+                        currentIndice, batchIndice, key
+                    )
+            )
             file_type = key.split(".")[-1].lower()  # Extract file extension
             response = s3.get_object(Bucket=bucket, Key=key)
             file_content = response["Body"].read()
@@ -171,36 +176,26 @@ def iterate_s3_files(bucket: str, prefix: str) -> Generator:
 
             if file_type == "txt":
                 yield "txt", decode_file_content(file_content), kwargs
-                break
             elif file_type == "csv":
                 # Update row count here, the default row count is 1
                 kwargs["csv_row_count"] = 1
                 yield "csv", decode_file_content(file_content), kwargs
-                break
             elif file_type == "html":
                 yield "html", decode_file_content(file_content), kwargs
-                break
             elif file_type in ["pdf"]:
                 yield "pdf", file_content, kwargs
-                break
             elif file_type in ["jpg", "png"]:
                 yield "image", file_content, kwargs
-                break
             elif file_type in ["docx", "doc"]:
                 yield "doc", file_content, kwargs
-                break
             elif file_type == "md":
                 yield "md", decode_file_content(file_content), kwargs
-                break
             elif file_type == "json":
                 yield "json", decode_file_content(file_content), kwargs
-                break
             elif file_type == "jsonl":
                 yield "jsonl", file_content, kwargs
-                break
             else:
                 logger.info(f"Unknown file type: {file_type}")
-
 
 def batch_generator(generator, batch_size: int):
     iterator = iter(generator)
