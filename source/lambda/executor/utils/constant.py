@@ -25,6 +25,14 @@ class IntentType(Enum):
     def has_value(cls, value):
         return value in cls._value2member_map_ 
 
+class RerankerType(Enum):
+    BGE_RERANKER = "bge_reranker"
+    BGE_M3_RERANKER = "bge_m3_colbert"
+    BYPASS = "no_reranker"
+    @classmethod
+    def has_value(cls, value):
+        return value in cls._value2member_map_ 
+
 
 # LLM chain typs
 QUERY_TRANSLATE_TYPE = "query_translate"  # for query translate purpose
