@@ -158,6 +158,7 @@ def parse_mkt_entry_config(event_body):
             "reranker_top_k": 10,
             "enable_reranker": True,
             "q_q_match_threshold": 0.9,
+            "workspace_ids": ["aos_index_mkt_faq_qq", "aos_index_acts_qd"],
         },
         "query_process_config": {
             "query_rewrite_config": {
