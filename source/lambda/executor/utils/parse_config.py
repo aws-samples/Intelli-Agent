@@ -3,7 +3,7 @@ import copy
 import logging
 import os
 
-from .constant import AWS_TRANSLATE_SERVICE_MODEL_ID, IntentType
+from .constant import AWS_TRANSLATE_SERVICE_MODEL_ID, IntentType, RerankerType
 
 
 # update nest dict
@@ -25,7 +25,7 @@ rag_default_config = {
         "chunk_num": 2,
         "using_whole_doc": False,
         "reranker_top_k": 10,
-        "enable_reranker": True,
+        "reranker_type": RerankerType.BGE_RERANKER,
         "q_q_match_threshold": 0.8,
         "workspace_ids": [],
     },
@@ -156,7 +156,7 @@ def parse_mkt_entry_config(event_body):
             "chunk_num": 2,
             "using_whole_doc": False,
             "reranker_top_k": 10,
-            "enable_reranker": True,
+            "reranker_type": RerankerType.BGE_RERANKER,
             "q_q_match_threshold": 0.9,
             "workspace_ids": ["aos_index_mkt_faq_qq", "aos_index_acts_qd"],
         },
@@ -238,14 +238,14 @@ def parse_mkt_entry_knowledge_config(event_body):
                 "context_num": 2,
                 "using_whole_doc": False,
                 "reranker_top_k": 10,
-                "enable_reranker": True,
+                "reranker_type": RerankerType.BGE_RERANKER,
                 "qd_match_threshold": -1
             },
             # "retriever_top_k": 5,
             # "chunk_num": 2,
             # "using_whole_doc": False,
             # "reranker_top_k": 10,
-            # "enable_reranker": True,
+            # "reranker_type": True,
             # "q_q_match_threshold": 0.9,
             # "qd_match_threshold": -1
         },

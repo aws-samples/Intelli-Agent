@@ -98,11 +98,11 @@ def get_qd_llm_chain(
     chunk_num = rag_config['retriever_config']['chunk_num']
     retriever_top_k = rag_config['retriever_config']['retriever_top_k']
     reranker_top_k = rag_config['retriever_config']['reranker_top_k']
-    enable_reranker = rag_config['retriever_config']['enable_reranker']
+    reranker_type = rag_config['retriever_config']['reranker_type']
 
     qd_chain = get_qd_chain(workspace_list, using_whole_doc=using_whole_doc,
                             chunk_num=chunk_num, retriever_top_k=retriever_top_k,
-                            reranker_top_k=reranker_top_k, enable_reranker=enable_reranker)
+                            reranker_top_k=reranker_top_k, reranker_type=reranker_type)
     
     generator_llm_config = rag_config['generator_llm_config']
     # TODO opt with efficiency
