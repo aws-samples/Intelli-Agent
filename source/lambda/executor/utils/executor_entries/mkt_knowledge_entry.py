@@ -157,7 +157,7 @@ def market_chain_knowledge_entry(
                             """)
     preprocess_chain = chain_logger(
         preprocess_chain,
-        'query process module',
+        'preprocess query chain',
         message_id=message_id,
         log_output_template=log_output_template
     )
@@ -239,7 +239,8 @@ def market_chain_knowledge_entry(
         RunnablePassthrough.assign(
         docs=compression_retriever | RunnableLambda(retriever_results_format)
         ),
-        "retrieve module"
+        "retrieve module",
+        message_id=message_id
     )
     
     #####################
@@ -314,8 +315,15 @@ def market_chain_knowledge_entry(
     # step 6.3 full chain #
     #######################
 
-    full_chain = conversation_summary_chain | preprocess_chain | \
-        qq_and_intention_type_recognition_chain | qq_and_intent_fast_reply_branch
+    process_query_chain = conversation_summary_chain | preprocess_chain
+
+    process_query_chain = chain_logger(
+        process_query_chain,
+        "query process module",
+        message_id=message_id
+    )
+
+    full_chain = process_query_chain | qq_and_intention_type_recognition_chain | qq_and_intent_fast_reply_branch
 
     response = asyncio.run(full_chain.ainvoke(
         {
