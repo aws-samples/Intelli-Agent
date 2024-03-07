@@ -1,5 +1,6 @@
 import logging
 from langchain.docstore.document import Document
+import os
 
 logger = logging.getLogger('context_utils')
 logger.setLevel(logging.INFO)
@@ -36,7 +37,11 @@ def contexts_trunc(docs: list[dict], context_num=2):
 
 
 
-def retriever_results_format(docs:list[Document],print_source=True):
+def retriever_results_format(
+          docs:list[Document],
+          print_source=True,
+          print_content=os.environ.get('print_content',False)
+          ):
     doc_dicts = []
 
     for doc in docs:
@@ -50,7 +55,10 @@ def retriever_results_format(docs:list[Document],print_source=True):
     if print_source:
          source_strs = []
          for doc_dict in doc_dicts:
-              source_strs.append(f'source: {doc_dict["source"]}, score: {doc_dict["score"]}, content: {doc_dict["page_content"]}')
+              content = ""
+              if print_content:
+                   content = f', content: {doc_dict["page_content"]}'
+              source_strs.append(f'source: {doc_dict["source"]}, score: {doc_dict["score"]}{content}')
          logger.info("retrieved sources:\n"+ '\n'.join(source_strs))
     return doc_dicts
 

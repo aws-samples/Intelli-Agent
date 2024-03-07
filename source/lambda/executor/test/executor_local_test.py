@@ -512,6 +512,50 @@ def test_internlm_model_mkt():
     print(r[0])
 
 
+
+def test_internlm_model_mkt_knowledge_entry_qq_match():
+    session_id=f'test_{time.time()}'
+    # endpoint_name = 'internlm2-chat-7b-4bits-2024-02-28-07-08-57-839'
+    # model_id = "internlm2-chat-7b"
+    endpoint_name = 'internlm2-chat-20b-4bits-2024-03-04-06-32-53-653'
+    model_id = "internlm2-chat-20b"
+    entry_type = "market_chain_knowledge"
+
+    os.environ['llm_model_id'] = model_id
+    os.environ['llm_model_endpoint_name'] = endpoint_name
+    
+
+    questions = [
+        "能否通过JDBC连接到RDS for PostgreSQL？ 有相关的指导吗？",
+        "如何解决切换RI后网速变慢？",
+        "如何升级EC2配置不改变IP",
+        "请问怎么关闭账号？",
+        "个人能否注册账号？",
+        "怎么开发票？",
+        "使用CDN服务要备案吗？"
+    ]
+    for question in questions:
+        generate_answer(
+           question, 
+            model="knowledge_qa", 
+            type=entry_type, 
+            stream=True,
+            rag_parameters={
+            "get_contexts":True,
+            "retriever_config":{
+                "qq_config": {
+                    "q_q_match_threshold": 0.8,
+                },
+                "qd_config":{
+                    "qd_match_threshold": 2,
+                # "using_whole_doc": True
+                },
+                "workspace_ids": ["aos_index_mkt_faq_qq","aos_index_acts_qd"]
+            }
+            }
+        )
+
+
 def test_internlm_model_mkt_knowledge_entry():
     session_id=f'test_{time.time()}'
     # endpoint_name = 'internlm2-chat-7b-4bits-2024-02-28-07-08-57-839'
@@ -522,22 +566,10 @@ def test_internlm_model_mkt_knowledge_entry():
 
     os.environ['llm_model_id'] = model_id
     os.environ['llm_model_endpoint_name'] = endpoint_name
-
-    # rag_parameters = {
-    #     "get_contexts":True,
-    #     # "retriever_config": {
-    #     #     # "retriever_top_k": 5,
-    #     #     # "chunk_num": 2,
-    #     #     # "using_whole_doc": false,
-    #     #     # "reranker_top_k": 10,
-    #     #     # "enable_reranker": true,
-    #     #     # "q_q_match_threshold": 0.9,
-    #     #     "qd_match_threshold": 4
-    #     # },
-    # }
     
+
     generate_answer(
-        "日志通是什么？", 
+        "2024北京国际车展上，亚马逊云科技会参加吗？", 
         model="knowledge_qa", 
         type=entry_type, 
         stream=True,
@@ -545,19 +577,42 @@ def test_internlm_model_mkt_knowledge_entry():
         "get_contexts":True,
         "retriever_config":{
             "qq_config": {
-                "q_q_match_threshold": 0.9,
+                "q_q_match_threshold": 0.8,
             },
             "qd_config":{
                 "qd_match_threshold": 2,
-            "using_whole_doc": True
+            # "using_whole_doc": True
             },
             "workspace_ids": ["aos_index_mkt_faq_qq","aos_index_acts_qd"]
         }
         }
     )
 
+    # generate_answer(
+    #     "亚马逊云科技中国区域免费套餐有哪几种不同类型的优惠？", 
+    #     model="knowledge_qa", 
+    #     type=entry_type, 
+    #     stream=True,
+    #     rag_parameters={
+    #     "get_contexts":True,
+    #     "retriever_config":{
+    #         "qq_config": {
+    #             "q_q_match_threshold": 0.8,
+    #         },
+    #         "qd_config":{
+    #             "qd_match_threshold": 2,
+    #         # "using_whole_doc": True
+    #         },
+    #         "workspace_ids": ["aos_index_mkt_faq_qq","aos_index_acts_qd"]
+    #     }
+    #     }
+    # )
+
+    print(xfb)
+
+
     generate_answer(
-        "Amazon Lambda函数是什么？", 
+        "怎么开发票？", 
         model="knowledge_qa", 
         type=entry_type, 
         stream=True,
@@ -565,17 +620,60 @@ def test_internlm_model_mkt_knowledge_entry():
         "get_contexts":True,
         "retriever_config":{
             "qq_config": {
-                "q_q_match_threshold": 0.9,
+                "q_q_match_threshold": 0.8,
             },
             "qd_config":{
                 "qd_match_threshold": 2,
-                "using_whole_doc": True
+            # "using_whole_doc": True
             },
             "workspace_ids": ["aos_index_mkt_faq_qq","aos_index_acts_qd"]
-            
         }
         }
     )
+
+    pritn(xf)
+
+
+    # generate_answer(
+    #     "日志通是什么？", 
+    #     model="knowledge_qa", 
+    #     type=entry_type, 
+    #     stream=True,
+    #     rag_parameters={
+    #     "get_contexts":True,
+    #     "retriever_config":{
+    #         "qq_config": {
+    #             "q_q_match_threshold": 0.9,
+    #         },
+    #         "qd_config":{
+    #             "qd_match_threshold": 2,
+    #         # "using_whole_doc": True
+    #         },
+    #         "workspace_ids": ["aos_index_mkt_faq_qq","aos_index_acts_qd"]
+    #     }
+    #     }
+    # )
+
+    # generate_answer(
+    #     "Amazon Lambda函数是什么？", 
+    #     model="knowledge_qa", 
+    #     type=entry_type, 
+    #     stream=True,
+    #     rag_parameters={
+    #     "get_contexts":True,
+    #     "retriever_config":{
+    #         "qq_config": {
+    #             "q_q_match_threshold": 0.9,
+    #         },
+    #         "qd_config":{
+    #             "qd_match_threshold": 2,
+    #             "using_whole_doc": True
+    #         },
+    #         "workspace_ids": ["aos_index_mkt_faq_qq","aos_index_acts_qd"]
+            
+    #     }
+    #     }
+    # )
     
     generate_answer(
         "今天是几月几号？", 
@@ -638,6 +736,8 @@ def test_internlm_model_mkt_knowledge_entry():
             }
         }
     )
+
+    print(f)
 
     generate_answer(
         "AWS支持上海region吗？", 
@@ -850,7 +950,8 @@ if __name__ == "__main__":
     # test_baichuan_model()
     # market_summary_test2()
     # test_internlm_model()
-    test_internlm_model_mkt_knowledge_entry()
+    # test_internlm_model_mkt_knowledge_entry()
+    test_internlm_model_mkt_knowledge_entry_qq_match()
     # test_baichuan_model()
     
     # market_deploy_test()
