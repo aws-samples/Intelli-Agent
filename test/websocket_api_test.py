@@ -32,7 +32,7 @@ body = {
     # "messages": [{"role": "user","content": question_library[-1]}],
     "messages": [{"role": "user","content": '什么是Bedrock？', "custom_message_id": f"test_dashboard_{time.time()}"}],
     "temperature": 0.7,
-    "type" : "market_knowledge_chain", 
+    "type" : "market_chain_knowledge", 
     "retriever_config":{
         "using_whole_doc": False,
         "chunk_num": 2,
