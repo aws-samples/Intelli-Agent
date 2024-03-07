@@ -803,6 +803,82 @@ def test_internlm_model_mkt_knowledge_entry():
     )
     print(r[0])
 
+
+
+def test_internlm_model_mkt_knowledge_entry_langgraph():
+    session_id=f'test_{time.time()}'
+    # endpoint_name = 'internlm2-chat-7b-4bits-2024-02-28-07-08-57-839'
+    # model_id = "internlm2-chat-7b"
+    endpoint_name = 'internlm2-chat-20b-4bits-2024-03-04-06-32-53-653'
+    model_id = "internlm2-chat-20b"
+    entry_type = "market_chain_knowledge_langgraph"
+
+    os.environ['llm_model_id'] = model_id
+    os.environ['llm_model_endpoint_name'] = endpoint_name
+    generate_answer(
+        "今天是几月几号？", 
+        model="knowledge_qa", 
+        type=entry_type, 
+        stream=True,
+        rag_parameters={
+            "session_id":session_id,
+            "get_contexts":True,
+            "retriever_config":{
+                "qq_config": {
+                    "q_q_match_threshold": 0.9,
+                },
+                "qd_config":{
+                    "qd_match_threshold": 2,
+                    "using_whole_doc": True
+                },
+                "workspace_ids": ["aos_index_mkt_faq_qq","aos_index_acts_qd"]
+        }
+        }
+    )
+
+    generate_answer(
+        "日志通是什么？", 
+        model="knowledge_qa", 
+        type=entry_type, 
+        stream=True,
+        rag_parameters={
+            "session_id":session_id,
+            "get_contexts":True,
+            "retriever_config":{
+                "qq_config": {
+                    "q_q_match_threshold": 0.9,
+                },
+                "qd_config":{
+                    "qd_match_threshold": 2,
+                    "using_whole_doc": True
+                },
+                "workspace_ids": ["aos_index_mkt_faq_qq","aos_index_acts_qd"]
+        }
+        }
+    )
+
+    generate_answer(
+        "AWS支持上海region吗？", 
+        model="knowledge_qa", 
+        type=entry_type, 
+        stream=True,
+        rag_parameters={
+            "session_id":session_id,
+            "get_contexts":True,
+            "retriever_config":{
+                "qq_config": {
+                    "q_q_match_threshold": 0.9,
+                },
+                "qd_config":{
+                    "qd_match_threshold": 2,
+                    "using_whole_doc": True
+                },
+                "workspace_ids": ["aos_index_mkt_faq_qq","aos_index_acts_qd"]
+        }
+        }
+    )
+
+
 def market_summary_test():
     session_id = f'test_{int(time.time())}'
     generate_answer(
@@ -951,7 +1027,8 @@ if __name__ == "__main__":
     # market_summary_test2()
     # test_internlm_model()
     # test_internlm_model_mkt_knowledge_entry()
-    test_internlm_model_mkt_knowledge_entry_qq_match()
+    # test_internlm_model_mkt_knowledge_entry_qq_match()
+    test_internlm_model_mkt_knowledge_entry_langgraph()
     # test_baichuan_model()
     
     # market_deploy_test()

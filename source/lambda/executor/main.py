@@ -18,7 +18,8 @@ from utils.executor_entries import (
     market_chain_entry,
     market_chain_entry_core,
     market_conversation_summary_entry,
-    market_chain_knowledge_entry
+    market_chain_knowledge_entry,
+    market_chain_knowledge_entry_langgraph
 )
 
 # from langchain.retrievers.multi_query import MultiQueryRetriever
@@ -236,8 +237,16 @@ def lambda_handler(event, context):
                 question,
                 stream=stream,
                 event_body=event_body,
-                # message_id=custom_message_id
+                message_id=custom_message_id
             )
+        elif entry_type == "market_chain_knowledge_langgraph":
+            answer, sources, contexts, debug_info = market_chain_knowledge_entry_langgraph(
+                question,
+                stream=stream,
+                event_body=event_body,
+                message_id=custom_message_id
+            )
+
         elif entry_type == Type.MARKET_CONVERSATION_SUMMARY.value:
             answer, sources, contexts, debug_info = market_conversation_summary_entry(
                 messages=messages,
