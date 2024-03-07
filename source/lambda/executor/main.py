@@ -225,12 +225,18 @@ def lambda_handler(event, context):
                 message_id=custom_message_id
             )
         elif entry_type == Type.MARKET_CHAIN.value:
-            answer, sources, contexts, debug_info = market_chain_entry(
+            answer, sources, contexts, debug_info = market_chain_knowledge_entry(
                 question,
                 stream=stream,
                 event_body=event_body,
                 message_id=custom_message_id
             )
+            # answer, sources, contexts, debug_info = market_chain_entry(
+            #     question,
+            #     stream=stream,
+            #     event_body=event_body,
+            #     message_id=custom_message_id
+            # )
 
         elif entry_type == Type.MARKET_CHAIN_KNOWLEDGE.value:
             answer, sources, contexts, debug_info = market_chain_knowledge_entry(

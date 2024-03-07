@@ -78,15 +78,6 @@ def market_chain_knowledge_entry(
 
     logger.info(f'market rag knowledge configs:\n {json.dumps(rag_config,indent=2,ensure_ascii=False,cls=JSONEncoder)}')
 
-    # generator_llm_config = rag_config['generator_llm_config']
-    # # intent_type = rag_config['intent_config']['intent_type']
-    # aos_index_dict = json.loads(os.environ["aos_index_dict"])
-        
-    # aos_index_mkt_qd = aos_index_dict["aos_index_mkt_qd"]
-    # aos_index_mkt_qq_name = aos_index_dict["aos_index_mkt_qq"]
-    # aos_index_dgr_qd = aos_index_dict["aos_index_dgr_qd"]
-    # aos_index_dgr_faq_qd = aos_index_dict["aos_index_dgr_faq_qd"]
-    # aos_index_dgr_qq_name = aos_index_dict["aos_index_dgr_qq"]
     workspace_ids = rag_config["retriever_config"]["workspace_ids"]
     qq_workspace_list = []
     qd_workspace_list = []
@@ -99,8 +90,6 @@ def market_chain_knowledge_entry(
             qq_workspace_list.append(workspace)
         else:
             qd_workspace_list.append(workspace)
-
-    # aos_index_acts_qd = "acts-qd-index-20240305"
 
     debug_info = {}
     contexts = []
@@ -168,7 +157,7 @@ def market_chain_knowledge_entry(
                             """)
     preprocess_chain = chain_logger(
         preprocess_chain,
-        'preprocess chain',
+        'query process module',
         message_id=message_id,
         log_output_template=log_output_template
     )
@@ -246,9 +235,12 @@ def market_chain_knowledge_entry(
     compression_retriever = ContextualCompressionRetriever(
         base_compressor=compressor, base_retriever=lotr
     )
-    qd_chain = RunnablePassthrough.assign(
+    qd_chain = chain_logger(
+        RunnablePassthrough.assign(
         docs=compression_retriever | RunnableLambda(retriever_results_format)
-        )
+        ),
+        "retrieve module"
+    )
     
     #####################
     # step 5. llm chain #
@@ -298,7 +290,7 @@ def market_chain_knowledge_entry(
             qq_result=qq_chain,
             intent_type=intent_recognition_chain,
         ) | RunnablePassthrough.assign(qq_result_num=lambda x:len(x['qq_result'])),
-        "qq_and_intention_type_recognition_chain",
+        "intention module",
         log_output_template=log_output_template,
         message_id=message_id
     )

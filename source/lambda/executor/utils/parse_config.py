@@ -231,7 +231,7 @@ def parse_mkt_entry_knowledge_config(event_body):
         # query process config
         "retriever_config":{
             "qq_config": {
-                "qq_match_threshold": 0.9,
+                "qq_match_threshold": 0.8,
                 "retriever_top_k": 5
             },
             "qd_config":{
