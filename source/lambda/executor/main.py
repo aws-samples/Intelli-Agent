@@ -236,7 +236,7 @@ def lambda_handler(event, context):
                 question,
                 stream=stream,
                 event_body=event_body,
-                message_id=custom_message_id
+                # message_id=custom_message_id
             )
         elif entry_type == Type.MARKET_CONVERSATION_SUMMARY.value:
             answer, sources, contexts, debug_info = market_conversation_summary_entry(
