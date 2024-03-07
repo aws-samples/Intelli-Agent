@@ -243,6 +243,7 @@ def parse_mkt_entry_knowledge_config(event_body):
                 "qd_match_threshold": 2,
                 "enable_reranker":True
             },
+            "workspace_ids": ["aos_index_mkt_faq_qq", "aos_index_acts_qd"],
             # "retriever_top_k": 5,
             # "chunk_num": 2,
             # "using_whole_doc": False,
