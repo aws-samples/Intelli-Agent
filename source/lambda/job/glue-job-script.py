@@ -6,6 +6,7 @@ import os
 import sys
 import time
 import traceback
+import functools
 from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple
 
 import boto3
@@ -307,6 +308,28 @@ def aos_injection(
                     verify_certs=True,
                     connection_class=RequestsHttpConnection,
                 )
+                # TODO: validate and update for m3 ep
+                # def add_texts_update_metadata(self, texts, metadatas=None, ids=None, bulk_size=500):
+                #     embeddings = self.embedding_function.embed_documents(list(texts))
+                #     if isinstance(embeddings[0], dict):
+                #         embeddings_list = []
+                #         metadata_list = []
+                #         for m3_dict,metadata in zip(embeddings, metadatas):
+                #             lexical_weights = m3_dict["lexical_weights"]
+                #             colbert_vecs = m3_dict["colbert_vecs"]
+                #             embeddings_list.append(m3_dict["dense_vecs"])
+                #             metadata_list.append(metadata.append({'additional_vecs':{'lexical_weights':lexical_weights, 'colbert_vecs':colbert_vecs}}))
+                #         embeddings = embeddings_list
+                #         metadatas = metadata_list
+                #     return self.__add(
+                #         texts,
+                #         embeddings,
+                #         metadatas=metadatas,
+                #         ids=ids,
+                #         bulk_size=bulk_size,
+                #         **kwargs,
+                #     )
+                # docsearch.add_texts = functools.partial(add_texts_update_metadata, docsearch)
                 logger.info(
                     "Adding documents %s to OpenSearch with index %s",
                     document,
