@@ -258,7 +258,7 @@ def market_chain_knowledge_entry(
                 chat_history=lambda x:rag_config['chat_history']
           )
 
-    llm_chain = chain_logger(llm_chain,'llm_chain', message_id=message_id)
+    # llm_chain = chain_logger(llm_chain,'llm_chain', message_id=message_id)
 
     ###########################
     # step 6 synthesize chain #
@@ -277,6 +277,8 @@ def market_chain_knowledge_entry(
         ),
         llm_chain
     )
+
+    qd_fast_reply_branch = chain_logger(qd_fast_reply_branch,'llm module', message_id=message_id)
     rag_chain = qd_chain | qd_fast_reply_branch
 
     ######################################
@@ -320,6 +322,12 @@ def market_chain_knowledge_entry(
     process_query_chain = chain_logger(
         process_query_chain,
         "query process module",
+        message_id=message_id
+    )
+
+    qq_and_intent_fast_reply_branch = chain_logger(
+        qq_and_intent_fast_reply_branch,
+        "llm module",
         message_id=message_id
     )
 
