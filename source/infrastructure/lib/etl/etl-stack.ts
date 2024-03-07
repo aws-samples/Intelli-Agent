@@ -216,7 +216,7 @@ export class EtlStack extends NestedStack {
                 '--ProcessedObjectsTable': table.tableName,
                 '--WORKSPACE_TABLE': workspaceTable.tableName,
                 '--WORKSPACE_ID.$': sfn.JsonPath.stringAt('$.workspaceId'),
-                '--additional-python-modules': 'langchain==0.0.312,beautifulsoup4==4.12.2,requests-aws4auth==1.2.3,boto3==1.28.84,openai==0.28.1,pyOpenSSL==23.3.0,tenacity==8.2.3,markdownify==0.11.6,mammoth==1.6.0,chardet==5.2.0,python-docx==1.1.0,nltk==3.8.1,pdfminer.six==20221105',
+                '--additional-python-modules': 'langchain==0.1.0,beautifulsoup4==4.12.2,requests-aws4auth==1.2.3,boto3==1.28.84,openai==0.28.1,pyOpenSSL==23.3.0,tenacity==8.2.3,markdownify==0.11.6,mammoth==1.6.0,chardet==5.2.0,python-docx==1.1.0,nltk==3.8.1,pdfminer.six==20221105',
                 '--python-modules-installer-option': BuildConfig.JOB_PIP_OPTION,
                 // add multiple extra python files
                 '--extra-py-files': extraPythonFilesList,
@@ -288,7 +288,7 @@ export class EtlStack extends NestedStack {
                 '--S3_BUCKET.$': '$.s3Bucket',
                 '--S3_PREFIX.$': '$.s3Prefix',
                 '--AOS_ENDPOINT': props._domainEndpoint,
-                '--EMBEDDING_MODEL_ENDPOINT': props._embeddingEndpoint[0],
+                '--EMBEDDING_MODEL_ENDPOINT': 'bge-m3-2024-03-05-07-28-21-582-endpoint',
                 '--ETL_MODEL_ENDPOINT': this._etlEndpoint,
                 '--DOC_INDEX_TABLE': props._OpenSearchIndex,
                 '--REGION': props._region,
