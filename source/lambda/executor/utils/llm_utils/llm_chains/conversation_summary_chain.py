@@ -34,7 +34,8 @@ Question: {question}
 """
     default_model_kwargs = {
                 "max_new_tokens": 300,
-                "temperature": 0.1
+                "temperature": 0.1,
+                "stop_tokens":["\n\n"]
             }
     @classmethod
     def create_prompt(cls,x):
@@ -47,7 +48,7 @@ Question: {question}
             else:
                 conversational_contexts.append(f"A: {his.content}")
         
-        conversational_context = "\n".join(conversational_contexts)
+        conversational_context = '[' + "\n".join(conversational_contexts) + ']'
         prompt = cls.build_prompt(
             cls.meta_instruction_prompt_template.format(
             conversational_context=conversational_context,

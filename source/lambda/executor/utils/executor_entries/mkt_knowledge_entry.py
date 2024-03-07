@@ -199,35 +199,14 @@ def market_chain_knowledge_entry(
     )
     intent_recognition_chain = intent_index_check_exist_chain | intent_branch
     
-
     ####################
     # step 3.2 qq match#
     ####################
-    
-    # aos_index_dgr_qq = {
-    #     "name": aos_index_dgr_qq_name,
-    #     "lang": "zh",
-    #     "embedding_endpoint": zh_embedding_endpoint,
-    #     "source_field": "source",
-    #     "vector_field": "vector_field" 
-    # }
-    # aos_index_mkt_qq = {
-    #     "name": aos_index_mkt_qq_name,
-    #     "lang": "zh",
-    #     "embedding_endpoint": zh_embedding_endpoint,
-    #     "source_field": "file_path",
-    #     "vector_field": "vector_field" 
-    # }
-    q_q_match_threshold = rag_config['retriever_config']['qq_config']['q_q_match_threshold']
+    qq_match_threshold = rag_config['retriever_config']['qq_config']['qq_match_threshold']
     retriever_list = [
         QueryQuestionRetriever(
             workspace,
-            # index=index["name"],
-            # vector_field=index["vector_field"],
-            # source_field=index["source_field"],
-            size=5,
-            # lang=index["lang"],
-            # embedding_model_endpoint=index["embedding_endpoint"]
+            size=5
         )
         for workspace in qq_workspace_list
     ]
@@ -235,13 +214,12 @@ def market_chain_knowledge_entry(
                 RunnableLambda(retriever_results_format) |\
                 RunnableLambda(partial(
                     retriever_results_filter,
-                    threshold=q_q_match_threshold
+                    threshold=qq_match_threshold
                 ))
 
     ############################
     # step 4. qd retriever chain#
     ############################
-    # qd_aos_index_list = [aos_index_dgr_qd, aos_index_dgr_faq_qd, aos_index_mkt_qd,aos_index_acts_qd]
     qd_config = rag_config['retriever_config']['qd_config']                     
     using_whole_doc = qd_config['using_whole_doc']
     context_num = qd_config['context_num']

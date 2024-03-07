@@ -130,8 +130,6 @@ class LogTimeListener:
                 logger.info(self.log_output_template.format(**run.outputs))
             else:
                 logger.info(self.log_output_template.format(run.outputs))
-
-        
         exe_time = (run.end_time - run.start_time).total_seconds()
         logger.info(f'{self.message_id} Exit: {self.chain_name}, elpase time(s): {exe_time}')
         logger.info(f'{self.message_id} running time of {self.chain_name}: {exe_time}s')
