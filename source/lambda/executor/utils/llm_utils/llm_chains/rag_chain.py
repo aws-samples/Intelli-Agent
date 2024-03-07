@@ -81,7 +81,7 @@ class Iternlm2Chat7BKnowledgeQaChain(Iternlm2Chat7BChatChain):
     mdoel_id = "internlm2-chat-7b"
     intent_type = IntentType.KNOWLEDGE_QA.value
     default_model_kwargs = {
-        "temperature":0.1,
+        "temperature":0.05,
         "max_new_tokens": 1000
     }
 

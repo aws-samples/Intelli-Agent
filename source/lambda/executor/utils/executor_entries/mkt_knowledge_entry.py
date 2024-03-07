@@ -52,7 +52,7 @@ def mkt_fast_reply(
             "context_docs": [],
             "context_sources": []
     }
-    logger.info(f'mkt_fast_reply: {fast_info}, answer: {answer}')
+    logger.info(f'mkt_fast_reply: {fast_info}')
     return output
     
 def market_chain_knowledge_entry(
@@ -333,7 +333,7 @@ def market_chain_knowledge_entry(
         (lambda x: len(x['qq_result']) > 0, 
          RunnableLambda(
             lambda x: mkt_fast_reply(
-                sorted(answer = x['qq_result'],key=lambda x:x['score'],reversed=True)[0]['answer']
+                sorted(x['qq_result'],key=lambda x:x['score'],reverse=True)[0]['answer']
                 ))
         ),
         (lambda x: x['intent_type'] not in allow_intents, RunnableLambda(lambda x: mkt_fast_reply())),

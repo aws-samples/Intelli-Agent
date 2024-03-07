@@ -34,7 +34,7 @@ from requests_aws4auth import AWS4Auth
 from langchain.embeddings.sagemaker_endpoint import EmbeddingsContentHandler
 from langchain.docstore.document import Document
 
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 opensearch_client_lock = threading.Lock()
@@ -44,7 +44,6 @@ intent_example_path = os.path.join(
     "intent_examples",
     "examples.json"
 )
-
 
 class LangchainOpenSearchClient:
     instance = None
