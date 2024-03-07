@@ -7,3 +7,4 @@ requests_aws4auth==1.2.2
 boto3==1.28.57
 botocore==1.31.57
 python-dateutil==2.8.2
+numpy==1.26.2

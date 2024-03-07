@@ -20,7 +20,7 @@ from ..retriever import (
     index_results_format,
 )
 from ..serialization_utils import JSONEncoder
-from ..reranker import BGEReranker, MergeReranker
+from ..reranker import BGEReranker, BGEM3Reranker, MergeReranker
 from ..retriever import (
     QueryDocumentRetriever,
     QueryQuestionRetriever,
@@ -31,7 +31,7 @@ from ..logger_utils import logger
 from ..langchain_utils import add_key_to_debug,chain_logger,RunnableDictAssign
 from ..context_utils import contexts_trunc
 from ..llm_utils import LLMChain
-from ..constant import IntentType
+from ..constant import IntentType, RerankerType
 from ..query_process_utils import get_query_process_chain
 from ..intent_utils import auto_intention_recoginition_chain
 from .. import parse_config
@@ -58,15 +58,17 @@ def return_strict_qq_result(x):
 
 
 def get_qd_chain(
-    workspace_list, retriever_top_k=10, reranker_top_k=5, using_whole_doc=True, chunk_num=0, enable_reranker=True
+    workspace_list, retriever_top_k=10, reranker_top_k=5, using_whole_doc=True, chunk_num=0, reranker_type=RerankerType.BYPASS
 ):
     retriever_list = [
         QueryDocumentRetriever(workspace, using_whole_doc, chunk_num, retriever_top_k)
         for workspace in workspace_list
     ]
     lotr = MergerRetriever(retrievers=retriever_list)
-    if enable_reranker:
+    if reranker_type == RerankerType.BGE_RERANKER:
         compressor = BGEReranker(top_n=reranker_top_k)
+    elif reranker_type == RerankerType.BGE_M3_RERANKER:
+        compressor = BGEM3Reranker(top_n=reranker_top_k)
     else:
         compressor = MergeReranker(top_n=reranker_top_k)
     compression_retriever = ContextualCompressionRetriever(
