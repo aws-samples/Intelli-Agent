@@ -33,7 +33,8 @@ def lambda_handler(event, context):
             file_count += 1
 
     # convert the fileCount into an array of numbers "fileIndices": [0, 1, 2, ..., 10], an array from 0 to fileCount-1
-    batch_indices = list(range(file_count))
+    indice_count = file_count // 100 + 1
+    batch_indices = list(range(indice_count))
 
     # This response should match the expected input schema of the downstream tasks in the Step Functions workflow
     return {
