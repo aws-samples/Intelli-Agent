@@ -239,7 +239,7 @@ def market_chain_knowledge_entry(
         RunnablePassthrough.assign(
         docs=compression_retriever | RunnableLambda(retriever_results_format)
         ),
-        "retrieve module",
+        "qd chain",
         message_id=message_id
     )
     
@@ -326,7 +326,7 @@ def market_chain_knowledge_entry(
 
     qq_and_intent_fast_reply_branch = chain_logger(
         qq_and_intent_fast_reply_branch,
-        "llm module",
+        "retrieve module",
         message_id=message_id
     )
 
