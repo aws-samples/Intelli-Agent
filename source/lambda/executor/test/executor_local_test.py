@@ -523,18 +523,18 @@ def test_internlm_model_mkt_knowledge_entry():
     os.environ['llm_model_id'] = model_id
     os.environ['llm_model_endpoint_name'] = endpoint_name
 
-    rag_parameters = {
-        "get_contexts":True,
-        # "retriever_config": {
-        #     # "retriever_top_k": 5,
-        #     # "chunk_num": 2,
-        #     # "using_whole_doc": false,
-        #     # "reranker_top_k": 10,
-        #     # "enable_reranker": true,
-        #     # "q_q_match_threshold": 0.9,
-        #     "qd_match_threshold": 4
-        # },
-    }
+    # rag_parameters = {
+    #     "get_contexts":True,
+    #     # "retriever_config": {
+    #     #     # "retriever_top_k": 5,
+    #     #     # "chunk_num": 2,
+    #     #     # "using_whole_doc": false,
+    #     #     # "reranker_top_k": 10,
+    #     #     # "enable_reranker": true,
+    #     #     # "q_q_match_threshold": 0.9,
+    #     #     "qd_match_threshold": 4
+    #     # },
+    # }
     
     generate_answer(
         "日志通是什么？", 
@@ -544,8 +544,14 @@ def test_internlm_model_mkt_knowledge_entry():
         rag_parameters={
         "get_contexts":True,
         "retriever_config":{
-            "qd_match_threshold": 2,
+            "qq_config": {
+                "q_q_match_threshold": 0.9,
+            },
+            "qd_config":{
+                "qd_match_threshold": 2,
             "using_whole_doc": True
+            },
+            "workspace_ids": ["aos_index_mkt_faq_qq","aos_index_acts_qd"]
         }
         }
     )
@@ -558,8 +564,15 @@ def test_internlm_model_mkt_knowledge_entry():
         rag_parameters={
         "get_contexts":True,
         "retriever_config":{
-            "qd_match_threshold": 2,
-            "using_whole_doc": True
+            "qq_config": {
+                "q_q_match_threshold": 0.9,
+            },
+            "qd_config":{
+                "qd_match_threshold": 2,
+                "using_whole_doc": True
+            },
+            "workspace_ids": ["aos_index_mkt_faq_qq","aos_index_acts_qd"]
+            
         }
         }
     )
@@ -569,7 +582,19 @@ def test_internlm_model_mkt_knowledge_entry():
         model="knowledge_qa", 
         type=entry_type, 
         stream=True,
-        rag_parameters=rag_parameters
+        rag_parameters={
+            "get_contexts":True,
+            "retriever_config":{
+                "qq_config": {
+                    "q_q_match_threshold": 0.9,
+                },
+                "qd_config":{
+                    "qd_match_threshold": 2,
+                    "using_whole_doc": True
+                },
+                "workspace_ids": ["aos_index_mkt_faq_qq","aos_index_acts_qd"]
+        }
+        }
     )
 
     generate_answer(
@@ -577,7 +602,20 @@ def test_internlm_model_mkt_knowledge_entry():
         model="knowledge_qa", 
         type=entry_type, 
         stream=True,
-        rag_parameters=rag_parameters
+        rag_parameters= {
+            "get_contexts":True,
+            "retriever_config":{
+                "qq_config": {
+                    "q_q_match_threshold": 0.9,
+                },
+                "qd_config":{
+                    "qd_match_threshold": 2,
+                    "using_whole_doc": True
+                },
+                "workspace_ids": ["aos_index_mkt_faq_qq","aos_index_acts_qd"]
+                
+            }
+        }
     )
     # qq_match_test()
     generate_answer(
@@ -585,9 +623,20 @@ def test_internlm_model_mkt_knowledge_entry():
         model="knowledge_qa", 
         type=entry_type, 
         stream=True,
-        rag_parameters= {
-        "get_contexts":True
-    }
+        rag_parameters = {
+            "get_contexts":True,
+            "retriever_config":{
+                "qq_config": {
+                    "q_q_match_threshold": 0.9,
+                },
+                "qd_config":{
+                    "qd_match_threshold": 2,
+                    "using_whole_doc": True
+                },
+                "workspace_ids": ["aos_index_mkt_faq_qq","aos_index_acts_qd"]
+                
+            }
+        }
     )
 
     generate_answer(
@@ -595,17 +644,21 @@ def test_internlm_model_mkt_knowledge_entry():
         model="knowledge_qa", 
         type=entry_type, 
         stream=True,
+        
         rag_parameters={
-            "get_contexts":True,
-            "retriever_config": {
-                # "retriever_top_k": 5,
-                # "chunk_num": 2,
-                # "using_whole_doc": false,
-                # "reranker_top_k": 10,
-                # "enable_reranker": true,
-                # "q_q_match_threshold": 0.9,
-                "qd_match_threshold": 4
-            }}
+        "get_contexts":True,
+        "retriever_config":{
+            "qq_config": {
+                "q_q_match_threshold": 0.9,
+            },
+            "qd_config":{
+                "qd_match_threshold": 2,
+                "using_whole_doc": True
+            },
+            "workspace_ids": ["aos_index_mkt_faq_qq","aos_index_acts_qd"]
+            
+        }
+        }
     )
     print(sfg)
     generate_answer(

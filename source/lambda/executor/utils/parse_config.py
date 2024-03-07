@@ -178,6 +178,7 @@ def parse_mkt_entry_config(event_body):
         },
         # intent_config
         "intent_config":{
+            "intent_type":IntentType.KNOWLEDGE_QA.value,
             "model_id": llm_model_id,
             "endpoint_name": llm_model_endpoint_name,
         },
@@ -202,7 +203,6 @@ def parse_mkt_entry_config(event_body):
     return new_event_config
 
 
-
 def parse_mkt_entry_knowledge_config(event_body):
     event_body = copy.deepcopy(event_body)
 
@@ -221,13 +221,24 @@ def parse_mkt_entry_knowledge_config(event_body):
         # retriver config
         # query process config
         "retriever_config":{
-            "retriever_top_k": 5,
-            "chunk_num": 2,
-            "using_whole_doc": False,
-            "reranker_top_k": 10,
-            "enable_reranker": True,
-            "q_q_match_threshold": 0.9,
-            "qd_match_threshold": -1
+            "qq_config": {
+                "q_q_match_threshold": 0.9,
+            },
+            "qd_config":{
+                "retriever_top_k": 5,
+                "context_num": 2,
+                "using_whole_doc": False,
+                "reranker_top_k": 10,
+                "enable_reranker": True,
+                "qd_match_threshold": -1
+            },
+            # "retriever_top_k": 5,
+            # "chunk_num": 2,
+            # "using_whole_doc": False,
+            # "reranker_top_k": 10,
+            # "enable_reranker": True,
+            # "q_q_match_threshold": 0.9,
+            # "qd_match_threshold": -1
         },
         "query_process_config":{
             "query_rewrite_config":{

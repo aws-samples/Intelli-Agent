@@ -1,6 +1,7 @@
 import logging 
 import json 
 import os
+import boto3
 from functools import partial 
 from textwrap import dedent
 from langchain.schema.runnable import (
@@ -24,16 +25,21 @@ from ..retriever import (
 )
 from .. import parse_config
 from ..reranker import BGEReranker, MergeReranker
-from ..context_utils import contexts_trunc
+from ..context_utils import contexts_trunc,retriever_results_format,retriever_results_filter
 from ..langchain_utils import RunnableDictAssign
 from ..preprocess_utils import is_api_query, language_check,query_translate,get_service_name
-
+from ..workspace_utils import WorkspaceManager
 
 logger = logging.getLogger('mkt_knowledge_entry')
 logger.setLevel(logging.INFO)
 
 zh_embedding_endpoint = os.environ.get("zh_embedding_endpoint", "")
 en_embedding_endpoint = os.environ.get("en_embedding_endpoint", "")
+workspace_table = os.environ.get("workspace_table", "")
+
+dynamodb = boto3.resource("dynamodb")
+workspace_table = dynamodb.Table(workspace_table)
+workspace_manager = WorkspaceManager(workspace_table)
 
 def mkt_fast_reply(
         answer="很抱歉，我只能回答与亚马逊云科技产品和服务相关的咨询。",
@@ -73,15 +79,29 @@ def market_chain_knowledge_entry(
     logger.info(f'market rag knowledge configs:\n {json.dumps(rag_config,indent=2,ensure_ascii=False,cls=JSONEncoder)}')
 
     # generator_llm_config = rag_config['generator_llm_config']
-    # intent_type = rag_config['intent_config']['intent_type']
-    aos_index_dict = json.loads(os.environ["aos_index_dict"])
+    # # intent_type = rag_config['intent_config']['intent_type']
+    # aos_index_dict = json.loads(os.environ["aos_index_dict"])
         
-    aos_index_mkt_qd = aos_index_dict["aos_index_mkt_qd"]
-    aos_index_mkt_qq_name = aos_index_dict["aos_index_mkt_qq"]
-    aos_index_dgr_qd = aos_index_dict["aos_index_dgr_qd"]
-    aos_index_dgr_faq_qd = aos_index_dict["aos_index_dgr_faq_qd"]
-    aos_index_dgr_qq_name = aos_index_dict["aos_index_dgr_qq"]
-    aos_index_acts_qd = "acts-qd-index-20240305"
+    # aos_index_mkt_qd = aos_index_dict["aos_index_mkt_qd"]
+    # aos_index_mkt_qq_name = aos_index_dict["aos_index_mkt_qq"]
+    # aos_index_dgr_qd = aos_index_dict["aos_index_dgr_qd"]
+    # aos_index_dgr_faq_qd = aos_index_dict["aos_index_dgr_faq_qd"]
+    # aos_index_dgr_qq_name = aos_index_dict["aos_index_dgr_qq"]
+    workspace_ids = rag_config["retriever_config"]["workspace_ids"]
+    qq_workspace_list = []
+    qd_workspace_list = []
+    for workspace_id in workspace_ids:
+        workspace = workspace_manager.get_workspace(workspace_id)
+        if not workspace or "index_type" not in workspace:
+            logger.warning(f"workspace {workspace_id} not found")
+            continue
+        if workspace["index_type"] == "qq":
+            qq_workspace_list.append(workspace)
+        else:
+            qd_workspace_list.append(workspace)
+
+    # aos_index_acts_qd = "acts-qd-index-20240305"
+
     debug_info = {}
     contexts = []
     sources = []
@@ -184,59 +204,62 @@ def market_chain_knowledge_entry(
     # step 3.2 qq match#
     ####################
     
-    aos_index_dgr_qq = {
-        "name": aos_index_dgr_qq_name,
-        "lang": "zh",
-        "embedding_endpoint": zh_embedding_endpoint,
-        "source_field": "source",
-        "vector_field": "vector_field" 
-    }
-    aos_index_mkt_qq = {
-        "name": aos_index_mkt_qq_name,
-        "lang": "zh",
-        "embedding_endpoint": zh_embedding_endpoint,
-        "source_field": "file_path",
-        "vector_field": "vector_field" 
-    }
-    q_q_match_threshold = rag_config['retriever_config']['q_q_match_threshold']
+    # aos_index_dgr_qq = {
+    #     "name": aos_index_dgr_qq_name,
+    #     "lang": "zh",
+    #     "embedding_endpoint": zh_embedding_endpoint,
+    #     "source_field": "source",
+    #     "vector_field": "vector_field" 
+    # }
+    # aos_index_mkt_qq = {
+    #     "name": aos_index_mkt_qq_name,
+    #     "lang": "zh",
+    #     "embedding_endpoint": zh_embedding_endpoint,
+    #     "source_field": "file_path",
+    #     "vector_field": "vector_field" 
+    # }
+    q_q_match_threshold = rag_config['retriever_config']['qq_config']['q_q_match_threshold']
     retriever_list = [
         QueryQuestionRetriever(
-            index=index["name"],
-            vector_field=index["vector_field"],
-            source_field=index["source_field"],
+            workspace,
+            # index=index["name"],
+            # vector_field=index["vector_field"],
+            # source_field=index["source_field"],
             size=5,
-            lang=index["lang"],
-            embedding_model_endpoint=index["embedding_endpoint"]
+            # lang=index["lang"],
+            # embedding_model_endpoint=index["embedding_endpoint"]
         )
-        for index in [aos_index_dgr_qq, aos_index_mkt_qq]
+        for workspace in qq_workspace_list
     ]
-    qq_chain =  MergerRetriever(retrievers=retriever_list) | RunnableLambda(
-        partial(
-            index_results_format_and_filter,
-            threshold=q_q_match_threshold
-        ))
+    qq_chain =  MergerRetriever(retrievers=retriever_list) | \
+                RunnableLambda(retriever_results_format) |\
+                RunnableLambda(partial(
+                    retriever_results_filter,
+                    threshold=q_q_match_threshold
+                ))
 
     ############################
     # step 4. qd retriever chain#
     ############################
-    qd_aos_index_list = [aos_index_dgr_qd, aos_index_dgr_faq_qd, aos_index_mkt_qd,aos_index_acts_qd]
-    using_whole_doc = rag_config['retriever_config']['using_whole_doc']
-    chunk_num = rag_config['retriever_config']['chunk_num']
-    retriever_top_k = rag_config['retriever_config']['retriever_top_k']
-    reranker_top_k = rag_config['retriever_config']['reranker_top_k']
-    enable_reranker = rag_config['retriever_config']['enable_reranker']
+    # qd_aos_index_list = [aos_index_dgr_qd, aos_index_dgr_faq_qd, aos_index_mkt_qd,aos_index_acts_qd]
+    qd_config = rag_config['retriever_config']['qd_config']                     
+    using_whole_doc = qd_config['using_whole_doc']
+    context_num = qd_config['context_num']
+    retriever_top_k = qd_config['retriever_top_k']
+    reranker_top_k = qd_config['reranker_top_k']
+    enable_reranker = qd_config['enable_reranker']
 
     retriever_list = [
         QueryDocumentRetriever(
-            index, "vector_field", "text", "file_path", using_whole_doc, chunk_num, retriever_top_k, "zh", zh_embedding_endpoint
+            workspace=workspace,
+            using_whole_doc=using_whole_doc,
+            context_num=context_num,
+            top_k=retriever_top_k,
+            #   "zh", zh_embedding_endpoint
         )
-        for index in qd_aos_index_list
-    ] + [
-        QueryDocumentRetriever(
-            index, "vector_field", "text", "file_path", using_whole_doc, chunk_num, retriever_top_k, "en", en_embedding_endpoint
-        )
-        for index in qd_aos_index_list
+        for workspace in qd_workspace_list
     ]
+
     lotr = MergerRetriever(retrievers=retriever_list)
     if enable_reranker:
         compressor = BGEReranker(top_n=reranker_top_k)
@@ -245,14 +268,15 @@ def market_chain_knowledge_entry(
     compression_retriever = ContextualCompressionRetriever(
         base_compressor=compressor, base_retriever=lotr
     )
-    qd_chain = RunnablePassthrough.assign(docs=compression_retriever) 
+    qd_chain = RunnablePassthrough.assign(
+        docs=compression_retriever | RunnableLambda(retriever_results_format)
+        )
     
     #####################
     # step 5. llm chain #
     #####################
     generator_llm_config = rag_config['generator_llm_config']
     context_num = generator_llm_config['context_num']
-    qd_match_threshold = rag_config['retriever_config']['qd_match_threshold']
     llm_chain = RunnableDictAssign(lambda x: contexts_trunc(x['docs'],context_num=context_num)) |\
           RunnablePassthrough.assign(
                answer=LLMChain.get_chain(
@@ -272,8 +296,9 @@ def market_chain_knowledge_entry(
     ######################
     # step 6.1 rag chain #
     ######################
+    qd_match_threshold = rag_config['retriever_config']['qd_config']['qd_match_threshold']
     qd_fast_reply_branch = RunnablePassthrough.assign(
-        filtered_docs = RunnableLambda(lambda x: index_results_format_and_filter(x['docs'],threshold=qd_match_threshold))
+        filtered_docs = RunnableLambda(lambda x: retriever_results_filter(x['docs'],threshold=qd_match_threshold))
     ) | RunnableBranch(
         (
             lambda x: not x['filtered_docs'],
