@@ -124,6 +124,22 @@ def create_embeddings_with_single_model(
     return embeddings_result
 
 
+def create_embeddings_with_m3_model(
+    embeddings_model: str, aws_region: str, file_type: str
+):
+    embeddings_result = None
+    if file_type.lower() == "jsonl":
+        content_handler = SimilarityM3ContentHandler()
+    else:
+        content_handler = RelevanceM3ContentHandler()
+
+    embeddings_result = create_sagemaker_embeddings_from_js_model(
+        embeddings_model, aws_region, content_handler
+    )
+
+    return embeddings_result
+
+
 def create_embedding_with_multiple_model(
     embeddings_model_list: List[str], aws_region: str, file_type: str
 ):
@@ -270,13 +286,62 @@ class RelevanceZhContentHandler(EmbeddingsContentHandler):
         return embeddings
 
 
-class SimilarityEnContentHandler(EmbeddingsContentHandler):
+class SimilarityZhContentHandler(EmbeddingsContentHandler):
     content_type = "application/json"
     accepts = "application/json"
 
     def transform_input(self, prompt, model_kwargs={}) -> bytes:
         # add bge_prompt to each element in prompt
         new_prompt = [p for p in prompt]
+        input_str = json.dumps({"inputs": new_prompt, **model_kwargs})
+
+        return input_str.encode("utf-8")
+
+    def transform_output(self, output: bytes) -> str:
+        response_json = json.loads(output.read().decode("utf-8"))
+        embeddings = response_json["sentence_embeddings"]
+        if len(embeddings) == 1:
+            return [embeddings[0]]
+
+        return embeddings
+
+
+class RelevanceM3ContentHandler(EmbeddingsContentHandler):
+    content_type = "application/json"
+    accepts = "application/json"
+
+    def transform_input(self, prompt, model_kwargs={}) -> bytes:
+        # add bge_prompt to each element in prompt
+        model_kwargs = {}
+        model_kwargs["batch_size"] = 12
+        model_kwargs["max_length"] = 512
+        model_kwargs["return_type"] = "all"
+        input_str = json.dumps({"inputs": prompt, **model_kwargs})
+
+        return input_str.encode("utf-8")
+
+    def transform_output(self, output: bytes) -> str:
+        response_json = json.loads(output.read().decode("utf-8"))
+        print(response_json)
+        embeddings = response_json["sentence_embeddings"]["dense_vecs"]
+
+        if len(embeddings) == 1:
+            return [embeddings[0]]
+
+        return embeddings
+
+
+class SimilarityM3ContentHandler(EmbeddingsContentHandler):
+    content_type = "application/json"
+    accepts = "application/json"
+
+    def transform_input(self, prompt, model_kwargs={}) -> bytes:
+        # add bge_prompt to each element in prompt
+        new_prompt = [p for p in prompt]
+        model_kwargs = {}
+        model_kwargs["batch_size"] = 12
+        model_kwargs["max_length"] = 512
+        model_kwargs["return_type"] = "all"
         input_str = json.dumps({"inputs": new_prompt, **model_kwargs})
         return input_str.encode("utf-8")
 

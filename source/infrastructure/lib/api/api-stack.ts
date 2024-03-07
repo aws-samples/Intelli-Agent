@@ -325,7 +325,8 @@ export class LLMApiStack extends NestedStack {
                 architecture: Architecture.X86_64,
                 environment: {
                     aos_endpoint: _domainEndpoint,
-                    llm_endpoint: props._instructEndPoint,
+                    llm_model_endpoint_name: props._instructEndPoint,
+                    llm_model_id: "internlm2-chat-7b",
                     embedding_endpoint: props._embeddingEndPoints[0],
                     zh_embedding_endpoint: props._embeddingEndPoints[0],
                     en_embedding_endpoint: props._embeddingEndPoints[1],
