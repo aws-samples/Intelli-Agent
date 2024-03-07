@@ -38,13 +38,13 @@ class Claude2HydeChain(LLMChain):
     }
 
     @classmethod
-    def create_chain(cls, model_id, model_kwargs=None, **kwargs):
+    def create_chain(cls, model_kwargs=None, **kwargs):
         query_key = kwargs.pop('query_key','query')
         model_kwargs = model_kwargs or {}
         model_kwargs = {**cls.default_model_kwargs,**model_kwargs}
 
         llm = LLM_Model.get_model(
-        model_id=model_id,
+        model_id=cls.model_id,
           model_kwargs=model_kwargs,
           return_chat_model=False
         )

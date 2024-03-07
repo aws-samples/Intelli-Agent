@@ -44,17 +44,22 @@ def remove_redundancy_debug_info(results):
 @timeit
 def get_similarity_embedding(
     query: str,
-    index
+    embedding_model_endpoint: str,
+    model_type: str = "vector"
 ):
     query_similarity_embedding_prompt = query
-    query_embedding = SagemakerEndpointVectorOrCross(
+    response = SagemakerEndpointVectorOrCross(
         prompt=query_similarity_embedding_prompt,
-        endpoint_name=index["embedding_endpoint"],
+        endpoint_name=embedding_model_endpoint,
         region_name=region,
-        model_type=index["vector"],
+        model_type=model_type,
         stop=None,
     )
-    return query_embedding
+    if model_type == "vector":
+        response = {"dense_vecs": response}
+    elif model_type == "m3":
+        response["dense_vecs"] = response["dense_vecs"][0]
+    return response
 
 @timeit
 def get_relevance_embedding(
@@ -75,14 +80,18 @@ def get_relevance_embedding(
         )
     elif model_type == "m3":
         query_relevance_embedding_prompt = query
-    query_embedding = SagemakerEndpointVectorOrCross(
+    response = SagemakerEndpointVectorOrCross(
         prompt=query_relevance_embedding_prompt,
         endpoint_name=embedding_model_endpoint,
         region_name=region,
-        model_type="vector",
+        model_type=model_type,
         stop=None,
     )
-    return query_embedding
+    if model_type == "vector":
+        response = {"dense_vecs": response}
+    elif model_type == "m3":
+        response["dense_vecs"] = response["dense_vecs"][0]
+    return response
 
 def get_filter_list(parsed_query: dict):
     filter_list = []
@@ -314,24 +323,34 @@ def organize_faq_results(response, index_name, source_field="file_path", text_fi
 
 class QueryQuestionRetriever(BaseRetriever):
     index: Any
+    vector_field: Any
+    source_field: Any
     size: Any
+    lang: Any
+    embedding_model_endpoint: Any
+    model_type: Any
 
-    def __init__(self, index: str, size: int):
+    def __init__(self, workspace:Dict, size: int):
         super().__init__()
-        self.index = index
+        self.index = workspace["open_search_index_name"]
+        self.vector_field = "vector_field"
+        self.source_field = "file_path"
         self.size = size
+        self.lang = workspace["languages"][0]
+        self.embedding_model_endpoint = workspace["embeddings_model_endpoint"]
+        self.model_type = workspace["model_type"]
 
     @timeit
     def _get_relevant_documents(self, question: Dict, *, run_manager: CallbackManagerForRetrieverRun) -> List[Document]:
         query = question["query"] 
         debug_info = question["debug_info"]
         opensearch_knn_results = []
-        query_embedding = get_similarity_embedding(query, self.index)
+        query_repr = get_similarity_embedding(query, self.embedding_model_endpoint, self.model_type)
         opensearch_knn_response = aos_client.search(
-            index_name=self.index["index_name"],
+            index_name=self.index,
             query_type="knn",
-            query_term=query_embedding,
-            field=self.index["vector_field"],
+            query_term=query_repr["dense_vecs"],
+            field=self.vector_field,
             size=self.size,
         )
         opensearch_knn_results.extend(
@@ -354,11 +373,18 @@ class QueryDocumentRetriever(BaseRetriever):
     context_num: Any
     top_k: Any
     lang: Any
+    model_type: Any
     embedding_model_endpoint: Any
 
-    def __init__(self, index, using_whole_doc, context_num, top_k):
+    def __init__(self, workspace, using_whole_doc, context_num, top_k):
         super().__init__()
-        self.index = index
+        self.index = workspace["open_search_index_name"]
+        self.vector_field = "vector_field"
+        self.source_field = "file_path"
+        self.text_field = "text"
+        self.lang = workspace["languages"][0]
+        self.embedding_model_endpoint = workspace["embeddings_model_endpoint"]
+        self.model_type = workspace["model_type"]
         self.using_whole_doc = using_whole_doc
         self.context_num = context_num
         self.top_k = top_k
@@ -426,23 +452,22 @@ class QueryDocumentRetriever(BaseRetriever):
     @timeit
     def _get_relevant_documents(self, question: Dict, *, run_manager: CallbackManagerForRetrieverRun) -> List[Document]:
         query = question["query"]
-        if self.index["model_type"] != "m3" and "query_lang" in question \
-                and question["query_lang"] != self.index["lang"] and "translated_text" in question:
+        if "query_lang" in question and question["query_lang"] != self.lang and "translated_text" in question:
             query = question["translated_text"]
         debug_info = question["debug_info"]
         opensearch_knn_results = []
-        query_embedding = get_relevance_embedding(query, self.index)
+        query_repr = get_relevance_embedding(query, self.lang, self.embedding_model_endpoint, self.model_type)
         filter = get_filter_list(question)
         opensearch_knn_response = aos_client.search(
-            index_name=self.index["index_name"],
+            index_name=self.index,
             query_type="knn",
-            query_term=query_embedding,
-            field=self.index["vector_field"],
+            query_term=query_repr["dense_vecs"],
+            field=self.vector_field,
             size=self.top_k,
             filter=filter
         )
         opensearch_knn_results.extend(
-            self.organize_results(opensearch_knn_response, self.index, self.using_whole_doc, self.context_num)[:self.top_k]
+            self.organize_results(opensearch_knn_response, self.index, self.source_field, self.text_field, self.using_whole_doc, self.context_num)[:self.top_k]
         )
 
        # 2. get AOS invertedIndex recall
@@ -450,7 +475,7 @@ class QueryDocumentRetriever(BaseRetriever):
 
         # 3. combine these two opensearch_knn_response and opensearch_query_response
         final_results = opensearch_knn_results + opensearch_query_results
-        debug_info[f"qd-knn-recall-{self.index['index_name']}-{self.index['lang']}"] = remove_redundancy_debug_info(final_results)
+        debug_info[f"qd-knn-recall-{self.index}-{self.lang}"] = remove_redundancy_debug_info(final_results)
 
         doc_list = []
         content_set = set()
@@ -493,15 +518,3 @@ def index_results_format(docs:list, threshold=-1):
     # output = {"answer": json.dumps(results, ensure_ascii=False), "sources": [], "contexts": []}
     output = {"answer": results, "sources": [], "contexts": [], "context_docs": [], "context_sources": []}
     return output
-
-def index_results_format_and_filter(docs:list, threshold=-1):
-    results = []
-    for doc in docs:
-        if doc.metadata["score"] < threshold:
-            continue
-        results.append({"score": doc.metadata["score"], 
-                        "source": doc.metadata["source"],
-                        "answer": doc.metadata.get("answer",""),
-                        "question": doc.metadata.get("question","")
-        })
-    return results

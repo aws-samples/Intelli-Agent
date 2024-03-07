@@ -84,6 +84,7 @@ class answerContentHandler(LLMContentHandler):
         response_json = json.loads(output.read().decode("utf-8"))
         return response_json['outputs']
 
+
 class LineIterator:
     """
     A helper class for parsing the byte stream input. 
@@ -383,7 +384,7 @@ def SagemakerEndpointVectorOrCross(prompt: str, endpoint_name: str, region_name:
         return query_result
     elif model_type == "cross":
         content_handler = crossContentHandler()
-    elif model_type == "multi-vector":
+    elif model_type == "m3":
         content_handler = vectorContentHandler()
         model_kwargs = {}
         model_kwargs['batch_size'] = 12

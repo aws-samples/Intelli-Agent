@@ -108,7 +108,8 @@ def generate_answer_from_ws(url, query_input, type):
             "chunk_num": 0,
             "using_whole_doc": False,
             "enable_reranker": True,
-            "retriever_top_k": 2
+            "retriever_top_k": 2,
+            "workspace_ids": ["aos_index_mkt_faq_qq", "aos_index_acts_qd"]
         },
         generator_llm_config ={
             "model_kwargs":{
@@ -176,10 +177,11 @@ def generate_answer_from_local(query_input, entry_type):
             }
         },
         retriever_config = {
-            "chunk_num": 0,
+            "chunk_num": 2,
             "using_whole_doc": False,
             "enable_reranker": True,
-            "retriever_top_k": 2
+            "retriever_top_k": 5,
+            "workspace_ids": ["aos_index_mkt_faq_qq_m3", "aos_index_acts_qd_m3"]
         },
         generator_llm_config ={
             "model_kwargs":{
@@ -343,7 +345,7 @@ with gr.Blocks() as demo:
     )
     with gr.Tab("Chat"):
         api_type = gr.Dropdown(label="API", choices=["local", "cloud"], value="local")
-        entry_input = gr.Dropdown(label="Entry", choices=["common", "market_chain"], value="common")
+        entry_input = gr.Dropdown(label="Entry", choices=["common", "market_chain_core"], value="market_chain_core")
         query_input = gr.Text(label="Query")
         answer_output = gr.Text(label="Anwser", show_label=True)
         sources_output = gr.Text(label="Sources", show_label=True)

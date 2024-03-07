@@ -24,7 +24,8 @@ rag_default_config = {
         "using_whole_doc": False,
         "reranker_top_k": 10,
         "enable_reranker": True,
-        "q_q_match_threshold": 0.8
+        "q_q_match_threshold": 0.8,
+        "workspace_ids": []
     },
     "query_process_config":{
         "query_rewrite_config":{

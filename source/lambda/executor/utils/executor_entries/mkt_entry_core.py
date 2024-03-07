@@ -3,6 +3,7 @@ import os
 from functools import partial
 import copy
 import asyncio
+import boto3
 
 from langchain.retrievers.merger_retriever import MergerRetriever
 from langchain.retrievers import ContextualCompressionRetriever
@@ -34,9 +35,15 @@ from ..constant import IntentType
 from ..query_process_utils import get_query_process_chain
 from ..intent_utils import auto_intention_recoginition_chain
 from .. import parse_config
+from ..workspace_utils import WorkspaceManager
 
 zh_embedding_endpoint = os.environ.get("zh_embedding_endpoint", "")
 en_embedding_endpoint = os.environ.get("en_embedding_endpoint", "")
+workspace_table = os.environ.get("workspace_table", "")
+
+dynamodb = boto3.resource("dynamodb")
+workspace_table = dynamodb.Table(workspace_table)
+workspace_manager = WorkspaceManager(workspace_table)
 
 def return_strict_qq_result(x):
     return {
@@ -51,11 +58,11 @@ def return_strict_qq_result(x):
 
 
 def get_qd_chain(
-    aos_index_list, retriever_top_k=10, reranker_top_k=5, using_whole_doc=True, chunk_num=0, enable_reranker=True
+    workspace_list, retriever_top_k=10, reranker_top_k=5, using_whole_doc=True, chunk_num=0, enable_reranker=True
 ):
     retriever_list = [
-        QueryDocumentRetriever(index, using_whole_doc, chunk_num, retriever_top_k)
-        for index in aos_index_list
+        QueryDocumentRetriever(workspace, using_whole_doc, chunk_num, retriever_top_k)
+        for workspace in workspace_list
     ]
     lotr = MergerRetriever(retrievers=retriever_list)
     if enable_reranker:
@@ -68,10 +75,10 @@ def get_qd_chain(
     qd_chain = RunnablePassthrough.assign(docs=compression_retriever) 
     return qd_chain
 
-def get_qq_chain(aos_index_list, message_id=None, retriever_top_k=5):
+def get_qq_chain(workspace_list, message_id=None, retriever_top_k=5):
     retriever_list = [
-        QueryQuestionRetriever(index, size=retriever_top_k)
-        for index in aos_index_list
+        QueryQuestionRetriever(workspace, size=retriever_top_k)
+        for workspace in workspace_list
     ]
     qq_chain = MergerRetriever(retrievers=retriever_list)
     qq_chain = RunnablePassthrough.assign(qq_result=qq_chain)
@@ -79,7 +86,7 @@ def get_qq_chain(aos_index_list, message_id=None, retriever_top_k=5):
     return qq_chain
 
 def get_qd_llm_chain(
-    aos_index_list, 
+    workspace_list, 
     rag_config, 
     stream=False, 
     message_id=None,
@@ -91,7 +98,7 @@ def get_qd_llm_chain(
     reranker_top_k = rag_config['retriever_config']['reranker_top_k']
     enable_reranker = rag_config['retriever_config']['enable_reranker']
 
-    qd_chain = get_qd_chain(aos_index_list, using_whole_doc=using_whole_doc,
+    qd_chain = get_qd_chain(workspace_list, using_whole_doc=using_whole_doc,
                             chunk_num=chunk_num, retriever_top_k=retriever_top_k,
                             reranker_top_k=reranker_top_k, enable_reranker=enable_reranker)
     
@@ -153,6 +160,7 @@ def market_chain_entry(
 
     logger.info(f'market rag configs:\n {json.dumps(rag_config,indent=2,ensure_ascii=False,cls=JSONEncoder)}')
 
+
     generator_llm_config = rag_config['generator_llm_config']
     intent_type = rag_config['intent_config']['intent_type']
     aos_index_dict = json.loads(os.environ["aos_index_dict"])
@@ -163,6 +171,19 @@ def market_chain_entry(
     aos_index_dgr_faq_qd_name = aos_index_dict["aos_index_dgr_faq_qd"]
     aos_index_dgr_qq_name = aos_index_dict["aos_index_dgr_qq"]
     aos_index_acts_qd_name = "acts-qd-index-20240305"
+
+    workspace_ids = rag_config["retriever_config"]["workspace_ids"]
+    qq_workspace_list = []
+    qd_workspace_list = []
+    for workspace_id in workspace_ids:
+        workspace = workspace_manager.get_workspace(workspace_id)
+        if not workspace or "index_type" not in workspace:
+            logger.warning(f"workspace {workspace_id} not found")
+            continue
+        if workspace["index_type"] == "qq":
+            qq_workspace_list.append(workspace)
+        else:
+            qd_workspace_list.append(workspace)
 
     debug_info = {}
     contexts = []
@@ -179,36 +200,11 @@ def market_chain_entry(
 
     # 2. Knowledge QA Intent
     # 2.1 query question retrieval.
-    aos_index_dgr_qq = {
-        "index_name": aos_index_dgr_qq_name,
-        "lang": "zh",
-        "embedding_endpoint": zh_embedding_endpoint,
-        "source_field": "source",
-        "vector_field": "vector_field",
-        "model_type": "vector"
-    }
-    aos_index_mkt_qq = {
-        "index_name": aos_index_mkt_qq_name,
-        "lang": "zh",
-        "embedding_endpoint": zh_embedding_endpoint,
-        "source_field": "file_path",
-        "vector_field": "vector_field",
-        "model_type": "vector"
-    }
-    qq_chain = get_qq_chain([aos_index_dgr_qq, aos_index_mkt_qq], message_id)
+    qq_chain = get_qq_chain(qq_workspace_list, message_id)
 
     # 2.2 query document retrieval + LLM.
-    aos_index_acts_qd = {
-        "index_name": aos_index_acts_qd_name,
-        "lang": "zh",
-        "embedding_endpoint": zh_embedding_endpoint,
-        "source_field": "source",
-        "vector_field": "vector_field",
-        "model_type": "m3"
-    }
-
     qd_llm_chain = get_qd_llm_chain(
-        [aos_index_acts_qd],
+        qd_workspace_list,
         rag_config,
         stream,
         message_id
@@ -247,23 +243,23 @@ def market_chain_entry(
     #     "query rewrite module"
     # )
     # intent recognition
-    intent_recognition_chain = auto_intention_recoginition_chain(
-        q_q_retriever_config={
-            "index_q_q":aos_index_mkt_qq_name,
-            'lang':'zh',
-            'embedding_endpoint':zh_embedding_endpoint,
-            "q_q_match_threshold": rag_config['retriever_config']['q_q_match_threshold']
-        },
-        intent_config=rag_config['intent_config'],
-        message_id=message_id
-    )
+    # intent_recognition_chain = auto_intention_recoginition_chain(
+    #     q_q_retriever_config={
+    #         "index_q_q":aos_index_mkt_qq_name,
+    #         'lang':'zh',
+    #         'embedding_endpoint':zh_embedding_endpoint,
+    #         "q_q_match_threshold": rag_config['retriever_config']['q_q_match_threshold']
+    #     },
+    #     intent_config=rag_config['intent_config'],
+    #     message_id=message_id
+    # )
 
-    intent_recognition_chain = chain_logger(
-        intent_recognition_chain,
-        'intention module',
-        log_output_template='intent chain output: {intent_type}',
-        message_id=message_id
-    )
+    # intent_recognition_chain = chain_logger(
+    #     intent_recognition_chain,
+    #     'intention module',
+    #     log_output_template='intent chain output: {intent_type}',
+    #     message_id=message_id
+    # )
 
     qq_qd_llm_chain = chain_logger(
         qq_qd_llm_chain,
@@ -271,7 +267,7 @@ def market_chain_entry(
         message_id=message_id
     )
    
-    full_chain = query_process_chain | intent_recognition_chain  | RunnableBranch(
+    full_chain = query_process_chain | RunnableBranch(
         (lambda x:x['intent_type'] == IntentType.KNOWLEDGE_QA.value, qq_qd_llm_chain),
         (lambda x:x['intent_type'] == IntentType.STRICT_QQ.value, return_strict_qq_result),
         # (lambda x:x['intent_type'] == IntentType.STRICT_QQ.value, strict_q_q_chain),

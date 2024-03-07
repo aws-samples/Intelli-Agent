@@ -21,7 +21,6 @@ import asyncio
 from ..retriever import (
     QueryDocumentRetriever,
     QueryQuestionRetriever,
-    index_results_format_and_filter
 )
 from .. import parse_config
 from ..reranker import BGEReranker, MergeReranker

@@ -56,11 +56,11 @@ class Claude2QueryRewriteChain(LLMChain):
         return questions
 
     @classmethod
-    def create_chain(cls, model_id, model_kwargs=None, **kwargs):
+    def create_chain(cls, model_kwargs=None, **kwargs):
         query_key = kwargs.pop('query_key','query')
         model_kwargs = model_kwargs or {}
         model_kwargs = {**cls.default_model_kwargs,**model_kwargs}
-        llm = LLM_Model.get_model(model_id=model_id, model_kwargs=model_kwargs,**kwargs)
+        llm = LLM_Model.get_model(cls.model_id, model_kwargs=model_kwargs,**kwargs)
         chain = RunnableLambda(lambda x: query_expansion_template_claude.invoke({"question": x[query_key]})) | llm | RunnableLambda(cls.query_rewrite_postprocess)
         return chain
 
