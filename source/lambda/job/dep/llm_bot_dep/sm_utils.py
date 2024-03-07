@@ -346,7 +346,7 @@ class SimilarityM3ContentHandler(EmbeddingsContentHandler):
 
     def transform_output(self, output: bytes) -> str:
         response_json = json.loads(output.read().decode("utf-8"))
-        embeddings = response_json["sentence_embeddings"]
+        embeddings = response_json["sentence_embeddings"][0]["dense_vecs"]
         if len(embeddings) == 1:
             return [embeddings[0]]
 
