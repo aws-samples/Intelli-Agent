@@ -278,7 +278,6 @@ def market_chain_knowledge_entry(
         llm_chain
     )
 
-    qd_fast_reply_branch = chain_logger(qd_fast_reply_branch,'llm module', message_id=message_id)
     rag_chain = qd_chain | qd_fast_reply_branch
 
     ######################################
