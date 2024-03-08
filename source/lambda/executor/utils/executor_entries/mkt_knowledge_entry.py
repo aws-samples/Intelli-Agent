@@ -124,7 +124,7 @@ def market_chain_knowledge_entry(
             query=cqr_llm_chain
         ),
         "conversation_summary_chain",
-        log_output_template='conversation_summary_chain result: {query}.',
+        log_output_template='conversation_summary_chain result: {query}',
         message_id=message_id
     )
 

@@ -523,11 +523,13 @@ def test_internlm_model_mkt_knowledge_entry_qq_match():
 
     os.environ['llm_model_id'] = model_id
     os.environ['llm_model_endpoint_name'] = endpoint_name
+    workspace_ids = ["aos_index_mkt_faq_qq_m3", "aos_index_acts_qd_m3", "aos_index_mkt_faq_qd_m3"]
+    
 
     questions = [
-        # "能否通过JDBC连接到RDS for PostgreSQL？ 有相关的指导吗？",
-        # "如何解决切换RI后网速变慢？",
-        # "如何升级EC2配置不改变IP",
+        "能否通过JDBC连接到RDS for PostgreSQL？ 有相关的指导吗？",
+        "如何解决切换RI后网速变慢？",
+        "如何升级EC2配置不改变IP",
         "如何/怎么关停账号",
         "请问怎么关闭账号？",
         "个人能否注册账号？",
@@ -544,14 +546,14 @@ def test_internlm_model_mkt_knowledge_entry_qq_match():
             rag_parameters={
             "get_contexts":True,
             "retriever_config":{
-                "qq_config": {
-                    "q_q_match_threshold": 0.8,
-                },
-                "qd_config":{
-                    "qd_match_threshold": 2,
-                # "using_whole_doc": True
-                },
-                "workspace_ids": ["aos_index_mkt_faq_qq","aos_index_acts_qd"]
+                # "qq_config": {
+                #     "qq_match_threshold": 0.8,
+                # },
+                # "qd_config":{
+                #     "qd_match_threshold": 2,
+                # # "using_whole_doc": True
+                # },
+                "workspace_ids": workspace_ids
             }
             }
         )
@@ -567,8 +569,26 @@ def test_internlm_model_mkt_knowledge_entry():
 
     os.environ['llm_model_id'] = model_id
     os.environ['llm_model_endpoint_name'] = endpoint_name
-    workspace_ids = ["aos_index_mkt_faq_qq","aos_index_acts_qd"]
-    # workspace_ids = ["aos_index_mkt_faq_qq_m3", "aos_index_acts_qd_m3", "aos_index_mkt_faq_qd_m3"]
+    # workspace_ids = ["aos_index_mkt_faq_qq","aos_index_acts_qd"]
+    workspace_ids = ["aos_index_mkt_faq_qq_m3", "aos_index_acts_qd_m3", "aos_index_mkt_faq_qd_m3"]
+    
+    rag_parameters={
+        "get_contexts":True,
+        "retriever_config":{
+            # "qq_config": {
+            #     "q_q_match_threshold": 0.8,
+            # },
+            # "qd_config":{
+            #     "qd_match_threshold": 2,
+            #     # "reranker_type": "bge_reranker",
+            #     # "qd_match_threshold": 0.5,
+            #     # "reranker_type": "no_reranker"
+
+            # # "using_whole_doc": True
+            # },
+            "workspace_ids": workspace_ids
+        }
+        }
     
     generate_answer(
         "亚马逊云科技有上海区域吗？", 
@@ -577,39 +597,14 @@ def test_internlm_model_mkt_knowledge_entry():
         model="knowledge_qa", 
         type=entry_type, 
         stream=True,
-        rag_parameters={
-        "get_contexts":True,
-        "retriever_config":{
-            "qq_config": {
-                # "q_q_match_threshold": 0.8,
-            },
-            "qd_config":{
-                # "qd_match_threshold": 0.5,
-            # "using_whole_doc": True
-            },
-            "workspace_ids": workspace_ids
-        }
-        }
+        rag_parameters=rag_parameters
     )
-    # print(sfg)
     generate_answer(
         "亚马逊云科技中国区域免费套餐有哪几种不同类型的优惠？", 
         model="knowledge_qa", 
         type=entry_type, 
         stream=True,
-        rag_parameters={
-        "get_contexts":True,
-        "retriever_config":{
-            "qq_config": {
-                # "q_q_match_threshold": 0.8,
-            },
-            "qd_config":{
-                # "qd_match_threshold": 2,
-            # "using_whole_doc": True
-            },
-            "workspace_ids": workspace_ids
-        }
-        }
+        rag_parameters=rag_parameters
     )
 
     generate_answer(
@@ -617,20 +612,7 @@ def test_internlm_model_mkt_knowledge_entry():
         model="knowledge_qa", 
         type=entry_type, 
         stream=True,
-        rag_parameters={
-            "session_id":session_id,
-        "get_contexts":True,
-        "retriever_config":{
-            "qq_config": {
-                "qq_match_threshold": 0.8,
-            },
-            "qd_config":{
-                "qd_match_threshold": 2,
-            # "using_whole_doc": True
-            },
-            "workspace_ids": workspace_ids
-        }
-        }
+        rag_parameters=rag_parameters
     )
 
 
@@ -639,20 +621,7 @@ def test_internlm_model_mkt_knowledge_entry():
         model="knowledge_qa", 
         type=entry_type, 
         stream=True,
-        rag_parameters={
-        "get_contexts":True,
-        "session_id":session_id,
-        "retriever_config":{
-            "qq_config": {
-                "q_q_match_threshold": 0.9,
-            },
-            "qd_config":{
-                "qd_match_threshold": 2,
-            # "using_whole_doc": True
-            },
-            "workspace_ids": workspace_ids
-        }
-        }
+        rag_parameters=rag_parameters
     )
 
     print(fg)

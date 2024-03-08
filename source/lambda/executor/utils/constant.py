@@ -48,3 +48,12 @@ STEPBACK_PROMPTING_TYPE = "stepback_prompting"
 HUMAN_MESSAGE_TYPE = 'human'
 AI_MESSAGE_TYPE = 'ai'
 SYSTEM_MESSAGE_TYPE = 'system'
+
+
+
+class StreamMessageType:
+    START = "START"
+    END = "END"
+    ERROR = "ERROR"
+    CHUNK = "CHUNK"
+    CONTEXT = "CONTEXT"
