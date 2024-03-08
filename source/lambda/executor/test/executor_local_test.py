@@ -581,10 +581,10 @@ def test_internlm_model_mkt_knowledge_entry():
         "get_contexts":True,
         "retriever_config":{
             "qq_config": {
-                "q_q_match_threshold": 0.8,
+                # "q_q_match_threshold": 0.8,
             },
             "qd_config":{
-                "qd_match_threshold": 2,
+                # "qd_match_threshold": 0.5,
             # "using_whole_doc": True
             },
             "workspace_ids": workspace_ids
@@ -601,10 +601,10 @@ def test_internlm_model_mkt_knowledge_entry():
         "get_contexts":True,
         "retriever_config":{
             "qq_config": {
-                "q_q_match_threshold": 0.8,
+                # "q_q_match_threshold": 0.8,
             },
             "qd_config":{
-                "qd_match_threshold": 2,
+                # "qd_match_threshold": 2,
             # "using_whole_doc": True
             },
             "workspace_ids": workspace_ids
