@@ -109,7 +109,8 @@ class Iternlm2Chat7BKnowledgeQaChain(Iternlm2Chat7BChatChain):
             meta_instruction=meta_instruction
         ) 
         # prompt = prompt + "回答: 让我先来判断一下问题的答案是否包含在背景知识中。"
-        prompt = prompt + f"回答: 经过慎重且深入的思考, 根据背景知识, 对于问题: {query}, 我的回答如下:\n"
+        prompt = prompt + f"回答: 经过慎重且深入的思考, 根据背景知识, 我的回答如下:\n"
+        print('internlm2 prompt: \n',prompt)
         return prompt
 
 class Iternlm2Chat20BKnowledgeQaChain(Iternlm2Chat7BKnowledgeQaChain):

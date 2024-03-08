@@ -571,7 +571,9 @@ def test_internlm_model_mkt_knowledge_entry():
     # workspace_ids = ["aos_index_mkt_faq_qq_m3", "aos_index_acts_qd_m3", "aos_index_mkt_faq_qd_m3"]
     
     generate_answer(
-        "2024北京国际车展上，亚马逊云科技会参加吗？", 
+        "亚马逊云科技有上海区域吗？", 
+        # "AWS支持上海region吗？",
+        # "什么是日志通",
         model="knowledge_qa", 
         type=entry_type, 
         stream=True,
@@ -589,7 +591,7 @@ def test_internlm_model_mkt_knowledge_entry():
         }
         }
     )
-
+    # print(sfg)
     generate_answer(
         "亚马逊云科技中国区域免费套餐有哪几种不同类型的优惠？", 
         model="knowledge_qa", 
@@ -634,7 +636,6 @@ def test_internlm_model_mkt_knowledge_entry():
 
     generate_answer(
         "日志通是什么？", 
-        
         model="knowledge_qa", 
         type=entry_type, 
         stream=True,
@@ -653,6 +654,8 @@ def test_internlm_model_mkt_knowledge_entry():
         }
         }
     )
+
+    print(fg)
 
     # generate_answer(
     #     "Amazon Lambda函数是什么？", 
