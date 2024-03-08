@@ -239,7 +239,7 @@ def parse_mkt_entry_knowledge_config(event_body):
                 "context_num": 2,
                 "using_whole_doc": False,
                 "reranker_top_k": 10,
-                "reranker_type": RerankerType.BYPASS.value,
+                "reranker_type": RerankerType.BGE_RERANKER.value,
                 "qd_match_threshold": 2,
                 "enable_reranker":True
             },

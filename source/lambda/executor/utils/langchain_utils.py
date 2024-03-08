@@ -1,3 +1,4 @@
+import time
 from langchain.schema.runnable.base import Runnable,RunnableLambda
 from langchain.schema.runnable import RunnablePassthrough
 from functools import partial
@@ -6,15 +7,6 @@ from langchain.schema.callbacks.base import BaseCallbackHandler
 # import time 
 from .logger_utils import logger
 from langchain.schema.runnable import RunnableLambda,RunnablePassthrough,RunnableParallel
-
-# class LmabdaDict(dict):
-#     """add lambda to value"""
-#     def __init__(self,**kwargs):
-#         super().__init__(**kwargs)
-#         for k in list(self.keys()):
-#             v = self[k]
-#             if not callable(v) or not isinstance(v,Runnable):
-#                 self[k] = lambda x:x
 
 class RunnableDictAssign:
     """
@@ -55,7 +47,6 @@ class RunnableParallelAssign:
         chain = RunnablePassthrough.assign(__temp_dict=RunnableParallel(**kwargs)) | RunnableLambda(lambda x: _merge_keys(x))
         return chain
 
-
 class RunnableNoneAssign:
     """
     example:
@@ -75,8 +66,6 @@ class RunnableNoneAssign:
             return x
         chain = RunnablePassthrough.assign(__temp_dict=fn) | RunnableLambda(lambda x: _remove_keys(x))
         return chain
-
-
 
 
 def create_identity_lambda(keys:list):
@@ -114,6 +103,7 @@ class LogTimeListener:
         self.log_input_template = log_input_template
         self.log_output_template = log_output_template
         self.message_id = message_id
+        self.start_time = None
 
     def on_start(self,run):
         logger.info(f'{self.message_id} Enter: {self.chain_name}')

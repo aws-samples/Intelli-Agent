@@ -523,14 +523,15 @@ def test_internlm_model_mkt_knowledge_entry_qq_match():
 
     os.environ['llm_model_id'] = model_id
     os.environ['llm_model_endpoint_name'] = endpoint_name
-    
 
     questions = [
-        "能否通过JDBC连接到RDS for PostgreSQL？ 有相关的指导吗？",
-        "如何解决切换RI后网速变慢？",
-        "如何升级EC2配置不改变IP",
+        # "能否通过JDBC连接到RDS for PostgreSQL？ 有相关的指导吗？",
+        # "如何解决切换RI后网速变慢？",
+        # "如何升级EC2配置不改变IP",
+        "如何/怎么关停账号",
         "请问怎么关闭账号？",
         "个人能否注册账号？",
+        "怎么开具发票？",
         "怎么开发票？",
         "使用CDN服务要备案吗？"
     ]
@@ -566,6 +567,8 @@ def test_internlm_model_mkt_knowledge_entry():
 
     os.environ['llm_model_id'] = model_id
     os.environ['llm_model_endpoint_name'] = endpoint_name
+    workspace_ids = ["aos_index_mkt_faq_qq","aos_index_acts_qd"]
+    # workspace_ids = ["aos_index_mkt_faq_qq_m3", "aos_index_acts_qd_m3", "aos_index_mkt_faq_qd_m3"]
     
     generate_answer(
         "2024北京国际车展上，亚马逊云科技会参加吗？", 
@@ -582,30 +585,30 @@ def test_internlm_model_mkt_knowledge_entry():
                 "qd_match_threshold": 2,
             # "using_whole_doc": True
             },
-            "workspace_ids": ["aos_index_mkt_faq_qq","aos_index_acts_qd"]
+            "workspace_ids": workspace_ids
         }
         }
     )
 
-    # generate_answer(
-    #     "亚马逊云科技中国区域免费套餐有哪几种不同类型的优惠？", 
-    #     model="knowledge_qa", 
-    #     type=entry_type, 
-    #     stream=True,
-    #     rag_parameters={
-    #     "get_contexts":True,
-    #     "retriever_config":{
-    #         "qq_config": {
-    #             "q_q_match_threshold": 0.8,
-    #         },
-    #         "qd_config":{
-    #             "qd_match_threshold": 2,
-    #         # "using_whole_doc": True
-    #         },
-    #         "workspace_ids": ["aos_index_mkt_faq_qq","aos_index_acts_qd"]
-    #     }
-    #     }
-    # )
+    generate_answer(
+        "亚马逊云科技中国区域免费套餐有哪几种不同类型的优惠？", 
+        model="knowledge_qa", 
+        type=entry_type, 
+        stream=True,
+        rag_parameters={
+        "get_contexts":True,
+        "retriever_config":{
+            "qq_config": {
+                "q_q_match_threshold": 0.8,
+            },
+            "qd_config":{
+                "qd_match_threshold": 2,
+            # "using_whole_doc": True
+            },
+            "workspace_ids": workspace_ids
+        }
+        }
+    )
 
     generate_answer(
         "怎么开发票？", 
@@ -613,6 +616,7 @@ def test_internlm_model_mkt_knowledge_entry():
         type=entry_type, 
         stream=True,
         rag_parameters={
+            "session_id":session_id,
         "get_contexts":True,
         "retriever_config":{
             "qq_config": {
@@ -622,7 +626,7 @@ def test_internlm_model_mkt_knowledge_entry():
                 "qd_match_threshold": 2,
             # "using_whole_doc": True
             },
-            "workspace_ids": ["aos_index_mkt_faq_qq","aos_index_acts_qd"]
+            "workspace_ids": workspace_ids
         }
         }
     )
@@ -630,11 +634,13 @@ def test_internlm_model_mkt_knowledge_entry():
 
     generate_answer(
         "日志通是什么？", 
+        
         model="knowledge_qa", 
         type=entry_type, 
         stream=True,
         rag_parameters={
         "get_contexts":True,
+        "session_id":session_id,
         "retriever_config":{
             "qq_config": {
                 "q_q_match_threshold": 0.9,
@@ -643,7 +649,7 @@ def test_internlm_model_mkt_knowledge_entry():
                 "qd_match_threshold": 2,
             # "using_whole_doc": True
             },
-            "workspace_ids": ["aos_index_mkt_faq_qq","aos_index_acts_qd"]
+            "workspace_ids": workspace_ids
         }
         }
     )
@@ -684,7 +690,7 @@ def test_internlm_model_mkt_knowledge_entry():
                     "qd_match_threshold": 2,
                     "using_whole_doc": True
                 },
-                "workspace_ids": ["aos_index_mkt_faq_qq","aos_index_acts_qd"]
+                "workspace_ids": workspace_ids
         }
         }
     )
@@ -704,7 +710,7 @@ def test_internlm_model_mkt_knowledge_entry():
                     "qd_match_threshold": 2,
                     "using_whole_doc": True
                 },
-                "workspace_ids": ["aos_index_mkt_faq_qq","aos_index_acts_qd"]
+                "workspace_ids": workspace_ids
                 
             }
         }
@@ -725,7 +731,7 @@ def test_internlm_model_mkt_knowledge_entry():
                     "qd_match_threshold": 2,
                     "using_whole_doc": True
                 },
-                "workspace_ids": ["aos_index_mkt_faq_qq","aos_index_acts_qd"]
+                "workspace_ids": workspace_ids
                 
             }
         }

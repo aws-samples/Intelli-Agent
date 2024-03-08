@@ -2,6 +2,7 @@ import logging
 import json 
 import os
 import boto3
+import time
 from functools import partial 
 from textwrap import dedent
 from langchain.schema.runnable import (
@@ -16,15 +17,15 @@ from ..intent_utils import IntentRecognitionAOSIndex
 from ..llm_utils import LLMChain
 from ..serialization_utils import JSONEncoder
 from ..langchain_utils import chain_logger,RunnableDictAssign,RunnableParallelAssign
-from ..constant import IntentType, CONVERSATION_SUMMARY_TYPE
+from ..constant import IntentType, CONVERSATION_SUMMARY_TYPE, RerankerType
 import asyncio
 
 from ..retriever import (
     QueryDocumentRetriever,
-    QueryQuestionRetriever,
+    QueryQuestionRetriever
 )
 from .. import parse_config
-from ..reranker import BGEReranker, MergeReranker
+from ..reranker import BGEReranker, MergeReranker, BGEM3Reranker
 from ..context_utils import contexts_trunc,retriever_results_format,retriever_results_filter
 from ..langchain_utils import RunnableDictAssign
 from ..preprocess_utils import is_api_query, language_check,query_translate,get_service_name
@@ -40,6 +41,8 @@ workspace_table = os.environ.get("workspace_table", "")
 dynamodb = boto3.resource("dynamodb")
 workspace_table = dynamodb.Table(workspace_table)
 workspace_manager = WorkspaceManager(workspace_table)
+
+
 
 def mkt_fast_reply(
         answer="很抱歉，我只能回答与亚马逊云科技产品和服务相关的咨询。",
@@ -179,9 +182,9 @@ def market_chain_knowledge_entry(
         "intent_index_search_chain",
         message_id=message_id
     )
-    inten_postprocess_chain = intent_recognition_index.as_intent_postprocess_chain(method='top_1')
+    intent_postprocess_chain = intent_recognition_index.as_intent_postprocess_chain(method='top_1')
     
-    intent_search_and_postprocess_chain = intent_index_search_chain | inten_postprocess_chain
+    intent_search_and_postprocess_chain = intent_index_search_chain | intent_postprocess_chain
     intent_branch = RunnableBranch(
         (lambda x: not x['is_intent_index_exist'], intent_index_ingestion_chain | intent_search_and_postprocess_chain),
         intent_search_and_postprocess_chain
@@ -192,19 +195,24 @@ def market_chain_knowledge_entry(
     # step 3.2 qq match#
     ####################
     qq_match_threshold = rag_config['retriever_config']['qq_config']['qq_match_threshold']
+    qq_retriver_top_k = rag_config['retriever_config']['qq_config']['retriever_top_k']
     retriever_list = [
         QueryQuestionRetriever(
             workspace,
-            size=5
+            size=qq_retriver_top_k
         )
         for workspace in qq_workspace_list
     ]
-    qq_chain =  MergerRetriever(retrievers=retriever_list) | \
+    qq_chain =  chain_logger(
+        MergerRetriever(retrievers=retriever_list) | \
                 RunnableLambda(retriever_results_format) |\
                 RunnableLambda(partial(
                     retriever_results_filter,
                     threshold=qq_match_threshold
                 ))
+        ,
+        'qq_chain'
+    )
 
     ############################
     # step 4. qd retriever chain#
@@ -214,7 +222,8 @@ def market_chain_knowledge_entry(
     context_num = qd_config['context_num']
     retriever_top_k = qd_config['retriever_top_k']
     reranker_top_k = qd_config['reranker_top_k']
-    enable_reranker = qd_config['enable_reranker']
+    # enable_reranker = qd_config['enable_reranker']
+    reranker_type = rag_config['retriever_config']['qd_config']['reranker_type']
 
     retriever_list = [
         QueryDocumentRetriever(
@@ -228,10 +237,13 @@ def market_chain_knowledge_entry(
     ]
 
     lotr = MergerRetriever(retrievers=retriever_list)
-    if enable_reranker:
+    if reranker_type == RerankerType.BGE_RERANKER.value:
         compressor = BGEReranker(top_n=reranker_top_k)
+    elif reranker_type == RerankerType.BGE_M3_RERANKER.value:
+        compressor = BGEM3Reranker(top_n=reranker_top_k)
     else:
         compressor = MergeReranker(top_n=reranker_top_k)
+
     compression_retriever = ContextualCompressionRetriever(
         base_compressor=compressor, base_retriever=lotr
     )
@@ -273,12 +285,15 @@ def market_chain_knowledge_entry(
     ) | RunnableBranch(
         (
             lambda x: not x['filtered_docs'],
-            RunnableLambda(lambda x: mkt_fast_reply(fast_info=x['filtered_docs']))
+            RunnableLambda(lambda x: mkt_fast_reply(fast_info="insufficient context"))
         ),
         llm_chain
     )
 
-    rag_chain = qd_chain | qd_fast_reply_branch
+    rag_chain = chain_logger(
+        qd_chain | qd_fast_reply_branch,
+        'rag chain'
+    )
 
     ######################################
     # step 6.2 fast reply based on intent#
@@ -305,10 +320,14 @@ def market_chain_knowledge_entry(
         (lambda x: len(x['qq_result']) > 0, 
          RunnableLambda(
             lambda x: mkt_fast_reply(
-                sorted(x['qq_result'],key=lambda x:x['score'],reverse=True)[0]['answer']
+                answer=sorted(x['qq_result'],key=lambda x:x['score'],reverse=True)[0]['answer'],
+                fast_info='qq matched'
                 ))
         ),
-        (lambda x: x['intent_type'] not in allow_intents, RunnableLambda(lambda x: mkt_fast_reply())),
+        (
+            lambda x: x['intent_type'] not in allow_intents, 
+            RunnableLambda(lambda x: mkt_fast_reply(fast_info=f"unsupported intent type: {x['intent_type']}"))
+        ),
         rag_chain
     )
 
@@ -331,7 +350,12 @@ def market_chain_knowledge_entry(
     )
 
     full_chain = process_query_chain | qq_and_intention_type_recognition_chain | qq_and_intent_fast_reply_branch
-
+    
+    full_chain = chain_logger(
+        full_chain,
+        'full_chain'
+    )
+    start_time = time.time()
     response = asyncio.run(full_chain.ainvoke(
         {
             "query": query_input,
@@ -342,6 +366,8 @@ def market_chain_knowledge_entry(
             # "query_lang": "zh"
         }
     ))
+
+    print('invoke time',time.time()-start_time)
 
     answer = response["answer"]
     sources = response["context_sources"]
