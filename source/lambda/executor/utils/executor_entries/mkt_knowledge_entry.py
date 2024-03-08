@@ -179,9 +179,9 @@ def market_chain_knowledge_entry(
         "intent_index_search_chain",
         message_id=message_id
     )
-    inten_postprocess_chain = intent_recognition_index.as_intent_postprocess_chain(method='top_1')
+    intent_postprocess_chain = intent_recognition_index.as_intent_postprocess_chain(method='top_1')
     
-    intent_search_and_postprocess_chain = intent_index_search_chain | inten_postprocess_chain
+    intent_search_and_postprocess_chain = intent_index_search_chain | intent_postprocess_chain
     intent_branch = RunnableBranch(
         (lambda x: not x['is_intent_index_exist'], intent_index_ingestion_chain | intent_search_and_postprocess_chain),
         intent_search_and_postprocess_chain
