@@ -1,4 +1,5 @@
 import copy
+import csv
 import json
 import logging
 import time
@@ -7,6 +8,12 @@ from .constant import EntryType
 
 logger = logging.getLogger()
 
+# load sensitive words from local csv file
+sensitive_words = set()
+with open('sensitive_word.csv', mode='r') as file:
+    csv_reader = csv.reader(file)
+    for row in csv_reader:
+        sensitive_words.add(row[0])
 
 class StreamMessageType:
     START = "START"
@@ -137,6 +144,18 @@ def stream_response(**kwargs):
             # convert to websocket error
             raise WebsocketClientError
 
+    def filter_sensitive_words(sentence):
+        for sensitive_word in sensitive_words:
+            length = len(sensitive_word)
+            sentence = sentence.replace(sensitive_word, '*' * length)
+        return sentence
+
+    def rebranding_words(sentence):
+        rebranding_dict = {'AWS': 'Amazon Web Services'}
+        for key, value in rebranding_dict.items():
+            sentence = sentence.replace(key, value)
+        return sentence
+
     try:
         _send_to_ws_client(
             {
@@ -146,6 +165,8 @@ def stream_response(**kwargs):
             }
         )
         answer_str = ""
+        accumulated_chunk_ans = ""
+        stop_signals = {',', '.', '?', '!', '，', '。', '！', '？'}
         for i, ans in enumerate(answer):
             if i == 0 and log_first_token_time:
                 first_token_time = time.time()
@@ -156,6 +177,19 @@ def stream_response(**kwargs):
                     f"{custom_message_id} running time of first token whole {entry_type} : {first_token_time-request_timestamp}s"
                 )
 
+            # accumulate words to make a sentence that could be filtered by sensitive words and rebranding
+            if not (len(ans) > 0 and ans[-1] in stop_signals):
+                accumulated_chunk_ans += ans
+                continue
+
+            accumulated_chunk_ans += ans
+
+            # filter sensitive words
+            filtered_accumulated_chunk_ans = filter_sensitive_words(accumulated_chunk_ans)
+
+            # rebranding
+            rebranding_filtered_accumulated_chunk_ans = rebranding_words(filtered_accumulated_chunk_ans)
+
             _send_to_ws_client(
                 {
                     "message_type": StreamMessageType.CHUNK,
@@ -163,13 +197,17 @@ def stream_response(**kwargs):
                     "custom_message_id": custom_message_id,
                     "message": {
                         "role": "assistant",
-                        "content": ans,
+                        "content": rebranding_filtered_accumulated_chunk_ans,
                         # "knowledge_sources": sources,
                     },
                     "chunk_id": i,
                 }
             )
-            answer_str += ans
+
+            # clean up
+            accumulated_chunk_ans = ""
+
+            answer_str += rebranding_filtered_accumulated_chunk_ans
 
         if log_first_token_time:
             logger.info(
