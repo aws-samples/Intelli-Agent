@@ -232,7 +232,8 @@ def parse_mkt_entry_knowledge_config(event_body):
         "retriever_config":{
             "qq_config": {
                 "qq_match_threshold": 0.8,
-                "retriever_top_k": 5
+                "retriever_top_k": 5,
+                "query_key": "query"
             },
             "qd_config":{
                 "retriever_top_k": 5,
@@ -241,7 +242,9 @@ def parse_mkt_entry_knowledge_config(event_body):
                 "reranker_top_k": 10,
                 # "reranker_type": RerankerType.BYPASS.value,
                 "reranker_type": RerankerType.BGE_RERANKER.value,
+                # "reranker_type": RerankerType.BGE_M3_RERANKER.value,
                 "qd_match_threshold": 2,
+                "query_key":"conversation_query_rewrite"
                 # "enable_reranker":True
             },
             "workspace_ids": ["aos_index_mkt_faq_qq_m3", "aos_index_acts_qd_m3", "aos_index_mkt_faq_qd_m3", "aos_index_repost_qq_m3"],
@@ -256,11 +259,12 @@ def parse_mkt_entry_knowledge_config(event_body):
         "query_process_config": {
             "query_rewrite_config": {
                 "model_id": llm_model_id,
-                "endpoint_name": llm_model_endpoint_name,
+                "endpoint_name": llm_model_endpoint_name
             },
             "conversation_query_rewrite_config": {
                 "model_id": llm_model_id,
                 "endpoint_name": llm_model_endpoint_name,
+                "result_key": "conversation_query_rewrite"
             },
             "hyde_config": {
                 "model_id": llm_model_id,
@@ -289,6 +293,7 @@ def parse_mkt_entry_knowledge_config(event_body):
             "endpoint_name": llm_model_endpoint_name,
             "context_num": 1,
         },
+        "use_history": False
     }
 
     new_event_config = update_nest_dict(copy.deepcopy(mkt_default_config), event_body)

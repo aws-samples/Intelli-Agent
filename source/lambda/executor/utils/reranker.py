@@ -22,7 +22,7 @@ region = os.environ["AWS_REGION"]
 class BGEM3Reranker(BaseDocumentCompressor):
 
     """Number of documents to return."""
-    top_n: int = 3
+    # top_n: int = 3
     def _colbert_score_np(q_reps, p_reps):
         token_scores = np.einsum('in,jn->ij', q_reps, p_reps)
         scores = token_scores.max(-1)
@@ -98,7 +98,12 @@ class BGEM3Reranker(BaseDocumentCompressor):
 class BGEReranker(BaseDocumentCompressor):
 
     """Number of documents to return."""
-    top_n: int = 3
+    # top_n: int = 3
+    query_key: str="query"
+
+    def __init__(self, query_key='query'):
+        super().__init__()
+        self.query_key = query_key
 
     async def __ainvoke_rerank_model(self, batch, loop):
         # await asyncio.sleep(2)
@@ -146,7 +151,7 @@ class BGEReranker(BaseDocumentCompressor):
         rerank_pair = []
         rerank_text_length = 1024 * 10
         for doc in _docs:
-            rerank_pair.append([query["query"], doc[:rerank_text_length]])
+            rerank_pair.append([query[self.query_key], doc[:rerank_text_length]])
         score_list = []
         logger.info(f'rerank pair num {len(rerank_pair)}, endpoint_name: {rerank_model_endpoint}')
         response_list = asyncio.run(self.__spawn_task(rerank_pair))
@@ -172,7 +177,7 @@ class BGEReranker(BaseDocumentCompressor):
 class MergeReranker(BaseDocumentCompressor):
 
     """Number of documents to return."""
-    top_n: int = 3
+    # top_n: int = 3
 
     def compress_documents(
         self,

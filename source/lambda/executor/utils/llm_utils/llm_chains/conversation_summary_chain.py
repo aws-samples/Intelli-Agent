@@ -63,7 +63,6 @@ Question: {question}
         model_kwargs = {**cls.default_model_kwargs,**model_kwargs}
         return super().create_chain(model_kwargs=model_kwargs,**kwargs)
 
-
 class Iternlm2Chat20BConversationSummaryChain(Iternlm2Chat7BConversationSummaryChain):
     model_id = "internlm2-chat-20b"
     meta_instruction_prompt_template = """Given the following conversation and a follow up question, rephrase the follow up \
@@ -95,14 +94,9 @@ Follow Up Input: {question}"""
             question=x['query'])
         )
         prompt = prompt + "Standalone Question: "
-        # print(prompt)
         return prompt
     
-    @classmethod
-    def create_chain(cls, model_kwargs=None, **kwargs):
-        model_kwargs = model_kwargs or {}
-        model_kwargs = {**cls.default_model_kwargs,**model_kwargs}
-        return super().create_chain(model_kwargs=model_kwargs,**kwargs)
+
 
 class Claude2ConversationSummaryChain(LLMChain):
     model_id = 'anthropic.claude-v2'

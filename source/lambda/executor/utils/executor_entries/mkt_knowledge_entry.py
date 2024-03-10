@@ -109,6 +109,7 @@ def market_chain_knowledge_entry(
     ################################################################################
     
     conversation_query_rewrite_config = rag_config['query_process_config']['conversation_query_rewrite_config']
+    conversation_query_rewrite_result_key = conversation_query_rewrite_config['result_key']
     cqr_llm_chain = LLMChain.get_chain(
         intent_type=CONVERSATION_SUMMARY_TYPE,
         **conversation_query_rewrite_config
@@ -121,10 +122,11 @@ def market_chain_knowledge_entry(
 
     conversation_summary_chain = chain_logger(
         RunnablePassthrough.assign(
-            query=cqr_llm_chain
+            **{conversation_query_rewrite_result_key:cqr_llm_chain}
+            # query=cqr_llm_chain
         ),
         "conversation_summary_chain",
-        log_output_template='conversation_summary_chain result: {query}',
+        log_output_template='conversation_summary_chain result: {conversation_query_rewrite}',
         message_id=message_id
     )
 
@@ -196,10 +198,12 @@ def market_chain_knowledge_entry(
     ####################
     qq_match_threshold = rag_config['retriever_config']['qq_config']['qq_match_threshold']
     qq_retriver_top_k = rag_config['retriever_config']['qq_config']['retriever_top_k']
+    qq_query_key = rag_config['retriever_config']['qq_config']['query_key']
     retriever_list = [
         QueryQuestionRetriever(
             workspace,
-            size=qq_retriver_top_k
+            size=qq_retriver_top_k,
+            query_key=qq_query_key
         )
         for workspace in qq_workspace_list
     ]
@@ -221,16 +225,17 @@ def market_chain_knowledge_entry(
     using_whole_doc = qd_config['using_whole_doc']
     context_num = qd_config['context_num']
     retriever_top_k = qd_config['retriever_top_k']
-    reranker_top_k = qd_config['reranker_top_k']
+    # reranker_top_k = qd_config['reranker_top_k']
     # enable_reranker = qd_config['enable_reranker']
     reranker_type = rag_config['retriever_config']['qd_config']['reranker_type']
-
+    qd_query_key = rag_config['retriever_config']['qd_config']['query_key']
     retriever_list = [
         QueryDocumentRetriever(
             workspace=workspace,
             using_whole_doc=using_whole_doc,
             context_num=context_num,
             top_k=retriever_top_k,
+            query_key=qd_query_key
             #   "zh", zh_embedding_endpoint
         )
         for workspace in qd_workspace_list
@@ -238,11 +243,11 @@ def market_chain_knowledge_entry(
 
     lotr = MergerRetriever(retrievers=retriever_list)
     if reranker_type == RerankerType.BGE_RERANKER.value:
-        compressor = BGEReranker(top_n=reranker_top_k)
+        compressor = BGEReranker(query_key=qd_query_key)
     elif reranker_type == RerankerType.BGE_M3_RERANKER.value:
-        compressor = BGEM3Reranker(top_n=reranker_top_k)
+        compressor = BGEM3Reranker()
     else:
-        compressor = MergeReranker(top_n=reranker_top_k)
+        compressor = MergeReranker()
 
     compression_retriever = ContextualCompressionRetriever(
         base_compressor=compressor, base_retriever=lotr
@@ -356,13 +361,14 @@ def market_chain_knowledge_entry(
         'full_chain'
     )
     start_time = time.time()
+
     response = asyncio.run(full_chain.ainvoke(
         {
             "query": query_input,
             "debug_info": debug_info,
             # "intent_type": intent_type,
             "intent_info": intent_info,
-            "chat_history": rag_config['chat_history'],
+            "chat_history": rag_config['chat_history'] if rag_config['use_history'] else [],
             # "query_lang": "zh"
         }
     ))

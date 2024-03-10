@@ -374,8 +374,9 @@ class QueryQuestionRetriever(BaseRetriever):
     lang: Any
     embedding_model_endpoint: Any
     model_type: Any
+    query_key: str= "query"
 
-    def __init__(self, workspace:Dict, size: int):
+    def __init__(self, workspace:Dict, size: int,query_key="query"):
         super().__init__()
         self.index = workspace["open_search_index_name"]
         self.vector_field = "vector_field"
@@ -384,10 +385,11 @@ class QueryQuestionRetriever(BaseRetriever):
         self.lang = workspace["languages"][0]
         self.embedding_model_endpoint = workspace["embeddings_model_endpoint"]
         self.model_type = workspace["model_type"]
+        self.query_key = query_key
 
     @timeit
     def _get_relevant_documents(self, question: Dict, *, run_manager: CallbackManagerForRetrieverRun) -> List[Document]:
-        query = question["query"] 
+        query = question[self.query_key] 
         debug_info = question["debug_info"]
         opensearch_knn_results = []
         query_repr = get_similarity_embedding(query, self.embedding_model_endpoint, self.model_type)
@@ -420,8 +422,9 @@ class QueryDocumentRetriever(BaseRetriever):
     lang: Any
     model_type: Any
     embedding_model_endpoint: Any
+    query_key: str="query"
 
-    def __init__(self, workspace, using_whole_doc, context_num, top_k):
+    def __init__(self, workspace, using_whole_doc, context_num, top_k,query_key='query'):
         super().__init__()
         self.index = workspace["open_search_index_name"]
         self.vector_field = "vector_field"
@@ -433,6 +436,7 @@ class QueryDocumentRetriever(BaseRetriever):
         self.using_whole_doc = using_whole_doc
         self.context_num = context_num
         self.top_k = top_k
+        self.query_key = query_key
 
     async def __ainvoke_get_context(self, aos_hit, window_size, loop):
         return await loop.run_in_executor(None,
@@ -496,7 +500,7 @@ class QueryDocumentRetriever(BaseRetriever):
 
     @timeit
     def _get_relevant_documents(self, question: Dict, *, run_manager: CallbackManagerForRetrieverRun) -> List[Document]:
-        query = question["query"]
+        query = question[self.query_key]
         if "query_lang" in question and question["query_lang"] != self.lang and "translated_text" in question:
             query = question["translated_text"]
         debug_info = question["debug_info"]
