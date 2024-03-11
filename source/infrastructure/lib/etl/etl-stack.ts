@@ -204,9 +204,6 @@ export class EtlStack extends NestedStack {
             maxCapacity: 1,
             role: glueRole,
             defaultArguments: {
-                '--S3_BUCKET.$': sfn.JsonPath.stringAt('$.s3Bucket'),
-                '--S3_PREFIX.$': sfn.JsonPath.stringAt('$.s3Prefix'),
-                '--QA_ENHANCEMENT.$': sfn.JsonPath.stringAt('$.qaEnhance'),
                 '--AOS_ENDPOINT': props._domainEndpoint,
                 '--REGION': props._region,
                 '--EMBEDDING_MODEL_ENDPOINT': props._embeddingEndpoint[0],
@@ -215,7 +212,6 @@ export class EtlStack extends NestedStack {
                 '--RES_BUCKET': _S3Bucket.bucketName,
                 '--ProcessedObjectsTable': table.tableName,
                 '--WORKSPACE_TABLE': workspaceTable.tableName,
-                '--WORKSPACE_ID.$': sfn.JsonPath.stringAt('$.workspaceId'),
                 '--additional-python-modules': 'langchain==0.1.0,beautifulsoup4==4.12.2,requests-aws4auth==1.2.3,boto3==1.28.84,openai==0.28.1,pyOpenSSL==23.3.0,tenacity==8.2.3,markdownify==0.11.6,mammoth==1.6.0,chardet==5.2.0,python-docx==1.1.0,nltk==3.8.1,pdfminer.six==20221105',
                 '--python-modules-installer-option': BuildConfig.JOB_PIP_OPTION,
                 // add multiple extra python files
@@ -264,7 +260,7 @@ export class EtlStack extends NestedStack {
                     'qaEnhance.$': '$.Payload.qaEnhance',
                     'workspaceId.$': '$.Payload.workspaceId',
                     'offline.$': '$.Payload.offline',
-                    "batchFileNumber": '$.Payload.batchFileNumber',
+                    "batchFileNumber.$": '$.Payload.batchFileNumber',
                     'batchIndices.$': '$.Payload.batchIndices',
                 }
             },

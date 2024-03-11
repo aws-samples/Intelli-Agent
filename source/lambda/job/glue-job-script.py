@@ -12,6 +12,20 @@ from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple
 import boto3
 import chardet
 import nltk
+from boto3.dynamodb.conditions import Attr, Key
+from langchain.docstore.document import Document
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.vectorstores import OpenSearchVectorSearch
+from llm_bot_dep import sm_utils
+from llm_bot_dep.constant import SplittingType
+from llm_bot_dep.ddb_utils import WorkspaceManager
+from llm_bot_dep.embeddings import get_embedding_info
+from llm_bot_dep.enhance_utils import EnhanceWithBedrock
+from llm_bot_dep.loaders.auto import cb_process_object
+from llm_bot_dep.storage_utils import save_content_to_s3
+from opensearchpy import RequestsHttpConnection
+from requests_aws4auth import AWS4Auth
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -45,48 +59,30 @@ except Exception as e:
     args = json.load(open(sys.argv[1]))
     args["BATCH_INDICE"] = sys.argv[2]
 
-from boto3.dynamodb.conditions import Attr, Key
-from langchain.docstore.document import Document
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.vectorstores import OpenSearchVectorSearch
-from llm_bot_dep import sm_utils
-from llm_bot_dep.constant import SplittingType
-from llm_bot_dep.ddb_utils import WorkspaceManager
-from llm_bot_dep.embeddings import get_embedding_info
-from llm_bot_dep.enhance_utils import EnhanceWithBedrock
-from llm_bot_dep.loaders.auto import cb_process_object
-from llm_bot_dep.storage_utils import save_content_to_s3
-from opensearchpy import RequestsHttpConnection
-from requests_aws4auth import AWS4Auth
-from tenacity import retry, stop_after_attempt, wait_exponential
-
 # Adaption to allow nougat to run in AWS Glue with writable /tmp
 os.environ["TRANSFORMERS_CACHE"] = "/tmp/transformers_cache"
 os.environ["NOUGAT_CHECKPOINT"] = "/tmp/nougat_checkpoint"
 os.environ["NLTK_DATA"] = "/tmp/nltk_data"
 
 # Parse arguments
-
-
-# Online process triggered by S3 Object create event does not have batch indice
-# Set default value for BATCH_INDICE if it doesn't exist
 if "BATCH_INDICE" not in args:
     args["BATCH_INDICE"] = "0"
-s3_bucket = args["S3_BUCKET"]
-s3_prefix = args["S3_PREFIX"]
-aosEndpoint = args["AOS_ENDPOINT"]
 
+aosEndpoint = args["AOS_ENDPOINT"]
+batchFileNumber = args["BATCH_FILE_NUMBER"]
+batchIndice = args["BATCH_INDICE"]
 embeddingModelEndpoint = args["EMBEDDING_MODEL_ENDPOINT"]
 etlModelEndpoint = args["ETL_MODEL_ENDPOINT"]
+offline = args["OFFLINE"]
+processedObjectsTable = args["ProcessedObjectsTable"]
+qa_enhancement = args["QA_ENHANCEMENT"]
 region = args["REGION"]
 res_bucket = args["RES_BUCKET"]
-offline = args["OFFLINE"]
-qa_enhancement = args["QA_ENHANCEMENT"]
-# TODO, pass the bucket and prefix need to handle in current job directly
-batchIndice = args["BATCH_INDICE"]
-processedObjectsTable = args["ProcessedObjectsTable"]
+s3_bucket = args["S3_BUCKET"]
+s3_prefix = args["S3_PREFIX"]
 workspace_id = args["WORKSPACE_ID"]
 workspace_table = args["WORKSPACE_TABLE"]
+
 
 s3 = boto3.client("s3")
 smr_client = boto3.client("sagemaker-runtime")
@@ -96,7 +92,6 @@ workspace_table = dynamodb.Table(workspace_table)
 workspace_manager = WorkspaceManager(workspace_table)
 
 ENHANCE_CHUNK_SIZE = 25000
-# Make it 3600s for debugging purpose
 OBJECT_EXPIRY_TIME = 3600
 
 credentials = boto3.Session().get_credentials()
@@ -109,7 +104,6 @@ awsauth = AWS4Auth(
 )
 MAX_OS_DOCS_PER_PUT = 8
 
-# Set the NLTK data path to the /tmp directory for AWS Glue jobs
 nltk.data.path.append("/tmp/nltk_data")
 
 supported_file_types = ["pdf", "txt", "doc", "md", "html", "json", "jsonl", "csv"]
@@ -140,29 +134,26 @@ def iterate_s3_files(bucket: str, prefix: str) -> Generator:
     currentIndice = 0
     for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
         for obj in page.get("Contents", []):
-            currentIndice += 1
             key = obj["Key"]
-            # skip the prefix with slash, which is the folder name
-            if key.endswith("/"):
-                continue
-            logger.info(
-                "Current batchIndice: {}, bucket: {}, key: {}".format(
-                    currentIndice, bucket, key
-                )
-            )
-            if (currentIndice - 1) // 100 != int(batchIndice):
-                logger.info(
-                    "currentIndice: {}, batchIndice: {}, skip file: {}".format(
-                        currentIndice, batchIndice, key
-                    )
-                )
-                continue
-            logger.info(
-                "Processing {} doc in {} batch, key: {}".format(
-                    currentIndice, batchIndice, key
-                )
-            )
             file_type = key.split(".")[-1].lower()  # Extract file extension
+            # skip the prefix with slash, which is the folder name
+            print(f"key: {key}, file_type: {file_type}")
+            print(
+                f"currentIndice: {currentIndice}, batchIndice: {batchIndice}, batchFileNumber: {batchFileNumber}"
+            )
+
+            if key.endswith("/") or file_type not in supported_file_types:
+                continue
+
+            currentIndice += 1
+
+            if currentIndice < int(batchIndice) * int(batchFileNumber):
+                continue
+            elif currentIndice >= (int(batchIndice) + 1) * int(batchFileNumber):
+                break
+
+            logger.info("Processing object: %s", key)
+
             response = s3.get_object(Bucket=bucket, Key=key)
             file_content = response["Body"].read()
             # assemble bucket and key as args for the callback function
