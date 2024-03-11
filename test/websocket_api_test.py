@@ -10,9 +10,42 @@ import json
 
 # find ws_url from api gateway
 ws_url = "wss://2ogbgobue2.execute-api.us-west-2.amazonaws.com/prod/"
+
+
+def get_answer(body):
+    ws.send(json.dumps(body))
+    start_time = time.time()
+    answer = ""
+    context = None
+    while True:
+        ret = json.loads(ws.recv())
+        try:
+            message_type = ret['choices'][0]['message_type']
+        except:
+            print(ret)
+            print(f'total time: {time.time()-start_time}' )
+            raise
+        if message_type == "START":
+            continue 
+        elif message_type == "CHUNK":
+            answer += ret['choices'][0]['message']['content']
+            print(ret['choices'][0]['message']['content'],end="",flush=True)
+        elif message_type == "END":
+            break
+        elif message_type == "ERROR":
+            print(ret['choices'][0]['message']['content'])
+            break 
+        elif message_type == "CONTEXT":
+            print()
+            context=ret
+            print('contexts',ret)
+            # print('sources: ',ret['choices'][0]['knowledge_sources'])
+
+    ws.close()  
+    return answer,context
+
 # ws_url = "wss://2ogbgobue2.execute-api.us-west-2.amazonaws.com/v1"
 # wss://2ogbgobue2.execute-api.us-west-2.amazonaws.com/prod/
-ws = create_connection(ws_url)
 
 question_library = [
     "IoT Core是否支持Qos2？",
@@ -26,26 +59,35 @@ question_library = [
     "Amazon EC2 提供了哪些功能来支持不同区域之间的数据恢复?"
 ]
 
+market_test_cases = [
+    '亚马逊云科技中国区域免费套餐有哪几种不同类型的优惠？',
+    'Amazon Lambda的免费套餐包含什么？',
+    '在亚马逊云科技网站上，完成所有账户注册步骤后，什么时候才可以开始使用？',
+    'Amazon Lambda函数是什么？',
+    '日志通是什么？',
+    'lambda是什么？',
+    '2024北京国际车展上，亚马逊云科技会参加吗？',
+    '3月份在深圳有生成式AI的活动吗？',
+    '2024年会举办出海全球化论坛吗？',
+    '2024年出海全球化论坛的会议日程是什么？',
+    '能否通过JDBC连接到RDS for PostgreSQL？ 有相关的指导吗？',
+    '如何解决切换RI后网速变慢？',
+    '如何升级EC2配置不改变IP',
+    '请问怎么关闭账号？',
+    '个人能否注册账号？',
+    '怎么开发票？',
+    '使用CDN服务要备案吗？',
+    '今天是几月几号？',
+    '亚马逊云科技有上海区域吗？',
+    '我上一个问题是什么？'
+]
+
 
 # endpoint_name = 'internlm2-chat-20b-4bits-2024-03-04-06-32-53-653'
 # model_id = "internlm2-chat-20b"
 entry_type = "market_chain"
-workspace_ids = ["aos_index_mkt_faq_qq","aos_index_acts_qd"]
+# workspace_ids = ["aos_index_mkt_faq_qq","aos_index_acts_qd"]
 
-body = {
-    "get_contexts": True,
-    "type" : entry_type, 
-    "retriever_config":{
-            "qq_config": {
-                "q_q_match_threshold": 0.8,
-            },
-            "qd_config":{
-                "qd_match_threshold": 2,
-            # "using_whole_doc": True
-            },
-            "workspace_ids": workspace_ids
-        }
-}
 
 # body = {
 #     "get_contexts": True,
@@ -128,28 +170,14 @@ body = {
 #     "get_contexts":True,
 #     # "session_id":f"test_{int(time.time())}"
 # }
-ws.send(json.dumps(body))
-start_time = time.time()
-while True:
-    ret = json.loads(ws.recv())
-    try:
-        message_type = ret['choices'][0]['message_type']
-    except:
-        print(ret)
-        print(f'total time: {time.time()-start_time}' )
-        raise
-    if message_type == "START":
-        continue 
-    elif message_type == "CHUNK":
-        print(ret['choices'][0]['message']['content'],end="",flush=True)
-    elif message_type == "END":
-        break
-    elif message_type == "ERROR":
-        print(ret['choices'][0]['message']['content'])
-        break 
-    elif message_type == "CONTEXT":
-        print()
-        print('contexts',ret)
-        # print('sources: ',ret['choices'][0]['knowledge_sources'])
-
-ws.close()  
+for question in market_test_cases:
+    ws = create_connection(ws_url)
+    print('-*'*50)
+    print(f'question: ', question)
+    body = {
+        "get_contexts": False,
+        "type" : entry_type, 
+        "messages": [{"role": "user","content": question}]
+    }
+    get_answer(body)
+    

@@ -590,6 +590,17 @@ def test_internlm_model_mkt_knowledge_entry():
         }
         }
 
+    # generate_answer(
+    #     "2024北京国际车展上，亚马逊云科技会参加吗？",
+    #     # "什么是日志通",
+    #     model="knowledge_qa", 
+    #     type=entry_type, 
+    #     stream=True,
+    #     rag_parameters=rag_parameters
+    # )
+    # print(fg)
+
+
     generate_answer(
         "AWS支持上海region吗？",
         # "什么是日志通",
@@ -980,6 +991,24 @@ def market_deploy_test():
     market_summary_test2()
 
 
+
+def dgr_deploy_test():
+    questions = [
+        "Amazon EC2 提供了哪些功能来支持不同区域之间的数据恢复?",
+        "请问Amazon ECS Fargate支持哪些操作系统和CPU架构?",
+        "如何将镜像推送到 Amazon Elastic Container Registry？",
+        "Amazon S3 静态网站端点支持 HTTPS吗？",
+        "如何禁用QuickSight账户中的电子邮件邀请新用户选项？",
+        "如何解决Linux实例在升级和重启后未通过实例检查、无法连接的问题？"
+    ]
+    for question in questions:
+        generate_answer(
+            question, 
+            stream=True,
+            type="dgr"
+        )
+    
+
 if __name__ == "__main__":
     # market_summary_test()
     # multiturn_chat_test()
@@ -1010,7 +1039,8 @@ if __name__ == "__main__":
     # test_baichuan_model()
     # market_summary_test2()
     # test_internlm_model()
-    test_internlm_model_mkt_knowledge_entry()
+    dgr_deploy_test()
+    # test_internlm_model_mkt_knowledge_entry()
     # test_internlm_model_mkt_knowledge_entry_qq_match()
     # test_internlm_model_mkt_knowledge_entry_langgraph()
     # test_baichuan_model()
