@@ -288,7 +288,7 @@ export class EtlStack extends NestedStack {
                 '--S3_BUCKET.$': '$.s3Bucket',
                 '--S3_PREFIX.$': '$.s3Prefix',
                 '--AOS_ENDPOINT': props._domainEndpoint,
-                '--EMBEDDING_MODEL_ENDPOINT': props._embeddingEndpoint[0],
+                '--EMBEDDING_MODEL_ENDPOINT': 'bge-m3-2024-03-05-07-28-21-582-endpoint',
                 '--ETL_MODEL_ENDPOINT': this._etlEndpoint,
                 '--DOC_INDEX_TABLE': props._OpenSearchIndex,
                 '--REGION': props._region,
