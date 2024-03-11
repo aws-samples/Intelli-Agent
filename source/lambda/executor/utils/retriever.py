@@ -45,40 +45,53 @@ def remove_redundancy_debug_info(results):
 def get_similarity_embedding(
     query: str,
     embedding_model_endpoint: str,
+    model_type: str = "vector"
 ):
     query_similarity_embedding_prompt = query
-    query_embedding = SagemakerEndpointVectorOrCross(
+    response = SagemakerEndpointVectorOrCross(
         prompt=query_similarity_embedding_prompt,
         endpoint_name=embedding_model_endpoint,
         region_name=region,
-        model_type="vector",
+        model_type=model_type,
         stop=None,
     )
-    return query_embedding
+    if model_type == "vector":
+        response = {"dense_vecs": response}
+    elif model_type == "m3":
+        response["dense_vecs"] = response["dense_vecs"][0]
+    return response
 
 @timeit
 def get_relevance_embedding(
     query: str,
     query_lang: str,
     embedding_model_endpoint: str,
+    model_type: str = "vector"
 ):
-    if query_lang == "zh":
-        query_relevance_embedding_prompt = (
-            "为这个句子生成表示以用于检索相关文章：" + query
+    if model_type == "vector":
+        if query_lang == "zh":
+            query_relevance_embedding_prompt = (
+                "为这个句子生成表示以用于检索相关文章：" + query
+            )
+        elif query_lang == "en":
+            query_relevance_embedding_prompt = (
+                "Represent this sentence for searching relevant passages: "
+                + query
         )
-    elif query_lang == "en":
-        query_relevance_embedding_prompt = (
-            "Represent this sentence for searching relevant passages: "
-            + query
-        )
-    query_embedding = SagemakerEndpointVectorOrCross(
+    elif model_type == "m3":
+        query_relevance_embedding_prompt = query
+    response = SagemakerEndpointVectorOrCross(
         prompt=query_relevance_embedding_prompt,
         endpoint_name=embedding_model_endpoint,
         region_name=region,
-        model_type="vector",
+        model_type=model_type,
         stop=None,
     )
-    return query_embedding
+    if model_type == "vector":
+        response = {"dense_vecs": response}
+    elif model_type == "m3":
+        response["dense_vecs"] = response["dense_vecs"][0]
+    return response
 
 def get_filter_list(parsed_query: dict):
     filter_list = []
@@ -141,11 +154,20 @@ def get_doc(file_path, index_name):
     chunk_text_list = [x[4] for x in sorted_chunk_list]
     return "\n".join(chunk_text_list)
 
-def get_context(previous_chunk_id, next_chunk_id, index_name, window_size):
+def get_inner_context(chunk_id, index_name, window_size):
+    next_content_list = []
     previous_content_list = []
     previous_pos = 0
     next_pos = 0
-    while previous_chunk_id and previous_chunk_id.startswith("$") and previous_pos < window_size:
+    chunk_id_prefix = "-".join(chunk_id.split("-")[:-1])
+    section_id = int(chunk_id.split("-")[-1])
+    previous_section_id = section_id
+    next_section_id = section_id
+    while previous_pos < window_size:
+        previous_section_id -= 1
+        if previous_section_id < 1:
+            break
+        previous_chunk_id = f"{chunk_id_prefix}-{previous_section_id}"
         opensearch_query_response = aos_client.search(
             index_name=index_name,
             query_type="basic",
@@ -155,13 +177,13 @@ def get_context(previous_chunk_id, next_chunk_id, index_name, window_size):
         )
         if len(opensearch_query_response["hits"]["hits"]) > 0:
             r = opensearch_query_response["hits"]["hits"][0]
-            previous_chunk_id = r["_source"]["metadata"]["heading_hierarchy"]["previous"]
             previous_content_list.insert(0, r["_source"]["text"])
             previous_pos += 1
         else:
             break
-    next_content_list = []
-    while next_chunk_id and next_chunk_id.startswith("$") and next_pos < window_size:
+    while next_pos < window_size:
+        next_section_id += 1
+        next_chunk_id = f"{chunk_id_prefix}-{next_section_id}"
         opensearch_query_response = aos_client.search(
             index_name=index_name,
             query_type="basic",
@@ -171,11 +193,105 @@ def get_context(previous_chunk_id, next_chunk_id, index_name, window_size):
         )
         if len(opensearch_query_response["hits"]["hits"]) > 0:
             r = opensearch_query_response["hits"]["hits"][0]
-            next_chunk_id = r["_source"]["metadata"]["heading_hierarchy"]["next"]
-            next_content_list.append(r["_source"]["text"])
+            next_content_list.insert(0, r["_source"]["text"])
             next_pos += 1
         else:
             break
+    return [previous_content_list, next_content_list]
+
+def get_sibling_context(chunk_id, index_name, window_size):
+    next_content_list = []
+    previous_content_list = []
+    previous_pos = 0
+    next_pos = 0
+    chunk_id_prefix = "-".join(chunk_id.split("-")[:-1])
+    section_id = int(chunk_id.split("-")[-1])
+    previous_section_id = section_id
+    next_section_id = section_id
+    while previous_pos < window_size:
+        previous_section_id -= 1
+        if previous_section_id < 1:
+            break
+        previous_chunk_id = f"{chunk_id_prefix}-{previous_section_id}"
+        opensearch_query_response = aos_client.search(
+            index_name=index_name,
+            query_type="basic",
+            query_term=previous_chunk_id,
+            field="metadata.chunk_id",
+            size=1,
+        )
+        if len(opensearch_query_response["hits"]["hits"]) > 0:
+            r = opensearch_query_response["hits"]["hits"][0]
+            previous_content_list.insert(0, r["_source"]["text"])
+            previous_pos += 1
+        else:
+            break
+    while next_pos < window_size:
+        next_section_id += 1
+        next_chunk_id = f"{chunk_id_prefix}-{next_section_id}"
+        opensearch_query_response = aos_client.search(
+            index_name=index_name,
+            query_type="basic",
+            query_term=next_chunk_id,
+            field="metadata.chunk_id",
+            size=1,
+        )
+        if len(opensearch_query_response["hits"]["hits"]) > 0:
+            r = opensearch_query_response["hits"]["hits"][0]
+            next_content_list.insert(0, r["_source"]["text"])
+            next_pos += 1
+        else:
+            break
+    return [previous_content_list, next_content_list]
+
+def get_context(aos_hit, index_name, window_size):
+    previous_content_list = []
+    next_content_list = []
+    if "chunk_id" not in aos_hit['_source']["metadata"]:
+        return previous_content_list, next_content_list
+    chunk_id = aos_hit["_source"]["metadata"]["chunk_id"]
+    inner_previous_content_list, inner_next_content_list = get_sibling_context(chunk_id, index_name, window_size)
+    if len(inner_previous_content_list) == window_size and len(inner_next_content_list) == window_size:
+        return inner_previous_content_list, inner_next_content_list
+
+    if "heading_hierarchy" not in aos_hit['_source']["metadata"]:
+        return [previous_content_list, next_content_list]
+    if "previous" in aos_hit['_source']["metadata"]["heading_hierarchy"]:
+        previous_chunk_id = aos_hit['_source']["metadata"]["heading_hierarchy"]["previous"]
+        previous_pos = 0
+        while previous_chunk_id and previous_chunk_id.startswith("$") and previous_pos < window_size:
+            opensearch_query_response = aos_client.search(
+                index_name=index_name,
+                query_type="basic",
+                query_term=previous_chunk_id,
+                field="metadata.chunk_id",
+                size=1,
+            )
+            if len(opensearch_query_response["hits"]["hits"]) > 0:
+                r = opensearch_query_response["hits"]["hits"][0]
+                previous_chunk_id = r["_source"]["metadata"]["heading_hierarchy"]["previous"]
+                previous_content_list.insert(0, r["_source"]["text"])
+                previous_pos += 1
+            else:
+                break
+    if "next" in aos_hit['_source']["metadata"]["heading_hierarchy"]:
+        next_chunk_id = aos_hit['_source']["metadata"]["heading_hierarchy"]["next"]
+        next_pos = 0
+        while next_chunk_id and next_chunk_id.startswith("$") and next_pos < window_size:
+            opensearch_query_response = aos_client.search(
+                index_name=index_name,
+                query_type="basic",
+                query_term=next_chunk_id,
+                field="metadata.chunk_id",
+                size=1,
+            )
+            if len(opensearch_query_response["hits"]["hits"]) > 0:
+                r = opensearch_query_response["hits"]["hits"][0]
+                next_chunk_id = r["_source"]["metadata"]["heading_hierarchy"]["next"]
+                next_content_list.append(r["_source"]["text"])
+                next_pos += 1
+            else:
+                break
     return [previous_content_list, next_content_list]
 
 def get_parent_content(previous_chunk_id, next_chunk_id, index_name):
@@ -257,35 +373,37 @@ class QueryQuestionRetriever(BaseRetriever):
     size: Any
     lang: Any
     embedding_model_endpoint: Any
+    model_type: Any
+    query_key: str= "query"
 
-    def __init__(self, index: str, vector_field: str, source_field: str,
-                 size: float, lang: str, embedding_model_endpoint: str):
+    def __init__(self, workspace:Dict, size: int,query_key="query"):
         super().__init__()
-        self.index = index
-        self.vector_field = vector_field
-        self.source_field = source_field
+        self.index = workspace["open_search_index_name"]
+        self.vector_field = "vector_field"
+        self.source_field = "file_path"
         self.size = size
-        self.lang = lang
-        self.embedding_model_endpoint = embedding_model_endpoint
+        self.lang = workspace["languages"][0]
+        self.embedding_model_endpoint = workspace["embeddings_model_endpoint"]
+        self.model_type = workspace["model_type"]
+        self.query_key = query_key
 
     @timeit
     def _get_relevant_documents(self, question: Dict, *, run_manager: CallbackManagerForRetrieverRun) -> List[Document]:
-        query = question["query"] 
+        query = question[self.query_key] 
         debug_info = question["debug_info"]
-        start = time.time()
         opensearch_knn_results = []
-        query_embedding = get_similarity_embedding(query, self.embedding_model_endpoint)
+        query_repr = get_similarity_embedding(query, self.embedding_model_endpoint, self.model_type)
         opensearch_knn_response = aos_client.search(
             index_name=self.index,
             query_type="knn",
-            query_term=query_embedding,
+            query_term=query_repr["dense_vecs"],
             field=self.vector_field,
             size=self.size,
         )
         opensearch_knn_results.extend(
             organize_faq_results(opensearch_knn_response, self.index, self.source_field)
         )
-        debug_info[f"q_q_match_info_{self.index}_{self.lang}"] = remove_redundancy_debug_info(opensearch_knn_results)
+        debug_info[f"qq-knn-recall-{self.index}-{self.lang}"] = remove_redundancy_debug_info(opensearch_knn_results)
         docs = []
         for result in opensearch_knn_results:
             docs.append(Document(page_content=result["content"], metadata={
@@ -302,26 +420,28 @@ class QueryDocumentRetriever(BaseRetriever):
     context_num: Any
     top_k: Any
     lang: Any
+    model_type: Any
     embedding_model_endpoint: Any
+    query_key: str="query"
 
-    def __init__(self, index, vector_field, text_field,  source_field, using_whole_doc,
-                 context_num, top_k, lang, embedding_model_endpoint):
+    def __init__(self, workspace, using_whole_doc, context_num, top_k,query_key='query'):
         super().__init__()
-        self.index = index
-        self.vector_field = vector_field
-        self.text_field = text_field
-        self.source_field = source_field
+        self.index = workspace["open_search_index_name"]
+        self.vector_field = "vector_field"
+        self.source_field = "file_path"
+        self.text_field = "text"
+        self.lang = workspace["languages"][0]
+        self.embedding_model_endpoint = workspace["embeddings_model_endpoint"]
+        self.model_type = workspace["model_type"]
         self.using_whole_doc = using_whole_doc
         self.context_num = context_num
         self.top_k = top_k
-        self.lang = lang
-        self.embedding_model_endpoint = embedding_model_endpoint
+        self.query_key = query_key
 
-    async def __ainvoke_get_context(self, previous_chunk_id, next_chunk_id, window_size, loop):
+    async def __ainvoke_get_context(self, aos_hit, window_size, loop):
         return await loop.run_in_executor(None,
                                           get_context,
-                                          previous_chunk_id,
-                                          next_chunk_id,
+                                          aos_hit,
                                           self.index,
                                           window_size)
 
@@ -329,16 +449,13 @@ class QueryDocumentRetriever(BaseRetriever):
         loop = asyncio.get_event_loop()
         task_list = []
         for aos_hit in aos_hits:
-            if context_size and ("heading_hierarchy" in aos_hit['_source']["metadata"] and 
-                                    "previous" in aos_hit['_source']["metadata"]["heading_hierarchy"] and
-                                    "next" in aos_hit['_source']["metadata"]["heading_hierarchy"]):
-                    task = asyncio.create_task(
-                        self.__ainvoke_get_context(
-                            aos_hit['_source']["metadata"]["heading_hierarchy"]["previous"],
-                            aos_hit['_source']["metadata"]["heading_hierarchy"]["next"],
-                            context_size,
-                            loop))
-                    task_list.append(task)
+            if context_size:
+                task = asyncio.create_task(
+                    self.__ainvoke_get_context(
+                        aos_hit,
+                        context_size,
+                        loop))
+                task_list.append(task)
         return await asyncio.gather(*task_list)
 
     @timeit
@@ -383,15 +500,17 @@ class QueryDocumentRetriever(BaseRetriever):
 
     @timeit
     def _get_relevant_documents(self, question: Dict, *, run_manager: CallbackManagerForRetrieverRun) -> List[Document]:
-        query = question["query"] 
+        query = question[self.query_key]
+        if "query_lang" in question and question["query_lang"] != self.lang and "translated_text" in question:
+            query = question["translated_text"]
         debug_info = question["debug_info"]
         opensearch_knn_results = []
-        query_embedding = get_relevance_embedding(query, self.lang, self.embedding_model_endpoint)
+        query_repr = get_relevance_embedding(query, self.lang, self.embedding_model_endpoint, self.model_type)
         filter = get_filter_list(question)
         opensearch_knn_response = aos_client.search(
             index_name=self.index,
             query_type="knn",
-            query_term=query_embedding,
+            query_term=query_repr["dense_vecs"],
             field=self.vector_field,
             size=self.top_k,
             filter=filter
@@ -405,7 +524,7 @@ class QueryDocumentRetriever(BaseRetriever):
 
         # 3. combine these two opensearch_knn_response and opensearch_query_response
         final_results = opensearch_knn_results + opensearch_query_results
-        debug_info[f"knowledge_qa_knn_recall_{self.index}_{self.lang}"] = remove_redundancy_debug_info(final_results)
+        debug_info[f"qd-knn-recall-{self.index}-{self.lang}"] = remove_redundancy_debug_info(final_results)
 
         doc_list = []
         content_set = set()
@@ -448,3 +567,4 @@ def index_results_format(docs:list, threshold=-1):
     # output = {"answer": json.dumps(results, ensure_ascii=False), "sources": [], "contexts": []}
     output = {"answer": results, "sources": [], "contexts": [], "context_docs": [], "context_sources": []}
     return output
+

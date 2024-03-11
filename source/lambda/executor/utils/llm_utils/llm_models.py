@@ -1,6 +1,7 @@
 import boto3 
 import json 
 import os 
+import logging
 
 # from llmbot_utils import concat_recall_knowledge
 from typing import Any, List, Mapping, Optional
@@ -13,6 +14,10 @@ from langchain.llms import Bedrock
 from langchain_community.chat_models import BedrockChat
 from langchain_community.llms.sagemaker_endpoint import LineIterator
 from ..constant import HUMAN_MESSAGE_TYPE,AI_MESSAGE_TYPE,SYSTEM_MESSAGE_TYPE
+from ..logger_utils import logger
+
+logger = logging.getLogger("llm_model")
+logger.setLevel(logging.INFO)
 
 class ModelMeta(type):
     def __new__(cls, name, bases, attrs):
@@ -91,7 +96,7 @@ class SagemakerModelBase(Model):
         self.model_kwargs = model_kwargs or {}
         if self.default_model_kwargs is not None:
             self.model_kwargs = {**self.default_model_kwargs,**self.model_kwargs}
-        
+
         self.region_name = kwargs.get('region_name',None) \
             or os.environ.get('AWS_REGION', None) or None
         self.kwargs = kwargs
@@ -153,7 +158,7 @@ class Baichuan2Chat13B4Bits(SagemakerModelBase):
             "temperature": 0.3,
             "top_k": 5,
             "top_p": 0.85,
-            "repetition_penalty": 1.05,
+            # "repetition_penalty": 1.05,
             "do_sample": True,
             "timeout":60
         }
@@ -204,7 +209,7 @@ class Internlm2Chat7B(SagemakerModelBase):
     default_model_kwargs = {
             "max_new_tokens": 1024,
             "timeout":60,
-            'repetition_penalty':1.2,
+            # 'repetition_penalty':1.05,
             # "do_sample":True,
             "temperature": 0.1,
             "top_p": 0.8
@@ -222,6 +227,7 @@ class Internlm2Chat7B(SagemakerModelBase):
         #     assert user_message.type == HUMAN_MESSAGE_TYPE \
         #           and ai_message.type == AI_MESSAGE_TYPE , chat_history
         #     history.append((user_message.content,ai_message.content))
+        logger.info(f'prompt char num: {len(x["prompt"])}')
         body = {
             "query": x['prompt'],
             # "meta_instruction": x.get('meta_instruction',self.meta_instruction),
@@ -229,5 +235,10 @@ class Internlm2Chat7B(SagemakerModelBase):
             # "history": history
         }
         body.update(self.model_kwargs)
+        # print('body',body)
         input_str = json.dumps(body)
         return input_str
+
+
+class Internlm2Chat20B(Internlm2Chat7B):
+    model_id = "internlm2-chat-20b"

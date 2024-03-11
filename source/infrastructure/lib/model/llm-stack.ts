@@ -200,7 +200,7 @@ export class LLMStack extends NestedStack {
                 tags: instruct_tag_array,
             });
 
-            this._instructEndPoint = InstructEndpoint.endpointName as string;
+            this._instructEndPoint = InstructEndpointName;
         }
 
 

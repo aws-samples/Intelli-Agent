@@ -26,6 +26,7 @@ interface apiStackProps extends StackProps {
     _embeddingEndPoints: string[];
     _instructEndPoint: string;
     _chatSessionTable: string;
+    _workspaceTable: string;
     // type of StepFunctions
     _sfnOutput: sfn.StateMachine;
     _OpenSearchIndex: string;
@@ -51,6 +52,7 @@ export class LLMApiStack extends NestedStack {
         const _aosIndex = props._OpenSearchIndex
         const _aosIndexDict = props._OpenSearchIndexDict
         const _chatSessionTable = props._chatSessionTable
+        const _workspaceTable = props._workspaceTable
         const _jobQueueArn = props._jobQueueArn
         const _jobDefinitionArn = props._jobDefinitionArn
         const _etlEndpoint = props._etlEndpoint
@@ -291,7 +293,7 @@ export class LLMApiStack extends NestedStack {
         const lambdaDdbIntegration = new apigw.LambdaIntegration(lambdaDdb, { proxy: true, });
 
         // All AOS wrapper should be within such lambda
-        const apiResourceDdb = api.root.addResource('ddb');
+        const apiResourceDdb = api.root.addResource('feedback');
         apiResourceDdb.addMethod('POST', lambdaDdbIntegration);
 
         const apiResourceStepFunction = api.root.addResource('etl');
@@ -323,7 +325,8 @@ export class LLMApiStack extends NestedStack {
                 architecture: Architecture.X86_64,
                 environment: {
                     aos_endpoint: _domainEndpoint,
-                    llm_endpoint: props._instructEndPoint,
+                    llm_model_endpoint_name: props._instructEndPoint,
+                    llm_model_id: "internlm2-chat-7b",
                     embedding_endpoint: props._embeddingEndPoints[0],
                     zh_embedding_endpoint: props._embeddingEndPoints[0],
                     en_embedding_endpoint: props._embeddingEndPoints[1],
@@ -331,6 +334,7 @@ export class LLMApiStack extends NestedStack {
                     aos_index: _aosIndex,
                     aos_index_dict: _aosIndexDict,
                     chat_session_table: _chatSessionTable,
+                    workspace_table: _workspaceTable,
                 },
                 layers: [_ApiLambdaExecutorLayer]
             });

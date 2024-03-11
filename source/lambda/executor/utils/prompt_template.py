@@ -233,9 +233,9 @@ def get_conversation_query_rewrite_prompt(chat_history:List[BaseMessage]):
 
 ####### hyde prompt ###############
 
-WEB_SEARCH_TEMPLATE = """Please write a passage to answer the question 
-Question: {query}
-Passage:"""
-HYDE_WEB_SEARCH_TEMPLATE = PromptTemplate(template=WEB_SEARCH_TEMPLATE, input_variables=["query"])
+# WEB_SEARCH_TEMPLATE = """Please write a passage to answer the question 
+# Question: {query}
+# Passage:"""
+# HYDE_WEB_SEARCH_TEMPLATE = PromptTemplate(template=WEB_SEARCH_TEMPLATE, input_variables=["query"])
 
     

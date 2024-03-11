@@ -235,7 +235,7 @@ def auto_intention_recoginition_chain(
         # embedding_endpoint="",
         # q_q_match_threshold=0.9,
         intent_if_fail=IntentType.KNOWLEDGE_QA.value,
-        
+        message_id=None
     ):
     """
 
@@ -252,6 +252,7 @@ def auto_intention_recoginition_chain(
         x["intent_type"] = IntentType.STRICT_QQ.value
         x["intent_info"]["strict_qq_intent_result"] = x["q_q_match_res"]["answer"]
         return x["intent_type"]
+    
     
     q_q_retriever = QueryQuestionRetriever(
         index=q_q_retriever_config['index_q_q'],
@@ -294,7 +295,8 @@ def auto_intention_recoginition_chain(
     sub_intent_chain = chain_logger(
         sub_intent_chain,
         "sub intent chain",
-        log_output_template='\nis_api_query: {is_api_query}.\nservice_names: {service_names}'
+        log_output_template='\nis_api_query: {is_api_query}.\nservice_names: {service_names}',
+        message_id=message_id
     )
 
     chain = intent_type_chain | RunnableBranch(
@@ -303,6 +305,19 @@ def auto_intention_recoginition_chain(
     )     
 
     return chain
+
+
+
+
+# intent_recognition_with_opensearch
+def create_opensearch_index(opensearch_client):
+    pass
+
+
+def intent_recognition_with_openserach_chain(opensearch_client,top_k=5):
+    pass
+
+    
     
 
 

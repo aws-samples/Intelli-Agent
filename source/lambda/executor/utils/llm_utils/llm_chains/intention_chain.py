@@ -16,6 +16,7 @@ abs_dir = os.path.dirname(__file__)
 
 intent_save_path = os.path.join(
     os.path.dirname(os.path.dirname(abs_dir)),
+    'intent_utils',
     "intent_examples",
     "examples.json"
 )
@@ -49,7 +50,7 @@ class Iternlm2Chat7BIntentRecognitionChain(Iternlm2Chat7BChatChain):
     intent_type = INTENT_RECOGNITION_TYPE
 
     default_model_kwargs = {
-        "temperature":0.0,
+        "temperature":0.1,
         "max_new_tokens": 100,
         "stop_tokens": ["\n",'。','.']
     }
@@ -81,7 +82,7 @@ class Iternlm2Chat7BIntentRecognitionChain(Iternlm2Chat7BChatChain):
     
     @staticmethod
     def postprocess(intent):
-        intent = intent.replace('。',"").replace('.',"").strip()
+        intent = intent.replace('。',"").replace('.',"").strip().strip('**')
         r = load_intention_file(intent_save_path)
         intent_indexs = r['intent_indexs']
         assert intent in intent_indexs, (intent,intent_indexs)
@@ -98,6 +99,8 @@ class Iternlm2Chat7BIntentRecognitionChain(Iternlm2Chat7BChatChain):
         chain = chain | RunnableLambda(lambda x:cls.postprocess(x))
         return chain
 
+class Iternlm2Chat20BIntentRecognitionChain(Iternlm2Chat7BIntentRecognitionChain):
+    model_id = "internlm2-chat-20b"
 
 class Claude2IntentRecognitionChain(LLMChain):
     model_id = 'anthropic.claude-v2'

@@ -1,6 +1,7 @@
 import re
 import logging
 import uuid
+import traceback
 from typing import Any, Dict, Iterator, List, Optional, Union
 import boto3
 from langchain.docstore.document import Document
@@ -160,7 +161,7 @@ def extract_headings(md_content: str):
     lines = md_content.split("\n")
     id_index_dict = {}
     for line in lines:
-        match = re.match(r"(#+)(.*)", line)
+        match = re.match(r"\s*(#+)(.*)", line)
         if match:
             header_index += 1
             print(match.group)
@@ -258,6 +259,7 @@ class MarkdownHeaderTextSplitter:
                 title_list.append(current_heading_level_map[title_level])
             joint_title_list = ' '.join(title_list)
         except Exception as e:
+            traceback.print_exc()
             print(f"Error: {e}")
             return ""
         

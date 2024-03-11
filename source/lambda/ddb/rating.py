@@ -74,6 +74,34 @@ def get_session(table, session_id, user_id):
     return response.get("Item", {})
 
 
+def get_feedback(table, session_id, user_id, message_id):
+    session = get_session(table, session_id, user_id)
+    messages = session.get("History", [])
+    feedback = None
+
+    if not messages:
+        return {
+            "added": False,
+            "error": "Failed to add feedback. No messages found in session.",
+        }
+    elif not message_id:
+        return {
+            "added": False,
+            "error": "Failed to add feedback. Please specify the message_id in the request to add feedback.",
+        }
+
+    for message in messages:
+
+        ddb_message_id = (
+            message.get("data", {}).get("additional_kwargs", {}).get("message_id", "")
+        )
+        if message_id == ddb_message_id:
+            feedback = message["data"]["additional_kwargs"].get("feedback", {})
+            return feedback
+
+    return feedback
+
+
 # SESSIONS_BY_USER_ID_INDEX_NAME = "byUserId"
 def list_sessions_by_user_id(table, user_id, SESSIONS_BY_USER_ID_INDEX_NAME):
     response = {}
@@ -196,13 +224,14 @@ def add_feedback(table, session_id, user_id, message_id, feedback) -> None:
             break
 
     try:
-        table.put_item(
-            Item={
+        table.update_item(
+            Key={
                 "SessionId": session_id,
                 "UserId": user_id,
-                "StartTime": start_time,
-                "History": messages,
-            }
+            },
+            UpdateExpression="SET History = :msg",
+            ExpressionAttributeValues={":msg": messages},
+            ReturnValues="ALL_NEW",
         )
         response = {"added": True}
 
@@ -270,6 +299,9 @@ def lambda_handler(event, context):
     operations_mapping = {
         "POST": {
             "get_session": lambda: get_session(session_table, session_id, user_id),
+            "get_feedback": lambda: get_feedback(
+                session_table, session_id, user_id, message_id
+            ),
             "list_sessions_by_user_id": lambda: list_sessions_by_user_id(
                 session_table, user_id, SESSIONS_BY_USER_ID_INDEX_NAME
             ),

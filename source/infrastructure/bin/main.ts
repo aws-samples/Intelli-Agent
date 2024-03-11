@@ -84,6 +84,7 @@ export class RootStack extends Stack {
       _embeddingEndPoints:_LLMStack._embeddingEndPoints || '',
       _instructEndPoint:_LLMStack._instructEndPoint || '',
       _chatSessionTable: _DynamoDBStack._chatSessionTable,
+      _workspaceTable: _EtlStack._workspaceTableName,
       _sfnOutput: _EtlStack._sfnOutput,
       _OpenSearchIndex: _CdkParameters._OpenSearchIndex.valueAsString,
       _OpenSearchIndexDict: _CdkParameters._OpenSearchIndexDict.valueAsString,
@@ -113,7 +114,7 @@ export class RootStack extends Stack {
     new CfnOutput(this, 'Cross Model Endpoint', {value:_LLMStack._rerankEndPoint || 'No Cross Endpoint Created'});
     new CfnOutput(this, 'Embedding Model Endpoint', {value:_LLMStack._embeddingEndPoints[0] || 'No Embedding Endpoint Created'});
     new CfnOutput(this, 'Instruct Model Endpoint', {value:_LLMStack._instructEndPoint || 'No Instruct Endpoint Created'});
-    new CfnOutput(this, 'Processed Object Table', {value:_EtlStack._processedObjectsTable});
+    new CfnOutput(this, 'Processed Object Table', {value:_EtlStack._processedObjectsTableName});
     new CfnOutput(this, 'Chunk Bucket', {value:_EtlStack._resBucketName});
     new CfnOutput(this, '_aosIndexDict', {value:_CdkParameters._OpenSearchIndexDict.valueAsString});
   }
