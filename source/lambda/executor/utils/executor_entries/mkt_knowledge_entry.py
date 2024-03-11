@@ -61,7 +61,7 @@ def mkt_fast_reply(
 def market_chain_knowledge_entry(
     query_input: str,
     stream=False,
-    manual_input_intent=None,
+    # manual_input_intent=None,
     event_body=None,
     rag_config=None,
     message_id=None
@@ -98,10 +98,10 @@ def market_chain_knowledge_entry(
     contexts = []
     sources = []
     answer = ""
-    intent_info = {
-        "manual_input_intent": manual_input_intent,
-        "strict_qq_intent_result": {},
-    }
+    # intent_info = {
+    #     "manual_input_intent": manual_input_intent,
+    #     "strict_qq_intent_result": {},
+    # }
 
 
     ################################################################################
@@ -126,7 +126,7 @@ def market_chain_knowledge_entry(
             # query=cqr_llm_chain
         ),
         "conversation_summary_chain",
-        log_output_template='conversation_summary_chain result: {conversation_query_rewrite}',
+        log_output_template=f'conversation_summary_chain result: {"{"+conversation_query_rewrite_result_key+"}"}',
         message_id=message_id
     )
 
@@ -252,6 +252,8 @@ def market_chain_knowledge_entry(
     compression_retriever = ContextualCompressionRetriever(
         base_compressor=compressor, base_retriever=lotr
     )
+
+
     qd_chain = chain_logger(
         RunnablePassthrough.assign(
         docs=compression_retriever | RunnableLambda(retriever_results_format)
@@ -367,7 +369,7 @@ def market_chain_knowledge_entry(
             "query": query_input,
             "debug_info": debug_info,
             # "intent_type": intent_type,
-            "intent_info": intent_info,
+            # "intent_info": intent_info,
             "chat_history": rag_config['chat_history'] if rag_config['use_history'] else [],
             # "query_lang": "zh"
         }

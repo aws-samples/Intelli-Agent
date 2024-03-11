@@ -26,6 +26,7 @@ from utils.executor_entries import (
 from utils.logger_utils import logger
 from utils.response_utils import process_response
 from utils.serialization_utils import JSONEncoder
+from utils.parse_config import update_nest_dict
 
 # from utils.constant import MKT_CONVERSATION_SUMMARY_TYPE
 
@@ -197,26 +198,50 @@ def lambda_handler(event, context):
             docs = main_qq_retriever_entry(question, retriever_index)
             return get_retriever_response(docs)
         elif entry_type == Type.DGR.value:
-            history = []
-            model = event_body.get("model", "chat")
-            temperature = event_body.get("temperature", 0.5)
-            knowledge_qa_flag = True if model == "knowledge_qa" else False
-            answer, sources, contexts, debug_info = dgr_entry(
-                session_id,
+            # switch dgr to market 
+            event_body['llm_model_id'] = 'anthropic.claude-v2:1'
+            dgr_config = {
+                "retriever_config":{
+                "qd_config":{
+                    "using_whole_doc":True
+                }
+                },
+                "generator_llm_config":{
+                    "context_num":2
+                }
+            }
+
+            event_body = update_nest_dict(event_body,dgr_config)
+
+            answer, sources, contexts, debug_info = market_chain_knowledge_entry(
                 question,
-                history,
-                zh_embedding_endpoint,
-                en_embedding_endpoint,
-                cross_endpoint,
-                rerank_endpoint,
-                llm_endpoint,
-                aos_faq_index,
-                aos_ug_index,
-                knowledge_qa_flag,
-                temperature,
-                enable_q_q_match,
                 stream=stream,
+                event_body=event_body,
+                message_id=custom_message_id
             )
+            # history = []
+            # model = event_body.get("model", "chat")
+            # temperature = event_body.get("temperature", 0.5)
+            # knowledge_qa_flag = True if model == "knowledge_qa" else False
+
+            
+
+            # answer, sources, contexts, debug_info = dgr_entry(
+            #     session_id,
+            #     question,
+            #     history,
+            #     zh_embedding_endpoint,
+            #     en_embedding_endpoint,
+            #     cross_endpoint,
+            #     rerank_endpoint,
+            #     llm_endpoint,
+            #     aos_faq_index,
+            #     aos_ug_index,
+            #     knowledge_qa_flag,
+            #     temperature,
+            #     enable_q_q_match,
+            #     stream=stream,
+            # )
         elif entry_type == Type.MARKET_CHAIN_CORE.value:
             answer, sources, contexts, debug_info = market_chain_entry_core(
                 question,
@@ -259,6 +284,7 @@ def lambda_handler(event, context):
                 event_body=event_body,
                 stream=stream
             )
+        
 
         main_entry_end = time.time()
         main_entry_elpase = main_entry_end - main_entry_start
