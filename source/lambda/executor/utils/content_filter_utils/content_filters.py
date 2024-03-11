@@ -31,10 +31,17 @@ class MarketContentFilter(ContentFilterBase):
         return sentence
     
     def rebranding_words(self,sentence:str):
-        rebranding_dict = {'AWS': 'Amazon Web Services'}
+        rebranding_dict = {'AWS': '亚马逊云科技'}
         for key, value in rebranding_dict.items():
             sentence = sentence.replace(key, value)
         return sentence
+
+    def filter_source(self, sources:list[str]):
+        filtered_sources = []
+        for source in sources:
+            if source.startswith("http") and source.endswith(".html"):
+                filtered_sources.append(source)
+        return filtered_sources
     
     def filter_sentence(self,sentence):
         sentence = self.filter_sensitive_words(sentence)

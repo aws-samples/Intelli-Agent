@@ -92,7 +92,7 @@ def stream_response(**kwargs):
     # model = kwargs.["model"]
     request_timestamp = kwargs["request_timestamp"]
     answer = kwargs["answer"]
-    sources = kwargs["sources"]
+    sources = market_content_filter.filter_source(kwargs["sources"])
     get_contexts = kwargs["get_contexts"]  # bool
     contexts = kwargs["contexts"]  # retrieve result
     enable_debug = kwargs["enable_debug"]
