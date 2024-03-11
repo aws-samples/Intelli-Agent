@@ -74,7 +74,7 @@ export class RootStack extends Stack {
     });
     _ConnectorStack.addDependency(_VpcStack);
     _ConnectorStack.addDependency(_OsStack);
-          _ConnectorStack.addDependency(_LLMStack);
+    _ConnectorStack.addDependency(_LLMStack);
     
     const _ApiStack = new LLMApiStack(this, 'api-stack', {
       _vpc:_VpcStack._vpc,
@@ -82,7 +82,7 @@ export class RootStack extends Stack {
       _domainEndpoint:_OsStack._domainEndpoint || '',
       _rerankEndPoint: _LLMStack._rerankEndPoint ?? '',
       _embeddingEndPoints:_LLMStack._embeddingEndPoints || '',
-      _instructEndPoint:_LLMStack._instructEndPoint || '',
+      _instructEndPoint: BuildConfig.LLM_ENDPOINT_NAME !== '' ? BuildConfig.LLM_ENDPOINT_NAME : _LLMStack._instructEndPoint,
       _chatSessionTable: _DynamoDBStack._chatSessionTable,
       _workspaceTable: _EtlStack._workspaceTableName,
       _sfnOutput: _EtlStack._sfnOutput,
@@ -123,6 +123,7 @@ export class RootStack extends Stack {
     BuildConfig.DEPLOYMENT_MODE = this.node.tryGetContext('DeploymentMode') ?? 'ALL';
     BuildConfig.LAYER_PIP_OPTION = this.node.tryGetContext('LayerPipOption') ?? '';
     BuildConfig.JOB_PIP_OPTION = this.node.tryGetContext('JobPipOption') ?? '';
+    BuildConfig.LLM_ENDPOINT_NAME = this.node.tryGetContext('LlmEndpointName') ?? '';
   }
 
 }

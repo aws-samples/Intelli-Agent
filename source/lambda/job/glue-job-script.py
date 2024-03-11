@@ -1,4 +1,5 @@
 import datetime
+import functools
 import itertools
 import json
 import logging
@@ -6,7 +7,6 @@ import os
 import sys
 import time
 import traceback
-import functools
 from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple
 
 import boto3
@@ -18,21 +18,23 @@ logger.setLevel(logging.INFO)
 
 try:
     from awsglue.utils import getResolvedOptions
+
     args = getResolvedOptions(
         sys.argv,
         [
-            "JOB_NAME",
-            "S3_BUCKET",
-            "S3_PREFIX",
             "AOS_ENDPOINT",
+            "BATCH_FILE_NUMBER",
+            "BATCH_INDICE",
             "EMBEDDING_MODEL_ENDPOINT",
             "ETL_MODEL_ENDPOINT",
+            "JOB_NAME",
+            "OFFLINE",
+            "ProcessedObjectsTable",
+            "QA_ENHANCEMENT",
             "REGION",
             "RES_BUCKET",
-            "OFFLINE",
-            "QA_ENHANCEMENT",
-            "BATCH_INDICE",
-            "ProcessedObjectsTable",
+            "S3_BUCKET",
+            "S3_PREFIX",
             "WORKSPACE_ID",
             "WORKSPACE_TABLE",
         ],
@@ -47,7 +49,6 @@ from boto3.dynamodb.conditions import Attr, Key
 from langchain.docstore.document import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores import OpenSearchVectorSearch
-
 from llm_bot_dep import sm_utils
 from llm_bot_dep.constant import SplittingType
 from llm_bot_dep.ddb_utils import WorkspaceManager
@@ -58,7 +59,6 @@ from llm_bot_dep.storage_utils import save_content_to_s3
 from opensearchpy import RequestsHttpConnection
 from requests_aws4auth import AWS4Auth
 from tenacity import retry, stop_after_attempt, wait_exponential
-
 
 # Adaption to allow nougat to run in AWS Glue with writable /tmp
 os.environ["TRANSFORMERS_CACHE"] = "/tmp/transformers_cache"
@@ -150,7 +150,7 @@ def iterate_s3_files(bucket: str, prefix: str) -> Generator:
                     currentIndice, bucket, key
                 )
             )
-            if (currentIndice-1) // 100 != int(batchIndice):
+            if (currentIndice - 1) // 100 != int(batchIndice):
                 logger.info(
                     "currentIndice: {}, batchIndice: {}, skip file: {}".format(
                         currentIndice, batchIndice, key
@@ -158,9 +158,9 @@ def iterate_s3_files(bucket: str, prefix: str) -> Generator:
                 )
                 continue
             logger.info(
-                    "Processing {} doc in {} batch, key: {}".format(
-                        currentIndice, batchIndice, key
-                    )
+                "Processing {} doc in {} batch, key: {}".format(
+                    currentIndice, batchIndice, key
+                )
             )
             file_type = key.split(".")[-1].lower()  # Extract file extension
             response = s3.get_object(Bucket=bucket, Key=key)
@@ -196,6 +196,7 @@ def iterate_s3_files(bucket: str, prefix: str) -> Generator:
                 yield "jsonl", file_content, kwargs
             else:
                 logger.info(f"Unknown file type: {file_type}")
+
 
 def batch_generator(generator, batch_size: int):
     iterator = iter(generator)

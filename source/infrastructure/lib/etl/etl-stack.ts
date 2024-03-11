@@ -220,9 +220,6 @@ export class EtlStack extends NestedStack {
                 '--python-modules-installer-option': BuildConfig.JOB_PIP_OPTION,
                 // add multiple extra python files
                 '--extra-py-files': extraPythonFilesList,
-                '--CONTENT_TYPE': 'ug',
-                '--EMBEDDING_LANG': 'zh,zh,en,en',
-                '--EMBEDDING_TYPE': 'similarity,relevance,similarity,relevance',
             }
         });
 
@@ -262,12 +259,13 @@ export class EtlStack extends NestedStack {
             // Use the result of this invocation to decide how many Glue jobs to run
             resultSelector: {
                 "processedPayload": {
-                    'batchIndices.$': '$.Payload.batchIndices',
                     's3Bucket.$': '$.Payload.s3Bucket',
                     's3Prefix.$': '$.Payload.s3Prefix',
                     'qaEnhance.$': '$.Payload.qaEnhance',
-                    'offline.$': '$.Payload.offline',
                     'workspaceId.$': '$.Payload.workspaceId',
+                    'offline.$': '$.Payload.offline',
+                    "batchFileNumber": '$.Payload.batchFileNumber',
+                    'batchIndices.$': '$.Payload.batchIndices',
                 }
             },
             // we need the original input
@@ -283,26 +281,23 @@ export class EtlStack extends NestedStack {
             glueJobName: glueJob.jobName,
             integrationPattern: sfn.IntegrationPattern.RUN_JOB,
             arguments: sfn.TaskInput.fromObject({
-                '--job-language': 'python',
-                '--JOB_NAME': glueJob.jobName,
-                '--S3_BUCKET.$': '$.s3Bucket',
-                '--S3_PREFIX.$': '$.s3Prefix',
                 '--AOS_ENDPOINT': props._domainEndpoint,
+                '--BATCH_FILE_NUMBER.$': '$.batchFileNumber',
+                '--BATCH_INDICE.$': 'States.Format(\'{}\', $.batchIndices)',
+                '--DOC_INDEX_TABLE': props._OpenSearchIndex,
                 '--EMBEDDING_MODEL_ENDPOINT': 'bge-m3-2024-03-05-07-28-21-582-endpoint',
                 '--ETL_MODEL_ENDPOINT': this._etlEndpoint,
-                '--DOC_INDEX_TABLE': props._OpenSearchIndex,
+                '--JOB_NAME': glueJob.jobName,
+                '--OFFLINE': 'true',
+                '--ProcessedObjectsTable': table.tableName,
+                '--QA_ENHANCEMENT.$': '$.qaEnhance',
                 '--REGION': props._region,
                 '--RES_BUCKET': _S3Bucket.bucketName,
-                '--OFFLINE': 'true',
-                '--QA_ENHANCEMENT.$': '$.qaEnhance',
+                '--S3_BUCKET.$': '$.s3Bucket',
+                '--S3_PREFIX.$': '$.s3Prefix',
                 '--WORKSPACE_ID.$': '$.workspaceId',
-                // Convert the numeric index to a string
-                '--BATCH_INDICE.$': 'States.Format(\'{}\', $.batchIndices)',
-                '--ProcessedObjectsTable': table.tableName,
-                '--CONTENT_TYPE': 'ug',
-                '--EMBEDDING_LANG': 'zh,zh,en,en',
-                '--EMBEDDING_TYPE': 'similarity,relevance,similarity,relevance',
-            }),
+                '--job-language': 'python',
+            })
         });
 
         // Define a Map state to run multiple Glue jobs in parallel based on the number of files to process
@@ -313,42 +308,44 @@ export class EtlStack extends NestedStack {
             itemsPath: sfn.JsonPath.stringAt('$.batchIndices'), 
             // set the max concurrency to 0 to run all the jobs in parallel
             maxConcurrency: 0,
-            parameters: {
+            itemSelector: {
                 // These parameters are passed to each iteration of the map state
                 's3Bucket.$': '$.s3Bucket',
                 's3Prefix.$': '$.s3Prefix',
-                'qaEnhance.$': '$.qaEnhance',
                 'workspaceId.$': '$.workspaceId',
+                'qaEnhance.$': '$.qaEnhance',
+                'offline.$': '$.offline',
+                'batchFileNumber.$': '$.batchFileNumber',
                 // 'index' is a special variable within the Map state that represents the current index
                 'batchIndices.$': '$$.Map.Item.Index' // Add this if you need to know the index of the current item in the map state
             },
             resultPath: '$.mapResults',
         });
 
-        mapState.iterator(offlineGlueJob.addRetry({ errors: ['States.ALL'], interval: Duration.seconds(10), maxAttempts: 3 }));
+        mapState.itemProcessor(offlineGlueJob.addRetry({ errors: ['States.ALL'], interval: Duration.seconds(10), maxAttempts: 3 }));
 
         // multiplex the same glue job to offline and online
         const onlineGlueJob = new tasks.GlueStartJobRun(this, 'OnlineGlueJob', {
             glueJobName: glueJob.jobName,
             integrationPattern: sfn.IntegrationPattern.RUN_JOB,
             arguments: sfn.TaskInput.fromObject({
-                '--job-language': 'python',
-                '--JOB_NAME': glueJob.jobName,
-                '--S3_BUCKET.$': '$.s3Bucket',
-                '--S3_PREFIX.$': '$.s3Prefix',
                 '--AOS_ENDPOINT': props._domainEndpoint,
-                '--EMBEDDING_MODEL_ENDPOINT': props._embeddingEndpoint[0],
-                '--ETL_MODEL_ENDPOINT': this._etlEndpoint,
+                '--BATCH_FILE_NUMBER.$': '$.batchFileNumber',
+                '--BATCH_INDICE.$': 'States.Format(\'{}\', $.batchIndices)',
                 '--DOC_INDEX_TABLE': props._OpenSearchIndex,
+                '--EMBEDDING_MODEL_ENDPOINT': 'bge-m3-2024-03-05-07-28-21-582-endpoint',
+                '--ETL_MODEL_ENDPOINT': this._etlEndpoint,
+                '--JOB_NAME': glueJob.jobName,
+                '--OFFLINE': 'true',
+                '--ProcessedObjectsTable': table.tableName,
+                '--QA_ENHANCEMENT.$': '$.qaEnhance',
                 '--REGION': props._region,
                 '--RES_BUCKET': _S3Bucket.bucketName,
-                '--OFFLINE': 'false',
-                '--QA_ENHANCEMENT.$': '$.qaEnhance',
+                '--S3_BUCKET.$': '$.s3Bucket',
+                '--S3_PREFIX.$': '$.s3Prefix',
                 '--WORKSPACE_ID.$': '$.workspaceId',
-                // set the batch indice to 0 since we are running online
-                '--BATCH_INDICE': '0',
-                '--ProcessedObjectsTable': table.tableName,
-            }),
+                '--job-language': 'python',
+        }),
         });
 
         // Notify the result of the glue job

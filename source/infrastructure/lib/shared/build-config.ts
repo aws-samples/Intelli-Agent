@@ -17,4 +17,5 @@ export class BuildConfig {
     static DEPLOYMENT_MODE = 'ALL';
     static LAYER_PIP_OPTION = '';
     static JOB_PIP_OPTION = '';
+    static LLM_ENDPOINT_NAME = '';
   }

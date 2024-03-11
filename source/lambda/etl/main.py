@@ -1,5 +1,6 @@
 import json
 import logging
+import math
 
 import boto3
 
@@ -7,6 +8,15 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 s3_client = boto3.client("s3")
+
+
+def get_job_number(event, file_count):
+    job_number = event.get("JobNumber", 50)
+
+    if file_count < job_number:
+        job_number = file_count
+
+    return job_number
 
 
 # Offline lambda function to count the number of files in the S3 bucket
@@ -32,18 +42,21 @@ def lambda_handler(event, context):
                 continue
             file_count += 1
 
+    job_number = get_job_number(event, file_count)
+
+    batch_file_number = file_count // job_number + 1
+
     # convert the fileCount into an array of numbers "fileIndices": [0, 1, 2, ..., 10], an array from 0 to fileCount-1
-    indice_count = file_count // 100 + 1
-    batch_indices = list(range(indice_count))
+    batch_indices = list(range(job_number))
 
     # This response should match the expected input schema of the downstream tasks in the Step Functions workflow
     return {
-        "fileCount": file_count,
         "s3Bucket": bucket_name,
         "s3Prefix": prefix,
-        "qaEnhance": event["qaEnhance"].lower() if "qaEnhance" in event else "false",
-        # boolean value to indicate if the lambda function is running in offline mode
-        "offline": event["offline"].lower(),
-        "batchIndices": batch_indices,
+        "fileCount": file_count,
         "workspaceId": workspace_id,
+        "qaEnhance": event["qaEnhance"].lower() if "qaEnhance" in event else "false",
+        "offline": event["offline"].lower(),
+        "batchFileNumber": batch_file_number,
+        "batchIndices": batch_indices,
     }
