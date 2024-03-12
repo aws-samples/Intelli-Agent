@@ -44,8 +44,10 @@ class WorkspaceManager:
         embeddings_model_provider: str,
         embeddings_model_name: str,
         embeddings_model_dimensions: int,
+        embedding_model_type: str,
         languages: List[str],
         workspace_file_types: List[str],
+        open_search_index_type: str,
         open_search_index_name: str = None,
     ):
 
@@ -67,9 +69,11 @@ class WorkspaceManager:
             "embeddings_model_provider": embeddings_model_provider,
             "embeddings_model_name": embeddings_model_name,
             "embeddings_model_dimensions": embeddings_model_dimensions,
+            "model_type": embedding_model_type,
             "languages": languages,
-            "open_search_index_name": open_search_index_name,
             "workspace_file_types": workspace_file_types,
+            "index_type": open_search_index_type,
+            "open_search_index_name": open_search_index_name,
             "metric": "l2",
             "aoss_engine": "nmslib",
             "documents": 0,
@@ -92,8 +96,10 @@ class WorkspaceManager:
         embeddings_model_provider: str,
         embeddings_model_name: str,
         embeddings_model_dimensions: int,
+        embedding_model_type: str,
         languages: List[str],
         workspace_file_types: List[str],
+        open_search_index_type: str,
         open_search_index_name: str = None,
     ):
         timestamp = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%fZ")
@@ -107,8 +113,10 @@ class WorkspaceManager:
                 embeddings_model_provider,
                 embeddings_model_name,
                 embeddings_model_dimensions,
+                embedding_model_type,
                 languages,
                 workspace_file_types,
+                open_search_index_type,
                 open_search_index_name,
             )
 

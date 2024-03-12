@@ -361,9 +361,12 @@ def main():
     logger.info("Starting Glue job with passing arguments: %s", args)
     logger.info("Running in offline mode with consideration for large file size...")
 
-    embeddings_model_provider, embeddings_model_name, embeddings_model_dimensions = (
-        get_embedding_info(embeddingModelEndpoint)
-    )
+    (
+        embeddings_model_provider,
+        embeddings_model_name,
+        embeddings_model_dimensions,
+        embeddings_model_type,
+    ) = get_embedding_info(embeddingModelEndpoint)
 
     for file_type, file_content, kwargs in iterate_s3_files(s3_bucket, s3_prefix):
         try:
@@ -378,14 +381,18 @@ def main():
             if res:
                 logger.info("Result: %s", res)
 
+            open_search_index_type = "qq" if file_type == "jsonl" else "qd"
+
             aos_index = workspace_manager.update_workspace_open_search(
                 workspace_id,
                 embeddingModelEndpoint,
                 embeddings_model_provider,
                 embeddings_model_name,
                 embeddings_model_dimensions,
+                embeddings_model_type,
                 ["zh"],
                 [file_type],
+                open_search_index_type,
             )
 
             gen_chunk_flag = False if file_type == "csv" else True
