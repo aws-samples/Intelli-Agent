@@ -15,7 +15,7 @@ import nltk
 from boto3.dynamodb.conditions import Attr, Key
 from langchain.docstore.document import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.vectorstores import OpenSearchVectorSearch
+from langchain_community.vectorstores import OpenSearchVectorSearch
 from llm_bot_dep import sm_utils
 from llm_bot_dep.constant import SplittingType
 from llm_bot_dep.ddb_utils import WorkspaceManager
@@ -305,37 +305,46 @@ def aos_injection(
                     verify_certs=True,
                     connection_class=RequestsHttpConnection,
                 )
-                # TODO: validate and update for m3 ep
-                # def add_texts_update_metadata(self, texts, metadatas=None, ids=None, bulk_size=500):
-                #     embeddings = self.embedding_function.embed_documents(list(texts))
-                #     if isinstance(embeddings[0], dict):
-                #         embeddings_list = []
-                #         metadata_list = []
-                #         for m3_dict,metadata in zip(embeddings, metadatas):
-                #             lexical_weights = m3_dict["lexical_weights"]
-                #             colbert_vecs = m3_dict["colbert_vecs"]
-                #             embeddings_list.append(m3_dict["dense_vecs"])
-                #             metadata_list.append(metadata.append({'additional_vecs':{'lexical_weights':lexical_weights, 'colbert_vecs':colbert_vecs}}))
-                #         embeddings = embeddings_list
-                #         metadatas = metadata_list
-                #     return self.__add(
-                #         texts,
-                #         embeddings,
-                #         metadatas=metadatas,
-                #         ids=ids,
-                #         bulk_size=bulk_size,
-                #         **kwargs,
-                #     )
-                # docsearch.add_texts = functools.partial(add_texts_update_metadata, docsearch)
-                logger.info(
-                    "Adding documents %s to OpenSearch with index %s",
-                    document,
-                    index_name,
+
+                documents = [document]
+                texts = [doc.page_content for doc in documents]
+                metadatas = [doc.metadata for doc in documents]
+                embeddings_vectors = embeddings.embed_documents(list(texts))
+
+                if isinstance(embeddings_vectors[0], dict):
+                    embeddings_vectors_list = []
+                    metadata_list = []
+                    for doc_id, metadata in enumerate(metadatas):
+                        lexical_weights = embeddings_vectors[0]["lexical_weights"][
+                            doc_id
+                        ]
+                        colbert_vecs = embeddings_vectors[0]["colbert_vecs"][doc_id]
+                        embeddings_vectors_list.append(
+                            embeddings_vectors[0]["dense_vecs"][doc_id]
+                        )
+                        metadata.update(
+                            {
+                                "additional_vecs": {
+                                    "lexical_weights": lexical_weights,
+                                    "colbert_vecs": colbert_vecs,
+                                }
+                            }
+                        )
+                        metadata_list.append(metadata)
+                    embeddings_vectors = embeddings_vectors_list
+                    metadatas = metadata_list
+                docsearch._OpenSearchVectorSearch__add(
+                    texts, embeddings_vectors, metadatas=metadatas
                 )
+                # logger.info(
+                #     "Adding documents %s to OpenSearch with index %s",
+                #     document,
+                #     index_name,
+                # )
                 # TODO: add endpoint name as a metadata of document
                 # try:
                 # TODO, consider the max retry and initial backoff inside helper.bulk operation instead of using original LangChain
-                docsearch.add_documents(documents=[document])
+                # docsearch.add_documents(documents=[document])
                 # except Exception as e:
                 #     logger.info(
                 #         f"Catch exception when adding document to OpenSearch: {e}"
