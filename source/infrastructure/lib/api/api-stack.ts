@@ -24,6 +24,7 @@ interface apiStackProps extends StackProps {
     _domainEndpoint: string;
     _rerankEndPoint: string;
     _embeddingEndPoints: string[];
+    _llmModelId: string;
     _instructEndPoint: string;
     _chatSessionTable: string;
     _workspaceTable: string;
@@ -326,7 +327,7 @@ export class LLMApiStack extends NestedStack {
                 environment: {
                     aos_endpoint: _domainEndpoint,
                     llm_model_endpoint_name: props._instructEndPoint,
-                    llm_model_id: "internlm2-chat-7b",
+                    llm_model_id: props._llmModelId,
                     embedding_endpoint: props._embeddingEndPoints[0],
                     zh_embedding_endpoint: props._embeddingEndPoints[0],
                     en_embedding_endpoint: props._embeddingEndPoints[1],

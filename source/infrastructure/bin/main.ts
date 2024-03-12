@@ -82,6 +82,7 @@ export class RootStack extends Stack {
       _domainEndpoint:_OsStack._domainEndpoint || '',
       _rerankEndPoint: _LLMStack._rerankEndPoint ?? '',
       _embeddingEndPoints:_LLMStack._embeddingEndPoints || '',
+      _llmModelId: BuildConfig.LLM_MODEL_ID,
       _instructEndPoint: BuildConfig.LLM_ENDPOINT_NAME !== '' ? BuildConfig.LLM_ENDPOINT_NAME : _LLMStack._instructEndPoint,
       _chatSessionTable: _DynamoDBStack._chatSessionTable,
       _workspaceTable: _EtlStack._workspaceTableName,
@@ -123,6 +124,7 @@ export class RootStack extends Stack {
     BuildConfig.DEPLOYMENT_MODE = this.node.tryGetContext('DeploymentMode') ?? 'ALL';
     BuildConfig.LAYER_PIP_OPTION = this.node.tryGetContext('LayerPipOption') ?? '';
     BuildConfig.JOB_PIP_OPTION = this.node.tryGetContext('JobPipOption') ?? '';
+    BuildConfig.LLM_MODEL_ID = this.node.tryGetContext('LlmModelId') ?? 'internlm2-chat-7b';
     BuildConfig.LLM_ENDPOINT_NAME = this.node.tryGetContext('LlmEndpointName') ?? '';
   }
 
