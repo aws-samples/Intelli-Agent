@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import time
 import uuid
 from datetime import datetime
 from decimal import Decimal
@@ -23,48 +24,20 @@ class DecimalEncoder(json.JSONEncoder):
 
 """
 Sample Item:
-{'UserId': '268b8afa-3d5a-4147-9707-1975415a1732', 
+{'userId': '268b8afa-3d5a-4147-9707-1975415a1732', 
 'History': [{'type': 'human', 'data': {'type': 'human', 'content': 'Hi', 'additional_kwargs': {}, 'example': False}}, 
 {'type': 'ai', 'data': {'type': 'ai', 'content': ' Hello!', 'additional_kwargs': {'mode': 'chain', 'modelKwargs': {'maxTokens': Decimal('512'), 'temperature': Decimal('0.6'), 'streaming': True, 'topP': Decimal('0.9')}, 'modelId': 'anthropic.claude-v2', 'documents': [], 'sessionId': 'cc8700e8-f8ea-4f43-8951-964d813e5a96', 'userId': '268b8afa-3d5a-4147-9707-1975415a1732', 'prompts': [['\n\nHuman: The following is a friendly conversation between a human and an AI. If the AI does not know the answer to a question, it truthfully says it does not know.\n\nCurrent conversation:\n\n\nQuestion: Hi\n\nAssistant:']]}, 'example': False}}], 
-'SessionId': 'cc8700e8-f8ea-4f43-8951-964d813e5a96', 
+'sessionId': 'cc8700e8-f8ea-4f43-8951-964d813e5a96', 
 'StartTime': '2023-12-25T06:52:42.618249'}
 """
 
 
-def convert_to_langchain_format(openai_message):
-    """
-    Sample openai_message:
-    {
-        "role": "assistant",
-        "content": "您可以在SSML标记语言中直接嵌入发音,以指定Polly如何朗读密码中的大小写...",
-        "knowledge_sources": [
-            "https://random_utl/index.html"
-        ]
-    }
-    """
-    message_type = openai_message["role"]
-    message_content = openai_message["content"]
-    message_sources = openai_message.get("knowledge_sources", [])
-    additional_kwargs = (
-        {"knowledge_sources": message_sources} if message_sources else {}
-    )
-
-    converted_message = {
-        "type": "human",
-        "data": {
-            "type": message_type,
-            "content": message_content,
-            "additional_kwargs": additional_kwargs,
-            "example": False,
-        },
-    }
-    return converted_message
-
-
-def get_session(table, session_id, user_id):
+def get_session(sessions_table, session_id, user_id):
     response = {}
     try:
-        response = table.get_item(Key={"SessionId": session_id, "UserId": user_id})
+        response = sessions_table.get_item(
+            Key={"sessionId": session_id, "userId": user_id}
+        )
     except ClientError as error:
         if error.response["Error"]["Code"] == "ResourceNotFoundException":
             print("No record found with session id: %s", session_id)
@@ -74,120 +47,30 @@ def get_session(table, session_id, user_id):
     return response.get("Item", {})
 
 
-def get_feedback(table, session_id, user_id, message_id):
-    session = get_session(table, session_id, user_id)
-    messages = session.get("History", [])
-    feedback = None
-
-    if not messages:
-        return {
-            "added": False,
-            "error": "Failed to add feedback. No messages found in session.",
-        }
-    elif not message_id:
-        return {
-            "added": False,
-            "error": "Failed to add feedback. Please specify the message_id in the request to add feedback.",
-        }
-
-    for message in messages:
-
-        ddb_message_id = (
-            message.get("data", {}).get("additional_kwargs", {}).get("message_id", "")
-        )
-        if message_id == ddb_message_id:
-            feedback = message["data"]["additional_kwargs"].get("feedback", {})
-            return feedback
-
-    return feedback
-
-
-# SESSIONS_BY_USER_ID_INDEX_NAME = "byUserId"
-def list_sessions_by_user_id(table, user_id, SESSIONS_BY_USER_ID_INDEX_NAME):
+def get_message(messages_table, message_id, session_id):
     response = {}
     try:
-        response = table.query(
-            KeyConditionExpression="UserId = :user_id",
-            ExpressionAttributeValues={":user_id": user_id},
-            IndexName=SESSIONS_BY_USER_ID_INDEX_NAME,
+        response = messages_table.get_item(
+            Key={"messageId": message_id, "sessionId": session_id}
         )
     except ClientError as error:
         if error.response["Error"]["Code"] == "ResourceNotFoundException":
-            print("No record found for user id: %s", user_id)
+            print("No record found with message id: %s", message_id)
         else:
             print(error)
 
-    return response.get("Items", [])
+    return response.get("Item", {})
 
 
-def add_messages(table, session_id, user_id, messages):
-    """Append the message to the record in DynamoDB"""
-    response = {}
-
-    try:
-        response = table.put_item(
-            Item={
-                "SessionId": session_id,
-                "UserId": user_id,
-                "StartTime": datetime.now().isoformat(),
-                "History": messages,
-            }
-        )
-        response = {"added": True}
-    except ClientError as err:
-        print(err)
-        response = {"added": False, "error": str(err)}
-
-    return response
-
-
-def add_metadata(table, session_id, user_id, message_id, metadata):
-    """Add additional metadata to the last message"""
-    response = {}
-
-    session = get_session(table, session_id, user_id)
-    messages = session.get("History", [])
-    start_time = session.get("StartTime", "")
-
-    if not messages:
-        return {
-            "added": False,
-            "error": "Failed to add feedback. No messages found in session.",
-        }
-    elif not message_id:
-        return {
-            "added": False,
-            "error": "Failed to add feedback. Please specify the message_id in the request to add feedback.",
-        }
-
-    for message in messages:
-
-        ddb_message_id = (
-            message.get("data", {}).get("additional_kwargs", {}).get("message_id", "")
-        )
-        if message_id == ddb_message_id:
-            message["data"]["additional_kwargs"]["metadata"] = metadata
-            break
-
-    try:
-        table.put_item(
-            Item={
-                "SessionId": session_id,
-                "UserId": user_id,
-                "StartTime": start_time,
-                "History": messages,
-            }
-        )
-        response = {"added": True}
-
-    except Exception as err:
-        print(err)
-        response = {"added": False, "error": str(err)}
-
-    return response
-
-
-def add_feedback(table, session_id, user_id, message_id, feedback) -> None:
+def add_feedback(
+    sessions_table,
+    messages_table,
+    session_id,
+    user_id,
+    message_id,
+    feedback_type,
+    suggestMessage,
+) -> None:
     """
     Sample feedback:
     {
@@ -199,39 +82,31 @@ def add_feedback(table, session_id, user_id, message_id, feedback) -> None:
     }
     """
 
-    session = get_session(table, session_id, user_id)
-    messages = session.get("History", [])
-    start_time = session.get("StartTime", "")
+    message = get_message(messages_table, message_id, session_id)
 
-    if not messages:
+    if not message:
         return {
             "added": False,
             "error": "Failed to add feedback. No messages found in session.",
         }
-    elif not message_id:
-        return {
-            "added": False,
-            "error": "Failed to add feedback. Please specify the message_id in the request to add feedback.",
-        }
-
-    for message in messages:
-
-        ddb_message_id = (
-            message.get("data", {}).get("additional_kwargs", {}).get("message_id", "")
-        )
-        if message_id == ddb_message_id:
-            message["data"]["additional_kwargs"]["feedback"] = feedback
-            break
 
     try:
-        table.update_item(
-            Key={
-                "SessionId": session_id,
-                "UserId": user_id,
+        current_timestamp = Decimal.from_float(time.time())
+        messages_table.update_item(
+            Key={"messageId": message_id, "sessionId": session_id},
+            UpdateExpression="SET feedbackType = :ft, suggestMessage = :sm, lastModifiedTimeStamp = :t",
+            ExpressionAttributeValues={
+                ":ft": feedback_type,
+                ":sm": suggestMessage,
+                ":t": current_timestamp,
             },
-            UpdateExpression="SET History = :msg",
-            ExpressionAttributeValues={":msg": messages},
-            ReturnValues="ALL_NEW",
+            ReturnValues="UPDATED_NEW",
+        )
+        sessions_table.update_item(
+            Key={"sessionId": session_id, "userId": user_id},
+            UpdateExpression="SET lastModifiedTimeStamp = :t",
+            ExpressionAttributeValues={":t": current_timestamp},
+            ReturnValues="UPDATED_NEW",
         )
         response = {"added": True}
 
@@ -242,37 +117,25 @@ def add_feedback(table, session_id, user_id, message_id, feedback) -> None:
     return response
 
 
-def delete_session(table, session_id, user_id):
-    try:
-        table.delete_item(Key={"SessionId": session_id, "UserId": user_id})
-    except ClientError as error:
-        if error.response["Error"]["Code"] == "ResourceNotFoundException":
-            print("No record found with session id: %s", session_id)
-        else:
-            print(error)
+def get_feedback(messages_table, message_id, session_id):
+    message = get_message(messages_table, message_id, session_id)
 
-        return {"deleted": False}
-
-    return {"deleted": True}
-
-
-def delete_user_sessions(table, user_id, SESSIONS_BY_USER_ID_INDEX_NAME):
-    sessions = list_sessions_by_user_id(table, user_id, SESSIONS_BY_USER_ID_INDEX_NAME)
-    ret_value = []
-
-    for session in sessions:
-        result = delete_session(table, session["SessionId"], user_id)
-        ret_value.append({"id": session["SessionId"], "deleted": result["deleted"]})
-
-    return ret_value
+    if message:
+        return {
+            "feedbackType": message.get("feedbackType", ""),
+            "suggestMessage": message.get("suggestMessage", ""),
+        }
+    else:
+        return {}
 
 
 def lambda_handler(event, context):
     dynamodb = boto3.resource("dynamodb")
-    table_name = os.getenv("SESSIONS_TABLE_NAME")
-    SESSIONS_BY_USER_ID_INDEX_NAME = os.getenv("SESSIONS_BY_USER_ID_INDEX_NAME")
+    sessions_table_name = os.getenv("SESSIONS_TABLE_NAME")
+    messages_table_name = os.getenv("MESSAGES_TABLE_NAME")
 
-    session_table = dynamodb.Table(table_name)
+    sessions_table = dynamodb.Table(sessions_table_name)
+    messages_table = dynamodb.Table(messages_table_name)
 
     http_method = event["httpMethod"]
     body = json.loads(event["body"])
@@ -288,41 +151,24 @@ def lambda_handler(event, context):
     operation = body["operation"]
     session_id = body.get("session_id", "")
     user_id = body.get("user_id", "default_user_id")
-    messages = body.get("messages", [])
     message_id = body.get("message_id", None)
-    feedback = body.get("feedback", [])
-    metadata = body.get("metadata", {})
-
-    messages = json.loads(json.dumps(messages), parse_float=Decimal)
-    metadata = json.loads(json.dumps(metadata), parse_float=Decimal)
+    feedback_type = body.get("feedback_type", None)
+    suggestMessage = body.get("suggest_message", None)
 
     operations_mapping = {
         "POST": {
-            "get_session": lambda: get_session(session_table, session_id, user_id),
-            "get_feedback": lambda: get_feedback(
-                session_table, session_id, user_id, message_id
-            ),
-            "list_sessions_by_user_id": lambda: list_sessions_by_user_id(
-                session_table, user_id, SESSIONS_BY_USER_ID_INDEX_NAME
-            ),
-            "add_messages": lambda: add_messages(
-                session_table, session_id, user_id, messages
-            ),
-            "add_metadata": lambda: add_metadata(
-                session_table, session_id, user_id, message_id, metadata
-            ),
+            "get_session": lambda: get_session(sessions_table, session_id, user_id),
             "add_feedback": lambda: add_feedback(
-                session_table,
+                sessions_table,
+                messages_table,
                 session_id,
                 user_id,
                 message_id,
-                feedback,
+                feedback_type,
+                suggestMessage,
             ),
-            "delete_session": lambda: delete_session(
-                session_table, session_id, user_id
-            ),
-            "delete_user_sessions": lambda: delete_user_sessions(
-                session_table, user_id, SESSIONS_BY_USER_ID_INDEX_NAME
+            "get_feedback": lambda: get_feedback(
+                messages_table, message_id, session_id
             ),
         }
     }

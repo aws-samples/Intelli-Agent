@@ -152,7 +152,9 @@ export class LLMApiStack extends NestedStack {
             code: lambda.Code.fromAsset(join(__dirname, "../../../lambda/ddb")),
             environment: {
                 SESSIONS_TABLE_NAME: _sessionsTableName,
+                MESSAGES_TABLE_NAME: _messagesTableName,
                 SESSIONS_BY_USER_ID_INDEX_NAME: "byUserId",
+                MESSAGES_BY_SESSION_ID_INDEX_NAME: "bySessionId",
             },
             vpc: _vpc,
             vpcSubnets: {
