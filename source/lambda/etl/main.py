@@ -13,7 +13,7 @@ supported_file_types = ["pdf", "txt", "doc", "md", "html", "json", "jsonl", "csv
 
 
 def get_job_number(event, file_count):
-    job_number = event.get("JobNumber", 2)
+    job_number = event.get("JobNumber", 50)
 
     if file_count < job_number:
         job_number = file_count

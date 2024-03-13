@@ -325,7 +325,6 @@ def aos_injection(
                         metadata.update(
                             {
                                 "additional_vecs": {
-                                    "lexical_weights": lexical_weights,
                                     "colbert_vecs": colbert_vecs,
                                 }
                             }
