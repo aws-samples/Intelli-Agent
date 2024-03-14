@@ -2,12 +2,11 @@ import json
 import os
 
 os.environ["PYTHONUNBUFFERED"] = "1"
+import logging
 import time
 import uuid
+
 import boto3
-import logging 
-# from langchain.retrievers.multi_query import MultiQueryRetriever
-from utils.logger_utils import logger
 from utils.constant import Type
 from utils.ddb_utils import DynamoDBChatMessageHistory
 from utils.executor_entries import (
@@ -18,16 +17,17 @@ from utils.executor_entries import (
     market_chain_entry,
     llm_entry,
     market_chain_entry_core,
-    market_conversation_summary_entry,
     market_chain_knowledge_entry,
-    market_chain_knowledge_entry_langgraph
+    market_chain_knowledge_entry_langgraph,
+    market_conversation_summary_entry,
 )
 
 # from langchain.retrievers.multi_query import MultiQueryRetriever
+# from langchain.retrievers.multi_query import MultiQueryRetriever
 from utils.logger_utils import logger
+from utils.parse_config import update_nest_dict
 from utils.response_utils import process_response
 from utils.serialization_utils import JSONEncoder
-from utils.parse_config import update_nest_dict
 
 # from utils.constant import MKT_CONVERSATION_SUMMARY_TYPE
 
@@ -42,7 +42,8 @@ aos_index = os.environ.get("aos_index", "")
 aos_faq_index = os.environ.get("aos_faq_index", "")
 aos_ug_index = os.environ.get("aos_ug_index", "")
 llm_endpoint = os.environ.get("llm_endpoint", "")
-chat_session_table = os.environ.get("chat_session_table", "")
+sessions_table_name = os.environ.get("sessions_table_name", "")
+messages_table_name = os.environ.get("messages_table_name", "")
 websocket_url = os.environ.get("websocket_url", "")
 # sm_client = boto3.client("sagemaker-runtime")
 # aos_client = LLMBotOpenSearchClient(aos_endpoint)
@@ -134,9 +135,9 @@ def lambda_handler(event, context):
         # all rag related params can be found in rag_config
         # rag_config = parse_config.parse_rag_config(event_body)
 
-        debug_level = event_body.get('debug_level',logging.INFO)
+        debug_level = event_body.get("debug_level", logging.INFO)
         logger.setLevel(debug_level)
-        
+
         if messages and entry_type != Type.MARKET_CONVERSATION_SUMMARY.value:
             assert len(messages) == 1
             question = messages[-1]["content"]
@@ -147,38 +148,39 @@ def lambda_handler(event, context):
 
         # _, question = process_input_messages(messages)
         # role = "user"
-      
+
         if not session_id:
             session_id = f"session_{int(request_timestamp)}"
-        
+
         if stream:
             ws_connection_id = record_event["requestContext"]["connectionId"]
-        
+
         # get chat history
         user_id = event_body.get("user_id", "default_user_id")
         message_id = str(uuid.uuid4())
         ddb_history_obj = DynamoDBChatMessageHistory(
-            table_name=chat_session_table,
+            sessions_table_name=sessions_table_name,
+            messages_table_name=messages_table_name,
             session_id=session_id,
             user_id=user_id,
             client_type=client_type,
         )
         # print(chat_session_table,session_id,DynamoDBChatMessageHistory)
-        chat_history = ddb_history_obj.message_as_langchain
+        chat_history = ddb_history_obj.messages_as_langchain
 
-        event_body['chat_history'] = chat_history
-        event_body['ws_connection_id'] = ws_connection_id
-        event_body['session_id'] = session_id
-        event_body['debug_level'] = debug_level
+        event_body["chat_history"] = chat_history
+        event_body["ws_connection_id"] = ws_connection_id
+        event_body["session_id"] = session_id
+        event_body["debug_level"] = debug_level
 
         # logger.info(f'rag configs:\n {json.dumps(rag_config,indent=2,ensure_ascii=False,cls=JSONEncoder)}')
-        # 
+        #
         # knowledge_qa_flag = True if model == "knowledge_qa" else False
-       
+
         main_entry_start = time.time()
         contexts = []
         # entry_type = biz_type.lower()
-        if  entry_type == Type.COMMON.value:
+        if entry_type == Type.COMMON.value:
             answer, sources, contexts, debug_info = main_chain_entry(
                 question,
                 aos_index,
@@ -191,7 +193,7 @@ def lambda_handler(event, context):
                 question,
                 retriever_index,
                 event_body=event_body,
-                message_id=custom_message_id
+                message_id=custom_message_id,
             )
             return get_retriever_response(docs, debug_info)
         elif entry_type == Type.QQ_RETRIEVER.value:
@@ -199,33 +201,25 @@ def lambda_handler(event, context):
             docs = main_qq_retriever_entry(question, retriever_index)
             return get_retriever_response(docs)
         elif entry_type == Type.DGR.value:
-            # switch dgr to market 
-            event_body['llm_model_id'] = 'anthropic.claude-v2:1'
+            # switch dgr to market
+            event_body["llm_model_id"] = "anthropic.claude-v2:1"
             dgr_config = {
-                "retriever_config":{
-                "qd_config":{
-                    "using_whole_doc":True
-                }
-                },
-                "generator_llm_config":{
-                    "context_num":2
-                }
+                "retriever_config": {"qd_config": {"using_whole_doc": True}},
+                "generator_llm_config": {"context_num": 2},
             }
 
-            event_body = update_nest_dict(event_body,dgr_config)
+            event_body = update_nest_dict(event_body, dgr_config)
 
             answer, sources, contexts, debug_info = market_chain_knowledge_entry(
                 question,
                 stream=stream,
                 event_body=event_body,
-                message_id=custom_message_id
+                message_id=custom_message_id,
             )
             # history = []
             # model = event_body.get("model", "chat")
             # temperature = event_body.get("temperature", 0.5)
             # knowledge_qa_flag = True if model == "knowledge_qa" else False
-
-            
 
             # answer, sources, contexts, debug_info = dgr_entry(
             #     session_id,
@@ -248,14 +242,14 @@ def lambda_handler(event, context):
                 question,
                 stream=stream,
                 event_body=event_body,
-                message_id=custom_message_id
+                message_id=custom_message_id,
             )
         elif entry_type == Type.MARKET_CHAIN.value:
             answer, sources, contexts, debug_info = market_chain_knowledge_entry(
                 question,
                 stream=stream,
                 event_body=event_body,
-                message_id=custom_message_id
+                message_id=custom_message_id,
             )
             # answer, sources, contexts, debug_info = market_chain_entry(
             #     question,
@@ -269,39 +263,38 @@ def lambda_handler(event, context):
                 question,
                 stream=stream,
                 event_body=event_body,
-                message_id=custom_message_id
+                message_id=custom_message_id,
             )
         elif entry_type == "market_chain_knowledge_langgraph":
-            answer, sources, contexts, debug_info = market_chain_knowledge_entry_langgraph(
-                question,
-                stream=stream,
-                event_body=event_body,
-                message_id=custom_message_id
+            answer, sources, contexts, debug_info = (
+                market_chain_knowledge_entry_langgraph(
+                    question,
+                    stream=stream,
+                    event_body=event_body,
+                    message_id=custom_message_id,
+                )
             )
-
         elif entry_type == Type.MARKET_CONVERSATION_SUMMARY.value:
             answer, sources, contexts, debug_info = market_conversation_summary_entry(
-                messages=messages,
-                event_body=event_body,
-                stream=stream
+                messages=messages, event_body=event_body, stream=stream
             )
-
         elif entry_type == Type.LLM.value:
             answer, sources, contexts, debug_info = llm_entry(
                 messages=messages,
                 event_body=event_body,
                 stream=stream
             )
-        
 
         main_entry_end = time.time()
         main_entry_elpase = main_entry_end - main_entry_start
-        logger.info(f"{custom_message_id} running time of main entry {entry_type} : {main_entry_elpase}s")
-     
+        logger.info(
+            f"{custom_message_id} running time of main entry {entry_type} : {main_entry_elpase}s"
+        )
+
         response_kwargs = dict(
             stream=stream,
-            session_id=event_body['session_id'],
-            ws_connection_id=event_body['ws_connection_id'],
+            session_id=event_body["session_id"],
+            ws_connection_id=event_body["ws_connection_id"],
             # model=model,
             entry_type=entry_type,
             question=question,
@@ -317,7 +310,7 @@ def lambda_handler(event, context):
             message_id=message_id,
             client_type=client_type,
             custom_message_id=custom_message_id,
-            main_entry_end=main_entry_end
+            main_entry_end=main_entry_end,
         )
         r = process_response(**response_kwargs)
     if not stream:

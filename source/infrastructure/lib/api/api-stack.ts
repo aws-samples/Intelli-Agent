@@ -26,8 +26,9 @@ interface apiStackProps extends StackProps {
     _embeddingEndPoints: string[];
     _llmModelId: string;
     _instructEndPoint: string;
-    _chatSessionTable: string;
-    _workspaceTable: string;
+    _sessionsTableName: string;
+    _messagesTableName: string;
+    _workspaceTableName: string;
     // type of StepFunctions
     _sfnOutput: sfn.StateMachine;
     _OpenSearchIndex: string;
@@ -52,8 +53,9 @@ export class LLMApiStack extends NestedStack {
         const _domainEndpoint = props._domainEndpoint
         const _aosIndex = props._OpenSearchIndex
         const _aosIndexDict = props._OpenSearchIndexDict
-        const _chatSessionTable = props._chatSessionTable
-        const _workspaceTable = props._workspaceTable
+        const _sessionsTableName = props._sessionsTableName
+        const _messagesTableName = props._messagesTableName
+        const _workspaceTableName = props._workspaceTableName
         const _jobQueueArn = props._jobQueueArn
         const _jobDefinitionArn = props._jobDefinitionArn
         const _etlEndpoint = props._etlEndpoint
@@ -149,8 +151,10 @@ export class LLMApiStack extends NestedStack {
             handler: "rating.lambda_handler",
             code: lambda.Code.fromAsset(join(__dirname, "../../../lambda/ddb")),
             environment: {
-                SESSIONS_TABLE_NAME: _chatSessionTable,
+                SESSIONS_TABLE_NAME: _sessionsTableName,
+                MESSAGES_TABLE_NAME: _messagesTableName,
                 SESSIONS_BY_USER_ID_INDEX_NAME: "byUserId",
+                MESSAGES_BY_SESSION_ID_INDEX_NAME: "bySessionId",
             },
             vpc: _vpc,
             vpcSubnets: {
@@ -334,8 +338,9 @@ export class LLMApiStack extends NestedStack {
                     rerank_endpoint: props._rerankEndPoint,
                     aos_index: _aosIndex,
                     aos_index_dict: _aosIndexDict,
-                    chat_session_table: _chatSessionTable,
-                    workspace_table: _workspaceTable,
+                    sessions_table_name: _sessionsTableName,
+                    messages_table_name: _messagesTableName,
+                    workspace_table: _workspaceTableName,
                 },
                 layers: [_ApiLambdaExecutorLayer]
             });

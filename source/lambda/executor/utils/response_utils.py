@@ -1,17 +1,22 @@
 import copy
 import csv
-import os
 import json
 import logging
+import os
 import time
 import traceback
-from .constant import EntryType,StreamMessageType
-from .content_filter_utils.content_filters import token_to_sentence_gen_market, MarketContentFilter
+
+from .constant import EntryType, StreamMessageType
+from .content_filter_utils.content_filters import (
+    MarketContentFilter,
+    token_to_sentence_gen_market,
+)
 
 logger = logging.getLogger("response_utils")
 
-# marketing 
+# marketing
 market_content_filter = MarketContentFilter()
+
 
 class WebsocketClientError(Exception):
     pass
@@ -40,10 +45,10 @@ def api_response(**kwargs):
 
     if entry_type != EntryType.MARKET_CONVERSATION_SUMMARY.value:
         ddb_history_obj.add_user_message(
-            question, f"user_{message_id}", custom_message_id, entry_type
+            f"user_{message_id}", custom_message_id, entry_type, question
         )
         ddb_history_obj.add_ai_message(
-            answer, f"ai_{message_id}", custom_message_id, entry_type
+            f"ai_{message_id}", custom_message_id, entry_type, answer
         )
 
     # 2. return rusult
@@ -143,7 +148,7 @@ def stream_response(**kwargs):
             }
         )
         answer_str = ""
-       
+
         for i, chunk in enumerate(token_to_sentence_gen_market(answer)):
             if i == 0 and log_first_token_time:
                 first_token_time = time.time()
@@ -174,15 +179,15 @@ def stream_response(**kwargs):
             logger.info(
                 f"{custom_message_id} running time of last token whole {entry_type} : {time.time()-request_timestamp}s"
             )
-        
-        logger.info(f'answer: {answer_str}')
+
+        logger.info(f"answer: {answer_str}")
         # add to chat history ddb table
         if entry_type != EntryType.MARKET_CONVERSATION_SUMMARY.value:
             ddb_history_obj.add_user_message(
-                question, f"user_{message_id}", custom_message_id, entry_type
+                f"user_{message_id}", custom_message_id, entry_type, question
             )
             ddb_history_obj.add_ai_message(
-                answer_str, f"ai_{message_id}", custom_message_id, entry_type
+                f"ai_{message_id}", custom_message_id, entry_type, answer_str
             )
         # sed source and contexts
         context_msg = {
