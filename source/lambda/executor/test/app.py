@@ -93,34 +93,35 @@ def generate_answer_from_ws(url, query_input, type):
     # endpoint_name = "instruct-internlm2-chat-7b-f7dc2"
     # endpoint_name = "internlm2-chat-7b-2024-02-23-07-29-02-632"
     endpoint_name = "internlm2-chat-20b-4bits-2024-02-29-05-37-42-885"
-    rag_parameters=dict(
-        query_process_config = {
-            "conversation_query_rewrite_config":{
-                "model_id":model_id,
-                "endpoint_name":endpoint_name
-            },
-            "translate_config":{
-                "model_id":model_id,
-                "endpoint_name": endpoint_name
-            }
-        },
-        retriever_config = {
-            "chunk_num": 0,
-            "using_whole_doc": False,
-            "enable_reranker": True,
-            "retriever_top_k": 2,
-            "workspace_ids": ["aos_index_mkt_faq_qq", "aos_index_acts_qd"]
-        },
-        generator_llm_config ={
-            "model_kwargs":{
-                "max_new_tokens": 2000,
-                "temperature": 0.1,
-                "top_p": 0.9
-            },
-            "model_id": model_id,
-            "endpoint_name": endpoint_name,
-            "context_num": 2
-        })
+    rag_parameters=dict()
+    # rag_parameters=dict(
+    #     query_process_config = {
+    #         "conversation_query_rewrite_config":{
+    #             "model_id":model_id,
+    #             "endpoint_name":endpoint_name
+    #         },
+    #         "translate_config":{
+    #             "model_id":model_id,
+    #             "endpoint_name": endpoint_name
+    #         }
+    #     },
+    #     retriever_config = {
+    #         "chunk_num": 0,
+    #         "using_whole_doc": False,
+    #         "enable_reranker": True,
+    #         "retriever_top_k": 2,
+    #         "workspace_ids": ["aos_index_mkt_faq_qq", "aos_index_acts_qd"]
+    #     },
+    #     generator_llm_config ={
+    #         "model_kwargs":{
+    #             "max_new_tokens": 2000,
+    #             "temperature": 0.1,
+    #             "top_p": 0.9
+    #         },
+    #         "model_id": model_id,
+    #         "endpoint_name": endpoint_name,
+    #         "context_num": 2
+    #     })
     sources = []
     debug_info = []
     ws = create_connection(url)
@@ -165,34 +166,36 @@ def generate_answer_from_local(query_input, entry_type):
     endpoint_name = "instruct-internlm2-chat-7b-f7dc2"
     # endpoint_name = "internlm2-chat-7b-2024-02-23-07-29-02-632"
     # endpoint_name = "internlm2-chat-7b-4bits-2024-02-28-07-08-57-839"
-    rag_parameters=dict(
-        query_process_config = {
-            "conversation_query_rewrite_config":{
-                "model_id":model_id,
-                "endpoint_name":endpoint_name
-            },
-            "translate_config":{
-                "model_id":model_id,
-                "endpoint_name": endpoint_name
-            }
-        },
-        retriever_config = {
-            "chunk_num": 2,
-            "using_whole_doc": False,
-            "enable_reranker": True,
-            "retriever_top_k": 5,
-            "workspace_ids": ["aos_index_mkt_faq_qq_m3", "aos_index_acts_qd_m3"]
-        },
-        generator_llm_config ={
-            "model_kwargs":{
-                "max_new_tokens": 2000,
-                "temperature": 0.1,
-                "top_p": 0.9
-            },
-            "model_id": model_id,
-            "endpoint_name": endpoint_name,
-            "context_num": 1
-        })
+    rag_parameters = dict()
+    # rag_parameters=dict(
+    #     query_process_config = {
+    #         "conversation_query_rewrite_config":{
+    #             "model_id":model_id,
+    #             "endpoint_name":endpoint_name
+    #         },
+    #         "translate_config":{
+    #             "model_id":model_id,
+    #             "endpoint_name": endpoint_name
+    #         }
+    #     },
+    #     retriever_config = {
+    #         "chunk_num": 2,
+    #         "using_whole_doc": False,
+    #         "enable_reranker": True,
+    #         "retriever_top_k": 5,
+    #         "workspace_ids": ["aos_index_mkt_faq_qq_m3", "aos_index_acts_qd_m3", "aos_index_mkt_faq_qd_m3", "aos_index_repost_qq_m3"]
+    #     },
+    #     generator_llm_config ={
+    #         "model_kwargs":{
+    #             "max_new_tokens": 2000,
+    #             "temperature": 0.1,
+    #             "top_p": 0.9
+    #         },
+    #         "model_id": model_id,
+    #         "endpoint_name": endpoint_name,
+    #         "context_num": 1
+    #     })
+    rag_parameters = {}
     sources = []
     debug_info = []
     answer, sources, debug_info = generate_answer(
@@ -203,7 +206,7 @@ def generate_func(api_type, url_input, query_input, entry_type):
     if api_type == "local":
         return generate_answer_from_local(query_input, entry_type)
     elif api_type == "cloud":
-        return generate_answer_from_ws(url_input, query_input, entry_type)
+        yield from generate_answer_from_ws(url_input, query_input, entry_type)
 
 def render_debug_info(debug_info):
     tab_list = []
@@ -341,11 +344,12 @@ with gr.Blocks() as demo:
         label="Url, eg. https://f2zgexpo47.execute-api.us-east-1.amazonaws.com/v1/"
     )
     websocket_input = gr.Text(
-        label="Websocket, eg. wss://5nnxrqr4ya.execute-api.cn-north-1.amazonaws.com.cn/prod/"
+        label="Websocket, eg. wss://2ogbgobue2.execute-api.us-west-2.amazonaws.com/prod/",
+        value='wss://2ogbgobue2.execute-api.us-west-2.amazonaws.com/prod/'
     )
     with gr.Tab("Chat"):
         api_type = gr.Dropdown(label="API", choices=["local", "cloud"], value="local")
-        entry_input = gr.Dropdown(label="Entry", choices=["common", "market_chain_core"], value="market_chain_core")
+        entry_input = gr.Dropdown(label="Entry", choices=["common", "market_chain"], value="market_chain")
         query_input = gr.Text(label="Query")
         answer_output = gr.Text(label="Anwser", show_label=True)
         sources_output = gr.Text(label="Sources", show_label=True)
@@ -520,7 +524,7 @@ with gr.Blocks() as demo:
                     inputs=[s3_bucket_dropdown, s3_prefix_text],
                     outputs=[s3_prefix_dropdown])
                 load_button = gr.Button("Load")
-        solution_md = gr.Markdown(label="Output")
+        solution_md = gr.Text(label="Output")
         load_button.click(
             fn=load_s3_doc,
             inputs=[
@@ -533,4 +537,4 @@ with gr.Blocks() as demo:
 # load_raw_data()
 if __name__ == "__main__":
     demo.queue()
-    demo.launch(server_name="0.0.0.0", share=False, server_port=3309)
+    demo.launch(server_name="0.0.0.0", share=True, server_port=3309)
