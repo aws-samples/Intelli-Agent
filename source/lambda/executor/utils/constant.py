@@ -10,6 +10,7 @@ class EntryType(Enum):
     QQ_RETRIEVER = "qq_retriever"
     QD_RETRIEVER = "qd_retriever"
     MARKET_CONVERSATION_SUMMARY = "market_conversation_summary"
+    LLM = "llm"
     @classmethod
     def has_value(cls, value):
         return value in cls._value2member_map_ 
