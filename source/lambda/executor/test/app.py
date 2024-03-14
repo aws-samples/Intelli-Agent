@@ -533,4 +533,4 @@ with gr.Blocks() as demo:
 # load_raw_data()
 if __name__ == "__main__":
     demo.queue()
-    demo.launch(server_name="0.0.0.0", share=False, server_port=3309)
+    demo.launch(server_name="0.0.0.0", share=True, server_port=3309)
