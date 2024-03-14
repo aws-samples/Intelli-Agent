@@ -475,7 +475,10 @@ class QueryDocumentRetriever(BaseRetriever):
             return results
         for aos_hit in aos_hits:
             result = {"data": {}}
-            result["source"] = aos_hit['_source']['metadata'][source_field]
+            source = aos_hit['_source']['metadata'][source_field]
+            source = source.replace("s3://aws-chatbot-knowledge-base/aws-acts-knowledge/qd/zh_CN/", "https://www.amazonaws.cn/").\
+                replace("s3://aws-chatbot-knowledge-base/aws-acts-knowledge/qd/en_US/", "https://www.amazonaws.cn/en/")
+            result["source"] = source
             result["score"] = aos_hit["_score"]
             result["detail"] = aos_hit['_source']
             # result["content"] = aos_hit['_source'][text_field]
