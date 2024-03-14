@@ -50,6 +50,7 @@ class LLMBotOpenSearchClient:
         )
         self.query_match = {"knn": self._build_knn_search_query,
                             "exact": self._build_exactly_match_query,
+                            "fuzzy": self._build_fuzzy_search_query,
                             "basic": self._build_basic_search_query}
     
     def _build_basic_search_query(self, index_name, query_term, field, size, filter=None):
@@ -82,6 +83,32 @@ class LLMBotOpenSearchClient:
             query["query"]["bool"]["filter"] = filter
 
         return query
+
+    def _build_fuzzy_search_query(self, index_name, query_term, field, size, filter=None):
+        """
+        Build basic search query
+
+        :param index_name: Target Index Name
+        :param query_term: query term
+        :param field: search field
+        :param size: number of results to return from aos
+        
+        :return: aos response json
+        """
+        query = {
+            "size": size,
+            "query": {
+                "match": {
+                    "text": query_term
+                }
+            }
+        }
+        if filter:
+            query["query"]["bool"]["filter"] = filter
+
+        return query
+    
+
     
     def _build_knn_search_query(self, index_name, query_term, field, size, filter=None):
         """

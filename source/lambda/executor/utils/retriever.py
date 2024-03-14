@@ -507,7 +507,6 @@ class QueryDocumentRetriever(BaseRetriever):
         if "query_lang" in question and question["query_lang"] != self.lang and "translated_text" in question:
             query = question["translated_text"]
         debug_info = question["debug_info"]
-        opensearch_knn_results = []
         query_repr = get_relevance_embedding(query, self.lang, self.embedding_model_endpoint, self.model_type)
         question["colbert"] = query_repr["colbert_vecs"][0]
         filter = get_filter_list(question)
@@ -519,16 +518,23 @@ class QueryDocumentRetriever(BaseRetriever):
             size=self.top_k,
             filter=filter
         )
-        opensearch_knn_results.extend(
-            self.organize_results(opensearch_knn_response, self.index, self.source_field, self.text_field, self.using_whole_doc, self.context_num)[:self.top_k]
-        )
+        opensearch_knn_results = self.organize_results(opensearch_knn_response, self.index, self.source_field, self.text_field, self.using_whole_doc, self.context_num)[:self.top_k]
 
        # 2. get AOS invertedIndex recall
-        opensearch_query_results = []
+        opensearch_basic_response = aos_client.search(
+            index_name=self.index,
+            query_type="fuzzy",
+            query_term=query,
+            field=self.text_field,
+            size=self.top_k,
+            filter=filter
+        )
+        opensearch_basic_results = self.organize_results(opensearch_basic_response, self.index, self.source_field, self.text_field, self.using_whole_doc, self.context_num)[:self.top_k]
 
         # 3. combine these two opensearch_knn_response and opensearch_query_response
-        final_results = opensearch_knn_results + opensearch_query_results
-        debug_info[f"qd-knn-recall-{self.index}-{self.lang}"] = remove_redundancy_debug_info(final_results)
+        final_results = opensearch_knn_results + opensearch_basic_results
+        debug_info[f"qd-knn-recall-{self.index}-{self.lang}-knn"] = remove_redundancy_debug_info(opensearch_knn_results)
+        debug_info[f"qd-knn-recall-{self.index}-{self.lang}-basic"] = remove_redundancy_debug_info(opensearch_basic_results)
 
         doc_list = []
         content_set = set()
