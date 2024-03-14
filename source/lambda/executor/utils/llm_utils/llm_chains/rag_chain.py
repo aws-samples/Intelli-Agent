@@ -87,7 +87,7 @@ class Iternlm2Chat7BKnowledgeQaChain(Iternlm2Chat7BChatChain):
 
     @classmethod
     def create_prompt(cls,x):
-        query = x['prompt']
+        query = x['query']
         contexts = x['contexts']
         history = cls.create_history(x)
         context = "\n".join(contexts)
