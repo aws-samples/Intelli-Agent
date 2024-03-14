@@ -16,6 +16,7 @@ from utils.executor_entries import (
     main_qd_retriever_entry,
     main_qq_retriever_entry,
     market_chain_entry,
+    llm_entry,
     market_chain_entry_core,
     market_conversation_summary_entry,
     market_chain_knowledge_entry,
@@ -280,6 +281,13 @@ def lambda_handler(event, context):
 
         elif entry_type == Type.MARKET_CONVERSATION_SUMMARY.value:
             answer, sources, contexts, debug_info = market_conversation_summary_entry(
+                messages=messages,
+                event_body=event_body,
+                stream=stream
+            )
+
+        elif entry_type == Type.LLM.value:
+            answer, sources, contexts, debug_info = llm_entry(
                 messages=messages,
                 event_body=event_body,
                 stream=stream
