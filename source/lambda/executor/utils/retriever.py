@@ -154,7 +154,7 @@ def get_doc(file_path, index_name):
     chunk_text_list = [x[4] for x in sorted_chunk_list]
     return "\n".join(chunk_text_list)
 
-def get_inner_context(chunk_id, index_name, window_size):
+def get_child_context(chunk_id, index_name, window_size):
     next_content_list = []
     previous_content_list = []
     previous_pos = 0
@@ -473,13 +473,16 @@ class QueryDocumentRetriever(BaseRetriever):
         if len(aos_hits) == 0:
             return results
         for aos_hit in aos_hits:
-            result = {}
+            result = {"data": {}}
             result["source"] = aos_hit['_source']['metadata'][source_field]
             result["score"] = aos_hit["_score"]
             result["detail"] = aos_hit['_source']
             # result["content"] = aos_hit['_source'][text_field]
             result["content"] = aos_hit['_source'][text_field]
             result["doc"] = result["content"]
+            if 'additional_vecs' in aos_hit['_source']['metadata'] and \
+                'colbert_vecs' in aos_hit['_source']['metadata']['additional_vecs']:
+                result["data"]["colbert"] = aos_hit['_source']['metadata']['additional_vecs']['colbert_vecs']
             results.append(result)
         if using_whole_doc:
             for result in results:
@@ -506,6 +509,7 @@ class QueryDocumentRetriever(BaseRetriever):
         debug_info = question["debug_info"]
         opensearch_knn_results = []
         query_repr = get_relevance_embedding(query, self.lang, self.embedding_model_endpoint, self.model_type)
+        question["colbert"] = query_repr["colbert_vecs"][0]
         filter = get_filter_list(question)
         opensearch_knn_response = aos_client.search(
             index_name=self.index,
@@ -535,6 +539,7 @@ class QueryDocumentRetriever(BaseRetriever):
             doc_list.append(Document(page_content=result["doc"],
                                      metadata={"source": result["source"],
                                                "retrieval_content": result["content"],
+                                               "retrieval_data": result["data"],
                                                "retrieval_score": result["score"],
                                                 # set common score for llm.
                                                "score": result["score"]}))

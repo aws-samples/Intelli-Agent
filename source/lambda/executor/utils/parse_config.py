@@ -98,6 +98,25 @@ def parse_rag_config(event_body):
 
     return new_event_config
 
+def parse_llm_config(event_body):
+    event_body = copy.deepcopy(event_body)
+    new_event_config = update_nest_dict(copy.deepcopy(rag_default_config), event_body)
+
+    # adapting before setting
+    temperature = event_body.get("temperature")
+    llm_model_id = event_body.get("llm_model_id")
+
+    if llm_model_id:
+        new_event_config["generator_llm_config"]["model_id"] = llm_model_id
+    if temperature:
+        new_event_config["generator_llm_config"]["model_kwargs"][
+            "temperature"
+        ] = temperature
+
+    return new_event_config
+
+
+
 
 def parse_mkt_entry_core_config(event_body):
     return parse_rag_config(event_body)

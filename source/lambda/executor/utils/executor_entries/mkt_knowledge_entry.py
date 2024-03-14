@@ -207,16 +207,19 @@ def market_chain_knowledge_entry(
         )
         for workspace in qq_workspace_list
     ]
-    qq_chain =  chain_logger(
-        MergerRetriever(retrievers=retriever_list) | \
-                RunnableLambda(retriever_results_format) |\
-                RunnableLambda(partial(
-                    retriever_results_filter,
-                    threshold=qq_match_threshold
-                ))
-        ,
-        'qq_chain'
-    )
+    if len(qq_workspace_list):
+        qq_chain =  chain_logger(
+            MergerRetriever(retrievers=retriever_list) | \
+                    RunnableLambda(retriever_results_format) |\
+                    RunnableLambda(partial(
+                        retriever_results_filter,
+                        threshold=qq_match_threshold
+                    ))
+            ,
+            'qq_chain'
+        )
+    else:
+        qq_chain = RunnableLambda(lambda x:[])
 
     ############################
     # step 4. qd retriever chain#
