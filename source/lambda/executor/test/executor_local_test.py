@@ -1026,12 +1026,12 @@ if __name__ == "__main__":
     # )
     # market_deploy_test()
     # knowledge_qa_test()
-    # r = generate_answer(
-    #     "如何将Kinesis Data Streams配置为AWS Lambda的事件源？", 
-    #     model="knowledge_qa", 
-    #     stream=True,
-    #     type="market_chain", 
-    # )
+    r = generate_answer(
+        "怎么开发票？", 
+        model="knowledge_qa", 
+        stream=True,
+        type="market_chain", 
+    )
     # knowledge_qa_test()
 
     
@@ -1039,7 +1039,7 @@ if __name__ == "__main__":
     # test_baichuan_model()
     # market_summary_test2()
     # test_internlm_model()
-    dgr_deploy_test()
+    # dgr_deploy_test()
     # test_internlm_model_mkt_knowledge_entry()
     # test_internlm_model_mkt_knowledge_entry_qq_match()
     # test_internlm_model_mkt_knowledge_entry_langgraph()
