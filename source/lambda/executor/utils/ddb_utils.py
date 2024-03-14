@@ -64,7 +64,7 @@ class DynamoDBChatMessageHistory(BaseChatMessageHistory):
                 print(error)
 
         items = response.get("Items", [])
-        items = sorted(items, key=lambda x: x["createTimeStamp"])
+        items = sorted(items, key=lambda x: x["createTimestamp"])
 
         return items
 
@@ -83,7 +83,7 @@ class DynamoDBChatMessageHistory(BaseChatMessageHistory):
             else:
                 print(error)
         items = response.get("Items", [])
-        items = sorted(items, key=lambda x: x["createTimeStamp"])
+        items = sorted(items, key=lambda x: x["createTimestamp"])
         ret = []
 
         for item in items:
@@ -94,7 +94,7 @@ class DynamoDBChatMessageHistory(BaseChatMessageHistory):
                 "content": item["content"],
                 "additional_kwargs": {
                     "message_id": item["messageId"],
-                    "create_time": float(item["createTimeStamp"]),
+                    "create_time": float(item["createTimestamp"]),
                     "entry_type": item["entryType"],
                     "custom_message_id": item["customMessageId"],
                 },
@@ -106,12 +106,12 @@ class DynamoDBChatMessageHistory(BaseChatMessageHistory):
     def update_session(self):
         """Add the session to the record in DynamoDB"""
         session = self.session
-        # If this session already exists, update lastModifiedTimeStamp
+        # If this session already exists, update lastModifiedTimestamp
         if session:
             current_timestamp = Decimal.from_float(time.time())
             response = self.sessions_table.update_item(
                 Key={"sessionId": self.session_id, "userId": self.user_id},
-                UpdateExpression="SET lastModifiedTimeStamp = :t",
+                UpdateExpression="SET lastModifiedTimestamp = :t",
                 ExpressionAttributeValues={":t": current_timestamp},
                 ReturnValues="UPDATED_NEW",
             )
@@ -123,8 +123,8 @@ class DynamoDBChatMessageHistory(BaseChatMessageHistory):
                     "userId": self.user_id,
                     "clientType": self.client_type,
                     "startTime": current_timestamp,
-                    "createTimeStamp": current_timestamp,
-                    "lastModifiedTimeStamp": current_timestamp,
+                    "createTimestamp": current_timestamp,
+                    "lastModifiedTimestamp": current_timestamp,
                 }
             )
 
@@ -143,8 +143,8 @@ class DynamoDBChatMessageHistory(BaseChatMessageHistory):
                     "customMessageId": custom_message_id,
                     "entryType": entry_type,
                     "content": message_content,
-                    "createTimeStamp": current_timestamp,
-                    "lastModifiedTimeStamp": current_timestamp,
+                    "createTimestamp": current_timestamp,
+                    "lastModifiedTimestamp": current_timestamp,
                 }
             )
         except ClientError as err:

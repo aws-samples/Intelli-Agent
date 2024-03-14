@@ -94,7 +94,7 @@ def add_feedback(
         current_timestamp = Decimal.from_float(time.time())
         messages_table.update_item(
             Key={"messageId": message_id, "sessionId": session_id},
-            UpdateExpression="SET feedbackType = :ft, suggestMessage = :sm, lastModifiedTimeStamp = :t",
+            UpdateExpression="SET feedbackType = :ft, suggestMessage = :sm, lastModifiedTimestamp = :t",
             ExpressionAttributeValues={
                 ":ft": feedback_type,
                 ":sm": suggestMessage,
@@ -104,7 +104,7 @@ def add_feedback(
         )
         sessions_table.update_item(
             Key={"sessionId": session_id, "userId": user_id},
-            UpdateExpression="SET lastModifiedTimeStamp = :t",
+            UpdateExpression="SET lastModifiedTimestamp = :t",
             ExpressionAttributeValues={":t": current_timestamp},
             ReturnValues="UPDATED_NEW",
         )

@@ -84,7 +84,7 @@ workspace_id = args["WORKSPACE_ID"]
 workspace_table = args["WORKSPACE_TABLE"]
 
 
-s3 = boto3.client("s3")
+s3_client = boto3.client("s3")
 smr_client = boto3.client("sagemaker-runtime")
 dynamodb = boto3.resource("dynamodb")
 table = dynamodb.Table(processedObjectsTable)
@@ -106,140 +106,121 @@ MAX_OS_DOCS_PER_PUT = 8
 
 nltk.data.path.append("/tmp/nltk_data")
 
-supported_file_types = ["pdf", "txt", "doc", "md", "html", "json", "jsonl", "csv"]
 
+class S3FileProcessor:
+    def __init__(self, bucket: str, prefix: str):
+        self.bucket = bucket
+        self.prefix = prefix
+        self.supported_file_types = [
+            "pdf",
+            "txt",
+            "doc",
+            "md",
+            "html",
+            "json",
+            "jsonl",
+            "csv",
+        ]
+        self.paginator = s3_client.get_paginator("list_objects_v2")
 
-def decode_file_content(content: str, default_encoding: str = "utf-8"):
-    """Decode the file content and auto detect the content encoding.
+    def get_file_content(self, key: str):
+        response = s3_client.get_object(Bucket=self.bucket, Key=key)
+        return response["Body"].read()
 
-    Args:
-        content: The content to detect the encoding.
-        default_encoding: The default encoding to try to decode the content.
-        timeout: The timeout in seconds for the encoding detection.
-    """
+    def process_file(self, key: str, file_type: str, file_content: str):
+        kwargs = {
+            "bucket": self.bucket,
+            "key": key,
+            "etl_model_endpoint": etlModelEndpoint,
+            "smr_client": smr_client,
+            "res_bucket": res_bucket,
+        }
 
-    try:
-        decoded_content = content.decode(default_encoding)
-    except UnicodeDecodeError:
-        # Try to detect encoding
-        encoding = chardet.detect(content)["encoding"]
-        decoded_content = content.decode(encoding)
+        if file_type == "txt":
+            return "txt", self.decode_file_content(file_content), kwargs
+        elif file_type == "csv":
+            kwargs["csv_row_count"] = 1
+            return "csv", self.decode_file_content(file_content), kwargs
+        elif file_type == "html":
+            return "html", self.decode_file_content(file_content), kwargs
+        elif file_type in ["pdf"]:
+            return "pdf", file_content, kwargs
+        elif file_type in ["jpg", "png"]:
+            return "image", file_content, kwargs
+        elif file_type in ["docx", "doc"]:
+            return "doc", file_content, kwargs
+        elif file_type == "md":
+            return "md", self.decode_file_content(file_content), kwargs
+        elif file_type == "json":
+            return "json", self.decode_file_content(file_content), kwargs
+        elif file_type == "jsonl":
+            return "jsonl", file_content, kwargs
+        else:
+            logger.info(f"Unknown file type: {file_type}")
 
-    return decoded_content
+    def decode_file_content(self, file_content: str, default_encoding: str = "utf-8"):
+        """Decode the file content and auto detect the content encoding.
 
+        Args:
+            content: The content to detect the encoding.
+            default_encoding: The default encoding to try to decode the content.
+            timeout: The timeout in seconds for the encoding detection.
+        """
+        try:
+            decoded_content = file_content.decode(default_encoding)
+        except UnicodeDecodeError:
+            # Try to detect encoding
+            encoding = chardet.detect(file_content)["encoding"]
+            decoded_content = file_content.decode(encoding)
 
-# such glue job is running as map job, the batchIndice is the index per file to handle in current job
-def iterate_s3_files(bucket: str, prefix: str) -> Generator:
-    paginator = s3.get_paginator("list_objects_v2")
-    currentIndice = 0
-    for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
-        for obj in page.get("Contents", []):
-            key = obj["Key"]
-            file_type = key.split(".")[-1].lower()  # Extract file extension
-            # skip the prefix with slash, which is the folder name
-            print(f"key: {key}, file_type: {file_type}")
-            print(
-                f"currentIndice: {currentIndice}, batchIndice: {batchIndice}, batchFileNumber: {batchFileNumber}"
-            )
+        return decoded_content
 
-            if key.endswith("/") or file_type not in supported_file_types:
-                continue
+    def iterate_s3_files(self) -> Generator:
+        currentIndice = 0
+        for page in self.paginator.paginate(Bucket=self.bucket, Prefix=self.prefix):
+            for obj in page.get("Contents", []):
+                key = obj["Key"]
+                file_type = key.split(".")[-1].lower()  # Extract file extension
 
-            currentIndice += 1
+                if key.endswith("/") or file_type not in self.supported_file_types:
+                    continue
 
-            if currentIndice < int(batchIndice) * int(batchFileNumber):
-                continue
-            elif currentIndice >= (int(batchIndice) + 1) * int(batchFileNumber):
+                if currentIndice < int(batchIndice) * int(batchFileNumber):
+                    continue
+                elif currentIndice >= (int(batchIndice) + 1) * int(batchFileNumber):
+                    # Exit this nested loop
+                    break
+                else:
+                    logger.info("Processing object: %s", key)
+
+                    file_content = self.get_file_content(key)
+                    yield self.process_file(key, file_type, file_content)
+                currentIndice += 1
+            if currentIndice >= (int(batchIndice) + 1) * int(batchFileNumber):
+                # Exit the outer loop
                 break
 
-            logger.info("Processing object: %s", key)
 
-            response = s3.get_object(Bucket=bucket, Key=key)
-            file_content = response["Body"].read()
-            # assemble bucket and key as args for the callback function
-            kwargs = {
-                "bucket": bucket,
-                "key": key,
-                "etl_model_endpoint": etlModelEndpoint,
-                "smr_client": smr_client,
-                "res_bucket": res_bucket,
-            }
-
-            if file_type == "txt":
-                yield "txt", decode_file_content(file_content), kwargs
-            elif file_type == "csv":
-                # Update row count here, the default row count is 1
-                kwargs["csv_row_count"] = 1
-                yield "csv", decode_file_content(file_content), kwargs
-            elif file_type == "html":
-                yield "html", decode_file_content(file_content), kwargs
-            elif file_type in ["pdf"]:
-                yield "pdf", file_content, kwargs
-            elif file_type in ["jpg", "png"]:
-                yield "image", file_content, kwargs
-            elif file_type in ["docx", "doc"]:
-                yield "doc", file_content, kwargs
-            elif file_type == "md":
-                yield "md", decode_file_content(file_content), kwargs
-            elif file_type == "json":
-                yield "json", decode_file_content(file_content), kwargs
-            elif file_type == "jsonl":
-                yield "jsonl", file_content, kwargs
-            else:
-                logger.info(f"Unknown file type: {file_type}")
-
-
-def batch_generator(generator, batch_size: int):
-    iterator = iter(generator)
-    while True:
-        batch = list(itertools.islice(iterator, batch_size))
-        if not batch:
-            break
-        yield batch
-
-
-def aos_injection(
-    content: List[Document],
-    embeddingModelEndpoint: str,
-    aosEndpoint: str,
-    index_name: str,
-    file_type: str,
-    chunk_size: int = 500,
-    chunk_overlap: int = 30,
-    gen_chunk: bool = True,
-) -> List[Document]:
-    """
-    This function includes the following steps:
-    1. split the document into chunks with chunk size to fit the embedding model, note the document is already splited by title/subtitle to form sementic chunks approximately;
-    2. call the embedding model to get the embeddings for each chunk;
-    3. call the AOS to index the chunk with the embeddings;
-    Parameters:
-    content (list): A list of Document objects, each representing a semantically grouped section of the PDF file. Each Document object contains a metadata dictionary with details about the heading hierarchy etc.
-    embeddingModelEndpointList (List[str]): The endpoint list of the embedding model.
-    aosEndpoint (str): The endpoint of the AOS.
-    index_name (str): The name of the index to be created in the AOS.
-    chunk_size (int): The size of each chunk to be indexed in the AOS.
-    file_type (str): The file type of the document.
-    gen_chunk (bool): Whether generate chunks or not.
-
-    Returns:
-
-    Note:
-    """
-    print(f"embeddingModelEndpoint: {embeddingModelEndpoint}")
-    embeddings = sm_utils.create_embeddings_with_m3_model(
-        embeddingModelEndpoint, region, file_type
-    )
+class BatchChunkDocumentProcessor:
+    def __init__(
+        self,
+        chunk_size: int,
+        chunk_overlap: int,
+        batch_size: int,
+    ):
+        self.chunk_size = chunk_size
+        self.chunk_overlap = chunk_overlap
+        self.batch_size = batch_size
 
     def chunk_generator(
-        content: List[Document], chunk_size: int = 500, chunk_overlap: int = 30
+        self, content: List[Document]
     ) -> Generator[Document, None, None]:
         temp_text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=chunk_size, chunk_overlap=chunk_overlap
+            chunk_size=self.chunk_size, chunk_overlap=self.chunk_overlap
         )
         temp_content = content
         text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=chunk_size, chunk_overlap=chunk_overlap
+            chunk_size=self.chunk_size, chunk_overlap=self.chunk_overlap
         )
         updated_heading_hierarchy = {}
         for temp_document in temp_content:
@@ -267,92 +248,75 @@ def aos_injection(
                 index += 1
                 yield split
 
-    if gen_chunk:
-        generator = chunk_generator(
-            content, chunk_size=chunk_size, chunk_overlap=chunk_overlap
+    def batch_generator(self, content: List[Document], gen_chunk_flag: bool = True):
+        if gen_chunk_flag:
+            generator = self.chunk_generator(content)
+        else:
+            generator = content
+        iterator = iter(generator)
+        while True:
+            batch = list(itertools.islice(iterator, self.batch_size))
+            if not batch:
+                break
+            yield batch
+
+
+class OpenSearchIngestionWorker:
+    def __init__(
+        self,
+        embeddingModelEndpoint: str,
+        aosEndpoint: str,
+        index_name: str,
+    ):
+        self.embeddingModelEndpoint = embeddingModelEndpoint
+        self.aosEndpoint = aosEndpoint
+        self.index_name = index_name
+        self.embeddings = sm_utils.create_embeddings_with_m3_model(
+            embeddingModelEndpoint, region
         )
-    else:
-        generator = content
+        self.docsearch = OpenSearchVectorSearch(
+            index_name=index_name,
+            embedding_function=self.embeddings,
+            opensearch_url="https://{}".format(aosEndpoint),
+            http_auth=awsauth,
+            use_ssl=True,
+            verify_certs=True,
+            connection_class=RequestsHttpConnection,
+        )
 
-    batches = batch_generator(generator, batch_size=10)
-    # note: typeof(batch)->list[Document], sizeof(batches)=batch_size
-    for batch in batches:
-        if len(batch) == 0:
-            continue
-        # the batch are still list of Document objects, we need to iterate the list to inject the embeddings, the chunk size (500) should already be small enough to fit the embedding model
-        for document in batch:
-            # update document with complete_heading
-            if "complete_heading" in document.metadata:
-                document.page_content = (
-                    document.metadata["complete_heading"] + " " + document.page_content
+    @retry(
+        stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10)
+    )
+    def aos_ingestion(self, document: Document) -> None:
+
+        document.metadata["embedding_endpoint_name"] = embeddingModelEndpoint
+
+        documents = [document]
+        texts = [doc.page_content for doc in documents]
+        metadatas = [doc.metadata for doc in documents]
+        embeddings_vectors = self.embeddings.embed_documents(list(texts))
+
+        if isinstance(embeddings_vectors[0], dict):
+            embeddings_vectors_list = []
+            metadata_list = []
+            for doc_id, metadata in enumerate(metadatas):
+                colbert_vecs = embeddings_vectors[0]["colbert_vecs"][doc_id]
+                embeddings_vectors_list.append(
+                    embeddings_vectors[0]["dense_vecs"][doc_id]
                 )
-            else:
-                document.page_content = document.page_content
-
-            @retry(
-                stop=stop_after_attempt(3),
-                wait=wait_exponential(multiplier=1, min=4, max=10),
-            )
-            def _aos_injection(document: Document) -> Document:
-
-                document.metadata["embedding_endpoint_name"] = embeddingModelEndpoint
-                docsearch = OpenSearchVectorSearch(
-                    index_name=index_name,
-                    embedding_function=embeddings,
-                    opensearch_url="https://{}".format(aosEndpoint),
-                    http_auth=awsauth,
-                    use_ssl=True,
-                    verify_certs=True,
-                    connection_class=RequestsHttpConnection,
+                metadata.update(
+                    {
+                        "additional_vecs": {
+                            "colbert_vecs": colbert_vecs,
+                        }
+                    }
                 )
-
-                documents = [document]
-                texts = [doc.page_content for doc in documents]
-                metadatas = [doc.metadata for doc in documents]
-                embeddings_vectors = embeddings.embed_documents(list(texts))
-
-                if isinstance(embeddings_vectors[0], dict):
-                    embeddings_vectors_list = []
-                    metadata_list = []
-                    for doc_id, metadata in enumerate(metadatas):
-                        lexical_weights = embeddings_vectors[0]["lexical_weights"][
-                            doc_id
-                        ]
-                        colbert_vecs = embeddings_vectors[0]["colbert_vecs"][doc_id]
-                        embeddings_vectors_list.append(
-                            embeddings_vectors[0]["dense_vecs"][doc_id]
-                        )
-                        metadata.update(
-                            {
-                                "additional_vecs": {
-                                    "colbert_vecs": colbert_vecs,
-                                }
-                            }
-                        )
-                        metadata_list.append(metadata)
-                    embeddings_vectors = embeddings_vectors_list
-                    metadatas = metadata_list
-                docsearch._OpenSearchVectorSearch__add(
-                    texts, embeddings_vectors, metadatas=metadatas
-                )
-                # logger.info(
-                #     "Adding documents %s to OpenSearch with index %s",
-                #     document,
-                #     index_name,
-                # )
-                # TODO: add endpoint name as a metadata of document
-                # try:
-                # TODO, consider the max retry and initial backoff inside helper.bulk operation instead of using original LangChain
-                # docsearch.add_documents(documents=[document])
-                # except Exception as e:
-                #     logger.info(
-                #         f"Catch exception when adding document to OpenSearch: {e}"
-                #     )
-                logger.info("Retry statistics: %s", _aos_injection.retry.statistics)
-
-            # logger.info("Adding documents %s to OpenSearch with index %s", document, index_name)
-            save_content_to_s3(s3, document, res_bucket, SplittingType.CHUNK.value)
-            _aos_injection(document)
+                metadata_list.append(metadata)
+            embeddings_vectors = embeddings_vectors_list
+            metadatas = metadata_list
+        self.docsearch._OpenSearchVectorSearch__add(
+            texts, embeddings_vectors, metadatas=metadatas
+        )
 
 
 # Main function to be called by Glue job script
@@ -367,82 +331,62 @@ def main():
         embeddings_model_type,
     ) = get_embedding_info(embeddingModelEndpoint)
 
-    for file_type, file_content, kwargs in iterate_s3_files(s3_bucket, s3_prefix):
+    file_processor = S3FileProcessor(s3_bucket, s3_prefix)
+
+    s3_files_iterator = file_processor.iterate_s3_files()
+
+    # Get the first element of the iterator to check the file type, but don't consume the iterator
+    file_type, file_content, kwargs = next(s3_files_iterator)
+    open_search_index_type = "qq" if file_type == "jsonl" else "qd"
+    aos_index = workspace_manager.update_workspace_open_search(
+        workspace_id,
+        embeddingModelEndpoint,
+        embeddings_model_provider,
+        embeddings_model_name,
+        embeddings_model_dimensions,
+        embeddings_model_type,
+        ["zh"],
+        ["txt"],
+        open_search_index_type,
+    )
+
+    batch_chunk_processor = BatchChunkDocumentProcessor(
+        chunk_size=5000, chunk_overlap=30, batch_size=10
+    )
+    ingestion_worker = OpenSearchIngestionWorker(
+        embeddingModelEndpoint, aosEndpoint, aos_index
+    )
+
+    for file_type, file_content, kwargs in s3_files_iterator:
         try:
-            res = cb_process_object(s3, file_type, file_content, **kwargs)
+            # the res is unified to list[Doucment] type
+            res = cb_process_object(s3_client, file_type, file_content, **kwargs)
             for document in res:
                 save_content_to_s3(
-                    s3, document, res_bucket, SplittingType.SEMANTIC.value
+                    s3_client, document, res_bucket, SplittingType.SEMANTIC.value
                 )
-
-            # the res is unified to list[Doucment] type, store the res to S3 for observation
-            # TODO, parse the metadata to embed with different index
-            if res:
-                logger.info("Result: %s", res)
-
-            open_search_index_type = "qq" if file_type == "jsonl" else "qd"
-
-            aos_index = workspace_manager.update_workspace_open_search(
-                workspace_id,
-                embeddingModelEndpoint,
-                embeddings_model_provider,
-                embeddings_model_name,
-                embeddings_model_dimensions,
-                embeddings_model_type,
-                ["zh"],
-                [file_type],
-                open_search_index_type,
-            )
 
             gen_chunk_flag = False if file_type == "csv" else True
-            if file_type in supported_file_types:
-                aos_injection(
-                    res,
-                    embeddingModelEndpoint,
-                    aosEndpoint,
-                    aos_index,
-                    file_type,
-                    gen_chunk=gen_chunk_flag,
-                )
+            batches = batch_chunk_processor.batch_generator(res, gen_chunk_flag)
 
-            if qa_enhancement == "true":
-                enhanced_prompt_list = []
-                # iterate the document to get the QA pairs
-                for document in res:
-                    # Define your prompt or else it uses default prompt
-                    prompt = ""
-                    # Make sure the document is Document object
-                    logger.info(
-                        "Enhancing document type: {} and content: {}".format(
-                            type(document), document
-                        )
-                    )
-                    ewb = EnhanceWithBedrock(prompt, document)
-                    # This is should be optional for the user to choose the chunk size
-                    document_list = ewb.SplitDocumentByTokenNum(
-                        document, ENHANCE_CHUNK_SIZE
-                    )
-                    for document in document_list:
-                        enhanced_prompt_list = ewb.EnhanceWithClaude(
-                            prompt, document, enhanced_prompt_list
-                        )
-                    logger.info(f"Enhanced prompt: {enhanced_prompt_list}")
+            for batch in batches:
+                if len(batch) == 0:
+                    continue
 
-                if len(enhanced_prompt_list) > 0:
-                    for document in enhanced_prompt_list:
-                        save_content_to_s3(
-                            s3,
-                            document,
-                            res_bucket,
-                            SplittingType.QA_ENHANCEMENT.value,
+                for document in batch:
+                    if "complete_heading" in document.metadata:
+                        document.page_content = (
+                            document.metadata["complete_heading"]
+                            + " "
+                            + document.page_content
                         )
-                    aos_injection(
-                        enhanced_prompt_list,
-                        embeddingModelEndpoint,
-                        aosEndpoint,
-                        aos_index,
-                        "qa",
+                    else:
+                        document.page_content = document.page_content
+
+                    save_content_to_s3(
+                        s3_client, document, res_bucket, SplittingType.CHUNK.value
                     )
+                    ingestion_worker.aos_ingestion(document)
 
         except Exception as e:
             logger.error(

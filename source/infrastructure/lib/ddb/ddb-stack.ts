@@ -8,6 +8,7 @@ import * as iam from "aws-cdk-lib/aws-iam";
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as apigw from 'aws-cdk-lib/aws-apigateway';
 import { join } from "path";
+import { Stream, StreamEncryption } from "aws-cdk-lib/aws-kinesis";
 
 interface ddbStackProps extends StackProps {
     _vpc: ec2.Vpc;
@@ -24,6 +25,18 @@ export class DynamoDBStack extends NestedStack {
   constructor(scope: Construct, id: string, props: ddbStackProps) {
     super(scope, id, props);
     const _vpc = props._vpc;
+
+    const sessionsTableStream = new Stream(this, `SessionsTableKinesisStream`, {
+      shardCount: 1,
+      retentionPeriod: Duration.days(7),
+      encryption: StreamEncryption.MANAGED,
+    });
+
+    const messagesTableStream = new Stream(this, `MessagesTableKinesisStream`, {
+      shardCount: 1,
+      retentionPeriod: Duration.days(7),
+      encryption: StreamEncryption.MANAGED,
+    });
     
     // Create the DynamoDB table
     const sessionsTable = new dynamodb.Table(this, "SessionsTable", {
@@ -38,7 +51,9 @@ export class DynamoDBStack extends NestedStack {
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       encryption: dynamodb.TableEncryption.AWS_MANAGED,
       removalPolicy: RemovalPolicy.DESTROY,
+      kinesisStream: sessionsTableStream,
     });
+
 
     sessionsTable.addGlobalSecondaryIndex({
       indexName: this.byUserIdIndex,
@@ -57,6 +72,7 @@ export class DynamoDBStack extends NestedStack {
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       encryption: dynamodb.TableEncryption.AWS_MANAGED,
       removalPolicy: RemovalPolicy.DESTROY,
+      kinesisStream: messagesTableStream,
     });
 
     messagesTable.addGlobalSecondaryIndex({

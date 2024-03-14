@@ -124,14 +124,10 @@ def create_embeddings_with_single_model(
     return embeddings_result
 
 
-def create_embeddings_with_m3_model(
-    embeddings_model: str, aws_region: str, file_type: str
-):
+def create_embeddings_with_m3_model(embeddings_model: str, aws_region: str):
     embeddings_result = None
-    if file_type.lower() == "jsonl":
-        content_handler = SimilarityM3ContentHandler()
-    else:
-        content_handler = RelevanceM3ContentHandler()
+
+    content_handler = RelevanceM3ContentHandler()
 
     embeddings_result = create_sagemaker_embeddings_from_js_model(
         embeddings_model, aws_region, content_handler
