@@ -208,8 +208,14 @@ def market_chain_knowledge_entry(
         for workspace in qq_workspace_list
     ]
     if len(qq_workspace_list):
+        qq_compressor = BGEReranker(query_key=qq_query_key)
+        qq_lotr = MergerRetriever(retrievers=retriever_list)
+        qq_compression_retriever = ContextualCompressionRetriever(
+            base_compressor=qq_compressor, base_retriever=qq_lotr
+        )
         qq_chain =  chain_logger(
-            MergerRetriever(retrievers=retriever_list) | \
+            # MergerRetriever(retrievers=retriever_list) | \
+            qq_compression_retriever | \
                     RunnableLambda(retriever_results_format) |\
                     RunnableLambda(partial(
                         retriever_results_filter,
