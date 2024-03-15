@@ -29,6 +29,8 @@ def lambda_handler(event, context):
     prefix = event["s3Prefix"]
     # fetch index from event with default value none
     workspace_id = event["workspaceId"]
+    index_type = event.get("indexType", "qd")
+    operation_type = event.get("operationType", "create")
 
     # Initialize the file count
     file_count = 0
@@ -49,7 +51,7 @@ def lambda_handler(event, context):
 
     job_number = get_job_number(event, file_count)
 
-    batch_file_number = file_count // job_number + 1
+    batch_file_number = (file_count - 1) // job_number + 1
 
     # convert the fileCount into an array of numbers "fileIndices": [0, 1, 2, ..., 10], an array from 0 to fileCount-1
     batch_indices = list(range(job_number))
@@ -64,4 +66,6 @@ def lambda_handler(event, context):
         "offline": event["offline"].lower(),
         "batchFileNumber": str(batch_file_number),
         "batchIndices": batch_indices,
+        "indexType": index_type,
+        "operationType": operation_type,
     }

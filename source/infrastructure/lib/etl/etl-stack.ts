@@ -262,6 +262,8 @@ export class EtlStack extends NestedStack {
                     'offline.$': '$.Payload.offline',
                     "batchFileNumber.$": '$.Payload.batchFileNumber',
                     'batchIndices.$': '$.Payload.batchIndices',
+                    'indexType.$': '$.Payload.indexType',
+                    'operationType.$': '$.Payload.operationType',
                 }
             },
             // we need the original input
@@ -283,8 +285,10 @@ export class EtlStack extends NestedStack {
                 '--DOC_INDEX_TABLE': props._OpenSearchIndex,
                 '--EMBEDDING_MODEL_ENDPOINT': 'bge-m3-2024-03-05-07-28-21-582-endpoint',
                 '--ETL_MODEL_ENDPOINT': this._etlEndpoint,
+                '--INDEX_TYPE.$': '$.indexType',
                 '--JOB_NAME': glueJob.jobName,
                 '--OFFLINE': 'true',
+                '--OPERATION_TYPE.$': '$.operationType',
                 '--ProcessedObjectsTable': table.tableName,
                 '--QA_ENHANCEMENT.$': '$.qaEnhance',
                 '--REGION': props._region,
@@ -313,7 +317,9 @@ export class EtlStack extends NestedStack {
                 'offline.$': '$.offline',
                 'batchFileNumber.$': '$.batchFileNumber',
                 // 'index' is a special variable within the Map state that represents the current index
-                'batchIndices.$': '$$.Map.Item.Index' // Add this if you need to know the index of the current item in the map state
+                'batchIndices.$': '$$.Map.Item.Index', // Add this if you need to know the index of the current item in the map state
+                'indexType.$': '$.indexType',
+                'operationType.$': '$.operationType',
             },
             resultPath: '$.mapResults',
         });
@@ -331,8 +337,10 @@ export class EtlStack extends NestedStack {
                 '--DOC_INDEX_TABLE': props._OpenSearchIndex,
                 '--EMBEDDING_MODEL_ENDPOINT': 'bge-m3-2024-03-05-07-28-21-582-endpoint',
                 '--ETL_MODEL_ENDPOINT': this._etlEndpoint,
+                '--INDEX_TYPE.$': '$.indexType',
                 '--JOB_NAME': glueJob.jobName,
                 '--OFFLINE': 'true',
+                '--OPERATION_TYPE.$': '$.operationType',
                 '--ProcessedObjectsTable': table.tableName,
                 '--QA_ENHANCEMENT.$': '$.qaEnhance',
                 '--REGION': props._region,
@@ -341,7 +349,7 @@ export class EtlStack extends NestedStack {
                 '--S3_PREFIX.$': '$.s3Prefix',
                 '--WORKSPACE_ID.$': '$.workspaceId',
                 '--job-language': 'python',
-        }),
+            })
         });
 
         // Notify the result of the glue job

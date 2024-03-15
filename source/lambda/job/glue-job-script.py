@@ -16,13 +16,6 @@ from boto3.dynamodb.conditions import Attr, Key
 from langchain.docstore.document import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import OpenSearchVectorSearch
-from llm_bot_dep import sm_utils
-from llm_bot_dep.constant import SplittingType
-from llm_bot_dep.ddb_utils import WorkspaceManager
-from llm_bot_dep.embeddings import get_embedding_info
-from llm_bot_dep.enhance_utils import EnhanceWithBedrock
-from llm_bot_dep.loaders.auto import cb_process_object
-from llm_bot_dep.storage_utils import save_content_to_s3
 from opensearchpy import RequestsHttpConnection
 from requests_aws4auth import AWS4Auth
 from tenacity import retry, stop_after_attempt, wait_exponential
@@ -51,6 +44,8 @@ try:
             "S3_PREFIX",
             "WORKSPACE_ID",
             "WORKSPACE_TABLE",
+            "INDEX_TYPE",
+            "OPERATION_TYPE"
         ],
     )
 except Exception as e:
@@ -58,6 +53,14 @@ except Exception as e:
     sys.path.append("dep")
     args = json.load(open(sys.argv[1]))
     args["BATCH_INDICE"] = sys.argv[2]
+
+from llm_bot_dep import sm_utils
+from llm_bot_dep.constant import SplittingType
+from llm_bot_dep.ddb_utils import WorkspaceManager
+from llm_bot_dep.embeddings import get_embedding_info
+from llm_bot_dep.enhance_utils import EnhanceWithBedrock
+from llm_bot_dep.loaders.auto import cb_process_object
+from llm_bot_dep.storage_utils import save_content_to_s3
 
 # Adaption to allow nougat to run in AWS Glue with writable /tmp
 os.environ["TRANSFORMERS_CACHE"] = "/tmp/transformers_cache"
@@ -82,6 +85,9 @@ s3_bucket = args["S3_BUCKET"]
 s3_prefix = args["S3_PREFIX"]
 workspace_id = args["WORKSPACE_ID"]
 workspace_table = args["WORKSPACE_TABLE"]
+index_type = args["INDEX_TYPE"]
+# Valid Opeartion types: "create", "delete", "update"
+operation_type = args["OPERATION_TYPE"]
 
 
 s3_client = boto3.client("s3")
@@ -108,19 +114,10 @@ nltk.data.path.append("/tmp/nltk_data")
 
 
 class S3FileProcessor:
-    def __init__(self, bucket: str, prefix: str):
+    def __init__(self, bucket: str, prefix: str, supported_file_types: List[str] = []):
         self.bucket = bucket
         self.prefix = prefix
-        self.supported_file_types = [
-            "pdf",
-            "txt",
-            "doc",
-            "md",
-            "html",
-            "json",
-            "jsonl",
-            "csv",
-        ]
+        self.supported_file_types = supported_file_types
         self.paginator = s3_client.get_paginator("list_objects_v2")
 
     def get_file_content(self, key: str):
@@ -175,7 +172,7 @@ class S3FileProcessor:
 
         return decoded_content
 
-    def iterate_s3_files(self) -> Generator:
+    def iterate_s3_files(self, extract_content=True) -> Generator:
         currentIndice = 0
         for page in self.paginator.paginate(Bucket=self.bucket, Prefix=self.prefix):
             for obj in page.get("Contents", []):
@@ -193,8 +190,12 @@ class S3FileProcessor:
                 else:
                     logger.info("Processing object: %s", key)
 
-                    file_content = self.get_file_content(key)
-                    yield self.process_file(key, file_type, file_content)
+                    if extract_content:
+                        file_content = self.get_file_content(key)
+                        yield self.process_file(key, file_type, file_content)
+                    else:
+                        yield file_type, "", {"bucket": self.bucket, "key": key}
+
                 currentIndice += 1
             if currentIndice >= (int(batchIndice) + 1) * int(batchFileNumber):
                 # Exit the outer loop
@@ -264,37 +265,22 @@ class BatchChunkDocumentProcessor:
 class OpenSearchIngestionWorker:
     def __init__(
         self,
+        docsearch: OpenSearchVectorSearch,
         embeddingModelEndpoint: str,
-        aosEndpoint: str,
-        index_name: str,
     ):
+        self.docsearch = docsearch
         self.embeddingModelEndpoint = embeddingModelEndpoint
-        self.aosEndpoint = aosEndpoint
-        self.index_name = index_name
-        self.embeddings = sm_utils.create_embeddings_with_m3_model(
-            embeddingModelEndpoint, region
-        )
-        self.docsearch = OpenSearchVectorSearch(
-            index_name=index_name,
-            embedding_function=self.embeddings,
-            opensearch_url="https://{}".format(aosEndpoint),
-            http_auth=awsauth,
-            use_ssl=True,
-            verify_certs=True,
-            connection_class=RequestsHttpConnection,
-        )
 
     @retry(
         stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10)
     )
-    def aos_ingestion(self, document: Document) -> None:
+    def aos_ingestion(self, documents: List[Document]) -> None:
 
-        document.metadata["embedding_endpoint_name"] = embeddingModelEndpoint
-
-        documents = [document]
         texts = [doc.page_content for doc in documents]
         metadatas = [doc.metadata for doc in documents]
-        embeddings_vectors = self.embeddings.embed_documents(list(texts))
+        embeddings_vectors = self.docsearch.embedding_function.embed_documents(
+            list(texts)
+        )
 
         if isinstance(embeddings_vectors[0], dict):
             embeddings_vectors_list = []
@@ -311,6 +297,7 @@ class OpenSearchIngestionWorker:
                         }
                     }
                 )
+                metadata["embedding_endpoint_name"] = self.embeddingModelEndpoint
                 metadata_list.append(metadata)
             embeddings_vectors = embeddings_vectors_list
             metadatas = metadata_list
@@ -319,11 +306,43 @@ class OpenSearchIngestionWorker:
         )
 
 
-# Main function to be called by Glue job script
-def main():
-    logger.info("Starting Glue job with passing arguments: %s", args)
-    logger.info("Running in offline mode with consideration for large file size...")
+class OpenSearchDeleteWorker:
+    def __init__(self, docsearch: OpenSearchVectorSearch):
+        self.docsearch = docsearch
+        self.index_name = self.docsearch.index_name
 
+    def get_document_ids(self, s3_path: str):
+        search_body = {
+            "query": {
+                # use term-level queries only for fields mapped as keyword
+                "match": {"metadata.file_path": s3_path}
+            },
+            "size": 10000,
+            "sort": [{"_score": {"order": "desc"}}],
+        }
+
+        query_documents = self.docsearch.client.search(
+            index=self.index_name, body=search_body
+        )
+        document_ids = [doc["_id"] for doc in query_documents["hits"]["hits"]]
+        return document_ids
+
+    def aos_deletion(self, s3_path) -> None:
+        document_ids = self.get_document_ids(s3_path)
+
+        bulk_delete_requests = []
+
+        for document_id in document_ids:
+            bulk_delete_requests.append(
+                {"delete": {"_id": document_id, "_index": self.index_name}}
+            )
+
+        self.docsearch.client.bulk(
+            index=self.index_name, body=bulk_delete_requests, refresh=True
+        )
+
+
+def update_workspace(workspace_id, embeddingModelEndpoint, index_type):
     (
         embeddings_model_provider,
         embeddings_model_name,
@@ -331,13 +350,6 @@ def main():
         embeddings_model_type,
     ) = get_embedding_info(embeddingModelEndpoint)
 
-    file_processor = S3FileProcessor(s3_bucket, s3_prefix)
-
-    s3_files_iterator = file_processor.iterate_s3_files()
-
-    # Get the first element of the iterator to check the file type, but don't consume the iterator
-    file_type, file_content, kwargs = next(s3_files_iterator)
-    open_search_index_type = "qq" if file_type == "jsonl" else "qd"
     aos_index = workspace_manager.update_workspace_open_search(
         workspace_id,
         embeddingModelEndpoint,
@@ -346,17 +358,13 @@ def main():
         embeddings_model_dimensions,
         embeddings_model_type,
         ["zh"],
-        ["txt"],
-        open_search_index_type,
+        index_type,
     )
 
-    batch_chunk_processor = BatchChunkDocumentProcessor(
-        chunk_size=5000, chunk_overlap=30, batch_size=10
-    )
-    ingestion_worker = OpenSearchIngestionWorker(
-        embeddingModelEndpoint, aosEndpoint, aos_index
-    )
+    return aos_index
 
+
+def ingestion_pipeline(s3_files_iterator, batch_chunk_processor, ingestion_worker):
     for file_type, file_content, kwargs in s3_files_iterator:
         try:
             # the res is unified to list[Doucment] type
@@ -386,7 +394,7 @@ def main():
                     save_content_to_s3(
                         s3_client, document, res_bucket, SplittingType.CHUNK.value
                     )
-                    ingestion_worker.aos_ingestion(document)
+                ingestion_worker.aos_ingestion(batch)
 
         except Exception as e:
             logger.error(
@@ -395,6 +403,74 @@ def main():
                 e,
             )
             traceback.print_exc()
+
+
+def delete_pipeline(s3_files_iterator, delete_worker):
+    for _, _, kwargs in s3_files_iterator:
+        try:
+            s3_path = f"s3://{kwargs['bucket']}/{kwargs['key']}"
+            delete_worker.aos_deletion(s3_path)
+
+        except Exception as e:
+            logger.error(
+                "Error processing object %s: %s",
+                kwargs["bucket"] + "/" + kwargs["key"],
+                e,
+            )
+            traceback.print_exc()
+
+
+# Main function to be called by Glue job script
+def main():
+    logger.info("Starting Glue job with passing arguments: %s", args)
+    logger.info("Running in offline mode with consideration for large file size...")
+
+    if index_type == "qq":
+        supported_file_types = ["jsonl"]
+    elif index_type == "qd":
+        supported_file_types = [
+            "pdf",
+            "txt",
+            "doc",
+            "md",
+            "html",
+            "json",
+            "csv",
+        ]
+    else:
+        raise ValueError("Invalid index type")
+
+    aos_index_name = update_workspace(workspace_id, embeddingModelEndpoint, index_type)
+
+    file_processor = S3FileProcessor(s3_bucket, s3_prefix, supported_file_types)
+
+    embedding_function = sm_utils.create_embeddings_with_m3_model(
+        embeddingModelEndpoint, region
+    )
+    docsearch = OpenSearchVectorSearch(
+        index_name=aos_index_name,
+        embedding_function=embedding_function,
+        opensearch_url="https://{}".format(aosEndpoint),
+        http_auth=awsauth,
+        use_ssl=True,
+        verify_certs=True,
+        connection_class=RequestsHttpConnection,
+    )
+
+    if operation_type == "create":
+        s3_files_iterator = file_processor.iterate_s3_files()
+
+        batch_chunk_processor = BatchChunkDocumentProcessor(
+            chunk_size=5000, chunk_overlap=30, batch_size=10
+        )
+        ingestion_worker = OpenSearchIngestionWorker(docsearch, embeddingModelEndpoint)
+
+        ingestion_pipeline(s3_files_iterator, batch_chunk_processor, ingestion_worker)
+    elif operation_type == "delete":
+        s3_files_iterator = file_processor.iterate_s3_files(extract_content=False)
+
+        delete_worker = OpenSearchDeleteWorker(docsearch)
+        delete_pipeline(s3_files_iterator, delete_worker)
 
 
 if __name__ == "__main__":

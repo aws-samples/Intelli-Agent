@@ -46,9 +46,9 @@ class WorkspaceManager:
         embeddings_model_dimensions: int,
         embedding_model_type: str,
         languages: List[str],
-        workspace_file_types: List[str],
         open_search_index_type: str,
         open_search_index_name: str = None,
+        workspace_file_types: List[str] = [],
     ):
 
         open_search_index_name = (
@@ -98,9 +98,9 @@ class WorkspaceManager:
         embeddings_model_dimensions: int,
         embedding_model_type: str,
         languages: List[str],
-        workspace_file_types: List[str],
         open_search_index_type: str,
         open_search_index_name: str = None,
+        workspace_file_types: List[str] = [],
     ):
         timestamp = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
@@ -115,9 +115,9 @@ class WorkspaceManager:
                 embeddings_model_dimensions,
                 embedding_model_type,
                 languages,
-                workspace_file_types,
                 open_search_index_type,
                 open_search_index_name,
+                workspace_file_types,
             )
 
         else:
