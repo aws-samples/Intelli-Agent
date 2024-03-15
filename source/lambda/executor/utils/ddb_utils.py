@@ -129,7 +129,13 @@ class DynamoDBChatMessageHistory(BaseChatMessageHistory):
             )
 
     def add_message(
-        self, message_id, message_type, custom_message_id, entry_type, message_content
+        self,
+        message_id,
+        message_type,
+        custom_message_id,
+        entry_type,
+        message_content,
+        input_message_id="",
     ) -> None:
         """Append the message to the record in DynamoDB"""
         current_timestamp = Decimal.from_float(time.time())
@@ -141,6 +147,7 @@ class DynamoDBChatMessageHistory(BaseChatMessageHistory):
                     "sessionId": self.session_id,
                     "type": message_type,
                     "customMessageId": custom_message_id,
+                    "inputMessageId": input_message_id,
                     "entryType": entry_type,
                     "content": message_content,
                     "createTimestamp": current_timestamp,
@@ -164,11 +171,21 @@ class DynamoDBChatMessageHistory(BaseChatMessageHistory):
         self.update_session()
 
     def add_ai_message(
-        self, message_id, custom_message_id, entry_type, message_content
+        self,
+        message_id,
+        custom_message_id,
+        entry_type,
+        message_content,
+        input_message_id,
     ) -> None:
         """Append the ai message to the record in DynamoDB"""
         self.add_message(
-            message_id, AI_MESSAGE_TYPE, custom_message_id, entry_type, message_content
+            message_id,
+            AI_MESSAGE_TYPE,
+            custom_message_id,
+            entry_type,
+            message_content,
+            input_message_id,
         )
         self.update_session()
 
