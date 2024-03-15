@@ -9,7 +9,7 @@ storage_utils.save_content_to_s3 = lambda *args:None
 
 
 worker_num = 1
-os.environ['aos_injection_chunk_batch_size'] = '20'
+os.environ['aos_injection_chunk_batch_size'] = '50'
 os.environ['worker_num'] = str(worker_num)
 # os.environ['aos_worker_num'] = str(150)
 # os.environ['worker_id'] = str(worker_id)
@@ -22,7 +22,7 @@ os.environ['embedding_endpoint_name'] = 'bge-m3'
 def main():
     import local_ingestion_multithread
     local_ingestion_multithread.bge_m3_embedding_lock = threading.Lock()
-    local_ingestion_multithread.aos_injection_mp = ProcessPoolExecutor(64)
+    local_ingestion_multithread.aos_injection_mp = ProcessPoolExecutor(32)
     print(f'local_ingestion_multithread.aos_injection_mp max worker: {local_ingestion_multithread.aos_injection_mp._max_workers}')
     def run(worker_id):
         local_ingestion_multithread.main(worker_num,worker_id)

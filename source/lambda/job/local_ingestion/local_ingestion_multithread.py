@@ -9,6 +9,7 @@ import math
 import traceback
 import contextlib
 import threading
+
 from concurrent.futures import ThreadPoolExecutor,ProcessPoolExecutor
 
 import functools
@@ -290,6 +291,9 @@ def __aos_injection(texts,dense_vecs_list,metadatas,index_name):
         aos_injection_helper(texts,dense_vecs_list,metadatas,index_name)
     except:
         logger.error(traceback.format_exc())
+     
+    import gc
+    gc.collect() 
 
 
 # @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
@@ -358,6 +362,9 @@ def _aos_injection(
     while len(pendings) > aos_injection_mp._max_workers:
         logger.info(f'waiting for aos_injection_mp, pendings num: {len(pendings)}')
         _, pendings = wait(pendings, return_when=FIRST_COMPLETED)
+        import gc
+        gc.collect() 
+
         time.sleep(5)
         
     pendings.add(
@@ -502,7 +509,7 @@ def gen_documents(
         batchIndice,
         max_file_num=math.inf
         ):
-    embeddings_model_provider, embeddings_model_name, embeddings_model_dimensions = (
+    embeddings_model_provider, embeddings_model_name, embeddings_model_dimensions,embeddings_model_type = (
         get_embedding_info(embeddingModelEndpoint)
     )
     for file_type, file_content, kwargs in iterate_s3_files(
@@ -523,14 +530,19 @@ def gen_documents(
             if res:
                 logger.debug("Result: %s", res)
 
+            open_search_index_type = "qq" if file_type == "jsonl" else "qd"
+            
+
             aos_index = workspace_manager.update_workspace_open_search(
                 workspace_id,
                 embeddingModelEndpoint,
                 embeddings_model_provider,
                 embeddings_model_name,
                 embeddings_model_dimensions,
+                embeddings_model_type,
                 ["zh"],
                 [file_type],
+                open_search_index_type
             )
             gen_chunk_flag = False if file_type == "csv" else True
             if file_type in supported_file_types:

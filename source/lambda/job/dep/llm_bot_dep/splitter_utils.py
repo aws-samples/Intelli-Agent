@@ -164,7 +164,7 @@ def extract_headings(md_content: str):
         match = re.match(r"\s*(#+)(.*)", line)
         if match:
             header_index += 1
-            print(match.group)
+            # print(match.group)
             level = len(match.group(1))
             title = match.group(2).strip()
             id_prefix = str(uuid.uuid4())[:8]
