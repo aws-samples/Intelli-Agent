@@ -101,6 +101,29 @@ from opensearchpy import RequestsHttpConnection
 from requests_aws4auth import AWS4Auth
 from tenacity import retry, stop_after_attempt, wait_exponential
 
+
+import os
+import psutil
+
+def get_program_memory_usage(pid=None):
+    if pid is None:
+        pid = os.getpid()
+    # print('root pid:', pid)
+    current_process = psutil.Process(pid)
+    mem = current_process.memory_info().rss
+    root_pid_mem = mem / 1024 / 1024 / 1024
+    for child in current_process.children(recursive=True):
+        # print('pid', child.pid)
+        mem += child.memory_info().rss
+    # mem = mem * (psutil.virtual_memory().total / 1024/1024/1024) / 100
+    mem  = mem / 1024 / 1024 / 1024
+    # print(mem)
+    # print()
+    # print(root_pid_mem)
+    # print(sdg)
+    return {"total":mem,"root_mem": root_pid_mem}
+
+
 # Adaption to allow nougat to run in AWS Glue with writable /tmp
 os.environ["TRANSFORMERS_CACHE"] = "/tmp/transformers_cache"
 os.environ["NOUGAT_CHECKPOINT"] = "/tmp/nougat_checkpoint"
@@ -361,10 +384,7 @@ def _aos_injection(
     global pendings
     while len(pendings) > aos_injection_mp._max_workers:
         logger.info(f'waiting for aos_injection_mp, pendings num: {len(pendings)}')
-        _, pendings = wait(pendings, return_when=FIRST_COMPLETED)
-        import gc
-        gc.collect() 
-
+        _, pendings = wait(pendings, return_when=FIRST_COMPLETED) 
         time.sleep(5)
         
     pendings.add(
@@ -375,7 +395,16 @@ def _aos_injection(
             metadatas,
             index_name
         ))
-    # aos_injection_mp.submit(__aos_injection,texts,dense_vecs_list,metadatas,index_name)
+
+    
+    del texts, dense_vecs_list, metadatas
+    
+    import gc
+    gc.collect()
+    mem = get_program_memory_usage()
+    logger.info(f"current total memory usage: {mem['total']} GB, root pid: {mem['root_mem']} GB")
+    
+   # aos_injection_mp.submit(__aos_injection,texts,dense_vecs_list,metadatas,index_name)
 
     # aos_injection_mp.submit(__aos_injection,texts,dense_vecs_list,metadatas,index_name)
     
