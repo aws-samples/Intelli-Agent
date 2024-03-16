@@ -600,6 +600,38 @@ def test_internlm_model_mkt_knowledge_entry():
     # )
     # print(fg)
 
+    generate_answer(
+        "EC2",
+        # "什么是日志通",
+        model="knowledge_qa", 
+        type=entry_type, 
+        stream=True,
+        rag_parameters=rag_parameters
+    )
+
+    generate_answer(
+        "LAMBDA",
+        # "什么是日志通",
+        model="knowledge_qa", 
+        type=entry_type, 
+        stream=True,
+        rag_parameters=rag_parameters
+    )
+
+    print(fgdfgs)
+
+    
+    generate_answer(
+        "2024亚马逊云科技出海全球化论坛什么时候举办？",
+        # "什么是日志通",
+        model="knowledge_qa", 
+        type=entry_type, 
+        stream=True,
+        rag_parameters=rag_parameters
+    )
+
+    print(sfgsfg)
+
 
     generate_answer(
         "AWS支持上海region吗？",
@@ -1040,7 +1072,7 @@ if __name__ == "__main__":
     # market_summary_test2()
     # test_internlm_model()
     # dgr_deploy_test()
-    # test_internlm_model_mkt_knowledge_entry()
+    test_internlm_model_mkt_knowledge_entry()
     # test_internlm_model_mkt_knowledge_entry_qq_match()
     # test_internlm_model_mkt_knowledge_entry_langgraph()
     # test_baichuan_model()

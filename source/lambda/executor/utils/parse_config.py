@@ -51,19 +51,10 @@ rag_default_config = {
     "intent_config": {
         "intent_type": IntentType.KNOWLEDGE_QA.value,
         "model_id": "anthropic.claude-v2:1",
-        # "model_kwargs":{"temperature":0,
-        #                 "max_tokens_to_sample": 2000,
-        #                 "stop_sequences": ["\n\n","\n\nHuman:"]
-        #                 },
         "sub_intent": {},
     },
     # generator config
     "generator_llm_config": {
-        "model_kwargs": {
-            # "max_tokens_to_sample": 2000,
-            # "temperature": 0.7,
-            # "top_p": 0.9
-        },
         "model_id": "anthropic.claude-v2:1",
         "context_num": 2,
     },

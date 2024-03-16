@@ -43,7 +43,7 @@ class SagemakerEndpointEmbeddingsJumpStart(SagemakerEndpointEmbeddings):
             response = self._embedding_func(texts[i : i + _chunk_size])
             results.extend(response)
         time_taken = time.time() - st
-        logger.info(
+        logger.debug(
             f"got results for {len(texts)} in {time_taken}s, length of embeddings list is {len(results)}"
         )
 
@@ -79,7 +79,7 @@ class SagemakerEndpointEmbeddingsJumpStartDGR(SagemakerEndpointEmbeddings):
                 print(f"embedding endpoint error: {texts}", error)
             results.extend(response)
         time_taken = time.time() - st
-        logger.info(
+        logger.debug(
             f"got results for {len(texts)} in {time_taken}s, length of embeddings list is {len(results)}"
         )
         return results
@@ -177,7 +177,7 @@ def create_sagemaker_embeddings_from_js_model(
 ) -> SagemakerEndpointEmbeddingsJumpStart:
     # all set to create the objects for the ContentHandler and
     # SagemakerEndpointEmbeddingsJumpStart classes
-    logger.info(
+    logger.debug(
         f"content_handler: {content_handler}, embeddings_model_endpoint_name: {embeddings_model_endpoint_name}, aws_region: {aws_region}"
     )
     # note the name of the LLM Sagemaker endpoint, this is the model that we would
@@ -333,6 +333,7 @@ class SimilarityM3ContentHandler(EmbeddingsContentHandler):
     def transform_input(self, prompt, model_kwargs={}) -> bytes:
         # add bge_prompt to each element in prompt
         new_prompt = [p for p in prompt]
+
         model_kwargs = {}
         model_kwargs["batch_size"] = 12
         model_kwargs["max_length"] = 512
@@ -390,7 +391,7 @@ def create_sagemaker_embeddings_from_js_model_dgr(
             content_handler = SimilarityEnContentHandler()
         elif type == "relevance":
             content_handler = RelevanceEnContentHandler()
-    logger.info(
+    logger.debug(
         f"content_handler: {content_handler}, embeddings_model_endpoint_name: {embeddings_model_endpoint_name}, aws_region: {aws_region}"
     )
     # note the name of the LLM Sagemaker endpoint, this is the model that we would

@@ -22,6 +22,7 @@ Albert Einstein (14 March 1879 – 18 April 1955) was a German-born theoretical 
 Albert Einstein born in 14 March 1879 was  German-born theoretical physicist, widely held to be one of the greatest and most influential scientists of all time. He received the 1921 Nobel Prize in Physics "for his services to theoretical physics. He published 4 papers in 1905.  Einstein moved to Switzerland in 1895 
 </answer>
 
+Here is my classification:
 <classification>
 [
     {{  "statement_1":"Albert Einstein, born on 14 March 1879, was a German-born theoretical physicist, widely held to be one of the greatest and most influential scientists of all time.",
@@ -62,6 +63,7 @@ The 2022 ICC Men's T20 World Cup, held from October 16 to November 13, 2022, in 
 England 
 </answer>
 
+Here is my classification:
 <classification>
 [
     {{
@@ -86,6 +88,7 @@ England
 </answer>
 
 \n\nAssistant:
+Here is my classification:
 <classification>
 [
 """
@@ -118,7 +121,8 @@ class ClaudeContextRacall(ContextRecall):
         for prompt in prompts:
             r = Claude21.generate(
                 prompt=prompt,
-                use_default_prompt_template=False
+                use_default_prompt_template=False,
+                temperature=0.0
             )
             # parser result
             r  = '<classification>\n[' + r 

@@ -103,7 +103,7 @@ class Claude2ConversationSummaryChain(LLMChain):
     intent_type = CONVERSATION_SUMMARY_TYPE
 
     default_model_kwargs = {
-                "max_tokens_to_sample": 2000,
+                "max_tokens": 2000,
                 "temperature": 0.1,
                 "top_p": 0.9
             }
@@ -116,21 +116,22 @@ class Claude2ConversationSummaryChain(LLMChain):
         llm = Model.get_model(
             model_id=cls.model_id,
             model_kwargs=model_kwargs,
-            return_chat_model=True
             )
-        cqr_chain = RunnableLambda(lambda x: get_conversation_query_rewrite_prompt(x['chat_history'])) | llm | RunnableLambda(lambda x:x.dict()['content'])
+        cqr_chain = RunnableLambda(lambda x: get_conversation_query_rewrite_prompt(x['chat_history'])) | llm | RunnableLambda(lambda x:x.content)
         return cqr_chain
 
 
 class Claude21ConversationSummaryChain(Claude2ConversationSummaryChain):
     model_id = 'anthropic.claude-v2:1'
-    intent_type = CONVERSATION_SUMMARY_TYPE
-
-
-class ClaudeConversationSummaryChain(Claude2ConversationSummaryChain):
+   
+class ClaudeInstanceConversationSummaryChain(Claude2ConversationSummaryChain):
     model_id = 'anthropic.claude-instant-v1'
-    intent_type = CONVERSATION_SUMMARY_TYPE
+    
+class Claude3SonnetConversationSummaryChain(Claude2ConversationSummaryChain):
+    model_id = "anthropic.claude-3-sonnet-20240229-v1:0"
 
+class Claude3HaikuConversationSummaryChain(Claude2ConversationSummaryChain):
+    model_id = "anthropic.claude-3-haiku-20240307-v1:0"
 
 
 

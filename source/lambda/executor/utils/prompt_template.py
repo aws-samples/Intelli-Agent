@@ -103,19 +103,19 @@ CLAUDE2_RAG_CONTEXT_TEMPLATE="""
 
 
 
-INTENT_RECOGINITION_PROMPT_TEMPLATE_CLUADE = """
+# INTENT_RECOGINITION_PROMPT_TEMPLATE_CLUADE = """
 
-Human: Please classify this query: <query>{query}</query>. The categories are:
+# Human: Please classify this query: <query>{query}</query>. The categories are:
 
-{categories}
+# {categories}
 
-Some examples of how to classify queries:
-{examples}
+# Some examples of how to classify queries:
+# {examples}
 
-Now classify the original query. Respond with just one letter corresponding to the correct category.
+# Now classify the original query. Respond with just one letter corresponding to the correct category.
 
 
-Assistant:"""
+# Assistant:"""
 
 INTENT_RECOGINITION_EXAMPLE_TEMPLATE = """<query>{query}</query>\n{label}"""
 

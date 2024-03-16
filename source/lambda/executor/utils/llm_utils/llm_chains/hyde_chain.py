@@ -10,20 +10,21 @@ from .llm_chain_base import LLMChain
 from ...constant import HYDE_TYPE
 from ..llm_models import Model as LLM_Model
 
-from langchain.prompts import PromptTemplate
+from langchain.prompts import (
+    PromptTemplate,ChatPromptTemplate,
+    HumanMessagePromptTemplate,AIMessagePromptTemplate,SystemMessagePromptTemplate,
+  
+)
 from langchain.schema.runnable import RunnablePassthrough, RunnableBranch, RunnableLambda
 from .chat_chain import Iternlm2Chat7BChatChain
 from ..llm_chains import LLMChain
 
 
 
-
-
 WEB_SEARCH_TEMPLATE = """Please write a passage to answer the question 
 Question: {query}
 Passage:"""
-hyde_web_search_template = PromptTemplate(template=WEB_SEARCH_TEMPLATE, input_variables=["query"])
-
+# hyde_web_search_template = PromptTemplate(template=WEB_SEARCH_TEMPLATE, input_variables=["query"])
 
 class Claude2HydeChain(LLMChain):
     model_id = 'anthropic.claude-v2'
@@ -31,7 +32,7 @@ class Claude2HydeChain(LLMChain):
 
     default_model_kwargs = {
       "temperature": 0.5,
-      "max_tokens_to_sample": 1000,
+      "max_tokens": 1000,
       "stop_sequences": [
         "\n\nHuman:"
       ]
@@ -46,19 +47,26 @@ class Claude2HydeChain(LLMChain):
         llm = LLM_Model.get_model(
         model_id=cls.model_id,
           model_kwargs=model_kwargs,
-          return_chat_model=False
         )
+        prompt = ChatPromptTemplate.from_messages([
+            HumanMessagePromptTemplate.from_template(WEB_SEARCH_TEMPLATE)
+        ])
         chain = RunnablePassthrough.assign(
-            hyde_doc = RunnableLambda(lambda x: hyde_web_search_template.invoke({"query": x[query_key]})) | llm
+            hyde_doc = prompt | llm | RunnableLambda(lambda x:x.content)
         )
         return chain
 
 class Claude21HydeChain(Claude2HydeChain):
     model_id = 'anthropic.claude-v2:1'
 
-
 class ClaudeInstanceHydeChain(Claude2HydeChain):
     model_id = 'anthropic.claude-instant-v1'
+
+class Claude3SonnetHydeChain(Claude2HydeChain):
+    model_id = "anthropic.claude-3-sonnet-20240229-v1:0"
+
+class Claude3HaikuHydeChain(Claude2HydeChain):
+    model_id = "anthropic.claude-3-haiku-20240307-v1:0"
 
 
 

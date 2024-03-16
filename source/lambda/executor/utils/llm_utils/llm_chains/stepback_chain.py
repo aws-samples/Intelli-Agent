@@ -99,30 +99,32 @@ class Claude2StepBackChain(LLMChain):
                     ("user", "{query}"),
                 ])
 
-        kwargs.update({'return_chat_model':True})
         llm = Model.get_model(
             cls.model_id,
             model_kwargs=model_kwargs,
             **kwargs
         )
-
         chain = prompt | llm
-
         if stream:
             chain = prompt | RunnableLambda(lambda x: llm.stream(x.messages)) | RunnableLambda(lambda x:(i.content for i in x))
-            # llm_fn = RunnableLambda(llm.stream)
-        #     postprocess_fn = RunnableLambda(cls.stream_postprocess)
+     
         else:
-            chain = prompt | llm | RunnableLambda(lambda x:x.dict()['content'])
-            # llm_fn = RunnableLambda(llm.predict)
-        #     postprocess_fn = RunnableLambda(cls.api_postprocess)
+            chain = prompt | llm | RunnableLambda(lambda x:x.content)
         return chain 
-
+    
 
 class Claude21StepBackChain(Claude2StepBackChain):
     model_id = 'anthropic.claude-v2:1'
-    intent_type = STEPBACK_PROMPTING_TYPE
+
 
 class ClaudeInstanceStepBackChain(Claude2StepBackChain):
     model_id = 'anthropic.claude-instant-v1'
-    intent_type = STEPBACK_PROMPTING_TYPE
+
+class Claude3SonnetStepBackChain(Claude2StepBackChain):
+    model_id = "anthropic.claude-3-sonnet-20240229-v1:0"
+
+
+class Claude3HaikuStepBackChain(Claude2StepBackChain):
+    model_id = "anthropic.claude-3-haiku-20240307-v1:0"
+
+

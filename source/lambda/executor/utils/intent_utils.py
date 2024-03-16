@@ -27,7 +27,7 @@ class IntentUtils:
                  example_template=INTENT_RECOGINITION_EXAMPLE_TEMPLATE,
                  llm_model_id = 'anthropic.claude-v2:1',
                  llm_model_kwargs={"temperature":0,
-                                "max_tokens_to_sample": 2000,
+                                "max_tokens": 2000,
                                 "stop_sequences": ["\n\n","\n\nHuman:"]
                                 },
                  seed = 42

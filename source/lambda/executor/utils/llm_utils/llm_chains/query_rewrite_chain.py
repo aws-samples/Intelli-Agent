@@ -43,7 +43,7 @@ class Claude2QueryRewriteChain(LLMChain):
 
     default_model_kwargs = {
       "temperature": 0.7,
-      "max_tokens_to_sample": 100,
+      "max_tokens": 100,
       "stop_sequences": [
         "\n\nHuman:"
       ]
@@ -61,7 +61,9 @@ class Claude2QueryRewriteChain(LLMChain):
         model_kwargs = model_kwargs or {}
         model_kwargs = {**cls.default_model_kwargs,**model_kwargs}
         llm = LLM_Model.get_model(cls.model_id, model_kwargs=model_kwargs,**kwargs)
-        chain = RunnableLambda(lambda x: query_expansion_template_claude.invoke({"question": x[query_key]})) | llm | RunnableLambda(cls.query_rewrite_postprocess)
+        chain = RunnablePassthrough.assign(
+            question = lambda x:x[query_key]
+        ) | query_expansion_template_claude | llm | RunnableLambda(cls.query_rewrite_postprocess)
         return chain
 
 class Claude21QueryRewriteChain(Claude2QueryRewriteChain):
@@ -71,6 +73,11 @@ class Claude21QueryRewriteChain(Claude2QueryRewriteChain):
 class ClaudeInstanceQueryRewriteChain(Claude2QueryRewriteChain):
     model_id = 'anthropic.claude-instant-v1'
 
+class Claude3HaikuQueryRewriteChain(Claude2QueryRewriteChain):
+    model_id =  "anthropic.claude-3-haiku-20240307-v1:0"
+
+class Claude3SonnetQueryRewriteChain(Claude2QueryRewriteChain):
+    mdoel_id = "anthropic.claude-3-sonnet-20240229-v1:0"
 
 
 

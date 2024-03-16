@@ -60,6 +60,8 @@ question_library = [
 ]
 
 market_test_cases = [
+    'EC2',
+    "LAMBDA",
     '亚马逊云科技中国区域免费套餐有哪几种不同类型的优惠？',
     'Amazon Lambda的免费套餐包含什么？',
     '在亚马逊云科技网站上，完成所有账户注册步骤后，什么时候才可以开始使用？',
