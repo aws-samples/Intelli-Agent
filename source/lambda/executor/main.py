@@ -15,7 +15,7 @@ from utils.executor_entries import (
     main_qd_retriever_entry,
     main_qq_retriever_entry,
     market_chain_entry,
-    llm_entry,
+    sagemind_llm_entry,
     market_chain_entry_core,
     market_chain_knowledge_entry,
     market_chain_knowledge_entry_langgraph,
@@ -279,7 +279,7 @@ def lambda_handler(event, context):
                 messages=messages, event_body=event_body, stream=stream
             )
         elif entry_type == Type.LLM.value:
-            answer, sources, contexts, debug_info = llm_entry(
+            answer, sources, contexts, debug_info = sagemind_llm_entry(
                 messages=messages,
                 event_body=event_body,
                 stream=stream
