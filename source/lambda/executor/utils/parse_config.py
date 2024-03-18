@@ -98,7 +98,7 @@ def parse_rag_config(event_body):
 
     return new_event_config
 
-def parse_llm_config(event_body):
+def parse_sagemind_llm_config(event_body):
     event_body = copy.deepcopy(event_body)
     new_event_config = update_nest_dict(copy.deepcopy(rag_default_config), event_body)
 
