@@ -45,7 +45,7 @@ try:
             "WORKSPACE_ID",
             "WORKSPACE_TABLE",
             "INDEX_TYPE",
-            "OPERATION_TYPE"
+            "OPERATION_TYPE",
         ],
     )
 except Exception as e:
@@ -262,6 +262,40 @@ class BatchChunkDocumentProcessor:
             yield batch
 
 
+class BatchQueryDocumentProcessor:
+    def __init__(
+        self,
+        self.docsearch: OpenSearchVectorSearch,
+        batch_size: int,
+    ):
+        self.docsearch = docsearch
+        self.batch_size = batch_size
+
+    def query_documents(self, s3_path) -> Iterable:
+        search_body = {
+            "query": {
+                # use term-level queries only for fields mapped as keyword
+                "match": {"metadata.file_path": s3_path}
+            },
+            "size": 100000,
+            "sort": [{"_score": {"order": "desc"}}],
+        }
+
+        query_documents = self.docsearch.client.search(
+            index=self.index_name, body=search_body
+        )
+        document_ids = [doc["_id"] for doc in query_documents["hits"]["hits"]]
+        return document_ids
+
+    def batch_generator(self, s3_path):
+        generator = self.query_documents(s3_path)
+        iterator = iter(generator)
+        while True:
+            batch = list(itertools.islice(iterator, self.batch_size))
+            if not batch:
+                break
+            yield batch
+
 class OpenSearchIngestionWorker:
     def __init__(
         self,
@@ -311,23 +345,7 @@ class OpenSearchDeleteWorker:
         self.docsearch = docsearch
         self.index_name = self.docsearch.index_name
 
-    def get_document_ids(self, s3_path: str):
-        search_body = {
-            "query": {
-                # use term-level queries only for fields mapped as keyword
-                "match": {"metadata.file_path": s3_path}
-            },
-            "size": 10000,
-            "sort": [{"_score": {"order": "desc"}}],
-        }
-
-        query_documents = self.docsearch.client.search(
-            index=self.index_name, body=search_body
-        )
-        document_ids = [doc["_id"] for doc in query_documents["hits"]["hits"]]
-        return document_ids
-
-    def aos_deletion(self, s3_path) -> None:
+    def aos_deletion(self, document_ids) -> None:
         document_ids = self.get_document_ids(s3_path)
 
         bulk_delete_requests = []
@@ -405,11 +423,16 @@ def ingestion_pipeline(s3_files_iterator, batch_chunk_processor, ingestion_worke
             traceback.print_exc()
 
 
-def delete_pipeline(s3_files_iterator, delete_worker):
+def delete_pipeline(s3_files_iterator, document_generator, delete_worker):
     for _, _, kwargs in s3_files_iterator:
         try:
             s3_path = f"s3://{kwargs['bucket']}/{kwargs['key']}"
-            delete_worker.aos_deletion(s3_path)
+
+            batches = document_generator.batch_generator(s3_path)
+            for batch in batches:
+                if len(batch) == 0:
+                    continue
+                delete_worker.aos_deletion(batch)
 
         except Exception as e:
             logger.error(
@@ -469,8 +492,30 @@ def main():
     elif operation_type == "delete":
         s3_files_iterator = file_processor.iterate_s3_files(extract_content=False)
 
+        batch_query_processor = BatchQueryDocumentProcessor(docsearch, batch_size=10)
+
         delete_worker = OpenSearchDeleteWorker(docsearch)
-        delete_pipeline(s3_files_iterator, delete_worker)
+        delete_pipeline(s3_files_iterator, batch_query_processor, delete_worker)
+    elif operation_type == "update":
+        # Delete the documents first
+        s3_files_iterator = file_processor.iterate_s3_files(extract_content=False)
+
+        batch_query_processor = BatchQueryDocumentProcessor(docsearch, batch_size=10)
+
+        delete_worker = OpenSearchDeleteWorker(docsearch)
+        delete_pipeline(s3_files_iterator, batch_query_processor, delete_worker)
+
+        # Then ingest the documents
+        s3_files_iterator = file_processor.iterate_s3_files()
+
+        batch_chunk_processor = BatchChunkDocumentProcessor(
+            chunk_size=5000, chunk_overlap=30, batch_size=10
+        )
+        ingestion_worker = OpenSearchIngestionWorker(docsearch, embeddingModelEndpoint)
+
+        ingestion_pipeline(s3_files_iterator, batch_chunk_processor, ingestion_worker)
+    else:
+        raise ValueError("Invalid operation type. Valid types: create, delete, update")
 
 
 if __name__ == "__main__":

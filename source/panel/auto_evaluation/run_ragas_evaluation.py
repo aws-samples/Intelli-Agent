@@ -264,11 +264,11 @@ if __name__ == "__main__":
     #         )
     #     ]
     RAGAS_EVAL_METRICS = [
-        claude2_answer_correctness
+        claude2_context_recall
         ]
     
     # rag_api_url = "https://5tzaajjzg7.execute-api.us-west-2.amazonaws.com/default/llm-bot-dev-qq-matching"
-    rag_api_url =  "wss://omjou492fe.execute-api.us-west-2.amazonaws.com/prod/"
+    rag_api_url = "wss://omjou492fe.execute-api.us-west-2.amazonaws.com/prod/"
     
     # eval_data_path = "TechBot QA Test-fifth-test.csv"
     eval_data_path = "TechBot QA Test-fifth-test-sample-50.csv"
@@ -290,7 +290,7 @@ if __name__ == "__main__":
     # llm_output_cache_path = "techbot_question_dgr_res_2_1_120_with_gt_context_1_with_whole_doc_baichuan2_13b_4bits.max_new_2000_token.pkl.Yi-34B-Chat-hf-4bits.pkl"
     # llm_output_cache_path = "techbot_question_dgr_res_2_1_120_with_gt_context_1_with_whole_doc_baichuan2_13b_4bits.max_new_2000_token.pkl.internlm2-20b-hf-4bits.g4dn.pkl"
     # llm_output_cache_path = "techbot_question_dgr_res_1_23_120_with_gt_context_2_with_whole_doc.pkl"
-    llm_output_cache_path = "techbot_question_dgr_res_2_5_120_with_gt_context_1.claude21.pkl"
+    llm_output_cache_path = "techbot_question_dgr_res_1_3_120_with_gt_context_1.pkl"
     ret_save_profix = f'{eval_id}-{llm_output_cache_path}-eval'
     # ragas_parameters = {
     #     "region_name":'us-west-2',

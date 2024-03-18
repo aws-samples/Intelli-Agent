@@ -65,7 +65,7 @@ def upload_chunk_to_s3(
     object_key = f"{prefix}/{splitting_type}/{timestamp}/{datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S-%f')}.log"
     try:
         res = s3.put_object(Bucket=bucket, Key=object_key, Body=logger_content)
-        logger.info(f"Upload logger file to S3: {res}")
+        logger.debug(f"Upload logger file to S3: {res}")
     except Exception as e:
         logger.error(f"Error uploading logger file to S3: {e}")
 

@@ -39,7 +39,7 @@ class Model(metaclass=ModelMeta):
 class Claude2(Model):
     model_id = 'anthropic.claude-v2'
     default_model_kwargs = {
-            "max_tokens_to_sample": 2000,
+            "max_tokens": 2000,
             "temperature": 0.7,
             "top_p": 0.9
         }
@@ -54,21 +54,21 @@ class Claude2(Model):
                     or os.environ.get('AWS_PROFILE',None) or None 
         region_name = kwargs.get('region_name',None) \
             or os.environ.get('AWS_REGION', None) or None
-        return_chat_model=kwargs.get('return_chat_model',False)
-        if return_chat_model:
-            llm = BedrockChat(
-                        credentials_profile_name=credentials_profile_name,
-                        region_name=region_name,
-                        model_id=cls.model_id,
-                        model_kwargs=model_kwargs
-            )
-        else:
-            llm = Bedrock(
-                        credentials_profile_name=credentials_profile_name,
-                        region_name=region_name,
-                        model_id=cls.model_id,
-                        model_kwargs=model_kwargs
-            )
+        # return_chat_model=kwargs.get('return_chat_model',False)
+        # if return_chat_model:
+        llm = BedrockChat(
+                    credentials_profile_name=credentials_profile_name,
+                    region_name=region_name,
+                    model_id=cls.model_id,
+                    model_kwargs=model_kwargs
+        )
+        # else:
+        #     llm = Bedrock(
+        #                 credentials_profile_name=credentials_profile_name,
+        #                 region_name=region_name,
+        #                 model_id=cls.model_id,
+        #                 model_kwargs=model_kwargs
+        #     )
 
         return llm
 
@@ -77,6 +77,12 @@ class ClaudeInstance(Claude2):
 
 class Claude21(Claude2):
     model_id = 'anthropic.claude-v2:1'
+
+class Claude3Sonnet(Claude2):
+    model_id = "anthropic.claude-3-sonnet-20240229-v1:0"
+
+class Claude3Haiku(Claude2):
+    model_id = "anthropic.claude-3-haiku-20240307-v1:0"
 
 
 class SagemakerModelBase(Model):

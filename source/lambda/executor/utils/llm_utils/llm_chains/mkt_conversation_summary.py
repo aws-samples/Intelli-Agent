@@ -81,7 +81,7 @@ class Claude2MKTConversationSummaryChain(Claude2ChatChain):
     intent_type = MKT_CONVERSATION_SUMMARY_TYPE
 
     default_model_kwargs = {
-            "max_tokens_to_sample": 2000,
+            "max_tokens": 2000,
             "temperature": 0.1,
             "top_p": 0.9
         }
@@ -98,3 +98,9 @@ class Claude21MKTConversationSummaryChain(Claude2MKTConversationSummaryChain):
 
 class ClaudeInstanceMKTConversationSummaryChain(Claude2MKTConversationSummaryChain):
     model_id = 'anthropic.claude-instant-v1'
+
+class Claude3SonnetMKTConversationSummaryChain(Claude2MKTConversationSummaryChain):
+    model_id = "anthropic.claude-3-sonnet-20240229-v1:0"
+
+class Claude3HaikuMKTConversationSummaryChain(Claude2MKTConversationSummaryChain):
+    model_id = "anthropic.claude-3-haiku-20240307-v1:0"

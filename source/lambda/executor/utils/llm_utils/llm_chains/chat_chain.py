@@ -27,12 +27,9 @@ class Claude2ChatChain(LLMChain):
 
         if stream:
             chain = prompt | RunnableLambda(lambda x: llm.stream(x.messages)) | RunnableLambda(lambda x:(i.content for i in x))
-            # llm_fn = RunnableLambda(llm.stream)
-        #     postprocess_fn = RunnableLambda(cls.stream_postprocess)
         else:
-            chain = prompt | llm | RunnableLambda(lambda x:x.dict()['content'])
-            # llm_fn = RunnableLambda(llm.predict)
-        #     postprocess_fn = RunnableLambda(cls.api_postprocess)
+            chain = prompt | llm | RunnableLambda(lambda x: x.content)
+
         return chain 
       
 
@@ -41,6 +38,13 @@ class Claude21ChatChain(Claude2ChatChain):
 
 class ClaudeInstanceChatChain(Claude2ChatChain):
     model_id = 'anthropic.claude-instant-v1'
+
+class Claude3SonnetChatChain(Claude2ChatChain):
+    model_id = "anthropic.claude-3-sonnet-20240229-v1:0"
+
+class Claude3HaikuChatChain(Claude2ChatChain):
+    model_id = "anthropic.claude-3-haiku-20240307-v1:0"
+
 
 
 class Baichuan2Chat13B4BitsChatChain(LLMChain):
@@ -145,7 +149,5 @@ class Iternlm2Chat7BChatChain(LLMChain):
         llm_chain = prompt_template | RunnableLambda(lambda x:llm.invoke(x,stream=stream))
         return llm_chain
     
-
-
 class Iternlm2Chat20BChatChain(Iternlm2Chat7BChatChain):
     model_id = "internlm2-chat-20b"

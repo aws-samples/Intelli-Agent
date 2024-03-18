@@ -63,7 +63,10 @@ class MarketContentFilter(ContentFilterBase):
                 substring = sentence[index : index + 10]
                 if self.contains_chinese_characters(substring):
                     sentence = sentence.replace(key, value, 1)
-                index = sentence.find(key)
+                    index = sentence.find(key)
+                else:
+                    index = sentence.find(key, index + 1)  # find from at least index+1 to avoid dead loop
+
         return sentence
 
     def filter_source(self, sources: list[str]):
@@ -86,7 +89,7 @@ def token_to_sentence_gen(
     for ans in answer:
         accumulated_chunk_ans += ans
         if not (
-            len(ans) > 0 and ans[-1] in stop_signals and len(accumulated_chunk_ans) > 50
+            len(ans) > 0 and ans[-1] in stop_signals and 20 <= len(accumulated_chunk_ans) <= 100
         ):
             continue
         yield accumulated_chunk_ans

@@ -48,7 +48,11 @@ def api_response(**kwargs):
             f"user_{message_id}", custom_message_id, entry_type, question
         )
         ddb_history_obj.add_ai_message(
-            f"ai_{message_id}", custom_message_id, entry_type, answer
+            f"ai_{message_id}",
+            custom_message_id,
+            entry_type,
+            answer,
+            input_message_id=f"user_{message_id}",
         )
 
     # 2. return rusult
@@ -187,7 +191,11 @@ def stream_response(**kwargs):
                 f"user_{message_id}", custom_message_id, entry_type, question
             )
             ddb_history_obj.add_ai_message(
-                f"ai_{message_id}", custom_message_id, entry_type, answer_str
+                f"ai_{message_id}",
+                custom_message_id,
+                entry_type,
+                answer_str,
+                input_message_id=f"user_{message_id}",
             )
         # sed source and contexts
         context_msg = {
