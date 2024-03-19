@@ -47,6 +47,7 @@ def retriever_results_format(
     for doc in docs:
         doc_dicts.append({
              "page_content": doc.page_content,
+             "retrieval_score": doc.metadata["retrieval_score"], 
              "score": doc.metadata["score"], 
              "source": doc.metadata["source"],
              "answer": doc.metadata.get("answer",""),
@@ -65,7 +66,7 @@ def retriever_results_format(
 def retriever_results_filter(doc_dicts:list[dict],threshold=-1):
     results = []
     for doc_dict in doc_dicts:
-        if doc_dict["retrieve_score"] < threshold:
+        if doc_dict["retrieval_score"] < threshold:
             continue
         results.append(doc_dict)
     return results
