@@ -409,7 +409,7 @@ class QueryQuestionRetriever(BaseRetriever):
         docs = []
         for result in opensearch_knn_results:
             docs.append(Document(page_content=result["content"], metadata={
-                "source": result[self.source_field], "score":result["score"],
+                "source": result[self.source_field], "score":result["score"],"retrieval_score": result["score"],
                 "retrieval_content": result["content"],"answer": result["answer"], 
                 "question": result["question"]}))
         return docs

@@ -65,7 +65,7 @@ def retriever_results_format(
 def retriever_results_filter(doc_dicts:list[dict],threshold=-1):
     results = []
     for doc_dict in doc_dicts:
-        if doc_dict["score"] < threshold:
+        if doc_dict["retrieve_score"] < threshold:
             continue
         results.append(doc_dict)
     return results
