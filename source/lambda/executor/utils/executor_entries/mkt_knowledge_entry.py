@@ -57,7 +57,60 @@ def mkt_fast_reply(
     }
     logger.info(f'mkt_fast_reply: {fast_info}')
     return output
-    
+
+def get_qd_chain(qd_config, qd_workspace_list):
+    using_whole_doc = qd_config['using_whole_doc']
+    context_num = qd_config['context_num']
+    retriever_top_k = qd_config['retriever_top_k']
+    # reranker_top_k = qd_config['reranker_top_k']
+    # enable_reranker = qd_config['enable_reranker']
+    reranker_type = qd_config['reranker_type']
+    qd_query_key = qd_config['query_key']
+    retriever_list = [
+        QueryDocumentRetriever(
+            workspace=workspace,
+            using_whole_doc=using_whole_doc,
+            context_num=context_num,
+            top_k=retriever_top_k,
+            query_key=qd_query_key
+            #   "zh", zh_embedding_endpoint
+        )
+        for workspace in qd_workspace_list
+    ]
+
+    lotr = MergerRetriever(retrievers=retriever_list)
+    if reranker_type == RerankerType.BGE_RERANKER.value:
+        compressor = BGEReranker(query_key=qd_query_key)
+    elif reranker_type == RerankerType.BGE_M3_RERANKER.value:
+        compressor = BGEM3Reranker()
+    else:
+        compressor = MergeReranker()
+
+    compression_retriever = ContextualCompressionRetriever(
+        base_compressor=compressor, base_retriever=lotr
+    )
+    qd_chain = chain_logger(
+        RunnablePassthrough.assign(
+        docs=compression_retriever | RunnableLambda(retriever_results_format)
+        ),
+        "qd chain",
+    )
+    return qd_chain
+
+def get_workspace_list(workspace_ids):
+    qq_workspace_list = []
+    qd_workspace_list = []
+    for workspace_id in workspace_ids:
+        workspace = workspace_manager.get_workspace(workspace_id)
+        if not workspace or "index_type" not in workspace:
+            logger.warning(f"workspace {workspace_id} not found")
+            continue
+        if workspace["index_type"] == "qq":
+            qq_workspace_list.append(workspace)
+        else:
+            qd_workspace_list.append(workspace)
+    return qq_workspace_list, qd_workspace_list
+
 def market_chain_knowledge_entry(
     query_input: str,
     stream=False,
@@ -82,17 +135,9 @@ def market_chain_knowledge_entry(
     logger.info(f'market rag knowledge configs:\n {json.dumps(rag_config,indent=2,ensure_ascii=False,cls=JSONEncoder)}')
 
     workspace_ids = rag_config["retriever_config"]["workspace_ids"]
-    qq_workspace_list = []
-    qd_workspace_list = []
-    for workspace_id in workspace_ids:
-        workspace = workspace_manager.get_workspace(workspace_id)
-        if not workspace or "index_type" not in workspace:
-            logger.warning(f"workspace {workspace_id} not found")
-            continue
-        if workspace["index_type"] == "qq":
-            qq_workspace_list.append(workspace)
-        else:
-            qd_workspace_list.append(workspace)
+    event_workspace_ids = rag_config["retriever_config"]["event_workspace_ids"]
+    qq_workspace_list, qd_workspace_list = get_workspace_list(workspace_ids)
+    event_qq_workspace_list, event_qd_workspace_list = get_workspace_list(event_workspace_ids)
 
     debug_info = {}
     contexts = []
@@ -231,45 +276,8 @@ def market_chain_knowledge_entry(
     # step 4. qd retriever chain#
     ############################
     qd_config = rag_config['retriever_config']['qd_config']                     
-    using_whole_doc = qd_config['using_whole_doc']
-    context_num = qd_config['context_num']
-    retriever_top_k = qd_config['retriever_top_k']
-    # reranker_top_k = qd_config['reranker_top_k']
-    # enable_reranker = qd_config['enable_reranker']
-    reranker_type = rag_config['retriever_config']['qd_config']['reranker_type']
-    qd_query_key = rag_config['retriever_config']['qd_config']['query_key']
-    retriever_list = [
-        QueryDocumentRetriever(
-            workspace=workspace,
-            using_whole_doc=using_whole_doc,
-            context_num=context_num,
-            top_k=retriever_top_k,
-            query_key=qd_query_key
-            #   "zh", zh_embedding_endpoint
-        )
-        for workspace in qd_workspace_list
-    ]
-
-    lotr = MergerRetriever(retrievers=retriever_list)
-    if reranker_type == RerankerType.BGE_RERANKER.value:
-        compressor = BGEReranker(query_key=qd_query_key)
-    elif reranker_type == RerankerType.BGE_M3_RERANKER.value:
-        compressor = BGEM3Reranker()
-    else:
-        compressor = MergeReranker()
-
-    compression_retriever = ContextualCompressionRetriever(
-        base_compressor=compressor, base_retriever=lotr
-    )
-
-
-    qd_chain = chain_logger(
-        RunnablePassthrough.assign(
-        docs=compression_retriever | RunnableLambda(retriever_results_format)
-        ),
-        "qd chain",
-        message_id=message_id
-    )
+    qd_chain = get_qd_chain(qd_config, qd_workspace_list)
+    event_qd_chain = get_qd_chain(qd_config, event_qd_workspace_list)
     
     #####################
     # step 5. llm chain #
@@ -305,6 +313,14 @@ def market_chain_knowledge_entry(
         ),
         llm_chain
     )
+
+    qd_chain = RunnableBranch(
+            (
+                lambda x: x['intent_type'] == IntentType.MARKET_EVENT.value, 
+                event_qd_chain
+            ),
+            qd_chain  
+        )
 
     rag_chain = chain_logger(
         qd_chain | qd_fast_reply_branch,
