@@ -278,6 +278,9 @@ class OpenSearchClient:
             }
         body = {"query": {"match_all": {}}}
         response = self.client.search(index=index, body=body)
+        for hit in response["hits"]["hits"]:
+            hit["_source"]["vector_field"] = hit["_source"]["vector_field"][:10]
+            hit["_source"]["metadata"]["additional_vecs"] = {}
         return response
 
     def query_full_text_match(self, index: str, body: str, _kwargs: dict):

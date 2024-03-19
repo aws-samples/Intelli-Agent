@@ -74,7 +74,7 @@ if "BATCH_INDICE" not in args:
 aosEndpoint = args["AOS_ENDPOINT"]
 batchFileNumber = args["BATCH_FILE_NUMBER"]
 batchIndice = args["BATCH_INDICE"]
-embeddingModelEndpoint = args["EMBEDDING_MODEL_ENDPOINT"]
+embedding_model_endpoint = args["EMBEDDING_MODEL_ENDPOINT"]
 etlModelEndpoint = args["ETL_MODEL_ENDPOINT"]
 offline = args["OFFLINE"]
 processedObjectsTable = args["ProcessedObjectsTable"]
@@ -86,7 +86,7 @@ s3_prefix = args["S3_PREFIX"]
 workspace_id = args["WORKSPACE_ID"]
 workspace_table = args["WORKSPACE_TABLE"]
 index_type = args["INDEX_TYPE"]
-# Valid Opeartion types: "create", "delete", "update"
+# Valid Opeartion types: "create", "delete", "update", "extract_only"
 operation_type = args["OPERATION_TYPE"]
 
 
@@ -121,10 +121,27 @@ class S3FileProcessor:
         self.paginator = s3_client.get_paginator("list_objects_v2")
 
     def get_file_content(self, key: str):
+        """
+        Get the content of a file from S3.
+        """
         response = s3_client.get_object(Bucket=self.bucket, Key=key)
         return response["Body"].read()
 
     def process_file(self, key: str, file_type: str, file_content: str):
+        """
+        Process a file based on its type and return the processed data.
+
+        Args:
+            key (str): The key of the file.
+            file_type (str): The type of the file.
+            file_content (str): The content of the file.
+
+        Returns:
+            tuple: A tuple containing the file type, processed file content, and additional keyword arguments.
+
+        Raises:
+            None
+        """
         kwargs = {
             "bucket": self.bucket,
             "key": key,
@@ -153,7 +170,7 @@ class S3FileProcessor:
         elif file_type == "jsonl":
             return "jsonl", file_content, kwargs
         else:
-            logger.info(f"Unknown file type: {file_type}")
+            logger.info("Unknown file type: %s", file_type)
 
     def decode_file_content(self, file_content: str, default_encoding: str = "utf-8"):
         """Decode the file content and auto detect the content encoding.
@@ -173,7 +190,7 @@ class S3FileProcessor:
         return decoded_content
 
     def iterate_s3_files(self, extract_content=True) -> Generator:
-        currentIndice = 0
+        current_indice = 0
         for page in self.paginator.paginate(Bucket=self.bucket, Prefix=self.prefix):
             for obj in page.get("Contents", []):
                 key = obj["Key"]
@@ -182,9 +199,9 @@ class S3FileProcessor:
                 if key.endswith("/") or file_type not in self.supported_file_types:
                     continue
 
-                if currentIndice < int(batchIndice) * int(batchFileNumber):
+                if current_indice < int(batchIndice) * int(batchFileNumber):
                     continue
-                elif currentIndice >= (int(batchIndice) + 1) * int(batchFileNumber):
+                elif current_indice >= (int(batchIndice) + 1) * int(batchFileNumber):
                     # Exit this nested loop
                     break
                 else:
@@ -196,13 +213,30 @@ class S3FileProcessor:
                     else:
                         yield file_type, "", {"bucket": self.bucket, "key": key}
 
-                currentIndice += 1
-            if currentIndice >= (int(batchIndice) + 1) * int(batchFileNumber):
+                current_indice += 1
+            if current_indice >= (int(batchIndice) + 1) * int(batchFileNumber):
                 # Exit the outer loop
                 break
 
 
 class BatchChunkDocumentProcessor:
+    """
+    A class that processes documents in batches and chunks.
+
+    Args:
+        chunk_size (int): The size of each chunk.
+        chunk_overlap (int): The overlap between consecutive chunks.
+        batch_size (int): The size of each batch.
+
+    Methods:
+        chunk_generator(content: List[Document]) -> Generator[Document, None, None]:
+            Generates chunks of documents from the given content.
+
+        batch_generator(content: List[Document], gen_chunk_flag: bool = True):
+            Generates batches of documents from the given content.
+
+    """
+
     def __init__(
         self,
         chunk_size: int,
@@ -216,6 +250,16 @@ class BatchChunkDocumentProcessor:
     def chunk_generator(
         self, content: List[Document]
     ) -> Generator[Document, None, None]:
+        """
+        Generates chunks of documents from the given content.
+
+        Args:
+            content (List[Document]): The list of documents to be chunked.
+
+        Yields:
+            Document: A chunk of a document.
+
+        """
         temp_text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=self.chunk_size, chunk_overlap=self.chunk_overlap
         )
@@ -250,6 +294,17 @@ class BatchChunkDocumentProcessor:
                 yield split
 
     def batch_generator(self, content: List[Document], gen_chunk_flag: bool = True):
+        """
+        Generates batches of documents from the given content.
+
+        Args:
+            content (List[Document]): The list of documents to be batched.
+            gen_chunk_flag (bool, optional): Flag indicating whether to generate chunks before batching. Defaults to True.
+
+        Yields:
+            List[Document]: A batch of documents.
+
+        """
         if gen_chunk_flag:
             generator = self.chunk_generator(content)
         else:
@@ -263,15 +318,36 @@ class BatchChunkDocumentProcessor:
 
 
 class BatchQueryDocumentProcessor:
+    """
+    A class that processes batch queries for documents.
+
+    Args:
+        docsearch (OpenSearchVectorSearch): An instance of OpenSearchVectorSearch used for document search.
+        batch_size (int): The size of each batch.
+
+    Methods:
+        query_documents(s3_path): Queries documents based on the given S3 path.
+        batch_generator(s3_path): Generates batches of document IDs based on the given S3 path.
+    """
+
     def __init__(
         self,
-        self.docsearch: OpenSearchVectorSearch,
+        docsearch: OpenSearchVectorSearch,
         batch_size: int,
     ):
         self.docsearch = docsearch
         self.batch_size = batch_size
 
     def query_documents(self, s3_path) -> Iterable:
+        """
+        Queries documents based on the given S3 path.
+
+        Args:
+            s3_path (str): The S3 path to query documents from.
+
+        Returns:
+            Iterable: An iterable of document IDs.
+        """
         search_body = {
             "query": {
                 # use term-level queries only for fields mapped as keyword
@@ -282,12 +358,21 @@ class BatchQueryDocumentProcessor:
         }
 
         query_documents = self.docsearch.client.search(
-            index=self.index_name, body=search_body
+            index=self.docsearch.index_name, body=search_body
         )
         document_ids = [doc["_id"] for doc in query_documents["hits"]["hits"]]
         return document_ids
 
     def batch_generator(self, s3_path):
+        """
+        Generates batches of document IDs based on the given S3 path.
+
+        Args:
+            s3_path (str): The S3 path to generate batches from.
+
+        Yields:
+            list: A batch of document IDs.
+        """
         generator = self.query_documents(s3_path)
         iterator = iter(generator)
         while True:
@@ -296,14 +381,15 @@ class BatchQueryDocumentProcessor:
                 break
             yield batch
 
+
 class OpenSearchIngestionWorker:
     def __init__(
         self,
         docsearch: OpenSearchVectorSearch,
-        embeddingModelEndpoint: str,
+        embedding_model_endpoint: str,
     ):
         self.docsearch = docsearch
-        self.embeddingModelEndpoint = embeddingModelEndpoint
+        self.embedding_model_endpoint = embedding_model_endpoint
 
     @retry(
         stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10)
@@ -331,7 +417,7 @@ class OpenSearchIngestionWorker:
                         }
                     }
                 )
-                metadata["embedding_endpoint_name"] = self.embeddingModelEndpoint
+                metadata["embedding_endpoint_name"] = self.embedding_model_endpoint
                 metadata_list.append(metadata)
             embeddings_vectors = embeddings_vectors_list
             metadatas = metadata_list
@@ -346,7 +432,6 @@ class OpenSearchDeleteWorker:
         self.index_name = self.docsearch.index_name
 
     def aos_deletion(self, document_ids) -> None:
-        document_ids = self.get_document_ids(s3_path)
 
         bulk_delete_requests = []
 
@@ -360,17 +445,17 @@ class OpenSearchDeleteWorker:
         )
 
 
-def update_workspace(workspace_id, embeddingModelEndpoint, index_type):
+def update_workspace(workspace_id, embedding_model_endpoint, index_type):
     (
         embeddings_model_provider,
         embeddings_model_name,
         embeddings_model_dimensions,
         embeddings_model_type,
-    ) = get_embedding_info(embeddingModelEndpoint)
+    ) = get_embedding_info(embedding_model_endpoint)
 
     aos_index = workspace_manager.update_workspace_open_search(
         workspace_id,
-        embeddingModelEndpoint,
+        embedding_model_endpoint,
         embeddings_model_provider,
         embeddings_model_name,
         embeddings_model_dimensions,
@@ -382,7 +467,9 @@ def update_workspace(workspace_id, embeddingModelEndpoint, index_type):
     return aos_index
 
 
-def ingestion_pipeline(s3_files_iterator, batch_chunk_processor, ingestion_worker):
+def ingestion_pipeline(
+    s3_files_iterator, batch_chunk_processor, ingestion_worker, extract_only=False
+):
     for file_type, file_content, kwargs in s3_files_iterator:
         try:
             # the res is unified to list[Doucment] type
@@ -412,7 +499,9 @@ def ingestion_pipeline(s3_files_iterator, batch_chunk_processor, ingestion_worke
                     save_content_to_s3(
                         s3_client, document, res_bucket, SplittingType.CHUNK.value
                     )
-                ingestion_worker.aos_ingestion(batch)
+
+                if not extract_only:
+                    ingestion_worker.aos_ingestion(batch)
 
         except Exception as e:
             logger.error(
@@ -443,6 +532,43 @@ def delete_pipeline(s3_files_iterator, document_generator, delete_worker):
             traceback.print_exc()
 
 
+def create_processors_and_workers(
+    operation_type, docsearch, embedding_model_endpoint, file_processor
+):
+    """
+    Create processors and workers based on the operation type.
+
+    Args:
+        operation_type (str): The type of operation to perform. Valid types are "create", "delete", "update", and "extract_only".
+        docsearch: The instance of the DocSearch class.
+        embedding_model_endpoint: The endpoint of the embedding model.
+        file_processor: The instance of the file processor.
+
+    Returns:
+        tuple: A tuple containing the following elements:
+            - s3_files_iterator: The iterator for iterating over S3 files.
+            - batch_processor: The batch processor for processing documents in chunks.
+            - worker: The worker responsible for performing the operation.
+    """
+
+    if operation_type in ["create", "extract_only"]:
+        s3_files_iterator = file_processor.iterate_s3_files(extract_content=True)
+        batch_processor = BatchChunkDocumentProcessor(
+            chunk_size=2000, chunk_overlap=30, batch_size=10
+        )
+        worker = OpenSearchIngestionWorker(docsearch, embedding_model_endpoint)
+    elif operation_type in ["delete", "update"]:
+        s3_files_iterator = file_processor.iterate_s3_files(extract_content=False)
+        batch_processor = BatchQueryDocumentProcessor(docsearch, batch_size=10)
+        worker = OpenSearchDeleteWorker(docsearch)
+    else:
+        raise ValueError(
+            "Invalid operation type. Valid types: create, delete, update, extract_only"
+        )
+
+    return s3_files_iterator, batch_processor, worker
+
+
 # Main function to be called by Glue job script
 def main():
     logger.info("Starting Glue job with passing arguments: %s", args)
@@ -463,59 +589,53 @@ def main():
     else:
         raise ValueError("Invalid index type")
 
-    aos_index_name = update_workspace(workspace_id, embeddingModelEndpoint, index_type)
+    aos_index_name = update_workspace(
+        workspace_id, embedding_model_endpoint, index_type
+    )
 
     file_processor = S3FileProcessor(s3_bucket, s3_prefix, supported_file_types)
 
-    embedding_function = sm_utils.create_embeddings_with_m3_model(
-        embeddingModelEndpoint, region
-    )
-    docsearch = OpenSearchVectorSearch(
-        index_name=aos_index_name,
-        embedding_function=embedding_function,
-        opensearch_url="https://{}".format(aosEndpoint),
-        http_auth=awsauth,
-        use_ssl=True,
-        verify_certs=True,
-        connection_class=RequestsHttpConnection,
+    if operation_type == "extract_only":
+        embedding_function, docsearch = None, None
+    else:
+        embedding_function = sm_utils.create_embeddings_with_m3_model(
+            embedding_model_endpoint, region
+        )
+        docsearch = OpenSearchVectorSearch(
+            index_name=aos_index_name,
+            embedding_function=embedding_function,
+            opensearch_url="https://{}".format(aosEndpoint),
+            http_auth=awsauth,
+            use_ssl=True,
+            verify_certs=True,
+            connection_class=RequestsHttpConnection,
+        )
+
+    s3_files_iterator, batch_processor, worker = create_processors_and_workers(
+        operation_type, docsearch, embedding_model_endpoint, file_processor
     )
 
     if operation_type == "create":
-        s3_files_iterator = file_processor.iterate_s3_files()
-
-        batch_chunk_processor = BatchChunkDocumentProcessor(
-            chunk_size=5000, chunk_overlap=30, batch_size=10
+        ingestion_pipeline(s3_files_iterator, batch_processor, worker)
+    elif operation_type == "extract_only":
+        ingestion_pipeline(
+            s3_files_iterator, batch_processor, worker, extract_only=True
         )
-        ingestion_worker = OpenSearchIngestionWorker(docsearch, embeddingModelEndpoint)
-
-        ingestion_pipeline(s3_files_iterator, batch_chunk_processor, ingestion_worker)
     elif operation_type == "delete":
-        s3_files_iterator = file_processor.iterate_s3_files(extract_content=False)
-
-        batch_query_processor = BatchQueryDocumentProcessor(docsearch, batch_size=10)
-
-        delete_worker = OpenSearchDeleteWorker(docsearch)
-        delete_pipeline(s3_files_iterator, batch_query_processor, delete_worker)
+        delete_pipeline(s3_files_iterator, batch_processor, worker)
     elif operation_type == "update":
         # Delete the documents first
-        s3_files_iterator = file_processor.iterate_s3_files(extract_content=False)
-
-        batch_query_processor = BatchQueryDocumentProcessor(docsearch, batch_size=10)
-
-        delete_worker = OpenSearchDeleteWorker(docsearch)
-        delete_pipeline(s3_files_iterator, batch_query_processor, delete_worker)
+        delete_pipeline(s3_files_iterator, batch_processor, worker)
 
         # Then ingest the documents
-        s3_files_iterator = file_processor.iterate_s3_files()
-
-        batch_chunk_processor = BatchChunkDocumentProcessor(
-            chunk_size=5000, chunk_overlap=30, batch_size=10
+        s3_files_iterator, batch_processor, worker = create_processors_and_workers(
+            "create", docsearch, embedding_model_endpoint, file_processor
         )
-        ingestion_worker = OpenSearchIngestionWorker(docsearch, embeddingModelEndpoint)
-
-        ingestion_pipeline(s3_files_iterator, batch_chunk_processor, ingestion_worker)
+        ingestion_pipeline(s3_files_iterator, batch_processor, worker)
     else:
-        raise ValueError("Invalid operation type. Valid types: create, delete, update")
+        raise ValueError(
+            "Invalid operation type. Valid types: create, delete, update, extract_only"
+        )
 
 
 if __name__ == "__main__":

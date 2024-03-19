@@ -24,7 +24,7 @@ interface apiStackProps extends StackProps {
     _domainEndpoint: string;
     _rerankEndPoint: string;
     _embeddingEndPoints: string[];
-    _llmModelId: string;
+_llmModelId: string;
     _instructEndPoint: string;
     _sessionsTableName: string;
     _messagesTableName: string;
@@ -154,7 +154,7 @@ export class LLMApiStack extends NestedStack {
                 SESSIONS_TABLE_NAME: _sessionsTableName,
                 MESSAGES_TABLE_NAME: _messagesTableName,
                 SESSIONS_BY_USER_ID_INDEX_NAME: "byUserId",
-                MESSAGES_BY_SESSION_ID_INDEX_NAME: "bySessionId",
+MESSAGES_BY_SESSION_ID_INDEX_NAME: "bySessionId",
             },
             vpc: _vpc,
             vpcSubnets: {
@@ -190,6 +190,9 @@ export class LLMApiStack extends NestedStack {
 
         // add s3 event notification when file uploaded to the bucket
         _S3Bucket.addEventNotification(s3.EventType.OBJECT_CREATED, new s3n.LambdaDestination(lambdaStepFunction), { prefix: 'documents/' });
+        // add s3 event notification when file deleted in the bucket
+        _S3Bucket.addEventNotification(s3.EventType.OBJECT_REMOVED, new s3n.LambdaDestination(lambdaStepFunction), { prefix: 'documents/' });
+        //
         _S3Bucket.grantReadWrite(lambdaStepFunction);
 
         const lambdaGetETLStatus = new lambda.Function(this, "lambdaGetETLStatus", {
