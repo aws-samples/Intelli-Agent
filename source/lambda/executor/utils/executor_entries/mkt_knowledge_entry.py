@@ -43,10 +43,10 @@ workspace_table = dynamodb.Table(workspace_table)
 workspace_manager = WorkspaceManager(workspace_table)
 
 
-
 def mkt_fast_reply(
         answer="很抱歉，我只能回答与亚马逊云科技产品和服务相关的咨询。",
-        fast_info=""
+        fast_info="",
+        debug_info=None
     ):
     output = {
             "answer": answer,
@@ -55,6 +55,8 @@ def mkt_fast_reply(
             "context_docs": [],
             "context_sources": []
     }
+    if debug_info is not None:
+        debug_info['response_msg'] = fast_info
     logger.info(f'mkt_fast_reply: {fast_info}')
     return output
 
@@ -139,7 +141,9 @@ def market_chain_knowledge_entry(
     qq_workspace_list, qd_workspace_list = get_workspace_list(workspace_ids)
     event_qq_workspace_list, event_qd_workspace_list = get_workspace_list(event_workspace_ids)
 
-    debug_info = {}
+    # logger.info(f"qq_workspace_list: {qq_workspace_list}\nqd_workspace_list: {qd_workspace_list}")
+
+    debug_info = {"response_msg": "normal"}
     contexts = []
     sources = []
     answer = ""
@@ -309,7 +313,7 @@ def market_chain_knowledge_entry(
     ) | RunnableBranch(
         (
             lambda x: not x['filtered_docs'],
-            RunnableLambda(lambda x: mkt_fast_reply(fast_info="insufficient context"))
+            RunnableLambda(lambda x: mkt_fast_reply(fast_info="insufficient context",debug_info=debug_info))
         ),
         llm_chain
     )
@@ -353,12 +357,16 @@ def market_chain_knowledge_entry(
          RunnableLambda(
             lambda x: mkt_fast_reply(
                 answer=sorted(x['qq_result'],key=lambda x:x['score'],reverse=True)[0]['answer'],
-                fast_info='qq matched'
+                fast_info='qq matched',
+                debug_info=debug_info
                 ))
         ),
         (
             lambda x: x['intent_type'] not in allow_intents, 
-            RunnableLambda(lambda x: mkt_fast_reply(fast_info=f"unsupported intent type: {x['intent_type']}"))
+            RunnableLambda(lambda x: mkt_fast_reply(
+                fast_info=f"unsupported intent type: {x['intent_type']}",
+                debug_info=debug_info
+                ))
         ),
         rag_chain
     )

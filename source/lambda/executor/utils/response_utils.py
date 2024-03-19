@@ -101,7 +101,8 @@ def stream_response(**kwargs):
     # model = kwargs.["model"]
     request_timestamp = kwargs["request_timestamp"]
     answer = kwargs["answer"]
-    sources = market_content_filter.filter_source(kwargs["sources"])
+    entry_type = kwargs["entry_type"]
+    sources = kwargs["sources"]
     get_contexts = kwargs["get_contexts"]  # bool
     contexts = kwargs["contexts"]  # retrieve result
     enable_debug = kwargs["enable_debug"]
@@ -110,7 +111,7 @@ def stream_response(**kwargs):
     ddb_history_obj = kwargs["ddb_history_obj"]
     message_id = kwargs["message_id"]
     question = kwargs["question"]
-    entry_type = kwargs["entry_type"]
+    
     ws_connection_id = kwargs["ws_connection_id"]
     log_first_token_time = kwargs.get("log_first_token_time", True)
     client_type = kwargs["client_type"]
@@ -153,7 +154,13 @@ def stream_response(**kwargs):
         )
         answer_str = ""
 
-        for i, chunk in enumerate(token_to_sentence_gen_market(answer)):
+        filter_sentence_fn = lambda x:x
+        if market_content_filter.check_market_entry(entry_type):
+            answer = token_to_sentence_gen_market(answer)
+            filter_sentence_fn = market_content_filter.filter_sentence
+            sources = market_content_filter.filter_source(kwargs["sources"])
+    
+        for i, chunk in enumerate(answer):
             if i == 0 and log_first_token_time:
                 first_token_time = time.time()
                 logger.info(
@@ -162,7 +169,7 @@ def stream_response(**kwargs):
                 logger.info(
                     f"{custom_message_id} running time of first token whole {entry_type} : {first_token_time-request_timestamp}s"
                 )
-            chunk = market_content_filter.filter_sentence(chunk)
+            chunk = filter_sentence_fn(chunk)
             _send_to_ws_client(
                 {
                     "message_type": StreamMessageType.CHUNK,
@@ -198,6 +205,8 @@ def stream_response(**kwargs):
                 input_message_id=f"user_{message_id}",
             )
         # sed source and contexts
+
+            
         context_msg = {
             "message_type": StreamMessageType.CONTEXT,
             "message_id": f"ai_{message_id}",

@@ -1,46 +1,181 @@
 import os 
 import sys
+import tracemalloc
+import logging
 import threading
+import itertools
+from multiprocessing import Process
+from multiprocessing import Queue
+import multiprocessing
+from typing import Iterable
 from concurrent.futures import ThreadPoolExecutor,ProcessPoolExecutor
+from langchain_community.vectorstores.opensearch_vector_search import (
+        OpenSearchVectorSearch
+    )
+from opensearchpy import RequestsHttpConnection
+
+
 sys.path.append("../dep")
 from llm_bot_dep import storage_utils
 
 storage_utils.save_content_to_s3 = lambda *args:None 
+aos_injection_mp_worker_num = 16
+aos_injection_batch_size = 50
+embedding_chunk_num = 50 
+os.environ['embedding_chunk_num'] = str(embedding_chunk_num)
+
+logger = logging.getLogger('launch')
+logger.setLevel(logging.INFO)
+
+
+def print_top_stats(process_id,extract_info="",top_k=10):
+    snapshot = tracemalloc.take_snapshot()
+    top_stats = snapshot.statistics('lineno')
+    if process_id > 0:
+        return 
+    
+    s = extract_info + f"process_id: {process_id}. <top_stats>\n"
+    top_strs = []
+    for stat in top_stats[:top_k]:
+        top_strs.append(f"{str(top_stats[0].traceback)}, size: {stat.size}, count: {stat.count}")
+    
+    s += "\n".join(top_strs)
+    s += "\n</top_stats>"
+    logger.info(s)
+
+opensearch_obj = None
+embedding_size = None
+
+def task_queue_gen(task_queue):
+    import local_ingestion_multithread 
+    global opensearch_obj, embedding_size
+    # print(sxfvfg)
+    task = task_queue.get()
+    if opensearch_obj is None:
+        opensearch_obj = OpenSearchVectorSearch(
+            index_name=task['index_name'],
+            embedding_function=None,
+            opensearch_url="https://{}".format(local_ingestion_multithread.aosEndpoint),
+            http_auth=local_ingestion_multithread.awsauth,
+            use_ssl=True,
+            verify_certs=True,
+            connection_class=RequestsHttpConnection
+        )
+        embedding_size = len(task['embedding'])
+        logger.info(f'embedding size: {embedding_size}')
+    
+    yield task 
+    yield task 
+
+    while True:
+        task = task_queue.get()
+        if task is None:
+            return
+        yield task
+
+
+def batch_generator(gen:Iterable, batch_size=aos_injection_batch_size):
+    while True:
+        if gen.gi_frame is None:
+            break
+        yield itertools.islice(gen, batch_size)
+
+
+def process_run(process_id,task_queue):
+    logger = logging.getLogger("opensearch")
+    logger.setLevel(logging.WARNING)
+    import local_ingestion_multithread
+    
+    global embedding_size
+    gen = batch_generator(task_queue_gen(task_queue))
+    should_start = True 
+    for batch_data in gen:
+        if  should_start:
+            next(batch_data)
+            should_start = False
+
+        local_ingestion_multithread.bulk_add(
+            opensearch_obj,
+            batch_data,
+            max_chunk_bytes=1 * 1024 * 1024,
+            embedding_size=embedding_size
+        )
+    
+    print(f'process: {process_id} finished')
+
+    # while True:
+        # logger.info('before get')
+        # print_top_stats(process_id,extract_info='before get ')
+        # task = task_queue.get()
+        # print_top_stats(process_id,extract_info='after get ')
+
+        # if task is None:
+        #     return
+        # texts = task['texts']
+        # dense_vecs_list = task['dense_vecs_list']
+        # metadatas = task['metadatas']
+        # index_name = task['index_name']
+        # if process_id == 0:
+        #     colbert_vecs_list = [metadata['additional_vecs']['colbert_vecs'] for metadata in metadatas]
+        #     colbert_vecs_lens = [len(colbert_vecs) for colbert_vecs in colbert_vecs_list]
+        #     avg_lens = sum(colbert_vecs_lens)/len(colbert_vecs_lens)
+
+        #     logger.info(f'avg_colbert_lens: {avg_lens}, colbert_vecs num: {len(colbert_vecs_lens)}')
+        # local_ingestion_multithread.__aos_injection(
+        #     texts,
+        #     dense_vecs_list,
+        #     metadatas,
+        #     index_name
+        #     )
+        # # logger.info('before gc')
+        # print_top_stats(process_id,extract_info='before gc')
+        # # del texts, dense_vecs_list,metadatas 
+        # # import gc
+        # # gc.collect() 
+        # # logger.info('after gc')
+        # print_top_stats(process_id,extract_info='after gc')
 
 worker_num = 1
-os.environ['aos_injection_chunk_batch_size'] = '50'
+
 os.environ['worker_num'] = str(worker_num)
 # os.environ['aos_worker_num'] = str(150)
 # os.environ['worker_id'] = str(worker_id)
 os.environ['args_path'] = 'user_guide_ingestion.json'
-os.environ['AWS_PROFILE'] = 'atl-us-west-2'
+os.environ['AWS_PROFILE'] = 'atl'
 os.environ['embedding_endpoint_name'] = 'bge-m3'
-
-
 
 def main():
     import local_ingestion_multithread
     local_ingestion_multithread.bge_m3_embedding_lock = threading.Lock()
-    local_ingestion_multithread.aos_injection_mp = ProcessPoolExecutor(32)
-    print(f'local_ingestion_multithread.aos_injection_mp max worker: {local_ingestion_multithread.aos_injection_mp._max_workers}')
+    local_ingestion_multithread.index_create_lock = multiprocessing.Lock()
+
+    # local_ingestion_multithread.aos_injection_mp = ProcessPoolExecutor(aos_injection_mp_worker_num)
+    # start all process
+    # for _ in range(aos_injection_mp_worker_num):
+    #     local_ingestion_multithread.aos_injection_mp.submit(lambda x:None)
+    task_queue = Queue(maxsize=1)
+    local_ingestion_multithread.aos_injection_task_queue = task_queue
+    processes = []
+    for index in range(aos_injection_mp_worker_num):
+        p = Process(target=process_run,args=(index,task_queue))
+        p.daemon = True
+        processes.append(p)
+    
+    for p in processes:
+        p.start()
+
+    # print(f'local_ingestion_multithread.aos_injection_mp max worker: {local_ingestion_multithread.aos_injection_mp._max_workers}')
+    print(f'local_ingestion_multithread.aos_injection_mp max worker: {aos_injection_mp_worker_num}')
     
     local_ingestion_multithread.main(worker_num,0)
+
+    for _ in processes:
+        task_queue.put(None)
+
+    print('finished')
+        
     
-    # def run(worker_id):
-    #     local_ingestion_multithread.main(worker_num,worker_id)
-
-
-    # threads = []
-    # for i in range(worker_num):
-    #     t = threading.Thread(target=run,args=(i,))
-    #     t.daemon = True
-    #     threads.append(t)
-
-    # for t in threads:
-    #     t.start()
-
-    # for t in threads:
-    #     t.join()
+    
 
 if __name__ == "__main__":
     main()

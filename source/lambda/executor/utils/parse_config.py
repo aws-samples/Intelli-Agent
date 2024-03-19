@@ -231,6 +231,7 @@ def parse_mkt_entry_knowledge_config(event_body):
     llm_model_endpoint_name = event_body.get(
         "llm_model_endpoint_name", llm_model_endpoint_name
     )
+
     assert llm_model_id,llm_model_id
 
     mkt_default_config = {
