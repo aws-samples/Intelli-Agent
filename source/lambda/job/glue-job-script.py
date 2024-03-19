@@ -200,12 +200,14 @@ class S3FileProcessor:
                     continue
 
                 if current_indice < int(batchIndice) * int(batchFileNumber):
+                    current_indice += 1
                     continue
                 elif current_indice >= (int(batchIndice) + 1) * int(batchFileNumber):
                     # Exit this nested loop
                     break
                 else:
                     logger.info("Processing object: %s", key)
+                    current_indice += 1
 
                     if extract_content:
                         file_content = self.get_file_content(key)
@@ -213,7 +215,6 @@ class S3FileProcessor:
                     else:
                         yield file_type, "", {"bucket": self.bucket, "key": key}
 
-                current_indice += 1
             if current_indice >= (int(batchIndice) + 1) * int(batchFileNumber):
                 # Exit the outer loop
                 break
