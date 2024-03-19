@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import sys
+import uuid
 import time
 import math
 import traceback
@@ -20,9 +21,15 @@ import chardet
 import nltk
 from langchain.embeddings.sagemaker_endpoint import EmbeddingsContentHandler
 from langchain_core.embeddings import Embeddings
+from langchain_community.vectorstores.opensearch_vector_search import (
+        OpenSearchVectorSearch
+    )
+from tenacity import retry, stop_after_attempt,wait_exponential
 
 bge_m3_embedding_lock = None 
 aos_injection_mp = None
+aos_injection_task_queue = None
+index_create_lock = None
 
 class BGRM3Embedding(Embeddings):
     instance = None
@@ -57,7 +64,7 @@ class BGRM3Embedding(Embeddings):
         ret = self.model.encode(
             texts,
             return_dense=True, 
-            return_sparse=True, 
+            return_sparse=False, 
             return_colbert_vecs=True,
             batch_size=12,
             max_length=512
@@ -79,6 +86,165 @@ class BGRM3Embedding(Embeddings):
         )
         ret = self.format_ret(ret)
         return ret
+
+def __bulk_add(
+    self: OpenSearchVectorSearch,
+    data:Iterable[dict],
+    # texts: Iterable[str],
+    # embeddings: List[List[float]],
+    # metadatas: Optional[List[dict]] = None,
+    ids: Optional[List[str]] = None,
+    embedding_size: int = None,
+    # bulk_size: int = 500,
+    **kwargs: Any,
+) -> List[str]:
+    assert embedding_size is not None, embedding_size
+    from langchain_community.vectorstores.opensearch_vector_search import (
+        _import_bulk,_import_not_found_error,_validate_aoss_with_engines,_default_text_mapping
+    ) 
+    # _validate_embeddings_and_bulk_size(len(embeddings), bulk_size)
+    index_name = kwargs.get("index_name", self.index_name)
+    text_field = kwargs.get("text_field", "text")
+    engine = kwargs.get("engine", "nmslib")
+    space_type = kwargs.get("space_type", "l2")
+    ef_search = kwargs.get("ef_search", 512)
+    ef_construction = kwargs.get("ef_construction", 512)
+    m = kwargs.get("m", 16)
+    vector_field = kwargs.get("vector_field", "vector_field")
+    max_chunk_bytes = kwargs.get("max_chunk_bytes", 1 * 1024 * 1024)
+
+    _validate_aoss_with_engines(self.is_aoss, engine)
+    
+    # dim = len(embeddings[0])
+    mapping = _default_text_mapping(
+         embedding_size, engine, space_type, ef_search, ef_construction, m, vector_field
+    )
+
+    if not mapping:
+        mapping = dict()
+    bulk = _import_bulk()
+    not_found_error = _import_not_found_error()
+    # requests = []
+    return_ids = []
+    mapping = mapping
+    
+    with index_create_lock:
+        try:
+            self.client.indices.get(index=index_name)
+        except not_found_error:
+            self.client.indices.create(index=index_name, body=mapping)
+
+    def request_generator():
+        for i, datum in enumerate(data):
+            metadata = datum['metadata']
+            text = datum['text']
+            embedding = datum['embedding']
+            # metadata = metadatas[i] if metadatas else {}
+            _id = ids[i] if ids else str(uuid.uuid4())
+            request = {
+                "_op_type": "index",
+                "_index": index_name,
+                vector_field: embedding,
+                text_field: text,
+                "metadata": metadata,
+            }
+            if self.is_aoss:
+                request["id"] = _id
+            else:
+                request["_id"] = _id
+            
+            # requests.append(request)
+            return_ids.append(_id)
+            yield request
+
+    bulk(
+        self.client,
+        request_generator(),
+        max_chunk_bytes=max_chunk_bytes,
+        # ignore_status=(200,)
+    )
+    if not self.is_aoss:
+        self.client.indices.refresh(index=index_name)
+    return return_ids
+
+
+@retry(stop=stop_after_attempt(5),wait=wait_exponential(multiplier=1, min=4, max=10))
+def _bulk_add(*args,**kwargs):
+    try:
+        __bulk_add(*args,**kwargs)
+    except Exception as e:
+        raise RuntimeError(f"Catch exception when adding document to OpenSearch: {str(e)[:100]}")
+
+def bulk_add(*args,**kwargs):
+    try:
+        _bulk_add(*args,**kwargs)
+    except Exception as e:
+       
+        logger.error(f"bulk add fail: { traceback.format_exc(limit=1)}")
+
+#         return _bulk_ingest_embeddings(
+#             self.client,
+#             index_name,
+#             embeddings,
+#             texts,
+#             metadatas=metadatas,
+#             ids=ids,
+#             vector_field=vector_field,
+#             text_field=text_field,
+#             mapping=mapping,
+#             max_chunk_bytes=max_chunk_bytes,
+#             is_aoss=self.is_aoss,
+#         )(
+#     client: Any,
+#     index_name: str,
+#     embeddings: List[List[float]],
+#     texts: Iterable[str],
+#     metadatas: Optional[List[dict]] = None,
+#     ids: Optional[List[str]] = None,
+#     vector_field: str = "vector_field",
+#     text_field: str = "text",
+#     mapping: Optional[Dict] = None,
+#     max_chunk_bytes: Optional[int] = 1 * 1024 * 1024,
+#     is_aoss: bool = False,
+# ) -> List[str]:
+    
+    # """Bulk Ingest Embeddings into given index."""
+    # if not mapping:
+    #     mapping = dict()
+
+    # bulk = _import_bulk()
+    # not_found_error = _import_not_found_error()
+    # requests = []
+    # return_ids = []
+    # mapping = mapping
+
+    # try:
+    #     client.indices.get(index=index_name)
+    # except not_found_error:
+    #     client.indices.create(index=index_name, body=mapping)
+
+    
+
+
+    # for i, text in enumerate(texts):
+    #     metadata = metadatas[i] if metadatas else {}
+    #     _id = ids[i] if ids else str(uuid.uuid4())
+    #     request = {
+    #         "_op_type": "index",
+    #         "_index": index_name,
+    #         vector_field: embeddings[i],
+    #         text_field: text,
+    #         "metadata": metadata,
+    #     }
+    #     if is_aoss:
+    #         request["id"] = _id
+    #     else:
+    #         request["_id"] = _id
+    #     requests.append(request)
+    #     return_ids.append(_id)
+    
+
+
 sys.path.append("dep")
 
 from boto3.dynamodb.conditions import Attr, Key
@@ -211,6 +377,7 @@ def iterate_s3_files(bucket: str, prefix: str, worker_num,batchIndice,max_file_n
     for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
         for obj in page.get("Contents", []):
             currentIndice += 1
+
             if currentIndice > max_file_num:
                 logger.info(f"currentIndice: {currentIndice} reach max_file_num: {max_file_num}")
                 return 
@@ -279,25 +446,28 @@ def batch_generator(generator, batch_size: int):
             break
         yield batch
 
+docsearch = None
 
 @retry(stop=stop_after_attempt(5),wait=wait_exponential(multiplier=1, min=4, max=10))
 def aos_injection_helper(texts,dense_vecs_list,metadatas,index_name):
-    docsearch = OpenSearchVectorSearch(
-        index_name=index_name,
-        embedding_function=None,
-        opensearch_url="https://{}".format(aosEndpoint),
-        http_auth=awsauth,
-        use_ssl=True,
-        verify_certs=True,
-        connection_class=RequestsHttpConnection
-    )
-    
+    global docsearch
+    if docsearch is None:
+        docsearch = OpenSearchVectorSearch(
+            index_name=index_name,
+            embedding_function=None,
+            opensearch_url="https://{}".format(aosEndpoint),
+            http_auth=awsauth,
+            use_ssl=True,
+            verify_certs=True,
+            connection_class=RequestsHttpConnection
+        )
     # # logger.info(
     #     "Adding documents %s to OpenSearch with index %s",
     #     document,
     #     index_name,
     # )
     # TODO: add endpoint name as a metadata of document
+    OpenSearchVectorSearch.__add
     try:
         # TODO, consider the max retry and initial backoff inside helper.bulk operation instead of using original LangChain
         docsearch._OpenSearchVectorSearch__add(
@@ -307,16 +477,19 @@ def aos_injection_helper(texts,dense_vecs_list,metadatas,index_name):
         )
     except Exception as e:
         raise RuntimeError(f"Catch exception when adding document to OpenSearch: {e}")
+    
+    # docsearch.client.close()
 
 
-def __aos_injection(texts,dense_vecs_list,metadatas,index_name):
+def __aos_injection(texts,dense_vecs_list,metadatas,index_name): 
     try:
         aos_injection_helper(texts,dense_vecs_list,metadatas,index_name)
     except:
         logger.error(traceback.format_exc())
-     
-    import gc
-    gc.collect() 
+    
+    traceback.clear_frames(sys.exc_info()[2])
+    # import gc
+    # gc.collect() 
 
 
 # @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
@@ -342,14 +515,24 @@ def _aos_injection(
     
     texts = [doc.page_content for doc in documents]
     metadatas = [doc.metadata for doc in documents]
-    
 
+    # waiting
+    # from concurrent.futures import wait, FIRST_COMPLETED
+    # global pendings
+    # while (len(pendings) > aos_injection_mp._max_workers) or \
+    #     (psutil.virtual_memory().percent > 85 and len(pendings) > 2):
+    #     used_momery = psutil.virtual_memory().used / 1024 / 1024 / 1024
+    #     logger.info(f'waiting for aos_injection_mp, pendings num: {len(pendings)}, used mem: {used_momery}')
+    #     _, pendings = wait(pendings, return_when=FIRST_COMPLETED) 
+    #     import gc
+    #     gc.collect()
+    #     time.sleep(5)
+    
     embedding_execute_context = bge_m3_embedding_lock
     if embedding_execute_context is None:
         embedding_execute_context =  contextlib.nullcontext() 
     with embedding_execute_context:
-        # import multiprocessing
-        
+        # import multiprocessing 
         # logger.info(f'process: {multiprocessing.current_process().ident} enter embedding_execute_context')
         # time.sleep(4)
         logger.info(f'embedding documents num: {len(texts)}')
@@ -357,6 +540,13 @@ def _aos_injection(
 
     dense_vecs_list = embeddings['dense_vecs_list']
     colbert_vecs_list = embeddings['colbert_vecs_list']
+
+    
+    colbert_vecs_lens = [len(colbert_vecs) for colbert_vecs in colbert_vecs_list]
+    avg_lens = sum(colbert_vecs_lens)/len(colbert_vecs_lens)
+
+    logger.info(f'avg_colbert_lens: {avg_lens}, colbert_vecs num: {len(colbert_vecs_lens)}')
+
 
     for doc_id, metadata in enumerate(metadatas):
             # lexical_weights = embeddings_vectors[0]["lexical_weights"][
@@ -380,29 +570,41 @@ def _aos_injection(
     # while aos_injection_mp._work_queue.qsize() > 2*aos_injection_mp._max_workers:
     #     logger.info(f"aos_injection_mp's _work_queue is full, qsize: {aos_injection_mp._work_queue.qsize()}, _max_workers: {aos_injection_mp._max_workers}, waiting... ")
     #     time.sleep(5)
-    from concurrent.futures import wait, FIRST_COMPLETED
-    global pendings
-    while len(pendings) > aos_injection_mp._max_workers:
-        logger.info(f'waiting for aos_injection_mp, pendings num: {len(pendings)}')
-        _, pendings = wait(pendings, return_when=FIRST_COMPLETED) 
-        time.sleep(5)
         
-    pendings.add(
-        aos_injection_mp.submit(
-            __aos_injection,
-            texts,
-            dense_vecs_list,
-            metadatas,
-            index_name
-        ))
+    # pendings.add(
+    #     aos_injection_mp.submit(
+    #         __aos_injection,
+    #         texts,
+    #         dense_vecs_list,
+    #         metadatas,
+    #         index_name
+    #     ))
+
+    logger.info(f"put task, qsize: {aos_injection_task_queue.qsize()}")
+    
+    # for i in range(len(texts)):
+    #     aos_injection_task_queue.put(
+    #         {
+    #             "texts":[texts[i]],
+    #             "dense_vecs_list": [dense_vecs_list[i]],
+    #             "metadatas": [metadatas[i]],
+    #             "index_name": index_name
+    #         }
+    #     )
+
+    for i in range(len(texts)):
+        aos_injection_task_queue.put(
+            {
+                "text":texts[i],
+                "embedding": dense_vecs_list[i],
+                "metadata": metadatas[i],
+                "index_name": index_name
+            }
+        )
 
     
-    del texts, dense_vecs_list, metadatas
-    
-    import gc
-    gc.collect()
     mem = get_program_memory_usage()
-    logger.info(f"current total memory usage: {mem['total']} GB, root pid: {mem['root_mem']} GB")
+    logger.info(f"current total memory usage: {mem['total']} GB, root pid: {mem['root_mem']} GB, pendings num: {len(pendings)}")
     
    # aos_injection_mp.submit(__aos_injection,texts,dense_vecs_list,metadatas,index_name)
 
@@ -515,10 +717,10 @@ def aos_injection(
         )
     else:
         generator = content
-
+    
     batches = batch_generator(
         generator, 
-        batch_size=int(os.environ.get('aos_injection_chunk_batch_size',20))
+        batch_size=int(os.environ.get('embedding_chunk_num',20))
     )
     # note: typeof(batch)->list[Document], sizeof(batches)=batch_size
     for batch in batches:
@@ -570,8 +772,9 @@ def gen_documents(
                 embeddings_model_dimensions,
                 embeddings_model_type,
                 ["zh"],
-                [file_type],
                 open_search_index_type
+                # [file_type],
+                # open_search_index_type
             )
             gen_chunk_flag = False if file_type == "csv" else True
             if file_type in supported_file_types:
@@ -629,7 +832,7 @@ def _main(worker_num,batchIndice,max_file_num=math.inf):
     # print('list(chunk_dicts)',list(chunk_dicts))
     batches = batch_generator(
         chunk_dicts, 
-        batch_size=int(os.environ.get('aos_injection_chunk_batch_size',20))
+        batch_size=int(os.environ.get('embedding_chunk_num',20))
     )
 
     for batch in batches:

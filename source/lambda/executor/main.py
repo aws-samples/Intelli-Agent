@@ -202,10 +202,15 @@ def lambda_handler(event, context):
             return get_retriever_response(docs)
         elif entry_type == Type.DGR.value:
             # switch dgr to market
-            event_body["llm_model_id"] = "anthropic.claude-v2:1"
+            event_body["llm_model_id"] = os.environ.get('llm_model_id',"anthropic.claude-3-sonnet-20240229-v1:0")
             dgr_config = {
-                "retriever_config": {"qd_config": {"using_whole_doc": True}},
-                "generator_llm_config": {"context_num": 2},
+                "retriever_config": {
+                    "qd_config": {"using_whole_doc": True},
+                    "workspace_ids": ["aos_index_repost_qq_m3","aws-cn-dgr-user-guide-qd-m3-dense-20240318"]
+                    },
+                "generator_llm_config": {
+                    "context_num": 2
+                },
             }
 
             event_body = update_nest_dict(event_body, dgr_config)

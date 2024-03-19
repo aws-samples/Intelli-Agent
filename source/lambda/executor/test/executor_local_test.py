@@ -573,263 +573,60 @@ def test_internlm_model_mkt_knowledge_entry():
     
     rag_parameters={
         "get_contexts":True,
-        "session_id":session_id,
-        "retriever_config":{
-            # "qq_config": {
-            #     "q_q_match_threshold": 0.8,
-            # },
-            # "qd_config":{
-            #     "qd_match_threshold": 2,
-            #     # "reranker_type": "bge_reranker",
-            #     # "qd_match_threshold": 0.5,
-            #     # "reranker_type": "no_reranker"
+        # "session_id":session_id,
+        "retriever_config":{}
+    }
 
-            # # "using_whole_doc": True
-            # },
-            # "workspace_ids": workspace_ids
-        }
-        }
+    market_test_cases = [
+    'EC2',
+    "LAMBDA",
+    '亚马逊云科技中国区域免费套餐有哪几种不同类型的优惠？',
+    'Amazon Lambda的免费套餐包含什么？',
+    '在亚马逊云科技网站上，完成所有账户注册步骤后，什么时候才可以开始使用？',
+    'Amazon Lambda函数是什么？',
+    '日志通是什么？',
+    'lambda是什么？',
+    '2024北京国际车展上，亚马逊云科技会参加吗？',
+    '3月份在深圳有生成式AI的活动吗？',
+    '2024年会举办出海全球化论坛吗？',
+    '2024年出海全球化论坛的会议日程是什么？',
+    '2024亚马逊云科技出海全球化论坛什么时候举办？',
+    '请问怎么关闭账号？',
+    '个人能否注册账号？',
+    '怎么开发票？',
+    '使用CDN服务要备案吗？',
+    '今天是几月几号？',
+    '亚马逊云科技有上海区域吗？',
+    '我上一个问题是什么？',
+    '如何注册AWS账号?',
+    '如何注册亚马逊云科技账号',
+    '怎么申请免费试用？',
+    '怎么试用服务器？',
+    '无法连接服务器',
+    '连接不上服务器',
+    '账号被停用了怎么解决',
+    '备案流程',
+    '怎么备案',
+    '人工服务',
+    '为什么产生了费用？不是免费试用吗？',
+    '申请退款',
+    '服务器报价/服务器多少钱？'
+    ]
+    ret = []
+    for question in market_test_cases:
+        r = generate_answer(
+            question,
+            # "什么是日志通",
+            # model="knowledge_qa", 
+            type=entry_type, 
+            stream=False,
+            rag_parameters=rag_parameters
+        )
+        ret.append((question,r[0]))
 
-    # generate_answer(
-    #     "2024北京国际车展上，亚马逊云科技会参加吗？",
-    #     # "什么是日志通",
-    #     model="knowledge_qa", 
-    #     type=entry_type, 
-    #     stream=True,
-    #     rag_parameters=rag_parameters
-    # )
-    # print(fg)
-
-    generate_answer(
-        "EC2",
-        # "什么是日志通",
-        model="knowledge_qa", 
-        type=entry_type, 
-        stream=True,
-        rag_parameters=rag_parameters
-    )
-
-    generate_answer(
-        "LAMBDA",
-        # "什么是日志通",
-        model="knowledge_qa", 
-        type=entry_type, 
-        stream=True,
-        rag_parameters=rag_parameters
-    )
-
-    print(fgdfgs)
-
-    
-    generate_answer(
-        "2024亚马逊云科技出海全球化论坛什么时候举办？",
-        # "什么是日志通",
-        model="knowledge_qa", 
-        type=entry_type, 
-        stream=True,
-        rag_parameters=rag_parameters
-    )
-
-    print(sfgsfg)
-
-
-    generate_answer(
-        "AWS支持上海region吗？",
-        # "什么是日志通",
-        model="knowledge_qa", 
-        type=entry_type, 
-        stream=True,
-        rag_parameters=rag_parameters
-    )
-    
-    generate_answer(
-        "亚马逊云科技有上海区域吗？", 
-        # "AWS支持上海region吗？",
-        # "什么是日志通",
-        model="knowledge_qa", 
-        type=entry_type, 
-        stream=True,
-        rag_parameters=rag_parameters
-    )
-
-    print(sfg)
-
-    generate_answer(
-        "亚马逊云科技中国区域免费套餐有哪几种不同类型的优惠？", 
-        model="knowledge_qa", 
-        type=entry_type, 
-        stream=True,
-        rag_parameters=rag_parameters
-    )
-
-    generate_answer(
-        "怎么开发票？", 
-        model="knowledge_qa", 
-        type=entry_type, 
-        stream=True,
-        rag_parameters=rag_parameters
-    )
-
-
-    generate_answer(
-        "日志通是什么？", 
-        model="knowledge_qa", 
-        type=entry_type, 
-        stream=True,
-        rag_parameters=rag_parameters
-    )
-
-
-
-    generate_answer(
-        "Amazon Lambda函数是什么？", 
-        model="knowledge_qa", 
-        type=entry_type, 
-        stream=True,
-        rag_parameters={
-        "get_contexts":True,
-        "retriever_config":{
-            "qq_config": {
-                "q_q_match_threshold": 0.9,
-            },
-            "qd_config":{
-                "qd_match_threshold": 2,
-                "using_whole_doc": True
-            },
-            "workspace_ids": ["aos_index_mkt_faq_qq","aos_index_acts_qd"]
-            
-        }
-        }
-    )
-    
-    generate_answer(
-        "今天是几月几号？", 
-        model="knowledge_qa", 
-        type=entry_type, 
-        stream=True,
-        rag_parameters={
-            "get_contexts":True,
-            "retriever_config":{
-                "qq_config": {
-                    "q_q_match_threshold": 0.9,
-                },
-                "qd_config":{
-                    "qd_match_threshold": 2,
-                    "using_whole_doc": True
-                },
-                "workspace_ids": workspace_ids
-        }
-        }
-    )
-
-    generate_answer(
-        "我上一个问题是什么？", 
-        model="knowledge_qa", 
-        type=entry_type, 
-        stream=True,
-        rag_parameters= {
-            "get_contexts":True,
-            "retriever_config":{
-                "qq_config": {
-                    "q_q_match_threshold": 0.9,
-                },
-                "qd_config":{
-                    "qd_match_threshold": 2,
-                    "using_whole_doc": True
-                },
-                "workspace_ids": workspace_ids
-                
-            }
-        }
-    )
-    # qq_match_test()
-    generate_answer(
-        "AWS支持上海region吗？", 
-        model="knowledge_qa", 
-        type=entry_type, 
-        stream=True,
-        rag_parameters = {
-            "get_contexts":True,
-            "retriever_config":{
-                "qq_config": {
-                    "q_q_match_threshold": 0.9,
-                },
-                "qd_config":{
-                    "qd_match_threshold": 2,
-                    "using_whole_doc": True
-                },
-                "workspace_ids": workspace_ids
-                
-            }
-        }
-    )
-
-    print(f)
-
-    generate_answer(
-        "AWS支持上海region吗？", 
-        model="knowledge_qa", 
-        type=entry_type, 
-        stream=True,
-        
-        rag_parameters={
-        "get_contexts":True,
-        "retriever_config":{
-            "qq_config": {
-                "q_q_match_threshold": 0.9,
-            },
-            "qd_config":{
-                "qd_match_threshold": 2,
-                "using_whole_doc": True
-            },
-            "workspace_ids": ["aos_index_mkt_faq_qq","aos_index_acts_qd"]
-            
-        }
-        }
-    )
-    print(sfg)
-    generate_answer(
-        "介绍一下Amazon EC2", 
-        model="auto", 
-        type=entry_type, 
-        stream=True,
-        rag_parameters=rag_parameters
-    )
-    # print(xfg)
-    generate_answer(
-        "什么是Amazon bedrock？", 
-        model="auto", 
-        type=entry_type, 
-        stream=True,
-        rag_parameters=rag_parameters
-    )
-
-    generate_answer(
-        "《夜曲》是谁演唱的？", 
-        session_id=session_id,
-        model="chat", 
-        type=entry_type, 
-        stream=True,
-        rag_parameters=rag_parameters
-    )
-    generate_answer(
-        "他还有哪些其他歌曲？", 
-        session_id=session_id,
-        model="chat", 
-        type=entry_type, 
-        stream=True,
-        rag_parameters=rag_parameters
-    )
-
-    r = generate_answer(
-        "解释一下“温故而知新”", 
-        model="auto", 
-        type=entry_type, 
-        stream=False,
-        rag_parameters=rag_parameters
-    )
-    print(r[0])
-
+    for q,a in ret:
+        print('*-'*50)
+        print(f'Q: {q},\nA: {a}')
 
 
 def test_internlm_model_mkt_knowledge_entry_langgraph():
@@ -1025,6 +822,8 @@ def market_deploy_test():
 
 
 def dgr_deploy_test():
+    os.environ['llm_model_id'] = "anthropic.claude-3-sonnet-20240229-v1:0"
+    session_id = f'test_{int(time.time())}'
     questions = [
         "Amazon EC2 提供了哪些功能来支持不同区域之间的数据恢复?",
         "请问Amazon ECS Fargate支持哪些操作系统和CPU架构?",
@@ -1037,7 +836,8 @@ def dgr_deploy_test():
         generate_answer(
             question, 
             stream=True,
-            type="dgr"
+            type="dgr",
+            # session_id=session_id
         )
     
 
@@ -1058,12 +858,12 @@ if __name__ == "__main__":
     # )
     # market_deploy_test()
     # knowledge_qa_test()
-    r = generate_answer(
-        "怎么开发票？", 
-        model="knowledge_qa", 
-        stream=True,
-        type="market_chain", 
-    )
+    # r = generate_answer(
+    #     "怎么开发票？", 
+    #     model="knowledge_qa", 
+    #     stream=True,
+    #     type="market_chain", 
+    # )
     # knowledge_qa_test()
 
     

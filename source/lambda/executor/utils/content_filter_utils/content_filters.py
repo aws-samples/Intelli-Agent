@@ -10,7 +10,6 @@ class ContentFilterBase:
     def filter_sentence(self, sentence: str):
         raise NotImplementedError
 
-
 class MarketContentFilter(ContentFilterBase):
     def __init__(
         self,
@@ -21,6 +20,10 @@ class MarketContentFilter(ContentFilterBase):
         self.aws_products = self.create_aws_products(aws_products_path)
         # Define a regular expression pattern to match Chinese characters
         self.chinese_pattern = re.compile(r"[\u4e00-\u9fff]")
+    
+    @staticmethod
+    def check_market_entry(entry_type):
+        return "mkt" in entry_type or "market" in entry_type
 
     def create_sensitive_words(self, sensitive_words_path):
         sensitive_words = set()
@@ -56,6 +59,7 @@ class MarketContentFilter(ContentFilterBase):
         # Replace "AWS" by "Amazon" in product name
         for key, value in self.aws_products.items():
             sentence = sentence.replace(key, value)
+        
         # Replace "AWS" by "亚马逊云科技" if detected Chinese characters within its right time window of length 10
         for key, value in cn_rebranding_dict.items():
             index = sentence.find(key)
@@ -80,6 +84,7 @@ class MarketContentFilter(ContentFilterBase):
         sentence = self.filter_sensitive_words(sentence)
         sentence = self.rebranding_words(sentence)
         return sentence
+    
 
 
 def token_to_sentence_gen(

@@ -80,6 +80,8 @@ def get_relevance_embedding(
         )
     elif model_type == "m3":
         query_relevance_embedding_prompt = query
+    else:
+        raise ValueError(f'invalid embedding model type: {model_type}')
     response = SagemakerEndpointVectorOrCross(
         prompt=query_relevance_embedding_prompt,
         endpoint_name=embedding_model_endpoint,

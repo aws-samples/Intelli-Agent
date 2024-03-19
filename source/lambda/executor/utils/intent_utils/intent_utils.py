@@ -308,8 +308,6 @@ def auto_intention_recoginition_chain(
     return chain
 
 
-
-
 # intent_recognition_with_opensearch
 def create_opensearch_index(opensearch_client):
     pass

@@ -14,7 +14,6 @@ import traceback
 import threading 
 import boto3
 import logging
-from ..prompt_template import INTENT_RECOGINITION_PROMPT_TEMPLATE_CLUADE,INTENT_RECOGINITION_EXAMPLE_TEMPLATE
 import os 
 import json 
 from typing import List,Dict
