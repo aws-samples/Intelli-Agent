@@ -36,6 +36,8 @@ logger.setLevel(logging.INFO)
 
 zh_embedding_endpoint = os.environ.get("zh_embedding_endpoint", "")
 en_embedding_endpoint = os.environ.get("en_embedding_endpoint", "")
+
+intent_recognition_embedding_endpoint = os.environ.get("intent_recognition_embedding_endpoint", "")
 workspace_table = os.environ.get("workspace_table", "")
 
 dynamodb = boto3.resource("dynamodb")
@@ -98,6 +100,7 @@ def get_qd_chain(qd_config, qd_workspace_list):
         "qd chain",
     )
     return qd_chain
+
 
 def get_workspace_list(workspace_ids):
     qq_workspace_list = []
@@ -219,7 +222,9 @@ def market_chain_knowledge_entry(
     #####################################
     # step 3.1 intent recognition chain #
     #####################################
-    intent_recognition_index = IntentRecognitionAOSIndex(embedding_endpoint_name=zh_embedding_endpoint)
+    intent_recognition_index = IntentRecognitionAOSIndex(
+        embedding_endpoint_name=intent_recognition_embedding_endpoint
+        )
     intent_index_ingestion_chain = chain_logger(
         intent_recognition_index.as_ingestion_chain(),
         "intent_index_ingestion_chain",
