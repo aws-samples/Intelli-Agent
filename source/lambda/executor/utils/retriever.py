@@ -514,7 +514,7 @@ class QueryDocumentRetriever(BaseRetriever):
             query = question["translated_text"]
         debug_info = question["debug_info"]
         query_repr = get_relevance_embedding(query, self.lang, self.embedding_model_endpoint, self.model_type)
-        question["colbert"] = query_repr["colbert_vecs"][0]
+        # question["colbert"] = query_repr["colbert_vecs"][0]
         filter = get_filter_list(question)
         opensearch_knn_response = aos_client.search(
             index_name=self.index,
