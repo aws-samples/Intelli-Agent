@@ -26,7 +26,7 @@ from ..retriever import (
 )
 from .. import parse_config
 from ..reranker import BGEReranker, MergeReranker, BGEM3Reranker
-from ..context_utils import contexts_trunc,retriever_results_format,retriever_results_filter
+from ..context_utils import contexts_trunc,retriever_results_format,documents_list_filter
 from ..langchain_utils import RunnableDictAssign
 from ..preprocess_utils import is_api_query, language_check,query_translate,get_service_name
 from ..workspace_utils import WorkspaceManager
@@ -267,7 +267,8 @@ def market_chain_knowledge_entry(
             qq_compression_retriever | \
                     RunnableLambda(retriever_results_format) |\
                     RunnableLambda(partial(
-                        retriever_results_filter,
+                        documents_list_filter,
+                        filter_key='retrieval_score',
                         threshold=qq_match_threshold
                     ))
             ,
@@ -309,7 +310,7 @@ def market_chain_knowledge_entry(
     ######################
     qd_match_threshold = rag_config['retriever_config']['qd_config']['qd_match_threshold']
     qd_fast_reply_branch = RunnablePassthrough.assign(
-        filtered_docs = RunnableLambda(lambda x: retriever_results_filter(x['docs'],threshold=qd_match_threshold))
+        filtered_docs = RunnableLambda(lambda x: documents_list_filter(x['docs'],filter_key='rerank_score',threshold=qd_match_threshold))
     ) | RunnableBranch(
         (
             lambda x: not x['filtered_docs'],

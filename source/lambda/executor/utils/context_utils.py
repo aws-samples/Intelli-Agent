@@ -48,6 +48,7 @@ def retriever_results_format(
         doc_dicts.append({
              "page_content": doc.page_content,
              "retrieval_score": doc.metadata["retrieval_score"], 
+             "rerank_score": doc.metadata["score"], 
              "score": doc.metadata["score"], 
              "source": doc.metadata["source"],
              "answer": doc.metadata.get("answer",""),
@@ -63,10 +64,10 @@ def retriever_results_format(
          logger.info("retrieved sources:\n"+ '\n'.join(source_strs))
     return doc_dicts
 
-def retriever_results_filter(doc_dicts:list[dict],threshold=-1):
+def documents_list_filter(doc_dicts:list[dict],filter_key='score',threshold=-1):
     results = []
     for doc_dict in doc_dicts:
-        if doc_dict["retrieval_score"] < threshold:
+        if doc_dict[filter_key] < threshold:
             continue
         results.append(doc_dict)
     return results
