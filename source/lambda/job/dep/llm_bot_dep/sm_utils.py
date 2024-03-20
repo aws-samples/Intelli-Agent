@@ -311,7 +311,7 @@ class RelevanceM3ContentHandler(EmbeddingsContentHandler):
         model_kwargs = {}
         model_kwargs["batch_size"] = 12
         model_kwargs["max_length"] = 512
-        model_kwargs["return_type"] = "all"
+        model_kwargs["return_type"] = "dense"
         input_str = json.dumps({"inputs": prompt, **model_kwargs})
 
         return input_str.encode("utf-8")
@@ -337,7 +337,7 @@ class SimilarityM3ContentHandler(EmbeddingsContentHandler):
         model_kwargs = {}
         model_kwargs["batch_size"] = 12
         model_kwargs["max_length"] = 512
-        model_kwargs["return_type"] = "all"
+        model_kwargs["return_type"] = "dense"
         input_str = json.dumps({"inputs": new_prompt, **model_kwargs})
         return input_str.encode("utf-8")
 
