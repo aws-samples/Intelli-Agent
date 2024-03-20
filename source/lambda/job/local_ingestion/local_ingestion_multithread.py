@@ -548,22 +548,22 @@ def _aos_injection(
     logger.info(f'avg_colbert_lens: {avg_lens}, colbert_vecs num: {len(colbert_vecs_lens)}')
 
 
-    for doc_id, metadata in enumerate(metadatas):
-            # lexical_weights = embeddings_vectors[0]["lexical_weights"][
-            #     doc_id
-            # ]
-        colbert_vecs = colbert_vecs_list[doc_id]
-        # embeddings_vectors_list.append(
-        #     embeddings_vectors[0]["dense_vecs"][doc_id]
-        # )
-        metadata.update(
-            {
-                "additional_vecs": {
-                    # "lexical_weights": lexical_weights,
-                    "colbert_vecs": colbert_vecs,
-                }
-            }
-        )
+    # for doc_id, metadata in enumerate(metadatas):
+    #         # lexical_weights = embeddings_vectors[0]["lexical_weights"][
+    #         #     doc_id
+    #         # ]
+    #     colbert_vecs = colbert_vecs_list[doc_id]
+    #     # embeddings_vectors_list.append(
+    #     #     embeddings_vectors[0]["dense_vecs"][doc_id]
+    #     # )
+    #     metadata.update(
+    #         {
+    #             "additional_vecs": {
+    #                 # "lexical_weights": lexical_weights,
+    #                 "colbert_vecs": colbert_vecs,
+    #             }
+    #         }
+    #     )
 
     # logger.info(f'aos_injection_mp._work_ids.qsize(): {aos_injection_mp._work_ids.qsize()}')
     

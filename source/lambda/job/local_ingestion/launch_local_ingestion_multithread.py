@@ -103,38 +103,6 @@ def process_run(process_id,task_queue):
     
     print(f'process: {process_id} finished')
 
-    # while True:
-        # logger.info('before get')
-        # print_top_stats(process_id,extract_info='before get ')
-        # task = task_queue.get()
-        # print_top_stats(process_id,extract_info='after get ')
-
-        # if task is None:
-        #     return
-        # texts = task['texts']
-        # dense_vecs_list = task['dense_vecs_list']
-        # metadatas = task['metadatas']
-        # index_name = task['index_name']
-        # if process_id == 0:
-        #     colbert_vecs_list = [metadata['additional_vecs']['colbert_vecs'] for metadata in metadatas]
-        #     colbert_vecs_lens = [len(colbert_vecs) for colbert_vecs in colbert_vecs_list]
-        #     avg_lens = sum(colbert_vecs_lens)/len(colbert_vecs_lens)
-
-        #     logger.info(f'avg_colbert_lens: {avg_lens}, colbert_vecs num: {len(colbert_vecs_lens)}')
-        # local_ingestion_multithread.__aos_injection(
-        #     texts,
-        #     dense_vecs_list,
-        #     metadatas,
-        #     index_name
-        #     )
-        # # logger.info('before gc')
-        # print_top_stats(process_id,extract_info='before gc')
-        # # del texts, dense_vecs_list,metadatas 
-        # # import gc
-        # # gc.collect() 
-        # # logger.info('after gc')
-        # print_top_stats(process_id,extract_info='after gc')
-
 worker_num = 1
 
 os.environ['worker_num'] = str(worker_num)
@@ -171,6 +139,9 @@ def main():
 
     for _ in processes:
         task_queue.put(None)
+
+    for p in processes:
+        p.join()
 
     print('finished')
         
