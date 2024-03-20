@@ -59,7 +59,6 @@ question_library = [
     "Amazon EC2 提供了哪些功能来支持不同区域之间的数据恢复?"
 ]
 
-<<<<<<< Updated upstream
 market_test_cases = [
     'EC2',
     "LAMBDA",
@@ -151,56 +150,6 @@ entry_type = "market_chain"
 #             "using_whole_doc": False,
 #             "reranker_top_k": 10,
 #             "reranker_type": "no_reranker"})
-=======
-body = {
-    "action": "sendMessage",
-    "model": "knowledge_qa",
-    # "messages": [{"role": "user","content": question_library[-1]}],
-    # "messages": [{"role": "user","content": question_library[-1]}],
-    "messages": [{"role": "user","content": '2024北京国际车展上，亚马逊云科技会参加吗？', "custom_message_id": f"test_dashboard_{time.time()}"}],
-    "temperature": 0.7,
-    "type" : "market_chain", 
-    "retriever_config":{
-        "using_whole_doc": False,
-        "chunk_num": 2,
-    },
-    # "enable_q_q_match": True,
-    # "enable_debug": False,
-    # "llm_model_id":'anthropic.claude-v2:1',
-    "get_contexts":True,
-    "generator_llm_config":{
-        "model_kwargs":{
-            "max_new_tokens": 1000,
-            "temperature": 0.01,
-            "top_p": 0.9,
-            "timeout":120
-        },
-        "llm_model_id": "internlm2-chat-7b",
-        # "endpoint_name": "instruct-internlm2-chat-7b-f7dc2",
-        "llm_model_endpoint_name": "internlm2-chat-20b-4bits-2024-03-04-06-32-53-653",#"baichuan2-13b-chat-4bits-2024-01-28-15-46-43-013",
-        "context_num": 1
-    },
-    "model_kwargs":{
-        "max_new_tokens": 1000,
-        "temperature": 0.01,
-        "top_p": 0.9,
-        "timeout":120
-    },
-    "llm_model_id": "internlm2-chat-20b",
-    # "endpoint_name": "instruct-internlm2-chat-7b-f7dc2",
-    "llm_model_endpoint_name": "internlm2-chat-20b-4bits-2024-03-04-06-32-53-653",#"baichuan2-13b-chat-4bits-2024-01-28-15-46-43-013",
-    "context_num": 1,
-    "custom_message_id": f"test_dashboard_{int(time.time())}"
-    # "session_id":f"test_{int(time.time())}"
-}
-
-
-body.update({"retriever_top_k": 1,
-            "chunk_num": 2,
-            "using_whole_doc": False,
-            "reranker_top_k": 10,
-            "reranker_type": "no_reranker"})
->>>>>>> Stashed changes
 
 
 # body = {
