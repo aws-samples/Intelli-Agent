@@ -141,6 +141,8 @@ def stream_response(**kwargs):
                 Data=json.dumps(llmbot_response).encode("utf-8"),
             )
         except:
+            data_to_send = json.dumps(llmbot_response).encode("utf-8")
+            logger.info(f"Send to ws client error occurs, the message to send is: {data_to_send}")
             # convert to websocket error
             raise WebsocketClientError
 

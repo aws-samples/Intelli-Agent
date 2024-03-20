@@ -29,7 +29,7 @@ from ..retriever import (
 )
 from .. import parse_config
 from ..reranker import BGEReranker, MergeReranker
-from ..context_utils import contexts_trunc,retriever_results_format,retriever_results_filter
+from ..context_utils import contexts_trunc,retriever_results_format,documents_list_filter
 from ..langchain_utils import RunnableDictAssign
 from ..preprocess_utils import is_api_query, language_check,query_translate,get_service_name
 from ..workspace_utils import WorkspaceManager
@@ -262,7 +262,7 @@ def context_filter(state):
     state = state['state']
     rag_config = state['rag_config']
     qd_match_threshold = rag_config['retriever_config']['qd_config']['qd_match_threshold']
-    filtered_docs = retriever_results_filter(state['docs'],threshold=qd_match_threshold)
+    filtered_docs = documents_list_filter(state['docs'],filter_key='score',threshold=qd_match_threshold)
     state['filtered_docs'] = filtered_docs 
     return state_ret
 
