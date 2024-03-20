@@ -407,16 +407,8 @@ class OpenSearchIngestionWorker:
             embeddings_vectors_list = []
             metadata_list = []
             for doc_id, metadata in enumerate(metadatas):
-                colbert_vecs = embeddings_vectors[0]["colbert_vecs"][doc_id]
                 embeddings_vectors_list.append(
                     embeddings_vectors[0]["dense_vecs"][doc_id]
-                )
-                metadata.update(
-                    {
-                        "additional_vecs": {
-                            "colbert_vecs": colbert_vecs,
-                        }
-                    }
                 )
                 metadata["embedding_endpoint_name"] = self.embedding_model_endpoint
                 metadata_list.append(metadata)
