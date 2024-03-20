@@ -165,6 +165,7 @@ class BGEReranker(BaseDocumentCompressor):
         for doc, score in zip(doc_list, score_list):
             doc.metadata["rerank_score"] = score
             # set common score for llm.
+            doc.metadata["retrieval_score"] = doc.metadata["retrieval_score"]
             doc.metadata["score"] = doc.metadata["rerank_score"]
             final_results.append(doc)
             debug_info["knowledge_qa_rerank"].append((doc.page_content, doc.metadata["retrieval_content"], doc.metadata["source"], score))
