@@ -16,7 +16,12 @@ from langchain.retrievers.merger_retriever import MergerRetriever
 from ..intent_utils import IntentRecognitionAOSIndex
 from ..llm_utils import LLMChain
 from ..serialization_utils import JSONEncoder
-from ..langchain_utils import chain_logger,RunnableDictAssign,RunnableParallelAssign
+from ..langchain_utils import (
+    chain_logger,
+    RunnableDictAssign,
+    RunnableParallelAssign,
+    format_trace_infos
+)
 from ..constant import IntentType, CONVERSATION_SUMMARY_TYPE, RerankerType
 import asyncio
 
@@ -53,10 +58,18 @@ workspace_manager = WorkspaceManager(workspace_table)
 
 
 def mkt_fast_reply(
-        answer="很抱歉，我只能回答与亚马逊云科技产品和服务相关的咨询。",
+        x,
+        answer=None,
         fast_info="",
-        debug_info=None
+        debug_info=None,
+       
     ):
+    intent_type = x.get('intent_type', IntentType.KNOWLEDGE_QA.value)
+    if answer is None:
+        answer="很抱歉，我只能回答与亚马逊云科技产品和服务相关的咨询。"
+        if intent_type == IntentType.MARKET_EVENT.value:
+            answer = "抱歉，我没有查询到相关的市场活动信息。"
+
     output = {
             "answer": answer,
             "sources": [],
@@ -68,6 +81,7 @@ def mkt_fast_reply(
         debug_info['response_msg'] = fast_info
     logger.info(f'mkt_fast_reply: {fast_info}')
     return output
+
 
 def get_qd_chain(qd_config, qd_workspace_list):
     using_whole_doc = qd_config['using_whole_doc']
@@ -123,6 +137,7 @@ def get_workspace_list(workspace_ids):
             qd_workspace_list.append(workspace)
     return qq_workspace_list, qd_workspace_list
 
+
 def market_chain_knowledge_entry(
     query_input: str,
     stream=False,
@@ -153,10 +168,13 @@ def market_chain_knowledge_entry(
 
     # logger.info(f"qq_workspace_list: {qq_workspace_list}\nqd_workspace_list: {qd_workspace_list}")
 
-    debug_info = {"response_msg": "normal"}
+    debug_info = {
+        "response_msg": "normal"
+        }
     contexts = []
     sources = []
     answer = ""
+    trace_infos = []
     # intent_info = {
     #     "manual_input_intent": manual_input_intent,
     #     "strict_qq_intent_result": {},
@@ -195,7 +213,8 @@ def market_chain_knowledge_entry(
         ),
         "conversation_summary_chain",
         log_output_template=f'conversation_summary_chain result: {"{"+conversation_query_rewrite_result_key+"}"}',
-        message_id=message_id
+        message_id=message_id,
+        trace_infos=trace_infos
     )
 
     #######################
@@ -234,7 +253,8 @@ def market_chain_knowledge_entry(
         preprocess_chain,
         'preprocess query chain',
         message_id=message_id,
-        log_output_template=log_output_template
+        log_output_template=log_output_template,
+        trace_infos=trace_infos
     )
 
     #####################################
@@ -246,7 +266,8 @@ def market_chain_knowledge_entry(
     intent_index_ingestion_chain = chain_logger(
         intent_recognition_index.as_ingestion_chain(),
         "intent_index_ingestion_chain",
-        message_id=message_id
+        message_id=message_id,
+        trace_infos=trace_infos
     )
     intent_index_check_exist_chain = RunnablePassthrough.assign(
         is_intent_index_exist = intent_recognition_index.as_check_index_exist_chain()
@@ -254,7 +275,8 @@ def market_chain_knowledge_entry(
     intent_index_search_chain = chain_logger(
         intent_recognition_index.as_search_chain(top_k=5),
         "intent_index_search_chain",
-        message_id=message_id
+        message_id=message_id,
+        trace_infos=trace_infos
     )
     intent_postprocess_chain = intent_recognition_index.as_intent_postprocess_chain(method='top_1')
     
@@ -295,7 +317,8 @@ def market_chain_knowledge_entry(
                         threshold=qq_match_threshold
                     ))
             ,
-            'qq_chain'
+            'qq_chain',
+            trace_infos=trace_infos
         )
     else:
         qq_chain = RunnableLambda(lambda x:[])
@@ -337,7 +360,11 @@ def market_chain_knowledge_entry(
     ) | RunnableBranch(
         (
             lambda x: not x['filtered_docs'],
-            RunnableLambda(lambda x: mkt_fast_reply(fast_info="insufficient context",debug_info=debug_info))
+            RunnableLambda(lambda x: mkt_fast_reply(
+                x,
+                fast_info="insufficient context",
+                debug_info=debug_info
+            ))
         ),
         llm_chain
     )
@@ -352,7 +379,8 @@ def market_chain_knowledge_entry(
 
     rag_chain = chain_logger(
         qd_chain | qd_fast_reply_branch,
-        'rag chain'
+        'rag chain',
+        trace_infos=trace_infos
     )
 
     ######################################
@@ -369,7 +397,8 @@ def market_chain_knowledge_entry(
         ) | RunnablePassthrough.assign(qq_result_num=lambda x:len(x['qq_result'])),
         "intention module",
         log_output_template=log_output_template,
-        message_id=message_id
+        message_id=message_id,
+        trace_infos=trace_infos
     )
     
     allow_intents = [
@@ -380,6 +409,7 @@ def market_chain_knowledge_entry(
         (lambda x: len(x['qq_result']) > 0, 
          RunnableLambda(
             lambda x: mkt_fast_reply(
+                x,
                 answer=sorted(x['qq_result'],key=lambda x:x['score'],reverse=True)[0]['answer'],
                 fast_info='qq matched',
                 debug_info=debug_info
@@ -388,6 +418,7 @@ def market_chain_knowledge_entry(
         (
             lambda x: x['intent_type'] not in allow_intents, 
             RunnableLambda(lambda x: mkt_fast_reply(
+                x,
                 fast_info=f"unsupported intent type: {x['intent_type']}",
                 debug_info=debug_info
                 ))
@@ -404,13 +435,15 @@ def market_chain_knowledge_entry(
     process_query_chain = chain_logger(
         process_query_chain,
         "query process module",
-        message_id=message_id
+        message_id=message_id,
+        trace_infos=trace_infos
     )
 
     qq_and_intent_fast_reply_branch = chain_logger(
         qq_and_intent_fast_reply_branch,
         "retrieve module",
-        message_id=message_id
+        message_id=message_id,
+        trace_infos=trace_infos
     )
 
     full_chain =  process_query_chain | qq_and_intention_type_recognition_chain | qq_and_intent_fast_reply_branch
@@ -419,19 +452,21 @@ def market_chain_knowledge_entry(
         (
             lambda x:x['is_query_too_short'],
             RunnableLambda(lambda x: mkt_fast_reply(
+                x,
                 fast_info=f"query: `{x['query']}` is too short",
-                answer="请详细描述问题。",
+                answer=f"问题长度小于{query_length_threshold}，请详细描述问题。",
                 debug_info=debug_info
                 ))
         ),
         full_chain
     )
 
-    full_chain = chain_logger(
-        full_chain,
-        'full_chain'
-    )
-    start_time = time.time()
+    # full_chain = chain_logger(
+    #     full_chain,
+    #     'full_chain',
+    #     trace_infos=trace_infos
+    # )
+    # start_time = time.time()
 
     response = asyncio.run(full_chain.ainvoke(
         {
@@ -443,11 +478,11 @@ def market_chain_knowledge_entry(
             # "query_lang": "zh"
         }
     ))
-
-    print('invoke time',time.time()-start_time)
-
+    # print('invoke time',time.time()-start_time)
     answer = response["answer"]
     sources = response["context_sources"]
     contexts = response["context_docs"]
+    trace_info = format_trace_infos(trace_infos)
+    logger.info(f'chain trace info:\n{trace_info}')
 
     return answer, sources, contexts, debug_info

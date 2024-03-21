@@ -6,7 +6,9 @@ from langchain.schema.callbacks.base import BaseCallbackHandler
 # import threading
 # import time 
 from .logger_utils import logger
+import threading
 from langchain.schema.runnable import RunnableLambda,RunnablePassthrough,RunnableParallel
+from prettytable import PrettyTable
 
 class RunnableDictAssign:
     """
@@ -87,6 +89,7 @@ def add_key_to_debug(add_key,debug_key="debug_info"):
 
 
 class LogTimeListener:
+    trace_infos_lock = threading.Lock()
     def __init__(
             self,
             chain_name,
@@ -94,7 +97,8 @@ class LogTimeListener:
             log_input=False,
             log_output=False,
             log_input_template=None,
-            log_output_template=None
+            log_output_template=None,
+            trace_infos=None
         ):
         self.chain_name = chain_name
         self.message_id = message_id
@@ -104,6 +108,8 @@ class LogTimeListener:
         self.log_output_template = log_output_template
         self.message_id = message_id
         self.start_time = None
+        self.trace_infos = trace_infos
+
 
     def on_start(self,run):
         logger.info(f'{self.message_id} Enter: {self.chain_name}')
@@ -111,6 +117,15 @@ class LogTimeListener:
             logger.info(f"Inputs({self.chain_name}): {run.inputs}")
         if self.log_input_template:
             logger.info(self.log_input_template.format(**run.inputs))
+    
+        if self.trace_infos is not None:
+            with self.trace_infos_lock:
+                self.trace_infos.append({
+                    "chain_name": self.chain_name,
+                    "action": "enter",
+                    "create_time": time.time()
+                })
+
     def on_end(self,run):
         if self.log_output:
             logger.info(f'Outputs({self.chain_name}): {run.outputs}')
@@ -123,6 +138,14 @@ class LogTimeListener:
         exe_time = (run.end_time - run.start_time).total_seconds()
         logger.info(f'{self.message_id} Exit: {self.chain_name}, elpase time(s): {exe_time}')
         logger.info(f'{self.message_id} running time of {self.chain_name}: {exe_time}s')
+
+        if self.trace_infos is not None:
+            with self.trace_infos_lock:
+                self.trace_infos.append({
+                    "chain_name": self.chain_name,
+                    "action": "exit",
+                    "create_time": time.time()
+                })
         
     def on_error(self,run):
         raise 
@@ -135,14 +158,34 @@ def chain_logger(
         log_input=False,
         log_output=False,
         log_input_template=None,
-        log_output_template=None
+        log_output_template=None,
+        trace_infos=None
         ):
     obj = LogTimeListener(
         chain_name,
         message_id,
         log_input=log_input,
         log_output=log_output,log_input_template=log_input_template,
-        log_output_template=log_output_template
+        log_output_template=log_output_template,
+        trace_infos=trace_infos
         ) 
     new_chain = chain.with_listeners(on_start=obj.on_start, on_end=obj.on_end, on_error=obj.on_error)
     return new_chain
+
+
+
+def format_trace_infos(trace_infos:list,use_pretty_table=True):
+    trace_infos = sorted(trace_infos, key=lambda x:x['create_time'])
+    trace_info_strs = []
+
+    if use_pretty_table:
+        table = PrettyTable()
+        table.field_names = ['chain_name', 'create_time','action']
+        table.add_rows([(trace_info['chain_name'],trace_info['create_time'], trace_info['action']) for trace_info in trace_infos])
+        return str(table)
+
+    for trace_info in trace_infos:
+        trace_info_strs.append(f"time: {trace_info['create_time']}, action: {trace_info['action']}, chain: {trace_info['chain_name']}, ")
+
+    return "\n".join(trace_info_strs)
+    

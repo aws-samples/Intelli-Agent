@@ -250,6 +250,8 @@ def lambda_handler(event, context):
                 event_body=event_body,
                 message_id=custom_message_id,
             )
+
+
         elif entry_type == "market_chain_knowledge_langgraph":
             answer, sources, contexts, debug_info = (
                 market_chain_knowledge_entry_langgraph(
