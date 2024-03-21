@@ -368,7 +368,7 @@ with gr.Blocks() as demo:
         value='wss://2ogbgobue2.execute-api.us-west-2.amazonaws.com/prod/'
     )
     with gr.Tab("Chat"):
-        # gr_api_type = gr.Dropdown(label="API", choices=["local", "cloud"], value="local")
+        gr_api_type = gr.Dropdown(label="API", choices=["local", "cloud"], value="local")
         gr_entry_input = gr.Dropdown(label="Entry", choices=["common", "market_chain"], value="market_chain")
         gr_query_input = gr.Text(label="Query")
         gr_local_answer_btn = gr.Button(value="Local Answer")
