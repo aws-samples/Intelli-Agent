@@ -324,7 +324,7 @@ MESSAGES_BY_SESSION_ID_INDEX_NAME: "bySessionId",
                 handler: "main.lambda_handler",
                 code: Code.fromAsset(join(__dirname, "../../../lambda/executor")),
                 timeout: Duration.minutes(15),
-                memorySize: 1024,
+                memorySize: 10240,
                 vpc: _vpc,
                 vpcSubnets: {
                     subnets: _vpc.privateSubnets,
