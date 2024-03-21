@@ -150,6 +150,8 @@ class IntentRecognitionAOSIndex:
             }
             for r_doc in r_docs
         ]
+        print(ret)
+
         return ret 
 
     def intent_postprocess_top_1(self,retriever_list:list[dict]):
