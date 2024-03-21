@@ -389,7 +389,7 @@ def SagemakerEndpointVectorOrCross(prompt: str, endpoint_name: str, region_name:
         model_kwargs = {}
         model_kwargs['batch_size'] = 12
         model_kwargs['max_length'] = 512
-        model_kwargs['return_type'] = 'all'
+        model_kwargs['return_type'] = 'dense'
         embeddings = SagemakerEndpointEmbeddings(
             client=client,
             endpoint_name=endpoint_name,
