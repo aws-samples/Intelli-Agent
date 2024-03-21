@@ -1,10 +1,12 @@
 import re
 import boto3
-from .service_intent_recognition.utils import get_service_name
-from .llm_utils.llm_models import Model
-from .llm_utils.llm_chains import LLMChain
-from .constant import QUERY_TRANSLATE_TYPE,AWS_TRANSLATE_SERVICE_MODEL_ID,\
+from ..service_intent_recognition.utils import get_service_name
+from ..llm_utils.llm_models import Model
+from ..llm_utils.llm_chains import LLMChain
+from ..constant import QUERY_TRANSLATE_TYPE,AWS_TRANSLATE_SERVICE_MODEL_ID,\
 QUERY_TRANSLATE_IDENTITY_TYPE
+
+from .bert_tokenization import BasicTokenizer
 # language symbols
 CHINESE = 'zh'
 ENGLISH = 'en'
@@ -37,6 +39,12 @@ def is_api_query(query)-> bool:
         bool: _description_
     """
     return 'api' in query.lower()
+
+
+def is_query_too_short(query:str,threshold=3):
+    tokenizer = BasicTokenizer()
+    return len(tokenizer.tokenize(query)) <= threshold
+
 
 
 class Translator:

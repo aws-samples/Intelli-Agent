@@ -577,6 +577,66 @@ def test_internlm_model_mkt_knowledge_entry():
         "retriever_config":{}
     }
 
+    generate_answer(
+            "lambda",
+            # "什么是日志通",
+            # model="knowledge_qa", 
+            type=entry_type, 
+            stream=True,
+            rag_parameters=rag_parameters
+    )
+
+    r = generate_answer(
+            # "lambda",
+            "什么是日志通",
+            # model="knowledge_qa", 
+            type=entry_type, 
+            stream=False,
+            rag_parameters=rag_parameters
+    )
+    print(r[0])
+
+    pritn(sfg)
+
+
+    generate_answer(
+            "火山引擎和阿里云比较",
+            # "什么是日志通",
+            # model="knowledge_qa", 
+            type=entry_type, 
+            stream=True,
+            rag_parameters=rag_parameters
+    )
+
+    print(fbdfb)
+
+    generate_answer(
+            "如何快速搭建一个网站？",
+            # "什么是日志通",
+            # model="knowledge_qa", 
+            type=entry_type, 
+            stream=True,
+            rag_parameters=rag_parameters
+    )
+    generate_answer(
+            "客户联系时间",
+            # "什么是日志通",
+            # model="knowledge_qa", 
+            type=entry_type, 
+            stream=True,
+            rag_parameters=rag_parameters
+    )
+    generate_answer(
+            "客户工作时间",
+            # "什么是日志通",
+            # model="knowledge_qa", 
+            type=entry_type, 
+            stream=True,
+            rag_parameters=rag_parameters
+    )
+ 
+    print(sgf)
+
     market_test_cases = [
     'EC2',
     "LAMBDA",

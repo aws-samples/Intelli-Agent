@@ -1,9 +1,9 @@
 """
 Note that the ragas version is 0.0.21 in current test
 """
-
 import json 
 import sys
+sys.path.append('../../lambda/executor')
 import pandas as pd 
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import as_completed
@@ -202,7 +202,8 @@ def run_eval(
         # ragas_parameters: dict = None,
         ragas_eval_metrics = None,
         stream=True,
-        rag_parameters=None):
+        rag_parameters=None
+    ):
     
     # ragas_eval_llm_model_id = ragas_parameters['llm_model_id']
     # if ragas_eval_llm_model_id == "openai":
@@ -215,7 +216,6 @@ def run_eval(
         print(f'load cache llm output data: {llm_output_cache_path}')
         with open(llm_output_cache_path,'rb') as f:
             data_to_eval = pickle.load(f)
-
     else:
         print('loading data......')
         data = load_eval_data(eval_data_path)

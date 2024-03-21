@@ -12,7 +12,7 @@ import traceback
 import os 
 import json 
 from random import Random
-from ..preprocess_utils import is_api_query,get_service_name
+from ..query_process_utils.preprocess_utils import is_api_query,get_service_name
 from ..langchain_utils import chain_logger
 
 abs_file_dir = os.path.dirname(__file__)

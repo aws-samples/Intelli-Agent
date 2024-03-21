@@ -28,8 +28,15 @@ from .. import parse_config
 from ..reranker import BGEReranker, MergeReranker, BGEM3Reranker
 from ..context_utils import contexts_trunc,retriever_results_format,documents_list_filter
 from ..langchain_utils import RunnableDictAssign
-from ..preprocess_utils import is_api_query, language_check,query_translate,get_service_name
+from ..query_process_utils.preprocess_utils import (
+    is_api_query, 
+    language_check,
+    query_translate,
+    get_service_name,
+    is_query_too_short
+)
 from ..workspace_utils import WorkspaceManager
+
 
 logger = logging.getLogger('mkt_knowledge_entry')
 logger.setLevel(logging.INFO)
@@ -155,6 +162,15 @@ def market_chain_knowledge_entry(
     #     "strict_qq_intent_result": {},
     # }
 
+    ######################
+    # step 0 query reject#
+    ######################
+    query_length_threshold = rag_config['query_process_config']['query_length_threshold']
+    is_query_too_short_chain = RunnablePassthrough.assign(
+        is_query_too_short = RunnableLambda(
+        lambda x:is_query_too_short(x['query'],threshold=query_length_threshold)
+    ))
+
 
     ################################################################################
     # step 1 conversation summary chain, rewrite query involve history conversation#
@@ -199,6 +215,8 @@ def market_chain_knowledge_entry(
     
     is_api_query_chain = RunnableLambda(lambda x:is_api_query(x['query']))
     service_names_recognition_chain = RunnableLambda(lambda x:get_service_name(x['query']))
+    
+    
     
     preprocess_chain = lang_check_and_translate_chain | RunnableParallelAssign(
         is_api_query=is_api_query_chain,
@@ -395,8 +413,20 @@ def market_chain_knowledge_entry(
         message_id=message_id
     )
 
-    full_chain = process_query_chain | qq_and_intention_type_recognition_chain | qq_and_intent_fast_reply_branch
+    full_chain =  process_query_chain | qq_and_intention_type_recognition_chain | qq_and_intent_fast_reply_branch
     
+    full_chain = is_query_too_short_chain |  RunnableBranch(
+        (
+            lambda x:x['is_query_too_short'],
+            RunnableLambda(lambda x: mkt_fast_reply(
+                fast_info=f"query: `{x['query']}` is too short",
+                answer="请详细描述问题。",
+                debug_info=debug_info
+                ))
+        ),
+        full_chain
+    )
+
     full_chain = chain_logger(
         full_chain,
         'full_chain'
