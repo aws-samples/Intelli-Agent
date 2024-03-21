@@ -149,19 +149,24 @@ export class EtlStack extends NestedStack {
             },
         });
 
-        const _S3Bucket = new s3.Bucket(this, 'llm-bot-glue-res-bucket', {
+        const _S3Bucket = new s3.Bucket(this, 'llm-bot-glue-result-bucket', {
+            // bucketName: `llm-bot-glue-lib-${Aws.ACCOUNT_ID}-${Aws.REGION}`,
+            blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+        });
+
+        const _GlueLibS3Bucket = new s3.Bucket(this, 'llm-bot-glue-lib-bucket', {
             // bucketName: `llm-bot-glue-lib-${Aws.ACCOUNT_ID}-${Aws.REGION}`,
             blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
         });
 
         const extraPythonFiles = new s3deploy.BucketDeployment(this, 'extraPythonFiles', {
             sources: [s3deploy.Source.asset(join(__dirname, '../../../lambda/job/dep/dist'))],
-            destinationBucket: _S3Bucket,
+            destinationBucket: _GlueLibS3Bucket,
             // destinationKeyPrefix: 'llm_bot_dep-0.1.0-py3-none-any.whl',
         });
 
         // Assemble the extra python files list using _S3Bucket.s3UrlForObject('llm_bot_dep-0.1.0-py3-none-any.whl') and _S3Bucket.s3UrlForObject('nougat_ocr-0.1.17-py3-none-any.whl') and convert to string
-        const extraPythonFilesList = [_S3Bucket.s3UrlForObject('llm_bot_dep-0.1.0-py3-none-any.whl')].join(',');
+        const extraPythonFilesList = [_GlueLibS3Bucket.s3UrlForObject('llm_bot_dep-0.1.0-py3-none-any.whl')].join(',');
 
         const glueRole = new iam.Role(this, 'ETLGlueJobRole', {
             assumedBy: new iam.ServicePrincipal('glue.amazonaws.com'),
