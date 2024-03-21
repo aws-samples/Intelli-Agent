@@ -18,10 +18,10 @@ if [ -z "$s3_bucket_name" ] || ! command -v python3 &> /dev/null; then
   usage
 fi
 
-hf_names=("BAAI/bge-large-zh-v1.5" "BAAI/bge-large-en-v1.5")
-model_names=("bge-large-zh-v1-5" "bge-large-en-v1-5")
-commit_hashs=("b5c9d86d763d9945f7c0a73e549a4a39c423d520" "5888da4a3a013e65d33dd6f612ecd4625eb87a7d")
-tensor_parallel_degree=(1 1)
+hf_names=("BAAI/bge-m3")
+model_names=("bge-m3")
+commit_hashs=("3ab7155aa9b89ac532b2f2efcc3f136766b91025")
+tensor_parallel_degree=(1)
 
 for index in "${!model_names[@]}"; do
   hf_name="${hf_names[$index]}"

@@ -111,8 +111,12 @@ class IntentRecognitionAOSIndex:
         return index_name
 
     def check_index_exist(self):
-        if_exist = self.opensearch_client.client.indices.exists(self.index_name)
-        logger.info(f'is {self.index_name} exist: {if_exist}')
+        if_exist = self.opensearch_client.client.indices.exists(self.index_name) 
+        count = 0
+        if if_exist:
+            count = self.opensearch_client.client.count(index=self.index_name)['count']
+        if_exist = count > 0
+        logger.info(f'{self.index_name} exist: {if_exist}, count: {count}')
         return if_exist
     
     def ingestion_intent_data(self):
