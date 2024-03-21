@@ -20,13 +20,13 @@ from typing import List,Dict
 from random import Random
 # from ..preprocess_utils import is_api_query,get_service_name
 from ..langchain_utils import chain_logger,RunnableNoneAssign
-from ..embeddings_utils import BGEEmbeddingSagemakerEndpoint
+from ..embeddings_utils import BGEM3EmbeddingSagemakerEndpoint
 from langchain_community.vectorstores.opensearch_vector_search import (
         OpenSearchVectorSearch
     )
-from langchain_community.embeddings.sagemaker_endpoint import (
-    SagemakerEndpointEmbeddings
-)
+# from langchain_community.embeddings.sagemaker_endpoint import (
+#     SagemakerEndpointEmbeddings
+# )
 
 from opensearchpy import RequestsHttpConnection
 from requests_aws4auth import AWS4Auth
@@ -63,7 +63,7 @@ class LangchainOpenSearchClient:
                host=os.environ.get('aos_endpoint',None),
                region_name=os.environ['AWS_REGION'],
         ):
-        embedding = BGEEmbeddingSagemakerEndpoint(
+        embedding = BGEM3EmbeddingSagemakerEndpoint(
             endpoint_name=embedding_endpoint_name,
             region_name=region_name
             )

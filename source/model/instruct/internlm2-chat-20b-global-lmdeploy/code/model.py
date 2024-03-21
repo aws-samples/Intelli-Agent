@@ -68,7 +68,7 @@ def generate(pipe,**body):
     # body.update({"do_preprocess": False})
     timeout = body.pop('timeout',60)
     gen_config = GenerationConfig(**body)
-
+    
     stream_generator = pipe.stream_infer([query],gen_config=gen_config,do_preprocess=False)
 
     def _generator_helper(gen):

@@ -60,7 +60,9 @@ def retriever_results_format(
               content = ""
               if print_content:
                    content = f', content: {doc_dict["page_content"]}'
-              source_strs.append(f'source: {doc_dict["source"]}, score: {doc_dict["score"]}{content}')
+              source_strs.append(
+                   f'source: {doc_dict["source"]}, score: {doc_dict["score"]}{content}, retrieval score: {doc_dict["retrieval_score"]}'
+                   )
          logger.info("retrieved sources:\n"+ '\n'.join(source_strs))
     return doc_dicts
 
@@ -70,6 +72,7 @@ def documents_list_filter(doc_dicts:list[dict],filter_key='score',threshold=-1):
         if doc_dict[filter_key] < threshold:
             continue
         results.append(doc_dict)
+
     return results
     
      

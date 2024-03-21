@@ -1,12 +1,12 @@
 import asyncio
 import json 
 
-from .mkt_entry_core import (
-    QueryQuestionRetriever,
-    get_query_process_chain,
-    auto_intention_recoginition_chain,
-    get_qd_chain
-)
+# from .mkt_entry_core import (
+#     QueryQuestionRetriever,
+#     get_query_process_chain,
+#     auto_intention_recoginition_chain,
+#     get_qd_chain
+# )
 from langchain.schema.runnable import (
     RunnableBranch,
     RunnableLambda,

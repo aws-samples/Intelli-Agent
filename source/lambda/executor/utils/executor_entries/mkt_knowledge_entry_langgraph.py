@@ -31,7 +31,7 @@ from .. import parse_config
 from ..reranker import BGEReranker, MergeReranker
 from ..context_utils import contexts_trunc,retriever_results_format,documents_list_filter
 from ..langchain_utils import RunnableDictAssign
-from ..preprocess_utils import is_api_query, language_check,query_translate,get_service_name
+from ..query_process_utils.preprocess_utils import is_api_query, language_check,query_translate,get_service_name
 from ..workspace_utils import WorkspaceManager
 
 logger = logging.getLogger('mkt_knowledge_entry')

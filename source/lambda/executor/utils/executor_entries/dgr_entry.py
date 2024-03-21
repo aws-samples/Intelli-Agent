@@ -5,7 +5,7 @@ import copy
 import traceback
 
 from ..logger_utils import logger
-from ..preprocess_utils import run_preprocess
+from ..query_process_utils.preprocess_utils import run_preprocess
 from ..sm_utils import SagemakerEndpointVectorOrCross
 from ..aos_utils import LLMBotOpenSearchClient
 from ..context_utils import contexts_trunc

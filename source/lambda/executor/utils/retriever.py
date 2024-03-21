@@ -14,7 +14,7 @@ from langchain.docstore.document import Document
 
 from .time_utils import timeit
 from .aos_utils import LLMBotOpenSearchClient
-from .preprocess_utils import run_preprocess
+from .query_process_utils.preprocess_utils import run_preprocess
 from .sm_utils import SagemakerEndpointVectorOrCross
 # from .llmbot_utils import (
 #     QueryType,
