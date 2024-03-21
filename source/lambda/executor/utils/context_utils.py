@@ -2,6 +2,8 @@ import logging
 from langchain.docstore.document import Document
 import os
 
+from .time_utils import timeit
+
 logger = logging.getLogger('context_utils')
 logger.setLevel(logging.INFO)
 
@@ -36,7 +38,7 @@ def contexts_trunc(docs: list[dict], context_num=2):
         }
 
 
-
+@timeit
 def retriever_results_format(
           docs:list[Document],
           print_source=True,

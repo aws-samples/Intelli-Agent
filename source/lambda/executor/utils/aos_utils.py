@@ -101,15 +101,16 @@ class LLMBotOpenSearchClient:
                 "match": {
                     "text": query_term
                 }
+            },
+            "_source": {
+                "excludes": [ "*.additional_vecs", "vector_field"]
             }
         }
         if filter:
             query["query"]["bool"]["filter"] = filter
 
         return query
-    
 
-    
     def _build_knn_search_query(self, index_name, query_term, field, size, filter=None):
         """
         Build knn search query
@@ -142,6 +143,9 @@ class LLMBotOpenSearchClient:
                             }
                         ]
                     }
+                },
+                "_source": {
+                    "excludes": [ "*.additional_vecs", "vector_field"]
                 }
             }
         else:
@@ -154,6 +158,9 @@ class LLMBotOpenSearchClient:
                             "k": size
                         }
                     }
+                },
+                "_source": {
+                    "excludes": [ "*.additional_vecs", "vector_field"]
                 }
             }
         return query

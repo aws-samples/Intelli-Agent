@@ -21,7 +21,8 @@ from ..constant import IntentType, CONVERSATION_SUMMARY_TYPE, RerankerType
 import asyncio
 
 from ..retriever import (
-    QueryDocumentRetriever,
+    QueryDocumentKNNRetriever,
+    QueryDocumentBM25Retriever,
     QueryQuestionRetriever
 )
 from .. import parse_config
@@ -78,7 +79,16 @@ def get_qd_chain(qd_config, qd_workspace_list):
     reranker_type = qd_config['reranker_type']
     qd_query_key = qd_config['query_key']
     retriever_list = [
-        QueryDocumentRetriever(
+        QueryDocumentKNNRetriever(
+            workspace=workspace,
+            using_whole_doc=using_whole_doc,
+            context_num=context_num,
+            top_k=retriever_top_k,
+            query_key=qd_query_key
+            #   "zh", zh_embedding_endpoint
+        )
+        for workspace in qd_workspace_list
+    ] + [QueryDocumentBM25Retriever(
             workspace=workspace,
             using_whole_doc=using_whole_doc,
             context_num=context_num,

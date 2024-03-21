@@ -1,5 +1,5 @@
 from  .. import retriever
-from ..retriever import QueryDocumentRetriever, QueryQuestionRetriever,index_results_format
+from ..retriever import QueryQuestionRetriever,index_results_format
 from ..constant import IntentType,INTENT_RECOGNITION_TYPE
 from functools import partial
 from langchain.schema.runnable import RunnablePassthrough, RunnableBranch, RunnableLambda

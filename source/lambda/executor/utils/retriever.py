@@ -34,7 +34,8 @@ aos_endpoint = os.environ.get("aos_endpoint", "")
 aos_client = LLMBotOpenSearchClient(aos_endpoint)
 
 def remove_redundancy_debug_info(results):
-    filtered_results = copy.deepcopy(results)
+    # filtered_results = copy.deepcopy(results)
+    filtered_results = results
     for result in filtered_results:
         for field in list(result["detail"].keys()):
             if field.endswith("embedding") or field.startswith("vector"):
@@ -58,7 +59,7 @@ def get_similarity_embedding(
     if model_type == "vector":
         response = {"dense_vecs": response}
     elif model_type == "m3":
-        response["dense_vecs"] = response["dense_vecs"][0]
+        response["dense_vecs"] = response["dense_vecs"]
     return response
 
 @timeit
@@ -92,7 +93,7 @@ def get_relevance_embedding(
     if model_type == "vector":
         response = {"dense_vecs": response}
     elif model_type == "m3":
-        response["dense_vecs"] = response["dense_vecs"][0]
+        response["dense_vecs"] = response["dense_vecs"]
     return response
 
 def get_filter_list(parsed_query: dict):
@@ -405,16 +406,16 @@ class QueryQuestionRetriever(BaseRetriever):
         opensearch_knn_results.extend(
             organize_faq_results(opensearch_knn_response, self.index, self.source_field)
         )
-        debug_info[f"qq-knn-recall-{self.index}-{self.lang}"] = remove_redundancy_debug_info(opensearch_knn_results)
         docs = []
         for result in opensearch_knn_results:
             docs.append(Document(page_content=result["content"], metadata={
                 "source": result[self.source_field], "score":result["score"],"retrieval_score": result["score"],
                 "retrieval_content": result["content"],"answer": result["answer"], 
                 "question": result["question"]}))
+        debug_info[f"qq-knn-recall-{self.index}-{self.lang}"] = remove_redundancy_debug_info(opensearch_knn_results)
         return docs
 
-class QueryDocumentRetriever(BaseRetriever):
+class QueryDocumentKNNRetriever(BaseRetriever):
     index: Any
     vector_field: Any
     text_field: Any
@@ -486,9 +487,9 @@ class QueryDocumentRetriever(BaseRetriever):
             # result["content"] = aos_hit['_source'][text_field]
             result["content"] = aos_hit['_source'][text_field]
             result["doc"] = result["content"]
-            if 'additional_vecs' in aos_hit['_source']['metadata'] and \
-                'colbert_vecs' in aos_hit['_source']['metadata']['additional_vecs']:
-                result["data"]["colbert"] = aos_hit['_source']['metadata']['additional_vecs']['colbert_vecs']
+            # if 'additional_vecs' in aos_hit['_source']['metadata'] and \
+            #     'colbert_vecs' in aos_hit['_source']['metadata']['additional_vecs']:
+            #     result["data"]["colbert"] = aos_hit['_source']['metadata']['additional_vecs']['colbert_vecs']
             results.append(result)
         if using_whole_doc:
             for result in results:
@@ -508,6 +509,20 @@ class QueryDocumentRetriever(BaseRetriever):
         return results
 
     @timeit
+    def __get_knn_results(self, query_term, filter):
+        opensearch_knn_response = aos_client.search(
+            index_name=self.index,
+            query_type="knn",
+            query_term=query_term,
+            field=self.vector_field,
+            size=self.top_k,
+            filter=filter
+        )
+        opensearch_knn_results = self.organize_results(opensearch_knn_response, self.index, self.source_field,
+                                                       self.text_field, self.using_whole_doc, self.context_num)[:self.top_k]
+        return opensearch_knn_results
+
+    @timeit
     def _get_relevant_documents(self, question: Dict, *, run_manager: CallbackManagerForRetrieverRun) -> List[Document]:
         query = question[self.query_key]
         if "query_lang" in question and question["query_lang"] != self.lang and "translated_text" in question:
@@ -516,32 +531,9 @@ class QueryDocumentRetriever(BaseRetriever):
         query_repr = get_relevance_embedding(query, self.lang, self.embedding_model_endpoint, self.model_type)
         # question["colbert"] = query_repr["colbert_vecs"][0]
         filter = get_filter_list(question)
-        opensearch_knn_response = aos_client.search(
-            index_name=self.index,
-            query_type="knn",
-            query_term=query_repr["dense_vecs"],
-            field=self.vector_field,
-            size=self.top_k,
-            filter=filter
-        )
-        opensearch_knn_results = self.organize_results(opensearch_knn_response, self.index, self.source_field, self.text_field, self.using_whole_doc, self.context_num)[:self.top_k]
-
-       # 2. get AOS invertedIndex recall
-        opensearch_basic_response = aos_client.search(
-            index_name=self.index,
-            query_type="fuzzy",
-            query_term=query,
-            field=self.text_field,
-            size=self.top_k,
-            filter=filter
-        )
-        opensearch_basic_results = self.organize_results(opensearch_basic_response, self.index, self.source_field, self.text_field, self.using_whole_doc, self.context_num)[:self.top_k]
-
-        # 3. combine these two opensearch_knn_response and opensearch_query_response
-        final_results = opensearch_knn_results + opensearch_basic_results
-        debug_info[f"qd-knn-recall-{self.index}-{self.lang}-knn"] = remove_redundancy_debug_info(opensearch_knn_results)
-        debug_info[f"qd-knn-recall-{self.index}-{self.lang}-basic"] = remove_redundancy_debug_info(opensearch_basic_results)
-
+        # 1. get AOS KNN results.
+        opensearch_knn_results = self.__get_knn_results(query_repr["dense_vecs"], filter)
+        final_results = opensearch_knn_results
         doc_list = []
         content_set = set()
         for result in final_results:
@@ -555,7 +547,144 @@ class QueryDocumentRetriever(BaseRetriever):
                                                "retrieval_score": result["score"],
                                                 # set common score for llm.
                                                "score": result["score"]}))
+        debug_info[f"qd-knn-recall-{self.index}-{self.lang}"] = remove_redundancy_debug_info(opensearch_knn_results)
         return doc_list
+
+class QueryDocumentBM25Retriever(BaseRetriever):
+    index: Any
+    vector_field: Any
+    text_field: Any
+    source_field: Any
+    using_whole_doc: Any
+    context_num: Any
+    top_k: Any
+    lang: Any
+    model_type: Any
+    embedding_model_endpoint: Any
+    query_key: str="query"
+
+    def __init__(self, workspace, using_whole_doc, context_num, top_k,query_key='query'):
+        super().__init__()
+        self.index = workspace["open_search_index_name"]
+        self.vector_field = "vector_field"
+        self.source_field = "file_path"
+        self.text_field = "text"
+        self.lang = workspace["languages"][0]
+        self.embedding_model_endpoint = workspace["embeddings_model_endpoint"]
+        self.model_type = workspace["model_type"]
+        self.using_whole_doc = using_whole_doc
+        self.context_num = context_num
+        self.top_k = top_k
+        self.query_key = query_key
+
+    async def __ainvoke_get_context(self, aos_hit, window_size, loop):
+        return await loop.run_in_executor(None,
+                                          get_context,
+                                          aos_hit,
+                                          self.index,
+                                          window_size)
+
+    async def __spawn_task(self, aos_hits, context_size):
+        loop = asyncio.get_event_loop()
+        task_list = []
+        for aos_hit in aos_hits:
+            if context_size:
+                task = asyncio.create_task(
+                    self.__ainvoke_get_context(
+                        aos_hit,
+                        context_size,
+                        loop))
+                task_list.append(task)
+        return await asyncio.gather(*task_list)
+
+    @timeit
+    def organize_results(self, response, aos_index=None, source_field="file_path", text_field="text", using_whole_doc=True, context_size=0):
+        """
+        Organize results from aos response
+
+        :param query_type: query type
+        :param response: aos response json
+        """
+        results = []
+        if not response:
+            return results
+        aos_hits = response["hits"]["hits"]
+        if len(aos_hits) == 0:
+            return results
+        for aos_hit in aos_hits:
+            result = {"data": {}}
+            source = aos_hit['_source']['metadata'][source_field]
+            source = source.replace("s3://aws-chatbot-knowledge-base/aws-acts-knowledge/qd/zh_CN/", "https://www.amazonaws.cn/").\
+                replace("s3://aws-chatbot-knowledge-base/aws-acts-knowledge/qd/en_US/", "https://www.amazonaws.cn/en/")
+            result["source"] = source
+            result["score"] = aos_hit["_score"]
+            result["detail"] = aos_hit['_source']
+            # result["content"] = aos_hit['_source'][text_field]
+            result["content"] = aos_hit['_source'][text_field]
+            result["doc"] = result["content"]
+            # if 'additional_vecs' in aos_hit['_source']['metadata'] and \
+            #     'colbert_vecs' in aos_hit['_source']['metadata']['additional_vecs']:
+            #     result["data"]["colbert"] = aos_hit['_source']['metadata']['additional_vecs']['colbert_vecs']
+            results.append(result)
+        if using_whole_doc:
+            for result in results:
+                doc = get_doc(result["source"], aos_index)
+                if doc:
+                    result["doc"] = doc
+        else:
+            response_list = asyncio.run(self.__spawn_task(aos_hits, context_size))
+            for context, result in zip(response_list, results):
+                result["doc"] = "\n".join(context[0] + [result["doc"]] + context[1])
+            # context = get_context(aos_hit['_source']["metadata"]["heading_hierarchy"]["previous"],
+            #                     aos_hit['_source']["metadata"]["heading_hierarchy"]["next"],
+            #                     aos_index,
+            #                     context_size)
+            # if context:
+            #     result["doc"] = "\n".join(context[0] + [result["doc"]] + context[1])
+        return results
+
+    @timeit
+    def __get_bm25_results(self, query_term, filter):
+        opensearch_bm25_response = aos_client.search(
+            index_name=self.index,
+            query_type="fuzzy",
+            query_term=query_term,
+            field=self.text_field,
+            size=self.top_k,
+            filter=filter
+        )
+        opensearch_bm25_results = self.organize_results(opensearch_bm25_response, self.index, self.source_field,
+                                                        self.text_field, self.using_whole_doc, self.context_num)[:self.top_k]
+        return opensearch_bm25_results
+
+    @timeit
+    def _get_relevant_documents(self, question: Dict, *, run_manager: CallbackManagerForRetrieverRun) -> List[Document]:
+        query = question[self.query_key]
+        if "query_lang" in question and question["query_lang"] != self.lang and "translated_text" in question:
+            query = question["translated_text"]
+        debug_info = question["debug_info"]
+        # query_repr = get_relevance_embedding(query, self.lang, self.embedding_model_endpoint, self.model_type)
+        # question["colbert"] = query_repr["colbert_vecs"][0]
+        filter = get_filter_list(question)
+        opensearch_bm25_results = self.__get_bm25_results(query, filter)
+        final_results = opensearch_bm25_results
+        doc_list = []
+        content_set = set()
+        for result in final_results:
+            if result["doc"] in content_set:
+                continue
+            content_set.add(result["content"])
+            doc_list.append(Document(page_content=result["doc"],
+                                     metadata={"source": result["source"],
+                                               "retrieval_content": result["content"],
+                                               "retrieval_data": result["data"],
+                                               "retrieval_score": result["score"],
+                                                # set common score for llm.
+                                               "score": result["score"]}))
+        debug_info[f"qd-bm25-recall-{self.index}-{self.lang}"] = remove_redundancy_debug_info(opensearch_bm25_results)
+        return doc_list
+
+
 
 class GoogleRetriever(BaseRetriever):
     search: Any

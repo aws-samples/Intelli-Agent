@@ -24,7 +24,8 @@ from ..constant import IntentType, CONVERSATION_SUMMARY_TYPE
 import asyncio
 
 from ..retriever import (
-    QueryDocumentRetriever,
+    QueryDocumentKNNRetriever,
+    QueryDocumentBM25Retriever,
     QueryQuestionRetriever,
 )
 from .. import parse_config
