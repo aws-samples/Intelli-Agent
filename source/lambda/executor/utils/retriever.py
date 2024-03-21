@@ -47,7 +47,7 @@ def get_similarity_embedding(
     query: str,
     embedding_model_endpoint: str,
     model_type: str = "vector"
-):
+) -> List[List[float]]:
     query_similarity_embedding_prompt = query
     response = SagemakerEndpointVectorOrCross(
         prompt=query_similarity_embedding_prompt,
@@ -56,11 +56,13 @@ def get_similarity_embedding(
         model_type=model_type,
         stop=None,
     )
-    if model_type == "vector":
-        response = {"dense_vecs": response}
-    elif model_type == "m3":
-        response["dense_vecs"] = response["dense_vecs"]
     return response
+    # if model_type in ["vector","m3"]:
+    #     response = {"dense_vecs": response}
+    # # elif model_type == "m3":
+    # #     # response["dense_vecs"] = response["dense_vecs"]
+    # #     response = {"dense_vecs": response}
+    # return response
 
 @timeit
 def get_relevance_embedding(
@@ -90,11 +92,13 @@ def get_relevance_embedding(
         model_type=model_type,
         stop=None,
     )
-    if model_type == "vector":
-        response = {"dense_vecs": response}
-    elif model_type == "m3":
-        response["dense_vecs"] = response["dense_vecs"]
     return response
+    # if model_type in ["vector",'m3']:
+    #     response = {"dense_vecs": response}
+    # # elif model_type == "m3":
+    # #     response = {"dense_vecs": response}
+    #     # response["dense_vecs"] = response["dense_vecs"]
+    # return response
 
 def get_filter_list(parsed_query: dict):
     filter_list = []
@@ -399,7 +403,7 @@ class QueryQuestionRetriever(BaseRetriever):
         opensearch_knn_response = aos_client.search(
             index_name=self.index,
             query_type="knn",
-            query_term=query_repr["dense_vecs"],
+            query_term=query_repr,
             field=self.vector_field,
             size=self.size,
         )
@@ -532,7 +536,7 @@ class QueryDocumentKNNRetriever(BaseRetriever):
         # question["colbert"] = query_repr["colbert_vecs"][0]
         filter = get_filter_list(question)
         # 1. get AOS KNN results.
-        opensearch_knn_results = self.__get_knn_results(query_repr["dense_vecs"], filter)
+        opensearch_knn_results = self.__get_knn_results(query_repr, filter)
         final_results = opensearch_knn_results
         doc_list = []
         content_set = set()

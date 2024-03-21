@@ -35,7 +35,7 @@ class vectorContentHandler(EmbeddingsContentHandler):
 
     def transform_output(self, output: bytes) -> List[List[float]]:
         response_json = json.loads(output.read().decode("utf-8"))
-        return response_json["sentence_embeddings"]
+        return response_json["sentence_embeddings"]['dense_vecs']
 
 class crossContentHandler(LLMContentHandler):
     content_type = "application/json"
