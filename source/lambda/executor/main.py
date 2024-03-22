@@ -9,17 +9,15 @@ import uuid
 import boto3
 from utils.constant import Type
 from utils.ddb_utils import DynamoDBChatMessageHistory
-from utils.executor_entries import (
+from utils.executor_entries import (  # market_chain_entry,; market_chain_entry_core,
     get_retriever_response,
     main_chain_entry,
     main_qd_retriever_entry,
     main_qq_retriever_entry,
-    # market_chain_entry,
-    sagemind_llm_entry,
-    # market_chain_entry_core,
     market_chain_knowledge_entry,
     market_chain_knowledge_entry_langgraph,
     market_conversation_summary_entry,
+    sagemind_llm_entry,
 )
 
 # from langchain.retrievers.multi_query import MultiQueryRetriever
@@ -183,9 +181,9 @@ def lambda_handler(event, context):
         if entry_type == Type.COMMON.value:
             answer, sources, contexts, debug_info = main_chain_entry(
                 question,
-                aos_index,
                 stream=stream,
                 event_body=event_body,
+                message_id=custom_message_id,
             )
         elif entry_type == Type.QD_RETRIEVER.value:
             retriever_index = event_body.get("retriever_index", aos_index)
@@ -202,15 +200,18 @@ def lambda_handler(event, context):
             return get_retriever_response(docs)
         elif entry_type == Type.DGR.value:
             # switch dgr to market
-            event_body["llm_model_id"] = os.environ.get('llm_model_id',"anthropic.claude-3-sonnet-20240229-v1:0")
+            event_body["llm_model_id"] = os.environ.get(
+                "llm_model_id", "anthropic.claude-3-sonnet-20240229-v1:0"
+            )
             dgr_config = {
                 "retriever_config": {
                     "qd_config": {"using_whole_doc": True},
-                    "workspace_ids": ["aos_index_repost_qq_m3","aws-cn-dgr-user-guide-qd-m3-dense-20240318"]
-                    },
-                "generator_llm_config": {
-                    "context_num": 2
+                    "workspace_ids": [
+                        "aos_index_repost_qq_m3",
+                        "aws-cn-dgr-user-guide-qd-m3-dense-20240318",
+                    ],
                 },
+                "generator_llm_config": {"context_num": 2},
             }
 
             event_body = update_nest_dict(event_body, dgr_config)
@@ -221,7 +222,7 @@ def lambda_handler(event, context):
                 event_body=event_body,
                 message_id=custom_message_id,
             )
-            
+
         elif entry_type == Type.MARKET_CHAIN_CORE.value:
             answer, sources, contexts, debug_info = market_chain_entry_core(
                 question,
@@ -251,7 +252,6 @@ def lambda_handler(event, context):
                 message_id=custom_message_id,
             )
 
-
         elif entry_type == "market_chain_knowledge_langgraph":
             answer, sources, contexts, debug_info = (
                 market_chain_knowledge_entry_langgraph(
@@ -267,9 +267,7 @@ def lambda_handler(event, context):
             )
         elif entry_type == Type.LLM.value:
             answer, sources, contexts, debug_info = sagemind_llm_entry(
-                messages=messages,
-                event_body=event_body,
-                stream=stream
+                messages=messages, event_body=event_body, stream=stream
             )
 
         main_entry_end = time.time()

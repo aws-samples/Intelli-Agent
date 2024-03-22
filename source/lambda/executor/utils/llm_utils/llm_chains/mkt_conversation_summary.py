@@ -38,7 +38,7 @@ class Iternlm2Chat7BMKTConversationSummaryChain(Iternlm2Chat7BChatChain):
         for i,question in enumerate(questions):
             questions_str += f"问题{i+1}: {question}\n"
         # print(questions_str)
-        query_input = """请总结上述对话中的内容,每一轮对话单独一个总结。\n"""
+        query_input = """请总结上述对话中的内容,为每一轮对话单独做一个不超过50个字的简短总结。\n"""
         prompt = cls.build_prompt(
             meta_instruction=CHIT_CHAT_SYSTEM_TEMPLATE,
             history=history,

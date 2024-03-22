@@ -51,7 +51,8 @@ def market_conversation_summary_entry(
         )
         config["chat_history"] = chat_history
     # rag_config['intent_config']['intent_type'] = IntentType.CHAT.value
-
+    if not config["chat_history"]:
+        return f"该用户在所选时间段内历史消息为空。", [], [], {}
     # query_input = """请简要总结上述对话中的内容,每一个对话单独一个总结，并用 '- '开头。 每一个总结要先说明问题。\n"""
     mkt_conversation_summary_config = config["mkt_conversation_summary_config"]
     llm_chain = LLMChain.get_chain(

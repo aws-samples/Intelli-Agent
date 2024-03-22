@@ -150,7 +150,7 @@ class IntentRecognitionAOSIndex:
             }
             for r_doc in r_docs
         ]
-        print(ret)
+        logger.info(f'intent index search results:\n{ret}')
 
         return ret 
 
