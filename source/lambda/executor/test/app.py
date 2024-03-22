@@ -126,13 +126,13 @@ def generate_answer_from_ws(api_type, url, query_input, type):
     #     })
     sources = []
     debug_info = []
-    ws = create_connection(url)
+    ws = create_connection(url, timeout=100)
     data = {
         "model": "knowledge_qa",
         "messages": [{"role": "user", "content": query_input}],
         "type": type,
-        "get_contexts": True,
-        "enable_debug": True,
+        "get_contexts": False,
+        "enable_debug": False,
     }
     data.update(rag_parameters)
     ws.send(json.dumps(data))
@@ -159,7 +159,8 @@ def generate_answer_from_ws(api_type, url, query_input, type):
             print()
             print('contexts',ret)
             sources = ret['choices'][0]["knowledge_sources"]
-            debug_info = ret['choices'][0]["debug_info"]
+            # debug_info = ret['choices'][0]["debug_info"]
+            debug_info = {}
             yield answer, sources, *render_debug_info(debug_info)
         else:
             break
@@ -226,7 +227,7 @@ def generate_func(api_type, url_input, query_input, entry_type):
     if api_type == "local":
         return generate_answer_from_local(api_type, url_input, query_input, entry_type)
     elif api_type == "cloud":
-        yield from generate_answer_from_ws(api_type, url_input, query_input, entry_type)
+        return generate_answer_from_ws(api_type, url_input, query_input, entry_type)
 
 def render_debug_info(debug_info):
     tab_list = []
@@ -581,5 +582,5 @@ with gr.Blocks() as demo:
 
 # load_raw_data()
 if __name__ == "__main__":
-    demo.queue()
-    demo.launch(server_name="0.0.0.0", share=False, server_port=8080)
+    # demo.queue()
+    demo.launch(server_name="0.0.0.0", share=True, server_port=8080)
