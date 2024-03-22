@@ -577,65 +577,107 @@ def test_internlm_model_mkt_knowledge_entry():
         "retriever_config":{}
     }
 
-    generate_answer(
-            "lambda",
-            # "什么是日志通",
-            # model="knowledge_qa", 
-            type=entry_type, 
-            stream=True,
-            rag_parameters=rag_parameters
-    )
+    # generate_answer(
+    #     "请问亚马逊云科技中国区域的S3和EC2的价格",
+    #     # "2024亚马逊云科技出海全球化论坛什么时候举办？",
+    #     # "lambda是什么？",
+    #     # "2024年出海全球化论坛的会议日程是什么？",
+    #     # "亚马逊云科技有上海区域吗？",
+    #     # "在亚马逊云科技网站上，完成所有账户注册步骤后，什么时候才可以开始使用？",
+    #         # "亚马逊云科技中国区域免费套餐有哪几种不同类型的优惠？",
+    #         # "什么是日志通",
+    #         # "日志通是什么？",
+    #         # model="knowledge_qa", 
+    #         type=entry_type, 
+    #         stream=True,
+    #         rag_parameters=rag_parameters
+    # )
 
-    r = generate_answer(
-            # "lambda",
-            "什么是日志通",
-            # model="knowledge_qa", 
-            type=entry_type, 
-            stream=False,
-            rag_parameters=rag_parameters
-    )
-    print(r[0])
+    # print(sfg)
 
-    pritn(sfg)
+    # generate_answer(
+    #     "2024亚马逊云科技出海全球化论坛什么时候举办？",
+    #     # "lambda是什么？",
+    #     # "2024年出海全球化论坛的会议日程是什么？",
+    #     # "亚马逊云科技有上海区域吗？",
+    #     # "在亚马逊云科技网站上，完成所有账户注册步骤后，什么时候才可以开始使用？",
+    #         # "亚马逊云科技中国区域免费套餐有哪几种不同类型的优惠？",
+    #         # "什么是日志通",
+    #         # "日志通是什么？",
+    #         # model="knowledge_qa", 
+    #         type=entry_type, 
+    #         stream=True,
+    #         rag_parameters=rag_parameters
+    # )
+    # for _ in range(10):
+    #     generate_answer(
+    #         # "2024亚马逊云科技出海全球化论坛什么时候举办？",
+    #         # "lambda是什么？",
+    #         # "2024年出海全球化论坛的会议日程是什么？",
+    #         "亚马逊云科技有上海区域吗？",
+    #         # "在亚马逊云科技网站上，完成所有账户注册步骤后，什么时候才可以开始使用？",
+    #             # "亚马逊云科技中国区域免费套餐有哪几种不同类型的优惠？",
+    #             # "什么是日志通",
+    #             # "日志通是什么？",
+    #             # model="knowledge_qa", 
+    #             type=entry_type, 
+    #             stream=True,
+    #             rag_parameters=rag_parameters
+    #     )
 
 
-    generate_answer(
-            "火山引擎和阿里云比较",
-            # "什么是日志通",
-            # model="knowledge_qa", 
-            type=entry_type, 
-            stream=True,
-            rag_parameters=rag_parameters
-    )
+    # print(sfgdfhb)
 
-    print(fbdfb)
+    # r = generate_answer(
+    #         # "lambda",
+    #         "什么是日志通",
+    #         # model="knowledge_qa", 
+    #         type=entry_type, 
+    #         stream=False,
+    #         rag_parameters=rag_parameters
+    # )
+    # print(r[0])
 
-    generate_answer(
-            "如何快速搭建一个网站？",
-            # "什么是日志通",
-            # model="knowledge_qa", 
-            type=entry_type, 
-            stream=True,
-            rag_parameters=rag_parameters
-    )
-    generate_answer(
-            "客户联系时间",
-            # "什么是日志通",
-            # model="knowledge_qa", 
-            type=entry_type, 
-            stream=True,
-            rag_parameters=rag_parameters
-    )
-    generate_answer(
-            "客户工作时间",
-            # "什么是日志通",
-            # model="knowledge_qa", 
-            type=entry_type, 
-            stream=True,
-            rag_parameters=rag_parameters
-    )
+    # pritn(sfg)
+
+
+    # generate_answer(
+    #         "火山引擎和阿里云比较",
+    #         # "什么是日志通",
+    #         # model="knowledge_qa", 
+    #         type=entry_type, 
+    #         stream=True,
+    #         rag_parameters=rag_parameters
+    # )
+
+    # print(fbdfb)
+
+    # generate_answer(
+    #         "如何快速搭建一个网站？",
+    #         # "什么是日志通",
+    #         # model="knowledge_qa", 
+    #         type=entry_type, 
+    #         stream=True,
+    #         rag_parameters=rag_parameters
+    # )
+    # generate_answer(
+    #         "客户联系时间",
+    #         # "什么是日志通",
+    #         # model="knowledge_qa", 
+    #         type=entry_type, 
+    #         stream=True,
+    #         rag_parameters=rag_parameters
+    # )
+    # generate_answer(
+    #         "客户工作时间",
+    #         # "什么是日志通",
+    #         # model="knowledge_qa", 
+    #         type=entry_type, 
+    #         stream=True,
+    #         rag_parameters=rag_parameters
+    # )
  
-    print(sgf)
+    # print(sgf)
 
     market_test_cases = [
     'EC2',
@@ -821,17 +863,47 @@ def market_summary_test2():
             }
         ]
      
-    endpoint_name = 'internlm2-chat-7b-4bits-2024-02-28-07-08-57-839'
-    model_id = "internlm2-chat-7b"
+    # endpoint_name = 'internlm2-chat-7b-4bits-2024-02-28-07-08-57-839'
+    # model_id = "internlm2-chat-7b"
+
+    endpoint_name = 'internlm2-chat-20b-4bits-2024-03-04-06-32-53-653'
+    model_id = "internlm2-chat-20b"
+    # entry_type = "market_chain_knowledge_langgraph"
+
+    os.environ['llm_model_id'] = model_id
+    os.environ['llm_model_endpoint_name'] = endpoint_name
+
+
+#     body = {
+#         "client_type": "zhenghm-postman-summary",
+#         "session_id": "af50b380-abec-4f1a-a6e7-acdbca22ebc9",
+#         "time_window": {
+#         "start_time": 1709787023.0,
+#         "end_time": 1709787263.0
+#         },
+#         "type": "market_conversation_summary",
+#         "temperature": 0.1
+# }
     body = {
-            "messages": messages,
-            "type": 'market_conversation_summary',
-            "mkt_conversation_summary_config": {
-                "model_id": model_id,
-                "endpoint_name": endpoint_name
-            }
-            # "model":"chat"
-            }
+    "client_type": "GCRChat",
+    "session_id": "961515e9-1d91-402a-8996-aba68f4211c5",
+    "enable_debug": True,
+    "time_window": {
+      "start_time": 1710976467.939,
+      "end_time": 1710994497.327
+    },
+    "type": "market_conversation_summary",
+    "temperature": 0.1
+}
+    # body = {
+    #         "messages": messages,
+    #         "type": 'market_conversation_summary',
+    #         "mkt_conversation_summary_config": {
+    #             "model_id": model_id,
+    #             "endpoint_name": endpoint_name
+    #         }
+    #         # "model":"chat"
+    #         }
     event = {
         "body": json.dumps(body)
     }
