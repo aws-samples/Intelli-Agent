@@ -131,8 +131,8 @@ def generate_answer_from_ws(api_type, url, query_input, type):
         "model": "knowledge_qa",
         "messages": [{"role": "user", "content": query_input}],
         "type": type,
-        "get_contexts": True,
-        "enable_debug": True,
+        "get_contexts": False,
+        "enable_debug": False,
     }
     data.update(rag_parameters)
     ws.send(json.dumps(data))
@@ -582,4 +582,4 @@ with gr.Blocks() as demo:
 # load_raw_data()
 if __name__ == "__main__":
     demo.queue()
-    demo.launch(server_name="0.0.0.0", share=False, server_port=8080)
+    demo.launch(server_name="0.0.0.0", share=True, server_port=8080)
