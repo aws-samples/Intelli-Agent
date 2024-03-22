@@ -464,7 +464,8 @@ def market_chain_knowledge_entry(
             RunnableLambda(lambda x: mkt_fast_reply(
                 x,
                 fast_info=f"query: `{x['query']}` is too short",
-                answer=f"问题长度小于{query_length_threshold}，请详细描述问题。",
+                # answer=f"问题长度小于{query_length_threshold}，请详细描述问题。",
+                answer=f"您好，我是亚麻小Q，请详细描述您的问题。",
                 debug_info=debug_info
                 ))
         ),
