@@ -27,8 +27,8 @@ export class AssetsStack extends NestedStack {
         // const embeddingModelPrefix = 'buffer-embedding-002-model'
         const embeddingModelPrefix: string[] = ['bge-m3']
         const embeddingModelVersion: string[] = ['3ab7155aa9b89ac532b2f2efcc3f136766b91025']
-        const instructModelPrefix = 'internlm2-chat-7b'
-        const instructModelVersion = 'f7dc28191037a297c086b5b70c6a226e2134e46d'
+        const instructModelPrefix = 'internlm2-chat-20b'
+        const instructModelVersion = '7bae8edab7cf91371e62506847f2e7fdc24c6a65'
         // const etlModelPrefix = 'buffer-etl-model'
         const etlCodePrefix = 'buffer_etl_deploy_code'
 
