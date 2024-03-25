@@ -4,6 +4,7 @@ This guide will walk you through the process of invoking the ETL API.
 
 ### ETL
 
+<!---
 #### Extract Document
 
 To extract a document from a specified S3 bucket and prefix, make a POST request to `https://xxxx.execute-api.us-east-1.amazonaws.com/v1/extract`. Use the `need_split` flag to configure if the extracted document needs to be split semantically or kept with the original content.
@@ -17,6 +18,7 @@ Here is an example of the request body:
     "need_split": true
 }
 ```
+-->
 
 #### Offline Batch Processing
 
@@ -30,7 +32,8 @@ Here is an example of the request body:
     "s3Prefix": "<Your S3 prefix>", // e.g., "input_samples/"
     "offline": "true",
     "qaEnhance": "false",
-    "aosIndex": "<Your OpenSearch index>" // e.g., "dev"
+    "workspaceId": "<Your Workspace index>" // You can name the workspace index as you like
+    "operationType": "create" // You can choose create/update/delete/extract_only
 }
 ```
 

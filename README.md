@@ -93,6 +93,9 @@ npx cdk deploy --parameters S3ModelAssets=<Your S3 Bucket Name> --parameters Sub
 | EtlImageName | ETL image name, eg. etl-model, it is set when you executing source/model/etl/code/model.sh script |
 | EtlTag | ETL tag, eg. latest, v1.0, v2.0, the default value is latest, it is set when you executing source/model/etl/code/model.sh script |
 
+
+### Optional Context Parameters
+
 | Context | Description |
 |---------|-------------|
 | DeploymentMode | The mode for deployment. There are three modes: `OFFLINE_EXTRACT`, `OFFLINE_OPENSEARCH`, and `ALL`. |
@@ -101,7 +104,7 @@ npx cdk deploy --parameters S3ModelAssets=<Your S3 Bucket Name> --parameters Sub
 
 
 ## Testing API Connection
-Use Postman/cURL to test the API connection. Please refer to the following API invocation guides for detailed API usage: [AOS API Schema](https://github.com/aws-samples/llm-bot/tree/main/docs/AOS_API_SCHEMA.md), [ETL API Schema](https://github.com/aws-samples/llm-bot/tree/main/docs/ETL_API_SCHEMA.md)
+Use Postman/cURL to test the API connection. Please refer to the following API invocation guides for detailed API usage: [LLM API Schema](https://github.com/aws-samples/llm-bot/tree/main/docs/LLM_API_SCHEMA.md), [ETL API Schema](https://github.com/aws-samples/llm-bot/tree/main/docs/ETL_API_SCHEMA.md), [AOS API Schema](https://github.com/aws-samples/llm-bot/tree/main/docs/AOS_API_SCHEMA.md),
 
 ## Optional Steps
 1. [Launch Dashboard](#launch-dashboard)
