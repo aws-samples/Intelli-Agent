@@ -35,7 +35,7 @@ class vectorContentHandler(EmbeddingsContentHandler):
 
     def transform_output(self, output: bytes) -> List[List[float]]:
         response_json = json.loads(output.read().decode("utf-8"))
-        return response_json["sentence_embeddings"]
+        return response_json["sentence_embeddings"]['dense_vecs']
 
 class crossContentHandler(LLMContentHandler):
     content_type = "application/json"
@@ -83,6 +83,7 @@ class answerContentHandler(LLMContentHandler):
     def transform_output(self, output: bytes) -> str:
         response_json = json.loads(output.read().decode("utf-8"))
         return response_json['outputs']
+
 
 class LineIterator:
     """
@@ -378,14 +379,25 @@ def SagemakerEndpointVectorOrCross(prompt: str, endpoint_name: str, region_name:
             client=client,
             endpoint_name=endpoint_name,
             content_handler=content_handler
-            # endpoint_name=endpoint_name,
-            # region_name=region_name,
-            # content_handler=content_handler
         )
         query_result = embeddings.embed_query(prompt)
         return query_result
     elif model_type == "cross":
         content_handler = crossContentHandler()
+    elif model_type == "m3":
+        content_handler = vectorContentHandler()
+        model_kwargs = {}
+        model_kwargs['batch_size'] = 12
+        model_kwargs['max_length'] = 512
+        model_kwargs['return_type'] = 'dense'
+        embeddings = SagemakerEndpointEmbeddings(
+            client=client,
+            endpoint_name=endpoint_name,
+            content_handler=content_handler,
+            model_kwargs=model_kwargs
+        )
+        query_result = embeddings.embed_query(prompt)
+        return query_result
     elif model_type == "answer":
         content_handler = answerContentHandler()
     elif model_type == "rerank":

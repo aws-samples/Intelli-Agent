@@ -2,8 +2,11 @@ import json
 import boto3
 import requests
 import os
+import threading 
 from requests_aws4auth import AWS4Auth
 from opensearchpy import OpenSearch, RequestsHttpConnection
+
+open_search_client_lock = threading.Lock()
 
 credentials = boto3.Session().get_credentials()
 
@@ -22,10 +25,19 @@ def _import_not_found_error():
     return NotFoundError
 
 class LLMBotOpenSearchClient:
+    instance = None
+    def __new__(cls,host):
+        with open_search_client_lock:
+            if cls.instance is not None and cls.instance.host == host:
+                return cls.instance
+            obj = object.__new__(cls)
+            cls.instance = obj
+            return obj
     def __init__(self, host):
         """
         Initialize OpenSearch client using OpenSearch Endpoint
         """
+        self.host = host
         self.client = OpenSearch(
             hosts = [{
                 'host': host.replace("https://", ""), 
@@ -38,6 +50,7 @@ class LLMBotOpenSearchClient:
         )
         self.query_match = {"knn": self._build_knn_search_query,
                             "exact": self._build_exactly_match_query,
+                            "fuzzy": self._build_fuzzy_search_query,
                             "basic": self._build_basic_search_query}
     
     def _build_basic_search_query(self, index_name, query_term, field, size, filter=None):
@@ -70,7 +83,34 @@ class LLMBotOpenSearchClient:
             query["query"]["bool"]["filter"] = filter
 
         return query
-    
+
+    def _build_fuzzy_search_query(self, index_name, query_term, field, size, filter=None):
+        """
+        Build basic search query
+
+        :param index_name: Target Index Name
+        :param query_term: query term
+        :param field: search field
+        :param size: number of results to return from aos
+        
+        :return: aos response json
+        """
+        query = {
+            "size": size,
+            "query": {
+                "match": {
+                    "text": query_term
+                }
+            },
+            "_source": {
+                "excludes": [ "*.additional_vecs", "vector_field"]
+            }
+        }
+        if filter:
+            query["query"]["bool"]["filter"] = filter
+
+        return query
+
     def _build_knn_search_query(self, index_name, query_term, field, size, filter=None):
         """
         Build knn search query
@@ -103,6 +143,9 @@ class LLMBotOpenSearchClient:
                             }
                         ]
                     }
+                },
+                "_source": {
+                    "excludes": [ "*.additional_vecs", "vector_field"]
                 }
             }
         else:
@@ -115,6 +158,9 @@ class LLMBotOpenSearchClient:
                             "k": size
                         }
                     }
+                },
+                "_source": {
+                    "excludes": [ "*.additional_vecs", "vector_field"]
                 }
             }
         return query
@@ -186,3 +232,5 @@ class LLMBotOpenSearchClient:
             index=index_name
         )
         return response 
+
+

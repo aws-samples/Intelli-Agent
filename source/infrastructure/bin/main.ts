@@ -74,7 +74,7 @@ export class RootStack extends Stack {
     });
     _ConnectorStack.addDependency(_VpcStack);
     _ConnectorStack.addDependency(_OsStack);
-          _ConnectorStack.addDependency(_LLMStack);
+    _ConnectorStack.addDependency(_LLMStack);
     
     const _ApiStack = new LLMApiStack(this, 'api-stack', {
       _vpc:_VpcStack._vpc,
@@ -82,8 +82,11 @@ export class RootStack extends Stack {
       _domainEndpoint:_OsStack._domainEndpoint || '',
       _rerankEndPoint: _LLMStack._rerankEndPoint ?? '',
       _embeddingEndPoints:_LLMStack._embeddingEndPoints || '',
-      _instructEndPoint:_LLMStack._instructEndPoint || '',
-      _chatSessionTable: _DynamoDBStack._chatSessionTable,
+      _llmModelId: BuildConfig.LLM_MODEL_ID,
+      _instructEndPoint: BuildConfig.LLM_ENDPOINT_NAME !== '' ? BuildConfig.LLM_ENDPOINT_NAME : _LLMStack._instructEndPoint,
+      _sessionsTableName: _DynamoDBStack._sessionsTableName,
+      _messagesTableName: _DynamoDBStack._messagesTableName,
+      _workspaceTableName: _EtlStack._workspaceTableName,
       _sfnOutput: _EtlStack._sfnOutput,
       _OpenSearchIndex: _CdkParameters._OpenSearchIndex.valueAsString,
       _OpenSearchIndexDict: _CdkParameters._OpenSearchIndexDict.valueAsString,
@@ -113,7 +116,7 @@ export class RootStack extends Stack {
     new CfnOutput(this, 'Cross Model Endpoint', {value:_LLMStack._rerankEndPoint || 'No Cross Endpoint Created'});
     new CfnOutput(this, 'Embedding Model Endpoint', {value:_LLMStack._embeddingEndPoints[0] || 'No Embedding Endpoint Created'});
     new CfnOutput(this, 'Instruct Model Endpoint', {value:_LLMStack._instructEndPoint || 'No Instruct Endpoint Created'});
-    new CfnOutput(this, 'Processed Object Table', {value:_EtlStack._processedObjectsTable});
+    new CfnOutput(this, 'Processed Object Table', {value:_EtlStack._processedObjectsTableName});
     new CfnOutput(this, 'Chunk Bucket', {value:_EtlStack._resBucketName});
     new CfnOutput(this, '_aosIndexDict', {value:_CdkParameters._OpenSearchIndexDict.valueAsString});
   }
@@ -122,6 +125,8 @@ export class RootStack extends Stack {
     BuildConfig.DEPLOYMENT_MODE = this.node.tryGetContext('DeploymentMode') ?? 'ALL';
     BuildConfig.LAYER_PIP_OPTION = this.node.tryGetContext('LayerPipOption') ?? '';
     BuildConfig.JOB_PIP_OPTION = this.node.tryGetContext('JobPipOption') ?? '';
+    BuildConfig.LLM_MODEL_ID = this.node.tryGetContext('LlmModelId') ?? 'internlm2-chat-7b';
+    BuildConfig.LLM_ENDPOINT_NAME = this.node.tryGetContext('LlmEndpointName') ?? '';
   }
 
 }

@@ -61,7 +61,7 @@ export class LLMStack extends NestedStack {
                 const stackEndpointName = "embedding-endpoint-name-" + versionId.slice(0, 5)
                 // EMBEDDING MODEL
                 // Create model, BucketDeployment construct automatically handles dependencies to ensure model assets uploaded before creating the model in this.region
-                const embeddingImageUrl = llmImageUrlAccount + this.region + llmImageUrlDomain + 'djl-inference:0.21.0-deepspeed0.8.3-cu117'
+                const embeddingImageUrl = llmImageUrlAccount + this.region + llmImageUrlDomain + 'djl-inference:0.26.0-deepspeed0.12.6-cu121'
                 const embeddingModel = new sagemaker.CfnModel(this, stackModelName, {
                     executionRoleArn: executionRole.roleArn,
                     primaryContainer: {
@@ -81,7 +81,7 @@ export class LLMStack extends NestedStack {
                         variantName: 'variantProd',
                         containerStartupHealthCheckTimeoutInSeconds: 15 * 60,
                         initialInstanceCount: 1,
-                        instanceType: 'ml.g4dn.xlarge',
+                        instanceType: 'ml.g5.2xlarge',
                     }],
                 });
 
@@ -162,7 +162,7 @@ export class LLMStack extends NestedStack {
             const InstructVersionId = props._instructModelVersion;
             const InstructEndpointName = "instruct-" + InstructModelPrefix + "-" + InstructVersionId.slice(0, 5)
 
-            const instructImageUrl = llmImageUrlAccount + this.region + llmImageUrlDomain + 'djl-inference:0.25.0-deepspeed0.11.0-cu118'
+            const instructImageUrl = llmImageUrlAccount + this.region + llmImageUrlDomain + 'djl-inference:0.26.0-deepspeed0.12.6-cu121'
             const instructModel = new sagemaker.CfnModel(this, 'instruct-model', {
                 executionRoleArn: executionRole.roleArn,
                 primaryContainer: {
@@ -182,7 +182,7 @@ export class LLMStack extends NestedStack {
                     variantName: 'variantProd',
                     containerStartupHealthCheckTimeoutInSeconds: 15 * 60,
                     initialInstanceCount: 1,
-                    instanceType: 'ml.g4dn.4xlarge',
+                    instanceType: 'ml.g5.4xlarge',
                 }],
             });
 
@@ -200,7 +200,7 @@ export class LLMStack extends NestedStack {
                 tags: instruct_tag_array,
             });
 
-            this._instructEndPoint = InstructEndpoint.endpointName as string;
+            this._instructEndPoint = InstructEndpointName;
         }
 
 

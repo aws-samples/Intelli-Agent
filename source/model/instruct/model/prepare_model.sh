@@ -18,9 +18,9 @@ if [ -z "$s3_bucket_name" ] || ! command -v python3 &> /dev/null; then
   usage
 fi
 
-hf_names=("internlm/internlm2-chat-7b") 
-model_names=("internlm2-chat-7b")
-commit_hashs=("f7dc28191037a297c086b5b70c6a226e2134e46d")
+hf_names=("internlm/internlm2-chat-20b-4bits") 
+model_names=("internlm2-chat-20b")
+commit_hashs=("7bae8edab7cf91371e62506847f2e7fdc24c6a65")
 tensor_parallel_degree=(1)
 
 for index in "${!model_names[@]}"; do

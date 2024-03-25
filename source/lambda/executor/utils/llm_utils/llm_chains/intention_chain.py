@@ -6,16 +6,15 @@ import os
 import sys
 from random import Random
 from functools import lru_cache
-from langchain.prompts import PromptTemplate
+from langchain.prompts import PromptTemplate,HumanMessagePromptTemplate, ChatPromptTemplate
 from langchain.schema.runnable import RunnablePassthrough, RunnableBranch, RunnableLambda
 from .chat_chain import Iternlm2Chat7BChatChain
-from ...prompt_template import INTENT_RECOGINITION_EXAMPLE_TEMPLATE, \
-    INTENT_RECOGINITION_PROMPT_TEMPLATE_CLUADE
 
 abs_dir = os.path.dirname(__file__)
 
 intent_save_path = os.path.join(
     os.path.dirname(os.path.dirname(abs_dir)),
+    'intent_utils',
     "intent_examples",
     "examples.json"
 )
@@ -49,7 +48,7 @@ class Iternlm2Chat7BIntentRecognitionChain(Iternlm2Chat7BChatChain):
     intent_type = INTENT_RECOGNITION_TYPE
 
     default_model_kwargs = {
-        "temperature":0.0,
+        "temperature":0.1,
         "max_new_tokens": 100,
         "stop_tokens": ["\n",'。','.']
     }
@@ -81,7 +80,7 @@ class Iternlm2Chat7BIntentRecognitionChain(Iternlm2Chat7BChatChain):
     
     @staticmethod
     def postprocess(intent):
-        intent = intent.replace('。',"").replace('.',"").strip()
+        intent = intent.replace('。',"").replace('.',"").strip().strip('**')
         r = load_intention_file(intent_save_path)
         intent_indexs = r['intent_indexs']
         assert intent in intent_indexs, (intent,intent_indexs)
@@ -98,6 +97,23 @@ class Iternlm2Chat7BIntentRecognitionChain(Iternlm2Chat7BChatChain):
         chain = chain | RunnableLambda(lambda x:cls.postprocess(x))
         return chain
 
+class Iternlm2Chat20BIntentRecognitionChain(Iternlm2Chat7BIntentRecognitionChain):
+    model_id = "internlm2-chat-20b"
+
+
+INTENT_RECOGINITION_PROMPT_TEMPLATE_CLUADE = """Please classify this query: <query>{query}</query>. The categories are:
+
+{categories}
+
+Some examples of how to classify queries:
+{examples}
+
+Now classify the original query. Respond with just one letter corresponding to the correct category.
+"""
+
+
+INTENT_RECOGINITION_EXAMPLE_TEMPLATE = """<query>{query}</query>\n{label}"""
+
 
 class Claude2IntentRecognitionChain(LLMChain):
     model_id = 'anthropic.claude-v2'
@@ -105,7 +121,7 @@ class Claude2IntentRecognitionChain(LLMChain):
 
     default_model_kwargs = {
       "temperature": 0,
-      "max_tokens_to_sample": 2000,
+      "max_tokens": 2000,
       "stop_sequences": [
         "\n\n",
         "\n\nHuman:"
@@ -165,7 +181,9 @@ class Claude2IntentRecognitionChain(LLMChain):
         cls.examples_str = cls.create_few_shot_example_string(example_template=INTENT_RECOGINITION_EXAMPLE_TEMPLATE)
         cls.categories_str = cls.create_all_labels_string()
 
-        intent_recognition_template = PromptTemplate.from_template(INTENT_RECOGINITION_PROMPT_TEMPLATE_CLUADE)
+        intent_recognition_prompt = ChatPromptTemplate.format_messages([
+            HumanMessagePromptTemplate.from_template(INTENT_RECOGINITION_PROMPT_TEMPLATE_CLUADE)
+        ])
         
 
         model_kwargs = model_kwargs or {}
@@ -173,10 +191,10 @@ class Claude2IntentRecognitionChain(LLMChain):
 
         llm = Model.get_model(cls.model_id,model_kwargs=model_kwargs)
 
-        chain = intent_recognition_template | RunnableLambda(lambda x:llm.invoke(
-            {"categories":cls.categories_str,
-             "examples":cls.examples_str,
-             'query':x['query']})) | RunnableLambda(lambda x:x.dict()['content']) | RunnableLambda(lambda x: cls.postprocess(x))
+        chain = RunnablePassthrough.assign(
+            categories=lambda x: cls.categories_str,
+            examples=lambda x: cls.examples_str
+        ) | intent_recognition_prompt | llm | RunnableLambda(lambda x: cls.postprocess(x.content)) 
      
         return chain 
         
@@ -184,9 +202,16 @@ class Claude2IntentRecognitionChain(LLMChain):
 class Claude21IntentRecognitionChain(Claude2IntentRecognitionChain):
     model_id = 'anthropic.claude-v2:1'
 
-
 class ClaudeInstanceIntentRecognitionChain(Claude2IntentRecognitionChain):
     model_id = 'anthropic.claude-instant-v1'
+
+class Claude3SonnetIntentRecognitionChain(Claude2IntentRecognitionChain):
+    model_id = "anthropic.claude-3-sonnet-20240229-v1:0"
+
+class Claude3HaikuIntentRecognitionChain(Claude2IntentRecognitionChain):
+    model_id = "anthropic.claude-3-haiku-20240307-v1:0"
+
+
 
 
 

@@ -24,8 +24,11 @@ interface apiStackProps extends StackProps {
     _domainEndpoint: string;
     _rerankEndPoint: string;
     _embeddingEndPoints: string[];
+_llmModelId: string;
     _instructEndPoint: string;
-    _chatSessionTable: string;
+    _sessionsTableName: string;
+    _messagesTableName: string;
+    _workspaceTableName: string;
     // type of StepFunctions
     _sfnOutput: sfn.StateMachine;
     _OpenSearchIndex: string;
@@ -50,7 +53,9 @@ export class LLMApiStack extends NestedStack {
         const _domainEndpoint = props._domainEndpoint
         const _aosIndex = props._OpenSearchIndex
         const _aosIndexDict = props._OpenSearchIndexDict
-        const _chatSessionTable = props._chatSessionTable
+        const _sessionsTableName = props._sessionsTableName
+        const _messagesTableName = props._messagesTableName
+        const _workspaceTableName = props._workspaceTableName
         const _jobQueueArn = props._jobQueueArn
         const _jobDefinitionArn = props._jobDefinitionArn
         const _etlEndpoint = props._etlEndpoint
@@ -146,8 +151,10 @@ export class LLMApiStack extends NestedStack {
             handler: "rating.lambda_handler",
             code: lambda.Code.fromAsset(join(__dirname, "../../../lambda/ddb")),
             environment: {
-                SESSIONS_TABLE_NAME: _chatSessionTable,
+                SESSIONS_TABLE_NAME: _sessionsTableName,
+                MESSAGES_TABLE_NAME: _messagesTableName,
                 SESSIONS_BY_USER_ID_INDEX_NAME: "byUserId",
+MESSAGES_BY_SESSION_ID_INDEX_NAME: "bySessionId",
             },
             vpc: _vpc,
             vpcSubnets: {
@@ -183,6 +190,9 @@ export class LLMApiStack extends NestedStack {
 
         // add s3 event notification when file uploaded to the bucket
         _S3Bucket.addEventNotification(s3.EventType.OBJECT_CREATED, new s3n.LambdaDestination(lambdaStepFunction), { prefix: 'documents/' });
+        // add s3 event notification when file deleted in the bucket
+        _S3Bucket.addEventNotification(s3.EventType.OBJECT_REMOVED, new s3n.LambdaDestination(lambdaStepFunction), { prefix: 'documents/' });
+        //
         _S3Bucket.grantReadWrite(lambdaStepFunction);
 
         const lambdaGetETLStatus = new lambda.Function(this, "lambdaGetETLStatus", {
@@ -291,7 +301,7 @@ export class LLMApiStack extends NestedStack {
         const lambdaDdbIntegration = new apigw.LambdaIntegration(lambdaDdb, { proxy: true, });
 
         // All AOS wrapper should be within such lambda
-        const apiResourceDdb = api.root.addResource('ddb');
+        const apiResourceDdb = api.root.addResource('feedback');
         apiResourceDdb.addMethod('POST', lambdaDdbIntegration);
 
         const apiResourceStepFunction = api.root.addResource('etl');
@@ -314,7 +324,7 @@ export class LLMApiStack extends NestedStack {
                 handler: "main.lambda_handler",
                 code: Code.fromAsset(join(__dirname, "../../../lambda/executor")),
                 timeout: Duration.minutes(15),
-                memorySize: 1024,
+                memorySize: 10240,
                 vpc: _vpc,
                 vpcSubnets: {
                     subnets: _vpc.privateSubnets,
@@ -323,14 +333,18 @@ export class LLMApiStack extends NestedStack {
                 architecture: Architecture.X86_64,
                 environment: {
                     aos_endpoint: _domainEndpoint,
-                    llm_endpoint: props._instructEndPoint,
+                    llm_model_endpoint_name: props._instructEndPoint,
+                    llm_model_id: props._llmModelId,
                     embedding_endpoint: props._embeddingEndPoints[0],
                     zh_embedding_endpoint: props._embeddingEndPoints[0],
-                    en_embedding_endpoint: props._embeddingEndPoints[1],
+                    en_embedding_endpoint: props._embeddingEndPoints[0],
+                    intent_recognition_embedding_endpoint: props._embeddingEndPoints[0],
                     rerank_endpoint: props._rerankEndPoint,
                     aos_index: _aosIndex,
                     aos_index_dict: _aosIndexDict,
-                    chat_session_table: _chatSessionTable,
+                    sessions_table_name: _sessionsTableName,
+                    messages_table_name: _messagesTableName,
+                    workspace_table: _workspaceTableName,
                 },
                 layers: [_ApiLambdaExecutorLayer]
             });

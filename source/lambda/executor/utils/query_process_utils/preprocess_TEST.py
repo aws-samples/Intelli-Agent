@@ -1,4 +1,4 @@
-from preprocess_utils import run_preprocess  
+from source.lambda.executor.utils.query_process_utils.preprocess_utils import run_preprocess  
 
 import unittest
 

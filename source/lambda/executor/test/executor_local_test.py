@@ -33,8 +33,6 @@ sys.path.append("../executor")
 # print(region)
 import main
 import os
-aos_index_dict = json.loads(os.environ.get("aos_index_dict", ""))
-print(f"aos index {aos_index_dict}")
 
 class DummyWebSocket:
     def post_to_connection(self,ConnectionId,Data):
@@ -51,12 +49,16 @@ class DummyWebSocket:
             print(ret['choices'][0]['message']['content'])
             return 
         elif message_type == "CONTEXT":
-            print('sources: ',ret['choices'][0]['knowledge_sources'])
+            print('knowledge_sources num',ret['choices'][0]['knowledge_sources'])
+            if ret['choices'][0].get('contexts'):
+                print('contexts num',len(ret['choices'][0].get('contexts')))
+                print('contexts avg len: ', sum(len(i) for i in ret['choices'][0]['contexts'])/len(ret['choices'][0]['contexts']))
+                # print('sources: ',ret['choices'][0]['contexts'])
 
 main.ws_client = DummyWebSocket()
 
 def generate_answer(query,
-                    temperature=0.7,
+                    # temperature=0.7,
                     enable_debug=True,
                     retrieval_only=False,
                     type="market_chain",
@@ -74,7 +76,7 @@ def generate_answer(query,
                     "content": query
                 }
             ],
-            "temperature": temperature,
+            # "temperature": temperature,
             # "enable_debug": enable_debug,
             # "retrieval_only": retrieval_only,
             # "retriever_index": retriever_index,
@@ -346,15 +348,20 @@ def test_baichuan_model():
 
 def test_internlm_model():
     session_id=f'test_{time.time()}'
-    endpoint_name = 'internlm2-chat-7b-4bits-2024-02-28-07-08-57-839'
-    model_id = "internlm2-chat-7b"
+    # endpoint_name = 'internlm2-chat-7b-4bits-2024-02-28-07-08-57-839'
+    # model_id = "internlm2-chat-7b"
+
+    endpoint_name = 'internlm2-chat-20b-4bits-2024-02-29-05-37-42-885'
+    model_id = "internlm2-chat-20b"
+
     rag_parameters = {
+        "get_contexts":True,
          "retriever_config":{
-            "retriever_top_k": 20,
-            "chunk_num": 2,
-            "using_whole_doc": True,
-            "reranker_top_k": 10,
-            "q_q_match_threshold": 0.9
+            "retriever_top_k": 1,
+                "chunk_num": 2,
+                "using_whole_doc": True,
+                "reranker_top_k": 10,
+                "enable_reranker": True
         },
         "query_process_config":{
             "conversation_query_rewrite_config":{
@@ -362,6 +369,10 @@ def test_internlm_model():
                 "endpoint_name":endpoint_name
             },
             "translate_config":{
+                "model_id":model_id,
+                "endpoint_name": endpoint_name
+            },
+            "stepback_config":{
                 "model_id":model_id,
                 "endpoint_name": endpoint_name
             }
@@ -375,7 +386,7 @@ def test_internlm_model():
                 "max_new_tokens": 2000,
                 "temperature": 0.1,
                 "top_p": 0.9,
-                'repetition_penalty':1.2
+                # 'repetition_penalty':1.1
             },
             "model_id": model_id,
             "endpoint_name": endpoint_name,
@@ -385,13 +396,13 @@ def test_internlm_model():
     
     qq_match_test()
     generate_answer(
-        "什么是Amazon bedrock？", 
+        "AWS支持上海region吗？", 
         model="auto", 
         type="market_chain", 
         stream=True,
         rag_parameters=rag_parameters
     )
-
+    # print(sfg)
     generate_answer(
         "介绍一下Amazon EC2", 
         model="auto", 
@@ -399,7 +410,14 @@ def test_internlm_model():
         stream=True,
         rag_parameters=rag_parameters
     )
-    print(sdg)
+    # print(xfg)
+    generate_answer(
+        "什么是Amazon bedrock？", 
+        model="auto", 
+        type="market_chain", 
+        stream=True,
+        rag_parameters=rag_parameters
+    )
 
     generate_answer(
         "《夜曲》是谁演唱的？", 
@@ -426,6 +444,365 @@ def test_internlm_model():
         rag_parameters=rag_parameters
     )
     print(r[0])
+
+
+def test_internlm_model_mkt():
+    session_id=f'test_{time.time()}'
+    # endpoint_name = 'internlm2-chat-7b-4bits-2024-02-28-07-08-57-839'
+    # model_id = "internlm2-chat-7b"
+    endpoint_name = 'internlm2-chat-20b-4bits-2024-03-04-06-32-53-653'
+    model_id = "internlm2-chat-20b"
+
+    os.environ['llm_model_id'] = model_id
+    os.environ['llm_model_endpoint_name'] = endpoint_name
+
+    rag_parameters = {
+        "get_contexts":True,
+    }
+    
+    qq_match_test()
+    generate_answer(
+        "AWS支持上海region吗？", 
+        model="auto", 
+        type="market_chain", 
+        stream=True,
+        rag_parameters=rag_parameters
+    )
+    # print(sfg)
+    generate_answer(
+        "介绍一下Amazon EC2", 
+        model="auto", 
+        type="market_chain", 
+        stream=True,
+        rag_parameters=rag_parameters
+    )
+    # print(xfg)
+    generate_answer(
+        "什么是Amazon bedrock？", 
+        model="auto", 
+        type="market_chain", 
+        stream=True,
+        rag_parameters=rag_parameters
+    )
+
+    generate_answer(
+        "《夜曲》是谁演唱的？", 
+        session_id=session_id,
+        model="chat", 
+        type="market_chain", 
+        stream=True,
+        rag_parameters=rag_parameters
+    )
+    generate_answer(
+        "他还有哪些其他歌曲？", 
+        session_id=session_id,
+        model="chat", 
+        type="market_chain", 
+        stream=True,
+        rag_parameters=rag_parameters
+    )
+
+    r = generate_answer(
+        "解释一下“温故而知新”", 
+        model="auto", 
+        type="market_chain", 
+        stream=False,
+        rag_parameters=rag_parameters
+    )
+    print(r[0])
+
+
+
+def test_internlm_model_mkt_knowledge_entry_qq_match():
+    session_id=f'test_{time.time()}'
+    # endpoint_name = 'internlm2-chat-7b-4bits-2024-02-28-07-08-57-839'
+    # model_id = "internlm2-chat-7b"
+    endpoint_name = 'internlm2-chat-20b-4bits-2024-03-04-06-32-53-653'
+    model_id = "internlm2-chat-20b"
+    entry_type = "market_chain_knowledge"
+
+    os.environ['llm_model_id'] = model_id
+    os.environ['llm_model_endpoint_name'] = endpoint_name
+    # workspace_ids = ["aos_index_mkt_faq_qq_m3", "aos_index_acts_qd_m3", "aos_index_mkt_faq_qd_m3"]
+    
+    questions = [
+        "能否通过JDBC连接到RDS for PostgreSQL？ 有相关的指导吗？",
+        "如何解决切换RI后网速变慢？",
+        "如何升级EC2配置不改变IP",
+        "如何/怎么关停账号",
+        "请问怎么关闭账号？",
+        "个人能否注册账号？",
+        "怎么开具发票？",
+        "怎么开发票？",
+        "使用CDN服务要备案吗？"
+    ]
+    for question in questions:
+        generate_answer(
+           question, 
+            model="knowledge_qa", 
+            type=entry_type, 
+            stream=True,
+            rag_parameters={
+            "get_contexts":True,
+            "retriever_config":{
+                # "qq_config": {
+                #     "qq_match_threshold": 0.8,
+                # },
+                # "qd_config":{
+                #     "qd_match_threshold": 2,
+                # # "using_whole_doc": True
+                # },
+                # "workspace_ids": workspace_ids
+            }
+            }
+        )
+
+
+def test_internlm_model_mkt_knowledge_entry():
+    session_id=f'test_{time.time()}'
+    # endpoint_name = 'internlm2-chat-7b-4bits-2024-02-28-07-08-57-839'
+    # model_id = "internlm2-chat-7b"
+    endpoint_name = 'internlm2-chat-20b-4bits-2024-03-04-06-32-53-653'
+    model_id = "internlm2-chat-20b"
+    entry_type = "market_chain"
+
+    os.environ['llm_model_id'] = model_id
+    os.environ['llm_model_endpoint_name'] = endpoint_name
+    # workspace_ids = ["aos_index_mkt_faq_qq","aos_index_acts_qd"]
+    # workspace_ids = ["aos_index_mkt_faq_qq_m3", "aos_index_acts_qd_m3", "aos_index_mkt_faq_qd_m3"]
+    
+    rag_parameters={
+        "get_contexts":True,
+        # "session_id":session_id,
+        "retriever_config":{}
+    }
+
+    # generate_answer(
+    #     "请问亚马逊云科技中国区域的S3和EC2的价格",
+    #     # "2024亚马逊云科技出海全球化论坛什么时候举办？",
+    #     # "lambda是什么？",
+    #     # "2024年出海全球化论坛的会议日程是什么？",
+    #     # "亚马逊云科技有上海区域吗？",
+    #     # "在亚马逊云科技网站上，完成所有账户注册步骤后，什么时候才可以开始使用？",
+    #         # "亚马逊云科技中国区域免费套餐有哪几种不同类型的优惠？",
+    #         # "什么是日志通",
+    #         # "日志通是什么？",
+    #         # model="knowledge_qa", 
+    #         type=entry_type, 
+    #         stream=True,
+    #         rag_parameters=rag_parameters
+    # )
+
+    # print(sfg)
+
+    # generate_answer(
+    #     "2024亚马逊云科技出海全球化论坛什么时候举办？",
+    #     # "lambda是什么？",
+    #     # "2024年出海全球化论坛的会议日程是什么？",
+    #     # "亚马逊云科技有上海区域吗？",
+    #     # "在亚马逊云科技网站上，完成所有账户注册步骤后，什么时候才可以开始使用？",
+    #         # "亚马逊云科技中国区域免费套餐有哪几种不同类型的优惠？",
+    #         # "什么是日志通",
+    #         # "日志通是什么？",
+    #         # model="knowledge_qa", 
+    #         type=entry_type, 
+    #         stream=True,
+    #         rag_parameters=rag_parameters
+    # )
+    # for _ in range(10):
+    #     generate_answer(
+    #         # "2024亚马逊云科技出海全球化论坛什么时候举办？",
+    #         # "lambda是什么？",
+    #         # "2024年出海全球化论坛的会议日程是什么？",
+    #         "亚马逊云科技有上海区域吗？",
+    #         # "在亚马逊云科技网站上，完成所有账户注册步骤后，什么时候才可以开始使用？",
+    #             # "亚马逊云科技中国区域免费套餐有哪几种不同类型的优惠？",
+    #             # "什么是日志通",
+    #             # "日志通是什么？",
+    #             # model="knowledge_qa", 
+    #             type=entry_type, 
+    #             stream=True,
+    #             rag_parameters=rag_parameters
+    #     )
+
+
+    # print(sfgdfhb)
+
+    # r = generate_answer(
+    #         # "lambda",
+    #         "什么是日志通",
+    #         # model="knowledge_qa", 
+    #         type=entry_type, 
+    #         stream=False,
+    #         rag_parameters=rag_parameters
+    # )
+    # print(r[0])
+
+    # pritn(sfg)
+
+
+    # generate_answer(
+    #         "火山引擎和阿里云比较",
+    #         # "什么是日志通",
+    #         # model="knowledge_qa", 
+    #         type=entry_type, 
+    #         stream=True,
+    #         rag_parameters=rag_parameters
+    # )
+
+    # print(fbdfb)
+
+    # generate_answer(
+    #         "如何快速搭建一个网站？",
+    #         # "什么是日志通",
+    #         # model="knowledge_qa", 
+    #         type=entry_type, 
+    #         stream=True,
+    #         rag_parameters=rag_parameters
+    # )
+    # generate_answer(
+    #         "客户联系时间",
+    #         # "什么是日志通",
+    #         # model="knowledge_qa", 
+    #         type=entry_type, 
+    #         stream=True,
+    #         rag_parameters=rag_parameters
+    # )
+    # generate_answer(
+    #         "客户工作时间",
+    #         # "什么是日志通",
+    #         # model="knowledge_qa", 
+    #         type=entry_type, 
+    #         stream=True,
+    #         rag_parameters=rag_parameters
+    # )
+ 
+    # print(sgf)
+
+    market_test_cases = [
+    'EC2',
+    "LAMBDA",
+    '亚马逊云科技中国区域免费套餐有哪几种不同类型的优惠？',
+    'Amazon Lambda的免费套餐包含什么？',
+    '在亚马逊云科技网站上，完成所有账户注册步骤后，什么时候才可以开始使用？',
+    'Amazon Lambda函数是什么？',
+    '日志通是什么？',
+    'lambda是什么？',
+    '2024北京国际车展上，亚马逊云科技会参加吗？',
+    '3月份在深圳有生成式AI的活动吗？',
+    '2024年会举办出海全球化论坛吗？',
+    '2024年出海全球化论坛的会议日程是什么？',
+    '2024亚马逊云科技出海全球化论坛什么时候举办？',
+    '请问怎么关闭账号？',
+    '个人能否注册账号？',
+    '怎么开发票？',
+    '使用CDN服务要备案吗？',
+    '今天是几月几号？',
+    '亚马逊云科技有上海区域吗？',
+    '我上一个问题是什么？',
+    '如何注册AWS账号?',
+    '如何注册亚马逊云科技账号',
+    '怎么申请免费试用？',
+    '怎么试用服务器？',
+    '无法连接服务器',
+    '连接不上服务器',
+    '账号被停用了怎么解决',
+    '备案流程',
+    '怎么备案',
+    '人工服务',
+    '为什么产生了费用？不是免费试用吗？',
+    '申请退款',
+    '服务器报价/服务器多少钱？'
+    ]
+    ret = []
+    for question in market_test_cases:
+        r = generate_answer(
+            question,
+            # "什么是日志通",
+            # model="knowledge_qa", 
+            type=entry_type, 
+            stream=False,
+            rag_parameters=rag_parameters
+        )
+        ret.append((question,r[0]))
+
+    for q,a in ret:
+        print('*-'*50)
+        print(f'Q: {q},\nA: {a}')
+
+
+def test_internlm_model_mkt_knowledge_entry_langgraph():
+    session_id=f'test_{time.time()}'
+    # endpoint_name = 'internlm2-chat-7b-4bits-2024-02-28-07-08-57-839'
+    # model_id = "internlm2-chat-7b"
+    endpoint_name = 'internlm2-chat-20b-4bits-2024-03-04-06-32-53-653'
+    model_id = "internlm2-chat-20b"
+    entry_type = "market_chain_knowledge_langgraph"
+
+    os.environ['llm_model_id'] = model_id
+    os.environ['llm_model_endpoint_name'] = endpoint_name
+    generate_answer(
+        "今天是几月几号？", 
+        model="knowledge_qa", 
+        type=entry_type, 
+        stream=True,
+        rag_parameters={
+            "session_id":session_id,
+            "get_contexts":True,
+            "retriever_config":{
+                "qq_config": {
+                    "q_q_match_threshold": 0.9,
+                },
+                "qd_config":{
+                    "qd_match_threshold": 2,
+                    "using_whole_doc": True
+                },
+                "workspace_ids": ["aos_index_mkt_faq_qq","aos_index_acts_qd"]
+        }
+        }
+    )
+
+    generate_answer(
+        "日志通是什么？", 
+        model="knowledge_qa", 
+        type=entry_type, 
+        stream=True,
+        rag_parameters={
+            "session_id":session_id,
+            "get_contexts":True,
+            "retriever_config":{
+                "qq_config": {
+                    "q_q_match_threshold": 0.9,
+                },
+                "qd_config":{
+                    "qd_match_threshold": 2,
+                    "using_whole_doc": True
+                },
+                "workspace_ids": ["aos_index_mkt_faq_qq","aos_index_acts_qd"]
+        }
+        }
+    )
+
+    generate_answer(
+        "AWS支持上海region吗？", 
+        model="knowledge_qa", 
+        type=entry_type, 
+        stream=True,
+        rag_parameters={
+            "session_id":session_id,
+            "get_contexts":True,
+            "retriever_config":{
+                "qq_config": {
+                    "q_q_match_threshold": 0.9,
+                },
+                "qd_config":{
+                    "qd_match_threshold": 2,
+                    "using_whole_doc": True
+                },
+                "workspace_ids": ["aos_index_mkt_faq_qq","aos_index_acts_qd"]
+        }
+        }
+    )
 
 
 def market_summary_test():
@@ -486,17 +863,47 @@ def market_summary_test2():
             }
         ]
      
-    endpoint_name = 'internlm2-chat-7b-4bits-2024-02-28-07-08-57-839'
-    model_id = "internlm2-chat-7b"
+    # endpoint_name = 'internlm2-chat-7b-4bits-2024-02-28-07-08-57-839'
+    # model_id = "internlm2-chat-7b"
+
+    endpoint_name = 'internlm2-chat-20b-4bits-2024-03-04-06-32-53-653'
+    model_id = "internlm2-chat-20b"
+    # entry_type = "market_chain_knowledge_langgraph"
+
+    os.environ['llm_model_id'] = model_id
+    os.environ['llm_model_endpoint_name'] = endpoint_name
+
+
+#     body = {
+#         "client_type": "zhenghm-postman-summary",
+#         "session_id": "af50b380-abec-4f1a-a6e7-acdbca22ebc9",
+#         "time_window": {
+#         "start_time": 1709787023.0,
+#         "end_time": 1709787263.0
+#         },
+#         "type": "market_conversation_summary",
+#         "temperature": 0.1
+# }
     body = {
-            "messages": messages,
-            "type": 'market_conversation_summary',
-            "mkt_conversation_summary_config": {
-                "model_id": model_id,
-                "endpoint_name": endpoint_name
-            }
-            # "model":"chat"
-            }
+    "client_type": "GCRChat",
+    "session_id": "961515e9-1d91-402a-8996-aba68f4211c5",
+    "enable_debug": True,
+    "time_window": {
+      "start_time": 1710976467.939,
+      "end_time": 1710994497.327
+    },
+    "type": "market_conversation_summary",
+    "temperature": 0.1
+}
+    # body = {
+    #         "messages": messages,
+    #         "type": 'market_conversation_summary',
+    #         "mkt_conversation_summary_config": {
+    #             "model_id": model_id,
+    #             "endpoint_name": endpoint_name
+    #         }
+    #         # "model":"chat"
+    #         }
     event = {
         "body": json.dumps(body)
     }
@@ -544,62 +951,27 @@ def market_deploy_test():
 
     market_summary_test2()
 
-# def market_deploy_cn_test():
-#     model_id = "internlm2-chat-7b"
-#     endpoint_name = "internlm2-chat-7b-2024-02-23-07-29-02-632"
-#     rag_parameters = {
-#         "query_process_config":{
-#             "conversation_query_rewrite_config":{
-#                 "model_id":model_id,
-#                 "endpoint_name":endpoint_name
-#             },
-#             "translate_config":{
-#                 "model_id":model_id,
-#                 "endpoint_name": endpoint_name
-#             }
-#         },
-#         "intent_config": { 
-#             "model_id": model_id,
-#             "endpoint_name": endpoint_name
-#         },
-#         "generator_llm_config":{
-#             "model_kwargs":{
-#                 "max_new_tokens": 2000,
-#                 "temperature": 0.1,
-#                 "top_p": 0.9
-#             },
-#             "model_id": model_id,
-#             "endpoint_name": endpoint_name,
-#             "context_num": 1
-#         }
-#     }
-#     generate_answer(
-#         "什么是Amazon Bedrock", 
-#         model="auto", 
-#         stream=True,
-#         type="market_chain", 
-#         rag_parameters=rag_parameters
-#     )
 
 
-#     session_id = f'test_{int(time.time())}'
-#     generate_answer(
-#         "《夜曲》是谁演唱的？", 
-#         session_id=session_id,
-#         model="chat", 
-#         type="market_chain", 
-#         stream=True,
-#         rag_parameters=rag_parameters
-#     )
-#     generate_answer(
-#         "他还有哪些其他歌曲？", 
-#         session_id=session_id,
-#         model="chat", 
-#         type="market_chain", 
-#         stream=True,
-#         rag_parameters=rag_parameters
-#     )
-
+def dgr_deploy_test():
+    os.environ['llm_model_id'] = "anthropic.claude-3-sonnet-20240229-v1:0"
+    session_id = f'test_{int(time.time())}'
+    questions = [
+        "Amazon EC2 提供了哪些功能来支持不同区域之间的数据恢复?",
+        "请问Amazon ECS Fargate支持哪些操作系统和CPU架构?",
+        "如何将镜像推送到 Amazon Elastic Container Registry？",
+        "Amazon S3 静态网站端点支持 HTTPS吗？",
+        "如何禁用QuickSight账户中的电子邮件邀请新用户选项？",
+        "如何解决Linux实例在升级和重启后未通过实例检查、无法连接的问题？"
+    ]
+    for question in questions:
+        generate_answer(
+            question, 
+            stream=True,
+            type="dgr",
+            # session_id=session_id
+        )
+    
 
 if __name__ == "__main__":
     # market_summary_test()
@@ -619,7 +991,7 @@ if __name__ == "__main__":
     # market_deploy_test()
     # knowledge_qa_test()
     # r = generate_answer(
-    #     "如何将Kinesis Data Streams配置为AWS Lambda的事件源？", 
+    #     "怎么开发票？", 
     #     model="knowledge_qa", 
     #     stream=True,
     #     type="market_chain", 
@@ -629,7 +1001,12 @@ if __name__ == "__main__":
     
     # market_deploy_test()
     # test_baichuan_model()
-    test_internlm_model()
+    # market_summary_test2()
+    # test_internlm_model()
+    # dgr_deploy_test()
+    test_internlm_model_mkt_knowledge_entry()
+    # test_internlm_model_mkt_knowledge_entry_qq_match()
+    # test_internlm_model_mkt_knowledge_entry_langgraph()
     # test_baichuan_model()
     
     # market_deploy_test()
@@ -637,15 +1014,16 @@ if __name__ == "__main__":
     # generate_answer(
     #     # "如何将Kinesis Data Streams配置为AWS Lambda的事件源？",
     #     # "Amazon EC2 提供了哪些功能来支持不同区域之间的数据恢复?",
-    #     "live chat",
+    #     "什么是Amazon bedrock？",
     #     model="knowledge_qa", 
     #     stream=True,
     #     type="market_chain", 
     #     rag_parameters=dict(
-    #         retriver_config={
+    #         get_contexts = True,
+    #         retriever_config={
     #             "retriever_top_k": 1,
     #             "chunk_num": 2,
-    #             "using_whole_doc": True,
+    #             "using_whole_doc": False,
     #             "reranker_top_k": 10,
     #             "enable_reranker": True
     # },

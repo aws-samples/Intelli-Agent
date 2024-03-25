@@ -54,7 +54,7 @@ def upload_chunk_to_s3(
     object_key = f"{prefix}/{splitting_type}/{timestamp}/{datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S-%f')}.log"
     try:
         res = s3.put_object(Bucket=bucket, Key=object_key, Body=logger_content)
-        logger.info(f"Upload logger file to S3: {res}")
+        logger.debug(f"Upload logger file to S3: {res}")
     except Exception as e:
         logger.error(f"Error uploading logger file to S3: {e}")
 
@@ -70,6 +70,7 @@ def save_content_to_s3(s3, document: Document, res_bucket: str, splitting_type: 
     logger_file = convert_to_logger(document)
     # Extract the filename from the file_path in the metadata
     file_path = document.metadata.get('file_path', '')
-    filename = file_path.split('/')[-1].split('.')[0]
+    # filename = file_path.split('/')[-1].split('.')[0]
+    filename = file_path.replace('s3://', '').replace('/', '-').replace('.', '-')
     # RecursiveCharacterTextSplitter have been rewrite to split based on chunk size & overlap, use seperate folder to store the logger file
     upload_chunk_to_s3(s3, logger_file, res_bucket, filename, splitting_type)

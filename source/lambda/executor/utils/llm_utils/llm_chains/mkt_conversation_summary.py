@@ -38,7 +38,7 @@ class Iternlm2Chat7BMKTConversationSummaryChain(Iternlm2Chat7BChatChain):
         for i,question in enumerate(questions):
             questions_str += f"问题{i+1}: {question}\n"
         # print(questions_str)
-        query_input = """请总结上述对话中的内容,每一轮对话单独一个总结。\n"""
+        query_input = """请总结上述对话中的内容,为每一轮对话单独做一个不超过50个字的简短总结。\n"""
         prompt = cls.build_prompt(
             meta_instruction=CHIT_CHAT_SYSTEM_TEMPLATE,
             history=history,
@@ -72,12 +72,16 @@ class Iternlm2Chat7BMKTConversationSummaryChain(Iternlm2Chat7BChatChain):
             chain = chain | RunnableLambda(lambda x: x['prefix'] + x['llm_output'])
         return chain
 
+
+class Iternlm2Chat20BMKTConversationSummaryChain(Iternlm2Chat7BMKTConversationSummaryChain):
+    model_id = "internlm2-chat-20b"
+
 class Claude2MKTConversationSummaryChain(Claude2ChatChain):
     model_id = 'anthropic.claude-v2'
     intent_type = MKT_CONVERSATION_SUMMARY_TYPE
 
     default_model_kwargs = {
-            "max_tokens_to_sample": 2000,
+            "max_tokens": 2000,
             "temperature": 0.1,
             "top_p": 0.9
         }
@@ -94,3 +98,9 @@ class Claude21MKTConversationSummaryChain(Claude2MKTConversationSummaryChain):
 
 class ClaudeInstanceMKTConversationSummaryChain(Claude2MKTConversationSummaryChain):
     model_id = 'anthropic.claude-instant-v1'
+
+class Claude3SonnetMKTConversationSummaryChain(Claude2MKTConversationSummaryChain):
+    model_id = "anthropic.claude-3-sonnet-20240229-v1:0"
+
+class Claude3HaikuMKTConversationSummaryChain(Claude2MKTConversationSummaryChain):
+    model_id = "anthropic.claude-3-haiku-20240307-v1:0"

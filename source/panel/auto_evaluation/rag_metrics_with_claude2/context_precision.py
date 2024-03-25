@@ -4,10 +4,21 @@ from langchain.callbacks.manager import CallbackManager, trace_as_chain_group
 from datasets import Dataset
 from llm_model import Claude21
 import re
+from utils.llm_utils.llm_models import Model
+from langchain.prompts import ChatPromptTemplate
+# from llm_model import Claude21
+
+claude_model =  Model.get_model(
+    model_id = "anthropic.claude-3-sonnet-20240229-v1:0",
+    model_kwargs={
+        "max_tokens": 10000,
+        "temperature": 0.1
+    }
+)
 
 
-CLAUDE_CONTEXT_PRECISION = """\n\nHuman:
-Given a question wrapped with  <question></question> tag, and a context wrapped with  <context></context> tag, verify if the information in the given context is useful in answering the question. Return a Yes/No answer wrapped with  <answer></answer> tag.
+
+CLAUDE_CONTEXT_PRECISION = """Given a question wrapped with  <question></question> tag, and a context wrapped with  <context></context> tag, verify if the information in the given context is useful in answering the question. Return a Yes/No answer wrapped with  <answer></answer> tag.
 <question>
 {question}
 </question>
@@ -17,11 +28,11 @@ Given a question wrapped with  <question></question> tag, and a context wrapped 
 </context>
 
 Return a Yes/No answer wrapped with  <answer></answer> tag.
-\n\nAssistant:
-<answer>
 """
 
-
+precision_prompt_template = ChatPromptTemplate.format_messages([
+    ('user',CLAUDE_CONTEXT_PRECISION)
+])
 class ClaudeContextprecision(ContextPrecision):
 
     def _score_batch(

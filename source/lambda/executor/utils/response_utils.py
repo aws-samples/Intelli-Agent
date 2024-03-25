@@ -1,20 +1,21 @@
 import copy
+import csv
 import json
 import logging
+import os
 import time
 import traceback
 
-from .constant import EntryType
+from .constant import EntryType, StreamMessageType
+from .content_filter_utils.content_filters import (
+    MarketContentFilter,
+    token_to_sentence_gen_market,
+)
 
-logger = logging.getLogger()
+logger = logging.getLogger("response_utils")
 
-
-class StreamMessageType:
-    START = "START"
-    END = "END"
-    ERROR = "ERROR"
-    CHUNK = "CHUNK"
-    CONTEXT = "CONTEXT"
+# marketing
+market_content_filter = MarketContentFilter()
 
 
 class WebsocketClientError(Exception):
@@ -33,20 +34,31 @@ def api_response(**kwargs):
     contexts = kwargs["contexts"]
     enable_debug = kwargs["enable_debug"]
     debug_info = kwargs["debug_info"]
-    chat_history = kwargs["chat_history"]
+    ddb_history_obj = kwargs["ddb_history_obj"]
     message_id = kwargs["message_id"]
     question = kwargs["question"]
+    client_type = kwargs["client_type"]
+    custom_message_id = kwargs["custom_message_id"]
 
     if not isinstance(answer, str):
         answer = json.dumps(answer, ensure_ascii=False)
 
     if entry_type != EntryType.MARKET_CONVERSATION_SUMMARY.value:
-        chat_history.add_user_message(f"user_{message_id}", question, entry_type)
-        chat_history.add_ai_message(f"ai_{message_id}", answer, entry_type)
+        ddb_history_obj.add_user_message(
+            f"user_{message_id}", custom_message_id, entry_type, question
+        )
+        ddb_history_obj.add_ai_message(
+            f"ai_{message_id}",
+            custom_message_id,
+            entry_type,
+            answer,
+            input_message_id=f"user_{message_id}",
+        )
 
     # 2. return rusult
     llmbot_response = {
-        "id": session_id,
+        "session_id": session_id,
+        "client_type": client_type,
         "object": "chat.completion",
         "created": int(request_timestamp),
         # "model": model,
@@ -59,6 +71,7 @@ def api_response(**kwargs):
                     "knowledge_sources": sources,
                 },
                 "message_id": f"ai_{message_id}",
+                "custom_message_id": custom_message_id,
                 "finish_reason": "stop",
                 "index": 0,
             }
@@ -88,20 +101,25 @@ def stream_response(**kwargs):
     # model = kwargs.["model"]
     request_timestamp = kwargs["request_timestamp"]
     answer = kwargs["answer"]
+    entry_type = kwargs["entry_type"]
     sources = kwargs["sources"]
     get_contexts = kwargs["get_contexts"]  # bool
     contexts = kwargs["contexts"]  # retrieve result
     enable_debug = kwargs["enable_debug"]
     debug_info = kwargs["debug_info"]
     ws_client = kwargs["ws_client"]
-    chat_history = kwargs["chat_history"]
+    ddb_history_obj = kwargs["ddb_history_obj"]
     message_id = kwargs["message_id"]
     question = kwargs["question"]
-    entry_type = kwargs["entry_type"]
+    
     ws_connection_id = kwargs["ws_connection_id"]
+    log_first_token_time = kwargs.get("log_first_token_time", True)
+    client_type = kwargs["client_type"]
+    custom_message_id = kwargs["custom_message_id"]
+    main_entry_end = kwargs["main_entry_end"]
 
     if isinstance(answer, str):
-        answer = [answer]
+        answer = iter([answer])
 
     def _stop_stream():
         pass
@@ -111,15 +129,10 @@ def stream_response(**kwargs):
     def _send_to_ws_client(message: dict):
         try:
             llmbot_response = {
-                "id": session_id,
+                "session_id": session_id,
+                "client_type": client_type,
                 "object": "chat.completion",
                 "created": int(request_timestamp),
-                # "model": '',
-                # "usage": {
-                #     "prompt_tokens": 13,
-                #     "completion_tokens": 7,
-                #     "total_tokens": 20,
-                # },
                 "choices": [message],
                 "entry_type": entry_type,
             }
@@ -128,6 +141,8 @@ def stream_response(**kwargs):
                 Data=json.dumps(llmbot_response).encode("utf-8"),
             )
         except:
+            data_to_send = json.dumps(llmbot_response).encode("utf-8")
+            logger.info(f"Send to ws client error occurs, the message to send is: {data_to_send}")
             # convert to websocket error
             raise WebsocketClientError
 
@@ -136,32 +151,68 @@ def stream_response(**kwargs):
             {
                 "message_type": StreamMessageType.START,
                 "message_id": f"ai_{message_id}",
+                "custom_message_id": custom_message_id,
             }
         )
         answer_str = ""
-        for i, ans in enumerate(answer):
+
+        filter_sentence_fn = lambda x:x
+        if market_content_filter.check_market_entry(entry_type):
+            answer = token_to_sentence_gen_market(answer)
+            filter_sentence_fn = market_content_filter.filter_sentence
+            sources = market_content_filter.filter_source(kwargs["sources"])
+    
+        for i, chunk in enumerate(answer):
+            if i == 0 and log_first_token_time:
+                first_token_time = time.time()
+                logger.info(
+                    f"{custom_message_id} running time of first token generated {entry_type} : {first_token_time-main_entry_end}s"
+                )
+                logger.info(
+                    f"{custom_message_id} running time of first token whole {entry_type} : {first_token_time-request_timestamp}s"
+                )
+            chunk = filter_sentence_fn(chunk)
             _send_to_ws_client(
                 {
                     "message_type": StreamMessageType.CHUNK,
                     "message_id": f"ai_{message_id}",
+                    "custom_message_id": custom_message_id,
                     "message": {
                         "role": "assistant",
-                        "content": ans,
+                        "content": chunk,
                         # "knowledge_sources": sources,
                     },
                     "chunk_id": i,
                 }
             )
-            answer_str += ans
 
+            answer_str += chunk
+
+        if log_first_token_time:
+            logger.info(
+                f"{custom_message_id} running time of last token whole {entry_type} : {time.time()-request_timestamp}s"
+            )
+
+        logger.info(f"answer: {answer_str}")
         # add to chat history ddb table
         if entry_type != EntryType.MARKET_CONVERSATION_SUMMARY.value:
-            chat_history.add_user_message(f"user_{message_id}", question, entry_type)
-            chat_history.add_ai_message(f"ai_{message_id}", answer_str, entry_type)
+            ddb_history_obj.add_user_message(
+                f"user_{message_id}", custom_message_id, entry_type, question
+            )
+            ddb_history_obj.add_ai_message(
+                f"ai_{message_id}",
+                custom_message_id,
+                entry_type,
+                answer_str,
+                input_message_id=f"user_{message_id}",
+            )
         # sed source and contexts
+
+            
         context_msg = {
             "message_type": StreamMessageType.CONTEXT,
             "message_id": f"ai_{message_id}",
+            "custom_message_id": custom_message_id,
             "knowledge_sources": sources,
         }
         if get_contexts:
@@ -177,6 +228,7 @@ def stream_response(**kwargs):
             {
                 "message_type": StreamMessageType.END,
                 "message_id": f"ai_{message_id}",
+                "custom_message_id": custom_message_id,
             }
         )
     except WebsocketClientError:
@@ -191,6 +243,7 @@ def stream_response(**kwargs):
             {
                 "message_type": StreamMessageType.ERROR,
                 "message_id": f"ai_{message_id}",
+                "custom_message_id": custom_message_id,
                 "message": {"content": error},
             }
         )
