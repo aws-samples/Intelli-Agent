@@ -69,7 +69,8 @@ def add_feedback(
     user_id,
     message_id,
     feedback_type,
-    suggestMessage,
+    feedback_reason,
+    suggest_message,
 ) -> None:
     """
     Sample feedback:
@@ -94,10 +95,11 @@ def add_feedback(
         current_timestamp = Decimal.from_float(time.time())
         messages_table.update_item(
             Key={"messageId": message_id, "sessionId": session_id},
-            UpdateExpression="SET feedbackType = :ft, suggestMessage = :sm, lastModifiedTimestamp = :t",
+            UpdateExpression="SET feedbackType = :ft, feedbackReason = :fr, suggestMessage = :sm, lastModifiedTimestamp = :t",
             ExpressionAttributeValues={
                 ":ft": feedback_type,
-                ":sm": suggestMessage,
+                ":fr": feedback_reason,
+                ":sm": suggest_message,
                 ":t": current_timestamp,
             },
             ReturnValues="UPDATED_NEW",
@@ -122,8 +124,9 @@ def get_feedback(messages_table, message_id, session_id):
 
     if message:
         return {
-            "feedbackType": message.get("feedbackType", ""),
-            "suggestMessage": message.get("suggestMessage", ""),
+            "feedback_type": message.get("feedbackType", ""),
+            "feedback_reason": message.get("feedbackReason", ""),
+            "suggest_message": message.get("suggestMessage", ""),
         }
     else:
         return {}
@@ -153,11 +156,13 @@ def lambda_handler(event, context):
     user_id = body.get("user_id", "default_user_id")
     message_id = body.get("message_id", None)
     feedback_type = body.get("feedback_type", None)
-    suggestMessage = body.get("suggest_message", None)
+    feedback_reason = body.get("feedback_reason", None)
+    suggest_message = body.get("suggest_message", None)
 
     operations_mapping = {
         "POST": {
             "get_session": lambda: get_session(sessions_table, session_id, user_id),
+            "get_message": lambda: get_message(messages_table, message_id, session_id),
             "add_feedback": lambda: add_feedback(
                 sessions_table,
                 messages_table,
@@ -165,7 +170,8 @@ def lambda_handler(event, context):
                 user_id,
                 message_id,
                 feedback_type,
-                suggestMessage,
+                feedback_reason,
+                suggest_message,
             ),
             "get_feedback": lambda: get_feedback(
                 messages_table, message_id, session_id
