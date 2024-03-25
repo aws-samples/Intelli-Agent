@@ -323,7 +323,7 @@ class RelevanceM3ContentHandler(EmbeddingsContentHandler):
         if len(embeddings) == 1:
             return [embeddings[0]]
 
-        return embeddings
+        return [embeddings]
 
 
 class SimilarityM3ContentHandler(EmbeddingsContentHandler):
