@@ -16,12 +16,12 @@ from boto3.dynamodb.conditions import Attr, Key
 from langchain.docstore.document import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import OpenSearchVectorSearch
+from langchain_community.vectorstores.opensearch_vector_search import (
+    OpenSearchVectorSearch,
+)
 from opensearchpy import RequestsHttpConnection
 from requests_aws4auth import AWS4Auth
 from tenacity import retry, stop_after_attempt, wait_exponential
-from langchain_community.vectorstores.opensearch_vector_search import (
-        OpenSearchVectorSearch
-    )
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)

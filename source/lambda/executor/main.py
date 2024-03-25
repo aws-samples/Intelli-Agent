@@ -102,7 +102,7 @@ def lambda_handler(event, context):
     request_timestamp = time.time()
     logger.info(f"request_timestamp :{request_timestamp}")
     logger.info(f"event:{event}")
-    logger.info(f"context:{context}")
+    # logger.info(f"context:{context}")
     if "Records" not in event:
         # Restful API invocation
         event["Records"] = [{"body": json.dumps(event)}]
