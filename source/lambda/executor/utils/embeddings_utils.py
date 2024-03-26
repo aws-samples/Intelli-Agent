@@ -66,3 +66,25 @@ class BGEM3EmbeddingSagemakerEndpoint:
             **kwargs
         )
         return embedding
+
+
+class BCEEmbeddingSagemakerEndpoint(BGEM3EmbeddingSagemakerEndpoint):
+    class vectorContentHandler(EmbeddingsContentHandler):
+        content_type = "application/json"
+        accepts = "application/json"
+        default_model_kwargs = {
+            "batch_size": 12,
+            "max_length": 512,
+            "return_type": "dense",
+        }
+
+        def transform_input(self, inputs: List[str], model_kwargs: Dict) -> bytes:
+            model_kwargs = {**self.default_model_kwargs, **model_kwargs}
+            input_str = json.dumps({"inputs": inputs, **model_kwargs})
+            return input_str.encode("utf-8")
+
+        def transform_output(self, output: bytes) -> List[List[float]]:
+            response_json = json.loads(output.read().decode("utf-8"))
+
+            sentence_embeddings = response_json["sentence_embeddings"]
+            return sentence_embeddings

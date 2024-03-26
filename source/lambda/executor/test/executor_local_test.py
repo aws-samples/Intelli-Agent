@@ -562,7 +562,8 @@ def test_internlm_model_mkt_knowledge_entry():
     session_id=f'test_{time.time()}'
     # endpoint_name = 'internlm2-chat-7b-4bits-2024-02-28-07-08-57-839'
     # model_id = "internlm2-chat-7b"
-    endpoint_name = 'internlm2-chat-20b-4bits-2024-03-04-06-32-53-653'
+    # endpoint_name = 'internlm2-chat-20b-4bits-2024-03-04-06-32-53-653'
+    endpoint_name = 'internlm2-chat-20b-4bits-continuous-bat-2024-03-23-16-25-28-881'
     model_id = "internlm2-chat-20b"
     entry_type = "market_chain"
 
@@ -577,23 +578,32 @@ def test_internlm_model_mkt_knowledge_entry():
         "retriever_config":{}
     }
 
-    # generate_answer(
-    #     "请问亚马逊云科技中国区域的S3和EC2的价格",
-    #     # "2024亚马逊云科技出海全球化论坛什么时候举办？",
-    #     # "lambda是什么？",
-    #     # "2024年出海全球化论坛的会议日程是什么？",
-    #     # "亚马逊云科技有上海区域吗？",
-    #     # "在亚马逊云科技网站上，完成所有账户注册步骤后，什么时候才可以开始使用？",
-    #         # "亚马逊云科技中国区域免费套餐有哪几种不同类型的优惠？",
-    #         # "什么是日志通",
-    #         # "日志通是什么？",
-    #         # model="knowledge_qa", 
-    #         type=entry_type, 
-    #         stream=True,
-    #         rag_parameters=rag_parameters
-    # )
+    #  "亚马逊云科技中国区域免费套餐有什么优惠？",
+    #   "介绍Amazon Lambda是什么？"
 
-    # print(sfg)
+    generate_answer(
+        # "客服联系时间",
+        # "请问怎么关闭账号？", 
+        # "个人能否注册账号？",
+        # "3月份在深圳有生成式AI的活动吗？",
+        # "2024北京国际车展上，亚马逊云科技会参加吗？",
+        # "你能分享一些AWS客户在机器学习CI/CD方面的成功故事吗？",
+        # "请问亚马逊云科技中国区域的S3和EC2的价格",
+        # "2024亚马逊云科技出海全球化论坛什么时候举办？",
+        "lambda是什么？",
+        # "2024年出海全球化论坛的会议日程是什么？",
+        # "亚马逊云科技有上海区域吗？",
+        # "在亚马逊云科技网站上，完成所有账户注册步骤后，什么时候才可以开始使用？",
+            # "亚马逊云科技中国区域免费套餐有哪几种不同类型的优惠？",
+            # "什么是日志通",
+            # "日志通是什么？",
+            # model="knowledge_qa", 
+            type=entry_type, 
+            stream=True,
+            rag_parameters=rag_parameters
+    )
+
+    print(sfg)
 
     # generate_answer(
     #     "2024亚马逊云科技出海全球化论坛什么时候举办？",
@@ -721,46 +731,42 @@ def test_internlm_model_mkt_knowledge_entry():
             # "什么是日志通",
             # model="knowledge_qa", 
             type=entry_type, 
-            stream=False,
+            stream=True,
             rag_parameters=rag_parameters
         )
-        ret.append((question,r[0]))
+        # ret.append((question,r[0]))
 
-    for q,a in ret:
-        print('*-'*50)
-        print(f'Q: {q},\nA: {a}')
+    # for q,a in ret:
+    #     print('*-'*50)
+    #     print(f'Q: {q}\nA: {a}')
 
 
 def test_internlm_model_mkt_knowledge_entry_langgraph():
     session_id=f'test_{time.time()}'
     # endpoint_name = 'internlm2-chat-7b-4bits-2024-02-28-07-08-57-839'
     # model_id = "internlm2-chat-7b"
-    endpoint_name = 'internlm2-chat-20b-4bits-2024-03-04-06-32-53-653'
+    endpoint_name = 'internlm2-chat-20b-4bits-continuous-bat-2024-03-23-16-25-28-881'
     model_id = "internlm2-chat-20b"
     entry_type = "market_chain_knowledge_langgraph"
 
     os.environ['llm_model_id'] = model_id
     os.environ['llm_model_endpoint_name'] = endpoint_name
+
+    rag_parameters={
+        "get_contexts":True,
+        # "session_id":session_id,
+        "retriever_config":{}
+    }
+
     generate_answer(
-        "今天是几月几号？", 
+        # "日志通是什么？", 
+        "AWS支持上海region吗？", 
         model="knowledge_qa", 
         type=entry_type, 
-        stream=True,
-        rag_parameters={
-            "session_id":session_id,
-            "get_contexts":True,
-            "retriever_config":{
-                "qq_config": {
-                    "q_q_match_threshold": 0.9,
-                },
-                "qd_config":{
-                    "qd_match_threshold": 2,
-                    "using_whole_doc": True
-                },
-                "workspace_ids": ["aos_index_mkt_faq_qq","aos_index_acts_qd"]
-        }
-        }
+        stream=True
     )
+
+    print(sfg)
 
     generate_answer(
         "日志通是什么？", 

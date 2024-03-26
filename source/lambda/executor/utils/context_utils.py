@@ -3,9 +3,10 @@ from langchain.docstore.document import Document
 import os
 
 from .time_utils import timeit
+from .logger_utils import get_logger
+import pandas as pd 
 
 logger = logging.getLogger('context_utils')
-logger.setLevel(logging.INFO)
 
 def contexts_trunc(docs: list[dict], context_num=2):
         # print('docs len',len(docs))
@@ -38,7 +39,6 @@ def contexts_trunc(docs: list[dict], context_num=2):
         }
 
 
-@timeit
 def retriever_results_format(
           docs:list[Document],
           print_source=True,
@@ -49,23 +49,26 @@ def retriever_results_format(
     for doc in docs:
         doc_dicts.append({
              "page_content": doc.page_content,
-             "retrieval_score": doc.metadata["retrieval_score"], 
-             "rerank_score": doc.metadata["score"], 
-             "score": doc.metadata["score"], 
-             "source": doc.metadata["source"],
-             "answer": doc.metadata.get("answer",""),
-            "question": doc.metadata.get("question","")
+            #  "retrieval_score": doc.metadata["retrieval_score"], 
+            #  "rerank_score": doc.metadata["score"], 
+            **doc.metadata
+            #  "source": doc.metadata["source"],
+            #  "answer": doc.metadata.get("answer",""),
+            # "question": doc.metadata.get("question",""),
             })
-    if print_source:
-         source_strs = []
-         for doc_dict in doc_dicts:
-              content = ""
-              if print_content:
-                   content = f', content: {doc_dict["page_content"]}'
-              source_strs.append(
-                   f'source: {doc_dict["source"]}, score: {doc_dict["score"]}{content}, retrieval score: {doc_dict["retrieval_score"]}'
-                   )
-         logger.info("retrieved sources:\n"+ '\n'.join(source_strs))
+    
+    if not doc_dicts:
+        return doc_dicts
+    cols = list(doc_dicts[0].keys())
+    if not print_content:
+        cols = [col for col in cols if 'content' not in col and 'answer' not in col]
+    print_strs = []
+    for doc_dict in doc_dicts:
+        print_strs.append(', '.join([f'{col}: {doc_dict[col]}' for col in cols]))
+    s = '\n'.join(print_strs)
+
+    logger.info( "retrieved source infos: \n" + f"{s}")
+    
     return doc_dicts
 
 def documents_list_filter(doc_dicts:list[dict],filter_key='score',threshold=-1):

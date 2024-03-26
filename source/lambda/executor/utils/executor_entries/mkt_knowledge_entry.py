@@ -16,6 +16,7 @@ from langchain.retrievers.merger_retriever import MergerRetriever
 from ..intent_utils import IntentRecognitionAOSIndex
 from ..llm_utils import LLMChain
 from ..serialization_utils import JSONEncoder
+from ..logger_utils import get_logger
 from ..langchain_utils import (
     chain_logger,
     RunnableDictAssign,
@@ -44,11 +45,10 @@ from ..query_process_utils.preprocess_utils import (
 from ..workspace_utils import WorkspaceManager
 
 
-logger = logging.getLogger('mkt_knowledge_entry')
-logger.setLevel(logging.INFO)
+logger = get_logger('mkt_knowledge_entry')
 
-zh_embedding_endpoint = os.environ.get("zh_embedding_endpoint", "")
-en_embedding_endpoint = os.environ.get("en_embedding_endpoint", "")
+# zh_embedding_endpoint = os.environ.get("zh_embedding_endpoint", "")
+# en_embedding_endpoint = os.environ.get("en_embedding_endpoint", "")
 
 intent_recognition_embedding_endpoint = os.environ.get("intent_recognition_embedding_endpoint", "")
 workspace_table = os.environ.get("workspace_table", "")

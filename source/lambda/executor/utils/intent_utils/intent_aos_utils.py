@@ -20,7 +20,7 @@ from typing import List,Dict
 from random import Random
 # from ..preprocess_utils import is_api_query,get_service_name
 from ..langchain_utils import chain_logger,RunnableNoneAssign
-from ..embeddings_utils import BGEM3EmbeddingSagemakerEndpoint
+from ..embeddings_utils import BGEM3EmbeddingSagemakerEndpoint,BCEEmbeddingSagemakerEndpoint
 from langchain_community.vectorstores.opensearch_vector_search import (
         OpenSearchVectorSearch
     )
@@ -32,9 +32,8 @@ from opensearchpy import RequestsHttpConnection
 from requests_aws4auth import AWS4Auth
 from langchain.embeddings.sagemaker_endpoint import EmbeddingsContentHandler
 from langchain.docstore.document import Document
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+from ..logger_utils import get_logger
+logger = get_logger(__name__)
 
 opensearch_client_lock = threading.Lock()
 abs_file_dir = os.path.dirname(__file__)
@@ -63,7 +62,7 @@ class LangchainOpenSearchClient:
                host=os.environ.get('aos_endpoint',None),
                region_name=os.environ['AWS_REGION'],
         ):
-        embedding = BGEM3EmbeddingSagemakerEndpoint(
+        embedding = BCEEmbeddingSagemakerEndpoint(
             endpoint_name=embedding_endpoint_name,
             region_name=region_name
             )

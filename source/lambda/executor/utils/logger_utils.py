@@ -9,4 +9,24 @@ opensearch_logger.setLevel(logging.ERROR)
 boto3_logger = logging.getLogger("botocore")
 boto3_logger.setLevel(logging.ERROR)
 
+def get_logger(
+        name,
+        level=logging.INFO,
+        format='%(asctime)s %(levelname)s [%(filename)s:%(lineno)d] %(message)s',
+        datefmt='%Y-%m-%d:%H:%M:%S'
+        ):
+    logger = logging.getLogger(name)
+    # Create a handler
+    c_handler = logging.StreamHandler()
+    formatter = logging.Formatter(format, datefmt=datefmt)
+    c_handler.setFormatter(formatter)
+
+    logger.addHandler(c_handler)
+ 
+    logger.setLevel(level) 
+    return logger
+
+
+
+
 

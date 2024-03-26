@@ -20,7 +20,7 @@ from ..intent_utils import IntentRecognitionAOSIndex
 from ..llm_utils import LLMChain
 from ..serialization_utils import JSONEncoder
 from ..langchain_utils import chain_logger,RunnableDictAssign,RunnableParallelAssign
-from ..constant import IntentType, CONVERSATION_SUMMARY_TYPE
+from ..constant import IntentType, CONVERSATION_SUMMARY_TYPE, RerankerType
 import asyncio
 
 from ..retriever import (
@@ -29,11 +29,12 @@ from ..retriever import (
     QueryQuestionRetriever,
 )
 from .. import parse_config
-from ..reranker import BGEReranker, MergeReranker
+from ..reranker import BGEReranker, MergeReranker,BGEM3Reranker
 from ..context_utils import contexts_trunc,retriever_results_format,documents_list_filter
 from ..langchain_utils import RunnableDictAssign
 from ..query_process_utils.preprocess_utils import is_api_query, language_check,query_translate,get_service_name
 from ..workspace_utils import WorkspaceManager
+
 
 logger = logging.getLogger('mkt_knowledge_entry')
 logger.setLevel(logging.INFO)
@@ -50,6 +51,8 @@ workspace_manager = WorkspaceManager(workspace_table)
 class AppState(TypedDict):
     state: dict
 
+# define nodes
+    
 def mkt_fast_reply(state: AppState):
     state_ori = state
     state = state['state']
@@ -94,7 +97,7 @@ def conversation_query_rewrite(state: AppState):
         message_id=state['message_id']
     )
    
-    state['query'] = conversation_summary_chain.invoke(state)
+    state['conversation_query_rewrite'] = conversation_summary_chain.invoke(state)
 
     return state_ori 
 
@@ -140,6 +143,7 @@ def query_preprocess(state: AppState):
     state_ret['state'] = state
     return state_ret
 
+
 def get_intent_recognition_with_index_chain(state):
     
     intent_recognition_index = IntentRecognitionAOSIndex(
@@ -167,6 +171,7 @@ def get_intent_recognition_with_index_chain(state):
     intent_recognition_index_chain = intent_index_check_exist_chain | intent_branch
     return intent_recognition_index_chain
 
+
 def get_qq_match_chain(state):
     # qq_match
     qq_workspace_list = state['qq_workspace_list']
@@ -189,7 +194,7 @@ def get_qq_match_chain(state):
     qq_chain = MergerRetriever(retrievers=retriever_list) | \
                 RunnableLambda(retriever_results_format) |\
                 RunnableLambda(partial(
-                    retriever_results_filter,
+                    documents_list_filter,
                     threshold=qq_match_threshold
                 ))
     return qq_chain
@@ -219,6 +224,7 @@ def qq_match_and_intent_recognition(state):
     state_ret['state'] = state
     return state_ret
 
+
 def qd_retriver(state):
     state_ret = state
     state = state['state']
@@ -228,26 +234,31 @@ def qd_retriver(state):
     context_num = qd_config['context_num']
     retriever_top_k = qd_config['retriever_top_k']
     reranker_top_k = qd_config['reranker_top_k']
-    enable_reranker = qd_config['enable_reranker']
+    qd_query_key = qd_config['query_key']
+    reranker_type = qd_config['reranker_type']
     
     qd_workspace_list = state['qd_workspace_list']
 
     retriever_list = [
-        QueryDocumentRetriever(
+        QueryDocumentKNNRetriever(
             workspace=workspace,
             using_whole_doc=using_whole_doc,
             context_num=context_num,
             top_k=retriever_top_k,
+            query_key=qd_query_key
             #   "zh", zh_embedding_endpoint
         )
         for workspace in qd_workspace_list
     ]
 
     lotr = MergerRetriever(retrievers=retriever_list)
-    if enable_reranker:
-        compressor = BGEReranker(top_n=reranker_top_k)
+
+    if reranker_type == RerankerType.BGE_RERANKER.value:
+        compressor = BGEReranker(query_key=qd_query_key)
+    elif reranker_type == RerankerType.BGE_M3_RERANKER.value:
+        compressor = BGEM3Reranker()
     else:
-        compressor = MergeReranker(top_n=reranker_top_k)
+        compressor = MergeReranker()
     compression_retriever = ContextualCompressionRetriever(
         base_compressor=compressor, base_retriever=lotr
     )
@@ -258,6 +269,7 @@ def qd_retriver(state):
     state_ret['state'] = state
     return state_ret 
 
+
 def context_filter(state):
     state_ret = state
     state = state['state']
@@ -266,6 +278,7 @@ def context_filter(state):
     filtered_docs = documents_list_filter(state['docs'],filter_key='score',threshold=qd_match_threshold)
     state['filtered_docs'] = filtered_docs 
     return state_ret
+
 
 def llm(state):
     state_ret = state
@@ -291,6 +304,7 @@ def llm(state):
     return state_ret
 
 
+# conditional edge
 def decide_intent(state):
     state = state['state']
     allow_intents = [
@@ -317,6 +331,7 @@ def decide_if_context_sufficient(state):
         return 'mkt_fast_reply'
     return 'llm'
     
+
 def market_chain_knowledge_entry(
     query_input: str,
     stream=False,
@@ -402,6 +417,7 @@ def market_chain_knowledge_entry(
      )
 
     app = workflow.compile()
+    app.get_graph().print_ascii()
 
     inputs = {
             "query": query_input,
@@ -414,7 +430,7 @@ def market_chain_knowledge_entry(
             "stream": stream,
             "qq_workspace_list": qq_workspace_list,
             "qd_workspace_list": qd_workspace_list,
-            "intent_embedding_endpoint_name": zh_embedding_endpoint
+            "intent_embedding_endpoint_name": os.environ['intent_recognition_embedding_endpoint']
             # "query_lang": "zh"
         }
     response = app.invoke({'state':inputs})['state']
