@@ -1,5 +1,5 @@
 import { NestedStack, StackProps, Duration, Aws } from 'aws-cdk-lib';
-import { Function, Runtime, Code, Architecture } from 'aws-cdk-lib/aws-lambda';
+import { Function, Runtime, Code, Architecture, DockerImageFunction, DockerImageCode } from 'aws-cdk-lib/aws-lambda';
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as apigw from 'aws-cdk-lib/aws-apigateway';
@@ -67,7 +67,7 @@ export class LLMApiStack extends NestedStack {
         const messageQueue = queueStack.messageQueue;
 
         const lambdaLayers = new LambdaLayers(this);
-        const _ApiLambdaExecutorLayer = lambdaLayers.createExecutorLayer();
+        // const _ApiLambdaExecutorLayer = lambdaLayers.createExecutorLayer();
         const _ApiLambdaEmbeddingLayer = lambdaLayers.createEmbeddingLayer();
 
         // s3 bucket for storing documents
@@ -318,11 +318,9 @@ MESSAGES_BY_SESSION_ID_INDEX_NAME: "bySessionId",
         apiResourceBatch.addMethod('POST', lambdaBatchIntegration);
 
         if (BuildConfig.DEPLOYMENT_MODE === 'ALL') {
-            const lambdaExecutor = new Function(this,
+            const lambdaExecutor = new DockerImageFunction(this,
                 "lambdaExecutor", {
-                runtime: Runtime.PYTHON_3_11,
-                handler: "main.lambda_handler",
-                code: Code.fromAsset(join(__dirname, "../../../lambda/executor")),
+                code: DockerImageCode.fromImageAsset(join(__dirname, "../../../lambda/executor")),
                 timeout: Duration.minutes(15),
                 memorySize: 10240,
                 vpc: _vpc,
@@ -345,8 +343,7 @@ MESSAGES_BY_SESSION_ID_INDEX_NAME: "bySessionId",
                     sessions_table_name: _sessionsTableName,
                     messages_table_name: _messagesTableName,
                     workspace_table: _workspaceTableName,
-                },
-                layers: [_ApiLambdaExecutorLayer]
+                }
             });
 
             lambdaExecutor.addToRolePolicy(new iam.PolicyStatement({
