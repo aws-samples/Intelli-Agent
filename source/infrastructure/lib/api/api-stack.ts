@@ -365,7 +365,7 @@ MESSAGES_BY_SESSION_ID_INDEX_NAME: "bySessionId",
             }
             ))
             lambdaExecutor.addToRolePolicy(sqsStatement);
-            lambdaExecutor.addEventSource(new lambdaEventSources.SqsEventSource(messageQueue));
+            lambdaExecutor.addEventSource(new lambdaEventSources.SqsEventSource(messageQueue, { batchSize: 1 }));
 
             // Define the API Gateway Lambda Integration with proxy and no integration responses
             const lambdaExecutorIntegration = new apigw.LambdaIntegration(lambdaExecutor, { proxy: true, });
