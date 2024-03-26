@@ -11,17 +11,21 @@ class EntryType(Enum):
     QD_RETRIEVER = "qd_retriever"
     MARKET_CONVERSATION_SUMMARY = "market_conversation_summary"
     LLM = "llm"
+    TEXT2SQL = "text2sql"
     @classmethod
     def has_value(cls, value):
         return value in cls._value2member_map_ 
 
 Type = EntryType
 class IntentType(Enum):
-    KNOWLEDGE_QA = "knowledge_qa"
+    # common intention
     CHAT = "chat"
-    MARKET_EVENT = 'market_event'
     STRICT_QQ = "strict_q_q"
     AUTO = "auto"
+    # domain intention
+    KNOWLEDGE_QA = "knowledge_qa"
+    MARKET_EVENT = 'market_event'
+    TEXT2SQL_QA = "text2sql_qa"
     @classmethod
     def has_value(cls, value):
         return value in cls._value2member_map_ 

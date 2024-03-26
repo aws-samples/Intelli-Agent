@@ -18,6 +18,7 @@ from utils.executor_entries import (  # market_chain_entry,; market_chain_entry_
     market_chain_knowledge_entry_langgraph,
     market_conversation_summary_entry,
     sagemind_llm_entry,
+    text2sql_guidance_entry,
 )
 
 # from langchain.retrievers.multi_query import MultiQueryRetriever
@@ -267,6 +268,10 @@ def lambda_handler(event, context):
             )
         elif entry_type == Type.LLM.value:
             answer, sources, contexts, debug_info = sagemind_llm_entry(
+                messages=messages, event_body=event_body, stream=stream
+            )
+        elif entry_type == Type.TEXT2SQL.value:
+            answer, sources, contexts, debug_info = text2sql_guidance_entry(
                 messages=messages, event_body=event_body, stream=stream
             )
 

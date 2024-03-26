@@ -6,3 +6,5 @@ from .retriever_entries import main_qd_retriever_entry,main_qq_retriever_entry,g
 from .mkt_knowledge_entry import market_chain_knowledge_entry
 from .mkt_knowledge_entry_langgraph import market_chain_knowledge_entry as market_chain_knowledge_entry_langgraph
 from .sagemind_llm_entry import sagemind_llm_entry
+from .text2sql_guidance_entry import text2sql_guidance_entry
+from .text2sql_guidance_entry_langgraph import text2sql_guidance_entry_langgraph
