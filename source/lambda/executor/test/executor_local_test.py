@@ -574,7 +574,7 @@ def test_internlm_model_mkt_knowledge_entry():
     
     rag_parameters={
         "get_contexts":True,
-        # "session_id":session_id,
+        "session_id":1711421286473,
         "retriever_config":{}
     }
 
@@ -582,6 +582,8 @@ def test_internlm_model_mkt_knowledge_entry():
     #   "介绍Amazon Lambda是什么？"
 
     generate_answer(
+        "亚马逊云科技有上海区域吗？",
+        # "亚马逊云科技有上海区域吗?",
         # "客服联系时间",
         # "请问怎么关闭账号？", 
         # "个人能否注册账号？",
@@ -590,7 +592,7 @@ def test_internlm_model_mkt_knowledge_entry():
         # "你能分享一些AWS客户在机器学习CI/CD方面的成功故事吗？",
         # "请问亚马逊云科技中国区域的S3和EC2的价格",
         # "2024亚马逊云科技出海全球化论坛什么时候举办？",
-        "lambda是什么？",
+        # "lambda是什么？",
         # "2024年出海全球化论坛的会议日程是什么？",
         # "亚马逊云科技有上海区域吗？",
         # "在亚马逊云科技网站上，完成所有账户注册步骤后，什么时候才可以开始使用？",

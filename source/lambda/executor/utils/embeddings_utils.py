@@ -74,8 +74,7 @@ class BCEEmbeddingSagemakerEndpoint(BGEM3EmbeddingSagemakerEndpoint):
         accepts = "application/json"
         default_model_kwargs = {
             "batch_size": 12,
-            "max_length": 512,
-            "return_type": "dense",
+            "max_length": 512
         }
 
         def transform_input(self, inputs: List[str], model_kwargs: Dict) -> bytes:

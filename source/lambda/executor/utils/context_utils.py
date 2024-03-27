@@ -6,7 +6,7 @@ from .time_utils import timeit
 from .logger_utils import get_logger
 import pandas as pd 
 
-logger = logging.getLogger('context_utils')
+logger = get_logger('context_utils')
 
 def contexts_trunc(docs: list[dict], context_num=2):
         # print('docs len',len(docs))

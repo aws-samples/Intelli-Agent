@@ -6,6 +6,7 @@ import json
 import os
 import sys
 import threading
+import datetime 
 from random import Random
 from functools import lru_cache
 from langchain.prompts import PromptTemplate
@@ -31,12 +32,16 @@ class Iternlm2Chat7BMKTConversationSummaryChain(Iternlm2Chat7BChatChain):
         for i in range(0,len(chat_history),2):
             assert chat_history[i].type == HUMAN_MESSAGE_TYPE, chat_history
             assert chat_history[i+1].type == AI_MESSAGE_TYPE, chat_history
-            questions.append(chat_history[i].content)
+            questions.append({
+                "question": chat_history[i].content,
+                'create_time': datetime.datetime.fromtimestamp(chat_history[i].additional_kwargs['create_time']).strftime('%Y-%m-%d %H:%M:%S')
+                }
+                )
             history.append((chat_history[i].content,chat_history[i+1].content))
         
         questions_str = ''
         for i,question in enumerate(questions):
-            questions_str += f"问题{i+1}: {question}\n"
+            questions_str += f"问题{i+1}: {question['question']}\n提问时间: {question['create_time']}\n"
         # print(questions_str)
         query_input = """请总结上述对话中的内容,为每一轮对话单独做一个不超过50个字的简短总结。\n"""
         prompt = cls.build_prompt(
@@ -45,7 +50,7 @@ class Iternlm2Chat7BMKTConversationSummaryChain(Iternlm2Chat7BChatChain):
             query=query_input
         ) 
         prompt_assist = f"好的，根据提供历史对话信息，共有{len(history)}段对话:\n{questions_str}\n对它们的总结如下(每一个总结要先复述一下问题):\n"
-        prefix = f"问题1: {questions[0]}\n总结:"
+        prefix = f"问题1: {questions[0]['question']}\n提问时间: {questions[0]['create_time']}\n总结:"
         # thread_local.mkt_conversation_prefix = prefix
         # print(thread_local,thread_local.mkt_conversation_prefix)
         prompt = prompt + prompt_assist + prefix 

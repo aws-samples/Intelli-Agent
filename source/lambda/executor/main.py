@@ -106,6 +106,7 @@ def lambda_handler(event, context):
     if "Records" not in event:
         # Restful API invocation
         event["Records"] = [{"body": json.dumps(event)}]
+
     for record in event["Records"]:
         record_event = json.loads(record["body"])
         # Get request body
