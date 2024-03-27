@@ -10,10 +10,7 @@ from opensearchpy import OpenSearch, RequestsHttpConnection
 from requests_aws4auth import AWS4Auth
 from tenacity import retry, stop_after_attempt
 
-from .sm_utils import (
-    SagemakerEndpointVectorOrCross,
-    create_sagemaker_embeddings_from_js_model,
-)
+from .sm_utils import create_sagemaker_embeddings_from_js_model
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -67,7 +64,6 @@ class OpenSearchClient:
                 "headers": {"Content-Type": "application/json"},
                 "body": json.dumps({"error": f"index {index} already exist"}),
             }
-        body_dict = json.loads(body)
         # fixed settings and mappings
         # "knn.algo_param.index_thread_qty": 8,
         # "knn.memory.circuit_breaker.limit": "70%",
@@ -151,7 +147,6 @@ class OpenSearchClient:
                 "headers": {"Content-Type": "application/json"},
                 "body": json.dumps({"error": f"index {index} does not exist"}),
             }
-        body_dict = json.loads(body)
         # set default index to '_all' if index is not specified
         if index == "":
             index = "_all"
@@ -416,7 +411,7 @@ class OpenSearchClient:
         body = {
             "query": {
                 # use term-level queries only for fields mapped as keyword
-                "term": {field: {"value": value, "case_insensitive": false}}
+                "term": {field: {"value": value, "case_insensitive": False}}
             },
             "size": size,
             "sort": [{"_score": {"order": "desc"}}],
@@ -460,7 +455,7 @@ class OpenSearchClient:
         body = {
             "query": {
                 # use term-level queries only for fields mapped as keyword
-                "regexp": {field: {"value": value, "case_insensitive": false}}
+                "regexp": {field: {"value": value, "case_insensitive": False}}
             },
             "size": size,
             "sort": [{"_score": {"order": "desc"}}],
