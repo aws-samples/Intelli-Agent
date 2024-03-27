@@ -1,4 +1,4 @@
-import logging 
+unnablelogging 
 import json 
 import os
 import boto3
@@ -66,10 +66,14 @@ def text2sql_fast_reply(
        
     ):
     intent_type = x.get('intent_type', IntentType.KNOWLEDGE_QA.value)
-    if answer is None:
-        answer="很抱歉，我只能回答与亚马逊云科技产品和服务相关的咨询。"
-        if intent_type == IntentType.MARKET_EVENT.value:
-            answer = "抱歉，我没有查询到相关的市场活动信息。"
+    if intent_type == IntentType.CHAT.value:
+        answer="抱歉，我只能回答与text2sql相关的咨询。"
+    elif intent_type == IntentType.COMMON_QUICK_REPLY_TOO_SHORT.value:
+        answer="请详细描述您的问题。"
+    else:
+        answer=f"错误意图识别!: {intent_type}"
+        # if intent_type == IntentType.MARKET_EVENT.value:
+        #     answer = "抱歉，我没有查询到相关的市场活动信息。"
 
     output = {
             "answer": answer,
@@ -185,53 +189,58 @@ def text2sql_guidance_entry(
     sources = []
     answer = ""
     trace_infos = []
-    # intent_info = {
-    #     "manual_input_intent": manual_input_intent,
-    #     "strict_qq_intent_result": {},
-    # }
 
-    ######################
-    # step 0 query reject#
-    ######################
+    ####################################################################################################
+    # construct basic chains #
+    ####################################################################################################
+    # 1st chain: rule_check_chain
+    # purpose: quick check rules according to text2sql requirements
+    # 1. text2sql quick rule check: text2sql_rule_check_func
+    # 1.1 whether the query is too short: is_query_too_short_func
     query_length_threshold = rag_config['query_process_config']['query_length_threshold']
-    is_query_too_short_chain = RunnablePassthrough.assign(
+    is_query_too_short_func = RunnablePassthrough.assign(
         is_query_too_short = RunnableLambda(
         lambda x:is_query_too_short(x['query'],threshold=query_length_threshold)
     ))
+    text2sql_rule_check_func = is_query_too_short_func
 
+    rule_check_chain = RunnableBranch(
+        (lambda x: x['intent_type'] == IntentType.TEXT2SQL_SQL_RE_GEN.value,
+            # placeholder for RAG in re-generation case
+            RunnablePassthrough()
+        ),
+        (lambda x: x['intent_type'] == IntentType.TEXT2SQL_SQL_GEN.value, 
+            text2sql_rule_check_func | RunnableBranch(
+                (lambda x: x['is_query_too_short'],
+                    RunnablePassthrough.assign(intent_type=IntentType.COMMON_QUICK_REPLY_TOO_SHORT.value)),
+                RunnablePassthrough()
+            )
+        ),
+        # bypass according to intentions
+        RunnablePassthrough(),
+    )
 
-    ################################################################################
-    # step 1 conversation summary chain, rewrite query involve history conversation#
-    ################################################################################
-    
+    # 2nd chain: process_query_chain
+    # purpose: process query before retrieve
+    # 1. convseration_summary_func
     conversation_query_rewrite_config = rag_config['query_process_config']['conversation_query_rewrite_config']
     conversation_query_rewrite_result_key = conversation_query_rewrite_config['result_key']
-    cqr_llm_chain = LLMChain.get_chain(
+    cqr_llm = LLMChain.get_chain(
         intent_type=CONVERSATION_SUMMARY_TYPE,
         **conversation_query_rewrite_config
     )
-    cqr_llm_chain = RunnableBranch(
+    cqr_llm = RunnableBranch(
         # single turn
         (lambda x: not x['chat_history'],RunnableLambda(lambda x:x['query'])),
-        cqr_llm_chain
+        cqr_llm
     )
-
-    conversation_summary_chain = chain_logger(
-        RunnablePassthrough.assign(
-            **{conversation_query_rewrite_result_key:cqr_llm_chain}
+    conversation_summary_func = RunnablePassthrough.assign(
+            **{conversation_query_rewrite_result_key:cqr_llm}
             # query=cqr_llm_chain
-        ),
-        "conversation_summary_chain",
-        log_output_template=f'conversation_summary_chain result: {"{"+conversation_query_rewrite_result_key+"}"}',
-        message_id=message_id,
-        trace_infos=trace_infos
-    )
-
-    #######################
-    # step 2 query preprocess#
-    #######################
+        )
+    # 2. preprocess_qurey_func
     translate_config = rag_config['query_process_config']['translate_config']
-    translate_chain = RunnableLambda(
+    translate_func = RunnableLambda(
         lambda x: query_translate(
                   x['query'],
                   lang=x['query_lang'],
@@ -240,66 +249,43 @@ def text2sql_guidance_entry(
         )
     lang_check_and_translate_chain = RunnablePassthrough.assign(
         query_lang = RunnableLambda(lambda x:language_check(x['query']))
-    )  | RunnablePassthrough.assign(translated_text=translate_chain)
+    )  | RunnablePassthrough.assign(translated_text=translate_func)
     
-    is_api_query_chain = RunnableLambda(lambda x:is_api_query(x['query']))
-    service_names_recognition_chain = RunnableLambda(lambda x:get_service_name(x['query']))
+    is_api_query_func = RunnableLambda(lambda x:is_api_query(x['query']))
+    service_names_recognition_func = RunnableLambda(lambda x:get_service_name(x['query']))
     
-    
-    
-    preprocess_chain = lang_check_and_translate_chain | RunnableParallelAssign(
-        is_api_query=is_api_query_chain,
-        service_names=service_names_recognition_chain
+    preprocess_query_func = lang_check_and_translate_chain | RunnableParallelAssign(
+        is_api_query=is_api_query_func,
+        service_names=service_names_recognition_func
     )
 
-    log_output_template=dedent("""
-                               preprocess result:
-                               query_lang: {query_lang}
-                               translated_text: {translated_text}
-                               is_api_query: {is_api_query} 
-                               service_names: {service_names}
-                            """)
-    preprocess_chain = chain_logger(
-        preprocess_chain,
-        'preprocess query chain',
-        message_id=message_id,
-        log_output_template=log_output_template,
-        trace_infos=trace_infos
+    process_query_chain = conversation_summary_func | preprocess_query_func
+
+    process_query_chain = RunnableBranch(
+        (lambda x: x['intent_type'] == IntentType.TEXT2SQL_SQL_RE_GEN.value,
+            # placeholder for re-process in re-generation case
+            RunnablePassthrough()
+        ),
+        (lambda x: x['intent_type'] == IntentType.TEXT2SQL_SQL_GEN.value, 
+            RunnableParallelAssign(
+                qq_result=qq_match_func,
+                intent_type=intent_aos_match_func,
+            ) | RunnablePassthrough.assign(qq_result_num=lambda x:len(x['qq_result'])) | \
+                RunnableBranch(
+                    (lambda x: x['intent_type'] == IntentType.TEXT2SQL_SQL_GEN.value,
+                        qd_match_func
+                    ),
+                    # fast reply intentions
+                    RunnablePassthrough(),
+                ),
+        ),
+        # bypass according to intentions
+        RunnablePassthrough(),
     )
 
-    #####################################
-    # step 3.1 intent recognition chain #
-    #####################################
-    intent_recognition_index = IntentRecognitionAOSIndex(
-        embedding_endpoint_name=intent_recognition_embedding_endpoint
-        )
-    intent_index_ingestion_chain = chain_logger(
-        intent_recognition_index.as_ingestion_chain(),
-        "intent_index_ingestion_chain",
-        message_id=message_id,
-        trace_infos=trace_infos
-    )
-    intent_index_check_exist_chain = RunnablePassthrough.assign(
-        is_intent_index_exist = intent_recognition_index.as_check_index_exist_chain()
-    )
-    intent_index_search_chain = chain_logger(
-        intent_recognition_index.as_search_chain(top_k=5),
-        "intent_index_search_chain",
-        message_id=message_id,
-        trace_infos=trace_infos
-    )
-    intent_postprocess_chain = intent_recognition_index.as_intent_postprocess_chain(method='top_1')
-    
-    intent_search_and_postprocess_chain = intent_index_search_chain | intent_postprocess_chain
-    intent_branch = RunnableBranch(
-        (lambda x: not x['is_intent_index_exist'], intent_index_ingestion_chain | intent_search_and_postprocess_chain),
-        intent_search_and_postprocess_chain
-    )
-    intent_recognition_chain = intent_index_check_exist_chain | intent_branch
-    
-    ####################
-    # step 3.2 qq match#
-    ####################
+    # 3rd chain: retrieve_and_intention_chain
+    # purpose: retrieve index and decide the intention
+    # 1. qurey-and-query match function: qq_match_func
     qq_match_threshold = rag_config['retriever_config']['qq_config']['qq_match_threshold']
     qq_retriver_top_k = rag_config['retriever_config']['qq_config']['retriever_top_k']
     qq_query_key = rag_config['retriever_config']['qq_config']['query_key']
@@ -317,7 +303,7 @@ def text2sql_guidance_entry(
         qq_compression_retriever = ContextualCompressionRetriever(
             base_compressor=qq_compressor, base_retriever=qq_lotr
         )
-        qq_chain =  chain_logger(
+        qq_match_func =  chain_logger(
             # MergerRetriever(retrievers=retriever_list) | \
             qq_compression_retriever | \
                     RunnableLambda(retriever_results_format) |\
@@ -331,169 +317,209 @@ def text2sql_guidance_entry(
             trace_infos=trace_infos
         )
     else:
-        qq_chain = RunnableLambda(lambda x:[])
-
-    ############################
-    # step 4. qd retriever chain#
-    ############################
-    qd_config = rag_config['retriever_config']['qd_config']                     
-    qd_chain = get_qd_chain(qd_config, qd_workspace_list)
-    event_qd_chain = get_qd_chain(qd_config, event_qd_workspace_list)
+        qq_match_func = RunnableLambda(lambda x:[])
+    # 2. intention match according to aos retrieve: intent_aos_retrieve_func
+    intent_recognition_index = IntentRecognitionAOSIndex(
+        embedding_endpoint_name=intent_recognition_embedding_endpoint
+        )
+    intent_index_ingestion = chain_logger(
+        intent_recognition_index.as_ingestion_chain(),
+        "intent_index_ingestion",
+        message_id=message_id,
+        trace_infos=trace_infos
+    )
+    intent_index_check_exist = RunnablePassthrough.assign(
+        is_intent_index_exist = intent_recognition_index.as_check_index_exist_chain()
+    )
+    intent_index_search = chain_logger(
+        intent_recognition_index.as_search_chain(top_k=5),
+        "intent_index_search_chain",
+        message_id=message_id,
+        trace_infos=trace_infos
+    )
+    intent_postprocess = intent_recognition_index.as_intent_postprocess_chain(method='top_1')
     
-    #####################
-    # step 5. llm chain #
-    #####################
+    intent_search_and_postprocess = intent_index_search | intent_postprocess
+    intent_branch = RunnableBranch(
+        (lambda x: not x['is_intent_index_exist'], intent_index_ingestion | intent_search_and_postprocess),
+        intent_search_and_postprocess
+    )
+    intent_aos_match_func = intent_index_check_exist | intent_branch
+
+    # 3. query-and-document match function: qd_match_func
+    qd_match_threshold = rag_config['retriever_config']['qd_config']['qd_match_threshold']
+    qd_config = rag_config['retriever_config']['qd_config']                     
+    qd_match_func = get_qd_chain(qd_config, qd_workspace_list)
+    # event_qd_chain = get_qd_chain(qd_config, event_qd_workspace_list)
+    qd_match_func = RunnableBranch(
+            (
+                # place holder for dedicate search function (TODO)
+                lambda x: x['intent_type'] == IntentType.TEXT2SQL_SQL_GEN.value, 
+                qd_match_func
+            ),
+            qd_match_func
+        )
+
+    retrieve_and_intention_chain = RunnableBranch(
+        (lambda x: x['intent_type'] == IntentType.TEXT2SQL_SQL_RE_GEN.value,
+            # placeholder for RAG in re-generation case
+            RunnablePassthrough()
+        ),
+        (lambda x: x['intent_type'] == IntentType.TEXT2SQL_SQL_GEN.value, 
+            RunnableParallelAssign(
+                qq_result=qq_match_func,
+                intent_type=intent_aos_match_func,
+            ) | RunnablePassthrough.assign(qq_result_num=lambda x:len(x['qq_result'])) | \
+                RunnableBranch(
+                    (lambda x: x['intent_type'] == IntentType.TEXT2SQL_SQL_GEN.value,
+                        qd_match_func
+                    ),
+                    # fast reply intentions
+                    RunnablePassthrough(),
+                ),
+        ),
+        # bypass according to intentions
+        RunnablePassthrough(),
+    )
+
+    # 4th chain: text2sql_llm_chain
+    # purpose: generate sql according to retrieve contents 
+    # 1. generate sql 1st time
+    # 2. dedicate llm for re-generating sql according to error message (TODO)
     generator_llm_config = rag_config['generator_llm_config']
     context_num = generator_llm_config['context_num']
-    llm_chain = RunnableDictAssign(lambda x: contexts_trunc(x['docs'],context_num=context_num)) |\
-          RunnablePassthrough.assign(
-               answer=LLMChain.get_chain(
-                    intent_type=IntentType.KNOWLEDGE_QA.value,
+
+    text2sql_llm_chain = RunnableBranch(
+        (lambda x: x['intent_type'] == IntentType.TEXT2SQL_SQL_RE_GEN.value,
+            RunnableDictAssign(lambda x: contexts_trunc(x['docs'],context_num=context_num)) |\
+            RunnablePassthrough.assign(
+                answer=LLMChain.get_chain(
+                    intent_type=IntentType.TEXT2SQL_SQL_RE_GEN.value,
                     stream=stream,
                     **generator_llm_config
                     ),
                 chat_history=lambda x:rag_config['chat_history']
           )
-
-    # llm_chain = chain_logger(llm_chain,'llm_chain', message_id=message_id)
-
-    ###########################
-    # step 6 synthesize chain #
-    ###########################
-     
-    ######################
-    # step 6.1 rag chain #
-    ######################
-    qd_match_threshold = rag_config['retriever_config']['qd_config']['qd_match_threshold']
-    qd_fast_reply_branch = RunnablePassthrough.assign(
-        filtered_docs = RunnableLambda(lambda x: documents_list_filter(x['docs'],filter_key='rerank_score',threshold=qd_match_threshold))
-    ) | RunnableBranch(
-        (
-            lambda x: not x['filtered_docs'],
-            RunnableLambda(lambda x: mkt_fast_reply(
-                x,
-                fast_info="insufficient context",
-                debug_info=debug_info
-            ))
         ),
-        llm_chain
+        (lambda x: x['intent_type'] == IntentType.TEXT2SQL_SQL_GEN.value, 
+            RunnableDictAssign(lambda x: contexts_trunc(x['docs'],context_num=context_num)) |\
+            RunnablePassthrough.assign(
+                answer=LLMChain.get_chain(
+                    intent_type=IntentType.TEXT2SQL_SQL_GEN.value,
+                    stream=stream,
+                    **generator_llm_config
+                    ),
+                chat_history=lambda x:rag_config['chat_history']
+          )
+        ),
+        RunnablePassthrough(),
     )
 
-    qd_chain = RunnableBranch(
-            (
-                lambda x: x['intent_type'] == IntentType.MARKET_EVENT.value, 
-                event_qd_chain
-            ),
-            qd_chain  
-        )
-
-    rag_chain = chain_logger(
-        qd_chain | qd_fast_reply_branch,
-        'rag chain',
-        trace_infos=trace_infos
+    # 5th chain: post_process_chain
+    # main function: run generated sql using api, to validate the qulity of sql
+    # 1. run sql using asana api: is_sql_validated
+    # 2. generate post process message accoding to non gen or re-gen intention: text2sql_fast_reply
+    query_length_threshold = rag_config['query_process_config']['query_length_threshold']
+    post_process_chain = RunnableBranch(
+        (lambda x: x['intent_type'] == IntentType.TEXT2SQL_SQL_RE_GEN or x['intent_type'] == IntentType.TEXT2SQL_SQL_GEN, 
+            RunnablePassthrough.assign(
+                is_query_too_short = RunnableLambda(
+                lambda x:is_query_too_short(x['query'],threshold=query_length_threshold)
+            )) | RunnableBranch(
+                (
+                    lambda x:x['is_sql_validated'],
+                    RunnablePassthrough.assign(intent_type=IntentType.TEXT2SQL_SQL_VALIDATED)
+                ),
+                RunnablePassthrough.assign(intent_type=IntentType.TEXT2SQL_SQL_RE_GEN)
+            )
+        ),
+        RunnableLambda(
+            lambda x: text2sql_fast_reply(
+                x,
+                # answer=sorted(x['qq_result'],key=lambda x:x['score'],reverse=True)[0]['answer'],
+                # fast_info='qq matched',
+                debug_info=debug_info
+        )),
     )
 
-    ######################################
-    # step 6.2 fast reply based on intent#
-    ######################################
+    ####################################################################################################
+    # add log to separate chains and construct full chain #
+    ####################################################################################################
+    rule_check_chain =  chain_logger(
+        rule_check_chain,
+        'rule_check_chain',
+        message_id=message_id,
+    )
+
     log_output_template=dedent("""
-        qq_result num: {qq_result_num}
-        intent recognition type: {intent_type}
-    """)
-    qq_and_intention_type_recognition_chain = chain_logger(
-        RunnableParallelAssign(
-            qq_result=qq_chain,
-            intent_type=intent_recognition_chain,
-        ) | RunnablePassthrough.assign(qq_result_num=lambda x:len(x['qq_result'])),
-        "intention module",
-        log_output_template=log_output_template,
-        message_id=message_id,
-        trace_infos=trace_infos
-    )
-    
-    allow_intents = [
-        IntentType.KNOWLEDGE_QA.value,
-        IntentType.MARKET_EVENT.value
-        ]
-    qq_and_intent_fast_reply_branch = RunnableBranch(
-        (lambda x: len(x['qq_result']) > 0, 
-         RunnableLambda(
-            lambda x: mkt_fast_reply(
-                x,
-                answer=sorted(x['qq_result'],key=lambda x:x['score'],reverse=True)[0]['answer'],
-                fast_info='qq matched',
-                debug_info=debug_info
-                ))
-        ),
-        (
-            lambda x: x['intent_type'] not in allow_intents, 
-            RunnableLambda(lambda x: mkt_fast_reply(
-                x,
-                fast_info=f"unsupported intent type: {x['intent_type']}",
-                debug_info=debug_info
-                ))
-        ),
-        rag_chain
-    )
-
-    #######################
-    # step 6.3 full chain #
-    #######################
-
-    process_query_chain = conversation_summary_chain | preprocess_chain
-
-    process_query_chain = chain_logger(
+                                conversation_summary_chain results: {conversation_query_rewrite_result_key},
+                                preprocess result:
+                                query_lang: {query_lang}
+                                translated_text: {translated_text}
+                                is_api_query: {is_api_query} 
+                                service_names: {service_names}
+                            """)
+    process_query_chain =  chain_logger(
         process_query_chain,
-        "query process module",
+        'process_query_chain',
         message_id=message_id,
+        log_output_template=log_output_template,
         trace_infos=trace_infos
     )
 
-    qq_and_intent_fast_reply_branch = chain_logger(
-        qq_and_intent_fast_reply_branch,
-        "retrieve module",
+    retrieve_and_intention_chain =  chain_logger(
+        retrieve_and_intention_chain,
+        'retrieve_and_intention_chain',
         message_id=message_id,
-        trace_infos=trace_infos
     )
 
-    full_chain =  process_query_chain | qq_and_intention_type_recognition_chain | qq_and_intent_fast_reply_branch
+    text2sql_llm_chain =  chain_logger(
+        text2sql_llm_chain,
+        'text2sql_llm_chain',
+        message_id=message_id,
+    )
+
+    post_process_chain =  chain_logger(
+        post_process_chain,
+        'post_process_chain',
+        message_id=message_id,
+    )
     
-    full_chain = is_query_too_short_chain |  RunnableBranch(
-        (
-            lambda x:x['is_query_too_short'],
-            RunnableLambda(lambda x: mkt_fast_reply(
-                x,
-                fast_info=f"query: `{x['query']}` is too short",
-                # answer=f"问题长度小于{query_length_threshold}，请详细描述问题。",
-                answer=f"您好，我是亚麻小Q，请详细描述您的问题。",
-                debug_info=debug_info
-                ))
-        ),
-        full_chain
-    )
+    full_chain = rule_check_chain | process_query_chain | retrieve_and_intention_chain | text2sql_llm_chain | post_process_chain
 
-    # full_chain = chain_logger(
-    #     full_chain,
-    #     'full_chain',
-    #     trace_infos=trace_infos
-    # )
-    # start_time = time.time()
+    ####################################################################################################
+    # async invoke full chain in a while loop#
+    ####################################################################################################
+    cont = True
+    chain_try_num = 0
+    max_try_num = rag_config["llm_config"]["llm_max_try_num"]
 
-    response = asyncio.run(full_chain.ainvoke(
-        {
-            "query": query_input,
-            "debug_info": debug_info,
-            # "intent_type": intent_type,
-            # "intent_info": intent_info,
-            "chat_history": rag_config['chat_history'] if rag_config['use_history'] else [],
-            # "query_lang": "zh"
-        }
-    ))
-    # print('invoke time',time.time()-start_time)
-    answer = response["answer"]
-    sources = response["context_sources"]
-    contexts = response["context_docs"]
-    trace_info = format_trace_infos(trace_infos)
-    logger.info(f'chain trace info:\n{trace_info}')
+    while(cont):
+
+        response = asyncio.run(full_chain.ainvoke(
+            {
+                "query": query_input,
+                "debug_info": debug_info,
+                # "intent_type": intent_type,
+                # "intent_info": intent_info,
+                "chat_history": rag_config['chat_history'] if rag_config['use_history'] else [],
+                # "query_lang": "zh"
+            }
+        ))
+
+        # print('invoke time',time.time()-start_time)
+        answer = response["answer"]
+        sources = response["context_sources"]
+        contexts = response["context_docs"]
+        trace_info = format_trace_infos(trace_infos)
+        logger.info(f'chain trace info:\n{trace_info}')
+
+        if response["intent_type"] != IntentType.TEXT2SQL_SQL_RE_GEN.value:
+            # 1. fast reply intent
+            # 2. validated sql output
+            cont = False
+        elif chain_try_num == max_try_num:
+            cont = False
+
 
     return answer, sources, contexts, debug_info

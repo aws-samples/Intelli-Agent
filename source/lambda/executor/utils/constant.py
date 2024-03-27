@@ -22,10 +22,18 @@ class IntentType(Enum):
     CHAT = "chat"
     STRICT_QQ = "strict_q_q"
     AUTO = "auto"
+    QUICK_REPLY_TOO_SHORT = "quick_reply_too_short_query"
+    COMMON_CHAT = "common_chat"
+    COMMON_QUICK_REPLY_TOO_SHORT = "common_quick_reply_too_short_query"
     # domain intention
     KNOWLEDGE_QA = "knowledge_qa"
     MARKET_EVENT = 'market_event'
-    TEXT2SQL_QA = "text2sql_qa"
+    # text2sql intention
+    TEXT2SQL_SQL_QA = "text2sql_sql_qa"
+    TEXT2SQL_SQL_QUICK_REPLY = "text2sql_sql_quick_reply"
+    TEXT2SQL_SQL_GEN = "text2sql_sql_generate"
+    TEXT2SQL_SQL_RE_GEN = "text2sql_sql_re_generate"
+    TEXT2SQL_SQL_VALIDATED = "text2sql_sql_validated"
     @classmethod
     def has_value(cls, value):
         return value in cls._value2member_map_ 
