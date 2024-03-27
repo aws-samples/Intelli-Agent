@@ -272,7 +272,7 @@ def lambda_handler(event, context):
             )
         elif entry_type == Type.TEXT2SQL.value:
             answer, sources, contexts, debug_info = text2sql_guidance_entry(
-                messages=messages, event_body=event_body, stream=stream
+                question, message_id=message_id, event_body=event_body, stream=stream
             )
 
         main_entry_end = time.time()

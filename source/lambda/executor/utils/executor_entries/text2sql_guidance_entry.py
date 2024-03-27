@@ -1,4 +1,4 @@
-unnablelogging 
+import logging
 import json 
 import os
 import boto3
@@ -47,6 +47,14 @@ from ..workspace_utils import WorkspaceManager
 logger = logging.getLogger('mkt_knowledge_entry')
 logger.setLevel(logging.INFO)
 
+abs_file_dir = os.path.dirname(__file__)
+intent_example_path = os.path.join(
+    abs_file_dir,
+    "../intent_utils",
+    "intent_examples",
+    "examples.json"
+)
+
 zh_embedding_endpoint = os.environ.get("zh_embedding_endpoint", "")
 en_embedding_endpoint = os.environ.get("en_embedding_endpoint", "")
 
@@ -77,6 +85,7 @@ def text2sql_fast_reply(
 
     output = {
             "answer": answer,
+            "intent_type": intent_type,
             "sources": [],
             "contexts": [],
             "context_docs": [],
@@ -212,7 +221,8 @@ def text2sql_guidance_entry(
         (lambda x: x['intent_type'] == IntentType.TEXT2SQL_SQL_GEN.value, 
             text2sql_rule_check_func | RunnableBranch(
                 (lambda x: x['is_query_too_short'],
-                    RunnablePassthrough.assign(intent_type=IntentType.COMMON_QUICK_REPLY_TOO_SHORT.value)),
+                    RunnablePassthrough.assign(intent_type=RunnableLambda(
+                        lambda x: IntentType.COMMON_QUICK_REPLY_TOO_SHORT.value))),
                 RunnablePassthrough()
             )
         ),
@@ -259,25 +269,14 @@ def text2sql_guidance_entry(
         service_names=service_names_recognition_func
     )
 
-    process_query_chain = conversation_summary_func | preprocess_query_func
-
     process_query_chain = RunnableBranch(
         (lambda x: x['intent_type'] == IntentType.TEXT2SQL_SQL_RE_GEN.value,
             # placeholder for re-process in re-generation case
             RunnablePassthrough()
         ),
-        (lambda x: x['intent_type'] == IntentType.TEXT2SQL_SQL_GEN.value, 
-            RunnableParallelAssign(
-                qq_result=qq_match_func,
-                intent_type=intent_aos_match_func,
-            ) | RunnablePassthrough.assign(qq_result_num=lambda x:len(x['qq_result'])) | \
-                RunnableBranch(
-                    (lambda x: x['intent_type'] == IntentType.TEXT2SQL_SQL_GEN.value,
-                        qd_match_func
-                    ),
-                    # fast reply intentions
-                    RunnablePassthrough(),
-                ),
+        (lambda x: x['intent_type'] == IntentType.TEXT2SQL_SQL_GEN.value,
+            # placeholder for re-process in re-generation case
+            conversation_summary_func | preprocess_query_func
         ),
         # bypass according to intentions
         RunnablePassthrough(),
@@ -320,7 +319,8 @@ def text2sql_guidance_entry(
         qq_match_func = RunnableLambda(lambda x:[])
     # 2. intention match according to aos retrieve: intent_aos_retrieve_func
     intent_recognition_index = IntentRecognitionAOSIndex(
-        embedding_endpoint_name=intent_recognition_embedding_endpoint
+        embedding_endpoint_name=intent_recognition_embedding_endpoint,
+        intent_example_path=intent_example_path
         )
     intent_index_ingestion = chain_logger(
         intent_recognition_index.as_ingestion_chain(),
@@ -385,7 +385,7 @@ def text2sql_guidance_entry(
     # 4th chain: text2sql_llm_chain
     # purpose: generate sql according to retrieve contents 
     # 1. generate sql 1st time
-    # 2. dedicate llm for re-generating sql according to error message (TODO)
+    # 2. dedicate llm for re-generating sql according to error message (TODO): current is still same llm as the gen llm
     generator_llm_config = rag_config['generator_llm_config']
     context_num = generator_llm_config['context_num']
 
@@ -394,7 +394,7 @@ def text2sql_guidance_entry(
             RunnableDictAssign(lambda x: contexts_trunc(x['docs'],context_num=context_num)) |\
             RunnablePassthrough.assign(
                 answer=LLMChain.get_chain(
-                    intent_type=IntentType.TEXT2SQL_SQL_RE_GEN.value,
+                    intent_type=IntentType.TEXT2SQL_SQL_GEN.value,
                     stream=stream,
                     **generator_llm_config
                     ),
@@ -421,16 +421,16 @@ def text2sql_guidance_entry(
     # 2. generate post process message accoding to non gen or re-gen intention: text2sql_fast_reply
     query_length_threshold = rag_config['query_process_config']['query_length_threshold']
     post_process_chain = RunnableBranch(
-        (lambda x: x['intent_type'] == IntentType.TEXT2SQL_SQL_RE_GEN or x['intent_type'] == IntentType.TEXT2SQL_SQL_GEN, 
+        (lambda x: x['intent_type'] == IntentType.TEXT2SQL_SQL_RE_GEN.value or x['intent_type'] == IntentType.TEXT2SQL_SQL_GEN.value, 
             RunnablePassthrough.assign(
                 is_query_too_short = RunnableLambda(
                 lambda x:is_query_too_short(x['query'],threshold=query_length_threshold)
             )) | RunnableBranch(
                 (
                     lambda x:x['is_sql_validated'],
-                    RunnablePassthrough.assign(intent_type=IntentType.TEXT2SQL_SQL_VALIDATED)
+                    RunnablePassthrough.assign(intent_type=lambda x: IntentType.TEXT2SQL_SQL_VALIDATED.value)
                 ),
-                RunnablePassthrough.assign(intent_type=IntentType.TEXT2SQL_SQL_RE_GEN)
+                RunnablePassthrough.assign(intent_type=lambda x: IntentType.TEXT2SQL_SQL_RE_GEN.value)
             )
         ),
         RunnableLambda(
@@ -492,7 +492,8 @@ def text2sql_guidance_entry(
     ####################################################################################################
     cont = True
     chain_try_num = 0
-    max_try_num = rag_config["llm_config"]["llm_max_try_num"]
+    max_try_num = rag_config["generator_llm_config"]["llm_max_try_num"]
+    intent_type = IntentType.TEXT2SQL_SQL_GEN.value
 
     while(cont):
 
@@ -500,7 +501,7 @@ def text2sql_guidance_entry(
             {
                 "query": query_input,
                 "debug_info": debug_info,
-                # "intent_type": intent_type,
+                "intent_type": intent_type,
                 # "intent_info": intent_info,
                 "chat_history": rag_config['chat_history'] if rag_config['use_history'] else [],
                 # "query_lang": "zh"
@@ -511,7 +512,9 @@ def text2sql_guidance_entry(
         answer = response["answer"]
         sources = response["context_sources"]
         contexts = response["context_docs"]
+        intent_type = response["intent_type"]
         trace_info = format_trace_infos(trace_infos)
+
         logger.info(f'chain trace info:\n{trace_info}')
 
         if response["intent_type"] != IntentType.TEXT2SQL_SQL_RE_GEN.value:

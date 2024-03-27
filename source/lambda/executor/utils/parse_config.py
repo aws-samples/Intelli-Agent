@@ -395,7 +395,7 @@ def parse_text2sql_entry_config(event_body):
 
     assert llm_model_id, llm_model_id
 
-    mkt_default_config = {
+    default_config = {
         # retriver config
         # query process config
         "retriever_config": {
@@ -466,11 +466,12 @@ def parse_text2sql_entry_config(event_body):
             "model_id": llm_model_id,
             "endpoint_name": llm_model_endpoint_name,
             "context_num": 1,
+            "llm_max_try_num": 3,
         },
         "use_history": False,
     }
 
-    new_event_config = update_nest_dict(copy.deepcopy(mkt_default_config), event_body)
+    new_event_config = update_nest_dict(copy.deepcopy(default_config), event_body)
 
     intent = event_body.get("intent", None) or event_body.get("model", None)
     if intent:

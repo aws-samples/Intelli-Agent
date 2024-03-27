@@ -1,0 +1,47 @@
+{
+  "intents": [
+    {
+      "intent": "chat",
+      "describe": "casual chat",
+      "index": "A"
+    },
+    {
+      "intent": "knowledge_qa",
+      "describe": "AWS Question and Answer (Q&A)",
+      "index": "B"
+    },
+    {
+      "intent": "market_event",
+      "describe": "AWS market event",
+      "index": "C"
+    }
+  
+  ],
+  "examples": {
+    "chat": [
+      "早上好，你好吗?",
+      "你好",
+      "你好吗?",
+      "你听到新闻了吗?",
+      "你最喜欢什么书?",
+      "你是谁?",
+      "我在做个东西.",
+      "蛋糕是一个谎言.",
+      "复杂优于晦涩.",
+      "你是一个程序员吗?",
+      "YOLO是什么意思?",
+      "我从未活过吗?",
+      "我能问你一个问题吗?",
+      "你喜欢什么食物?",
+      "你的爱好是什么？",
+      "我告诉你一个秘密，你不要和别人说",
+      "什么是爱",
+      "你爱我吗？",
+      "中国首都是哪？"
+    ],
+    "text2sql_sql_generate": [
+      "订单总数是多少？",
+      "酒店消费额是多少？"
+    ]
+  }
+}
