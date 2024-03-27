@@ -9,6 +9,7 @@ from ...prompt_template import (
     convert_chat_history_from_fstring_format
 )
 from ..llm_models import Model
+from ...logger_utils import get_logger
 from .llm_chain_base import LLMChain
 from langchain.prompts import (
     PromptTemplate,ChatPromptTemplate,
@@ -18,7 +19,7 @@ from langchain.schema.messages import (
     BaseMessage,_message_from_dict,SystemMessage
 )
 
-
+logger = get_logger('rag_chain')
 
 BEDROCK_RAG_CHAT_SYSTEM_PROMPT = """You are a customer service agent, and answering user's query. You ALWAYS follow these guidelines when writing your response:
 <guidelines>
@@ -137,6 +138,8 @@ class Baichuan2Chat13B4BitsKnowledgeQaChain(Baichuan2Chat13B4BitsChatChain):
         return llm_chain
 
 from .chat_chain import Iternlm2Chat7BChatChain
+
+
 class Iternlm2Chat7BKnowledgeQaChain(Iternlm2Chat7BChatChain):
     mdoel_id = "internlm2-chat-7b"
     intent_type = IntentType.KNOWLEDGE_QA.value
@@ -151,7 +154,8 @@ class Iternlm2Chat7BKnowledgeQaChain(Iternlm2Chat7BChatChain):
         contexts = x['contexts']
         history = cls.create_history(x)
         context = "\n".join(contexts)
-        meta_instruction = f"你是一个Amazon AWS的客服助理小Q，帮助的用户回答使用AWS过程中的各种问题。\n面对用户的问题，你需要给出中文回答，注意不要在回答中重复输出内容。\n下面给出相关问题的背景知识, 需要注意的是如果你认为当前的问题不能在背景知识中找到答案, 你需要拒答。\n背景知识:\n{context}\n\n"
+        meta_instruction = "你是一位出色的专家，善于理解提问者的意图和问题的关键，并根据你掌握的信息为提问者的需求提供最佳答案。"
+        # meta_instruction = f"你是一个Amazon AWS的客服助理小Q，帮助的用户回答使用AWS过程中的各种问题。\n面对用户的问题，你需要给出中文回答，注意不要在回答中重复输出内容。\n下面给出相关问题的背景知识, 需要注意的是如果你认为当前的问题不能在背景知识中找到答案, 你需要拒答。\n背景知识:\n{context}\n\n"
         # meta_instruction = f"You are an assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. If you don't know the answer, just say that you don't know. Use simplified Chinese to response the qustion. I’m going to tip $300K for a better answer! "
         # meta_instruction = f'You are an expert AI on a question and answer task. \nUse the "Following Context" when answering the question. If you don't know the answer, reply to the "Following Text" in the header and answer to the best of your knowledge, or if you do know the answer, answer without the "Following Text"'
 #         meta_instruction = """You are an expert AI on a question and answer task. 
@@ -162,15 +166,29 @@ class Iternlm2Chat7BKnowledgeQaChain(Iternlm2Chat7BChatChain):
         # query = f"Question: {query}\nContext:\n{context}"
 #         query = f"""Following Context: {context}
 # Question: {query}"""
-        query = f"问题: {query}"
+        # query = f"问题: {query}"
+
+        query = f"""您已经收集到下面的信息:
+{context}
+
+请参考下面的回答规范:
+1. 多次深入思考用户的问题：\n{query}\n 您必须理解用户提问的意图，并提供最合适的答案。
+2. 从你掌握到的信息中选择最相关的内容（与问题直接相关的关键内容），并以此为基础生成答案。
+3. 生成简洁、符合逻辑的答案。生成答案时，不要只是罗列所选内容，而是要根据上下文重新排列，使之成为自然流畅的段落。
+4. 如果用户的问题是开放性质的的，最多使用三句话回答。
+5. 如果用户的问题是客观的，最多使用一句话进行回答。
+6. 不要输出“这个答案基于/请注意”之类的话。
+7. 答案要简明扼要，但要符合逻辑/自然/有深度。
+"""
         prompt = cls.build_prompt(
             query=query,
             history=history,
             meta_instruction=meta_instruction
         ) 
         # prompt = prompt + "回答: 让我先来判断一下问题的答案是否包含在背景知识中。"
-        prompt = prompt + f"回答: 经过慎重且深入的思考, 根据背景知识, 我的回答如下:\n"
-        print('internlm2 prompt: \n',prompt)
+        # prompt = prompt + f"回答: 经过慎重且深入的思考, 根据背景知识, 我的回答如下:\n"
+        prompt = prompt + f"根据我掌握到的信息，"
+        logger.info(f'internlm2 prompt: \n{prompt}')
         return prompt
 
 class Iternlm2Chat20BKnowledgeQaChain(Iternlm2Chat7BKnowledgeQaChain):

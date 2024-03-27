@@ -124,6 +124,8 @@ market_test_cases = [
     "谢谢"
 ]
 
+market_test_cases = ['请介绍下AWS IAM']
+
 entry_type = "market_chain"
 
 for question in market_test_cases:

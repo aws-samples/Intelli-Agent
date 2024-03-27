@@ -11,8 +11,9 @@ from .content_filter_utils.content_filters import (
     MarketContentFilter,
     token_to_sentence_gen_market,
 )
+from .logger_utils import get_logger
 
-logger = logging.getLogger("response_utils")
+logger = get_logger("response_utils")
 
 # marketing
 market_content_filter = MarketContentFilter()

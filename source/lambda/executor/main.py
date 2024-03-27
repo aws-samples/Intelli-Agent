@@ -1,6 +1,5 @@
 import json
 import os
-
 os.environ["PYTHONUNBUFFERED"] = "1"
 import logging
 import time
@@ -22,13 +21,14 @@ from utils.executor_entries import (  # market_chain_entry,; market_chain_entry_
 
 # from langchain.retrievers.multi_query import MultiQueryRetriever
 # from langchain.retrievers.multi_query import MultiQueryRetriever
-from utils.logger_utils import logger
+from utils.logger_utils import get_logger
 from utils.parse_config import update_nest_dict
 from utils.response_utils import process_response
 from utils.serialization_utils import JSONEncoder
 
 # from utils.constant import MKT_CONVERSATION_SUMMARY_TYPE
 
+logger = get_logger('main')
 region = os.environ["AWS_REGION"]
 embedding_endpoint = os.environ.get("embedding_endpoint", "")
 zh_embedding_endpoint = os.environ.get("zh_embedding_endpoint", "")

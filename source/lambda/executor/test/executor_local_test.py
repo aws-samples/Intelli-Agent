@@ -574,15 +574,19 @@ def test_internlm_model_mkt_knowledge_entry():
     
     rag_parameters={
         "get_contexts":True,
-        "session_id":1711421286473,
-        "retriever_config":{}
+        "session_id":session_id,
+        "retriever_config": {}
     }
 
     #  "亚马逊云科技中国区域免费套餐有什么优惠？",
     #   "介绍Amazon Lambda是什么？"
 
-    generate_answer(
-        "亚马逊云科技有上海区域吗？",
+    # generate_answer(
+        # "在亚马逊云科技网站上，完成所有账户注册步骤后，什么时候才可以开始使用？",
+        # "日志通是什么？",
+        # '请介绍下亚马逊云科技IAM',
+        # "请介绍下AWS IAM",
+        # "亚马逊云科技有上海区域吗？",
         # "亚马逊云科技有上海区域吗?",
         # "客服联系时间",
         # "请问怎么关闭账号？", 
@@ -596,16 +600,16 @@ def test_internlm_model_mkt_knowledge_entry():
         # "2024年出海全球化论坛的会议日程是什么？",
         # "亚马逊云科技有上海区域吗？",
         # "在亚马逊云科技网站上，完成所有账户注册步骤后，什么时候才可以开始使用？",
-            # "亚马逊云科技中国区域免费套餐有哪几种不同类型的优惠？",
-            # "什么是日志通",
-            # "日志通是什么？",
-            # model="knowledge_qa", 
-            type=entry_type, 
-            stream=True,
-            rag_parameters=rag_parameters
-    )
+        #     "亚马逊云科技中国区域免费套餐有哪几种不同类型的优惠？",
+        #     "什么是日志通",
+        #     "日志通是什么？",
+    #         model="knowledge_qa", 
+    #         type=entry_type, 
+    #         stream=True,
+    #         rag_parameters=rag_parameters
+    # )
 
-    print(sfg)
+    # print(sfg)
 
     # generate_answer(
     #     "2024亚马逊云科技出海全球化论坛什么时候举办？",
@@ -733,14 +737,15 @@ def test_internlm_model_mkt_knowledge_entry():
             # "什么是日志通",
             # model="knowledge_qa", 
             type=entry_type, 
-            stream=True,
+            stream=False,
             rag_parameters=rag_parameters
         )
-        # ret.append((question,r[0]))
+        if r:
+            ret.append((question,r[0]))
 
-    # for q,a in ret:
-    #     print('*-'*50)
-    #     print(f'Q: {q}\nA: {a}')
+    for q,a in ret:
+        print('*-'*50)
+        print(f'Q: {q}\nA: {a}')
 
 
 def test_internlm_model_mkt_knowledge_entry_langgraph():

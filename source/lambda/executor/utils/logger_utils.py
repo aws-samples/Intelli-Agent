@@ -16,13 +16,12 @@ def get_logger(
         datefmt='%Y-%m-%d:%H:%M:%S'
         ):
     logger = logging.getLogger(name)
+    logger.propagate = 0
     # Create a handler
     c_handler = logging.StreamHandler()
     formatter = logging.Formatter(format, datefmt=datefmt)
     c_handler.setFormatter(formatter)
-
     logger.addHandler(c_handler)
- 
     logger.setLevel(level) 
     return logger
 

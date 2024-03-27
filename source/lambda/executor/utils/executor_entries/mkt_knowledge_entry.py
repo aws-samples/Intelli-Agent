@@ -345,8 +345,12 @@ def market_chain_knowledge_entry(
     #####################
     generator_llm_config = rag_config['generator_llm_config']
     context_num = generator_llm_config['context_num']
-    llm_chain = RunnableDictAssign(lambda x: contexts_trunc(x['docs'],context_num=context_num)) |\
-          RunnablePassthrough.assign(
+    llm_chain = RunnableDictAssign(lambda x: contexts_trunc(
+        x['docs'],
+        score_key="rerank_score",
+        context_num=context_num
+        )) \
+        | RunnablePassthrough.assign(
                answer=LLMChain.get_chain(
                     intent_type=IntentType.KNOWLEDGE_QA.value,
                     stream=stream,
@@ -494,6 +498,7 @@ def market_chain_knowledge_entry(
     sources = response["context_sources"]
     contexts = response["context_docs"]
     trace_info = format_trace_infos(trace_infos)
-    logger.info(f'chain trace info:\n{trace_info}')
+    
+    logger.info(f'session_id: {rag_config["session_id"]}, chain trace info:\n{trace_info}')
 
     return answer, sources, contexts, debug_info
