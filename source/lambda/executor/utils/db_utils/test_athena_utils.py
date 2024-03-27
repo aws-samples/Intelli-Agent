@@ -1,8 +1,5 @@
 from athena_utils import create_athena_client, get_athena_query_result, schedule_athena_query
 
-SLEEP_TIME = 1
-RETRY_COUNT = 60
-
 db_name = "cf_log_database"
 query_string = 'SELECT * FROM "cf_log_database"."cloudfront_standard_log" limit 10'
 query_output = "s3://<replace_with_your_bucket>/athena_results/"
