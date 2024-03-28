@@ -6,14 +6,9 @@
       "index": "A"
     },
     {
-      "intent": "knowledge_qa",
-      "describe": "AWS Question and Answer (Q&A)",
+      "intent": "text2sql_sql_generate",
+      "describe": "question relating to text2sql",
       "index": "B"
-    },
-    {
-      "intent": "market_event",
-      "describe": "AWS market event",
-      "index": "C"
     }
   
   ],

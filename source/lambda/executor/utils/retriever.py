@@ -544,11 +544,14 @@ class QueryDocumentKNNRetriever(BaseRetriever):
             if result["doc"] in content_set:
                 continue
             content_set.add(result["content"])
+            #TODO add jsonlans
             doc_list.append(Document(page_content=result["doc"],
                                      metadata={"source": result["source"],
                                                "retrieval_content": result["content"],
                                                "retrieval_data": result["data"],
                                                "retrieval_score": result["score"],
+                                               "jsonlAnswer": result["detail"]["metadata"]["jsonlAnswer"],
+                                               #
                                                 # set common score for llm.
                                                "score": result["score"]}))
         debug_info[f"qd-knn-recall-{self.index}-{self.lang}"] = remove_redundancy_debug_info(opensearch_knn_results)
@@ -629,6 +632,8 @@ class QueryDocumentBM25Retriever(BaseRetriever):
             # if 'additional_vecs' in aos_hit['_source']['metadata'] and \
             #     'colbert_vecs' in aos_hit['_source']['metadata']['additional_vecs']:
             #     result["data"]["colbert"] = aos_hit['_source']['metadata']['additional_vecs']['colbert_vecs']
+            if "jsonlAnswer" in aos_hit["_source"]["metadata"]:
+                result["jsonlAnswer"] = aos_hit["_source"]["metadata"]["jsonlAnswer"]
             results.append(result)
         if using_whole_doc:
             for result in results:

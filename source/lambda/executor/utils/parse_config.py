@@ -416,10 +416,10 @@ def parse_text2sql_entry_config(event_body):
                 "query_key": "conversation_query_rewrite",
                 # "enable_reranker":True
             },
-            "workspace_ids": [
-                "aos_index_text2sql_qq_m3",
-            ],
-            "event_workspace_ids": ["event-qd-index-20240313"],
+            "workspace_ids": ["txt2sql"],
+            # "workspace_ids": [],
+            "event_workspace_ids": ["txt2sql"],
+            # "event_workspace_ids": ["event-qd-index-20240313"],
             # "retriever_top_k": 5,
             # "chunk_num": 2,
             # "using_whole_doc": False,

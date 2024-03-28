@@ -19,7 +19,8 @@ def contexts_trunc(docs: list[dict], context_num=2):
         context_docs = []
         context_sources = []
         for doc in docs:
-            content = doc['page_content']
+            # TODO add-hoc for txt2sql demo
+            content = doc['page_content'] + '\n' + doc['jsonl']
             if content not in s:
                 context_strs.append(content)
                 s.add(content)
@@ -37,7 +38,6 @@ def contexts_trunc(docs: list[dict], context_num=2):
             "context_sources":context_sources
         }
 
-
 @timeit
 def retriever_results_format(
           docs:list[Document],
@@ -54,7 +54,8 @@ def retriever_results_format(
              "score": doc.metadata["score"], 
              "source": doc.metadata["source"],
              "answer": doc.metadata.get("answer",""),
-            "question": doc.metadata.get("question","")
+            "question": doc.metadata.get("question",""),
+            "jsonl": doc.metadata.get("jsonlAnswer","")
             })
     if print_source:
          source_strs = []
@@ -67,6 +68,7 @@ def retriever_results_format(
                    )
          logger.info("retrieved sources:\n"+ '\n'.join(source_strs))
     return doc_dicts
+
 
 def documents_list_filter(doc_dicts:list[dict],filter_key='score',threshold=-1):
     results = []

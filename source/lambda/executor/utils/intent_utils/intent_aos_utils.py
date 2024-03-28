@@ -92,6 +92,7 @@ class IntentRecognitionAOSIndex:
                 embedding_endpoint_name=embedding_endpoint_name,
                 intent_example_path=intent_example_path
             )
+        self.intent_example_path = intent_example_path
         self.index_name = index_name
         self.host = host
         self.embedding_endpoint_name = embedding_endpoint_name
@@ -121,7 +122,7 @@ class IntentRecognitionAOSIndex:
     
     def ingestion_intent_data(self):
         docs = []
-        intent_examples = json.load(open(intent_example_path))['examples']
+        intent_examples = json.load(open(self.intent_example_path))['examples']
         for intent_name,examples in intent_examples.items():
             for example in examples:
                 doc = Document(

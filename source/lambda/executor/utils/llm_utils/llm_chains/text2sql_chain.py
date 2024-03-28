@@ -17,25 +17,84 @@ from langchain.prompts import (
 from langchain.schema.messages import (
     BaseMessage,_message_from_dict,SystemMessage
 )
+BEDROCK_TEXT2SQL_GEN_SYSTEM_PROMPT = """
+Transform the following natural language requests into valid SQL queries. Assume a database with the following tables and columns exists:
+
+Products:
+- product_id (INT, PRIMARY KEY)
+- product_type_code (VARCHAR)
+- product_name (VARCHAR)
+
+Some example pairs of question and corresponding SQL query are provided based on similar problems:
+
+<examples>
+{example_pairs}
+</examples>
+
+Think about your answer first before you respond. Put your response in <query></query> tags.
+
+"""
 
 
+BACK_BEDROCK_TEXT2SQL_GEN_SYSTEM_PROMPT = """
+Assume a database with the following tables and columns exists:
 
-BEDROCK_TEXT2SQL_SYSTEM_PROMPT = """You are a customer service agent, and answering user's query. You ALWAYS follow these guidelines when writing your response:
-<guidelines>
-- NERVER say "根据搜索结果/大家好/谢谢...".
-</guidelines>
+Transform the following natural language requests into valid SQL queries. 
 
-Here are some documents for you to reference for your query:
-<docs>
-{context}
-</docs>"""
+<database_schema>
+CREATE EXTERNAL TABLE IF NOT EXISTS `cf_log_database`.`product` (
+  `product_id` int COMMENT '产品ID',
+  `product_type_code` string COMMENT '产品类型，例如Clothes, Hardware',
+  `product_name` string COMMENT '产品名称',
+);
+</database_schema>
 
-def get_claude_rag_context(contexts:list):
+Some example pairs of question and corresponding SQL query are provided based on similar problems:
+
+<examples>
+{contexts}
+</examples>
+
+Think about your answer first before you respond. Put your response in <query></query> tags.
+
+"""
+
+BEDROCK_TEXT2SQL_RE_GEN_SYSTEM_PROMPT = """
+Assume a database with the following tables and columns exists:
+
+Transform the following natural language requests into valid SQL queries. 
+
+<database_schema>
+CREATE  TABLE  continents(
+    ContId  int  primary key ,
+    Continent  text ,
+    foreign  key(ContId) references  countries(Continent)
+);
+CREATE  TABLE  countries(
+    CountryId  int  primary key ,
+    CountryName  text ,
+    Continent  int ,
+    foreign  key(Continent) references  continents(ContId)
+);
+</database_schema>
+
+Some example pairs of question and corresponding SQL query are provided based on similar problems:
+
+<examples>
+{contexts}
+</examples>
+
+Think about your answer first before you respond. Put your response in <query></query> tags.
+
+"""
+
+def get_claude_rag_context(contexts:list, name='doc'):
     assert isinstance(contexts,list), contexts
     context_xmls = []
-    context_template = """<doc index="{index}">\n{content}\n</doc>"""
+    context_template = """<{name} index="{index}">\n{content}\n</example>"""
     for i,context in enumerate(contexts):
         context_xml = context_template.format(
+            name = name,
             index = i+1,
             content = context
         )
@@ -44,9 +103,9 @@ def get_claude_rag_context(contexts:list):
     context = "\n".join(context_xmls)
     return context
 
-def get_claude_chat_rag_prompt(chat_history:List[BaseMessage]):
+def get_claude_text2sql_rag_prompt(chat_history:List[BaseMessage]):
     chat_messages = [
-        SystemMessagePromptTemplate.from_template(BEDROCK_TEXT2SQL_SYSTEM_PROMPT)
+        SystemMessagePromptTemplate.from_template(BEDROCK_TEXT2SQL_GEN_SYSTEM_PROMPT)
     ]
     
     chat_messages = chat_messages + chat_history 
@@ -55,12 +114,41 @@ def get_claude_chat_rag_prompt(chat_history:List[BaseMessage]):
         ]
     context_chain = RunnablePassthrough.assign(
         context=RunnableLambda(
-            lambda x: get_claude_rag_context(x['contexts'])
+            lambda x: get_claude_rag_context(x['contexts'], name='example')
                 )
         )
         
     return context_chain | ChatPromptTemplate.from_messages(chat_messages)
 
+def claude_text2sql_gen_func(chat_history):
+    chat_messages = [SystemMessagePromptTemplate.from_template(BEDROCK_TEXT2SQL_GEN_SYSTEM_PROMPT)]
+    chat_messages = chat_messages + chat_history 
+    chat_messages += [
+        HumanMessagePromptTemplate.from_template("{query}")
+        ]
+    context_chain = RunnablePassthrough.assign(
+        context=RunnableLambda(
+            lambda x: get_claude_rag_context(x['contexts'], name='example')
+                )
+        )
+    chain = context_chain | ChatPromptTemplate.from_messages(chat_messages)
+    
+    return chain
+
+def claude_text2sql_gen_func(chat_history):
+    chat_messages = [SystemMessagePromptTemplate.from_template(BEDROCK_TEXT2SQL_RE_GEN_SYSTEM_PROMPT)]
+    chat_messages = chat_messages + chat_history 
+    chat_messages += [
+        HumanMessagePromptTemplate.from_template("{query}")
+        ]
+    context_chain = RunnablePassthrough.assign(
+        context=RunnableLambda(
+            lambda x: get_claude_rag_context(x['contexts'], name='example')
+                )
+        )
+    chain = context_chain | ChatPromptTemplate.from_messages(chat_messages)
+    
+    return chain
 class Claude3Text2SQLChain(LLMChain):
     model_id = "anthropic.claude-3-haiku-20240307-v1:0"
     intent_type = IntentType.TEXT2SQL_SQL_GEN.value
@@ -71,22 +159,26 @@ class Claude3Text2SQLChain(LLMChain):
 
         # history
         chat_history = kwargs.get('chat_history',[])
-        chat_messages = [SystemMessagePromptTemplate.from_template(BEDROCK_TEXT2SQL_SYSTEM_PROMPT)]
-        chat_messages = chat_messages + chat_history 
-        chat_messages += [
-            HumanMessagePromptTemplate.from_template("{query}")
-            ]
-        context_chain = RunnablePassthrough.assign(
-            context=RunnableLambda(
-                lambda x: get_claude_rag_context(x['contexts'])
-                    )
-            )
+        if cls.intent_type == IntentType.TEXT2SQL_SQL_GEN.value:
+            chain = claude_text2sql_gen_func(chat_history)
+        elif cls.intent_type == IntentType.TEXT2SQL_SQL_RE_GEN.value:
+            chain = claude_text2sql_gen_func(chat_history)
+        # chat_messages = [SystemMessagePromptTemplate.from_template(BEDROCK_TEXT2SQL_SYSTEM_PROMPT)]
+        # chat_messages = chat_messages + chat_history 
+        # chat_messages += [
+        #     HumanMessagePromptTemplate.from_template("{query}")
+        #     ]
+        # context_chain = RunnablePassthrough.assign(
+        #     context=RunnableLambda(
+        #         lambda x: get_claude_rag_context(x['contexts'], name='example')
+        #             )
+        #     )
         llm = Model.get_model(
             cls.model_id,
             model_kwargs=model_kwargs,
             **kwargs
             )
-        chain = context_chain | ChatPromptTemplate.from_messages(chat_messages)
+        # chain = context_chain | ChatPromptTemplate.from_messages(chat_messages)
         if stream:
             chain = chain | RunnableLambda(lambda x: llm.stream(x.messages)) | RunnableLambda(lambda x:(i.content for i in x))
         else:

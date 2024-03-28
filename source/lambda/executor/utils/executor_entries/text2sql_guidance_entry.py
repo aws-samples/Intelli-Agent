@@ -55,7 +55,7 @@ intent_example_path = os.path.join(
     abs_file_dir,
     "../intent_utils",
     "intent_examples",
-    "examples.json"
+    "text2sql_examples.json"
 )
 
 zh_embedding_endpoint = os.environ.get("zh_embedding_endpoint", "")
@@ -394,7 +394,6 @@ def text2sql_guidance_entry(
 
     text2sql_llm_chain = RunnableBranch(
         (lambda x: x['intent_type'] == IntentType.TEXT2SQL_SQL_RE_GEN.value,
-            RunnableDictAssign(lambda x: contexts_trunc(x['docs'],context_num=context_num)) |\
             RunnablePassthrough.assign(
                 answer=LLMChain.get_chain(
                     intent_type=IntentType.TEXT2SQL_SQL_GEN.value,
@@ -425,11 +424,11 @@ def text2sql_guidance_entry(
     post_process_chain = RunnableBranch(
         (lambda x: x['intent_type'] == IntentType.TEXT2SQL_SQL_RE_GEN.value or x['intent_type'] == IntentType.TEXT2SQL_SQL_GEN.value, 
             RunnablePassthrough.assign(
-                is_sql_validated = RunnableLambda(
-                lambda x:check_sql_validation(x['query'])
+                sql_validate_result = RunnableLambda(
+                lambda x:check_sql_validation(x['answer'])
             )) | RunnableBranch(
                 (
-                    lambda x:x['is_sql_validated']=='Passed',
+                    lambda x:x['sql_validate_result']=='Passed',
                     RunnablePassthrough.assign(intent_type=lambda x: IntentType.TEXT2SQL_SQL_VALIDATED.value)
                 ),
                 RunnablePassthrough.assign(intent_type=lambda x: IntentType.TEXT2SQL_SQL_RE_GEN.value)
@@ -498,6 +497,8 @@ def text2sql_guidance_entry(
     max_try_num = rag_config["generator_llm_config"]["llm_max_try_num"]
     intent_type = IntentType.TEXT2SQL_SQL_GEN.value
 
+    sql_validate_result = ""
+    example_pairs = ""
     while(cont):
 
         response = asyncio.run(full_chain.ainvoke(
@@ -505,17 +506,13 @@ def text2sql_guidance_entry(
                 "query": query_input,
                 "debug_info": debug_info,
                 "intent_type": intent_type,
-                # "intent_info": intent_info,
                 "chat_history": rag_config['chat_history'] if rag_config['use_history'] else [],
-                # "query_lang": "zh"
+                "sql_validate_result": sql_validate_result,
+                "example_pairs": example_pairs
             }
         ))
 
         # print('invoke time',time.time()-start_time)
-        answer = response["answer"]
-        sources = response["context_sources"]
-        contexts = response["context_docs"]
-        intent_type = response["intent_type"]
         trace_info = format_trace_infos(trace_infos)
 
         logger.info(f'chain trace info:\n{trace_info}')
@@ -524,8 +521,18 @@ def text2sql_guidance_entry(
             # 1. fast reply intent
             # 2. validated sql output
             cont = False
+            answer = response["answer"]
+            sources = response["context_sources"]
+            contexts = response["context_docs"]
         elif chain_try_num == max_try_num:
             cont = False
+        else:
+            # sql validated fail, re-generate
+            intent_type = response["intent_type"]
+            sql_validate_result = response["sql_validate_result"]
+            example_pairs = response["example_pairs"]
+        
+        chain_try_num = chain_try_num + 1
 
 
     return answer, sources, contexts, debug_info
