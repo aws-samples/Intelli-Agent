@@ -99,5 +99,5 @@ class Claude3HaikuText2SQLChain(Claude3Text2SQLChain):
 class Claude3SonnetText2SQLChain(Claude3Text2SQLChain):
     model_id = "anthropic.claude-3-sonnet-20240229-v1:0"
 
-class Claude3OpusText2SQLChain(Claude3Text2SQLChain):
-    model_id = "anthropic.claude-3-haiku-20240307-v1:0"
+# class Claude3OpusText2SQLChain(Claude3Text2SQLChain):
+#     model_id = "anthropic.claude-3-haiku-20240307-v1:0"

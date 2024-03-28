@@ -418,7 +418,6 @@ def parse_text2sql_entry_config(event_body):
             },
             "workspace_ids": [
                 "aos_index_text2sql_qq_m3",
-                "aos_index_text2sql_qd_m3",
             ],
             "event_workspace_ids": ["event-qd-index-20240313"],
             # "retriever_top_k": 5,

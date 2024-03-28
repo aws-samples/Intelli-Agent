@@ -41,6 +41,9 @@ from ..query_process_utils.preprocess_utils import (
     get_service_name,
     is_query_too_short
 )
+from ..db_utils.sql_utils import (
+    check_sql_validation
+)
 from ..workspace_utils import WorkspaceManager
 
 
@@ -419,15 +422,14 @@ def text2sql_guidance_entry(
     # main function: run generated sql using api, to validate the qulity of sql
     # 1. run sql using asana api: is_sql_validated
     # 2. generate post process message accoding to non gen or re-gen intention: text2sql_fast_reply
-    query_length_threshold = rag_config['query_process_config']['query_length_threshold']
     post_process_chain = RunnableBranch(
         (lambda x: x['intent_type'] == IntentType.TEXT2SQL_SQL_RE_GEN.value or x['intent_type'] == IntentType.TEXT2SQL_SQL_GEN.value, 
             RunnablePassthrough.assign(
-                is_query_too_short = RunnableLambda(
-                lambda x:is_query_too_short(x['query'],threshold=query_length_threshold)
+                is_sql_validated = RunnableLambda(
+                lambda x:check_sql_validation(x['query'])
             )) | RunnableBranch(
                 (
-                    lambda x:x['is_sql_validated'],
+                    lambda x:x['is_sql_validated']=='Passed',
                     RunnablePassthrough.assign(intent_type=lambda x: IntentType.TEXT2SQL_SQL_VALIDATED.value)
                 ),
                 RunnablePassthrough.assign(intent_type=lambda x: IntentType.TEXT2SQL_SQL_RE_GEN.value)
@@ -459,6 +461,7 @@ def text2sql_guidance_entry(
                                 is_api_query: {is_api_query} 
                                 service_names: {service_names}
                             """)
+
     process_query_chain =  chain_logger(
         process_query_chain,
         'process_query_chain',
