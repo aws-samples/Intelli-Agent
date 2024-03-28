@@ -120,12 +120,14 @@ def test_claude3_text2sql_entry():
     
     questions = [
         "最便宜产品的产品ID和产品类型是什么？",
-        "今天星期几？",
-        "请返回3客户的地址",
+        "每种产品的平均价格是多少？",
+        "最便宜产品的产品ID和产品类型是什么？",
+        "今天星期几?",
+        "计算不同产品类型的数量。",
         "你好，你是谁"
     ]
     for question in questions:
-        generate_answer(
+        answer, knowledge_sources, debug_info = generate_answer(
            question, 
             model="knowledge_qa", 
             type=entry_type, 
@@ -144,6 +146,7 @@ def test_claude3_text2sql_entry():
             }
             }
         )
+        print(f"answer is {answer}")
 
 
 def test_internlm_model_mkt_knowledge_entry():

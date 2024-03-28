@@ -17,13 +17,15 @@ from langchain.prompts import (
 from langchain.schema.messages import (
     BaseMessage,_message_from_dict,SystemMessage
 )
-BEDROCK_TEXT2SQL_GEN_SYSTEM_PROMPT = """
+BACK_BEDROCK_TEXT2SQL_GEN_SYSTEM_PROMPT = """
 Transform the following natural language requests into valid SQL queries. Assume a database with the following tables and columns exists:
 
+<database_schema>
 Products:
 - product_id (INT, PRIMARY KEY)
 - product_type_code (VARCHAR)
 - product_name (VARCHAR)
+</database_schema>
 
 Some example pairs of question and corresponding SQL query are provided based on similar problems:
 
@@ -35,11 +37,9 @@ Think about your answer first before you respond. Put your response in <query></
 
 """
 
+BEDROCK_TEXT2SQL_GEN_SYSTEM_PROMPT = """
 
-BACK_BEDROCK_TEXT2SQL_GEN_SYSTEM_PROMPT = """
-Assume a database with the following tables and columns exists:
-
-Transform the following natural language requests into valid SQL queries. 
+Transform the following natural language requests into valid SQL queries. Assume a database with the following database schema exists
 
 <database_schema>
 CREATE EXTERNAL TABLE IF NOT EXISTS `cf_log_database`.`product` (
@@ -54,6 +54,8 @@ Some example pairs of question and corresponding SQL query are provided based on
 <examples>
 {contexts}
 </examples>
+
+Transform the following natural language requests into valid SQL queries. 
 
 Think about your answer first before you respond. Put your response in <query></query> tags.
 
@@ -135,7 +137,7 @@ def claude_text2sql_gen_func(chat_history):
     
     return chain
 
-def claude_text2sql_gen_func(chat_history):
+def claude_text2sql_re_gen_func(chat_history):
     chat_messages = [SystemMessagePromptTemplate.from_template(BEDROCK_TEXT2SQL_RE_GEN_SYSTEM_PROMPT)]
     chat_messages = chat_messages + chat_history 
     chat_messages += [

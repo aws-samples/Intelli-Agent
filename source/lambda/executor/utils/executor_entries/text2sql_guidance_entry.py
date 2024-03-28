@@ -499,6 +499,7 @@ def text2sql_guidance_entry(
 
     sql_validate_result = ""
     example_pairs = ""
+    contexts = ""
     while(cont):
 
         response = asyncio.run(full_chain.ainvoke(
@@ -508,7 +509,7 @@ def text2sql_guidance_entry(
                 "intent_type": intent_type,
                 "chat_history": rag_config['chat_history'] if rag_config['use_history'] else [],
                 "sql_validate_result": sql_validate_result,
-                "example_pairs": example_pairs
+                "contexts": contexts
             }
         ))
 
@@ -521,16 +522,19 @@ def text2sql_guidance_entry(
             # 1. fast reply intent
             # 2. validated sql output
             cont = False
-            answer = response["answer"]
+            try:
+                answer = response["answer"].split("<query>")[1].split("</query>")[0]
+            except:
+                answer = response["answer"]
+
             sources = response["context_sources"]
-            contexts = response["context_docs"]
         elif chain_try_num == max_try_num:
             cont = False
         else:
             # sql validated fail, re-generate
             intent_type = response["intent_type"]
             sql_validate_result = response["sql_validate_result"]
-            example_pairs = response["example_pairs"]
+            contexts = response["contexts"]
         
         chain_try_num = chain_try_num + 1
 
