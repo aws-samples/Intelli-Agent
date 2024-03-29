@@ -24,17 +24,19 @@ def market_conversation_summary_entry(
         f"market rag configs:\n {json.dumps(config,indent=2,ensure_ascii=False,cls=JSONEncoder)}"
     )
     if not config["chat_history"]:
-        assert messages, messages
-        chat_history = []
-        for message in messages:
-            role = message["role"]
-            content = message["content"]
-            assert role in ["user", "ai"]
-            if role == "user":
-                chat_history.append(HumanMessage(content=content))
-            else:
-                chat_history.append(AIMessage(content=content))
-        config["chat_history"] = chat_history
+        if not messages:
+            return f"该会话不存在。", [], [], {}
+        else:
+            chat_history = []
+            for message in messages:
+                role = message["role"]
+                content = message["content"]
+                assert role in ["user", "ai"]
+                if role == "user":
+                    chat_history.append(HumanMessage(content=content))
+                else:
+                    chat_history.append(AIMessage(content=content))
+            config["chat_history"] = chat_history
 
     else:
         # filter by the window time
