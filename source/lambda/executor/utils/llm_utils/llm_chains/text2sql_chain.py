@@ -17,25 +17,6 @@ from langchain.prompts import (
 from langchain.schema.messages import (
     BaseMessage,_message_from_dict,SystemMessage
 )
-BACK_BEDROCK_TEXT2SQL_GEN_SYSTEM_PROMPT = """
-Transform the following natural language requests into valid SQL queries. Assume a database with the following tables and columns exists:
-
-<database_schema>
-Products:
-- product_id (INT, PRIMARY KEY)
-- product_type_code (VARCHAR)
-- product_name (VARCHAR)
-</database_schema>
-
-Some example pairs of question and corresponding SQL query are provided based on similar problems:
-
-<examples>
-{example_pairs}
-</examples>
-
-Think about your answer first before you respond. Put your response in <query></query> tags.
-
-"""
 
 BEDROCK_TEXT2SQL_GEN_SYSTEM_PROMPT = """
 
