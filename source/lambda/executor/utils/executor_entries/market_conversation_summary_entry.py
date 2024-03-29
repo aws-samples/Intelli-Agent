@@ -41,7 +41,7 @@ def market_conversation_summary_entry(
         time_window = config.get("time_window", {})
         start_time = time_window.get("start_time", -math.inf)
         end_time = time_window.get("end_time", math.inf)
-        assert isinstance(start_time, float) and isinstance(end_time, float), (
+        assert isinstance(start_time, str) and isinstance(end_time, str), (
             start_time,
             end_time,
         )
@@ -50,7 +50,7 @@ def market_conversation_summary_entry(
             chat_history, start_time=start_time, end_time=end_time
         )
         config["chat_history"] = chat_history
-    
+
     if not config["chat_history"]:
         return f"该用户在所选时间段内历史消息为空。", [], [], {}
     # query_input = """请简要总结上述对话中的内容,每一个对话单独一个总结，并用 '- '开头。 每一个总结要先说明问题。\n"""

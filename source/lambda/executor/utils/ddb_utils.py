@@ -94,7 +94,7 @@ class DynamoDBChatMessageHistory(BaseChatMessageHistory):
                 "content": item["content"],
                 "additional_kwargs": {
                     "message_id": item["messageId"],
-                    "create_time": float(item["createTimestamp"]),
+                    "create_time": item["createTimestamp"],
                     "entry_type": item["entryType"],
                     "custom_message_id": item["customMessageId"],
                 },
@@ -108,7 +108,7 @@ class DynamoDBChatMessageHistory(BaseChatMessageHistory):
         session = self.session
         # If this session already exists, update lastModifiedTimestamp
         if session:
-            current_timestamp = Decimal.from_float(time.time())
+            current_timestamp = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%fZ")
             response = self.sessions_table.update_item(
                 Key={"sessionId": self.session_id, "userId": self.user_id},
                 UpdateExpression="SET lastModifiedTimestamp = :t",
@@ -116,7 +116,7 @@ class DynamoDBChatMessageHistory(BaseChatMessageHistory):
                 ReturnValues="UPDATED_NEW",
             )
         else:
-            current_timestamp = Decimal.from_float(time.time())
+            current_timestamp = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%fZ")
             response = self.sessions_table.put_item(
                 Item={
                     "sessionId": self.session_id,
@@ -138,7 +138,7 @@ class DynamoDBChatMessageHistory(BaseChatMessageHistory):
         input_message_id="",
     ) -> None:
         """Append the message to the record in DynamoDB"""
-        current_timestamp = Decimal.from_float(time.time())
+        current_timestamp = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
         try:
             response = self.messages_table.put_item(
