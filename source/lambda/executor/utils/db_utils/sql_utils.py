@@ -44,6 +44,7 @@ def check_sql_validation(raw_query_string, db_name="cf_log_database", region="us
         logging.info("Error in exception")
         msg = str(e)
         logging.info(msg)
+        return msg
     
 if __name__ == "__main__":
     query_string = 'SELECT * FROM "cff_log_database"."cloudfront_standard_log" limit 10'

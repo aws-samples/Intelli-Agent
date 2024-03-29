@@ -119,10 +119,10 @@ def claude_text2sql_gen_func(chat_history):
     return chain
 
 def claude_text2sql_re_gen_func(chat_history):
-    chat_messages = [SystemMessagePromptTemplate.from_template(BEDROCK_TEXT2SQL_RE_GEN_SYSTEM_PROMPT)]
-    chat_messages = chat_messages + chat_history 
+    chat_messages = [SystemMessagePromptTemplate.from_template(BEDROCK_TEXT2SQL_GEN_SYSTEM_PROMPT)]
+    # chat_messages = chat_messages + chat_history 
     chat_messages += [
-        HumanMessagePromptTemplate.from_template("{query}")
+        HumanMessagePromptTemplate.from_template("{chat_history}\n\n{query}")
         ]
     context_chain = RunnablePassthrough.assign(
         context=RunnableLambda(
@@ -145,7 +145,7 @@ class Claude3Text2SQLChain(LLMChain):
         if cls.intent_type == IntentType.TEXT2SQL_SQL_GEN.value:
             chain = claude_text2sql_gen_func(chat_history)
         elif cls.intent_type == IntentType.TEXT2SQL_SQL_RE_GEN.value:
-            chain = claude_text2sql_gen_func(chat_history)
+            chain = claude_text2sql_re_gen_func(chat_history)
         # chat_messages = [SystemMessagePromptTemplate.from_template(BEDROCK_TEXT2SQL_SYSTEM_PROMPT)]
         # chat_messages = chat_messages + chat_history 
         # chat_messages += [
@@ -171,8 +171,13 @@ class Claude3Text2SQLChain(LLMChain):
 class Claude3HaikuText2SQLChain(Claude3Text2SQLChain):
     model_id = "anthropic.claude-3-haiku-20240307-v1:0"
 
+class Claude3HaikuText2SQLReGenChain(Claude3Text2SQLChain):
+    model_id = "anthropic.claude-3-haiku-20240307-v1:0"
+    intent_type = IntentType.TEXT2SQL_SQL_RE_GEN.value
+
 class Claude3SonnetText2SQLChain(Claude3Text2SQLChain):
     model_id = "anthropic.claude-3-sonnet-20240229-v1:0"
 
-# class Claude3OpusText2SQLChain(Claude3Text2SQLChain):
-#     model_id = "anthropic.claude-3-haiku-20240307-v1:0"
+class Claude3SonnetText2SQLReGenChain(Claude3Text2SQLChain):
+    model_id = "anthropic.claude-3-sonnet-20240229-v1:0"
+    intent_type = IntentType.TEXT2SQL_SQL_RE_GEN.value

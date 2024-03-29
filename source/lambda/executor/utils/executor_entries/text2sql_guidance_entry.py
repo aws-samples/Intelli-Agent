@@ -396,7 +396,7 @@ def text2sql_guidance_entry(
         (lambda x: x['intent_type'] == IntentType.TEXT2SQL_SQL_RE_GEN.value,
             RunnablePassthrough.assign(
                 answer=LLMChain.get_chain(
-                    intent_type=IntentType.TEXT2SQL_SQL_GEN.value,
+                    intent_type=IntentType.TEXT2SQL_SQL_RE_GEN.value,
                     stream=stream,
                     **generator_llm_config
                     ),
@@ -498,8 +498,8 @@ def text2sql_guidance_entry(
     intent_type = IntentType.TEXT2SQL_SQL_GEN.value
 
     sql_validate_result = ""
-    example_pairs = ""
     contexts = ""
+    chat_history = rag_config['chat_history'] if rag_config['use_history'] else []
     while(cont):
 
         response = asyncio.run(full_chain.ainvoke(
@@ -507,7 +507,7 @@ def text2sql_guidance_entry(
                 "query": query_input,
                 "debug_info": debug_info,
                 "intent_type": intent_type,
-                "chat_history": rag_config['chat_history'] if rag_config['use_history'] else [],
+                "chat_history": chat_history,
                 "sql_validate_result": sql_validate_result,
                 "contexts": contexts
             }
@@ -526,7 +526,6 @@ def text2sql_guidance_entry(
                 answer = response["answer"].split("<query>")[1].split("</query>")[0]
             except:
                 answer = response["answer"]
-
             sources = response["context_sources"]
         elif chain_try_num == max_try_num:
             cont = False
@@ -534,6 +533,28 @@ def text2sql_guidance_entry(
             # sql validated fail, re-generate
             intent_type = response["intent_type"]
             sql_validate_result = response["sql_validate_result"]
+            try:
+                answer = response["answer"].split("<query>")[1].split("</query>")[0]
+            except:
+                answer = response["answer"]
+
+            chat_history = [f"""
+            This is error message of generated wrong SQL query: 
+
+            {sql_validate_result}. 
+
+            To correct this, please generate an alternative SQL query which will correct the syntax error.
+            The updated query should take care of all the syntax issues encountered.
+            Follow the instructions mentioned above to remediate the error. 
+            Update the below generated wrong SQL query to resolve the issue:
+
+            <wrong_sql_query>
+            {answer}
+            </wrong_sql_query>
+
+            Make sure the updated SQL query aligns with the requirements provided in the following question.
+            Think about your answer first before you respond. Put your response in <query></query> tags.
+            """]
             contexts = response["contexts"]
         
         chain_try_num = chain_try_num + 1
