@@ -49,10 +49,12 @@ class DummyWebSocket:
             print(ret['choices'][0]['message']['content'])
             return 
         elif message_type == "CONTEXT":
-            print('knowledge_sources num',ret['choices'][0]['knowledge_sources'])
-            if ret['choices'][0].get('contexts'):
-                print('contexts num',len(ret['choices'][0].get('contexts')))
-                print('contexts avg len: ', sum(len(i) for i in ret['choices'][0]['contexts'])/len(ret['choices'][0]['contexts']))
+            # print(ret['choices'][0])
+            print('knowledge_sources',ret['choices'][0]['knowledge_sources'])
+            print('response msg',ret['choices'][0]['response_msg'])
+            # if ret['choices'][0].get('contexts'):
+            #     print('contexts num',len(ret['choices'][0].get('contexts')))
+            #     print('contexts avg len: ', sum(len(i) for i in ret['choices'][0]['contexts'])/len(ret['choices'][0]['contexts']))
                 # print('sources: ',ret['choices'][0]['contexts'])
 
 main.ws_client = DummyWebSocket()
@@ -581,8 +583,8 @@ def test_internlm_model_mkt_knowledge_entry():
     #  "亚马逊云科技中国区域免费套餐有什么优惠？",
     #   "介绍Amazon Lambda是什么？"
 
-    # generate_answer(
-        # "在亚马逊云科技网站上，完成所有账户注册步骤后，什么时候才可以开始使用？",
+    generate_answer(
+        "在亚马逊云科技网站上，完成所有账户注册步骤后，什么时候才可以开始使用？",
         # "日志通是什么？",
         # '请介绍下亚马逊云科技IAM',
         # "请介绍下AWS IAM",
@@ -603,13 +605,13 @@ def test_internlm_model_mkt_knowledge_entry():
         #     "亚马逊云科技中国区域免费套餐有哪几种不同类型的优惠？",
         #     "什么是日志通",
         #     "日志通是什么？",
-    #         model="knowledge_qa", 
-    #         type=entry_type, 
-    #         stream=True,
-    #         rag_parameters=rag_parameters
-    # )
+            # model="knowledge_qa", 
+            type=entry_type, 
+            stream=True,
+            rag_parameters=rag_parameters
+    )
 
-    # print(sfg)
+    print(sfg)
 
     # generate_answer(
     #     "2024亚马逊云科技出海全球化论坛什么时候举办？",
@@ -1024,13 +1026,14 @@ if __name__ == "__main__":
     
     # market_deploy_test()
     # dgr
+    # dgr_deploy_test()
     # generate_answer(
     #     # "如何将Kinesis Data Streams配置为AWS Lambda的事件源？",
     #     # "Amazon EC2 提供了哪些功能来支持不同区域之间的数据恢复?",
     #     "什么是Amazon bedrock？",
     #     model="knowledge_qa", 
     #     stream=True,
-    #     type="market_chain", 
+    #     type="dgr", 
     #     rag_parameters=dict(
     #         get_contexts = True,
     #         retriever_config={

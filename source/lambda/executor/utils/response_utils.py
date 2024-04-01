@@ -209,12 +209,12 @@ def stream_response(**kwargs):
             )
         # sed source and contexts
 
-            
         context_msg = {
             "message_type": StreamMessageType.CONTEXT,
             "message_id": f"ai_{message_id}",
             "custom_message_id": custom_message_id,
             "knowledge_sources": sources,
+            "response_msg": debug_info.get('response_msg',"")
         }
         if get_contexts:
             context_msg.update({"contexts": contexts})
