@@ -5,6 +5,7 @@ import logging
 import os
 import time
 import traceback
+from datetime import datetime
 
 from .constant import EntryType, StreamMessageType
 from .content_filter_utils.content_filters import (
@@ -57,11 +58,14 @@ def api_response(**kwargs):
         )
 
     # 2. return rusult
+    request_timestamp_str = datetime.fromtimestamp(request_timestamp).strftime(
+        "%Y-%m-%dT%H:%M:%S.%fZ"
+    )
     llmbot_response = {
         "session_id": session_id,
         "client_type": client_type,
         "object": "chat.completion",
-        "created": int(request_timestamp),
+        "created": request_timestamp_str,
         # "model": model,
         # "usage": {"prompt_tokens": 13, "completion_tokens": 7, "total_tokens": 20},
         "choices": [
@@ -112,7 +116,7 @@ def stream_response(**kwargs):
     ddb_history_obj = kwargs["ddb_history_obj"]
     message_id = kwargs["message_id"]
     question = kwargs["question"]
-    
+
     ws_connection_id = kwargs["ws_connection_id"]
     log_first_token_time = kwargs.get("log_first_token_time", True)
     client_type = kwargs["client_type"]
@@ -129,11 +133,14 @@ def stream_response(**kwargs):
 
     def _send_to_ws_client(message: dict):
         try:
+            request_timestamp_str = datetime.fromtimestamp(request_timestamp).strftime(
+                "%Y-%m-%dT%H:%M:%S.%fZ"
+            )
             llmbot_response = {
                 "session_id": session_id,
                 "client_type": client_type,
                 "object": "chat.completion",
-                "created": int(request_timestamp),
+                "created": request_timestamp_str,
                 "choices": [message],
                 "entry_type": entry_type,
             }
@@ -143,7 +150,9 @@ def stream_response(**kwargs):
             )
         except:
             data_to_send = json.dumps(llmbot_response).encode("utf-8")
-            logger.info(f"Send to ws client error occurs, the message to send is: {data_to_send}")
+            logger.info(
+                f"Send to ws client error occurs, the message to send is: {data_to_send}"
+            )
             # convert to websocket error
             raise WebsocketClientError
 
@@ -157,12 +166,12 @@ def stream_response(**kwargs):
         )
         answer_str = ""
 
-        filter_sentence_fn = lambda x:x
+        filter_sentence_fn = lambda x: x
         if market_content_filter.check_market_entry(entry_type):
             answer = token_to_sentence_gen_market(answer)
             filter_sentence_fn = market_content_filter.filter_sentence
             sources = market_content_filter.filter_source(kwargs["sources"])
-    
+
         for i, chunk in enumerate(answer):
             if i == 0 and log_first_token_time:
                 first_token_time = time.time()

@@ -348,7 +348,7 @@ export class EtlStack extends NestedStack {
                 '--ETL_MODEL_ENDPOINT': this._etlEndpoint,
                 '--INDEX_TYPE.$': '$.indexType',
                 '--JOB_NAME': glueJob.jobName,
-                '--OFFLINE': 'true',
+                '--OFFLINE': 'false',
                 '--OPERATION_TYPE.$': '$.operationType',
                 '--ProcessedObjectsTable': table.tableName,
                 '--QA_ENHANCEMENT.$': '$.qaEnhance',

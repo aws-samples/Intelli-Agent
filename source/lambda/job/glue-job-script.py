@@ -361,11 +361,21 @@ class BatchQueryDocumentProcessor:
             "sort": [{"_score": {"order": "desc"}}],
         }
 
-        query_documents = self.docsearch.client.search(
-            index=self.docsearch.index_name, body=search_body
-        )
-        document_ids = [doc["_id"] for doc in query_documents["hits"]["hits"]]
-        return document_ids
+        if self.docsearch.client.indices.exists(index=self.docsearch.index_name):
+            logger.info(
+                "BatchQueryDocumentProcessor: Querying documents for %s", s3_path
+            )
+            query_documents = self.docsearch.client.search(
+                index=self.docsearch.index_name, body=search_body
+            )
+            document_ids = [doc["_id"] for doc in query_documents["hits"]["hits"]]
+            return document_ids
+        else:
+            logger.info(
+                "BatchQueryDocumentProcessor: Index %s does not exist, skipping deletion",
+                self.docsearch.index_name,
+            )
+            return []
 
     def batch_generator(self, s3_path):
         """
@@ -431,14 +441,21 @@ class OpenSearchDeleteWorker:
 
         bulk_delete_requests = []
 
-        for document_id in document_ids:
-            bulk_delete_requests.append(
-                {"delete": {"_id": document_id, "_index": self.index_name}}
-            )
+        # Check if self.index_name exists
+        if not self.docsearch.client.indices.exists(index=self.index_name):
+            logger.info("Index %s does not exist", self.index_name)
+            return
+        else:
+            for document_id in document_ids:
+                bulk_delete_requests.append(
+                    {"delete": {"_id": document_id, "_index": self.index_name}}
+                )
 
-        self.docsearch.client.bulk(
-            index=self.index_name, body=bulk_delete_requests, refresh=True
-        )
+            self.docsearch.client.bulk(
+                index=self.index_name, body=bulk_delete_requests, refresh=True
+            )
+            logger.info("Deleted %d documents", len(document_ids))
+            return
 
 
 def update_workspace(workspace_id, embedding_model_endpoint, index_type):
@@ -458,6 +475,7 @@ def update_workspace(workspace_id, embedding_model_endpoint, index_type):
         embeddings_model_type,
         ["zh"],
         index_type,
+        workspace_offline_flag=offline,
     )
 
     return aos_index
