@@ -64,7 +64,7 @@ class DynamoDBChatMessageHistory(BaseChatMessageHistory):
                 print(error)
 
         items = response.get("Items", [])
-        items = sorted(items, key=lambda x: x["createTimestamp"])
+        items = sorted(items, key=lambda x: x["createdTimestamp"])
 
         return items
 
@@ -83,7 +83,7 @@ class DynamoDBChatMessageHistory(BaseChatMessageHistory):
             else:
                 print(error)
         items = response.get("Items", [])
-        items = sorted(items, key=lambda x: x["createTimestamp"])
+        items = sorted(items, key=lambda x: x["createdTimestamp"])
         ret = []
 
         for item in items:
@@ -94,7 +94,7 @@ class DynamoDBChatMessageHistory(BaseChatMessageHistory):
                 "content": item["content"],
                 "additional_kwargs": {
                     "message_id": item["messageId"],
-                    "create_time": item["createTimestamp"],
+                    "create_time": item["createdTimestamp"],
                     "entry_type": item["entryType"],
                     "custom_message_id": item["customMessageId"],
                 },
@@ -123,7 +123,7 @@ class DynamoDBChatMessageHistory(BaseChatMessageHistory):
                     "userId": self.user_id,
                     "clientType": self.client_type,
                     "startTime": current_timestamp,
-                    "createTimestamp": current_timestamp,
+                    "createdTimestamp": current_timestamp,
                     "lastModifiedTimestamp": current_timestamp,
                 }
             )
@@ -150,7 +150,7 @@ class DynamoDBChatMessageHistory(BaseChatMessageHistory):
                     "inputMessageId": input_message_id,
                     "entryType": entry_type,
                     "content": message_content,
-                    "createTimestamp": current_timestamp,
+                    "createdTimestamp": current_timestamp,
                     "lastModifiedTimestamp": current_timestamp,
                 }
             )
