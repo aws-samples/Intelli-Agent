@@ -40,6 +40,7 @@ export class DynamoDBStack extends NestedStack {
     
     // Create the DynamoDB table
     const sessionsTable = new dynamodb.Table(this, "SessionsTable", {
+      tableName: "SessionsTable",
       partitionKey: {
         name: "sessionId",
         type: dynamodb.AttributeType.STRING,
@@ -61,6 +62,7 @@ export class DynamoDBStack extends NestedStack {
     });
 
     const messagesTable = new dynamodb.Table(this, "MessagesTable", {
+      tableName: "MessagesTable",
       partitionKey: {
         name: "messageId",
         type: dynamodb.AttributeType.STRING,
