@@ -98,8 +98,8 @@ class LLMBotOpenSearchClient:
         query = {
             "size": size,
             "query": {
-                "match": {
-                    "text": query_term
+                "bool":{
+                    "should": [ {"match": { field : query_term }} ],
                 }
             },
             "_source": {

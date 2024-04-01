@@ -382,8 +382,9 @@ class QueryQuestionRetriever(BaseRetriever):
     embedding_model_endpoint: Any
     model_type: Any
     query_key: str= "query"
+    enable_debug: Any
 
-    def __init__(self, workspace:Dict, size: int,query_key="query"):
+    def __init__(self, workspace:Dict, size: int,query_key="query", enable_debug=False):
         super().__init__()
         self.index = workspace["open_search_index_name"]
         self.vector_field = "vector_field"
@@ -393,6 +394,7 @@ class QueryQuestionRetriever(BaseRetriever):
         self.embedding_model_endpoint = workspace["embeddings_model_endpoint"]
         self.model_type = workspace["model_type"]
         self.query_key = query_key
+        self.enable_debug = enable_debug
 
     @timeit
     def _get_relevant_documents(self, question: Dict, *, run_manager: CallbackManagerForRetrieverRun) -> List[Document]:
@@ -416,7 +418,8 @@ class QueryQuestionRetriever(BaseRetriever):
                 "source": result[self.source_field], "score":result["score"],"retrieval_score": result["score"],
                 "retrieval_content": result["content"],"answer": result["answer"], 
                 "question": result["question"]}))
-        debug_info[f"qq-knn-recall-{self.index}-{self.lang}"] = remove_redundancy_debug_info(opensearch_knn_results)
+        if self.enable_debug:
+            debug_info[f"qq-knn-recall-{self.index}-{self.lang}"] = remove_redundancy_debug_info(opensearch_knn_results)
         return docs
 
 class QueryDocumentKNNRetriever(BaseRetriever):
@@ -431,8 +434,9 @@ class QueryDocumentKNNRetriever(BaseRetriever):
     model_type: Any
     embedding_model_endpoint: Any
     query_key: str="query"
+    enable_debug: Any
 
-    def __init__(self, workspace, using_whole_doc, context_num, top_k,query_key='query'):
+    def __init__(self, workspace, using_whole_doc, context_num, top_k,query_key='query', enable_debug=False):
         super().__init__()
         self.index = workspace["open_search_index_name"]
         self.vector_field = "vector_field"
@@ -445,6 +449,7 @@ class QueryDocumentKNNRetriever(BaseRetriever):
         self.context_num = context_num
         self.top_k = top_k
         self.query_key = query_key
+        self.enable_debug = enable_debug
 
     async def __ainvoke_get_context(self, aos_hit, window_size, loop):
         return await loop.run_in_executor(None,
@@ -551,7 +556,8 @@ class QueryDocumentKNNRetriever(BaseRetriever):
                                                "retrieval_score": result["score"],
                                                 # set common score for llm.
                                                "score": result["score"]}))
-        debug_info[f"qd-knn-recall-{self.index}-{self.lang}"] = remove_redundancy_debug_info(opensearch_knn_results)
+        if self.enable_debug:
+            debug_info[f"qd-knn-recall-{self.index}-{self.lang}"] = remove_redundancy_debug_info(opensearch_knn_results)
         return doc_list
 
 class QueryDocumentBM25Retriever(BaseRetriever):
@@ -566,8 +572,10 @@ class QueryDocumentBM25Retriever(BaseRetriever):
     model_type: Any
     embedding_model_endpoint: Any
     query_key: str="query"
+    enable_debug: Any
+    config: Dict={"run_name": "BM25"}
 
-    def __init__(self, workspace, using_whole_doc, context_num, top_k,query_key='query'):
+    def __init__(self, workspace, using_whole_doc, context_num, top_k,query_key='query', enable_debug=False):
         super().__init__()
         self.index = workspace["open_search_index_name"]
         self.vector_field = "vector_field"
@@ -580,6 +588,7 @@ class QueryDocumentBM25Retriever(BaseRetriever):
         self.context_num = context_num
         self.top_k = top_k
         self.query_key = query_key
+        self.enable_debug = enable_debug
 
     async def __ainvoke_get_context(self, aos_hit, window_size, loop):
         return await loop.run_in_executor(None,
@@ -685,7 +694,8 @@ class QueryDocumentBM25Retriever(BaseRetriever):
                                                "retrieval_score": result["score"],
                                                 # set common score for llm.
                                                "score": result["score"]}))
-        debug_info[f"qd-bm25-recall-{self.index}-{self.lang}"] = remove_redundancy_debug_info(opensearch_bm25_results)
+        if self.enable_debug:
+            debug_info[f"qd-bm25-recall-{self.index}-{self.lang}"] = remove_redundancy_debug_info(opensearch_bm25_results)
         return doc_list
 
 
