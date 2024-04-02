@@ -15,9 +15,11 @@ class MarketContentFilter(ContentFilterBase):
         self,
         sensitive_words_path=os.path.join(abs_dir, "sensitive_word.csv"),
         aws_products_path=os.path.join(abs_dir, "aws_products.csv"),
+        marketing_do_dont_words_path=os.path.join(abs_dir, "marketing_do_dont_words.csv"),
     ) -> None:
         self.sensitive_words = self.create_sensitive_words(sensitive_words_path)
         self.aws_products = self.create_aws_products(aws_products_path)
+        self.marketing_do_dont_words = self.create_marketing_do_dont_words(marketing_do_dont_words_path)
         # Define a regular expression pattern to match Chinese characters
         self.chinese_pattern = re.compile(r"[\u4e00-\u9fff]")
     
@@ -41,6 +43,14 @@ class MarketContentFilter(ContentFilterBase):
                 aws_products[row[0]] = row[1]
         return aws_products
 
+    def create_marketing_do_dont_words(self, marketing_do_dont_words_path):
+        marketing_do_dont_words = {}
+        with open(marketing_do_dont_words_path, mode="r") as file:
+            csv_reader = csv.reader(file)
+            for row in csv_reader:
+                marketing_do_dont_words[row[0]] = row[1]
+        return marketing_do_dont_words
+
     def filter_sensitive_words(self, sentence):
         for sensitive_word in self.sensitive_words:
             length = len(sensitive_word)
@@ -58,6 +68,10 @@ class MarketContentFilter(ContentFilterBase):
         cn_rebranding_dict = {"AWS": "亚马逊云科技"}
         # Replace "AWS" by "Amazon" in product name
         for key, value in self.aws_products.items():
+            sentence = sentence.replace(key, value)
+
+        # Replace marketing "don't" words by "do" words
+        for key, value in self.marketing_do_dont_words.items():
             sentence = sentence.replace(key, value)
         
         # Replace "AWS" by "亚马逊云科技" if detected Chinese characters within its right time window of length 10
