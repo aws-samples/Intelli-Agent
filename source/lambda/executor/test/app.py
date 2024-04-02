@@ -213,11 +213,20 @@ def generate_answer_from_local(api_type, url_input, query_input, entry_type):
     #         "context_num": 1
     #     }
     )
-    rag_parameters = dict()
+    rag_parameters = {
+        "retriever_config": {
+            "qq_config" : {
+                "enable_debug": True
+            },
+            "qd_config" : {
+                "enable_debug": True
+            }
+        }
+    }
     sources = []
     debug_info = []
     answer, sources, debug_info = generate_answer(
-        query=query_input, type=entry_type, rag_parameters=rag_parameters)
+        query=query_input, type=entry_type, rag_parameters=rag_parameters, enable_debug=True)
     return answer, sources, *render_debug_info(debug_info) 
 
 def test(api_type, url_input, query_input, entry_type):
@@ -370,7 +379,7 @@ with gr.Blocks() as demo:
     )
     with gr.Tab("Chat"):
         gr_api_type = gr.Dropdown(label="API", choices=["local", "cloud"], value="local")
-        gr_entry_input = gr.Dropdown(label="Entry", choices=["common", "market_chain"], value="market_chain")
+        gr_entry_input = gr.Dropdown(label="Entry", choices=["common", "market_chain", "dgr"], value="market_chain")
         gr_query_input = gr.Text(label="Query")
         gr_local_answer_btn = gr.Button(value="Local Answer")
         gr_cloud_answer_btn = gr.Button(value="Cloud Answer")
