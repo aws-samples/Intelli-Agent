@@ -252,7 +252,7 @@ def parse_mkt_entry_knowledge_config(event_body):
                 "reranker_type": RerankerType.BGE_RERANKER.value,
                 # "reranker_type": RerankerType.BGE_M3_RERANKER.value,
                 "qd_match_threshold": 2,
-                "query_key": "conversation_query_rewrite",
+                "query_key": "query",
                 # "enable_reranker":True
             },
             "workspace_ids": [

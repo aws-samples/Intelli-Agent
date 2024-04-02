@@ -21,12 +21,12 @@ from langchain.schema.messages import (
 
 logger = get_logger('rag_chain')
 
-BEDROCK_RAG_CHAT_SYSTEM_PROMPT = """You are a customer service agent, and answering user's query. You ALWAYS follow these guidelines when writing your response:
+CLAUDE_RAG_SYSTEM_PROMPT = """You are a customer service agent, and answering user's query. You ALWAYS follow these guidelines when writing your response:
 <guidelines>
 - NERVER say "根据搜索结果/大家好/谢谢...".
 </guidelines>
 
-Here are some documents for you to reference for your query:
+Here are some documents for you to reference for your query.
 <docs>
 {context}
 </docs>"""
@@ -45,23 +45,23 @@ def get_claude_rag_context(contexts:list):
     context = "\n".join(context_xmls)
     return context
 
-def get_claude_chat_rag_prompt(chat_history:List[BaseMessage]):
-    chat_messages = [
-        SystemMessagePromptTemplate.from_template(BEDROCK_RAG_CHAT_SYSTEM_PROMPT)
-    ]
+# def get_claude_chat_rag_prompt(chat_history:List[BaseMessage]):
+#     chat_messages = [
+#         SystemMessagePromptTemplate.from_template(BEDROCK_RAG_CHAT_SYSTEM_PROMPT)
+#     ]
     
-    chat_messages = chat_messages + chat_history 
-    chat_messages += [
-        HumanMessagePromptTemplate.from_template("{query}")
-        ]
-    context_chain = RunnablePassthrough.assign(
-        context=RunnableLambda(
-            lambda x: get_claude_rag_context(x['contexts'])
-                )
-        )
+#     chat_messages = chat_messages + chat_history 
+#     chat_messages += [
+#         HumanMessagePromptTemplate.from_template("{query}")
+#         ]
+#     context_chain = RunnablePassthrough.assign(
+#         context=RunnableLambda(
+#             lambda x: get_claude_rag_context(x['contexts'])
+#                 )
+#         )
         
 
-    return context_chain | ChatPromptTemplate.from_messages(chat_messages)
+#     return context_chain | ChatPromptTemplate.from_messages(chat_messages)
 
 
 
@@ -78,7 +78,7 @@ class Claude2RagLLMChain(LLMChain):
 
         # history
         chat_history = kwargs.get('chat_history',[])
-        chat_messages = [SystemMessagePromptTemplate.from_template(BEDROCK_RAG_CHAT_SYSTEM_PROMPT)]
+        chat_messages = [SystemMessagePromptTemplate.from_template(CLAUDE_RAG_SYSTEM_PROMPT)]
         chat_messages = chat_messages + chat_history 
         chat_messages += [
             HumanMessagePromptTemplate.from_template("{query}")
