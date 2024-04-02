@@ -201,9 +201,8 @@ def lambda_handler(event, context):
             return get_retriever_response(docs)
         elif entry_type == Type.DGR.value:
             # switch dgr to market
-            event_body["llm_model_id"] = os.environ.get(
-                "llm_model_id", "anthropic.claude-3-sonnet-20240229-v1:0"
-            )
+
+            event_body["llm_model_id"] = event_body.get("llm_model_id", None) or "anthropic.claude-3-sonnet-20240229-v1:0"
             dgr_config = {
                 "retriever_config": {
                     "qd_config": {"using_whole_doc": True},

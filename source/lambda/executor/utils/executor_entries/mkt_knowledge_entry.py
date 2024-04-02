@@ -40,7 +40,9 @@ from ..query_process_utils.preprocess_utils import (
     language_check,
     query_translate,
     get_service_name,
-    is_query_too_short
+    is_query_too_short,
+    query_clean,
+    rule_based_query_expansion
 )
 from ..workspace_utils import WorkspaceManager
 
@@ -240,6 +242,9 @@ def market_chain_knowledge_entry(
                   translate_config=translate_config
                   )
         )
+    query_clean_chain = RunnablePassthrough.assign(
+        query=RunnableLambda(lambda x: query_clean(x['query']))
+        )
     lang_check_and_translate_chain = RunnablePassthrough.assign(
         query_lang = RunnableLambda(lambda x:language_check(x['query']))
     )  | RunnablePassthrough.assign(translated_text=translate_chain)
@@ -249,7 +254,7 @@ def market_chain_knowledge_entry(
     
     
     
-    preprocess_chain = lang_check_and_translate_chain | RunnableParallelAssign(
+    preprocess_chain = query_clean_chain | lang_check_and_translate_chain | RunnableParallelAssign(
         is_api_query=is_api_query_chain,
         service_names=service_names_recognition_chain
     )
@@ -441,7 +446,7 @@ def market_chain_knowledge_entry(
                 debug_info=debug_info
                 ))
         ),
-        rag_chain
+        RunnablePassthrough.assign(query=RunnableLambda(lambda x: rule_based_query_expansion(x['query']))) | rag_chain
     )
 
     #######################
