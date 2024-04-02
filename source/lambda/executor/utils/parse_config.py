@@ -242,6 +242,7 @@ def parse_mkt_entry_knowledge_config(event_body):
                 "qq_match_threshold": 0.8,
                 "retriever_top_k": 5,
                 "query_key": "query",
+                "enable_debug": False
             },
             "qd_config": {
                 "retriever_top_k": 5,
@@ -253,7 +254,7 @@ def parse_mkt_entry_knowledge_config(event_body):
                 # "reranker_type": RerankerType.BGE_M3_RERANKER.value,
                 "qd_match_threshold": 2,
                 "query_key": "conversation_query_rewrite",
-                # "enable_reranker":True
+                "enable_debug": False
             },
             "workspace_ids": [
                 "aos_index_mkt_faq_qq_m3",
