@@ -1,6 +1,7 @@
 
 import logging
 import threading 
+import os
 logger_lock = threading.Lock()
 
 logger = logging.getLogger()
@@ -18,7 +19,7 @@ class Logger:
     def _get_logger(
         cls,
         name,
-        level=logging.INFO,
+        level=int(os.environ.get('DEBUG_LEVEL',logging.INFO)),
         format='%(asctime)s %(levelname)s [%(filename)s:%(lineno)d] %(message)s',
         datefmt='%Y-%m-%d:%H:%M:%S'
         ):
