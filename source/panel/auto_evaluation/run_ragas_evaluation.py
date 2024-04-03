@@ -42,13 +42,21 @@ except ModuleNotFoundError:
 # RAGAS_EVAL_METRICS = [claude2_context_recall]
 
 
-def load_eval_data(eval_data_path):
+def load_eval_data(
+        eval_data_path,
+        question_key="question",
+        ground_truths_key="ground_truths"
+        ):
     data = pd.read_csv(eval_data_path).to_dict(orient='records')
     ret = []
     for d in data:
+        ground_truths = d[ground_truths_key]
+        if isinstance(ground_truths,str):
+            ground_truths = [ground_truths]
+
         ret.append({
-            "question":d['question'],
-            "ground_truths": [d['ground truth']]
+            "question":d[question_key],
+            "ground_truths": ground_truths
         })
     return ret 
 
@@ -101,8 +109,8 @@ def websocket_call(
     prompt = datum['question']
     ws = create_connection(ws_url)
     body = {
-        "action": "sendMessage",
-        "model": "knowledge_qa",
+        # "action": "sendMessage",
+        # "model": "knowledge_qa",
         "messages": [{"role": "user","content": prompt}],
         # "temperature": 0.7,
         "type" : "market_chain", 
@@ -202,7 +210,9 @@ def run_eval(
         # ragas_parameters: dict = None,
         ragas_eval_metrics = None,
         stream=True,
-        rag_parameters=None
+        rag_parameters=None,
+        question_key="question",
+        ground_truths_key="ground_truths"
     ):
     
     # ragas_eval_llm_model_id = ragas_parameters['llm_model_id']
@@ -218,7 +228,10 @@ def run_eval(
             data_to_eval = pickle.load(f)
     else:
         print('loading data......')
-        data = load_eval_data(eval_data_path)
+        data = load_eval_data(
+            eval_data_path,
+            question_key=question_key,
+            ground_truths_key=ground_truths_key)
         # get rag result 
         print(f'run rag, {len(data)} example......')
         data_to_eval = get_rag_result(
@@ -264,14 +277,17 @@ if __name__ == "__main__":
     #         )
     #     ]
     RAGAS_EVAL_METRICS = [
-        claude2_context_recall
+        claude2_answer_correctness
+        # claude2_context_recall
         ]
     
     # rag_api_url = "https://5tzaajjzg7.execute-api.us-west-2.amazonaws.com/default/llm-bot-dev-qq-matching"
-    rag_api_url = "wss://omjou492fe.execute-api.us-west-2.amazonaws.com/prod/"
+    # rag_api_url = "wss://omjou492fe.execute-api.us-west-2.amazonaws.com/prod/"
+    rag_api_url = "wss://2ogbgobue2.execute-api.us-west-2.amazonaws.com/prod/"
     
     # eval_data_path = "TechBot QA Test-fifth-test.csv"
-    eval_data_path = "TechBot QA Test-fifth-test-sample-50.csv"
+    # eval_data_path = "TechBot QA Test-fifth-test-sample-50.csv"
+    eval_data_path = "techbot-test-200.2024-04-01.from.peipei.csv"
     # eval_id = 'claude2-csds-retrive'
     by = 'claude2-answer_correctness' #'claude2'
     eval_id = f'claude2-csdc-retrive-by-{by}'
@@ -290,7 +306,8 @@ if __name__ == "__main__":
     # llm_output_cache_path = "techbot_question_dgr_res_2_1_120_with_gt_context_1_with_whole_doc_baichuan2_13b_4bits.max_new_2000_token.pkl.Yi-34B-Chat-hf-4bits.pkl"
     # llm_output_cache_path = "techbot_question_dgr_res_2_1_120_with_gt_context_1_with_whole_doc_baichuan2_13b_4bits.max_new_2000_token.pkl.internlm2-20b-hf-4bits.g4dn.pkl"
     # llm_output_cache_path = "techbot_question_dgr_res_1_23_120_with_gt_context_2_with_whole_doc.pkl"
-    llm_output_cache_path = "techbot_question_dgr_res_1_3_120_with_gt_context_1.pkl"
+    # llm_output_cache_path = "techbot_question_dgr_res_1_3_120_with_gt_context_1.pkl"
+    llm_output_cache_path = "techbot-test-200.2024-04-01.from.peipei.csv.whole.context_2.pkl"
     ret_save_profix = f'{eval_id}-{llm_output_cache_path}-eval'
     # ragas_parameters = {
     #     "region_name":'us-west-2',
@@ -328,7 +345,8 @@ if __name__ == "__main__":
     # }
     # }
     rag_parameters = {
-        # 'llm_model_id': "anthropic.claude-v2:1", 
+        'llm_model_id': "anthropic.claude-3-sonnet-20240229-v1:0", 
+        "type":'dgr',
         # 'llm_model_id': "anthropic.claude-v2:1", 
         # "temperature": 0.7,
         # "enable_q_q_match": True,
@@ -340,15 +358,15 @@ if __name__ == "__main__":
             },
         "generator_llm_config":{
             # "model_id": "anthropic.claude-instant-v1",
-            "model_kwargs":{
-                        "max_new_tokens": 2000,
-                        "temperature": 0.1,
-                        "top_p": 0.9
-                    },
-            "model_id":"anthropic.claude-v2:1",
+            # "model_kwargs":{
+            #             "max_new_tokens": 2000,
+            #             "temperature": 0.1,
+            #             "top_p": 0.9
+            #         },
+            # "model_id":"anthropic.claude-v2:1",
             # "model_id": "Baichuan2-13B-Chat-4bits",
             # "endpoint_name": "baichuan2-13b-chat-4bits-2024-02-01-03-58-29-048",
-            "context_num": 1
+            "context_num": 2
     }
     }
     r = run_eval(
@@ -360,7 +378,9 @@ if __name__ == "__main__":
         # ragas_parameters=ragas_parameters,
         ragas_eval_metrics = RAGAS_EVAL_METRICS,
         stream=True,
-        rag_parameters=rag_parameters
+        rag_parameters=rag_parameters,
+        question_key="question",
+        ground_truths_key="ref_answer"
     )
     print(r)
 

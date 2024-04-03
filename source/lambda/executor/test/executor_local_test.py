@@ -577,14 +577,16 @@ def test_internlm_model_mkt_knowledge_entry():
     rag_parameters={
         "get_contexts":True,
         "session_id":session_id,
-        "retriever_config": {}
+        # "retriever_config": {}
     }
 
     #  "亚马逊云科技中国区域免费套餐有什么优惠？",
     #   "介绍Amazon Lambda是什么？"
 
     generate_answer(
-        "在亚马逊云科技网站上，完成所有账户注册步骤后，什么时候才可以开始使用？",
+         "日志通是什么？", 
+        # "AWS支持上海region吗？", 
+        # "在亚马逊云科技网站上，完成所有账户注册步骤后，什么时候才可以开始使用？",
         # "日志通是什么？",
         # '请介绍下亚马逊云科技IAM',
         # "请介绍下AWS IAM",
@@ -696,41 +698,64 @@ def test_internlm_model_mkt_knowledge_entry():
     # )
  
     # print(sgf)
-
+    
+    # 1-26
+    # market_test_cases = [
+    # 'EC2',
+    # "LAMBDA",
+    # '亚马逊云科技中国区域免费套餐有哪几种不同类型的优惠？',
+    # 'Amazon Lambda的免费套餐包含什么？',
+    # '在亚马逊云科技网站上，完成所有账户注册步骤后，什么时候才可以开始使用？',
+    # 'Amazon Lambda函数是什么？',
+    # '日志通是什么？',
+    # 'lambda是什么？',
+    # '2024北京国际车展上，亚马逊云科技会参加吗？',
+    # '3月份在深圳有生成式AI的活动吗？',
+    # '2024年会举办出海全球化论坛吗？',
+    # '2024年出海全球化论坛的会议日程是什么？',
+    # '2024亚马逊云科技出海全球化论坛什么时候举办？',
+    # '请问怎么关闭账号？',
+    # '个人能否注册账号？',
+    # '怎么开发票？',
+    # '使用CDN服务要备案吗？',
+    # '今天是几月几号？',
+    # '亚马逊云科技有上海区域吗？',
+    # '我上一个问题是什么？',
+    # '如何注册AWS账号?',
+    # '如何注册亚马逊云科技账号',
+    # '怎么申请免费试用？',
+    # '怎么试用服务器？',
+    # '无法连接服务器',
+    # '连接不上服务器',
+    # '账号被停用了怎么解决',
+    # '备案流程',
+    # '怎么备案',
+    # '人工服务',
+    # '为什么产生了费用？不是免费试用吗？',
+    # '申请退款',
+    # '服务器报价/服务器多少钱？'
+    # ]
+    
+    # 27-44
     market_test_cases = [
-    'EC2',
-    "LAMBDA",
-    '亚马逊云科技中国区域免费套餐有哪几种不同类型的优惠？',
-    'Amazon Lambda的免费套餐包含什么？',
-    '在亚马逊云科技网站上，完成所有账户注册步骤后，什么时候才可以开始使用？',
-    'Amazon Lambda函数是什么？',
-    '日志通是什么？',
-    'lambda是什么？',
-    '2024北京国际车展上，亚马逊云科技会参加吗？',
-    '3月份在深圳有生成式AI的活动吗？',
-    '2024年会举办出海全球化论坛吗？',
-    '2024年出海全球化论坛的会议日程是什么？',
-    '2024亚马逊云科技出海全球化论坛什么时候举办？',
-    '请问怎么关闭账号？',
-    '个人能否注册账号？',
-    '怎么开发票？',
-    '使用CDN服务要备案吗？',
-    '今天是几月几号？',
-    '亚马逊云科技有上海区域吗？',
-    '我上一个问题是什么？',
-    '如何注册AWS账号?',
-    '如何注册亚马逊云科技账号',
-    '怎么申请免费试用？',
-    '怎么试用服务器？',
-    '无法连接服务器',
-    '连接不上服务器',
-    '账号被停用了怎么解决',
-    '备案流程',
-    '怎么备案',
-    '人工服务',
-    '为什么产生了费用？不是免费试用吗？',
-    '申请退款',
-    '服务器报价/服务器多少钱？'
+        "CVM 服务器和 EC2 的区别是什么？",  # insufficient context / knowledge_qa
+        "如何快速搭建一个网站？", #  insufficient context / knowledge_qa
+        "2024 峰会什么时候？", # insufficient context / market_event
+        "近期市场活动推荐？", # insufficient context / market_event
+        "培训资料在哪找？", # insufficient context / knowledge_qa
+        "如何参加培训与认证？", # insufficient context / knowledge_qa
+        "summit 什么时候开始？", # insufficient context / market_event
+        "c5.2xlarge 实例有centos 7.9 AMI吗", # insufficient context / knowledge_qa
+        "可以在AWS上租用A100的GPU，跑grok-1的大模型吗", # insufficient context / knowledge_qa
+        "阿里云你了解吗？", # normal / knowledge_qa
+        "怎么注册企业账号", # insufficient context / knowledge_qa
+        "EC2 价格 ？", # insufficient context / knowledge_qa
+        "ec2价格是多少 ？", # normal / knowledge_qa
+        "redis怎么通过外网链接呢", # insufficient context / knowledge_qa
+        "目前的AI模型有能生成辅助K12课堂教学相关图片或视频的方案吗", #  insufficient context / knowledge_qa
+        "网站使用了cloudfront 服务，出现html和json类型的文件无法缓存的问题", # insufficient context / knowledge_qa
+        "GenAI相关活动", # insufficient context / market_event
+        "请介绍下AWS EC2的可用机型" # insufficient context / knowledge_qa
     ]
     ret = []
     for question in market_test_cases:
@@ -739,7 +764,7 @@ def test_internlm_model_mkt_knowledge_entry():
             # "什么是日志通",
             # model="knowledge_qa", 
             type=entry_type, 
-            stream=False,
+            stream=True,
             rag_parameters=rag_parameters
         )
         if r:
@@ -764,15 +789,16 @@ def test_internlm_model_mkt_knowledge_entry_langgraph():
     rag_parameters={
         "get_contexts":True,
         # "session_id":session_id,
-        "retriever_config":{}
+        # "retriever_config":{}
     }
 
     generate_answer(
         # "日志通是什么？", 
         "AWS支持上海region吗？", 
-        model="knowledge_qa", 
+        # model="knowledge_qa", 
         type=entry_type, 
-        stream=True
+        stream=True,
+        rag_parameters=rag_parameters
     )
 
     print(sfg)
@@ -972,12 +998,18 @@ def dgr_deploy_test():
     os.environ['llm_model_id'] = "anthropic.claude-3-sonnet-20240229-v1:0"
     session_id = f'test_{int(time.time())}'
     questions = [
-        "Amazon EC2 提供了哪些功能来支持不同区域之间的数据恢复?",
-        "请问Amazon ECS Fargate支持哪些操作系统和CPU架构?",
-        "如何将镜像推送到 Amazon Elastic Container Registry？",
-        "Amazon S3 静态网站端点支持 HTTPS吗？",
-        "如何禁用QuickSight账户中的电子邮件邀请新用户选项？",
-        "如何解决Linux实例在升级和重启后未通过实例检查、无法连接的问题？"
+        # "Amazon EC2 提供了哪些功能来支持不同区域之间的数据恢复?",
+        # "请问Amazon ECS Fargate支持哪些操作系统和CPU架构?",
+        # "如何将镜像推送到 Amazon Elastic Container Registry？",
+        # "Amazon S3 静态网站端点支持 HTTPS吗？",
+        # "如何禁用QuickSight账户中的电子邮件邀请新用户选项？",
+        # "如何解决Linux实例在升级和重启后未通过实例检查、无法连接的问题？"
+        # "如何在控制台配置Amazon Kendra使用RDS MySQL作为数据源？",
+        # "给我一个Amazon Redshift的DescribeClusters API的使用示例",
+        # "将AMI从一个区域复制到另一个区域的API是什么？"
+        # '请问Amazon Sagemaker jumpstart 和Amazon Bedrock 有什么不同？'
+        # '请问亚马逊云科技中国区域的S3和EC2的价格',
+        '我想用ec2搭建my sql数据库，想要放在公网，想问一下是否有安全访问的最佳实践？'
     ]
     for question in questions:
         generate_answer(
@@ -1019,9 +1051,9 @@ if __name__ == "__main__":
     # market_summary_test2()
     # test_internlm_model()
     # dgr_deploy_test()
-    test_internlm_model_mkt_knowledge_entry()
+    # test_internlm_model_mkt_knowledge_entry()
     # test_internlm_model_mkt_knowledge_entry_qq_match()
-    # test_internlm_model_mkt_knowledge_entry_langgraph()
+    test_internlm_model_mkt_knowledge_entry_langgraph()
     # test_baichuan_model()
     
     # market_deploy_test()

@@ -253,7 +253,7 @@ def lambda_handler(event, context):
             )
 
         elif entry_type == "market_chain_knowledge_langgraph":
-            answer, sources, contexts, debug_info = (
+            response = (
                 market_chain_knowledge_entry_langgraph(
                     question,
                     stream=stream,
@@ -261,6 +261,11 @@ def lambda_handler(event, context):
                     message_id=custom_message_id,
                 )
             )
+            answer = response['answer']
+            sources = response['context_sources']
+            contexts = response['context_docs']
+            debug_info = response['debug_info']
+
         elif entry_type == Type.MARKET_CONVERSATION_SUMMARY.value:
             answer, sources, contexts, debug_info = market_conversation_summary_entry(
                 messages=messages, event_body=event_body, stream=stream

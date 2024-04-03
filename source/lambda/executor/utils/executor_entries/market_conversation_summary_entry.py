@@ -10,9 +10,10 @@ from ..constant import MKT_CONVERSATION_SUMMARY_TYPE
 from ..ddb_utils import DynamoDBChatMessageHistory, filter_chat_history_by_time
 from ..llm_utils import LLMChain
 from ..serialization_utils import JSONEncoder
+from ..logger_utils import get_logger
 
-logger = logging.getLogger("market_conversation_summary_entry")
-logger.setLevel(logging.INFO)
+logger = get_logger("market_conversation_summary_entry")
+
 
 
 def market_conversation_summary_entry(

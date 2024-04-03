@@ -45,26 +45,6 @@ def get_claude_rag_context(contexts:list):
     context = "\n".join(context_xmls)
     return context
 
-# def get_claude_chat_rag_prompt(chat_history:List[BaseMessage]):
-#     chat_messages = [
-#         SystemMessagePromptTemplate.from_template(BEDROCK_RAG_CHAT_SYSTEM_PROMPT)
-#     ]
-    
-#     chat_messages = chat_messages + chat_history 
-#     chat_messages += [
-#         HumanMessagePromptTemplate.from_template("{query}")
-#         ]
-#     context_chain = RunnablePassthrough.assign(
-#         context=RunnableLambda(
-#             lambda x: get_claude_rag_context(x['contexts'])
-#                 )
-#         )
-        
-
-#     return context_chain | ChatPromptTemplate.from_messages(chat_messages)
-
-
-
 class Claude2RagLLMChain(LLMChain):
     model_id = 'anthropic.claude-v2'
     intent_type = IntentType.KNOWLEDGE_QA.value
