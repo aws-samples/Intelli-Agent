@@ -1,6 +1,6 @@
-from utils import get_service_name
-
 import unittest
+
+from utils import get_service_name
 
 
 class TestDict(unittest.TestCase):

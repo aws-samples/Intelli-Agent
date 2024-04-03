@@ -1,10 +1,11 @@
+import copy
 import json
 import logging
 from typing import List, Optional
-import copy
 
 from langchain.docstore.document import Document
 from langchain.document_loaders.base import BaseLoader
+
 from ..splitter_utils import MarkdownHeaderTextSplitter
 
 logger = logging.getLogger(__name__)

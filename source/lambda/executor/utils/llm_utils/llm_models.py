@@ -1,19 +1,18 @@
-import boto3
 import json
-import os
 import logging
+import os
 
 # from llmbot_utils import concat_recall_knowledge
 from typing import Any, List, Mapping, Optional
 
-from langchain.llms.base import LLM
-from langchain.llms.sagemaker_endpoint import SagemakerEndpoint
-from langchain.llms.sagemaker_endpoint import LLMContentHandler
+import boto3
 from langchain.llms import Bedrock
-
+from langchain.llms.base import LLM
+from langchain.llms.sagemaker_endpoint import LLMContentHandler, SagemakerEndpoint
 from langchain_community.chat_models import BedrockChat
 from langchain_community.llms.sagemaker_endpoint import LineIterator
-from ..constant import HUMAN_MESSAGE_TYPE, AI_MESSAGE_TYPE, SYSTEM_MESSAGE_TYPE
+
+from ..constant import AI_MESSAGE_TYPE, HUMAN_MESSAGE_TYPE, SYSTEM_MESSAGE_TYPE
 from ..logger_utils import logger
 
 logger = logging.getLogger("llm_model")

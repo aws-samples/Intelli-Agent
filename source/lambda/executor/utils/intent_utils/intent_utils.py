@@ -1,26 +1,28 @@
-from .. import retriever
-from ..retriever import QueryQuestionRetriever, index_results_format
-from ..constant import IntentType, INTENT_RECOGNITION_TYPE
-from functools import partial
-from langchain.schema.runnable import (
-    RunnablePassthrough,
-    RunnableBranch,
-    RunnableLambda,
-)
+import json
 
-# from ..llm_utils import Model as LLM_Model
-from ..llm_utils.llm_chains import LLMChain
+# from ..prompt_template import INTENT_RECOGINITION_PROMPT_TEMPLATE_CLUADE,INTENT_RECOGINITION_EXAMPLE_TEMPLATE
+import os
 
 # from langchain.prompts import PromptTemplate
 import re
 import traceback
-
-# from ..prompt_template import INTENT_RECOGINITION_PROMPT_TEMPLATE_CLUADE,INTENT_RECOGINITION_EXAMPLE_TEMPLATE
-import os
-import json
+from functools import partial
 from random import Random
-from ..query_process_utils.preprocess_utils import is_api_query, get_service_name
+
+from langchain.schema.runnable import (
+    RunnableBranch,
+    RunnableLambda,
+    RunnablePassthrough,
+)
+
+from .. import retriever
+from ..constant import INTENT_RECOGNITION_TYPE, IntentType
 from ..langchain_utils import chain_logger
+
+# from ..llm_utils import Model as LLM_Model
+from ..llm_utils.llm_chains import LLMChain
+from ..query_process_utils.preprocess_utils import get_service_name, is_api_query
+from ..retriever import QueryQuestionRetriever, index_results_format
 
 abs_file_dir = os.path.dirname(__file__)
 

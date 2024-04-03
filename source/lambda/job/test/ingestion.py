@@ -1,10 +1,10 @@
+import datetime
 import itertools
+import json
 import logging
 import os
 import sys
 import time
-import json
-import datetime
 from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple
 
 import boto3
@@ -15,14 +15,13 @@ from langchain.docstore.document import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores import OpenSearchVectorSearch
 from llm_bot_dep import sm_utils
+from llm_bot_dep.constant import SplittingType
 from llm_bot_dep.enhance_utils import EnhanceWithBedrock
 from llm_bot_dep.loaders.auto import cb_process_object
+from llm_bot_dep.storage_utils import save_content_to_s3
 from opensearchpy import RequestsHttpConnection
 from requests_aws4auth import AWS4Auth
-from llm_bot_dep.storage_utils import save_content_to_s3
-from llm_bot_dep.constant import SplittingType
 from tenacity import retry, stop_after_attempt, wait_exponential
-
 
 print(sys.path)
 

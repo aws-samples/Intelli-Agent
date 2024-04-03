@@ -1,13 +1,15 @@
 import logging
-from typing import List, Optional
-from langchain.docstore.document import Document
-from langchain.document_loaders.base import BaseLoader
-from llm_bot_dep.loaders.html import CustomHtmlLoader
-import mammoth
 import uuid
 from datetime import datetime
-from llm_bot_dep.splitter_utils import MarkdownHeaderTextSplitter
+from typing import List, Optional
+
+import mammoth
 from docx import Document as pyDocument
+from langchain.docstore.document import Document
+from langchain.document_loaders.base import BaseLoader
+
+from llm_bot_dep.loaders.html import CustomHtmlLoader
+from llm_bot_dep.splitter_utils import MarkdownHeaderTextSplitter
 
 logger = logging.getLogger(__name__)
 

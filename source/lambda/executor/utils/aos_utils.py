@@ -1,10 +1,11 @@
 import json
-import boto3
-import requests
 import os
 import threading
-from requests_aws4auth import AWS4Auth
+
+import boto3
+import requests
 from opensearchpy import OpenSearch, RequestsHttpConnection
+from requests_aws4auth import AWS4Auth
 
 open_search_client_lock = threading.Lock()
 

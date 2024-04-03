@@ -1,16 +1,15 @@
-import json
-import re
 import io
+import json
+import logging
+import re
 from typing import Any, Dict, Generic, Iterator, List, Mapping, Optional, TypeVar, Union
-from langchain.llms.sagemaker_endpoint import LLMContentHandler, SagemakerEndpoint
+
+import boto3
+from langchain.callbacks.manager import CallbackManagerForLLMRun
 from langchain.embeddings import SagemakerEndpointEmbeddings
 from langchain.embeddings.sagemaker_endpoint import EmbeddingsContentHandler
-from langchain.callbacks.manager import CallbackManagerForLLMRun
+from langchain.llms.sagemaker_endpoint import LLMContentHandler, SagemakerEndpoint
 from langchain.llms.utils import enforce_stop_tokens
-from typing import Dict, List, Optional, Any, Iterator
-from langchain_core.outputs import GenerationChunk
-import boto3
-from langchain_core.pydantic_v1 import Extra, root_validator
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import (
     AIMessage,
@@ -20,8 +19,8 @@ from langchain_core.messages import (
     HumanMessage,
     message_chunk_to_message,
 )
-
-import logging
+from langchain_core.outputs import GenerationChunk
+from langchain_core.pydantic_v1 import Extra, root_validator
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)

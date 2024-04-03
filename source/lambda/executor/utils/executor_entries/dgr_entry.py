@@ -1,17 +1,17 @@
-import time
-import os
-import json
 import copy
+import json
+import os
+import time
 import traceback
 
-from ..logger_utils import logger
-from ..query_process_utils.preprocess_utils import run_preprocess
-from ..sm_utils import SagemakerEndpointVectorOrCross
 from ..aos_utils import LLMBotOpenSearchClient
+from ..constant import IntentType, Type
 from ..context_utils import contexts_trunc
 from ..langchain_utils import RunnableDictAssign
 from ..llm_utils import LLMChain
-from ..constant import IntentType, Type
+from ..logger_utils import logger
+from ..query_process_utils.preprocess_utils import run_preprocess
+from ..sm_utils import SagemakerEndpointVectorOrCross
 
 region = os.environ["AWS_REGION"]
 

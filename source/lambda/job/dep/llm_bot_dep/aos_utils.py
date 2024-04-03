@@ -1,19 +1,19 @@
-import os
-import boto3
 import json
-from tenacity import retry, stop_after_attempt
+import logging
+import os
 from typing import List
 
-from requests_aws4auth import AWS4Auth
-from opensearchpy import OpenSearch, RequestsHttpConnection
-
+import boto3
 from langchain.docstore.document import Document
 from langchain.vectorstores import OpenSearchVectorSearch
-
-from sm_utils import ContentHandler, create_sagemaker_embeddings_from_js_model
-from sm_utils import SagemakerEndpointVectorOrCross
-
-import logging
+from opensearchpy import OpenSearch, RequestsHttpConnection
+from requests_aws4auth import AWS4Auth
+from sm_utils import (
+    ContentHandler,
+    SagemakerEndpointVectorOrCross,
+    create_sagemaker_embeddings_from_js_model,
+)
+from tenacity import retry, stop_after_attempt
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)

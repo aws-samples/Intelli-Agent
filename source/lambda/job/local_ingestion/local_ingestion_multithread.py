@@ -1,29 +1,27 @@
+import contextlib
 import datetime
+import functools
 import itertools
 import json
 import logging
+import math
 import os
 import sys
-import uuid
-import time
-import math
-import traceback
-import contextlib
 import threading
-
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
-
-import functools
+import time
+import traceback
+import uuid
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple
 
 import boto3
 import chardet
 import nltk
 from langchain.embeddings.sagemaker_endpoint import EmbeddingsContentHandler
-from langchain_core.embeddings import Embeddings
 from langchain_community.vectorstores.opensearch_vector_search import (
     OpenSearchVectorSearch,
 )
+from langchain_core.embeddings import Embeddings
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 bge_m3_embedding_lock = None
@@ -103,10 +101,10 @@ def __bulk_add(
 ) -> List[str]:
     assert embedding_size is not None, embedding_size
     from langchain_community.vectorstores.opensearch_vector_search import (
+        _default_text_mapping,
         _import_bulk,
         _import_not_found_error,
         _validate_aoss_with_engines,
-        _default_text_mapping,
     )
 
     # _validate_embeddings_and_bulk_size(len(embeddings), bulk_size)
@@ -254,6 +252,9 @@ def bulk_add(*args, **kwargs):
 
 sys.path.append("dep")
 
+import os
+
+import psutil
 from boto3.dynamodb.conditions import Attr, Key
 from langchain.docstore.document import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -263,7 +264,6 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores.opensearch_vector_search import (
     OpenSearchVectorSearch,
 )
-
 from llm_bot_dep import sm_utils
 from llm_bot_dep.constant import SplittingType
 from llm_bot_dep.ddb_utils import WorkspaceManager
@@ -274,10 +274,6 @@ from llm_bot_dep.storage_utils import save_content_to_s3
 from opensearchpy import RequestsHttpConnection
 from requests_aws4auth import AWS4Auth
 from tenacity import retry, stop_after_attempt, wait_exponential
-
-
-import os
-import psutil
 
 
 def get_program_memory_usage(pid=None):

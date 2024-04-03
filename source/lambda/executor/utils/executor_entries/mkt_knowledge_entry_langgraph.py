@@ -1,47 +1,45 @@
-import logging
+import asyncio
 import json
+import logging
 import os
-import boto3
 from functools import partial
 from textwrap import dedent
+from typing import Any, TypedDict
+
+import boto3
+from langchain.retrievers import ContextualCompressionRetriever
+from langchain.retrievers.merger_retriever import MergerRetriever
 from langchain.schema.runnable import (
     RunnableBranch,
     RunnableLambda,
     RunnableParallel,
     RunnablePassthrough,
 )
-from langchain.retrievers import ContextualCompressionRetriever
-from langchain.retrievers.merger_retriever import MergerRetriever
+from langgraph.graph import END, StateGraph
 
-from langgraph.graph import StateGraph, END
-from typing import TypedDict, Any
-
-from ..intent_utils import IntentRecognitionAOSIndex
-from ..llm_utils import LLMChain
-from ..serialization_utils import JSONEncoder
-from ..langchain_utils import chain_logger, RunnableDictAssign, RunnableParallelAssign
-from ..constant import IntentType, CONVERSATION_SUMMARY_TYPE
-import asyncio
-
-from ..retriever import (
-    QueryDocumentKNNRetriever,
-    QueryDocumentBM25Retriever,
-    QueryQuestionRetriever,
-)
 from .. import parse_config
-from ..reranker import BGEReranker, MergeReranker
+from ..constant import CONVERSATION_SUMMARY_TYPE, IntentType
 from ..context_utils import (
     contexts_trunc,
-    retriever_results_format,
     documents_list_filter,
+    retriever_results_format,
 )
-from ..langchain_utils import RunnableDictAssign
+from ..intent_utils import IntentRecognitionAOSIndex
+from ..langchain_utils import RunnableDictAssign, RunnableParallelAssign, chain_logger
+from ..llm_utils import LLMChain
 from ..query_process_utils.preprocess_utils import (
+    get_service_name,
     is_api_query,
     language_check,
     query_translate,
-    get_service_name,
 )
+from ..reranker import BGEReranker, MergeReranker
+from ..retriever import (
+    QueryDocumentBM25Retriever,
+    QueryDocumentKNNRetriever,
+    QueryQuestionRetriever,
+)
+from ..serialization_utils import JSONEncoder
 from ..workspace_utils import WorkspaceManager
 
 logger = logging.getLogger("mkt_knowledge_entry")

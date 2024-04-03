@@ -41,7 +41,7 @@ testpaths = [
 addopts = "-ra -q"
 
 [tool.ruff]
-exclude = []
+exclude = ["source/lambda/executor/utils/query_process_utils"]
 
 [tool.ruff.lint]
 select = [

@@ -1,6 +1,7 @@
 import logging
 import re
 from typing import List, Optional
+
 from langchain.docstore.document import Document
 from langchain.document_loaders.text import TextLoader
 

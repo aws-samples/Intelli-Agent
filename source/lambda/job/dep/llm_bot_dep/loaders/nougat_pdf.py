@@ -1,17 +1,18 @@
-import os
-import re
 import json
 import logging
-from bs4 import BeautifulSoup
+import os
+import re
 import subprocess
 from pathlib import Path
-from typing import List, Dict, List, Optional, Iterator, Sequence
+from typing import Dict, Iterator, List, Optional, Sequence
 
+from bs4 import BeautifulSoup
 from langchain.docstore.document import Document
 from langchain.document_loaders import PDFMinerPDFasHTMLLoader
-
 from langchain.document_loaders.pdf import BasePDFLoader
-from ..splitter_utils import extract_headings, MarkdownHeaderTextSplitter
+
+from ..splitter_utils import MarkdownHeaderTextSplitter, extract_headings
+
 # from langchain.text_splitter import MarkdownHeaderTextSplitter
 
 logging.basicConfig(level=logging.INFO)

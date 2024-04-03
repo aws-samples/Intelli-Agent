@@ -1,15 +1,14 @@
 from __future__ import annotations
 
+import copy
+import math
 import re
+import traceback
 import uuid
 import warnings
-import traceback
-import math
-import copy
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import numpy as np
-
 from langchain.schema import Document
 from langchain.schema.embeddings import Embeddings
 from langchain.schema.vectorstore import VectorStore

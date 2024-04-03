@@ -3,28 +3,27 @@ import json
 import os
 import re
 import sys
-from random import Random
 from functools import lru_cache
-
-from .llm_chain_base import LLMChain
-from ...constant import HYDE_TYPE
-from ..llm_models import Model as LLM_Model
+from random import Random
 
 from langchain.prompts import (
-    PromptTemplate,
+    AIMessagePromptTemplate,
     ChatPromptTemplate,
     HumanMessagePromptTemplate,
-    AIMessagePromptTemplate,
+    PromptTemplate,
     SystemMessagePromptTemplate,
 )
 from langchain.schema.runnable import (
-    RunnablePassthrough,
     RunnableBranch,
     RunnableLambda,
+    RunnablePassthrough,
 )
-from .chat_chain import Iternlm2Chat7BChatChain
-from ..llm_chains import LLMChain
 
+from ...constant import HYDE_TYPE
+from ..llm_chains import LLMChain
+from ..llm_models import Model as LLM_Model
+from .chat_chain import Iternlm2Chat7BChatChain
+from .llm_chain_base import LLMChain
 
 WEB_SEARCH_TEMPLATE = """Please write a passage to answer the question 
 Question: {query}

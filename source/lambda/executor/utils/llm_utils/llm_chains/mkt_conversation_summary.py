@@ -1,25 +1,27 @@
-from .llm_chain_base import LLMChain
-from ...constant import (
-    MKT_CONVERSATION_SUMMARY_TYPE,
-    HUMAN_MESSAGE_TYPE,
-    AI_MESSAGE_TYPE,
-    SYSTEM_MESSAGE_TYPE,
-)
-from ..llm_models import Model
-from ...prompt_template import get_chit_chat_prompt, CHIT_CHAT_SYSTEM_TEMPLATE
 import json
 import os
 import sys
 import threading
-from random import Random
 from functools import lru_cache
+from random import Random
+
 from langchain.prompts import PromptTemplate
 from langchain.schema.runnable import (
-    RunnablePassthrough,
     RunnableBranch,
     RunnableLambda,
+    RunnablePassthrough,
 )
-from .chat_chain import Iternlm2Chat7BChatChain, Claude2ChatChain
+
+from ...constant import (
+    AI_MESSAGE_TYPE,
+    HUMAN_MESSAGE_TYPE,
+    MKT_CONVERSATION_SUMMARY_TYPE,
+    SYSTEM_MESSAGE_TYPE,
+)
+from ...prompt_template import CHIT_CHAT_SYSTEM_TEMPLATE, get_chit_chat_prompt
+from ..llm_models import Model
+from .chat_chain import Claude2ChatChain, Iternlm2Chat7BChatChain
+from .llm_chain_base import LLMChain
 
 
 class Iternlm2Chat7BMKTConversationSummaryChain(Iternlm2Chat7BChatChain):

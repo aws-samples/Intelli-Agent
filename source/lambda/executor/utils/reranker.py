@@ -1,8 +1,9 @@
+import asyncio
 import json
+import logging
 import os
 import time
-import logging
-import asyncio
+
 import numpy as np
 
 logger = logging.getLogger()
@@ -11,8 +12,8 @@ logger.setLevel(logging.INFO)
 from typing import TYPE_CHECKING, Dict, Optional, Sequence
 
 from langchain.callbacks.manager import Callbacks
-from langchain.schema import Document
 from langchain.retrievers.document_compressors.base import BaseDocumentCompressor
+from langchain.schema import Document
 
 from .sm_utils import SagemakerEndpointVectorOrCross
 

@@ -1,6 +1,7 @@
-from typing import Iterable, List
 import json
 import logging
+from typing import Iterable, List
+
 from langchain.docstore.document import Document
 
 logging.basicConfig(level=logging.INFO)

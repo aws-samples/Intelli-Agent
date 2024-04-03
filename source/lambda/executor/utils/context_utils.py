@@ -1,6 +1,7 @@
 import logging
-from langchain.docstore.document import Document
 import os
+
+from langchain.docstore.document import Document
 
 from .time_utils import timeit
 

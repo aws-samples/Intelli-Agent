@@ -1,12 +1,13 @@
 # python shell only support boto3 1.22.5 (1.28.68), according to https://docs.aws.amazon.com/glue/latest/dg/add-job-python.html#python-shell-limitations
-import os
-import boto3
 import json
 import logging
-import openai
+import os
 from typing import Dict, List
-from langchain.docstore.document import Document
+
+import boto3
 import nltk
+import openai
+from langchain.docstore.document import Document
 
 # print the log to stdout
 logging.basicConfig(level=logging.INFO)

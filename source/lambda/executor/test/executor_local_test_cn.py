@@ -1,8 +1,9 @@
-import json
-import sys
 import csv
+import json
 import os
+import sys
 import time
+
 from dotenv import load_dotenv
 
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env_cn"))
@@ -31,8 +32,9 @@ sys.path.append("../executor")
 # import os
 # region = os.environ["AWS_REGION"]
 # print(region)
-import main
 import os
+
+import main
 
 aos_index_dict = json.loads(os.environ.get("aos_index_dict", ""))
 print(f"aos index {aos_index_dict}")

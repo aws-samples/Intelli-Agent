@@ -13,9 +13,10 @@ from langchain.schema.runnable import (
     RunnableParallel,
     RunnablePassthrough,
 )
-from ..time_utils import timeit
-from ..langchain_utils import chain_logger
+
 from .. import parse_config
+from ..langchain_utils import chain_logger
+from ..time_utils import timeit
 
 
 def get_strict_qq_chain(strict_q_q_index):

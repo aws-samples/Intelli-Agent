@@ -3,22 +3,21 @@ import json
 import os
 import re
 import sys
-from random import Random
 from functools import lru_cache
-
-from .llm_chain_base import LLMChain
-from ...constant import QUERY_REWRITE_TYPE
-from ..llm_models import Model as LLM_Model
+from random import Random
 
 from langchain.prompts import PromptTemplate
 from langchain.schema.runnable import (
-    RunnablePassthrough,
     RunnableBranch,
     RunnableLambda,
+    RunnablePassthrough,
 )
-from .chat_chain import Iternlm2Chat7BChatChain
-from ..llm_chains import LLMChain
 
+from ...constant import QUERY_REWRITE_TYPE
+from ..llm_chains import LLMChain
+from ..llm_models import Model as LLM_Model
+from .chat_chain import Iternlm2Chat7BChatChain
+from .llm_chain_base import LLMChain
 
 query_expansion_template_claude = PromptTemplate.from_template("""You are an AI language model assistant. Your task is to generate 1 - 5 different sub questions OR alternate versions of the given user question to retrieve relevant documents from a vector database.
 

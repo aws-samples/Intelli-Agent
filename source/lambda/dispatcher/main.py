@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+
 import boto3
 
 QUEUE_URL = os.environ["SQS_QUEUE_URL"]

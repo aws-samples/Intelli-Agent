@@ -1,25 +1,27 @@
 # conversation summary chain
-from .llm_chain_base import LLMChain
-from ...constant import (
-    CONVERSATION_SUMMARY_TYPE,
-    HUMAN_MESSAGE_TYPE,
-    AI_MESSAGE_TYPE,
-    SYSTEM_MESSAGE_TYPE,
-)
-from ..llm_models import Model
 import json
 import os
 import sys
-from random import Random
 from functools import lru_cache
+from random import Random
+
 from langchain.prompts import PromptTemplate
 from langchain.schema.runnable import (
-    RunnablePassthrough,
     RunnableBranch,
     RunnableLambda,
+    RunnablePassthrough,
 )
-from .chat_chain import Iternlm2Chat7BChatChain
+
+from ...constant import (
+    AI_MESSAGE_TYPE,
+    CONVERSATION_SUMMARY_TYPE,
+    HUMAN_MESSAGE_TYPE,
+    SYSTEM_MESSAGE_TYPE,
+)
 from ...prompt_template import get_conversation_query_rewrite_prompt
+from ..llm_models import Model
+from .chat_chain import Iternlm2Chat7BChatChain
+from .llm_chain_base import LLMChain
 
 
 class Iternlm2Chat7BConversationSummaryChain(Iternlm2Chat7BChatChain):

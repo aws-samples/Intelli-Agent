@@ -1,23 +1,22 @@
-import os
-import time
 import json
 import logging
-import numpy as np
-import boto3, json
+import os
 import tempfile
-import nltk
+import time
 
+import boto3
+import nltk
+import numpy as np
 from langchain.document_loaders import S3DirectoryLoader
 
 # from langchain.vectorstores import OpenSearchVectorSearch
 from langchain.document_loaders.unstructured import UnstructuredFileLoader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.schema.document import Document
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from opensearchpy import OpenSearch, RequestsHttpConnection
 
 from .opensearch_vector_search import OpenSearchVectorSearch
 from .sm_utils import create_sagemaker_embeddings_from_js_model_dgr
-
-from opensearchpy import OpenSearch, RequestsHttpConnection
 
 logger = logging.getLogger()
 

@@ -1,22 +1,24 @@
-from .llm_chain_base import LLMChain
-from ...constant import INTENT_RECOGNITION_TYPE, IntentType
-from ..llm_models import Model
 import json
 import os
 import sys
-from random import Random
 from functools import lru_cache
+from random import Random
+
 from langchain.prompts import (
-    PromptTemplate,
-    HumanMessagePromptTemplate,
     ChatPromptTemplate,
+    HumanMessagePromptTemplate,
+    PromptTemplate,
 )
 from langchain.schema.runnable import (
-    RunnablePassthrough,
     RunnableBranch,
     RunnableLambda,
+    RunnablePassthrough,
 )
+
+from ...constant import INTENT_RECOGNITION_TYPE, IntentType
+from ..llm_models import Model
 from .chat_chain import Iternlm2Chat7BChatChain
+from .llm_chain_base import LLMChain
 
 abs_dir = os.path.dirname(__file__)
 

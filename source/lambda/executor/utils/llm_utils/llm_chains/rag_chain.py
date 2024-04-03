@@ -2,21 +2,20 @@
 
 from typing import Any, List, Mapping, Optional
 
+from langchain.prompts import (
+    AIMessagePromptTemplate,
+    ChatPromptTemplate,
+    HumanMessagePromptTemplate,
+    PromptTemplate,
+    SystemMessagePromptTemplate,
+)
+from langchain.schema.messages import BaseMessage, SystemMessage, _message_from_dict
 from langchain.schema.runnable import RunnableLambda, RunnablePassthrough
 
-from ...constant import IntentType, QUERY_TRANSLATE_TYPE
+from ...constant import QUERY_TRANSLATE_TYPE, IntentType
 from ...prompt_template import convert_chat_history_from_fstring_format
 from ..llm_models import Model
 from .llm_chain_base import LLMChain
-from langchain.prompts import (
-    PromptTemplate,
-    ChatPromptTemplate,
-    HumanMessagePromptTemplate,
-    AIMessagePromptTemplate,
-    SystemMessagePromptTemplate,
-)
-from langchain.schema.messages import BaseMessage, _message_from_dict, SystemMessage
-
 
 BEDROCK_RAG_CHAT_SYSTEM_PROMPT = """You are a customer service agent, and answering user's query. You ALWAYS follow these guidelines when writing your response:
 <guidelines>

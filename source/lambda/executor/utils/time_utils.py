@@ -1,6 +1,6 @@
-from functools import wraps
-import time
 import logging
+import time
+from functools import wraps
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)

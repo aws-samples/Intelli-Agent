@@ -1,11 +1,11 @@
-import gradio as gr
 import json
-import requests
+
 import boto3
-from websocket import create_connection
+import gradio as gr
+import requests
 from executor_local_test import generate_answer
 from langchain_community.document_loaders import UnstructuredPDFLoader
-
+from websocket import create_connection
 
 doc_dict = {}
 s3 = boto3.client("s3")

@@ -1,7 +1,8 @@
-import os
 import json
 import logging
-import boto3, json
+import os
+
+import boto3
 
 logger = logging.getLogger()
 # logging.basicConfig(format='%(asctime)s,%(module)s,%(processName)s,%(levelname)s,%(message)s', level=logging.INFO, stream=sys.stderr)

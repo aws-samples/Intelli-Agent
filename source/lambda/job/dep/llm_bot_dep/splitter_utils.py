@@ -1,8 +1,9 @@
-import re
 import logging
-import uuid
+import re
 import traceback
+import uuid
 from typing import Any, Dict, Iterator, List, Optional, Union
+
 import boto3
 from langchain.docstore.document import Document
 from langchain.text_splitter import (
@@ -10,9 +11,9 @@ from langchain.text_splitter import (
     RecursiveCharacterTextSplitter,
     TextSplitter,
 )
-from llm_bot_dep.storage_utils import save_content_to_s3
-from llm_bot_dep.constant import SplittingType
 
+from llm_bot_dep.constant import SplittingType
+from llm_bot_dep.storage_utils import save_content_to_s3
 
 s3 = boto3.client("s3")
 logger = logging.getLogger()

@@ -2,14 +2,15 @@
 from typing import Any, List, Mapping, Optional
 
 from langchain.schema.runnable import RunnableLambda, RunnablePassthrough
+
 from ...constant import (
-    IntentType,
-    QUERY_TRANSLATE_TYPE,
-    HUMAN_MESSAGE_TYPE,
     AI_MESSAGE_TYPE,
+    HUMAN_MESSAGE_TYPE,
+    QUERY_TRANSLATE_TYPE,
     SYSTEM_MESSAGE_TYPE,
+    IntentType,
 )
-from ...prompt_template import get_chit_chat_prompt, CHIT_CHAT_SYSTEM_TEMPLATE
+from ...prompt_template import CHIT_CHAT_SYSTEM_TEMPLATE, get_chit_chat_prompt
 from ..llm_models import Model
 from .llm_chain_base import LLMChain
 

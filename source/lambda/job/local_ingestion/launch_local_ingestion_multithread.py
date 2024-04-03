@@ -1,19 +1,18 @@
+import itertools
+import logging
+import multiprocessing
 import os
 import sys
-import tracemalloc
-import logging
 import threading
-import itertools
-from multiprocessing import Process
-from multiprocessing import Queue
-import multiprocessing
+import tracemalloc
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
+from multiprocessing import Process, Queue
 from typing import Iterable
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
+
 from langchain_community.vectorstores.opensearch_vector_search import (
     OpenSearchVectorSearch,
 )
 from opensearchpy import RequestsHttpConnection
-
 
 sys.path.append("../dep")
 from llm_bot_dep import storage_utils

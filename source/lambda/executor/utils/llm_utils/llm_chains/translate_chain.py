@@ -1,7 +1,7 @@
 # translate chain
 from langchain.schema.runnable import RunnableLambda
-from ...constant import QUERY_TRANSLATE_TYPE
 
+from ...constant import QUERY_TRANSLATE_TYPE
 from .chat_chain import Iternlm2Chat7BChatChain
 
 

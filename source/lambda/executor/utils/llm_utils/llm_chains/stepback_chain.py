@@ -1,13 +1,14 @@
-from langchain.schema.runnable import RunnableLambda
 from langchain.prompts import (
+    ChatMessagePromptTemplate,
     ChatPromptTemplate,
     FewShotChatMessagePromptTemplate,
-    ChatMessagePromptTemplate,
 )
+from langchain.schema.runnable import RunnableLambda
+
 from ...constant import STEPBACK_PROMPTING_TYPE
+from ..llm_chains.chat_chain import Iternlm2Chat7BChatChain
 from ..llm_chains.llm_chain_base import LLMChain
 from ..llm_models import Model
-from ..llm_chains.chat_chain import Iternlm2Chat7BChatChain
 
 
 class Iternlm2Chat7BStepBackChain(Iternlm2Chat7BChatChain):
