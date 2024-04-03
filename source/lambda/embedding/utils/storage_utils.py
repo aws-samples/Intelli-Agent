@@ -1,6 +1,7 @@
 """
 Helper functions for storage intermediate content or log
 """
+
 import json
 import logging
 import sys
@@ -80,7 +81,7 @@ def save_content_to_s3(s3, document: Document, res_bucket: str, splitting_type: 
     """
     logger_file = convert_to_logger(document)
     # Extract the filename from the file_path in the metadata
-    file_path = document.metadata.get('file_path', '')
-    filename = file_path.split('/')[-1].split('.')[0]
+    file_path = document.metadata.get("file_path", "")
+    filename = file_path.split("/")[-1].split(".")[0]
     # RecursiveCharacterTextSplitter have been rewrite to split based on chunk size & overlap, use seperate folder to store the logger file
     upload_chunk_to_s3(s3, logger_file, res_bucket, filename, splitting_type)

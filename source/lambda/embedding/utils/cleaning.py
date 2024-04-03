@@ -8,19 +8,19 @@ UNICODE_BULLETS: Final[List[str]] = [
     "\u2023",
     "\u2043",
     "\u3164",
-    "\u204C",
-    "\u204D",
+    "\u204c",
+    "\u204d",
     "\u2219",
-    "\u25CB",
-    "\u25CF",
-    "\u25D8",
-    "\u25E6",
+    "\u25cb",
+    "\u25cf",
+    "\u25d8",
+    "\u25e6",
     "\u2619",
     "\u2765",
     "\u2767",
-    "\u29BE",
-    "\u29BF",
-    "\u002D",
+    "\u29be",
+    "\u29bf",
+    "\u002d",
     "",
     "\*",
     "\x95",
@@ -46,6 +46,7 @@ PARAGRAPH_PATTERN_RE = re.compile(
 
 DOUBLE_PARAGRAPH_PATTERN_RE = re.compile("(" + PARAGRAPH_PATTERN + "){2}")
 
+
 def clean_non_ascii_chars(text) -> str:
     """Cleans non-ascii characters from unicode string.
 
@@ -56,6 +57,7 @@ def clean_non_ascii_chars(text) -> str:
     """
     en = text.encode("ascii", "ignore")
     return en.decode()
+
 
 def clean_bullets(text: str) -> str:
     """Cleans unicode bullets from a section of text.
@@ -70,6 +72,7 @@ def clean_bullets(text: str) -> str:
 
     cleaned_text = UNICODE_BULLETS_RE.sub("", text, 1)
     return cleaned_text.strip()
+
 
 def clean_ordered_bullets(text) -> str:
     """Cleans the start of bulleted text sections up to three “sub-section”
@@ -93,6 +96,7 @@ def clean_ordered_bullets(text) -> str:
         return text
 
     return text_cl
+
 
 def clean_ligatures(text) -> str:
     """Replaces ligatures with their most likely equivalent characters.
@@ -124,6 +128,7 @@ def clean_ligatures(text) -> str:
 
     return cleaned_text
 
+
 def group_bullet_paragraph(paragraph: str) -> list:
     """Groups paragraphs with bullets that have line breaks for visual/formatting purposes.
     For example:
@@ -150,6 +155,7 @@ def group_bullet_paragraph(paragraph: str) -> list:
         if bullet:
             clean_paragraphs.append(re.sub(PARAGRAPH_PATTERN, " ", bullet))
     return clean_paragraphs
+
 
 def group_broken_paragraphs(
     text: str,
@@ -183,7 +189,9 @@ def group_broken_paragraphs(
         para_split = line_split.split(paragraph)
         all_lines_short = all(len(line.strip().split(" ")) < 5 for line in para_split)
         # pytesseract converts some bullet points to standalone "e" characters
-        if UNICODE_BULLETS_RE.match(paragraph.strip()) or E_BULLET_PATTERN.match(paragraph.strip()):
+        if UNICODE_BULLETS_RE.match(paragraph.strip()) or E_BULLET_PATTERN.match(
+            paragraph.strip()
+        ):
             clean_paragraphs.extend(group_bullet_paragraph(paragraph))
         elif all_lines_short:
             clean_paragraphs.extend([line for line in para_split if line.strip()])
@@ -192,15 +200,16 @@ def group_broken_paragraphs(
 
     return "\n\n".join(clean_paragraphs)
 
+
 def remove_duplicate_sections(text: str) -> str:
     # Split the text into paragraphs
-    paragraphs = text.split('\n\n')
+    paragraphs = text.split("\n\n")
 
     # Function to remove punctuation from a string
     def remove_punctuation(s):
-        no_punc = re.sub(r'[^\w\s]', '', s)
+        no_punc = re.sub(r"[^\w\s]", "", s)
         # revmoe extra spaces between words
-        normal = re.sub(r'\s+', ' ', no_punc)
+        normal = re.sub(r"\s+", " ", no_punc)
         return normal.lower()
 
     # Remove punctuation and convert paragraphs to lower case for comparison
@@ -215,6 +224,6 @@ def remove_duplicate_sections(text: str) -> str:
             seen.add(cleaned)
 
     # Join the unique paragraphs back into a single text
-    cleaned_text = '\n\n'.join(unique_paragraphs)
+    cleaned_text = "\n\n".join(unique_paragraphs)
 
     return cleaned_text

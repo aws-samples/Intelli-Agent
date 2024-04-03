@@ -20,9 +20,6 @@ def send_msg(queue_url, event):
 
 
 def lambda_handler(event, context):
-    send_msg(
-        QUEUE_URL,
-        event
-    )
+    send_msg(QUEUE_URL, event)
 
     return {"statusCode": 200, "body": "Messages sent to SQS"}

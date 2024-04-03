@@ -33,7 +33,7 @@ def detect_language(input):
     """
     if isinstance(input, list):
         input = " ".join(input)
-    if re.search("[\u4e00-\u9FFF]", input):
+    if re.search("[\u4e00-\u9fff]", input):
         return "ch"
     else:
         return "en"

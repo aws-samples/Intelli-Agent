@@ -11,7 +11,7 @@ import traceback
 import contextlib
 import threading
 
-from concurrent.futures import ThreadPoolExecutor,ProcessPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 
 import functools
 from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple
@@ -22,74 +22,77 @@ import nltk
 from langchain.embeddings.sagemaker_endpoint import EmbeddingsContentHandler
 from langchain_core.embeddings import Embeddings
 from langchain_community.vectorstores.opensearch_vector_search import (
-        OpenSearchVectorSearch
-    )
-from tenacity import retry, stop_after_attempt,wait_exponential
+    OpenSearchVectorSearch,
+)
+from tenacity import retry, stop_after_attempt, wait_exponential
 
-bge_m3_embedding_lock = None 
+bge_m3_embedding_lock = None
 aos_injection_mp = None
 aos_injection_task_queue = None
 index_create_lock = None
 
+
 class BGRM3Embedding(Embeddings):
     instance = None
+
     def __new__(cls):
         if cls.instance is not None:
             return cls.instance
         instance = super().__new__(cls)
-        cls.instance = instance 
+        cls.instance = instance
         instance.model = instance.create_model()
         return instance
-    
+
     def create_model(self):
         from FlagEmbedding import BGEM3FlagModel
-        model = BGEM3FlagModel('BAAI/bge-m3',  use_fp16=True,device='cuda:0') 
-        logger.info(f'load model successfully')
+
+        model = BGEM3FlagModel("BAAI/bge-m3", use_fp16=True, device="cuda:0")
+        logger.info(f"load model successfully")
         return model
 
-    def format_ret(self,ret:dict):
+    def format_ret(self, ret: dict):
         colbert_vecs_list = []
-        for colbert_vecs in ret['colbert_vecs']:
+        for colbert_vecs in ret["colbert_vecs"]:
             colbert_vecs_list.append(colbert_vecs.tolist())
 
-        dense_vecs_list = ret['dense_vecs'].tolist()
+        dense_vecs_list = ret["dense_vecs"].tolist()
 
         return {
             "colbert_vecs_list": colbert_vecs_list,
-            "dense_vecs_list": dense_vecs_list
+            "dense_vecs_list": dense_vecs_list,
         }
 
     def embed_documents(self, texts: List[str]) -> List[List[float]]:
         """Embed search docs."""
         ret = self.model.encode(
             texts,
-            return_dense=True, 
-            return_sparse=False, 
+            return_dense=True,
+            return_sparse=False,
             return_colbert_vecs=True,
             batch_size=12,
-            max_length=512
+            max_length=512,
         )
         ret = self.format_ret(ret)
 
         return ret
-
 
     def embed_query(self, text: str) -> List[float]:
         """Embed query text."""
         ret = self.model.encode(
-                [text],
-                return_dense=True, 
-                return_sparse=True, 
-                return_colbert_vecs=True,
-                batch_size=12,
-                max_length=512
+            [text],
+            return_dense=True,
+            return_sparse=True,
+            return_colbert_vecs=True,
+            batch_size=12,
+            max_length=512,
         )
         ret = self.format_ret(ret)
         return ret
 
+
 def __bulk_add(
     self: OpenSearchVectorSearch,
-    data:Iterable[dict],
+    data: Iterable[dict],
     # texts: Iterable[str],
     # embeddings: List[List[float]],
     # metadatas: Optional[List[dict]] = None,
@@ -100,8 +103,12 @@ def __bulk_add(
 ) -> List[str]:
     assert embedding_size is not None, embedding_size
     from langchain_community.vectorstores.opensearch_vector_search import (
-        _import_bulk,_import_not_found_error,_validate_aoss_with_engines,_default_text_mapping
-    ) 
+        _import_bulk,
+        _import_not_found_error,
+        _validate_aoss_with_engines,
+        _default_text_mapping,
+    )
+
     # _validate_embeddings_and_bulk_size(len(embeddings), bulk_size)
     index_name = kwargs.get("index_name", self.index_name)
     text_field = kwargs.get("text_field", "text")
@@ -114,10 +121,10 @@ def __bulk_add(
     max_chunk_bytes = kwargs.get("max_chunk_bytes", 1 * 1024 * 1024)
 
     _validate_aoss_with_engines(self.is_aoss, engine)
-    
+
     # dim = len(embeddings[0])
     mapping = _default_text_mapping(
-         embedding_size, engine, space_type, ef_search, ef_construction, m, vector_field
+        embedding_size, engine, space_type, ef_search, ef_construction, m, vector_field
     )
 
     if not mapping:
@@ -127,7 +134,7 @@ def __bulk_add(
     # requests = []
     return_ids = []
     mapping = mapping
-    
+
     with index_create_lock:
         try:
             self.client.indices.get(index=index_name)
@@ -136,9 +143,9 @@ def __bulk_add(
 
     def request_generator():
         for i, datum in enumerate(data):
-            metadata = datum['metadata']
-            text = datum['text']
-            embedding = datum['embedding']
+            metadata = datum["metadata"]
+            text = datum["text"]
+            embedding = datum["embedding"]
             # metadata = metadatas[i] if metadatas else {}
             _id = ids[i] if ids else str(uuid.uuid4())
             request = {
@@ -152,7 +159,7 @@ def __bulk_add(
                 request["id"] = _id
             else:
                 request["_id"] = _id
-            
+
             # requests.append(request)
             return_ids.append(_id)
             yield request
@@ -168,19 +175,22 @@ def __bulk_add(
     return return_ids
 
 
-@retry(stop=stop_after_attempt(5),wait=wait_exponential(multiplier=1, min=4, max=10))
-def _bulk_add(*args,**kwargs):
+@retry(stop=stop_after_attempt(5), wait=wait_exponential(multiplier=1, min=4, max=10))
+def _bulk_add(*args, **kwargs):
     try:
-        __bulk_add(*args,**kwargs)
+        __bulk_add(*args, **kwargs)
     except Exception as e:
-        raise RuntimeError(f"Catch exception when adding document to OpenSearch: {str(e)[:100]}")
+        raise RuntimeError(
+            f"Catch exception when adding document to OpenSearch: {str(e)[:100]}"
+        )
 
-def bulk_add(*args,**kwargs):
+
+def bulk_add(*args, **kwargs):
     try:
-        _bulk_add(*args,**kwargs)
+        _bulk_add(*args, **kwargs)
     except Exception as e:
-       
         logger.error(f"bulk add fail: { traceback.format_exc(limit=1)}")
+
 
 #         return _bulk_ingest_embeddings(
 #             self.client,
@@ -207,42 +217,39 @@ def bulk_add(*args,**kwargs):
 #     max_chunk_bytes: Optional[int] = 1 * 1024 * 1024,
 #     is_aoss: bool = False,
 # ) -> List[str]:
-    
-    # """Bulk Ingest Embeddings into given index."""
-    # if not mapping:
-    #     mapping = dict()
 
-    # bulk = _import_bulk()
-    # not_found_error = _import_not_found_error()
-    # requests = []
-    # return_ids = []
-    # mapping = mapping
+# """Bulk Ingest Embeddings into given index."""
+# if not mapping:
+#     mapping = dict()
 
-    # try:
-    #     client.indices.get(index=index_name)
-    # except not_found_error:
-    #     client.indices.create(index=index_name, body=mapping)
+# bulk = _import_bulk()
+# not_found_error = _import_not_found_error()
+# requests = []
+# return_ids = []
+# mapping = mapping
 
-    
+# try:
+#     client.indices.get(index=index_name)
+# except not_found_error:
+#     client.indices.create(index=index_name, body=mapping)
 
 
-    # for i, text in enumerate(texts):
-    #     metadata = metadatas[i] if metadatas else {}
-    #     _id = ids[i] if ids else str(uuid.uuid4())
-    #     request = {
-    #         "_op_type": "index",
-    #         "_index": index_name,
-    #         vector_field: embeddings[i],
-    #         text_field: text,
-    #         "metadata": metadata,
-    #     }
-    #     if is_aoss:
-    #         request["id"] = _id
-    #     else:
-    #         request["_id"] = _id
-    #     requests.append(request)
-    #     return_ids.append(_id)
-    
+# for i, text in enumerate(texts):
+#     metadata = metadatas[i] if metadatas else {}
+#     _id = ids[i] if ids else str(uuid.uuid4())
+#     request = {
+#         "_op_type": "index",
+#         "_index": index_name,
+#         vector_field: embeddings[i],
+#         text_field: text,
+#         "metadata": metadata,
+#     }
+#     if is_aoss:
+#         request["id"] = _id
+#     else:
+#         request["_id"] = _id
+#     requests.append(request)
+#     return_ids.append(_id)
 
 
 sys.path.append("dep")
@@ -250,11 +257,12 @@ sys.path.append("dep")
 from boto3.dynamodb.conditions import Attr, Key
 from langchain.docstore.document import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+
 # from langchain.vectorstores import OpenSearchVectorSearch
 # from langchain_community.vectorstores import OpenSearchVectorSearch
 from langchain_community.vectorstores.opensearch_vector_search import (
-        OpenSearchVectorSearch
-    )
+    OpenSearchVectorSearch,
+)
 
 from llm_bot_dep import sm_utils
 from llm_bot_dep.constant import SplittingType
@@ -271,6 +279,7 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 import os
 import psutil
 
+
 def get_program_memory_usage(pid=None):
     if pid is None:
         pid = os.getpid()
@@ -282,12 +291,12 @@ def get_program_memory_usage(pid=None):
         # print('pid', child.pid)
         mem += child.memory_info().rss
     # mem = mem * (psutil.virtual_memory().total / 1024/1024/1024) / 100
-    mem  = mem / 1024 / 1024 / 1024
+    mem = mem / 1024 / 1024 / 1024
     # print(mem)
     # print()
     # print(root_pid_mem)
     # print(sdg)
-    return {"total":mem,"root_mem": root_pid_mem}
+    return {"total": mem, "root_mem": root_pid_mem}
 
 
 # Adaption to allow nougat to run in AWS Glue with writable /tmp
@@ -295,13 +304,13 @@ os.environ["TRANSFORMERS_CACHE"] = "/tmp/transformers_cache"
 os.environ["NOUGAT_CHECKPOINT"] = "/tmp/nougat_checkpoint"
 os.environ["NLTK_DATA"] = "/tmp/nltk_data"
 
-args = json.load(open(os.environ['args_path']))
-args["BATCH_INDICE"] = int(os.environ.get('worker_id',0))
+args = json.load(open(os.environ["args_path"]))
+args["BATCH_INDICE"] = int(os.environ.get("worker_id", 0))
 
 logger = logging.getLogger()
 
 logger.setLevel(logging.INFO)
-    
+
 logger.warning("Running locally")
 
 # Online process triggered by S3 Object create event does not have batch indice
@@ -371,7 +380,9 @@ def decode_file_content(content: str, default_encoding: str = "utf-8"):
 
 
 # such glue job is running as map job, the batchIndice is the index per file to handle in current job
-def iterate_s3_files(bucket: str, prefix: str, worker_num,batchIndice,max_file_num) -> Generator:
+def iterate_s3_files(
+    bucket: str, prefix: str, worker_num, batchIndice, max_file_num
+) -> Generator:
     paginator = s3.get_paginator("list_objects_v2")
     currentIndice = 0
     for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
@@ -379,8 +390,10 @@ def iterate_s3_files(bucket: str, prefix: str, worker_num,batchIndice,max_file_n
             currentIndice += 1
 
             if currentIndice > max_file_num:
-                logger.info(f"currentIndice: {currentIndice} reach max_file_num: {max_file_num}")
-                return 
+                logger.info(
+                    f"currentIndice: {currentIndice} reach max_file_num: {max_file_num}"
+                )
+                return
             key = obj["Key"]
             # skip the prefix with slash, which is the folder name
             if key.endswith("/"):
@@ -390,8 +403,8 @@ def iterate_s3_files(bucket: str, prefix: str, worker_num,batchIndice,max_file_n
                     currentIndice, bucket, key
                 )
             )
-            # 
-            if (currentIndice-1) % worker_num != int(batchIndice):
+            #
+            if (currentIndice - 1) % worker_num != int(batchIndice):
                 logger.debug(
                     "currentIndice: {}, batchIndice: {}, skip file: {}".format(
                         currentIndice, batchIndice, key
@@ -399,9 +412,9 @@ def iterate_s3_files(bucket: str, prefix: str, worker_num,batchIndice,max_file_n
                 )
                 continue
             logger.info(
-                    "Processing {} doc in {} batch, key: {}".format(
-                        currentIndice, batchIndice, key
-                    )
+                "Processing {} doc in {} batch, key: {}".format(
+                    currentIndice, batchIndice, key
+                )
             )
             file_type = key.split(".")[-1].lower()  # Extract file extension
             response = s3.get_object(Bucket=bucket, Key=key)
@@ -438,6 +451,7 @@ def iterate_s3_files(bucket: str, prefix: str, worker_num,batchIndice,max_file_n
             else:
                 logger.info(f"Unknown file type: {file_type}")
 
+
 def batch_generator(generator, batch_size: int):
     iterator = iter(generator)
     while True:
@@ -446,10 +460,12 @@ def batch_generator(generator, batch_size: int):
             break
         yield batch
 
+
 docsearch = None
 
-@retry(stop=stop_after_attempt(5),wait=wait_exponential(multiplier=1, min=4, max=10))
-def aos_injection_helper(texts,dense_vecs_list,metadatas,index_name):
+
+@retry(stop=stop_after_attempt(5), wait=wait_exponential(multiplier=1, min=4, max=10))
+def aos_injection_helper(texts, dense_vecs_list, metadatas, index_name):
     global docsearch
     if docsearch is None:
         docsearch = OpenSearchVectorSearch(
@@ -459,7 +475,7 @@ def aos_injection_helper(texts,dense_vecs_list,metadatas,index_name):
             http_auth=awsauth,
             use_ssl=True,
             verify_certs=True,
-            connection_class=RequestsHttpConnection
+            connection_class=RequestsHttpConnection,
         )
     # # logger.info(
     #     "Adding documents %s to OpenSearch with index %s",
@@ -471,48 +487,48 @@ def aos_injection_helper(texts,dense_vecs_list,metadatas,index_name):
     try:
         # TODO, consider the max retry and initial backoff inside helper.bulk operation instead of using original LangChain
         docsearch._OpenSearchVectorSearch__add(
-            texts,
-            embeddings=dense_vecs_list,
-            metadatas=metadatas
+            texts, embeddings=dense_vecs_list, metadatas=metadatas
         )
     except Exception as e:
         raise RuntimeError(f"Catch exception when adding document to OpenSearch: {e}")
-    
+
     # docsearch.client.close()
 
 
-def __aos_injection(texts,dense_vecs_list,metadatas,index_name): 
+def __aos_injection(texts, dense_vecs_list, metadatas, index_name):
     try:
-        aos_injection_helper(texts,dense_vecs_list,metadatas,index_name)
+        aos_injection_helper(texts, dense_vecs_list, metadatas, index_name)
     except:
         logger.error(traceback.format_exc())
-    
+
     traceback.clear_frames(sys.exc_info()[2])
     # import gc
-    # gc.collect() 
+    # gc.collect()
 
 
 # @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
 pendings = set()
+
+
 def _aos_injection(
-        documents: List[Document],
-        index_name,
-        aosEndpoint,
-        endpoint_name=os.environ.get('embedding_endpoint_name',""),
-        ) -> Document:
+    documents: List[Document],
+    index_name,
+    aosEndpoint,
+    endpoint_name=os.environ.get("embedding_endpoint_name", ""),
+) -> Document:
     # If user customize the index, use the customized index as high priority, NOTE the custom index will be created with default AOS mapping in LangChain, use API to create the index with customized mapping before running the job if you want to customize the mapping
-    assert isinstance(documents,list), type(documents)
-    
+    assert isinstance(documents, list), type(documents)
+
     for document in documents:
         if "complete_heading" in document.metadata:
-                document.page_content = (
-                    document.metadata["complete_heading"] + " " + document.page_content
-                )
+            document.page_content = (
+                document.metadata["complete_heading"] + " " + document.page_content
+            )
         else:
             document.page_content = document.page_content
         document.metadata["embedding_endpoint_name"] = endpoint_name
         save_content_to_s3(s3, document, res_bucket, SplittingType.CHUNK.value)
-    
+
     texts = [doc.page_content for doc in documents]
     metadatas = [doc.metadata for doc in documents]
 
@@ -523,30 +539,30 @@ def _aos_injection(
     #     (psutil.virtual_memory().percent > 85 and len(pendings) > 2):
     #     used_momery = psutil.virtual_memory().used / 1024 / 1024 / 1024
     #     logger.info(f'waiting for aos_injection_mp, pendings num: {len(pendings)}, used mem: {used_momery}')
-    #     _, pendings = wait(pendings, return_when=FIRST_COMPLETED) 
+    #     _, pendings = wait(pendings, return_when=FIRST_COMPLETED)
     #     import gc
     #     gc.collect()
     #     time.sleep(5)
-    
+
     embedding_execute_context = bge_m3_embedding_lock
     if embedding_execute_context is None:
-        embedding_execute_context =  contextlib.nullcontext() 
+        embedding_execute_context = contextlib.nullcontext()
     with embedding_execute_context:
-        # import multiprocessing 
+        # import multiprocessing
         # logger.info(f'process: {multiprocessing.current_process().ident} enter embedding_execute_context')
         # time.sleep(4)
-        logger.info(f'embedding documents num: {len(texts)}')
+        logger.info(f"embedding documents num: {len(texts)}")
         embeddings = BGRM3Embedding().embed_documents(texts)
 
-    dense_vecs_list = embeddings['dense_vecs_list']
-    colbert_vecs_list = embeddings['colbert_vecs_list']
+    dense_vecs_list = embeddings["dense_vecs_list"]
+    colbert_vecs_list = embeddings["colbert_vecs_list"]
 
-    
     colbert_vecs_lens = [len(colbert_vecs) for colbert_vecs in colbert_vecs_list]
-    avg_lens = sum(colbert_vecs_lens)/len(colbert_vecs_lens)
+    avg_lens = sum(colbert_vecs_lens) / len(colbert_vecs_lens)
 
-    logger.info(f'avg_colbert_lens: {avg_lens}, colbert_vecs num: {len(colbert_vecs_lens)}')
-
+    logger.info(
+        f"avg_colbert_lens: {avg_lens}, colbert_vecs num: {len(colbert_vecs_lens)}"
+    )
 
     # for doc_id, metadata in enumerate(metadatas):
     #         # lexical_weights = embeddings_vectors[0]["lexical_weights"][
@@ -566,11 +582,11 @@ def _aos_injection(
     #     )
 
     # logger.info(f'aos_injection_mp._work_ids.qsize(): {aos_injection_mp._work_ids.qsize()}')
-    
+
     # while aos_injection_mp._work_queue.qsize() > 2*aos_injection_mp._max_workers:
     #     logger.info(f"aos_injection_mp's _work_queue is full, qsize: {aos_injection_mp._work_queue.qsize()}, _max_workers: {aos_injection_mp._max_workers}, waiting... ")
     #     time.sleep(5)
-        
+
     # pendings.add(
     #     aos_injection_mp.submit(
     #         __aos_injection,
@@ -581,7 +597,7 @@ def _aos_injection(
     #     ))
 
     logger.info(f"put task, qsize: {aos_injection_task_queue.qsize()}")
-    
+
     # for i in range(len(texts)):
     #     aos_injection_task_queue.put(
     #         {
@@ -595,87 +611,89 @@ def _aos_injection(
     for i in range(len(texts)):
         aos_injection_task_queue.put(
             {
-                "text":texts[i],
+                "text": texts[i],
                 "embedding": dense_vecs_list[i],
                 "metadata": metadatas[i],
-                "index_name": index_name
+                "index_name": index_name,
             }
         )
 
-    
     mem = get_program_memory_usage()
-    logger.info(f"current total memory usage: {mem['total']} GB, root pid: {mem['root_mem']} GB, pendings num: {len(pendings)}")
-    
-   # aos_injection_mp.submit(__aos_injection,texts,dense_vecs_list,metadatas,index_name)
+    logger.info(
+        f"current total memory usage: {mem['total']} GB, root pid: {mem['root_mem']} GB, pendings num: {len(pendings)}"
+    )
 
-    # aos_injection_mp.submit(__aos_injection,texts,dense_vecs_list,metadatas,index_name)
-    
-    # __aos_injection(texts,dense_vecs_list,metadatas,index_name)
-    # docsearch = OpenSearchVectorSearch(
-    #     index_name=index_name,
-    #     embedding_function=None,
-    #     opensearch_url="https://{}".format(aosEndpoint),
-    #     http_auth=awsauth,
-    #     use_ssl=True,
-    #     verify_certs=True,
-    #     connection_class=RequestsHttpConnection
-    # )
-    
-    
-    # # # logger.info(
-    # #     "Adding documents %s to OpenSearch with index %s",
-    # #     document,
-    # #     index_name,
-    # # )
-    # # TODO: add endpoint name as a metadata of document
-    # try:
-    #     # TODO, consider the max retry and initial backoff inside helper.bulk operation instead of using original LangChain
-    #     docsearch._OpenSearchVectorSearch__add(
-    #         texts,
-    #         embeddings=dense_vecs_list,
-    #         metadatas=metadatas
-    #     )
-    # except Exception as e:
-    #     logger.info(
-    #         f"Catch exception when adding document to OpenSearch: {e}"
-    #     )
+
+# aos_injection_mp.submit(__aos_injection,texts,dense_vecs_list,metadatas,index_name)
+
+# aos_injection_mp.submit(__aos_injection,texts,dense_vecs_list,metadatas,index_name)
+
+# __aos_injection(texts,dense_vecs_list,metadatas,index_name)
+# docsearch = OpenSearchVectorSearch(
+#     index_name=index_name,
+#     embedding_function=None,
+#     opensearch_url="https://{}".format(aosEndpoint),
+#     http_auth=awsauth,
+#     use_ssl=True,
+#     verify_certs=True,
+#     connection_class=RequestsHttpConnection
+# )
+
+
+# # # logger.info(
+# #     "Adding documents %s to OpenSearch with index %s",
+# #     document,
+# #     index_name,
+# # )
+# # TODO: add endpoint name as a metadata of document
+# try:
+#     # TODO, consider the max retry and initial backoff inside helper.bulk operation instead of using original LangChain
+#     docsearch._OpenSearchVectorSearch__add(
+#         texts,
+#         embeddings=dense_vecs_list,
+#         metadatas=metadatas
+#     )
+# except Exception as e:
+#     logger.info(
+#         f"Catch exception when adding document to OpenSearch: {e}"
+#     )
 
 
 def chunk_generator(
-        content: List[Document], chunk_size: int = 500, chunk_overlap: int = 30
-    ) -> Generator[Document, None, None]:
-        temp_text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=chunk_size, chunk_overlap=chunk_overlap
-        )
-        temp_content = content
-        text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=chunk_size, chunk_overlap=chunk_overlap
-        )
-        updated_heading_hierarchy = {}
-        for temp_document in temp_content:
-            temp_chunk_id = temp_document.metadata["chunk_id"]
-            temp_split_size = len(temp_text_splitter.split_documents([temp_document]))
-            # Add size in heading_hierarchy
-            if "heading_hierarchy" in temp_document.metadata:
-                temp_hierarchy = temp_document.metadata["heading_hierarchy"]
-                temp_hierarchy["size"] = temp_split_size
-                updated_heading_hierarchy[temp_chunk_id] = temp_hierarchy
+    content: List[Document], chunk_size: int = 500, chunk_overlap: int = 30
+) -> Generator[Document, None, None]:
+    temp_text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=chunk_size, chunk_overlap=chunk_overlap
+    )
+    temp_content = content
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=chunk_size, chunk_overlap=chunk_overlap
+    )
+    updated_heading_hierarchy = {}
+    for temp_document in temp_content:
+        temp_chunk_id = temp_document.metadata["chunk_id"]
+        temp_split_size = len(temp_text_splitter.split_documents([temp_document]))
+        # Add size in heading_hierarchy
+        if "heading_hierarchy" in temp_document.metadata:
+            temp_hierarchy = temp_document.metadata["heading_hierarchy"]
+            temp_hierarchy["size"] = temp_split_size
+            updated_heading_hierarchy[temp_chunk_id] = temp_hierarchy
 
-        for document in content:
-            splits = text_splitter.split_documents([document])
-            # list of Document objects
-            index = 1
-            for split in splits:
-                chunk_id = split.metadata["chunk_id"]
-                logger.debug(chunk_id)
-                split.metadata["chunk_id"] = f"{chunk_id}-{index}"
-                if chunk_id in updated_heading_hierarchy:
-                    split.metadata["heading_hierarchy"] = updated_heading_hierarchy[
-                        chunk_id
-                    ]
-                    logger.debug(split.metadata["heading_hierarchy"])
-                index += 1
-                yield split
+    for document in content:
+        splits = text_splitter.split_documents([document])
+        # list of Document objects
+        index = 1
+        for split in splits:
+            chunk_id = split.metadata["chunk_id"]
+            logger.debug(chunk_id)
+            split.metadata["chunk_id"] = f"{chunk_id}-{index}"
+            if chunk_id in updated_heading_hierarchy:
+                split.metadata["heading_hierarchy"] = updated_heading_hierarchy[
+                    chunk_id
+                ]
+                logger.debug(split.metadata["heading_hierarchy"])
+            index += 1
+            yield split
 
 
 def aos_injection(
@@ -717,10 +735,9 @@ def aos_injection(
         )
     else:
         generator = content
-    
+
     batches = batch_generator(
-        generator, 
-        batch_size=int(os.environ.get('embedding_chunk_num',20))
+        generator, batch_size=int(os.environ.get("embedding_chunk_num", 20))
     )
     # note: typeof(batch)->list[Document], sizeof(batches)=batch_size
     for batch in batches:
@@ -730,26 +747,20 @@ def aos_injection(
             batch,
             # embeddings,
             index_name,
-            aosEndpoint
+            aosEndpoint,
         )
 
-def gen_documents(
-        s3_bucket, 
-        s3_prefix,
-        worker_num,
-        batchIndice,
-        max_file_num=math.inf
-        ):
-    embeddings_model_provider, embeddings_model_name, embeddings_model_dimensions,embeddings_model_type = (
-        get_embedding_info(embeddingModelEndpoint)
-    )
+
+def gen_documents(s3_bucket, s3_prefix, worker_num, batchIndice, max_file_num=math.inf):
+    (
+        embeddings_model_provider,
+        embeddings_model_name,
+        embeddings_model_dimensions,
+        embeddings_model_type,
+    ) = get_embedding_info(embeddingModelEndpoint)
     for file_type, file_content, kwargs in iterate_s3_files(
-        s3_bucket, 
-        s3_prefix,
-        worker_num,
-        batchIndice,
-        max_file_num=max_file_num
-        ):
+        s3_bucket, s3_prefix, worker_num, batchIndice, max_file_num=max_file_num
+    ):
         try:
             res = cb_process_object(s3, file_type, file_content, **kwargs)
             for document in res:
@@ -762,7 +773,6 @@ def gen_documents(
                 logger.debug("Result: %s", res)
 
             open_search_index_type = "qq" if file_type == "jsonl" else "qd"
-            
 
             aos_index = workspace_manager.update_workspace_open_search(
                 workspace_id,
@@ -772,16 +782,16 @@ def gen_documents(
                 embeddings_model_dimensions,
                 embeddings_model_type,
                 ["zh"],
-                open_search_index_type
+                open_search_index_type,
                 # [file_type],
                 # open_search_index_type
             )
             gen_chunk_flag = False if file_type == "csv" else True
             if file_type in supported_file_types:
                 yield {
-                    "aos_index":aos_index,
-                    "gen_chunk_flag":gen_chunk_flag,
-                    "documents": res
+                    "aos_index": aos_index,
+                    "gen_chunk_flag": gen_chunk_flag,
+                    "documents": res,
                 }
         except Exception as e:
             logger.error(
@@ -791,15 +801,14 @@ def gen_documents(
             )
             traceback.print_exc()
 
+
 def split_documents(
-        documents_generator,
-        chunk_size: int = 500,
-        chunk_overlap: int = 30
-    ):
+    documents_generator, chunk_size: int = 500, chunk_overlap: int = 30
+):
     for document_dict in documents_generator:
-        gen_chunk_flag = document_dict['gen_chunk_flag']
-        documents: list[Document] = document_dict['documents']
-        aos_index = document_dict['aos_index']
+        gen_chunk_flag = document_dict["gen_chunk_flag"]
+        documents: list[Document] = document_dict["documents"]
+        aos_index = document_dict["aos_index"]
         if gen_chunk_flag:
             generator = chunk_generator(
                 documents, chunk_size=chunk_size, chunk_overlap=chunk_overlap
@@ -808,14 +817,11 @@ def split_documents(
             generator = iter(documents)
 
         for chunk in generator:
-            yield {
-                "document": chunk,
-                "aos_index": aos_index
-            }
+            yield {"document": chunk, "aos_index": aos_index}
 
 
 # Main function to be called by Glue job script
-def _main(worker_num,batchIndice,max_file_num=math.inf):
+def _main(worker_num, batchIndice, max_file_num=math.inf):
     logger.info("Starting Glue job with passing arguments: %s", args)
     logger.info("Running in offline mode with consideration for large file size...")
     # embeddings_model_provider, embeddings_model_name, embeddings_model_dimensions = (
@@ -826,37 +832,38 @@ def _main(worker_num,batchIndice,max_file_num=math.inf):
         s3_prefix=s3_prefix,
         worker_num=worker_num,
         batchIndice=batchIndice,
-        max_file_num=max_file_num
+        max_file_num=max_file_num,
     )
     chunk_dicts = split_documents(document_dicts)
     # print('list(chunk_dicts)',list(chunk_dicts))
     batches = batch_generator(
-        chunk_dicts, 
-        batch_size=int(os.environ.get('embedding_chunk_num',20))
+        chunk_dicts, batch_size=int(os.environ.get("embedding_chunk_num", 20))
     )
 
     for batch in batches:
         # print('batch: ',batch)
         if len(batch) == 0:
             continue
-        index_name = batch[0]['aos_index']
-        documents = [i['document'] for i in batch]
+        index_name = batch[0]["aos_index"]
+        documents = [i["document"] for i in batch]
         _aos_injection(
             documents,
             index_name,
             # embeddings,
-            aosEndpoint
+            aosEndpoint,
         )
 
 
 # Main function to be called by Glue job script
-def __main(worker_num,batchIndice,max_file_num=math.inf):
+def __main(worker_num, batchIndice, max_file_num=math.inf):
     logger.info("Starting Glue job with passing arguments: %s", args)
     logger.info("Running in offline mode with consideration for large file size...")
     embeddings_model_provider, embeddings_model_name, embeddings_model_dimensions = (
         get_embedding_info(embeddingModelEndpoint)
     )
-    for file_type, file_content, kwargs in iterate_s3_files(s3_bucket, s3_prefix,worker_num,batchIndice,max_file_num=max_file_num):
+    for file_type, file_content, kwargs in iterate_s3_files(
+        s3_bucket, s3_prefix, worker_num, batchIndice, max_file_num=max_file_num
+    ):
         try:
             res = cb_process_object(s3, file_type, file_content, **kwargs)
             for document in res:
@@ -937,10 +944,11 @@ def __main(worker_num,batchIndice,max_file_num=math.inf):
             )
             traceback.print_exc()
 
-def main(worker_num,batchIndice,max_file_num=math.inf):
+
+def main(worker_num, batchIndice, max_file_num=math.inf):
     logger.debug("boto3 version: %s", boto3.__version__)
     # worker_num = int(os.environ.get('worker_num',1))
-    logger.info(f'worker: {batchIndice}/{worker_num} starting')
+    logger.info(f"worker: {batchIndice}/{worker_num} starting")
 
     # Set the NLTK data path to the /tmp directory for AWS Glue jobs
     nltk.data.path.append("/tmp")
@@ -951,7 +959,8 @@ def main(worker_num,batchIndice,max_file_num=math.inf):
         # Download the package to /tmp/nltk_data
         nltk.download(package, download_dir="/tmp/nltk_data")
 
-    _main(worker_num, batchIndice,max_file_num=max_file_num)
+    _main(worker_num, batchIndice, max_file_num=max_file_num)
+
 
 # def main_multithread():
 #     global  bge_m3_embedding_lock, aos_injection_mp

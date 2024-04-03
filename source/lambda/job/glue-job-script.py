@@ -409,7 +409,6 @@ class OpenSearchIngestionWorker:
         stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10)
     )
     def aos_ingestion(self, documents: List[Document]) -> None:
-
         texts = [doc.page_content for doc in documents]
         metadatas = [doc.metadata for doc in documents]
         embeddings_vectors = self.docsearch.embedding_function.embed_documents(
@@ -438,7 +437,6 @@ class OpenSearchDeleteWorker:
         self.index_name = self.docsearch.index_name
 
     def aos_deletion(self, document_ids) -> None:
-
         bulk_delete_requests = []
 
         # Check if self.index_name exists

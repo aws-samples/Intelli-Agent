@@ -94,6 +94,7 @@ def _is_aoss_enabled(http_auth: Any) -> bool:
         return True
     return False
 
+
 def _bulk_ingest_embeddings(
     client: Any,
     index_name: str,
@@ -106,7 +107,7 @@ def _bulk_ingest_embeddings(
     mapping: Optional[Dict] = None,
     max_chunk_bytes: Optional[int] = 1 * 1024 * 1024,
     is_aoss: bool = False,
-    max_retry_time: int = 3
+    max_retry_time: int = 3,
 ) -> List[str]:
     """Bulk Ingest Embeddings into given index."""
     if not mapping:
@@ -134,7 +135,7 @@ def _bulk_ingest_embeddings(
                 text_field: text,
                 "metadata": metadata,
             },
-            "doc_as_upsert": True
+            "doc_as_upsert": True,
         }
         if is_aoss:
             request["id"] = _id
@@ -154,6 +155,7 @@ def _bulk_ingest_embeddings(
     if not is_aoss:
         client.indices.refresh(index=index_name)
     return return_ids
+
 
 def _bulk_ingest_data(
     client: Any,
@@ -211,6 +213,7 @@ def _default_scripting_text_mapping(
         }
     }
 
+
 def _default_text_mapping(
     dim: int,
     engine: str = "nmslib",
@@ -236,8 +239,9 @@ def _default_text_mapping(
                     },
                 },
             }
-        }
+        },
     }
+
 
 def _faq_text_mapping(
     dim: int,
@@ -253,15 +257,14 @@ def _faq_text_mapping(
     type_list = ["similarity", "relevance"]
     vector_field_mapping = {
         "settings": {"index": {"knn": True, "knn.algo_param.ef_search": ef_search}},
-        "mappings": {
-            "properties": {
-            }
-        }
+        "mappings": {"properties": {}},
     }
     for text_field in text_field_list:
         for lang in lang_list:
             for type in type_list:
-                vector_field_mapping["mappings"]["properties"][f"{text_field}_{lang}_{type}_vector"] = {
+                vector_field_mapping["mappings"]["properties"][
+                    f"{text_field}_{lang}_{type}_vector"
+                ] = {
                     "type": "knn_vector",
                     "dimension": dim,
                     "method": {
@@ -272,6 +275,7 @@ def _faq_text_mapping(
                     },
                 }
     return vector_field_mapping
+
 
 def _ug_text_mapping(
     dim: int,
@@ -349,6 +353,7 @@ def _ug_text_mapping(
             }
         },
     }
+
 
 def _default_approximate_search_query(
     query_vector: List[float],
@@ -513,7 +518,9 @@ class OpenSearchVectorSearch(VectorStore):
     def embeddings(self) -> Embeddings:
         return self.embedding_function
 
-    def add_documents(self, documents: List[Dict], ids: List[int], **kwargs: Any) -> List[str]:
+    def add_documents(
+        self, documents: List[Dict], ids: List[int], **kwargs: Any
+    ) -> List[str]:
         """Run more documents through the embeddings and add to the vectorstore.
 
         Args:
@@ -554,12 +561,43 @@ class OpenSearchVectorSearch(VectorStore):
                 doc["source"] = ""
             metadatas.append({"source": doc["source"]})
         if len(texts) > 0:
-            self.add_texts(texts, metadatas, text_field="text", vector_field=f"text_{lang}_{type}_vector", ids=ids, mapping=mapping, **kwargs)
-            self.add_texts(titles, text_field="title", vector_field=f"title_{lang}_{type}_vector", ids=ids, mapping=mapping, **kwargs)
-            self.add_texts(contents, text_field="content", vector_field=f"content_{lang}_{type}_vector", ids=ids, mapping=mapping, **kwargs)
-            self.add_texts(answers, text_field="answer", vector_field=f"answer_{lang}_{type}_vector", ids=ids, mapping=mapping, **kwargs)
+            self.add_texts(
+                texts,
+                metadatas,
+                text_field="text",
+                vector_field=f"text_{lang}_{type}_vector",
+                ids=ids,
+                mapping=mapping,
+                **kwargs,
+            )
+            self.add_texts(
+                titles,
+                text_field="title",
+                vector_field=f"title_{lang}_{type}_vector",
+                ids=ids,
+                mapping=mapping,
+                **kwargs,
+            )
+            self.add_texts(
+                contents,
+                text_field="content",
+                vector_field=f"content_{lang}_{type}_vector",
+                ids=ids,
+                mapping=mapping,
+                **kwargs,
+            )
+            self.add_texts(
+                answers,
+                text_field="answer",
+                vector_field=f"answer_{lang}_{type}_vector",
+                ids=ids,
+                mapping=mapping,
+                **kwargs,
+            )
 
-    def add_faq_documents_v2(self, documents: List[Dict], ids: List[int], **kwargs: Any) -> List[str]:
+    def add_faq_documents_v2(
+        self, documents: List[Dict], ids: List[int], **kwargs: Any
+    ) -> List[str]:
         """Run more documents through the embeddings and add to the vectorstore.
 
         Args:
@@ -589,19 +627,19 @@ class OpenSearchVectorSearch(VectorStore):
             base_metadata = {
                 "source": doc["source"],
                 "embedding_lang": embedding_lang,
-                "embedding_type": embedding_type 
-                }
+                "embedding_type": embedding_type,
+            }
             raw_content = doc["content"].replace("\n", " ")
             field_match = re.match("Title\:(.*)Content\:(.*)Answer\:(.*)", raw_content)
             if not field_match:
                 print(f"doc format no match {doc['source']}")
                 continue
-            # question 
+            # question
             texts.append(field_match.group(1))
             metadata = copy.deepcopy(base_metadata)
             metadata["field"] = "question"
             metadatas.append(metadata)
-            # question detail 
+            # question detail
             texts.append(field_match.group(2))
             metadata = copy.deepcopy(base_metadata)
             metadata["field"] = "question_detail"
@@ -617,9 +655,18 @@ class OpenSearchVectorSearch(VectorStore):
             metadata["field"] = "all_text"
             metadatas.append(metadata)
         if len(texts) > 0:
-            self.add_texts(texts, metadatas, text_field="content", vector_field=f"embedding", mapping=mapping, **kwargs)
+            self.add_texts(
+                texts,
+                metadatas,
+                text_field="content",
+                vector_field=f"embedding",
+                mapping=mapping,
+                **kwargs,
+            )
 
-    def add_ug_documents(self, documents: List[Dict], ids: List[int], **kwargs: Any) -> List[str]:
+    def add_ug_documents(
+        self, documents: List[Dict], ids: List[int], **kwargs: Any
+    ) -> List[str]:
         """Run more documents through the embeddings and add to the vectorstore.
 
         Args:
@@ -653,16 +700,63 @@ class OpenSearchVectorSearch(VectorStore):
             contents.append(doc["content"])
             titles.append(f"{doc['service']} {doc['abstract']} {doc['topic']}")
             sources.append(doc["url"])
-            metadatas.append({"source": doc["url"], "lang": doc["lang"], "type": doc["type"]})
+            metadatas.append(
+                {"source": doc["url"], "lang": doc["lang"], "type": doc["type"]}
+            )
         if len(topics) > 0:
-            self.add_texts(topics, metadatas, text_field="topic", vector_field="topic_{lang}_{type}_vector", ids=ids, mapping=mapping, **kwargs)
-            self.add_texts(contents, text_field="content", vector_field="content_{lang}_{type}_vector", ids=ids, mapping=mapping, **kwargs)
-            self.add_texts(abstracts, text_field="abstract", vector_field="abstract_{lang}_{type}_vector", ids=ids, mapping=mapping, **kwargs)
-            self.add_texts(services, text_field="service", vector_field="service_{lang}_{type}_vector", ids=ids, mapping=mapping, **kwargs)
-            self.add_texts(titles, text_field="title", vector_field="title_{lang}_{type}_vector", ids=ids, mapping=mapping, **kwargs)
-            self.add_texts(sources, text_field="source", vector_field="source_{lang}_{type}_vector", ids=ids, mapping=mapping, **kwargs)
+            self.add_texts(
+                topics,
+                metadatas,
+                text_field="topic",
+                vector_field="topic_{lang}_{type}_vector",
+                ids=ids,
+                mapping=mapping,
+                **kwargs,
+            )
+            self.add_texts(
+                contents,
+                text_field="content",
+                vector_field="content_{lang}_{type}_vector",
+                ids=ids,
+                mapping=mapping,
+                **kwargs,
+            )
+            self.add_texts(
+                abstracts,
+                text_field="abstract",
+                vector_field="abstract_{lang}_{type}_vector",
+                ids=ids,
+                mapping=mapping,
+                **kwargs,
+            )
+            self.add_texts(
+                services,
+                text_field="service",
+                vector_field="service_{lang}_{type}_vector",
+                ids=ids,
+                mapping=mapping,
+                **kwargs,
+            )
+            self.add_texts(
+                titles,
+                text_field="title",
+                vector_field="title_{lang}_{type}_vector",
+                ids=ids,
+                mapping=mapping,
+                **kwargs,
+            )
+            self.add_texts(
+                sources,
+                text_field="source",
+                vector_field="source_{lang}_{type}_vector",
+                ids=ids,
+                mapping=mapping,
+                **kwargs,
+            )
 
-    def add_ug_documents_v2(self, documents: List[Dict], ids: List[int], **kwargs: Any) -> List[str]:
+    def add_ug_documents_v2(
+        self, documents: List[Dict], ids: List[int], **kwargs: Any
+    ) -> List[str]:
         """Run more documents through the embeddings and add to the vectorstore.
 
         Args:
@@ -693,35 +787,42 @@ class OpenSearchVectorSearch(VectorStore):
                 "embedding_type": embedding_type,
                 "content_lang": doc["lang"],
                 "content_type": doc["type"],
-                "is_api": doc["is_api"] 
-                }
-            # service 
+                "is_api": doc["is_api"],
+            }
+            # service
             texts.append(doc["service"])
             metadata = copy.deepcopy(base_metadata)
             metadata["field"] = "service"
             metadatas.append(metadata)
-            # abstract 
+            # abstract
             texts.append(doc["abstract"])
             metadata = copy.deepcopy(base_metadata)
             metadata["field"] = "abstract"
             metadatas.append(metadata)
-            # topic 
+            # topic
             texts.append(doc["topic"])
             metadata = copy.deepcopy(base_metadata)
             metadata["field"] = "topic"
             metadatas.append(metadata)
-            # content 
+            # content
             texts.append(doc["content"])
             metadata = copy.deepcopy(base_metadata)
             metadata["field"] = "content"
             metadatas.append(metadata)
-            # title 
+            # title
             texts.append(f"{doc['service']} {doc['topic']}")
             metadata = copy.deepcopy(base_metadata)
             metadata["field"] = "title"
             metadatas.append(metadata)
         if len(texts) > 0:
-            self.add_texts(texts, metadatas, text_field="content", vector_field=f"embedding", mapping=mapping, **kwargs)
+            self.add_texts(
+                texts,
+                metadatas,
+                text_field="content",
+                vector_field=f"embedding",
+                mapping=mapping,
+                **kwargs,
+            )
 
     def __add(
         self,

@@ -14,6 +14,9 @@ def timeit(func):
         end_time = time.perf_counter()
         total_time = end_time - start_time
         # first item in the args, ie `args[0]` is `self`
-        logger.info(f'Function {func.__name__} {str(args)[:32]} {str(kwargs)[:32]} Took {total_time:.4f} seconds\n')
+        logger.info(
+            f"Function {func.__name__} {str(args)[:32]} {str(kwargs)[:32]} Took {total_time:.4f} seconds\n"
+        )
         return result
+
     return timeit_wrapper

@@ -101,9 +101,9 @@ def parse_sagemind_llm_config(event_body):
     if llm_model_id:
         new_event_config["generator_llm_config"]["model_id"] = llm_model_id
     if temperature:
-        new_event_config["generator_llm_config"]["model_kwargs"][
-            "temperature"
-        ] = temperature
+        new_event_config["generator_llm_config"]["model_kwargs"]["temperature"] = (
+            temperature
+        )
 
     return new_event_config
 

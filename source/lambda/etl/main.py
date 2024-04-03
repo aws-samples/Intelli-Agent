@@ -37,7 +37,6 @@ def lambda_handler(event, context):
     if "offline" not in event:
         raise ValueError("offline is not in the event")
     elif event["offline"].lower() == "true":
-
         # Initialize the file count
         file_count = 0
 

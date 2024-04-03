@@ -50,7 +50,6 @@ class WorkspaceManager:
         workspace_offline_flag: str,
         workspace_file_types: List[str] = [],
     ):
-
         if workspace_offline_flag == "true":
             open_search_index_name = f"{workspace_id}-offline"
         else:

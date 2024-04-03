@@ -7,10 +7,11 @@ except ModuleNotFoundError:
     os.system(f'{sys.executable} -m pip install websocket-client')
     from websocket import create_connection
 import json 
+from dotenv import load_dotenv
+load_dotenv()
 
 # find ws_url from api gateway
-# ws_url = "wss://omjou492fe.execute-api.us-west-2.amazonaws.com/prod/"
-ws_url = "wss://5nnxrqr4ya.execute-api.cn-north-1.amazonaws.com.cn/prod/"
+ws_url = os.getenv('WS_URL')
 ws = create_connection(ws_url)
 
 question_library = [

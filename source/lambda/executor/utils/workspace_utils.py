@@ -48,7 +48,6 @@ class WorkspaceManager:
         workspace_file_types: List[str],
         open_search_index_name: str = None,
     ):
-
         open_search_index_name = (
             f"{workspace_id}_index"
             if not open_search_index_name

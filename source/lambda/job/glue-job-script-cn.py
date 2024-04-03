@@ -296,7 +296,6 @@ def aos_injection(
                 wait=wait_exponential(multiplier=1, min=4, max=10),
             )
             def _aos_injection(document: Document) -> Document:
-
                 document.metadata["embedding_endpoint_name"] = embeddingModelEndpoint
                 docsearch = OpenSearchVectorSearch(
                     index_name=index_name,

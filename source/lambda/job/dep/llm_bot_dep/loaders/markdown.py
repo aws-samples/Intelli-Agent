@@ -40,11 +40,11 @@ class CustomMarkdownLoader(BaseLoader):
 
 
 def process_md(file_content: str, **kwargs):
-    bucket = kwargs['bucket']
-    key = kwargs['key']
+    bucket = kwargs["bucket"]
+    key = kwargs["key"]
     loader = CustomMarkdownLoader(aws_path=f"s3://{bucket}/{key}")
     doc = loader.load(file_content)
-    splitter = MarkdownHeaderTextSplitter(kwargs['res_bucket'])
+    splitter = MarkdownHeaderTextSplitter(kwargs["res_bucket"])
     doc_list = splitter.split_text(doc)
 
     return doc_list

@@ -1,7 +1,10 @@
 
 import requests 
+import os
+from dotenv import load_dotenv
+load_dotenv()
 
-api_url = "https://59ps8acy4f.execute-api.cn-north-1.amazonaws.com.cn/v1/llm/"
+api_url = os.getenv('API_URL')
            
 # llm_model_id = "anthropic.claude-v2:1" #"csdc-internlm-7b" # "anthropic.claude-v2:1"
 endpoint_name = 'instruct-internlm2-chat-7b-f7dc2'

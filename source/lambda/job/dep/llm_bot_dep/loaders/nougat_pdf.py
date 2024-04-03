@@ -27,6 +27,7 @@ metadata_template = {
     "summary": "",
 }
 
+
 class NougatPDFLoader(BasePDFLoader):
     """A PDF loader class for converting PDF files to MMD.
 
@@ -64,7 +65,17 @@ class NougatPDFLoader(BasePDFLoader):
             str: The Markdown content resulting from the `nougat` conversion.
         """
         # nougat ./paperSnapshot.pdf --full-precision --markdown -m 0.1.0-base -o tmp --recompute
-        cli_command = ["nougat", str(file_path), "full-precision", "--markdown", "-m", "0.1.0-base", "-o", "tmp", "--recompute"]
+        cli_command = [
+            "nougat",
+            str(file_path),
+            "full-precision",
+            "--markdown",
+            "-m",
+            "0.1.0-base",
+            "-o",
+            "tmp",
+            "--recompute",
+        ]
 
         try:
             result = subprocess.run(
@@ -133,7 +144,7 @@ def nougat_process_pdf(local_path, **kwargs):
     """
     Process a given PDF file and extracts structured information from it.
 
-    This function reads a PDF file, converts it to HTML using PDFMiner, then extracts 
+    This function reads a PDF file, converts it to HTML using PDFMiner, then extracts
     and structures the information into a list of dictionaries containing headings and content.
 
     Parameters:
@@ -146,16 +157,18 @@ def nougat_process_pdf(local_path, **kwargs):
     list[Doucment]: A list of Document objects, each representing a semantically grouped section of the PDF file. Each Document object contains a metadata defined in metadata_template, and page_content string with the text content of that section.
     """
 
-    bucket = kwargs['bucket']
-    key = kwargs['key']
+    bucket = kwargs["bucket"]
+    key = kwargs["key"]
 
     loader = NougatPDFLoader(local_path)
     data = loader.load()
     logger.info("raw data: %s", data)
     # Update file_path metadata to full s3 path in list of Document objects
-    data[0].metadata['file_path'] = f"s3://{bucket}/{key}"
-    markdown_splitter = MarkdownHeaderTextSplitter(kwargs['res_bucket'])
+    data[0].metadata["file_path"] = f"s3://{bucket}/{key}"
+    markdown_splitter = MarkdownHeaderTextSplitter(kwargs["res_bucket"])
     md_header_splits = markdown_splitter.split_text(data[0])
     for i, doc in enumerate(md_header_splits):
-        logger.info("PDF file processed successfully, with content of chunk %s: %s", i, doc)
+        logger.info(
+            "PDF file processed successfully, with content of chunk %s: %s", i, doc
+        )
     return md_header_splits

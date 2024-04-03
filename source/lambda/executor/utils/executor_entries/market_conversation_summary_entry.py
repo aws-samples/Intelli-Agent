@@ -18,7 +18,6 @@ logger.setLevel(logging.INFO)
 def market_conversation_summary_entry(
     messages: list[dict], event_body=None, stream=False
 ):
-
     config = parse_config.parse_market_conversation_summary_entry_config(event_body)
     logger.info(
         f"market rag configs:\n {json.dumps(config,indent=2,ensure_ascii=False,cls=JSONEncoder)}"

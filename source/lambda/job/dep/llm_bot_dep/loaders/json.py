@@ -39,38 +39,38 @@ class CustomJsonLoader(BaseLoader):
     def load(self, content: str):
         """Load from file path."""
         metadata = {
-                    "content_type": "paragraph",
-                    "heading_hierarchy": {},
-                    "figure_list": [],
-                    "chunk_id": "$$",
-                    "file_path": "",
-                    "keywords": [],
-                    "summary": "",
-                    "file_type": "json"
-                }
+            "content_type": "paragraph",
+            "heading_hierarchy": {},
+            "figure_list": [],
+            "chunk_id": "$$",
+            "file_path": "",
+            "keywords": [],
+            "summary": "",
+            "file_type": "json",
+        }
         item = json.loads(content)
-        content = item['content']
-        source_url = item['source'] if 'source' in item else item.get('url', 'N/A')
+        content = item["content"]
+        source_url = item["source"] if "source" in item else item.get("url", "N/A")
         source_url = source_url if isinstance(source_url, str) else "N/A"
 
         item_metadata = copy.deepcopy(metadata)
-        item_metadata['file_path'] = source_url
+        item_metadata["file_path"] = source_url
 
         for key, values in item.items():
-            if key not in ['content', 'source', 'url']:
+            if key not in ["content", "source", "url"]:
                 item_metadata[key] = values
-        
+
         doc = Document(page_content=content, metadata=item_metadata)
 
         return doc
 
 
 def process_json(file_content: str, **kwargs):
-    bucket = kwargs['bucket']
-    key = kwargs['key']
-    res_bucket = kwargs['res_bucket']
+    bucket = kwargs["bucket"]
+    key = kwargs["key"]
+    res_bucket = kwargs["res_bucket"]
     loader = CustomJsonLoader(aws_path=f"s3://{bucket}/{key}", res_bucket=res_bucket)
     doc = loader.load(file_content)
-    splitter = MarkdownHeaderTextSplitter(kwargs['res_bucket'])
+    splitter = MarkdownHeaderTextSplitter(kwargs["res_bucket"])
     doc_list = splitter.split_text(doc)
     return doc_list

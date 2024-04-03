@@ -237,32 +237,35 @@ class MarkdownHeaderTextSplitter:
             else:
                 # Move one step to get the next chunk_id
                 same_heading_dict[current_heading] += 1
-                if len(id_index_dict[current_heading]) > same_heading_dict[current_heading]:
+                if (
+                    len(id_index_dict[current_heading])
+                    > same_heading_dict[current_heading]
+                ):
                     metadata["chunk_id"] = id_index_dict[current_heading][
                         same_heading_dict[current_heading]
                     ]
                 else:
                     id_prefix = str(uuid.uuid4())[:8]
                     metadata["chunk_id"] = f"$0-{id_prefix}"
-    
+
     def _get_current_heading_list(self, current_heading, current_heading_level_map):
         try:
             title_symble_count = 0
             for char in current_heading:
-                if char == '#':
+                if char == "#":
                     title_symble_count += 1
                 else:
                     break
             current_heading_level_map[title_symble_count] = current_heading
             title_list = []
-            for title_level in range(1,title_symble_count+1):
+            for title_level in range(1, title_symble_count + 1):
                 title_list.append(current_heading_level_map[title_level])
-            joint_title_list = ' '.join(title_list)
+            joint_title_list = " ".join(title_list)
         except Exception as e:
             traceback.print_exc()
             print(f"Error: {e}")
             return ""
-        
+
         return joint_title_list
 
     def split_text(self, text: Document) -> List[Document]:
@@ -282,7 +285,7 @@ class MarkdownHeaderTextSplitter:
         heading_hierarchy, id_index_dict = extract_headings(text.page_content.strip())
         if len(lines) > 0:
             current_heading = lines[0]
-        
+
         # save current heading map
         current_heading_level_map = {}
 
@@ -301,7 +304,9 @@ class MarkdownHeaderTextSplitter:
                     metadata = text.metadata.copy()
                     metadata["content_type"] = "paragragh"
                     metadata["current_heading"] = current_heading
-                    current_heading_list = self._get_current_heading_list(current_heading, current_heading_level_map)
+                    current_heading_list = self._get_current_heading_list(
+                        current_heading, current_heading_level_map
+                    )
                     current_heading = current_heading.replace("#", "").strip()
                     # split_words = '*' * 100
                     # logger.info(f"{split_words}")
@@ -324,11 +329,13 @@ class MarkdownHeaderTextSplitter:
                         metadata["heading_hierarchy"] = heading_hierarchy[
                             metadata["chunk_id"]
                         ]
-                    page_content="\n".join(current_chunk_content)
+                    page_content = "\n".join(current_chunk_content)
                     if "service" in metadata:
-                        metadata['complete_heading'] = metadata['service'] + " " + current_heading_list
+                        metadata["complete_heading"] = (
+                            metadata["service"] + " " + current_heading_list
+                        )
                     else:
-                        metadata['complete_heading'] = current_heading_list
+                        metadata["complete_heading"] = current_heading_list
                     chunks.append(
                         Document(
                             page_content=page_content,
@@ -348,7 +355,9 @@ class MarkdownHeaderTextSplitter:
                     metadata = text.metadata.copy()
                     metadata["content_type"] = "table"
                     metadata["current_heading"] = current_heading
-                    current_heading_list = self._get_current_heading_list(current_heading, current_heading_level_map)
+                    current_heading_list = self._get_current_heading_list(
+                        current_heading, current_heading_level_map
+                    )
                     current_heading = current_heading.replace("#", "").strip()
                     try:
                         self._set_chunk_id(
@@ -363,9 +372,11 @@ class MarkdownHeaderTextSplitter:
                             metadata["chunk_id"]
                         ]
                     if "service" in metadata:
-                        metadata['complete_heading'] = metadata['service'] + " " + current_heading_list
+                        metadata["complete_heading"] = (
+                            metadata["service"] + " " + current_heading_list
+                        )
                     else:
-                        metadata['complete_heading'] = current_heading_list
+                        metadata["complete_heading"] = current_heading_list
                     chunks.append(
                         Document(
                             page_content="\n".join(table_content), metadata=metadata
@@ -383,7 +394,9 @@ class MarkdownHeaderTextSplitter:
             metadata = text.metadata.copy()
             metadata["content_type"] = "paragragh"
             metadata["current_heading"] = current_heading
-            current_heading_list = self._get_current_heading_list(current_heading, current_heading_level_map)
+            current_heading_list = self._get_current_heading_list(
+                current_heading, current_heading_level_map
+            )
             current_heading = current_heading.replace("#", "").strip()
             try:
                 self._set_chunk_id(
@@ -395,11 +408,13 @@ class MarkdownHeaderTextSplitter:
                 metadata["chunk_id"] = f"$0-{id_prefix}"
             if metadata["chunk_id"] in heading_hierarchy:
                 metadata["heading_hierarchy"] = heading_hierarchy[metadata["chunk_id"]]
-            page_content="\n".join(current_chunk_content)
+            page_content = "\n".join(current_chunk_content)
             if "service" in metadata:
-                metadata['complete_heading'] = metadata['service'] + " " + current_heading_list
+                metadata["complete_heading"] = (
+                    metadata["service"] + " " + current_heading_list
+                )
             else:
-                metadata['complete_heading'] = current_heading_list
+                metadata["complete_heading"] = current_heading_list
             chunks.append(
                 Document(
                     page_content=page_content,
