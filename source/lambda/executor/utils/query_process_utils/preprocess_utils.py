@@ -37,7 +37,7 @@ def query_clean(query:str):
     return query
 
 def rule_based_query_expansion(query:str):
-    query = query.replace('GenAI','生成式AI')
+    query = query.replace('genai','生成式AI')
     return f"请回答关于亚马逊云科技/aws/amazon的问题: {query}"
 
 def is_api_query(query)-> bool:

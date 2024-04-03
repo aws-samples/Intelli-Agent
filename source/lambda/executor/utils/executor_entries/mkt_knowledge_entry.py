@@ -100,7 +100,8 @@ def get_qd_chain(qd_config, qd_workspace_list):
             using_whole_doc=using_whole_doc,
             context_num=context_num,
             top_k=retriever_top_k,
-            query_key=qd_query_key
+            query_key=qd_query_key,
+            enable_debug=qd_config['enable_debug']
             #   "zh", zh_embedding_endpoint
         )
         for workspace in qd_workspace_list
@@ -109,7 +110,8 @@ def get_qd_chain(qd_config, qd_workspace_list):
             using_whole_doc=using_whole_doc,
             context_num=context_num,
             top_k=retriever_top_k,
-            query_key=qd_query_key
+            query_key=qd_query_key,
+            enable_debug=qd_config['enable_debug']
             #   "zh", zh_embedding_endpoint
         )
         for workspace in qd_workspace_list
@@ -117,7 +119,7 @@ def get_qd_chain(qd_config, qd_workspace_list):
 
     lotr = MergerRetriever(retrievers=retriever_list)
     if reranker_type == RerankerType.BGE_RERANKER.value:
-        compressor = BGEReranker(query_key=qd_query_key)
+        compressor = BGEReranker(query_key=qd_query_key, enable_debug=qd_config['enable_debug'])
     elif reranker_type == RerankerType.BGE_M3_RERANKER.value:
         compressor = BGEM3Reranker()
     else:
@@ -308,11 +310,13 @@ def market_chain_knowledge_entry(
     qq_match_threshold = rag_config['retriever_config']['qq_config']['qq_match_threshold']
     qq_retriver_top_k = rag_config['retriever_config']['qq_config']['retriever_top_k']
     qq_query_key = rag_config['retriever_config']['qq_config']['query_key']
+    qq_enable_debug = rag_config['retriever_config']['qq_config']['enable_debug']
     retriever_list = [
         QueryQuestionRetriever(
             workspace,
             size=qq_retriver_top_k,
-            query_key=qq_query_key
+            query_key=qq_query_key,
+            enable_debug=qq_enable_debug
         )
         for workspace in qq_workspace_list
     ]
