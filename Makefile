@@ -1,5 +1,9 @@
 .PHONY: format lint test
 
+# Define the root directory and the source directory
+ROOT_DIR := $(shell pwd)
+SRC_DIR := $(ROOT_DIR)/src
+
 # Define a variable for the test file path.
 TEST_FILE ?= tests/unit_tests/
 integration_tests: TEST_FILE = tests/integration_tests/
@@ -27,6 +31,29 @@ lint lint_diff lint_package lint_tests:
 	[ "$(PYTHON_FILES)" = "" ] || poetry run ruff --select I $(PYTHON_FILES)
 	[ "$(PYTHON_FILES)" = "" ] || mkdir -p $(MYPY_CACHE) && poetry run mypy $(PYTHON_FILES) --cache-dir $(MYPY_CACHE)
 
+# Setup Open Search cluster with Docker
+setup_opensearch:
+	@echo "Setting up Open Search cluster"
+	@echo "Cleaning the existing Open Search container"
+	@docker stop $$(docker ps -q --filter ancestor=opensearchproject/opensearch:latest)
+	@docker run -d -p 9200:9200 -p 9600:9600 \
+		-e "discovery.type=single-node" \
+		-e "OPENSEARCH_INITIAL_ADMIN_PASSWORD=LLMBot2024" \
+		opensearchproject/opensearch:latest
+	@echo "Waiting for Open Search to be ready"
+	@for i in {1..30}; do \
+		if docker exec $$(docker ps -q -f ancestor=opensearchproject/opensearch:latest) curl -s -k -u admin:LLMBot2024 https://localhost:9200/_cluster/health | grep -q '"status":"green"'; then \
+			echo "Open Search is ready!"; \
+			break; \
+		fi; \
+		echo "Waiting for Open Search to start..."; \
+		sleep 10; \
+	done
+
+test_opensearch: setup_opensearch
+	@echo "Running Open Search unit tests"
+	@PYTHONPATH=$(SRC_DIR) poetry run pytest $(TEST_FILE)
+
 test tests integration_tests:
 	@echo "Running unit tests && integration_tests"
 	poetry run pytest $(TEST_FILE)
@@ -48,6 +75,8 @@ clean:
 	rm -rf .ruff.toml
 	rm -rf tests/unit_tests/__pycache__
 	rm -rf tests/integration_tests/__pycache__
+	# stop the Open Search container if it is running
+	docker stop $(shell docker ps -q --filter ancestor=opensearchproject/opensearch:latest)
 
 help:
 	@echo '----'
