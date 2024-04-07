@@ -59,7 +59,7 @@ workspace_manager = WorkspaceManager(workspace_table)
 
 
 # fast reply
-QUERY_TOO_SHORT = "您好，我是亚麻小Q，请详细描述您的问题。"
+QUERY_TOO_SHORT = "您好，请详细描述您的问题。"
 INVALID_INTENT = "很抱歉，我只能回答与亚马逊云科技产品和服务相关的咨询。"
 KNOWLEDGE_QA_INSUFFICIENT_CONTEXT = "很抱歉，根据我目前掌握到的信息无法给出回答。"
 EVENT_INSUFFICIENT_CONTEXT = "抱歉，我没有查询到相关的市场活动信息。"

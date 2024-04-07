@@ -201,11 +201,13 @@ def lambda_handler(event, context):
             return get_retriever_response(docs)
         elif entry_type == Type.DGR.value:
             # switch dgr to market
-
             event_body["llm_model_id"] = event_body.get("llm_model_id", None) or "anthropic.claude-3-sonnet-20240229-v1:0"
             dgr_config = {
                 "retriever_config": {
-                    "qd_config": {"using_whole_doc": True},
+                    "qd_config": {
+                        "using_whole_doc": True,
+                        "qd_match_threshold": -100,
+                        },
                     "workspace_ids": [
                         "aos_index_repost_qq_m3",
                         "aws-cn-dgr-user-guide-qd-m3-dense-20240318",
@@ -213,15 +215,26 @@ def lambda_handler(event, context):
                 },
                 "generator_llm_config": {"context_num": 2},
             }
-
+            
             event_body = update_nest_dict(event_body, dgr_config)
-
-            answer, sources, contexts, debug_info = market_chain_knowledge_entry(
-                question,
-                stream=stream,
-                event_body=event_body,
-                message_id=custom_message_id,
+            response = (
+                market_chain_knowledge_entry_langgraph(
+                    question,
+                    stream=stream,
+                    event_body=event_body,
+                    message_id=custom_message_id,
+                )
             )
+            answer = response['answer']
+            sources = response['context_sources']
+            contexts = response['context_docs']
+            debug_info = response['debug_info']
+            # answer, sources, contexts, debug_info = market_chain_knowledge_entry(
+            #     question,
+            #     stream=stream,
+            #     event_body=event_body,
+            #     message_id=custom_message_id,
+            # )
 
         # elif entry_type == Type.MARKET_CHAIN_CORE.value:
         #     answer, sources, contexts, debug_info = market_chain_entry_core(
@@ -230,13 +243,13 @@ def lambda_handler(event, context):
         #         event_body=event_body,
         #         message_id=custom_message_id,
         #     )
-        elif entry_type == Type.MARKET_CHAIN.value:
-            answer, sources, contexts, debug_info = market_chain_knowledge_entry(
-                question,
-                stream=stream,
-                event_body=event_body,
-                message_id=custom_message_id,
-            )
+        # elif entry_type == Type.MARKET_CHAIN.value:
+        #     answer, sources, contexts, debug_info = market_chain_knowledge_entry(
+        #         question,
+        #         stream=stream,
+        #         event_body=event_body,
+        #         message_id=custom_message_id,
+        #     )
             # answer, sources, contexts, debug_info = market_chain_entry(
             #     question,
             #     stream=stream,
@@ -244,15 +257,20 @@ def lambda_handler(event, context):
             #     message_id=custom_message_id
             # )
 
-        elif entry_type == Type.MARKET_CHAIN_KNOWLEDGE.value:
-            answer, sources, contexts, debug_info = market_chain_knowledge_entry(
-                question,
-                stream=stream,
-                event_body=event_body,
-                message_id=custom_message_id,
-            )
+        # elif entry_type == Type.MARKET_CHAIN_KNOWLEDGE.value:
+            
+        #     answer, sources, contexts, debug_info = market_chain_knowledge_entry(
+        #         question,
+        #         stream=stream,
+        #         event_body=event_body,
+        #         message_id=custom_message_id,
+        #     )
 
-        elif entry_type == "market_chain_knowledge_langgraph":
+        elif entry_type in (
+            Type.MARKET_CHAIN_KNOWLEDGE.value,
+            "market_chain_knowledge_langgraph",
+            Type.MARKET_CHAIN.value,
+            ):
             response = (
                 market_chain_knowledge_entry_langgraph(
                     question,

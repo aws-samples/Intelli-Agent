@@ -583,37 +583,37 @@ def test_internlm_model_mkt_knowledge_entry():
     #  "亚马逊云科技中国区域免费套餐有什么优惠？",
     #   "介绍Amazon Lambda是什么？"
 
-    generate_answer(
-         "日志通是什么？", 
-        # "AWS支持上海region吗？", 
-        # "在亚马逊云科技网站上，完成所有账户注册步骤后，什么时候才可以开始使用？",
-        # "日志通是什么？",
-        # '请介绍下亚马逊云科技IAM',
-        # "请介绍下AWS IAM",
-        # "亚马逊云科技有上海区域吗？",
-        # "亚马逊云科技有上海区域吗?",
-        # "客服联系时间",
-        # "请问怎么关闭账号？", 
-        # "个人能否注册账号？",
-        # "3月份在深圳有生成式AI的活动吗？",
-        # "2024北京国际车展上，亚马逊云科技会参加吗？",
-        # "你能分享一些AWS客户在机器学习CI/CD方面的成功故事吗？",
-        # "请问亚马逊云科技中国区域的S3和EC2的价格",
-        # "2024亚马逊云科技出海全球化论坛什么时候举办？",
-        # "lambda是什么？",
-        # "2024年出海全球化论坛的会议日程是什么？",
-        # "亚马逊云科技有上海区域吗？",
-        # "在亚马逊云科技网站上，完成所有账户注册步骤后，什么时候才可以开始使用？",
-        #     "亚马逊云科技中国区域免费套餐有哪几种不同类型的优惠？",
-        #     "什么是日志通",
-        #     "日志通是什么？",
-            # model="knowledge_qa", 
-            type=entry_type, 
-            stream=True,
-            rag_parameters=rag_parameters
-    )
+    # generate_answer(
+    #      "日志通是什么？", 
+    #     # "AWS支持上海region吗？", 
+    #     # "在亚马逊云科技网站上，完成所有账户注册步骤后，什么时候才可以开始使用？",
+    #     # "日志通是什么？",
+    #     # '请介绍下亚马逊云科技IAM',
+    #     # "请介绍下AWS IAM",
+    #     # "亚马逊云科技有上海区域吗？",
+    #     # "亚马逊云科技有上海区域吗?",
+    #     # "客服联系时间",
+    #     # "请问怎么关闭账号？", 
+    #     # "个人能否注册账号？",
+    #     # "3月份在深圳有生成式AI的活动吗？",
+    #     # "2024北京国际车展上，亚马逊云科技会参加吗？",
+    #     # "你能分享一些AWS客户在机器学习CI/CD方面的成功故事吗？",
+    #     # "请问亚马逊云科技中国区域的S3和EC2的价格",
+    #     # "2024亚马逊云科技出海全球化论坛什么时候举办？",
+    #     # "lambda是什么？",
+    #     # "2024年出海全球化论坛的会议日程是什么？",
+    #     # "亚马逊云科技有上海区域吗？",
+    #     # "在亚马逊云科技网站上，完成所有账户注册步骤后，什么时候才可以开始使用？",
+    #     #     "亚马逊云科技中国区域免费套餐有哪几种不同类型的优惠？",
+    #     #     "什么是日志通",
+    #     #     "日志通是什么？",
+    #         # model="knowledge_qa", 
+    #         type=entry_type, 
+    #         stream=True,
+    #         rag_parameters=rag_parameters
+    # )
 
-    print(sfg)
+    # print(sfg)
 
     # generate_answer(
     #     "2024亚马逊云科技出海全球化论坛什么时候举办？",
@@ -998,17 +998,17 @@ def dgr_deploy_test():
     os.environ['llm_model_id'] = "anthropic.claude-3-sonnet-20240229-v1:0"
     session_id = f'test_{int(time.time())}'
     questions = [
-        # "Amazon EC2 提供了哪些功能来支持不同区域之间的数据恢复?",
-        # "请问Amazon ECS Fargate支持哪些操作系统和CPU架构?",
-        # "如何将镜像推送到 Amazon Elastic Container Registry？",
-        # "Amazon S3 静态网站端点支持 HTTPS吗？",
-        # "如何禁用QuickSight账户中的电子邮件邀请新用户选项？",
-        # "如何解决Linux实例在升级和重启后未通过实例检查、无法连接的问题？"
-        # "如何在控制台配置Amazon Kendra使用RDS MySQL作为数据源？",
-        # "给我一个Amazon Redshift的DescribeClusters API的使用示例",
-        # "将AMI从一个区域复制到另一个区域的API是什么？"
-        # '请问Amazon Sagemaker jumpstart 和Amazon Bedrock 有什么不同？'
-        # '请问亚马逊云科技中国区域的S3和EC2的价格',
+        "Amazon EC2 提供了哪些功能来支持不同区域之间的数据恢复?",
+        "请问Amazon ECS Fargate支持哪些操作系统和CPU架构?",
+        "如何将镜像推送到 Amazon Elastic Container Registry？",
+        "Amazon S3 静态网站端点支持 HTTPS吗？",
+        "如何禁用QuickSight账户中的电子邮件邀请新用户选项？",
+        "如何解决Linux实例在升级和重启后未通过实例检查、无法连接的问题？"
+        "如何在控制台配置Amazon Kendra使用RDS MySQL作为数据源？",
+        "给我一个Amazon Redshift的DescribeClusters API的使用示例",
+        "将AMI从一个区域复制到另一个区域的API是什么？"
+        '请问Amazon Sagemaker jumpstart 和Amazon Bedrock 有什么不同？'
+        '请问亚马逊云科技中国区域的S3和EC2的价格',
         '我想用ec2搭建my sql数据库，想要放在公网，想问一下是否有安全访问的最佳实践？'
     ]
     for question in questions:
@@ -1050,10 +1050,10 @@ if __name__ == "__main__":
     # test_baichuan_model()
     # market_summary_test2()
     # test_internlm_model()
-    # dgr_deploy_test()
+    dgr_deploy_test()
     # test_internlm_model_mkt_knowledge_entry()
     # test_internlm_model_mkt_knowledge_entry_qq_match()
-    test_internlm_model_mkt_knowledge_entry_langgraph()
+    # test_internlm_model_mkt_knowledge_entry_langgraph()
     # test_baichuan_model()
     
     # market_deploy_test()
