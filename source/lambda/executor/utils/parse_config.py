@@ -262,6 +262,7 @@ def parse_mkt_entry_knowledge_config(event_body):
                 "aos_index_acts_qd_m3",
                 "aos_index_mkt_faq_qd_m3",
                 "aos_index_repost_qq_m3",
+                "aos_index_global_site_cn_qd_m3_dense_20240320"
             ],
             "event_workspace_ids": ["event-qd-index-20240313"],
             # "retriever_top_k": 5,
@@ -360,6 +361,7 @@ def parse_main_entry_config(event_body):
                 "aos_index_acts_qd_m3",
                 "aos_index_mkt_faq_qd_m3",
                 "aos_index_repost_qq_m3",
+                "aos_index_global_site_cn_qd_m3_dense_20240320"
             ],
             "event_workspace_ids": ["event-qd-index-20240313"],
         },
