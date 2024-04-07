@@ -226,33 +226,6 @@ def conversation_query_rewrite(state: AppState):
     
     conversation_summary_chain.invoke(state)
 
-    # state_ori = state
-    # state = state['state']
-
-    # rag_config = state['rag_config']
-    # conversation_query_rewrite_config = rag_config['query_process_config']['conversation_query_rewrite_config']
-    
-    # cqr_llm_chain = LLMChain.get_chain(
-    #     intent_type=CONVERSATION_SUMMARY_TYPE,
-    #     **conversation_query_rewrite_config
-    # )
-    # conversation_summary_chain = chain_logger(
-    #     RunnableBranch(
-    #         (
-    #             lambda x: not x['chat_history'],
-    #             RunnableLambda(lambda x: x['query'])
-    #         ),
-    #         cqr_llm_chain
-    #     ),
-    #     "conversation_summary_chain",
-    #     log_output_template='conversation_summary_chain result: {output}',
-    #     message_id=state['message_id']
-    # )
-   
-    # state['conversation_query_rewrite'] = conversation_summary_chain.invoke(state)
-
-    # return state_ori 
-
 
 ##########################
 # step 2 query preprocess#
@@ -379,31 +352,6 @@ def get_qq_match_chain(state):
         qq_chain = RunnableLambda(lambda x:[])
     
     return qq_chain
-    # # qq_match
-    # qq_workspace_list = state['qq_workspace_list']
-    # rag_config = state['rag_config']
-    
-    # qq_match_threshold = rag_config['retriever_config']['qq_config']['qq_match_threshold']
-    # qq_retriever_top_k = rag_config['retriever_config']['qq_config']['retriever_top_k']
-    # retriever_list = [
-    #     QueryQuestionRetriever(
-    #         workspace,
-    #         # index=index["name"],
-    #         # vector_field=index["vector_field"],
-    #         # source_field=index["source_field"],
-    #         size=qq_retriever_top_k,
-    #         # lang=index["lang"],
-    #         # embedding_model_endpoint=index["embedding_endpoint"]
-    #     )
-    #     for workspace in qq_workspace_list
-    # ]
-    # qq_chain = MergerRetriever(retrievers=retriever_list) | \
-    #             RunnableLambda(retriever_results_format) |\
-    #             RunnableLambda(partial(
-    #                 documents_list_filter,
-    #                 threshold=qq_match_threshold
-    #             ))
-    # return qq_chain
 
 
 ##########################################
@@ -434,9 +382,9 @@ def qq_match_and_intent_recognition(state):
     state.update(_state)
 
 
-def query_expansion(state):
+def query_expansion(state,result_key='query'):
     state = state['keys']
-    state["query"] = rule_based_query_expansion(state['query'])
+    state[result_key] = rule_based_query_expansion(state['query'])
 
 
 ########################
@@ -593,9 +541,13 @@ def market_chain_knowledge_entry(
     debug_info = {
         "response_msg": "normal"
         }
-    contexts = []
-    sources = []
-    answer = ""
+    # contexts = []
+    # sources = []
+    # answer = ""
+
+    qd_config = rag_config['retriever_config']['qd_config'] 
+    qd_config['query_key'] = "query_for_qd_retrieve"
+
     trace_infos = []
 
     workflow = StateGraph(AppState)
@@ -604,7 +556,7 @@ def market_chain_knowledge_entry(
     workflow.add_node('conversation_query_rewrite', conversation_query_rewrite)
     workflow.add_node('query_preprocess', query_preprocess)
     workflow.add_node('qq_match_and_intent_recognition', qq_match_and_intent_recognition)
-    workflow.add_node('query_expansion', query_expansion)
+    workflow.add_node('query_expansion', partial(query_expansion,result_key=qd_config['query_key']))
     workflow.add_node('knowledge_qd_retriver', knowledge_qd_retriver)
     workflow.add_node('event_qd_retriever', event_qd_retriever)
     workflow.add_node('context_filter', context_filter)
@@ -675,7 +627,7 @@ def market_chain_knowledge_entry(
             "debug_info": debug_info,
             # "intent_type": intent_type,
             # "intent_info": intent_info,
-            "chat_history": rag_config['chat_history'],
+            "chat_history": rag_config['chat_history'] if rag_config['use_history'] else [],
             "rag_config": rag_config,
             "message_id": message_id,
             "stream": stream,
