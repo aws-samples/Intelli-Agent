@@ -124,16 +124,20 @@ market_test_cases = [
     "谢谢"
 ]
 
-market_test_cases = ['请介绍下AWS IAM']
+# market_test_cases = ['将计算资源与Lambda函数部署在相同AZ是否会降低延迟？']
+market_test_cases = ['Claude 3 Opus的最大令牌数是多少？']
+# 请回答关于亚马逊云科技/aws/amazon的问题:
+# market_test_cases = ['请介绍下AWS IAM']
 
 entry_type = "market_chain"
+# entry_type = "dgr"
 
 for question in market_test_cases:
     ws = create_connection(ws_url)
     print('-*'*50)
     print(f'question: ', question)
     body = {
-        "get_contexts": False,
+        "get_contexts": True,
         "type" : entry_type, 
         "messages": [{"role": "user","content": question}]
     }

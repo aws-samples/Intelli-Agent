@@ -649,5 +649,6 @@ def market_chain_knowledge_entry(
     trace_info = format_trace_infos(trace_infos)
     
     logger.info(f'session_id: {rag_config["session_id"]}, chain trace info:\n{trace_info}')
-
+    
+    response['rag_config'] = rag_config
     return response

@@ -1,11 +1,13 @@
 import copy
 import csv
+import sys
 import json
 import logging
 import os
 import time
 import traceback
 from datetime import datetime
+import math
 
 from .constant import EntryType, StreamMessageType
 from .content_filter_utils.content_filters import (
@@ -122,6 +124,10 @@ def stream_response(**kwargs):
     client_type = kwargs["client_type"]
     custom_message_id = kwargs["custom_message_id"]
     main_entry_end = kwargs["main_entry_end"]
+    rag_config = kwargs['rag_config']
+    response_config = rag_config.get('response_config',{})
+    context_return_with_chunk = response_config.get('context_return_with_chunk',False)
+    
 
     if isinstance(answer, str):
         answer = iter([answer])
@@ -148,10 +154,10 @@ def stream_response(**kwargs):
                 ConnectionId=ws_connection_id,
                 Data=json.dumps(llmbot_response).encode("utf-8"),
             )
-        except:
+        except Exception as e:
             data_to_send = json.dumps(llmbot_response).encode("utf-8")
             logger.info(
-                f"Send to ws client error occurs, the message to send is: {data_to_send}"
+                f"Send to ws client error occurs, error: {str(e)}.\nThe message to send is: {data_to_send}"
             )
             # convert to websocket error
             raise WebsocketClientError
@@ -181,7 +187,9 @@ def stream_response(**kwargs):
                 logger.info(
                     f"{custom_message_id} running time of first token whole {entry_type} : {first_token_time-request_timestamp}s"
                 )
+            # print('chunk filter before:', chunk)
             chunk = filter_sentence_fn(chunk)
+            # print('chunk filter after:', chunk)
             _send_to_ws_client(
                 {
                     "message_type": StreamMessageType.CHUNK,
@@ -217,22 +225,41 @@ def stream_response(**kwargs):
                 input_message_id=f"user_{message_id}",
             )
         # sed source and contexts
-
         context_msg = {
             "message_type": StreamMessageType.CONTEXT,
             "message_id": f"ai_{message_id}",
             "custom_message_id": custom_message_id,
+            "chunk_id": 0,
+            "total_chunk_num": 1
+            # "knowledge_sources": sources,
+            # "response_msg": debug_info.get('response_msg',"")
+        }
+
+        context_info = {
             "knowledge_sources": sources,
             "response_msg": debug_info.get('response_msg',"")
         }
+
         if get_contexts:
-            context_msg.update({"contexts": contexts})
+            context_info.update({"contexts": contexts})
 
         if enable_debug:
             debug_info["stream_full_answer"] = answer_str
-            context_msg.update({"debug_info": debug_info})
+            context_info.update({"debug_info": debug_info})
 
-        _send_to_ws_client(context_msg)
+        if context_return_with_chunk:
+            context_info = json.dumps(context_info)
+            chunk_size = 20000
+            starts = list(range(0,len(context_info),chunk_size))
+            total_chunk_num = len(starts)
+            context_msg['total_chunk_num'] = total_chunk_num
+
+            for i,start in enumerate(starts):
+                _data = context_info[start:start+chunk_size]
+                _send_to_ws_client({**context_msg,"_chunk_data":_data,"chunk_id":i})
+        else:
+            context_msg.update(context_info)
+            _send_to_ws_client(context_msg)
         # send end
         _send_to_ws_client(
             {

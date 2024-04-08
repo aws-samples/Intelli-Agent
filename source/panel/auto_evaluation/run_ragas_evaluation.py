@@ -107,6 +107,7 @@ def websocket_call(
     rag_parameters=None
     ):
     prompt = datum['question']
+    print(f'prompt: {prompt}',flush=True)
     ws = create_connection(ws_url)
     body = {
         # "action": "sendMessage",
@@ -124,10 +125,12 @@ def websocket_call(
     answer = ""
     contexts = None
     while True:
-        ret = json.loads(ws.recv())
+        recv = ws.recv()
         try:
+            ret = json.loads(recv)
             message_type = ret['choices'][0]['message_type']
         except:
+            print('recv',recv)
             print(ret)
             print(f'total time: {time.time()-start_time}' )
             raise
@@ -142,7 +145,7 @@ def websocket_call(
         elif message_type == "CONTEXT":
             # contexts = ret
             contexts = [i['doc'] for i in ret['choices'][0]['contexts']]
-            print('sources: ',ret['choices'][0]['knowledge_sources'])
+            print('sources: ',ret['choices'][0]['knowledge_sources'],flush=True)
     ws.close()  
     return {"answer": answer, "contexts": contexts}
 
@@ -307,7 +310,7 @@ if __name__ == "__main__":
     # llm_output_cache_path = "techbot_question_dgr_res_2_1_120_with_gt_context_1_with_whole_doc_baichuan2_13b_4bits.max_new_2000_token.pkl.internlm2-20b-hf-4bits.g4dn.pkl"
     # llm_output_cache_path = "techbot_question_dgr_res_1_23_120_with_gt_context_2_with_whole_doc.pkl"
     # llm_output_cache_path = "techbot_question_dgr_res_1_3_120_with_gt_context_1.pkl"
-    llm_output_cache_path = "techbot-test-200.2024-04-01.from.peipei.csv.whole.context_2.pkl"
+    llm_output_cache_path = "techbot-test-200.2024-04-07.from.peipei.csv.whole.context_2.pkl"
     ret_save_profix = f'{eval_id}-{llm_output_cache_path}-eval'
     # ragas_parameters = {
     #     "region_name":'us-west-2',

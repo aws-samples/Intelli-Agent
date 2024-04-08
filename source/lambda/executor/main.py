@@ -173,20 +173,17 @@ def lambda_handler(event, context):
         event_body["session_id"] = session_id
         event_body["debug_level"] = debug_level
 
-        # logger.info(f'rag configs:\n {json.dumps(rag_config,indent=2,ensure_ascii=False,cls=JSONEncoder)}')
-        #
-        # knowledge_qa_flag = True if model == "knowledge_qa" else False
-
         main_entry_start = time.time()
         contexts = []
         # entry_type = biz_type.lower()
         if entry_type == Type.COMMON.value:
-            answer, sources, contexts, debug_info = main_chain_entry(
+            response = main_chain_entry(
                 question,
                 stream=stream,
                 event_body=event_body,
                 message_id=custom_message_id,
             )
+        
         elif entry_type == Type.QD_RETRIEVER.value:
             retriever_index = event_body.get("retriever_index", aos_index)
             docs, debug_info = main_qd_retriever_entry(
@@ -227,46 +224,6 @@ def lambda_handler(event, context):
                 event_body=event_body,
                 message_id=custom_message_id,
             )
-            answer = response["answer"]
-            sources = response["context_sources"]
-            contexts = response["context_docs"]
-            debug_info = response["debug_info"]
-            # answer, sources, contexts, debug_info = market_chain_knowledge_entry(
-            #     question,
-            #     stream=stream,
-            #     event_body=event_body,
-            #     message_id=custom_message_id,
-            # )
-
-        # elif entry_type == Type.MARKET_CHAIN_CORE.value:
-        #     answer, sources, contexts, debug_info = market_chain_entry_core(
-        #         question,
-        #         stream=stream,
-        #         event_body=event_body,
-        #         message_id=custom_message_id,
-        #     )
-        # elif entry_type == Type.MARKET_CHAIN.value:
-        #     answer, sources, contexts, debug_info = market_chain_knowledge_entry(
-        #         question,
-        #         stream=stream,
-        #         event_body=event_body,
-        #         message_id=custom_message_id,
-        #     )
-        # answer, sources, contexts, debug_info = market_chain_entry(
-        #     question,
-        #     stream=stream,
-        #     event_body=event_body,
-        #     message_id=custom_message_id
-        # )
-
-        # elif entry_type == Type.MARKET_CHAIN_KNOWLEDGE.value:
-
-        #     answer, sources, contexts, debug_info = market_chain_knowledge_entry(
-        #         question,
-        #         stream=stream,
-        #         event_body=event_body,
-        #         message_id=custom_message_id,
-        #     )
 
         elif entry_type in (
             Type.MARKET_CHAIN_KNOWLEDGE.value,
@@ -279,10 +236,10 @@ def lambda_handler(event, context):
                 event_body=event_body,
                 message_id=custom_message_id,
             )
-            answer = response["answer"]
-            sources = response["context_sources"]
-            contexts = response["context_docs"]
-            debug_info = response["debug_info"]
+            # answer = response['answer']
+            # sources = response['context_sources']
+            # contexts = response['context_docs']
+            # debug_info = response['debug_info']
 
         elif entry_type == Type.MARKET_CONVERSATION_SUMMARY.value:
             answer, sources, contexts, debug_info = market_conversation_summary_entry(
@@ -292,6 +249,13 @@ def lambda_handler(event, context):
             answer, sources, contexts, debug_info = sagemind_llm_entry(
                 messages=messages, event_body=event_body, stream=stream
             )
+
+        
+        answer = response['answer']
+        sources = response['context_sources']
+        contexts = response['context_docs']
+        debug_info = response['debug_info']
+        rag_config = response['rag_config']
 
         main_entry_end = time.time()
         main_entry_elpase = main_entry_end - main_entry_start
@@ -319,6 +283,7 @@ def lambda_handler(event, context):
             client_type=client_type,
             custom_message_id=custom_message_id,
             main_entry_end=main_entry_end,
+            rag_config = rag_config
         )
         r = process_response(**response_kwargs)
     if not stream:
