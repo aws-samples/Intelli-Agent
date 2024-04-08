@@ -154,10 +154,10 @@ def lambda_handler(event, context):
     operation = body["operation"]
     session_id = body.get("session_id", "")
     user_id = body.get("user_id", "default_user_id")
-    message_id = body.get("message_id", None)
-    feedback_type = body.get("feedback_type", None)
-    feedback_reason = body.get("feedback_reason", None)
-    suggest_message = body.get("suggest_message", None)
+    message_id = body.get("message_id", "")
+    feedback_type = body.get("feedback_type", "")
+    feedback_reason = body.get("feedback_reason", [])
+    suggest_message = body.get("suggest_message", "")
 
     operations_mapping = {
         "POST": {
