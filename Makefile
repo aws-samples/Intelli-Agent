@@ -2,7 +2,7 @@
 
 # Define the root directory and the source directory
 ROOT_DIR := $(shell pwd)
-SRC_DIR := $(ROOT_DIR)/src
+SRC_DIR := $(ROOT_DIR)/source
 
 # Define a variable for the test file path.
 TEST_FILE ?= tests/unit_tests/
@@ -35,7 +35,8 @@ lint lint_diff lint_package lint_tests:
 setup_opensearch:
 	@echo "Setting up Open Search cluster"
 	@echo "Cleaning the existing Open Search container"
-	@docker stop $$(docker ps -q --filter ancestor=opensearchproject/opensearch:latest)
+	@echo "Stop the existing Open Search container"
+	@docker ps -q --filter ancestor=opensearchproject/opensearch:latest | xargs -r docker stop
 	@docker run -d -p 9200:9200 -p 9600:9600 \
 		-e "discovery.type=single-node" \
 		-e "OPENSEARCH_INITIAL_ADMIN_PASSWORD=LLMBot2024" \
