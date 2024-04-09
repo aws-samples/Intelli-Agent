@@ -183,7 +183,7 @@ def lambda_handler(event, context):
                 event_body=event_body,
                 message_id=custom_message_id,
             )
-        
+
         elif entry_type == Type.QD_RETRIEVER.value:
             retriever_index = event_body.get("retriever_index", aos_index)
             docs, debug_info = main_qd_retriever_entry(
@@ -245,17 +245,30 @@ def lambda_handler(event, context):
             answer, sources, contexts, debug_info = market_conversation_summary_entry(
                 messages=messages, event_body=event_body, stream=stream
             )
+            response = {
+                "answer": answer,
+                "context_sources": sources,
+                "context_docs": contexts,
+                "debug_info": debug_info,
+                "rag_config": {},
+            }
         elif entry_type == Type.LLM.value:
             answer, sources, contexts, debug_info = sagemind_llm_entry(
                 messages=messages, event_body=event_body, stream=stream
             )
+            response = {
+                "answer": answer,
+                "context_sources": sources,
+                "context_docs": contexts,
+                "debug_info": debug_info,
+                "rag_config": {},
+            }
 
-        
-        answer = response['answer']
-        sources = response['context_sources']
-        contexts = response['context_docs']
-        debug_info = response['debug_info']
-        rag_config = response['rag_config']
+        answer = response["answer"]
+        sources = response["context_sources"]
+        contexts = response["context_docs"]
+        debug_info = response["debug_info"]
+        rag_config = response["rag_config"]
 
         main_entry_end = time.time()
         main_entry_elpase = main_entry_end - main_entry_start
@@ -283,7 +296,7 @@ def lambda_handler(event, context):
             client_type=client_type,
             custom_message_id=custom_message_id,
             main_entry_end=main_entry_end,
-            rag_config = rag_config
+            rag_config=rag_config,
         )
         r = process_response(**response_kwargs)
     if not stream:
