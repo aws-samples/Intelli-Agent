@@ -92,7 +92,7 @@ def add_feedback(
         }
 
     try:
-        current_timestamp = Decimal.from_float(time.time())
+        current_timestamp = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         messages_table.update_item(
             Key={"messageId": message_id, "sessionId": session_id},
             UpdateExpression="SET feedbackType = :ft, feedbackReason = :fr, suggestMessage = :sm, lastModifiedTimestamp = :t",
