@@ -240,7 +240,7 @@ export class EtlStack extends NestedStack {
             memorySize: 1024,
             architecture: Architecture.X86_64,
             environment: {
-                "DEFAULT_EMBEDDING_ENDPOINT": props._embeddingEndpoint[0],
+                "DEFAULT_EMBEDDING_ENDPOINT": props._embeddingEndpoint[0] || 'Default Embedding Endpoint Not Created',
             }
         });
 
@@ -287,7 +287,7 @@ export class EtlStack extends NestedStack {
             glueJobName: glueJob.jobName,
             integrationPattern: sfn.IntegrationPattern.RUN_JOB,
             arguments: sfn.TaskInput.fromObject({
-                '--AOS_ENDPOINT': props._domainEndpoint,
+                '--AOS_ENDPOINT': props._domainEndpoint || 'AOS Endpoint Not Created',
                 '--BATCH_FILE_NUMBER.$': '$.batchFileNumber',
                 '--BATCH_INDICE.$': 'States.Format(\'{}\', $.batchIndices)',
                 '--DOC_INDEX_TABLE': props._OpenSearchIndex,
