@@ -2,7 +2,6 @@ import { Aws, Duration, NestedStack, StackProps } from "aws-cdk-lib";
 import * as apigw from "aws-cdk-lib/aws-apigateway";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as iam from "aws-cdk-lib/aws-iam";
-import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as lambdaEventSources from "aws-cdk-lib/aws-lambda-event-sources";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import * as s3n from "aws-cdk-lib/aws-s3-notifications";
@@ -15,6 +14,7 @@ import { Constants } from "../shared/constants";
 import { LambdaLayers } from "../shared/lambda-layers";
 import { QueueConstruct } from "./api-queue";
 import { WebSocketStack } from "./websocket-api";
+import { Function, Runtime, Code, Architecture, DockerImageFunction, DockerImageCode } from 'aws-cdk-lib/aws-lambda';
 
 interface ApiStackProps extends StackProps {
   apiVpc: ec2.Vpc;
@@ -142,10 +142,10 @@ export class LLMApiStack extends NestedStack {
       }),
     );
 
-    const lambdaDdb = new lambda.Function(this, "lambdaDdb", {
-      runtime: lambda.Runtime.PYTHON_3_11,
+    const lambdaDdb = new Function(this, "lambdaDdb", {
+      runtime: Runtime.PYTHON_3_11,
       handler: "rating.lambda_handler",
-      code: lambda.Code.fromAsset(join(__dirname, "../../../lambda/ddb")),
+      code: Code.fromAsset(join(__dirname, "../../../lambda/ddb")),
       environment: {
         SESSIONS_TABLE_NAME: sessionsTableName,
         MESSAGES_TABLE_NAME: messagesTableName,
@@ -169,10 +169,10 @@ export class LLMApiStack extends NestedStack {
 
     // Integration with Step Function to trigger ETL process
     // Lambda function to trigger Step Function
-    const lambdaStepFunction = new lambda.Function(this, "lambdaStepFunction", {
-      code: lambda.Code.fromAsset(join(__dirname, "../../../lambda/etl")),
+    const lambdaStepFunction = new Function(this, "lambdaStepFunction", {
+      code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
       handler: "sfn_handler.handler",
-      runtime: lambda.Runtime.PYTHON_3_11,
+      runtime: Runtime.PYTHON_3_11,
       timeout: Duration.seconds(30),
       environment: {
         sfn_arn: props.sfnOutput.stateMachineArn,
@@ -197,10 +197,10 @@ export class LLMApiStack extends NestedStack {
     );
     s3Bucket.grantReadWrite(lambdaStepFunction);
 
-    const lambdaGetETLStatus = new lambda.Function(this, "lambdaGetETLStatus", {
-      code: lambda.Code.fromAsset(join(__dirname, "../../../lambda/etl")),
+    const lambdaGetETLStatus = new Function(this, "lambdaGetETLStatus", {
+      code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
       handler: "get_status.lambda_handler",
-      runtime: lambda.Runtime.PYTHON_3_11,
+      runtime: Runtime.PYTHON_3_11,
       timeout: Duration.minutes(5),
       environment: {
         sfn_arn: props.sfnOutput.stateMachineArn,
@@ -217,9 +217,9 @@ export class LLMApiStack extends NestedStack {
     );
 
     const lambdaBatch = new Function(this, "lambdaBatch", {
-      code: lambda.Code.fromAsset(join(__dirname, "../../../lambda/batch")),
+      code: Code.fromAsset(join(__dirname, "../../../lambda/batch")),
       handler: "main.lambda_handler",
-      runtime: lambda.Runtime.PYTHON_3_11,
+      runtime: Runtime.PYTHON_3_11,
       timeout: Duration.minutes(15),
       memorySize: 1024,
       vpc: apiVpc,
