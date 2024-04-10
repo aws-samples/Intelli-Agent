@@ -1,6 +1,4 @@
-import {
-  Duration, NestedStack, RemovalPolicy, StackProps
-} from "aws-cdk-lib";
+import { Duration, NestedStack, RemovalPolicy, StackProps } from "aws-cdk-lib";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
 import { Stream, StreamEncryption } from "aws-cdk-lib/aws-kinesis";
@@ -12,7 +10,6 @@ interface DDBStackProps extends StackProps {
 }
 
 export class DynamoDBStack extends NestedStack {
-
   public sessionTableName;
   public messageTableName;
   public readonly byUserIdIndex: string = "byUserId";
@@ -62,6 +59,5 @@ export class DynamoDBStack extends NestedStack {
 
     this.sessionTableName = sessionsTable.tableName;
     this.messageTableName = messagesTable.tableName;
-
   }
 }

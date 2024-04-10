@@ -1,9 +1,9 @@
 openapi: 3.0.3
 info:
   title: LLM Bot API
-  version: '1.0'
+  version: "1.0"
 servers:
-  - url: 'https://<api-id>.execute-api.us-east-1.amazonaws.com/v1'
+  - url: "https://<api-id>.execute-api.us-east-1.amazonaws.com/v1"
     description: API for LLM ETL operations
 paths:
   /extract:
@@ -28,7 +28,7 @@ paths:
               s3_bucket: "bucket-name"
               need_split: false
       responses:
-        '200':
+        "200":
           description: Data extraction successful.
       security:
         - UserAgentHeader: []
@@ -56,7 +56,7 @@ paths:
             type: string
           example: ""
       responses:
-        '200':
+        "200":
           description: Query successful.
       security:
         - UserAgentHeader: []
@@ -131,7 +131,7 @@ paths:
                     current_heading: "1818"
                     chunk_id: "$0-aca48569"
       responses:
-        '200':
+        "200":
           description: Embed & Inject document into specific AOS index synchronously successfully.
       security:
         - UserAgentHeader: []
@@ -163,7 +163,7 @@ paths:
               qaEnhance: false
               offline: true
       responses:
-        '200':
+        "200":
           description: Embed & Inject document into specific AOS index asynchronously successfully.
       security:
         - UserAgentHeader: []

@@ -1,6 +1,7 @@
 Follow step below to create a ec2 instance with nginx installed
 
 ## 2.1. Prepare the environment
+
 ```bash
 # display image id with ubuntu 20.04 from aws
 aws ec2 describe-images --filters "Name=name,Values=ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*" "Name=owner-id,Values=09972010****" --region us-west-2 --query 'Images[0].ImageId' --output text
@@ -27,4 +28,5 @@ aws ec2 run-instances --image-id ami-01cb61d12413ba783 --count 1 --instance-type
 export FLASK_APP=app.py  # Replace 'app.py' with the name of your Flask app file if it's different
 python -m flask run --host=0.0.0.0 --port=5000
 ```
+
 login the app with address similar to http://<ec2 public ip>:5000/predict to check if the app is running. Modify the inference.py to check the actual output, for now it will just hint "Did not attempt to load JSON data because the request Content-Type was not 'application/json'" since we are not passing any data to the app.

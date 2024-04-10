@@ -1,5 +1,3 @@
 export class Constants {
-    static readonly API_QUEUE_NAME = "LLMAPI";
+  static readonly API_QUEUE_NAME = "LLMAPI";
 }
-
-

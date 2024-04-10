@@ -6,7 +6,6 @@ import * as dotenv from "dotenv";
 dotenv.config();
 
 export class VpcStack extends NestedStack {
-  
   public connectorVpc;
   public privateSubnets;
   public securityGroup;
@@ -23,10 +22,14 @@ export class VpcStack extends NestedStack {
 
     this.securityGroup = new ec2.SecurityGroup(this, "LLM-VPC-SG", {
       vpc: this.connectorVpc,
-      description: "LLM Security Group"
+      description: "LLM Security Group",
     });
 
-    this.securityGroup.addIngressRule(this.securityGroup, ec2.Port.allTraffic(), "allow self traffic");
+    this.securityGroup.addIngressRule(
+      this.securityGroup,
+      ec2.Port.allTraffic(),
+      "allow self traffic",
+    );
 
     this.connectorVpc.addGatewayEndpoint("DynamoDbEndpoint", {
       service: ec2.GatewayVpcEndpointAwsService.DYNAMODB,
@@ -35,8 +38,7 @@ export class VpcStack extends NestedStack {
     this.connectorVpc.addInterfaceEndpoint("Glue", {
       service: ec2.InterfaceVpcEndpointAwsService.GLUE,
       securityGroups: [this.securityGroup],
-      subnets: { subnets: this.privateSubnets, },
+      subnets: { subnets: this.privateSubnets },
     });
-
   }
 }

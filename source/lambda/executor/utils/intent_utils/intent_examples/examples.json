@@ -15,7 +15,6 @@
       "describe": "AWS market event",
       "index": "C"
     }
-  
   ],
   "examples": {
     "chat": [
@@ -81,7 +80,7 @@
       "亚马逊云科技中国区域免费套餐有什么优惠？",
       "介绍Amazon Lambda是什么？"
     ],
-    "market_event":[
+    "market_event": [
       "2024北京国际车展上，亚马逊云科技会参加吗？",
       "3月份在深圳有生成式AI的活动吗？",
       "2024年会举办出海全球化论坛吗？",
