@@ -494,11 +494,12 @@ def ingestion_pipeline(
             # the res is unified to list[Doucment] type
             res = cb_process_object(s3_client, file_type, file_content, **kwargs)
             for document in res:
+                print(f"document ingest")
                 save_content_to_s3(
                     s3_client, document, res_bucket, SplittingType.SEMANTIC.value
                 )
 
-            gen_chunk_flag = False if file_type == "csv" else True
+            gen_chunk_flag = False if file_type == "csv" or file_type == "jsonl" else True
             batches = batch_chunk_processor.batch_generator(res, gen_chunk_flag)
 
             for batch in batches:
@@ -520,6 +521,7 @@ def ingestion_pipeline(
                     )
 
                 if not extract_only:
+                    print(f"chunk ingest {len(batch)}")
                     ingestion_worker.aos_ingestion(batch)
 
         except Exception as e:
