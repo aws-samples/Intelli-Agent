@@ -24,7 +24,7 @@ from ..langchain_utils import (
     RunnableParallelAssign,
     format_trace_infos
 )
-from ..constant import IntentType, CONVERSATION_SUMMARY_TYPE, RerankerType
+from ..constant import IntentType, CONVERSATION_SUMMARY_TYPE, RerankerType,MKT_QUERY_REWRITE_TYPE
 import asyncio
 from typing import TypedDict,Any,List,Dict
 
@@ -66,19 +66,6 @@ EVENT_INSUFFICIENT_CONTEXT = "抱歉，我没有查询到相关的市场活动�
 
 class AppState(TypedDict):
     keys: Any
-    # query: str
-    # stream: bool
-    # debug_info: list
-    # rag_config: Any
-    # chat_history: list
-    # message_id: int
-    # trace_infos: list
-    # intent_embedding_endpoint_name: str
-    # qq_workspace_list: list
-    # qd_workspace_list: list
-    # event_qd_workspace_list: list
-    # is_query_too_short: bool
-
 
 def get_qd_chain(qd_config, qd_workspace_list,state):
     using_whole_doc = qd_config['using_whole_doc']
@@ -388,8 +375,13 @@ def qq_match_and_intent_recognition(state):
 
 def query_expansion(state,result_key='query'):
     state = state['keys']
-    state[result_key] = rule_based_query_expansion(state['query'])
-
+    rag_config = state['rag_config']
+    query_rewrite_config = rag_config['query_process_config']['query_rewrite_config']
+    chain = LLMChain.get_chain(**query_rewrite_config,intent_type=MKT_QUERY_REWRITE_TYPE)
+    r = chain.invoke({"query":state['query'], "stream": False})
+    state[result_key] = r
+    logger.info(f'query_expansion: {r}')
+    # state[result_key] = rule_based_query_expansion(state['query'])
 
 ########################
 # step 4. qd retriever #
@@ -545,9 +537,6 @@ def market_chain_knowledge_entry(
     debug_info = {
         "response_msg": "normal"
         }
-    # contexts = []
-    # sources = []
-    # answer = ""
 
     qd_config = rag_config['retriever_config']['qd_config'] 
     qd_config['query_key'] = "query_for_qd_retrieve"
@@ -572,8 +561,7 @@ def market_chain_knowledge_entry(
     workflow.add_edge('mkt_fast_reply', END)
     workflow.add_edge('llm', END)
 
-    # norm edge
-    # workflow.add_edge('query_reject','conversation_query_rewrite')
+    # normal edge
     workflow.add_edge('conversation_query_rewrite','query_preprocess')
     workflow.add_edge(
         'query_preprocess',

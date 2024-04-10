@@ -595,16 +595,25 @@ def test_internlm_model_mkt_knowledge_entry():
         "response_config": {
             # context return with chunk
             "context_return_with_chunk": True
-        }
-        # "retriever_config": {}
+        },
+        "generator_llm_config": {
+            "context_num": 1,
+        },
+        
     }
 
     #  "亚马逊云科技中国区域免费套餐有什么优惠？",
     #   "介绍Amazon Lambda是什么？"
 
     r = generate_answer(
+        "ec2的全称是什么",
+        # "s3在张家港区域有吗",
+        # "s3在成都区域有吗？",
+        # "2024北京国际车展上，亚马逊云科技会参加吗？",
+        # "amazon sagemaker",
+        # "近期市场活动推荐？",
         # "好的谢谢", 
-        "Claude 3 Opus的最大令牌数是多少？",
+        # "Claude 3 Opus的最大令牌数是多少？",
         # "亚马逊云科技有上海区域吗？",
         # "AWS支持上海region吗？", 
         # "在亚马逊云科技网站上，完成所有账户注册步骤后，什么时候才可以开始使用？",
@@ -1015,13 +1024,12 @@ def market_deploy_test():
 
     market_summary_test2()
 
-
-
 def dgr_deploy_test():
     os.environ['llm_model_id'] = "anthropic.claude-3-sonnet-20240229-v1:0"
     session_id = f'test_{int(time.time())}'
     questions = [
-        '\n将计算资源与Lambda函数部署在相同AZ是否会降低延迟？'
+        # "我的产品每分钟发送约20万个事件到网站以发布广告,将这些大量数据实时传输到Amazon Redshift的最佳方式是什么?",
+        # '\n将计算资源与Lambda函数部署在相同AZ是否会降低延迟？'
         # "Elastic Load Balancing如何启用跨区域负载均衡？",
         # "Amazon VPC默认安全组的默认入站和出站规则?",
         # "每个AWS Site-to-Site VPN 隧道的最大带宽是多少?"
@@ -1039,12 +1047,22 @@ def dgr_deploy_test():
         # '我想用ec2搭建my sql数据库，想要放在公网，想问一下是否有安全访问的最佳实践？'
     ]
 
+    endpoint_name = 'internlm2-chat-20b-4bits-continuous-bat-2024-03-23-16-25-28-881'
+    model_id = "internlm2-chat-20b"
+
     rag_parameters = {
         "get_contexts": True,
         "response_config": {
             # context return with chunk
             "context_return_with_chunk": True
-        }
+        },
+        # "query_process_config": {
+        #     "query_length_threshold": 1,
+        #     "query_rewrite_config": {
+        #         "model_id": model_id,
+        #         "endpoint_name": endpoint_name,
+        #     }
+        # }
     }
     for question in questions:
         generate_answer(
@@ -1086,8 +1104,8 @@ if __name__ == "__main__":
     # test_baichuan_model()
     # market_summary_test2()
     # test_internlm_model()
-    # dgr_deploy_test()
-    test_internlm_model_mkt_knowledge_entry()
+    dgr_deploy_test()
+    # test_internlm_model_mkt_knowledge_entry()
     # test_internlm_model_mkt_knowledge_entry_qq_match()
     # test_internlm_model_mkt_knowledge_entry_langgraph()
     # test_baichuan_model()

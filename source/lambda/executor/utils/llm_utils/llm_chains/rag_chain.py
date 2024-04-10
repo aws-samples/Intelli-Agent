@@ -148,8 +148,12 @@ class Iternlm2Chat7BKnowledgeQaChain(Iternlm2Chat7BChatChain):
 # Question: {query}"""
         # query = f"问题: {query}"
 
-        query = f"""您已经收集到下面的信息:
+        query = f"""你已经收集到下面的信息:
 {context}
+
+
+你还收集到下面的跟亚马逊云科技相关的一些常识:
+    - 亚马逊云科技在中国大陆有北京和宁夏两个区域。
 
 请参考下面的回答规范:
 1. 多次深入思考用户的问题：\n**{query}**\n您必须理解用户提问的意图，并提供最合适的答案。

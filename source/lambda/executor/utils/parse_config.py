@@ -265,16 +265,10 @@ def parse_mkt_entry_knowledge_config(event_body):
                 "aos_index_global_site_cn_qd_m3_dense_20240320"
             ],
             "event_workspace_ids": ["event-qd-index-20240313"],
-            # "retriever_top_k": 5,
-            # "chunk_num": 2,
-            # "using_whole_doc": False,
-            # "reranker_top_k": 10,
-            # "reranker_type": True,
-            # "q_q_match_threshold": 0.9,
-            # "qd_match_threshold": -1
+        
         },
         "query_process_config": {
-            "query_length_threshold": 3,
+            "query_length_threshold": 1,
             "query_rewrite_config": {
                 "model_id": llm_model_id,
                 "endpoint_name": llm_model_endpoint_name,

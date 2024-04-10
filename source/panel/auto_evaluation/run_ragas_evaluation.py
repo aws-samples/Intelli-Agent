@@ -124,6 +124,7 @@ def websocket_call(
     start_time = time.time()
     answer = ""
     contexts = None
+    context = None
     while True:
         recv = ws.recv()
         try:
@@ -143,9 +144,17 @@ def websocket_call(
         elif message_type == "ERROR":
             raise RuntimeError(ret['choices'][0]['message']['content'])
         elif message_type == "CONTEXT":
+            message = ret['choices'][0]
+            context = context or ""
+            if "_chunk_data" in message:
+                context += message.pop('_chunk_data')
+                if message["chunk_id"] + 1 != message['total_chunk_num']:
+                    continue
+                # print('context chunk num',message['total_chunk_num'])
+                message.update(json.loads(context))
             # contexts = ret
-            contexts = [i['doc'] for i in ret['choices'][0]['contexts']]
-            print('sources: ',ret['choices'][0]['knowledge_sources'],flush=True)
+            contexts = [i['doc'] for i in message['contexts']]
+            print('sources: ',message['knowledge_sources'],flush=True)
     ws.close()  
     return {"answer": answer, "contexts": contexts}
 
@@ -310,7 +319,7 @@ if __name__ == "__main__":
     # llm_output_cache_path = "techbot_question_dgr_res_2_1_120_with_gt_context_1_with_whole_doc_baichuan2_13b_4bits.max_new_2000_token.pkl.internlm2-20b-hf-4bits.g4dn.pkl"
     # llm_output_cache_path = "techbot_question_dgr_res_1_23_120_with_gt_context_2_with_whole_doc.pkl"
     # llm_output_cache_path = "techbot_question_dgr_res_1_3_120_with_gt_context_1.pkl"
-    llm_output_cache_path = "techbot-test-200.2024-04-07.from.peipei.csv.whole.context_2.pkl"
+    llm_output_cache_path = "techbot-test-200.2024-04-10.from.peipei.csv.whole.context_2.pkl"
     ret_save_profix = f'{eval_id}-{llm_output_cache_path}-eval'
     # ragas_parameters = {
     #     "region_name":'us-west-2',
@@ -354,23 +363,27 @@ if __name__ == "__main__":
         # "temperature": 0.7,
         # "enable_q_q_match": True,
         "get_contexts": True,
-        "retriever_config":{
-            "using_whole_doc": True,
-            "chunk_num": 1,
-            "retriever_top_k": 20
-            },
-        "generator_llm_config":{
-            # "model_id": "anthropic.claude-instant-v1",
-            # "model_kwargs":{
-            #             "max_new_tokens": 2000,
-            #             "temperature": 0.1,
-            #             "top_p": 0.9
-            #         },
-            # "model_id":"anthropic.claude-v2:1",
-            # "model_id": "Baichuan2-13B-Chat-4bits",
-            # "endpoint_name": "baichuan2-13b-chat-4bits-2024-02-01-03-58-29-048",
-            "context_num": 2
-    }
+        "response_config": {
+            # context return with chunk
+            "context_return_with_chunk": True
+        },
+        # "retriever_config":{
+        #     "using_whole_doc": True,
+        #     "chunk_num": 1,
+        #     "retriever_top_k": 20
+        #     },
+    #     "generator_llm_config":{
+    #         # "model_id": "anthropic.claude-instant-v1",
+    #         # "model_kwargs":{
+    #         #             "max_new_tokens": 2000,
+    #         #             "temperature": 0.1,
+    #         #             "top_p": 0.9
+    #         #         },
+    #         # "model_id":"anthropic.claude-v2:1",
+    #         # "model_id": "Baichuan2-13B-Chat-4bits",
+    #         # "endpoint_name": "baichuan2-13b-chat-4bits-2024-02-01-03-58-29-048",
+    #         "context_num": 2
+    # }
     }
     r = run_eval(
         eval_data_path,

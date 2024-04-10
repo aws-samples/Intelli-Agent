@@ -88,3 +88,14 @@ from .query_rewrite_chain import (
     Iternlm2Chat20BQueryRewriteChain,
     Iternlm2Chat7BQueryRewriteChain
 )
+
+
+from .mkt_query_rewrite_chain import (
+    Iternlm2Chat7BMKTQueryRewriteChain,
+    Iternlm2Chat20BMKTQueryRewriteChain,
+    Claude2MKTQueryRewriteChain,
+    Claude21MKTQueryRewriteChain,
+    Claude3HaikuMKTQueryRewriteChain,
+    Claude3SonnetMKTQueryRewriteChain,
+    ClaudeInstanceMKTQueryRewriteChain
+)

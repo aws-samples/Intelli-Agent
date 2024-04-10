@@ -217,7 +217,7 @@ def lambda_handler(event, context):
                 "generator_llm_config": {"context_num": 2},
             }
 
-            event_body = update_nest_dict(event_body, dgr_config)
+            event_body = update_nest_dict(dgr_config,event_body)
             response = market_chain_knowledge_entry_langgraph(
                 question,
                 stream=stream,
@@ -236,10 +236,6 @@ def lambda_handler(event, context):
                 event_body=event_body,
                 message_id=custom_message_id,
             )
-            # answer = response['answer']
-            # sources = response['context_sources']
-            # contexts = response['context_docs']
-            # debug_info = response['debug_info']
 
         elif entry_type == Type.MARKET_CONVERSATION_SUMMARY.value:
             answer, sources, contexts, debug_info = market_conversation_summary_entry(
