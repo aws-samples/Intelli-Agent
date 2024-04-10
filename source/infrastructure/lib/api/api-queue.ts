@@ -3,23 +3,26 @@ import * as iam from 'aws-cdk-lib/aws-iam';
 import * as sqs from 'aws-cdk-lib/aws-sqs';
 import { Construct } from 'constructs';
 
+export interface QueueProps extends StackProps {
+    namePrefix: string;
+}
 
-export class ApiQueueStack extends Construct {
+export class QueueConstruct extends Construct {
 
     public readonly sqsStatement: iam.PolicyStatement;
     public readonly messageQueue: sqs.Queue;
     public readonly dlq: sqs.Queue;
 
-    constructor(scope: Construct, id: string) {
+    constructor(scope: Construct, id: string, props: QueueProps) {
         super(scope, id);
 
-        const dlq = new sqs.Queue(this, 'LLMApiDLQ', {
+        const dlq = new sqs.Queue(this, `${props.namePrefix}DLQ`, {
             encryption: sqs.QueueEncryption.KMS_MANAGED,
             retentionPeriod: Duration.days(14),
             visibilityTimeout: Duration.hours(10),
         });
 
-        const messageQueue = new sqs.Queue(this, 'LLMApiQueue', {
+        const messageQueue = new sqs.Queue(this, `${props.namePrefix}Queue`, {
             encryption: sqs.QueueEncryption.KMS_MANAGED,
             visibilityTimeout: Duration.hours(3),
             deadLetterQueue: {
