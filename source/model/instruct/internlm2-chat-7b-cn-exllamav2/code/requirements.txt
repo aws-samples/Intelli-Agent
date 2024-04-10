@@ -3,5 +3,5 @@ torch==2.1.2
 sentencepiece==0.1.99
 accelerate==0.25.0
 bitsandbytes==0.41.1
-transformers==4.37.1
+transformers==4.38.0
 einops==0.7.0
