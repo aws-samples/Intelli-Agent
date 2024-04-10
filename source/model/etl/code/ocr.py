@@ -9,14 +9,13 @@ from PIL import Image, ImageDraw
 import cv2
 from imaug import create_operators, transform
 from postprocess import build_post_process
-
-cuda_available = True
-
-sess_options = onnxruntime.SessionOptions()
-
-sess_options.intra_op_num_threads = 8
-sess_options.execution_mode = onnxruntime.ExecutionMode.ORT_SEQUENTIAL
-sess_options.graph_optimization_level = onnxruntime.GraphOptimizationLevel.ORT_ENABLE_ALL
+import GPUtil
+if len(GPUtil.getGPUs()):
+    provider = [("CUDAExecutionProvider", {"cudnn_conv_algo_search": "HEURISTIC"}), "CPUExecutionProvider"]
+    rec_batch_num = 6
+else:
+    provider = ["CPUExecutionProvider"]
+    rec_batch_num = 1
 
 class TextClassifier():
     def __init__(self):
@@ -32,7 +31,7 @@ class TextClassifier():
         }
         self.postprocess_op = build_post_process(postprocess_params)
 
-        self.ort_session = onnxruntime.InferenceSession(self.weights_path, providers=[("CUDAExecutionProvider", {"cudnn_conv_algo_search": "HEURISTIC"})])
+        self.ort_session = onnxruntime.InferenceSession(self.weights_path, providers=provider)
 
     def resize_norm_img(self, img):
         imgC, imgH, imgW = self.cls_image_shape
@@ -95,21 +94,28 @@ class TextClassifier():
         return img_list, cls_res
 
 class TextDetector():
-    def __init__(self):
-        modelName = 'det_cn.onnx'
+    def __init__(self, lang):
+        
+        if lang=='ch':
+            modelName = 'det_cn.onnx'
+        elif lang=='en':
+            modelName = 'det_en.onnx'
+        else:
+            modelName = 'det_cn.onnx'
+            
         self.weights_path = os.environ['MODEL_PATH'] + modelName
 
         self.det_algorithm = 'DB'
         self.use_zero_copy_run = False
 
-        pre_process_list = [{'DetResizeForTest': {'limit_side_len': 960, 'limit_type': 'max'}},
+        pre_process_list = [{'DetResizeForTest': {'limit_side_len': 1280, 'limit_type': 'max'}},
                             {'NormalizeImage': {'std': [0.229, 0.224, 0.225], 'mean': [0.485, 0.456, 0.406], 'scale': '1./255.', 'order': 'hwc'}},
                             {'ToCHWImage': None}, {'KeepKeys': {'keep_keys': ['image', 'shape']}}]
 
         postprocess_params = {'name': 'DBPostProcess', 'thresh': 0.1, 'box_thresh': 0.1, 'max_candidates': 1000, 'unclip_ratio': 1.5, 'use_dilation': False, 'score_mode': 'fast', 'box_type': 'quad'}
         self.preprocess_op = create_operators(pre_process_list)
         self.postprocess_op = build_post_process(postprocess_params)
-        self.ort_session = onnxruntime.InferenceSession(self.weights_path, providers=[("CUDAExecutionProvider", {"cudnn_conv_algo_search": "HEURISTIC"})])
+        self.ort_session = onnxruntime.InferenceSession(self.weights_path, providers=provider)
         _ = self.ort_session.run(None, {"x": np.zeros([1, 3, 64, 64], dtype='float32')})
 
     # load_pytorch_weights
@@ -190,37 +196,40 @@ class TextRecognizer():
     def __init__(self, lang='ch'):
         if lang=='ch':
             modelName = 'rec_ch.onnx'
-        else:
-            modelName = 'rec_en.onnx'
-        self.weights_path = os.environ['MODEL_PATH'] + modelName
-
-        self.limited_max_width = 1280
-        self.limited_min_width = 16
-
-        self.rec_image_shape = [3, 48, 480]
-        self.character_type = 'ch'
-        self.rec_batch_num = 6
-        self.rec_algorithm = 'CRNN'
-        self.use_zero_copy_run = False
-        if lang=='ch':
             postprocess_params = {
                 'name': 'CTCLabelDecode',
                 "character_type": 'ch',
                 "character_dict_path": os.environ['MODEL_PATH'] + 'ppocr_keys_v1.txt',
                 "use_space_char": True
             }
-        else:
+        elif lang=='en':
+            modelName = 'rec_en.onnx'
             postprocess_params = {
                 'name': 'CTCLabelDecode',
                 "character_dict_path": os.environ['MODEL_PATH'] + 'en_dict.txt',
                 "use_space_char": True
             }
+        else:
+            modelName = 'rec_multi_large.onnx'
+            postprocess_params = {
+                'name': 'CTCLabelDecode',
+                "character_type": 'ch',
+                "character_dict_path": os.environ['MODEL_PATH'] + 'keys_en_chs_cht_vi_ja_ko.txt',
+                "use_space_char": True
+            }
+        self.weights_path = os.environ['MODEL_PATH'] + modelName
+
+        self.limited_max_width = 1280
+        self.limited_min_width = 16
+
+        self.rec_image_shape = [3, 48, 480]
+        self.rec_batch_num = rec_batch_num
+        self.rec_algorithm = 'CRNN'
+        self.use_zero_copy_run = False
+
         self.postprocess_op = build_post_process(postprocess_params)
 
-        self.ort_session = onnxruntime.InferenceSession(self.weights_path, sess_options=sess_options, providers=[("CUDAExecutionProvider", {"cudnn_conv_algo_search": "HEURISTIC"}),"CPUExecutionProvider"])
-        #self.ort_session = onnxruntime.InferenceSession(self.weights_path, sess_options=sess_options)
-        # for s in range(1,40):
-        #     _ = self.ort_session.run(None, {"x": np.zeros([1, 3, 48, s*48], dtype='float32')})
+        self.ort_session = onnxruntime.InferenceSession(self.weights_path, providers=provider)
 
     def resize_norm_img(self, img, max_wh_ratio):
         imgC, imgH, imgW = self.rec_image_shape
@@ -308,15 +317,20 @@ def sorted_boxes(dt_boxes):
     return _boxes
 class TextSystem:
     def __init__(self):
-        self.text_detector = TextDetector()
-        
+        #self.text_detector = TextDetector()
+        self.text_detector = {
+            'ch': TextDetector('ch'),
+            'en': TextDetector('en'),
+            'multi': TextDetector('multi'),
+        }
         self.text_recognizer = {
             'ch': TextRecognizer('ch'),
             'en': TextRecognizer('en'),
+            'multi': TextRecognizer('multi'),
         }
         
         self.drop_score = 0.4
-        self.text_classifier = TextClassifier()
+        #self.text_classifier = TextClassifier()
 
     def get_rotate_crop_image(self, img, points):
         """
@@ -364,7 +378,7 @@ class TextSystem:
 
     def __call__(self, img, lang='ch'):
         ori_im = img.copy()
-        dt_boxes = self.text_detector(img)
+        dt_boxes = self.text_detector[lang](img)
         if dt_boxes is None:
             return None, None
         img_crop_list = []
@@ -375,7 +389,7 @@ class TextSystem:
             tmp_box = copy.deepcopy(dt_boxes[bno])
             img_crop = self.get_rotate_crop_image(ori_im, tmp_box)
             img_crop_list.append(img_crop)
-        img_crop_list, angle_list = self.text_classifier(img_crop_list)
+        #img_crop_list, angle_list = self.text_classifier(img_crop_list)
 
         rec_res = self.text_recognizer[lang](img_crop_list)
         filter_boxes, filter_rec_res = [], []
