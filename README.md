@@ -39,7 +39,7 @@ Follow these steps to get started:
 1. [Prerequisites](#prerequisites)
 2. [Prepare Model Assets](#prepare-model-assets)
 3. [Deploy CDK Template](#deploy-cdk-template)
-4. [Test API Connection](#testing-api-connection)
+4. [API Reference](#api-reference)
 
 ### Prerequisites
 First, you need to clone the repository. You can do this by executing the following command:
