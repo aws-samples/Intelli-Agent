@@ -145,7 +145,7 @@ def pipeline_tab():
             job_runs_container += (f" Duration: {job_run.get('ExecutionTime', 'N/A')} seconds\n")
         st.text_area('Running AWS Glue Jobs in total: ' + str(total_job_runs), value=job_runs_container, height=200, max_chars=None)
 
-    # sub pannel to query and search the embedding in AOS
+    # Sub panel to query and search the embedding in AOS
     st.subheader('Query and Search AOS')
     query = st.text_input('Input your query body here', value='{"aos_index": "chatbot-index", "query": {"operation": "match_all", "match_all": {}}}')
     # send button to trigger the request sending to the endpoint with query as request body
@@ -203,7 +203,7 @@ def main():
     elif page == "LLM Bot":
         llm_bot_tab()
 
-    # using libary and OpenAI for local testing, comment for now
+    # using library and OpenAI for local testing, comment for now
     
     # if pdf is not None:
     #     pdf_reader = PdfReader(pdf)

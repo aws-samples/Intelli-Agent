@@ -9,9 +9,7 @@
     "experimentalDecorators": true,
     "inlineSourceMap": true,
     "inlineSources": true,
-    "lib": [
-      "es2019"
-    ],
+    "lib": ["es2019"],
     "module": "CommonJS",
     "noEmitOnError": false,
     "noFallthroughCasesInSwitch": true,
@@ -27,10 +25,6 @@
     "stripInternal": true,
     "target": "ES2019"
   },
-  "include": [
-    "src/**/*.ts"
-  ],
-  "exclude": [
-    "cdk.out"
-  ]
+  "include": ["src/**/*.ts"],
+  "exclude": ["cdk.out"]
 }
