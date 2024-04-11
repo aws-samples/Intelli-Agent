@@ -319,7 +319,7 @@ if __name__ == "__main__":
     # llm_output_cache_path = "techbot_question_dgr_res_2_1_120_with_gt_context_1_with_whole_doc_baichuan2_13b_4bits.max_new_2000_token.pkl.internlm2-20b-hf-4bits.g4dn.pkl"
     # llm_output_cache_path = "techbot_question_dgr_res_1_23_120_with_gt_context_2_with_whole_doc.pkl"
     # llm_output_cache_path = "techbot_question_dgr_res_1_3_120_with_gt_context_1.pkl"
-    llm_output_cache_path = "techbot-test-200.2024-04-10.from.peipei.csv.whole.context_2.pkl"
+    llm_output_cache_path = "techbot-test-200.2024-04-10.from.peipei.csv.chunk_num.2.context_num.4.pkl"
     ret_save_profix = f'{eval_id}-{llm_output_cache_path}-eval'
     # ragas_parameters = {
     #     "region_name":'us-west-2',
@@ -359,6 +359,14 @@ if __name__ == "__main__":
     rag_parameters = {
         'llm_model_id': "anthropic.claude-3-sonnet-20240229-v1:0", 
         "type":'dgr',
+        "generator_llm_config": {"context_num":4},
+        
+        "retriever_config": {
+            "qd_config": {
+                "context_num": 2,
+                "using_whole_doc": False,
+            }
+        },
         # 'llm_model_id': "anthropic.claude-v2:1", 
         # "temperature": 0.7,
         # "enable_q_q_match": True,

@@ -148,30 +148,91 @@ class Iternlm2Chat7BKnowledgeQaChain(Iternlm2Chat7BChatChain):
 # Question: {query}"""
         # query = f"问题: {query}"
 
-        query = f"""你已经收集到下面的信息:
-{context}
-
-
-你还收集到下面的跟亚马逊云科技相关的一些常识:
-    - 亚马逊云科技在中国大陆有北京和宁夏两个区域。
-
-请参考下面的回答规范:
-1. 多次深入思考用户的问题：\n**{query}**\n您必须理解用户提问的意图，并提供最合适的答案。
-2. 从你掌握到的信息中选择最相关的内容（与问题直接相关的关键内容），并以此为基础生成答案。
+        conversation_1 = (f"""请参考下面的回答规范回答接下来的问题:
+1. 从你掌握到的信息中选择最相关的内容（与问题直接相关的关键内容），并以此为基础生成答案。
 3. 生成简洁、符合逻辑的答案。生成答案时，不要只是罗列所选内容，而是要根据上下文重新排列，使之成为自然流畅的段落。
 4. 如果用户的问题是开放性质的的，最多使用三句话回答。
 5. 如果用户的问题是客观的，最多使用一句话进行回答。
 6. 不要输出“这个答案基于/请注意”之类的话。
 7. 答案要简明扼要，但要符合逻辑/自然/有深度。
-"""
+8. 注意上面收集到的信息可能和问题是不相关的，请不要回答冗余。
+""","好的，明白，我会参考您的回答规范。")
+        conversation_2 = (f"""阅读下面关于亚马逊云科技的常识，\n
+1. 亚马逊云科技在中国大陆有北京和宁夏两个区域。                       
+""","好的，我已经阅读完毕。")
+        conversation_3 = (f"""阅读下面的材料并回答接下来的问题:
+{context}
+""","好的，我已经阅读完毕，您的问题是什么？")
+        
+                          
+
+#         query = f"""你已经收集到下面的信息:
+# {context}
+
+
+# 你还收集到下面跟亚马逊云科技相关的一些常识，注意这些常识可能与当前问题不相关:
+#     - 亚马逊云科技在中国大陆有北京和宁夏两个区域。
+
+    
+# 请参考下面的回答规范:
+# 1. 多次深入思考用户的问题：\n**{x['query']}**\n您必须理解用户提问的意图，并提供最合适的答案。
+# 2. 从你掌握到的信息中选择最相关的内容（与问题直接相关的关键内容），并以此为基础生成答案。
+# 3. 生成**简洁**、符合逻辑的答案。生成答案时，不要只是罗列所选内容，而是要根据上下文重新排列，使之成为自然流畅的段落。
+# 4. 如果用户的问题是开放性质的的，最多使用三句话回答。
+# 5. 如果用户的问题是客观的，最多使用一句话进行回答。
+# 6. 不要输出“这个答案基于/请注意”之类的话。
+# 7. 答案要简明扼要，但要符合逻辑/自然/有深度。
+# 8. 注意上面收集到的信息可能和问题是不相关的，请不要回答冗余。
+# """
         prompt = cls.build_prompt(
             query=query,
-            history=history,
+            history=[conversation_1,conversation_2,conversation_3],
             meta_instruction=meta_instruction
         ) 
         # prompt = prompt + "回答: 让我先来判断一下问题的答案是否包含在背景知识中。"
         # prompt = prompt + f"回答: 经过慎重且深入的思考, 根据背景知识, 我的回答如下:\n"
         prompt = prompt + f"根据我掌握到的信息，"
+        # prompt = prompt + f"根据我掌握到的信息与回答规范，对于问题:“{x['query']}”, 我的回答如下:\n"
+#         meta_instruction = "你是一位出色的专家，善于理解提问者的意图和问题的关键，并根据你掌握的信息为提问者的需求提供最佳答案。"
+#         # meta_instruction = f"你是一个Amazon AWS的客服助理小Q，帮助的用户回答使用AWS过程中的各种问题。\n面对用户的问题，你需要给出中文回答，注意不要在回答中重复输出内容。\n下面给出相关问题的背景知识, 需要注意的是如果你认为当前的问题不能在背景知识中找到答案, 你需要拒答。\n背景知识:\n{context}\n\n"
+#         # meta_instruction = f"You are an assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. If you don't know the answer, just say that you don't know. Use simplified Chinese to response the qustion. I’m going to tip $300K for a better answer! "
+#         # meta_instruction = f'You are an expert AI on a question and answer task. \nUse the "Following Context" when answering the question. If you don't know the answer, reply to the "Following Text" in the header and answer to the best of your knowledge, or if you do know the answer, answer without the "Following Text"'
+# #         meta_instruction = """You are an expert AI on a question and answer task. 
+# # Use the "Following Context" when answering the question. If you don't know the answer, reply to the "Following Text" in the header and answer to the best of your knowledge, or if you do know the answer, answer without the "Following Text". If a question is asked in Korean, translate it to English and always answer in Korean.
+# # Following Text: "I didn't find the answer in the context given, but here's what I know! **I could be wrong, so cross-verification is a must!**"""
+# #         meta_instruction = """You are an expert AI on a question and answer task. 
+# # Use the "Following Context" when answering the question. If you don't know the answer, reply to the "Sorry, I don't know". """
+#         # query = f"Question: {query}\nContext:\n{context}"
+# #         query = f"""Following Context: {context}
+# # Question: {query}"""
+#         # query = f"问题: {query}"
+
+#         _query = f"""你已经收集到下面的信息:
+# {context}
+
+
+# 你还收集到下面的跟亚马逊云科技相关的一些常识:
+#     - 亚马逊云科技的简称是“AWS”。
+#     - 亚马逊云科技是全球云计算的开创者和引领者品牌。
+#     - 亚马逊云科技在中国大陆有北京和宁夏两个区域。
+
+# 请参考下面的回答规范:
+# 1. 多次深入思考用户的问题：\n**{query}**\n您必须理解用户提问的意图，并提供最合适的答案。
+# 2. 从你掌握到的信息中选择最相关的内容（与问题直接相关的关键内容），并以此为基础生成答案。
+# 3. 生成简洁、符合逻辑的答案。生成答案时，不要只是罗列所选内容，而是要根据上下文重新排列，使之成为自然流畅的段落。
+# 4. 如果用户的问题是开放性质的的，最多使用三句话回答。
+# 5. 如果用户的问题是客观的，最多使用一句话进行回答。
+# 6. 不要输出“这个答案基于/请注意”之类的话。
+# 7. 答案要简明扼要，但要符合逻辑/自然/有深度。
+# """
+#         prompt = cls.build_prompt(
+#             query=_query,
+#             history=history,
+#             meta_instruction=meta_instruction
+#         ) 
+#         # prompt = prompt + "回答: 让我先来判断一下问题的答案是否包含在背景知识中。"
+#         # prompt = prompt + f"回答: 经过慎重且深入的思考, 根据背景知识, 我的回答如下:\n"
+#         prompt = prompt + f"根据我掌握到的信息与回答规范，对于问题:“{query}”, 我的回答如下:\n"
         logger.info(f'internlm2 prompt: \n{prompt}')
         return prompt
 

@@ -540,6 +540,7 @@ def market_chain_knowledge_entry(
 
     qd_config = rag_config['retriever_config']['qd_config'] 
     qd_config['query_key'] = "query_for_qd_retrieve"
+    # qd_config['query_key'] = "query"
 
     trace_infos = []
 

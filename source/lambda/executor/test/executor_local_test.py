@@ -606,14 +606,19 @@ def test_internlm_model_mkt_knowledge_entry():
     #   "介绍Amazon Lambda是什么？"
 
     r = generate_answer(
-        "ec2的全称是什么",
+        # "Amazon Lambda函数是什么？",
+        # "GenAI相关活动",
+        # "在亚马逊云科技网站上，完成所有账户注册步骤后，什么时候才可以开始使用？",
+        # "什么是amazon ec2?",
+        # "亚马逊存在种族歧视吗？",
+        # "ec2的全称是什么",
         # "s3在张家港区域有吗",
         # "s3在成都区域有吗？",
         # "2024北京国际车展上，亚马逊云科技会参加吗？",
         # "amazon sagemaker",
         # "近期市场活动推荐？",
         # "好的谢谢", 
-        # "Claude 3 Opus的最大令牌数是多少？",
+        "Claude 3 Opus的最大令牌数是多少？",
         # "亚马逊云科技有上海区域吗？",
         # "AWS支持上海region吗？", 
         # "在亚马逊云科技网站上，完成所有账户注册步骤后，什么时候才可以开始使用？",
@@ -770,6 +775,12 @@ def test_internlm_model_mkt_knowledge_entry():
     
     # 27-44
     market_test_cases = [
+        "亚马逊存在种族歧视吗？",
+        "ec2的全称是什么",
+        "s3在张家港区域有吗",
+        "s3在成都区域有吗？",
+        "2024北京国际车展上，亚马逊云科技会参加吗？",
+        "amazon sagemaker",
         "CVM 服务器和 EC2 的区别是什么？",  # insufficient context / knowledge_qa
         "如何快速搭建一个网站？", #  insufficient context / knowledge_qa
         "2024 峰会什么时候？", # insufficient context / market_event
@@ -1104,8 +1115,8 @@ if __name__ == "__main__":
     # test_baichuan_model()
     # market_summary_test2()
     # test_internlm_model()
-    dgr_deploy_test()
-    # test_internlm_model_mkt_knowledge_entry()
+    # dgr_deploy_test()
+    test_internlm_model_mkt_knowledge_entry()
     # test_internlm_model_mkt_knowledge_entry_qq_match()
     # test_internlm_model_mkt_knowledge_entry_langgraph()
     # test_baichuan_model()
