@@ -57,7 +57,7 @@ export class EtlStack extends NestedStack {
         ? ".amazonaws.com.cn/"
         : ".amazonaws.com/";
 
-    // If this.region is cn-notrh-1 or cn-northwest-1, use the glue-job-script-cn.py
+    // If this.region is cn-north-1 or cn-northwest-1, use the glue-job-script-cn.py
     const glueJobScript =
       this.region === "cn-north-1" || this.region === "cn-northwest-1"
         ? "glue-job-script-cn.py"
@@ -320,7 +320,7 @@ export class EtlStack extends NestedStack {
       arguments: sfn.TaskInput.fromObject({
         "--AOS_ENDPOINT": props.domainEndpoint || "AOS Endpoint Not Created",
         "--BATCH_FILE_NUMBER.$": "$.batchFileNumber",
-        "--BATCH_INDICE.$": 'States.Format("{}", $.batchIndices)',
+        "--BATCH_INDICE.$": 'States.Format(\'{}\', $.batchIndices)',
         "--DOC_INDEX_TABLE": props.openSearchIndex,
         "--EMBEDDING_MODEL_ENDPOINT.$": "$.embeddingEndpoint",
         "--ETL_MODEL_ENDPOINT": this.etlEndpoint,
@@ -379,7 +379,7 @@ export class EtlStack extends NestedStack {
       arguments: sfn.TaskInput.fromObject({
         "--AOS_ENDPOINT": props.domainEndpoint,
         "--BATCH_FILE_NUMBER.$": "$.batchFileNumber",
-        "--BATCH_INDICE.$": 'States.Format("{}", $.batchIndices)',
+        "--BATCH_INDICE.$": 'States.Format(\'{}\', $.batchIndices)',
         "--DOC_INDEX_TABLE": props.openSearchIndex,
         "--EMBEDDING_MODEL_ENDPOINT.$": "$.embeddingEndpoint",
         "--ETL_MODEL_ENDPOINT": this.etlEndpoint,
