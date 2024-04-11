@@ -1,5 +1,5 @@
 <h1 align="center">
-  <a name="logo" href="https://www.amazonaws.cn/solutions/amazon-cloudfront-extensions/"><img src="https://llm-bot-with-rag.s3.amazonaws.com/llm-bot-logo.png" alt="LLM Bot logo" width="160"></a>
+  <a name="logo"><img src="https://llm-bot-with-rag.s3.amazonaws.com/llm-bot-logo.png" alt="LLM Bot logo" width="160"></a>
   <br>
   LLM Bot
 </h1>
