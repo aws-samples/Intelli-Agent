@@ -1,4 +1,4 @@
-Excute the following commands to setup local Amazon Open Search running on docker.
+Execute the following commands to setup local Amazon Open Search running on docker.
 '''
 docker run -d -p 9200:9200 -p 9600:9600 -e "discovery.type=single-node" opensearchproject/opensearch:latest
 '''

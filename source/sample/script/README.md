@@ -22,7 +22,7 @@ aws ec2 describe-key-pairs --query 'KeyPairs[*].{Name:KeyName}' --output text
 aws ec2 run-instances --image-id ami-01cb61d12413ba783 --count 1 --instance-type t2.micro --key-name us-west-2 --security-group-ids sg-0ceb6e950b89e8f69 --subnet-id subnet-b42915ff --user-data file://nginx.sh --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=ec2Endpoint}]' --query 'Instances[*].{ID:InstanceId,IP:PublicIpAddress}' --output text
 ```
 
-## 2.2. lanuch the flask app
+## 2.2. launch the flask app
 
 ```bash
 export FLASK_APP=app.py  # Replace 'app.py' with the name of your Flask app file if it's different
