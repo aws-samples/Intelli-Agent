@@ -1,9 +1,0 @@
-python ../prepare_model.py \
-    --hf_model_id bartowski/internlm2-chat-7b-llama-exl2 \
-    --hf_model_local_dir internlm2-chat-7b-llama-exl2 \
-    --hf_model_revision "4_25" \
-    --model_artifact_dir code \
-    --model_artifact_tar_name llm_model.tar.gz \
-    --s3_bucket "sagemaker-cn-north-1-256374081253" \
-    --hf_model_s3_prefix aigc-llm-models/internlm2-chat-7b-llama-exl2 \
-    --model_artifact_s3_prefix aigc-llm-models/internlm2-chat-7b-llama-exl2_deploy_code \

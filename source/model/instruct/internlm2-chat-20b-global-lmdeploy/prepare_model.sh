@@ -1,9 +1,0 @@
-python ../prepare_model.py \
-    --hf_model_id 'internlm/internlm2-chat-20b-4bits' \
-    --hf_model_local_dir internlm2-chat-20b-4bits-lmdeploy \
-    --hf_model_revision "main" \
-    --model_artifact_dir code \
-    --model_artifact_tar_name llm_model.tar.gz \
-    --s3_bucket "aws-gcr-csdc-atl-exp-us-west-2" \
-    --hf_model_s3_prefix aigc-llm-models/internlm2-chat-20b-4bits-lmdeploy \
-    --model_artifact_s3_prefix aigc-llm-models/internlm2-chat-20b-4bits-lmdeploy_deploy_code \
