@@ -1,13 +1,26 @@
-# LLM Bot
+<h1 align="center">
+  <a name="logo" href="https://www.amazonaws.cn/solutions/amazon-cloudfront-extensions/"><img src="https://llm-bot-with-rag.s3.amazonaws.com/llm-bot-logo.png" alt="LLM Bot logo" width="160"></a>
+  <br>
+  LLM Bot
+</h1>
+<h4 align="center">Chatbot with Knowledge ETL and RAG on AWS</h4>
+<div align="center">
+  <h4>
+    <a href="https://github.com/aws-samples/llm-bot/stargazers"><img src="https://img.shields.io/github/stars/aws-samples/llm-bot.svg?style=plasticr"/></a>
+    <a href="https://github.com/aws-samples/llm-bot/commits/main"><img src="https://img.shields.io/github/last-commit/aws-samples/llm-bot.svg?style=plasticr"/></a>
+    <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-Apache%202.0-yellow.svg"></a>
 
-LLM Bot is a conversational bot based on Large Language Model (LLM). It includes an online process for user document uploads to an S3 bucket, triggering ETL instantly, and an offline process for batch processing documents in a specified S3 bucket and prefix in parallel.
+  </h4>
+</div>
+
+LLM Bot provides customers with an end-to-end implementation framework for quickly building Large Language Model (LLM) applications based on RAG technology (such as building private knowledge bases, GenBI, etc.). It utilizes LangChain to implement online processes, making it convenient to customize logic for different scenarios. It supports common enterprise document formats (such as PDF, DOCX, CSV, JSON, etc.) and includes a complete workflow that encompasses document format recognition and content extraction, metadata conversion, semantic segmentation, intent detection, retrieval, and Rerank. It supports multiple embeddings, Rerank, and large language models (such as Claude), helping customers improve accuracy and completeness in content extraction, knowledge retrieval, and model output, while reducing the difficulty of deployment.
 
 ## Table of Contents
 - [Architecture](#architecture)
 - [ETL Workflow](#etl-workflow)
 - [Quick Start](#quick-start)
 - [Deployment Parameters](#deployment-parameters)
-- [Testing API Connection](#testing-api-connection)
+- [API Reference](#api-reference)
 - [Optional Steps](#optional-steps)
 - [Other Samples](#other-samples)
 - [Security](#security)
@@ -70,7 +83,7 @@ aws iam create-service-linked-role --aws-service-name es.amazonaws.com
 ```
 
 ### Deploy CDK Template
-Deploy the CDK template. Make sure DOCKER is installed properly.
+Please make sure **docker** is installed and the CDK command is executed in the **same region** of the model files which are uploaded in previous step. 
 
 ```bash
 cd source/infrastructure
@@ -103,8 +116,11 @@ npx cdk deploy --parameters S3ModelAssets=<Your S3 Bucket Name> --parameters Sub
 | JobPipOption | The configuration option for the Python package installer (pip). Please use it when this solution is deployed in GCR region. |
 
 
-## Testing API Connection
-Use Postman/cURL to test the API connection. Please refer to the following API invocation guides for detailed API usage: [LLM API Schema](https://github.com/aws-samples/llm-bot/tree/main/docs/LLM_API_SCHEMA.md), [ETL API Schema](https://github.com/aws-samples/llm-bot/tree/main/docs/ETL_API_SCHEMA.md), [AOS API Schema](https://github.com/aws-samples/llm-bot/tree/main/docs/AOS_API_SCHEMA.md),
+## API Reference
+After CDK deployment, you can use a HTTP client such as Postman/cURL to invoke the API by following below API schema. 
+- [LLM API Schema](https://github.com/aws-samples/llm-bot/tree/main/docs/LLM_API_SCHEMA.md): send question to LLM and get a response.
+- [ETL API Schema](https://github.com/aws-samples/llm-bot/tree/main/docs/ETL_API_SCHEMA.md): upload knowledge to vector database.
+- [AOS API Schema](https://github.com/aws-samples/llm-bot/tree/main/docs/AOS_API_SCHEMA.md): search data in the vector database.
 
 ## Optional Steps
 1. [Launch Dashboard](#launch-dashboard)
@@ -131,7 +147,7 @@ aws s3 cp <Your documents> s3://llm-bot-documents-<Your account id>-<region>/<Yo
 ## Other Samples
 Try the [Bedrock tutorial](https://github.com/aws-samples/llm-bot/blob/main/sample/bedrock-tuturial.ipynb) to quickly get through the bedrock model & langchain.
 
-## Security
+## Contribution
 See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more information.
 
 ## License
