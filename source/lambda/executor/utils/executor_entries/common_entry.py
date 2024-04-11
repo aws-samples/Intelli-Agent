@@ -113,12 +113,21 @@ def get_qd_chain(qd_config, qd_workspace_list):
     compression_retriever = ContextualCompressionRetriever(
         base_compressor=compressor, base_retriever=lotr
     )
-    qd_chain = chain_logger(
-        RunnablePassthrough.assign(
-            docs=compression_retriever | RunnableLambda(retriever_results_format)
-        ),
-        "qd chain",
-    )
+    if not qd_workspace_list:
+        qd_chain = chain_logger(
+            RunnablePassthrough.assign(
+                docs=RunnableLambda(lambda x: [])
+                | RunnableLambda(retriever_results_format)
+            ),
+            "qd chain",
+        )
+    else:
+        qd_chain = chain_logger(
+            RunnablePassthrough.assign(
+                docs=compression_retriever | RunnableLambda(retriever_results_format)
+            ),
+            "qd chain",
+        )
     return qd_chain
 
 
