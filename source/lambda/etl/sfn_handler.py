@@ -9,7 +9,6 @@ client = boto3.client("stepfunctions")
 
 
 def get_valid_workspace_id(s3_prefix):
-
     s3_prefix = s3_prefix.lower()
     s3_prefix = re.sub(r'[\\\/*?"<>|\s]', "-", s3_prefix)
     s3_prefix = re.sub(r"^[-_+]", "", s3_prefix)

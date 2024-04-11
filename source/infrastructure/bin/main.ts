@@ -1,18 +1,31 @@
-import { App, CfnOutput, CfnParameter, Stack, StackProps } from 'aws-cdk-lib';
-import {Runtime, Code, LayerVersion} from 'aws-cdk-lib/aws-lambda';
-import * as path from 'path';
-import { Construct } from 'constructs';
+/**********************************************************************************************************************
+ *  Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.                                                *
+ *                                                                                                                    *
+ *  Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file except in compliance    *
+ *  with the License. A copy of the License is located at                                                             *
+ *                                                                                                                    *
+ *      http://www.apache.org/licenses/LICENSE-2.0                                                                    *
+ *                                                                                                                    *
+ *  or in the 'license' file accompanying this file. This file is distributed on an 'AS IS' BASIS, WITHOUT WARRANTIES *
+ *  OR CONDITIONS OF ANY KIND, express or implied. See the License for the specific language governing permissions    *
+ *  and limitations under the License.                                                                                *
+ *********************************************************************************************************************/
+
+import { App, CfnOutput, Stack, StackProps } from "aws-cdk-lib";
+import { Construct } from "constructs";
 import * as dotenv from "dotenv";
-import { LLMApiStack } from '../lib/api/api-stack';
-import { DynamoDBStack } from '../lib/ddb/ddb-stack';
-import { EtlStack } from '../lib/etl/etl-stack';
-import { AssetsStack } from '../lib/model/assets-stack';
-import { LLMStack } from '../lib/model/llm-stack';
-import { BuildConfig } from '../lib/shared/build-config';
-import { DeploymentParameters } from '../lib/shared/cdk-parameters';
-import { VpcStack } from '../lib/shared/vpc-stack';
-import { OpenSearchStack } from '../lib/vector-store/os-stack';
-import { ConnectorStack } from '../lib/connector/connector-stack';
+import * as path from "path";
+
+import { LLMApiStack } from "../lib/api/api-stack";
+import { ConnectorStack } from "../lib/connector/connector-stack";
+import { DynamoDBStack } from "../lib/ddb/ddb-stack";
+import { EtlStack } from "../lib/etl/etl-stack";
+import { AssetsStack } from "../lib/model/assets-stack";
+import { LLMStack } from "../lib/model/llm-stack";
+import { BuildConfig } from "../lib/shared/build-config";
+import { DeploymentParameters } from "../lib/shared/cdk-parameters";
+import { VpcStack } from "../lib/shared/vpc-stack";
+import { OpenSearchStack } from "../lib/vector-store/os-stack";
 
 dotenv.config();
 
@@ -22,116 +35,145 @@ export class RootStack extends Stack {
 
     this.setBuildConfig();
 
-    const _CdkParameters = new DeploymentParameters(this);
+    const cdkParameters = new DeploymentParameters(this);
 
-    const _AssetsStack = new AssetsStack(this, 'assets-stack', { _s3ModelAssets: _CdkParameters._S3ModelAssets.valueAsString, env: process.env });
-    const _LLMStack = new LLMStack(this, 'llm-stack', {
-      _s3ModelAssets: _CdkParameters._S3ModelAssets.valueAsString,
-      _rerankModelPrefix: _AssetsStack._rerankModelPrefix,
-      _rerankModelVersion: _AssetsStack._rerankModelVersion,
-      _embeddingModelPrefix: _AssetsStack._embeddingModelPrefix,
-      _embeddingModelVersion: _AssetsStack._embeddingModelVersion,
-      _instructModelPrefix: _AssetsStack._instructModelPrefix,
-      _instructModelVersion: _AssetsStack._instructModelVersion,
-      env: process.env
+    const assetsStack = new AssetsStack(this, "assets-stack", {
+      s3ModelAssets: cdkParameters.s3ModelAssets.valueAsString,
+      env: process.env,
     });
-    _LLMStack.addDependency(_AssetsStack);
-
-    const _VpcStack = new VpcStack(this, 'vpc-stack', { env: process.env });
-
-
-    const _OsStack = new OpenSearchStack(this, 'os-stack', { _vpc: _VpcStack._vpc, _securityGroup: _VpcStack._securityGroup });
-    _OsStack.addDependency(_VpcStack);
-
-    const _DynamoDBStack = new DynamoDBStack(this, 'ddb-stack', { _vpc: _VpcStack._vpc, _securityGroup: _VpcStack._securityGroup, env: process.env });
-    _DynamoDBStack.addDependency(_VpcStack);
-
-    const _EtlStack = new EtlStack(this, 'etl-stack', {
-      _domainEndpoint: _OsStack._domainEndpoint || '',
-      _embeddingEndpoint: _LLMStack._embeddingEndPoints,
-      _region: props.env?.region || 'us-east-1',
-      _subEmail: _CdkParameters._SubEmail.valueAsString ?? '',
-      _vpc: _VpcStack._vpc,
-      _subnets: _VpcStack._privateSubnets,
-      _securityGroups: _VpcStack._securityGroup,
-      _s3ModelAssets: _CdkParameters._S3ModelAssets.valueAsString,
-      _OpenSearchIndex: _CdkParameters._OpenSearchIndex.valueAsString,
-      _imageName: _CdkParameters._EtlImageName.valueAsString,
-      _etlTag: _CdkParameters._ETLImageTag.valueAsString,
+    const llmStack = new LLMStack(this, "llm-stack", {
+      s3ModelAssets: cdkParameters.s3ModelAssets.valueAsString,
+      rerankModelPrefix: assetsStack.rerankModelPrefix,
+      rerankModelVersion: assetsStack.rerankModelVersion,
+      embeddingModelPrefix: assetsStack.embeddingModelPrefix,
+      embeddingModelVersion: assetsStack.embeddingModelVersion,
+      instructModelPrefix: assetsStack.instructModelPrefix,
+      instructModelVersion: assetsStack.instructModelVersion,
+      env: process.env,
     });
-    _EtlStack.addDependency(_VpcStack);
-    _EtlStack.addDependency(_OsStack);
-    _EtlStack.addDependency(_LLMStack);
+    llmStack.addDependency(assetsStack);
 
-    const _ConnectorStack = new ConnectorStack(this, 'connector-stack', {
-      _vpc: _VpcStack._vpc,
-      _securityGroup: _VpcStack._securityGroup,
-      _domainEndpoint: _OsStack._domainEndpoint || '',
-      _embeddingEndPoints: _LLMStack._embeddingEndPoints,
-      _OpenSearchIndex: _CdkParameters._OpenSearchIndex.valueAsString,
-      _OpenSearchIndexDict: _CdkParameters._OpenSearchIndexDict.valueAsString,
-      env: process.env
-    });
-    _ConnectorStack.addDependency(_VpcStack);
-    _ConnectorStack.addDependency(_OsStack);
-    _ConnectorStack.addDependency(_LLMStack);
-    
-    const _ApiStack = new LLMApiStack(this, 'api-stack', {
-      _vpc:_VpcStack._vpc,
-      _securityGroup:_VpcStack._securityGroup,
-      _domainEndpoint:_OsStack._domainEndpoint || '',
-      _rerankEndPoint: _LLMStack._rerankEndPoint ?? '',
-      _embeddingEndPoints:_LLMStack._embeddingEndPoints || '',
-      _llmModelId: BuildConfig.LLM_MODEL_ID,
-      _instructEndPoint: BuildConfig.LLM_ENDPOINT_NAME !== '' ? BuildConfig.LLM_ENDPOINT_NAME : _LLMStack._instructEndPoint,
-      _sessionsTableName: _DynamoDBStack._sessionsTableName,
-      _messagesTableName: _DynamoDBStack._messagesTableName,
-      _workspaceTableName: _EtlStack._workspaceTableName,
-      _sfnOutput: _EtlStack._sfnOutput,
-      _OpenSearchIndex: _CdkParameters._OpenSearchIndex.valueAsString,
-      _OpenSearchIndexDict: _CdkParameters._OpenSearchIndexDict.valueAsString,
-      _jobName: _ConnectorStack._jobName,
-      _jobQueueArn: _ConnectorStack._jobQueueArn,
-      _jobDefinitionArn: _ConnectorStack._jobDefinitionArn,
-      _etlEndpoint: _EtlStack._etlEndpoint,
-      _resBucketName: _EtlStack._resBucketName,
-      env: process.env
-    });
-    _ApiStack.addDependency(_VpcStack);
-    _ApiStack.addDependency(_OsStack);
-    _ApiStack.addDependency(_LLMStack);
-    _ApiStack.addDependency(_DynamoDBStack);
-    _ApiStack.addDependency(_ConnectorStack);
-    _ApiStack.addDependency(_DynamoDBStack);
-    _ApiStack.addDependency(_EtlStack);
+    const vpcStack = new VpcStack(this, "vpc-stack", { env: process.env });
 
-    new CfnOutput(this, 'VPC', {value:_VpcStack._vpc.vpcId});
-    new CfnOutput(this, 'OpenSearch Endpoint', {value:_OsStack._domainEndpoint || 'No OpenSearch Endpoint Created'});
-    new CfnOutput(this, 'Document Bucket', {value:_ApiStack._documentBucket});
-    // deprecate for now since proxy in ec2 instance is not allowed according to policy
-    // new CfnOutput(this, 'OpenSearch Dashboard', {value:`${_Ec2Stack._publicIP}:8081/_dashboards`});
-    new CfnOutput(this, 'API Endpoint Address', {value:_ApiStack._apiEndpoint});
-    new CfnOutput(this, 'WebSocket Endpoint Address', {value:_ApiStack._wsEndpoint});
-    new CfnOutput(this, 'Glue Job Name', {value:_EtlStack._jobName});
-    new CfnOutput(this, 'Cross Model Endpoint', {value:_LLMStack._rerankEndPoint || 'No Cross Endpoint Created'});
-    new CfnOutput(this, 'Embedding Model Endpoint', {value:_LLMStack._embeddingEndPoints[0] || 'No Embedding Endpoint Created'});
-    new CfnOutput(this, 'Instruct Model Endpoint', {value:_LLMStack._instructEndPoint || 'No Instruct Endpoint Created'});
-    new CfnOutput(this, 'Processed Object Table', {value:_EtlStack._processedObjectsTableName});
-    new CfnOutput(this, 'Chunk Bucket', {value:_EtlStack._resBucketName});
-    new CfnOutput(this, '_aosIndexDict', {value:_CdkParameters._OpenSearchIndexDict.valueAsString});
+    const osStack = new OpenSearchStack(this, "os-stack", {
+      osVpc: vpcStack.connectorVpc,
+      securityGroup: vpcStack.securityGroup,
+    });
+    osStack.addDependency(vpcStack);
+
+    const dynamoDBStack = new DynamoDBStack(this, "ddb-stack", {
+      stackVpc: vpcStack.connectorVpc,
+      securityGroup: vpcStack.securityGroup,
+      env: process.env,
+    });
+    dynamoDBStack.addDependency(vpcStack);
+
+    const etlStack = new EtlStack(this, "etl-stack", {
+      domainEndpoint: osStack.domainEndpoint || "",
+      embeddingEndpoint: llmStack.embeddingEndPoints,
+      region: props.env?.region || "us-east-1",
+      subEmail: cdkParameters.subEmail.valueAsString ?? "",
+      etlVpc: vpcStack.connectorVpc,
+      subnets: vpcStack.privateSubnets,
+      securityGroups: vpcStack.securityGroup,
+      s3ModelAssets: cdkParameters.s3ModelAssets.valueAsString,
+      openSearchIndex: cdkParameters.openSearchIndex.valueAsString,
+      imageName: cdkParameters.etlImageName.valueAsString,
+      etlTag: cdkParameters.etlImageTag.valueAsString,
+    });
+    etlStack.addDependency(vpcStack);
+    etlStack.addDependency(osStack);
+    etlStack.addDependency(llmStack);
+
+    const connectorStack = new ConnectorStack(this, "connector-stack", {
+      connectorVpc: vpcStack.connectorVpc,
+      securityGroup: vpcStack.securityGroup,
+      domainEndpoint: osStack.domainEndpoint || "",
+      embeddingEndPoints: llmStack.embeddingEndPoints,
+      openSearchIndex: cdkParameters.openSearchIndex.valueAsString,
+      openSearchIndexDict: cdkParameters.openSearchIndexDict.valueAsString,
+      env: process.env,
+    });
+    connectorStack.addDependency(vpcStack);
+    connectorStack.addDependency(osStack);
+    connectorStack.addDependency(llmStack);
+
+    const apiStack = new LLMApiStack(this, "api-stack", {
+      apiVpc: vpcStack.connectorVpc,
+      securityGroup: vpcStack.securityGroup,
+      domainEndpoint: osStack.domainEndpoint || "",
+      rerankEndPoint: llmStack.rerankEndPoint ?? "",
+      embeddingEndPoints: llmStack.embeddingEndPoints || "",
+      llmModelId: BuildConfig.LLM_MODEL_ID,
+      instructEndPoint:
+        BuildConfig.LLM_ENDPOINT_NAME !== ""
+          ? BuildConfig.LLM_ENDPOINT_NAME
+          : llmStack.instructEndPoint,
+      sessionsTableName: dynamoDBStack.sessionTableName,
+      messagesTableName: dynamoDBStack.messageTableName,
+      workspaceTableName: etlStack.workspaceTableName,
+      sfnOutput: etlStack.sfnOutput,
+      openSearchIndex: cdkParameters.openSearchIndex.valueAsString,
+      openSearchIndexDict: cdkParameters.openSearchIndexDict.valueAsString,
+      jobName: connectorStack.jobName,
+      jobQueueArn: connectorStack.jobQueueArn,
+      jobDefinitionArn: connectorStack.jobDefinitionArn,
+      etlEndpoint: etlStack.etlEndpoint,
+      resBucketName: etlStack.resBucketName,
+      env: process.env,
+    });
+    apiStack.addDependency(vpcStack);
+    apiStack.addDependency(osStack);
+    apiStack.addDependency(llmStack);
+    apiStack.addDependency(dynamoDBStack);
+    apiStack.addDependency(connectorStack);
+    apiStack.addDependency(dynamoDBStack);
+    apiStack.addDependency(etlStack);
+
+    new CfnOutput(this, "API Endpoint Address", {
+      value: apiStack.apiEndpoint,
+    });
+    new CfnOutput(this, "AOS Index Dict", {
+      value: cdkParameters.openSearchIndexDict.valueAsString,
+    });
+    new CfnOutput(this, "Chunk Bucket", { value: etlStack.resBucketName });
+    new CfnOutput(this, "Cross Model Endpoint", {
+      value: llmStack.rerankEndPoint || "No Cross Endpoint Created",
+    });
+    new CfnOutput(this, "Document Bucket", { value: apiStack.documentBucket });
+    new CfnOutput(this, "Embedding Model Endpoint", {
+      value: llmStack.embeddingEndPoints[0] || "No Embedding Endpoint Created",
+    });
+    new CfnOutput(this, "Glue Job Name", { value: etlStack.jobName });
+    new CfnOutput(this, "Instruct Model Endpoint", {
+      value: llmStack.instructEndPoint || "No Instruct Endpoint Created",
+    });
+    new CfnOutput(this, "OpenSearch Endpoint", {
+      value: osStack.domainEndpoint || "No OpenSearch Endpoint Created",
+    });
+    new CfnOutput(this, "Processed Object Table", {
+      value: etlStack.processedObjectsTableName,
+    });
+    new CfnOutput(this, "VPC", { value: vpcStack.connectorVpc.vpcId });
+    new CfnOutput(this, "WebSocket Endpoint Address", {
+      value: apiStack.wsEndpoint,
+    });
   }
 
   private setBuildConfig() {
-    BuildConfig.DEPLOYMENT_MODE = this.node.tryGetContext('DeploymentMode') ?? 'ALL';
-    BuildConfig.LAYER_PIP_OPTION = this.node.tryGetContext('LayerPipOption') ?? '';
-    BuildConfig.JOB_PIP_OPTION = this.node.tryGetContext('JobPipOption') ?? '';
-    BuildConfig.LLM_MODEL_ID = this.node.tryGetContext('LlmModelId') ?? 'internlm2-chat-7b';
-    BuildConfig.LLM_ENDPOINT_NAME = this.node.tryGetContext('LlmEndpointName') ?? '';
+    BuildConfig.DEPLOYMENT_MODE =
+      this.node.tryGetContext("DeploymentMode") ?? "ALL";
+    BuildConfig.LAYER_PIP_OPTION =
+      this.node.tryGetContext("LayerPipOption") ?? "";
+    BuildConfig.JOB_PIP_OPTION = this.node.tryGetContext("JobPipOption") ?? "";
+    BuildConfig.LLM_MODEL_ID =
+      this.node.tryGetContext("LlmModelId") ?? "internlm2-chat-7b";
+    BuildConfig.LLM_ENDPOINT_NAME =
+      this.node.tryGetContext("LlmEndpointName") ?? "";
   }
-
 }
 
-// for development, use account/region from cdk cli
+// For development, use account/region from CDK CLI
 const devEnv = {
   account: process.env.CDK_DEFAULT_ACCOUNT,
   region: process.env.CDK_DEFAULT_REGION,
@@ -139,6 +181,6 @@ const devEnv = {
 
 const app = new App();
 
-new RootStack(app, 'llm-bot-dev', { env: devEnv });
+new RootStack(app, "llm-bot-dev", { env: devEnv });
 
 app.synth();

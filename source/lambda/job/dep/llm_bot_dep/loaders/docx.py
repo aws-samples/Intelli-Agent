@@ -1,13 +1,15 @@
 import logging
-from typing import List, Optional
-from langchain.docstore.document import Document
-from langchain.document_loaders.base import BaseLoader
-from llm_bot_dep.loaders.html import CustomHtmlLoader
-import mammoth
 import uuid
 from datetime import datetime
-from llm_bot_dep.splitter_utils import MarkdownHeaderTextSplitter
+from typing import List, Optional
+
+import mammoth
 from docx import Document as pyDocument
+from langchain.docstore.document import Document
+from langchain.document_loaders.base import BaseLoader
+
+from llm_bot_dep.loaders.html import CustomHtmlLoader
+from llm_bot_dep.splitter_utils import MarkdownHeaderTextSplitter
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +39,7 @@ class CustomDocLoader(BaseLoader):
         self.aws_path = aws_path
         self.encoding = encoding
         self.autodetect_encoding = autodetect_encoding
-    
+
     def clean_document(self, doc: pyDocument):
         """Clean document including removing header and footer for each page
 
@@ -61,13 +63,15 @@ class CustomDocLoader(BaseLoader):
         def _convert_image(image):
             # Images are excluded
             return {"src": ""}
-        
+
         pyDoc = pyDocument(self.file_path)
         self.clean_document(pyDoc)
         pyDoc.save(self.file_path)
 
         with open(self.file_path, "rb") as docx_file:
-            result = mammoth.convert_to_html(docx_file, convert_image=mammoth.images.img_element(_convert_image))
+            result = mammoth.convert_to_html(
+                docx_file, convert_image=mammoth.images.img_element(_convert_image)
+            )
             html_content = result.value
             loader = CustomHtmlLoader(aws_path=self.aws_path)
             doc = loader.load(html_content)
@@ -80,14 +84,14 @@ def process_doc(s3, **kwargs):
     now = datetime.now()
     timestamp_str = now.strftime("%Y%m%d%H%M%S")
     random_uuid = str(uuid.uuid4())[:8]
-    bucket_name = kwargs['bucket']
-    key = kwargs['key']
-    local_path = f'/tmp/doc-{timestamp_str}-{random_uuid}.docx'
+    bucket_name = kwargs["bucket"]
+    key = kwargs["key"]
+    local_path = f"/tmp/doc-{timestamp_str}-{random_uuid}.docx"
 
     s3.download_file(bucket_name, key, local_path)
     loader = CustomDocLoader(file_path=local_path, aws_path=f"s3://{bucket_name}/{key}")
     doc = loader.load()
-    splitter = MarkdownHeaderTextSplitter(kwargs['res_bucket'])
+    splitter = MarkdownHeaderTextSplitter(kwargs["res_bucket"])
     doc_list = splitter.split_text(doc)
 
     return doc_list

@@ -1,17 +1,18 @@
-import gradio as gr
 import json
-import requests
+
 import boto3
-from websocket import create_connection
+import gradio as gr
+import requests
 from executor_local_test import generate_answer
 from langchain_community.document_loaders import UnstructuredPDFLoader
-
+from websocket import create_connection
 
 doc_dict = {}
-s3 = boto3.client('s3')
+s3 = boto3.client("s3")
 max_debug_block = 20
 
 import os
+
 
 def load_raw_data():
     global doc_dict
@@ -68,10 +69,9 @@ text = [
     [
         "建发股份和四川永丰浆纸股份有限公司及其子公司向关联人销 售商品、提供劳务交易预计总金额总计多少",
     ],
-    [
-        "员工连续旷工两天会被处以什么处分？"
-    ],
+    ["员工连续旷工两天会被处以什么处分？"],
 ]
+
 
 def generate_answer_from_api(url, query_input, type, rag_parameters):
     data = {
@@ -82,6 +82,7 @@ def generate_answer_from_api(url, query_input, type, rag_parameters):
     data.update(rag_parameters)
     response = requests.post(url, json.dumps(data))
     return response
+
 
 def generate_answer_from_ws(api_type, url, query_input, type):
     gr_tab_list = []
@@ -95,7 +96,7 @@ def generate_answer_from_ws(api_type, url, query_input, type):
     # endpoint_name = "instruct-internlm2-chat-7b-f7dc2"
     # endpoint_name = "internlm2-chat-7b-2024-02-23-07-29-02-632"
     endpoint_name = "internlm2-chat-20b-4bits-2024-02-29-05-37-42-885"
-    rag_parameters=dict()
+    rag_parameters = dict()
     # rag_parameters=dict(
     #     query_process_config = {
     #         "conversation_query_rewrite_config":{
@@ -140,25 +141,25 @@ def generate_answer_from_ws(api_type, url, query_input, type):
     while True:
         ret = json.loads(ws.recv())
         try:
-            message_type = ret['choices'][0]['message_type']
+            message_type = ret["choices"][0]["message_type"]
         except:
             print(ret)
             raise
         if message_type == "START":
-            continue 
+            continue
         elif message_type == "CHUNK":
-            print(ret['choices'][0]['message']['content'],end="",flush=True)
-            answer += ret['choices'][0]['message']['content']
+            print(ret["choices"][0]["message"]["content"], end="", flush=True)
+            answer += ret["choices"][0]["message"]["content"]
             yield answer, "", *gr_tab_list, *gr_json_list
         elif message_type == "END":
             break
         elif message_type == "ERROR":
-            print(ret['choices'][0]['message']['content'])
-            break 
+            print(ret["choices"][0]["message"]["content"])
+            break
         elif message_type == "CONTEXT":
             print()
-            print('contexts',ret)
-            sources = ret['choices'][0]["knowledge_sources"]
+            print("contexts", ret)
+            sources = ret["choices"][0]["knowledge_sources"]
             # debug_info = ret['choices'][0]["debug_info"]
             debug_info = {}
             yield answer, sources, *render_debug_info(debug_info)
@@ -166,29 +167,30 @@ def generate_answer_from_ws(api_type, url, query_input, type):
             break
     ws.close()
 
+
 def generate_answer_from_local(api_type, url_input, query_input, entry_type):
     model_id = "internlm2-chat-7b"
     endpoint_name = "instruct-internlm2-chat-7b-f7dc2"
     # endpoint_name = "internlm2-chat-7b-2024-02-23-07-29-02-632"
     # endpoint_name = "internlm2-chat-7b-4bits-2024-02-28-07-08-57-839"
-    rag_parameters=dict(
-    #     query_process_config = {
-    #         "conversation_query_rewrite_config":{
-    #             "model_id":model_id,
-    #             "endpoint_name":endpoint_name
-    #         },
-    #         "translate_config":{
-    #             "model_id":model_id,
-    #             "endpoint_name": endpoint_name
-    #         }
-    #     },
-        retriever_config = {
+    rag_parameters = dict(
+        #     query_process_config = {
+        #         "conversation_query_rewrite_config":{
+        #             "model_id":model_id,
+        #             "endpoint_name":endpoint_name
+        #         },
+        #         "translate_config":{
+        #             "model_id":model_id,
+        #             "endpoint_name": endpoint_name
+        #         }
+        #     },
+        retriever_config={
             "qq_config": {
                 "qq_match_threshold": 0.8,
                 "retriever_top_k": 5,
-                "query_key": "query"
+                "query_key": "query",
             },
-            "qd_config":{
+            "qd_config": {
                 "retriever_top_k": 10,
                 "context_num": 2,
                 "using_whole_doc": False,
@@ -197,37 +199,41 @@ def generate_answer_from_local(api_type, url_input, query_input, entry_type):
                 "reranker_type": "bge_reranker",
                 # "reranker_type": RerankerType.BGE_M3_RERANKER.value,
                 "qd_match_threshold": 2,
-                "query_key":"conversation_query_rewrite"
+                "query_key": "conversation_query_rewrite",
                 # "enable_reranker":True
             },
             # "workspace_ids": ["aos_index_mkt_faq_qq_m3", "aos_index_acts_qd_m3", "aos_index_mkt_faq_qd_m3", "aos_index_repost_qq_m3"]
         },
-    #     generator_llm_config ={
-    #         "model_kwargs":{
-    #             "max_new_tokens": 2000,
-    #             "temperature": 0.1,
-    #             "top_p": 0.9
-    #         },
-    #         "model_id": model_id,
-    #         "endpoint_name": endpoint_name,
-    #         "context_num": 1
-    #     }
+        #     generator_llm_config ={
+        #         "model_kwargs":{
+        #             "max_new_tokens": 2000,
+        #             "temperature": 0.1,
+        #             "top_p": 0.9
+        #         },
+        #         "model_id": model_id,
+        #         "endpoint_name": endpoint_name,
+        #         "context_num": 1
+        #     }
     )
     rag_parameters = dict()
     sources = []
     debug_info = []
     answer, sources, debug_info = generate_answer(
-        query=query_input, type=entry_type, rag_parameters=rag_parameters)
-    return answer, sources, *render_debug_info(debug_info) 
+        query=query_input, type=entry_type, rag_parameters=rag_parameters
+    )
+    return answer, sources, *render_debug_info(debug_info)
+
 
 def test(api_type, url_input, query_input, entry_type):
     return "yyyy", "yy"
+
 
 def generate_func(api_type, url_input, query_input, entry_type):
     if api_type == "local":
         return generate_answer_from_local(api_type, url_input, query_input, entry_type)
     elif api_type == "cloud":
         return generate_answer_from_ws(api_type, url_input, query_input, entry_type)
+
 
 def render_debug_info(debug_info):
     tab_list = []
@@ -243,11 +249,12 @@ def render_debug_info(debug_info):
             json_value = debug_info[info_key]
         json_list.append(gr.JSON(value=json_value, visible=True))
         json_count += 1
-    for i in range(max_debug_block-accordion_count):
+    for i in range(max_debug_block - accordion_count):
         tab_list.append(gr.Tab(visible=False))
-    for i in range(max_debug_block-json_count):
+    for i in range(max_debug_block - json_count):
         json_list.append(gr.JSON(value=["dummy"], visible=False))
     return *tab_list, *json_list
+
 
 def invoke_etl_online(
     url_input, s3_bucket_chunk_input, s3_prefix_chunk_input, need_split_dropdown
@@ -317,7 +324,7 @@ def invoke_etl_offline(
 
 def load_s3_bucket():
     s3_buckets = s3.list_buckets()
-    s3_bucket_names = [bucket['Name'] for bucket in s3_buckets['Buckets']]
+    s3_bucket_names = [bucket["Name"] for bucket in s3_buckets["Buckets"]]
 
     return s3_bucket_names
 
@@ -326,16 +333,17 @@ def load_s3_doc(s3_bucket_dropdown, s3_prefix_compare):
     if not s3_bucket_dropdown:
         return []
     response = s3.get_object(Bucket=s3_bucket_dropdown, Key=s3_prefix_compare)
-    content = response['Body'].read().decode('utf-8')
-    
+    content = response["Body"].read().decode("utf-8")
+
     return content
+
 
 def get_all_keys(bucket_name, prefix):
     if not bucket_name:
         return []
     key_list = []
     # Create a reusable Paginator
-    paginator = s3.get_paginator('list_objects_v2')
+    paginator = s3.get_paginator("list_objects_v2")
 
     # Create a PageIterator from the Paginator
     page_iterator = paginator.paginate(Bucket=bucket_name, Prefix=prefix)
@@ -343,8 +351,8 @@ def get_all_keys(bucket_name, prefix):
     for page in page_iterator:
         if "Contents" in page:
             # Print the keys (file names)
-            for key in page['Contents']:
-                key_list.append(key['Key'])
+            for key in page["Contents"]:
+                key_list.append(key["Key"])
     return key_list
 
 
@@ -366,11 +374,15 @@ with gr.Blocks() as demo:
     )
     gr_websocket_input = gr.Text(
         label="Websocket, eg. wss://2ogbgobue2.execute-api.us-west-2.amazonaws.com/prod/",
-        value='wss://2ogbgobue2.execute-api.us-west-2.amazonaws.com/prod/'
+        value="wss://2ogbgobue2.execute-api.us-west-2.amazonaws.com/prod/",
     )
     with gr.Tab("Chat"):
-        gr_api_type = gr.Dropdown(label="API", choices=["local", "cloud"], value="local")
-        gr_entry_input = gr.Dropdown(label="Entry", choices=["common", "market_chain"], value="market_chain")
+        gr_api_type = gr.Dropdown(
+            label="API", choices=["local", "cloud"], value="local"
+        )
+        gr_entry_input = gr.Dropdown(
+            label="Entry", choices=["common", "market_chain"], value="market_chain"
+        )
         gr_query_input = gr.Text(label="Query")
         gr_local_answer_btn = gr.Button(value="Local Answer")
         gr_cloud_answer_btn = gr.Button(value="Cloud Answer")
@@ -404,25 +416,14 @@ with gr.Blocks() as demo:
         gr_local_answer_btn.click(
             generate_answer_from_local,
             inputs=[gr_api_type, gr_websocket_input, gr_query_input, gr_entry_input],
-            outputs=[
-                gr_answer_output,
-                gr_sources_output,
-                *gr_tab_list,
-                *gr_json_list
-            ]
+            outputs=[gr_answer_output, gr_sources_output, *gr_tab_list, *gr_json_list],
         )
         context = None
         gr_cloud_answer_btn.click(
             generate_answer_from_ws,
             inputs=[gr_api_type, gr_websocket_input, gr_query_input, gr_entry_input],
-            outputs=[
-                gr_answer_output,
-                gr_sources_output,
-                *gr_tab_list,
-                *gr_json_list
-            ]
+            outputs=[gr_answer_output, gr_sources_output, *gr_tab_list, *gr_json_list],
         )
-
 
         # with gr.Accordion("RawDataDebugInfo", open=False):
         #     raw_data = gr.JSON()
@@ -554,21 +555,21 @@ with gr.Blocks() as demo:
                     label="S3 Bucket",
                     info="S3 bucket name, eg. llm-bot",
                 )
-                s3_prefix_text = gr.Textbox(
-                    label="S3 prefix, eg. demo_folder/demo.pdf"
-                )
+                s3_prefix_text = gr.Textbox(label="S3 prefix, eg. demo_folder/demo.pdf")
                 get_split_file_button = gr.Button(value="List Files")
             with gr.Column():
                 s3_prefix_dropdown = gr.Dropdown(
-                    choices=[],
-                    label="S3 prefix, eg. demo_folder/demo.pdf"
+                    choices=[], label="S3 prefix, eg. demo_folder/demo.pdf"
                 )
+
                 def update_s3_prefix_dropdown(s3_bucket, s3_prefix):
                     return gr.Dropdown(choices=get_all_keys(s3_bucket, s3_prefix))
+
                 get_split_file_button.click(
                     fn=update_s3_prefix_dropdown,
                     inputs=[s3_bucket_dropdown, s3_prefix_text],
-                    outputs=[s3_prefix_dropdown])
+                    outputs=[s3_prefix_dropdown],
+                )
                 load_button = gr.Button("Load")
         solution_md = gr.Text(label="Output")
         load_button.click(

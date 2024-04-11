@@ -1,12 +1,14 @@
 """
 Helper functions for storage intermediate content or log
 """
+
+import datetime
 import json
 import logging
 import sys
 import time
 from typing import List
-import datetime
+
 from langchain.docstore.document import Document
 
 logger = logging.getLogger()
@@ -45,7 +47,7 @@ def upload_chunk_to_s3(
         │   ├── timestamp 7
         │   │   ├── logger file 7
         │   ├── timestamp 8
-        │   │   ├── logger file 8       
+        │   │   ├── logger file 8
         ...
     """
     # round the timestamp to hours to avoid too many folders
@@ -69,8 +71,8 @@ def save_content_to_s3(s3, document: Document, res_bucket: str, splitting_type: 
     """
     logger_file = convert_to_logger(document)
     # Extract the filename from the file_path in the metadata
-    file_path = document.metadata.get('file_path', '')
+    file_path = document.metadata.get("file_path", "")
     # filename = file_path.split('/')[-1].split('.')[0]
-    filename = file_path.replace('s3://', '').replace('/', '-').replace('.', '-')
+    filename = file_path.replace("s3://", "").replace("/", "-").replace(".", "-")
     # RecursiveCharacterTextSplitter have been rewrite to split based on chunk size & overlap, use seperate folder to store the logger file
     upload_chunk_to_s3(s3, logger_file, res_bucket, filename, splitting_type)

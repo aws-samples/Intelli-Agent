@@ -1,17 +1,19 @@
+import json
+import logging
+
+import numpy as np
+
+from llm_bot_dep.build_index import process_shard
 from llm_bot_dep.loaders.docx import process_doc
 from llm_bot_dep.loaders.markdown import process_md
-from .text import process_text
+
 from .csv import process_csv
 from .html import process_html
-from .pdf import process_pdf
 from .image import process_image
 from .json import process_json
 from .jsonl import process_jsonl
-
-import json
-import numpy as np
-import logging
-from llm_bot_dep.build_index import process_shard
+from .pdf import process_pdf
+from .text import process_text
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -58,6 +60,6 @@ def cb_process_object(s3, file_type: str, file_content, **kwargs):
         #         kwargs["content_type"],
         #         kwargs["max_os_docs_per_put"],
         #     )
-    elif file_type == 'jsonl':
+    elif file_type == "jsonl":
         res = process_jsonl(s3, file_content, **kwargs)
     return res

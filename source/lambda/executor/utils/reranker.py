@@ -1,17 +1,19 @@
+import asyncio
 import json
+import logging
 import os
 import time
-import logging
-import asyncio
+
 import numpy as np
+
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 from typing import TYPE_CHECKING, Dict, Optional, Sequence
 
 from langchain.callbacks.manager import Callbacks
-from langchain.schema import Document
 from langchain.retrievers.document_compressors.base import BaseDocumentCompressor
+from langchain.schema import Document
 
 from .sm_utils import SagemakerEndpointVectorOrCross
 
@@ -19,31 +21,36 @@ rerank_model_endpoint = os.environ.get("rerank_endpoint", "")
 region = os.environ["AWS_REGION"]
 
 """Document compressor that uses BGE reranker model."""
-class BGEM3Reranker(BaseDocumentCompressor):
 
+
+class BGEM3Reranker(BaseDocumentCompressor):
     """Number of documents to return."""
+
     # top_n: int = 3
     def _colbert_score_np(self, q_reps, p_reps):
-        token_scores = np.einsum('nik,njk->nij', q_reps, p_reps)
+        token_scores = np.einsum("nik,njk->nij", q_reps, p_reps)
         scores = token_scores.max(-1)
         scores = np.sum(scores) / q_reps.shape[0]
         return scores
 
     async def __ainvoke_rerank_model(self, query_batch, doc_batch, loop):
         # await asyncio.sleep(2)
-        return await loop.run_in_executor(None,
-                                          self._colbert_score_np,
-                                          np.asarray(query_batch),
-                                          np.asarray(doc_batch))
+        return await loop.run_in_executor(
+            None, self._colbert_score_np, np.asarray(query_batch), np.asarray(doc_batch)
+        )
 
     async def __spawn_task(self, query_colbert_list, doc_colbert_list):
         batch_size = 1
         task_list = []
         loop = asyncio.get_event_loop()
         for batch_start in range(0, len(query_colbert_list), batch_size):
-            task = asyncio.create_task(self.__ainvoke_rerank_model(
-                query_colbert_list[batch_start:batch_start + batch_size],
-                doc_colbert_list[batch_start:batch_start + batch_size], loop))
+            task = asyncio.create_task(
+                self.__ainvoke_rerank_model(
+                    query_colbert_list[batch_start : batch_start + batch_size],
+                    doc_colbert_list[batch_start : batch_start + batch_size],
+                    loop,
+                )
+            )
             task_list.append(task)
         return await asyncio.gather(*task_list)
 
@@ -68,7 +75,7 @@ class BGEM3Reranker(BaseDocumentCompressor):
         if len(documents) == 0:  # to avoid empty api call
             return []
         doc_list = list(documents)
-        _docs = [d.metadata["retrieval_data"]['colbert'] for d in doc_list]
+        _docs = [d.metadata["retrieval_data"]["colbert"] for d in doc_list]
         # _docs = [d.page_content for d in doc_list]
 
         rerank_text_length = 1024 * 10
@@ -78,8 +85,12 @@ class BGEM3Reranker(BaseDocumentCompressor):
             query_colbert_list.append(query["colbert"][:rerank_text_length])
             doc_colbert_list.append(doc[:rerank_text_length])
         score_list = []
-        logger.info(f'rerank pair num {len(query_colbert_list)}, m3 method: colbert score')
-        score_list = asyncio.run(self.__spawn_task(query_colbert_list, doc_colbert_list))
+        logger.info(
+            f"rerank pair num {len(query_colbert_list)}, m3 method: colbert score"
+        )
+        score_list = asyncio.run(
+            self.__spawn_task(query_colbert_list, doc_colbert_list)
+        )
         final_results = []
         debug_info = query["debug_info"]
         debug_info["knowledge_qa_rerank"] = []
@@ -88,7 +99,14 @@ class BGEM3Reranker(BaseDocumentCompressor):
             # set common score for llm.
             doc.metadata["score"] = doc.metadata["rerank_score"]
             final_results.append(doc)
-            debug_info["knowledge_qa_rerank"].append((doc.page_content, doc.metadata["retrieval_content"], doc.metadata["source"], score))
+            debug_info["knowledge_qa_rerank"].append(
+                (
+                    doc.page_content,
+                    doc.metadata["retrieval_content"],
+                    doc.metadata["source"],
+                    score,
+                )
+            )
         final_results.sort(key=lambda x: x.metadata["rerank_score"], reverse=True)
         debug_info["knowledge_qa_rerank"].sort(key=lambda x: x[-1], reverse=True)
         recall_end_time = time.time()
@@ -96,33 +114,42 @@ class BGEM3Reranker(BaseDocumentCompressor):
         logger.info(f"runing time of rerank: {elpase_time}s seconds")
         return final_results
 
+
 """Document compressor that uses BGE reranker model."""
+
+
 class BGEReranker(BaseDocumentCompressor):
-
     """Number of documents to return."""
-    # top_n: int = 3
-    query_key: str="query"
 
-    def __init__(self, query_key='query'):
+    # top_n: int = 3
+    query_key: str = "query"
+
+    def __init__(self, query_key="query"):
         super().__init__()
         self.query_key = query_key
 
     async def __ainvoke_rerank_model(self, batch, loop):
         # await asyncio.sleep(2)
-        return await loop.run_in_executor(None,
-                                          SagemakerEndpointVectorOrCross,
-                                          json.dumps(batch),
-                                          rerank_model_endpoint,
-                                          region,
-                                          "rerank",
-                                          None)
+        return await loop.run_in_executor(
+            None,
+            SagemakerEndpointVectorOrCross,
+            json.dumps(batch),
+            rerank_model_endpoint,
+            region,
+            "rerank",
+            None,
+        )
 
     async def __spawn_task(self, rerank_pair):
         batch_size = 16
         task_list = []
         loop = asyncio.get_event_loop()
         for batch_start in range(0, len(rerank_pair), batch_size):
-            task = asyncio.create_task(self.__ainvoke_rerank_model(rerank_pair[batch_start:batch_start + batch_size], loop))
+            task = asyncio.create_task(
+                self.__ainvoke_rerank_model(
+                    rerank_pair[batch_start : batch_start + batch_size], loop
+                )
+            )
             task_list.append(task)
         return await asyncio.gather(*task_list)
 
@@ -155,7 +182,9 @@ class BGEReranker(BaseDocumentCompressor):
         for doc in _docs:
             rerank_pair.append([query[self.query_key], doc[:rerank_text_length]])
         score_list = []
-        logger.info(f'rerank pair num {len(rerank_pair)}, endpoint_name: {rerank_model_endpoint}')
+        logger.info(
+            f"rerank pair num {len(rerank_pair)}, endpoint_name: {rerank_model_endpoint}"
+        )
         response_list = asyncio.run(self.__spawn_task(rerank_pair))
         for response in response_list:
             score_list.extend(json.loads(response))
@@ -168,7 +197,14 @@ class BGEReranker(BaseDocumentCompressor):
             doc.metadata["retrieval_score"] = doc.metadata["retrieval_score"]
             doc.metadata["score"] = doc.metadata["rerank_score"]
             final_results.append(doc)
-            debug_info["knowledge_qa_rerank"].append((doc.page_content, doc.metadata["retrieval_content"], doc.metadata["source"], score))
+            debug_info["knowledge_qa_rerank"].append(
+                (
+                    doc.page_content,
+                    doc.metadata["retrieval_content"],
+                    doc.metadata["source"],
+                    score,
+                )
+            )
         final_results.sort(key=lambda x: x.metadata["rerank_score"], reverse=True)
         debug_info["knowledge_qa_rerank"].sort(key=lambda x: x[-1], reverse=True)
         recall_end_time = time.time()
@@ -176,10 +212,13 @@ class BGEReranker(BaseDocumentCompressor):
         logger.info(f"runing time of rerank: {elpase_time}s seconds")
         return final_results
 
-"""Document compressor that uses retriever score."""
-class MergeReranker(BaseDocumentCompressor):
 
+"""Document compressor that uses retriever score."""
+
+
+class MergeReranker(BaseDocumentCompressor):
     """Number of documents to return."""
+
     # top_n: int = 3
 
     def compress_documents(
@@ -207,8 +246,17 @@ class MergeReranker(BaseDocumentCompressor):
         debug_info["knowledge_qa_rerank"] = []
         final_results = list(documents)
         final_results.sort(key=lambda x: x.metadata["score"], reverse=True)
-        debug_info["knowledge_qa_rerank"].append([(doc.page_content, doc.metadata["retrieval_content"],
-                                                  doc.metadata["source"], doc.metadata["score"]) for doc in final_results])
+        debug_info["knowledge_qa_rerank"].append(
+            [
+                (
+                    doc.page_content,
+                    doc.metadata["retrieval_content"],
+                    doc.metadata["source"],
+                    doc.metadata["score"],
+                )
+                for doc in final_results
+            ]
+        )
         recall_end_time = time.time()
         elpase_time = recall_end_time - start
         logger.info(f"runing time of rerank: {elpase_time}s seconds")

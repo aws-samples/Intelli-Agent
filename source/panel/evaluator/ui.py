@@ -177,7 +177,7 @@ def run_evaluation(chain, retriever, eval_set, grade_prompt, retriever_type, num
         start_time = time.time()
         
         # Get docs
-        if retriever_type == "Faiss retriver":
+        if retriever_type == "Faiss retriever":
             docs = retriever.similarity_search(query=data["question"],k=num_neighbors,filter=metadata_filter)
         elif retriever_type == "CSDC retriever":
             docs = retriever.similarity_search(query=data["question"],k=num_neighbors,filter=metadata_filter)
@@ -231,7 +231,7 @@ with st.sidebar.form("user_input"):
                                 index=1)
 
     retriever_type = st.radio("`Choose retriever`",
-                              ("Faiss retriver",
+                              ("Faiss retriever",
                                "CSDC retriever",),
                               index=0)
     
@@ -288,7 +288,7 @@ if uploaded_eval_set:
     # Make LLM
     llm = make_llm(model)
     
-    # Make retriver
+    # Make retriever
     retriever = make_retriever(retriever_type,embeddings)
     
     # Make chain

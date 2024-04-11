@@ -30,7 +30,7 @@ class BGEEmbeddingSagemakerEndpoint:
             client=client,
             endpoint_name=endpoint_name,
             content_handler=content_handler,
-            **kwargs
+            **kwargs,
         )
         return embedding
 
@@ -63,6 +63,6 @@ class BGEM3EmbeddingSagemakerEndpoint:
             client=client,
             endpoint_name=endpoint_name,
             content_handler=content_handler,
-            **kwargs
+            **kwargs,
         )
         return embedding

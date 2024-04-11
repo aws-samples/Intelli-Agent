@@ -1,6 +1,10 @@
 import os 
 import sys
 import time
+from dotenv import load_dotenv
+
+load_dotenv()
+
 try:
     from websocket import create_connection
 except ModuleNotFoundError:
@@ -9,8 +13,7 @@ except ModuleNotFoundError:
 import json 
 
 # find ws_url from api gateway
-ws_url = "wss://2ogbgobue2.execute-api.us-west-2.amazonaws.com/prod/"
-
+ws_url = os.getenv('WS_URL')
 
 def get_answer(body):
     ws.send(json.dumps(body))
@@ -43,9 +46,6 @@ def get_answer(body):
 
     ws.close()  
     return answer,context
-
-# ws_url = "wss://2ogbgobue2.execute-api.us-west-2.amazonaws.com/v1"
-# wss://2ogbgobue2.execute-api.us-west-2.amazonaws.com/prod/
 
 question_library = [
     "IoT Core是否支持Qos2？",

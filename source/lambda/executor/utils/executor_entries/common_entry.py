@@ -122,7 +122,6 @@ def get_qd_chain(qd_config, qd_workspace_list):
     return qd_chain
 
 
-
 def main_chain_entry(
     query_input: str,
     stream=False,

@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+
 import boto3
 
 QUEUE_URL = os.environ["SQS_QUEUE_URL"]
@@ -20,9 +21,6 @@ def send_msg(queue_url, event):
 
 
 def lambda_handler(event, context):
-    send_msg(
-        QUEUE_URL,
-        event
-    )
+    send_msg(QUEUE_URL, event)
 
     return {"statusCode": 200, "body": "Messages sent to SQS"}

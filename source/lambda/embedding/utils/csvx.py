@@ -1,9 +1,8 @@
+import csv
 import uuid
 from datetime import datetime
-from typing import Dict, List, Optional, Iterator, Sequence
 from io import TextIOWrapper
-
-import csv
+from typing import Dict, Iterator, List, Optional, Sequence
 
 from langchain.docstore.document import Document
 from langchain.document_loaders.csv_loader import CSVLoader

@@ -1,6 +1,7 @@
 import logging
 import re
 from typing import List, Optional
+
 from langchain.docstore.document import Document
 from langchain.document_loaders.text import TextLoader
 
@@ -42,20 +43,20 @@ class CustomTextLoader(TextLoader):
 
 def pre_process_text(text_content: str) -> str:
     # Clean up text content
-    text_content = re.sub(r'\s+', ' ', text_content)
-    text_content = re.sub(r'\n+', '\n', text_content)
+    text_content = re.sub(r"\s+", " ", text_content)
+    text_content = re.sub(r"\n+", "\n", text_content)
 
     return text_content.strip()
 
 
 def process_text(file_content: str, **kwargs):
     clean_text = pre_process_text(file_content)
-    bucket = kwargs['bucket']
-    key = kwargs['key']
+    bucket = kwargs["bucket"]
+    key = kwargs["key"]
     loader = CustomTextLoader(file_path=f"s3://{bucket}/{key}")
     doc = loader.load(clean_text)
 
-    splitter = MarkdownHeaderTextSplitter(kwargs['res_bucket'])
+    splitter = MarkdownHeaderTextSplitter(kwargs["res_bucket"])
     doc_list = splitter.split_text(doc)
 
     return doc_list

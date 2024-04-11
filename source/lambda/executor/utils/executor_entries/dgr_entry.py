@@ -1,21 +1,23 @@
-import time
-import os 
-import json
 import copy
+import json
+import os
+import time
 import traceback
 
-from ..logger_utils import logger
-from ..query_process_utils.preprocess_utils import run_preprocess
-from ..sm_utils import SagemakerEndpointVectorOrCross
 from ..aos_utils import LLMBotOpenSearchClient
+from ..constant import IntentType, Type
 from ..context_utils import contexts_trunc
 from ..langchain_utils import RunnableDictAssign
 from ..llm_utils import LLMChain
-from ..constant import IntentType, Type
+from ..logger_utils import logger
+from ..query_process_utils.preprocess_utils import run_preprocess
+from ..sm_utils import SagemakerEndpointVectorOrCross
+
 region = os.environ["AWS_REGION"]
 
 aos_endpoint = os.environ.get("aos_endpoint", "")
 aos_client = LLMBotOpenSearchClient(aos_endpoint)
+
 
 def parse_query(
     query_input: str,
@@ -23,7 +25,7 @@ def parse_query(
     zh_embedding_model_endpoint: str,
     en_embedding_model_endpoint: str,
     debug_info: dict,
-    region = os.environ["AWS_REGION"]
+    region=os.environ["AWS_REGION"],
 ):
     start = time.time()
     # concatenate query_input and history to unified prompt
@@ -77,6 +79,7 @@ def parse_query(
     elpase_time = time.time() - start
     logger.info(f"runing time of parse query: {elpase_time}s seconds")
     return parsed_query
+
 
 def get_faq_answer(source, index_name):
     opensearch_query_response = aos_client.search(
@@ -132,6 +135,7 @@ def organize_faq_results(response, index_name):
         results.append(result)
     return results
 
+
 def remove_redundancy_debug_info(results):
     filtered_results = copy.deepcopy(results)
     for result in filtered_results:
@@ -139,7 +143,6 @@ def remove_redundancy_debug_info(results):
             if field.endswith("embedding") or field.startswith("vector"):
                 del result["detail"][field]
     return filtered_results
-
 
 
 def get_ug_content(source, index_name):
@@ -178,26 +181,37 @@ def organize_ug_results(response, index_name):
 
 
 def combine_recalls(opensearch_knn_respose, opensearch_query_response):
-    '''
+    """
     filter knn_result if the result don't appear in filter_inverted_result
-    '''
+    """
     knn_threshold = 0.2
     inverted_theshold = 5.0
-    filter_knn_result = { item["content"] : [item['source'], item["score"], item["doc"]] for item in opensearch_knn_respose if item["score"]> knn_threshold }
-    filter_inverted_result = { item["content"] : [item['source'], item["score"], item["doc"]] for item in opensearch_query_response if item["score"]> inverted_theshold }
+    filter_knn_result = {
+        item["content"]: [item["source"], item["score"], item["doc"]]
+        for item in opensearch_knn_respose
+        if item["score"] > knn_threshold
+    }
+    filter_inverted_result = {
+        item["content"]: [item["source"], item["score"], item["doc"]]
+        for item in opensearch_query_response
+        if item["score"] > inverted_theshold
+    }
 
     combine_result = []
     for content, doc_info in filter_knn_result.items():
         # if doc in filter_inverted_result.keys():
-        combine_result.append({ "content": content, "doc" : doc_info[2], "score" : doc_info[1], "source" : doc_info[0] })
+        combine_result.append(
+            {
+                "content": content,
+                "doc": doc_info[2],
+                "score": doc_info[1],
+                "source": doc_info[0],
+            }
+        )
     return combine_result
 
 
-def q_q_match(
-        parsed_query, 
-        debug_info,
-        aos_faq_index
-        ):
+def q_q_match(parsed_query, debug_info, aos_faq_index):
     start = time.time()
     opensearch_knn_results = []
     opensearch_knn_response = aos_client.search(
@@ -363,6 +377,7 @@ def get_relevant_documents_dgr(
 
     return rerank_knowledge
 
+
 def dgr_entry(
     rag_config,
     session_id: str,
@@ -456,19 +471,18 @@ def dgr_entry(
         llm_start_time = time.time()
         # llm_chain = get_rag_llm_chain(**generate_input)
         # llm_chain.invoke()
-        generator_llm_config = rag_config['generator_llm_config']
+        generator_llm_config = rag_config["generator_llm_config"]
 
         llm_chain = RunnableDictAssign(contexts_trunc) | LLMChain.get_chain(
-                    intent_type=IntentType.KNOWLEDGE_QA.value,
-                    stream=stream,
-                    # chat_history=rag_config['chat_history'],
-                    **generator_llm_config
-                )
-        
-        answer = llm_chain.invoke({
-            "chat_history":rag_config['chat_history'],
-            "query":query_input
-        })
+            intent_type=IntentType.KNOWLEDGE_QA.value,
+            stream=stream,
+            # chat_history=rag_config['chat_history'],
+            **generator_llm_config,
+        )
+
+        answer = llm_chain.invoke(
+            {"chat_history": rag_config["chat_history"], "query": query_input}
+        )
 
         # answer = llm_generate(**generate_input)
         llm_end_time = time.time()

@@ -47,15 +47,13 @@ class WorkspaceManager:
         embedding_model_type: str,
         languages: List[str],
         open_search_index_type: str,
-        open_search_index_name: str = None,
+        workspace_offline_flag: str,
         workspace_file_types: List[str] = [],
     ):
-
-        open_search_index_name = (
-            f"{workspace_id}_index"
-            if not open_search_index_name
-            else open_search_index_name
-        )
+        if workspace_offline_flag == "true":
+            open_search_index_name = f"{workspace_id}-offline"
+        else:
+            open_search_index_name = f"{workspace_id}-online"
         timestamp = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
         item = {
@@ -99,7 +97,7 @@ class WorkspaceManager:
         embedding_model_type: str,
         languages: List[str],
         open_search_index_type: str,
-        open_search_index_name: str = None,
+        workspace_offline_flag: str,
         workspace_file_types: List[str] = [],
     ):
         timestamp = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%fZ")
@@ -116,7 +114,7 @@ class WorkspaceManager:
                 embedding_model_type,
                 languages,
                 open_search_index_type,
-                open_search_index_name,
+                workspace_offline_flag,
                 workspace_file_types,
             )
 

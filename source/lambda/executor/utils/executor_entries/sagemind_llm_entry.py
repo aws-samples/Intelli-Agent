@@ -15,10 +15,7 @@ logger = logging.getLogger("market_conversation_summary_entry")
 logger.setLevel(logging.INFO)
 
 
-def sagemind_llm_entry(
-    messages: list[dict], event_body=None, stream=False
-):
-
+def sagemind_llm_entry(messages: list[dict], event_body=None, stream=False):
     config = parse_config.parse_sagemind_llm_config(event_body)
     logger.info(
         f"llm configs:\n {json.dumps(config,indent=2,ensure_ascii=False,cls=JSONEncoder)}"
@@ -30,12 +27,7 @@ def sagemind_llm_entry(
         stream=stream,
         **llm_config,
     )
-    response = llm_chain.invoke(
-        {
-            "query": "who are you",
-            "chat_history": [""]
-        }
-    )
+    response = llm_chain.invoke({"query": "who are you", "chat_history": [""]})
 
     dict_chat_history = [message_to_dict(message) for message in config["chat_history"]]
     return response, [], dict_chat_history, {}

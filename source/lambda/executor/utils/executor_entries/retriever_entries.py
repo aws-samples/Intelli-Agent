@@ -1,5 +1,5 @@
 import asyncio
-import json 
+import json
 
 # from .mkt_entry_core import (
 #     QueryQuestionRetriever,
@@ -13,16 +13,18 @@ from langchain.schema.runnable import (
     RunnableParallel,
     RunnablePassthrough,
 )
-from ..time_utils import timeit
-from ..langchain_utils import chain_logger
+
 from .. import parse_config
+from ..langchain_utils import chain_logger
+from ..time_utils import timeit
+
 
 def get_strict_qq_chain(strict_q_q_index):
     def get_strict_qq_result(docs, threshold=0.7):
         results = []
         for doc in docs:
             if doc.metadata["score"] < threshold:
-                break 
+                break
             results.append(
                 {
                     "score": doc.metadata["score"],
@@ -33,7 +35,6 @@ def get_strict_qq_chain(strict_q_q_index):
             )
         return results
 
-    
     mkt_q_q_retriever = QueryQuestionRetriever(
         index=strict_q_q_index,
         vector_field="vector_field",
@@ -78,7 +79,7 @@ def main_qd_retriever_entry(
     aos_index: str,
     event_body=None,
     manual_input_intent=None,
-    message_id=None
+    message_id=None,
 ):
     """
     Entry point for the Lambda function.
@@ -89,7 +90,7 @@ def main_qd_retriever_entry(
     return: answer(str)
     """
 
-    rag_config=parse_config.parse_rag_config(event_body)
+    rag_config = parse_config.parse_rag_config(event_body)
 
     debug_info = {
         "query": query_input,
@@ -102,42 +103,51 @@ def main_qd_retriever_entry(
         "knowledge_qa_llm": {},
         "knowledge_qa_rerank": {},
     }
-    retriever_top_k = rag_config['retriever_config']['retriever_top_k']
-    using_whole_doc = rag_config['retriever_config']['using_whole_doc']
-    chunk_num = rag_config['retriever_config']['chunk_num']
+    retriever_top_k = rag_config["retriever_config"]["retriever_top_k"]
+    using_whole_doc = rag_config["retriever_config"]["using_whole_doc"]
+    chunk_num = rag_config["retriever_config"]["chunk_num"]
     query_process_chain = get_query_process_chain(
-        rag_config['chat_history'],
-        rag_config['query_process_config']['query_rewrite_config'],
-        rag_config['query_process_config']['conversation_query_rewrite_config'],
-        rag_config['query_process_config']['hyde_config']
+        rag_config["chat_history"],
+        rag_config["query_process_config"]["query_rewrite_config"],
+        rag_config["query_process_config"]["conversation_query_rewrite_config"],
+        rag_config["query_process_config"]["hyde_config"],
     )
-    intent_type = rag_config['intent_config']['intent_type']
+    intent_type = rag_config["intent_config"]["intent_type"]
     intent_info = {
         "manual_input_intent": manual_input_intent,
         "strict_qq_intent_result": {},
     }
-    intent_recognition_chain = auto_intention_recoginition_chain("aos_index_mkt_qq", message_id=message_id)
+    intent_recognition_chain = auto_intention_recoginition_chain(
+        "aos_index_mkt_qq", message_id=message_id
+    )
     intent_recognition_chain = chain_logger(
         intent_recognition_chain,
-        'intention module',
-        log_output_template='intent chain output: {intent_type}',
-        message_id=message_id
+        "intention module",
+        log_output_template="intent chain output: {intent_type}",
+        message_id=message_id,
     )
     qd_chain = get_qd_chain(
-        [aos_index], using_whole_doc=using_whole_doc, chunk_num=chunk_num, retriever_top_k=retriever_top_k, reranker_top_k=10
+        [aos_index],
+        using_whole_doc=using_whole_doc,
+        chunk_num=chunk_num,
+        retriever_top_k=retriever_top_k,
+        reranker_top_k=10,
     )
     full_chain = query_process_chain | intent_recognition_chain | qd_chain
-    response = asyncio.run(full_chain.ainvoke({
-            "query": query_input,
-            "debug_info": debug_info,
-            "intent_type": intent_type,
-            "intent_info": intent_info,
-    }))
+    response = asyncio.run(
+        full_chain.ainvoke(
+            {
+                "query": query_input,
+                "debug_info": debug_info,
+                "intent_type": intent_type,
+                "intent_info": intent_info,
+            }
+        )
+    )
     doc_list = []
     for doc in response["docs"]:
         doc_list.append({"page_content": doc.page_content, "metadata": doc.metadata})
     return doc_list, debug_info
-
 
 
 def get_retriever_response(docs, debug_info):

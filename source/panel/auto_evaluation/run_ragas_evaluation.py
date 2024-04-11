@@ -12,7 +12,11 @@ from tqdm import tqdm
 import pickle
 import time 
 import requests
-import os  
+import os
+
+from dotenv import load_dotenv
+load_dotenv()
+
 from ragas import evaluate
 from datasets import Dataset
 from ragas.metrics import (
@@ -95,7 +99,7 @@ def csdc_rag_call(
 
 def websocket_call(
     datum,
-    ws_url="wss://omjou492fe.execute-api.us-west-2.amazonaws.com/prod/",
+    ws_url=os.getenv('RAG_WS_URL'),
     rag_parameters=None
     ):
     prompt = datum['question']
@@ -266,9 +270,8 @@ if __name__ == "__main__":
     RAGAS_EVAL_METRICS = [
         claude2_context_recall
         ]
-    
-    # rag_api_url = "https://5tzaajjzg7.execute-api.us-west-2.amazonaws.com/default/llm-bot-dev-qq-matching"
-    rag_api_url = "wss://omjou492fe.execute-api.us-west-2.amazonaws.com/prod/"
+
+    rag_api_url = os.getenv('RAG_API_URL')
     
     # eval_data_path = "TechBot QA Test-fifth-test.csv"
     eval_data_path = "TechBot QA Test-fifth-test-sample-50.csv"
