@@ -18,6 +18,8 @@ import time
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+os.environ['MODEL_PATH'] = '/home/ubuntu/notebooks/Solutions/temp/'
+
 class StructureSystem(object):
     def __init__(self):
         self.mode = 'structure'
@@ -310,7 +312,6 @@ if __name__ == "__main__":
         "object_key": "test_data/test_glue_lib/cn_pdf/2023.ccl-2.6.pdf",
         "destination_bucket": "llm-bot-document-results-icyxu",
         "mode": "ppstructure",
-        "lang": "zh",
+        "lang": "ch",
     }
-
     print(process_pdf_pipeline(body))
