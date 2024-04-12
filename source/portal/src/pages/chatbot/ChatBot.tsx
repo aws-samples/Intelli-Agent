@@ -27,7 +27,11 @@ const ChatBot: React.FC = () => {
     },
   ]);
   const [userMessage, setUserMessage] = useState('');
-  const { lastMessage, sendMessage, readyState } = useWebSocket(WebsocketUrl);
+  const { lastMessage, sendMessage, readyState } = useWebSocket(WebsocketUrl, {
+    onOpen: () => console.log('opened'),
+    //Will attempt to reconnect on all close events, such as server shutting down
+    shouldReconnect: () => true,
+  });
   const [currentAIMessage, setCurrentAIMessage] = useState('');
   const [aiSpeaking, setAiSpeaking] = useState(false);
 
