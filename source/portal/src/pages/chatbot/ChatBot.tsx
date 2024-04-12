@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import CommonLayout from '../../layout/CommonLayout';
 import Message from './components/Message';
 import {
@@ -10,8 +10,8 @@ import {
   Textarea,
 } from '@cloudscape-design/components';
 import useWebSocket, { ReadyState } from 'react-use-websocket';
-import { WebsocketUrl } from '../../utils/utils';
 import { identity } from 'lodash';
+import ConfigContext from '../../context/config-context';
 
 interface MessageType {
   type: 'ai' | 'human';
@@ -20,6 +20,8 @@ interface MessageType {
 
 const ChatBot: React.FC = () => {
   const [visible, setVisible] = useState(false);
+  const config = useContext(ConfigContext);
+
   const [messages, setMessages] = useState<MessageType[]>([
     {
       type: 'ai',
@@ -27,11 +29,14 @@ const ChatBot: React.FC = () => {
     },
   ]);
   const [userMessage, setUserMessage] = useState('');
-  const { lastMessage, sendMessage, readyState } = useWebSocket(WebsocketUrl, {
-    onOpen: () => console.log('opened'),
-    //Will attempt to reconnect on all close events, such as server shutting down
-    shouldReconnect: () => true,
-  });
+  const { lastMessage, sendMessage, readyState } = useWebSocket(
+    config?.websocket ?? '',
+    {
+      onOpen: () => console.log('opened'),
+      //Will attempt to reconnect on all close events, such as server shutting down
+      shouldReconnect: () => true,
+    },
+  );
   const [currentAIMessage, setCurrentAIMessage] = useState('');
   const [aiSpeaking, setAiSpeaking] = useState(false);
 
@@ -85,7 +90,7 @@ const ChatBot: React.FC = () => {
   return (
     <CommonLayout activeHref="/">
       <div className="chat-container mt-10">
-        <div className="chat-message flex-v gap-10">
+        <div className="chat-message flex-v flex-1 gap-10">
           {messages.map((msg, index) => (
             <Message
               key={identity(index)}
@@ -164,7 +169,7 @@ const ChatBot: React.FC = () => {
         }
         header="Modal title"
       >
-        Your description should go here
+        Settings are in here!
       </Modal>
     </CommonLayout>
   );

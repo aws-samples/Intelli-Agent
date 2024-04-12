@@ -44,6 +44,8 @@
 
   .chat-message {
     overflow: auto;
+    flex: 1;
+    padding-bottom: 30px;
   }
 
   .message-content {
