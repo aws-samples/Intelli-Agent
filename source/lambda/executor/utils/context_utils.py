@@ -14,7 +14,7 @@ def contexts_trunc(docs: list[dict], context_num=2):
     docs = [doc for doc in docs[:context_num]]
     # the most related doc will be placed last
     docs.sort(key=lambda x: x["score"])
-    logger.info(f'max context score: {docs[-1]["score"]}')
+    # logger.info(f'max context score: {docs[-1]["score"]}')
     # filter same docs
     s = set()
     context_strs = []

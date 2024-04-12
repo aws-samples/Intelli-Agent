@@ -32,7 +32,7 @@ export class OpenSearchStack extends NestedStack {
     super(scope, id, props);
     console.log("BuildConfig.DEPLOYMENT_MODE: ", BuildConfig.DEPLOYMENT_MODE);
 
-    // If deplyment mode is OFFLINE_OPENSEARCH or ALL, then create the following resources
+    // If deployment mode is OFFLINE_OPENSEARCH or ALL, then create the following resources
     if (
       BuildConfig.DEPLOYMENT_MODE === "OFFLINE_OPENSEARCH" ||
       BuildConfig.DEPLOYMENT_MODE === "ALL"

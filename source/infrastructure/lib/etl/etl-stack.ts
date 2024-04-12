@@ -228,7 +228,7 @@ export class EtlStack extends NestedStack {
       }),
     );
 
-    // Creata glue job to process files speicified in s3 bucket and prefix
+    // Create glue job to process files specified in s3 bucket and prefix
     const glueJob = new glue.Job(this, "PythonShellJob", {
       executable: glue.JobExecutable.pythonShell({
         glueVersion: glue.GlueVersion.V3_0,
