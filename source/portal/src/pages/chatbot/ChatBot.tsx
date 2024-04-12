@@ -77,7 +77,6 @@ const ChatBot: React.FC = () => {
       messages: [{ role: 'user', content: userMessage }],
       temperature: 0.1,
       type: 'common',
-      enable_debug: 'true',
       retriever_config: { workspace_ids: ['lvntest'] },
     };
     sendMessage(JSON.stringify(message));
