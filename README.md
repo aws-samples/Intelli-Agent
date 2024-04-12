@@ -121,19 +121,7 @@ After CDK deployment, you can use a HTTP client such as Postman/cURL to invoke t
 - [AOS API Schema](https://github.com/aws-samples/llm-bot/tree/main/docs/AOS_API_SCHEMA.md): search data in the vector database.
 
 ## Optional Steps
-1. [Launch Dashboard](#launch-dashboard)
-2. [Upload Embedding File](#upload-embedding-file)
-
-### Launch Dashboard
-Check and debug the ETL & QA process.
-
-```bash
-cd /source/panel
-pip install -r requirements.txt
-mv .env_sample .env
-# fill .env content accordingly with cdk output
-python -m streamlit run app.py --server.runOnSave true --server.port 8088 --browser.gatherUsageStats false --server.fileWatcherType none
-```
+- [Upload Embedding File](#upload-embedding-file)
 
 ### Upload Embedding File
 Upload the embedding file to the S3 bucket created in the previous step. This object created event will trigger the Step function to execute Glue job for online processing.
