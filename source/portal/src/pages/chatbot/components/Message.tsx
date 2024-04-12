@@ -1,5 +1,6 @@
 import React from 'react';
 import Avatar from 'react-avatar';
+import BedrockImg from '../../../assets/bedrock.webp';
 
 interface MessageProps {
   type: 'ai' | 'human';
@@ -9,9 +10,9 @@ interface MessageProps {
 const Message: React.FC<MessageProps> = ({ type, message }) => {
   return (
     <div className="flex gap-10">
-      {type === 'ai' && <Avatar size="40" round={true} name="A I" />}
-      {type === 'human' && <Avatar size="40" round={true} name="User Name" />}
-      <div className="message-content">{message}</div>
+      {type === 'ai' && <Avatar size="40" round={true} src={BedrockImg} />}
+      {type === 'human' && <Avatar size="40" round={true} name="You" />}
+      <div className="message-content flex-1">{message}</div>
     </div>
   );
 };

@@ -6,7 +6,7 @@ export interface ApiResponse<T> {
   error: string;
 }
 
-export const WebsocketUrl = 'http://localhost:8080/ws';
+export const WebsocketUrl = 'wss://foihh9hct6.execute-api.us-east-1.amazonaws.com/prod/';
 
 export const alertMsg = (alertTxt: string, alertType: AlertType = 'error') => {
   const patchEvent = new CustomEvent('showAlertMsg', {

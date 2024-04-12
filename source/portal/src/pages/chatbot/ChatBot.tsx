@@ -23,11 +23,13 @@ const ChatBot: React.FC = () => {
   const [messages, setMessages] = useState<MessageType[]>([
     {
       type: 'ai',
-      message: 'Hello, how can I help you?',
+      message: 'Hello, how can I help you today?',
     },
   ]);
   const [userMessage, setUserMessage] = useState('');
-  const { lastMessage, readyState } = useWebSocket(WebsocketUrl);
+  const { lastMessage, sendMessage, readyState } = useWebSocket(WebsocketUrl);
+  const [currentAIMessage, setCurrentAIMessage] = useState('');
+  const [aiSpeaking, setAiSpeaking] = useState(false);
 
   const connectionStatus = {
     [ReadyState.CONNECTING]: 'loading',
@@ -39,16 +41,40 @@ const ChatBot: React.FC = () => {
 
   useEffect(() => {
     if (lastMessage !== null) {
+      setAiSpeaking(true);
       console.info(lastMessage);
+      const message = JSON.parse(lastMessage.data);
+      console.info('message:', message);
+      const chunkMessage = message.choices?.[0];
+      if (chunkMessage) {
+        const isEnd = chunkMessage.message_type === 'END';
+        setCurrentAIMessage((prev) => {
+          return prev + (chunkMessage?.message?.content ?? '');
+        });
+        if (isEnd) {
+          setAiSpeaking(false);
+          setCurrentAIMessage('');
+          setMessages((prev) => {
+            return [...prev, { type: 'ai', message: currentAIMessage }];
+          });
+        }
+      }
     }
   }, [lastMessage]);
 
-  const sendUserMessage = () => {
-    setMessages([
-      ...messages,
-      { type: 'human', message: userMessage },
-      { type: 'ai', message: 'Hello, how can I help you?' },
-    ]);
+  const handleClickSendMessage = () => {
+    const message = {
+      action: 'sendMessage',
+      messages: [{ role: 'user', content: userMessage }],
+      temperature: 0.1,
+      type: 'common',
+      enable_debug: 'true',
+      retriever_config: { workspace_ids: ['lvntest'] },
+    };
+    sendMessage(JSON.stringify(message));
+    setMessages((prev) => {
+      return [...prev, { type: 'human', message: userMessage }];
+    });
     setUserMessage('');
   };
 
@@ -63,14 +89,12 @@ const ChatBot: React.FC = () => {
               message={msg.message}
             />
           ))}
+          {aiSpeaking && <Message type="ai" message={currentAIMessage} />}
         </div>
 
         <div className="flex-v gap-10">
           <div className="flex gap-10 send-message">
             <div className="flex-1 pr">
-              <div className="upload-icon">
-                <Button iconName="upload" />
-              </div>
               <Textarea
                 rows={1}
                 value={userMessage}
@@ -79,7 +103,7 @@ const ChatBot: React.FC = () => {
                 onKeyDown={(e) => {
                   if (e.detail.key === 'Enter') {
                     e.preventDefault();
-                    sendUserMessage();
+                    handleClickSendMessage();
                   }
                 }}
               />
@@ -87,7 +111,7 @@ const ChatBot: React.FC = () => {
             <div>
               <Button
                 onClick={() => {
-                  sendUserMessage();
+                  handleClickSendMessage();
                 }}
               >
                 Send
