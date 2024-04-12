@@ -1,4 +1,3 @@
-// ConfigProvider.js
 import React, { useState, useEffect } from 'react';
 import ConfigContext, { Config } from './config-context';
 import { Box, Spinner } from '@cloudscape-design/components';
@@ -15,11 +14,10 @@ const ConfigProvider: React.FC<ConfigProviderProps> = ({ children }) => {
       try {
         const response = await fetch('/aws-exports.json');
         const data: Config = await response.json();
-        console.info('data:', data);
         setConfig(data);
       } catch (error) {
         alertMsg('Please check aws-exports.json file', 'error');
-        // console.error('Failed to fetch config:', error);
+        console.error('Failed to fetch config:', error);
       }
     };
     fetchConfig();

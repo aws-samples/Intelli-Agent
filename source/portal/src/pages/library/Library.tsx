@@ -1,7 +1,8 @@
 import React from 'react';
-import CommonLayout from '../layout/CommonLayout';
+import CommonLayout from '../../layout/CommonLayout';
 import {
   Box,
+  BreadcrumbGroup,
   Button,
   CollectionPreferences,
   Header,
@@ -11,6 +12,7 @@ import {
   Table,
   TextFilter,
 } from '@cloudscape-design/components';
+import { useNavigate } from 'react-router-dom';
 
 const Library: React.FC = () => {
   const [selectedItems, setSelectedItems] = React.useState([
@@ -22,8 +24,25 @@ const Library: React.FC = () => {
       size: 'Small',
     },
   ]);
+  const navigate = useNavigate();
   return (
-    <CommonLayout activeHref="/library">
+    <CommonLayout
+      activeHref="/library"
+      breadCrumbs={
+        <BreadcrumbGroup
+          items={[
+            {
+              text: 'AWS LLM Bot',
+              href: '/',
+            },
+            {
+              text: 'Docs Library',
+              href: '/library',
+            },
+          ]}
+        />
+      }
+    >
       <Table
         variant="full-page"
         onSelectionChange={({ detail }) =>
@@ -131,7 +150,14 @@ const Library: React.FC = () => {
           <Header
             actions={
               <SpaceBetween direction="horizontal" size="xs">
-                <Button variant="primary">Create Document</Button>
+                <Button
+                  variant="primary"
+                  onClick={() => {
+                    navigate('/library/add');
+                  }}
+                >
+                  Create Docs Library
+                </Button>
               </SpaceBetween>
             }
             counter={

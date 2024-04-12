@@ -1,5 +1,10 @@
 import React from 'react';
-import { AppLayout, SideNavigation } from '@cloudscape-design/components';
+import {
+  AppLayout,
+  Flashbar,
+  FlashbarProps,
+  SideNavigation,
+} from '@cloudscape-design/components';
 import { I18nProvider } from '@cloudscape-design/components/i18n';
 import messages from '@cloudscape-design/components/i18n/messages/all.en';
 import TopNavigation from '@cloudscape-design/components/top-navigation';
@@ -9,11 +14,15 @@ const LOCALE = 'en';
 interface CommonLayoutProps {
   activeHref: string;
   children: React.ReactNode;
+  flashBar?: FlashbarProps.MessageDefinition[];
+  breadCrumbs?: React.ReactNode;
 }
 
 const CommonLayout: React.FC<CommonLayoutProps> = ({
   activeHref,
   children,
+  flashBar,
+  breadCrumbs,
 }) => {
   return (
     <I18nProvider locale={LOCALE} messages={[messages]}>
@@ -36,6 +45,8 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
         ]}
       />
       <AppLayout
+        notifications={<Flashbar items={flashBar ?? []} />}
+        breadcrumbs={breadCrumbs}
         navigation={
           <SideNavigation
             activeHref={activeHref}
