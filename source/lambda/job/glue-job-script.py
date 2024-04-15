@@ -484,7 +484,7 @@ def ingestion_pipeline(
 ):
     for file_type, file_content, kwargs in s3_files_iterator:
         try:
-            # the res is unified to list[Doucment] type
+            # The res is list[Document] type
             res = cb_process_object(s3_client, file_type, file_content, **kwargs)
             for document in res:
                 save_content_to_s3(
@@ -588,7 +588,8 @@ def main():
 
     if index_type == "qq":
         supported_file_types = ["jsonl"]
-    elif index_type == "qd":
+    else:
+        # Default is qd
         supported_file_types = [
             "pdf",
             "txt",
@@ -598,8 +599,6 @@ def main():
             "json",
             "csv",
         ]
-    else:
-        raise ValueError("Invalid index type")
 
     aos_index_name = update_workspace(
         workspace_id, embedding_model_endpoint, index_type

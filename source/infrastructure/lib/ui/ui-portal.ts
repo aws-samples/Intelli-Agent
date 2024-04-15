@@ -15,36 +15,29 @@ import { Construct } from "constructs";
 import * as path from "path";
 import {
   Aws,
-  App,
   Duration,
   aws_cloudfront as cloudfront,
   aws_s3 as s3,
   aws_s3_deployment as s3d,
   RemovalPolicy,
-  NestedStack,
   StackProps,
-  CfnOutput,
 } from "aws-cdk-lib";
 import { CloudFrontToS3 } from "@aws-solutions-constructs/aws-cloudfront-s3";
+import { AwsCustomResource, AwsCustomResourcePolicy, PhysicalResourceId } from "aws-cdk-lib/custom-resources";
+import { RetentionDays } from "aws-cdk-lib/aws-logs";
+import { PolicyStatement } from "aws-cdk-lib/aws-iam";
 
 export interface UIProps extends StackProps {
-  readonly aws_api_key?: string;
-  readonly build_time?: string;
-}
-
-export class UIStack extends NestedStack {
-  constructor(scope: App, id: string, props: UIProps) {
-    super(scope, id, props);
-
-    new PortalConstruct(this, "WebConsole", props);
-  }
+  readonly websocket: string;
+  readonly apiUrl: string;
 }
 
 /**
- * Stack to provision Portal assets and CloudFront Distribution
+ * Construct to provision Portal assets and CloudFront Distribution
  */
 export class PortalConstruct extends Construct {
   readonly portalBucket: s3.Bucket;
+  public portalUrl: string;
 
   constructor(scope: Construct, id: string, props: UIProps) {
     super(scope, id);
@@ -55,7 +48,7 @@ export class PortalConstruct extends Construct {
           "ResponseHeadersPolicy",
           {
             responseHeadersPolicyName: `SecHdr${Aws.REGION}${Aws.STACK_NAME}`,
-            comment: "CloudFront Extensions Security Headers Policy",
+            comment: "LLMBot Security Headers Policy",
             securityHeadersBehavior: {
               contentTypeOptions: { override: true },
               frameOptions: {
@@ -96,7 +89,7 @@ export class PortalConstruct extends Construct {
         priceClass: cloudfront.PriceClass.PRICE_CLASS_100,
         minimumProtocolVersion: cloudfront.SecurityPolicyProtocol.TLS_V1_2_2019,
         enableIpv6: false,
-        comment: `${Aws.STACK_NAME} - Web Console Distribution (${Aws.REGION})`,
+        comment: `${Aws.STACK_NAME} - LLMBot Portal Distribution (${Aws.REGION})`,
         enableLogging: true,
         errorResponses: [
           {
@@ -117,19 +110,38 @@ export class PortalConstruct extends Construct {
     });
 
     this.portalBucket = portal.s3Bucket as s3.Bucket;
-    const portalUrl = portal.cloudFrontWebDistribution.distributionDomainName;
+    this.portalUrl = portal.cloudFrontWebDistribution.distributionDomainName;
+    const configFile = 'aws-exports.json';
 
-    new CfnOutput(this, "CloudFrontURL", {
-      value: portalUrl,
-      description: "the url of cloudfront extension console web portal",
-    });
     // Upload static web assets
     const bucketFile = new s3d.BucketDeployment(this, "DeployWebAssets", {
       sources: [
-        s3d.Source.asset(path.join(__dirname, "../../../portal/build")),
+        s3d.Source.asset(path.join(__dirname, "../../../portal/dist")),
       ],
       destinationBucket: this.portalBucket,
       prune: false,
     });
+    const configLambda = new AwsCustomResource(this, 'WebConfig', {
+      logRetention: RetentionDays.ONE_DAY,
+      onUpdate: {
+        action: 'putObject',
+        parameters: {
+          Body: JSON.stringify(props),
+          Bucket: this.portalBucket.bucketName,
+          CacheControl: 'max-age=0, no-cache, no-store, must-revalidate',
+          ContentType: 'application/json',
+          Key: configFile,
+        },
+        service: 'S3',
+        physicalResourceId: PhysicalResourceId.of('config'),
+      },
+      policy: AwsCustomResourcePolicy.fromStatements([
+        new PolicyStatement({
+          actions: ['s3:PutObject'],
+          resources: [this.portalBucket.arnForObjects(configFile)]
+        })
+      ])
+    });
+    configLambda.node.addDependency(bucketFile);
   }
 }

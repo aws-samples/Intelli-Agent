@@ -71,11 +71,11 @@ export class LLMApiStack extends NestedStack {
     const etlEndpoint = props.etlEndpoint;
     const resBucketName = props.resBucketName;
 
-    const queueStack = new QueueConstruct(this, "LLMQueueStack", {
+    const queueConstruct = new QueueConstruct(this, "LLMQueueStack", {
       namePrefix: Constants.API_QUEUE_NAME,
     });
-    const sqsStatement = queueStack.sqsStatement;
-    const messageQueue = queueStack.messageQueue;
+    const sqsStatement = queueConstruct.sqsStatement;
+    const messageQueue = queueConstruct.messageQueue;
 
     const lambdaLayers = new LambdaLayers(this);
     // const apiLambdaExecutorLayer = lambdaLayers.createExecutorLayer();
@@ -433,8 +433,8 @@ export class LLMApiStack extends NestedStack {
         dispatcherLambda: lambdaDispatcher,
         sendMessageLambda: lambdaExecutor,
       });
-
-      this.wsEndpoint = webSocketApi.websocketApiStage.api.apiEndpoint;
+      let wsStage = webSocketApi.websocketApiStage
+      this.wsEndpoint = `${wsStage.api.apiEndpoint}/${wsStage.stageName}/`;
     }
 
     this.apiEndpoint = api.url;
