@@ -107,7 +107,6 @@ def process_pdf(s3, pdf: bytes, **kwargs):
     # download to local for futher processing
     logger.info(local_path)
     s3.download_file(Bucket=bucket, Key=key, Filename=local_path)
-    # TODO, will be deprecated and replaced by nougat class in loader_utils
     loader = PDFMinerPDFasHTMLLoader(local_path)
     # entire PDF is loaded as a single Document
     file_content = loader.load()[0].page_content
@@ -172,7 +171,7 @@ def process_pdf(s3, pdf: bytes, **kwargs):
         # metadata["chunk_id"] = "$$"
         # metadata["file_path"] = f"s3://{bucket}/{key}"
 
-        # remove duplicate sections
+        # Remove duplicate sections
         content = remove_duplicate_sections(content)
 
         metadata = {"file_path": f"s3://{bucket}/{key}", "file_type": "pdf"}
