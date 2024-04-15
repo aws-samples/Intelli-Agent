@@ -18,8 +18,6 @@ import time
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-os.environ['MODEL_PATH'] = '/home/ubuntu/notebooks/Solutions/temp/'
-
 class StructureSystem(object):
     def __init__(self):
         self.mode = 'structure'
