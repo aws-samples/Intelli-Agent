@@ -25,6 +25,7 @@ import * as sfn from "aws-cdk-lib/aws-stepfunctions";
 import * as tasks from "aws-cdk-lib/aws-stepfunctions-tasks";
 import { Construct } from "constructs";
 import { join } from "path";
+import { DynamoDBTable } from "../shared/table";
 
 import * as glue from "@aws-cdk/aws-glue-alpha";
 
@@ -48,7 +49,7 @@ export class EtlStack extends NestedStack {
   public sfnOutput;
   public jobName;
   public jobArn;
-  public processedObjectsTableName;
+  public executionTableName;
   public workspaceTableName;
   public etlEndpoint: string;
   public resBucketName: string;
@@ -128,24 +129,15 @@ export class EtlStack extends NestedStack {
       securityGroups: [props.securityGroups],
     });
 
-    const table = new dynamodb.Table(this, "ProcessedObjects", {
-      partitionKey: { name: "ObjectKey", type: dynamodb.AttributeType.STRING },
-      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-    });
-
-    table.addGlobalSecondaryIndex({
+    const executionIdAttr = {
+      name: "executionId",
+      type: dynamodb.AttributeType.STRING,
+    }
+    const executionTable = new DynamoDBTable(this, "Execution", executionIdAttr).table;
+    executionTable.addGlobalSecondaryIndex({
       indexName: "BucketAndPrefixIndex",
-      partitionKey: { name: "Bucket", type: dynamodb.AttributeType.STRING },
-      sortKey: { name: "Prefix", type: dynamodb.AttributeType.STRING },
-    });
-
-    // Add ExpiryTimestamp as an attribute but not as a sort key in the base table
-    table.addGlobalSecondaryIndex({
-      indexName: "ExpiryTimestampIndex",
-      partitionKey: {
-        name: "ExpiryTimestamp",
-        type: dynamodb.AttributeType.NUMBER,
-      },
+      partitionKey: { name: "s3Bucket", type: dynamodb.AttributeType.STRING },
+      sortKey: { name: "s3Prefix", type: dynamodb.AttributeType.STRING },
     });
 
     const workspaceTable = new dynamodb.Table(this, "WorkspaceTable", {
@@ -172,6 +164,18 @@ export class EtlStack extends NestedStack {
       sortKey: {
         name: "created_at",
         type: dynamodb.AttributeType.STRING,
+      },
+    });
+
+    const lambdaNotify = new Function(this, "ETLNotification", {
+      code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
+      handler: "notification.lambda_handler",
+      runtime: Runtime.PYTHON_3_11,
+      timeout: Duration.minutes(15),
+      memorySize: 256,
+      architecture: Architecture.X86_64,
+      environment: {
+        EXECUTION_TABLE: executionTable.tableName,
       },
     });
 
@@ -251,7 +255,7 @@ export class EtlStack extends NestedStack {
         "--ETL_MODEL_ENDPOINT": this.etlEndpoint,
         "--DOC_INDEX_TABLE": props.openSearchIndex,
         "--RES_BUCKET": s3Bucket.bucketName,
-        "--ProcessedObjectsTable": table.tableName,
+        "--ProcessedObjectsTable": executionTable.tableName,
         "--WORKSPACE_TABLE": workspaceTable.tableName,
         "--additional-python-modules":
           "langchain==0.1.11,beautifulsoup4==4.12.2,requests-aws4auth==1.2.3,boto3==1.28.84,openai==0.28.1,pyOpenSSL==23.3.0,tenacity==8.2.3,markdownify==0.11.6,mammoth==1.6.0,chardet==5.2.0,python-docx==1.1.0,nltk==3.8.1,pdfminer.six==20221105",
@@ -267,6 +271,7 @@ export class EtlStack extends NestedStack {
       topicName: "etl-topic",
     });
     topic.addSubscription(new subscriptions.EmailSubscription(props.subEmail));
+    topic.addSubscription(new subscriptions.LambdaSubscription(lambdaNotify));
 
     // Lambda function to for file deduplication and glue job allocation based on file number
     const lambdaETL = new Function(this, "lambdaETL", {
@@ -341,7 +346,7 @@ export class EtlStack extends NestedStack {
         "--JOB_NAME": glueJob.jobName,
         "--OFFLINE": "true",
         "--OPERATION_TYPE.$": "$.operationType",
-        "--ProcessedObjectsTable": table.tableName,
+        "--ProcessedObjectsTable": executionTable.tableName,
         "--QA_ENHANCEMENT.$": "$.qaEnhance",
         "--REGION": props.region,
         "--RES_BUCKET": s3Bucket.bucketName,
@@ -400,7 +405,7 @@ export class EtlStack extends NestedStack {
         "--JOB_NAME": glueJob.jobName,
         "--OFFLINE": "false",
         "--OPERATION_TYPE.$": "$.operationType",
-        "--ProcessedObjectsTable": table.tableName,
+        "--ProcessedObjectsTable": executionTable.tableName,
         "--QA_ENHANCEMENT.$": "$.qaEnhance",
         "--REGION": props.region,
         "--RES_BUCKET": s3Bucket.bucketName,
@@ -438,7 +443,7 @@ export class EtlStack extends NestedStack {
     this.sfnOutput = sfnStateMachine;
     this.jobName = glueJob.jobName;
     this.jobArn = glueJob.jobArn;
-    this.processedObjectsTableName = table.tableName;
+    this.executionTableName = executionTable.tableName;
     this.workspaceTableName = workspaceTable.tableName;
     this.resBucketName = s3Bucket.bucketName;
   }

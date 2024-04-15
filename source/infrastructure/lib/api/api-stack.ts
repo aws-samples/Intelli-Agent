@@ -49,6 +49,7 @@ interface ApiStackProps extends StackProps {
   jobDefinitionArn: string;
   etlEndpoint: string;
   resBucketName: string;
+  executionTableName: string;
 }
 
 export class LLMApiStack extends NestedStack {
@@ -189,6 +190,7 @@ export class LLMApiStack extends NestedStack {
       timeout: Duration.seconds(30),
       environment: {
         sfn_arn: props.sfnOutput.stateMachineArn,
+        EXECUTION_TABLE: props.executionTableName,
       },
       memorySize: 256,
     });

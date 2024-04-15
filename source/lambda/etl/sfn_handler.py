@@ -6,6 +6,8 @@ from urllib.parse import unquote
 import boto3
 
 client = boto3.client("stepfunctions")
+dynamodb = boto3.resource('dynamodb')
+execution_table = dynamodb.Table(os.environ.get('EXECUTION_TABLE'))
 
 
 def get_valid_workspace_id(s3_prefix):
@@ -85,12 +87,21 @@ def handler(event, context):
         stateMachineArn=os.environ["sfn_arn"], input=input_payload
     )
 
+    execution_id = response["executionArn"].split(":")[-1]
+    input_payload["executionId"] = execution_id
+    input_payload["status"] = execution_id["initial"]
+
+    ddb_response = dynamodb.put_item(
+        TableName=execution_table,
+        Item=input_payload
+    )
+
     return {
         "statusCode": 200,
         "headers": resp_header,
         "body": json.dumps(
             {
-                "execution_id": response["executionArn"].split(":")[-1],
+                "execution_id": execution_id,
                 "step_function_arn": response["executionArn"],
                 "input_payload": input_payload,
             }

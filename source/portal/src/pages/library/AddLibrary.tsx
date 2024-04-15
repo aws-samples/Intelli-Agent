@@ -71,7 +71,8 @@ export default function AddLibrary() {
     const params = {
       s3Bucket: config?.docsS3Bucket,
       s3Prefix: fileName,
-      workspaceId: config?.workspaceId,
+      // workspaceId: config?.workspaceId,
+      workspaceId: 'lvntest',
       offline: 'true',
       qaEnhance: 'false',
       indexType: 'qd',
