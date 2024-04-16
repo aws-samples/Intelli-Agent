@@ -1,6 +1,7 @@
 from .athena_utils import create_athena_client, get_athena_query_result, schedule_athena_query
 import logging
 import time
+import psycopg2
 
 def athena_run_and_check(query_string, db_name="cf_log_database", region="us-west-2", query_output="s3://text2sql-2024/athena_results/"):
     # print("Inside execute query", query_string)
@@ -60,28 +61,9 @@ def redshift_run_and_check(query_string):
         user=redshift_user,
         password=redshift_password
     )
-    cur = conn.cursor()
     try:
         logging.info(" I am checking the syntax here")
-        query_execution = athena_client.start_query_execution(
-            QueryString=query_string,
-            ResultConfiguration=query_config,
-            QueryExecutionContext=query_execution_context,
-        )
-        execution_id = query_execution["QueryExecutionId"]
-        logging.info(f"execution_id: {execution_id}")
-        time.sleep(3)
-        results = athena_client.get_query_execution(QueryExecutionId=execution_id)
-        # print(f"results: {results}")
-        status=results['QueryExecution']['Status']
-        logging.info("Status :",status)
-        if status['State']=='SUCCEEDED':
-            return "Passed"
-        else:  
-            logging.info(results['QueryExecution']['Status']['StateChangeReason'])
-            errmsg=results['QueryExecution']['Status']['StateChangeReason']
-            return errmsg
-        # return results
+        cur = conn.cursor()
     except Exception as e:
         logging.info("Error in exception")
         msg = str(e)
