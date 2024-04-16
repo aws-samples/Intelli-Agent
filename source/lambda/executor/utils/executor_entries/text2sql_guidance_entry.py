@@ -518,7 +518,16 @@ def text2sql_guidance_entry(
 
         logger.info(f'chain trace info:\n{trace_info}')
 
-        if response["intent_type"] != IntentType.TEXT2SQL_SQL_RE_GEN.value:
+        if response["intent_type"] == IntentType.TEXT2SQL_SQL_GEN.value:
+            # validated sql output
+            cont = False
+            answer = response["answer"].split("<query>")[1].split("</query>")[0]
+            try:
+                answer = response["answer"]
+            except:
+                answer = response["answer"]
+            sources = response["context_sources"]
+        elif response["intent_type"] == IntentType.TEXT2SQL_SQL_RE_GEN.value:
             # 1. fast reply intent
             # 2. validated sql output
             cont = False
