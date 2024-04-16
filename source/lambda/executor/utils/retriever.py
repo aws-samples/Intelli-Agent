@@ -362,7 +362,7 @@ def organize_faq_results(response, index_name, source_field="file_path", text_fi
                 if source_field in aos_hit["_source"]["metadata"]["jsonlAnswer"].keys():
                     result[source_field] = aos_hit["_source"]["metadata"]["jsonlAnswer"][source_field]
                 else:
-                    result[source_field] = aos_hit["_source"]["metadata"][source_field]
+                    result[source_field] = aos_hit["_source"]["metadata"]["file_path"]
             # result["doc"] = get_faq_content(result["source"], index_name)
         except:
             logger.info("index_error")
@@ -388,7 +388,7 @@ class QueryQuestionRetriever(BaseRetriever):
         super().__init__()
         self.index = workspace["open_search_index_name"]
         self.vector_field = "vector_field"
-        self.source_field = "file_path"
+        self.source_field = "source"
         self.size = size
         self.lang = workspace["languages"][0]
         self.embedding_model_endpoint = workspace["embeddings_model_endpoint"]
