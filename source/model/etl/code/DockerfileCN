@@ -12,8 +12,8 @@ ARG MODEL_DIR="/opt/ml/model/"
 ENV MODEL_PATH=${MODEL_DIR}
 
 ARG LAYOUT_MODEL_URL="https://aws-gcr-solutions-assets.s3.cn-northwest-1.amazonaws.com.cn/ai-solution-kit/layout-analysis/1.4.0"
-RUN mkdir -p ${MODEL_DIR} && wget -c $LAYOUT_MODEL_URL/layout_weight.zip -O ${MODEL_DIR}/layout_weight.zip
-RUN unzip ${MODEL_DIR}/layout_weight.zip -d ${MODEL_DIR} && rm -rf ${MODEL_DIR}/layout_weight.zip
+RUN mkdir -p ${MODEL_DIR} && wget -c $LAYOUT_MODEL_URL/layout_weight_llm.zip -O ${MODEL_DIR}/layout_weight_llm.zip
+RUN unzip ${MODEL_DIR}/layout_weight_llm.zip -d ${MODEL_DIR} && rm -rf ${MODEL_DIR}/layout_weight_llm.zip
 
 ADD / ${FUNCTION_DIR}/
 

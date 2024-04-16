@@ -10,3 +10,4 @@ PyMuPDF<1.21.0
 markdownify
 flask
 gevent
+GPUtil
