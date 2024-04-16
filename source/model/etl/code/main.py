@@ -310,7 +310,6 @@ if __name__ == "__main__":
         "object_key": "test_data/test_glue_lib/cn_pdf/2023.ccl-2.6.pdf",
         "destination_bucket": "llm-bot-document-results-icyxu",
         "mode": "ppstructure",
-        "lang": "zh",
+        "lang": "ch",
     }
-
     print(process_pdf_pipeline(body))

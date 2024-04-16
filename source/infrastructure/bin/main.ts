@@ -26,6 +26,7 @@ import { BuildConfig } from "../lib/shared/build-config";
 import { DeploymentParameters } from "../lib/shared/cdk-parameters";
 import { VpcStack } from "../lib/shared/vpc-stack";
 import { OpenSearchStack } from "../lib/vector-store/os-stack";
+import { PortalConstruct } from "../lib/ui/ui-portal";
 
 dotenv.config();
 
@@ -130,6 +131,11 @@ export class RootStack extends Stack {
     apiStack.addDependency(dynamoDBStack);
     apiStack.addDependency(etlStack);
 
+    const uiPortal = new PortalConstruct(this, "ui-stack", {
+      websocket: apiStack.wsEndpoint,
+      apiUrl: apiStack.apiEndpoint,
+    });
+
     new CfnOutput(this, "API Endpoint Address", {
       value: apiStack.apiEndpoint,
     });
@@ -155,6 +161,10 @@ export class RootStack extends Stack {
       value: etlStack.processedObjectsTableName,
     });
     new CfnOutput(this, "VPC", { value: vpcStack.connectorVpc.vpcId });
+    new CfnOutput(this, "WebPortalURL", {
+      value: uiPortal.portalUrl,
+      description: "LLM-Bot web portal url",
+    });
     new CfnOutput(this, "WebSocket Endpoint Address", {
       value: apiStack.wsEndpoint,
     });

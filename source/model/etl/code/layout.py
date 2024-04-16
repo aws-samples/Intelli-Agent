@@ -19,11 +19,18 @@ import time
 
 from utils import preprocess, multiclass_nms, postprocess
 import onnxruntime
+import GPUtil
+if len(GPUtil.getGPUs()):
+    provider = [("CUDAExecutionProvider", {"cudnn_conv_algo_search": "HEURISTIC"}), "CPUExecutionProvider"]
+    model = 'layout.onnx'
+else:
+    provider = ["CPUExecutionProvider"]
+    model = 'layout_s.onnx'
 
 class LayoutPredictor(object):
     def __init__(self):
-        self.ort_session = onnxruntime.InferenceSession(os.path.join(os.environ['MODEL_PATH'], 'layout.onnx'), providers=["CUDAExecutionProvider"])
-        _ = self.ort_session.run(['output'], {'images': np.zeros((1,3,640,640), dtype='float32')})[0]
+        self.ort_session = onnxruntime.InferenceSession(os.path.join(os.environ['MODEL_PATH'], model), providers=provider)
+        #_ = self.ort_session.run(['output'], {'images': np.zeros((1,3,640,640), dtype='float32')})[0]
         self.categorys = ['text', 'title', 'figure', 'table']
     def __call__(self, img):
         ori_im = img.copy()

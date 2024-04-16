@@ -1,0 +1,61 @@
+* {
+  margin: 0;
+  padding: 0;
+}
+
+.pr {
+  position: relative;
+}
+
+.flex {
+  display: flex;
+}
+
+.flex-v {
+  display: flex;
+  flex-direction: column;
+}
+
+.flex-1 {
+  flex: 1;
+}
+
+.gap-10 {
+  gap: 10px;
+}
+
+.mt-10 {
+  margin-top: 10px;
+}
+
+.align-center {
+  align-items: center;
+}
+
+.space-between {
+  justify-content: space-between;
+}
+
+.chat-container {
+  height: calc(100% - 60px);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+
+  .chat-message {
+    overflow: auto;
+    flex: 1;
+    padding-bottom: 30px;
+  }
+
+  .message-content {
+    padding-top: 10px;
+  }
+
+  .send-message {
+    .upload-icon {
+      position: absolute;
+      bottom: 0px;
+    }
+  }
+}

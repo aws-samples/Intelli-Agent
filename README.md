@@ -56,10 +56,10 @@ npm install
 ### Prepare Model Assets
 Execute the script per model folder. Make sure Python is installed properly.
 
-First, navigate to the model directory and run the prepare_model.sh script. This script requires an S3 bucket name as an argument, which will be used to upload the model.
+First, navigate to the model directory and run the prepare_model.sh script. This script requires an S3 bucket name as an argument, which will be used to upload the model. Please make sure the bucket name is located in the same region as the CDK deployment.
 
 ```bash
-cd source/model/<rerank/embedding/instruct>/model
+cd source/model/
 ./prepare_model.sh -s <Your S3 Bucket Name>
 ```
 
@@ -87,14 +87,13 @@ Please make sure **docker** is installed and the CDK command is executed in the 
 
 ```bash
 cd source/infrastructure
-npx cdk deploy --parameters S3ModelAssets=<Your S3 Bucket Name> --parameters SubEmail=<Your email address> --parameters OpenSearchIndex=<Your OpenSearch Index Name> --parameters EtlImageName=<Your ETL model name> --parameters ETLTag=<Your ETL tag name>
+npx cdk deploy --parameters S3ModelAssets=<Your S3 Bucket Name> --parameters SubEmail=<Your email address> --parameters EtlImageName=<Your ETL model name> --parameters ETLTag=<Your ETL tag name>
 ```
 
 To deploy the offline process only, you can configure context parameters to skip the online process. 
 
 ```bash
-npx cdk deploy --parameters S3ModelAssets=<Your S3 Bucket Name> --parameters SubEmail=<Your email address> --parameters OpenSearchIndex=<Your OpenSearch Index Name> --parameters EtlImageName=<Your ETL model name> --parameters ETLTag=<Your ETL tag name> --context DeploymentMode="OFFLINE_EXTRACT"
-
+npx cdk deploy --parameters S3ModelAssets=<Your S3 Bucket Name> --parameters SubEmail=<Your email address> --parameters EtlImageName=<Your ETL model name> --parameters ETLTag=<Your ETL tag name> --context DeploymentMode="OFFLINE_EXTRACT"
 ```
 
 ## Deployment Parameters
@@ -111,9 +110,8 @@ npx cdk deploy --parameters S3ModelAssets=<Your S3 Bucket Name> --parameters Sub
 
 | Context | Description |
 |---------|-------------|
-| DeploymentMode | The mode for deployment. There are three modes: `OFFLINE_EXTRACT`, `OFFLINE_OPENSEARCH`, and `ALL`. |
-| LayerPipOption | The configuration option for the Python package installer (pip) for the Lambda layer. Please use it when the instance you are using is in China. |
-| JobPipOption | The configuration option for the Python package installer (pip). Please use it when this solution is deployed in GCR region. |
+| DeploymentMode | The mode for deployment. There are three modes: `OFFLINE_EXTRACT`, `OFFLINE_OPENSEARCH`, and `ALL`. Default deployment mode is `ALL`. |
+| LayerPipOption | The configuration option for the Python package installer (pip) for the Lambda layer. Please use it to set PyPi mirror(e.g. -i https://pypi.tuna.tsinghua.edu.cn/simple) when your local development environment is in GCR region. Default LayerPipOption is set to ``. |
 
 
 ## API Reference
@@ -123,19 +121,7 @@ After CDK deployment, you can use a HTTP client such as Postman/cURL to invoke t
 - [AOS API Schema](https://github.com/aws-samples/llm-bot/tree/main/docs/AOS_API_SCHEMA.md): search data in the vector database.
 
 ## Optional Steps
-1. [Launch Dashboard](#launch-dashboard)
-2. [Upload Embedding File](#upload-embedding-file)
-
-### Launch Dashboard
-Check and debug the ETL & QA process.
-
-```bash
-cd /source/panel
-pip install -r requirements.txt
-mv .env_sample .env
-# fill .env content accordingly with cdk output
-python -m streamlit run app.py --server.runOnSave true --server.port 8088 --browser.gatherUsageStats false --server.fileWatcherType none
-```
+- [Upload Embedding File](#upload-embedding-file)
 
 ### Upload Embedding File
 Upload the embedding file to the S3 bucket created in the previous step. This object created event will trigger the Step function to execute Glue job for online processing.
