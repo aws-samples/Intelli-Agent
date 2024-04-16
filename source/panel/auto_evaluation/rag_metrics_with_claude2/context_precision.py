@@ -30,7 +30,7 @@ CLAUDE_CONTEXT_PRECISION = """Given a question wrapped with  <question></questio
 Return a Yes/No answer wrapped with  <answer></answer> tag.
 """
 
-precision_prompt_template = ChatPromptTemplate.format_messages([
+precision_prompt_template = ChatPromptTemplate.from_messages([
     ('user',CLAUDE_CONTEXT_PRECISION)
 ])
 class ClaudeContextprecision(ContextPrecision):

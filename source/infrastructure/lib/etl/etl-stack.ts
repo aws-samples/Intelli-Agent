@@ -211,7 +211,6 @@ export class EtlStack extends NestedStack {
             defaultArguments: {
                 '--AOS_ENDPOINT': props._domainEndpoint,
                 '--REGION': props._region,
-                '--EMBEDDING_MODEL_ENDPOINT': props._embeddingEndpoint[0],
                 '--ETL_MODEL_ENDPOINT': this._etlEndpoint,
                 '--DOC_INDEX_TABLE': props._OpenSearchIndex,
                 '--RES_BUCKET': _S3Bucket.bucketName,
@@ -240,6 +239,9 @@ export class EtlStack extends NestedStack {
             timeout: Duration.minutes(15),
             memorySize: 1024,
             architecture: Architecture.X86_64,
+            environment: {
+                "DEFAULT_EMBEDDING_ENDPOINT": props._embeddingEndpoint[0],
+            }
         });
 
         lambdaETL.addToRolePolicy(new iam.PolicyStatement({
@@ -269,6 +271,7 @@ export class EtlStack extends NestedStack {
                     'batchIndices.$': '$.Payload.batchIndices',
                     'indexType.$': '$.Payload.indexType',
                     'operationType.$': '$.Payload.operationType',
+                    'embeddingEndpoint.$': '$.Payload.embeddingEndpoint',
                 }
             },
             // we need the original input
@@ -288,7 +291,7 @@ export class EtlStack extends NestedStack {
                 '--BATCH_FILE_NUMBER.$': '$.batchFileNumber',
                 '--BATCH_INDICE.$': 'States.Format(\'{}\', $.batchIndices)',
                 '--DOC_INDEX_TABLE': props._OpenSearchIndex,
-                '--EMBEDDING_MODEL_ENDPOINT': props._embeddingEndpoint[0],
+                '--EMBEDDING_MODEL_ENDPOINT.$': '$.embeddingEndpoint',
                 '--ETL_MODEL_ENDPOINT': this._etlEndpoint,
                 '--INDEX_TYPE.$': '$.indexType',
                 '--JOB_NAME': glueJob.jobName,
@@ -325,6 +328,7 @@ export class EtlStack extends NestedStack {
                 'batchIndices.$': '$$.Map.Item.Index', // Add this if you need to know the index of the current item in the map state
                 'indexType.$': '$.indexType',
                 'operationType.$': '$.operationType',
+                'embeddingEndpoint.$': '$.embeddingEndpoint'
             },
             resultPath: '$.mapResults',
         });
@@ -340,11 +344,11 @@ export class EtlStack extends NestedStack {
                 '--BATCH_FILE_NUMBER.$': '$.batchFileNumber',
                 '--BATCH_INDICE.$': 'States.Format(\'{}\', $.batchIndices)',
                 '--DOC_INDEX_TABLE': props._OpenSearchIndex,
-                '--EMBEDDING_MODEL_ENDPOINT': props._embeddingEndpoint[0],
+                '--EMBEDDING_MODEL_ENDPOINT.$': '$.embeddingEndpoint',
                 '--ETL_MODEL_ENDPOINT': this._etlEndpoint,
                 '--INDEX_TYPE.$': '$.indexType',
                 '--JOB_NAME': glueJob.jobName,
-                '--OFFLINE': 'true',
+                '--OFFLINE': 'false',
                 '--OPERATION_TYPE.$': '$.operationType',
                 '--ProcessedObjectsTable': table.tableName,
                 '--QA_ENHANCEMENT.$': '$.qaEnhance',

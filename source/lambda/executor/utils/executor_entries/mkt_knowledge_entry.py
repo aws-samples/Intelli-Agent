@@ -16,6 +16,7 @@ from langchain.retrievers.merger_retriever import MergerRetriever
 from ..intent_utils import IntentRecognitionAOSIndex
 from ..llm_utils import LLMChain
 from ..serialization_utils import JSONEncoder
+from ..logger_utils import get_logger
 from ..langchain_utils import (
     chain_logger,
     RunnableDictAssign,
@@ -39,16 +40,17 @@ from ..query_process_utils.preprocess_utils import (
     language_check,
     query_translate,
     get_service_name,
-    is_query_too_short
+    is_query_too_short,
+    query_clean,
+    rule_based_query_expansion
 )
 from ..workspace_utils import WorkspaceManager
 
 
-logger = logging.getLogger('mkt_knowledge_entry')
-logger.setLevel(logging.INFO)
+logger = get_logger('mkt_knowledge_entry')
 
-zh_embedding_endpoint = os.environ.get("zh_embedding_endpoint", "")
-en_embedding_endpoint = os.environ.get("en_embedding_endpoint", "")
+# zh_embedding_endpoint = os.environ.get("zh_embedding_endpoint", "")
+# en_embedding_endpoint = os.environ.get("en_embedding_endpoint", "")
 
 intent_recognition_embedding_endpoint = os.environ.get("intent_recognition_embedding_endpoint", "")
 workspace_table = os.environ.get("workspace_table", "")
@@ -98,7 +100,8 @@ def get_qd_chain(qd_config, qd_workspace_list):
             using_whole_doc=using_whole_doc,
             context_num=context_num,
             top_k=retriever_top_k,
-            query_key=qd_query_key
+            query_key=qd_query_key,
+            enable_debug=qd_config['enable_debug']
             #   "zh", zh_embedding_endpoint
         )
         for workspace in qd_workspace_list
@@ -107,7 +110,8 @@ def get_qd_chain(qd_config, qd_workspace_list):
             using_whole_doc=using_whole_doc,
             context_num=context_num,
             top_k=retriever_top_k,
-            query_key=qd_query_key
+            query_key=qd_query_key,
+            enable_debug=qd_config['enable_debug']
             #   "zh", zh_embedding_endpoint
         )
         for workspace in qd_workspace_list
@@ -115,7 +119,7 @@ def get_qd_chain(qd_config, qd_workspace_list):
 
     lotr = MergerRetriever(retrievers=retriever_list)
     if reranker_type == RerankerType.BGE_RERANKER.value:
-        compressor = BGEReranker(query_key=qd_query_key)
+        compressor = BGEReranker(query_key=qd_query_key, enable_debug=qd_config['enable_debug'])
     elif reranker_type == RerankerType.BGE_M3_RERANKER.value:
         compressor = BGEM3Reranker()
     else:
@@ -238,6 +242,9 @@ def market_chain_knowledge_entry(
                   translate_config=translate_config
                   )
         )
+    query_clean_chain = RunnablePassthrough.assign(
+        query=RunnableLambda(lambda x: query_clean(x['query']))
+        )
     lang_check_and_translate_chain = RunnablePassthrough.assign(
         query_lang = RunnableLambda(lambda x:language_check(x['query']))
     )  | RunnablePassthrough.assign(translated_text=translate_chain)
@@ -247,7 +254,7 @@ def market_chain_knowledge_entry(
     
     
     
-    preprocess_chain = lang_check_and_translate_chain | RunnableParallelAssign(
+    preprocess_chain = query_clean_chain | lang_check_and_translate_chain | RunnableParallelAssign(
         is_api_query=is_api_query_chain,
         service_names=service_names_recognition_chain
     )
@@ -303,11 +310,13 @@ def market_chain_knowledge_entry(
     qq_match_threshold = rag_config['retriever_config']['qq_config']['qq_match_threshold']
     qq_retriver_top_k = rag_config['retriever_config']['qq_config']['retriever_top_k']
     qq_query_key = rag_config['retriever_config']['qq_config']['query_key']
+    qq_enable_debug = rag_config['retriever_config']['qq_config']['enable_debug']
     retriever_list = [
         QueryQuestionRetriever(
             workspace,
             size=qq_retriver_top_k,
-            query_key=qq_query_key
+            query_key=qq_query_key,
+            enable_debug=qq_enable_debug
         )
         for workspace in qq_workspace_list
     ]
@@ -345,8 +354,12 @@ def market_chain_knowledge_entry(
     #####################
     generator_llm_config = rag_config['generator_llm_config']
     context_num = generator_llm_config['context_num']
-    llm_chain = RunnableDictAssign(lambda x: contexts_trunc(x['docs'],context_num=context_num)) |\
-          RunnablePassthrough.assign(
+    llm_chain = RunnableDictAssign(lambda x: contexts_trunc(
+        x['docs'],
+        score_key="rerank_score",
+        context_num=context_num
+        )) \
+        | RunnablePassthrough.assign(
                answer=LLMChain.get_chain(
                     intent_type=IntentType.KNOWLEDGE_QA.value,
                     stream=stream,
@@ -433,7 +446,7 @@ def market_chain_knowledge_entry(
                 debug_info=debug_info
                 ))
         ),
-        rag_chain
+        RunnablePassthrough.assign(query=RunnableLambda(lambda x: rule_based_query_expansion(x['query']))) | rag_chain
     )
 
     #######################
@@ -494,6 +507,7 @@ def market_chain_knowledge_entry(
     sources = response["context_sources"]
     contexts = response["context_docs"]
     trace_info = format_trace_infos(trace_infos)
-    logger.info(f'chain trace info:\n{trace_info}')
+    
+    logger.info(f'session_id: {rag_config["session_id"]}, chain trace info:\n{trace_info}')
 
     return answer, sources, contexts, debug_info

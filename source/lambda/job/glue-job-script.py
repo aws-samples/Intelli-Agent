@@ -194,6 +194,7 @@ class S3FileProcessor:
 
     def iterate_s3_files(self, extract_content=True) -> Generator:
         current_indice = 0
+
         for page in self.paginator.paginate(Bucket=self.bucket, Prefix=self.prefix):
             for obj in page.get("Contents", []):
                 key = obj["Key"]
@@ -221,6 +222,10 @@ class S3FileProcessor:
             if current_indice >= (int(batchIndice) + 1) * int(batchFileNumber):
                 # Exit the outer loop
                 break
+
+    def iterate_specific_s3_file(self) -> Generator:
+        file_type = self.prefix.split(".")[-1].lower()  # Extract file extension
+        yield file_type, "", {"bucket": self.bucket, "key": self.prefix}
 
 
 class BatchChunkDocumentProcessor:
@@ -357,15 +362,25 @@ class BatchQueryDocumentProcessor:
                 # use term-level queries only for fields mapped as keyword
                 "match": {"metadata.file_path": s3_path}
             },
-            "size": 100000,
+            "size": 10000,
             "sort": [{"_score": {"order": "desc"}}],
         }
 
-        query_documents = self.docsearch.client.search(
-            index=self.docsearch.index_name, body=search_body
-        )
-        document_ids = [doc["_id"] for doc in query_documents["hits"]["hits"]]
-        return document_ids
+        if self.docsearch.client.indices.exists(index=self.docsearch.index_name):
+            logger.info(
+                "BatchQueryDocumentProcessor: Querying documents for %s", s3_path
+            )
+            query_documents = self.docsearch.client.search(
+                index=self.docsearch.index_name, body=search_body
+            )
+            document_ids = [doc["_id"] for doc in query_documents["hits"]["hits"]]
+            return document_ids
+        else:
+            logger.info(
+                "BatchQueryDocumentProcessor: Index %s does not exist, skipping deletion",
+                self.docsearch.index_name,
+            )
+            return []
 
     def batch_generator(self, s3_path):
         """
@@ -431,14 +446,21 @@ class OpenSearchDeleteWorker:
 
         bulk_delete_requests = []
 
-        for document_id in document_ids:
-            bulk_delete_requests.append(
-                {"delete": {"_id": document_id, "_index": self.index_name}}
-            )
+        # Check if self.index_name exists
+        if not self.docsearch.client.indices.exists(index=self.index_name):
+            logger.info("Index %s does not exist", self.index_name)
+            return
+        else:
+            for document_id in document_ids:
+                bulk_delete_requests.append(
+                    {"delete": {"_id": document_id, "_index": self.index_name}}
+                )
 
-        self.docsearch.client.bulk(
-            index=self.index_name, body=bulk_delete_requests, refresh=True
-        )
+            self.docsearch.client.bulk(
+                index=self.index_name, body=bulk_delete_requests, refresh=True
+            )
+            logger.info("Deleted %d documents", len(document_ids))
+            return
 
 
 def update_workspace(workspace_id, embedding_model_endpoint, index_type):
@@ -458,6 +480,7 @@ def update_workspace(workspace_id, embedding_model_endpoint, index_type):
         embeddings_model_type,
         ["zh"],
         index_type,
+        workspace_offline_flag=offline,
     )
 
     return aos_index
@@ -471,11 +494,12 @@ def ingestion_pipeline(
             # the res is unified to list[Doucment] type
             res = cb_process_object(s3_client, file_type, file_content, **kwargs)
             for document in res:
+                print(f"document ingest")
                 save_content_to_s3(
                     s3_client, document, res_bucket, SplittingType.SEMANTIC.value
                 )
 
-            gen_chunk_flag = False if file_type == "csv" else True
+            gen_chunk_flag = False if file_type == "csv" or file_type == "jsonl" else True
             batches = batch_chunk_processor.batch_generator(res, gen_chunk_flag)
 
             for batch in batches:
@@ -497,6 +521,7 @@ def ingestion_pipeline(
                     )
 
                 if not extract_only:
+                    print(f"chunk ingest {len(batch)}")
                     ingestion_worker.aos_ingestion(batch)
 
         except Exception as e:
@@ -529,7 +554,7 @@ def delete_pipeline(s3_files_iterator, document_generator, delete_worker):
 
 
 def create_processors_and_workers(
-    operation_type, docsearch, embedding_model_endpoint, file_processor
+    operation_type, offline_flag, docsearch, embedding_model_endpoint, file_processor
 ):
     """
     Create processors and workers based on the operation type.
@@ -554,7 +579,10 @@ def create_processors_and_workers(
         )
         worker = OpenSearchIngestionWorker(docsearch, embedding_model_endpoint)
     elif operation_type in ["delete", "update"]:
-        s3_files_iterator = file_processor.iterate_s3_files(extract_content=False)
+        if offline_flag == "false":
+            s3_files_iterator = file_processor.iterate_specific_s3_file()
+        else:
+            s3_files_iterator = file_processor.iterate_s3_files(extract_content=False)
         batch_processor = BatchQueryDocumentProcessor(docsearch, batch_size=10)
         worker = OpenSearchDeleteWorker(docsearch)
     else:
@@ -568,7 +596,6 @@ def create_processors_and_workers(
 # Main function to be called by Glue job script
 def main():
     logger.info("Starting Glue job with passing arguments: %s", args)
-    logger.info("Running in offline mode with consideration for large file size...")
 
     if index_type == "qq":
         supported_file_types = ["jsonl"]
@@ -608,7 +635,7 @@ def main():
         )
 
     s3_files_iterator, batch_processor, worker = create_processors_and_workers(
-        operation_type, docsearch, embedding_model_endpoint, file_processor
+        operation_type, offline, docsearch, embedding_model_endpoint, file_processor
     )
 
     if operation_type == "create":
@@ -625,7 +652,7 @@ def main():
 
         # Then ingest the documents
         s3_files_iterator, batch_processor, worker = create_processors_and_workers(
-            "create", docsearch, embedding_model_endpoint, file_processor
+            "create", offline, docsearch, embedding_model_endpoint, file_processor
         )
         ingestion_pipeline(s3_files_iterator, batch_processor, worker)
     else:

@@ -1,6 +1,6 @@
 import json
 import logging
-import math
+import os
 
 import boto3
 
@@ -10,6 +10,7 @@ logger.setLevel(logging.INFO)
 s3_client = boto3.client("s3")
 
 supported_file_types = ["pdf", "txt", "doc", "md", "html", "json", "jsonl", "csv"]
+default_embedding_endpoint = os.environ.get("DEFAULT_EMBEDDING_ENDPOINT")
 
 
 def get_job_number(event, file_count):
@@ -31,6 +32,7 @@ def lambda_handler(event, context):
     workspace_id = event["workspaceId"]
     index_type = event.get("indexType", "qd")
     operation_type = event.get("operationType", "create")
+    embedding_endpoint = event.get("embeddingEndpoint", default_embedding_endpoint)
 
     if "offline" not in event:
         raise ValueError("offline is not in the event")
@@ -74,6 +76,7 @@ def lambda_handler(event, context):
             "batchIndices": batch_indices,
             "indexType": index_type,
             "operationType": operation_type,
+            "embeddingEndpoint": embedding_endpoint,
         }
     elif event["offline"].lower() == "false":
         # This response should match the expected input schema of the downstream tasks in the Step Functions workflow
@@ -90,6 +93,7 @@ def lambda_handler(event, context):
             "batchIndices": "0",
             "indexType": index_type,
             "operationType": operation_type,
+            "embeddingEndpoint": embedding_endpoint,
         }
     else:
         raise ValueError("offline is not true or false")

@@ -7,7 +7,7 @@ import numpy as np
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-from typing import TYPE_CHECKING, Dict, Optional, Sequence
+from typing import TYPE_CHECKING, Dict, Optional, Sequence, Any
 
 from langchain.callbacks.manager import Callbacks
 from langchain.schema import Document
@@ -102,23 +102,29 @@ class BGEReranker(BaseDocumentCompressor):
     """Number of documents to return."""
     # top_n: int = 3
     query_key: str="query"
+    config: Dict={"run_name": "BGEReranker"}
+    enable_debug: Any
+    rerank_model_endpoint: str=rerank_model_endpoint
 
-    def __init__(self, query_key='query'):
+    def __init__(self, query_key='query', enable_debug=False, rerank_model_endpoint=rerank_model_endpoint):
         super().__init__()
         self.query_key = query_key
+        self.enable_debug = enable_debug
+        self.rerank_model_endpoint = rerank_model_endpoint
 
     async def __ainvoke_rerank_model(self, batch, loop):
         # await asyncio.sleep(2)
+        logging.info("invoke endpoint")
         return await loop.run_in_executor(None,
                                           SagemakerEndpointVectorOrCross,
                                           json.dumps(batch),
-                                          rerank_model_endpoint,
+                                          self.rerank_model_endpoint,
                                           region,
                                           "rerank",
                                           None)
 
     async def __spawn_task(self, rerank_pair):
-        batch_size = 16
+        batch_size = 128
         task_list = []
         loop = asyncio.get_event_loop()
         for batch_start in range(0, len(rerank_pair), batch_size):
@@ -155,7 +161,7 @@ class BGEReranker(BaseDocumentCompressor):
         for doc in _docs:
             rerank_pair.append([query[self.query_key], doc[:rerank_text_length]])
         score_list = []
-        logger.info(f'rerank pair num {len(rerank_pair)}, endpoint_name: {rerank_model_endpoint}')
+        logger.info(f'rerank pair num {len(rerank_pair)}, endpoint_name: {self.rerank_model_endpoint}')
         response_list = asyncio.run(self.__spawn_task(rerank_pair))
         for response in response_list:
             score_list.extend(json.loads(response))
@@ -168,7 +174,8 @@ class BGEReranker(BaseDocumentCompressor):
             doc.metadata["retrieval_score"] = doc.metadata["retrieval_score"]
             doc.metadata["score"] = doc.metadata["rerank_score"]
             final_results.append(doc)
-            debug_info["knowledge_qa_rerank"].append((doc.page_content, doc.metadata["retrieval_content"], doc.metadata["source"], score))
+            if self.enable_debug:
+                debug_info["knowledge_qa_rerank"].append((doc.page_content, doc.metadata["retrieval_content"], doc.metadata["source"], score))
         final_results.sort(key=lambda x: x.metadata["rerank_score"], reverse=True)
         debug_info["knowledge_qa_rerank"].sort(key=lambda x: x[-1], reverse=True)
         recall_end_time = time.time()

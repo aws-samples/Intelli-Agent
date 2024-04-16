@@ -206,10 +206,19 @@ def main_chain_entry(
         )
     )
 
-    answer = response["answer"]
-    sources = response["context_sources"]
-    contexts = response["context_docs"]
+    # answer = response["answer"]
+    # sources = response["context_sources"]
+    # contexts = response["context_docs"]
     trace_info = format_trace_infos(trace_infos)
     logger.info(f"chain trace info:\n{trace_info}")
 
-    return answer, sources, contexts, debug_info
+
+    ret = {
+        "answer": response["answer"],
+        "context_sources": response["context_sources"],
+        "context_docs": response["context_docs"],
+        "debug_info": debug_info,
+        "rag_config": rag_config
+    }
+
+    return ret

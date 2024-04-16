@@ -5,10 +5,12 @@ from functools import partial
 from langchain.schema.callbacks.base import BaseCallbackHandler
 # import threading
 # import time 
-from .logger_utils import logger
+from .logger_utils import get_logger
 import threading
 from langchain.schema.runnable import RunnableLambda,RunnablePassthrough,RunnableParallel
 from prettytable import PrettyTable
+
+logger = get_logger('langchain_utils')
 
 class RunnableDictAssign:
     """

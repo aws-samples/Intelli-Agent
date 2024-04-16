@@ -242,6 +242,7 @@ def parse_mkt_entry_knowledge_config(event_body):
                 "qq_match_threshold": 0.8,
                 "retriever_top_k": 5,
                 "query_key": "query",
+                "enable_debug": False
             },
             "qd_config": {
                 "retriever_top_k": 5,
@@ -252,26 +253,23 @@ def parse_mkt_entry_knowledge_config(event_body):
                 "reranker_type": RerankerType.BGE_RERANKER.value,
                 # "reranker_type": RerankerType.BGE_M3_RERANKER.value,
                 "qd_match_threshold": 2,
-                "query_key": "conversation_query_rewrite",
+                "enable_debug": False,
+                "query_key": "query"
                 # "enable_reranker":True
             },
             "workspace_ids": [
-                "aos_index_mkt_faq_qq_m3",
-                "aos_index_acts_qd_m3",
                 "aos_index_mkt_faq_qd_m3",
-                "aos_index_repost_qq_m3",
+                "aos_index_acts_qd_m3",
+                "aos_index_mkt_faq_qq_m3_20240410",
+                "aos_index_dgr_faq_qq_m3_20240410",
+                "aos_index_global_site_cn_qd_m3_dense_20240320",
+                "aws-cn-dgr-user-guide-qd-m3-dense-20240318",
             ],
             "event_workspace_ids": ["event-qd-index-20240313"],
-            # "retriever_top_k": 5,
-            # "chunk_num": 2,
-            # "using_whole_doc": False,
-            # "reranker_top_k": 10,
-            # "reranker_type": True,
-            # "q_q_match_threshold": 0.9,
-            # "qd_match_threshold": -1
+        
         },
         "query_process_config": {
-            "query_length_threshold": 3,
+            "query_length_threshold": 1,
             "query_rewrite_config": {
                 "model_id": llm_model_id,
                 "endpoint_name": llm_model_endpoint_name,
@@ -309,6 +307,10 @@ def parse_mkt_entry_knowledge_config(event_body):
             "context_num": 1,
         },
         "use_history": False,
+        "response_config": {
+            # context return with chunk
+            "context_return_with_chunk": False
+        }
     }
 
     new_event_config = update_nest_dict(copy.deepcopy(mkt_default_config), event_body)

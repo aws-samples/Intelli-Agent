@@ -77,7 +77,7 @@ class Claude3HaikuQueryRewriteChain(Claude2QueryRewriteChain):
     model_id =  "anthropic.claude-3-haiku-20240307-v1:0"
 
 class Claude3SonnetQueryRewriteChain(Claude2QueryRewriteChain):
-    mdoel_id = "anthropic.claude-3-sonnet-20240229-v1:0"
+    model_id = "anthropic.claude-3-sonnet-20240229-v1:0"
 
 
 

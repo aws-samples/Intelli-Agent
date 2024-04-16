@@ -23,13 +23,14 @@ from utils.executor_entries import (  # market_chain_entry,; market_chain_entry_
 
 # from langchain.retrievers.multi_query import MultiQueryRetriever
 # from langchain.retrievers.multi_query import MultiQueryRetriever
-from utils.logger_utils import logger
+from utils.logger_utils import get_logger
 from utils.parse_config import update_nest_dict
 from utils.response_utils import process_response
 from utils.serialization_utils import JSONEncoder
 
 # from utils.constant import MKT_CONVERSATION_SUMMARY_TYPE
 
+logger = get_logger("main")
 region = os.environ["AWS_REGION"]
 embedding_endpoint = os.environ.get("embedding_endpoint", "")
 zh_embedding_endpoint = os.environ.get("zh_embedding_endpoint", "")
@@ -107,6 +108,7 @@ def lambda_handler(event, context):
     if "Records" not in event:
         # Restful API invocation
         event["Records"] = [{"body": json.dumps(event)}]
+
     for record in event["Records"]:
         record_event = json.loads(record["body"])
         # Get request body
@@ -140,10 +142,10 @@ def lambda_handler(event, context):
         if messages and entry_type != Type.MARKET_CONVERSATION_SUMMARY.value:
             assert len(messages) == 1
             question = messages[-1]["content"]
-            custom_message_id = messages[-1].get("custom_message_id", None)
+            custom_message_id = messages[-1].get("custom_message_id", "")
         else:
             question = ""  # MARKET_CONVERSATION_SUMMARY
-            custom_message_id = event.get("custom_message_id", None)
+            custom_message_id = event.get("custom_message_id", "")
 
         # _, question = process_input_messages(messages)
         # role = "user"
@@ -172,20 +174,17 @@ def lambda_handler(event, context):
         event_body["session_id"] = session_id
         event_body["debug_level"] = debug_level
 
-        # logger.info(f'rag configs:\n {json.dumps(rag_config,indent=2,ensure_ascii=False,cls=JSONEncoder)}')
-        #
-        # knowledge_qa_flag = True if model == "knowledge_qa" else False
-
         main_entry_start = time.time()
         contexts = []
         # entry_type = biz_type.lower()
         if entry_type == Type.COMMON.value:
-            answer, sources, contexts, debug_info = main_chain_entry(
+            response = main_chain_entry(
                 question,
                 stream=stream,
                 event_body=event_body,
                 message_id=custom_message_id,
             )
+
         elif entry_type == Type.QD_RETRIEVER.value:
             retriever_index = event_body.get("retriever_index", aos_index)
             docs, debug_info = main_qd_retriever_entry(
@@ -201,12 +200,16 @@ def lambda_handler(event, context):
             return get_retriever_response(docs)
         elif entry_type == Type.DGR.value:
             # switch dgr to market
-            event_body["llm_model_id"] = os.environ.get(
-                "llm_model_id", "anthropic.claude-3-sonnet-20240229-v1:0"
+            event_body["llm_model_id"] = (
+                event_body.get("llm_model_id", None)
+                or "anthropic.claude-3-sonnet-20240229-v1:0"
             )
             dgr_config = {
                 "retriever_config": {
-                    "qd_config": {"using_whole_doc": True},
+                    "qd_config": {
+                        "using_whole_doc": True,
+                        "qd_match_threshold": -100,
+                    },
                     "workspace_ids": [
                         "aos_index_repost_qq_m3",
                         "aws-cn-dgr-user-guide-qd-m3-dense-20240318",
@@ -215,57 +218,37 @@ def lambda_handler(event, context):
                 "generator_llm_config": {"context_num": 2},
             }
 
-            event_body = update_nest_dict(event_body, dgr_config)
-
-            answer, sources, contexts, debug_info = market_chain_knowledge_entry(
+            event_body = update_nest_dict(dgr_config,event_body)
+            response = market_chain_knowledge_entry_langgraph(
                 question,
                 stream=stream,
                 event_body=event_body,
                 message_id=custom_message_id,
             )
 
-        elif entry_type == Type.MARKET_CHAIN_CORE.value:
-            answer, sources, contexts, debug_info = market_chain_entry_core(
-                question,
-                stream=stream,
-                event_body=event_body,
-                message_id=custom_message_id,
-            )
-        elif entry_type == Type.MARKET_CHAIN.value:
-            answer, sources, contexts, debug_info = market_chain_knowledge_entry(
-                question,
-                stream=stream,
-                event_body=event_body,
-                message_id=custom_message_id,
-            )
-            # answer, sources, contexts, debug_info = market_chain_entry(
-            #     question,
-            #     stream=stream,
-            #     event_body=event_body,
-            #     message_id=custom_message_id
-            # )
-
-        elif entry_type == Type.MARKET_CHAIN_KNOWLEDGE.value:
-            answer, sources, contexts, debug_info = market_chain_knowledge_entry(
+        elif entry_type in (
+            Type.MARKET_CHAIN_KNOWLEDGE.value,
+            "market_chain_knowledge_langgraph",
+            Type.MARKET_CHAIN.value,
+        ):
+            response = market_chain_knowledge_entry_langgraph(
                 question,
                 stream=stream,
                 event_body=event_body,
                 message_id=custom_message_id,
             )
 
-        elif entry_type == "market_chain_knowledge_langgraph":
-            answer, sources, contexts, debug_info = (
-                market_chain_knowledge_entry_langgraph(
-                    question,
-                    stream=stream,
-                    event_body=event_body,
-                    message_id=custom_message_id,
-                )
-            )
         elif entry_type == Type.MARKET_CONVERSATION_SUMMARY.value:
             answer, sources, contexts, debug_info = market_conversation_summary_entry(
                 messages=messages, event_body=event_body, stream=stream
             )
+            response = {
+                "answer": answer,
+                "context_sources": sources,
+                "context_docs": contexts,
+                "debug_info": debug_info,
+                "rag_config": {},
+            }
         elif entry_type == Type.LLM.value:
             answer, sources, contexts, debug_info = sagemind_llm_entry(
                 messages=messages, event_body=event_body, stream=stream
@@ -274,6 +257,19 @@ def lambda_handler(event, context):
             answer, sources, contexts, debug_info = text2sql_guidance_entry(
                 question, message_id=message_id, event_body=event_body, stream=stream
             )
+            response = {
+                "answer": answer,
+                "context_sources": sources,
+                "context_docs": contexts,
+                "debug_info": debug_info,
+                "rag_config": {},
+            }
+
+        answer = response["answer"]
+        sources = response["context_sources"]
+        contexts = response["context_docs"]
+        debug_info = response["debug_info"]
+        rag_config = response["rag_config"]
 
         main_entry_end = time.time()
         main_entry_elpase = main_entry_end - main_entry_start
@@ -301,6 +297,7 @@ def lambda_handler(event, context):
             client_type=client_type,
             custom_message_id=custom_message_id,
             main_entry_end=main_entry_end,
+            rag_config=rag_config,
         )
         r = process_response(**response_kwargs)
     if not stream:

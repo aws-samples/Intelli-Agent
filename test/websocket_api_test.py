@@ -17,6 +17,7 @@ def get_answer(body):
     start_time = time.time()
     answer = ""
     context = None
+
     while True:
         ret = json.loads(ws.recv())
         try:
@@ -36,9 +37,18 @@ def get_answer(body):
             print(ret['choices'][0]['message']['content'])
             break 
         elif message_type == "CONTEXT":
+            message = ret['choices'][0]
+            context = context or ""
+            if "_chunk_data" in message:
+                context += message.pop('_chunk_data')
+                if message["chunk_id"] + 1 != message['total_chunk_num']:
+                    continue
+                # print('context chunk num',message['total_chunk_num'])
+                message.update(json.loads(context))
+                context = message
             print()
             context=ret
-            print('contexts',ret)
+            print('contexts',message)
             # print('sources: ',ret['choices'][0]['knowledge_sources'])
 
     ws.close()  
@@ -124,16 +134,44 @@ market_test_cases = [
     "谢谢"
 ]
 
+# market_test_cases = ['将计算资源与Lambda函数部署在相同AZ是否会降低延迟？']
+# market_test_cases = ['Claude 3 Opus的最大令牌数是多少？']
+# market_test_cases = ['我想在Cognito控制台为用户池添加 Lambda 触发器，应该如何操作？']
+# 请回答关于亚马逊云科技/aws/amazon的问题:
+# market_test_cases = ['我们项目在调研比较简单一点的大数据环境，你们这个好像挺麻烦的，Airflow是一个单独的产品，Kafka也是一个单独的产品。如果有类似阿里云的DataWorks这样的产品就很好。请问我们有类似阿里dataworks的solution吗？']
+market_test_cases = ['亚马逊存在种族歧视吗？']
+
 entry_type = "market_chain"
+# entry_type = "dgr"
 
 for question in market_test_cases:
     ws = create_connection(ws_url)
     print('-*'*50)
     print(f'question: ', question)
     body = {
-        "get_contexts": False,
+        "get_contexts": True,
+        "response_config": {
+            # context return with chunk
+            "context_return_with_chunk": True
+        },
         "type" : entry_type, 
-        "messages": [{"role": "user","content": question}]
+        "messages": [{"role": "user","content": question}],
     }
+    # body = {
+    #     "retriever_config": {
+    #         "qd_config": {
+    #             "context_num": 2,
+    #             "using_whole_doc": False,
+    #         }
+    #     },
+    #     "get_contexts": True,
+    #     "response_config": {
+    #         # context return with chunk
+    #         "context_return_with_chunk": True
+    #     },
+    #     "type" : entry_type, 
+    #     "messages": [{"role": "user","content": question}],
+    #     "generator_llm_config": {"context_num":4}
+    # }
     get_answer(body)
     
