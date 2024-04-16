@@ -39,7 +39,7 @@ def get_model(properties):
     # local_rank = int(os.getenv('LOCAL_RANK', '0'))
     engine_config = TurbomindEngineConfig(
         model_format='awq',
-        rope_scaling_factor=2.0, 
+        rope_scaling_factor=2.0,
         session_len=160000,
         cache_max_entry_count=0.2
     )

@@ -59,22 +59,19 @@ def handler(event, context):
             key_folder = os.path.dirname(key)
 
             workspace_id = get_valid_workspace_id(key_folder)
-            input_payload = json.dumps(
-                {
-                    "s3Bucket": bucket,
-                    "s3Prefix": key,
-                    "offline": "false",
-                    "qaEnhance": "false",
-                    "workspaceId": workspace_id,
-                    "operationType": "delete",
-                }
-            )
+            input_body = {
+                "s3Bucket": bucket,
+                "s3Prefix": key,
+                "offline": "false",
+                "qaEnhance": "false",
+                "workspaceId": workspace_id,
+                "operationType": "delete",
+            }
     else:
         print("API Gateway event detected")
         # Parse the body from the event object
-        body = json.loads(event["body"])
-        # Pass the parsed body to the Step Function
-        input_payload = json.dumps(body)
+        input_body = json.loads(event["body"])
+        
 
     resp_header = {
         "Content-Type": "application/json",
@@ -82,18 +79,17 @@ def handler(event, context):
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "*",
     }
-
+    input_payload = json.dumps(input_body)
     response = client.start_execution(
         stateMachineArn=os.environ["sfn_arn"], input=input_payload
     )
 
     execution_id = response["executionArn"].split(":")[-1]
-    input_payload["executionId"] = execution_id
-    input_payload["status"] = execution_id["initial"]
+    input_body["executionId"] = execution_id
+    input_body["status"] = "initial"
 
-    ddb_response = dynamodb.put_item(
-        TableName=execution_table,
-        Item=input_payload
+    ddb_response = execution_table.put_item(
+        Item=input_body
     )
 
     return {

@@ -129,7 +129,6 @@ export class RootStack extends Stack {
       websocket: apiStack.wsEndpoint,
       apiUrl: apiStack.apiEndpoint,
     });
-
     uiPortal.node.addDependency(apiStack);
 
     new CfnOutput(this, "API Endpoint Address", {

@@ -195,6 +195,14 @@ export class LLMApiStack extends NestedStack {
       memorySize: 256,
     });
 
+    lambdaStepFunction.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["dynamodb:*"],
+        effect: iam.Effect.ALLOW,
+        resources: ["*"],
+      }),
+    );
+
     // Grant lambda function to invoke step function
     props.sfnOutput.grantStartExecution(lambdaStepFunction);
 
