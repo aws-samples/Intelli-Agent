@@ -96,7 +96,7 @@ operation_type = args["OPERATION_TYPE"]
 s3_client = boto3.client("s3")
 smr_client = boto3.client("sagemaker-runtime")
 dynamodb = boto3.resource("dynamodb")
-table = dynamodb.Table(processedObjectsTable)
+execution_table = dynamodb.Table(processedObjectsTable)
 workspace_table = dynamodb.Table(workspace_table)
 workspace_manager = WorkspaceManager(workspace_table)
 

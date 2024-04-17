@@ -11,7 +11,7 @@
  *  and limitations under the License.                                                                                *
  *********************************************************************************************************************/
 
-import { Aws, Duration, NestedStack, StackProps } from "aws-cdk-lib";
+import { Aws, Duration, StackProps } from "aws-cdk-lib";
 import * as apigw from "aws-cdk-lib/aws-apigateway";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as iam from "aws-cdk-lib/aws-iam";
@@ -26,7 +26,7 @@ import { BuildConfig } from "../../lib/shared/build-config";
 import { Constants } from "../shared/constants";
 import { LambdaLayers } from "../shared/lambda-layers";
 import { QueueConstruct } from "./api-queue";
-import { WebSocketStack } from "./websocket-api";
+import { WebSocketConstruct } from "./websocket-api";
 import { Function, Runtime, Code, Architecture, DockerImageFunction, DockerImageCode } from 'aws-cdk-lib/aws-lambda';
 
 interface ApiStackProps extends StackProps {
@@ -49,14 +49,15 @@ interface ApiStackProps extends StackProps {
   jobDefinitionArn: string;
   etlEndpoint: string;
   resBucketName: string;
+  executionTableName: string;
 }
 
-export class LLMApiStack extends NestedStack {
+export class ApiConstruct extends Construct {
   public apiEndpoint: string = "";
   public documentBucket: string = "";
   public wsEndpoint: string = "";
   constructor(scope: Construct, id: string, props: ApiStackProps) {
-    super(scope, id, props);
+    super(scope, id);
 
     const apiVpc = props.apiVpc;
     const securityGroup = props.securityGroup;
@@ -189,9 +190,18 @@ export class LLMApiStack extends NestedStack {
       timeout: Duration.seconds(30),
       environment: {
         sfn_arn: props.sfnOutput.stateMachineArn,
+        EXECUTION_TABLE: props.executionTableName,
       },
       memorySize: 256,
     });
+
+    lambdaStepFunction.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["dynamodb:*"],
+        effect: iam.Effect.ALLOW,
+        resources: ["*"],
+      }),
+    );
 
     // Grant lambda function to invoke step function
     props.sfnOutput.grantStartExecution(lambdaStepFunction);
@@ -429,7 +439,7 @@ export class LLMApiStack extends NestedStack {
       });
       lambdaDispatcher.addToRolePolicy(sqsStatement);
 
-      const webSocketApi = new WebSocketStack(this, "WebSocketApi", {
+      const webSocketApi = new WebSocketConstruct(this, "WebSocketApi", {
         dispatcherLambda: lambdaDispatcher,
         sendMessageLambda: lambdaExecutor,
       });

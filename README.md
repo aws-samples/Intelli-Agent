@@ -81,6 +81,13 @@ Finally, if this is the first time using Amazon OpenSearch in this account, you 
 ```bash
 aws iam create-service-linked-role --aws-service-name es.amazonaws.com
 ```
+### Build Frontend
+
+```bash
+cd source/portal
+npm install
+npm run build
+```
 
 ### Deploy CDK Template
 Please make sure **docker** is installed and the CDK command is executed in the **same region** of the model files which are uploaded in previous step. 

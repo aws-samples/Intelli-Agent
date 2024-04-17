@@ -16,15 +16,15 @@ import { Construct } from "constructs";
 import * as dotenv from "dotenv";
 import * as path from "path";
 
-import { LLMApiStack } from "../lib/api/api-stack";
-import { ConnectorStack } from "../lib/connector/connector-stack";
-import { DynamoDBStack } from "../lib/ddb/ddb-stack";
+import { ApiConstruct } from "../lib/api/api-stack";
+import { ConnectorConstruct } from "../lib/connector/connector-stack";
+import { DynamoDBConstruct } from "../lib/db/dynamodb";
 import { EtlStack } from "../lib/etl/etl-stack";
-import { AssetsStack } from "../lib/model/assets-stack";
+import { AssetsConstruct } from "../lib/model/assets-stack";
 import { LLMStack } from "../lib/model/llm-stack";
 import { BuildConfig } from "../lib/shared/build-config";
 import { DeploymentParameters } from "../lib/shared/cdk-parameters";
-import { VpcStack } from "../lib/shared/vpc-stack";
+import { VpcConstruct } from "../lib/shared/vpc-stack";
 import { OpenSearchStack } from "../lib/vector-store/os-stack";
 import { PortalConstruct } from "../lib/ui/ui-portal";
 
@@ -38,70 +38,65 @@ export class RootStack extends Stack {
 
     const cdkParameters = new DeploymentParameters(this);
 
-    const assetsStack = new AssetsStack(this, "assets-stack", {
+    const assetConstruct = new AssetsConstruct(this, "assets-construct", {
       s3ModelAssets: cdkParameters.s3ModelAssets.valueAsString,
       env: process.env,
     });
-    const llmStack = new LLMStack(this, "llm-stack", {
+    const llmStack = new LLMStack(this, "rag-stack", {
       s3ModelAssets: cdkParameters.s3ModelAssets.valueAsString,
-      rerankModelPrefix: assetsStack.rerankModelPrefix,
-      rerankModelVersion: assetsStack.rerankModelVersion,
-      embeddingModelPrefix: assetsStack.embeddingModelPrefix,
-      embeddingModelVersion: assetsStack.embeddingModelVersion,
-      instructModelPrefix: assetsStack.instructModelPrefix,
-      instructModelVersion: assetsStack.instructModelVersion,
+      rerankModelPrefix: assetConstruct.rerankModelPrefix,
+      rerankModelVersion: assetConstruct.rerankModelVersion,
+      embeddingModelPrefix: assetConstruct.embeddingModelPrefix,
+      embeddingModelVersion: assetConstruct.embeddingModelVersion,
+      instructModelPrefix: assetConstruct.instructModelPrefix,
+      instructModelVersion: assetConstruct.instructModelVersion,
       env: process.env,
     });
-    llmStack.addDependency(assetsStack);
+    llmStack.node.addDependency(assetConstruct);
 
-    const vpcStack = new VpcStack(this, "vpc-stack", { env: process.env });
+    const vpcConstruct = new VpcConstruct(this, "vpc-construct");
 
     const osStack = new OpenSearchStack(this, "os-stack", {
-      osVpc: vpcStack.connectorVpc,
-      securityGroup: vpcStack.securityGroup,
+      osVpc: vpcConstruct.connectorVpc,
+      securityGroup: vpcConstruct.securityGroup,
     });
-    osStack.addDependency(vpcStack);
+    osStack.node.addDependency(vpcConstruct);
 
-    const dynamoDBStack = new DynamoDBStack(this, "ddb-stack", {
-      stackVpc: vpcStack.connectorVpc,
-      securityGroup: vpcStack.securityGroup,
-      env: process.env,
-    });
-    dynamoDBStack.addDependency(vpcStack);
+    const dynamoDBConstruct = new DynamoDBConstruct(this, "ddb-construct");
 
     const etlStack = new EtlStack(this, "etl-stack", {
       domainEndpoint: osStack.domainEndpoint || "",
       embeddingEndpoint: llmStack.embeddingEndPoints,
       region: props.env?.region || "us-east-1",
       subEmail: cdkParameters.subEmail.valueAsString ?? "",
-      etlVpc: vpcStack.connectorVpc,
-      subnets: vpcStack.privateSubnets,
-      securityGroups: vpcStack.securityGroup,
+      etlVpc: vpcConstruct.connectorVpc,
+      subnets: vpcConstruct.privateSubnets,
+      securityGroups: vpcConstruct.securityGroup,
       s3ModelAssets: cdkParameters.s3ModelAssets.valueAsString,
       openSearchIndex: cdkParameters.openSearchIndex.valueAsString,
       imageName: cdkParameters.etlImageName.valueAsString,
       etlTag: cdkParameters.etlImageTag.valueAsString,
     });
-    etlStack.addDependency(vpcStack);
+    etlStack.node.addDependency(vpcConstruct);
     etlStack.addDependency(osStack);
     etlStack.addDependency(llmStack);
 
-    const connectorStack = new ConnectorStack(this, "connector-stack", {
-      connectorVpc: vpcStack.connectorVpc,
-      securityGroup: vpcStack.securityGroup,
+    const connectorConstruct = new ConnectorConstruct(this, "connector-construct", {
+      connectorVpc: vpcConstruct.connectorVpc,
+      securityGroup: vpcConstruct.securityGroup,
       domainEndpoint: osStack.domainEndpoint || "",
       embeddingEndPoints: llmStack.embeddingEndPoints,
       openSearchIndex: cdkParameters.openSearchIndex.valueAsString,
       openSearchIndexDict: cdkParameters.openSearchIndexDict.valueAsString,
       env: process.env,
     });
-    connectorStack.addDependency(vpcStack);
-    connectorStack.addDependency(osStack);
-    connectorStack.addDependency(llmStack);
+    connectorConstruct.node.addDependency(vpcConstruct);
+    connectorConstruct.node.addDependency(osStack);
+    connectorConstruct.node.addDependency(llmStack);
 
-    const apiStack = new LLMApiStack(this, "api-stack", {
-      apiVpc: vpcStack.connectorVpc,
-      securityGroup: vpcStack.securityGroup,
+    const apiConstruct = new ApiConstruct(this, "api-construct", {
+      apiVpc: vpcConstruct.connectorVpc,
+      securityGroup: vpcConstruct.securityGroup,
       domainEndpoint: osStack.domainEndpoint || "",
       rerankEndPoint: llmStack.rerankEndPoint ?? "",
       embeddingEndPoints: llmStack.embeddingEndPoints || "",
@@ -110,34 +105,34 @@ export class RootStack extends Stack {
         BuildConfig.LLM_ENDPOINT_NAME !== ""
           ? BuildConfig.LLM_ENDPOINT_NAME
           : llmStack.instructEndPoint,
-      sessionsTableName: dynamoDBStack.sessionTableName,
-      messagesTableName: dynamoDBStack.messageTableName,
+      sessionsTableName: dynamoDBConstruct.sessionTableName,
+      messagesTableName: dynamoDBConstruct.messageTableName,
       workspaceTableName: etlStack.workspaceTableName,
       sfnOutput: etlStack.sfnOutput,
       openSearchIndex: cdkParameters.openSearchIndex.valueAsString,
       openSearchIndexDict: cdkParameters.openSearchIndexDict.valueAsString,
-      jobName: connectorStack.jobName,
-      jobQueueArn: connectorStack.jobQueueArn,
-      jobDefinitionArn: connectorStack.jobDefinitionArn,
+      jobName: connectorConstruct.jobName,
+      jobQueueArn: connectorConstruct.jobQueueArn,
+      jobDefinitionArn: connectorConstruct.jobDefinitionArn,
       etlEndpoint: etlStack.etlEndpoint,
       resBucketName: etlStack.resBucketName,
+      executionTableName: etlStack.executionTableName,
       env: process.env,
     });
-    apiStack.addDependency(vpcStack);
-    apiStack.addDependency(osStack);
-    apiStack.addDependency(llmStack);
-    apiStack.addDependency(dynamoDBStack);
-    apiStack.addDependency(connectorStack);
-    apiStack.addDependency(dynamoDBStack);
-    apiStack.addDependency(etlStack);
+    apiConstruct.node.addDependency(vpcConstruct);
+    apiConstruct.node.addDependency(osStack);
+    apiConstruct.node.addDependency(llmStack);
+    apiConstruct.node.addDependency(connectorConstruct);
+    apiConstruct.node.addDependency(etlStack);
 
-    const uiPortal = new PortalConstruct(this, "ui-stack", {
-      websocket: apiStack.wsEndpoint,
-      apiUrl: apiStack.apiEndpoint,
+    const uiPortal = new PortalConstruct(this, "ui-construct", {
+      websocket: apiConstruct.wsEndpoint,
+      apiUrl: apiConstruct.apiEndpoint,
     });
+    uiPortal.node.addDependency(apiConstruct);
 
     new CfnOutput(this, "API Endpoint Address", {
-      value: apiStack.apiEndpoint,
+      value: apiConstruct.apiEndpoint,
     });
     new CfnOutput(this, "AOS Index Dict", {
       value: cdkParameters.openSearchIndexDict.valueAsString,
@@ -146,7 +141,7 @@ export class RootStack extends Stack {
     new CfnOutput(this, "Cross Model Endpoint", {
       value: llmStack.rerankEndPoint || "No Cross Endpoint Created",
     });
-    new CfnOutput(this, "Document Bucket", { value: apiStack.documentBucket });
+    new CfnOutput(this, "Document Bucket", { value: apiConstruct.documentBucket });
     new CfnOutput(this, "Embedding Model Endpoint", {
       value: llmStack.embeddingEndPoints[0] || "No Embedding Endpoint Created",
     });
@@ -158,15 +153,15 @@ export class RootStack extends Stack {
       value: osStack.domainEndpoint || "No OpenSearch Endpoint Created",
     });
     new CfnOutput(this, "Processed Object Table", {
-      value: etlStack.processedObjectsTableName,
+      value: etlStack.executionTableName,
     });
-    new CfnOutput(this, "VPC", { value: vpcStack.connectorVpc.vpcId });
+    new CfnOutput(this, "VPC", { value: vpcConstruct.connectorVpc.vpcId });
     new CfnOutput(this, "WebPortalURL", {
       value: uiPortal.portalUrl,
       description: "LLM-Bot web portal url",
     });
     new CfnOutput(this, "WebSocket Endpoint Address", {
-      value: apiStack.wsEndpoint,
+      value: apiConstruct.wsEndpoint,
     });
   }
 
@@ -190,7 +185,5 @@ const devEnv = {
 };
 
 const app = new App();
-
 new RootStack(app, "llm-bot-dev", { env: devEnv });
-
 app.synth();

@@ -6,6 +6,8 @@ from urllib.parse import unquote
 import boto3
 
 client = boto3.client("stepfunctions")
+dynamodb = boto3.resource('dynamodb')
+execution_table = dynamodb.Table(os.environ.get('EXECUTION_TABLE'))
 
 
 def get_valid_workspace_id(s3_prefix):
@@ -57,22 +59,19 @@ def handler(event, context):
             key_folder = os.path.dirname(key)
 
             workspace_id = get_valid_workspace_id(key_folder)
-            input_payload = json.dumps(
-                {
-                    "s3Bucket": bucket,
-                    "s3Prefix": key,
-                    "offline": "false",
-                    "qaEnhance": "false",
-                    "workspaceId": workspace_id,
-                    "operationType": "delete",
-                }
-            )
+            input_body = {
+                "s3Bucket": bucket,
+                "s3Prefix": key,
+                "offline": "false",
+                "qaEnhance": "false",
+                "workspaceId": workspace_id,
+                "operationType": "delete",
+            }
     else:
         print("API Gateway event detected")
         # Parse the body from the event object
-        body = json.loads(event["body"])
-        # Pass the parsed body to the Step Function
-        input_payload = json.dumps(body)
+        input_body = json.loads(event["body"])
+        
 
     resp_header = {
         "Content-Type": "application/json",
@@ -80,9 +79,17 @@ def handler(event, context):
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "*",
     }
-
+    input_payload = json.dumps(input_body)
     response = client.start_execution(
         stateMachineArn=os.environ["sfn_arn"], input=input_payload
+    )
+
+    execution_id = response["executionArn"].split(":")[-1]
+    input_body["executionId"] = execution_id
+    input_body["status"] = "Initial"
+
+    ddb_response = execution_table.put_item(
+        Item=input_body
     )
 
     return {
@@ -90,7 +97,7 @@ def handler(event, context):
         "headers": resp_header,
         "body": json.dumps(
             {
-                "execution_id": response["executionArn"].split(":")[-1],
+                "execution_id": execution_id,
                 "step_function_arn": response["executionArn"],
                 "input_payload": input_payload,
             }
