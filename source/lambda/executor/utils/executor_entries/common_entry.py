@@ -34,7 +34,7 @@ from ..llm_utils import LLMChain
 from ..query_process_utils.preprocess_utils import (
     get_service_name,
     is_api_query,
-    is_query_too_short,
+    is_query_invalid,
     language_check,
     query_translate,
 )
@@ -120,7 +120,6 @@ def get_qd_chain(qd_config, qd_workspace_list):
         "qd chain",
     )
     return qd_chain
-
 
 
 def main_chain_entry(
@@ -212,13 +211,12 @@ def main_chain_entry(
     trace_info = format_trace_infos(trace_infos)
     logger.info(f"chain trace info:\n{trace_info}")
 
-
     ret = {
         "answer": response["answer"],
         "context_sources": response["context_sources"],
         "context_docs": response["context_docs"],
         "debug_info": debug_info,
-        "rag_config": rag_config
+        "rag_config": rag_config,
     }
 
     return ret

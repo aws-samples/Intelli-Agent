@@ -556,7 +556,7 @@ class QueryDocumentKNNRetriever(BaseRetriever):
                                                "retrieval_content": result["content"],
                                                "retrieval_data": result["data"],
                                                "retrieval_score": result["score"],
-                                               "jsonlAnswer": result["detail"]["metadata"]["jsonlAnswer"],
+                                               # "jsonlAnswer": result["detail"]["metadata"]["jsonlAnswer"],
                                                #
                                                 # set common score for llm.
                                                "score": result["score"]}))
