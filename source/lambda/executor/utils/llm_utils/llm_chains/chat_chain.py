@@ -6,7 +6,9 @@ from ...constant import IntentType,QUERY_TRANSLATE_TYPE,HUMAN_MESSAGE_TYPE,AI_ME
 from ...prompt_template import get_chit_chat_prompt,CHIT_CHAT_SYSTEM_TEMPLATE
 from ..llm_models import Model
 from .llm_chain_base import LLMChain
+from ...logger_utils import get_logger
 
+logger = get_logger("caht_chain")
 
 class ClaudeChain(LLMChain):
     model_id = 'anthropic.claude-3-opus-20240229-v1:0'
@@ -104,7 +106,7 @@ class Iternlm2Chat7BChatChain(LLMChain):
     intent_type = IntentType.CHAT.value
 
     default_model_kwargs = {
-        "temperature":0.5,
+        "temperature":0.1,
         "max_new_tokens": 1000
     }
 
@@ -124,14 +126,6 @@ class Iternlm2Chat7BChatChain(LLMChain):
         prompt += f"""<|im_start|>user\n{query}<|im_end|>\n<|im_start|>assistant\n"""
         return prompt
 
-    # @classmethod
-    # def add_meta_instruction(cls,x):
-    #     meta_instruction = CHIT_CHAT_SYSTEM_TEMPLATE
-    #     return meta_instruction
-        
-    # @classmethod
-    # def add_query(cls,x):
-    #     return x['query']
 
     @classmethod
     def create_history(cls,x):
@@ -146,21 +140,25 @@ class Iternlm2Chat7BChatChain(LLMChain):
             history.append((user_message.content,ai_message.content))
         return history
         
-    @classmethod
-    def create_prompt(cls,x):
-        history = cls.create_history(x)
-        prompt = cls.build_prompt(
+    def create_prompt(self,x):
+        history = self.create_history(x)
+        prompt = self.build_prompt(
             query=x['query'],
             history=history,
-            meta_instruction=CHIT_CHAT_SYSTEM_TEMPLATE
+            meta_instruction=self.meta_instruction
         )
+        logger.info(f'internlm2 prompt: \n{prompt}')
         return prompt
         
     @classmethod
     def create_chain(cls, model_kwargs=None, **kwargs):
+        obj = cls()
         model_kwargs = model_kwargs or {}
         model_kwargs = {**cls.default_model_kwargs,**model_kwargs}
+
         stream = kwargs.get('stream',False)
+        
+        obj.meta_instruction = kwargs.get('meta_instruction',CHIT_CHAT_SYSTEM_TEMPLATE)
         llm = Model.get_model(
                 cls.model_id,
                 model_kwargs=model_kwargs,
@@ -168,7 +166,7 @@ class Iternlm2Chat7BChatChain(LLMChain):
             )
         
         prompt_template = RunnablePassthrough.assign(
-            prompt=RunnableLambda(lambda x:cls.create_prompt(x))
+            prompt=RunnableLambda(lambda x: obj.create_prompt(x))
         ) 
         llm_chain = prompt_template | RunnableLambda(lambda x:llm.invoke(x,stream=stream))
         return llm_chain

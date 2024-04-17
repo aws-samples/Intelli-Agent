@@ -39,7 +39,7 @@ from ..query_process_utils.preprocess_utils import (
     language_check,
     query_translate,
     get_service_name,
-    is_query_too_short
+    is_query_invalid
 )
 from ..db_utils.sql_utils import (
     check_sql_validation
@@ -221,11 +221,11 @@ def text2sql_guidance_entry(
     # 1. text2sql quick rule check: text2sql_rule_check_func
     # 1.1 whether the query is too short: is_query_too_short_func
     query_length_threshold = rag_config['query_process_config']['query_length_threshold']
-    is_query_too_short_func = RunnablePassthrough.assign(
-        is_query_too_short = RunnableLambda(
-        lambda x:is_query_too_short(x['query'],threshold=query_length_threshold)
+    is_query_invalid_func = RunnablePassthrough.assign(
+        is_query_invalid = RunnableLambda(
+        lambda x:is_query_invalid(x['query'],threshold=query_length_threshold)
     ))
-    text2sql_rule_check_func = is_query_too_short_func
+    text2sql_rule_check_func = is_query_invalid_func
 
     rule_check_chain = RunnableBranch(
         (lambda x: x['intent_type'] == IntentType.TEXT2SQL_SQL_RE_GEN.value,
@@ -234,7 +234,7 @@ def text2sql_guidance_entry(
         ),
         (lambda x: x['intent_type'] == IntentType.TEXT2SQL_SQL_GEN.value, 
             text2sql_rule_check_func | RunnableBranch(
-                (lambda x: x['is_query_too_short'],
+                (lambda x: x['is_query_invalid'],
                     RunnablePassthrough.assign(intent_type=RunnableLambda(
                         lambda x: IntentType.COMMON_QUICK_REPLY_TOO_SHORT.value))),
                 RunnablePassthrough()
