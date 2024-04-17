@@ -92,7 +92,8 @@ def text2sql_fast_reply(
             "sources": [],
             "contexts": [],
             "context_docs": [],
-            "context_sources": []
+            "context_sources": [],
+            "sql_validate_result": ""
     }
     if debug_info is not None:
         debug_info['response_msg'] = fast_info
@@ -140,6 +141,7 @@ def get_qd_chain(qd_config, qd_workspace_list):
     compression_retriever = ContextualCompressionRetriever(
         base_compressor=compressor, base_retriever=lotr
     )
+
     if not qd_workspace_list:
         qd_chain = chain_logger(
             RunnablePassthrough.assign(
