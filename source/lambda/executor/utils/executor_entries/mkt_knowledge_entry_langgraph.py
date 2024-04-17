@@ -2,6 +2,7 @@ import logging
 import json 
 import os
 import boto3
+from datetime import datetime
 import time
 from functools import partial 
 from textwrap import dedent
@@ -16,6 +17,8 @@ from langchain.retrievers.merger_retriever import MergerRetriever
 from langgraph.graph import StateGraph,END
 from ..intent_utils import IntentRecognitionAOSIndex
 from ..llm_utils import LLMChain
+from ..time_utils import get_china_now
+
 from ..serialization_utils import JSONEncoder
 from ..logger_utils import get_logger
 from ..langchain_utils import (
@@ -275,15 +278,6 @@ def query_preprocess(state: AppState):
 # EMBEDDING_ENDPOINT_NAME = ""
 
 
-# intent_recognition_index = IntentRecognitionAOSIndex(
-#         embedding_endpoint_name=EMBEDDING_ENDPOINT_NAME)
-
-# search_chain = intent_recognition_index.as_search_chain(top_k=5)
-
-# postprocess_chain = intent_recognition_index.as_intent_postprocess_chain(method='top_1')
-
-# chain = search_chain | postprocess_chain
-
 def get_intent_recognition_with_index_chain(state):
     intent_recognition_index = IntentRecognitionAOSIndex(
         embedding_endpoint_name=state['intent_embedding_endpoint_name'])
@@ -435,7 +429,12 @@ def context_filter(state):
 #####################
 # step 6. llm chain #
 #####################
-def llm(state):
+def rag_llm(state):
+    """
+    if context is sufficient
+    Args:
+        state (_type_): _description_
+    """
     state = state['keys']
     rag_config = state['rag_config']
     stream = state['stream']
@@ -457,6 +456,41 @@ def llm(state):
     _state = llm_chain.invoke(state)
     state.update(_state)
 
+def chat_llm(state):
+    """if context is insufficient
+    Args:
+        state (_type_): _description_
+    """
+    state = state['keys']
+    rag_config = state['rag_config']
+    generator_llm_config = rag_config['generator_llm_config']
+    stream = state['stream']
+
+    now = get_china_now()
+    date_str = now.strftime("%Y年%m月%d日")
+    weekdays = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日']
+    weekday = weekdays[now.weekday()]
+    meta_instruction=f"""你是一个亚马逊云科技的AI助理，你的名字是亚麻小Q。今天是{date_str},{weekday}。
+你按照下面的规范回答客户的问题:
+     - 如果用户表达感谢，你也要简单表达感谢。
+     - 如果你不知道某个问题，请直接回答:"您好, 根据我掌握到的知识没办法回答您的问题呢？"
+     - 如果用户的问题信息不够，你可以直接反问。
+     - 请保证回答简洁，每次回答不超过3句话。
+"""
+    llm_chain = RunnablePassthrough.assign(
+                answer=LLMChain.get_chain(
+                    intent_type=IntentType.CHAT.value,
+                    stream=stream,
+                    meta_instruction=meta_instruction,
+                    **generator_llm_config
+                    ),
+                chat_history=lambda x:rag_config['chat_history'],
+                context_sources = lambda x:[],
+                context_docs = lambda x:[]
+          )
+    
+    _state = llm_chain.invoke(state)
+    state.update(_state)
 
 # conditional edge
 def decide_query_reject(state):
@@ -561,23 +595,26 @@ def market_chain_knowledge_entry(
     workflow = StateGraph(AppState)
     workflow.add_node('mkt_fast_reply', mkt_fast_reply)
     workflow.add_node('query_reject', query_reject)
-    workflow.add_node('conversation_query_rewrite', conversation_query_rewrite)
+    # workflow.add_node('conversation_query_rewrite', conversation_query_rewrite)
     workflow.add_node('query_preprocess', query_preprocess)
     workflow.add_node('qq_match_and_intent_recognition', qq_match_and_intent_recognition)
     workflow.add_node('query_expansion', partial(query_expansion,result_key=qd_config['query_key']))
     workflow.add_node('knowledge_qd_retriver', knowledge_qd_retriver)
     workflow.add_node('event_qd_retriever', event_qd_retriever)
     workflow.add_node('context_filter', context_filter)
-    workflow.add_node('llm', llm)
- 
+    workflow.add_node('rag_llm', rag_llm)
+    workflow.add_node('chat_llm', chat_llm)
+    
     # start node
     workflow.set_entry_point("query_reject")
     # termial node
     workflow.add_edge('mkt_fast_reply', END)
-    workflow.add_edge('llm', END)
+    workflow.add_edge('rag_llm', END)
+    workflow.add_edge('chat_llm', END)
+
 
     # normal edge
-    workflow.add_edge('conversation_query_rewrite','query_preprocess')
+    # workflow.add_edge('conversation_query_rewrite','query_preprocess')
     workflow.add_edge(
         'query_preprocess',
         'qq_match_and_intent_recognition'
@@ -591,7 +628,7 @@ def market_chain_knowledge_entry(
         decide_query_reject,
         {
            "query invalid": "mkt_fast_reply",
-           "normal": "conversation_query_rewrite"
+           "normal": "query_preprocess"
         }
     )
 
@@ -599,7 +636,7 @@ def market_chain_knowledge_entry(
         'qq_match_and_intent_recognition',
         decide_intent,
         {
-        "unsupported_intent": "mkt_fast_reply",
+        "unsupported_intent": "chat_llm",
         "qq_match": "mkt_fast_reply",
         "valid_intent" : "query_expansion",
         }
@@ -618,8 +655,8 @@ def market_chain_knowledge_entry(
          "context_filter",
          decide_if_context_sufficient,
          {
-             "insufficient context":'mkt_fast_reply',
-             "sufficient context":"llm"
+             "insufficient context": 'chat_llm',
+             "sufficient context": "rag_llm"
          }
      )
 
@@ -634,7 +671,7 @@ def market_chain_knowledge_entry(
             "debug_info": debug_info,
             # "intent_type": intent_type,
             # "intent_info": intent_info,
-            "chat_history": rag_config['chat_history'] if rag_config['use_history'] else [],
+            "chat_history": rag_config['chat_history'][-6:] if rag_config['use_history'] else [],
             "rag_config": rag_config,
             "message_id": message_id,
             "stream": stream,

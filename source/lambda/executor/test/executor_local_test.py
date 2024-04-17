@@ -606,6 +606,9 @@ def test_internlm_model_mkt_knowledge_entry():
     #   "介绍Amazon Lambda是什么？"
 
     r = generate_answer(
+        # "今天星期几？",
+        # "您好",
+        "你是谁？",
         # "Amazon Lambda函数是什么？",
         # "GenAI相关活动",
         # "在亚马逊云科技网站上，完成所有账户注册步骤后，什么时候才可以开始使用？",
@@ -618,7 +621,7 @@ def test_internlm_model_mkt_knowledge_entry():
         # "amazon sagemaker",
         # "近期市场活动推荐？",
         # "好的谢谢", 
-        "Claude 3 Opus的最大令牌数是多少？",
+        # "Claude 3 Opus的最大令牌数是多少？",
         # "亚马逊云科技有上海区域吗？",
         # "AWS支持上海region吗？", 
         # "在亚马逊云科技网站上，完成所有账户注册步骤后，什么时候才可以开始使用？",
@@ -639,9 +642,9 @@ def test_internlm_model_mkt_knowledge_entry():
         # "2024年出海全球化论坛的会议日程是什么？",
         # "亚马逊云科技有上海区域吗？",
         # "在亚马逊云科技网站上，完成所有账户注册步骤后，什么时候才可以开始使用？",
-        #     "亚马逊云科技中国区域免费套餐有哪几种不同类型的优惠？",
-        #     "什么是日志通",
-        #     "日志通是什么？",
+        # "亚马逊云科技中国区域免费套餐有哪几种不同类型的优惠？",
+        # "什么是日志通",
+        # "日志通是什么？",
             # model="knowledge_qa", 
             type=entry_type, 
             stream=True,

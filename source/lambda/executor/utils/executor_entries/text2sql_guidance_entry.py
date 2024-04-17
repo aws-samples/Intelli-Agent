@@ -39,7 +39,7 @@ from ..query_process_utils.preprocess_utils import (
     language_check,
     query_translate,
     get_service_name,
-    is_query_too_short
+    is_query_invalid
 )
 from ..db_utils.sql_utils import (
     check_sql_validation

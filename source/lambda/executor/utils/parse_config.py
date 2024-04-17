@@ -306,7 +306,7 @@ def parse_mkt_entry_knowledge_config(event_body):
             "endpoint_name": llm_model_endpoint_name,
             "context_num": 1,
         },
-        "use_history": False,
+        "use_history": True,
         "response_config": {
             # context return with chunk
             "context_return_with_chunk": False
