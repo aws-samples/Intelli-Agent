@@ -86,7 +86,7 @@ def handler(event, context):
 
     execution_id = response["executionArn"].split(":")[-1]
     input_body["executionId"] = execution_id
-    input_body["status"] = "initial"
+    input_body["status"] = "Initial"
 
     ddb_response = execution_table.put_item(
         Item=input_body

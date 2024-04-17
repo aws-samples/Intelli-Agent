@@ -12,5 +12,5 @@ execution_table = dynamodb.Table(os.environ.get('EXECUTION_TABLE'))
 
 def lambda_handler(event, context):
     logger.info(f"event:{event}")
+    # TODO: placeholder to add notification logic
     
-
