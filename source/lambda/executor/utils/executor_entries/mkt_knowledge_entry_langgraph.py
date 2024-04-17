@@ -271,6 +271,17 @@ def query_preprocess(state: AppState):
 #####################################
 # step 3.1 intent recognition chain #
 #####################################
+# EMBEDDING_ENDPOINT_NAME = ""
+
+
+# intent_recognition_index = IntentRecognitionAOSIndex(
+#         embedding_endpoint_name=EMBEDDING_ENDPOINT_NAME)
+
+# search_chain = intent_recognition_index.as_search_chain(top_k=5)
+
+# postprocess_chain = intent_recognition_index.as_intent_postprocess_chain(method='top_1')
+
+# chain = search_chain | postprocess_chain
 
 def get_intent_recognition_with_index_chain(state):
     intent_recognition_index = IntentRecognitionAOSIndex(
