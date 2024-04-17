@@ -21,7 +21,7 @@ def contexts_trunc(docs: list[dict], score_key='score',context_num=2):
         context_sources = []
         for doc in docs:
             # TODO add-hoc for txt2sql demo
-            content = doc['page_content'] + '\n' + doc['jsonl']
+            content = doc['page_content']
             if content not in s:
                 context_strs.append(content)
                 s.add(content)
