@@ -48,19 +48,20 @@ class CustomJsonLoader(BaseLoader):
                     "summary": "",
                     "file_type": "json"
                 }
-        item = json.loads(content)
-        content = item['content']
-        source_url = item['source'] if 'source' in item else item.get('url', 'N/A')
-        source_url = source_url if isinstance(source_url, str) else "N/A"
+        # item = json.loads(content)
+        # content = item
+        # content = item['content']
+        # source_url = item['source'] if 'source' in item else item.get('url', 'N/A')
+        # source_url = source_url if isinstance(source_url, str) else "N/A"
 
-        item_metadata = copy.deepcopy(metadata)
-        item_metadata['file_path'] = source_url
+        # item_metadata = copy.deepcopy(metadata)
+        # item_metadata['file_path'] = source_url
 
-        for key, values in item.items():
-            if key not in ['content', 'source', 'url']:
-                item_metadata[key] = values
+        # for key, values in item.items():
+        #     if key not in ['content', 'source', 'url']:
+        #         item_metadata[key] = values
         
-        doc = Document(page_content=content, metadata=item_metadata)
+        doc = Document(page_content=content, metadata=metadata)
 
         return doc
 
@@ -71,6 +72,7 @@ def process_json(file_content: str, **kwargs):
     res_bucket = kwargs['res_bucket']
     loader = CustomJsonLoader(aws_path=f"s3://{bucket}/{key}", res_bucket=res_bucket)
     doc = loader.load(file_content)
-    splitter = MarkdownHeaderTextSplitter(kwargs['res_bucket'])
-    doc_list = splitter.split_text(doc)
-    return doc_list
+    # splitter = MarkdownHeaderTextSplitter(kwargs['res_bucket'])
+    # doc_list = splitter.split_text(doc)
+    # return doc_list
+    return [doc]

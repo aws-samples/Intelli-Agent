@@ -362,7 +362,7 @@ def organize_faq_results(response, index_name, source_field="file_path", text_fi
                 if source_field in aos_hit["_source"]["metadata"]["jsonlAnswer"].keys():
                     result[source_field] = aos_hit["_source"]["metadata"]["jsonlAnswer"][source_field]
                 else:
-                    result[source_field] = aos_hit["_source"]["metadata"][source_field]
+                    result[source_field] = aos_hit["_source"]["metadata"]["file_path"]
             # result["doc"] = get_faq_content(result["source"], index_name)
         except:
             logger.info("index_error")
@@ -388,7 +388,7 @@ class QueryQuestionRetriever(BaseRetriever):
         super().__init__()
         self.index = workspace["open_search_index_name"]
         self.vector_field = "vector_field"
-        self.source_field = "file_path"
+        self.source_field = "source"
         self.size = size
         self.lang = workspace["languages"][0]
         self.embedding_model_endpoint = workspace["embeddings_model_endpoint"]
@@ -550,11 +550,14 @@ class QueryDocumentKNNRetriever(BaseRetriever):
             if result["doc"] in content_set:
                 continue
             content_set.add(result["content"])
+            #TODO add jsonlans
             doc_list.append(Document(page_content=result["doc"],
                                      metadata={"source": result["source"],
                                                "retrieval_content": result["content"],
                                                "retrieval_data": result["data"],
                                                "retrieval_score": result["score"],
+                                               "jsonlAnswer": result["detail"]["metadata"]["jsonlAnswer"],
+                                               #
                                                 # set common score for llm.
                                                "score": result["score"]}))
         if self.enable_debug:
@@ -640,6 +643,8 @@ class QueryDocumentBM25Retriever(BaseRetriever):
             # if 'additional_vecs' in aos_hit['_source']['metadata'] and \
             #     'colbert_vecs' in aos_hit['_source']['metadata']['additional_vecs']:
             #     result["data"]["colbert"] = aos_hit['_source']['metadata']['additional_vecs']['colbert_vecs']
+            if "jsonlAnswer" in aos_hit["_source"]["metadata"]:
+                result["jsonlAnswer"] = aos_hit["_source"]["metadata"]["jsonlAnswer"]
             results.append(result)
         if using_whole_doc:
             for result in results:

@@ -147,6 +147,7 @@ def mkt_fast_reply(
     fast_info = state.get('fast_info',"")
     debug_info = state['debug_info']
     answer = state['answer']
+    context_sources = state.get('context_sources', [])
     intent_type = state.get('intent_type', IntentType.KNOWLEDGE_QA.value)
     if answer is None:
         answer="很抱歉，我只能回答与亚马逊云科技产品和服务相关的咨询。"
@@ -158,7 +159,7 @@ def mkt_fast_reply(
             # "sources": [],
             "contexts": [],
             "context_docs": [],
-            "context_sources": []
+            "context_sources": context_sources
     }
     if debug_info is not None:
         debug_info['response_msg'] = fast_info 
@@ -332,7 +333,7 @@ def get_qq_match_chain(state):
         for workspace in qq_workspace_list
     ]
     if len(qq_workspace_list):
-        qq_compressor = BGEReranker(query_key=qq_query_key)
+        qq_compressor = BGEReranker(query_key=qq_query_key, enable_debug=qq_enable_debug)
         qq_lotr = MergerRetriever(retrievers=retriever_list)
         qq_compression_retriever = ContextualCompressionRetriever(
             base_compressor=qq_compressor, base_retriever=qq_lotr
@@ -474,7 +475,9 @@ def decide_intent(state):
         ]
     
     if len(state['qq_result']) > 0:
-        state['answer'] = sorted(state['qq_result'],key=lambda x:x['score'],reverse=True)[0]['answer']
+        doc = sorted(state['qq_result'],key=lambda x:x['score'],reverse=True)[0]
+        state['answer'] = doc['answer']
+        state['context_sources'] = [doc['source']]
         state['fast_info'] = 'qq_matched'
         return 'qq_match'
     

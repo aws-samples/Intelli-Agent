@@ -50,7 +50,7 @@ class WorkspaceManager:
     ):
 
         open_search_index_name = (
-            f"{workspace_id}_index"
+            workspace_id
             if not open_search_index_name
             else open_search_index_name
         )
