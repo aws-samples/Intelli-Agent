@@ -42,7 +42,7 @@ from ..query_process_utils.preprocess_utils import (
     language_check,
     query_translate,
     get_service_name,
-    is_query_too_short,
+    is_query_invalid,
     query_clean,
     rule_based_query_expansion
 )
@@ -59,7 +59,7 @@ workspace_manager = WorkspaceManager(workspace_table)
 
 
 # fast reply
-QUERY_TOO_SHORT = "您好，请详细描述您的问题。"
+QUERY_INVALID = "请重新描述您的问题。请注意：\n不能过于简短也不能超过500个字符\n不能包含个人信息（身份证号、手机号等）"
 INVALID_INTENT = "很抱歉，我只能回答与亚马逊云科技产品和服务相关的咨询。"
 KNOWLEDGE_QA_INSUFFICIENT_CONTEXT = "很抱歉，根据我目前掌握到的信息无法给出回答。"
 EVENT_INSUFFICIENT_CONTEXT = "抱歉，我没有查询到相关的市场活动信息。"
@@ -176,7 +176,7 @@ def query_reject(state:AppState):
     rag_config = state['rag_config']
     query_length_threshold = rag_config['query_process_config']['query_length_threshold']
 
-    state['is_query_too_short'] = is_query_too_short(
+    state['is_query_invalid'] = is_query_invalid(
         state['query'],
         threshold=query_length_threshold
     )
@@ -272,6 +272,17 @@ def query_preprocess(state: AppState):
 #####################################
 # step 3.1 intent recognition chain #
 #####################################
+# EMBEDDING_ENDPOINT_NAME = ""
+
+
+# intent_recognition_index = IntentRecognitionAOSIndex(
+#         embedding_endpoint_name=EMBEDDING_ENDPOINT_NAME)
+
+# search_chain = intent_recognition_index.as_search_chain(top_k=5)
+
+# postprocess_chain = intent_recognition_index.as_intent_postprocess_chain(method='top_1')
+
+# chain = search_chain | postprocess_chain
 
 def get_intent_recognition_with_index_chain(state):
     intent_recognition_index = IntentRecognitionAOSIndex(
@@ -450,10 +461,10 @@ def llm(state):
 # conditional edge
 def decide_query_reject(state):
     state = state['keys']
-    if state['is_query_too_short']:
-        state['fast_info'] = 'query too short'
-        state['answer'] = QUERY_TOO_SHORT
-        return 'query too short'
+    if state['is_query_invalid']:
+        state['fast_info'] = 'query invalid'
+        state['answer'] = QUERY_INVALID
+        return 'query invalid'
     return "normal"
 
 def decide_intent(state):
@@ -579,7 +590,7 @@ def market_chain_knowledge_entry(
         "query_reject",
         decide_query_reject,
         {
-           "query too short": "mkt_fast_reply",
+           "query invalid": "mkt_fast_reply",
            "normal": "conversation_query_rewrite"
         }
     )
