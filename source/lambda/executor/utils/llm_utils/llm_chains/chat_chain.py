@@ -10,6 +10,30 @@ from ...logger_utils import get_logger
 
 logger = get_logger("caht_chain")
 
+class ClaudeChain(LLMChain):
+    model_id = 'anthropic.claude-3-opus-20240229-v1:0'
+    intent_type = IntentType.CHAT.value
+
+    @classmethod
+    def create_chain(cls, model_kwargs=None, **kwargs):
+        stream = kwargs.get('stream',False)
+        prompt = RunnableLambda(lambda x: get_chit_chat_prompt(x['chat_history']))
+        kwargs.update({'return_chat_model':True})
+        llm = Model.get_model(
+            cls.model_id,
+            model_kwargs=model_kwargs,
+            **kwargs
+        )
+
+        chain = prompt | llm
+
+        if stream:
+            chain = prompt | RunnableLambda(lambda x: llm.stream(x.messages)) | RunnableLambda(lambda x:(i.content for i in x))
+        else:
+            chain = prompt | llm | RunnableLambda(lambda x: x.content)
+
+        return chain 
+
 class Claude2ChatChain(LLMChain):
     model_id = 'anthropic.claude-v2'
     intent_type = IntentType.CHAT.value

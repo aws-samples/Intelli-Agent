@@ -110,8 +110,8 @@ def generate_answer(query,
 
 def test_claude3_text2sql_entry():
     session_id=f'test_{time.time()}'
-    model_id = "anthropic.claude-3-haiku-20240307-v1:0"
-    # model_id = "anthropic.claude-3-sonnet-20240229-v1:0"
+    # model_id = "anthropic.claude-3-haiku-20240307-v1:0"
+    model_id = "anthropic.claude-3-sonnet-20240229-v1:0"
     entry_type = "text2sql"
 
     os.environ['llm_model_id'] = model_id

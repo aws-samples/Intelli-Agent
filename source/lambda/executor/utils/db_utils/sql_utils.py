@@ -64,6 +64,7 @@ def redshift_run_and_check(query_string):
     try:
         logging.info(" I am checking the syntax here")
         cur = conn.cursor()
+        return cur
     except Exception as e:
         logging.info("Error in exception")
         msg = str(e)
