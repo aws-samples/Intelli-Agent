@@ -1,10 +1,8 @@
 from .athena_utils import create_athena_client, get_athena_query_result, schedule_athena_query
 import logging
 import time
-import psycopg2
-import sqlalchemy as db
-from sqlalchemy import text
 import pandas as pd
+import redshift_connector
 
 def athena_run_and_check(query_string, db_name="cf_log_database", region="us-west-2", query_output="s3://text2sql-2024/athena_results/"):
     # print("Inside execute query", query_string)
@@ -59,28 +57,36 @@ def redshift_run_and_check(query):
     # bucket_name = 'clickstream-gamebi'
     # prefix = 'customer_sample_data'  # Set to ‘’ if no prefix
     p_db_url = "postgresql+psycopg2://{RDS_MYSQL_USERNAME}:{RDS_MYSQL_PASSWORD}@{RDS_MYSQL_HOST}:{RDS_MYSQL_PORT}/{RDS_MYSQL_DBNAME}"
+    p_db_url = p_db_url.format(RDS_MYSQL_HOST=RDS_MYSQL_HOST,
+        RDS_MYSQL_PORT=RDS_MYSQL_PORT,
+        RDS_MYSQL_USERNAME=RDS_MYSQL_USERNAME,
+        RDS_MYSQL_PASSWORD=RDS_MYSQL_PASSWORD,
+        RDS_MYSQL_DBNAME=RDS_MYSQL_DBNAME)
     try:
-        engine = db.create_engine(p_db_url.format(
-            RDS_MYSQL_HOST=RDS_MYSQL_HOST,
-            RDS_MYSQL_PORT=RDS_MYSQL_PORT,
-            RDS_MYSQL_USERNAME=RDS_MYSQL_USERNAME,
-            RDS_MYSQL_PASSWORD=RDS_MYSQL_PASSWORD,
-            RDS_MYSQL_DBNAME=RDS_MYSQL_DBNAME,
-        ))
+        conn = redshift_connector.connect(
+            host = RDS_MYSQL_HOST,
+            database = RDS_MYSQL_DBNAME,
+            port = RDS_MYSQL_PORT,
+            user = RDS_MYSQL_USERNAME,
+            password = RDS_MYSQL_PASSWORD)
 
-        with engine.connect() as connection:
-            logging.info(f'{query=}')
-            cursor = connection.execute(text(query))
-            rows = cursor.fetchall()
-            columns = list(cursor.keys())
-            logging.info(f'---------got sql results-------------')
-            logging.info(f'{rows=}')
-            logging.info(f'{columns=}')
-            results_df = pd.DataFrame(rows, columns=columns)
-        return results_df
+        logging.info(f'{query=}')
+        cursor = conn.cursor()
+        
+        cursor.execute(query)
+        # uncomment the following for debug purpose
+        # result: tuple = cursor.fetchall()
+        # columns = list(cursor.keys())
+        # logging.info(f'---------got sql results-------------')
+        # logging.info(f'{rows=}')
+        # logging.info(f'{columns=}')
+        # results_df = pd.DataFrame(result, columns=columns)
+        # result_df = None
+        return "Passed"
     except ValueError as e:
         logging.exception(e)
-        return {"status": "error", "message": str(e)}
+        error_message = e
+        return error_message
 
 
 # def redshift_run_and_check(query_string):

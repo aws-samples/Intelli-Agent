@@ -58,7 +58,7 @@ system_prompt_dict['gen_haiku-20240307v1-0_20240407063835'] = """
     """
 
 system_prompt_dict['gen_sonnet-20240229v1-0_20240407063835'] = """
-    Assume a database with the following tables and columns exists:
+    You are a Amazon Redshift expert. Assume a database with the following tables and columns exists:
 
     Given the following database schema, transform the following natural language requests into valid SQL queries.
 
