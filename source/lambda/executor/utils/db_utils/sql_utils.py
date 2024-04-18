@@ -2,6 +2,9 @@ from .athena_utils import create_athena_client, get_athena_query_result, schedul
 import logging
 import time
 import psycopg2
+import sqlalchemy as db
+from sqlalchemy import text
+import pandas as pd
 
 def athena_run_and_check(query_string, db_name="cf_log_database", region="us-west-2", query_output="s3://text2sql-2024/athena_results/"):
     # print("Inside execute query", query_string)
@@ -42,34 +45,72 @@ def athena_run_and_check(query_string, db_name="cf_log_database", region="us-wes
         logging.info(msg)
         return msg
 
-def redshift_run_and_check(query_string):
-    #  Redshift connection details
-    redshift_host = 'clickstream-game-bi-demo.432014048474.us-west-2.redshift-serverless.amazonaws.com'
-    redshift_port = '5439'
-    redshift_database = 'game_bi_demo'
-    redshift_user = 'clickstream_bi_b6uqhdw4'
-    redshift_password = 'iF3!bI72LYSCEfA^83b%yTnePq1=_YUw'
-    redshift_schema = 'zenmakeovermatch'
+def redshift_run_and_check(query):
+    """
+    Query the database
+    """
+    RDS_MYSQL_HOST = 'clickstream-game-bi-demo.432014048474.us-west-2.redshift-serverless.amazonaws.com'
+    RDS_MYSQL_PORT = '5439'
+    RDS_MYSQL_DBNAME = 'game_bi_demo'
+    RDS_MYSQL_USERNAME = 'clickstream_bi_b6uqhdw4'
+    RDS_MYSQL_PASSWORD = 'iF3!bI72LYSCEfA^83b%yTnePq1=_YUw'
+    # redshift_schema = 'zenmakeovermatch'
     # S3 bucket and prefix details
-    bucket_name = 'clickstream-gamebi'
-    prefix = 'customer_sample_data'  # Set to ‘’ if no prefix
-    # Connect to Redshift
-    conn = psycopg2.connect(
-        host=redshift_host,
-        port=redshift_port,
-        database=redshift_database,
-        user=redshift_user,
-        password=redshift_password
-    )
+    # bucket_name = 'clickstream-gamebi'
+    # prefix = 'customer_sample_data'  # Set to ‘’ if no prefix
+    p_db_url = "postgresql+psycopg2://{RDS_MYSQL_USERNAME}:{RDS_MYSQL_PASSWORD}@{RDS_MYSQL_HOST}:{RDS_MYSQL_PORT}/{RDS_MYSQL_DBNAME}"
     try:
-        logging.info(" I am checking the syntax here")
-        cur = conn.cursor()
-        return cur
-    except Exception as e:
-        logging.info("Error in exception")
-        msg = str(e)
-        logging.info(msg)
-        return msg
+        engine = db.create_engine(p_db_url.format(
+            RDS_MYSQL_HOST=RDS_MYSQL_HOST,
+            RDS_MYSQL_PORT=RDS_MYSQL_PORT,
+            RDS_MYSQL_USERNAME=RDS_MYSQL_USERNAME,
+            RDS_MYSQL_PASSWORD=RDS_MYSQL_PASSWORD,
+            RDS_MYSQL_DBNAME=RDS_MYSQL_DBNAME,
+        ))
+
+        with engine.connect() as connection:
+            logging.info(f'{query=}')
+            cursor = connection.execute(text(query))
+            rows = cursor.fetchall()
+            columns = list(cursor.keys())
+            logging.info(f'---------got sql results-------------')
+            logging.info(f'{rows=}')
+            logging.info(f'{columns=}')
+            results_df = pd.DataFrame(rows, columns=columns)
+        return results_df
+    except ValueError as e:
+        logging.exception(e)
+        return {"status": "error", "message": str(e)}
+
+
+# def redshift_run_and_check(query_string):
+#     #  Redshift connection details
+#     redshift_host = 'clickstream-game-bi-demo.432014048474.us-west-2.redshift-serverless.amazonaws.com'
+#     redshift_port = '5439'
+#     redshift_database = 'game_bi_demo'
+#     redshift_user = 'clickstream_bi_b6uqhdw4'
+#     redshift_password = 'iF3!bI72LYSCEfA^83b%yTnePq1=_YUw'
+#     redshift_schema = 'zenmakeovermatch'
+#     # S3 bucket and prefix details
+#     bucket_name = 'clickstream-gamebi'
+#     prefix = 'customer_sample_data'  # Set to ‘’ if no prefix
+#     # Connect to Redshift
+#     conn = psycopg2.connect(
+#         host=redshift_host,
+#         port=redshift_port,
+#         database=redshift_database,
+#         user=redshift_user,
+#         password=redshift_password
+#     )
+#     try:
+#         logging.info(" I am checking the syntax here")
+#         cur = conn.cursor()
+#         return cur
+#     except Exception as e:
+#         logging.info("Error in exception")
+#         msg = str(e)
+#         logging.info(msg)
+#         return msg
 
 def check_sql_validation(raw_query_string):
     # format query
