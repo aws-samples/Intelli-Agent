@@ -149,6 +149,10 @@ export class EtlStack extends NestedStack {
       sortKey: { name: "s3Prefix", type: dynamodb.AttributeType.STRING },
     });
     const etlObjTable = new DynamoDBTable(this, "ETLObject", etlS3Bucket, etlS3Prefix).table;
+    etlObjTable.addGlobalSecondaryIndex({
+      indexName: "ExecutionIdIndex",
+      partitionKey: { name: "executionId", type: dynamodb.AttributeType.STRING },
+    });
 
     const workspaceTable = new dynamodb.Table(this, "WorkspaceTable", {
       partitionKey: {
@@ -186,6 +190,7 @@ export class EtlStack extends NestedStack {
       architecture: Architecture.X86_64,
       environment: {
         EXECUTION_TABLE: executionTable.tableName,
+        ETL_OBJECT_TABLE: etlObjTable.tableName,
       },
     });
 
