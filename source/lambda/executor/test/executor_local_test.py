@@ -887,20 +887,38 @@ def test_internlm_model_mkt_knowledge_entry_with_conversation():
 
 
 
+    # messages = [
+    #     {
+    #     "role":"user",
+    #     "content": "请问怎么租用jetson agx orin"
+    #     },
+    #     {
+    #     "role":"ai",
+    #     "content": "您好,这是英伟达的产品"
+    #     },
+    #     {
+    #     "role":"user",
+    #     "content": "是的,可以租借一台吗"
+    #     }
+    # ]
+
     messages = [
         {
         "role":"user",
-        "content": "请问怎么租用jetson agx orin"
+        "content": "AWS 机器学习平台是什么？"
         },
         {
         "role":"ai",
-        "content": "您好,这是英伟达的产品"
+        "content": "sagemaker"
         },
         {
         "role":"user",
-        "content": "是的,可以租借一台吗"
+        "content": "它的优点是什么？"
         }
     ]
+
+
+
     # 注入历史消息到ddb
     ddb_history_obj = DynamoDBChatMessageHistory(
             sessions_table_name=sessions_table_name,

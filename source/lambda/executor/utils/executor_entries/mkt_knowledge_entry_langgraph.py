@@ -389,7 +389,7 @@ def query_expansion(state,result_key='query'):
     rag_config = state['rag_config']
     query_rewrite_config = rag_config['query_process_config']['query_rewrite_config']
     chain = LLMChain.get_chain(**query_rewrite_config,intent_type=MKT_QUERY_REWRITE_TYPE)
-    r = chain.invoke({"query":state['query'], "stream": False})
+    r = chain.invoke({"query":state['query'], "stream": False,"chat_history":state['chat_history']})
     state[result_key] = r
     logger.info(f'query_expansion: {r}')
     # state[result_key] = rule_based_query_expansion(state['query'])
@@ -746,7 +746,7 @@ def market_chain_knowledge_entry_assistant_418(
         }
 
     qd_config = rag_config['retriever_config']['qd_config'] 
-    
+
     if rag_config['user_type'] == MKTUserType.ASSISTANT:
         qd_config['qd_match_threshold'] = -100
 
