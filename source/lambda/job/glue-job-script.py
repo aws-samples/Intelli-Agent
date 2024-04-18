@@ -39,7 +39,7 @@ try:
             "ETL_MODEL_ENDPOINT",
             "JOB_NAME",
             "OFFLINE",
-            "ProcessedObjectsTable",
+            "ETLObjectTable",
             "QA_ENHANCEMENT",
             "REGION",
             "RES_BUCKET",
@@ -80,7 +80,7 @@ batchIndice = args["BATCH_INDICE"]
 embedding_model_endpoint = args["EMBEDDING_MODEL_ENDPOINT"]
 etlModelEndpoint = args["ETL_MODEL_ENDPOINT"]
 offline = args["OFFLINE"]
-processedObjectsTable = args["ProcessedObjectsTable"]
+etlObjTable = args["ETLObjectTable"]
 qa_enhancement = args["QA_ENHANCEMENT"]
 region = args["REGION"]
 res_bucket = args["RES_BUCKET"]
@@ -96,7 +96,7 @@ operation_type = args["OPERATION_TYPE"]
 s3_client = boto3.client("s3")
 smr_client = boto3.client("sagemaker-runtime")
 dynamodb = boto3.resource("dynamodb")
-execution_table = dynamodb.Table(processedObjectsTable)
+execution_table = dynamodb.Table(etlObjTable)
 workspace_table = dynamodb.Table(workspace_table)
 workspace_manager = WorkspaceManager(workspace_table)
 

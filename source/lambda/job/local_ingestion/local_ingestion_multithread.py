@@ -325,14 +325,14 @@ offline = args["OFFLINE"]
 qa_enhancement = args["QA_ENHANCEMENT"]
 # TODO, pass the bucket and prefix need to handle in current job directly
 batchIndice = args["BATCH_INDICE"]
-processedObjectsTable = args["ProcessedObjectsTable"]
+etlObjTable = args["ETLObjectTable"]
 workspace_id = args["WORKSPACE_ID"]
 workspace_table = args["WORKSPACE_TABLE"]
 
 s3 = boto3.client("s3")
 smr_client = boto3.client("sagemaker-runtime")
 dynamodb = boto3.resource("dynamodb")
-table = dynamodb.Table(processedObjectsTable)
+table = dynamodb.Table(etlObjTable)
 workspace_table = dynamodb.Table(workspace_table)
 workspace_manager = WorkspaceManager(workspace_table)
 
