@@ -4,7 +4,9 @@ import re
 from ..llm_models import Model
 from langchain.schema.runnable import RunnableLambda,RunnablePassthrough
 from langchain_core.messages import SystemMessage,HumanMessage,AIMessage
+from ...logger_utils import get_logger
 
+logger = get_logger("mkt_query_rewrite")
 
 
 class Iternlm2Chat7BMKTQueryRewriteChain(Iternlm2Chat7BChatChain):
@@ -36,6 +38,7 @@ class Iternlm2Chat7BMKTQueryRewriteChain(Iternlm2Chat7BChatChain):
             history=cls.create_history(x),
             meta_instruction=meta_instruction
         )  + "改写为:"
+        # logger.info(prompt)
         return prompt
 
 
