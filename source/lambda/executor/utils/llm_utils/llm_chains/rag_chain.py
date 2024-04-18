@@ -186,7 +186,7 @@ class Iternlm2Chat7BKnowledgeQaChain(Iternlm2Chat7BChatChain):
 # """
         prompt = cls.build_prompt(
             query=query,
-            history=[conversation_1,conversation_2,conversation_3],
+            history=[conversation_1,conversation_2,conversation_3] + history,
             meta_instruction=meta_instruction
         ) 
         # prompt = prompt + "回答: 让我先来判断一下问题的答案是否包含在背景知识中。"
