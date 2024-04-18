@@ -131,11 +131,11 @@ export class RootStack extends Stack {
     });
     uiPortal.node.addDependency(apiConstruct);
 
-    new CfnOutput(this, "API Endpoint Address", {
-      value: apiConstruct.apiEndpoint,
-    });
     new CfnOutput(this, "AOS Index Dict", {
       value: cdkParameters.openSearchIndexDict.valueAsString,
+    });
+    new CfnOutput(this, "API Endpoint Address", {
+      value: apiConstruct.apiEndpoint,
     });
     new CfnOutput(this, "Chunk Bucket", { value: etlStack.resBucketName });
     new CfnOutput(this, "Cross Model Endpoint", {
@@ -145,15 +145,18 @@ export class RootStack extends Stack {
     new CfnOutput(this, "Embedding Model Endpoint", {
       value: llmStack.embeddingEndPoints[0] || "No Embedding Endpoint Created",
     });
+    new CfnOutput(this, "ETL Object Table", {
+      value: etlStack.etlObjTableName,
+    });
+    new CfnOutput(this, "Execution Table", {
+      value: etlStack.executionTableName,
+    });
     new CfnOutput(this, "Glue Job Name", { value: etlStack.jobName });
     new CfnOutput(this, "Instruct Model Endpoint", {
       value: llmStack.instructEndPoint || "No Instruct Endpoint Created",
     });
     new CfnOutput(this, "OpenSearch Endpoint", {
       value: aosConstruct.domainEndpoint || "No OpenSearch Endpoint Created",
-    });
-    new CfnOutput(this, "Processed Object Table", {
-      value: etlStack.executionTableName,
     });
     new CfnOutput(this, "VPC", { value: vpcConstruct.connectorVpc.vpcId });
     new CfnOutput(this, "WebPortalURL", {
