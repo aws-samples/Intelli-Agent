@@ -407,7 +407,7 @@ def text2sql_guidance_entry(
         (lambda x: x['intent_type'] == IntentType.TEXT2SQL_SQL_RE_GEN.value,
             RunnablePassthrough.assign(
                 answer=LLMChain.get_chain(
-                    intent_type=IntentType.TEXT2SQL_SQL_RE_GEN.value,
+                    intent_type=IntentType.TEXT2SQL_SQL_GEN.value,
                     stream=stream,
                     **generator_llm_config
                     ),

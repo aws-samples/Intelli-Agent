@@ -89,11 +89,16 @@ from .query_rewrite_chain import (
     Iternlm2Chat7BQueryRewriteChain
 )
 
-from .text2sql_chain import (
-    Claude3HaikuText2SQLChain,
-    Claude3HaikuText2SQLReGenChain,
-    Claude3SonnetText2SQLChain,
-    Claude3SonnetText2SQLReGenChain
+# from .text2sql_chain import (
+#     Claude3HaikuText2SQLChain,
+#     Claude3HaikuText2SQLReGenChain,
+#     Claude3SonnetText2SQLChain,
+#     Claude3SonnetText2SQLReGenChain
+# )
+
+from .text2sql_gen_chain import (
+    Claude3HaikuText2SQLGenChain,
+    Claude3SonnetText2SQLGenChain
 )
 
 from .mkt_query_rewrite_chain import (

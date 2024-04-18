@@ -138,7 +138,7 @@ def claude_text2sql_gen_func(chat_history, model_id, **kwargs):
     
     return chain
 
-class Claude3Text2SQLChain(LLMChain):
+class Claude3Text2SQLGenChain(LLMChain):
     model_id = "anthropic.claude-3-haiku-20240307-v1:0"
     intent_type = IntentType.TEXT2SQL_SQL_GEN.value
 
@@ -162,8 +162,8 @@ class Claude3Text2SQLChain(LLMChain):
             chain = chain | llm | RunnableLambda(lambda x:x.content)
         return chain 
 
-class Claude3HaikuText2SQLChain(Claude3Text2SQLChain):
+class Claude3HaikuText2SQLGenChain(Claude3Text2SQLGenChain):
     model_id = "anthropic.claude-3-haiku-20240307-v1:0"
 
-class Claude3SonnetText2SQLChain(Claude3Text2SQLChain):
+class Claude3SonnetText2SQLGenChain(Claude3Text2SQLGenChain):
     model_id = "anthropic.claude-3-sonnet-20240229-v1:0"
