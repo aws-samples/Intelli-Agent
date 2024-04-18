@@ -30,9 +30,9 @@ def language_check(query):
         return CHINESE
 
 def query_clean(query:str):
-    need_remove_ends = ['?',"？","。","."]
-    for end in need_remove_ends:
-        query = query.strip(end)
+    # need_remove_ends = ['?',"？","。","."]
+    # for end in need_remove_ends:
+    #     query = query.strip(end)
     query = query.lower()
     query = query.replace('genai','生成式AI')
     return query

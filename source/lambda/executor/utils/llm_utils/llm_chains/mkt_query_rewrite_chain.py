@@ -4,7 +4,9 @@ import re
 from ..llm_models import Model
 from langchain.schema.runnable import RunnableLambda,RunnablePassthrough
 from langchain_core.messages import SystemMessage,HumanMessage,AIMessage
+from ...logger_utils import get_logger
 
+logger = get_logger("mkt_query_rewrite")
 
 
 class Iternlm2Chat7BMKTQueryRewriteChain(Iternlm2Chat7BChatChain):
@@ -18,7 +20,7 @@ class Iternlm2Chat7BMKTQueryRewriteChain(Iternlm2Chat7BChatChain):
 
     @classmethod
     def create_prompt(cls,x):
-        meta_instruction = """你是一个句子改写专家。你需要将给定的句子按照下面的规则改写成方便检索的形式。
+        meta_instruction = """你是一个句子改写专家。你需要结合当前的历史对话消息将给定的句子按照下面的规则改写成方便检索的形式。
 改写规则:
     - 修改之后应该为一个疑问句。
     - 你需要尽可能将当前句子放到”亚马逊云科技“ / ”Amazon AWS“的语境下进行改写。
@@ -33,16 +35,16 @@ class Iternlm2Chat7BMKTQueryRewriteChain(Iternlm2Chat7BChatChain):
 """
         prompt = cls.build_prompt(
             query=f"原句子: {x['query']}",
-            history=[],
+            history=cls.create_history(x),
             meta_instruction=meta_instruction
         )  + "改写为:"
+        # logger.info(prompt)
         return prompt
 
 
 class Iternlm2Chat20BMKTQueryRewriteChain(Iternlm2Chat7BMKTQueryRewriteChain):
     model_id = "internlm2-chat-20b"
     intent_type = MKT_QUERY_REWRITE_TYPE
-
 
 
 claude_system_message = """你是一个句子改写专家。你需要将给定的句子按照下面的规则改写成方便检索的形式。

@@ -110,8 +110,8 @@ def generate_answer(query,
 
 def test_claude3_text2sql_entry():
     session_id=f'test_{time.time()}'
-    model_id = "anthropic.claude-3-haiku-20240307-v1:0"
-    # model_id = "anthropic.claude-3-sonnet-20240229-v1:0"
+    # model_id = "anthropic.claude-3-haiku-20240307-v1:0"
+    model_id = "anthropic.claude-3-sonnet-20240229-v1:0"
     entry_type = "text2sql"
 
     os.environ['llm_model_id'] = model_id
@@ -119,11 +119,9 @@ def test_claude3_text2sql_entry():
     # workspace_ids = ["aos_index_mkt_faq_qq_m3", "aos_index_acts_qd_m3", "aos_index_mkt_faq_qd_m3"]
     
     questions = [
-        "最便宜产品的产品ID和产品类型是什么？",
-        "每种产品的平均价格是多少？",
-        "最便宜产品的产品ID和产品类型是什么？",
-        "今天星期几?",
-        "计算不同产品类型的数量。",
+        "How many player had done relive?",
+        "show the common game event number by date-hour",
+        "今天星期几",
         "你好，你是谁"
     ]
     for question in questions:

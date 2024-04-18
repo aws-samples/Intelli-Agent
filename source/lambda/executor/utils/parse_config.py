@@ -3,7 +3,7 @@ import copy
 import logging
 import os
 
-from .constant import AWS_TRANSLATE_SERVICE_MODEL_ID, IntentType, RerankerType
+from .constant import AWS_TRANSLATE_SERVICE_MODEL_ID, IntentType, RerankerType,MKTUserType
 
 
 # update nest dict
@@ -92,20 +92,29 @@ def update_nest_dict(d, u):
 
 def parse_sagemind_llm_config(event_body):
     event_body = copy.deepcopy(event_body)
-    new_event_config = update_nest_dict(copy.deepcopy(rag_default_config), event_body)
+    llm_model_id = os.environ.get("llm_model_id")
+    llm_model_endpoint_name = os.environ.get("llm_model_endpoint_name")
+    region = os.environ.get("AWS_REGION")
 
-    # adapting before setting
-    temperature = event_body.get("temperature")
-    llm_model_id = event_body.get("llm_model_id")
+    is_cn_region = "cn" in region
+    llm_model_id = event_body.get("llm_model_id", llm_model_id)
+    llm_model_endpoint_name = event_body.get(
+        "llm_model_endpoint_name", llm_model_endpoint_name
+    )
+    assert llm_model_id and llm_model_endpoint_name, (
+        llm_model_id,
+        llm_model_endpoint_name,
+    )
+    default_config = {
+        "generator_llm_config": {
+            "model_id": llm_model_id,
+            "endpoint_name": llm_model_endpoint_name,
+        }
+    }
 
-    if llm_model_id:
-        new_event_config["generator_llm_config"]["model_id"] = llm_model_id
-    if temperature:
-        new_event_config["generator_llm_config"]["model_kwargs"][
-            "temperature"
-        ] = temperature
-
+    new_event_config = update_nest_dict(copy.deepcopy(default_config), event_body)
     return new_event_config
+
 
 
 def parse_mkt_entry_core_config(event_body):
@@ -254,7 +263,7 @@ def parse_mkt_entry_knowledge_config(event_body):
                 # "reranker_type": RerankerType.BGE_M3_RERANKER.value,
                 "qd_match_threshold": 2,
                 "enable_debug": False,
-                "query_key": "query"
+                "query_key": "query_for_qd_retrieve"
                 # "enable_reranker":True
             },
             "workspace_ids": [
@@ -306,7 +315,8 @@ def parse_mkt_entry_knowledge_config(event_body):
             "endpoint_name": llm_model_endpoint_name,
             "context_num": 1,
         },
-        "use_history": False,
+        "use_history": True,
+        "user_type": MKTUserType.ASSISTANT,
         "response_config": {
             # context return with chunk
             "context_return_with_chunk": False

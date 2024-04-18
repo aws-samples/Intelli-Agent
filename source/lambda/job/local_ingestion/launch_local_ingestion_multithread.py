@@ -109,7 +109,7 @@ os.environ['worker_num'] = str(worker_num)
 # os.environ['aos_worker_num'] = str(150)
 # os.environ['worker_id'] = str(worker_id)
 os.environ['args_path'] = 'user_guide_ingestion.json'
-os.environ['AWS_PROFILE'] = 'atl'
+os.environ['AWS_PROFILE'] = 'gamebi'
 os.environ['embedding_endpoint_name'] = 'bge-m3'
 
 def main():

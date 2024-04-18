@@ -39,7 +39,7 @@ from ..query_process_utils.preprocess_utils import (
     language_check,
     query_translate,
     get_service_name,
-    is_query_too_short
+    is_query_invalid
 )
 from ..db_utils.sql_utils import (
     check_sql_validation
@@ -47,7 +47,7 @@ from ..db_utils.sql_utils import (
 from ..workspace_utils import WorkspaceManager
 
 
-logger = logging.getLogger('mkt_knowledge_entry')
+logger = logging.getLogger('text2sql_guidance_entry')
 logger.setLevel(logging.INFO)
 
 abs_file_dir = os.path.dirname(__file__)
@@ -221,11 +221,11 @@ def text2sql_guidance_entry(
     # 1. text2sql quick rule check: text2sql_rule_check_func
     # 1.1 whether the query is too short: is_query_too_short_func
     query_length_threshold = rag_config['query_process_config']['query_length_threshold']
-    is_query_too_short_func = RunnablePassthrough.assign(
-        is_query_too_short = RunnableLambda(
-        lambda x:is_query_too_short(x['query'],threshold=query_length_threshold)
+    is_query_invalid_func = RunnablePassthrough.assign(
+        is_query_invalid = RunnableLambda(
+        lambda x:is_query_invalid(x['query'],threshold=query_length_threshold)
     ))
-    text2sql_rule_check_func = is_query_too_short_func
+    text2sql_rule_check_func = is_query_invalid_func
 
     rule_check_chain = RunnableBranch(
         (lambda x: x['intent_type'] == IntentType.TEXT2SQL_SQL_RE_GEN.value,
@@ -234,7 +234,7 @@ def text2sql_guidance_entry(
         ),
         (lambda x: x['intent_type'] == IntentType.TEXT2SQL_SQL_GEN.value, 
             text2sql_rule_check_func | RunnableBranch(
-                (lambda x: x['is_query_too_short'],
+                (lambda x: x['is_query_invalid'],
                     RunnablePassthrough.assign(intent_type=RunnableLambda(
                         lambda x: IntentType.COMMON_QUICK_REPLY_TOO_SHORT.value))),
                 RunnablePassthrough()
@@ -407,7 +407,7 @@ def text2sql_guidance_entry(
         (lambda x: x['intent_type'] == IntentType.TEXT2SQL_SQL_RE_GEN.value,
             RunnablePassthrough.assign(
                 answer=LLMChain.get_chain(
-                    intent_type=IntentType.TEXT2SQL_SQL_RE_GEN.value,
+                    intent_type=IntentType.TEXT2SQL_SQL_GEN.value,
                     stream=stream,
                     **generator_llm_config
                     ),
@@ -529,27 +529,12 @@ def text2sql_guidance_entry(
 
         logger.info(f'chain trace info:\n{trace_info}')
 
-        if response["intent_type"] == IntentType.TEXT2SQL_SQL_GEN.value:
+        if response["intent_type"] == IntentType.TEXT2SQL_SQL_VALIDATED.value:
             # validated sql output
             cont = False
             answer = response["answer"].split("<query>")[1].split("</query>")[0]
-            try:
-                answer = response["answer"]
-            except:
-                answer = response["answer"]
             sources = response["context_sources"]
         elif response["intent_type"] == IntentType.TEXT2SQL_SQL_RE_GEN.value:
-            # 1. fast reply intent
-            # 2. validated sql output
-            cont = False
-            try:
-                answer = response["answer"].split("<query>")[1].split("</query>")[0]
-            except:
-                answer = response["answer"]
-            sources = response["context_sources"]
-        elif chain_try_num == max_try_num:
-            cont = False
-        else:
             # sql validated fail, re-generate
             intent_type = response["intent_type"]
             sql_validate_result = response["sql_validate_result"]
@@ -576,6 +561,13 @@ def text2sql_guidance_entry(
             Think about your answer first before you respond. Put your response in <query></query> tags.
             """]
             contexts = response["contexts"]
+            sources = response["context_sources"]
+        elif chain_try_num == max_try_num:
+            cont = False
+        else:
+            # 1. fast reply intent
+            cont = False
+            answer = response["answer"]
         
         chain_try_num = chain_try_num + 1
 

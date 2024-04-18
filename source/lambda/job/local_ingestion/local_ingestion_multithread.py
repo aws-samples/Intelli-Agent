@@ -772,7 +772,8 @@ def gen_documents(
                 embeddings_model_dimensions,
                 embeddings_model_type,
                 ["zh"],
-                open_search_index_type
+                open_search_index_type,
+                workspace_offline_flag="offline"
                 # [file_type],
                 # open_search_index_type
             )

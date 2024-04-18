@@ -18,7 +18,7 @@ from utils.executor_entries import (  # market_chain_entry,; market_chain_entry_
     market_chain_knowledge_entry_langgraph,
     market_conversation_summary_entry,
     sagemind_llm_entry,
-    text2sql_guidance_entry,
+    text2sql_guidance_entry
 )
 
 # from langchain.retrievers.multi_query import MultiQueryRetriever
@@ -33,15 +33,15 @@ from utils.serialization_utils import JSONEncoder
 logger = get_logger("main")
 region = os.environ["AWS_REGION"]
 embedding_endpoint = os.environ.get("embedding_endpoint", "")
-zh_embedding_endpoint = os.environ.get("zh_embedding_endpoint", "")
-en_embedding_endpoint = os.environ.get("en_embedding_endpoint", "")
-cross_endpoint = os.environ.get("rerank_endpoint", "")
-rerank_endpoint = os.environ.get("rerank_endpoint", "")
-aos_endpoint = os.environ.get("aos_endpoint", "")
+# zh_embedding_endpoint = os.environ.get("zh_embedding_endpoint", "")
+# en_embedding_endpoint = os.environ.get("en_embedding_endpoint", "")
+# cross_endpoint = os.environ.get("rerank_endpoint", "")
+# rerank_endpoint = os.environ.get("rerank_endpoint", "")
+# aos_endpoint = os.environ.get("aos_endpoint", "")
 aos_index = os.environ.get("aos_index", "")
-aos_faq_index = os.environ.get("aos_faq_index", "")
-aos_ug_index = os.environ.get("aos_ug_index", "")
-llm_endpoint = os.environ.get("llm_endpoint", "")
+# aos_faq_index = os.environ.get("aos_faq_index", "")
+# aos_ug_index = os.environ.get("aos_ug_index", "")
+# llm_endpoint = os.environ.get("llm_endpoint", "")
 sessions_table_name = os.environ.get("sessions_table_name", "")
 messages_table_name = os.environ.get("messages_table_name", "")
 websocket_url = os.environ.get("websocket_url", "")
@@ -254,6 +254,7 @@ def lambda_handler(event, context):
                 messages=messages, event_body=event_body, stream=stream
             )
         elif entry_type == Type.TEXT2SQL.value:
+            from utils.executor_entries import text2sql_guidance_entry
             answer, sources, contexts, debug_info = text2sql_guidance_entry(
                 question, message_id=message_id, event_body=event_body, stream=stream
             )

@@ -1,16 +1,19 @@
 import requests 
 
-api_url = "https://9nb7vey1u7.execute-api.us-west-2.amazonaws.com/v1/llm"
-# llm_model_id = "anthropic.claude-v2:1" #"csdc-internlm-7b" # "anthropic.claude-v2:1"
+# # atl 
+# api_url = "https://9nb7vey1u7.execute-api.us-west-2.amazonaws.com/v1/llm"
+
+# gamebi
+api_url = "https://3yi34jorlg.execute-api.us-west-2.amazonaws.com/v1/llm"
+llm_model_id = "anthropic.claude-3-sonnet-20240229-v1:0"
 # endpoint_name = 'instruct-internlm2-chat-7b-f7dc2'
 # model_id = "internlm2-chat-7b"
 
-prompt = "如何在不使用Red Hat共享的AMI的情况下将按需RHEL实例转换为BYOL，而不用重新部署每台RHEL服务器？"
-# prompt = "你好"
+prompt = "How many player had done relive?"
 r = requests.post(
     api_url,
     json={
-        "type": "dgr", #"knowledge_qa",
+        "type": "text2sql",
         "messages": [
             {
                 "role": "user",
@@ -18,8 +21,8 @@ r = requests.post(
             }
         ],
         # "temperature": 0.7,
-        # "llm_model_id":llm_model_id,
-        "get_contexts" : True,
+        "llm_model_id":llm_model_id,
+        "get_contexts" : False,
         # "enable_q_q_match":True
         # "retriever_config":{
         #     "retriever_top_k": 20,
@@ -57,6 +60,9 @@ r = requests.post(
 
 print(r.status_code)
 print(r.json())
-contexts = r.json()['contexts']
+# contexts = r.json()['contexts']
+print(f"generate ans:")
+print(f"{r.json()['choices'][0]['message']['content']}")
+# print(f"{r.json()['choice'][['content']}")
 # print(type(contexts))
 

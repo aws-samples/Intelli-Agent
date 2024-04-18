@@ -63,9 +63,7 @@ def retriever_results_format(
     s = '\n'.join(print_strs)
 
     logger.info( "retrieved source infos: \n" + f"{s}")
-    
     return doc_dicts
-
 
 def documents_list_filter(doc_dicts:list[dict],filter_key='score',threshold=-1):
     results = []
