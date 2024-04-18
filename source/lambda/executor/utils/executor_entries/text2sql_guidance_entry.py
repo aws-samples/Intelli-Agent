@@ -47,7 +47,7 @@ from ..db_utils.sql_utils import (
 from ..workspace_utils import WorkspaceManager
 
 
-logger = logging.getLogger('mkt_knowledge_entry')
+logger = logging.getLogger('text2sql_guidance_entry')
 logger.setLevel(logging.INFO)
 
 abs_file_dir = os.path.dirname(__file__)

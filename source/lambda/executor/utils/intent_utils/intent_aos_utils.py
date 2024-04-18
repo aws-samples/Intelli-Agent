@@ -163,8 +163,8 @@ class IntentRecognitionAOSIndex:
     def as_check_index_exist_chain(self):
         return RunnableLambda(lambda x: self.check_index_exist())
 
-    def as_search_chain(self,top_k=5):
-        return RunnableLambda(lambda x: self.search(x['query'],top_k=top_k))
+    def as_search_chain(self,top_k=5,query_key="query"):
+        return RunnableLambda(lambda x: self.search(x[query_key],top_k=top_k))
 
     def as_ingestion_chain(self):
         chain = RunnableNoneAssign(lambda x: self.ingestion_intent_data())

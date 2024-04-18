@@ -3,6 +3,8 @@ import sys
 import csv
 import os 
 import time 
+import uuid
+
 from dotenv import load_dotenv
 load_dotenv(
     dotenv_path=os.path.join(os.path.dirname(__file__),'.env_global')
@@ -34,6 +36,7 @@ sys.path.append("../executor")
 import main
 import os
 from collections import defaultdict
+from utils.ddb_utils import DynamoDBChatMessageHistory
 
 contexts = defaultdict(str)
 
@@ -606,9 +609,38 @@ def test_internlm_model_mkt_knowledge_entry():
     #   "介绍Amazon Lambda是什么？"
 
     r = generate_answer(
+        "Amazon Lambda函数是什么？",
+        type=entry_type, 
+            stream=True,
+            rag_parameters=rag_parameters
+    )
+    r = generate_answer(
+        "它和EC2哪个更好？",
+        type=entry_type, 
+            stream=True,
+            rag_parameters=rag_parameters
+    )
+    # r = generate_answer(
+    #     "哪个更好？",
+    #     type=entry_type, 
+    #         stream=True,
+    #         rag_parameters=rag_parameters
+    # )
+
+    print(dfg)
+
+
+    r = generate_answer(
+        # "我是按照真实信息填写，不是虚假注册",
+        # "你们不了解你们平台的规则吗",
+        # "亚马逊云代理商所分发的账号，代理商可以随意删除吗",
+        "上一个问题是什么？",
+        # "谢谢客服",
+        # "请问怎么租用jetson agx orin",
+        # "阿里云你了解吗？",
         # "今天星期几？",
         # "您好",
-        "你是谁？",
+        # "你是谁？",
         # "Amazon Lambda函数是什么？",
         # "GenAI相关活动",
         # "在亚马逊云科技网站上，完成所有账户注册步骤后，什么时候才可以开始使用？",
@@ -651,7 +683,7 @@ def test_internlm_model_mkt_knowledge_entry():
             rag_parameters=rag_parameters
     )
 
-    # print(r[0])
+    print(r[0])
 
     print(sfg)
 
@@ -778,6 +810,7 @@ def test_internlm_model_mkt_knowledge_entry():
     
     # 27-44
     market_test_cases = [
+        "你是谁？",
         "亚马逊存在种族歧视吗？",
         "ec2的全称是什么",
         "s3在张家港区域有吗",
@@ -819,6 +852,92 @@ def test_internlm_model_mkt_knowledge_entry():
     for q,a in ret:
         print('*-'*50)
         print(f'Q: {q}\nA: {a}')
+
+
+
+def test_internlm_model_mkt_knowledge_entry_with_conversation():
+    session_id=f'test_{time.time()}'
+    # endpoint_name = 'internlm2-chat-7b-4bits-2024-02-28-07-08-57-839'
+    # model_id = "internlm2-chat-7b"
+    # endpoint_name = 'internlm2-chat-20b-4bits-2024-03-04-06-32-53-653'
+    endpoint_name = 'internlm2-chat-20b-4bits-continuous-bat-2024-03-23-16-25-28-881'
+    model_id = "internlm2-chat-20b"
+    entry_type = "market_chain"
+
+    os.environ['llm_model_id'] = model_id
+    os.environ['llm_model_endpoint_name'] = endpoint_name
+    sessions_table_name = os.environ.get("sessions_table_name", "")
+    messages_table_name = os.environ.get("messages_table_name", "")
+    custom_message_id = ""
+    # workspace_ids = ["aos_index_mkt_faq_qq","aos_index_acts_qd"]
+    # workspace_ids = ["aos_index_mkt_faq_qq_m3", "aos_index_acts_qd_m3", "aos_index_mkt_faq_qd_m3"]
+    
+    rag_parameters={
+        "get_contexts":True,
+        "session_id":session_id,
+        "response_config": {
+            # context return with chunk
+            "context_return_with_chunk": True
+        },
+        "generator_llm_config": {
+            "context_num": 1,
+        },
+        
+    }
+
+
+
+    messages = [
+        {
+        "role":"user",
+        "content": "请问怎么租用jetson agx orin"
+        },
+        {
+        "role":"ai",
+        "content": "您好,这是英伟达的产品"
+        },
+        {
+        "role":"user",
+        "content": "是的,可以租借一台吗"
+        }
+    ]
+    # 注入历史消息到ddb
+    ddb_history_obj = DynamoDBChatMessageHistory(
+            sessions_table_name=sessions_table_name,
+            messages_table_name=messages_table_name,
+            session_id=session_id,
+            user_id="default_user_id",
+            client_type="default_client_type",
+    )
+    for message in messages[:-1]:
+        message_id = str(uuid.uuid4())
+        if message['role'] == "user":
+            ddb_history_obj.add_user_message(
+                message_id = message_id,
+                custom_message_id=custom_message_id,
+                entry_type=entry_type,
+                message_content=message['content']
+            )
+        elif message['role'] == "ai":
+            ddb_history_obj.add_ai_message(
+                message_id=message_id,
+                custom_message_id=custom_message_id,
+                entry_type=entry_type,
+                message_content=message['content'],
+                input_message_id=f"user_{message_id}"
+            )
+        else:
+            raise f"invalid role: {message['role']}"
+    
+    generate_answer(
+        # "日志通是什么？", 
+        messages[-1]['content'], 
+        # model="knowledge_qa", 
+        type=entry_type, 
+        stream=True,
+        rag_parameters=rag_parameters
+    )
+
 
 
 def test_internlm_model_mkt_knowledge_entry_langgraph():
@@ -1119,7 +1238,8 @@ if __name__ == "__main__":
     # market_summary_test2()
     # test_internlm_model()
     # dgr_deploy_test()
-    test_internlm_model_mkt_knowledge_entry()
+    # test_internlm_model_mkt_knowledge_entry()
+    test_internlm_model_mkt_knowledge_entry_with_conversation()
     # test_internlm_model_mkt_knowledge_entry_qq_match()
     # test_internlm_model_mkt_knowledge_entry_langgraph()
     # test_baichuan_model()

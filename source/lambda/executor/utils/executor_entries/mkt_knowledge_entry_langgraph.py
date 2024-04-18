@@ -217,7 +217,8 @@ def conversation_query_rewrite(state: AppState):
         trace_infos=trace_infos
     )
     
-    conversation_summary_chain.invoke(state)
+    _state = conversation_summary_chain.invoke(state)
+    state.update(**_state)
 
 
 ##########################
@@ -279,6 +280,10 @@ def query_preprocess(state: AppState):
 
 
 def get_intent_recognition_with_index_chain(state):
+    rag_config = state['rag_config']
+    conversation_query_rewrite_config = rag_config['query_process_config']['conversation_query_rewrite_config']
+    conversation_query_rewrite_result_key = conversation_query_rewrite_config['result_key']
+    
     intent_recognition_index = IntentRecognitionAOSIndex(
         embedding_endpoint_name=state['intent_embedding_endpoint_name'])
     intent_index_ingestion_chain = chain_logger(
@@ -290,7 +295,7 @@ def get_intent_recognition_with_index_chain(state):
         is_intent_index_exist = intent_recognition_index.as_check_index_exist_chain()
     )
     intent_index_search_chain = chain_logger(
-        intent_recognition_index.as_search_chain(top_k=5),
+        intent_recognition_index.as_search_chain(top_k=5,query_key=conversation_query_rewrite_result_key),
         "intent_index_search_chain",
         message_id=state['message_id']
     )
@@ -540,7 +545,7 @@ def decide_if_context_sufficient(state):
         return 'insufficient context'
     return 'sufficient context'
     
-def market_chain_knowledge_entry(
+def market_chain_knowledge_entry_417(
     query_input: str,
     stream=False,
     # manual_input_intent=None,
@@ -692,3 +697,163 @@ def market_chain_knowledge_entry(
     
     response['rag_config'] = rag_config
     return response
+
+
+def market_chain_knowledge_entry_assistant_418(
+    query_input: str,
+    stream=False,
+    # manual_input_intent=None,
+    event_body=None,
+    rag_config=None,
+    message_id=None
+):
+    """
+    Entry point for the Lambda function.
+
+    :param query_input: The query input.
+    :param aos_index: The index of the AOS engine.
+    :param stream(Bool): Whether to use llm stream decoding output.
+    return: answer(str)
+    """
+    if rag_config is None:
+        rag_config = parse_config.parse_mkt_entry_knowledge_config(event_body)
+
+    assert rag_config is not None
+
+    logger.info(f'market rag knowledge configs:\n {json.dumps(rag_config,indent=2,ensure_ascii=False,cls=JSONEncoder)}')
+
+    workspace_ids = rag_config["retriever_config"]["workspace_ids"]
+    qq_workspace_list = []
+    qd_workspace_list = []
+    for workspace_id in workspace_ids:
+        workspace = workspace_manager.get_workspace(workspace_id)
+        if not workspace or "index_type" not in workspace:
+            logger.warning(f"workspace {workspace_id} not found")
+            continue
+        if workspace["index_type"] == "qq":
+            qq_workspace_list.append(workspace)
+        else:
+            qd_workspace_list.append(workspace)
+
+    workspace_ids = rag_config["retriever_config"]["workspace_ids"]
+    event_workspace_ids = rag_config["retriever_config"]["event_workspace_ids"]
+    qq_workspace_list, qd_workspace_list = get_workspace_list(workspace_ids)
+    event_qq_workspace_list, event_qd_workspace_list = get_workspace_list(event_workspace_ids)
+
+    debug_info = {
+        "response_msg": "normal"
+        }
+
+    qd_config = rag_config['retriever_config']['qd_config'] 
+    # qd_config['query_key'] = "query_for_qd_retrieve"
+    # qd_config['query_key'] = "query"
+
+    trace_infos = []
+
+    workflow = StateGraph(AppState)
+    workflow.add_node('mkt_fast_reply', mkt_fast_reply)
+    workflow.add_node('query_reject', query_reject)
+    workflow.add_node('conversation_query_rewrite', conversation_query_rewrite)
+    workflow.add_node('query_preprocess', query_preprocess)
+    workflow.add_node('qq_match_and_intent_recognition', qq_match_and_intent_recognition)
+    workflow.add_node('query_expansion', partial(query_expansion,result_key=qd_config['query_key']))
+    workflow.add_node('knowledge_qd_retriver', knowledge_qd_retriver)
+    workflow.add_node('event_qd_retriever', event_qd_retriever)
+    workflow.add_node('context_filter', context_filter)
+    workflow.add_node('rag_llm', rag_llm)
+    workflow.add_node('chat_llm', chat_llm)
+    
+    # start node
+    workflow.set_entry_point("query_reject")
+    # termial node
+    workflow.add_edge('mkt_fast_reply', END)
+    workflow.add_edge('rag_llm', END)
+    workflow.add_edge('chat_llm', END)
+
+
+    # normal edge
+    # workflow.add_edge('conversation_query_rewrite','query_preprocess')
+    workflow.add_edge(
+        'query_preprocess',
+        'conversation_query_rewrite'
+        )
+    workflow.add_edge(
+        'conversation_query_rewrite',
+        'qq_match_and_intent_recognition'
+        )
+    workflow.add_edge('knowledge_qd_retriver','context_filter')
+    workflow.add_edge('event_qd_retriever','context_filter')
+
+    # conditional edges
+    workflow.add_conditional_edges(
+        "query_reject",
+        decide_query_reject,
+        {
+           "query invalid": "mkt_fast_reply",
+           "normal": "query_preprocess"
+        }
+    )
+
+    workflow.add_conditional_edges(
+        'qq_match_and_intent_recognition',
+        decide_intent,
+        {
+        "unsupported_intent": "chat_llm",
+        "qq_match": "mkt_fast_reply",
+        "valid_intent" : "query_expansion",
+        }
+    )
+
+    workflow.add_conditional_edges(
+        'query_expansion',
+        decide_qd_retriver,
+        {
+        "event_qa" : "event_qd_retriever",
+        "knowledge_qa": "knowledge_qd_retriver"
+        }
+    )
+
+    workflow.add_conditional_edges(
+         "context_filter",
+         decide_if_context_sufficient,
+         {
+             "insufficient context": 'chat_llm',
+             "sufficient context": "rag_llm"
+         }
+     )
+
+    app = workflow.compile()
+    # with open('rag_workflow.png','wb') as f:
+    #     f.write(app.get_graph().draw_png())
+
+    # app.get_graph().print_ascii()
+
+    inputs = {
+            "query": query_input,
+            "debug_info": debug_info,
+            # "intent_type": intent_type,
+            # "intent_info": intent_info,
+            "chat_history": rag_config['chat_history'][-6:] if rag_config['use_history'] else [],
+            "rag_config": rag_config,
+            "message_id": message_id,
+            "stream": stream,
+            "qq_workspace_list": qq_workspace_list,
+            "qd_workspace_list": qd_workspace_list,
+            "event_qd_workspace_list":event_qd_workspace_list,
+            "trace_infos":trace_infos,
+            "intent_embedding_endpoint_name": os.environ['intent_recognition_embedding_endpoint'],
+            # "query_lang": "zh"
+        }
+    response = app.invoke({"keys":inputs})['keys']
+
+    
+    trace_info = format_trace_infos(trace_infos)
+    
+    logger.info(f'session_id: {rag_config["session_id"]}, chain trace info:\n{trace_info}')
+    
+    response['rag_config'] = rag_config
+    return response
+
+
+
+market_chain_knowledge_entry = market_chain_knowledge_entry_assistant_418
