@@ -39,7 +39,7 @@ try:
             "ETL_MODEL_ENDPOINT",
             "JOB_NAME",
             "OFFLINE",
-            "ETLObjectTable",
+            "ETL_OBJECT_TABLE",
             "QA_ENHANCEMENT",
             "REGION",
             "RES_BUCKET",
@@ -80,7 +80,7 @@ batchIndice = args["BATCH_INDICE"]
 embedding_model_endpoint = args["EMBEDDING_MODEL_ENDPOINT"]
 etlModelEndpoint = args["ETL_MODEL_ENDPOINT"]
 offline = args["OFFLINE"]
-etlObjTable = args["ETLObjectTable"]
+etlObjTable = args["ETL_OBJECT_TABLE"]
 qa_enhancement = args["QA_ENHANCEMENT"]
 region = args["REGION"]
 res_bucket = args["RES_BUCKET"]

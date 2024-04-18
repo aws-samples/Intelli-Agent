@@ -48,7 +48,7 @@ args = {
     "OFFLINE": "true",
     "QA_ENHANCEMENT": "false",
     "BATCH_INDICE": "0",
-    "ETLObjectTable": "llm-bot-dev-etlstackNestedStacketlstackNestedStackResource5A19705C-1IOMQY29GJHU3-ProcessedObjects1A59B3C3-4WN1FHIM4ZMI",
+    "ETL_OBJECT_TABLE": "llm-bot-dev-etlstackNestedStacketlstackNestedStackResource5A19705C-1IOMQY29GJHU3-ProcessedObjects1A59B3C3-4WN1FHIM4ZMI",
     "DOC_INDEX_TABLE": "dev",
     # "AOS_INDEX": "ug-index-20240108",
     # "AOS_INDEX": "faq-index-20240110",
@@ -76,7 +76,7 @@ offline = args["OFFLINE"]
 qa_enhancement = args["QA_ENHANCEMENT"]
 # TODO, pass the bucket and prefix need to handle in current job directly
 batchIndice = args["BATCH_INDICE"]
-etlObjTable = args["ETLObjectTable"]
+etlObjTable = args["ETL_OBJECT_TABLE"]
 content_type = args["CONTENT_TYPE"]
 _embedding_endpoint_name_list = args["EMBEDDING_MODEL_ENDPOINT"].split(",")
 _embedding_lang_list = args["EMBEDDING_LANG"].split(",")

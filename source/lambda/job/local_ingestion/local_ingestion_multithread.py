@@ -325,7 +325,7 @@ offline = args["OFFLINE"]
 qa_enhancement = args["QA_ENHANCEMENT"]
 # TODO, pass the bucket and prefix need to handle in current job directly
 batchIndice = args["BATCH_INDICE"]
-etlObjTable = args["ETLObjectTable"]
+etlObjTable = args["ETL_OBJECT_TABLE"]
 workspace_id = args["WORKSPACE_ID"]
 workspace_table = args["WORKSPACE_TABLE"]
 
