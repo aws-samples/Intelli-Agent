@@ -46,6 +46,10 @@ class RerankerType(Enum):
     def has_value(cls, value):
         return value in cls._value2member_map_ 
 
+class MKTUserType:
+    ASSISTANT = "assistant"
+    AUTO_CHAT = "auto_chat"
+
 
 # LLM chain typs
 QUERY_TRANSLATE_TYPE = "query_translate"  # for query translate purpose

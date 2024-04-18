@@ -715,6 +715,7 @@ def market_chain_knowledge_entry_assistant_418(
     :param stream(Bool): Whether to use llm stream decoding output.
     return: answer(str)
     """
+    from ..constant import MKTUserType
     if rag_config is None:
         rag_config = parse_config.parse_mkt_entry_knowledge_config(event_body)
 
@@ -745,6 +746,10 @@ def market_chain_knowledge_entry_assistant_418(
         }
 
     qd_config = rag_config['retriever_config']['qd_config'] 
+    
+    if rag_config['user_type'] == MKTUserType.ASSISTANT:
+        qd_config['qd_match_threshold'] = -100
+
     # qd_config['query_key'] = "query_for_qd_retrieve"
     # qd_config['query_key'] = "query"
 

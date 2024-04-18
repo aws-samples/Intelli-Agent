@@ -3,7 +3,7 @@ import copy
 import logging
 import os
 
-from .constant import AWS_TRANSLATE_SERVICE_MODEL_ID, IntentType, RerankerType
+from .constant import AWS_TRANSLATE_SERVICE_MODEL_ID, IntentType, RerankerType,MKTUserType
 
 
 # update nest dict
@@ -261,7 +261,7 @@ def parse_mkt_entry_knowledge_config(event_body):
                 # "reranker_type": RerankerType.BYPASS.value,
                 "reranker_type": RerankerType.BGE_RERANKER.value,
                 # "reranker_type": RerankerType.BGE_M3_RERANKER.value,
-                "qd_match_threshold": 0,
+                "qd_match_threshold": 2,
                 "enable_debug": False,
                 "query_key": "query_for_qd_retrieve"
                 # "enable_reranker":True
@@ -316,6 +316,7 @@ def parse_mkt_entry_knowledge_config(event_body):
             "context_num": 1,
         },
         "use_history": True,
+        "user_type": MKTUserType.ASSISTANT,
         "response_config": {
             # context return with chunk
             "context_return_with_chunk": False
