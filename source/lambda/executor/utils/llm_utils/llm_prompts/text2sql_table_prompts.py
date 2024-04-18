@@ -135,7 +135,7 @@ CREATE TABLE zenmakeovermatch.game_event
   layer_order BIGINT ,
   infinity_energy BIGINT ,
   current_match_money BIGINT ,
-  game_event_type VARCHAR ,
+  game_event_type VARCHAR , this can be different types of events, like GAME_EVENT_RELIVE_DONE
   is_auto BOOLEAN ,
   status VARCHAR ,
   data1 VARCHAR ,
@@ -263,8 +263,8 @@ you should always keep the words from question unchanges when writing SQL. \n\n
 
 table_prompt_dict['guidance_sonnet-20240229v1-0_20240407063835'] = """
 you should always keep the words from question unchanges when writing SQL.
-you should always use zenmakeovermatch as schema name. For example, use zenmakeovermatch.account instead of account.
-you should use time_string as event time stamp for table zenmakeovermatch.common_game_event.
+time_string should be cast to timestamp before using as event time stamp for table zenmakeovermatch.common_game_event.
+player_id_string should be used to analyze players in zenmakeovermatch.common_game_event.
 filter NULL values in your SQL.
 """
 # divide the sales volume of the product or competing products rolling forward 3 months from the latest month of data by sales volume in the same time period in the market to get R3M MS% (YoY) or 滚动3个月市场占比.

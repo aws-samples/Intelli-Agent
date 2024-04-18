@@ -529,27 +529,12 @@ def text2sql_guidance_entry(
 
         logger.info(f'chain trace info:\n{trace_info}')
 
-        if response["intent_type"] == IntentType.TEXT2SQL_SQL_GEN.value:
+        if response["intent_type"] == IntentType.TEXT2SQL_SQL_VALIDATED.value:
             # validated sql output
             cont = False
             answer = response["answer"].split("<query>")[1].split("</query>")[0]
-            try:
-                answer = response["answer"]
-            except:
-                answer = response["answer"]
             sources = response["context_sources"]
         elif response["intent_type"] == IntentType.TEXT2SQL_SQL_RE_GEN.value:
-            # 1. fast reply intent
-            # 2. validated sql output
-            cont = False
-            try:
-                answer = response["answer"].split("<query>")[1].split("</query>")[0]
-            except:
-                answer = response["answer"]
-            sources = response["context_sources"]
-        elif chain_try_num == max_try_num:
-            cont = False
-        else:
             # sql validated fail, re-generate
             intent_type = response["intent_type"]
             sql_validate_result = response["sql_validate_result"]
@@ -576,6 +561,13 @@ def text2sql_guidance_entry(
             Think about your answer first before you respond. Put your response in <query></query> tags.
             """]
             contexts = response["contexts"]
+            sources = response["context_sources"]
+        elif chain_try_num == max_try_num:
+            cont = False
+        else:
+            # 1. fast reply intent
+            cont = False
+            answer = response["answer"]
         
         chain_try_num = chain_try_num + 1
 
