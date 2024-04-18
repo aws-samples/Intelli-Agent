@@ -25,7 +25,7 @@ import { LLMStack } from "../lib/model/llm-stack";
 import { BuildConfig } from "../lib/shared/build-config";
 import { DeploymentParameters } from "../lib/shared/cdk-parameters";
 import { VpcConstruct } from "../lib/shared/vpc-stack";
-import { OpenSearchStack } from "../lib/vector-store/os-stack";
+import { AOSConstruct } from "../lib/vector-store/os-stack";
 import { PortalConstruct } from "../lib/ui/ui-portal";
 
 dotenv.config();
@@ -56,16 +56,16 @@ export class RootStack extends Stack {
 
     const vpcConstruct = new VpcConstruct(this, "vpc-construct");
 
-    const osStack = new OpenSearchStack(this, "os-stack", {
+    const aosConstruct = new AOSConstruct(this, "aos-construct", {
       osVpc: vpcConstruct.connectorVpc,
       securityGroup: vpcConstruct.securityGroup,
     });
-    osStack.node.addDependency(vpcConstruct);
+    aosConstruct.node.addDependency(vpcConstruct);
 
     const dynamoDBConstruct = new DynamoDBConstruct(this, "ddb-construct");
 
     const etlStack = new EtlStack(this, "etl-stack", {
-      domainEndpoint: osStack.domainEndpoint || "",
+      domainEndpoint: aosConstruct.domainEndpoint || "",
       embeddingEndpoint: llmStack.embeddingEndPoints,
       region: props.env?.region || "us-east-1",
       subEmail: cdkParameters.subEmail.valueAsString ?? "",
@@ -78,26 +78,26 @@ export class RootStack extends Stack {
       etlTag: cdkParameters.etlImageTag.valueAsString,
     });
     etlStack.node.addDependency(vpcConstruct);
-    etlStack.addDependency(osStack);
+    etlStack.node.addDependency(aosConstruct);
     etlStack.addDependency(llmStack);
 
     const connectorConstruct = new ConnectorConstruct(this, "connector-construct", {
       connectorVpc: vpcConstruct.connectorVpc,
       securityGroup: vpcConstruct.securityGroup,
-      domainEndpoint: osStack.domainEndpoint || "",
+      domainEndpoint: aosConstruct.domainEndpoint || "",
       embeddingEndPoints: llmStack.embeddingEndPoints,
       openSearchIndex: cdkParameters.openSearchIndex.valueAsString,
       openSearchIndexDict: cdkParameters.openSearchIndexDict.valueAsString,
       env: process.env,
     });
     connectorConstruct.node.addDependency(vpcConstruct);
-    connectorConstruct.node.addDependency(osStack);
+    connectorConstruct.node.addDependency(aosConstruct);
     connectorConstruct.node.addDependency(llmStack);
 
     const apiConstruct = new ApiConstruct(this, "api-construct", {
       apiVpc: vpcConstruct.connectorVpc,
       securityGroup: vpcConstruct.securityGroup,
-      domainEndpoint: osStack.domainEndpoint || "",
+      domainEndpoint: aosConstruct.domainEndpoint || "",
       rerankEndPoint: llmStack.rerankEndPoint ?? "",
       embeddingEndPoints: llmStack.embeddingEndPoints || "",
       llmModelId: BuildConfig.LLM_MODEL_ID,
@@ -120,7 +120,7 @@ export class RootStack extends Stack {
       env: process.env,
     });
     apiConstruct.node.addDependency(vpcConstruct);
-    apiConstruct.node.addDependency(osStack);
+    apiConstruct.node.addDependency(aosConstruct);
     apiConstruct.node.addDependency(llmStack);
     apiConstruct.node.addDependency(connectorConstruct);
     apiConstruct.node.addDependency(etlStack);
@@ -150,7 +150,7 @@ export class RootStack extends Stack {
       value: llmStack.instructEndPoint || "No Instruct Endpoint Created",
     });
     new CfnOutput(this, "OpenSearch Endpoint", {
-      value: osStack.domainEndpoint || "No OpenSearch Endpoint Created",
+      value: aosConstruct.domainEndpoint || "No OpenSearch Endpoint Created",
     });
     new CfnOutput(this, "Processed Object Table", {
       value: etlStack.executionTableName,

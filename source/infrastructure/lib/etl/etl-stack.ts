@@ -50,6 +50,7 @@ export class EtlStack extends NestedStack {
   public jobName;
   public jobArn;
   public executionTableName;
+  public etlObjTableName;
   public workspaceTableName;
   public etlEndpoint: string;
   public resBucketName: string;
@@ -139,6 +140,7 @@ export class EtlStack extends NestedStack {
       partitionKey: { name: "s3Bucket", type: dynamodb.AttributeType.STRING },
       sortKey: { name: "s3Prefix", type: dynamodb.AttributeType.STRING },
     });
+    const etlObjTable = new DynamoDBTable(this, "ETLObject", executionIdAttr).table;
 
     const workspaceTable = new dynamodb.Table(this, "WorkspaceTable", {
       partitionKey: {
@@ -444,6 +446,7 @@ export class EtlStack extends NestedStack {
     this.jobName = glueJob.jobName;
     this.jobArn = glueJob.jobArn;
     this.executionTableName = executionTable.tableName;
+    this.etlObjTableName = etlObjTable.tableName;
     this.workspaceTableName = workspaceTable.tableName;
     this.resBucketName = s3Bucket.bucketName;
   }
