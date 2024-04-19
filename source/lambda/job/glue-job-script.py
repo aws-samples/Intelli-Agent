@@ -40,6 +40,7 @@ try:
             "JOB_NAME",
             "OFFLINE",
             "ETL_OBJECT_TABLE",
+            "TABLE_ITEM_ID",
             "QA_ENHANCEMENT",
             "REGION",
             "RES_BUCKET",
@@ -177,8 +178,6 @@ class S3FileProcessor:
             return "html", self.decode_file_content(file_content), kwargs
         elif file_type in ["pdf"]:
             return "pdf", file_content, kwargs
-        elif file_type in ["jpg", "png"]:
-            return "image", file_content, kwargs
         elif file_type in ["docx", "doc"]:
             return "doc", file_content, kwargs
         elif file_type == "md":

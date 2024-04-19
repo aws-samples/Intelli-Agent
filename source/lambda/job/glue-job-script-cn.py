@@ -40,6 +40,7 @@ try:
             "JOB_NAME",
             "OFFLINE",
             "ETL_OBJECT_TABLE",
+            "TABLE_ITEM_ID",
             "QA_ENHANCEMENT",
             "REGION",
             "RES_BUCKET",
