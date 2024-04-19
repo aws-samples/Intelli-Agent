@@ -193,6 +193,13 @@ export class EtlStack extends NestedStack {
         ETL_OBJECT_TABLE: etlObjTable.tableName,
       },
     });
+    lambdaNotify.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["dynamodb:*"],
+        effect: iam.Effect.ALLOW,
+        resources: ["*"],
+      }),
+    );
 
     const s3Bucket = new s3.Bucket(this, "llm-bot-glue-result-bucket", {
       // bucketName: `llm-bot-glue-lib-${Aws.ACCOUNT_ID}-${Aws.REGION}`,

@@ -25,11 +25,16 @@ def lambda_handler(event, context):
         if "FAILED" == job_state:
             status = "FAILED"
             break
-
+    attribute_name = '#attr'
     response = execution_table.update_item(
         Key={"executionId": execution_id},
-        UpdateExpression="set status=:status",
-        ExpressionAttributeValues={":status": status},
+        UpdateExpression="SET #attr = :val",
+        ExpressionAttributeNames={
+            '#attr': attribute_name
+        },
+        ExpressionAttributeValues={
+            ':val': {'S': status}
+        },
         ReturnValues="UPDATED_NEW",
     )
 
