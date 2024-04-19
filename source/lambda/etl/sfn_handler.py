@@ -87,7 +87,7 @@ def handler(event, context):
 
     execution_id = response["executionArn"].split(":")[-1]
     input_body["sfnExecutionId"] = execution_id
-    input_body["status"] = "IN-PROGRESS"
+    input_body["executionStatus"] = "IN-PROGRESS"
     input_body["executionId"] = context.aws_request_id
 
     ddb_response = execution_table.put_item(
