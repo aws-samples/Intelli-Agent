@@ -43,6 +43,8 @@ def cb_process_object(s3, file_type: str, file_content, **kwargs):
     elif file_type == "pdf":
         # res = post_process_pdf(process_pdf(file_content, **kwargs))
         res = process_pdf(s3, file_content, **kwargs)
+    elif file_type == "image":
+        process_image(s3, file_content, **kwargs)
     elif file_type == "json":
         res = process_json(file_content, **kwargs)
         # shards = process_json(file_content, kwargs["max_os_docs_per_put"])
