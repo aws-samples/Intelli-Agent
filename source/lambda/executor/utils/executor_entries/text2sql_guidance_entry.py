@@ -532,7 +532,8 @@ def text2sql_guidance_entry(
         if response["intent_type"] == IntentType.TEXT2SQL_SQL_VALIDATED.value:
             # validated sql output
             cont = False
-            answer = response["answer"].split("<query>")[1].split("</query>")[0]
+            # answer = response["answer"].split("<query>")[1].split("</query>")[0]
+            answer = response["answer"]
             sources = response["context_sources"]
         elif response["intent_type"] == IntentType.TEXT2SQL_SQL_RE_GEN.value:
             # sql validated fail, re-generate
