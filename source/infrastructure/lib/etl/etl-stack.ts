@@ -131,7 +131,7 @@ export class EtlStack extends NestedStack {
     });
 
     const idAttr = {
-      name: "id",
+      name: "executionId",
       type: dynamodb.AttributeType.STRING,
     }
     const etlS3Bucket = {
@@ -440,9 +440,8 @@ export class EtlStack extends NestedStack {
       integrationPattern: sfn.IntegrationPattern.REQUEST_RESPONSE,
       topic: topic,
       message: sfn.TaskInput.fromObject({
-        "API": "SNS: Publish",
-        "offline.$": "$.offline",
-        "tableItemId.$": "$.tableItemId",
+        "executionId.$": "$.tableItemId",
+        "mapResults.$": "$.mapResults",
       }),
     });
 
