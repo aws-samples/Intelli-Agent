@@ -17,19 +17,13 @@ def lambda_handler(event, context):
     
     message = json.loads(event["Records"][0]["Sns"]["Message"])
     execution_id = message["executionId"]
-    map_result = message["mapResults"]
-    status = "SUCCEEDED"
-    for result in map_result:
-        job_state = result["JobRunState"]
-        # Valid value is SUCCEEDED | FAILED
-        if "FAILED" == job_state:
-            status = "FAILED"
-            break
+    status = "COMPLETED"
+
     response = execution_table.update_item(
         Key={"executionId": execution_id},
         UpdateExpression="SET executionStatus = :val",
         ExpressionAttributeValues={
-            ':val': status
+            ":val": status
         },
         ReturnValues="UPDATED_NEW",
     )
