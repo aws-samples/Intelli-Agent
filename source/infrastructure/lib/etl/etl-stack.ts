@@ -134,21 +134,25 @@ export class EtlStack extends NestedStack {
       name: "executionId",
       type: dynamodb.AttributeType.STRING,
     }
-    const etlS3Bucket = {
-      name: "s3Bucket",
+    const etlS3Path = {
+      name: "s3Path",
       type: dynamodb.AttributeType.STRING,
     }
-    const etlS3Prefix = {
-      name: "s3Prefix",
-      type: dynamodb.AttributeType.STRING,
-    }    
+    // const etlS3Bucket = {
+    //   name: "s3Bucket",
+    //   type: dynamodb.AttributeType.STRING,
+    // }
+    // const etlS3Prefix = {
+    //   name: "s3Prefix",
+    //   type: dynamodb.AttributeType.STRING,
+    // }    
     const executionTable = new DynamoDBTable(this, "Execution", idAttr).table;
     executionTable.addGlobalSecondaryIndex({
       indexName: "BucketAndPrefixIndex",
       partitionKey: { name: "s3Bucket", type: dynamodb.AttributeType.STRING },
       sortKey: { name: "s3Prefix", type: dynamodb.AttributeType.STRING },
     });
-    const etlObjTable = new DynamoDBTable(this, "ETLObject", etlS3Bucket, etlS3Prefix).table;
+    const etlObjTable = new DynamoDBTable(this, "ETLObject", etlS3Path, idAttr).table;
     etlObjTable.addGlobalSecondaryIndex({
       indexName: "ExecutionIdIndex",
       partitionKey: { name: "executionId", type: dynamodb.AttributeType.STRING },

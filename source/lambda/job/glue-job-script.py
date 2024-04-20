@@ -159,6 +159,7 @@ class S3FileProcessor:
         }
         
         input_body = {
+            "s3Path": f"s3://{self.bucket}/{key}",
             "s3Bucket": self.bucket,
             "s3Prefix": key,
             "executionId": table_item_id,
@@ -498,6 +499,7 @@ def ingestion_pipeline(
 ):
     for file_type, file_content, kwargs in s3_files_iterator:
         input_body = {
+            "s3Path": f"s3://{kwargs['bucket']}/{kwargs['key']}",
             "s3Bucket": kwargs["bucket"],
             "s3Prefix": kwargs["key"],
             "executionId": table_item_id,
@@ -535,8 +537,6 @@ def ingestion_pipeline(
 
                 if not extract_only:
                     ingestion_worker.aos_ingestion(batch)
-
-            table_item_id
         except Exception as e:
             logger.error(
                 "Error processing object %s: %s",
@@ -544,6 +544,7 @@ def ingestion_pipeline(
                 e,
             )
             input_body = {
+                "s3Path": f"s3://{kwargs['bucket']}/{kwargs['key']}",
                 "s3Bucket": kwargs["bucket"],
                 "s3Prefix": kwargs["key"],
                 "executionId": table_item_id,
