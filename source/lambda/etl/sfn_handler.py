@@ -85,6 +85,8 @@ def handler(event, context):
         stateMachineArn=os.environ["sfn_arn"], input=input_payload
     )
 
+    if "tableItemId" in input_body:
+        del input_body["tableItemId"]
     execution_id = response["executionArn"].split(":")[-1]
     input_body["sfnExecutionId"] = execution_id
     input_body["executionStatus"] = "IN-PROGRESS"
