@@ -855,6 +855,107 @@ def test_internlm_model_mkt_knowledge_entry():
 
 
 
+
+# /efs/projects/aws-samples-llm-bot-dev/source/lambda/executor/test/conversation_test_data.json
+
+
+
+def test_internlm_model_mkt_knowledge_entry_with_conversation_batch():
+    path = "/efs/projects/aws-samples-llm-bot-dev/source/lambda/executor/test/conversation_test_data.json"
+    
+    # endpoint_name = 'internlm2-chat-7b-4bits-2024-02-28-07-08-57-839'
+    # model_id = "internlm2-chat-7b"
+    # endpoint_name = 'internlm2-chat-20b-4bits-2024-03-04-06-32-53-653'
+    endpoint_name = 'internlm2-chat-20b-4bits-continuous-bat-2024-03-23-16-25-28-881'
+    model_id = "internlm2-chat-20b"
+    entry_type = "market_chain"
+
+    os.environ['llm_model_id'] = model_id
+    os.environ['llm_model_endpoint_name'] = endpoint_name
+    sessions_table_name = os.environ.get("sessions_table_name", "")
+    messages_table_name = os.environ.get("messages_table_name", "")
+    custom_message_id = ""
+    # workspace_ids = ["aos_index_mkt_faq_qq","aos_index_acts_qd"]
+    # workspace_ids = ["aos_index_mkt_faq_qq_m3", "aos_index_acts_qd_m3", "aos_index_mkt_faq_qd_m3"]
+    
+    data = json.load(open(path,'r'))
+    print("data len: ",len(data))
+    import random
+    random.Random(42).shuffle(data)
+    for datum in data[:100]:
+        print('*'*50,flush=True)
+        messages = datum['messages']
+        session_id=f'test_{time.time()}'
+        rag_parameters={
+            "get_contexts":True,
+            "session_id":session_id,
+            "response_config": {
+                # context return with chunk
+                "context_return_with_chunk": True
+            },
+            "generator_llm_config": {
+                "context_num": 1,
+            },
+            
+        }
+
+        conversation_strs = ["<conversation>"]
+
+        for message in messages:
+            conversation_strs.append(f"{message['role']}: {message['content']}")
+        
+        conversation_strs.append('</conversation>')
+
+        print("\n".join(conversation_strs),flush=True)
+
+        ### 对话标签
+        # <conversation>
+
+        # </conversation>
+        ##
+        ## <answer></answer>
+
+
+        # 注入历史消息到ddb
+        ddb_history_obj = DynamoDBChatMessageHistory(
+                sessions_table_name=sessions_table_name,
+                messages_table_name=messages_table_name,
+                session_id=session_id,
+                user_id="default_user_id",
+                client_type="default_client_type",
+        )
+        for message in messages[:-1]:
+            message_id = str(uuid.uuid4())
+            if message['role'] == "user":
+                ddb_history_obj.add_user_message(
+                    message_id = message_id,
+                    custom_message_id=custom_message_id,
+                    entry_type=entry_type,
+                    message_content=message['content']
+                )
+            elif message['role'] == "ai":
+                ddb_history_obj.add_ai_message(
+                    message_id=message_id,
+                    custom_message_id=custom_message_id,
+                    entry_type=entry_type,
+                    message_content=message['content'],
+                    input_message_id=f"user_{message_id}"
+                )
+            else:
+                raise f"invalid role: {message['role']}"
+        
+        r = generate_answer(
+            # "日志通是什么？", 
+            messages[-1]['content'], 
+            # model="knowledge_qa", 
+            type=entry_type, 
+            stream=False,
+            rag_parameters=rag_parameters
+        )
+        print(f"<answer>\n{r[0]}\n</answer>",flush=True)
+        print('*'*50,flush=True)
+        
+
 def test_internlm_model_mkt_knowledge_entry_with_conversation():
     session_id=f'test_{time.time()}'
     # endpoint_name = 'internlm2-chat-7b-4bits-2024-02-28-07-08-57-839'
@@ -886,38 +987,35 @@ def test_internlm_model_mkt_knowledge_entry_with_conversation():
     }
 
 
+    messages = [
+        {
+        "role":"user",
+        "content": "请问怎么租用jetson agx orin"
+        },
+        {
+        "role":"ai",
+        "content": "您好,这是英伟达的产品"
+        },
+        {
+        "role":"user",
+        "content": "是的,可以租借一台吗"
+        }
+    ]
 
     # messages = [
     #     {
     #     "role":"user",
-    #     "content": "请问怎么租用jetson agx orin"
+    #     "content": "AWS 机器学习平台是什么？"
     #     },
     #     {
     #     "role":"ai",
-    #     "content": "您好,这是英伟达的产品"
+    #     "content": "sagemaker"
     #     },
     #     {
     #     "role":"user",
-    #     "content": "是的,可以租借一台吗"
+    #     "content": "它的优点是什么？"
     #     }
     # ]
-
-    messages = [
-        {
-        "role":"user",
-        "content": "AWS 机器学习平台是什么？"
-        },
-        {
-        "role":"ai",
-        "content": "sagemaker"
-        },
-        {
-        "role":"user",
-        "content": "它的优点是什么？"
-        }
-    ]
-
-
 
     # 注入历史消息到ddb
     ddb_history_obj = DynamoDBChatMessageHistory(
@@ -1108,26 +1206,26 @@ def market_summary_test2():
 #         "type": "market_conversation_summary",
 #         "temperature": 0.1
 # }
+#     body = {
+#     "client_type": "GCRChat",
+#     # "session_id": "961515e9-1d91-402a-8996-aba68f4211c5",
+#     "enable_debug": True,
+#     "time_window": {
+#       "start_time": 1710976467.939,
+#       "end_time": 1710994497.327
+#     },
+#     "type": "market_conversation_summary",
+#     "temperature": 0.1
+# }
     body = {
-    "client_type": "GCRChat",
-    "session_id": "961515e9-1d91-402a-8996-aba68f4211c5",
-    "enable_debug": True,
-    "time_window": {
-      "start_time": 1710976467.939,
-      "end_time": 1710994497.327
-    },
-    "type": "market_conversation_summary",
-    "temperature": 0.1
-}
-    # body = {
-    #         "messages": messages,
-    #         "type": 'market_conversation_summary',
-    #         "mkt_conversation_summary_config": {
-    #             "model_id": model_id,
-    #             "endpoint_name": endpoint_name
-    #         }
-    #         # "model":"chat"
-    #         }
+            "messages": messages,
+            "type": 'market_conversation_summary',
+            "mkt_conversation_summary_config": {
+                "model_id": model_id,
+                "endpoint_name": endpoint_name
+            }
+            # "model":"chat"
+            }
     event = {
         "body": json.dumps(body)
     }
@@ -1179,7 +1277,7 @@ def dgr_deploy_test():
     os.environ['llm_model_id'] = "anthropic.claude-3-sonnet-20240229-v1:0"
     session_id = f'test_{int(time.time())}'
     questions = [
-        # "我的产品每分钟发送约20万个事件到网站以发布广告,将这些大量数据实时传输到Amazon Redshift的最佳方式是什么?",
+        "我的产品每分钟发送约20万个事件到网站以发布广告,将这些大量数据实时传输到Amazon Redshift的最佳方式是什么?",
         # '\n将计算资源与Lambda函数部署在相同AZ是否会降低延迟？'
         # "Elastic Load Balancing如何启用跨区域负载均衡？",
         # "Amazon VPC默认安全组的默认入站和出站规则?",
@@ -1256,8 +1354,9 @@ if __name__ == "__main__":
     # market_summary_test2()
     # test_internlm_model()
     # dgr_deploy_test()
-    # test_internlm_model_mkt_knowledge_entry()
-    test_internlm_model_mkt_knowledge_entry_with_conversation()
+    test_internlm_model_mkt_knowledge_entry()
+    # test_internlm_model_mkt_knowledge_entry_with_conversation()
+    # test_internlm_model_mkt_knowledge_entry_with_conversation_batch()
     # test_internlm_model_mkt_knowledge_entry_qq_match()
     # test_internlm_model_mkt_knowledge_entry_langgraph()
     # test_baichuan_model()

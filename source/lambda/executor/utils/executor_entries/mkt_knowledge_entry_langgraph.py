@@ -50,6 +50,7 @@ from ..query_process_utils.preprocess_utils import (
     rule_based_query_expansion
 )
 from ..workspace_utils import WorkspaceManager
+from ..constant import MKTUserType
 
 logger = get_logger('mkt_knowledge_entry')
 
@@ -212,7 +213,7 @@ def conversation_query_rewrite(state: AppState):
             # query=cqr_llm_chain
         ),
         "conversation_summary_chain",
-        log_output_template=f'conversation_summary_chain result: {"{"+conversation_query_rewrite_result_key+"}"}',
+        log_output_template=f'conversation_summary_chain result:<conversation_summary> {"{"+conversation_query_rewrite_result_key+"}"}</conversation_summary>',
         message_id=message_id,
         trace_infos=trace_infos
     )
@@ -391,7 +392,7 @@ def query_expansion(state,result_key='query'):
     chain = LLMChain.get_chain(**query_rewrite_config,intent_type=MKT_QUERY_REWRITE_TYPE)
     r = chain.invoke({"query":state['query'], "stream": False,"chat_history":state['chat_history']})
     state[result_key] = r
-    logger.info(f'query_expansion: {r}')
+    logger.info(f'<query_expansion>query_expansion: {r}</query_expansion>')
     # state[result_key] = rule_based_query_expansion(state['query'])
 
 ########################
@@ -700,12 +701,12 @@ def market_chain_knowledge_entry_417(
 
 
 def market_chain_knowledge_entry_assistant_418(
-    query_input: str,
-    stream=False,
+    # query_input: str,
+    # stream=False,
     # manual_input_intent=None,
-    event_body=None,
-    rag_config=None,
-    message_id=None
+    event_body
+    # rag_config=None,
+    # message_id=None
 ):
     """
     Entry point for the Lambda function.
@@ -715,11 +716,16 @@ def market_chain_knowledge_entry_assistant_418(
     :param stream(Bool): Whether to use llm stream decoding output.
     return: answer(str)
     """
-    from ..constant import MKTUserType
-    if rag_config is None:
-        rag_config = parse_config.parse_mkt_entry_knowledge_config(event_body)
+    query_input = event_body['question']
+    stream = event_body['stream']
+    message_id = event_body['custom_message_id']
+    
+    rag_config = parse_config.parse_mkt_entry_knowledge_config(event_body)
 
-    assert rag_config is not None
+    # TODO replace chat_history with messages in assistant
+    qd_config = rag_config['retriever_config']['qd_config'] 
+    if rag_config['user_type'] == MKTUserType.ASSISTANT:
+        qd_config['qd_match_threshold'] = -100
 
     logger.info(f'market rag knowledge configs:\n {json.dumps(rag_config,indent=2,ensure_ascii=False,cls=JSONEncoder)}')
 
@@ -745,11 +751,9 @@ def market_chain_knowledge_entry_assistant_418(
         "response_msg": "normal"
         }
 
-    qd_config = rag_config['retriever_config']['qd_config'] 
+    
 
-    if rag_config['user_type'] == MKTUserType.ASSISTANT:
-        qd_config['qd_match_threshold'] = -100
-
+    
     # qd_config['query_key'] = "query_for_qd_retrieve"
     # qd_config['query_key'] = "query"
 
@@ -828,7 +832,7 @@ def market_chain_knowledge_entry_assistant_418(
      )
 
     app = workflow.compile()
-    # with open('rag_workflow.png','wb') as f:
+    # with open('rag_workflow_418.png','wb') as f:
     #     f.write(app.get_graph().draw_png())
 
     # app.get_graph().print_ascii()

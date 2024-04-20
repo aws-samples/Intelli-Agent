@@ -9,44 +9,32 @@ import uuid
 import boto3
 from utils.constant import Type
 from utils.ddb_utils import DynamoDBChatMessageHistory
-from utils.executor_entries import (  # market_chain_entry,; market_chain_entry_core,
-    get_retriever_response,
-    main_chain_entry,
-    main_qd_retriever_entry,
-    main_qq_retriever_entry,
-    market_chain_knowledge_entry,
-    market_chain_knowledge_entry_langgraph,
-    market_conversation_summary_entry,
-    sagemind_llm_entry,
-    text2sql_guidance_entry
-)
+# from utils.executor_entries import (  # market_chain_entry,; market_chain_entry_core,
+#     get_retriever_response,
+#     main_chain_entry,
+#     main_qd_retriever_entry,
+#     main_qq_retriever_entry,
+#     market_chain_knowledge_entry,
+#     market_chain_knowledge_entry_langgraph,
+#     market_conversation_summary_entry,
+#     sagemind_llm_entry,
+#     text2sql_guidance_entry
+# )
 
-# from langchain.retrievers.multi_query import MultiQueryRetriever
-# from langchain.retrievers.multi_query import MultiQueryRetriever
+from utils.executor_entries import get_entry
+
 from utils.logger_utils import get_logger
-from utils.parse_config import update_nest_dict
-from utils.response_utils import process_response
-from utils.serialization_utils import JSONEncoder
 
-# from utils.constant import MKT_CONVERSATION_SUMMARY_TYPE
+from utils.response_utils import process_response
 
 logger = get_logger("main")
 region = os.environ["AWS_REGION"]
 embedding_endpoint = os.environ.get("embedding_endpoint", "")
-# zh_embedding_endpoint = os.environ.get("zh_embedding_endpoint", "")
-# en_embedding_endpoint = os.environ.get("en_embedding_endpoint", "")
-# cross_endpoint = os.environ.get("rerank_endpoint", "")
-# rerank_endpoint = os.environ.get("rerank_endpoint", "")
-# aos_endpoint = os.environ.get("aos_endpoint", "")
 aos_index = os.environ.get("aos_index", "")
-# aos_faq_index = os.environ.get("aos_faq_index", "")
-# aos_ug_index = os.environ.get("aos_ug_index", "")
-# llm_endpoint = os.environ.get("llm_endpoint", "")
+
 sessions_table_name = os.environ.get("sessions_table_name", "")
 messages_table_name = os.environ.get("messages_table_name", "")
 websocket_url = os.environ.get("websocket_url", "")
-# sm_client = boto3.client("sagemaker-runtime")
-# aos_client = LLMBotOpenSearchClient(aos_endpoint)
 ws_client = None
 
 
@@ -116,25 +104,18 @@ def lambda_handler(event, context):
         # model = event_body['model']
         # session_id = event_body.get("session_id", None) or "N/A"
         messages = event_body.get("messages", [])
-
         # deal with stream parameter
         stream = _is_websocket_request(record_event)
         if stream:
             load_ws_client()
 
         logger.info(f"stream decode: {stream}")
-        # biz_type = event_body.get("type", Type.COMMON.value)
         client_type = event_body.get("client_type", "default_client_type")
-        enable_q_q_match = event_body.get("enable_q_q_match", False)
         entry_type = event_body.get("type", Type.COMMON.value).lower()
-        # enable_q_q_match = event_body.get("enable_q_q_match", False)
         enable_debug = event_body.get("enable_debug", False)
         get_contexts = event_body.get("get_contexts", False)
         session_id = event_body.get("session_id", None)
         ws_connection_id = None
-
-        # all rag related params can be found in rag_config
-        # rag_config = parse_config.parse_rag_config(event_body)
 
         debug_level = event_body.get("debug_level", logging.INFO)
         logger.setLevel(debug_level)
@@ -146,7 +127,8 @@ def lambda_handler(event, context):
         else:
             question = ""  # MARKET_CONVERSATION_SUMMARY
             custom_message_id = event.get("custom_message_id", "")
-
+        
+        # custom_message_id 字段位置不合理
         # _, question = process_input_messages(messages)
         # role = "user"
 
@@ -158,7 +140,7 @@ def lambda_handler(event, context):
 
         # get chat history
         user_id = event_body.get("user_id", "default_user_id")
-        message_id = str(uuid.uuid4())
+        
         ddb_history_obj = DynamoDBChatMessageHistory(
             sessions_table_name=sessions_table_name,
             messages_table_name=messages_table_name,
@@ -173,98 +155,109 @@ def lambda_handler(event, context):
         event_body["ws_connection_id"] = ws_connection_id
         event_body["session_id"] = session_id
         event_body["debug_level"] = debug_level
+        event_body['stream'] = stream 
+        event_body['custom_message_id'] = custom_message_id
+        event_body['question'] = question
 
         main_entry_start = time.time()
         contexts = []
+
+        biz_type = event_body.get("type", Type.COMMON.value)
+        
+
+        # 执行entry
+        entry_executor = get_entry(biz_type)
+        response:dict = entry_executor(event_body)
+
         # entry_type = biz_type.lower()
-        if entry_type == Type.COMMON.value:
-            response = main_chain_entry(
-                question,
-                stream=stream,
-                event_body=event_body,
-                message_id=custom_message_id,
-            )
+        # if entry_type == Type.COMMON.value:
+        #     response = main_chain_entry(
+        #         question,
+        #         stream=stream,
+        #         event_body=event_body,
+        #         message_id=custom_message_id,
+        #     )
 
-        elif entry_type == Type.QD_RETRIEVER.value:
-            retriever_index = event_body.get("retriever_index", aos_index)
-            docs, debug_info = main_qd_retriever_entry(
-                question,
-                retriever_index,
-                event_body=event_body,
-                message_id=custom_message_id,
-            )
-            return get_retriever_response(docs, debug_info)
-        elif entry_type == Type.QQ_RETRIEVER.value:
-            retriever_index = event_body.get("retriever_index", aos_index)
-            docs = main_qq_retriever_entry(question, retriever_index)
-            return get_retriever_response(docs)
-        elif entry_type == Type.DGR.value:
-            # switch dgr to market
-            event_body["llm_model_id"] = (
-                event_body.get("llm_model_id", None)
-                or "anthropic.claude-3-sonnet-20240229-v1:0"
-            )
-            dgr_config = {
-                "retriever_config": {
-                    "qd_config": {
-                        "using_whole_doc": True,
-                        "qd_match_threshold": -100,
-                    },
-                    "workspace_ids": [
-                        "aos_index_repost_qq_m3",
-                        "aws-cn-dgr-user-guide-qd-m3-dense-20240318",
-                    ],
-                },
-                "generator_llm_config": {"context_num": 2},
-            }
+        # elif entry_type == Type.QD_RETRIEVER.value:
+        #     retriever_index = event_body.get("retriever_index", aos_index)
+        #     docs, debug_info = main_qd_retriever_entry(
+        #         question,
+        #         retriever_index,
+        #         event_body=event_body,
+        #         message_id=custom_message_id,
+        #     )
+        #     return get_retriever_response(docs, debug_info)
+        # elif entry_type == Type.QQ_RETRIEVER.value:
+        #     retriever_index = event_body.get("retriever_index", aos_index)
+        #     docs = main_qq_retriever_entry(question, retriever_index)
+        #     return get_retriever_response(docs)
+        # elif entry_type == Type.DGR.value:
+        #     # switch dgr to market
+        #     event_body["llm_model_id"] = (
+        #         event_body.get("llm_model_id", None)
+        #         or "anthropic.claude-3-sonnet-20240229-v1:0"
+        #     )
+        #     dgr_config = {
+        #         "retriever_config": {
+        #             "qd_config": {
+        #                 "using_whole_doc": True,
+        #                 "qd_match_threshold": -100,
+        #             },
+        #             "workspace_ids": [
+        #                 "aos_index_repost_qq_m3",
+        #                 "aws-cn-dgr-user-guide-qd-m3-dense-20240318",
+        #             ],
+        #         },
+        #         "generator_llm_config": {"context_num": 2},
+        #     }
 
-            event_body = update_nest_dict(dgr_config,event_body)
-            response = market_chain_knowledge_entry_langgraph(
-                question,
-                stream=stream,
-                event_body=event_body,
-                message_id=custom_message_id,
-            )
+        #     event_body = update_nest_dict(dgr_config,event_body)
+        #     response = market_chain_knowledge_entry_langgraph(
+        #         question,
+        #         stream=stream,
+        #         event_body=event_body,
+        #         message_id=custom_message_id,
+        #     )
 
-        elif entry_type in (
-            Type.MARKET_CHAIN_KNOWLEDGE.value,
-            "market_chain_knowledge_langgraph",
-            Type.MARKET_CHAIN.value,
-        ):
-            response = market_chain_knowledge_entry_langgraph(
-                question,
-                stream=stream,
-                event_body=event_body,
-                message_id=custom_message_id,
-            )
+        # elif entry_type in (
+        #     Type.MARKET_CHAIN_KNOWLEDGE.value,
+        #     "market_chain_knowledge_langgraph",
+        #     Type.MARKET_CHAIN.value,
+        # ):
+        #     response = market_chain_knowledge_entry_langgraph(
+        #         question,
+        #         stream=stream,
+        #         event_body=event_body,
+        #         message_id=custom_message_id,
+        #     )
 
-        elif entry_type == Type.MARKET_CONVERSATION_SUMMARY.value:
-            answer, sources, contexts, debug_info = market_conversation_summary_entry(
-                messages=messages, event_body=event_body, stream=stream
-            )
-            response = {
-                "answer": answer,
-                "context_sources": sources,
-                "context_docs": contexts,
-                "debug_info": debug_info,
-                "rag_config": {},
-            }
-        elif entry_type == Type.LLM.value:
-            answer, sources, contexts, debug_info = sagemind_llm_entry(
-                messages=messages, event_body=event_body, stream=stream
-            )
-        elif entry_type == Type.TEXT2SQL.value:
-            from utils.executor_entries import text2sql_guidance_entry
-            answer, sources, contexts, debug_info = text2sql_guidance_entry(
-                question, message_id=message_id, event_body=event_body, stream=stream
-            )
-            response = {
-                "answer": answer,
-                "context_sources": sources,
-                "context_docs": contexts,
-                "debug_info": debug_info,
-                "rag_config": {},
-            }
+        # elif entry_type == Type.MARKET_CONVERSATION_SUMMARY.value:
+        #     answer, sources, contexts, debug_info = market_conversation_summary_entry(
+        #         messages=messages, event_body=event_body, stream=stream
+        #     )
+        #     response = {
+        #         "answer": answer,
+        #         "context_sources": sources,
+        #         "context_docs": contexts,
+        #         "debug_info": debug_info,
+        #         "rag_config": {},
+        #     }
+        # elif entry_type == Type.LLM.value:
+        #     answer, sources, contexts, debug_info = sagemind_llm_entry(
+        #         messages=messages, event_body=event_body, stream=stream
+        #     )
+        # elif entry_type == Type.TEXT2SQL.value:
+        #     from utils.executor_entries import text2sql_guidance_entry
+        #     answer, sources, contexts, debug_info = text2sql_guidance_entry(
+        #         question, message_id=message_id, event_body=event_body, stream=stream
+        #     )
+        #     response = {
+        #         "answer": answer,
+        #         "context_sources": sources,
+        #         "context_docs": contexts,
+        #         "debug_info": debug_info,
+        #         "rag_config": {},
+        #     }
 
         answer = response["answer"]
         sources = response["context_sources"]
@@ -282,7 +275,6 @@ def lambda_handler(event, context):
             stream=stream,
             session_id=event_body["session_id"],
             ws_connection_id=event_body["ws_connection_id"],
-            # model=model,
             entry_type=entry_type,
             question=question,
             request_timestamp=request_timestamp,
@@ -294,7 +286,7 @@ def lambda_handler(event, context):
             debug_info=debug_info,
             ws_client=ws_client,
             ddb_history_obj=ddb_history_obj,
-            message_id=message_id,
+            message_id = str(uuid.uuid4()),
             client_type=client_type,
             custom_message_id=custom_message_id,
             main_entry_end=main_entry_end,
