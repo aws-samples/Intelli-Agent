@@ -54,6 +54,7 @@ export class EtlStack extends NestedStack {
   public workspaceTableName;
   public etlEndpoint: string;
   public resBucketName: string;
+  public etlObjIndexName: string = "ExecutionIdIndex";
 
   constructor(scope: Construct, id: string, props: ETLStackProps) {
     super(scope, id, props);
@@ -146,7 +147,7 @@ export class EtlStack extends NestedStack {
     });
     const etlObjTable = new DynamoDBTable(this, "ETLObject", etlS3Path, idAttr).table;
     etlObjTable.addGlobalSecondaryIndex({
-      indexName: "ExecutionIdIndex",
+      indexName: this.etlObjIndexName,
       partitionKey: { name: "executionId", type: dynamodb.AttributeType.STRING },
     });
 

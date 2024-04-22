@@ -51,6 +51,7 @@ interface ApiStackProps extends StackProps {
   resBucketName: string;
   executionTableName: string;
   etlObjTableName: string;
+  etlObjIndexName: string;
 }
 
 export class ApiConstruct extends Construct {
@@ -74,6 +75,7 @@ export class ApiConstruct extends Construct {
     const resBucketName = props.resBucketName;
     const executionTableName = props.executionTableName;
     const etlObjTableName = props.etlObjTableName;
+    const etlObjIndexName = props.etlObjIndexName;
 
     const queueConstruct = new QueueConstruct(this, "LLMQueueStack", {
       namePrefix: Constants.API_QUEUE_NAME,
@@ -250,6 +252,7 @@ export class ApiConstruct extends Construct {
       architecture: Architecture.X86_64,
       environment: {
         ETL_OBJECT_TABLE: etlObjTableName,
+        ETL_OBJECT_INDEX: etlObjIndexName,
       },
     });
     getExecutionLambda.addToRolePolicy(

@@ -3,11 +3,13 @@ import logging
 import os
 
 import boto3
+from boto3.dynamodb.conditions import Key
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 dynamodb = boto3.resource('dynamodb')
 table_name = os.environ.get('ETL_OBJECT_TABLE')
+index_name = os.environ.get('ETL_OBJECT_INDEX')
 object_table = dynamodb.Table(table_name)
 
 
@@ -18,7 +20,12 @@ def lambda_handler(event, context):
     #         "executionId": ,
     #         "versionId": int(version1)
     #     })
-
+    execution_id = event["queryStringParameters"]["executionId"]
+    response = object_table.query(
+        IndexName=index_name,
+        KeyConditionExpression=Key('executionId').eq(execution_id)
+    )
+    logger.info(response["Item"])
 
     resp_header = {
         "Content-Type": "application/json",
