@@ -56,6 +56,11 @@ except Exception as e:
     sys.path.append("dep")
     args = json.load(open(sys.argv[1]))
     args["BATCH_INDICE"] = sys.argv[2]
+    args["BATCH_FILE_NUMBER"] = sys.argv[3]
+    args["S3_PREFIX"] = sys.argv[4]
+    args["WORKSPACE_ID"] = sys.argv[5]
+    args["INDEX_TYPE"] = sys.argv[6]
+    args["OPERATION_TYPE"] = "create"
 
 from llm_bot_dep import sm_utils
 from llm_bot_dep.constant import SplittingType
