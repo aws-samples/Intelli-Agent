@@ -241,7 +241,7 @@ export class ApiConstruct extends Construct {
         resources: ["*"],
       }),
     );
-    const getExecutionLambda = new Function(this, "ListExecution", {
+    const getExecutionLambda = new Function(this, "GetExecution", {
       code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
       handler: "get_execution.lambda_handler",
       runtime: Runtime.PYTHON_3_11,
