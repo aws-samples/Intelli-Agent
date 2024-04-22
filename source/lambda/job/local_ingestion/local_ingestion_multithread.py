@@ -763,7 +763,7 @@ def gen_documents(s3_bucket, s3_prefix, worker_num, batchIndice, max_file_num=ma
                 save_content_to_s3(
                     s3, document, res_bucket, SplittingType.SEMANTIC.value
                 )
-            # the res is unified to list[Doucment] type, store the res to S3 for observation
+            # the res is unified to list[Document] type, store the res to S3 for observation
             # TODO, parse the metadata to embed with different index
             if res:
                 logger.debug("Result: %s", res)
@@ -867,7 +867,7 @@ def __main(worker_num, batchIndice, max_file_num=math.inf):
                     s3, document, res_bucket, SplittingType.SEMANTIC.value
                 )
 
-            # the res is unified to list[Doucment] type, store the res to S3 for observation
+            # the res is unified to list[Document] type, store the res to S3 for observation
             # TODO, parse the metadata to embed with different index
             if res:
                 logger.debug("Result: %s", res)

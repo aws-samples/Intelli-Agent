@@ -218,7 +218,7 @@ class EnhanceWithBedrock:
         total_tokens = len(tokens)
         chunk_num = total_tokens // token_num + 1
 
-        # Initial document list to sttore ducoment slices seperated by 50 tokens
+        # Initial document list to sttore ducoment slices separated by 50 tokens
         documents_list = []
         # Iterate through the list of tokens, extracting slices of 50 tokens at a time
         for i in range(0, len(tokens), token_num):

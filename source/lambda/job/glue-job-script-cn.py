@@ -485,7 +485,7 @@ def ingestion_pipeline(
 ):
     for file_type, file_content, kwargs in s3_files_iterator:
         try:
-            # the res is unified to list[Doucment] type
+            # the res is unified to list[Document] type
             res = cb_process_object(s3_client, file_type, file_content, **kwargs)
             for document in res:
                 save_content_to_s3(

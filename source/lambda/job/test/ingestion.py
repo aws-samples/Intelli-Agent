@@ -401,7 +401,7 @@ def main(batchIndice):
                         s3, document, res_bucket, SplittingType.SEMANTIC.value
                     )
 
-                # the res is unified to list[Doucment] type, store the res to S3 for observation
+                # the res is unified to list[Document] type, store the res to S3 for observation
                 # TODO, parse the metadata to embed with different index
                 if res:
                     logger.info("Result: %s", res)

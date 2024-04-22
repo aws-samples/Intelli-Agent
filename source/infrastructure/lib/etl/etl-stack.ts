@@ -138,14 +138,6 @@ export class EtlStack extends NestedStack {
       name: "s3Path",
       type: dynamodb.AttributeType.STRING,
     }
-    // const etlS3Bucket = {
-    //   name: "s3Bucket",
-    //   type: dynamodb.AttributeType.STRING,
-    // }
-    // const etlS3Prefix = {
-    //   name: "s3Prefix",
-    //   type: dynamodb.AttributeType.STRING,
-    // }    
     const executionTable = new DynamoDBTable(this, "Execution", idAttr).table;
     executionTable.addGlobalSecondaryIndex({
       indexName: "BucketAndPrefixIndex",
