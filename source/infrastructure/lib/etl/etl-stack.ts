@@ -177,7 +177,7 @@ export class EtlStack extends NestedStack {
       },
     });
 
-    const lambdaNotify = new Function(this, "ETLNotification", {
+    const notificationLambda = new Function(this, "ETLNotification", {
       code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
       handler: "notification.lambda_handler",
       runtime: Runtime.PYTHON_3_11,
@@ -189,7 +189,7 @@ export class EtlStack extends NestedStack {
         ETL_OBJECT_TABLE: etlObjTable.tableName,
       },
     });
-    lambdaNotify.addToRolePolicy(
+    notificationLambda.addToRolePolicy(
       new iam.PolicyStatement({
         actions: ["dynamodb:*"],
         effect: iam.Effect.ALLOW,
@@ -289,10 +289,10 @@ export class EtlStack extends NestedStack {
       topicName: "etl-topic",
     });
     topic.addSubscription(new subscriptions.EmailSubscription(props.subEmail));
-    topic.addSubscription(new subscriptions.LambdaSubscription(lambdaNotify));
+    topic.addSubscription(new subscriptions.LambdaSubscription(notificationLambda));
 
     // Lambda function to for file deduplication and glue job allocation based on file number
-    const lambdaETL = new Function(this, "lambdaETL", {
+    const etlLambda = new Function(this, "ETLLambda", {
       code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
       handler: "main.lambda_handler",
       runtime: Runtime.PYTHON_3_11,
@@ -306,7 +306,7 @@ export class EtlStack extends NestedStack {
       },
     });
 
-    lambdaETL.addToRolePolicy(
+    etlLambda.addToRolePolicy(
       new iam.PolicyStatement({
         actions: [
           // Glue job
@@ -324,7 +324,7 @@ export class EtlStack extends NestedStack {
       this,
       "lambdaETLIntegration",
       {
-        lambdaFunction: lambdaETL,
+        lambdaFunction: etlLambda,
         // Use the result of this invocation to decide how many Glue jobs to run
         resultSelector: {
           processedPayload: {

@@ -117,6 +117,7 @@ export class RootStack extends Stack {
       etlEndpoint: etlStack.etlEndpoint,
       resBucketName: etlStack.resBucketName,
       executionTableName: etlStack.executionTableName,
+      etlObjTableName: etlStack.etlObjTableName,
       env: process.env,
     });
     apiConstruct.node.addDependency(vpcConstruct);
