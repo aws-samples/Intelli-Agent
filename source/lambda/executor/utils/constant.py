@@ -50,6 +50,10 @@ class MKTUserType:
     ASSISTANT = "assistant"
     AUTO_CHAT = "auto_chat"
 
+class HistoryType:
+    DDB = 'ddb'
+    MESSAGE = "message"
+
 
 # LLM chain typs
 QUERY_TRANSLATE_TYPE = "query_translate"  # for query translate purpose

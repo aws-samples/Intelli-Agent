@@ -6,6 +6,10 @@ import time
 import uuid
 
 from dotenv import load_dotenv
+# load_dotenv(
+#     dotenv_path=os.path.join(os.path.dirname(__file__),'.env_global_430')
+# )
+
 load_dotenv(
     dotenv_path=os.path.join(os.path.dirname(__file__),'.env_global')
 )
@@ -584,6 +588,7 @@ def test_internlm_model_mkt_knowledge_entry():
     # model_id = "internlm2-chat-7b"
     # endpoint_name = 'internlm2-chat-20b-4bits-2024-03-04-06-32-53-653'
     endpoint_name = 'internlm2-chat-20b-4bits-continuous-bat-2024-03-23-16-25-28-881'
+    # endpoint_name = 'instruct-internlm2-chat-20b-7bae8'
     model_id = "internlm2-chat-20b"
     entry_type = "market_chain"
 
@@ -601,25 +606,27 @@ def test_internlm_model_mkt_knowledge_entry():
         },
         "generator_llm_config": {
             "context_num": 1,
-        },
-        
+        } 
     }
 
     #  "亚马逊云科技中国区域免费套餐有什么优惠？",
     #   "介绍Amazon Lambda是什么？"
 
     r = generate_answer(
-        "Amazon Lambda函数是什么？",
+        # "Amazon Lambda函数是什么？",
+        # "Claude 3 Opus 模型 预计什么时候上线呀",
+        # "claude 3 opus 模型 预计什么时候上线呀",
+        "您好，我的云服务器的密码忘了则么找回，有什么方法吗",
         type=entry_type, 
-            stream=True,
-            rag_parameters=rag_parameters
+        stream=True,
+        rag_parameters=rag_parameters
     )
-    r = generate_answer(
-        "它和EC2哪个更好？",
-        type=entry_type, 
-            stream=True,
-            rag_parameters=rag_parameters
-    )
+    # r = generate_answer(
+    #     "它和EC2哪个更好？",
+    #     type=entry_type, 
+    #         stream=True,
+    #         rag_parameters=rag_parameters
+    # )
     # r = generate_answer(
     #     "哪个更好？",
     #     type=entry_type, 
@@ -882,7 +889,7 @@ def test_internlm_model_mkt_knowledge_entry_with_conversation_batch():
     print("data len: ",len(data))
     import random
     random.Random(42).shuffle(data)
-    for datum in data[:100]:
+    for datum in data[:200]:
         print('*'*50,flush=True)
         messages = datum['messages']
         session_id=f'test_{time.time()}'
