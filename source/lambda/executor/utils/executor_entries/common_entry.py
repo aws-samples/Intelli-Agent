@@ -113,17 +113,26 @@ def get_qd_chain(qd_config, qd_workspace_list):
     compression_retriever = ContextualCompressionRetriever(
         base_compressor=compressor, base_retriever=lotr
     )
-    qd_chain = chain_logger(
-        RunnablePassthrough.assign(
-            docs=compression_retriever | RunnableLambda(retriever_results_format)
-        ),
-        "qd chain",
-    )
+    if not qd_workspace_list:
+        qd_chain = chain_logger(
+            RunnablePassthrough.assign(
+                docs=RunnableLambda(lambda x: [])
+                | RunnableLambda(retriever_results_format)
+            ),
+            "qd chain",
+        )
+    else:
+        qd_chain = chain_logger(
+            RunnablePassthrough.assign(
+                docs=compression_retriever | RunnableLambda(retriever_results_format)
+            ),
+            "qd chain",
+        )
     return qd_chain
 
 
 def main_chain_entry(
-    event_body
+    event_body,
     # query_input: str,
     # stream=False,
     # manual_input_intent=None,
@@ -139,10 +148,9 @@ def main_chain_entry(
 
     return: answer(str)
     """
-    query_input = event_body['question']
-    stream = event_body['stream']
-    message_id = event_body['custom_message_id']
-
+    query_input = event_body["question"]
+    stream = event_body["stream"]
+    message_id = event_body["custom_message_id"]
 
     rag_config = parse_config.parse_main_entry_config(event_body)
 
