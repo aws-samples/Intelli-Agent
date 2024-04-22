@@ -4,7 +4,13 @@ import logging
 import os
 import json 
 
-from .constant import AWS_TRANSLATE_SERVICE_MODEL_ID, IntentType, RerankerType,MKTUserType
+from .constant import (
+    AWS_TRANSLATE_SERVICE_MODEL_ID, 
+    IntentType, 
+    RerankerType,
+    MKTUserType,
+    HistoryType
+)
 
 
 # update nest dict
@@ -165,7 +171,8 @@ def parse_mkt_entry_knowledge_config(event_body:dict):
             "context_num": 1,
         },
         "use_history": True,
-        "user_type": MKTUserType.AUTO_CHAT,
+        "history_type": HistoryType.MESSAGE,
+        "user_type": MKTUserType.ASSISTANT,
         "response_config": {
             # context return with chunk
             "context_return_with_chunk": False

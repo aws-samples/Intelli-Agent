@@ -50,7 +50,8 @@ from ..query_process_utils.preprocess_utils import (
     rule_based_query_expansion
 )
 from ..workspace_utils import WorkspaceManager
-from ..constant import MKTUserType
+from ..constant import MKTUserType,HistoryType
+from langchain.schema.messages import AIMessage, HumanMessage, SystemMessage
 
 logger = get_logger('mkt_knowledge_entry')
 
@@ -390,6 +391,10 @@ def query_expansion(state,result_key='query'):
     rag_config = state['rag_config']
     query_rewrite_config = rag_config['query_process_config']['query_rewrite_config']
     chain = LLMChain.get_chain(**query_rewrite_config,intent_type=MKT_QUERY_REWRITE_TYPE)
+    chain = chain_logger(
+        chain,
+        'query_expansion',
+        trace_infos=state['trace_infos'])
     r = chain.invoke({"query":state['query'], "stream": False,"chat_history":state['chat_history']})
     state[result_key] = r
     logger.info(f'<query_expansion>query_expansion: {r}</query_expansion>')
@@ -700,6 +705,25 @@ def market_chain_knowledge_entry_417(
     return response
 
 
+def merge_assistant_messages(messages:list[dict]):
+    merge_messages = []
+    assert messages[0]['role'] == 'user'
+    last_role = "user"
+    current_messages = []
+    for message in messages:
+        if message['role'] != last_role:
+            # 整理数据
+            contents = [m['content'] for m in current_messages]
+            merge_messages.append({
+                "role":last_role,
+                "content": "\n".join(contents)
+            })
+            current_messages = []
+        last_role = message['role']
+        current_messages.append(message)
+    return merge_messages
+    
+
 def market_chain_knowledge_entry_assistant_418(
     # query_input: str,
     # stream=False,
@@ -721,8 +745,19 @@ def market_chain_knowledge_entry_assistant_418(
     message_id = event_body['custom_message_id']
     
     rag_config = parse_config.parse_mkt_entry_knowledge_config(event_body)
+    
+    if rag_config['history_type'] == HistoryType.MESSAGE:
+        chat_history = []
+        for message in rag_config['messages']:
+            role = message["role"]
+            content = message["content"]
+            assert role in ["user", "ai"]
+            if role == "user":
+                chat_history.append(HumanMessage(content=content))
+            else:
+                chat_history.append(AIMessage(content=content))
+        rag_config['chat_history'] = chat_history
 
-    # TODO replace chat_history with messages in assistant
     qd_config = rag_config['retriever_config']['qd_config'] 
     if rag_config['user_type'] == MKTUserType.ASSISTANT:
         qd_config['qd_match_threshold'] = -100
@@ -750,9 +785,6 @@ def market_chain_knowledge_entry_assistant_418(
     debug_info = {
         "response_msg": "normal"
         }
-
-    
-
     
     # qd_config['query_key'] = "query_for_qd_retrieve"
     # qd_config['query_key'] = "query"
