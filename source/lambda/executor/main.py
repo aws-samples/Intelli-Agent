@@ -253,6 +253,13 @@ def lambda_handler(event, context):
             answer, sources, contexts, debug_info = sagemind_llm_entry(
                 messages=messages, event_body=event_body, stream=stream
             )
+            response = {
+                "answer": answer,
+                "context_sources": sources,
+                "context_docs": contexts,
+                "debug_info": debug_info,
+                "rag_config": {},
+            }
         elif entry_type == Type.TEXT2SQL.value:
             from utils.executor_entries import text2sql_guidance_entry
             answer, sources, contexts, debug_info = text2sql_guidance_entry(
