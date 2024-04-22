@@ -60,7 +60,6 @@ def is_query_invalid(query:str,threshold=3, max_length_threshold=500):
     return is_length_not_acceptable or contains_pii_identity is not None or contains_pii_phone is not None
 
 
-
 class Translator:
     client = None
 

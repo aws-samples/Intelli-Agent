@@ -176,12 +176,12 @@ def get_workspace_list(workspace_ids):
 
 
 def text2sql_guidance_entry(
-    query_input: str,
-    stream=False,
+    # query_input: str,
+    # stream=False,
     # manual_input_intent=None,
-    event_body=None,
-    rag_config=None,
-    message_id=None
+    event_body
+    # rag_config=None,
+    # message_id=None
 ):
     """
     Entry point for the Lambda function.
@@ -191,8 +191,11 @@ def text2sql_guidance_entry(
     :param stream(Bool): Whether to use llm stream decoding output.
     return: answer(str)
     """
-    if rag_config is None:
-        rag_config = parse_config.parse_text2sql_entry_config(event_body)
+    query_input = event_body['question']
+    stream = event_body['stream']
+    message_id = event_body['custom_message_id']
+    
+    rag_config = parse_config.parse_text2sql_entry_config(event_body)
 
     assert rag_config is not None
 
@@ -532,7 +535,8 @@ def text2sql_guidance_entry(
         if response["intent_type"] == IntentType.TEXT2SQL_SQL_VALIDATED.value:
             # validated sql output
             cont = False
-            answer = response["answer"].split("<query>")[1].split("</query>")[0]
+            # answer = response["answer"].split("<query>")[1].split("</query>")[0]
+            answer = response["answer"]
             sources = response["context_sources"]
         elif response["intent_type"] == IntentType.TEXT2SQL_SQL_RE_GEN.value:
             # sql validated fail, re-generate

@@ -15,10 +15,11 @@ from ..logger_utils import get_logger
 logger = get_logger("market_conversation_summary_entry")
 
 
-
 def market_conversation_summary_entry(
-    messages: list[dict], event_body=None, stream=False
+    event_body:dict
 ):
+    messages = event_body.get("messages", [])
+    stream = event_body['stream']
 
     config = parse_config.parse_market_conversation_summary_entry_config(event_body)
     logger.info(
@@ -26,7 +27,14 @@ def market_conversation_summary_entry(
     )
     if not config["chat_history"]:
         if not messages:
-            return f"该会话不存在。", [], [], {}
+            return {
+                "answer": f"该会话不存在。",
+                "context_sources": [],
+                "context_docs": [],
+                "debug_info": {},
+                "rag_config": config
+            }
+            
         else:
             chat_history = []
             for message in messages:
@@ -55,7 +63,13 @@ def market_conversation_summary_entry(
         config["chat_history"] = chat_history
 
     if not config["chat_history"]:
-        return f"该用户在所选时间段内历史消息为空。", [], [], {}
+        return {
+            "answer": f"该用户在所选时间段内历史消息为空。",
+            "context_sources": [],
+            "context_docs": [],
+            "debug_info": {},
+            "rag_config": config
+        }
     # query_input = """请简要总结上述对话中的内容,每一个对话单独一个总结，并用 '- '开头。 每一个总结要先说明问题。\n"""
     mkt_conversation_summary_config = config["mkt_conversation_summary_config"]
     llm_chain = LLMChain.get_chain(
@@ -70,4 +84,10 @@ def market_conversation_summary_entry(
     )
 
     dict_chat_history = [message_to_dict(message) for message in config["chat_history"]]
-    return response, [], dict_chat_history, {}
+    return {
+                "answer": response,
+                "context_sources": [],
+                "context_docs": dict_chat_history,
+                "debug_info": {},
+                "rag_config": config,
+            }

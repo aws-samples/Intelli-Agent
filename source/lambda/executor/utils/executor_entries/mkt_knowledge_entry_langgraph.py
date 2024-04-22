@@ -50,6 +50,8 @@ from ..query_process_utils.preprocess_utils import (
     rule_based_query_expansion
 )
 from ..workspace_utils import WorkspaceManager
+from ..constant import MKTUserType,HistoryType
+from langchain.schema.messages import AIMessage, HumanMessage, SystemMessage
 
 logger = get_logger('mkt_knowledge_entry')
 
@@ -212,7 +214,7 @@ def conversation_query_rewrite(state: AppState):
             # query=cqr_llm_chain
         ),
         "conversation_summary_chain",
-        log_output_template=f'conversation_summary_chain result: {"{"+conversation_query_rewrite_result_key+"}"}',
+        log_output_template=f'conversation_summary_chain result:<conversation_summary> {"{"+conversation_query_rewrite_result_key+"}"}</conversation_summary>',
         message_id=message_id,
         trace_infos=trace_infos
     )
@@ -389,9 +391,13 @@ def query_expansion(state,result_key='query'):
     rag_config = state['rag_config']
     query_rewrite_config = rag_config['query_process_config']['query_rewrite_config']
     chain = LLMChain.get_chain(**query_rewrite_config,intent_type=MKT_QUERY_REWRITE_TYPE)
+    chain = chain_logger(
+        chain,
+        'query_expansion',
+        trace_infos=state['trace_infos'])
     r = chain.invoke({"query":state['query'], "stream": False,"chat_history":state['chat_history']})
     state[result_key] = r
-    logger.info(f'query_expansion: {r}')
+    logger.info(f'<query_expansion>query_expansion: {r}</query_expansion>')
     # state[result_key] = rule_based_query_expansion(state['query'])
 
 ########################
@@ -699,13 +705,32 @@ def market_chain_knowledge_entry_417(
     return response
 
 
+def merge_assistant_messages(messages:list[dict]):
+    merge_messages = []
+    assert messages[0]['role'] == 'user'
+    last_role = "user"
+    current_messages = []
+    for message in messages:
+        if message['role'] != last_role:
+            # 整理数据
+            contents = [m['content'] for m in current_messages]
+            merge_messages.append({
+                "role":last_role,
+                "content": "\n".join(contents)
+            })
+            current_messages = []
+        last_role = message['role']
+        current_messages.append(message)
+    return merge_messages
+    
+
 def market_chain_knowledge_entry_assistant_418(
-    query_input: str,
-    stream=False,
+    # query_input: str,
+    # stream=False,
     # manual_input_intent=None,
-    event_body=None,
-    rag_config=None,
-    message_id=None
+    event_body
+    # rag_config=None,
+    # message_id=None
 ):
     """
     Entry point for the Lambda function.
@@ -715,11 +740,27 @@ def market_chain_knowledge_entry_assistant_418(
     :param stream(Bool): Whether to use llm stream decoding output.
     return: answer(str)
     """
-    from ..constant import MKTUserType
-    if rag_config is None:
-        rag_config = parse_config.parse_mkt_entry_knowledge_config(event_body)
+    query_input = event_body['question']
+    stream = event_body['stream']
+    message_id = event_body['custom_message_id']
+    
+    rag_config = parse_config.parse_mkt_entry_knowledge_config(event_body)
+    
+    if rag_config['history_type'] == HistoryType.MESSAGE:
+        chat_history = []
+        for message in rag_config['messages'][1:]:
+            role = message["role"]
+            content = message["content"]
+            assert role in ["user", "ai"]
+            if role == "user":
+                chat_history.append(HumanMessage(content=content))
+            else:
+                chat_history.append(AIMessage(content=content))
+        rag_config['chat_history'] = chat_history
 
-    assert rag_config is not None
+    qd_config = rag_config['retriever_config']['qd_config'] 
+    if rag_config['user_type'] == MKTUserType.ASSISTANT:
+        qd_config['qd_match_threshold'] = -100
 
     logger.info(f'market rag knowledge configs:\n {json.dumps(rag_config,indent=2,ensure_ascii=False,cls=JSONEncoder)}')
 
@@ -744,12 +785,7 @@ def market_chain_knowledge_entry_assistant_418(
     debug_info = {
         "response_msg": "normal"
         }
-
-    qd_config = rag_config['retriever_config']['qd_config'] 
-
-    if rag_config['user_type'] == MKTUserType.ASSISTANT:
-        qd_config['qd_match_threshold'] = -100
-
+    
     # qd_config['query_key'] = "query_for_qd_retrieve"
     # qd_config['query_key'] = "query"
 
@@ -828,7 +864,7 @@ def market_chain_knowledge_entry_assistant_418(
      )
 
     app = workflow.compile()
-    # with open('rag_workflow.png','wb') as f:
+    # with open('rag_workflow_418.png','wb') as f:
     #     f.write(app.get_graph().draw_png())
 
     # app.get_graph().print_ascii()
