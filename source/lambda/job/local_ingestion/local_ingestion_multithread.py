@@ -325,14 +325,14 @@ offline = args["OFFLINE"]
 qa_enhancement = args["QA_ENHANCEMENT"]
 # TODO, pass the bucket and prefix need to handle in current job directly
 batchIndice = args["BATCH_INDICE"]
-processedObjectsTable = args["ProcessedObjectsTable"]
+etlObjTable = args["ETL_OBJECT_TABLE"]
 workspace_id = args["WORKSPACE_ID"]
 workspace_table = args["WORKSPACE_TABLE"]
 
 s3 = boto3.client("s3")
 smr_client = boto3.client("sagemaker-runtime")
 dynamodb = boto3.resource("dynamodb")
-table = dynamodb.Table(processedObjectsTable)
+table = dynamodb.Table(etlObjTable)
 workspace_table = dynamodb.Table(workspace_table)
 workspace_manager = WorkspaceManager(workspace_table)
 
@@ -763,7 +763,7 @@ def gen_documents(s3_bucket, s3_prefix, worker_num, batchIndice, max_file_num=ma
                 save_content_to_s3(
                     s3, document, res_bucket, SplittingType.SEMANTIC.value
                 )
-            # the res is unified to list[Doucment] type, store the res to S3 for observation
+            # the res is unified to list[Document] type, store the res to S3 for observation
             # TODO, parse the metadata to embed with different index
             if res:
                 logger.debug("Result: %s", res)
@@ -867,7 +867,7 @@ def __main(worker_num, batchIndice, max_file_num=math.inf):
                     s3, document, res_bucket, SplittingType.SEMANTIC.value
                 )
 
-            # the res is unified to list[Doucment] type, store the res to S3 for observation
+            # the res is unified to list[Document] type, store the res to S3 for observation
             # TODO, parse the metadata to embed with different index
             if res:
                 logger.debug("Result: %s", res)

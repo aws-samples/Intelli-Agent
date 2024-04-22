@@ -25,7 +25,7 @@ import { LLMStack } from "../lib/model/llm-stack";
 import { BuildConfig } from "../lib/shared/build-config";
 import { DeploymentParameters } from "../lib/shared/cdk-parameters";
 import { VpcConstruct } from "../lib/shared/vpc-stack";
-import { OpenSearchStack } from "../lib/vector-store/os-stack";
+import { AOSConstruct } from "../lib/vector-store/os-stack";
 import { PortalConstruct } from "../lib/ui/ui-portal";
 
 dotenv.config();
@@ -56,16 +56,16 @@ export class RootStack extends Stack {
 
     const vpcConstruct = new VpcConstruct(this, "vpc-construct");
 
-    const osStack = new OpenSearchStack(this, "os-stack", {
+    const aosConstruct = new AOSConstruct(this, "aos-construct", {
       osVpc: vpcConstruct.connectorVpc,
       securityGroup: vpcConstruct.securityGroup,
     });
-    osStack.node.addDependency(vpcConstruct);
+    aosConstruct.node.addDependency(vpcConstruct);
 
     const dynamoDBConstruct = new DynamoDBConstruct(this, "ddb-construct");
 
     const etlStack = new EtlStack(this, "etl-stack", {
-      domainEndpoint: osStack.domainEndpoint || "",
+      domainEndpoint: aosConstruct.domainEndpoint || "",
       embeddingEndpoint: llmStack.embeddingEndPoints,
       region: props.env?.region || "us-east-1",
       subEmail: cdkParameters.subEmail.valueAsString ?? "",
@@ -78,26 +78,26 @@ export class RootStack extends Stack {
       etlTag: cdkParameters.etlImageTag.valueAsString,
     });
     etlStack.node.addDependency(vpcConstruct);
-    etlStack.addDependency(osStack);
+    etlStack.node.addDependency(aosConstruct);
     etlStack.addDependency(llmStack);
 
     const connectorConstruct = new ConnectorConstruct(this, "connector-construct", {
       connectorVpc: vpcConstruct.connectorVpc,
       securityGroup: vpcConstruct.securityGroup,
-      domainEndpoint: osStack.domainEndpoint || "",
+      domainEndpoint: aosConstruct.domainEndpoint || "",
       embeddingEndPoints: llmStack.embeddingEndPoints,
       openSearchIndex: cdkParameters.openSearchIndex.valueAsString,
       openSearchIndexDict: cdkParameters.openSearchIndexDict.valueAsString,
       env: process.env,
     });
     connectorConstruct.node.addDependency(vpcConstruct);
-    connectorConstruct.node.addDependency(osStack);
+    connectorConstruct.node.addDependency(aosConstruct);
     connectorConstruct.node.addDependency(llmStack);
 
     const apiConstruct = new ApiConstruct(this, "api-construct", {
       apiVpc: vpcConstruct.connectorVpc,
       securityGroup: vpcConstruct.securityGroup,
-      domainEndpoint: osStack.domainEndpoint || "",
+      domainEndpoint: aosConstruct.domainEndpoint || "",
       rerankEndPoint: llmStack.rerankEndPoint ?? "",
       embeddingEndPoints: llmStack.embeddingEndPoints || "",
       llmModelId: BuildConfig.LLM_MODEL_ID,
@@ -120,7 +120,7 @@ export class RootStack extends Stack {
       env: process.env,
     });
     apiConstruct.node.addDependency(vpcConstruct);
-    apiConstruct.node.addDependency(osStack);
+    apiConstruct.node.addDependency(aosConstruct);
     apiConstruct.node.addDependency(llmStack);
     apiConstruct.node.addDependency(connectorConstruct);
     apiConstruct.node.addDependency(etlStack);
@@ -131,11 +131,11 @@ export class RootStack extends Stack {
     });
     uiPortal.node.addDependency(apiConstruct);
 
-    new CfnOutput(this, "API Endpoint Address", {
-      value: apiConstruct.apiEndpoint,
-    });
     new CfnOutput(this, "AOS Index Dict", {
       value: cdkParameters.openSearchIndexDict.valueAsString,
+    });
+    new CfnOutput(this, "API Endpoint Address", {
+      value: apiConstruct.apiEndpoint,
     });
     new CfnOutput(this, "Chunk Bucket", { value: etlStack.resBucketName });
     new CfnOutput(this, "Cross Model Endpoint", {
@@ -145,15 +145,18 @@ export class RootStack extends Stack {
     new CfnOutput(this, "Embedding Model Endpoint", {
       value: llmStack.embeddingEndPoints[0] || "No Embedding Endpoint Created",
     });
+    new CfnOutput(this, "ETL Object Table", {
+      value: etlStack.etlObjTableName,
+    });
+    new CfnOutput(this, "Execution Table", {
+      value: etlStack.executionTableName,
+    });
     new CfnOutput(this, "Glue Job Name", { value: etlStack.jobName });
     new CfnOutput(this, "Instruct Model Endpoint", {
       value: llmStack.instructEndPoint || "No Instruct Endpoint Created",
     });
     new CfnOutput(this, "OpenSearch Endpoint", {
-      value: osStack.domainEndpoint || "No OpenSearch Endpoint Created",
-    });
-    new CfnOutput(this, "Processed Object Table", {
-      value: etlStack.executionTableName,
+      value: aosConstruct.domainEndpoint || "No OpenSearch Endpoint Created",
     });
     new CfnOutput(this, "VPC", { value: vpcConstruct.connectorVpc.vpcId });
     new CfnOutput(this, "WebPortalURL", {

@@ -79,14 +79,18 @@ def handler(event, context):
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "*",
     }
+    input_body["tableItemId"] = context.aws_request_id
     input_payload = json.dumps(input_body)
     response = client.start_execution(
         stateMachineArn=os.environ["sfn_arn"], input=input_payload
     )
 
+    if "tableItemId" in input_body:
+        del input_body["tableItemId"]
     execution_id = response["executionArn"].split(":")[-1]
-    input_body["executionId"] = execution_id
-    input_body["status"] = "Initial"
+    input_body["sfnExecutionId"] = execution_id
+    input_body["executionStatus"] = "IN-PROGRESS"
+    input_body["executionId"] = context.aws_request_id
 
     ddb_response = execution_table.put_item(
         Item=input_body

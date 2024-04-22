@@ -26,7 +26,7 @@ def convert_to_logger(document: Document) -> str:
 def upload_chunk_to_s3(
     s3, logger_content: str, bucket: str, prefix: str, splitting_type: str
 ):
-    """Upload the logger file to S3 with hierachy below:
+    """Upload the logger file to S3 with hierarchy below:
     filename A
         ├── semantic-splitting (split by headers)
         │   ├── timestamp 1
@@ -74,5 +74,5 @@ def save_content_to_s3(s3, document: Document, res_bucket: str, splitting_type: 
     file_path = document.metadata.get("file_path", "")
     # filename = file_path.split('/')[-1].split('.')[0]
     filename = file_path.replace("s3://", "").replace("/", "-").replace(".", "-")
-    # RecursiveCharacterTextSplitter have been rewrite to split based on chunk size & overlap, use seperate folder to store the logger file
+    # RecursiveCharacterTextSplitter have been rewrite to split based on chunk size & overlap, use separate folder to store the logger file
     upload_chunk_to_s3(s3, logger_file, res_bucket, filename, splitting_type)

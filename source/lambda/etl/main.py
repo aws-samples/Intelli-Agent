@@ -33,6 +33,7 @@ def lambda_handler(event, context):
     index_type = event.get("indexType", "qd")
     operation_type = event.get("operationType", "create")
     embedding_endpoint = event.get("embeddingEndpoint", default_embedding_endpoint)
+    table_item_id = event["tableItemId"]
 
     if "offline" not in event:
         raise ValueError("offline is not in the event")
@@ -76,6 +77,7 @@ def lambda_handler(event, context):
             "indexType": index_type,
             "operationType": operation_type,
             "embeddingEndpoint": embedding_endpoint,
+            "tableItemId": table_item_id
         }
     elif event["offline"].lower() == "false":
         # This response should match the expected input schema of the downstream tasks in the Step Functions workflow
@@ -93,6 +95,7 @@ def lambda_handler(event, context):
             "indexType": index_type,
             "operationType": operation_type,
             "embeddingEndpoint": embedding_endpoint,
+            "tableItemId": table_item_id
         }
     else:
         raise ValueError("offline is not true or false")

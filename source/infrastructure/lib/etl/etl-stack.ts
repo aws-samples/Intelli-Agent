@@ -50,6 +50,7 @@ export class EtlStack extends NestedStack {
   public jobName;
   public jobArn;
   public executionTableName;
+  public etlObjTableName;
   public workspaceTableName;
   public etlEndpoint: string;
   public resBucketName: string;
@@ -129,15 +130,24 @@ export class EtlStack extends NestedStack {
       securityGroups: [props.securityGroups],
     });
 
-    const executionIdAttr = {
+    const idAttr = {
       name: "executionId",
       type: dynamodb.AttributeType.STRING,
     }
-    const executionTable = new DynamoDBTable(this, "Execution", executionIdAttr).table;
+    const etlS3Path = {
+      name: "s3Path",
+      type: dynamodb.AttributeType.STRING,
+    }
+    const executionTable = new DynamoDBTable(this, "Execution", idAttr).table;
     executionTable.addGlobalSecondaryIndex({
       indexName: "BucketAndPrefixIndex",
       partitionKey: { name: "s3Bucket", type: dynamodb.AttributeType.STRING },
       sortKey: { name: "s3Prefix", type: dynamodb.AttributeType.STRING },
+    });
+    const etlObjTable = new DynamoDBTable(this, "ETLObject", etlS3Path, idAttr).table;
+    etlObjTable.addGlobalSecondaryIndex({
+      indexName: "ExecutionIdIndex",
+      partitionKey: { name: "executionId", type: dynamodb.AttributeType.STRING },
     });
 
     const workspaceTable = new dynamodb.Table(this, "WorkspaceTable", {
@@ -176,8 +186,16 @@ export class EtlStack extends NestedStack {
       architecture: Architecture.X86_64,
       environment: {
         EXECUTION_TABLE: executionTable.tableName,
+        ETL_OBJECT_TABLE: etlObjTable.tableName,
       },
     });
+    lambdaNotify.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["dynamodb:*"],
+        effect: iam.Effect.ALLOW,
+        resources: ["*"],
+      }),
+    );
 
     const s3Bucket = new s3.Bucket(this, "llm-bot-glue-result-bucket", {
       // bucketName: `llm-bot-glue-lib-${Aws.ACCOUNT_ID}-${Aws.REGION}`,
@@ -255,12 +273,12 @@ export class EtlStack extends NestedStack {
         "--ETL_MODEL_ENDPOINT": this.etlEndpoint,
         "--DOC_INDEX_TABLE": props.openSearchIndex,
         "--RES_BUCKET": s3Bucket.bucketName,
-        "--ProcessedObjectsTable": executionTable.tableName,
+        "--ETL_OBJECT_TABLE": etlObjTable.tableName,
         "--WORKSPACE_TABLE": workspaceTable.tableName,
         "--additional-python-modules":
           "langchain==0.1.11,beautifulsoup4==4.12.2,requests-aws4auth==1.2.3,boto3==1.28.84,openai==0.28.1,pyOpenSSL==23.3.0,tenacity==8.2.3,markdownify==0.11.6,mammoth==1.6.0,chardet==5.2.0,python-docx==1.1.0,nltk==3.8.1,pdfminer.six==20221105",
         "--python-modules-installer-option": BuildConfig.JOB_PIP_OPTION,
-        // add multiple extra python files
+        // Add multiple extra python files
         "--extra-py-files": extraPythonFilesList,
       },
     });
@@ -320,6 +338,7 @@ export class EtlStack extends NestedStack {
             "indexType.$": "$.Payload.indexType",
             "operationType.$": "$.Payload.operationType",
             "embeddingEndpoint.$": "$.Payload.embeddingEndpoint",
+            "tableItemId.$": "$.Payload.tableItemId",
           },
         },
         // Original input
@@ -346,7 +365,8 @@ export class EtlStack extends NestedStack {
         "--JOB_NAME": glueJob.jobName,
         "--OFFLINE": "true",
         "--OPERATION_TYPE.$": "$.operationType",
-        "--ProcessedObjectsTable": executionTable.tableName,
+        "--ETL_OBJECT_TABLE": etlObjTable.tableName,
+        "--TABLE_ITEM_ID.$": "$.tableItemId",
         "--QA_ENHANCEMENT.$": "$.qaEnhance",
         "--REGION": props.region,
         "--RES_BUCKET": s3Bucket.bucketName,
@@ -378,6 +398,7 @@ export class EtlStack extends NestedStack {
         "indexType.$": "$.indexType",
         "operationType.$": "$.operationType",
         "embeddingEndpoint.$": "$.embeddingEndpoint",
+        "tableItemId.$": "$.tableItemId",
       },
       resultPath: "$.mapResults",
     });
@@ -405,7 +426,8 @@ export class EtlStack extends NestedStack {
         "--JOB_NAME": glueJob.jobName,
         "--OFFLINE": "false",
         "--OPERATION_TYPE.$": "$.operationType",
-        "--ProcessedObjectsTable": executionTable.tableName,
+        "--ETL_OBJECT_TABLE": etlObjTable.tableName,
+        "--TABLE_ITEM_ID.$": "$.tableItemId",
         "--QA_ENHANCEMENT.$": "$.qaEnhance",
         "--REGION": props.region,
         "--RES_BUCKET": s3Bucket.bucketName,
@@ -420,7 +442,10 @@ export class EtlStack extends NestedStack {
     const notifyTask = new tasks.SnsPublish(this, "NotifyTask", {
       integrationPattern: sfn.IntegrationPattern.REQUEST_RESPONSE,
       topic: topic,
-      message: sfn.TaskInput.fromText(`Glue job ${glueJob.jobName} completed!`),
+      message: sfn.TaskInput.fromObject({
+        "executionId.$": "$.tableItemId",
+        "mapResults.$": "$.mapResults",
+      }),
     });
 
     offlineChoice
@@ -444,6 +469,7 @@ export class EtlStack extends NestedStack {
     this.jobName = glueJob.jobName;
     this.jobArn = glueJob.jobArn;
     this.executionTableName = executionTable.tableName;
+    this.etlObjTableName = etlObjTable.tableName;
     this.workspaceTableName = workspaceTable.tableName;
     this.resBucketName = s3Bucket.bucketName;
   }

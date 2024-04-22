@@ -48,7 +48,7 @@ args = {
     "OFFLINE": "true",
     "QA_ENHANCEMENT": "false",
     "BATCH_INDICE": "0",
-    "ProcessedObjectsTable": "llm-bot-dev-etlstackNestedStacketlstackNestedStackResource5A19705C-1IOMQY29GJHU3-ProcessedObjects1A59B3C3-4WN1FHIM4ZMI",
+    "ETL_OBJECT_TABLE": "llm-bot-dev-etlstackNestedStacketlstackNestedStackResource5A19705C-1IOMQY29GJHU3-ProcessedObjects1A59B3C3-4WN1FHIM4ZMI",
     "DOC_INDEX_TABLE": "dev",
     # "AOS_INDEX": "ug-index-20240108",
     # "AOS_INDEX": "faq-index-20240110",
@@ -76,7 +76,7 @@ offline = args["OFFLINE"]
 qa_enhancement = args["QA_ENHANCEMENT"]
 # TODO, pass the bucket and prefix need to handle in current job directly
 batchIndice = args["BATCH_INDICE"]
-processedObjectsTable = args["ProcessedObjectsTable"]
+etlObjTable = args["ETL_OBJECT_TABLE"]
 content_type = args["CONTENT_TYPE"]
 _embedding_endpoint_name_list = args["EMBEDDING_MODEL_ENDPOINT"].split(",")
 _embedding_lang_list = args["EMBEDDING_LANG"].split(",")
@@ -92,7 +92,7 @@ for endpoint_name, lang, endpoint_type in zip(
 s3 = boto3.client("s3")
 smr_client = boto3.client("sagemaker-runtime")
 dynamodb = boto3.resource("dynamodb")
-table = dynamodb.Table(processedObjectsTable)
+table = dynamodb.Table(etlObjTable)
 
 ENHANCE_CHUNK_SIZE = 25000
 # Make it 3600s for debugging purpose
@@ -401,7 +401,7 @@ def main(batchIndice):
                         s3, document, res_bucket, SplittingType.SEMANTIC.value
                     )
 
-                # the res is unified to list[Doucment] type, store the res to S3 for observation
+                # the res is unified to list[Document] type, store the res to S3 for observation
                 # TODO, parse the metadata to embed with different index
                 if res:
                     logger.info("Result: %s", res)

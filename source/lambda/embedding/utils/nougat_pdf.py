@@ -154,7 +154,7 @@ def nougat_process_pdf(local_path, **kwargs):
               to specify the S3 bucket and key where the PDF file is located.
 
     Returns:
-    list[Doucment]: A list of Document objects, each representing a semantically grouped section of the PDF file. Each Document object contains a metadata defined in metadata_template, and page_content string with the text content of that section.
+    list[Document]: A list of Document objects, each representing a semantically grouped section of the PDF file. Each Document object contains a metadata defined in metadata_template, and page_content string with the text content of that section.
     """
 
     bucket = kwargs["bucket"]
