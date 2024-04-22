@@ -1,0 +1,138 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "LLM Bot API",
+    "version": "1.0"
+  },
+  "servers": [
+    {
+      "url": "https://<api-id>.execute-api.us-east-1.amazonaws.com/v1",
+      "description": "API for LLM ETL operations"
+    }
+  ],
+  "paths": {
+    "/etl": {
+      "post": {
+        "summary": "Embed & Inject document into specific AOS index asynchronously",
+        "operationId": "documentOfflineProcess",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "s3Bucket": {
+                    "type": "string"
+                  },
+                  "s3Prefix": {
+                    "type": "string"
+                  },
+                  "offline": {
+                    "type": "string"
+                  },
+                  "workspaceId": {
+                    "type": "string"
+                  },
+                  "operationType": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "s3Bucket": "bucket-name",
+                "s3Prefix": "prefix",
+                "offline": "true",
+                "workspaceId": "workspace-id",
+                "operationType": "create"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Embed & Inject document into specific AOS index asynchronously successfully."
+          }
+        },
+        "security": [
+          {
+            "UserAgentHeader": []
+          }
+        ]
+      }
+    },
+    "/llm": {
+      "post": {
+        "summary": "LLM Bot Question Answering API",
+        "operationId": "questionAnswering",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "messages": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "role": {
+                          "type": "string"
+                        },
+                        "content": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "type": {
+                    "type": "string"
+                  },
+                  "retriever_config": {
+                    "type": "object",
+                    "properties": {
+                      "workspace_ids": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "example": {
+                "messages": [
+                  {
+                    "role": "user",
+                    "content": "你好"
+                  }
+                ],
+                "type": "common",
+                "retriever_config": {
+                  "workspace_ids": []
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful operation"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "UserAgentHeader": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "User-Agent",
+        "description": "Custom User-Agent header for client identification"
+      }
+    }
+  }
+}
