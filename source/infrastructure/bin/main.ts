@@ -82,7 +82,7 @@ export class RootStack extends Stack {
       _domainEndpoint:_OsStack._domainEndpoint || '',
       _rerankEndPoint: _LLMStack._rerankEndPoint ?? '',
       _embeddingEndPoints:_LLMStack._embeddingEndPoints || '',
-      _llmModelId: BuildConfig.LLM_MODEL_ID,
+      _llmModelId: BuildConfig.LLM_MODEL_ID !== '' ? BuildConfig.LLM_MODEL_ID : _AssetsStack._instructModelPrefix,
       _instructEndPoint: BuildConfig.LLM_ENDPOINT_NAME !== '' ? BuildConfig.LLM_ENDPOINT_NAME : _LLMStack._instructEndPoint,
       _sessionsTableName: _DynamoDBStack._sessionsTableName,
       _messagesTableName: _DynamoDBStack._messagesTableName,

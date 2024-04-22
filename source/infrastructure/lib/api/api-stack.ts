@@ -24,7 +24,7 @@ interface apiStackProps extends StackProps {
     _domainEndpoint: string;
     _rerankEndPoint: string;
     _embeddingEndPoints: string[];
-_llmModelId: string;
+    _llmModelId: string;
     _instructEndPoint: string;
     _sessionsTableName: string;
     _messagesTableName: string;
