@@ -14,19 +14,7 @@ object_table = dynamodb.Table(table_name)
 
 
 def lambda_handler(event, context):
-    logger.info(event)
-    # response = object_table.get_item(
-    #     Key={
-    #         "executionId": ,
-    #         "versionId": int(version1)
-    #     })
-    execution_id = event["queryStringParameters"]["executionId"]
-    response = object_table.query(
-        IndexName=index_name,
-        KeyConditionExpression=Key('executionId').eq(execution_id)
-    )
-    logger.info(response["Item"])
-
+    # API Gateway validates parameters
     resp_header = {
         "Content-Type": "application/json",
         "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
@@ -35,13 +23,21 @@ def lambda_handler(event, context):
     }
 
     try:
-
+        execution_id = event["queryStringParameters"]["executionId"]
+        response = object_table.query(
+            IndexName=index_name,
+            KeyConditionExpression=Key('executionId').eq(execution_id)
+        )
+        logger.info(response)
+        output = {
+            "Items": response["Items"],
+            "Count": response["Count"]
+        }
+        
         return {
             "statusCode": 200,
             "headers": resp_header,
-            "body": json.dumps(
-                {}
-            ),
+            "body": json.dumps(output),
         }
     except Exception as e:
         logger.error("Error: %s", str(e))
