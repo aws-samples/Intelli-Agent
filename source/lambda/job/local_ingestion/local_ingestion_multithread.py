@@ -850,93 +850,93 @@ def _main(worker_num,batchIndice,max_file_num=math.inf):
         )
 
 
-# Main function to be called by Glue job script
-def __main(worker_num,batchIndice,max_file_num=math.inf):
-    logger.info("Starting Glue job with passing arguments: %s", args)
-    logger.info("Running in offline mode with consideration for large file size...")
-    embeddings_model_provider, embeddings_model_name, embeddings_model_dimensions = (
-        get_embedding_info(embeddingModelEndpoint)
-    )
-    for file_type, file_content, kwargs in iterate_s3_files(s3_bucket, s3_prefix,worker_num,batchIndice,max_file_num=max_file_num):
-        try:
-            res = cb_process_object(s3, file_type, file_content, **kwargs)
-            for document in res:
-                save_content_to_s3(
-                    s3, document, res_bucket, SplittingType.SEMANTIC.value
-                )
+# # Main function to be called by Glue job script
+# def __main(worker_num,batchIndice,max_file_num=math.inf):
+#     logger.info("Starting Glue job with passing arguments: %s", args)
+#     logger.info("Running in offline mode with consideration for large file size...")
+#     embeddings_model_provider, embeddings_model_name, embeddings_model_dimensions = (
+#         get_embedding_info(embeddingModelEndpoint)
+#     )
+#     for file_type, file_content, kwargs in iterate_s3_files(s3_bucket, s3_prefix,worker_num,batchIndice,max_file_num=max_file_num):
+#         try:
+#             res = cb_process_object(s3, file_type, file_content, **kwargs)
+#             for document in res:
+#                 save_content_to_s3(
+#                     s3, document, res_bucket, SplittingType.SEMANTIC.value
+#                 )
 
-            # the res is unified to list[Doucment] type, store the res to S3 for observation
-            # TODO, parse the metadata to embed with different index
-            if res:
-                logger.debug("Result: %s", res)
+#             # the res is unified to list[Doucment] type, store the res to S3 for observation
+#             # TODO, parse the metadata to embed with different index
+#             if res:
+#                 logger.debug("Result: %s", res)
 
-            aos_index = workspace_manager.update_workspace_open_search(
-                workspace_id,
-                embeddingModelEndpoint,
-                embeddings_model_provider,
-                embeddings_model_name,
-                embeddings_model_dimensions,
-                ["zh"],
-                [file_type],
-            )
+#             aos_index = workspace_manager.update_workspace_open_search(
+#                 workspace_id,
+#                 embeddingModelEndpoint,
+#                 embeddings_model_provider,
+#                 embeddings_model_name,
+#                 embeddings_model_dimensions,
+#                 ["zh"],
+#                 [file_type],
+#             )
 
-            gen_chunk_flag = False if file_type == "csv" else True
-            if file_type in supported_file_types:
-                aos_injection(
-                    res,
-                    embeddingModelEndpoint,
-                    aosEndpoint,
-                    aos_index,
-                    file_type,
-                    gen_chunk=gen_chunk_flag,
-                )
+#             gen_chunk_flag = False if file_type == "csv" else True
+#             if file_type in supported_file_types:
+#                 aos_injection(
+#                     res,
+#                     embeddingModelEndpoint,
+#                     aosEndpoint,
+#                     aos_index,
+#                     file_type,
+#                     gen_chunk=gen_chunk_flag,
+#                 )
 
-            if qa_enhancement == "true":
-                enhanced_prompt_list = []
-                # iterate the document to get the QA pairs
-                for document in res:
-                    # Define your prompt or else it uses default prompt
-                    prompt = ""
-                    # Make sure the document is Document object
-                    logger.debug(
-                        "Enhancing document type: {} and content: {}".format(
-                            type(document), document
-                        )
-                    )
-                    ewb = EnhanceWithBedrock(prompt, document)
-                    # This is should be optional for the user to choose the chunk size
-                    document_list = ewb.SplitDocumentByTokenNum(
-                        document, ENHANCE_CHUNK_SIZE
-                    )
-                    for document in document_list:
-                        enhanced_prompt_list = ewb.EnhanceWithClaude(
-                            prompt, document, enhanced_prompt_list
-                        )
-                    logger.debug(f"Enhanced prompt: {enhanced_prompt_list}")
+#             if qa_enhancement == "true":
+#                 enhanced_prompt_list = []
+#                 # iterate the document to get the QA pairs
+#                 for document in res:
+#                     # Define your prompt or else it uses default prompt
+#                     prompt = ""
+#                     # Make sure the document is Document object
+#                     logger.debug(
+#                         "Enhancing document type: {} and content: {}".format(
+#                             type(document), document
+#                         )
+#                     )
+#                     ewb = EnhanceWithBedrock(prompt, document)
+#                     # This is should be optional for the user to choose the chunk size
+#                     document_list = ewb.SplitDocumentByTokenNum(
+#                         document, ENHANCE_CHUNK_SIZE
+#                     )
+#                     for document in document_list:
+#                         enhanced_prompt_list = ewb.EnhanceWithClaude(
+#                             prompt, document, enhanced_prompt_list
+#                         )
+#                     logger.debug(f"Enhanced prompt: {enhanced_prompt_list}")
 
-                if len(enhanced_prompt_list) > 0:
-                    for document in enhanced_prompt_list:
-                        save_content_to_s3(
-                            s3,
-                            document,
-                            res_bucket,
-                            SplittingType.QA_ENHANCEMENT.value,
-                        )
-                    aos_injection(
-                        enhanced_prompt_list,
-                        embeddingModelEndpoint,
-                        aosEndpoint,
-                        aos_index,
-                        "qa",
-                    )
+#                 if len(enhanced_prompt_list) > 0:
+#                     for document in enhanced_prompt_list:
+#                         save_content_to_s3(
+#                             s3,
+#                             document,
+#                             res_bucket,
+#                             SplittingType.QA_ENHANCEMENT.value,
+#                         )
+#                     aos_injection(
+#                         enhanced_prompt_list,
+#                         embeddingModelEndpoint,
+#                         aosEndpoint,
+#                         aos_index,
+#                         "qa",
+#                     )
 
-        except Exception as e:
-            logger.error(
-                "Error processing object %s: %s",
-                kwargs["bucket"] + "/" + kwargs["key"],
-                e,
-            )
-            traceback.print_exc()
+#         except Exception as e:
+#             logger.error(
+#                 "Error processing object %s: %s",
+#                 kwargs["bucket"] + "/" + kwargs["key"],
+#                 e,
+#             )
+#             traceback.print_exc()
 
 def main(worker_num,batchIndice,max_file_num=math.inf):
     logger.debug("boto3 version: %s", boto3.__version__)

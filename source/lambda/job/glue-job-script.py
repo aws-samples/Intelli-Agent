@@ -56,6 +56,11 @@ except Exception as e:
     sys.path.append("dep")
     args = json.load(open(sys.argv[1]))
     args["BATCH_INDICE"] = sys.argv[2]
+    args["BATCH_FILE_NUMBER"] = sys.argv[3]
+    args["S3_PREFIX"] = sys.argv[4]
+    args["WORKSPACE_ID"] = sys.argv[5]
+    args["INDEX_TYPE"] = sys.argv[6]
+    args["OPERATION_TYPE"] = "create"
 
 from llm_bot_dep import sm_utils
 from llm_bot_dep.constant import SplittingType
@@ -360,7 +365,7 @@ class BatchQueryDocumentProcessor:
         search_body = {
             "query": {
                 # use term-level queries only for fields mapped as keyword
-                "match": {"metadata.file_path": s3_path}
+                "match_phrase": {"metadata.file_path": s3_path}
             },
             "size": 10000,
             "sort": [{"_score": {"order": "desc"}}],
@@ -499,7 +504,9 @@ def ingestion_pipeline(
                     s3_client, document, res_bucket, SplittingType.SEMANTIC.value
                 )
 
-            gen_chunk_flag = False if file_type == "csv" or file_type == "jsonl" else True
+            gen_chunk_flag = (
+                False if file_type == "csv" or file_type == "jsonl" else True
+            )
             batches = batch_chunk_processor.batch_generator(res, gen_chunk_flag)
 
             for batch in batches:

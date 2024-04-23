@@ -55,10 +55,9 @@ def is_api_query(query)-> bool:
 def is_query_invalid(query:str,threshold=3, max_length_threshold=500):
     tokenizer = BasicTokenizer()
     is_length_not_acceptable = len(tokenizer.tokenize(query)) <= threshold or len(tokenizer.tokenize(query)) >= max_length_threshold
-    contains_pii_identity = re.match('\b([1-9]\d{5}[12]\d{3}(0[1-9]|1[012])(0[1-9]|[12][0-9]|3[01])\d{3}[0-9xX])\b', query)
-    contains_pii_phone = re.match('(?<![0-9\)\+-])(?:\b|(?:\((?:\+|0{2})?86\)[ -]?)|(?:(?:\+|0{2})?86[ -]?))?1[3-9]\d{1}-?\d{4}-?\d{4}\b', query)
+    contains_pii_identity = re.search(r'\b([1-9]\d{5}[12]\d{3}(0[1-9]|1[012])(0[1-9]|[12][0-9]|3[01])\d{3}[0-9xX])\b', query)
+    contains_pii_phone = re.search(r'(?<![0-9\)\+-])(?:\b|(?:\((?:\+|0{2})?86\)[ -]?)|(?:(?:\+|0{2})?86[ -]?))?1[3-9]\d{1}-?\d{4}-?\d{4}\b', query)
     return is_length_not_acceptable or contains_pii_identity is not None or contains_pii_phone is not None
-
 
 
 class Translator:
