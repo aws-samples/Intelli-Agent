@@ -3,6 +3,7 @@ import logging
 import os
 
 import boto3
+from botocore.paginate import TokenEncoder
 
 
 DEFAULT_MAX_ITEM = 50
@@ -11,6 +12,7 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 client = boto3.client('dynamodb')
 table_name = os.environ.get('EXECUTION_TABLE')
+encoder = TokenEncoder()
 
 
 def lambda_handler(event, context):
@@ -42,12 +44,7 @@ def lambda_handler(event, context):
     )
     
     output = {}
-    page_count = 0
-    count = 1
     for page in response_iterator:
-        logger.info(str(count))
-        logger.info(page)
-        count += 1
         page_items = page["Items"]
         page_json = []
         for item in page_items:
@@ -55,15 +52,12 @@ def lambda_handler(event, context):
             for key in item.keys():
                 item_json[key] = item[key]["S"]
             page_json.append(item_json)
-        logger.info(page_json)
         # Return the latest page
         output["Items"] = page_json
         output["Count"] = page["Count"]
         if "LastEvaluatedKey" in page:
-            output["LastEvaluatedKey"] = page["LastEvaluatedKey"]["executionId"]["S"]
+            output["LastEvaluatedKey"] = encoder.encode({"ExclusiveStartKey": page["LastEvaluatedKey"]})
 
-    logger.info("Output is:======")
-    logger.info(output)
     output["config"] = config
 
     resp_header = {
