@@ -13,6 +13,10 @@ host_url = os.environ.get("API_GATEWAY_URL")
 if not host_url:
     raise Exception("API_GATEWAY_URL is empty")
 
+host_ws_url = os.environ.get("API_GATEWAY_WS_URL")
+if not host_ws_url:
+    raise Exception("API_GATEWAY_WS_URL is empty")
+
 region_name = host_url.split(".")[2]
 if not region_name:
     raise Exception("API_GATEWAY_URL is invalid")
@@ -23,6 +27,13 @@ host_url = host_url.replace("/v1", "")
 if host_url.endswith("/"):
     host_url = host_url[:-1]
 logger.info(f"config.host_url: {host_url}")
+
+# Remove "/prod" or "/prod/" from the end of the host_ws_url
+host_ws_url = host_ws_url.replace("/prod/", "")
+host_ws_url = host_ws_url.replace("/prod", "")
+if host_ws_url.endswith("/"):
+    host_ws_url = host_ws_url[:-1]
+logger.info(f"config.host_ws_url: {host_ws_url}")
 
 api_bucket = os.environ.get("API_BUCKET")
 if not api_bucket:

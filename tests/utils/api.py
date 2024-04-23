@@ -3,6 +3,7 @@ import logging
 
 import requests
 from jsonschema.validators import validate
+from websocket import WebSocket
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -28,7 +29,6 @@ class Api:
             data = json.dumps(data)
 
         url = f"{self.config.host_url}/v1/{path}"
-        print(url)
 
         resp = requests.request(
             method=method,
@@ -84,6 +84,77 @@ class Api:
             data=data,
         )
 
+    def get_etl_status(self, headers=None, params=None):
+        return self.req(
+            method="GET",
+            path="etl/status",
+            operation_id="get_etl_status",
+            headers=headers,
+            params=params,
+        )
+
+    def query_aos_index(self, headers=None, params=None, data=None):
+        return self.req(
+            method="GET",
+            path="aos",
+            operation_id="query_aos_index",
+            headers=headers,
+            params=params,
+            data=data,
+        )
+
+
+class WsApi:
+    schema = None
+
+    def __init__(self, config):
+        self.config = config
+
+    def qa(
+        self,
+        operation_id: str = None,
+        headers=None,
+        data=None,
+        params=None,
+    ):
+        ws_url = f"{self.config.host_ws_url}/prod/"
+        ws_client = WebSocket()
+        ws_client.connect(ws_url, timeout=15)
+        ws_client.send(json.dumps(data))
+        answer = ""
+        context = ""
+
+        while True:
+            try:
+                ret = json.loads(ws_client.recv())
+                message_type = ret["choices"][0]["message_type"]
+            except Exception as e:
+                break
+            if message_type == "START":
+                continue
+            elif message_type == "CHUNK":
+                answer += ret["choices"][0]["message"]["content"]
+            elif message_type == "END":
+                break
+            elif message_type == "ERROR":
+                break
+            elif message_type == "CONTEXT":
+                message = ret["choices"][0]
+                if "_chunk_data" in message:
+                    context += message.pop("_chunk_data")
+                    if message["chunk_id"] + 1 != message["total_chunk_num"]:
+                        continue
+                    message.update(json.loads(context))
+                    context = message
+                context = ret
+
+        ws_client.close()
+
+        # if operation_id:
+        #     validate_response(self, resp, operation_id)
+
+        return answer, context
+
 
 def get_schema_by_id_and_code(api: Api, operation_id: str, code: int):
     code = str(code)
@@ -112,7 +183,7 @@ def validate_response(api: Api, resp: requests.Response, operation_id: str):
     if resp.status_code in [200, 204]:
         return
     else:
-        with open(f"response.json", "w") as s:
+        with open("response.json", "w") as s:
             s.write(json.dumps(resp.json(), indent=4))
 
         validate_schema = get_schema_by_id_and_code(api, operation_id, resp.status_code)
@@ -120,12 +191,12 @@ def validate_response(api: Api, resp: requests.Response, operation_id: str):
         try:
             validate(instance=resp.json(), schema=validate_schema)
         except Exception as e:
-            print(f"\n**********************************************")
-            with open(f"schema.json", "w") as s:
+            print("\n**********************************************")
+            with open("schema.json", "w") as s:
                 s.write(json.dumps(validate_schema, indent=4))
-            print(f"\n**********************************************")
+            print("\n**********************************************")
             print(operation_id)
-            print(f"\n**********************************************")
+            print("\n**********************************************")
             raise e
 
 

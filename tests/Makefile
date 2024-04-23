@@ -11,10 +11,10 @@ env-%:
 build:
 	./local_build.sh
 
-test: env-API_GATEWAY_URL
+test: env-API_GATEWAY_URL env-API_GATEWAY_WS_URL env-API_BUCKET
 	./local_test.sh $(filter-out $@,$(MAKECMDGOALS))
 
-testk: env-API_GATEWAY_URL
+testk: env-API_GATEWAY_URL env-API_GATEWAY_WS_URL env-API_BUCKET
 	./local_test_k.sh $(filter-out $@,$(MAKECMDGOALS))
 
 rebuild:
