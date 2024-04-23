@@ -121,7 +121,7 @@ def lambda_handler(event, context):
         logger.setLevel(debug_level)
 
         if messages and entry_type != Type.MARKET_CONVERSATION_SUMMARY.value:
-            assert len(messages) == 1
+            # assert len(messages) == 1
             question = messages[-1]["content"]
             custom_message_id = messages[-1].get("custom_message_id", "")
         else:

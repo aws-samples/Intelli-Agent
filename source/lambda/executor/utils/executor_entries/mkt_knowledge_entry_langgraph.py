@@ -748,7 +748,7 @@ def market_chain_knowledge_entry_assistant_418(
     
     if rag_config['history_type'] == HistoryType.MESSAGE:
         chat_history = []
-        for message in rag_config['messages'][1:]:
+        for message in rag_config['messages'][:-1]:
             role = message["role"]
             content = message["content"]
             assert role in ["user", "ai"]

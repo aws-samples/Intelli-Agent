@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 # )
 
 load_dotenv(
-    dotenv_path=os.path.join(os.path.dirname(__file__),'.env_global')
+    dotenv_path=os.path.join(os.path.dirname(__file__),'.env_global_430')
 )
 
 import logging
@@ -81,7 +81,8 @@ class DummyWebSocket:
 
 main.ws_client = DummyWebSocket()
 
-def generate_answer(query,
+def generate_answer(query=None,
+                    messages=None,
                     # temperature=0.7,
                     enable_debug=True,
                     retrieval_only=False,
@@ -93,13 +94,19 @@ def generate_answer(query,
                     rag_parameters=None
                     ):
     rag_parameters = rag_parameters or {}
-    body = {
-            "messages": [
+
+    if query:
+        messages = [
                 {
                     "role": "user",
                     "content": query
                 }
-            ],
+            ]
+    else:
+        assert messages and isinstance(messages,list), messages
+
+    body = {
+            "messages": messages,
             # "temperature": temperature,
             # "enable_debug": enable_debug,
             # "retrieval_only": retrieval_only,
@@ -587,8 +594,8 @@ def test_internlm_model_mkt_knowledge_entry():
     # endpoint_name = 'internlm2-chat-7b-4bits-2024-02-28-07-08-57-839'
     # model_id = "internlm2-chat-7b"
     # endpoint_name = 'internlm2-chat-20b-4bits-2024-03-04-06-32-53-653'
-    endpoint_name = 'internlm2-chat-20b-4bits-continuous-bat-2024-03-23-16-25-28-881'
-    # endpoint_name = 'instruct-internlm2-chat-20b-7bae8'
+    # endpoint_name = 'internlm2-chat-20b-4bits-continuous-bat-2024-03-23-16-25-28-881'
+    endpoint_name = 'instruct-internlm2-chat-20b-7bae8'
     model_id = "internlm2-chat-20b"
     entry_type = "market_chain"
 
@@ -611,12 +618,29 @@ def test_internlm_model_mkt_knowledge_entry():
 
     #  "亚马逊云科技中国区域免费套餐有什么优惠？",
     #   "介绍Amazon Lambda是什么？"
+    messages = [
+        {
+        "role":"user",
+        "content": "请问怎么租用jetson agx orin"
+        },
+        {
+        "role":"ai",
+        "content": "您好,这是英伟达的产品"
+        },
+        {
+        "role":"user",
+        "content": "是的,可以租借一台吗"
+        }
+    ]
+  
 
     r = generate_answer(
         # "Amazon Lambda函数是什么？",
         # "Claude 3 Opus 模型 预计什么时候上线呀",
         # "claude 3 opus 模型 预计什么时候上线呀",
-        "您好，我的云服务器的密码忘了则么找回，有什么方法吗",
+        # "您好，我的云服务器的密码忘了则么找回，有什么方法吗",
+        # "今天是几月几号？",
+        messages=messages,
         type=entry_type, 
         stream=True,
         rag_parameters=rag_parameters
