@@ -20,7 +20,6 @@ def lambda_handler(event, context):
     page_size = DEFAULT_SIZE
     max_item = DEFAULT_MAX_ITEM
 
-
     if event["queryStringParameters"] != None:
         if "size" in event["queryStringParameters"]:
             page_size = int(event["queryStringParameters"]["size"])
