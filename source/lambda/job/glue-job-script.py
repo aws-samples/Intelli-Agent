@@ -1,4 +1,3 @@
-from datetime import datetime, timezone
 import functools
 import itertools
 import json
@@ -7,6 +6,7 @@ import os
 import sys
 import time
 import traceback
+from datetime import datetime, timezone
 from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple
 
 import boto3
@@ -155,20 +155,18 @@ class S3FileProcessor:
             "smr_client": smr_client,
             "res_bucket": res_bucket,
             "table_item_id": table_item_id,
-            "create_time": create_time
+            "create_time": create_time,
         }
-        
+
         input_body = {
             "s3Path": f"s3://{self.bucket}/{key}",
             "s3Bucket": self.bucket,
             "s3Prefix": key,
             "executionId": table_item_id,
             "createTime": create_time,
-            "status": "RUNNING"
+            "status": "RUNNING",
         }
-        ddb_response = etl_object_table.put_item(
-            Item=input_body
-        )
+        ddb_response = etl_object_table.put_item(Item=input_body)
 
         if file_type == "txt":
             return "txt", self.decode_file_content(file_content), kwargs
@@ -370,7 +368,7 @@ class BatchQueryDocumentProcessor:
         search_body = {
             "query": {
                 # use term-level queries only for fields mapped as keyword
-                "match": {"metadata.file_path": s3_path}
+                "match_phrase": {"metadata.file_path": s3_path}
             },
             "size": 100000,
             "sort": [{"_score": {"order": "desc"}}],
@@ -504,7 +502,7 @@ def ingestion_pipeline(
             "s3Prefix": kwargs["key"],
             "executionId": table_item_id,
             "createTime": kwargs["create_time"],
-            "status": "SUCCEED"
+            "status": "SUCCEED",
         }
         try:
             # The res is list[Document] type
@@ -550,13 +548,11 @@ def ingestion_pipeline(
                 "executionId": table_item_id,
                 "createTime": kwargs["create_time"],
                 "status": "FAILED",
-                "detail": str(e)
+                "detail": str(e),
             }
             traceback.print_exc()
         finally:
-            ddb_response = etl_object_table.put_item(
-                Item=input_body
-            )
+            ddb_response = etl_object_table.put_item(Item=input_body)
 
 
 def delete_pipeline(s3_files_iterator, document_generator, delete_worker):
