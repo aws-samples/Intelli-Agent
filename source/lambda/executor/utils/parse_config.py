@@ -128,6 +128,7 @@ def parse_mkt_entry_knowledge_config(event_body:dict):
                 "aos_index_dgr_faq_qq_m3_20240410",
                 "aos_index_global_site_cn_qd_m3_dense_20240320",
                 "aws-cn-dgr-user-guide-qd-m3-dense-20240318",
+                "aos_index_cn_docs_qd_m3"
             ],
             "event_workspace_ids": ["event-qd-index-20240313"],
         
@@ -161,8 +162,16 @@ def parse_mkt_entry_knowledge_config(event_body:dict):
         },
         # intent_config
         "intent_config": {
-            "model_id": llm_model_id,
-            "endpoint_name": llm_model_endpoint_name,
+            # based on llm 
+            "llm_config":{
+                "model_id": llm_model_id,
+                "endpoint_name": llm_model_endpoint_name
+            },
+            # based on aos
+            "aos_config":{
+                "endpoint_name": os.environ.get('intent_recognition_embedding_endpoint',None),
+                "endpoint_target_model": os.environ.get('intent_embedding_endpoint_target_model',None)
+            }
         },
         # generator config
         "generator_llm_config": {

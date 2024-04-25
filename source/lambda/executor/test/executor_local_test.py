@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 # )
 
 load_dotenv(
-    dotenv_path=os.path.join(os.path.dirname(__file__),'.env_global_430')
+    dotenv_path=os.path.join(os.path.dirname(__file__),'.env_global')
 )
 
 import logging
@@ -71,7 +71,7 @@ class DummyWebSocket:
             
             print('knowledge_sources',message['knowledge_sources'])
             print('response msg',message['response_msg'])
-            print(message.keys())
+            print('trace_infos',message['trace_infos'])
 
 
             # if ret['choices'][0].get('contexts'):
@@ -594,8 +594,8 @@ def test_internlm_model_mkt_knowledge_entry():
     # endpoint_name = 'internlm2-chat-7b-4bits-2024-02-28-07-08-57-839'
     # model_id = "internlm2-chat-7b"
     # endpoint_name = 'internlm2-chat-20b-4bits-2024-03-04-06-32-53-653'
-    # endpoint_name = 'internlm2-chat-20b-4bits-continuous-bat-2024-03-23-16-25-28-881'
-    endpoint_name = 'instruct-internlm2-chat-20b-7bae8'
+    endpoint_name = 'internlm2-chat-20b-4bits-continuous-bat-2024-03-23-16-25-28-881'
+    # endpoint_name = 'instruct-internlm2-chat-20b-7bae8'
     model_id = "internlm2-chat-20b"
     entry_type = "market_chain"
 
@@ -618,29 +618,125 @@ def test_internlm_model_mkt_knowledge_entry():
 
     #  "亚马逊云科技中国区域免费套餐有什么优惠？",
     #   "介绍Amazon Lambda是什么？"
-    messages = [
-        {
-        "role":"user",
-        "content": "请问怎么租用jetson agx orin"
-        },
-        {
-        "role":"ai",
-        "content": "您好,这是英伟达的产品"
-        },
-        {
-        "role":"user",
-        "content": "是的,可以租借一台吗"
-        }
-    ]
-  
+    # messages = [
+    #     {
+    #     "role":"user",
+    #     "content": "请问怎么租用jetson agx orin"
+    #     },
+    #     {
+    #     "role":"ai",
+    #     "content": "您好,这是英伟达的产品"
+    #     },
+    #     {
+    #     "role":"user",
+    #     "content": "是的,可以租借一台吗"
+    #     }
+    # ]
+    # messages = [
+    #     {
+    #     "role":"user",
+    #     "content": "你好"
+    #     },
+    #     {
+    #     "role":"ai",
+    #     "content": "您好"
+    #     },
+    #     {
+    #     "role":"user",
+    #     "content": "我是大连阿尔派电子有限公司\n想要了解云服务器的租赁服务"
+    #     },
+    #     {
+    #     "role":"ai",
+    #     "content": "中国还是海外的？"
+    #     },
+    #     {
+    #     "role":"user",
+    #     "content": "这是需求\n[图片]\n中国\n请联络下销售代表，让他联络我\n电话：13504110365\n邮箱：dw-sun@alpine-china.com\n我需要产品介绍电子版和相应的价格说明\n您有看么"
+    #     },
+    # ]
+    # messages = [
+    #     {
+    #     "role":"user",
+    #     "content": "你好\n我已经选好EC2配置，如何下单？"
+    #     },
+    #     {
+    #     "role":"ai",
+    #     "content": "您的account ID提供一下"
+    #     },
+    #     {
+    #     "role":"user",
+    #     "content": "654654383149\n78027124@qq.com"
+    #     }
+    # ]
+    # messages = [
+    #     {
+    #     "role":"user",
+    #     "content": "是用于广播，例如紧急撤离\n有的"
+    #     },
+    #     {
+    #     "role":"ai",
+    #     "content": "哦哦了解\n您说的离线使用\n是指什么呀\n不用互联网吗"
+    #     },
+    #     {
+    #     "role":"user",
+    #     "content": "是的"
+    #     },
+    #     {
+    #     "role":"ai",
+    #     "content": "还是下载到本地"
+    #     },
+    #     {
+    #     "role":"user",
+    #     "content": "私有化部署"
+    #     },
+    #     {
+    #     "role":"ai",
+    #     "content": "用户可以将生成的语音文件下载到本地，然后在云中或本地的应用程序或设备上进行离线播放\n私有化部署不支持 哦"
+    #     },
+    #     {
+    #     "role":"user",
+    #     "content": "那是否支持定制音色"
+    #     },
+    # ]
+    # messages = [
+        # {
+        # "role":"user",
+        # "content": "是用于广播，例如紧急撤离\n有的"
+        # },
+        # {
+        # "role":"ai",
+        # "content": "哦哦了解\n您说的离线使用\n是指什么呀\n不用互联网吗"
+        # },
+        # {
+        # "role":"user",
+        # "content": "是的"
+        # },
+        # {
+        # "role":"ai",
+        # "content": "还是下载到本地"
+        # },
+        # {
+        # "role":"user",
+        # "content": "私有化部署"
+        # },
+        # {
+        # "role":"ai",
+        # "content": "用户可以将生成的语音文件下载到本地，然后在云中或本地的应用程序或设备上进行离线播放\n私有化部署不支持 哦"
+        # },
+    #     {
+    #     "role":"user",
+    #     "content": "Claude 3 Opus 模型 预计什么时候上线呀"
+    #     },
+    # ]
 
     r = generate_answer(
+        "CVM 服务器和 EC2 的区别是什么？",
         # "Amazon Lambda函数是什么？",
         # "Claude 3 Opus 模型 预计什么时候上线呀",
         # "claude 3 opus 模型 预计什么时候上线呀",
         # "您好，我的云服务器的密码忘了则么找回，有什么方法吗",
         # "今天是几月几号？",
-        messages=messages,
+        # messages=messages,
         type=entry_type, 
         stream=True,
         rag_parameters=rag_parameters

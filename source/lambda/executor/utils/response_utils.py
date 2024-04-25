@@ -237,7 +237,8 @@ def stream_response(**kwargs):
 
         context_info = {
             "knowledge_sources": sources,
-            "response_msg": debug_info.get('response_msg',"")
+            "response_msg": debug_info.get('response_msg',""),
+            "trace_infos": debug_info.get('trace_infos',[])
         }
 
         if get_contexts:

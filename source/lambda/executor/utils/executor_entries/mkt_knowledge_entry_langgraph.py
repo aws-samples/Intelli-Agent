@@ -278,16 +278,23 @@ def query_preprocess(state: AppState):
 #####################################
 # step 3.1 intent recognition chain #
 #####################################
-# EMBEDDING_ENDPOINT_NAME = ""
-
 
 def get_intent_recognition_with_index_chain(state):
     rag_config = state['rag_config']
     conversation_query_rewrite_config = rag_config['query_process_config']['conversation_query_rewrite_config']
     conversation_query_rewrite_result_key = conversation_query_rewrite_config['result_key']
     
+    aos_config = rag_config['intent_config']['aos_config']
+
+    endpoint_kwargs = None
+    intent_embedding_endpoint_target_model = aos_config['endpoint_target_model']
+    if intent_embedding_endpoint_target_model:
+        endpoint_kwargs = {"TargetModel":intent_embedding_endpoint_target_model}
+
     intent_recognition_index = IntentRecognitionAOSIndex(
-        embedding_endpoint_name=state['intent_embedding_endpoint_name'])
+        embedding_endpoint_name=aos_config['endpoint_name'],
+        endpoint_kwargs = endpoint_kwargs
+        )
     intent_index_ingestion_chain = chain_logger(
         intent_recognition_index.as_ingestion_chain(),
         "intent_index_ingestion_chain",
@@ -464,6 +471,13 @@ def rag_llm(state):
                     ),
                 chat_history=lambda x:rag_config['chat_history']
           )
+    
+    llm_chain = chain_logger(
+        llm_chain,
+        'rag_llm',
+        trace_infos=state['trace_infos']
+        )
+    
     _state = llm_chain.invoke(state)
     state.update(_state)
 
@@ -499,6 +513,12 @@ def chat_llm(state):
                 context_sources = lambda x:[],
                 context_docs = lambda x:[]
           )
+
+    llm_chain = chain_logger(
+        llm_chain,
+        'chat_llm',
+        trace_infos=state['trace_infos']
+        )
     
     _state = llm_chain.invoke(state)
     state.update(_state)
@@ -881,13 +901,14 @@ def market_chain_knowledge_entry_assistant_418(
             "qq_workspace_list": qq_workspace_list,
             "qd_workspace_list": qd_workspace_list,
             "event_qd_workspace_list":event_qd_workspace_list,
-            "trace_infos":trace_infos,
-            "intent_embedding_endpoint_name": os.environ['intent_recognition_embedding_endpoint'],
+            "trace_infos": trace_infos,
+            # "intent_embedding_endpoint_name": os.environ['intent_recognition_embedding_endpoint'],
+            # "intent_embedding_endpoint_target_model": os.environ['']
             # "query_lang": "zh"
         }
     response = app.invoke({"keys":inputs})['keys']
 
-    
+    debug_info['trace_infos'] = trace_infos
     trace_info = format_trace_infos(trace_infos)
     
     logger.info(f'session_id: {rag_config["session_id"]}, chain trace info:\n{trace_info}')

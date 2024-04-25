@@ -45,12 +45,17 @@ intent_example_path = os.path.join(
 
 class LangchainOpenSearchClient:
     instance = None
-    def __new__(cls,index_name,embedding_endpoint_name,host=os.environ.get('aos_endpoint',None)):
+    def __new__(cls,
+                index_name,
+                embedding_endpoint_name,
+                host=os.environ.get('aos_endpoint',None),
+                endpoint_kwargs=None,
+                ):
         identity = f'{index_name}_{host}_{embedding_endpoint_name}'
         with opensearch_client_lock:
             if cls.instance is not None and cls.instance._identity == identity:
                 return cls.instance
-            obj = cls.create(index_name,embedding_endpoint_name,host=host)
+            obj = cls.create(index_name,embedding_endpoint_name,host=host,endpoint_kwargs=endpoint_kwargs)
             obj._identity = identity
             cls.instance = obj
             return obj
@@ -61,15 +66,17 @@ class LangchainOpenSearchClient:
                embedding_endpoint_name,
                host=os.environ.get('aos_endpoint',None),
                region_name=os.environ['AWS_REGION'],
+               endpoint_kwargs=None
         ):
         embedding = BCEEmbeddingSagemakerEndpoint(
             endpoint_name=embedding_endpoint_name,
-            region_name=region_name
+            region_name=region_name,
+            endpoint_kwargs=endpoint_kwargs
             )
         port = int(os.environ.get('AOS_PORT',443))
         opensearch_url = f'https://{host}:{port}'
         credentials = boto3.Session().get_credentials()
-        awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, region_name, 'es', session_token=credentials.token)
+        # awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, region_name, 'es', session_token=credentials.token)
         opensearch_client = OpenSearchVectorSearch(
             index_name=index_name,
             embedding_function=embedding,
@@ -84,6 +91,7 @@ class IntentRecognitionAOSIndex:
             intent_example_path=intent_example_path,
             index_name=None,
             embedding_endpoint_name=None,
+            endpoint_kwargs = None,
             host=os.environ.get('aos_endpoint',None)
         ):
         if index_name is None:
@@ -98,7 +106,8 @@ class IntentRecognitionAOSIndex:
         self.opensearch_client = LangchainOpenSearchClient(
             index_name=index_name,
             embedding_endpoint_name=embedding_endpoint_name,
-            host=host
+            host=host,
+            endpoint_kwargs=endpoint_kwargs
         )
 
     @staticmethod

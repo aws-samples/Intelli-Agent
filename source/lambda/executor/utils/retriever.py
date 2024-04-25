@@ -491,6 +491,11 @@ class QueryDocumentKNNRetriever(BaseRetriever):
             source = source.replace("s3://aws-chatbot-knowledge-base/aws-acts-knowledge/qd/zh_CN/", "https://www.amazonaws.cn/").\
                 replace("s3://aws-chatbot-knowledge-base/aws-acts-knowledge/qd/en_US/", "https://www.amazonaws.cn/en/").\
                 replace("s3://aws-chatbot-knowledge-base/aws-global-site-cn-knowledge/", "https://aws.amazon.com/")
+            
+            if source.startswith('s3://raw-document-bucket-beta-975050380473/docs.amazonaws.cn'):
+                source = source.replace('s3://raw-document-bucket-beta-975050380473/docs.amazonaws.cn', 'https://docs.amazonaws.cn')
+                source = source.rsplit('/', 1)[0]
+            
             result["source"] = source
             result["score"] = aos_hit["_score"]
             result["detail"] = aos_hit['_source']

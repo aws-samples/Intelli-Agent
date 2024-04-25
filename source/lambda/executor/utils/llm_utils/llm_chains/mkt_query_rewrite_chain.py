@@ -22,9 +22,9 @@ class Iternlm2Chat7BMKTQueryRewriteChain(Iternlm2Chat7BChatChain):
     def create_prompt(cls,x):
         meta_instruction = """你是一个句子改写专家。你需要结合当前的历史对话消息将给定的句子按照下面的规则改写成方便检索的形式。
 改写规则:
-    - 修改之后应该为一个疑问句。
     - 你需要尽可能将当前句子放到”亚马逊云科技“ / ”Amazon AWS“的语境下进行改写。
     - 如果原句子本身比较完整就不需要进行改写。
+    - 如果用户的问题不是一个疑问句，请对其进行总结。
 
 下面有一些示例:
 原句子: Amazon ec2
@@ -32,13 +32,25 @@ class Iternlm2Chat7BMKTQueryRewriteChain(Iternlm2Chat7BChatChain):
 
 原句子: AWS 有上海区域吗？
 改写为: AWS 有上海区域吗？
-"""
+""" 
+        history = cls.create_history(x)
+        
+        history_strs = []
+        for his in history:
+            history_strs.append(f"Q: {his[0]}\nA:{his[1]}")
+    
+        history_str = "\n".join(history_strs)
+
+        query=f"原句子: {x['query']}"
+        conversations = []
+        if history_strs:
+            conversations.append((f"历史对话信息:\n{history_str}", "好的，收到历史对话信息。请告诉我当前用户的问题以便我进行改写。"))
         prompt = cls.build_prompt(
-            query=f"原句子: {x['query']}",
-            history=cls.create_history(x),
+            query=query,
+            history=conversations,
             meta_instruction=meta_instruction
         )  + "改写为:"
-        # logger.info(prompt)
+        logger.info(f'intermlm 2 query expansion:\n{prompt}')
         return prompt
 
 
