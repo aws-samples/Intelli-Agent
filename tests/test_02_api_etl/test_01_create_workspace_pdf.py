@@ -62,13 +62,22 @@ class TestCreateWorkspaceApiPdf:
 
         while datetime.now() < timeout:
             response = self.api.get_etl_status(params=params)
-            status = response.json()["execution_status"]
-            logger.info(f"ETL Job Execution {etl_execution_id} is {status}")
-            if status == EtlStatus.SUCCEEDED.value:
-                break
-            if status == EtlStatus.FAILED.value:
-                logger.error(response.dumps())
-                raise Exception(f"ETL Job Execution {etl_execution_id} failed.")
+            response_count = response.json()["Count"]
+
+            if response_count == 0:
+                logger.info("No Finished ETL Job Execution found.")
+            else:
+                status = response.json()["Items"][0]["status"]
+                logger.info(f"ETL Job Execution {etl_execution_id} is {status}")
+                if status == EtlStatus.SUCCEEDED.value:
+                    break
+                elif status == EtlStatus.FAILED.value:
+                    logger.error(response.dumps())
+                    raise Exception(f"ETL Job Execution {etl_execution_id} failed.")
+                else:
+                    raise Exception(
+                        f"ETL Job Execution {etl_execution_id} is still running."
+                    )
             time.sleep(10)
         else:
             raise Exception("Inference timed out after 5 minutes.")

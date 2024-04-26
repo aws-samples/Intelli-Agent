@@ -35,6 +35,7 @@ try:
             "AOS_ENDPOINT",
             "BATCH_FILE_NUMBER",
             "BATCH_INDICE",
+            "DOCUMENT_LANGUAGE",
             "EMBEDDING_MODEL_ENDPOINT",
             "ETL_MODEL_ENDPOINT",
             "JOB_NAME",
@@ -78,6 +79,7 @@ if "BATCH_INDICE" not in args:
 aosEndpoint = args["AOS_ENDPOINT"]
 batchFileNumber = args["BATCH_FILE_NUMBER"]
 batchIndice = args["BATCH_INDICE"]
+document_language = args["DOCUMENT_LANGUAGE"]
 embedding_model_endpoint = args["EMBEDDING_MODEL_ENDPOINT"]
 etlModelEndpoint = args["ETL_MODEL_ENDPOINT"]
 offline = args["OFFLINE"]
@@ -156,6 +158,7 @@ class S3FileProcessor:
             "res_bucket": res_bucket,
             "table_item_id": table_item_id,
             "create_time": create_time,
+            "document_language": document_language,
         }
 
         input_body = {

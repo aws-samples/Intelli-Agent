@@ -87,7 +87,7 @@ class Api:
     def get_etl_status(self, headers=None, params=None):
         return self.req(
             method="GET",
-            path="etl/status",
+            path="etl/execution",
             operation_id="get_etl_status",
             headers=headers,
             params=params,
