@@ -101,7 +101,7 @@ def handler(event, context):
         "headers": resp_header,
         "body": json.dumps(
             {
-                "execution_id": execution_id,
+                "execution_id": context.aws_request_id,
                 "step_function_arn": response["executionArn"],
                 "input_payload": input_payload,
             }
