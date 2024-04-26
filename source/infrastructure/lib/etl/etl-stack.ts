@@ -340,6 +340,7 @@ export class EtlStack extends NestedStack {
             "operationType.$": "$.Payload.operationType",
             "embeddingEndpoint.$": "$.Payload.embeddingEndpoint",
             "tableItemId.$": "$.Payload.tableItemId",
+            "documentLanguage.$": "$.Payload.documentLanguage",
           },
         },
         // Original input
@@ -359,7 +360,7 @@ export class EtlStack extends NestedStack {
         "--AOS_ENDPOINT": props.domainEndpoint || "AOS Endpoint Not Created",
         "--BATCH_FILE_NUMBER.$": "$.batchFileNumber",
         "--BATCH_INDICE.$": 'States.Format(\'{}\', $.batchIndices)',
-        "--DOC_INDEX_TABLE": props.openSearchIndex,
+        "--DOCUMENT_LANGUAGE.$": "$.documentLanguage",
         "--EMBEDDING_MODEL_ENDPOINT.$": "$.embeddingEndpoint",
         "--ETL_MODEL_ENDPOINT": this.etlEndpoint,
         "--INDEX_TYPE.$": "$.indexType",
@@ -400,6 +401,7 @@ export class EtlStack extends NestedStack {
         "operationType.$": "$.operationType",
         "embeddingEndpoint.$": "$.embeddingEndpoint",
         "tableItemId.$": "$.tableItemId",
+        "documentLanguage.$": "$.documentLanguage",
       },
       resultPath: "$.mapResults",
     });
@@ -420,7 +422,7 @@ export class EtlStack extends NestedStack {
         "--AOS_ENDPOINT": props.domainEndpoint,
         "--BATCH_FILE_NUMBER.$": "$.batchFileNumber",
         "--BATCH_INDICE.$": 'States.Format(\'{}\', $.batchIndices)',
-        "--DOC_INDEX_TABLE": props.openSearchIndex,
+        "--DOCUMENT_LANGUAGE.$": "$.documentLanguage",
         "--EMBEDDING_MODEL_ENDPOINT.$": "$.embeddingEndpoint",
         "--ETL_MODEL_ENDPOINT": this.etlEndpoint,
         "--INDEX_TYPE.$": "$.indexType",
