@@ -41,3 +41,18 @@ export enum BatchOperationStatus {
   ABORTED = 'ABORTED',
   PENDING_REDRIVE = 'PENDING_REDRIVE',
 }
+
+export type LibraryExecutionItem = {
+  s3Prefix: string;
+  detail?: string;
+  s3Bucket: string;
+  executionId: string;
+  status: string;
+  createTime: string;
+  s3Path: string;
+};
+
+export type LibraryExecutionResponse = {
+  Items: LibraryExecutionItem[];
+  Count: number;
+};

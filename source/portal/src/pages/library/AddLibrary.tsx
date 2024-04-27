@@ -4,6 +4,7 @@ import {
   BreadcrumbGroup,
   Button,
   Container,
+  ContentLayout,
   FlashbarProps,
   Form,
   FormField,
@@ -24,7 +25,7 @@ const CACHED_PROGRESS_DATA = 'llmbot_cached_progress_knowledge_base_ingest';
 
 let checkStatusInterval: any;
 
-export default function AddLibrary() {
+const AddLibrary: React.FC = () => {
   const navigate = useNavigate();
   const config = useContext(ConfigContext);
   const [fileName, setFileName] = useState(
@@ -161,62 +162,68 @@ export default function AddLibrary() {
         />
       }
     >
-      <Container
-        variant="default"
-        header={
-          <Header
-            variant="h2"
-            description="Please select the file to be imported"
-          >
-            Ingest
-          </Header>
-        }
-      >
-        <SpaceBetween direction="vertical" size="l">
-          <Form
-            variant="embedded"
-            actions={
-              <SpaceBetween direction="horizontal" size="xs">
-                <Button
-                  formAction="none"
-                  variant="link"
-                  onClick={() => {
-                    navigate(-1);
-                  }}
+      <ContentLayout>
+        <Container
+          variant="default"
+          header={
+            <Header
+              variant="h2"
+              description="Please select the file to be imported"
+            >
+              Ingest
+            </Header>
+          }
+        >
+          <SpaceBetween direction="vertical" size="l">
+            <Form
+              variant="embedded"
+              actions={
+                <SpaceBetween direction="horizontal" size="xs">
+                  <Button
+                    formAction="none"
+                    variant="link"
+                    onClick={() => {
+                      navigate(-1);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="primary"
+                    loading={loadingIngest}
+                    onClick={() => {
+                      ingestKnowledgeBase();
+                    }}
+                  >
+                    Ingest
+                  </Button>
+                </SpaceBetween>
+              }
+            >
+              <SpaceBetween direction="vertical" size="l">
+                <FormField label="Amazon S3 Bucket">
+                  <Input value={config?.docsS3Bucket ?? ''} readOnly />
+                </FormField>
+                <FormField
+                  label="Documents"
+                  errorText={
+                    fileEmptyError ? 'Please select a file' : undefined
+                  }
                 >
-                  Cancel
-                </Button>
-                <Button
-                  variant="primary"
-                  loading={loadingIngest}
-                  onClick={() => {
-                    ingestKnowledgeBase();
-                  }}
-                >
-                  Ingest
-                </Button>
+                  <Input
+                    value={fileName}
+                    onChange={({ detail }) => {
+                      setFileName(detail.value);
+                    }}
+                  />
+                </FormField>
               </SpaceBetween>
-            }
-          >
-            <SpaceBetween direction="vertical" size="l">
-              <FormField label="Amazon S3 Bucket">
-                <Input value={config?.docsS3Bucket ?? ''} readOnly />
-              </FormField>
-              <FormField
-                label="Documents"
-                errorText={fileEmptyError ? 'Please select a file' : undefined}
-              >
-                <Input
-                  value={fileName}
-                  onChange={({ detail }) => {
-                    setFileName(detail.value);
-                  }}
-                />
-              </FormField>
-            </SpaceBetween>
-          </Form>
-        </SpaceBetween>
-      </Container>
+            </Form>
+          </SpaceBetween>
+        </Container>
+      </ContentLayout>
     </CommonLayout>
   );
-}
+};
+
+export default AddLibrary;
