@@ -14,30 +14,15 @@ import {
 import { useNavigate } from 'react-router-dom';
 import CommonLayout from '../../layout/CommonLayout';
 import ConfigContext from '../../context/config-context';
+import {
+  IngestResponse,
+  CachedDataType,
+  BatchOperationStatus,
+} from '../../types';
 
 const CACHED_PROGRESS_DATA = 'llmbot_cached_progress_knowledge_base_ingest';
 
 let checkStatusInterval: any;
-
-enum BatchOperationStatus {
-  RUNNING = 'RUNNING',
-  SUCCEEDED = 'SUCCEEDED',
-  FAILED = 'FAILED',
-  TIMED_OUT = 'TIMED_OUT',
-  ABORTED = 'ABORTED',
-  PENDING_REDRIVE = 'PENDING_REDRIVE',
-}
-
-interface CachedDataType {
-  executionId: string;
-  fileName: string;
-}
-
-interface IngestResponse {
-  execution_id: string;
-  input_payload: string;
-  step_function_arn: string;
-}
 
 export default function AddLibrary() {
   const navigate = useNavigate();
@@ -45,8 +30,6 @@ export default function AddLibrary() {
   const [fileName, setFileName] = useState(
     '华鼎股份：义乌华鼎锦纶股份有限公司关于2024年远期结售汇额度的公告.pdf',
   );
-  // const [fileList, setFileList] = useState<SelectProps.Option[]>([]);
-  // const [file, setFile] = useState<SelectProps.Option | null>(null);
   const [loadingIngest, setLoadingIngest] = useState(false);
   const [flashBar, setFlashBar] = useState<FlashbarProps.MessageDefinition[]>(
     [],
@@ -89,7 +72,6 @@ export default function AddLibrary() {
       fileName: fileName,
     };
     localStorage.setItem(CACHED_PROGRESS_DATA, JSON.stringify(cachedData));
-    // setFile(null);
     queryIngestStatus(executionId, fileName);
     checkStatusInterval = setInterval(() => {
       queryIngestStatus(executionId, fileName);
@@ -224,16 +206,6 @@ export default function AddLibrary() {
                 label="Documents"
                 errorText={fileEmptyError ? 'Please select a file' : undefined}
               >
-                {/* <Select
-                  disabled
-                  filteringType="auto"
-                  selectedOption={file}
-                  onChange={({ detail }) => {
-                    setFileEmptyError(false);
-                    setFile(detail.selectedOption);
-                  }}
-                  options={fileList}
-                /> */}
                 <Input
                   value={fileName}
                   onChange={({ detail }) => {
