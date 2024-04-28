@@ -125,7 +125,7 @@ const LibraryDetail: React.FC = () => {
                 </div>
               ))
             ) : (
-              <div>No Files or please waiting execution to complete</div>
+              <div>No files or please waiting execution to complete</div>
             )}
           </SpaceBetween>
         </Container>
