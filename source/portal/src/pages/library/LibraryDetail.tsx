@@ -14,7 +14,7 @@ import { axios } from '../../utils/request';
 import ConfigContext from '../../context/config-context';
 import { useParams } from 'react-router-dom';
 import { LibraryExecutionItem, LibraryExecutionResponse } from 'types';
-import { alertMsg } from '../../utils/utils';
+import { alertMsg, formatTime } from '../../utils/utils';
 
 const LibraryDetail: React.FC = () => {
   const [loadingData, setLoadingData] = useState(false);
@@ -105,7 +105,7 @@ const LibraryDetail: React.FC = () => {
                   <StatusIndicator
                     type={item.status === 'FAILED' ? 'error' : 'success'}
                   >
-                    {item.s3Prefix}
+                    [{formatTime(item.createTime)}] {item.s3Prefix}
                   </StatusIndicator>
                   {item.status === 'FAILED' && (
                     <Popover
