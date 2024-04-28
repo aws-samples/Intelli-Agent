@@ -4,6 +4,7 @@ import Library from './pages/library/Library';
 import ConfigProvider from './context/config-provider';
 import AddLibrary from './pages/library/AddLibrary';
 import LibraryDetail from './pages/library/LibraryDetail';
+import CommonAlert from './comps/alert';
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
           <Route path="/library/detail/:id" element={<LibraryDetail />} />
           <Route path="/library/add" element={<AddLibrary />} />
         </Routes>
+        <CommonAlert />
       </BrowserRouter>
     </ConfigProvider>
   );

@@ -16,6 +16,7 @@ import { useNavigate } from 'react-router-dom';
 import ConfigContext from '../../context/config-context';
 import { axios } from '../../utils/request';
 import { LibraryListItem, LibraryListResponse } from 'types';
+import { alertMsg } from '../../utils/utils';
 
 const Library: React.FC = () => {
   const [selectedItems, setSelectedItems] = useState<LibraryListItem[]>([]);
@@ -30,12 +31,19 @@ const Library: React.FC = () => {
       size: 9999,
       total: 9999,
     };
-    const result = await axios.get(`${config?.apiUrl}/etl/list-execution`, {
-      params,
-    });
-    const items: LibraryListResponse = result.data;
-    setLibraryList(items.Items);
-    setLoadingData(false);
+    try {
+      const result = await axios.get(`${config?.apiUrl}/etl/list-execution`, {
+        params,
+      });
+      const items: LibraryListResponse = result.data;
+      setLibraryList(items.Items);
+      setLoadingData(false);
+    } catch (error: unknown) {
+      setLoadingData(false);
+      if (error instanceof Error) {
+        alertMsg(error.message);
+      }
+    }
   };
 
   useEffect(() => {

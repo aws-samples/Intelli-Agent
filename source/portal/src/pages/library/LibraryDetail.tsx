@@ -14,6 +14,7 @@ import { axios } from '../../utils/request';
 import ConfigContext from '../../context/config-context';
 import { useParams } from 'react-router-dom';
 import { LibraryExecutionItem, LibraryExecutionResponse } from 'types';
+import { alertMsg } from '../../utils/utils';
 
 const LibraryDetail: React.FC = () => {
   const [loadingData, setLoadingData] = useState(false);
@@ -28,12 +29,19 @@ const LibraryDetail: React.FC = () => {
     const params = {
       executionId: id,
     };
-    const result = await axios.get(`${config?.apiUrl}/etl/execution`, {
-      params,
-    });
-    const executionRes: LibraryExecutionResponse = result.data;
-    setExecutionFileList(executionRes.Items);
-    setLoadingData(false);
+    try {
+      const result = await axios.get(`${config?.apiUrl}/etl/execution`, {
+        params,
+      });
+      const executionRes: LibraryExecutionResponse = result.data;
+      setExecutionFileList(executionRes.Items);
+      setLoadingData(false);
+    } catch (error: unknown) {
+      setLoadingData(false);
+      if (error instanceof Error) {
+        alertMsg(error.message);
+      }
+    }
   };
 
   const getLibraryPrefix = (s3Path: string) => {
@@ -78,7 +86,7 @@ const LibraryDetail: React.FC = () => {
               variant="h2"
               description="Please check the file list below, and click the info icon for more details."
             >
-              {`execution detail`}
+              {`Execution detail`}
             </Header>
           }
         >
