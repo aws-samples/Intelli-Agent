@@ -4,6 +4,7 @@ import {
   BreadcrumbGroup,
   Button,
   Container,
+  ContentLayout,
   FlashbarProps,
   Form,
   FormField,
@@ -14,39 +15,23 @@ import {
 import { useNavigate } from 'react-router-dom';
 import CommonLayout from '../../layout/CommonLayout';
 import ConfigContext from '../../context/config-context';
+import {
+  IngestResponse,
+  CachedDataType,
+  BatchOperationStatus,
+} from '../../types';
+import { alertMsg } from '../../utils/utils';
 
 const CACHED_PROGRESS_DATA = 'llmbot_cached_progress_knowledge_base_ingest';
 
 let checkStatusInterval: any;
 
-enum BatchOperationStatus {
-  RUNNING = 'RUNNING',
-  SUCCEEDED = 'SUCCEEDED',
-  FAILED = 'FAILED',
-  TIMED_OUT = 'TIMED_OUT',
-  ABORTED = 'ABORTED',
-  PENDING_REDRIVE = 'PENDING_REDRIVE',
-}
-
-interface CachedDataType {
-  executionId: string;
-  fileName: string;
-}
-
-interface IngestResponse {
-  execution_id: string;
-  input_payload: string;
-  step_function_arn: string;
-}
-
-export default function AddLibrary() {
+const AddLibrary: React.FC = () => {
   const navigate = useNavigate();
   const config = useContext(ConfigContext);
   const [fileName, setFileName] = useState(
     '华鼎股份：义乌华鼎锦纶股份有限公司关于2024年远期结售汇额度的公告.pdf',
   );
-  // const [fileList, setFileList] = useState<SelectProps.Option[]>([]);
-  // const [file, setFile] = useState<SelectProps.Option | null>(null);
   const [loadingIngest, setLoadingIngest] = useState(false);
   const [flashBar, setFlashBar] = useState<FlashbarProps.MessageDefinition[]>(
     [],
@@ -57,8 +42,10 @@ export default function AddLibrary() {
     try {
       const list = axios.get(`${config?.apiUrl}/list`);
       console.info(list);
-    } catch (error) {
-      console.error(error);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        alertMsg(error.message);
+      }
     }
   };
 
@@ -77,68 +64,78 @@ export default function AddLibrary() {
       indexType: 'qd',
       operationType: 'create',
     };
-    console.info('`${config?.apiUrl}/etl`,:', `${config?.apiUrl}/etl`);
-    const result = await axios.post(`${config?.apiUrl}/etl`, params);
-    const ingestRes: IngestResponse = result.data;
-    console.info('result:', result);
 
-    setLoadingIngest(false);
-    const executionId = ingestRes.execution_id;
-    const cachedData: CachedDataType = {
-      executionId: executionId,
-      fileName: fileName,
-    };
-    localStorage.setItem(CACHED_PROGRESS_DATA, JSON.stringify(cachedData));
-    // setFile(null);
-    queryIngestStatus(executionId, fileName);
-    checkStatusInterval = setInterval(() => {
+    try {
+      const result = await axios.post(`${config?.apiUrl}/etl`, params);
+      const ingestRes: IngestResponse = result.data;
+      setLoadingIngest(false);
+      const executionId = ingestRes.execution_id;
+      const cachedData: CachedDataType = {
+        executionId: executionId,
+        fileName: fileName,
+      };
+      localStorage.setItem(CACHED_PROGRESS_DATA, JSON.stringify(cachedData));
       queryIngestStatus(executionId, fileName);
-    }, 5000);
+      checkStatusInterval = setInterval(() => {
+        queryIngestStatus(executionId, fileName);
+      }, 5000);
+    } catch (error: unknown) {
+      setLoadingIngest(false);
+      if (error instanceof Error) {
+        alertMsg(error.message);
+      }
+    }
   };
 
   const queryIngestStatus = async (executionId: string, fileName: string) => {
-    const result = await axios.get(`${config?.apiUrl}/etl/status`, {
-      params: { executionId: executionId },
-    });
-    const status: BatchOperationStatus = result.data.execution_status;
-    let flashType: FlashbarProps.Type = result.data.execution_status;
-    let isLoading = false;
-    if (status === BatchOperationStatus.SUCCEEDED) {
-      clearInterval(checkStatusInterval);
-      flashType = 'success';
+    try {
+      const result = await axios.get(`${config?.apiUrl}/etl/status`, {
+        params: { executionId: executionId },
+      });
+      const status: BatchOperationStatus = result.data.execution_status;
+      let flashType: FlashbarProps.Type = result.data.execution_status;
+      let isLoading = false;
+      if (status === BatchOperationStatus.SUCCEEDED) {
+        clearInterval(checkStatusInterval);
+        flashType = 'success';
+      }
+      if (status === BatchOperationStatus.FAILED) {
+        clearInterval(checkStatusInterval);
+        flashType = 'error';
+      }
+      if (status === BatchOperationStatus.RUNNING) {
+        isLoading = true;
+        flashType = 'info';
+      }
+      if (status === BatchOperationStatus.TIMED_OUT) {
+        clearInterval(checkStatusInterval);
+        flashType = 'error';
+      }
+      if (status === BatchOperationStatus.ABORTED) {
+        flashType = 'error';
+      }
+      if (status === BatchOperationStatus.PENDING_REDRIVE) {
+        isLoading = true;
+        flashType = 'error';
+      }
+      const flashBarItem: FlashbarProps.MessageDefinition = {
+        header: status,
+        loading: isLoading,
+        type: flashType,
+        dismissible: true,
+        content: `${fileName} ingest is ${status}`,
+        id: status,
+        onDismiss: () => {
+          localStorage.removeItem(CACHED_PROGRESS_DATA);
+          setFlashBar([]);
+        },
+      };
+      setFlashBar([flashBarItem]);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        alertMsg(error.message);
+      }
     }
-    if (status === BatchOperationStatus.FAILED) {
-      clearInterval(checkStatusInterval);
-      flashType = 'error';
-    }
-    if (status === BatchOperationStatus.RUNNING) {
-      isLoading = true;
-      flashType = 'info';
-    }
-    if (status === BatchOperationStatus.TIMED_OUT) {
-      clearInterval(checkStatusInterval);
-      flashType = 'error';
-    }
-    if (status === BatchOperationStatus.ABORTED) {
-      flashType = 'error';
-    }
-    if (status === BatchOperationStatus.PENDING_REDRIVE) {
-      isLoading = true;
-      flashType = 'error';
-    }
-    const flashBarItem: FlashbarProps.MessageDefinition = {
-      header: status,
-      loading: isLoading,
-      type: flashType,
-      dismissible: true,
-      content: `${fileName} ingest is ${status}`,
-      id: status,
-      onDismiss: () => {
-        localStorage.removeItem(CACHED_PROGRESS_DATA);
-        setFlashBar([]);
-      },
-    };
-    setFlashBar([flashBarItem]);
   };
 
   useEffect(() => {
@@ -179,72 +176,68 @@ export default function AddLibrary() {
         />
       }
     >
-      <Container
-        variant="default"
-        header={
-          <Header
-            variant="h2"
-            description="Please select the file to be imported"
-          >
-            Ingest
-          </Header>
-        }
-      >
-        <SpaceBetween direction="vertical" size="l">
-          <Form
-            variant="embedded"
-            actions={
-              <SpaceBetween direction="horizontal" size="xs">
-                <Button
-                  formAction="none"
-                  variant="link"
-                  onClick={() => {
-                    navigate(-1);
-                  }}
+      <ContentLayout>
+        <Container
+          variant="default"
+          header={
+            <Header
+              variant="h2"
+              description="Please select the file to be imported"
+            >
+              Ingest
+            </Header>
+          }
+        >
+          <SpaceBetween direction="vertical" size="l">
+            <Form
+              variant="embedded"
+              actions={
+                <SpaceBetween direction="horizontal" size="xs">
+                  <Button
+                    formAction="none"
+                    variant="link"
+                    onClick={() => {
+                      navigate(-1);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="primary"
+                    loading={loadingIngest}
+                    onClick={() => {
+                      ingestKnowledgeBase();
+                    }}
+                  >
+                    Ingest
+                  </Button>
+                </SpaceBetween>
+              }
+            >
+              <SpaceBetween direction="vertical" size="l">
+                <FormField label="Amazon S3 Bucket">
+                  <Input value={config?.docsS3Bucket ?? ''} readOnly />
+                </FormField>
+                <FormField
+                  label="Documents"
+                  errorText={
+                    fileEmptyError ? 'Please select a file' : undefined
+                  }
                 >
-                  Cancel
-                </Button>
-                <Button
-                  variant="primary"
-                  loading={loadingIngest}
-                  onClick={() => {
-                    ingestKnowledgeBase();
-                  }}
-                >
-                  Ingest
-                </Button>
+                  <Input
+                    value={fileName}
+                    onChange={({ detail }) => {
+                      setFileName(detail.value);
+                    }}
+                  />
+                </FormField>
               </SpaceBetween>
-            }
-          >
-            <SpaceBetween direction="vertical" size="l">
-              <FormField label="Amazon S3 Bucket">
-                <Input value={config?.docsS3Bucket ?? ''} readOnly />
-              </FormField>
-              <FormField
-                label="Documents"
-                errorText={fileEmptyError ? 'Please select a file' : undefined}
-              >
-                {/* <Select
-                  disabled
-                  filteringType="auto"
-                  selectedOption={file}
-                  onChange={({ detail }) => {
-                    setFileEmptyError(false);
-                    setFile(detail.selectedOption);
-                  }}
-                  options={fileList}
-                /> */}
-                <Input
-                  value={fileName}
-                  onChange={({ detail }) => {
-                    setFileName(detail.value);
-                  }}
-                />
-              </FormField>
-            </SpaceBetween>
-          </Form>
-        </SpaceBetween>
-      </Container>
+            </Form>
+          </SpaceBetween>
+        </Container>
+      </ContentLayout>
     </CommonLayout>
   );
-}
+};
+
+export default AddLibrary;

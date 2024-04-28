@@ -4,6 +4,7 @@ import {
   Flashbar,
   FlashbarProps,
   SideNavigation,
+  Spinner,
 } from '@cloudscape-design/components';
 import { I18nProvider } from '@cloudscape-design/components/i18n';
 import messages from '@cloudscape-design/components/i18n/messages/all.en';
@@ -16,6 +17,7 @@ interface CommonLayoutProps {
   children: React.ReactNode;
   flashBar?: FlashbarProps.MessageDefinition[];
   breadCrumbs?: React.ReactNode;
+  isLoading?: boolean;
 }
 
 const CommonLayout: React.FC<CommonLayoutProps> = ({
@@ -23,6 +25,7 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
   children,
   flashBar,
   breadCrumbs,
+  isLoading,
 }) => {
   return (
     <I18nProvider locale={LOCALE} messages={[messages]}>
@@ -84,7 +87,7 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
             ]}
           />
         }
-        content={children}
+        content={<>{isLoading ? <Spinner /> : children}</>}
       />
     </I18nProvider>
   );
