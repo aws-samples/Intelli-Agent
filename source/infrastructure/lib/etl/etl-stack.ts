@@ -54,6 +54,7 @@ export class EtlStack extends NestedStack {
   public workspaceTableName;
   public etlEndpoint: string;
   public resBucketName: string;
+  public etlObjIndexName: string = "ExecutionIdIndex";
 
   constructor(scope: Construct, id: string, props: ETLStackProps) {
     super(scope, id, props);
@@ -146,7 +147,7 @@ export class EtlStack extends NestedStack {
     });
     const etlObjTable = new DynamoDBTable(this, "ETLObject", etlS3Path, idAttr).table;
     etlObjTable.addGlobalSecondaryIndex({
-      indexName: "ExecutionIdIndex",
+      indexName: this.etlObjIndexName,
       partitionKey: { name: "executionId", type: dynamodb.AttributeType.STRING },
     });
 
@@ -177,7 +178,7 @@ export class EtlStack extends NestedStack {
       },
     });
 
-    const lambdaNotify = new Function(this, "ETLNotification", {
+    const notificationLambda = new Function(this, "ETLNotification", {
       code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
       handler: "notification.lambda_handler",
       runtime: Runtime.PYTHON_3_11,
@@ -189,7 +190,7 @@ export class EtlStack extends NestedStack {
         ETL_OBJECT_TABLE: etlObjTable.tableName,
       },
     });
-    lambdaNotify.addToRolePolicy(
+    notificationLambda.addToRolePolicy(
       new iam.PolicyStatement({
         actions: ["dynamodb:*"],
         effect: iam.Effect.ALLOW,
@@ -289,10 +290,10 @@ export class EtlStack extends NestedStack {
       topicName: "etl-topic",
     });
     topic.addSubscription(new subscriptions.EmailSubscription(props.subEmail));
-    topic.addSubscription(new subscriptions.LambdaSubscription(lambdaNotify));
+    topic.addSubscription(new subscriptions.LambdaSubscription(notificationLambda));
 
     // Lambda function to for file deduplication and glue job allocation based on file number
-    const lambdaETL = new Function(this, "lambdaETL", {
+    const etlLambda = new Function(this, "ETLLambda", {
       code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
       handler: "main.lambda_handler",
       runtime: Runtime.PYTHON_3_11,
@@ -306,7 +307,7 @@ export class EtlStack extends NestedStack {
       },
     });
 
-    lambdaETL.addToRolePolicy(
+    etlLambda.addToRolePolicy(
       new iam.PolicyStatement({
         actions: [
           // Glue job
@@ -324,7 +325,7 @@ export class EtlStack extends NestedStack {
       this,
       "lambdaETLIntegration",
       {
-        lambdaFunction: lambdaETL,
+        lambdaFunction: etlLambda,
         // Use the result of this invocation to decide how many Glue jobs to run
         resultSelector: {
           processedPayload: {
@@ -339,6 +340,7 @@ export class EtlStack extends NestedStack {
             "operationType.$": "$.Payload.operationType",
             "embeddingEndpoint.$": "$.Payload.embeddingEndpoint",
             "tableItemId.$": "$.Payload.tableItemId",
+            "documentLanguage.$": "$.Payload.documentLanguage",
           },
         },
         // Original input
@@ -358,7 +360,7 @@ export class EtlStack extends NestedStack {
         "--AOS_ENDPOINT": props.domainEndpoint || "AOS Endpoint Not Created",
         "--BATCH_FILE_NUMBER.$": "$.batchFileNumber",
         "--BATCH_INDICE.$": 'States.Format(\'{}\', $.batchIndices)',
-        "--DOC_INDEX_TABLE": props.openSearchIndex,
+        "--DOCUMENT_LANGUAGE.$": "$.documentLanguage",
         "--EMBEDDING_MODEL_ENDPOINT.$": "$.embeddingEndpoint",
         "--ETL_MODEL_ENDPOINT": this.etlEndpoint,
         "--INDEX_TYPE.$": "$.indexType",
@@ -399,6 +401,7 @@ export class EtlStack extends NestedStack {
         "operationType.$": "$.operationType",
         "embeddingEndpoint.$": "$.embeddingEndpoint",
         "tableItemId.$": "$.tableItemId",
+        "documentLanguage.$": "$.documentLanguage",
       },
       resultPath: "$.mapResults",
     });
@@ -419,7 +422,7 @@ export class EtlStack extends NestedStack {
         "--AOS_ENDPOINT": props.domainEndpoint,
         "--BATCH_FILE_NUMBER.$": "$.batchFileNumber",
         "--BATCH_INDICE.$": 'States.Format(\'{}\', $.batchIndices)',
-        "--DOC_INDEX_TABLE": props.openSearchIndex,
+        "--DOCUMENT_LANGUAGE.$": "$.documentLanguage",
         "--EMBEDDING_MODEL_ENDPOINT.$": "$.embeddingEndpoint",
         "--ETL_MODEL_ENDPOINT": this.etlEndpoint,
         "--INDEX_TYPE.$": "$.indexType",

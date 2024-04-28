@@ -50,6 +50,8 @@ interface ApiStackProps extends StackProps {
   etlEndpoint: string;
   resBucketName: string;
   executionTableName: string;
+  etlObjTableName: string;
+  etlObjIndexName: string;
 }
 
 export class ApiConstruct extends Construct {
@@ -71,6 +73,9 @@ export class ApiConstruct extends Construct {
     const jobDefinitionArn = props.jobDefinitionArn;
     const etlEndpoint = props.etlEndpoint;
     const resBucketName = props.resBucketName;
+    const executionTableName = props.executionTableName;
+    const etlObjTableName = props.etlObjTableName;
+    const etlObjIndexName = props.etlObjIndexName;
 
     const queueConstruct = new QueueConstruct(this, "LLMQueueStack", {
       namePrefix: Constants.API_QUEUE_NAME,
@@ -87,7 +92,7 @@ export class ApiConstruct extends Construct {
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
     });
 
-    const lambdaEmbedding = new Function(this, "lambdaEmbedding", {
+    const embeddingLambda = new Function(this, "lambdaEmbedding", {
       runtime: Runtime.PYTHON_3_11,
       handler: "main.lambda_handler",
       code: Code.fromAsset(join(__dirname, "../../../lambda/embedding")),
@@ -107,7 +112,7 @@ export class ApiConstruct extends Construct {
       layers: [apiLambdaEmbeddingLayer],
     });
 
-    lambdaEmbedding.addToRolePolicy(
+    embeddingLambda.addToRolePolicy(
       new iam.PolicyStatement({
         actions: [
           "sagemaker:InvokeEndpointAsync",
@@ -122,7 +127,7 @@ export class ApiConstruct extends Construct {
       }),
     );
 
-    const lambdaAos = new Function(this, "lambdaAos", {
+    const aosLambda = new Function(this, "AOSLambda", {
       runtime: Runtime.PYTHON_3_11,
       handler: "main.lambda_handler",
       code: Code.fromAsset(join(__dirname, "../../../lambda/aos")),
@@ -141,7 +146,7 @@ export class ApiConstruct extends Construct {
       layers: [apiLambdaEmbeddingLayer],
     });
 
-    lambdaAos.addToRolePolicy(
+    aosLambda.addToRolePolicy(
       new iam.PolicyStatement({
         actions: [
           "sagemaker:InvokeEndpointAsync",
@@ -156,7 +161,7 @@ export class ApiConstruct extends Construct {
       }),
     );
 
-    const lambdaDdb = new Function(this, "lambdaDdb", {
+    const ddbLambda = new Function(this, "DDBLambda", {
       runtime: Runtime.PYTHON_3_11,
       handler: "rating.lambda_handler",
       code: Code.fromAsset(join(__dirname, "../../../lambda/ddb")),
@@ -173,7 +178,7 @@ export class ApiConstruct extends Construct {
       securityGroups: [props.securityGroup],
     });
 
-    lambdaDdb.addToRolePolicy(
+    ddbLambda.addToRolePolicy(
       new iam.PolicyStatement({
         actions: ["dynamodb:*"],
         effect: iam.Effect.ALLOW,
@@ -183,7 +188,7 @@ export class ApiConstruct extends Construct {
 
     // Integration with Step Function to trigger ETL process
     // Lambda function to trigger Step Function
-    const lambdaStepFunction = new Function(this, "lambdaStepFunction", {
+    const sfnLambda = new Function(this, "StepFunctionLambda", {
       code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
       handler: "sfn_handler.handler",
       runtime: Runtime.PYTHON_3_11,
@@ -195,7 +200,7 @@ export class ApiConstruct extends Construct {
       memorySize: 256,
     });
 
-    lambdaStepFunction.addToRolePolicy(
+    sfnLambda.addToRolePolicy(
       new iam.PolicyStatement({
         actions: ["dynamodb:*"],
         effect: iam.Effect.ALLOW,
@@ -204,42 +209,61 @@ export class ApiConstruct extends Construct {
     );
 
     // Grant lambda function to invoke step function
-    props.sfnOutput.grantStartExecution(lambdaStepFunction);
+    props.sfnOutput.grantStartExecution(sfnLambda);
 
     // Add S3 event notification when file uploaded to the bucket
     s3Bucket.addEventNotification(
       s3.EventType.OBJECT_CREATED,
-      new s3n.LambdaDestination(lambdaStepFunction),
+      new s3n.LambdaDestination(sfnLambda),
       { prefix: "documents/" },
     );
     // Add S3 event notification when file deleted in the bucket
     s3Bucket.addEventNotification(
       s3.EventType.OBJECT_REMOVED,
-      new s3n.LambdaDestination(lambdaStepFunction),
+      new s3n.LambdaDestination(sfnLambda),
       { prefix: "documents/" },
     );
-    s3Bucket.grantReadWrite(lambdaStepFunction);
+    s3Bucket.grantReadWrite(sfnLambda);
 
-    const lambdaGetETLStatus = new Function(this, "lambdaGetETLStatus", {
+    const listExecutionLambda = new Function(this, "ListExecution", {
       code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
-      handler: "get_status.lambda_handler",
+      handler: "list_execution.lambda_handler",
       runtime: Runtime.PYTHON_3_11,
-      timeout: Duration.minutes(5),
+      timeout: Duration.minutes(15),
+      memorySize: 512,
+      architecture: Architecture.X86_64,
       environment: {
-        sfn_arn: props.sfnOutput.stateMachineArn,
+        EXECUTION_TABLE: executionTableName,
       },
-      memorySize: 256,
     });
-
-    lambdaGetETLStatus.addToRolePolicy(
+    listExecutionLambda.addToRolePolicy(
       new iam.PolicyStatement({
-        actions: ["states:DescribeExecution"],
+        actions: ["dynamodb:*"],
+        effect: iam.Effect.ALLOW,
+        resources: ["*"],
+      }),
+    );
+    const getExecutionLambda = new Function(this, "GetExecution", {
+      code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
+      handler: "get_execution.lambda_handler",
+      runtime: Runtime.PYTHON_3_11,
+      timeout: Duration.minutes(15),
+      memorySize: 512,
+      architecture: Architecture.X86_64,
+      environment: {
+        ETL_OBJECT_TABLE: etlObjTableName,
+        ETL_OBJECT_INDEX: etlObjIndexName,
+      },
+    });
+    getExecutionLambda.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["dynamodb:*"],
         effect: iam.Effect.ALLOW,
         resources: ["*"],
       }),
     );
 
-    const lambdaBatch = new Function(this, "lambdaBatch", {
+    const batchLambda = new Function(this, "BatchLambda", {
       code: Code.fromAsset(join(__dirname, "../../../lambda/batch")),
       handler: "main.lambda_handler",
       runtime: Runtime.PYTHON_3_11,
@@ -261,7 +285,7 @@ export class ApiConstruct extends Construct {
       },
     });
 
-    lambdaBatch.addToRolePolicy(
+    batchLambda.addToRolePolicy(
       new iam.PolicyStatement({
         actions: [
           "sagemaker:InvokeEndpointAsync",
@@ -307,7 +331,7 @@ export class ApiConstruct extends Construct {
 
     // Define the API Gateway Lambda Integration with proxy and no integration responses
     const lambdaEmbeddingIntegration = new apigw.LambdaIntegration(
-      lambdaEmbedding,
+      embeddingLambda,
       { proxy: true },
     );
 
@@ -316,7 +340,7 @@ export class ApiConstruct extends Construct {
     apiResourceEmbedding.addMethod("POST", lambdaEmbeddingIntegration);
 
     // Define the API Gateway Lambda Integration with proxy and no integration responses
-    const lambdaAosIntegration = new apigw.LambdaIntegration(lambdaAos, {
+    const lambdaAosIntegration = new apigw.LambdaIntegration(aosLambda, {
       proxy: true,
     });
 
@@ -328,7 +352,7 @@ export class ApiConstruct extends Construct {
     apiResourceAos.addMethod("GET", lambdaAosIntegration);
 
     // Define the API Gateway Lambda Integration with proxy and no integration responses
-    const lambdaDdbIntegration = new apigw.LambdaIntegration(lambdaDdb, {
+    const lambdaDdbIntegration = new apigw.LambdaIntegration(ddbLambda, {
       proxy: true,
     });
 
@@ -339,17 +363,23 @@ export class ApiConstruct extends Construct {
     const apiResourceStepFunction = api.root.addResource("etl");
     apiResourceStepFunction.addMethod(
       "POST",
-      new apigw.LambdaIntegration(lambdaStepFunction),
+      new apigw.LambdaIntegration(sfnLambda),
     );
 
-    const apiResourceETLStatus = apiResourceStepFunction.addResource("status");
-    apiResourceETLStatus.addMethod(
+    const apiGetExecution = apiResourceStepFunction.addResource("execution");
+    apiGetExecution.addMethod(
       "GET",
-      new apigw.LambdaIntegration(lambdaGetETLStatus),
+      new apigw.LambdaIntegration(getExecutionLambda),
+    );
+
+    const apiListExecution = apiResourceStepFunction.addResource("list-execution");
+    apiListExecution.addMethod(
+      "GET",
+      new apigw.LambdaIntegration(listExecutionLambda),
     );
 
     // Define the API Gateway Lambda Integration to invoke Batch job
-    const lambdaBatchIntegration = new apigw.LambdaIntegration(lambdaBatch, {
+    const lambdaBatchIntegration = new apigw.LambdaIntegration(batchLambda, {
       proxy: true,
     });
 

@@ -127,6 +127,10 @@ After CDK deployment, you can use a HTTP client such as Postman/cURL to invoke t
 - [ETL API Schema](https://github.com/aws-samples/llm-bot/tree/main/docs/ETL_API_SCHEMA.md): upload knowledge to vector database.
 - [AOS API Schema](https://github.com/aws-samples/llm-bot/tree/main/docs/AOS_API_SCHEMA.md): search data in the vector database.
 
+
+## Test
+For detailed test information, please refer to the [Test Doc](https://github.com/aws-samples/llm-bot/tree/dev/tests/README.md)
+
 ## Optional Steps
 - [Upload Embedding File](#upload-embedding-file)
 

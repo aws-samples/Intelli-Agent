@@ -6,8 +6,8 @@ from urllib.parse import unquote
 import boto3
 
 client = boto3.client("stepfunctions")
-dynamodb = boto3.resource('dynamodb')
-execution_table = dynamodb.Table(os.environ.get('EXECUTION_TABLE'))
+dynamodb = boto3.resource("dynamodb")
+execution_table = dynamodb.Table(os.environ.get("EXECUTION_TABLE"))
 
 
 def get_valid_workspace_id(s3_prefix):
@@ -71,7 +71,6 @@ def handler(event, context):
         print("API Gateway event detected")
         # Parse the body from the event object
         input_body = json.loads(event["body"])
-        
 
     resp_header = {
         "Content-Type": "application/json",
@@ -92,16 +91,14 @@ def handler(event, context):
     input_body["executionStatus"] = "IN-PROGRESS"
     input_body["executionId"] = context.aws_request_id
 
-    ddb_response = execution_table.put_item(
-        Item=input_body
-    )
+    ddb_response = execution_table.put_item(Item=input_body)
 
     return {
         "statusCode": 200,
         "headers": resp_header,
         "body": json.dumps(
             {
-                "execution_id": execution_id,
+                "execution_id": context.aws_request_id,
                 "step_function_arn": response["executionArn"],
                 "input_payload": input_payload,
             }
