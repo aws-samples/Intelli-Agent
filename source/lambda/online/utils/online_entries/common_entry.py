@@ -146,6 +146,21 @@ workflow.add_edge("fast_reply", END)
 workflow.add_edge("llm_generate_lambda", END)
 app = workflow.compile()
 
+simple_workflow = StateGraph(AppState)
+# add all nodes
+simple_workflow.add_node("query_preprocess_lambda", query_preprocess_lambda)
+simple_workflow.set_entry_point("query_preprocess_lambda")
+# decide whether it is a valid query
+simple_workflow.add_conditional_edges(
+    "query_preprocess_lambda",
+    is_query_valid,
+    {
+        "invalid query": END,
+        "valid query": END
+    }
+)
+app = simple_workflow.compile()
+
 # # uncomment the following lines to save the graph
 with open('common_entry_workflow.png','wb') as f:
     f.write(app.get_graph().draw_png())
