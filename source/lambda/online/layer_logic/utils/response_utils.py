@@ -43,17 +43,17 @@ def api_response(**kwargs):
     if not isinstance(answer, str):
         answer = json.dumps(answer, ensure_ascii=False)
 
-    if entry_type != EntryType.MARKET_CONVERSATION_SUMMARY.value:
-        ddb_history_obj.add_user_message(
-            f"user_{message_id}", custom_message_id, entry_type, question
-        )
-        ddb_history_obj.add_ai_message(
-            f"ai_{message_id}",
-            custom_message_id,
-            entry_type,
-            answer,
-            input_message_id=f"user_{message_id}",
-        )
+    # if entry_type != EntryType.MARKET_CONVERSATION_SUMMARY.value:
+    #     ddb_history_obj.add_user_message(
+    #         f"user_{message_id}", custom_message_id, entry_type, question
+    #     )
+    #     ddb_history_obj.add_ai_message(
+    #         f"ai_{message_id}",
+    #         custom_message_id,
+    #         entry_type,
+    #         answer,
+    #         input_message_id=f"user_{message_id}",
+    #     )
 
     # 2. return rusult
     llmbot_response = {

@@ -12,10 +12,12 @@ import sys
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(SCRIPT_DIR))
+sys.path.append(os.path.dirname(SCRIPT_DIR)+'/layer_logic')
 from utils.constant import Type
 
 from utils.ddb_utils import DynamoDBChatMessageHistory
 from utils.online_entries import get_entry
+from utils.response_utils import process_response
 
 # region = os.environ["AWS_REGION"]
 embedding_endpoint = os.environ.get("embedding_endpoint", "")
@@ -74,88 +76,6 @@ def _is_websocket_request(event):
         return True
     else:
         return False
-
-
-# @handle_error
-def lambda_handler(event, context):
-    request_timestamp = time.time()
-    print(f"request_timestamp :{request_timestamp}")
-    import json
-import os
-
-os.environ["PYTHONUNBUFFERED"] = "1"
-import logging
-import time
-import uuid
-
-import boto3
-import sys
-
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(os.path.dirname(SCRIPT_DIR))
-from utils.constant import Type
-
-from utils.ddb_utils import DynamoDBChatMessageHistory
-from utils.online_entries import get_entry
-
-# region = os.environ["AWS_REGION"]
-embedding_endpoint = os.environ.get("embedding_endpoint", "")
-aos_index = os.environ.get("aos_index", "")
-
-sessions_table_name = os.environ.get("sessions_table_name", "")
-messages_table_name = os.environ.get("messages_table_name", "")
-websocket_url = os.environ.get("websocket_url", "")
-ws_client = None
-
-
-class APIException(Exception):
-    def __init__(self, message, code: str = None):
-        if code:
-            super().__init__("[{}] {}".format(code, message))
-        else:
-            super().__init__(message)
-
-
-def load_ws_client():
-    global ws_client
-    if ws_client is None:
-        ws_client = boto3.client("apigatewaymanagementapi", endpoint_url=websocket_url)
-    return ws_client
-
-
-def handle_error(func):
-    """Decorator for exception handling"""
-
-    def wrapper(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except APIException as e:
-            # logger.exception(e)
-            raise e
-        except Exception as e:
-            # logger.exception(e)
-            raise RuntimeError(
-                "Unknown exception, please check Lambda log for more details"
-            )
-
-    return wrapper
-
-
-def _is_websocket_request(event):
-    """Check if the request is WebSocket or Restful
-
-    Args:
-        event: lambda request event
-    """
-    if (
-        "requestContext" in event
-        and "eventType" in event["requestContext"]
-        and event["requestContext"]["eventType"] == "MESSAGE"
-    ):
-        return True
-    else:
-        return False
-
 
 # @handle_error
 def lambda_handler(event, context):
@@ -165,21 +85,19 @@ def lambda_handler(event, context):
     print(f"context:{context}")
     if "Records" not in event:
         # Restful API invocation
-        event["Records"] = [{"body": event["body"]}]
+        event["Records"] = [{"body": json.dumps(event)}]
 
     for record in event["Records"]:
-        # record_event = json.load(record["body"])
-        # # Get request body
-        # event_body = json.load(record_event["body"])
-        event_body = record["body"]
+        record_event = json.loads(record["body"])
+        # Get request body
+        event_body = json.loads(record_event["body"])
         # model = event_body['model']
         # session_id = event_body.get("session_id", None) or "N/A"
         messages = event_body.get("messages", [])
         # deal with stream parameter
-        # stream = _is_websocket_request(record_event)
-        # if stream:
-        #     load_ws_client()
-        stream = False
+        stream = _is_websocket_request(record_event)
+        if stream:
+            load_ws_client()
 
         # logger.info(f"stream decode: {stream}")
         client_type = event_body.get("client_type", "default_client_type")
@@ -216,17 +134,17 @@ def lambda_handler(event, context):
         # get chat history
         user_id = event_body.get("user_id", "default_user_id")
         
-        # ddb_history_obj = DynamoDBChatMessageHistory(
-        #     sessions_table_name=sessions_table_name,
-        #     messages_table_name=messages_table_name,
-        #     session_id=session_id,
-        #     user_id=user_id,
-        #     client_type=client_type,
-        # )
-        # # print(chat_session_table,session_id,DynamoDBChatMessageHistory)
-        # chat_history = ddb_history_obj.messages_as_langchain
+        ddb_history_obj = DynamoDBChatMessageHistory(
+            sessions_table_name=sessions_table_name,
+            messages_table_name=messages_table_name,
+            session_id=session_id,
+            user_id=user_id,
+            client_type=client_type,
+        )
+        # print(chat_session_table,session_id,DynamoDBChatMessageHistory)
+        chat_history = ddb_history_obj.messages_as_langchain
 
-        event_body["chat_history"] = ""
+        event_body["chat_history"] = chat_history
         event_body["ws_connection_id"] = ws_connection_id
         event_body["session_id"] = session_id
         event_body["debug_level"] = debug_level
@@ -237,14 +155,12 @@ def lambda_handler(event, context):
         main_entry_start = time.time()
         contexts = []
 
+        # choose entry to execute
         biz_type = event_body.get("type", Type.COMMON.value)
-        
-
-        # 执行entry
         entry_executor = get_entry(biz_type)
         response:dict = entry_executor(event_body)
 
-        answer = ""
+        answer = response["answer"]
         sources = ""
         contexts = ""
         debug_info = ""
@@ -277,9 +193,7 @@ def lambda_handler(event, context):
             main_entry_end=main_entry_end,
             rag_config=rag_config,
         )
-        r = None
-        # r = process_response(**response_kwargs)
+        r = process_response(**response_kwargs)
     if not stream:
         return r
-    return {"statusCode": 200, "body": "All records have been processed"}
-    # return {"statusCode": 200, "body": "All records have been processed"}(f"event:{event}")
+    return {"statusCode": 200, "body": "All records have been processed"}(f"event:{event}")

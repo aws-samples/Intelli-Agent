@@ -6,13 +6,10 @@ import time
 import uuid
 
 from dotenv import load_dotenv
-# load_dotenv(
-#     dotenv_path=os.path.join(os.path.dirname(__file__),'.env_global_430')
-# )
 
-# load_dotenv(
-#     dotenv_path=os.path.join(os.path.dirname(__file__),'.env_global_430')
-# )
+load_dotenv(
+    dotenv_path=os.path.join(os.path.dirname(__file__),'.env_bot_uw2')
+)
 
 import logging
 log_level = logging.INFO
@@ -94,7 +91,7 @@ def generate_answer(query=None,
             "type": type,
             "model": model,
             "session_id":session_id,
-            "enable_debug":True,
+            "enable_debug":False,
             }
     body.update(rag_parameters)
     event = {
@@ -114,7 +111,8 @@ def generate_answer(query=None,
         body = json.loads(response["body"])
         answer = body["choices"][0]["message"]["content"]
         knowledge_sources = body["choices"][0]["message"]["knowledge_sources"]
-        debug_info = body["debug_info"]
+        # debug_info = body["debug_info"]
+        debug_info = ""
         return (answer,
                 knowledge_sources,
                 debug_info)
