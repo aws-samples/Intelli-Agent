@@ -15,6 +15,7 @@ import { LayerVersion, Runtime, Code } from "aws-cdk-lib/aws-lambda";
 import * as path from "path";
 import { Construct } from "constructs";
 import { BuildConfig } from "./build-config";
+import * as pyLambda from "@aws-cdk/aws-lambda-python-alpha";
 
 export class LambdaLayers {
   constructor(private scope: Construct) {}
@@ -42,5 +43,18 @@ export class LambdaLayers {
       },
     );
     return LambdaEmbeddingLayer;
+  }
+
+  createOnlineUtilsLayer() {
+    const LambdaOnlineUtilsLayer = new pyLambda.PythonLayerVersion(
+      this.scope,
+      "APILambdaOnlineUtilsLayer",
+      {
+        entry: path.join(__dirname, "../../../lambda/online/layer_logic"),
+        compatibleRuntimes: [Runtime.PYTHON_3_12],
+        description: `LLM Bot - Online Utils layer`,
+      },
+    );
+    return LambdaOnlineUtilsLayer;
   }
 }

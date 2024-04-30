@@ -58,6 +58,7 @@ export class ApiConstruct extends Construct {
   public apiEndpoint: string = "";
   public documentBucket: string = "";
   public wsEndpoint: string = "";
+  public wsEndpointV2: string = "";
   constructor(scope: Construct, id: string, props: ApiStackProps) {
     super(scope, id);
 
@@ -82,10 +83,12 @@ export class ApiConstruct extends Construct {
     });
     const sqsStatement = queueConstruct.sqsStatement;
     const messageQueue = queueConstruct.messageQueue;
+    const messageQueueV2 = queueConstruct.messageQueue;
 
     const lambdaLayers = new LambdaLayers(this);
     // const apiLambdaExecutorLayer = lambdaLayers.createExecutorLayer();
     const apiLambdaEmbeddingLayer = lambdaLayers.createEmbeddingLayer();
+    const apiLambdaOnlineUtilsLayer = lambdaLayers.createOnlineUtilsLayer();
 
     // S3 bucket for storing documents
     const s3Bucket = new s3.Bucket(this, "llm-bot-documents", {
@@ -475,6 +478,214 @@ export class ApiConstruct extends Construct {
       });
       let wsStage = webSocketApi.websocketApiStage
       this.wsEndpoint = `${wsStage.api.apiEndpoint}/${wsStage.stageName}/`;
+
+      const lambdaOnlineMain = new Function(this, "lambdaOnlineMain", {
+        runtime: Runtime.PYTHON_3_12,
+        handler: "main.lambda_handler",
+        code: Code.fromAsset(
+          join(__dirname, "../../../lambda/online/lambda_main"),
+        ),
+        timeout: Duration.minutes(15),
+        memorySize: 4096,
+        vpc: apiVpc,
+        vpcSubnets: {
+          subnets: apiVpc.privateSubnets,
+        },
+        securityGroups: [securityGroup],
+        architecture: Architecture.X86_64,
+        layers: [apiLambdaOnlineUtilsLayer],
+        // environment: {
+        //   aos_endpoint: domainEndpoint,
+        //   llm_model_endpoint_name: props.instructEndPoint,
+        //   llm_model_id: props.llmModelId,
+        //   embedding_endpoint: props.embeddingEndPoints[0],
+        //   zh_embedding_endpoint: props.embeddingEndPoints[0],
+        //   en_embedding_endpoint: props.embeddingEndPoints[0],
+        //   intent_recognition_embedding_endpoint: props.embeddingEndPoints[0],
+        //   rerank_endpoint: props.rerankEndPoint,
+        //   aos_index: aosIndex,
+        //   aos_index_dict: aosIndexDict,
+        //   sessions_table_name: sessionsTableName,
+        //   messages_table_name: messagesTableName,
+        //   workspace_table: workspaceTableName,
+        // },
+      });
+
+      lambdaOnlineMain.addToRolePolicy(
+        new iam.PolicyStatement({
+          // principals: [new iam.AnyPrincipal()],
+          actions: [
+            "sagemaker:InvokeEndpointAsync",
+            "sagemaker:InvokeEndpoint",
+            "s3:List*",
+            "s3:Put*",
+            "s3:Get*",
+            "es:*",
+            "dynamodb:*",
+            "secretsmanager:GetSecretValue",
+            "translate:*",
+            "bedrock:*",
+            "lambda:InvokeFunction",
+          ],
+          effect: iam.Effect.ALLOW,
+          resources: ["*"],
+        }),
+      );
+      lambdaOnlineMain.addToRolePolicy(sqsStatement);
+      lambdaOnlineMain.addEventSource(
+        new lambdaEventSources.SqsEventSource(messageQueue, { batchSize: 1 }),
+      );
+
+      const lambdaOnlineQueryPreprocess = new Function(this, "lambdaOnlineQueryPreprocess", {
+        runtime: Runtime.PYTHON_3_12,
+        handler: "main.lambda_handler",
+        functionName: "Online_Query_Preprocess",
+        code: Code.fromAsset(
+          join(__dirname, "../../../lambda/online/lambda_query_preprocess"),
+        ),
+        timeout: Duration.minutes(15),
+        memorySize: 4096,
+        vpc: apiVpc,
+        vpcSubnets: {
+          subnets: apiVpc.privateSubnets,
+        },
+        securityGroups: [securityGroup],
+        architecture: Architecture.X86_64,
+        layers: [apiLambdaOnlineUtilsLayer],
+      });
+
+      const lambdaOnlineIntentionDetection = new Function(this, "lambdaOnlineIntentionDetection", {
+        runtime: Runtime.PYTHON_3_12,
+        handler: "main.lambda_handler",
+        functionName: "Online_Intention_Detection",
+        code: Code.fromAsset(
+          join(__dirname, "../../../lambda/online/lambda_intention_detection"),
+        ),
+        timeout: Duration.minutes(15),
+        memorySize: 4096,
+        vpc: apiVpc,
+        vpcSubnets: {
+          subnets: apiVpc.privateSubnets,
+        },
+        securityGroups: [securityGroup],
+        architecture: Architecture.X86_64,
+        layers: [apiLambdaOnlineUtilsLayer],
+      });
+
+      const lambdaOnlineAgent = new Function(this, "lambdaOnlineAgent", {
+        runtime: Runtime.PYTHON_3_12,
+        handler: "main.lambda_handler",
+        functionName: "Online_Agent",
+        code: Code.fromAsset(
+          join(__dirname, "../../../lambda/online/lambda_agent"),
+        ),
+        timeout: Duration.minutes(15),
+        memorySize: 4096,
+        vpc: apiVpc,
+        vpcSubnets: {
+          subnets: apiVpc.privateSubnets,
+        },
+        securityGroups: [securityGroup],
+        architecture: Architecture.X86_64,
+        layers: [apiLambdaOnlineUtilsLayer],
+      });
+
+      const lambdaOnlineLLMGenerate = new Function(this, "lambdaOnlineLLMGenerate", {
+        runtime: Runtime.PYTHON_3_12,
+        handler: "main.lambda_handler",
+        functionName: "Online_LLM_Generate",
+        code: Code.fromAsset(
+          join(__dirname, "../../../lambda/online/lambda_llm_generate"),
+        ),
+        timeout: Duration.minutes(15),
+        memorySize: 4096,
+        vpc: apiVpc,
+        vpcSubnets: {
+          subnets: apiVpc.privateSubnets,
+        },
+        securityGroups: [securityGroup],
+        architecture: Architecture.X86_64,
+        layers: [apiLambdaOnlineUtilsLayer],
+      });
+
+      const lambdaOnlineFunctionKnowledgeBase = new Function(this, "lambdaOnlineKnowledgeBase", {
+        runtime: Runtime.PYTHON_3_12,
+        handler: "main.lambda_handler",
+        functionName: "Online_Function_Knowledge_Base",
+        code: Code.fromAsset(
+          join(__dirname, "../../../lambda/online/functions/lambda_knowledge_base"),
+        ),
+        timeout: Duration.minutes(15),
+        memorySize: 4096,
+        vpc: apiVpc,
+        vpcSubnets: {
+          subnets: apiVpc.privateSubnets,
+        },
+        securityGroups: [securityGroup],
+        architecture: Architecture.X86_64,
+        layers: [apiLambdaOnlineUtilsLayer],
+      });
+
+      const lambdaOnlineFunctionWebSearch = new Function(this, "lambdaOnlineWebSearch", {
+        runtime: Runtime.PYTHON_3_12,
+        handler: "main.lambda_handler",
+        functionName: "Online_Function_Web_Search",
+        code: Code.fromAsset(
+          join(__dirname, "../../../lambda/online/functions/lambda_web_search"),
+        ),
+        timeout: Duration.minutes(15),
+        memorySize: 4096,
+        vpc: apiVpc,
+        vpcSubnets: {
+          subnets: apiVpc.privateSubnets,
+        },
+        securityGroups: [securityGroup],
+        architecture: Architecture.X86_64,
+        layers: [apiLambdaOnlineUtilsLayer],
+      });
+
+      lambdaOnlineQueryPreprocess.grantInvoke(lambdaOnlineMain);
+      lambdaOnlineIntentionDetection.grantInvoke(lambdaOnlineMain);
+      lambdaOnlineAgent.grantInvoke(lambdaOnlineMain);
+      lambdaOnlineLLMGenerate.grantInvoke(lambdaOnlineMain);
+      lambdaOnlineFunctionKnowledgeBase.grantInvoke(lambdaOnlineMain);
+      lambdaOnlineFunctionWebSearch.grantInvoke(lambdaOnlineMain);
+
+      // Define the API Gateway Lambda Integration with proxy and no integration responses
+      const lambdaExecutorIntegrationV2 = new apigw.LambdaIntegration(
+        lambdaOnlineMain,
+        { proxy: true },
+      );
+
+      // Define the API Gateway Method
+      const apiResourceLLMV2 = api.root.addResource("llmv2");
+      apiResourceLLMV2.addMethod("POST", lambdaExecutorIntegrationV2);
+
+      const lambdaDispatcherV2 = new Function(this, "lambdaDispatcherV2", {
+        runtime: Runtime.PYTHON_3_11,
+        handler: "main.lambda_handler",
+        code: Code.fromAsset(join(__dirname, "../../../lambda/dispatcher")),
+        timeout: Duration.minutes(15),
+        memorySize: 1024,
+        vpc: apiVpc,
+        vpcSubnets: {
+          subnets: apiVpc.privateSubnets,
+        },
+        securityGroups: [securityGroup],
+        architecture: Architecture.X86_64,
+        environment: {
+          SQS_QUEUE_URL: messageQueueV2.queueUrl,
+        },
+      });
+      lambdaDispatcherV2.addToRolePolicy(sqsStatement);
+
+      const webSocketApiV2 = new WebSocketConstruct(this, "WebSocketApiV2", {
+        dispatcherLambda: lambdaDispatcherV2,
+        sendMessageLambda: lambdaOnlineMain,
+      });
+      let wsStageV2 = webSocketApiV2.websocketApiStage
+      this.wsEndpointV2 = `${wsStageV2.api.apiEndpoint}/${wsStageV2.stageName}/`;
+ 
     }
 
     this.apiEndpoint = api.url;
