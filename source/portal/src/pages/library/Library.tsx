@@ -7,6 +7,7 @@ import {
   ContentLayout,
   Header,
   Link,
+  Modal,
   SpaceBetween,
   StatusIndicator,
   Table,
@@ -20,10 +21,12 @@ import { alertMsg } from '../../utils/utils';
 
 const Library: React.FC = () => {
   const [selectedItems, setSelectedItems] = useState<LibraryListItem[]>([]);
+  const [visible, setVisible] = useState(false);
   const navigate = useNavigate();
   const config = useContext(ConfigContext);
   const [loadingData, setLoadingData] = useState(false);
   const [libraryList, setLibraryList] = useState<LibraryListItem[]>([]);
+  const [loadingDelete, setLoadingDelete] = useState(false);
 
   const getLibraryList = async () => {
     setLoadingData(true);
@@ -40,6 +43,27 @@ const Library: React.FC = () => {
       setLoadingData(false);
     } catch (error: unknown) {
       setLoadingData(false);
+      if (error instanceof Error) {
+        alertMsg(error.message);
+      }
+    }
+  };
+
+  const removeLibrary = async () => {
+    try {
+      setLoadingDelete(true);
+      const result = await axios.post(
+        `${config?.apiUrl}/etl/delete-execution`,
+        {
+          executionId: selectedItems.map((item) => item.executionId),
+        },
+      );
+      setVisible(false);
+      getLibraryList();
+      alertMsg(result.data.message, 'success');
+      setLoadingDelete(false);
+    } catch (error: unknown) {
+      setLoadingDelete(false);
       if (error instanceof Error) {
         alertMsg(error.message);
       }
@@ -165,6 +189,14 @@ const Library: React.FC = () => {
               actions={
                 <SpaceBetween direction="horizontal" size="xs">
                   <Button
+                    disabled={selectedItems.length <= 0}
+                    onClick={() => {
+                      setVisible(true);
+                    }}
+                  >
+                    Delete
+                  </Button>
+                  <Button
                     variant="primary"
                     onClick={() => {
                       navigate('/library/add');
@@ -184,6 +216,43 @@ const Library: React.FC = () => {
             </Header>
           }
         />
+        <Modal
+          onDismiss={() => setVisible(false)}
+          visible={visible}
+          footer={
+            <Box float="right">
+              <SpaceBetween direction="horizontal" size="xs">
+                <Button
+                  variant="link"
+                  onClick={() => {
+                    setVisible(false);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  loading={loadingDelete}
+                  variant="primary"
+                  onClick={() => {
+                    removeLibrary();
+                  }}
+                >
+                  Delete
+                </Button>
+              </SpaceBetween>
+            </Box>
+          }
+          header="Delete"
+        >
+          Are you sure you want to delete the selected items ?
+          <div className="selected-items-list">
+            <ul>
+              {selectedItems.map((item) => (
+                <li key={item.executionId}>{item.executionId}</li>
+              ))}
+            </ul>
+          </div>
+        </Modal>
       </ContentLayout>
     </CommonLayout>
   );
