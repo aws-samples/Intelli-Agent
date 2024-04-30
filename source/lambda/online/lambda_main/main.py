@@ -96,6 +96,7 @@ def lambda_handler(event, context):
         messages = event_body.get("messages", [])
         # deal with stream parameter
         stream = _is_websocket_request(record_event)
+        stream = False
         if stream:
             load_ws_client()
 
@@ -142,9 +143,9 @@ def lambda_handler(event, context):
             client_type=client_type,
         )
         # print(chat_session_table,session_id,DynamoDBChatMessageHistory)
-        chat_history = ddb_history_obj.messages_as_langchain
+        # chat_history = ddb_history_obj.messages_as_langchain
 
-        event_body["chat_history"] = chat_history
+        event_body["chat_history"] = ""
         event_body["ws_connection_id"] = ws_connection_id
         event_body["session_id"] = session_id
         event_body["debug_level"] = debug_level
