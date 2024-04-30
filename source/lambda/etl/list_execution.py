@@ -23,7 +23,7 @@ def lambda_handler(event, context):
     if event["queryStringParameters"] != None:
         if "size" in event["queryStringParameters"]:
             page_size = int(event["queryStringParameters"]["size"])
-        
+
         if "total" in event["queryStringParameters"]:
             max_item = int(event["queryStringParameters"]["total"])
 
@@ -31,17 +31,19 @@ def lambda_handler(event, context):
         "MaxItems": max_item,
         "PageSize": page_size
     }
-            
+
     if event["queryStringParameters"] != None and "token" in event["queryStringParameters"]:
         config["StartingToken"] = event["queryStringParameters"]["token"]
-    
+
     # Use query after adding a filter
     paginator = client.get_paginator('scan')
     response_iterator = paginator.paginate(
         TableName=table_name,
-        PaginationConfig=config
+        PaginationConfig=config,
+        FilterExpression="uiStatus = :active",
+        ExpressionAttributeValues={":active": {"S": "ACTIVE"}},
     )
-    
+
     output = {}
     for page in response_iterator:
         page_items = page["Items"]

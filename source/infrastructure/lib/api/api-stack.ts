@@ -92,6 +92,12 @@ export class ApiConstruct extends Construct {
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
     });
 
+    const ddbPolicyDocument = new iam.PolicyStatement({
+      actions: ["dynamodb:*"],
+      effect: iam.Effect.ALLOW,
+      resources: ["*"],
+    });
+
     const embeddingLambda = new Function(this, "lambdaEmbedding", {
       runtime: Runtime.PYTHON_3_11,
       handler: "main.lambda_handler",
@@ -177,14 +183,7 @@ export class ApiConstruct extends Construct {
       },
       securityGroups: [props.securityGroup],
     });
-
-    ddbLambda.addToRolePolicy(
-      new iam.PolicyStatement({
-        actions: ["dynamodb:*"],
-        effect: iam.Effect.ALLOW,
-        resources: ["*"],
-      }),
-    );
+    ddbLambda.addToRolePolicy(ddbPolicyDocument);
 
     // Integration with Step Function to trigger ETL process
     // Lambda function to trigger Step Function
@@ -199,14 +198,7 @@ export class ApiConstruct extends Construct {
       },
       memorySize: 256,
     });
-
-    sfnLambda.addToRolePolicy(
-      new iam.PolicyStatement({
-        actions: ["dynamodb:*"],
-        effect: iam.Effect.ALLOW,
-        resources: ["*"],
-      }),
-    );
+    sfnLambda.addToRolePolicy(ddbPolicyDocument);
 
     // Grant lambda function to invoke step function
     props.sfnOutput.grantStartExecution(sfnLambda);
@@ -236,13 +228,8 @@ export class ApiConstruct extends Construct {
         EXECUTION_TABLE: executionTableName,
       },
     });
-    listExecutionLambda.addToRolePolicy(
-      new iam.PolicyStatement({
-        actions: ["dynamodb:*"],
-        effect: iam.Effect.ALLOW,
-        resources: ["*"],
-      }),
-    );
+    listExecutionLambda.addToRolePolicy(ddbPolicyDocument);
+
     const getExecutionLambda = new Function(this, "GetExecution", {
       code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
       handler: "get_execution.lambda_handler",
@@ -255,13 +242,20 @@ export class ApiConstruct extends Construct {
         ETL_OBJECT_INDEX: etlObjIndexName,
       },
     });
-    getExecutionLambda.addToRolePolicy(
-      new iam.PolicyStatement({
-        actions: ["dynamodb:*"],
-        effect: iam.Effect.ALLOW,
-        resources: ["*"],
-      }),
-    );
+    getExecutionLambda.addToRolePolicy(ddbPolicyDocument);
+
+    const delExecutionLambda = new Function(this, "DeleteExecution", {
+      code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
+      handler: "delete_execution.lambda_handler",
+      runtime: Runtime.PYTHON_3_11,
+      timeout: Duration.minutes(15),
+      memorySize: 512,
+      architecture: Architecture.X86_64,
+      environment: {
+        EXECUTION_TABLE: executionTableName,
+      },
+    });
+    delExecutionLambda.addToRolePolicy(ddbPolicyDocument);
 
     const batchLambda = new Function(this, "BatchLambda", {
       code: Code.fromAsset(join(__dirname, "../../../lambda/batch")),
@@ -376,6 +370,12 @@ export class ApiConstruct extends Construct {
     apiListExecution.addMethod(
       "GET",
       new apigw.LambdaIntegration(listExecutionLambda),
+    );
+
+    const apiDelExecution = apiResourceStepFunction.addResource("delete-execution");
+    apiDelExecution.addMethod(
+      "POST",
+      new apigw.LambdaIntegration(delExecutionLambda),
     );
 
     // Define the API Gateway Lambda Integration to invoke Batch job

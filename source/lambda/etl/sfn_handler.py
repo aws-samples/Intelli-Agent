@@ -90,6 +90,7 @@ def handler(event, context):
     input_body["sfnExecutionId"] = execution_id
     input_body["executionStatus"] = "IN-PROGRESS"
     input_body["executionId"] = context.aws_request_id
+    input_body["uiStatus"] = "ACTIVE"
 
     ddb_response = execution_table.put_item(Item=input_body)
 
