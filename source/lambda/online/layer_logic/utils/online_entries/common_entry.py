@@ -8,7 +8,7 @@ from langgraph.graph import StateGraph,END
 # fast reply
 INVALID_QUERY = "请重新描述您的问题。请注意：\n不能过于简短也不能超过500个字符\n不能包含个人信息（身份证号、手机号等）"
 INVALID_INTENTION = "很抱歉，我只能回答与知识问答相关的咨询。"
-KNOWLEDGE_QA_INSUFFICIENT_CONTEXT = "很抱歉，根据我目前掌握到的信息无法给出回答。"
+KNOWLEDGE_QA_INVALID_CONTEXT = "很抱歉，根据我目前掌握到的信息无法给出回答。"
 
 class AppState(TypedDict):
     keys: Any
@@ -35,48 +35,107 @@ def fast_reply(
 ################
 def is_query_valid(state):
     state = state['keys']
-    if state['is_query_invalid']:
+    if state['is_query_valid'] == True:
+        return "valid query"
+    else:
         state['answer'] = INVALID_QUERY
         return 'invalid query'
-    return "valid query"
 
 def is_intention_valid(state):
     state = state['keys']
-    if state['is_intention_invalid']:
+    if state['is_intention_valid']:
+        return "valid intention"
+    else:
         state['answer'] = INVALID_INTENTION
         return 'invalid intention'
-    return "valid intention"
 
 def is_context_enough(state):
     state = state['keys']
-    return "enough"
+    if state['is_context_enough'] == 'invalid context':
+        state['answer'] = KNOWLEDGE_QA_INVALID_CONTEXT
+    return state['is_context_enough']
 
 ################
 # nodes in lambdas #
 ################
-
+import boto3
+lambda_client= boto3.client('lambda')
 def query_preprocess_lambda(state: AppState):
     state = state['keys']
     # run in lambda
-    state['is_query_invalid'] = True
+    msg = {"query": state['query']}
+    invoke_response = lambda_client.invoke(FunctionName="Online_Query_Preprocess",
+                                        InvocationType='RequestResponse',
+                                        Payload=json.dumps(msg))
+    response_body = invoke_response['Payload']
+
+    response_str = response_body.read().decode("unicode_escape")
+    response_str = response_str.strip('"')
+
+    print(f"response_str is {response_str}")
+
+    response = json.loads(response_str)
+    state['is_query_valid'] = response['body']['is_query_valid']
 
 def intention_detection_lambda(state: AppState):
     state = state['keys']
     # run in lambda
-    state['is_intention_invalid'] = True
+    msg = {"query": state['query']}
+    invoke_response = lambda_client.invoke(FunctionName="Online_Intention_Detection",
+                                        InvocationType='RequestResponse',
+                                        Payload=json.dumps(msg))
+    response_body = invoke_response['Payload']
+
+    response_str = response_body.read().decode("unicode_escape")
+    response_str = response_str.strip('"')
+
+    response = json.loads(response_str)
+    state['is_intention_valid'] = response['body']['is_intention_valid']
 
 def agent_lambda(state: AppState):
-    state['is_intention_invalid'] = True
-    # run in lambda
     state = state['keys']
+    # run in lambda
+    msg = {"query": state['query']}
+    invoke_response = lambda_client.invoke(FunctionName="Online_Agent",
+                                        InvocationType='RequestResponse',
+                                        Payload=json.dumps(msg))
+    response_body = invoke_response['Payload']
+
+    response_str = response_body.read().decode("unicode_escape")
+    response_str = response_str.strip('"')
+
+    response = json.loads(response_str)
+    state['is_context_enough'] = response['body']['is_context_enough']
 
 def function_call_lambda(state: AppState):
     state = state['keys']
     # run in lambda
+    msg = {"query": state['query']}
+    invoke_response = lambda_client.invoke(FunctionName="Online_Function_Knowledge_Base",
+                                        InvocationType='RequestResponse',
+                                        Payload=json.dumps(msg))
+    response_body = invoke_response['Payload']
+
+    response_str = response_body.read().decode("unicode_escape")
+    response_str = response_str.strip('"')
+
+    response = json.loads(response_str)
+    state['is_function_finished'] = response['body']['is_function_finished']
 
 def llm_generate_lambda(state: AppState):
     state = state['keys']
     # run in lambda
+    msg = {"query": state['query']}
+    invoke_response = lambda_client.invoke(FunctionName="Online_LLM_Generate",
+                                        InvocationType='RequestResponse',
+                                        Payload=json.dumps(msg))
+    response_body = invoke_response['Payload']
+
+    response_str = response_body.read().decode("unicode_escape")
+    response_str = response_str.strip('"')
+
+    response = json.loads(response_str)
+    state['answer'] = response['body']['answer']
     
 ################
 # define whole online graph #
@@ -146,24 +205,24 @@ workflow.add_edge("fast_reply", END)
 workflow.add_edge("llm_generate_lambda", END)
 app = workflow.compile()
 
-simple_workflow = StateGraph(AppState)
-# add all nodes
-simple_workflow.add_node("query_preprocess_lambda", query_preprocess_lambda)
-simple_workflow.set_entry_point("query_preprocess_lambda")
-# decide whether it is a valid query
-simple_workflow.add_conditional_edges(
-    "query_preprocess_lambda",
-    is_query_valid,
-    {
-        "invalid query": END,
-        "valid query": END
-    }
-)
-app = simple_workflow.compile()
+# simple_workflow = StateGraph(AppState)
+# # add all nodes
+# simple_workflow.add_node("query_preprocess_lambda", query_preprocess_lambda)
+# simple_workflow.set_entry_point("query_preprocess_lambda")
+# # decide whether it is a valid query
+# simple_workflow.add_conditional_edges(
+#     "query_preprocess_lambda",
+#     is_query_valid,
+#     {
+#         "invalid query": END,
+#         "valid query": END
+#     }
+# )
+# app = simple_workflow.compile()
 
 # # uncomment the following lines to save the graph
-with open('common_entry_workflow.png','wb') as f:
-    f.write(app.get_graph().draw_png())
+# with open('common_entry_workflow.png','wb') as f:
+#     f.write(app.get_graph().draw_png())
 # app.get_graph().print_ascii()
 
 def common_entry(
@@ -198,14 +257,14 @@ def common_entry(
             "debug_info": debug_info,
             # "intent_type": intent_type,
             # "intent_info": intent_info,
-            "chat_history": rag_config['chat_history'][-6:] if rag_config['use_history'] else [],
+            # "chat_history": rag_config['chat_history'][-6:] if rag_config['use_history'] else [],
             "rag_config": rag_config,
             "message_id": message_id,
             "stream": stream,
             # "qq_workspace_list": qq_workspace_list,
             # "qd_workspace_list": qd_workspace_list,
             "trace_infos":trace_infos,
-            "intent_embedding_endpoint_name": os.environ['intent_recognition_embedding_endpoint'],
+            # "intent_embedding_endpoint_name": os.environ['intent_recognition_embedding_endpoint'],
             # "query_lang": "zh"
     }
     # invoke graph and get results
