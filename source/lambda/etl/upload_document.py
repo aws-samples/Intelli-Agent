@@ -44,7 +44,7 @@ def lambda_handler(event, context):
 
     try:
         input_body = json.loads(event["body"])
-        file_name = input_body["file_name"]
+        file_name = "documents/" + input_body["file_name"]
         if "content_type" in input_body:
             content_type = input_body["content_type"]
         if "expiration" in input_body:
