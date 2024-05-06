@@ -5,12 +5,16 @@ import {
   Button,
   Container,
   ContentLayout,
+  FileUpload,
   FlashbarProps,
   Form,
   FormField,
   Header,
   Input,
+  ProgressBar,
+  RadioGroup,
   SpaceBetween,
+  StatusIndicator,
 } from '@cloudscape-design/components';
 import { useNavigate } from 'react-router-dom';
 import CommonLayout from 'src/layout/CommonLayout';
@@ -21,6 +25,7 @@ import {
   BatchOperationStatus,
 } from 'src/types';
 import { alertMsg } from 'src/utils/utils';
+import { AxiosProgressEvent } from 'axios';
 
 const CACHED_PROGRESS_DATA = 'llmbot_cached_progress_knowledge_base_ingest';
 
@@ -37,17 +42,52 @@ const AddLibrary: React.FC = () => {
     [],
   );
   const [fileEmptyError, setFileEmptyError] = useState(false);
+  const [uploadType, setUploadType] = useState('upload');
+  const [uploadFiles, setUploadFiles] = useState<File[]>([]);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [showProgress, setShowProgress] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
-  const listObjects = async () => {
+  const uploadFile = async (file: File) => {
     try {
-      const list = axios.get(`${config?.apiUrl}/list`);
-      console.info(list);
+      setShowProgress(true);
+      setShowSuccess(false);
+      const resData: any = await axios.post(
+        `${config?.apiUrl}/etl/upload-s3-url`,
+        {
+          file_name: file.name,
+          content_type: file.type,
+        },
+      );
+      const uploadPreSignUrl = resData.data.data;
+      await axios.put(uploadPreSignUrl, file, {
+        headers: {
+          'Content-Type': file.type,
+        },
+        onUploadProgress: (e: AxiosProgressEvent) => {
+          const progress = Math.floor((e.loaded * 100) / (e.total ?? 1));
+          setUploadProgress(progress);
+          if (progress >= 100) {
+            setShowProgress(false);
+            setUploadFiles([]);
+            setShowSuccess(true);
+            setUploadProgress(0);
+          }
+        },
+      });
+      console.info(uploadPreSignUrl);
     } catch (error: unknown) {
       if (error instanceof Error) {
         alertMsg(error.message);
       }
     }
   };
+
+  useEffect(() => {
+    if (uploadFiles.length > 0) {
+      uploadFile(uploadFiles[0]);
+    }
+  }, [uploadFiles]);
 
   const ingestKnowledgeBase = async () => {
     if (!fileName.trim()) {
@@ -132,6 +172,7 @@ const AddLibrary: React.FC = () => {
       };
       setFlashBar([flashBarItem]);
     } catch (error: unknown) {
+      clearInterval(checkStatusInterval);
       if (error instanceof Error) {
         alertMsg(error.message);
       }
@@ -139,7 +180,6 @@ const AddLibrary: React.FC = () => {
   };
 
   useEffect(() => {
-    listObjects();
     const cachedData = localStorage.getItem(CACHED_PROGRESS_DATA);
     if (cachedData) {
       const tmpCachedData: CachedDataType = JSON.parse(cachedData);
@@ -192,26 +232,37 @@ const AddLibrary: React.FC = () => {
             <Form
               variant="embedded"
               actions={
-                <SpaceBetween direction="horizontal" size="xs">
-                  <Button
-                    formAction="none"
-                    variant="link"
-                    onClick={() => {
-                      navigate(-1);
-                    }}
-                  >
-                    Cancel
-                  </Button>
+                uploadType === 'upload' ? (
                   <Button
                     variant="primary"
-                    loading={loadingIngest}
                     onClick={() => {
-                      ingestKnowledgeBase();
+                      navigate('/library');
                     }}
                   >
-                    Ingest
+                    Back to list
                   </Button>
-                </SpaceBetween>
+                ) : (
+                  <SpaceBetween direction="horizontal" size="xs">
+                    <Button
+                      formAction="none"
+                      variant="link"
+                      onClick={() => {
+                        navigate(-1);
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      variant="primary"
+                      loading={loadingIngest}
+                      onClick={() => {
+                        ingestKnowledgeBase();
+                      }}
+                    >
+                      Ingest
+                    </Button>
+                  </SpaceBetween>
+                )
               }
             >
               <SpaceBetween direction="vertical" size="l">
@@ -219,18 +270,77 @@ const AddLibrary: React.FC = () => {
                   <Input value={config?.docsS3Bucket ?? ''} readOnly />
                 </FormField>
                 <FormField
-                  label="Documents"
-                  errorText={
-                    fileEmptyError ? 'Please select a file' : undefined
-                  }
+                  label="Ingest method"
+                  description="Please select the ingest method"
                 >
-                  <Input
-                    value={fileName}
-                    onChange={({ detail }) => {
-                      setFileName(detail.value);
-                    }}
+                  <RadioGroup
+                    onChange={({ detail }) => setUploadType(detail.value)}
+                    value={uploadType}
+                    items={[
+                      { value: 'upload', label: 'Upload File' },
+                      { value: 'folder', label: 'Bucket Prefix' },
+                    ]}
                   />
                 </FormField>
+                {uploadType === 'folder' && (
+                  <FormField
+                    label="Prefix"
+                    errorText={
+                      fileEmptyError ? 'Please select a file' : undefined
+                    }
+                  >
+                    <Input
+                      value={fileName}
+                      onChange={({ detail }) => {
+                        setFileName(detail.value);
+                      }}
+                    />
+                  </FormField>
+                )}
+                {uploadType === 'upload' && (
+                  <SpaceBetween direction="vertical" size="xs">
+                    <FormField
+                      label="Upload File"
+                      description="After the file is successfully uploaded, the ingestion process will begin."
+                      errorText={
+                        fileEmptyError ? 'Please select a file' : undefined
+                      }
+                    >
+                      <FileUpload
+                        onChange={({ detail }) => setUploadFiles(detail.value)}
+                        value={uploadFiles}
+                        i18nStrings={{
+                          uploadButtonText: (e) =>
+                            e ? 'Choose files' : 'Choose file',
+                          dropzoneText: (e) =>
+                            e ? 'Drop files to upload' : 'Drop file to upload',
+                          removeFileAriaLabel: (e) => `Remove file ${e + 1}`,
+                          limitShowFewer: 'Show fewer files',
+                          limitShowMore: 'Show more files',
+                          errorIconAriaLabel: 'Error',
+                        }}
+                        showFileLastModified
+                        showFileSize
+                        showFileThumbnail
+                        tokenLimit={1}
+                        constraintText="Supported format: .docx, .pdf, .csv, .xls, .xlsx, .txt"
+                      />
+                    </FormField>
+                    {showProgress && (
+                      <FormField>
+                        <ProgressBar
+                          value={uploadProgress}
+                          label="Upload progress"
+                        />
+                      </FormField>
+                    )}
+                    {showSuccess && (
+                      <StatusIndicator type="success">
+                        Upload Succeed.
+                      </StatusIndicator>
+                    )}
+                  </SpaceBetween>
+                )}
               </SpaceBetween>
             </Form>
           </SpaceBetween>

@@ -62,6 +62,7 @@ const Library: React.FC = () => {
       getLibraryList();
       alertMsg(result.data.message, 'success');
       setLoadingDelete(false);
+      setSelectedItems([]);
     } catch (error: unknown) {
       setLoadingDelete(false);
       if (error instanceof Error) {
