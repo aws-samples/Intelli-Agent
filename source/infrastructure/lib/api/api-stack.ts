@@ -401,7 +401,7 @@ export class ApiConstruct extends Construct {
 
     const apiUploadDoc = apiResourceStepFunction.addResource("upload-s3-url");
     apiUploadDoc.addMethod(
-      "GET",
+      "POST",
       new apigw.LambdaIntegration(uploadDocLambda),
     );
 
