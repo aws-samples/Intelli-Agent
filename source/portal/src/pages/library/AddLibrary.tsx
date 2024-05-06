@@ -1,5 +1,5 @@
 import { useContext, useEffect, useState } from 'react';
-import { axios } from '../../utils/request';
+import { axios } from 'src/utils/request';
 import {
   BreadcrumbGroup,
   Button,
@@ -13,14 +13,14 @@ import {
   SpaceBetween,
 } from '@cloudscape-design/components';
 import { useNavigate } from 'react-router-dom';
-import CommonLayout from '../../layout/CommonLayout';
-import ConfigContext from '../../context/config-context';
+import CommonLayout from 'src/layout/CommonLayout';
+import ConfigContext from 'src/context/config-context';
 import {
   IngestResponse,
   CachedDataType,
   BatchOperationStatus,
-} from '../../types';
-import { alertMsg } from '../../utils/utils';
+} from 'src/types';
+import { alertMsg } from 'src/utils/utils';
 
 const CACHED_PROGRESS_DATA = 'llmbot_cached_progress_knowledge_base_ingest';
 

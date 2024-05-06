@@ -1,12 +1,11 @@
-import React, { useContext, useEffect, useState } from 'react';
-import CommonLayout from '../../layout/CommonLayout';
+import React, { useCallback, useContext, useEffect, useState } from 'react';
+import CommonLayout from 'src/layout/CommonLayout';
 import {
   Box,
   BreadcrumbGroup,
   Button,
   ContentLayout,
   Header,
-  Link,
   Modal,
   SpaceBetween,
   StatusIndicator,
@@ -14,10 +13,11 @@ import {
   TextFilter,
 } from '@cloudscape-design/components';
 import { useNavigate } from 'react-router-dom';
-import ConfigContext from '../../context/config-context';
-import { axios } from '../../utils/request';
-import { LibraryListItem, LibraryListResponse } from 'types';
-import { alertMsg } from '../../utils/utils';
+import ConfigContext from 'src/context/config-context';
+import { axios } from 'src/utils/request';
+import { LibraryListItem, LibraryListResponse } from 'src/types';
+import { alertMsg } from 'src/utils/utils';
+import TableLink from 'src/comps/link/TableLink';
 
 const Library: React.FC = () => {
   const [selectedItems, setSelectedItems] = useState<LibraryListItem[]>([]);
@@ -84,6 +84,16 @@ const Library: React.FC = () => {
     }
   };
 
+  const LinkComp = useCallback(
+    (item: LibraryListItem) => (
+      <TableLink
+        url={`/library/detail/${item.executionId}`}
+        name={item.executionId}
+      />
+    ),
+    [],
+  );
+
   return (
     <CommonLayout
       activeHref="/library"
@@ -121,11 +131,7 @@ const Library: React.FC = () => {
             {
               id: 'executionId',
               header: 'ID',
-              cell: (item: LibraryListItem) => (
-                <Link href={`/library/detail/${item.executionId}`}>
-                  {item.executionId}
-                </Link>
-              ),
+              cell: (item: LibraryListItem) => LinkComp(item),
               sortingField: 'name',
               isRowHeader: true,
             },
