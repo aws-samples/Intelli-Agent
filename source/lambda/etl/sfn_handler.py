@@ -23,6 +23,13 @@ def handler(event, context):
     # First check the event for possible S3 created event
     input_payload = {}
     print(event)
+    resp_header = {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "*",
+    }
+
     if "Records" in event:
         print("S3 event detected")
         # TODO, Aggregate the bucket and key from the event object for S3 created event
@@ -44,16 +51,14 @@ def handler(event, context):
             key_folder = os.path.dirname(key)
 
             workspace_id = get_valid_workspace_id(key_folder)
-            input_payload = json.dumps(
-                {
-                    "s3Bucket": bucket,
-                    "s3Prefix": key,
-                    "offline": "false",
-                    "qaEnhance": "false",
-                    "workspaceId": workspace_id,
-                    "operationType": "update",
-                }
-            )
+            input_body = {
+                "s3Bucket": bucket,
+                "s3Prefix": key,
+                "offline": "false",
+                "qaEnhance": "false",
+                "workspaceId": workspace_id,
+                "operationType": "update",
+            }
         elif event["Records"][0]["eventName"].startswith("ObjectRemoved:"):
             key = unquote(key)
             key_folder = os.path.dirname(key)
@@ -72,12 +77,6 @@ def handler(event, context):
         # Parse the body from the event object
         input_body = json.loads(event["body"])
 
-    resp_header = {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "*",
-    }
     input_body["tableItemId"] = context.aws_request_id
     input_payload = json.dumps(input_body)
     response = client.start_execution(
