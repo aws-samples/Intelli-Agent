@@ -6,7 +6,7 @@ import os
 import time
 import traceback
 
-from .constant import EntryType, StreamMessageType
+from ...layer_logic.utils.constant import EntryType, StreamMessageType
 from .content_filter_utils.content_filters import (
     MarketContentFilter,
     token_to_sentence_gen_market,
