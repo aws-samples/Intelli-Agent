@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState } from 'react';
-import CommonLayout from '../../layout/CommonLayout';
+import CommonLayout from 'src/layout/CommonLayout';
 import Message from './components/Message';
 import {
   Box,
@@ -11,7 +11,7 @@ import {
 } from '@cloudscape-design/components';
 import useWebSocket, { ReadyState } from 'react-use-websocket';
 import { identity } from 'lodash';
-import ConfigContext from '../../context/config-context';
+import ConfigContext from 'src/context/config-context';
 
 interface MessageType {
   type: 'ai' | 'human';

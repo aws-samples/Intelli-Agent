@@ -8,13 +8,13 @@ import {
   Popover,
   ContentLayout,
 } from '@cloudscape-design/components';
-import CommonLayout from '../../layout/CommonLayout';
+import CommonLayout from 'src/layout/CommonLayout';
 import React, { useContext, useEffect, useState } from 'react';
-import { axios } from '../../utils/request';
-import ConfigContext from '../../context/config-context';
+import { axios } from 'src/utils/request';
+import ConfigContext from 'src/context/config-context';
 import { useParams } from 'react-router-dom';
-import { LibraryExecutionItem, LibraryExecutionResponse } from 'types';
-import { alertMsg, formatTime } from '../../utils/utils';
+import { LibraryExecutionItem, LibraryExecutionResponse } from 'src/types';
+import { alertMsg, formatTime } from 'src/utils/utils';
 
 const LibraryDetail: React.FC = () => {
   const [loadingData, setLoadingData] = useState(false);

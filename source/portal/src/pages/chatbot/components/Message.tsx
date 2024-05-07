@@ -1,6 +1,6 @@
 import React from 'react';
 import Avatar from 'react-avatar';
-import BedrockImg from '../../../assets/bedrock.webp';
+import BedrockImg from 'src/assets/bedrock.webp';
 
 interface MessageProps {
   type: 'ai' | 'human';

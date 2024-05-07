@@ -63,3 +63,19 @@
 .selected-items-list {
   padding: 15px;
 }
+
+.common-alert {
+  width: fit-content;
+  position: fixed;
+  bottom: 30px;
+  left: 0;
+  right: 0;
+  margin: auto;
+  z-index: 9999;
+  opacity: 1;
+  transition: all ease-out 0.8s;
+}
+
+.common-alert-hide {
+  opacity: 0;
+}

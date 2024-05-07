@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ConfigContext, { Config } from './config-context';
 import { Box, Spinner } from '@cloudscape-design/components';
-import { alertMsg } from '../utils/utils';
+import { alertMsg } from 'src/utils/utils';
 interface ConfigProviderProps {
   children: React.ReactNode;
 }
