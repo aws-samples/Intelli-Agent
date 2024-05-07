@@ -27,6 +27,8 @@ import { DeploymentParameters } from "../lib/shared/cdk-parameters";
 import { VpcStack } from "../lib/shared/vpc-stack";
 import { OpenSearchStack } from "../lib/vector-store/os-stack";
 import { PortalConstruct } from "../lib/ui/ui-portal";
+import { UiExportsConstruct } from "../lib/ui/ui-exports";
+import { UserConstruct } from "../lib/user/user-stack";
 
 dotenv.config();
 
@@ -131,10 +133,24 @@ export class RootStack extends Stack {
     apiStack.addDependency(dynamoDBStack);
     apiStack.addDependency(etlStack);
 
-    const uiPortal = new PortalConstruct(this, "ui-stack", {
-      websocket: apiStack.wsEndpoint,
-      apiUrl: apiStack.apiEndpoint,
+    const uiPortal = new PortalConstruct(this, "ui-stack");
+
+    const userConstruct = new UserConstruct(this, "user", {
+      adminEmail: cdkParameters.subEmail.valueAsString,
+      callbackUrl: uiPortal.portalUrl,
     });
+
+    const uiExports = new UiExportsConstruct(this, "ui-exports", {
+      portalBucket: uiPortal.portalBucket,
+      uiProps: {
+        websocket: apiStack.wsEndpoint,
+        apiUrl: apiStack.apiEndpoint,
+        oidcIssuer: userConstruct.oidcIssuer,
+        oidcClientId: userConstruct.oidcClientId,
+        oidcLogoutUrl: userConstruct.oidcLogoutUrl,
+      },
+    });
+    uiExports.node.addDependency(uiPortal);
 
     new CfnOutput(this, "API Endpoint Address", {
       value: apiStack.apiEndpoint,
