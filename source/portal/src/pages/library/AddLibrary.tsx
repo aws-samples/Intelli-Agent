@@ -323,7 +323,8 @@ const AddLibrary: React.FC = () => {
                         showFileSize
                         showFileThumbnail
                         tokenLimit={1}
-                        constraintText="Supported format: .docx, .pdf, .csv, .xls, .xlsx, .txt"
+                        accept=".pdf, .csv, .doc, .docx, .html, .json, .jsonl, .txt, .md."
+                        constraintText="Supported file types: pdf, csv, doc, docx, html, json, jsonl, txt, md."
                       />
                     </FormField>
                     {showProgress && (
