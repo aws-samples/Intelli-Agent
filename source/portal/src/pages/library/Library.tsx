@@ -16,8 +16,12 @@ import { useNavigate } from 'react-router-dom';
 import ConfigContext from 'src/context/config-context';
 import { axios } from 'src/utils/request';
 import { LibraryListItem, LibraryListResponse } from 'src/types';
-import { alertMsg } from 'src/utils/utils';
+import { alertMsg, formatTime } from 'src/utils/utils';
 import TableLink from 'src/comps/link/TableLink';
+
+const parseDate = (item: LibraryListItem) => {
+  return item.createTime ? new Date(item.createTime) : 0;
+};
 
 const Library: React.FC = () => {
   const [selectedItems, setSelectedItems] = useState<LibraryListItem[]>([]);
@@ -39,7 +43,11 @@ const Library: React.FC = () => {
         params,
       });
       const items: LibraryListResponse = result.data;
-      setLibraryList(items.Items);
+      const preSortItem = items.Items;
+      preSortItem.sort((a, b) => {
+        return Number(parseDate(b)) - Number(parseDate(a));
+      });
+      setLibraryList(preSortItem);
       setLoadingData(false);
     } catch (error: unknown) {
       setLoadingData(false);
@@ -148,29 +156,31 @@ const Library: React.FC = () => {
               cell: (item: LibraryListItem) => item.s3Prefix,
             },
             {
-              width: 150,
+              width: 90,
               id: 'offline',
               header: 'Offline',
-              cell: (item: LibraryListItem) => item.offline,
+              cell: (item: LibraryListItem) =>
+                item.offline === 'true' ? 'Yes' : 'No',
             },
+
             {
-              width: 150,
-              id: 'qaEnhance',
-              header: 'QA Enhance',
-              cell: (item: LibraryListItem) => item.qaEnhance,
-            },
-            {
-              width: 150,
+              width: 120,
               id: 'indexType',
               header: 'Index Type',
               cell: (item: LibraryListItem) => item.indexType,
             },
             {
-              width: 160,
+              width: 150,
               id: 'status',
               header: 'Status',
               cell: (item: LibraryListItem) =>
                 renderStatus(item.executionStatus),
+            },
+            {
+              width: 180,
+              id: 'createTime',
+              header: 'CreateTime',
+              cell: (item: LibraryListItem) => formatTime(item.createTime),
             },
           ]}
           items={libraryList}

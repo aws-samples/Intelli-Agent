@@ -14,6 +14,7 @@ export type LibraryListItem = {
   sfnExecutionId: string;
   indexType: string;
   workspaceId: string;
+  createTime: string;
 };
 
 export type LibraryListResponse = {
