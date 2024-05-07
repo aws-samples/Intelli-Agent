@@ -455,19 +455,20 @@ export class EtlStack extends NestedStack {
       .when(sfn.Condition.stringEquals("$.offline", "true"), mapState)
       .when(sfn.Condition.stringEquals("$.offline", "false"), onlineGlueJob);
 
-    // add the notify task to both online and offline branches
+    // Add the notify task to both online and offline branches
     mapState.next(notifyTask);
+    onlineGlueJob.next(notifyTask);
 
     const sfnDefinition = lambdaETLIntegration.next(offlineChoice);
 
     const sfnStateMachine = new sfn.StateMachine(this, "ETLState", {
       definitionBody: sfn.DefinitionBody.fromChainable(sfnDefinition),
       stateMachineType: sfn.StateMachineType.STANDARD,
-      // Align with the glue job timeout
+      // Glue job timeout
       timeout: Duration.minutes(2880),
     });
 
-    // Export the Step function to be used in API Gateway
+    // Export the Step Functions to be used in API Gateway
     this.sfnOutput = sfnStateMachine;
     this.jobName = glueJob.jobName;
     this.jobArn = glueJob.jobArn;
