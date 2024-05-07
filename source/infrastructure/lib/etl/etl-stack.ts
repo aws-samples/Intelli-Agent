@@ -418,6 +418,7 @@ export class EtlStack extends NestedStack {
     const onlineGlueJob = new tasks.GlueStartJobRun(this, "OnlineGlueJob", {
       glueJobName: glueJob.jobName,
       integrationPattern: sfn.IntegrationPattern.RUN_JOB,
+      resultPath: "$.mapResults",
       arguments: sfn.TaskInput.fromObject({
         "--AOS_ENDPOINT": props.domainEndpoint,
         "--BATCH_FILE_NUMBER.$": "$.batchFileNumber",
