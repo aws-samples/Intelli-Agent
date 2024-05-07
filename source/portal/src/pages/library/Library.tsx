@@ -206,6 +206,13 @@ const Library: React.FC = () => {
               actions={
                 <SpaceBetween direction="horizontal" size="xs">
                   <Button
+                    iconName="refresh"
+                    loading={loadingData}
+                    onClick={() => {
+                      getLibraryList();
+                    }}
+                  />
+                  <Button
                     disabled={selectedItems.length <= 0}
                     onClick={() => {
                       setVisible(true);
