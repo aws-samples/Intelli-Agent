@@ -2,7 +2,7 @@ import json
 import os
 import re
 from urllib.parse import unquote
-
+from datetime import datetime, timezone
 import boto3
 
 client = boto3.client("stepfunctions")
@@ -86,10 +86,12 @@ def handler(event, context):
     if "tableItemId" in input_body:
         del input_body["tableItemId"]
     execution_id = response["executionArn"].split(":")[-1]
+    create_time = str(datetime.now(timezone.utc))
     input_body["sfnExecutionId"] = execution_id
     input_body["executionStatus"] = "IN-PROGRESS"
     input_body["executionId"] = context.aws_request_id
     input_body["uiStatus"] = "ACTIVE"
+    input_body["createTime"] = create_time
 
     ddb_response = execution_table.put_item(Item=input_body)
 

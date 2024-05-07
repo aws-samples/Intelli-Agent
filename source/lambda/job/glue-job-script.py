@@ -169,7 +169,7 @@ class S3FileProcessor:
             "createTime": create_time,
             "status": "RUNNING",
         }
-        ddb_response = etl_object_table.put_item(Item=input_body)
+        etl_object_table.put_item(Item=input_body)
 
         if file_type == "txt":
             return "txt", self.decode_file_content(file_content), kwargs
@@ -189,7 +189,18 @@ class S3FileProcessor:
         elif file_type == "jsonl":
             return "jsonl", file_content, kwargs
         else:
-            logger.info("Unknown file type: %s", file_type)
+            message = "Unknown file type: " + file_type
+            input_body = {
+                "s3Path": f"s3://{self.bucket}/{key}",
+                "s3Bucket": self.bucket,
+                "s3Prefix": key,
+                "executionId": table_item_id,
+                "createTime": create_time,
+                "status": "FAILED",
+                "detail": message,
+            }
+            etl_object_table.put_item(Item=input_body)
+            logger.info(message)
 
     def decode_file_content(self, file_content: str, default_encoding: str = "utf-8"):
         """Decode the file content and auto detect the content encoding.
