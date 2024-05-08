@@ -7,6 +7,7 @@ import CommonAlert from './comps/alert';
 import { useAuth } from 'react-oidc-context';
 import { Box, Button, Spinner } from '@cloudscape-design/components';
 import { LAST_VISIT_URL } from './utils/const';
+import ReSignIn from './comps/ReSignIn';
 
 const LoginCallback: React.FC = () => {
   const gotoBasePage = () => {
@@ -22,6 +23,21 @@ const LoginCallback: React.FC = () => {
   );
 };
 
+const SignedInRouter = () => {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/signin" element={<LoginCallback />} />
+        <Route path="/" element={<ChatBot />} />
+        <Route path="/library" element={<Library />} />
+        <Route path="/library/detail/:id" element={<LibraryDetail />} />
+        <Route path="/library/add" element={<AddLibrary />} />
+      </Routes>
+      <CommonAlert />
+    </BrowserRouter>
+  );
+};
+
 const AppRouter = () => {
   const auth = useAuth();
   if (auth.isLoading) {
@@ -33,22 +49,16 @@ const AppRouter = () => {
   }
 
   if (auth.error) {
-    return <div>Oops... {auth.error.message}</div>;
+    return (
+      <>
+        <ReSignIn />
+        <SignedInRouter />
+      </>
+    );
   }
 
   if (auth.isAuthenticated) {
-    return (
-      <BrowserRouter>
-        <Routes>
-          <Route path="/signin" element={<LoginCallback />} />
-          <Route path="/" element={<ChatBot />} />
-          <Route path="/library" element={<Library />} />
-          <Route path="/library/detail/:id" element={<LibraryDetail />} />
-          <Route path="/library/add" element={<AddLibrary />} />
-        </Routes>
-        <CommonAlert />
-      </BrowserRouter>
-    );
+    return <SignedInRouter />;
   }
   return (
     <div className="login-container">

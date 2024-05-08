@@ -1,5 +1,12 @@
 {
   "translation": {
-    "name": "LLM Bot"
+    "name": "LLM Bot",
+    "button": {
+      "reload": "Reload"
+    },
+    "header": {
+      "reSignIn": "Please login again",
+      "reSignInDesc": "You have logged out of your account. Please click 'Reload' to log in to the web console again"
+    }
   }
 }
