@@ -566,7 +566,7 @@ def ingestion_pipeline(
             }
             traceback.print_exc()
         finally:
-            ddb_response = etl_object_table.put_item(Item=input_body)
+            etl_object_table.put_item(Item=input_body)
 
 
 def delete_pipeline(s3_files_iterator, document_generator, delete_worker):

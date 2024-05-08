@@ -102,14 +102,15 @@ def process_pdf(s3, pdf: bytes, **kwargs):
     etl_model_endpoint = kwargs.get("etl_model_endpoint", None)
     smr_client = kwargs.get("smr_client", None)
     res_bucket = kwargs.get("res_bucket", None)
+    # TODO: make it configurable in frontend
     document_language = kwargs.get("document_language", "zh")
-    # extract file name also in consideration of file name with blank space
+    # Extract file name also in consideration of file name with blank space
     local_path = str(os.path.basename(key))
-    # download to local for futher processing
+    # Download to local for futher processing
     logger.info(local_path)
     s3.download_file(Bucket=bucket, Key=key, Filename=local_path)
     loader = PDFMinerPDFasHTMLLoader(local_path)
-    # entire PDF is loaded as a single Document
+    # Entire PDF is loaded as a single Document
     file_content = loader.load()[0].page_content
 
     if not etl_model_endpoint or not smr_client or not res_bucket:
