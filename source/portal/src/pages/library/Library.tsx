@@ -190,8 +190,7 @@ const Library: React.FC = () => {
           empty={
             <Box margin={{ vertical: 'xs' }} textAlign="center" color="inherit">
               <SpaceBetween size="m">
-                <b>No resources</b>
-                <Button>Create resource</Button>
+                <b>No data</b>
               </SpaceBetween>
             </Box>
           }

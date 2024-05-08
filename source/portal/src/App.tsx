@@ -1,24 +1,24 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import ChatBot from './pages/chatbot/ChatBot';
-import Library from './pages/library/Library';
-import ConfigProvider from './context/config-provider';
-import AddLibrary from './pages/library/AddLibrary';
-import LibraryDetail from './pages/library/LibraryDetail';
-import CommonAlert from './comps/alert';
+import { useContext } from 'react';
+import ConfigContext from './context/config-context';
+import { AuthProvider } from 'react-oidc-context';
+import AppRouter from './Router';
+import { WebStorageStateStore } from 'oidc-client-ts';
 
 function App() {
+  const config = useContext(ConfigContext);
+  const oidcConfig = {
+    userStore: new WebStorageStateStore({ store: window.localStorage }),
+    scope: 'openid email profile',
+    automaticSilentRenew: true,
+    authority: config?.oidcIssuer,
+    client_id: config?.oidcClientId,
+    redirect_uri: config?.oidcRedirectUrl,
+  };
+
   return (
-    <ConfigProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<ChatBot />} />
-          <Route path="/library" element={<Library />} />
-          <Route path="/library/detail/:id" element={<LibraryDetail />} />
-          <Route path="/library/add" element={<AddLibrary />} />
-        </Routes>
-        <CommonAlert />
-      </BrowserRouter>
-    </ConfigProvider>
+    <AuthProvider {...oidcConfig}>
+      <AppRouter />
+    </AuthProvider>
   );
 }
 
