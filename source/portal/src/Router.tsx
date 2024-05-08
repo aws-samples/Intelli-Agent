@@ -65,7 +65,7 @@ const AppRouter = () => {
       <div className="text-center">
         <Box variant="h2">Welcome to LLM Bot</Box>
         <div className="mt-10">
-          <Button onClick={() => void auth.signinRedirect()}>
+          <Button variant="primary" onClick={() => void auth.signinRedirect()}>
             Log in to LLM Bot
           </Button>
         </div>
