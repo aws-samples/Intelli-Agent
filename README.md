@@ -81,6 +81,13 @@ Finally, if this is the first time using Amazon OpenSearch in this account, you 
 ```bash
 aws iam create-service-linked-role --aws-service-name es.amazonaws.com
 ```
+### Build Frontend
+
+```bash
+cd source/portal
+npm install
+npm run build
+```
 
 ### Deploy CDK Template
 Please make sure **docker** is installed and the CDK command is executed in the **same region** of the model files which are uploaded in previous step. 
@@ -119,6 +126,10 @@ After CDK deployment, you can use a HTTP client such as Postman/cURL to invoke t
 - [LLM API Schema](https://github.com/aws-samples/llm-bot/tree/main/docs/LLM_API_SCHEMA.md): send question to LLM and get a response.
 - [ETL API Schema](https://github.com/aws-samples/llm-bot/tree/main/docs/ETL_API_SCHEMA.md): upload knowledge to vector database.
 - [AOS API Schema](https://github.com/aws-samples/llm-bot/tree/main/docs/AOS_API_SCHEMA.md): search data in the vector database.
+
+
+## Test
+For detailed test information, please refer to the [Test Doc](https://github.com/aws-samples/llm-bot/tree/dev/tests/README.md)
 
 ## Optional Steps
 - [Upload Embedding File](#upload-embedding-file)

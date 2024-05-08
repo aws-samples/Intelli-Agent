@@ -6,7 +6,7 @@
 # cd deployment
 # ./build-open-source-dist.sh solution-name
 #
-# Paramenters:
+# Parameters:
 #  - solution-name: name of the solution for consistency
 
 # Check to see if input has been provided:

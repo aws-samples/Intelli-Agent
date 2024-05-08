@@ -26,13 +26,13 @@ interface connectorStackProps extends StackProps {
   openSearchIndexDict: string;
 }
 
-export class ConnectorStack extends NestedStack {
+export class ConnectorConstruct extends Construct {
   public jobName: string;
   public jobQueueArn: string;
   public jobDefinitionArn: string;
 
   constructor(scope: Construct, id: string, props: connectorStackProps) {
-    super(scope, id, props);
+    super(scope, id);
 
     const connectorVpc = props.connectorVpc;
     const securityGroup = props.securityGroup;

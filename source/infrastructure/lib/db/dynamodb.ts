@@ -11,60 +11,39 @@
  *  and limitations under the License.                                                                                *
  *********************************************************************************************************************/
 
-import { Duration, NestedStack, RemovalPolicy, StackProps } from "aws-cdk-lib";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
-import * as ec2 from "aws-cdk-lib/aws-ec2";
-import { Stream, StreamEncryption } from "aws-cdk-lib/aws-kinesis";
 import { Construct } from "constructs";
+import { DynamoDBTable } from "../shared/table";
 
-interface DDBStackProps extends StackProps {
-  stackVpc: ec2.Vpc;
-  securityGroup: ec2.SecurityGroup;
-}
-
-export class DynamoDBStack extends NestedStack {
-  public sessionTableName;
-  public messageTableName;
+export class DynamoDBConstruct extends Construct {
+  public sessionTableName: string;
+  public messageTableName: string;
   public readonly byUserIdIndex: string = "byUserId";
   public readonly bySessionIdIndex: string = "bySessionId";
 
-  constructor(scope: Construct, id: string, props: DDBStackProps) {
-    super(scope, id, props);
+  constructor(scope: Construct, id: string) {
+    super(scope, id);
 
-    // Create DynamoDB table
-    const sessionsTable = new dynamodb.Table(this, "SessionsTable", {
-      partitionKey: {
-        name: "sessionId",
-        type: dynamodb.AttributeType.STRING,
-      },
-      sortKey: {
-        name: "userId",
-        type: dynamodb.AttributeType.STRING,
-      },
-      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-      encryption: dynamodb.TableEncryption.AWS_MANAGED,
-      removalPolicy: RemovalPolicy.DESTROY,
-    });
+    const sessionIdAttr = {
+      name: "sessionId",
+      type: dynamodb.AttributeType.STRING,
+    }
+    const userIdAttr = {
+      name: "userId",
+      type: dynamodb.AttributeType.STRING,
+    }
+    const messageIdAttr = {
+      name: "messageId",
+      type: dynamodb.AttributeType.STRING,
+    }
 
+    const sessionsTable = new DynamoDBTable(this, "SessionsTable", sessionIdAttr, userIdAttr).table;
     sessionsTable.addGlobalSecondaryIndex({
       indexName: this.byUserIdIndex,
       partitionKey: { name: "userId", type: dynamodb.AttributeType.STRING },
     });
-
-    const messagesTable = new dynamodb.Table(this, "MessagesTable", {
-      partitionKey: {
-        name: "messageId",
-        type: dynamodb.AttributeType.STRING,
-      },
-      sortKey: {
-        name: "sessionId",
-        type: dynamodb.AttributeType.STRING,
-      },
-      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-      encryption: dynamodb.TableEncryption.AWS_MANAGED,
-      removalPolicy: RemovalPolicy.DESTROY,
-    });
-
+    
+    const messagesTable = new DynamoDBTable(this, "MessagesTable", messageIdAttr, sessionIdAttr).table;
     messagesTable.addGlobalSecondaryIndex({
       indexName: this.bySessionIdIndex,
       partitionKey: { name: "sessionId", type: dynamodb.AttributeType.STRING },

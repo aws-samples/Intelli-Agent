@@ -131,7 +131,7 @@ class TableSystem(object):
 
     def _ocr(self, img, lang):
         h, w = img.shape[:2]
-        dt_boxes = self.text_detector(copy.deepcopy(img))
+        dt_boxes = self.text_detector[lang](copy.deepcopy(img))
         dt_boxes = sorted_boxes(dt_boxes)
 
         r_boxes = []

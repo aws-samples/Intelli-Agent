@@ -1,0 +1,319 @@
+AWS Data Pipeline,Amazon Data Pipeline
+AWS Firewall Manager,Amazon Firewall Manager
+AWS Elemental MediaLive,Amazon Elemental MediaLive
+AWS Signer,Amazon Signer
+Amazon Location Service,Amazon Location Service
+AWS CodeBuild,Amazon CodeBuild
+AWS Global Accelerator,Amazon Global Accelerator
+Amazon FSx for Lustre,Amazon FSx for Lustre
+Amazon Keyspaces,Amazon Keyspaces
+Amazon MemoryDB,Amazon MemoryDB
+AWS Health Dashboard,Amazon Health Dashboard
+Amazon Quantum Ledger Database (QLDB),Amazon Quantum Ledger Database (QLDB)
+Amazon WorkSpaces Application Manager,Amazon WorkSpaces Application Manager
+AWS Device Farm,Amazon Device Farm
+Amazon Backup,Amazon Backup
+AWS Transfer Family,Amazon Transfer Family
+Amazon WorkMail,Amazon WorkMail
+AWS Cloud Map,Amazon Cloud Map
+Elastic Load Balancing,Elastic Load Balancing
+AWS CloudTrail,Amazon CloudTrail
+AWS CodeStar,Amazon CodeStar
+Amazon CodeDeploy,Amazon CodeDeploy
+AWS HealthImaging,Amazon HealthImaging
+Amazon Monitron,Amazon Monitron
+Amazon Firewall Manager,Amazon Firewall Manager
+VMware Cloud on AWS,VMware Cloud on Amazon
+Amazon Keyspaces (for Apache Cassandra),Amazon Keyspaces (for Apache Cassandra)
+Amazon Directory Service,Amazon Directory Service
+Amazon Pinpoint,Amazon Pinpoint
+AWS Verified Access,Amazon Verified Access
+Amazon Direct Connect,Amazon Direct Connect
+AWS OpsWorks Stacks,Amazon OpsWorks Stacks
+AWS Database Migration Service,Amazon Database Migration Service
+AWS PrivateLink,Amazon PrivateLink
+AWS Telco Network Builder,Amazon Telco Network Builder
+AWS IoT Greengrass,Amazon IoT Greengrass
+Amazon Augmented AI (A2I),Amazon Augmented AI (A2I)
+Amazon CodeGuru,Amazon CodeGuru
+AWS IoT SiteWise,Amazon IoT SiteWise
+Amazon Batch,Amazon Batch
+AWS IoT Events,Amazon IoT Events
+Amazon ElastiCache,Amazon ElastiCache
+Amazon FSx for OpenZFS,Amazon FSx for OpenZFS
+Amazon Connect,Amazon Connect
+AWS Resource Explorer,Amazon Resource Explorer
+Amazon Step Functions,Amazon Step Functions
+Amazon QuickSight,Amazon QuickSight
+AWS Directory Service,Amazon Directory Service
+Amazon EC2 Auto Scaling,Amazon EC2 Auto Scaling
+EC2 Image Builder,EC2 Image Builder
+Amazon Cognito,Amazon Cognito
+AWS DataSync,Amazon DataSync
+Amazon Managed Streaming for Apache Kafka,Amazon Managed Streaming for Apache Kafka
+Amazon Comprehend,Amazon Comprehend
+Amazon Lumberyard,Amazon Lumberyard
+Amazon Lookout for Vision,Amazon Lookout for Vision
+Amazon DataSync,Amazon DataSync
+Amazon FSx for Windows File Server,Amazon FSx for Windows File Server
+AWS HealthOmics,Amazon HealthOmics
+AWS Application Discovery Service,Amazon Application Discovery Service
+Amazon Relational Database Service (RDS),Amazon Relational Database Service (RDS)
+Amazon CloudFormation,Amazon CloudFormation
+AWS License Manager,Amazon License Manager
+Amazon Elastic Compute Cloud (EC2),Amazon Elastic Compute Cloud (EC2)
+AWS IAM Identity Center,Amazon IAM Identity Center
+Amazon Neptune,Amazon Neptune
+AWS Support,Amazon Support
+Amazon EventBridge,Amazon EventBridge
+AWS IoT Core,Amazon IoT Core
+Amazon File Cache,Amazon File Cache
+Amazon Personalize,Amazon Personalize
+AWS Ground Station,Amazon Ground Station
+Amazon CloudWatch Logs,Amazon CloudWatch Logs
+AWS Fargate,Amazon Fargate
+AWS HealthLake,Amazon HealthLake
+Amazon VPC Lattice,Amazon VPC Lattice
+AWS Snowball,Amazon Snowball
+Amazon AppSync,Amazon AppSync
+Amazon Simple Email Service (SES),Amazon Simple Email Service (SES)
+Amazon Chime SDK,Amazon Chime SDK
+Amazon Serverless Application Repository,Amazon Serverless Application Repository
+Amazon DataZone,Amazon DataZone
+Amazon Fargate,Amazon Fargate
+AWS CodePipeline,Amazon CodePipeline
+AWS Entity Resolution,Amazon Entity Resolution
+AWS IoT 1-Click,Amazon IoT 1-Click
+AWS RoboMaker,Amazon RoboMaker
+Amazon IoT TwinMaker,Amazon IoT TwinMaker
+Amazon SimpleDB,Amazon SimpleDB
+AWS Batch,Amazon Batch
+AWS Glue,Amazon Glue
+AWS Artifact,Amazon Artifact
+Amazon App Mesh,Amazon App Mesh
+Amazon Managed Workflows for Apache Airflow (Amazon MWAA),Amazon Managed Workflows for Apache Airflow (Amazon MWAA)
+Amazon AppStream 2.0,Amazon AppStream 2.0
+AWS Auto Scaling,Amazon Auto Scaling
+AWS Clean Rooms,Amazon Clean Rooms
+FreeRTOS,FreeRTOS
+Amazon Route 53,Amazon Route 53
+AWS Proton,Amazon Proton
+AWS IoT Analytics,Amazon IoT Analytics
+Amazon Managed Workflows for Apache Airflow,Amazon Managed Workflows for Apache Airflow
+Amazon Lambda,Amazon Lambda
+Amazon Secrets Manager,Amazon Secrets Manager
+AWS Amplify,Amazon Amplify
+Amazon DocumentDB (with MongoDB compatibility),Amazon DocumentDB (with MongoDB compatibility)
+Amazon Virtual Private Cloud (VPC),Amazon Virtual Private Cloud (VPC)
+Amazon Kinesis Data Analytics,Amazon Kinesis Data Analytics
+Amazon Elastic Container Service (ECS),Amazon Elastic Container Service (ECS)
+AWS Certificate Manager,Amazon Certificate Manager
+Amazon Fraud Detector,Amazon Fraud Detector
+AWS Elastic Beanstalk,Amazon Elastic Beanstalk
+AWS Elemental MediaTailor,Amazon Elemental MediaTailor
+Amazon Elastic File System (EFS),Amazon Elastic File System (EFS)
+Amazon IoT Analytics,Amazon IoT Analytics
+Amazon Aurora - MySQL-compatible,Amazon Aurora - MySQL-compatible
+Amazon Translate,Amazon Translate
+AWS Private Certificate Authority,Amazon Private Certificate Authority
+AWS Wickr,Amazon Wickr
+Amazon SageMaker,Amazon SageMaker
+AWS Shield,Amazon Shield
+AWS User Notifications,Amazon User Notifications
+AWS Cloud Control API,Amazon Cloud Control API
+AWS Resource Groups,Amazon Resource Groups
+Amazon Chime,Amazon Chime
+Amazon CodeWhisperer,Amazon CodeWhisperer
+Amazon Detective,Amazon Detective
+Amazon Simple Notification Service (SNS),Amazon Simple Notification Service (SNS)
+Amazon Managed Service for Apache Flink,Amazon Managed Service for Apache Flink
+Amazon DynamoDB,Amazon DynamoDB
+CloudEndure Migration,CloudEndure Migration
+Amazon Simple Storage Service (S3),Amazon Simple Storage Service (S3)
+Amazon Transit Gateway,Amazon Transit Gateway
+Amazon Storage Gateway,Amazon Storage Gateway
+AWS CodeCommit,Amazon CodeCommit
+Amazon Health Dashboard,Amazon Health Dashboard
+AWS Payment Cryptography,Amazon Payment Cryptography
+Amazon AppFlow,Amazon AppFlow
+Amazon Lookout for Metrics,Amazon Lookout for Metrics
+Amazon Elastic Transcoder,Amazon Elastic Transcoder
+AWS Step Functions,Amazon Step Functions
+AWS App Mesh,Amazon App Mesh
+Amazon Simple Queue Service (SQS),Amazon Simple Queue Service (SQS)
+Amazon Config,Amazon Config
+AWS Marketplace,Amazon Marketplace
+Amazon Security Hub,Amazon Security Hub
+AWS DeepComposer,Amazon DeepComposer
+Amazon GuardDuty,Amazon GuardDuty
+Amazon Elastic Block Store (EBS),Amazon Elastic Block Store (EBS)
+Amazon Inspector Classic,Amazon Inspector Classic
+AWS DeepRacer,Amazon DeepRacer
+Amazon CodeCommit,Amazon CodeCommit
+AWS Elemental MediaConvert,Amazon Elemental MediaConvert
+Amazon Comprehend Medical,Amazon Comprehend Medical
+Amazon Athena,Amazon Athena
+Amazon Server Migration Service (SMS),Amazon Server Migration Service (SMS)
+AWS IoT Device Defender,Amazon IoT Device Defender
+AWS Snowmobile,Amazon Snowmobile
+Amazon Launch Wizard,Amazon Launch Wizard
+Amazon Identity and Access Management (IAM),Amazon Identity and Access Management (IAM)
+Amazon Rekognition,Amazon Rekognition
+Amazon Glue,Amazon Glue
+AWS Private 5G,Amazon Private 5G
+AWS Fault Injection Service,Amazon Fault Injection Service
+Amazon Cloud Control API,Amazon Cloud Control API
+AWS WAF,Amazon WAF
+AWS App Runner,Amazon App Runner
+AWS Cost and Usage Report,Amazon Cost and Usage Report
+Amazon Deep Learning AMis,Amazon Deep Learning AMis
+AWS Well-Architected Tool,Amazon Well-Architected Tool
+AWS Cloud9,Amazon Cloud9
+Amazon Trusted Advisor,Amazon Trusted Advisor
+Amazon Kendra,Amazon Kendra
+Amazon FSx,Amazon FSx
+Amazon Aurora,Amazon Aurora
+Amazon Kinesis Data Streams,Amazon Kinesis Data Streams
+Amazon PrivateLink,Amazon PrivateLink
+Amazon Managed Service for Prometheus,Amazon Managed Service for Prometheus
+Amazon CodePipeline,Amazon CodePipeline
+Amazon Cost & Usage Report,Amazon Cost & Usage Report
+AWS AppFabric,Amazon AppFabric
+Amazon Forecast,Amazon Forecast
+Amazon Service Catalog,Amazon Service Catalog
+Amazon Database Migration Service,Amazon Database Migration Service
+AWS Identity and Access Management (IAM),Amazon Identity and Access Management (IAM)
+AWS Service Catalog,Amazon Service Catalog
+AWS AppSync,Amazon AppSync
+Amazon Compute Optimizer,Amazon Compute Optimizer
+AWS Systems Manager,Amazon Systems Manager
+AWS OpsWorks for Chef Automate,Amazon OpsWorks for Chef Automate
+Amazon Lightsail,Amazon Lightsail
+Amazon IVS,Amazon IVS
+AWS Organizations,Amazon Organizations
+Amazon Inspector,Amazon Inspector
+AWS VPN,Amazon VPN
+AWS Storage Gateway,Amazon Storage Gateway
+AWS Direct Connect,Amazon Direct Connect
+Amazon IoT Device Management,Amazon IoT Device Management
+AWS Snowcone,Amazon Snowcone
+Amazon Macie,Amazon Macie
+AWS Security Hub,Amazon Security Hub
+Amazon IoT Sitewise,Amazon IoT Sitewise
+AWS Elemental MediaConnect,Amazon Elemental MediaConnect
+AWS Mainframe Modernization,Amazon Mainframe Modernization
+Amazon Lake Formation,Amazon Lake Formation
+Amazon Nimble Studio,Amazon Nimble Studio
+AWS IQ,Amazon IQ
+AWS Network Firewall,Amazon Network Firewall
+Amazon Managed Streaming for Apache Kafka (Amazon MSK),Amazon Managed Streaming for Apache Kafka (Amazon MSK)
+Elastic Load Balancing (ELB),Elastic Load Balancing (ELB)
+Amazon FreeRTOS,Amazon FreeRTOS
+Amazon IoT Events,Amazon IoT Events
+AWS Backup,Amazon Backup
+Amazon Braket,Amazon Braket
+Amazon Polly,Amazon Polly
+AWS Control Tower,Amazon Control Tower
+Amazon API Gateway,Amazon API Gateway
+Amazon Web Services Marketplace,Amazon Web Services Marketplace
+Amazon WorkSpaces Thin Client,Amazon WorkSpaces Thin Client
+Amazon Redshift,Amazon Redshift
+CloudEndure Disaster Recovery,CloudEndure Disaster Recovery
+AWS Launch Wizard,Amazon Launch Wizard
+AWS X-Ray,Amazon X-Ray
+Amazon Kinesis Video Streams,Amazon Kinesis Video Streams
+Amazon Network Firewall,Amazon Network Firewall
+Amazon Cloud Map,Amazon Cloud Map
+Amazon IoT Greengrass,Amazon IoT Greengrass
+AWS Outposts,Amazon Outposts
+AWS Resilience Hub,Amazon Resilience Hub
+Amazon IAM Identity Center,Amazon IAM Identity Center
+AWS Lake Formation,Amazon Lake Formation
+Amazon Elastic Kubernetes Service (EKS),Amazon Elastic Kubernetes Service (EKS)
+AWS Cost Explorer,Amazon Cost Explorer
+Amazon Textract,Amazon Textract
+Amazon IoT Device Defender,Amazon IoT Device Defender
+AWS Compute Optimizer,Amazon Compute Optimizer
+AWS CloudShell,Amazon CloudShell
+AWS Secrets Manager,Amazon Secrets Manager
+AWS IoT Device Management,Amazon IoT Device Management
+AWS Lambda,Amazon Lambda
+Amazon Elastic Beanstalk,Amazon Elastic Beanstalk
+Amazon Bedrock,Amazon Bedrock
+Amazon Timestream,Amazon Timestream
+AWS Elastic Disaster Recovery (DRS),Amazon Elastic Disaster Recovery (DRS)
+AWS Managed Services,Amazon Managed Services
+Amazon Simple Workflow Service (SWF),Amazon Simple Workflow Service (SWF)
+Amazon Data Firehose,Amazon Data Firehose
+AWS Budgets,Amazon Budgets
+Amazon WorkDocs,Amazon WorkDocs
+Amazon WAF,Amazon WAF
+AWS Serverless Application Repository,Amazon Serverless Application Repository
+Amazon Snow Family,Amazon Snow Family
+AWS CodeDeploy,Amazon CodeDeploy
+Amazon Security Lake,Amazon Security Lake
+Amazon Elastic Inference,Amazon Elastic Inference
+Amazon Cost Explorer,Amazon Cost Explorer
+AWS Application Migration Service (MGN),Amazon Application Migration Service (MGN)
+Amazon OpenSearch Service (successor to Amazon Elasticsearch Service),Amazon OpenSearch Service (successor to Amazon Elasticsearch Service)
+Amazon Lex,Amazon Lex
+Amazon Web Services Support,Amazon Web Services Support
+Amazon Transcribe,Amazon Transcribe
+AWS CodeArtifact,Amazon CodeArtifact
+AWS SimSpace Weaver,Amazon SimSpace Weaver
+Amazon Systems Manager,Amazon Systems Manager
+Amazon MemoryDB for Redis,Amazon MemoryDB for Redis
+Amazon Aurora - PostgreSQL-compatible,Amazon Aurora - PostgreSQL-compatible
+Amazon CodeBuild,Amazon CodeBuild
+Amazon Kinesis Streams,Amazon Kinesis Streams
+Amazon CloudWatch Events,Amazon CloudWatch Events
+Amazon CloudTrail,Amazon CloudTrail
+Amazon CloudWatch,Amazon CloudWatch
+Amazon Managed Blockchain,Amazon Managed Blockchain
+Amazon Elastic Container Registry (ECR),Amazon Elastic Container Registry (ECR)
+AWS Migration Hub,Amazon Migration Hub
+Amazon Organizations,Amazon Organizations
+Amazon RDS on VMware,Amazon RDS on VMware
+Amazon OpenSearch Service,Amazon OpenSearch Service
+AWS Config,Amazon Config
+AWS CloudFormation,Amazon CloudFormation
+Amazon Key Management Service(KMS),Amazon Key Management Service(KMS)
+AWS Key Management Service,Amazon Key Management Service
+Amazon License Manager,Amazon License Manager
+AWS Transit Gateway,Amazon Transit Gateway
+Amazon Workspaces,Amazon Workspaces
+AWS Elemental MediaPackage,Amazon Elemental MediaPackage
+Amazon Resource Access Manager,Amazon Resource Access Manager
+AWS Data Exchange,Amazon Data Exchange
+Red Hat OpenShift Service on AWS (ROSA),Red Hat OpenShift Service on Amazon (ROSA)
+Amazon Verified Permissions,Amazon Verified Permissions
+Amazon WorkSpaces,Amazon WorkSpaces
+Amazon X-Ray,Amazon X-Ray
+Amazon CloudFront,Amazon CloudFront
+AWS OpsWorks for Puppet Enterprise,Amazon OpsWorks for Puppet Enterprise
+Amazon Kinesis Data Firehose,Amazon Kinesis Data Firehose
+Amazon Managed Grafana,Amazon Managed Grafana
+Amazon GameLift,Amazon GameLift
+Amazon IoT Core,Amazon IoT Core
+Amazon Certificate Manager,Amazon Certificate Manager
+Amazon Budgets,Amazon Budgets
+Amazon WorkSpaces Web,Amazon WorkSpaces Web
+AWS Resource Access Manager (RAM),Amazon Resource Access Manager (RAM)
+Amazon Transfer Family,Amazon Transfer Family
+Amazon CloudSearch,Amazon CloudSearch
+Amazon Cloud Directory,Amazon Cloud Directory
+Amazon Honeycode,Amazon Honeycode
+AWS Server Migration Service (SMS),Amazon Server Migration Service (SMS)
+Amazon Elastic MapReduce (EMR),Amazon Elastic MapReduce (EMR)
+AWS Audit Manager,Amazon Audit Manager
+Amazon FinSpace,Amazon FinSpace
+AWS IoT TwinMaker,Amazon IoT TwinMaker
+Amazon MQ,Amazon MQ
+AWS Chatbot,Amazon Chatbot
+Amazon FSx for NetApp ONTAP,Amazon FSx for NetApp ONTAP
+Amazon Elastic File System(EFS),Amazon Elastic File System(EFS)
+AWS Elemental MediaStore,Amazon Elemental MediaStore
+Amazon DevOps Guru,Amazon DevOps Guru
+Amazon Glacier,Amazon Glacier
+AWS CloudHSM,Amazon CloudHSM
+AWS Trusted Advisor,Amazon Trusted Advisor

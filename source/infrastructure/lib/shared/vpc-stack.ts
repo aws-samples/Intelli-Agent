@@ -11,20 +11,19 @@
  *  and limitations under the License.                                                                                *
  *********************************************************************************************************************/
 
-import { NestedStack, StackProps } from "aws-cdk-lib";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
 import { Construct } from "constructs";
 import * as dotenv from "dotenv";
 
 dotenv.config();
 
-export class VpcStack extends NestedStack {
+export class VpcConstruct extends Construct {
   public connectorVpc;
   public privateSubnets;
   public securityGroup;
 
-  constructor(scope: Construct, id: string, props: StackProps = {}) {
-    super(scope, id, props);
+  constructor(scope: Construct, id: string) {
+    super(scope, id);
 
     this.connectorVpc = new ec2.Vpc(this, "LLM-VPC", {
       ipAddresses: ec2.IpAddresses.cidr("10.100.0.0/16"),

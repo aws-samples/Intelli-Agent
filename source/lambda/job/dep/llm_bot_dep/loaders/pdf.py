@@ -93,7 +93,7 @@ def process_pdf(s3, pdf: bytes, **kwargs):
               to specify the S3 bucket and key where the PDF file is located.
 
     Returns:
-    list[Doucment]: A list of Document objects, each representing a semantically grouped section of the PDF file. Each Document object contains a metadata defined in metadata_template, and page_content string with the text content of that section.
+    list[Document]: A list of Document objects, each representing a semantically grouped section of the PDF file. Each Document object contains a metadata defined in metadata_template, and page_content string with the text content of that section.
     """
     logger.info("Processing PDF file...")
     bucket = kwargs["bucket"]
@@ -102,6 +102,7 @@ def process_pdf(s3, pdf: bytes, **kwargs):
     etl_model_endpoint = kwargs.get("etl_model_endpoint", None)
     smr_client = kwargs.get("smr_client", None)
     res_bucket = kwargs.get("res_bucket", None)
+    document_language = kwargs.get("document_language", "zh")
     # extract file name also in consideration of file name with blank space
     local_path = str(os.path.basename(key))
     # download to local for futher processing
@@ -110,9 +111,6 @@ def process_pdf(s3, pdf: bytes, **kwargs):
     loader = PDFMinerPDFasHTMLLoader(local_path)
     # entire PDF is loaded as a single Document
     file_content = loader.load()[0].page_content
-
-    detected_lang = detect_language(file_content[:100000])
-    logger.info(f"Detected language: {detected_lang}")
 
     if not etl_model_endpoint or not smr_client or not res_bucket:
         logger.info(
@@ -127,7 +125,7 @@ def process_pdf(s3, pdf: bytes, **kwargs):
             doc.metadata["file_path"] = f"s3://{bucket}/{key}"
             doc.metadata["file_type"] = "pdf"
     else:
-        if detected_lang == "zh":
+        if document_language == "zh":
             logger.info("Detected language is Chinese, using default PDF loader...")
             markdown_prefix = invoke_etl_model(
                 smr_client,

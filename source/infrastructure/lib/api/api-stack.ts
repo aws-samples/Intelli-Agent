@@ -11,7 +11,7 @@
  *  and limitations under the License.                                                                                *
  *********************************************************************************************************************/
 
-import { Aws, Duration, NestedStack, StackProps } from "aws-cdk-lib";
+import { Aws, Duration, StackProps } from "aws-cdk-lib";
 import * as apigw from "aws-cdk-lib/aws-apigateway";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as iam from "aws-cdk-lib/aws-iam";
@@ -26,7 +26,7 @@ import { BuildConfig } from "../../lib/shared/build-config";
 import { Constants } from "../shared/constants";
 import { LambdaLayers } from "../shared/lambda-layers";
 import { QueueConstruct } from "./api-queue";
-import { WebSocketStack } from "./websocket-api";
+import { WebSocketConstruct } from "./websocket-api";
 import { Function, Runtime, Code, Architecture, DockerImageFunction, DockerImageCode } from 'aws-cdk-lib/aws-lambda';
 
 interface ApiStackProps extends StackProps {
@@ -49,14 +49,18 @@ interface ApiStackProps extends StackProps {
   jobDefinitionArn: string;
   etlEndpoint: string;
   resBucketName: string;
+  executionTableName: string;
+  etlObjTableName: string;
+  etlObjIndexName: string;
 }
 
-export class LLMApiStack extends NestedStack {
+export class ApiConstruct extends Construct {
   public apiEndpoint: string = "";
   public documentBucket: string = "";
   public wsEndpoint: string = "";
+  public wsEndpointV2: string = "";
   constructor(scope: Construct, id: string, props: ApiStackProps) {
-    super(scope, id, props);
+    super(scope, id);
 
     const apiVpc = props.apiVpc;
     const securityGroup = props.securityGroup;
@@ -70,23 +74,39 @@ export class LLMApiStack extends NestedStack {
     const jobDefinitionArn = props.jobDefinitionArn;
     const etlEndpoint = props.etlEndpoint;
     const resBucketName = props.resBucketName;
+    const executionTableName = props.executionTableName;
+    const etlObjTableName = props.etlObjTableName;
+    const etlObjIndexName = props.etlObjIndexName;
 
     const queueConstruct = new QueueConstruct(this, "LLMQueueStack", {
       namePrefix: Constants.API_QUEUE_NAME,
     });
     const sqsStatement = queueConstruct.sqsStatement;
     const messageQueue = queueConstruct.messageQueue;
+    const messageQueueV2 = queueConstruct.messageQueue;
 
     const lambdaLayers = new LambdaLayers(this);
     // const apiLambdaExecutorLayer = lambdaLayers.createExecutorLayer();
     const apiLambdaEmbeddingLayer = lambdaLayers.createEmbeddingLayer();
+    const apiLambdaOnlineUtilsLayer = lambdaLayers.createOnlineUtilsLayer();
 
     // S3 bucket for storing documents
     const s3Bucket = new s3.Bucket(this, "llm-bot-documents", {
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
     });
 
-    const lambdaEmbedding = new Function(this, "lambdaEmbedding", {
+    const ddbPolicyDocument = new iam.PolicyStatement({
+      actions: ["dynamodb:*"],
+      effect: iam.Effect.ALLOW,
+      resources: ["*"],
+    });
+    const s3PolicyDocument = new iam.PolicyStatement({
+      actions: ["s3:*"],
+      effect: iam.Effect.ALLOW,
+      resources: ["*"],
+    });
+
+    const embeddingLambda = new Function(this, "lambdaEmbedding", {
       runtime: Runtime.PYTHON_3_11,
       handler: "main.lambda_handler",
       code: Code.fromAsset(join(__dirname, "../../../lambda/embedding")),
@@ -106,7 +126,7 @@ export class LLMApiStack extends NestedStack {
       layers: [apiLambdaEmbeddingLayer],
     });
 
-    lambdaEmbedding.addToRolePolicy(
+    embeddingLambda.addToRolePolicy(
       new iam.PolicyStatement({
         actions: [
           "sagemaker:InvokeEndpointAsync",
@@ -121,7 +141,7 @@ export class LLMApiStack extends NestedStack {
       }),
     );
 
-    const lambdaAos = new Function(this, "lambdaAos", {
+    const aosLambda = new Function(this, "AOSLambda", {
       runtime: Runtime.PYTHON_3_11,
       handler: "main.lambda_handler",
       code: Code.fromAsset(join(__dirname, "../../../lambda/aos")),
@@ -140,7 +160,7 @@ export class LLMApiStack extends NestedStack {
       layers: [apiLambdaEmbeddingLayer],
     });
 
-    lambdaAos.addToRolePolicy(
+    aosLambda.addToRolePolicy(
       new iam.PolicyStatement({
         actions: [
           "sagemaker:InvokeEndpointAsync",
@@ -155,7 +175,7 @@ export class LLMApiStack extends NestedStack {
       }),
     );
 
-    const lambdaDdb = new Function(this, "lambdaDdb", {
+    const ddbLambda = new Function(this, "DDBLambda", {
       runtime: Runtime.PYTHON_3_11,
       handler: "rating.lambda_handler",
       code: Code.fromAsset(join(__dirname, "../../../lambda/ddb")),
@@ -171,65 +191,94 @@ export class LLMApiStack extends NestedStack {
       },
       securityGroups: [props.securityGroup],
     });
-
-    lambdaDdb.addToRolePolicy(
-      new iam.PolicyStatement({
-        actions: ["dynamodb:*"],
-        effect: iam.Effect.ALLOW,
-        resources: ["*"],
-      }),
-    );
+    ddbLambda.addToRolePolicy(ddbPolicyDocument);
 
     // Integration with Step Function to trigger ETL process
     // Lambda function to trigger Step Function
-    const lambdaStepFunction = new Function(this, "lambdaStepFunction", {
+    const sfnLambda = new Function(this, "StepFunctionLambda", {
       code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
       handler: "sfn_handler.handler",
       runtime: Runtime.PYTHON_3_11,
       timeout: Duration.seconds(30),
       environment: {
         sfn_arn: props.sfnOutput.stateMachineArn,
+        EXECUTION_TABLE: props.executionTableName,
       },
       memorySize: 256,
     });
+    sfnLambda.addToRolePolicy(ddbPolicyDocument);
 
     // Grant lambda function to invoke step function
-    props.sfnOutput.grantStartExecution(lambdaStepFunction);
+    props.sfnOutput.grantStartExecution(sfnLambda);
 
     // Add S3 event notification when file uploaded to the bucket
     s3Bucket.addEventNotification(
       s3.EventType.OBJECT_CREATED,
-      new s3n.LambdaDestination(lambdaStepFunction),
+      new s3n.LambdaDestination(sfnLambda),
       { prefix: "documents/" },
     );
     // Add S3 event notification when file deleted in the bucket
     s3Bucket.addEventNotification(
       s3.EventType.OBJECT_REMOVED,
-      new s3n.LambdaDestination(lambdaStepFunction),
+      new s3n.LambdaDestination(sfnLambda),
       { prefix: "documents/" },
     );
-    s3Bucket.grantReadWrite(lambdaStepFunction);
+    s3Bucket.grantReadWrite(sfnLambda);
 
-    const lambdaGetETLStatus = new Function(this, "lambdaGetETLStatus", {
+    const listExecutionLambda = new Function(this, "ListExecution", {
       code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
-      handler: "get_status.lambda_handler",
+      handler: "list_execution.lambda_handler",
       runtime: Runtime.PYTHON_3_11,
-      timeout: Duration.minutes(5),
+      timeout: Duration.minutes(15),
+      memorySize: 512,
+      architecture: Architecture.X86_64,
       environment: {
-        sfn_arn: props.sfnOutput.stateMachineArn,
+        EXECUTION_TABLE: executionTableName,
       },
-      memorySize: 256,
     });
+    listExecutionLambda.addToRolePolicy(ddbPolicyDocument);
 
-    lambdaGetETLStatus.addToRolePolicy(
-      new iam.PolicyStatement({
-        actions: ["states:DescribeExecution"],
-        effect: iam.Effect.ALLOW,
-        resources: ["*"],
-      }),
-    );
+    const getExecutionLambda = new Function(this, "GetExecution", {
+      code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
+      handler: "get_execution.lambda_handler",
+      runtime: Runtime.PYTHON_3_11,
+      timeout: Duration.minutes(15),
+      memorySize: 512,
+      architecture: Architecture.X86_64,
+      environment: {
+        ETL_OBJECT_TABLE: etlObjTableName,
+        ETL_OBJECT_INDEX: etlObjIndexName,
+      },
+    });
+    getExecutionLambda.addToRolePolicy(ddbPolicyDocument);
 
-    const lambdaBatch = new Function(this, "lambdaBatch", {
+    const delExecutionLambda = new Function(this, "DeleteExecution", {
+      code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
+      handler: "delete_execution.lambda_handler",
+      runtime: Runtime.PYTHON_3_11,
+      timeout: Duration.minutes(15),
+      memorySize: 512,
+      architecture: Architecture.X86_64,
+      environment: {
+        EXECUTION_TABLE: executionTableName,
+      },
+    });
+    delExecutionLambda.addToRolePolicy(ddbPolicyDocument);
+
+    const uploadDocLambda = new Function(this, "UploadDocument", {
+      code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
+      handler: "upload_document.lambda_handler",
+      runtime: Runtime.PYTHON_3_11,
+      timeout: Duration.minutes(3),
+      memorySize: 512,
+      architecture: Architecture.X86_64,
+      environment: {
+        S3_BUCKET: s3Bucket.bucketName,
+      },
+    });
+    uploadDocLambda.addToRolePolicy(s3PolicyDocument);
+
+    const batchLambda = new Function(this, "BatchLambda", {
       code: Code.fromAsset(join(__dirname, "../../../lambda/batch")),
       handler: "main.lambda_handler",
       runtime: Runtime.PYTHON_3_11,
@@ -251,7 +300,7 @@ export class LLMApiStack extends NestedStack {
       },
     });
 
-    lambdaBatch.addToRolePolicy(
+    batchLambda.addToRolePolicy(
       new iam.PolicyStatement({
         actions: [
           "sagemaker:InvokeEndpointAsync",
@@ -297,7 +346,7 @@ export class LLMApiStack extends NestedStack {
 
     // Define the API Gateway Lambda Integration with proxy and no integration responses
     const lambdaEmbeddingIntegration = new apigw.LambdaIntegration(
-      lambdaEmbedding,
+      embeddingLambda,
       { proxy: true },
     );
 
@@ -306,7 +355,7 @@ export class LLMApiStack extends NestedStack {
     apiResourceEmbedding.addMethod("POST", lambdaEmbeddingIntegration);
 
     // Define the API Gateway Lambda Integration with proxy and no integration responses
-    const lambdaAosIntegration = new apigw.LambdaIntegration(lambdaAos, {
+    const lambdaAosIntegration = new apigw.LambdaIntegration(aosLambda, {
       proxy: true,
     });
 
@@ -318,7 +367,7 @@ export class LLMApiStack extends NestedStack {
     apiResourceAos.addMethod("GET", lambdaAosIntegration);
 
     // Define the API Gateway Lambda Integration with proxy and no integration responses
-    const lambdaDdbIntegration = new apigw.LambdaIntegration(lambdaDdb, {
+    const lambdaDdbIntegration = new apigw.LambdaIntegration(ddbLambda, {
       proxy: true,
     });
 
@@ -329,17 +378,35 @@ export class LLMApiStack extends NestedStack {
     const apiResourceStepFunction = api.root.addResource("etl");
     apiResourceStepFunction.addMethod(
       "POST",
-      new apigw.LambdaIntegration(lambdaStepFunction),
+      new apigw.LambdaIntegration(sfnLambda),
     );
 
-    const apiResourceETLStatus = apiResourceStepFunction.addResource("status");
-    apiResourceETLStatus.addMethod(
+    const apiGetExecution = apiResourceStepFunction.addResource("execution");
+    apiGetExecution.addMethod(
       "GET",
-      new apigw.LambdaIntegration(lambdaGetETLStatus),
+      new apigw.LambdaIntegration(getExecutionLambda),
+    );
+
+    const apiListExecution = apiResourceStepFunction.addResource("list-execution");
+    apiListExecution.addMethod(
+      "GET",
+      new apigw.LambdaIntegration(listExecutionLambda),
+    );
+
+    const apiDelExecution = apiResourceStepFunction.addResource("delete-execution");
+    apiDelExecution.addMethod(
+      "POST",
+      new apigw.LambdaIntegration(delExecutionLambda),
+    );
+
+    const apiUploadDoc = apiResourceStepFunction.addResource("upload-s3-url");
+    apiUploadDoc.addMethod(
+      "POST",
+      new apigw.LambdaIntegration(uploadDocLambda),
     );
 
     // Define the API Gateway Lambda Integration to invoke Batch job
-    const lambdaBatchIntegration = new apigw.LambdaIntegration(lambdaBatch, {
+    const lambdaBatchIntegration = new apigw.LambdaIntegration(batchLambda, {
       proxy: true,
     });
 
@@ -429,12 +496,220 @@ export class LLMApiStack extends NestedStack {
       });
       lambdaDispatcher.addToRolePolicy(sqsStatement);
 
-      const webSocketApi = new WebSocketStack(this, "WebSocketApi", {
+      const webSocketApi = new WebSocketConstruct(this, "WebSocketApi", {
         dispatcherLambda: lambdaDispatcher,
         sendMessageLambda: lambdaExecutor,
       });
       let wsStage = webSocketApi.websocketApiStage
       this.wsEndpoint = `${wsStage.api.apiEndpoint}/${wsStage.stageName}/`;
+
+      const lambdaOnlineMain = new Function(this, "lambdaOnlineMain", {
+        runtime: Runtime.PYTHON_3_12,
+        handler: "main.lambda_handler",
+        code: Code.fromAsset(
+          join(__dirname, "../../../lambda/online/lambda_main"),
+        ),
+        timeout: Duration.minutes(15),
+        memorySize: 4096,
+        vpc: apiVpc,
+        vpcSubnets: {
+          subnets: apiVpc.privateSubnets,
+        },
+        securityGroups: [securityGroup],
+        architecture: Architecture.X86_64,
+        layers: [apiLambdaOnlineUtilsLayer],
+        // environment: {
+        //   aos_endpoint: domainEndpoint,
+        //   llm_model_endpoint_name: props.instructEndPoint,
+        //   llm_model_id: props.llmModelId,
+        //   embedding_endpoint: props.embeddingEndPoints[0],
+        //   zh_embedding_endpoint: props.embeddingEndPoints[0],
+        //   en_embedding_endpoint: props.embeddingEndPoints[0],
+        //   intent_recognition_embedding_endpoint: props.embeddingEndPoints[0],
+        //   rerank_endpoint: props.rerankEndPoint,
+        //   aos_index: aosIndex,
+        //   aos_index_dict: aosIndexDict,
+        //   sessions_table_name: sessionsTableName,
+        //   messages_table_name: messagesTableName,
+        //   workspace_table: workspaceTableName,
+        // },
+      });
+
+      lambdaOnlineMain.addToRolePolicy(
+        new iam.PolicyStatement({
+          // principals: [new iam.AnyPrincipal()],
+          actions: [
+            "sagemaker:InvokeEndpointAsync",
+            "sagemaker:InvokeEndpoint",
+            "s3:List*",
+            "s3:Put*",
+            "s3:Get*",
+            "es:*",
+            "dynamodb:*",
+            "secretsmanager:GetSecretValue",
+            "translate:*",
+            "bedrock:*",
+            "lambda:InvokeFunction",
+          ],
+          effect: iam.Effect.ALLOW,
+          resources: ["*"],
+        }),
+      );
+      lambdaOnlineMain.addToRolePolicy(sqsStatement);
+      lambdaOnlineMain.addEventSource(
+        new lambdaEventSources.SqsEventSource(messageQueue, { batchSize: 1 }),
+      );
+
+      const lambdaOnlineQueryPreprocess = new Function(this, "lambdaOnlineQueryPreprocess", {
+        runtime: Runtime.PYTHON_3_12,
+        handler: "main.lambda_handler",
+        functionName: "Online_Query_Preprocess",
+        code: Code.fromAsset(
+          join(__dirname, "../../../lambda/online/lambda_query_preprocess"),
+        ),
+        timeout: Duration.minutes(15),
+        memorySize: 4096,
+        vpc: apiVpc,
+        vpcSubnets: {
+          subnets: apiVpc.privateSubnets,
+        },
+        securityGroups: [securityGroup],
+        architecture: Architecture.X86_64,
+        layers: [apiLambdaOnlineUtilsLayer],
+      });
+
+      const lambdaOnlineIntentionDetection = new Function(this, "lambdaOnlineIntentionDetection", {
+        runtime: Runtime.PYTHON_3_12,
+        handler: "main.lambda_handler",
+        functionName: "Online_Intention_Detection",
+        code: Code.fromAsset(
+          join(__dirname, "../../../lambda/online/lambda_intention_detection"),
+        ),
+        timeout: Duration.minutes(15),
+        memorySize: 4096,
+        vpc: apiVpc,
+        vpcSubnets: {
+          subnets: apiVpc.privateSubnets,
+        },
+        securityGroups: [securityGroup],
+        architecture: Architecture.X86_64,
+        layers: [apiLambdaOnlineUtilsLayer],
+      });
+
+      const lambdaOnlineAgent = new Function(this, "lambdaOnlineAgent", {
+        runtime: Runtime.PYTHON_3_12,
+        handler: "main.lambda_handler",
+        functionName: "Online_Agent",
+        code: Code.fromAsset(
+          join(__dirname, "../../../lambda/online/lambda_agent"),
+        ),
+        timeout: Duration.minutes(15),
+        memorySize: 4096,
+        vpc: apiVpc,
+        vpcSubnets: {
+          subnets: apiVpc.privateSubnets,
+        },
+        securityGroups: [securityGroup],
+        architecture: Architecture.X86_64,
+        layers: [apiLambdaOnlineUtilsLayer],
+      });
+
+      const lambdaOnlineLLMGenerate = new Function(this, "lambdaOnlineLLMGenerate", {
+        runtime: Runtime.PYTHON_3_12,
+        handler: "main.lambda_handler",
+        functionName: "Online_LLM_Generate",
+        code: Code.fromAsset(
+          join(__dirname, "../../../lambda/online/lambda_llm_generate"),
+        ),
+        timeout: Duration.minutes(15),
+        memorySize: 4096,
+        vpc: apiVpc,
+        vpcSubnets: {
+          subnets: apiVpc.privateSubnets,
+        },
+        securityGroups: [securityGroup],
+        architecture: Architecture.X86_64,
+        layers: [apiLambdaOnlineUtilsLayer],
+      });
+
+      const lambdaOnlineFunctionKnowledgeBase = new Function(this, "lambdaOnlineKnowledgeBase", {
+        runtime: Runtime.PYTHON_3_12,
+        handler: "main.lambda_handler",
+        functionName: "Online_Function_Knowledge_Base",
+        code: Code.fromAsset(
+          join(__dirname, "../../../lambda/online/functions/lambda_knowledge_base"),
+        ),
+        timeout: Duration.minutes(15),
+        memorySize: 4096,
+        vpc: apiVpc,
+        vpcSubnets: {
+          subnets: apiVpc.privateSubnets,
+        },
+        securityGroups: [securityGroup],
+        architecture: Architecture.X86_64,
+        layers: [apiLambdaOnlineUtilsLayer],
+      });
+
+      const lambdaOnlineFunctionWebSearch = new Function(this, "lambdaOnlineWebSearch", {
+        runtime: Runtime.PYTHON_3_12,
+        handler: "main.lambda_handler",
+        functionName: "Online_Function_Web_Search",
+        code: Code.fromAsset(
+          join(__dirname, "../../../lambda/online/functions/lambda_web_search"),
+        ),
+        timeout: Duration.minutes(15),
+        memorySize: 4096,
+        vpc: apiVpc,
+        vpcSubnets: {
+          subnets: apiVpc.privateSubnets,
+        },
+        securityGroups: [securityGroup],
+        architecture: Architecture.X86_64,
+        layers: [apiLambdaOnlineUtilsLayer],
+      });
+
+      lambdaOnlineQueryPreprocess.grantInvoke(lambdaOnlineMain);
+      lambdaOnlineIntentionDetection.grantInvoke(lambdaOnlineMain);
+      lambdaOnlineAgent.grantInvoke(lambdaOnlineMain);
+      lambdaOnlineLLMGenerate.grantInvoke(lambdaOnlineMain);
+      lambdaOnlineFunctionKnowledgeBase.grantInvoke(lambdaOnlineMain);
+      lambdaOnlineFunctionWebSearch.grantInvoke(lambdaOnlineMain);
+
+      // Define the API Gateway Lambda Integration with proxy and no integration responses
+      const lambdaExecutorIntegrationV2 = new apigw.LambdaIntegration(
+        lambdaOnlineMain,
+        { proxy: true },
+      );
+
+      // Define the API Gateway Method
+      const apiResourceLLMV2 = api.root.addResource("llmv2");
+      apiResourceLLMV2.addMethod("POST", lambdaExecutorIntegrationV2);
+
+      const lambdaDispatcherV2 = new Function(this, "lambdaDispatcherV2", {
+        runtime: Runtime.PYTHON_3_11,
+        handler: "main.lambda_handler",
+        code: Code.fromAsset(join(__dirname, "../../../lambda/dispatcher")),
+        timeout: Duration.minutes(15),
+        memorySize: 1024,
+        vpc: apiVpc,
+        vpcSubnets: {
+          subnets: apiVpc.privateSubnets,
+        },
+        securityGroups: [securityGroup],
+        architecture: Architecture.X86_64,
+        environment: {
+          SQS_QUEUE_URL: messageQueueV2.queueUrl,
+        },
+      });
+      lambdaDispatcherV2.addToRolePolicy(sqsStatement);
+
+      const webSocketApiV2 = new WebSocketConstruct(this, "WebSocketApiV2", {
+        dispatcherLambda: lambdaDispatcherV2,
+        sendMessageLambda: lambdaOnlineMain,
+      });
+      let wsStageV2 = webSocketApiV2.websocketApiStage
+      this.wsEndpointV2 = `${wsStageV2.api.apiEndpoint}/${wsStageV2.stageName}/`;
+ 
     }
 
     this.apiEndpoint = api.url;

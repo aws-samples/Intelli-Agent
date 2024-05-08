@@ -862,7 +862,7 @@ class WorkflowExecutor:
             summary (list): Rounds of experiments with metrics of relevance and retrieval score.
 
         Returns:
-            Display the bar charts of average relevance and retrieval score seperately with x axis as rounds of experiments and y axis as average score and similarity score.
+            Display the bar charts of average relevance and retrieval score separately with x axis as rounds of experiments and y axis as average score and similarity score.
         """
         # Convert the data to a DataFrame
         df = pd.DataFrame(summary)

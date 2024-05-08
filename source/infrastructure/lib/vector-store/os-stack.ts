@@ -11,7 +11,7 @@
  *  and limitations under the License.                                                                                *
  *********************************************************************************************************************/
 
-import { NestedStack, RemovalPolicy, StackProps } from "aws-cdk-lib";
+import { RemovalPolicy, StackProps } from "aws-cdk-lib";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as iam from "aws-cdk-lib/aws-iam";
 import { Domain, EngineVersion } from "aws-cdk-lib/aws-opensearchservice";
@@ -19,17 +19,17 @@ import { Construct } from "constructs";
 
 import { BuildConfig } from "../../lib/shared/build-config";
 
-interface OSStackProps extends StackProps {
+interface AOSProps extends StackProps {
   osVpc: ec2.Vpc;
   securityGroup: ec2.SecurityGroup;
 }
 
-export class OpenSearchStack extends NestedStack {
+export class AOSConstruct extends Construct {
   public domainEndpoint;
   public domain;
 
-  constructor(scope: Construct, id: string, props: OSStackProps) {
-    super(scope, id, props);
+  constructor(scope: Construct, id: string, props: AOSProps) {
+    super(scope, id);
     console.log("BuildConfig.DEPLOYMENT_MODE: ", BuildConfig.DEPLOYMENT_MODE);
 
     // If deployment mode is OFFLINE_OPENSEARCH or ALL, then create the following resources

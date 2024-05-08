@@ -6,135 +6,6 @@ servers:
   - url: "https://<api-id>.execute-api.us-east-1.amazonaws.com/v1"
     description: API for LLM ETL operations
 paths:
-  /extract:
-    post:
-      summary: Extract contents from document directly from S3 bucket
-      operationId: extractDocument
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                s3_prefix:
-                  type: string
-                s3_bucket:
-                  type: string
-                need_split:
-                  type: boolean
-            example:
-              s3_prefix: "prefix/pdf-sample-01.pdf"
-              s3_bucket: "bucket-name"
-              need_split: false
-      responses:
-        "200":
-          description: Data extraction successful.
-      security:
-        - UserAgentHeader: []
-  /aos:
-    get:
-      summary: Query all results with specific AOS index
-      operationId: queryAllAOS
-      parameters:
-        - name: aos_index
-          in: query
-          required: true
-          schema:
-            type: string
-          example: "chatbot-index"
-        - name: operation
-          in: query
-          required: true
-          schema:
-            type: string
-          example: "query_all"
-        - name: body
-          in: query
-          required: false
-          schema:
-            type: string
-          example: ""
-      responses:
-        "200":
-          description: Query successful.
-      security:
-        - UserAgentHeader: []
-    post:
-      summary: Embed & Inject document into specific AOS index synchronously
-      operationId: documentOnlineProcess
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                aos_index:
-                  type: string
-                operation:
-                  type: string
-                body:
-                  type: object
-                  properties:
-                    documents:
-                      type: object
-                      properties:
-                        page_content:
-                          type: string
-                        metadata:
-                          type: object
-                          properties:
-                            source:
-                              type: string
-                            filename:
-                              type: string
-                            last_modified:
-                              type: string
-                            filetype:
-                              type: string
-                            parent_id:
-                              type: string
-                            languages:
-                              type: array
-                              items:
-                                type: string
-                            page_number:
-                              type: integer
-                            category:
-                              type: string
-                            content_type:
-                              type: string
-                            heading_hierarchy:
-                              type: object
-                            current_heading:
-                              type: string
-                            chunk_id:
-                              type: string
-            example:
-              aos_index: "chatbot-index"
-              operation: "embed_document"
-              body:
-                documents:
-                  page_content: "1818"
-                  metadata:
-                    source: "benchmark.md"
-                    filename: "benchmark.md"
-                    last_modified: "2023-11-22T15:33:18"
-                    filetype: "text/markdown"
-                    parent_id: "69824d3b0e70ca6aaa0da1613b65fd91"
-                    languages: ["eng"]
-                    page_number: 1
-                    category: "UncategorizedText"
-                    content_type: "paragraph"
-                    heading_hierarchy: {}
-                    current_heading: "1818"
-                    chunk_id: "$0-aca48569"
-      responses:
-        "200":
-          description: Embed & Inject document into specific AOS index synchronously successfully.
-      security:
-        - UserAgentHeader: []
   /etl:
     post:
       summary: Embed & Inject document into specific AOS index asynchronously
@@ -150,23 +21,62 @@ paths:
                   type: string
                 s3Prefix:
                   type: string
-                aosIndex:
-                  type: string
-                qaEnhance:
-                  type: boolean
                 offline:
-                  type: boolean
+                  type: string
+                workspaceId:
+                  type: string
+                operationType:
+                  type: string
             example:
               s3Bucket: "bucket-name"
               s3Prefix: "prefix"
-              aosIndex: "chatbot-index"
-              qaEnhance: false
-              offline: true
+              offline: "true"
+              workspaceId: "workspace-id"
+              operationType: "create"
       responses:
         "200":
           description: Embed & Inject document into specific AOS index asynchronously successfully.
       security:
         - UserAgentHeader: []
+  /llm:
+    post:
+      summary: LLM Bot Question Answering API
+      operationId: questionAnswering
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                messages:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      role:
+                        type: string
+                      content:
+                        type: string
+                type:
+                  type: string
+                retriever_config:
+                  type: object
+                  properties:
+                    workspace_ids:
+                      type: array
+                      items:
+                        type: string
+            example:
+              messages:
+                - role: "user"
+                  content: "你好"
+              type: "common"
+              retriever_config:
+                workspace_ids: []
+      responses:
+        "200":
+          description: Successful operation
 components:
   securitySchemes:
     UserAgentHeader:

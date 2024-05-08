@@ -1,2 +1,4 @@
 # This file is used by Viperlight utility to override findings (false alarm)
 .github/workflows/
+tests/data/
+tests/buildspec_build.sh
