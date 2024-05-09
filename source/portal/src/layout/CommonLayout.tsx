@@ -91,6 +91,7 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
             text: ZH_LANGUAGE_LIST.includes(i18n.language) ? ZH_TEXT : EN_TEXT,
             onItemClick: (item) => {
               changeLanguage(item.detail.id);
+              window.location.reload();
             },
             items:
               i18n.language === DEFAULT_ZH_LANG
@@ -110,13 +111,17 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
                 auth.removeUser();
               }
             },
-            items: [{ id: 'signout', text: 'Sign out' }],
+            items: [{ id: 'signout', text: t('signOut') }],
           },
         ]}
       />
       <AppLayout
         notifications={<Flashbar items={flashBar ?? []} />}
-        breadcrumbs={<CustomBreadCrumb breadcrumbItems={breadCrumbs ?? []} />}
+        breadcrumbs={
+          breadCrumbs ? (
+            <CustomBreadCrumb breadcrumbItems={breadCrumbs} />
+          ) : undefined
+        }
         navigation={
           <SideNavigation
             activeHref={activeHref}
@@ -130,22 +135,22 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
             items={[
               {
                 type: 'section',
-                text: 'Chat Space',
+                text: t('chatSpace'),
                 items: [
                   {
                     type: 'link',
-                    text: 'Chat Bot',
+                    text: t('chatBot'),
                     href: '/',
                   },
                 ],
               },
               {
                 type: 'section',
-                text: 'Settings',
+                text: t('settings'),
                 items: [
                   {
                     type: 'link',
-                    text: 'Docs Library',
+                    text: t('docLibrary'),
                     href: '/library',
                   },
                 ],
@@ -153,8 +158,8 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
               { type: 'divider' },
               {
                 type: 'link',
-                text: 'Documentation',
-                href: 'https://example.com',
+                text: t('documentation'),
+                href: 'https://docs.aws.amazon.com/',
                 external: true,
               },
             ]}

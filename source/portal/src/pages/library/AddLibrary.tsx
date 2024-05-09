@@ -17,10 +17,12 @@ import CommonLayout from 'src/layout/CommonLayout';
 import ConfigContext from 'src/context/config-context';
 import { alertMsg } from 'src/utils/utils';
 import { AxiosProgressEvent } from 'axios';
+import { useTranslation } from 'react-i18next';
 
 const AddLibrary: React.FC = () => {
   const navigate = useNavigate();
   const config = useContext(ConfigContext);
+  const { t } = useTranslation();
 
   const [uploadFiles, setUploadFiles] = useState<File[]>([]);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -72,15 +74,15 @@ const AddLibrary: React.FC = () => {
       activeHref="/library"
       breadCrumbs={[
         {
-          text: 'AWS LLM Bot',
+          text: t('name'),
           href: '/',
         },
         {
-          text: 'Docs Library',
+          text: t('docLibrary'),
           href: '/library',
         },
         {
-          text: 'Add',
+          text: t('addLibrary'),
           href: '/library/add',
         },
       ]}
@@ -89,11 +91,8 @@ const AddLibrary: React.FC = () => {
         <Container
           variant="default"
           header={
-            <Header
-              variant="h2"
-              description="Please select the file to be imported"
-            >
-              Ingest
+            <Header variant="h2" description={t('ingestDesc')}>
+              {t('ingest')}
             </Header>
           }
         >
@@ -108,47 +107,47 @@ const AddLibrary: React.FC = () => {
                     navigate('/library');
                   }}
                 >
-                  Back to list
+                  {t('button.backToList')}
                 </Button>
               }
             >
               <SpaceBetween direction="vertical" size="l">
                 <FormField
-                  label="Select File"
-                  description="After the file is successfully uploaded, the ingestion process will begin."
+                  label={t('selectFile')}
+                  description={t('selectFileDesc')}
                 >
                   <FileUpload
                     onChange={({ detail }) => setUploadFiles(detail.value)}
                     value={uploadFiles}
                     i18nStrings={{
                       uploadButtonText: (e) =>
-                        e ? 'Choose files' : 'Choose file',
+                        e ? t('chooseFiles') : t('chooseFile'),
                       dropzoneText: (e) =>
-                        e ? 'Drop files to upload' : 'Drop file to upload',
-                      removeFileAriaLabel: (e) => `Remove file ${e + 1}`,
-                      limitShowFewer: 'Show fewer files',
-                      limitShowMore: 'Show more files',
-                      errorIconAriaLabel: 'Error',
+                        e ? t('dropFilesToUpload') : t('dropFileToUpload'),
+                      removeFileAriaLabel: (e) => `${t('removeFIle')} ${e + 1}`,
+                      limitShowFewer: t('showFewer'),
+                      limitShowMore: t('showMore'),
+                      errorIconAriaLabel: t('error'),
                     }}
                     showFileLastModified
                     showFileSize
                     showFileThumbnail
                     tokenLimit={1}
                     accept=".pdf,.csv,.doc,.docx,.html,.json,.jsonl,.txt,.md"
-                    constraintText="Supported file types: pdf, csv, doc, docx, html, json, jsonl, txt, md."
+                    constraintText={`${t('supportFiles')} pdf, csv, doc, docx, html, json, jsonl, txt, md.`}
                   />
                 </FormField>
                 {showProgress && (
                   <FormField>
                     <ProgressBar
                       value={uploadProgress}
-                      label="Upload progress"
+                      label={t('uploadProgress')}
                     />
                   </FormField>
                 )}
                 {showSuccess && (
                   <StatusIndicator type="success">
-                    Upload Succeed.
+                    {t('uploadSuccess')}
                   </StatusIndicator>
                 )}
               </SpaceBetween>

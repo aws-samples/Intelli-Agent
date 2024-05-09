@@ -16,6 +16,7 @@ import { LibraryListItem, LibraryListResponse } from 'src/types';
 import { alertMsg, formatTime } from 'src/utils/utils';
 import TableLink from 'src/comps/link/TableLink';
 import useAxiosRequest from 'src/hooks/useAxiosRequest';
+import { useTranslation } from 'react-i18next';
 
 const parseDate = (item: LibraryListItem) => {
   return item.createTime ? new Date(item.createTime) : 0;
@@ -26,6 +27,7 @@ const Library: React.FC = () => {
   const fetchData = useAxiosRequest();
   const [visible, setVisible] = useState(false);
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [loadingData, setLoadingData] = useState(false);
   const [libraryList, setLibraryList] = useState<LibraryListItem[]>([]);
   const [loadingDelete, setLoadingDelete] = useState(false);
@@ -78,11 +80,13 @@ const Library: React.FC = () => {
 
   const renderStatus = (status: string) => {
     if (status === 'COMPLETED') {
-      return <StatusIndicator type="success">Completed</StatusIndicator>;
+      return <StatusIndicator type="success">{t('completed')}</StatusIndicator>;
     } else if (status === 'IN-PROGRESS') {
-      return <StatusIndicator type="loading">In Progress</StatusIndicator>;
+      return (
+        <StatusIndicator type="loading">{t('inProgress')}</StatusIndicator>
+      );
     } else {
-      return <StatusIndicator type="error">Failed</StatusIndicator>;
+      return <StatusIndicator type="error">{t('failed')}</StatusIndicator>;
     }
   };
 
@@ -101,11 +105,11 @@ const Library: React.FC = () => {
       activeHref="/library"
       breadCrumbs={[
         {
-          text: 'AWS LLM Bot',
+          text: t('name'),
           href: '/',
         },
         {
-          text: 'Docs Library',
+          text: t('docLibrary'),
           href: '/library',
         },
       ]}
@@ -119,35 +123,34 @@ const Library: React.FC = () => {
           }
           selectedItems={selectedItems}
           ariaLabels={{
-            selectionGroupLabel: 'Items selection',
             allItemsSelectionLabel: ({ selectedItems }) =>
               `${selectedItems.length} ${
-                selectedItems.length === 1 ? 'item' : 'items'
-              } selected`,
+                selectedItems.length === 1 ? t('item') : t('items')
+              } ${t('selected')}`,
           }}
           columnDefinitions={[
             {
               id: 'executionId',
-              header: 'ID',
+              header: t('id'),
               cell: (item: LibraryListItem) => LinkComp(item),
               sortingField: 'name',
               isRowHeader: true,
             },
             {
               id: 'bucket',
-              header: 'Bucket',
+              header: t('bucket'),
               cell: (item: LibraryListItem) => item.s3Bucket,
               sortingField: 'alt',
             },
             {
               id: 'prefix',
-              header: 'Prefix',
+              header: t('prefix'),
               cell: (item: LibraryListItem) => item.s3Prefix,
             },
             {
               width: 90,
               id: 'offline',
-              header: 'Offline',
+              header: t('offline'),
               cell: (item: LibraryListItem) =>
                 item.offline === 'true' ? 'Yes' : 'No',
             },
@@ -155,37 +158,37 @@ const Library: React.FC = () => {
             {
               width: 120,
               id: 'indexType',
-              header: 'Index Type',
+              header: t('indexType'),
               cell: (item: LibraryListItem) => item.indexType,
             },
             {
               width: 150,
               id: 'status',
-              header: 'Status',
+              header: t('status'),
               cell: (item: LibraryListItem) =>
                 renderStatus(item.executionStatus),
             },
             {
               width: 180,
               id: 'createTime',
-              header: 'CreateTime',
+              header: t('createTime'),
               cell: (item: LibraryListItem) => formatTime(item.createTime),
             },
           ]}
           items={libraryList}
-          loadingText="Loading resources"
+          loadingText={t('loadingData')}
           selectionType="multi"
           trackBy="executionId"
           empty={
             <Box margin={{ vertical: 'xs' }} textAlign="center" color="inherit">
               <SpaceBetween size="m">
-                <b>No data</b>
+                <b>{t('noData')}</b>
               </SpaceBetween>
             </Box>
           }
           filter={
             <TextFilter
-              filteringPlaceholder="Find resources"
+              filteringPlaceholder={t('findResources')}
               filteringText=""
             />
           }
@@ -206,7 +209,7 @@ const Library: React.FC = () => {
                       setVisible(true);
                     }}
                   >
-                    Delete
+                    {t('button.delete')}
                   </Button>
                   <Button
                     variant="primary"
@@ -214,7 +217,7 @@ const Library: React.FC = () => {
                       navigate('/library/add');
                     }}
                   >
-                    Create Docs Library
+                    {t('button.createDocLibrary')}
                   </Button>
                 </SpaceBetween>
               }
@@ -224,7 +227,7 @@ const Library: React.FC = () => {
                   : `(${libraryList.length})`
               }
             >
-              Documents Library
+              {t('docLibrary')}
             </Header>
           }
         />
@@ -240,7 +243,7 @@ const Library: React.FC = () => {
                     setVisible(false);
                   }}
                 >
-                  Cancel
+                  {t('button.cancel')}
                 </Button>
                 <Button
                   loading={loadingDelete}
@@ -249,14 +252,14 @@ const Library: React.FC = () => {
                     removeLibrary();
                   }}
                 >
-                  Delete
+                  {t('button.delete')}
                 </Button>
               </SpaceBetween>
             </Box>
           }
           header="Delete"
         >
-          Are you sure you want to delete the selected items ?
+          <Box variant="h4">{t('deleteTips')}</Box>
           <div className="selected-items-list">
             <ul>
               {selectedItems.map((item) => (
