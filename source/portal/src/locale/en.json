@@ -52,6 +52,7 @@
     "closing": "Closing...",
     "pending": "Pending",
     "typeMessage": "Type a message",
+    "alert": "Warning",
     "button": {
       "login": "Log in to LLM Bot",
       "reload": "Reload",

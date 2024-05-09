@@ -17,10 +17,13 @@ import { alertMsg, formatTime } from 'src/utils/utils';
 import TableLink from 'src/comps/link/TableLink';
 import useAxiosRequest from 'src/hooks/useAxiosRequest';
 import { useTranslation } from 'react-i18next';
+import { LIBRARY_DEFAULT_PREFIX } from 'src/utils/const';
 
 const parseDate = (item: LibraryListItem) => {
   return item.createTime ? new Date(item.createTime) : 0;
 };
+
+const regex = new RegExp(`^${LIBRARY_DEFAULT_PREFIX}`, 'g');
 
 const Library: React.FC = () => {
   const [selectedItems, setSelectedItems] = useState<LibraryListItem[]>([]);
@@ -34,6 +37,7 @@ const Library: React.FC = () => {
 
   const getLibraryList = async () => {
     setLoadingData(true);
+    setSelectedItems([]);
     const params = {
       size: 9999,
       total: 9999,
@@ -137,24 +141,10 @@ const Library: React.FC = () => {
               isRowHeader: true,
             },
             {
-              id: 'bucket',
-              header: t('bucket'),
-              cell: (item: LibraryListItem) => item.s3Bucket,
-              sortingField: 'alt',
-            },
-            {
               id: 'prefix',
               header: t('prefix'),
-              cell: (item: LibraryListItem) => item.s3Prefix,
+              cell: (item: LibraryListItem) => item.s3Prefix.replace(regex, ''),
             },
-            {
-              width: 90,
-              id: 'offline',
-              header: t('offline'),
-              cell: (item: LibraryListItem) =>
-                item.offline === 'true' ? 'Yes' : 'No',
-            },
-
             {
               width: 120,
               id: 'indexType',
@@ -257,13 +247,15 @@ const Library: React.FC = () => {
               </SpaceBetween>
             </Box>
           }
-          header="Delete"
+          header={t('alert')}
         >
           <Box variant="h4">{t('deleteTips')}</Box>
           <div className="selected-items-list">
             <ul>
               {selectedItems.map((item) => (
-                <li key={item.executionId}>{item.executionId}</li>
+                <li key={item.executionId}>
+                  {item.s3Prefix.replace(regex, '')}
+                </li>
               ))}
             </ul>
           </div>
