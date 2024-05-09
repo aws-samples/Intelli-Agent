@@ -19,6 +19,7 @@ import {
 } from 'src/utils/const';
 import { useAuth } from 'react-oidc-context';
 import ConfigContext from 'src/context/config-context';
+import { useNavigate } from 'react-router-dom';
 
 interface CommonLayoutProps {
   activeHref: string;
@@ -40,6 +41,7 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
   const [displayName, setDisplayName] = useState('');
   const [fullLogoutUrl, setFullLogoutUrl] = useState('');
   const config = useContext(ConfigContext);
+  const navigate = useNavigate();
 
   const changeLanguage = (lng: string) => {
     i18n.changeLanguage(lng);
@@ -118,6 +120,12 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
           <SideNavigation
             activeHref={activeHref}
             header={{ href: '#/', text: t('name') }}
+            onFollow={(e) => {
+              if (!e.detail.external) {
+                e.preventDefault();
+                navigate(e.detail.href);
+              }
+            }}
             items={[
               {
                 type: 'section',

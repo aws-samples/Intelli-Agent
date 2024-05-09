@@ -1,5 +1,6 @@
 import { Link } from '@cloudscape-design/components';
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 interface TableLinkProps {
   name: string;
@@ -8,7 +9,17 @@ interface TableLinkProps {
 
 const TableLink: React.FC<TableLinkProps> = (props: TableLinkProps) => {
   const { name, url } = props;
-  return <Link href={`${url}`}>{name}</Link>;
+  const navigate = useNavigate();
+  return (
+    <Link
+      onFollow={(e) => {
+        e.preventDefault();
+        navigate(url);
+      }}
+    >
+      {name}
+    </Link>
+  );
 };
 
 export default TableLink;
