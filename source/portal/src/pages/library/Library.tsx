@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useState } from 'react';
 import CommonLayout from 'src/layout/CommonLayout';
 import {
   Box,
-  BreadcrumbGroup,
   Button,
   ContentLayout,
   Header,
@@ -100,20 +99,16 @@ const Library: React.FC = () => {
   return (
     <CommonLayout
       activeHref="/library"
-      breadCrumbs={
-        <BreadcrumbGroup
-          items={[
-            {
-              text: 'AWS LLM Bot',
-              href: '/',
-            },
-            {
-              text: 'Docs Library',
-              href: '/library',
-            },
-          ]}
-        />
-      }
+      breadCrumbs={[
+        {
+          text: 'AWS LLM Bot',
+          href: '/',
+        },
+        {
+          text: 'Docs Library',
+          href: '/library',
+        },
+      ]}
     >
       <ContentLayout>
         <Table

@@ -20,12 +20,13 @@ import {
 import { useAuth } from 'react-oidc-context';
 import ConfigContext from 'src/context/config-context';
 import { useNavigate } from 'react-router-dom';
+import CustomBreadCrumb, { BreadCrumbType } from './CustomBreadCrumb';
 
 interface CommonLayoutProps {
   activeHref: string;
   children: React.ReactNode;
   flashBar?: FlashbarProps.MessageDefinition[];
-  breadCrumbs?: React.ReactNode;
+  breadCrumbs?: BreadCrumbType[];
   isLoading?: boolean;
 }
 
@@ -115,7 +116,7 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
       />
       <AppLayout
         notifications={<Flashbar items={flashBar ?? []} />}
-        breadcrumbs={breadCrumbs}
+        breadcrumbs={<CustomBreadCrumb breadcrumbItems={breadCrumbs ?? []} />}
         navigation={
           <SideNavigation
             activeHref={activeHref}

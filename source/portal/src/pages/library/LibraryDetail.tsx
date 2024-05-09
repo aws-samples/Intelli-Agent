@@ -1,5 +1,4 @@
 import {
-  BreadcrumbGroup,
   Container,
   Header,
   SpaceBetween,
@@ -60,24 +59,20 @@ const LibraryDetail: React.FC = () => {
     <CommonLayout
       isLoading={loadingData}
       activeHref="/library"
-      breadCrumbs={
-        <BreadcrumbGroup
-          items={[
-            {
-              text: 'AWS LLM Bot',
-              href: '/',
-            },
-            {
-              text: 'Docs Library',
-              href: '/library',
-            },
-            {
-              text: `${id}`,
-              href: '/detail',
-            },
-          ]}
-        />
-      }
+      breadCrumbs={[
+        {
+          text: 'AWS LLM Bot',
+          href: '/',
+        },
+        {
+          text: 'Docs Library',
+          href: '/library',
+        },
+        {
+          text: `${id}`,
+          href: '/detail',
+        },
+      ]}
     >
       <ContentLayout>
         <Container
