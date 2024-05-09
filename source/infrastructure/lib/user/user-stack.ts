@@ -67,8 +67,8 @@ export class UserConstruct extends Construct {
         userSrp: true,
       },
       oAuth: {
-        callbackUrls: [`https://${props.callbackUrl}`],
-        logoutUrls: [`${userPoolDomain.baseUrl()}/logout`],
+        callbackUrls: [`https://${props.callbackUrl}/signin`],
+        logoutUrls: [`https://${props.callbackUrl}`],
         scopes: [OAuthScope.OPENID, OAuthScope.PROFILE, OAuthScope.EMAIL],
       },
     });
