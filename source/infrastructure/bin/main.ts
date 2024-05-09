@@ -27,6 +27,8 @@ import { DeploymentParameters } from "../lib/shared/cdk-parameters";
 import { VpcConstruct } from "../lib/shared/vpc-stack";
 import { AOSConstruct } from "../lib/vector-store/os-stack";
 import { PortalConstruct } from "../lib/ui/ui-portal";
+import { UiExportsConstruct } from "../lib/ui/ui-exports";
+import { UserConstruct } from "../lib/user/user-stack";
 
 dotenv.config();
 
@@ -127,11 +129,26 @@ export class RootStack extends Stack {
     apiConstruct.node.addDependency(connectorConstruct);
     apiConstruct.node.addDependency(etlStack);
 
-    const uiPortal = new PortalConstruct(this, "ui-construct", {
-      websocket: apiConstruct.wsEndpoint,
-      apiUrl: apiConstruct.apiEndpoint,
+    const uiPortal = new PortalConstruct(this, "ui-construct");
+
+    const userConstruct = new UserConstruct(this, "user", {
+      adminEmail: cdkParameters.subEmail.valueAsString,
+      callbackUrl: uiPortal.portalUrl,
     });
     uiPortal.node.addDependency(apiConstruct);
+
+    const uiExports = new UiExportsConstruct(this, "ui-exports", {
+      portalBucket: uiPortal.portalBucket,
+      uiProps: {
+        websocket: apiConstruct.wsEndpoint,
+        apiUrl: apiConstruct.apiEndpoint,
+        oidcIssuer: userConstruct.oidcIssuer,
+        oidcClientId: userConstruct.oidcClientId,
+        oidcLogoutUrl: userConstruct.oidcLogoutUrl,
+        oidcRedirectUrl: `https://${uiPortal.portalUrl}/signin`,
+      },
+    });
+    uiExports.node.addDependency(uiPortal);
 
     new CfnOutput(this, "AOS Index Dict", {
       value: cdkParameters.openSearchIndexDict.valueAsString,
