@@ -1,6 +1,7 @@
 import React, { useContext, useEffect, useState } from 'react';
 import CommonLayout from 'src/layout/CommonLayout';
 import Message from './components/Message';
+import { useTranslation } from 'react-i18next';
 import {
   Box,
   Button,
@@ -21,11 +22,12 @@ interface MessageType {
 const ChatBot: React.FC = () => {
   const [visible, setVisible] = useState(false);
   const config = useContext(ConfigContext);
+  const { t } = useTranslation();
 
   const [messages, setMessages] = useState<MessageType[]>([
     {
       type: 'ai',
-      message: 'Hello, how can I help you today?',
+      message: t('welcomeMessage'),
     },
   ]);
   const [userMessage, setUserMessage] = useState('');
@@ -43,7 +45,7 @@ const ChatBot: React.FC = () => {
   const connectionStatus = {
     [ReadyState.CONNECTING]: 'loading',
     [ReadyState.OPEN]: 'success',
-    [ReadyState.CLOSING]: 'Closing',
+    [ReadyState.CLOSING]: 'closing',
     [ReadyState.CLOSED]: 'error',
     [ReadyState.UNINSTANTIATED]: 'pending',
   }[readyState];
@@ -106,7 +108,7 @@ const ChatBot: React.FC = () => {
               <Textarea
                 rows={1}
                 value={userMessage}
-                placeholder="Type a message"
+                placeholder={t('typeMessage')}
                 onChange={(e) => setUserMessage(e.detail.value)}
                 onKeyDown={(e) => {
                   if (e.detail.key === 'Enter') {
@@ -122,20 +124,20 @@ const ChatBot: React.FC = () => {
                   handleClickSendMessage();
                 }}
               >
-                Send
+                {t('button.send')}
               </Button>
             </div>
           </div>
           <div className="flex space-between">
             <div>
               <Button iconName="settings" onClick={() => setVisible(true)}>
-                Model Settings
+                {t('button.modelSettings')}
               </Button>
             </div>
             <div>
-              Server:{' '}
+              {t('server')}:{' '}
               <StatusIndicator type={connectionStatus as any}>
-                {connectionStatus}
+                {t(connectionStatus)}
               </StatusIndicator>
             </div>
           </div>
@@ -153,7 +155,7 @@ const ChatBot: React.FC = () => {
                   setVisible(false);
                 }}
               >
-                Cancel
+                {t('button.cancel')}
               </Button>
               <Button
                 variant="primary"
@@ -161,14 +163,14 @@ const ChatBot: React.FC = () => {
                   setVisible(false);
                 }}
               >
-                Confirm
+                {t('button.confirm')}
               </Button>
             </SpaceBetween>
           </Box>
         }
-        header="Modal title"
+        header={t('settings')}
       >
-        Settings are in here!
+        // TODO
       </Modal>
     </CommonLayout>
   );

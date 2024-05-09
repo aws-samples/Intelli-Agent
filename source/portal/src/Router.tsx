@@ -8,6 +8,7 @@ import { useAuth } from 'react-oidc-context';
 import { Box, Button, Spinner } from '@cloudscape-design/components';
 import { LAST_VISIT_URL } from './utils/const';
 import ReSignIn from './comps/ReSignIn';
+import { useTranslation } from 'react-i18next';
 
 const LoginCallback: React.FC = () => {
   const gotoBasePage = () => {
@@ -40,6 +41,7 @@ const SignedInRouter = () => {
 
 const AppRouter = () => {
   const auth = useAuth();
+  const { t } = useTranslation();
   if (auth.isLoading) {
     return (
       <div className="page-loading">
@@ -63,10 +65,10 @@ const AppRouter = () => {
   return (
     <div className="login-container">
       <div className="text-center">
-        <Box variant="h2">Welcome to LLM Bot</Box>
+        <Box variant="h2">{t('welcome')}</Box>
         <div className="mt-10">
           <Button variant="primary" onClick={() => void auth.signinRedirect()}>
-            Log in to LLM Bot
+            {t('button.login')}
           </Button>
         </div>
       </div>

@@ -13,6 +13,7 @@ import { useParams } from 'react-router-dom';
 import { LibraryExecutionItem, LibraryExecutionResponse } from 'src/types';
 import { alertMsg, formatTime } from 'src/utils/utils';
 import useAxiosRequest from 'src/hooks/useAxiosRequest';
+import { useTranslation } from 'react-i18next';
 
 const LibraryDetail: React.FC = () => {
   const [loadingData, setLoadingData] = useState(false);
@@ -20,6 +21,7 @@ const LibraryDetail: React.FC = () => {
     LibraryExecutionItem[]
   >([]);
   const fetchData = useAxiosRequest();
+  const { t } = useTranslation();
   const { id } = useParams();
 
   const getLibraryDetail = async () => {
@@ -61,11 +63,11 @@ const LibraryDetail: React.FC = () => {
       activeHref="/library"
       breadCrumbs={[
         {
-          text: 'AWS LLM Bot',
+          text: t('name'),
           href: '/',
         },
         {
-          text: 'Docs Library',
+          text: t('docLibrary'),
           href: '/library',
         },
         {
@@ -78,20 +80,17 @@ const LibraryDetail: React.FC = () => {
         <Container
           variant="default"
           header={
-            <Header
-              variant="h2"
-              description="Please check the file list below, and click the info icon for more details."
-            >
-              {`Execution detail`}
+            <Header variant="h2" description={t('executionDetailDesc')}>
+              {t('executionDetail')}
             </Header>
           }
         >
           <SpaceBetween direction="vertical" size="xs">
             <div className="flex align-center gap-10">
-              ID: <b>{`${id}`} </b>
+              {t('id')}: <b>{`${id}`} </b>
             </div>
             <div className="flex align-center gap-10">
-              Prefix:{' '}
+              {t('prefix')}:{' '}
               <b>{`${getLibraryPrefix(executionFileList?.[0]?.s3Path)}`} </b>
             </div>
             <div className="mt-10"></div>
@@ -121,7 +120,7 @@ const LibraryDetail: React.FC = () => {
                 </div>
               ))
             ) : (
-              <div>No files or please waiting execution to complete</div>
+              <div>{t('detailNoFiles')}</div>
             )}
           </SpaceBetween>
         </Container>
