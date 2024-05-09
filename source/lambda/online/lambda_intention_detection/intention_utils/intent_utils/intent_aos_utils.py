@@ -166,8 +166,9 @@ class IntentRecognitionAOSIndex:
         logger.info(f"intent index search results:\n{ret}")
 
         return ret
-
-    def intent_postprocess_top_1(self, retriever_list: list[dict]):
+    
+    @staticmethod
+    def intent_postprocess_top_1(retriever_list: list[dict]):
         retriever_list = sorted(retriever_list, key=lambda x: x["score"])
         intent = retriever_list[-1]["intent"]
         assert IntentType.has_value(intent), intent
