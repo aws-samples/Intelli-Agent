@@ -27,7 +27,7 @@ def lambda_handler(event, context):
         response = sf_client.describe_execution(executionArn=execution_arn)
 
         execution_status = response["status"]
-        logger.info(f"Execution Status: {execution_status}")
+        logger.info("Execution Status: %s", execution_status)
 
         return {
             "statusCode": 200,
@@ -37,7 +37,7 @@ def lambda_handler(event, context):
             ),
         }
     except Exception as e:
-        logger.error(f"Error: {str(e)}")
+        logger.error("Error: %s", str(e))
 
         return {
             "statusCode": 500,

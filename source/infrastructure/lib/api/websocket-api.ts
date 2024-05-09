@@ -27,7 +27,7 @@ interface WebSocketProps extends StackProps {
   sendMessageLambda: lambda.Function;
 }
 
-export class WebSocketStack extends Construct {
+export class WebSocketConstruct extends Construct {
   public readonly webSocketApi: WebSocketApi;
   public readonly websocketApiStage: WebSocketStage;
 

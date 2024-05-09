@@ -34,6 +34,7 @@ Here is an example of the request body:
     "qaEnhance": "false",
     "workspaceId": "<Your Workspace index>" // You can name the workspace index as you like
     "operationType": "create" // You can choose create/update/delete/extract_only
+    "documentLanguage": "zh" // You can input the language of the pdf document to increase the accuracy of the extraction
 }
 ```
 
@@ -53,19 +54,28 @@ ETLStateA5DEA10E-Tgtw66LqdlNH:4dd19f1c-45e1-4d18-9d70-7593f96d001a",
 
 #### Get ETL Status
 
-To get the ETL status by execution id, make a GET request to `https://xxxx.execute-api.us-east-1.amazonaws.com/v1/etl/status`.
+To get the ETL status by execution id, make a GET request to `https://xxxx.execute-api.us-east-1.amazonaws.com/v1/etl/execution`.
 
 Here is an example of the request:
 
 ```bash
-https://xxxx.execute-api.us-east-1.amazonaws.com/v1/etl/status?executionId=24c9bfdb-f604-4bb2-9495-187b3a38be75
+https://xxxx.execute-api.us-east-1.amazonaws.com/v1/etl/execution?executionId=24c9bfdb-f604-4bb2-9495-187b3a38be75
 ```
 
 After making the request, you should see a response similar to this:
 
 ```bash
 {
-    "execution_id": "4dd19f1c-45e1-4d18-9d70-7593f96d001a",
-    "execution_status": "FAILED"
+    "Items": [
+        {
+            "s3Prefix": "api_test/data/document/pdf/sdp_overview.pdf",
+            "s3Bucket": "llm-bot-documents-316327952690-ap-northeast-1",
+            "createTime": "2024-04-26 07:52:40.658384+00:00",
+            "executionId": "df1b08c0-42a4-4ed4-98a7-9ffbd4dbaf86",
+            "s3Path": "s3://llm-bot-documents-316327952690-ap-northeast-1/api_test/data/document/pdf/sdp_overview.pdf",
+            "status": "SUCCEED"
+        }
+    ],
+    "Count": 1
 }
 ```

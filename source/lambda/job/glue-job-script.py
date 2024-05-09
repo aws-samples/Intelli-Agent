@@ -1,4 +1,3 @@
-import datetime
 import functools
 import itertools
 import json
@@ -7,6 +6,7 @@ import os
 import sys
 import time
 import traceback
+from datetime import datetime, timezone
 from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple
 
 import boto3
@@ -35,11 +35,13 @@ try:
             "AOS_ENDPOINT",
             "BATCH_FILE_NUMBER",
             "BATCH_INDICE",
+            "DOCUMENT_LANGUAGE",
             "EMBEDDING_MODEL_ENDPOINT",
             "ETL_MODEL_ENDPOINT",
             "JOB_NAME",
             "OFFLINE",
-            "ProcessedObjectsTable",
+            "ETL_OBJECT_TABLE",
+            "TABLE_ITEM_ID",
             "QA_ENHANCEMENT",
             "REGION",
             "RES_BUCKET",
@@ -77,10 +79,12 @@ if "BATCH_INDICE" not in args:
 aosEndpoint = args["AOS_ENDPOINT"]
 batchFileNumber = args["BATCH_FILE_NUMBER"]
 batchIndice = args["BATCH_INDICE"]
+document_language = args["DOCUMENT_LANGUAGE"]
 embedding_model_endpoint = args["EMBEDDING_MODEL_ENDPOINT"]
 etlModelEndpoint = args["ETL_MODEL_ENDPOINT"]
 offline = args["OFFLINE"]
-processedObjectsTable = args["ProcessedObjectsTable"]
+etl_object_table_name = args["ETL_OBJECT_TABLE"]
+table_item_id = args["TABLE_ITEM_ID"]
 qa_enhancement = args["QA_ENHANCEMENT"]
 region = args["REGION"]
 res_bucket = args["RES_BUCKET"]
@@ -96,7 +100,7 @@ operation_type = args["OPERATION_TYPE"]
 s3_client = boto3.client("s3")
 smr_client = boto3.client("sagemaker-runtime")
 dynamodb = boto3.resource("dynamodb")
-table = dynamodb.Table(processedObjectsTable)
+etl_object_table = dynamodb.Table(etl_object_table_name)
 workspace_table = dynamodb.Table(workspace_table)
 workspace_manager = WorkspaceManager(workspace_table)
 
@@ -145,13 +149,27 @@ class S3FileProcessor:
         Raises:
             None
         """
+        create_time = str(datetime.now(timezone.utc))
         kwargs = {
             "bucket": self.bucket,
             "key": key,
             "etl_model_endpoint": etlModelEndpoint,
             "smr_client": smr_client,
             "res_bucket": res_bucket,
+            "table_item_id": table_item_id,
+            "create_time": create_time,
+            "document_language": document_language,
         }
+
+        input_body = {
+            "s3Path": f"s3://{self.bucket}/{key}",
+            "s3Bucket": self.bucket,
+            "s3Prefix": key,
+            "executionId": table_item_id,
+            "createTime": create_time,
+            "status": "RUNNING",
+        }
+        etl_object_table.put_item(Item=input_body)
 
         if file_type == "txt":
             return "txt", self.decode_file_content(file_content), kwargs
@@ -162,8 +180,6 @@ class S3FileProcessor:
             return "html", self.decode_file_content(file_content), kwargs
         elif file_type in ["pdf"]:
             return "pdf", file_content, kwargs
-        elif file_type in ["jpg", "png"]:
-            return "image", file_content, kwargs
         elif file_type in ["docx", "doc"]:
             return "doc", file_content, kwargs
         elif file_type == "md":
@@ -173,7 +189,18 @@ class S3FileProcessor:
         elif file_type == "jsonl":
             return "jsonl", file_content, kwargs
         else:
-            logger.info("Unknown file type: %s", file_type)
+            message = "Unknown file type: " + file_type
+            input_body = {
+                "s3Path": f"s3://{self.bucket}/{key}",
+                "s3Bucket": self.bucket,
+                "s3Prefix": key,
+                "executionId": table_item_id,
+                "createTime": create_time,
+                "status": "FAILED",
+                "detail": message,
+            }
+            etl_object_table.put_item(Item=input_body)
+            logger.info(message)
 
     def decode_file_content(self, file_content: str, default_encoding: str = "utf-8"):
         """Decode the file content and auto detect the content encoding.
@@ -355,7 +382,7 @@ class BatchQueryDocumentProcessor:
         search_body = {
             "query": {
                 # use term-level queries only for fields mapped as keyword
-                "match": {"metadata.file_path": s3_path}
+                "match_phrase": {"metadata.file_path": s3_path}
             },
             "size": 100000,
             "sort": [{"_score": {"order": "desc"}}],
@@ -483,6 +510,14 @@ def ingestion_pipeline(
     s3_files_iterator, batch_chunk_processor, ingestion_worker, extract_only=False
 ):
     for file_type, file_content, kwargs in s3_files_iterator:
+        input_body = {
+            "s3Path": f"s3://{kwargs['bucket']}/{kwargs['key']}",
+            "s3Bucket": kwargs["bucket"],
+            "s3Prefix": kwargs["key"],
+            "executionId": table_item_id,
+            "createTime": kwargs["create_time"],
+            "status": "SUCCEED",
+        }
         try:
             # The res is list[Document] type
             res = cb_process_object(s3_client, file_type, file_content, **kwargs)
@@ -514,14 +549,24 @@ def ingestion_pipeline(
 
                 if not extract_only:
                     ingestion_worker.aos_ingestion(batch)
-
         except Exception as e:
             logger.error(
                 "Error processing object %s: %s",
                 kwargs["bucket"] + "/" + kwargs["key"],
                 e,
             )
+            input_body = {
+                "s3Path": f"s3://{kwargs['bucket']}/{kwargs['key']}",
+                "s3Bucket": kwargs["bucket"],
+                "s3Prefix": kwargs["key"],
+                "executionId": table_item_id,
+                "createTime": kwargs["create_time"],
+                "status": "FAILED",
+                "detail": str(e),
+            }
             traceback.print_exc()
+        finally:
+            ddb_response = etl_object_table.put_item(Item=input_body)
 
 
 def delete_pipeline(s3_files_iterator, document_generator, delete_worker):

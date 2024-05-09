@@ -11,7 +11,7 @@
  *  and limitations under the License.                                                                                *
  *********************************************************************************************************************/
 
-import { NestedStack, StackProps } from "aws-cdk-lib";
+import { StackProps } from "aws-cdk-lib";
 import { Construct } from "constructs";
 import * as dotenv from "dotenv";
 
@@ -21,17 +21,18 @@ interface AssetsStackProps extends StackProps {
   s3ModelAssets: string;
 }
 
-export class AssetsStack extends NestedStack {
-  rerankModelPrefix;
-  rerankModelVersion;
-  embeddingModelPrefix;
-  embeddingModelVersion;
-  instructModelPrefix;
-  instructModelVersion;
-  etlCodePrefix;
+export class AssetsConstruct extends Construct {
+  public rerankModelPrefix;
+  public rerankModelVersion;
+  public embeddingModelPrefix;
+  public embeddingModelVersion;
+  public instructModelPrefix;
+  public instructModelVersion;
+  public etlCodePrefix;
+  public s3ModelAssets: string;
 
   constructor(scope: Construct, id: string, props: AssetsStackProps) {
-    super(scope, id, props);
+    super(scope, id);
 
     const rerankModelPrefix = "bge-reranker-large";
     const rerankModelVersion = "27c9168d479987529781de8474dff94d69beca11";
@@ -50,5 +51,6 @@ export class AssetsStack extends NestedStack {
     this.instructModelPrefix = instructModelPrefix;
     this.instructModelVersion = instructModelVersion;
     this.etlCodePrefix = etlCodePrefix;
+    this.s3ModelAssets = props.s3ModelAssets;
   }
 }

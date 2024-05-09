@@ -11,7 +11,6 @@ from langchain.text_splitter import (
     RecursiveCharacterTextSplitter,
     TextSplitter,
 )
-
 from llm_bot_dep.constant import SplittingType
 from llm_bot_dep.storage_utils import save_content_to_s3
 
@@ -260,7 +259,8 @@ class MarkdownHeaderTextSplitter:
             current_heading_level_map[title_symble_count] = current_heading
             title_list = []
             for title_level in range(1, title_symble_count + 1):
-                title_list.append(current_heading_level_map[title_level])
+                if title_level in current_heading_level_map:
+                    title_list.append(current_heading_level_map[title_level])
             joint_title_list = " ".join(title_list)
         except Exception as e:
             traceback.print_exc()

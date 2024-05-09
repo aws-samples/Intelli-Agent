@@ -109,7 +109,7 @@ s3 = boto3.client("s3")
 def upload_chunk_to_s3(
     logger_content: str, bucket: str, prefix: str, splitting_type: str
 ):
-    """Upload the logger file to S3 with hierachy below:
+    """Upload the logger file to S3 with hierarchy below:
     filename A
         ├── before-splitting
         │   ├── timestamp 1

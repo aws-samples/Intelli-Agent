@@ -6,7 +6,7 @@
 # cd deployment
 # ./build-s3-dist.sh source-bucket-base-name solution-name version-code
 #
-# Paramenters:
+# Parameters:
 #  - source-bucket-base-name: Name for the S3 bucket location where the template will source the Lambda
 #    code from. The template will append '-[region_name]' to this bucket name.
 #    For example: ./build-s3-dist.sh solutions v1.0.0

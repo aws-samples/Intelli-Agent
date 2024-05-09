@@ -1,235 +1,274 @@
-import React from 'react';
-import CommonLayout from '../../layout/CommonLayout';
+import React, { useCallback, useEffect, useState } from 'react';
+import CommonLayout from 'src/layout/CommonLayout';
 import {
   Box,
-  BreadcrumbGroup,
   Button,
-  CollectionPreferences,
+  ContentLayout,
   Header,
-  Link,
-  Pagination,
+  Modal,
   SpaceBetween,
+  StatusIndicator,
   Table,
   TextFilter,
 } from '@cloudscape-design/components';
 import { useNavigate } from 'react-router-dom';
+import { LibraryListItem, LibraryListResponse } from 'src/types';
+import { alertMsg, formatTime } from 'src/utils/utils';
+import TableLink from 'src/comps/link/TableLink';
+import useAxiosRequest from 'src/hooks/useAxiosRequest';
+import { useTranslation } from 'react-i18next';
+
+const parseDate = (item: LibraryListItem) => {
+  return item.createTime ? new Date(item.createTime) : 0;
+};
 
 const Library: React.FC = () => {
-  const [selectedItems, setSelectedItems] = React.useState([
-    {
-      name: 'Item 1',
-      alt: 'First',
-      description: 'This is the first item',
-      type: '1A',
-      size: 'Small',
-    },
-  ]);
+  const [selectedItems, setSelectedItems] = useState<LibraryListItem[]>([]);
+  const fetchData = useAxiosRequest();
+  const [visible, setVisible] = useState(false);
   const navigate = useNavigate();
+  const { t } = useTranslation();
+  const [loadingData, setLoadingData] = useState(false);
+  const [libraryList, setLibraryList] = useState<LibraryListItem[]>([]);
+  const [loadingDelete, setLoadingDelete] = useState(false);
+
+  const getLibraryList = async () => {
+    setLoadingData(true);
+    const params = {
+      size: 9999,
+      total: 9999,
+    };
+    try {
+      const data = await fetchData({
+        url: 'etl/list-execution',
+        method: 'get',
+        params,
+      });
+      const items: LibraryListResponse = data;
+      const preSortItem = items.Items;
+      preSortItem.sort((a, b) => {
+        return Number(parseDate(b)) - Number(parseDate(a));
+      });
+      setLibraryList(preSortItem);
+      setLoadingData(false);
+    } catch (error: unknown) {
+      setLoadingData(false);
+    }
+  };
+
+  const removeLibrary = async () => {
+    try {
+      setLoadingDelete(true);
+      const data = await fetchData({
+        url: 'etl/delete-execution',
+        method: 'post',
+        data: { executionId: selectedItems.map((item) => item.executionId) },
+      });
+      setVisible(false);
+      getLibraryList();
+      alertMsg(data.message, 'success');
+      setLoadingDelete(false);
+      setSelectedItems([]);
+    } catch (error: unknown) {
+      setLoadingDelete(false);
+    }
+  };
+
+  useEffect(() => {
+    getLibraryList();
+  }, []);
+
+  const renderStatus = (status: string) => {
+    if (status === 'COMPLETED') {
+      return <StatusIndicator type="success">{t('completed')}</StatusIndicator>;
+    } else if (status === 'IN-PROGRESS') {
+      return (
+        <StatusIndicator type="loading">{t('inProgress')}</StatusIndicator>
+      );
+    } else {
+      return <StatusIndicator type="error">{t('failed')}</StatusIndicator>;
+    }
+  };
+
+  const LinkComp = useCallback(
+    (item: LibraryListItem) => (
+      <TableLink
+        url={`/library/detail/${item.executionId}`}
+        name={item.executionId}
+      />
+    ),
+    [],
+  );
+
   return (
     <CommonLayout
       activeHref="/library"
-      breadCrumbs={
-        <BreadcrumbGroup
-          items={[
+      breadCrumbs={[
+        {
+          text: t('name'),
+          href: '/',
+        },
+        {
+          text: t('docLibrary'),
+          href: '/library',
+        },
+      ]}
+    >
+      <ContentLayout>
+        <Table
+          resizableColumns
+          loading={loadingData}
+          onSelectionChange={({ detail }) =>
+            setSelectedItems(detail.selectedItems)
+          }
+          selectedItems={selectedItems}
+          ariaLabels={{
+            allItemsSelectionLabel: ({ selectedItems }) =>
+              `${selectedItems.length} ${
+                selectedItems.length === 1 ? t('item') : t('items')
+              } ${t('selected')}`,
+          }}
+          columnDefinitions={[
             {
-              text: 'AWS LLM Bot',
-              href: '/',
+              id: 'executionId',
+              header: t('id'),
+              cell: (item: LibraryListItem) => LinkComp(item),
+              sortingField: 'name',
+              isRowHeader: true,
             },
             {
-              text: 'Docs Library',
-              href: '/library',
+              id: 'bucket',
+              header: t('bucket'),
+              cell: (item: LibraryListItem) => item.s3Bucket,
+              sortingField: 'alt',
+            },
+            {
+              id: 'prefix',
+              header: t('prefix'),
+              cell: (item: LibraryListItem) => item.s3Prefix,
+            },
+            {
+              width: 90,
+              id: 'offline',
+              header: t('offline'),
+              cell: (item: LibraryListItem) =>
+                item.offline === 'true' ? 'Yes' : 'No',
+            },
+
+            {
+              width: 120,
+              id: 'indexType',
+              header: t('indexType'),
+              cell: (item: LibraryListItem) => item.indexType,
+            },
+            {
+              width: 150,
+              id: 'status',
+              header: t('status'),
+              cell: (item: LibraryListItem) =>
+                renderStatus(item.executionStatus),
+            },
+            {
+              width: 180,
+              id: 'createTime',
+              header: t('createTime'),
+              cell: (item: LibraryListItem) => formatTime(item.createTime),
             },
           ]}
+          items={libraryList}
+          loadingText={t('loadingData')}
+          selectionType="multi"
+          trackBy="executionId"
+          empty={
+            <Box margin={{ vertical: 'xs' }} textAlign="center" color="inherit">
+              <SpaceBetween size="m">
+                <b>{t('noData')}</b>
+              </SpaceBetween>
+            </Box>
+          }
+          filter={
+            <TextFilter
+              filteringPlaceholder={t('findResources')}
+              filteringText=""
+            />
+          }
+          header={
+            <Header
+              actions={
+                <SpaceBetween direction="horizontal" size="xs">
+                  <Button
+                    iconName="refresh"
+                    loading={loadingData}
+                    onClick={() => {
+                      getLibraryList();
+                    }}
+                  />
+                  <Button
+                    disabled={selectedItems.length <= 0}
+                    onClick={() => {
+                      setVisible(true);
+                    }}
+                  >
+                    {t('button.delete')}
+                  </Button>
+                  <Button
+                    variant="primary"
+                    onClick={() => {
+                      navigate('/library/add');
+                    }}
+                  >
+                    {t('button.createDocLibrary')}
+                  </Button>
+                </SpaceBetween>
+              }
+              counter={
+                selectedItems.length
+                  ? `(${selectedItems.length}/${libraryList.length})`
+                  : `(${libraryList.length})`
+              }
+            >
+              {t('docLibrary')}
+            </Header>
+          }
         />
-      }
-    >
-      <Table
-        variant="full-page"
-        onSelectionChange={({ detail }) =>
-          setSelectedItems(detail.selectedItems)
-        }
-        selectedItems={selectedItems}
-        ariaLabels={{
-          selectionGroupLabel: 'Items selection',
-          allItemsSelectionLabel: ({ selectedItems }) =>
-            `${selectedItems.length} ${
-              selectedItems.length === 1 ? 'item' : 'items'
-            } selected`,
-        }}
-        columnDefinitions={[
-          {
-            id: 'variable',
-            header: 'Variable name',
-            cell: (item) => <Link href="#">{item.name}</Link>,
-            sortingField: 'name',
-            isRowHeader: true,
-          },
-          {
-            id: 'value',
-            header: 'Text value',
-            cell: (item) => item.alt,
-            sortingField: 'alt',
-          },
-          {
-            id: 'type',
-            header: 'Type',
-            cell: (item) => item.type,
-          },
-          {
-            id: 'description',
-            header: 'Description',
-            cell: (item) => item.description,
-          },
-        ]}
-        columnDisplay={[
-          { id: 'variable', visible: true },
-          { id: 'value', visible: true },
-          { id: 'type', visible: true },
-          { id: 'description', visible: true },
-        ]}
-        enableKeyboardNavigation
-        items={[
-          {
-            name: 'Item 1',
-            alt: 'First',
-            description: 'This is the first item',
-            type: '1A',
-            size: 'Small',
-          },
-          {
-            name: 'Item 2',
-            alt: 'Second',
-            description: 'This is the second item',
-            type: '1B',
-            size: 'Large',
-          },
-          {
-            name: 'Item 3',
-            alt: 'Third',
-            description: '-',
-            type: '1A',
-            size: 'Large',
-          },
-          {
-            name: 'Item 4',
-            alt: 'Fourth',
-            description: 'This is the fourth item',
-            type: '2A',
-            size: 'Small',
-          },
-          {
-            name: 'Item 5',
-            alt: '-',
-            description: 'This is the fifth item with a longer description',
-            type: '2A',
-            size: 'Large',
-          },
-          {
-            name: 'Item 6',
-            alt: 'Sixth',
-            description: 'This is the sixth item',
-            type: '1A',
-            size: 'Small',
-          },
-        ]}
-        loadingText="Loading resources"
-        selectionType="multi"
-        trackBy="name"
-        empty={
-          <Box margin={{ vertical: 'xs' }} textAlign="center" color="inherit">
-            <SpaceBetween size="m">
-              <b>No resources</b>
-              <Button>Create resource</Button>
-            </SpaceBetween>
-          </Box>
-        }
-        filter={
-          <TextFilter filteringPlaceholder="Find resources" filteringText="" />
-        }
-        header={
-          <Header
-            actions={
+        <Modal
+          onDismiss={() => setVisible(false)}
+          visible={visible}
+          footer={
+            <Box float="right">
               <SpaceBetween direction="horizontal" size="xs">
                 <Button
-                  variant="primary"
+                  variant="link"
                   onClick={() => {
-                    navigate('/library/add');
+                    setVisible(false);
                   }}
                 >
-                  Create Docs Library
+                  {t('button.cancel')}
+                </Button>
+                <Button
+                  loading={loadingDelete}
+                  variant="primary"
+                  onClick={() => {
+                    removeLibrary();
+                  }}
+                >
+                  {t('button.delete')}
                 </Button>
               </SpaceBetween>
-            }
-            counter={
-              selectedItems.length
-                ? '(' + selectedItems.length + '/10)'
-                : '(10)'
-            }
-          >
-            Documents Library
-          </Header>
-        }
-        pagination={<Pagination currentPageIndex={1} pagesCount={2} />}
-        preferences={
-          <CollectionPreferences
-            title="Preferences"
-            confirmLabel="Confirm"
-            cancelLabel="Cancel"
-            preferences={{
-              pageSize: 10,
-              contentDisplay: [
-                { id: 'variable', visible: true },
-                { id: 'value', visible: true },
-                { id: 'type', visible: true },
-                { id: 'description', visible: true },
-              ],
-            }}
-            pageSizePreference={{
-              title: 'Page size',
-              options: [
-                { value: 10, label: '10 resources' },
-                { value: 20, label: '20 resources' },
-              ],
-            }}
-            wrapLinesPreference={{}}
-            stripedRowsPreference={{}}
-            contentDensityPreference={{}}
-            contentDisplayPreference={{
-              options: [
-                {
-                  id: 'variable',
-                  label: 'Variable name',
-                  alwaysVisible: true,
-                },
-                { id: 'value', label: 'Text value' },
-                { id: 'type', label: 'Type' },
-                { id: 'description', label: 'Description' },
-              ],
-            }}
-            stickyColumnsPreference={{
-              firstColumns: {
-                title: 'Stick first column(s)',
-                description:
-                  'Keep the first column(s) visible while horizontally scrolling the table content.',
-                options: [
-                  { label: 'None', value: 0 },
-                  { label: 'First column', value: 1 },
-                  { label: 'First two columns', value: 2 },
-                ],
-              },
-              lastColumns: {
-                title: 'Stick last column',
-                description:
-                  'Keep the last column visible while horizontally scrolling the table content.',
-                options: [
-                  { label: 'None', value: 0 },
-                  { label: 'Last column', value: 1 },
-                ],
-              },
-            }}
-          />
-        }
-      />
+            </Box>
+          }
+          header="Delete"
+        >
+          <Box variant="h4">{t('deleteTips')}</Box>
+          <div className="selected-items-list">
+            <ul>
+              {selectedItems.map((item) => (
+                <li key={item.executionId}>{item.executionId}</li>
+              ))}
+            </ul>
+          </div>
+        </Modal>
+      </ContentLayout>
     </CommonLayout>
   );
 };
