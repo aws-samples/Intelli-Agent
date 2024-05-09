@@ -47,6 +47,11 @@
     "executionDetail": "执行详情",
     "executionDetailDesc": "请检查下方的文件列表，并点击信息图标了解更多详情。",
     "detailNoFiles": "没有文件或请等待执行完成",
+    "loading": "正在连接...",
+    "success": "连接成功",
+    "closing": "正在关闭...",
+    "pending": "待定",
+    "typeMessage": "输入消息",
     "button": {
       "login": "登录到 AWS 大语言模型机器人",
       "reload": "重新加载",

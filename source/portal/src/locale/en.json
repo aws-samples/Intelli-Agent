@@ -47,6 +47,11 @@
     "executionDetail": "Execution Detail",
     "executionDetailDesc": "Please check the file list below, and click the info icon for more details.",
     "detailNoFiles": "No files or please waiting execution to complete",
+    "loading": "Loading...",
+    "success": "Success",
+    "closing": "Closing...",
+    "pending": "Pending",
+    "typeMessage": "Type a message",
     "button": {
       "login": "Log in to LLM Bot",
       "reload": "Reload",

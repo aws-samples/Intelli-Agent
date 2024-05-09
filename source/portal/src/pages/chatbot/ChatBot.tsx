@@ -45,7 +45,7 @@ const ChatBot: React.FC = () => {
   const connectionStatus = {
     [ReadyState.CONNECTING]: 'loading',
     [ReadyState.OPEN]: 'success',
-    [ReadyState.CLOSING]: 'Closing',
+    [ReadyState.CLOSING]: 'closing',
     [ReadyState.CLOSED]: 'error',
     [ReadyState.UNINSTANTIATED]: 'pending',
   }[readyState];
@@ -108,7 +108,7 @@ const ChatBot: React.FC = () => {
               <Textarea
                 rows={1}
                 value={userMessage}
-                placeholder="Type a message"
+                placeholder={t('typeMessage')}
                 onChange={(e) => setUserMessage(e.detail.value)}
                 onKeyDown={(e) => {
                   if (e.detail.key === 'Enter') {
@@ -137,7 +137,7 @@ const ChatBot: React.FC = () => {
             <div>
               {t('server')}:{' '}
               <StatusIndicator type={connectionStatus as any}>
-                {connectionStatus}
+                {t(connectionStatus)}
               </StatusIndicator>
             </div>
           </div>
