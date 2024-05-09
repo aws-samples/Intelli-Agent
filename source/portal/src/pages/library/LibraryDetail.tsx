@@ -9,19 +9,18 @@ import {
   ContentLayout,
 } from '@cloudscape-design/components';
 import CommonLayout from 'src/layout/CommonLayout';
-import React, { useContext, useEffect, useState } from 'react';
-import { axios } from 'src/utils/request';
-import ConfigContext from 'src/context/config-context';
+import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { LibraryExecutionItem, LibraryExecutionResponse } from 'src/types';
 import { alertMsg, formatTime } from 'src/utils/utils';
+import useAxiosRequest from 'src/hooks/useAxiosRequest';
 
 const LibraryDetail: React.FC = () => {
   const [loadingData, setLoadingData] = useState(false);
   const [executionFileList, setExecutionFileList] = useState<
     LibraryExecutionItem[]
   >([]);
-  const config = useContext(ConfigContext);
+  const fetchData = useAxiosRequest();
   const { id } = useParams();
 
   const getLibraryDetail = async () => {
@@ -30,10 +29,12 @@ const LibraryDetail: React.FC = () => {
       executionId: id,
     };
     try {
-      const result = await axios.get(`${config?.apiUrl}/etl/execution`, {
+      const data: LibraryExecutionResponse = await fetchData({
+        url: 'etl/execution',
+        method: 'get',
         params,
       });
-      const executionRes: LibraryExecutionResponse = result.data;
+      const executionRes: LibraryExecutionResponse = data;
       setExecutionFileList(executionRes.Items);
       setLoadingData(false);
     } catch (error: unknown) {

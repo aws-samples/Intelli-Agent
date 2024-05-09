@@ -55,7 +55,6 @@ const AddLibrary: React.FC = () => {
           }
         },
       });
-      console.info(uploadPreSignUrl);
     } catch (error: unknown) {
       if (error instanceof Error) {
         alertMsg(error.message);
