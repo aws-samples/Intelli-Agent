@@ -1,8 +1,7 @@
-import React, { useCallback, useContext, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import CommonLayout from 'src/layout/CommonLayout';
 import {
   Box,
-  BreadcrumbGroup,
   Button,
   ContentLayout,
   Header,
@@ -13,11 +12,10 @@ import {
   TextFilter,
 } from '@cloudscape-design/components';
 import { useNavigate } from 'react-router-dom';
-import ConfigContext from 'src/context/config-context';
-import { axios } from 'src/utils/request';
 import { LibraryListItem, LibraryListResponse } from 'src/types';
 import { alertMsg, formatTime } from 'src/utils/utils';
 import TableLink from 'src/comps/link/TableLink';
+import useAxiosRequest from 'src/hooks/useAxiosRequest';
 
 const parseDate = (item: LibraryListItem) => {
   return item.createTime ? new Date(item.createTime) : 0;
@@ -25,9 +23,9 @@ const parseDate = (item: LibraryListItem) => {
 
 const Library: React.FC = () => {
   const [selectedItems, setSelectedItems] = useState<LibraryListItem[]>([]);
+  const fetchData = useAxiosRequest();
   const [visible, setVisible] = useState(false);
   const navigate = useNavigate();
-  const config = useContext(ConfigContext);
   const [loadingData, setLoadingData] = useState(false);
   const [libraryList, setLibraryList] = useState<LibraryListItem[]>([]);
   const [loadingDelete, setLoadingDelete] = useState(false);
@@ -39,10 +37,12 @@ const Library: React.FC = () => {
       total: 9999,
     };
     try {
-      const result = await axios.get(`${config?.apiUrl}/etl/list-execution`, {
+      const data = await fetchData({
+        url: 'etl/list-execution',
+        method: 'get',
         params,
       });
-      const items: LibraryListResponse = result.data;
+      const items: LibraryListResponse = data;
       const preSortItem = items.Items;
       preSortItem.sort((a, b) => {
         return Number(parseDate(b)) - Number(parseDate(a));
@@ -51,31 +51,24 @@ const Library: React.FC = () => {
       setLoadingData(false);
     } catch (error: unknown) {
       setLoadingData(false);
-      if (error instanceof Error) {
-        alertMsg(error.message);
-      }
     }
   };
 
   const removeLibrary = async () => {
     try {
       setLoadingDelete(true);
-      const result = await axios.post(
-        `${config?.apiUrl}/etl/delete-execution`,
-        {
-          executionId: selectedItems.map((item) => item.executionId),
-        },
-      );
+      const data = await fetchData({
+        url: 'etl/delete-execution',
+        method: 'post',
+        data: { executionId: selectedItems.map((item) => item.executionId) },
+      });
       setVisible(false);
       getLibraryList();
-      alertMsg(result.data.message, 'success');
+      alertMsg(data.message, 'success');
       setLoadingDelete(false);
       setSelectedItems([]);
     } catch (error: unknown) {
       setLoadingDelete(false);
-      if (error instanceof Error) {
-        alertMsg(error.message);
-      }
     }
   };
 
@@ -106,20 +99,16 @@ const Library: React.FC = () => {
   return (
     <CommonLayout
       activeHref="/library"
-      breadCrumbs={
-        <BreadcrumbGroup
-          items={[
-            {
-              text: 'AWS LLM Bot',
-              href: '/',
-            },
-            {
-              text: 'Docs Library',
-              href: '/library',
-            },
-          ]}
-        />
-      }
+      breadCrumbs={[
+        {
+          text: 'AWS LLM Bot',
+          href: '/',
+        },
+        {
+          text: 'Docs Library',
+          href: '/library',
+        },
+      ]}
     >
       <ContentLayout>
         <Table
@@ -190,8 +179,7 @@ const Library: React.FC = () => {
           empty={
             <Box margin={{ vertical: 'xs' }} textAlign="center" color="inherit">
               <SpaceBetween size="m">
-                <b>No resources</b>
-                <Button>Create resource</Button>
+                <b>No data</b>
               </SpaceBetween>
             </Box>
           }

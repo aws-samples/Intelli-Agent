@@ -1,7 +1,6 @@
 import { useContext, useEffect, useState } from 'react';
 import { axios } from 'src/utils/request';
 import {
-  BreadcrumbGroup,
   Button,
   Container,
   ContentLayout,
@@ -55,7 +54,6 @@ const AddLibrary: React.FC = () => {
           }
         },
       });
-      console.info(uploadPreSignUrl);
     } catch (error: unknown) {
       if (error instanceof Error) {
         alertMsg(error.message);
@@ -72,24 +70,20 @@ const AddLibrary: React.FC = () => {
   return (
     <CommonLayout
       activeHref="/library"
-      breadCrumbs={
-        <BreadcrumbGroup
-          items={[
-            {
-              text: 'AWS LLM Bot',
-              href: '/',
-            },
-            {
-              text: 'Docs Library',
-              href: '/library',
-            },
-            {
-              text: 'Add',
-              href: '/library/add',
-            },
-          ]}
-        />
-      }
+      breadCrumbs={[
+        {
+          text: 'AWS LLM Bot',
+          href: '/',
+        },
+        {
+          text: 'Docs Library',
+          href: '/library',
+        },
+        {
+          text: 'Add',
+          href: '/library/add',
+        },
+      ]}
     >
       <ContentLayout>
         <Container

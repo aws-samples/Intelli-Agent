@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import {
   AppLayout,
   Flashbar,
@@ -17,12 +17,16 @@ import {
   ZH_LANGUAGE_LIST,
   ZH_TEXT,
 } from 'src/utils/const';
+import { useAuth } from 'react-oidc-context';
+import ConfigContext from 'src/context/config-context';
+import { useNavigate } from 'react-router-dom';
+import CustomBreadCrumb, { BreadCrumbType } from './CustomBreadCrumb';
 
 interface CommonLayoutProps {
   activeHref: string;
   children: React.ReactNode;
   flashBar?: FlashbarProps.MessageDefinition[];
-  breadCrumbs?: React.ReactNode;
+  breadCrumbs?: BreadCrumbType[];
   isLoading?: boolean;
 }
 
@@ -34,13 +38,43 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
   isLoading,
 }) => {
   const { t, i18n } = useTranslation();
+  const auth = useAuth();
+  const [displayName, setDisplayName] = useState('');
+  const [fullLogoutUrl, setFullLogoutUrl] = useState('');
+  const config = useContext(ConfigContext);
+  const navigate = useNavigate();
+
   const changeLanguage = (lng: string) => {
     i18n.changeLanguage(lng);
   };
 
   useEffect(() => {
+    setDisplayName(
+      auth.user?.profile?.email ||
+        auth.user?.profile?.name ||
+        auth.user?.profile?.preferred_username ||
+        auth.user?.profile?.nickname ||
+        auth.user?.profile?.sub ||
+        '',
+    );
+  }, [auth]);
+
+  useEffect(() => {
     if (ZH_LANGUAGE_LIST.includes(i18n.language)) {
       changeLanguage(DEFAULT_ZH_LANG);
+    }
+    if (config?.oidcLogoutUrl) {
+      const redirectUrl = config?.oidcRedirectUrl.replace('/signin', '');
+      const queryParams = new URLSearchParams({
+        client_id: config.oidcClientId,
+        id_token_hint: auth.user?.id_token ?? '',
+        logout_uri: redirectUrl,
+        redirect_uri: redirectUrl,
+        post_logout_redirect_uri: redirectUrl,
+      });
+      const logoutUrl = new URL(config?.oidcLogoutUrl);
+      logoutUrl.search = queryParams.toString();
+      setFullLogoutUrl(decodeURIComponent(logoutUrl.toString()));
     }
   }, []);
 
@@ -65,23 +99,34 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
           },
           {
             type: 'menu-dropdown',
-            text: 'User Name',
-            description: 'email@example.com',
+            text: displayName,
             iconName: 'user-profile',
-            items: [
-              { id: 'profile', text: 'Profile' },
-              { id: 'signout', text: 'Sign out' },
-            ],
+            onItemClick: (item) => {
+              if (item.detail.id === 'signout') {
+                if (fullLogoutUrl) {
+                  auth.removeUser();
+                  window.location.href = fullLogoutUrl;
+                }
+                auth.removeUser();
+              }
+            },
+            items: [{ id: 'signout', text: 'Sign out' }],
           },
         ]}
       />
       <AppLayout
         notifications={<Flashbar items={flashBar ?? []} />}
-        breadcrumbs={breadCrumbs}
+        breadcrumbs={<CustomBreadCrumb breadcrumbItems={breadCrumbs ?? []} />}
         navigation={
           <SideNavigation
             activeHref={activeHref}
             header={{ href: '#/', text: t('name') }}
+            onFollow={(e) => {
+              if (!e.detail.external) {
+                e.preventDefault();
+                navigate(e.detail.href);
+              }
+            }}
             items={[
               {
                 type: 'section',
