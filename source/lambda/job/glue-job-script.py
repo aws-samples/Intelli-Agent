@@ -109,11 +109,9 @@ OBJECT_EXPIRY_TIME = 3600
 
 credentials = boto3.Session().get_credentials()
 awsauth = AWS4Auth(
-    credentials.access_key,
-    credentials.secret_key,
-    region,
-    "es",
-    session_token=credentials.token,
+    refreshable_credentials=credentials,
+    region=region,
+    service="es"
 )
 MAX_OS_DOCS_PER_PUT = 8
 
