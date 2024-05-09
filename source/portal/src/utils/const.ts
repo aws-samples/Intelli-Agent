@@ -8,3 +8,5 @@ export const LANGUAGE_ITEMS = [
   { id: DEFAULT_EN_LANG, text: EN_TEXT },
   { id: DEFAULT_ZH_LANG, text: ZH_TEXT },
 ];
+
+export const LAST_VISIT_URL = 'llm-bot-app-last-visit-url';

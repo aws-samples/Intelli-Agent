@@ -1,5 +1,12 @@
 {
   "translation": {
-    "name": "大语言模型机器人"
+    "name": "大语言模型机器人",
+    "button": {
+      "reload": "重新加载"
+    },
+    "header": {
+      "reSignIn": "请重新登录",
+      "reSignInDesc": "您已退出帐户。请单击 ‘重新加载’ 重新登录 Web 控制台"
+    }
   }
 }
