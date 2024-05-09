@@ -382,10 +382,17 @@ class BatchQueryDocumentProcessor:
         search_body = {
             "query": {
                 # use term-level queries only for fields mapped as keyword
-                "match_phrase": {"metadata.file_path": s3_path}
+                "prefix": {
+                    "metadata.file_path.keyword": {
+                        "value": s3_path
+                    }
+                },
             },
             "size": 100000,
             "sort": [{"_score": {"order": "desc"}}],
+            "_source": {
+                "excludes": ["vector_field"]
+            }
         }
 
         if self.docsearch.client.indices.exists(index=self.docsearch.index_name):
