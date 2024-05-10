@@ -1,22 +1,32 @@
 import json  
 from utils.logger_utils  import get_logger
-from llm_generate_utils.llm_utils import LLMChain
+# from lambda_llm_generate.llm_generate_utils.llm_utils import LLMChain
 
 
 logger = get_logger("llm_generate")
 
 def lambda_handler(event, context=None):
-    event_body = json.loads(event["body"])
-    logger.info(f'config: {json.dumps(event_body,ensure_ascii=False,indent=2)}')
-    llm_chain_config = event_body['llm_config']
-    llm_chain_inputs = event_body['llm_input']
+    # event_body = json.loads(event["body"])
+    # logger.info(f'config: {json.dumps(event_body,ensure_ascii=False,indent=2)}')
+    # llm_chain_config = event_body['llm_config']
+    # llm_chain_inputs = event_body['llm_input']
     
-    chain = LLMChain.get_chain(
-        **llm_chain_config
-    )
-    output = chain.invoke(llm_chain_inputs)
+    # chain = LLMChain.get_chain(
+    #     **llm_chain_config
+    # )
+    # output = chain.invoke(llm_chain_inputs)
 
-    return output 
+    event_body = event["body"]
+    state:dict = event_body['state']
+
+    logger.info(f'state: {json.dumps(state,ensure_ascii=False,indent=2)}')
+
+
+    response = {"statusCode": 200, "headers": {"Content-Type": "application/json"}}
+    state["answer"] = "finish llm generate test"
+    response["body"] = {"state": state}
+
+    return response
 
 
     

@@ -63,19 +63,22 @@ def conversation_query_rewrite(state:dict):
 
 # @handle_error
 def lambda_handler(event, context=None):
-    event_body = json.loads(event["body"])
+    event_body = event["body"]
     state:dict = event_body['state']
 
     logger.info(f'state: {json.dumps(state,ensure_ascii=False,indent=2)}')
 
-    workflow = StateGraph(NestUpdateState)
+    # workflow = StateGraph(NestUpdateState)
 
-    workflow.add_node('conversation_query_rewrite',conversation_query_rewrite)
-    workflow.set_entry_point('conversation_query_rewrite')
-    workflow.set_finish_point('conversation_query_rewrite')
+    # workflow.add_node('conversation_query_rewrite',conversation_query_rewrite)
+    # workflow.set_entry_point('conversation_query_rewrite')
+    # workflow.set_finish_point('conversation_query_rewrite')
 
-    app = workflow.compile()
-    output = app.invoke(state)
-    state.update(output)
+    # app = workflow.compile()
+    # output = app.invoke(state)
+    # state.update(output)
+    response = {"statusCode": 200, "headers": {"Content-Type": "application/json"}}
+    state["is_query_valid"] = True
+    response["body"] = {"state": state}
     
-    return state
+    return response

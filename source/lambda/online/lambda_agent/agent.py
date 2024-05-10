@@ -22,7 +22,7 @@ from utils.lambda_invoke_utils import invoke_with_handler,invoke_with_lambda
 from utils.constant import LLMTaskType
 
 
-logger = get_logger("tool_calling")
+logger = get_logger("agent")
 
 
 def tool_calling(state:dict):
@@ -56,18 +56,26 @@ def tool_calling(state:dict):
 
 # @handle_error
 def lambda_handler(event, context=None):
-    event_body = json.loads(event["body"])
+    # event_body = json.loads(event["body"])
+    # state:dict = event_body['state']
+
+    # logger.info(f'state: {json.dumps(state,ensure_ascii=False,indent=2)}')
+    # workflow = StateGraph(NestUpdateState)
+
+    # workflow.add_node('tool_calling',tool_calling)
+    # workflow.set_entry_point('tool_calling')
+    # workflow.set_finish_point('tool_calling')
+
+    # app = workflow.compile()
+    # output = app.invoke(state)
+    # state.update(output)
+    event_body = event["body"]
     state:dict = event_body['state']
 
     logger.info(f'state: {json.dumps(state,ensure_ascii=False,indent=2)}')
-    workflow = StateGraph(NestUpdateState)
 
-    workflow.add_node('tool_calling',tool_calling)
-    workflow.set_entry_point('tool_calling')
-    workflow.set_finish_point('tool_calling')
-
-    app = workflow.compile()
-    output = app.invoke(state)
-    state.update(output)
-
-    return state
+    response = {"statusCode": 200, "headers": {"Content-Type": "application/json"}}
+    state["is_context_enough"] = 'enough context'
+    response["body"] = {"state": state}
+    
+    return response
