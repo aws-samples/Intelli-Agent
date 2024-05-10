@@ -123,28 +123,30 @@ const AddLibrary: React.FC<AddLibraryProps> = (props: AddLibraryProps) => {
               label={t('selectFile')}
               description={t('selectFileDesc')}
             >
-              <FileUpload
-                onChange={({ detail }) => {
-                  setFileEmptyError(false);
-                  setUploadFiles(detail.value);
-                }}
-                value={uploadFiles}
-                i18nStrings={{
-                  uploadButtonText: (e) =>
-                    e ? t('chooseFiles') : t('chooseFile'),
-                  dropzoneText: (e) =>
-                    e ? t('dropFilesToUpload') : t('dropFileToUpload'),
-                  removeFileAriaLabel: (e) => `${t('removeFIle')} ${e + 1}`,
-                  limitShowFewer: t('showFewer'),
-                  limitShowMore: t('showMore'),
-                  errorIconAriaLabel: t('error'),
-                }}
-                multiple
-                showFileLastModified
-                showFileSize
-                accept=".pdf,.csv,.doc,.docx,.html,.json,.jsonl,.txt,.md"
-                constraintText={`${t('supportFiles')} pdf, csv, doc, docx, html, json, jsonl, txt, md.`}
-              />
+              <div className="mt-10">
+                <FileUpload
+                  onChange={({ detail }) => {
+                    setFileEmptyError(false);
+                    setUploadFiles(detail.value);
+                  }}
+                  value={uploadFiles}
+                  i18nStrings={{
+                    uploadButtonText: (e) =>
+                      e ? t('chooseFiles') : t('chooseFile'),
+                    dropzoneText: (e) =>
+                      e ? t('dropFilesToUpload') : t('dropFileToUpload'),
+                    removeFileAriaLabel: (e) => `${t('removeFIle')} ${e + 1}`,
+                    limitShowFewer: t('showFewer'),
+                    limitShowMore: t('showMore'),
+                    errorIconAriaLabel: t('error'),
+                  }}
+                  multiple
+                  showFileLastModified
+                  showFileSize
+                  accept=".pdf,.csv,.doc,.docx,.html,.json,.jsonl,.txt,.md"
+                  constraintText={`${t('supportFiles')} pdf, csv, doc, docx, html, json, jsonl, txt, md.`}
+                />
+              </div>
             </FormField>
             {showProgress && (
               <FormField>
