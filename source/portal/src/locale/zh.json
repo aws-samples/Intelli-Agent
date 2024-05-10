@@ -53,6 +53,8 @@
     "pending": "待定",
     "typeMessage": "输入消息",
     "alert": "提示",
+    "preferences": "偏好设置",
+    "pageSize": "每页显示",
     "button": {
       "login": "登录到 AWS 大语言模型机器人",
       "reload": "重新加载",

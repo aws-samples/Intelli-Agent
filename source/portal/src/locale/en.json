@@ -53,6 +53,8 @@
     "pending": "Pending",
     "typeMessage": "Type a message",
     "alert": "Warning",
+    "preferences": "Preferences",
+    "pageSize": "Page Size",
     "button": {
       "login": "Log in to LLM Bot",
       "reload": "Reload",

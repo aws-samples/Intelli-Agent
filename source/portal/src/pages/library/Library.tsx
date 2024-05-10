@@ -3,9 +3,11 @@ import CommonLayout from 'src/layout/CommonLayout';
 import {
   Box,
   Button,
+  CollectionPreferences,
   ContentLayout,
   Header,
   Modal,
+  Pagination,
   SpaceBetween,
   StatusIndicator,
   Table,
@@ -24,7 +26,6 @@ const parseDate = (item: LibraryListItem) => {
 };
 
 const regex = new RegExp(`^${LIBRARY_DEFAULT_PREFIX}`, 'g');
-
 const Library: React.FC = () => {
   const [selectedItems, setSelectedItems] = useState<LibraryListItem[]>([]);
   const fetchData = useAxiosRequest();
@@ -32,7 +33,12 @@ const Library: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [loadingData, setLoadingData] = useState(false);
-  const [libraryList, setLibraryList] = useState<LibraryListItem[]>([]);
+  const [allLibraryList, setAllLibraryList] = useState<LibraryListItem[]>([]);
+  const [tableLibraryList, setTableLibraryList] = useState<LibraryListItem[]>(
+    [],
+  );
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [loadingDelete, setLoadingDelete] = useState(false);
 
   const getLibraryList = async () => {
@@ -53,7 +59,8 @@ const Library: React.FC = () => {
       preSortItem.sort((a, b) => {
         return Number(parseDate(b)) - Number(parseDate(a));
       });
-      setLibraryList(preSortItem);
+      setAllLibraryList(preSortItem);
+      setTableLibraryList(preSortItem.slice(0, pageSize));
       setLoadingData(false);
     } catch (error: unknown) {
       setLoadingData(false);
@@ -81,6 +88,15 @@ const Library: React.FC = () => {
   useEffect(() => {
     getLibraryList();
   }, []);
+
+  useEffect(() => {
+    setTableLibraryList(
+      allLibraryList.slice(
+        (currentPage - 1) * pageSize,
+        currentPage * pageSize,
+      ),
+    );
+  }, [currentPage, pageSize]);
 
   const renderStatus = (status: string) => {
     if (status === 'COMPLETED') {
@@ -165,7 +181,7 @@ const Library: React.FC = () => {
               cell: (item: LibraryListItem) => formatTime(item.createTime),
             },
           ]}
-          items={libraryList}
+          items={tableLibraryList}
           loadingText={t('loadingData')}
           selectionType="multi"
           trackBy="executionId"
@@ -180,6 +196,35 @@ const Library: React.FC = () => {
             <TextFilter
               filteringPlaceholder={t('findResources')}
               filteringText=""
+            />
+          }
+          pagination={
+            <Pagination
+              disabled={loadingData}
+              currentPageIndex={currentPage}
+              pagesCount={Math.ceil(allLibraryList.length / pageSize)}
+              onChange={({ detail }) => setCurrentPage(detail.currentPageIndex)}
+            />
+          }
+          preferences={
+            <CollectionPreferences
+              title={t('preferences')}
+              confirmLabel={t('button.confirm')}
+              cancelLabel={t('button.cancel')}
+              onConfirm={({ detail }) => {
+                setPageSize(detail.pageSize ?? 10);
+                setCurrentPage(1);
+              }}
+              preferences={{
+                pageSize: pageSize,
+              }}
+              pageSizePreference={{
+                title: t('pageSize'),
+                options: [10, 20, 50, 100].map((size) => ({
+                  value: size,
+                  label: `${size} ${t('items')}`,
+                })),
+              }}
             />
           }
           header={
@@ -213,8 +258,8 @@ const Library: React.FC = () => {
               }
               counter={
                 selectedItems.length
-                  ? `(${selectedItems.length}/${libraryList.length})`
-                  : `(${libraryList.length})`
+                  ? `(${selectedItems.length}/${allLibraryList.length})`
+                  : `(${allLibraryList.length})`
               }
             >
               {t('docLibrary')}
