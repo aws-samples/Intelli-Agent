@@ -18,7 +18,7 @@ import { BuildConfig } from "./build-config";
 import * as pyLambda from "@aws-cdk/aws-lambda-python-alpha";
 
 export class LambdaLayers {
-  constructor(private scope: Construct) {}
+  constructor(private scope: Construct) { }
 
   createEmbeddingLayer() {
     const LambdaEmbeddingLayer = new LayerVersion(

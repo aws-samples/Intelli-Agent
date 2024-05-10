@@ -28,6 +28,7 @@ import { LambdaLayers } from "../shared/lambda-layers";
 import { QueueConstruct } from "./api-queue";
 import { WebSocketConstruct } from "./websocket-api";
 import { Function, Runtime, Code, Architecture, DockerImageFunction, DockerImageCode } from 'aws-cdk-lib/aws-lambda';
+import { UserPool } from "aws-cdk-lib/aws-cognito";
 
 interface ApiStackProps extends StackProps {
   apiVpc: ec2.Vpc;
@@ -52,6 +53,7 @@ interface ApiStackProps extends StackProps {
   executionTableName: string;
   etlObjTableName: string;
   etlObjIndexName: string;
+  userPool: UserPool;
 }
 
 export class ApiConstruct extends Construct {
@@ -344,6 +346,15 @@ export class ApiConstruct extends Construct {
       },
     });
 
+    const auth = new apigw.CognitoUserPoolsAuthorizer(this, 'ApiAuthorizer', {
+      cognitoUserPools: [props.userPool],
+    });
+
+    const methodOption: apigw.MethodOptions = {
+      authorizer: auth,
+      authorizationType: apigw.AuthorizationType.COGNITO,
+    };
+
     // Define the API Gateway Lambda Integration with proxy and no integration responses
     const lambdaEmbeddingIntegration = new apigw.LambdaIntegration(
       embeddingLambda,
@@ -352,7 +363,7 @@ export class ApiConstruct extends Construct {
 
     // Define the API Gateway Method
     const apiResourceEmbedding = api.root.addResource("extract");
-    apiResourceEmbedding.addMethod("POST", lambdaEmbeddingIntegration);
+    apiResourceEmbedding.addMethod("POST", lambdaEmbeddingIntegration, methodOption);
 
     // Define the API Gateway Lambda Integration with proxy and no integration responses
     const lambdaAosIntegration = new apigw.LambdaIntegration(aosLambda, {
@@ -361,10 +372,10 @@ export class ApiConstruct extends Construct {
 
     // All AOS wrapper should be within such lambda
     const apiResourceAos = api.root.addResource("aos");
-    apiResourceAos.addMethod("POST", lambdaAosIntegration);
+    apiResourceAos.addMethod("POST", lambdaAosIntegration, methodOption);
 
     // Add Get method to query & search index in OpenSearch, such embedding lambda will be updated for online process
-    apiResourceAos.addMethod("GET", lambdaAosIntegration);
+    apiResourceAos.addMethod("GET", lambdaAosIntegration, methodOption);
 
     // Define the API Gateway Lambda Integration with proxy and no integration responses
     const lambdaDdbIntegration = new apigw.LambdaIntegration(ddbLambda, {
@@ -373,36 +384,41 @@ export class ApiConstruct extends Construct {
 
     // All AOS wrapper should be within such lambda
     const apiResourceDdb = api.root.addResource("feedback");
-    apiResourceDdb.addMethod("POST", lambdaDdbIntegration);
+    apiResourceDdb.addMethod("POST", lambdaDdbIntegration, methodOption);
 
     const apiResourceStepFunction = api.root.addResource("etl");
     apiResourceStepFunction.addMethod(
       "POST",
       new apigw.LambdaIntegration(sfnLambda),
+      methodOption,
     );
 
     const apiGetExecution = apiResourceStepFunction.addResource("execution");
     apiGetExecution.addMethod(
       "GET",
       new apigw.LambdaIntegration(getExecutionLambda),
+      methodOption,
     );
 
     const apiListExecution = apiResourceStepFunction.addResource("list-execution");
     apiListExecution.addMethod(
       "GET",
       new apigw.LambdaIntegration(listExecutionLambda),
+      methodOption,
     );
 
     const apiDelExecution = apiResourceStepFunction.addResource("delete-execution");
     apiDelExecution.addMethod(
       "POST",
       new apigw.LambdaIntegration(delExecutionLambda),
+      methodOption,
     );
 
     const apiUploadDoc = apiResourceStepFunction.addResource("upload-s3-url");
     apiUploadDoc.addMethod(
       "POST",
       new apigw.LambdaIntegration(uploadDocLambda),
+      methodOption,
     );
 
     // Define the API Gateway Lambda Integration to invoke Batch job
@@ -412,7 +428,7 @@ export class ApiConstruct extends Construct {
 
     // Define the API Gateway Method
     const apiResourceBatch = api.root.addResource("batch");
-    apiResourceBatch.addMethod("POST", lambdaBatchIntegration);
+    apiResourceBatch.addMethod("POST", lambdaBatchIntegration, methodOption);
 
     if (BuildConfig.DEPLOYMENT_MODE === "ALL") {
       const lambdaExecutor = new DockerImageFunction(this, "lambdaExecutor", {
@@ -476,7 +492,7 @@ export class ApiConstruct extends Construct {
 
       // Define the API Gateway Method
       const apiResourceLLM = api.root.addResource("llm");
-      apiResourceLLM.addMethod("POST", lambdaExecutorIntegration);
+      apiResourceLLM.addMethod("POST", lambdaExecutorIntegration, methodOption);
 
       const lambdaDispatcher = new Function(this, "lambdaDispatcher", {
         runtime: Runtime.PYTHON_3_11,
@@ -683,7 +699,7 @@ export class ApiConstruct extends Construct {
 
       // Define the API Gateway Method
       const apiResourceLLMV2 = api.root.addResource("llmv2");
-      apiResourceLLMV2.addMethod("POST", lambdaExecutorIntegrationV2);
+      apiResourceLLMV2.addMethod("POST", lambdaExecutorIntegrationV2, methodOption);
 
       const lambdaDispatcherV2 = new Function(this, "lambdaDispatcherV2", {
         runtime: Runtime.PYTHON_3_11,
@@ -709,7 +725,7 @@ export class ApiConstruct extends Construct {
       });
       let wsStageV2 = webSocketApiV2.websocketApiStage
       this.wsEndpointV2 = `${wsStageV2.api.apiEndpoint}/${wsStageV2.stageName}/`;
- 
+
     }
 
     this.apiEndpoint = api.url;

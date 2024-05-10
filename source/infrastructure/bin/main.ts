@@ -96,6 +96,13 @@ export class RootStack extends Stack {
     connectorConstruct.node.addDependency(aosConstruct);
     connectorConstruct.node.addDependency(llmStack);
 
+    const uiPortal = new PortalConstruct(this, "ui-construct");
+
+    const userConstruct = new UserConstruct(this, "user", {
+      adminEmail: cdkParameters.subEmail.valueAsString,
+      callbackUrl: uiPortal.portalUrl,
+    });
+
     const apiConstruct = new ApiConstruct(this, "api-construct", {
       apiVpc: vpcConstruct.connectorVpc,
       securityGroup: vpcConstruct.securityGroup,
@@ -122,20 +129,13 @@ export class RootStack extends Stack {
       etlObjTableName: etlStack.etlObjTableName,
       etlObjIndexName: etlStack.etlObjIndexName,
       env: process.env,
+      userPool: userConstruct.userPool,
     });
     apiConstruct.node.addDependency(vpcConstruct);
     apiConstruct.node.addDependency(aosConstruct);
     apiConstruct.node.addDependency(llmStack);
     apiConstruct.node.addDependency(connectorConstruct);
     apiConstruct.node.addDependency(etlStack);
-
-    const uiPortal = new PortalConstruct(this, "ui-construct");
-
-    const userConstruct = new UserConstruct(this, "user", {
-      adminEmail: cdkParameters.subEmail.valueAsString,
-      callbackUrl: uiPortal.portalUrl,
-    });
-    uiPortal.node.addDependency(apiConstruct);
 
     const uiExports = new UiExportsConstruct(this, "ui-exports", {
       portalBucket: uiPortal.portalBucket,

@@ -23,11 +23,12 @@ export class UserConstruct extends Construct {
   readonly oidcIssuer: string;
   readonly oidcClientId: string;
   readonly oidcLogoutUrl: string;
+  readonly userPool: UserPool;
 
   constructor(scope: Construct, id: string, props: UserProps) {
     super(scope, id);
 
-    const userPool = new UserPool(this, 'UserPool', {
+    this.userPool = new UserPool(this, 'UserPool', {
       userPoolName: `${Constants.SOLUTION_NAME}_UserPool`,
       selfSignUpEnabled: false,
       signInCaseSensitive: false,
@@ -54,14 +55,14 @@ export class UserConstruct extends Construct {
 
     // Create an unique cognito domain
     const userPoolDomain = new UserPoolDomain(this, 'UserPoolDomain', {
-      userPool: userPool,
+      userPool: this.userPool,
       cognitoDomain: {
         domainPrefix: `${Constants.SOLUTION_NAME.toLowerCase()}-${Aws.ACCOUNT_ID}`,
       },
     });
 
     // Add UserPoolClient
-    const userPoolClient = userPool.addClient('UserPoolClient', {
+    const userPoolClient = this.userPool.addClient('UserPoolClient', {
       userPoolClientName: Constants.SOLUTION_NAME,
       authFlows: {
         userSrp: true,
@@ -76,7 +77,7 @@ export class UserConstruct extends Construct {
     // Add AdminUser
     const email = props.adminEmail;
     const adminUser = new CfnUserPoolUser(this, 'AdminUser', {
-      userPoolId: userPool.userPoolId,
+      userPoolId: this.userPool.userPoolId,
       username: email,
       userAttributes: [
         {
@@ -92,13 +93,13 @@ export class UserConstruct extends Construct {
 
     // Add AdminGroup
     const adminGroup = new CfnUserPoolGroup(this, 'AdminGroup', {
-      userPoolId: userPool.userPoolId,
+      userPoolId: this.userPool.userPoolId,
       groupName: 'Admin',
       description: 'Admin group',
     });
 
     const grpupAttachment = new CfnUserPoolUserToGroupAttachment(this, 'UserGroupAttachment', {
-      userPoolId: userPool.userPoolId,
+      userPoolId: this.userPool.userPoolId,
       groupName: adminGroup.groupName!,
       username: adminUser.username!,
     });
@@ -106,7 +107,7 @@ export class UserConstruct extends Construct {
     grpupAttachment.addDependency(adminGroup);
 
 
-    this.oidcIssuer = `https://cognito-idp.${Aws.REGION}.amazonaws.com/${userPool.userPoolId}`;
+    this.oidcIssuer = `https://cognito-idp.${Aws.REGION}.amazonaws.com/${this.userPool.userPoolId}`;
     this.oidcClientId = userPoolClient.userPoolClientId;
     this.oidcLogoutUrl = `${userPoolDomain.baseUrl()}/logout`;
   }
