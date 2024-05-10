@@ -17,7 +17,8 @@ from langchain_core.messages import(
     HumanMessage,
     AIMessage,
     SystemMessage,
-    BaseMessage
+    BaseMessage,
+    ToolCall
 ) 
 from langchain_anthropic.experimental import _get_type
 from langchain.prompts import ChatPromptTemplate,HumanMessagePromptTemplate,AIMessagePromptTemplate
@@ -117,36 +118,46 @@ def convert_openai_tool_to_anthropic(tools:list[dict])->str:
     )
     return tools_formatted
 
-def convert_anthropic_xml_to_dict(xml_text:str,tools:list[dict]):
+def convert_anthropic_xml_to_dict(xml_text:str, tools:list[dict]) -> List[dict]:
     # formatted_tools = [convert_to_openai_function(tool) for tool in tools]
-    tool_names = re.findall(r'<tool_name>(.*?)</tool_name>', xml_text, re.DOTALL)
+    tool_names = re.findall(r'<tool_name>(.*?)</tool_name>', xml_text, re.S)
     assert len(tool_names) == 1, xml_text 
-    tool_name = tool_names[0].strip()
-    
-    cur_tool = None
-    formatted_tools = tools
-    for tool, formatted_tool in zip(tools,formatted_tools):
-        if formatted_tool['name'] == tool_name:
-            cur_tool = tool
-            break 
-    
-    assert cur_tool is not None,xml_text
 
-    formatted_tool = convert_to_openai_function(cur_tool)
+    tool_calls:list[ToolCall] = []
+
+    for tool_name in tool_names:
+        tool_name = tool_names[0].strip()
+        cur_tool = None
+        formatted_tools = tools
+        for tool, formatted_tool in zip(tools,formatted_tools):
+            if formatted_tool['name'] == tool_name:
+                cur_tool = tool
+                break 
+        
+        assert cur_tool is not None,xml_text
+        # formatted_tool = convert_to_openai_function(cur_tool)
+        arguments = {}
+        for parameter_key in formatted_tool['parameters']['required']:
+            value = re.findall(f'<{parameter_key}>(.*?)</{parameter_key}>', xml_text, re.DOTALL)
+            assert len(value) == 1,xml_text
+            arguments[parameter_key] = value[0].strip()
+        
+        tool_calls.append(dict(name=tool_name,args=arguments))
     
-    arguments = {}
-    for parameter_key in formatted_tool['parameters']['required']:
-        value = re.findall(f'<{parameter_key}>(.*?)</{parameter_key}>', xml_text, re.DOTALL)
-        assert len(value) == 1,xml_text
-        arguments[parameter_key] = value[0].strip()
-    return {'tool_name':tool_name,'arguments':arguments,"tool":cur_tool}
+    return tool_calls
 
 
 class Claude2ToolCallingChain(LLMChain):
     model_id = "anthropic.claude-v2"
     intent_type = LLMTaskType.TOOL_CALLING
     default_model_kwargs = {"max_tokens": 2000, "temperature": 0.1, "top_p": 0.9}
-
+    
+    @staticmethod
+    def parse_tools_from_ai_message(message:AIMessage,tools:list[dict]):
+        tool_calls = convert_anthropic_xml_to_dict(message.content,tools)
+        message.tool_calls = tool_calls
+        return {"tool_calls":tool_calls,"content":message.content}
+    
     @classmethod
     def create_chain(cls, model_kwargs=None, **kwargs):
         model_kwargs = model_kwargs or {}
@@ -164,14 +175,28 @@ class Claude2ToolCallingChain(LLMChain):
             HumanMessagePromptTemplate.from_template("{query}"),
         ])
 
-
         llm = Model.get_model(
             model_id=cls.model_id,
             model_kwargs=model_kwargs,
         )
-        chain = tool_calling_template | llm | 
+        chain = tool_calling_template | llm | RunnableLambda(lambda message:cls.parse_tools_from_ai_message(message,tools=tools))
         
         return chain
-    
-    @staticmethod
-    def parse_tools_to_json(content):
+
+
+class Claude21ToolCallingChain(Claude2ToolCallingChain):
+    model_id = "anthropic.claude-v2:1"
+
+
+class ClaudeInstanceToolCallingChain(Claude2ToolCallingChain):
+    model_id = "anthropic.claude-instant-v1"
+
+
+class Claude3SonnetToolCallingChain(Claude2ToolCallingChain):
+    model_id = "anthropic.claude-3-sonnet-20240229-v1:0"
+
+
+class Claude3HaikuToolCallingChain(Claude2ToolCallingChain):
+    model_id = "anthropic.claude-3-haiku-20240307-v1:0"
+
+
