@@ -562,7 +562,7 @@ export class ApiConstruct extends Construct {
 
       const lambdaOnlineQueryPreprocess = new Function(this, "lambdaOnlineQueryPreprocess", {
         runtime: Runtime.PYTHON_3_12,
-        handler: "main.lambda_handler",
+        handler: "query_preprocess.lambda_handler",
         functionName: "Online_Query_Preprocess",
         code: Code.fromAsset(
           join(__dirname, "../../../lambda/online/lambda_query_preprocess"),
@@ -580,7 +580,7 @@ export class ApiConstruct extends Construct {
 
       const lambdaOnlineIntentionDetection = new Function(this, "lambdaOnlineIntentionDetection", {
         runtime: Runtime.PYTHON_3_12,
-        handler: "main.lambda_handler",
+        handler: "intention_detection.lambda_handler",
         functionName: "Online_Intention_Detection",
         code: Code.fromAsset(
           join(__dirname, "../../../lambda/online/lambda_intention_detection"),
@@ -598,7 +598,7 @@ export class ApiConstruct extends Construct {
 
       const lambdaOnlineAgent = new Function(this, "lambdaOnlineAgent", {
         runtime: Runtime.PYTHON_3_12,
-        handler: "main.lambda_handler",
+        handler: "agent.lambda_handler",
         functionName: "Online_Agent",
         code: Code.fromAsset(
           join(__dirname, "../../../lambda/online/lambda_agent"),
@@ -616,7 +616,7 @@ export class ApiConstruct extends Construct {
 
       const lambdaOnlineLLMGenerate = new Function(this, "lambdaOnlineLLMGenerate", {
         runtime: Runtime.PYTHON_3_12,
-        handler: "main.lambda_handler",
+        handler: "llm_generate.lambda_handler",
         functionName: "Online_LLM_Generate",
         code: Code.fromAsset(
           join(__dirname, "../../../lambda/online/lambda_llm_generate"),
@@ -632,9 +632,9 @@ export class ApiConstruct extends Construct {
         layers: [apiLambdaOnlineUtilsLayer],
       });
 
-      const lambdaOnlineFunctionKnowledgeBase = new Function(this, "lambdaOnlineKnowledgeBase", {
+      const lambdaOnlineFunctionAWSAPI = new Function(this, "lambdaOnlineFunctionAWSAPI", {
         runtime: Runtime.PYTHON_3_12,
-        handler: "main.lambda_handler",
+        handler: "aws_api.lambda_handler",
         functionName: "Online_Function_Knowledge_Base",
         code: Code.fromAsset(
           join(__dirname, "../../../lambda/online/functions/lambda_knowledge_base"),
@@ -650,12 +650,12 @@ export class ApiConstruct extends Construct {
         layers: [apiLambdaOnlineUtilsLayer],
       });
 
-      const lambdaOnlineFunctionWebSearch = new Function(this, "lambdaOnlineWebSearch", {
+      const lambdaOnlineFunctionRetriever = new Function(this, "lambdaOnlineFunctionRetriever", {
         runtime: Runtime.PYTHON_3_12,
-        handler: "main.lambda_handler",
-        functionName: "Online_Function_Web_Search",
+        handler: "retriever.lambda_handler",
+        functionName: "Online_Function_retriever",
         code: Code.fromAsset(
-          join(__dirname, "../../../lambda/online/functions/lambda_web_search"),
+          join(__dirname, "../../../lambda/online/functions/lambda_retriever"),
         ),
         timeout: Duration.minutes(15),
         memorySize: 4096,
