@@ -94,6 +94,7 @@ const AddLibrary: React.FC<AddLibraryProps> = (props: AddLibraryProps) => {
         <Box float="right">
           <SpaceBetween direction="horizontal" size="xs">
             <Button
+              disabled={showProgress}
               variant="link"
               onClick={() => {
                 setShowAddModal(false);
