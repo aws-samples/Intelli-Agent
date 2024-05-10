@@ -4,11 +4,13 @@ from typing import Any,Optional,Dict
 import json 
 import importlib
 import os 
+import boto3
 
 
 class LambdaInvoker(BaseModel):
     # aws lambda clinet
     client: Any = None 
+    # use the following envs for boto3 lambda client
     region_name: str = os.environ.get("AWS_REGION","")
     credentials_profile_name: Optional[str] = os.environ.get("AWS_PROFILE","default")
 
@@ -63,8 +65,7 @@ class LambdaInvoker(BaseModel):
 
         return ret 
 
-
-obj = LambdaInvoker()
+obj = LambdaInvoker(client=boto3.client("lambda"))
 invoke_with_handler = obj.invoke_with_handler
 invoke_with_lambda = obj.invoke_with_lambda
 
