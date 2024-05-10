@@ -11,6 +11,7 @@ import {
   SpaceBetween,
   StatusIndicator,
   Table,
+  TableProps,
   TextFilter,
 } from '@cloudscape-design/components';
 import { useNavigate } from 'react-router-dom';
@@ -40,6 +41,12 @@ const Library: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [loadingDelete, setLoadingDelete] = useState(false);
+  const [sortingColumn, setSortingColumn] = useState<
+    TableProps.SortingColumn<LibraryListItem>
+  >({
+    sortingField: 'createTime',
+  });
+  const [isDescending, setIsDescending] = useState<boolean | undefined>(true);
 
   const getLibraryList = async () => {
     setLoadingData(true);
@@ -141,6 +148,37 @@ const Library: React.FC = () => {
           onSelectionChange={({ detail }) =>
             setSelectedItems(detail.selectedItems)
           }
+          sortingDescending={isDescending}
+          sortingColumn={sortingColumn}
+          onSortingChange={({ detail }) => {
+            const { sortingColumn, isDescending } = detail;
+            const sortedItems = [...tableLibraryList].sort((a, b) => {
+              setSortingColumn(sortingColumn);
+              setIsDescending(isDescending);
+              if (sortingColumn.sortingField === 'createTime') {
+                return !isDescending
+                  ? Number(parseDate(a)) - Number(parseDate(b))
+                  : Number(parseDate(b)) - Number(parseDate(a));
+              }
+              if (sortingColumn.sortingField === 's3Prefix') {
+                return !isDescending
+                  ? a.s3Prefix.localeCompare(b.s3Prefix)
+                  : b.s3Prefix.localeCompare(a.s3Prefix);
+              }
+              if (sortingColumn.sortingField === 'indexType') {
+                return !isDescending
+                  ? a.indexType.localeCompare(b.indexType)
+                  : b.indexType.localeCompare(a.indexType);
+              }
+              if (sortingColumn.sortingField === 'executionStatus') {
+                return !isDescending
+                  ? a.executionStatus.localeCompare(b.executionStatus)
+                  : b.executionStatus.localeCompare(a.executionStatus);
+              }
+              return 0;
+            });
+            setTableLibraryList(sortedItems);
+          }}
           selectedItems={selectedItems}
           ariaLabels={{
             allItemsSelectionLabel: ({ selectedItems }) =>
@@ -153,24 +191,26 @@ const Library: React.FC = () => {
               id: 'executionId',
               header: t('id'),
               cell: (item: LibraryListItem) => LinkComp(item),
-              sortingField: 'name',
               isRowHeader: true,
             },
             {
-              id: 'prefix',
+              id: 's3Prefix',
               header: t('prefix'),
+              sortingField: 's3Prefix',
               cell: (item: LibraryListItem) => item.s3Prefix.replace(regex, ''),
             },
             {
               width: 120,
               id: 'indexType',
               header: t('indexType'),
+              sortingField: 'indexType',
               cell: (item: LibraryListItem) => item.indexType,
             },
             {
               width: 150,
-              id: 'status',
+              id: 'executionStatus',
               header: t('status'),
+              sortingField: 'executionStatus',
               cell: (item: LibraryListItem) =>
                 renderStatus(item.executionStatus),
             },
@@ -178,6 +218,7 @@ const Library: React.FC = () => {
               width: 180,
               id: 'createTime',
               header: t('createTime'),
+              sortingField: 'createTime',
               cell: (item: LibraryListItem) => formatTime(item.createTime),
             },
           ]}
