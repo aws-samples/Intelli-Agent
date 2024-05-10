@@ -635,9 +635,9 @@ export class ApiConstruct extends Construct {
       const lambdaOnlineFunctionAWSAPI = new Function(this, "lambdaOnlineFunctionAWSAPI", {
         runtime: Runtime.PYTHON_3_12,
         handler: "aws_api.lambda_handler",
-        functionName: "Online_Function_Knowledge_Base",
+        functionName: "Online_Function_AWS_API",
         code: Code.fromAsset(
-          join(__dirname, "../../../lambda/online/functions/lambda_knowledge_base"),
+          join(__dirname, "../../../lambda/online/functions/lambda_aws_api"),
         ),
         timeout: Duration.minutes(15),
         memorySize: 4096,
@@ -653,7 +653,7 @@ export class ApiConstruct extends Construct {
       const lambdaOnlineFunctionRetriever = new Function(this, "lambdaOnlineFunctionRetriever", {
         runtime: Runtime.PYTHON_3_12,
         handler: "retriever.lambda_handler",
-        functionName: "Online_Function_retriever",
+        functionName: "Online_Function_Retriever",
         code: Code.fromAsset(
           join(__dirname, "../../../lambda/online/functions/lambda_retriever"),
         ),
@@ -672,8 +672,8 @@ export class ApiConstruct extends Construct {
       lambdaOnlineIntentionDetection.grantInvoke(lambdaOnlineMain);
       lambdaOnlineAgent.grantInvoke(lambdaOnlineMain);
       lambdaOnlineLLMGenerate.grantInvoke(lambdaOnlineMain);
-      lambdaOnlineFunctionKnowledgeBase.grantInvoke(lambdaOnlineMain);
-      lambdaOnlineFunctionWebSearch.grantInvoke(lambdaOnlineMain);
+      lambdaOnlineFunctionAWSAPI.grantInvoke(lambdaOnlineMain);
+      lambdaOnlineFunctionRetriever.grantInvoke(lambdaOnlineMain);
 
       // Define the API Gateway Lambda Integration with proxy and no integration responses
       const lambdaExecutorIntegrationV2 = new apigw.LambdaIntegration(
