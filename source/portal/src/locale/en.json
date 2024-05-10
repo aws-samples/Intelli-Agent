@@ -52,6 +52,10 @@
     "closing": "Closing...",
     "pending": "Pending",
     "typeMessage": "Type a message",
+    "alert": "Warning",
+    "preferences": "Preferences",
+    "pageSize": "Page Size",
+    "fileEmptyError": "Please select files to upload",
     "button": {
       "login": "Log in to LLM Bot",
       "reload": "Reload",
@@ -61,7 +65,8 @@
       "confirm": "Confirm",
       "backToList": "Back to List",
       "delete": "Delete",
-      "createDocLibrary": "Create Document Library"
+      "createDocLibrary": "Create Document Library",
+      "upload": "Upload"
     },
     "header": {
       "reSignIn": "Please login again",

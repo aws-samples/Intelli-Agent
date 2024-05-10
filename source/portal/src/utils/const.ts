@@ -10,3 +10,5 @@ export const LANGUAGE_ITEMS = [
 ];
 
 export const LAST_VISIT_URL = 'llm-bot-app-last-visit-url';
+
+export const LIBRARY_DEFAULT_PREFIX = 'documents';

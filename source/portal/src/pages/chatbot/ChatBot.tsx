@@ -170,7 +170,7 @@ const ChatBot: React.FC = () => {
         }
         header={t('settings')}
       >
-        // TODO
+        TODO
       </Modal>
     </CommonLayout>
   );
