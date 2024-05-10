@@ -100,6 +100,11 @@ export class ApiConstruct extends Construct {
       effect: iam.Effect.ALLOW,
       resources: ["*"],
     });
+    const s3PolicyDocument = new iam.PolicyStatement({
+      actions: ["s3:*"],
+      effect: iam.Effect.ALLOW,
+      resources: ["*"],
+    });
 
     const embeddingLambda = new Function(this, "lambdaEmbedding", {
       runtime: Runtime.PYTHON_3_11,
@@ -260,6 +265,19 @@ export class ApiConstruct extends Construct {
     });
     delExecutionLambda.addToRolePolicy(ddbPolicyDocument);
 
+    const uploadDocLambda = new Function(this, "UploadDocument", {
+      code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
+      handler: "upload_document.lambda_handler",
+      runtime: Runtime.PYTHON_3_11,
+      timeout: Duration.minutes(3),
+      memorySize: 512,
+      architecture: Architecture.X86_64,
+      environment: {
+        S3_BUCKET: s3Bucket.bucketName,
+      },
+    });
+    uploadDocLambda.addToRolePolicy(s3PolicyDocument);
+
     const batchLambda = new Function(this, "BatchLambda", {
       code: Code.fromAsset(join(__dirname, "../../../lambda/batch")),
       handler: "main.lambda_handler",
@@ -379,6 +397,12 @@ export class ApiConstruct extends Construct {
     apiDelExecution.addMethod(
       "POST",
       new apigw.LambdaIntegration(delExecutionLambda),
+    );
+
+    const apiUploadDoc = apiResourceStepFunction.addResource("upload-s3-url");
+    apiUploadDoc.addMethod(
+      "POST",
+      new apigw.LambdaIntegration(uploadDocLambda),
     );
 
     // Define the API Gateway Lambda Integration to invoke Batch job

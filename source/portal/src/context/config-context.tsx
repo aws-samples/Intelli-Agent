@@ -4,6 +4,10 @@ export interface Config {
   apiUrl: string;
   docsS3Bucket: string;
   workspaceId: string;
+  oidcIssuer: string;
+  oidcClientId: string;
+  oidcLogoutUrl: string;
+  oidcRedirectUrl: string;
 }
 const ConfigContext = React.createContext<Config | null>(null);
 export default ConfigContext;
