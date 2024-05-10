@@ -19,11 +19,16 @@ from langchain.schema.runnable import (
     RunnablePassthrough,
 )
 
-from ...constant import HYDE_TYPE
+from utils.constant import (
+    LLMTaskType
+)
+
 from ..llm_chains import LLMChain
 from ..llm_models import Model as LLM_Model
 from .chat_chain import Iternlm2Chat7BChatChain
 from .llm_chain_base import LLMChain
+
+HYDE_TYPE = LLMTaskType.HYDE_TYPE
 
 WEB_SEARCH_TEMPLATE = """Please write a passage to answer the question 
 Question: {query}

@@ -18,14 +18,10 @@ from langchain.schema.runnable import (
 from langgraph.graph import END, StateGraph
 
 from utils.logger_utils  import get_logger
-from utils.python_utils import update_nest_dict
 from utils.lambda_invoke_utils import invoke_with_lambda,invoke_with_handler
-from utils.langchain_utils import chain_logger,RunnableParallelAssign
+from utils.langchain_utils import chain_logger,RunnableParallelAssign,NestUpdateState
 
 logger = get_logger("intention")
-
-class AgentState(TypedDict):
-    keys: Annotated[dict,update_nest_dict]
 
 
 # 过滤qq结果
@@ -140,7 +136,7 @@ def lambda_handler(event, context=None):
     state:dict = event_body['state']
     logger.info(f'state: {json.dumps(state,ensure_ascii=False,indent=2)}')
 
-    workflow = StateGraph(AgentState)
+    workflow = StateGraph(NestUpdateState)
 
     workflow.add_node('qq_match_and_intent_recognition',qq_match_and_intent_recognition)
     workflow.set_entry_point('qq_match_and_intent_recognition')
@@ -250,3 +246,5 @@ def lambda_handler(event, context=None):
     # finally:
     #     ret = ret if ret.get('func') else default_ret
     # return ret 
+
+
