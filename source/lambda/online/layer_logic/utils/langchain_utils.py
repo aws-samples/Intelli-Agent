@@ -1,8 +1,8 @@
 import threading
 import time
 from functools import partial
+from typing import TypedDict,Annotated
 
-from langchain.schema.callbacks.base import BaseCallbackHandler
 from langchain.schema.runnable import (
     RunnableLambda,
     RunnableParallel,
@@ -14,6 +14,7 @@ from prettytable import PrettyTable
 # import threading
 # import time
 from .logger_utils import logger
+from .python_utils import update_nest_dict
 
 
 class RunnableDictAssign:
@@ -234,3 +235,7 @@ def format_trace_infos(trace_infos: list, use_pretty_table=True):
         )
 
     return "\n".join(trace_info_strs)
+
+
+class NestUpdateState(TypedDict):
+    keys: Annotated[dict,update_nest_dict]

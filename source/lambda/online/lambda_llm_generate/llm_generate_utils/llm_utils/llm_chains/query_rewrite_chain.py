@@ -13,12 +13,17 @@ from langchain.schema.runnable import (
     RunnablePassthrough,
 )
 
-from ...constant import QUERY_REWRITE_TYPE
+from utils.constant import (
+    MessageType,
+    LLMTaskType,
+    IntentType
+)
 from ..llm_chains import LLMChain
 from ..llm_models import Model as LLM_Model
 from .chat_chain import Iternlm2Chat7BChatChain
 from .llm_chain_base import LLMChain
 
+QUERY_REWRITE_TYPE = LLMTaskType.QUERY_REWRITE_TYPE
 query_expansion_template_claude = PromptTemplate.from_template("""You are an AI language model assistant. Your task is to generate 1 - 5 different sub questions OR alternate versions of the given user question to retrieve relevant documents from a vector database.
 
 By generating multiple versions of the user question,

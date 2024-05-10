@@ -2,40 +2,46 @@
 from typing import Any, List, Mapping, Optional
 
 from langchain.schema.runnable import RunnableLambda, RunnablePassthrough
+from langchain_core.messages import HumanMessage,AIMessage
 
-from ...constant import (
-    AI_MESSAGE_TYPE,
-    HUMAN_MESSAGE_TYPE,
-    QUERY_TRANSLATE_TYPE,
-    SYSTEM_MESSAGE_TYPE,
-    IntentType,
-)
-from ...prompt_template import CHIT_CHAT_SYSTEM_TEMPLATE, get_chit_chat_prompt
+# from ...prompt_template import CHIT_CHAT_SYSTEM_TEMPLATE, get_chit_chat_prompt
 from ..llm_models import Model
 from .llm_chain_base import LLMChain
+
+from utils.constant import (
+    MessageType,
+    LLMTaskType
+)
+
+AI_MESSAGE_TYPE = MessageType.AI_MESSAGE_TYPE
+HUMAN_MESSAGE_TYPE = MessageType.HUMAN_MESSAGE_TYPE
+QUERY_TRANSLATE_TYPE = LLMTaskType.QUERY_TRANSLATE_TYPE
+SYSTEM_MESSAGE_TYPE = MessageType.SYSTEM_MESSAGE_TYPE
+
+CHIT_CHAT_SYSTEM_TEMPLATE = """You are a helpful AI Assistant"""
 
 
 class Claude2ChatChain(LLMChain):
     model_id = "anthropic.claude-v2"
-    intent_type = IntentType.CHAT.value
+    intent_type = LLMTaskType.CHAT
 
     @classmethod
     def create_chain(cls, model_kwargs=None, **kwargs):
         stream = kwargs.get("stream", False)
-        prompt = RunnableLambda(lambda x: get_chit_chat_prompt(x["chat_history"]))
+        messages = RunnableLambda(lambda x: x["chat_history"] + [HumanMessage(content=x['query'])])
         kwargs.update({"return_chat_model": True})
         llm = Model.get_model(cls.model_id, model_kwargs=model_kwargs, **kwargs)
 
-        chain = prompt | llm
+        chain = messages | llm
 
         if stream:
             chain = (
-                prompt
+                messages
                 | RunnableLambda(lambda x: llm.stream(x.messages))
                 | RunnableLambda(lambda x: (i.content for i in x))
             )
         else:
-            chain = prompt | llm | RunnableLambda(lambda x: x.content)
+            chain = messages | llm | RunnableLambda(lambda x: x.content)
 
         return chain
 
@@ -58,7 +64,7 @@ class Claude3HaikuChatChain(Claude2ChatChain):
 
 class Baichuan2Chat13B4BitsChatChain(LLMChain):
     model_id = "Baichuan2-13B-Chat-4bits"
-    intent_type = IntentType.CHAT.value
+    intent_type = LLMTaskType.CHAT
     default_model_kwargs = {
         "max_new_tokens": 2048,
         "temperature": 0.3,
@@ -83,7 +89,7 @@ class Baichuan2Chat13B4BitsChatChain(LLMChain):
 
 class Iternlm2Chat7BChatChain(LLMChain):
     model_id = "internlm2-chat-7b"
-    intent_type = IntentType.CHAT.value
+    intent_type = LLMTaskType.CHAT
 
     default_model_kwargs = {"temperature": 0.5, "max_new_tokens": 1000}
 
@@ -102,15 +108,6 @@ class Iternlm2Chat7BChatChain(LLMChain):
             prompt += f"""<|im_start|>user\n{record[0]}<|im_end|>\n<|im_start|>assistant\n{record[1]}<|im_end|>\n"""
         prompt += f"""<|im_start|>user\n{query}<|im_end|>\n<|im_start|>assistant\n"""
         return prompt
-
-    # @classmethod
-    # def add_meta_instruction(cls,x):
-    #     meta_instruction = CHIT_CHAT_SYSTEM_TEMPLATE
-    #     return meta_instruction
-
-    # @classmethod
-    # def add_query(cls,x):
-    #     return x['query']
 
     @classmethod
     def create_history(cls, x):

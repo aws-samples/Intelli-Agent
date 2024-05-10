@@ -9,11 +9,17 @@ from langchain.prompts import (
     PromptTemplate,
     SystemMessagePromptTemplate,
 )
+
+from langchain_core.messages import HumanMessage,AIMessage,SystemMessage
 from langchain.schema.messages import BaseMessage, SystemMessage, _message_from_dict
 from langchain.schema.runnable import RunnableLambda, RunnablePassthrough
 
-from ...constant import QUERY_TRANSLATE_TYPE, IntentType
-from ...prompt_template import convert_chat_history_from_fstring_format
+
+from utils.constant import (
+    LLMTaskType
+)
+
+# from ...prompt_template import convert_chat_history_from_fstring_format
 from ..llm_models import Model
 from .llm_chain_base import LLMChain
 
@@ -40,23 +46,23 @@ def get_claude_rag_context(contexts: list):
     return context
 
 
-def get_claude_chat_rag_prompt(chat_history: List[BaseMessage]):
-    chat_messages = [
-        SystemMessagePromptTemplate.from_template(BEDROCK_RAG_CHAT_SYSTEM_PROMPT)
-    ]
+# def get_claude_chat_rag_prompt(chat_history: List[BaseMessage]):
+#     chat_messages = [
+#         SystemMessagePromptTemplate.from_template(BEDROCK_RAG_CHAT_SYSTEM_PROMPT)
+#     ]
 
-    chat_messages = chat_messages + chat_history
-    chat_messages += [HumanMessagePromptTemplate.from_template("{query}")]
-    context_chain = RunnablePassthrough.assign(
-        context=RunnableLambda(lambda x: get_claude_rag_context(x["contexts"]))
-    )
+#     chat_messages = chat_messages + chat_history
+#     chat_messages += [HumanMessagePromptTemplate.from_template("{query}")]
+#     context_chain = RunnablePassthrough.assign(
+#         context=RunnableLambda(lambda x: get_claude_rag_context(x["contexts"]))
+#     )
 
-    return context_chain | ChatPromptTemplate.from_messages(chat_messages)
+#     return context_chain | ChatPromptTemplate.from_messages(chat_messages)
 
 
 class Claude2RagLLMChain(LLMChain):
     model_id = "anthropic.claude-v2"
-    intent_type = IntentType.KNOWLEDGE_QA.value
+    intent_type = LLMTaskType.RAG
     # template_render = claude2_rag_template_render
     # stream_postprocess = claude2_rag_stream_postprocess
     # api_postprocess = claude2_rag_api_postprocess
@@ -109,7 +115,7 @@ from .chat_chain import Baichuan2Chat13B4BitsChatChain
 
 class Baichuan2Chat13B4BitsKnowledgeQaChain(Baichuan2Chat13B4BitsChatChain):
     model_id = "Baichuan2-13B-Chat-4bits"
-    intent_type = IntentType.KNOWLEDGE_QA.value
+    intent_type = LLMTaskType.RAG
 
     @classmethod
     def create_chain(cls, model_kwargs=None, **kwargs):
@@ -134,7 +140,7 @@ from .chat_chain import Iternlm2Chat7BChatChain
 
 class Iternlm2Chat7BKnowledgeQaChain(Iternlm2Chat7BChatChain):
     mdoel_id = "internlm2-chat-7b"
-    intent_type = IntentType.KNOWLEDGE_QA.value
+    intent_type = LLMTaskType.RAG
     default_model_kwargs = {"temperature": 0.05, "max_new_tokens": 1000}
 
     @classmethod

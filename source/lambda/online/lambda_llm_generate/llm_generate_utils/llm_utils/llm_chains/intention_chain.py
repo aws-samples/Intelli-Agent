@@ -15,7 +15,7 @@ from langchain.schema.runnable import (
     RunnablePassthrough,
 )
 
-from ...constant import INTENT_RECOGNITION_TYPE, IntentType
+from utils.constant import LLMTaskType
 from ..llm_models import Model
 from .chat_chain import Iternlm2Chat7BChatChain
 from .llm_chain_base import LLMChain
@@ -53,7 +53,7 @@ def load_intention_file(intent_save_path=intent_save_path, seed=42):
 
 class Iternlm2Chat7BIntentRecognitionChain(Iternlm2Chat7BChatChain):
     model_id = "internlm2-chat-7b"
-    intent_type = INTENT_RECOGNITION_TYPE
+    intent_type =LLMTaskType.INTENT_RECOGNITION_TYPE
 
     default_model_kwargs = {
         "temperature": 0.1,
@@ -125,7 +125,7 @@ INTENT_RECOGINITION_EXAMPLE_TEMPLATE = """<query>{query}</query>\n{label}"""
 
 class Claude2IntentRecognitionChain(LLMChain):
     model_id = "anthropic.claude-v2"
-    intent_type = INTENT_RECOGNITION_TYPE
+    intent_type = LLMTaskType.INTENT_RECOGNITION_TYPE
 
     default_model_kwargs = {
         "temperature": 0,

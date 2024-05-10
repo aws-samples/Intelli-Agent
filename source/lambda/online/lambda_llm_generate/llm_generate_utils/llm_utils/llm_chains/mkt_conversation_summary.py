@@ -12,17 +12,23 @@ from langchain.schema.runnable import (
     RunnablePassthrough,
 )
 
-from ...constant import (
-    AI_MESSAGE_TYPE,
-    HUMAN_MESSAGE_TYPE,
-    MKT_CONVERSATION_SUMMARY_TYPE,
-    SYSTEM_MESSAGE_TYPE,
-)
-from ...prompt_template import CHIT_CHAT_SYSTEM_TEMPLATE, get_chit_chat_prompt
 from ..llm_models import Model
 from .chat_chain import Claude2ChatChain, Iternlm2Chat7BChatChain
 from .llm_chain_base import LLMChain
 
+from utils.constant import (
+    MessageType,
+    LLMTaskType,
+    IntentType
+)
+
+AI_MESSAGE_TYPE = MessageType.AI_MESSAGE_TYPE
+HUMAN_MESSAGE_TYPE = MessageType.HUMAN_MESSAGE_TYPE
+QUERY_TRANSLATE_TYPE = LLMTaskType.QUERY_TRANSLATE_TYPE
+SYSTEM_MESSAGE_TYPE = MessageType.SYSTEM_MESSAGE_TYPE
+MKT_CONVERSATION_SUMMARY_TYPE = LLMTaskType.MKT_CONVERSATION_SUMMARY_TYPE
+
+CHIT_CHAT_SYSTEM_TEMPLATE = """You are a helpful AI Assistant"""
 
 class Iternlm2Chat7BMKTConversationSummaryChain(Iternlm2Chat7BChatChain):
     model_id = "internlm2-chat-7b"
