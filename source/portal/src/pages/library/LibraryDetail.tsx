@@ -87,9 +87,6 @@ const LibraryDetail: React.FC = () => {
         >
           <SpaceBetween direction="vertical" size="xs">
             <div className="flex align-center gap-10">
-              {t('id')}: <b>{`${id}`} </b>
-            </div>
-            <div className="flex align-center gap-10">
               {t('prefix')}:{' '}
               <b>{`${getLibraryPrefix(executionFileList?.[0]?.s3Path)}`} </b>
             </div>

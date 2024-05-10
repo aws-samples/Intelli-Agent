@@ -14,13 +14,13 @@ import {
   TableProps,
   TextFilter,
 } from '@cloudscape-design/components';
-import { useNavigate } from 'react-router-dom';
 import { LibraryListItem, LibraryListResponse } from 'src/types';
 import { alertMsg, formatTime } from 'src/utils/utils';
 import TableLink from 'src/comps/link/TableLink';
 import useAxiosRequest from 'src/hooks/useAxiosRequest';
 import { useTranslation } from 'react-i18next';
 import { LIBRARY_DEFAULT_PREFIX } from 'src/utils/const';
+import AddLibrary from '../components/AddLibrary';
 
 const parseDate = (item: LibraryListItem) => {
   return item.createTime ? new Date(item.createTime) : 0;
@@ -31,7 +31,6 @@ const Library: React.FC = () => {
   const [selectedItems, setSelectedItems] = useState<LibraryListItem[]>([]);
   const fetchData = useAxiosRequest();
   const [visible, setVisible] = useState(false);
-  const navigate = useNavigate();
   const { t } = useTranslation();
   const [loadingData, setLoadingData] = useState(false);
   const [allLibraryList, setAllLibraryList] = useState<LibraryListItem[]>([]);
@@ -47,6 +46,9 @@ const Library: React.FC = () => {
     sortingField: 'createTime',
   });
   const [isDescending, setIsDescending] = useState<boolean | undefined>(true);
+
+  // ingest document
+  const [showAddModal, setShowAddModal] = useState(false);
 
   const getLibraryList = async () => {
     setLoadingData(true);
@@ -290,7 +292,7 @@ const Library: React.FC = () => {
                   <Button
                     variant="primary"
                     onClick={() => {
-                      navigate('/library/add');
+                      setShowAddModal(true);
                     }}
                   >
                     {t('button.createDocLibrary')}
@@ -337,7 +339,7 @@ const Library: React.FC = () => {
         >
           <Box variant="h4">{t('deleteTips')}</Box>
           <div className="selected-items-list">
-            <ul>
+            <ul className="gap-5 flex-v">
               {selectedItems.map((item) => (
                 <li key={item.executionId}>
                   {item.s3Prefix.replace(regex, '')}
@@ -346,6 +348,15 @@ const Library: React.FC = () => {
             </ul>
           </div>
         </Modal>
+        <AddLibrary
+          showAddModal={showAddModal}
+          setShowAddModal={setShowAddModal}
+          reloadLibrary={() => {
+            setTimeout(() => {
+              getLibraryList();
+            }, 1000);
+          }}
+        />
       </ContentLayout>
     </CommonLayout>
   );
