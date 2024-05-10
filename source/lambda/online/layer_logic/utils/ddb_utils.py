@@ -17,7 +17,7 @@ from langchain.schema.messages import (
     messages_to_dict,
 )
 
-from .constant import AI_MESSAGE_TYPE, HUMAN_MESSAGE_TYPE, SYSTEM_MESSAGE_TYPE
+from .constant import MessageType
 from .logger_utils import logger
 
 client = boto3.resource("dynamodb")
@@ -87,7 +87,7 @@ class DynamoDBChatMessageHistory(BaseChatMessageHistory):
         ret = []
 
         for item in items:
-            assert item["type"] in [AI_MESSAGE_TYPE, HUMAN_MESSAGE_TYPE]
+            assert item["type"] in [MessageType.AI_MESSAGE_TYPE, MessageType.HUMAN_MESSAGE_TYPE]
             langchain_message_template = {}
             langchain_message_template["type"] = item["type"]
             langchain_message_template["data"] = {
@@ -163,7 +163,7 @@ class DynamoDBChatMessageHistory(BaseChatMessageHistory):
         """Append the user message to the record in DynamoDB"""
         self.add_message(
             message_id,
-            HUMAN_MESSAGE_TYPE,
+            MessageType.HUMAN_MESSAGE_TYPE,
             custom_message_id,
             entry_type,
             message_content,
@@ -181,7 +181,7 @@ class DynamoDBChatMessageHistory(BaseChatMessageHistory):
         """Append the ai message to the record in DynamoDB"""
         self.add_message(
             message_id,
-            AI_MESSAGE_TYPE,
+            MessageType.AI_MESSAGE_TYPE,
             custom_message_id,
             entry_type,
             message_content,
@@ -216,10 +216,10 @@ def filter_chat_history_by_time(
         start_index = selected_indexes[0]
         end_index = selected_indexes[-1]
 
-        if chat_history[start_index].type == AI_MESSAGE_TYPE and start_index != 0:
+        if chat_history[start_index].type == MessageType.AI_MESSAGE_TYPE and start_index != 0:
             selected_indexes.insert(0, start_index - 1)
 
-        if chat_history[end_index].type == HUMAN_MESSAGE_TYPE and end_index != (
+        if chat_history[end_index].type == MessageType.HUMAN_MESSAGE_TYPE and end_index != (
             len(chat_history) - 1
         ):
             selected_indexes.append(end_index + 1)
