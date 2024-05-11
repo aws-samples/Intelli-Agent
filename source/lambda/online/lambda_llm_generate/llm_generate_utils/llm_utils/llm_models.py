@@ -10,8 +10,8 @@ from langchain.llms.sagemaker_endpoint import LLMContentHandler, SagemakerEndpoi
 from langchain_community.chat_models import BedrockChat
 from langchain_community.llms.sagemaker_endpoint import LineIterator
 
-from layer_logic.utils.constant import MessageType
-from layer_logic.utils.logger_utils import logger
+from common_utils.constant import MessageType
+from common_utils.logger_utils import logger
 
 AI_MESSAGE_TYPE = MessageType.AI_MESSAGE_TYPE
 HUMAN_MESSAGE_TYPE = MessageType.HUMAN_MESSAGE_TYPE

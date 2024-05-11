@@ -14,11 +14,11 @@ from langchain.schema.runnable import (
     RunnablePassthrough,
 )
 
-from layer_logic.utils.logger_utils  import get_logger
-from layer_logic.utils.langchain_utils import NestUpdateState,chain_logger
-from layer_logic.utils.lambda_invoke_utils import invoke_lambda,chatbot_lambda_call_wrapper
-from layer_logic.utils.constant import LLMTaskType
-from layer_logic.utils.serialization_utils import JSONEncoder
+from common_utils.logger_utils  import get_logger
+from common_utils.langchain_utils import NestUpdateState,chain_logger
+from common_utils.lambda_invoke_utils import invoke_lambda,chatbot_lambda_call_wrapper
+from common_utils.constant import LLMTaskType
+from common_utils.serialization_utils import JSONEncoder
 
 
 logger = get_logger("query_preprocess")

@@ -1,13 +1,13 @@
 import os
 import sys
-sys.path.append(".")
 import dotenv
 dotenv.load_dotenv()
 import sys
 os.environ['LAMBDA_INVOKE_MODE'] = 'local'
+sys.path.extend([".",'layer_logic'])
 
-from layer_logic.utils.lambda_invoke_utils import invoke_lambda
-from langchain_core.messages import HumanMessage,AIMessage
+from common_utils.lambda_invoke_utils import invoke_lambda
+
 
 def test_local():
     event_body = {

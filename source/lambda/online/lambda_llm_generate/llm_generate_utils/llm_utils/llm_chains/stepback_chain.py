@@ -5,7 +5,7 @@ from langchain.prompts import (
 )
 from langchain.schema.runnable import RunnableLambda
 
-from layer_logic.utils.constant import LLMTaskType
+from common_utils.constant import LLMTaskType
 from ..llm_chains.chat_chain import Iternlm2Chat7BChatChain
 from ..llm_chains.llm_chain_base import LLMChain
 from ..llm_models import Model

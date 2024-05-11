@@ -9,7 +9,7 @@ from langchain.prompts import ChatPromptTemplate,HumanMessagePromptTemplate
 from ..llm_models import Model
 from .llm_chain_base import LLMChain
 
-from layer_logic.utils.constant import (
+from common_utils.constant import (
     MessageType,
     LLMTaskType
 )

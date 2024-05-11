@@ -13,7 +13,7 @@ from langchain.schema.runnable import (
     RunnablePassthrough,
 )
 
-from layer_logic.utils.constant import (
+from common_utils.constant import (
     LLMTaskType
 )
 from ..llm_chains import LLMChain

@@ -15,7 +15,7 @@ from langchain.schema.runnable import (
     RunnablePassthrough,
 )
 
-from layer_logic.utils.constant import LLMTaskType
+from common_utils.constant import LLMTaskType
 from ..llm_models import Model
 from .chat_chain import Iternlm2Chat7BChatChain
 from .llm_chain_base import LLMChain

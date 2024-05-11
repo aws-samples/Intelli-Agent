@@ -1,13 +1,11 @@
 import os
-sys.path.append(".")
+import sys
 import dotenv
 dotenv.load_dotenv()
-import sys
 os.environ['LAMBDA_INVOKE_MODE'] = 'local'
+sys.path.extend([".",'layer_logic'])
 
-
-from layer_logic.utils.lambda_invoke_utils import invoke_lambda
-from langchain_core.messages import HumanMessage,AIMessage
+from common_utils.lambda_invoke_utils import invoke_lambda
 
 
 def test_local():
@@ -22,8 +20,14 @@ def test_local():
             }
         },
         "chat_history":[
-            HumanMessage(content="《夜曲》是谁的歌曲？"),
-            AIMessage(content="周杰伦")
+            {
+                "role": "user",
+                "content": "《夜曲》是谁的歌曲？"
+            },
+            {
+                "role": "ai",
+                "content": "周杰伦"
+            }
         ],
         "query":"《七里香》是他的歌曲吗？"
     }

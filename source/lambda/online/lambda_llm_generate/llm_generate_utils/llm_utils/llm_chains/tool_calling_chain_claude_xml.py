@@ -25,7 +25,7 @@ from langchain.prompts import ChatPromptTemplate,HumanMessagePromptTemplate,AIMe
 
 from langchain_core.messages import HumanMessage,AIMessage,SystemMessage
 
-from layer_logic.utils.constant import (
+from common_utils.constant import (
     MessageType,
     LLMTaskType
 )

@@ -125,11 +125,10 @@ invoke_lambda = obj.invoke_lambda
 def chatbot_lambda_call_wrapper(fn):
     @functools.wraps(fn)
     def inner(event:dict,context=None):
-        # 处理chat history 序列化的问题
         if "lambda_invoke_mode" not in event:
             event['lambda_invoke_mode'] = os.environ.get("LAMBDA_INVOKE_MODE","local")
-         
-        ret = fn(event,context=context)
+
+        ret = fn(event, context=context)
         # 如果使用apigateway 调用lambda，需要将结果保存到body字段中
         if event['lambda_invoke_mode'] == LAMBDA_INVOKE_MODE.APIGETAWAY.value:
             ret = {

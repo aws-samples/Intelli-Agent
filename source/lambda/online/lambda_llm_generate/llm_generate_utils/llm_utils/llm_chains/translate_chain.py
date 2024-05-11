@@ -1,7 +1,7 @@
 # translate chain
 from langchain.schema.runnable import RunnableLambda
 
-from layer_logic.utils.constant import LLMTaskType
+from common_utils.constant import LLMTaskType
 from .chat_chain import Iternlm2Chat7BChatChain
 
 QUERY_TRANSLATE_TYPE = LLMTaskType.QUERY_TRANSLATE_TYPE
