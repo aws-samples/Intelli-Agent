@@ -13,11 +13,11 @@ import sys
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(SCRIPT_DIR))
 sys.path.append(os.path.dirname(SCRIPT_DIR)+'/layer_logic')
-from utils.constant import Type
+from layer_logic.utils.constant import Type
 
-from utils.ddb_utils import DynamoDBChatMessageHistory
-from utils.online_entries import get_entry
-from utils.response_utils import process_response
+from layer_logic.utils.ddb_utils import DynamoDBChatMessageHistory
+from layer_logic.utils.online_entries import get_entry
+from layer_logic.utils.response_utils import process_response
 
 # region = os.environ["AWS_REGION"]
 embedding_endpoint = os.environ.get("embedding_endpoint", "")

@@ -25,7 +25,7 @@ from langchain.prompts import ChatPromptTemplate,HumanMessagePromptTemplate,AIMe
 
 from langchain_core.messages import HumanMessage,AIMessage,SystemMessage
 
-from utils.constant import (
+from layer_logic.utils.constant import (
     MessageType,
     LLMTaskType
 )
@@ -118,31 +118,33 @@ def convert_openai_tool_to_anthropic(tools:list[dict])->str:
     )
     return tools_formatted
 
-def convert_anthropic_xml_to_dict(xml_text:str, tools:list[dict]) -> List[dict]:
+def convert_anthropic_xml_to_dict(function_calls:List[str], tools:list[dict]) -> List[dict]:
     # formatted_tools = [convert_to_openai_function(tool) for tool in tools]
-    tool_names = re.findall(r'<tool_name>(.*?)</tool_name>', xml_text, re.S)
-    assert len(tool_names) == 1, xml_text 
-
     tool_calls:list[ToolCall] = []
+    for function_call in function_calls:
+        tool_names = re.findall(r'<tool_name>(.*?)</tool_name>', function_call, re.S)
+        if not tool_names:
+            return []
+        assert len(tool_names) == 1, function_call 
 
-    for tool_name in tool_names:
-        tool_name = tool_names[0].strip()
-        cur_tool = None
-        formatted_tools = tools
-        for tool, formatted_tool in zip(tools,formatted_tools):
-            if formatted_tool['name'] == tool_name:
-                cur_tool = tool
-                break 
-        
-        assert cur_tool is not None,xml_text
-        # formatted_tool = convert_to_openai_function(cur_tool)
-        arguments = {}
-        for parameter_key in formatted_tool['parameters']['required']:
-            value = re.findall(f'<{parameter_key}>(.*?)</{parameter_key}>', xml_text, re.DOTALL)
-            assert len(value) == 1,xml_text
-            arguments[parameter_key] = value[0].strip()
-        
-        tool_calls.append(dict(name=tool_name,args=arguments))
+        for tool_name in tool_names:
+            tool_name = tool_names[0].strip()
+            cur_tool = None
+            formatted_tools = tools
+            for tool, formatted_tool in zip(tools,formatted_tools):
+                if formatted_tool['name'] == tool_name:
+                    cur_tool = tool
+                    break 
+            
+            assert cur_tool is not None,function_call
+            # formatted_tool = convert_to_openai_function(cur_tool)
+            arguments = {}
+            for parameter_key in formatted_tool['parameters']['required']:
+                value = re.findall(f'<{parameter_key}>(.*?)</{parameter_key}>', function_call, re.DOTALL)
+                assert len(value) == 1,function_call
+                arguments[parameter_key] = value[0].strip()
+            
+            tool_calls.append(dict(name=tool_name,args=arguments))
     
     return tool_calls
 
@@ -150,11 +152,20 @@ def convert_anthropic_xml_to_dict(xml_text:str, tools:list[dict]) -> List[dict]:
 class Claude2ToolCallingChain(LLMChain):
     model_id = "anthropic.claude-v2"
     intent_type = LLMTaskType.TOOL_CALLING
-    default_model_kwargs = {"max_tokens": 2000, "temperature": 0.1, "top_p": 0.9}
+    default_model_kwargs = {
+        "max_tokens": 2000,
+        "temperature": 0.1,
+        "top_p": 0.9,
+        "stop_sequences": ["\n\nHuman:", "\n\nAssistant","</function_calls>"],
+        }
     
     @staticmethod
     def parse_tools_from_ai_message(message:AIMessage,tools:list[dict]):
-        tool_calls = convert_anthropic_xml_to_dict(message.content,tools)
+        function_calls:List[str] = re.findall("<function_calls>(.*?)</function_calls>", message.content + "</function_calls>",re.S)
+        if not function_calls:
+            return []
+        
+        tool_calls = convert_anthropic_xml_to_dict(function_calls,tools)
         message.tool_calls = tool_calls
         return {"tool_calls":tool_calls,"content":message.content}
     
@@ -179,7 +190,7 @@ class Claude2ToolCallingChain(LLMChain):
             model_id=cls.model_id,
             model_kwargs=model_kwargs,
         )
-        chain = tool_calling_template | llm | RunnableLambda(lambda message:cls.parse_tools_from_ai_message(message,tools=tools))
+        chain = tool_calling_template | RunnableLambda(lambda x:x.messages) | llm | RunnableLambda(lambda message:cls.parse_tools_from_ai_message(message,tools=tools))
         
         return chain
 

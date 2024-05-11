@@ -19,7 +19,7 @@ from langchain.schema.runnable import (
     RunnablePassthrough,
 )
 
-from utils.constant import (
+from layer_logic.utils.constant import (
     LLMTaskType
 )
 
@@ -48,7 +48,7 @@ class Claude2HydeChain(LLMChain):
 
     @classmethod
     def create_chain(cls, model_kwargs=None, **kwargs):
-        query_key = kwargs.pop("query_key", "query")
+        # query_key = kwargs.pop("query_key", "query")
         model_kwargs = model_kwargs or {}
         model_kwargs = {**cls.default_model_kwargs, **model_kwargs}
 
