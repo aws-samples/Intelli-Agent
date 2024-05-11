@@ -66,10 +66,12 @@ class LambdaInvoker(BaseModel):
                                            InvocationType='RequestResponse',
                                            Payload=json.dumps(event_body))
         response_body = invoke_response['Payload']
-        response_body = json.loads(response_body.read().decode("unicode_escape"))
+        response_str = response_body.read().decode()
+
+        response_body = json.loads(response_str)
 
         if "errorType" in response_body:
-            error = f"{lambda_name} invoke failed\n\n" + "\n".join(response_body['stackTrace']) + "\n" + f"{response_body['errorType']}: {response_body['errorMessage']}"
+            error = f"{lambda_name} invoke failed\n\n" + "".join(response_body['stackTrace']) + "\n" + f"{response_body['errorType']}: {response_body['errorMessage']}"
             raise LambdaInvokeError(error)
         
         return response_body
@@ -89,7 +91,6 @@ class LambdaInvoker(BaseModel):
         ret = json.loads(data['body'])
         return ret 
 
-
     def invoke_lambda(
             self,
             event_body,
@@ -102,7 +103,7 @@ class LambdaInvoker(BaseModel):
         assert LAMBDA_INVOKE_MODE.has_value(lambda_invoke_mode), (lambda_invoke_mode,LAMBDA_INVOKE_MODE.values())
 
         if lambda_invoke_mode == LAMBDA_INVOKE_MODE.LAMBDA.value:
-            return self.invoke_with_remote(lambda_name=lambda_name,event_body=event_body)
+            return self.invoke_with_lambda(lambda_name=lambda_name,event_body=event_body)
         elif lambda_invoke_mode == LAMBDA_INVOKE_MODE.LOCAL.value:
             return self.invoke_with_local(
                 lambda_module_path=lambda_module_path,
@@ -110,14 +111,14 @@ class LambdaInvoker(BaseModel):
                 handler_name=handler_name
                 )
         elif lambda_invoke_mode == LAMBDA_INVOKE_MODE.APIGETAWAY.value:
-            return self.invoke_with_apigetaway(
+            return self.invoke_with_apigateway(
                 url=apigetway_url,
                 event_body=event_body
             )
 
 obj = LambdaInvoker()
 invoke_with_local = obj.invoke_with_local
-invoke_with_remote = obj.invoke_with_lambda
+invoke_with_lambda = obj.invoke_with_lambda
 invoke_with_apigateway = obj.invoke_with_apigateway
 invoke_lambda = obj.invoke_lambda
 

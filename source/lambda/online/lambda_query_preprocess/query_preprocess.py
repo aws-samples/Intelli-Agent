@@ -38,7 +38,7 @@ def conversation_query_rewrite(state:dict):
 
     cqr_llm_chain = RunnableLambda(lambda x: invoke_lambda(
         lambda_invoke_mode=lambda_invoke_mode,
-        lambda_name='xxxxx',
+        lambda_name='Online_LLM_Generate',
         lambda_module_path="lambda_llm_generate.llm_generate",
         handler_name='lambda_handler',
         event_body={

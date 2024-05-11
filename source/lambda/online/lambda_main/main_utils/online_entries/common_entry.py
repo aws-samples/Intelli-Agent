@@ -1,7 +1,9 @@
 import json 
 import os
-from typing import TypedDict,Any
+from typing import TypedDict,Any,Annotated
 from langgraph.graph import StateGraph,END
+from common_utils.lambda_invoke_utils import invoke_lambda,chatbot_lambda_call_wrapper
+from common_utils.langchain_utils import update_nest_dict,NestUpdateState
 
 # from .. import parse_config
 
@@ -10,8 +12,8 @@ INVALID_QUERY = "请重新描述您的问题。请注意：\n不能过于简短�
 INVALID_INTENTION = "很抱歉，我只能回答与知识问答相关的咨询。"
 KNOWLEDGE_QA_INVALID_CONTEXT = "很抱歉，根据我目前掌握到的信息无法给出回答。"
 
-class AppState(TypedDict):
-    keys: Any
+# class AppState(TypedDict):
+#     keys: Annotated
 ################
 # local nodes #
 ################
@@ -60,22 +62,32 @@ def is_context_enough(state):
 ################
 import boto3
 lambda_client= boto3.client('lambda')
-def query_preprocess_lambda(state: AppState):
+def query_preprocess_lambda(state: NestUpdateState):
     state = state['keys']
+    lambda_invoke_mode = state['lambda_invoke_mode']
     # run in lambda
-    msg = {"query": state['query']}
-    invoke_response = lambda_client.invoke(FunctionName="Online_Query_Preprocess",
-                                        InvocationType='RequestResponse',
-                                        Payload=json.dumps(msg))
-    response_body = invoke_response['Payload']
+    # msg = {"query": state['query']}
+    output = invoke_lambda(
+        event_body=state,
+        lambda_invoke_mode=lambda_invoke_mode,
+        lambda_name="Online_Query_Preprocess",
+        lambda_module_path="lambda_query_preprocess.query_preprocess",
+        handler_name="lambda_handler"
+    )
+    # invoke_response = lambda_client.invoke(FunctionName="Online_Query_Preprocess",
+    #                                     InvocationType='RequestResponse',
+    #                                     Payload=json.dumps(msg))
+    # response_body = invoke_response['Payload']
 
-    response_str = response_body.read().decode("unicode_escape")
-    response_str = response_str.strip('"')
+    # response_str = response_body.read().decode("unicode_escape")
+    # response_str = response_str.strip('"')
 
-    print(f"response_str is {response_str}")
+    state.update(output)
 
-    response = json.loads(response_str)
-    state['is_query_valid'] = response['body']['is_query_valid']
+    # print(f"response_str is {response_str}")
+
+    # response = json.loads(response_str)
+    # state['is_query_valid'] = response['body']['is_query_valid']
 
 def intention_detection_lambda(state: AppState):
     state = state['keys']
