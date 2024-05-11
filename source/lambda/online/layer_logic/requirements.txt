@@ -6,3 +6,4 @@ requests_aws4auth==1.2.2
 python-dateutil==2.8.2
 prettytable==3.10.0
 pandas
+langchain-anthropic==0.1.4
