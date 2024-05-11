@@ -690,7 +690,6 @@ export class ApiConstruct extends Construct {
       lambdaOnlineIntentionDetection.grantInvoke(lambdaOnlineMain);
 
       lambdaOnlineAgent.grantInvoke(lambdaOnlineMain);
-      lambdaOnlineAgent.grantInvoke(lambdaOnlineLLMGenerate);
       
       lambdaOnlineLLMGenerate.grantInvoke(lambdaOnlineMain);
       lambdaOnlineLLMGenerate.grantInvoke(lambdaOnlineQueryPreprocess);
