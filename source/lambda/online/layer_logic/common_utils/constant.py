@@ -71,7 +71,7 @@ class LLMTaskType(ConstantBase):
     
 
 class MessageType(ConstantBase):
-    HUMAN_MESSAGE_TYPE = 'human'
+    HUMAN_MESSAGE_TYPE = 'user'
     AI_MESSAGE_TYPE = 'ai'
     SYSTEM_MESSAGE_TYPE = 'system'
 

@@ -1,5 +1,4 @@
 import {
-  BreadcrumbGroup,
   Container,
   Header,
   SpaceBetween,
@@ -8,20 +7,21 @@ import {
   Popover,
   ContentLayout,
 } from '@cloudscape-design/components';
-import CommonLayout from '../../layout/CommonLayout';
-import React, { useContext, useEffect, useState } from 'react';
-import { axios } from '../../utils/request';
-import ConfigContext from '../../context/config-context';
+import CommonLayout from 'src/layout/CommonLayout';
+import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { LibraryExecutionItem, LibraryExecutionResponse } from 'types';
-import { alertMsg, formatTime } from '../../utils/utils';
+import { LibraryExecutionItem, LibraryExecutionResponse } from 'src/types';
+import { alertMsg, formatTime } from 'src/utils/utils';
+import useAxiosRequest from 'src/hooks/useAxiosRequest';
+import { useTranslation } from 'react-i18next';
 
 const LibraryDetail: React.FC = () => {
   const [loadingData, setLoadingData] = useState(false);
   const [executionFileList, setExecutionFileList] = useState<
     LibraryExecutionItem[]
   >([]);
-  const config = useContext(ConfigContext);
+  const fetchData = useAxiosRequest();
+  const { t } = useTranslation();
   const { id } = useParams();
 
   const getLibraryDetail = async () => {
@@ -30,10 +30,12 @@ const LibraryDetail: React.FC = () => {
       executionId: id,
     };
     try {
-      const result = await axios.get(`${config?.apiUrl}/etl/execution`, {
+      const data: LibraryExecutionResponse = await fetchData({
+        url: 'etl/execution',
+        method: 'get',
         params,
       });
-      const executionRes: LibraryExecutionResponse = result.data;
+      const executionRes: LibraryExecutionResponse = data;
       setExecutionFileList(executionRes.Items);
       setLoadingData(false);
     } catch (error: unknown) {
@@ -59,43 +61,33 @@ const LibraryDetail: React.FC = () => {
     <CommonLayout
       isLoading={loadingData}
       activeHref="/library"
-      breadCrumbs={
-        <BreadcrumbGroup
-          items={[
-            {
-              text: 'AWS LLM Bot',
-              href: '/',
-            },
-            {
-              text: 'Docs Library',
-              href: '/library',
-            },
-            {
-              text: `${id}`,
-              href: '/detail',
-            },
-          ]}
-        />
-      }
+      breadCrumbs={[
+        {
+          text: t('name'),
+          href: '/',
+        },
+        {
+          text: t('docLibrary'),
+          href: '/library',
+        },
+        {
+          text: `${id}`,
+          href: '/detail',
+        },
+      ]}
     >
       <ContentLayout>
         <Container
           variant="default"
           header={
-            <Header
-              variant="h2"
-              description="Please check the file list below, and click the info icon for more details."
-            >
-              {`Execution detail`}
+            <Header variant="h2" description={t('executionDetailDesc')}>
+              {t('executionDetail')}
             </Header>
           }
         >
           <SpaceBetween direction="vertical" size="xs">
             <div className="flex align-center gap-10">
-              ID: <b>{`${id}`} </b>
-            </div>
-            <div className="flex align-center gap-10">
-              Prefix:{' '}
+              {t('prefix')}:{' '}
               <b>{`${getLibraryPrefix(executionFileList?.[0]?.s3Path)}`} </b>
             </div>
             <div className="mt-10"></div>
@@ -125,7 +117,7 @@ const LibraryDetail: React.FC = () => {
                 </div>
               ))
             ) : (
-              <div>No files or please waiting execution to complete</div>
+              <div>{t('detailNoFiles')}</div>
             )}
           </SpaceBetween>
         </Container>

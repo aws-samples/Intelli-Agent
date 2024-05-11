@@ -193,13 +193,13 @@ class Baichuan2Chat13B4Bits(SagemakerModelBase):
             content = message["content"]
             role = message["role"]
             assert role in [
-                HUMAN_MESSAGE_TYPE,
-                AI_MESSAGE_TYPE,
-                SYSTEM_MESSAGE_TYPE,
+                MessageType.HUMAN_MESSAGE_TYPE,
+                MessageType.AI_MESSAGE_TYPE,
+                MessageType.SYSTEM_MESSAGE_TYPE,
             ], f"invalid role: {role}"
-            if role == AI_MESSAGE_TYPE:
+            if role == MessageType.AI_MESSAGE_TYPE:
                 role = "assistant"
-            elif role == HUMAN_MESSAGE_TYPE:
+            elif role == MessageType.HUMAN_MESSAGE_TYPE:
                 role = "user"
 
             chat_history.append({"role": role, "content": content})
@@ -207,7 +207,7 @@ class Baichuan2Chat13B4Bits(SagemakerModelBase):
         messages = []
         system_messages = []
         for message in _messages:
-            if message["role"] == SYSTEM_MESSAGE_TYPE:
+            if message["role"] == MessageType.SYSTEM_MESSAGE_TYPE:
                 system_messages.append(message)
             else:
                 messages.append(message)

@@ -173,11 +173,14 @@ class Claude2ConversationSummaryChain(LLMChain):
     def create_conversational_context(chat_history:List[BaseMessage]):
         conversational_contexts = []
         for his in chat_history:
-            assert his.type in [HUMAN_MESSAGE_TYPE, AI_MESSAGE_TYPE]
-            if his.type == HUMAN_MESSAGE_TYPE:
-                conversational_contexts.append(f"Q: {his.content}")
+            role = his['role'] 
+            content = his['content']
+            
+            assert role in [HUMAN_MESSAGE_TYPE, AI_MESSAGE_TYPE],(role,[HUMAN_MESSAGE_TYPE, AI_MESSAGE_TYPE])
+            if role == HUMAN_MESSAGE_TYPE:
+                conversational_contexts.append(f"Q: {content}")
             else:
-                conversational_contexts.append(f"A: {his.content}")
+                conversational_contexts.append(f"A: {content}")
         
         conversational_context = "\n".join(conversational_contexts)
         return conversational_context

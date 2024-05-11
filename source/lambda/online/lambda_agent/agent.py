@@ -22,7 +22,7 @@ from common_utils.lambda_invoke_utils import invoke_lambda,chatbot_lambda_call_w
 from common_utils.constant import LLMTaskType
 from common_utils.serialization_utils import JSONEncoder
 
-logger = get_logger("tool_calling")
+logger = get_logger("agent")
 
 
 def tool_calling(state:dict):
@@ -76,4 +76,8 @@ def lambda_handler(state:dict, context=None):
     output = app.invoke({"keys": {**base_state,**state}})
     state.update(output)
 
+    # response = {"statusCode": 200, "headers": {"Content-Type": "application/json"}}
+    # state["is_context_enough"] = 'enough context'
+    # response["body"] = {"state": state}
+    
     return state

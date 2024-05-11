@@ -2,8 +2,7 @@ import { Alert } from '@cloudscape-design/components';
 import classnames from 'classnames';
 import React, { useEffect, useState } from 'react';
 
-import './style.scss';
-import { AlertType } from 'utils/utils';
+import { AlertType } from 'src/utils/utils';
 
 interface CommonAlertProps {
   alertTxt: string;
@@ -46,15 +45,16 @@ const CommonAlert: React.FC = () => {
 
   return (
     <div className={alertCls}>
-      <Alert
-        onDismiss={() => setAlertVisible(false)}
-        visible={alertVisible}
-        dismissAriaLabel="Close"
-        type={alertProps.alertType}
-        dismissible={alertProps.alertType === 'success'}
-      >
-        {alertProps.alertTxt}
-      </Alert>
+      {alertVisible && (
+        <Alert
+          onDismiss={() => setAlertVisible(false)}
+          dismissAriaLabel="Close"
+          type={alertProps.alertType}
+          dismissible={alertProps.alertType === 'success'}
+        >
+          {alertProps.alertTxt}
+        </Alert>
+      )}
     </div>
   );
 };

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ConfigContext, { Config } from './config-context';
-import { Box, Spinner } from '@cloudscape-design/components';
-import { alertMsg } from '../utils/utils';
+import { Spinner } from '@cloudscape-design/components';
+import { alertMsg } from 'src/utils/utils';
 interface ConfigProviderProps {
   children: React.ReactNode;
 }
@@ -25,10 +25,8 @@ const ConfigProvider: React.FC<ConfigProviderProps> = ({ children }) => {
 
   if (!config) {
     return (
-      <div className="mt-10">
-        <Box textAlign="center">
-          <Spinner />
-        </Box>
+      <div className="page-loading">
+        <Spinner />
       </div>
     );
   }
