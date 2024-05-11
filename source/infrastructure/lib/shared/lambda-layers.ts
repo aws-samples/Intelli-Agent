@@ -57,4 +57,17 @@ export class LambdaLayers {
     );
     return LambdaOnlineUtilsLayer;
   }
+
+  createOnlineSourceLayer() {
+    const LambdaOnlineSourceLayer = new pyLambda.PythonLayerVersion(
+      this.scope,
+      "APILambdaOnlineSourceLayer",
+      {
+        entry: path.join(__dirname, "../../../lambda/online"),
+        compatibleRuntimes: [Runtime.PYTHON_3_12],
+        description: `LLM Bot - Online Source layer`,
+      },
+    );
+    return LambdaOnlineSourceLayer;
+  }
 }

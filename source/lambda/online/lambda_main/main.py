@@ -14,10 +14,10 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(SCRIPT_DIR))
 sys.path.append(os.path.dirname(SCRIPT_DIR)+'/layer_logic')
 from utils.constant import Type
-
 from utils.ddb_utils import DynamoDBChatMessageHistory
-from utils.online_entries import get_entry
-from utils.response_utils import process_response
+
+from main_utils.response_utils import process_response
+from main_utils.online_entries import get_entry
 
 # region = os.environ["AWS_REGION"]
 embedding_endpoint = os.environ.get("embedding_endpoint", "")
@@ -102,7 +102,7 @@ def lambda_handler(event, context):
 
         # logger.info(f"stream decode: {stream}")
         client_type = event_body.get("client_type", "default_client_type")
-        entry_type = event_body.get("type", Type.COMMON.value).lower()
+        entry_type = event_body.get("type", Type.COMMON).lower()
         enable_debug = event_body.get("enable_debug", False)
         get_contexts = event_body.get("get_contexts", False)
         session_id = event_body.get("session_id", None)
@@ -157,7 +157,7 @@ def lambda_handler(event, context):
         contexts = []
 
         # choose entry to execute
-        biz_type = event_body.get("type", Type.COMMON.value)
+        biz_type = event_body.get("type", Type.COMMON)
         entry_executor = get_entry(biz_type)
         response:dict = entry_executor(event_body)
 

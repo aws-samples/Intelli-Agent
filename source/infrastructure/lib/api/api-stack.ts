@@ -91,6 +91,7 @@ export class ApiConstruct extends Construct {
     // const apiLambdaExecutorLayer = lambdaLayers.createExecutorLayer();
     const apiLambdaEmbeddingLayer = lambdaLayers.createEmbeddingLayer();
     const apiLambdaOnlineUtilsLayer = lambdaLayers.createOnlineUtilsLayer();
+    const apiLambdaOnlineSourceLayer = lambdaLayers.createOnlineSourceLayer();
 
     // S3 bucket for storing documents
     const s3Bucket = new s3.Bucket(this, "llm-bot-documents", {
@@ -533,7 +534,7 @@ export class ApiConstruct extends Construct {
         },
         securityGroups: [securityGroup],
         architecture: Architecture.X86_64,
-        layers: [apiLambdaOnlineUtilsLayer],
+        layers: [apiLambdaOnlineUtilsLayer, apiLambdaOnlineSourceLayer],
         // environment: {
         //   aos_endpoint: domainEndpoint,
         //   llm_model_endpoint_name: props.instructEndPoint,
@@ -578,7 +579,7 @@ export class ApiConstruct extends Construct {
 
       const lambdaOnlineQueryPreprocess = new Function(this, "lambdaOnlineQueryPreprocess", {
         runtime: Runtime.PYTHON_3_12,
-        handler: "main.lambda_handler",
+        handler: "query_preprocess.lambda_handler",
         functionName: "Online_Query_Preprocess",
         code: Code.fromAsset(
           join(__dirname, "../../../lambda/online/lambda_query_preprocess"),
@@ -591,12 +592,12 @@ export class ApiConstruct extends Construct {
         },
         securityGroups: [securityGroup],
         architecture: Architecture.X86_64,
-        layers: [apiLambdaOnlineUtilsLayer],
+        layers: [apiLambdaOnlineUtilsLayer, apiLambdaOnlineSourceLayer],
       });
 
       const lambdaOnlineIntentionDetection = new Function(this, "lambdaOnlineIntentionDetection", {
         runtime: Runtime.PYTHON_3_12,
-        handler: "main.lambda_handler",
+        handler: "intention_detection.lambda_handler",
         functionName: "Online_Intention_Detection",
         code: Code.fromAsset(
           join(__dirname, "../../../lambda/online/lambda_intention_detection"),
@@ -609,12 +610,12 @@ export class ApiConstruct extends Construct {
         },
         securityGroups: [securityGroup],
         architecture: Architecture.X86_64,
-        layers: [apiLambdaOnlineUtilsLayer],
+        layers: [apiLambdaOnlineUtilsLayer, apiLambdaOnlineSourceLayer],
       });
 
       const lambdaOnlineAgent = new Function(this, "lambdaOnlineAgent", {
         runtime: Runtime.PYTHON_3_12,
-        handler: "main.lambda_handler",
+        handler: "agent.lambda_handler",
         functionName: "Online_Agent",
         code: Code.fromAsset(
           join(__dirname, "../../../lambda/online/lambda_agent"),
@@ -627,12 +628,12 @@ export class ApiConstruct extends Construct {
         },
         securityGroups: [securityGroup],
         architecture: Architecture.X86_64,
-        layers: [apiLambdaOnlineUtilsLayer],
+        layers: [apiLambdaOnlineUtilsLayer, apiLambdaOnlineSourceLayer],
       });
 
       const lambdaOnlineLLMGenerate = new Function(this, "lambdaOnlineLLMGenerate", {
         runtime: Runtime.PYTHON_3_12,
-        handler: "main.lambda_handler",
+        handler: "llm_generate.lambda_handler",
         functionName: "Online_LLM_Generate",
         code: Code.fromAsset(
           join(__dirname, "../../../lambda/online/lambda_llm_generate"),
@@ -645,15 +646,15 @@ export class ApiConstruct extends Construct {
         },
         securityGroups: [securityGroup],
         architecture: Architecture.X86_64,
-        layers: [apiLambdaOnlineUtilsLayer],
+        layers: [apiLambdaOnlineUtilsLayer, apiLambdaOnlineSourceLayer],
       });
 
-      const lambdaOnlineFunctionKnowledgeBase = new Function(this, "lambdaOnlineKnowledgeBase", {
+      const lambdaOnlineFunctionAWSAPI = new Function(this, "lambdaOnlineFunctionAWSAPI", {
         runtime: Runtime.PYTHON_3_12,
-        handler: "main.lambda_handler",
-        functionName: "Online_Function_Knowledge_Base",
+        handler: "aws_api.lambda_handler",
+        functionName: "Online_Function_AWS_API",
         code: Code.fromAsset(
-          join(__dirname, "../../../lambda/online/functions/lambda_knowledge_base"),
+          join(__dirname, "../../../lambda/online/functions/lambda_aws_api"),
         ),
         timeout: Duration.minutes(15),
         memorySize: 4096,
@@ -663,15 +664,15 @@ export class ApiConstruct extends Construct {
         },
         securityGroups: [securityGroup],
         architecture: Architecture.X86_64,
-        layers: [apiLambdaOnlineUtilsLayer],
+        layers: [apiLambdaOnlineUtilsLayer, apiLambdaOnlineSourceLayer],
       });
 
-      const lambdaOnlineFunctionWebSearch = new Function(this, "lambdaOnlineWebSearch", {
+      const lambdaOnlineFunctionRetriever = new Function(this, "lambdaOnlineFunctionRetriever", {
         runtime: Runtime.PYTHON_3_12,
-        handler: "main.lambda_handler",
-        functionName: "Online_Function_Web_Search",
+        handler: "retriever.lambda_handler",
+        functionName: "Online_Function_Retriever",
         code: Code.fromAsset(
-          join(__dirname, "../../../lambda/online/functions/lambda_web_search"),
+          join(__dirname, "../../../lambda/online/functions/lambda_retriever"),
         ),
         timeout: Duration.minutes(15),
         memorySize: 4096,
@@ -681,15 +682,15 @@ export class ApiConstruct extends Construct {
         },
         securityGroups: [securityGroup],
         architecture: Architecture.X86_64,
-        layers: [apiLambdaOnlineUtilsLayer],
+        layers: [apiLambdaOnlineUtilsLayer, apiLambdaOnlineSourceLayer],
       });
 
       lambdaOnlineQueryPreprocess.grantInvoke(lambdaOnlineMain);
       lambdaOnlineIntentionDetection.grantInvoke(lambdaOnlineMain);
       lambdaOnlineAgent.grantInvoke(lambdaOnlineMain);
       lambdaOnlineLLMGenerate.grantInvoke(lambdaOnlineMain);
-      lambdaOnlineFunctionKnowledgeBase.grantInvoke(lambdaOnlineMain);
-      lambdaOnlineFunctionWebSearch.grantInvoke(lambdaOnlineMain);
+      lambdaOnlineFunctionAWSAPI.grantInvoke(lambdaOnlineMain);
+      lambdaOnlineFunctionRetriever.grantInvoke(lambdaOnlineMain);
 
       // Define the API Gateway Lambda Integration with proxy and no integration responses
       const lambdaExecutorIntegrationV2 = new apigw.LambdaIntegration(
