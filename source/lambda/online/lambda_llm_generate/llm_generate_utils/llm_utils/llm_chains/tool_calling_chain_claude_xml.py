@@ -4,7 +4,7 @@ import os
 import sys
 from functools import lru_cache
 from random import Random
-from typing import List 
+from typing import List,Dict,Any
 import re
 
 from langchain.schema.runnable import (
@@ -20,7 +20,6 @@ from langchain_core.messages import(
     BaseMessage,
     ToolCall
 ) 
-from langchain_anthropic.experimental import _get_type
 from langchain.prompts import ChatPromptTemplate,HumanMessagePromptTemplate,AIMessagePromptTemplate
 
 from langchain_core.messages import HumanMessage,AIMessage,SystemMessage
@@ -85,6 +84,16 @@ TOOL_EXECUTE_FAIL_TEMPLATE = """
 </error>
 </function_results>
 """
+
+
+def _get_type(parameter: Dict[str, Any]) -> str:
+    if "type" in parameter:
+        return parameter["type"]
+    if "anyOf" in parameter:
+        return json.dumps({"anyOf": parameter["anyOf"]})
+    if "allOf" in parameter:
+        return json.dumps({"allOf": parameter["allOf"]})
+    return json.dumps(parameter)
 
 
 def convert_openai_tool_to_anthropic(tools:list[dict])->str:
