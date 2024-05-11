@@ -686,11 +686,20 @@ export class ApiConstruct extends Construct {
       });
 
       lambdaOnlineQueryPreprocess.grantInvoke(lambdaOnlineMain);
+
       lambdaOnlineIntentionDetection.grantInvoke(lambdaOnlineMain);
+
       lambdaOnlineAgent.grantInvoke(lambdaOnlineMain);
+      lambdaOnlineAgent.grantInvoke(lambdaOnlineLLMGenerate);
+      
       lambdaOnlineLLMGenerate.grantInvoke(lambdaOnlineMain);
+      lambdaOnlineLLMGenerate.grantInvoke(lambdaOnlineQueryPreprocess);
+      lambdaOnlineLLMGenerate.grantInvoke(lambdaOnlineAgent);
+
       lambdaOnlineFunctionAWSAPI.grantInvoke(lambdaOnlineMain);
+
       lambdaOnlineFunctionRetriever.grantInvoke(lambdaOnlineMain);
+      lambdaOnlineFunctionRetriever.grantInvoke(lambdaOnlineIntentionDetection);
 
       // Define the API Gateway Lambda Integration with proxy and no integration responses
       const lambdaExecutorIntegrationV2 = new apigw.LambdaIntegration(
