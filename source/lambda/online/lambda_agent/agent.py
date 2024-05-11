@@ -30,7 +30,6 @@ def tool_calling(state:dict):
     message_id = state['message_id']
     trace_infos = state['trace_infos']
     agent_config = state["chatbot_config"]['agent_config']
-    
 
     tool_calling_chain = RunnableLambda(lambda x: invoke_lambda(
         lambda_name='xxxxx',

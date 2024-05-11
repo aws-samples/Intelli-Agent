@@ -1,7 +1,5 @@
 import json
 import os
-
-os.environ["PYTHONUNBUFFERED"] = "1"
 import logging
 import time
 import uuid
@@ -13,7 +11,6 @@ import sys
 # SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 # sys.path.append(os.path.dirname(SCRIPT_DIR))
 # sys.path.append(os.path.dirname(SCRIPT_DIR)+'/layer_logic')
-
 
 from common_utils.ddb_utils import DynamoDBChatMessageHistory
 from lambda_main.main_utils.online_entries import get_entry

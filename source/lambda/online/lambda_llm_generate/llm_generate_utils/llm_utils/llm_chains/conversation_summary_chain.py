@@ -26,7 +26,8 @@ from langchain_core.messages import(
     HumanMessage,
     AIMessage,
     SystemMessage,
-    BaseMessage
+    BaseMessage,
+    convert_to_messages
 ) 
 from langchain.prompts import (
     HumanMessagePromptTemplate,
@@ -118,11 +119,12 @@ class Iternlm2Chat20BConversationSummaryChain(Iternlm2Chat7BChatChain):
         chat_history = x["chat_history"]
         conversational_contexts = []
         for his in chat_history:
-            assert his.type in [HUMAN_MESSAGE_TYPE, AI_MESSAGE_TYPE]
-            if his.type == HUMAN_MESSAGE_TYPE:
-                conversational_contexts.append(f"Q: {his.content}")
+            role = his['role']
+            assert role in [HUMAN_MESSAGE_TYPE, AI_MESSAGE_TYPE]
+            if role == HUMAN_MESSAGE_TYPE:
+                conversational_contexts.append(f"Q: {his['content']}")
             else:
-                conversational_contexts.append(f"A: {his.content}")
+                conversational_contexts.append(f"A: {his['content']}")
 
         conversational_context = "\n".join(conversational_contexts)
         prompt = cls.build_prompt(
@@ -173,19 +175,16 @@ class Claude2ConversationSummaryChain(LLMChain):
     def create_conversational_context(chat_history:List[BaseMessage]):
         conversational_contexts = []
         for his in chat_history:
-            role = his['role'] 
-            content = his['content']
-            
+            role = his.type 
+            content = his.content
             assert role in [HUMAN_MESSAGE_TYPE, AI_MESSAGE_TYPE],(role,[HUMAN_MESSAGE_TYPE, AI_MESSAGE_TYPE])
             if role == HUMAN_MESSAGE_TYPE:
                 conversational_contexts.append(f"Q: {content}")
             else:
                 conversational_contexts.append(f"A: {content}")
-        
         conversational_context = "\n".join(conversational_contexts)
         return conversational_context
         
-    
     @classmethod
     def create_chain(cls, model_kwargs=None, **kwargs):
         model_kwargs = model_kwargs or {}
@@ -202,7 +201,9 @@ class Claude2ConversationSummaryChain(LLMChain):
         )
         cqr_chain = RunnablePassthrough.assign(
                 conversational_context=RunnableLambda(
-                lambda x: cls.create_conversational_context(x["chat_history"])
+                lambda x: cls.create_conversational_context(
+                    convert_to_messages(x["chat_history"])
+                )
             ))  \
             | RunnableLambda(lambda x: cqr_template.format(history=x["conversational_context"],question=x['query'])) \
             | llm | RunnableLambda(lambda x: x.content)

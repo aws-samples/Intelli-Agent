@@ -4,6 +4,7 @@ from typing import Any, List, Mapping, Optional
 from langchain.schema.runnable import RunnableLambda, RunnablePassthrough
 from langchain_core.messages import HumanMessage,AIMessage
 from langchain.prompts import ChatPromptTemplate,HumanMessagePromptTemplate
+from langchain_core.messages import convert_to_messages
 
 # from ...prompt_template import CHIT_CHAT_SYSTEM_TEMPLATE, get_chit_chat_prompt
 from ..llm_models import Model
@@ -117,6 +118,8 @@ class Iternlm2Chat7BChatChain(LLMChain):
     @classmethod
     def create_history(cls, x):
         chat_history = x.get("chat_history", [])
+        chat_history = convert_to_messages(chat_history)
+
         assert len(chat_history) % 2 == 0, chat_history
         history = []
         for i in range(0, len(chat_history), 2):
