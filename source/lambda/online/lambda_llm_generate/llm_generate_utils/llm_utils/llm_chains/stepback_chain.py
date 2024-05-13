@@ -5,11 +5,12 @@ from langchain.prompts import (
 )
 from langchain.schema.runnable import RunnableLambda
 
-from ...constant import STEPBACK_PROMPTING_TYPE
+from common_utils.constant import LLMTaskType
 from ..llm_chains.chat_chain import Iternlm2Chat7BChatChain
 from ..llm_chains.llm_chain_base import LLMChain
 from ..llm_models import Model
 
+STEPBACK_PROMPTING_TYPE = LLMTaskType.STEPBACK_PROMPTING_TYPE
 
 class Iternlm2Chat7BStepBackChain(Iternlm2Chat7BChatChain):
     model_id = "internlm2-chat-7b"

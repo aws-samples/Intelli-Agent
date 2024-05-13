@@ -1,4 +1,5 @@
 from .llm_chain_base import LLMChain
+
 from .chat_chain import (
     Claude2ChatChain,
     Claude21ChatChain,
@@ -87,4 +88,12 @@ from .query_rewrite_chain import (
     Claude3SonnetQueryRewriteChain,
     Iternlm2Chat20BQueryRewriteChain,
     Iternlm2Chat7BQueryRewriteChain
+)
+
+from .tool_calling_chain_claude_xml import (
+    Claude21ToolCallingChain,
+    Claude3HaikuToolCallingChain,
+    Claude2ToolCallingChain,
+    Claude3SonnetToolCallingChain,
+    ClaudeInstanceToolCallingChain
 )

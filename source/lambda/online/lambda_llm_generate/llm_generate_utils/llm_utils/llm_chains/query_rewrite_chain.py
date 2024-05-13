@@ -13,10 +13,8 @@ from langchain.schema.runnable import (
     RunnablePassthrough,
 )
 
-from utils.constant import (
-    MessageType,
-    LLMTaskType,
-    IntentType
+from common_utils.constant import (
+    LLMTaskType
 )
 from ..llm_chains import LLMChain
 from ..llm_models import Model as LLM_Model

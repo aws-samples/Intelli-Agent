@@ -6,14 +6,17 @@ import os
 from typing import Any, List, Mapping, Optional
 
 import boto3
-from langchain.llms import Bedrock
-from langchain.llms.base import LLM
 from langchain.llms.sagemaker_endpoint import LLMContentHandler, SagemakerEndpoint
 from langchain_community.chat_models import BedrockChat
 from langchain_community.llms.sagemaker_endpoint import LineIterator
 
-from utils.constant import MessageType
-from utils.logger_utils import logger
+from common_utils.constant import MessageType
+from common_utils.logger_utils import logger
+
+AI_MESSAGE_TYPE = MessageType.AI_MESSAGE_TYPE
+HUMAN_MESSAGE_TYPE = MessageType.HUMAN_MESSAGE_TYPE
+SYSTEM_MESSAGE_TYPE = MessageType.SYSTEM_MESSAGE_TYPE
+
 
 logger = logging.getLogger("llm_model")
 logger.setLevel(logging.INFO)

@@ -1,7 +1,5 @@
 import json
 import os
-
-os.environ["PYTHONUNBUFFERED"] = "1"
 import logging
 import time
 import uuid
@@ -10,14 +8,13 @@ import boto3
 print(boto3.__version__)
 import sys
 
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(os.path.dirname(SCRIPT_DIR))
-sys.path.append(os.path.dirname(SCRIPT_DIR)+'/layer_logic')
-from utils.constant import Type
-from utils.ddb_utils import DynamoDBChatMessageHistory
+# SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+# sys.path.append(os.path.dirname(SCRIPT_DIR))
+# sys.path.append(os.path.dirname(SCRIPT_DIR)+'/layer_logic')
 
-from main_utils.response_utils import process_response
-from main_utils.online_entries import get_entry
+from common_utils.ddb_utils import DynamoDBChatMessageHistory
+from lambda_main.main_utils.online_entries import get_entry
+from lambda_main.maing_utils.response_utils import process_response
 
 # region = os.environ["AWS_REGION"]
 embedding_endpoint = os.environ.get("embedding_endpoint", "")

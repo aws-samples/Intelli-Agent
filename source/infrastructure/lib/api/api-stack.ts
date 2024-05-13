@@ -595,6 +595,27 @@ export class ApiConstruct extends Construct {
         layers: [apiLambdaOnlineUtilsLayer, apiLambdaOnlineSourceLayer],
       });
 
+      lambdaOnlineQueryPreprocess.addToRolePolicy(
+        new iam.PolicyStatement({
+          // principals: [new iam.AnyPrincipal()],
+          actions: [
+            "sagemaker:InvokeEndpointAsync",
+            "sagemaker:InvokeEndpoint",
+            "s3:List*",
+            "s3:Put*",
+            "s3:Get*",
+            "es:*",
+            "dynamodb:*",
+            "secretsmanager:GetSecretValue",
+            "translate:*",
+            "bedrock:*",
+            "lambda:InvokeFunction",
+          ],
+          effect: iam.Effect.ALLOW,
+          resources: ["*"],
+        }),
+      );
+
       const lambdaOnlineIntentionDetection = new Function(this, "lambdaOnlineIntentionDetection", {
         runtime: Runtime.PYTHON_3_12,
         handler: "intention_detection.lambda_handler",
@@ -631,6 +652,27 @@ export class ApiConstruct extends Construct {
         layers: [apiLambdaOnlineUtilsLayer, apiLambdaOnlineSourceLayer],
       });
 
+      lambdaOnlineAgent.addToRolePolicy(
+        new iam.PolicyStatement({
+          // principals: [new iam.AnyPrincipal()],
+          actions: [
+            "sagemaker:InvokeEndpointAsync",
+            "sagemaker:InvokeEndpoint",
+            "s3:List*",
+            "s3:Put*",
+            "s3:Get*",
+            "es:*",
+            "dynamodb:*",
+            "secretsmanager:GetSecretValue",
+            "translate:*",
+            "bedrock:*",
+            "lambda:InvokeFunction",
+          ],
+          effect: iam.Effect.ALLOW,
+          resources: ["*"],
+        }),
+      );
+
       const lambdaOnlineLLMGenerate = new Function(this, "lambdaOnlineLLMGenerate", {
         runtime: Runtime.PYTHON_3_12,
         handler: "llm_generate.lambda_handler",
@@ -648,6 +690,27 @@ export class ApiConstruct extends Construct {
         architecture: Architecture.X86_64,
         layers: [apiLambdaOnlineUtilsLayer, apiLambdaOnlineSourceLayer],
       });
+
+      lambdaOnlineLLMGenerate.addToRolePolicy(
+        new iam.PolicyStatement({
+          // principals: [new iam.AnyPrincipal()],
+          actions: [
+            "sagemaker:InvokeEndpointAsync",
+            "sagemaker:InvokeEndpoint",
+            "s3:List*",
+            "s3:Put*",
+            "s3:Get*",
+            "es:*",
+            "dynamodb:*",
+            "secretsmanager:GetSecretValue",
+            "translate:*",
+            "bedrock:*",
+            "lambda:InvokeFunction",
+          ],
+          effect: iam.Effect.ALLOW,
+          resources: ["*"],
+        }),
+      );
 
       const lambdaOnlineFunctionAWSAPI = new Function(this, "lambdaOnlineFunctionAWSAPI", {
         runtime: Runtime.PYTHON_3_12,
@@ -686,11 +749,19 @@ export class ApiConstruct extends Construct {
       });
 
       lambdaOnlineQueryPreprocess.grantInvoke(lambdaOnlineMain);
+
       lambdaOnlineIntentionDetection.grantInvoke(lambdaOnlineMain);
+
       lambdaOnlineAgent.grantInvoke(lambdaOnlineMain);
+      
       lambdaOnlineLLMGenerate.grantInvoke(lambdaOnlineMain);
+      lambdaOnlineLLMGenerate.grantInvoke(lambdaOnlineQueryPreprocess);
+      lambdaOnlineLLMGenerate.grantInvoke(lambdaOnlineAgent);
+
       lambdaOnlineFunctionAWSAPI.grantInvoke(lambdaOnlineMain);
+
       lambdaOnlineFunctionRetriever.grantInvoke(lambdaOnlineMain);
+      lambdaOnlineFunctionRetriever.grantInvoke(lambdaOnlineIntentionDetection);
 
       // Define the API Gateway Lambda Integration with proxy and no integration responses
       const lambdaExecutorIntegrationV2 = new apigw.LambdaIntegration(
