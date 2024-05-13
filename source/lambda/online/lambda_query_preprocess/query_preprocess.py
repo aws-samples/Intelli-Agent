@@ -28,7 +28,7 @@ def conversation_query_rewrite(state:dict):
     state = state['keys']
     message_id = state['message_id']
     trace_infos = state['trace_infos']
-    lambda_invoke_mode = state['lambda_invoke_mode']
+    # lambda_invoke_mode = state['lambda_invoke_mode']
 
     chatbot_config = state["chatbot_config"]
     conversation_query_rewrite_config = chatbot_config["query_process_config"][
@@ -37,7 +37,7 @@ def conversation_query_rewrite(state:dict):
     conversation_query_rewrite_result_key = conversation_query_rewrite_config['result_key']
 
     cqr_llm_chain = RunnableLambda(lambda x: invoke_lambda(
-        lambda_invoke_mode=lambda_invoke_mode,
+        # lambda_invoke_mode=lambda_invoke_mode,
         lambda_name='Online_LLM_Generate',
         lambda_module_path="lambda_llm_generate.llm_generate",
         handler_name='lambda_handler',

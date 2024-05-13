@@ -3,7 +3,7 @@ import sys
 import dotenv
 dotenv.load_dotenv()
 import sys
-os.environ['LAMBDA_INVOKE_MODE'] = 'local'
+# os.environ['LAMBDA_INVOKE_MODE'] = 'local'
 sys.path.extend([".",'layer_logic'])
 
 from common_utils.lambda_invoke_utils import invoke_lambda
@@ -51,6 +51,7 @@ def test_local():
     }
     
     ret = invoke_lambda(
+        lambda_invoke_mode='local',
         event_body=event_body,
         lambda_module_path="lambda_agent.agent",
         handler_name="lambda_handler"
