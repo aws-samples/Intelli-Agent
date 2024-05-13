@@ -31,7 +31,7 @@ for index in "${!model_names[@]}"; do
   tp="${tensor_parallel_degree[$index]}"
   echo "model name $model_name"
   echo "commit hash $commit_hash"
-  # ./model.sh -h $hf_name -m $model_name -c $commit_hash -p $tp -s $s3_bucket_name
+  ./model.sh -h $hf_name -m $model_name -c $commit_hash -p $tp -s $s3_bucket_name
 done
 
 cd ../../bce_embedding/model
