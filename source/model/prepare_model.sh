@@ -31,6 +31,22 @@ for index in "${!model_names[@]}"; do
   tp="${tensor_parallel_degree[$index]}"
   echo "model name $model_name"
   echo "commit hash $commit_hash"
+  # ./model.sh -h $hf_name -m $model_name -c $commit_hash -p $tp -s $s3_bucket_name
+done
+
+cd ../../bce_embedding/model
+hf_names=("maidalun1020/bce-embedding-base_v1")
+model_names=("bce-embedding-base")
+commit_hashs=("43972580a35ceacacd31b95b9f430f695d07dde9")
+tensor_parallel_degree=(1)
+
+for index in "${!model_names[@]}"; do
+  hf_name="${hf_names[$index]}"
+  model_name="${model_names[$index]}"
+  commit_hash="${commit_hashs[$index]}"
+  tp="${tensor_parallel_degree[$index]}"
+  echo "model name $model_name"
+  echo "commit hash $commit_hash"
   ./model.sh -h $hf_name -m $model_name -c $commit_hash -p $tp -s $s3_bucket_name
 done
 
@@ -63,5 +79,8 @@ for index in "${!model_names[@]}"; do
   tp="${tensor_parallel_degree[$index]}"
   echo "model name $model_name"
   echo "commit hash $commit_hash"
-  ./model.sh -h $hf_name -m $model_name -c $commit_hash -p $tp -s $s3_bucket_name
+  # ./model.sh -h $hf_name -m $model_name -c $commit_hash -p $tp -s $s3_bucket_name
 done
+
+aws s3 cp --recursive s3://$s3_bucket_name/bce-embedding-base_deploy_code s3://$s3_bucket_name/embedding-and-reranker_deploy_code
+aws s3 cp --recursive s3://$s3_bucket_name/bge-reranker-large_deploy_code s3://$s3_bucket_name/embedding-and-reranker_deploy_code

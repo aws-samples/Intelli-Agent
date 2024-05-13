@@ -27,6 +27,8 @@ interface LLMStackProps extends cdk.StackProps {
   rerankModelVersion: string;
   embeddingModelPrefix: string[];
   embeddingModelVersion: string[];
+  embeddingAndRerankerModelPrefix: string;
+  embeddingAndRerankerModelVersion: string;
   instructModelPrefix: string;
   instructModelVersion: string;
 }
@@ -34,6 +36,7 @@ interface LLMStackProps extends cdk.StackProps {
 export class LLMStack extends cdk.NestedStack {
   public rerankEndPoint: string = "";
   public embeddingEndPoints: string[] = [];
+  public embeddingAndRerankerEndPoint: string = "";
   public instructEndPoint: string = "";
 
   constructor(scope: Construct, id: string, props: LLMStackProps) {
@@ -142,6 +145,69 @@ export class LLMStack extends cdk.NestedStack {
     }
 
     if (BuildConfig.DEPLOYMENT_MODE === "ALL") {
+      // Embedding and Reranker MODEL
+      const embeddingAndRerankerModelPrefix = props.embeddingAndRerankerModelPrefix;
+      const embeddingAndrerankCodePrefix = embeddingAndRerankerModelPrefix + "_deploy_code";
+      const embeddingAndRerankerVersionId = props.embeddingAndRerankerModelVersion;
+      const embeddingAndRerankerEndpointName =
+        "embedding-and-rerank-" + embeddingAndRerankerModelPrefix + "-" + embeddingAndRerankerVersionId.slice(0, 5);
+      // Create model, BucketDeployment construct automatically handles dependencies to ensure model assets uploaded before creating the model in this.region
+      const embeddingAndRerankerImageUrl =
+        llmImageUrlAccount +
+        this.region +
+        llmImageUrlDomain +
+        "djl-inference:0.21.0-deepspeed0.8.3-cu117";
+      const embeddingAndRerankerModel = new sagemaker.CfnModel(this, "embedding-and-reranker-model", {
+        executionRoleArn: executionRole.roleArn,
+        primaryContainer: {
+          image: embeddingAndRerankerImageUrl,
+          modelDataUrl: `s3://${props.s3ModelAssets}/${embeddingAndrerankCodePrefix}/`,
+          environment: {
+            S3_CODE_PREFIX: embeddingAndrerankCodePrefix,
+          },
+          mode: "MultiModel",
+        },
+      });
+
+      // Create endpoint configuration, refer to https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_sagemaker.CfnEndpointConfig.html for full options
+      const embeddingAndRerankerEndpointConfig = new sagemaker.CfnEndpointConfig(
+        this,
+        "embedding-and-rerank-endpoint-config",
+        {
+          productionVariants: [
+            {
+              initialVariantWeight: 1.0,
+              modelName: embeddingAndRerankerModel.attrModelName,
+              variantName: "variantProd",
+              containerStartupHealthCheckTimeoutInSeconds: 15 * 60,
+              initialInstanceCount: 1,
+              instanceType: "ml.g4dn.4xlarge",
+            },
+          ],
+        },
+      );
+
+      // Create endpoint
+      const embeddingAndRerankerTag: cdk.CfnTag = {
+        key: "version",
+        value: embeddingAndRerankerVersionId,
+      };
+
+      const embeddingAndRerankerTagArray = [embeddingAndRerankerTag];
+
+      // Create endpoint
+      const embeddingAndRerankerEndpoint = new sagemaker.CfnEndpoint(
+        this,
+        "embedding-and-reranker-endpoint",
+        {
+          endpointConfigName: embeddingAndRerankerEndpointConfig.attrEndpointConfigName,
+          endpointName: embeddingAndRerankerEndpointName,
+          tags: embeddingAndRerankerTagArray,
+        },
+      );
+
+      this.embeddingAndRerankerEndPoint = embeddingAndRerankerEndpoint.endpointName as string;
+
       // Rerank MODEL
       const rerankModelPrefix = props.rerankModelPrefix;
       const rerankCodePrefix = rerankModelPrefix + "_deploy_code";
