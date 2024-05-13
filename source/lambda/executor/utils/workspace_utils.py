@@ -110,7 +110,6 @@ class WorkspaceManager:
                 workspace_file_types,
                 open_search_index_name,
             )
-
         else:
             # Get the current workspace_file_types, or an empty list if it doesn't exist
             current_workspace_file_types = item.get("workspace_file_types", [])

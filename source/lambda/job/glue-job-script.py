@@ -308,7 +308,7 @@ class BatchChunkDocumentProcessor:
 
         for document in content:
             splits = text_splitter.split_documents([document])
-            # list of Document objects
+            # List of Document objects
             index = 1
             for split in splits:
                 chunk_id = split.metadata["chunk_id"]
