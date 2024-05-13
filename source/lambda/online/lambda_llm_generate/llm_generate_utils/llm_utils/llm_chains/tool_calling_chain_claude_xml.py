@@ -173,7 +173,7 @@ class Claude2ToolCallingChain(LLMChain):
     def parse_tools_from_ai_message(message:AIMessage,tools:list[dict]):
         function_calls:List[str] = re.findall("<function_calls>(.*?)</function_calls>", message.content + "</function_calls>",re.S)
         if not function_calls:
-            return []
+            return {"tool_calls":[],"content":message.content}
         
         tool_calls = convert_anthropic_xml_to_dict(function_calls,tools)
         message.tool_calls = tool_calls

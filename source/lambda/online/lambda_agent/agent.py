@@ -32,7 +32,7 @@ def tool_calling(state:dict):
     agent_config = state["chatbot_config"]['agent_config']
 
     tool_calling_chain = RunnableLambda(lambda x: invoke_lambda(
-        lambda_name='xxxxx',
+        lambda_name='Online_LLM_Generate',
         lambda_module_path="lambda_llm_generate.llm_generate",
         handler_name='lambda_handler',
         event_body={
@@ -49,7 +49,9 @@ def tool_calling(state:dict):
         trace_infos=trace_infos
     )
 
-    output = tool_calling_chain.invoke(state)
+    output:dict = tool_calling_chain.invoke(state)
+
+    print("output keys:", output)
     state.update(output)
     return {"keys":state} 
 
