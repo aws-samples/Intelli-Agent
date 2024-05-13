@@ -1,0 +1,2 @@
+FlagEmbedding==1.2.5
+BCEmbedding==0.1.3
