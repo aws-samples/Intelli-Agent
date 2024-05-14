@@ -3,8 +3,8 @@ import os
 from typing import TypedDict,Any,Annotated
 from langgraph.graph import StateGraph,END
 from common_utils.lambda_invoke_utils import invoke_lambda,chatbot_lambda_call_wrapper
-from common_utils.langchain_utils import update_nest_dict,NestUpdateState
-
+from common_utils.langchain_utils import NestUpdateState
+from functions.tools import get_tool_by_name,Tool
 # from .. import parse_config
 
 # fast reply
@@ -18,63 +18,151 @@ KNOWLEDGE_QA_INVALID_CONTEXT = "很抱歉，根据我目前掌握到的信息无
 # local nodes #
 ################
 def fast_reply(
-        state
+        answer:str
     ):
-
-    state = state['keys']
-    answer = state['answer']
 
     output = {
             "answer": answer,
-            # "sources": [],
+            "sources": [],
             "contexts": [],
             "context_docs": []
     }
-    state.update(output)
+    return output
 
 ################
 # local branches #
 ################
-def is_query_valid(state):
-    state = state['keys']
-    if state['is_query_valid'] == True:
-        return "valid query"
-    else:
-        state['answer'] = INVALID_QUERY
-        return 'invalid query'
 
-def is_intention_valid(state):
-    state = state['keys']
-    if state['is_intention_valid']:
-        return "valid intention"
-    else:
-        state['answer'] = INVALID_INTENTION
-        return 'invalid intention'
 
-def is_context_enough(state):
-    state = state['keys']
-    if state['is_context_enough'] == 'invalid context':
-        state['answer'] = KNOWLEDGE_QA_INVALID_CONTEXT
-    return state['is_context_enough']
+# def intent_route(state):
+#     state = state['keys']
+#     intent = state['intention']
 
-################
+#     return intent
+    
+    # if intent == "comfort":
+    #     return "comfort"
+    # elif intent "transfer":
+
+    # if state['is_query_valid'] == True:
+    #     return "valid query"
+    # else:
+    #     state['answer'] = INVALID_QUERY
+    #     return 'invalid query'
+
+# def is_intention_valid(state):
+#     state = state['keys']
+#     if state['is_intention_valid']:
+#         return "valid intention"
+#     else:
+#         state['answer'] = INVALID_INTENTION
+#         return 'invalid intention'
+
+# def is_context_enough(state):
+#     state = state['keys']
+#     if state['is_context_enough'] == 'invalid context':
+#         state['answer'] = KNOWLEDGE_QA_INVALID_CONTEXT
+#     return state['is_context_enough']
+
+####################
 # nodes in lambdas #
-################
-import boto3
-lambda_client= boto3.client('lambda')
+####################
+
 def query_preprocess_lambda(state: NestUpdateState):
     state = state['keys']
-    lambda_invoke_mode = state['lambda_invoke_mode']
-    # run in lambda
-    # msg = {"query": state['query']}
-    output = invoke_lambda(
+    output:dict = invoke_lambda(
         event_body=state,
-        lambda_invoke_mode=lambda_invoke_mode,
         lambda_name="Online_Query_Preprocess",
         lambda_module_path="lambda_query_preprocess.query_preprocess",
         handler_name="lambda_handler"
     )
-    # invoke_response = lambda_client.invoke(FunctionName="Online_Query_Preprocess",
+    return {"keys":output}
+    
+def intention_detection_lambda(state: NestUpdateState):
+    state = state['keys']
+    output:dict = invoke_lambda(
+        event_body=state,
+        lambda_name="Online_Intention_Detection",
+        lambda_module_path="lambda_intention_detection.intention",
+        handler_name="lambda_handler"
+    )
+    return {"keys":output}
+
+def agent_lambda(state: NestUpdateState):
+    state = state['keys']
+    output:dict = invoke_lambda(
+        event_body=state,
+        lambda_name="Online_Agent",
+        lambda_module_path="lambda_agent.agent",
+        handler_name="lambda_handler"
+    )
+
+    chat_history = state['chat_history']
+    
+    tool_calling_res = state.get('tool_calling_res',[])
+
+    tool_calling_res.append(output)
+   
+    return {
+        "keys":{
+            "tool_calling_res":tool_calling_res,
+            "chat_history": chat_history + [{
+                    "role": "ai",
+                    "content": output['content']
+                }]
+            }
+    }
+
+def tool_execute_lambda(state: NestUpdateState):
+    """executor lambda
+    Args:
+        state (NestUpdateState): _description_
+
+    Returns:
+        _type_: _description_
+    """
+    state = state['keys']
+    tool_calls = state['tool_calling_res']['tool_calls']
+    
+    tool_call_results = []
+    for tool_call in tool_calls:
+        tool_name = tool_call["name"]
+        event_body = tool_call['args']
+        tool:Tool = get_tool_by_name(tool_name)
+        # call tool
+        output:str = invoke_lambda(
+            event_body=event_body,
+            lambda_name=tool.lambda_name,
+            lambda_module_path=tool.lambda_module_path,
+            handler_name=tool.handler_name
+        )
+        assert isinstance(output,str), output
+        tool_call_results.append({
+            "name": tool_name,
+            "result": output,
+            "kwargs": tool_call['args']
+        })
+
+    if not state['tool_execute_results']:
+        state['tool_execute_results'].extend(tool_call_results)
+    else:
+        state['tool_execute_results'] = tool_call_results
+
+    return {"keys":{"tool_execute_results":output}}
+    
+
+def tag_llm_generate_lambda(state: NestUpdateState):
+    """
+    基于各类工具的结果进行生成
+    Args:
+        state (NestUpdateState): _description_
+    Returns:
+        _type_: _description_
+    """
+    # state = state['keys']
+    # # run in lambda
+    # msg = {"query": state['query']}
+    # invoke_response = lambda_client.invoke(FunctionName="Online_LLM_Generate",
     #                                     InvocationType='RequestResponse',
     #                                     Payload=json.dumps(msg))
     # response_body = invoke_response['Payload']
@@ -82,84 +170,78 @@ def query_preprocess_lambda(state: NestUpdateState):
     # response_str = response_body.read().decode("unicode_escape")
     # response_str = response_str.strip('"')
 
-    state.update(output)
-
-    # print(f"response_str is {response_str}")
-
     # response = json.loads(response_str)
-    # state['is_query_valid'] = response['body']['is_query_valid']
-
-def intention_detection_lambda(state: AppState):
+    # state['answer'] = response['body']['answer']
     state = state['keys']
-    # run in lambda
-    msg = {"query": state['query']}
-    invoke_response = lambda_client.invoke(FunctionName="Online_Intention_Detection",
-                                        InvocationType='RequestResponse',
-                                        Payload=json.dumps(msg))
-    response_body = invoke_response['Payload']
+    output:dict = invoke_lambda(
+        event_body={
+            "llm_config":'xx',
+            "llm_inputs": state
+        },
+        lambda_name="Online_LLM_Generate",
+        lambda_module_path="lambda_llm_generate.llm_generate",
+        handler_name="lambda_handler"
+    )
+    return {"keys":output}
 
-    response_str = response_body.read().decode("unicode_escape")
-    response_str = response_str.strip('"')
 
-    response = json.loads(response_str)
-    state['is_intention_valid'] = response['body']['is_intention_valid']
-
-def agent_lambda(state: AppState):
+def chat_llm_generate_lambda(state:NestUpdateState):
     state = state['keys']
-    # run in lambda
-    msg = {"query": state['query']}
-    invoke_response = lambda_client.invoke(FunctionName="Online_Agent",
-                                        InvocationType='RequestResponse',
-                                        Payload=json.dumps(msg))
-    response_body = invoke_response['Payload']
+    output:dict = invoke_lambda(
+        event_body={
+            "llm_config":'xx',
+            "llm_inputs": state
+        },
+        lambda_name="Online_LLM_Generate",
+        lambda_module_path="lambda_llm_generate.llm_generate",
+        handler_name="lambda_handler"
+    )
+    return {"keys":output}
 
-    response_str = response_body.read().decode("unicode_escape")
-    response_str = response_str.strip('"')
 
-    response = json.loads(response_str)
-    state['is_context_enough'] = response['body']['is_context_enough']
+def comfort_reply(state:dict):
+    return {
+            "answer": "不好意思没能帮到您，是否帮你转人工客服？",
+            "sources": [],
+            "contexts": [],
+            "context_docs": []
+    }
 
-def function_call_lambda(state: AppState):
+
+def transfer_reply(state:dict):
+    return {
+            "answer": "立即为您转人工客服，请稍后",
+            "sources": [],
+            "contexts": [],
+            "context_docs": []
+    }
+
+
+################
+# define edges #
+################
+
+def tool_call_route(state:dict):
     state = state['keys']
-    # run in lambda
-    msg = {"query": state['query']}
-    invoke_response = lambda_client.invoke(FunctionName="Online_Function_Knowledge_Base",
-                                        InvocationType='RequestResponse',
-                                        Payload=json.dumps(msg))
-    response_body = invoke_response['Payload']
-
-    response_str = response_body.read().decode("unicode_escape")
-    response_str = response_str.strip('"')
-
-    response = json.loads(response_str)
-    state['is_function_finished'] = response['body']['is_function_finished']
-
-def llm_generate_lambda(state: AppState):
-    state = state['keys']
-    # run in lambda
-    msg = {"query": state['query']}
-    invoke_response = lambda_client.invoke(FunctionName="Online_LLM_Generate",
-                                        InvocationType='RequestResponse',
-                                        Payload=json.dumps(msg))
-    response_body = invoke_response['Payload']
-
-    response_str = response_body.read().decode("unicode_escape")
-    response_str = response_str.strip('"')
-
-    response = json.loads(response_str)
-    state['answer'] = response['body']['answer']
+    tool_calling_res:list[dict] = state['tool_calling_res']
+    if not tool_calling_res:
+        return 
+     
 
 ################
 # define whole online graph #
 ################
-workflow = StateGraph(AppState)
+workflow = StateGraph(NestUpdateState)
 # add all nodes
 workflow.add_node("query_preprocess_lambda", query_preprocess_lambda)
 workflow.add_node("intention_detection_lambda", intention_detection_lambda)
 workflow.add_node("agent_lambda", agent_lambda)
-workflow.add_node("function_call_lambda", function_call_lambda)
-workflow.add_node("llm_generate_lambda", llm_generate_lambda)
-workflow.add_node("fast_reply", fast_reply)
+workflow.add_node("tool_execute_lambda", tool_execute_lambda)
+workflow.add_node("rag_llm_generate_lambda", tag_llm_generate_lambda)
+workflow.add_node("chat_llm_generate_lambda", chat_llm_generate_lambda)
+workflow.add_node("comfort_reply",comfort_reply)
+workflow.add_node("transfer_reply", transfer_reply)
+
 # block 1: query preprocess
 # contents:
 # 1. check whether query contains invalid information, like PII 
@@ -168,10 +250,12 @@ workflow.set_entry_point("query_preprocess_lambda")
 # decide whether it is a valid query
 workflow.add_conditional_edges(
     "query_preprocess_lambda",
-    is_query_valid,
+    lambda x: x['keys']['intent'],
     {
-        "invalid query": "fast_reply",
-        "valid query": "intention_detection_lambda"
+        "comfort": "comfort",
+        "transfer": "transfer",
+        "chat": "chat_llm_generate_lambda",
+        "other": "agent_lambda"
     }
 )
 # block 2: intention detection
@@ -185,14 +269,14 @@ workflow.add_conditional_edges(
 # 2. format input query according to chosen functions
 # 2.1 query expansion for retriever
 # 2.2 add call parameters for api call
-workflow.add_conditional_edges(
-    "intention_detection_lambda",
-    is_intention_valid,
-    {
-        "invalid intention": "fast_reply",
-        "valid intention": "agent_lambda"
-    }
-)
+# workflow.add_conditional_edges(
+#     "intention_detection_lambda",
+#     is_intention_valid,
+#     {
+#         "invalid intention": "fast_reply",
+#         "valid intention": "agent_lambda"
+#     }
+# )
 # block 4: run functions to get enough context for llm
 # contents:
 # 1. run different functions in function_call, like retriever, web search or call

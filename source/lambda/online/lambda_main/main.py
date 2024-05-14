@@ -8,17 +8,14 @@ import boto3
 print(boto3.__version__)
 import sys
 
-# SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-# sys.path.append(os.path.dirname(SCRIPT_DIR))
-# sys.path.append(os.path.dirname(SCRIPT_DIR)+'/layer_logic')
-
 from common_utils.ddb_utils import DynamoDBChatMessageHistory
 from lambda_main.main_utils.online_entries import get_entry
-from lambda_main.maing_utils.response_utils import process_response
+from lambda_main.main_utils.response_utils import process_response
+from common_utils.constant import EntryType
 
 # region = os.environ["AWS_REGION"]
-embedding_endpoint = os.environ.get("embedding_endpoint", "")
-aos_index = os.environ.get("aos_index", "")
+# embedding_endpoint = os.environ.get("embedding_endpoint", "")
+# aos_index = os.environ.get("aos_index", "")
 
 sessions_table_name = os.environ.get("sessions_table_name", "")
 messages_table_name = os.environ.get("messages_table_name", "")
@@ -40,23 +37,22 @@ def load_ws_client():
         ws_client = boto3.client("apigatewaymanagementapi", endpoint_url=websocket_url)
     return ws_client
 
+# def handle_error(func):
+#     """Decorator for exception handling"""
 
-def handle_error(func):
-    """Decorator for exception handling"""
+#     def wrapper(*args, **kwargs):
+#         try:
+#             return func(*args, **kwargs)
+#         except APIException as e:
+#             # logger.exception(e)
+#             raise e
+#         except Exception as e:
+#             # logger.exception(e)
+#             raise RuntimeError(
+#                 "Unknown exception, please check Lambda log for more details"
+#             )
 
-    def wrapper(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except APIException as e:
-            # logger.exception(e)
-            raise e
-        except Exception as e:
-            # logger.exception(e)
-            raise RuntimeError(
-                "Unknown exception, please check Lambda log for more details"
-            )
-
-    return wrapper
+#     return wrapper
 
 
 def _is_websocket_request(event):
@@ -99,7 +95,7 @@ def lambda_handler(event, context):
 
         # logger.info(f"stream decode: {stream}")
         client_type = event_body.get("client_type", "default_client_type")
-        entry_type = event_body.get("type", Type.COMMON).lower()
+        entry_type = event_body.get("type", EntryType.COMMON).lower()
         enable_debug = event_body.get("enable_debug", False)
         get_contexts = event_body.get("get_contexts", False)
         session_id = event_body.get("session_id", None)
@@ -140,9 +136,9 @@ def lambda_handler(event, context):
             client_type=client_type,
         )
         # print(chat_session_table,session_id,DynamoDBChatMessageHistory)
-        # chat_history = ddb_history_obj.messages_as_langchain
+        chat_history = ddb_history_obj.messages_as_langchain
 
-        event_body["chat_history"] = ""
+        event_body["chat_history"] = chat_history
         event_body["ws_connection_id"] = ws_connection_id
         event_body["session_id"] = session_id
         event_body["debug_level"] = debug_level
@@ -154,7 +150,7 @@ def lambda_handler(event, context):
         contexts = []
 
         # choose entry to execute
-        biz_type = event_body.get("type", Type.COMMON)
+        biz_type = event_body.get("type", EntryType.COMMON)
         entry_executor = get_entry(biz_type)
         response:dict = entry_executor(event_body)
 

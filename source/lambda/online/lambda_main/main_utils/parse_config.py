@@ -112,30 +112,30 @@ def update_nest_dict(d, u):
 #     return parse_rag_config(event_body)
 
 
-def parse_market_conversation_summary_entry_config(event_body):
-    event_body = copy.deepcopy(event_body)
-    llm_model_id = os.environ.get("llm_model_id")
-    llm_model_endpoint_name = os.environ.get("llm_model_endpoint_name")
-    region = os.environ.get("AWS_REGION")
+# def parse_market_conversation_summary_entry_config(event_body):
+#     event_body = copy.deepcopy(event_body)
+#     llm_model_id = os.environ.get("llm_model_id")
+#     llm_model_endpoint_name = os.environ.get("llm_model_endpoint_name")
+#     region = os.environ.get("AWS_REGION")
 
-    is_cn_region = "cn" in region
-    llm_model_id = event_body.get("llm_model_id", llm_model_id)
-    llm_model_endpoint_name = event_body.get(
-        "llm_model_endpoint_name", llm_model_endpoint_name
-    )
-    assert llm_model_id and llm_model_endpoint_name, (
-        llm_model_id,
-        llm_model_endpoint_name,
-    )
-    default_config = {
-        "mkt_conversation_summary_config": {
-            "model_id": llm_model_id,
-            "endpoint_name": llm_model_endpoint_name,
-        }
-    }
+#     is_cn_region = "cn" in region
+#     llm_model_id = event_body.get("llm_model_id", llm_model_id)
+#     llm_model_endpoint_name = event_body.get(
+#         "llm_model_endpoint_name", llm_model_endpoint_name
+#     )
+#     assert llm_model_id and llm_model_endpoint_name, (
+#         llm_model_id,
+#         llm_model_endpoint_name,
+#     )
+#     default_config = {
+#         "mkt_conversation_summary_config": {
+#             "model_id": llm_model_id,
+#             "endpoint_name": llm_model_endpoint_name,
+#         }
+#     }
 
-    new_event_config = update_nest_dict(copy.deepcopy(default_config), event_body)
-    return new_event_config
+#     new_event_config = update_nest_dict(copy.deepcopy(default_config), event_body)
+#     return new_event_config
 
 
 # def parse_mkt_entry_config(event_body):

@@ -7,6 +7,10 @@ import sys
 sys.path.extend([".",'layer_logic'])
 
 from common_utils.lambda_invoke_utils import invoke_lambda
+from functions.tools import get_tool_by_name
+
+get_weather_tool_def = get_tool_by_name("get_weather").tool_def
+give_rhetorical_question = get_tool_by_name('give_rhetorical_question').tool_def
 
 
 def test_local():
@@ -14,40 +18,13 @@ def test_local():
         "chatbot_config":{
             "agent_config":{
                 "model_id": "anthropic.claude-3-sonnet-20240229-v1:0",
-                "tools":[{
-                            "name": "get_weather",
-                            "description": "Get the current weather in a given location",
-                            "parameters": {
-                                "type": "object",
-                                "properties": {
-                                "location": {
-                                    "description": "The city and state, e.g. San Francisco, CA",
-                                    "type": "string"
-                                },
-                                "unit": {
-                                    "description": "The unit of temperature",
-                                    "allOf": [
-                                    {
-                                        "title": "Unit",
-                                        "description": "An enumeration.",
-                                        "enum": [
-                                        "celsius",
-                                        "fahrenheit"
-                                        ]
-                                    }
-                                    ]
-                                }
-                                },
-                                "required": [
-                                "location",
-                                "unit"
-                                ]
-                            }
-                        }]
+                "tools":[get_weather_tool_def,give_rhetorical_question]
             }
         },
         "chat_history":[],
-        "query":"What is the weather like in Beijing? I would like the temprature unit as Celsius"
+        # "query":"What is the weather like in Beijing? I would like the temprature unit as Celsius"
+        # "query":"What is the weather like in Beijing?"
+        "query":"今天天气怎么样？"
     }
     
     ret = invoke_lambda(
@@ -64,36 +41,7 @@ def test_lambda():
         "chatbot_config":{
             "agent_config":{
                 "model_id": "anthropic.claude-3-haiku-20240307-v1:0",
-                "tools":[{
-                            "name": "get_weather",
-                            "description": "Get the current weather in a given location",
-                            "parameters": {
-                                "type": "object",
-                                "properties": {
-                                "location": {
-                                    "description": "The city and state, e.g. San Francisco, CA",
-                                    "type": "string"
-                                },
-                                "unit": {
-                                    "description": "The unit of temperature",
-                                    "allOf": [
-                                    {
-                                        "title": "Unit",
-                                        "description": "An enumeration.",
-                                        "enum": [
-                                        "celsius",
-                                        "fahrenheit"
-                                        ]
-                                    }
-                                    ]
-                                }
-                                },
-                                "required": [
-                                "location",
-                                "unit"
-                                ]
-                            }
-                        }]
+                "tools":[get_weather_tool_def]
             }
         },
         "chat_history":[],
@@ -110,5 +58,5 @@ def test_lambda():
     print(ret)
 
 if __name__ == "__main__":
-    # test_local()
-    test_lambda()
+    test_local()
+    # test_lambda()

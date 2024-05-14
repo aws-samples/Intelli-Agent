@@ -6,6 +6,10 @@ from .exceptions import LambdaInvokeError
 import functools 
 import requests 
 import enum 
+from common_utils.logger_utils import get_logger
+from common_utils.serialization_utils import JSONEncoder
+
+logger = get_logger("lambda_invoke_utils")
 
 class LAMBDA_INVOKE_MODE(enum.Enum):
     LAMBDA = 'lambda'
@@ -19,7 +23,7 @@ class LAMBDA_INVOKE_MODE(enum.Enum):
     def values(cls):
         return [e.value for e in cls]
 
-lambda_invoke_mode = LAMBDA_INVOKE_MODE.LOCAL.value
+_lambda_invoke_mode = LAMBDA_INVOKE_MODE.LOCAL.value
     
 class LambdaInvoker(BaseModel):
     # aws lambda clinet
@@ -76,12 +80,14 @@ class LambdaInvoker(BaseModel):
         
         return response_body
 
-    def invoke_with_local(self,lambda_module_path:str,event_body:dict,handler_name="lambda_handler"):
+    def invoke_with_local(self,
+                          lambda_module_path:str,
+                          event_body:dict,
+                          handler_name="lambda_handler"):
         lambda_module = importlib.import_module(lambda_module_path)
         ret = getattr(lambda_module,handler_name)(event_body)
         return ret 
 
-    
     def invoke_with_apigateway(self,url,event_body:dict):
         r = requests.post(url,json=event_body)
         data = r.json()
@@ -94,12 +100,14 @@ class LambdaInvoker(BaseModel):
     def invoke_lambda(
             self,
             event_body,
-            lambda_invoke_mode: LAMBDA_INVOKE_MODE = lambda_invoke_mode,
+            lambda_invoke_mode: LAMBDA_INVOKE_MODE = None,
             lambda_name=None,
             lambda_module_path=None,
             handler_name=None,
             apigetway_url=None
         ):
+        lambda_invoke_mode = lambda_invoke_mode or _lambda_invoke_mode
+
         assert LAMBDA_INVOKE_MODE.has_value(lambda_invoke_mode), (lambda_invoke_mode,LAMBDA_INVOKE_MODE.values())
 
         if lambda_invoke_mode == LAMBDA_INVOKE_MODE.LAMBDA.value:
@@ -126,18 +134,25 @@ invoke_lambda = obj.invoke_lambda
 def chatbot_lambda_call_wrapper(fn):
     @functools.wraps(fn)
     def inner(event:dict,context=None):
-        global lambda_invoke_mode
+        global _lambda_invoke_mode
         # avoid recursive lambda calling
         if str(type(context)) == "LambdaContext":
-            lambda_invoke_mode = LAMBDA_INVOKE_MODE.LOCAL.value
+            _lambda_invoke_mode = LAMBDA_INVOKE_MODE.LOCAL.value
+            logger.info(f'event: {json.dumps(event,ensure_ascii=False,indent=2,cls=JSONEncoder)}')
 
         # if "lambda_invoke_mode" not in event:
         #     event['lambda_invoke_mode'] = os.environ.get("LAMBDA_INVOKE_MODE","local")
-
-        ret = fn(event, context=context)
+        
+        
+        base_state = {
+            "message_id":"",
+            "trace_infos": []
+        }
+        
+        ret = fn({**base_state,**event}, context=context)
         # 如果使用apigateway 调用lambda，需要将结果保存到body字段中
         # TODO
-        if lambda_invoke_mode  == LAMBDA_INVOKE_MODE.APIGETAWAY.value:
+        if _lambda_invoke_mode  == LAMBDA_INVOKE_MODE.APIGETAWAY.value:
             ret = {
                 # "isBase64Encoded": False,
                 "statusCode": 200,
