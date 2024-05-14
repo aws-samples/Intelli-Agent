@@ -50,6 +50,8 @@ export class RootStack extends Stack {
       rerankModelVersion: assetConstruct.rerankModelVersion,
       embeddingModelPrefix: assetConstruct.embeddingModelPrefix,
       embeddingModelVersion: assetConstruct.embeddingModelVersion,
+      embeddingAndRerankerModelPrefix: assetConstruct.embeddingAndRerankerModelPrefix,
+      embeddingAndRerankerModelVersion: assetConstruct.embeddingAndRerankerModelVersion,
       instructModelPrefix: assetConstruct.instructModelPrefix,
       instructModelVersion: assetConstruct.instructModelVersion,
       env: process.env,

@@ -73,8 +73,9 @@ else
   sed -i "s|option.tensor_parallel_degree=tpd|option.tensor_parallel_degree=$tensor_parallel_degree|g" $file_path
 fi
 
-rm bge_reranker_model.tar.gz
-tar czvf bge_reranker_model.tar.gz *
+
+rm bce_embedding_model.tar.gz
+tar czvf bce_embedding_model.tar.gz *
 
 code_path="${model_name}_deploy_code"
-aws s3 cp bge_reranker_model.tar.gz s3://$s3_bucket_name/$code_path/bge_reranker_model.tar.gz
+aws s3 cp bce_embedding_model.tar.gz s3://$s3_bucket_name/$code_path/bce_embedding_model.tar.gz
