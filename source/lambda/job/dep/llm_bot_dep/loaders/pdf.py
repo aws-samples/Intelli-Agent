@@ -6,6 +6,7 @@ import re
 from langchain.docstore.document import Document
 from langchain.document_loaders import PDFMinerPDFasHTMLLoader
 from langchain.document_loaders.pdf import BasePDFLoader
+from botocore.client import S3, SageMakerRuntime
 
 from ..cleaning import remove_duplicate_sections
 from ..splitter_utils import MarkdownHeaderTextSplitter, extract_headings
@@ -49,8 +50,8 @@ def detect_language(input):
 
 
 def invoke_etl_model(
-    s3_client,
-    smr_client,
+    s3_client: S3,
+    smr_client: SageMakerRuntime,
     etl_model_endpoint: str,
     bucket: str,
     key: str,
