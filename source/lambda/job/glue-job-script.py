@@ -109,11 +109,9 @@ OBJECT_EXPIRY_TIME = 3600
 
 credentials = boto3.Session().get_credentials()
 awsauth = AWS4Auth(
-    credentials.access_key,
-    credentials.secret_key,
-    region,
-    "es",
-    session_token=credentials.token,
+    refreshable_credentials=credentials,
+    region=region,
+    service="es"
 )
 MAX_OS_DOCS_PER_PUT = 8
 
@@ -310,7 +308,7 @@ class BatchChunkDocumentProcessor:
 
         for document in content:
             splits = text_splitter.split_documents([document])
-            # list of Document objects
+            # List of Document objects
             index = 1
             for split in splits:
                 chunk_id = split.metadata["chunk_id"]
@@ -382,10 +380,17 @@ class BatchQueryDocumentProcessor:
         search_body = {
             "query": {
                 # use term-level queries only for fields mapped as keyword
-                "match_phrase": {"metadata.file_path": s3_path}
+                "prefix": {
+                    "metadata.file_path.keyword": {
+                        "value": s3_path
+                    }
+                },
             },
             "size": 100000,
             "sort": [{"_score": {"order": "desc"}}],
+            "_source": {
+                "excludes": ["vector_field"]
+            }
         }
 
         if self.docsearch.client.indices.exists(index=self.docsearch.index_name):
@@ -566,7 +571,7 @@ def ingestion_pipeline(
             }
             traceback.print_exc()
         finally:
-            ddb_response = etl_object_table.put_item(Item=input_body)
+            etl_object_table.put_item(Item=input_body)
 
 
 def delete_pipeline(s3_files_iterator, document_generator, delete_worker):
