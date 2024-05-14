@@ -1,0 +1,182 @@
+[
+    {
+        "query":"什么是 AWS Organizations？",
+        "intention":"知识问答",
+        "reply":"AWS Organizations 有助于您在 AWS 上扩展工作负载时对您的环境进行集中管理。无论您是一个成长型初创公司还是一个大型企业，Organizations 都能帮助您以编程方式创建新账户和分配资源，通过为所有账户设置单个付款方式简化计费，创建账户组以组织您的工作流，并将策略应用于这些组进行治理。另外，AWS Organizations 与其他 AWS 服务进行了集成，以便在您的组织中跨账户指定中央配置、安全机制和资源共享。"
+    },
+    {
+        "query":"如何从组织删除 AWS 成员账户？",
+        "intention":"知识问答",
+        "reply":"您可以通过以下两种方法删除成员账户：要删除使用 Organizations 创建的账户，您可能还需要提供额外的信息。如果尝试删除账户失败，请前往 [AWS Support 中心](https://console.aws.amazon.com/support/home)，寻求有关删除账户的帮助。\n方法 1：通过登录管理账户删除受邀成员账户\n1.以主账户管理员的身份登录，然后导航至 AWS Organizations 控制台。\n2.在左窗格中，选择账户。\n3.选择要删除的账户，然后选择删除账户。\n4.如果相应的账户没有有效的付款方式，您必须提供一种付款方式。\n方法 2：通过登录成员账户删除受邀成员账户\n1.以管理员身份登录您要从组织中删除的成员账户。\n2.导航至 AWS Organizations 控制台。\n3.选择\\*退出组织\\*。\n4.如果相应的账户没有付款方式，您必须提供一种付款方式。"
+    },
+    {
+        "query":"一个 AWS 账户可以是多个 OU 的成员吗？",
+        "intention":"知识问答",
+        "reply":"不可以。一个 AWS 账户一次只能是一个 OU 的成员。"
+    },
+    {
+        "query":"Amazon Rekognition 支持哪些图像和视频格式？",
+        "intention":"知识问答",
+        "reply":"Amazon Rekognition Image 目前支持 JPEG 和 PNG 图像格式。您可以提交 S3 对象或字节数组形式的图像。Amazon Rekognition Video 操作可以分析存储在 Amazon S3 存储桶中的视频。视频必须使用 H.264 编解码器进行编码。支持的文件格式为 MPEG-4 和 MOV。编解码器是软件或硬件，可以压缩数据以加快传送，并将接收到的数据解压缩为其原始形式。H.264 编解码器通常用于录制、压缩和分配视频内容。视频文件格式可能包含一个或多个编解码器。如果 MOV 或 MPEG-4 格式的视频文件不适用于 Rekognition Video，请检查用于编码视频的编解码器是否为 H.264。"
+    },
+    {
+        "query":"Network Load Balancer 是否支持内部负载均衡器？",
+        "intention":"知识问答",
+        "reply":"您可以将 Network Load Balancer 设置为面向 Internet 的负载均衡器或内部负载均衡器，可实现与 Application Load Balancer 和 Classic Load Balancer 类似的功能。"
+    },
+    {
+        "query":"对于创建堆栈失败期间回滚的资源，我是否需要付费？",
+        "intention":"知识问答",
+        "reply":"是的。无论整个堆栈能否创建成功，模板实例化期间创建的 AWS 资源均需收费。"
+    },
+    {
+        "query":"Amazon SQS 符合 HIPAA 要求吗？",
+        "intention":"知识问答",
+        "reply":"符合，AWS 对其 HIPAA 合规性计划进行了扩展，已将 Amazon SQS 作为一项符合 HIPAA 要求的服务纳入该计划。如果您已与 AWS 签订商业伙伴协议 (BAA)，那么您就可以使用 Amazon SQS 来构建 HIPAA 合规应用程序、存储传输中的消息以及传输消息，其中包括含受保护健康信息 (PHI) 的消息。\n如果您已与 AWS 签订商业伙伴协议，那么您就可以立即开始使用 Amazon SQS。如果您未签订商业伙伴协议或者在对您的 HIPAA 合规应用程序使用 AWS 的方面有其他问题，请联系我们，以获取详细信息。\n注意：如果不想通过 Amazon SQS 传输 PHI（或者，如果消息超过 256KB），那么可以使用适用于 Java 的 Amazon SQS 扩展客户端库改为[通过 Amazon S3 发送 Amazon SQS 消息负载](http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-s3-messages.html)（除使用 Amazon S3 Transfer Acceleration 外，Amazon S3 在其他方面也是一种符合 HIPAA 要求的服务）。有关更多信息，请参阅 *Amazon SQS 开发人员指南*中的[使用适用于 Java 的 Amazon SQS 扩展客户端库](http://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-s3-messages.html#s3-messages-examples)。"
+    },
+    {
+        "query":"如何共享消息队列？",
+        "intention":"知识问答",
+        "reply":"您可以将访问策略语句（并指定要授予的权限）与要共享的消息队列关联。Amazon SQS 可以提供 API，用于创建和管理以下访问策略语句：\n有关详细信息，请参阅 *[Amazon SQS API 参考](http://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/Welcome.html)*。"
+    },
+    {
+        "query":"Amazon EMR有哪些优势",
+        "intention":"知识问答",
+        "reply":"Amazon EMR有以下优势：节省成本、AWS集成、部署、可扩展性和灵活度、可靠性、安全性和监控。"
+    },
+    {
+        "query":"FOOB Ticket 的链接是什么",
+        "intention":"知识问答",
+        "reply":""
+    },
+    {
+        "query":"怎么提交FOOB？",
+        "intention":"知识问答",
+        "reply":""
+    },
+    {
+        "query":"怎么申请p4d p5?",
+        "intention":"知识问答",
+        "reply":""
+    },
+    {
+        "query":"P5的spot limit应该怎么提？",
+        "intention":"知识问答",
+        "reply":""
+    },
+    {
+        "query":"宁夏区的GPU资源的情况？",
+        "intention":"知识问答",
+        "reply":""
+    },
+    {
+        "query":"inferentia2/traninium1中国区landing plan？",
+        "intention":"知识问答",
+        "reply":""
+    },
+    {
+        "query":"GPU OD的价格基础上如何可以有进一步的折扣？",
+        "intention":"知识问答",
+        "reply":""
+    },
+    {
+        "query":"需要提前多久申请FOOB？",
+        "intention":"知识问答",
+        "reply":""
+    },
+        {
+        "query":"申请GPU实例的FOOB 链接是什么？",
+        "intention":"知识问答",
+        "reply":""
+    },
+    {
+        "query":"ODCR预留实例怎么计费？",
+        "intention":"知识问答",
+        "reply":""
+    },
+    {
+        "query":"怎么看资源分配是否有risk？",
+        "intention":"知识问答",
+        "reply":""
+    },
+    {
+        "query":"What is \"Unoccupied hosts\" in baywatch",
+        "intention":"知识问答",
+        "reply":"-"
+    },
+    {
+        "query":"what is Free slots in baywatch?",
+        "intention":"知识问答",
+        "reply":"-"
+    },
+    {
+        "query":"How do I know if the instance type is GA or not GA?",
+        "intention":"知识问答",
+        "reply":"-"
+    },
+    {
+        "query":"what is FOOB?",
+        "intention":"知识问答",
+        "reply":"-"
+    },
+    {
+        "query":"what are the use cases for FOOB?",
+        "intention":"知识问答",
+        "reply":"-"
+    },
+    {
+        "query":"in what senarios, I need FOOB?",
+        "intention":"知识问答",
+        "reply":"-"
+    },
+    {
+        "query":"what if the customer has EBS requirement",
+        "intention":"知识问答",
+        "reply":"-"
+    },
+    {
+        "query":"请用中文回答 what if the customer has EBS requirement",
+        "intention":"知识问答",
+        "reply":"-"
+    },
+    {
+        "query":"what are the differences between Incremental Capacity Request ICR ticket and Limit increase (Service Quota) request?",
+        "intention":"知识问答",
+        "reply":"-"
+    },
+    {
+        "query":"how to request for p4d, p5",
+        "intention":"知识问答",
+        "reply":"-"
+    },
+    {
+        "query":"what is the approval template for requesting p4d?",
+        "intention":"知识问答",
+        "reply":"-"
+    },
+    {
+        "query":"ODCR预留怎么计费？",
+        "intention":"知识问答",
+        "reply":"-"
+    },
+    {
+        "query":"ODCR怎么享受RI 或者Savings Plan计费？",
+        "intention":"知识问答",
+        "reply":"-"
+    },
+    {
+        "query":"what is baywatch?",
+        "intention":"知识问答",
+        "reply":"-"
+    },
+    {
+        "query":"怎么看现有的Capacity？",
+        "intention":"知识问答",
+        "reply":"-"
+    },
+    {
+        "query":"申请gpu foob的流程是什么？",
+        "intention":"知识问答",
+        "reply":"-"
+    }
+]

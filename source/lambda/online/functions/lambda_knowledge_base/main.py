@@ -11,10 +11,10 @@ import sys
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(SCRIPT_DIR))
-from utils.constant import Type
+from common_utils.constant import Type
 
-from utils.ddb_utils import DynamoDBChatMessageHistory
-from utils.online_entries import get_entry
+from common_utils.ddb_utils import DynamoDBChatMessageHistory
+from common_utils.online_entries import get_entry
 
 # @handle_error
 def lambda_handler(event, context):
