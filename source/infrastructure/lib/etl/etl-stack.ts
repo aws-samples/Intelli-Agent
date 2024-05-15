@@ -104,7 +104,7 @@ export class EtlStack extends NestedStack {
         image: imageUrl,
       },
     });
-
+    const etlVariantName = "variantProd"
     // Create endpoint configuration
     const endpointConfig = new sagemaker.CfnEndpointConfig(
       this,
@@ -114,7 +114,7 @@ export class EtlStack extends NestedStack {
           {
             initialVariantWeight: 1.0,
             modelName: model.attrModelName,
-            variantName: "variantProd",
+            variantName: etlVariantName,
             containerStartupHealthCheckTimeoutInSeconds: 15 * 60,
             initialInstanceCount: 1,
             instanceType: "ml.g4dn.2xlarge",
@@ -149,7 +149,7 @@ export class EtlStack extends NestedStack {
       {
         minCapacity: 0,
         maxCapacity: 50,
-        resourceId: `endpoint/${etlEndpoint.endpointName}/variant/etl`,
+        resourceId: `endpoint/${etlEndpoint.endpointName}/variant/${etlVariantName}`,
         scalableDimension: "sagemaker:variant:DesiredInstanceCount",
         serviceNamespace: appAutoscaling.ServiceNamespace.SAGEMAKER,
       }
