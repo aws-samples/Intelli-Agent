@@ -148,30 +148,30 @@ export class EtlStack extends NestedStack {
       "ETLAutoScalingTarget",
       {
         minCapacity: 0,
-        maxCapacity: 50,
+        maxCapacity: 20,
         resourceId: `endpoint/${etlEndpoint.endpointName}/variant/${etlVariantName}`,
         scalableDimension: "sagemaker:variant:DesiredInstanceCount",
         serviceNamespace: appAutoscaling.ServiceNamespace.SAGEMAKER,
       }
     );
     scalingTarget.node.addDependency(etlEndpoint);
-    new appAutoscaling.CfnScalingPolicy(
-      this,
-      "ETLScalingPolicy",
-      {
-        policyName: "ETLScalingPolicy",
-        policyType: "TargetTrackingScaling",
-        scalingTargetId: scalingTarget.scalableTargetId,
-        targetTrackingScalingPolicyConfiguration: {
-          predefinedMetricSpecification: {
-            predefinedMetricType: "SageMakerVariantInvocationsPerInstance",
-          },
-          scaleInCooldown: 600,
-          scaleOutCooldown: 60,
-          targetValue: 10,
-        },
-      }
-    );
+    // new appAutoscaling.CfnScalingPolicy(
+    //   this,
+    //   "ETLScalingPolicy",
+    //   {
+    //     policyName: "ETLScalingPolicy",
+    //     policyType: "TargetTrackingScaling",
+    //     scalingTargetId: scalingTarget.scalableTargetId,
+    //     targetTrackingScalingPolicyConfiguration: {
+    //       predefinedMetricSpecification: {
+    //         predefinedMetricType: "SageMakerVariantInvocationsPerInstance",
+    //       },
+    //       scaleInCooldown: 600,
+    //       scaleOutCooldown: 60,
+    //       targetValue: 10,
+    //     },
+    //   }
+    // );
 
     const connection = new glue.Connection(this, "GlueJobConnection", {
       type: glue.ConnectionType.NETWORK,
