@@ -26,7 +26,7 @@ import * as tasks from "aws-cdk-lib/aws-stepfunctions-tasks";
 import { Construct } from "constructs";
 import { join } from "path";
 import { DynamoDBTable } from "../shared/table";
-
+import * as appAutoscaling from "aws-cdk-lib/aws-applicationautoscaling";
 import * as glue from "@aws-cdk/aws-glue-alpha";
 
 import { BuildConfig } from "../shared/build-config";
@@ -142,6 +142,36 @@ export class EtlStack extends NestedStack {
     }
 
     this.etlEndpoint = etlEndpoint.endpointName;
+
+    const scalingTarget = new appAutoscaling.ScalableTarget(
+      this,
+      "ETLAutoScalingTarget",
+      {
+        minCapacity: 0,
+        maxCapacity: 50,
+        resourceId: `endpoint/${etlEndpoint.endpointName}/variant/etl`,
+        scalableDimension: "sagemaker:variant:DesiredInstanceCount",
+        serviceNamespace: appAutoscaling.ServiceNamespace.SAGEMAKER,
+      }
+    );
+    scalingTarget.node.addDependency(etlEndpoint);
+    new appAutoscaling.CfnScalingPolicy(
+      this,
+      "ETLScalingPolicy",
+      {
+        policyName: "ETLScalingPolicy",
+        policyType: "TargetTrackingScaling",
+        scalingTargetId: scalingTarget.scalableTargetId,
+        targetTrackingScalingPolicyConfiguration: {
+          predefinedMetricSpecification: {
+            predefinedMetricType: "SageMakerVariantInvocationsPerInstance",
+          },
+          scaleInCooldown: 600,
+          scaleOutCooldown: 60,
+          targetValue: 10,
+        },
+      }
+    );
 
     const connection = new glue.Connection(this, "GlueJobConnection", {
       type: glue.ConnectionType.NETWORK,
