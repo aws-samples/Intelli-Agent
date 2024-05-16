@@ -28,7 +28,7 @@ import { join } from "path";
 import { DynamoDBTable } from "../shared/table";
 import * as appAutoscaling from "aws-cdk-lib/aws-applicationautoscaling";
 import * as glue from "@aws-cdk/aws-glue-alpha";
-
+import { Metric } from 'aws-cdk-lib/aws-cloudwatch';
 import { BuildConfig } from "../shared/build-config";
 
 interface ETLStackProps extends StackProps {
@@ -155,6 +155,21 @@ export class EtlStack extends NestedStack {
       }
     );
     scalingTarget.node.addDependency(etlEndpoint);
+    scalingTarget.scaleToTrackMetric('ApproximateBacklogSizePerInstanceTrackMetric', {
+      targetValue: 2,
+      customMetric: new Metric({
+        metricName: 'ApproximateBacklogSizePerInstance',
+        namespace: 'AWS/SageMaker',
+        dimensionsMap: {
+          EndpointName: etlEndpoint.endpointName,
+        },
+        period: Duration.minutes(1),
+        statistic: 'avg',
+      }),
+      scaleInCooldown: Duration.seconds(60),
+      scaleOutCooldown: Duration.seconds(60),
+    });
+
     // new appAutoscaling.CfnScalingPolicy(
     //   this,
     //   "ETLScalingPolicy",
