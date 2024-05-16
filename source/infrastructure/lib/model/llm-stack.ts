@@ -150,7 +150,7 @@ export class LLMStack extends cdk.NestedStack {
       const embeddingAndrerankCodePrefix = embeddingAndRerankerModelPrefix + "_deploy_code";
       const embeddingAndRerankerVersionId = props.embeddingAndRerankerModelVersion;
       const embeddingAndRerankerEndpointName =
-        "embedding-and-rerank-" + embeddingAndRerankerModelPrefix + "-" + embeddingAndRerankerVersionId.slice(0, 5);
+        "embedding-and-reranker-" + embeddingAndRerankerModelPrefix + "-" + embeddingAndRerankerVersionId.slice(0, 5);
       // Create model, BucketDeployment construct automatically handles dependencies to ensure model assets uploaded before creating the model in this.region
       const embeddingAndRerankerImageUrl =
         llmImageUrlAccount +
@@ -224,7 +224,7 @@ export class LLMStack extends cdk.NestedStack {
         executionRoleArn: executionRole.roleArn,
         primaryContainer: {
           image: rerankImageUrl,
-          modelDataUrl: `s3://${props.s3ModelAssets}/${rerankCodePrefix}/rerank_model.tar.gz`,
+          modelDataUrl: `s3://${props.s3ModelAssets}/${rerankCodePrefix}/bge_reranker_model.tar.gz`,
           environment: {
             S3_CODE_PREFIX: rerankCodePrefix,
           },
