@@ -42,7 +42,7 @@ export class AssetsConstruct extends Construct {
     const embeddingModelVersion: string[] = [
       "3ab7155aa9b89ac532b2f2efcc3f136766b91025",
     ];
-    const embeddingAndRerankerModelPrefix = "bce-embedding-and-bge-reranker";
+    const embeddingAndRerankerModelPrefix = "embedding-and-reranker";
     const embeddingAndRerankerModelVersion = "43972580a35ceacacd31b95b9f430f695d07dde9";
     const instructModelPrefix = "internlm2-chat-20b";
     const instructModelVersion = "7bae8edab7cf91371e62506847f2e7fdc24c6a65";
