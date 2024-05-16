@@ -134,7 +134,7 @@ def convert_openai_tool_to_anthropic(tools:list[dict])->str:
     )
     return tools_formatted
 
-def convert_anthropic_xml_to_dict(function_calls:List[str], tools:list[dict]) -> List[dict]:
+def convert_anthropic_xml_to_dict(model_id,function_calls:List[str], tools:list[dict]) -> List[dict]:
     # formatted_tools = [convert_to_openai_function(tool) for tool in tools]
     tool_calls:list[ToolCall] = []
     for function_call in function_calls:
@@ -160,7 +160,7 @@ def convert_anthropic_xml_to_dict(function_calls:List[str], tools:list[dict]) ->
                 assert len(value) == 1,function_call
                 arguments[parameter_key] = value[0].strip()
             
-            tool_calls.append(dict(name=tool_name,args=arguments))
+            tool_calls.append(dict(name=tool_name,args=arguments,model_id=model_id))
     
     return tool_calls
 
@@ -175,13 +175,13 @@ class Claude2ToolCallingChain(LLMChain):
         "stop_sequences": ["\n\nHuman:", "\n\nAssistant","</function_calls>"],
         }
     
-    @staticmethod
-    def parse_tools_from_ai_message(message:AIMessage,tools:list[dict]):
+    @classmethod
+    def parse_tools_from_ai_message(cls,message:AIMessage,tools:list[dict]):
         function_calls:List[str] = re.findall("<function_calls>(.*?)</function_calls>", message.content + "</function_calls>",re.S)
         if not function_calls:
             return {"tool_calls":[],"content":message.content}
         
-        tool_calls = convert_anthropic_xml_to_dict(function_calls,tools)
+        tool_calls = convert_anthropic_xml_to_dict(cls.model_id,function_calls,tools)
         message.tool_calls = tool_calls
         return {"tool_calls":tool_calls,"content":message.content}
     

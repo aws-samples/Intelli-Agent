@@ -320,60 +320,97 @@ def update_nest_dict(d, u):
 #     return new_event_config
 
 
-def parse_main_entry_config(event_body):
+# def parse_main_entry_config(event_body):
+#     event_body = copy.deepcopy(event_body)
+
+#     llm_model_id = os.environ.get("llm_model_id", "anthropic.claude-v2:1")
+#     llm_model_endpoint_name = os.environ.get("llm_model_endpoint_name")
+#     region = os.environ.get("AWS_REGION")
+
+#     is_cn_region = "cn" in region
+
+#     # TODO modify rag_config
+#     llm_model_id = event_body.get("llm_model_id", llm_model_id)
+#     llm_model_endpoint_name = event_body.get(
+#         "llm_model_endpoint_name", llm_model_endpoint_name
+#     )
+
+#     assert llm_model_id, llm_model_id
+
+#     mkt_default_config = {
+#         # retriver config
+#         # query process config
+#         "retriever_config": {
+#             "qd_config": {
+#                 "retriever_top_k": 5,
+#                 "context_num": 2,
+#                 "using_whole_doc": False,
+#                 "reranker_top_k": 10,
+#                 # "reranker_type": RerankerType.BYPASS.value,
+#                 "reranker_type": RerankerType.BGE_RERANKER.value,
+#                 # "reranker_type": RerankerType.BGE_M3_RERANKER.value,
+#                 "qd_match_threshold": 2,
+#                 "query_key": "query",
+#                 # "enable_reranker":True
+#             },
+#             "workspace_ids": [
+#                 "aos_index_mkt_faq_qq_m3",
+#                 "aos_index_acts_qd_m3",
+#                 "aos_index_mkt_faq_qd_m3",
+#                 "aos_index_repost_qq_m3",
+#             ],
+#             "event_workspace_ids": ["event-qd-index-20240313"],
+#         },
+#         # generator config
+#         "generator_llm_config": {
+#             "model_id": llm_model_id,
+#             "endpoint_name": llm_model_endpoint_name,
+#             "context_num": 1,
+#         },
+#         "use_history": False,
+#     }
+
+#     new_event_config = update_nest_dict(copy.deepcopy(mkt_default_config), event_body)
+
+#     intent = event_body.get("intent", None) or event_body.get("model", None)
+#     if intent:
+#         new_event_config["intent_config"]["intent_type"] = intent
+
+#     return new_event_config
+
+
+
+def parse_common_entry_config(event_body):
     event_body = copy.deepcopy(event_body)
+    llm_model_id = os.environ.get("llm_model_id", "anthropic.claude-3-sonnet-20240229-v1:0")
 
-    llm_model_id = os.environ.get("llm_model_id", "anthropic.claude-v2:1")
-    llm_model_endpoint_name = os.environ.get("llm_model_endpoint_name")
-    region = os.environ.get("AWS_REGION")
-
-    is_cn_region = "cn" in region
-
-    # TODO modify rag_config
     llm_model_id = event_body.get("llm_model_id", llm_model_id)
-    llm_model_endpoint_name = event_body.get(
-        "llm_model_endpoint_name", llm_model_endpoint_name
-    )
 
-    assert llm_model_id, llm_model_id
+    default_chatbot_config = {
+        "query_process_config":{
+            "conversation_query_rewrite_config":{
+            }
 
-    mkt_default_config = {
-        # retriver config
-        # query process config
-        "retriever_config": {
-            "qd_config": {
-                "retriever_top_k": 5,
-                "context_num": 2,
-                "using_whole_doc": False,
-                "reranker_top_k": 10,
-                # "reranker_type": RerankerType.BYPASS.value,
-                "reranker_type": RerankerType.BGE_RERANKER.value,
-                # "reranker_type": RerankerType.BGE_M3_RERANKER.value,
-                "qd_match_threshold": 2,
-                "query_key": "query",
-                # "enable_reranker":True
-            },
-            "workspace_ids": [
-                "aos_index_mkt_faq_qq_m3",
-                "aos_index_acts_qd_m3",
-                "aos_index_mkt_faq_qd_m3",
-                "aos_index_repost_qq_m3",
-            ],
-            "event_workspace_ids": ["event-qd-index-20240313"],
         },
-        # generator config
-        "generator_llm_config": {
-            "model_id": llm_model_id,
-            "endpoint_name": llm_model_endpoint_name,
-            "context_num": 1,
+        "intent_recognition_config":{
+
         },
-        "use_history": False,
+        "agent_config":{
+            "model_id":llm_model_id,
+            "model_kwargs": {},
+            "tools":[]
+        },
+        "tool_execute_config":{
+
+        }
+
     }
+    chatbot_config = update_nest_dict(
+        copy.deepcopy(default_chatbot_config),
+        event_body['chatbot_config']
+        )
 
-    new_event_config = update_nest_dict(copy.deepcopy(mkt_default_config), event_body)
+    return chatbot_config
 
-    intent = event_body.get("intent", None) or event_body.get("model", None)
-    if intent:
-        new_event_config["intent_config"]["intent_type"] = intent
 
-    return new_event_config
+

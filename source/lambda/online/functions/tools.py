@@ -4,7 +4,6 @@ from enum import Enum
 class ToolDefType(Enum):
     openai = "openai"
 
-
 class Tool(BaseModel):
     name: str = Field(description="tool name")
     lambda_name: str = Field(description="lambda name")
@@ -90,6 +89,27 @@ tool_manager.register_tool(
 )
 
 
+tool_manager.register_tool(
+    {
+        "name":"give_final_response",
+        "lambda_name": "xxxx",
+        "lambda_module_path": "functions.lambda_give_final_response.give_final_response",
+        "tool_def":{
+                "name": "give_final_response",
+                "description": "如果其他工具都不需要去调用, 请调用当前工具完成对用户的直接回复",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "response": {
+                            "description": "对用户的回复",
+                            "type": "string"
+                    }
+                },
+                "required": ["response"]
+            }
+        }
+    }
+)
 
 
 

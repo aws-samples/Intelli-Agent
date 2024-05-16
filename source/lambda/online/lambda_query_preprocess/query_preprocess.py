@@ -23,7 +23,7 @@ def conversation_query_rewrite(state:dict):
     conversation_query_rewrite_config = chatbot_config["query_process_config"][
         "conversation_query_rewrite_config"
     ]
-    conversation_query_rewrite_result_key = conversation_query_rewrite_config['result_key']
+    # conversation_query_rewrite_result_key = conversation_query_rewrite_config['result_key']
 
     cqr_llm_chain = RunnableLambda(lambda x: invoke_lambda(
         # lambda_invoke_mode=lambda_invoke_mode,
@@ -54,7 +54,7 @@ def conversation_query_rewrite(state:dict):
     )
 
     output = conversation_summary_chain.invoke(state)
-    return {conversation_query_rewrite_result_key:output}
+    return output
     
 @chatbot_lambda_call_wrapper
 def lambda_handler(state:dict, context=None):
