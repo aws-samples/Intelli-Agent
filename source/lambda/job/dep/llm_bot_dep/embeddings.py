@@ -23,7 +23,7 @@ def get_embedding_info(embedding_endpoint_name):
 
     elif "embedding" in embedding_endpoint_name:
         embeddings_model_provider = "Netease"
-        embeddings_model_name = "bce-embedding"
+        embeddings_model_name = "bce_embedding_model.tar.gz"
         embeddings_model_dimensions = 768
         embeddings_model_type = "bce"
 
