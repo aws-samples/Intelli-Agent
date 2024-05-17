@@ -48,7 +48,7 @@ def conversation_query_rewrite(state:dict):
             # query=cqr_llm_chain
         ,
         "conversation_summary_chain",
-        log_output_template='conversation_summary_chain result:<conversation_summary> {outputs}</conversation_summary>',
+        # log_output_template='conversation_summary_chain result:<conversation_summary> {outputs}</conversation_summary>',
         message_id=message_id,
         trace_infos=trace_infos
     )

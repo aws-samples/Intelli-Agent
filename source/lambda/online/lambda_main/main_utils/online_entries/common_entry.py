@@ -6,10 +6,12 @@ import json
 import os
 from typing import TypedDict,Any,Annotated
 from langgraph.graph import StateGraph,END
-from common_utils.lambda_invoke_utils import invoke_lambda,chatbot_lambda_call_wrapper
+from common_utils.lambda_invoke_utils import invoke_lambda,node_monitor_wrapper
 from common_utils.langchain_utils import update_nest_dict
 from functions.tools import get_tool_by_name,Tool
 from functions.tool_execute_result_format import format_tool_execute_result
+from lambda_main.main_utils.parse_config import parse_common_entry_config
+
 # from .. import parse_config
 # fast reply
 # INVALID_QUERY = "请重新描述您的问题。请注意：\n不能过于简短也不能超过500个字符\n不能包含个人信息（身份证号、手机号等）"
@@ -72,6 +74,8 @@ from functions.tool_execute_result_format import format_tool_execute_result
 class ChatbotState(TypedDict):
     chatbot_config: dict # 配置项
     query: str # 用户的问题
+    ws_connection_id: str 
+    stream: bool 
     query_rewrite: str = None  # query rewrite ret
     intent_type: str = None # intent
     trace_infos: list = Annotated[list[str],operator.add]
@@ -81,13 +85,15 @@ class ChatbotState(TypedDict):
     current_tool_execute_res: dict
     debug_infos: dict = Annotated[dict,update_nest_dict]
     answer: Any  # 最后的结果
-    current_monitor_msg: dict # 当前的监控信息
+    current_monitor_infos: str # 当前的监控信息
+    extra_response: dict = Annotated[dict,update_nest_dict]
     
 
 ####################
 # nodes in lambdas #
 ####################
 
+@node_monitor_wrapper
 def query_preprocess_lambda(state: ChatbotState):
     output:str = invoke_lambda(
         event_body=state,
@@ -95,17 +101,28 @@ def query_preprocess_lambda(state: ChatbotState):
         lambda_module_path="lambda_query_preprocess.query_preprocess",
         handler_name="lambda_handler"
     )
-    return {"query_rewrite":output}
+    return {
+        "query_rewrite":output,
+        "current_monitor_infos":f"query_rewrite: {output}"
+        }
 
+@node_monitor_wrapper
 def intention_detection_lambda(state: ChatbotState):
-    output:str = invoke_lambda(
-        event_body=state,
-        lambda_name="Online_Intention_Detection",
-        lambda_module_path="lambda_intention_detection.intention",
-        handler_name="lambda_handler"
-    )
-    return {"intent_type":output}
+    
+    # output:str = invoke_lambda(
+    #     event_body=state,
+    #     lambda_name="Online_Intention_Detection",
+    #     lambda_module_path="lambda_intention_detection.intention",
+    #     handler_name="lambda_handler"
+    # )
+    output = "other"
+    return {
+        "intent_type":output,
+        "current_monitor_infos":f"intent_type: {output}"
+        }
 
+
+@node_monitor_wrapper
 def agent_lambda(state: ChatbotState):
     output:dict = invoke_lambda(
         event_body=state,
@@ -117,9 +134,10 @@ def agent_lambda(state: ChatbotState):
     # tool_calling_res = state.get('tool_calling_res',[])
 
     # tool_calling_res.append(output)
-   
+    current_tool_calls = output['tool_calls']
     return {
-        "current_tool_calls": output['current_tool_calls'],
+        "current_monitor_infos":f"current_tool_calls: {current_tool_calls}",
+        "current_tool_calls": current_tool_calls,
         "chat_history": [{
                     "role": "ai",
                     "content": output['content']
@@ -127,6 +145,7 @@ def agent_lambda(state: ChatbotState):
         }
     
 
+@node_monitor_wrapper
 def tool_execute_lambda(state: ChatbotState):
     """executor lambda
     Args:
@@ -168,10 +187,13 @@ def tool_execute_lambda(state: ChatbotState):
             tool_exe_output
         )
         tool_call_result_strs.append(ret)
-
-    return {"chat_history":[{
+    
+    ret = "\n".join(tool_call_result_strs)
+    return {
+        "current_monitor_infos":ret,
+        "chat_history":[{
         "role":"user",
-        "content": "\n".join(tool_call_result_strs)
+        "content": ret
     }]}
     
 
@@ -232,14 +254,12 @@ def transfer_reply(state:ChatbotState):
 
 
 def give_rhetorical_question(state:ChatbotState):
-    current_tool_calls:list[dict] = state['current_tool_calls']
-    recent_tool_calling = current_tool_calls['tool_calls'][0]
+    recent_tool_calling:list[dict] = state['current_tool_calls'][0]
     return {"answer": recent_tool_calling['args']['question']}
 
 
 def give_tool_response(state:ChatbotState):
-    tool_calling_res:list[dict] = state['current_tool_calls']
-    recent_tool_calling = tool_calling_res['tool_calls'][0]
+    recent_tool_calling:list[dict] = state['current_tool_calls'][0]
     return {"answer": recent_tool_calling['args']['response']}
 
 
@@ -255,8 +275,7 @@ def intent_route(state:dict):
     return state['intent_type']
 
 def agent_route(state:dict):
-    current_tool_calls:list[dict] = state['current_tool_calls']
-    recent_tool_calls = current_tool_calls['tool_calls']
+    recent_tool_calls:list[dict] = state['current_tool_calls']
     if not recent_tool_calls:
         return "不使用工具"
     
@@ -271,9 +290,9 @@ def agent_route(state:dict):
     return "继续"
      
 
-################
+#############################
 # define whole online graph #
-################
+#############################
 
 def build_graph():
     workflow = StateGraph(ChatbotState)
@@ -322,7 +341,7 @@ def build_graph():
         {
             "不使用工具": "give_response_wo_tool",
             "反问": "give_rhetorical_question",
-            "回答": "give_final_response",
+            "回答": "give_tool_response",
             "继续":"tool_execute_lambda"
         }
     )
@@ -331,56 +350,73 @@ def build_graph():
 
 
 app = None 
-def common_entry(
-    event_body
-):
+
+def common_entry(event_body):
     """
     Entry point for the Lambda function.
     :param event_body: The event body for lambda function.
     return: answer(str)
     """
     global app 
-    app = build_graph()
-    with open('common_entry_workflow.png','wb') as f:
-        f.write(app.get_graph().draw_mermaid_png())
+    if app is None:
+        app = build_graph()
+
+    # with open('common_entry_workflow.png','wb') as f:
+    #     f.write(app.get_graph().draw_png())
+    
+
+
 
     ################################################################################
     # prepare inputs and invoke graph
     # rag_config = parse_config.parse_common_entry_config(event_body)
-    rag_config = event_body
+    # rag_config = event_body
     # logger.info(f'common entry configs:\n {json.dumps(rag_config,indent=2,ensure_ascii=False,cls=JSONEncoder)}')
-    query_input = event_body['question']
+    
+    event_body['chatbot_config'] = parse_common_entry_config(event_body['chatbot_config'])
+    
+    query = event_body['query']
+    chat_history = event_body['chat_history']
     stream = event_body['stream']
     message_id = event_body['custom_message_id']
+    ws_connection_id = event_body['ws_connection_id']
     # workspace ids for retriever
     # qq_workspace_list, qd_workspace_list = prepare_workspace_lists(rag_config)
     # record debug info and trace info
-    debug_info = {
-        "response_msg": "normal"
-    }
-    trace_infos = []
+    # debug_info = {"response_msg": "normal"}
+    # trace_infos = []
     # construct whole inputs
-    inputs = {
-            "query": query_input,
-            "debug_info": debug_info,
-            # "intent_type": intent_type,
-            # "intent_info": intent_info,
-            # "chat_history": rag_config['chat_history'][-6:] if rag_config['use_history'] else [],
-            "rag_config": rag_config,
-            "message_id": message_id,
-            "stream": stream,
-            # "qq_workspace_list": qq_workspace_list,
-            # "qd_workspace_list": qd_workspace_list,
-            "trace_infos":trace_infos,
-            # "intent_embedding_endpoint_name": os.environ['intent_recognition_embedding_endpoint'],
-            # "query_lang": "zh"
-    }
+    # inputs = {
+    #         "query": query,
+    #         # "debug_info": debug_info,
+    #         # "intent_type": intent_type,
+    #         # "intent_info": intent_info,
+    #         # "chat_history": rag_config['chat_history'][-6:] if rag_config['use_history'] else [],
+    #         "rag_config": rag_config,
+    #         "message_id": message_id,
+    #         "stream": stream,
+    #         # "qq_workspace_list": qq_workspace_list,
+    #         # "qd_workspace_list": qd_workspace_list,
+    #         "trace_infos":trace_infos,
+    #         # "intent_embedding_endpoint_name": os.environ['intent_recognition_embedding_endpoint'],
+    #         # "query_lang": "zh"
+    # }
     # invoke graph and get results
-    response = app.invoke({"keys":inputs})['keys']
+    response = app.invoke({
+        "stream":stream,
+        "chatbot_config": event_body['chatbot_config'],
+        "query":query,
+        "trace_infos": [],
+        "message_id": message_id,
+        "chat_history": chat_history,
+        "ws_connection_id":ws_connection_id,
+        "debug_infos": {},
+        "extra_response": {}
+    })
+
     # trace_info = format_trace_infos(trace_infos)
     # logger.info(f'session_id: {rag_config["session_id"]}, chain trace info:\n{trace_info}')
-
-    response['rag_config'] = rag_config
-    return response
+    
+    return {"answer":response['answer'],**response["extra_response"]}
 
 main_chain_entry = common_entry

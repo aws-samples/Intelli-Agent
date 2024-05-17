@@ -10,21 +10,29 @@ from common_utils.logger_utils  import get_logger
 from common_utils.langchain_utils import chain_logger
 from common_utils.lambda_invoke_utils import invoke_lambda,chatbot_lambda_call_wrapper
 from common_utils.constant import LLMTaskType
+from functions.tools import get_tool_by_name
 
 logger = get_logger("agent")
 
 def tool_calling(state:dict):
     # state = state['keys']
-    message_id = state['message_id']
-    trace_infos = state['trace_infos']
+    message_id = state.get('message_id',None)
+    trace_infos = state.get('trace_infos',[])
     agent_config = state["chatbot_config"]['agent_config']
+    tool_defs = [get_tool_by_name(tool['name']).tool_def for tool in agent_config['tools']]
+    
+    llm_config = {
+        "tools": tool_defs,
+        "model_kwargs": agent_config.get('model_kwargs',{}),
+        "model_id": agent_config['model_id']
+    }
 
     tool_calling_chain = RunnableLambda(lambda x: invoke_lambda(
         lambda_name='Online_LLM_Generate',
         lambda_module_path="lambda_llm_generate.llm_generate",
         handler_name='lambda_handler',
         event_body={
-            "llm_config": {**agent_config, "intent_type": LLMTaskType.TOOL_CALLING},
+            "llm_config": {**llm_config, "intent_type": LLMTaskType.TOOL_CALLING},
             "llm_input": x
             }
         )

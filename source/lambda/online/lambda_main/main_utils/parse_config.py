@@ -380,11 +380,11 @@ def update_nest_dict(d, u):
 
 
 
-def parse_common_entry_config(event_body):
-    event_body = copy.deepcopy(event_body)
+def parse_common_entry_config(chatbot_config):
+    chatbot_config = copy.deepcopy(chatbot_config)
     llm_model_id = os.environ.get("llm_model_id", "anthropic.claude-3-sonnet-20240229-v1:0")
-
-    llm_model_id = event_body.get("llm_model_id", llm_model_id)
+    
+    llm_model_id = chatbot_config.get("llm_model_id", llm_model_id)
 
     default_chatbot_config = {
         "query_process_config":{
@@ -393,7 +393,14 @@ def parse_common_entry_config(event_body):
 
         },
         "intent_recognition_config":{
-
+            "retrievers": [
+                {
+                    "type": "qq",
+                    "workspace_ids": [1],
+                    "top_k": 10,
+                }
+            ],
+            
         },
         "agent_config":{
             "model_id":llm_model_id,
@@ -401,13 +408,21 @@ def parse_common_entry_config(event_body):
             "tools":[]
         },
         "tool_execute_config":{
-
+            "knowledge_base_retriever":{
+                "retrievers": [
+                {
+                    "type": "qd",
+                    "workspace_ids": [1],
+                    "top_k": 10,
+                }
+                ]
+            }
         }
 
     }
     chatbot_config = update_nest_dict(
         copy.deepcopy(default_chatbot_config),
-        event_body['chatbot_config']
+        chatbot_config
         )
 
     return chatbot_config

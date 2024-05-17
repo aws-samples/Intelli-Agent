@@ -9,9 +9,9 @@ sys.path.extend([".",'layer_logic'])
 from common_utils.lambda_invoke_utils import invoke_lambda
 from functions.tools import get_tool_by_name
 
-get_weather_tool_def = get_tool_by_name("get_weather").tool_def
-give_rhetorical_question = get_tool_by_name('give_rhetorical_question').tool_def
-give_final_response = get_tool_by_name('give_final_response').tool_def
+# get_weather_tool_def = get_tool_by_name("get_weather").tool_def
+# give_rhetorical_question = get_tool_by_name('give_rhetorical_question').tool_def
+# give_final_response = get_tool_by_name('give_final_response').tool_def
 
 
 def test_local():
@@ -19,7 +19,7 @@ def test_local():
         "chatbot_config":{
             "agent_config":{
                 "model_id": "anthropic.claude-3-sonnet-20240229-v1:0",
-                "tools":[get_weather_tool_def,give_rhetorical_question,give_final_response]
+                "tools":[{"name":"get_weather"},{"name":"give_rhetorical_question"},{"name":"give_final_response"}]
             }
         },
         "chat_history":[],
@@ -44,7 +44,7 @@ def test_lambda():
         "chatbot_config":{
             "agent_config":{
                 "model_id": "anthropic.claude-3-haiku-20240307-v1:0",
-                "tools":[get_weather_tool_def]
+                "tools":[{"name":"get_weather"},{"name":"give_rhetorical_question"},{"name":"give_final_response"}]
             }
         },
         "chat_history":[],
