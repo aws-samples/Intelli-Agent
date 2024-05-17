@@ -96,6 +96,18 @@ export class ApiConstruct extends Construct {
     // S3 bucket for storing documents
     const s3Bucket = new s3.Bucket(this, "llm-bot-documents", {
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+      cors: [
+        {
+          allowedMethods: [
+            s3.HttpMethods.GET,
+            s3.HttpMethods.POST,
+            s3.HttpMethods.PUT,
+            s3.HttpMethods.DELETE,
+          ],
+          allowedOrigins: ["*"],
+          allowedHeaders: ["*"],
+        },
+      ],
     });
 
     const ddbPolicyDocument = new iam.PolicyStatement({
@@ -416,10 +428,16 @@ export class ApiConstruct extends Construct {
     );
 
     const apiUploadDoc = apiResourceStepFunction.addResource("upload-s3-url");
+    // TODO: Add authorizer after lambda authorizer is completed. 
+    // Lambda authorizer should contains cors header or else uploading will fail
+    // apiUploadDoc.addMethod(
+    //   "POST",
+    //   new apigw.LambdaIntegration(uploadDocLambda),
+    //   methodOption,
+    // );
     apiUploadDoc.addMethod(
       "POST",
       new apigw.LambdaIntegration(uploadDocLambda),
-      methodOption,
     );
 
     // Define the API Gateway Lambda Integration to invoke Batch job

@@ -57,7 +57,7 @@ except Exception as e:
     logger.warning("Running locally")
     sys.path.append("dep")
     args = json.load(open(sys.argv[1]))
-    args["BATCH_INDICE"] = sys.argv[2]
+    # args["BATCH_INDICE"] = sys.argv[2]
 
 from llm_bot_dep import sm_utils
 from llm_bot_dep.constant import SplittingType
@@ -109,11 +109,9 @@ OBJECT_EXPIRY_TIME = 3600
 
 credentials = boto3.Session().get_credentials()
 awsauth = AWS4Auth(
-    credentials.access_key,
-    credentials.secret_key,
-    region,
-    "es",
-    session_token=credentials.token,
+    refreshable_credentials=credentials,
+    region=region,
+    service="es"
 )
 MAX_OS_DOCS_PER_PUT = 8
 
@@ -310,7 +308,7 @@ class BatchChunkDocumentProcessor:
 
         for document in content:
             splits = text_splitter.split_documents([document])
-            # list of Document objects
+            # List of Document objects
             index = 1
             for split in splits:
                 chunk_id = split.metadata["chunk_id"]
@@ -382,10 +380,17 @@ class BatchQueryDocumentProcessor:
         search_body = {
             "query": {
                 # use term-level queries only for fields mapped as keyword
-                "match_phrase": {"metadata.file_path": s3_path}
+                "prefix": {
+                    "metadata.file_path.keyword": {
+                        "value": s3_path
+                    }
+                },
             },
             "size": 100000,
             "sort": [{"_score": {"order": "desc"}}],
+            "_source": {
+                "excludes": ["vector_field"]
+            }
         }
 
         if self.docsearch.client.indices.exists(index=self.docsearch.index_name):
@@ -503,7 +508,7 @@ def update_workspace(workspace_id, embedding_model_endpoint, index_type):
         workspace_offline_flag=offline,
     )
 
-    return aos_index
+    return aos_index, embeddings_model_type
 
 
 def ingestion_pipeline(
@@ -566,7 +571,7 @@ def ingestion_pipeline(
             }
             traceback.print_exc()
         finally:
-            ddb_response = etl_object_table.put_item(Item=input_body)
+            etl_object_table.put_item(Item=input_body)
 
 
 def delete_pipeline(s3_files_iterator, document_generator, delete_worker):
@@ -645,7 +650,7 @@ def main():
             "csv",
         ]
 
-    aos_index_name = update_workspace(
+    aos_index_name, embedding_model_type = update_workspace(
         workspace_id, embedding_model_endpoint, index_type
     )
 
@@ -654,8 +659,8 @@ def main():
     if operation_type == "extract_only":
         embedding_function, docsearch = None, None
     else:
-        embedding_function = sm_utils.create_embeddings_with_m3_model(
-            embedding_model_endpoint, region
+        embedding_function = sm_utils.getCustomEmbeddings(
+            embedding_model_endpoint, region, embedding_model_type
         )
         docsearch = OpenSearchVectorSearch(
             index_name=aos_index_name,

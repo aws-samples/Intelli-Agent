@@ -59,6 +59,16 @@ export class EtlStack extends NestedStack {
   constructor(scope: Construct, id: string, props: ETLStackProps) {
     super(scope, id, props);
 
+    const s3Bucket = new s3.Bucket(this, "llm-bot-glue-result-bucket", {
+      // bucketName: `llm-bot-glue-lib-${Aws.ACCOUNT_ID}-${Aws.REGION}`,
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+    });
+
+    const glueLibS3Bucket = new s3.Bucket(this, "llm-bot-glue-lib-bucket", {
+      // bucketName: `llm-bot-glue-lib-${Aws.ACCOUNT_ID}-${Aws.REGION}`,
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+    });
+
     const endpointRole = new iam.Role(this, "etl-endpoint-role", {
       assumedBy: new iam.ServicePrincipal("sagemaker.amazonaws.com"),
       managedPolicies: [
@@ -110,6 +120,14 @@ export class EtlStack extends NestedStack {
             instanceType: "ml.g4dn.2xlarge",
           },
         ],
+        asyncInferenceConfig: {
+          clientConfig: {
+            maxConcurrentInvocationsPerInstance: 1
+          },
+          outputConfig: {
+            s3OutputPath: `s3://${s3Bucket.bucketName}/${model.modelName}/`,
+          },
+        },
       },
     );
 
@@ -198,16 +216,6 @@ export class EtlStack extends NestedStack {
       }),
     );
 
-    const s3Bucket = new s3.Bucket(this, "llm-bot-glue-result-bucket", {
-      // bucketName: `llm-bot-glue-lib-${Aws.ACCOUNT_ID}-${Aws.REGION}`,
-      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
-    });
-
-    const glueLibS3Bucket = new s3.Bucket(this, "llm-bot-glue-lib-bucket", {
-      // bucketName: `llm-bot-glue-lib-${Aws.ACCOUNT_ID}-${Aws.REGION}`,
-      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
-    });
-
     const extraPythonFiles = new s3deploy.BucketDeployment(
       this,
       "extraPythonFiles",
@@ -277,7 +285,7 @@ export class EtlStack extends NestedStack {
         "--ETL_OBJECT_TABLE": etlObjTable.tableName,
         "--WORKSPACE_TABLE": workspaceTable.tableName,
         "--additional-python-modules":
-          "langchain==0.1.11,beautifulsoup4==4.12.2,requests-aws4auth==1.2.3,boto3==1.28.84,openai==0.28.1,pyOpenSSL==23.3.0,tenacity==8.2.3,markdownify==0.11.6,mammoth==1.6.0,chardet==5.2.0,python-docx==1.1.0,nltk==3.8.1,pdfminer.six==20221105",
+          "langchain==0.1.11,beautifulsoup4==4.12.2,requests-aws4auth==1.2.3,boto3==1.28.84,openai==0.28.1,pyOpenSSL==23.3.0,tenacity==8.2.3,markdownify==0.11.6,mammoth==1.6.0,chardet==5.2.0,python-docx==1.1.0,nltk==3.8.1,pdfminer.six==20221105,smart-open==7.0.4",
         "--python-modules-installer-option": BuildConfig.JOB_PIP_OPTION,
         // Add multiple extra python files
         "--extra-py-files": extraPythonFilesList,
