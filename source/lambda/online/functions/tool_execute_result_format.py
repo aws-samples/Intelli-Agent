@@ -14,8 +14,9 @@ class FormatMeta(type):
 class FormatToolResult(metaclass=FormatMeta):
     model_map = {}
 
-    classmethod
+    @classmethod
     def format(cls,model_id,tool_output:dict):
+        
         target_cls = cls.model_map[model_id]
         return target_cls.format(tool_output)
         

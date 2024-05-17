@@ -7,7 +7,8 @@ import os
 from typing import TypedDict,Any,Annotated
 from langgraph.graph import StateGraph,END
 from common_utils.lambda_invoke_utils import invoke_lambda,node_monitor_wrapper
-from common_utils.langchain_utils import update_nest_dict
+from common_utils.python_utils import update_nest_dict,add_messages
+
 from functions.tools import get_tool_by_name,Tool
 from functions.tool_execute_result_format import format_tool_execute_result
 from lambda_main.main_utils.parse_config import parse_common_entry_config
@@ -71,6 +72,7 @@ from lambda_main.main_utils.parse_config import parse_common_entry_config
 #     return state['is_context_enough']
 
 
+
 class ChatbotState(TypedDict):
     chatbot_config: dict # 配置项
     query: str # 用户的问题
@@ -78,15 +80,16 @@ class ChatbotState(TypedDict):
     stream: bool 
     query_rewrite: str = None  # query rewrite ret
     intent_type: str = None # intent
-    trace_infos: list = Annotated[list[str],operator.add]
+    trace_infos: Annotated[list[str],add_messages]
     message_id: str = None
-    chat_history: list[dict] = Annotated[list[dict],operator.add]
+    chat_history: Annotated[list[dict],add_messages]
+    agent_chat_history: Annotated[list[dict],add_messages]
     current_tool_calls: dict
     current_tool_execute_res: dict
-    debug_infos: dict = Annotated[dict,update_nest_dict]
+    debug_infos: Annotated[dict,update_nest_dict]
     answer: Any  # 最后的结果
     current_monitor_infos: str # 当前的监控信息
-    extra_response: dict = Annotated[dict,update_nest_dict]
+    extra_response: Annotated[dict,update_nest_dict]
     
 
 ####################
@@ -108,7 +111,6 @@ def query_preprocess_lambda(state: ChatbotState):
 
 @node_monitor_wrapper
 def intention_detection_lambda(state: ChatbotState):
-    
     # output:str = invoke_lambda(
     #     event_body=state,
     #     lambda_name="Online_Intention_Detection",
@@ -124,8 +126,11 @@ def intention_detection_lambda(state: ChatbotState):
 
 @node_monitor_wrapper
 def agent_lambda(state: ChatbotState):
+    # print('agent_lambda',state['agent_chat_history'])
+
+    # print(state)
     output:dict = invoke_lambda(
-        event_body=state,
+        event_body={**state,"chat_history":state['agent_chat_history']},
         lambda_name="Online_Agent",
         lambda_module_path="lambda_agent.agent",
         handler_name="lambda_handler"
@@ -138,7 +143,7 @@ def agent_lambda(state: ChatbotState):
     return {
         "current_monitor_infos":f"current_tool_calls: {current_tool_calls}",
         "current_tool_calls": current_tool_calls,
-        "chat_history": [{
+        "agent_chat_history": [{
                     "role": "ai",
                     "content": output['content']
                 }]
@@ -154,6 +159,7 @@ def tool_execute_lambda(state: ChatbotState):
     Returns:
         _type_: _description_
     """
+    # print('tool_execute_lambda',state['agent_chat_history'])
     tool_calls = state['current_tool_calls']
     # assert len(tool_calls) == 1, tool_calls
     
@@ -182,6 +188,7 @@ def tool_execute_lambda(state: ChatbotState):
     tool_call_result_strs = []
     for tool_call_result in tool_call_results:
         tool_exe_output = tool_call_result['output']
+        tool_exe_output['tool_name'] = tool_call_result['name']
         ret:str = format_tool_execute_result(
             tool_call_result["model_id"],
             tool_exe_output
@@ -190,10 +197,10 @@ def tool_execute_lambda(state: ChatbotState):
     
     ret = "\n".join(tool_call_result_strs)
     return {
-        "current_monitor_infos":ret,
-        "chat_history":[{
-        "role":"user",
-        "content": ret
+        "current_monitor_infos": ret,
+        "agent_chat_history":[{
+            "role": "user",
+            "content": ret
     }]}
     
 
@@ -364,9 +371,6 @@ def common_entry(event_body):
     # with open('common_entry_workflow.png','wb') as f:
     #     f.write(app.get_graph().draw_png())
     
-
-
-
     ################################################################################
     # prepare inputs and invoke graph
     # rag_config = parse_config.parse_common_entry_config(event_body)
@@ -409,6 +413,7 @@ def common_entry(event_body):
         "trace_infos": [],
         "message_id": message_id,
         "chat_history": chat_history,
+        "agent_chat_history": chat_history + [{"role":"user","content":query}],
         "ws_connection_id":ws_connection_id,
         "debug_infos": {},
         "extra_response": {}

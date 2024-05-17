@@ -111,6 +111,28 @@ tool_manager.register_tool(
     }
 )
 
+tool_manager.register_tool(
+    {
+        "name":"search_mihoyo",
+        "lambda_name": "xxxx",
+        "lambda_module_path": "functions.lambda_retriever.retriever",
+        "tool_def":{
+                "name": "search_mihoyo",
+                "description": "检索mihoyo公司相关的知识",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "query": {
+                            "description": "需要检索的问题",
+                            "type": "string"
+                    }
+                },
+                "required": ["query"]
+            }
+        }
+    }
+)
+
 
 
 

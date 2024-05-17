@@ -199,7 +199,7 @@ class Claude2ToolCallingChain(LLMChain):
                 tools=tools_formatted
                 )),
             ("placeholder", "{chat_history}"),
-            HumanMessagePromptTemplate.from_template("{query}"),
+            # HumanMessagePromptTemplate.from_template("{query}"),
         ])
 
         llm = Model.get_model(

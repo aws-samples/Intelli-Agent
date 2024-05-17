@@ -119,13 +119,13 @@ def generate_answer(query,
 
 def test():
     generate_answer(
-        "ECS容器中的日志，可以配置输出到S3上吗？",
+        "mihoyo 2024年有哪些有些？",
         stream=True,
         chatbot_config={
             "agent_config":{
                 "model_id":"anthropic.claude-3-sonnet-20240229-v1:0",
                 "model_kwargs": {"temperature":0.0,"max_tokens":4096},
-                "tools":[{"name":"get_weather"},{"name":"give_rhetorical_question"},{"name":"give_final_response"}]
+                "tools":[{"name":"give_final_response"},{"name":"search_mihoyo"}]
         },
         }
     )
