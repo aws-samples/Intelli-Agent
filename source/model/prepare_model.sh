@@ -82,5 +82,5 @@ for index in "${!model_names[@]}"; do
   ./model.sh -h $hf_name -m $model_name -c $commit_hash -p $tp -s $s3_bucket_name
 done
 
-aws s3 cp --recursive s3://$s3_bucket_name/bce-embedding-base_deploy_code s3://$s3_bucket_name/embedding-and-reranker_deploy_code
-aws s3 cp --recursive s3://$s3_bucket_name/bge-reranker-large_deploy_code s3://$s3_bucket_name/embedding-and-reranker_deploy_code
+aws s3 cp --recursive s3://$s3_bucket_name/bce-embedding-base_deploy_code s3://$s3_bucket_name/bce-embedding-and-bge-reranker_deploy_code
+aws s3 cp --recursive s3://$s3_bucket_name/bge-reranker-large_deploy_code s3://$s3_bucket_name/bce-embedding-and-bge-reranker_deploy_code
