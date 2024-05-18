@@ -1,9 +1,3 @@
-import sys
-import operator
-
-# sys.path.append("/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/source/lambda/online/layer_logic")
-import json 
-import os
 from typing import TypedDict,Any,Annotated
 from langgraph.graph import StateGraph,END
 from common_utils.lambda_invoke_utils import invoke_lambda,node_monitor_wrapper
@@ -12,64 +6,6 @@ from common_utils.python_utils import update_nest_dict,add_messages
 from functions.tools import get_tool_by_name,Tool
 from functions.tool_execute_result_format import format_tool_execute_result
 from lambda_main.main_utils.parse_config import parse_common_entry_config
-
-# from .. import parse_config
-# fast reply
-# INVALID_QUERY = "请重新描述您的问题。请注意：\n不能过于简短也不能超过500个字符\n不能包含个人信息（身份证号、手机号等）"
-# INVALID_INTENTION = "很抱歉，我只能回答与知识问答相关的咨询。"
-# KNOWLEDGE_QA_INVALID_CONTEXT = "很抱歉，根据我目前掌握到的信息无法给出回答。"
-
-# class AppState(TypedDict):
-#     keys: Annotated
-################
-# local nodes #
-################
-# def fast_reply(
-#         answer:str
-#     ):
-
-#     output = {
-#             "answer": answer,
-#             "sources": [],
-#             "contexts": [],
-#             "context_docs": []
-#     }
-#     return output
-
-################
-# local branches #
-################
-
-
-# def intent_route(state):
-#     state = state['keys']
-#     intent = state['intention']
-
-#     return intent
-    
-    # if intent == "comfort":
-    #     return "comfort"
-    # elif intent "transfer":
-
-    # if state['is_query_valid'] == True:
-    #     return "valid query"
-    # else:
-    #     state['answer'] = INVALID_QUERY
-    #     return 'invalid query'
-
-# def is_intention_valid(state):
-#     state = state['keys']
-#     if state['is_intention_valid']:
-#         return "valid intention"
-#     else:
-#         state['answer'] = INVALID_INTENTION
-#         return 'invalid intention'
-
-# def is_context_enough(state):
-#     state = state['keys']
-#     if state['is_context_enough'] == 'invalid context':
-#         state['answer'] = KNOWLEDGE_QA_INVALID_CONTEXT
-#     return state['is_context_enough']
 
 
 
@@ -126,9 +62,6 @@ def intention_detection_lambda(state: ChatbotState):
 
 @node_monitor_wrapper
 def agent_lambda(state: ChatbotState):
-    # print('agent_lambda',state['agent_chat_history'])
-
-    # print(state)
     output:dict = invoke_lambda(
         event_body={**state,"chat_history":state['agent_chat_history']},
         lambda_name="Online_Agent",
@@ -136,9 +69,6 @@ def agent_lambda(state: ChatbotState):
         handler_name="lambda_handler"
     )
     
-    # tool_calling_res = state.get('tool_calling_res',[])
-
-    # tool_calling_res.append(output)
     current_tool_calls = output['tool_calls']
     return {
         "current_monitor_infos":f"current_tool_calls: {current_tool_calls}",
@@ -159,9 +89,8 @@ def tool_execute_lambda(state: ChatbotState):
     Returns:
         _type_: _description_
     """
-    # print('tool_execute_lambda',state['agent_chat_history'])
     tool_calls = state['current_tool_calls']
-    # assert len(tool_calls) == 1, tool_calls
+    assert len(tool_calls) == 1, tool_calls
     
     tool_call_results = []
 
@@ -340,9 +269,6 @@ def common_entry(event_body):
     
     ################################################################################
     # prepare inputs and invoke graph
-    # rag_config = parse_config.parse_common_entry_config(event_body)
-    # rag_config = event_body
-    # logger.info(f'common entry configs:\n {json.dumps(rag_config,indent=2,ensure_ascii=False,cls=JSONEncoder)}')
     
     event_body['chatbot_config'] = parse_common_entry_config(event_body['chatbot_config'])
     
@@ -351,27 +277,7 @@ def common_entry(event_body):
     stream = event_body['stream']
     message_id = event_body['custom_message_id']
     ws_connection_id = event_body['ws_connection_id']
-    # workspace ids for retriever
-    # qq_workspace_list, qd_workspace_list = prepare_workspace_lists(rag_config)
-    # record debug info and trace info
-    # debug_info = {"response_msg": "normal"}
-    # trace_infos = []
-    # construct whole inputs
-    # inputs = {
-    #         "query": query,
-    #         # "debug_info": debug_info,
-    #         # "intent_type": intent_type,
-    #         # "intent_info": intent_info,
-    #         # "chat_history": rag_config['chat_history'][-6:] if rag_config['use_history'] else [],
-    #         "rag_config": rag_config,
-    #         "message_id": message_id,
-    #         "stream": stream,
-    #         # "qq_workspace_list": qq_workspace_list,
-    #         # "qd_workspace_list": qd_workspace_list,
-    #         "trace_infos":trace_infos,
-    #         # "intent_embedding_endpoint_name": os.environ['intent_recognition_embedding_endpoint'],
-    #         # "query_lang": "zh"
-    # }
+    
     # invoke graph and get results
     response = app.invoke({
         "stream":stream,
@@ -386,9 +292,6 @@ def common_entry(event_body):
         "extra_response": {}
     })
 
-    # trace_info = format_trace_infos(trace_infos)
-    # logger.info(f'session_id: {rag_config["session_id"]}, chain trace info:\n{trace_info}')
-    
     return {"answer":response['answer'],**response["extra_response"]}
 
 main_chain_entry = common_entry
