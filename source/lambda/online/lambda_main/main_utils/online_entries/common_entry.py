@@ -204,39 +204,6 @@ def tool_execute_lambda(state: ChatbotState):
     }]}
     
 
-# def tag_llm_generate_lambda(state: NestUpdateState):
-#     """
-#     基于各类工具的结果进行生成
-#     Args:
-#         state (NestUpdateState): _description_
-#     Returns:
-#         _type_: _description_
-#     """
-#     # state = state['keys']
-#     # # run in lambda
-#     # msg = {"query": state['query']}
-#     # invoke_response = lambda_client.invoke(FunctionName="Online_LLM_Generate",
-#     #                                     InvocationType='RequestResponse',
-#     #                                     Payload=json.dumps(msg))
-#     # response_body = invoke_response['Payload']
-
-#     # response_str = response_body.read().decode("unicode_escape")
-#     # response_str = response_str.strip('"')
-
-#     # response = json.loads(response_str)
-#     # state['answer'] = response['body']['answer']
-#     state = state['keys']
-#     output:dict = invoke_lambda(
-#         event_body={
-#             "llm_config":'xx',
-#             "llm_inputs": state
-#         },
-#         lambda_name="Online_LLM_Generate",
-#         lambda_module_path="lambda_llm_generate.llm_generate",
-#         handler_name="lambda_handler"
-#     )
-#     return {"keys":output}
-
 
 def chat_llm_generate_lambda(state:ChatbotState):
     answer:dict = invoke_lambda(
@@ -284,17 +251,17 @@ def intent_route(state:dict):
 def agent_route(state:dict):
     recent_tool_calls:list[dict] = state['current_tool_calls']
     if not recent_tool_calls:
-        return "不使用工具"
+        return "no tool"
     
     recent_tool_call = recent_tool_calls[0]
     # 反问
     if recent_tool_call['name'] == "give_rhetorical_question":
-        return "反问"
+        return "rhetorical question"
 
     if recent_tool_call['name'] == "give_final_response":
-        return "回答"
+        return "response"
 
-    return "继续"
+    return "continue"
      
 
 #############################
@@ -346,10 +313,10 @@ def build_graph():
         "agent_lambda",
         agent_route,
         {
-            "不使用工具": "give_response_wo_tool",
-            "反问": "give_rhetorical_question",
-            "回答": "give_tool_response",
-            "继续":"tool_execute_lambda"
+            "no tool": "give_response_wo_tool",
+            "rhetorical question": "give_rhetorical_question",
+            "response": "give_tool_response",
+            "continue":"tool_execute_lambda"
         }
     )
     app = workflow.compile()
@@ -368,8 +335,8 @@ def common_entry(event_body):
     if app is None:
         app = build_graph()
 
-    # with open('common_entry_workflow.png','wb') as f:
-    #     f.write(app.get_graph().draw_png())
+    with open('common_entry_workflow.png','wb') as f:
+        f.write(app.get_graph().draw_png())
     
     ################################################################################
     # prepare inputs and invoke graph
