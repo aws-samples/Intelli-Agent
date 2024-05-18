@@ -73,12 +73,12 @@ tool_manager.register_tool(
         "lambda_module_path": "functions.lambda_give_rhetorical_question.give_rhetorical_question",
         "tool_def":{
                 "name": "give_rhetorical_question",
-                "description": "如果用户的提问不清晰，不具体，导致不能调用其他工具，请调用本工具对用户进行反问",
+                "description": "If the user's question is not clear and specific, resulting in the inability to call other tools, please call this tool to ask the user a rhetorical question",
                 "parameters": {
                     "type": "object",
                     "properties": {
                         "question": {
-                            "description": "反问用户，让其将问题补全",
+                            "description": "Rhetorical questions for users",
                             "type": "string"
                     }
                 },
@@ -96,12 +96,12 @@ tool_manager.register_tool(
         "lambda_module_path": "functions.lambda_give_final_response.give_final_response",
         "tool_def":{
                 "name": "give_final_response",
-                "description": "如果其他工具都不需要去调用, 请调用当前工具完成对用户的直接回复",
+                "description": "If none of the other tools need to be called, call the current tool to complete the direct response to the user.",
                 "parameters": {
                     "type": "object",
                     "properties": {
                         "response": {
-                            "description": "对用户的回复",
+                            "description": "Response to user",
                             "type": "string"
                     }
                 },
@@ -113,17 +113,17 @@ tool_manager.register_tool(
 
 tool_manager.register_tool(
     {
-        "name":"search_mihoyo",
+        "name":"search_lihoyo",
         "lambda_name": "xxxx",
         "lambda_module_path": "functions.lambda_retriever.retriever",
         "tool_def":{
-                "name": "search_mihoyo",
-                "description": "检索mihoyo公司相关的知识",
+                "name": "search_lihoyo",
+                "description": "Retrieve knowledge about lihoyo",
                 "parameters": {
                     "type": "object",
                     "properties": {
                         "query": {
-                            "description": "需要检索的问题",
+                            "description": "query to retrieve",
                             "type": "string"
                     }
                 },

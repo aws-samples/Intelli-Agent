@@ -9,10 +9,6 @@ sys.path.extend([".",'layer_logic'])
 from common_utils.lambda_invoke_utils import invoke_lambda
 from functions.tools import get_tool_by_name
 
-# get_weather_tool_def = get_tool_by_name("get_weather").tool_def
-# give_rhetorical_question = get_tool_by_name('give_rhetorical_question').tool_def
-# give_final_response = get_tool_by_name('give_final_response').tool_def
-
 
 def test_local():
     event_body = {
@@ -48,7 +44,7 @@ def test_lambda():
             }
         },
         "chat_history":[],
-        "query":"What is the weather like in Beijing? I would like the temprature unit as Celsius"
+        "query": "What is the weather like in Beijing? I would like the temprature unit as Celsius"
     }
     
     ret = invoke_lambda(

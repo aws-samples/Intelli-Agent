@@ -1,4 +1,6 @@
-# 实现各类工具调用结果的format
+"""
+tool execute format
+"""
 
 class FormatMeta(type):
     def __new__(cls, name, bases, attrs):
@@ -45,12 +47,12 @@ class Claude3SonnetFormatToolResult(FormatToolResult):
     def format(tool_output:dict):
         exe_code = tool_output['code']
         if exe_code == 1:
-            # 执行失败
+            # failed
             return CLAUDE_TOOL_EXECUTE_FAIL_TEMPLATE.format(
                 error=tool_output['result']
             )
         elif exe_code == 0:
-            # 执行成功
+            # succeed
             return CLAUDE_TOOL_EXECUTE_SUCCESS_TEMPLATE.format(
                 tool_name=tool_output['tool_name'],
                 result=tool_output['result']

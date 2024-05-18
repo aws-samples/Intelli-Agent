@@ -119,13 +119,13 @@ def generate_answer(query,
 
 def test():
     generate_answer(
-        "mihoyo 2024年有哪些有些？",
+        "What is lihoyo's most famous game?",
         stream=True,
         chatbot_config={
             "agent_config":{
                 "model_id":"anthropic.claude-3-sonnet-20240229-v1:0",
                 "model_kwargs": {"temperature":0.0,"max_tokens":4096},
-                "tools":[{"name":"give_final_response"},{"name":"search_mihoyo"}]
+                "tools":[{"name":"give_final_response"},{"name":"search_lihoyo"}]
         },
         }
     )

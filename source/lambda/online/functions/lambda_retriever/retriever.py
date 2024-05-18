@@ -55,7 +55,7 @@ def lambda_handler(event, context=None):
     # state["is_context_enough"] = True
     # response["body"] = {"state": state}
     
-    return {"code":0,"result":"原神"}
+    return {"code":0,"result":"Genshin"}
 
 if __name__ == "__main__":
     print(lambda_handler({}, {}))
