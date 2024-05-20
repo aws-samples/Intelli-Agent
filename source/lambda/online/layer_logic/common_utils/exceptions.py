@@ -1,0 +1,2 @@
+class LambdaInvokeError(Exception):
+    pass

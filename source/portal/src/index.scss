@@ -20,6 +20,10 @@
   flex: 1;
 }
 
+.gap-5 {
+  gap: 5px;
+}
+
 .gap-10 {
   gap: 10px;
 }
@@ -34,6 +38,10 @@
 
 .space-between {
   justify-content: space-between;
+}
+
+.text-center {
+  text-align: center;
 }
 
 .chat-container {
@@ -62,4 +70,32 @@
 
 .selected-items-list {
   padding: 15px;
+}
+
+.common-alert {
+  width: fit-content;
+  position: fixed;
+  bottom: 30px;
+  left: 0;
+  right: 0;
+  margin: auto;
+  z-index: 9999;
+  opacity: 1;
+  transition: all ease-out 0.8s;
+}
+
+.common-alert-hide {
+  opacity: 0;
+}
+
+.login-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 80px;
+}
+
+.page-loading {
+  display: flex;
+  justify-content: center;
+  margin-top: 80px;
 }

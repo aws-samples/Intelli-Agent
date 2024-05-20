@@ -3,6 +3,7 @@ import copy
 import logging
 import os
 
+
 from .constant import AWS_TRANSLATE_SERVICE_MODEL_ID, IntentType, RerankerType
 
 

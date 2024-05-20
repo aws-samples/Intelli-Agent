@@ -8,6 +8,8 @@ import logging
 import sys
 import time
 from typing import List
+from urllib.parse import urlparse
+from botocore.exceptions import ClientError
 
 from langchain.docstore.document import Document
 
@@ -76,3 +78,25 @@ def save_content_to_s3(s3, document: Document, res_bucket: str, splitting_type: 
     filename = file_path.replace("s3://", "").replace("/", "-").replace(".", "-")
     # RecursiveCharacterTextSplitter have been rewrite to split based on chunk size & overlap, use separate folder to store the logger file
     upload_chunk_to_s3(s3, logger_file, res_bucket, filename, splitting_type)
+
+
+def _s3_uri_exist(s3_client, s3_uri: str) -> bool:
+    """Checks if an object exists at a given S3 URI. 
+    eg. s3://bucket/folder/file.csv
+
+    Args:
+        s3_uri: s3 URI to the s3 object
+
+    Returns:
+        bool: whether the object exists or not
+    """
+    parsed = urlparse(s3_uri)
+
+    try:
+        s3_client.head_object(Bucket=parsed.netloc, Key=parsed.path.lstrip('/'))
+        return True
+    except ClientError as e:
+        if e.response["Error"]["Code"] == "404":
+            return False
+        else:
+            raise Exception("Failed to get S3 object during ETL inference")

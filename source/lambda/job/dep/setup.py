@@ -19,5 +19,6 @@ setup(
         "python-docx==1.1.0",
         "nltk==3.8.1",
         "pdfminer.six==20221105",
+        "smart-open==7.0.4"
     ],
 )

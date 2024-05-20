@@ -10,9 +10,18 @@ from langchain.document_loaders.pdf import BasePDFLoader
 from ..cleaning import remove_duplicate_sections
 from ..splitter_utils import MarkdownHeaderTextSplitter, extract_headings
 from .html import CustomHtmlLoader
+from ..storage_utils import _s3_uri_exist
+import datetime
+import time
+import uuid
+from smart_open import open as smart_open
+import botocore
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+# Max retry is 2 hours
+_S3_FETCH_MAX_RETRY = 3600
+_S3_FETCH_WAIT_TIME = 5
 
 metadata_template = {
     "content_type": "paragraph",
@@ -41,33 +50,55 @@ def detect_language(input):
 
 
 def invoke_etl_model(
-    smr_client,
-    etl_model_endpoint,
-    bucket,
-    key,
-    res_bucket,
-    mode="ppstructure",
-    lang="zh",
+    s3_client: "botocore.client.S3",
+    smr_client: "botocore.client.SageMakerRuntime",
+    etl_model_endpoint: str,
+    bucket: str,
+    key: str,
+    res_bucket: str,
+    mode: str="ppstructure",
+    lang: str="zh",
 ):
-    response_model = smr_client.invoke_endpoint(
+    json_data = {
+        "s3_bucket": bucket,
+        "object_key": key,
+        "destination_bucket": res_bucket,
+        "mode": mode,
+        "lang": lang,
+    }
+
+    file_name = f"data_{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}_{uuid.uuid4().hex}.json"
+    with open(file_name, "w") as json_file:
+        json.dump(json_data, json_file)
+
+    s3_file_path = "etl_pdf_inference/" + file_name
+    # Upload the file to S3
+    s3_client.upload_file(file_name, res_bucket, s3_file_path)
+    logger.info(f"JSON data uploaded to S3 bucket: {res_bucket}/{s3_file_path}")
+
+    response = smr_client.invoke_endpoint_async(
         EndpointName=etl_model_endpoint,
-        Body=json.dumps(
-            {
-                "s3_bucket": bucket,
-                "object_key": key,
-                "destination_bucket": res_bucket,
-                "mode": mode,
-                "lang": lang,
-            }
-        ),
         ContentType="application/json",
+        InputLocation=f"s3://{res_bucket}/{s3_file_path}",
     )
+    logger.info("This is the async response:")
+    logger.info(response)
+    inference_id = response["InferenceId"]
+    output_location = response["OutputLocation"]
 
-    json_str = response_model["Body"].read().decode("utf8")
-    json_obj = json.loads(json_str)
-    markdown_prefix = json_obj["destination_prefix"]
+    fetch_count = 0
+    while fetch_count < _S3_FETCH_MAX_RETRY:
+        if _s3_uri_exist(s3_client, output_location):
+            logger.info("ETL inference completed")
+            output = json.load(smart_open(output_location))
 
-    return markdown_prefix
+            return output["destination_prefix"]
+        else:
+            logger.info("Waiting for ETL output...")
+            fetch_count = fetch_count + 1
+            time.sleep(_S3_FETCH_WAIT_TIME)
+
+    raise Exception("Unable to fetch ETL inference result, and the number of retries reached.")
 
 
 def load_content_from_s3(s3, bucket, key):
@@ -102,14 +133,15 @@ def process_pdf(s3, pdf: bytes, **kwargs):
     etl_model_endpoint = kwargs.get("etl_model_endpoint", None)
     smr_client = kwargs.get("smr_client", None)
     res_bucket = kwargs.get("res_bucket", None)
+    # TODO: make it configurable in frontend
     document_language = kwargs.get("document_language", "zh")
-    # extract file name also in consideration of file name with blank space
+    # Extract file name also in consideration of file name with blank space
     local_path = str(os.path.basename(key))
-    # download to local for futher processing
+    # Download to local for futher processing
     logger.info(local_path)
     s3.download_file(Bucket=bucket, Key=key, Filename=local_path)
     loader = PDFMinerPDFasHTMLLoader(local_path)
-    # entire PDF is loaded as a single Document
+    # Entire PDF is loaded as a single Document
     file_content = loader.load()[0].page_content
 
     if not etl_model_endpoint or not smr_client or not res_bucket:
@@ -128,6 +160,7 @@ def process_pdf(s3, pdf: bytes, **kwargs):
         if document_language == "zh":
             logger.info("Detected language is Chinese, using default PDF loader...")
             markdown_prefix = invoke_etl_model(
+                s3,
                 smr_client,
                 etl_model_endpoint,
                 bucket,
@@ -141,6 +174,7 @@ def process_pdf(s3, pdf: bytes, **kwargs):
         else:
             logger.info("Detected language is English, using ETL model endpoint...")
             markdown_prefix = invoke_etl_model(
+                s3,
                 smr_client,
                 etl_model_endpoint,
                 bucket,
@@ -151,23 +185,6 @@ def process_pdf(s3, pdf: bytes, **kwargs):
             )
             logger.info(f"Markdown file path: s3://{res_bucket}/{markdown_prefix}")
             content = load_content_from_s3(s3, res_bucket, markdown_prefix)
-
-        # content = (
-        #     content.replace(r"\(", "$")
-        #     .replace(r"\)", "$")
-        #     .replace(r"\[", "$$")
-        #     .replace(r"\]", "$$")
-        # )
-
-        # # extract headings hierarchically
-        # headings = extract_headings(content)
-
-        # # assemble metadata from template
-        # metadata = metadata_template
-        # metadata["content_type"] = "paragraph"
-        # metadata["heading_hierarchy"] = headings
-        # metadata["chunk_id"] = "$$"
-        # metadata["file_path"] = f"s3://{bucket}/{key}"
 
         # Remove duplicate sections
         content = remove_duplicate_sections(content)

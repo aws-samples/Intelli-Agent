@@ -20,17 +20,9 @@ import {
   aws_s3 as s3,
   aws_s3_deployment as s3d,
   RemovalPolicy,
-  StackProps,
 } from "aws-cdk-lib";
 import { CloudFrontToS3 } from "@aws-solutions-constructs/aws-cloudfront-s3";
-import { AwsCustomResource, AwsCustomResourcePolicy, PhysicalResourceId } from "aws-cdk-lib/custom-resources";
-import { RetentionDays } from "aws-cdk-lib/aws-logs";
-import { PolicyStatement } from "aws-cdk-lib/aws-iam";
 
-export interface UIProps extends StackProps {
-  readonly websocket: string;
-  readonly apiUrl: string;
-}
 
 /**
  * Construct to provision Portal assets and CloudFront Distribution
@@ -39,7 +31,7 @@ export class PortalConstruct extends Construct {
   readonly portalBucket: s3.Bucket;
   public portalUrl: string;
 
-  constructor(scope: Construct, id: string, props: UIProps) {
+  constructor(scope: Construct, id: string) {
     super(scope, id);
     const getDefaultBehaviour = () => {
       return {
@@ -111,37 +103,14 @@ export class PortalConstruct extends Construct {
 
     this.portalBucket = portal.s3Bucket as s3.Bucket;
     this.portalUrl = portal.cloudFrontWebDistribution.distributionDomainName;
-    const configFile = 'aws-exports.json';
 
     // Upload static web assets
-    const bucketFile = new s3d.BucketDeployment(this, "DeployWebAssets", {
+    new s3d.BucketDeployment(this, "DeployWebAssets", {
       sources: [
         s3d.Source.asset(path.join(__dirname, "../../../portal/dist")),
       ],
       destinationBucket: this.portalBucket,
       prune: false,
     });
-    const configLambda = new AwsCustomResource(this, 'WebConfig', {
-      logRetention: RetentionDays.ONE_DAY,
-      onUpdate: {
-        action: 'putObject',
-        parameters: {
-          Body: JSON.stringify(props),
-          Bucket: this.portalBucket.bucketName,
-          CacheControl: 'max-age=0, no-cache, no-store, must-revalidate',
-          ContentType: 'application/json',
-          Key: configFile,
-        },
-        service: 'S3',
-        physicalResourceId: PhysicalResourceId.of('config'),
-      },
-      policy: AwsCustomResourcePolicy.fromStatements([
-        new PolicyStatement({
-          actions: ['s3:PutObject'],
-          resources: [this.portalBucket.arnForObjects(configFile)]
-        })
-      ])
-    });
-    configLambda.node.addDependency(bucketFile);
   }
 }

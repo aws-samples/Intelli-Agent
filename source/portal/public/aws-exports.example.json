@@ -2,5 +2,9 @@
   "websocket": "",
   "apiUrl": "",
   "docsS3Bucket": "",
-  "workspaceId": ""
+  "workspaceId": "",
+  "oidcIssuer": "",
+  "oidcClientId": "",
+  "oidcLogoutUrl": "",
+  "oidcRedirectUrl": ""
 }

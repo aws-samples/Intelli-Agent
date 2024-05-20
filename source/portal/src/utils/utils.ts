@@ -20,5 +20,8 @@ export const alertMsg = (alertTxt: string, alertType: AlertType = 'error') => {
 };
 
 export const formatTime = (timeStr: string) => {
+  if (!timeStr) {
+    return '-';
+  }
   return moment(timeStr).format(TIME_FORMAT);
 };
