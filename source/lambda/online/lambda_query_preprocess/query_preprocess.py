@@ -8,31 +8,25 @@ from common_utils.langchain_utils import chain_logger
 from common_utils.lambda_invoke_utils import invoke_lambda,chatbot_lambda_call_wrapper
 from common_utils.constant import LLMTaskType
 
-
-
 logger = get_logger("query_preprocess")
 
 
 def conversation_query_rewrite(state:dict):
-    # state = state['keys']
-    message_id = state['message_id']
-    trace_infos = state['trace_infos']
-    # lambda_invoke_mode = state['lambda_invoke_mode']
+    message_id = state.get('message_id',"")
+    trace_infos = state.get('trace_infos',[])
 
     chatbot_config = state["chatbot_config"]
     conversation_query_rewrite_config = chatbot_config["query_process_config"][
         "conversation_query_rewrite_config"
     ]
-    # conversation_query_rewrite_result_key = conversation_query_rewrite_config['result_key']
 
     cqr_llm_chain = RunnableLambda(lambda x: invoke_lambda(
-        # lambda_invoke_mode=lambda_invoke_mode,
         lambda_name='Online_LLM_Generate',
         lambda_module_path="lambda_llm_generate.llm_generate",
         handler_name='lambda_handler',
         event_body={
             "llm_config": {**conversation_query_rewrite_config, "intent_type": LLMTaskType.CONVERSATION_SUMMARY_TYPE},
-            "llm_input": x
+            "llm_input": {"chat_history":state['chat_history'], "query":state['query']}
             }
         )
     )

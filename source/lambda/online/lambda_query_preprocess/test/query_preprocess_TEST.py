@@ -10,12 +10,10 @@ from common_utils.lambda_invoke_utils import invoke_lambda
 
 def test_local():
     event_body = {
-        "lambda_invoke_mode":"local",
         "chatbot_config":{
             "query_process_config":{
                 "conversation_query_rewrite_config":{
-                    "model_id": "anthropic.claude-3-sonnet-20240229-v1:0",
-                    "result_key": "query"
+                    "model_id": "anthropic.claude-3-sonnet-20240229-v1:0"
                 }
 
             }
