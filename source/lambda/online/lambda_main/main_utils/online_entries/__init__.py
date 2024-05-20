@@ -5,7 +5,7 @@ def get_common_entry():
     return main_chain_entry
 
 entry_map = {
-    EntryType.COMMON.value: get_common_entry
+    EntryType.COMMON: get_common_entry
     # EntryType.AWS_CHAT.value: get_aws_chat_entry,
     # EntryType.TEXT2SQL.value: get_text2sql_entry
 }

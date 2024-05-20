@@ -10,7 +10,6 @@ logger = get_logger("llm_generate")
 
 @chatbot_lambda_call_wrapper
 def lambda_handler(event_body, context=None):
-    logger.info(f'config: {json.dumps(event_body,ensure_ascii=False,indent=2,cls=JSONEncoder)}')
     llm_chain_config = event_body['llm_config']
     llm_chain_inputs = event_body['llm_input']
 
