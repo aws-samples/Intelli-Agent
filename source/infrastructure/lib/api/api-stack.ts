@@ -93,6 +93,7 @@ export class ApiConstruct extends Construct {
     const apiLambdaEmbeddingLayer = lambdaLayers.createEmbeddingLayer();
     const apiLambdaOnlineUtilsLayer = lambdaLayers.createOnlineUtilsLayer();
     const apiLambdaOnlineSourceLayer = lambdaLayers.createOnlineSourceLayer();
+    const apiLambdaAuthorizerLayer = lambdaLayers.createAuthorizerLayer();
 
     // S3 bucket for storing documents
     const s3Bucket = new s3.Bucket(this, "llm-bot-documents", {
@@ -312,6 +313,7 @@ export class ApiConstruct extends Construct {
         REGION: Aws.REGION,
         APP_CLIENT_ID: props.userPoolClientId,
       },
+      layers: [apiLambdaAuthorizerLayer],
     });
 
     customAuthorizerLambda.addToRolePolicy(

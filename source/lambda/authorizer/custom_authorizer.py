@@ -22,6 +22,39 @@ response = urlopen(keys_url)
 keys = json.loads(response.read())["keys"]
 
 
+def generatePolicy(principalId, effect, resource):
+    authResponse = {}
+    authResponse["principalId"] = principalId
+    if effect and resource:
+        policyDocument = {}
+        policyDocument["Version"] = "2012-10-17"
+        policyDocument["Statement"] = []
+        statementOne = {}
+        statementOne["Action"] = "execute-api:Invoke"
+        statementOne["Effect"] = effect
+        statementOne["Resource"] = resource
+        policyDocument["Statement"] = [statementOne]
+        authResponse["policyDocument"] = policyDocument
+
+    authResponse["context"] = {
+        "stringKey": "stringval",
+        "numberKey": 123,
+        "booleanKey": True,
+    }
+
+    authResponse_JSON = json.dumps(authResponse)
+
+    return authResponse_JSON
+
+
+def generateAllow(principalId, resource):
+    return generatePolicy(principalId, "Allow", resource)
+
+
+def generateDeny(principalId, resource):
+    return generatePolicy(principalId, "Deny", resource)
+
+
 def lambda_handler(event, context):
     logger.info(event)
     # token = event["authorizationToken"]
@@ -56,6 +89,8 @@ def lambda_handler(event, context):
     #     print("Token was not issued for this audience")
     #     return None
 
-    return {"custom_response": True}
+    response = generateAllow("me", event["methodArn"])
+    print("authorized")
+    return json.loads(response)
 
     # return claims
