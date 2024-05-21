@@ -8,10 +8,9 @@ from functions.tool_execute_result_format import format_tool_execute_result
 from lambda_main.main_utils.parse_config import parse_common_entry_config
 
 
-
 class ChatbotState(TypedDict):
-    chatbot_config: dict # 配置项
-    query: str # 用户的问题
+    chatbot_config: dict # chatbot config
+    query: str 
     ws_connection_id: str 
     stream: bool 
     query_rewrite: str = None  # query rewrite ret
@@ -23,8 +22,8 @@ class ChatbotState(TypedDict):
     current_tool_calls: dict
     current_tool_execute_res: dict
     debug_infos: Annotated[dict,update_nest_dict]
-    answer: Any  # 最后的结果
-    current_monitor_infos: str # 当前的监控信息
+    answer: Any  # final answer
+    current_monitor_infos: str 
     extra_response: Annotated[dict,update_nest_dict]
     
 
@@ -54,10 +53,23 @@ def intention_detection_lambda(state: ChatbotState):
     #     handler_name="lambda_handler"
     # )
     output = "other"
+    if state.get("use_qa"):
+        output = "qa"
     return {
         "intent_type":output,
         "current_monitor_infos":f"intent_type: {output}"
         }
+
+
+@node_monitor_wrapper
+def rag_retrieve_lambda(state: ChatbotState):
+    # call retrivever 
+    return None 
+
+
+@node_monitor_wrapper
+def rag_llm_lambda(state:ChatbotState):
+    return None 
 
 
 @node_monitor_wrapper
@@ -211,6 +223,8 @@ def build_graph():
     workflow.add_node("give_rhetorical_question",give_rhetorical_question)
     workflow.add_node("give_tool_response",give_tool_response)
     workflow.add_node("give_response_wo_tool",give_response_without_any_tool)
+    workflow.add_node("rag_retrieve_lambda",rag_retrieve_lambda)
+    workflow.add_node("rag_llm_lambda",rag_llm_lambda)
 
     # block 1: query preprocess
     # contents:
@@ -219,6 +233,8 @@ def build_graph():
     workflow.set_entry_point("query_preprocess_lambda")
     workflow.add_edge("query_preprocess_lambda","intention_detection_lambda")
     workflow.add_edge("tool_execute_lambda","agent_lambda")
+    workflow.add_edge("rag_retrieve_lambda","rag_llm_lambda")
+    workflow.add_edge("rag_llm_lambda",END)
     workflow.add_edge("comfort_reply",END)
     workflow.add_edge("transfer_reply",END)
     workflow.add_edge("chat_llm_generate_lambda",END)
@@ -234,7 +250,8 @@ def build_graph():
             "comfort": "comfort_reply",
             "transfer": "transfer_reply",
             "chat": "chat_llm_generate_lambda",
-            "other": "agent_lambda"
+            "other": "agent_lambda",
+            "qa": "rag_retrieve_lambda"
         }
     )
 
@@ -263,9 +280,11 @@ def common_entry(event_body):
     global app 
     if app is None:
         app = build_graph()
+     
 
-    with open('common_entry_workflow.png','wb') as f:
-        f.write(app.get_graph().draw_png())
+    # debuging
+    # with open('common_entry_workflow.png','wb') as f:
+    #     f.write(app.get_graph().draw_png())
     
     ################################################################################
     # prepare inputs and invoke graph

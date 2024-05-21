@@ -7,7 +7,6 @@ import sys
 sys.path.extend([".",'layer_logic'])
 
 from common_utils.lambda_invoke_utils import invoke_lambda
-from functions.tools import get_tool_by_name
 
 
 def test_local():
@@ -18,12 +17,12 @@ def test_local():
                 "tools":[{"name":"get_weather"},{"name":"give_rhetorical_question"},{"name":"give_final_response"}]
             }
         },
-        "chat_history":[],
-        # "query":"What is the weather like in Beijing? I would like the temprature unit as Celsius"
-        # "query":"What is the weather like in Beijing?"
-        # "query":"今天天气怎么样？"
-        # "query":"你好"
-        "query":"你是名字是？"
+        "chat_history":[
+            {
+                "role":"user",
+                "content": "你是名字是？"
+            }
+        ]
     }
     
     ret = invoke_lambda(
@@ -43,8 +42,12 @@ def test_lambda():
                 "tools":[{"name":"get_weather"},{"name":"give_rhetorical_question"},{"name":"give_final_response"}]
             }
         },
-        "chat_history":[],
-        "query": "What is the weather like in Beijing? I would like the temprature unit as Celsius"
+        "chat_history":[
+            {
+                "role":"user",
+                "content": "What is the weather like in Beijing? I would like the temprature unit as Celsius"
+            }
+        ]
     }
     
     ret = invoke_lambda(

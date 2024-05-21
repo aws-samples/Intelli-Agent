@@ -9,6 +9,7 @@ from common_utils.constant import EntryType
 from common_utils.logger_utils import get_logger
 from common_utils.websocket_utils import load_ws_client
 from common_utils.lambda_invoke_utils import chatbot_lambda_call_wrapper
+from common_utils.serialization_utils import JSONEncoder
 
 logger = get_logger("main")
 
@@ -55,6 +56,8 @@ def lambda_handler(event_body:dict, context:dict):
     event_body['ddb_history_obj'] = ddb_history_obj
     event_body['request_timestamp'] = request_timestamp
     event_body['message_id'] = str(uuid.uuid4())
+
+    logger.info(f"event_body:\n{json.dumps(event_body,ensure_ascii=False,indent=2,cls=JSONEncoder)}")
     entry_executor = get_entry(entry_type)
     response:dict = entry_executor(event_body)
 

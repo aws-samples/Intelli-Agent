@@ -33,18 +33,10 @@ def load_ws_client(websocket_url):
 
 
 def send_to_ws_client(message: dict,ws_connection_id):
-    try:
-        ws_client.post_to_connection(
-            ConnectionId=ws_connection_id,
-            Data=json.dumps(message).encode("utf-8"),
-        )
-    except:
-        data_to_send = json.dumps(message).encode("utf-8")
-        logger.info(
-            f"Send to ws client error occurs, the message to send is: {data_to_send}"
-        )
-        # convert to websocket error
-        raise WebsocketClientError
+    ws_client.post_to_connection(
+        ConnectionId=ws_connection_id,
+        Data=json.dumps(message).encode("utf-8"),
+    )
 
 
 
