@@ -29,6 +29,8 @@ class LAMBDA_INVOKE_MODE(enum.Enum):
         return [e.value for e in cls]
 
 _lambda_invoke_mode = LAMBDA_INVOKE_MODE.LOCAL.value
+_current_stream_use = True
+_ws_connection_id = None 
     
 class LambdaInvoker(BaseModel):
     # aws lambda clinet
@@ -143,7 +145,7 @@ def chatbot_lambda_call_wrapper(fn):
         global _lambda_invoke_mode
         current_lambda_mode = LAMBDA_INVOKE_MODE.LOCAL.value
         # avoid recursive lambda calling
-        if str(type(context)) == "LambdaContext":
+        if context is not None and type(context).__name__ == "LambdaContext":
             context = context.__dict__ 
             _lambda_invoke_mode = LAMBDA_INVOKE_MODE.LOCAL.value
             logger.info(f'event: {json.dumps(event,ensure_ascii=False,indent=2,cls=JSONEncoder)}')
@@ -151,11 +153,10 @@ def chatbot_lambda_call_wrapper(fn):
         if "Records" in event:
             records = event["Records"]
             assert len(records),"Please set sqs batch size to 1"
-            event = records[0]
+            event = json.loads(records[0]['body'])
             _lambda_invoke_mode = LAMBDA_INVOKE_MODE.LOCAL.value
             current_lambda_mode = LAMBDA_INVOKE_MODE.APIGETAWAY.value
-
-         
+        
         context = context or {}
         context['request_timestamp'] = time.time()
         stream:bool = is_websocket_request(event)
@@ -164,22 +165,14 @@ def chatbot_lambda_call_wrapper(fn):
             ws_connection_id = event["requestContext"]["connectionId"]
             context['ws_connection_id'] = ws_connection_id
         
-        # apigateway会将输入封装到body中
+        # apigateway wrap event into body
         if "body" in event:
             # _lambda_invoke_mode = LAMBDA_INVOKE_MODE.APIGETAWAY.value
             _lambda_invoke_mode = LAMBDA_INVOKE_MODE.LOCAL.value
             current_lambda_mode = LAMBDA_INVOKE_MODE.APIGETAWAY.value
             event = json.loads(event["body"])
-        # if "lambda_invoke_mode" not in event:
-        #     event['lambda_invoke_mode'] = os.environ.get("LAMBDA_INVOKE_MODE","local")
-
-        # base_state = {
-        #     "message_id":"",
-        #     "trace_infos": []
-        # }
-
         ret = fn(event, context=context)
-        # 如果使用apigateway 调用lambda，需要将结果保存到body字段中
+        # save response to body
         # TODO
         if current_lambda_mode  == LAMBDA_INVOKE_MODE.APIGETAWAY.value:
             ret = {
@@ -195,23 +188,32 @@ def chatbot_lambda_call_wrapper(fn):
     return inner 
 
 
+
+def send_trace(trace_info:str):
+    if _current_stream_use and _ws_connection_id is not None:
+        send_to_ws_client(
+            message={
+                        "message_type":StreamMessageType.MONITOR,
+                        "message":trace_info
+                    },
+            ws_connection_id=_ws_connection_id
+        )
+    else:
+        logger.info(trace_info)
+
+
 def node_monitor_wrapper(fn=None,*, monitor_key="current_monitor_infos"):
     def inner(fn):
         @functools.wraps(fn)
         def inner2(state:dict):
+            global _current_stream_use,_ws_connection_id
+            _current_stream_use = state['stream']
+            _ws_connection_id = state['ws_connection_id']
             output = fn(state)
             current_monitor_infos = output.get(monitor_key,None)
             if current_monitor_infos is not None:
                 # sent to wwebsocket
-                if state['stream']:
-                    send_to_ws_client(message={
-                        "message_type":StreamMessageType.MONITOR,
-                        "message":current_monitor_infos
-                    },
-                    ws_connection_id=state['ws_connection_id']
-                    )
-                else:
-                    logger.info(current_monitor_infos)
+                send_trace(current_monitor_infos)
             return output
         return inner2 
     if fn is not None:

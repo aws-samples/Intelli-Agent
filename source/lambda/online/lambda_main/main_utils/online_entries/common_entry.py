@@ -54,10 +54,32 @@ def intention_detection_lambda(state: ChatbotState):
     #     handler_name="lambda_handler"
     # )
     output = "other"
+    if state.get("use_qa"):
+        output = "qa"
     return {
         "intent_type":output,
         "current_monitor_infos":f"intent_type: {output}"
         }
+
+
+@node_monitor_wrapper
+def rag_retrieve_lambda(state: ChatbotState):
+    # call retrivever 
+    # output:str = invoke_lambda(
+    #     event_body=state,
+    #     lambda_name="Online_Intention_Detection",
+    #     lambda_module_path="lambda_intention_detection.intention",
+    #     handler_name="lambda_handler"
+    # )
+    
+    return None 
+
+
+
+
+@node_monitor_wrapper
+def rag_llm_lambda(state:ChatbotState):
+    return None 
 
 
 @node_monitor_wrapper
@@ -211,6 +233,8 @@ def build_graph():
     workflow.add_node("give_rhetorical_question",give_rhetorical_question)
     workflow.add_node("give_tool_response",give_tool_response)
     workflow.add_node("give_response_wo_tool",give_response_without_any_tool)
+    workflow.add_node("rag_retrieve_lambda",rag_retrieve_lambda)
+    workflow.add_node("rag_llm_lambda",rag_llm_lambda)
 
     # block 1: query preprocess
     # contents:
@@ -219,6 +243,8 @@ def build_graph():
     workflow.set_entry_point("query_preprocess_lambda")
     workflow.add_edge("query_preprocess_lambda","intention_detection_lambda")
     workflow.add_edge("tool_execute_lambda","agent_lambda")
+    workflow.add_edge("rag_retrieve_lambda","rag_llm_lambda")
+    workflow.add_edge("rag_llm_lambda",END)
     workflow.add_edge("comfort_reply",END)
     workflow.add_edge("transfer_reply",END)
     workflow.add_edge("chat_llm_generate_lambda",END)
@@ -234,7 +260,8 @@ def build_graph():
             "comfort": "comfort_reply",
             "transfer": "transfer_reply",
             "chat": "chat_llm_generate_lambda",
-            "other": "agent_lambda"
+            "other": "agent_lambda",
+            "qa": "rag_retrieve_lambda"
         }
     )
 
@@ -264,8 +291,8 @@ def common_entry(event_body):
     if app is None:
         app = build_graph()
 
-    with open('common_entry_workflow.png','wb') as f:
-        f.write(app.get_graph().draw_png())
+    # with open('common_entry_workflow.png','wb') as f:
+    #     f.write(app.get_graph().draw_png())
     
     ################################################################################
     # prepare inputs and invoke graph
