@@ -202,7 +202,6 @@ export class EtlStack extends NestedStack {
       }),
     );
     crLambda.node.addDependency(scalingTarget);
-    // crLambda.node.addDependency(scalingTarget);
     const customResourceProvider = new cr.Provider(this, 'CustomResourceProvider', {
       onEventHandler: crLambda,
       logRetention: logs.RetentionDays.ONE_DAY,
