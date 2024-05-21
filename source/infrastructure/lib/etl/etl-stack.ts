@@ -11,7 +11,7 @@
  *  and limitations under the License.                                                                                *
  *********************************************************************************************************************/
 
-import { Duration, NestedStack, RemovalPolicy, StackProps } from "aws-cdk-lib";
+import { Duration, NestedStack, RemovalPolicy, StackProps, CustomResource } from "aws-cdk-lib";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as iam from "aws-cdk-lib/aws-iam";
@@ -23,12 +23,14 @@ import * as sns from "aws-cdk-lib/aws-sns";
 import * as subscriptions from "aws-cdk-lib/aws-sns-subscriptions";
 import * as sfn from "aws-cdk-lib/aws-stepfunctions";
 import * as tasks from "aws-cdk-lib/aws-stepfunctions-tasks";
+import * as cr from 'aws-cdk-lib/custom-resources';
+import * as logs from 'aws-cdk-lib/aws-logs';
 import { Construct } from "constructs";
 import { join } from "path";
 import { DynamoDBTable } from "../shared/table";
-
+import * as appAutoscaling from "aws-cdk-lib/aws-applicationautoscaling";
 import * as glue from "@aws-cdk/aws-glue-alpha";
-
+import { Metric } from 'aws-cdk-lib/aws-cloudwatch';
 import { BuildConfig } from "../shared/build-config";
 
 interface ETLStackProps extends StackProps {
@@ -104,7 +106,7 @@ export class EtlStack extends NestedStack {
         image: imageUrl,
       },
     });
-
+    const etlVariantName = "variantProd"
     // Create endpoint configuration
     const endpointConfig = new sagemaker.CfnEndpointConfig(
       this,
@@ -114,7 +116,7 @@ export class EtlStack extends NestedStack {
           {
             initialVariantWeight: 1.0,
             modelName: model.attrModelName,
-            variantName: "variantProd",
+            variantName: etlVariantName,
             containerStartupHealthCheckTimeoutInSeconds: 15 * 60,
             initialInstanceCount: 1,
             instanceType: "ml.g4dn.2xlarge",
@@ -142,6 +144,73 @@ export class EtlStack extends NestedStack {
     }
 
     this.etlEndpoint = etlEndpoint.endpointName;
+
+    const scalingTarget = new appAutoscaling.ScalableTarget(
+      this,
+      "ETLAutoScalingTarget",
+      {
+        minCapacity: 0,
+        maxCapacity: 10,
+        resourceId: `endpoint/${etlEndpoint.endpointName}/variant/${etlVariantName}`,
+        scalableDimension: "sagemaker:variant:DesiredInstanceCount",
+        serviceNamespace: appAutoscaling.ServiceNamespace.SAGEMAKER,
+      }
+    );
+    scalingTarget.node.addDependency(etlEndpoint);
+    scalingTarget.scaleToTrackMetric('ApproximateBacklogSizePerInstanceTrackMetric', {
+      targetValue: 2,
+      customMetric: new Metric({
+        metricName: 'ApproximateBacklogSizePerInstance',
+        namespace: 'AWS/SageMaker',
+        dimensionsMap: {
+          EndpointName: etlEndpoint.endpointName,
+        },
+        period: Duration.minutes(1),
+        statistic: 'avg',
+      }),
+      scaleInCooldown: Duration.seconds(60),
+      scaleOutCooldown: Duration.seconds(60),
+    });
+
+    // Custom resource to update ETL endpoint autoscaling setting
+    const crLambda = new Function(this, "ETLCustomResource", {
+      runtime: Runtime.PYTHON_3_11,
+      code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
+      handler: "etl_custom_resource.lambda_handler",
+      environment: {
+        ENDPOINT_NAME: etlEndpoint.endpointName,
+        VARIANT_NAME: etlVariantName,
+      },
+      memorySize: 512,
+      timeout: Duration.seconds(300),
+    });
+    crLambda.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: [
+          "sagemaker:UpdateEndpoint",
+          "sagemaker:DescribeEndpoint",
+          "sagemaker:DescribeEndpointConfig",
+          "sagemaker:UpdateEndpointWeightsAndCapacities",
+          "application-autoscaling:*",
+          "iam:CreateServiceLinkedRole",
+          "cloudwatch:PutMetricAlarm",
+          "cloudwatch:DescribeAlarms",
+          "cloudwatch:DeleteAlarms",
+        ],
+        effect: iam.Effect.ALLOW,
+        resources: ["*"],
+      }),
+    );
+    crLambda.node.addDependency(scalingTarget);
+    const customResourceProvider = new cr.Provider(this, 'CustomResourceProvider', {
+      onEventHandler: crLambda,
+      logRetention: logs.RetentionDays.ONE_DAY,
+    });
+
+    new CustomResource(this, 'EtlEndpointCustomResource', {
+      serviceToken: customResourceProvider.serviceToken,
+      resourceType: "Custom::ETLEndpoint",
+    });
 
     const connection = new glue.Connection(this, "GlueJobConnection", {
       type: glue.ConnectionType.NETWORK,
