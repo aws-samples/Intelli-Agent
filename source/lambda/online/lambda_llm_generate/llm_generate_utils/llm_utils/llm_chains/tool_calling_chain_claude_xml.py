@@ -198,15 +198,14 @@ class Claude2ToolCallingChain(LLMChain):
             SystemMessage(content=SYSTEM_MESSAGE_PROMPT.format(
                 tools=tools_formatted
                 )),
-            ("placeholder", "{chat_history}"),
-            # HumanMessagePromptTemplate.from_template("{query}"),
+            ("placeholder", "{chat_history}")
         ])
 
         llm = Model.get_model(
             model_id=cls.model_id,
             model_kwargs=model_kwargs,
         )
-        chain = tool_calling_template | RunnableLambda(lambda x:x.messages) | llm | RunnableLambda(lambda message:cls.parse_tools_from_ai_message(message,tools=tools))
+        chain = tool_calling_template | RunnableLambda(lambda x:x.messages ) | llm | RunnableLambda(lambda message:cls.parse_tools_from_ai_message(message,tools=tools))
         
         return chain
 

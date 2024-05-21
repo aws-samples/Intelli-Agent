@@ -46,20 +46,7 @@ class DummyWebSocket:
             print(ret['message']['content'])
             return 
         elif message_type == "MONITOR":
-            # print(ret['choices'][0])
             print("monitor info: ",ret['message'])
-            # message:dict = ret['choices'][0]
-            # if "_chunk_data" in ret['choices'][0]:
-            #     contexts[message['message_id']] += message['_chunk_data']
-            #     if message["chunk_id"] + 1 != message['total_chunk_num']:
-            #         return 
-            #     _chunk_data = contexts.pop(message['message_id'])
-            #     print('context chunk num',message['total_chunk_num'])
-            #     message.update(json.loads(_chunk_data))
-            
-            # print('knowledge_sources',message['knowledge_sources'])
-            # print('response msg',message['response_msg'])
-            # print(message.keys())
 
 websocket_utils.ws_client = DummyWebSocket()
 
@@ -72,22 +59,9 @@ def generate_answer(query,
                     ):
     chatbot_config = chatbot_config or {}
 
-    # if query:
-    #     messages = [
-    #             {
-    #                 "role": "user",
-    #                 "content": query
-    #             }
-    #         ]
-    # else:
-    #     assert messages and isinstance(messages,list), messages
 
     body = {
             "query": query,
-            # "temperature": temperature,
-            # "enable_debug": enable_debug,
-            # "retrieval_only": retrieval_only,
-            # "retriever_index": retriever_index,
             "entry_type": entry_type,
             "session_id":session_id,
             "chatbot_config": chatbot_config     
