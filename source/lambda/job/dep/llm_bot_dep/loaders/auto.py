@@ -3,7 +3,6 @@ import logging
 
 import numpy as np
 
-from llm_bot_dep.build_index import process_shard
 from llm_bot_dep.loaders.docx import process_doc
 from llm_bot_dep.loaders.markdown import process_md
 

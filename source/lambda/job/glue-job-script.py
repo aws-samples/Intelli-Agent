@@ -57,7 +57,7 @@ except Exception as e:
     logger.warning("Running locally")
     sys.path.append("dep")
     args = json.load(open(sys.argv[1]))
-    args["BATCH_INDICE"] = sys.argv[2]
+    # args["BATCH_INDICE"] = sys.argv[2]
 
 from llm_bot_dep import sm_utils
 from llm_bot_dep.constant import SplittingType
@@ -508,7 +508,7 @@ def update_workspace(workspace_id, embedding_model_endpoint, index_type):
         workspace_offline_flag=offline,
     )
 
-    return aos_index
+    return aos_index, embeddings_model_type
 
 
 def ingestion_pipeline(
@@ -650,7 +650,7 @@ def main():
             "csv",
         ]
 
-    aos_index_name = update_workspace(
+    aos_index_name, embedding_model_type = update_workspace(
         workspace_id, embedding_model_endpoint, index_type
     )
 
@@ -659,8 +659,8 @@ def main():
     if operation_type == "extract_only":
         embedding_function, docsearch = None, None
     else:
-        embedding_function = sm_utils.create_embeddings_with_m3_model(
-            embedding_model_endpoint, region
+        embedding_function = sm_utils.getCustomEmbeddings(
+            embedding_model_endpoint, region, embedding_model_type
         )
         docsearch = OpenSearchVectorSearch(
             index_name=aos_index_name,

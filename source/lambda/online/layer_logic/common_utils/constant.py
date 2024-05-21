@@ -83,3 +83,4 @@ class StreamMessageType(ConstantBase):
     ERROR = "ERROR"
     CHUNK = "CHUNK"
     CONTEXT = "CONTEXT"
+    MONITOR = "MONITOR"

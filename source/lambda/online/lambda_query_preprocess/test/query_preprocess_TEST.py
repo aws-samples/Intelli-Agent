@@ -34,6 +34,7 @@ def test_local():
     }
     
     ret = invoke_lambda(
+        lambda_invoke_mode="local",
         event_body=event_body,
         lambda_module_path="lambda_query_preprocess.query_preprocess",
         handler_name="lambda_handler"
@@ -42,9 +43,8 @@ def test_local():
 
 
 def test_lambda():
-    lambda_invoke_mode = "lambda"
+
     event_body = {
-        "lambda_invoke_mode":lambda_invoke_mode,
         "chatbot_config":{
             "query_process_config":{
                 "conversation_query_rewrite_config":{
@@ -68,7 +68,7 @@ def test_lambda():
     }
     
     ret = invoke_lambda(
-        lambda_invoke_mode=lambda_invoke_mode,
+        lambda_invoke_mode="lambda",
         event_body=event_body,
         lambda_name="Online_Query_Preprocess"
     )
@@ -76,5 +76,5 @@ def test_lambda():
 
 
 if __name__ == "__main__":
-    # test_local()
-    test_lambda()
+    test_local()
+    # test_lambda()
