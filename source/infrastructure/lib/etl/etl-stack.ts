@@ -213,24 +213,6 @@ export class EtlStack extends NestedStack {
       resourceType: "Custom::ETLEndpoint",
     });
 
-    // new appAutoscaling.CfnScalingPolicy(
-    //   this,
-    //   "ETLScalingPolicy",
-    //   {
-    //     policyName: "ETLScalingPolicy",
-    //     policyType: "TargetTrackingScaling",
-    //     scalingTargetId: scalingTarget.scalableTargetId,
-    //     targetTrackingScalingPolicyConfiguration: {
-    //       predefinedMetricSpecification: {
-    //         predefinedMetricType: "SageMakerVariantInvocationsPerInstance",
-    //       },
-    //       scaleInCooldown: 600,
-    //       scaleOutCooldown: 60,
-    //       targetValue: 10,
-    //     },
-    //   }
-    // );
-
     const connection = new glue.Connection(this, "GlueJobConnection", {
       type: glue.ConnectionType.NETWORK,
       subnet: props.subnets[0],
