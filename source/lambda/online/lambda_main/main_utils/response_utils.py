@@ -68,9 +68,6 @@ def api_response(event_body:dict,response:dict):
     }
 
 
-def debug_layer():
-    pass
-
 def stream_response(event_body:dict, response:dict):
     request_timestamp = event_body["request_timestamp"]
     entry_type = event_body["entry_type"]

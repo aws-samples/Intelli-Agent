@@ -22,11 +22,7 @@ def test_local():
                 "role":"user",
                 "content": "你是名字是？"
             }
-        ],
-        # "query":"What is the weather like in Beijing? I would like the temprature unit as Celsius"
-        # "query":"What is the weather like in Beijing?"
-        # "query":"今天天气怎么样？"
-        # "query":"你好"
+        ]
     }
     
     ret = invoke_lambda(

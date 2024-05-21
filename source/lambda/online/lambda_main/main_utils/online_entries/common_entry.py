@@ -8,7 +8,6 @@ from functions.tool_execute_result_format import format_tool_execute_result
 from lambda_main.main_utils.parse_config import parse_common_entry_config
 
 
-
 class ChatbotState(TypedDict):
     chatbot_config: dict # 配置项
     query: str # 用户的问题
@@ -65,16 +64,7 @@ def intention_detection_lambda(state: ChatbotState):
 @node_monitor_wrapper
 def rag_retrieve_lambda(state: ChatbotState):
     # call retrivever 
-    # output:str = invoke_lambda(
-    #     event_body=state,
-    #     lambda_name="Online_Intention_Detection",
-    #     lambda_module_path="lambda_intention_detection.intention",
-    #     handler_name="lambda_handler"
-    # )
-    
     return None 
-
-
 
 
 @node_monitor_wrapper
@@ -290,7 +280,9 @@ def common_entry(event_body):
     global app 
     if app is None:
         app = build_graph()
+     
 
+    # debuging
     # with open('common_entry_workflow.png','wb') as f:
     #     f.write(app.get_graph().draw_png())
     
