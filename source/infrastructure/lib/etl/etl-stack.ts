@@ -11,7 +11,7 @@
  *  and limitations under the License.                                                                                *
  *********************************************************************************************************************/
 
-import { Duration, NestedStack, RemovalPolicy, StackProps } from "aws-cdk-lib";
+import { Duration, NestedStack, RemovalPolicy, StackProps, CustomResource } from "aws-cdk-lib";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as iam from "aws-cdk-lib/aws-iam";
@@ -23,6 +23,8 @@ import * as sns from "aws-cdk-lib/aws-sns";
 import * as subscriptions from "aws-cdk-lib/aws-sns-subscriptions";
 import * as sfn from "aws-cdk-lib/aws-stepfunctions";
 import * as tasks from "aws-cdk-lib/aws-stepfunctions-tasks";
+import * as cr from 'aws-cdk-lib/custom-resources';
+import * as logs from 'aws-cdk-lib/aws-logs';
 import { Construct } from "constructs";
 import { join } from "path";
 import { DynamoDBTable } from "../shared/table";
@@ -148,7 +150,7 @@ export class EtlStack extends NestedStack {
       "ETLAutoScalingTarget",
       {
         minCapacity: 0,
-        maxCapacity: 20,
+        maxCapacity: 10,
         resourceId: `endpoint/${etlEndpoint.endpointName}/variant/${etlVariantName}`,
         scalableDimension: "sagemaker:variant:DesiredInstanceCount",
         serviceNamespace: appAutoscaling.ServiceNamespace.SAGEMAKER,
@@ -168,6 +170,47 @@ export class EtlStack extends NestedStack {
       }),
       scaleInCooldown: Duration.seconds(60),
       scaleOutCooldown: Duration.seconds(60),
+    });
+
+    // Custom resource to update ETL endpoint autoscaling setting
+    const crLambda = new Function(this, "ETLCustomResource", {
+      runtime: Runtime.PYTHON_3_11,
+      code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
+      handler: "etl_custom_resource.lambda_handler",
+      environment: {
+        ENDPOINT_NAME: etlEndpoint.endpointName,
+        VARIANT_NAME: etlVariantName,
+      },
+      memorySize: 512,
+      timeout: Duration.seconds(300),
+    });
+    crLambda.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: [
+          "sagemaker:UpdateEndpoint",
+          "sagemaker:DescribeEndpoint",
+          "sagemaker:DescribeEndpointConfig",
+          "sagemaker:UpdateEndpointWeightsAndCapacities",
+          "application-autoscaling:*",
+          "iam:CreateServiceLinkedRole",
+          "cloudwatch:PutMetricAlarm",
+          "cloudwatch:DescribeAlarms",
+          "cloudwatch:DeleteAlarms",
+        ],
+        effect: iam.Effect.ALLOW,
+        resources: ["*"],
+      }),
+    );
+    crLambda.node.addDependency(scalingTarget);
+    // crLambda.node.addDependency(scalingTarget);
+    const customResourceProvider = new cr.Provider(this, 'CustomResourceProvider', {
+      onEventHandler: crLambda,
+      logRetention: logs.RetentionDays.ONE_DAY,
+    });
+
+    new CustomResource(this, 'EtlEndpointCustomResource', {
+      serviceToken: customResourceProvider.serviceToken,
+      resourceType: "Custom::ETLEndpoint",
     });
 
     // new appAutoscaling.CfnScalingPolicy(
