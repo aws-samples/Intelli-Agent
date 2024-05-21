@@ -132,6 +132,7 @@ export class RootStack extends Stack {
       etlObjIndexName: etlStack.etlObjIndexName,
       env: process.env,
       userPool: userConstruct.userPool,
+      userPoolClientId: userConstruct.oidcClientId,
     });
     apiConstruct.node.addDependency(vpcConstruct);
     apiConstruct.node.addDependency(aosConstruct);
