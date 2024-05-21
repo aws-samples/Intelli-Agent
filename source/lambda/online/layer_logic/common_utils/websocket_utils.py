@@ -38,12 +38,6 @@ def send_to_ws_client(message: dict,ws_connection_id):
         Data=json.dumps(message).encode("utf-8"),
     )
 
-    # data_to_send = json.dumps(message).encode("utf-8")
-    # logger.info(
-    #     f"Send to ws client error occurs, the message to send is: {data_to_send}"
-    # )
-
-
 
 
 

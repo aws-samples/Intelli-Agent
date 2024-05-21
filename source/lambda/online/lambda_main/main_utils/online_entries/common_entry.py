@@ -9,8 +9,8 @@ from lambda_main.main_utils.parse_config import parse_common_entry_config
 
 
 class ChatbotState(TypedDict):
-    chatbot_config: dict # 配置项
-    query: str # 用户的问题
+    chatbot_config: dict # chatbot config
+    query: str 
     ws_connection_id: str 
     stream: bool 
     query_rewrite: str = None  # query rewrite ret
@@ -22,8 +22,8 @@ class ChatbotState(TypedDict):
     current_tool_calls: dict
     current_tool_execute_res: dict
     debug_infos: Annotated[dict,update_nest_dict]
-    answer: Any  # 最后的结果
-    current_monitor_infos: str # 当前的监控信息
+    answer: Any  # final answer
+    current_monitor_infos: str 
     extra_response: Annotated[dict,update_nest_dict]
     
 

@@ -34,7 +34,6 @@ def write_chat_history_to_ddb(
     )
 
 
-
 def api_response(event_body:dict,response:dict):
     ddb_history_obj = event_body["ddb_history_obj"]
 
@@ -55,8 +54,6 @@ def api_response(event_body:dict,response:dict):
     
     return {
             "session_id": event_body['session_id'],
-            # "client_type": eventclient_type,
-            # "object": "chat.completion",
             "entry_type": event_body['entry_type'],
             "created": time.time(),
             "total_time": time.time()-event_body["request_timestamp"],
