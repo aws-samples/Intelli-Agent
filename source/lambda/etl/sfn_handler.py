@@ -58,7 +58,7 @@ def handler(event, context):
                 "s3Prefix": key,
                 "offline": "false",
                 "qaEnhance": "false",
-                "workspaceId": workspace_id,
+                "workspaceId": group_id,
                 "operationType": "update",
                 "groupId": group_id
             }
@@ -72,7 +72,7 @@ def handler(event, context):
                 "s3Prefix": key,
                 "offline": "false",
                 "qaEnhance": "false",
-                "workspaceId": workspace_id,
+                "workspaceId": group_id,
                 "operationType": "delete",
                 "groupId": group_id
             }
