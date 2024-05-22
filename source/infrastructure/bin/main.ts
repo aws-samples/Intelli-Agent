@@ -25,6 +25,7 @@ import { LLMStack } from "../lib/model/llm-stack";
 import { BuildConfig } from "../lib/shared/build-config";
 import { DeploymentParameters } from "../lib/shared/cdk-parameters";
 import { VpcConstruct } from "../lib/shared/vpc-stack";
+import { IAMHelper } from "../lib/shared/iam-helper";
 import { AOSConstruct } from "../lib/vector-store/os-stack";
 import { PortalConstruct } from "../lib/ui/ui-portal";
 import { UiExportsConstruct } from "../lib/ui/ui-exports";
@@ -39,6 +40,7 @@ export class RootStack extends Stack {
     this.setBuildConfig();
 
     const cdkParameters = new DeploymentParameters(this);
+    const iamHelper = new IAMHelper(this, "iam-helper");
 
     const assetConstruct = new AssetsConstruct(this, "assets-construct", {
       s3ModelAssets: cdkParameters.s3ModelAssets.valueAsString,
@@ -80,6 +82,7 @@ export class RootStack extends Stack {
       openSearchIndex: cdkParameters.openSearchIndex.valueAsString,
       imageName: cdkParameters.etlImageName.valueAsString,
       etlTag: cdkParameters.etlImageTag.valueAsString,
+      iamHelper: iamHelper,
     });
     etlStack.node.addDependency(vpcConstruct);
     etlStack.node.addDependency(aosConstruct);
@@ -132,6 +135,7 @@ export class RootStack extends Stack {
       etlObjIndexName: etlStack.etlObjIndexName,
       env: process.env,
       userPool: userConstruct.userPool,
+      iamHelper: iamHelper,
     });
     apiConstruct.node.addDependency(vpcConstruct);
     apiConstruct.node.addDependency(aosConstruct);
