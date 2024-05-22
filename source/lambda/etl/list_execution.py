@@ -19,7 +19,7 @@ def lambda_handler(event, context):
     logger.info(event)
     page_size = DEFAULT_SIZE
     max_item = DEFAULT_MAX_ITEM
-    group_id = event["requestContext"]["authorizer"]["claims"]["cognito:groups"]
+
     if event["queryStringParameters"] != None:
         if "size" in event["queryStringParameters"]:
             page_size = int(event["queryStringParameters"]["size"])
@@ -40,11 +40,8 @@ def lambda_handler(event, context):
     response_iterator = paginator.paginate(
         TableName=table_name,
         PaginationConfig=config,
-        FilterExpression="uiStatus = :active AND groupId = :group_id",
-        ExpressionAttributeValues={
-            ":active": {"S": "ACTIVE"},
-            ":group_id": {"S": group_id}
-        },
+        FilterExpression="uiStatus = :active",
+        ExpressionAttributeValues={":active": {"S": "ACTIVE"}},
     )
 
     output = {}

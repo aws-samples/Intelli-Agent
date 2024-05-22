@@ -18,7 +18,6 @@ import ConfigContext from 'src/context/config-context';
 import { alertMsg } from 'src/utils/utils';
 import { AxiosProgressEvent } from 'axios';
 import { useTranslation } from 'react-i18next';
-import { User } from 'oidc-client-ts';
 
 const AddLibrary: React.FC = () => {
   const navigate = useNavigate();
@@ -30,33 +29,16 @@ const AddLibrary: React.FC = () => {
   const [showProgress, setShowProgress] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
-  function getUser(authority?: string, clientId?: string) {
-    const oidcStorage = localStorage.getItem(
-      `oidc.user:${authority}:${clientId}`,
-    );
-    if (!oidcStorage) {
-      return null;
-    }
-    return User.fromStorageString(oidcStorage);
-  }
-
   const uploadFile = async (file: File) => {
     try {
       setShowProgress(true);
       setShowSuccess(false);
-      const user = getUser(config?.oidcIssuer, config?.oidcClientId);
-      const token = user?.id_token;
       const resData: any = await axios.post(
         `${config?.apiUrl}/etl/upload-s3-url`,
         {
           file_name: file.name,
           content_type: file.type,
         },
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        }
       );
       const uploadPreSignUrl = resData.data.data;
       await axios.put(uploadPreSignUrl, file, {

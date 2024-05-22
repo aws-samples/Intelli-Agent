@@ -35,8 +35,6 @@ def handler(event, context):
         # TODO, Aggregate the bucket and key from the event object for S3 created event
         bucket = event["Records"][0]["s3"]["bucket"]["name"]
         key = event["Records"][0]["s3"]["object"]["key"]
-        parts = key.split('/')
-        group_id = parts[-2] if len(parts) >= 2 else key
 
         if key.endswith("/"):
             print("This is a folder, skip")
@@ -58,9 +56,8 @@ def handler(event, context):
                 "s3Prefix": key,
                 "offline": "false",
                 "qaEnhance": "false",
-                "workspaceId": group_id,
+                "workspaceId": workspace_id,
                 "operationType": "update",
-                "groupId": group_id
             }
         elif event["Records"][0]["eventName"].startswith("ObjectRemoved:"):
             key = unquote(key)
@@ -72,9 +69,8 @@ def handler(event, context):
                 "s3Prefix": key,
                 "offline": "false",
                 "qaEnhance": "false",
-                "workspaceId": group_id,
+                "workspaceId": workspace_id,
                 "operationType": "delete",
-                "groupId": group_id
             }
     else:
         print("API Gateway event detected")
@@ -96,7 +92,6 @@ def handler(event, context):
     input_body["executionId"] = context.aws_request_id
     input_body["uiStatus"] = "ACTIVE"
     input_body["createTime"] = create_time
-    input_body["groupId"] = group_id
 
     ddb_response = execution_table.put_item(Item=input_body)
 
