@@ -13,6 +13,7 @@ import {
 import useWebSocket, { ReadyState } from 'react-use-websocket';
 import { identity } from 'lodash';
 import ConfigContext from 'src/context/config-context';
+import { useAuth } from 'react-oidc-context';
 
 interface MessageType {
   type: 'ai' | 'human';
@@ -23,6 +24,7 @@ const ChatBot: React.FC = () => {
   const [visible, setVisible] = useState(false);
   const config = useContext(ConfigContext);
   const { t } = useTranslation();
+  const auth = useAuth();
 
   const [messages, setMessages] = useState<MessageType[]>([
     {
@@ -32,7 +34,7 @@ const ChatBot: React.FC = () => {
   ]);
   const [userMessage, setUserMessage] = useState('');
   const { lastMessage, sendMessage, readyState } = useWebSocket(
-    config?.websocket ?? '',
+    `${config?.websocket}?idToken=${auth.user?.id_token}`,
     {
       onOpen: () => console.log('opened'),
       //Will attempt to reconnect on all close events, such as server shutting down
@@ -79,7 +81,9 @@ const ChatBot: React.FC = () => {
       messages: [{ role: 'user', content: userMessage }],
       temperature: 0.1,
       type: 'common',
-      retriever_config: { workspace_ids: ['lvntest'] },
+      retriever_config: {
+        workspace_ids: auth.user?.profile?.['cognito:groups'] ?? [],
+      },
     };
     sendMessage(JSON.stringify(message));
     setMessages((prev) => {

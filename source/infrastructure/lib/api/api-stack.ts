@@ -54,6 +54,7 @@ interface ApiStackProps extends StackProps {
   etlObjTableName: string;
   etlObjIndexName: string;
   userPool: UserPool;
+  userPoolClientId: string;
 }
 
 export class ApiConstruct extends Construct {
@@ -92,6 +93,7 @@ export class ApiConstruct extends Construct {
     const apiLambdaEmbeddingLayer = lambdaLayers.createEmbeddingLayer();
     const apiLambdaOnlineUtilsLayer = lambdaLayers.createOnlineUtilsLayer();
     const apiLambdaOnlineSourceLayer = lambdaLayers.createOnlineSourceLayer();
+    const apiLambdaAuthorizerLayer = lambdaLayers.createAuthorizerLayer();
 
     // S3 bucket for storing documents
     const s3Bucket = new s3.Bucket(this, "llm-bot-documents", {
@@ -293,6 +295,46 @@ export class ApiConstruct extends Construct {
     });
     uploadDocLambda.addToRolePolicy(s3PolicyDocument);
 
+    // Create Lambda Authorizer for WebSocket API
+    const customAuthorizerLambda = new Function(this, "CustomAuthorizerLambda", {
+      runtime: Runtime.PYTHON_3_11,
+      handler: "custom_authorizer.lambda_handler",
+      code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
+      timeout: Duration.minutes(15),
+      memorySize: 1024,
+      vpc: apiVpc,
+      vpcSubnets: {
+        subnets: apiVpc.privateSubnets,
+      },
+      securityGroups: [securityGroup],
+      architecture: Architecture.X86_64,
+      environment: {
+        USER_POOL_ID: props.userPool.userPoolId,
+        REGION: Aws.REGION,
+        APP_CLIENT_ID: props.userPoolClientId,
+      },
+      layers: [apiLambdaAuthorizerLayer],
+    });
+
+    customAuthorizerLambda.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"],
+        effect: iam.Effect.ALLOW,
+        resources: ["*"],
+      }),
+    );
+
+    const listWorkspaceLambda = new Function(this, "ListWorkspaceLambda", {
+      code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
+      handler: "list_workspace.lambda_handler",
+      runtime: Runtime.PYTHON_3_11,
+      timeout: Duration.minutes(15),
+      memorySize: 512,
+      architecture: Architecture.X86_64,
+      layers: [apiLambdaAuthorizerLayer],
+    });
+
+
     const batchLambda = new Function(this, "BatchLambda", {
       code: Code.fromAsset(join(__dirname, "../../../lambda/batch")),
       handler: "main.lambda_handler",
@@ -440,6 +482,13 @@ export class ApiConstruct extends Construct {
       new apigw.LambdaIntegration(uploadDocLambda),
     );
 
+    const apiListWorkspace = apiResourceStepFunction.addResource("list-workspace");
+    apiListWorkspace.addMethod(
+      "GET",
+      new apigw.LambdaIntegration(listWorkspaceLambda),
+      methodOption,
+    );
+
     // Define the API Gateway Lambda Integration to invoke Batch job
     const lambdaBatchIntegration = new apigw.LambdaIntegration(batchLambda, {
       proxy: true,
@@ -534,6 +583,7 @@ export class ApiConstruct extends Construct {
       const webSocketApi = new WebSocketConstruct(this, "WebSocketApi", {
         dispatcherLambda: lambdaDispatcher,
         sendMessageLambda: lambdaExecutor,
+        customAuthorizerLambda: customAuthorizerLambda,
       });
       let wsStage = webSocketApi.websocketApiStage
       this.wsEndpoint = `${wsStage.api.apiEndpoint}/${wsStage.stageName}/`;
@@ -812,6 +862,7 @@ export class ApiConstruct extends Construct {
       const webSocketApiV2 = new WebSocketConstruct(this, "WebSocketApiV2", {
         dispatcherLambda: lambdaDispatcherV2,
         sendMessageLambda: lambdaOnlineMain,
+        customAuthorizerLambda: customAuthorizerLambda,
       });
       let wsStageV2 = webSocketApiV2.websocketApiStage
       this.wsEndpointV2 = `${wsStageV2.api.apiEndpoint}/${wsStageV2.stageName}/`;

@@ -70,4 +70,17 @@ export class LambdaLayers {
     );
     return LambdaOnlineSourceLayer;
   }
+
+  createAuthorizerLayer() {
+    const LambdaAuthorizerLayer = new pyLambda.PythonLayerVersion(
+      this.scope,
+      "APILambdaAuthorizerLayer",
+      {
+        entry: path.join(__dirname, "../../../lambda/authorizer"),
+        compatibleRuntimes: [Runtime.PYTHON_3_11],
+        description: `LLM Bot - Authorizer layer`,
+      },
+    );
+    return LambdaAuthorizerLayer;
+  }
 }
