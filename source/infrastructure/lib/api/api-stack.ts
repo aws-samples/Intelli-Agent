@@ -324,6 +324,16 @@ export class ApiConstruct extends Construct {
       }),
     );
 
+    const listWorkspaceLambda = new Function(this, "ListWorkspaceLambda", {
+      code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
+      handler: "list_workspace.lambda_handler",
+      runtime: Runtime.PYTHON_3_11,
+      timeout: Duration.minutes(15),
+      memorySize: 512,
+      architecture: Architecture.X86_64,
+      layers: [apiLambdaAuthorizerLayer],
+    });
+
 
     const batchLambda = new Function(this, "BatchLambda", {
       code: Code.fromAsset(join(__dirname, "../../../lambda/batch")),
@@ -470,6 +480,13 @@ export class ApiConstruct extends Construct {
     apiUploadDoc.addMethod(
       "POST",
       new apigw.LambdaIntegration(uploadDocLambda),
+    );
+
+    const apiListWorkspace = apiResourceStepFunction.addResource("list-workspace");
+    apiListWorkspace.addMethod(
+      "GET",
+      new apigw.LambdaIntegration(listWorkspaceLambda),
+      methodOption,
     );
 
     // Define the API Gateway Lambda Integration to invoke Batch job
