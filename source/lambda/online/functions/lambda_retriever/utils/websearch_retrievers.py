@@ -73,7 +73,6 @@ def web_search(**args):
         return []
     tool = GoogleSearchTool(args['top_k'])
     result = tool.run(args['query'])
-    # 异常情况返回这个结果[{'Result': 'No good Google Search Result was found'}]
     return [item for item in result if 'title' in item and 'link' in item and 'snippet' in item]
 
     
