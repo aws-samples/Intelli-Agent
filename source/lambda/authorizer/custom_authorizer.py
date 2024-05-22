@@ -36,12 +36,6 @@ def generatePolicy(principalId, effect, resource):
         policyDocument["Statement"] = [statementOne]
         authResponse["policyDocument"] = policyDocument
 
-    authResponse["context"] = {
-        "stringKey": "stringval",
-        "numberKey": 123,
-        "booleanKey": True,
-    }
-
     authResponse_JSON = json.dumps(authResponse)
 
     return authResponse_JSON
