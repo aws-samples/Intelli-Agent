@@ -57,40 +57,53 @@ def generateDeny(principalId, resource):
 
 def lambda_handler(event, context):
     logger.info(event)
-    # token = event["authorizationToken"]
-    # headers = jwt.get_unverified_header(token)
-    # kid = headers["kid"]
+    try:
+        token = event["queryStringParameters"]["idToken"]
+        headers = jwt.get_unverified_header(token)
+        kid = headers["kid"]
 
-    # # Search for the kid in the downloaded public keys
-    # key_index = -1
-    # for i in range(len(keys)):
-    #     if kid == keys[i]["kid"]:
-    #         key_index = i
-    #         break
-    # if key_index == -1:
-    #     print("Public key not found in jwks.json")
-    #     return None
+        # Search for the kid in the downloaded public keys
+        key_index = -1
+        for i in range(len(keys)):
+            if kid == keys[i]["kid"]:
+                key_index = i
+                break
+        if key_index == -1:
+            logger.error("Public key not found in jwks.json")
+            raise Exception(
+                "Custom Authorizer Error: Public key not found in jwks.json"
+            )
 
-    # # Construct the public key
-    # public_key = jwt.algorithms.RSAAlgorithm.from_jwk(json.dumps(keys[key_index]))
+        # Construct the public key
+        public_key = jwt.algorithms.RSAAlgorithm.from_jwk(json.dumps(keys[key_index]))
 
-    # # Verify the signature of the JWT token
-    # claims = jwt.decode(token, public_key, algorithms=["RS256"], audience=APP_CLIENT_ID)
+        # Verify the signature of the JWT token
+        claims = jwt.decode(
+            token, public_key, algorithms=["RS256"], audience=APP_CLIENT_ID
+        )
 
-    # # Verify the token issuer
-    # if claims["iss"] != "https://cognito-idp.{}.amazonaws.com/{}".format(
-    #     REGION, USER_POOL_ID
-    # ):
-    #     print("Token was not issued by the correct issuer")
-    #     return None
+        # Verify the token issuer
+        if claims["iss"] != "https://cognito-idp.{}.amazonaws.com/{}".format(
+            REGION, USER_POOL_ID
+        ):
+            logger.error("Token was not issued by the correct issuer")
+            raise Exception(
+                "Custom Authorizer Error: Token was not issued by the correct issuer"
+            )
 
-    # # Verify the token client
-    # if claims["aud"] != APP_CLIENT_ID:
-    #     print("Token was not issued for this audience")
-    #     return None
+        # Verify the token client
+        if claims["aud"] != APP_CLIENT_ID:
+            logger.error("Token was not issued for this audience")
+            raise Exception(
+                "Custom Authorizer Error: Token was not issued for this audience"
+            )
 
-    response = generateAllow("me", event["methodArn"])
-    print("authorized")
-    return json.loads(response)
+        response = generateAllow("me", event["methodArn"])
+        logger.info("Authorized")
+        return json.loads(response)
 
-    # return claims
+    except Exception as e:
+        logger.info("Not Authorized")
+        logger.error(e)
+        response = generateDeny("me", event["methodArn"])
+        return json.loads(response)
