@@ -150,7 +150,7 @@ def tool_execute_lambda(state: ChatbotState):
     
 @node_monitor_wrapper
 def rag_retrieve_lambda(state: ChatbotState):
-    # call retrivever 
+    # call retrivever
     retriever_params = {
         "retrievers": [
             {
