@@ -16,13 +16,11 @@ from langchain.retrievers.document_compressors.base import BaseDocumentCompresso
 from .sm_utils import SagemakerEndpointVectorOrCross
 
 rerank_model_endpoint = os.environ.get("rerank_endpoint", "")
-# region = os.environ["AWS_REGION"]
 
 """Document compressor that uses BGE reranker model."""
 class BGEM3Reranker(BaseDocumentCompressor):
 
     """Number of documents to return."""
-    # top_n: int = 3
     def _colbert_score_np(self, q_reps, p_reps):
         token_scores = np.einsum('nik,njk->nij', q_reps, p_reps)
         scores = token_scores.max(-1)
@@ -30,7 +28,6 @@ class BGEM3Reranker(BaseDocumentCompressor):
         return scores
 
     async def __ainvoke_rerank_model(self, query_batch, doc_batch, loop):
-        # await asyncio.sleep(2)
         return await loop.run_in_executor(None,
                                           self._colbert_score_np,
                                           np.asarray(query_batch),
@@ -69,7 +66,6 @@ class BGEM3Reranker(BaseDocumentCompressor):
             return []
         doc_list = list(documents)
         _docs = [d.metadata["retrieval_data"]['colbert'] for d in doc_list]
-        # _docs = [d.page_content for d in doc_list]
 
         rerank_text_length = 1024 * 10
         query_colbert_list = []
@@ -100,7 +96,6 @@ class BGEM3Reranker(BaseDocumentCompressor):
 class BGEReranker(BaseDocumentCompressor):
 
     """Number of documents to return."""
-    # top_n: int = 3
     query_key: str="query"
     config: Dict={"run_name": "BGEReranker"}
     enable_debug: Any
@@ -115,7 +110,6 @@ class BGEReranker(BaseDocumentCompressor):
         self.target_model = target_model
 
     async def __ainvoke_rerank_model(self, batch, loop):
-        # await asyncio.sleep(2)
         logging.info("invoke endpoint")
         return await loop.run_in_executor(None,
                                           SagemakerEndpointVectorOrCross,
@@ -157,7 +151,6 @@ class BGEReranker(BaseDocumentCompressor):
             return []
         doc_list = list(documents)
         _docs = [d.metadata["retrieval_content"] for d in doc_list]
-        # _docs = [d.page_content for d in doc_list]
 
         rerank_pair = []
         rerank_text_length = 1024 * 10
@@ -190,7 +183,6 @@ class BGEReranker(BaseDocumentCompressor):
 class MergeReranker(BaseDocumentCompressor):
 
     """Number of documents to return."""
-    # top_n: int = 3
 
     def compress_documents(
         self,

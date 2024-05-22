@@ -51,13 +51,6 @@ def query_preprocess_lambda(state: ChatbotState):
 
 @node_monitor_wrapper
 def intention_detection_lambda(state: ChatbotState):
-    # output:str = invoke_lambda(
-    #     event_body=state,
-    #     lambda_name="Online_Intention_Detection",
-    #     lambda_module_path="lambda_intention_detection.intention",
-    #     handler_name="lambda_handler"
-    # )
-    # output = "other"
     output = "qa"
     return {
         "intent_type":output,
@@ -185,7 +178,6 @@ def rag_retrieve_lambda(state: ChatbotState):
 @node_monitor_wrapper
 def rag_llm_lambda(state:ChatbotState):
     output:str = invoke_lambda(
-        # lambda_invoke_mode=lambda_invoke_mode,
         lambda_name='Online_LLM_Generate',
         lambda_module_path="lambda_llm_generate.llm_generate",
         handler_name='lambda_handler',
@@ -265,7 +257,6 @@ def build_graph():
     workflow.add_node("intention_detection_lambda", intention_detection_lambda)
     workflow.add_node("agent_lambda", agent_lambda)
     workflow.add_node("tool_execute_lambda", tool_execute_lambda)
-    # workflow.add_node("rag_llm_generate_lambda", tag_llm_generate_lambda)
     workflow.add_node("chat_llm_generate_lambda", chat_llm_generate_lambda)
     workflow.add_node("comfort_reply",comfort_reply)
     workflow.add_node("transfer_reply", transfer_reply)

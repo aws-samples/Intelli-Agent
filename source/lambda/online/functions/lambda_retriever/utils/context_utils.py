@@ -10,11 +10,9 @@ logger.setLevel(logging.INFO)
 
 
 def contexts_trunc(docs: list[dict], context_num=2):
-    # print('docs len',len(docs))
     docs = [doc for doc in docs[:context_num]]
     # the most related doc will be placed last
     docs.sort(key=lambda x: x["score"])
-    # logger.info(f'max context score: {docs[-1]["score"]}')
     # filter same docs
     s = set()
     context_strs = []
@@ -29,8 +27,6 @@ def contexts_trunc(docs: list[dict], context_num=2):
                 {"doc": content, "source": doc["source"], "score": doc["score"]}
             )
             context_sources.append(doc["source"])
-    # print(len(context_docs))
-    # print(sg)
     return {
         "contexts": context_strs,
         "context_docs": context_docs,

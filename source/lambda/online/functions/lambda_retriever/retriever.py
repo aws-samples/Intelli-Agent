@@ -159,19 +159,7 @@ def lambda_handler(event, context=None):
     return {"code":0, "result": docs}
 
 if __name__ == "__main__":
-    query = '''
-What's the most appropriate way to proceed in the following situation?:
-(single choice)
-
-The Player filled out an Application Form but forgot to add his list of owned 5☆ Characters to the Form and wants to update it before the result is known.
-
-A) Ask the Player to provide the updated information and send it to a GM handling account issues to update the Application Form.
-
-B) Inform the Player that the list of 5☆ Characters isn't useful information to recover the HoYoverse Account and that he should only provide replies to the existing questions.  
-
-C) Advise the Player to fill out a new Application Form with the updated information.
-
-D) Reject the Player's Request and inform him that the Application Form information can't be modified/changed.'''
+    query = '''test'''
     event = {
         "body":
             json.dumps(
@@ -179,7 +167,7 @@ D) Reject the Player's Request and inform him that the Application Form informat
                     "retrievers": [
                         {
                             "type": "qd",
-                            "workspace_ids": ["mihoyo-test"],
+                            "workspace_ids": ["test"],
                             "config": {
                                 "top_k": 10,
                             }

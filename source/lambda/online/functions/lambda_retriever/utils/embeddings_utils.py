@@ -1,4 +1,3 @@
-# embeddings
 import json
 import os
 from typing import Dict, List
@@ -87,12 +86,6 @@ def get_similarity_embedding(
         stop=None,
     )
     return response
-    # if model_type in ["vector","m3"]:
-    #     response = {"dense_vecs": response}
-    # # elif model_type == "m3":
-    # #     # response["dense_vecs"] = response["dense_vecs"]
-    # #     response = {"dense_vecs": response}
-    # return response
 
 def get_relevance_embedding(
     query: str,
@@ -121,12 +114,6 @@ def get_relevance_embedding(
         stop=None,
     )
     return response
-    # if model_type in ["vector",'m3']:
-    #     response = {"dense_vecs": response}
-    # # elif model_type == "m3":
-    # #     response = {"dense_vecs": response}
-    #     # response["dense_vecs"] = response["dense_vecs"]
-    # return response
 
 def get_embedding_bedrock(texts, model_id):
     provider = model_id.split(".")[0]
@@ -136,7 +123,6 @@ def get_embedding_bedrock(texts, model_id):
             "input_type": "search_document"
         })
     else:
-        # includes common provider == "amazon"
         body = json.dumps({
             "inputText": texts if isinstance(texts, str) else texts[0],
         })

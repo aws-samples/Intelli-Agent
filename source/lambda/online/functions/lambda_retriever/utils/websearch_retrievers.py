@@ -2,7 +2,7 @@ import asyncio
 import aiohttp
 import time
 import re
-# from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup
 import os
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 import logging
