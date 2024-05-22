@@ -93,7 +93,7 @@ s3_prefix = args["S3_PREFIX"]
 workspace_id = args["WORKSPACE_ID"]
 workspace_table = args["WORKSPACE_TABLE"]
 index_type = args["INDEX_TYPE"]
-# Valid Opeartion types: "create", "delete", "update", "extract_only"
+# Valid Operation types: "create", "delete", "update", "extract_only"
 operation_type = args["OPERATION_TYPE"]
 
 
@@ -108,11 +108,7 @@ ENHANCE_CHUNK_SIZE = 25000
 OBJECT_EXPIRY_TIME = 3600
 
 credentials = boto3.Session().get_credentials()
-awsauth = AWS4Auth(
-    refreshable_credentials=credentials,
-    region=region,
-    service="es"
-)
+awsauth = AWS4Auth(refreshable_credentials=credentials, region=region, service="es")
 MAX_OS_DOCS_PER_PUT = 8
 
 nltk.data.path.append("/tmp/nltk_data")
@@ -380,17 +376,11 @@ class BatchQueryDocumentProcessor:
         search_body = {
             "query": {
                 # use term-level queries only for fields mapped as keyword
-                "prefix": {
-                    "metadata.file_path.keyword": {
-                        "value": s3_path
-                    }
-                },
+                "prefix": {"metadata.file_path.keyword": {"value": s3_path}},
             },
             "size": 100000,
             "sort": [{"_score": {"order": "desc"}}],
-            "_source": {
-                "excludes": ["vector_field"]
-            }
+            "_source": {"excludes": ["vector_field"]},
         }
 
         if self.docsearch.client.indices.exists(index=self.docsearch.index_name):

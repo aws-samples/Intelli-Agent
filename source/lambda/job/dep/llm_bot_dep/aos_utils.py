@@ -78,7 +78,7 @@ class OpenSearchClient:
                     "knn.algo_param.ef_search": 512,
                     "refresh_interval": "60s",
                     "number_of_shards": 8,
-                    # disabel replica
+                    # disable replica
                     "number_of_replicas": 0,
                 }
             },
