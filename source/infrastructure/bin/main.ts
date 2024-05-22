@@ -56,6 +56,7 @@ export class RootStack extends Stack {
       embeddingAndRerankerModelVersion: assetConstruct.embeddingAndRerankerModelVersion,
       instructModelPrefix: assetConstruct.instructModelPrefix,
       instructModelVersion: assetConstruct.instructModelVersion,
+      iamHelper: iamHelper,
       env: process.env,
     });
     llmStack.node.addDependency(assetConstruct);

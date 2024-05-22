@@ -138,7 +138,10 @@ export class ApiConstruct extends Construct {
     embeddingLambda.addToRolePolicy(
       new iam.PolicyStatement({
         actions: [
-          "es:*",
+          "es:ESHttpGet",
+          "es:ESHttpPut",
+          "es:ESHttpPost",
+          "es:ESHttpHead",
         ],
         effect: iam.Effect.ALLOW,
         resources: ["*"],
@@ -169,7 +172,10 @@ export class ApiConstruct extends Construct {
     aosLambda.addToRolePolicy(
       new iam.PolicyStatement({
         actions: [
-          "es:*",
+          "es:ESHttpGet",
+          "es:ESHttpPut",
+          "es:ESHttpPost",
+          "es:ESHttpHead",
         ],
         effect: iam.Effect.ALLOW,
         resources: ["*"],
@@ -306,7 +312,10 @@ export class ApiConstruct extends Construct {
     batchLambda.addToRolePolicy(
       new iam.PolicyStatement({
         actions: [
-          "es:*",
+          "es:ESHttpGet",
+          "es:ESHttpPut",
+          "es:ESHttpPost",
+          "es:ESHttpHead",
           "batch:*",
         ],
         effect: iam.Effect.ALLOW,
@@ -468,9 +477,11 @@ export class ApiConstruct extends Construct {
         new iam.PolicyStatement({
           // principals: [new iam.AnyPrincipal()],
           actions: [
-            "es:*",
+            "es:ESHttpGet",
+            "es:ESHttpPut",
+            "es:ESHttpPost",
+            "es:ESHttpHead",
             "secretsmanager:GetSecretValue",
-            "translate:*",
             "bedrock:*",
           ],
           effect: iam.Effect.ALLOW,
@@ -555,9 +566,11 @@ export class ApiConstruct extends Construct {
       lambdaOnlineMain.addToRolePolicy(
         new iam.PolicyStatement({
           actions: [
-            "es:*",
+            "es:ESHttpGet",
+            "es:ESHttpPut",
+            "es:ESHttpPost",
+            "es:ESHttpHead",
             "secretsmanager:GetSecretValue",
-            "translate:*",
             "bedrock:*",
             "lambda:InvokeFunction",
           ],
@@ -594,9 +607,11 @@ export class ApiConstruct extends Construct {
       lambdaOnlineQueryPreprocess.addToRolePolicy(
         new iam.PolicyStatement({
           actions: [
-            "es:*",
+            "es:ESHttpGet",
+            "es:ESHttpPut",
+            "es:ESHttpPost",
+            "es:ESHttpHead",
             "secretsmanager:GetSecretValue",
-            "translate:*",
             "bedrock:*",
             "lambda:InvokeFunction",
           ],
@@ -647,9 +662,11 @@ export class ApiConstruct extends Construct {
       lambdaOnlineAgent.addToRolePolicy(
         new iam.PolicyStatement({
           actions: [
-            "es:*",
+            "es:ESHttpGet",
+            "es:ESHttpPut",
+            "es:ESHttpPost",
+            "es:ESHttpHead",
             "secretsmanager:GetSecretValue",
-            "translate:*",
             "bedrock:*",
             "lambda:InvokeFunction",
           ],
@@ -683,9 +700,11 @@ export class ApiConstruct extends Construct {
         new iam.PolicyStatement({
           // principals: [new iam.AnyPrincipal()],
           actions: [
-            "es:*",
+            "es:ESHttpGet",
+            "es:ESHttpPut",
+            "es:ESHttpPost",
+            "es:ESHttpHead",
             "secretsmanager:GetSecretValue",
-            "translate:*",
             "bedrock:*",
             "lambda:InvokeFunction",
           ],
