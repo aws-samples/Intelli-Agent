@@ -33,7 +33,6 @@ def create_presigned_url(bucket_name, object_name, content_type, expiration):
 
 def lambda_handler(event, context):
     logger.info(event)
-    group_id = event["requestContext"]["authorizer"]["claims"]["cognito:groups"]
     resp_header = {
         "Content-Type": "application/json",
         "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
@@ -45,7 +44,7 @@ def lambda_handler(event, context):
 
     try:
         input_body = json.loads(event["body"])
-        file_name = "documents/" + group_id + "/" + input_body["file_name"]
+        file_name = "documents/" + input_body["file_name"]
         if "content_type" in input_body:
             content_type = input_body["content_type"]
         if "expiration" in input_body:
