@@ -541,14 +541,6 @@ export class ApiConstruct extends Construct {
       const lambdaOnlineMain = new Function(this, "lambdaOnlineMain", {
         runtime: Runtime.PYTHON_3_12,
         handler: "main.lambda_handler",
-        environment: {
-          "messages_table_name": "llm-bot-dev-ddbconstructMessagesTableC3B0A8B3-DN7KY89H5BW8",
-          "sessions_table_name": "llm-bot-dev-ddbconstructSessionsTableAE3C7A55-850G345045TI",
-          "websocket_url": "https://p69rrgxu0g.execute-api.us-west-2.amazonaws.com/prod",
-          "workspace_table": "llm-bot-dev-etlstackNestedStacketlstackNestedStackResource5A19705C-1AYC9LLFBPLAK-WorkspaceTable68AC2584-RR520NLDCQXW",
-          "aos_endpoint": "vpc-aosconstructdom-u4lkkdzp67sy-kivgpnj44vx4lcjjc7qxxgomla.us-west-2.es.amazonaws.com",
-          "rerank_endpoint": "embedding-and-reranker-bce-embedding-and-bge-reranker-43972"
-        },
         code: Code.fromAsset(
           join(__dirname, "../../../lambda/online/lambda_main"),
         ),
