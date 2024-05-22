@@ -18,137 +18,126 @@ from langchain.schema.runnable import (
 from langgraph.graph import END, StateGraph
 
 from common_utils.logger_utils  import get_logger
-from common_utils.lambda_invoke_utils import invoke_with_lambda,invoke_with_handler
+from common_utils.lambda_invoke_utils import chatbot_lambda_call_wrapper,invoke_lambda
 from common_utils.langchain_utils import chain_logger,RunnableParallelAssign,NestUpdateState
 
 logger = get_logger("intention")
 
 
 # 过滤qq结果
-def documents_list_filter(doc_dicts: list[dict], filter_key="score", threshold=-1):
-    results = []
-    for doc_dict in doc_dicts:
-        if doc_dict[filter_key] < threshold:
-            continue
-        results.append(doc_dict)
+# def documents_list_filter(doc_dicts: list[dict], filter_key="score", threshold=-1):
+#     results = []
+#     for doc_dict in doc_dicts:
+#         if doc_dict[filter_key] < threshold:
+#             continue
+#         results.append(doc_dict)
 
-    return results
+#     return results
 
 
-def get_qq_match_chain(state:dict):
-    qq_workspace_list = state["qq_workspace_list"]
-    config = state["config"]
-    trace_infos = state['trace_infos']
-    qq_match_threshold = config["retriever_config"]["qq_config"][
-        "qq_match_threshold"
-    ]
-    qq_retriever_top_k = config["retriever_config"]["qq_config"]["retriever_top_k"]
+# def get_qq_match_chain(state:dict):
+#     qq_workspace_list = state["qq_workspace_list"]
+#     config = state["config"]
+#     trace_infos = state['trace_infos']
+#     qq_match_threshold = config["retriever_config"]["qq_config"][
+#         "qq_match_threshold"
+#     ]
+#     qq_retriever_top_k = config["retriever_config"]["qq_config"]["retriever_top_k"]
 
-    qq_retriever_results_chain = chain_logger(
-        "qq_retriever_lambda",
-        RunnableLambda(
-                lambda x: invoke_with_lambda(
-                    lambda_name="lambda_retriever",
-                    event_body= {
-                            "type": "qq_aos",
-                            "workspace_ids": qq_workspace_list,
-                            "query": x['query'],
-                            "retriever_top_k": qq_retriever_top_k,
-                            "method": "knn"
-                        }
-                )
-        ),
-        trace_infos=trace_infos
-    )
+#     qq_retriever_results_chain = chain_logger(
+#         "qq_retriever_lambda",
+#         RunnableLambda(
+#                 lambda x: invoke_with_lambda(
+#                     lambda_name="lambda_retriever",
+#                     event_body= {
+#                             "type": "qq_aos",
+#                             "workspace_ids": qq_workspace_list,
+#                             "query": x['query'],
+#                             "retriever_top_k": qq_retriever_top_k,
+#                             "method": "knn"
+#                         }
+#                 )
+#         ),
+#         trace_infos=trace_infos
+#     )
     
-    qq_chain = qq_retriever_results_chain | RunnableLambda(
-            partial(documents_list_filter, threshold=qq_match_threshold)
-        )
-    return qq_chain
+#     qq_chain = qq_retriever_results_chain | RunnableLambda(
+#             partial(documents_list_filter, threshold=qq_match_threshold)
+#         )
+#     return qq_chain
 
 
-def get_aos_intent_recognition_chain(state:dict):
-    intention_workspace_list = state["intention_workspace_list"]
-    config = state["config"]
-    trace_infos = state['trace_infos']
+# def get_aos_intent_recognition_chain(state:dict):
+#     intention_workspace_list = state["intention_workspace_list"]
+#     config = state["config"]
+#     trace_infos = state['trace_infos']
 
-    intention_retriever_top_k = config["intention_config"]["aos_config"]["retriever_top_k"]
+#     intention_retriever_top_k = config["intention_config"]["aos_config"]["retriever_top_k"]
 
-    intention_retriever_results_chain = chain_logger(
-        "intention_retriever_lambda",
-        RunnableLambda(
-            lambda x: invoke_with_lambda(
-                lambda_name="lambda_retriever",
-                event_body= {
-                        "type": "qq_aos",
-                        "workspace_ids": intention_workspace_list,
-                        "query": x['query'],
-                        "retriever_top_k": intention_retriever_top_k,
-                        "method": "knn"
-                    }
-            )
-        ),
-        trace_infos=trace_infos
-    )
+#     intention_retriever_results_chain = chain_logger(
+#         "intention_retriever_lambda",
+#         RunnableLambda(
+#             lambda x: invoke_with_lambda(
+#                 lambda_name="lambda_retriever",
+#                 event_body= {
+#                         "type": "qq_aos",
+#                         "workspace_ids": intention_workspace_list,
+#                         "query": x['query'],
+#                         "retriever_top_k": intention_retriever_top_k,
+#                         "method": "knn"
+#                     }
+#             )
+#         ),
+#         trace_infos=trace_infos
+#     )
     
-    # 过滤intent
-    intention_chain = intention_retriever_results_chain | \
-        RunnableLambda(lambda retriever_list: sorted(retriever_list, key=lambda x: x["score"])[-1]["intent"])
+#     # 过滤intent
+#     intention_chain = intention_retriever_results_chain | \
+#         RunnableLambda(lambda retriever_list: sorted(retriever_list, key=lambda x: x["score"])[-1]["intent"])
 
-    return intention_chain 
+#     return intention_chain 
 
 
-def qq_match_and_intent_recognition(state):
-    state = state["keys"]
-    qq_chain = get_qq_match_chain(state)
-    intent_recognition_chain = get_aos_intent_recognition_chain(state)
+# def qq_match_and_intent_recognition(state):
+#     state = state["keys"]
+#     qq_chain = get_qq_match_chain(state)
+#     intent_recognition_chain = get_aos_intent_recognition_chain(state)
 
-    log_output_template = dedent("""
-        qq_result num: {qq_result_num}
-        intent recognition type: {intent_type}
-    """)
-    qq_and_intention_type_recognition_chain = chain_logger(
-        RunnableParallelAssign(
-            qq_result=qq_chain,
-            intent_type=intent_recognition_chain,
-        )
-        | RunnablePassthrough.assign(qq_result_num=lambda x: len(x["qq_result"])),
-        "qq_and_intention_type_recognition_chain",
-        log_output_template=log_output_template,
-        # message_id=state["message_id"],
+#     log_output_template = dedent("""
+#         qq_result num: {qq_result_num}
+#         intent recognition type: {intent_type}
+#     """)
+#     qq_and_intention_type_recognition_chain = chain_logger(
+#         RunnableParallelAssign(
+#             qq_result=qq_chain,
+#             intent_type=intent_recognition_chain,
+#         )
+#         | RunnablePassthrough.assign(qq_result_num=lambda x: len(x["qq_result"])),
+#         "qq_and_intention_type_recognition_chain",
+#         log_output_template=log_output_template,
+#         # message_id=state["message_id"],
+#     )
+
+#     _state = qq_and_intention_type_recognition_chain.invoke(state)
+#     state.update(_state)
+
+
+@chatbot_lambda_call_wrapper
+def lambda_handler(state:dict, context=None):
+    intention_config = state['chatbot_config'].get("intention_config",{})
+    event_body = {
+        "query": state['query'],
+        **intention_config
+    }
+    # call retriver
+    res:list[dict] = invoke_lambda(
+        lambda_name='Online_Function_Retriever',
+        lambda_module_path="functions.lambda_retriever.retriever",
+        handler_name='lambda_handler',
+        event_body=event_body
     )
 
-    _state = qq_and_intention_type_recognition_chain.invoke(state)
-    state.update(_state)
-
-# @handle_error
-def lambda_handler(event, context=None):
-    # embedding_endpoint = os.environ.get('embedding_endpoint')
-    # region = os.environ.get('region')
-    # aos_endpoint = os.environ.get('aos_endpoint')
-    # # index_name = os.environ.get('index_name')
-    # query = event.get('query')
-    # index_name = event.get('example_index')
-    # fewshot_cnt = event.get('fewshot_cnt')
-    # llm_model_endpoint = os.environ.get('llm_model_endpoint')
-
-    event_body = json.loads(event["body"])
-    state:dict = event_body['state']
-    logger.info(f'state: {json.dumps(state,ensure_ascii=False,indent=2)}')
-
-    workflow = StateGraph(NestUpdateState)
-
-    workflow.add_node('qq_match_and_intent_recognition',qq_match_and_intent_recognition)
-    workflow.set_entry_point('qq_match_and_intent_recognition')
-    workflow.set_finish_point('qq_match_and_intent_recognition')
-
-    app = workflow.compile()
-
-    output = app.invoke(state)
-    
-    state.update(output)
-
-    return state
+    return res
 
     # logger.info("embedding_endpoint: {}".format(embedding_endpoint))
     # logger.info("region:{}".format(region))

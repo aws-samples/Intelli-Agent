@@ -76,7 +76,6 @@ class MessageType(ConstantBase):
     SYSTEM_MESSAGE_TYPE = 'system'
 
 
-
 class StreamMessageType(ConstantBase):
     START = "START"
     END = "END"
@@ -84,3 +83,8 @@ class StreamMessageType(ConstantBase):
     CHUNK = "CHUNK"
     CONTEXT = "CONTEXT"
     MONITOR = "MONITOR"
+
+
+class ChatbotMode(ConstantBase):
+    yb_mode = "yb_mode"  # origin from yuanbo
+    tool_mode = "tool_mode"  # tool based chatbot

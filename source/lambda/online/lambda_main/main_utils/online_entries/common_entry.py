@@ -6,6 +6,7 @@ from common_utils.python_utils import update_nest_dict,add_messages
 from functions.tools import get_tool_by_name,Tool
 from functions.tool_execute_result_format import format_tool_execute_result
 from lambda_main.main_utils.parse_config import parse_common_entry_config
+from common_utils.lambda_invoke_utils import send_trace
 
 
 class ChatbotState(TypedDict):
@@ -25,6 +26,7 @@ class ChatbotState(TypedDict):
     answer: Any  # final answer
     current_monitor_infos: str 
     extra_response: Annotated[dict,update_nest_dict]
+    default_mode: bool = True   # yuanbo mode
     
 
 ####################
@@ -216,7 +218,6 @@ def build_graph():
     workflow.add_node("intention_detection_lambda", intention_detection_lambda)
     workflow.add_node("agent_lambda", agent_lambda)
     workflow.add_node("tool_execute_lambda", tool_execute_lambda)
-    # workflow.add_node("rag_llm_generate_lambda", tag_llm_generate_lambda)
     workflow.add_node("chat_llm_generate_lambda", chat_llm_generate_lambda)
     workflow.add_node("comfort_reply",comfort_reply)
     workflow.add_node("transfer_reply", transfer_reply)
@@ -225,11 +226,8 @@ def build_graph():
     workflow.add_node("give_response_wo_tool",give_response_without_any_tool)
     workflow.add_node("rag_retrieve_lambda",rag_retrieve_lambda)
     workflow.add_node("rag_llm_lambda",rag_llm_lambda)
-
-    # block 1: query preprocess
-    # contents:
-    # 1. check whether query contains invalid information, like PII 
-    # 2. query rewrite, rewrite query based on chat history
+    
+    # add all edges
     workflow.set_entry_point("query_preprocess_lambda")
     workflow.add_edge("query_preprocess_lambda","intention_detection_lambda")
     workflow.add_edge("tool_execute_lambda","agent_lambda")
@@ -242,7 +240,7 @@ def build_graph():
     workflow.add_edge("give_tool_response",END)
     workflow.add_edge("give_response_wo_tool",END)
 
-    # decide whether it is a valid query
+    # add conditional edges
     workflow.add_conditional_edges(
         "intention_detection_lambda",
         intent_route,
@@ -268,7 +266,6 @@ def build_graph():
     app = workflow.compile()
     return app
 
-
 app = None 
 
 def common_entry(event_body):
@@ -288,7 +285,6 @@ def common_entry(event_body):
     
     ################################################################################
     # prepare inputs and invoke graph
-    
     event_body['chatbot_config'] = parse_common_entry_config(event_body['chatbot_config'])
     
     query = event_body['query']
