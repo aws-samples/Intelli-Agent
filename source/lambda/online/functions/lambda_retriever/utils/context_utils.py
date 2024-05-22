@@ -3,7 +3,7 @@ import os
 
 from langchain.docstore.document import Document
 
-from .time_utils import timeit
+from common_utils.time_utils import timeit
 
 logger = logging.getLogger("context_utils")
 logger.setLevel(logging.INFO)

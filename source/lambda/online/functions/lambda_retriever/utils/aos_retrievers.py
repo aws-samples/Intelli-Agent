@@ -12,7 +12,7 @@ from langchain.schema.retriever import BaseRetriever
 from langchain.callbacks.manager import CallbackManagerForRetrieverRun
 from langchain.docstore.document import Document
 
-from .time_utils import timeit
+from common_utils.time_utils import timeit
 from .aos_utils import LLMBotOpenSearchClient
 from .sm_utils import SagemakerEndpointVectorOrCross
 # from .llmbot_utils import (
@@ -711,23 +711,6 @@ class QueryDocumentBM25Retriever(BaseRetriever):
         if self.enable_debug:
             debug_info[f"qd-bm25-recall-{self.index}-{self.lang}"] = remove_redundancy_debug_info(opensearch_bm25_results)
         return doc_list
-
-
-
-class GoogleRetriever(BaseRetriever):
-    search: Any
-    result_num: Any
-    def __init__(self, result_num):
-        super().__init__()
-        from langchain.tools import Tool
-        from langchain.utilities import GoogleSearchAPIWrapper
-        self.search = GoogleSearchAPIWrapper()
-        self.result_num = result_num
-
-    def _get_relevant_documents(self, question: Dict, *, run_manager: CallbackManagerForRetrieverRun) -> List[Document]:
-        results = self.search.results(question["query"], self.result_num)
-        for result in results:
-            logger.info(result)
 
 def index_results_format(docs:list, threshold=-1):
     results = []
