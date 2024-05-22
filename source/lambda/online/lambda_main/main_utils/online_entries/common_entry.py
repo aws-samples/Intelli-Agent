@@ -1,7 +1,11 @@
+import json
 from typing import TypedDict,Any,Annotated
 from langgraph.graph import StateGraph,END
 from common_utils.lambda_invoke_utils import invoke_lambda,node_monitor_wrapper
 from common_utils.python_utils import update_nest_dict,add_messages
+from common_utils.constant import (
+    LLMTaskType
+)
 
 from functions.tools import get_tool_by_name,Tool
 from functions.tool_execute_result_format import format_tool_execute_result
@@ -25,6 +29,7 @@ class ChatbotState(TypedDict):
     answer: Any  # final answer
     current_monitor_infos: str 
     extra_response: Annotated[dict,update_nest_dict]
+    contexts: str = None
     
 
 ####################
@@ -46,15 +51,7 @@ def query_preprocess_lambda(state: ChatbotState):
 
 @node_monitor_wrapper
 def intention_detection_lambda(state: ChatbotState):
-    # output:str = invoke_lambda(
-    #     event_body=state,
-    #     lambda_name="Online_Intention_Detection",
-    #     lambda_module_path="lambda_intention_detection.intention",
-    #     handler_name="lambda_handler"
-    # )
-    output = "other"
-    if state.get("use_qa"):
-        output = "qa"
+    output = "qa"
     return {
         "intent_type":output,
         "current_monitor_infos":f"intent_type: {output}"
@@ -144,7 +141,52 @@ def tool_execute_lambda(state: ChatbotState):
             "content": ret
     }]}
     
+@node_monitor_wrapper
+def rag_retrieve_lambda(state: ChatbotState):
+    # call retrivever
+    retriever_params = {
+        "retrievers": [
+            {
+                "type": "qd",
+                "workspace_ids": ["mihoyo-test"],
+                "config": {
+                    "top_k": 20,
+                    "using_whole_doc": True,
+                }
+            },
+        ],
+        "rerankers": [
+            {
+                "type": "reranker",
+                "config": {
+                    "enable_debug": False,
+                    "target_model": "bge_reranker_model.tar.gz"
+                }
+            }
+        ],
+        "query": state['query'],
+    }
+    output:str = invoke_lambda(
+        event_body=retriever_params,
+        lambda_name="Online_Function_Retriever",
+        lambda_module_path="functions.lambda_retriever.retriever",
+        handler_name="lambda_handler"
+    )
+    contexts = [doc['page_content'] for doc in output['result']['docs']]
+    return {"contexts": contexts}
 
+@node_monitor_wrapper
+def rag_llm_lambda(state:ChatbotState):
+    output:str = invoke_lambda(
+        lambda_name='Online_LLM_Generate',
+        lambda_module_path="lambda_llm_generate.llm_generate",
+        handler_name='lambda_handler',
+        event_body={
+            "llm_config": {"model_id": "anthropic.claude-3-sonnet-20240229-v1:0", "intent_type": LLMTaskType.RAG},
+            "llm_input": {"contexts": [state['contexts']], "query": state['query'], "chat_history": state['chat_history']}
+            }
+        )
+    return {"answer": output}
 
 def chat_llm_generate_lambda(state:ChatbotState):
     answer:dict = invoke_lambda(
@@ -156,7 +198,6 @@ def chat_llm_generate_lambda(state:ChatbotState):
         lambda_module_path="lambda_llm_generate.llm_generate",
         handler_name="lambda_handler"
     )
-
     return {"answer":answer}
 
 
@@ -216,7 +257,6 @@ def build_graph():
     workflow.add_node("intention_detection_lambda", intention_detection_lambda)
     workflow.add_node("agent_lambda", agent_lambda)
     workflow.add_node("tool_execute_lambda", tool_execute_lambda)
-    # workflow.add_node("rag_llm_generate_lambda", tag_llm_generate_lambda)
     workflow.add_node("chat_llm_generate_lambda", chat_llm_generate_lambda)
     workflow.add_node("comfort_reply",comfort_reply)
     workflow.add_node("transfer_reply", transfer_reply)
@@ -241,6 +281,8 @@ def build_graph():
     workflow.add_edge("give_rhetorical_question",END)
     workflow.add_edge("give_tool_response",END)
     workflow.add_edge("give_response_wo_tool",END)
+    workflow.add_edge("rag_retrieve_lambda","rag_llm_lambda")
+    workflow.add_edge("rag_llm_lambda",END)
 
     # decide whether it is a valid query
     workflow.add_conditional_edges(
