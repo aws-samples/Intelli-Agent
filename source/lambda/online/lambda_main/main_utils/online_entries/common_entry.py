@@ -1,289 +1,358 @@
-import json 
-import os
+import json
 from typing import TypedDict,Any,Annotated
 from langgraph.graph import StateGraph,END
-from common_utils.lambda_invoke_utils import invoke_lambda,chatbot_lambda_call_wrapper
-from common_utils.langchain_utils import update_nest_dict,NestUpdateState
+from common_utils.lambda_invoke_utils import invoke_lambda,node_monitor_wrapper
+from common_utils.python_utils import update_nest_dict,add_messages
+from common_utils.constant import (
+    LLMTaskType
+)
 
-# from .. import parse_config
+from functions.tools import get_tool_by_name,Tool
+from functions.tool_execute_result_format import format_tool_execute_result
+from lambda_main.main_utils.parse_config import parse_common_entry_config
 
-# fast reply
-INVALID_QUERY = "请重新描述您的问题。请注意：\n不能过于简短也不能超过500个字符\n不能包含个人信息（身份证号、手机号等）"
-INVALID_INTENTION = "很抱歉，我只能回答与知识问答相关的咨询。"
-KNOWLEDGE_QA_INVALID_CONTEXT = "很抱歉，根据我目前掌握到的信息无法给出回答。"
 
-# class AppState(TypedDict):
-#     keys: Annotated
-################
-# local nodes #
-################
-def fast_reply(
-        state
-    ):
+class ChatbotState(TypedDict):
+    chatbot_config: dict # chatbot config
+    query: str 
+    ws_connection_id: str 
+    stream: bool 
+    query_rewrite: str = None  # query rewrite ret
+    intent_type: str = None # intent
+    trace_infos: Annotated[list[str],add_messages]
+    message_id: str = None
+    chat_history: Annotated[list[dict],add_messages]
+    agent_chat_history: Annotated[list[dict],add_messages]
+    current_tool_calls: dict
+    current_tool_execute_res: dict
+    debug_infos: Annotated[dict,update_nest_dict]
+    answer: Any  # final answer
+    current_monitor_infos: str 
+    extra_response: Annotated[dict,update_nest_dict]
+    contexts: str = None
+    
 
-    state = state['keys']
-    answer = state['answer']
-
-    output = {
-            "answer": answer,
-            # "sources": [],
-            "contexts": [],
-            "context_docs": []
-    }
-    state.update(output)
-
-################
-# local branches #
-################
-def is_query_valid(state):
-    state = state['keys']
-    if state['is_query_valid'] == True:
-        return "valid query"
-    else:
-        state['answer'] = INVALID_QUERY
-        return 'invalid query'
-
-def is_intention_valid(state):
-    state = state['keys']
-    if state['is_intention_valid']:
-        return "valid intention"
-    else:
-        state['answer'] = INVALID_INTENTION
-        return 'invalid intention'
-
-def is_context_enough(state):
-    state = state['keys']
-    if state['is_context_enough'] == 'invalid context':
-        state['answer'] = KNOWLEDGE_QA_INVALID_CONTEXT
-    return state['is_context_enough']
-
-################
+####################
 # nodes in lambdas #
-################
-import boto3
-lambda_client= boto3.client('lambda')
-def query_preprocess_lambda(state: NestUpdateState):
-    state = state['keys']
-    lambda_invoke_mode = state['lambda_invoke_mode']
-    # run in lambda
-    # msg = {"query": state['query']}
-    output = invoke_lambda(
+####################
+
+@node_monitor_wrapper
+def query_preprocess_lambda(state: ChatbotState):
+    output:str = invoke_lambda(
         event_body=state,
-        lambda_invoke_mode=lambda_invoke_mode,
         lambda_name="Online_Query_Preprocess",
         lambda_module_path="lambda_query_preprocess.query_preprocess",
         handler_name="lambda_handler"
     )
-    # invoke_response = lambda_client.invoke(FunctionName="Online_Query_Preprocess",
-    #                                     InvocationType='RequestResponse',
-    #                                     Payload=json.dumps(msg))
-    # response_body = invoke_response['Payload']
+    return {
+        "query_rewrite":output,
+        "current_monitor_infos":f"query_rewrite: {output}"
+        }
 
-    # response_str = response_body.read().decode("unicode_escape")
-    # response_str = response_str.strip('"')
+@node_monitor_wrapper
+def intention_detection_lambda(state: ChatbotState):
+    output = "qa"
+    return {
+        "intent_type":output,
+        "current_monitor_infos":f"intent_type: {output}"
+        }
 
-    state.update(output)
 
-    # print(f"response_str is {response_str}")
+@node_monitor_wrapper
+def rag_retrieve_lambda(state: ChatbotState):
+    # call retrivever 
+    return None 
 
-    # response = json.loads(response_str)
-    # state['is_query_valid'] = response['body']['is_query_valid']
 
-def intention_detection_lambda(state: AppState):
-    state = state['keys']
-    # run in lambda
-    msg = {"query": state['query']}
-    invoke_response = lambda_client.invoke(FunctionName="Online_Intention_Detection",
-                                        InvocationType='RequestResponse',
-                                        Payload=json.dumps(msg))
-    response_body = invoke_response['Payload']
+@node_monitor_wrapper
+def rag_llm_lambda(state:ChatbotState):
+    return None 
 
-    response_str = response_body.read().decode("unicode_escape")
-    response_str = response_str.strip('"')
 
-    response = json.loads(response_str)
-    state['is_intention_valid'] = response['body']['is_intention_valid']
+@node_monitor_wrapper
+def agent_lambda(state: ChatbotState):
+    output:dict = invoke_lambda(
+        event_body={**state,"chat_history":state['agent_chat_history']},
+        lambda_name="Online_Agent",
+        lambda_module_path="lambda_agent.agent",
+        handler_name="lambda_handler"
+    )
+    
+    current_tool_calls = output['tool_calls']
+    return {
+        "current_monitor_infos":f"current_tool_calls: {current_tool_calls}",
+        "current_tool_calls": current_tool_calls,
+        "agent_chat_history": [{
+                    "role": "ai",
+                    "content": output['content']
+                }]
+        }
+    
 
-def agent_lambda(state: AppState):
-    state = state['keys']
-    # run in lambda
-    msg = {"query": state['query']}
-    invoke_response = lambda_client.invoke(FunctionName="Online_Agent",
-                                        InvocationType='RequestResponse',
-                                        Payload=json.dumps(msg))
-    response_body = invoke_response['Payload']
+@node_monitor_wrapper
+def tool_execute_lambda(state: ChatbotState):
+    """executor lambda
+    Args:
+        state (NestUpdateState): _description_
 
-    response_str = response_body.read().decode("unicode_escape")
-    response_str = response_str.strip('"')
+    Returns:
+        _type_: _description_
+    """
+    tool_calls = state['current_tool_calls']
+    assert len(tool_calls) == 1, tool_calls
+    
+    tool_call_results = []
 
-    response = json.loads(response_str)
-    state['is_context_enough'] = response['body']['is_context_enough']
+    for tool_call in tool_calls:
+        tool_name = tool_call["name"]
+        event_body = tool_call['args']
+        tool:Tool = get_tool_by_name(tool_name)
+        # call tool
+        output:dict = invoke_lambda(
+            event_body=event_body,
+            lambda_name=tool.lambda_name,
+            lambda_module_path=tool.lambda_module_path,
+            handler_name=tool.handler_name
+        )
 
-def function_call_lambda(state: AppState):
-    state = state['keys']
-    # run in lambda
-    msg = {"query": state['query']}
-    invoke_response = lambda_client.invoke(FunctionName="Online_Function_Knowledge_Base",
-                                        InvocationType='RequestResponse',
-                                        Payload=json.dumps(msg))
-    response_body = invoke_response['Payload']
+        tool_call_results.append({
+            "name": tool_name,
+            "output": output,
+            "kwargs": tool_call['args'],
+            "model_id": tool_call['model_id']
+        })
+    
+    # convert tool calling as chat history
+    tool_call_result_strs = []
+    for tool_call_result in tool_call_results:
+        tool_exe_output = tool_call_result['output']
+        tool_exe_output['tool_name'] = tool_call_result['name']
+        ret:str = format_tool_execute_result(
+            tool_call_result["model_id"],
+            tool_exe_output
+        )
+        tool_call_result_strs.append(ret)
+    
+    ret = "\n".join(tool_call_result_strs)
+    return {
+        "current_monitor_infos": ret,
+        "agent_chat_history":[{
+            "role": "user",
+            "content": ret
+    }]}
+    
+@node_monitor_wrapper
+def rag_retrieve_lambda(state: ChatbotState):
+    # call retrivever
+    retriever_params = {
+        "retrievers": [
+            {
+                "type": "qd",
+                "workspace_ids": ["mihoyo-test"],
+                "config": {
+                    "top_k": 20,
+                    "using_whole_doc": True,
+                }
+            },
+        ],
+        "rerankers": [
+            {
+                "type": "reranker",
+                "config": {
+                    "enable_debug": False,
+                    "target_model": "bge_reranker_model.tar.gz"
+                }
+            }
+        ],
+        "query": state['query'],
+    }
+    output:str = invoke_lambda(
+        event_body=retriever_params,
+        lambda_name="Online_Function_Retriever",
+        lambda_module_path="functions.lambda_retriever.retriever",
+        handler_name="lambda_handler"
+    )
+    contexts = [doc['page_content'] for doc in output['result']['docs']]
+    return {"contexts": contexts}
 
-    response_str = response_body.read().decode("unicode_escape")
-    response_str = response_str.strip('"')
+@node_monitor_wrapper
+def rag_llm_lambda(state:ChatbotState):
+    output:str = invoke_lambda(
+        lambda_name='Online_LLM_Generate',
+        lambda_module_path="lambda_llm_generate.llm_generate",
+        handler_name='lambda_handler',
+        event_body={
+            "llm_config": {"model_id": "anthropic.claude-3-sonnet-20240229-v1:0", "intent_type": LLMTaskType.RAG},
+            "llm_input": {"contexts": [state['contexts']], "query": state['query'], "chat_history": state['chat_history']}
+            }
+        )
+    return {"answer": output}
 
-    response = json.loads(response_str)
-    state['is_function_finished'] = response['body']['is_function_finished']
+def chat_llm_generate_lambda(state:ChatbotState):
+    answer:dict = invoke_lambda(
+        event_body={
+            "llm_config":'xx',
+            "llm_inputs": state
+        },
+        lambda_name="Online_LLM_Generate",
+        lambda_module_path="lambda_llm_generate.llm_generate",
+        handler_name="lambda_handler"
+    )
+    return {"answer":answer}
 
-def llm_generate_lambda(state: AppState):
-    state = state['keys']
-    # run in lambda
-    msg = {"query": state['query']}
-    invoke_response = lambda_client.invoke(FunctionName="Online_LLM_Generate",
-                                        InvocationType='RequestResponse',
-                                        Payload=json.dumps(msg))
-    response_body = invoke_response['Payload']
 
-    response_str = response_body.read().decode("unicode_escape")
-    response_str = response_str.strip('"')
+def comfort_reply(state:ChatbotState):
+    return {"answer": "不好意思没能帮到您，是否帮你转人工客服？"}
 
-    response = json.loads(response_str)
-    state['answer'] = response['body']['answer']
+
+def transfer_reply(state:ChatbotState):
+    return {"answer": "立即为您转人工客服，请稍后"}
+
+
+def give_rhetorical_question(state:ChatbotState):
+    recent_tool_calling:list[dict] = state['current_tool_calls'][0]
+    return {"answer": recent_tool_calling['args']['question']}
+
+
+def give_tool_response(state:ChatbotState):
+    recent_tool_calling:list[dict] = state['current_tool_calls'][0]
+    return {"answer": recent_tool_calling['args']['response']}
+
+
+def give_response_without_any_tool(state:ChatbotState):
+    chat_history = state['chat_history']
+    return {"answer": chat_history[-1]['content']}
 
 ################
+# define edges #
+################
+
+def intent_route(state:dict):
+    return state['intent_type']
+
+def agent_route(state:dict):
+    recent_tool_calls:list[dict] = state['current_tool_calls']
+    if not recent_tool_calls:
+        return "no tool"
+    
+    recent_tool_call = recent_tool_calls[0]
+    # 反问
+    if recent_tool_call['name'] == "give_rhetorical_question":
+        return "rhetorical question"
+
+    if recent_tool_call['name'] == "give_final_response":
+        return "response"
+
+    return "continue"
+     
+
+#############################
 # define whole online graph #
-################
-workflow = StateGraph(AppState)
-# add all nodes
-workflow.add_node("query_preprocess_lambda", query_preprocess_lambda)
-workflow.add_node("intention_detection_lambda", intention_detection_lambda)
-workflow.add_node("agent_lambda", agent_lambda)
-workflow.add_node("function_call_lambda", function_call_lambda)
-workflow.add_node("llm_generate_lambda", llm_generate_lambda)
-workflow.add_node("fast_reply", fast_reply)
-# block 1: query preprocess
-# contents:
-# 1. check whether query contains invalid information, like PII 
-# 2. query rewrite, rewrite query based on chat history
-workflow.set_entry_point("query_preprocess_lambda")
-# decide whether it is a valid query
-workflow.add_conditional_edges(
-    "query_preprocess_lambda",
-    is_query_valid,
-    {
-        "invalid query": "fast_reply",
-        "valid query": "intention_detection_lambda"
-    }
-)
-# block 2: intention detection
-# contents:
-# 1. detect user intention according to sample queries injected
-# decide whether it is a valid intention
-# block 3: query enhancement and function choose
-# contents:
-# 1. according to detected intention, choose the functions to call, like retriever
-# web search, api call
-# 2. format input query according to chosen functions
-# 2.1 query expansion for retriever
-# 2.2 add call parameters for api call
-workflow.add_conditional_edges(
-    "intention_detection_lambda",
-    is_intention_valid,
-    {
-        "invalid intention": "fast_reply",
-        "valid intention": "agent_lambda"
-    }
-)
-# block 4: run functions to get enough context for llm
-# contents:
-# 1. run different functions in function_call, like retriever, web search or call
-# api
-# 2. when enough context is collected or the max try is reached, go to next stage.
-# otherwise, the query_enhance_and_function_choose should be re-run
-workflow.add_edge("function_call_lambda","agent_lambda")
-workflow.add_conditional_edges(
-    "agent_lambda",
-    is_context_enough,
-    {
-        "insufficient context": "function_call_lambda",
-        "enough context": "llm_generate_lambda",
-        "invalid context": "fast_reply",
-    }
-)
-# end blocks when the whole logic is finished
-# contents:
-# 1. fast reply
-# 2. rag llm generate 
-workflow.add_edge("fast_reply", END)
-workflow.add_edge("llm_generate_lambda", END)
-app = workflow.compile()
+#############################
 
-# simple_workflow = StateGraph(AppState)
-# # add all nodes
-# simple_workflow.add_node("query_preprocess_lambda", query_preprocess_lambda)
-# simple_workflow.set_entry_point("query_preprocess_lambda")
-# # decide whether it is a valid query
-# simple_workflow.add_conditional_edges(
-#     "query_preprocess_lambda",
-#     is_query_valid,
-#     {
-#         "invalid query": END,
-#         "valid query": END
-#     }
-# )
-# app = simple_workflow.compile()
+def build_graph():
+    workflow = StateGraph(ChatbotState)
+    # add all nodes
+    workflow.add_node("query_preprocess_lambda", query_preprocess_lambda)
+    workflow.add_node("intention_detection_lambda", intention_detection_lambda)
+    workflow.add_node("agent_lambda", agent_lambda)
+    workflow.add_node("tool_execute_lambda", tool_execute_lambda)
+    workflow.add_node("chat_llm_generate_lambda", chat_llm_generate_lambda)
+    workflow.add_node("comfort_reply",comfort_reply)
+    workflow.add_node("transfer_reply", transfer_reply)
+    workflow.add_node("give_rhetorical_question",give_rhetorical_question)
+    workflow.add_node("give_tool_response",give_tool_response)
+    workflow.add_node("give_response_wo_tool",give_response_without_any_tool)
+    workflow.add_node("rag_retrieve_lambda",rag_retrieve_lambda)
+    workflow.add_node("rag_llm_lambda",rag_llm_lambda)
 
-# # uncomment the following lines to save the graph
-# with open('common_entry_workflow.png','wb') as f:
-#     f.write(app.get_graph().draw_png())
-# app.get_graph().print_ascii()
+    # block 1: query preprocess
+    # contents:
+    # 1. check whether query contains invalid information, like PII 
+    # 2. query rewrite, rewrite query based on chat history
+    workflow.set_entry_point("query_preprocess_lambda")
+    workflow.add_edge("query_preprocess_lambda","intention_detection_lambda")
+    workflow.add_edge("tool_execute_lambda","agent_lambda")
+    workflow.add_edge("rag_retrieve_lambda","rag_llm_lambda")
+    workflow.add_edge("rag_llm_lambda",END)
+    workflow.add_edge("comfort_reply",END)
+    workflow.add_edge("transfer_reply",END)
+    workflow.add_edge("chat_llm_generate_lambda",END)
+    workflow.add_edge("give_rhetorical_question",END)
+    workflow.add_edge("give_tool_response",END)
+    workflow.add_edge("give_response_wo_tool",END)
+    workflow.add_edge("rag_retrieve_lambda","rag_llm_lambda")
+    workflow.add_edge("rag_llm_lambda",END)
 
-def common_entry(
-    event_body
-):
+    # decide whether it is a valid query
+    workflow.add_conditional_edges(
+        "intention_detection_lambda",
+        intent_route,
+        {
+            "comfort": "comfort_reply",
+            "transfer": "transfer_reply",
+            "chat": "chat_llm_generate_lambda",
+            "other": "agent_lambda",
+            "qa": "rag_retrieve_lambda"
+        }
+    )
+
+    workflow.add_conditional_edges(
+        "agent_lambda",
+        agent_route,
+        {
+            "no tool": "give_response_wo_tool",
+            "rhetorical question": "give_rhetorical_question",
+            "response": "give_tool_response",
+            "continue":"tool_execute_lambda"
+        }
+    )
+    app = workflow.compile()
+    return app
+
+
+app = None 
+
+def common_entry(event_body):
     """
     Entry point for the Lambda function.
     :param event_body: The event body for lambda function.
     return: answer(str)
     """
+    global app 
+    if app is None:
+        app = build_graph()
+     
 
-
+    # debuging
+    # with open('common_entry_workflow.png','wb') as f:
+    #     f.write(app.get_graph().draw_png())
+    
     ################################################################################
     # prepare inputs and invoke graph
-    # rag_config = parse_config.parse_common_entry_config(event_body)
-    rag_config = event_body
-    # logger.info(f'common entry configs:\n {json.dumps(rag_config,indent=2,ensure_ascii=False,cls=JSONEncoder)}')
-    query_input = event_body['question']
+    
+    event_body['chatbot_config'] = parse_common_entry_config(event_body['chatbot_config'])
+    
+    query = event_body['query']
+    chat_history = event_body['chat_history']
     stream = event_body['stream']
     message_id = event_body['custom_message_id']
-    # workspace ids for retriever
-    # qq_workspace_list, qd_workspace_list = prepare_workspace_lists(rag_config)
-    # record debug info and trace info
-    debug_info = {
-        "response_msg": "normal"
-    }
-    trace_infos = []
-    # construct whole inputs
-    inputs = {
-            "query": query_input,
-            "debug_info": debug_info,
-            # "intent_type": intent_type,
-            # "intent_info": intent_info,
-            # "chat_history": rag_config['chat_history'][-6:] if rag_config['use_history'] else [],
-            "rag_config": rag_config,
-            "message_id": message_id,
-            "stream": stream,
-            # "qq_workspace_list": qq_workspace_list,
-            # "qd_workspace_list": qd_workspace_list,
-            "trace_infos":trace_infos,
-            # "intent_embedding_endpoint_name": os.environ['intent_recognition_embedding_endpoint'],
-            # "query_lang": "zh"
-    }
+    ws_connection_id = event_body['ws_connection_id']
+    
     # invoke graph and get results
-    response = app.invoke({"keys":inputs})['keys']
-    # trace_info = format_trace_infos(trace_infos)
-    # logger.info(f'session_id: {rag_config["session_id"]}, chain trace info:\n{trace_info}')
+    response = app.invoke({
+        "stream":stream,
+        "chatbot_config": event_body['chatbot_config'],
+        "query":query,
+        "trace_infos": [],
+        "message_id": message_id,
+        "chat_history": chat_history,
+        "agent_chat_history": chat_history + [{"role":"user","content":query}],
+        "ws_connection_id":ws_connection_id,
+        "debug_infos": {},
+        "extra_response": {}
+    })
 
-    response['rag_config'] = rag_config
-    return response
+    return {"answer":response['answer'],**response["extra_response"]}
 
 main_chain_entry = common_entry

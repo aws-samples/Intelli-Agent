@@ -260,7 +260,7 @@ def aos_injection(
 ) -> List[Document]:
     """
     This function includes the following steps:
-    1. split the document into chunks with chunk size to fit the embedding model, note the document is already splited by title/subtitle to form sementic chunks approximately;
+    1. split the document into chunks with chunk size to fit the embedding model, note the document is already split by title/subtitle to form semantic chunks approximately;
     2. call the embedding model to get the embeddings for each chunk;
     3. call the AOS to index the chunk with the embeddings;
     Parameters:
@@ -406,7 +406,7 @@ def main(batchIndice):
                 if res:
                     logger.info("Result: %s", res)
                 if file_type == "csv":
-                    # CSV page document has been splited into chunk, no more spliting is needed
+                    # CSV page document has been split into chunk, no more spliting is needed
                     aos_injection(
                         res,
                         embeddingModelEndpointList,

@@ -7,3 +7,8 @@ def update_nest_dict(d:dict, u:dict):
         else:
             d[k] = v
     return d
+
+
+def add_messages(left: list, right: list):
+    """Add-don't-overwrite."""
+    return left + right

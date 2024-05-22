@@ -14,40 +14,15 @@ def test_local():
         "chatbot_config":{
             "agent_config":{
                 "model_id": "anthropic.claude-3-sonnet-20240229-v1:0",
-                "tools":[{
-                            "name": "get_weather",
-                            "description": "Get the current weather in a given location",
-                            "parameters": {
-                                "type": "object",
-                                "properties": {
-                                "location": {
-                                    "description": "The city and state, e.g. San Francisco, CA",
-                                    "type": "string"
-                                },
-                                "unit": {
-                                    "description": "The unit of temperature",
-                                    "allOf": [
-                                    {
-                                        "title": "Unit",
-                                        "description": "An enumeration.",
-                                        "enum": [
-                                        "celsius",
-                                        "fahrenheit"
-                                        ]
-                                    }
-                                    ]
-                                }
-                                },
-                                "required": [
-                                "location",
-                                "unit"
-                                ]
-                            }
-                        }]
+                "tools":[{"name":"get_weather"},{"name":"give_rhetorical_question"},{"name":"give_final_response"}]
             }
         },
-        "chat_history":[],
-        "query":"What is the weather like in Beijing? I would like the temprature unit as Celsius"
+        "chat_history":[
+            {
+                "role":"user",
+                "content": "你是名字是？"
+            }
+        ]
     }
     
     ret = invoke_lambda(
@@ -64,40 +39,15 @@ def test_lambda():
         "chatbot_config":{
             "agent_config":{
                 "model_id": "anthropic.claude-3-haiku-20240307-v1:0",
-                "tools":[{
-                            "name": "get_weather",
-                            "description": "Get the current weather in a given location",
-                            "parameters": {
-                                "type": "object",
-                                "properties": {
-                                "location": {
-                                    "description": "The city and state, e.g. San Francisco, CA",
-                                    "type": "string"
-                                },
-                                "unit": {
-                                    "description": "The unit of temperature",
-                                    "allOf": [
-                                    {
-                                        "title": "Unit",
-                                        "description": "An enumeration.",
-                                        "enum": [
-                                        "celsius",
-                                        "fahrenheit"
-                                        ]
-                                    }
-                                    ]
-                                }
-                                },
-                                "required": [
-                                "location",
-                                "unit"
-                                ]
-                            }
-                        }]
+                "tools":[{"name":"get_weather"},{"name":"give_rhetorical_question"},{"name":"give_final_response"}]
             }
         },
-        "chat_history":[],
-        "query":"What is the weather like in Beijing? I would like the temprature unit as Celsius"
+        "chat_history":[
+            {
+                "role":"user",
+                "content": "What is the weather like in Beijing? I would like the temprature unit as Celsius"
+            }
+        ]
     }
     
     ret = invoke_lambda(
@@ -110,5 +60,5 @@ def test_lambda():
     print(ret)
 
 if __name__ == "__main__":
-    # test_local()
-    test_lambda()
+    test_local()
+    # test_lambda()

@@ -387,7 +387,6 @@ def SagemakerEndpointVectorOrCross(prompt: str, endpoint_name: str, region_name:
         endpoint_kwargs=None
     client = boto3.client(
             "sagemaker-runtime",
-            region_name=region_name
         )
     if model_type == "vector" or model_type == "bce":
         content_handler = vectorContentHandler()
@@ -429,19 +428,3 @@ def SagemakerEndpointVectorOrCross(prompt: str, endpoint_name: str, region_name:
         endpoint_kwargs=endpoint_kwargs
     )
     return genericModel(prompt=prompt, stop=stop, **kwargs)
-
-def getCustomEmbeddings(endpoint_name: str, region_name: str, model_type: str) -> SagemakerEndpointEmbeddings:
-    client = boto3.client(
-            "sagemaker-runtime",
-            region_name=region_name
-            )
-    embeddings = None
-    if model_type == "bce":
-        content_handler = vectorContentHandler()
-        embeddings = SagemakerEndpointEmbeddings(
-            client=client,
-            endpoint_name=endpoint_name,
-            content_handler=content_handler,
-            endpoint_kwargs={"TargetModel":"bce_embedding_model.tar.gz"}
-        )
-    return embeddings

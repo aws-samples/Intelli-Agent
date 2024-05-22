@@ -32,6 +32,11 @@ from common_utils.constant import (
 from .llm_chain_base import LLMChain
 from ..llm_models import Model
 
+tool_call_guidelines = """<guidlines>
+- Don't forget to output <function_calls></function_calls> when any tool is called.
+</guidlines>
+"""
+
 
 SYSTEM_MESSAGE_PROMPT =("In this environment you have access to a set of tools you can use to answer the user's question.\n"
         "\n"
@@ -51,6 +56,7 @@ SYSTEM_MESSAGE_PROMPT =("In this environment you have access to a set of tools y
         "{tools}"
         "\n</tools>"
         "\nAnswer the user's request using relevant tools (if they are available). Before calling a tool, do some analysis within <thinking></thinking> tags. First, think about which of the provided tools is the relevant tool to answer the user's request. Second, go through each of the required parameters of the relevant tool and determine if the user has directly provided or given enough information to infer a value. When deciding if the parameter can be inferred, carefully consider all the context to see if it supports a specific value. If all of the required parameters are present or can be reasonably inferred, close the thinking tag and proceed with the tool call. BUT, if one of the values for a required parameter is missing, DO NOT invoke the function (not even with fillers for the missing params) and instead, ask the user to provide the missing parameters. DO NOT ask for more information on optional parameters if it is not provided."
+        f"\nHere are some guidelines for you:\n{tool_call_guidelines}"
     )
 
 TOOL_FORMAT = """<tool_description>
@@ -128,7 +134,7 @@ def convert_openai_tool_to_anthropic(tools:list[dict])->str:
     )
     return tools_formatted
 
-def convert_anthropic_xml_to_dict(function_calls:List[str], tools:list[dict]) -> List[dict]:
+def convert_anthropic_xml_to_dict(model_id,function_calls:List[str], tools:list[dict]) -> List[dict]:
     # formatted_tools = [convert_to_openai_function(tool) for tool in tools]
     tool_calls:list[ToolCall] = []
     for function_call in function_calls:
@@ -154,7 +160,7 @@ def convert_anthropic_xml_to_dict(function_calls:List[str], tools:list[dict]) ->
                 assert len(value) == 1,function_call
                 arguments[parameter_key] = value[0].strip()
             
-            tool_calls.append(dict(name=tool_name,args=arguments))
+            tool_calls.append(dict(name=tool_name,args=arguments,model_id=model_id))
     
     return tool_calls
 
@@ -169,13 +175,13 @@ class Claude2ToolCallingChain(LLMChain):
         "stop_sequences": ["\n\nHuman:", "\n\nAssistant","</function_calls>"],
         }
     
-    @staticmethod
-    def parse_tools_from_ai_message(message:AIMessage,tools:list[dict]):
+    @classmethod
+    def parse_tools_from_ai_message(cls,message:AIMessage,tools:list[dict]):
         function_calls:List[str] = re.findall("<function_calls>(.*?)</function_calls>", message.content + "</function_calls>",re.S)
         if not function_calls:
             return {"tool_calls":[],"content":message.content}
         
-        tool_calls = convert_anthropic_xml_to_dict(function_calls,tools)
+        tool_calls = convert_anthropic_xml_to_dict(cls.model_id,function_calls,tools)
         message.tool_calls = tool_calls
         return {"tool_calls":tool_calls,"content":message.content}
     
@@ -192,15 +198,14 @@ class Claude2ToolCallingChain(LLMChain):
             SystemMessage(content=SYSTEM_MESSAGE_PROMPT.format(
                 tools=tools_formatted
                 )),
-            ("placeholder", "{chat_history}"),
-            HumanMessagePromptTemplate.from_template("{query}"),
+            ("placeholder", "{chat_history}")
         ])
 
         llm = Model.get_model(
             model_id=cls.model_id,
             model_kwargs=model_kwargs,
         )
-        chain = tool_calling_template | RunnableLambda(lambda x:x.messages) | llm | RunnableLambda(lambda message:cls.parse_tools_from_ai_message(message,tools=tools))
+        chain = tool_calling_template | RunnableLambda(lambda x:x.messages ) | llm | RunnableLambda(lambda message:cls.parse_tools_from_ai_message(message,tools=tools))
         
         return chain
 
