@@ -93,14 +93,35 @@ def generate_answer(query,
 
 def test():
     generate_answer(
-        "What is lihoyo's most famous game?",
+        "hi",
         stream=True,
         chatbot_config={
+            # "chatbot_mode": "rag_mode",
+            "query_process_config":{
+                "conversation_query_rewrite_config":{
+                    "model_id": "anthropic.claude-3-sonnet-20240229-v1:0"
+                    }
+            },
+            "intention_config":{
+                "retrievers": [
+                        {
+                            "type": "qq",
+                            "workspace_ids": ["yb_intent"],
+                            "config": {
+                                "top_k": 10,
+                            }
+                        },
+                    ]
+            },
             "agent_config":{
                 "model_id":"anthropic.claude-3-sonnet-20240229-v1:0",
                 "model_kwargs": {"temperature":0.0,"max_tokens":4096},
                 "tools":[{"name":"give_final_response"},{"name":"search_lihoyo"}]
         },
+        "chat_config":{
+            "model_id":"anthropic.claude-3-sonnet-20240229-v1:0",
+            "model_kwargs": {"temperature":0.0,"max_tokens":4096},
+        }
         }
     )
 

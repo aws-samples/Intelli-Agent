@@ -20,8 +20,6 @@ websocket_url = os.environ.get("websocket_url", "")
 
 @chatbot_lambda_call_wrapper
 def lambda_handler(event_body:dict, context:dict):
-    # messages = event_body.get("messages", [])
-    # query = event_body['query']
     stream = context['stream']
     request_timestamp = context['request_timestamp']
     ws_connection_id = context.get('ws_connection_id')

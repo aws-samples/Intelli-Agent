@@ -1,9 +1,7 @@
 class ConstantBase:
-
     @classmethod
     def has_value(cls, value):
         return value in list(cls.__dict__.values())
-
 
 class EntryType(ConstantBase):
     COMMON = "common"
@@ -76,7 +74,6 @@ class MessageType(ConstantBase):
     SYSTEM_MESSAGE_TYPE = 'system'
 
 
-
 class StreamMessageType(ConstantBase):
     START = "START"
     END = "END"
@@ -84,3 +81,8 @@ class StreamMessageType(ConstantBase):
     CHUNK = "CHUNK"
     CONTEXT = "CONTEXT"
     MONITOR = "MONITOR"
+
+
+class ChatbotMode(ConstantBase):
+    rag_mode = "rag_mode"  # origin from yuanbo
+    other = "other"  # tool based chatbot

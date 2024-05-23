@@ -15,16 +15,16 @@ from functions.tools import get_tool_by_name
 logger = get_logger("agent")
 
 def tool_calling(state:dict):
-    # state = state['keys']
     message_id = state.get('message_id',None)
     trace_infos = state.get('trace_infos',[])
     agent_config = state["chatbot_config"]['agent_config']
-    tool_defs = [get_tool_by_name(tool['name']).tool_def for tool in agent_config['tools']]
+    tool_defs = [get_tool_by_name(tool_name).tool_def for tool_name in state['current_tools']]
     
     llm_config = {
         "tools": tool_defs,
         "model_kwargs": agent_config.get('model_kwargs',{}),
-        "model_id": agent_config['model_id']
+        "model_id": agent_config['model_id'],
+        "fewshot_examples": state['intention_fewshot_examples'],
     }
 
     tool_calling_chain = RunnableLambda(lambda x: invoke_lambda(
@@ -53,42 +53,5 @@ def tool_calling(state:dict):
 
 @chatbot_lambda_call_wrapper
 def lambda_handler(state:dict, context=None):
-
-    # logger.info(f'state: {json.dumps(state,ensure_ascii=False,indent=2,cls=JSONEncoder)}')
-    # workflow = StateGraph(NestUpdateState)
-
-    # workflow.add_node('tool_calling',tool_calling)
-    # workflow.set_entry_point('tool_calling')
-    # workflow.set_finish_point('tool_calling')
-
-    # app = workflow.compile()
-
-    # base_state = {
-    #     "message_id":"",
-    #     "trace_infos": []
-    #     }
-    
-    # output = app.invoke({"keys": {**base_state,**state}})
-    # state.update(output)
-
-    # response = {"statusCode": 200, "headers": {"Content-Type": "application/json"}}
-    # state["is_context_enough"] = 'enough context'
-    # response["body"] = {"state": state}
-    # agent_config = state["chatbot_config"]['agent_config']
-    # output = invoke_lambda(
-    #     lambda_name='Online_LLM_Generate',
-    #     lambda_module_path="lambda_llm_generate.llm_generate",
-    #     handler_name='lambda_handler',
-    #     event_body={
-    #         "llm_config": {**agent_config, "intent_type": LLMTaskType.TOOL_CALLING},
-    #         "llm_input": state
-    #         }
-    #     )
-    # )
-    # base_state = {
-    #     "message_id":"",
-    #     "trace_infos": []
-    #     }
     output = tool_calling(state)
-    
     return output
