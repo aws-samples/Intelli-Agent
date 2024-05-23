@@ -186,8 +186,6 @@ def lambda_handler(event, context):
         }"
     }
     '''
-
-    response = {"statusCode": 200, "headers": {"Content-Type": "application/json"}}
     result = query_ec2_price(**event)
     return {"code":0, "result": result}
 
