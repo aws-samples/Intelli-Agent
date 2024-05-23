@@ -444,4 +444,17 @@ def getCustomEmbeddings(endpoint_name: str, region_name: str, model_type: str) -
             content_handler=content_handler,
             endpoint_kwargs={"TargetModel":"bce_embedding_model.tar.gz"}
         )
+    # compatible with both m3 and bce.
+    else:
+        content_handler = m3ContentHandler()
+        model_kwargs = {}
+        model_kwargs['batch_size'] = 12
+        model_kwargs['max_length'] = 512
+        model_kwargs['return_type'] = 'dense'
+        embeddings = SagemakerEndpointEmbeddings(
+            client=client,
+            endpoint_name=endpoint_name,
+            model_kwargs=model_kwargs,
+            content_handler=content_handler,
+        )
     return embeddings

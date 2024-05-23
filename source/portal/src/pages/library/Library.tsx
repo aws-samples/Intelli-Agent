@@ -199,7 +199,9 @@ const Library: React.FC = () => {
               id: 's3Prefix',
               header: t('prefix'),
               sortingField: 's3Prefix',
-              cell: (item: LibraryListItem) => item.s3Prefix.replace(regex, ''),
+              cell: (item: LibraryListItem) => {
+                return item.s3Prefix.split('/').pop();
+              },
             },
             {
               width: 120,
