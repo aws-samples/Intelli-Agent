@@ -466,15 +466,15 @@ export class ApiConstruct extends Construct {
     const apiUploadDoc = apiResourceStepFunction.addResource("upload-s3-url");
     // TODO: Add authorizer after lambda authorizer is completed. 
     // Lambda authorizer should contains cors header or else uploading will fail
-    // apiUploadDoc.addMethod(
-    //   "POST",
-    //   new apigw.LambdaIntegration(uploadDocLambda),
-    //   methodOption,
-    // );
     apiUploadDoc.addMethod(
       "POST",
       new apigw.LambdaIntegration(uploadDocLambda),
+      methodOption,
     );
+    // apiUploadDoc.addMethod(
+    //   "POST",
+    //   new apigw.LambdaIntegration(uploadDocLambda),
+    // );
 
     const apiListWorkspace = apiResourceStepFunction.addResource("list-workspace");
     apiListWorkspace.addMethod(
