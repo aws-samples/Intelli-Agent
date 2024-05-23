@@ -167,7 +167,6 @@ def chatbot_lambda_call_wrapper(fn):
         
         # apigateway wrap event into body
         if "body" in event:
-            # _lambda_invoke_mode = LAMBDA_INVOKE_MODE.APIGETAWAY.value
             _lambda_invoke_mode = LAMBDA_INVOKE_MODE.LOCAL.value
             current_lambda_mode = LAMBDA_INVOKE_MODE.APIGETAWAY.value
             event = json.loads(event["body"])
@@ -176,7 +175,6 @@ def chatbot_lambda_call_wrapper(fn):
         # TODO
         if current_lambda_mode  == LAMBDA_INVOKE_MODE.APIGETAWAY.value:
             ret = {
-                # "isBase64Encoded": False,
                 "statusCode": 200,
                 "body": json.dumps(ret),
                 "headers": {
@@ -194,7 +192,8 @@ def send_trace(trace_info:str):
         send_to_ws_client(
             message={
                         "message_type":StreamMessageType.MONITOR,
-                        "message":trace_info
+                        "message":trace_info,
+                        "created_time": time.time()
                     },
             ws_connection_id=_ws_connection_id
         )

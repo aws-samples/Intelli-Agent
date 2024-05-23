@@ -41,7 +41,6 @@ def test_local():
 
 
 def test_lambda():
-
     event_body = {
         "chatbot_config":{
             "query_process_config":{
