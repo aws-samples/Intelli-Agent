@@ -2,7 +2,7 @@ import os
 import dotenv
 import sys 
 dotenv.load_dotenv()
-sys.path.extend([".",'layer_logic'])
+sys.path.extend([".",'common_logic'])
 
 from common_utils.lambda_invoke_utils import invoke_lambda
 

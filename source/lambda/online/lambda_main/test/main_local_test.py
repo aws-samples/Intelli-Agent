@@ -5,7 +5,7 @@ import os
 import time 
 import uuid
 import sys
-sys.path.append("./layer_logic")
+sys.path.append("./common_logic")
 from common_utils.lambda_invoke_utils import invoke_lambda
 
 from dotenv import load_dotenv
