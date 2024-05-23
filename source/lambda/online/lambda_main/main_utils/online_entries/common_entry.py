@@ -31,7 +31,6 @@ class ChatbotState(TypedDict):
     answer: Any  # final answer
     current_monitor_infos: str 
     extra_response: Annotated[dict,update_nest_dict]
-    default_mode: bool = True   # yuanbo mode
     contexts: str = None
     current_tools: list #
     
@@ -70,16 +69,6 @@ def intention_detection_lambda(state: ChatbotState):
         "current_tools": current_tools + ['give_rhetorical_question'],
         "intent_type":"other"
         }
-
-@node_monitor_wrapper
-def rag_retrieve_lambda(state: ChatbotState):
-    # call retrivever 
-    return None 
-
-
-@node_monitor_wrapper
-def rag_llm_lambda(state:ChatbotState):
-    return None 
 
 
 @node_monitor_wrapper
@@ -251,6 +240,12 @@ def qq_matched_reply(state:ChatbotState):
 # define edges #
 ################
 
+def query_route(state:dict):
+    if state['chatbot_config']['chatbot_mode'] == 'rag_mode':
+        return "rag_mode"
+    else:
+        return "other"
+
 def intent_route(state:dict):
     return state['intent_type']
 
@@ -300,7 +295,7 @@ def build_graph():
     
     # add all edges
     workflow.set_entry_point("query_preprocess_lambda")
-    workflow.add_edge("query_preprocess_lambda","intention_detection_lambda")
+    # workflow.add_edge("query_preprocess_lambda","intention_detection_lambda")
     workflow.add_edge("intention_detection_lambda","agent_lambda")
     workflow.add_edge("tool_execute_lambda","agent_lambda")
     workflow.add_edge("rag_retrieve_lambda","rag_llm_lambda")
@@ -313,6 +308,16 @@ def build_graph():
     workflow.add_edge("rag_retrieve_lambda","rag_llm_lambda")
     workflow.add_edge("rag_llm_lambda",END)
     workflow.add_edge("qq_matched_reply",END)
+    
+    # add conditional edges
+    workflow.add_conditional_edges(
+        "query_preprocess_lambda",
+        query_route,
+        {
+            "rag mode": 'rag_retrieve_lambda',
+            "other": "intention_detection_lambda"
+        }
+    )
 
     # add conditional edges
     workflow.add_conditional_edges(
@@ -379,7 +384,7 @@ def common_entry(event_body):
         "agent_chat_history": chat_history + [{"role":"user","content":query}],
         "ws_connection_id":ws_connection_id,
         "debug_infos": {},
-        "extra_response": {}
+        "extra_response": {},
     })
 
     return {"answer":response['answer'],**response["extra_response"]}

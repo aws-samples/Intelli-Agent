@@ -143,7 +143,7 @@ tool_manager.register_tool(
 
 
 
-##### yuanbo default tools #########
+##### default tools #########
 tool_manager.register_tool({
     "name": "service_availability",
     "lambda_name": "xxxx",

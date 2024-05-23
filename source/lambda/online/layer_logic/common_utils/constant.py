@@ -1,9 +1,7 @@
 class ConstantBase:
-
     @classmethod
     def has_value(cls, value):
         return value in list(cls.__dict__.values())
-
 
 class EntryType(ConstantBase):
     COMMON = "common"
@@ -86,5 +84,5 @@ class StreamMessageType(ConstantBase):
 
 
 class ChatbotMode(ConstantBase):
-    yb_mode = "yb_mode"  # origin from yuanbo
-    tool_mode = "tool_mode"  # tool based chatbot
+    rag_mode = "rag_mode"  # origin from yuanbo
+    other = "other"  # tool based chatbot

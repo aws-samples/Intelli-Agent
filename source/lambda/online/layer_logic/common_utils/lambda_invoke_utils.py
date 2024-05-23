@@ -192,7 +192,8 @@ def send_trace(trace_info:str):
         send_to_ws_client(
             message={
                         "message_type":StreamMessageType.MONITOR,
-                        "message":trace_info
+                        "message":trace_info,
+                        "created_time": time.time()
                     },
             ws_connection_id=_ws_connection_id
         )

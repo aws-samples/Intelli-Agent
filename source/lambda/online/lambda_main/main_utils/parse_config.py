@@ -3,7 +3,7 @@ import copy
 import logging
 import os
 
-from common_utils.constant import RerankerType
+from common_utils.constant import RerankerType,ChatbotMode
 
 
 # update nest dict
@@ -24,6 +24,7 @@ def parse_common_entry_config(chatbot_config):
     llm_model_id = chatbot_config.get("llm_model_id", llm_model_id)
 
     default_chatbot_config = {
+        "chatbot_mode": ChatbotMode.other,
         "query_process_config":{
             "conversation_query_rewrite_config":{
             }
