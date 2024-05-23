@@ -29,6 +29,7 @@ import { QueueConstruct } from "./api-queue";
 import { WebSocketConstruct } from "./websocket-api";
 import { Function, Runtime, Code, Architecture, DockerImageFunction, DockerImageCode } from 'aws-cdk-lib/aws-lambda';
 import { UserPool } from "aws-cdk-lib/aws-cognito";
+import { IAMHelper } from "../shared/iam-helper";
 
 interface ApiStackProps extends StackProps {
   apiVpc: ec2.Vpc;
@@ -55,6 +56,7 @@ interface ApiStackProps extends StackProps {
   etlObjIndexName: string;
   userPool: UserPool;
   userPoolClientId: string;
+  iamHelper: IAMHelper;
 }
 
 export class ApiConstruct extends Construct {
@@ -62,9 +64,12 @@ export class ApiConstruct extends Construct {
   public documentBucket: string = "";
   public wsEndpoint: string = "";
   public wsEndpointV2: string = "";
+  private iamHelper: IAMHelper;
+
   constructor(scope: Construct, id: string, props: ApiStackProps) {
     super(scope, id);
 
+    this.iamHelper = props.iamHelper;
     const apiVpc = props.apiVpc;
     const securityGroup = props.securityGroup;
     const domainEndpoint = props.domainEndpoint;
@@ -113,17 +118,6 @@ export class ApiConstruct extends Construct {
       ],
     });
 
-    const ddbPolicyDocument = new iam.PolicyStatement({
-      actions: ["dynamodb:*"],
-      effect: iam.Effect.ALLOW,
-      resources: ["*"],
-    });
-    const s3PolicyDocument = new iam.PolicyStatement({
-      actions: ["s3:*"],
-      effect: iam.Effect.ALLOW,
-      resources: ["*"],
-    });
-
     const embeddingLambda = new Function(this, "lambdaEmbedding", {
       runtime: Runtime.PYTHON_3_11,
       handler: "main.lambda_handler",
@@ -147,17 +141,17 @@ export class ApiConstruct extends Construct {
     embeddingLambda.addToRolePolicy(
       new iam.PolicyStatement({
         actions: [
-          "sagemaker:InvokeEndpointAsync",
-          "sagemaker:InvokeEndpoint",
-          "s3:List*",
-          "s3:Put*",
-          "s3:Get*",
-          "es:*",
+          "es:ESHttpGet",
+          "es:ESHttpPut",
+          "es:ESHttpPost",
+          "es:ESHttpHead",
         ],
         effect: iam.Effect.ALLOW,
         resources: ["*"],
       }),
     );
+    embeddingLambda.addToRolePolicy(this.iamHelper.s3Statement);
+    embeddingLambda.addToRolePolicy(this.iamHelper.endpointStatement);
 
     const aosLambda = new Function(this, "AOSLambda", {
       runtime: Runtime.PYTHON_3_11,
@@ -181,17 +175,17 @@ export class ApiConstruct extends Construct {
     aosLambda.addToRolePolicy(
       new iam.PolicyStatement({
         actions: [
-          "sagemaker:InvokeEndpointAsync",
-          "sagemaker:InvokeEndpoint",
-          "s3:List*",
-          "s3:Put*",
-          "s3:Get*",
-          "es:*",
+          "es:ESHttpGet",
+          "es:ESHttpPut",
+          "es:ESHttpPost",
+          "es:ESHttpHead",
         ],
         effect: iam.Effect.ALLOW,
         resources: ["*"],
       }),
     );
+    aosLambda.addToRolePolicy(this.iamHelper.s3Statement);
+    aosLambda.addToRolePolicy(this.iamHelper.endpointStatement);
 
     const ddbLambda = new Function(this, "DDBLambda", {
       runtime: Runtime.PYTHON_3_11,
@@ -209,7 +203,7 @@ export class ApiConstruct extends Construct {
       },
       securityGroups: [props.securityGroup],
     });
-    ddbLambda.addToRolePolicy(ddbPolicyDocument);
+    ddbLambda.addToRolePolicy(this.iamHelper.dynamodbStatement);
 
     // Integration with Step Function to trigger ETL process
     // Lambda function to trigger Step Function
@@ -224,7 +218,7 @@ export class ApiConstruct extends Construct {
       },
       memorySize: 256,
     });
-    sfnLambda.addToRolePolicy(ddbPolicyDocument);
+    sfnLambda.addToRolePolicy(this.iamHelper.dynamodbStatement);
 
     // Grant lambda function to invoke step function
     props.sfnOutput.grantStartExecution(sfnLambda);
@@ -254,7 +248,7 @@ export class ApiConstruct extends Construct {
         EXECUTION_TABLE: executionTableName,
       },
     });
-    listExecutionLambda.addToRolePolicy(ddbPolicyDocument);
+    listExecutionLambda.addToRolePolicy(this.iamHelper.dynamodbStatement);
 
     const getExecutionLambda = new Function(this, "GetExecution", {
       code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
@@ -268,7 +262,7 @@ export class ApiConstruct extends Construct {
         ETL_OBJECT_INDEX: etlObjIndexName,
       },
     });
-    getExecutionLambda.addToRolePolicy(ddbPolicyDocument);
+    getExecutionLambda.addToRolePolicy(this.iamHelper.dynamodbStatement);
 
     const delExecutionLambda = new Function(this, "DeleteExecution", {
       code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
@@ -281,7 +275,7 @@ export class ApiConstruct extends Construct {
         EXECUTION_TABLE: executionTableName,
       },
     });
-    delExecutionLambda.addToRolePolicy(ddbPolicyDocument);
+    delExecutionLambda.addToRolePolicy(this.iamHelper.dynamodbStatement);
 
     const uploadDocLambda = new Function(this, "UploadDocument", {
       code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
@@ -294,7 +288,7 @@ export class ApiConstruct extends Construct {
         S3_BUCKET: s3Bucket.bucketName,
       },
     });
-    uploadDocLambda.addToRolePolicy(s3PolicyDocument);
+    uploadDocLambda.addToRolePolicy(this.iamHelper.s3Statement);
 
     // Create Lambda Authorizer for WebSocket API
     const customAuthorizerLambda = new Function(this, "CustomAuthorizerLambda", {
@@ -361,18 +355,18 @@ export class ApiConstruct extends Construct {
     batchLambda.addToRolePolicy(
       new iam.PolicyStatement({
         actions: [
-          "sagemaker:InvokeEndpointAsync",
-          "sagemaker:InvokeEndpoint",
-          "s3:List*",
-          "s3:Put*",
-          "s3:Get*",
-          "es:*",
+          "es:ESHttpGet",
+          "es:ESHttpPut",
+          "es:ESHttpPost",
+          "es:ESHttpHead",
           "batch:*",
         ],
         effect: iam.Effect.ALLOW,
         resources: ["*"],
       }),
     );
+    batchLambda.addToRolePolicy(this.iamHelper.s3Statement);
+    batchLambda.addToRolePolicy(this.iamHelper.endpointStatement);
 
     // Define the API Gateway
     const api = new apigw.RestApi(this, "llmApi", {
@@ -473,15 +467,15 @@ export class ApiConstruct extends Construct {
     const apiUploadDoc = apiResourceStepFunction.addResource("upload-s3-url");
     // TODO: Add authorizer after lambda authorizer is completed. 
     // Lambda authorizer should contains cors header or else uploading will fail
-    // apiUploadDoc.addMethod(
-    //   "POST",
-    //   new apigw.LambdaIntegration(uploadDocLambda),
-    //   methodOption,
-    // );
     apiUploadDoc.addMethod(
       "POST",
       new apigw.LambdaIntegration(uploadDocLambda),
+      methodOption,
     );
+    // apiUploadDoc.addMethod(
+    //   "POST",
+    //   new apigw.LambdaIntegration(uploadDocLambda),
+    // );
 
     const apiListWorkspace = apiResourceStepFunction.addResource("list-workspace");
     apiListWorkspace.addMethod(
@@ -533,15 +527,11 @@ export class ApiConstruct extends Construct {
         new iam.PolicyStatement({
           // principals: [new iam.AnyPrincipal()],
           actions: [
-            "sagemaker:InvokeEndpointAsync",
-            "sagemaker:InvokeEndpoint",
-            "s3:List*",
-            "s3:Put*",
-            "s3:Get*",
-            "es:*",
-            "dynamodb:*",
+            "es:ESHttpGet",
+            "es:ESHttpPut",
+            "es:ESHttpPost",
+            "es:ESHttpHead",
             "secretsmanager:GetSecretValue",
-            "translate:*",
             "bedrock:*",
           ],
           effect: iam.Effect.ALLOW,
@@ -552,6 +542,9 @@ export class ApiConstruct extends Construct {
       lambdaExecutor.addEventSource(
         new lambdaEventSources.SqsEventSource(messageQueue, { batchSize: 1 }),
       );
+      lambdaExecutor.addToRolePolicy(this.iamHelper.s3Statement);
+      lambdaExecutor.addToRolePolicy(this.iamHelper.endpointStatement);
+      lambdaExecutor.addToRolePolicy(this.iamHelper.dynamodbStatement);
 
       // Define the API Gateway Lambda Integration with proxy and no integration responses
       const lambdaExecutorIntegration = new apigw.LambdaIntegration(
@@ -623,17 +616,12 @@ export class ApiConstruct extends Construct {
 
       lambdaOnlineMain.addToRolePolicy(
         new iam.PolicyStatement({
-          // principals: [new iam.AnyPrincipal()],
           actions: [
-            "sagemaker:InvokeEndpointAsync",
-            "sagemaker:InvokeEndpoint",
-            "s3:List*",
-            "s3:Put*",
-            "s3:Get*",
-            "es:*",
-            "dynamodb:*",
+            "es:ESHttpGet",
+            "es:ESHttpPut",
+            "es:ESHttpPost",
+            "es:ESHttpHead",
             "secretsmanager:GetSecretValue",
-            "translate:*",
             "bedrock:*",
             "lambda:InvokeFunction",
           ],
@@ -645,6 +633,9 @@ export class ApiConstruct extends Construct {
       lambdaOnlineMain.addEventSource(
         new lambdaEventSources.SqsEventSource(messageQueue, { batchSize: 1 }),
       );
+      lambdaOnlineMain.addToRolePolicy(this.iamHelper.s3Statement);
+      lambdaOnlineMain.addToRolePolicy(this.iamHelper.endpointStatement);
+      lambdaOnlineMain.addToRolePolicy(this.iamHelper.dynamodbStatement);
 
       const lambdaOnlineQueryPreprocess = new Function(this, "lambdaOnlineQueryPreprocess", {
         runtime: Runtime.PYTHON_3_12,
@@ -666,17 +657,12 @@ export class ApiConstruct extends Construct {
 
       lambdaOnlineQueryPreprocess.addToRolePolicy(
         new iam.PolicyStatement({
-          // principals: [new iam.AnyPrincipal()],
           actions: [
-            "sagemaker:InvokeEndpointAsync",
-            "sagemaker:InvokeEndpoint",
-            "s3:List*",
-            "s3:Put*",
-            "s3:Get*",
-            "es:*",
-            "dynamodb:*",
+            "es:ESHttpGet",
+            "es:ESHttpPut",
+            "es:ESHttpPost",
+            "es:ESHttpHead",
             "secretsmanager:GetSecretValue",
-            "translate:*",
             "bedrock:*",
             "lambda:InvokeFunction",
           ],
@@ -684,6 +670,9 @@ export class ApiConstruct extends Construct {
           resources: ["*"],
         }),
       );
+      lambdaOnlineQueryPreprocess.addToRolePolicy(this.iamHelper.s3Statement);
+      lambdaOnlineQueryPreprocess.addToRolePolicy(this.iamHelper.endpointStatement);
+      lambdaOnlineQueryPreprocess.addToRolePolicy(this.iamHelper.dynamodbStatement);
 
       const lambdaOnlineIntentionDetection = new Function(this, "lambdaOnlineIntentionDetection", {
         runtime: Runtime.PYTHON_3_12,
@@ -723,17 +712,12 @@ export class ApiConstruct extends Construct {
 
       lambdaOnlineAgent.addToRolePolicy(
         new iam.PolicyStatement({
-          // principals: [new iam.AnyPrincipal()],
           actions: [
-            "sagemaker:InvokeEndpointAsync",
-            "sagemaker:InvokeEndpoint",
-            "s3:List*",
-            "s3:Put*",
-            "s3:Get*",
-            "es:*",
-            "dynamodb:*",
+            "es:ESHttpGet",
+            "es:ESHttpPut",
+            "es:ESHttpPost",
+            "es:ESHttpHead",
             "secretsmanager:GetSecretValue",
-            "translate:*",
             "bedrock:*",
             "lambda:InvokeFunction",
           ],
@@ -741,6 +725,9 @@ export class ApiConstruct extends Construct {
           resources: ["*"],
         }),
       );
+      lambdaOnlineAgent.addToRolePolicy(this.iamHelper.s3Statement);
+      lambdaOnlineAgent.addToRolePolicy(this.iamHelper.endpointStatement);
+      lambdaOnlineAgent.addToRolePolicy(this.iamHelper.dynamodbStatement);
 
       const lambdaOnlineLLMGenerate = new Function(this, "lambdaOnlineLLMGenerate", {
         runtime: Runtime.PYTHON_3_12,
@@ -764,15 +751,11 @@ export class ApiConstruct extends Construct {
         new iam.PolicyStatement({
           // principals: [new iam.AnyPrincipal()],
           actions: [
-            "sagemaker:InvokeEndpointAsync",
-            "sagemaker:InvokeEndpoint",
-            "s3:List*",
-            "s3:Put*",
-            "s3:Get*",
-            "es:*",
-            "dynamodb:*",
+            "es:ESHttpGet",
+            "es:ESHttpPut",
+            "es:ESHttpPost",
+            "es:ESHttpHead",
             "secretsmanager:GetSecretValue",
-            "translate:*",
             "bedrock:*",
             "lambda:InvokeFunction",
           ],
@@ -780,6 +763,9 @@ export class ApiConstruct extends Construct {
           resources: ["*"],
         }),
       );
+      lambdaOnlineLLMGenerate.addToRolePolicy(this.iamHelper.s3Statement);
+      lambdaOnlineLLMGenerate.addToRolePolicy(this.iamHelper.endpointStatement);
+      lambdaOnlineLLMGenerate.addToRolePolicy(this.iamHelper.dynamodbStatement);
 
       const lambdaOnlineFunctionAWSAPI = new Function(this, "lambdaOnlineFunctionAWSAPI", {
         runtime: Runtime.PYTHON_3_12,

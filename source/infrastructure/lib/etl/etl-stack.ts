@@ -11,7 +11,7 @@
  *  and limitations under the License.                                                                                *
  *********************************************************************************************************************/
 
-import { Duration, NestedStack, RemovalPolicy, StackProps, CustomResource } from "aws-cdk-lib";
+import { Aws, Duration, NestedStack, RemovalPolicy, StackProps, CustomResource } from "aws-cdk-lib";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as iam from "aws-cdk-lib/aws-iam";
@@ -32,6 +32,7 @@ import * as appAutoscaling from "aws-cdk-lib/aws-applicationautoscaling";
 import * as glue from "@aws-cdk/aws-glue-alpha";
 import { Metric } from 'aws-cdk-lib/aws-cloudwatch';
 import { BuildConfig } from "../shared/build-config";
+import { IAMHelper } from "../shared/iam-helper";
 
 interface ETLStackProps extends StackProps {
   etlVpc: ec2.Vpc;
@@ -45,6 +46,7 @@ interface ETLStackProps extends StackProps {
   openSearchIndex: string;
   imageName: string;
   etlTag: string;
+  iamHelper: IAMHelper;
 }
 
 export class EtlStack extends NestedStack {
@@ -57,28 +59,126 @@ export class EtlStack extends NestedStack {
   public etlEndpoint: string;
   public resBucketName: string;
   public etlObjIndexName: string = "ExecutionIdIndex";
+  private iamHelper: IAMHelper;
 
   constructor(scope: Construct, id: string, props: ETLStackProps) {
     super(scope, id, props);
 
+    this.iamHelper = props.iamHelper;
     const s3Bucket = new s3.Bucket(this, "llm-bot-glue-result-bucket", {
-      // bucketName: `llm-bot-glue-lib-${Aws.ACCOUNT_ID}-${Aws.REGION}`,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
     });
 
     const glueLibS3Bucket = new s3.Bucket(this, "llm-bot-glue-lib-bucket", {
-      // bucketName: `llm-bot-glue-lib-${Aws.ACCOUNT_ID}-${Aws.REGION}`,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
     });
 
+    const idAttr = {
+      name: "executionId",
+      type: dynamodb.AttributeType.STRING,
+    }
+    const etlS3Path = {
+      name: "s3Path",
+      type: dynamodb.AttributeType.STRING,
+    }
+    const executionTable = new DynamoDBTable(this, "Execution", idAttr).table;
+    executionTable.addGlobalSecondaryIndex({
+      indexName: "BucketAndPrefixIndex",
+      partitionKey: { name: "s3Bucket", type: dynamodb.AttributeType.STRING },
+      sortKey: { name: "s3Prefix", type: dynamodb.AttributeType.STRING },
+    });
+    const etlObjTable = new DynamoDBTable(this, "ETLObject", etlS3Path, idAttr).table;
+    etlObjTable.addGlobalSecondaryIndex({
+      indexName: this.etlObjIndexName,
+      partitionKey: { name: "executionId", type: dynamodb.AttributeType.STRING },
+    });
+
+    const workspaceTable = new dynamodb.Table(this, "WorkspaceTable", {
+      partitionKey: {
+        name: "workspace_id",
+        type: dynamodb.AttributeType.STRING,
+      },
+      sortKey: {
+        name: "object_type",
+        type: dynamodb.AttributeType.STRING,
+      },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      encryption: dynamodb.TableEncryption.AWS_MANAGED,
+      pointInTimeRecovery: true,
+      removalPolicy: RemovalPolicy.DESTROY,
+    });
+
+    workspaceTable.addGlobalSecondaryIndex({
+      indexName: "by_object_type_idx",
+      partitionKey: {
+        name: "object_type",
+        type: dynamodb.AttributeType.STRING,
+      },
+      sortKey: {
+        name: "created_at",
+        type: dynamodb.AttributeType.STRING,
+      },
+    });
+
+    const dynamodbStatement = this.iamHelper.createPolicyStatement(
+      [
+        "dynamodb:Query",
+        "dynamodb:GetItem",
+        "dynamodb:PutItem",
+        "dynamodb:UpdateItem",
+        "dynamodb:Describe*",
+        "dynamodb:List*",
+        "dynamodb:Scan",
+      ],
+      [
+        executionTable.tableArn,
+        etlObjTable.tableArn,
+        workspaceTable.tableArn,
+      ],
+    );
+
     const endpointRole = new iam.Role(this, "etl-endpoint-role", {
       assumedBy: new iam.ServicePrincipal("sagemaker.amazonaws.com"),
-      managedPolicies: [
-        iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonSageMakerFullAccess"),
-        iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonS3FullAccess"),
-        iam.ManagedPolicy.fromAwsManagedPolicyName("CloudWatchLogsFullAccess"),
-      ],
     });
+    endpointRole.addToPolicy(
+      new iam.PolicyStatement({
+        actions: [
+          "sagemaker:DeleteModel",
+          "sagemaker:DeleteEndpoint",
+          "sagemaker:DescribeEndpoint",
+          "sagemaker:DeleteEndpointConfig",
+          "sagemaker:DescribeEndpointConfig",
+          "sagemaker:InvokeEndpoint",
+          "sagemaker:CreateModel",
+          "sagemaker:CreateEndpoint",
+          "sagemaker:CreateEndpointConfig",
+          "sagemaker:InvokeEndpointAsync",
+          "ecr:GetAuthorizationToken",
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:GetRepositoryPolicy",
+          "ecr:DescribeRepositories",
+          "ecr:ListImages",
+          "ecr:DescribeImages",
+          "ecr:BatchGetImage",
+          "ecr:InitiateLayerUpload",
+          "ecr:UploadLayerPart",
+          "ecr:CompleteLayerUpload",
+          "ecr:PutImage",
+          "cloudwatch:PutMetricAlarm",
+          "cloudwatch:PutMetricData",
+          "cloudwatch:DeleteAlarms",
+          "cloudwatch:DescribeAlarms",
+          "sagemaker:UpdateEndpointWeightsAndCapacities",
+          "iam:CreateServiceLinkedRole",
+          "iam:PassRole",
+        ],
+        effect: iam.Effect.ALLOW,
+        resources: [ "*" ],
+      }),
+    );
+    endpointRole.addToPolicy(this.iamHelper.logStatement);
+    endpointRole.addToPolicy(this.iamHelper.s3Statement);
 
     const imageUrlDomain =
       this.region === "cn-north-1" || this.region === "cn-northwest-1"
@@ -157,16 +257,16 @@ export class EtlStack extends NestedStack {
       }
     );
     scalingTarget.node.addDependency(etlEndpoint);
-    scalingTarget.scaleToTrackMetric('ApproximateBacklogSizePerInstanceTrackMetric', {
+    scalingTarget.scaleToTrackMetric("ApproximateBacklogSizePerInstanceTrackMetric", {
       targetValue: 2,
       customMetric: new Metric({
-        metricName: 'ApproximateBacklogSizePerInstance',
-        namespace: 'AWS/SageMaker',
+        metricName: "ApproximateBacklogSizePerInstance",
+        namespace: "AWS/SageMaker",
         dimensionsMap: {
           EndpointName: etlEndpoint.endpointName,
         },
         period: Duration.minutes(1),
-        statistic: 'avg',
+        statistic: "avg",
       }),
       scaleInCooldown: Duration.seconds(60),
       scaleOutCooldown: Duration.seconds(60),
@@ -191,14 +291,15 @@ export class EtlStack extends NestedStack {
           "sagemaker:DescribeEndpoint",
           "sagemaker:DescribeEndpointConfig",
           "sagemaker:UpdateEndpointWeightsAndCapacities",
-          "application-autoscaling:*",
+          "application-autoscaling:PutScalingPolicy",
+          "application-autoscaling:RegisterScalableTarget",
           "iam:CreateServiceLinkedRole",
           "cloudwatch:PutMetricAlarm",
           "cloudwatch:DescribeAlarms",
           "cloudwatch:DeleteAlarms",
         ],
         effect: iam.Effect.ALLOW,
-        resources: ["*"],
+        resources: [`arn:${Aws.PARTITION}:sagemaker:${Aws.REGION}:${Aws.ACCOUNT_ID}:endpoint/${etlEndpoint.endpointName}`],
       }),
     );
     crLambda.node.addDependency(scalingTarget);
@@ -218,53 +319,6 @@ export class EtlStack extends NestedStack {
       securityGroups: [props.securityGroups],
     });
 
-    const idAttr = {
-      name: "executionId",
-      type: dynamodb.AttributeType.STRING,
-    }
-    const etlS3Path = {
-      name: "s3Path",
-      type: dynamodb.AttributeType.STRING,
-    }
-    const executionTable = new DynamoDBTable(this, "Execution", idAttr).table;
-    executionTable.addGlobalSecondaryIndex({
-      indexName: "BucketAndPrefixIndex",
-      partitionKey: { name: "s3Bucket", type: dynamodb.AttributeType.STRING },
-      sortKey: { name: "s3Prefix", type: dynamodb.AttributeType.STRING },
-    });
-    const etlObjTable = new DynamoDBTable(this, "ETLObject", etlS3Path, idAttr).table;
-    etlObjTable.addGlobalSecondaryIndex({
-      indexName: this.etlObjIndexName,
-      partitionKey: { name: "executionId", type: dynamodb.AttributeType.STRING },
-    });
-
-    const workspaceTable = new dynamodb.Table(this, "WorkspaceTable", {
-      partitionKey: {
-        name: "workspace_id",
-        type: dynamodb.AttributeType.STRING,
-      },
-      sortKey: {
-        name: "object_type",
-        type: dynamodb.AttributeType.STRING,
-      },
-      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-      encryption: dynamodb.TableEncryption.AWS_MANAGED,
-      pointInTimeRecovery: true,
-      removalPolicy: RemovalPolicy.DESTROY,
-    });
-
-    workspaceTable.addGlobalSecondaryIndex({
-      indexName: "by_object_type_idx",
-      partitionKey: {
-        name: "object_type",
-        type: dynamodb.AttributeType.STRING,
-      },
-      sortKey: {
-        name: "created_at",
-        type: dynamodb.AttributeType.STRING,
-      },
-    });
-
     const notificationLambda = new Function(this, "ETLNotification", {
       code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
       handler: "notification.lambda_handler",
@@ -277,13 +331,8 @@ export class EtlStack extends NestedStack {
         ETL_OBJECT_TABLE: etlObjTable.tableName,
       },
     });
-    notificationLambda.addToRolePolicy(
-      new iam.PolicyStatement({
-        actions: ["dynamodb:*"],
-        effect: iam.Effect.ALLOW,
-        resources: ["*"],
-      }),
-    );
+    notificationLambda.addToRolePolicy(dynamodbStatement);
+    notificationLambda.addToRolePolicy(this.iamHelper.logStatement);
 
     const extraPythonFiles = new s3deploy.BucketDeployment(
       this,
@@ -295,7 +344,6 @@ export class EtlStack extends NestedStack {
           ),
         ],
         destinationBucket: glueLibS3Bucket,
-        // destinationKeyPrefix: "llm_bot_dep-0.1.0-py3-none-any.whl",
       },
     );
 
@@ -312,21 +360,28 @@ export class EtlStack extends NestedStack {
     glueRole.addToPrincipalPolicy(
       new iam.PolicyStatement({
         actions: [
-          "sagemaker:InvokeEndpointAsync",
-          "sagemaker:InvokeEndpoint",
-          "s3:*",
-          "es:*",
-          "glue:*",
-          "ec2:*",
-          "dynamodb:*",
+          "es:ESHttpGet",
+          "es:ESHttpPut",
+          "es:ESHttpPost",
+          "es:ESHttpHead",
           "bedrock:*",
-          // CloudWatch logs
-          "logs:*",
+          "glue:GetConnection",
+          "glue:GetJobs",
+          "glue:GetJob",
+          "ec2:Describe*",
+          "ec2:CreateNetworkInterface",
+          "ec2:AttachNetworkInterface",
+          "ec2:CreateTags",
         ],
         effect: iam.Effect.ALLOW,
         resources: ["*"],
       }),
     );
+    glueRole.addToPolicy(this.iamHelper.endpointStatement);
+    glueRole.addToPolicy(this.iamHelper.s3Statement);
+    glueRole.addToPolicy(this.iamHelper.logStatement);
+    glueRole.addToPolicy(dynamodbStatement);
+    glueRole.addToPolicy(this.iamHelper.glueStatement);
 
     // Create glue job to process files specified in s3 bucket and prefix
     const glueJob = new glue.Job(this, "PythonShellJob", {
@@ -383,20 +438,9 @@ export class EtlStack extends NestedStack {
           "Default Embedding Endpoint Not Created",
       },
     });
-
-    etlLambda.addToRolePolicy(
-      new iam.PolicyStatement({
-        actions: [
-          // Glue job
-          "glue:StartJobRun",
-          "s3:List*",
-          "s3:Put*",
-          "s3:Get*",
-        ],
-        effect: iam.Effect.ALLOW,
-        resources: ["*"],
-      }),
-    );
+    etlLambda.addToRolePolicy(this.iamHelper.glueStatement);
+    etlLambda.addToRolePolicy(this.iamHelper.s3Statement);
+    etlLambda.addToRolePolicy(this.iamHelper.logStatement);
 
     const lambdaETLIntegration = new tasks.LambdaInvoke(
       this,
