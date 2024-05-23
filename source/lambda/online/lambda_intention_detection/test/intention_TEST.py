@@ -14,7 +14,7 @@ def test(lambda_invoke_mode="local"):
             "intention_config":{
                 "retrievers": [
                         {
-                            "type": "qd",
+                            "type": "qq",
                             "workspace_ids": ["yb_intent"],
                             "config": {
                                 "top_k": 10,
@@ -33,6 +33,5 @@ def test(lambda_invoke_mode="local"):
         )
     print(r)
 
-
 if __name__ == "__main__":
-    test(lambda_invoke_mode='lambda')
+    test(lambda_invoke_mode='local')

@@ -119,7 +119,7 @@ def test_yb_mode():
             "intention_config":{
                 "retrievers": [
                         {
-                            "type": "qd",
+                            "type": "qq",
                             "workspace_ids": ["yb_intent"],
                             "config": {
                                 "top_k": 10,
@@ -132,10 +132,14 @@ def test_yb_mode():
                 "model_kwargs": {"temperature":0.0,"max_tokens":4096},
                 "tools":[{"name":"give_final_response"},{"name":"search_lihoyo"}]
         },
+        "chat_config":{
+            "model_id":"anthropic.claude-3-sonnet-20240229-v1:0",
+            "model_kwargs": {"temperature":0.0,"max_tokens":4096},
+        }
         }
     )
 
 
 if __name__ == "__main__":
-    test()
+    test_yb_mode()
     

@@ -1,7 +1,11 @@
+import json
 from typing import TypedDict,Any,Annotated
 from langgraph.graph import StateGraph,END
 from common_utils.lambda_invoke_utils import invoke_lambda,node_monitor_wrapper
 from common_utils.python_utils import update_nest_dict,add_messages
+from common_utils.constant import (
+    LLMTaskType
+)
 
 from functions.tools import get_tool_by_name,Tool
 from functions.tool_execute_result_format import format_tool_execute_result
@@ -16,6 +20,7 @@ class ChatbotState(TypedDict):
     stream: bool 
     query_rewrite: str = None  # query rewrite ret
     intent_type: str = None # intent
+    intention_fewshot_examples: list
     trace_infos: Annotated[list[str],add_messages]
     message_id: str = None
     chat_history: Annotated[list[dict],add_messages]
@@ -27,6 +32,8 @@ class ChatbotState(TypedDict):
     current_monitor_infos: str 
     extra_response: Annotated[dict,update_nest_dict]
     default_mode: bool = True   # yuanbo mode
+    contexts: str = None
+    current_tools: list #
     
 
 ####################
@@ -48,20 +55,21 @@ def query_preprocess_lambda(state: ChatbotState):
 
 @node_monitor_wrapper
 def intention_detection_lambda(state: ChatbotState):
-    # output:str = invoke_lambda(
-    #     event_body=state,
-    #     lambda_name="Online_Intention_Detection",
-    #     lambda_module_path="lambda_intention_detection.intention",
-    #     handler_name="lambda_handler"
-    # )
-    output = "other"
-    if state.get("use_qa"):
-        output = "qa"
-    return {
-        "intent_type":output,
-        "current_monitor_infos":f"intent_type: {output}"
-        }
+    intention_fewshot_examples = invoke_lambda(
+        lambda_module_path='lambda_intention_detection.intention',
+        lambda_name="Online_Intention_Detection",
+        handler_name="lambda_handler",
+        event_body=state 
+    )
 
+    # send trace
+    send_trace(f"intention retrieved:\n{json.dumps(intention_fewshot_examples,ensure_ascii=False,indent=2)}")
+    current_tools:list[str] = list(set([e['intent'] for e in intention_fewshot_examples]))
+    return {
+        "intention_fewshot_examples": intention_fewshot_examples,
+        "current_tools": current_tools + ['give_rhetorical_question'],
+        "intent_type":"other"
+        }
 
 @node_monitor_wrapper
 def rag_retrieve_lambda(state: ChatbotState):
@@ -110,7 +118,7 @@ def tool_execute_lambda(state: ChatbotState):
 
     for tool_call in tool_calls:
         tool_name = tool_call["name"]
-        event_body = tool_call['args']
+        event_body = tool_call['kargs']
         tool:Tool = get_tool_by_name(tool_name)
         # call tool
         output:dict = invoke_lambda(
@@ -146,19 +154,69 @@ def tool_execute_lambda(state: ChatbotState):
             "content": ret
     }]}
     
+@node_monitor_wrapper
+def rag_retrieve_lambda(state: ChatbotState):
+    # call retrivever
+    retriever_params = {
+        "retrievers": [
+            {
+                "type": "qd",
+                "workspace_ids": ["mihoyo-test"],
+                "config": {
+                    "top_k": 20,
+                    "using_whole_doc": True,
+                }
+            },
+        ],
+        "rerankers": [
+            {
+                "type": "reranker",
+                "config": {
+                    "enable_debug": False,
+                    "target_model": "bge_reranker_model.tar.gz"
+                }
+            }
+        ],
+        "query": state['query'],
+    }
+    output:str = invoke_lambda(
+        event_body=retriever_params,
+        lambda_name="Online_Function_Retriever",
+        lambda_module_path="functions.lambda_retriever.retriever",
+        handler_name="lambda_handler"
+    )
+    contexts = [doc['page_content'] for doc in output['result']['docs']]
+    return {"contexts": contexts}
+
+
+@node_monitor_wrapper
+def rag_llm_lambda(state:ChatbotState):
+    output:str = invoke_lambda(
+        lambda_name='Online_LLM_Generate',
+        lambda_module_path="lambda_llm_generate.llm_generate",
+        handler_name='lambda_handler',
+        event_body={
+            "llm_config": {"model_id": "anthropic.claude-3-sonnet-20240229-v1:0", "intent_type": LLMTaskType.RAG},
+            "llm_input": {"contexts": [state['contexts']], "query": state['query'], "chat_history": state['chat_history']}
+            }
+        )
+    return {"answer": output}
 
 
 def chat_llm_generate_lambda(state:ChatbotState):
     answer:dict = invoke_lambda(
         event_body={
-            "llm_config":'xx',
-            "llm_inputs": state
+            "llm_config":{
+                **state["chatbot_config"]['chat_config'],
+                "stream":state['stream'],
+                "intent_type":LLMTaskType.CHAT
+                },
+            "llm_input": {'query':state['query'],"chat_history":state['chat_history']}
         },
         lambda_name="Online_LLM_Generate",
         lambda_module_path="lambda_llm_generate.llm_generate",
         handler_name="lambda_handler"
     )
-
     return {"answer":answer}
 
 
@@ -184,6 +242,11 @@ def give_response_without_any_tool(state:ChatbotState):
     chat_history = state['chat_history']
     return {"answer": chat_history[-1]['content']}
 
+def qq_matched_reply(state:ChatbotState):
+    return {"answer": state["answer"]}
+
+
+
 ################
 # define edges #
 ################
@@ -197,16 +260,24 @@ def agent_route(state:dict):
         return "no tool"
     
     recent_tool_call = recent_tool_calls[0]
-    # 反问
+
+    recent_tool_name = recent_tool_call['name']
+
+    if recent_tool_name in ['comfort', 'transfer','chat']:
+        return recent_tool_name
+    
+    if recent_tool_name == "QA":
+        return "rag"
+
+
+    if recent_tool_name == "assist":
+        return "chat"
+    
     if recent_tool_call['name'] == "give_rhetorical_question":
         return "rhetorical question"
 
-    if recent_tool_call['name'] == "give_final_response":
-        return "response"
-
     return "continue"
      
-
 #############################
 # define whole online graph #
 #############################
@@ -222,14 +293,15 @@ def build_graph():
     workflow.add_node("comfort_reply",comfort_reply)
     workflow.add_node("transfer_reply", transfer_reply)
     workflow.add_node("give_rhetorical_question",give_rhetorical_question)
-    workflow.add_node("give_tool_response",give_tool_response)
     workflow.add_node("give_response_wo_tool",give_response_without_any_tool)
     workflow.add_node("rag_retrieve_lambda",rag_retrieve_lambda)
     workflow.add_node("rag_llm_lambda",rag_llm_lambda)
+    workflow.add_node('qq_matched_reply',qq_matched_reply)
     
     # add all edges
     workflow.set_entry_point("query_preprocess_lambda")
     workflow.add_edge("query_preprocess_lambda","intention_detection_lambda")
+    workflow.add_edge("intention_detection_lambda","agent_lambda")
     workflow.add_edge("tool_execute_lambda","agent_lambda")
     workflow.add_edge("rag_retrieve_lambda","rag_llm_lambda")
     workflow.add_edge("rag_llm_lambda",END)
@@ -237,19 +309,18 @@ def build_graph():
     workflow.add_edge("transfer_reply",END)
     workflow.add_edge("chat_llm_generate_lambda",END)
     workflow.add_edge("give_rhetorical_question",END)
-    workflow.add_edge("give_tool_response",END)
     workflow.add_edge("give_response_wo_tool",END)
+    workflow.add_edge("rag_retrieve_lambda","rag_llm_lambda")
+    workflow.add_edge("rag_llm_lambda",END)
+    workflow.add_edge("qq_matched_reply",END)
 
     # add conditional edges
     workflow.add_conditional_edges(
         "intention_detection_lambda",
         intent_route,
         {
-            "comfort": "comfort_reply",
-            "transfer": "transfer_reply",
-            "chat": "chat_llm_generate_lambda",
             "other": "agent_lambda",
-            "qa": "rag_retrieve_lambda"
+            "qq_mathed": "qq_matched_reply"
         }
     )
 
@@ -259,7 +330,11 @@ def build_graph():
         {
             "no tool": "give_response_wo_tool",
             "rhetorical question": "give_rhetorical_question",
-            "response": "give_tool_response",
+            "comfort": "comfort_reply",
+            "transfer": "transfer_reply",
+            "chat": "chat_llm_generate_lambda",
+            "rag": "rag_retrieve_lambda",
+            # "response": "give_tool_response",
             "continue":"tool_execute_lambda"
         }
     )
@@ -280,8 +355,8 @@ def common_entry(event_body):
      
 
     # debuging
-    # with open('common_entry_workflow.png','wb') as f:
-    #     f.write(app.get_graph().draw_png())
+    with open('common_entry_workflow.png','wb') as f:
+        f.write(app.get_graph().draw_png())
     
     ################################################################################
     # prepare inputs and invoke graph

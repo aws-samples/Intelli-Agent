@@ -18,6 +18,14 @@ class ToolManager:
         self.tools = {}
     
     def register_tool(self,tool_info:dict):
+        tool_def = tool_info['tool_def']
+        if "parameters" not in tool_def:
+            tool_def['parameters'] = {
+                "type": "object",
+                "properties": {},
+                "required": []
+            }
+
         tool = Tool(**tool_info)
         assert tool.tool_def_type == ToolDefType.openai.value, f"tool_def_type: {tool.tool_def_type} not support"
         self.tools[tool.name] = tool
@@ -254,6 +262,59 @@ tool_manager.register_tool({
     }
 
 })
+
+tool_manager.register_tool({
+    "name":"assist",
+    "lambda_name": "xxxx",
+    "lambda_module_path": "xxxx",
+    "tool_def": {
+        "name": "assist",
+        "description": "assist user to do some office work"
+    }
+})
+
+tool_manager.register_tool({
+    "name":"QA",
+    "lambda_name": "xxxx",
+    "lambda_module_path": "xxxx",
+    "tool_def": {
+        "name": "QA",
+        "description": "answer question according to searched relevant content"
+    }
+})
+
+tool_manager.register_tool({
+    "name": "chat",
+    "lambda_name": "xxxx",
+    "lambda_module_path": "xxxx",
+    "tool_def": {
+        "name": "chat",
+        "description": "chi-chat with AI"
+    }
+})
+
+tool_manager.register_tool({
+    "name":"comfort",
+    "lambda_name": "xxxx",
+    "lambda_module_path": "xxxx",
+    "tool_def": {
+        "name": "comfort",
+        "description": "comfort user to mitigate their bad emotion"
+    }
+
+})
+
+tool_manager.register_tool({
+    "name":"transfer",
+    "lambda_name": "xxxx",
+    "lambda_module_path": "xxxx",
+    "tool_def": {
+        "name": "transfer",
+        "description": "transfer the conversation to manual customer service"
+    }
+})
+
+
 
 
 

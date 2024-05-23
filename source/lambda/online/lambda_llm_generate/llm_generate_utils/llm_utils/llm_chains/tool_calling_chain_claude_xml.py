@@ -59,6 +59,11 @@ SYSTEM_MESSAGE_PROMPT =("In this environment you have access to a set of tools y
         f"\nHere are some guidelines for you:\n{tool_call_guidelines}"
     )
 
+SYSTEM_MESSAGE_PROMPT_WITH_FEWSHOT_EXAMPLES = SYSTEM_MESSAGE_PROMPT + (
+    "Some examples of tool calls are given below, where the content within <query></query> represents the most recent reply in the dialog."
+    "\n{fewshot_examples}"
+)
+
 TOOL_FORMAT = """<tool_description>
 <tool_name>{tool_name}</tool_name>
 <description>{tool_description}</description>
@@ -160,7 +165,7 @@ def convert_anthropic_xml_to_dict(model_id,function_calls:List[str], tools:list[
                 assert len(value) == 1,function_call
                 arguments[parameter_key] = value[0].strip()
             
-            tool_calls.append(dict(name=tool_name,args=arguments,model_id=model_id))
+            tool_calls.append(dict(name=tool_name,kargs=arguments,model_id=model_id))
     
     return tool_calls
 
@@ -174,6 +179,36 @@ class Claude2ToolCallingChain(LLMChain):
         "top_p": 0.9,
         "stop_sequences": ["\n\nHuman:", "\n\nAssistant","</function_calls>"],
         }
+
+    @staticmethod
+    def format_fewshot_examples(fewshot_examples:list[dict]):
+        fewshot_example_strs = []
+        for fewshot_example in fewshot_examples:
+            param_strs = []
+            for p,v in fewshot_example['kwargs'].items():
+                param_strs.append(f"<{p}>{v}</{p}")
+            param_str = "\n".join(param_strs)
+            if param_strs:
+                param_str += "\n"
+
+            fewshot_example_str = (
+                "<example>\n"
+                f"<query>{fewshot_example['query']}</query>\n"
+                f"<output>\n"
+                "<function_calls>\n"
+                "<invoke>\n"
+                f"<tool_name>{fewshot_example['name']}</tool_name>\n"
+                "<parameters>\n"
+                f"{param_str}"
+                "</parameters>\n"
+                "</invoke>\n"
+                "</function_calls>\n"
+                "</output>\n"
+                "</example>"
+            )
+            fewshot_example_strs.append(fewshot_example_str)
+        fewshot_example_str = '\n'.join(fewshot_example_strs)
+        return f"<examples>\n{fewshot_example_str}\n</examples>"
     
     @classmethod
     def parse_tools_from_ai_message(cls,message:AIMessage,tools:list[dict]):
@@ -189,15 +224,26 @@ class Claude2ToolCallingChain(LLMChain):
     def create_chain(cls, model_kwargs=None, **kwargs):
         model_kwargs = model_kwargs or {}
         tools:list = kwargs['tools']
+        fewshot_examples = kwargs.get('fewshot_examples',[])
+        
         model_kwargs = {**cls.default_model_kwargs, **model_kwargs}
 
         tools_formatted = convert_openai_tool_to_anthropic(tools)
+
+        if fewshot_examples:
+
+            system_prompt = SYSTEM_MESSAGE_PROMPT_WITH_FEWSHOT_EXAMPLES.format(
+                tools=tools_formatted,
+                fewshot_examples=cls.format_fewshot_examples(fewshot_examples)
+            )
+        else:
+            system_prompt = SYSTEM_MESSAGE_PROMPT.format(
+                tools=tools_formatted
+            )
          
         tool_calling_template = ChatPromptTemplate.from_messages(
             [
-            SystemMessage(content=SYSTEM_MESSAGE_PROMPT.format(
-                tools=tools_formatted
-                )),
+            SystemMessage(content=system_prompt),
             ("placeholder", "{chat_history}")
         ])
 
@@ -205,7 +251,7 @@ class Claude2ToolCallingChain(LLMChain):
             model_id=cls.model_id,
             model_kwargs=model_kwargs,
         )
-        chain = tool_calling_template | RunnableLambda(lambda x:x.messages ) | llm | RunnableLambda(lambda message:cls.parse_tools_from_ai_message(message,tools=tools))
+        chain = tool_calling_template | RunnableLambda(lambda x: print(x.messages) or x.messages ) | llm | RunnableLambda(lambda message:cls.parse_tools_from_ai_message(message,tools=tools))
         
         return chain
 

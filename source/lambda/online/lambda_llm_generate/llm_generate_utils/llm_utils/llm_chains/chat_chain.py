@@ -31,10 +31,10 @@ class Claude2ChatChain(LLMChain):
     def create_chain(cls, model_kwargs=None, **kwargs):
         stream = kwargs.get("stream", False)
 
-        messages_template = ChatPromptTemplate.from_messages(
+        messages_template = ChatPromptTemplate.from_messages([
             ("placeholder", "{chat_history}"),
             HumanMessagePromptTemplate.from_template("{query}")
-        )
+        ])
         # messages = RunnableLambda(lambda x: x["chat_history"] + [HumanMessage(content=x['query'])])
         # kwargs.update({"return_chat_model": True})
         llm = Model.get_model(cls.model_id, model_kwargs=model_kwargs, **kwargs)

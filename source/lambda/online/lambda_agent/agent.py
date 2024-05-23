@@ -18,12 +18,13 @@ def tool_calling(state:dict):
     message_id = state.get('message_id',None)
     trace_infos = state.get('trace_infos',[])
     agent_config = state["chatbot_config"]['agent_config']
-    tool_defs = [get_tool_by_name(tool['name']).tool_def for tool in agent_config['tools']]
+    tool_defs = [get_tool_by_name(tool_name).tool_def for tool_name in state['current_tools']]
     
     llm_config = {
         "tools": tool_defs,
         "model_kwargs": agent_config.get('model_kwargs',{}),
-        "model_id": agent_config['model_id']
+        "model_id": agent_config['model_id'],
+        "fewshot_examples": state['intention_fewshot_examples'],
     }
 
     tool_calling_chain = RunnableLambda(lambda x: invoke_lambda(
