@@ -417,8 +417,28 @@ def parse_common_entry_config(chatbot_config):
                 }
                 ]
             }
+        },
+        "retriever_config": {
+            "retrievers": [
+                {
+                    "type": "qd",
+                    "workspace_ids": [],
+                    "config": {
+                        "top_k": 20,
+                        "using_whole_doc": True,
+                    }
+                },
+            ],
+            "rerankers": [
+                {
+                    "type": "reranker",
+                    "config": {
+                        "enable_debug": False,
+                        "target_model": "bge_reranker_model.tar.gz"
+                    }
+                }
+            ],
         }
-
     }
     chatbot_config = update_nest_dict(
         copy.deepcopy(default_chatbot_config),
