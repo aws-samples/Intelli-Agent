@@ -59,6 +59,9 @@ export class LLMStack extends cdk.NestedStack {
     // Create IAM execution role
     const executionRole = new iam.Role(this, "llmbot-endpoint-execution-role", {
       assumedBy: new iam.ServicePrincipal("sagemaker.amazonaws.com"),
+      managedPolicies: [
+        iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonSageMakerFullAccess"),
+      ]
     });
     executionRole.addToPolicy(this.iamHelper.logStatement);
     executionRole.addToPolicy(this.iamHelper.s3Statement);
