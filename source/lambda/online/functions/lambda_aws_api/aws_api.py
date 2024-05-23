@@ -18,7 +18,6 @@ class EC2PriceRequest(BaseModel):
     def validate_ec2_instance_type(cls,instance_type):
         # support other instance ml.m5.xlarge
         # pattern = r'^(?:[a-z0-9][a-z0-9.-]*[a-z0-9])?(?:[a-z](?:[a-z0-9-]*[a-z0-9])?)?(\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)*\.[a-z0-9]{2,63}$'
-        
         ## only ec2, for m5.xlarge
         pattern = r"^([a-z0-9]+\.[a-z0-9]+)$"
 
@@ -32,7 +31,6 @@ class EC2PriceRequest(BaseModel):
     @field_validator('region')
     def validate_region(cls, value:str,info: ValidationInfo):
         if not cls.validate_region_name(value):
-            # return f'value must be one of {allowed_values}'
             raise ValueError(f"{value} is not a valid AWS region name.")
         return value
     
@@ -64,7 +62,6 @@ class EC2PriceRequest(BaseModel):
         return value
 
 def purchase_option_filter(term_attri:dict, value:str) -> dict:
-    ##如果是空值，则不判断
     if not value:
         return True
     if term_attri:
@@ -192,4 +189,3 @@ def lambda_handler(event, context):
 if __name__ == "__main__":
     args = {'instance_type':'m5.xlarge','region':'us-east-1','term':'Reserved','purchase_option':'All Upfront'}
     print(query_ec2_price(**args))
-    # print(lambda_handler({}, {}))
