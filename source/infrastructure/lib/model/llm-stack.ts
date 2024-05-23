@@ -18,6 +18,7 @@ import { Construct } from "constructs";
 import * as dotenv from "dotenv";
 
 import { BuildConfig } from "../../lib/shared/build-config";
+import { IAMHelper } from "../shared/iam-helper";
 
 dotenv.config();
 
@@ -31,6 +32,7 @@ interface LLMStackProps extends cdk.StackProps {
   embeddingAndRerankerModelVersion: string;
   instructModelPrefix: string;
   instructModelVersion: string;
+  iamHelper: IAMHelper;
 }
 
 export class LLMStack extends cdk.NestedStack {
@@ -38,10 +40,12 @@ export class LLMStack extends cdk.NestedStack {
   public embeddingEndPoints: string[] = [];
   public embeddingAndRerankerEndPoint: string = "";
   public instructEndPoint: string = "";
+  private iamHelper: IAMHelper;
 
   constructor(scope: Construct, id: string, props: LLMStackProps) {
     super(scope, id, props);
 
+    this.iamHelper = props.iamHelper;
     const llmImageUrlDomain =
       this.region === "cn-north-1" || this.region === "cn-northwest-1"
         ? ".amazonaws.com.cn/"
@@ -55,12 +59,10 @@ export class LLMStack extends cdk.NestedStack {
     // Create IAM execution role
     const executionRole = new iam.Role(this, "llmbot-endpoint-execution-role", {
       assumedBy: new iam.ServicePrincipal("sagemaker.amazonaws.com"),
-      managedPolicies: [
-        iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonSageMakerFullAccess"),
-        iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonS3FullAccess"),
-        iam.ManagedPolicy.fromAwsManagedPolicyName("CloudWatchLogsFullAccess"),
-      ],
     });
+    executionRole.addToPolicy(this.iamHelper.logStatement);
+    executionRole.addToPolicy(this.iamHelper.s3Statement);
+    executionRole.addToPolicy(this.iamHelper.endpointStatement);
 
     console.log(
       "LLM Stack BuildConfig.DEPLOYMENT_MODE: ",

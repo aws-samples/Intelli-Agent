@@ -46,6 +46,7 @@ export class QueueConstruct extends Construct {
       new iam.PolicyStatement({
         effect: iam.Effect.DENY,
         principals: [new iam.AnyPrincipal()],
+        // Set * to deny all HTTP request for security
         actions: ["sqs:*"],
         resources: ["*"],
         conditions: {
