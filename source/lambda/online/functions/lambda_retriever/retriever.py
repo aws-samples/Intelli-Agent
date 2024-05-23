@@ -154,7 +154,10 @@ def lambda_handler(event, context=None):
         reranker_config = rerankers[0]["config"]
     else:
         reranker_config = {}
-    whole_chain = get_whole_chain(retriever_list, reranker_config)
+    if len(retriever_list) > 0:
+        whole_chain = get_whole_chain(retriever_list, reranker_config)
+    else:
+        whole_chain = RunnablePassthrough.assign(docs = lambda x: [])
     docs = whole_chain.invoke({"query": event_body["query"], "debug_info": {}})
     return {"code":0, "result": docs}
 
@@ -166,8 +169,8 @@ if __name__ == "__main__":
                 {
                     "retrievers": [
                         {
-                            "type": "qd",
-                            "workspace_ids": ["test"],
+                            "type": "qq",
+                            "workspace_ids": ["yb_intent"],
                             "config": {
                                 "top_k": 10,
                             }
