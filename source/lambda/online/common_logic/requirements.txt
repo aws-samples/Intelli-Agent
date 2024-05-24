@@ -5,4 +5,5 @@ opensearch-py==2.2.0
 requests_aws4auth==1.2.2
 python-dateutil==2.8.2
 prettytable==3.10.0
-pandas
+pandas==2.1.4
+beautifulsoup4==4.12.2

@@ -98,6 +98,7 @@ export class ApiConstruct extends Construct {
     const apiLambdaEmbeddingLayer = lambdaLayers.createEmbeddingLayer();
     const apiLambdaOnlineUtilsLayer = lambdaLayers.createOnlineUtilsLayer();
     const apiLambdaOnlineSourceLayer = lambdaLayers.createOnlineSourceLayer();
+    const apiLambdaJobSourceLayer = lambdaLayers.createJobSourceLayer();
     const apiLambdaAuthorizerLayer = lambdaLayers.createAuthorizerLayer();
 
     // S3 bucket for storing documents
@@ -595,7 +596,7 @@ export class ApiConstruct extends Construct {
         },
         securityGroups: [securityGroup],
         architecture: Architecture.X86_64,
-        layers: [apiLambdaOnlineUtilsLayer, apiLambdaOnlineSourceLayer],
+        layers: [apiLambdaOnlineUtilsLayer, apiLambdaOnlineSourceLayer, apiLambdaJobSourceLayer],
         environment: {
           aos_endpoint: domainEndpoint,
           rerank_endpoint: props.rerankEndPoint,
@@ -791,7 +792,7 @@ export class ApiConstruct extends Construct {
         },
         securityGroups: [securityGroup],
         architecture: Architecture.X86_64,
-        layers: [apiLambdaOnlineUtilsLayer, apiLambdaOnlineSourceLayer],
+        layers: [apiLambdaOnlineUtilsLayer, apiLambdaOnlineSourceLayer, apiLambdaJobSourceLayer],
       });
 
       lambdaOnlineQueryPreprocess.grantInvoke(lambdaOnlineMain);
