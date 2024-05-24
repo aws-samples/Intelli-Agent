@@ -596,7 +596,7 @@ export class ApiConstruct extends Construct {
         },
         securityGroups: [securityGroup],
         architecture: Architecture.X86_64,
-        layers: [apiLambdaOnlineUtilsLayer, apiLambdaOnlineSourceLayer],
+        layers: [apiLambdaOnlineUtilsLayer, apiLambdaOnlineSourceLayer, apiLambdaJobSourceLayer],
         // environment: {
         //   aos_endpoint: domainEndpoint,
         //   llm_model_endpoint_name: props.instructEndPoint,
