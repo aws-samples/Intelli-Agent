@@ -139,46 +139,18 @@ export class EtlStack extends NestedStack {
 
     const endpointRole = new iam.Role(this, "etl-endpoint-role", {
       assumedBy: new iam.ServicePrincipal("sagemaker.amazonaws.com"),
+      managedPolicies: [
+        iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonSageMakerFullAccess"),
+        iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonS3FullAccess"),
+        iam.ManagedPolicy.fromAwsManagedPolicyName("CloudWatchLogsFullAccess"),
+      ],
     });
-    endpointRole.addToPolicy(
-      new iam.PolicyStatement({
-        actions: [
-          "sagemaker:DeleteModel",
-          "sagemaker:DeleteEndpoint",
-          "sagemaker:DescribeEndpoint",
-          "sagemaker:DeleteEndpointConfig",
-          "sagemaker:DescribeEndpointConfig",
-          "sagemaker:InvokeEndpoint",
-          "sagemaker:CreateModel",
-          "sagemaker:CreateEndpoint",
-          "sagemaker:CreateEndpointConfig",
-          "sagemaker:InvokeEndpointAsync",
-          "ecr:GetAuthorizationToken",
-          "ecr:BatchCheckLayerAvailability",
-          "ecr:GetDownloadUrlForLayer",
-          "ecr:GetRepositoryPolicy",
-          "ecr:DescribeRepositories",
-          "ecr:ListImages",
-          "ecr:DescribeImages",
-          "ecr:BatchGetImage",
-          "ecr:InitiateLayerUpload",
-          "ecr:UploadLayerPart",
-          "ecr:CompleteLayerUpload",
-          "ecr:PutImage",
-          "cloudwatch:PutMetricAlarm",
-          "cloudwatch:PutMetricData",
-          "cloudwatch:DeleteAlarms",
-          "cloudwatch:DescribeAlarms",
-          "sagemaker:UpdateEndpointWeightsAndCapacities",
-          "iam:CreateServiceLinkedRole",
-          "iam:PassRole",
-        ],
-        effect: iam.Effect.ALLOW,
-        resources: [ "*" ],
-      }),
-    );
     endpointRole.addToPolicy(this.iamHelper.logStatement);
     endpointRole.addToPolicy(this.iamHelper.s3Statement);
+    endpointRole.addToPolicy(this.iamHelper.endpointStatement);
+    endpointRole.addToPolicy(this.iamHelper.stsStatement);
+    endpointRole.addToPolicy(this.iamHelper.ecrStatement);
+    endpointRole.addToPolicy(this.iamHelper.llmStatement);
 
     const imageUrlDomain =
       this.region === "cn-north-1" || this.region === "cn-northwest-1"
@@ -291,6 +263,14 @@ export class EtlStack extends NestedStack {
           "sagemaker:DescribeEndpoint",
           "sagemaker:DescribeEndpointConfig",
           "sagemaker:UpdateEndpointWeightsAndCapacities",
+        ],
+        effect: iam.Effect.ALLOW,
+        resources: [`arn:${Aws.PARTITION}:sagemaker:${Aws.REGION}:${Aws.ACCOUNT_ID}:endpoint/${etlEndpoint.endpointName}`],
+      }),
+    );
+    crLambda.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: [
           "application-autoscaling:PutScalingPolicy",
           "application-autoscaling:RegisterScalableTarget",
           "iam:CreateServiceLinkedRole",
@@ -299,7 +279,7 @@ export class EtlStack extends NestedStack {
           "cloudwatch:DeleteAlarms",
         ],
         effect: iam.Effect.ALLOW,
-        resources: [`arn:${Aws.PARTITION}:sagemaker:${Aws.REGION}:${Aws.ACCOUNT_ID}:endpoint/${etlEndpoint.endpointName}`],
+        resources: [ "*" ],
       }),
     );
     crLambda.node.addDependency(scalingTarget);

@@ -61,11 +61,16 @@ export class LLMStack extends cdk.NestedStack {
       assumedBy: new iam.ServicePrincipal("sagemaker.amazonaws.com"),
       managedPolicies: [
         iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonSageMakerFullAccess"),
-      ]
+        iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonS3FullAccess"),
+        iam.ManagedPolicy.fromAwsManagedPolicyName("CloudWatchLogsFullAccess"),
+      ],
     });
     executionRole.addToPolicy(this.iamHelper.logStatement);
     executionRole.addToPolicy(this.iamHelper.s3Statement);
     executionRole.addToPolicy(this.iamHelper.endpointStatement);
+    executionRole.addToPolicy(this.iamHelper.stsStatement);
+    executionRole.addToPolicy(this.iamHelper.ecrStatement);
+    executionRole.addToPolicy(this.iamHelper.llmStatement);
 
     console.log(
       "LLM Stack BuildConfig.DEPLOYMENT_MODE: ",
