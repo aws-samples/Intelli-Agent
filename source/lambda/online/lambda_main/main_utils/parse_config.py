@@ -38,11 +38,37 @@ def parse_common_entry_config(chatbot_config):
             "tools":[]
         },
         "tool_execute_config":{
+            "knowledge_base_retriever":{
+                "retrievers": [
+                {
+                    "type": "qd",
+                    "workspace_ids": [1],
+                    "top_k": 10,
+                }
+                ]
+            }
         },
-        "chat_config":{
-            "model_id":llm_model_id
+        "rag_retriever_config": {
+            "retrievers": [
+                {
+                    "type": "qd",
+                    "workspace_ids": [],
+                    "config": {
+                        "top_k": 20,
+                        "using_whole_doc": True,
+                    }
+                },
+            ],
+            "rerankers": [
+                {
+                    "type": "reranker",
+                    "config": {
+                        "enable_debug": False,
+                        "target_model": "bge_reranker_model.tar.gz"
+                    }
+                }
+            ],
         }
-
     }
     chatbot_config = update_nest_dict(
         copy.deepcopy(default_chatbot_config),
@@ -50,6 +76,3 @@ def parse_common_entry_config(chatbot_config):
         )
 
     return chatbot_config
-
-
-
