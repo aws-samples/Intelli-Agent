@@ -494,93 +494,93 @@ export class ApiConstruct extends Construct {
     apiResourceBatch.addMethod("POST", lambdaBatchIntegration, methodOption);
 
     if (BuildConfig.DEPLOYMENT_MODE === "ALL") {
-      const lambdaExecutor = new DockerImageFunction(this, "lambdaExecutor", {
-        code: DockerImageCode.fromImageAsset(
-          join(__dirname, "../../../lambda/executor"),
-        ),
-        timeout: Duration.minutes(15),
-        memorySize: 10240,
-        vpc: apiVpc,
-        vpcSubnets: {
-          subnets: apiVpc.privateSubnets,
-        },
-        securityGroups: [securityGroup],
-        architecture: Architecture.X86_64,
-        environment: {
-          aos_endpoint: domainEndpoint,
-          llm_model_endpoint_name: props.instructEndPoint,
-          llm_model_id: props.llmModelId,
-          embedding_endpoint: props.embeddingEndPoints[0],
-          zh_embedding_endpoint: props.embeddingEndPoints[0],
-          en_embedding_endpoint: props.embeddingEndPoints[0],
-          intent_recognition_embedding_endpoint: props.embeddingEndPoints[0],
-          rerank_endpoint: props.rerankEndPoint,
-          aos_index: aosIndex,
-          aos_index_dict: aosIndexDict,
-          sessions_table_name: sessionsTableName,
-          messages_table_name: messagesTableName,
-          workspace_table: workspaceTableName,
-        },
-      });
+      // const lambdaExecutor = new DockerImageFunction(this, "lambdaExecutor", {
+      //   code: DockerImageCode.fromImageAsset(
+      //     join(__dirname, "../../../lambda/executor"),
+      //   ),
+      //   timeout: Duration.minutes(15),
+      //   memorySize: 10240,
+      //   vpc: apiVpc,
+      //   vpcSubnets: {
+      //     subnets: apiVpc.privateSubnets,
+      //   },
+      //   securityGroups: [securityGroup],
+      //   architecture: Architecture.X86_64,
+      //   environment: {
+      //     aos_endpoint: domainEndpoint,
+      //     llm_model_endpoint_name: props.instructEndPoint,
+      //     llm_model_id: props.llmModelId,
+      //     embedding_endpoint: props.embeddingEndPoints[0],
+      //     zh_embedding_endpoint: props.embeddingEndPoints[0],
+      //     en_embedding_endpoint: props.embeddingEndPoints[0],
+      //     intent_recognition_embedding_endpoint: props.embeddingEndPoints[0],
+      //     rerank_endpoint: props.rerankEndPoint,
+      //     aos_index: aosIndex,
+      //     aos_index_dict: aosIndexDict,
+      //     sessions_table_name: sessionsTableName,
+      //     messages_table_name: messagesTableName,
+      //     workspace_table: workspaceTableName,
+      //   },
+      // });
 
-      lambdaExecutor.addToRolePolicy(
-        new iam.PolicyStatement({
-          // principals: [new iam.AnyPrincipal()],
-          actions: [
-            "es:ESHttpGet",
-            "es:ESHttpPut",
-            "es:ESHttpPost",
-            "es:ESHttpHead",
-            "secretsmanager:GetSecretValue",
-            "bedrock:*",
-          ],
-          effect: iam.Effect.ALLOW,
-          resources: ["*"],
-        }),
-      );
-      lambdaExecutor.addToRolePolicy(sqsStatement);
-      lambdaExecutor.addEventSource(
-        new lambdaEventSources.SqsEventSource(messageQueue, { batchSize: 1 }),
-      );
-      lambdaExecutor.addToRolePolicy(this.iamHelper.s3Statement);
-      lambdaExecutor.addToRolePolicy(this.iamHelper.endpointStatement);
-      lambdaExecutor.addToRolePolicy(this.iamHelper.dynamodbStatement);
+      // lambdaExecutor.addToRolePolicy(
+      //   new iam.PolicyStatement({
+      //     // principals: [new iam.AnyPrincipal()],
+      //     actions: [
+      //       "es:ESHttpGet",
+      //       "es:ESHttpPut",
+      //       "es:ESHttpPost",
+      //       "es:ESHttpHead",
+      //       "secretsmanager:GetSecretValue",
+      //       "bedrock:*",
+      //     ],
+      //     effect: iam.Effect.ALLOW,
+      //     resources: ["*"],
+      //   }),
+      // );
+      // lambdaExecutor.addToRolePolicy(sqsStatement);
+      // lambdaExecutor.addEventSource(
+      //   new lambdaEventSources.SqsEventSource(messageQueue, { batchSize: 1 }),
+      // );
+      // lambdaExecutor.addToRolePolicy(this.iamHelper.s3Statement);
+      // lambdaExecutor.addToRolePolicy(this.iamHelper.endpointStatement);
+      // lambdaExecutor.addToRolePolicy(this.iamHelper.dynamodbStatement);
 
-      // Define the API Gateway Lambda Integration with proxy and no integration responses
-      const lambdaExecutorIntegration = new apigw.LambdaIntegration(
-        lambdaExecutor,
-        { proxy: true },
-      );
+      // // Define the API Gateway Lambda Integration with proxy and no integration responses
+      // const lambdaExecutorIntegration = new apigw.LambdaIntegration(
+      //   lambdaExecutor,
+      //   { proxy: true },
+      // );
 
-      // Define the API Gateway Method
-      const apiResourceLLM = api.root.addResource("llm");
-      apiResourceLLM.addMethod("POST", lambdaExecutorIntegration, methodOption);
+      // // Define the API Gateway Method
+      // const apiResourceLLM = api.root.addResource("llm");
+      // apiResourceLLM.addMethod("POST", lambdaExecutorIntegration, methodOption);
 
-      const lambdaDispatcher = new Function(this, "lambdaDispatcher", {
-        runtime: Runtime.PYTHON_3_11,
-        handler: "main.lambda_handler",
-        code: Code.fromAsset(join(__dirname, "../../../lambda/dispatcher")),
-        timeout: Duration.minutes(15),
-        memorySize: 1024,
-        vpc: apiVpc,
-        vpcSubnets: {
-          subnets: apiVpc.privateSubnets,
-        },
-        securityGroups: [securityGroup],
-        architecture: Architecture.X86_64,
-        environment: {
-          SQS_QUEUE_URL: messageQueue.queueUrl,
-        },
-      });
-      lambdaDispatcher.addToRolePolicy(sqsStatement);
+      // const lambdaDispatcher = new Function(this, "lambdaDispatcher", {
+      //   runtime: Runtime.PYTHON_3_11,
+      //   handler: "main.lambda_handler",
+      //   code: Code.fromAsset(join(__dirname, "../../../lambda/dispatcher")),
+      //   timeout: Duration.minutes(15),
+      //   memorySize: 1024,
+      //   vpc: apiVpc,
+      //   vpcSubnets: {
+      //     subnets: apiVpc.privateSubnets,
+      //   },
+      //   securityGroups: [securityGroup],
+      //   architecture: Architecture.X86_64,
+      //   environment: {
+      //     SQS_QUEUE_URL: messageQueue.queueUrl,
+      //   },
+      // });
+      // lambdaDispatcher.addToRolePolicy(sqsStatement);
 
-      const webSocketApi = new WebSocketConstruct(this, "WebSocketApi", {
-        dispatcherLambda: lambdaDispatcher,
-        sendMessageLambda: lambdaExecutor,
-        customAuthorizerLambda: customAuthorizerLambda,
-      });
-      let wsStage = webSocketApi.websocketApiStage
-      this.wsEndpoint = `${wsStage.api.apiEndpoint}/${wsStage.stageName}/`;
+      // const webSocketApi = new WebSocketConstruct(this, "WebSocketApi", {
+      //   dispatcherLambda: lambdaDispatcher,
+      //   sendMessageLambda: lambdaExecutor,
+      //   customAuthorizerLambda: customAuthorizerLambda,
+      // });
+      // let wsStage = webSocketApi.websocketApiStage
+      // this.wsEndpoint = `${wsStage.api.apiEndpoint}/${wsStage.stageName}/`;
 
       const lambdaOnlineMain = new Function(this, "lambdaOnlineMain", {
         runtime: Runtime.PYTHON_3_12,
@@ -810,17 +810,53 @@ export class ApiConstruct extends Construct {
       lambdaOnlineFunctionRetriever.grantInvoke(lambdaOnlineMain);
       lambdaOnlineFunctionRetriever.grantInvoke(lambdaOnlineIntentionDetection);
 
+      // // Define the API Gateway Lambda Integration with proxy and no integration responses
+      // const lambdaExecutorIntegrationV2 = new apigw.LambdaIntegration(
+      //   lambdaOnlineMain,
+      //   { proxy: true },
+      // );
+
+      // // Define the API Gateway Method
+      // const apiResourceLLMV2 = api.root.addResource("llmv2");
+      // apiResourceLLMV2.addMethod("POST", lambdaExecutorIntegrationV2, methodOption);
+
+      // const lambdaDispatcherV2 = new Function(this, "lambdaDispatcherV2", {
+      //   runtime: Runtime.PYTHON_3_11,
+      //   handler: "main.lambda_handler",
+      //   code: Code.fromAsset(join(__dirname, "../../../lambda/dispatcher")),
+      //   timeout: Duration.minutes(15),
+      //   memorySize: 1024,
+      //   vpc: apiVpc,
+      //   vpcSubnets: {
+      //     subnets: apiVpc.privateSubnets,
+      //   },
+      //   securityGroups: [securityGroup],
+      //   architecture: Architecture.X86_64,
+      //   environment: {
+      //     SQS_QUEUE_URL: messageQueueV2.queueUrl,
+      //   },
+      // });
+      // lambdaDispatcherV2.addToRolePolicy(sqsStatement);
+
+      // const webSocketApiV2 = new WebSocketConstruct(this, "WebSocketApiV2", {
+      //   dispatcherLambda: lambdaDispatcherV2,
+      //   sendMessageLambda: lambdaOnlineMain,
+      //   customAuthorizerLambda: customAuthorizerLambda,
+      // });
+      // let wsStageV2 = webSocketApiV2.websocketApiStage
+      // this.wsEndpointV2 = `${wsStageV2.api.apiEndpoint}/${wsStageV2.stageName}/`;
+
       // Define the API Gateway Lambda Integration with proxy and no integration responses
-      const lambdaExecutorIntegrationV2 = new apigw.LambdaIntegration(
+      const lambdaExecutorIntegration = new apigw.LambdaIntegration(
         lambdaOnlineMain,
         { proxy: true },
       );
 
       // Define the API Gateway Method
-      const apiResourceLLMV2 = api.root.addResource("llmv2");
-      apiResourceLLMV2.addMethod("POST", lambdaExecutorIntegrationV2, methodOption);
+      const apiResourceLLM = api.root.addResource("llm");
+      apiResourceLLM.addMethod("POST", lambdaExecutorIntegration, methodOption);
 
-      const lambdaDispatcherV2 = new Function(this, "lambdaDispatcherV2", {
+      const lambdaDispatcher = new Function(this, "lambdaDispatcher", {
         runtime: Runtime.PYTHON_3_11,
         handler: "main.lambda_handler",
         code: Code.fromAsset(join(__dirname, "../../../lambda/dispatcher")),
@@ -833,18 +869,18 @@ export class ApiConstruct extends Construct {
         securityGroups: [securityGroup],
         architecture: Architecture.X86_64,
         environment: {
-          SQS_QUEUE_URL: messageQueueV2.queueUrl,
+          SQS_QUEUE_URL: messageQueue.queueUrl,
         },
       });
-      lambdaDispatcherV2.addToRolePolicy(sqsStatement);
+      lambdaDispatcher.addToRolePolicy(sqsStatement);
 
-      const webSocketApiV2 = new WebSocketConstruct(this, "WebSocketApiV2", {
-        dispatcherLambda: lambdaDispatcherV2,
+      const webSocketApi = new WebSocketConstruct(this, "WebSocketApi", {
+        dispatcherLambda: lambdaDispatcher,
         sendMessageLambda: lambdaOnlineMain,
         customAuthorizerLambda: customAuthorizerLambda,
       });
-      let wsStageV2 = webSocketApiV2.websocketApiStage
-      this.wsEndpointV2 = `${wsStageV2.api.apiEndpoint}/${wsStageV2.stageName}/`;
+      let wsStage = webSocketApi.websocketApiStage
+      this.wsEndpoint = `${wsStage.api.apiEndpoint}/${wsStage.stageName}/`;
 
     }
 
