@@ -165,7 +165,7 @@ def convert_anthropic_xml_to_dict(model_id,function_calls:List[str], tools:list[
                 assert len(value) == 1,function_call
                 arguments[parameter_key] = value[0].strip()
             
-            tool_calls.append(dict(name=tool_name,kargs=arguments,model_id=model_id))
+            tool_calls.append(dict(name=tool_name,kwargs=arguments,model_id=model_id))
     
     return tool_calls
 
