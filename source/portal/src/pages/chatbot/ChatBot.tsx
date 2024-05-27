@@ -20,10 +20,14 @@ import ConfigContext from 'src/context/config-context';
 import { useAuth } from 'react-oidc-context';
 import { LLM_BOT_MODEL_LIST } from 'src/utils/const';
 import { v4 as uuidv4 } from 'uuid';
+import { MessageDataType } from 'src/types';
 
 interface MessageType {
   type: 'ai' | 'human';
-  message: string;
+  message: {
+    data: string;
+    monitoring: string;
+  };
 }
 
 const ChatBot: React.FC = () => {
@@ -34,7 +38,10 @@ const ChatBot: React.FC = () => {
   const [messages, setMessages] = useState<MessageType[]>([
     {
       type: 'ai',
-      message: t('welcomeMessage'),
+      message: {
+        data: t('welcomeMessage'),
+        monitoring: '',
+      },
     },
   ]);
   const [userMessage, setUserMessage] = useState('');
@@ -47,7 +54,7 @@ const ChatBot: React.FC = () => {
     },
   );
   const [currentAIMessage, setCurrentAIMessage] = useState('');
-  // const [currentMonitorMessage, setCurrentMonitorMessage] = useState('');
+  const [currentMonitorMessage, setCurrentMonitorMessage] = useState('');
   const [aiSpeaking, setAiSpeaking] = useState(false);
   const [modelOption, setModelOption] = useState<string>(LLM_BOT_MODEL_LIST[0]);
   const [sessionId, setSessionId] = useState('');
@@ -72,21 +79,31 @@ const ChatBot: React.FC = () => {
     if (lastMessage !== null) {
       setAiSpeaking(true);
       console.info(lastMessage);
-      const message = JSON.parse(lastMessage.data);
+      const message: MessageDataType = JSON.parse(lastMessage.data);
       console.info('message:', message);
-      const chunkMessage = message.choices?.[0];
-      // TODO handle multiple message types
-      // message_type = 'END' | 'CHUNK' | 'MONITOR'
-      if (chunkMessage) {
-        const isEnd = chunkMessage.message_type === 'END';
+      if (message.message_type === 'MONITOR') {
+        setCurrentMonitorMessage((prev) => {
+          return prev + (message?.message ?? '');
+        });
+      } else {
+        const isEnd = message.message_type === 'END';
         setCurrentAIMessage((prev) => {
-          return prev + (chunkMessage?.message?.content ?? '');
+          return prev + (message?.message?.content ?? '');
         });
         if (isEnd) {
           setAiSpeaking(false);
           setCurrentAIMessage('');
           setMessages((prev) => {
-            return [...prev, { type: 'ai', message: currentAIMessage }];
+            return [
+              ...prev,
+              {
+                type: 'ai',
+                message: {
+                  data: currentAIMessage,
+                  monitoring: currentMonitorMessage,
+                },
+              },
+            ];
           });
         }
       }
@@ -135,7 +152,16 @@ const ChatBot: React.FC = () => {
     console.info('send message:', message);
     sendMessage(JSON.stringify(message));
     setMessages((prev) => {
-      return [...prev, { type: 'human', message: userMessage }];
+      return [
+        ...prev,
+        {
+          type: 'human',
+          message: {
+            data: userMessage,
+            monitoring: '',
+          },
+        },
+      ];
     });
     setUserMessage('');
   };
@@ -151,7 +177,15 @@ const ChatBot: React.FC = () => {
               message={msg.message}
             />
           ))}
-          {aiSpeaking && <Message type="ai" message={currentAIMessage} />}
+          {aiSpeaking && (
+            <Message
+              type="ai"
+              message={{
+                data: currentAIMessage,
+                monitoring: currentMonitorMessage,
+              }}
+            />
+          )}
         </div>
 
         <div className="flex-v gap-10">
