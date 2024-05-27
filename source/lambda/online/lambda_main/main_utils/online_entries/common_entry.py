@@ -146,28 +146,8 @@ def tool_execute_lambda(state: ChatbotState):
 @node_monitor_wrapper
 def rag_retrieve_lambda(state: ChatbotState):
     # call retrivever
-    retriever_params = {
-        "retrievers": [
-            {
-                "type": "qd",
-                "workspace_ids": ["mihoyo-test"],
-                "config": {
-                    "top_k": 20,
-                    "using_whole_doc": True,
-                }
-            },
-        ],
-        "rerankers": [
-            {
-                "type": "reranker",
-                "config": {
-                    "enable_debug": False,
-                    "target_model": "bge_reranker_model.tar.gz"
-                }
-            }
-        ],
-        "query": state['query'],
-    }
+    retriever_params = state["chatbot_config"]["rag_retriever_config"]
+    retriever_params["query"] = state["query"]
     output:str = invoke_lambda(
         event_body=retriever_params,
         lambda_name="Online_Function_Retriever",
@@ -314,7 +294,7 @@ def build_graph():
         "query_preprocess_lambda",
         query_route,
         {
-            "rag mode": 'rag_retrieve_lambda',
+            "rag_mode": 'rag_retrieve_lambda',
             "other": "intention_detection_lambda"
         }
     )
