@@ -146,7 +146,7 @@ def tool_execute_lambda(state: ChatbotState):
 @node_monitor_wrapper
 def rag_retrieve_lambda(state: ChatbotState):
     # call retrivever
-    retriever_params = state["chatbot_config"]["retriever_config"]
+    retriever_params = state["chatbot_config"]["rag_retriever_config"]
     retriever_params["query"] = state["query"]
     output:str = invoke_lambda(
         event_body=retriever_params,
@@ -294,7 +294,7 @@ def build_graph():
         "query_preprocess_lambda",
         query_route,
         {
-            "rag mode": 'rag_retrieve_lambda',
+            "rag_mode": 'rag_retrieve_lambda',
             "other": "intention_detection_lambda"
         }
     )

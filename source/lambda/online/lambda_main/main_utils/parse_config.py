@@ -48,7 +48,7 @@ def parse_common_entry_config(chatbot_config):
                 ]
             }
         },
-        "retriever_config": {
+        "rag_retriever_config": {
             "retrievers": [
                 {
                     "type": "qd",
