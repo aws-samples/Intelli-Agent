@@ -14,8 +14,6 @@ export const LAST_VISIT_URL = 'llm-bot-app-last-visit-url';
 export const LIBRARY_DEFAULT_PREFIX = 'documents';
 
 export const LLM_BOT_MODEL_LIST = [
-  'claude-3-haiku',
-  'claude-3-sonnet',
-  'sagemaker-internlm2',
+  'anthropic.claude-3-haiku-20240307-v1:0',
   'anthropic.claude-3-sonnet-20240229-v1:0',
 ];
