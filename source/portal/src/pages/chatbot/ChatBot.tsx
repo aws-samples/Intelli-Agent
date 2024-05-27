@@ -96,7 +96,7 @@ const ChatBot: React.FC = () => {
   const handleClickSendMessage = () => {
     const message = {
       action: 'sendMessage',
-      messages: [{ role: 'user', content: userMessage }],
+      // messages: [{ role: 'user', content: userMessage }],
       temperature: temperature,
       type: 'common',
       retriever_config: {
