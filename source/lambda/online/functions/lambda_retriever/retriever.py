@@ -10,7 +10,7 @@ import boto3
 import sys
 
 from functions.lambda_retriever.utils.aos_retrievers import QueryDocumentKNNRetriever, QueryDocumentBM25Retriever, QueryQuestionRetriever
-from functions.lambda_retriever.utils.reranker import BGEReranker, BGEM3Reranker, MergeReranker
+from functions.lambda_retriever.utils.reranker import BGEReranker, MergeReranker
 from functions.lambda_retriever.utils.context_utils import retriever_results_format
 from functions.lambda_retriever.utils.websearch_retrievers import GoogleRetriever
 from functions.lambda_retriever.utils.workspace_utils import WorkspaceManager
@@ -20,9 +20,7 @@ from langchain_community.retrievers import AmazonKnowledgeBasesRetriever
 
 from langchain.retrievers.merger_retriever import MergerRetriever
 from langchain.schema.runnable import (
-    RunnableBranch,
     RunnableLambda,
-    RunnableParallel,
     RunnablePassthrough,
 )
 from common_utils.lambda_invoke_utils import chatbot_lambda_call_wrapper

@@ -98,6 +98,7 @@ export class ApiConstruct extends Construct {
     const apiLambdaEmbeddingLayer = lambdaLayers.createEmbeddingLayer();
     const apiLambdaOnlineUtilsLayer = lambdaLayers.createOnlineUtilsLayer();
     const apiLambdaOnlineSourceLayer = lambdaLayers.createOnlineSourceLayer();
+    const apiLambdaJobSourceLayer = lambdaLayers.createJobSourceLayer();
     const apiLambdaAuthorizerLayer = lambdaLayers.createAuthorizerLayer();
 
     // S3 bucket for storing documents
@@ -595,22 +596,14 @@ export class ApiConstruct extends Construct {
         },
         securityGroups: [securityGroup],
         architecture: Architecture.X86_64,
-        layers: [apiLambdaOnlineUtilsLayer, apiLambdaOnlineSourceLayer],
-        // environment: {
-        //   aos_endpoint: domainEndpoint,
-        //   llm_model_endpoint_name: props.instructEndPoint,
-        //   llm_model_id: props.llmModelId,
-        //   embedding_endpoint: props.embeddingEndPoints[0],
-        //   zh_embedding_endpoint: props.embeddingEndPoints[0],
-        //   en_embedding_endpoint: props.embeddingEndPoints[0],
-        //   intent_recognition_embedding_endpoint: props.embeddingEndPoints[0],
-        //   rerank_endpoint: props.rerankEndPoint,
-        //   aos_index: aosIndex,
-        //   aos_index_dict: aosIndexDict,
-        //   sessions_table_name: sessionsTableName,
-        //   messages_table_name: messagesTableName,
-        //   workspace_table: workspaceTableName,
-        // },
+        layers: [apiLambdaOnlineUtilsLayer, apiLambdaOnlineSourceLayer, apiLambdaJobSourceLayer],
+        environment: {
+          aos_endpoint: domainEndpoint,
+          rerank_endpoint: props.rerankEndPoint,
+          sessions_table_name: sessionsTableName,
+          messages_table_name: messagesTableName,
+          workspace_table: workspaceTableName,
+        },
       });
 
       lambdaOnlineMain.addToRolePolicy(
@@ -799,7 +792,7 @@ export class ApiConstruct extends Construct {
         },
         securityGroups: [securityGroup],
         architecture: Architecture.X86_64,
-        layers: [apiLambdaOnlineUtilsLayer, apiLambdaOnlineSourceLayer],
+        layers: [apiLambdaOnlineUtilsLayer, apiLambdaOnlineSourceLayer, apiLambdaJobSourceLayer],
       });
 
       lambdaOnlineQueryPreprocess.grantInvoke(lambdaOnlineMain);

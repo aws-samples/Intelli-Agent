@@ -337,11 +337,11 @@ def common_entry(event_body):
     global app 
     if app is None:
         app = build_graph()
-     
 
     # debuging
-    with open('common_entry_workflow.png','wb') as f:
-        f.write(app.get_graph().draw_png())
+    # TODO only write when run local
+    # with open('common_entry_workflow.png','wb') as f:
+    #     f.write(app.get_graph().draw_png())
     
     ################################################################################
     # prepare inputs and invoke graph
