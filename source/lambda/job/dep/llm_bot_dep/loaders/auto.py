@@ -12,6 +12,7 @@ from .json import process_json
 from .jsonl import process_jsonl
 from .pdf import process_pdf
 from .text import process_text
+from .image import process_image
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -58,4 +59,6 @@ def cb_process_object(s3, file_type: str, file_content, **kwargs):
         #     )
     elif file_type == "jsonl":
         res = process_jsonl(s3, file_content, **kwargs)
+    elif file_type == "image":
+        res = process_image(s3, **kwargs)
     return res
