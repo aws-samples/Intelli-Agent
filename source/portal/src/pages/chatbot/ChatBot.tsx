@@ -221,13 +221,7 @@ const ChatBot: React.FC = () => {
                   onChange={({ detail }) => setEnableOption(detail.checked)}
                   checked={enableOption}
                 >
-                  Stream
-                </Toggle>
-                <Toggle
-                  onChange={({ detail }) => setEnableOption(detail.checked)}
-                  checked={enableOption}
-                >
-                  Use Knowledge QA
+                  Mode
                 </Toggle>
                 <Toggle
                   onChange={({ detail }) => setEnableOption(detail.checked)}
@@ -299,17 +293,6 @@ const ChatBot: React.FC = () => {
                       setTemperature(parseFloat(detail.value));
                     }}
                   />
-                </FormField>
-              </ColumnLayout>
-              <ColumnLayout columns={3} variant="text-grid">
-                <FormField label="System Role Name" stretch={true}>
-                  <Input value="" />
-                </FormField>
-                <FormField label="System Role Prompt" stretch={true}>
-                  <Input value="" />
-                </FormField>
-                <FormField label="Prompt template" stretch={true}>
-                  <Input value="" />
                 </FormField>
               </ColumnLayout>
             </ExpandableSection>
