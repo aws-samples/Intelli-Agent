@@ -57,3 +57,13 @@ export type LibraryExecutionResponse = {
   Items: LibraryExecutionItem[];
   Count: number;
 };
+
+export interface MessageDataType {
+  message_id: string;
+  custom_message_id: string;
+  message_type: 'START' | 'CHUNK' | 'END' | 'MONITOR'; // START CHUNK END MONITORING
+  message: {
+    role: string;
+    content: string;
+  };
+}

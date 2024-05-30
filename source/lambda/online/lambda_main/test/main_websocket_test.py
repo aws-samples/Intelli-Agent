@@ -12,7 +12,7 @@ import json
 
 # ws_url from api gateway
 jwt = os.environ['jwt']
-ws_url = f"wss://6ubtwkp7xg.execute-api.us-west-2.amazonaws.com/prod/?idToken={jwt}"
+ws_url = f"wss://luwo6r87ub.execute-api.us-west-2.amazonaws.com/prod/?idToken={jwt}"
 
 def get_answer(body,ws):
     ws.send(json.dumps(body))

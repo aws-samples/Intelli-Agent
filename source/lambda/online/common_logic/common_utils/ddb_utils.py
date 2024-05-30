@@ -89,9 +89,9 @@ class DynamoDBChatMessageHistory(BaseChatMessageHistory):
         for item in items:
             assert item["type"] in [MessageType.AI_MESSAGE_TYPE, MessageType.HUMAN_MESSAGE_TYPE]
             if item["type"] == MessageType.AI_MESSAGE_TYPE:
-                role = "user"
-            else:
                 role = "ai"
+            else:
+                role = "user"
             langchain_message_template = {
                 "role": role,
                 "content": item["content"],
@@ -103,25 +103,6 @@ class DynamoDBChatMessageHistory(BaseChatMessageHistory):
                 }
 
             }
-            # langchain_message_template["role"] = role
-            # langchain_message_template['content'] = item["content"]
-            # langchain_message_template['additional_kwargs'] = {
-            #         "message_id": item["messageId"],
-            #         "create_time": float(item["createTimestamp"]),
-            #         "entry_type": item["entryType"],
-            #         "custom_message_id": item["customMessageId"],
-            #     }
-            # langchain_message_template["data"] = {
-            #     "content": item["content"],
-            #     "additional_kwargs": {
-            #         "message_id": item["messageId"],
-            #         "create_time": float(item["createTimestamp"]),
-            #         "entry_type": item["entryType"],
-            #         "custom_message_id": item["customMessageId"],
-            #     },
-            # }
-
-            # ret.append(_message_from_dict(langchain_message_template))
             ret.append(langchain_message_template)
         return ret
 

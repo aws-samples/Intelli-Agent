@@ -107,7 +107,7 @@ def tool_execute_lambda(state: ChatbotState):
 
     for tool_call in tool_calls:
         tool_name = tool_call["name"]
-        event_body = tool_call['kargs']
+        event_body = tool_call['kwargs']
         tool:Tool = get_tool_by_name(tool_name)
         # call tool
         output:dict = invoke_lambda(
@@ -199,12 +199,12 @@ def transfer_reply(state:ChatbotState):
 
 def give_rhetorical_question(state:ChatbotState):
     recent_tool_calling:list[dict] = state['current_tool_calls'][0]
-    return {"answer": recent_tool_calling['args']['question']}
+    return {"answer": recent_tool_calling['kwargs']['question']}
 
 
 def give_tool_response(state:ChatbotState):
     recent_tool_calling:list[dict] = state['current_tool_calls'][0]
-    return {"answer": recent_tool_calling['args']['response']}
+    return {"answer": recent_tool_calling['kwargs']['response']}
 
 
 def give_response_without_any_tool(state:ChatbotState):
