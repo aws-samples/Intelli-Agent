@@ -34,6 +34,8 @@ from ..llm_models import Model
 
 tool_call_guidelines = """<guidlines>
 - Don't forget to output <function_calls></function_calls> when any tool is called.
+- You should call tools that are described in <tools></tools>.
+- In <thinking></thinking>, you should check whether the tool name you want to call is exists in <tools></tools>, if it is not exists, you should call "no_available_tool" tool.
 </guidlines>
 """
 
@@ -157,7 +159,7 @@ def convert_anthropic_xml_to_dict(model_id,function_calls:List[str], tools:list[
                     cur_tool = tool
                     break 
             
-            assert cur_tool is not None,function_call
+            assert cur_tool is not None,(f"tool: {tool_name} not found",function_call)
             # formatted_tool = convert_to_openai_function(cur_tool)
             arguments = {}
             for parameter_key in formatted_tool['parameters']['required']:
@@ -216,6 +218,7 @@ class Claude2ToolCallingChain(LLMChain):
         if not function_calls:
             return {"tool_calls":[],"content":message.content}
         
+        print(message.content)
         tool_calls = convert_anthropic_xml_to_dict(cls.model_id,function_calls,tools)
         message.tool_calls = tool_calls
         return {"tool_calls":tool_calls,"content":message.content}
@@ -251,7 +254,7 @@ class Claude2ToolCallingChain(LLMChain):
             model_id=cls.model_id,
             model_kwargs=model_kwargs,
         )
-        chain = tool_calling_template | RunnableLambda(lambda x: x.messages ) | llm | RunnableLambda(lambda message:cls.parse_tools_from_ai_message(message,tools=tools))
+        chain = tool_calling_template | RunnableLambda(lambda x: print(x.messages) or x.messages ) | llm | RunnableLambda(lambda message:cls.parse_tools_from_ai_message(message,tools=tools))
         
         return chain
 

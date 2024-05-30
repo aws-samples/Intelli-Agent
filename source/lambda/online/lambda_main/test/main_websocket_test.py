@@ -1,6 +1,7 @@
 import os 
 import sys
 import time
+import time
 import dotenv 
 dotenv.load_dotenv()
 try:
@@ -36,11 +37,7 @@ def get_answer(body,ws):
     return answer
 
 def test():
-    ws = create_connection(
-        ws_url
-    )
-    import time
-
+    ws = create_connection(ws_url)
     body = {
         "query": "hi",
         "entry_type": "common",
@@ -60,8 +57,51 @@ def test():
     return r  
 
 
+def test_multi_turns():
+    session_id = time.time()
+    ws = create_connection(ws_url)
+    body = {
+        "query": "今天星期几",
+        "entry_type": "common",
+        "session_id":f"test_{session_id}",
+        "chatbot_config": {
+            "chatbot_mode": "agent",
+            "use_history": True,
+            "use_websearch": False,
+            "default_llm_config":{
+                "model_id": "anthropic.claude-3-sonnet-20240229-v1:0", 
+                "model_kwargs": {"temperature": 0.0, "max_tokens": 4096}
+            }
+        }
+    }
+    r = get_answer(body,ws)
+    ws.close() 
+
+    print()
+
+    ws = create_connection(ws_url)
+    body = {
+        "query": "我在北京",
+        "entry_type": "common",
+        "session_id":f"test_{session_id}",
+        "chatbot_config": {
+            "chatbot_mode": "chat",
+            "use_history": True,
+            "use_websearch": False,
+            "default_llm_config":{
+                "model_id": "anthropic.claude-3-sonnet-20240229-v1:0", 
+                "model_kwargs": {"temperature": 0.0, "max_tokens": 4096}
+            }
+        }
+    }
+    r = get_answer(body,ws)
+    ws.close() 
+
+
+
+
 if __name__ == "__main__":
-    test()
+    test_multi_turns()
 
 
 

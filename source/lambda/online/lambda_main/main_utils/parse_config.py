@@ -102,5 +102,8 @@ def parse_common_entry_config(chatbot_config):
     tools:list = chatbot_config['agent_config']['tools']
     if "give_rhetorical_question" not in tools:
         tools.append('give_rhetorical_question')
+    
+    if "no_available_tool" not in tools:
+        tools.append('no_available_tool')
 
     return chatbot_config

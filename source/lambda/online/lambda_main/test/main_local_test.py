@@ -39,6 +39,7 @@ def generate_answer(query,
                     chatbot_config=None
                     ):
     chatbot_config = chatbot_config or {}
+    session_id = session_id or time.time()
 
 
     body = {
@@ -131,14 +132,21 @@ def test(chatbot_mode="chat"):
             }
         }
     }
-
+    
+    session_id = f"test_{time.time()}"
     generate_answer(
-        "how do you like football",
+        "今天星期几",
         stream=True,
+        session_id=session_id,
+        chatbot_config=chatbot_config
+    )
+    generate_answer(
+        "今天是2024年5月30号",
+        stream=True,
+        session_id=session_id,
         chatbot_config=chatbot_config
     )
 
-
 if __name__ == "__main__":
-    test(chatbot_mode="agent")
+    test(chatbot_mode="chat")
     

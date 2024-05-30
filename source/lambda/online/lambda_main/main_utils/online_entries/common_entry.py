@@ -66,7 +66,7 @@ def intention_detection_lambda(state: ChatbotState):
     current_tools:list[str] = list(set([e['intent'] for e in intention_fewshot_examples]))
     return {
         "intention_fewshot_examples": intention_fewshot_examples,
-        "current_tools": current_tools + ['give_rhetorical_question'],
+        "current_tools": current_tools,
         "intent_type":"other"
         }
 
@@ -201,6 +201,10 @@ def give_rhetorical_question(state:ChatbotState):
     recent_tool_calling:list[dict] = state['current_tool_calls'][0]
     return {"answer": recent_tool_calling['kwargs']['question']}
 
+def no_available_tool(state:ChatbotState):
+    recent_tool_calling:list[dict] = state['current_tool_calls'][0]
+    return {"answer": recent_tool_calling['kwargs']['response']}
+
 
 def give_tool_response(state:ChatbotState):
     recent_tool_calling:list[dict] = state['current_tool_calls'][0]
@@ -208,7 +212,7 @@ def give_tool_response(state:ChatbotState):
 
 
 def give_response_without_any_tool(state:ChatbotState):
-    chat_history = state['chat_history']
+    chat_history = state['agent_chat_history']
     return {"answer": chat_history[-1]['content']}
 
 def qq_matched_reply(state:ChatbotState):
@@ -241,12 +245,14 @@ def agent_route(state:dict):
     if recent_tool_name == "QA":
         return "rag"
 
-
     if recent_tool_name == "assist":
         return "chat"
     
     if recent_tool_call['name'] == "give_rhetorical_question":
         return "rhetorical question"
+    
+    if recent_tool_call['name'] == 'no_available_tool':
+        return "no available tool"
 
     return "continue"
      
@@ -265,6 +271,7 @@ def build_graph():
     workflow.add_node("comfort_reply",comfort_reply)
     workflow.add_node("transfer_reply", transfer_reply)
     workflow.add_node("give_rhetorical_question",give_rhetorical_question)
+    workflow.add_node("no_available_tool",no_available_tool)
     workflow.add_node("give_response_wo_tool",give_response_without_any_tool)
     workflow.add_node("rag_retrieve_lambda",rag_retrieve_lambda)
     workflow.add_node("rag_llm_lambda",rag_llm_lambda)
@@ -281,6 +288,7 @@ def build_graph():
     workflow.add_edge("transfer_reply",END)
     workflow.add_edge("chat_llm_generate_lambda",END)
     workflow.add_edge("give_rhetorical_question",END)
+    workflow.add_edge("no_available_tool",END)
     workflow.add_edge("give_response_wo_tool",END)
     workflow.add_edge("rag_retrieve_lambda","rag_llm_lambda")
     workflow.add_edge("rag_llm_lambda",END)
@@ -317,6 +325,7 @@ def build_graph():
             "transfer": "transfer_reply",
             "chat": "chat_llm_generate_lambda",
             "rag": "rag_retrieve_lambda",
+            "no available tool": "no_available_tool",
             # "response": "give_tool_response",
             "continue":"tool_execute_lambda"
         }
