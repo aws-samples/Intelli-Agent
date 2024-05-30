@@ -1,6 +1,8 @@
 import { ExpandableSection } from '@cloudscape-design/components';
 import React from 'react';
 import Avatar from 'react-avatar';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import BedrockImg from 'src/assets/bedrock.webp';
 
 interface MessageProps {
@@ -9,9 +11,10 @@ interface MessageProps {
     data: string;
     monitoring: string;
   };
+  showTrace?: boolean;
 }
 
-const Message: React.FC<MessageProps> = ({ type, message }) => {
+const Message: React.FC<MessageProps> = ({ showTrace, type, message }) => {
   return (
     <>
       {type === 'ai' && (
@@ -19,14 +22,16 @@ const Message: React.FC<MessageProps> = ({ type, message }) => {
           {<Avatar size="40" round={true} src={BedrockImg} />}
           <div className={`message-content flex-1 ai`}>
             <div className="message">{message.data}</div>
-            {message.monitoring && (
+            {showTrace && message.monitoring && (
               <div className="monitor mt-10">
                 <ExpandableSection
                   variant="footer"
                   headingTagOverride="h5"
                   headerText="Monitoring"
                 >
-                  {message.monitoring}
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {message.monitoring}
+                  </ReactMarkdown>
                 </ExpandableSection>
               </div>
             )}
@@ -36,7 +41,11 @@ const Message: React.FC<MessageProps> = ({ type, message }) => {
       {type === 'human' && (
         <div className="flex align-end gap-10">
           <div className={`message-content human`}>
-            <div className="message">{message.data}</div>
+            <div className="message">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {message.data}
+              </ReactMarkdown>
+            </div>
           </div>
         </div>
       )}
