@@ -9,9 +9,10 @@ interface MessageProps {
     data: string;
     monitoring: string;
   };
+  showTrace?: boolean;
 }
 
-const Message: React.FC<MessageProps> = ({ type, message }) => {
+const Message: React.FC<MessageProps> = ({ showTrace, type, message }) => {
   return (
     <>
       {type === 'ai' && (
@@ -19,7 +20,7 @@ const Message: React.FC<MessageProps> = ({ type, message }) => {
           {<Avatar size="40" round={true} src={BedrockImg} />}
           <div className={`message-content flex-1 ai`}>
             <div className="message">{message.data}</div>
-            {message.monitoring && (
+            {showTrace && message.monitoring && (
               <div className="monitor mt-10">
                 <ExpandableSection
                   variant="footer"
