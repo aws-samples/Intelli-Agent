@@ -31,7 +31,6 @@ def get_answer(body,ws):
         elif message_type == "ERROR":
             print(ret['message']['content'])
             break
-            
         elif message_type == "MONITOR":
             print("monitor info: ",ret['message'])
     return answer
@@ -47,30 +46,13 @@ def test():
         "entry_type": "common",
         "session_id":f"test_{time.time()}",
         "chatbot_config": {
-            "intention_config":{
-                "retrievers": [
-                        {
-                            "type": "qq",
-                            "workspace_ids": ["yb_intent"],
-                            "config": {
-                                "top_k": 10,
-                            }
-                        },
-                    ]
-            },
-            "query_process_config":{
-                "conversation_query_rewrite_config":{
-                    "model_id": "anthropic.claude-3-sonnet-20240229-v1:0"
-                    }
-                    },
-            "agent_config":{
-                "model_id":"anthropic.claude-3-sonnet-20240229-v1:0",
-                "model_kwargs": {"temperature":0.0,"max_tokens":4096},
-                "tools":[{"name":"give_final_response"},{"name":"search_lihoyo"}]
-        },
-        "chat_config":{
-            "model_id":"anthropic.claude-3-sonnet-20240229-v1:0"
-        }  
+            "chatbot_mode": "chat",
+            "use_history": True,
+            "use_websearch": False,
+            "default_llm_config":{
+                "model_id": "anthropic.claude-3-sonnet-20240229-v1:0", 
+                "model_kwargs": {"temperature": 0.0, "max_tokens": 4096}
+            }
         }
     }
     r = get_answer(body,ws)

@@ -10,7 +10,7 @@ from common_utils.constant import (
 from functions.tools import get_tool_by_name,Tool
 from functions.tool_execute_result_format import format_tool_execute_result
 from lambda_main.main_utils.parse_config import parse_common_entry_config
-from common_utils.lambda_invoke_utils import send_trace
+from common_utils.lambda_invoke_utils import send_trace,is_running_local
 
 
 class ChatbotState(TypedDict):
@@ -146,7 +146,7 @@ def tool_execute_lambda(state: ChatbotState):
 @node_monitor_wrapper
 def rag_retrieve_lambda(state: ChatbotState):
     # call retrivever
-    retriever_params = state["chatbot_config"]["rag_retriever_config"]
+    retriever_params = state["chatbot_config"]["retriever_config"]
     retriever_params["query"] = state["query"]
     output:str = invoke_lambda(
         event_body=retriever_params,
@@ -165,7 +165,7 @@ def rag_llm_lambda(state:ChatbotState):
         lambda_module_path="lambda_llm_generate.llm_generate",
         handler_name='lambda_handler',
         event_body={
-            "llm_config": {"model_id": "anthropic.claude-3-sonnet-20240229-v1:0", "intent_type": LLMTaskType.RAG},
+            "llm_config": {**state['chatbot_config']['rag_config']['llm_config'], "intent_type": LLMTaskType.RAG},
             "llm_input": {"contexts": [state['contexts']], "query": state['query'], "chat_history": state['chat_history']}
             }
         )
@@ -221,10 +221,7 @@ def qq_matched_reply(state:ChatbotState):
 ################
 
 def query_route(state:dict):
-    if state['chatbot_config']['chatbot_mode'] == 'rag_mode':
-        return "rag_mode"
-    else:
-        return "other"
+    return state['chatbot_config']['chatbot_mode']
 
 def intent_route(state:dict):
     return state['intent_type']
@@ -294,8 +291,9 @@ def build_graph():
         "query_preprocess_lambda",
         query_route,
         {
-            "rag_mode": 'rag_retrieve_lambda',
-            "other": "intention_detection_lambda"
+            "chat": "chat_llm_generate_lambda",
+            "rag": 'rag_retrieve_lambda',
+            "agent": "intention_detection_lambda",
         }
     )
 
@@ -340,15 +338,17 @@ def common_entry(event_body):
 
     # debuging
     # TODO only write when run local
-    # with open('common_entry_workflow.png','wb') as f:
-    #     f.write(app.get_graph().draw_png())
+    if is_running_local():
+        with open('common_entry_workflow.png','wb') as f:
+            f.write(app.get_graph().draw_png())
     
     ################################################################################
     # prepare inputs and invoke graph
     event_body['chatbot_config'] = parse_common_entry_config(event_body['chatbot_config'])
-    
+    chatbot_config = event_body['chatbot_config']
     query = event_body['query']
-    chat_history = event_body['chat_history']
+    use_history = chatbot_config['use_history']
+    chat_history = event_body['chat_history'] if use_history else []
     stream = event_body['stream']
     message_id = event_body['custom_message_id']
     ws_connection_id = event_body['ws_connection_id']
@@ -356,13 +356,13 @@ def common_entry(event_body):
     # invoke graph and get results
     response = app.invoke({
         "stream":stream,
-        "chatbot_config": event_body['chatbot_config'],
+        "chatbot_config": chatbot_config,
         "query":query,
         "trace_infos": [],
         "message_id": message_id,
         "chat_history": chat_history,
         "agent_chat_history": chat_history + [{"role":"user","content":query}],
-        "ws_connection_id":ws_connection_id,
+        "ws_connection_id": ws_connection_id,
         "debug_infos": {},
         "extra_response": {},
     })

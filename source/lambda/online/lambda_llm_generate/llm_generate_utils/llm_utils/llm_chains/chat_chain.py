@@ -87,7 +87,6 @@ class Baichuan2Chat13B4BitsChatChain(LLMChain):
         model_kwargs = model_kwargs or {}
         model_kwargs.update({"stream": stream})
         model_kwargs = {**cls.default_model_kwargs, **model_kwargs}
-
         llm = Model.get_model(cls.model_id, model_kwargs=model_kwargs, **kwargs)
         llm_chain = RunnableLambda(lambda x: llm.invoke(x, stream=stream))
         return llm_chain
