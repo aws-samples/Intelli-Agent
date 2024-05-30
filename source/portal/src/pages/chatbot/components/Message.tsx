@@ -1,6 +1,8 @@
 import { ExpandableSection } from '@cloudscape-design/components';
 import React from 'react';
 import Avatar from 'react-avatar';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import BedrockImg from 'src/assets/bedrock.webp';
 
 interface MessageProps {
@@ -27,7 +29,9 @@ const Message: React.FC<MessageProps> = ({ showTrace, type, message }) => {
                   headingTagOverride="h5"
                   headerText="Monitoring"
                 >
-                  {message.monitoring}
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {message.monitoring}
+                  </ReactMarkdown>
                 </ExpandableSection>
               </div>
             )}
@@ -37,7 +41,11 @@ const Message: React.FC<MessageProps> = ({ showTrace, type, message }) => {
       {type === 'human' && (
         <div className="flex align-end gap-10">
           <div className={`message-content human`}>
-            <div className="message">{message.data}</div>
+            <div className="message">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {message.data}
+              </ReactMarkdown>
+            </div>
           </div>
         </div>
       )}

@@ -63,7 +63,7 @@ const ChatBot: React.FC = () => {
     LLM_BOT_CHAT_MODE_LIST[0],
   );
   const [useChatHistory, setUseChatHistory] = useState(true);
-  const [showTrace, setShowTrace] = useState(false);
+  const [showTrace, setShowTrace] = useState(true);
   const [useWebSearch, setUseWebSearch] = useState(false);
   const [googleAPIKey, setGoogleAPIKey] = useState('');
 
