@@ -10,6 +10,8 @@ import {
   ExpandableSection,
   FormField,
   Input,
+  Select,
+  SelectProps,
   StatusIndicator,
   Textarea,
   Toggle,
@@ -18,7 +20,7 @@ import useWebSocket, { ReadyState } from 'react-use-websocket';
 import { identity } from 'lodash';
 import ConfigContext from 'src/context/config-context';
 import { useAuth } from 'react-oidc-context';
-import { LLM_BOT_MODEL_LIST } from 'src/utils/const';
+import { LLM_BOT_CHAT_MODE_LIST, LLM_BOT_MODEL_LIST } from 'src/utils/const';
 import { v4 as uuidv4 } from 'uuid';
 import { MessageDataType } from 'src/types';
 
@@ -57,11 +59,21 @@ const ChatBot: React.FC = () => {
   const [currentMonitorMessage, setCurrentMonitorMessage] = useState('');
   const [aiSpeaking, setAiSpeaking] = useState(false);
   const [modelOption, setModelOption] = useState<string>(LLM_BOT_MODEL_LIST[0]);
+  const [chatModeOption, setChatModeOption] = useState<SelectProps.Option>(
+    LLM_BOT_CHAT_MODE_LIST[0],
+  );
+  const [useChatHistory, setUseChatHistory] = useState(true);
+  const [showTrace, setShowTrace] = useState(true);
+  const [useWebSearch, setUseWebSearch] = useState(false);
+  const [googleAPIKey, setGoogleAPIKey] = useState('');
+
   const [sessionId, setSessionId] = useState('');
 
-  const [enableOption, setEnableOption] = useState(false);
   const [temperature, setTemperature] = useState<number>(0.1);
   const [maxToken, setMaxToken] = useState(4096);
+
+  const [showMessageError, setShowMessageError] = useState(false);
+  const [googleAPIKeyError, setGoogleAPIKeyError] = useState(false);
 
   const connectionStatus = {
     [ReadyState.CONNECTING]: 'loading',
@@ -111,44 +123,30 @@ const ChatBot: React.FC = () => {
   }, [lastMessage]);
 
   const handleClickSendMessage = () => {
+    if (!userMessage.trim()) {
+      setShowMessageError(true);
+      return;
+    }
+    if (useWebSearch && !googleAPIKey.trim()) {
+      setGoogleAPIKeyError(true);
+      return;
+    }
     const message = {
-      action: 'sendMessage',
-      // messages: [{ role: 'user', content: userMessage }],
-      temperature: temperature,
-      type: 'common',
-      retriever_config: {
-        workspace_ids: auth.user?.profile?.['cognito:groups'] ?? [],
-      },
       query: userMessage,
       entry_type: 'common',
       session_id: sessionId,
       chatbot_config: {
-        intention_config: {
-          retrievers: [
-            {
-              type: 'qq',
-              workspace_ids: auth.user?.profile?.['cognito:groups'] ?? [],
-              config: {
-                top_k: 10,
-              },
-            },
-          ],
-        },
-        query_process_config: {
-          conversation_query_rewrite_config: {
-            model_id: modelOption,
-          },
-        },
-        agent_config: {
+        chatbot_mode: chatModeOption.value,
+        use_history: useChatHistory,
+        use_websearch: true,
+        google_api_key: '',
+        default_llm_config: {
           model_id: modelOption,
           model_kwargs: { temperature: temperature, max_tokens: maxToken },
-          tools: [{ name: 'give_final_response' }, { name: 'search_lihoyo' }],
-        },
-        chat_config: {
-          model_id: modelOption,
         },
       },
     };
+
     console.info('send message:', message);
     sendMessage(JSON.stringify(message));
     setMessages((prev) => {
@@ -172,6 +170,7 @@ const ChatBot: React.FC = () => {
         <div className="chat-message flex-v flex-1 gap-10">
           {messages.map((msg, index) => (
             <Message
+              showTrace={showTrace}
               key={identity(index)}
               type={msg.type}
               message={msg.message}
@@ -180,6 +179,7 @@ const ChatBot: React.FC = () => {
           {aiSpeaking && (
             <Message
               type="ai"
+              showTrace={showTrace}
               message={{
                 data: currentAIMessage,
                 monitoring: currentMonitorMessage,
@@ -189,13 +189,24 @@ const ChatBot: React.FC = () => {
         </div>
 
         <div className="flex-v gap-10">
-          <div className="flex gap-10 send-message">
+          <div className="flex gap-5 send-message">
+            <Select
+              options={LLM_BOT_CHAT_MODE_LIST}
+              selectedOption={chatModeOption}
+              onChange={({ detail }) => {
+                setChatModeOption(detail.selectedOption);
+              }}
+            />
             <div className="flex-1 pr">
               <Textarea
+                invalid={showMessageError}
                 rows={1}
                 value={userMessage}
                 placeholder={t('typeMessage')}
-                onChange={(e) => setUserMessage(e.detail.value)}
+                onChange={(e) => {
+                  setShowMessageError(false);
+                  setUserMessage(e.detail.value);
+                }}
                 onKeyDown={(e) => {
                   if (e.detail.key === 'Enter') {
                     e.preventDefault();
@@ -216,37 +227,41 @@ const ChatBot: React.FC = () => {
           </div>
           <div>
             <div className="flex space-between">
-              <div className="flex gap-10">
+              <div className="flex gap-10 align-center">
                 <Toggle
-                  onChange={({ detail }) => setEnableOption(detail.checked)}
-                  checked={enableOption}
-                >
-                  Mode
-                </Toggle>
-                <Toggle
-                  onChange={({ detail }) => setEnableOption(detail.checked)}
-                  checked={enableOption}
+                  onChange={({ detail }) => setUseChatHistory(detail.checked)}
+                  checked={useChatHistory}
                 >
                   Multi-rounds
                 </Toggle>
                 <Toggle
-                  onChange={({ detail }) => setEnableOption(detail.checked)}
-                  checked={enableOption}
-                >
-                  Hide Ref Doc
-                </Toggle>
-                <Toggle
-                  onChange={({ detail }) => setEnableOption(detail.checked)}
-                  checked={enableOption}
+                  onChange={({ detail }) => setShowTrace(detail.checked)}
+                  checked={showTrace}
                 >
                   Trace
                 </Toggle>
                 <Toggle
-                  onChange={({ detail }) => setEnableOption(detail.checked)}
-                  checked={enableOption}
+                  onChange={({ detail }) => {
+                    setGoogleAPIKeyError(false);
+                    setUseWebSearch(detail.checked);
+                  }}
+                  checked={useWebSearch}
                 >
-                  Enable Websearch
+                  Enable WebSearch
                 </Toggle>
+                {useWebSearch && (
+                  <div style={{ minWidth: 300 }}>
+                    <Input
+                      invalid={googleAPIKeyError}
+                      placeholder="Please input your Google API key"
+                      value={googleAPIKey}
+                      onChange={({ detail }) => {
+                        setGoogleAPIKeyError(false);
+                        setGoogleAPIKey(detail.value);
+                      }}
+                    />
+                  </div>
+                )}
               </div>
               <div className="flex align-center gap-10">
                 <Box variant="p">{t('server')}: </Box>
@@ -273,7 +288,6 @@ const ChatBot: React.FC = () => {
                         value: item,
                       };
                     })}
-                    ariaLabel="Autosuggest example with suggestions"
                     placeholder="Enter value"
                     empty="No matches found"
                   />

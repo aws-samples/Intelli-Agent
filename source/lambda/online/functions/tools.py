@@ -99,6 +99,29 @@ tool_manager.register_tool(
 
 tool_manager.register_tool(
     {
+        "name":"no_available_tool",
+        "lambda_name": "xxxx",
+        "lambda_module_path": "functions.lambda_no_available_tool.no_available_tool",
+        "tool_def":{
+                "name": "no_available_tool",
+                "description": "If you find some tools are not available, call this tool",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "response": {
+                            "description": "Response to user that no relevant tool exists to answer the question at hand",
+                            "type": "string"
+                    }
+                },
+                "required": ["response"]
+            }
+        }
+    }
+)
+
+
+tool_manager.register_tool(
+    {
         "name":"give_final_response",
         "lambda_name": "xxxx",
         "lambda_module_path": "functions.lambda_give_final_response.give_final_response",

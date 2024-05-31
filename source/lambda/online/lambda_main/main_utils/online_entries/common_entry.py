@@ -10,7 +10,7 @@ from common_utils.constant import (
 from functions.tools import get_tool_by_name,Tool
 from functions.tool_execute_result_format import format_tool_execute_result
 from lambda_main.main_utils.parse_config import parse_common_entry_config
-from common_utils.lambda_invoke_utils import send_trace
+from common_utils.lambda_invoke_utils import send_trace,is_running_local
 
 
 class ChatbotState(TypedDict):
@@ -66,7 +66,7 @@ def intention_detection_lambda(state: ChatbotState):
     current_tools:list[str] = list(set([e['intent'] for e in intention_fewshot_examples]))
     return {
         "intention_fewshot_examples": intention_fewshot_examples,
-        "current_tools": current_tools + ['give_rhetorical_question'],
+        "current_tools": current_tools,
         "intent_type":"other"
         }
 
@@ -146,7 +146,7 @@ def tool_execute_lambda(state: ChatbotState):
 @node_monitor_wrapper
 def rag_retrieve_lambda(state: ChatbotState):
     # call retrivever
-    retriever_params = state["chatbot_config"]["rag_retriever_config"]
+    retriever_params = state["chatbot_config"]["retriever_config"]
     retriever_params["query"] = state["query"]
     output:str = invoke_lambda(
         event_body=retriever_params,
@@ -165,7 +165,7 @@ def rag_llm_lambda(state:ChatbotState):
         lambda_module_path="lambda_llm_generate.llm_generate",
         handler_name='lambda_handler',
         event_body={
-            "llm_config": {"model_id": "anthropic.claude-3-sonnet-20240229-v1:0", "intent_type": LLMTaskType.RAG},
+            "llm_config": {**state['chatbot_config']['rag_config']['llm_config'], "intent_type": LLMTaskType.RAG},
             "llm_input": {"contexts": [state['contexts']], "query": state['query'], "chat_history": state['chat_history']}
             }
         )
@@ -201,6 +201,10 @@ def give_rhetorical_question(state:ChatbotState):
     recent_tool_calling:list[dict] = state['current_tool_calls'][0]
     return {"answer": recent_tool_calling['kwargs']['question']}
 
+def no_available_tool(state:ChatbotState):
+    recent_tool_calling:list[dict] = state['current_tool_calls'][0]
+    return {"answer": recent_tool_calling['kwargs']['response']}
+
 
 def give_tool_response(state:ChatbotState):
     recent_tool_calling:list[dict] = state['current_tool_calls'][0]
@@ -208,7 +212,7 @@ def give_tool_response(state:ChatbotState):
 
 
 def give_response_without_any_tool(state:ChatbotState):
-    chat_history = state['chat_history']
+    chat_history = state['agent_chat_history']
     return {"answer": chat_history[-1]['content']}
 
 def qq_matched_reply(state:ChatbotState):
@@ -221,10 +225,7 @@ def qq_matched_reply(state:ChatbotState):
 ################
 
 def query_route(state:dict):
-    if state['chatbot_config']['chatbot_mode'] == 'rag_mode':
-        return "rag_mode"
-    else:
-        return "other"
+    return state['chatbot_config']['chatbot_mode']
 
 def intent_route(state:dict):
     return state['intent_type']
@@ -244,12 +245,14 @@ def agent_route(state:dict):
     if recent_tool_name == "QA":
         return "rag"
 
-
     if recent_tool_name == "assist":
         return "chat"
     
     if recent_tool_call['name'] == "give_rhetorical_question":
         return "rhetorical question"
+    
+    if recent_tool_call['name'] == 'no_available_tool':
+        return "no available tool"
 
     return "continue"
      
@@ -268,6 +271,7 @@ def build_graph():
     workflow.add_node("comfort_reply",comfort_reply)
     workflow.add_node("transfer_reply", transfer_reply)
     workflow.add_node("give_rhetorical_question",give_rhetorical_question)
+    workflow.add_node("no_available_tool",no_available_tool)
     workflow.add_node("give_response_wo_tool",give_response_without_any_tool)
     workflow.add_node("rag_retrieve_lambda",rag_retrieve_lambda)
     workflow.add_node("rag_llm_lambda",rag_llm_lambda)
@@ -284,6 +288,7 @@ def build_graph():
     workflow.add_edge("transfer_reply",END)
     workflow.add_edge("chat_llm_generate_lambda",END)
     workflow.add_edge("give_rhetorical_question",END)
+    workflow.add_edge("no_available_tool",END)
     workflow.add_edge("give_response_wo_tool",END)
     workflow.add_edge("rag_retrieve_lambda","rag_llm_lambda")
     workflow.add_edge("rag_llm_lambda",END)
@@ -294,8 +299,9 @@ def build_graph():
         "query_preprocess_lambda",
         query_route,
         {
-            "rag_mode": 'rag_retrieve_lambda',
-            "other": "intention_detection_lambda"
+            "chat": "chat_llm_generate_lambda",
+            "rag": 'rag_retrieve_lambda',
+            "agent": "intention_detection_lambda",
         }
     )
 
@@ -319,6 +325,7 @@ def build_graph():
             "transfer": "transfer_reply",
             "chat": "chat_llm_generate_lambda",
             "rag": "rag_retrieve_lambda",
+            "no available tool": "no_available_tool",
             # "response": "give_tool_response",
             "continue":"tool_execute_lambda"
         }
@@ -340,15 +347,17 @@ def common_entry(event_body):
 
     # debuging
     # TODO only write when run local
-    # with open('common_entry_workflow.png','wb') as f:
-    #     f.write(app.get_graph().draw_png())
+    if is_running_local():
+        with open('common_entry_workflow.png','wb') as f:
+            f.write(app.get_graph().draw_png())
     
     ################################################################################
     # prepare inputs and invoke graph
     event_body['chatbot_config'] = parse_common_entry_config(event_body['chatbot_config'])
-    
+    chatbot_config = event_body['chatbot_config']
     query = event_body['query']
-    chat_history = event_body['chat_history']
+    use_history = chatbot_config['use_history']
+    chat_history = event_body['chat_history'] if use_history else []
     stream = event_body['stream']
     message_id = event_body['custom_message_id']
     ws_connection_id = event_body['ws_connection_id']
@@ -356,13 +365,13 @@ def common_entry(event_body):
     # invoke graph and get results
     response = app.invoke({
         "stream":stream,
-        "chatbot_config": event_body['chatbot_config'],
+        "chatbot_config": chatbot_config,
         "query":query,
         "trace_infos": [],
         "message_id": message_id,
         "chat_history": chat_history,
         "agent_chat_history": chat_history + [{"role":"user","content":query}],
-        "ws_connection_id":ws_connection_id,
+        "ws_connection_id": ws_connection_id,
         "debug_infos": {},
         "extra_response": {},
     })

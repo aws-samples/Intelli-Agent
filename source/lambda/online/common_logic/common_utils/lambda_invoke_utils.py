@@ -29,6 +29,7 @@ class LAMBDA_INVOKE_MODE(enum.Enum):
         return [e.value for e in cls]
 
 _lambda_invoke_mode = LAMBDA_INVOKE_MODE.LOCAL.value
+_is_current_invoke_local = False
 _current_stream_use = True
 _ws_connection_id = None 
     
@@ -136,14 +137,14 @@ invoke_with_local = obj.invoke_with_local
 invoke_with_lambda = obj.invoke_with_lambda
 invoke_with_apigateway = obj.invoke_with_apigateway
 invoke_lambda = obj.invoke_lambda
-    
-    
+
 
 def chatbot_lambda_call_wrapper(fn):
     @functools.wraps(fn)
     def inner(event:dict,context=None):
-        global _lambda_invoke_mode
-        current_lambda_mode = LAMBDA_INVOKE_MODE.LOCAL.value
+        global _lambda_invoke_mode, _is_current_invoke_local
+        _is_current_invoke_local = True if context is None else False
+        current_lambda_invoke_mode = LAMBDA_INVOKE_MODE.LOCAL.value
         # avoid recursive lambda calling
         if context is not None and type(context).__name__ == "LambdaContext":
             context = context.__dict__ 
@@ -155,7 +156,7 @@ def chatbot_lambda_call_wrapper(fn):
             assert len(records),"Please set sqs batch size to 1"
             event = json.loads(records[0]['body'])
             _lambda_invoke_mode = LAMBDA_INVOKE_MODE.LOCAL.value
-            current_lambda_mode = LAMBDA_INVOKE_MODE.APIGETAWAY.value
+            current_lambda_invoke_mode = LAMBDA_INVOKE_MODE.APIGETAWAY.value
         
         context = context or {}
         context['request_timestamp'] = time.time()
@@ -168,12 +169,12 @@ def chatbot_lambda_call_wrapper(fn):
         # apigateway wrap event into body
         if "body" in event:
             _lambda_invoke_mode = LAMBDA_INVOKE_MODE.LOCAL.value
-            current_lambda_mode = LAMBDA_INVOKE_MODE.APIGETAWAY.value
+            current_lambda_invoke_mode = LAMBDA_INVOKE_MODE.APIGETAWAY.value
             event = json.loads(event["body"])
         ret = fn(event, context=context)
         # save response to body
         # TODO
-        if current_lambda_mode  == LAMBDA_INVOKE_MODE.APIGETAWAY.value:
+        if current_lambda_invoke_mode  == LAMBDA_INVOKE_MODE.APIGETAWAY.value:
             ret = {
                 "statusCode": 200,
                 "body": json.dumps(ret),
@@ -186,14 +187,17 @@ def chatbot_lambda_call_wrapper(fn):
     return inner 
 
 
+def is_running_local():
+    return _is_current_invoke_local
+
 
 def send_trace(trace_info:str):
     if _current_stream_use and _ws_connection_id is not None:
         send_to_ws_client(
             message={
-                        "message_type":StreamMessageType.MONITOR,
-                        "message":trace_info,
-                        "created_time": time.time()
+                    "message_type":StreamMessageType.MONITOR,
+                    "message":trace_info,
+                    "created_time": time.time()
                     },
             ws_connection_id=_ws_connection_id
         )

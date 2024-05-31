@@ -84,5 +84,6 @@ class StreamMessageType(ConstantBase):
 
 
 class ChatbotMode(ConstantBase):
-    rag_mode = "rag_mode"  # origin from yuanbo
-    other = "other"  # tool based chatbot
+    chat = "chat" # chi-chat
+    rag_mode = "rag"  # rag
+    agent = "agent" # rag + tool use
