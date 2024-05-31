@@ -5,6 +5,7 @@ class ConstantBase:
 
 class EntryType(ConstantBase):
     COMMON = "common"
+    RETAIL = "retail"
     DGR = "dgr"
     MARKET = "market"
     MARKET_CHAIN = "market_chain"
