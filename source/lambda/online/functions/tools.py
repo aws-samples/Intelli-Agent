@@ -440,7 +440,7 @@ tool_manager.register_tool({
 tool_manager.register_tool({
     "name":"转人工",
     "lambda_name": "xxxx",
-    "lambda_module_path": "functions.lambda_retail.retail",
+    "lambda_module_path": "functions.retail_tools.lambda_human",
     "tool_def": {
         "name": "转人工",
         "description": "转人工"
