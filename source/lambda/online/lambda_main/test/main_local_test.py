@@ -33,7 +33,7 @@ websocket_utils.ws_client = DummyWebSocket()
 
 
 def generate_answer(query,
-                    entry_type="common",
+                    entry_type="retail",
                     stream=False,
                     session_id=None,
                     chatbot_config=None
@@ -75,7 +75,7 @@ def test(chatbot_mode="chat"):
     default_llm_config = {
         'model_id': 'anthropic.claude-3-sonnet-20240229-v1:0',
         'model_kwargs': {
-            'temperature': 0.0, 'max_tokens': 4096}
+            'temperature': 0.5, 'max_tokens': 4096}
         }
     chatbot_config = {
         "chatbot_mode": chatbot_mode,
@@ -134,19 +134,27 @@ def test(chatbot_mode="chat"):
     }
     
     session_id = f"test_{time.time()}"
+    
+    # generate_answer(
+    #     "亚马逊云科技在上海有区域吗",
+    #     stream=True,
+    #     session_id=session_id,
+    #     chatbot_config=chatbot_config
+    # )
+
     generate_answer(
-        "今天星期几",
+        "今天亚马逊股价怎么样？",
         stream=True,
         session_id=session_id,
         chatbot_config=chatbot_config
     )
-    generate_answer(
-        "今天是2024年5月30号",
-        stream=True,
-        session_id=session_id,
-        chatbot_config=chatbot_config
-    )
+    # generate_answer(
+    #     "今天是2024年5月30号",
+    #     stream=True,
+    #     session_id=session_id,
+    #     chatbot_config=chatbot_config
+    # )
 
 if __name__ == "__main__":
-    test(chatbot_mode="chat")
+    test(chatbot_mode="agent")
     

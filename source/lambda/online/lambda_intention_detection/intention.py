@@ -44,7 +44,7 @@ def lambda_handler(state:dict, context=None):
         "score": doc['score'],
         "name": doc['answer']['jsonlAnswer']['intent'],
         "intent": doc['answer']['jsonlAnswer']['intent'],
-        "kwargs": doc['answer']['jsonlAnswer']['kwargs']
+        "kwargs": doc['answer']['jsonlAnswer'].get('kwargs', {}),
         } for doc in res['result']['docs']
     ]
 
