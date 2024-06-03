@@ -162,8 +162,8 @@ const AddLibrary: React.FC<AddLibraryProps> = (props: AddLibraryProps) => {
                   multiple
                   showFileLastModified
                   showFileSize
-                  accept=".pdf,.csv,.doc,.docx,.html,.json,.jsonl,.txt,.md,.png,.jpg,.jpeg"
-                  constraintText={`${t('supportFiles')} pdf, csv, doc, docx, html, json, jsonl, txt, md, png, jpg, jpeg.`}
+                  accept=".pdf,.csv,.doc,.docx,.html,.json,.jsonl,.txt,.md,.png,.jpg,.jpeg,.webp"
+                  constraintText={`${t('supportFiles')} pdf, csv, doc, docx, html, json, jsonl, txt, md, png, jpg, jpeg, webp.`}
                 />
               </div>
             </FormField>
