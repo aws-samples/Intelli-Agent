@@ -120,7 +120,7 @@ def tool_execute_lambda(state: ChatbotState):
         tool_call_results.append({
             "name": tool_name,
             "output": output,
-            "kwargs": tool_call['args'],
+            "kwargs": tool_call['kwargs'],
             "model_id": tool_call['model_id']
         })
     
@@ -279,7 +279,7 @@ def build_graph():
     
     # add all edges
     workflow.set_entry_point("query_preprocess_lambda")
-    # workflow.add_edge("query_preprocess_lambda","intention_detection_lambda")
+    workflow.add_edge("query_preprocess_lambda","intention_detection_lambda")
     workflow.add_edge("intention_detection_lambda","agent_lambda")
     workflow.add_edge("tool_execute_lambda","agent_lambda")
     workflow.add_edge("rag_retrieve_lambda","rag_llm_lambda")

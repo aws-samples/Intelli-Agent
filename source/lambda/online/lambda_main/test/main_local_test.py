@@ -33,7 +33,7 @@ websocket_utils.ws_client = DummyWebSocket()
 
 
 def generate_answer(query,
-                    entry_type="common",
+                    entry_type="retail",
                     stream=False,
                     session_id=None,
                     chatbot_config=None
@@ -135,13 +135,13 @@ def test(chatbot_mode="chat"):
     
     session_id = f"test_{time.time()}"
     generate_answer(
-        "今天星期几",
+        "人工客服",
         stream=True,
         session_id=session_id,
         chatbot_config=chatbot_config
     )
     generate_answer(
-        "今天是2024年5月30号",
+        "这个是没有货了吗",
         stream=True,
         session_id=session_id,
         chatbot_config=chatbot_config
@@ -149,4 +149,3 @@ def test(chatbot_mode="chat"):
 
 if __name__ == "__main__":
     test(chatbot_mode="chat")
-    

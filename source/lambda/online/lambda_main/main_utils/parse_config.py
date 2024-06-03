@@ -133,7 +133,7 @@ def parse_retail_entry_config(chatbot_config):
             "retrievers": [
                     {
                         "type": "qq",
-                        "workspace_ids": ["yb_intent"],
+                        "workspace_ids": ["retail_intent"],
                         "config": {
                             "top_k": 10,
                         }
