@@ -9,9 +9,10 @@ from common_utils.constant import (
 
 from functions.tools import get_tool_by_name,Tool
 from functions.tool_execute_result_format import format_tool_execute_result
+from functions.tool_calling_parse import parse_tool_calling as _parse_tool_calling
 from lambda_main.main_utils.parse_config import parse_common_entry_config
 from common_utils.lambda_invoke_utils import send_trace,is_running_local
-
+from common_utils.exceptions import ToolNotExistError,ToolParameterNotExistError
 
 class ChatbotState(TypedDict):
     chatbot_config: dict # chatbot config
@@ -25,14 +26,19 @@ class ChatbotState(TypedDict):
     message_id: str = None
     chat_history: Annotated[list[dict],add_messages]
     agent_chat_history: Annotated[list[dict],add_messages]
-    current_tool_calls: dict
+    current_function_calls: list[str]
     current_tool_execute_res: dict
     debug_infos: Annotated[dict,update_nest_dict]
     answer: Any  # final answer
     current_monitor_infos: str 
     extra_response: Annotated[dict,update_nest_dict]
     contexts: str = None
-    current_tools: list #
+    current_intent_tools: list #
+    current_tool_calls:list 
+    current_agent_tools_def: list[dict]
+    current_agent_model_id: str
+    parse_tool_calling_ok: bool
+
     
 
 ####################
@@ -47,9 +53,9 @@ def query_preprocess_lambda(state: ChatbotState):
         lambda_module_path="lambda_query_preprocess.query_preprocess",
         handler_name="lambda_handler"
     )
+    send_trace(f"**query_rewrite:** \n{output}")
     return {
-        "query_rewrite":output,
-        "current_monitor_infos":f"query_rewrite: {output}"
+        "query_rewrite":output
         }
 
 @node_monitor_wrapper
@@ -62,11 +68,11 @@ def intention_detection_lambda(state: ChatbotState):
     )
 
     # send trace
-    send_trace(f"intention retrieved:\n{json.dumps(intention_fewshot_examples,ensure_ascii=False,indent=2)}")
-    current_tools:list[str] = list(set([e['intent'] for e in intention_fewshot_examples]))
+    send_trace(f"**intention retrieved:**\n{json.dumps(intention_fewshot_examples,ensure_ascii=False,indent=2)}")
+    current_intent_tools:list[str] = list(set([e['intent'] for e in intention_fewshot_examples]))
     return {
         "intention_fewshot_examples": intention_fewshot_examples,
-        "current_tools": current_tools,
+        "current_intent_tools": current_intent_tools,
         "intent_type":"other"
         }
 
@@ -79,20 +85,23 @@ def agent_lambda(state: ChatbotState):
         lambda_module_path="lambda_agent.agent",
         handler_name="lambda_handler"
     )
-    
-    current_tool_calls = output['tool_calls']
+    current_function_calls = output['function_calls']
+    content = output['content']
+    current_agent_tools_def = output['current_agent_tools_def']
+    current_agent_model_id = output['current_agent_model_id']
+    send_trace(f"**current_function_calls:** \n{current_function_calls},\n**model_id:** \n{current_agent_model_id}\n**ai content:** \n{content}")
     return {
-        "current_monitor_infos":f"current_tool_calls: {current_tool_calls}",
-        "current_tool_calls": current_tool_calls,
+        "current_agent_model_id": current_agent_model_id,
+        "current_function_calls": current_function_calls,
+        "current_agent_tools_def": current_agent_tools_def,
         "agent_chat_history": [{
                     "role": "ai",
-                    "content": output['content']
+                    "content": content
                 }]
-        }
-    
+    }
 
 @node_monitor_wrapper
-def tool_execute_lambda(state: ChatbotState):
+def parse_tool_calling(state: ChatbotState):
     """executor lambda
     Args:
         state (NestUpdateState): _description_
@@ -100,9 +109,36 @@ def tool_execute_lambda(state: ChatbotState):
     Returns:
         _type_: _description_
     """
+    # parse tool_calls:
+    try:
+        tool_calls = _parse_tool_calling(
+            model_id = state['current_agent_model_id'],
+            function_calls = state['current_function_calls'],
+            tools=state['current_agent_tools_def'],
+        )
+        send_trace(f"**tool_calls parsed:** \n{tool_calls}")
+        return {"parse_tool_calling_ok": True,"current_tool_calls":tool_calls}
+    except (ToolNotExistError,ToolParameterNotExistError) as e:
+        send_trace(f"**tool_calls parse failed:** \n{str(e)}")
+        return {
+        "parse_tool_calling_ok": False,
+        "agent_chat_history":[{
+            "role": "user",
+            "content": format_tool_execute_result(
+                model_id = state['current_agent_model_id'],
+                tool_output={
+                    "code": 1,
+                    "result": e.to_agent(),
+                    "tool_name": e.tool_name
+                }
+            )
+        }]
+        }
+
+@node_monitor_wrapper
+def tool_execute_lambda(state: ChatbotState):
     tool_calls = state['current_tool_calls']
     assert len(tool_calls) == 1, tool_calls
-    
     tool_call_results = []
 
     for tool_call in tool_calls:
@@ -136,8 +172,8 @@ def tool_execute_lambda(state: ChatbotState):
         tool_call_result_strs.append(ret)
     
     ret = "\n".join(tool_call_result_strs)
+    send_trace(f"**tool execute result:** \n{ret}")
     return {
-        "current_monitor_infos": ret,
         "agent_chat_history":[{
             "role": "user",
             "content": ret
@@ -188,14 +224,11 @@ def chat_llm_generate_lambda(state:ChatbotState):
     )
     return {"answer":answer}
 
-
 def comfort_reply(state:ChatbotState):
     return {"answer": "不好意思没能帮到您，是否帮你转人工客服？"}
 
-
 def transfer_reply(state:ChatbotState):
     return {"answer": "立即为您转人工客服，请稍后"}
-
 
 def give_rhetorical_question(state:ChatbotState):
     recent_tool_calling:list[dict] = state['current_tool_calls'][0]
@@ -231,7 +264,12 @@ def intent_route(state:dict):
     return state['intent_type']
 
 def agent_route(state:dict):
+    parse_tool_calling_ok = state['parse_tool_calling_ok']
+    if not parse_tool_calling_ok:
+        return 'invalid tool calling'
+
     recent_tool_calls:list[dict] = state['current_tool_calls']
+
     if not recent_tool_calls:
         return "no tool"
     
@@ -276,6 +314,7 @@ def build_graph():
     workflow.add_node("rag_retrieve_lambda",rag_retrieve_lambda)
     workflow.add_node("rag_llm_lambda",rag_llm_lambda)
     workflow.add_node('qq_matched_reply',qq_matched_reply)
+    workflow.add_node("parse_tool_calling",parse_tool_calling)
     
     # add all edges
     workflow.set_entry_point("query_preprocess_lambda")
@@ -283,6 +322,7 @@ def build_graph():
     workflow.add_edge("intention_detection_lambda","agent_lambda")
     workflow.add_edge("tool_execute_lambda","agent_lambda")
     workflow.add_edge("rag_retrieve_lambda","rag_llm_lambda")
+    workflow.add_edge("agent_lambda",'parse_tool_calling')
     workflow.add_edge("rag_llm_lambda",END)
     workflow.add_edge("comfort_reply",END)
     workflow.add_edge("transfer_reply",END)
@@ -316,9 +356,10 @@ def build_graph():
     )
 
     workflow.add_conditional_edges(
-        "agent_lambda",
+        "parse_tool_calling",
         agent_route,
         {
+            "invalid tool calling": "agent_lambda",
             "no tool": "give_response_wo_tool",
             "rhetorical question": "give_rhetorical_question",
             "comfort": "comfort_reply",
@@ -364,7 +405,7 @@ def common_entry(event_body):
     
     # invoke graph and get results
     response = app.invoke({
-        "stream":stream,
+        "stream": stream,
         "chatbot_config": chatbot_config,
         "query":query,
         "trace_infos": [],
@@ -376,6 +417,6 @@ def common_entry(event_body):
         "extra_response": {},
     })
 
-    return {"answer":response['answer'],**response["extra_response"]}
+    return {"answer":response['answer'], **response["extra_response"]}
 
 main_chain_entry = common_entry

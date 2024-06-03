@@ -110,7 +110,7 @@ def parse_common_entry_config(chatbot_config):
 
 def parse_retail_entry_config(chatbot_config):
     chatbot_config = copy.deepcopy(chatbot_config)
-    default_llm_config_str = "{'model_id': 'anthropic.claude-3-sonnet-20240229-v1:0', 'model_kwargs': {'temperature': 0.0, 'max_tokens': 4096}}"
+    default_llm_config_str = "{'model_id': 'anthropic.claude-3-sonnet-20240229-v1:0', 'model_kwargs': {'temperature': 0.1, 'max_tokens': 4096}}"
     # get default_llm_kwargs from env
     default_llm_config = eval(os.environ.get("default_llm_config", default_llm_config_str))
     
