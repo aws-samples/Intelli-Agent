@@ -22,16 +22,30 @@ class CustomImageLoader(BaseLoader):
         self,
         file_path: str,
         aws_path: str,
+        file_type: str,
     ):
         """Initialize with file path."""
         self.file_path = file_path
         self.aws_path = aws_path
+        self.file_type = file_type
 
     def load(self) -> Document:
         """Load from file path."""
+        import boto3
+        bedrock_client = boto3.client("bedrock-runtime")
         with open(self.file_path, "rb") as image_file:
             image_bytes = image_file.read()
         encoded_image = base64.b64encode(image_bytes).decode("utf-8")
+
+        image_prompt = "What is in this image?"
+        if "png" == self.file_type:
+            media_type = "image/png"
+        elif "jpeg" == self.file_type or "jpg" == self.file_type:
+            media_type = "image/jpeg"
+        elif "webp" == self.file_type:
+            media_type = "image/webp"
+        else:
+            raise ValueError("Invalid file type: " + self.file_type)
         body = json.dumps(
             {
                 "anthropic_version": "bedrock-2023-05-31",
@@ -44,33 +58,39 @@ class CustomImageLoader(BaseLoader):
                                 "type": "image",
                                 "source": {
                                     "type": "base64",
-                                    "media_type": "image/jpeg",
+                                    "media_type": media_type,
                                     "data": encoded_image,
                                 },
                             },
-                            {"type": "text", "text": "What is in this image?"},
+                            {
+                                "type": "text",
+                                "text": image_prompt
+                            },
                         ],
                     }
                 ],
             }
         )
-
+        accept = "application/json"
+        contentType = "application/json"
         response = bedrock_client.invoke_model(
             modelId="anthropic.claude-3-sonnet-20240229-v1:0",
-            body=body
+            body=body,
+            accept=accept,
+            contentType=contentType,
         )
 
         response_body = json.loads(response.get("body").read())
+        logger.info(response_body["content"][0]["text"])
+        metadata = {"file_path": self.aws_path, "file_type": self.file_type}
 
-        print(response_body['content'][0]['text'])
-        metadata = {"file_path": self.aws_path, "file_type": "md"}
-
-        return Document(page_content=response_body, metadata=metadata)
+        return Document(page_content=response_body["content"][0]["text"], metadata=metadata)
 
 
 def process_image(s3, **kwargs):
     bucket_name = kwargs["bucket"]
     key = kwargs["key"]
+    file_type = kwargs["image_file_type"]
     _, file_extension = os.path.splitext(key)
     
     now = datetime.now()
@@ -79,7 +99,12 @@ def process_image(s3, **kwargs):
     local_path = f"/tmp/image-{timestamp_str}-{random_uuid}{file_extension}"
 
     s3.download_file(bucket_name, key, local_path)
-    loader = CustomImageLoader(file_path=local_path, aws_path=f"s3://{bucket}/{key}")
+    logger.info("File downloaded to " + local_path)
+    loader = CustomImageLoader(
+        file_path=local_path,
+        aws_path=f"s3://{bucket_name}/{key}",
+        file_type=file_type
+    )
     doc = loader.load()
     splitter = MarkdownHeaderTextSplitter(kwargs["res_bucket"])
     doc_list = splitter.split_text(doc)
