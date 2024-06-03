@@ -18,7 +18,8 @@ def tool_calling(state:dict):
     message_id = state.get('message_id',None)
     trace_infos = state.get('trace_infos',[])
     agent_config = state["chatbot_config"]['agent_config']
-    tool_defs = [get_tool_by_name(tool_name).tool_def for tool_name in state['current_tools']]
+    tools = state['current_tools'] + state['chatbot_config']['agent_config']['tools']
+    tool_defs = [get_tool_by_name(tool_name).tool_def for tool_name in tools]
     
     llm_config = {
         "tools": tool_defs,
