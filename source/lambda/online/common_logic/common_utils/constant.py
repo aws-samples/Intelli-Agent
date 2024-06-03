@@ -5,17 +5,8 @@ class ConstantBase:
 
 class EntryType(ConstantBase):
     COMMON = "common"
-    DGR = "dgr"
-    MARKET = "market"
-    MARKET_CHAIN = "market_chain"
-    MARKET_CHAIN_CORE = "market_chain_core"
-    MARKET_CHAIN_KNOWLEDGE = "market_chain_knowledge"
-    QQ_RETRIEVER = "qq_retriever"
-    QD_RETRIEVER = "qd_retriever"
-    MARKET_CONVERSATION_SUMMARY = "market_conversation_summary"
-    LLM = "llm"
-    TEXT2SQL = "text2sql"
-
+    RETAIL = "retail"
+    DGR = "aws-knowledge"
     
 Type = EntryType
 class IntentType(ConstantBase):

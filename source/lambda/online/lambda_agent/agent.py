@@ -5,12 +5,12 @@ from langchain.schema.runnable import (
     RunnablePassthrough,
 )
 
-
 from common_utils.logger_utils  import get_logger
 from common_utils.langchain_utils import chain_logger
 from common_utils.lambda_invoke_utils import invoke_lambda,chatbot_lambda_call_wrapper
 from common_utils.constant import LLMTaskType
 from functions.tools import get_tool_by_name
+
 
 logger = get_logger("agent")
 
@@ -18,7 +18,7 @@ def tool_calling(state:dict):
     message_id = state.get('message_id',None)
     trace_infos = state.get('trace_infos',[])
     agent_config = state["chatbot_config"]['agent_config']
-    tools = state['current_tools'] + state['chatbot_config']['agent_config']['tools']
+    tools = state['current_intent_tools'] + state['chatbot_config']['agent_config']['tools']
     tool_defs = [get_tool_by_name(tool_name).tool_def for tool_name in tools]
     
     llm_config = {
@@ -48,7 +48,11 @@ def tool_calling(state:dict):
 
     output:dict = tool_calling_chain.invoke(state)
 
-    return output
+    return {
+        **output,
+        "current_agent_tools_def":tool_defs,
+        "current_agent_model_id": agent_config['model_id']
+        }
 
 
 

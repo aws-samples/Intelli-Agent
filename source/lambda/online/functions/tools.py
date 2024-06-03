@@ -337,14 +337,152 @@ tool_manager.register_tool({
     }
 })
 
+tool_manager.register_tool({
+    "name":"日常接待",
+    "lambda_name": "xxxx",
+    "lambda_module_path": "xxxx",
+    "tool_def": {
+        "name": "日常接待",
+        "description": "日常接待"
+    }
+})
 
+tool_manager.register_tool({
+    "name":"日常接待",
+    "lambda_name": "xxxx",
+    "lambda_module_path": "functions.lambda_retail.retail",
+    "tool_def": {
+        "name": "日常接待",
+        "description": "日常接待"
+    }
+})
 
+tool_manager.register_tool({
+    "name":"客户抱怨",
+    "lambda_name": "xxxx",
+    "lambda_module_path": "xxxx",
+    "tool_def": {
+        "name": "客户抱怨",
+        "description": "客户抱怨"
+    }
+})
 
+tool_manager.register_tool({
+    "name":"物流信息查询",
+    "lambda_name": "xxxx",
+    "lambda_module_path": "xxxx",
+    "tool_def": {
+        "name": "物流信息查询",
+        "description": "物流信息查询"
+    }
+})
 
+tool_manager.register_tool({
+    "name":"下单流程",
+    "lambda_name": "xxxx",
+    "lambda_module_path": "xxxx",
+    "tool_def": {
+        "name": "下单流程",
+        "description": "下单流程"
+    }
+})
 
+tool_manager.register_tool({
+    "name":"尺码查询",
+    "lambda_name": "xxxx",
+    "lambda_module_path": "xxxx",
+    "tool_def": {
+        "name": "尺码查询",
+        "description": "尺码查询"
+    }
+})
 
+tool_manager.register_tool({
+    "name":"商品信息查询",
+    "lambda_name": "xxxx",
+    "lambda_module_path": "xxxx",
+    "tool_def": {
+        "name": "商品信息查询",
+        "description": "商品信息查询"
+    }
+})
 
+tool_manager.register_tool({
+    "name":"规则回复",
+    "lambda_name": "xxxx",
+    "lambda_module_path": "xxxx",
+    "tool_def": {
+        "name": "规则回复",
+        "description": "规则回复"
+    }
+})
 
-    
+tool_manager.register_tool({
+    "name":"下单流程",
+    "lambda_name": "xxxx",
+    "lambda_module_path": "xxxx",
+    "tool_def": {
+        "name": "下单流程",
+        "description": "下单流程"
+    }
+})
 
-         
+tool_manager.register_tool({
+    "name":"促销查询",
+    "lambda_name": "xxxx",
+    "lambda_module_path": "xxxx",
+    "tool_def": {
+        "name": "促销查询",
+        "description": "促销查询"
+    }
+})
+
+tool_manager.register_tool({
+    "name":"转人工",
+    "lambda_name": "xxxx",
+    "lambda_module_path": "functions.retail_tools.lambda_human",
+    "tool_def": {
+        "name": "转人工",
+        "description": "转人工"
+    }
+})
+
+tool_manager.register_tool({
+    "name":"退换货",
+    "lambda_name": "xxxx",
+    "lambda_module_path": "xxxx",
+    "tool_def": {
+        "name": "退换货",
+        "description": "退换货"
+    }
+})
+
+tool_manager.register_tool({
+    "name":"信息缺失",
+    "lambda_name": "xxxx",
+    "lambda_module_path": "xxxx",
+    "tool_def": {
+        "name": "信息缺失",
+        "description": "信息缺失"
+    }
+})
+
+tool_manager.register_tool({
+    "name":"物流规则",
+    "lambda_name": "xxxx",
+    "lambda_module_path": "xxxx",
+    "tool_def": {
+        "name": "物流规则",
+        "description": "物流规则"
+    }
+})
+
+tool_manager.register_tool({
+    "name":"商品质量问题",
+    "lambda_name": "xxxx",
+    "lambda_module_path": "xxxx",
+    "tool_def": {
+        "name": "商品质量问题",
+        "description": "商品质量问题"
+    }
+})

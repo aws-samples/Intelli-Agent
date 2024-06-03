@@ -85,7 +85,7 @@ def test_multi_turns():
         "entry_type": "common",
         "session_id":f"test_{session_id}",
         "chatbot_config": {
-            "chatbot_mode": "chat",
+            "chatbot_mode": "agent",
             "use_history": True,
             "use_websearch": False,
             "default_llm_config":{
@@ -96,9 +96,6 @@ def test_multi_turns():
     }
     r = get_answer(body,ws)
     ws.close() 
-
-
-
 
 if __name__ == "__main__":
     test_multi_turns()

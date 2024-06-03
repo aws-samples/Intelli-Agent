@@ -39,7 +39,7 @@ class Claude2ChatChain(LLMChain):
         # kwargs.update({"return_chat_model": True})
         llm = Model.get_model(cls.model_id, model_kwargs=model_kwargs, **kwargs)
 
-        chain = messages_template | RunnableLambda(lambda x:x.messages)
+        chain = messages_template | RunnableLambda(lambda x: print(x.messages) or x.messages)
 
         if stream:
             chain = (
