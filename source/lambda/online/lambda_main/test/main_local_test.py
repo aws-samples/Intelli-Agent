@@ -33,7 +33,7 @@ websocket_utils.ws_client = DummyWebSocket()
 
 
 def generate_answer(query,
-                    entry_type="common",
+                    entry_type="retail",
                     stream=False,
                     session_id=None,
                     chatbot_config=None
