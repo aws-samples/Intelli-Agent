@@ -2,9 +2,7 @@ import collections.abc
 import copy
 import logging
 import os
-
 from common_utils.constant import RerankerType,ChatbotMode
-
 
 # update nest dict
 def update_nest_dict(d, u):
@@ -14,7 +12,6 @@ def update_nest_dict(d, u):
         else:
             d[k] = v
     return d
-
 
 def parse_common_entry_config(chatbot_config):
     chatbot_config = copy.deepcopy(chatbot_config)
