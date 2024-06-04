@@ -338,7 +338,6 @@ tool_manager.register_tool({
 })
 
 # retail tools
-
 tool_manager.register_tool({
     "name":"daily_reception",
     "lambda_name": "xxxx",
@@ -351,7 +350,7 @@ tool_manager.register_tool({
             "properties":{
                 "response":{
                     "type": "string",
-                    "description": "Respond politely to customers"
+                    "description": "This tool handles daily responses from customer"
                 }
             },
             "required": ["response"]
@@ -360,25 +359,17 @@ tool_manager.register_tool({
     }
 })
 
+
 tool_manager.register_tool({
     "name":"goods_exchange",
     "lambda_name": "xxxx",
     "lambda_module_path": "functions.retail_tools.lambda_goods_exchage.goods_exchange",
     "tool_def": {
         "name": "goods_exchange",
-        "description": "goods exchange",
-        "parameters":{
-            "type":"object",
-            "properties":{
-                "response":{
-                    "type": "string",
-                    "description": "Respond politely to customers"
-                }
-            },
-            "required": ["response"]
-        },
+        "description": "This tool handles user requests for product returns or exchanges."
     }
 })
+
 
 
 
@@ -456,12 +447,12 @@ tool_manager.register_tool({
 })
 
 tool_manager.register_tool({
-    "name":"规则回复",
+    "name":"rule_response",
     "lambda_name": "xxxx",
     "lambda_module_path": "xxxx",
     "tool_def": {
-        "name": "规则回复",
-        "description": "规则回复"
+        "name": "rule_response",
+        "description": "If a user's reply contains just a link or a long number, use this tool to reply."
     }
 })
 
@@ -494,17 +485,6 @@ tool_manager.register_tool({
         "description": "转人工"
     }
 })
-
-tool_manager.register_tool({
-    "name":"退换货",
-    "lambda_name": "xxxx",
-    "lambda_module_path": "xxxx",
-    "tool_def": {
-        "name": "退换货",
-        "description": "退换货"
-    }
-})
-
 tool_manager.register_tool({
     "name":"信息缺失",
     "lambda_name": "xxxx",
@@ -515,47 +495,28 @@ tool_manager.register_tool({
     }
 })
 
+# 商品质量问题
 tool_manager.register_tool(
     {
-        "name":"product_aftersales",
+        "name":"product_quality",
         "lambda_name": "xxxx",
         "lambda_module_path": "functions.retail_tools.lambda_product_aftersales.product_aftersales",
         "tool_def": {
-                "name": "product_aftersales",
-                "description": "product after-sales processing, including various returns, exchanges, wrong shipments, and missing shipments. and handling of consumer complaints about products",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "query": {
-                            "description": "query for product aftersales",
-                            "type": "string"
-                    }
-                },
-                "required": ["query"]
-            }
+                "name": "product_quality",
+                "description": "product after-sales processing, including handling of consumer complaints about products quality",
         }
     }
 )
 
-tool_manager.register_tool({
-    "name":"物流规则",
-    "lambda_name": "xxxx",
-    "lambda_module_path": "xxxx",
-    "tool_def": {
-        "name": "物流规则",
-        "description": "物流规则"
+# 物流规则
+tool_manager.register_tool(
+    {
+        "name":"product_logistics",
+        "lambda_name": "xxxx",
+        "lambda_module_path": "functions.retail_tools.lambda_product_aftersales.product_aftersales",
+        "tool_def": {
+                "name": "product_logistics",
+                "description": "product after-sales processing, including various returns, exchanges, wrong shipments, and missing shipments",
+        }
     }
-})
-
-tool_manager.register_tool({
-    "name":"商品质量问题",
-    "lambda_name": "xxxx",
-    "lambda_module_path": "xxxx",
-    "tool_def": {
-        "name": "商品质量问题",
-        "description": "商品质量问题"
-    }
-})
-
-
-
+)

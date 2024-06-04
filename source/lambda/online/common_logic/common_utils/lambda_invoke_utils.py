@@ -209,6 +209,8 @@ def node_monitor_wrapper(fn=None,*, monitor_key="current_monitor_infos"):
     def inner(fn):
         @functools.wraps(fn)
         def inner2(state:dict):
+            enter_time = time.time()
+            send_trace(f"Enter {fn.__name__}, time: {enter_time}")
             global _current_stream_use,_ws_connection_id
             _current_stream_use = state['stream']
             _ws_connection_id = state['ws_connection_id']
@@ -217,6 +219,8 @@ def node_monitor_wrapper(fn=None,*, monitor_key="current_monitor_infos"):
             if current_monitor_infos is not None:
                 # sent to wwebsocket
                 send_trace(current_monitor_infos)
+            exit_time = time.time()
+            send_trace(f"Exit {fn.__name__}, time: {exit_time}, elapsed time: {exit_time-enter_time}s")
             return output
         return inner2 
     if fn is not None:
