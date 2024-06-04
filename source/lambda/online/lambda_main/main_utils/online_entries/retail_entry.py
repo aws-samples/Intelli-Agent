@@ -250,6 +250,34 @@ def rag_goods_exchange_llm_lambda(state:ChatbotState):
         )
     return {"answer": output}
 
+@node_monitor_wrapper
+def rag_product_aftersales_retriever_lambda(state: ChatbotState):
+    # call retrivever
+    retriever_params = state["chatbot_config"]["rag_product_aftersales_config"]
+    retriever_params["query"] = state["query"]
+    output:str = invoke_lambda(
+        event_body=retriever_params,
+        lambda_name="Online_Function_Retriever",
+        lambda_module_path="functions.lambda_retriever.retriever",
+        handler_name="lambda_handler"
+    )
+    contexts = [doc['page_content'] for doc in output['result']['docs']]
+    return {"contexts": contexts}
+
+
+@node_monitor_wrapper
+def rag_product_aftersales_llm_lambda(state:ChatbotState):
+    output:str = invoke_lambda(
+        lambda_name='Online_LLM_Generate',
+        lambda_module_path="lambda_llm_generate.llm_generate",
+        handler_name='lambda_handler',
+        event_body={
+            "llm_config": {**state['chatbot_config']['rag_product_aftersales_config']['llm_config'], "intent_type": LLMTaskType.RAG},
+            "llm_input": {"contexts": [state['contexts']], "query": state['query'], "chat_history": state['chat_history']}
+            }
+        )
+    return {"answer": output}
+
 # @node_monitor_wrapper
 # def rag_llm_lambda(state:ChatbotState):
 #     output:str = invoke_lambda(
@@ -365,6 +393,12 @@ def agent_route(state:dict):
     if recent_tool_call['name'] == 'no_available_tool':
         return "no available tool"
 
+    if recent_tool_call['name'] == 'product_logistics':
+        return "product aftersales"
+
+    if recent_tool_call['name'] == 'product_quality':
+        return "product aftersales"
+
     return "continue"
      
 #############################
@@ -388,6 +422,8 @@ def build_graph():
     workflow.add_node("rag_daily_reception_llm",rag_daily_reception_llm_lambda)
     workflow.add_node("rag_goods_exchange_retriever",rag_goods_exchange_retriever_lambda)
     workflow.add_node("rag_goods_exchange_llm",rag_goods_exchange_llm_lambda)
+    workflow.add_node("rag_product_aftersales_retriever",rag_product_aftersales_retriever_lambda)
+    workflow.add_node("rag_product_aftersales_llm",rag_product_aftersales_llm_lambda)
     workflow.add_node("rule_reply",rule_reply)
 
     
@@ -399,6 +435,7 @@ def build_graph():
     workflow.add_edge("agent_lambda",'parse_tool_calling')
     workflow.add_edge("rag_daily_reception_retriever","rag_daily_reception_llm")
     workflow.add_edge('rag_goods_exchange_retriever',"rag_goods_exchange_llm")
+    workflow.add_edge('rag_product_aftersales_retriever',"rag_product_aftersales_llm")
 
 
     # end
@@ -408,6 +445,7 @@ def build_graph():
     workflow.add_edge("give_response_wo_tool",END)
     workflow.add_edge("rag_daily_reception_llm",END)
     workflow.add_edge("rag_goods_exchange_llm",END)
+    workflow.add_edge("rag_product_aftersales_llm",END)
     workflow.add_edge('rule_reply',END)
 
     # temporal add edges for ending logic
@@ -425,6 +463,7 @@ def build_graph():
             "daily reception": "rag_daily_reception_retriever",
             "no available tool": "no_available_tool",
             "rule response": "rule_reply",
+            "product aftersales": "rag_product_aftersales_retriever",
             # "response": "give_tool_response",
             "continue":"tool_execute_lambda"
         }
