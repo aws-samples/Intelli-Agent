@@ -69,10 +69,10 @@ def intention_detection_lambda(state: ChatbotState):
 
     # send trace
     send_trace(f"intention retrieved:\n{json.dumps(intention_fewshot_examples,ensure_ascii=False,indent=2)}")
-    current_tools:list[str] = list(set([e['intent'] for e in intention_fewshot_examples]))
+    current_intent_tools:list[str] = list(set([e['intent'] for e in intention_fewshot_examples]))
     return {
         "intention_fewshot_examples": intention_fewshot_examples,
-        "current_tools": current_tools,
+        "current_intent_tools": current_intent_tools,
         "intent_type":"other"
         }
 
@@ -85,16 +85,20 @@ def agent_lambda(state: ChatbotState):
         lambda_module_path="lambda_agent.agent",
         handler_name="lambda_handler"
     )
-    
-    current_tool_calls = output['tool_calls']
+    current_function_calls = output['function_calls']
+    content = output['content']
+    current_agent_tools_def = output['current_agent_tools_def']
+    current_agent_model_id = output['current_agent_model_id']
+    send_trace(f"**current_function_calls:** \n{current_function_calls},\n**model_id:** \n{current_agent_model_id}\n**ai content:** \n{content}")
     return {
-        "current_monitor_infos":f"current_tool_calls: {current_tool_calls}",
-        "current_tool_calls": current_tool_calls,
+        "current_agent_model_id": current_agent_model_id,
+        "current_function_calls": current_function_calls,
+        "current_agent_tools_def": current_agent_tools_def,
         "agent_chat_history": [{
                     "role": "ai",
-                    "content": output['content']
+                    "content": content
                 }]
-        }
+    }
 
 
 @node_monitor_wrapper
