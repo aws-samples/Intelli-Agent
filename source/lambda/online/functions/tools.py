@@ -404,12 +404,12 @@ tool_manager.register_tool({
 })
 
 tool_manager.register_tool({
-    "name":"尺码查询",
+    "name":"size_guide",
     "lambda_name": "xxxx",
-    "lambda_module_path": "functions.retail_tools.lambda_size.size_tool",
+    "lambda_module_path": "functions.retail_tools.lambda_size_guide.size_guide",
     "tool_def": {
-        "name": "尺码查询",
-        "description": "尺码查询",
+        "name": "size_guide",
+        "description": "size guide for customer",
         "parameters": {
             "type": "object",
             "properties": {
@@ -486,37 +486,51 @@ tool_manager.register_tool({
     }
 })
 
+# 商品质量问题
 tool_manager.register_tool(
     {
-        "name":"product_aftersales",
+        "name":"product_quality",
         "lambda_name": "xxxx",
         "lambda_module_path": "functions.retail_tools.lambda_product_aftersales.product_aftersales",
         "tool_def": {
-                "name": "product_aftersales",
-                "description": "product after-sales processing, including various returns, exchanges, wrong shipments, and missing shipments. and handling of consumer complaints about products",
+                "name": "product_quality",
+                "description": "product after-sales processing, including handling of consumer complaints about products quality",
         }
     }
 )
 
-tool_manager.register_tool({
-    "name":"物流规则",
-    "lambda_name": "xxxx",
-    "lambda_module_path": "xxxx",
-    "tool_def": {
-        "name": "物流规则",
-        "description": "物流规则"
+# 物流规则
+tool_manager.register_tool(
+    {
+        "name":"product_logistics",
+        "lambda_name": "xxxx",
+        "lambda_module_path": "functions.retail_tools.lambda_product_aftersales.product_aftersales",
+        "tool_def": {
+                "name": "product_logistics",
+                "description": "product after-sales processing, including various returns, exchanges, wrong shipments, and missing shipments",
+        }
     }
-})
+)
 
-tool_manager.register_tool({
-    "name":"商品质量问题",
-    "lambda_name": "xxxx",
-    "lambda_module_path": "xxxx",
-    "tool_def": {
-        "name": "商品质量问题",
-        "description": "商品质量问题"
-    }
-})
+# tool_manager.register_tool({
+#     "name":"物流规则",
+#     "lambda_name": "xxxx",
+#     "lambda_module_path": "xxxx",
+#     "tool_def": {
+#         "name": "物流规则",
+#         "description": "物流规则"
+#     }
+# })
+
+# tool_manager.register_tool({
+#     "name":"商品质量问题",
+#     "lambda_name": "xxxx",
+#     "lambda_module_path": "xxxx",
+#     "tool_def": {
+#         "name": "商品质量问题",
+#         "description": "商品质量问题"
+#     }
+# })
 
 
 

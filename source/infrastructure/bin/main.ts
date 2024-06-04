@@ -115,6 +115,7 @@ export class RootStack extends Stack {
       domainEndpoint: aosConstruct.domainEndpoint || "",
       rerankEndPoint: llmStack.rerankEndPoint ?? "",
       embeddingEndPoints: llmStack.embeddingEndPoints || "",
+      embeddingAndRerankerEndPoint: llmStack.embeddingAndRerankerEndPoint || "",
       llmModelId: BuildConfig.LLM_MODEL_ID,
       instructEndPoint:
         BuildConfig.LLM_ENDPOINT_NAME !== ""
