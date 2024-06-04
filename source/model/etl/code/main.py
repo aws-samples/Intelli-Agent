@@ -154,7 +154,7 @@ def remove_symbols(text):
     return cleaned_text
 
 
-def structure_predict(file_path: Path, lang: str, auto_dpi) -> str:
+def structure_predict(file_path: Path, lang: str, auto_dpi, figure_rec) -> str:
     """
     Extracts structured information from images in the given file path and returns a formatted document.
 
@@ -184,8 +184,16 @@ def structure_predict(file_path: Path, lang: str, auto_dpi) -> str:
         if len(region["res"]) == 0:
             continue
         if region["type"].lower() == "figure":
-            doc += '<{{figure_' + str(len(figure)) + '}}>'
-            figure['<{{figure_' + str(len(figure)) + '}}>'] = Image.fromarray(region["img"])
+            if figure_rec:
+                doc += '<{{figure_' + str(len(figure)) + '}}>'
+                figure['<{{figure_' + str(len(figure)) + '}}>'] = Image.fromarray(region["img"])
+            else:    
+                region_text = ""
+                for _, line in enumerate(region["res"]):
+                    region_text += line["text"] + " "
+                if remove_symbols(region_text) != remove_symbols(prev_region_text):
+                    doc += region_text
+                    prev_region_text = region_text
         elif region["type"].lower() == "title":
             region_text = ''
             for i, line in enumerate(region['res']):
@@ -248,6 +256,7 @@ def process_pdf_pipeline(request_body):
     mode = request_body.get("mode", "ppstructure")
     lang = request_body.get("lang", "zh")
     auto_dpi = bool(request_body.get("auto_dpi", False))
+    figure_rec = bool(request_body.get("figure_recognition", False))
     logging.info("Processing bucket: %s, object_key: %s", bucket, object_key)
     local_path = str(os.path.basename(object_key))
     local_path = f"/tmp/{local_path}"
@@ -255,7 +264,7 @@ def process_pdf_pipeline(request_body):
     logger.info("Downloading %s to %s", object_key, local_path)
     s3.download_file(Bucket=bucket, Key=object_key, Filename=local_path)
 
-    content = structure_predict(local_path, lang, auto_dpi)
+    content = structure_predict(local_path, lang, auto_dpi, figure_rec)
     filename = file_path.stem
     destination_s3_path = upload_chunk_to_s3(
         content, destination_bucket, filename, "before-splitting"
@@ -264,21 +273,3 @@ def process_pdf_pipeline(request_body):
     result = {"destination_prefix": destination_s3_path}
 
     return result
-
-
-if __name__ == "__main__":
-    body = {
-        "s3_bucket": "icyxu-llm-glue-assets",
-        "object_key": "test_data/test_glue_lib/cn_pdf/2023.ccl-2.6.pdf",
-        "destination_bucket": "llm-bot-document-results-icyxu",
-        "mode": "ppstructure",
-        "lang": "ch",
-    }
-    body = {
-        "s3_bucket": "xiaotih",
-        "object_key": "2021-Annual-Report（拖移项目）.pdf", #"2021-Annual-Report（拖移项目）.pdf","doublefs 图片视频 自动化.pdf""米哈游小字测试.pdf"
-        "destination_bucket": "xiaotih",
-        "mode": "ppstructure",
-        "lang": "en","auto_dpi": True,
-    }
-    print(process_pdf_pipeline(body))
