@@ -70,9 +70,12 @@ SYSTEM_MESSAGE_PROMPT_WITH_FEWSHOT_EXAMPLES = SYSTEM_MESSAGE_PROMPT + (
 TOOL_FORMAT = """<tool_description>
 <tool_name>{tool_name}</tool_name>
 <description>{tool_description}</description>
-<parameters>
-{formatted_parameters}
-</parameters>
+<required_parameters>
+{formatted_required_parameters}
+</required_parameters>
+<optional_parameters>
+{formatted_optional_parameters}
+</optional_parameters>
 </tool_description>"""
 
 TOOL_PARAMETER_FORMAT = """<parameter>
@@ -117,14 +120,24 @@ def convert_openai_tool_to_anthropic(tools:list[dict])->str:
         {
             "tool_name": tool["name"],
             "tool_description": tool["description"],
-            "formatted_parameters": "\n".join(
+            "formatted_required_parameters": "\n".join(
                 [
                     TOOL_PARAMETER_FORMAT.format(
                         parameter_name=name,
                         parameter_type=_get_type(parameter),
                         parameter_description=parameter.get("description"),
-                    )
-                    for name, parameter in tool["parameters"]["properties"].items()
+                    ) for name, parameter in tool["parameters"]["properties"].items()
+                    if name in tool["parameters"].get("required", [])
+                ]
+            ),
+            "formatted_optional_parameters": "\n".join(
+                [
+                    TOOL_PARAMETER_FORMAT.format(
+                        parameter_name=name,
+                        parameter_type=_get_type(parameter),
+                        parameter_description=parameter.get("description"),
+                    ) for name, parameter in tool["parameters"]["properties"].items()
+                    if name not in tool["parameters"].get("required", [])
                 ]
             ),
         }
@@ -135,7 +148,8 @@ def convert_openai_tool_to_anthropic(tools:list[dict])->str:
             TOOL_FORMAT.format(
                 tool_name=tool["tool_name"],
                 tool_description=tool["tool_description"],
-                formatted_parameters=tool["formatted_parameters"],
+                formatted_required_parameters=tool["formatted_required_parameters"],
+                formatted_optional_parameters=tool["formatted_optional_parameters"],
             )
             for tool in tools_data
         ]
@@ -238,7 +252,7 @@ class Claude2ToolCallingChain(LLMChain):
         # return {"function_calls":function_calls,"content":message.content}
         if not function_calls:
             content = message.content
-        
+
         return {
                 "function_calls": function_calls,
                 "content": content
