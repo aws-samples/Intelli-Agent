@@ -506,26 +506,27 @@ tool_manager.register_tool({
     }
 })
 
-# tool for 物流规则/商品质量问题
+# 商品质量问题
 tool_manager.register_tool(
     {
-        "name":"物流规则",
+        "name":"product_quality",
         "lambda_name": "xxxx",
         "lambda_module_path": "functions.retail_tools.lambda_product_aftersales.product_aftersales",
         "tool_def": {
-                "name": "product_aftersales",
+                "name": "product_quality",
                 "description": "product after-sales processing, including various returns, exchanges, wrong shipments, and missing shipments. and handling of consumer complaints about products",
         }
     }
 )
 
+# 物流规则
 tool_manager.register_tool(
     {
-        "name":"商品质量问题",
+        "name":"product_logistics",
         "lambda_name": "xxxx",
         "lambda_module_path": "functions.retail_tools.lambda_product_aftersales.product_aftersales",
         "tool_def": {
-                "name": "product_aftersales",
+                "name": "product_logistics",
                 "description": "product after-sales processing, including various returns, exchanges, wrong shipments, and missing shipments. and handling of consumer complaints about products",
         }
     }
