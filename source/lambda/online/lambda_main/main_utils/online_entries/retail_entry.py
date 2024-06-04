@@ -192,24 +192,11 @@ def tool_execute_lambda(state: ChatbotState):
     }]}
 
 
-@node_monitor_wrapper
-def rag_llm_lambda(state:ChatbotState):
-    output:str = invoke_lambda(
-        lambda_name='Online_LLM_Generate',
-        lambda_module_path="lambda_llm_generate.llm_generate",
-        handler_name='lambda_handler',
-        event_body={
-            "llm_config": {**state['chatbot_config']['rag_config']['llm_config'], "intent_type": LLMTaskType.RAG},
-            "llm_input": {"contexts": [state['contexts']], "query": state['query'], "chat_history": state['chat_history']}
-            }
-        )
-    return {"answer": output}
-
 
 @node_monitor_wrapper
-def rag_retrieve_lambda(state: ChatbotState):
+def rag_daily_reception_retriever_lambda(state: ChatbotState):
     # call retrivever
-    retriever_params = state["chatbot_config"]["retriever_config"]
+    retriever_params = state["chatbot_config"]["rag_daily_reception_config"]
     retriever_params["query"] = state["query"]
     output:str = invoke_lambda(
         event_body=retriever_params,
@@ -219,6 +206,77 @@ def rag_retrieve_lambda(state: ChatbotState):
     )
     contexts = [doc['page_content'] for doc in output['result']['docs']]
     return {"contexts": contexts}
+
+
+@node_monitor_wrapper
+def rag_daily_reception_llm_lambda(state:ChatbotState):
+    output:str = invoke_lambda(
+        lambda_name='Online_LLM_Generate',
+        lambda_module_path="lambda_llm_generate.llm_generate",
+        handler_name='lambda_handler',
+        event_body={
+            "llm_config": {**state['chatbot_config']['rag_daily_reception_config']['llm_config'], "intent_type": LLMTaskType.RAG},
+            "llm_input": {"contexts": [state['contexts']], "query": state['query'], "chat_history": state['chat_history']}
+            }
+        )
+    return {"answer": output}
+
+
+@node_monitor_wrapper
+def rag_goods_exchange_retriever_lambda(state: ChatbotState):
+    # call retrivever
+    retriever_params = state["chatbot_config"]["rag_goods_exchange_config"]
+    retriever_params["query"] = state["query"]
+    output:str = invoke_lambda(
+        event_body=retriever_params,
+        lambda_name="Online_Function_Retriever",
+        lambda_module_path="functions.lambda_retriever.retriever",
+        handler_name="lambda_handler"
+    )
+    contexts = [doc['page_content'] for doc in output['result']['docs']]
+    return {"contexts": contexts}
+
+
+@node_monitor_wrapper
+def rag_goods_exchange_llm_lambda(state:ChatbotState):
+    output:str = invoke_lambda(
+        lambda_name='Online_LLM_Generate',
+        lambda_module_path="lambda_llm_generate.llm_generate",
+        handler_name='lambda_handler',
+        event_body={
+            "llm_config": {**state['chatbot_config']['rag_goods_exchange_config']['llm_config'], "intent_type": LLMTaskType.RAG},
+            "llm_input": {"contexts": [state['contexts']], "query": state['query'], "chat_history": state['chat_history']}
+            }
+        )
+    return {"answer": output}
+
+# @node_monitor_wrapper
+# def rag_llm_lambda(state:ChatbotState):
+#     output:str = invoke_lambda(
+#         lambda_name='Online_LLM_Generate',
+#         lambda_module_path="lambda_llm_generate.llm_generate",
+#         handler_name='lambda_handler',
+#         event_body={
+#             "llm_config": {**state['chatbot_config']['rag_config']['llm_config'], "intent_type": LLMTaskType.RAG},
+#             "llm_input": {"contexts": [state['contexts']], "query": state['query'], "chat_history": state['chat_history']}
+#             }
+#         )
+#     return {"answer": output}
+
+
+# @node_monitor_wrapper
+# def rag_retrieve_lambda(state: ChatbotState):
+#     # call retrivever
+#     retriever_params = state["chatbot_config"]["retriever_config"]
+#     retriever_params["query"] = state["query"]
+#     output:str = invoke_lambda(
+#         event_body=retriever_params,
+#         lambda_name="Online_Function_Retriever",
+#         lambda_module_path="functions.lambda_retriever.retriever",
+#         handler_name="lambda_handler"
+#     )
+#     contexts = [doc['page_content'] for doc in output['result']['docs']]
+#     return {"contexts": contexts}
 
 
 @node_monitor_wrapper
@@ -238,9 +296,6 @@ def chat_llm_generate_lambda(state:ChatbotState):
     )
     return {"answer":answer}
 
-
-def comfort_reply(state:ChatbotState):
-    return {"answer": "不好意思没能帮到您，是否帮你转人工客服？"}
 
 
 def transfer_reply(state:ChatbotState):
@@ -266,10 +321,8 @@ def give_response_without_any_tool(state:ChatbotState):
     chat_history = state['agent_chat_history']
     return {"answer": chat_history[-1]['content']}
 
-
-def qq_matched_reply(state:ChatbotState):
-    return {"answer": state["answer"]}
-
+def rule_reply(state:ChatbotState):
+    return {"answer":"您好"}
 
 ################
 # define edges #
@@ -294,17 +347,20 @@ def agent_route(state:dict):
 
     recent_tool_name = recent_tool_call['name']
 
-    if recent_tool_name in ['comfort', 'transfer','chat']:
+    if recent_tool_name in ['comfort', 'transfer']:
         return recent_tool_name
-    
-    if recent_tool_name == "QA":
-        return "rag"
-
-    if recent_tool_name == "assist":
-        return "chat"
     
     if recent_tool_call['name'] == "give_rhetorical_question":
         return "rhetorical question"
+    
+    if recent_tool_call['name'] == "goods_exchange":
+        return "goods exchange"
+    
+    if recent_tool_call['name'] == "daily_reception":
+        return "daily reception"
+
+    if recent_tool_call['name'] == "rule_response":
+        return "rule response"
     
     if recent_tool_call['name'] == 'no_available_tool':
         return "no available tool"
@@ -322,57 +378,40 @@ def build_graph():
     workflow.add_node("intention_detection_lambda", intention_detection_lambda)
     workflow.add_node("agent_lambda", agent_lambda)
     workflow.add_node("tool_execute_lambda", tool_execute_lambda)
-    workflow.add_node("chat_llm_generate_lambda", chat_llm_generate_lambda)
-    workflow.add_node("comfort_reply",comfort_reply)
     workflow.add_node("transfer_reply", transfer_reply)
     workflow.add_node("give_rhetorical_question",give_rhetorical_question)
     workflow.add_node("no_available_tool",no_available_tool)
     workflow.add_node("give_response_wo_tool",give_response_without_any_tool)
-    workflow.add_node("rag_retrieve_lambda",rag_retrieve_lambda)
-    workflow.add_node("rag_llm_lambda",rag_llm_lambda)
-    workflow.add_node('qq_matched_reply',qq_matched_reply)
     workflow.add_node("parse_tool_calling",parse_tool_calling)
+    # 
+    workflow.add_node("rag_daily_reception_retriever",rag_daily_reception_retriever_lambda)
+    workflow.add_node("rag_daily_reception_llm",rag_daily_reception_llm_lambda)
+    workflow.add_node("rag_goods_exchange_retriever",rag_goods_exchange_retriever_lambda)
+    workflow.add_node("rag_goods_exchange_llm",rag_goods_exchange_llm_lambda)
+    workflow.add_node("rule_reply",rule_reply)
+
     
     # add all edges
     workflow.set_entry_point("query_preprocess_lambda")
     workflow.add_edge("query_preprocess_lambda","intention_detection_lambda")
     workflow.add_edge("intention_detection_lambda","agent_lambda")
     workflow.add_edge("tool_execute_lambda","agent_lambda")
-    workflow.add_edge("rag_retrieve_lambda","rag_llm_lambda")
     workflow.add_edge("agent_lambda",'parse_tool_calling')
-    workflow.add_edge("rag_llm_lambda",END)
-    workflow.add_edge("comfort_reply",END)
+    workflow.add_edge("rag_daily_reception_retriever","rag_daily_reception_llm")
+    workflow.add_edge('rag_goods_exchange_retriever',"rag_goods_exchange_llm")
+
+
+    # end
     workflow.add_edge("transfer_reply",END)
-    workflow.add_edge("chat_llm_generate_lambda",END)
     workflow.add_edge("give_rhetorical_question",END)
     workflow.add_edge("no_available_tool",END)
     workflow.add_edge("give_response_wo_tool",END)
-    workflow.add_edge("rag_retrieve_lambda","rag_llm_lambda")
-    workflow.add_edge("rag_llm_lambda",END)
-    workflow.add_edge("qq_matched_reply",END)
-    
-    # temporal add edges for ending logic
-    
-    # add conditional edges
-    workflow.add_conditional_edges(
-        "query_preprocess_lambda",
-        query_route,
-        {
-            "chat": "chat_llm_generate_lambda",
-            "rag": 'rag_retrieve_lambda',
-            "agent": "intention_detection_lambda",
-        }
-    )
+    workflow.add_edge("rag_daily_reception_llm",END)
+    workflow.add_edge("rag_goods_exchange_llm",END)
+    workflow.add_edge('rule_reply',END)
 
+    # temporal add edges for ending logic
     # add conditional edges
-    workflow.add_conditional_edges(
-        "intention_detection_lambda",
-        intent_route,
-        {
-            "other": "agent_lambda",
-            "qq_mathed": "qq_matched_reply"
-        }
-    )
 
     workflow.add_conditional_edges(
         "parse_tool_calling",
@@ -381,11 +420,11 @@ def build_graph():
             "invalid tool calling": "agent_lambda",
             "no tool": "give_response_wo_tool",
             "rhetorical question": "give_rhetorical_question",
-            "comfort": "comfort_reply",
             "transfer": "transfer_reply",
-            "chat": "chat_llm_generate_lambda",
-            "rag": "rag_retrieve_lambda",
+            "goods exchange": "rag_goods_exchange_retriever",
+            "daily reception": "rag_daily_reception_retriever",
             "no available tool": "no_available_tool",
+            "rule response": "rule_reply",
             # "response": "give_tool_response",
             "continue":"tool_execute_lambda"
         }
