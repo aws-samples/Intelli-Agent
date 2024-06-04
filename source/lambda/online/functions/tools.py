@@ -429,13 +429,9 @@ tool_manager.register_tool({
                 "weight": {
                     "description": "weight of the customer",
                     "type": "int"
-                },
-                "goods_id": {
-                    "description": "id of the goods",
-                    "type": "str"
                 }
             },
-            "required": ["height", "weight", "goods_id"]
+            "required": ["height", "weight"]
         }
     }
 })
