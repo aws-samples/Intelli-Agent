@@ -413,12 +413,12 @@ tool_manager.register_tool({
 })
 
 tool_manager.register_tool({
-    "name":"尺码查询",
+    "name":"size_guide",
     "lambda_name": "xxxx",
-    "lambda_module_path": "functions.retail_tools.lambda_size.size_tool",
+    "lambda_module_path": "functions.retail_tools.lambda_size_guide.size_guide",
     "tool_def": {
-        "name": "尺码查询",
-        "description": "尺码查询",
+        "name": "size_guide",
+        "description": "size guide for customer",
         "parameters": {
             "type": "object",
             "properties": {
