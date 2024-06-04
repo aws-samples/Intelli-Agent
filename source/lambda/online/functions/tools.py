@@ -500,16 +500,6 @@ tool_manager.register_tool(
         "tool_def": {
                 "name": "product_aftersales",
                 "description": "product after-sales processing, including various returns, exchanges, wrong shipments, and missing shipments. and handling of consumer complaints about products",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "query": {
-                            "description": "query for product aftersales",
-                            "type": "string"
-                    }
-                },
-                "required": ["query"]
-            }
         }
     }
 )
