@@ -163,27 +163,17 @@ def parse_retail_entry_config(chatbot_config):
         "chat_config": {
             **default_llm_config,
         },
-        "rag_config": {
+        "rag_goods_exchange_config": {
             "retriever_config": {
                 "retrievers": [
                     {
-                        "type": "qd",
-                        "workspace_ids": [],
+                        "type": "qq",
+                        "workspace_ids": ["retail-quick-reply"],
                         "config": {
-                            "top_k": 20,
-                            "using_whole_doc": True,
+                            "top_k": 5
                         },
                     },
-                ],
-                "rerankers": [
-                    {
-                        "type": "reranker",
-                        "config": {
-                            "enable_debug": False,
-                            "target_model": "bge_reranker_model.tar.gz",
-                        },
-                    }
-                ],
+                ]
             },
             "llm_config": {
                 **default_llm_config,

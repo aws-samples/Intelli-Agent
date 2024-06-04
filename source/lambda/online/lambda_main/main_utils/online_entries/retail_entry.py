@@ -225,7 +225,7 @@ def rag_daily_reception_llm_lambda(state:ChatbotState):
 @node_monitor_wrapper
 def rag_goods_exchange_retriever_lambda(state: ChatbotState):
     # call retrivever
-    retriever_params = state["chatbot_config"]["rag_goods_exchange_config"]
+    retriever_params = state["chatbot_config"]["rag_goods_exchange_config"]['retriever_config']
     retriever_params["query"] = state["query"]
     output:str = invoke_lambda(
         event_body=retriever_params,
@@ -234,6 +234,9 @@ def rag_goods_exchange_retriever_lambda(state: ChatbotState):
         handler_name="lambda_handler"
     )
     contexts = [doc['page_content'] for doc in output['result']['docs']]
+
+    context = "\n".join(contexts)
+    send_trace(f'**rag_goods_exchange_retriever** {context}')
     return {"contexts": contexts}
 
 
@@ -245,7 +248,7 @@ def rag_goods_exchange_llm_lambda(state:ChatbotState):
         handler_name='lambda_handler',
         event_body={
             "llm_config": {**state['chatbot_config']['rag_goods_exchange_config']['llm_config'], "intent_type": LLMTaskType.RAG},
-            "llm_input": {"contexts": [state['contexts']], "query": state['query'], "chat_history": state['chat_history']}
+            "llm_input": {"contexts": state['contexts'], "query": state['query'], "chat_history": state['chat_history']}
             }
         )
     return {"answer": output}
