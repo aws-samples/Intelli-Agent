@@ -57,6 +57,9 @@ except Exception as e:
     logger.warning("Running locally")
     sys.path.append("dep")
     args = json.load(open(sys.argv[1]))
+    args["AOS_ENDPOINT"] = os.environ["aos_endpoint"]
+    args["WORKSPACE_TABLE"] = os.environ["workspace_table"]
+    args["ETL_OBJECT_TABLE"] = os.environ["etl_object_table"]
     # args["BATCH_INDICE"] = sys.argv[2]
 
 from llm_bot_dep import sm_utils
