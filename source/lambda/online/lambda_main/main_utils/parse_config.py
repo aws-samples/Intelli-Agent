@@ -179,6 +179,22 @@ def parse_retail_entry_config(chatbot_config):
                 **default_llm_config,
             },
         },
+        "rag_daily_reception_config": {
+            "retriever_config": {
+                "retrievers": [
+                    {
+                        "type": "qq",
+                        "workspace_ids": ["retail-quick-reply"],
+                        "config": {
+                            "top_k": 5
+                        },
+                    },
+                ]
+            },
+            "llm_config": {
+                **default_llm_config,
+            },
+        },
     }
     chatbot_config = update_nest_dict(
         copy.deepcopy(default_chatbot_config), chatbot_config

@@ -47,7 +47,6 @@ class ChatbotState(TypedDict):
 # nodes in lambdas #
 ####################
 
-
 @node_monitor_wrapper
 def query_preprocess_lambda(state: ChatbotState):
     output: str = invoke_lambda(

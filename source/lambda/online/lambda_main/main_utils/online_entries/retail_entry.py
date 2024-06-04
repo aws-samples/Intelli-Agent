@@ -1,4 +1,5 @@
 import json
+from textwrap import dedent
 from typing import TypedDict,Any,Annotated
 from langgraph.graph import StateGraph,END
 from common_utils.lambda_invoke_utils import invoke_lambda,node_monitor_wrapper
@@ -153,7 +154,6 @@ def tool_execute_lambda(state: ChatbotState):
     for tool_call in tool_calls:
         tool_name = tool_call["name"]
         tool_kwargs = tool_call['kwargs']
-
         # call tool
         output = invoke_lambda(
             event_body = {
@@ -196,7 +196,7 @@ def tool_execute_lambda(state: ChatbotState):
 @node_monitor_wrapper
 def rag_daily_reception_retriever_lambda(state: ChatbotState):
     # call retrivever
-    retriever_params = state["chatbot_config"]["rag_daily_reception_config"]
+    retriever_params = state["chatbot_config"]["rag_daily_reception_config"]['retriever_config']
     retriever_params["query"] = state["query"]
     output:str = invoke_lambda(
         event_body=retriever_params,
@@ -205,18 +205,31 @@ def rag_daily_reception_retriever_lambda(state: ChatbotState):
         handler_name="lambda_handler"
     )
     contexts = [doc['page_content'] for doc in output['result']['docs']]
+    context = "\n".join(contexts)
+    send_trace(f'**rag_goods_exchange_retriever** {context}')
     return {"contexts": contexts}
 
 
 @node_monitor_wrapper
 def rag_daily_reception_llm_lambda(state:ChatbotState):
+    context = ("="*50).join(state['contexts'])
+    prompt = dedent(f"""你是安踏的客服助理，正在帮用户解答问题，客户提出的问题大多是属于日常接待类别，你需要按照下面的guidelines进行回复:
+                    <guidelines>
+                      - 回复内容需要展现出礼貌。
+                    </guidelines>
+                    下面列举了一些具体的场景下的回复，你可以结合用户的问题进行参考回答:
+                    <context>
+                    {context}
+                    </context>
+                    下面是用户的回复: {state['query']}
+""")
     output:str = invoke_lambda(
         lambda_name='Online_LLM_Generate',
         lambda_module_path="lambda_llm_generate.llm_generate",
         handler_name='lambda_handler',
         event_body={
-            "llm_config": {**state['chatbot_config']['rag_daily_reception_config']['llm_config'], "intent_type": LLMTaskType.RAG},
-            "llm_input": {"contexts": [state['contexts']], "query": state['query'], "chat_history": state['chat_history']}
+            "llm_config": {**state['chatbot_config']['rag_daily_reception_config']['llm_config'], "intent_type": LLMTaskType.CHAT},
+            "llm_input": { "query": prompt, "chat_history": state['chat_history']}
             }
         )
     return {"answer": output}
@@ -280,52 +293,6 @@ def rag_product_aftersales_llm_lambda(state:ChatbotState):
             }
         )
     return {"answer": output}
-
-# @node_monitor_wrapper
-# def rag_llm_lambda(state:ChatbotState):
-#     output:str = invoke_lambda(
-#         lambda_name='Online_LLM_Generate',
-#         lambda_module_path="lambda_llm_generate.llm_generate",
-#         handler_name='lambda_handler',
-#         event_body={
-#             "llm_config": {**state['chatbot_config']['rag_config']['llm_config'], "intent_type": LLMTaskType.RAG},
-#             "llm_input": {"contexts": [state['contexts']], "query": state['query'], "chat_history": state['chat_history']}
-#             }
-#         )
-#     return {"answer": output}
-
-
-# @node_monitor_wrapper
-# def rag_retrieve_lambda(state: ChatbotState):
-#     # call retrivever
-#     retriever_params = state["chatbot_config"]["retriever_config"]
-#     retriever_params["query"] = state["query"]
-#     output:str = invoke_lambda(
-#         event_body=retriever_params,
-#         lambda_name="Online_Function_Retriever",
-#         lambda_module_path="functions.lambda_retriever.retriever",
-#         handler_name="lambda_handler"
-#     )
-#     contexts = [doc['page_content'] for doc in output['result']['docs']]
-#     return {"contexts": contexts}
-
-
-@node_monitor_wrapper
-def chat_llm_generate_lambda(state:ChatbotState):
-    answer:dict = invoke_lambda(
-        event_body={
-            "llm_config":{
-                **state["chatbot_config"]['chat_config'],
-                "stream":state['stream'],
-                "intent_type":LLMTaskType.CHAT
-                },
-            "llm_input": {'query':state['query'],"chat_history":state['chat_history']}
-        },
-        lambda_name="Online_LLM_Generate",
-        lambda_module_path="lambda_llm_generate.llm_generate",
-        handler_name="lambda_handler"
-    )
-    return {"answer":answer}
 
 
 
