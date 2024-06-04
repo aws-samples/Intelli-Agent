@@ -2,3 +2,4 @@
 .github/workflows/
 tests/data/
 tests/buildspec_build.sh
+source/portal/src/utils/const.ts
