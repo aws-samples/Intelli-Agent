@@ -360,8 +360,6 @@ tool_manager.register_tool({
     }
 })
 
-
-
 tool_manager.register_tool({
     "name":"goods_exchange",
     "lambda_name": "xxxx",
@@ -381,6 +379,7 @@ tool_manager.register_tool({
         },
     }
 })
+
 
 
 tool_manager.register_tool({
@@ -510,6 +509,28 @@ tool_manager.register_tool({
         "description": "信息缺失"
     }
 })
+
+tool_manager.register_tool(
+    {
+        "name":"product_aftersales",
+        "lambda_name": "xxxx",
+        "lambda_module_path": "functions.retail_tools.lambda_product_aftersales.product_aftersales",
+        "tool_def": {
+                "name": "product_aftersales",
+                "description": "product after-sales processing, including various returns, exchanges, wrong shipments, and missing shipments. and handling of consumer complaints about products",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "query": {
+                            "description": "query for product aftersales",
+                            "type": "string"
+                    }
+                },
+                "required": ["query"]
+            }
+        }
+    }
+)
 
 tool_manager.register_tool({
     "name":"物流规则",
