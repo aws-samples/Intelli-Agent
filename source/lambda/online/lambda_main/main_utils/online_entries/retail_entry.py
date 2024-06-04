@@ -255,13 +255,25 @@ def rag_goods_exchange_retriever_lambda(state: ChatbotState):
 
 @node_monitor_wrapper
 def rag_goods_exchange_llm_lambda(state:ChatbotState):
+    context = ("="*50).join(state['contexts'])
+    prompt = dedent(f"""你是安踏的客服助理，正在帮用户解答问题，客户提出的问题大多是属于商品退换货范畴，你需要按照下面的guidelines进行回复:
+                    <guidelines>
+                      - 回复内容需要展现出礼貌。
+                    </guidelines>
+                    下面列举了一些具体的场景下的回复，你可以结合用户的问题进行参考回答:
+                    <context>
+                    {context}
+                    </context>
+                    下面是用户的回复: {state['query']}
+""")
+    
     output:str = invoke_lambda(
         lambda_name='Online_LLM_Generate',
         lambda_module_path="lambda_llm_generate.llm_generate",
         handler_name='lambda_handler',
         event_body={
-            "llm_config": {**state['chatbot_config']['rag_goods_exchange_config']['llm_config'], "intent_type": LLMTaskType.RAG},
-            "llm_input": {"contexts": state['contexts'], "query": state['query'], "chat_history": state['chat_history']}
+            "llm_config": {**state['chatbot_config']['rag_goods_exchange_config']['llm_config'], "intent_type": LLMTaskType.CHAT},
+            "llm_input": { "query": prompt, "chat_history": state['chat_history']}
             }
         )
     return {"answer": output}

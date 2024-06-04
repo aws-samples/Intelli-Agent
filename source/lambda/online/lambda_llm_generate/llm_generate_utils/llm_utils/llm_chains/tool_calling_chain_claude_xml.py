@@ -156,53 +156,6 @@ def convert_openai_tool_to_anthropic(tools:list[dict])->str:
     )
     return tools_formatted
 
-# def convert_anthropic_xml_to_dict(model_id,function_calls:List[str], tools:list[dict],message_content:str) -> List[dict]:
-#     # formatted_tools = [convert_to_openai_function(tool) for tool in tools]
-#     tool_calls:list[ToolCall] = []
-#     for function_call in function_calls:
-#         tool_names = re.findall(r'<tool_name>(.*?)</tool_name>', function_call, re.S)
-#         if not tool_names:
-#             return []
-        
-#         assert len(tool_names) == 1, function_call 
-
-#         for tool_name in tool_names:
-#             tool_name = tool_names[0].strip()
-#             cur_tool = None
-#             formatted_tools = tools
-#             for tool, formatted_tool in zip(tools,formatted_tools):
-#                 if formatted_tool['name'] == tool_name:
-#                     cur_tool = tool
-#                     break 
-            
-#             if cur_tool is None:
-#                 raise ToolNotExistError(
-#                     tool_name=tool_name,
-#                     content=message_content,
-#                     function_call_content=function_call
-#                     )
-#             # assert cur_tool is not None,(f"tool: {tool_name} not found",function_call)
-#             # formatted_tool = convert_to_openai_function(cur_tool)
-#             arguments = {}
-#             for parameter_key in formatted_tool['parameters']['required']:
-#                 value = re.findall(f'<{parameter_key}>(.*?)</{parameter_key}>', function_call, re.DOTALL)
-                
-#                 if not value:
-#                     raise ToolParameterNotExistError(
-#                         tool_name=tool_name,
-#                         parameter_key=parameter_key,
-#                         content=message_content,
-#                         function_call_content=function_call
-#                         )
-                
-#                 # TODO, add too many parameters error
-#                 assert len(value) == 1,(parameter_key,function_call)
-#                 arguments[parameter_key] = value[0].strip()
-            
-#             tool_calls.append(dict(name=tool_name,kwargs=arguments,model_id=model_id))
-    
-#     return tool_calls
-
 
 class Claude2ToolCallingChain(LLMChain):
     model_id = "anthropic.claude-v2"
