@@ -65,7 +65,7 @@ def test_multi_turns():
         "entry_type": "common",
         "session_id":f"test_{session_id}",
         "chatbot_config": {
-            "chatbot_mode": "agent",
+            "chatbot_mode": "rag",
             "use_history": True,
             "use_websearch": False,
             "default_llm_config":{
@@ -85,7 +85,7 @@ def test_multi_turns():
         "entry_type": "common",
         "session_id":f"test_{session_id}",
         "chatbot_config": {
-            "chatbot_mode": "agent",
+            "chatbot_mode": "rag",
             "use_history": True,
             "use_websearch": False,
             "default_llm_config":{
