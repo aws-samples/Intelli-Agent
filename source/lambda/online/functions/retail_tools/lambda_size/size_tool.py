@@ -41,7 +41,7 @@ good2type_dict, size_dict = get_size_dict()
 
 def lambda_handler(event_body, context=None):
     kwargs = event_body["kwargs"]
-    goods_id = kwargs.get("goods_id", "637260524878")
+    goods_id = kwargs.get("goods_id", "xxxxxx")
     good_type = good2type_dict.get(goods_id, "标准男装")
     height = kwargs.get("height", 175)
     weight = kwargs.get("weight", 65)
