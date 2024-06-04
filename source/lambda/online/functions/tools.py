@@ -420,9 +420,18 @@ tool_manager.register_tool({
                 "weight": {
                     "description": "weight of the customer",
                     "type": "int"
+                },
+                "shoes_size": {
+                    "description": "size of the customer's shoes",
+                    "type": "float"
+                },
+                "foot_length": {
+                    "description": "length of the customer's foot",
+                    "type": "float"
                 }
             },
-            "required": ["height", "weight"]
+            # "required": ["height", "weight", "shoes_size", "foot_length"]
+            "required": []
         }
     }
 })

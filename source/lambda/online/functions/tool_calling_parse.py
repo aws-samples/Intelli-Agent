@@ -62,6 +62,10 @@ class Claude3SonnetFToolCallingParse(ToolCallingParse):
                 # TODO, add too many parameters error
                 assert len(value) == 1,(parameter_key,function_call)
                 arguments[parameter_key] = value[0].strip()
+            for parameter_key in cur_tool['parameters']['properties'].keys():
+                value = re.findall(f'<{parameter_key}>(.*?)</{parameter_key}>', function_call, re.DOTALL)
+                if value:
+                    arguments[parameter_key] = value[0].strip()
             tool_calls.append(dict(name=tool_name,kwargs=arguments,model_id=model_id))
         
         return tool_calls
