@@ -20,7 +20,7 @@ import useWebSocket, { ReadyState } from 'react-use-websocket';
 import { identity } from 'lodash';
 import ConfigContext from 'src/context/config-context';
 import { useAuth } from 'react-oidc-context';
-import { LLM_BOT_CHAT_MODE_LIST, LLM_BOT_MODEL_LIST } from 'src/utils/const';
+import { LLM_BOT_CHAT_MODE_LIST, LLM_BOT_MODEL_LIST, SCENARIO_LIST, RETAIL_GOODS_LIST } from 'src/utils/const';
 import { v4 as uuidv4 } from 'uuid';
 import { MessageDataType } from 'src/types';
 
@@ -66,6 +66,12 @@ const ChatBot: React.FC = () => {
   const [showTrace, setShowTrace] = useState(true);
   const [useWebSearch, setUseWebSearch] = useState(false);
   const [googleAPIKey, setGoogleAPIKey] = useState('');
+  const [retailGoods, setRetailGoods] = useState<SelectProps.Option>(
+    RETAIL_GOODS_LIST[0],
+  );
+  const [scenario, setScenario] = useState<SelectProps.Option>(
+    SCENARIO_LIST[0],
+  );
 
   const [sessionId, setSessionId] = useState('');
 
@@ -133,9 +139,10 @@ const ChatBot: React.FC = () => {
     }
     const message = {
       query: userMessage,
-      entry_type: 'common',
+      entry_type: scenario.value,
       session_id: sessionId,
       chatbot_config: {
+        goods_id: retailGoods.value,
         chatbot_mode: chatModeOption.value,
         use_history: useChatHistory,
         use_websearch: true,
@@ -240,6 +247,7 @@ const ChatBot: React.FC = () => {
                 >
                   Trace
                 </Toggle>
+                {/*
                 <Toggle
                   onChange={({ detail }) => {
                     setGoogleAPIKeyError(false);
@@ -262,6 +270,7 @@ const ChatBot: React.FC = () => {
                     />
                   </div>
                 )}
+                */}
               </div>
               <div className="flex align-center gap-10">
                 <Box variant="p">{t('server')}: </Box>
@@ -291,6 +300,26 @@ const ChatBot: React.FC = () => {
                     placeholder="Enter value"
                     empty="No matches found"
                   />
+                </FormField>
+                <FormField label="Scenario" stretch={true}>
+                  <Select
+                    options={SCENARIO_LIST}
+                    selectedOption={scenario}
+                    onChange={({ detail }) => {
+                      setScenario(detail.selectedOption);
+                    }}
+                  />
+                  {scenario.value == 'retail' && (
+                    <div style={{ minWidth: 300 }}>
+                      <Select
+                        options={RETAIL_GOODS_LIST}
+                        selectedOption={retailGoods}
+                        onChange={({ detail }) => {
+                          setRetailGoods(detail.selectedOption);
+                        }}
+                      />
+                    </div>
+                  )}
                 </FormField>
                 <FormField label="Max Tokens" stretch={true}>
                   <Input
