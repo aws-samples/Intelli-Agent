@@ -158,6 +158,7 @@ def tool_execute_lambda(state: ChatbotState):
         output = invoke_lambda(
             event_body = {
                 "tool_name":tool_name,
+                "state":state,
                 "kwargs":tool_kwargs
                 },
             lambda_name="Online_Tool_Execute",
@@ -420,7 +421,7 @@ def retail_entry(event_body):
     stream = event_body['stream']
     message_id = event_body['custom_message_id']
     ws_connection_id = event_body['ws_connection_id']
-    
+
     # invoke graph and get results
     response = app.invoke({
         "stream":stream,

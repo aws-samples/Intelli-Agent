@@ -40,10 +40,11 @@ def get_size_dict():
 good2type_dict, size_dict = get_size_dict()
 
 def lambda_handler(event_body, context=None):
-    goods_id = event_body.get("goods_id", "637260524878")
+    kwargs = event_body["kwargs"]
+    goods_id = kwargs.get("goods_id", "637260524878")
     good_type = good2type_dict.get(goods_id, "标准男装")
-    height = event_body.get("height", 175)
-    weight = event_body.get("weight", 65)
+    height = kwargs.get("height", 175)
+    weight = kwargs.get("weight", 65)
     result = size_dict.get(good_type, {}).get(height, {}).get(weight, "L")
     return {"code":0, "result":result, "name": "尺码查询"}
 
