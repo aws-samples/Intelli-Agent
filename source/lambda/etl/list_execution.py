@@ -36,20 +36,24 @@ def lambda_handler(event, context):
 
     # Use query after adding a filter
     paginator = client.get_paginator("scan")
-    filter_expression = (
-        "uiStatus = :active AND groupId = :group_id"
-        if group_id != "Admin"
-        else "uiStatus = :active"
-    )
-    response_iterator = paginator.paginate(
-        TableName=table_name,
-        PaginationConfig=config,
-        FilterExpression=filter_expression,
-        ExpressionAttributeValues={
-            ":active": {"S": "ACTIVE"},
-            ":group_id": {"S": group_id},
-        },
-    )
+
+    if group_id == "Admin":
+        response_iterator = paginator.paginate(
+            TableName=table_name,
+            PaginationConfig=config,
+            FilterExpression="uiStatus = :active",
+            ExpressionAttributeValues={":active": {"S": "ACTIVE"}},
+        )
+    else:
+        response_iterator = paginator.paginate(
+            TableName=table_name,
+            PaginationConfig=config,
+            FilterExpression="uiStatus = :active AND groupId = :group_id",
+            ExpressionAttributeValues={
+                ":active": {"S": "ACTIVE"},
+                ":group_id": {"S": group_id},
+            },
+        )
 
     output = {}
     for page in response_iterator:
