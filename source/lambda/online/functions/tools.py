@@ -337,25 +337,50 @@ tool_manager.register_tool({
     }
 })
 
+# retail tools
+
 tool_manager.register_tool({
-    "name":"日常接待",
+    "name":"daily_reception",
     "lambda_name": "xxxx",
-    "lambda_module_path": "xxxx",
+    "lambda_module_path": "functions.retail_tools.lambda_daily_reception.daily_reception",
     "tool_def": {
-        "name": "日常接待",
-        "description": "日常接待"
+        "name": "daily_reception",
+        "description": "daily reception",
+        "parameters":{
+            "type":"object",
+            "properties":{
+                "response":{
+                    "type": "string",
+                    "description": "Respond politely to customers"
+                }
+            },
+            "required": ["response"]
+        },
+       
     }
 })
 
 tool_manager.register_tool({
-    "name":"日常接待",
+    "name":"goods_exchange",
     "lambda_name": "xxxx",
-    "lambda_module_path": "functions.lambda_retail.retail",
+    "lambda_module_path": "functions.retail_tools.lambda_goods_exchage.goods_exchange",
     "tool_def": {
-        "name": "日常接待",
-        "description": "日常接待"
+        "name": "goods_exchange",
+        "description": "goods exchange",
+        "parameters":{
+            "type":"object",
+            "properties":{
+                "response":{
+                    "type": "string",
+                    "description": "Respond politely to customers"
+                }
+            },
+            "required": ["response"]
+        },
     }
 })
+
+
 
 tool_manager.register_tool({
     "name":"客户抱怨",
@@ -390,10 +415,24 @@ tool_manager.register_tool({
 tool_manager.register_tool({
     "name":"尺码查询",
     "lambda_name": "xxxx",
-    "lambda_module_path": "xxxx",
+    "lambda_module_path": "functions.retail_tools.lambda_size.size_tool",
     "tool_def": {
         "name": "尺码查询",
-        "description": "尺码查询"
+        "description": "尺码查询",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "height": {
+                    "description": "height of the customer",
+                    "type": "int"
+                },
+                "weight": {
+                    "description": "weight of the customer",
+                    "type": "int"
+                }
+            },
+            "required": ["height", "weight"]
+        }
     }
 })
 
@@ -467,6 +506,18 @@ tool_manager.register_tool({
     }
 })
 
+tool_manager.register_tool(
+    {
+        "name":"product_aftersales",
+        "lambda_name": "xxxx",
+        "lambda_module_path": "functions.retail_tools.lambda_product_aftersales.product_aftersales",
+        "tool_def": {
+                "name": "product_aftersales",
+                "description": "product after-sales processing, including various returns, exchanges, wrong shipments, and missing shipments. and handling of consumer complaints about products",
+        }
+    }
+)
+
 tool_manager.register_tool({
     "name":"物流规则",
     "lambda_name": "xxxx",
@@ -486,3 +537,6 @@ tool_manager.register_tool({
         "description": "商品质量问题"
     }
 })
+
+
+
