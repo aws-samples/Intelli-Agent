@@ -429,9 +429,18 @@ tool_manager.register_tool({
                 "weight": {
                     "description": "weight of the customer",
                     "type": "int"
+                },
+                "shoes_size": {
+                    "description": "size of the customer's shoes",
+                    "type": "float"
+                },
+                "foot_length": {
+                    "description": "length of the customer's foot",
+                    "type": "float"
                 }
             },
-            "required": ["height", "weight"]
+            # "required": ["height", "weight", "shoes_size", "foot_length"]
+            "required": []
         }
     }
 })
@@ -506,50 +515,47 @@ tool_manager.register_tool({
     }
 })
 
-# tool for 物流规则/商品质量问题
 tool_manager.register_tool(
     {
-        "name":"物流规则",
+        "name":"product_aftersales",
         "lambda_name": "xxxx",
         "lambda_module_path": "functions.retail_tools.lambda_product_aftersales.product_aftersales",
         "tool_def": {
                 "name": "product_aftersales",
                 "description": "product after-sales processing, including various returns, exchanges, wrong shipments, and missing shipments. and handling of consumer complaints about products",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "query": {
+                            "description": "query for product aftersales",
+                            "type": "string"
+                    }
+                },
+                "required": ["query"]
+            }
         }
     }
 )
 
-tool_manager.register_tool(
-    {
-        "name":"商品质量问题",
-        "lambda_name": "xxxx",
-        "lambda_module_path": "functions.retail_tools.lambda_product_aftersales.product_aftersales",
-        "tool_def": {
-                "name": "product_aftersales",
-                "description": "product after-sales processing, including various returns, exchanges, wrong shipments, and missing shipments. and handling of consumer complaints about products",
-        }
+tool_manager.register_tool({
+    "name":"物流规则",
+    "lambda_name": "xxxx",
+    "lambda_module_path": "xxxx",
+    "tool_def": {
+        "name": "物流规则",
+        "description": "物流规则"
     }
-)
+})
 
-# tool_manager.register_tool({
-#     "name":"物流规则",
-#     "lambda_name": "xxxx",
-#     "lambda_module_path": "xxxx",
-#     "tool_def": {
-#         "name": "物流规则",
-#         "description": "物流规则"
-#     }
-# })
-
-# tool_manager.register_tool({
-#     "name":"商品质量问题",
-#     "lambda_name": "xxxx",
-#     "lambda_module_path": "xxxx",
-#     "tool_def": {
-#         "name": "商品质量问题",
-#         "description": "商品质量问题"
-#     }
-# })
+tool_manager.register_tool({
+    "name":"商品质量问题",
+    "lambda_name": "xxxx",
+    "lambda_module_path": "xxxx",
+    "tool_def": {
+        "name": "商品质量问题",
+        "description": "商品质量问题"
+    }
+})
 
 
 
