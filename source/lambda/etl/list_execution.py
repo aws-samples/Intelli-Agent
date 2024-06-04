@@ -5,13 +5,12 @@ import os
 import boto3
 from botocore.paginate import TokenEncoder
 
-
 DEFAULT_MAX_ITEM = 50
 DEFAULT_SIZE = 50
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
-client = boto3.client('dynamodb')
-table_name = os.environ.get('EXECUTION_TABLE')
+client = boto3.client("dynamodb")
+table_name = os.environ.get("EXECUTION_TABLE")
 encoder = TokenEncoder()
 
 
@@ -27,23 +26,28 @@ def lambda_handler(event, context):
         if "total" in event["queryStringParameters"]:
             max_item = int(event["queryStringParameters"]["total"])
 
-    config = {
-        "MaxItems": max_item,
-        "PageSize": page_size
-    }
+    config = {"MaxItems": max_item, "PageSize": page_size}
 
-    if event["queryStringParameters"] != None and "token" in event["queryStringParameters"]:
+    if (
+        event["queryStringParameters"] != None
+        and "token" in event["queryStringParameters"]
+    ):
         config["StartingToken"] = event["queryStringParameters"]["token"]
 
     # Use query after adding a filter
-    paginator = client.get_paginator('scan')
+    paginator = client.get_paginator("scan")
+    filter_expression = (
+        "uiStatus = :active AND groupId = :group_id"
+        if group_id != "Admin"
+        else "uiStatus = :active"
+    )
     response_iterator = paginator.paginate(
         TableName=table_name,
         PaginationConfig=config,
-        FilterExpression="uiStatus = :active AND groupId = :group_id",
+        FilterExpression=filter_expression,
         ExpressionAttributeValues={
             ":active": {"S": "ACTIVE"},
-            ":group_id": {"S": group_id}
+            ":group_id": {"S": group_id},
         },
     )
 
@@ -60,7 +64,9 @@ def lambda_handler(event, context):
         output["Items"] = page_json
         output["Count"] = page["Count"]
         if "LastEvaluatedKey" in page:
-            output["LastEvaluatedKey"] = encoder.encode({"ExclusiveStartKey": page["LastEvaluatedKey"]})
+            output["LastEvaluatedKey"] = encoder.encode(
+                {"ExclusiveStartKey": page["LastEvaluatedKey"]}
+            )
 
     output["config"] = config
 
