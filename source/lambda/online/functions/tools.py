@@ -390,10 +390,28 @@ tool_manager.register_tool({
 tool_manager.register_tool({
     "name":"尺码查询",
     "lambda_name": "xxxx",
-    "lambda_module_path": "xxxx",
+    "lambda_module_path": "functions.retail_tools.lambda_size.size_tool",
     "tool_def": {
         "name": "尺码查询",
-        "description": "尺码查询"
+        "description": "尺码查询",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "height": {
+                    "description": "height of the customer",
+                    "type": "int"
+                },
+                "weight": {
+                    "description": "weight of the customer",
+                    "type": "int"
+                },
+                "goods_id": {
+                    "description": "id of the goods",
+                    "type": "str"
+                }
+            },
+            "required": ["height", "weight", "goods_id"]
+        }
     }
 })
 
