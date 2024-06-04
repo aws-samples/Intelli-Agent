@@ -24,6 +24,7 @@ export class IAMHelper extends Construct {
   public stsStatement: PolicyStatement;
   public ecrStatement: PolicyStatement;
   public llmStatement: PolicyStatement;
+  public cognitoStatement: PolicyStatement;
 
   public createPolicyStatement(actions: string[], resources: string[]) {
     return new PolicyStatement({
@@ -126,5 +127,11 @@ export class IAMHelper extends Construct {
       ],
       [ "*" ],
     );
+    this.cognitoStatement = this.createPolicyStatement(
+      [
+        "cognito-idp:ListGroups",
+      ],
+      [ "*" ],
+    )
   }
 }

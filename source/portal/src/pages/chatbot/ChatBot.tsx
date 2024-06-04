@@ -1,6 +1,7 @@
 import React, { useContext, useEffect, useState } from 'react';
 import CommonLayout from 'src/layout/CommonLayout';
 import Message from './components/Message';
+import useAxiosRequest from 'src/hooks/useAxiosRequest';
 import { useTranslation } from 'react-i18next';
 import {
   Autosuggest,
@@ -68,6 +69,7 @@ const ChatBot: React.FC = () => {
   const [googleAPIKey, setGoogleAPIKey] = useState('');
 
   const [sessionId, setSessionId] = useState('');
+  const [workspaceIds, setWorkspaceIds] = useState<any[]>([]);
 
   const [temperature, setTemperature] = useState<number>(0.1);
   const [maxToken, setMaxToken] = useState(4096);
@@ -83,8 +85,26 @@ const ChatBot: React.FC = () => {
     [ReadyState.UNINSTANTIATED]: 'pending',
   }[readyState];
 
+  // Define an async function to get the data
+  const fetchData = useAxiosRequest();
+  
+  const getWorkspaceList = async () => {
+    try {
+      const data = await fetchData({
+        url: 'etl/list-workspace',
+        method: 'get'
+      });
+      setWorkspaceIds(data.workspace_ids);
+    } catch (error) {
+      console.error(error);
+      return [];
+    }
+  };
+
+
   useEffect(() => {
     setSessionId(uuidv4());
+    getWorkspaceList();
   }, []);
 
   useEffect(() => {
@@ -131,6 +151,7 @@ const ChatBot: React.FC = () => {
       setGoogleAPIKeyError(true);
       return;
     }
+
     const message = {
       query: userMessage,
       entry_type: 'common',
@@ -140,6 +161,10 @@ const ChatBot: React.FC = () => {
         use_history: useChatHistory,
         use_websearch: true,
         google_api_key: '',
+        default_workspace_config: {
+          intent_workspace_ids: [],
+          rag_workspace_ids: workspaceIds,
+        },
         default_llm_config: {
           model_id: modelOption,
           model_kwargs: { temperature: temperature, max_tokens: maxToken },
