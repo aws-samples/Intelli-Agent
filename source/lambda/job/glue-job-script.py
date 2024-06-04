@@ -185,6 +185,9 @@ class S3FileProcessor:
             return "json", self.decode_file_content(file_content), kwargs
         elif file_type == "jsonl":
             return "jsonl", file_content, kwargs
+        elif file_type in ["png", "jpeg", "jpg", "webp"]:
+            kwargs["image_file_type"] = file_type
+            return "image", file_content, kwargs
         else:
             message = "Unknown file type: " + file_type
             input_body = {
@@ -641,6 +644,10 @@ def main():
             "html",
             "json",
             "csv",
+            "png",
+            "jpeg",
+            "jpg",
+            "webp"
         ]
 
     aos_index_name, embedding_model_type = update_workspace(
