@@ -209,7 +209,7 @@ def rag_llm_lambda(state:ChatbotState):
 @node_monitor_wrapper
 def rag_retrieve_lambda(state: ChatbotState):
     # call retrivever
-    retriever_params = state["chatbot_config"]["retriever_config"]
+    retriever_params = state["chatbot_config"]["rag_config"]["retriever_config"]
     retriever_params["query"] = state["query"]
     output:str = invoke_lambda(
         event_body=retriever_params,
@@ -350,6 +350,8 @@ def build_graph():
     workflow.add_edge("rag_retrieve_lambda","rag_llm_lambda")
     workflow.add_edge("rag_llm_lambda",END)
     workflow.add_edge("qq_matched_reply",END)
+    
+    # temporal add edges for ending logic
     
     # add conditional edges
     workflow.add_conditional_edges(
