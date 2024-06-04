@@ -514,7 +514,7 @@ tool_manager.register_tool(
         "lambda_module_path": "functions.retail_tools.lambda_product_aftersales.product_aftersales",
         "tool_def": {
                 "name": "product_quality",
-                "description": "product after-sales processing, including various returns, exchanges, wrong shipments, and missing shipments. and handling of consumer complaints about products",
+                "description": "product after-sales processing, including handling of consumer complaints about products quality",
         }
     }
 )
@@ -527,7 +527,7 @@ tool_manager.register_tool(
         "lambda_module_path": "functions.retail_tools.lambda_product_aftersales.product_aftersales",
         "tool_def": {
                 "name": "product_logistics",
-                "description": "product after-sales processing, including various returns, exchanges, wrong shipments, and missing shipments. and handling of consumer complaints about products",
+                "description": "product after-sales processing, including various returns, exchanges, wrong shipments, and missing shipments",
         }
     }
 )
