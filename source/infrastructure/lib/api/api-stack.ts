@@ -327,8 +327,12 @@ export class ApiConstruct extends Construct {
       timeout: Duration.minutes(15),
       memorySize: 512,
       architecture: Architecture.X86_64,
-      layers: [apiLambdaAuthorizerLayer],
+      environment: {
+        USER_POOL_ID: props.userPool.userPoolId,
+      },
     });
+
+    listWorkspaceLambda.addToRolePolicy(this.iamHelper.cognitoStatement);
 
 
     const batchLambda = new Function(this, "BatchLambda", {
