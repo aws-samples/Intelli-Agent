@@ -511,26 +511,3 @@ tool_manager.register_tool(
         }
     }
 )
-
-# tool_manager.register_tool({
-#     "name":"物流规则",
-#     "lambda_name": "xxxx",
-#     "lambda_module_path": "xxxx",
-#     "tool_def": {
-#         "name": "物流规则",
-#         "description": "物流规则"
-#     }
-# })
-
-# tool_manager.register_tool({
-#     "name":"商品质量问题",
-#     "lambda_name": "xxxx",
-#     "lambda_module_path": "xxxx",
-#     "tool_def": {
-#         "name": "商品质量问题",
-#         "description": "商品质量问题"
-#     }
-# })
-
-
-
