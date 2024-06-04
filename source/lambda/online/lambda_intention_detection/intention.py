@@ -45,7 +45,7 @@ def lambda_handler(state:dict, context=None):
         "name": doc['answer']['jsonlAnswer']['intent'],
         "intent": doc['answer']['jsonlAnswer']['intent'],
         "kwargs": doc['answer']['jsonlAnswer'].get('kwargs', {}),
-        } for doc in res['result']['docs']
+        } for doc in res['result']['docs'] if doc['score'] > 0.8
     ]
 
     return intention_fewshot_examples
