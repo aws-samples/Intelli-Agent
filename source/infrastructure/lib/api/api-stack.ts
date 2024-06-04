@@ -37,6 +37,7 @@ interface ApiStackProps extends StackProps {
   domainEndpoint: string;
   rerankEndPoint: string;
   embeddingEndPoints: string[];
+  embeddingAndRerankerEndPoint: string;
   llmModelId: string;
   instructEndPoint: string;
   sessionsTableName: string;
@@ -511,7 +512,7 @@ export class ApiConstruct extends Construct {
         layers: [apiLambdaOnlineUtilsLayer, apiLambdaOnlineSourceLayer, apiLambdaJobSourceLayer],
         environment: {
           aos_endpoint: domainEndpoint,
-          rerank_endpoint: props.rerankEndPoint,
+          rerank_endpoint: props.embeddingAndRerankerEndPoint,
           sessions_table_name: sessionsTableName,
           messages_table_name: messagesTableName,
           workspace_table: workspaceTableName,
