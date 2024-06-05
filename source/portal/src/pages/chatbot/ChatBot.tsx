@@ -21,7 +21,12 @@ import useWebSocket, { ReadyState } from 'react-use-websocket';
 import { identity } from 'lodash';
 import ConfigContext from 'src/context/config-context';
 import { useAuth } from 'react-oidc-context';
-import { LLM_BOT_CHAT_MODE_LIST, LLM_BOT_MODEL_LIST, SCENARIO_LIST, RETAIL_GOODS_LIST } from 'src/utils/const';
+import {
+  LLM_BOT_CHAT_MODE_LIST,
+  LLM_BOT_MODEL_LIST,
+  SCENARIO_LIST,
+  RETAIL_GOODS_LIST,
+} from 'src/utils/const';
 import { v4 as uuidv4 } from 'uuid';
 import { MessageDataType } from 'src/types';
 
@@ -65,8 +70,8 @@ const ChatBot: React.FC = () => {
   );
   const [useChatHistory, setUseChatHistory] = useState(true);
   const [showTrace, setShowTrace] = useState(true);
-  const [useWebSearch, setUseWebSearch] = useState(false);
-  const [googleAPIKey, setGoogleAPIKey] = useState('');
+  // const [useWebSearch, setUseWebSearch] = useState(false);
+  // const [googleAPIKey, setGoogleAPIKey] = useState('');
   const [retailGoods, setRetailGoods] = useState<SelectProps.Option>(
     RETAIL_GOODS_LIST[0],
   );
@@ -81,7 +86,7 @@ const ChatBot: React.FC = () => {
   const [maxToken, setMaxToken] = useState(4096);
 
   const [showMessageError, setShowMessageError] = useState(false);
-  const [googleAPIKeyError, setGoogleAPIKeyError] = useState(false);
+  // const [googleAPIKeyError, setGoogleAPIKeyError] = useState(false);
 
   const connectionStatus = {
     [ReadyState.CONNECTING]: 'loading',
@@ -93,12 +98,12 @@ const ChatBot: React.FC = () => {
 
   // Define an async function to get the data
   const fetchData = useAxiosRequest();
-  
+
   const getWorkspaceList = async () => {
     try {
       const data = await fetchData({
         url: 'etl/list-workspace',
-        method: 'get'
+        method: 'get',
       });
       setWorkspaceIds(data.workspace_ids);
     } catch (error) {
@@ -106,7 +111,6 @@ const ChatBot: React.FC = () => {
       return [];
     }
   };
-
 
   useEffect(() => {
     setSessionId(uuidv4());
@@ -153,10 +157,10 @@ const ChatBot: React.FC = () => {
       setShowMessageError(true);
       return;
     }
-    if (useWebSearch && !googleAPIKey.trim()) {
-      setGoogleAPIKeyError(true);
-      return;
-    }
+    // if (useWebSearch && !googleAPIKey.trim()) {
+    //   setGoogleAPIKeyError(true);
+    //   return;
+    // }
 
     const message = {
       query: userMessage,
