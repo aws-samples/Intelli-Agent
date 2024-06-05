@@ -2,8 +2,10 @@ import os
 import re
 import pandas as pd
 
+from common_utils.s3_utils import download_dir_from_s3
+
 def get_goods_dict(data_file_path):
-    goods_dict = {} 
+    goods_dict = {}
     # size_info_df = pd.read_excel(open(data_file_path, encoding="utf-8-sig", errors="ignore"))
     goods_df = pd.read_excel(data_file_path, "商品信息登记")
     # get row
@@ -14,7 +16,8 @@ def get_goods_dict(data_file_path):
         goods_dict[goods_id] = {"goods_info": goods_info, "goods_url": goods_url}
     return goods_dict
 
-goods_dict = get_goods_dict("functions/retail_tools/lambda_product_information_search/goods_data/detail/TB0327.xlsx")
+download_dir_from_s3("aws-chatbot-knowledge-base-test", "retail", "functions/retail_tools/lambda_order_info/")
+goods_dict = get_goods_dict("functions/retail_tools/lambda_product_information_search/retail/detail/TB0327.xlsx")
 
 def lambda_handler(event_body, context=None):
     state = event_body["state"]

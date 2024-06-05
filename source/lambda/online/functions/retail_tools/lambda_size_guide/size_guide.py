@@ -2,6 +2,8 @@ import os
 import re
 import pandas as pd
 
+from common_utils.s3_utils import download_dir_from_s3
+
 def get_goods_type_1(file_name):
     if "鞋" in file_name:
         goods_type_1 = "shoes"
@@ -26,7 +28,7 @@ def get_size_dict():
     goods2type_dict = {}
     size_dict = {}
     # iterator all files in directory
-    for root, dirs, files in os.walk("functions/retail_tools/lambda_size_guide/goods_data/size"):
+    for root, dirs, files in os.walk("functions/retail_tools/lambda_size_guide/retail/size"):
         print(files)
         for file in files:
             goods_type_1 = get_goods_type_1(file)
@@ -99,6 +101,7 @@ def get_foot_length_dict(data_file_path):
                         foot_length_dict[size] = row[key]
     return foot_length_dict 
 
+download_dir_from_s3("aws-chatbot-knowledge-base-test", "retail", "functions/retail_tools/lambda_size_guide/")
 good2type_dict, size_dict = get_size_dict()
 
 def lambda_handler(event_body, context=None):
