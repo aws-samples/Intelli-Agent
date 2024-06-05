@@ -73,13 +73,14 @@ def generate_answer(query,
         return body
 
 
-def test(chatbot_mode="chat",session_id=None,query=None):
+def test(chatbot_mode="chat",session_id=None,query=None,goods_id=None):
     default_llm_config = {
         'model_id': 'anthropic.claude-3-sonnet-20240229-v1:0',
         'model_kwargs': {
             'temperature': 0.5, 'max_tokens': 4096}
         }
     chatbot_config = {
+        "goods_id":goods_id,
         "chatbot_mode": chatbot_mode,
         "use_history": True,
         "query_process_config":{
@@ -316,7 +317,7 @@ def batch_test():
             }
         }
     }
-    data = data[:50]
+    data = data[:1]
     data_to_save = []
     for datum in tqdm.tqdm(data,total=len(data)):
         print("=="*50)
@@ -334,6 +335,7 @@ def batch_test():
         datum['ai_msg'] = r['message']['content']
         datum['session_id'] = session_id
         datum['query_rewrite'] = r.get('query_rewrite',None)
+        datum['intention_fewshot_examples'] = r.get('intention_fewshot_examples',None)
         data_to_save.append({
             "session_id": datum['desensitized_cnick'],
             "goods_id": datum['product_ids'],
@@ -344,17 +346,28 @@ def batch_test():
             "intent": None,
             "accuracy": None,
             "rewrite_query": datum['query_rewrite'],
-            "ddb_session_id": session_id
+            "ddb_session_id": session_id,
+            "comments": None,
+            "owner": None
         })
     # session_id, goods_id, create_time, user_msg, ai_msg, ai_intent, intent, accuracy,rewrite_query
-    pd.DataFrame(data_to_save).to_csv(f'{session_prefix}_anta_test_{len(data_to_save)}.csv')
+    
+    pd.DataFrame(data_to_save).to_csv(
+        f'{session_prefix}_anta_test_{len(data_to_save)}.csv',
+        index=False
+        )
 
 
 if __name__ == "__main__":
-    batch_test()
+    # batch_test()
+    test(
+        chatbot_mode='agent',
+        goods_id="675124761798",
+        query="平常41吗，这款鞋需要多少码"
+    )
     # test(
     #     chatbot_mode='agent',
     #     session_id="anta_test_1717567916.145038_cn****0099",
-    #     query="说一下具体的解决办法"
+    #     query="你家鞋子开胶了，怎么处理"
     #     )
     

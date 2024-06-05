@@ -36,7 +36,7 @@ from common_utils.exceptions import ToolNotExistError,ToolParameterNotExistError
 tool_call_guidelines = """<guidlines>
 - Don't forget to output <function_calls></function_calls> when any tool is called.
 - You should call tools that are described in <tools></tools>.
-- In <thinking></thinking>, you should check whether the tool name you want to call is exists in <tools></tools>, if it is not exists, you should call "no_available_tool" tool.
+- In <thinking></thinking>, you should check whether the tool name you want to call is exists in <tools></tools>.
 - Always output with "中文". 
 </guidlines>
 """
