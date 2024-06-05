@@ -292,7 +292,7 @@ def rag_product_aftersales_retriever_lambda(state: ChatbotState):
     contexts = [doc['page_content'] for doc in output['result']['docs']]
 
     context = "\n".join(contexts)
-    send_trace(f'**rag_goods_exchange_retriever** {context}')
+    send_trace(f'**rag_product_aftersales_retriever** {context}')
     return {"contexts": contexts}
 
 
