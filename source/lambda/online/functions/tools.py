@@ -436,15 +436,28 @@ tool_manager.register_tool({
     }
 })
 
+# 商品信息查询
 tool_manager.register_tool({
-    "name":"商品信息查询",
+    "name":"goods_info",
     "lambda_name": "xxxx",
-    "lambda_module_path": "xxxx",
+    "lambda_module_path": "functions.retail_tools.lambda_product_information_search.product_information_search",
     "tool_def": {
-        "name": "商品信息查询",
-        "description": "商品信息查询"
+        "name": "goods_info",
+        "description": "search the information of the product"
     }
 })
+
+# 商品推荐
+tool_manager.register_tool({
+    "name":"goods_recommendation",
+    "lambda_name": "xxxx",
+    "lambda_module_path": "functions.retail_tools.lambda_product_information_search.product_information_search",
+    "tool_def": {
+        "name": "goods_recommendation",
+        "description": "recommend the product to the customer"
+    }
+})
+
 
 tool_manager.register_tool({
     "name":"rule_response",
