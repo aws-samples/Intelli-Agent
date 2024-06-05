@@ -2,13 +2,15 @@ from anthropic import AnthropicBedrock
 import re
 import io
 import base64
+import json
 
 class figureUnderstand():
     def __init__(self):
         self.client = AnthropicBedrock(
             aws_region="us-west-2",
         )
-    def invoke_llm(self, img, prompt):
+        self.mermaid_prompt = json.load(open('prompt/mermaid.json', 'r'))
+    def invoke_llm(self, img, prompt, prefix="<output>", stop="</output>"):
         image_stream = io.BytesIO()
         img.save(image_stream, format="JPEG")
         base64_encoded = base64.b64encode(image_stream.getvalue()).decode('utf-8')
@@ -30,30 +32,19 @@ class figureUnderstand():
               }
             ]
           },
-          {"role": "assistant", "content": "<output>"},
+          {"role": "assistant", "content": prefix},
         ]
         model_id = "anthropic.claude-3-sonnet-20240229-v1:0"
         message = self.client.messages.create(
-            model=model_id, max_tokens=4096, messages=messages
+            model=model_id, max_tokens=4096, messages=messages, stop_sequences=[stop]
         )
-        result = '<output>' + message.content[0].text
-        try:
-            pattern = r"<output>(.*?)</output>"
-            output = re.findall(pattern, result, re.DOTALL)[0].strip()
-        except:
-            output = result.replace('<output>', '').replace('</output>', '')
-        return output
+        result = prefix + message.content[0].text + stop
+        return result
     def get_classification(self, img):
-        prompt = '''
-您的任务是判断给定的图片是否为图表。请仔细查看图片。如果该图片是一个图表,请在<output></output>XML标签中输出"Y"。如果该图片不是图表,请在<output></output>XML标签中输出"N"。
-
-1. 仔细观察给定的图片
-2. 检查图片是否包含图形元素,比如条形图、折线图、饼图等
-3. 如果图片包含这些元素,则将其归类为图表
-4. 在<output></output>标签中输出"Y"或"N"
-'''.strip()
-        output = self.invoke_llm(img, prompt)
-        return True if output == 'Y' else False
+        with open('prompt/figure_classification.txt') as f:
+            figure_classification_prompt = f.read()
+        output = self.invoke_llm(img, figure_classification_prompt)
+        return output
     def get_chart(self, img, context, tag):
         prompt = '''您是文档阅读专家。您的任务是将图片中的图表转换成Markdown格式。以下是说明：
 1. 找到图片中的图表。
@@ -88,10 +79,34 @@ class figureUnderstand():
         
         output = self.invoke_llm(img, prompt.format(context=context, tag=tag))
         return f'![{output}]()'
+    def get_mermaid(self, img, classification):
+        with open('prompt/mermaid_template.txt') as f:
+            mermaid_prompt = f.read()
+        prompt = mermaid_prompt.format(diagram_type=classification, diagram_example=self.mermaid_prompt[classification])
+        output = self.invoke_llm(img, prompt, prefix='<description>', stop='</mermaid>')
+        return output
+    def parse_result(self, llm_output, tag):
+        try:
+            pattern = fr"<{tag}>(.*?)</{tag}>"
+            output = re.findall(pattern, llm_output, re.DOTALL)[0].strip()
+        except:
+            output = result.replace(f"<{tag}>", '').replace(f"</{tag}>", '')
+        return output
     def __call__(self, img, context, tag):
         classification = self.get_classification(img)
-        if classification:
-            output = self.get_chart(img, context, tag)
+        classification = self.parse_result(classification, 'output')
+        if classification in self.mermaid_prompt:
+            mermaid_output = self.get_mermaid(img, classification)
+            description = self.parse_result(mermaid_output, 'description')
+            mermaid_code = self.parse_result(mermaid_output, 'mermaid')
+            if classification in ('XY Chart', 'Pie chart diagrams'):
+                table = self.get_chart(img, context, tag)
+                table = self.parse_result(table, 'output')
+                output = f'<figure><type>chart</type><desp>{description}</desp><value>{table}</value></figure>'
+            else:
+                output = f'<figure><type>chart-mermaid</type><desp>{description}</desp><value>{mermaid_code}</value></figure>'
         else:
-            output = self.get_description(img, context, tag)
+            description = self.get_description(img, context, tag)
+            description = self.parse_result(description, 'output')
+            output = f'<figure><type>image</type><desp>{description}</desp></figure>'
         return output

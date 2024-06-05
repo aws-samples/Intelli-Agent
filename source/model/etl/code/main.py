@@ -273,3 +273,4 @@ def process_pdf_pipeline(request_body):
     result = {"destination_prefix": destination_s3_path}
 
     return result
+
