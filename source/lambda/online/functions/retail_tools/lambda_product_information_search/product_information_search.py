@@ -8,11 +8,10 @@ def get_goods_dict(data_file_path):
     goods_df = pd.read_excel(data_file_path, "商品信息登记")
     # get row
     for index, row in goods_df.iterrows():
-        for key in row.keys():
-            goods_id = row["商品ID"]
-            goods_info = row["卖点（含材质属性）"]
-            goods_url = row["商品链接"]
-            goods_dict[goods_id] = {"goods_info": goods_info, "goods_url": goods_url}
+        goods_id = row["商品ID"]
+        goods_info = row["卖点（含材质属性）"]
+        goods_url = row["商品链接"]
+        goods_dict[goods_id] = {"goods_info": goods_info, "goods_url": goods_url}
     return goods_dict
 
 goods_dict = get_goods_dict("functions/retail_tools/lambda_product_information_search/goods_data/detail/TB0327.xlsx")

@@ -465,6 +465,27 @@ tool_manager.register_tool({
     }
 })
 
+# 下单流程
+tool_manager.register_tool({
+    "name":"order_pipeline",
+    "lambda_name": "xxxx",
+    "lambda_module_path": "functions.retail_tools.lambda_order_info.order_info",
+    "tool_def": {
+        "name": "order_pipeline",
+        "description": "query the order information"
+    }
+})
+
+# 物流信息查询
+tool_manager.register_tool({
+    "name":"delivery_track",
+    "lambda_name": "xxxx",
+    "lambda_module_path": "functions.retail_tools.lambda_order_info.order_info",
+    "tool_def": {
+        "name": "delivery_track",
+        "description": "query the delivery information"
+    }
+})
 
 tool_manager.register_tool({
     "name":"rule_response",
