@@ -19,6 +19,7 @@ from common_utils.lambda_invoke_utils import send_trace,is_running_local
 from common_utils.exceptions import ToolNotExistError,ToolParameterNotExistError
 from common_utils.logger_utils import get_logger
 from common_utils.serialization_utils import JSONEncoder
+from common_utils.s3_utils import download_dir_from_s3
 
 logger = get_logger('retail_entry')
 
@@ -38,7 +39,8 @@ def get_url_goods_dict(data_file_path)->dict:
             } 
     return url_goods
 
-url_goods_dict = get_url_goods_dict("../../../customer_poc/anta/TB0327.xlsx")
+download_dir_from_s3("aws-chatbot-knowledge-base-test", "retail", "lambda_main")
+url_goods_dict = get_url_goods_dict("lambda_main/retail/detail/TB0327.xlsx")
 
 class ChatbotState(TypedDict):
     chatbot_config: dict # chatbot config
