@@ -33,7 +33,7 @@ websocket_utils.ws_client = DummyWebSocket()
 
 
 def generate_answer(query,
-                    entry_type="retail",
+                    entry_type="common",
                     stream=False,
                     session_id=None,
                     chatbot_config=None
@@ -136,9 +136,9 @@ def test(chatbot_mode="chat"):
     session_id = f"test_{time.time()}"
     
     generate_answer(
-        "麻烦同意下我的换货申请",
+        # "麻烦同意下我的换货申请",
         # "人工",
-        # "在吗",
+        "在吗",
         stream=True,
         session_id=session_id,
         chatbot_config=chatbot_config
