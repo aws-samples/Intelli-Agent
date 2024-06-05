@@ -195,6 +195,81 @@ def parse_retail_entry_config(chatbot_config):
                 **default_llm_config,
             },
         },
+        "rag_product_aftersales_config": {
+            "retriever_config":{
+                "retrievers": [
+                    {
+                        "type": "qq",
+                        "workspace_ids": ['retail-shouhou-wuliu'],
+                        "config": {
+                            "top_k": 2,
+                        }
+                    },
+                ],
+                "rerankers": [
+                    {
+                        "type": "reranker",
+                        "config": {
+                            "enable_debug": False,
+                            "target_model": "bge_reranker_model.tar.gz"
+                        }
+                    }
+                ],
+            },
+            "llm_config":{
+                **default_llm_config,
+            }
+        },
+        "rag_customer_complain_config": {
+            "retriever_config":{
+                "retrievers": [
+                    {
+                        "type": "qq",
+                        "workspace_ids": ['retail-shouhou-wuliu','retail-quick-reply'],
+                        "config": {
+                            "top_k": 2,
+                        }
+                    },
+                ],
+                "rerankers": [
+                    {
+                        "type": "reranker",
+                        "config": {
+                            "enable_debug": False,
+                            "target_model": "bge_reranker_model.tar.gz"
+                        }
+                    }
+                ],
+            },
+            "llm_config":{
+                **default_llm_config,
+            }
+        },
+        "rag_promotion_config": {
+            "retriever_config":{
+                "retrievers": [
+                    {
+                        "type": "qq",
+                        "workspace_ids": ['retail-shouhou-wuliu','retail-quick-reply'],
+                        "config": {
+                            "top_k": 2,
+                        }
+                    },
+                ],
+                "rerankers": [
+                    {
+                        "type": "reranker",
+                        "config": {
+                            "enable_debug": False,
+                            "target_model": "bge_reranker_model.tar.gz"
+                        }
+                    }
+                ],
+            },
+            "llm_config":{
+                **default_llm_config,
+            }
+        },
     }
     chatbot_config = update_nest_dict(
         copy.deepcopy(default_chatbot_config), chatbot_config
