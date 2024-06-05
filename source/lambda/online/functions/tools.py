@@ -370,16 +370,23 @@ tool_manager.register_tool({
     }
 })
 
-
-
+tool_manager.register_tool({
+    "name":"customer_complain",
+    "lambda_name": "xxxx",
+    "lambda_module_path": "functions.retail_tools.lambda_goods_exchage.customer_complain",
+    "tool_def": {
+        "name": "customer_complain",
+        "description": "About customer complaints, including product quality, wrong shipments, missing shipments and so on",
+    }
+})
 
 tool_manager.register_tool({
-    "name":"客户抱怨",
+    "name":"promotion",
     "lambda_name": "xxxx",
-    "lambda_module_path": "xxxx",
+    "lambda_module_path": "functions.retail_tools.lambda_goods_exchage.customer_complain",
     "tool_def": {
-        "name": "客户抱怨",
-        "description": "客户抱怨"
+        "name": "promotion",
+        "description": "Information about product promotions, such as points, prizes, rewards, etc."
     }
 })
 
