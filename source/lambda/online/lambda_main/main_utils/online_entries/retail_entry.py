@@ -1,12 +1,14 @@
 import json
 from textwrap import dedent
 from typing import TypedDict,Any,Annotated
+import validators
 from langgraph.graph import StateGraph,END
 from common_utils.lambda_invoke_utils import invoke_lambda,node_monitor_wrapper
 from common_utils.python_utils import update_nest_dict,add_messages
 from common_utils.constant import (
     LLMTaskType
 )
+import pandas as pd 
 
 from functions.tools import get_tool_by_name,Tool
 from functions.tool_execute_result_format import format_tool_execute_result
@@ -15,6 +17,24 @@ from functions.tool_calling_parse import parse_tool_calling as _parse_tool_calli
 from lambda_main.main_utils.parse_config import parse_retail_entry_config
 from common_utils.lambda_invoke_utils import send_trace,is_running_local
 from common_utils.exceptions import ToolNotExistError,ToolParameterNotExistError
+
+
+def get_url_goods_dict(data_file_path)->dict:
+    url_goods = {} 
+    goods_data = pd.read_excel(data_file_path, "商品信息登记").to_dict(orient='records')
+    # get row
+    for datum in goods_data:
+        goods_id = datum["商品ID"]
+        goods_info = datum["卖点（含材质属性）"]
+        goods_url = datum["商品链接"]
+        url_goods[goods_url] = {
+            "goods_info": goods_info,
+            "goods_url": goods_url,
+            "goods_id": goods_id
+            } 
+    return url_goods
+
+url_goods_dict = get_url_goods_dict("../../../customer_poc/anta/TB0327.xlsx")
 
 class ChatbotState(TypedDict):
     chatbot_config: dict # chatbot config
@@ -36,10 +56,12 @@ class ChatbotState(TypedDict):
     extra_response: Annotated[dict,update_nest_dict]
     contexts: str = None
     current_intent_tools: list #
+    current_agent_intent_type: str = None
     current_tool_calls:list 
     current_agent_tools_def: list[dict]
     current_agent_model_id: str
     parse_tool_calling_ok: bool
+    query_rule_classification: str
     
 
 ####################
@@ -119,7 +141,13 @@ def parse_tool_calling(state: ChatbotState):
             tools=state['current_agent_tools_def'],
         )
         send_trace(f"**tool_calls parsed:** \n{tool_calls}")
-        return {"parse_tool_calling_ok": True,"current_tool_calls":tool_calls}
+        if tool_calls:
+            state["extra_response"]['current_agent_intent_type'] = tool_calls[0]['name']
+
+        return {
+            "parse_tool_calling_ok": True,
+            "current_tool_calls": tool_calls,
+        }
     except (ToolNotExistError,ToolParameterNotExistError) as e:
         send_trace(f"**tool_calls parse failed:** \n{str(e)}")
         return {
@@ -148,9 +176,7 @@ def tool_execute_lambda(state: ChatbotState):
     """
     tool_calls = state['current_tool_calls']
     assert len(tool_calls) == 1, tool_calls
-    
     tool_call_results = []
-
     for tool_call in tool_calls:
         tool_name = tool_call["name"]
         tool_kwargs = tool_call['kwargs']
@@ -209,7 +235,6 @@ def rag_daily_reception_retriever_lambda(state: ChatbotState):
     send_trace(f'**rag_goods_exchange_retriever** {context}')
     return {"contexts": contexts}
 
-
 @node_monitor_wrapper
 def rag_daily_reception_llm_lambda(state:ChatbotState):
     context = ("="*50).join(state['contexts'])
@@ -233,7 +258,6 @@ def rag_daily_reception_llm_lambda(state:ChatbotState):
             }
         )
     return {"answer": output}
-
 
 @node_monitor_wrapper
 def rag_goods_exchange_retriever_lambda(state: ChatbotState):
@@ -430,15 +454,32 @@ def give_response_without_any_tool(state:ChatbotState):
     chat_history = state['agent_chat_history']
     return {"answer": chat_history[-1]['content']}
 
-def rule_reply(state:ChatbotState):
+def rule_url_reply(state:ChatbotState):
+    if state['query'].endswith(('.jpg','.png')):
+        return {"answer": "好的，收到图片。"}
+    # product information
+    if state['query'] in url_goods_dict:
+        return {"answer":url_goods_dict[state['query']]['goods_info']}
+    
     return {"answer":"您好"}
+
+
+def rule_number_reply(state:ChatbotState):
+    return {"answer":"收到订单信息"}
 
 ################
 # define edges #
 ################
 
 def query_route(state:dict):
-    return state['chatbot_config']['chatbot_mode']
+    # check if rule reply
+    query = state['query']
+    if validators.url(query):
+        return "url"
+    if query.isnumeric() and len(query)>=8:
+        return "number"
+    else:
+        return "continue"
 
 def intent_route(state:dict):
     return state['intent_type']
@@ -513,14 +554,14 @@ def build_graph():
     workflow.add_node("rag_product_aftersales_llm",rag_product_aftersales_llm_lambda)
     workflow.add_node("rag_customer_complain_retriever",rag_customer_complain_retriever_lambda)
     workflow.add_node("rag_customer_complain_llm",rag_customer_complain_llm_lambda)
+    workflow.add_node("rule_url_reply",rule_url_reply)
+    workflow.add_node("rule_number_reply",rule_number_reply)
     workflow.add_node("rag_promotion_retriever",rag_promotion_retriever_lambda)
     workflow.add_node("rag_promotion_llm",rag_promotion_llm_lambda)
-    workflow.add_node("rule_reply",rule_reply)
 
-    
     # add all edges
     workflow.set_entry_point("query_preprocess_lambda")
-    workflow.add_edge("query_preprocess_lambda","intention_detection_lambda")
+    # workflow.add_edge("query_preprocess_lambda","intention_detection_lambda")
     workflow.add_edge("intention_detection_lambda","agent_lambda")
     workflow.add_edge("tool_execute_lambda","agent_lambda")
     workflow.add_edge("agent_lambda",'parse_tool_calling')
@@ -539,11 +580,22 @@ def build_graph():
     workflow.add_edge("rag_goods_exchange_llm",END)
     workflow.add_edge("rag_product_aftersales_llm",END)
     workflow.add_edge("rag_customer_complain_llm",END)
+    workflow.add_edge('rule_url_reply',END)
+    workflow.add_edge('rule_number_reply',END)
     workflow.add_edge("rag_promotion_llm",END)
-    workflow.add_edge('rule_reply',END)
 
     # temporal add edges for ending logic
     # add conditional edges
+
+    workflow.add_conditional_edges(
+        "query_preprocess_lambda",
+        query_route,
+        {
+           "url":  "rule_url_reply",
+           "number": "rule_number_reply",
+           "continue": "intention_detection_lambda"
+        }
+    )
 
     workflow.add_conditional_edges(
         "parse_tool_calling",
@@ -556,7 +608,6 @@ def build_graph():
             "goods exchange": "rag_goods_exchange_retriever",
             "daily reception": "rag_daily_reception_retriever",
             "no available tool": "no_available_tool",
-            "rule response": "rule_reply",
             "product aftersales": "rag_product_aftersales_retriever",
             "customer complain": "rag_customer_complain_retriever",
             "promotion": "rag_promotion_retriever",

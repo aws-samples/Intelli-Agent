@@ -201,7 +201,7 @@ class Claude2ToolCallingChain(LLMChain):
     def parse_function_calls_from_ai_message(cls,message:AIMessage):
         content = message.content + "</function_calls>"
         function_calls:List[str] = re.findall("<function_calls>(.*?)</function_calls>", content,re.S)
-        print(message.content)
+        # print(message.content)
         # return {"function_calls":function_calls,"content":message.content}
         if not function_calls:
             content = message.content
@@ -242,7 +242,7 @@ class Claude2ToolCallingChain(LLMChain):
             model_kwargs=model_kwargs,
         )
         chain = tool_calling_template \
-            | RunnableLambda(lambda x: print(x.messages) or x.messages ) \
+            | RunnableLambda(lambda x: x.messages ) \
             | llm | RunnableLambda(lambda message:cls.parse_function_calls_from_ai_message(
                 message
             ))

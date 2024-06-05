@@ -136,12 +136,14 @@ def test(chatbot_mode="chat"):
     session_id = f"test_{time.time()}"
     
     generate_answer(
-        "今天亚马逊股价怎么样？",
+        "麻烦同意下我的换货申请",
+        # "人工",
+        # "在吗",
         stream=True,
         session_id=session_id,
         chatbot_config=chatbot_config
     )
-
+  
 if __name__ == "__main__":
     test(chatbot_mode="agent")
     

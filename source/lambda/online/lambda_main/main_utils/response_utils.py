@@ -41,10 +41,10 @@ def api_response(event_body:dict,response:dict):
 
     if not isinstance(answer, str):
         answer = json.dumps(answer, ensure_ascii=False)
-
+    
     write_chat_history_to_ddb(
         query=event_body['query'],
-        answer=response['answer'],
+        answer=answer,
         ddb_obj=ddb_history_obj,
         message_id=event_body['message_id'],
         custom_message_id=event_body['custom_message_id'],
