@@ -16,7 +16,7 @@ def get_goods_dict(data_file_path):
         goods_dict[goods_id] = {"goods_info": goods_info, "goods_url": goods_url}
     return goods_dict
 
-download_dir_from_s3("aws-chatbot-knowledge-base-test", "retail", "functions/retail_tools/lambda_order_info/")
+download_dir_from_s3("aws-chatbot-knowledge-base-test", "retail", "functions/retail_tools/lambda_product_information_search/")
 goods_dict = get_goods_dict("functions/retail_tools/lambda_product_information_search/retail/detail/TB0327.xlsx")
 
 def lambda_handler(event_body, context=None):

@@ -23,7 +23,6 @@ from common_utils.s3_utils import download_dir_from_s3
 
 logger = get_logger('retail_entry')
 
-
 def get_url_goods_dict(data_file_path)->dict:
     url_goods = {} 
     goods_data = pd.read_excel(data_file_path, "商品信息登记").to_dict(orient='records')
@@ -83,9 +82,10 @@ def query_preprocess_lambda(state: ChatbotState):
         handler_name="lambda_handler"
     )
     state['extra_response']['query_rewrite'] = output
+    send_trace(f"**query_rewrite:** \n{output}")
     return {
-        "query_rewrite":output,
-        "current_monitor_infos":f"query_rewrite: {output}"
+            "query_rewrite":output,
+            "current_monitor_infos":f"query_rewrite: {output}"
         }
 
 @node_monitor_wrapper
@@ -96,6 +96,7 @@ def intention_detection_lambda(state: ChatbotState):
         handler_name="lambda_handler",
         event_body=state 
     )
+    state['extra_response']['intention_fewshot_examples'] = intention_fewshot_examples
 
     # send trace
     send_trace(f"intention retrieved:\n{json.dumps(intention_fewshot_examples,ensure_ascii=False,indent=2)}")
@@ -155,7 +156,7 @@ def parse_tool_calling(state: ChatbotState):
                 "parse_tool_calling_ok": False,
                 "agent_chat_history":[{
                     "role": "user",
-                    "content": "当前没有解析到tool,请检查tool调用的格式是否正确，并重新输出某个tool的调用。注意调用tool的时候要加上<function_calls></function_calls>"
+                    "content": "当前没有解析到tool,请检查tool调用的格式是否正确，并重新输出某个tool的调用。注意调用tool的时候要加上<function_calls></function_calls>。如果你认为当前不需要调用其他工具，请直接调用“give_final_response”工具进行返回。"
                 }]
             }
 
@@ -455,19 +456,9 @@ def give_rhetorical_question(state:ChatbotState):
     return {"answer": recent_tool_calling['kwargs']['question']}
 
 
-def no_available_tool(state:ChatbotState):
+def give_final_response(state:ChatbotState):
     recent_tool_calling:list[dict] = state['current_tool_calls'][0]
     return {"answer": recent_tool_calling['kwargs']['response']}
-
-
-def give_tool_response(state:ChatbotState):
-    recent_tool_calling:list[dict] = state['current_tool_calls'][0]
-    return {"answer": recent_tool_calling['kwargs']['response']}
-
-
-def give_response_without_any_tool(state:ChatbotState):
-    chat_history = state['agent_chat_history']
-    return {"answer": chat_history[-1]['content']}
 
 def rule_url_reply(state:ChatbotState):
     if state['query'].endswith(('.jpg','.png')):
@@ -478,9 +469,9 @@ def rule_url_reply(state:ChatbotState):
     
     return {"answer":"您好"}
 
-
 def rule_number_reply(state:ChatbotState):
     return {"answer":"收到订单信息"}
+
 
 ################
 # define edges #
@@ -527,9 +518,6 @@ def agent_route(state:dict):
 
     if recent_tool_call['name'] == "rule_response":
         return "rule response"
-    
-    if recent_tool_call['name'] == 'no_available_tool':
-        return "no available tool"
 
     if recent_tool_call['name'] == 'product_logistics':
         return "product aftersales"
@@ -542,6 +530,9 @@ def agent_route(state:dict):
 
     if recent_tool_call['name'] == 'promotion':
         return "promotion"
+    
+    if recent_tool_call['name'] == "give_final_response":
+        return "give final response"
 
     return "continue"
      
@@ -558,7 +549,7 @@ def build_graph():
     workflow.add_node("tool_execute_lambda", tool_execute_lambda)
     workflow.add_node("transfer_reply", transfer_reply)
     workflow.add_node("give_rhetorical_question",give_rhetorical_question)
-    workflow.add_node("no_available_tool",no_available_tool)
+    workflow.add_node("give_final_response",give_final_response)
     # workflow.add_node("give_response_wo_tool",give_response_without_any_tool)
     workflow.add_node("parse_tool_calling",parse_tool_calling)
     # 
@@ -590,7 +581,6 @@ def build_graph():
     # end
     workflow.add_edge("transfer_reply",END)
     workflow.add_edge("give_rhetorical_question",END)
-    workflow.add_edge("no_available_tool",END)
     # workflow.add_edge("give_response_wo_tool",END)
     workflow.add_edge("rag_daily_reception_llm",END)
     workflow.add_edge("rag_goods_exchange_llm",END)
@@ -599,6 +589,7 @@ def build_graph():
     workflow.add_edge('rule_url_reply',END)
     workflow.add_edge('rule_number_reply',END)
     workflow.add_edge("rag_promotion_llm",END)
+    workflow.add_edge("give_final_response",END)
 
     # temporal add edges for ending logic
     # add conditional edges
@@ -618,16 +609,14 @@ def build_graph():
         agent_route,
         {
             "invalid tool calling": "agent_lambda",
-            # "no tool": "give_response_wo_tool",
             "rhetorical question": "give_rhetorical_question",
             "transfer": "transfer_reply",
             "goods exchange": "rag_goods_exchange_retriever",
             "daily reception": "rag_daily_reception_retriever",
-            "no available tool": "no_available_tool",
             "product aftersales": "rag_product_aftersales_retriever",
             "customer complain": "rag_customer_complain_retriever",
             "promotion": "rag_promotion_retriever",
-            # "response": "give_tool_response",
+            "give final response": "give_final_response",
             "continue":"tool_execute_lambda"
         }
     )
@@ -666,9 +655,9 @@ def retail_entry(event_body):
 
     # invoke graph and get results
     response = app.invoke({
-        "stream":stream,
+        "stream": stream,
         "chatbot_config": chatbot_config,
-        "query":query,
+        "query": query,
         "trace_infos": [],
         "message_id": message_id,
         "chat_history": chat_history,

@@ -122,7 +122,7 @@ tool_manager.register_tool(
 
 tool_manager.register_tool(
     {
-        "name":"give_final_response",
+        "name": "give_final_response",
         "lambda_name": "xxxx",
         "lambda_module_path": "functions.lambda_give_final_response.give_final_response",
         "tool_def":{

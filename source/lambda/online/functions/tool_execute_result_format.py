@@ -12,7 +12,6 @@ class FormatMeta(type):
         return new_cls
     
 
-
 class FormatToolResult(metaclass=FormatMeta):
     model_map = {}
 

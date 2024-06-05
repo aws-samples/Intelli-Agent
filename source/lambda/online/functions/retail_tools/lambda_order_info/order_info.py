@@ -35,6 +35,7 @@ def get_order_dict(data_file_path):
 download_dir_from_s3("aws-chatbot-knowledge-base-test", "retail", "functions/retail_tools/lambda_order_info/")
 order_dict = get_order_dict("functions/retail_tools/lambda_product_information_search/retail/detail/TB0327.xlsx")
 
+
 def lambda_handler(event_body, context=None):
     state = event_body["state"]
     if "goods_id" not in state["chatbot_config"]:
