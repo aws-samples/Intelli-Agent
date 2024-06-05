@@ -368,6 +368,6 @@ if __name__ == "__main__":
     # test(
     #     chatbot_mode='agent',
     #     session_id="anta_test_1717567916.145038_cn****0099",
-    #     query="说一下具体的解决办法"
+    #     query="你家鞋子开胶了，怎么处理"
     #     )
     
