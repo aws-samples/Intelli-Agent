@@ -17,6 +17,10 @@ from functions.tool_calling_parse import parse_tool_calling as _parse_tool_calli
 from lambda_main.main_utils.parse_config import parse_retail_entry_config
 from common_utils.lambda_invoke_utils import send_trace,is_running_local
 from common_utils.exceptions import ToolNotExistError,ToolParameterNotExistError
+from common_utils.logger_utils import get_logger
+from common_utils.serialization_utils import JSONEncoder
+
+logger = get_logger('retail_entry')
 
 
 def get_url_goods_dict(data_file_path)->dict:
@@ -76,6 +80,7 @@ def query_preprocess_lambda(state: ChatbotState):
         lambda_module_path="lambda_query_preprocess.query_preprocess",
         handler_name="lambda_handler"
     )
+    state['extra_response']['query_rewrite'] = output
     return {
         "query_rewrite":output,
         "current_monitor_infos":f"query_rewrite: {output}"
@@ -143,6 +148,14 @@ def parse_tool_calling(state: ChatbotState):
         send_trace(f"**tool_calls parsed:** \n{tool_calls}")
         if tool_calls:
             state["extra_response"]['current_agent_intent_type'] = tool_calls[0]['name']
+        else:
+            return {
+                "parse_tool_calling_ok": False,
+                "agent_chat_history":[{
+                    "role": "user",
+                    "content": "当前没有解析到tool,请检查tool调用的格式是否正确，并重新输出某个tool的调用。注意调用tool的时候要加上<function_calls></function_calls>"
+                }]
+            }
 
         return {
             "parse_tool_calling_ok": True,
@@ -490,8 +503,9 @@ def agent_route(state:dict):
         return 'invalid tool calling'
     
     recent_tool_calls:list[dict] = state['current_tool_calls']
-    if not recent_tool_calls:
-        return "no tool"
+
+    # if not recent_tool_calls:
+    #     return "no tool"
     
     recent_tool_call = recent_tool_calls[0]
 
@@ -543,7 +557,7 @@ def build_graph():
     workflow.add_node("transfer_reply", transfer_reply)
     workflow.add_node("give_rhetorical_question",give_rhetorical_question)
     workflow.add_node("no_available_tool",no_available_tool)
-    workflow.add_node("give_response_wo_tool",give_response_without_any_tool)
+    # workflow.add_node("give_response_wo_tool",give_response_without_any_tool)
     workflow.add_node("parse_tool_calling",parse_tool_calling)
     # 
     workflow.add_node("rag_daily_reception_retriever",rag_daily_reception_retriever_lambda)
@@ -575,7 +589,7 @@ def build_graph():
     workflow.add_edge("transfer_reply",END)
     workflow.add_edge("give_rhetorical_question",END)
     workflow.add_edge("no_available_tool",END)
-    workflow.add_edge("give_response_wo_tool",END)
+    # workflow.add_edge("give_response_wo_tool",END)
     workflow.add_edge("rag_daily_reception_llm",END)
     workflow.add_edge("rag_goods_exchange_llm",END)
     workflow.add_edge("rag_product_aftersales_llm",END)
@@ -602,7 +616,7 @@ def build_graph():
         agent_route,
         {
             "invalid tool calling": "agent_lambda",
-            "no tool": "give_response_wo_tool",
+            # "no tool": "give_response_wo_tool",
             "rhetorical question": "give_rhetorical_question",
             "transfer": "transfer_reply",
             "goods exchange": "rag_goods_exchange_retriever",
@@ -639,6 +653,7 @@ def retail_entry(event_body):
     ################################################################################
     # prepare inputs and invoke graph
     event_body['chatbot_config'] = parse_retail_entry_config(event_body['chatbot_config'])
+    logger.info(f'event_body:\n{json.dumps(event_body,ensure_ascii=False,indent=2,cls=JSONEncoder)}')
     chatbot_config = event_body['chatbot_config']
     query = event_body['query']
     use_history = chatbot_config['use_history']

@@ -316,10 +316,14 @@ def batch_test():
             }
         }
     }
+    data = data[:50]
+    data_to_save = []
     for datum in tqdm.tqdm(data,total=len(data)):
         print("=="*50)
         print(f'query: {datum["user_msg"]}')
         session_id = f"{session_prefix}_{datum['desensitized_cnick']}"
+        chatbot_config.update({"goods_id":datum['product_ids']})
+
         r = generate_answer(
             datum['user_msg'],
             stream=False,
@@ -328,6 +332,22 @@ def batch_test():
         )
         datum['agent_intent_type'] = r.get('current_agent_intent_type',None)
         datum['ai_msg'] = r['message']['content']
+        datum['session_id'] = session_id
+        datum['query_rewrite'] = r.get('query_rewrite',None)
+        data_to_save.append({
+            "session_id": datum['desensitized_cnick'],
+            "goods_id": datum['product_ids'],
+            "create_time": datum['create_time'],
+            "user_msg":datum['user_msg'],
+            "ai_msg": datum['ai_msg'],
+            "ai_intent": datum['agent_intent_type'],
+            "intent": None,
+            "accuracy": None,
+            "rewrite_query": datum['query_rewrite'],
+            "ddb_session_id": session_id
+        })
+    # session_id, goods_id, create_time, user_msg, ai_msg, ai_intent, intent, accuracy,rewrite_query
+    pd.DataFrame(data_to_save).to_csv(f'{session_prefix}_anta_test_{len(data_to_save)}.csv')
 
 
 if __name__ == "__main__":

@@ -149,7 +149,7 @@ def chatbot_lambda_call_wrapper(fn):
         if context is not None and type(context).__name__ == "LambdaContext":
             context = context.__dict__ 
             _lambda_invoke_mode = LAMBDA_INVOKE_MODE.LOCAL.value
-            logger.info(f'event: {json.dumps(event,ensure_ascii=False,indent=2,cls=JSONEncoder)}')
+            # logger.info(f'event: {json.dumps(event,ensure_ascii=False,indent=2,cls=JSONEncoder)}')
         
         if "Records" in event:
             records = event["Records"]
