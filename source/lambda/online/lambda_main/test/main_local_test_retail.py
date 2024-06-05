@@ -182,12 +182,44 @@ def test(chatbot_mode="chat",session_id=None,query=None):
             "llm_config":{
                 **default_llm_config,
             }
+        },
+        "rag_promotion_config": {
+            "retriever_config":{
+                "retrievers": [
+                    {
+                        "type": "qq",
+                        "workspace_ids": ['retail-shouhou-wuliu','retail-quick-reply'],
+                        "config": {
+                            "top_k": 2,
+                        }
+                    },
+                ],
+                "rerankers": [
+                    {
+                        "type": "reranker",
+                        "config": {
+                            "enable_debug": False,
+                            "target_model": "bge_reranker_model.tar.gz"
+                        }
+                    }
+                ],
+            },
+            "llm_config":{
+                **default_llm_config,
+            }
         }
     }
     
     session_id = session_id or f"test_{time.time()}"
     query = query or "很浪费时间 出库的时候也不看清楚？"
+    session_id = f"test_{time.time()}"
+    
+    # 售后物流
     #"可以发顺丰快递吗？",
+    # 客户抱怨
+    # "很浪费时间 出库的时候也不看清楚？",
+    # 促销查询
+    # "评论有惊喜吗？",
     generate_answer(
         query,
         stream=True,
