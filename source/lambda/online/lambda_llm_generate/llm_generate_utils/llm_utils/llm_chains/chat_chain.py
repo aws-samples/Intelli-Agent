@@ -44,7 +44,7 @@ class Claude2ChatChain(LLMChain):
 
         messages_template = ChatPromptTemplate.from_messages(messages)
         llm = Model.get_model(cls.model_id, model_kwargs=model_kwargs, **kwargs)
-        chain = messages_template | RunnableLambda(lambda x: print(x.messages) or x.messages)
+        chain = messages_template | RunnableLambda(lambda x: x.messages)
         if stream:
             chain = (
                 chain | RunnableLambda(lambda messages: llm.stream(messages))
