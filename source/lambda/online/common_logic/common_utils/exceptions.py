@@ -24,4 +24,4 @@ class ToolParameterNotExistError(Exception):
         return f"The parameter ”{self.parameter_key}“ is required when calling tool: {self.tool_name}."
 
     def __str__(self):
-        return self.to_agent() + "\nfunction_call:\n{self.function_call_content}"
+        return self.to_agent() + f"\nfunction_call:\n{self.function_call_content}"

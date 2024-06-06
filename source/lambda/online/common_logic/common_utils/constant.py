@@ -57,6 +57,7 @@ class LLMTaskType(ConstantBase):
     MKT_QUERY_REWRITE_TYPE = "mkt_query_rewrite"
     STEPBACK_PROMPTING_TYPE = "stepback_prompting"
     TOOL_CALLING = "tool_calling"
+    RETAIL_TOOL_CALLING = "retail_tool_calling"
     RAG = "rag"
     CHAT = 'chat'
     
