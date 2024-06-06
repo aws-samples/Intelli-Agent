@@ -426,16 +426,16 @@ def rag_promotion_retriever_lambda(state: ChatbotState):
 @node_monitor_wrapper
 def rag_promotion_llm_lambda(state:ChatbotState):
     context = ("="*50).join(state['contexts'])
-    prompt = dedent(f"""你是安踏的客服助理，正在处理客户有关于商品促销的问题，这些问题有关于积分，奖品，奖励等方面，需要你按照下面的guidelines进行回复:
-                    <guidelines>
-                      - 回答要简洁。
-                      - 直接
-                    </guidelines>
-                    下面列举了一些具体的场景下的回复，你可以结合用户的问题进行参考回答:
+    prompt = dedent(f"""你是安踏的客服助理，正在帮消费者解答有关于商品促销的问题，这些问题是有关于积分、奖品、奖励等方面。context列举了一些可能有关的具体场景及回复，你可以进行参考:
                     <context>
                     {context}
                     </context>
-                    下面是用户的回复: {state['query']}
+                    你需要按照下面的guidelines对消费者的问题进行回答:
+                    <guidelines>
+                      - 回答内容要简洁。
+                      - 如果问题与context内容不相关，就不要采用。
+                    </guidelines>
+                    下面是消费者的问题: {state['query']}。结合guidelines的内容进行回答
 """)
     output:str = invoke_lambda(
         lambda_name='Online_LLM_Generate',
