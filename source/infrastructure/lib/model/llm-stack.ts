@@ -82,79 +82,6 @@ export class LLMStack extends cdk.NestedStack {
       BuildConfig.DEPLOYMENT_MODE === "OFFLINE_OPENSEARCH" ||
       BuildConfig.DEPLOYMENT_MODE === "ALL"
     ) {
-      // EMBEDDING MODEL
-      for (let i = 0; i < props.embeddingModelPrefix.length; i++) {
-        const modelPrefix = props.embeddingModelPrefix[i];
-        const codePrefix = modelPrefix + "_deploy_code";
-        const versionId = props.embeddingModelVersion[i];
-        const currentEndpointName =
-          "embedding-" + modelPrefix + "-" + versionId.slice(0, 5);
-        const stackModelName = "embedding-model-" + versionId.slice(0, 5);
-        const stackConfigName =
-          "embedding-endpoint-config-" + versionId.slice(0, 5);
-        const stackEndpointName =
-          "embedding-endpoint-name-" + versionId.slice(0, 5);
-        // EMBEDDING MODEL
-        // Create model, BucketDeployment construct automatically handles dependencies to ensure model assets uploaded before creating the model in this.region
-        const embeddingImageUrl =
-          llmImageUrlAccount +
-          this.region +
-          llmImageUrlDomain +
-          "djl-inference:0.26.0-deepspeed0.12.6-cu121";
-        const embeddingModel = new sagemaker.CfnModel(this, stackModelName, {
-          executionRoleArn: executionRole.roleArn,
-          primaryContainer: {
-            image: embeddingImageUrl,
-            modelDataUrl: `s3://${props.s3ModelAssets}/${codePrefix}/s2e_model.tar.gz`,
-            environment: {
-              S3_CODE_PREFIX: codePrefix,
-            },
-          },
-        });
-
-        // Create endpoint configuration, refer to https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_sagemaker.CfnEndpointConfig.html for full options
-        const embeddingEndpointConfig = new sagemaker.CfnEndpointConfig(
-          this,
-          stackConfigName,
-          {
-            productionVariants: [
-              {
-                initialVariantWeight: 1.0,
-                modelName: embeddingModel.attrModelName,
-                variantName: "variantProd",
-                containerStartupHealthCheckTimeoutInSeconds: 15 * 60,
-                initialInstanceCount: 1,
-                instanceType: "ml.g5.2xlarge",
-              },
-            ],
-          },
-        );
-
-        // Create endpoint
-        const tag: cdk.CfnTag = {
-          key: "version",
-          value: versionId,
-        };
-
-        const tagArray = [tag];
-
-        const embeddingEndpoint = new sagemaker.CfnEndpoint(
-          this,
-          stackEndpointName,
-          {
-            endpointConfigName: embeddingEndpointConfig.attrEndpointConfigName,
-            endpointName: currentEndpointName,
-            tags: tagArray,
-          },
-        );
-
-        if (typeof embeddingEndpoint.endpointName != "undefined") {
-          this.embeddingEndPoints.push(embeddingEndpoint.endpointName);
-        }
-      }
-    }
-
-    if (BuildConfig.DEPLOYMENT_MODE === "ALL") {
       // Embedding and Reranker MODEL
       const embeddingAndRerankerModelPrefix = props.embeddingAndRerankerModelPrefix;
       const embeddingAndrerankCodePrefix = embeddingAndRerankerModelPrefix + "_deploy_code";
@@ -218,68 +145,9 @@ export class LLMStack extends cdk.NestedStack {
 
       this.embeddingAndRerankerEndPoint = embeddingAndRerankerEndpoint.endpointName as string;
 
-      // Rerank MODEL
-      const rerankModelPrefix = props.rerankModelPrefix;
-      const rerankCodePrefix = rerankModelPrefix + "_deploy_code";
-      const rerankVersionId = props.rerankModelVersion;
-      const rerankEndpointName =
-        "rerank-" + rerankModelPrefix + "-" + rerankVersionId.slice(0, 5);
-      // Create model, BucketDeployment construct automatically handles dependencies to ensure model assets uploaded before creating the model in this.region
-      const rerankImageUrl =
-        llmImageUrlAccount +
-        this.region +
-        llmImageUrlDomain +
-        "djl-inference:0.21.0-deepspeed0.8.3-cu117";
-      const rerankModel = new sagemaker.CfnModel(this, "rerank-model", {
-        executionRoleArn: executionRole.roleArn,
-        primaryContainer: {
-          image: rerankImageUrl,
-          modelDataUrl: `s3://${props.s3ModelAssets}/${rerankCodePrefix}/bge_reranker_model.tar.gz`,
-          environment: {
-            S3_CODE_PREFIX: rerankCodePrefix,
-          },
-        },
-      });
+    }
 
-      // Create endpoint configuration, refer to https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_sagemaker.CfnEndpointConfig.html for full options
-      const rerankEndpointConfig = new sagemaker.CfnEndpointConfig(
-        this,
-        "rerank-endpoint-config",
-        {
-          productionVariants: [
-            {
-              initialVariantWeight: 1.0,
-              modelName: rerankModel.attrModelName,
-              variantName: "variantProd",
-              containerStartupHealthCheckTimeoutInSeconds: 15 * 60,
-              initialInstanceCount: 1,
-              instanceType: "ml.g4dn.2xlarge",
-            },
-          ],
-        },
-      );
-
-      // Create endpoint
-      const rerankTag: cdk.CfnTag = {
-        key: "version",
-        value: rerankVersionId,
-      };
-
-      const rerankTagArray = [rerankTag];
-
-      // Create endpoint
-      const rerankEndpoint = new sagemaker.CfnEndpoint(
-        this,
-        "rerank-endpoint",
-        {
-          endpointConfigName: rerankEndpointConfig.attrEndpointConfigName,
-          endpointName: rerankEndpointName,
-          tags: rerankTagArray,
-        },
-      );
-
-      this.rerankEndPoint = rerankEndpoint.endpointName as string;
-
+    if (BuildConfig.DEPLOYMENT_MODE === "ALL") {
       // INSTRUCT MODEL
       // Create model, BucketDeployment construct automatically handles dependencies to ensure model assets uploaded before creating the model in this.region
       // Instruct MODEL
