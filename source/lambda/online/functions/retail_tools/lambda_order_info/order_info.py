@@ -32,8 +32,8 @@ def get_order_dict(data_file_path):
         order_dict[order_id]["goods_list"].append(row["订单ID"])
     return order_dict
 
-download_dir_from_s3("aws-chatbot-knowledge-base-test", "retail", "functions/retail_tools/lambda_order_info/")
-order_dict = get_order_dict("functions/retail_tools/lambda_order_info/retail/detail/TB0327.xlsx")
+download_dir_from_s3("aws-chatbot-knowledge-base-test", "retail", "/tmp/functions/retail_tools/lambda_order_info/")
+order_dict = get_order_dict("/tmp/functions/retail_tools/lambda_order_info/retail/detail/TB0327.xlsx")
 
 
 def lambda_handler(event_body, context=None):

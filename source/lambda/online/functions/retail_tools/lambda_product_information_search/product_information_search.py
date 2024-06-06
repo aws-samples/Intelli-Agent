@@ -32,9 +32,9 @@ def get_goods_dict_2(data_file_path):
                 goods_dict[goods_id] = {"goods_info": goods_info, "goods_url": goods_url}
     return goods_dict
 
-download_dir_from_s3("aws-chatbot-knowledge-base-test", "retail", "functions/retail_tools/lambda_product_information_search/")
-goods_dict = get_goods_dict_1("functions/retail_tools/lambda_product_information_search/retail/detail/TB0327.xlsx")
-goods_dict_2 = get_goods_dict_2("functions/retail_tools/lambda_product_information_search/retail/detail/商品属性表.xlsx")
+download_dir_from_s3("aws-chatbot-knowledge-base-test", "retail", "/tmp/functions/retail_tools/lambda_product_information_search/")
+goods_dict = get_goods_dict_1("/tmp/functions/retail_tools/lambda_product_information_search/retail/detail/TB0327.xlsx")
+goods_dict_2 = get_goods_dict_2("/tmp/functions/retail_tools/lambda_product_information_search/retail/detail/商品属性表.xlsx")
 goods_dict.update(goods_dict_2)
 
 def lambda_handler(event_body, context=None):

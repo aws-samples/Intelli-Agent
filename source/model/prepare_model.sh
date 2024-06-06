@@ -35,9 +35,9 @@ for index in "${!model_names[@]}"; do
 done
 
 cd ../../bce_embedding/model
-hf_names=("maidalun1020/bce-embedding-base_v1")
+hf_names=("InfiniFlow/bce-embedding-base_v1")
 model_names=("bce-embedding-base")
-commit_hashs=("43972580a35ceacacd31b95b9f430f695d07dde9")
+commit_hashs=("00a7db29f2f740ce3aef3b4ed9653a5bd9b9ce7d")
 tensor_parallel_degree=(1)
 
 for index in "${!model_names[@]}"; do

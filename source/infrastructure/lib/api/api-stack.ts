@@ -35,8 +35,6 @@ interface ApiStackProps extends StackProps {
   apiVpc: ec2.Vpc;
   securityGroup: ec2.SecurityGroup;
   domainEndpoint: string;
-  rerankEndPoint: string;
-  embeddingEndPoints: string[];
   embeddingAndRerankerEndPoint: string;
   llmModelId: string;
   instructEndPoint: string;
@@ -168,7 +166,7 @@ export class ApiConstruct extends Construct {
       architecture: Architecture.X86_64,
       environment: {
         opensearch_cluster_domain: domainEndpoint,
-        embedding_endpoint: props.embeddingEndPoints[0],
+        embedding_endpoint: props.embeddingAndRerankerEndPoint,
       },
       layers: [apiLambdaEmbeddingLayer],
     });
@@ -350,7 +348,7 @@ export class ApiConstruct extends Construct {
       environment: {
         document_bucket: s3Bucket.bucketName,
         opensearch_cluster_domain: domainEndpoint,
-        embedding_endpoint: props.embeddingEndPoints[0],
+        embedding_endpoint: props.embeddingAndRerankerEndPoint,
         jobName: props.jobName,
         jobQueueArn: props.jobQueueArn,
         jobDefinitionArn: props.jobDefinitionArn,

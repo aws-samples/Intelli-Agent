@@ -47,6 +47,7 @@ class ChatbotState(TypedDict):
 # nodes in lambdas #
 ####################
 
+
 @node_monitor_wrapper
 def query_preprocess_lambda(state: ChatbotState):
     output: str = invoke_lambda(
@@ -124,7 +125,7 @@ def parse_tool_calling(state: ChatbotState):
         )
         send_trace(f"\n\n**tool_calls parsed:** \n{tool_calls}")
         if tool_calls:
-            state["extra_response"]['current_agent_intent_type'] = tool_calls[0]['name']
+            state["extra_response"]["current_agent_intent_type"] = tool_calls[0]["name"]
         else:
             tool_format = ("<function_calls>\n"
             "<invoke>\n"
@@ -247,6 +248,7 @@ def rag_llm_lambda(state: ChatbotState):
     return {"answer": output}
 
 
+@node_monitor_wrapper
 def chat_llm_generate_lambda(state: ChatbotState):
     answer: dict = invoke_lambda(
         event_body={
@@ -294,8 +296,10 @@ def give_final_response(state: ChatbotState):
 #     chat_history = state["agent_chat_history"]
 #     return {"answer": chat_history[-1]["content"]}
 
+
 def qq_matched_reply(state: ChatbotState):
     return {"answer": state["answer"]}
+
 
 ################
 # define edges #
