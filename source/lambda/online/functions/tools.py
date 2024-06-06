@@ -122,7 +122,7 @@ tool_manager.register_tool(
 
 tool_manager.register_tool(
     {
-        "name":"give_final_response",
+        "name": "give_final_response",
         "lambda_name": "xxxx",
         "lambda_module_path": "functions.lambda_give_final_response.give_final_response",
         "tool_def":{
@@ -370,16 +370,23 @@ tool_manager.register_tool({
     }
 })
 
-
-
+tool_manager.register_tool({
+    "name":"customer_complain",
+    "lambda_name": "xxxx",
+    "lambda_module_path": "functions.retail_tools.lambda_goods_exchage.customer_complain",
+    "tool_def": {
+        "name": "customer_complain",
+        "description": "有关于客户抱怨的工具，比如商品质量，错发商品，漏发商品，商品运费等",
+    }
+})
 
 tool_manager.register_tool({
-    "name":"客户抱怨",
+    "name":"promotion",
     "lambda_name": "xxxx",
-    "lambda_module_path": "xxxx",
+    "lambda_module_path": "functions.retail_tools.lambda_goods_exchage.customer_complain",
     "tool_def": {
-        "name": "客户抱怨",
-        "description": "客户抱怨"
+        "name": "promotion",
+        "description": "有关于商品促销的信息，比如返点，奖品和奖励等"
     }
 })
 
@@ -420,20 +427,63 @@ tool_manager.register_tool({
                 "weight": {
                     "description": "weight of the customer",
                     "type": "int"
+                },
+                "shoes_size": {
+                    "description": "size of the customer's shoes",
+                    "type": "float"
+                },
+                "foot_length": {
+                    "description": "length of the customer's foot",
+                    "type": "float"
                 }
             },
-            "required": ["height", "weight"]
+            # "required": ["height", "weight", "shoes_size", "foot_length"]
+            "required": []
         }
     }
 })
 
+# 商品信息查询
 tool_manager.register_tool({
-    "name":"商品信息查询",
+    "name":"goods_info",
     "lambda_name": "xxxx",
-    "lambda_module_path": "xxxx",
+    "lambda_module_path": "functions.retail_tools.lambda_product_information_search.product_information_search",
     "tool_def": {
-        "name": "商品信息查询",
-        "description": "商品信息查询"
+        "name": "goods_info",
+        "description": "search the information of the product"
+    }
+})
+
+# 商品推荐
+tool_manager.register_tool({
+    "name":"goods_recommendation",
+    "lambda_name": "xxxx",
+    "lambda_module_path": "functions.retail_tools.lambda_product_information_search.product_information_search",
+    "tool_def": {
+        "name": "goods_recommendation",
+        "description": "recommend the product to the customer"
+    }
+})
+
+# 下单流程
+tool_manager.register_tool({
+    "name":"order_pipeline",
+    "lambda_name": "xxxx",
+    "lambda_module_path": "functions.retail_tools.lambda_order_info.order_info",
+    "tool_def": {
+        "name": "order_pipeline",
+        "description": "query the order information"
+    }
+})
+
+# 物流信息查询
+tool_manager.register_tool({
+    "name":"delivery_track",
+    "lambda_name": "xxxx",
+    "lambda_module_path": "functions.retail_tools.lambda_order_info.order_info",
+    "tool_def": {
+        "name": "delivery_track",
+        "description": "query the delivery information"
     }
 })
 
@@ -494,7 +544,7 @@ tool_manager.register_tool(
         "lambda_module_path": "functions.retail_tools.lambda_product_aftersales.product_aftersales",
         "tool_def": {
                 "name": "product_quality",
-                "description": "product after-sales processing, including handling of consumer complaints about products quality",
+                "description": "商品的售后处理，主要包括客户关于商品质量的抱怨等",
         }
     }
 )
@@ -507,30 +557,7 @@ tool_manager.register_tool(
         "lambda_module_path": "functions.retail_tools.lambda_product_aftersales.product_aftersales",
         "tool_def": {
                 "name": "product_logistics",
-                "description": "product after-sales processing, including various returns, exchanges, wrong shipments, and missing shipments",
+                "description": "有关于商品物流的售后处理，主要包括退货，换货，错发商品，漏发商品等",
         }
     }
 )
-
-# tool_manager.register_tool({
-#     "name":"物流规则",
-#     "lambda_name": "xxxx",
-#     "lambda_module_path": "xxxx",
-#     "tool_def": {
-#         "name": "物流规则",
-#         "description": "物流规则"
-#     }
-# })
-
-# tool_manager.register_tool({
-#     "name":"商品质量问题",
-#     "lambda_name": "xxxx",
-#     "lambda_module_path": "xxxx",
-#     "tool_def": {
-#         "name": "商品质量问题",
-#         "description": "商品质量问题"
-#     }
-# })
-
-
-

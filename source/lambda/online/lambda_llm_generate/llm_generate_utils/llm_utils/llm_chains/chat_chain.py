@@ -2,7 +2,7 @@
 from typing import Any, List, Mapping, Optional
 
 from langchain.schema.runnable import RunnableLambda, RunnablePassthrough
-from langchain_core.messages import HumanMessage,AIMessage
+from langchain_core.messages import HumanMessage,AIMessage,SystemMessage
 from langchain.prompts import ChatPromptTemplate,HumanMessagePromptTemplate
 from langchain_core.messages import convert_to_messages
 
@@ -30,17 +30,21 @@ class Claude2ChatChain(LLMChain):
     @classmethod
     def create_chain(cls, model_kwargs=None, **kwargs):
         stream = kwargs.get("stream", False)
-
-        messages_template = ChatPromptTemplate.from_messages([
+        system_prompt = kwargs.get('system_prompt',None)
+        prefill =  kwargs.get('prefill',None)
+        messages = [
             ("placeholder", "{chat_history}"),
             HumanMessagePromptTemplate.from_template("{query}")
-        ])
-        # messages = RunnableLambda(lambda x: x["chat_history"] + [HumanMessage(content=x['query'])])
-        # kwargs.update({"return_chat_model": True})
+        ]
+        if system_prompt is not None:
+            messages.insert(SystemMessage(content=system_prompt),0)
+        
+        if prefill is not None:
+            messages.append(AIMessage(content=prefill))
+
+        messages_template = ChatPromptTemplate.from_messages(messages)
         llm = Model.get_model(cls.model_id, model_kwargs=model_kwargs, **kwargs)
-
-        chain = messages_template | RunnableLambda(lambda x: print(x.messages) or x.messages)
-
+        chain = messages_template | RunnableLambda(lambda x: x.messages)
         if stream:
             chain = (
                 chain | RunnableLambda(lambda messages: llm.stream(messages))

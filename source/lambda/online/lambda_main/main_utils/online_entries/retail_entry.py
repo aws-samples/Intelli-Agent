@@ -1,11 +1,14 @@
 import json
+from textwrap import dedent
 from typing import TypedDict,Any,Annotated
+import validators
 from langgraph.graph import StateGraph,END
 from common_utils.lambda_invoke_utils import invoke_lambda,node_monitor_wrapper
 from common_utils.python_utils import update_nest_dict,add_messages
 from common_utils.constant import (
     LLMTaskType
 )
+import pandas as pd 
 
 from functions.tools import get_tool_by_name,Tool
 from functions.tool_execute_result_format import format_tool_execute_result
@@ -14,6 +17,29 @@ from functions.tool_calling_parse import parse_tool_calling as _parse_tool_calli
 from lambda_main.main_utils.parse_config import parse_retail_entry_config
 from common_utils.lambda_invoke_utils import send_trace,is_running_local
 from common_utils.exceptions import ToolNotExistError,ToolParameterNotExistError
+from common_utils.logger_utils import get_logger
+from common_utils.serialization_utils import JSONEncoder
+from common_utils.s3_utils import download_dir_from_s3
+
+logger = get_logger('retail_entry')
+
+def get_url_goods_dict(data_file_path)->dict:
+    url_goods = {} 
+    goods_data = pd.read_excel(data_file_path, "商品信息登记").to_dict(orient='records')
+    # get row
+    for datum in goods_data:
+        goods_id = datum["商品ID"]
+        goods_info = datum["卖点（含材质属性）"]
+        goods_url = datum["商品链接"]
+        url_goods[goods_url] = {
+            "goods_info": goods_info,
+            "goods_url": goods_url,
+            "goods_id": goods_id
+            } 
+    return url_goods
+
+download_dir_from_s3("aws-chatbot-knowledge-base-test", "retail", "lambda_main")
+url_goods_dict = get_url_goods_dict("lambda_main/retail/detail/TB0327.xlsx")
 
 class ChatbotState(TypedDict):
     chatbot_config: dict # chatbot config
@@ -35,10 +61,12 @@ class ChatbotState(TypedDict):
     extra_response: Annotated[dict,update_nest_dict]
     contexts: str = None
     current_intent_tools: list #
+    current_agent_intent_type: str = None
     current_tool_calls:list 
     current_agent_tools_def: list[dict]
     current_agent_model_id: str
     parse_tool_calling_ok: bool
+    query_rule_classification: str
     
 
 ####################
@@ -53,9 +81,11 @@ def query_preprocess_lambda(state: ChatbotState):
         lambda_module_path="lambda_query_preprocess.query_preprocess",
         handler_name="lambda_handler"
     )
+    state['extra_response']['query_rewrite'] = output
+    send_trace(f"**query_rewrite:** \n{output}")
     return {
-        "query_rewrite":output,
-        "current_monitor_infos":f"query_rewrite: {output}"
+            "query_rewrite":output,
+            "current_monitor_infos":f"query_rewrite: {output}"
         }
 
 @node_monitor_wrapper
@@ -66,6 +96,7 @@ def intention_detection_lambda(state: ChatbotState):
         handler_name="lambda_handler",
         event_body=state 
     )
+    state['extra_response']['intention_fewshot_examples'] = intention_fewshot_examples
 
     # send trace
     send_trace(f"intention retrieved:\n{json.dumps(intention_fewshot_examples,ensure_ascii=False,indent=2)}")
@@ -118,7 +149,21 @@ def parse_tool_calling(state: ChatbotState):
             tools=state['current_agent_tools_def'],
         )
         send_trace(f"**tool_calls parsed:** \n{tool_calls}")
-        return {"parse_tool_calling_ok": True,"current_tool_calls":tool_calls}
+        if tool_calls:
+            state["extra_response"]['current_agent_intent_type'] = tool_calls[0]['name']
+        else:
+            return {
+                "parse_tool_calling_ok": False,
+                "agent_chat_history":[{
+                    "role": "user",
+                    "content": "当前没有解析到tool,请检查tool调用的格式是否正确，并重新输出某个tool的调用。注意调用tool的时候要加上<function_calls></function_calls>。如果你认为当前不需要调用其他工具，请直接调用“give_final_response”工具进行返回。"
+                }]
+            }
+
+        return {
+            "parse_tool_calling_ok": True,
+            "current_tool_calls": tool_calls,
+        }
     except (ToolNotExistError,ToolParameterNotExistError) as e:
         send_trace(f"**tool_calls parse failed:** \n{str(e)}")
         return {
@@ -147,13 +192,10 @@ def tool_execute_lambda(state: ChatbotState):
     """
     tool_calls = state['current_tool_calls']
     assert len(tool_calls) == 1, tool_calls
-    
     tool_call_results = []
-
     for tool_call in tool_calls:
         tool_name = tool_call["name"]
         tool_kwargs = tool_call['kwargs']
-
         # call tool
         output = invoke_lambda(
             event_body = {
@@ -195,8 +237,8 @@ def tool_execute_lambda(state: ChatbotState):
 
 @node_monitor_wrapper
 def rag_daily_reception_retriever_lambda(state: ChatbotState):
-    # call retrivever
-    retriever_params = state["chatbot_config"]["rag_daily_reception_config"]
+    # call retriever
+    retriever_params = state["chatbot_config"]["rag_daily_reception_config"]['retriever_config']
     retriever_params["query"] = state["query"]
     output:str = invoke_lambda(
         event_body=retriever_params,
@@ -205,27 +247,38 @@ def rag_daily_reception_retriever_lambda(state: ChatbotState):
         handler_name="lambda_handler"
     )
     contexts = [doc['page_content'] for doc in output['result']['docs']]
+    context = "\n".join(contexts)
+    send_trace(f'**rag_goods_exchange_retriever** {context}')
     return {"contexts": contexts}
-
 
 @node_monitor_wrapper
 def rag_daily_reception_llm_lambda(state:ChatbotState):
+    context = ("="*50).join(state['contexts'])
+    prompt = dedent(f"""你是安踏的客服助理，正在帮用户解答问题，客户提出的问题大多是属于日常接待类别，你需要按照下面的guidelines进行回复:
+                    <guidelines>
+                      - 回复内容需要展现出礼貌。
+                    </guidelines>
+                    下面列举了一些具体的场景下的回复，你可以结合用户的问题进行参考回答:
+                    <context>
+                    {context}
+                    </context>
+                    下面是用户的回复: {state['query']}
+""")
     output:str = invoke_lambda(
         lambda_name='Online_LLM_Generate',
         lambda_module_path="lambda_llm_generate.llm_generate",
         handler_name='lambda_handler',
         event_body={
-            "llm_config": {**state['chatbot_config']['rag_daily_reception_config']['llm_config'], "intent_type": LLMTaskType.RAG},
-            "llm_input": {"contexts": [state['contexts']], "query": state['query'], "chat_history": state['chat_history']}
+            "llm_config": {**state['chatbot_config']['rag_daily_reception_config']['llm_config'], "intent_type": LLMTaskType.CHAT},
+            "llm_input": { "query": prompt, "chat_history": state['chat_history']}
             }
         )
     return {"answer": output}
 
-
 @node_monitor_wrapper
 def rag_goods_exchange_retriever_lambda(state: ChatbotState):
-    # call retrivever
-    retriever_params = state["chatbot_config"]["rag_goods_exchange_config"]
+    # call retriever
+    retriever_params = state["chatbot_config"]["rag_goods_exchange_config"]['retriever_config']
     retriever_params["query"] = state["query"]
     output:str = invoke_lambda(
         event_body=retriever_params,
@@ -234,67 +287,164 @@ def rag_goods_exchange_retriever_lambda(state: ChatbotState):
         handler_name="lambda_handler"
     )
     contexts = [doc['page_content'] for doc in output['result']['docs']]
+
+    context = "\n".join(contexts)
+    send_trace(f'**rag_goods_exchange_retriever** {context}')
     return {"contexts": contexts}
 
 
 @node_monitor_wrapper
 def rag_goods_exchange_llm_lambda(state:ChatbotState):
+    context = ("="*50).join(state['contexts'])
+    prompt = dedent(f"""你是安踏的客服助理，正在帮用户解答问题，客户提出的问题大多是属于商品退换货范畴，你需要按照下面的guidelines进行回复:
+                    <guidelines>
+                      - 回复内容需要展现出礼貌。
+                    </guidelines>
+                    下面列举了一些具体的场景下的回复，你可以结合用户的问题进行参考回答:
+                    <context>
+                    {context}
+                    </context>
+                    下面是用户的回复: {state['query']}
+""")
+    
     output:str = invoke_lambda(
         lambda_name='Online_LLM_Generate',
         lambda_module_path="lambda_llm_generate.llm_generate",
         handler_name='lambda_handler',
         event_body={
-            "llm_config": {**state['chatbot_config']['rag_goods_exchange_config']['llm_config'], "intent_type": LLMTaskType.RAG},
-            "llm_input": {"contexts": [state['contexts']], "query": state['query'], "chat_history": state['chat_history']}
+            "llm_config": {**state['chatbot_config']['rag_goods_exchange_config']['llm_config'], "intent_type": LLMTaskType.CHAT},
+            "llm_input": { "query": prompt, "chat_history": state['chat_history']}
             }
         )
     return {"answer": output}
 
-# @node_monitor_wrapper
-# def rag_llm_lambda(state:ChatbotState):
-#     output:str = invoke_lambda(
-#         lambda_name='Online_LLM_Generate',
-#         lambda_module_path="lambda_llm_generate.llm_generate",
-#         handler_name='lambda_handler',
-#         event_body={
-#             "llm_config": {**state['chatbot_config']['rag_config']['llm_config'], "intent_type": LLMTaskType.RAG},
-#             "llm_input": {"contexts": [state['contexts']], "query": state['query'], "chat_history": state['chat_history']}
-#             }
-#         )
-#     return {"answer": output}
-
-
-# @node_monitor_wrapper
-# def rag_retrieve_lambda(state: ChatbotState):
-#     # call retrivever
-#     retriever_params = state["chatbot_config"]["retriever_config"]
-#     retriever_params["query"] = state["query"]
-#     output:str = invoke_lambda(
-#         event_body=retriever_params,
-#         lambda_name="Online_Function_Retriever",
-#         lambda_module_path="functions.lambda_retriever.retriever",
-#         handler_name="lambda_handler"
-#     )
-#     contexts = [doc['page_content'] for doc in output['result']['docs']]
-#     return {"contexts": contexts}
-
-
 @node_monitor_wrapper
-def chat_llm_generate_lambda(state:ChatbotState):
-    answer:dict = invoke_lambda(
-        event_body={
-            "llm_config":{
-                **state["chatbot_config"]['chat_config'],
-                "stream":state['stream'],
-                "intent_type":LLMTaskType.CHAT
-                },
-            "llm_input": {'query':state['query'],"chat_history":state['chat_history']}
-        },
-        lambda_name="Online_LLM_Generate",
-        lambda_module_path="lambda_llm_generate.llm_generate",
+def rag_product_aftersales_retriever_lambda(state: ChatbotState):
+    # call retriever
+    retriever_params = state["chatbot_config"]["rag_product_aftersales_config"]["retriever_config"]
+    retriever_params["query"] = state["query"]
+    output:str = invoke_lambda(
+        event_body=retriever_params,
+        lambda_name="Online_Function_Retriever",
+        lambda_module_path="functions.lambda_retriever.retriever",
         handler_name="lambda_handler"
     )
-    return {"answer":answer}
+    contexts = [doc['page_content'] for doc in output['result']['docs']]
+
+    context = "\n".join(contexts)
+    send_trace(f'**rag_product_aftersales_retriever** {context}')
+    return {"contexts": contexts}
+
+@node_monitor_wrapper
+def rag_product_aftersales_llm_lambda(state:ChatbotState):
+    context = ("="*50).join(state['contexts'])
+    prompt = dedent(f"""你是安踏的客服助理，正在帮用户解答问题，客户提出的问题大多是属于商品的质量和物流规则。context列举了一些可能和客户问题有关的具体场景及回复，你可以进行参考:
+                    <context>
+                    {context}
+                    </context>
+                    你需要按照下面的guidelines对用户的问题进行回答:
+                    <guidelines>
+                      - 回答内容要有礼貌和简洁。
+                      - 如果用户问题与context内容不相关，就不要采用。
+                      - 客户的问题里面可能包含口语化的表达，比如鞋子开胶的意思是用胶黏合的鞋体裂开。这和胶丝遗留没有关系
+                    </guidelines>
+                    下面是用户的问题: {state['query']}。结合guidelines的内容进行回答
+""")
+    output:str = invoke_lambda(
+        lambda_name='Online_LLM_Generate',
+        lambda_module_path="lambda_llm_generate.llm_generate",
+        handler_name='lambda_handler',
+        event_body={
+            "llm_config": {**state['chatbot_config']['rag_product_aftersales_config']['llm_config'], "intent_type": LLMTaskType.CHAT},
+            "llm_input": { "query": prompt, "chat_history": state['chat_history']}
+            }
+        )
+    return {"answer": output}
+
+@node_monitor_wrapper
+def rag_customer_complain_retriever_lambda(state: ChatbotState):
+    # call retriever
+    retriever_params = state["chatbot_config"]["rag_customer_complain_config"]["retriever_config"]
+    retriever_params["query"] = state["query"]
+    output:str = invoke_lambda(
+        event_body=retriever_params,
+        lambda_name="Online_Function_Retriever",
+        lambda_module_path="functions.lambda_retriever.retriever",
+        handler_name="lambda_handler"
+    )
+    contexts = [doc['page_content'] for doc in output['result']['docs']]
+
+    context = "\n".join(contexts)
+    send_trace(f'**rag_customer_complain_retriever** {context}')
+    return {"contexts": contexts}
+
+@node_monitor_wrapper
+def rag_customer_complain_llm_lambda(state:ChatbotState):
+    context = ("="*50).join(state['contexts'])
+    prompt = dedent(f"""你是安踏的客服助理，正在处理有关于客户抱怨的问题，这些问题有关于商品质量等方面，需要你按照下面的guidelines进行回复:
+                    <guidelines>
+                      - 回复内容需要展现出礼貌。
+                      - 尽量安抚客户的情绪。
+                      - 回答要简洁。
+                    </guidelines>
+                    下面列举了一些具体的场景下的回复，你可以结合用户的问题进行参考回答:
+                    <context>
+                    {context}
+                    </context>
+                    下面是用户的回复: {state['query']}
+""")
+    output:str = invoke_lambda(
+        lambda_name='Online_LLM_Generate',
+        lambda_module_path="lambda_llm_generate.llm_generate",
+        handler_name='lambda_handler',
+        event_body={
+            "llm_config": {**state['chatbot_config']['rag_customer_complain_config']['llm_config'], "intent_type": LLMTaskType.CHAT},
+            "llm_input": { "query": prompt, "chat_history": state['chat_history']}
+            }
+        )
+    return {"answer": output}
+
+@node_monitor_wrapper
+def rag_promotion_retriever_lambda(state: ChatbotState):
+    # call retriever
+    retriever_params = state["chatbot_config"]["rag_promotion_config"]["retriever_config"]
+    retriever_params["query"] = state["query"]
+    output:str = invoke_lambda(
+        event_body=retriever_params,
+        lambda_name="Online_Function_Retriever",
+        lambda_module_path="functions.lambda_retriever.retriever",
+        handler_name="lambda_handler"
+    )
+    contexts = [doc['page_content'] for doc in output['result']['docs']]
+
+    context = "\n".join(contexts)
+    send_trace(f'**rag_promotion_retriever** {context}')
+    return {"contexts": contexts}
+
+@node_monitor_wrapper
+def rag_promotion_llm_lambda(state:ChatbotState):
+    context = ("="*50).join(state['contexts'])
+    prompt = dedent(f"""你是安踏的客服助理，正在处理客户有关于商品促销的问题，这些问题有关于积分，奖品，奖励等方面，需要你按照下面的guidelines进行回复:
+                    <guidelines>
+                      - 回复内容需要展现出礼貌。
+                      - 回答要简洁。
+                    </guidelines>
+                    下面列举了一些具体的场景下的回复，你可以结合用户的问题进行参考回答:
+                    <context>
+                    {context}
+                    </context>
+                    下面是用户的回复: {state['query']}
+""")
+    output:str = invoke_lambda(
+        lambda_name='Online_LLM_Generate',
+        lambda_module_path="lambda_llm_generate.llm_generate",
+        handler_name='lambda_handler',
+        event_body={
+            "llm_config": {**state['chatbot_config']['rag_promotion_config']['llm_config'], "intent_type": LLMTaskType.CHAT},
+            "llm_input": { "query": prompt, "chat_history": state['chat_history']}
+            }
+        )
+    return {"answer": output}
 
 
 
@@ -307,29 +457,36 @@ def give_rhetorical_question(state:ChatbotState):
     return {"answer": recent_tool_calling['kwargs']['question']}
 
 
-def no_available_tool(state:ChatbotState):
+def give_final_response(state:ChatbotState):
     recent_tool_calling:list[dict] = state['current_tool_calls'][0]
     return {"answer": recent_tool_calling['kwargs']['response']}
 
-
-def give_tool_response(state:ChatbotState):
-    recent_tool_calling:list[dict] = state['current_tool_calls'][0]
-    return {"answer": recent_tool_calling['kwargs']['response']}
-
-
-def give_response_without_any_tool(state:ChatbotState):
-    chat_history = state['agent_chat_history']
-    return {"answer": chat_history[-1]['content']}
-
-def rule_reply(state:ChatbotState):
+def rule_url_reply(state:ChatbotState):
+    if state['query'].endswith(('.jpg','.png')):
+        return {"answer": "好的，收到图片。"}
+    # product information
+    if state['query'] in url_goods_dict:
+        return {"answer":url_goods_dict[state['query']]['goods_info']}
+    
     return {"answer":"您好"}
+
+def rule_number_reply(state:ChatbotState):
+    return {"answer":"收到订单信息"}
+
 
 ################
 # define edges #
 ################
 
 def query_route(state:dict):
-    return state['chatbot_config']['chatbot_mode']
+    # check if rule reply
+    query = state['query']
+    if validators.url(query):
+        return "url"
+    if query.isnumeric() and len(query)>=8:
+        return "number"
+    else:
+        return "continue"
 
 def intent_route(state:dict):
     return state['intent_type']
@@ -340,8 +497,9 @@ def agent_route(state:dict):
         return 'invalid tool calling'
     
     recent_tool_calls:list[dict] = state['current_tool_calls']
-    if not recent_tool_calls:
-        return "no tool"
+
+    # if not recent_tool_calls:
+    #     return "no tool"
     
     recent_tool_call = recent_tool_calls[0]
 
@@ -361,9 +519,21 @@ def agent_route(state:dict):
 
     if recent_tool_call['name'] == "rule_response":
         return "rule response"
+
+    if recent_tool_call['name'] == 'product_logistics':
+        return "product aftersales"
+
+    if recent_tool_call['name'] == 'product_quality':
+        return "product aftersales"
+
+    if recent_tool_call['name'] == 'customer_complain':
+        return "customer complain"
+
+    if recent_tool_call['name'] == 'promotion':
+        return "promotion"
     
-    if recent_tool_call['name'] == 'no_available_tool':
-        return "no available tool"
+    if recent_tool_call['name'] == "give_final_response":
+        return "give final response"
 
     return "continue"
      
@@ -380,52 +550,74 @@ def build_graph():
     workflow.add_node("tool_execute_lambda", tool_execute_lambda)
     workflow.add_node("transfer_reply", transfer_reply)
     workflow.add_node("give_rhetorical_question",give_rhetorical_question)
-    workflow.add_node("no_available_tool",no_available_tool)
-    workflow.add_node("give_response_wo_tool",give_response_without_any_tool)
+    workflow.add_node("give_final_response",give_final_response)
+    # workflow.add_node("give_response_wo_tool",give_response_without_any_tool)
     workflow.add_node("parse_tool_calling",parse_tool_calling)
     # 
     workflow.add_node("rag_daily_reception_retriever",rag_daily_reception_retriever_lambda)
     workflow.add_node("rag_daily_reception_llm",rag_daily_reception_llm_lambda)
     workflow.add_node("rag_goods_exchange_retriever",rag_goods_exchange_retriever_lambda)
     workflow.add_node("rag_goods_exchange_llm",rag_goods_exchange_llm_lambda)
-    workflow.add_node("rule_reply",rule_reply)
+    workflow.add_node("rag_product_aftersales_retriever",rag_product_aftersales_retriever_lambda)
+    workflow.add_node("rag_product_aftersales_llm",rag_product_aftersales_llm_lambda)
+    workflow.add_node("rag_customer_complain_retriever",rag_customer_complain_retriever_lambda)
+    workflow.add_node("rag_customer_complain_llm",rag_customer_complain_llm_lambda)
+    workflow.add_node("rule_url_reply",rule_url_reply)
+    workflow.add_node("rule_number_reply",rule_number_reply)
+    workflow.add_node("rag_promotion_retriever",rag_promotion_retriever_lambda)
+    workflow.add_node("rag_promotion_llm",rag_promotion_llm_lambda)
 
-    
     # add all edges
     workflow.set_entry_point("query_preprocess_lambda")
-    workflow.add_edge("query_preprocess_lambda","intention_detection_lambda")
+    # workflow.add_edge("query_preprocess_lambda","intention_detection_lambda")
     workflow.add_edge("intention_detection_lambda","agent_lambda")
     workflow.add_edge("tool_execute_lambda","agent_lambda")
     workflow.add_edge("agent_lambda",'parse_tool_calling')
     workflow.add_edge("rag_daily_reception_retriever","rag_daily_reception_llm")
     workflow.add_edge('rag_goods_exchange_retriever',"rag_goods_exchange_llm")
-
+    workflow.add_edge('rag_product_aftersales_retriever',"rag_product_aftersales_llm")
+    workflow.add_edge('rag_customer_complain_retriever',"rag_customer_complain_llm")
+    workflow.add_edge('rag_promotion_retriever',"rag_promotion_llm")
 
     # end
     workflow.add_edge("transfer_reply",END)
     workflow.add_edge("give_rhetorical_question",END)
-    workflow.add_edge("no_available_tool",END)
-    workflow.add_edge("give_response_wo_tool",END)
+    # workflow.add_edge("give_response_wo_tool",END)
     workflow.add_edge("rag_daily_reception_llm",END)
     workflow.add_edge("rag_goods_exchange_llm",END)
-    workflow.add_edge('rule_reply',END)
+    workflow.add_edge("rag_product_aftersales_llm",END)
+    workflow.add_edge("rag_customer_complain_llm",END)
+    workflow.add_edge('rule_url_reply',END)
+    workflow.add_edge('rule_number_reply',END)
+    workflow.add_edge("rag_promotion_llm",END)
+    workflow.add_edge("give_final_response",END)
 
     # temporal add edges for ending logic
     # add conditional edges
+
+    workflow.add_conditional_edges(
+        "query_preprocess_lambda",
+        query_route,
+        {
+           "url":  "rule_url_reply",
+           "number": "rule_number_reply",
+           "continue": "intention_detection_lambda"
+        }
+    )
 
     workflow.add_conditional_edges(
         "parse_tool_calling",
         agent_route,
         {
             "invalid tool calling": "agent_lambda",
-            "no tool": "give_response_wo_tool",
             "rhetorical question": "give_rhetorical_question",
             "transfer": "transfer_reply",
             "goods exchange": "rag_goods_exchange_retriever",
             "daily reception": "rag_daily_reception_retriever",
-            "no available tool": "no_available_tool",
-            "rule response": "rule_reply",
-            # "response": "give_tool_response",
+            "product aftersales": "rag_product_aftersales_retriever",
+            "customer complain": "rag_customer_complain_retriever",
+            "promotion": "rag_promotion_retriever",
+            "give final response": "give_final_response",
             "continue":"tool_execute_lambda"
         }
     )
@@ -453,6 +645,7 @@ def retail_entry(event_body):
     ################################################################################
     # prepare inputs and invoke graph
     event_body['chatbot_config'] = parse_retail_entry_config(event_body['chatbot_config'])
+    logger.info(f'event_body:\n{json.dumps(event_body,ensure_ascii=False,indent=2,cls=JSONEncoder)}')
     chatbot_config = event_body['chatbot_config']
     query = event_body['query']
     use_history = chatbot_config['use_history']
@@ -463,9 +656,9 @@ def retail_entry(event_body):
 
     # invoke graph and get results
     response = app.invoke({
-        "stream":stream,
+        "stream": stream,
         "chatbot_config": chatbot_config,
-        "query":query,
+        "query": query,
         "trace_infos": [],
         "message_id": message_id,
         "chat_history": chat_history,

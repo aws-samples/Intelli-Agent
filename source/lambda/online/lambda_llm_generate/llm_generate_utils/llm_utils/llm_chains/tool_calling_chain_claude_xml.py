@@ -36,7 +36,8 @@ from common_utils.exceptions import ToolNotExistError,ToolParameterNotExistError
 tool_call_guidelines = """<guidlines>
 - Don't forget to output <function_calls></function_calls> when any tool is called.
 - You should call tools that are described in <tools></tools>.
-- In <thinking></thinking>, you should check whether the tool name you want to call is exists in <tools></tools>, if it is not exists, you should call "no_available_tool" tool.
+- In <thinking></thinking>, you should check whether the tool name you want to call is exists in <tools></tools>.
+- Always output with "中文". 
 </guidlines>
 """
 
@@ -70,9 +71,12 @@ SYSTEM_MESSAGE_PROMPT_WITH_FEWSHOT_EXAMPLES = SYSTEM_MESSAGE_PROMPT + (
 TOOL_FORMAT = """<tool_description>
 <tool_name>{tool_name}</tool_name>
 <description>{tool_description}</description>
-<parameters>
-{formatted_parameters}
-</parameters>
+<required_parameters>
+{formatted_required_parameters}
+</required_parameters>
+<optional_parameters>
+{formatted_optional_parameters}
+</optional_parameters>
 </tool_description>"""
 
 TOOL_PARAMETER_FORMAT = """<parameter>
@@ -117,14 +121,24 @@ def convert_openai_tool_to_anthropic(tools:list[dict])->str:
         {
             "tool_name": tool["name"],
             "tool_description": tool["description"],
-            "formatted_parameters": "\n".join(
+            "formatted_required_parameters": "\n".join(
                 [
                     TOOL_PARAMETER_FORMAT.format(
                         parameter_name=name,
                         parameter_type=_get_type(parameter),
                         parameter_description=parameter.get("description"),
-                    )
-                    for name, parameter in tool["parameters"]["properties"].items()
+                    ) for name, parameter in tool["parameters"]["properties"].items()
+                    if name in tool["parameters"].get("required", [])
+                ]
+            ),
+            "formatted_optional_parameters": "\n".join(
+                [
+                    TOOL_PARAMETER_FORMAT.format(
+                        parameter_name=name,
+                        parameter_type=_get_type(parameter),
+                        parameter_description=parameter.get("description"),
+                    ) for name, parameter in tool["parameters"]["properties"].items()
+                    if name not in tool["parameters"].get("required", [])
                 ]
             ),
         }
@@ -135,59 +149,13 @@ def convert_openai_tool_to_anthropic(tools:list[dict])->str:
             TOOL_FORMAT.format(
                 tool_name=tool["tool_name"],
                 tool_description=tool["tool_description"],
-                formatted_parameters=tool["formatted_parameters"],
+                formatted_required_parameters=tool["formatted_required_parameters"],
+                formatted_optional_parameters=tool["formatted_optional_parameters"],
             )
             for tool in tools_data
         ]
     )
     return tools_formatted
-
-# def convert_anthropic_xml_to_dict(model_id,function_calls:List[str], tools:list[dict],message_content:str) -> List[dict]:
-#     # formatted_tools = [convert_to_openai_function(tool) for tool in tools]
-#     tool_calls:list[ToolCall] = []
-#     for function_call in function_calls:
-#         tool_names = re.findall(r'<tool_name>(.*?)</tool_name>', function_call, re.S)
-#         if not tool_names:
-#             return []
-        
-#         assert len(tool_names) == 1, function_call 
-
-#         for tool_name in tool_names:
-#             tool_name = tool_names[0].strip()
-#             cur_tool = None
-#             formatted_tools = tools
-#             for tool, formatted_tool in zip(tools,formatted_tools):
-#                 if formatted_tool['name'] == tool_name:
-#                     cur_tool = tool
-#                     break 
-            
-#             if cur_tool is None:
-#                 raise ToolNotExistError(
-#                     tool_name=tool_name,
-#                     content=message_content,
-#                     function_call_content=function_call
-#                     )
-#             # assert cur_tool is not None,(f"tool: {tool_name} not found",function_call)
-#             # formatted_tool = convert_to_openai_function(cur_tool)
-#             arguments = {}
-#             for parameter_key in formatted_tool['parameters']['required']:
-#                 value = re.findall(f'<{parameter_key}>(.*?)</{parameter_key}>', function_call, re.DOTALL)
-                
-#                 if not value:
-#                     raise ToolParameterNotExistError(
-#                         tool_name=tool_name,
-#                         parameter_key=parameter_key,
-#                         content=message_content,
-#                         function_call_content=function_call
-#                         )
-                
-#                 # TODO, add too many parameters error
-#                 assert len(value) == 1,(parameter_key,function_call)
-#                 arguments[parameter_key] = value[0].strip()
-            
-#             tool_calls.append(dict(name=tool_name,kwargs=arguments,model_id=model_id))
-    
-#     return tool_calls
 
 
 class Claude2ToolCallingChain(LLMChain):
@@ -234,11 +202,11 @@ class Claude2ToolCallingChain(LLMChain):
     def parse_function_calls_from_ai_message(cls,message:AIMessage):
         content = message.content + "</function_calls>"
         function_calls:List[str] = re.findall("<function_calls>(.*?)</function_calls>", content,re.S)
-        print(message.content)
+        # print(message.content)
         # return {"function_calls":function_calls,"content":message.content}
         if not function_calls:
             content = message.content
-        
+
         return {
                 "function_calls": function_calls,
                 "content": content
@@ -275,7 +243,7 @@ class Claude2ToolCallingChain(LLMChain):
             model_kwargs=model_kwargs,
         )
         chain = tool_calling_template \
-            | RunnableLambda(lambda x: print(x.messages) or x.messages ) \
+            | RunnableLambda(lambda x: x.messages ) \
             | llm | RunnableLambda(lambda message:cls.parse_function_calls_from_ai_message(
                 message
             ))
