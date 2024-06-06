@@ -428,8 +428,8 @@ def rag_promotion_llm_lambda(state:ChatbotState):
     context = ("="*50).join(state['contexts'])
     prompt = dedent(f"""你是安踏的客服助理，正在处理客户有关于商品促销的问题，这些问题有关于积分，奖品，奖励等方面，需要你按照下面的guidelines进行回复:
                     <guidelines>
-                      - 回复内容需要展现出礼貌。
                       - 回答要简洁。
+                      - 直接
                     </guidelines>
                     下面列举了一些具体的场景下的回复，你可以结合用户的问题进行参考回答:
                     <context>
