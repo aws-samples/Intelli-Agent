@@ -39,7 +39,7 @@ interface ETLStackProps extends StackProps {
   subnets: ec2.ISubnet[];
   securityGroups: ec2.SecurityGroup;
   domainEndpoint: string;
-  embeddingEndpoint: string[];
+  embeddingAndRerankerEndPoint: string;
   region: string;
   subEmail: string;
   s3ModelAssets: string;
@@ -414,7 +414,7 @@ export class EtlStack extends NestedStack {
       architecture: Architecture.X86_64,
       environment: {
         DEFAULT_EMBEDDING_ENDPOINT:
-          props.embeddingEndpoint[0] ||
+          props.embeddingAndRerankerEndPoint ||
           "Default Embedding Endpoint Not Created",
       },
     });

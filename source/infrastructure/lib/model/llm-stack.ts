@@ -24,10 +24,6 @@ dotenv.config();
 
 interface LLMStackProps extends cdk.StackProps {
   s3ModelAssets: string;
-  rerankModelPrefix: string;
-  rerankModelVersion: string;
-  embeddingModelPrefix: string[];
-  embeddingModelVersion: string[];
   embeddingAndRerankerModelPrefix: string;
   embeddingAndRerankerModelVersion: string;
   instructModelPrefix: string;
@@ -36,8 +32,6 @@ interface LLMStackProps extends cdk.StackProps {
 }
 
 export class LLMStack extends cdk.NestedStack {
-  public rerankEndPoint: string = "";
-  public embeddingEndPoints: string[] = [];
   public embeddingAndRerankerEndPoint: string = "";
   public instructEndPoint: string = "";
   private iamHelper: IAMHelper;
