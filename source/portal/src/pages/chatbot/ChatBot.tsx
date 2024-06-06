@@ -135,6 +135,7 @@ const ChatBot: React.FC = () => {
         if (isEnd) {
           setAiSpeaking(false);
           setCurrentAIMessage('');
+          setCurrentMonitorMessage('');
           setMessages((prev) => {
             return [
               ...prev,
@@ -153,10 +154,14 @@ const ChatBot: React.FC = () => {
   }, [lastMessage]);
 
   const handleClickSendMessage = () => {
+    if (aiSpeaking) {
+      return;
+    }
     if (!userMessage.trim()) {
       setShowMessageError(true);
       return;
     }
+    setAiSpeaking(true);
     // if (useWebSearch && !googleAPIKey.trim()) {
     //   setGoogleAPIKeyError(true);
     //   return;
@@ -253,6 +258,7 @@ const ChatBot: React.FC = () => {
             </div>
             <div>
               <Button
+                disabled={aiSpeaking}
                 onClick={() => {
                   handleClickSendMessage();
                 }}
