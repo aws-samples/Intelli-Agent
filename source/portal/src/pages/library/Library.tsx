@@ -356,7 +356,7 @@ const Library: React.FC = () => {
           reloadLibrary={() => {
             setTimeout(() => {
               getLibraryList();
-            }, 1000);
+            }, 2000);
           }}
         />
       </ContentLayout>
