@@ -416,7 +416,7 @@ tool_manager.register_tool({
     "lambda_module_path": "functions.retail_tools.lambda_size_guide.size_guide",
     "tool_def": {
         "name": "size_guide",
-        "description": "size guide for customer",
+        "description": "size guide for customer, if the customer's weight unit is 斤, you should convert it to kg, 1斤=0.5kg",
         "parameters": {
             "type": "object",
             "properties": {
