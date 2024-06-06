@@ -48,6 +48,10 @@ export const SCENARIO_LIST: SelectProps.Option[] = [
 
 export const RETAIL_GOODS_LIST: SelectProps.Option[] = [
   {
+    label: '756327274174',
+    value: '756327274174',
+  },
+  {
     label: '760740990909',
     value: '760740990909',
   },

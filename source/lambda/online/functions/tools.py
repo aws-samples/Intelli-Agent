@@ -373,17 +373,17 @@ tool_manager.register_tool({
 tool_manager.register_tool({
     "name":"customer_complain",
     "lambda_name": "xxxx",
-    "lambda_module_path": "functions.retail_tools.lambda_goods_exchage.customer_complain",
+    "lambda_module_path": "functions.retail_tools.lambda_customer_complain.customer_complain",
     "tool_def": {
         "name": "customer_complain",
-        "description": "有关于客户抱怨的工具，比如商品质量，错发商品，漏发商品，商品运费等",
+        "description": "有关于客户抱怨的工具，比如商品质量，错发商品，漏发商品等",
     }
 })
 
 tool_manager.register_tool({
     "name":"promotion",
     "lambda_name": "xxxx",
-    "lambda_module_path": "functions.retail_tools.lambda_goods_exchage.customer_complain",
+    "lambda_module_path": "functions.retail_tools.lambda_promotion.promotion",
     "tool_def": {
         "name": "promotion",
         "description": "有关于商品促销的信息，比如返点，奖品和奖励等"
@@ -557,7 +557,7 @@ tool_manager.register_tool(
         "lambda_module_path": "functions.retail_tools.lambda_product_aftersales.product_aftersales",
         "tool_def": {
                 "name": "product_logistics",
-                "description": "有关于商品物流的售后处理，主要包括退货，换货，错发商品，漏发商品等",
+                "description": "有关于商品物流的问题，主要运费包括退货，换货，错发商品，漏发商品等",
         }
     }
 )

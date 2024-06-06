@@ -213,6 +213,7 @@ def test(chatbot_mode="agent",session_id=None,query=None,goods_id=None):
     
     session_id = session_id or f"test_{time.time()}"
     query = query or "很浪费时间 出库的时候也不看清楚？"
+    # session_id = f"test_{time.time()}"
     
     # 售后物流
     #"可以发顺丰快递吗？",
@@ -394,6 +395,47 @@ def batch_test():
         index=False
         )
 
+def multi_turn_test():
+    # # 0099 test
+    # session_id = f"0099_test_{time.time()}"
+    # test(
+    #     chatbot_mode='agent',
+    #     session_id=session_id,
+    #     query="你家鞋子开胶了？怎么处理"
+    #     )
+    # test(
+    #     chatbot_mode='agent',
+    #     session_id=session_id,
+    #     query="我在得物购买的"
+    #     )
+    # test(
+    #     chatbot_mode='agent',
+    #     session_id=session_id,
+    #     query="如果在你家买的鞋子，出现质量问题你们怎么处理"
+    #     )
+    # test(
+    #     chatbot_mode='agent',
+    #     session_id=session_id,
+    #     query="如果在你家买的鞋子，出现质量问题你们怎么处理"
+    #     )
+    # 0098 test
+    session_id = f"0098_test_{time.time()}"
+    test(
+        chatbot_mode='agent',
+        session_id=session_id,
+        query="为啥要运费？"
+        )
+    test(
+        chatbot_mode='agent',
+        session_id=session_id,
+        query="现在怎么还还有鞋啊？"
+        )
+    test(
+        chatbot_mode='agent',
+        session_id=session_id,
+        query="不是一个地址发货？买鞋了啊 鞋和袜子不是一个地方发货的吗？"
+        )
+
 
 if __name__ == "__main__":
     # test_multi_turns()
@@ -415,4 +457,11 @@ if __name__ == "__main__":
     #     session_id="anta_test_1717567916.145038_cn****0099",
     #     query="为什么这个商品需要支付运费？"
     #     )
+    test(
+        chatbot_mode='agent',
+        session_id="anta_test_1717567916.145038_cn****0099",
+        query="为什么这个商品需要支付运费？"
+        )
+    # multi-turn test
+    multi_turn_test()
     
