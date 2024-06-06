@@ -35,7 +35,7 @@ websocket_utils.ws_client = DummyWebSocket()
 
 
 def generate_answer(query,
-                    entry_type="common",
+                    entry_type="retail",
                     stream=False,
                     session_id=None,
                     chatbot_config=None
@@ -396,28 +396,28 @@ def batch_test():
         )
 
 def multi_turn_test():
-    # 0099 test
-    session_id = f"0099_test_{time.time()}"
-    test(
-        chatbot_mode='agent',
-        session_id=session_id,
-        query="你家鞋子开胶了？怎么处理"
-        )
-    test(
-        chatbot_mode='agent',
-        session_id=session_id,
-        query="我在得物购买的"
-        )
-    test(
-        chatbot_mode='agent',
-        session_id=session_id,
-        query="如果在你家买的鞋子，出现质量问题你们怎么处理"
-        )
-    test(
-        chatbot_mode='agent',
-        session_id=session_id,
-        query="如果在你家买的鞋子，出现质量问题你们怎么处理"
-        )
+    # # 0099 test
+    # session_id = f"0099_test_{time.time()}"
+    # test(
+    #     chatbot_mode='agent',
+    #     session_id=session_id,
+    #     query="你家鞋子开胶了？怎么处理"
+    #     )
+    # test(
+    #     chatbot_mode='agent',
+    #     session_id=session_id,
+    #     query="我在得物购买的"
+    #     )
+    # test(
+    #     chatbot_mode='agent',
+    #     session_id=session_id,
+    #     query="如果在你家买的鞋子，出现质量问题你们怎么处理"
+    #     )
+    # test(
+    #     chatbot_mode='agent',
+    #     session_id=session_id,
+    #     query="如果在你家买的鞋子，出现质量问题你们怎么处理"
+    #     )
     # # 0098 test
     # session_id = f"0098_test_{time.time()}"
     # test(
@@ -435,6 +435,21 @@ def multi_turn_test():
     #     session_id=session_id,
     #     query="不是一个地址发货？买鞋了啊 鞋和袜子不是一个地方发货的吗？"
     #     )
+    # 0099 test
+    session_id = f"0068_test_{time.time()}"
+    goods_id = "756327274174"
+    test(
+        chatbot_mode='agent',
+        session_id=session_id,
+        goods_id=goods_id,
+        query="亲，平常穿37联系多大码"
+        )
+    test(
+        chatbot_mode='agent',
+        session_id=session_id,
+        goods_id=goods_id,
+        query="还会有货吗？"
+        )
 
 
 if __name__ == "__main__":
