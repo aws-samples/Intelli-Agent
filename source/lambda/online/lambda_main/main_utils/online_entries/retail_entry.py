@@ -82,7 +82,7 @@ def query_preprocess_lambda(state: ChatbotState):
         handler_name="lambda_handler"
     )
     state['extra_response']['query_rewrite'] = output
-    send_trace(f"**query_rewrite:** \n{output}")
+    send_trace(f"\n\n**query_rewrite:** \n{output}")
     return {
             "query_rewrite":output,
             "current_monitor_infos":f"query_rewrite: {output}"
@@ -99,7 +99,7 @@ def intention_detection_lambda(state: ChatbotState):
     state['extra_response']['intention_fewshot_examples'] = intention_fewshot_examples
 
     # send trace
-    send_trace(f"intention retrieved:\n{json.dumps(intention_fewshot_examples,ensure_ascii=False,indent=2)}")
+    send_trace(f"\n\nintention retrieved:\n{json.dumps(intention_fewshot_examples,ensure_ascii=False,indent=2)}")
     current_intent_tools:list[str] = list(set([e['intent'] for e in intention_fewshot_examples]))
     return {
         "intention_fewshot_examples": intention_fewshot_examples,
@@ -120,7 +120,7 @@ def agent_lambda(state: ChatbotState):
     content = output['content']
     current_agent_tools_def = output['current_agent_tools_def']
     current_agent_model_id = output['current_agent_model_id']
-    send_trace(f"**current_function_calls:** \n{current_function_calls},\n**model_id:** \n{current_agent_model_id}\n**ai content:** \n{content}")
+    send_trace(f"\n\n**current_function_calls:** \n{current_function_calls},\n**model_id:** \n{current_agent_model_id}\n**ai content:** \n{content}")
     return {
         "current_agent_model_id": current_agent_model_id,
         "current_function_calls": current_function_calls,
@@ -148,7 +148,7 @@ def parse_tool_calling(state: ChatbotState):
             function_calls = state['current_function_calls'],
             tools=state['current_agent_tools_def'],
         )
-        send_trace(f"**tool_calls parsed:** \n{tool_calls}")
+        send_trace(f"\n\n**tool_calls parsed:** \n{tool_calls}")
         if tool_calls:
             state["extra_response"]['current_agent_intent_type'] = tool_calls[0]['name']
         else:
@@ -175,7 +175,7 @@ def parse_tool_calling(state: ChatbotState):
             "current_tool_calls": tool_calls,
         }
     except (ToolNotExistError,ToolParameterNotExistError) as e:
-        send_trace(f"**tool_calls parse failed:** \n{str(e)}")
+        send_trace(f"\n\n**tool_calls parse failed:** \n{str(e)}")
         return {
         "parse_tool_calling_ok": False,
         "agent_chat_history":[{
@@ -357,7 +357,7 @@ def rag_product_aftersales_llm_lambda(state:ChatbotState):
                       - 回答内容要简洁。
                       - 如果问题与context内容不相关，就不要采用。
                       - 消费者的问题里面可能包含口语化的表达，比如鞋子开胶的意思是用胶黏合的鞋体裂开。这和胶丝遗留没有关系
-                      - 如果遇到关于为啥要运费之类的原因，可以告诉消费者，要满200才能免运费
+                      - 如果消费者的问题是有关于运费的原因，可以告诉消费者，要满200才能免运费
                     </guidelines>
                     下面是消费者的问题: {state['query']}。结合guidelines的内容进行回答
 """)
