@@ -55,7 +55,7 @@ def query_preprocess_lambda(state: ChatbotState):
         lambda_module_path="lambda_query_preprocess.query_preprocess",
         handler_name="lambda_handler",
     )
-    send_trace(f"**query_rewrite:** \n{output}")
+    send_trace(f"\n\n**query_rewrite:** \n{output}")
     return {"query_rewrite": output}
 
 
@@ -121,7 +121,7 @@ def parse_tool_calling(state: ChatbotState):
             function_calls=state["current_function_calls"],
             tools=state["current_agent_tools_def"],
         )
-        send_trace(f"**tool_calls parsed:** \n{tool_calls}")
+        send_trace(f"\n\n**tool_calls parsed:** \n{tool_calls}")
         if tool_calls:
             state["extra_response"]['current_agent_intent_type'] = tool_calls[0]['name']
         else:
@@ -138,7 +138,7 @@ def parse_tool_calling(state: ChatbotState):
             "current_tool_calls": tool_calls,
         }
     except (ToolNotExistError, ToolParameterNotExistError) as e:
-        send_trace(f"**tool_calls parse failed:** \n{str(e)}")
+        send_trace(f"\n\n**tool_calls parse failed:** \n{str(e)}")
         return {
             "parse_tool_calling_ok": False,
             "agent_chat_history": [
@@ -195,7 +195,7 @@ def tool_execute_lambda(state: ChatbotState):
         tool_call_result_strs.append(ret)
 
     ret = "\n".join(tool_call_result_strs)
-    send_trace(f"**tool execute result:** \n{ret}")
+    send_trace(f"\n\n**tool execute result:** \n{ret}")
     return {"agent_chat_history": [{"role": "user", "content": ret}]}
 
 
