@@ -35,7 +35,7 @@ websocket_utils.ws_client = DummyWebSocket()
 
 
 def generate_answer(query,
-                    entry_type="retail",
+                    entry_type="common",
                     stream=False,
                     session_id=None,
                     chatbot_config=None
@@ -463,12 +463,12 @@ if __name__ == "__main__":
     #     query="为什么这个商品需要支付运费？"
     #     )
     # # multi-turn test
-    test(
-        chatbot_mode='agent',
-        session_id="anta_test_1717567916.145038_cn****0099",
-        query="为什么这个商品需要支付运费？"
-        )
+    # test(
+    #     chatbot_mode='agent',
+    #     session_id="anta_test_1717567916.145038_cn****0099",
+    #     query="为什么这个商品需要支付运费？"
+    #     )
     # multi-turn test
 
-    # multi_turn_test()
+    multi_turn_test()
     

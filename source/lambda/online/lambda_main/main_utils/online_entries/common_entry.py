@@ -84,23 +84,25 @@ def intention_detection_lambda(state: ChatbotState):
 
 @node_monitor_wrapper
 def agent_lambda(state: ChatbotState):
-    output: dict = invoke_lambda(
-        event_body={**state, "chat_history": state["agent_chat_history"]},
+    output:dict = invoke_lambda(
+        event_body={**state,"chat_history":state['agent_chat_history']},
         lambda_name="Online_Agent",
         lambda_module_path="lambda_agent.agent",
-        handler_name="lambda_handler",
+        handler_name="lambda_handler"
     )
-    current_function_calls = output["function_calls"]
-    content = output["content"]
-    current_agent_tools_def = output["current_agent_tools_def"]
-    current_agent_model_id = output["current_agent_model_id"]
-    send_trace(
-        f"**current_function_calls:** \n{current_function_calls},\n**model_id:** \n{current_agent_model_id}\n**ai content:** \n{content}"
-    )
+    current_function_calls = output['function_calls']
+    content = output['content']
+    current_agent_tools_def = output['current_agent_tools_def']
+    current_agent_model_id = output['current_agent_model_id']
+    send_trace(f"\n\n**current_function_calls:** \n{current_function_calls},\n**model_id:** \n{current_agent_model_id}\n**ai content:** \n{content}")
     return {
         "current_agent_model_id": current_agent_model_id,
+        "current_function_calls": current_function_calls,
         "current_agent_tools_def": current_agent_tools_def,
-        "agent_chat_history": [{"role": "ai", "content": content}],
+        "agent_chat_history": [{
+                    "role": "ai",
+                    "content": content
+                }]
     }
 
 
