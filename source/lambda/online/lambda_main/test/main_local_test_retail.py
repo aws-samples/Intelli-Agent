@@ -396,50 +396,50 @@ def batch_test():
         )
 
 def multi_turn_test():
-    # # 0099 test
-    # session_id = f"0099_test_{time.time()}"
-    # test(
-    #     chatbot_mode='agent',
-    #     session_id=session_id,
-    #     query="你家鞋子开胶了？怎么处理"
-    #     )
-    # test(
-    #     chatbot_mode='agent',
-    #     session_id=session_id,
-    #     query="我在得物购买的"
-    #     )
-    # test(
-    #     chatbot_mode='agent',
-    #     session_id=session_id,
-    #     query="如果在你家买的鞋子，出现质量问题你们怎么处理"
-    #     )
-    # test(
-    #     chatbot_mode='agent',
-    #     session_id=session_id,
-    #     query="如果在你家买的鞋子，出现质量问题你们怎么处理"
-    #     )
-    # 0098 test
-    session_id = f"0098_test_{time.time()}"
+    # 0099 test
+    session_id = f"0099_test_{time.time()}"
     test(
         chatbot_mode='agent',
         session_id=session_id,
-        query="为啥要运费？"
+        query="你家鞋子开胶了？怎么处理"
         )
     test(
         chatbot_mode='agent',
         session_id=session_id,
-        query="现在怎么还还有鞋啊？"
+        query="我在得物购买的"
         )
     test(
         chatbot_mode='agent',
         session_id=session_id,
-        query="不是一个地址发货？买鞋了啊 鞋和袜子不是一个地方发货的吗？"
+        query="如果在你家买的鞋子，出现质量问题你们怎么处理"
         )
+    test(
+        chatbot_mode='agent',
+        session_id=session_id,
+        query="如果在你家买的鞋子，出现质量问题你们怎么处理"
+        )
+    # # 0098 test
+    # session_id = f"0098_test_{time.time()}"
+    # test(
+    #     chatbot_mode='agent',
+    #     session_id=session_id,
+    #     query="为啥要运费？"
+    #     )
+    # test(
+    #     chatbot_mode='agent',
+    #     session_id=session_id,
+    #     query="现在怎么还还有鞋啊？"
+    #     )
+    # test(
+    #     chatbot_mode='agent',
+    #     session_id=session_id,
+    #     query="不是一个地址发货？买鞋了啊 鞋和袜子不是一个地方发货的吗？"
+    #     )
 
 
 if __name__ == "__main__":
     # test_multi_turns()
-    batch_test()
+    # batch_test()
     # batch_test()
     # test(
     #     chatbot_mode='agent',
@@ -463,5 +463,5 @@ if __name__ == "__main__":
         query="为什么这个商品需要支付运费？"
         )
     # multi-turn test
-    multi_turn_test()
+    # multi_turn_test()
     
