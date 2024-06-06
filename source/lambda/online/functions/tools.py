@@ -376,7 +376,7 @@ tool_manager.register_tool({
     "lambda_module_path": "functions.retail_tools.lambda_goods_exchage.customer_complain",
     "tool_def": {
         "name": "customer_complain",
-        "description": "有关于客户抱怨的工具，比如商品质量，错发商品，漏发商品等",
+        "description": "有关于客户抱怨的工具，比如商品质量，错发商品，漏发商品，商品运费等",
     }
 })
 
