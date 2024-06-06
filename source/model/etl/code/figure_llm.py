@@ -1,4 +1,6 @@
-from anthropic import AnthropicBedrock
+import boto3
+import logging
+from botocore.exceptions import ClientError
 import re
 import io
 import base64
@@ -6,9 +8,7 @@ import json
 
 class figureUnderstand():
     def __init__(self):
-        self.client = AnthropicBedrock(
-            aws_region="us-west-2",
-        )
+        self.bedrock_runtime = boto3.client(service_name='bedrock-runtime')
         self.mermaid_prompt = json.load(open('prompt/mermaid.json', 'r'))
     def invoke_llm(self, img, prompt, prefix="<output>", stop="</output>"):
         image_stream = io.BytesIO()
@@ -35,10 +35,16 @@ class figureUnderstand():
           {"role": "assistant", "content": prefix},
         ]
         model_id = "anthropic.claude-3-sonnet-20240229-v1:0"
-        message = self.client.messages.create(
-            model=model_id, max_tokens=4096, messages=messages, stop_sequences=[stop]
-        )
-        result = prefix + message.content[0].text + stop
+        body = json.dumps({
+            "anthropic_version": "bedrock-2023-05-31",
+            "max_tokens": 4096,
+            "messages": messages,
+            "stop_sequences": [stop]
+        })
+        response = self.bedrock_runtime.invoke_model(
+            body=body, modelId=model_id)
+        response_body = json.loads(response.get('body').read())
+        result = prefix + response_body['content'][0]['text'] + stop
         return result
     def get_classification(self, img):
         with open('prompt/figure_classification.txt') as f:

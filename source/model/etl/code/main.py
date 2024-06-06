@@ -274,3 +274,12 @@ def process_pdf_pipeline(request_body):
 
     return result
 
+if __name__ == "__main__":
+    body = {
+        "s3_bucket": "xiaotih",
+        "object_key": "2021-Annual-Report（拖移项目）.pdf",
+        "destination_bucket": "xiaotih",
+        "mode": "ppstructure",
+        "lang": "ch","auto_dpi":True, "figure_recognition":True
+    }
+    print(process_pdf_pipeline(body))
