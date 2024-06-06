@@ -127,8 +127,8 @@ def lambda_handler(event_body, context=None):
             return {"code":1, "result":"height is required"}
         if "weight" not in kwargs:
             return {"code":1, "result":"weight is required"}
-        height = int(kwargs["height"])
-        weight = int(kwargs["weight"])
+        height = int(float(kwargs["height"]))
+        weight = int(float(kwargs["weight"]))
         result = size_dict.get(goods_type_1).get(goods_type_2).get("height_weight").get(height).get(weight, "L")
     return {"code":0, "result":result, "name": "尺码查询"}
 

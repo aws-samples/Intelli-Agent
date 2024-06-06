@@ -124,11 +124,21 @@ def parse_tool_calling(state: ChatbotState):
         if tool_calls:
             state["extra_response"]['current_agent_intent_type'] = tool_calls[0]['name']
         else:
+            tool_format = ("<function_calls>\n"
+            "<invoke>\n"
+            "<tool_name>$TOOL_NAME</tool_name>\n"
+            "<parameters>\n"
+            "<$PARAMETER_NAME>$PARAMETER_VALUE</$PARAMETER_NAME>\n"
+            "...\n"
+            "</parameters>\n"
+            "</invoke>\n"
+            "</function_calls>\n"
+            )
             return {
                 "parse_tool_calling_ok": False,
                 "agent_chat_history":[{
                     "role": "user",
-                    "content": "当前没有解析到tool,请检查tool调用的格式是否正确，注意调用tool的时候要加上<function_calls></function_calls>。如果你认为当前不需要调用其他工具，请直接调用“give_final_response”工具进行返回。"
+                    "content": f"当前没有解析到tool,请检查tool调用的格式是否正确，并重新输出某个tool的调用。注意正确的tool调用格式应该为: {tool_format}。\n如果你认为当前不需要调用其他工具，请直接调用“give_final_response”工具进行返回。"
                 }]
             }
 
