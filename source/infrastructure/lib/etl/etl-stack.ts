@@ -39,7 +39,7 @@ interface ETLStackProps extends StackProps {
   subnets: ec2.ISubnet[];
   securityGroups: ec2.SecurityGroup;
   domainEndpoint: string;
-  embeddingEndpoint: string[];
+  embeddingAndRerankerEndPoint: string;
   region: string;
   subEmail: string;
   s3ModelAssets: string;
@@ -389,7 +389,7 @@ export class EtlStack extends NestedStack {
         "--ETL_OBJECT_TABLE": etlObjTable.tableName,
         "--WORKSPACE_TABLE": workspaceTable.tableName,
         "--additional-python-modules":
-          "langchain==0.1.11,beautifulsoup4==4.12.2,requests-aws4auth==1.2.3,boto3==1.28.84,openai==0.28.1,pyOpenSSL==23.3.0,tenacity==8.2.3,markdownify==0.11.6,mammoth==1.6.0,chardet==5.2.0,python-docx==1.1.0,nltk==3.8.1,pdfminer.six==20221105,smart-open==7.0.4",
+          "langchain==0.1.11,beautifulsoup4==4.12.2,requests-aws4auth==1.2.3,boto3==1.28.84,openai==0.28.1,pyOpenSSL==23.3.0,tenacity==8.2.3,markdownify==0.11.6,mammoth==1.6.0,chardet==5.2.0,python-docx==1.1.0,nltk==3.8.1,pdfminer.six==20221105,smart-open==7.0.4,lxml==5.2.2",
         "--python-modules-installer-option": BuildConfig.JOB_PIP_OPTION,
         // Add multiple extra python files
         "--extra-py-files": extraPythonFilesList,
@@ -414,7 +414,7 @@ export class EtlStack extends NestedStack {
       architecture: Architecture.X86_64,
       environment: {
         DEFAULT_EMBEDDING_ENDPOINT:
-          props.embeddingEndpoint[0] ||
+          props.embeddingAndRerankerEndPoint ||
           "Default Embedding Endpoint Not Created",
       },
     });

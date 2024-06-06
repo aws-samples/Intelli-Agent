@@ -1,13 +1,13 @@
 {
   "translation": {
-    "name": "AWS LLM Bot",
-    "welcome": "Welcome to AWS LLM Bot",
+    "name": "Intelligent Private Agent",
+    "welcome": "Welcome to Intelligent Private Agent",
     "you": "Y o u",
     "welcomeMessage": "Hello, how can I help you today?",
     "server": "Server",
     "settings": "Settings",
     "signOut": "Sign Out",
-    "chatSpace": "Chat Space",
+    "chatSpace": "Chat",
     "chatBot": "Chat Bot",
     "docLibrary": "Document Library",
     "addLibrary": "Add Library",

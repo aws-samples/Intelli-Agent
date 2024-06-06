@@ -18,7 +18,14 @@ def lambda_handler(event, context):
     logger.info(event)
     page_size = DEFAULT_SIZE
     max_item = DEFAULT_MAX_ITEM
-    group_id = event["requestContext"]["authorizer"]["claims"]["cognito:groups"]
+    authorizer_type = event["requestContext"]["authorizer"].get("authorizerType")
+    if authorizer_type == "lambda_authorizer":
+        claims = json.loads(event["requestContext"]["authorizer"]["claims"])
+        group_id = claims["cognito:groups"]
+    else:
+        group_id = event["requestContext"]["authorizer"]["claims"]["cognito:groups"]
+    logger.info(f"Group ID: {group_id}")
+
     if event["queryStringParameters"] != None:
         if "size" in event["queryStringParameters"]:
             page_size = int(event["queryStringParameters"]["size"])

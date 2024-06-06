@@ -4,7 +4,6 @@ import os
 
 import boto3
 
-
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 s3_client = boto3.client("s3")
@@ -19,21 +18,24 @@ def create_presigned_url(bucket_name, object_name, content_type, expiration):
     :param expiration: Time in seconds for the presigned URL to remain valid
     :return: Presigned URL as string. If error, returns None.
     """
-    presigned_url = s3_client.generate_presigned_url(ClientMethod="put_object",
-                                                Params={
-                                                    "Bucket": bucket_name,
-                                                    "Key": object_name,
-                                                    "ContentType": content_type
-                                                },
-                                                ExpiresIn=expiration,
-                                                HttpMethod="PUT")
+    presigned_url = s3_client.generate_presigned_url(
+        ClientMethod="put_object",
+        Params={"Bucket": bucket_name, "Key": object_name, "ContentType": content_type},
+        ExpiresIn=expiration,
+        HttpMethod="PUT",
+    )
 
     return presigned_url
 
 
 def lambda_handler(event, context):
     logger.info(event)
-    group_id = event["requestContext"]["authorizer"]["claims"]["cognito:groups"]
+    authorizer_type = event["requestContext"]["authorizer"].get("authorizerType")
+    if authorizer_type == "lambda_authorizer":
+        claims = json.loads(event["requestContext"]["authorizer"]["claims"])
+        group_id = claims["cognito:groups"]
+    else:
+        group_id = event["requestContext"]["authorizer"]["claims"]["cognito:groups"]
     resp_header = {
         "Content-Type": "application/json",
         "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
@@ -51,7 +53,9 @@ def lambda_handler(event, context):
         if "expiration" in input_body:
             expiration = input_body["expiration"]
 
-        presigned_url = create_presigned_url(s3_bucket_name, file_name, content_type, expiration)
+        presigned_url = create_presigned_url(
+            s3_bucket_name, file_name, content_type, expiration
+        )
         output = {
             "message": "The S3 presigned url is generated",
             "data": presigned_url,

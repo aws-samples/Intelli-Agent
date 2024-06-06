@@ -35,8 +35,6 @@ interface ApiStackProps extends StackProps {
   apiVpc: ec2.Vpc;
   securityGroup: ec2.SecurityGroup;
   domainEndpoint: string;
-  rerankEndPoint: string;
-  embeddingEndPoints: string[];
   embeddingAndRerankerEndPoint: string;
   llmModelId: string;
   instructEndPoint: string;
@@ -168,7 +166,7 @@ export class ApiConstruct extends Construct {
       architecture: Architecture.X86_64,
       environment: {
         opensearch_cluster_domain: domainEndpoint,
-        embedding_endpoint: props.embeddingEndPoints[0],
+        embedding_endpoint: props.embeddingAndRerankerEndPoint,
       },
       layers: [apiLambdaEmbeddingLayer],
     });
@@ -295,7 +293,7 @@ export class ApiConstruct extends Construct {
     const customAuthorizerLambda = new Function(this, "CustomAuthorizerLambda", {
       runtime: Runtime.PYTHON_3_11,
       handler: "custom_authorizer.lambda_handler",
-      code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
+      code: Code.fromAsset(join(__dirname, "../../../lambda/authorizer")),
       timeout: Duration.minutes(15),
       memorySize: 1024,
       vpc: apiVpc,
@@ -350,7 +348,7 @@ export class ApiConstruct extends Construct {
       environment: {
         document_bucket: s3Bucket.bucketName,
         opensearch_cluster_domain: domainEndpoint,
-        embedding_endpoint: props.embeddingEndPoints[0],
+        embedding_endpoint: props.embeddingAndRerankerEndPoint,
         jobName: props.jobName,
         jobQueueArn: props.jobQueueArn,
         jobDefinitionArn: props.jobDefinitionArn,
@@ -401,13 +399,13 @@ export class ApiConstruct extends Construct {
       },
     });
 
-    const auth = new apigw.CognitoUserPoolsAuthorizer(this, 'ApiAuthorizer', {
-      cognitoUserPools: [props.userPool],
+    const auth = new apigw.RequestAuthorizer(this, 'ApiAuthorizer', {
+      handler: customAuthorizerLambda,
+      identitySources: [apigw.IdentitySource.header('Authorization')],
     });
 
-    const methodOption: apigw.MethodOptions = {
+    const methodOption = {
       authorizer: auth,
-      authorizationType: apigw.AuthorizationType.COGNITO,
     };
 
     // Define the API Gateway Lambda Integration with proxy and no integration responses
