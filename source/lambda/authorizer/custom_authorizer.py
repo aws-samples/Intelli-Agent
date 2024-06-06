@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import time
 from urllib.request import urlopen
 
 import jwt
@@ -102,6 +103,10 @@ def lambda_handler(event, context):
             raise Exception(
                 "Custom Authorizer Error: Token was not issued by the correct issuer"
             )
+
+        if time.time() > claims["exp"]:
+            logger.error("Token is expired")
+            raise Exception("Custom Authorizer Error: Token is expired")
 
         # Verify the token client
         if claims["aud"] != APP_CLIENT_ID:
