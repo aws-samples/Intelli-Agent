@@ -22,7 +22,7 @@ response = urlopen(keys_url)
 keys = json.loads(response.read())["keys"]
 
 
-def generatePolicy(principalId, effect, resource):
+def generatePolicy(principalId, effect, resource, claims):
     authResponse = {}
     authResponse["principalId"] = principalId
     if effect and resource:
@@ -35,24 +35,39 @@ def generatePolicy(principalId, effect, resource):
         statementOne["Resource"] = resource
         policyDocument["Statement"] = [statementOne]
         authResponse["policyDocument"] = policyDocument
+    authResponse["context"] = {
+        "claims": json.dumps(claims),
+        "authorizerType": "lambda_authorizer",
+    }
 
     authResponse_JSON = json.dumps(authResponse)
 
     return authResponse_JSON
 
 
-def generateAllow(principalId, resource):
-    return generatePolicy(principalId, "Allow", resource)
+def generateAllow(principalId, resource, claims):
+    return generatePolicy(principalId, "Allow", resource, claims)
 
 
-def generateDeny(principalId, resource):
-    return generatePolicy(principalId, "Deny", resource)
+def generateDeny(principalId, resource, claims):
+    return generatePolicy(principalId, "Deny", resource, claims)
 
 
 def lambda_handler(event, context):
     logger.info(event)
     try:
-        token = event["queryStringParameters"]["idToken"]
+        if event.get("httpMethod"):
+            # REST API
+            if event["headers"].get("authorization"):
+                # Browser will change the Authorization header to lowercase
+                token = event["headers"]["authorization"].replace("Bearer", "").strip()
+            else:
+                # Postman
+                token = event["headers"]["Authorization"].replace("Bearer", "").strip()
+        else:
+            # WebSocket API
+            token = event["queryStringParameters"]["idToken"]
+
         headers = jwt.get_unverified_header(token)
         kid = headers["kid"]
 
@@ -75,6 +90,9 @@ def lambda_handler(event, context):
         claims = jwt.decode(
             token, public_key, algorithms=["RS256"], audience=APP_CLIENT_ID
         )
+        # reformat claims to align with cognito output
+        claims["cognito:groups"] = ",".join(claims["cognito:groups"])
+        logger.info(claims)
 
         # Verify the token issuer
         if claims["iss"] != "https://cognito-idp.{}.amazonaws.com/{}".format(
@@ -92,12 +110,13 @@ def lambda_handler(event, context):
                 "Custom Authorizer Error: Token was not issued for this audience"
             )
 
-        response = generateAllow("me", event["methodArn"])
+        response = generateAllow("me", "*", claims)
         logger.info("Authorized")
         return json.loads(response)
 
     except Exception as e:
         logger.info("Not Authorized")
         logger.error(e)
-        response = generateDeny("me", event["methodArn"])
+        claims = {}
+        response = generateDeny("me", "*", claims)
         return json.loads(response)
