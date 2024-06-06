@@ -21,7 +21,11 @@ const Message: React.FC<MessageProps> = ({ showTrace, type, message }) => {
         <div className="flex gap-10">
           {<Avatar size="40" round={true} src={BedrockImg} />}
           <div className={`message-content flex-1 ai`}>
-            <div className="message">{message.data}</div>
+            <div className="message">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {message.data}
+              </ReactMarkdown>
+            </div>
             {showTrace && message.monitoring && (
               <div className="monitor mt-10">
                 <ExpandableSection
