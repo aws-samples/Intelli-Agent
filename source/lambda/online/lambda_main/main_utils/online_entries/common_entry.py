@@ -47,7 +47,6 @@ class ChatbotState(TypedDict):
 # nodes in lambdas #
 ####################
 
-
 @node_monitor_wrapper
 def query_preprocess_lambda(state: ChatbotState):
     output: str = invoke_lambda(
@@ -123,7 +122,21 @@ def parse_tool_calling(state: ChatbotState):
             tools=state["current_agent_tools_def"],
         )
         send_trace(f"**tool_calls parsed:** \n{tool_calls}")
-        return {"parse_tool_calling_ok": True, "current_tool_calls": tool_calls}
+        if tool_calls:
+            state["extra_response"]['current_agent_intent_type'] = tool_calls[0]['name']
+        else:
+            return {
+                "parse_tool_calling_ok": False,
+                "agent_chat_history":[{
+                    "role": "user",
+                    "content": "当前没有解析到tool,请检查tool调用的格式是否正确，并重新输出某个tool的调用。注意调用tool的时候要加上<function_calls></function_calls>。如果你认为当前不需要调用其他工具，请直接调用“give_final_response”工具进行返回。"
+                }]
+            }
+
+        return {
+            "parse_tool_calling_ok": True,
+            "current_tool_calls": tool_calls,
+        }
     except (ToolNotExistError, ToolParameterNotExistError) as e:
         send_trace(f"**tool_calls parse failed:** \n{str(e)}")
         return {
@@ -256,24 +269,22 @@ def give_rhetorical_question(state: ChatbotState):
     return {"answer": recent_tool_calling["kwargs"]["question"]}
 
 
-def no_available_tool(state: ChatbotState):
+# def no_available_tool(state: ChatbotState):
+#     recent_tool_calling: list[dict] = state["current_tool_calls"][0]
+#     return {"answer": recent_tool_calling["kwargs"]["response"]}
+
+
+def give_final_response(state: ChatbotState):
     recent_tool_calling: list[dict] = state["current_tool_calls"][0]
     return {"answer": recent_tool_calling["kwargs"]["response"]}
 
 
-def give_tool_response(state: ChatbotState):
-    recent_tool_calling: list[dict] = state["current_tool_calls"][0]
-    return {"answer": recent_tool_calling["kwargs"]["response"]}
-
-
-def give_response_without_any_tool(state: ChatbotState):
-    chat_history = state["agent_chat_history"]
-    return {"answer": chat_history[-1]["content"]}
-
+# def give_response_without_any_tool(state: ChatbotState):
+#     chat_history = state["agent_chat_history"]
+#     return {"answer": chat_history[-1]["content"]}
 
 def qq_matched_reply(state: ChatbotState):
     return {"answer": state["answer"]}
-
 
 ################
 # define edges #
@@ -314,8 +325,8 @@ def agent_route(state: dict):
     if recent_tool_call["name"] == "give_rhetorical_question":
         return "rhetorical question"
 
-    if recent_tool_call["name"] == "no_available_tool":
-        return "no available tool"
+    if recent_tool_call["name"] == "give_final_response":
+        return "give final response"
 
     return "continue"
 
@@ -336,8 +347,8 @@ def build_graph():
     workflow.add_node("comfort_reply", comfort_reply)
     workflow.add_node("transfer_reply", transfer_reply)
     workflow.add_node("give_rhetorical_question", give_rhetorical_question)
-    workflow.add_node("no_available_tool", no_available_tool)
-    workflow.add_node("give_response_wo_tool", give_response_without_any_tool)
+    workflow.add_node("give_final_response", give_final_response)
+    # workflow.add_node("give_response_wo_tool", give_response_without_any_tool)
     workflow.add_node("rag_retrieve_lambda", rag_retrieve_lambda)
     workflow.add_node("rag_llm_lambda", rag_llm_lambda)
     workflow.add_node("qq_matched_reply", qq_matched_reply)
@@ -355,8 +366,8 @@ def build_graph():
     workflow.add_edge("transfer_reply", END)
     workflow.add_edge("chat_llm_generate_lambda", END)
     workflow.add_edge("give_rhetorical_question", END)
-    workflow.add_edge("no_available_tool", END)
-    workflow.add_edge("give_response_wo_tool", END)
+    workflow.add_edge("give_final_response", END)
+    # workflow.add_edge("give_response_wo_tool", END)
     workflow.add_edge("rag_retrieve_lambda", "rag_llm_lambda")
     workflow.add_edge("rag_llm_lambda", END)
     workflow.add_edge("qq_matched_reply", END)
@@ -384,14 +395,12 @@ def build_graph():
         agent_route,
         {
             "invalid tool calling": "agent_lambda",
-            "no tool": "give_response_wo_tool",
+            "give final response": "give_final_response",
             "rhetorical question": "give_rhetorical_question",
             "comfort": "comfort_reply",
             "transfer": "transfer_reply",
             "chat": "chat_llm_generate_lambda",
             "rag": "rag_retrieve_lambda",
-            "no available tool": "no_available_tool",
-            # "response": "give_tool_response",
             "continue": "tool_execute_lambda",
         },
     )

@@ -28,7 +28,7 @@ logger = get_logger("intention")
 def lambda_handler(state:dict, context=None):
     intention_config = state['chatbot_config'].get("intention_config",{})
     event_body = {
-        "query": state['query'],
+        "query": state['query_rewrite'],
         **intention_config
     }
     # call retriver
@@ -45,7 +45,7 @@ def lambda_handler(state:dict, context=None):
         "name": doc['answer']['jsonlAnswer']['intent'],
         "intent": doc['answer']['jsonlAnswer']['intent'],
         "kwargs": doc['answer']['jsonlAnswer'].get('kwargs', {}),
-        } for doc in res['result']['docs'] if doc['score'] > 0.8
+        } for doc in res['result']['docs'] if doc['score'] > 0.4
     ]
 
     return intention_fewshot_examples

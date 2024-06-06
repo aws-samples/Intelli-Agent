@@ -108,8 +108,8 @@ def parse_common_entry_config(chatbot_config):
     if "give_rhetorical_question" not in tools:
         tools.append("give_rhetorical_question")
 
-    if "no_available_tool" not in tools:
-        tools.append("no_available_tool")
+    if "give_final_response" not in tools:
+        tools.append("give_final_response")
 
     return chatbot_config
 
@@ -141,7 +141,7 @@ def parse_retail_entry_config(chatbot_config):
             "retrievers": [
                 {
                     "type": "qq",
-                    "workspace_ids": ["retail-intent"],
+                    "workspace_ids": ["retail-intent-1"],
                     "config": {
                         "top_k": 10,
                     }
@@ -163,16 +163,47 @@ def parse_retail_entry_config(chatbot_config):
         "chat_config": {
             **default_llm_config,
         },
-        "rag_config": {
+        "rag_goods_exchange_config": {
             "retriever_config": {
                 "retrievers": [
                     {
-                        "type": "qd",
-                        "workspace_ids": [],
+                        "type": "qq",
+                        "workspace_ids": ["retail-quick-reply"],
                         "config": {
-                            "top_k": 20,
-                            "using_whole_doc": True,
+                            "top_k": 5
                         },
+                    },
+                ]
+            },
+            "llm_config": {
+                **default_llm_config,
+            },
+        },
+        "rag_daily_reception_config": {
+            "retriever_config": {
+                "retrievers": [
+                    {
+                        "type": "qq",
+                        "workspace_ids": ["retail-quick-reply"],
+                        "config": {
+                            "top_k": 5
+                        },
+                    },
+                ]
+            },
+            "llm_config": {
+                **default_llm_config,
+            },
+        },
+        "rag_product_aftersales_config": {
+            "retriever_config":{
+                "retrievers": [
+                    {
+                        "type": "qq",
+                        "workspace_ids": ['retail-shouhou-wuliu'],
+                        "config": {
+                            "top_k": 2,
+                        }
                     },
                 ],
                 "rerankers": [
@@ -180,14 +211,64 @@ def parse_retail_entry_config(chatbot_config):
                         "type": "reranker",
                         "config": {
                             "enable_debug": False,
-                            "target_model": "bge_reranker_model.tar.gz",
-                        },
+                            "target_model": "bge_reranker_model.tar.gz"
+                        }
                     }
                 ],
             },
-            "llm_config": {
+            "llm_config":{
                 **default_llm_config,
+            }
+        },
+        "rag_customer_complain_config": {
+            "retriever_config":{
+                "retrievers": [
+                    {
+                        "type": "qq",
+                        "workspace_ids": ['retail-shouhou-wuliu','retail-quick-reply'],
+                        "config": {
+                            "top_k": 2,
+                        }
+                    },
+                ],
+                "rerankers": [
+                    {
+                        "type": "reranker",
+                        "config": {
+                            "enable_debug": False,
+                            "target_model": "bge_reranker_model.tar.gz"
+                        }
+                    }
+                ],
             },
+            "llm_config":{
+                **default_llm_config,
+            }
+        },
+        "rag_promotion_config": {
+            "retriever_config":{
+                "retrievers": [
+                    {
+                        "type": "qq",
+                        "workspace_ids": ['retail-shouhou-wuliu','retail-quick-reply'],
+                        "config": {
+                            "top_k": 2,
+                        }
+                    },
+                ],
+                "rerankers": [
+                    {
+                        "type": "reranker",
+                        "config": {
+                            "enable_debug": False,
+                            "target_model": "bge_reranker_model.tar.gz"
+                        }
+                    }
+                ],
+            },
+            "llm_config":{
+                **default_llm_config,
+            }
         },
     }
     chatbot_config = update_nest_dict(
@@ -199,7 +280,7 @@ def parse_retail_entry_config(chatbot_config):
     if "give_rhetorical_question" not in tools:
         tools.append("give_rhetorical_question")
 
-    if "no_available_tool" not in tools:
-        tools.append("no_available_tool")
+    if "give_final_response" not in tools:
+        tools.append("give_final_response")
 
     return chatbot_config

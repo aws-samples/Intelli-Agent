@@ -3,3 +3,4 @@
 tests/data/
 tests/buildspec_build.sh
 source/portal/src/utils/const.ts
+source/lambda/online/lambda_main/test/main_local_test_retail.py
