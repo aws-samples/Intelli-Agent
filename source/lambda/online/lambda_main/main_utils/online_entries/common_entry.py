@@ -47,6 +47,7 @@ class ChatbotState(TypedDict):
 # nodes in lambdas #
 ####################
 
+
 @node_monitor_wrapper
 def query_preprocess_lambda(state: ChatbotState):
     output: str = invoke_lambda(
@@ -123,14 +124,16 @@ def parse_tool_calling(state: ChatbotState):
         )
         send_trace(f"**tool_calls parsed:** \n{tool_calls}")
         if tool_calls:
-            state["extra_response"]['current_agent_intent_type'] = tool_calls[0]['name']
+            state["extra_response"]["current_agent_intent_type"] = tool_calls[0]["name"]
         else:
             return {
                 "parse_tool_calling_ok": False,
-                "agent_chat_history":[{
-                    "role": "user",
-                    "content": "当前没有解析到tool,请检查tool调用的格式是否正确，并重新输出某个tool的调用。注意调用tool的时候要加上<function_calls></function_calls>。如果你认为当前不需要调用其他工具，请直接调用“give_final_response”工具进行返回。"
-                }]
+                "agent_chat_history": [
+                    {
+                        "role": "user",
+                        "content": "当前没有解析到tool,请检查tool调用的格式是否正确，并重新输出某个tool的调用。注意调用tool的时候要加上<function_calls></function_calls>。如果你认为当前不需要调用其他工具，请直接调用“give_final_response”工具进行返回。",
+                    }
+                ],
             }
 
         return {
@@ -236,6 +239,7 @@ def rag_llm_lambda(state: ChatbotState):
     return {"answer": output}
 
 
+@node_monitor_wrapper
 def chat_llm_generate_lambda(state: ChatbotState):
     answer: dict = invoke_lambda(
         event_body={
@@ -283,8 +287,10 @@ def give_final_response(state: ChatbotState):
 #     chat_history = state["agent_chat_history"]
 #     return {"answer": chat_history[-1]["content"]}
 
+
 def qq_matched_reply(state: ChatbotState):
     return {"answer": state["answer"]}
+
 
 ################
 # define edges #

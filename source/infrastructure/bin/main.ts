@@ -48,10 +48,6 @@ export class RootStack extends Stack {
     });
     const llmStack = new LLMStack(this, "rag-stack", {
       s3ModelAssets: cdkParameters.s3ModelAssets.valueAsString,
-      rerankModelPrefix: assetConstruct.rerankModelPrefix,
-      rerankModelVersion: assetConstruct.rerankModelVersion,
-      embeddingModelPrefix: assetConstruct.embeddingModelPrefix,
-      embeddingModelVersion: assetConstruct.embeddingModelVersion,
       embeddingAndRerankerModelPrefix: assetConstruct.embeddingAndRerankerModelPrefix,
       embeddingAndRerankerModelVersion: assetConstruct.embeddingAndRerankerModelVersion,
       instructModelPrefix: assetConstruct.instructModelPrefix,
@@ -73,7 +69,7 @@ export class RootStack extends Stack {
 
     const etlStack = new EtlStack(this, "etl-stack", {
       domainEndpoint: aosConstruct.domainEndpoint || "",
-      embeddingEndpoint: llmStack.embeddingEndPoints,
+      embeddingAndRerankerEndPoint: llmStack.embeddingAndRerankerEndPoint,
       region: props.env?.region || "us-east-1",
       subEmail: cdkParameters.subEmail.valueAsString ?? "",
       etlVpc: vpcConstruct.connectorVpc,
@@ -93,7 +89,7 @@ export class RootStack extends Stack {
       connectorVpc: vpcConstruct.connectorVpc,
       securityGroup: vpcConstruct.securityGroup,
       domainEndpoint: aosConstruct.domainEndpoint || "",
-      embeddingEndPoints: llmStack.embeddingEndPoints,
+      embeddingEndPoints: [llmStack.embeddingAndRerankerEndPoint],
       openSearchIndex: cdkParameters.openSearchIndex.valueAsString,
       openSearchIndexDict: cdkParameters.openSearchIndexDict.valueAsString,
       env: process.env,
@@ -113,8 +109,6 @@ export class RootStack extends Stack {
       apiVpc: vpcConstruct.connectorVpc,
       securityGroup: vpcConstruct.securityGroup,
       domainEndpoint: aosConstruct.domainEndpoint || "",
-      rerankEndPoint: llmStack.rerankEndPoint ?? "",
-      embeddingEndPoints: llmStack.embeddingEndPoints || "",
       embeddingAndRerankerEndPoint: llmStack.embeddingAndRerankerEndPoint || "",
       llmModelId: BuildConfig.LLM_MODEL_ID,
       instructEndPoint:
@@ -166,12 +160,9 @@ export class RootStack extends Stack {
       value: apiConstruct.apiEndpoint,
     });
     new CfnOutput(this, "Chunk Bucket", { value: etlStack.resBucketName });
-    new CfnOutput(this, "Cross Model Endpoint", {
-      value: llmStack.rerankEndPoint || "No Cross Endpoint Created",
-    });
     new CfnOutput(this, "Document Bucket", { value: apiConstruct.documentBucket });
-    new CfnOutput(this, "Embedding Model Endpoint", {
-      value: llmStack.embeddingEndPoints[0] || "No Embedding Endpoint Created",
+    new CfnOutput(this, "Embedding and Rerank Endpoint", {
+      value: llmStack.embeddingAndRerankerEndPoint || "No Embedding Endpoint Created",
     });
     new CfnOutput(this, "ETL Object Table", {
       value: etlStack.etlObjTableName,
