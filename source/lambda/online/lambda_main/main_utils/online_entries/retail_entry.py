@@ -381,17 +381,18 @@ def rag_customer_complain_retriever_lambda(state: ChatbotState):
 @node_monitor_wrapper
 def rag_customer_complain_llm_lambda(state:ChatbotState):
     context = ("="*50).join(state['contexts'])
-    prompt = dedent(f"""你是安踏的客服助理，正在处理有关于客户抱怨的问题，这些问题有关于商品质量等方面，需要你按照下面的guidelines进行回复:
-                    <guidelines>
-                      - 回复内容需要展现出礼貌。
-                      - 尽量安抚客户的情绪。
-                      - 回答要简洁。
-                    </guidelines>
-                    下面列举了一些具体的场景下的回复，你可以结合用户的问题进行参考回答:
+    # prompt = dedent(f"""你是安踏的客服助理，正在处理有关于客户抱怨的问题，这些问题有关于商品质量等方面，需要你按照下面的guidelines进行回复:
+    prompt = dedent(f"""你是安踏的客服助理，正在处理有关于消费者抱怨的问题。context列举了一些可能和客户问题有关的具体场景及回复，你可以进行参考:
                     <context>
                     {context}
                     </context>
-                    下面是用户的回复: {state['query']}
+                    需要你按照下面的guidelines进行回复:
+                    <guidelines>
+                      - 回答要简洁。
+                      - 尽量安抚客户情绪。
+                      - 直接回答，不要说"亲爱的顾客，您好"
+                    </guidelines>
+                    下面是消费者的问题: {state['query']}
 """)
     output:str = invoke_lambda(
         lambda_name='Online_LLM_Generate',

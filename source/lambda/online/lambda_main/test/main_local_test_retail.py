@@ -213,7 +213,7 @@ def test(chatbot_mode="chat",session_id=None,query=None,goods_id=None):
     
     session_id = session_id or f"test_{time.time()}"
     query = query or "很浪费时间 出库的时候也不看清楚？"
-    session_id = f"test_{time.time()}"
+    # session_id = f"test_{time.time()}"
     
     # 售后物流
     #"可以发顺丰快递吗？",
