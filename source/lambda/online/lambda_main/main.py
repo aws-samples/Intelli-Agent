@@ -45,7 +45,7 @@ def lambda_handler(event_body:dict, context:dict):
     
     chat_history = ddb_history_obj.messages_as_langchain
 
-    logger.info(f'chat_history:\n{json.dumps(chat_history,ensure_ascii=False,indent=2)}')
+    # logger.info(f'chat_history:\n{json.dumps(chat_history,ensure_ascii=False,indent=2)}')
 
     event_body['stream'] = stream 
     event_body["chat_history"] = chat_history
@@ -55,7 +55,7 @@ def lambda_handler(event_body:dict, context:dict):
     event_body['request_timestamp'] = request_timestamp
     event_body['message_id'] = str(uuid.uuid4())
 
-    logger.info(f"event_body:\n{json.dumps(event_body,ensure_ascii=False,indent=2,cls=JSONEncoder)}")
+    # logger.info(f"event_body:\n{json.dumps(event_body,ensure_ascii=False,indent=2,cls=JSONEncoder)}")
     entry_executor = get_entry(entry_type)
     response:dict = entry_executor(event_body)
 
