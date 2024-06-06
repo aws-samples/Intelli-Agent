@@ -38,8 +38,8 @@ def get_url_goods_dict(data_file_path)->dict:
             } 
     return url_goods
 
-download_dir_from_s3("aws-chatbot-knowledge-base-test", "retail", "lambda_main")
-url_goods_dict = get_url_goods_dict("lambda_main/retail/detail/TB0327.xlsx")
+download_dir_from_s3("aws-chatbot-knowledge-base-test", "retail", "/tmp/lambda_main")
+url_goods_dict = get_url_goods_dict("/tmp/lambda_main/retail/detail/TB0327.xlsx")
 
 class ChatbotState(TypedDict):
     chatbot_config: dict # chatbot config
@@ -344,7 +344,7 @@ def rag_product_aftersales_llm_lambda(state:ChatbotState):
                     </context>
                     你需要按照下面的guidelines对用户的问题进行回答:
                     <guidelines>
-                      - 回答内容要有礼貌和简洁。
+                      - 回答内容要简洁。
                       - 如果用户问题与context内容不相关，就不要采用。
                       - 客户的问题里面可能包含口语化的表达，比如鞋子开胶的意思是用胶黏合的鞋体裂开。这和胶丝遗留没有关系
                     </guidelines>

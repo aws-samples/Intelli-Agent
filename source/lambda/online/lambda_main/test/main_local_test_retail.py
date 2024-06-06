@@ -357,6 +357,29 @@ def batch_test():
         index=False
         )
 
+def multi_turn_test():
+    session_id = f"0099_test_{time.time()}"
+    test(
+        chatbot_mode='agent',
+        session_id=session_id,
+        query="你家鞋子开胶了？怎么处理"
+        )
+    test(
+        chatbot_mode='agent',
+        session_id=session_id,
+        query="我在得物购买的"
+        )
+    test(
+        chatbot_mode='agent',
+        session_id=session_id,
+        query="如果在你家买的鞋子，出现质量问题你们怎么处理"
+        )
+    test(
+        chatbot_mode='agent',
+        session_id=session_id,
+        query="如果在你家买的鞋子，出现质量问题你们怎么处理"
+        )
+
 
 if __name__ == "__main__":
     # batch_test()
@@ -371,4 +394,6 @@ if __name__ == "__main__":
         session_id="anta_test_1717567916.145038_cn****0099",
         query="为什么这个商品需要支付运费？"
         )
+    # multi-turn test
+    multi_turn_test()
     
