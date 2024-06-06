@@ -338,17 +338,18 @@ def rag_product_aftersales_retriever_lambda(state: ChatbotState):
 @node_monitor_wrapper
 def rag_product_aftersales_llm_lambda(state:ChatbotState):
     context = ("="*50).join(state['contexts'])
-    prompt = dedent(f"""你是安踏的客服助理，正在帮用户解答问题，客户提出的问题大多是属于商品的质量和物流规则。context列举了一些可能和客户问题有关的具体场景及回复，你可以进行参考:
+    prompt = dedent(f"""你是安踏的客服助理，正在帮消费者解答问题，消费者提出的问题大多是属于商品的质量和物流规则。context列举了一些可能有关的具体场景及回复，你可以进行参考:
                     <context>
                     {context}
                     </context>
-                    你需要按照下面的guidelines对用户的问题进行回答:
+                    你需要按照下面的guidelines对消费者的问题进行回答:
                     <guidelines>
                       - 回答内容要简洁。
-                      - 如果用户问题与context内容不相关，就不要采用。
-                      - 客户的问题里面可能包含口语化的表达，比如鞋子开胶的意思是用胶黏合的鞋体裂开。这和胶丝遗留没有关系
+                      - 如果问题与context内容不相关，就不要采用。
+                      - 消费者的问题里面可能包含口语化的表达，比如鞋子开胶的意思是用胶黏合的鞋体裂开。这和胶丝遗留没有关系
+                      - 如果遇到关于为啥要运费之类的原因，可以告诉消费者，要满200才能免运费
                     </guidelines>
-                    下面是用户的问题: {state['query']}。结合guidelines的内容进行回答
+                    下面是消费者的问题: {state['query']}。结合guidelines的内容进行回答
 """)
     output:str = invoke_lambda(
         lambda_name='Online_LLM_Generate',
