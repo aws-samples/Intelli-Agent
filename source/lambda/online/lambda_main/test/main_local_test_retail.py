@@ -73,7 +73,7 @@ def generate_answer(query,
         return body
 
 
-def test(chatbot_mode="chat",session_id=None,query=None,goods_id=None):
+def test(chatbot_mode="agent",session_id=None,query=None,goods_id=None):
     default_llm_config = {
         'model_id': 'anthropic.claude-3-sonnet-20240229-v1:0',
         'model_kwargs': {
@@ -229,12 +229,50 @@ def test(chatbot_mode="chat",session_id=None,query=None,goods_id=None):
     )
 
 
+def test_multi_turns():
+    session_id = f"anta_test_{time.time()}"
+    # goods_id = "756327274174"
+    # user_queries = [
+    #     "http://item.taobao.com/item.htm?id=756327274174",
+    #     "亲，平常穿37联系多大码",
+    #     "还会有货吗？"
+    # ]
+    
+    goods_id = "745288790794"
+    user_queries = [
+        "https://detail.tmall.com/item.htm?id=745288790794",
+        "为啥要运费？",
+        "现在怎么还还有鞋啊",
+        "不是一个地址发货？\n买鞋了啊\n鞋和袜子不是一个地方发货吗？",
+        "https://img.alicdn.com/imgextra/i2/O1CN01B7yi6r1CavknQAhuz_!!0-amp.jpg",
+        "为啥要运费呢",
+        "我也么有只买袜子啊\n你们系统设定有问题吧\n原来没遇到过这种情况啊",
+        "好的",
+        "https://item.taobao.com/item.htm?id=725289865739\n一个订单可以分开发两个地址吗",
+        "https://img.alicdn.com/imgextra/i1/O1CN0160oEXO1CavkoLIirq_!!0-amp.jpg",
+        "这个券我抢到了，下单的时候自动使用吗",
+        "正确",
+        "发什么快递？今天能发货吗"
+    ]
+
+
+    for query in user_queries:
+        test(
+            chatbot_mode='agent',
+            session_id=session_id,
+            query=query,
+            goods_id=goods_id
+        )
+
+
+
 def batch_test():
     data_file = "/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/customer_poc/anta/conversation_turns.csv"
     data = pd.read_csv(data_file).to_dict(orient='records')
     session_prefix = f"anta_test_{time.time()}"
     default_llm_config = {
-        'model_id': 'anthropic.claude-3-haiku-20240307-v1:0',
+        # 'model_id': 'anthropic.claude-3-haiku-20240307-v1:0',
+        'model_id': 'anthropic.claude-3-sonnet-20240229-v1:0',
         'model_kwargs': {
             'temperature': 0.5, 'max_tokens': 4096}
         }
@@ -317,7 +355,7 @@ def batch_test():
             }
         }
     }
-    data = data[:1]
+    data = data[:50]
     data_to_save = []
     for datum in tqdm.tqdm(data,total=len(data)):
         print("=="*50)
@@ -400,13 +438,25 @@ def multi_turn_test():
 
 
 if __name__ == "__main__":
+    # test_multi_turns()
+    batch_test()
     # batch_test()
     # test(
     #     chatbot_mode='agent',
     #     goods_id="675124761798",
     #     query="平常41吗，这款鞋需要多少码"
     # )
+    # test(
+    #     chatbot_mode='agent',
+    #     goods_id="675124761798",
+    #     query="平常41吗，这款鞋需要多少码"
+    # )
         # query="你家鞋子开胶了，怎么处理？"
+    # test(
+    #     chatbot_mode='agent',
+    #     session_id="anta_test_1717567916.145038_cn****0099",
+    #     query="为什么这个商品需要支付运费？"
+    #     )
     test(
         chatbot_mode='agent',
         session_id="anta_test_1717567916.145038_cn****0099",

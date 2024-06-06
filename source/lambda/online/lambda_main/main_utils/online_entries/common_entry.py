@@ -99,7 +99,6 @@ def agent_lambda(state: ChatbotState):
     )
     return {
         "current_agent_model_id": current_agent_model_id,
-        "current_function_calls": current_function_calls,
         "current_agent_tools_def": current_agent_tools_def,
         "agent_chat_history": [{"role": "ai", "content": content}],
     }
@@ -129,7 +128,7 @@ def parse_tool_calling(state: ChatbotState):
                 "parse_tool_calling_ok": False,
                 "agent_chat_history":[{
                     "role": "user",
-                    "content": "当前没有解析到tool,请检查tool调用的格式是否正确，并重新输出某个tool的调用。注意调用tool的时候要加上<function_calls></function_calls>。如果你认为当前不需要调用其他工具，请直接调用“give_final_response”工具进行返回。"
+                    "content": "当前没有解析到tool,请检查tool调用的格式是否正确，注意调用tool的时候要加上<function_calls></function_calls>。如果你认为当前不需要调用其他工具，请直接调用“give_final_response”工具进行返回。"
                 }]
             }
 

@@ -51,6 +51,8 @@ class LLMTaskType(ConstantBase):
     QUERY_REWRITE_TYPE = "query_rewrite"
     HYDE_TYPE = "hyde"
     CONVERSATION_SUMMARY_TYPE = "conversation_summary"
+    RETAIL_CONVERSATION_SUMMARY_TYPE = "retail_conversation_summary"
+
     MKT_CONVERSATION_SUMMARY_TYPE = "mkt_conversation_summary"
     MKT_QUERY_REWRITE_TYPE = "mkt_query_rewrite"
     STEPBACK_PROMPTING_TYPE = "stepback_prompting"

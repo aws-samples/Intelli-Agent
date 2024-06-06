@@ -28,7 +28,7 @@ logger = get_logger("intention")
 def lambda_handler(state:dict, context=None):
     intention_config = state['chatbot_config'].get("intention_config",{})
     event_body = {
-        "query": state['query_rewrite'],
+        "query": state['query'],
         **intention_config
     }
     # call retriver
