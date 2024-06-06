@@ -376,7 +376,7 @@ tool_manager.register_tool({
     "lambda_module_path": "functions.retail_tools.lambda_goods_exchage.customer_complain",
     "tool_def": {
         "name": "customer_complain",
-        "description": "About customer complaints, including product quality, wrong shipments, missing shipments and so on",
+        "description": "有关于客户抱怨的工具，比如商品质量，错发商品，漏发商品，商品运费等",
     }
 })
 
@@ -386,7 +386,7 @@ tool_manager.register_tool({
     "lambda_module_path": "functions.retail_tools.lambda_goods_exchage.customer_complain",
     "tool_def": {
         "name": "promotion",
-        "description": "Information about product promotions, such as points, prizes, rewards, etc."
+        "description": "有关于商品促销的信息，比如返点，奖品和奖励等"
     }
 })
 
@@ -544,7 +544,7 @@ tool_manager.register_tool(
         "lambda_module_path": "functions.retail_tools.lambda_product_aftersales.product_aftersales",
         "tool_def": {
                 "name": "product_quality",
-                "description": "product after-sales processing, including handling of consumer complaints about products quality",
+                "description": "商品的售后处理，主要包括客户关于商品质量的抱怨等",
         }
     }
 )
@@ -557,7 +557,7 @@ tool_manager.register_tool(
         "lambda_module_path": "functions.retail_tools.lambda_product_aftersales.product_aftersales",
         "tool_def": {
                 "name": "product_logistics",
-                "description": "product after-sales processing, including various returns, exchanges, wrong shipments, and missing shipments",
+                "description": "有关于商品物流的售后处理，主要包括退货，换货，错发商品，漏发商品等",
         }
     }
 )

@@ -345,8 +345,8 @@ def rag_product_aftersales_llm_lambda(state:ChatbotState):
                     你需要按照下面的guidelines对用户的问题进行回答:
                     <guidelines>
                       - 回答内容要有礼貌和简洁。
-                      - 如果用户问题与context内容不相关，就不要参考进行回答。
-                      - 客户的问题里面可能包含口语化的表达，比如开胶的意思是用胶黏合的东西裂开
+                      - 如果用户问题与context内容不相关，就不要采用。
+                      - 客户的问题里面可能包含口语化的表达，比如鞋子开胶的意思是用胶黏合的鞋体裂开。这和胶丝遗留没有关系
                     </guidelines>
                     下面是用户的问题: {state['query']}。结合guidelines的内容进行回答
 """)

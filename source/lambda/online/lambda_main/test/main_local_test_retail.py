@@ -360,14 +360,15 @@ def batch_test():
 
 if __name__ == "__main__":
     # batch_test()
-    test(
-        chatbot_mode='agent',
-        goods_id="675124761798",
-        query="平常41吗，这款鞋需要多少码"
-    )
     # test(
     #     chatbot_mode='agent',
-    #     session_id="anta_test_1717567916.145038_cn****0099",
-    #     query="你家鞋子开胶了，怎么处理"
-    #     )
+    #     goods_id="675124761798",
+    #     query="平常41吗，这款鞋需要多少码"
+    # )
+        # query="你家鞋子开胶了，怎么处理？"
+    test(
+        chatbot_mode='agent',
+        session_id="anta_test_1717567916.145038_cn****0099",
+        query="为什么这个商品需要支付运费？"
+        )
     
