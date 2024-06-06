@@ -60,6 +60,11 @@ CQR_TEMPLATE = """# CONTEXT #
 
 # STYLE #
 改写后的回复需要和<current_reply>里面的内容意思一致。
+
+#########
+
+# RESPONSE FORMAT #
+请直接用中文进行回答
 """
 
 

@@ -38,6 +38,7 @@ tool_call_guidelines = """<guidlines>
 - You should call tools that are described in <tools></tools>.
 - In <thinking></thinking>, you should check whether the tool name you want to call is exists in <tools></tools>.
 - Always output with "中文". 
+- Always choose one tool to call. 
 </guidlines>
 """
 
@@ -243,7 +244,7 @@ class Claude2ToolCallingChain(LLMChain):
             model_kwargs=model_kwargs,
         )
         chain = tool_calling_template \
-            | RunnableLambda(lambda x: x.messages ) \
+            | RunnableLambda(lambda x: print(x.messages) or x.messages ) \
             | llm | RunnableLambda(lambda message:cls.parse_function_calls_from_ai_message(
                 message
             ))
