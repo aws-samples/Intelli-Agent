@@ -1,4 +1,5 @@
 import json
+import re
 from textwrap import dedent
 from typing import TypedDict,Any,Annotated
 import validators
@@ -11,6 +12,7 @@ from common_utils.constant import (
 import pandas as pd 
 
 from functions.tools import get_tool_by_name,Tool
+from functions.retail_tools.lambda_product_information_search.product_information_search import goods_dict
 from functions.tool_execute_result_format import format_tool_execute_result
 from functions.tool_calling_parse import parse_tool_calling as _parse_tool_calling
 
@@ -22,24 +24,6 @@ from common_utils.serialization_utils import JSONEncoder
 from common_utils.s3_utils import download_dir_from_s3
 
 logger = get_logger('retail_entry')
-
-def get_url_goods_dict(data_file_path)->dict:
-    url_goods = {} 
-    goods_data = pd.read_excel(data_file_path, "商品信息登记").to_dict(orient='records')
-    # get row
-    for datum in goods_data:
-        goods_id = datum["商品ID"]
-        goods_info = datum["卖点（含材质属性）"]
-        goods_url = datum["商品链接"]
-        url_goods[goods_url] = {
-            "goods_info": goods_info,
-            "goods_url": goods_url,
-            "goods_id": goods_id
-            } 
-    return url_goods
-
-download_dir_from_s3("aws-chatbot-knowledge-base-test", "retail", "/tmp/lambda_main")
-url_goods_dict = get_url_goods_dict("/tmp/lambda_main/retail/detail/TB0327.xlsx")
 
 class ChatbotState(TypedDict):
     chatbot_config: dict # chatbot config
@@ -477,8 +461,13 @@ def rule_url_reply(state:ChatbotState):
     if state['query'].endswith(('.jpg','.png')):
         return {"answer": "好的，收到图片。"}
     # product information
-    if state['query'] in url_goods_dict:
-        return {"answer":url_goods_dict[state['query']]['goods_info']}
+    r = re.findall(r"item.htm\?id=(.*)",state['query'])
+    if r:
+        goods_id = int(r[0])
+    else:
+        goods_id = 0
+    if goods_id in goods_dict:
+        return {"answer":goods_dict[goods_id]['goods_info']}
     
     return {"answer":"您好"}
 
