@@ -1,13 +1,13 @@
 {
   "translation": {
-    "name": "AWS 大语言模型机器人",
-    "welcome": "欢迎使用 AWS 大语言模型机器人",
+    "name": "Intelligent Private Agent",
+    "welcome": "欢迎使用 Intelligent Private Agent",
     "you": "你",
     "welcomeMessage": "您好，我今天有什么可以帮助您？",
     "server": "服务器",
     "settings": "设置",
     "signOut": "退出登录",
-    "chatSpace": "聊天空间",
+    "chatSpace": "聊天",
     "chatBot": "聊天机器人",
     "docLibrary": "文档库",
     "addLibrary": "添加文档库",

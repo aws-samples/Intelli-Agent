@@ -109,6 +109,8 @@ class DetResizeForTest(object):
         elif 'resize_long' in kwargs:
             self.resize_type = 2
             self.resize_long = kwargs.get('resize_long', 960)
+        elif 'identity' in kwargs:
+            self.resize_type = 3
         else:
             self.limit_side_len = 736
             self.limit_type = 'min'
@@ -122,6 +124,8 @@ class DetResizeForTest(object):
             img, [ratio_h, ratio_w] = self.resize_image_type0(img)
         elif self.resize_type == 2:
             img, [ratio_h, ratio_w] = self.resize_image_type2(img)
+        elif self.resize_type == 3:
+            img, [ratio_h, ratio_w] = img, [1, 1]
         else:
             # img, shape = self.resize_image_type1(img)
             img, [ratio_h, ratio_w] = self.resize_image_type1(img)

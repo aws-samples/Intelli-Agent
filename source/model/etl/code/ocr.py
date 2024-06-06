@@ -111,9 +111,12 @@ class TextDetector():
         pre_process_list = [{'DetResizeForTest': {'limit_side_len': 1280, 'limit_type': 'max'}},
                             {'NormalizeImage': {'std': [0.229, 0.224, 0.225], 'mean': [0.485, 0.456, 0.406], 'scale': '1./255.', 'order': 'hwc'}},
                             {'ToCHWImage': None}, {'KeepKeys': {'keep_keys': ['image', 'shape']}}]
-
+        pre_process_list_identity = [{'DetResizeForTest': {'identity': None}},
+                            {'NormalizeImage': {'std': [0.229, 0.224, 0.225], 'mean': [0.485, 0.456, 0.406], 'scale': '1./255.', 'order': 'hwc'}},
+                            {'ToCHWImage': None}, {'KeepKeys': {'keep_keys': ['image', 'shape']}}]
         postprocess_params = {'name': 'DBPostProcess', 'thresh': 0.1, 'box_thresh': 0.1, 'max_candidates': 1000, 'unclip_ratio': 1.5, 'use_dilation': False, 'score_mode': 'fast', 'box_type': 'quad'}
         self.preprocess_op = create_operators(pre_process_list)
+        self.preprocess_op_identity = create_operators(pre_process_list_identity)
         self.postprocess_op = build_post_process(postprocess_params)
         self.ort_session = onnxruntime.InferenceSession(self.weights_path, providers=provider)
         _ = self.ort_session.run(None, {"x": np.zeros([1, 3, 64, 64], dtype='float32')})
@@ -172,13 +175,25 @@ class TextDetector():
             dt_boxes_new.append(box)
         dt_boxes = np.array(dt_boxes_new)
         return dt_boxes
-
-    def __call__(self, img):
+    
+    def __call__(self, img, scale=None):
         start = time.time()
         ori_im = img.copy()
-        data = {'image': img}
-        data = transform(data, self.preprocess_op)
-        img, shape_list = data
+        if scale:
+            src_h, src_w, _ = img.shape
+            resize_h = int(round(scale*src_h / 32) * 32)
+            resize_w = int(round(scale*src_w / 32) * 32)
+            img = cv2.resize(img, (resize_w, resize_h))
+            data = {'image': img}
+            data = transform(data, self.preprocess_op_identity)
+            img, shape_list = data
+            ratio_h = float(resize_h) / src_h
+            ratio_w = float(resize_w) / src_w
+            shape_list = np.array([src_h, src_w, ratio_h, ratio_w])
+        else:
+            data = {'image': img}
+            data = transform(data, self.preprocess_op)
+            img, shape_list = data
         if img is None:
             return None, 0
         img = np.expand_dims(img, axis=0)
@@ -376,9 +391,11 @@ class TextSystem:
             dst_img = np.rot90(dst_img)
         return dst_img
 
-    def __call__(self, img, lang='ch'):
+    def __call__(self, img, lang='ch', scale=None):
         ori_im = img.copy()
-        dt_boxes = self.text_detector[lang](img)
+        
+        dt_boxes = self.text_detector[lang](img, scale)
+        
         if dt_boxes is None:
             return None, None
         img_crop_list = []

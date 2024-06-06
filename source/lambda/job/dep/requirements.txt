@@ -13,3 +13,4 @@ nltk==3.8.1
 pdfminer.six==20221105
 smart-open==7.0.4
 opensearch-py==2.6.0
+lxml==5.2.2

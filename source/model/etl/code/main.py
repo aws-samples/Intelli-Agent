@@ -13,8 +13,12 @@ from layout import LayoutPredictor
 import numpy as np
 from markdownify import markdownify as md
 from utils import check_and_read
+from figure_llm import figureUnderstand
 from xycut import recursive_xy_cut
 import time
+from PIL import Image
+import cv2
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -29,7 +33,7 @@ class StructureSystem(object):
         self.table_system = TableSystem(
             self.text_system.text_detector,
             self.text_system.text_recognizer)
-    def __call__(self, img, return_ocr_result_in_table=False, lang='ch'):
+    def __call__(self, img, return_ocr_result_in_table=False, lang='ch', auto_dpi=False):
         time_dict = {
             'image_orientation': 0,
             'layout': 0,
@@ -45,6 +49,19 @@ class StructureSystem(object):
         start = time.time()
         ori_im = img.copy()
         layout_res, elapse = self.layout_predictor(img)
+        final_s = None
+        if auto_dpi:
+            final_s = 0
+            height_limit =  18 if lang=='ch' else 15
+            for scale_base in [1, 0.66, 0.33]:
+                img_cur_scale = cv2.resize(img, (None, None), fx=scale_base, fy=scale_base)
+                temp_result = self.text_system.text_detector[lang](img_cur_scale)
+                height_list = [max(text_line[:, 1]) - min(text_line[:, 1]) for text_line in temp_result]
+                height_list.sort()
+                min_text_line_h = height_list[int(len(height_list)*0.05)]
+                min_s = (height_limit/min_text_line_h)*scale_base
+                if min_s>final_s:
+                    final_s = min_s
         time_dict['layout'] += elapse
         res_list = []
         for region in layout_res:
@@ -67,8 +84,9 @@ class StructureSystem(object):
             else:
                 wht_im = np.ones(ori_im.shape, dtype=ori_im.dtype)
                 wht_im[y1:y2, x1:x2, :] = roi_img
+                
                 filter_boxes, filter_rec_res = self.text_system(
-                    wht_im, lang)
+                    wht_im, lang, final_s)
 
                 # remove style char,
                 # when using the recognition model trained on the PubtabNet dataset,
@@ -103,47 +121,12 @@ class StructureSystem(object):
         return res_list, time_dict
 
 structure_engine = StructureSystem()
-
+figure_understand = figureUnderstand()
 s3 = boto3.client("s3")
 
 def upload_chunk_to_s3(
     logger_content: str, bucket: str, prefix: str, splitting_type: str
 ):
-    """Upload the logger file to S3 with hierarchy below:
-    filename A
-        ├── before-splitting
-        │   ├── timestamp 1
-        │   │   ├── logger file 1
-        │   ├── timestamp 2
-        │   │   ├── logger file 2
-        ├── semantic-splitting
-        │   ├── timestamp 3
-        │   │   ├── logger file 3
-        │   ├── timestamp 4
-        │   │   ├── logger file 4
-        ├── chunk-size-splitting
-        │   ├── timestamp 5
-        │   │   ├── logger file 5
-        │   ├── timestamp 6
-        │   │   ├── logger file 6
-    filename B
-        ├── before-splitting
-        │   ├── timestamp 7
-        │   │   ├── logger file 7
-        │   ├── timestamp 8
-        │   │   ├── logger file 8
-        ├── semantic-splitting
-        │   ├── timestamp 9
-        │   │   ├── logger file 9
-        │   ├── timestamp 10
-        │   │   ├── logger file 10
-        ├── chunk-size-splitting
-        │   ├── timestamp 11
-        │   │   ├── logger file 11
-        │   ├── timestamp 12
-        │   │   ├── logger file 12
-        ...
-    """
     # round the timestamp to hours to avoid too many folders
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d-%H")
     # make the logger file name unique
@@ -171,7 +154,7 @@ def remove_symbols(text):
     return cleaned_text
 
 
-def structure_predict(file_path: Path, lang: str) -> str:
+def structure_predict(file_path: Path, lang: str, auto_dpi, figure_rec) -> str:
     """
     Extracts structured information from images in the given file path and returns a formatted document.
 
@@ -187,7 +170,7 @@ def structure_predict(file_path: Path, lang: str) -> str:
 
     all_res = []
     for index, img in enumerate(img_list):
-        result, _ = structure_engine(img, lang=lang)
+        result, _ = structure_engine(img, lang=lang, auto_dpi=auto_dpi)
         if result != []:
             boxes = [row["bbox"] for row in result]
             res = []
@@ -196,14 +179,21 @@ def structure_predict(file_path: Path, lang: str) -> str:
             all_res += result_sorted
     doc = ""
     prev_region_text = ""
-
+    figure = {}
     for _, region in enumerate(all_res):
         if len(region["res"]) == 0:
             continue
         if region["type"].lower() == "figure":
-            region_text = ""
-            for _, line in enumerate(region["res"]):
-                region_text += line["text"]
+            if figure_rec:
+                doc += '<{{figure_' + str(len(figure)) + '}}>'
+                figure['<{{figure_' + str(len(figure)) + '}}>'] = Image.fromarray(region["img"])
+            else:    
+                region_text = ""
+                for _, line in enumerate(region["res"]):
+                    region_text += line["text"] + " "
+                if remove_symbols(region_text) != remove_symbols(prev_region_text):
+                    doc += region_text
+                    prev_region_text = region_text
         elif region["type"].lower() == "title":
             region_text = ''
             for i, line in enumerate(region['res']):
@@ -227,8 +217,6 @@ def structure_predict(file_path: Path, lang: str) -> str:
                 )
                 + "\n\n"
             )
-        elif region["type"].lower() in ("header", "footer"):
-            continue
         else:
             region_text = ""
             for _, line in enumerate(region["res"]):
@@ -239,39 +227,12 @@ def structure_predict(file_path: Path, lang: str) -> str:
 
         doc += "\n\n"
     doc = re.sub("\n{2,}", "\n\n", doc.strip())
+    for k,v in figure.items():
+        start_pos = doc.index(k)
+        context = doc[max(start_pos-200, 0): min(start_pos+200, len(doc))]
+        doc = doc.replace(k, figure_understand(v, context, k))
+    doc = re.sub("\n{2,}", "\n\n", doc.strip())
     return doc
-
-def process_pdf(
-    bucket, object_key, destination_bucket, mode="ppstructure", lang="zh", **kwargs
-):
-    """
-    Process a given PDF file and extracts structured information from it.
-
-    Args:
-        bucket (str): The name of the S3 bucket where the PDF file is located.
-        object_key (str): The key of the PDF file in the S3 bucket.
-        destination_bucket (str): The name of the S3 bucket where the output should be uploaded.
-        mode (str): The mode of processing. Can be either `unstructured` or `nougat`.
-
-    Returns:
-        str: The S3 prefix where the output is located.
-    """
-
-    local_path = str(os.path.basename(object_key))
-    local_path = f"/tmp/{local_path}"
-    file_path = Path(local_path)
-    # download to local for futher processing
-    logger.info("Downloading %s to %s", object_key, local_path)
-    s3.download_file(Bucket=bucket, Key=object_key, Filename=local_path)
-
-    content = structure_predict(local_path, lang)
-    filename = file_path.stem
-    destination_s3_path = upload_chunk_to_s3(
-        content, destination_bucket, filename, "before-splitting"
-    )
-
-    return destination_s3_path
-
 
 def process_pdf_pipeline(request_body):
     """
@@ -294,22 +255,31 @@ def process_pdf_pipeline(request_body):
     destination_bucket = request_body["destination_bucket"]
     mode = request_body.get("mode", "ppstructure")
     lang = request_body.get("lang", "zh")
-
+    auto_dpi = bool(request_body.get("auto_dpi", False))
+    figure_rec = bool(request_body.get("figure_recognition", False))
     logging.info("Processing bucket: %s, object_key: %s", bucket, object_key)
+    local_path = str(os.path.basename(object_key))
+    local_path = f"/tmp/{local_path}"
+    file_path = Path(local_path)
+    logger.info("Downloading %s to %s", object_key, local_path)
+    s3.download_file(Bucket=bucket, Key=object_key, Filename=local_path)
 
-    destination_prefix = process_pdf(bucket, object_key, destination_bucket, mode, lang)
-
-    result = {"destination_prefix": destination_prefix}
+    content = structure_predict(local_path, lang, auto_dpi, figure_rec)
+    filename = file_path.stem
+    destination_s3_path = upload_chunk_to_s3(
+        content, destination_bucket, filename, "before-splitting"
+    )
+    
+    result = {"destination_prefix": destination_s3_path}
 
     return result
 
-
 if __name__ == "__main__":
     body = {
-        "s3_bucket": "icyxu-llm-glue-assets",
-        "object_key": "test_data/test_glue_lib/cn_pdf/2023.ccl-2.6.pdf",
-        "destination_bucket": "llm-bot-document-results-icyxu",
+        "s3_bucket": "xiaotih",
+        "object_key": "2021-Annual-Report（拖移项目）.pdf",
+        "destination_bucket": "xiaotih",
         "mode": "ppstructure",
-        "lang": "ch",
+        "lang": "ch","auto_dpi":True, "figure_recognition":True
     }
     print(process_pdf_pipeline(body))
