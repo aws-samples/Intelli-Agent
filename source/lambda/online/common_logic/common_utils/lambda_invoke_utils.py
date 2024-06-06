@@ -219,7 +219,7 @@ def node_monitor_wrapper(fn=None,*, monitor_key="current_monitor_infos"):
             current_monitor_infos = output.get(monitor_key,None)
             if current_monitor_infos is not None:
                 # sent to wwebsocket
-                send_trace(current_monitor_infos)
+                send_trace(f"\n\n {current_monitor_infos}")
             exit_time = time.time()
             send_trace(f"\n\n **Exit {fn.__name__}**, time: {exit_time}, elapsed time: {exit_time-enter_time}s")
             return output
