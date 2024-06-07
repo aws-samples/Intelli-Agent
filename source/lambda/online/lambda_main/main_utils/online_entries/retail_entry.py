@@ -664,9 +664,16 @@ def retail_entry(event_body):
     goods_info = None
     goods_id = event_body['chatbot_config']['goods_id']
     if goods_id:
-        _goods_info = goods_dict.get(goods_id,None)
+        try:
+            _goods_info = goods_dict.get(int(goods_id),None)
+        except Exception as e:
+            import traceback 
+            error = traceback.format_exc()
+            logger.error(f"error meesasge {error}, invalid goods_id: {goods_id}")
+            _goods_info = None
+
         if _goods_info:
-            print(_goods_info)
+            logger.info(_goods_info)
             _goods_info = eval(_goods_info['goods_info'])
             goods_info = ""
             for k,v in _goods_info.items():
