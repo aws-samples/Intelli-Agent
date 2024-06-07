@@ -5,13 +5,12 @@ import os
 import boto3
 from botocore.paginate import TokenEncoder
 
-
 DEFAULT_MAX_ITEM = 50
 DEFAULT_SIZE = 50
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
-client = boto3.client('dynamodb')
-table_name = os.environ.get('EXECUTION_TABLE')
+client = boto3.client("dynamodb")
+table_name = os.environ.get("EXECUTION_TABLE")
 encoder = TokenEncoder()
 
 
@@ -19,6 +18,13 @@ def lambda_handler(event, context):
     logger.info(event)
     page_size = DEFAULT_SIZE
     max_item = DEFAULT_MAX_ITEM
+    authorizer_type = event["requestContext"]["authorizer"].get("authorizerType")
+    if authorizer_type == "lambda_authorizer":
+        claims = json.loads(event["requestContext"]["authorizer"]["claims"])
+        group_id = claims["cognito:groups"]
+    else:
+        group_id = event["requestContext"]["authorizer"]["claims"]["cognito:groups"]
+    logger.info(f"Group ID: {group_id}")
 
     if event["queryStringParameters"] != None:
         if "size" in event["queryStringParameters"]:
@@ -27,22 +33,34 @@ def lambda_handler(event, context):
         if "total" in event["queryStringParameters"]:
             max_item = int(event["queryStringParameters"]["total"])
 
-    config = {
-        "MaxItems": max_item,
-        "PageSize": page_size
-    }
+    config = {"MaxItems": max_item, "PageSize": page_size}
 
-    if event["queryStringParameters"] != None and "token" in event["queryStringParameters"]:
+    if (
+        event["queryStringParameters"] != None
+        and "token" in event["queryStringParameters"]
+    ):
         config["StartingToken"] = event["queryStringParameters"]["token"]
 
     # Use query after adding a filter
-    paginator = client.get_paginator('scan')
-    response_iterator = paginator.paginate(
-        TableName=table_name,
-        PaginationConfig=config,
-        FilterExpression="uiStatus = :active",
-        ExpressionAttributeValues={":active": {"S": "ACTIVE"}},
-    )
+    paginator = client.get_paginator("scan")
+
+    if group_id == "Admin":
+        response_iterator = paginator.paginate(
+            TableName=table_name,
+            PaginationConfig=config,
+            FilterExpression="uiStatus = :active",
+            ExpressionAttributeValues={":active": {"S": "ACTIVE"}},
+        )
+    else:
+        response_iterator = paginator.paginate(
+            TableName=table_name,
+            PaginationConfig=config,
+            FilterExpression="uiStatus = :active AND groupId = :group_id",
+            ExpressionAttributeValues={
+                ":active": {"S": "ACTIVE"},
+                ":group_id": {"S": group_id},
+            },
+        )
 
     output = {}
     for page in response_iterator:
@@ -57,7 +75,9 @@ def lambda_handler(event, context):
         output["Items"] = page_json
         output["Count"] = page["Count"]
         if "LastEvaluatedKey" in page:
-            output["LastEvaluatedKey"] = encoder.encode({"ExclusiveStartKey": page["LastEvaluatedKey"]})
+            output["LastEvaluatedKey"] = encoder.encode(
+                {"ExclusiveStartKey": page["LastEvaluatedKey"]}
+            )
 
     output["config"] = config
 

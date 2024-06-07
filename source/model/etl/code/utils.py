@@ -167,12 +167,12 @@ def check_and_read(img_path):
         with fitz.open(img_path) as pdf:
             for pg in range(0, pdf.page_count):
                 page = pdf[pg]
-                mat = fitz.Matrix(2, 2)
+                mat = fitz.Matrix(3, 3)
                 pm = page.get_pixmap(matrix=mat, alpha=False)
 
                 # if width or height > 2000 pixels, don't enlarge the image
-                if pm.width > 2000 or pm.height > 2000:
-                    pm = page.get_pixmap(matrix=fitz.Matrix(1, 1), alpha=False)
+                # if pm.width > 2000 or pm.height > 2000:
+                #     pm = page.get_pixmap(matrix=fitz.Matrix(1, 1), alpha=False)
 
                 img = Image.frombytes("RGB", [pm.width, pm.height], pm.samples)
                 img = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)

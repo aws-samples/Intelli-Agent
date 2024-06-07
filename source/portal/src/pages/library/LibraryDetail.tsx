@@ -53,6 +53,16 @@ const LibraryDetail: React.FC = () => {
     return truncatedPath;
   };
 
+  const showIngestStatus = (status: string) => {
+    if (status === 'FAILED') {
+      return 'error';
+    } else if (status === 'RUNNING') {
+      return 'loading';
+    } else {
+      return 'success';
+    }
+  };
+
   useEffect(() => {
     getLibraryDetail();
   }, []);
@@ -87,9 +97,6 @@ const LibraryDetail: React.FC = () => {
         >
           <SpaceBetween direction="vertical" size="xs">
             <div className="flex align-center gap-10">
-              {t('id')}: <b>{`${id}`} </b>
-            </div>
-            <div className="flex align-center gap-10">
               {t('prefix')}:{' '}
               <b>{`${getLibraryPrefix(executionFileList?.[0]?.s3Path)}`} </b>
             </div>
@@ -97,9 +104,7 @@ const LibraryDetail: React.FC = () => {
             {executionFileList.length > 0 ? (
               executionFileList.map((item) => (
                 <div className="flex align-center" key={item.s3Prefix}>
-                  <StatusIndicator
-                    type={item.status === 'FAILED' ? 'error' : 'success'}
-                  >
+                  <StatusIndicator type={showIngestStatus(item.status)}>
                     [{formatTime(item.createTime)}] {item.s3Prefix}
                   </StatusIndicator>
                   {item.status === 'FAILED' && (

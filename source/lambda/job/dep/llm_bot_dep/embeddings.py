@@ -21,6 +21,12 @@ def get_embedding_info(embedding_endpoint_name):
         embeddings_model_dimensions = 1024
         embeddings_model_type = "m3"
 
+    elif "embedding" in embedding_endpoint_name:
+        embeddings_model_provider = "Netease"
+        embeddings_model_name = "bce_embedding_model.tar.gz"
+        embeddings_model_dimensions = 768
+        embeddings_model_type = "bce"
+
     else:
         embeddings_model_provider = "Not Found"
         embeddings_model_name = "Not Found"

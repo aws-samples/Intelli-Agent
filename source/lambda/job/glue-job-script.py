@@ -57,7 +57,10 @@ except Exception as e:
     logger.warning("Running locally")
     sys.path.append("dep")
     args = json.load(open(sys.argv[1]))
-    args["BATCH_INDICE"] = sys.argv[2]
+    args["AOS_ENDPOINT"] = os.environ["aos_endpoint"]
+    args["WORKSPACE_TABLE"] = os.environ["workspace_table"]
+    args["ETL_OBJECT_TABLE"] = os.environ["etl_object_table"]
+    # args["BATCH_INDICE"] = sys.argv[2]
 
 from llm_bot_dep import sm_utils
 from llm_bot_dep.constant import SplittingType
@@ -93,7 +96,7 @@ s3_prefix = args["S3_PREFIX"]
 workspace_id = args["WORKSPACE_ID"]
 workspace_table = args["WORKSPACE_TABLE"]
 index_type = args["INDEX_TYPE"]
-# Valid Opeartion types: "create", "delete", "update", "extract_only"
+# Valid Operation types: "create", "delete", "update", "extract_only"
 operation_type = args["OPERATION_TYPE"]
 
 
@@ -108,13 +111,7 @@ ENHANCE_CHUNK_SIZE = 25000
 OBJECT_EXPIRY_TIME = 3600
 
 credentials = boto3.Session().get_credentials()
-awsauth = AWS4Auth(
-    credentials.access_key,
-    credentials.secret_key,
-    region,
-    "es",
-    session_token=credentials.token,
-)
+awsauth = AWS4Auth(refreshable_credentials=credentials, region=region, service="es")
 MAX_OS_DOCS_PER_PUT = 8
 
 nltk.data.path.append("/tmp/nltk_data")
@@ -188,6 +185,9 @@ class S3FileProcessor:
             return "json", self.decode_file_content(file_content), kwargs
         elif file_type == "jsonl":
             return "jsonl", file_content, kwargs
+        elif file_type in ["png", "jpeg", "jpg", "webp"]:
+            kwargs["image_file_type"] = file_type
+            return "image", file_content, kwargs
         else:
             message = "Unknown file type: " + file_type
             input_body = {
@@ -310,7 +310,7 @@ class BatchChunkDocumentProcessor:
 
         for document in content:
             splits = text_splitter.split_documents([document])
-            # list of Document objects
+            # List of Document objects
             index = 1
             for split in splits:
                 chunk_id = split.metadata["chunk_id"]
@@ -382,10 +382,11 @@ class BatchQueryDocumentProcessor:
         search_body = {
             "query": {
                 # use term-level queries only for fields mapped as keyword
-                "match_phrase": {"metadata.file_path": s3_path}
+                "prefix": {"metadata.file_path.keyword": {"value": s3_path}},
             },
             "size": 100000,
             "sort": [{"_score": {"order": "desc"}}],
+            "_source": {"excludes": ["vector_field"]},
         }
 
         if self.docsearch.client.indices.exists(index=self.docsearch.index_name):
@@ -503,7 +504,7 @@ def update_workspace(workspace_id, embedding_model_endpoint, index_type):
         workspace_offline_flag=offline,
     )
 
-    return aos_index
+    return aos_index, embeddings_model_type
 
 
 def ingestion_pipeline(
@@ -566,7 +567,7 @@ def ingestion_pipeline(
             }
             traceback.print_exc()
         finally:
-            ddb_response = etl_object_table.put_item(Item=input_body)
+            etl_object_table.put_item(Item=input_body)
 
 
 def delete_pipeline(s3_files_iterator, document_generator, delete_worker):
@@ -643,9 +644,13 @@ def main():
             "html",
             "json",
             "csv",
+            "png",
+            "jpeg",
+            "jpg",
+            "webp"
         ]
 
-    aos_index_name = update_workspace(
+    aos_index_name, embedding_model_type = update_workspace(
         workspace_id, embedding_model_endpoint, index_type
     )
 
@@ -654,8 +659,8 @@ def main():
     if operation_type == "extract_only":
         embedding_function, docsearch = None, None
     else:
-        embedding_function = sm_utils.create_embeddings_with_m3_model(
-            embedding_model_endpoint, region
+        embedding_function = sm_utils.getCustomEmbeddings(
+            embedding_model_endpoint, region, embedding_model_type
         )
         docsearch = OpenSearchVectorSearch(
             index_name=aos_index_name,

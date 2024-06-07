@@ -1,13 +1,13 @@
 {
   "translation": {
-    "name": "AWS LLM Bot",
-    "welcome": "Welcome to AWS LLM Bot",
+    "name": "Intelligent Private Agent",
+    "welcome": "Welcome to Intelligent Private Agent",
     "you": "Y o u",
     "welcomeMessage": "Hello, how can I help you today?",
     "server": "Server",
     "settings": "Settings",
     "signOut": "Sign Out",
-    "chatSpace": "Chat Space",
+    "chatSpace": "Chat",
     "chatBot": "Chat Bot",
     "docLibrary": "Document Library",
     "addLibrary": "Add Library",
@@ -52,6 +52,10 @@
     "closing": "Closing...",
     "pending": "Pending",
     "typeMessage": "Type a message",
+    "alert": "Warning",
+    "preferences": "Preferences",
+    "pageSize": "Page Size",
+    "fileEmptyError": "Please select files to upload",
     "button": {
       "login": "Log in to LLM Bot",
       "reload": "Reload",
@@ -61,7 +65,8 @@
       "confirm": "Confirm",
       "backToList": "Back to List",
       "delete": "Delete",
-      "createDocLibrary": "Create Document Library"
+      "createDocLibrary": "Create Document Library",
+      "upload": "Upload"
     },
     "header": {
       "reSignIn": "Please login again",

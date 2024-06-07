@@ -1,13 +1,13 @@
 {
   "translation": {
-    "name": "AWS 大语言模型机器人",
-    "welcome": "欢迎使用 AWS 大语言模型机器人",
+    "name": "Intelligent Private Agent",
+    "welcome": "欢迎使用 Intelligent Private Agent",
     "you": "你",
     "welcomeMessage": "您好，我今天有什么可以帮助您？",
     "server": "服务器",
     "settings": "设置",
     "signOut": "退出登录",
-    "chatSpace": "聊天空间",
+    "chatSpace": "聊天",
     "chatBot": "聊天机器人",
     "docLibrary": "文档库",
     "addLibrary": "添加文档库",
@@ -17,7 +17,7 @@
     "selectFile": "选择文件",
     "selectFileDesc": "文件上传成功后，将开始导入文档过程。",
     "chooseFile": "选择文件",
-    "chooseFiles": "选择多个文件",
+    "chooseFiles": "选择文件",
     "dropFileToUpload": "拖放文件以上传",
     "dropFilesToUpload": "拖放文件以上传多个文件",
     "removeFIle": "移除文件",
@@ -52,6 +52,10 @@
     "closing": "正在关闭...",
     "pending": "待定",
     "typeMessage": "输入消息",
+    "alert": "提示",
+    "preferences": "偏好设置",
+    "pageSize": "每页显示",
+    "fileEmptyError": "请选择需要上传的文件",
     "button": {
       "login": "登录到 AWS 大语言模型机器人",
       "reload": "重新加载",
@@ -61,7 +65,8 @@
       "confirm": "确认",
       "backToList": "返回列表",
       "delete": "删除",
-      "createDocLibrary": "创建文档库"
+      "createDocLibrary": "创建文档库",
+      "upload": "上传"
     },
     "header": {
       "reSignIn": "请重新登录",

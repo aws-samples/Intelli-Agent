@@ -25,6 +25,7 @@ import { LLMStack } from "../lib/model/llm-stack";
 import { BuildConfig } from "../lib/shared/build-config";
 import { DeploymentParameters } from "../lib/shared/cdk-parameters";
 import { VpcConstruct } from "../lib/shared/vpc-stack";
+import { IAMHelper } from "../lib/shared/iam-helper";
 import { AOSConstruct } from "../lib/vector-store/os-stack";
 import { PortalConstruct } from "../lib/ui/ui-portal";
 import { UiExportsConstruct } from "../lib/ui/ui-exports";
@@ -39,6 +40,7 @@ export class RootStack extends Stack {
     this.setBuildConfig();
 
     const cdkParameters = new DeploymentParameters(this);
+    const iamHelper = new IAMHelper(this, "iam-helper");
 
     const assetConstruct = new AssetsConstruct(this, "assets-construct", {
       s3ModelAssets: cdkParameters.s3ModelAssets.valueAsString,
@@ -46,12 +48,11 @@ export class RootStack extends Stack {
     });
     const llmStack = new LLMStack(this, "rag-stack", {
       s3ModelAssets: cdkParameters.s3ModelAssets.valueAsString,
-      rerankModelPrefix: assetConstruct.rerankModelPrefix,
-      rerankModelVersion: assetConstruct.rerankModelVersion,
-      embeddingModelPrefix: assetConstruct.embeddingModelPrefix,
-      embeddingModelVersion: assetConstruct.embeddingModelVersion,
+      embeddingAndRerankerModelPrefix: assetConstruct.embeddingAndRerankerModelPrefix,
+      embeddingAndRerankerModelVersion: assetConstruct.embeddingAndRerankerModelVersion,
       instructModelPrefix: assetConstruct.instructModelPrefix,
       instructModelVersion: assetConstruct.instructModelVersion,
+      iamHelper: iamHelper,
       env: process.env,
     });
     llmStack.node.addDependency(assetConstruct);
@@ -68,7 +69,7 @@ export class RootStack extends Stack {
 
     const etlStack = new EtlStack(this, "etl-stack", {
       domainEndpoint: aosConstruct.domainEndpoint || "",
-      embeddingEndpoint: llmStack.embeddingEndPoints,
+      embeddingAndRerankerEndPoint: llmStack.embeddingAndRerankerEndPoint,
       region: props.env?.region || "us-east-1",
       subEmail: cdkParameters.subEmail.valueAsString ?? "",
       etlVpc: vpcConstruct.connectorVpc,
@@ -78,6 +79,7 @@ export class RootStack extends Stack {
       openSearchIndex: cdkParameters.openSearchIndex.valueAsString,
       imageName: cdkParameters.etlImageName.valueAsString,
       etlTag: cdkParameters.etlImageTag.valueAsString,
+      iamHelper: iamHelper,
     });
     etlStack.node.addDependency(vpcConstruct);
     etlStack.node.addDependency(aosConstruct);
@@ -87,7 +89,7 @@ export class RootStack extends Stack {
       connectorVpc: vpcConstruct.connectorVpc,
       securityGroup: vpcConstruct.securityGroup,
       domainEndpoint: aosConstruct.domainEndpoint || "",
-      embeddingEndPoints: llmStack.embeddingEndPoints,
+      embeddingEndPoints: [llmStack.embeddingAndRerankerEndPoint],
       openSearchIndex: cdkParameters.openSearchIndex.valueAsString,
       openSearchIndexDict: cdkParameters.openSearchIndexDict.valueAsString,
       env: process.env,
@@ -96,12 +98,18 @@ export class RootStack extends Stack {
     connectorConstruct.node.addDependency(aosConstruct);
     connectorConstruct.node.addDependency(llmStack);
 
+    const uiPortal = new PortalConstruct(this, "ui-construct");
+
+    const userConstruct = new UserConstruct(this, "user", {
+      adminEmail: cdkParameters.subEmail.valueAsString,
+      callbackUrl: uiPortal.portalUrl,
+    });
+
     const apiConstruct = new ApiConstruct(this, "api-construct", {
       apiVpc: vpcConstruct.connectorVpc,
       securityGroup: vpcConstruct.securityGroup,
       domainEndpoint: aosConstruct.domainEndpoint || "",
-      rerankEndPoint: llmStack.rerankEndPoint ?? "",
-      embeddingEndPoints: llmStack.embeddingEndPoints || "",
+      embeddingAndRerankerEndPoint: llmStack.embeddingAndRerankerEndPoint || "",
       llmModelId: BuildConfig.LLM_MODEL_ID,
       instructEndPoint:
         BuildConfig.LLM_ENDPOINT_NAME !== ""
@@ -122,20 +130,15 @@ export class RootStack extends Stack {
       etlObjTableName: etlStack.etlObjTableName,
       etlObjIndexName: etlStack.etlObjIndexName,
       env: process.env,
+      userPool: userConstruct.userPool,
+      userPoolClientId: userConstruct.oidcClientId,
+      iamHelper: iamHelper,
     });
     apiConstruct.node.addDependency(vpcConstruct);
     apiConstruct.node.addDependency(aosConstruct);
     apiConstruct.node.addDependency(llmStack);
     apiConstruct.node.addDependency(connectorConstruct);
     apiConstruct.node.addDependency(etlStack);
-
-    const uiPortal = new PortalConstruct(this, "ui-construct");
-
-    const userConstruct = new UserConstruct(this, "user", {
-      adminEmail: cdkParameters.subEmail.valueAsString,
-      callbackUrl: uiPortal.portalUrl,
-    });
-    uiPortal.node.addDependency(apiConstruct);
 
     const uiExports = new UiExportsConstruct(this, "ui-exports", {
       portalBucket: uiPortal.portalBucket,
@@ -157,12 +160,9 @@ export class RootStack extends Stack {
       value: apiConstruct.apiEndpoint,
     });
     new CfnOutput(this, "Chunk Bucket", { value: etlStack.resBucketName });
-    new CfnOutput(this, "Cross Model Endpoint", {
-      value: llmStack.rerankEndPoint || "No Cross Endpoint Created",
-    });
     new CfnOutput(this, "Document Bucket", { value: apiConstruct.documentBucket });
-    new CfnOutput(this, "Embedding Model Endpoint", {
-      value: llmStack.embeddingEndPoints[0] || "No Embedding Endpoint Created",
+    new CfnOutput(this, "Embedding and Rerank Endpoint", {
+      value: llmStack.embeddingAndRerankerEndPoint || "No Embedding Endpoint Created",
     });
     new CfnOutput(this, "ETL Object Table", {
       value: etlStack.etlObjTableName,

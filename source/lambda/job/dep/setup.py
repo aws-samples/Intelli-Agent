@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-# align with the addtional python modules in etl stack
+# align with the additional python modules in etl stack
 setup(
     name="llm_bot_dep",
     version="0.1.0",
@@ -19,5 +19,6 @@ setup(
         "python-docx==1.1.0",
         "nltk==3.8.1",
         "pdfminer.six==20221105",
+        "smart-open==7.0.4",
     ],
 )

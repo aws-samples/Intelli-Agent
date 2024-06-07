@@ -14,22 +14,24 @@
 import { Duration, StackProps } from "aws-cdk-lib";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as lambda from "aws-cdk-lib/aws-lambda";
+import * as apigwv2 from "aws-cdk-lib/aws-apigatewayv2";
 import { Construct } from "constructs";
 import { join } from "path";
 
-import { WebSocketApi, WebSocketStage } from "@aws-cdk/aws-apigatewayv2-alpha";
-import { WebSocketLambdaIntegration } from "@aws-cdk/aws-apigatewayv2-integrations-alpha";
+import { WebSocketLambdaIntegration } from "aws-cdk-lib/aws-apigatewayv2-integrations";
+import { WebSocketLambdaAuthorizer } from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
 
 import { createBasicLambdaPolicy } from "../shared/utils";
 
 interface WebSocketProps extends StackProps {
   dispatcherLambda: lambda.Function;
   sendMessageLambda: lambda.Function;
+  customAuthorizerLambda: lambda.Function;
 }
 
 export class WebSocketConstruct extends Construct {
-  public readonly webSocketApi: WebSocketApi;
-  public readonly websocketApiStage: WebSocketStage;
+  public readonly webSocketApi: apigwv2.WebSocketApi;
+  public readonly websocketApiStage: apigwv2.WebSocketStage;
 
   constructor(scope: Construct, id: string, props: WebSocketProps) {
     super(scope, id);
@@ -60,13 +62,18 @@ export class WebSocketConstruct extends Construct {
       timeout: Duration.minutes(15),
     });
 
-    const webSocketApi = new WebSocketApi(this, "wsApi", {
+    const webSocketApi = new apigwv2.WebSocketApi(this, "wsApi", {
       description: "LLM bot WebSocket API",
       connectRouteOptions: {
         integration: new WebSocketLambdaIntegration(
           "ConnectIntegration",
           onConnectLambda,
         ),
+        authorizer: new WebSocketLambdaAuthorizer('Authorizer', 
+          props.customAuthorizerLambda,
+          {
+            identitySource: ["route.request.querystring.idToken"],
+          })
       },
       disconnectRouteOptions: {
         integration: new WebSocketLambdaIntegration(
@@ -82,7 +89,7 @@ export class WebSocketConstruct extends Construct {
       },
     });
 
-    const stage = new WebSocketStage(this, "prod", {
+    const stage = new apigwv2.WebSocketStage(this, "prod", {
       webSocketApi: webSocketApi,
       stageName: "prod",
       autoDeploy: true,

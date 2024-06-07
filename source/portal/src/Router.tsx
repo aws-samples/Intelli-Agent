@@ -1,7 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import ChatBot from './pages/chatbot/ChatBot';
 import Library from './pages/library/Library';
-import AddLibrary from './pages/library/AddLibrary';
 import LibraryDetail from './pages/library/LibraryDetail';
 import CommonAlert from './comps/alert';
 import { useAuth } from 'react-oidc-context';
@@ -32,7 +31,6 @@ const SignedInRouter = () => {
         <Route path="/" element={<ChatBot />} />
         <Route path="/library" element={<Library />} />
         <Route path="/library/detail/:id" element={<LibraryDetail />} />
-        <Route path="/library/add" element={<AddLibrary />} />
       </Routes>
       <CommonAlert />
     </BrowserRouter>

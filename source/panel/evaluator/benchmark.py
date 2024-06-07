@@ -169,7 +169,7 @@ def langchain_unstructured_loader(file_path: str) -> List[Document]:
 def parse_log_to_document_list(log_content: str) -> List[Document]:
     # Split the log content into page content and metadata parts
     parts = log_content.split("Metadata: ")
-    page_content = parts[0].replace("Page Content: ", "").strip()
+    page_content = parts[0].replace("Page Content: \n", "").strip()
     metadata = json.loads(parts[1].strip()) if len(parts) > 1 else {}
 
     # Create a Document object

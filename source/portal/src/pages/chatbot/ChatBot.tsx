@@ -1,38 +1,60 @@
 import React, { useContext, useEffect, useState } from 'react';
 import CommonLayout from 'src/layout/CommonLayout';
 import Message from './components/Message';
+import useAxiosRequest from 'src/hooks/useAxiosRequest';
 import { useTranslation } from 'react-i18next';
 import {
+  Autosuggest,
   Box,
   Button,
-  Modal,
-  SpaceBetween,
+  ColumnLayout,
+  ExpandableSection,
+  FormField,
+  Input,
+  Select,
+  SelectProps,
   StatusIndicator,
   Textarea,
+  Toggle,
 } from '@cloudscape-design/components';
 import useWebSocket, { ReadyState } from 'react-use-websocket';
 import { identity } from 'lodash';
 import ConfigContext from 'src/context/config-context';
+import { useAuth } from 'react-oidc-context';
+import {
+  LLM_BOT_CHAT_MODE_LIST,
+  LLM_BOT_MODEL_LIST,
+  SCENARIO_LIST,
+  RETAIL_GOODS_LIST,
+} from 'src/utils/const';
+import { v4 as uuidv4 } from 'uuid';
+import { MessageDataType } from 'src/types';
 
 interface MessageType {
   type: 'ai' | 'human';
-  message: string;
+  message: {
+    data: string;
+    monitoring: string;
+  };
 }
 
 const ChatBot: React.FC = () => {
-  const [visible, setVisible] = useState(false);
   const config = useContext(ConfigContext);
   const { t } = useTranslation();
+  const auth = useAuth();
 
   const [messages, setMessages] = useState<MessageType[]>([
     {
       type: 'ai',
-      message: t('welcomeMessage'),
+      message: {
+        data: t('welcomeMessage'),
+        monitoring: '',
+      },
     },
   ]);
   const [userMessage, setUserMessage] = useState('');
   const { lastMessage, sendMessage, readyState } = useWebSocket(
-    config?.websocket ?? '',
+    `${config?.websocket}?idToken=${auth.user?.id_token}`,
     {
       onOpen: () => console.log('opened'),
       //Will attempt to reconnect on all close events, such as server shutting down
@@ -40,7 +62,31 @@ const ChatBot: React.FC = () => {
     },
   );
   const [currentAIMessage, setCurrentAIMessage] = useState('');
+  const [currentMonitorMessage, setCurrentMonitorMessage] = useState('');
   const [aiSpeaking, setAiSpeaking] = useState(false);
+  const [modelOption, setModelOption] = useState<string>(LLM_BOT_MODEL_LIST[0]);
+  const [chatModeOption, setChatModeOption] = useState<SelectProps.Option>(
+    LLM_BOT_CHAT_MODE_LIST[0],
+  );
+  const [useChatHistory, setUseChatHistory] = useState(true);
+  const [showTrace, setShowTrace] = useState(true);
+  // const [useWebSearch, setUseWebSearch] = useState(false);
+  // const [googleAPIKey, setGoogleAPIKey] = useState('');
+  const [retailGoods, setRetailGoods] = useState<SelectProps.Option>(
+    RETAIL_GOODS_LIST[0],
+  );
+  const [scenario, setScenario] = useState<SelectProps.Option>(
+    SCENARIO_LIST[0],
+  );
+
+  const [sessionId, setSessionId] = useState('');
+  const [workspaceIds, setWorkspaceIds] = useState<any[]>([]);
+
+  const [temperature, setTemperature] = useState<string>('0.1');
+  const [maxToken, setMaxToken] = useState<string>('4096');
+
+  const [showMessageError, setShowMessageError] = useState(false);
+  // const [googleAPIKeyError, setGoogleAPIKeyError] = useState(false);
 
   const connectionStatus = {
     [ReadyState.CONNECTING]: 'loading',
@@ -50,23 +96,57 @@ const ChatBot: React.FC = () => {
     [ReadyState.UNINSTANTIATED]: 'pending',
   }[readyState];
 
+  // Define an async function to get the data
+  const fetchData = useAxiosRequest();
+
+  const getWorkspaceList = async () => {
+    try {
+      const data = await fetchData({
+        url: 'etl/list-workspace',
+        method: 'get',
+      });
+      setWorkspaceIds(data.workspace_ids);
+    } catch (error) {
+      console.error(error);
+      return [];
+    }
+  };
+
+  useEffect(() => {
+    setSessionId(uuidv4());
+    getWorkspaceList();
+  }, []);
+
   useEffect(() => {
     if (lastMessage !== null) {
       setAiSpeaking(true);
       console.info(lastMessage);
-      const message = JSON.parse(lastMessage.data);
+      const message: MessageDataType = JSON.parse(lastMessage.data);
       console.info('message:', message);
-      const chunkMessage = message.choices?.[0];
-      if (chunkMessage) {
-        const isEnd = chunkMessage.message_type === 'END';
+      if (message.message_type === 'MONITOR') {
+        setCurrentMonitorMessage((prev) => {
+          return prev + (message?.message ?? '');
+        });
+      } else {
+        const isEnd = message.message_type === 'END';
+        let aiMessage = '';
         setCurrentAIMessage((prev) => {
-          return prev + (chunkMessage?.message?.content ?? '');
+          aiMessage = prev + (message?.message?.content ?? '');
+          return prev + (message?.message?.content ?? '');
         });
         if (isEnd) {
           setAiSpeaking(false);
-          setCurrentAIMessage('');
           setMessages((prev) => {
-            return [...prev, { type: 'ai', message: currentAIMessage }];
+            return [
+              ...prev,
+              {
+                type: 'ai',
+                message: {
+                  data: aiMessage,
+                  monitoring: currentMonitorMessage,
+                },
+              },
+            ];
           });
         }
       }
@@ -74,16 +154,58 @@ const ChatBot: React.FC = () => {
   }, [lastMessage]);
 
   const handleClickSendMessage = () => {
+    if (aiSpeaking) {
+      return;
+    }
+    if (!userMessage.trim()) {
+      setShowMessageError(true);
+      return;
+    }
+    setUserMessage('');
+    setAiSpeaking(true);
+    setCurrentAIMessage('');
+    setCurrentMonitorMessage('');
+    // if (useWebSearch && !googleAPIKey.trim()) {
+    //   setGoogleAPIKeyError(true);
+    //   return;
+    // }
     const message = {
-      action: 'sendMessage',
-      messages: [{ role: 'user', content: userMessage }],
-      temperature: 0.1,
-      type: 'common',
-      retriever_config: { workspace_ids: ['lvntest'] },
+      query: userMessage,
+      entry_type: scenario.value,
+      session_id: sessionId,
+      chatbot_config: {
+        goods_id: retailGoods.value,
+        chatbot_mode: chatModeOption.value,
+        use_history: useChatHistory,
+        use_websearch: true,
+        google_api_key: '',
+        default_workspace_config: {
+          intent_workspace_ids: [],
+          rag_workspace_ids: workspaceIds,
+        },
+        default_llm_config: {
+          model_id: modelOption,
+          model_kwargs: {
+            temperature: parseFloat(temperature),
+            max_tokens: parseInt(maxToken),
+          },
+        },
+      },
     };
+
+    console.info('send message:', message);
     sendMessage(JSON.stringify(message));
     setMessages((prev) => {
-      return [...prev, { type: 'human', message: userMessage }];
+      return [
+        ...prev,
+        {
+          type: 'human',
+          message: {
+            data: userMessage,
+            monitoring: '',
+          },
+        },
+      ];
     });
     setUserMessage('');
   };
@@ -94,22 +216,43 @@ const ChatBot: React.FC = () => {
         <div className="chat-message flex-v flex-1 gap-10">
           {messages.map((msg, index) => (
             <Message
+              showTrace={showTrace}
               key={identity(index)}
               type={msg.type}
               message={msg.message}
             />
           ))}
-          {aiSpeaking && <Message type="ai" message={currentAIMessage} />}
+          {aiSpeaking && (
+            <Message
+              type="ai"
+              showTrace={showTrace}
+              message={{
+                data: currentAIMessage,
+                monitoring: currentMonitorMessage,
+              }}
+            />
+          )}
         </div>
 
         <div className="flex-v gap-10">
-          <div className="flex gap-10 send-message">
+          <div className="flex gap-5 send-message">
+            <Select
+              options={LLM_BOT_CHAT_MODE_LIST}
+              selectedOption={chatModeOption}
+              onChange={({ detail }) => {
+                setChatModeOption(detail.selectedOption);
+              }}
+            />
             <div className="flex-1 pr">
               <Textarea
+                invalid={showMessageError}
                 rows={1}
                 value={userMessage}
                 placeholder={t('typeMessage')}
-                onChange={(e) => setUserMessage(e.detail.value)}
+                onChange={(e) => {
+                  setShowMessageError(false);
+                  setUserMessage(e.detail.value);
+                }}
                 onKeyDown={(e) => {
                   if (e.detail.key === 'Enter') {
                     e.preventDefault();
@@ -120,6 +263,7 @@ const ChatBot: React.FC = () => {
             </div>
             <div>
               <Button
+                disabled={aiSpeaking}
                 onClick={() => {
                   handleClickSendMessage();
                 }}
@@ -128,50 +272,118 @@ const ChatBot: React.FC = () => {
               </Button>
             </div>
           </div>
-          <div className="flex space-between">
-            <div>
-              <Button iconName="settings" onClick={() => setVisible(true)}>
-                {t('button.modelSettings')}
-              </Button>
+          <div>
+            <div className="flex space-between">
+              <div className="flex gap-10 align-center">
+                <Toggle
+                  onChange={({ detail }) => setUseChatHistory(detail.checked)}
+                  checked={useChatHistory}
+                >
+                  Multi-rounds
+                </Toggle>
+                <Toggle
+                  onChange={({ detail }) => setShowTrace(detail.checked)}
+                  checked={showTrace}
+                >
+                  Trace
+                </Toggle>
+                {/*
+                <Toggle
+                  onChange={({ detail }) => {
+                    setGoogleAPIKeyError(false);
+                    setUseWebSearch(detail.checked);
+                  }}
+                  checked={useWebSearch}
+                >
+                  Enable WebSearch
+                </Toggle>
+                {useWebSearch && (
+                  <div style={{ minWidth: 300 }}>
+                    <Input
+                      invalid={googleAPIKeyError}
+                      placeholder="Please input your Google API key"
+                      value={googleAPIKey}
+                      onChange={({ detail }) => {
+                        setGoogleAPIKeyError(false);
+                        setGoogleAPIKey(detail.value);
+                      }}
+                    />
+                  </div>
+                )}
+                */}
+              </div>
+              <div className="flex align-center gap-10">
+                <Box variant="p">{t('server')}: </Box>
+                <StatusIndicator type={connectionStatus as any}>
+                  {t(connectionStatus)}
+                </StatusIndicator>
+              </div>
             </div>
-            <div>
-              {t('server')}:{' '}
-              <StatusIndicator type={connectionStatus as any}>
-                {t(connectionStatus)}
-              </StatusIndicator>
-            </div>
+          </div>
+          <div>
+            <ExpandableSection
+              // variant="footer"
+              headingTagOverride="h4"
+              headerText="Model Settings"
+            >
+              <ColumnLayout columns={3} variant="text-grid">
+                <FormField label="Model name" stretch={true}>
+                  <Autosuggest
+                    onChange={({ detail }) => setModelOption(detail.value)}
+                    value={modelOption}
+                    options={LLM_BOT_MODEL_LIST.map((item) => {
+                      return {
+                        label: item,
+                        value: item,
+                      };
+                    })}
+                    placeholder="Enter value"
+                    empty="No matches found"
+                  />
+                </FormField>
+                <FormField label="Scenario" stretch={true}>
+                  <Select
+                    options={SCENARIO_LIST}
+                    selectedOption={scenario}
+                    onChange={({ detail }) => {
+                      setScenario(detail.selectedOption);
+                    }}
+                  />
+                  {scenario.value == 'retail' && (
+                    <div style={{ minWidth: 300 }}>
+                      <Select
+                        options={RETAIL_GOODS_LIST}
+                        selectedOption={retailGoods}
+                        onChange={({ detail }) => {
+                          setRetailGoods(detail.selectedOption);
+                        }}
+                      />
+                    </div>
+                  )}
+                </FormField>
+                <FormField label="Max Tokens" stretch={true}>
+                  <Input
+                    type="number"
+                    value={maxToken}
+                    onChange={({ detail }) => {
+                      setMaxToken(detail.value);
+                    }}
+                  />
+                </FormField>
+                <FormField label="Temperature" stretch={true}>
+                  <Input
+                    type="number"
+                    value={temperature}
+                    onChange={({ detail }) => {
+                      setTemperature(detail.value);
+                    }}
+                  />
+                </FormField>
+              </ColumnLayout>
+            </ExpandableSection>
           </div>
         </div>
       </div>
-      <Modal
-        onDismiss={() => setVisible(false)}
-        visible={visible}
-        footer={
-          <Box float="right">
-            <SpaceBetween direction="horizontal" size="xs">
-              <Button
-                variant="link"
-                onClick={() => {
-                  setVisible(false);
-                }}
-              >
-                {t('button.cancel')}
-              </Button>
-              <Button
-                variant="primary"
-                onClick={() => {
-                  setVisible(false);
-                }}
-              >
-                {t('button.confirm')}
-              </Button>
-            </SpaceBetween>
-          </Box>
-        }
-        header={t('settings')}
-      >
-        // TODO
-      </Modal>
     </CommonLayout>
   );
 };
