@@ -18,7 +18,7 @@ import {
   Toggle,
 } from '@cloudscape-design/components';
 import useWebSocket, { ReadyState } from 'react-use-websocket';
-import { identity } from 'lodash';
+import { identity, set } from 'lodash';
 import ConfigContext from 'src/context/config-context';
 import { useAuth } from 'react-oidc-context';
 import {
@@ -87,6 +87,7 @@ const ChatBot: React.FC = () => {
 
   const [showMessageError, setShowMessageError] = useState(false);
   // const [googleAPIKeyError, setGoogleAPIKeyError] = useState(false);
+  const [isMessageEnd, setIsMessageEnd] = useState(false);
 
   const connectionStatus = {
     [ReadyState.CONNECTING]: 'loading',
@@ -117,41 +118,49 @@ const ChatBot: React.FC = () => {
     getWorkspaceList();
   }, []);
 
+  const handleAIMessage = (message: MessageDataType) => {
+    console.info('handleAIMessage:', message);
+    if (message.message_type === 'START') {
+      console.info('message started');
+    } else if (message.message_type === 'CHUNK') {
+      setCurrentAIMessage((prev) => {
+        return prev + (message?.message?.content ?? '');
+      });
+    } else if (message.message_type === 'END') {
+      setIsMessageEnd(true);
+    }
+  };
+
   useEffect(() => {
     if (lastMessage !== null) {
-      setAiSpeaking(true);
-      console.info(lastMessage);
       const message: MessageDataType = JSON.parse(lastMessage.data);
-      console.info('message:', message);
       if (message.message_type === 'MONITOR') {
         setCurrentMonitorMessage((prev) => {
           return prev + (message?.message ?? '');
         });
       } else {
-        const isEnd = message.message_type === 'END';
-        let aiMessage = '';
-        setCurrentAIMessage((prev) => {
-          aiMessage = prev + (message?.message?.content ?? '');
-          return prev + (message?.message?.content ?? '');
-        });
-        if (isEnd) {
-          setAiSpeaking(false);
-          setMessages((prev) => {
-            return [
-              ...prev,
-              {
-                type: 'ai',
-                message: {
-                  data: aiMessage,
-                  monitoring: currentMonitorMessage,
-                },
-              },
-            ];
-          });
-        }
+        handleAIMessage(message);
       }
     }
   }, [lastMessage]);
+
+  useEffect(() => {
+    if (isMessageEnd) {
+      setAiSpeaking(false);
+      setMessages((prev) => {
+        return [
+          ...prev,
+          {
+            type: 'ai',
+            message: {
+              data: currentAIMessage,
+              monitoring: currentMonitorMessage,
+            },
+          },
+        ];
+      });
+    }
+  }, [isMessageEnd]);
 
   const handleClickSendMessage = () => {
     if (aiSpeaking) {
@@ -165,6 +174,7 @@ const ChatBot: React.FC = () => {
     setAiSpeaking(true);
     setCurrentAIMessage('');
     setCurrentMonitorMessage('');
+    setIsMessageEnd(false);
     // if (useWebSearch && !googleAPIKey.trim()) {
     //   setGoogleAPIKeyError(true);
     //   return;
@@ -224,6 +234,7 @@ const ChatBot: React.FC = () => {
           ))}
           {aiSpeaking && (
             <Message
+              aiSpeaking={aiSpeaking}
               type="ai"
               showTrace={showTrace}
               message={{
