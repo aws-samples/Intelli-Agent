@@ -1,4 +1,5 @@
 import json
+import re
 from textwrap import dedent
 from typing import TypedDict,Any,Annotated
 import validators
@@ -11,6 +12,7 @@ from common_utils.constant import (
 import pandas as pd 
 
 from functions.tools import get_tool_by_name,Tool
+from functions.retail_tools.lambda_product_information_search.product_information_search import goods_dict
 from functions.tool_execute_result_format import format_tool_execute_result
 from functions.tool_calling_parse import parse_tool_calling as _parse_tool_calling
 
@@ -21,25 +23,8 @@ from common_utils.logger_utils import get_logger
 from common_utils.serialization_utils import JSONEncoder
 from common_utils.s3_utils import download_dir_from_s3
 
+
 logger = get_logger('retail_entry')
-
-def get_url_goods_dict(data_file_path)->dict:
-    url_goods = {} 
-    goods_data = pd.read_excel(data_file_path, "商品信息登记").to_dict(orient='records')
-    # get row
-    for datum in goods_data:
-        goods_id = datum["商品ID"]
-        goods_info = datum["卖点（含材质属性）"]
-        goods_url = datum["商品链接"]
-        url_goods[goods_url] = {
-            "goods_info": goods_info,
-            "goods_url": goods_url,
-            "goods_id": goods_id
-            } 
-    return url_goods
-
-download_dir_from_s3("aws-chatbot-knowledge-base-test", "retail", "lambda_main")
-url_goods_dict = get_url_goods_dict("lambda_main/retail/detail/TB0327.xlsx")
 
 class ChatbotState(TypedDict):
     chatbot_config: dict # chatbot config
@@ -67,6 +52,9 @@ class ChatbotState(TypedDict):
     current_agent_model_id: str
     parse_tool_calling_ok: bool
     query_rule_classification: str
+    goods_info: None
+    agent_llm_type: str
+    query_rewrite_llm_type: str
     
 
 ####################
@@ -82,7 +70,7 @@ def query_preprocess_lambda(state: ChatbotState):
         handler_name="lambda_handler"
     )
     state['extra_response']['query_rewrite'] = output
-    send_trace(f"**query_rewrite:** \n{output}")
+    send_trace(f"\n\n**query_rewrite:** \n{output}")
     return {
             "query_rewrite":output,
             "current_monitor_infos":f"query_rewrite: {output}"
@@ -99,7 +87,7 @@ def intention_detection_lambda(state: ChatbotState):
     state['extra_response']['intention_fewshot_examples'] = intention_fewshot_examples
 
     # send trace
-    send_trace(f"intention retrieved:\n{json.dumps(intention_fewshot_examples,ensure_ascii=False,indent=2)}")
+    send_trace(f"\n\nintention retrieved:\n{json.dumps(intention_fewshot_examples,ensure_ascii=False,indent=2)}")
     current_intent_tools:list[str] = list(set([e['intent'] for e in intention_fewshot_examples]))
     return {
         "intention_fewshot_examples": intention_fewshot_examples,
@@ -107,11 +95,16 @@ def intention_detection_lambda(state: ChatbotState):
         "intent_type":"other"
         }
 
-
 @node_monitor_wrapper
 def agent_lambda(state: ChatbotState):
+    goods_info = state.get('goods_info',None) or ""
+    
     output:dict = invoke_lambda(
-        event_body={**state,"chat_history":state['agent_chat_history']},
+        event_body={
+            **state,
+            "chat_history": state['agent_chat_history'],
+            "other_chain_kwargs":{"goods_info":goods_info}
+        },
         lambda_name="Online_Agent",
         lambda_module_path="lambda_agent.agent",
         handler_name="lambda_handler"
@@ -120,7 +113,7 @@ def agent_lambda(state: ChatbotState):
     content = output['content']
     current_agent_tools_def = output['current_agent_tools_def']
     current_agent_model_id = output['current_agent_model_id']
-    send_trace(f"**current_function_calls:** \n{current_function_calls},\n**model_id:** \n{current_agent_model_id}\n**ai content:** \n{content}")
+    send_trace(f"\n\n**current_function_calls:** \n{current_function_calls},\n**model_id:** \n{current_agent_model_id}\n**ai content:** \n{content}")
     return {
         "current_agent_model_id": current_agent_model_id,
         "current_function_calls": current_function_calls,
@@ -148,15 +141,25 @@ def parse_tool_calling(state: ChatbotState):
             function_calls = state['current_function_calls'],
             tools=state['current_agent_tools_def'],
         )
-        send_trace(f"**tool_calls parsed:** \n{tool_calls}")
+        send_trace(f"\n\n**tool_calls parsed:** \n{tool_calls}")
         if tool_calls:
             state["extra_response"]['current_agent_intent_type'] = tool_calls[0]['name']
         else:
+            tool_format = ("<function_calls>\n"
+            "<invoke>\n"
+            "<tool_name>$TOOL_NAME</tool_name>\n"
+            "<parameters>\n"
+            "<$PARAMETER_NAME>$PARAMETER_VALUE</$PARAMETER_NAME>\n"
+            "...\n"
+            "</parameters>\n"
+            "</invoke>\n"
+            "</function_calls>\n"
+            )
             return {
                 "parse_tool_calling_ok": False,
                 "agent_chat_history":[{
                     "role": "user",
-                    "content": "当前没有解析到tool,请检查tool调用的格式是否正确，并重新输出某个tool的调用。注意调用tool的时候要加上<function_calls></function_calls>。如果你认为当前不需要调用其他工具，请直接调用“give_final_response”工具进行返回。"
+                    "content": f"当前没有解析到tool,请检查tool调用的格式是否正确，并重新输出某个tool的调用。注意正确的tool调用格式应该为: {tool_format}。\n如果你认为当前不需要调用其他工具，请直接调用“give_final_response”工具进行返回。"
                 }]
             }
 
@@ -165,7 +168,7 @@ def parse_tool_calling(state: ChatbotState):
             "current_tool_calls": tool_calls,
         }
     except (ToolNotExistError,ToolParameterNotExistError) as e:
-        send_trace(f"**tool_calls parse failed:** \n{str(e)}")
+        send_trace(f"\n\n**tool_calls parse failed:** \n{str(e)}")
         return {
         "parse_tool_calling_ok": False,
         "agent_chat_history":[{
@@ -338,17 +341,18 @@ def rag_product_aftersales_retriever_lambda(state: ChatbotState):
 @node_monitor_wrapper
 def rag_product_aftersales_llm_lambda(state:ChatbotState):
     context = ("="*50).join(state['contexts'])
-    prompt = dedent(f"""你是安踏的客服助理，正在帮用户解答问题，客户提出的问题大多是属于商品的质量和物流规则。context列举了一些可能和客户问题有关的具体场景及回复，你可以进行参考:
+    prompt = dedent(f"""你是安踏的客服助理，正在帮消费者解答问题，消费者提出的问题大多是属于商品的质量和物流规则。context列举了一些可能有关的具体场景及回复，你可以进行参考:
                     <context>
                     {context}
                     </context>
-                    你需要按照下面的guidelines对用户的问题进行回答:
+                    你需要按照下面的guidelines对消费者的问题进行回答:
                     <guidelines>
-                      - 回答内容要有礼貌和简洁。
-                      - 如果用户问题与context内容不相关，就不要采用。
-                      - 客户的问题里面可能包含口语化的表达，比如鞋子开胶的意思是用胶黏合的鞋体裂开。这和胶丝遗留没有关系
+                      - 回答内容要简洁。
+                      - 如果问题与context内容不相关，就不要采用。
+                      - 消费者的问题里面可能包含口语化的表达，比如鞋子开胶的意思是用胶黏合的鞋体裂开。这和胶丝遗留没有关系
+                      - 如果消费者的问题是有关于运费的原因，可以告诉消费者，要满200才能免运费
                     </guidelines>
-                    下面是用户的问题: {state['query']}。结合guidelines的内容进行回答
+                    下面是消费者的问题: {state['query']}。结合guidelines的内容进行回答
 """)
     output:str = invoke_lambda(
         lambda_name='Online_LLM_Generate',
@@ -381,17 +385,18 @@ def rag_customer_complain_retriever_lambda(state: ChatbotState):
 @node_monitor_wrapper
 def rag_customer_complain_llm_lambda(state:ChatbotState):
     context = ("="*50).join(state['contexts'])
-    prompt = dedent(f"""你是安踏的客服助理，正在处理有关于客户抱怨的问题，这些问题有关于商品质量等方面，需要你按照下面的guidelines进行回复:
-                    <guidelines>
-                      - 回复内容需要展现出礼貌。
-                      - 尽量安抚客户的情绪。
-                      - 回答要简洁。
-                    </guidelines>
-                    下面列举了一些具体的场景下的回复，你可以结合用户的问题进行参考回答:
+    # prompt = dedent(f"""你是安踏的客服助理，正在处理有关于客户抱怨的问题，这些问题有关于商品质量等方面，需要你按照下面的guidelines进行回复:
+    prompt = dedent(f"""你是安踏的客服助理，正在处理有关于消费者抱怨的问题。context列举了一些可能和客户问题有关的具体场景及回复，你可以进行参考:
                     <context>
                     {context}
                     </context>
-                    下面是用户的回复: {state['query']}
+                    需要你按照下面的guidelines进行回复:
+                    <guidelines>
+                      - 回答要简洁。
+                      - 尽量安抚客户情绪。
+                      - 直接回答，不要说"亲爱的顾客，您好"
+                    </guidelines>
+                    下面是消费者的问题: {state['query']}
 """)
     output:str = invoke_lambda(
         lambda_name='Online_LLM_Generate',
@@ -424,16 +429,16 @@ def rag_promotion_retriever_lambda(state: ChatbotState):
 @node_monitor_wrapper
 def rag_promotion_llm_lambda(state:ChatbotState):
     context = ("="*50).join(state['contexts'])
-    prompt = dedent(f"""你是安踏的客服助理，正在处理客户有关于商品促销的问题，这些问题有关于积分，奖品，奖励等方面，需要你按照下面的guidelines进行回复:
-                    <guidelines>
-                      - 回复内容需要展现出礼貌。
-                      - 回答要简洁。
-                    </guidelines>
-                    下面列举了一些具体的场景下的回复，你可以结合用户的问题进行参考回答:
+    prompt = dedent(f"""你是安踏的客服助理，正在帮消费者解答有关于商品促销的问题，这些问题是有关于积分、奖品、奖励等方面。context列举了一些可能有关的具体场景及回复，你可以进行参考:
                     <context>
                     {context}
                     </context>
-                    下面是用户的回复: {state['query']}
+                    你需要按照下面的guidelines对消费者的问题进行回答:
+                    <guidelines>
+                      - 回答内容要简洁。
+                      - 如果问题与context内容不相关，就不要采用。
+                    </guidelines>
+                    下面是消费者的问题: {state['query']}。结合guidelines的内容进行回答
 """)
     output:str = invoke_lambda(
         lambda_name='Online_LLM_Generate',
@@ -465,8 +470,13 @@ def rule_url_reply(state:ChatbotState):
     if state['query'].endswith(('.jpg','.png')):
         return {"answer": "好的，收到图片。"}
     # product information
-    if state['query'] in url_goods_dict:
-        return {"answer":url_goods_dict[state['query']]['goods_info']}
+    r = re.findall(r"item.htm\?id=(.*)",state['query'])
+    if r:
+        goods_id = int(r[0])
+    else:
+        goods_id = 0
+    if goods_id in goods_dict:
+        return {"answer":f"您好，该商品的特点是:\n{state['goods_info']}"}
     
     return {"answer":"您好"}
 
@@ -497,9 +507,6 @@ def agent_route(state:dict):
         return 'invalid tool calling'
     
     recent_tool_calls:list[dict] = state['current_tool_calls']
-
-    # if not recent_tool_calls:
-    #     return "no tool"
     
     recent_tool_call = recent_tool_calls[0]
 
@@ -653,7 +660,26 @@ def retail_entry(event_body):
     stream = event_body['stream']
     message_id = event_body['custom_message_id']
     ws_connection_id = event_body['ws_connection_id']
+    
+    goods_info = None
+    goods_id = event_body['chatbot_config']['goods_id']
+    if goods_id:
+        try:
+            _goods_info = goods_dict.get(int(goods_id),None)
+        except Exception as e:
+            import traceback 
+            error = traceback.format_exc()
+            logger.error(f"error meesasge {error}, invalid goods_id: {goods_id}")
+            _goods_info = None
 
+        if _goods_info:
+            logger.info(_goods_info)
+            _goods_info = eval(_goods_info['goods_info'])
+            goods_info = ""
+            for k,v in _goods_info.items():
+                goods_info += f"{k}:{v}\n" 
+    
+    logger.info(f"goods_info: {goods_info}")
     # invoke graph and get results
     response = app.invoke({
         "stream": stream,
@@ -666,6 +692,9 @@ def retail_entry(event_body):
         "ws_connection_id": ws_connection_id,
         "debug_infos": {},
         "extra_response": {},
+        "goods_info":goods_info,
+        "agent_llm_type": LLMTaskType.RETAIL_TOOL_CALLING,
+        "query_rewrite_llm_type":LLMTaskType.RETAIL_CONVERSATION_SUMMARY_TYPE
     })
 
     return {"answer":response['answer'],**response["extra_response"]}

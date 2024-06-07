@@ -28,7 +28,7 @@ def get_size_dict():
     goods2type_dict = {}
     size_dict = {}
     # iterator all files in directory
-    for root, dirs, files in os.walk("functions/retail_tools/lambda_size_guide/retail/size"):
+    for root, dirs, files in os.walk("/tmp/functions/retail_tools/lambda_size_guide/retail/size"):
         print(files)
         for file in files:
             goods_type_1 = get_goods_type_1(file)
@@ -101,7 +101,7 @@ def get_foot_length_dict(data_file_path):
                         foot_length_dict[size] = row[key]
     return foot_length_dict 
 
-download_dir_from_s3("aws-chatbot-knowledge-base-test", "retail", "functions/retail_tools/lambda_size_guide/")
+download_dir_from_s3("aws-chatbot-knowledge-base-test", "retail", "/tmp/functions/retail_tools/lambda_size_guide/")
 good2type_dict, size_dict = get_size_dict()
 
 def lambda_handler(event_body, context=None):
@@ -127,8 +127,8 @@ def lambda_handler(event_body, context=None):
             return {"code":1, "result":"height is required"}
         if "weight" not in kwargs:
             return {"code":1, "result":"weight is required"}
-        height = int(kwargs["height"])
-        weight = int(kwargs["weight"])
+        height = int(float(kwargs["height"]))
+        weight = int(float(kwargs["weight"]))
         result = size_dict.get(goods_type_1).get(goods_type_2).get("height_weight").get(height).get(weight, "L")
     return {"code":0, "result":result, "name": "尺码查询"}
 

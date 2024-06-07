@@ -82,8 +82,8 @@ const ChatBot: React.FC = () => {
   const [sessionId, setSessionId] = useState('');
   const [workspaceIds, setWorkspaceIds] = useState<any[]>([]);
 
-  const [temperature, setTemperature] = useState<number>(0.1);
-  const [maxToken, setMaxToken] = useState(4096);
+  const [temperature, setTemperature] = useState<string>('0.1');
+  const [maxToken, setMaxToken] = useState<string>('4096');
 
   const [showMessageError, setShowMessageError] = useState(false);
   // const [googleAPIKeyError, setGoogleAPIKeyError] = useState(false);
@@ -129,20 +129,20 @@ const ChatBot: React.FC = () => {
         });
       } else {
         const isEnd = message.message_type === 'END';
+        let aiMessage = '';
         setCurrentAIMessage((prev) => {
+          aiMessage = prev + (message?.message?.content ?? '');
           return prev + (message?.message?.content ?? '');
         });
         if (isEnd) {
           setAiSpeaking(false);
-          setCurrentAIMessage('');
-          setCurrentMonitorMessage('');
           setMessages((prev) => {
             return [
               ...prev,
               {
                 type: 'ai',
                 message: {
-                  data: currentAIMessage,
+                  data: aiMessage,
                   monitoring: currentMonitorMessage,
                 },
               },
@@ -161,12 +161,14 @@ const ChatBot: React.FC = () => {
       setShowMessageError(true);
       return;
     }
+    setUserMessage('');
     setAiSpeaking(true);
+    setCurrentAIMessage('');
+    setCurrentMonitorMessage('');
     // if (useWebSearch && !googleAPIKey.trim()) {
     //   setGoogleAPIKeyError(true);
     //   return;
     // }
-
     const message = {
       query: userMessage,
       entry_type: scenario.value,
@@ -183,7 +185,10 @@ const ChatBot: React.FC = () => {
         },
         default_llm_config: {
           model_id: modelOption,
-          model_kwargs: { temperature: temperature, max_tokens: maxToken },
+          model_kwargs: {
+            temperature: parseFloat(temperature),
+            max_tokens: parseInt(maxToken),
+          },
         },
       },
     };
@@ -358,17 +363,19 @@ const ChatBot: React.FC = () => {
                 </FormField>
                 <FormField label="Max Tokens" stretch={true}>
                   <Input
-                    value={maxToken.toString()}
+                    type="number"
+                    value={maxToken}
                     onChange={({ detail }) => {
-                      setMaxToken(parseFloat(detail.value));
+                      setMaxToken(detail.value);
                     }}
                   />
                 </FormField>
                 <FormField label="Temperature" stretch={true}>
                   <Input
-                    value={temperature.toString()}
+                    type="number"
+                    value={temperature}
                     onChange={({ detail }) => {
-                      setTemperature(parseFloat(detail.value));
+                      setTemperature(detail.value);
                     }}
                   />
                 </FormField>

@@ -56,7 +56,7 @@ def query_preprocess_lambda(state: ChatbotState):
         lambda_module_path="lambda_query_preprocess.query_preprocess",
         handler_name="lambda_handler",
     )
-    send_trace(f"**query_rewrite:** \n{output}")
+    send_trace(f"\n\n**query_rewrite:** \n{output}")
     return {"query_rewrite": output}
 
 
@@ -85,24 +85,25 @@ def intention_detection_lambda(state: ChatbotState):
 
 @node_monitor_wrapper
 def agent_lambda(state: ChatbotState):
-    output: dict = invoke_lambda(
-        event_body={**state, "chat_history": state["agent_chat_history"]},
+    output:dict = invoke_lambda(
+        event_body={**state,"chat_history":state['agent_chat_history']},
         lambda_name="Online_Agent",
         lambda_module_path="lambda_agent.agent",
-        handler_name="lambda_handler",
+        handler_name="lambda_handler"
     )
-    current_function_calls = output["function_calls"]
-    content = output["content"]
-    current_agent_tools_def = output["current_agent_tools_def"]
-    current_agent_model_id = output["current_agent_model_id"]
-    send_trace(
-        f"**current_function_calls:** \n{current_function_calls},\n**model_id:** \n{current_agent_model_id}\n**ai content:** \n{content}"
-    )
+    current_function_calls = output['function_calls']
+    content = output['content']
+    current_agent_tools_def = output['current_agent_tools_def']
+    current_agent_model_id = output['current_agent_model_id']
+    send_trace(f"\n\n**current_function_calls:** \n{current_function_calls},\n**model_id:** \n{current_agent_model_id}\n**ai content:** \n{content}")
     return {
         "current_agent_model_id": current_agent_model_id,
         "current_function_calls": current_function_calls,
         "current_agent_tools_def": current_agent_tools_def,
-        "agent_chat_history": [{"role": "ai", "content": content}],
+        "agent_chat_history": [{
+                    "role": "ai",
+                    "content": content
+                }]
     }
 
 
@@ -122,18 +123,26 @@ def parse_tool_calling(state: ChatbotState):
             function_calls=state["current_function_calls"],
             tools=state["current_agent_tools_def"],
         )
-        send_trace(f"**tool_calls parsed:** \n{tool_calls}")
+        send_trace(f"\n\n**tool_calls parsed:** \n{tool_calls}")
         if tool_calls:
             state["extra_response"]["current_agent_intent_type"] = tool_calls[0]["name"]
         else:
+            tool_format = ("<function_calls>\n"
+            "<invoke>\n"
+            "<tool_name>$TOOL_NAME</tool_name>\n"
+            "<parameters>\n"
+            "<$PARAMETER_NAME>$PARAMETER_VALUE</$PARAMETER_NAME>\n"
+            "...\n"
+            "</parameters>\n"
+            "</invoke>\n"
+            "</function_calls>\n"
+            )
             return {
                 "parse_tool_calling_ok": False,
-                "agent_chat_history": [
-                    {
-                        "role": "user",
-                        "content": "当前没有解析到tool,请检查tool调用的格式是否正确，并重新输出某个tool的调用。注意调用tool的时候要加上<function_calls></function_calls>。如果你认为当前不需要调用其他工具，请直接调用“give_final_response”工具进行返回。",
-                    }
-                ],
+                "agent_chat_history":[{
+                    "role": "user",
+                    "content": f"当前没有解析到tool,请检查tool调用的格式是否正确，并重新输出某个tool的调用。注意正确的tool调用格式应该为: {tool_format}。\n如果你认为当前不需要调用其他工具，请直接调用“give_final_response”工具进行返回。"
+                }]
             }
 
         return {
@@ -141,7 +150,7 @@ def parse_tool_calling(state: ChatbotState):
             "current_tool_calls": tool_calls,
         }
     except (ToolNotExistError, ToolParameterNotExistError) as e:
-        send_trace(f"**tool_calls parse failed:** \n{str(e)}")
+        send_trace(f"\n\n**tool_calls parse failed:** \n{str(e)}")
         return {
             "parse_tool_calling_ok": False,
             "agent_chat_history": [
@@ -198,7 +207,7 @@ def tool_execute_lambda(state: ChatbotState):
         tool_call_result_strs.append(ret)
 
     ret = "\n".join(tool_call_result_strs)
-    send_trace(f"**tool execute result:** \n{ret}")
+    send_trace(f"\n\n**tool execute result:** \n{ret}")
     return {"agent_chat_history": [{"role": "user", "content": ret}]}
 
 
