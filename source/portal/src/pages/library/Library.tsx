@@ -167,11 +167,11 @@ const Library: React.FC = () => {
                   ? a.s3Prefix.localeCompare(b.s3Prefix)
                   : b.s3Prefix.localeCompare(a.s3Prefix);
               }
-              if (sortingColumn.sortingField === 'indexType') {
-                return !isDescending
-                  ? a.indexType.localeCompare(b.indexType)
-                  : b.indexType.localeCompare(a.indexType);
-              }
+              // if (sortingColumn.sortingField === 'indexType') {
+              //   return !isDescending
+              //     ? a.indexType.localeCompare(b.indexType)
+              //     : b.indexType.localeCompare(a.indexType);
+              // }
               if (sortingColumn.sortingField === 'executionStatus') {
                 return !isDescending
                   ? a.executionStatus.localeCompare(b.executionStatus)
@@ -203,13 +203,13 @@ const Library: React.FC = () => {
                 return item.s3Prefix.split('/').pop();
               },
             },
-            {
-              width: 120,
-              id: 'indexType',
-              header: t('indexType'),
-              sortingField: 'indexType',
-              cell: (item: LibraryListItem) => item.indexType,
-            },
+            // {
+            //   width: 120,
+            //   id: 'indexType',
+            //   header: t('indexType'),
+            //   sortingField: 'indexType',
+            //   cell: (item: LibraryListItem) => item.indexType,
+            // },
             {
               width: 150,
               id: 'executionStatus',
