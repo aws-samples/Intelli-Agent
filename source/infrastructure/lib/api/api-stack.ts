@@ -30,6 +30,8 @@ import { WebSocketConstruct } from "./websocket-api";
 import { Function, Runtime, Code, Architecture, DockerImageFunction, DockerImageCode } from 'aws-cdk-lib/aws-lambda';
 import { UserPool } from "aws-cdk-lib/aws-cognito";
 import { IAMHelper } from "../shared/iam-helper";
+import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
+
 
 interface ApiStackProps extends StackProps {
   apiVpc: ec2.Vpc;
@@ -497,6 +499,12 @@ export class ApiConstruct extends Construct {
     apiResourceBatch.addMethod("POST", lambdaBatchIntegration, methodOption);
 
     if (BuildConfig.DEPLOYMENT_MODE === "ALL") {
+      const openAiKey = new secretsmanager.Secret(this, "OpenAiSecret", {
+        generateSecretString: {
+          secretStringTemplate: JSON.stringify({ key: "ReplaceItWithRealKey" }),
+          generateStringKey: "key",
+        }
+      });
       const lambdaOnlineMain = new Function(this, "lambdaOnlineMain", {
         runtime: Runtime.PYTHON_3_12,
         handler: "main.lambda_handler",
@@ -518,6 +526,7 @@ export class ApiConstruct extends Construct {
           sessions_table_name: sessionsTableName,
           messages_table_name: messagesTableName,
           workspace_table: workspaceTableName,
+          openai_key_arn: openAiKey.secretArn,
         },
       });
 
@@ -543,6 +552,7 @@ export class ApiConstruct extends Construct {
       lambdaOnlineMain.addToRolePolicy(this.iamHelper.s3Statement);
       lambdaOnlineMain.addToRolePolicy(this.iamHelper.endpointStatement);
       lambdaOnlineMain.addToRolePolicy(this.iamHelper.dynamodbStatement);
+      openAiKey.grantRead(lambdaOnlineMain);
 
       const lambdaOnlineQueryPreprocess = new Function(this, "lambdaOnlineQueryPreprocess", {
         runtime: Runtime.PYTHON_3_12,
