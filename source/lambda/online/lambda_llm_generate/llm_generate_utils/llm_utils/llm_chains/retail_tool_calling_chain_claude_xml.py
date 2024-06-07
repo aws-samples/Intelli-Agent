@@ -39,6 +39,7 @@ tool_call_guidelines = """<guidlines>
 - In <thinking></thinking>, you should check whether the tool name you want to call is exists in <tools></tools>.
 - Always output with "中文". 
 - Always choose one tool to call. 
+- 注意输出格式中参数名字应该作为xml的tag.
 </guidlines>
 """
 
