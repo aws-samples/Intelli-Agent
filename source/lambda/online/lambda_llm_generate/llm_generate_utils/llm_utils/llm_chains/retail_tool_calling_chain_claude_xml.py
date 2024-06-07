@@ -39,11 +39,13 @@ tool_call_guidelines = """<guidlines>
 - In <thinking></thinking>, you should check whether the tool name you want to call is exists in <tools></tools>.
 - Always output with "中文". 
 - Always choose one tool to call. 
+- 注意输出格式中参数名字应该作为xml的tag.
 </guidlines>
 """
 
 
-SYSTEM_MESSAGE_PROMPT =("In this environment you have access to a set of tools you can use to answer the user's question.\n"
+SYSTEM_MESSAGE_PROMPT=("你是安踏的客服客服助理小安, 主要职责是处理用户售前和售后的问题。下面是当前用户正在浏览的商品信息:\n<goods_info>\n{goods_info}\n</goods_info>"
+        "In this environment you have access to a set of tools you can use to answer the customer's question."
         "\n"
         "You may call them like this:\n"
         "<function_calls>\n"
@@ -159,9 +161,9 @@ def convert_openai_tool_to_anthropic(tools:list[dict])->str:
     return tools_formatted
 
 
-class Claude2ToolCallingChain(LLMChain):
+class Claude2RetailToolCallingChain(LLMChain):
     model_id = "anthropic.claude-v2"
-    intent_type = LLMTaskType.TOOL_CALLING
+    intent_type = LLMTaskType.RETAIL_TOOL_CALLING
     default_model_kwargs = {
         "max_tokens": 2000,
         "temperature": 0.1,
@@ -203,8 +205,6 @@ class Claude2ToolCallingChain(LLMChain):
     def parse_function_calls_from_ai_message(cls,message:AIMessage):
         content = message.content + "</function_calls>"
         function_calls:List[str] = re.findall("<function_calls>(.*?)</function_calls>", content,re.S)
-        # print(message.content)
-        # return {"function_calls":function_calls,"content":message.content}
         if not function_calls:
             content = message.content
 
@@ -222,15 +222,20 @@ class Claude2ToolCallingChain(LLMChain):
         model_kwargs = {**cls.default_model_kwargs, **model_kwargs}
 
         tools_formatted = convert_openai_tool_to_anthropic(tools)
+        goods_info = kwargs['goods_info']
 
         if fewshot_examples:
             system_prompt = SYSTEM_MESSAGE_PROMPT_WITH_FEWSHOT_EXAMPLES.format(
                 tools=tools_formatted,
-                fewshot_examples=cls.format_fewshot_examples(fewshot_examples)
+                fewshot_examples=cls.format_fewshot_examples(
+                    fewshot_examples
+                    ),
+                goods_info = goods_info
             )
         else:
             system_prompt = SYSTEM_MESSAGE_PROMPT.format(
-                tools=tools_formatted
+                tools=tools_formatted,
+                goods_info=goods_info
             )
          
         tool_calling_template = ChatPromptTemplate.from_messages(
@@ -244,7 +249,7 @@ class Claude2ToolCallingChain(LLMChain):
             model_kwargs=model_kwargs,
         )
         chain = tool_calling_template \
-            | RunnableLambda(lambda x: print(x.messages) or x.messages ) \
+            | RunnableLambda(lambda x: x.messages ) \
             | llm | RunnableLambda(lambda message:cls.parse_function_calls_from_ai_message(
                 message
             ))
@@ -252,19 +257,19 @@ class Claude2ToolCallingChain(LLMChain):
         return chain
 
 
-class Claude21ToolCallingChain(Claude2ToolCallingChain):
+class Claude21RetailToolCallingChain(Claude2RetailToolCallingChain):
     model_id = "anthropic.claude-v2:1"
 
 
-class ClaudeInstanceToolCallingChain(Claude2ToolCallingChain):
+class ClaudeInstanceRetailToolCallingChain(Claude2RetailToolCallingChain):
     model_id = "anthropic.claude-instant-v1"
 
 
-class Claude3SonnetToolCallingChain(Claude2ToolCallingChain):
+class Claude3SonnetRetailToolCallingChain(Claude2RetailToolCallingChain):
     model_id = "anthropic.claude-3-sonnet-20240229-v1:0"
 
 
-class Claude3HaikuToolCallingChain(Claude2ToolCallingChain):
+class Claude3HaikuRetailToolCallingChain(Claude2RetailToolCallingChain):
     model_id = "anthropic.claude-3-haiku-20240307-v1:0"
 
 
