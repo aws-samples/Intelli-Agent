@@ -159,7 +159,7 @@ const AddLibrary: React.FC<AddLibraryProps> = (props: AddLibraryProps) => {
                     limitShowMore: t('showMore'),
                     errorIconAriaLabel: t('error'),
                   }}
-                  multiple
+                  multiple={false}
                   showFileLastModified
                   showFileSize
                   accept=".pdf,.csv,.doc,.docx,.html,.json,.jsonl,.txt,.md,.png,.jpg,.jpeg,.webp"
