@@ -129,20 +129,20 @@ const ChatBot: React.FC = () => {
         });
       } else {
         const isEnd = message.message_type === 'END';
+        let aiMessage = '';
         setCurrentAIMessage((prev) => {
+          aiMessage = prev + (message?.message?.content ?? '');
           return prev + (message?.message?.content ?? '');
         });
         if (isEnd) {
           setAiSpeaking(false);
-          setCurrentAIMessage('');
-          setCurrentMonitorMessage('');
           setMessages((prev) => {
             return [
               ...prev,
               {
                 type: 'ai',
                 message: {
-                  data: currentAIMessage,
+                  data: aiMessage,
                   monitoring: currentMonitorMessage,
                 },
               },
@@ -161,12 +161,14 @@ const ChatBot: React.FC = () => {
       setShowMessageError(true);
       return;
     }
+    setUserMessage('');
     setAiSpeaking(true);
+    setCurrentAIMessage('');
+    setCurrentMonitorMessage('');
     // if (useWebSearch && !googleAPIKey.trim()) {
     //   setGoogleAPIKeyError(true);
     //   return;
     // }
-
     const message = {
       query: userMessage,
       entry_type: scenario.value,
