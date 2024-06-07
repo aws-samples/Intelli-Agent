@@ -639,7 +639,7 @@ def main():
         supported_file_types = [
             "pdf",
             "txt",
-            "doc",
+            "docx",
             "md",
             "html",
             "json",
