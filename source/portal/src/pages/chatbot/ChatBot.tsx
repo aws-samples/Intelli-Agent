@@ -18,7 +18,7 @@ import {
   Toggle,
 } from '@cloudscape-design/components';
 import useWebSocket, { ReadyState } from 'react-use-websocket';
-import { identity, set } from 'lodash';
+import { identity } from 'lodash';
 import ConfigContext from 'src/context/config-context';
 import { useAuth } from 'react-oidc-context';
 import {
