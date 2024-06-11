@@ -13,8 +13,10 @@ client = boto3.client("dynamodb")
 encoder = TokenEncoder()
 
 dynamodb = boto3.resource("dynamodb")
-sessions_table_name = os.getenv("SESSIONS_TABLE_NAME")
-sessions_table_gsi_name = os.getenv("SESSIONS_BY_TIMESTAMP_INDEX_NAME")
+sessions_table_name = os.getenv(
+    "SESSIONS_TABLE_NAME", "llm-bot-dev-ddbconstructSessionsTableAE3C7A55-6E4I7FLMU6GB"
+)
+sessions_table_gsi_name = os.getenv("SESSIONS_BY_TIMESTAMP_INDEX_NAME", "byTimestamp")
 
 resp_header = {
     "Content-Type": "application/json",
@@ -42,8 +44,6 @@ def lambda_handler(event, context):
     if authorizer_type == "lambda_authorizer":
         claims = json.loads(event["requestContext"]["authorizer"]["claims"])
         cognito_username = claims["cognito:username"]
-        cognito_groups = claims["cognito:groups"]
-        cognito_groups_list = cognito_groups.split(",")
     else:
         raise Exception("Invalid authorizer type")
 
@@ -58,23 +58,15 @@ def lambda_handler(event, context):
     }
 
     # Use query after adding a filter
-    paginator = client.get_paginator("scan")
+    paginator = client.get_paginator("query")
 
-    if "Admin" in cognito_groups_list:
-        response_iterator = paginator.paginate(
-            TableName=sessions_table_name,
-            PaginationConfig=config,
-            FilterExpression="uiStatus = :active",
-            ExpressionAttributeValues={":active": {"S": "ACTIVE"}},
-        )
-    else:
-        response_iterator = paginator.paginate(
-            TableName=sessions_table_name,
-            IndexName=sessions_table_gsi_name,
-            PaginationConfig=config,
-            KeyConditionExpression="userId = :user_id",
-            ExpressionAttributeValues={":user_id": cognito_username},
-        )
+    response_iterator = paginator.paginate(
+        TableName=sessions_table_name,
+        IndexName=sessions_table_gsi_name,
+        PaginationConfig=config,
+        KeyConditionExpression="userId = :user_id",
+        ExpressionAttributeValues={":user_id": {"S": cognito_username}},
+    )
 
     output = {}
     for page in response_iterator:
@@ -94,6 +86,7 @@ def lambda_handler(event, context):
             )
 
     output["config"] = config
+    print(output)
 
     try:
         return {
@@ -109,3 +102,16 @@ def lambda_handler(event, context):
             "headers": resp_header,
             "body": json.dumps(f"Error: {str(e)}"),
         }
+
+
+if __name__ == "__main__":
+    event = {
+        "requestContext": {
+            "authorizer": {
+                "authorizerType": "lambda_authorizer",
+                "claims": '{"cognito:username":"d8019310-d0b1-706a-eb57-2bb2809c6c48","cognito:groups":"Test"}',
+            }
+        },
+        "queryStringParameters": {"size": "50", "total": "50"},
+    }
+    lambda_handler(event, None)
