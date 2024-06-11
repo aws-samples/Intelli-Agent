@@ -61,7 +61,8 @@ def test_multi_turns():
     session_id = time.time()
     ws = create_connection(ws_url)
     body = {
-        "query": "今天星期几",
+        # "query": "今天星期几",
+        "query": "g5.2xlarge ec2的价格是多少",
         "entry_type": "common",
         "session_id":f"test_{session_id}",
         "chatbot_config": {

@@ -287,9 +287,7 @@ class Internlm2Chat20B(Internlm2Chat7B):
 #         )
 
 #         llm = ChatOpenAI(
-#             credentials_profile_name=credentials_profile_name,
-#             region_name=region_name,
-#             model_id=cls.model_id,
+#             model=cls.model_id,
 #             model_kwargs=model_kwargs,
 #         )
 

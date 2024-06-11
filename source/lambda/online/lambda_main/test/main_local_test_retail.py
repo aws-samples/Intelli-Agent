@@ -35,7 +35,7 @@ websocket_utils.ws_client = DummyWebSocket()
 
 
 def generate_answer(query,
-                    entry_type="retail",
+                    entry_type="common",
                     stream=False,
                     session_id=None,
                     chatbot_config=None
@@ -78,8 +78,13 @@ def test(chatbot_mode="agent",session_id=None,query=None,goods_id=None):
         'model_kwargs': {
             'temperature': 0.5, 'max_tokens': 4096}
         }
+    # default_llm_config = {
+    #     'model_id': '"gpt-3.5-turbo-0125',
+    #     'model_kwargs': {
+    #         'temperature': 0.5, 'max_tokens': 4096}
+    #     }
     chatbot_config = {
-        "goods_id":goods_id,
+        # "goods_id":goods_id,
         "chatbot_mode": chatbot_mode,
         "use_history": True,
         "query_process_config":{
@@ -493,7 +498,6 @@ def multi_turn_test():
 
 if __name__ == "__main__":
     # test_multi_turns()
-    batch_test()
     # batch_test()
     # test(
     #     chatbot_mode='agent',
@@ -506,11 +510,10 @@ if __name__ == "__main__":
     #     query="平常41吗，这款鞋需要多少码"
     # )
         # query="你家鞋子开胶了，怎么处理？"
-    # test(
-    #     chatbot_mode='agent',
-    #     session_id="anta_test_1717567916.145038_cn****0099",
-    #     query="为什么这个商品需要支付运费？"
-    #     )
+    test(
+        chatbot_mode='agent',
+        query="g5.2xlarge ec2的价格是多少"
+        )
     # test(
     #     chatbot_mode='agent',
     #     session_id="anta_test_1717567916.145038_cn****0099",

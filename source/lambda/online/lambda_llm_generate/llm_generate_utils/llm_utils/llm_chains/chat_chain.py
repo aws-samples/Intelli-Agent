@@ -196,8 +196,8 @@ class Iternlm2Chat20BChatChain(Iternlm2Chat7BChatChain):
 
 #         return chain
 
-# class ChatGPT4ChatChain(LLMChain):
+# class ChatGPT4ChatChain(ChatGPT35ChatChain):
 #     model_id = "gpt-4-turbo"
 
-# class ChatGPT4oChatChain(LLMChain):
+# class ChatGPT4oChatChain(ChatGPT35ChatChain):
 #     model_id = "gpt-4o"
