@@ -476,7 +476,8 @@ export class ApiConstruct extends Construct {
     const apiResourceListSessions = apiResourceDdb.addResource("list-sessions");
     apiResourceListSessions.addMethod("GET", new apigw.LambdaIntegration(listSessionsLambda), methodOption);
 
-
+    const apiResourceListMessages = apiResourceDdb.addResource("list-messages");
+    apiResourceListMessages.addMethod("GET", new apigw.LambdaIntegration(listMessagesLambda), methodOption);
 
     const apiResourceStepFunction = api.root.addResource("etl");
     apiResourceStepFunction.addMethod(
