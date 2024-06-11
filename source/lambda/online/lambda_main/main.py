@@ -1,6 +1,7 @@
 import json
 import os
 import uuid
+import boto3
 
 from common_utils.ddb_utils import DynamoDBChatMessageHistory
 from lambda_main.main_utils.online_entries import get_entry
@@ -10,12 +11,43 @@ from common_utils.logger_utils import get_logger
 from common_utils.websocket_utils import load_ws_client
 from common_utils.lambda_invoke_utils import chatbot_lambda_call_wrapper
 from common_utils.serialization_utils import JSONEncoder
+from botocore.exceptions import ClientError
 
 logger = get_logger("main")
 
 sessions_table_name = os.environ.get("sessions_table_name", "")
 messages_table_name = os.environ.get("messages_table_name", "")
 websocket_url = os.environ.get("websocket_url", "")
+openai_key_arn = os.environ.get("openai_key_arn", "")
+region_name = os.environ["AWS_REGION"]
+session = boto3.session.Session()
+secret_manager_client = session.client(
+    service_name="secretsmanager",
+    region_name=region_name
+)
+
+
+def get_secret_value(secret_arn: str):
+    """Get secret value from secret manager
+
+    Args:
+        secret_arn (str): secret arn
+
+    Returns:
+        str: secret value
+    """
+    try:
+        get_secret_value_response = secret_manager_client.get_secret_value(
+            SecretId=secret_arn
+        )
+    except ClientError as e:
+        raise Exception("Fail to retrieve the secret value: {}".format(e))
+    else:
+        if "SecretString" in get_secret_value_response:
+            secret = get_secret_value_response["SecretString"]
+            return secret
+        else:
+            raise Exception("Fail to retrieve the secret value")
 
 
 @chatbot_lambda_call_wrapper

@@ -107,7 +107,7 @@ class Claude2RetailConversationSummaryChain(LLMChain):
                     convert_to_messages(x["chat_history"])
                 )
             ))  \
-            | RunnableLambda(lambda x: cqr_template.format(chat_history=['conversational_context'],query=x['query'])) \
+            | RunnableLambda(lambda x: cqr_template.format(chat_history=x['conversational_context'],query=x['query'])) \
             | llm | RunnableLambda(lambda x: x.content)
         
         return cqr_chain

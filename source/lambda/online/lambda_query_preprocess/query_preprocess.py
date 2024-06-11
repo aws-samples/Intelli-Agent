@@ -20,12 +20,14 @@ def conversation_query_rewrite(state:dict):
         "conversation_query_rewrite_config"
     ]
 
+    query_rewrite_llm_type = state.get("query_rewrite_llm_type",None) or LLMTaskType.CONVERSATION_SUMMARY_TYPE
+
     cqr_llm_chain = RunnableLambda(lambda x: invoke_lambda(
         lambda_name='Online_LLM_Generate',
         lambda_module_path="lambda_llm_generate.llm_generate",
         handler_name='lambda_handler',
         event_body={
-            "llm_config": {**conversation_query_rewrite_config, "intent_type": LLMTaskType.CONVERSATION_SUMMARY_TYPE},
+            "llm_config": {**conversation_query_rewrite_config, "intent_type": query_rewrite_llm_type},
             "llm_input": {"chat_history":state['chat_history'], "query":state['query']}
             }
         )

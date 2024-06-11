@@ -23,6 +23,7 @@ from common_utils.logger_utils import get_logger
 from common_utils.serialization_utils import JSONEncoder
 from common_utils.s3_utils import download_dir_from_s3
 
+
 logger = get_logger('retail_entry')
 
 class ChatbotState(TypedDict):
@@ -51,6 +52,9 @@ class ChatbotState(TypedDict):
     current_agent_model_id: str
     parse_tool_calling_ok: bool
     query_rule_classification: str
+    goods_info: None
+    agent_llm_type: str
+    query_rewrite_llm_type: str
     
 
 ####################
@@ -91,11 +95,16 @@ def intention_detection_lambda(state: ChatbotState):
         "intent_type":"other"
         }
 
-
 @node_monitor_wrapper
 def agent_lambda(state: ChatbotState):
+    goods_info = state.get('goods_info',None) or ""
+    
     output:dict = invoke_lambda(
-        event_body={**state,"chat_history":state['agent_chat_history']},
+        event_body={
+            **state,
+            "chat_history": state['agent_chat_history'],
+            "other_chain_kwargs":{"goods_info":goods_info}
+        },
         lambda_name="Online_Agent",
         lambda_module_path="lambda_agent.agent",
         handler_name="lambda_handler"
@@ -467,7 +476,7 @@ def rule_url_reply(state:ChatbotState):
     else:
         goods_id = 0
     if goods_id in goods_dict:
-        return {"answer":goods_dict[goods_id]['goods_info']}
+        return {"answer":f"您好，该商品的特点是:\n{state['goods_info']}"}
     
     return {"answer":"您好"}
 
@@ -498,9 +507,6 @@ def agent_route(state:dict):
         return 'invalid tool calling'
     
     recent_tool_calls:list[dict] = state['current_tool_calls']
-
-    # if not recent_tool_calls:
-    #     return "no tool"
     
     recent_tool_call = recent_tool_calls[0]
 
@@ -654,7 +660,26 @@ def retail_entry(event_body):
     stream = event_body['stream']
     message_id = event_body['custom_message_id']
     ws_connection_id = event_body['ws_connection_id']
+    
+    goods_info = None
+    goods_id = event_body['chatbot_config']['goods_id']
+    if goods_id:
+        try:
+            _goods_info = goods_dict.get(int(goods_id),None)
+        except Exception as e:
+            import traceback 
+            error = traceback.format_exc()
+            logger.error(f"error meesasge {error}, invalid goods_id: {goods_id}")
+            _goods_info = None
 
+        if _goods_info:
+            logger.info(_goods_info)
+            _goods_info = eval(_goods_info['goods_info'])
+            goods_info = ""
+            for k,v in _goods_info.items():
+                goods_info += f"{k}:{v}\n" 
+    
+    logger.info(f"goods_info: {goods_info}")
     # invoke graph and get results
     response = app.invoke({
         "stream": stream,
@@ -667,6 +692,9 @@ def retail_entry(event_body):
         "ws_connection_id": ws_connection_id,
         "debug_infos": {},
         "extra_response": {},
+        "goods_info":goods_info,
+        "agent_llm_type": LLMTaskType.RETAIL_TOOL_CALLING,
+        "query_rewrite_llm_type":LLMTaskType.RETAIL_CONVERSATION_SUMMARY_TYPE
     })
 
     return {"answer":response['answer'],**response["extra_response"]}

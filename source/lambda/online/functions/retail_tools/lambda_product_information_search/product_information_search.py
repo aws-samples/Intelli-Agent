@@ -8,11 +8,11 @@ from common_utils.s3_utils import download_dir_from_s3
 def get_goods_dict_1(data_file_path):
     goods_dict = {}
     # size_info_df = pd.read_excel(open(data_file_path, encoding="utf-8-sig", errors="ignore"))
-    goods_df = pd.read_excel(data_file_path, "商品信息登记")
+    goods_df = pd.read_excel(data_file_path, "商品信息登记").fillna("")
     # get row
     for index, row in goods_df.iterrows():
         goods_id = row["商品ID"]
-        goods_info = row["卖点（含材质属性）"]
+        goods_info = json.dumps({"卖点（含材质属性）":row["卖点（含材质属性）"]},ensure_ascii=False)
         goods_url = row["商品链接"]
         goods_dict[goods_id] = {"goods_info": goods_info, "goods_url": goods_url}
     return goods_dict
@@ -20,10 +20,10 @@ def get_goods_dict_1(data_file_path):
 def get_goods_dict_2(data_file_path):
     goods_dict = {}
     # size_info_df = pd.read_excel(open(data_file_path, encoding="utf-8-sig", errors="ignore"))
-    xls = pd.ExcelFile(data_file_path)
-    goods_df_dict = pd.read_excel(xls, None)
+    goods_df_dict = pd.read_excel(data_file_path,None)
     # get row
     for goods_type, goods_df in goods_df_dict.items():
+        goods_df = goods_df.fillna("")
         for index, row in goods_df.iterrows():
             if "商品ID" in row:
                 goods_id = row["商品ID"]
