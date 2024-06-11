@@ -2,6 +2,7 @@ import { ExpandableSection } from '@cloudscape-design/components';
 import React from 'react';
 import Avatar from 'react-avatar';
 import ReactMarkdown from 'react-markdown';
+import { BounceLoader } from 'react-spinners';
 import remarkGfm from 'remark-gfm';
 import BedrockImg from 'src/assets/bedrock.webp';
 
@@ -12,9 +13,15 @@ interface MessageProps {
     monitoring: string;
   };
   showTrace?: boolean;
+  aiSpeaking?: boolean;
 }
 
-const Message: React.FC<MessageProps> = ({ showTrace, type, message }) => {
+const Message: React.FC<MessageProps> = ({
+  showTrace,
+  type,
+  message,
+  aiSpeaking,
+}) => {
   return (
     <>
       {type === 'ai' && (
@@ -25,6 +32,11 @@ const Message: React.FC<MessageProps> = ({ showTrace, type, message }) => {
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
                 {message.data}
               </ReactMarkdown>
+              {aiSpeaking && (
+                <div className="mt-5">
+                  <BounceLoader size="12px" color="#888" />
+                </div>
+              )}
             </div>
             {showTrace && message.monitoring && (
               <div className="monitor mt-10">
