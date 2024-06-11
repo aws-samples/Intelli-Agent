@@ -208,18 +208,19 @@ def is_running_local():
     return _is_current_invoke_local
 
 
-def send_trace(trace_info: str):
-    if _current_stream_use and _ws_connection_id is not None:
-        send_to_ws_client(
-            message={
-                "message_type": StreamMessageType.MONITOR,
-                "message": trace_info,
-                "created_time": time.time(),
-            },
-            ws_connection_id=_ws_connection_id,
-        )
-    else:
-        logger.info(trace_info)
+def send_trace(trace_info: str, enable_trace=False):
+    if enable_trace:
+        if _current_stream_use and _ws_connection_id is not None:
+            send_to_ws_client(
+                message={
+                    "message_type": StreamMessageType.MONITOR,
+                    "message": trace_info,
+                    "created_time": time.time(),
+                },
+                ws_connection_id=_ws_connection_id,
+            )
+        else:
+            logger.info(trace_info)
 
 
 def node_monitor_wrapper(fn=None, *, monitor_key="current_monitor_infos"):
