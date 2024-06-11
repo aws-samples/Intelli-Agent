@@ -9,7 +9,7 @@
     "signOut": "退出登录",
     "chatSpace": "聊天",
     "chatBot": "聊天机器人",
-    "docLibrary": "文档库",
+    "docLibrary": "文档",
     "addLibrary": "添加文档库",
     "documentation": "文档",
     "ingest": "导入",
@@ -56,6 +56,15 @@
     "preferences": "偏好设置",
     "pageSize": "每页显示",
     "fileEmptyError": "请选择需要上传的文件",
+    "docName": "文档名称",
+    "multiRound": "多轮对话",
+    "trace": "跟踪",
+    "modelSettings": "模型设置",
+    "modelName": "模型名称",
+    "noModelFound": "未找到模型",
+    "scenario": "场景",
+    "maxTokens": "最大 Token 数",
+    "temperature": "发散度",
     "button": {
       "login": "登录到 AWS 大语言模型机器人",
       "reload": "重新加载",
@@ -65,12 +74,19 @@
       "confirm": "确认",
       "backToList": "返回列表",
       "delete": "删除",
-      "createDocLibrary": "创建文档库",
+      "createDoc": "创建文档",
       "upload": "上传"
     },
     "header": {
       "reSignIn": "请重新登录",
       "reSignInDesc": "您已登出您的账户。请点击“重新加载”以重新登录到网页控制台。"
+    },
+    "validation": {
+      "requireModel": "请选择或输入一个模型",
+      "requireTemperature": "请输入模型发散度",
+      "requireMaxTokens": "请输入一个最大 token 数",
+      "temperatureRange": "发散度必须介于 0 和 1 之间",
+      "maxTokensRange": "最大 token 数必须大于 0"
     }
   }
 }

@@ -89,6 +89,12 @@ const ChatBot: React.FC = () => {
   // const [googleAPIKeyError, setGoogleAPIKeyError] = useState(false);
   const [isMessageEnd, setIsMessageEnd] = useState(false);
 
+  // validation
+  const [modelError, setModelError] = useState('');
+  const [temperatureError, setTemperatureError] = useState('');
+  const [maxTokenError, setMaxTokenError] = useState('');
+  const [modelSettingExpand, setModelSettingExpand] = useState(false);
+
   const connectionStatus = {
     [ReadyState.CONNECTING]: 'loading',
     [ReadyState.OPEN]: 'success',
@@ -168,6 +174,36 @@ const ChatBot: React.FC = () => {
     }
     if (!userMessage.trim()) {
       setShowMessageError(true);
+      return;
+    }
+    // validate websocket status
+    if (readyState !== ReadyState.OPEN) {
+      return;
+    }
+    // validate model settings
+    if (!modelOption.trim()) {
+      setModelError('validation.requireModel');
+      setModelSettingExpand(true);
+      return;
+    }
+    if (!temperature.trim()) {
+      setTemperatureError('validation.requireTemperature');
+      setModelSettingExpand(true);
+      return;
+    }
+    if (!maxToken.trim()) {
+      setMaxTokenError('validation.requireMaxTokens');
+      setModelSettingExpand(true);
+      return;
+    }
+    if (parseInt(maxToken) < 1) {
+      setMaxTokenError('validation.maxTokensRange');
+      setModelSettingExpand(true);
+      return;
+    }
+    if (parseFloat(temperature) < 0.0 || parseFloat(temperature) > 1.0) {
+      setTemperatureError('validation.temperatureRange');
+      setModelSettingExpand(true);
       return;
     }
     setUserMessage('');
@@ -274,7 +310,7 @@ const ChatBot: React.FC = () => {
             </div>
             <div>
               <Button
-                disabled={aiSpeaking}
+                disabled={aiSpeaking || readyState !== ReadyState.OPEN}
                 onClick={() => {
                   handleClickSendMessage();
                 }}
@@ -290,13 +326,13 @@ const ChatBot: React.FC = () => {
                   onChange={({ detail }) => setUseChatHistory(detail.checked)}
                   checked={useChatHistory}
                 >
-                  Multi-rounds
+                  {t('multiRound')}
                 </Toggle>
                 <Toggle
                   onChange={({ detail }) => setShowTrace(detail.checked)}
                   checked={showTrace}
                 >
-                  Trace
+                  {t('trace')}
                 </Toggle>
                 {/*
                 <Toggle
@@ -333,14 +369,25 @@ const ChatBot: React.FC = () => {
           </div>
           <div>
             <ExpandableSection
+              onChange={({ detail }) => {
+                setModelSettingExpand(detail.expanded);
+              }}
+              expanded={modelSettingExpand}
               // variant="footer"
               headingTagOverride="h4"
-              headerText="Model Settings"
+              headerText={t('modelSettings')}
             >
               <ColumnLayout columns={3} variant="text-grid">
-                <FormField label="Model name" stretch={true}>
+                <FormField
+                  label={t('modelName')}
+                  stretch={true}
+                  errorText={t(modelError)}
+                >
                   <Autosuggest
-                    onChange={({ detail }) => setModelOption(detail.value)}
+                    onChange={({ detail }) => {
+                      setModelError('');
+                      setModelOption(detail.value);
+                    }}
                     value={modelOption}
                     options={LLM_BOT_MODEL_LIST.map((item) => {
                       return {
@@ -348,11 +395,11 @@ const ChatBot: React.FC = () => {
                         value: item,
                       };
                     })}
-                    placeholder="Enter value"
-                    empty="No matches found"
+                    placeholder={t('validation.requireModel')}
+                    empty={t('noModelFound')}
                   />
                 </FormField>
-                <FormField label="Scenario" stretch={true}>
+                <FormField label={t('scenario')} stretch={true}>
                   <Select
                     options={SCENARIO_LIST}
                     selectedOption={scenario}
@@ -372,20 +419,30 @@ const ChatBot: React.FC = () => {
                     </div>
                   )}
                 </FormField>
-                <FormField label="Max Tokens" stretch={true}>
+                <FormField
+                  label={t('maxTokens')}
+                  stretch={true}
+                  errorText={t(maxTokenError)}
+                >
                   <Input
                     type="number"
                     value={maxToken}
                     onChange={({ detail }) => {
+                      setMaxTokenError('');
                       setMaxToken(detail.value);
                     }}
                   />
                 </FormField>
-                <FormField label="Temperature" stretch={true}>
+                <FormField
+                  label={t('temperature')}
+                  stretch={true}
+                  errorText={t(temperatureError)}
+                >
                   <Input
                     type="number"
                     value={temperature}
                     onChange={({ detail }) => {
+                      setTemperatureError('');
                       setTemperature(detail.value);
                     }}
                   />
