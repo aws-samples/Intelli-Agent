@@ -13,10 +13,8 @@ client = boto3.client("dynamodb")
 encoder = TokenEncoder()
 
 dynamodb = boto3.resource("dynamodb")
-sessions_table_name = os.getenv(
-    "SESSIONS_TABLE_NAME", "llm-bot-dev-ddbconstructSessionsTableAE3C7A55-6E4I7FLMU6GB"
-)
-sessions_table_gsi_name = os.getenv("SESSIONS_BY_TIMESTAMP_INDEX_NAME", "byTimestamp")
+sessions_table_name = os.getenv("SESSIONS_TABLE_NAME")
+sessions_table_gsi_name = os.getenv("SESSIONS_BY_TIMESTAMP_INDEX_NAME")
 
 resp_header = {
     "Content-Type": "application/json",
@@ -66,15 +64,17 @@ def lambda_handler(event, context):
         PaginationConfig=config,
         KeyConditionExpression="userId = :user_id",
         ExpressionAttributeValues={":user_id": {"S": cognito_username}},
+        ScanIndexForward=False,
     )
 
     output = {}
+
     for page in response_iterator:
         page_items = page["Items"]
         page_json = []
         for item in page_items:
             item_json = {}
-            for key in item.keys():
+            for key in ["sessionId", "userId", "createTimestamp"]:
                 item_json[key] = item[key]["S"]
             page_json.append(item_json)
         # Return the latest page
@@ -84,9 +84,9 @@ def lambda_handler(event, context):
             output["LastEvaluatedKey"] = encoder.encode(
                 {"ExclusiveStartKey": page["LastEvaluatedKey"]}
             )
+        break
 
     output["config"] = config
-    print(output)
 
     try:
         return {
@@ -102,16 +102,3 @@ def lambda_handler(event, context):
             "headers": resp_header,
             "body": json.dumps(f"Error: {str(e)}"),
         }
-
-
-if __name__ == "__main__":
-    event = {
-        "requestContext": {
-            "authorizer": {
-                "authorizerType": "lambda_authorizer",
-                "claims": '{"cognito:username":"d8019310-d0b1-706a-eb57-2bb2809c6c48","cognito:groups":"Test"}',
-            }
-        },
-        "queryStringParameters": {"size": "50", "total": "50"},
-    }
-    lambda_handler(event, None)

@@ -51,33 +51,37 @@ def lambda_handler(event, context):
     }
 
     # Use query after adding a filter
-    paginator = client.get_paginator("scan")
+    paginator = client.get_paginator("query")
 
     response_iterator = paginator.paginate(
         TableName=messages_table_name,
-        IndexName=messages_table_name,
+        IndexName=messages_table_gsi_name,
         PaginationConfig=config,
         KeyConditionExpression="sessionId = :session_id",
-        ExpressionAttributeValues={":session_id": session_id},
+        ExpressionAttributeValues={":session_id": {"S": session_id}},
+        ScanIndexForward=False,
     )
 
     output = {}
     for page in response_iterator:
+        print(page)
         page_items = page["Items"]
         page_json = []
         for item in page_items:
             item_json = {}
-            for key in item.keys():
+            for key in ["role", "content", "createTimestamp"]:
                 item_json[key] = item[key]["S"]
             page_json.append(item_json)
         # Return the latest page
-        output["Items"] = page_json
         output["Count"] = page["Count"]
         if "LastEvaluatedKey" in page:
             output["LastEvaluatedKey"] = encoder.encode(
                 {"ExclusiveStartKey": page["LastEvaluatedKey"]}
             )
+        break
 
+    chat_history = sorted(page_json, key=lambda x: x["createTimestamp"])
+    output["Items"] = chat_history
     output["config"] = config
 
     try:

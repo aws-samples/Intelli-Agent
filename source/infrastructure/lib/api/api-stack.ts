@@ -425,7 +425,7 @@ export class ApiConstruct extends Construct {
         allowOrigins: apigw.Cors.ALL_ORIGINS,
       },
       deployOptions: {
-        stageName: "prod",
+        stageName: "v1",
         metricsEnabled: true,
         loggingLevel: apigw.MethodLoggingLevel.INFO,
         dataTraceEnabled: true,
