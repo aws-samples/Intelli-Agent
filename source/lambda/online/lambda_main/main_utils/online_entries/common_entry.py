@@ -56,7 +56,7 @@ def query_preprocess_lambda(state: ChatbotState):
         lambda_module_path="lambda_query_preprocess.query_preprocess",
         handler_name="lambda_handler",
     )
-    send_trace(f"\n\n**query_rewrite:** \n{output}")
+    send_trace(f"\n\n**query_rewrite:** \n{output}", state["stream"], state["ws_connection_id"])
     return {"query_rewrite": output}
 
 
@@ -71,7 +71,7 @@ def intention_detection_lambda(state: ChatbotState):
 
     # send trace
     send_trace(
-        f"**intention retrieved:**\n{json.dumps(intention_fewshot_examples,ensure_ascii=False,indent=2)}"
+        f"**intention retrieved:**\n{json.dumps(intention_fewshot_examples,ensure_ascii=False,indent=2)}", state["stream"], state["ws_connection_id"]
     )
     current_intent_tools: list[str] = list(
         set([e["intent"] for e in intention_fewshot_examples])
@@ -95,7 +95,7 @@ def agent_lambda(state: ChatbotState):
     content = output['content']
     current_agent_tools_def = output['current_agent_tools_def']
     current_agent_model_id = output['current_agent_model_id']
-    send_trace(f"\n\n**current_function_calls:** \n{current_function_calls},\n**model_id:** \n{current_agent_model_id}\n**ai content:** \n{content}")
+    send_trace(f"\n\n**current_function_calls:** \n{current_function_calls},\n**model_id:** \n{current_agent_model_id}\n**ai content:** \n{content}", state["stream"], state["ws_connection_id"])
     return {
         "current_agent_model_id": current_agent_model_id,
         "current_function_calls": current_function_calls,
@@ -123,7 +123,7 @@ def parse_tool_calling(state: ChatbotState):
             function_calls=state["current_function_calls"],
             tools=state["current_agent_tools_def"],
         )
-        send_trace(f"\n\n**tool_calls parsed:** \n{tool_calls}")
+        send_trace(f"\n\n**tool_calls parsed:** \n{tool_calls}", state["stream"], state["ws_connection_id"])
         if tool_calls:
             state["extra_response"]["current_agent_intent_type"] = tool_calls[0]["name"]
         else:
@@ -150,7 +150,7 @@ def parse_tool_calling(state: ChatbotState):
             "current_tool_calls": tool_calls,
         }
     except (ToolNotExistError, ToolParameterNotExistError) as e:
-        send_trace(f"\n\n**tool_calls parse failed:** \n{str(e)}")
+        send_trace(f"\n\n**tool_calls parse failed:** \n{str(e)}", state["stream"], state["ws_connection_id"])
         return {
             "parse_tool_calling_ok": False,
             "agent_chat_history": [
@@ -207,7 +207,7 @@ def tool_execute_lambda(state: ChatbotState):
         tool_call_result_strs.append(ret)
 
     ret = "\n".join(tool_call_result_strs)
-    send_trace(f"\n\n**tool execute result:** \n{ret}")
+    send_trace(f"\n\n**tool execute result:** \n{ret}", state["stream"], state["ws_connection_id"])
     return {"agent_chat_history": [{"role": "user", "content": ret}]}
 
 
