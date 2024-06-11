@@ -54,25 +54,5 @@ def conversation_query_rewrite(state:dict):
     
 @chatbot_lambda_call_wrapper
 def lambda_handler(state:dict, context=None):
-    # event_body = json.loads(event["body"])
-    # state:dict = event_body['state']
-
-    # logger.info(f'state: {json.dumps(state,ensure_ascii=False,indent=2,cls=JSONEncoder)}')
-
-    # workflow = StateGraph(NestUpdateState)
-
-    # workflow.add_node('conversation_query_rewrite',conversation_query_rewrite)
-    # workflow.set_entry_point('conversation_query_rewrite')
-    # workflow.set_finish_point('conversation_query_rewrite')
-
-    # app = workflow.compile()
-
-    # base_state = {
-    #     "message_id":"",
-    #     "trace_infos": []
-    #     }
-
     output:dict = conversation_query_rewrite(state)
-    # output:dict = app.invoke({"keys": {**base_state,**state}})
-    
     return output
