@@ -5,7 +5,7 @@ import os
 import boto3
 from botocore.paginate import TokenEncoder
 
-DEFAULT_MAX_ITEM = 50
+DEFAULT_MAX_ITEMS = 50
 DEFAULT_SIZE = 50
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -36,16 +36,16 @@ def get_query_parameter(event, parameter_name, default_value=None):
 def lambda_handler(event, context):
 
     logger.info(event)
+    max_items = DEFAULT_MAX_ITEMS
     page_size = DEFAULT_SIZE
-    max_item = DEFAULT_MAX_ITEM
 
+    max_items = get_query_parameter(event, "total")
     page_size = get_query_parameter(event, "size")
-    max_item = get_query_parameter(event, "total")
-    starting_token = get_query_parameter(event, "token")
+    starting_token = get_query_parameter(event, "starting_token")
     session_id = get_query_parameter(event, "session_id")
 
     config = {
-        "MaxItems": int(max_item),
+        "MaxItems": int(max_items),
         "PageSize": int(page_size),
         "StartingToken": starting_token,
     }
@@ -72,8 +72,7 @@ def lambda_handler(event, context):
             for key in ["role", "content", "createTimestamp"]:
                 item_json[key] = item[key]["S"]
             page_json.append(item_json)
-        # Return the latest page
-        output["Count"] = page["Count"]
+
         if "LastEvaluatedKey" in page:
             output["LastEvaluatedKey"] = encoder.encode(
                 {"ExclusiveStartKey": page["LastEvaluatedKey"]}
@@ -82,7 +81,8 @@ def lambda_handler(event, context):
 
     chat_history = sorted(page_json, key=lambda x: x["createTimestamp"])
     output["Items"] = chat_history
-    output["config"] = config
+    output["Config"] = config
+    output["Count"] = len(chat_history)
 
     try:
         return {
