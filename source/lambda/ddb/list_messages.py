@@ -13,8 +13,8 @@ client = boto3.client("dynamodb")
 encoder = TokenEncoder()
 
 dynamodb = boto3.resource("dynamodb")
-sessions_table_name = os.getenv("SESSIONS_TABLE_NAME")
-sessions_table_gsi_name = os.getenv("SESSIONS_BY_TIMESTAMP_INDEX_NAME")
+messages_table_name = os.getenv("MESSAGES_TABLE_NAME")
+messages_table_gsi_name = os.getenv("MESSAGES_BY_SESSION_ID_INDEX_NAME")
 
 resp_header = {
     "Content-Type": "application/json",
@@ -38,18 +38,11 @@ def lambda_handler(event, context):
     logger.info(event)
     page_size = DEFAULT_SIZE
     max_item = DEFAULT_MAX_ITEM
-    authorizer_type = event["requestContext"]["authorizer"].get("authorizerType")
-    if authorizer_type == "lambda_authorizer":
-        claims = json.loads(event["requestContext"]["authorizer"]["claims"])
-        cognito_username = claims["cognito:username"]
-        cognito_groups = claims["cognito:groups"]
-        cognito_groups_list = cognito_groups.split(",")
-    else:
-        raise Exception("Invalid authorizer type")
 
     page_size = get_query_parameter(event, "size")
     max_item = get_query_parameter(event, "total")
     starting_token = get_query_parameter(event, "token")
+    session_id = get_query_parameter(event, "session_id")
 
     config = {
         "MaxItems": int(max_item),
@@ -60,21 +53,13 @@ def lambda_handler(event, context):
     # Use query after adding a filter
     paginator = client.get_paginator("scan")
 
-    if "Admin" in cognito_groups_list:
-        response_iterator = paginator.paginate(
-            TableName=sessions_table_name,
-            PaginationConfig=config,
-            FilterExpression="uiStatus = :active",
-            ExpressionAttributeValues={":active": {"S": "ACTIVE"}},
-        )
-    else:
-        response_iterator = paginator.paginate(
-            TableName=sessions_table_name,
-            IndexName=sessions_table_gsi_name,
-            PaginationConfig=config,
-            KeyConditionExpression="userId = :user_id",
-            ExpressionAttributeValues={":user_id": cognito_username},
-        )
+    response_iterator = paginator.paginate(
+        TableName=messages_table_name,
+        IndexName=messages_table_name,
+        PaginationConfig=config,
+        KeyConditionExpression="sessionId = :session_id",
+        ExpressionAttributeValues={":session_id": session_id},
+    )
 
     output = {}
     for page in response_iterator:
