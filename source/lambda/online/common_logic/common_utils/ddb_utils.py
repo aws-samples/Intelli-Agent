@@ -101,7 +101,7 @@ class DynamoDBChatMessageHistory(BaseChatMessageHistory):
                 "content": item["content"],
                 "additional_kwargs": {
                     "message_id": item["messageId"],
-                    "create_time": float(item["createTimestamp"]),
+                    "create_time": item["createTimestamp"],
                     "entry_type": item["entryType"],
                     "custom_message_id": item["customMessageId"],
                     **additional_kwargs,
