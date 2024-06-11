@@ -255,8 +255,8 @@ def process_pdf_pipeline(request_body):
     destination_bucket = request_body["destination_bucket"]
     mode = request_body.get("mode", "ppstructure")
     lang = request_body.get("lang", "zh")
-    auto_dpi = bool(request_body.get("auto_dpi", False))
-    figure_rec = bool(request_body.get("figure_recognition", False))
+    auto_dpi = bool(request_body.get("auto_dpi", True))
+    figure_rec = bool(request_body.get("figure_recognition", True))
     logging.info("Processing bucket: %s, object_key: %s", bucket, object_key)
     local_path = str(os.path.basename(object_key))
     local_path = f"/tmp/{local_path}"
