@@ -17,21 +17,20 @@ def lambda_handler(event, context):
     authorizer_type = event["requestContext"]["authorizer"].get("authorizerType")
     if authorizer_type == "lambda_authorizer":
         claims = json.loads(event["requestContext"]["authorizer"]["claims"])
-        group_id = claims["cognito:groups"]
+        cognito_groups = claims["cognito:groups"]
+        cognito_groups_list = cognito_groups.split(",")
     else:
-        group_id = event["requestContext"]["authorizer"]["claims"]["cognito:groups"]
-    logger.info(f"Group ID: {group_id}")
+        raise Exception("Invalid authorizer type")
+    logger.info(f"Cognito Groups: {cognito_groups}")
 
     output = {}
 
-    group_id_list = group_id.split(",")
-
-    if "Admin" in group_id_list:
+    if "Admin" in cognito_groups_list:
         # Return a list of all cognito groups
         response = cognito.list_groups(UserPoolId=cognito_user_pool_id)
         output["workspace_ids"] = [group["GroupName"] for group in response["Groups"]]
     else:
-        output["workspace_ids"] = group_id_list
+        output["workspace_ids"] = cognito_groups_list
     resp_header = {
         "Content-Type": "application/json",
         "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",

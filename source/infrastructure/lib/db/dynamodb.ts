@@ -20,6 +20,7 @@ export class DynamoDBConstruct extends Construct {
   public messageTableName: string;
   public readonly byUserIdIndex: string = "byUserId";
   public readonly bySessionIdIndex: string = "bySessionId";
+  public readonly byTimestampIndex: string = "byTimestamp";
 
   constructor(scope: Construct, id: string) {
     super(scope, id);
@@ -36,11 +37,18 @@ export class DynamoDBConstruct extends Construct {
       name: "messageId",
       type: dynamodb.AttributeType.STRING,
     }
+    const timestampAttr = {
+      name: "timestamp",
+      type: dynamodb.AttributeType.STRING,
+    }
+
 
     const sessionsTable = new DynamoDBTable(this, "SessionsTable", sessionIdAttr, userIdAttr).table;
     sessionsTable.addGlobalSecondaryIndex({
-      indexName: this.byUserIdIndex,
-      partitionKey: { name: "userId", type: dynamodb.AttributeType.STRING },
+      indexName: this.byTimestampIndex,
+      partitionKey: userIdAttr,
+      sortKey: timestampAttr,
+      projectionType: dynamodb.ProjectionType.ALL,
     });
     
     const messagesTable = new DynamoDBTable(this, "MessagesTable", messageIdAttr, sessionIdAttr).table;
