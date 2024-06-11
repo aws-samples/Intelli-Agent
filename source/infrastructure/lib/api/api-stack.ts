@@ -206,6 +206,21 @@ export class ApiConstruct extends Construct {
     });
     ddbLambda.addToRolePolicy(this.iamHelper.dynamodbStatement);
 
+    const listSessionsLambda = new Function(this, "ListSessionsLambda", {
+      runtime: Runtime.PYTHON_3_11,
+      handler: "list_sessions.lambda_handler",
+      code: Code.fromAsset(join(__dirname, "../../../lambda/ddb")),
+      environment: {
+        SESSIONS_TABLE_NAME: sessionsTableName,
+      },
+      vpc: apiVpc,
+      vpcSubnets: {
+        subnets: apiVpc.privateSubnets,
+      },
+      securityGroups: [props.securityGroup],
+    });
+    listSessionsLambda.addToRolePolicy(this.iamHelper.dynamodbStatement);
+
     // Integration with Step Function to trigger ETL process
     // Lambda function to trigger Step Function
     const sfnLambda = new Function(this, "StepFunctionLambda", {
@@ -438,8 +453,11 @@ export class ApiConstruct extends Construct {
     });
 
     // All AOS wrapper should be within such lambda
-    const apiResourceDdb = api.root.addResource("feedback");
+    const apiResourceDdb = api.root.addResource("ddb");
     apiResourceDdb.addMethod("POST", lambdaDdbIntegration, methodOption);
+
+    const apiResourceListSessions = apiResourceDdb.addResource("list-sessions");
+    apiResourceListSessions.addMethod("GET", new apigw.LambdaIntegration(listSessionsLambda), methodOption);
 
     const apiResourceStepFunction = api.root.addResource("etl");
     apiResourceStepFunction.addMethod(
