@@ -39,8 +39,8 @@ def lambda_handler(event, context):
         )
     logger.info(f"Group ID: {group_id}")
 
-    max_items = get_query_parameter(event, "total")
-    page_size = get_query_parameter(event, "size")
+    max_items = get_query_parameter(event, "max_items")
+    page_size = get_query_parameter(event, "page_size")
     starting_token = get_query_parameter(event, "starting_token")
 
     config = {
