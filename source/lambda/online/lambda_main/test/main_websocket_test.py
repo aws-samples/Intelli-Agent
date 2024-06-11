@@ -68,6 +68,7 @@ def test_multi_turns():
         "chatbot_config": {
             "chatbot_mode": "rag",
             "use_history": True,
+            "enable_trace": False,
             "use_websearch": False,
             "default_llm_config":{
                 "model_id": "anthropic.claude-3-sonnet-20240229-v1:0", 
@@ -89,6 +90,7 @@ def test_multi_turns():
             "chatbot_mode": "rag",
             "use_history": True,
             "use_websearch": False,
+            "enable_trace": False,
             "default_llm_config":{
                 "model_id": "anthropic.claude-3-sonnet-20240229-v1:0", 
                 "model_kwargs": {"temperature": 0.0, "max_tokens": 4096}

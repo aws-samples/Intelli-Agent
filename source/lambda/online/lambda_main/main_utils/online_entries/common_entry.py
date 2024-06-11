@@ -456,7 +456,7 @@ def common_entry(event_body):
     stream = event_body["stream"]
     message_id = event_body["custom_message_id"]
     ws_connection_id = event_body["ws_connection_id"]
-    enable_trace = event_body["enable_trace"]
+    enable_trace = chatbot_config["enable_trace"]
 
     # invoke graph and get results
     response = app.invoke(
