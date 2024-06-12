@@ -27,7 +27,7 @@ def parse_common_entry_config(chatbot_config):
         **chatbot_config.get("default_llm_config", {}),
     }
 
-    default_workspace_config = {"intent_workspace_ids": [], "rag_workspace_ids": []}
+    default_workspace_config = {"intent_workspace_ids": ["yb_intent"], "rag_workspace_ids": []}
 
     default_workspace_config = {
         **default_workspace_config,
@@ -95,6 +95,31 @@ def parse_common_entry_config(chatbot_config):
             "llm_config": {
                 **default_llm_config,
             },
+        },
+        "aws_qa_config": {
+            "retriever_config":{
+                "retrievers": [
+                    {
+                        "type": "qd",
+                        "workspace_ids": ['aws-ug-qd'],
+                        "config": {
+                            "top_k": 10,
+                        }
+                    },
+                ],
+                "rerankers": [
+                    {
+                        "type": "reranker",
+                        "config": {
+                            "enable_debug": False,
+                            "target_model": "bge_reranker_model.tar.gz"
+                        }
+                    }
+                ],
+            },
+            "llm_config":{
+                **default_llm_config,
+            }
         },
     }
     chatbot_config = update_nest_dict(

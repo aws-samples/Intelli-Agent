@@ -191,7 +191,7 @@ def tool_execute_lambda(state: ChatbotState):
             {
                 "name": tool_name,
                 "output": output,
-                "kwargs": tool_call["args"],
+                "kwargs": tool_call["kwargs"],
                 "model_id": tool_call["model_id"],
             }
         )
@@ -225,6 +225,19 @@ def rag_retrieve_lambda(state: ChatbotState):
     contexts = [doc["page_content"] for doc in output["result"]["docs"]]
     return {"contexts": contexts}
 
+@node_monitor_wrapper
+def aws_qa_lambda(state: ChatbotState):
+    # call retrivever
+    retriever_params = state["chatbot_config"]["aws_qa_config"]["retriever_config"]
+    retriever_params["query"] = state["query"]
+    output: str = invoke_lambda(
+        event_body=retriever_params,
+        lambda_name="Online_Function_Retriever",
+        lambda_module_path="functions.lambda_retriever.retriever",
+        handler_name="lambda_handler",
+    )
+    contexts = [doc["page_content"] for doc in output["result"]["docs"]]
+    return {"contexts": contexts}
 
 @node_monitor_wrapper
 def rag_llm_lambda(state: ChatbotState):
@@ -332,7 +345,7 @@ def agent_route(state: dict):
         return recent_tool_name
 
     if recent_tool_name == "QA":
-        return "rag"
+        return "aws_qa"
 
     if recent_tool_name == "assist":
         return "chat"
@@ -365,6 +378,7 @@ def build_graph():
     workflow.add_node("give_final_response", give_final_response)
     # workflow.add_node("give_response_wo_tool", give_response_without_any_tool)
     workflow.add_node("rag_retrieve_lambda", rag_retrieve_lambda)
+    workflow.add_node("aws_qa_lambda", aws_qa_lambda)
     workflow.add_node("rag_llm_lambda", rag_llm_lambda)
     workflow.add_node("qq_matched_reply", qq_matched_reply)
     workflow.add_node("parse_tool_calling", parse_tool_calling)
@@ -375,6 +389,7 @@ def build_graph():
     workflow.add_edge("intention_detection_lambda", "agent_lambda")
     workflow.add_edge("tool_execute_lambda", "agent_lambda")
     workflow.add_edge("rag_retrieve_lambda", "rag_llm_lambda")
+    workflow.add_edge("aws_qa_lambda", "rag_llm_lambda")
     workflow.add_edge("agent_lambda", "parse_tool_calling")
     workflow.add_edge("rag_llm_lambda", END)
     workflow.add_edge("comfort_reply", END)
@@ -416,6 +431,7 @@ def build_graph():
             "transfer": "transfer_reply",
             "chat": "chat_llm_generate_lambda",
             "rag": "rag_retrieve_lambda",
+            "aws_qa": "aws_qa_lambda",
             "continue": "tool_execute_lambda",
         },
     )
