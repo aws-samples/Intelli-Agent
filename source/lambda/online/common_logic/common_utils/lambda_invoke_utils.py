@@ -209,7 +209,7 @@ def is_running_local():
     return _is_current_invoke_local
 
 
-def send_trace(trace_info: str, current_stream_use: bool, ws_connection_id: Optional[str], enable_trace: bool = True) -> None:
+def send_trace(trace_info: str, current_stream_use: bool = _current_stream_use, ws_connection_id: Optional[str] = _ws_connection_id, enable_trace: bool = True) -> None:
     """
     Send trace information either to a WebSocket client or log it.
     """
