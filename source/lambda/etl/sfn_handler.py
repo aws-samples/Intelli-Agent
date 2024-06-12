@@ -2,7 +2,7 @@ import json
 import os
 import re
 from datetime import datetime, timezone
-from urllib.parse import unquote
+from urllib.parse import unquote_plus
 
 import boto3
 
@@ -41,7 +41,7 @@ def handler(event, context):
                 ),
             }
         elif event["Records"][0]["eventName"].startswith("ObjectCreated:"):
-            key = unquote(key)
+            key = unquote_plus(key)
 
             input_body = {
                 "s3Bucket": bucket,
@@ -52,7 +52,7 @@ def handler(event, context):
                 "operationType": "update",
             }
         elif event["Records"][0]["eventName"].startswith("ObjectRemoved:"):
-            key = unquote(key)
+            key = unquote_plus(key)
 
             input_body = {
                 "s3Bucket": bucket,
