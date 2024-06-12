@@ -22,21 +22,13 @@ def handler(event, context):
         "Access-Control-Allow-Methods": "*",
     }
 
-    authorizer_type = event["requestContext"]["authorizer"].get("authorizerType")
-    if authorizer_type == "lambda_authorizer":
-        claims = json.loads(event["requestContext"]["authorizer"]["claims"])
-        cognito_groups = claims["cognito:groups"]
-        cognito_groups_list = cognito_groups.split(",")
-    else:
-        raise Exception("Invalid authorizer type")
-
     if "Records" in event:
         print("S3 event detected")
         # TODO, Aggregate the bucket and key from the event object for S3 created event
         bucket = event["Records"][0]["s3"]["bucket"]["name"]
         key = event["Records"][0]["s3"]["object"]["key"]
         parts = key.split("/")
-        group_id = parts[-2] if len(parts) >= 2 else key
+        workspace_id = parts[-2] if len(parts) >= 2 else key
 
         if key.endswith("/"):
             print("This is a folder, skip")
@@ -49,33 +41,47 @@ def handler(event, context):
                 ),
             }
         elif event["Records"][0]["eventName"].startswith("ObjectCreated:"):
+            key = unquote(key)
 
             input_body = {
                 "s3Bucket": bucket,
                 "s3Prefix": key,
                 "offline": "false",
                 "qaEnhance": "false",
-                "workspaceId": group_id,
+                "workspaceId": workspace_id,
                 "operationType": "update",
             }
         elif event["Records"][0]["eventName"].startswith("ObjectRemoved:"):
+            key = unquote(key)
+
             input_body = {
                 "s3Bucket": bucket,
                 "s3Prefix": key,
                 "offline": "false",
                 "qaEnhance": "false",
-                "workspaceId": group_id,
+                "workspaceId": workspace_id,
                 "operationType": "delete",
             }
     else:
         print("API Gateway event detected")
+        authorizer_type = event["requestContext"]["authorizer"].get("authorizerType")
+        if authorizer_type == "lambda_authorizer":
+            claims = json.loads(event["requestContext"]["authorizer"]["claims"])
+            cognito_groups = claims["cognito:groups"]
+            cognito_groups_list = cognito_groups.split(",")
+        else:
+            raise Exception("Invalid authorizer type")
         # Parse the body from the event object
         input_body = json.loads(event["body"])
 
         workspace_id = (
             "Admin" if "Admin" in cognito_groups_list else cognito_groups_list[0]
         )
-        input_body["groupId"] = workspace_id
+        input_body["workspaceId"] = (
+            workspace_id
+            if "workspaceId" not in input_body
+            else input_body["workspaceId"]
+        )
 
     input_body["tableItemId"] = context.aws_request_id
     input_payload = json.dumps(input_body)
