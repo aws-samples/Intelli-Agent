@@ -19,7 +19,7 @@ from functions.tool_calling_parse import parse_tool_calling as _parse_tool_calli
 
 from lambda_main.main_utils.parse_config import parse_retail_entry_config
 from common_utils.lambda_invoke_utils import send_trace,is_running_local
-from common_utils.exceptions import ToolNotExistError,ToolParameterNotExistError
+from common_utils.exceptions import ToolNotExistError,ToolParameterNotExistError,MultipleToolNameError
 from common_utils.logger_utils import get_logger
 from common_utils.serialization_utils import JSONEncoder
 from common_utils.s3_utils import download_dir_from_s3
@@ -56,9 +56,8 @@ class ChatbotState(TypedDict):
     goods_info: None
     agent_llm_type: str
     query_rewrite_llm_type: str
-    agent_recursion_limit: int = 5 # agent recursion limit
-    current_agent_recursion_limit: int = 1
-    enable_state: bool
+    agent_recursion_limit: int # agent recursion limit
+    current_agent_recursion_limit: int
 
 ####################
 # nodes in lambdas #
@@ -171,7 +170,7 @@ def parse_tool_calling(state: ChatbotState):
             "parse_tool_calling_ok": True,
             "current_tool_calls": tool_calls,
         }
-    except (ToolNotExistError,ToolParameterNotExistError) as e:
+    except (ToolNotExistError,ToolParameterNotExistError,MultipleToolNameError) as e:
         send_trace(f"\n\n**tool_calls parse failed:** \n{str(e)}", state["stream"], state["ws_connection_id"])
         return {
         "parse_tool_calling_ok": False,
@@ -475,7 +474,7 @@ def final_rag_retriever_lambda(state: ChatbotState):
     return {"contexts": contexts}
 
 @node_monitor_wrapper
-def final_rag_retriever_llm_lambda(state:ChatbotState):
+def final_rag_llm_lambda(state:ChatbotState):
     context = ("="*50).join(state['contexts'])
     prompt = dedent(f"""你是安踏的客服助理，正在帮消费者解答售前或者售后的问题。 <context> 中列举了一些可能有关的具体场景及回复，你可以进行参考:
                     <context>
@@ -599,6 +598,7 @@ def agent_route(state:dict):
         return "give final response"
 
     if state['current_agent_recursion_limit'] >= state['agent_recursion_limit']:
+        send_trace(F"Reach the agent recursion limit: {state['agent_recursion_limit']}, route to final rag")
         return 'final rag'
 
     return "continue"
@@ -635,6 +635,7 @@ def build_graph():
     workflow.add_node("rag_promotion_retriever",rag_promotion_retriever_lambda)
     workflow.add_node("rag_promotion_llm",rag_promotion_llm_lambda)
     workflow.add_node("final_rag_retriever",final_rag_retriever_lambda)
+    workflow.add_node("final_rag_llm",final_rag_llm_lambda)
 
     # add all edges
     workflow.set_entry_point("query_preprocess_lambda")
@@ -647,7 +648,8 @@ def build_graph():
     workflow.add_edge('rag_product_aftersales_retriever',"rag_product_aftersales_llm")
     workflow.add_edge('rag_customer_complain_retriever',"rag_customer_complain_llm")
     workflow.add_edge('rag_promotion_retriever',"rag_promotion_llm")
-
+    workflow.add_edge('final_rag_retriever',"final_rag_llm")
+    
     # end
     workflow.add_edge("transfer_reply",END)
     workflow.add_edge("give_rhetorical_question",END)
@@ -660,6 +662,7 @@ def build_graph():
     workflow.add_edge('rule_number_reply',END)
     workflow.add_edge("rag_promotion_llm",END)
     workflow.add_edge("give_final_response",END)
+    workflow.add_edge("final_rag_llm",END)
 
     # temporal add edges for ending logic
     # add conditional edges
@@ -760,7 +763,10 @@ def retail_entry(event_body):
         "extra_response": {},
         "goods_info":goods_info,
         "agent_llm_type": LLMTaskType.RETAIL_TOOL_CALLING,
-        "query_rewrite_llm_type":LLMTaskType.RETAIL_CONVERSATION_SUMMARY_TYPE
+        "query_rewrite_llm_type":LLMTaskType.RETAIL_CONVERSATION_SUMMARY_TYPE,
+        "agent_recursion_limit": chatbot_config['agent_recursion_limit'],
+        "current_agent_recursion_limit": 0,
+
     })
 
     return {"answer":response['answer'],**response["extra_response"]}
