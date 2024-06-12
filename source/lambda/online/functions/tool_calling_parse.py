@@ -92,6 +92,10 @@ class ClaudeInstanceToolCallingParse(Claude3SonnetFToolCallingParse):
     model_id = "anthropic.claude-instant-v1"
 
 
+class Mixtral8x7bToolCallingParse(Claude3SonnetFToolCallingParse):
+    model_id = "mistral.mixtral-8x7b-instruct-v0:1"
+
+
 parse_tool_calling = ToolCallingParse.parse_tool
 
 

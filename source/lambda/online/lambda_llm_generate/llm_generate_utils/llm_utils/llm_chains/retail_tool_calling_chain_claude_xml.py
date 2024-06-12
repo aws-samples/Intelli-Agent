@@ -264,4 +264,17 @@ class Claude3HaikuRetailToolCallingChain(Claude2RetailToolCallingChain):
 
 class Mixtral8x7bRetailToolCallingChain(Claude2RetailToolCallingChain):
     model_id = "mistral.mixtral-8x7b-instruct-v0:1"
-    default_model_kwargs = {"max_tokens": 4096, "temperature": 0.01}
+    default_model_kwargs = {"max_tokens": 1000, "temperature": 0.01,"stop":["</function_calls>"]}
+
+    @classmethod
+    def parse_function_calls_from_ai_message(cls,message:AIMessage):
+        content = message.content.replace("\_","_")
+        function_calls:List[str] = re.findall("<function_calls>(.*?)</function_calls>", content + "</function_calls>",re.S)
+        if function_calls:
+            function_calls = [function_calls[0]]
+        if not function_calls:
+            content = message.content
+        return {
+                "function_calls": function_calls,
+                "content": content
+            } 
