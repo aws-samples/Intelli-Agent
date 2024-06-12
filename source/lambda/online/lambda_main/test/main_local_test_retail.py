@@ -84,7 +84,7 @@ def test(chatbot_mode="agent",session_id=None,query=None,goods_id=None,use_histo
     #         'temperature': 0.5, 'max_tokens': 4096}
     #     }
     chatbot_config = {
-        # "goods_id":goods_id,
+        "goods_id":goods_id,
         "chatbot_mode": chatbot_mode,
         "use_history": use_history,
         "query_process_config":{
@@ -261,14 +261,18 @@ def test_multi_turns():
 
 
     goods_id = 766158164989
-    user_queries = [
-        {"query":"https://detail.tmall.com/item.htm?id=766158164989","goods_id":766158164989},
-        {"query":"155.厘米125斤", "goods_id":766158164989},
-        {"query":"http://item.taobao.com/item.htm?id=766277539992","goods_id":766277539992},
-        {"query":"亲，这个大人能穿吗\n165身高的话可以换165m吗","goods_id":766277539992},
-        {"query":"https://item.taobao.com/item.htm?id=766277539992\n好吧/:018","goods_id":766277539992}
-    ]
+    # {"query":"杨幂同款裤子有吗","goods_id":},
+    # user_queries = [
+    #     {"query":"https://detail.tmall.com/item.htm?id=766158164989","goods_id":766158164989},
+    #     {"query":"155.厘米125斤", "goods_id":766158164989},
+    #     {"query":"http://item.taobao.com/item.htm?id=766277539992","goods_id":766277539992},
+    #     {"query":"亲，这个大人能穿吗\n165身高的话可以换165m吗","goods_id":766277539992},
+    #     {"query":"https://item.taobao.com/item.htm?id=766277539992\n好吧/:018","goods_id":766277539992}
+    # ]
 
+    user_queries = [
+        {"query":"杨幂同款裤子有吗","goods_id":763841838892}
+    ]
     
     # goods_id = 653918410246
     # user_queries = [
@@ -279,7 +283,6 @@ def test_multi_turns():
     #     {"query":"我换个号","goods_id":760740990909}
     # ]
 
-
     for query in user_queries:
         if isinstance(query,str):
             query = {"query":query}
@@ -289,7 +292,6 @@ def test_multi_turns():
             query=query['query'],
             goods_id=query.get("goods_id",None) or goods_id
         )
-
 
 
 def batch_test():
@@ -428,12 +430,13 @@ def multi_turn_test():
         goods_id=goods_id,
         query="还会有货吗？"
         )
+    # 
 
 
 if __name__ == "__main__":
-    # test_multi_turns()
-   
-    batch_test()
+    test_multi_turns()
+
+    # batch_test()
     # batch_test()
     # test(
     #     chatbot_mode='agent',
@@ -463,5 +466,5 @@ if __name__ == "__main__":
     #     )
     # multi-turn test
 
-    multi_turn_test()
+    # multi_turn_test()
     

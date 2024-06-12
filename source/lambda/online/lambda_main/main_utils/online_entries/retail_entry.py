@@ -19,7 +19,7 @@ from functions.tool_calling_parse import parse_tool_calling as _parse_tool_calli
 
 from lambda_main.main_utils.parse_config import parse_retail_entry_config
 from common_utils.lambda_invoke_utils import send_trace,is_running_local
-from common_utils.exceptions import ToolNotExistError,ToolParameterNotExistError
+from common_utils.exceptions import ToolNotExistError,ToolParameterNotExistError,MultipleToolNameError
 from common_utils.logger_utils import get_logger
 from common_utils.serialization_utils import JSONEncoder
 from common_utils.s3_utils import download_dir_from_s3
@@ -171,7 +171,7 @@ def parse_tool_calling(state: ChatbotState):
             "parse_tool_calling_ok": True,
             "current_tool_calls": tool_calls,
         }
-    except (ToolNotExistError,ToolParameterNotExistError) as e:
+    except (ToolNotExistError,ToolParameterNotExistError,MultipleToolNameError) as e:
         send_trace(f"\n\n**tool_calls parse failed:** \n{str(e)}", state["stream"], state["ws_connection_id"])
         return {
         "parse_tool_calling_ok": False,
