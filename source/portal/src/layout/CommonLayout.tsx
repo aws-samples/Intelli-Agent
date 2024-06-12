@@ -145,7 +145,7 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
                   {
                     type: 'link',
                     text: t('sessionHistory'),
-                    href: '/session',
+                    href: '/sessions',
                   },
                 ],
               },

@@ -92,7 +92,7 @@ const SessionHistory: React.FC = () => {
 
   return (
     <CommonLayout
-      activeHref="/session"
+      activeHref="/sessions"
       breadCrumbs={[
         {
           text: t('name'),
@@ -100,7 +100,7 @@ const SessionHistory: React.FC = () => {
         },
         {
           text: t('sessionHistory'),
-          href: '/session',
+          href: '/sessions',
         },
       ]}
     >

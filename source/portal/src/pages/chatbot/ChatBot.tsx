@@ -310,7 +310,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   return (
     <CommonLayout
       isLoading={loadingHistory}
-      activeHref={!historySessionId ? '/' : '/session'}
+      activeHref={!historySessionId ? '/' : '/sessions'}
     >
       <div className="chat-container mt-10">
         <div className="chat-message flex-v flex-1 gap-10">

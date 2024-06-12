@@ -33,7 +33,7 @@ const SignedInRouter = () => {
         <Route path="/" element={<ChatBot />} />
         <Route path="/library" element={<Library />} />
         <Route path="/library/detail/:id" element={<LibraryDetail />} />
-        <Route path="/session" element={<SessionHistory />} />
+        <Route path="/sessions" element={<SessionHistory />} />
         <Route path="/session/detail/:id" element={<SessionDetail />} />
       </Routes>
       <CommonAlert />
