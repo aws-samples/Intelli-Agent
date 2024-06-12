@@ -41,7 +41,7 @@ def parse_common_entry_config(chatbot_config):
     default_chatbot_config = {
         "chatbot_mode": ChatbotMode.chat,
         "use_history": True,
-        "enable_trace": False,
+        "enable_trace": True,
         "query_process_config": {
             "conversation_query_rewrite_config": {**default_llm_config}
         },
@@ -132,7 +132,8 @@ def parse_retail_entry_config(chatbot_config):
     default_chatbot_config = {
         "chatbot_mode": ChatbotMode.chat,
         "use_history": True,
-        "enable_trace": False,
+        "enable_trace": True,
+        "agent_recursion_limit": 2,
         "query_process_config": {
             "conversation_query_rewrite_config": {**default_llm_config}
         },
@@ -246,6 +247,31 @@ def parse_retail_entry_config(chatbot_config):
             }
         },
         "rag_promotion_config": {
+            "retriever_config":{
+                "retrievers": [
+                    {
+                        "type": "qq",
+                        "workspace_ids": ['retail-shouhou-wuliu','retail-quick-reply'],
+                        "config": {
+                            "top_k": 2,
+                        }
+                    },
+                ],
+                "rerankers": [
+                    {
+                        "type": "reranker",
+                        "config": {
+                            "enable_debug": False,
+                            "target_model": "bge_reranker_model.tar.gz"
+                        }
+                    }
+                ],
+            },
+            "llm_config":{
+                **default_llm_config,
+            }
+        },
+        "final_rag_retriever": {
             "retriever_config":{
                 "retrievers": [
                     {

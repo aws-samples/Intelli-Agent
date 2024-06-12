@@ -74,6 +74,8 @@ class Claude21FormatToolResult(Claude3SonnetFormatToolResult):
 class ClaudeInstanceFormatToolResult(Claude3SonnetFormatToolResult):
     model_id = "anthropic.claude-instant-v1"
 
+class Mixtral8x7bFormatToolResult(Claude3SonnetFormatToolResult):
+    model_id = "mistral.mixtral-8x7b-instruct-v0:1"
 
 format_tool_execute_result = FormatToolResult.format
 

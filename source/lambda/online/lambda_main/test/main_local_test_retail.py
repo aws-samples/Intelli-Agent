@@ -26,16 +26,16 @@ class DummyWebSocket:
         elif message_type == "END":
             return 
         elif message_type == "ERROR":
-            print(ret['message']['content'])
+            print(ret['message']['content'],flush=True)
             return 
         elif message_type == "MONITOR":
-            print("monitor info: ",ret['message'])
+            print("monitor info: ",ret['message'],flush=True)
 
 websocket_utils.ws_client = DummyWebSocket()
 
 
 def generate_answer(query,
-                    entry_type="common",
+                    entry_type="retail",
                     stream=False,
                     session_id=None,
                     chatbot_config=None
@@ -76,7 +76,7 @@ def test(chatbot_mode="agent",session_id=None,query=None,goods_id=None):
     default_llm_config = {
         'model_id': 'anthropic.claude-3-sonnet-20240229-v1:0',
         'model_kwargs': {
-            'temperature': 0.5, 'max_tokens': 4096}
+            'temperature': 0.5, 'max_tokens': 1000}
         }
     # default_llm_config = {
     #     'model_id': '"gpt-3.5-turbo-0125',
@@ -298,94 +298,25 @@ def batch_test():
     session_prefix = f"anta_test_{time.time()}"
     default_llm_config = {
         # 'model_id': 'anthropic.claude-3-haiku-20240307-v1:0',
-        'model_id': 'anthropic.claude-3-sonnet-20240229-v1:0',
+        # 'model_id': 'anthropic.claude-3-sonnet-20240229-v1:0',
+        'model_id': 'mistral.mixtral-8x7b-instruct-v0:1',
         'model_kwargs': {
             'temperature': 0.5, 'max_tokens': 4096}
         }
     chatbot_config = {
         "chatbot_mode": "agent",
         "use_history": True,
-        "query_process_config":{
-            "conversation_query_rewrite_config":{
-                **default_llm_config
-            }
-        },
-        "intent_recognition_config":{
-        },
-        "agent_config":{
-            **default_llm_config,
-            "tools":[]
-        },
-        "tool_execute_config":{
-            "knowledge_base_retriever":{
-                "retrievers": [
-                {
-                    "type": "qd",
-                    "workspace_ids": [1],
-                    "top_k": 10,
-                }
-                ]
-            }
-        },
-        "chat_config":{
-            **default_llm_config,
-        },
-        "rag_product_aftersales_config": {
-            "retriever_config":{
-                "retrievers": [
-                    {
-                        "type": "qq",
-                        "workspace_ids": ['retail-shouhou-wuliu'],
-                        "config": {
-                            "top_k": 2,
-                        }
-                    },
-                ],
-                "rerankers": [
-                    {
-                        "type": "reranker",
-                        "config": {
-                            "enable_debug": False,
-                            "target_model": "bge_reranker_model.tar.gz"
-                        }
-                    }
-                ],
-            },
-            "llm_config":{
-                **default_llm_config,
-            }
-        },
-        "rag_customer_complain_config": {
-            "retriever_config":{
-                "retrievers": [
-                    {
-                        "type": "qq",
-                        "workspace_ids": ['retail-shouhou-wuliu','retail-quick-reply'],
-                        "config": {
-                            "top_k": 2,
-                        }
-                    },
-                ],
-                "rerankers": [
-                    {
-                        "type": "reranker",
-                        "config": {
-                            "enable_debug": False,
-                            "target_model": "bge_reranker_model.tar.gz"
-                        }
-                    }
-                ],
-            },
-            "llm_config":{
-                **default_llm_config,
-            }
+        "enable_trace": True,
+        "default_llm_config":default_llm_config,
+        "intention_config": {
+            "query_key": "query"
         }
     }
     # data = data]
     data_to_save = []
     for datum in tqdm.tqdm(data,total=len(data)):
-        print("=="*50)
-        print(f'query: {datum["user_msg"]},goods_id: {datum["product_ids"]}')
+        print("=="*50,flush=True)
+        print(f'query: {datum["user_msg"]},\ngoods_id: {datum["product_ids"]}',flush=True)
         
         if datum["product_ids"]:
             try:
@@ -405,14 +336,15 @@ def batch_test():
                 stream=False,
                 session_id=session_id,
                 chatbot_config=chatbot_config,
+                entry_type="retail"
             )
             ai_msg = r['message']['content']
         except:
             import traceback
-            print(f"error run:\n {traceback.format_exc()}")
+            print(f"error run:\n {traceback.format_exc()}",flush=True)
             ai_msg = None
             r = {}
-
+        
         datum['agent_intent_type'] = r.get('current_agent_intent_type',None)
         datum['ai_msg'] = ai_msg
         datum['session_id'] = session_id
@@ -432,10 +364,11 @@ def batch_test():
             "comments": None,
             "owner": None
         })
+        print()
     # session_id, goods_id, create_time, user_msg, ai_msg, ai_intent, intent, accuracy,rewrite_query
     
         pd.DataFrame(data_to_save).to_csv(
-            f'{session_prefix}_anta_test_{len(data)}.csv',
+            f'{session_prefix}_anta_test_mixtral8x7b_{len(data)}.csv',
             index=False
             )
 
