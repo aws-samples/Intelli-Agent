@@ -51,8 +51,8 @@ const Library: React.FC = () => {
     setLoadingData(true);
     setSelectedItems([]);
     const params = {
-      size: 9999,
-      total: 9999,
+      max_items: 9999,
+      page_size: 9999,
     };
     try {
       const data = await fetchData({

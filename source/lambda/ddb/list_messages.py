@@ -5,7 +5,7 @@ import os
 import boto3
 from botocore.paginate import TokenEncoder
 
-DEFAULT_MAX_ITEM = 50
+DEFAULT_MAX_ITEMS = 50
 DEFAULT_SIZE = 50
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -36,49 +36,53 @@ def get_query_parameter(event, parameter_name, default_value=None):
 def lambda_handler(event, context):
 
     logger.info(event)
+    max_items = DEFAULT_MAX_ITEMS
     page_size = DEFAULT_SIZE
-    max_item = DEFAULT_MAX_ITEM
 
-    page_size = get_query_parameter(event, "size")
-    max_item = get_query_parameter(event, "total")
-    starting_token = get_query_parameter(event, "token")
+    max_items = get_query_parameter(event, "max_items")
+    page_size = get_query_parameter(event, "page_size")
+    starting_token = get_query_parameter(event, "starting_token")
     session_id = get_query_parameter(event, "session_id")
 
     config = {
-        "MaxItems": int(max_item),
+        "MaxItems": int(max_items),
         "PageSize": int(page_size),
         "StartingToken": starting_token,
     }
 
     # Use query after adding a filter
-    paginator = client.get_paginator("scan")
+    paginator = client.get_paginator("query")
 
     response_iterator = paginator.paginate(
         TableName=messages_table_name,
-        IndexName=messages_table_name,
+        IndexName=messages_table_gsi_name,
         PaginationConfig=config,
         KeyConditionExpression="sessionId = :session_id",
-        ExpressionAttributeValues={":session_id": session_id},
+        ExpressionAttributeValues={":session_id": {"S": session_id}},
+        ScanIndexForward=False,
     )
 
     output = {}
     for page in response_iterator:
+        print(page)
         page_items = page["Items"]
         page_json = []
         for item in page_items:
             item_json = {}
-            for key in item.keys():
+            for key in ["role", "content", "createTimestamp"]:
                 item_json[key] = item[key]["S"]
             page_json.append(item_json)
-        # Return the latest page
-        output["Items"] = page_json
-        output["Count"] = page["Count"]
+
         if "LastEvaluatedKey" in page:
             output["LastEvaluatedKey"] = encoder.encode(
                 {"ExclusiveStartKey": page["LastEvaluatedKey"]}
             )
+        break
 
-    output["config"] = config
+    chat_history = sorted(page_json, key=lambda x: x["createTimestamp"])
+    output["Items"] = chat_history
+    output["Config"] = config
+    output["Count"] = len(chat_history)
 
     try:
         return {
