@@ -136,7 +136,7 @@ const SessionHistory: React.FC = () => {
           }}
           columnDefinitions={[
             {
-              id: 'executionId',
+              id: 'sessionId',
               header: t('id'),
               cell: (item: SessionHistoryItem) => LinkComp(item),
               isRowHeader: true,
@@ -152,7 +152,7 @@ const SessionHistory: React.FC = () => {
           ]}
           items={tableSessionList}
           loadingText={t('loadingData')}
-          trackBy="executionId"
+          trackBy="sessionId"
           empty={
             <Box margin={{ vertical: 'xs' }} textAlign="center" color="inherit">
               <SpaceBetween size="m">
