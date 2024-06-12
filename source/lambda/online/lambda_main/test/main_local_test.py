@@ -151,17 +151,6 @@ def test_multi_turns():
         {"query":"我们进行了几轮对话", "use_history":True},
     ]
 
-    
-    # goods_id = 653918410246
-    # user_queries = [
-    #     {"query":"http://item.taobao.com/item.htm?id=653918410246","goods_id":653918410246},
-    #     {"query":"跑步有没有问题","goods_id":653918410246},
-    #     {"query":"https://detail.tmall.com/item.htm?id=760740990909","goods_id":760740990909},
-    #     {"query":"160 110穿多大","goods_id":760740990909},
-    #     {"query":"我换个号","goods_id":760740990909}
-    # ]
-
-
     for query in user_queries:
         if isinstance(query,str):
             query = {"query":query}
