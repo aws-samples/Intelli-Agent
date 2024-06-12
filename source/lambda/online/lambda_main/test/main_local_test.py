@@ -1,7 +1,6 @@
 import sys
 import os
 
-from lambda_main.test.main_local_test_retail import multi_turn_test
 sys.path.append("./common_logic")
 sys.path.append("../job/dep/llm_bot_dep")
 from dotenv import load_dotenv

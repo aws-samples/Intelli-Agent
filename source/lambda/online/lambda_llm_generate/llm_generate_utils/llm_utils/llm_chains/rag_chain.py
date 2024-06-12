@@ -1,12 +1,9 @@
 # rag llm chains
 
-from typing import Any, List, Mapping, Optional
 
 from langchain.prompts import (
-    AIMessagePromptTemplate,
     ChatPromptTemplate,
     HumanMessagePromptTemplate,
-    PromptTemplate,
     SystemMessagePromptTemplate,
 )
 

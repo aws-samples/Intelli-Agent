@@ -1,7 +1,6 @@
 import re
 import boto3
 from ..service_intent_recognition.utils import get_service_name
-from ..llm_utils.llm_models import Model
 from ..llm_utils.llm_chains import LLMChain
 from ..constant import (
     QUERY_TRANSLATE_TYPE,

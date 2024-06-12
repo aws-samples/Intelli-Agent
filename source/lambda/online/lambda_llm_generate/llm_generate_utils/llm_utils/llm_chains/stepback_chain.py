@@ -1,5 +1,4 @@
 from langchain.prompts import (
-    ChatMessagePromptTemplate,
     ChatPromptTemplate,
     FewShotChatMessagePromptTemplate,
 )

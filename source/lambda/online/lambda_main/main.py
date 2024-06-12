@@ -1,4 +1,3 @@
-import json
 import os
 import uuid
 import boto3
@@ -10,7 +9,6 @@ from common_utils.constant import EntryType
 from common_utils.logger_utils import get_logger
 from common_utils.websocket_utils import load_ws_client
 from common_utils.lambda_invoke_utils import chatbot_lambda_call_wrapper
-from common_utils.serialization_utils import JSONEncoder
 from botocore.exceptions import ClientError
 
 logger = get_logger("main")

@@ -8,7 +8,7 @@ from langchain.schema.runnable import (
     RunnableParallel,
     RunnablePassthrough,
 )
-from langchain.schema.runnable.base import Runnable, RunnableLambda
+from langchain.schema.runnable.base import RunnableLambda
 from prettytable import PrettyTable
 
 # import threading

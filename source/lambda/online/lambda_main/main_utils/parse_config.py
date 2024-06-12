@@ -1,8 +1,7 @@
 import collections.abc
 import copy
-import logging
 import os
-from common_utils.constant import ChatbotMode, RerankerType
+from common_utils.constant import ChatbotMode
 
 # update nest dict
 def update_nest_dict(d, u):
