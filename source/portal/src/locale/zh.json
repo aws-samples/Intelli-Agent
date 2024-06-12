@@ -40,6 +40,7 @@
     "indexType": "索引类型",
     "status": "状态",
     "createTime": "创建时间",
+    "latestQuestion": "最新问题",
     "loadingData": "正在加载数据...",
     "noData": "无数据",
     "findResources": "查找资源",

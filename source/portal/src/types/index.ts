@@ -28,6 +28,7 @@ export type SessionHistoryItem = {
   sessionId: string;
   userId: string;
   createTimestamp: string;
+  latestQuestion: string;
 };
 
 export type SessionHistoryResponse = {
