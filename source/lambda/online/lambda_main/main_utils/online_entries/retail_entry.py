@@ -101,11 +101,10 @@ def intention_detection_lambda(state: ChatbotState):
 @node_monitor_wrapper
 def agent_lambda(state: ChatbotState):
     goods_info = state.get('goods_info',None) or ""
-    
     output:dict = invoke_lambda(
         event_body={
             **state,
-            "chat_history": state['agent_chat_history'],
+            # "chat_history": state['agent_chat_history'],
             "other_chain_kwargs":{"goods_info":goods_info}
         },
         lambda_name="Online_Agent",
@@ -171,6 +170,7 @@ def parse_tool_calling(state: ChatbotState):
             "parse_tool_calling_ok": True,
             "current_tool_calls": tool_calls,
         }
+
     except (ToolNotExistError,ToolParameterNotExistError,MultipleToolNameError) as e:
         send_trace(f"\n\n**tool_calls parse failed:** \n{str(e)}", state["stream"], state["ws_connection_id"])
         return {
@@ -233,8 +233,8 @@ def tool_execute_lambda(state: ChatbotState):
         tool_call_result_strs.append(ret)
     
     ret = "\n".join(tool_call_result_strs)
+    send_trace(f'**tool_execute_res:** \n{ret}')
     return {
-        "current_monitor_infos": ret,
         "agent_chat_history":[{
             "role": "user",
             "content": ret
@@ -537,9 +537,6 @@ def rule_number_reply(state:ChatbotState):
     return {"answer":"收到订单信息"}
 
 
-
-
-
 ################
 # define edges #
 ################
@@ -560,6 +557,9 @@ def intent_route(state:dict):
 def agent_route(state:dict):
     parse_tool_calling_ok = state['parse_tool_calling_ok']
     if not parse_tool_calling_ok:
+        if state['current_agent_recursion_limit'] >= state['agent_recursion_limit']:
+            send_trace(f"Reach the agent recursion limit: {state['agent_recursion_limit']}, route to final rag")
+            return 'final rag'
         return 'invalid tool calling'
     
     recent_tool_calls:list[dict] = state['current_tool_calls']
@@ -599,7 +599,7 @@ def agent_route(state:dict):
         return "give final response"
 
     if state['current_agent_recursion_limit'] >= state['agent_recursion_limit']:
-        send_trace(F"Reach the agent recursion limit: {state['agent_recursion_limit']}, route to final rag")
+        send_trace(f"Reach the agent recursion limit: {state['agent_recursion_limit']}, route to final rag")
         return 'final rag'
 
     return "continue"
@@ -758,7 +758,7 @@ def retail_entry(event_body):
         "trace_infos": [],
         "message_id": message_id,
         "chat_history": chat_history,
-        "agent_chat_history": chat_history + [{"role":"user","content":query}],
+        "agent_chat_history": [],
         "ws_connection_id": ws_connection_id,
         "debug_infos": {},
         "extra_response": {},

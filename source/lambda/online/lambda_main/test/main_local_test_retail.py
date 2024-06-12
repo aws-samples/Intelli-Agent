@@ -282,15 +282,31 @@ def test_multi_turns():
     #     {"query":"160 110穿多大","goods_id":760740990909},
     #     {"query":"我换个号","goods_id":760740990909}
     # ]
-
+    default_llm_config = {
+        # 'model_id': 'anthropic.claude-3-haiku-20240307-v1:0',
+        # 'model_id': 'anthropic.claude-3-sonnet-20240229-v1:0',
+        'model_id': 'mistral.mixtral-8x7b-instruct-v0:1',
+        'model_kwargs': {
+            'temperature': 0.5, 'max_tokens': 4096}
+        }
+    chatbot_config = {
+        "chatbot_mode": "agent",
+        "use_history": True,
+        "enable_trace": True,
+        "default_llm_config":default_llm_config,
+        "intention_config": {
+            "query_key": "query"
+        }
+    }
     for query in user_queries:
         if isinstance(query,str):
             query = {"query":query}
-        test(
-            chatbot_mode='agent',
-            session_id=session_id,
-            query=query['query'],
-            goods_id=query.get("goods_id",None) or goods_id
+        r = generate_answer(
+               query=query['query'],
+               stream=False,
+                session_id=session_id,
+                chatbot_config={**chatbot_config,"goods_id": query.get("goods_id")},
+                entry_type="retail"
         )
 
 
@@ -303,7 +319,7 @@ def batch_test():
         # 'model_id': 'anthropic.claude-3-sonnet-20240229-v1:0',
         'model_id': 'mistral.mixtral-8x7b-instruct-v0:1',
         'model_kwargs': {
-            'temperature': 0.5, 'max_tokens': 4096}
+            'temperature': 0.1, 'max_tokens': 1000}
         }
     chatbot_config = {
         "chatbot_mode": "agent",
@@ -346,7 +362,6 @@ def batch_test():
             print(f"error run:\n {traceback.format_exc()}",flush=True)
             ai_msg = None
             r = {}
-        return 
 
         datum['agent_intent_type'] = r.get('current_agent_intent_type',None)
         datum['ai_msg'] = ai_msg
@@ -367,7 +382,6 @@ def batch_test():
             "comments": None,
             "owner": None
         })
-        print()
     # session_id, goods_id, create_time, user_msg, ai_msg, ai_intent, intent, accuracy,rewrite_query
     
         pd.DataFrame(data_to_save).to_csv(
@@ -435,9 +449,8 @@ def multi_turn_test():
 
 
 if __name__ == "__main__":
-    test_multi_turns()
-
-    # batch_test()
+    # test_multi_turns()
+    batch_test()
     # batch_test()
     # test(
     #     chatbot_mode='agent',
