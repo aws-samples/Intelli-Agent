@@ -28,7 +28,7 @@ import {
   RETAIL_GOODS_LIST,
 } from 'src/utils/const';
 import { v4 as uuidv4 } from 'uuid';
-import { MessageDataType } from 'src/types';
+import { MessageDataType, SessionMessage } from 'src/types';
 
 interface MessageType {
   type: 'ai' | 'human';
@@ -38,11 +38,16 @@ interface MessageType {
   };
 }
 
-const ChatBot: React.FC = () => {
+interface ChatBotProps {
+  historySessionId?: string;
+}
+
+const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
+  const { historySessionId } = props;
   const config = useContext(ConfigContext);
   const { t } = useTranslation();
   const auth = useAuth();
-
+  const [loadingHistory, setLoadingHistory] = useState(false);
   const [messages, setMessages] = useState<MessageType[]>([
     {
       type: 'ai',
@@ -80,7 +85,7 @@ const ChatBot: React.FC = () => {
     SCENARIO_LIST[0],
   );
 
-  const [sessionId, setSessionId] = useState('');
+  const [sessionId, setSessionId] = useState(historySessionId);
   const [workspaceIds, setWorkspaceIds] = useState<any[]>([]);
 
   const [temperature, setTemperature] = useState<string>('0.1');
@@ -120,8 +125,44 @@ const ChatBot: React.FC = () => {
     }
   };
 
+  const getSessionHistoryById = async () => {
+    try {
+      setLoadingHistory(true);
+      const data = await fetchData({
+        url: `ddb/list-messages`,
+        method: 'get',
+        params: {
+          session_id: historySessionId,
+          page_size: 9999,
+          max_items: 9999,
+        },
+      });
+      const sessionMessage: SessionMessage[] = data.Items;
+      setMessages(
+        sessionMessage.map((msg) => {
+          return {
+            type: msg.role,
+            message: {
+              data: msg.content,
+              monitoring: '',
+            },
+          };
+        }),
+      );
+      setLoadingHistory(false);
+    } catch (error) {
+      console.error(error);
+      return [];
+    }
+  };
+
   useEffect(() => {
-    setSessionId(uuidv4());
+    if (historySessionId) {
+      // get session history by id
+      getSessionHistoryById();
+    } else {
+      setSessionId(uuidv4());
+    }
     getWorkspaceList();
   }, []);
 
@@ -267,7 +308,10 @@ const ChatBot: React.FC = () => {
   };
 
   return (
-    <CommonLayout activeHref="/">
+    <CommonLayout
+      isLoading={loadingHistory}
+      activeHref={!historySessionId ? '/' : '/sessions'}
+    >
       <div className="chat-container mt-10">
         <div className="chat-message flex-v flex-1 gap-10">
           {messages.map((msg, index) => (

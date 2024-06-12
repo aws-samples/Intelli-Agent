@@ -169,7 +169,7 @@ def chatbot_lambda_call_wrapper(fn):
 
         if "Records" in event:
             records = event["Records"]
-            assert len(records), "Please set sqs batch size to 1"
+            assert len(records) == 1, "Please set sqs batch size to 1"
             event = json.loads(records[0]["body"])
             _lambda_invoke_mode = LAMBDA_INVOKE_MODE.LOCAL.value
             current_lambda_invoke_mode = LAMBDA_INVOKE_MODE.API_GW.value

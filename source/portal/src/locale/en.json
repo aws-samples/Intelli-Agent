@@ -40,6 +40,7 @@
     "indexType": "Index Type",
     "status": "Status",
     "createTime": "Create Time",
+    "latestQuestion": "Latest Question",
     "loadingData": "Loading data...",
     "noData": "No data",
     "findResources": "Find resources",
@@ -65,6 +66,7 @@
     "scenario": "Scenario",
     "maxTokens": "Max Tokens",
     "temperature": "Temperature",
+    "sessionHistory": "Session History",
     "button": {
       "login": "Log in to LLM Bot",
       "reload": "Reload",
