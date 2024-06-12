@@ -55,7 +55,7 @@ class StructureSystem(object):
             height_limit =  18 if lang=='ch' else 15
             for scale_base in [1, 0.66, 0.33]:
                 img_cur_scale = cv2.resize(img, (None, None), fx=scale_base, fy=scale_base)
-                temp_result = self.text_system.text_detector[lang](img_cur_scale)
+                temp_result = self.text_system.text_detector[lang](img_cur_scale, scale=1)
                 height_list = [max(text_line[:, 1]) - min(text_line[:, 1]) for text_line in temp_result]
                 height_list.sort()
                 if len(height_list) == 0:
@@ -87,9 +87,11 @@ class StructureSystem(object):
             else:
                 wht_im = np.ones(ori_im.shape, dtype=ori_im.dtype)
                 wht_im[y1:y2, x1:x2, :] = roi_img
-                
+                top = min(y2-y1, y1)
+                left = min(x2-x1, x1)
+                cur_wht_im = wht_im[y1-top:min(y2+(y2-y1), wht_im.shape[0]), x1-left:min(x2+(x2-x1), wht_im.shape[1])]
                 filter_boxes, filter_rec_res = self.text_system(
-                    wht_im, lang, final_s)
+                    cur_wht_im, lang, final_s)
 
                 # remove style char,
                 # when using the recognition model trained on the PubtabNet dataset,
@@ -107,7 +109,7 @@ class StructureSystem(object):
                         if token in rec_str:
                             rec_str = rec_str.replace(token, '')
                     if not self.recovery:
-                        box += [x1, y1]
+                        box += [x1+left, y1+top]
                     res.append({
                         'text': rec_str,
                         'confidence': float(rec_conf),
@@ -268,6 +270,7 @@ def process_pdf_pipeline(request_body):
     s3.download_file(Bucket=bucket, Key=object_key, Filename=local_path)
 
     content = structure_predict(local_path, lang, auto_dpi, figure_rec)
+    return content
     filename = file_path.stem
     destination_s3_path = upload_chunk_to_s3(
         content, destination_bucket, filename, "before-splitting"
