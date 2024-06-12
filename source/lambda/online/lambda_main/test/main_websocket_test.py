@@ -61,12 +61,14 @@ def test_multi_turns():
     session_id = time.time()
     ws = create_connection(ws_url)
     body = {
-        "query": "今天星期几",
+        # "query": "今天星期几",
+        "query": "g5.2xlarge ec2的价格是多少",
         "entry_type": "common",
         "session_id":f"test_{session_id}",
         "chatbot_config": {
             "chatbot_mode": "rag",
             "use_history": True,
+            "enable_trace": False,
             "use_websearch": False,
             "default_llm_config":{
                 "model_id": "anthropic.claude-3-sonnet-20240229-v1:0", 
@@ -88,6 +90,7 @@ def test_multi_turns():
             "chatbot_mode": "rag",
             "use_history": True,
             "use_websearch": False,
+            "enable_trace": False,
             "default_llm_config":{
                 "model_id": "anthropic.claude-3-sonnet-20240229-v1:0", 
                 "model_kwargs": {"temperature": 0.0, "max_tokens": 4096}

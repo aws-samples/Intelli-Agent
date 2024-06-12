@@ -35,7 +35,7 @@ websocket_utils.ws_client = DummyWebSocket()
 
 
 def generate_answer(query,
-                    entry_type="retail",
+                    entry_type="common",
                     stream=False,
                     session_id=None,
                     chatbot_config=None
@@ -78,8 +78,13 @@ def test(chatbot_mode="agent",session_id=None,query=None,goods_id=None):
         'model_kwargs': {
             'temperature': 0.5, 'max_tokens': 4096}
         }
+    # default_llm_config = {
+    #     'model_id': '"gpt-3.5-turbo-0125',
+    #     'model_kwargs': {
+    #         'temperature': 0.5, 'max_tokens': 4096}
+    #     }
     chatbot_config = {
-        "goods_id":goods_id,
+        # "goods_id":goods_id,
         "chatbot_mode": chatbot_mode,
         "use_history": True,
         "query_process_config":{
@@ -255,24 +260,24 @@ def test_multi_turns():
     # ]
 
 
-    # goods_id = "766158164989"
-    # user_queries = [
-    #     "https://detail.tmall.com/item.htm?id=766158164989",
-    #     "155.厘米125斤",
-    #     "http://item.taobao.com/item.htm?id=766277539992",
-    #     "亲，这个大人能穿吗\n165身高的话可以换165m吗",
-    #     "https://item.taobao.com/item.htm?id=766277539992\n好吧/:018"
-    # ]
+    goods_id = 766158164989
+    user_queries = [
+        {"query":"https://detail.tmall.com/item.htm?id=766158164989","goods_id":766158164989},
+        {"query":"155.厘米125斤", "goods_id":766158164989},
+        {"query":"http://item.taobao.com/item.htm?id=766277539992","goods_id":766277539992},
+        {"query":"亲，这个大人能穿吗\n165身高的话可以换165m吗","goods_id":766277539992},
+        {"query":"https://item.taobao.com/item.htm?id=766277539992\n好吧/:018","goods_id":766277539992}
+    ]
 
     
-    goods_id = 653918410246
-    user_queries = [
-        {"query":"http://item.taobao.com/item.htm?id=653918410246","goods_id":653918410246},
-        {"query":"跑步有没有问题","goods_id":653918410246},
-        {"query":"https://detail.tmall.com/item.htm?id=760740990909","goods_id":760740990909},
-        {"query":"160 110穿多大","goods_id":760740990909},
-        {"query":"我换个号","goods_id":760740990909}
-    ]
+    # goods_id = 653918410246
+    # user_queries = [
+    #     {"query":"http://item.taobao.com/item.htm?id=653918410246","goods_id":653918410246},
+    #     {"query":"跑步有没有问题","goods_id":653918410246},
+    #     {"query":"https://detail.tmall.com/item.htm?id=760740990909","goods_id":760740990909},
+    #     {"query":"160 110穿多大","goods_id":760740990909},
+    #     {"query":"我换个号","goods_id":760740990909}
+    # ]
 
 
     for query in user_queries:
@@ -493,6 +498,7 @@ def multi_turn_test():
 
 if __name__ == "__main__":
     # test_multi_turns()
+   
     batch_test()
     # batch_test()
     # test(
@@ -508,8 +514,7 @@ if __name__ == "__main__":
         # query="你家鞋子开胶了，怎么处理？"
     # test(
     #     chatbot_mode='agent',
-    #     session_id="anta_test_1717567916.145038_cn****0099",
-    #     query="为什么这个商品需要支付运费？"
+    #     query="g5.2xlarge ec2的价格是多少"
     #     )
     # test(
     #     chatbot_mode='agent',

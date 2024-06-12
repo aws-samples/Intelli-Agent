@@ -1,5 +1,6 @@
 import json
 import re
+import random
 from textwrap import dedent
 from typing import TypedDict,Any,Annotated
 import validators
@@ -55,7 +56,8 @@ class ChatbotState(TypedDict):
     goods_info: None
     agent_llm_type: str
     query_rewrite_llm_type: str
-    
+    agent_recursion_limit: int = 5 # agent recursion limit
+    current_agent_recursion_limit: 1
 
 ####################
 # nodes in lambdas #
@@ -118,6 +120,7 @@ def agent_lambda(state: ChatbotState):
         "current_agent_model_id": current_agent_model_id,
         "current_function_calls": current_function_calls,
         "current_agent_tools_def": current_agent_tools_def,
+        "current_agent_recursion_limit": state['current_agent_recursion_limit'] + 1,
         "agent_chat_history": [{
                     "role": "ai",
                     "content": content
@@ -453,6 +456,50 @@ def rag_promotion_llm_lambda(state:ChatbotState):
 
 
 
+@node_monitor_wrapper
+def final_rag_retriever_lambda(state: ChatbotState):
+    # call retriever
+    retriever_params = state["chatbot_config"]["final_rag_retriever"]["retriever_config"]
+    retriever_params["query"] = state["query"]
+    output:str = invoke_lambda(
+        event_body=retriever_params,
+        lambda_name="Online_Function_Retriever",
+        lambda_module_path="functions.lambda_retriever.retriever",
+        handler_name="lambda_handler"
+    )
+    contexts = [doc['page_content'] for doc in output['result']['docs']]
+
+    context = "\n".join(contexts)
+    send_trace(f'**final_rag_retriever** {context}')
+    return {"contexts": contexts}
+
+@node_monitor_wrapper
+def final_rag_retriever_llm_lambda(state:ChatbotState):
+    context = ("="*50).join(state['contexts'])
+    prompt = dedent(f"""你是安踏的客服助理，正在帮消费者解答售前或者售后的问题。 <context> 中列举了一些可能有关的具体场景及回复，你可以进行参考:
+                    <context>
+                    {context}
+                    </context>
+                    你需要按照下面的guidelines对消费者的问题进行回答:
+                    <guidelines>
+                      - 回答内容要简洁。
+                      - 如果问题与context内容不相关，就不要采用。
+                    </guidelines>
+                    下面是消费者的问题: {state['query']}。结合guidelines的内容进行回答
+""")
+    output:str = invoke_lambda(
+        lambda_name='Online_LLM_Generate',
+        lambda_module_path="lambda_llm_generate.llm_generate",
+        handler_name='lambda_handler',
+        event_body={
+            "llm_config": {**state['chatbot_config']['final_rag_retriever']['llm_config'], "intent_type": LLMTaskType.CHAT},
+            "llm_input": { "query": prompt, "chat_history": state['chat_history']}
+            }
+        )
+    return {"answer": output}
+
+
+
 def transfer_reply(state:ChatbotState):
     return {"answer": "立即为您转人工客服，请稍后"}
 
@@ -468,7 +515,12 @@ def give_final_response(state:ChatbotState):
 
 def rule_url_reply(state:ChatbotState):
     if state['query'].endswith(('.jpg','.png')):
-        return {"answer": "好的，收到图片。"}
+        answer = random.choice([
+            "好的，收到图片。",
+            "您好",
+            "请问有什么需要帮助的吗？"
+        ])
+        return {"answer": answer}
     # product information
     r = re.findall(r"item.htm\?id=(.*)",state['query'])
     if r:
@@ -482,6 +534,9 @@ def rule_url_reply(state:ChatbotState):
 
 def rule_number_reply(state:ChatbotState):
     return {"answer":"收到订单信息"}
+
+
+
 
 
 ################
@@ -542,7 +597,12 @@ def agent_route(state:dict):
     if recent_tool_call['name'] == "give_final_response":
         return "give final response"
 
+    if state['current_agent_recursion_limit'] >= state['agent_recursion_limit']:
+        return 'final rag'
+
     return "continue"
+
+
      
 #############################
 # define whole online graph #
@@ -573,6 +633,7 @@ def build_graph():
     workflow.add_node("rule_number_reply",rule_number_reply)
     workflow.add_node("rag_promotion_retriever",rag_promotion_retriever_lambda)
     workflow.add_node("rag_promotion_llm",rag_promotion_llm_lambda)
+    workflow.add_node("final_rag_retriever",final_rag_retriever_lambda)
 
     # add all edges
     workflow.set_entry_point("query_preprocess_lambda")
@@ -625,7 +686,9 @@ def build_graph():
             "customer complain": "rag_customer_complain_retriever",
             "promotion": "rag_promotion_retriever",
             "give final response": "give_final_response",
-            "continue":"tool_execute_lambda"
+            "final rag": "final_rag_retriever",
+            "continue":"tool_execute_lambda",
+            
         }
     )
     app = workflow.compile()

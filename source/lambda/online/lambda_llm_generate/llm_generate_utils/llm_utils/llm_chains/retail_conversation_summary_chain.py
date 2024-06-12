@@ -127,3 +127,8 @@ class Claude3SonnetRetailConversationSummaryChain(Claude2RetailConversationSumma
 
 class Claude3HaikuRetailConversationSummaryChain(Claude2RetailConversationSummaryChain):
     model_id = "anthropic.claude-3-haiku-20240307-v1:0"
+
+
+class Mixtral8x7bRetailConversationSummaryChain(Claude2RetailConversationSummaryChain):
+    model_id = "mistral.mixtral-8x7b-instruct-v0:1"
+    default_model_kwargs = {"max_tokens": 4096, "temperature": 0.01}

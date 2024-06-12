@@ -68,13 +68,6 @@ class Claude2(Model):
             model_id=cls.model_id,
             model_kwargs=model_kwargs,
         )
-        # else:
-        #     llm = Bedrock(
-        #                 credentials_profile_name=credentials_profile_name,
-        #                 region_name=region_name,
-        #                 model_id=cls.model_id,
-        #                 model_kwargs=model_kwargs
-        #     )
 
         return llm
 
@@ -93,6 +86,11 @@ class Claude3Sonnet(Claude2):
 
 class Claude3Haiku(Claude2):
     model_id = "anthropic.claude-3-haiku-20240307-v1:0"
+
+
+class Mixtral8x7b(Claude2):
+    model_id = "mistral.mixtral-8x7b-instruct-v0:1"
+    default_model_kwargs = {"max_tokens": 4096, "temperature": 0.01}
 
 
 class SagemakerModelBase(Model):
@@ -241,15 +239,6 @@ class Internlm2Chat7B(SagemakerModelBase):
     # meta_instruction = "You are a helpful AI Assistant"
 
     def transform_input(self, x):
-        # chat_history = x.get('chat_history',[])
-        # assert len(chat_history) % 2 == 0, chat_history
-        # history = []
-        # for i in range(0,len(chat_history),2):
-        #     user_message = chat_history[i]
-        #     ai_message = chat_history[i+1]
-        #     assert user_message.type == HUMAN_MESSAGE_TYPE \
-        #           and ai_message.type == AI_MESSAGE_TYPE , chat_history
-        #     history.append((user_message.content,ai_message.content))
         logger.info(f'prompt char num: {len(x["prompt"])}')
         body = {
             "query": x["prompt"],
@@ -287,9 +276,7 @@ class Internlm2Chat20B(Internlm2Chat7B):
 #         )
 
 #         llm = ChatOpenAI(
-#             credentials_profile_name=credentials_profile_name,
-#             region_name=region_name,
-#             model_id=cls.model_id,
+#             model=cls.model_id,
 #             model_kwargs=model_kwargs,
 #         )
 

@@ -10,11 +10,7 @@ from langchain.prompts import (
     SystemMessagePromptTemplate,
 )
 
-# from langchain_core.messages import HumanMessage,AIMessage,SystemMessage
-# from langchain.schema.messages import BaseMessage, SystemMessage, _message_from_dict
 from langchain.schema.runnable import RunnableLambda, RunnablePassthrough
-
-
 from common_utils.constant import (
     LLMTaskType
 )
@@ -26,19 +22,13 @@ from .llm_chain_base import LLMChain
 # TODO: pass prompt template to the chain
 BEDROCK_RAG_CHAT_SYSTEM_PROMPT = """You are a customer service agent, and answering user's query. You ALWAYS follow these guidelines when writing your response:
 <guidelines>
-If the question is single choice, please choose the right answer option based on the content within the XML tag <doc>. Output the option id in the XML tag <option></option>, no other content is needed.
-If the question is multiple choice, please choose all the right answer options based on the content within the XML tag <doc>. Output the option id in the XML tag <option></option>, no other content is needed.
-If the question asked to select incorrect options, please choose all the incorrect answer options based on the content within the XML tag <doc>. Output the option id in the XML tag <option></option>, no other content is needed.
-If the question is true/false, please choose the right answer option based on the content within the XML tag <doc>. Output TRUE or FALSE in the XML tag <option></option>, no other content is needed.
-Do not output any other content outside the XML tag <option>.
-Notice the "correct" and "incorrect" keyword in the question.
+- NERVER say "根据搜索结果/大家好/谢谢...".
 </guidelines>
 
-Here are some documents for you to reference for your query:
+Here are some documents for you to reference for your query.
 <docs>
 {context}
 </docs>"""
-
 
 def get_claude_rag_context(contexts: list):
     assert isinstance(contexts, list), contexts
@@ -52,26 +42,9 @@ def get_claude_rag_context(contexts: list):
     return context
 
 
-# def get_claude_chat_rag_prompt(chat_history: List[BaseMessage]):
-#     chat_messages = [
-#         SystemMessagePromptTemplate.from_template(BEDROCK_RAG_CHAT_SYSTEM_PROMPT)
-#     ]
-
-#     chat_messages = chat_messages + chat_history
-#     chat_messages += [HumanMessagePromptTemplate.from_template("{query}")]
-#     context_chain = RunnablePassthrough.assign(
-#         context=RunnableLambda(lambda x: get_claude_rag_context(x["contexts"]))
-#     )
-
-#     return context_chain | ChatPromptTemplate.from_messages(chat_messages)
-
-
 class Claude2RagLLMChain(LLMChain):
     model_id = "anthropic.claude-v2"
     intent_type = LLMTaskType.RAG
-    # template_render = claude2_rag_template_render
-    # stream_postprocess = claude2_rag_stream_postprocess
-    # api_postprocess = claude2_rag_api_postprocess
 
     @classmethod
     def create_chain(cls, model_kwargs=None, **kwargs):

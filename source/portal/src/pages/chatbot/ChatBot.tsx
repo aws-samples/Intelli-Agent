@@ -69,6 +69,7 @@ const ChatBot: React.FC = () => {
     LLM_BOT_CHAT_MODE_LIST[0],
   );
   const [useChatHistory, setUseChatHistory] = useState(true);
+  const [enableTrace, setEnableTrace] = useState(true);
   const [showTrace, setShowTrace] = useState(true);
   // const [useWebSearch, setUseWebSearch] = useState(false);
   // const [googleAPIKey, setGoogleAPIKey] = useState('');
@@ -123,6 +124,14 @@ const ChatBot: React.FC = () => {
     setSessionId(uuidv4());
     getWorkspaceList();
   }, []);
+
+  useEffect(() => {
+    if (enableTrace) {
+      setShowTrace(true);
+    } else {
+      setShowTrace(false);
+    }
+  }, [enableTrace]);
 
   const handleAIMessage = (message: MessageDataType) => {
     console.info('handleAIMessage:', message);
@@ -223,6 +232,7 @@ const ChatBot: React.FC = () => {
         goods_id: retailGoods.value,
         chatbot_mode: chatModeOption.value,
         use_history: useChatHistory,
+        enable_trace: enableTrace,
         use_websearch: true,
         google_api_key: '',
         default_workspace_config: {
@@ -329,11 +339,20 @@ const ChatBot: React.FC = () => {
                   {t('multiRound')}
                 </Toggle>
                 <Toggle
-                  onChange={({ detail }) => setShowTrace(detail.checked)}
-                  checked={showTrace}
+                  onChange={({ detail }) => setEnableTrace(detail.checked)}
+                  checked={enableTrace}
                 >
-                  {t('trace')}
+                  Enable trace
                 </Toggle>
+                {enableTrace && (
+                  <Toggle
+                    onChange={({ detail }) => setShowTrace(detail.checked)}
+                    checked={showTrace}
+                  >
+                    Show trace
+                  </Toggle>
+                )}
+
                 {/*
                 <Toggle
                   onChange={({ detail }) => {

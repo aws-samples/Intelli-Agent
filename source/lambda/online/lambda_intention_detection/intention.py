@@ -27,8 +27,9 @@ logger = get_logger("intention")
 @chatbot_lambda_call_wrapper
 def lambda_handler(state:dict, context=None):
     intention_config = state['chatbot_config'].get("intention_config",{})
+    query_key = intention_config.get("query_key","query")
     event_body = {
-        "query": state['query'],
+        "query": state[query_key],
         **intention_config
     }
     # call retriver

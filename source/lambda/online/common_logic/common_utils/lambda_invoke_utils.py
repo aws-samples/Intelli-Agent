@@ -1,5 +1,6 @@
 import enum
 import functools
+from gc import enable
 import importlib
 import json
 import os
@@ -208,21 +209,22 @@ def is_running_local():
     return _is_current_invoke_local
 
 
-def send_trace(trace_info: str, current_stream_use: bool, ws_connection_id: Optional[str]) -> None:
+def send_trace(trace_info: str, current_stream_use: bool, ws_connection_id: Optional[str], enable_trace: bool = True) -> None:
     """
     Send trace information either to a WebSocket client or log it.
     """
-    if current_stream_use and ws_connection_id is not None:
-        send_to_ws_client(
-            message={
-                "message_type": StreamMessageType.MONITOR,
-                "message": trace_info,
-                "created_time": time.time(),
-            },
-            ws_connection_id=ws_connection_id,
-        )
-    else:
-        logger.info(trace_info)
+    if enable_trace:
+        if current_stream_use and ws_connection_id is not None:
+            send_to_ws_client(
+                message={
+                    "message_type": StreamMessageType.MONITOR,
+                    "message": trace_info,
+                    "created_time": time.time(),
+                },
+                ws_connection_id=ws_connection_id,
+            )
+        else:
+            logger.info(trace_info)
 
 
 def node_monitor_wrapper(fn: Optional[Callable[..., Any]] = None, *, monitor_key: str = "current_monitor_infos") -> Callable[..., Any]:
