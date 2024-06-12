@@ -1,20 +1,13 @@
 # rag llm chains
 
-from typing import Any, List, Mapping, Optional
 
 from langchain.prompts import (
-    AIMessagePromptTemplate,
     ChatPromptTemplate,
     HumanMessagePromptTemplate,
-    PromptTemplate,
     SystemMessagePromptTemplate,
 )
 
-# from langchain_core.messages import HumanMessage,AIMessage,SystemMessage
-# from langchain.schema.messages import BaseMessage, SystemMessage, _message_from_dict
 from langchain.schema.runnable import RunnableLambda, RunnablePassthrough
-
-
 from common_utils.constant import (
     LLMTaskType
 )
@@ -46,26 +39,9 @@ def get_claude_rag_context(contexts: list):
     return context
 
 
-# def get_claude_chat_rag_prompt(chat_history: List[BaseMessage]):
-#     chat_messages = [
-#         SystemMessagePromptTemplate.from_template(BEDROCK_RAG_CHAT_SYSTEM_PROMPT)
-#     ]
-
-#     chat_messages = chat_messages + chat_history
-#     chat_messages += [HumanMessagePromptTemplate.from_template("{query}")]
-#     context_chain = RunnablePassthrough.assign(
-#         context=RunnableLambda(lambda x: get_claude_rag_context(x["contexts"]))
-#     )
-
-#     return context_chain | ChatPromptTemplate.from_messages(chat_messages)
-
-
 class Claude2RagLLMChain(LLMChain):
     model_id = "anthropic.claude-v2"
     intent_type = LLMTaskType.RAG
-    # template_render = claude2_rag_template_render
-    # stream_postprocess = claude2_rag_stream_postprocess
-    # api_postprocess = claude2_rag_api_postprocess
 
     @classmethod
     def create_chain(cls, model_kwargs=None, **kwargs):
@@ -109,6 +85,8 @@ class Claude3SonnetRAGLLMChain(Claude2RagLLMChain):
 class Claude3HaikuRAGLLMChain(Claude2RagLLMChain):
     model_id = "anthropic.claude-3-haiku-20240307-v1:0"
 
+class Mixtral8x7bChatChain(Claude2RagLLMChain):
+    model_id = "mistral.mixtral-8x7b-instruct-v0:1"
 
 from .chat_chain import Baichuan2Chat13B4BitsChatChain
 

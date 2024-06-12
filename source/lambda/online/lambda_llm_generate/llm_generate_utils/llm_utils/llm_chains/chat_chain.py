@@ -1,8 +1,7 @@
 # chat llm chains
-from typing import Any, List, Mapping, Optional
 
 from langchain.schema.runnable import RunnableLambda, RunnablePassthrough
-from langchain_core.messages import HumanMessage,AIMessage,SystemMessage
+from langchain_core.messages import AIMessage,SystemMessage
 from langchain.prompts import ChatPromptTemplate,HumanMessagePromptTemplate
 from langchain_core.messages import convert_to_messages
 
@@ -70,6 +69,12 @@ class Claude3SonnetChatChain(Claude2ChatChain):
 
 class Claude3HaikuChatChain(Claude2ChatChain):
     model_id = "anthropic.claude-3-haiku-20240307-v1:0"
+
+
+
+class Mixtral8x7bChatChain(Claude2ChatChain):
+    model_id = "mistral.mixtral-8x7b-instruct-v0:1"
+    default_model_kwargs = {"max_tokens": 4096, "temperature": 0.01}
 
 
 class Baichuan2Chat13B4BitsChatChain(LLMChain):
@@ -196,8 +201,8 @@ class Iternlm2Chat20BChatChain(Iternlm2Chat7BChatChain):
 
 #         return chain
 
-# class ChatGPT4ChatChain(LLMChain):
+# class ChatGPT4ChatChain(ChatGPT35ChatChain):
 #     model_id = "gpt-4-turbo"
 
-# class ChatGPT4oChatChain(LLMChain):
+# class ChatGPT4oChatChain(ChatGPT35ChatChain):
 #     model_id = "gpt-4o"

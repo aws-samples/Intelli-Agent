@@ -1,37 +1,26 @@
 # tool calling chain
 import json
-import os
-import sys
-from functools import lru_cache
-from random import Random
 from typing import List,Dict,Any
 import re
 
 from langchain.schema.runnable import (
-    RunnableBranch,
     RunnableLambda,
-    RunnablePassthrough,
 )
 
 from langchain_core.messages import(
-    HumanMessage,
     AIMessage,
-    SystemMessage,
-    BaseMessage,
-    ToolCall
+    SystemMessage
 ) 
-from langchain.prompts import ChatPromptTemplate,HumanMessagePromptTemplate,AIMessagePromptTemplate
+from langchain.prompts import ChatPromptTemplate
 
-from langchain_core.messages import HumanMessage,AIMessage,SystemMessage
+from langchain_core.messages import AIMessage,SystemMessage
 
 from common_utils.constant import (
-    MessageType,
     LLMTaskType
 )
 
 from .llm_chain_base import LLMChain
 from ..llm_models import Model
-from common_utils.exceptions import ToolNotExistError,ToolParameterNotExistError
 
 tool_call_guidelines = """<guidlines>
 - Don't forget to output <function_calls></function_calls> when any tool is called.
@@ -273,3 +262,19 @@ class Claude3HaikuRetailToolCallingChain(Claude2RetailToolCallingChain):
     model_id = "anthropic.claude-3-haiku-20240307-v1:0"
 
 
+class Mixtral8x7bRetailToolCallingChain(Claude2RetailToolCallingChain):
+    model_id = "mistral.mixtral-8x7b-instruct-v0:1"
+    default_model_kwargs = {"max_tokens": 1000, "temperature": 0.01,"stop":["</function_calls>"]}
+
+    @classmethod
+    def parse_function_calls_from_ai_message(cls,message:AIMessage):
+        content = message.content.replace("\_","_")
+        function_calls:List[str] = re.findall("<function_calls>(.*?)</function_calls>", content + "</function_calls>",re.S)
+        if function_calls:
+            function_calls = [function_calls[0]]
+        if not function_calls:
+            content = message.content
+        return {
+                "function_calls": function_calls,
+                "content": content
+            } 

@@ -1,7 +1,7 @@
 {
   "translation": {
-    "name": "Intelligent Private Agent",
-    "welcome": "Welcome to Intelligent Private Agent",
+    "name": "Intelli-Agent",
+    "welcome": "Welcome to Intelli-Agent",
     "you": "Y o u",
     "welcomeMessage": "Hello, how can I help you today?",
     "server": "Server",
@@ -10,7 +10,7 @@
     "chatSpace": "Chat",
     "chatBot": "Chat Bot",
     "docLibrary": "Document Library",
-    "addLibrary": "Add Library",
+    "addLibrary": "Add Document",
     "documentation": "Documentation",
     "ingest": "Ingest",
     "ingestDesc": "Please select the file to be imported",
@@ -56,6 +56,16 @@
     "preferences": "Preferences",
     "pageSize": "Page Size",
     "fileEmptyError": "Please select files to upload",
+    "docName": "Document Name",
+    "multiRound": "Multi-rounds",
+    "trace": "Trace",
+    "modelSettings": "Model Settings",
+    "modelName": "Model name",
+    "noModelFound": "No model found",
+    "scenario": "Scenario",
+    "maxTokens": "Max Tokens",
+    "temperature": "Temperature",
+    "sessionHistory": "Session History",
     "button": {
       "login": "Log in to LLM Bot",
       "reload": "Reload",
@@ -65,12 +75,19 @@
       "confirm": "Confirm",
       "backToList": "Back to List",
       "delete": "Delete",
-      "createDocLibrary": "Create Document Library",
+      "createDoc": "Create Document",
       "upload": "Upload"
     },
     "header": {
       "reSignIn": "Please login again",
       "reSignInDesc": "You have logged out of your account. Please click 'Reload' to log in to the web console again"
+    },
+    "validation": {
+      "requireModel": "Please select or input a model",
+      "requireTemperature": "Please enter a temperature",
+      "requireMaxTokens": "Please enter a maximum number of tokens",
+      "temperatureRange": "The temperature must be between 0 and 1",
+      "maxTokensRange": "The maximum number of tokens must lager than 0"
     }
   }
 }

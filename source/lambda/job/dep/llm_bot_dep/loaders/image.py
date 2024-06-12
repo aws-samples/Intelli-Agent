@@ -37,7 +37,15 @@ class CustomImageLoader(BaseLoader):
             image_bytes = image_file.read()
         encoded_image = base64.b64encode(image_bytes).decode("utf-8")
 
-        image_prompt = "What is in this image?"
+        image_prompt = '''
+You are a seasoned image analysis expert. Your task is to carefully observe the given illustration and proceed as follows:
+1. Clearly describe the content details shown in this picture.
+2. If there are any words in the picture, make sure to accurately include these words in the description.
+3. If there are a table in the picture, convert it to markdown format. For example: 
+| heading1 | heading2 |
+| - | - |
+| field1 | field2 |
+'''.strip()
         if "png" == self.file_type:
             media_type = "image/png"
         elif "jpeg" == self.file_type or "jpg" == self.file_type:

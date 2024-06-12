@@ -1,13 +1,10 @@
-import json
 
 # from ..prompt_template import INTENT_RECOGINITION_PROMPT_TEMPLATE_CLUADE,INTENT_RECOGINITION_EXAMPLE_TEMPLATE
 import os
 
 # from langchain.prompts import PromptTemplate
-import re
 import traceback
 from functools import partial
-from random import Random
 
 from langchain.schema.runnable import (
     RunnableBranch,
@@ -15,7 +12,6 @@ from langchain.schema.runnable import (
     RunnablePassthrough,
 )
 
-from .. import retriever
 from ..constant import INTENT_RECOGNITION_TYPE, IntentType
 from ..langchain_utils import chain_logger
 

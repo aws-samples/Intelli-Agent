@@ -3,8 +3,6 @@ import os
 
 os.environ["PYTHONUNBUFFERED"] = "1"
 import logging
-import time
-import uuid
 
 import boto3
 import sys

@@ -1,5 +1,6 @@
 import json
 import re
+import random
 from textwrap import dedent
 from typing import TypedDict,Any,Annotated
 import validators
@@ -18,7 +19,7 @@ from functions.tool_calling_parse import parse_tool_calling as _parse_tool_calli
 
 from lambda_main.main_utils.parse_config import parse_retail_entry_config
 from common_utils.lambda_invoke_utils import send_trace,is_running_local
-from common_utils.exceptions import ToolNotExistError,ToolParameterNotExistError
+from common_utils.exceptions import ToolNotExistError,ToolParameterNotExistError,MultipleToolNameError
 from common_utils.logger_utils import get_logger
 from common_utils.serialization_utils import JSONEncoder
 from common_utils.s3_utils import download_dir_from_s3
@@ -55,7 +56,9 @@ class ChatbotState(TypedDict):
     goods_info: None
     agent_llm_type: str
     query_rewrite_llm_type: str
-    
+    agent_recursion_limit: int # agent recursion limit
+    current_agent_recursion_limit: int
+    enable_trace: int
 
 ####################
 # nodes in lambdas #
@@ -87,7 +90,7 @@ def intention_detection_lambda(state: ChatbotState):
     state['extra_response']['intention_fewshot_examples'] = intention_fewshot_examples
 
     # send trace
-    send_trace(f"\n\nintention retrieved:\n{json.dumps(intention_fewshot_examples,ensure_ascii=False,indent=2)}")
+    send_trace(f"\n\nintention retrieved:\n{json.dumps(intention_fewshot_examples,ensure_ascii=False,indent=2)}", state["stream"], state["ws_connection_id"])
     current_intent_tools:list[str] = list(set([e['intent'] for e in intention_fewshot_examples]))
     return {
         "intention_fewshot_examples": intention_fewshot_examples,
@@ -113,11 +116,12 @@ def agent_lambda(state: ChatbotState):
     content = output['content']
     current_agent_tools_def = output['current_agent_tools_def']
     current_agent_model_id = output['current_agent_model_id']
-    send_trace(f"\n\n**current_function_calls:** \n{current_function_calls},\n**model_id:** \n{current_agent_model_id}\n**ai content:** \n{content}")
+    send_trace(f"\n\n**current_function_calls:** \n{current_function_calls},\n**model_id:** \n{current_agent_model_id}\n**ai content:** \n{content}", state["stream"], state["ws_connection_id"])
     return {
         "current_agent_model_id": current_agent_model_id,
         "current_function_calls": current_function_calls,
         "current_agent_tools_def": current_agent_tools_def,
+        "current_agent_recursion_limit": state['current_agent_recursion_limit'] + 1,
         "agent_chat_history": [{
                     "role": "ai",
                     "content": content
@@ -141,7 +145,7 @@ def parse_tool_calling(state: ChatbotState):
             function_calls = state['current_function_calls'],
             tools=state['current_agent_tools_def'],
         )
-        send_trace(f"\n\n**tool_calls parsed:** \n{tool_calls}")
+        send_trace(f"\n\n**tool_calls parsed:** \n{tool_calls}", state["stream"], state["ws_connection_id"])
         if tool_calls:
             state["extra_response"]['current_agent_intent_type'] = tool_calls[0]['name']
         else:
@@ -167,8 +171,8 @@ def parse_tool_calling(state: ChatbotState):
             "parse_tool_calling_ok": True,
             "current_tool_calls": tool_calls,
         }
-    except (ToolNotExistError,ToolParameterNotExistError) as e:
-        send_trace(f"\n\n**tool_calls parse failed:** \n{str(e)}")
+    except (ToolNotExistError,ToolParameterNotExistError,MultipleToolNameError) as e:
+        send_trace(f"\n\n**tool_calls parse failed:** \n{str(e)}", state["stream"], state["ws_connection_id"])
         return {
         "parse_tool_calling_ok": False,
         "agent_chat_history":[{
@@ -251,7 +255,7 @@ def rag_daily_reception_retriever_lambda(state: ChatbotState):
     )
     contexts = [doc['page_content'] for doc in output['result']['docs']]
     context = "\n".join(contexts)
-    send_trace(f'**rag_goods_exchange_retriever** {context}')
+    send_trace(f'**rag_goods_exchange_retriever** {context}', state["stream"], state["ws_connection_id"])
     return {"contexts": contexts}
 
 @node_monitor_wrapper
@@ -292,7 +296,7 @@ def rag_goods_exchange_retriever_lambda(state: ChatbotState):
     contexts = [doc['page_content'] for doc in output['result']['docs']]
 
     context = "\n".join(contexts)
-    send_trace(f'**rag_goods_exchange_retriever** {context}')
+    send_trace(f'**rag_goods_exchange_retriever** {context}', state["stream"], state["ws_connection_id"])
     return {"contexts": contexts}
 
 
@@ -335,7 +339,7 @@ def rag_product_aftersales_retriever_lambda(state: ChatbotState):
     contexts = [doc['page_content'] for doc in output['result']['docs']]
 
     context = "\n".join(contexts)
-    send_trace(f'**rag_product_aftersales_retriever** {context}')
+    send_trace(f'**rag_product_aftersales_retriever** {context}', state["stream"], state["ws_connection_id"])
     return {"contexts": contexts}
 
 @node_monitor_wrapper
@@ -379,7 +383,7 @@ def rag_customer_complain_retriever_lambda(state: ChatbotState):
     contexts = [doc['page_content'] for doc in output['result']['docs']]
 
     context = "\n".join(contexts)
-    send_trace(f'**rag_customer_complain_retriever** {context}')
+    send_trace(f'**rag_customer_complain_retriever** {context}', state["stream"], state["ws_connection_id"])
     return {"contexts": contexts}
 
 @node_monitor_wrapper
@@ -423,7 +427,7 @@ def rag_promotion_retriever_lambda(state: ChatbotState):
     contexts = [doc['page_content'] for doc in output['result']['docs']]
 
     context = "\n".join(contexts)
-    send_trace(f'**rag_promotion_retriever** {context}')
+    send_trace(f'**rag_promotion_retriever** {context}', state["stream"], state["ws_connection_id"])
     return {"contexts": contexts}
 
 @node_monitor_wrapper
@@ -453,6 +457,50 @@ def rag_promotion_llm_lambda(state:ChatbotState):
 
 
 
+@node_monitor_wrapper
+def final_rag_retriever_lambda(state: ChatbotState):
+    # call retriever
+    retriever_params = state["chatbot_config"]["final_rag_retriever"]["retriever_config"]
+    retriever_params["query"] = state["query"]
+    output:str = invoke_lambda(
+        event_body=retriever_params,
+        lambda_name="Online_Function_Retriever",
+        lambda_module_path="functions.lambda_retriever.retriever",
+        handler_name="lambda_handler"
+    )
+    contexts = [doc['page_content'] for doc in output['result']['docs']]
+
+    context = "\n".join(contexts)
+    send_trace(f'**final_rag_retriever** {context}')
+    return {"contexts": contexts}
+
+@node_monitor_wrapper
+def final_rag_llm_lambda(state:ChatbotState):
+    context = ("="*50).join(state['contexts'])
+    prompt = dedent(f"""你是安踏的客服助理，正在帮消费者解答售前或者售后的问题。 <context> 中列举了一些可能有关的具体场景及回复，你可以进行参考:
+                    <context>
+                    {context}
+                    </context>
+                    你需要按照下面的guidelines对消费者的问题进行回答:
+                    <guidelines>
+                      - 回答内容要简洁。
+                      - 如果问题与context内容不相关，就不要采用。
+                    </guidelines>
+                    下面是消费者的问题: {state['query']}。结合guidelines的内容进行回答
+""")
+    output:str = invoke_lambda(
+        lambda_name='Online_LLM_Generate',
+        lambda_module_path="lambda_llm_generate.llm_generate",
+        handler_name='lambda_handler',
+        event_body={
+            "llm_config": {**state['chatbot_config']['final_rag_retriever']['llm_config'], "intent_type": LLMTaskType.CHAT},
+            "llm_input": { "query": prompt, "chat_history": state['chat_history']}
+            }
+        )
+    return {"answer": output}
+
+
+
 def transfer_reply(state:ChatbotState):
     return {"answer": "立即为您转人工客服，请稍后"}
 
@@ -468,7 +516,12 @@ def give_final_response(state:ChatbotState):
 
 def rule_url_reply(state:ChatbotState):
     if state['query'].endswith(('.jpg','.png')):
-        return {"answer": "好的，收到图片。"}
+        answer = random.choice([
+            "好的，收到图片。",
+            "您好",
+            "请问有什么需要帮助的吗？"
+        ])
+        return {"answer": answer}
     # product information
     r = re.findall(r"item.htm\?id=(.*)",state['query'])
     if r:
@@ -482,6 +535,9 @@ def rule_url_reply(state:ChatbotState):
 
 def rule_number_reply(state:ChatbotState):
     return {"answer":"收到订单信息"}
+
+
+
 
 
 ################
@@ -542,7 +598,13 @@ def agent_route(state:dict):
     if recent_tool_call['name'] == "give_final_response":
         return "give final response"
 
+    if state['current_agent_recursion_limit'] >= state['agent_recursion_limit']:
+        send_trace(F"Reach the agent recursion limit: {state['agent_recursion_limit']}, route to final rag")
+        return 'final rag'
+
     return "continue"
+
+
      
 #############################
 # define whole online graph #
@@ -573,6 +635,8 @@ def build_graph():
     workflow.add_node("rule_number_reply",rule_number_reply)
     workflow.add_node("rag_promotion_retriever",rag_promotion_retriever_lambda)
     workflow.add_node("rag_promotion_llm",rag_promotion_llm_lambda)
+    workflow.add_node("final_rag_retriever",final_rag_retriever_lambda)
+    workflow.add_node("final_rag_llm",final_rag_llm_lambda)
 
     # add all edges
     workflow.set_entry_point("query_preprocess_lambda")
@@ -585,7 +649,8 @@ def build_graph():
     workflow.add_edge('rag_product_aftersales_retriever',"rag_product_aftersales_llm")
     workflow.add_edge('rag_customer_complain_retriever',"rag_customer_complain_llm")
     workflow.add_edge('rag_promotion_retriever',"rag_promotion_llm")
-
+    workflow.add_edge('final_rag_retriever',"final_rag_llm")
+    
     # end
     workflow.add_edge("transfer_reply",END)
     workflow.add_edge("give_rhetorical_question",END)
@@ -598,6 +663,7 @@ def build_graph():
     workflow.add_edge('rule_number_reply',END)
     workflow.add_edge("rag_promotion_llm",END)
     workflow.add_edge("give_final_response",END)
+    workflow.add_edge("final_rag_llm",END)
 
     # temporal add edges for ending logic
     # add conditional edges
@@ -625,7 +691,9 @@ def build_graph():
             "customer complain": "rag_customer_complain_retriever",
             "promotion": "rag_promotion_retriever",
             "give final response": "give_final_response",
-            "continue":"tool_execute_lambda"
+            "final rag": "final_rag_retriever",
+            "continue":"tool_execute_lambda",
+            
         }
     )
     app = workflow.compile()
@@ -660,6 +728,7 @@ def retail_entry(event_body):
     stream = event_body['stream']
     message_id = event_body['custom_message_id']
     ws_connection_id = event_body['ws_connection_id']
+    enable_trace = chatbot_config["enable_trace"]
     
     goods_info = None
     goods_id = event_body['chatbot_config']['goods_id']
@@ -685,6 +754,7 @@ def retail_entry(event_body):
         "stream": stream,
         "chatbot_config": chatbot_config,
         "query": query,
+        "enable_trace": enable_trace,
         "trace_infos": [],
         "message_id": message_id,
         "chat_history": chat_history,
@@ -694,7 +764,10 @@ def retail_entry(event_body):
         "extra_response": {},
         "goods_info":goods_info,
         "agent_llm_type": LLMTaskType.RETAIL_TOOL_CALLING,
-        "query_rewrite_llm_type":LLMTaskType.RETAIL_CONVERSATION_SUMMARY_TYPE
+        "query_rewrite_llm_type":LLMTaskType.RETAIL_CONVERSATION_SUMMARY_TYPE,
+        "agent_recursion_limit": chatbot_config['agent_recursion_limit'],
+        "current_agent_recursion_limit": 0,
+
     })
 
     return {"answer":response['answer'],**response["extra_response"]}

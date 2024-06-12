@@ -8,7 +8,10 @@ from .chat_chain import (
     Iternlm2Chat20BChatChain,
     Baichuan2Chat13B4BitsChatChain,
     Claude3HaikuChatChain,
-    Claude3SonnetChatChain
+    Claude3SonnetChatChain,
+    # ChatGPT35ChatChain,
+    # ChatGPT4ChatChain,
+    # ChatGPT4oChatChain,
 )
 
 from .conversation_summary_chain import (
