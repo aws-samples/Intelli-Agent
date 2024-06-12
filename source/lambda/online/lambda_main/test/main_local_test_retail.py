@@ -84,7 +84,7 @@ def test(chatbot_mode="agent",session_id=None,query=None,goods_id=None,use_histo
     #         'temperature': 0.5, 'max_tokens': 4096}
     #     }
     chatbot_config = {
-        # "goods_id":goods_id,
+        "goods_id":goods_id,
         "chatbot_mode": chatbot_mode,
         "use_history": use_history,
         "query_process_config":{
