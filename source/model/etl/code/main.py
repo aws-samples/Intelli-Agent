@@ -58,7 +58,10 @@ class StructureSystem(object):
                 temp_result = self.text_system.text_detector[lang](img_cur_scale)
                 height_list = [max(text_line[:, 1]) - min(text_line[:, 1]) for text_line in temp_result]
                 height_list.sort()
-                min_text_line_h = height_list[int(len(height_list)*0.05)]
+                if len(height_list) == 0:
+                    min_text_line_h = 2*height_limit
+                else:
+                    min_text_line_h = height_list[int(len(height_list)*0.05)]
                 min_s = (height_limit/min_text_line_h)*scale_base
                 if min_s>final_s:
                     final_s = min_s
@@ -265,6 +268,7 @@ def process_pdf_pipeline(request_body):
     s3.download_file(Bucket=bucket, Key=object_key, Filename=local_path)
 
     content = structure_predict(local_path, lang, auto_dpi, figure_rec)
+    return content
     filename = file_path.stem
     destination_s3_path = upload_chunk_to_s3(
         content, destination_bucket, filename, "before-splitting"
@@ -273,13 +277,3 @@ def process_pdf_pipeline(request_body):
     result = {"destination_prefix": destination_s3_path}
 
     return result
-
-if __name__ == "__main__":
-    body = {
-        "s3_bucket": "xiaotih",
-        "object_key": "2021-Annual-Report（拖移项目）.pdf",
-        "destination_bucket": "xiaotih",
-        "mode": "ppstructure",
-        "lang": "ch","auto_dpi":True, "figure_recognition":True
-    }
-    print(process_pdf_pipeline(body))
