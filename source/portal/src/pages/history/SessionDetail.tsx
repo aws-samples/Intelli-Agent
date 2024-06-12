@@ -4,11 +4,7 @@ import ChatBot from '../chatbot/ChatBot';
 
 const SessionDetail: React.FC = () => {
   const { id } = useParams();
-  return (
-    <div>
-      <ChatBot historySessionId={id} />
-    </div>
-  );
+  return <ChatBot historySessionId={id} />;
 };
 
 export default SessionDetail;
