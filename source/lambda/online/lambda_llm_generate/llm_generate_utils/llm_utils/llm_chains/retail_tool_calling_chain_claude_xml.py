@@ -273,3 +273,6 @@ class Claude3HaikuRetailToolCallingChain(Claude2RetailToolCallingChain):
     model_id = "anthropic.claude-3-haiku-20240307-v1:0"
 
 
+class Mixtral8x7bRetailToolCallingChain(Claude2RetailToolCallingChain):
+    model_id = "mistral.mixtral-8x7b-instruct-v0:1"
+    default_model_kwargs = {"max_tokens": 4096, "temperature": 0.01}

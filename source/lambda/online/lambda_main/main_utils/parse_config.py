@@ -137,6 +137,7 @@ def parse_retail_entry_config(chatbot_config):
             "conversation_query_rewrite_config": {**default_llm_config}
         },
         "intention_config": {
+            "query_key": "query_rewrite",
             "retrievers": [
                 {
                     "type": "qq",
