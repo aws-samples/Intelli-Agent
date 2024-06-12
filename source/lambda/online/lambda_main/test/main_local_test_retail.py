@@ -72,7 +72,7 @@ def generate_answer(query,
         return body
 
 
-def test(chatbot_mode="agent",session_id=None,query=None,goods_id=None):
+def test(chatbot_mode="agent",session_id=None,query=None,goods_id=None,use_history=True):
     default_llm_config = {
         'model_id': 'anthropic.claude-3-sonnet-20240229-v1:0',
         'model_kwargs': {
@@ -86,7 +86,7 @@ def test(chatbot_mode="agent",session_id=None,query=None,goods_id=None):
     chatbot_config = {
         # "goods_id":goods_id,
         "chatbot_mode": chatbot_mode,
-        "use_history": True,
+        "use_history": use_history,
         "query_process_config":{
             "conversation_query_rewrite_config":{
                 **default_llm_config
@@ -483,13 +483,14 @@ def multi_turn_test():
     session_id = f"0068_test_{time.time()}"
     goods_id = 756327274174
     test(
-        chatbot_mode='agent',
+        chatbot_mode='chat',
         session_id=session_id,
         goods_id=goods_id,
-        query="亲，平常穿37联系多大码"
+        query="亲，平常穿37联系多大码",
+        use_history=True
         )
     test(
-        chatbot_mode='agent',
+        chatbot_mode='chat',
         session_id=session_id,
         goods_id=goods_id,
         query="还会有货吗？"
@@ -529,5 +530,5 @@ if __name__ == "__main__":
     #     )
     # multi-turn test
 
-    # multi_turn_test()
+    multi_turn_test()
     

@@ -209,7 +209,7 @@ def is_running_local():
     return _is_current_invoke_local
 
 
-def send_trace(trace_info: str, current_stream_use: bool, ws_connection_id: Optional[str], enable_trace: bool = True) -> None:
+def send_trace(trace_info: str, current_stream_use: bool = _current_stream_use, ws_connection_id: Optional[str] = _ws_connection_id, enable_trace: bool = True) -> None:
     """
     Send trace information either to a WebSocket client or log it.
     """
@@ -237,13 +237,14 @@ def node_monitor_wrapper(fn: Optional[Callable[..., Any]] = None, *, monitor_key
             enter_time = time.time()
             current_stream_use = state["stream"]
             ws_connection_id = state["ws_connection_id"]
-            send_trace(f"\n\n **Enter {func.__name__}**", current_stream_use, ws_connection_id)
+            enable_trace = state["enable_trace"]
+            send_trace(f"\n\n **Enter {func.__name__}**", current_stream_use, ws_connection_id, enable_trace)
             output = func(state)
             current_monitor_infos = output.get(monitor_key, None)
             if current_monitor_infos is not None:
-                send_trace(f"\n\n {current_monitor_infos}", current_stream_use, ws_connection_id)
+                send_trace(f"\n\n {current_monitor_infos}", current_stream_use, ws_connection_id, enable_trace)
             exit_time = time.time()
-            send_trace(f"\n\n **Exit {func.__name__}**, elapsed time: {round(exit_time-enter_time)} s", current_stream_use, ws_connection_id)
+            send_trace(f"\n\n **Exit {func.__name__}**, elapsed time: {round(exit_time-enter_time)} s", current_stream_use, ws_connection_id, enable_trace)
             return output
 
         return wrapper
