@@ -103,11 +103,11 @@ def test_multi_turns():
     ws = create_connection(ws_url)
     body = {
         "query": "今天星期几",
-        "entry_type": "chat",
+        "entry_type": "common",
         "session_id":f"test_{session_id}",
         "chatbot_config": {
             "chatbot_mode": "rag",
-            "use_history": True,
+            "use_history": False,
             "use_websearch": False,
             "enable_trace": False,
             "default_llm_config":{
