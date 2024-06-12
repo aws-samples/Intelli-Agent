@@ -1,11 +1,7 @@
-import json
 import logging
-import os
-import uuid
 from datetime import datetime
 from typing import List
 
-import boto3
 
 WORKSPACE_OBJECT_TYPE = "workspace"
 

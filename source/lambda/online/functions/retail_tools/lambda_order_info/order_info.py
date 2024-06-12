@@ -1,6 +1,5 @@
 import os
 import re
-import math
 import boto3
 import pandas as pd
 from common_utils.s3_utils import download_dir_from_s3

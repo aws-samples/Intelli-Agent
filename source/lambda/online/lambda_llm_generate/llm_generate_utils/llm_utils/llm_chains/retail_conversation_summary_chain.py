@@ -1,21 +1,13 @@
 # conversation summary chain
-import json
-import os
-import sys
-from functools import lru_cache
-from random import Random
 from typing import List 
 
-from langchain.prompts import PromptTemplate
 from langchain.schema.runnable import (
-    RunnableBranch,
     RunnableLambda,
     RunnablePassthrough,
 )
 
 
 from ..llm_models import Model
-from .chat_chain import Iternlm2Chat7BChatChain
 from .llm_chain_base import LLMChain
 from common_utils.constant import (
     MessageType,
@@ -23,16 +15,12 @@ from common_utils.constant import (
 )
 
 from langchain_core.messages import(
-    HumanMessage,
     AIMessage,
-    SystemMessage,
     BaseMessage,
     convert_to_messages
 ) 
 from langchain.prompts import (
     HumanMessagePromptTemplate,
-    AIMessagePromptTemplate,
-    SystemMessagePromptTemplate,
     ChatPromptTemplate
 )
 

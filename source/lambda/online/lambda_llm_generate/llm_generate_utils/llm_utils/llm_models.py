@@ -3,11 +3,8 @@ import logging
 import os
 
 # from llmbot_utils import concat_recall_knowledge
-from typing import Any, List, Mapping, Optional
 
 import boto3
-from langchain.llms.sagemaker_endpoint import LLMContentHandler, SagemakerEndpoint
-from langchain.chat_models import ChatOpenAI
 from langchain_community.chat_models import BedrockChat
 from langchain_community.llms.sagemaker_endpoint import LineIterator
 
