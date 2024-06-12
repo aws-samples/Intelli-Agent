@@ -172,7 +172,7 @@ def query_ec2_price(**args) -> Union[str,None]:
         
         return '\n'.join(prices) if prices else None
 
-def lambda_handler(event, context):
+def lambda_handler(event, context=None):
     '''
     event: {
         "body": "{
