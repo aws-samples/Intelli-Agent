@@ -25,6 +25,7 @@ export class IAMHelper extends Construct {
   public ecrStatement: PolicyStatement;
   public llmStatement: PolicyStatement;
   public cognitoStatement: PolicyStatement;
+  public bedrockStatement: PolicyStatement;
 
   public createPolicyStatement(actions: string[], resources: string[]) {
     return new PolicyStatement({
@@ -132,6 +133,12 @@ export class IAMHelper extends Construct {
         "cognito-idp:ListGroups",
       ],
       [ "*" ],
-    )
+    );
+    this.bedrockStatement = this.createPolicyStatement(
+      [
+        "bedrock:*",
+      ],
+      [ "*" ],
+    );
   }
 }

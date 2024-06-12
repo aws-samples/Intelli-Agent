@@ -33,9 +33,10 @@ def lambda_handler(event, context):
     authorizer_type = event["requestContext"]["authorizer"].get("authorizerType")
     if authorizer_type == "lambda_authorizer":
         claims = json.loads(event["requestContext"]["authorizer"]["claims"])
-        group_id = claims["cognito:groups"]
+        cognito_groups = claims["cognito:groups"]
+        cognito_groups_list = cognito_groups.split(",")
     else:
-        group_id = event["requestContext"]["authorizer"]["claims"]["cognito:groups"]
+        raise Exception("Invalid authorizer type")
     resp_header = {
         "Content-Type": "application/json",
         "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
@@ -47,7 +48,10 @@ def lambda_handler(event, context):
 
     try:
         input_body = json.loads(event["body"])
-        file_name = "documents/" + group_id + "/" + input_body["file_name"]
+        workspace_id = (
+            "Admin" if "Admin" in cognito_groups_list else cognito_groups_list[0]
+        )
+        file_name = "documents/" + workspace_id + "/" + input_body["file_name"]
         if "content_type" in input_body:
             content_type = input_body["content_type"]
         if "expiration" in input_body:
