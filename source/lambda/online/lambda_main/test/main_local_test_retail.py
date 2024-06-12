@@ -308,15 +308,11 @@ def batch_test():
     chatbot_config = {
         "chatbot_mode": "agent",
         "use_history": True,
-<<<<<<< Updated upstream
         "enable_trace": True,
         "default_llm_config":default_llm_config,
         "intention_config": {
             "query_key": "query"
         }
-=======
-        "default_llm_config":default_llm_config
->>>>>>> Stashed changes
     }
     # data = data]
     data_to_save = []
