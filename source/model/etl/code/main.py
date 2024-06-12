@@ -268,7 +268,6 @@ def process_pdf_pipeline(request_body):
     s3.download_file(Bucket=bucket, Key=object_key, Filename=local_path)
 
     content = structure_predict(local_path, lang, auto_dpi, figure_rec)
-    return content
     filename = file_path.stem
     destination_s3_path = upload_chunk_to_s3(
         content, destination_bucket, filename, "before-splitting"
