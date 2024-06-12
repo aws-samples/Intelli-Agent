@@ -57,8 +57,8 @@ class ChatbotState(TypedDict):
     agent_llm_type: str
     query_rewrite_llm_type: str
     agent_recursion_limit: int = 5 # agent recursion limit
-    current_agent_recursion_limit: 1
-    enable_trace: bool
+    current_agent_recursion_limit: int = 1
+    enable_state: bool
 
 ####################
 # nodes in lambdas #

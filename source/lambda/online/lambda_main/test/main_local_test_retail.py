@@ -433,7 +433,7 @@ def multi_turn_test():
 if __name__ == "__main__":
     # test_multi_turns()
    
-    batch_test()
+    # batch_test()
     # batch_test()
     # test(
     #     chatbot_mode='agent',
