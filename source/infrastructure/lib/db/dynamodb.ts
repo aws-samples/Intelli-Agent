@@ -38,7 +38,7 @@ export class DynamoDBConstruct extends Construct {
       type: dynamodb.AttributeType.STRING,
     }
     const timestampAttr = {
-      name: "timestamp",
+      name: "createTimestamp",
       type: dynamodb.AttributeType.STRING,
     }
 
