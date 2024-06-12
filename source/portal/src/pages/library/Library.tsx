@@ -12,21 +12,18 @@ import {
   StatusIndicator,
   Table,
   TableProps,
-  TextFilter,
 } from '@cloudscape-design/components';
 import { LibraryListItem, LibraryListResponse } from 'src/types';
 import { alertMsg, formatTime } from 'src/utils/utils';
 import TableLink from 'src/comps/link/TableLink';
 import useAxiosRequest from 'src/hooks/useAxiosRequest';
 import { useTranslation } from 'react-i18next';
-import { LIBRARY_DEFAULT_PREFIX } from 'src/utils/const';
 import AddLibrary from '../components/AddLibrary';
 
 const parseDate = (item: LibraryListItem) => {
   return item.createTime ? new Date(item.createTime) : 0;
 };
 
-const regex = new RegExp(`^${LIBRARY_DEFAULT_PREFIX}`, 'g');
 const Library: React.FC = () => {
   const [selectedItems, setSelectedItems] = useState<LibraryListItem[]>([]);
   const fetchData = useAxiosRequest();
@@ -197,7 +194,7 @@ const Library: React.FC = () => {
             },
             {
               id: 's3Prefix',
-              header: t('prefix'),
+              header: t('docName'),
               sortingField: 's3Prefix',
               cell: (item: LibraryListItem) => {
                 return item.s3Prefix.split('/').pop();
@@ -236,12 +233,6 @@ const Library: React.FC = () => {
                 <b>{t('noData')}</b>
               </SpaceBetween>
             </Box>
-          }
-          filter={
-            <TextFilter
-              filteringPlaceholder={t('findResources')}
-              filteringText=""
-            />
           }
           pagination={
             <Pagination
@@ -297,7 +288,7 @@ const Library: React.FC = () => {
                       setShowAddModal(true);
                     }}
                   >
-                    {t('button.createDocLibrary')}
+                    {t('button.createDoc')}
                   </Button>
                 </SpaceBetween>
               }
@@ -343,9 +334,7 @@ const Library: React.FC = () => {
           <div className="selected-items-list">
             <ul className="gap-5 flex-v">
               {selectedItems.map((item) => (
-                <li key={item.executionId}>
-                  {item.s3Prefix.replace(regex, '')}
-                </li>
+                <li key={item.executionId}>{item.s3Prefix.split('/').pop()}</li>
               ))}
             </ul>
           </div>
