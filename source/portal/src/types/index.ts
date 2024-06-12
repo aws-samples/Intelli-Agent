@@ -36,6 +36,12 @@ export type SessionHistoryResponse = {
   Count: number;
 };
 
+export type SessionMessage = {
+  role: 'ai' | 'human';
+  content: string;
+  createTimestamp: string;
+};
+
 export interface CachedDataType {
   executionId: string;
   fileName: string;

@@ -28,7 +28,7 @@ import {
   RETAIL_GOODS_LIST,
 } from 'src/utils/const';
 import { v4 as uuidv4 } from 'uuid';
-import { MessageDataType } from 'src/types';
+import { MessageDataType, SessionMessage } from 'src/types';
 
 interface MessageType {
   type: 'ai' | 'human';
@@ -47,7 +47,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const config = useContext(ConfigContext);
   const { t } = useTranslation();
   const auth = useAuth();
-
+  const [loadingHistory, setLoadingHistory] = useState(false);
   const [messages, setMessages] = useState<MessageType[]>([
     {
       type: 'ai',
@@ -127,6 +127,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
 
   const getSessionHistoryById = async () => {
     try {
+      setLoadingHistory(true);
       const data = await fetchData({
         url: `ddb/list-messages`,
         method: 'get',
@@ -136,7 +137,19 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
           max_items: 9999,
         },
       });
-      console.info('session history:', data);
+      const sessionMessage: SessionMessage[] = data.Items;
+      setMessages(
+        sessionMessage.map((msg) => {
+          return {
+            type: msg.role,
+            message: {
+              data: msg.content,
+              monitoring: '',
+            },
+          };
+        }),
+      );
+      setLoadingHistory(false);
     } catch (error) {
       console.error(error);
       return [];
@@ -295,7 +308,10 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   };
 
   return (
-    <CommonLayout activeHref="/">
+    <CommonLayout
+      isLoading={loadingHistory}
+      activeHref={!historySessionId ? '/' : '/session'}
+    >
       <div className="chat-container mt-10">
         <div className="chat-message flex-v flex-1 gap-10">
           {messages.map((msg, index) => (
