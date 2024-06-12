@@ -142,6 +142,11 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
                     text: t('chatBot'),
                     href: '/',
                   },
+                  {
+                    type: 'link',
+                    text: t('sessionHistory'),
+                    href: '/session',
+                  },
                 ],
               },
               {

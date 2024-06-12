@@ -1,6 +1,7 @@
-type LibraryListConfig = {
+type ResponseConfig = {
   MaxItems: number;
   PageSize: number;
+  StartingToken: string | null;
 };
 
 export type LibraryListItem = {
@@ -20,7 +21,19 @@ export type LibraryListItem = {
 export type LibraryListResponse = {
   Items: LibraryListItem[];
   Count: number;
-  config: LibraryListConfig;
+  config: ResponseConfig;
+};
+
+export type SessionHistoryItem = {
+  sessionId: string;
+  userId: string;
+  createTimestamp: string;
+};
+
+export type SessionHistoryResponse = {
+  Items: SessionHistoryItem[];
+  Config: ResponseConfig;
+  Count: number;
 };
 
 export interface CachedDataType {

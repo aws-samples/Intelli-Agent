@@ -65,6 +65,7 @@
     "scenario": "场景",
     "maxTokens": "最大 Token 数",
     "temperature": "发散度",
+    "sessionHistory": "历史记录",
     "button": {
       "login": "登录到 AWS 大语言模型机器人",
       "reload": "重新加载",
