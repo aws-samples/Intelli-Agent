@@ -74,8 +74,8 @@ def lambda_handler(event, context):
         page_json = []
         for item in page_items:
             item_json = {}
-            for key in ["sessionId", "userId", "createTimestamp"]:
-                item_json[key] = item[key]["S"]
+            for key in ["sessionId", "userId", "createTimestamp", "latestQuestion"]:
+                item_json[key] = item.get(key, {"S": ""})["S"]
             page_json.append(item_json)
         output["Items"] = page_json
         if "LastEvaluatedKey" in page:

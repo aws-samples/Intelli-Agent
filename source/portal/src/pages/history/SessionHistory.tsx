@@ -142,6 +142,11 @@ const SessionHistory: React.FC = () => {
               isRowHeader: true,
             },
             {
+              id: 'latestQuestion',
+              header: t('latestQuestion'),
+              cell: (item: SessionHistoryItem) => item.latestQuestion,
+            },
+            {
               width: 180,
               id: 'createTimestamp',
               header: t('createTime'),
