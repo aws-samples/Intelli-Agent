@@ -3,25 +3,19 @@ import json
 import logging
 import os
 import threading
-import traceback
 
 # from ..llm_utils import Model as LLM_Model
 # from ..llm_utils.llm_chains import LLMChain
 # from langchain.prompts import PromptTemplate
 # import re
-from functools import lru_cache, partial
-from random import Random
-from typing import Dict, List
+from functools import lru_cache
 
 import boto3
 from langchain.docstore.document import Document
-from langchain.embeddings.sagemaker_endpoint import EmbeddingsContentHandler
 
 # from functools import partial
 from langchain.schema.runnable import (
-    RunnableBranch,
     RunnableLambda,
-    RunnablePassthrough,
 )
 from langchain_community.vectorstores.opensearch_vector_search import (
     OpenSearchVectorSearch,
@@ -30,17 +24,15 @@ from langchain_community.vectorstores.opensearch_vector_search import (
 # from langchain_community.embeddings.sagemaker_endpoint import (
 #     SagemakerEndpointEmbeddings
 # )
-from opensearchpy import RequestsHttpConnection
 from requests_aws4auth import AWS4Auth
 
-from .. import retriever
 
 # from ..retriever import QueryDocumentRetriever, QueryQuestionRetriever,index_results_format
-from ..constant import INTENT_RECOGNITION_TYPE, IntentType
+from ..constant import IntentType
 from ..embeddings_utils import BGEM3EmbeddingSagemakerEndpoint
 
 # from ..preprocess_utils import is_api_query,get_service_name
-from ..langchain_utils import RunnableNoneAssign, chain_logger
+from ..langchain_utils import RunnableNoneAssign
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)

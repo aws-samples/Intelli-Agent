@@ -91,7 +91,7 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
             text: ZH_LANGUAGE_LIST.includes(i18n.language) ? ZH_TEXT : EN_TEXT,
             onItemClick: (item) => {
               changeLanguage(item.detail.id);
-              window.location.reload();
+              // window.location.reload();
             },
             items:
               i18n.language === DEFAULT_ZH_LANG

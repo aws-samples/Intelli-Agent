@@ -1,34 +1,16 @@
-import json
 import sys
-import csv
-import os 
-import time 
-import uuid
-import sys
-sys.path.append("./layer_logic")
-from common_utils.lambda_invoke_utils import invoke_lambda
+import os
 
+sys.path.append("./common_logic")
+sys.path.append("../job/dep/llm_bot_dep")
 from dotenv import load_dotenv
-
 load_dotenv(
     dotenv_path=os.path.join(os.path.dirname(__file__),'.env')
 )
-
-import logging
-log_level = logging.INFO
-logging.basicConfig(
-    level=log_level,
-    format='%(asctime)s %(levelname)s [%(name)s] %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S',
-)
-logger = logging.getLogger(__name__)
-
-import lambda_main.main as main
+import json
+import time 
+from common_utils.lambda_invoke_utils import invoke_lambda
 import common_utils.websocket_utils as websocket_utils
-import os
-from collections import defaultdict
-
-# contexts = defaultdict(str)
 
 class DummyWebSocket:
     def post_to_connection(self,ConnectionId,Data):
@@ -58,6 +40,7 @@ def generate_answer(query,
                     chatbot_config=None
                     ):
     chatbot_config = chatbot_config or {}
+    session_id = session_id or time.time()
 
 
     body = {
@@ -74,8 +57,6 @@ def generate_answer(query,
             "eventType":"MESSAGE",
             "connectionId":f'test_{int(time.time())}'
         }
-
-    context = None
     response = invoke_lambda(
         lambda_invoke_mode="local",
         lambda_module_path="lambda_main.main",
@@ -91,20 +72,95 @@ def generate_answer(query,
         return body
 
 
-def test():
-    generate_answer(
-        "What is lihoyo's most famous game?",
-        stream=True,
-        chatbot_config={
-            "agent_config":{
-                "model_id":"anthropic.claude-3-sonnet-20240229-v1:0",
-                "model_kwargs": {"temperature":0.0,"max_tokens":4096},
-                "tools":[{"name":"give_final_response"},{"name":"search_lihoyo"}]
-        },
+def test(chatbot_mode="agent",session_id=None,query=None,use_history=True):
+    default_llm_config = {
+        'model_id': 'anthropic.claude-3-sonnet-20240229-v1:0',
+        'model_kwargs': {
+            'temperature': 0.5, 'max_tokens': 4096}
         }
+    chatbot_config = {
+        "chatbot_mode": chatbot_mode,
+        "use_history": use_history,
+        "query_process_config":{
+            "conversation_query_rewrite_config":{
+                **default_llm_config
+            }
+        },
+        "intent_recognition_config":{
+        },
+        "agent_config":{
+            **default_llm_config,
+            "tools":[]
+        },
+        "tool_execute_config":{
+            "knowledge_base_retriever":{
+                "retrievers": [
+                {
+                    "type": "qd",
+                    "workspace_ids": [1],
+                    "top_k": 10,
+                }
+                ]
+            }
+        },
+        "chat_config":{
+            **default_llm_config,
+        },
+        "rag_config": {
+            "retriever_config":{
+                "retrievers": [
+                    {
+                        "type": "qd",
+                        "workspace_ids": [],
+                        "config": {
+                            "top_k": 20,
+                            "using_whole_doc": True,
+                        }
+                    },
+                ],
+                "rerankers": [
+                    {
+                        "type": "reranker",
+                        "config": {
+                            "enable_debug": False,
+                            "target_model": "bge_reranker_model.tar.gz"
+                        }
+                    }
+                ],
+            },
+            "llm_config":{
+                **default_llm_config,
+            }
+        }
+    }
+    
+    generate_answer(
+        query,
+        stream=True,
+        session_id=session_id,
+        chatbot_config=chatbot_config
     )
 
+def test_multi_turns():
+    session_id = f"multiturn_test_{time.time()}"
+    user_queries = [
+        {"query":"今天星期几？", "use_history":True},
+        {"query":"今天星期三", "use_history":True},
+        {"query":"今天星期几", "use_history":False},
+        {"query":"我们进行了几轮对话", "use_history":True},
+    ]
 
+    for query in user_queries:
+        if isinstance(query,str):
+            query = {"query":query}
+        test(
+            chatbot_mode='chat',
+            session_id=session_id,
+            query=query['query'],
+            use_history=query['use_history']
+        )
+  
 if __name__ == "__main__":
-    test()
+    # test(chatbot_mode="agent")
+    test_multi_turns()
     

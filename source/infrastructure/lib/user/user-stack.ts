@@ -66,6 +66,7 @@ export class UserConstruct extends Construct {
       userPoolClientName: Constants.SOLUTION_NAME,
       authFlows: {
         userSrp: true,
+        userPassword: true,
       },
       oAuth: {
         callbackUrls: [`https://${props.callbackUrl}/signin`],

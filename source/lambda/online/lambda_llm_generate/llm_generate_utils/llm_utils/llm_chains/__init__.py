@@ -8,7 +8,10 @@ from .chat_chain import (
     Iternlm2Chat20BChatChain,
     Baichuan2Chat13B4BitsChatChain,
     Claude3HaikuChatChain,
-    Claude3SonnetChatChain
+    Claude3SonnetChatChain,
+    # ChatGPT35ChatChain,
+    # ChatGPT4ChatChain,
+    # ChatGPT4oChatChain,
 )
 
 from .conversation_summary_chain import (
@@ -96,4 +99,20 @@ from .tool_calling_chain_claude_xml import (
     Claude2ToolCallingChain,
     Claude3SonnetToolCallingChain,
     ClaudeInstanceToolCallingChain
+)
+
+from .retail_conversation_summary_chain import (
+    Claude2RetailConversationSummaryChain,
+    Claude21RetailConversationSummaryChain,
+    Claude3HaikuRetailConversationSummaryChain,
+    Claude3SonnetRetailConversationSummaryChain,
+    ClaudeInstanceRetailConversationSummaryChain
+)
+
+from .retail_tool_calling_chain_claude_xml import (
+    Claude2RetailToolCallingChain,
+    Claude21RetailToolCallingChain,
+    ClaudeInstanceRetailToolCallingChain,
+    Claude3SonnetRetailToolCallingChain,
+    Claude3HaikuRetailToolCallingChain
 )

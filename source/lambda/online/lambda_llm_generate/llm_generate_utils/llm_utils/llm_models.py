@@ -3,10 +3,8 @@ import logging
 import os
 
 # from llmbot_utils import concat_recall_knowledge
-from typing import Any, List, Mapping, Optional
 
 import boto3
-from langchain.llms.sagemaker_endpoint import LLMContentHandler, SagemakerEndpoint
 from langchain_community.chat_models import BedrockChat
 from langchain_community.llms.sagemaker_endpoint import LineIterator
 
@@ -67,13 +65,6 @@ class Claude2(Model):
             model_id=cls.model_id,
             model_kwargs=model_kwargs,
         )
-        # else:
-        #     llm = Bedrock(
-        #                 credentials_profile_name=credentials_profile_name,
-        #                 region_name=region_name,
-        #                 model_id=cls.model_id,
-        #                 model_kwargs=model_kwargs
-        #     )
 
         return llm
 
@@ -92,6 +83,11 @@ class Claude3Sonnet(Claude2):
 
 class Claude3Haiku(Claude2):
     model_id = "anthropic.claude-3-haiku-20240307-v1:0"
+
+
+class Mixtral8x7b(Claude2):
+    model_id = "mistral.mixtral-8x7b-instruct-v0:1"
+    default_model_kwargs = {"max_tokens": 4096, "temperature": 0.01}
 
 
 class SagemakerModelBase(Model):
@@ -240,15 +236,6 @@ class Internlm2Chat7B(SagemakerModelBase):
     # meta_instruction = "You are a helpful AI Assistant"
 
     def transform_input(self, x):
-        # chat_history = x.get('chat_history',[])
-        # assert len(chat_history) % 2 == 0, chat_history
-        # history = []
-        # for i in range(0,len(chat_history),2):
-        #     user_message = chat_history[i]
-        #     ai_message = chat_history[i+1]
-        #     assert user_message.type == HUMAN_MESSAGE_TYPE \
-        #           and ai_message.type == AI_MESSAGE_TYPE , chat_history
-        #     history.append((user_message.content,ai_message.content))
         logger.info(f'prompt char num: {len(x["prompt"])}')
         body = {
             "query": x["prompt"],
@@ -264,3 +251,30 @@ class Internlm2Chat7B(SagemakerModelBase):
 
 class Internlm2Chat20B(Internlm2Chat7B):
     model_id = "internlm2-chat-20b"
+
+# class ChatGPT35(Model):
+#     model_id = "gpt-3.5-turbo-0125"
+#     default_model_kwargs = {"max_tokens": 2000, "temperature": 0.7, "top_p": 0.9}
+
+#     @classmethod
+#     def create_model(cls, model_kwargs=None, **kwargs):
+#         model_kwargs = model_kwargs or {}
+#         model_kwargs = {**cls.default_model_kwargs, **model_kwargs}
+
+#         credentials_profile_name = (
+#             kwargs.get("credentials_profile_name", None)
+#             or os.environ.get("AWS_PROFILE", None)
+#             or None
+#         )
+#         region_name = (
+#             kwargs.get("region_name", None)
+#             or os.environ.get("AWS_REGION", None)
+#             or None
+#         )
+
+#         llm = ChatOpenAI(
+#             model=cls.model_id,
+#             model_kwargs=model_kwargs,
+#         )
+
+#         return llm

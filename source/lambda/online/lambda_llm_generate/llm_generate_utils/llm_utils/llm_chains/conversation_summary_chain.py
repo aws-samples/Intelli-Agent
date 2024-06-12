@@ -1,14 +1,7 @@
 # conversation summary chain
-import json
-import os
-import sys
-from functools import lru_cache
-from random import Random
 from typing import List 
 
-from langchain.prompts import PromptTemplate
 from langchain.schema.runnable import (
-    RunnableBranch,
     RunnableLambda,
     RunnablePassthrough,
 )
@@ -23,16 +16,12 @@ from common_utils.constant import (
 )
 
 from langchain_core.messages import(
-    HumanMessage,
     AIMessage,
-    SystemMessage,
     BaseMessage,
     convert_to_messages
 ) 
 from langchain.prompts import (
     HumanMessagePromptTemplate,
-    AIMessagePromptTemplate,
-    SystemMessagePromptTemplate,
     ChatPromptTemplate
 )
 
@@ -68,41 +57,6 @@ Chat History:
 Follow Up Input: {question}
 """
 
-# class Iternlm2Chat7BConversationSummaryChain(Iternlm2Chat7BChatChain):
-#     model_id = "internlm2-chat-7b"
-#     intent_type = LLMTaskType.CONVERSATION_SUMMARY_TYPE
-#     meta_instruction_prompt_template = CQR_TEMPLATE
-#     default_model_kwargs = {
-#         "max_new_tokens": 300,
-#         "temperature": 0.1,
-#         "stop_tokens": ["\n\n"],
-#     }
-
-#     @classmethod
-#     def create_prompt(cls, x):
-#         chat_history = x["chat_history"]
-#         conversational_contexts = []
-#         for his in chat_history:
-#             assert his.type in [HUMAN_MESSAGE_TYPE, AI_MESSAGE_TYPE]
-#             if his.type == HUMAN_MESSAGE_TYPE:
-#                 conversational_contexts.append(f"Q: {his.content}")
-#             else:
-#                 conversational_contexts.append(f"A: {his.content}")
-
-#         conversational_context = "[" + "\n".join(conversational_contexts) + "]"
-#         prompt = cls.build_prompt(
-#             cls.meta_instruction_prompt_template.format(
-#                 conversational_context=conversational_context, question=x["query"]
-#             )
-#         )
-#         prompt = prompt + "Rewrite: "
-#         return prompt
-
-#     @classmethod
-#     def create_chain(cls, model_kwargs=None, **kwargs):
-#         model_kwargs = model_kwargs or {}
-#         model_kwargs = {**cls.default_model_kwargs, **model_kwargs}
-#         return super().create_chain(model_kwargs=model_kwargs, **kwargs)
 
 
 class Iternlm2Chat20BConversationSummaryChain(Iternlm2Chat7BChatChain):
@@ -137,32 +91,6 @@ class Iternlm2Chat20BConversationSummaryChain(Iternlm2Chat7BChatChain):
 
 class Iternlm2Chat7BConversationSummaryChain(Iternlm2Chat20BConversationSummaryChain):
     model_id = "internlm2-chat-7b"
-
-
-# def get_conversation_query_rewrite_prompt(chat_history: List[BaseMessage]):
-#     conversational_contexts = []
-#     for his in chat_history:
-#         assert his.type in [HUMAN_MESSAGE_TYPE, AI_MESSAGE_TYPE]
-#         if his.type == HUMAN_MESSAGE_TYPE:
-#             conversational_contexts.append(f"Q: {his.content}")
-#         else:
-#             conversational_contexts.append(f"A: {his.content}")
-
-#     # conversational_context = "\n".join(conversational_contexts)
-#     # conversational_context = convert_text_from_fstring_format(
-#     #     f"[{conversational_context}]"
-#     # )
-
-#     cqr_template = ChatPromptTemplate.from_messages(
-#         [
-#             SystemMessage(content=CQR_SYSTEM_PROMPT),
-#             HumanMessagePromptTemplate.from_template(
-#                 "\nContext: {conversational_context}\nQuestion: {query}"
-#             ),
-#             AIMessage(content="\nRewrite:")
-#         ]
-#     )
-#     return cqr_template
 
 
 class Claude2ConversationSummaryChain(LLMChain):

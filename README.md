@@ -92,6 +92,11 @@ npm run build
 ### Deploy CDK Template
 Please make sure **docker** is installed and the CDK command is executed in the **same region** of the model files which are uploaded in previous step. 
 
+Login to AWS ECR Public to pull the image from the public repository.
+```
+aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
+```
+
 ```bash
 cd source/infrastructure
 npx cdk deploy --parameters S3ModelAssets=<Your S3 Bucket Name> --parameters SubEmail=<Your email address> --parameters EtlImageName=<Your ETL model name> --parameters ETLTag=<Your ETL tag name>

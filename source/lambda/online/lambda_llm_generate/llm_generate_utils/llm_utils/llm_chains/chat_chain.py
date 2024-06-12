@@ -1,8 +1,7 @@
 # chat llm chains
-from typing import Any, List, Mapping, Optional
 
 from langchain.schema.runnable import RunnableLambda, RunnablePassthrough
-from langchain_core.messages import HumanMessage,AIMessage
+from langchain_core.messages import AIMessage,SystemMessage
 from langchain.prompts import ChatPromptTemplate,HumanMessagePromptTemplate
 from langchain_core.messages import convert_to_messages
 
@@ -30,17 +29,21 @@ class Claude2ChatChain(LLMChain):
     @classmethod
     def create_chain(cls, model_kwargs=None, **kwargs):
         stream = kwargs.get("stream", False)
-
-        messages_template = ChatPromptTemplate.from_messages(
+        system_prompt = kwargs.get('system_prompt',None)
+        prefill =  kwargs.get('prefill',None)
+        messages = [
             ("placeholder", "{chat_history}"),
             HumanMessagePromptTemplate.from_template("{query}")
-        )
-        # messages = RunnableLambda(lambda x: x["chat_history"] + [HumanMessage(content=x['query'])])
-        # kwargs.update({"return_chat_model": True})
+        ]
+        if system_prompt is not None:
+            messages.insert(SystemMessage(content=system_prompt),0)
+        
+        if prefill is not None:
+            messages.append(AIMessage(content=prefill))
+
+        messages_template = ChatPromptTemplate.from_messages(messages)
         llm = Model.get_model(cls.model_id, model_kwargs=model_kwargs, **kwargs)
-
-        chain = messages_template | RunnableLambda(lambda x:x.messages)
-
+        chain = messages_template | RunnableLambda(lambda x: x.messages)
         if stream:
             chain = (
                 chain | RunnableLambda(lambda messages: llm.stream(messages))
@@ -87,7 +90,6 @@ class Baichuan2Chat13B4BitsChatChain(LLMChain):
         model_kwargs = model_kwargs or {}
         model_kwargs.update({"stream": stream})
         model_kwargs = {**cls.default_model_kwargs, **model_kwargs}
-
         llm = Model.get_model(cls.model_id, model_kwargs=model_kwargs, **kwargs)
         llm_chain = RunnableLambda(lambda x: llm.invoke(x, stream=stream))
         return llm_chain
@@ -160,3 +162,41 @@ class Iternlm2Chat7BChatChain(LLMChain):
 
 class Iternlm2Chat20BChatChain(Iternlm2Chat7BChatChain):
     model_id = "internlm2-chat-20b"
+
+# class ChatGPT35ChatChain(LLMChain):
+#     model_id = "gpt-3.5-turbo-0125"
+#     intent_type = LLMTaskType.CHAT
+
+#     @classmethod
+#     def create_chain(cls, model_kwargs=None, **kwargs):
+#         stream = kwargs.get("stream", False)
+#         system_prompt = kwargs.get('system_prompt',None)
+#         prefill =  kwargs.get('prefill',None)
+#         messages = [
+#             ("placeholder", "{chat_history}"),
+#             HumanMessagePromptTemplate.from_template("{query}")
+#         ]
+#         if system_prompt is not None:
+#             messages.insert(SystemMessage(content=system_prompt),0)
+        
+#         if prefill is not None:
+#             messages.append(AIMessage(content=prefill))
+
+#         messages_template = ChatPromptTemplate.from_messages(messages)
+#         llm = Model.get_model(cls.model_id, model_kwargs=model_kwargs, **kwargs)
+#         chain = messages_template | RunnableLambda(lambda x: x.messages)
+#         if stream:
+#             chain = (
+#                 chain | RunnableLambda(lambda messages: llm.stream(messages))
+#                 | RunnableLambda(lambda x: (i.content for i in x))
+#             )
+#         else:
+#             chain = chain | llm | RunnableLambda(lambda x: x.content)
+
+#         return chain
+
+# class ChatGPT4ChatChain(ChatGPT35ChatChain):
+#     model_id = "gpt-4-turbo"
+
+# class ChatGPT4oChatChain(ChatGPT35ChatChain):
+#     model_id = "gpt-4o"

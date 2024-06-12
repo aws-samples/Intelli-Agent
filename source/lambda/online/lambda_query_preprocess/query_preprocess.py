@@ -20,12 +20,14 @@ def conversation_query_rewrite(state:dict):
         "conversation_query_rewrite_config"
     ]
 
+    query_rewrite_llm_type = state.get("query_rewrite_llm_type",None) or LLMTaskType.CONVERSATION_SUMMARY_TYPE
+
     cqr_llm_chain = RunnableLambda(lambda x: invoke_lambda(
         lambda_name='Online_LLM_Generate',
         lambda_module_path="lambda_llm_generate.llm_generate",
         handler_name='lambda_handler',
         event_body={
-            "llm_config": {**conversation_query_rewrite_config, "intent_type": LLMTaskType.CONVERSATION_SUMMARY_TYPE},
+            "llm_config": {**conversation_query_rewrite_config, "intent_type": query_rewrite_llm_type},
             "llm_input": {"chat_history":state['chat_history'], "query":state['query']}
             }
         )
@@ -52,25 +54,5 @@ def conversation_query_rewrite(state:dict):
     
 @chatbot_lambda_call_wrapper
 def lambda_handler(state:dict, context=None):
-    # event_body = json.loads(event["body"])
-    # state:dict = event_body['state']
-
-    # logger.info(f'state: {json.dumps(state,ensure_ascii=False,indent=2,cls=JSONEncoder)}')
-
-    # workflow = StateGraph(NestUpdateState)
-
-    # workflow.add_node('conversation_query_rewrite',conversation_query_rewrite)
-    # workflow.set_entry_point('conversation_query_rewrite')
-    # workflow.set_finish_point('conversation_query_rewrite')
-
-    # app = workflow.compile()
-
-    # base_state = {
-    #     "message_id":"",
-    #     "trace_infos": []
-    #     }
-
     output:dict = conversation_query_rewrite(state)
-    # output:dict = app.invoke({"keys": {**base_state,**state}})
-    
     return output

@@ -50,7 +50,7 @@ export class LambdaLayers {
       this.scope,
       "APILambdaOnlineUtilsLayer",
       {
-        entry: path.join(__dirname, "../../../lambda/online/layer_logic"),
+        entry: path.join(__dirname, "../../../lambda/online/common_logic"),
         compatibleRuntimes: [Runtime.PYTHON_3_12],
         description: `LLM Bot - Online Utils layer`,
       },
@@ -69,5 +69,31 @@ export class LambdaLayers {
       },
     );
     return LambdaOnlineSourceLayer;
+  }
+
+  createJobSourceLayer() {
+    const LambdaJobSourceLayer = new pyLambda.PythonLayerVersion(
+      this.scope,
+      "APILambdaJobSourceLayer",
+      {
+        entry: path.join(__dirname, "../../../lambda/job/dep/llm_bot_dep"),
+        compatibleRuntimes: [Runtime.PYTHON_3_12],
+        description: `LLM Bot - Job Source layer`,
+      },
+    );
+    return LambdaJobSourceLayer;
+  }
+
+  createAuthorizerLayer() {
+    const LambdaAuthorizerLayer = new pyLambda.PythonLayerVersion(
+      this.scope,
+      "APILambdaAuthorizerLayer",
+      {
+        entry: path.join(__dirname, "../../../lambda/authorizer"),
+        compatibleRuntimes: [Runtime.PYTHON_3_11],
+        description: `LLM Bot - Authorizer layer`,
+      },
+    );
+    return LambdaAuthorizerLayer;
   }
 }

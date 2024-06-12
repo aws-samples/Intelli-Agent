@@ -1,26 +1,16 @@
-import time
 import os
 import logging
-import json
-import copy
 import traceback 
 import asyncio
-from typing import TYPE_CHECKING, Any, Dict, List, Optional 
+from typing import Any, Dict, List 
 
 from langchain.schema.retriever import BaseRetriever
-# from langchain.retrievers import BM25Retriever, EnsembleRetriever
 from langchain.callbacks.manager import CallbackManagerForRetrieverRun
 from langchain.docstore.document import Document
 
 from common_utils.time_utils import timeit
 from .aos_utils import LLMBotOpenSearchClient
-from .sm_utils import SagemakerEndpointVectorOrCross
-# from .llmbot_utils import (
-#     QueryType,
-#     combine_recalls,
-#     concat_recall_knowledge,
-#     process_input_messages,
-# )
+from sm_utils import SagemakerEndpointVectorOrCross
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -54,6 +44,7 @@ def get_similarity_embedding(
         endpoint_name=embedding_model_endpoint,
         model_type=model_type,
         stop=None,
+        region_name=None,
         target_model=target_model
     )
     return response
@@ -357,7 +348,7 @@ def organize_faq_results(response, index_name, source_field="file_path", text_fi
                 result["content"] = aos_hit["_source"]["content"]
                 result["question"] = aos_hit["_source"]["content"]
                 result[source_field] = aos_hit["_source"]["metadata"][source_field]
-            elif "jsonlAnswer" in aos_hit["_source"]["metadata"]:
+            elif "jsonlAnswer" in aos_hit["_source"]["metadata"] and "answer" in aos_hit["_source"]["metadata"]["jsonlAnswer"]:
                 result["answer"] = aos_hit["_source"]["metadata"]["jsonlAnswer"]["answer"]
                 result["question"] = aos_hit["_source"]["metadata"]["jsonlAnswer"]["question"]
                 result["content"] = aos_hit["_source"]["text"]
@@ -365,7 +356,11 @@ def organize_faq_results(response, index_name, source_field="file_path", text_fi
                     result[source_field] = aos_hit["_source"]["metadata"]["jsonlAnswer"][source_field]
                 else:
                     result[source_field] = aos_hit["_source"]["metadata"]["file_path"]
-            # result["doc"] = get_faq_content(result["source"], index_name)
+            else:
+                result["answer"] = aos_hit["_source"]["metadata"]
+                result["content"] = aos_hit["_source"]["text"]
+                result["question"] = aos_hit["_source"]["text"]
+                result[source_field] = aos_hit["_source"]["metadata"]["file_path"]
         except:
             logger.info("index_error")
             logger.info(traceback.format_exc())

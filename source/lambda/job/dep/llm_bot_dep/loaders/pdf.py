@@ -1,21 +1,21 @@
+import datetime
 import json
 import logging
 import os
 import re
+import time
+import uuid
 
+import botocore
 from langchain.docstore.document import Document
 from langchain.document_loaders import PDFMinerPDFasHTMLLoader
 from langchain.document_loaders.pdf import BasePDFLoader
+from smart_open import open as smart_open
 
 from ..cleaning import remove_duplicate_sections
 from ..splitter_utils import MarkdownHeaderTextSplitter, extract_headings
-from .html import CustomHtmlLoader
 from ..storage_utils import _s3_uri_exist
-import datetime
-import time
-import uuid
-from smart_open import open as smart_open
-import botocore
+from .html import CustomHtmlLoader
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -56,8 +56,8 @@ def invoke_etl_model(
     bucket: str,
     key: str,
     res_bucket: str,
-    mode: str="ppstructure",
-    lang: str="zh",
+    mode: str = "ppstructure",
+    lang: str = "zh",
 ):
     json_data = {
         "s3_bucket": bucket,
@@ -98,7 +98,9 @@ def invoke_etl_model(
             fetch_count = fetch_count + 1
             time.sleep(_S3_FETCH_WAIT_TIME)
 
-    raise Exception("Unable to fetch ETL inference result, and the number of retries reached.")
+    raise Exception(
+        "Unable to fetch ETL inference result, and the number of retries reached."
+    )
 
 
 def load_content_from_s3(s3, bucket, key):
@@ -137,7 +139,7 @@ def process_pdf(s3, pdf: bytes, **kwargs):
     document_language = kwargs.get("document_language", "zh")
     # Extract file name also in consideration of file name with blank space
     local_path = str(os.path.basename(key))
-    # Download to local for futher processing
+    # Download to local for further processing
     logger.info(local_path)
     s3.download_file(Bucket=bucket, Key=key, Filename=local_path)
     loader = PDFMinerPDFasHTMLLoader(local_path)

@@ -1,10 +1,7 @@
 import collections.abc
 import copy
-import logging
 import os
-
-from common_utils.constant import RerankerType
-
+from common_utils.constant import ChatbotMode
 
 # update nest dict
 def update_nest_dict(d, u):
@@ -16,416 +13,273 @@ def update_nest_dict(d, u):
     return d
 
 
-# default rag config
-# rag_default_config = {
-#     # retriver config
-#     # query process config
-#     "retriever_config": {
-#         "retriever_top_k": 5,
-#         "chunk_num": 2,
-#         "using_whole_doc": False,
-#         "reranker_top_k": 10,
-#         "reranker_type": RerankerType.BYPASS.value,
-#         "q_q_match_threshold": 0.8,
-#         "workspace_ids": [],
-#     },
-#     "query_process_config": {
-#         "query_rewrite_config": {
-#             "model_id": "anthropic.claude-instant-v1",
-#         },
-#         "conversation_query_rewrite_config": {
-#             "model_id": "anthropic.claude-instant-v1",
-#         },
-#         "hyde_config": {
-#             "model_id": "anthropic.claude-instant-v1",
-#         },
-#         "stepback_config": {
-#             "model_id": "anthropic.claude-instant-v1",
-#         },
-#         "translate_config": {
-#             # default use Amazon Translate service
-#             "model_id": AWS_TRANSLATE_SERVICE_MODEL_ID
-#         },
-#     },
-#     # intent_config
-#     "intent_config": {
-#         "intent_type": IntentType.KNOWLEDGE_QA.value,
-#         "model_id": "anthropic.claude-v2:1",
-#         "sub_intent": {},
-#     },
-#     # generator config
-#     "generator_llm_config": {
-#         "model_id": "anthropic.claude-v2:1",
-#         "context_num": 2,
-#     },
-#     "mkt_conversation_summary_config": {
-#         "model_id": "anthropic.claude-v2:1",
-#     },
-#     "debug_level": logging.INFO,
-#     "session_id": None,
-#     "ws_connection_id": None,
-#     "chat_history": None,
-# }
-
-
-# def parse_rag_config(event_body):
-#     event_body = copy.deepcopy(event_body)
-#     new_event_config = update_nest_dict(copy.deepcopy(rag_default_config), event_body)
-
-#     # adapting before setting
-#     temperature = event_body.get("temperature")
-#     llm_model_id = event_body.get("llm_model_id")
-
-#     if llm_model_id:
-#         new_event_config["generator_llm_config"]["model_id"] = llm_model_id
-#     if temperature:
-#         new_event_config["generator_llm_config"]["model_kwargs"][
-#             "temperature"
-#         ] = temperature
-
-#     intent = event_body.get("intent", None) or event_body.get("model", None)
-#     if intent:
-#         new_event_config["intent_config"]["intent_type"] = intent
-
-#     return new_event_config
-
-
-# def parse_sagemind_llm_config(event_body):
-#     event_body = copy.deepcopy(event_body)
-#     new_event_config = update_nest_dict(copy.deepcopy(rag_default_config), event_body)
-
-#     # adapting before setting
-#     temperature = event_body.get("temperature")
-#     llm_model_id = event_body.get("llm_model_id")
-
-#     if llm_model_id:
-#         new_event_config["generator_llm_config"]["model_id"] = llm_model_id
-#     if temperature:
-#         new_event_config["generator_llm_config"]["model_kwargs"]["temperature"] = (
-#             temperature
-#         )
-
-#     return new_event_config
-
-
-# def parse_mkt_entry_core_config(event_body):
-#     return parse_rag_config(event_body)
-
-
-# def parse_market_conversation_summary_entry_config(event_body):
-#     event_body = copy.deepcopy(event_body)
-#     llm_model_id = os.environ.get("llm_model_id")
-#     llm_model_endpoint_name = os.environ.get("llm_model_endpoint_name")
-#     region = os.environ.get("AWS_REGION")
-
-#     is_cn_region = "cn" in region
-#     llm_model_id = event_body.get("llm_model_id", llm_model_id)
-#     llm_model_endpoint_name = event_body.get(
-#         "llm_model_endpoint_name", llm_model_endpoint_name
-#     )
-#     assert llm_model_id and llm_model_endpoint_name, (
-#         llm_model_id,
-#         llm_model_endpoint_name,
-#     )
-#     default_config = {
-#         "mkt_conversation_summary_config": {
-#             "model_id": llm_model_id,
-#             "endpoint_name": llm_model_endpoint_name,
-#         }
-#     }
-
-#     new_event_config = update_nest_dict(copy.deepcopy(default_config), event_body)
-#     return new_event_config
-
-
-# def parse_mkt_entry_config(event_body):
-#     event_body = copy.deepcopy(event_body)
-
-#     llm_model_id = os.environ.get("llm_model_id")
-#     llm_model_endpoint_name = os.environ.get("llm_model_endpoint_name")
-#     region = os.environ.get("AWS_REGION")
-
-#     is_cn_region = "cn" in region
-
-#     # TODO modify rag_config
-#     llm_model_id = event_body.get("llm_model_id", llm_model_id)
-#     llm_model_endpoint_name = event_body.get(
-#         "llm_model_endpoint_name", llm_model_endpoint_name
-#     )
-#     assert llm_model_id and llm_model_endpoint_name, (
-#         llm_model_id,
-#         llm_model_endpoint_name,
-#     )
-
-#     mkt_default_config = {
-#         # retriver config
-#         # query process config
-#         "retriever_config": {
-#             "retriever_top_k": 5,
-#             "chunk_num": 2,
-#             "using_whole_doc": False,
-#             "reranker_top_k": 10,
-#             "reranker_type": RerankerType.BYPASS.value,
-#             "q_q_match_threshold": 0.9,
-#             "workspace_ids": ["aos_index_mkt_faq_qq", "aos_index_acts_qd"],
-#         },
-#         "query_process_config": {
-#             "query_rewrite_config": {
-#                 "model_id": llm_model_id,
-#                 "endpoint_name": llm_model_endpoint_name,
-#             },
-#             "conversation_query_rewrite_config": {
-#                 "model_id": llm_model_id,
-#                 "endpoint_name": llm_model_endpoint_name,
-#             },
-#             "hyde_config": {
-#                 "model_id": llm_model_id,
-#                 "endpoint_name": llm_model_endpoint_name,
-#             },
-#             "stepback_config": {
-#                 "model_id": llm_model_id,
-#                 "endpoint_name": llm_model_endpoint_name,
-#             },
-#             "translate_config": {
-#                 # default use Amazon Translate service
-#                 "model_id": (
-#                     llm_model_id if is_cn_region else AWS_TRANSLATE_SERVICE_MODEL_ID
-#                 ),
-#                 "endpoint_name": llm_model_endpoint_name,
-#             },
-#         },
-#         # intent_config
-#         "intent_config": {
-#             "model_id": llm_model_id,
-#             "endpoint_name": llm_model_endpoint_name,
-#             "intent_type": IntentType.KNOWLEDGE_QA.value,
-#         },
-#         # generator config
-#         "generator_llm_config": {
-#             "model_id": llm_model_id,
-#             "endpoint_name": llm_model_endpoint_name,
-#             "context_num": 1,
-#         },
-#     }
-
-#     new_event_config = update_nest_dict(copy.deepcopy(mkt_default_config), event_body)
-
-#     intent = event_body.get("intent", None) or event_body.get("model", None)
-#     if intent:
-#         new_event_config["intent_config"]["intent_type"] = intent
-
-#     return new_event_config
-
-
-# def parse_mkt_entry_knowledge_config(event_body):
-#     event_body = copy.deepcopy(event_body)
-
-#     llm_model_id = os.environ.get("llm_model_id")
-#     llm_model_endpoint_name = os.environ.get("llm_model_endpoint_name")
-#     region = os.environ.get("AWS_REGION")
-
-#     is_cn_region = "cn" in region
-
-#     # TODO modify rag_config
-#     llm_model_id = event_body.get("llm_model_id", llm_model_id)
-#     llm_model_endpoint_name = event_body.get(
-#         "llm_model_endpoint_name", llm_model_endpoint_name
-#     )
-
-#     assert llm_model_id, llm_model_id
-
-#     mkt_default_config = {
-#         # retriver config
-#         # query process config
-#         "retriever_config": {
-#             "qq_config": {
-#                 "qq_match_threshold": 0.8,
-#                 "retriever_top_k": 5,
-#                 "query_key": "query",
-#             },
-#             "qd_config": {
-#                 "retriever_top_k": 5,
-#                 "context_num": 2,
-#                 "using_whole_doc": False,
-#                 "reranker_top_k": 10,
-#                 # "reranker_type": RerankerType.BYPASS.value,
-#                 "reranker_type": RerankerType.BGE_RERANKER.value,
-#                 # "reranker_type": RerankerType.BGE_M3_RERANKER.value,
-#                 "qd_match_threshold": 2,
-#                 "query_key": "conversation_query_rewrite",
-#                 # "enable_reranker":True
-#             },
-#             "workspace_ids": [
-#                 "aos_index_mkt_faq_qq_m3",
-#                 "aos_index_acts_qd_m3",
-#                 "aos_index_mkt_faq_qd_m3",
-#                 "aos_index_repost_qq_m3",
-#             ],
-#             "event_workspace_ids": ["event-qd-index-20240313"],
-#             # "retriever_top_k": 5,
-#             # "chunk_num": 2,
-#             # "using_whole_doc": False,
-#             # "reranker_top_k": 10,
-#             # "reranker_type": True,
-#             # "q_q_match_threshold": 0.9,
-#             # "qd_match_threshold": -1
-#         },
-#         "query_process_config": {
-#             "query_length_threshold": 3,
-#             "query_rewrite_config": {
-#                 "model_id": llm_model_id,
-#                 "endpoint_name": llm_model_endpoint_name,
-#             },
-#             "conversation_query_rewrite_config": {
-#                 "model_id": llm_model_id,
-#                 "endpoint_name": llm_model_endpoint_name,
-#                 "result_key": "conversation_query_rewrite",
-#             },
-#             "hyde_config": {
-#                 "model_id": llm_model_id,
-#                 "endpoint_name": llm_model_endpoint_name,
-#             },
-#             "stepback_config": {
-#                 "model_id": llm_model_id,
-#                 "endpoint_name": llm_model_endpoint_name,
-#             },
-#             "translate_config": {
-#                 # default use Amazon Translate service
-#                 "model_id": (
-#                     llm_model_id if is_cn_region else AWS_TRANSLATE_SERVICE_MODEL_ID
-#                 ),
-#                 "endpoint_name": llm_model_endpoint_name,
-#             },
-#         },
-#         # intent_config
-#         "intent_config": {
-#             "model_id": llm_model_id,
-#             "endpoint_name": llm_model_endpoint_name,
-#         },
-#         # generator config
-#         "generator_llm_config": {
-#             "model_id": llm_model_id,
-#             "endpoint_name": llm_model_endpoint_name,
-#             "context_num": 1,
-#         },
-#         "use_history": False,
-#     }
-
-#     new_event_config = update_nest_dict(copy.deepcopy(mkt_default_config), event_body)
-
-#     intent = event_body.get("intent", None) or event_body.get("model", None)
-#     if intent:
-#         new_event_config["intent_config"]["intent_type"] = intent
-
-#     return new_event_config
-
-
-# def parse_main_entry_config(event_body):
-#     event_body = copy.deepcopy(event_body)
-
-#     llm_model_id = os.environ.get("llm_model_id", "anthropic.claude-v2:1")
-#     llm_model_endpoint_name = os.environ.get("llm_model_endpoint_name")
-#     region = os.environ.get("AWS_REGION")
-
-#     is_cn_region = "cn" in region
-
-#     # TODO modify rag_config
-#     llm_model_id = event_body.get("llm_model_id", llm_model_id)
-#     llm_model_endpoint_name = event_body.get(
-#         "llm_model_endpoint_name", llm_model_endpoint_name
-#     )
-
-#     assert llm_model_id, llm_model_id
-
-#     mkt_default_config = {
-#         # retriver config
-#         # query process config
-#         "retriever_config": {
-#             "qd_config": {
-#                 "retriever_top_k": 5,
-#                 "context_num": 2,
-#                 "using_whole_doc": False,
-#                 "reranker_top_k": 10,
-#                 # "reranker_type": RerankerType.BYPASS.value,
-#                 "reranker_type": RerankerType.BGE_RERANKER.value,
-#                 # "reranker_type": RerankerType.BGE_M3_RERANKER.value,
-#                 "qd_match_threshold": 2,
-#                 "query_key": "query",
-#                 # "enable_reranker":True
-#             },
-#             "workspace_ids": [
-#                 "aos_index_mkt_faq_qq_m3",
-#                 "aos_index_acts_qd_m3",
-#                 "aos_index_mkt_faq_qd_m3",
-#                 "aos_index_repost_qq_m3",
-#             ],
-#             "event_workspace_ids": ["event-qd-index-20240313"],
-#         },
-#         # generator config
-#         "generator_llm_config": {
-#             "model_id": llm_model_id,
-#             "endpoint_name": llm_model_endpoint_name,
-#             "context_num": 1,
-#         },
-#         "use_history": False,
-#     }
-
-#     new_event_config = update_nest_dict(copy.deepcopy(mkt_default_config), event_body)
-
-#     intent = event_body.get("intent", None) or event_body.get("model", None)
-#     if intent:
-#         new_event_config["intent_config"]["intent_type"] = intent
-
-#     return new_event_config
-
-
-
 def parse_common_entry_config(chatbot_config):
     chatbot_config = copy.deepcopy(chatbot_config)
-    llm_model_id = os.environ.get("llm_model_id", "anthropic.claude-3-sonnet-20240229-v1:0")
-    
-    llm_model_id = chatbot_config.get("llm_model_id", llm_model_id)
+    default_llm_config_str = "{'model_id': 'anthropic.claude-3-sonnet-20240229-v1:0', 'model_kwargs': {'temperature': 0.0, 'max_tokens': 4096}}"
+    # get default_llm_kwargs from env
+    default_llm_config = eval(
+        os.environ.get("default_llm_config", default_llm_config_str)
+    )
+
+    default_llm_config = {
+        **default_llm_config,
+        **chatbot_config.get("default_llm_config", {}),
+    }
+
+    default_workspace_config = {"intent_workspace_ids": [], "rag_workspace_ids": []}
+
+    default_workspace_config = {
+        **default_workspace_config,
+        **chatbot_config.get("default_workspace_config", {}),
+    }
+
+    assert ChatbotMode.has_value(chatbot_config["chatbot_mode"]), chatbot_config[
+        "chatbot_mode"
+    ]
 
     default_chatbot_config = {
-        "query_process_config":{
-            "conversation_query_rewrite_config":{
-            }
-
+        "chatbot_mode": ChatbotMode.chat,
+        "use_history": True,
+        "enable_trace": False,
+        "query_process_config": {
+            "conversation_query_rewrite_config": {**default_llm_config}
         },
-        "intent_recognition_config":{
+        "intention_config": {
             "retrievers": [
                 {
                     "type": "qq",
-                    "workspace_ids": [1],
-                    "top_k": 10,
-                }
-            ],
-            
+                    "workspace_ids": default_workspace_config["intent_workspace_ids"],
+                    "config": {
+                        "top_k": 10,
+                    },
+                },
+            ]
         },
-        "agent_config":{
-            "model_id":llm_model_id,
-            "model_kwargs": {},
-            "tools":[]
-        },
-        "tool_execute_config":{
-            "knowledge_base_retriever":{
+        "agent_config": {**default_llm_config, "tools": []},
+        "tool_execute_config": {
+            "knowledge_base_retriever": {
                 "retrievers": [
-                {
-                    "type": "qd",
-                    "workspace_ids": [1],
-                    "top_k": 10,
-                }
+                    {
+                        "type": "qd",
+                        "workspace_ids": [1],
+                        "top_k": 10,
+                    }
                 ]
             }
-        }
-
+        },
+        "chat_config": {
+            **default_llm_config,
+        },
+        "rag_config": {
+            "retriever_config": {
+                "retrievers": [
+                    {
+                        "type": "qd",
+                        "workspace_ids": default_workspace_config["rag_workspace_ids"],
+                        "config": {
+                            "top_k": 5,
+                            "using_whole_doc": False,
+                        },
+                    },
+                ],
+                "rerankers": [
+                    {
+                        "type": "reranker",
+                        "config": {
+                            "enable_debug": False,
+                            "target_model": "bge_reranker_model.tar.gz",
+                        },
+                    }
+                ],
+            },
+            "llm_config": {
+                **default_llm_config,
+            },
+        },
     }
     chatbot_config = update_nest_dict(
-        copy.deepcopy(default_chatbot_config),
-        chatbot_config
-        )
+        copy.deepcopy(default_chatbot_config), chatbot_config
+    )
+
+    # add default tools
+    tools: list = chatbot_config["agent_config"]["tools"]
+    if "give_rhetorical_question" not in tools:
+        tools.append("give_rhetorical_question")
+
+    if "give_final_response" not in tools:
+        tools.append("give_final_response")
 
     return chatbot_config
 
+def parse_retail_entry_config(chatbot_config):
+    chatbot_config = copy.deepcopy(chatbot_config)
+    default_llm_config_str = "{'model_id': 'anthropic.claude-3-sonnet-20240229-v1:0', 'model_kwargs': {'temperature': 0.1, 'max_tokens': 4096}}"
+    # get default_llm_kwargs from env
+    default_llm_config = eval(
+        os.environ.get("default_llm_config", default_llm_config_str)
+    )
 
+    default_llm_config = {
+        **default_llm_config,
+        **chatbot_config.get("default_llm_config", {}),
+    }
 
+    assert ChatbotMode.has_value(chatbot_config["chatbot_mode"]), chatbot_config[
+        "chatbot_mode"
+    ]
+
+    default_chatbot_config = {
+        "chatbot_mode": ChatbotMode.chat,
+        "use_history": True,
+        "enable_trace": False,
+        "query_process_config": {
+            "conversation_query_rewrite_config": {**default_llm_config}
+        },
+        "intention_config": {
+            "query_key": "query_rewrite",
+            "retrievers": [
+                {
+                    "type": "qq",
+                    "workspace_ids": ["retail-intent-1"],
+                    "config": {
+                        "top_k": 10,
+                    }
+                },
+            ]
+        },
+        "agent_config": {**default_llm_config, "tools": []},
+        "tool_execute_config": {
+            "knowledge_base_retriever": {
+                "retrievers": [
+                    {
+                        "type": "qd",
+                        "workspace_ids": [1],
+                        "top_k": 10,
+                    }
+                ]
+            }
+        },
+        "chat_config": {
+            **default_llm_config,
+        },
+        "rag_goods_exchange_config": {
+            "retriever_config": {
+                "retrievers": [
+                    {
+                        "type": "qq",
+                        "workspace_ids": ["retail-quick-reply"],
+                        "config": {
+                            "top_k": 5
+                        },
+                    },
+                ]
+            },
+            "llm_config": {
+                **default_llm_config,
+            },
+        },
+        "rag_daily_reception_config": {
+            "retriever_config": {
+                "retrievers": [
+                    {
+                        "type": "qq",
+                        "workspace_ids": ["retail-quick-reply"],
+                        "config": {
+                            "top_k": 5
+                        },
+                    },
+                ]
+            },
+            "llm_config": {
+                **default_llm_config,
+            },
+        },
+        "rag_product_aftersales_config": {
+            "retriever_config":{
+                "retrievers": [
+                    {
+                        "type": "qq",
+                        "workspace_ids": ['retail-shouhou-wuliu'],
+                        "config": {
+                            "top_k": 2,
+                        }
+                    },
+                ],
+                "rerankers": [
+                    {
+                        "type": "reranker",
+                        "config": {
+                            "enable_debug": False,
+                            "target_model": "bge_reranker_model.tar.gz"
+                        }
+                    }
+                ],
+            },
+            "llm_config":{
+                **default_llm_config,
+            }
+        },
+        "rag_customer_complain_config": {
+            "retriever_config":{
+                "retrievers": [
+                    {
+                        "type": "qq",
+                        "workspace_ids": ['retail-shouhou-wuliu','retail-quick-reply'],
+                        "config": {
+                            "top_k": 2,
+                        }
+                    },
+                ],
+                "rerankers": [
+                    {
+                        "type": "reranker",
+                        "config": {
+                            "enable_debug": False,
+                            "target_model": "bge_reranker_model.tar.gz"
+                        }
+                    }
+                ],
+            },
+            "llm_config":{
+                **default_llm_config,
+            }
+        },
+        "rag_promotion_config": {
+            "retriever_config":{
+                "retrievers": [
+                    {
+                        "type": "qq",
+                        "workspace_ids": ['retail-shouhou-wuliu','retail-quick-reply'],
+                        "config": {
+                            "top_k": 2,
+                        }
+                    },
+                ],
+                "rerankers": [
+                    {
+                        "type": "reranker",
+                        "config": {
+                            "enable_debug": False,
+                            "target_model": "bge_reranker_model.tar.gz"
+                        }
+                    }
+                ],
+            },
+            "llm_config":{
+                **default_llm_config,
+            }
+        },
+    }
+    chatbot_config = update_nest_dict(
+        copy.deepcopy(default_chatbot_config), chatbot_config
+    )
+
+    # add default tools
+    tools: list = chatbot_config["agent_config"]["tools"]
+    if "give_rhetorical_question" not in tools:
+        tools.append("give_rhetorical_question")
+
+    if "give_final_response" not in tools:
+        tools.append("give_final_response")
+
+    return chatbot_config

@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import re
 import uuid
 from datetime import datetime
 from typing import List
@@ -8,6 +9,19 @@ from typing import List
 import boto3
 
 WORKSPACE_OBJECT_TYPE = "workspace"
+
+
+def to_opensearch_index_name(s: str) -> str:
+    # Convert to lowercase
+    s = s.lower()
+
+    # Replace spaces, commas, :, ", *, +, /, \, |, ?, #, >, or < with _
+    s = re.sub(r'[ ,:"*+/\\|?#><]', "_", s)
+
+    # Remove leading _ or -
+    s = re.sub(r"^[_-]", "", s)
+
+    return s
 
 
 class WorkspaceManager:
@@ -51,9 +65,9 @@ class WorkspaceManager:
         workspace_file_types: List[str] = [],
     ):
         if workspace_offline_flag == "true":
-            open_search_index_name = f"{workspace_id}-offline"
+            open_search_index_name = f"{to_opensearch_index_name(workspace_id)}-offline"
         else:
-            open_search_index_name = f"{workspace_id}-online"
+            open_search_index_name = f"{to_opensearch_index_name(workspace_id)}-online"
         timestamp = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
         item = {

@@ -1,22 +1,14 @@
 import json
 import os
 import re
-from urllib.parse import unquote
 from datetime import datetime, timezone
+from urllib.parse import unquote
+
 import boto3
 
 client = boto3.client("stepfunctions")
 dynamodb = boto3.resource("dynamodb")
 execution_table = dynamodb.Table(os.environ.get("EXECUTION_TABLE"))
-
-
-def get_valid_workspace_id(s3_prefix):
-    s3_prefix = s3_prefix.lower()
-    s3_prefix = re.sub(r'[\\\/*?"<>|\s]', "-", s3_prefix)
-    s3_prefix = re.sub(r"^[-_+]", "", s3_prefix)
-    s3_prefix = s3_prefix[:200]
-
-    return s3_prefix
 
 
 def handler(event, context):
@@ -35,6 +27,8 @@ def handler(event, context):
         # TODO, Aggregate the bucket and key from the event object for S3 created event
         bucket = event["Records"][0]["s3"]["bucket"]["name"]
         key = event["Records"][0]["s3"]["object"]["key"]
+        parts = key.split("/")
+        workspace_id = parts[-2] if len(parts) >= 2 else key
 
         if key.endswith("/"):
             print("This is a folder, skip")
@@ -48,9 +42,7 @@ def handler(event, context):
             }
         elif event["Records"][0]["eventName"].startswith("ObjectCreated:"):
             key = unquote(key)
-            key_folder = os.path.dirname(key)
 
-            workspace_id = get_valid_workspace_id(key_folder)
             input_body = {
                 "s3Bucket": bucket,
                 "s3Prefix": key,
@@ -61,9 +53,7 @@ def handler(event, context):
             }
         elif event["Records"][0]["eventName"].startswith("ObjectRemoved:"):
             key = unquote(key)
-            key_folder = os.path.dirname(key)
 
-            workspace_id = get_valid_workspace_id(key_folder)
             input_body = {
                 "s3Bucket": bucket,
                 "s3Prefix": key,
@@ -74,8 +64,24 @@ def handler(event, context):
             }
     else:
         print("API Gateway event detected")
+        authorizer_type = event["requestContext"]["authorizer"].get("authorizerType")
+        if authorizer_type == "lambda_authorizer":
+            claims = json.loads(event["requestContext"]["authorizer"]["claims"])
+            cognito_groups = claims["cognito:groups"]
+            cognito_groups_list = cognito_groups.split(",")
+        else:
+            raise Exception("Invalid authorizer type")
         # Parse the body from the event object
         input_body = json.loads(event["body"])
+
+        workspace_id = (
+            "Admin" if "Admin" in cognito_groups_list else cognito_groups_list[0]
+        )
+        input_body["workspaceId"] = (
+            workspace_id
+            if "workspaceId" not in input_body
+            else input_body["workspaceId"]
+        )
 
     input_body["tableItemId"] = context.aws_request_id
     input_payload = json.dumps(input_body)
@@ -93,7 +99,7 @@ def handler(event, context):
     input_body["uiStatus"] = "ACTIVE"
     input_body["createTime"] = create_time
 
-    ddb_response = execution_table.put_item(Item=input_body)
+    execution_table.put_item(Item=input_body)
 
     return {
         "statusCode": 200,

@@ -1,8 +1,6 @@
-import json  
 from common_utils.logger_utils  import get_logger
 from lambda_llm_generate.llm_generate_utils.llm_utils import LLMChain
 from common_utils.lambda_invoke_utils import chatbot_lambda_call_wrapper
-from common_utils.serialization_utils import JSONEncoder
 
 
 logger = get_logger("llm_generate")

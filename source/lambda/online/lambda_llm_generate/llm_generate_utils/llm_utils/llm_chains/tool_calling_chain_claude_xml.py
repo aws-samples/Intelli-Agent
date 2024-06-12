@@ -1,31 +1,21 @@
 # tool calling chain
 import json
-import os
-import sys
-from functools import lru_cache
-from random import Random
 from typing import List,Dict,Any
 import re
 
 from langchain.schema.runnable import (
-    RunnableBranch,
     RunnableLambda,
-    RunnablePassthrough,
 )
 
 from langchain_core.messages import(
-    HumanMessage,
     AIMessage,
-    SystemMessage,
-    BaseMessage,
-    ToolCall
+    SystemMessage
 ) 
-from langchain.prompts import ChatPromptTemplate,HumanMessagePromptTemplate,AIMessagePromptTemplate
+from langchain.prompts import ChatPromptTemplate
 
-from langchain_core.messages import HumanMessage,AIMessage,SystemMessage
+from langchain_core.messages import AIMessage,SystemMessage
 
 from common_utils.constant import (
-    MessageType,
     LLMTaskType
 )
 
@@ -34,6 +24,10 @@ from ..llm_models import Model
 
 tool_call_guidelines = """<guidlines>
 - Don't forget to output <function_calls></function_calls> when any tool is called.
+- You should call tools that are described in <tools></tools>.
+- In <thinking></thinking>, you should check whether the tool name you want to call is exists in <tools></tools>.
+- Always output with "中文". 
+- Always choose one tool to call. 
 </guidlines>
 """
 
@@ -59,12 +53,20 @@ SYSTEM_MESSAGE_PROMPT =("In this environment you have access to a set of tools y
         f"\nHere are some guidelines for you:\n{tool_call_guidelines}"
     )
 
+SYSTEM_MESSAGE_PROMPT_WITH_FEWSHOT_EXAMPLES = SYSTEM_MESSAGE_PROMPT + (
+    "Some examples of tool calls are given below, where the content within <query></query> represents the most recent reply in the dialog."
+    "\n{fewshot_examples}"
+)
+
 TOOL_FORMAT = """<tool_description>
 <tool_name>{tool_name}</tool_name>
 <description>{tool_description}</description>
-<parameters>
-{formatted_parameters}
-</parameters>
+<required_parameters>
+{formatted_required_parameters}
+</required_parameters>
+<optional_parameters>
+{formatted_optional_parameters}
+</optional_parameters>
 </tool_description>"""
 
 TOOL_PARAMETER_FORMAT = """<parameter>
@@ -109,14 +111,24 @@ def convert_openai_tool_to_anthropic(tools:list[dict])->str:
         {
             "tool_name": tool["name"],
             "tool_description": tool["description"],
-            "formatted_parameters": "\n".join(
+            "formatted_required_parameters": "\n".join(
                 [
                     TOOL_PARAMETER_FORMAT.format(
                         parameter_name=name,
                         parameter_type=_get_type(parameter),
                         parameter_description=parameter.get("description"),
-                    )
-                    for name, parameter in tool["parameters"]["properties"].items()
+                    ) for name, parameter in tool["parameters"]["properties"].items()
+                    if name in tool["parameters"].get("required", [])
+                ]
+            ),
+            "formatted_optional_parameters": "\n".join(
+                [
+                    TOOL_PARAMETER_FORMAT.format(
+                        parameter_name=name,
+                        parameter_type=_get_type(parameter),
+                        parameter_description=parameter.get("description"),
+                    ) for name, parameter in tool["parameters"]["properties"].items()
+                    if name not in tool["parameters"].get("required", [])
                 ]
             ),
         }
@@ -127,42 +139,13 @@ def convert_openai_tool_to_anthropic(tools:list[dict])->str:
             TOOL_FORMAT.format(
                 tool_name=tool["tool_name"],
                 tool_description=tool["tool_description"],
-                formatted_parameters=tool["formatted_parameters"],
+                formatted_required_parameters=tool["formatted_required_parameters"],
+                formatted_optional_parameters=tool["formatted_optional_parameters"],
             )
             for tool in tools_data
         ]
     )
     return tools_formatted
-
-def convert_anthropic_xml_to_dict(model_id,function_calls:List[str], tools:list[dict]) -> List[dict]:
-    # formatted_tools = [convert_to_openai_function(tool) for tool in tools]
-    tool_calls:list[ToolCall] = []
-    for function_call in function_calls:
-        tool_names = re.findall(r'<tool_name>(.*?)</tool_name>', function_call, re.S)
-        if not tool_names:
-            return []
-        assert len(tool_names) == 1, function_call 
-
-        for tool_name in tool_names:
-            tool_name = tool_names[0].strip()
-            cur_tool = None
-            formatted_tools = tools
-            for tool, formatted_tool in zip(tools,formatted_tools):
-                if formatted_tool['name'] == tool_name:
-                    cur_tool = tool
-                    break 
-            
-            assert cur_tool is not None,function_call
-            # formatted_tool = convert_to_openai_function(cur_tool)
-            arguments = {}
-            for parameter_key in formatted_tool['parameters']['required']:
-                value = re.findall(f'<{parameter_key}>(.*?)</{parameter_key}>', function_call, re.DOTALL)
-                assert len(value) == 1,function_call
-                arguments[parameter_key] = value[0].strip()
-            
-            tool_calls.append(dict(name=tool_name,args=arguments,model_id=model_id))
-    
-    return tool_calls
 
 
 class Claude2ToolCallingChain(LLMChain):
@@ -174,30 +157,74 @@ class Claude2ToolCallingChain(LLMChain):
         "top_p": 0.9,
         "stop_sequences": ["\n\nHuman:", "\n\nAssistant","</function_calls>"],
         }
+
+    @staticmethod
+    def format_fewshot_examples(fewshot_examples:list[dict]):
+        fewshot_example_strs = []
+        for fewshot_example in fewshot_examples:
+            param_strs = []
+            for p,v in fewshot_example['kwargs'].items():
+                param_strs.append(f"<{p}>{v}</{p}")
+            param_str = "\n".join(param_strs)
+            if param_strs:
+                param_str += "\n"
+
+            fewshot_example_str = (
+                "<example>\n"
+                f"<query>{fewshot_example['query']}</query>\n"
+                f"<output>\n"
+                "<function_calls>\n"
+                "<invoke>\n"
+                f"<tool_name>{fewshot_example['name']}</tool_name>\n"
+                "<parameters>\n"
+                f"{param_str}"
+                "</parameters>\n"
+                "</invoke>\n"
+                "</function_calls>\n"
+                "</output>\n"
+                "</example>"
+            )
+            fewshot_example_strs.append(fewshot_example_str)
+        fewshot_example_str = '\n'.join(fewshot_example_strs)
+        return f"<examples>\n{fewshot_example_str}\n</examples>"
     
     @classmethod
-    def parse_tools_from_ai_message(cls,message:AIMessage,tools:list[dict]):
-        function_calls:List[str] = re.findall("<function_calls>(.*?)</function_calls>", message.content + "</function_calls>",re.S)
+    def parse_function_calls_from_ai_message(cls,message:AIMessage):
+        content = message.content + "</function_calls>"
+        function_calls:List[str] = re.findall("<function_calls>(.*?)</function_calls>", content,re.S)
+        # print(message.content)
+        # return {"function_calls":function_calls,"content":message.content}
         if not function_calls:
-            return {"tool_calls":[],"content":message.content}
+            content = message.content
+
+        return {
+                "function_calls": function_calls,
+                "content": content
+            } 
         
-        tool_calls = convert_anthropic_xml_to_dict(cls.model_id,function_calls,tools)
-        message.tool_calls = tool_calls
-        return {"tool_calls":tool_calls,"content":message.content}
-    
     @classmethod
     def create_chain(cls, model_kwargs=None, **kwargs):
         model_kwargs = model_kwargs or {}
         tools:list = kwargs['tools']
+        fewshot_examples = kwargs.get('fewshot_examples',[])
+        
         model_kwargs = {**cls.default_model_kwargs, **model_kwargs}
 
         tools_formatted = convert_openai_tool_to_anthropic(tools)
+
+        if fewshot_examples:
+            system_prompt = SYSTEM_MESSAGE_PROMPT_WITH_FEWSHOT_EXAMPLES.format(
+                tools=tools_formatted,
+                fewshot_examples=cls.format_fewshot_examples(fewshot_examples)
+            )
+        else:
+            system_prompt = SYSTEM_MESSAGE_PROMPT.format(
+                tools=tools_formatted
+            )
          
         tool_calling_template = ChatPromptTemplate.from_messages(
             [
-            SystemMessage(content=SYSTEM_MESSAGE_PROMPT.format(
-                tools=tools_formatted
-                )),
+            SystemMessage(content=system_prompt),
             ("placeholder", "{chat_history}")
         ])
 
@@ -205,7 +232,11 @@ class Claude2ToolCallingChain(LLMChain):
             model_id=cls.model_id,
             model_kwargs=model_kwargs,
         )
-        chain = tool_calling_template | RunnableLambda(lambda x:x.messages ) | llm | RunnableLambda(lambda message:cls.parse_tools_from_ai_message(message,tools=tools))
+        chain = tool_calling_template \
+            | RunnableLambda(lambda x: print(x.messages) or x.messages ) \
+            | llm | RunnableLambda(lambda message:cls.parse_function_calls_from_ai_message(
+                message
+            ))
         
         return chain
 
