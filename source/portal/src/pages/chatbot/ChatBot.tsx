@@ -132,8 +132,8 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
         method: 'get',
         params: {
           session_id: historySessionId,
-          size: 9999,
-          total: 9999,
+          page_size: 9999,
+          max_items: 9999,
         },
       });
       console.info('session history:', data);
