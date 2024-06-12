@@ -1,6 +1,7 @@
 import os
 import uuid
 import boto3
+import traceback
 
 from common_utils.ddb_utils import DynamoDBChatMessageHistory
 from lambda_main.main_utils.online_entries import get_entry
@@ -50,6 +51,7 @@ def get_secret_value(secret_arn: str):
 
 @chatbot_lambda_call_wrapper
 def lambda_handler(event_body:dict, context:dict):
+    logger.info(event_body)
     stream = context['stream']
     request_timestamp = context['request_timestamp']
     ws_connection_id = context.get('ws_connection_id')
@@ -87,9 +89,13 @@ def lambda_handler(event_body:dict, context:dict):
 
     # logger.info(f"event_body:\n{json.dumps(event_body,ensure_ascii=False,indent=2,cls=JSONEncoder)}")
     entry_executor = get_entry(entry_type)
-    response:dict = entry_executor(event_body)
-
-    r = process_response(event_body,response)
-    if not stream:
-        return r
-    return "All records have been processed"
+    try:
+        response:dict = entry_executor(event_body)
+        r = process_response(event_body,response)
+        if not stream:
+            return r
+        return "All records have been processed"
+    except Exception as e:
+        msg = traceback.format_exc()
+        logger.exception("Main exception:%s" % msg)
+        return "An exception has occurred"
