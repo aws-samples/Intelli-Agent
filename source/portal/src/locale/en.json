@@ -65,6 +65,7 @@
     "scenario": "Scenario",
     "maxTokens": "Max Tokens",
     "temperature": "Temperature",
+    "sessionHistory": "Session History",
     "button": {
       "login": "Log in to LLM Bot",
       "reload": "Reload",

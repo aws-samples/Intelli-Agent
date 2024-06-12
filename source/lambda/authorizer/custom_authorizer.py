@@ -1,24 +1,21 @@
 import json
 import logging
 import os
-import time
 from urllib.request import urlopen
-
+import traceback
 import jwt
-import requests
 
 # Replace with your Cognito User Pool info
 USER_POOL_ID = os.environ["USER_POOL_ID"]
 REGION = os.environ["REGION"]
 APP_CLIENT_ID = os.environ["APP_CLIENT_ID"]
+verify_exp = os.getenv("mode") != "dev"
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-keys_url = "https://cognito-idp.{}.amazonaws.com/{}/.well-known/jwks.json".format(
-    REGION, USER_POOL_ID
-)
-
+issuer = f"https://cognito-idp.{REGION}.amazonaws.com/{USER_POOL_ID}"
+keys_url = f"https://cognito-idp.{REGION}.amazonaws.com/{USER_POOL_ID}/.well-known/jwks.json"
 response = urlopen(keys_url)
 keys = json.loads(response.read())["keys"]
 
@@ -89,31 +86,12 @@ def lambda_handler(event, context):
 
         # Verify the signature of the JWT token
         claims = jwt.decode(
-            token, public_key, algorithms=["RS256"], audience=APP_CLIENT_ID
+            token, public_key, algorithms=["RS256"], audience=APP_CLIENT_ID,
+            issuer=issuer, options={"verify_exp": verify_exp}
         )
         # reformat claims to align with cognito output
         claims["cognito:groups"] = ",".join(claims["cognito:groups"])
         logger.info(claims)
-
-        # Verify the token issuer
-        if claims["iss"] != "https://cognito-idp.{}.amazonaws.com/{}".format(
-            REGION, USER_POOL_ID
-        ):
-            logger.error("Token was not issued by the correct issuer")
-            raise Exception(
-                "Custom Authorizer Error: Token was not issued by the correct issuer"
-            )
-
-        if time.time() > claims["exp"]:
-            logger.error("Token is expired")
-            raise Exception("Custom Authorizer Error: Token is expired")
-
-        # Verify the token client
-        if claims["aud"] != APP_CLIENT_ID:
-            logger.error("Token was not issued for this audience")
-            raise Exception(
-                "Custom Authorizer Error: Token was not issued for this audience"
-            )
 
         response = generateAllow("me", "*", claims)
         logger.info("Authorized")
@@ -121,7 +99,8 @@ def lambda_handler(event, context):
 
     except Exception as e:
         logger.info("Not Authorized")
-        logger.error(e)
+        msg = traceback.format_exc()
+        logger.error(msg)
         claims = {}
         response = generateDeny("me", "*", claims)
         return json.loads(response)
