@@ -308,11 +308,15 @@ def batch_test():
     chatbot_config = {
         "chatbot_mode": "agent",
         "use_history": True,
+<<<<<<< Updated upstream
         "enable_trace": True,
         "default_llm_config":default_llm_config,
         "intention_config": {
             "query_key": "query"
         }
+=======
+        "default_llm_config":default_llm_config
+>>>>>>> Stashed changes
     }
     # data = data]
     data_to_save = []
@@ -346,7 +350,8 @@ def batch_test():
             print(f"error run:\n {traceback.format_exc()}",flush=True)
             ai_msg = None
             r = {}
-        
+        return 
+
         datum['agent_intent_type'] = r.get('current_agent_intent_type',None)
         datum['ai_msg'] = ai_msg
         datum['session_id'] = session_id
