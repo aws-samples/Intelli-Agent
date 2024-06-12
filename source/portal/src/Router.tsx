@@ -9,6 +9,7 @@ import { LAST_VISIT_URL } from './utils/const';
 import ReSignIn from './comps/ReSignIn';
 import { useTranslation } from 'react-i18next';
 import SessionHistory from './pages/history/SessionHistory';
+import SessionDetail from './pages/history/SessionDetail';
 
 const LoginCallback: React.FC = () => {
   const gotoBasePage = () => {
@@ -33,6 +34,7 @@ const SignedInRouter = () => {
         <Route path="/library" element={<Library />} />
         <Route path="/library/detail/:id" element={<LibraryDetail />} />
         <Route path="/session" element={<SessionHistory />} />
+        <Route path="/session/detail/:id" element={<SessionDetail />} />
       </Routes>
       <CommonAlert />
     </BrowserRouter>
