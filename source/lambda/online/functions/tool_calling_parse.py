@@ -6,7 +6,7 @@ import re
 from langchain_core.messages import(
     ToolCall
 ) 
-from common_utils.exceptions import ToolNotExistError,ToolParameterNotExistError
+from common_utils.exceptions import ToolNotExistError,ToolParameterNotExistError,MultipleToolNameError
 
 class ToolCallingParseMeta(type):
     def __new__(cls, name, bases, attrs):
@@ -37,7 +37,9 @@ class Claude3SonnetFToolCallingParse(ToolCallingParse):
         tools_mapping = {tool['name']:tool for tool in tools}
         for function_call in function_calls:
             tool_names = re.findall(r'<tool_name>(.*?)</tool_name>', function_call, re.S)
-            assert len(tool_names) == 1, function_call 
+            if len(tool_names) > 1:
+                raise MultipleToolNameError(function_call_content=function_call)
+           
             tool_name = tool_names[0].strip()
 
             if tool_name not in tools_mapping:
@@ -90,6 +92,10 @@ class Claude21ToolCallingParse(Claude3SonnetFToolCallingParse):
 
 class ClaudeInstanceToolCallingParse(Claude3SonnetFToolCallingParse):
     model_id = "anthropic.claude-instant-v1"
+
+
+class Mixtral8x7bToolCallingParse(Claude3SonnetFToolCallingParse):
+    model_id = "mistral.mixtral-8x7b-instruct-v0:1"
 
 
 parse_tool_calling = ToolCallingParse.parse_tool

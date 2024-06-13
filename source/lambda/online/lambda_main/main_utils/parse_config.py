@@ -26,7 +26,7 @@ def parse_common_entry_config(chatbot_config):
         **chatbot_config.get("default_llm_config", {}),
     }
 
-    default_workspace_config = {"intent_workspace_ids": [], "rag_workspace_ids": []}
+    default_workspace_config = {"intent_workspace_ids": ["yb_intent"], "rag_workspace_ids": []}
 
     default_workspace_config = {
         **default_workspace_config,
@@ -40,7 +40,7 @@ def parse_common_entry_config(chatbot_config):
     default_chatbot_config = {
         "chatbot_mode": ChatbotMode.chat,
         "use_history": True,
-        "enable_trace": False,
+        "enable_trace": True,
         "query_process_config": {
             "conversation_query_rewrite_config": {**default_llm_config}
         },
@@ -96,6 +96,31 @@ def parse_common_entry_config(chatbot_config):
                 **default_llm_config,
             },
         },
+        "aws_qa_config": {
+            "retriever_config":{
+                "retrievers": [
+                    {
+                        "type": "qd",
+                        "workspace_ids": ['aws-ug-qd'],
+                        "config": {
+                            "top_k": 10,
+                        }
+                    },
+                ],
+                "rerankers": [
+                    {
+                        "type": "reranker",
+                        "config": {
+                            "enable_debug": False,
+                            "target_model": "bge_reranker_model.tar.gz"
+                        }
+                    }
+                ],
+            },
+            "llm_config":{
+                **default_llm_config,
+            }
+        },
     }
     chatbot_config = update_nest_dict(
         copy.deepcopy(default_chatbot_config), chatbot_config
@@ -132,6 +157,7 @@ def parse_retail_entry_config(chatbot_config):
         "chatbot_mode": ChatbotMode.chat,
         "use_history": True,
         "enable_trace": False,
+        "agent_recursion_limit": 3,
         "query_process_config": {
             "conversation_query_rewrite_config": {**default_llm_config}
         },
@@ -245,6 +271,31 @@ def parse_retail_entry_config(chatbot_config):
             }
         },
         "rag_promotion_config": {
+            "retriever_config":{
+                "retrievers": [
+                    {
+                        "type": "qq",
+                        "workspace_ids": ['retail-shouhou-wuliu','retail-quick-reply'],
+                        "config": {
+                            "top_k": 2,
+                        }
+                    },
+                ],
+                "rerankers": [
+                    {
+                        "type": "reranker",
+                        "config": {
+                            "enable_debug": False,
+                            "target_model": "bge_reranker_model.tar.gz"
+                        }
+                    }
+                ],
+            },
+            "llm_config":{
+                **default_llm_config,
+            }
+        },
+        "final_rag_retriever": {
             "retriever_config":{
                 "retrievers": [
                     {

@@ -71,6 +71,12 @@ class Claude3HaikuChatChain(Claude2ChatChain):
     model_id = "anthropic.claude-3-haiku-20240307-v1:0"
 
 
+
+class Mixtral8x7bChatChain(Claude2ChatChain):
+    model_id = "mistral.mixtral-8x7b-instruct-v0:1"
+    default_model_kwargs = {"max_tokens": 4096, "temperature": 0.01}
+
+
 class Baichuan2Chat13B4BitsChatChain(LLMChain):
     model_id = "Baichuan2-13B-Chat-4bits"
     intent_type = LLMTaskType.CHAT

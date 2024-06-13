@@ -217,8 +217,8 @@ tool_manager.register_tool({
 
 tool_manager.register_tool({
     "name": "get_contact",
-    "lambda_name": "xxxx",
-    "lambda_module_path": "xxxx",
+    "lambda_name": "service_org",
+    "lambda_module_path": "functions.lambda_service_org.service_org",
     "tool_def":{
         "name":"get_contact",
         "description":"query the contact person in the 'SSO' organization",
@@ -251,8 +251,8 @@ tool_manager.register_tool({
 
 tool_manager.register_tool({
     "name": "ec2_price",
-    "lambda_name": "xxxx",
-    "lambda_module_path": "xxxx",
+    "lambda_name": "ec2_price",
+    "lambda_module_path": "functions.lambda_aws_api.aws_api",
     "tool_def": {
         "name": "ec2_price",
         "description": "query the price of AWS ec2 instance",
@@ -283,7 +283,6 @@ tool_manager.register_tool({
             "required": ["instance_type"]
         }
     }
-
 })
 
 tool_manager.register_tool({
