@@ -34,12 +34,16 @@ class LayoutPredictor(object):
         self.categorys = ['text', 'title', 'figure', 'table']
     def __call__(self, img):
         ori_im = img.copy()
-
         starttime = time.time()
-
         h,w,_ = img.shape
         h_ori, w_ori, _ = img.shape
-        h, w = (640, 640)
+        if max(h_ori, w_ori)/min(h_ori, w_ori)>2:
+            s = 640/min(h_ori, w_ori)
+            h_new = int((h_ori*s)//32*32)
+            w_new = int((w_ori*s)//32*32)
+            h, w = (h_new, w_new)
+        else:
+            h, w = (640, 640)
         image, ratio = preprocess(img, (h, w))
         res = self.ort_session.run(['output'], {'images': image[np.newaxis,:]})[0]
         predictions = postprocess(res, (h, w), p6=False)[0]
