@@ -41,6 +41,7 @@ class ChatbotState(TypedDict):
     current_monitor_infos: str
     extra_response: Annotated[dict, update_nest_dict]
     contexts: str = None
+    all_index_retriever_contexts: list
     current_intent_tools: list  #
     current_tool_calls: list
     current_agent_tools_def: list[dict]
@@ -97,8 +98,30 @@ def intention_detection_lambda(state: ChatbotState):
     }
 
 
+
+@node_monitor_wrapper
+def all_index_retriever_lambda(state: ChatbotState):
+    # call retrivever
+    retriever_params = state["chatbot_config"]["all_index_retriever_config"]
+    retriever_params["query"] = state["query"]
+    output: str = invoke_lambda(
+        event_body=retriever_params,
+        lambda_name="Online_Function_Retriever",
+        lambda_module_path="functions.lambda_retriever.retriever",
+        handler_name="lambda_handler",
+    )
+    contexts = [doc["page_content"] for doc in output["result"]["docs"]]
+    send_trace("**all index retriever lambda result** \n" + ("\n"+"="*50 + "\n").join(contexts))
+    return {"all_index_retriever_contexts": contexts}
+
+
 @node_monitor_wrapper
 def agent_lambda(state: ChatbotState):
+    system_prompt = get_common_system_prompt()
+    all_index_retriever_contexts = state.get("all_index_retriever_contexts",[])
+    if all_index_retriever_contexts:
+        context = '\n\n'.join(all_index_retriever_contexts)
+        system_prompt += f"\n下面有一些背景信息供参考:\n<context>\n{context}\n</context>\n"
     output:dict = invoke_lambda(
         event_body={
             **state,
@@ -398,6 +421,7 @@ def build_graph():
     # add all nodes
     workflow.add_node("query_preprocess_lambda", query_preprocess_lambda)
     workflow.add_node("intention_detection_lambda", intention_detection_lambda)
+    workflow.add_node("all_index_retriever_lambda", all_index_retriever_lambda)
     workflow.add_node("agent_lambda", agent_lambda)
     workflow.add_node("tool_execute_lambda", tool_execute_lambda)
     workflow.add_node("chat_llm_generate_lambda", chat_llm_generate_lambda)
@@ -415,7 +439,8 @@ def build_graph():
     # add all edges
     workflow.set_entry_point("query_preprocess_lambda")
     # workflow.add_edge("query_preprocess_lambda","intention_detection_lambda")
-    workflow.add_edge("intention_detection_lambda", "agent_lambda")
+    # workflow.add_edge("intention_detection_lambda", "agent_lambda")
+    workflow.add_edge("all_index_retriever_lambda","agent_lambda")
     workflow.add_edge("tool_execute_lambda", "agent_lambda")
     workflow.add_edge("rag_retrieve_lambda", "rag_llm_lambda")
     workflow.add_edge("aws_qa_lambda", "rag_llm_lambda")
@@ -449,7 +474,7 @@ def build_graph():
         {
             "other": "agent_lambda",
             "qq_mathed": "qq_matched_reply",
-            "no fewshot example": "rag_retrieve_lambda"
+            "no fewshot examples": "all_index_retriever_lambda"
         },
     )
 

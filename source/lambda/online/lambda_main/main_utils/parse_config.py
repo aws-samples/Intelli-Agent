@@ -71,6 +71,18 @@ def parse_common_entry_config(chatbot_config):
         "chat_config": {
             **default_llm_config,
         },
+        "all_index_retriever_config":{
+            "retrievers": [
+                    {
+                        "type": "qd",
+                        "workspace_ids": default_workspace_config["rag_workspace_ids"],
+                        "config": {
+                            "top_k": 5,
+                            "using_whole_doc": False,
+                        },
+                    },
+                ],
+        },
         "rag_config": {
             "retriever_config": {
                 "retrievers": [
