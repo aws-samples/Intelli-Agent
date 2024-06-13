@@ -41,6 +41,7 @@ def parse_common_entry_config(chatbot_config):
         "chatbot_mode": ChatbotMode.chat,
         "use_history": True,
         "enable_trace": True,
+        "agent_recursion_limit": 3,
         "query_process_config": {
             "conversation_query_rewrite_config": {**default_llm_config}
         },
@@ -154,7 +155,7 @@ def parse_retail_entry_config(chatbot_config):
     ]
 
     default_chatbot_config = {
-        "chatbot_mode": ChatbotMode.chat,
+        "chatbot_mode": ChatbotMode.agent,
         "use_history": True,
         "enable_trace": False,
         "agent_recursion_limit": 3,

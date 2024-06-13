@@ -32,7 +32,8 @@ tool_call_guidelines = """<guidlines>
 """
 
 
-SYSTEM_MESSAGE_PROMPT =("In this environment you have access to a set of tools you can use to answer the user's question.\n"
+
+SYSTEM_MESSAGE_PROMPT =(f"In this environment you have access to a set of tools you can use to answer the user's question.\n"
         "\n"
         "You may call them like this:\n"
         "<function_calls>\n"
@@ -207,6 +208,7 @@ class Claude2ToolCallingChain(LLMChain):
         model_kwargs = model_kwargs or {}
         tools:list = kwargs['tools']
         fewshot_examples = kwargs.get('fewshot_examples',[])
+        user_system_prompt = kwargs.get("system_prompt","")
         
         model_kwargs = {**cls.default_model_kwargs, **model_kwargs}
 
@@ -221,7 +223,8 @@ class Claude2ToolCallingChain(LLMChain):
             system_prompt = SYSTEM_MESSAGE_PROMPT.format(
                 tools=tools_formatted
             )
-         
+        
+        system_prompt = user_system_prompt + system_prompt 
         tool_calling_template = ChatPromptTemplate.from_messages(
             [
             SystemMessage(content=system_prompt),
@@ -233,7 +236,7 @@ class Claude2ToolCallingChain(LLMChain):
             model_kwargs=model_kwargs,
         )
         chain = tool_calling_template \
-            | RunnableLambda(lambda x: print(x.messages) or x.messages ) \
+            | RunnableLambda(lambda x: x.messages ) \
             | llm | RunnableLambda(lambda message:cls.parse_function_calls_from_ai_message(
                 message
             ))

@@ -58,7 +58,7 @@ class ChatbotState(TypedDict):
     query_rewrite_llm_type: str
     agent_recursion_limit: int # agent recursion limit
     current_agent_recursion_limit: int
-    enable_trace: int
+    enable_trace: bool
 
 ####################
 # nodes in lambdas #
@@ -254,18 +254,19 @@ def rag_daily_reception_retriever_lambda(state: ChatbotState):
         handler_name="lambda_handler"
     )
     contexts = [doc['page_content'] for doc in output['result']['docs']]
-    context = "\n".join(contexts)
+    context = ("\n" + "="*50+ "\n").join(contexts)
     send_trace(f'**rag_goods_exchange_retriever** {context}', state["stream"], state["ws_connection_id"])
     return {"contexts": contexts}
 
 @node_monitor_wrapper
 def rag_daily_reception_llm_lambda(state:ChatbotState):
-    context = ("="*50).join(state['contexts'])
+    context = ("\n" + "="*50+ "\n").join(state['contexts'])
     prompt = dedent(f"""你是安踏的客服助理，正在帮用户解答问题，客户提出的问题大多是属于日常接待类别，你需要按照下面的guidelines进行回复:
                     <guidelines>
                       - 回复内容需要展现出礼貌。
+                      - 使用中文回答。
                     </guidelines>
-                    下面列举了一些具体的场景下的回复，你可以结合用户的问题进行参考回答:
+                    下面列举了一些具体的场景下的回复，你可以结合用户的问题进行参考:
                     <context>
                     {context}
                     </context>
@@ -277,7 +278,7 @@ def rag_daily_reception_llm_lambda(state:ChatbotState):
         handler_name='lambda_handler',
         event_body={
             "llm_config": {**state['chatbot_config']['rag_daily_reception_config']['llm_config'], "intent_type": LLMTaskType.CHAT},
-            "llm_input": { "query": prompt, "chat_history": state['chat_history']}
+            "llm_input": {"query": prompt, "chat_history": state['chat_history']}
             }
         )
     return {"answer": output}
@@ -295,17 +296,18 @@ def rag_goods_exchange_retriever_lambda(state: ChatbotState):
     )
     contexts = [doc['page_content'] for doc in output['result']['docs']]
 
-    context = "\n".join(contexts)
+    context = ("\n" + "="*50+ "\n").join(contexts)
     send_trace(f'**rag_goods_exchange_retriever** {context}', state["stream"], state["ws_connection_id"])
     return {"contexts": contexts}
 
 
 @node_monitor_wrapper
 def rag_goods_exchange_llm_lambda(state:ChatbotState):
-    context = ("="*50).join(state['contexts'])
+    context = ("\n" + "="*50+ "\n").join(state['contexts'])
     prompt = dedent(f"""你是安踏的客服助理，正在帮用户解答问题，客户提出的问题大多是属于商品退换货范畴，你需要按照下面的guidelines进行回复:
                     <guidelines>
                       - 回复内容需要展现出礼貌。
+                      - 使用中文回答。
                     </guidelines>
                     下面列举了一些具体的场景下的回复，你可以结合用户的问题进行参考回答:
                     <context>
@@ -338,13 +340,13 @@ def rag_product_aftersales_retriever_lambda(state: ChatbotState):
     )
     contexts = [doc['page_content'] for doc in output['result']['docs']]
 
-    context = "\n".join(contexts)
+    context = ("\n" + "="*50+ "\n").join(contexts)
     send_trace(f'**rag_product_aftersales_retriever** {context}', state["stream"], state["ws_connection_id"])
     return {"contexts": contexts}
 
 @node_monitor_wrapper
 def rag_product_aftersales_llm_lambda(state:ChatbotState):
-    context = ("="*50).join(state['contexts'])
+    context = ("\n" + "="*50+ "\n").join(state['contexts'])
     prompt = dedent(f"""你是安踏的客服助理，正在帮消费者解答问题，消费者提出的问题大多是属于商品的质量和物流规则。context列举了一些可能有关的具体场景及回复，你可以进行参考:
                     <context>
                     {context}
@@ -382,13 +384,13 @@ def rag_customer_complain_retriever_lambda(state: ChatbotState):
     )
     contexts = [doc['page_content'] for doc in output['result']['docs']]
 
-    context = "\n".join(contexts)
+    context = ("\n" + "="*50+ "\n").join(contexts)
     send_trace(f'**rag_customer_complain_retriever** {context}', state["stream"], state["ws_connection_id"])
     return {"contexts": contexts}
 
 @node_monitor_wrapper
 def rag_customer_complain_llm_lambda(state:ChatbotState):
-    context = ("="*50).join(state['contexts'])
+    context = ("\n" + "="*50+ "\n").join(state['contexts'])
     # prompt = dedent(f"""你是安踏的客服助理，正在处理有关于客户抱怨的问题，这些问题有关于商品质量等方面，需要你按照下面的guidelines进行回复:
     prompt = dedent(f"""你是安踏的客服助理，正在处理有关于消费者抱怨的问题。context列举了一些可能和客户问题有关的具体场景及回复，你可以进行参考:
                     <context>
@@ -426,13 +428,13 @@ def rag_promotion_retriever_lambda(state: ChatbotState):
     )
     contexts = [doc['page_content'] for doc in output['result']['docs']]
 
-    context = "\n".join(contexts)
+    context = ("\n" + "="*50+ "\n").join(contexts)
     send_trace(f'**rag_promotion_retriever** {context}', state["stream"], state["ws_connection_id"])
     return {"contexts": contexts}
 
 @node_monitor_wrapper
 def rag_promotion_llm_lambda(state:ChatbotState):
-    context = ("="*50).join(state['contexts'])
+    context = ("\n" + "="*50+ "\n").join(state['contexts'])
     prompt = dedent(f"""你是安踏的客服助理，正在帮消费者解答有关于商品促销的问题，这些问题是有关于积分、奖品、奖励等方面。context列举了一些可能有关的具体场景及回复，你可以进行参考:
                     <context>
                     {context}
@@ -441,6 +443,7 @@ def rag_promotion_llm_lambda(state:ChatbotState):
                     <guidelines>
                       - 回答内容要简洁。
                       - 如果问题与context内容不相关，就不要采用。
+                      - 使用中文进行回答。
                     </guidelines>
                     下面是消费者的问题: {state['query']}。结合guidelines的内容进行回答
 """)
@@ -767,7 +770,6 @@ def retail_entry(event_body):
         "query_rewrite_llm_type":LLMTaskType.RETAIL_CONVERSATION_SUMMARY_TYPE,
         "agent_recursion_limit": chatbot_config['agent_recursion_limit'],
         "current_agent_recursion_limit": 0,
-
     })
 
     return {"answer":response['answer'],**response["extra_response"]}

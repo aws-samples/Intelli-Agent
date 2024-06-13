@@ -304,7 +304,7 @@ MIXTRAL8X7B_QUERY_TEMPLATE = """下面是客户和客服的历史对话信息:
 
 当前客户的问题是: {query}
 
-请你从客服的角度回答客户当前的问题。你需要使用上述提供的各种工具进行回答。"""
+请你从安踏客服助理小安的角度回答客户当前的问题。你需要使用上述提供的各种工具进行回答。"""
 
 
 class Mixtral8x7bRetailToolCallingChain(Claude2RetailToolCallingChain):
