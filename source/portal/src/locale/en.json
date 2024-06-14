@@ -40,6 +40,7 @@
     "indexType": "Index Type",
     "status": "Status",
     "createTime": "Create Time",
+    "latestQuestion": "Latest Question",
     "loadingData": "Loading data...",
     "noData": "No data",
     "findResources": "Find resources",

@@ -6,9 +6,7 @@ from typing import List
 import boto3
 from botocore.exceptions import ClientError
 from langchain.schema import BaseChatMessageHistory
-from langchain.schema.messages import (
-    BaseMessage,
-)
+from langchain.schema.messages import BaseMessage
 
 from .constant import MessageType
 
@@ -102,21 +100,29 @@ class DynamoDBChatMessageHistory(BaseChatMessageHistory):
             ret.append(langchain_message_template)
         return ret
 
-    def update_session(self):
+    def update_session(self, latest_question=""):
         """Add the session to the record in DynamoDB"""
         session = self.session
         # If this session already exists, update lastModifiedTimestamp
         if session:
             current_timestamp = datetime.utcnow().isoformat() + "Z"
-            response = self.sessions_table.update_item(
+
+            update_expression = "SET lastModifiedTimestamp = :t"
+            expression_attribute_values = {":t": current_timestamp}
+
+            if latest_question:
+                update_expression += ", latestQuestion = :q"
+                expression_attribute_values[":q"] = latest_question
+
+            self.sessions_table.update_item(
                 Key={"sessionId": self.session_id, "userId": self.user_id},
-                UpdateExpression="SET lastModifiedTimestamp = :t",
-                ExpressionAttributeValues={":t": current_timestamp},
+                UpdateExpression=update_expression,
+                ExpressionAttributeValues=expression_attribute_values,
                 ReturnValues="UPDATED_NEW",
             )
         else:
             current_timestamp = datetime.utcnow().isoformat() + "Z"
-            response = self.sessions_table.put_item(
+            self.sessions_table.put_item(
                 Item={
                     "sessionId": self.session_id,
                     "userId": self.user_id,
@@ -124,6 +130,7 @@ class DynamoDBChatMessageHistory(BaseChatMessageHistory):
                     "startTime": current_timestamp,
                     "createTimestamp": current_timestamp,
                     "lastModifiedTimestamp": current_timestamp,
+                    "latestQuestion": latest_question,
                 }
             )
 
@@ -142,7 +149,7 @@ class DynamoDBChatMessageHistory(BaseChatMessageHistory):
         additional_kwargs = additional_kwargs or {}
 
         try:
-            response = self.messages_table.put_item(
+            self.messages_table.put_item(
                 Item={
                     "messageId": message_id,
                     "sessionId": self.session_id,
@@ -176,7 +183,7 @@ class DynamoDBChatMessageHistory(BaseChatMessageHistory):
             message_content,
             additional_kwargs=additional_kwargs,
         )
-        self.update_session()
+        self.update_session(latest_question=message_content)
 
     def add_ai_message(
         self,

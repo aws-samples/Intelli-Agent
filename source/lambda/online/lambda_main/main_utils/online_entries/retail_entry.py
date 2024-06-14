@@ -58,7 +58,7 @@ class ChatbotState(TypedDict):
     query_rewrite_llm_type: str
     agent_recursion_limit: int # agent recursion limit
     current_agent_recursion_limit: int
-    enable_trace: int
+    enable_trace: bool
 
 ####################
 # nodes in lambdas #
@@ -101,11 +101,10 @@ def intention_detection_lambda(state: ChatbotState):
 @node_monitor_wrapper
 def agent_lambda(state: ChatbotState):
     goods_info = state.get('goods_info',None) or ""
-    
     output:dict = invoke_lambda(
         event_body={
             **state,
-            "chat_history": state['agent_chat_history'],
+            # "chat_history": state['agent_chat_history'],
             "other_chain_kwargs":{"goods_info":goods_info}
         },
         lambda_name="Online_Agent",
@@ -171,6 +170,7 @@ def parse_tool_calling(state: ChatbotState):
             "parse_tool_calling_ok": True,
             "current_tool_calls": tool_calls,
         }
+
     except (ToolNotExistError,ToolParameterNotExistError,MultipleToolNameError) as e:
         send_trace(f"\n\n**tool_calls parse failed:** \n{str(e)}", state["stream"], state["ws_connection_id"])
         return {
@@ -233,8 +233,8 @@ def tool_execute_lambda(state: ChatbotState):
         tool_call_result_strs.append(ret)
     
     ret = "\n".join(tool_call_result_strs)
+    send_trace(f'**tool_execute_res:** \n{ret}')
     return {
-        "current_monitor_infos": ret,
         "agent_chat_history":[{
             "role": "user",
             "content": ret
@@ -254,18 +254,19 @@ def rag_daily_reception_retriever_lambda(state: ChatbotState):
         handler_name="lambda_handler"
     )
     contexts = [doc['page_content'] for doc in output['result']['docs']]
-    context = "\n".join(contexts)
+    context = ("\n" + "="*50+ "\n").join(contexts)
     send_trace(f'**rag_goods_exchange_retriever** {context}', state["stream"], state["ws_connection_id"])
     return {"contexts": contexts}
 
 @node_monitor_wrapper
 def rag_daily_reception_llm_lambda(state:ChatbotState):
-    context = ("="*50).join(state['contexts'])
+    context = ("\n" + "="*50+ "\n").join(state['contexts'])
     prompt = dedent(f"""你是安踏的客服助理，正在帮用户解答问题，客户提出的问题大多是属于日常接待类别，你需要按照下面的guidelines进行回复:
                     <guidelines>
                       - 回复内容需要展现出礼貌。
+                      - 使用中文回答。
                     </guidelines>
-                    下面列举了一些具体的场景下的回复，你可以结合用户的问题进行参考回答:
+                    下面列举了一些具体的场景下的回复，你可以结合用户的问题进行参考:
                     <context>
                     {context}
                     </context>
@@ -277,7 +278,7 @@ def rag_daily_reception_llm_lambda(state:ChatbotState):
         handler_name='lambda_handler',
         event_body={
             "llm_config": {**state['chatbot_config']['rag_daily_reception_config']['llm_config'], "intent_type": LLMTaskType.CHAT},
-            "llm_input": { "query": prompt, "chat_history": state['chat_history']}
+            "llm_input": {"query": prompt, "chat_history": state['chat_history']}
             }
         )
     return {"answer": output}
@@ -295,17 +296,18 @@ def rag_goods_exchange_retriever_lambda(state: ChatbotState):
     )
     contexts = [doc['page_content'] for doc in output['result']['docs']]
 
-    context = "\n".join(contexts)
+    context = ("\n" + "="*50+ "\n").join(contexts)
     send_trace(f'**rag_goods_exchange_retriever** {context}', state["stream"], state["ws_connection_id"])
     return {"contexts": contexts}
 
 
 @node_monitor_wrapper
 def rag_goods_exchange_llm_lambda(state:ChatbotState):
-    context = ("="*50).join(state['contexts'])
+    context = ("\n" + "="*50+ "\n").join(state['contexts'])
     prompt = dedent(f"""你是安踏的客服助理，正在帮用户解答问题，客户提出的问题大多是属于商品退换货范畴，你需要按照下面的guidelines进行回复:
                     <guidelines>
                       - 回复内容需要展现出礼貌。
+                      - 使用中文回答。
                     </guidelines>
                     下面列举了一些具体的场景下的回复，你可以结合用户的问题进行参考回答:
                     <context>
@@ -338,13 +340,13 @@ def rag_product_aftersales_retriever_lambda(state: ChatbotState):
     )
     contexts = [doc['page_content'] for doc in output['result']['docs']]
 
-    context = "\n".join(contexts)
+    context = ("\n" + "="*50+ "\n").join(contexts)
     send_trace(f'**rag_product_aftersales_retriever** {context}', state["stream"], state["ws_connection_id"])
     return {"contexts": contexts}
 
 @node_monitor_wrapper
 def rag_product_aftersales_llm_lambda(state:ChatbotState):
-    context = ("="*50).join(state['contexts'])
+    context = ("\n" + "="*50+ "\n").join(state['contexts'])
     prompt = dedent(f"""你是安踏的客服助理，正在帮消费者解答问题，消费者提出的问题大多是属于商品的质量和物流规则。context列举了一些可能有关的具体场景及回复，你可以进行参考:
                     <context>
                     {context}
@@ -382,13 +384,13 @@ def rag_customer_complain_retriever_lambda(state: ChatbotState):
     )
     contexts = [doc['page_content'] for doc in output['result']['docs']]
 
-    context = "\n".join(contexts)
+    context = ("\n" + "="*50+ "\n").join(contexts)
     send_trace(f'**rag_customer_complain_retriever** {context}', state["stream"], state["ws_connection_id"])
     return {"contexts": contexts}
 
 @node_monitor_wrapper
 def rag_customer_complain_llm_lambda(state:ChatbotState):
-    context = ("="*50).join(state['contexts'])
+    context = ("\n" + "="*50+ "\n").join(state['contexts'])
     # prompt = dedent(f"""你是安踏的客服助理，正在处理有关于客户抱怨的问题，这些问题有关于商品质量等方面，需要你按照下面的guidelines进行回复:
     prompt = dedent(f"""你是安踏的客服助理，正在处理有关于消费者抱怨的问题。context列举了一些可能和客户问题有关的具体场景及回复，你可以进行参考:
                     <context>
@@ -426,13 +428,13 @@ def rag_promotion_retriever_lambda(state: ChatbotState):
     )
     contexts = [doc['page_content'] for doc in output['result']['docs']]
 
-    context = "\n".join(contexts)
+    context = ("\n" + "="*50+ "\n").join(contexts)
     send_trace(f'**rag_promotion_retriever** {context}', state["stream"], state["ws_connection_id"])
     return {"contexts": contexts}
 
 @node_monitor_wrapper
 def rag_promotion_llm_lambda(state:ChatbotState):
-    context = ("="*50).join(state['contexts'])
+    context = ("\n" + "="*50+ "\n").join(state['contexts'])
     prompt = dedent(f"""你是安踏的客服助理，正在帮消费者解答有关于商品促销的问题，这些问题是有关于积分、奖品、奖励等方面。context列举了一些可能有关的具体场景及回复，你可以进行参考:
                     <context>
                     {context}
@@ -441,6 +443,7 @@ def rag_promotion_llm_lambda(state:ChatbotState):
                     <guidelines>
                       - 回答内容要简洁。
                       - 如果问题与context内容不相关，就不要采用。
+                      - 使用中文进行回答。
                     </guidelines>
                     下面是消费者的问题: {state['query']}。结合guidelines的内容进行回答
 """)
@@ -537,9 +540,6 @@ def rule_number_reply(state:ChatbotState):
     return {"answer":"收到订单信息"}
 
 
-
-
-
 ################
 # define edges #
 ################
@@ -560,6 +560,9 @@ def intent_route(state:dict):
 def agent_route(state:dict):
     parse_tool_calling_ok = state['parse_tool_calling_ok']
     if not parse_tool_calling_ok:
+        if state['current_agent_recursion_limit'] >= state['agent_recursion_limit']:
+            send_trace(f"Reach the agent recursion limit: {state['agent_recursion_limit']}, route to final rag")
+            return 'final rag'
         return 'invalid tool calling'
     
     recent_tool_calls:list[dict] = state['current_tool_calls']
@@ -599,7 +602,7 @@ def agent_route(state:dict):
         return "give final response"
 
     if state['current_agent_recursion_limit'] >= state['agent_recursion_limit']:
-        send_trace(F"Reach the agent recursion limit: {state['agent_recursion_limit']}, route to final rag")
+        send_trace(f"Reach the agent recursion limit: {state['agent_recursion_limit']}, route to final rag")
         return 'final rag'
 
     return "continue"
@@ -758,7 +761,7 @@ def retail_entry(event_body):
         "trace_infos": [],
         "message_id": message_id,
         "chat_history": chat_history,
-        "agent_chat_history": chat_history + [{"role":"user","content":query}],
+        "agent_chat_history": [],
         "ws_connection_id": ws_connection_id,
         "debug_infos": {},
         "extra_response": {},
@@ -767,7 +770,6 @@ def retail_entry(event_body):
         "query_rewrite_llm_type":LLMTaskType.RETAIL_CONVERSATION_SUMMARY_TYPE,
         "agent_recursion_limit": chatbot_config['agent_recursion_limit'],
         "current_agent_recursion_limit": 0,
-
     })
 
     return {"answer":response['answer'],**response["extra_response"]}

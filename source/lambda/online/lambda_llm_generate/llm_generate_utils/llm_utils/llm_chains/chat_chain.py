@@ -13,13 +13,12 @@ from common_utils.constant import (
     MessageType,
     LLMTaskType
 )
+from common_utils.time_utils import get_china_now
 
 AI_MESSAGE_TYPE = MessageType.AI_MESSAGE_TYPE
 HUMAN_MESSAGE_TYPE = MessageType.HUMAN_MESSAGE_TYPE
 QUERY_TRANSLATE_TYPE = LLMTaskType.QUERY_TRANSLATE_TYPE
 SYSTEM_MESSAGE_TYPE = MessageType.SYSTEM_MESSAGE_TYPE
-
-CHIT_CHAT_SYSTEM_TEMPLATE = """You are a helpful AI Assistant"""
 
 
 class Claude2ChatChain(LLMChain):
@@ -36,7 +35,7 @@ class Claude2ChatChain(LLMChain):
             HumanMessagePromptTemplate.from_template("{query}")
         ]
         if system_prompt is not None:
-            messages.insert(SystemMessage(content=system_prompt),0)
+            messages.insert(0,SystemMessage(content=system_prompt))
         
         if prefill is not None:
             messages.append(AIMessage(content=prefill))

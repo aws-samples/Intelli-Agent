@@ -13,7 +13,7 @@ from langchain_core.messages import(
 ) 
 from langchain.prompts import ChatPromptTemplate
 
-from langchain_core.messages import AIMessage,SystemMessage
+from langchain_core.messages import AIMessage,SystemMessage,HumanMessage
 
 from common_utils.constant import (
     LLMTaskType
@@ -33,7 +33,7 @@ tool_call_guidelines = """<guidlines>
 """
 
 
-SYSTEM_MESSAGE_PROMPT=("你是安踏的客服客服助理小安, 主要职责是处理用户售前和售后的问题。下面是当前用户正在浏览的商品信息:\n<goods_info>\n{goods_info}\n</goods_info>"
+SYSTEM_MESSAGE_PROMPT=("你是安踏的客服助理小安, 主要职责是处理用户售前和售后的问题。下面是当前用户正在浏览的商品信息:\n<goods_info>\n{goods_info}\n</goods_info>"
         "In this environment you have access to a set of tools you can use to answer the customer's question."
         "\n"
         "You may call them like this:\n"
@@ -201,6 +201,15 @@ class Claude2RetailToolCallingChain(LLMChain):
                 "function_calls": function_calls,
                 "content": content
             } 
+    
+
+    @staticmethod 
+    def generate_chat_history(state:dict):
+        chat_history = state['chat_history'] \
+            + [{"role": "user","content":state['query']}] \
+            + state['agent_chat_history']
+        return {"chat_history":chat_history}
+
         
     @classmethod
     def create_chain(cls, model_kwargs=None, **kwargs):
@@ -237,7 +246,7 @@ class Claude2RetailToolCallingChain(LLMChain):
             model_id=cls.model_id,
             model_kwargs=model_kwargs,
         )
-        chain = tool_calling_template \
+        chain = RunnableLambda(cls.generate_chat_history) | tool_calling_template \
             | RunnableLambda(lambda x: x.messages ) \
             | llm | RunnableLambda(lambda message:cls.parse_function_calls_from_ai_message(
                 message
@@ -262,6 +271,42 @@ class Claude3HaikuRetailToolCallingChain(Claude2RetailToolCallingChain):
     model_id = "anthropic.claude-3-haiku-20240307-v1:0"
 
 
+
+# MIXTRAL8X7B_SYSTEM_MESSAGE_PROMPT=("你是安踏的客服客服助理小安, 主要职责是处理用户售前和售后的问题。下面是当前用户正在浏览的商品信息:\n<goods_info>\n{goods_info}\n</goods_info>"
+#         "In this environment you have access to a set of tools you can use to answer the customer's question."
+#         "\n"
+#         "You may call them like this:\n"
+#         "<function_calls>\n"
+#         "<invoke>\n"
+#         "<tool_name>$TOOL_NAME</tool_name>\n"
+#         "<parameters>\n"
+#         "<$PARAMETER_NAME>$PARAMETER_VALUE</$PARAMETER_NAME>\n"
+#         "...\n"
+#         "</parameters>\n"
+#         "</invoke>\n"
+#         "</function_calls>\n"
+#         "\n"
+#         "Here are the tools available:\n"
+#         "<tools>\n"
+#         "{tools}"
+#         "\n</tools>"
+#         "\nAnswer the user's request using relevant tools (if they are available). Before calling a tool, do some analysis within <thinking></thinking> tags. First, think about which of the provided tools is the relevant tool to answer the user's request. Second, go through each of the required parameters of the relevant tool and determine if the user has directly provided or given enough information to infer a value. When deciding if the parameter can be inferred, carefully consider all the context to see if it supports a specific value. If all of the required parameters are present or can be reasonably inferred, close the thinking tag and proceed with the tool call. BUT, if one of the values for a required parameter is missing, DO NOT invoke the function (not even with fillers for the missing params) and instead, ask the user to provide the missing parameters. DO NOT ask for more information on optional parameters if it is not provided."
+#         f"\nHere are some guidelines for you:\n{tool_call_guidelines}"
+#     )
+
+# MIXTRAL8X7B_SYSTEM_MESSAGE_PROMPT_WITH_FEWSHOT_EXAMPLES = MIXTRAL8X7B_SYSTEM_MESSAGE_PROMPT + (
+#     "Some examples of tool calls are given below, where the content within <query></query> represents the most recent reply in the dialog."
+#     "\n{fewshot_examples}"
+# )
+
+MIXTRAL8X7B_QUERY_TEMPLATE = """下面是客户和客服的历史对话信息:
+{chat_history}
+
+当前客户的问题是: {query}
+
+请你从安踏客服助理小安的角度回答客户当前的问题。你需要使用上述提供的各种工具进行回答。"""
+
+
 class Mixtral8x7bRetailToolCallingChain(Claude2RetailToolCallingChain):
     model_id = "mistral.mixtral-8x7b-instruct-v0:1"
     default_model_kwargs = {"max_tokens": 1000, "temperature": 0.01,"stop":["</function_calls>"]}
@@ -278,3 +323,32 @@ class Mixtral8x7bRetailToolCallingChain(Claude2RetailToolCallingChain):
                 "function_calls": function_calls,
                 "content": content
             } 
+    
+    @staticmethod 
+    def chat_history_to_string(chat_history:list[dict]):
+        chat_history_lc = ChatPromptTemplate.from_messages([
+             ("placeholder", "{chat_history}")
+        ]).invoke({"chat_history":chat_history}).messages
+
+        chat_history_strs = []
+        for message in chat_history_lc:
+            assert isinstance(message,(HumanMessage,AIMessage)),message
+            if isinstance(message,HumanMessage):
+                chat_history_strs.append(f"客户: {message.content}")
+            else:
+                chat_history_strs.append(f"客服: {message.content}")
+        return "\n".join(chat_history_strs)     
+
+    
+    @classmethod
+    def generate_chat_history(cls,state:dict):
+        chat_history_str = cls.chat_history_to_string(state['chat_history'])
+
+        chat_history = [{
+            "role": "user",
+            "content": MIXTRAL8X7B_QUERY_TEMPLATE.format(
+                chat_history=chat_history_str,
+                query = state['query']
+            )
+            }] + state['agent_chat_history']
+        return {"chat_history": chat_history}

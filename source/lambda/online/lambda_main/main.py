@@ -51,7 +51,7 @@ def get_secret_value(secret_arn: str):
 
 @chatbot_lambda_call_wrapper
 def lambda_handler(event_body:dict, context:dict):
-    logger.info(event_body)
+    # logger.info(event_body)
     stream = context['stream']
     request_timestamp = context['request_timestamp']
     ws_connection_id = context.get('ws_connection_id')
