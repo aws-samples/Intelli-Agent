@@ -345,7 +345,7 @@ def agent_route(state: dict):
     if recent_tool_name in ["comfort", "transfer", "chat"]:
         return recent_tool_name
 
-    if recent_tool_name == "QA":
+    if recent_tool_name in ["QA", "service_availability", "explain_abbr"]:
         return "aws_qa"
 
     if recent_tool_name == "assist":
