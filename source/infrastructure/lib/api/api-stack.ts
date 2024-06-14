@@ -195,7 +195,7 @@ export class ApiConstruct extends Construct {
       environment: {
         SESSIONS_TABLE_NAME: sessionsTableName,
         MESSAGES_TABLE_NAME: messagesTableName,
-        SESSIONS_BY_USER_ID_INDEX_NAME: "byUserId",
+        SESSIONS_BY_TIMESTAMP_INDEX_NAME: "byTimestamp",
         MESSAGES_BY_SESSION_ID_INDEX_NAME: "bySessionId",
       },
       vpc: apiVpc,
@@ -205,6 +205,38 @@ export class ApiConstruct extends Construct {
       securityGroups: [props.securityGroup],
     });
     ddbLambda.addToRolePolicy(this.iamHelper.dynamodbStatement);
+
+    const listSessionsLambda = new Function(this, "ListSessionsLambda", {
+      runtime: Runtime.PYTHON_3_11,
+      handler: "list_sessions.lambda_handler",
+      code: Code.fromAsset(join(__dirname, "../../../lambda/ddb")),
+      environment: {
+        SESSIONS_TABLE_NAME: sessionsTableName,
+        SESSIONS_BY_TIMESTAMP_INDEX_NAME: "byTimestamp",
+      },
+      vpc: apiVpc,
+      vpcSubnets: {
+        subnets: apiVpc.privateSubnets,
+      },
+      securityGroups: [props.securityGroup],
+    });
+    listSessionsLambda.addToRolePolicy(this.iamHelper.dynamodbStatement);
+
+    const listMessagesLambda = new Function(this, "ListMessagesLambda", {
+      runtime: Runtime.PYTHON_3_11,
+      handler: "list_messages.lambda_handler",
+      code: Code.fromAsset(join(__dirname, "../../../lambda/ddb")),
+      environment: {
+        MESSAGES_TABLE_NAME: messagesTableName,
+        MESSAGES_BY_SESSION_ID_INDEX_NAME: "bySessionId",
+      },
+      vpc: apiVpc,
+      vpcSubnets: {
+        subnets: apiVpc.privateSubnets,
+      },
+      securityGroups: [props.securityGroup],
+    });
+    listMessagesLambda.addToRolePolicy(this.iamHelper.dynamodbStatement);
 
     // Integration with Step Function to trigger ETL process
     // Lambda function to trigger Step Function
@@ -393,7 +425,7 @@ export class ApiConstruct extends Construct {
         allowOrigins: apigw.Cors.ALL_ORIGINS,
       },
       deployOptions: {
-        stageName: "v1",
+        stageName: "prod",
         metricsEnabled: true,
         loggingLevel: apigw.MethodLoggingLevel.INFO,
         dataTraceEnabled: true,
@@ -438,8 +470,14 @@ export class ApiConstruct extends Construct {
     });
 
     // All AOS wrapper should be within such lambda
-    const apiResourceDdb = api.root.addResource("feedback");
+    const apiResourceDdb = api.root.addResource("ddb");
     apiResourceDdb.addMethod("POST", lambdaDdbIntegration, methodOption);
+
+    const apiResourceListSessions = apiResourceDdb.addResource("list-sessions");
+    apiResourceListSessions.addMethod("GET", new apigw.LambdaIntegration(listSessionsLambda), methodOption);
+
+    const apiResourceListMessages = apiResourceDdb.addResource("list-messages");
+    apiResourceListMessages.addMethod("GET", new apigw.LambdaIntegration(listMessagesLambda), methodOption);
 
     const apiResourceStepFunction = api.root.addResource("etl");
     apiResourceStepFunction.addMethod(

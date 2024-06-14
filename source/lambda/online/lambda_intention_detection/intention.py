@@ -1,25 +1,7 @@
-import json
-import os
-import logging
-import time
-import uuid
-import boto3
-import json 
-import sys
-from textwrap import dedent
-from functools import partial
-from typing import TypedDict,Annotated
 
-from langchain.schema.runnable import (
-    RunnableLambda,
-    RunnableParallel,
-    RunnablePassthrough
-)
-from langgraph.graph import END, StateGraph
 
 from common_utils.logger_utils  import get_logger
 from common_utils.lambda_invoke_utils import chatbot_lambda_call_wrapper,invoke_lambda
-from common_utils.langchain_utils import chain_logger,RunnableParallelAssign,NestUpdateState
 
 logger = get_logger("intention")
 
@@ -27,8 +9,9 @@ logger = get_logger("intention")
 @chatbot_lambda_call_wrapper
 def lambda_handler(state:dict, context=None):
     intention_config = state['chatbot_config'].get("intention_config",{})
+    query_key = intention_config.get("query_key","query")
     event_body = {
-        "query": state['query'],
+        "query": state[query_key],
         **intention_config
     }
     # call retriver

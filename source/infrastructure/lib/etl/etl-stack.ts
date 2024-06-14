@@ -151,6 +151,7 @@ export class EtlStack extends NestedStack {
     endpointRole.addToPolicy(this.iamHelper.stsStatement);
     endpointRole.addToPolicy(this.iamHelper.ecrStatement);
     endpointRole.addToPolicy(this.iamHelper.llmStatement);
+    endpointRole.addToPolicy(this.iamHelper.bedrockStatement);
 
     const imageUrlDomain =
       this.region === "cn-north-1" || this.region === "cn-northwest-1"

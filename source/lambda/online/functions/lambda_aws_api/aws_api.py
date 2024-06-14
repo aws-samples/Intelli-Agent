@@ -1,10 +1,10 @@
 
 import json
-from typing import Any, Dict, List, Union,Mapping, Optional, TypeVar, Union
+from typing import Union,Optional, Union
 import os
 import boto3
 import requests
-from pydantic import BaseModel,ValidationInfo, field_validator, Field,ValidationError
+from pydantic import BaseModel,ValidationInfo, field_validator, Field
 import re
 
 class EC2PriceRequest(BaseModel):
@@ -172,7 +172,7 @@ def query_ec2_price(**args) -> Union[str,None]:
         
         return '\n'.join(prices) if prices else None
 
-def lambda_handler(event, context):
+def lambda_handler(event, context=None):
     '''
     event: {
         "body": "{

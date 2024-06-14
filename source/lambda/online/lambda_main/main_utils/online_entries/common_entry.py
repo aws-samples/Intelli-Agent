@@ -41,6 +41,7 @@ class ChatbotState(TypedDict):
     current_agent_tools_def: list[dict]
     current_agent_model_id: str
     parse_tool_calling_ok: bool
+    enable_trace: bool
 
 
 ####################
@@ -56,7 +57,7 @@ def query_preprocess_lambda(state: ChatbotState):
         lambda_module_path="lambda_query_preprocess.query_preprocess",
         handler_name="lambda_handler",
     )
-    send_trace(f"\n\n**query_rewrite:** \n{output}")
+    send_trace(f"\n\n**query_rewrite:** \n{output}", state["stream"], state["ws_connection_id"], state["enable_trace"])
     return {"query_rewrite": output}
 
 
@@ -71,8 +72,7 @@ def intention_detection_lambda(state: ChatbotState):
 
     # send trace
     send_trace(
-        f"**intention retrieved:**\n{json.dumps(intention_fewshot_examples,ensure_ascii=False,indent=2)}"
-    )
+        f"**intention retrieved:**\n{json.dumps(intention_fewshot_examples,ensure_ascii=False,indent=2)}", state["stream"], state["ws_connection_id"], state["enable_trace"])
     current_intent_tools: list[str] = list(
         set([e["intent"] for e in intention_fewshot_examples])
     )
@@ -95,7 +95,7 @@ def agent_lambda(state: ChatbotState):
     content = output['content']
     current_agent_tools_def = output['current_agent_tools_def']
     current_agent_model_id = output['current_agent_model_id']
-    send_trace(f"\n\n**current_function_calls:** \n{current_function_calls},\n**model_id:** \n{current_agent_model_id}\n**ai content:** \n{content}")
+    send_trace(f"\n\n**current_function_calls:** \n{current_function_calls},\n**model_id:** \n{current_agent_model_id}\n**ai content:** \n{content}", state["stream"], state["ws_connection_id"], state["enable_trace"])
     return {
         "current_agent_model_id": current_agent_model_id,
         "current_function_calls": current_function_calls,
@@ -123,7 +123,7 @@ def parse_tool_calling(state: ChatbotState):
             function_calls=state["current_function_calls"],
             tools=state["current_agent_tools_def"],
         )
-        send_trace(f"\n\n**tool_calls parsed:** \n{tool_calls}")
+        send_trace(f"\n\n**tool_calls parsed:** \n{tool_calls}", state["stream"], state["ws_connection_id"], state["enable_trace"])
         if tool_calls:
             state["extra_response"]["current_agent_intent_type"] = tool_calls[0]["name"]
         else:
@@ -141,7 +141,8 @@ def parse_tool_calling(state: ChatbotState):
                 "parse_tool_calling_ok": False,
                 "agent_chat_history":[{
                     "role": "user",
-                    "content": f"当前没有解析到tool,请检查tool调用的格式是否正确，并重新输出某个tool的调用。注意正确的tool调用格式应该为: {tool_format}。\n如果你认为当前不需要调用其他工具，请直接调用“give_final_response”工具进行返回。"
+                    # "content": f"当前没有解析到tool,请检查tool调用的格式是否正确，并重新输出某个tool的调用。注意正确的tool调用格式应该为: {tool_format}。\n如果你认为当前不需要调用其他工具，请直接调用“give_final_response”工具进行返回。"
+                    "content": f"\n如果你认为当前不需要调用其他工具，请直接调用“QA”工具进行返回。"
                 }]
             }
 
@@ -150,7 +151,7 @@ def parse_tool_calling(state: ChatbotState):
             "current_tool_calls": tool_calls,
         }
     except (ToolNotExistError, ToolParameterNotExistError) as e:
-        send_trace(f"\n\n**tool_calls parse failed:** \n{str(e)}")
+        send_trace(f"\n\n**tool_calls parse failed:** \n{str(e)}", state["stream"], state["ws_connection_id"], state["enable_trace"])
         return {
             "parse_tool_calling_ok": False,
             "agent_chat_history": [
@@ -191,7 +192,7 @@ def tool_execute_lambda(state: ChatbotState):
             {
                 "name": tool_name,
                 "output": output,
-                "kwargs": tool_call["args"],
+                "kwargs": tool_call["kwargs"],
                 "model_id": tool_call["model_id"],
             }
         )
@@ -207,7 +208,7 @@ def tool_execute_lambda(state: ChatbotState):
         tool_call_result_strs.append(ret)
 
     ret = "\n".join(tool_call_result_strs)
-    send_trace(f"\n\n**tool execute result:** \n{ret}")
+    send_trace(f"\n\n**tool execute result:** \n{ret}", state["stream"], state["ws_connection_id"], state["enable_trace"])
     return {"agent_chat_history": [{"role": "user", "content": ret}]}
 
 
@@ -225,6 +226,19 @@ def rag_retrieve_lambda(state: ChatbotState):
     contexts = [doc["page_content"] for doc in output["result"]["docs"]]
     return {"contexts": contexts}
 
+@node_monitor_wrapper
+def aws_qa_lambda(state: ChatbotState):
+    # call retrivever
+    retriever_params = state["chatbot_config"]["aws_qa_config"]["retriever_config"]
+    retriever_params["query"] = state["query"]
+    output: str = invoke_lambda(
+        event_body=retriever_params,
+        lambda_name="Online_Function_Retriever",
+        lambda_module_path="functions.lambda_retriever.retriever",
+        handler_name="lambda_handler",
+    )
+    contexts = [doc["page_content"] for doc in output["result"]["docs"]]
+    return {"contexts": contexts}
 
 @node_monitor_wrapper
 def rag_llm_lambda(state: ChatbotState):
@@ -332,7 +346,7 @@ def agent_route(state: dict):
         return recent_tool_name
 
     if recent_tool_name == "QA":
-        return "rag"
+        return "aws_qa"
 
     if recent_tool_name == "assist":
         return "chat"
@@ -365,6 +379,7 @@ def build_graph():
     workflow.add_node("give_final_response", give_final_response)
     # workflow.add_node("give_response_wo_tool", give_response_without_any_tool)
     workflow.add_node("rag_retrieve_lambda", rag_retrieve_lambda)
+    workflow.add_node("aws_qa_lambda", aws_qa_lambda)
     workflow.add_node("rag_llm_lambda", rag_llm_lambda)
     workflow.add_node("qq_matched_reply", qq_matched_reply)
     workflow.add_node("parse_tool_calling", parse_tool_calling)
@@ -375,6 +390,7 @@ def build_graph():
     workflow.add_edge("intention_detection_lambda", "agent_lambda")
     workflow.add_edge("tool_execute_lambda", "agent_lambda")
     workflow.add_edge("rag_retrieve_lambda", "rag_llm_lambda")
+    workflow.add_edge("aws_qa_lambda", "rag_llm_lambda")
     workflow.add_edge("agent_lambda", "parse_tool_calling")
     workflow.add_edge("rag_llm_lambda", END)
     workflow.add_edge("comfort_reply", END)
@@ -416,6 +432,7 @@ def build_graph():
             "transfer": "transfer_reply",
             "chat": "chat_llm_generate_lambda",
             "rag": "rag_retrieve_lambda",
+            "aws_qa": "aws_qa_lambda",
             "continue": "tool_execute_lambda",
         },
     )
@@ -454,6 +471,7 @@ def common_entry(event_body):
     stream = event_body["stream"]
     message_id = event_body["custom_message_id"]
     ws_connection_id = event_body["ws_connection_id"]
+    enable_trace = chatbot_config["enable_trace"]
 
     # invoke graph and get results
     response = app.invoke(
@@ -461,6 +479,7 @@ def common_entry(event_body):
             "stream": stream,
             "chatbot_config": chatbot_config,
             "query": query,
+            "enable_trace": enable_trace,
             "trace_infos": [],
             "message_id": message_id,
             "chat_history": chat_history,

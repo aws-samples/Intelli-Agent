@@ -41,18 +41,29 @@ CLAUDE_TOOL_EXECUTE_FAIL_TEMPLATE = """
 </function_results>
 """
 
+MIXTRAL8X7B_TOOL_EXECUTE_SUCCESS_TEMPLATE = """工具: {tool_name} 的执行结果如下:
+{result}"""
+
+MIXTRAL8X7B_TOOL_EXECUTE_FAIL_TEMPLATE = """工具: {tool_name} 执行错误，错误如下:
+{error}"""
+
 class Claude3SonnetFormatToolResult(FormatToolResult):
     model_id = "anthropic.claude-3-sonnet-20240229-v1:0"
-    def format(tool_output:dict):
+    execute_success_template = CLAUDE_TOOL_EXECUTE_SUCCESS_TEMPLATE
+    execute_fail_template = CLAUDE_TOOL_EXECUTE_FAIL_TEMPLATE
+    
+    @classmethod
+    def format(cls,tool_output:dict):
         exe_code = tool_output['code']
         if exe_code == 1:
             # failed
-            return CLAUDE_TOOL_EXECUTE_FAIL_TEMPLATE.format(
-                error=tool_output['result']
+            return cls.execute_fail_template.format(
+                error=tool_output['result'],
+                tool_name = tool_output['tool_name']
             )
         elif exe_code == 0:
             # succeed
-            return CLAUDE_TOOL_EXECUTE_SUCCESS_TEMPLATE.format(
+            return cls.execute_success_template.format(
                 tool_name=tool_output['tool_name'],
                 result=tool_output['result']
             )
@@ -74,6 +85,13 @@ class Claude21FormatToolResult(Claude3SonnetFormatToolResult):
 class ClaudeInstanceFormatToolResult(Claude3SonnetFormatToolResult):
     model_id = "anthropic.claude-instant-v1"
 
+
+
+
+class Mixtral8x7bFormatToolResult(Claude3SonnetFormatToolResult):
+    model_id = "mistral.mixtral-8x7b-instruct-v0:1"
+    execute_success_template = MIXTRAL8X7B_TOOL_EXECUTE_SUCCESS_TEMPLATE
+    execute_fail_template = MIXTRAL8X7B_TOOL_EXECUTE_FAIL_TEMPLATE
 
 format_tool_execute_result = FormatToolResult.format
 

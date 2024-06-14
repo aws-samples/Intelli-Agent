@@ -28,7 +28,7 @@ import {
   RETAIL_GOODS_LIST,
 } from 'src/utils/const';
 import { v4 as uuidv4 } from 'uuid';
-import { MessageDataType } from 'src/types';
+import { MessageDataType, SessionMessage } from 'src/types';
 
 interface MessageType {
   type: 'ai' | 'human';
@@ -38,11 +38,16 @@ interface MessageType {
   };
 }
 
-const ChatBot: React.FC = () => {
+interface ChatBotProps {
+  historySessionId?: string;
+}
+
+const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
+  const { historySessionId } = props;
   const config = useContext(ConfigContext);
   const { t } = useTranslation();
   const auth = useAuth();
-
+  const [loadingHistory, setLoadingHistory] = useState(false);
   const [messages, setMessages] = useState<MessageType[]>([
     {
       type: 'ai',
@@ -69,6 +74,7 @@ const ChatBot: React.FC = () => {
     LLM_BOT_CHAT_MODE_LIST[0],
   );
   const [useChatHistory, setUseChatHistory] = useState(true);
+  const [enableTrace, setEnableTrace] = useState(true);
   const [showTrace, setShowTrace] = useState(true);
   // const [useWebSearch, setUseWebSearch] = useState(false);
   // const [googleAPIKey, setGoogleAPIKey] = useState('');
@@ -79,7 +85,7 @@ const ChatBot: React.FC = () => {
     SCENARIO_LIST[0],
   );
 
-  const [sessionId, setSessionId] = useState('');
+  const [sessionId, setSessionId] = useState(historySessionId);
   const [workspaceIds, setWorkspaceIds] = useState<any[]>([]);
 
   const [temperature, setTemperature] = useState<string>('0.1');
@@ -87,6 +93,13 @@ const ChatBot: React.FC = () => {
 
   const [showMessageError, setShowMessageError] = useState(false);
   // const [googleAPIKeyError, setGoogleAPIKeyError] = useState(false);
+  const [isMessageEnd, setIsMessageEnd] = useState(false);
+
+  // validation
+  const [modelError, setModelError] = useState('');
+  const [temperatureError, setTemperatureError] = useState('');
+  const [maxTokenError, setMaxTokenError] = useState('');
+  const [modelSettingExpand, setModelSettingExpand] = useState(false);
 
   const connectionStatus = {
     [ReadyState.CONNECTING]: 'loading',
@@ -112,46 +125,98 @@ const ChatBot: React.FC = () => {
     }
   };
 
+  const getSessionHistoryById = async () => {
+    try {
+      setLoadingHistory(true);
+      const data = await fetchData({
+        url: `ddb/list-messages`,
+        method: 'get',
+        params: {
+          session_id: historySessionId,
+          page_size: 9999,
+          max_items: 9999,
+        },
+      });
+      const sessionMessage: SessionMessage[] = data.Items;
+      setMessages(
+        sessionMessage.map((msg) => {
+          return {
+            type: msg.role,
+            message: {
+              data: msg.content,
+              monitoring: '',
+            },
+          };
+        }),
+      );
+      setLoadingHistory(false);
+    } catch (error) {
+      console.error(error);
+      return [];
+    }
+  };
+
   useEffect(() => {
-    setSessionId(uuidv4());
+    if (historySessionId) {
+      // get session history by id
+      getSessionHistoryById();
+    } else {
+      setSessionId(uuidv4());
+    }
     getWorkspaceList();
   }, []);
 
   useEffect(() => {
+    if (enableTrace) {
+      setShowTrace(true);
+    } else {
+      setShowTrace(false);
+    }
+  }, [enableTrace]);
+
+  const handleAIMessage = (message: MessageDataType) => {
+    console.info('handleAIMessage:', message);
+    if (message.message_type === 'START') {
+      console.info('message started');
+    } else if (message.message_type === 'CHUNK') {
+      setCurrentAIMessage((prev) => {
+        return prev + (message?.message?.content ?? '');
+      });
+    } else if (message.message_type === 'END') {
+      setIsMessageEnd(true);
+    }
+  };
+
+  useEffect(() => {
     if (lastMessage !== null) {
-      setAiSpeaking(true);
-      console.info(lastMessage);
       const message: MessageDataType = JSON.parse(lastMessage.data);
-      console.info('message:', message);
       if (message.message_type === 'MONITOR') {
         setCurrentMonitorMessage((prev) => {
           return prev + (message?.message ?? '');
         });
       } else {
-        const isEnd = message.message_type === 'END';
-        let aiMessage = '';
-        setCurrentAIMessage((prev) => {
-          aiMessage = prev + (message?.message?.content ?? '');
-          return prev + (message?.message?.content ?? '');
-        });
-        if (isEnd) {
-          setAiSpeaking(false);
-          setMessages((prev) => {
-            return [
-              ...prev,
-              {
-                type: 'ai',
-                message: {
-                  data: aiMessage,
-                  monitoring: currentMonitorMessage,
-                },
-              },
-            ];
-          });
-        }
+        handleAIMessage(message);
       }
     }
   }, [lastMessage]);
+
+  useEffect(() => {
+    if (isMessageEnd) {
+      setAiSpeaking(false);
+      setMessages((prev) => {
+        return [
+          ...prev,
+          {
+            type: 'ai',
+            message: {
+              data: currentAIMessage,
+              monitoring: currentMonitorMessage,
+            },
+          },
+        ];
+      });
+    }
+  }, [isMessageEnd]);
 
   const handleClickSendMessage = () => {
     if (aiSpeaking) {
@@ -161,10 +226,41 @@ const ChatBot: React.FC = () => {
       setShowMessageError(true);
       return;
     }
+    // validate websocket status
+    if (readyState !== ReadyState.OPEN) {
+      return;
+    }
+    // validate model settings
+    if (!modelOption.trim()) {
+      setModelError('validation.requireModel');
+      setModelSettingExpand(true);
+      return;
+    }
+    if (!temperature.trim()) {
+      setTemperatureError('validation.requireTemperature');
+      setModelSettingExpand(true);
+      return;
+    }
+    if (!maxToken.trim()) {
+      setMaxTokenError('validation.requireMaxTokens');
+      setModelSettingExpand(true);
+      return;
+    }
+    if (parseInt(maxToken) < 1) {
+      setMaxTokenError('validation.maxTokensRange');
+      setModelSettingExpand(true);
+      return;
+    }
+    if (parseFloat(temperature) < 0.0 || parseFloat(temperature) > 1.0) {
+      setTemperatureError('validation.temperatureRange');
+      setModelSettingExpand(true);
+      return;
+    }
     setUserMessage('');
     setAiSpeaking(true);
     setCurrentAIMessage('');
     setCurrentMonitorMessage('');
+    setIsMessageEnd(false);
     // if (useWebSearch && !googleAPIKey.trim()) {
     //   setGoogleAPIKeyError(true);
     //   return;
@@ -177,6 +273,7 @@ const ChatBot: React.FC = () => {
         goods_id: retailGoods.value,
         chatbot_mode: chatModeOption.value,
         use_history: useChatHistory,
+        enable_trace: enableTrace,
         use_websearch: true,
         google_api_key: '',
         default_workspace_config: {
@@ -211,7 +308,10 @@ const ChatBot: React.FC = () => {
   };
 
   return (
-    <CommonLayout activeHref="/">
+    <CommonLayout
+      isLoading={loadingHistory}
+      activeHref={!historySessionId ? '/' : '/sessions'}
+    >
       <div className="chat-container mt-10">
         <div className="chat-message flex-v flex-1 gap-10">
           {messages.map((msg, index) => (
@@ -224,6 +324,7 @@ const ChatBot: React.FC = () => {
           ))}
           {aiSpeaking && (
             <Message
+              aiSpeaking={aiSpeaking}
               type="ai"
               showTrace={showTrace}
               message={{
@@ -263,7 +364,7 @@ const ChatBot: React.FC = () => {
             </div>
             <div>
               <Button
-                disabled={aiSpeaking}
+                disabled={aiSpeaking || readyState !== ReadyState.OPEN}
                 onClick={() => {
                   handleClickSendMessage();
                 }}
@@ -279,14 +380,23 @@ const ChatBot: React.FC = () => {
                   onChange={({ detail }) => setUseChatHistory(detail.checked)}
                   checked={useChatHistory}
                 >
-                  Multi-rounds
+                  {t('multiRound')}
                 </Toggle>
                 <Toggle
-                  onChange={({ detail }) => setShowTrace(detail.checked)}
-                  checked={showTrace}
+                  onChange={({ detail }) => setEnableTrace(detail.checked)}
+                  checked={enableTrace}
                 >
-                  Trace
+                  Enable trace
                 </Toggle>
+                {enableTrace && (
+                  <Toggle
+                    onChange={({ detail }) => setShowTrace(detail.checked)}
+                    checked={showTrace}
+                  >
+                    Show trace
+                  </Toggle>
+                )}
+
                 {/*
                 <Toggle
                   onChange={({ detail }) => {
@@ -322,14 +432,25 @@ const ChatBot: React.FC = () => {
           </div>
           <div>
             <ExpandableSection
+              onChange={({ detail }) => {
+                setModelSettingExpand(detail.expanded);
+              }}
+              expanded={modelSettingExpand}
               // variant="footer"
               headingTagOverride="h4"
-              headerText="Model Settings"
+              headerText={t('modelSettings')}
             >
               <ColumnLayout columns={3} variant="text-grid">
-                <FormField label="Model name" stretch={true}>
+                <FormField
+                  label={t('modelName')}
+                  stretch={true}
+                  errorText={t(modelError)}
+                >
                   <Autosuggest
-                    onChange={({ detail }) => setModelOption(detail.value)}
+                    onChange={({ detail }) => {
+                      setModelError('');
+                      setModelOption(detail.value);
+                    }}
                     value={modelOption}
                     options={LLM_BOT_MODEL_LIST.map((item) => {
                       return {
@@ -337,11 +458,11 @@ const ChatBot: React.FC = () => {
                         value: item,
                       };
                     })}
-                    placeholder="Enter value"
-                    empty="No matches found"
+                    placeholder={t('validation.requireModel')}
+                    empty={t('noModelFound')}
                   />
                 </FormField>
-                <FormField label="Scenario" stretch={true}>
+                <FormField label={t('scenario')} stretch={true}>
                   <Select
                     options={SCENARIO_LIST}
                     selectedOption={scenario}
@@ -361,20 +482,30 @@ const ChatBot: React.FC = () => {
                     </div>
                   )}
                 </FormField>
-                <FormField label="Max Tokens" stretch={true}>
+                <FormField
+                  label={t('maxTokens')}
+                  stretch={true}
+                  errorText={t(maxTokenError)}
+                >
                   <Input
                     type="number"
                     value={maxToken}
                     onChange={({ detail }) => {
+                      setMaxTokenError('');
                       setMaxToken(detail.value);
                     }}
                   />
                 </FormField>
-                <FormField label="Temperature" stretch={true}>
+                <FormField
+                  label={t('temperature')}
+                  stretch={true}
+                  errorText={t(temperatureError)}
+                >
                   <Input
                     type="number"
                     value={temperature}
                     onChange={({ detail }) => {
+                      setTemperatureError('');
                       setTemperature(detail.value);
                     }}
                   />

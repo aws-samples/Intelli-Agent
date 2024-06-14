@@ -1,21 +1,13 @@
 # conversation summary chain
-import json
-import os
-import sys
-from functools import lru_cache
-from random import Random
 from typing import List 
 
-from langchain.prompts import PromptTemplate
 from langchain.schema.runnable import (
-    RunnableBranch,
     RunnableLambda,
     RunnablePassthrough,
 )
 
 
 from ..llm_models import Model
-from .chat_chain import Iternlm2Chat7BChatChain
 from .llm_chain_base import LLMChain
 from common_utils.constant import (
     MessageType,
@@ -23,16 +15,12 @@ from common_utils.constant import (
 )
 
 from langchain_core.messages import(
-    HumanMessage,
     AIMessage,
-    SystemMessage,
     BaseMessage,
     convert_to_messages
 ) 
 from langchain.prompts import (
     HumanMessagePromptTemplate,
-    AIMessagePromptTemplate,
-    SystemMessagePromptTemplate,
     ChatPromptTemplate
 )
 
@@ -47,6 +35,8 @@ CQR_TEMPLATE = """# CONTEXT #
 <chat_history>
 {chat_history}
 <chat_history>
+
+当前用户的回复:
 <current_user_reply>
 {query}
 <current_user_reply>
@@ -72,7 +62,7 @@ class Claude2RetailConversationSummaryChain(LLMChain):
     model_id = "anthropic.claude-v2"
     intent_type = LLMTaskType.RETAIL_CONVERSATION_SUMMARY_TYPE
     default_model_kwargs = {"max_tokens": 2000, "temperature": 0.1, "top_p": 0.9}
-
+    CQR_TEMPLATE = CQR_TEMPLATE
     @staticmethod
     def create_conversational_context(chat_history:List[BaseMessage]):
         conversational_contexts = []
@@ -93,8 +83,8 @@ class Claude2RetailConversationSummaryChain(LLMChain):
         model_kwargs = {**cls.default_model_kwargs, **model_kwargs}
 
         cqr_template = ChatPromptTemplate.from_messages([
-            HumanMessagePromptTemplate.from_template(CQR_TEMPLATE),
-            AIMessage(content="好的，站在客户的角度，我将<current_user_reply>里面的内容改写为: ")
+            HumanMessagePromptTemplate.from_template(cls.CQR_TEMPLATE),
+            AIMessage(content="好的，站在客户的角度，我将当前用户的回复内容改写为: ")
         ])
 
         llm = Model.get_model(
@@ -127,3 +117,22 @@ class Claude3SonnetRetailConversationSummaryChain(Claude2RetailConversationSumma
 
 class Claude3HaikuRetailConversationSummaryChain(Claude2RetailConversationSummaryChain):
     model_id = "anthropic.claude-3-haiku-20240307-v1:0"
+
+
+
+MIXTRAL_CQR_TEMPLATE = """下面有一段客户和客服的对话，以及当前客户的一个回复,请你站在客户的角度，结合上述对话数据对当前客户的回复内容进行改写，使得改写之后的内容可以作为一个独立的句子。下面是改写的要求:
+- 改写后的回复需要和当前客户的一个回复的内容意思一致。
+- 请直接用中文进行回答。
+
+# 客户和客服的对话:
+{chat_history}
+
+# 当前客户的回复:
+{query}
+"""
+
+
+class Mixtral8x7bRetailConversationSummaryChain(Claude2RetailConversationSummaryChain):
+    model_id = "mistral.mixtral-8x7b-instruct-v0:1"
+    default_model_kwargs = {"max_tokens": 1000, "temperature": 0.01}
+    CQR_TEMPLATE = MIXTRAL_CQR_TEMPLATE

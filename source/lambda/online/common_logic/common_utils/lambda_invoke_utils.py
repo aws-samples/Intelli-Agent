@@ -2,15 +2,12 @@ import enum
 import functools
 import importlib
 import json
-import os
 import time
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Callable
 
-import boto3
 import requests
 from common_utils.constant import StreamMessageType
 from common_utils.logger_utils import get_logger
-from common_utils.serialization_utils import JSONEncoder
 from common_utils.websocket_utils import is_websocket_request, send_to_ws_client
 from langchain.pydantic_v1 import BaseModel, Field, root_validator
 
@@ -22,7 +19,7 @@ logger = get_logger("lambda_invoke_utils")
 class LAMBDA_INVOKE_MODE(enum.Enum):
     LAMBDA = "lambda"
     LOCAL = "local"
-    APIGETAWAY = "apigetaway"
+    API_GW = "api_gw"
 
     @classmethod
     def has_value(cls, value):
@@ -34,9 +31,11 @@ class LAMBDA_INVOKE_MODE(enum.Enum):
 
 
 _lambda_invoke_mode = LAMBDA_INVOKE_MODE.LOCAL.value
+
 _is_current_invoke_local = False
 _current_stream_use = True
 _ws_connection_id = None
+_enable_trace = True
 
 
 class LambdaInvoker(BaseModel):
@@ -144,7 +143,7 @@ class LambdaInvoker(BaseModel):
                 event_body=event_body,
                 handler_name=handler_name,
             )
-        elif lambda_invoke_mode == LAMBDA_INVOKE_MODE.APIGETAWAY.value:
+        elif lambda_invoke_mode == LAMBDA_INVOKE_MODE.API_GW.value:
             return self.invoke_with_apigateway(url=apigetway_url, event_body=event_body)
 
 
@@ -158,21 +157,22 @@ invoke_lambda = obj.invoke_lambda
 def chatbot_lambda_call_wrapper(fn):
     @functools.wraps(fn)
     def inner(event: dict, context=None):
-        global _lambda_invoke_mode, _is_current_invoke_local
+        global _lambda_invoke_mode, _is_current_invoke_local,_enable_trace,_ws_connection_id
         _is_current_invoke_local = True if context is None else False
         current_lambda_invoke_mode = LAMBDA_INVOKE_MODE.LOCAL.value
         # avoid recursive lambda calling
         if context is not None and type(context).__name__ == "LambdaContext":
             context = context.__dict__
             _lambda_invoke_mode = LAMBDA_INVOKE_MODE.LOCAL.value
+            _enable_trace = event.get('chatbot_config',{}).get("enable_trace",True)
             # logger.info(f'event: {json.dumps(event,ensure_ascii=False,indent=2,cls=JSONEncoder)}')
 
         if "Records" in event:
             records = event["Records"]
-            assert len(records), "Please set sqs batch size to 1"
+            assert len(records) == 1, "Please set sqs batch size to 1"
             event = json.loads(records[0]["body"])
             _lambda_invoke_mode = LAMBDA_INVOKE_MODE.LOCAL.value
-            current_lambda_invoke_mode = LAMBDA_INVOKE_MODE.APIGETAWAY.value
+            current_lambda_invoke_mode = LAMBDA_INVOKE_MODE.API_GW.value
 
         context = context or {}
         context["request_timestamp"] = time.time()
@@ -181,18 +181,18 @@ def chatbot_lambda_call_wrapper(fn):
         if stream:
             ws_connection_id = event["requestContext"]["connectionId"]
             context["ws_connection_id"] = ws_connection_id
-            global _ws_connection_id
             _ws_connection_id = ws_connection_id
 
         # apigateway wrap event into body
         if "body" in event:
             _lambda_invoke_mode = LAMBDA_INVOKE_MODE.LOCAL.value
-            current_lambda_invoke_mode = LAMBDA_INVOKE_MODE.APIGETAWAY.value
+            current_lambda_invoke_mode = LAMBDA_INVOKE_MODE.API_GW.value
             event = json.loads(event["body"])
+       
         ret = fn(event, context=context)
         # save response to body
         # TODO
-        if current_lambda_invoke_mode == LAMBDA_INVOKE_MODE.APIGETAWAY.value:
+        if current_lambda_invoke_mode == LAMBDA_INVOKE_MODE.API_GW.value:
             ret = {
                 "statusCode": 200,
                 "body": json.dumps(ret),
@@ -208,39 +208,59 @@ def is_running_local():
     return _is_current_invoke_local
 
 
-def send_trace(trace_info: str):
-    if _current_stream_use and _ws_connection_id is not None:
-        send_to_ws_client(
-            message={
-                "message_type": StreamMessageType.MONITOR,
-                "message": trace_info,
-                "created_time": time.time(),
-            },
-            ws_connection_id=_ws_connection_id,
-        )
-    else:
-        logger.info(trace_info)
+def send_trace(
+        trace_info: str, 
+        current_stream_use: bool = None, 
+        ws_connection_id: Optional[str] = None, 
+        enable_trace: bool = None
+    ) -> None:
+    """
+    Send trace information either to a WebSocket client or log it.
+    """
+    if current_stream_use is None:
+        current_stream_use = _current_stream_use
+
+    if enable_trace is None:
+        enable_trace = _enable_trace
+    
+    if ws_connection_id is None:
+        ws_connection_id = _ws_connection_id
+
+    if enable_trace:
+        if current_stream_use and ws_connection_id is not None:
+            send_to_ws_client(
+                message={
+                    "message_type": StreamMessageType.MONITOR,
+                    "message": trace_info,
+                    "created_time": time.time(),
+                },
+                ws_connection_id=ws_connection_id,
+            )
+        else:
+            logger.info(trace_info)
 
 
-def node_monitor_wrapper(fn=None, *, monitor_key="current_monitor_infos"):
-    def inner(fn):
-        @functools.wraps(fn)
-        def inner2(state: dict):
+def node_monitor_wrapper(fn: Optional[Callable[..., Any]] = None, *, monitor_key: str = "current_monitor_infos") -> Callable[..., Any]:
+    """
+    A decorator to monitor the execution of a function.
+    """
+    def inner(func: Callable[..., Any]) -> Callable[..., Dict[str, Any]]:
+        @functools.wraps(func)
+        def wrapper(state: Dict[str, Any]) -> Dict[str, Any]:
             enter_time = time.time()
-            send_trace(f"\n\n Enter {fn.__name__}, time: {enter_time}")
-            global _current_stream_use, _ws_connection_id
-            _current_stream_use = state["stream"]
-            _ws_connection_id = state["ws_connection_id"]
-            output = fn(state)
+            current_stream_use = state["stream"]
+            ws_connection_id = state["ws_connection_id"]
+            enable_trace = state["enable_trace"]
+            send_trace(f"\n\n **Enter {func.__name__}**", current_stream_use, ws_connection_id, enable_trace)
+            output = func(state)
             current_monitor_infos = output.get(monitor_key, None)
             if current_monitor_infos is not None:
-                # sent to wwebsocket
-                send_trace(f"\n\n {current_monitor_infos}")
+                send_trace(f"\n\n {current_monitor_infos}", current_stream_use, ws_connection_id, enable_trace)
             exit_time = time.time()
-            send_trace(f"\n\n **Exit {fn.__name__}**, time: {exit_time}, elapsed time: {exit_time-enter_time}s")
+            send_trace(f"\n\n **Exit {func.__name__}**, elapsed time: {round(exit_time-enter_time)} s", current_stream_use, ws_connection_id, enable_trace)
             return output
 
-        return inner2
+        return wrapper
 
     if fn is not None:
         assert callable(fn), fn

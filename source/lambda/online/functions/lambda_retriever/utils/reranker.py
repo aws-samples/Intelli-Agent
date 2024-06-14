@@ -7,7 +7,7 @@ import numpy as np
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-from typing import TYPE_CHECKING, Dict, Optional, Sequence, Any
+from typing import Dict, Optional, Sequence, Any
 
 from langchain.callbacks.manager import Callbacks
 from langchain.schema import Document

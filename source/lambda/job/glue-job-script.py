@@ -55,12 +55,32 @@ try:
     )
 except Exception as e:
     logger.warning("Running locally")
+    import argparse
+    parser=argparse.ArgumentParser(description="local ingestion parameters")
+    parser.add_argument("--offline", type=bool, default=True)
+    parser.add_argument("--batch_indice", type=int, default=0)
+    parser.add_argument("--batch_file_number", type=int, default=1000)
+    parser.add_argument("--document_language", type=str, default="zh")
+    parser.add_argument("--embedding_model_endpoint", type=str, required=True)
+    parser.add_argument("--table_item_id", type=str, default="x")
+    parser.add_argument("--qa_enhancement", type=str, default=False)
+    parser.add_argument("--s3_bucket", type=str, required=True)
+    parser.add_argument("--s3_prefix", type=str, required=True)
+    parser.add_argument("--workspace_id", type=str, required=True)
+    parser.add_argument("--index_type", type=str, required=True)
+    parser.add_argument("--operation_type", type=str, default="create")
+    command_line_args=parser.parse_args()
     sys.path.append("dep")
-    args = json.load(open(sys.argv[1]))
+    command_line_args_dict = vars(command_line_args)
+    args = {}
+    for key in command_line_args_dict.keys():
+        args[key.upper()] = command_line_args_dict[key]
     args["AOS_ENDPOINT"] = os.environ["aos_endpoint"]
     args["WORKSPACE_TABLE"] = os.environ["workspace_table"]
     args["ETL_OBJECT_TABLE"] = os.environ["etl_object_table"]
-    # args["BATCH_INDICE"] = sys.argv[2]
+    args["ETL_MODEL_ENDPOINT"] = os.environ["etl_endpoint"]
+    args["RES_BUCKET"] = os.environ["res_bucket"]
+    args["REGION"] = os.environ["region"]
 
 from llm_bot_dep import sm_utils
 from llm_bot_dep.constant import SplittingType
@@ -639,7 +659,7 @@ def main():
         supported_file_types = [
             "pdf",
             "txt",
-            "doc",
+            "docx",
             "md",
             "html",
             "json",

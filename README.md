@@ -1,19 +1,26 @@
 <h1 align="center">
-  <a name="logo"><img src="https://llm-bot-with-rag.s3.amazonaws.com/llm-bot-logo.png" alt="LLM Bot logo" width="160"></a>
-  <br>
-  LLM Bot
+  Intelli-Agent
 </h1>
-<h4 align="center">Chatbot with Knowledge ETL and RAG on AWS</h4>
+<h4 align="center">Intelli-Agent: Streamlined Workflow for Building Agent-Based Applications</h4>
 <div align="center">
   <h4>
-    <a href="https://github.com/aws-samples/llm-bot/stargazers"><img src="https://img.shields.io/github/stars/aws-samples/llm-bot.svg?style=plasticr"/></a>
-    <a href="https://github.com/aws-samples/llm-bot/commits/main"><img src="https://img.shields.io/github/last-commit/aws-samples/llm-bot.svg?style=plasticr"/></a>
-    <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-Apache%202.0-yellow.svg"></a>
-
+    <a href="https://github.com/aws-samples/Intelli-Agent/commits/main/stargazers"><img src="https://img.shields.io/github/stars/aws-samples/Intelli-Agent.svg?style=plasticr"/></a>
+    <a href="https://github.com/aws-samples/Intelli-Agent/commits/main"><img src="https://img.shields.io/github/last-commit/aws-samples/Intelli-Agent.svg?style=plasticr"/></a>
+    <a href="https://opensource.org/license/apache-2-0"><img src="https://img.shields.io/badge/License-Apache%202.0-yellow.svg"></a>
   </h4>
 </div>
 
-LLM Bot provides customers with an end-to-end implementation framework for quickly building Large Language Model (LLM) applications based on RAG technology (such as building private knowledge bases, GenBI, etc.). It utilizes LangChain to implement online processes, making it convenient to customize logic for different scenarios. It supports common enterprise document formats (such as PDF, DOCX, CSV, JSON, etc.) and includes a complete workflow that encompasses document format recognition and content extraction, metadata conversion, semantic segmentation, intent detection, retrieval, and Rerank. It supports multiple embeddings, Rerank, and large language models (such as Claude), helping customers improve accuracy and completeness in content extraction, knowledge retrieval, and model output, while reducing the difficulty of deployment.
+Intelli-Agent offers a streamlined workflow for developing scalable, production-grade agent-based applications, such as conversational chatbots. Key features include:
+
+1. **Enterprise Knowledge Base Creation**: Users can upload private documents in various formats (PDF, DOCX, HTML, TXT, MD, JSON, JSONL, PNG, JPG, JPEG, WEBP) to construct a personalized knowledge base.
+
+2. **Flexible Modeling Options**: Choose from multiple models (Agent, Chat, RAG) to suit diverse requirements. For instance, the Agent model can interpret user intent, select appropriate tools, and act on iterative results.
+
+3. **Configurable Chat-Based UI**: Our React/Next.js chat interface is user-friendly, making it easy to configure, explore, and customize to meet your specific needs.
+
+4. **Comprehensive RESTful API**: Our full-featured API facilitates easy integration with existing applications, enhancing functionality and user experience.
+
+Intelli-Agent is designed to empower developers to rapidly deploy intelligent, context-aware applications with minimal overhead and maximum efficiency.
 
 ## Table of Contents
 - [Architecture](#architecture)
@@ -29,9 +36,15 @@ LLM Bot provides customers with an end-to-end implementation framework for quick
 ## Architecture
 ![Architecture Image](https://github.com/aws-samples/llm-bot/assets/23544182/f1b52f91-cc20-409b-bb28-8e7810e34543)
 
-## ETL Workflow
-The ETL workflow handles documents inside the S3 bucket. It includes document type detection, document handling, and document enhancement. All branches will convert to markdown format to unify the processing.
-![ETL Workflow Image](https://github.com/aws-samples/llm-bot/assets/23544182/f35915ee-69ef-4f15-af83-e0df1d1249be)
+### Enterprise Knowledge Base Creation
+TODO: We manage the entire document ETL process, which includes format recognition, content extraction, metadata conversion, and semantic segmentation, seamlessly in the background.
+
+![Offline Workflow](TODO)
+
+### Flexible Modeling Options
+
+TODO: We handle complex tasks such as vector embedding, intent detection, knowledge retrieval, and re-ranking behind the scenes.
+![Online Workflow](TODO)
 
 ## Quick Start
 Follow these steps to get started:
@@ -92,6 +105,12 @@ npm run build
 ### Deploy CDK Template
 Please make sure **docker** is installed and the CDK command is executed in the **same region** of the model files which are uploaded in previous step. 
 
+Login to AWS ECR Public to pull the image from the public repository.
+```
+aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
+```
+
+Start the deployment by executing the following command:
 ```bash
 cd source/infrastructure
 npx cdk deploy --parameters S3ModelAssets=<Your S3 Bucket Name> --parameters SubEmail=<Your email address> --parameters EtlImageName=<Your ETL model name> --parameters ETLTag=<Your ETL tag name>

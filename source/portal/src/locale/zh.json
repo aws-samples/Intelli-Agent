@@ -1,7 +1,7 @@
 {
   "translation": {
-    "name": "Intelligent Private Agent",
-    "welcome": "欢迎使用 Intelligent Private Agent",
+    "name": "Intelli-Agent",
+    "welcome": "欢迎使用 Intelli-Agent",
     "you": "你",
     "welcomeMessage": "您好，我今天有什么可以帮助您？",
     "server": "服务器",
@@ -10,7 +10,7 @@
     "chatSpace": "聊天",
     "chatBot": "聊天机器人",
     "docLibrary": "文档库",
-    "addLibrary": "添加文档库",
+    "addLibrary": "添加文档",
     "documentation": "文档",
     "ingest": "导入",
     "ingestDesc": "请选择要导入的文件",
@@ -40,6 +40,7 @@
     "indexType": "索引类型",
     "status": "状态",
     "createTime": "创建时间",
+    "latestQuestion": "最新问题",
     "loadingData": "正在加载数据...",
     "noData": "无数据",
     "findResources": "查找资源",
@@ -56,6 +57,16 @@
     "preferences": "偏好设置",
     "pageSize": "每页显示",
     "fileEmptyError": "请选择需要上传的文件",
+    "docName": "文档名称",
+    "multiRound": "多轮对话",
+    "trace": "跟踪",
+    "modelSettings": "模型设置",
+    "modelName": "模型名称",
+    "noModelFound": "未找到模型",
+    "scenario": "场景",
+    "maxTokens": "最大 Token 数",
+    "temperature": "发散度",
+    "sessionHistory": "历史记录",
     "button": {
       "login": "登录到 AWS 大语言模型机器人",
       "reload": "重新加载",
@@ -65,12 +76,19 @@
       "confirm": "确认",
       "backToList": "返回列表",
       "delete": "删除",
-      "createDocLibrary": "创建文档库",
+      "createDoc": "创建文档",
       "upload": "上传"
     },
     "header": {
       "reSignIn": "请重新登录",
       "reSignInDesc": "您已登出您的账户。请点击“重新加载”以重新登录到网页控制台。"
+    },
+    "validation": {
+      "requireModel": "请选择或输入一个模型",
+      "requireTemperature": "请输入模型发散度",
+      "requireMaxTokens": "请输入一个最大 token 数",
+      "temperatureRange": "发散度必须介于 0 和 1 之间",
+      "maxTokensRange": "最大 token 数必须大于 0"
     }
   }
 }

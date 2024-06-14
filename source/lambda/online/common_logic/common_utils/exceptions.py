@@ -25,3 +25,15 @@ class ToolParameterNotExistError(Exception):
 
     def __str__(self):
         return self.to_agent() + f"\nfunction_call:\n{self.function_call_content}"
+
+
+class MultipleToolNameError(Exception):
+    def __init__(self,function_call_content) -> None:
+        self.function_call_content = function_call_content
+        self.tool_name = ""
+        
+    def to_agent(self):
+        return "multiple tool names are found in XML tag <invoke></invoke>."
+
+    def __str__(self):
+        return self.to_agent() + f"\nfunction_call:\n{self.function_call_content}"

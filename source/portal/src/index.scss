@@ -49,6 +49,10 @@
   text-align: center;
 }
 
+.mt-5 {
+  margin-top: 5px;
+}
+
 .chat-container {
   height: calc(100% - 60px);
   display: flex;
@@ -66,6 +70,15 @@
       padding: 15px 15px;
       border-radius: 10px;
       background-color: #f2f8fd;
+      .message {
+        ul,
+        ol {
+          padding: 5px 0 5px 22px;
+          li {
+            line-height: 1.5em;
+          }
+        }
+      }
     }
     &.human {
       width: 100%;

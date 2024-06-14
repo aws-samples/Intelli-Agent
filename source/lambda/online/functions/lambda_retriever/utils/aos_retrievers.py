@@ -2,7 +2,7 @@ import os
 import logging
 import traceback 
 import asyncio
-from typing import TYPE_CHECKING, Any, Dict, List, Optional 
+from typing import Any, Dict, List 
 
 from langchain.schema.retriever import BaseRetriever
 from langchain.callbacks.manager import CallbackManagerForRetrieverRun
