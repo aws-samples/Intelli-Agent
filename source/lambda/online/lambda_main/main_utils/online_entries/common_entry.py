@@ -49,7 +49,8 @@ class ChatbotState(TypedDict):
     parse_tool_calling_ok: bool
     enable_trace: bool
     agent_recursion_limit: int # agent recursion limit
-    current_agent_recursion_limit: int
+    current_agent_recursion_num: int
+    format_intention: str
 
 def get_common_system_prompt():
     now = get_china_now()
@@ -99,26 +100,27 @@ def intention_detection_lambda(state: ChatbotState):
 
 
 
-@node_monitor_wrapper
-def all_index_retriever_lambda(state: ChatbotState):
-    # call retrivever
-    retriever_params = state["chatbot_config"]["all_index_retriever_config"]
-    retriever_params["query"] = state["query"]
-    output: str = invoke_lambda(
-        event_body=retriever_params,
-        lambda_name="Online_Function_Retriever",
-        lambda_module_path="functions.lambda_retriever.retriever",
-        handler_name="lambda_handler",
-    )
-    contexts = [doc["page_content"] for doc in output["result"]["docs"]]
-    send_trace("**all index retriever lambda result** \n" + ("\n"+"="*50 + "\n").join(contexts))
-    return {"all_index_retriever_contexts": contexts}
+# @node_monitor_wrapper
+# def rag_all_index_lambda(state: ChatbotState):
+#     # call retrivever
+#     retriever_params = state["chatbot_config"]["all_index_retriever_config"]
+#     retriever_params["query"] = state["query"]
+#     output: str = invoke_lambda(
+#         event_body=retriever_params,
+#         lambda_name="Online_Function_Retriever",
+#         lambda_module_path="functions.lambda_retriever.retriever",
+#         handler_name="lambda_handler",
+#     )
+#     contexts = [doc["page_content"] for doc in output["result"]["docs"]]
+#     send_trace("**all index retriever lambda result** \n" + ("\n"+"="*50 + "\n").join(contexts))
+#     return {"all_index_retriever_contexts": contexts}
 
 
 @node_monitor_wrapper
 def agent_lambda(state: ChatbotState):
     system_prompt = get_common_system_prompt()
-    all_index_retriever_contexts = state.get("all_index_retriever_contexts",[])
+    # all_index_retriever_contexts = state.get("all_index_retriever_contexts",[])
+    all_index_retriever_contexts = state.get("contexts",[])
     if all_index_retriever_contexts:
         context = '\n\n'.join(all_index_retriever_contexts)
         system_prompt += f"\n下面有一些背景信息供参考:\n<context>\n{context}\n</context>\n"
@@ -137,11 +139,11 @@ def agent_lambda(state: ChatbotState):
     content = output['content']
     current_agent_tools_def = output['current_agent_tools_def']
     current_agent_model_id = output['current_agent_model_id']
-    current_agent_recursion_limit = state['current_agent_recursion_limit'] + 1
+    current_agent_recursion_num = state['current_agent_recursion_num'] + 1
     send_trace((f"\n **current_function_calls:** \n{current_function_calls}\n",
                 f"**model_id:** \n{current_agent_model_id}\n"
                 f"**ai content:** \n{content}\n"
-                f"**current_agent_recursion_limit:** \n{current_agent_recursion_limit}"), 
+                f"**current_agent_recursion_num:** \n{current_agent_recursion_num}"), 
                 state["stream"], 
                 state["ws_connection_id"],
                 state["enable_trace"]
@@ -150,7 +152,7 @@ def agent_lambda(state: ChatbotState):
         "current_agent_model_id": current_agent_model_id,
         "current_function_calls": current_function_calls,
         "current_agent_tools_def": current_agent_tools_def,
-        "current_agent_recursion_limit": current_agent_recursion_limit,
+        "current_agent_recursion_num": current_agent_recursion_num,
         "agent_chat_history": [{
                     "role": "ai",
                     "content": content
@@ -263,7 +265,7 @@ def tool_execute_lambda(state: ChatbotState):
 
 
 @node_monitor_wrapper
-def rag_retrieve_lambda(state: ChatbotState):
+def rag_all_index_lambda(state: ChatbotState):
     # call retrivever
     retriever_params = state["chatbot_config"]["rag_config"]["retriever_config"]
     retriever_params["query"] = state["query"]
@@ -334,13 +336,12 @@ def chat_llm_generate_lambda(state: ChatbotState):
     return {"answer": answer}
 
 
-def comfort_reply(state: ChatbotState):
-    return {"answer": "不好意思没能帮到您，是否帮你转人工客服？"}
-
-
-def transfer_reply(state: ChatbotState):
-    return {"answer": "立即为您转人工客服，请稍后"}
-
+def format_reply(state: ChatbotState):
+    recent_tool_name = state["current_tool_calls"][0]
+    if recent_tool_name == 'comfort':
+        return {"answer": "不好意思没能帮到您，是否帮你转人工客服？"}
+    if recent_tool_name == 'transfer':
+        return {"answer": "立即为您转人工客服，请稍后"}
 
 def give_rhetorical_question(state: ChatbotState):
     recent_tool_calling: list[dict] = state["current_tool_calls"][0]
@@ -375,9 +376,9 @@ def intent_route(state: dict):
 def agent_route(state: dict):
     parse_tool_calling_ok = state["parse_tool_calling_ok"]
     if not parse_tool_calling_ok:
-        if state['current_agent_recursion_limit'] >= state['agent_recursion_limit']:
+        if state['current_agent_recursion_num'] >= state['agent_recursion_limit']:
             send_trace(f"Reach the agent recursion limit: {state['agent_recursion_limit']}, route to final rag")
-            return 'rag/recursion limit'
+            return 'first final response/rag intention/recursion limit'
         return "invalid tool calling"
 
     recent_tool_calls: list[dict] = state["current_tool_calls"]
@@ -389,26 +390,35 @@ def agent_route(state: dict):
 
     recent_tool_name = recent_tool_call["name"]
 
-    if recent_tool_name in ["comfort", "transfer", "chat"]:
-        return recent_tool_name
+    if recent_tool_name in ["comfort", "transfer"]:
+        return "format reply"
 
     if recent_tool_name == "QA":
-        return "aws_qa"
+        return "aws qa"
 
-    if recent_tool_name == "assist":
+    if recent_tool_name in ["assist", "chat"]:
         return "chat"
 
     if recent_tool_call["name"] == "give_rhetorical_question":
         return "rhetorical question"
 
     if recent_tool_call["name"] == "give_final_response":
-        return "give final response"
+        if state['current_agent_recursion_num'] == 1:
+            return "first final response/rag intention/recursion limit"
+        else:
+            return "give final response"
     
-    if state['current_agent_recursion_limit'] >= state['agent_recursion_limit']:
+    if state['current_agent_recursion_num'] >= state['agent_recursion_limit']:
         send_trace(f"Reach the agent recursion limit: {state['agent_recursion_limit']}, route to final rag")
-        return 'rag/recursion limit'
+        return 'first final response/rag intention/recursion limit'
 
     return "continue"
+
+def rag_all_index_lambda_route(state: dict):
+    if not state.get('intention_fewshot_examples',[]):
+        return "no intention detected"
+    else:
+        return "rag model/first final response/rag intention/recursion limit"
 
 
 #############################
@@ -421,16 +431,17 @@ def build_graph():
     # add all nodes
     workflow.add_node("query_preprocess_lambda", query_preprocess_lambda)
     workflow.add_node("intention_detection_lambda", intention_detection_lambda)
-    workflow.add_node("all_index_retriever_lambda", all_index_retriever_lambda)
+    workflow.add_node("rag_all_index_lambda", rag_all_index_lambda)
     workflow.add_node("agent_lambda", agent_lambda)
     workflow.add_node("tool_execute_lambda", tool_execute_lambda)
     workflow.add_node("chat_llm_generate_lambda", chat_llm_generate_lambda)
-    workflow.add_node("comfort_reply", comfort_reply)
-    workflow.add_node("transfer_reply", transfer_reply)
+    workflow.add_node("format_reply", format_reply)
+    # workflow.add_node("comfort_reply", comfort_reply)
+    # workflow.add_node("transfer_reply", transfer_reply)
     workflow.add_node("give_rhetorical_question", give_rhetorical_question)
     workflow.add_node("give_final_response", give_final_response)
     # workflow.add_node("give_response_wo_tool", give_response_without_any_tool)
-    workflow.add_node("rag_retrieve_lambda", rag_retrieve_lambda)
+    # workflow.add_node("rag_all_index_lambda", rag_all_index_lambda)
     workflow.add_node("aws_qa_lambda", aws_qa_lambda)
     workflow.add_node("rag_llm_lambda", rag_llm_lambda)
     workflow.add_node("qq_matched_reply", qq_matched_reply)
@@ -440,19 +451,20 @@ def build_graph():
     workflow.set_entry_point("query_preprocess_lambda")
     # workflow.add_edge("query_preprocess_lambda","intention_detection_lambda")
     # workflow.add_edge("intention_detection_lambda", "agent_lambda")
-    workflow.add_edge("all_index_retriever_lambda","agent_lambda")
+    workflow.add_edge("rag_all_index_lambda","agent_lambda")
     workflow.add_edge("tool_execute_lambda", "agent_lambda")
-    workflow.add_edge("rag_retrieve_lambda", "rag_llm_lambda")
+    workflow.add_edge("rag_all_index_lambda", "rag_llm_lambda")
     workflow.add_edge("aws_qa_lambda", "rag_llm_lambda")
     workflow.add_edge("agent_lambda", "parse_tool_calling")
     workflow.add_edge("rag_llm_lambda", END)
-    workflow.add_edge("comfort_reply", END)
-    workflow.add_edge("transfer_reply", END)
+    workflow.add_edge("format_reply", END)
+    # workflow.add_edge("comfort_reply", END)
+    # workflow.add_edge("transfer_reply", END)
     workflow.add_edge("chat_llm_generate_lambda", END)
     workflow.add_edge("give_rhetorical_question", END)
     workflow.add_edge("give_final_response", END)
     # workflow.add_edge("give_response_wo_tool", END)
-    workflow.add_edge("rag_retrieve_lambda", "rag_llm_lambda")
+    workflow.add_edge("rag_all_index_lambda", "rag_llm_lambda")
     workflow.add_edge("rag_llm_lambda", END)
     workflow.add_edge("qq_matched_reply", END)
 
@@ -462,7 +474,7 @@ def build_graph():
         query_route,
         {
             "chat": "chat_llm_generate_lambda",
-            "rag": "rag_retrieve_lambda",
+            "rag": "rag_all_index_lambda",
             "agent": "intention_detection_lambda",
         },
     )
@@ -474,7 +486,7 @@ def build_graph():
         {
             "other": "agent_lambda",
             "qq_mathed": "qq_matched_reply",
-            "no fewshot examples": "all_index_retriever_lambda"
+            "no fewshot examples": "rag_all_index_lambda"
         },
     )
 
@@ -485,12 +497,22 @@ def build_graph():
             "invalid tool calling": "agent_lambda",
             "give final response": "give_final_response",
             "rhetorical question": "give_rhetorical_question",
-            "comfort": "comfort_reply",
-            "transfer": "transfer_reply",
+            "format reply": "format_reply",
+            # "comfort": "comfort_reply",
+            # "transfer": "transfer_reply",
             "chat": "chat_llm_generate_lambda",
-            "aws_qa": "aws_qa_lambda",
+            "aws qa": "aws_qa_lambda",
             "continue": "tool_execute_lambda",
-            "rag/recursion limit": "rag_retrieve_lambda",
+            "first final response/rag intention/recursion limit": "rag_all_index_lambda",
+        },
+    )
+
+    workflow.add_conditional_edges(
+        "rag_all_index_lambda",
+        rag_all_index_lambda_route,
+        {
+            "no intention detected": "agent_lambda",
+            "rag model/first final response/rag intention/recursion limit": "rag_llm_lambda",
         },
     )
     app = workflow.compile()
@@ -545,7 +567,7 @@ def common_entry(event_body):
             "debug_infos": {},
             "extra_response": {},
             "agent_recursion_limit": chatbot_config['agent_recursion_limit'],
-            "current_agent_recursion_limit": 0,
+            "current_agent_recursion_num": 0,
         }
     )
 
