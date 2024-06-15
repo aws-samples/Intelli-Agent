@@ -393,7 +393,7 @@ def agent_route(state: dict):
     if recent_tool_name in ["comfort", "transfer"]:
         return "format reply"
 
-    if recent_tool_name == "QA":
+    if recent_tool_name in ["QA", "service_availability", "explain_abbr"]:
         return "aws qa"
 
     if recent_tool_name in ["assist", "chat"]:

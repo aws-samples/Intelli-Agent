@@ -169,8 +169,8 @@ tool_manager.register_tool(
 ##### default tools #########
 tool_manager.register_tool({
     "name": "service_availability",
-    "lambda_name": "xxxx",
-    "lambda_module_path": "xxxx",
+    "lambda_name": "check_service_availability",
+    "lambda_module_path": "functions.lambda_aws_api.check_service_availability",
     "tool_def":{
         "name": "service_availability",
         "description":"query the availability of service in specified region",
@@ -301,7 +301,7 @@ tool_manager.register_tool({
     "lambda_module_path": "xxxx",
     "tool_def": {
         "name": "QA",
-        "description": "answer question according to searched relevant content"
+        "description": "answer question about aws according to searched relevant content"
     }
 })
 

@@ -114,7 +114,7 @@ def parse_common_entry_config(chatbot_config):
                 "retrievers": [
                     {
                         "type": "qd",
-                        "workspace_ids": ['aws-ug-qd'],
+                        "workspace_ids": ['aws-ug-qd', 'aws-acts-qd'],
                         "config": {
                             "top_k": 10,
                         }
