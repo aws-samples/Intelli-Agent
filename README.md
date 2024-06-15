@@ -44,7 +44,7 @@ TODO: We manage the entire document ETL process, which includes format recogniti
 ### Flexible Modeling Options
 
 TODO: We handle complex tasks such as vector embedding, intent detection, knowledge retrieval, and re-ranking behind the scenes.
-![Online Workflow](TODO)
+![Online Workflow](source/lambda/online/common_entry_workflow.png)
 
 ## Quick Start
 Follow these steps to get started:
