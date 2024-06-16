@@ -12,7 +12,7 @@
 
 Intelli-Agent offers a streamlined workflow for developing scalable, production-grade agent-based applications, such as conversational chatbots. Key features include:
 
-1. **Enterprise Knowledge Base Creation**: Users can upload private documents in various formats (PDF, DOCX, HTML, TXT, MD, JSON, JSONL, PNG, JPG, JPEG, WEBP) to construct a personalized knowledge base.
+1. **Enterprise Knowledge Base Creation**: Users can upload private documents in various formats (PDF, DOCX, HTML, CSV, TXT, MD, JSON, JSONL, PNG, JPG, JPEG, WEBP) to construct a personalized knowledge base.
 
 2. **Flexible Modeling Options**: Choose from multiple models (Agent, Chat, RAG) to suit diverse requirements. For instance, the Agent model can interpret user intent, select appropriate tools, and act on iterative results.
 
@@ -80,13 +80,13 @@ Next, navigate to the ETL code directory. Depending on your region, you will use
 
 ```bash
 cd source/model/etl/code
-sh model.sh <./Dockerfile or ./DockerfileCN> <EtlImageName> <AWS_REGION> <EtlImageTag>
+sh model.sh ./Dockerfile <EtlImageName> <AWS_REGION> <EtlImageTag>
 ```
 
-For example, to prepare ETL model asset in the GCR (Greater China) region, the command is:
+For example, to prepare ETL model asset in the us-east-1 region, the command is:
 
 ```bash
-sh model.sh ./DockerfileCN llm-bot-cn cn-northwest-1 latest
+sh model.sh ./Dockerfile intelli-agent-etl us-east-1 latest
 ```
 
 Finally, if this is the first time using Amazon OpenSearch in this account, you will need to create a service-linked role for Amazon OpenSearch Service. This role is necessary to allow Amazon OpenSearch Service to manage resources on your behalf.
@@ -98,8 +98,7 @@ aws iam create-service-linked-role --aws-service-name es.amazonaws.com
 
 ```bash
 cd source/portal
-npm install
-npm run build
+npm install && npm run build
 ```
 
 ### Deploy CDK Template
@@ -107,6 +106,7 @@ Please make sure **docker** is installed and the CDK command is executed in the 
 
 Login to AWS ECR Public to pull the image from the public repository.
 ```
+cd source
 aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
 ```
 
@@ -137,7 +137,6 @@ npx cdk deploy --parameters S3ModelAssets=<Your S3 Bucket Name> --parameters Sub
 | Context | Description |
 |---------|-------------|
 | DeploymentMode | The mode for deployment. There are three modes: `OFFLINE_EXTRACT`, `OFFLINE_OPENSEARCH`, and `ALL`. Default deployment mode is `ALL`. |
-| LayerPipOption | The configuration option for the Python package installer (pip) for the Lambda layer. Please use it to set PyPi mirror(e.g. -i https://pypi.tuna.tsinghua.edu.cn/simple) when your local development environment is in GCR region. Default LayerPipOption is set to ``. |
 
 
 ## API Reference
