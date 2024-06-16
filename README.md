@@ -49,7 +49,7 @@ you can see, the first node is **query_preprocess_lambda** which
 handles the chat history. Then user can choose from thress modes: 
 chat, rag and agent. The **chat** mode let you interact directly 
 with different LLM, like anthropic claude 3, chat gpt and so on. 
-The **rag** mode will retreive the relevent contents relating to the
+The **rag** mode will retreive the relevant contents relating to the
 current query and let LLM answer it. The **agent** mode is the most 
 complex mode which gives you possibility to handle complex business 
 senarios. Given most relavant intention from **intention_detection_lambda** 
