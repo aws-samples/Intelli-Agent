@@ -4,8 +4,8 @@
 <h4 align="center">Intelli-Agent: Streamlined Workflow for Building Agent-Based Applications</h4>
 <div align="center">
   <h4>
-    <a href="https://github.com/aws-samples/Intelli-Agent/commits/main/stargazers"><img src="https://img.shields.io/github/stars/aws-samples/Intelli-Agent.svg?style=plasticr"/></a>
-    <a href="https://github.com/aws-samples/Intelli-Agent/commits/main"><img src="https://img.shields.io/github/last-commit/aws-samples/Intelli-Agent.svg?style=plasticr"/></a>
+    <a href="https://github.com/aws-samples/Intelli-Agent/commits/main/stargazers"><img src="https://img.shields.io/github/stars/aws-samples/Intelli-Agent.svg?style=plasticr"></a>
+    <a href="https://github.com/aws-samples/Intelli-Agent/actions/workflows/pull-request-lint.yml"><img src="https://github.com/aws-samples/Intelli-Agent/actions/workflows/pull-request-lint.yml/badge.svg"></a>
     <a href="https://opensource.org/license/apache-2-0"><img src="https://img.shields.io/badge/License-Apache%202.0-yellow.svg"></a>
   </h4>
 </div>
@@ -34,12 +34,73 @@ Intelli-Agent is designed to empower developers to rapidly deploy intelligent, c
 - [License](#license)
 
 ## Architecture
-![Architecture Image](https://github.com/aws-samples/llm-bot/assets/23544182/f1b52f91-cc20-409b-bb28-8e7810e34543)
+Deploying this solution using the default parameters will build the following environment in Amazon Web Services:
+
+![Architecture Image](docs/images/intelli-agent-arch.png)
+
+The execution process is as follows:
+
+1. The solution's front-end website is hosted in an Amazon S3 bucket and distributed via Amazon CloudFront. Authentication is provided by an Amazon Cognito user pool.
+2. When users upload documents to the knowledge base through the solution's website, the documents are first uploaded to the Amazon S3 bucket.
+3. An Amazon Lambda function is then triggered, which in turn triggers an Amazon Step Functions workflow to process the file. Within Amazon Step Functions, the document is parsed and segmented using an Amazon Glue Job, with intermediate states stored in Amazon DynamoDB and Amazon S3.
+4. The Amazon Glue Job vectorizes the segmented text blocks using an Embedding model deployed in an Amazon SageMaker Endpoint and injects them into the vector database Amazon OpenSearch. If the document is in image format (e.g., png, webp) or a pdf with images, the Amazon Glue Job uses Amazon BedRock to interpret the images and convert them to text. Finally, Amazon SNS sends the execution result to the user via email.
+5. When users send chat messages through the solution's website, the online module's Amazon API Gateway is triggered. Front-end and back-end communication is achieved via WebSocket API. An Amazon Lambda function integrated with Amazon API Gateway sends the request message to Amazon SQS to prevent message timeout.
+6. Messages in Amazon SQS are consumed by the online module's Amazon Lambda, which executes Agent/RAG/Chat logic based on the request parameters and records the chat messages in Amazon DynamoDB. The Amazon Lambda function uses intent recognition to determine the necessary tools and perform the corresponding operations.
+7. If the RAG model is selected, the Amazon Lambda function vectorizes the query message using the Embedding model deployed in the Amazon SageMaker Endpoint, retrieves matching knowledge from Amazon OpenSearch, reorders the results, and sends the knowledge to the large language model, which then returns the answer to the front end.
+8. During the chat, messages between the user and AI are stored in Amazon DynamoDB. The solution's website retrieves a specific chat record through Amazon API Gateway and Amazon Lambda, allowing the user to continue the conversation based on the content of that chat record.
 
 ### Enterprise Knowledge Base Creation
-TODO: We manage the entire document ETL process, which includes format recognition, content extraction, metadata conversion, and semantic segmentation, seamlessly in the background.
+Its data preprocessing module includes format recognition, content extraction, metadata conversion, and semantic segmentation, seamlessly in the background.
 
-![Offline Workflow](TODO)
+![Offline Workflow](docs/images/intelli-agent-kb-etl.png)
+
+When a large number of content injection requests are received, it can automatically scale out by running multiple Amazon Glue jobs concurrently, ensuring these requests are processed in time.
+
+#### Chunk Metadata
+Chunk metadata is defined as below shown:
+| Name | Description |
+| - | - |
+|file_path| S3 path to store the file |
+|file_type| File type, eg. pdf, html |
+|content_type| paragraph: paragraph content |
+|current_heading| The heading which the chunk belongs to |
+|chunk_id| Unique chunk id |
+|heading_hierarchy| Heading hierarchy which is used to locate the chunk in the whole file content |
+|title| The heading of current section|
+|level| Heading level, eg. H1 is #, H2 is ## in markdown |
+|parent| The chunk id of parent section, eg. H2's parent is its H1, H3's parent is its H2 |
+|previous| The chunk id of previous paragraph at the same Level |
+|child| The chunk ids of sub sections |
+|next|The chunk id of next paragraph at the same Level |
+|size| The number of the chunks when the paragraph is splitted by a fixed chunk size |
+
+Here is an example
+
+```
+{
+	"file_path": "s3://example/intelli-agent-user-guide.pdf",
+	"file_type": "pdf",
+	"content_type": "paragragh",
+	"current_heading": "# Intelli-Agent User Guide WebApp",
+	"chunk_id": "$1-4659f607-1",
+	"heading_hierarchy": {
+		"title": "Intelli-Agent User Guide",
+		"level": 1,
+		"parent": null,
+		"previous": null,
+		"child": [
+      "$2-038759db",
+      "$4-68d6e6ca",
+      "$6-e9cdcf68",
+    ],
+		"next": null,
+		"size": 2
+	}
+}
+
+```
+
+
 
 ### Flexible Modeling Options
 
