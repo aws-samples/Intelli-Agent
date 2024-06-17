@@ -49,21 +49,21 @@ you can see, the first node is **query_preprocess_lambda** which
 handles the chat history. Then user can choose from thress modes: 
 chat, rag and agent. The **chat** mode let you interact directly 
 with different LLM, like anthropic claude 3, chat gpt and so on. 
-The **rag** mode will retreive the relevant contents relating to the
+The **rag** mode will retrieve the relevant contents relating to the
 current query and let LLM answer it. The **agent** mode is the most 
 complex mode which gives you possibility to handle complex business 
-senarios. Given most relavant intention from **intention_detection_lambda** 
+scenarios. Given most relevant intention from **intention_detection_lambda** 
 and chat history from **query_preprocess_lambda**, **agent_lambda** 
 will decide which tools to use and whether the information is enough 
 to answer the query. The **parse_tool_calling** node will parse the 
-ouput of **agent_lambda**: 
+output of **agent_lambda**: 
 
 * **agent_lambda** chooses the wrong tool 
 from the perspective of tool format, it will be 
 forced to think again through **invalid_tool_calling** edge. 
 * **agent_lambda** chooses the valid tool, the tool will be executed 
 through **tool_exectue_lambda**. Then, **agent_lambda** will decide 
-whether the runing results is enough to answer the query.
+whether the running results is enough to answer the query.
 * There are some cases that **agent_lambda** desicde to give the final
 response. For cases needing RAG, the **rag_retrieve_lambda** and 
 **rag_llm_lambda** will be called. For cases that **agent_lambda** 
