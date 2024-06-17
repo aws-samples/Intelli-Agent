@@ -53,7 +53,7 @@ class Claude3SonnetFormatToolResult(FormatToolResult):
     execute_fail_template = CLAUDE_TOOL_EXECUTE_FAIL_TEMPLATE
     
     @classmethod
-    def format(cls,tool_output:dict):
+    def format_one_tool_output(cls,tool_output:dict):
         exe_code = tool_output['code']
         if exe_code == 1:
             # failed
@@ -69,6 +69,26 @@ class Claude3SonnetFormatToolResult(FormatToolResult):
             )
         else:
             raise ValueError(f"Invalid tool execute: {tool_output}") 
+    
+    @classmethod
+    def format(cls,tool_call_outputs:list[dict]):
+        tool_call_result_strs = []
+        for tool_call_result in tool_call_outputs:
+            tool_exe_output = tool_call_result['output']
+            tool_exe_output['tool_name'] = tool_call_result['name']
+            ret:str = cls.format_one_tool_output(
+                tool_call_result["model_id"],
+                tool_exe_output
+            )
+            tool_call_result_strs.append(ret)
+        
+        ret = "\n".join(tool_call_result_strs)
+        return {
+            "tool_message": {
+                "role":"user",
+                "content": ret
+            }
+        }
 
 class Claude3HaikuFormatToolResult(Claude3SonnetFormatToolResult):
     model_id = "anthropic.claude-3-haiku-20240307-v1:0"
@@ -93,7 +113,7 @@ class Mixtral8x7bFormatToolResult(Claude3SonnetFormatToolResult):
     execute_success_template = MIXTRAL8X7B_TOOL_EXECUTE_SUCCESS_TEMPLATE
     execute_fail_template = MIXTRAL8X7B_TOOL_EXECUTE_FAIL_TEMPLATE
 
-format_tool_execute_result = FormatToolResult.format
+format_tool_call_results = FormatToolResult.format
 
 
 

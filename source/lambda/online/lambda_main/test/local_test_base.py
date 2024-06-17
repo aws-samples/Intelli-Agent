@@ -28,7 +28,8 @@ class DummyWebSocket:
             print(ret['message']['content'])
             return 
         elif message_type == "MONITOR":
-            print("monitor info: ",ret['message'])
+            if ret['message'].strip():
+                print("monitor info: ",ret['message'])
 
 websocket_utils.ws_client = DummyWebSocket()
 
