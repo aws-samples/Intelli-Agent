@@ -221,7 +221,7 @@ def tool_execute_lambda(state: ChatbotState):
             "model_id": tool_call['model_id']
         })
     
-    output = format_tool_call_results(tool_call_results)
+    output = format_tool_call_results(tool_calls[0]['model_id'],tool_call_results)
     send_trace(f'**tool_execute_res:** \n{output["tool_message"]["content"]}')
     return {"agent_chat_history": [output['tool_message']]}
 
@@ -239,6 +239,7 @@ def rag_all_index_lambda(state: ChatbotState):
     )
     contexts = [doc["page_content"] for doc in output["result"]["docs"]]
     return {"contexts": contexts}
+
 
 @node_monitor_wrapper
 def rag_llm_lambda(state: ChatbotState):

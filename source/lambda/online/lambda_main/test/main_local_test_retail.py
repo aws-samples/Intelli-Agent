@@ -75,8 +75,11 @@ def test_multi_turns():
     #     {"query":"杨幂同款裤子有吗","goods_id":763841838892}
     # ]
 
+    # user_queries = [
+    #     {"query":"好的","goods_id": 745288790794}
+    # ]
     user_queries = [
-        {"query":"好的","goods_id": 745288790794}
+        {"query":"还会有货吗？","goods_id": 760601512644}
     ]
     # user_queries = [
     #     {"query":"正确","goods_id": 745288790794}
