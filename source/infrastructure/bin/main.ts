@@ -36,6 +36,7 @@ dotenv.config();
 export class RootStack extends Stack {
   constructor(scope: Construct, id: string, props: StackProps = {}) {
     super(scope, id, props);
+    this.templateOptions.description = "(SO8034) - Intelli-Agent";
 
     this.setBuildConfig();
 
