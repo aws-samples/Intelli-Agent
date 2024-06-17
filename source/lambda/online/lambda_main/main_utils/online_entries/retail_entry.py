@@ -120,13 +120,14 @@ def agent_lambda(state: ChatbotState):
     # content = output['content']
     # current_agent_tools_def = output['current_agent_tools_def']
     # current_agent_model_id = output['current_agent_model_id']
+    current_agent_recursion_num = state['current_agent_recursion_num'] + 1
     send_trace(f"\n\n**current_agent_output:** \n{json.dumps(current_agent_output['agent_output'],ensure_ascii=False,indent=2)}\n\n **current_agent_recursion_num:** {current_agent_recursion_num}", state["stream"], state["ws_connection_id"])
     return {
         # "current_agent_model_id": current_agent_model_id,
         # "current_function_calls": current_function_calls,
         # "current_agent_tools_def": current_agent_tools_def,
         "current_agent_output": current_agent_output,
-        "current_agent_recursion_num": state['current_agent_recursion_num'] + 1,
+        "current_agent_recursion_num": current_agent_recursion_num
         # "agent_chat_history": [{
         #             "role": "ai",
         #             "content": content

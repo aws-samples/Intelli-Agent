@@ -377,7 +377,7 @@ def agent_route(state: dict):
     return "continue"
 
 def rag_all_index_lambda_route(state: dict):
-    if not state.get('intention_fewshot_examples',[]):
+    if not state.get('intention_fewshot_examples',[]) and state['current_agent_recursion_num'] == 0:
         return "no intention detected"
     else:
         return "rag model/first final response/rag intention/recursion limit"
