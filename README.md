@@ -89,10 +89,10 @@ Here is an example
 		"parent": null,
 		"previous": null,
 		"child": [
-      "$2-038759db",
-      "$4-68d6e6ca",
-      "$6-e9cdcf68",
-    ],
+			"$2-038759db",
+			"$4-68d6e6ca",
+			"$6-e9cdcf68"
+		],
 		"next": null,
 		"size": 2
 	}
