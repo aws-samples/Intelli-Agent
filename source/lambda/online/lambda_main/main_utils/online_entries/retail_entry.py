@@ -14,12 +14,17 @@ import pandas as pd
 
 from functions.tools import get_tool_by_name,Tool
 from functions.retail_tools.lambda_product_information_search.product_information_search import goods_dict
-from functions.tool_execute_result_format import format_tool_execute_result
+from functions.tool_execute_result_format import format_tool_call_results
 from functions.tool_calling_parse import parse_tool_calling as _parse_tool_calling
 
 from lambda_main.main_utils.parse_config import parse_retail_entry_config
 from common_utils.lambda_invoke_utils import send_trace,is_running_local
-from common_utils.exceptions import ToolNotExistError,ToolParameterNotExistError,MultipleToolNameError
+from common_utils.exceptions import (
+    ToolNotExistError,
+    ToolParameterNotExistError,
+    MultipleToolNameError,
+    ToolNotFound
+)
 from common_utils.logger_utils import get_logger
 from common_utils.serialization_utils import JSONEncoder
 from common_utils.s3_utils import download_dir_from_s3
@@ -49,15 +54,16 @@ class ChatbotState(TypedDict):
     current_intent_tools: list #
     current_agent_intent_type: str = None
     current_tool_calls:list 
-    current_agent_tools_def: list[dict]
-    current_agent_model_id: str
+    # current_agent_tools_def: list[dict]
+    # current_agent_model_id: str
+    current_agent_output: dict
     parse_tool_calling_ok: bool
     query_rule_classification: str
     goods_info: None
     agent_llm_type: str
     query_rewrite_llm_type: str
     agent_recursion_limit: int # agent recursion limit
-    current_agent_recursion_limit: int
+    current_agent_recursion_num: int
     enable_trace: bool
 
 ####################
@@ -73,7 +79,7 @@ def query_preprocess_lambda(state: ChatbotState):
         handler_name="lambda_handler"
     )
     state['extra_response']['query_rewrite'] = output
-    send_trace(f"\n\n**query_rewrite:** \n{output}")
+    send_trace(f"\n\n **query_rewrite:** \n{output}")
     return {
             "query_rewrite":output,
             "current_monitor_infos":f"query_rewrite: {output}"
@@ -95,36 +101,36 @@ def intention_detection_lambda(state: ChatbotState):
     return {
         "intention_fewshot_examples": intention_fewshot_examples,
         "current_intent_tools": current_intent_tools,
-        "intent_type":"other"
+        "intent_type": "other"
         }
 
 @node_monitor_wrapper
 def agent_lambda(state: ChatbotState):
     goods_info = state.get('goods_info',None) or ""
-    output:dict = invoke_lambda(
+    current_agent_output:dict = invoke_lambda(
         event_body={
             **state,
-            # "chat_history": state['agent_chat_history'],
-            "other_chain_kwargs":{"goods_info":goods_info}
+            "other_chain_kwargs":{"goods_info": goods_info}
         },
         lambda_name="Online_Agent",
         lambda_module_path="lambda_agent.agent",
         handler_name="lambda_handler"
     )
-    current_function_calls = output['function_calls']
-    content = output['content']
-    current_agent_tools_def = output['current_agent_tools_def']
-    current_agent_model_id = output['current_agent_model_id']
-    send_trace(f"\n\n**current_function_calls:** \n{current_function_calls},\n**model_id:** \n{current_agent_model_id}\n**ai content:** \n{content}", state["stream"], state["ws_connection_id"])
+    # current_function_calls = output['function_calls']
+    # content = output['content']
+    # current_agent_tools_def = output['current_agent_tools_def']
+    # current_agent_model_id = output['current_agent_model_id']
+    send_trace(f"\n\n**current_agent_output:** \n{json.dumps(current_agent_output['agent_output'],ensure_ascii=False,indent=2)}\n\n **current_agent_recursion_num:** {current_agent_recursion_num}", state["stream"], state["ws_connection_id"])
     return {
-        "current_agent_model_id": current_agent_model_id,
-        "current_function_calls": current_function_calls,
-        "current_agent_tools_def": current_agent_tools_def,
-        "current_agent_recursion_limit": state['current_agent_recursion_limit'] + 1,
-        "agent_chat_history": [{
-                    "role": "ai",
-                    "content": content
-                }]
+        # "current_agent_model_id": current_agent_model_id,
+        # "current_function_calls": current_function_calls,
+        # "current_agent_tools_def": current_agent_tools_def,
+        "current_agent_output": current_agent_output,
+        "current_agent_recursion_num": state['current_agent_recursion_num'] + 1,
+        # "agent_chat_history": [{
+        #             "role": "ai",
+        #             "content": content
+        #         }]
     }
 
 
@@ -139,53 +145,31 @@ def parse_tool_calling(state: ChatbotState):
     """
     # parse tool_calls:
     try:
-        tool_calls = _parse_tool_calling(
-            model_id = state['current_agent_model_id'],
-            function_calls = state['current_function_calls'],
-            tools=state['current_agent_tools_def'],
+        output = _parse_tool_calling(
+            agent_output=state['current_agent_output']
         )
-        send_trace(f"\n\n**tool_calls parsed:** \n{tool_calls}", state["stream"], state["ws_connection_id"])
-        if tool_calls:
-            state["extra_response"]['current_agent_intent_type'] = tool_calls[0]['name']
-        else:
-            tool_format = ("<function_calls>\n"
-            "<invoke>\n"
-            "<tool_name>$TOOL_NAME</tool_name>\n"
-            "<parameters>\n"
-            "<$PARAMETER_NAME>$PARAMETER_VALUE</$PARAMETER_NAME>\n"
-            "...\n"
-            "</parameters>\n"
-            "</invoke>\n"
-            "</function_calls>\n"
-            )
-            return {
-                "parse_tool_calling_ok": False,
-                "agent_chat_history":[{
-                    "role": "user",
-                    "content": f"当前没有解析到tool,请检查tool调用的格式是否正确，并重新输出某个tool的调用。注意正确的tool调用格式应该为: {tool_format}。\n如果你认为当前不需要调用其他工具，请直接调用“give_final_response”工具进行返回。"
-                }]
-            }
-
+        tool_calls = output['tool_calls']
+        send_trace(f"\n\n**tool_calls parsed:** \n{tool_calls}", state["stream"], state["ws_connection_id"], state["enable_trace"])
+        state["extra_response"]["current_agent_intent_type"] = output['tool_calls'][0]["name"]
+       
         return {
             "parse_tool_calling_ok": True,
             "current_tool_calls": tool_calls,
+            "agent_chat_history": [output['agent_message']]
         }
-
-    except (ToolNotExistError,ToolParameterNotExistError,MultipleToolNameError) as e:
-        send_trace(f"\n\n**tool_calls parse failed:** \n{str(e)}", state["stream"], state["ws_connection_id"])
+    
+    except (ToolNotExistError,
+             ToolParameterNotExistError,
+             MultipleToolNameError,
+             ToolNotFound
+             ) as e:
+        send_trace(f"\n\n**tool_calls parse failed:** \n{str(e)}", state["stream"], state["ws_connection_id"], state["enable_trace"])
         return {
-        "parse_tool_calling_ok": False,
-        "agent_chat_history":[{
-            "role": "user",
-            "content": format_tool_execute_result(
-                model_id = state['current_agent_model_id'],
-                tool_output={
-                    "code": 1,
-                    "result": e.to_agent(),
-                    "tool_name": e.tool_name
-                }
-            )
-        }]
+            "parse_tool_calling_ok": False,
+            "agent_chat_history":[
+                e.agent_message,
+                e.error_message
+            ]
         }
 
 @node_monitor_wrapper
@@ -222,23 +206,23 @@ def tool_execute_lambda(state: ChatbotState):
         })
     
     # convert tool calling as chat history
-    tool_call_result_strs = []
-    for tool_call_result in tool_call_results:
-        tool_exe_output = tool_call_result['output']
-        tool_exe_output['tool_name'] = tool_call_result['name']
-        ret:str = format_tool_execute_result(
-            tool_call_result["model_id"],
-            tool_exe_output
-        )
-        tool_call_result_strs.append(ret)
+
+    # tool_call_result_strs = []
+    # for tool_call_result in tool_call_results:
+    #     tool_exe_output = tool_call_result['output']
+    #     tool_exe_output['tool_name'] = tool_call_result['name']
+    #     ret:str = format_tool_execute_result(
+    #         tool_call_result["model_id"],
+    #         tool_exe_output
+    #     )
+    #     tool_call_result_strs.append(ret)
     
-    ret = "\n".join(tool_call_result_strs)
-    send_trace(f'**tool_execute_res:** \n{ret}')
+    # ret = "\n".join(tool_call_result_strs)
+    output = format_tool_call_results(tool_call_results)
+    send_trace(f'**tool_execute_res:** \n{output["tool_message"]["content"]}')
     return {
-        "agent_chat_history":[{
-            "role": "user",
-            "content": ret
-    }]}
+        "agent_chat_history": [output['tool_message']]
+        }
 
 
 
@@ -560,7 +544,7 @@ def intent_route(state:dict):
 def agent_route(state:dict):
     parse_tool_calling_ok = state['parse_tool_calling_ok']
     if not parse_tool_calling_ok:
-        if state['current_agent_recursion_limit'] >= state['agent_recursion_limit']:
+        if state['current_agent_recursion_num'] >= state['agent_recursion_limit']:
             send_trace(f"Reach the agent recursion limit: {state['agent_recursion_limit']}, route to final rag")
             return 'final rag'
         return 'invalid tool calling'
@@ -601,7 +585,7 @@ def agent_route(state:dict):
     if recent_tool_call['name'] == "give_final_response":
         return "give final response"
 
-    if state['current_agent_recursion_limit'] >= state['agent_recursion_limit']:
+    if state['current_agent_recursion_num'] >= state['agent_recursion_limit']:
         send_trace(f"Reach the agent recursion limit: {state['agent_recursion_limit']}, route to final rag")
         return 'final rag'
 
@@ -769,7 +753,7 @@ def retail_entry(event_body):
         "agent_llm_type": LLMTaskType.RETAIL_TOOL_CALLING,
         "query_rewrite_llm_type":LLMTaskType.RETAIL_CONVERSATION_SUMMARY_TYPE,
         "agent_recursion_limit": chatbot_config['agent_recursion_limit'],
-        "current_agent_recursion_limit": 0,
+        "current_agent_recursion_num": 0,
     })
 
     return {"answer":response['answer'],**response["extra_response"]}

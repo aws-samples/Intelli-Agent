@@ -51,8 +51,8 @@ def tool_calling(state:dict):
     output:dict = tool_calling_chain.invoke(state)
 
     return {
-        **output,
-        "current_agent_tools_def":tool_defs,
+        "agent_output": output,
+        "current_agent_tools_def": tool_defs,
         "current_agent_model_id": agent_config['model_id']
         }
 

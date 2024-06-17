@@ -2,6 +2,7 @@
 import json
 from typing import List,Dict,Any
 import re
+import datetime 
 
 from langchain.schema.runnable import (
     RunnableLambda,
@@ -271,34 +272,6 @@ class Claude3HaikuRetailToolCallingChain(Claude2RetailToolCallingChain):
     model_id = "anthropic.claude-3-haiku-20240307-v1:0"
 
 
-
-# MIXTRAL8X7B_SYSTEM_MESSAGE_PROMPT=("你是安踏的客服客服助理小安, 主要职责是处理用户售前和售后的问题。下面是当前用户正在浏览的商品信息:\n<goods_info>\n{goods_info}\n</goods_info>"
-#         "In this environment you have access to a set of tools you can use to answer the customer's question."
-#         "\n"
-#         "You may call them like this:\n"
-#         "<function_calls>\n"
-#         "<invoke>\n"
-#         "<tool_name>$TOOL_NAME</tool_name>\n"
-#         "<parameters>\n"
-#         "<$PARAMETER_NAME>$PARAMETER_VALUE</$PARAMETER_NAME>\n"
-#         "...\n"
-#         "</parameters>\n"
-#         "</invoke>\n"
-#         "</function_calls>\n"
-#         "\n"
-#         "Here are the tools available:\n"
-#         "<tools>\n"
-#         "{tools}"
-#         "\n</tools>"
-#         "\nAnswer the user's request using relevant tools (if they are available). Before calling a tool, do some analysis within <thinking></thinking> tags. First, think about which of the provided tools is the relevant tool to answer the user's request. Second, go through each of the required parameters of the relevant tool and determine if the user has directly provided or given enough information to infer a value. When deciding if the parameter can be inferred, carefully consider all the context to see if it supports a specific value. If all of the required parameters are present or can be reasonably inferred, close the thinking tag and proceed with the tool call. BUT, if one of the values for a required parameter is missing, DO NOT invoke the function (not even with fillers for the missing params) and instead, ask the user to provide the missing parameters. DO NOT ask for more information on optional parameters if it is not provided."
-#         f"\nHere are some guidelines for you:\n{tool_call_guidelines}"
-#     )
-
-# MIXTRAL8X7B_SYSTEM_MESSAGE_PROMPT_WITH_FEWSHOT_EXAMPLES = MIXTRAL8X7B_SYSTEM_MESSAGE_PROMPT + (
-#     "Some examples of tool calls are given below, where the content within <query></query> represents the most recent reply in the dialog."
-#     "\n{fewshot_examples}"
-# )
-
 MIXTRAL8X7B_QUERY_TEMPLATE = """下面是客户和客服的历史对话信息:
 {chat_history}
 
@@ -352,3 +325,80 @@ class Mixtral8x7bRetailToolCallingChain(Claude2RetailToolCallingChain):
             )
             }] + state['agent_chat_history']
         return {"chat_history": chat_history}
+
+
+
+GLM4_SYSTEM_PROMPT = """你是安踏的客服助理小安, 主要职责是处理用户售前和售后的问题。{date_prompt}
+下面是当前用户正在浏览的商品信息:
+
+
+## 商品信息
+{goods_info}
+"""
+
+
+
+class GLM4Chat9BRetailToolCallingChain(LLMChain):
+    model_id = "mistral.mixtral-8x7b-instruct-v0:1"
+    intent_type = LLMTaskType.RETAIL_TOOL_CALLING
+    default_model_kwargs = {
+        "max_tokens": 1024,
+        "timeout": 60,
+        "temperature": 0.1,
+    }
+    DATE_PROMPT = "当前日期: %Y-%m-%d"
+    
+    @staticmethod
+    def convert_openai_function_to_glm(tools:list[dict]):
+        glm_tools = []
+        for tool_def in tools:
+            tool_name = tool_def['name']
+            description = tool_def['description']
+            params = []
+            required = tool_def['parameters'].get("required",[])
+            for param_name,param in tool_def['parameters'].get('properties',{}).items():
+                params.append({
+                    "name": param_name,
+                    "description": param["description"],
+                    "type": param["type"],
+                    "required": param_name in required,             
+                })  
+            glm_tools.append({
+                "name": tool_name,
+                "description": description,
+                "params": params
+            })
+        return glm_tools
+
+    @classmethod
+    def create_chat_history(cls,system_prompt,tools,chat_history):
+        pass
+
+    @classmethod
+    def create_chain(cls, model_kwargs=None, **kwargs):
+        model_kwargs = model_kwargs or {}
+        tools:list = kwargs.get('tools',[])
+        system_prompt = GLM4_SYSTEM_PROMPT.format(
+            goods_info=kwargs['goods_info'],
+            date_prompt=datetime.now().strftime(cls.DATE_PROMPT)
+        )
+        glm_tools = cls.convert_openai_function_to_glm(
+            tools
+        )
+
+        tool_calling_template = ChatPromptTemplate.from_messages(
+            [
+            SystemMessage(content=system_prompt),
+            ("placeholder", "{chat_history}")
+        ])
+
+        llm = Model.get_model(
+            model_id=cls.model_id,
+            model_kwargs=model_kwargs,
+        )
+        
+
+
+
+
+

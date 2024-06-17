@@ -1,23 +1,21 @@
 import json
 import logging
 import os
+from datetime import datetime
 
-# from llmbot_utils import concat_recall_knowledge
 
 import boto3
 from langchain_community.chat_models import BedrockChat
 from langchain_community.llms.sagemaker_endpoint import LineIterator
 
 from common_utils.constant import MessageType
-from common_utils.logger_utils import logger
+from common_utils.logger_utils import get_logger
 
 AI_MESSAGE_TYPE = MessageType.AI_MESSAGE_TYPE
 HUMAN_MESSAGE_TYPE = MessageType.HUMAN_MESSAGE_TYPE
 SYSTEM_MESSAGE_TYPE = MessageType.SYSTEM_MESSAGE_TYPE
 
-
-logger = logging.getLogger("llm_model")
-logger.setLevel(logging.INFO)
+logger = get_logger("llm_model")
 
 
 class ModelMeta(type):
@@ -57,8 +55,6 @@ class Claude2(Model):
             or os.environ.get("AWS_REGION", None)
             or None
         )
-        # return_chat_model=kwargs.get('return_chat_model',False)
-        # if return_chat_model:
         llm = BedrockChat(
             credentials_profile_name=credentials_profile_name,
             region_name=region_name,
@@ -251,6 +247,47 @@ class Internlm2Chat7B(SagemakerModelBase):
 
 class Internlm2Chat20B(Internlm2Chat7B):
     model_id = "internlm2-chat-20b"
+
+
+class GLM4Chat9B(SagemakerModelBase):
+    model_id = "glm-4-9b-chat"
+    default_model_kwargs = {
+        "max_tokens": 1024,
+        "timeout": 60,
+        "temperature": 0.1,
+    }
+    
+    SELFCOG="你是一个名为 亚麻小Q 的人工智能助手。你是基于智谱AI训练的语言模型 GLM-4 模型开发的，你的任务是针对用户的问题和要求提供适当的答复和支持。"
+
+    def build_system_prompt(
+        self,
+        tools:list[dict],
+        self_cog
+        ):
+        value = self_cog
+        # value += "\n\n" + datetime.now().strftime(self.DATE_PROMPT)
+        value += "\n\n# 可用工具"
+        contents = []
+        for tool in tools:
+            content = f"\n\n## {tool['name']}\n\n{json.dumps(tool, ensure_ascii=False, indent=4)}"
+            content += "\n在调用上述函数时，请使用 Json 格式表示调用的参数。"
+            contents.append(content)
+        value += "".join(contents)
+        return value
+
+    def transform_input(self, x:dict):
+        tools = x.get('tools',[])
+        system_prompt = x.get("system_prompt", None) or self.SELFCOG
+        system_prompt = self.build_system_prompt(tools,system_prompt)
+    
+        body = {
+            "chat_history": x['chat_history'],
+            "stream": x["stream"],
+            **self.model_kwargs
+        }
+        input_str = json.dumps(body)
+        return input_str
+
 
 # class ChatGPT35(Model):
 #     model_id = "gpt-3.5-turbo-0125"

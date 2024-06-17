@@ -5,7 +5,8 @@ from common_utils.constant import LLMTaskType
 from common_utils.exceptions import (
     ToolNotExistError, 
     ToolParameterNotExistError,
-    MultipleToolNameError
+    MultipleToolNameError,
+    ToolNotFound
 )
 from common_utils.time_utils import get_china_now
 from common_utils.lambda_invoke_utils import (
@@ -15,12 +16,16 @@ from common_utils.lambda_invoke_utils import (
     send_trace,
 )
 from common_utils.python_utils import add_messages, update_nest_dict
+from common_utils.logger_utils import get_logger
+from common_utils.serialization_utils import JSONEncoder
 from functions.tool_calling_parse import parse_tool_calling as _parse_tool_calling
-from functions.tool_execute_result_format import format_tool_execute_result
+from functions.tool_execute_result_format import format_tool_call_results
 from functions.tools import Tool, get_tool_by_name
 from lambda_main.main_utils.parse_config import parse_common_entry_config
 from langgraph.graph import END, StateGraph
 
+
+logger = get_logger('common_entry')
 
 class ChatbotState(TypedDict):
     chatbot_config: dict  # chatbot config
@@ -46,6 +51,7 @@ class ChatbotState(TypedDict):
     current_tool_calls: list
     current_agent_tools_def: list[dict]
     current_agent_model_id: str
+    current_agent_output: dict
     parse_tool_calling_ok: bool
     enable_trace: bool
     agent_recursion_limit: int # agent recursion limit
@@ -124,7 +130,7 @@ def agent_lambda(state: ChatbotState):
     if all_index_retriever_contexts:
         context = '\n\n'.join(all_index_retriever_contexts)
         system_prompt += f"\n下面有一些背景信息供参考:\n<context>\n{context}\n</context>\n"
-    output:dict = invoke_lambda(
+    current_agent_output:dict = invoke_lambda(
         event_body={
             **state,
             "chat_history":state['agent_chat_history'],
@@ -135,28 +141,11 @@ def agent_lambda(state: ChatbotState):
         handler_name="lambda_handler",
    
     )
-    current_function_calls = output['function_calls']
-    content = output['content']
-    current_agent_tools_def = output['current_agent_tools_def']
-    current_agent_model_id = output['current_agent_model_id']
     current_agent_recursion_num = state['current_agent_recursion_num'] + 1
-    send_trace((f"\n **current_function_calls:** \n{current_function_calls}\n",
-                f"**model_id:** \n{current_agent_model_id}\n"
-                f"**ai content:** \n{content}\n"
-                f"**current_agent_recursion_num:** \n{current_agent_recursion_num}"), 
-                state["stream"], 
-                state["ws_connection_id"],
-                state["enable_trace"]
-            )
+    send_trace(f"\n\n**current_agent_output:** \n{json.dumps(current_agent_output['agent_output'],ensure_ascii=False,indent=2)}\n\n **current_agent_recursion_num:** {current_agent_recursion_num}", state["stream"], state["ws_connection_id"])
     return {
-        "current_agent_model_id": current_agent_model_id,
-        "current_function_calls": current_function_calls,
-        "current_agent_tools_def": current_agent_tools_def,
-        "current_agent_recursion_num": current_agent_recursion_num,
-        "agent_chat_history": [{
-                    "role": "ai",
-                    "content": content
-                }]
+        "current_agent_output": current_agent_output,
+        "current_agent_recursion_num": current_agent_recursion_num
     }
 
 
@@ -171,97 +160,70 @@ def parse_tool_calling(state: ChatbotState):
     """
     # parse tool_calls:
     try:
-        tool_calls = _parse_tool_calling(
-            model_id=state["current_agent_model_id"],
-            function_calls=state["current_function_calls"],
-            tools=state["current_agent_tools_def"],
+        output = _parse_tool_calling(
+            agent_output=state['current_agent_output']
         )
+        tool_calls = output['tool_calls']
         send_trace(f"\n\n**tool_calls parsed:** \n{tool_calls}", state["stream"], state["ws_connection_id"], state["enable_trace"])
-        if tool_calls:
-            state["extra_response"]["current_agent_intent_type"] = tool_calls[0]["name"]
-        else:
-            tool_format = ("<function_calls>\n"
-            "<invoke>\n"
-            "<tool_name>$TOOL_NAME</tool_name>\n"
-            "<parameters>\n"
-            "<$PARAMETER_NAME>$PARAMETER_VALUE</$PARAMETER_NAME>\n"
-            "...\n"
-            "</parameters>\n"
-            "</invoke>\n"
-            "</function_calls>\n"
-            )
-            return {
-                "parse_tool_calling_ok": False,
-                "agent_chat_history":[{
-                    "role": "user",
-                    "content": f"当前没有解析到tool,请检查tool调用的格式是否正确，并重新输出某个tool的调用。注意正确的tool调用格式应该为: {tool_format}。\n如果你认为当前不需要调用其他工具，请直接调用“give_final_response”工具进行返回。"
-                }]
-            }
-
+        state["extra_response"]["current_agent_intent_type"] = output['tool_calls'][0]["name"]
+       
         return {
             "parse_tool_calling_ok": True,
             "current_tool_calls": tool_calls,
+            "agent_chat_history": [output['agent_message']]
         }
-    except (ToolNotExistError, ToolParameterNotExistError,MultipleToolNameError) as e:
+    
+    except (ToolNotExistError,
+             ToolParameterNotExistError,
+             MultipleToolNameError,
+             ToolNotFound
+             ) as e:
         send_trace(f"\n\n**tool_calls parse failed:** \n{str(e)}", state["stream"], state["ws_connection_id"], state["enable_trace"])
         return {
             "parse_tool_calling_ok": False,
-            "agent_chat_history": [
-                {
-                    "role": "user",
-                    "content": format_tool_execute_result(
-                        model_id=state["current_agent_model_id"],
-                        tool_output={
-                            "code": 1,
-                            "result": e.to_agent(),
-                            "tool_name": e.tool_name,
-                        },
-                    ),
-                }
-            ],
+            "agent_chat_history":[
+                e.agent_message,
+                e.error_message
+            ]
         }
 
 
 @node_monitor_wrapper
 def tool_execute_lambda(state: ChatbotState):
-    tool_calls = state["current_tool_calls"]
+    """executor lambda
+    Args:
+        state (NestUpdateState): _description_
+
+    Returns:
+        _type_: _description_
+    """
+    tool_calls = state['current_tool_calls']
     assert len(tool_calls) == 1, tool_calls
     tool_call_results = []
-
     for tool_call in tool_calls:
         tool_name = tool_call["name"]
-        event_body = tool_call["kwargs"]
-        tool: Tool = get_tool_by_name(tool_name)
+        tool_kwargs = tool_call['kwargs']
         # call tool
-        output: dict = invoke_lambda(
-            event_body=event_body,
-            lambda_name=tool.lambda_name,
-            lambda_module_path=tool.lambda_module_path,
-            handler_name=tool.handler_name,
+        output = invoke_lambda(
+            event_body = {
+                "tool_name":tool_name,
+                "state":state,
+                "kwargs":tool_kwargs
+                },
+            lambda_name="Online_Tool_Execute",
+            lambda_module_path="functions.lambda_tool",
+            handler_name="lambda_handler"   
         )
-
-        tool_call_results.append(
-            {
-                "name": tool_name,
-                "output": output,
-                "kwargs": tool_call["kwargs"],
-                "model_id": tool_call["model_id"],
-            }
-        )
-
-    # convert tool calling as chat history
-    tool_call_result_strs = []
-    for tool_call_result in tool_call_results:
-        tool_exe_output = tool_call_result["output"]
-        tool_exe_output["tool_name"] = tool_call_result["name"]
-        ret: str = format_tool_execute_result(
-            tool_call_result["model_id"], tool_exe_output
-        )
-        tool_call_result_strs.append(ret)
-
-    ret = "\n".join(tool_call_result_strs)
-    send_trace(f"\n\n**tool execute result:** \n{ret}", state["stream"], state["ws_connection_id"], state["enable_trace"])
-    return {"agent_chat_history": [{"role": "user", "content": ret}]}
+        tool_call_results.append({
+            "name": tool_name,
+            "output": output,
+            "kwargs": tool_call['kwargs'],
+            "model_id": tool_call['model_id']
+        })
+    
+    output = format_tool_call_results(tool_call_results)
+    send_trace(f'**tool_execute_res:** \n{output["tool_message"]["content"]}')
+    return {"agent_chat_history": [output['tool_message']]}
 
 
 @node_monitor_wrapper
@@ -451,9 +413,9 @@ def build_graph():
     workflow.set_entry_point("query_preprocess_lambda")
     # workflow.add_edge("query_preprocess_lambda","intention_detection_lambda")
     # workflow.add_edge("intention_detection_lambda", "agent_lambda")
-    workflow.add_edge("rag_all_index_lambda","agent_lambda")
+    # workflow.add_edge("rag_all_index_lambda","agent_lambda")
     workflow.add_edge("tool_execute_lambda", "agent_lambda")
-    workflow.add_edge("rag_all_index_lambda", "rag_llm_lambda")
+    # workflow.add_edge("rag_all_index_lambda", "rag_llm_lambda")
     workflow.add_edge("aws_qa_lambda", "rag_llm_lambda")
     workflow.add_edge("agent_lambda", "parse_tool_calling")
     workflow.add_edge("rag_llm_lambda", END)
@@ -464,7 +426,7 @@ def build_graph():
     workflow.add_edge("give_rhetorical_question", END)
     workflow.add_edge("give_final_response", END)
     # workflow.add_edge("give_response_wo_tool", END)
-    workflow.add_edge("rag_all_index_lambda", "rag_llm_lambda")
+    # workflow.add_edge("rag_all_index_lambda", "rag_llm_lambda")
     workflow.add_edge("rag_llm_lambda", END)
     workflow.add_edge("qq_matched_reply", END)
 
@@ -543,6 +505,7 @@ def common_entry(event_body):
     event_body["chatbot_config"] = parse_common_entry_config(
         event_body["chatbot_config"]
     )
+    logger.info(f'event_body:\n{json.dumps(event_body,ensure_ascii=False,indent=2,cls=JSONEncoder)}')
     chatbot_config = event_body["chatbot_config"]
     query = event_body["query"]
     use_history = chatbot_config["use_history"]
