@@ -10,7 +10,7 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 # you need to install these packages: pypdf, tqdm, openai, langchain 
 
-# Please excute => export OPENAI_API_KEY={key}
+# Please execute => export OPENAI_API_KEY={key}
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 
