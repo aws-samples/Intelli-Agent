@@ -202,7 +202,6 @@ def tool_execute_lambda(state: ChatbotState):
         }
 
 
-
 @node_monitor_wrapper
 def rag_daily_reception_retriever_lambda(state: ChatbotState):
     # call retriever

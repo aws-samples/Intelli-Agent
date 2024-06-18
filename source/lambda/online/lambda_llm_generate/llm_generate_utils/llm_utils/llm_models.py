@@ -257,7 +257,7 @@ class GLM4Chat9B(SagemakerModelBase):
         "temperature": 0.1,
     }
     
-    SELFCOG="你是一个名为 亚麻小Q 的人工智能助手。你是基于智谱AI训练的语言模型 GLM-4 模型开发的，你的任务是针对用户的问题和要求提供适当的答复和支持。"
+    SELFCOG="You are a helpful assistant."
 
     def build_system_prompt(
         self,
@@ -265,8 +265,8 @@ class GLM4Chat9B(SagemakerModelBase):
         self_cog
         ):
         value = self_cog
-        # value += "\n\n" + datetime.now().strftime(self.DATE_PROMPT)
-        value += "\n\n# 可用工具"
+        if tools:
+            value += "\n\n# 可用工具"
         contents = []
         for tool in tools:
             content = f"\n\n## {tool['name']}\n\n{json.dumps(tool, ensure_ascii=False, indent=4)}"
@@ -279,9 +279,17 @@ class GLM4Chat9B(SagemakerModelBase):
         tools = x.get('tools',[])
         system_prompt = x.get("system_prompt", None) or self.SELFCOG
         system_prompt = self.build_system_prompt(tools,system_prompt)
+        chat_history = x['chat_history']
     
+        chat_history = [{
+            "role":"system",
+            "content": system_prompt
+            }] + chat_history
+            
+        logger.info(f"glm chat_history: {chat_history}")
+        
         body = {
-            "chat_history": x['chat_history'],
+            "chat_history": chat_history,
             "stream": x["stream"],
             **self.model_kwargs
         }

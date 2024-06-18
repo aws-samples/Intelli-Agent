@@ -173,9 +173,8 @@ class GLM4Chat9BRetailConversationSummaryChain(Claude2RetailConversationSummaryC
             model_id=cls.model_id,
             model_kwargs=model_kwargs,
         )
-        # cqr_chain = 
-        #     | RunnableLambda(lambda x: cqr_template.format(chat_history=x['conversational_context'],query=x['query'])) \
-        #     | llm | RunnableLambda(lambda x: x.content)
+        cqr_chain = RunnableLambda(lambda x: cls.create_chat_history(x)) \
+            | llm
         
         return cqr_chain
 

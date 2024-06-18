@@ -197,11 +197,17 @@ class GLM4Chat9B(ToolCallingParse):
                 }
             
             assert content.endswith(("<|user|>","<|observation|>")), content
+            
+            
             if content.endswith("<|observation|>"):
                 # use one tool
                 tool_call = cls.parse_tool_kwargs(content,tools_def=tools)
                 agent_message['content'] = agent_message['content'].replace(tool_call['name'],"").strip()
                 agent_message['additional_kwargs']['tool_calls'] = [tool_call]
+            else:
+                # default tool is give_final_response
+                response = content.replace("<|user|>","")
+                tool_call = {"name":"give_final_response","kwargs":{"response":response},"model_id":cls.model_id}
             return {
                 "agent_message": agent_message,
                 "tool_calls": [tool_call]

@@ -1,5 +1,5 @@
 from langchain.schema.runnable import (
-    RunnableLambda,
+    RunnableLambda
 )
 
 from common_utils.logger_utils  import get_logger
@@ -7,7 +7,6 @@ from common_utils.langchain_utils import chain_logger
 from common_utils.lambda_invoke_utils import invoke_lambda,chatbot_lambda_call_wrapper
 from common_utils.constant import LLMTaskType
 from functions.tools import get_tool_by_name
-
 
 logger = get_logger("agent")
 
@@ -21,11 +20,12 @@ def tool_calling(state:dict):
     
     other_chain_kwargs = state.get('other_chain_kwargs',{})
     llm_config = {
+        **agent_config,
+        # "model_kwargs": agent_config.get('model_kwargs',{}),
+        # "model_id": agent_config['model_id'],
+        **other_chain_kwargs,
         "tools": tool_defs,
-        "model_kwargs": agent_config.get('model_kwargs',{}),
-        "model_id": agent_config['model_id'],
         "fewshot_examples": state['intention_fewshot_examples'],
-        **other_chain_kwargs
     }
 
     agent_llm_type = state.get("agent_llm_type",None) or LLMTaskType.TOOL_CALLING
