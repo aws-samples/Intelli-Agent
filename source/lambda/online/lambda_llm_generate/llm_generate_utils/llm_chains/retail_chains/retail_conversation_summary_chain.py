@@ -7,8 +7,8 @@ from langchain.schema.runnable import (
 )
 
 
-from ..llm_models import Model
-from .llm_chain_base import LLMChain
+from ...llm_models import Model
+from ..llm_chain_base import LLMChain
 from common_utils.constant import (
     MessageType,
     LLMTaskType
@@ -136,3 +136,45 @@ class Mixtral8x7bRetailConversationSummaryChain(Claude2RetailConversationSummary
     model_id = "mistral.mixtral-8x7b-instruct-v0:1"
     default_model_kwargs = {"max_tokens": 1000, "temperature": 0.01}
     CQR_TEMPLATE = MIXTRAL_CQR_TEMPLATE
+
+
+class GLM4Chat9BRetailConversationSummaryChain(Claude2RetailConversationSummaryChain):
+    model_id = "glm-4-9b-chat"
+    intent_type = LLMTaskType.RETAIL_CONVERSATION_SUMMARY_TYPE
+    CQR_TEMPLATE = MIXTRAL_CQR_TEMPLATE
+
+    @classmethod
+    def create_chat_history(cls,x):
+        conversational_context = cls.create_conversational_context(
+                    convert_to_messages(x["chat_history"])
+        )
+        prompt = cls.CQR_TEMPLATE.format(
+            chat_history=conversational_context,
+            query=x['query']
+        )
+        return {"chat_history": [
+            {
+                "role":"user",
+                "content": prompt
+            },
+            {
+                "role":"assistant",
+                "content": "好的，站在客户的角度，我将当前用户的回复内容改写为: "
+            }
+            ]}
+
+
+    @classmethod
+    def create_chain(cls, model_kwargs=None, **kwargs):
+        model_kwargs = model_kwargs or {}
+        model_kwargs = {**cls.default_model_kwargs, **model_kwargs}
+
+        llm = Model.get_model(
+            model_id=cls.model_id,
+            model_kwargs=model_kwargs,
+        )
+        cqr_chain = RunnableLambda(lambda x: cls.create_chat_history(x)) \
+            | llm
+        
+        return cqr_chain
+

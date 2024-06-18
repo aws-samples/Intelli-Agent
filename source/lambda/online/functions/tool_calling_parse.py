@@ -3,6 +3,7 @@ tool calling parse, convert content by llm to dict
 """
 from typing import List
 import re
+import json  
 from langchain_core.messages import(
     ToolCall
 ) 
@@ -96,13 +97,13 @@ class Claude3SonnetFToolCallingParse(ToolCallingParse):
     @classmethod
     def parse_tool(
         cls,
-        agent_outout
+        agent_output
     ) -> list:
-        function_calls = agent_outout['agent_output']['function_calls']
-        tools = agent_outout['current_agent_tools_def']
+        function_calls = agent_output['agent_output']['function_calls']
+        tools = agent_output['current_agent_tools_def']
         agent_message = {
             "role": "ai",
-            "content": agent_outout['agent_output']['content']
+            "content": agent_output['agent_output']['content']
         }
 
         if not function_calls:
@@ -121,7 +122,7 @@ class Claude3SonnetFToolCallingParse(ToolCallingParse):
             e.error_message = {
                 "role": "user",
                 "content": format_tool_call_results(
-                    model_id = agent_outout['current_agent_model_id'],
+                    model_id = agent_output['current_agent_model_id'],
                     tool_output=[{
                         "code": 1,
                         "result": e.to_agent(),
@@ -150,6 +151,79 @@ class ClaudeInstanceToolCallingParse(Claude3SonnetFToolCallingParse):
 class Mixtral8x7bToolCallingParse(Claude3SonnetFToolCallingParse):
     model_id = "mistral.mixtral-8x7b-instruct-v0:1"
 
+
+class GLM4Chat9B(ToolCallingParse):
+    model_id = "glm-4-9b-chat"
+
+    @classmethod
+    def parse_tool_kwargs(cls,content:str,tools_def:list[dict]):
+        tool_name = content.split("\n")[0]
+        cur_tool_def = None
+        for tool_def in tools_def:
+            if tool_def['name'] == tool_name:
+                cur_tool_def = tool_def
+                break 
+        
+        if cur_tool_def is None:
+            raise ToolNotExistError(tool_name=tool_name,function_call_content=content)
+
+        tool_params = "\n".join(content.split("\n")[1:]).replace("<|observation|>","").strip()
+        tool_params = json.loads(tool_params)
+        
+
+        cur_params_names = set(list(tool_params.keys()))
+        tool_def_requires = set(cur_tool_def['parameters'].get("required",[]))
+        remain_requires = list(tool_def_requires.difference(cur_params_names))
+        if remain_requires:
+            raise ToolParameterNotExistError(
+                tool_name=tool_name,
+                parameter_key=remain_requires[0],
+                function_call_content=content
+                ) 
+
+        return {"name":tool_name,"kwargs":tool_params,"model_id":cls.model_id}
+
+
+    @classmethod
+    def parse_tool(cls,agent_output):
+        try:
+            content = agent_output['agent_output'].strip()
+            # check use tool or direct reply
+            tools = agent_output['current_agent_tools_def']
+            agent_message = {
+                    "role": "assistant",
+                    "content": content,
+                    "additional_kwargs": {}
+                }
+            
+            assert content.endswith(("<|user|>","<|observation|>")), content
+            
+            if content.endswith("<|observation|>"):
+                # use one tool
+                tool_call = cls.parse_tool_kwargs(content,tools_def=tools)
+                agent_message['content'] = agent_message['content'].replace(tool_call['name'],"").strip()
+                agent_message['additional_kwargs']['tool_calls'] = [tool_call]
+            else:
+                # default tool is give_final_response
+                response = content.replace("<|user|>","")
+                tool_call = {"name":"give_final_response","kwargs":{"response":response},"model_id":cls.model_id}
+            return {
+                "agent_message": agent_message,
+                "tool_calls": [tool_call]
+            }
+        except (ToolNotExistError, ToolParameterNotExistError, MultipleToolNameError) as e:
+            e.agent_message = agent_message
+            e.error_message = {
+                "role": "observation",
+                "content": format_tool_call_results(
+                    model_id = agent_output['current_agent_model_id'],
+                    tool_output=[{
+                        "code": 1,
+                        "result": e.to_agent(),
+                        "tool_name": e.tool_name
+                    }]
+                )
+            }
 
 parse_tool_calling = ToolCallingParse.parse_tool
 

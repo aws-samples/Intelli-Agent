@@ -116,22 +116,11 @@ def agent_lambda(state: ChatbotState):
         lambda_module_path="lambda_agent.agent",
         handler_name="lambda_handler"
     )
-    # current_function_calls = output['function_calls']
-    # content = output['content']
-    # current_agent_tools_def = output['current_agent_tools_def']
-    # current_agent_model_id = output['current_agent_model_id']
     current_agent_recursion_num = state['current_agent_recursion_num'] + 1
     send_trace(f"\n\n**current_agent_output:** \n{json.dumps(current_agent_output['agent_output'],ensure_ascii=False,indent=2)}\n\n **current_agent_recursion_num:** {current_agent_recursion_num}", state["stream"], state["ws_connection_id"])
     return {
-        # "current_agent_model_id": current_agent_model_id,
-        # "current_function_calls": current_function_calls,
-        # "current_agent_tools_def": current_agent_tools_def,
         "current_agent_output": current_agent_output,
-        "current_agent_recursion_num": state['current_agent_recursion_num'] + 1,
-        # "agent_chat_history": [{
-        #             "role": "ai",
-        #             "content": content
-        #         }]
+        "current_agent_recursion_num": current_agent_recursion_num
     }
 
 
@@ -206,25 +195,11 @@ def tool_execute_lambda(state: ChatbotState):
             "model_id": tool_call['model_id']
         })
     
-    # convert tool calling as chat history
-
-    # tool_call_result_strs = []
-    # for tool_call_result in tool_call_results:
-    #     tool_exe_output = tool_call_result['output']
-    #     tool_exe_output['tool_name'] = tool_call_result['name']
-    #     ret:str = format_tool_execute_result(
-    #         tool_call_result["model_id"],
-    #         tool_exe_output
-    #     )
-    #     tool_call_result_strs.append(ret)
-    
-    # ret = "\n".join(tool_call_result_strs)
-    output = format_tool_call_results(tool_call_results)
+    output = format_tool_call_results(tool_call['model_id'],tool_call_results)
     send_trace(f'**tool_execute_res:** \n{output["tool_message"]["content"]}')
     return {
         "agent_chat_history": [output['tool_message']]
         }
-
 
 
 @node_monitor_wrapper

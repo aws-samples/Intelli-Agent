@@ -75,8 +75,11 @@ def test_multi_turns():
     #     {"query":"杨幂同款裤子有吗","goods_id":763841838892}
     # ]
 
+    # user_queries = [
+    #     {"query":"好的","goods_id": 745288790794}
+    # ]
     user_queries = [
-        {"query":"好的","goods_id": 745288790794}
+        {"query":"这款还会有货吗？","goods_id": 760601512644}
     ]
     # user_queries = [
     #     {"query":"正确","goods_id": 745288790794}
@@ -92,7 +95,9 @@ def test_multi_turns():
     # ]
     default_llm_config = {
         # 'model_id': 'anthropic.claude-3-haiku-20240307-v1:0',
-        'model_id': 'anthropic.claude-3-sonnet-20240229-v1:0',
+        # 'model_id': 'anthropic.claude-3-sonnet-20240229-v1:0',
+        'model_id':"glm-4-9b-chat",
+        "endpoint_name": "glm-4-9b-chat-2024-06-14-09-39-08-688",
         # 'model_id': 'mistral.mixtral-8x7b-instruct-v0:1',
         'model_kwargs': {
             'temperature': 0.5, 'max_tokens': 4096}
