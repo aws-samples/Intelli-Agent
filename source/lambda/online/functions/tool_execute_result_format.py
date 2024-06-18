@@ -17,7 +17,6 @@ class FormatToolResult(metaclass=FormatMeta):
 
     @classmethod
     def format(cls,model_id,tool_output:dict):
-        
         target_cls = cls.model_map[model_id]
         return target_cls.format(tool_output)
         
@@ -77,7 +76,6 @@ class Claude3SonnetFormatToolResult(FormatToolResult):
             tool_exe_output = tool_call_result['output']
             tool_exe_output['tool_name'] = tool_call_result['name']
             ret:str = cls.format_one_tool_output(
-                tool_call_result["model_id"],
                 tool_exe_output
             )
             tool_call_result_strs.append(ret)
@@ -106,12 +104,28 @@ class ClaudeInstanceFormatToolResult(Claude3SonnetFormatToolResult):
     model_id = "anthropic.claude-instant-v1"
 
 
-
-
 class Mixtral8x7bFormatToolResult(Claude3SonnetFormatToolResult):
     model_id = "mistral.mixtral-8x7b-instruct-v0:1"
     execute_success_template = MIXTRAL8X7B_TOOL_EXECUTE_SUCCESS_TEMPLATE
     execute_fail_template = MIXTRAL8X7B_TOOL_EXECUTE_FAIL_TEMPLATE
+
+
+class GLM4Chat9BFormatToolResult(FormatToolResult):
+    model_id = "glm-4-9b-chat"
+    
+    @classmethod
+    def format(cls,tool_call_outputs:list[dict]):
+        tool_call_result_strs = []
+        for tool_call_result in tool_call_outputs:
+            tool_exe_output = tool_call_result['output']
+            tool_call_result_strs.append(tool_exe_output['result'])
+        ret = "\n".join(tool_call_result_strs)
+        return {
+            "tool_message": {
+                "role":"observation",
+                "content": ret
+            }
+        }
 
 format_tool_call_results = FormatToolResult.format
 

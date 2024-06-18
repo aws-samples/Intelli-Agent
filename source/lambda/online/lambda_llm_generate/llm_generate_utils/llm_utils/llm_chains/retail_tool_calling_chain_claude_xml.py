@@ -2,7 +2,7 @@
 import json
 from typing import List,Dict,Any
 import re
-import datetime 
+from datetime import datetime 
 
 from langchain.schema.runnable import (
     RunnableLambda,
@@ -339,7 +339,7 @@ GLM4_SYSTEM_PROMPT = """你是安踏的客服助理小安, 主要职责是处理
 
 
 class GLM4Chat9BRetailToolCallingChain(LLMChain):
-    model_id = "mistral.mixtral-8x7b-instruct-v0:1"
+    model_id = "glm-4-9b-chat"
     intent_type = LLMTaskType.RETAIL_TOOL_CALLING
     default_model_kwargs = {
         "max_tokens": 1024,
@@ -371,31 +371,57 @@ class GLM4Chat9BRetailToolCallingChain(LLMChain):
         return glm_tools
 
     @classmethod
-    def create_chat_history(cls,system_prompt,tools,chat_history):
-        pass
+    def create_system_prompt(cls,goods_info:str,tools:list) -> str:
+        value = GLM4_SYSTEM_PROMPT.format(
+            goods_info=goods_info,
+            date_prompt=datetime.now().strftime(cls.DATE_PROMPT)
+        )
+        return value
+
+    @classmethod
+    def create_chat_history(cls,x):
+        _chat_history = x['chat_history'] + \
+            [{"role": "user","content":x['query']}] + \
+            x['agent_chat_history']
+        
+        chat_history = []
+        for message in _chat_history:
+            new_message = message 
+            if message['role'] == "ai":
+                new_message = {
+                    "role": "assistant",
+                    "content": message['content']
+                }
+                tool_calls = message.get('additional_kwargs',{}).get("tool_calls",[])
+                if tool_calls:
+                    new_message['metadata'] = tool_calls[0]['name']
+                
+                chat_history.append(new_message)
+                
+        return {"chat_history": chat_history}
 
     @classmethod
     def create_chain(cls, model_kwargs=None, **kwargs):
         model_kwargs = model_kwargs or {}
         tools:list = kwargs.get('tools',[])
-        system_prompt = GLM4_SYSTEM_PROMPT.format(
-            goods_info=kwargs['goods_info'],
-            date_prompt=datetime.now().strftime(cls.DATE_PROMPT)
-        )
-        glm_tools = cls.convert_openai_function_to_glm(
-            tools
-        )
-
-        tool_calling_template = ChatPromptTemplate.from_messages(
-            [
-            SystemMessage(content=system_prompt),
-            ("placeholder", "{chat_history}")
-        ])
-
+        glm_tools = cls.convert_openai_function_to_glm(tools)
+        system_prompt = cls.create_system_prompt(kwargs['goods_info'], glm_tools)
+        
         llm = Model.get_model(
             model_id=cls.model_id,
             model_kwargs=model_kwargs,
+            **kwargs
         )
+
+        chain = RunnableLambda(lambda x: cls.create_chat_history(x)) \
+            | RunnableLambda(lambda x: llm.invoke({
+                "chat_history": x['chat_history'],
+                "system_prompt": system_prompt,
+                "tools": glm_tools
+            }))
+
+        return chain
+
         
 
 
