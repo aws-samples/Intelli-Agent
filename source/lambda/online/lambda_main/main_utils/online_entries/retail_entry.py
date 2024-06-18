@@ -120,6 +120,7 @@ def agent_lambda(state: ChatbotState):
     # content = output['content']
     # current_agent_tools_def = output['current_agent_tools_def']
     # current_agent_model_id = output['current_agent_model_id']
+    current_agent_recursion_num = state['current_agent_recursion_num'] + 1
     send_trace(f"\n\n**current_agent_output:** \n{json.dumps(current_agent_output['agent_output'],ensure_ascii=False,indent=2)}\n\n **current_agent_recursion_num:** {current_agent_recursion_num}", state["stream"], state["ws_connection_id"])
     return {
         # "current_agent_model_id": current_agent_model_id,
@@ -340,7 +341,6 @@ def rag_product_aftersales_llm_lambda(state:ChatbotState):
                       - 回答内容要简洁。
                       - 如果问题与context内容不相关，就不要采用。
                       - 消费者的问题里面可能包含口语化的表达，比如鞋子开胶的意思是用胶黏合的鞋体裂开。这和胶丝遗留没有关系
-                      - 如果消费者的问题是有关于运费的原因，可以告诉消费者，要满200才能免运费
                     </guidelines>
                     下面是消费者的问题: {state['query']}。结合guidelines的内容进行回答
 """)
