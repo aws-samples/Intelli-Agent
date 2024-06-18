@@ -5,6 +5,7 @@ from datetime import datetime
 
 
 import boto3
+from langchain_openai import ChatOpenAI
 from langchain_community.chat_models import BedrockChat
 from langchain_community.llms.sagemaker_endpoint import LineIterator
 
@@ -35,7 +36,7 @@ class Model(metaclass=ModelMeta):
     def get_model(cls, model_id, model_kwargs=None, **kwargs):
         return cls.model_map[model_id].create_model(model_kwargs=model_kwargs, **kwargs)
 
-
+# Bedrock model type
 class Claude2(Model):
     model_id = "anthropic.claude-v2"
     default_model_kwargs = {"max_tokens": 2000, "temperature": 0.7, "top_p": 0.9}
@@ -85,7 +86,7 @@ class Mixtral8x7b(Claude2):
     model_id = "mistral.mixtral-8x7b-instruct-v0:1"
     default_model_kwargs = {"max_tokens": 4096, "temperature": 0.01}
 
-
+# Sagemker Inference type
 class SagemakerModelBase(Model):
     default_model_kwargs = None
     content_type = "application/json"
@@ -296,30 +297,30 @@ class GLM4Chat9B(SagemakerModelBase):
         input_str = json.dumps(body)
         return input_str
 
+# ChatGPT model type
+class ChatGPT35(Model):
+    model_id = "gpt-3.5-turbo-0125"
+    default_model_kwargs = {"max_tokens": 2000, "temperature": 0.7, "top_p": 0.9}
 
-# class ChatGPT35(Model):
-#     model_id = "gpt-3.5-turbo-0125"
-#     default_model_kwargs = {"max_tokens": 2000, "temperature": 0.7, "top_p": 0.9}
+    @classmethod
+    def create_model(cls, model_kwargs=None, **kwargs):
+        model_kwargs = model_kwargs or {}
+        model_kwargs = {**cls.default_model_kwargs, **model_kwargs}
 
-#     @classmethod
-#     def create_model(cls, model_kwargs=None, **kwargs):
-#         model_kwargs = model_kwargs or {}
-#         model_kwargs = {**cls.default_model_kwargs, **model_kwargs}
+        credentials_profile_name = (
+            kwargs.get("credentials_profile_name", None)
+            or os.environ.get("AWS_PROFILE", None)
+            or None
+        )
+        region_name = (
+            kwargs.get("region_name", None)
+            or os.environ.get("AWS_REGION", None)
+            or None
+        )
 
-#         credentials_profile_name = (
-#             kwargs.get("credentials_profile_name", None)
-#             or os.environ.get("AWS_PROFILE", None)
-#             or None
-#         )
-#         region_name = (
-#             kwargs.get("region_name", None)
-#             or os.environ.get("AWS_REGION", None)
-#             or None
-#         )
+        llm = ChatOpenAI(
+            model=cls.model_id,
+            model_kwargs=model_kwargs,
+        )
 
-#         llm = ChatOpenAI(
-#             model=cls.model_id,
-#             model_kwargs=model_kwargs,
-#         )
-
-#         return llm
+        return llm

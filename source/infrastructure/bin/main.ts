@@ -208,5 +208,5 @@ const devEnv = {
 };
 
 const app = new App();
-new RootStack(app, "intelli-agent", { env: devEnv });
+new RootStack(app, "llm-bot-dev", { env: devEnv });
 app.synth();
