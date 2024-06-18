@@ -198,7 +198,6 @@ class GLM4Chat9B(ToolCallingParse):
             
             assert content.endswith(("<|user|>","<|observation|>")), content
             
-            
             if content.endswith("<|observation|>"):
                 # use one tool
                 tool_call = cls.parse_tool_kwargs(content,tools_def=tools)

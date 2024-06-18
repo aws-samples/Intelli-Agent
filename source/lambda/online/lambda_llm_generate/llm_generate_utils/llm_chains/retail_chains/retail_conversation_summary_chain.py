@@ -7,8 +7,8 @@ from langchain.schema.runnable import (
 )
 
 
-from ..llm_models import Model
-from .llm_chain_base import LLMChain
+from ...llm_models import Model
+from ..llm_chain_base import LLMChain
 from common_utils.constant import (
     MessageType,
     LLMTaskType
