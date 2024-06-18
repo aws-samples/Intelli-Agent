@@ -4,7 +4,7 @@ from langchain.schema.runnable import (
     RunnablePassthrough,
 )
 
-from .chat_chain import Claude2ChatChain, Iternlm2Chat7BChatChain
+from ..chat_chain import Claude2ChatChain, Iternlm2Chat7BChatChain
 
 from common_utils.constant import (
     MessageType,

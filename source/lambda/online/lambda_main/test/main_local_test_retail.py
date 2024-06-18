@@ -79,7 +79,7 @@ def test_multi_turns():
     #     {"query":"好的","goods_id": 745288790794}
     # ]
     user_queries = [
-        {"query":"还会有货吗？","goods_id": 760601512644}
+        {"query":"这款还会有货吗？","goods_id": 760601512644}
     ]
     # user_queries = [
     #     {"query":"正确","goods_id": 745288790794}
