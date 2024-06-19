@@ -216,6 +216,14 @@ class Claude2RetailToolCallingChain(LLMChain):
     def create_chain(cls, model_kwargs=None, **kwargs):
         model_kwargs = model_kwargs or {}
         tools:list = kwargs['tools']
+
+        # add two extral tools
+        if "give_rhetorical_question" not in tools:
+            tools.append("give_rhetorical_question")
+
+        if "give_final_response" not in tools:
+            tools.append("give_final_response")
+
         fewshot_examples = kwargs.get('fewshot_examples',[])
         
         model_kwargs = {**cls.default_model_kwargs, **model_kwargs}

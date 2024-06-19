@@ -42,32 +42,16 @@ tool_manager.register_tool({
     "lambda_module_path": "functions.lambda_get_weather.get_weather",
     "tool_def":{
             "name": "get_weather",
-            "description": "Get the current weather in a given location",
+            "description": "Get the current weather for `city_name`",
             "parameters": {
                 "type": "object",
                 "properties": {
-                "location": {
-                    "description": "The city and state, e.g. San Francisco, CA",
+                "city_name": {
+                    "description": "The name of the city to be queried",
                     "type": "string"
+                }, 
                 },
-                "unit": {
-                    "description": "The unit of temperature",
-                    "allOf": [
-                    {
-                        "title": "Unit",
-                        "description": "An enumeration.",
-                        "enum": [
-                        "celsius",
-                        "fahrenheit"
-                        ]
-                    }
-                    ]
-                }
-                },
-                "required": [
-                "location",
-                "unit"
-                ]
+                "required": ["city_name"]
             }
         }
     }
@@ -97,34 +81,34 @@ tool_manager.register_tool(
 )
 
 
-tool_manager.register_tool(
-    {
-        "name":"no_available_tool",
-        "lambda_name": "xxxx",
-        "lambda_module_path": "functions.lambda_no_available_tool.no_available_tool",
-        "tool_def":{
-                "name": "no_available_tool",
-                "description": "If you find some tools are not available, call this tool",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "response": {
-                            "description": "Response to user that no relevant tool exists to answer the question at hand",
-                            "type": "string"
-                    }
-                },
-                "required": ["response"]
-            }
-        }
-    }
-)
+# tool_manager.register_tool(
+#     {
+#         "name":"no_available_tool",
+#         "lambda_name": "xxxx",
+#         "lambda_module_path": "functions.lambda_no_available_tool.no_available_tool",
+#         "tool_def":{
+#                 "name": "no_available_tool",
+#                 "description": "If you find some tools are not available, call this tool",
+#                 "parameters": {
+#                     "type": "object",
+#                     "properties": {
+#                         "response": {
+#                             "description": "Response to user that no relevant tool exists to answer the question at hand",
+#                             "type": "string"
+#                     }
+#                 },
+#                 "required": ["response"]
+#             }
+#         }
+#     }
+# )
 
 
 tool_manager.register_tool(
     {
         "name": "give_final_response",
         "lambda_name": "xxxx",
-        "lambda_module_path": "functions.lambda_give_final_response.give_final_response",
+        "lambda_module_path": "xxxx",
         "tool_def":{
                 "name": "give_final_response",
                 "description": "If none of the other tools need to be called, call the current tool to complete the direct response to the user.",
@@ -449,7 +433,7 @@ tool_manager.register_tool({
     "lambda_module_path": "functions.retail_tools.lambda_product_information_search.product_information_search",
     "tool_def": {
         "name": "goods_info",
-        "description": "search the information of the product"
+        "description": "search the information of the product, 包括库存等信息。"
     }
 })
 

@@ -75,12 +75,33 @@ def test_multi_turns():
     #     {"query":"杨幂同款裤子有吗","goods_id":763841838892}
     # ]
 
+    user_queries = [
+        {"query":"你家鞋子开胶了\n怎么处理","goods_id":743891340644},
+        # {"query":"我在得物买的","goods_id":743891340644}
+    ]
+
+    # user_queries = [
+    #     {"query":"https://detail.tmall.com/item.htm?id=748090908717","goods_id":748090908717},
+    #     {"query":"177 65kg多大","goods_id":748090908717},
+    #     # {"query":"我在得物买的","goods_id":743891340644}
+    # ]
+    # user_queries = [
+    #     {"query":"http://item.taobao.com/item.htm?id=666167992985","goods_id":666167992985},
+    #     {"query":"在吗","goods_id":666167992985},
+    #     {"query":"断码吗","goods_id":666167992985}
+    # ]
+    # user_queries = [
+    #     {
+    #         "query":"嗯","goods_id":745288790794}
+    # ]
+
     # user_queries = [
     #     {"query":"好的","goods_id": 745288790794}
     # ]
-    user_queries = [
-        {"query":"这款还会有货吗？","goods_id": 760601512644}
-    ]
+    # user_queries = [
+    #     {"query":"这款还会有货吗？","goods_id": 760601512644},
+    #     {"query":"我穿180的","goods_id": 760601512644}
+    # ]
     # user_queries = [
     #     {"query":"正确","goods_id": 745288790794}
     # ]
@@ -97,10 +118,10 @@ def test_multi_turns():
         # 'model_id': 'anthropic.claude-3-haiku-20240307-v1:0',
         # 'model_id': 'anthropic.claude-3-sonnet-20240229-v1:0',
         'model_id':"glm-4-9b-chat",
-        "endpoint_name": "glm-4-9b-chat-2024-06-14-09-39-08-688",
+        "endpoint_name": "glm-4-9b-chat-2024-06-18-07-37-03-843",
         # 'model_id': 'mistral.mixtral-8x7b-instruct-v0:1',
         'model_kwargs': {
-            'temperature': 0.5, 'max_tokens': 4096}
+            'temperature': 0.01}
         }
     chatbot_config = {
         "chatbot_mode": "agent",
@@ -131,9 +152,11 @@ def batch_test():
     default_llm_config = {
         # 'model_id': 'anthropic.claude-3-haiku-20240307-v1:0',
         # 'model_id': 'anthropic.claude-3-sonnet-20240229-v1:0',
-        'model_id': 'mistral.mixtral-8x7b-instruct-v0:1',
+        # 'model_id': 'mistral.mixtral-8x7b-instruct-v0:1',
+        'model_id':"glm-4-9b-chat",
+        "endpoint_name": "glm-4-9b-chat-2024-06-18-07-37-03-843",
         'model_kwargs': {
-            'temperature': 0.1, 'max_tokens': 1000}
+            'temperature': 0.5, 'max_tokens': 1000}
         }
     chatbot_config = {
         "chatbot_mode": "agent",
@@ -148,6 +171,7 @@ def batch_test():
     data_to_save = []
     for datum in tqdm.tqdm(data,total=len(data)):
         print("=="*50,flush=True)
+        start_time = time.time()
         print(f'query: {datum["user_msg"]},\ngoods_id: {datum["product_ids"]}',flush=True)
         
         if datum["product_ids"]:
@@ -170,7 +194,10 @@ def batch_test():
                 chatbot_config=chatbot_config,
                 entry_type="retail"
             )
-            ai_msg = r['message']['content']
+
+            print('r: ',r)
+            
+            ai_msg = r['message']['content'].strip().rstrip("<|user|>").strip()
         except:
             import traceback
             print(f"error run:\n {traceback.format_exc()}",flush=True)
@@ -182,6 +209,10 @@ def batch_test():
         datum['session_id'] = session_id
         datum['query_rewrite'] = r.get('query_rewrite',None)
         datum['intention_fewshot_examples'] = r.get('intention_fewshot_examples',None)
+        if ai_msg:
+            datum['elpase_time'] = time.time()-start_time
+        else:
+            datum['elpase_time'] = None
         data_to_save.append({
             "session_id": datum['desensitized_cnick'],
             "goods_id": datum['product_ids'],
@@ -192,6 +223,7 @@ def batch_test():
             "intent": None,
             "accuracy": None,
             "rewrite_query": datum['query_rewrite'],
+            "elpase_time":datum['elpase_time'],
             "ddb_session_id": session_id,
             "comments": None,
             "owner": None
@@ -199,72 +231,14 @@ def batch_test():
     # session_id, goods_id, create_time, user_msg, ai_msg, ai_intent, intent, accuracy,rewrite_query
     
         pd.DataFrame(data_to_save).to_csv(
-            f'{session_prefix}_anta_test_mixtral8x7b_{len(data)}.csv',
+            f'{session_prefix}_anta_test_glm_9b_chat_{len(data)}.csv',
             index=False
-            )
-
-def multi_turn_test():
-    # # 0099 test
-    # session_id = f"0099_test_{time.time()}"
-    # test(
-    #     chatbot_mode='agent',
-    #     session_id=session_id,
-    #     query="你家鞋子开胶了？怎么处理"
-    #     )
-    # test(
-    #     chatbot_mode='agent',
-    #     session_id=session_id,
-    #     query="我在得物购买的"
-    #     )
-    # test(
-    #     chatbot_mode='agent',
-    #     session_id=session_id,
-    #     query="如果在你家买的鞋子，出现质量问题你们怎么处理"
-    #     )
-    # test(
-    #     chatbot_mode='agent',
-    #     session_id=session_id,
-    #     query="如果在你家买的鞋子，出现质量问题你们怎么处理"
-    #     )
-    # # 0098 test
-    # session_id = f"0098_test_{time.time()}"
-    # test(
-    #     chatbot_mode='agent',
-    #     session_id=session_id,
-    #     query="为啥要运费？"
-    #     )
-    # test(
-    #     chatbot_mode='agent',
-    #     session_id=session_id,
-    #     query="现在怎么还还有鞋啊？"
-    #     )
-    # test(
-    #     chatbot_mode='agent',
-    #     session_id=session_id,
-    #     query="不是一个地址发货？买鞋了啊 鞋和袜子不是一个地方发货的吗？"
-    #     )
-    # 0099 test
-    session_id = f"0068_test_{time.time()}"
-    goods_id = 756327274174
-    test(
-        chatbot_mode='chat',
-        session_id=session_id,
-        goods_id=goods_id,
-        query="亲，平常穿37联系多大码",
-        use_history=True
         )
-    test(
-        chatbot_mode='chat',
-        session_id=session_id,
-        goods_id=goods_id,
-        query="还会有货吗？"
-        )
-    # 
 
 
 if __name__ == "__main__":
-    test_multi_turns()
-    # batch_test()
+    # test_multi_turns()
+    batch_test()
     # batch_test()
     # test(
     #     chatbot_mode='agent',

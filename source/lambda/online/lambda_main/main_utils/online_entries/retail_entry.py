@@ -140,7 +140,8 @@ def parse_tool_calling(state: ChatbotState):
         )
         tool_calls = output['tool_calls']
         send_trace(f"\n\n**tool_calls parsed:** \n{tool_calls}", state["stream"], state["ws_connection_id"], state["enable_trace"])
-        state["extra_response"]["current_agent_intent_type"] = output['tool_calls'][0]["name"]
+        if not state["extra_response"].get("current_agent_intent_type", None):
+            state["extra_response"]["current_agent_intent_type"] = output['tool_calls'][0]["name"]
        
         return {
             "parse_tool_calling_ok": True,
@@ -654,7 +655,7 @@ def build_graph():
             "promotion": "rag_promotion_retriever",
             "give final response": "give_final_response",
             "final rag": "final_rag_retriever",
-            "continue":"tool_execute_lambda",
+            "continue": "tool_execute_lambda",
             
         }
     )

@@ -85,10 +85,20 @@ class Claude3SonnetRAGLLMChain(Claude2RagLLMChain):
 class Claude3HaikuRAGLLMChain(Claude2RagLLMChain):
     model_id = "anthropic.claude-3-haiku-20240307-v1:0"
 
+
 class Mixtral8x7bChatChain(Claude2RagLLMChain):
     model_id = "mistral.mixtral-8x7b-instruct-v0:1"
 
+
+from .chat_chain import GLM4Chat9BChatChain
+
+class GLM4Chat9BRagChain(GLM4Chat9BChatChain):
+    model_id = "glm-4-9b-chat"
+    intent_type = LLMTaskType.RAG
+
+
 from .chat_chain import Baichuan2Chat13B4BitsChatChain
+
 
 
 class Baichuan2Chat13B4BitsKnowledgeQaChain(Baichuan2Chat13B4BitsChatChain):
