@@ -1,23 +1,17 @@
 import contextlib
-import datetime
-import functools
 import itertools
 import json
 import logging
 import math
 import os
 import sys
-import threading
-import time
 import traceback
 import uuid
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
-from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple
+from typing import Any, Generator, Iterable, List, Optional
 
 import boto3
 import chardet
 import nltk
-from langchain.embeddings.sagemaker_endpoint import EmbeddingsContentHandler
 from langchain_community.vectorstores.opensearch_vector_search import (
     OpenSearchVectorSearch,
 )
@@ -255,7 +249,6 @@ sys.path.append("dep")
 import os
 
 import psutil
-from boto3.dynamodb.conditions import Attr, Key
 from langchain.docstore.document import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
@@ -264,7 +257,6 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores.opensearch_vector_search import (
     OpenSearchVectorSearch,
 )
-from llm_bot_dep import sm_utils
 from llm_bot_dep.constant import SplittingType
 from llm_bot_dep.ddb_utils import WorkspaceManager
 from llm_bot_dep.embeddings import get_embedding_info

@@ -2,8 +2,6 @@ import json
 import logging
 import os
 import time
-import uuid
-from datetime import datetime
 from decimal import Decimal
 
 import boto3

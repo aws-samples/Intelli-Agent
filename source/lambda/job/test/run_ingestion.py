@@ -1,9 +1,5 @@
-import json
-import re
 import sys
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
-import boto3
 
 sys.path.append(".")
 sys.path.append("dep")

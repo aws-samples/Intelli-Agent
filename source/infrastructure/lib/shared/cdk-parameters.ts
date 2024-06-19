@@ -24,6 +24,7 @@ interface CdkParameters {
 }
 
 export class DeploymentParameters implements CdkParameters {
+  public stackName: CfnParameter;
   public s3ModelAssets: CfnParameter;
   public subEmail: CfnParameter;
   public openSearchIndex: CfnParameter;
@@ -32,6 +33,13 @@ export class DeploymentParameters implements CdkParameters {
   public etlImageName: CfnParameter;
 
   constructor(scope: Construct) {
+
+    this.stackName = new CfnParameter(scope, 'StackName', {
+      type: 'String',
+      description: 'The name of the stack',
+      default: 'intelli-agent',
+    });
+
     this.s3ModelAssets = new CfnParameter(scope, "S3ModelAssets", {
       type: "String",
       description: "S3 Bucket for model & code assets",

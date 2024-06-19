@@ -1,16 +1,12 @@
-import datetime
 import itertools
-import json
 import logging
 import os
 import sys
-import time
-from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple
+from typing import Generator, List
 
 import boto3
 import chardet
 import nltk
-from boto3.dynamodb.conditions import Attr, Key
 from langchain.docstore.document import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores import OpenSearchVectorSearch
