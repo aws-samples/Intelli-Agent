@@ -2,15 +2,12 @@ import itertools
 import json
 import logging
 import os
-import sys
-from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple
+from typing import Generator, List
 
 import boto3
 import chardet
 from langchain.docstore.document import Document
 from utils.auto import cb_process_object
-from utils.constant import SplittingType
-from utils.storage_utils import save_content_to_s3
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)

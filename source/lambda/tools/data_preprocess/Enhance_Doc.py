@@ -1,11 +1,9 @@
 import os
-import re
 import argparse
 import openai
 import json
 from tqdm import tqdm
 from langchain.document_loaders import PyPDFLoader
-from langchain.text_splitter import MarkdownTextSplitter
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 # you need to install these packages: pypdf, tqdm, openai, langchain 

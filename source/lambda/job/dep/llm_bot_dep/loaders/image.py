@@ -1,5 +1,4 @@
 import logging
-from typing import List, Optional
 import uuid
 from datetime import datetime
 from langchain.docstore.document import Document

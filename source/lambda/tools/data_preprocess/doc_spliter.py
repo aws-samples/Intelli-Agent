@@ -5,8 +5,7 @@ import json
 import boto3
 from bs4 import BeautifulSoup
 from langchain.document_loaders import PDFMinerPDFasHTMLLoader
-from langchain.docstore.document import Document
-from langchain.text_splitter import RecursiveCharacterTextSplitter,CharacterTextSplitter
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 import statistics
 
 smr_client = boto3.client("sagemaker-runtime")
@@ -279,7 +278,6 @@ def fontsize_mapping(heading_fonts_arr):
     font_idx_mapping = dict(zip(heading_fonts_set,idxs))
     return font_idx_mapping
 
-import pdb
 def split_pdf_to_snippet(pdf_path):
     loader = PDFMinerPDFasHTMLLoader(pdf_path)
     data = loader.load()[0]
