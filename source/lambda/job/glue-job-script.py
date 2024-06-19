@@ -664,6 +664,7 @@ def main():
             "jpeg",
             "jpg",
             "webp",
+            "jsonl",
         ]
 
     aos_index_name, embedding_model_type = update_workspace(

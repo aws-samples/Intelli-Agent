@@ -51,6 +51,7 @@ def retriever_results_format(
                 "source": doc.metadata["source"],
                 "answer": doc.metadata.get("answer", ""),
                 "question": doc.metadata.get("question", ""),
+                "knn_score": doc.metadata.get("knn_score", -1),
             }
         )
     if print_source:

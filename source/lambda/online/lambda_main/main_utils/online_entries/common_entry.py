@@ -253,7 +253,16 @@ def rag_retrieve_lambda(state: ChatbotState):
         handler_name="lambda_handler",
     )
     contexts = [doc["page_content"] for doc in output["result"]["docs"]]
-    return {"contexts": contexts}
+    # get answer with highest knn score
+    max_knn_score = 0.9
+    answer = ""
+
+    for doc in output["result"]["docs"]:
+        if doc["knn_score"] > max_knn_score:
+            max_knn_score = doc["knn_score"]
+            answer = doc["answer"]
+
+    return {"contexts": contexts, "answer": answer}
 
 
 @node_monitor_wrapper
@@ -273,6 +282,10 @@ def aws_qa_lambda(state: ChatbotState):
 
 @node_monitor_wrapper
 def rag_llm_lambda(state: ChatbotState):
+    print(f"chat_llm_generate_lambda: {state}")
+    if state["answer"]:
+        return {"answer": state["answer"]}
+
     output: str = invoke_lambda(
         lambda_name="Online_LLM_Generate",
         lambda_module_path="lambda_llm_generate.llm_generate",

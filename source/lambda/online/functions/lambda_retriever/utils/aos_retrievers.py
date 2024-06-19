@@ -584,6 +584,16 @@ class QueryDocumentKNNRetriever(BaseRetriever):
             # result["content"] = aos_hit['_source'][text_field]
             result["content"] = aos_hit["_source"][text_field]
             result["doc"] = result["content"]
+            if "jsonlAnswer" in aos_hit["_source"]["metadata"]:
+                result["question"] = aos_hit["_source"]["metadata"]["jsonlAnswer"][
+                    "question"
+                ]
+                result["answer"] = aos_hit["_source"]["metadata"]["jsonlAnswer"][
+                    "answer"
+                ]
+            else:
+                result["question"] = ""
+                result["answer"] = ""
             # if 'additional_vecs' in aos_hit['_source']['metadata'] and \
             #     'colbert_vecs' in aos_hit['_source']['metadata']['additional_vecs']:
             #     result["data"]["colbert"] = aos_hit['_source']['metadata']['additional_vecs']['colbert_vecs']
@@ -664,10 +674,13 @@ class QueryDocumentKNNRetriever(BaseRetriever):
                         "retrieval_content": result["content"],
                         "retrieval_data": result["data"],
                         "retrieval_score": result["score"],
+                        "knn_score": result["score"],
                         # "jsonlAnswer": result["detail"]["metadata"]["jsonlAnswer"],
                         #
                         # set common score for llm.
                         "score": result["score"],
+                        "question": result["question"],
+                        "answer": result["answer"],
                     },
                 )
             )
@@ -779,7 +792,15 @@ class QueryDocumentBM25Retriever(BaseRetriever):
             #     'colbert_vecs' in aos_hit['_source']['metadata']['additional_vecs']:
             #     result["data"]["colbert"] = aos_hit['_source']['metadata']['additional_vecs']['colbert_vecs']
             if "jsonlAnswer" in aos_hit["_source"]["metadata"]:
-                result["jsonlAnswer"] = aos_hit["_source"]["metadata"]["jsonlAnswer"]
+                result["question"] = aos_hit["_source"]["metadata"]["jsonlAnswer"][
+                    "question"
+                ]
+                result["answer"] = aos_hit["_source"]["metadata"]["jsonlAnswer"][
+                    "answer"
+                ]
+            else:
+                result["question"] = ""
+                result["answer"] = ""
             results.append(result)
         if using_whole_doc:
             for result in results:
@@ -849,8 +870,11 @@ class QueryDocumentBM25Retriever(BaseRetriever):
                         "retrieval_content": result["content"],
                         "retrieval_data": result["data"],
                         "retrieval_score": result["score"],
+                        "bm25_score": result["score"],
                         # set common score for llm.
                         "score": result["score"],
+                        "question": result["question"],
+                        "answer": result["answer"],
                     },
                 )
             )
