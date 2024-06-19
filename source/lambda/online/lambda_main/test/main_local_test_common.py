@@ -24,10 +24,15 @@ def test(chatbot_mode="agent",session_id=None,query=None,use_history=True):
 def test_multi_turns():
     session_id = f"multiturn_test_{time.time()}"
     user_queries = [
-        {"query":"今天星期几？", "use_history":True},
-        {"query":"今天星期三", "use_history":True},
-        {"query":"今天星期几", "use_history":False},
-        {"query":"我们进行了几轮对话", "use_history":True},
+        # {"query":"今天星期几？", "use_history":True},
+        # {"query":"今天星期三", "use_history":True},
+        # {"query":"今天星期几", "use_history":False},
+        # {"query":"我们进行了几轮对话", "use_history":True},
+        {"query":"今天天气怎么样", "use_history":True},
+        {"query":"我在上海", "use_history":True},
+        # {"query":"今天星期三", "use_history":True},
+        # {"query":"今天星期几", "use_history":False},
+        # {"query":"我们进行了几轮对话", "use_history":True},
     ]
 
     for query in user_queries:

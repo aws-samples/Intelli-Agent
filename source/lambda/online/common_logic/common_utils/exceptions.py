@@ -22,7 +22,7 @@ class ToolNotExistError(ToolExceptionBase):
         return f"tool: {self.tool_name} is currently unavailable."
 
     def __str__(self):
-        return self.to_agent() + "\nfunction_call:\n{self.function_call_content}"
+        return self.to_agent() + f"\nfunction_call:\n{self.function_call_content}"
     
     
 class ToolParameterNotExistError(ToolExceptionBase):

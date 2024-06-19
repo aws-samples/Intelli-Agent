@@ -253,42 +253,28 @@ class Internlm2Chat20B(Internlm2Chat7B):
 class GLM4Chat9B(SagemakerModelBase):
     model_id = "glm-4-9b-chat"
     default_model_kwargs = {
-        "max_tokens": 1024,
+        "max_new_tokens": 1024,
         "timeout": 60,
         "temperature": 0.1,
     }
-    
-    SELFCOG="You are a helpful assistant."
-
-    def build_system_prompt(
-        self,
-        tools:list[dict],
-        self_cog
-        ):
-        value = self_cog
-        if tools:
-            value += "\n\n# 可用工具"
-        contents = []
-        for tool in tools:
-            content = f"\n\n## {tool['name']}\n\n{json.dumps(tool, ensure_ascii=False, indent=4)}"
-            content += "\n在调用上述函数时，请使用 Json 格式表示调用的参数。"
-            contents.append(content)
-        value += "".join(contents)
-        return value
 
     def transform_input(self, x:dict):
-        tools = x.get('tools',[])
-        system_prompt = x.get("system_prompt", None) or self.SELFCOG
-        system_prompt = self.build_system_prompt(tools,system_prompt)
-        chat_history = x['chat_history']
-    
-        chat_history = [{
-            "role":"system",
-            "content": system_prompt
-            }] + chat_history
-            
+        _chat_history = x['chat_history']  
+        chat_history = []
+        for message in _chat_history:
+            message = {**message}
+            role = message['role']
+            if role == "ai":
+                message['role'] = "assistant"
+
+            if message['role'] == "assistant":
+                content = message['content']
+                if not content.endswith("<|observation|>"):
+                    if not content.endswith("<|user|>"):
+                        message['content'] = message['content'] + "<|user|>"
+            chat_history.append(message)
+                
         logger.info(f"glm chat_history: {chat_history}")
-        
         body = {
             "chat_history": chat_history,
             "stream": x["stream"],

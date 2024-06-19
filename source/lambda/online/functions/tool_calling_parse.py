@@ -163,10 +163,8 @@ class GLM4Chat9B(ToolCallingParse):
             if tool_def['name'] == tool_name:
                 cur_tool_def = tool_def
                 break 
-        
         if cur_tool_def is None:
             raise ToolNotExistError(tool_name=tool_name,function_call_content=content)
-
         tool_params = "\n".join(content.split("\n")[1:]).replace("<|observation|>","").strip()
         tool_params = json.loads(tool_params)
         
@@ -205,25 +203,24 @@ class GLM4Chat9B(ToolCallingParse):
                 agent_message['additional_kwargs']['tool_calls'] = [tool_call]
             else:
                 # default tool is give_final_response
-                response = content.replace("<|user|>","")
-                tool_call = {"name":"give_final_response","kwargs":{"response":response},"model_id":cls.model_id}
+                # response = content.replace("<|user|>","")
+                tool_call = {"name":"give_final_response","kwargs":{"response":content},"model_id":cls.model_id}
             return {
                 "agent_message": agent_message,
                 "tool_calls": [tool_call]
             }
         except (ToolNotExistError, ToolParameterNotExistError, MultipleToolNameError) as e:
             e.agent_message = agent_message
-            e.error_message = {
-                "role": "observation",
-                "content": format_tool_call_results(
+            e.error_message = format_tool_call_results(
                     model_id = agent_output['current_agent_model_id'],
                     tool_output=[{
-                        "code": 1,
-                        "result": e.to_agent(),
-                        "tool_name": e.tool_name
-                    }]
-                )
-            }
+                        "output":{
+                            "code": 1,
+                            "result": e.to_agent(),
+                            "tool_name": e.tool_name}
+                        }]
+                )['tool_message']
+            raise e 
 
 parse_tool_calling = ToolCallingParse.parse_tool
 

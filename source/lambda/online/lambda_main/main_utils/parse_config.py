@@ -147,6 +147,9 @@ def parse_common_entry_config(chatbot_config):
     if "give_final_response" not in tools:
         tools.append("give_final_response")
 
+    if "get_weather" not in tools:
+        tools.append("get_weather")
+
     return chatbot_config
 
 def parse_retail_entry_config(chatbot_config):
@@ -340,10 +343,10 @@ def parse_retail_entry_config(chatbot_config):
 
     # add default tools
     tools: list = chatbot_config["agent_config"]["tools"]
-    if "give_rhetorical_question" not in tools:
-        tools.append("give_rhetorical_question")
+    # if "give_rhetorical_question" not in tools:
+    #     tools.append("give_rhetorical_question")
 
-    if "give_final_response" not in tools:
-        tools.append("give_final_response")
+    # if "give_final_response" not in tools:
+    #     tools.append("give_final_response")
 
     return chatbot_config

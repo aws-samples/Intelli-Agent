@@ -118,7 +118,8 @@ class GLM4Chat9BFormatToolResult(FormatToolResult):
         tool_call_result_strs = []
         for tool_call_result in tool_call_outputs:
             tool_exe_output = tool_call_result['output']
-            tool_call_result_strs.append(tool_exe_output['result'])
+            tool_call_result_strs.append(str(tool_exe_output['result']))
+        # print(tool_exe_output['result'])
         ret = "\n".join(tool_call_result_strs)
         return {
             "tool_message": {

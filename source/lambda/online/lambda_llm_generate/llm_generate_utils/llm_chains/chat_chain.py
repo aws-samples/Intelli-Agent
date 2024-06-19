@@ -168,6 +168,48 @@ class Iternlm2Chat7BChatChain(LLMChain):
 class Iternlm2Chat20BChatChain(Iternlm2Chat7BChatChain):
     model_id = "internlm2-chat-20b"
 
+
+class GLM4Chat9BChatChain(LLMChain):
+    model_id = "glm-4-9b-chat"
+    intent_type = LLMTaskType.CHAT
+    default_system_prompt = "You are a helpful assistant."
+    default_model_kwargs = {
+        "max_new_tokens": 1024,
+        "timeout": 60,
+        "temperature": 0.1,
+    }
+    @classmethod
+    def create_chat_history(cls,x,system_prompt=default_system_prompt):
+        chat_history = x['chat_history']
+        if system_prompt is not None:
+            chat_history = [{"role":"system","content": system_prompt}] + chat_history
+        chat_history = chat_history + [{"role":"user","content":x['query']}]
+        return chat_history
+     
+    @classmethod
+    def create_chain(cls, model_kwargs=None, **kwargs):
+        model_kwargs = model_kwargs or {}
+        model_kwargs = {**cls.default_model_kwargs, **model_kwargs}
+        system_prompt = kwargs.get("system_prompt",None)
+        llm = Model.get_model(
+            model_id=cls.model_id,
+            model_kwargs=model_kwargs,
+            **kwargs
+        )
+
+        chain = RunnablePassthrough.assign(
+            chat_history = RunnableLambda(lambda x: cls.create_chat_history(x,system_prompt=system_prompt)) 
+        ) | RunnableLambda(lambda x: llm.invoke(x))
+        
+        return chain
+
+
+
+
+
+
+
+
 class ChatGPT35ChatChain(LLMChain):
     model_id = "gpt-3.5-turbo-0125"
     intent_type = LLMTaskType.CHAT
@@ -203,5 +245,5 @@ class ChatGPT35ChatChain(LLMChain):
 class ChatGPT4ChatChain(ChatGPT35ChatChain):
     model_id = "gpt-4-turbo"
 
-# class ChatGPT4oChatChain(ChatGPT35ChatChain):
-#     model_id = "gpt-4o"
+class ChatGPT4oChatChain(ChatGPT35ChatChain):
+    model_id = "gpt-4o"

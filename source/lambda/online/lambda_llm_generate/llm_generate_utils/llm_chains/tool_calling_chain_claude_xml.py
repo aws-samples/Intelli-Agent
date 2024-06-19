@@ -23,9 +23,13 @@ from .llm_chain_base import LLMChain
 from ..llm_models import Model
 
 tool_call_guidelines = """<guidlines>
-- Don't forget to output <function_calls></function_calls> when any tool is called.
+- Don't forget to output <function_calls> </function_calls> when any tool is called.
 - You should call tools that are described in <tools></tools>.
-- In <thinking></thinking>, you should check whether the tool name you want to call is exists in <tools></tools>.
+- 每次回答总是先进行思考，并将思考过程写在<thinking>标签中。主要按照下面的步骤进行思考:
+    1. 判断根据当前的上下文是否足够回答用户的问题。
+    2. 如果当前的上下文足够回答用户的问题，请调用 `give_final_response` 工具。
+    3. 如果当前的上下文不能支持回答用户的问题，你可以调用<tools></tools>中列举的工具。
+    4. 如果调用工具对应的参数不够，请调用反问工具 `give_rhetorical_question` 来让用户提供更加充分的信息。
 - Always output with "中文". 
 - Always choose one tool to call. 
 </guidlines>
