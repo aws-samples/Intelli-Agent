@@ -52,7 +52,8 @@ try:
 except Exception as e:
     logger.warning("Running locally")
     import argparse
-    parser=argparse.ArgumentParser(description="local ingestion parameters")
+
+    parser = argparse.ArgumentParser(description="local ingestion parameters")
     parser.add_argument("--offline", type=bool, default=True)
     parser.add_argument("--batch_indice", type=int, default=0)
     parser.add_argument("--batch_file_number", type=int, default=1000)
@@ -65,7 +66,7 @@ except Exception as e:
     parser.add_argument("--workspace_id", type=str, required=True)
     parser.add_argument("--index_type", type=str, required=True)
     parser.add_argument("--operation_type", type=str, default="create")
-    command_line_args=parser.parse_args()
+    command_line_args = parser.parse_args()
     sys.path.append("dep")
     command_line_args_dict = vars(command_line_args)
     args = {}
@@ -662,7 +663,7 @@ def main():
             "png",
             "jpeg",
             "jpg",
-            "webp"
+            "webp",
         ]
 
     aos_index_name, embedding_model_type = update_workspace(

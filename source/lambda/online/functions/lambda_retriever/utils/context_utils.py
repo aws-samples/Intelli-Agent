@@ -1,9 +1,8 @@
 import logging
 import os
 
-from langchain.docstore.document import Document
-
 from common_utils.time_utils import timeit
+from langchain.docstore.document import Document
 
 logger = logging.getLogger("context_utils")
 logger.setLevel(logging.INFO)
