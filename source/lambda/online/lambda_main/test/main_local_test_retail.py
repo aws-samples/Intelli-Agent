@@ -75,16 +75,30 @@ def test_multi_turns():
     #     {"query":"杨幂同款裤子有吗","goods_id":763841838892}
     # ]
 
-    user_queries = [
-        {"query":"你家鞋子开胶了\n怎么处理","goods_id":743891340644},
-        # {"query":"我在得物买的","goods_id":743891340644}
-    ]
+    # user_queries = [
+    #     {"query":"你家鞋子开胶了\n怎么处理","goods_id":743891340644},
+    #     # {"query":"我在得物买的","goods_id":743891340644}
+    # ]
+
 
     # user_queries = [
     #     {"query":"https://detail.tmall.com/item.htm?id=748090908717","goods_id":748090908717},
     #     {"query":"177 65kg多大","goods_id":748090908717},
     #     # {"query":"我在得物买的","goods_id":743891340644}
     # ]
+    user_queries = [
+        {"query":"人工","goods_id":712058889741},
+        {"query":"人工","goods_id":712058889741},
+        {"query":"人工 https://detail.tmall.com/item.htm?id=712058889741","goods_id":712058889741},
+        {"query":"这个最大码能穿到多少斤","goods_id":712058889741},
+        {"query":"好的 我现在168 是个孕妇 身高174 就肚子大点 身上没那么胖 我该穿多大的 Xxl 就行了吧","goods_id":712058889741},
+        {"query":"168","goods_id":712058889741},
+        {"query":"但是没有码了","goods_id":712058889741},
+        {"query":"Xl能行不","goods_id":712058889741},
+        {"query":"Xxxl是不是太大了","goods_id":712058889741}
+  
+        # {"query":"我在得物买的","goods_id":743891340644}
+    ]
     # user_queries = [
     #     {"query":"http://item.taobao.com/item.htm?id=666167992985","goods_id":666167992985},
     #     {"query":"在吗","goods_id":666167992985},
@@ -116,9 +130,9 @@ def test_multi_turns():
     # ]
     default_llm_config = {
         # 'model_id': 'anthropic.claude-3-haiku-20240307-v1:0',
-        # 'model_id': 'anthropic.claude-3-sonnet-20240229-v1:0',
-        'model_id':"glm-4-9b-chat",
-        "endpoint_name": "glm-4-9b-chat-2024-06-18-07-37-03-843",
+        'model_id': 'anthropic.claude-3-sonnet-20240229-v1:0',
+        # 'model_id':"glm-4-9b-chat",
+        # "endpoint_name": "glm-4-9b-chat-2024-06-18-07-37-03-843",
         # 'model_id': 'mistral.mixtral-8x7b-instruct-v0:1',
         'model_kwargs': {
             'temperature': 0.01}
@@ -237,8 +251,8 @@ def batch_test():
 
 
 if __name__ == "__main__":
-    # test_multi_turns()
-    batch_test()
+    test_multi_turns()
+    # batch_test()
     # batch_test()
     # test(
     #     chatbot_mode='agent',

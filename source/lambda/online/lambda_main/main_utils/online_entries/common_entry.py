@@ -165,7 +165,8 @@ def parse_tool_calling(state: ChatbotState):
         )
         tool_calls = output['tool_calls']
         send_trace(f"\n\n**tool_calls parsed:** \n{tool_calls}", state["stream"], state["ws_connection_id"], state["enable_trace"])
-        state["extra_response"]["current_agent_intent_type"] = output['tool_calls'][0]["name"]
+        if not state["extra_response"].get("current_agent_intent_type", None):
+            state["extra_response"]["current_agent_intent_type"] = output['tool_calls'][0]["name"]
        
         return {
             "parse_tool_calling_ok": True,
