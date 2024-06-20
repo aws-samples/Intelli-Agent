@@ -138,7 +138,7 @@ Follow these steps to get started:
 2. [Deploy CDK Template](#deploy-cdk-template)
 
 ### Prerequisites
-Execute following commands to install dependencies such as Python, Git, npm, docker and create a service linked role for Amazon OpenSearch service.
+Execute following commands to install dependencies such as Python, Git, npm, docker and create a service linked role for Amazon OpenSearch service. You can skip this step if they are already installed.
 
 ```bash
 wget https://raw.githubusercontent.com/aws-samples/Intelli-Agent/dev/source/script/setup_env.sh
