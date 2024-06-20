@@ -145,7 +145,7 @@ wget https://raw.githubusercontent.com/aws-samples/Intelli-Agent/dev/source/scri
 sh setup_env.sh
 ```
 
-Executing the following command to clone the github repo:
+Executing the following command to clone the GitHub repo:
 ```bash
 git clone <this repo>
 ```
