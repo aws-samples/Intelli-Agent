@@ -139,79 +139,55 @@ is enough to answer the query.
 Follow these steps to get started:
 
 1. [Prerequisites](#prerequisites)
-2. [Prepare Model Assets](#prepare-model-assets)
-3. [Deploy CDK Template](#deploy-cdk-template)
-4. [API Reference](#api-reference)
+2. [Deploy CDK Template](#deploy-cdk-template)
+3. [API Reference](#api-reference)
 
 ### Prerequisites
-First, you need to clone the repository. You can do this by executing the following command:
+
+#### Clone repo
+Executing the following command to clone the github repo:
 ```bash
 git clone <this repo>
 ```
 
-Then, you need to install the following prerequisites:
-```bash
-cd source/infrastructure
-npm install
-```
-
-### Prepare Model Assets
-Execute the script in each model folder. Make sure Python is installed properly.
-
-First, navigate to the model directory and run the prepare_model.sh script. This script requires an S3 bucket name as an argument, which will be used to upload the model. Please make sure the bucket name is located in the same region as the CDK deployment.
+#### Setup environment
+Execute following commands to install dependencies such as Python, npm, docker and create a service linked role for Amazon OpenSearch service.
 
 ```bash
-cd source/model/
-./prepare_model.sh -s <Your S3 Bucket Name>
+cd source/script
+sh setup_env.sh
 ```
 
-Next, navigate to the ETL code directory. Depending on your region, you will use either the Dockerfile or DockerfileCN. The model.sh script requires the Dockerfile, ETL image name, AWS region, and ETL image tag as arguments. The ETL image will be pushed to your ECR repo with the image name you specified.
+Navigate to the script directory and run the build.sh script. This script requires an S3 bucket name as an argument, which will be used to upload the model. Please make sure the bucket name is located in the same region as the CDK deployment. It also requires ETL image name, ETL image tag, and AWS region as arguments. The ETL image will be pushed to your ECR repo with the image name you specified.
 
 ```bash
-cd source/model/etl/code
-sh model.sh ./Dockerfile <EtlImageName> <AWS_REGION> <EtlImageTag>
+cd source/script
+sh build.sh -b <S3 bucket name> -i <ETL model name> -t <ETL tag name> -r <AWS region>
 ```
 
-For example, to prepare an ETL model asset in the us-east-1 region, the command is:
+For example:
 
 ```bash
-sh model.sh ./Dockerfile intelli-agent-etl us-east-1 latest
+sh build.sh -b intelli-agent-model-bucket -i etl-image -t latest -r us-east-1
 ```
 
-Finally, if this is the first time using Amazon OpenSearch in this account, you will need to create a service-linked role for Amazon OpenSearch Service. This role is necessary to allow Amazon OpenSearch Service to manage resources on your behalf.
-
-```bash
-aws iam create-service-linked-role --aws-service-name es.amazonaws.com
-```
-### Build Frontend
-
-```bash
-cd source/portal
-npm install && npm run build
-```
 
 ### Deploy CDK Template
 Please make sure **docker** is installed and the CDK command is executed in the **same region** of the model files which were uploaded in the previous step. 
 
-Login to AWS ECR Public to pull the image from the public repository.
-```
-cd source
-aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
-```
-
 Start the deployment by executing the following command:
 ```bash
 cd source/infrastructure
-npx cdk deploy --parameters S3ModelAssets=<Your S3 Bucket Name> --parameters SubEmail=<Your email address> --parameters EtlImageName=<Your ETL model name> --parameters ETLTag=<Your ETL tag name>
+npx cdk deploy --parameters S3ModelAssets=<S3 Bucket Name> --parameters SubEmail=<email address> --parameters EtlImageName=<ETL model name> --parameters ETLTag=<ETL tag name>
 ```
 
 To deploy the offline process only, you can configure context parameters to skip the online process. 
 
 ```bash
-npx cdk deploy --parameters S3ModelAssets=<Your S3 Bucket Name> --parameters SubEmail=<Your email address> --parameters EtlImageName=<Your ETL model name> --parameters ETLTag=<Your ETL tag name> --context DeploymentMode="OFFLINE_EXTRACT"
+npx cdk deploy --parameters S3ModelAssets=<S3 bucket name> --parameters SubEmail=<email address> --parameters EtlImageName=<ETL model name> --parameters ETLTag=<ETL tag name> --context DeploymentMode="OFFLINE_EXTRACT"
 ```
 
-## Deployment Parameters
+#### Deployment Parameters
 | Parameter | Description |
 |-|-|
 | S3ModelAssets | Your bucket name to store models |
@@ -221,21 +197,21 @@ npx cdk deploy --parameters S3ModelAssets=<Your S3 Bucket Name> --parameters Sub
 | EtlTag | ETL tag, eg. latest, v1.0, v2.0, the default value is latest, it is set when you executing source/model/etl/code/model.sh script |
 
 
-### Optional Context Parameters
+#### Optional Context Parameters
 
 | Context | Description |
 |---------|-------------|
 | DeploymentMode | The mode for deployment. There are three modes: `OFFLINE_EXTRACT`, `OFFLINE_OPENSEARCH`, and `ALL`. Default deployment mode is `ALL`. |
 
 
-## API Reference
+### API Reference
 After CDK deployment, you can use a HTTP client such as Postman/cURL to invoke the API by following below API schema. 
 - [LLM API Schema](https://github.com/aws-samples/Intelli-Agent/blob/main/docs/LLM_API_SCHEMA.md): send question to LLM and get a response.
 - [ETL API Schema](https://github.com/aws-samples/Intelli-Agent/blob/main/docs/ETL_API_SCHEMA.md): upload knowledge to the vector database.
 - [AOS API Schema](https://github.com/aws-samples/Intelli-Agent/blob/main/docs/AOS_API_SCHEMA.md): search data in the vector database.
 
 
-## Test
+## Testing
 For detailed test information, please refer to the [Test Doc](https://github.com/aws-samples/Intelli-Agent/blob/dev/tests/README.md)
 
 ## Contribution
