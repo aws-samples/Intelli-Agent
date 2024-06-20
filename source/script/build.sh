@@ -47,6 +47,7 @@ popd
 
 pushd ../model/etl/code
 sh model.sh ./Dockerfile $etl_image_name $aws_region $etl_image_tag
+popd
 
 echo "Build frontend"
 pushd ../portal

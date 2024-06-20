@@ -42,6 +42,7 @@ then
     if echo ${desc_output} | grep -q RepositoryNotFoundException
     then
         aws ecr create-repository --repository-name "${image_name}" > /dev/null
+        sleep 5
     else
         >&2 echo ${desc_output}
     fi
