@@ -41,7 +41,7 @@ def test_multi_turns():
         if isinstance(query,str):
             query = {"query":query}
         test(
-            chatbot_mode='rag',
+            chatbot_mode='agent',
             session_id=session_id,
             query=query['query'],
             use_history=query['use_history']

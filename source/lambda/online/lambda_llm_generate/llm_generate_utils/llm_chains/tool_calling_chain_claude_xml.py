@@ -25,14 +25,13 @@ from ..llm_models import Model
 
 tool_call_guidelines = """<guidlines>
 - Don't forget to output <function_calls> </function_calls> when any tool is called.
-- You should call tools that are described in <tools></tools>.
-- 每次回答总是先进行思考，并将思考过程写在<thinking>标签中。主要按照下面的步骤进行思考:
+- 每次回答总是先进行思考，并将思考过程写在<thinking>标签中。请你按照下面的步骤进行思考:
     1. 判断根据当前的上下文是否足够回答用户的问题。
     2. 如果当前的上下文足够回答用户的问题，请调用 `give_final_response` 工具。
-    3. 如果当前的上下文不能支持回答用户的问题，你可以调用<tools></tools>中列举的工具。
+    3. 如果当前的上下文不能支持回答用户的问题，你可以考虑调用<tools> 标签中列举的工具。
     4. 如果调用工具对应的参数不够，请调用反问工具 `give_rhetorical_question` 来让用户提供更加充分的信息。
+    5. 最后给出你要调用的工具名称。
 - Always output with "中文". 
-- Always choose one tool to call. 
 </guidlines>
 """
 
@@ -196,12 +195,10 @@ class Claude2ToolCallingChain(LLMChain):
     
     @classmethod
     def parse_function_calls_from_ai_message(cls,message:AIMessage):
-        content = message.content + "</function_calls>"
+        content = "<thinking>" + message.content + "</function_calls>"
         function_calls:List[str] = re.findall("<function_calls>(.*?)</function_calls>", content,re.S)
-        # print(message.content)
-        # return {"function_calls":function_calls,"content":message.content}
         if not function_calls:
-            content = message.content
+            content = "<thinking>" +  message.content
 
         return {
                 "function_calls": function_calls,
@@ -233,7 +230,8 @@ class Claude2ToolCallingChain(LLMChain):
         tool_calling_template = ChatPromptTemplate.from_messages(
             [
             SystemMessage(content=system_prompt),
-            ("placeholder", "{chat_history}")
+            ("placeholder", "{chat_history}"),
+            AIMessage(content="<thinking>")
         ])
 
         llm = Model.get_model(

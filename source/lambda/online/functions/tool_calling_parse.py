@@ -122,18 +122,16 @@ class Claude3SonnetFToolCallingParse(ToolCallingParse):
                 raise cls.tool_not_found(agent_message=agent_message)
             return {"agent_message": agent_message,"tool_calls":tool_calls}
         except (ToolNotExistError,ToolParameterNotExistError,MultipleToolNameError) as e:
-            e.agent_message = agent_message
-            e.error_message = {
-                "role": "user",
-                "content": format_tool_call_results(
+            e.error_message = format_tool_call_results(
                     model_id = agent_output['current_agent_model_id'],
                     tool_output=[{
-                        "code": 1,
-                        "result": e.to_agent(),
-                        "tool_name": e.tool_name
-                    }]
-                )
-        }
+                        "output":{
+                            "code": 1,
+                            "result": e.to_agent(),
+                            "tool_name": e.tool_name}
+                        }]
+                )['tool_message']
+            raise e 
 
 
 class Claude3HaikuToolCallingParse(Claude3SonnetFToolCallingParse):

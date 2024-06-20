@@ -203,13 +203,6 @@ class GLM4Chat9BChatChain(LLMChain):
         
         return chain
 
-
-
-
-
-
-
-
 # class ChatGPT35ChatChain(LLMChain):
 #     model_id = "gpt-3.5-turbo-0125"
 #     intent_type = LLMTaskType.CHAT
