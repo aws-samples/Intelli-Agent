@@ -144,71 +144,44 @@ Follow these steps to get started:
 4. [API Reference](#api-reference)
 
 ### Prerequisites
-First, you need to clone the repository. You can do this by executing the following command:
+Executing the following command to clone the github repo:
 ```bash
 git clone <this repo>
 ```
 
-Then, you need to install the following prerequisites:
-```bash
-cd source/infrastructure
-npm install
-```
-
-### Prepare Model Assets
-Execute the script in each model folder. Make sure Python is installed properly.
-
-First, navigate to the model directory and run the prepare_model.sh script. This script requires an S3 bucket name as an argument, which will be used to upload the model. Please make sure the bucket name is located in the same region as the CDK deployment.
-
-```bash
-cd source/model/
-./prepare_model.sh -s <Your S3 Bucket Name>
-```
-
-Next, navigate to the ETL code directory. Depending on your region, you will use either the Dockerfile or DockerfileCN. The model.sh script requires the Dockerfile, ETL image name, AWS region, and ETL image tag as arguments. The ETL image will be pushed to your ECR repo with the image name you specified.
-
-```bash
-cd source/model/etl/code
-sh model.sh ./Dockerfile <EtlImageName> <AWS_REGION> <EtlImageTag>
-```
-
-For example, to prepare an ETL model asset in the us-east-1 region, the command is:
-
-```bash
-sh model.sh ./Dockerfile intelli-agent-etl us-east-1 latest
-```
-
-Finally, if this is the first time using Amazon OpenSearch in this account, you will need to create a service-linked role for Amazon OpenSearch Service. This role is necessary to allow Amazon OpenSearch Service to manage resources on your behalf.
+If this is the first time using Amazon OpenSearch in this account, you will need to create a service-linked role for Amazon OpenSearch Service. This role is necessary to allow Amazon OpenSearch Service to manage resources on your behalf.
 
 ```bash
 aws iam create-service-linked-role --aws-service-name es.amazonaws.com
 ```
-### Build Frontend
+
+Then, navigate to the script directory and run the build.sh script. This script requires an S3 bucket name as an argument, which will be used to upload the model. Please make sure the bucket name is located in the same region as the CDK deployment. It also requires ETL image name, ETL image tag, and AWS region as arguments. The ETL image will be pushed to your ECR repo with the image name you specified.
 
 ```bash
-cd source/portal
-npm install && npm run build
+cd source/script
+sh build.sh -b <S3 bucket name> -i <ETL model name> -t <ETL tag name> -r <AWS region>
 ```
+
+For example:
+
+```bash
+sh build.sh -b intelli-agent-model-bucket -i etl-image -t latest -r us-east-1
+```
+
 
 ### Deploy CDK Template
 Please make sure **docker** is installed and the CDK command is executed in the **same region** of the model files which were uploaded in the previous step. 
 
-Login to AWS ECR Public to pull the image from the public repository.
-```
-cd source
-aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
-```
-
 Start the deployment by executing the following command:
 ```bash
 cd source/infrastructure
-npx cdk deploy --parameters S3ModelAssets=<Your S3 Bucket Name> --parameters SubEmail=<Your email address> --parameters EtlImageName=<Your ETL model name> --parameters ETLTag=<Your ETL tag name>
+npx cdk deploy --parameters S3ModelAssets=<S3 Bucket Name> --parameters SubEmail=<email address> --parameters EtlImageName=<ETL model name> --parameters ETLTag=<ETL tag name>
 ```
 
 To deploy the offline process only, you can configure context parameters to skip the online process. 
 
 ```bash
-npx cdk deploy --parameters S3ModelAssets=<Your S3 Bucket Name> --parameters SubEmail=<Your email address> --parameters EtlImageName=<Your ETL model name> --parameters ETLTag=<Your ETL tag name> --context DeploymentMode="OFFLINE_EXTRACT"
+npx cdk deploy --parameters S3ModelAssets=<S3 bucket name> --parameters SubEmail=<email address> --parameters EtlImageName=<ETL model name> --parameters ETLTag=<ETL tag name> --context DeploymentMode="OFFLINE_EXTRACT"
 ```
 
 ## Deployment Parameters
