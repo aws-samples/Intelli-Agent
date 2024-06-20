@@ -27,4 +27,5 @@ echo "Docker $(docker --version)"
 echo "TypeScript $(tsc --version)"
 # End of user data script
 
-aws iam create-service-linked-role --aws-service-name es.amazonaws.com
+echo "Create service linked role for Amazon Opensearch Service"
+aws iam create-service-linked-role --aws-service-name es.amazonaws.com 2> /dev/null

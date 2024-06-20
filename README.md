@@ -143,18 +143,22 @@ Follow these steps to get started:
 3. [API Reference](#api-reference)
 
 ### Prerequisites
+
+#### Clone repo
 Executing the following command to clone the github repo:
 ```bash
 git clone <this repo>
 ```
 
-If this is the first time using Amazon OpenSearch in this account, you will need to create a service-linked role for Amazon OpenSearch Service. This role is necessary to allow Amazon OpenSearch Service to manage resources on your behalf.
+#### Setup environment
+Execute following commands to install dependencies such as Python, npm, docker and create a service linked role for Amazon OpenSearch service.
 
 ```bash
-aws iam create-service-linked-role --aws-service-name es.amazonaws.com
+cd source/script
+sh setup_env.sh
 ```
 
-Then, navigate to the script directory and run the build.sh script. This script requires an S3 bucket name as an argument, which will be used to upload the model. Please make sure the bucket name is located in the same region as the CDK deployment. It also requires ETL image name, ETL image tag, and AWS region as arguments. The ETL image will be pushed to your ECR repo with the image name you specified.
+Navigate to the script directory and run the build.sh script. This script requires an S3 bucket name as an argument, which will be used to upload the model. Please make sure the bucket name is located in the same region as the CDK deployment. It also requires ETL image name, ETL image tag, and AWS region as arguments. The ETL image will be pushed to your ECR repo with the image name you specified.
 
 ```bash
 cd source/script
