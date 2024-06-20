@@ -139,9 +139,8 @@ is enough to answer the query.
 Follow these steps to get started:
 
 1. [Prerequisites](#prerequisites)
-2. [Prepare Model Assets](#prepare-model-assets)
-3. [Deploy CDK Template](#deploy-cdk-template)
-4. [API Reference](#api-reference)
+2. [Deploy CDK Template](#deploy-cdk-template)
+3. [API Reference](#api-reference)
 
 ### Prerequisites
 Executing the following command to clone the github repo:
@@ -184,7 +183,7 @@ To deploy the offline process only, you can configure context parameters to skip
 npx cdk deploy --parameters S3ModelAssets=<S3 bucket name> --parameters SubEmail=<email address> --parameters EtlImageName=<ETL model name> --parameters ETLTag=<ETL tag name> --context DeploymentMode="OFFLINE_EXTRACT"
 ```
 
-## Deployment Parameters
+#### Deployment Parameters
 | Parameter | Description |
 |-|-|
 | S3ModelAssets | Your bucket name to store models |
@@ -194,21 +193,21 @@ npx cdk deploy --parameters S3ModelAssets=<S3 bucket name> --parameters SubEmail
 | EtlTag | ETL tag, eg. latest, v1.0, v2.0, the default value is latest, it is set when you executing source/model/etl/code/model.sh script |
 
 
-### Optional Context Parameters
+#### Optional Context Parameters
 
 | Context | Description |
 |---------|-------------|
 | DeploymentMode | The mode for deployment. There are three modes: `OFFLINE_EXTRACT`, `OFFLINE_OPENSEARCH`, and `ALL`. Default deployment mode is `ALL`. |
 
 
-## API Reference
+### API Reference
 After CDK deployment, you can use a HTTP client such as Postman/cURL to invoke the API by following below API schema. 
 - [LLM API Schema](https://github.com/aws-samples/Intelli-Agent/blob/main/docs/LLM_API_SCHEMA.md): send question to LLM and get a response.
 - [ETL API Schema](https://github.com/aws-samples/Intelli-Agent/blob/main/docs/ETL_API_SCHEMA.md): upload knowledge to the vector database.
 - [AOS API Schema](https://github.com/aws-samples/Intelli-Agent/blob/main/docs/AOS_API_SCHEMA.md): search data in the vector database.
 
 
-## Test
+## Testing
 For detailed test information, please refer to the [Test Doc](https://github.com/aws-samples/Intelli-Agent/blob/dev/tests/README.md)
 
 ## Contribution
