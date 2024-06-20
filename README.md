@@ -24,12 +24,8 @@ Intelli-Agent is designed to empower developers to rapidly deploy intelligent, c
 
 ## Table of Contents
 - [Architecture](#architecture)
-- [ETL Workflow](#etl-workflow)
 - [Quick Start](#quick-start)
-- [Deployment Parameters](#deployment-parameters)
 - [API Reference](#api-reference)
-- [Optional Steps](#optional-steps)
-- [Other Samples](#other-samples)
 - [Security](#security)
 - [License](#license)
 
@@ -140,23 +136,20 @@ Follow these steps to get started:
 
 1. [Prerequisites](#prerequisites)
 2. [Deploy CDK Template](#deploy-cdk-template)
-3. [API Reference](#api-reference)
 
 ### Prerequisites
+Execute following commands to install dependencies such as Python, Git, npm, docker and create a service linked role for Amazon OpenSearch service.
 
-#### Clone repo
+```bash
+wget https://raw.githubusercontent.com/aws-samples/Intelli-Agent/dev/source/script/setup_env.sh
+sh setup_env.sh
+```
+
 Executing the following command to clone the github repo:
 ```bash
 git clone <this repo>
 ```
 
-#### Setup environment
-Execute following commands to install dependencies such as Python, npm, docker and create a service linked role for Amazon OpenSearch service.
-
-```bash
-cd source/script
-sh setup_env.sh
-```
 
 Navigate to the script directory and run the build.sh script. This script requires an S3 bucket name as an argument, which will be used to upload the model. Please make sure the bucket name is located in the same region as the CDK deployment. It also requires ETL image name, ETL image tag, and AWS region as arguments. The ETL image will be pushed to your ECR repo with the image name you specified.
 
