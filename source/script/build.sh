@@ -30,15 +30,14 @@ echo "ETL image name: $etl_image_name"
 echo "ETL image tag: $etl_image_tag"
 echo "AWS region: $aws_region"
 
-# Add your script logic below
-# For example:
-# aws s3 cp myfile.txt s3://$s3_bucket_name/
-# docker run -d $etl_image_name:$etl_image_tag
-# aws configure set region $aws_region
-
 echo "Install dependencies"
 pushd ../infrastructure
 npm install
+popd
+
+echo "Login ECR"
+pushd ..
+aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
 popd
 
 echo "Prepare model"
@@ -54,7 +53,4 @@ pushd ../portal
 npm install && npm run build
 popd
 
-echo "Login ECR"
-pushd ..
-aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
-popd
+
