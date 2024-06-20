@@ -11,7 +11,8 @@ from ...llm_models import Model
 from ..llm_chain_base import LLMChain
 from common_utils.constant import (
     MessageType,
-    LLMTaskType
+    LLMTaskType,
+    LLMModelType
 )
 
 from langchain_core.messages import(
@@ -60,7 +61,7 @@ CQR_TEMPLATE = """# CONTEXT #
 
 
 class Claude2RetailConversationSummaryChain(LLMChain):
-    model_id = "anthropic.claude-v2"
+    model_id = LLMModelType.CLAUDE_2
     intent_type = LLMTaskType.RETAIL_CONVERSATION_SUMMARY_TYPE
     default_model_kwargs = {"max_tokens": 2000, "temperature": 0.1, "top_p": 0.9}
     CQR_TEMPLATE = CQR_TEMPLATE
@@ -105,19 +106,19 @@ class Claude2RetailConversationSummaryChain(LLMChain):
 
 
 class Claude21RetailConversationSummaryChain(Claude2RetailConversationSummaryChain):
-    model_id = "anthropic.claude-v2:1"
+    model_id = LLMModelType.CLAUDE_21
 
 
 class ClaudeInstanceRetailConversationSummaryChain(Claude2RetailConversationSummaryChain):
-    model_id = "anthropic.claude-instant-v1"
+    model_id = LLMModelType.CLAUDE_INSTANCE
 
 
 class Claude3SonnetRetailConversationSummaryChain(Claude2RetailConversationSummaryChain):
-    model_id = "anthropic.claude-3-sonnet-20240229-v1:0"
+    model_id = LLMModelType.CLAUDE_3_SONNET
 
 
 class Claude3HaikuRetailConversationSummaryChain(Claude2RetailConversationSummaryChain):
-    model_id = "anthropic.claude-3-haiku-20240307-v1:0"
+    model_id = LLMModelType.CLAUDE_3_HAIKU
 
 
 
@@ -134,13 +135,13 @@ MIXTRAL_CQR_TEMPLATE = """下面有一段客户和客服的对话，以及当前
 
 
 class Mixtral8x7bRetailConversationSummaryChain(Claude2RetailConversationSummaryChain):
-    model_id = "mistral.mixtral-8x7b-instruct-v0:1"
+    model_id = LLMModelType.MIXTRAL_8X7B_INSTRUCT
     default_model_kwargs = {"max_tokens": 1000, "temperature": 0.01}
     CQR_TEMPLATE = MIXTRAL_CQR_TEMPLATE
 
 
 class GLM4Chat9BRetailConversationSummaryChain(GLM4Chat9BChatChain,Claude2RetailConversationSummaryChain):
-    model_id = "glm-4-9b-chat"
+    model_id = LLMModelType.GLM_4_9B_CHAT
     intent_type = LLMTaskType.RETAIL_CONVERSATION_SUMMARY_TYPE
     CQR_TEMPLATE = MIXTRAL_CQR_TEMPLATE
 

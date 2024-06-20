@@ -17,7 +17,8 @@ from langchain.prompts import ChatPromptTemplate
 from langchain_core.messages import AIMessage,SystemMessage,HumanMessage
 
 from common_utils.constant import (
-    LLMTaskType
+    LLMTaskType,
+    LLMModelType
 )
 
 from ..llm_chain_base import LLMChain
@@ -40,7 +41,7 @@ GLM4_SYSTEM_PROMPT = """你是安踏的客服助理小安, 主要职责是处理
 
 
 class GLM4Chat9BRetailToolCallingChain(GLM4Chat9BChatChain):
-    model_id = "glm-4-9b-chat"
+    model_id = LLMModelType.GLM_4_9B_CHAT
     intent_type = LLMTaskType.RETAIL_TOOL_CALLING
     default_model_kwargs = {
         "max_new_tokens": 1024,

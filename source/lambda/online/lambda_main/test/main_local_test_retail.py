@@ -81,24 +81,24 @@ def test_multi_turns():
     # ]
 
 
-    # user_queries = [
-    #     {"query":"https://detail.tmall.com/item.htm?id=748090908717","goods_id":748090908717},
-    #     {"query":"177 65kg多大","goods_id":748090908717},
-    #     # {"query":"我在得物买的","goods_id":743891340644}
-    # ]
     user_queries = [
-        {"query":"人工","goods_id":712058889741},
-        {"query":"人工","goods_id":712058889741},
-        {"query":"人工 https://detail.tmall.com/item.htm?id=712058889741","goods_id":712058889741},
-        {"query":"这个最大码能穿到多少斤","goods_id":712058889741},
-        {"query":"好的 我现在168 是个孕妇 身高174 就肚子大点 身上没那么胖 我该穿多大的 Xxl 就行了吧","goods_id":712058889741},
-        {"query":"168","goods_id":712058889741},
-        {"query":"但是没有码了","goods_id":712058889741},
-        {"query":"Xl能行不","goods_id":712058889741},
-        {"query":"Xxxl是不是太大了","goods_id":712058889741}
-  
+        {"query":"https://detail.tmall.com/item.htm?id=748090908717","goods_id":748090908717},
+        {"query":"177 65kg多大","goods_id":748090908717},
         # {"query":"我在得物买的","goods_id":743891340644}
     ]
+    # user_queries = [
+    #     {"query":"人工","goods_id":712058889741},
+    #     {"query":"人工","goods_id":712058889741},
+    #     {"query":"人工 https://detail.tmall.com/item.htm?id=712058889741","goods_id":712058889741},
+    #     {"query":"这个最大码能穿到多少斤","goods_id":712058889741},
+    #     {"query":"好的 我现在168 是个孕妇 身高174 就肚子大点 身上没那么胖 我该穿多大的 Xxl 就行了吧","goods_id":712058889741},
+    #     {"query":"168","goods_id":712058889741},
+    #     {"query":"但是没有码了","goods_id":712058889741},
+    #     {"query":"Xl能行不","goods_id":712058889741},
+    #     {"query":"Xxxl是不是太大了","goods_id":712058889741}
+  
+    #     # {"query":"我在得物买的","goods_id":743891340644}
+    # ]
     # user_queries = [
     #     {"query":"http://item.taobao.com/item.htm?id=666167992985","goods_id":666167992985},
     #     {"query":"在吗","goods_id":666167992985},

@@ -16,7 +16,8 @@ from langchain.prompts import ChatPromptTemplate
 from langchain_core.messages import AIMessage,SystemMessage
 
 from common_utils.constant import (
-    LLMTaskType
+    LLMTaskType,
+    LLMModelType
 )
 
 from .llm_chain_base import LLMChain
@@ -154,7 +155,7 @@ def convert_openai_tool_to_anthropic(tools:list[dict])->str:
 
 
 class Claude2ToolCallingChain(LLMChain):
-    model_id = "anthropic.claude-v2"
+    model_id = LLMModelType.CLAUDE_2
     intent_type = LLMTaskType.TOOL_CALLING
     default_model_kwargs = {
         "max_tokens": 2000,
@@ -249,18 +250,18 @@ class Claude2ToolCallingChain(LLMChain):
 
 
 class Claude21ToolCallingChain(Claude2ToolCallingChain):
-    model_id = "anthropic.claude-v2:1"
+    model_id = LLMModelType.CLAUDE_21
 
 
 class ClaudeInstanceToolCallingChain(Claude2ToolCallingChain):
-    model_id = "anthropic.claude-instant-v1"
+    model_id = LLMModelType.CLAUDE_INSTANCE
 
 
 class Claude3SonnetToolCallingChain(Claude2ToolCallingChain):
-    model_id = "anthropic.claude-3-sonnet-20240229-v1:0"
+    model_id = LLMModelType.CLAUDE_3_SONNET
 
 
 class Claude3HaikuToolCallingChain(Claude2ToolCallingChain):
-    model_id = "anthropic.claude-3-haiku-20240307-v1:0"
+    model_id = LLMModelType.CLAUDE_3_HAIKU
 
 

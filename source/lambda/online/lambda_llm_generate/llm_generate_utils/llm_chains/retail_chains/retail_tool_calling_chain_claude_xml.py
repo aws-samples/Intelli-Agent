@@ -17,7 +17,8 @@ from langchain.prompts import ChatPromptTemplate
 from langchain_core.messages import AIMessage,SystemMessage,HumanMessage
 
 from common_utils.constant import (
-    LLMTaskType
+    LLMTaskType,
+    LLMModelType
 )
 from functions.tools import get_tool_by_name
 from ..llm_chain_base import LLMChain
@@ -156,7 +157,7 @@ def convert_openai_tool_to_anthropic(tools:list[dict])->str:
 
 
 class Claude2RetailToolCallingChain(LLMChain):
-    model_id = "anthropic.claude-v2"
+    model_id = LLMModelType.CLAUDE_2
     intent_type = LLMTaskType.RETAIL_TOOL_CALLING
     default_model_kwargs = {
         "max_tokens": 2000,
@@ -271,19 +272,19 @@ class Claude2RetailToolCallingChain(LLMChain):
 
 
 class Claude21RetailToolCallingChain(Claude2RetailToolCallingChain):
-    model_id = "anthropic.claude-v2:1"
+    model_id = LLMModelType.CLAUDE_21
 
 
 class ClaudeInstanceRetailToolCallingChain(Claude2RetailToolCallingChain):
-    model_id = "anthropic.claude-instant-v1"
+    model_id = LLMModelType.CLAUDE_INSTANCE
 
 
 class Claude3SonnetRetailToolCallingChain(Claude2RetailToolCallingChain):
-    model_id = "anthropic.claude-3-sonnet-20240229-v1:0"
+    model_id = LLMModelType.CLAUDE_3_SONNET
 
 
 class Claude3HaikuRetailToolCallingChain(Claude2RetailToolCallingChain):
-    model_id = "anthropic.claude-3-haiku-20240307-v1:0"
+    model_id = LLMModelType.CLAUDE_3_HAIKU
 
 
 MIXTRAL8X7B_QUERY_TEMPLATE = """下面是客户和客服的历史对话信息:
@@ -295,7 +296,7 @@ MIXTRAL8X7B_QUERY_TEMPLATE = """下面是客户和客服的历史对话信息:
 
 
 class Mixtral8x7bRetailToolCallingChain(Claude2RetailToolCallingChain):
-    model_id = "mistral.mixtral-8x7b-instruct-v0:1"
+    model_id = LLMModelType.MIXTRAL_8X7B_INSTRUCT
     default_model_kwargs = {"max_tokens": 1000, "temperature": 0.01,"stop":["</function_calls>"]}
 
     @classmethod

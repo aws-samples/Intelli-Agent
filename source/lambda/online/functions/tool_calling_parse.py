@@ -14,6 +14,10 @@ from common_utils.exceptions import (
     ToolNotFound
 )
 from functions.tool_execute_result_format import format_tool_call_results
+from common_utils.constant import (
+    LLMModelType
+)
+
 
 class ToolCallingParseMeta(type):
     def __new__(cls, name, bases, attrs):
@@ -35,7 +39,7 @@ class ToolCallingParse(metaclass=ToolCallingParseMeta):
         
 
 class Claude3SonnetFToolCallingParse(ToolCallingParse):
-    model_id = "anthropic.claude-3-sonnet-20240229-v1:0"
+    model_id = LLMModelType.CLAUDE_3_SONNET
     
     @staticmethod
     def convert_anthropic_xml_to_dict(model_id,function_calls:List[str], tools:list[dict]) -> List[dict]:
@@ -133,27 +137,27 @@ class Claude3SonnetFToolCallingParse(ToolCallingParse):
 
 
 class Claude3HaikuToolCallingParse(Claude3SonnetFToolCallingParse):
-    model_id = "anthropic.claude-3-haiku-20240307-v1:0"
+    model_id = LLMModelType.CLAUDE_3_HAIKU
 
 
 class Claude2ToolCallingParse(Claude3SonnetFToolCallingParse):
-    model_id = "anthropic.claude-v2"
+    model_id = LLMModelType.CLAUDE_2
 
 
 class Claude21ToolCallingParse(Claude3SonnetFToolCallingParse):
-    model_id = "anthropic.claude-v2:1"
+    model_id = LLMModelType.CLAUDE_21
 
 
 class ClaudeInstanceToolCallingParse(Claude3SonnetFToolCallingParse):
-    model_id = "anthropic.claude-instant-v1"
+    model_id = LLMModelType.CLAUDE_INSTANCE
 
 
 class Mixtral8x7bToolCallingParse(Claude3SonnetFToolCallingParse):
-    model_id = "mistral.mixtral-8x7b-instruct-v0:1"
+    model_id = LLMModelType.MIXTRAL_8X7B_INSTRUCT
 
 
 class GLM4Chat9B(ToolCallingParse):
-    model_id = "glm-4-9b-chat"
+    model_id = LLMModelType.GLM_4_9B_CHAT
 
     @classmethod
     def parse_tool_kwargs(cls,content:str,tools_def:list[dict]):

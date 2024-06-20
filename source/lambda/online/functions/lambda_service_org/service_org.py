@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Union,Mapping, Optional, TypeVar, Union
 from langchain.chains import LLMChain
 from langchain.llms.bedrock import Bedrock
 from botocore.exceptions import ClientError
+from common_utils.constant import LLMModelType
 import boto3
 import os
 
@@ -59,7 +60,7 @@ def service_org(**args):
         "top_p":0.85
     }
         
-    model_id = "anthropic.claude-v2"
+    model_id = LLMModelType.CLAUDE_2
     llm = Bedrock(model_id=model_id, client=boto3_bedrock, model_kwargs=parameters)
     
     prompt = create_prompt_templete(prompt_tmp) 
