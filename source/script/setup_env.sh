@@ -13,6 +13,10 @@ pip3 install awscli
 sudo yum install docker -y
 sudo service docker start
 sudo usermod -aG docker ec2-user
+sudo groupadd docker
+sudo usermod -aG docker $USER
+sudo chmod 666 /var/run/docker.sock
+
 # Install TypeScript globally
 sudo npm install -g typescript
 # Additional dependencies or packages can be installed as needed.
