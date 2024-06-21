@@ -27,7 +27,7 @@ def get_goods_dict_2(data_file_path):
                 goods_id = row["商品ID"]
                 goods_info = json.dumps((row.to_dict()), ensure_ascii=False)
                 goods_url = row["商品链接"]
-                goods_dict[goods_id] = {"goods_info": goods_info, "goods_url": goods_url}
+                goods_dict[goods_id] = {"goods_info": goods_info, "goods_url": goods_url, "goods_type": goods_type}
     return goods_dict
 
 download_dir_from_s3("aws-chatbot-knowledge-base-test", "retail", "/tmp/functions/retail_tools/lambda_product_information_search/")
