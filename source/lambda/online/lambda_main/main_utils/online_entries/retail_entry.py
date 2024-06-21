@@ -704,9 +704,10 @@ def retail_entry(event_body):
             _goods_info = None
 
         if _goods_info:
+            _goods_type = _goods_info.get('goods_type','')
             logger.info(_goods_info)
             _goods_info = eval(_goods_info['goods_info'])
-            goods_info = ""
+            goods_info = f"当前用户询问的商品类型: {_goods_type}\n"
             for k,v in _goods_info.items():
                 goods_info += f"{k}:{v}\n" 
     
