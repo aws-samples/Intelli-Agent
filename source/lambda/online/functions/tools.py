@@ -519,7 +519,7 @@ tool_manager.register_tool(
         "lambda_module_path": "functions.retail_tools.lambda_product_aftersales.product_aftersales",
         "tool_def": {
                 "name": "product_logistics",
-                "description": "有关于商品物流的问题，主要运费包括退货，换货，错发商品，漏发商品等",
+                "description": "有关于商品物流的问题，主要运费包括退货，换货，错发商品，漏发商品等。 也包括什么时候发货，发货地址等信息。",
         }
     }
 )

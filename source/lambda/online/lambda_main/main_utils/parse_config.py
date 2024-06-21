@@ -241,7 +241,7 @@ def parse_retail_entry_config(chatbot_config):
                 "retrievers": [
                     {
                         "type": "qq",
-                        "workspace_ids": ['retail-shouhou-wuliu'],
+                        "workspace_ids": ['retail-shouhou-wuliu',"retail-quick-reply"],
                         "config": {
                             "top_k": 2,
                         }

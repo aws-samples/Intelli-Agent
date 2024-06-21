@@ -36,7 +36,6 @@ tool_call_guidelines = """<guidlines>
 """
 
 
-
 SYSTEM_MESSAGE_PROMPT =(f"In this environment you have access to a set of tools you can use to answer the user's question.\n"
         "\n"
         "You may call them like this:\n"
