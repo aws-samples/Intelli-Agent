@@ -24,6 +24,16 @@ model_names=("bge-m3")
 commit_hashs=("3ab7155aa9b89ac532b2f2efcc3f136766b91025")
 tensor_parallel_degree=(1)
 
+# Check if the bucket exists
+if aws s3 ls "s3://$s3_bucket_name" 2>&1 | grep -q 'NoSuchBucket'
+then
+  echo "Bucket does not exist. Creating bucket: $BUCKET_NAME"
+  # Create the bucket
+  aws s3 mb "s3://$s3_bucket_name"
+else
+  echo "Bucket $s3_bucket_name already exists."
+fi
+
 for index in "${!model_names[@]}"; do
   hf_name="${hf_names[$index]}"
   model_name="${model_names[$index]}"

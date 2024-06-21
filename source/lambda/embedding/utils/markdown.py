@@ -1,5 +1,5 @@
 import logging
-from typing import List, Optional
+from typing import Optional
 
 from langchain.docstore.document import Document
 from langchain.document_loaders.base import BaseLoader
