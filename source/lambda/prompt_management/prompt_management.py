@@ -9,12 +9,12 @@ DEFAULT_MAX_ITEMS = 50
 DEFAULT_SIZE = 50
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
-client = boto3.client("dynamodb")
+dynamodb_client = boto3.client("dynamodb")
 encoder = TokenEncoder()
 
-dynamodb = boto3.resource("dynamodb")
-sessions_table_name = os.getenv("SESSIONS_TABLE_NAME")
-sessions_table_gsi_name = os.getenv("SESSIONS_BY_TIMESTAMP_INDEX_NAME")
+dynamodb_resource = boto3.resource("dynamodb")
+prompt_table_name = os.getenv("PROMPt_TABLE_NAME","prompt")
+prompt_table = dynamodb_resource.Table(prompt_table_name)
 
 resp_header = {
     "Content-Type": "application/json",
@@ -33,16 +33,23 @@ def get_query_parameter(event, parameter_name, default_value=None):
     return default_value
 
 
-def lambda_handler(event, context):
+def __put(event, user_id):
+    body = json.loads(event["body"])
+    model_id = body.get("model_id")
+    task_type = body.get("task_type")
+    prompt_table.put_item(
+                Item={
+                    "userId": user_id,
+                    "sortKey": f"{model_id}#{task_type}",
+                    "modelId": model_id,
+                    "taskType": task_type,
+                    "prompt": body.get("prompt"),
+                }
+            )
+    return {"message":"OK"}
 
-    logger.info(event)
-    authorizer_type = event["requestContext"]["authorizer"].get("authorizerType")
-    if authorizer_type == "lambda_authorizer":
-        claims = json.loads(event["requestContext"]["authorizer"]["claims"])
-        cognito_username = claims["cognito:username"]
-    else:
-        raise Exception("Invalid authorizer type")
 
+def __list(event, user_id):
     max_items = get_query_parameter(event, "max_items", DEFAULT_MAX_ITEMS)
     page_size = get_query_parameter(event, "page_size", DEFAULT_SIZE)
     starting_token = get_query_parameter(event, "starting_token")
@@ -54,14 +61,13 @@ def lambda_handler(event, context):
     }
 
     # Use query after adding a filter
-    paginator = client.get_paginator("query")
+    paginator = dynamodb_client.get_paginator("query")
 
     response_iterator = paginator.paginate(
-        TableName=sessions_table_name,
-        IndexName=sessions_table_gsi_name,
+        TableName=prompt_table_name,
         PaginationConfig=config,
         KeyConditionExpression="userId = :user_id",
-        ExpressionAttributeValues={":user_id": {"S": cognito_username}},
+        ExpressionAttributeValues={":user_id": {"S": user_id}},
         ScanIndexForward=False,
     )
 
@@ -72,7 +78,7 @@ def lambda_handler(event, context):
         page_json = []
         for item in page_items:
             item_json = {}
-            for key in ["sessionId", "userId", "createTimestamp", "latestQuestion"]:
+            for key in ["modelId", "taskType", "prompt"]:
                 item_json[key] = item.get(key, {"S": ""})["S"]
             page_json.append(item_json)
         output["Items"] = page_json
@@ -84,6 +90,44 @@ def lambda_handler(event, context):
 
     output["Config"] = config
     output["Count"] = len(page_json)
+    return output
+
+
+def __get(event, user_id):
+    sort_key = event["path"].replace("/prompt/", "").strip().replace("/","#")
+    response = prompt_table.get_item(
+            Key={"userId": user_id, "sortKey": sort_key}
+        )
+    item = response.get("Item")
+    return item
+
+
+def __delete_prompt(event, user_id):
+    sort_key = event["path"].replace("/prompt/", "").strip().replace("/","#")
+    response = prompt_table.delete_item(
+            Key={"userId": user_id, "sortKey": sort_key}
+        )
+    return {"message":"OK"}
+
+
+def lambda_handler(event, context):
+    logger.info(event)
+    authorizer_type = event["requestContext"]["authorizer"].get("authorizerType")
+    if authorizer_type == "lambda_authorizer":
+        claims = json.loads(event["requestContext"]["authorizer"]["claims"])
+        user_id = claims["cognito:username"]
+    else:
+        raise Exception("Invalid authorizer type")
+    http_method = event["httpMethod"]
+    if http_method == "POST":
+        output = __put(event, user_id)
+    elif http_method == "GET":
+        if event["resource"] == "/prompt":
+            output = __list(event, user_id)
+        else:
+            output = __get(event, user_id)
+    elif http_method == "DELETE":
+        output = __delete_prompt(event, user_id)
 
     try:
         return {
@@ -93,7 +137,6 @@ def lambda_handler(event, context):
         }
     except Exception as e:
         logger.error("Error: %s", str(e))
-
         return {
             "statusCode": 500,
             "headers": resp_header,
