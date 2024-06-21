@@ -8,7 +8,7 @@ import tiktoken
 import math
 # you need to install these packages: pypdf, tqdm, openai, langchain 
 
-# Please excute => export OPENAI_API_KEY={key}
+# Please execute => export OPENAI_API_KEY={key}
 openai.api_key = os.getenv("OPENAI_API_KEY")
 tokenizer = tiktoken.encoding_for_model("gpt-3.5-turbo")
 

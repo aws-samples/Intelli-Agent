@@ -1,7 +1,10 @@
 # translate chain
 from langchain.schema.runnable import RunnableLambda
 
-from common_utils.constant import LLMTaskType
+from common_utils.constant import (
+    LLMTaskType,
+    LLMModelType
+)
 from .chat_chain import Iternlm2Chat7BChatChain
 
 QUERY_TRANSLATE_TYPE = LLMTaskType.QUERY_TRANSLATE_TYPE
@@ -34,4 +37,4 @@ class Iternlm2Chat7BTranslateChain(Iternlm2Chat7BChatChain):
 
 
 class Iternlm2Chat20BTranslateChain(Iternlm2Chat7BTranslateChain):
-    model_id = "internlm2-chat-20b"
+    model_id = LLMModelType.INTERNLM2_CHAT_20B

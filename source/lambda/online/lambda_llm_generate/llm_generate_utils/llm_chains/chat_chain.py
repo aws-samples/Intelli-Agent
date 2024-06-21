@@ -11,7 +11,8 @@ from .llm_chain_base import LLMChain
 
 from common_utils.constant import (
     MessageType,
-    LLMTaskType
+    LLMTaskType,
+    LLMModelType
 )
 from common_utils.time_utils import get_china_now
 
@@ -22,7 +23,7 @@ SYSTEM_MESSAGE_TYPE = MessageType.SYSTEM_MESSAGE_TYPE
 
 
 class Claude2ChatChain(LLMChain):
-    model_id = "anthropic.claude-v2"
+    model_id = LLMModelType.CLAUDE_2
     intent_type = LLMTaskType.CHAT
 
     @classmethod
@@ -55,29 +56,29 @@ class Claude2ChatChain(LLMChain):
 
 
 class Claude21ChatChain(Claude2ChatChain):
-    model_id = "anthropic.claude-v2:1"
+    model_id = LLMModelType.CLAUDE_21
 
 
 class ClaudeInstanceChatChain(Claude2ChatChain):
-    model_id = "anthropic.claude-instant-v1"
+    model_id = LLMModelType.CLAUDE_INSTANCE
 
 
 class Claude3SonnetChatChain(Claude2ChatChain):
-    model_id = "anthropic.claude-3-sonnet-20240229-v1:0"
+    model_id = LLMModelType.CLAUDE_3_SONNET
 
 
 class Claude3HaikuChatChain(Claude2ChatChain):
-    model_id = "anthropic.claude-3-haiku-20240307-v1:0"
+    model_id = LLMModelType.CLAUDE_3_HAIKU
 
 
 
 class Mixtral8x7bChatChain(Claude2ChatChain):
-    model_id = "mistral.mixtral-8x7b-instruct-v0:1"
+    model_id = LLMModelType.MIXTRAL_8X7B_INSTRUCT
     default_model_kwargs = {"max_tokens": 4096, "temperature": 0.01}
 
 
 class Baichuan2Chat13B4BitsChatChain(LLMChain):
-    model_id = "Baichuan2-13B-Chat-4bits"
+    model_id = LLMModelType.BAICHUAN2_13B_CHAT
     intent_type = LLMTaskType.CHAT
     default_model_kwargs = {
         "max_new_tokens": 2048,
@@ -101,7 +102,7 @@ class Baichuan2Chat13B4BitsChatChain(LLMChain):
 
 
 class Iternlm2Chat7BChatChain(LLMChain):
-    model_id = "internlm2-chat-7b"
+    model_id = LLMModelType.INTERNLM2_CHAT_7B
     intent_type = LLMTaskType.CHAT
 
     default_model_kwargs = {"temperature": 0.5, "max_new_tokens": 1000}
@@ -166,7 +167,41 @@ class Iternlm2Chat7BChatChain(LLMChain):
 
 
 class Iternlm2Chat20BChatChain(Iternlm2Chat7BChatChain):
-    model_id = "internlm2-chat-20b"
+    model_id = LLMModelType.INTERNLM2_CHAT_20B
+
+class GLM4Chat9BChatChain(LLMChain):
+    model_id = LLMModelType.GLM_4_9B_CHAT
+    intent_type = LLMTaskType.CHAT
+    default_system_prompt = "You are a helpful assistant."
+    default_model_kwargs = {
+        "max_new_tokens": 1024,
+        "timeout": 60,
+        "temperature": 0.1,
+    }
+    @classmethod
+    def create_chat_history(cls,x,system_prompt=default_system_prompt):
+        chat_history = x['chat_history']
+        if system_prompt is not None:
+            chat_history = [{"role":"system","content": system_prompt}] + chat_history
+        chat_history = chat_history + [{"role":"user","content":x['query']}]
+        return chat_history
+     
+    @classmethod
+    def create_chain(cls, model_kwargs=None, **kwargs):
+        model_kwargs = model_kwargs or {}
+        model_kwargs = {**cls.default_model_kwargs, **model_kwargs}
+        system_prompt = kwargs.get("system_prompt",None)
+        llm = Model.get_model(
+            model_id=cls.model_id,
+            model_kwargs=model_kwargs,
+            **kwargs
+        )
+
+        chain = RunnablePassthrough.assign(
+            chat_history = RunnableLambda(lambda x: cls.create_chat_history(x,system_prompt=system_prompt)) 
+        ) | RunnableLambda(lambda x: llm.invoke(x))
+        
+        return chain
 
 # class ChatGPT35ChatChain(LLMChain):
 #     model_id = "gpt-3.5-turbo-0125"

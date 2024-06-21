@@ -16,21 +16,24 @@ from langchain.prompts import ChatPromptTemplate
 from langchain_core.messages import AIMessage,SystemMessage
 
 from common_utils.constant import (
-    LLMTaskType
+    LLMTaskType,
+    LLMModelType
 )
 
 from .llm_chain_base import LLMChain
 from ..llm_models import Model
 
 tool_call_guidelines = """<guidlines>
-- Don't forget to output <function_calls></function_calls> when any tool is called.
-- You should call tools that are described in <tools></tools>.
-- In <thinking></thinking>, you should check whether the tool name you want to call is exists in <tools></tools>.
+- Don't forget to output <function_calls> </function_calls> when any tool is called.
+- 每次回答总是先进行思考，并将思考过程写在<thinking>标签中。请你按照下面的步骤进行思考:
+    1. 判断根据当前的上下文是否足够回答用户的问题。
+    2. 如果当前的上下文足够回答用户的问题，请调用 `give_final_response` 工具。
+    3. 如果当前的上下文不能支持回答用户的问题，你可以考虑调用<tools> 标签中列举的工具。
+    4. 如果调用工具对应的参数不够，请调用反问工具 `give_rhetorical_question` 来让用户提供更加充分的信息。
+    5. 最后给出你要调用的工具名称。
 - Always output with "中文". 
-- Always choose one tool to call. 
 </guidlines>
 """
-
 
 
 SYSTEM_MESSAGE_PROMPT =(f"In this environment you have access to a set of tools you can use to answer the user's question.\n"
@@ -150,7 +153,7 @@ def convert_openai_tool_to_anthropic(tools:list[dict])->str:
 
 
 class Claude2ToolCallingChain(LLMChain):
-    model_id = "anthropic.claude-v2"
+    model_id = LLMModelType.CLAUDE_2
     intent_type = LLMTaskType.TOOL_CALLING
     default_model_kwargs = {
         "max_tokens": 2000,
@@ -191,12 +194,10 @@ class Claude2ToolCallingChain(LLMChain):
     
     @classmethod
     def parse_function_calls_from_ai_message(cls,message:AIMessage):
-        content = message.content + "</function_calls>"
+        content = "<thinking>" + message.content + "</function_calls>"
         function_calls:List[str] = re.findall("<function_calls>(.*?)</function_calls>", content,re.S)
-        # print(message.content)
-        # return {"function_calls":function_calls,"content":message.content}
         if not function_calls:
-            content = message.content
+            content = "<thinking>" +  message.content
 
         return {
                 "function_calls": function_calls,
@@ -228,7 +229,8 @@ class Claude2ToolCallingChain(LLMChain):
         tool_calling_template = ChatPromptTemplate.from_messages(
             [
             SystemMessage(content=system_prompt),
-            ("placeholder", "{chat_history}")
+            ("placeholder", "{chat_history}"),
+            AIMessage(content="<thinking>")
         ])
 
         llm = Model.get_model(
@@ -245,18 +247,18 @@ class Claude2ToolCallingChain(LLMChain):
 
 
 class Claude21ToolCallingChain(Claude2ToolCallingChain):
-    model_id = "anthropic.claude-v2:1"
+    model_id = LLMModelType.CLAUDE_21
 
 
 class ClaudeInstanceToolCallingChain(Claude2ToolCallingChain):
-    model_id = "anthropic.claude-instant-v1"
+    model_id = LLMModelType.CLAUDE_INSTANCE
 
 
 class Claude3SonnetToolCallingChain(Claude2ToolCallingChain):
-    model_id = "anthropic.claude-3-sonnet-20240229-v1:0"
+    model_id = LLMModelType.CLAUDE_3_SONNET
 
 
 class Claude3HaikuToolCallingChain(Claude2ToolCallingChain):
-    model_id = "anthropic.claude-3-haiku-20240307-v1:0"
+    model_id = LLMModelType.CLAUDE_3_HAIKU
 
 

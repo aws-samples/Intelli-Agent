@@ -8,7 +8,10 @@ import boto3
 from langchain_community.chat_models import BedrockChat
 from langchain_community.llms.sagemaker_endpoint import LineIterator
 
-from common_utils.constant import MessageType
+from common_utils.constant import (
+    MessageType,
+    LLMModelType
+)
 from common_utils.logger_utils import get_logger
 
 AI_MESSAGE_TYPE = MessageType.AI_MESSAGE_TYPE
@@ -37,7 +40,7 @@ class Model(metaclass=ModelMeta):
 
 
 class Claude2(Model):
-    model_id = "anthropic.claude-v2"
+    model_id = LLMModelType.CLAUDE_2
     default_model_kwargs = {"max_tokens": 2000, "temperature": 0.7, "top_p": 0.9}
 
     @classmethod
@@ -66,23 +69,23 @@ class Claude2(Model):
 
 
 class ClaudeInstance(Claude2):
-    model_id = "anthropic.claude-instant-v1"
+    model_id = LLMModelType.CLAUDE_INSTANCE
 
 
 class Claude21(Claude2):
-    model_id = "anthropic.claude-v2:1"
+    model_id = LLMModelType.CLAUDE_21
 
 
 class Claude3Sonnet(Claude2):
-    model_id = "anthropic.claude-3-sonnet-20240229-v1:0"
+    model_id = LLMModelType.CLAUDE_3_SONNET
 
 
 class Claude3Haiku(Claude2):
-    model_id = "anthropic.claude-3-haiku-20240307-v1:0"
+    model_id = LLMModelType.CLAUDE_3_HAIKU
 
 
 class Mixtral8x7b(Claude2):
-    model_id = "mistral.mixtral-8x7b-instruct-v0:1"
+    model_id = LLMModelType.MIXTRAL_8X7B_INSTRUCT
     default_model_kwargs = {"max_tokens": 4096, "temperature": 0.01}
 
 
@@ -160,7 +163,7 @@ class SagemakerModelBase(Model):
 
 
 class Baichuan2Chat13B4Bits(SagemakerModelBase):
-    model_id = "Baichuan2-13B-Chat-4bits"
+    model_id = LLMModelType.BAICHUAN2_13B_CHAT
     # content_handler=Baichuan2ContentHandlerChat()
     default_model_kwargs = {
         "max_new_tokens": 2048,
@@ -219,7 +222,7 @@ class Baichuan2Chat13B4Bits(SagemakerModelBase):
 
 
 class Internlm2Chat7B(SagemakerModelBase):
-    model_id = "internlm2-chat-7b"
+    model_id = LLMModelType.INTERNLM2_CHAT_7B
     default_model_kwargs = {
         "max_new_tokens": 1024,
         "timeout": 60,
@@ -246,48 +249,34 @@ class Internlm2Chat7B(SagemakerModelBase):
 
 
 class Internlm2Chat20B(Internlm2Chat7B):
-    model_id = "internlm2-chat-20b"
+    model_id = LLMModelType.INTERNLM2_CHAT_20B
 
 
 class GLM4Chat9B(SagemakerModelBase):
-    model_id = "glm-4-9b-chat"
+    model_id = LLMModelType.GLM_4_9B_CHAT
     default_model_kwargs = {
-        "max_tokens": 1024,
+        "max_new_tokens": 1024,
         "timeout": 60,
         "temperature": 0.1,
     }
-    
-    SELFCOG="You are a helpful assistant."
-
-    def build_system_prompt(
-        self,
-        tools:list[dict],
-        self_cog
-        ):
-        value = self_cog
-        if tools:
-            value += "\n\n# 可用工具"
-        contents = []
-        for tool in tools:
-            content = f"\n\n## {tool['name']}\n\n{json.dumps(tool, ensure_ascii=False, indent=4)}"
-            content += "\n在调用上述函数时，请使用 Json 格式表示调用的参数。"
-            contents.append(content)
-        value += "".join(contents)
-        return value
 
     def transform_input(self, x:dict):
-        tools = x.get('tools',[])
-        system_prompt = x.get("system_prompt", None) or self.SELFCOG
-        system_prompt = self.build_system_prompt(tools,system_prompt)
-        chat_history = x['chat_history']
-    
-        chat_history = [{
-            "role":"system",
-            "content": system_prompt
-            }] + chat_history
-            
+        _chat_history = x['chat_history']  
+        chat_history = []
+        for message in _chat_history:
+            message = {**message}
+            role = message['role']
+            if role == "ai":
+                message['role'] = "assistant"
+
+            if message['role'] == "assistant":
+                content = message['content']
+                if not content.endswith("<|observation|>"):
+                    if not content.endswith("<|user|>"):
+                        message['content'] = message['content'] + "<|user|>"
+            chat_history.append(message)
+                
         logger.info(f"glm chat_history: {chat_history}")
-        
         body = {
             "chat_history": chat_history,
             "stream": x["stream"],

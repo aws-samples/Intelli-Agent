@@ -1,7 +1,7 @@
 import json
 from typing import Annotated, Any, TypedDict
 
-from common_utils.constant import LLMTaskType
+from common_utils.constant import LLMTaskType,ChatbotMode
 from common_utils.exceptions import (
     ToolNotExistError, 
     ToolParameterNotExistError,
@@ -165,7 +165,8 @@ def parse_tool_calling(state: ChatbotState):
         )
         tool_calls = output['tool_calls']
         send_trace(f"\n\n**tool_calls parsed:** \n{tool_calls}", state["stream"], state["ws_connection_id"], state["enable_trace"])
-        state["extra_response"]["current_agent_intent_type"] = output['tool_calls'][0]["name"]
+        if not state["extra_response"].get("current_agent_intent_type", None):
+            state["extra_response"]["current_agent_intent_type"] = output['tool_calls'][0]["name"]
        
         return {
             "parse_tool_calling_ok": True,
@@ -378,6 +379,9 @@ def agent_route(state: dict):
     return "continue"
 
 def rag_all_index_lambda_route(state: dict):
+    if state['chatbot_config']['chatbot_mode'] == ChatbotMode.rag_mode:
+        return "rag model/first final response/rag intention/recursion limit"
+
     if not state.get('intention_fewshot_examples',[]) and state['current_agent_recursion_num'] == 0:
         return "no intention detected"
     else:

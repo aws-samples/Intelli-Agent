@@ -40,9 +40,7 @@ from .rag_chain import (
     ClaudeInstanceRAGLLMChain,
     Claude3HaikuRAGLLMChain,
     Claude3SonnetRAGLLMChain,
-    Baichuan2Chat13B4BitsKnowledgeQaChain,
-    Iternlm2Chat7BKnowledgeQaChain,
-    Iternlm2Chat20BKnowledgeQaChain
+    Baichuan2Chat13B4BitsKnowledgeQaChain
 )
 
 
