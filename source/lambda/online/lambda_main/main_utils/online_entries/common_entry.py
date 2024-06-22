@@ -361,34 +361,34 @@ def agent_route(state: dict):
     recent_tool_name = recent_tool_call["name"]
 
     if recent_tool_name in ["comfort", "transfer"]:
-        return "tool results"
+        return "no need tool calling"
         # return "format reply"
 
     if recent_tool_name in ["QA", "service_availability", "explain_abbr"]:
-        return "tool results"
+        return "no need tool calling"
         # return "aws qa"
 
     if recent_tool_name in ["assist", "chat"]:
-        return "tool results"
+        return "no need tool calling"
         # return "chat"
 
     if recent_tool_call["name"] == "give_rhetorical_question":
-        return "tool results"
+        return "no need tool calling"
         # return "rhetorical question"
 
     if recent_tool_call["name"] == "give_final_response":
         if state['current_agent_recursion_num'] == 1:
-            return "tool results"
+            return "no need tool calling"
             # return "force to retrieve all knowledge"
             # return "first final response/rag intention/recursion limit"
         else:
-            return "tool results"
+            return "no need tool calling"
             # return "generate results"
             # return "give final response"
     
     if state['current_agent_recursion_num'] >= state['agent_recursion_limit']:
         send_trace(f"Reach the agent recursion limit: {state['agent_recursion_limit']}, route to final rag")
-        return "tool results"
+        return "no need tool calling"
         # return "force to retrieve all knowledge"
 
     return "valid tool calling"
@@ -413,17 +413,17 @@ def build_graph():
     # add all nodes
     workflow.add_node("query_preprocess", query_preprocess_lambda)
     # chat mode
-    workflow.add_node("llm_direct_generate_results", chat_llm_generate_lambda)
+    workflow.add_node("llm_direct_results_generation", chat_llm_generate_lambda)
     # rag mode
-    workflow.add_node("retrieve_all_knowledge", rag_all_index_lambda)
-    workflow.add_node("llm_rag_generate_results", rag_llm_lambda)
+    workflow.add_node("all_knowledge_retrieve", rag_all_index_lambda)
+    workflow.add_node("llm_rag_results_generation", rag_llm_lambda)
     # agent mode
     workflow.add_node("intention_detection", intention_detection_lambda)
-    workflow.add_node("query_matched", qq_matched_reply)
-    workflow.add_node("tools_plan", agent_lambda)
+    workflow.add_node("matched_query_return", qq_matched_reply)
+    workflow.add_node("tools_choose_and_results_generation", agent_lambda)
     workflow.add_node("tools_execution", tool_execute_lambda)
     workflow.add_node("results_evaluation", parse_tool_calling)
-    workflow.add_node("agent_results", give_final_response)
+    workflow.add_node("final_results_preparation", give_final_response)
     # workflow.add_node("format_reply", format_reply)
     # workflow.add_node("comfort_reply", comfort_reply)
     # workflow.add_node("transfer_reply", transfer_reply)
@@ -437,15 +437,15 @@ def build_graph():
     # add all edges
     workflow.set_entry_point("query_preprocess")
     # chat mode
-    workflow.add_edge("llm_direct_generate_results", END)
+    workflow.add_edge("llm_direct_results_generation", END)
     # rag mode
-    workflow.add_edge("retrieve_all_knowledge", "llm_rag_generate_results")
-    workflow.add_edge("llm_rag_generate_results", END)
+    workflow.add_edge("all_knowledge_retrieve", "llm_rag_results_generation")
+    workflow.add_edge("llm_rag_results_generation", END)
     # agent mode
-    workflow.add_edge("tools_plan", "results_evaluation")
-    workflow.add_edge("tools_execution", "tools_plan")
-    workflow.add_edge("query_matched", "agent_results")
-    workflow.add_edge("agent_results", END)
+    workflow.add_edge("tools_choose_and_results_generation", "results_evaluation")
+    workflow.add_edge("tools_execution", "tools_choose_and_results_generation")
+    workflow.add_edge("matched_query_return", "final_results_preparation")
+    workflow.add_edge("final_results_preparation", END)
     # workflow.add_edge("rag_all_index_lambda", "rag_llm_lambda")
     # workflow.add_edge("aws_qa_lambda", "rag_llm_lambda")
     # workflow.add_edge("rag_llm_lambda", END)
@@ -467,8 +467,8 @@ def build_graph():
         "query_preprocess",
         query_route,
         {
-            "chat mode": "llm_direct_generate_results",
-            "rag mode": "retrieve_all_knowledge",
+            "chat mode": "llm_direct_results_generation",
+            "rag mode": "all_knowledge_retrieve",
             "agent mode": "intention_detection",
         },
     )
@@ -481,9 +481,9 @@ def build_graph():
         "intention_detection",
         intent_route,
         {
-            "query matched": "query_matched",
-            "intention detected": "tools_plan",
-            # "no clear intentions": "retrieve_all_knowledge", 
+            "similar query found": "matched_query_return",
+            "intention detected": "tools_choose_and_results_generation",
+            # "no clear intentions": "all_knowledge_retrieve", 
         },
     )
 
@@ -493,15 +493,15 @@ def build_graph():
     # 3. generate results: based on running of tools, agent thinks it's ok to generate results.
     # 4. force retrieve all knowledge and generate results: to address hallucination and stability issues, we force agent to retrieve all knowledge and generate results:
     # 4.1 the agent believes that it can produce results without executing tools
-    # 4.2 the tools_plan node reaches its maximum recusion limit
+    # 4.2 the tools_choose_and_results_generation node reaches its maximum recusion limit
     workflow.add_conditional_edges(
         "results_evaluation",
         agent_route,
         {
-            "invalid tool calling": "tools_plan",
+            "invalid tool calling": "tools_choose_and_results_generation",
             "valid tool calling": "tools_execution",
-            "tool results": "agent_results",
-            # "force to retrieve all knowledge": "retrieve_all_knowledge", 
+            "no need tool calling": "final_results_preparation",
+            # "force to retrieve all knowledge": "all_knowledge_retrieve", 
             # "give final response": "give_final_response",
             # "rhetorical question": "give_rhetorical_question",
             # "format reply": "format_reply",
@@ -520,13 +520,13 @@ def build_graph():
     # # 2.1 in rag mode based on user selection at beginning
     # # 2.2 agent thinks it needs to retrieve all the knowledge to generate the results
     # # 2.3 the agent believes that it can produce results without executing tools
-    # # 2.4 the tools_plan node reaches its maximum recusion limit
+    # # 2.4 the tools_choose_and_results_generation node reaches its maximum recusion limit
     # workflow.add_conditional_edges(
-    #     "retrieve_all_knowledge",
+    #     "all_knowledge_retrieve",
     #     rag_all_index_lambda_route,
     #     {
-    #         "no clear intentions": "tools_plan",
-    #         "generate results in rag mode": "llm_rag_generate_results",
+    #         "no clear intentions": "tools_choose_and_results_generation",
+    #         "generate results in rag mode": "llm_rag_results_generation",
     #     },
     # )
     app = workflow.compile()
