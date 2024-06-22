@@ -103,7 +103,8 @@ def get_whole_chain(retriever_list, reranker_config):
         default_reranker_config = {
             "enable_debug": False,
             "target_model": "bge_reranker_model.tar.gz",
-            "query_key": "query"
+            "query_key": "query",
+            "top_k": 10
         }
         reranker_config = {**default_reranker_config, **reranker_config}
         compressor = BGEReranker(**reranker_config)

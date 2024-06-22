@@ -8,7 +8,8 @@ from ..chat_chain import Claude2ChatChain, Iternlm2Chat7BChatChain
 
 from common_utils.constant import (
     MessageType,
-    LLMTaskType
+    LLMTaskType,
+    LLMModelType
 )
 
 AI_MESSAGE_TYPE = MessageType.AI_MESSAGE_TYPE
@@ -20,7 +21,7 @@ MKT_CONVERSATION_SUMMARY_TYPE = LLMTaskType.MKT_CONVERSATION_SUMMARY_TYPE
 CHIT_CHAT_SYSTEM_TEMPLATE = """You are a helpful AI Assistant"""
 
 class Iternlm2Chat7BMKTConversationSummaryChain(Iternlm2Chat7BChatChain):
-    model_id = "internlm2-chat-7b"
+    model_id = LLMModelType.INTERNLM2_CHAT_7B
     intent_type = MKT_CONVERSATION_SUMMARY_TYPE
 
     @classmethod
@@ -86,11 +87,11 @@ class Iternlm2Chat7BMKTConversationSummaryChain(Iternlm2Chat7BChatChain):
 class Iternlm2Chat20BMKTConversationSummaryChain(
     Iternlm2Chat7BMKTConversationSummaryChain
 ):
-    model_id = "internlm2-chat-20b"
+    model_id = LLMModelType.INTERNLM2_CHAT_20B
 
 
 class Claude2MKTConversationSummaryChain(Claude2ChatChain):
-    model_id = "anthropic.claude-v2"
+    model_id = LLMModelType.CLAUDE_2
     intent_type = MKT_CONVERSATION_SUMMARY_TYPE
 
     default_model_kwargs = {"max_tokens": 2000, "temperature": 0.1, "top_p": 0.9}
@@ -104,16 +105,16 @@ class Claude2MKTConversationSummaryChain(Claude2ChatChain):
 
 
 class Claude21MKTConversationSummaryChain(Claude2MKTConversationSummaryChain):
-    model_id = "anthropic.claude-v2:1"
+    model_id = LLMModelType.CLAUDE_21
 
 
 class ClaudeInstanceMKTConversationSummaryChain(Claude2MKTConversationSummaryChain):
-    model_id = "anthropic.claude-instant-v1"
+    model_id = LLMModelType.CLAUDE_INSTANCE
 
 
 class Claude3SonnetMKTConversationSummaryChain(Claude2MKTConversationSummaryChain):
-    model_id = "anthropic.claude-3-sonnet-20240229-v1:0"
+    model_id = LLMModelType.CLAUDE_3_SONNET
 
 
 class Claude3HaikuMKTConversationSummaryChain(Claude2MKTConversationSummaryChain):
-    model_id = "anthropic.claude-3-haiku-20240307-v1:0"
+    model_id = LLMModelType.CLAUDE_3_HAIKU

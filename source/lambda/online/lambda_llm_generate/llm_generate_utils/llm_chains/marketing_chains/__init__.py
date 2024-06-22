@@ -7,3 +7,9 @@ from .mkt_conversation_summary import (
     Iternlm2Chat7BMKTConversationSummaryChain,
     Iternlm2Chat20BMKTConversationSummaryChain
 )
+
+from .mkt_rag_chain import (
+    Iternlm2Chat7BKnowledgeQaChain,
+    Iternlm2Chat20BKnowledgeQaChain
+)
+

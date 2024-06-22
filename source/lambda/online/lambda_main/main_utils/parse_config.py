@@ -26,7 +26,7 @@ def parse_common_entry_config(chatbot_config):
         **chatbot_config.get("default_llm_config", {}),
     }
 
-    default_workspace_config = {"intent_workspace_ids": ["yb_intent"], "rag_workspace_ids": []}
+    default_workspace_config = {"intent_workspace_ids": ["yb_intent"], "rag_workspace_ids": ["test-pdf"]}
 
     default_workspace_config = {
         **default_workspace_config,
@@ -41,7 +41,7 @@ def parse_common_entry_config(chatbot_config):
         "chatbot_mode": ChatbotMode.chat,
         "use_history": True,
         "enable_trace": True,
-        "agent_recursion_limit": 3,
+        "agent_recursion_limit": 5,
         "query_process_config": {
             "conversation_query_rewrite_config": {**default_llm_config}
         },
@@ -182,7 +182,7 @@ def parse_retail_entry_config(chatbot_config):
             "retrievers": [
                 {
                     "type": "qq",
-                    "workspace_ids": ["retail-intent-1"],
+                    "workspace_ids": ["retail-intent"],
                     "config": {
                         "top_k": 10,
                     }
@@ -241,9 +241,9 @@ def parse_retail_entry_config(chatbot_config):
                 "retrievers": [
                     {
                         "type": "qq",
-                        "workspace_ids": ['retail-shouhou-wuliu'],
+                        "workspace_ids": ['retail-shouhou-wuliu', 'retail-quick-reply'],
                         "config": {
-                            "top_k": 2,
+                            "top_k": 10,
                         }
                     },
                 ],
