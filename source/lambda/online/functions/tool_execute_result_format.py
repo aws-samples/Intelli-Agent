@@ -78,7 +78,8 @@ class Claude3SonnetFormatToolResult(FormatToolResult):
         tool_call_result_strs = []
         for tool_call_result in tool_call_outputs:
             tool_exe_output = tool_call_result['output']
-            tool_exe_output['tool_name'] = tool_call_result['name']
+            if 'name' in tool_call_result.keys():
+                tool_exe_output['tool_name'] = tool_call_result['name']
             ret:str = cls.format_one_tool_output(
                 tool_exe_output
             )

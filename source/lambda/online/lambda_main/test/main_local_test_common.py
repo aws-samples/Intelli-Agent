@@ -21,18 +21,11 @@ def test(chatbot_mode="agent",session_id=None,query=None,use_history=True):
         entry_type="common",
     )
 
-def test_multi_turns():
+def test_multi_turns_pr(mode="agent"):
     session_id = f"multiturn_test_{time.time()}"
     user_queries = [
-        # {"query":"今天星期几？", "use_history":True},
-        # {"query":"今天星期三", "use_history":True},
-        # {"query":"今天星期几", "use_history":False},
-        # {"query":"我们进行了几轮对话", "use_history":True},
         {"query":"今天天气怎么样", "use_history":True},
         {"query":"我在上海", "use_history":True},
-        # {"query":"今天星期三", "use_history":True},
-        # {"query":"今天星期几", "use_history":False},
-        # {"query":"我们进行了几轮对话", "use_history":True},
     ]
 
     for query in user_queries:
@@ -41,13 +34,24 @@ def test_multi_turns():
         if isinstance(query,str):
             query = {"query":query}
         test(
-            chatbot_mode='agent',
+            chatbot_mode=mode,
             session_id=session_id,
             query=query['query'],
             use_history=query['use_history']
         )
+
+def complete_test():
+    print("start test in chat mode")
+    test_multi_turns_pr("chat")
+    print("finish test in chat mode")
+    print("start test in rag mode")
+    test_multi_turns_pr("rag")
+    print("finish test in rag mode")
+    print("start test in agent mode")
+    test_multi_turns_pr("agent")
+    print("finish test in agent mode")
   
 if __name__ == "__main__":
-    # test(chatbot_mode="agent")
-    test_multi_turns()
+    # complete test for PR
+    complete_test()
     

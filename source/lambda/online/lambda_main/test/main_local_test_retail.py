@@ -253,9 +253,51 @@ def batch_test():
             index=False
         )
 
+def test_multi_turns_pr(mode="agent"):
+    session_id = f"anta_multiturn_test_{time.time()}"
+    user_queries = [
+        {"query":"能发顺丰嘛？","goods_id":641874887898, "use_history":True},
+        {"query":"我170能穿吗？","goods_id":641874887898, "use_history":True},
+    ]
+
+    default_llm_config = {
+        'model_id': 'anthropic.claude-3-sonnet-20240229-v1:0',
+    }
+    chatbot_config = {
+        "chatbot_mode": mode,
+        "enable_trace": True,
+        "default_llm_config":default_llm_config,
+        "intention_config": {
+            "query_key": "query"
+        }
+    }
+    for query in user_queries:
+        if isinstance(query,str):
+            query = {"query":query}
+        chatbot_config['use_history'] = query['use_history']
+        generate_answer(
+               query=query['query'],
+               stream=True,
+               session_id=session_id,
+               chatbot_config={**chatbot_config,"goods_id": query.get("goods_id")},
+               entry_type="retail"
+        )
+
+def complete_test():
+    print("start test in chat mode")
+    test_multi_turns_pr("chat")
+    print("finish test in chat mode")
+    print("start test in rag mode")
+    test_multi_turns_pr("rag")
+    print("finish test in rag mode")
+    print("start test in agent mode")
+    test_multi_turns_pr("agent")
+    print("finish test in agent mode")
+
 
 if __name__ == "__main__":
-    test_multi_turns()
+    complete_test()
+    # test_multi_turns()
     # batch_test()
     # batch_test()
     # test(
