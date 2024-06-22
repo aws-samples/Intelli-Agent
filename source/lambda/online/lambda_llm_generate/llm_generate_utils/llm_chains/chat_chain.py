@@ -203,7 +203,7 @@ class GLM4Chat9BChatChain(LLMChain):
         
         return chain
 class ChatGPT35ChatChain(LLMChain):
-    model_id = "gpt-3.5-turbo-0125"
+    model_id = LLMModelType.CHATGPT_35_TURBO
     intent_type = LLMTaskType.CHAT
 
     @classmethod
@@ -235,7 +235,7 @@ class ChatGPT35ChatChain(LLMChain):
         return chain
 
 class ChatGPT4ChatChain(ChatGPT35ChatChain):
-    model_id = "gpt-4-turbo"
+    model_id = LLMModelType.CHATGPT_4_TURBO
 
 class ChatGPT4oChatChain(ChatGPT35ChatChain):
-    model_id = "gpt-4o"
+    model_id = LLMModelType.CHATGPT_4O
