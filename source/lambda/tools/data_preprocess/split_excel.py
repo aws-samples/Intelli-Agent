@@ -5,7 +5,6 @@ import glob
 import openpyxl
 import argparse
 import pandas as pd
-from tabulate import tabulate
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

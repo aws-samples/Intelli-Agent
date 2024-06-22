@@ -10,9 +10,7 @@ from common_utils.python_utils import update_nest_dict,add_messages
 from common_utils.constant import (
     LLMTaskType
 )
-import pandas as pd 
 
-from functions.tools import get_tool_by_name,Tool
 from functions.retail_tools.lambda_product_information_search.product_information_search import goods_dict
 from functions.tool_execute_result_format import format_tool_call_results
 from functions.tool_calling_parse import parse_tool_calling as _parse_tool_calling
@@ -27,7 +25,6 @@ from common_utils.exceptions import (
 )
 from common_utils.logger_utils import get_logger
 from common_utils.serialization_utils import JSONEncoder
-from common_utils.s3_utils import download_dir_from_s3
 
 
 logger = get_logger('retail_entry')

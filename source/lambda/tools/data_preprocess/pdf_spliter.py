@@ -7,9 +7,7 @@ import argparse
 from bs4 import BeautifulSoup
 from pdf2image import convert_from_path
 from langchain.document_loaders import PDFMinerPDFasHTMLLoader
-from langchain.docstore.document import Document
-from langchain.text_splitter import RecursiveCharacterTextSplitter,CharacterTextSplitter
-from langchain.docstore.document import Document
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 from tqdm import tqdm
 

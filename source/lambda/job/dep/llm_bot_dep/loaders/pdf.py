@@ -9,11 +9,10 @@ import uuid
 import botocore
 from langchain.docstore.document import Document
 from langchain.document_loaders import PDFMinerPDFasHTMLLoader
-from langchain.document_loaders.pdf import BasePDFLoader
 from smart_open import open as smart_open
 
 from ..cleaning import remove_duplicate_sections
-from ..splitter_utils import MarkdownHeaderTextSplitter, extract_headings
+from ..splitter_utils import MarkdownHeaderTextSplitter
 from ..storage_utils import _s3_uri_exist
 from .html import CustomHtmlLoader
 

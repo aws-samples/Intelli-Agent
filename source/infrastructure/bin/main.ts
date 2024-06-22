@@ -208,5 +208,7 @@ const devEnv = {
 };
 
 const app = new App();
-new RootStack(app, "llm-bot-dev", { env: devEnv });
+const stackName = app.node.tryGetContext("StackName") || "intelli-agent";
+new RootStack(app, stackName, { env: devEnv })
+
 app.synth();

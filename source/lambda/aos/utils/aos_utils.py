@@ -1,14 +1,12 @@
 import json
 import logging
 import os
-from typing import List
 
 import boto3
 from langchain.docstore.document import Document
 from langchain.vectorstores import OpenSearchVectorSearch
 from opensearchpy import OpenSearch, RequestsHttpConnection
 from requests_aws4auth import AWS4Auth
-from tenacity import retry, stop_after_attempt
 
 from .sm_utils import create_sagemaker_embeddings_from_js_model
 

@@ -2,8 +2,6 @@ import json
 import logging
 import os
 
-import boto3
-from requests_aws4auth import AWS4Auth
 from utils.aos_utils import OpenSearchClient
 
 logger = logging.getLogger()

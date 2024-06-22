@@ -7,7 +7,6 @@ from langchain.docstore.document import Document
 from langchain.document_loaders import PDFMinerPDFasHTMLLoader
 
 from .cleaning import remove_duplicate_sections
-from .htmlx import CustomHtmlLoader
 from .splitter_utils import MarkdownHeaderTextSplitter
 
 logger = logging.getLogger()

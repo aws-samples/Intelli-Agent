@@ -1,18 +1,14 @@
-import functools
 import itertools
-import json
 import logging
 import os
 import sys
-import time
 import traceback
 from datetime import datetime, timezone
-from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple
+from typing import Generator, Iterable, List
 
 import boto3
 import chardet
 import nltk
-from boto3.dynamodb.conditions import Attr, Key
 from langchain.docstore.document import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import OpenSearchVectorSearch
@@ -86,7 +82,6 @@ from llm_bot_dep import sm_utils
 from llm_bot_dep.constant import SplittingType
 from llm_bot_dep.ddb_utils import WorkspaceManager
 from llm_bot_dep.embeddings import get_embedding_info
-from llm_bot_dep.enhance_utils import EnhanceWithBedrock
 from llm_bot_dep.loaders.auto import cb_process_object
 from llm_bot_dep.storage_utils import save_content_to_s3
 
