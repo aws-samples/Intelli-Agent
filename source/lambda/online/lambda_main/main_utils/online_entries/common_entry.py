@@ -20,7 +20,7 @@ from common_utils.logger_utils import get_logger
 from common_utils.serialization_utils import JSONEncoder
 from functions.tool_calling_parse import parse_tool_calling as _parse_tool_calling
 from functions.tool_execute_result_format import format_tool_call_results
-from functions.tools import Tool, get_tool_by_name
+from functions.tools import Tool, get_tool_by_name, tool_manager
 from lambda_main.main_utils.parse_config import parse_common_entry_config
 from langgraph.graph import END, StateGraph
 
@@ -39,24 +39,31 @@ class ChatbotState(TypedDict):
     message_id: str = None
     chat_history: Annotated[list[dict], add_messages]
     agent_chat_history: Annotated[list[dict], add_messages]
-    current_function_calls: list[str]
-    current_tool_execute_res: dict
     debug_infos: Annotated[dict, update_nest_dict]
     answer: Any  # final answer
     current_monitor_infos: str
     extra_response: Annotated[dict, update_nest_dict]
     contexts: str = None
     all_index_retriever_contexts: list
-    current_intent_tools: list  #
-    current_tool_calls: list
     current_agent_tools_def: list[dict]
     current_agent_model_id: str
     current_agent_output: dict
     parse_tool_calling_ok: bool
     enable_trace: bool
-    agent_recursion_limit: int # agent recursion limit
-    current_agent_recursion_num: int
     format_intention: str
+    ########### function calling parameters ###########
+    # 
+    current_function_calls: list[str]
+    current_tool_execute_res: dict
+    current_intent_tools: list
+    current_tool_calls: list
+    current_tool_name: str
+    valid_tool_calling_names: list[str]
+    # parameters to monitor the running of agent
+    agent_recursion_limit: int # the maximum number that tool_plan_and_results_generation node can be called
+    agent_recursion_validation: bool
+    current_agent_recursion_num: int #
+    
 
 def get_common_system_prompt():
     now = get_china_now()
@@ -343,56 +350,69 @@ def intent_route(state: dict):
     return state["intent_type"]
 
 
-def agent_route(state: dict):
-    parse_tool_calling_ok = state["parse_tool_calling_ok"]
-    if not parse_tool_calling_ok:
-        if state['current_agent_recursion_num'] >= state['agent_recursion_limit']:
-            send_trace(f"Reach the agent recursion limit: {state['agent_recursion_limit']}, route to final rag")
-            return 'first final response/rag intention/recursion limit'
+def results_evaluation_route(state: dict):
+    state["agent_recursion_validation"] = state['current_agent_recursion_num'] < state['agent_recursion_limit']
+    if state["parse_tool_calling_ok"]:
+        state["current_tool_name"] = state["current_tool_calls"][0]["name"]
+    else:
+        state["current_tool_name"] = ""
+
+    if state["agent_recursion_validation"] and not state["parse_tool_calling_ok"]:
         return "invalid tool calling"
-
-    recent_tool_calls: list[dict] = state["current_tool_calls"]
-
-    if not recent_tool_calls:
-        return "no tool"
-
-    recent_tool_call = recent_tool_calls[0]
-
-    recent_tool_name = recent_tool_call["name"]
-
-    if recent_tool_name in ["comfort", "transfer"]:
+    elif state["agent_recursion_validation"] and state["current_tool_name"] in state["valid_tool_calling_names"]:
+        return "valid tool calling"
+    else:
         return "no need tool calling"
-        # return "format reply"
 
-    if recent_tool_name in ["QA", "service_availability", "explain_abbr"]:
-        return "no need tool calling"
-        # return "aws qa"
+    # # invalid tool calling
+    # if not parse_tool_calling_ok:
+    #     if state['current_agent_recursion_num'] >= state['agent_recursion_limit']:
+    #         send_trace(f"Reach the agent recursion limit: {state['agent_recursion_limit']}, route to final rag")
+    #         return 'first final response/rag intention/recursion limit'
+    #     return "invalid tool calling"
 
-    if recent_tool_name in ["assist", "chat"]:
-        return "no need tool calling"
-        # return "chat"
+    # recent_tool_calls: list[dict] = state["current_tool_calls"]
 
-    if recent_tool_call["name"] == "give_rhetorical_question":
-        return "no need tool calling"
-        # return "rhetorical question"
+    # if not recent_tool_calls:
+    #     return "no tool"
 
-    if recent_tool_call["name"] == "give_final_response":
-        if state['current_agent_recursion_num'] == 1:
-            return "no need tool calling"
-            # return "force to retrieve all knowledge"
-            # return "first final response/rag intention/recursion limit"
-        else:
-            return "no need tool calling"
-            # return "generate results"
-            # return "give final response"
+    # recent_tool_call = recent_tool_calls[0]
+
+    # recent_tool_name = recent_tool_call["name"]
+
+    # if recent_tool_name in ["comfort", "transfer"]:
+    #     return "no need tool calling"
+    #     # return "format reply"
+
+    # if recent_tool_name in ["QA", "service_availability", "explain_abbr"]:
+    #     return "no need tool calling"
+    #     # return "aws qa"
+
+    # if recent_tool_name in ["assist", "chat"]:
+    #     return "no need tool calling"
+    #     # return "chat"
+
+    # if recent_tool_call["name"] == "give_rhetorical_question":
+    #     return "no need tool calling"
+    #     # return "rhetorical question"
+
+    # if recent_tool_call["name"] == "give_final_response":
+    #     if state['current_agent_recursion_num'] == 1:
+    #         return "no need tool calling"
+    #         # return "force to retrieve all knowledge"
+    #         # return "first final response/rag intention/recursion limit"
+    #     else:
+    #         return "no need tool calling"
+    #         # return "generate results"
+    #         # return "give final response"
     
-    if state['current_agent_recursion_num'] >= state['agent_recursion_limit']:
-        send_trace(f"Reach the agent recursion limit: {state['agent_recursion_limit']}, route to final rag")
-        return "no need tool calling"
-        # return "force to retrieve all knowledge"
+    # if state['current_agent_recursion_num'] >= state['agent_recursion_limit']:
+    #     send_trace(f"Reach the agent recursion limit: {state['agent_recursion_limit']}, route to final rag")
+    #     return "no need tool calling"
+    #     # return "force to retrieve all knowledge"
 
-    return "valid tool calling"
-    # return "continue"
+    # return "valid tool calling"
+    # # return "continue"
 
 def rag_all_index_lambda_route(state: dict):
     if state['chatbot_config']['chatbot_mode'] == ChatbotMode.rag_mode:
@@ -496,7 +516,7 @@ def build_graph():
     # 4.2 the tools_choose_and_results_generation node reaches its maximum recusion limit
     workflow.add_conditional_edges(
         "results_evaluation",
-        agent_route,
+        results_evaluation_route,
         {
             "invalid tool calling": "tools_choose_and_results_generation",
             "valid tool calling": "tools_execution",
@@ -566,6 +586,8 @@ def common_entry(event_body):
     message_id = event_body["custom_message_id"]
     ws_connection_id = event_body["ws_connection_id"]
     enable_trace = chatbot_config["enable_trace"]
+    # get all registered tools with parameters
+    valid_tool_calling_names = tool_manager.get_names_from_tools_with_parameters()
 
     # invoke graph and get results
     response = app.invoke(
@@ -583,6 +605,7 @@ def common_entry(event_body):
             "extra_response": {},
             "agent_recursion_limit": chatbot_config['agent_recursion_limit'],
             "current_agent_recursion_num": 0,
+            "valid_tool_calling_names": valid_tool_calling_names
         }
     )
 
