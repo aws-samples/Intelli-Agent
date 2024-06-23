@@ -133,3 +133,7 @@ class Claude3SonnetStepBackChain(Claude2StepBackChain):
 
 class Claude3HaikuStepBackChain(Claude2StepBackChain):
     model_id = "anthropic.claude-3-haiku-20240307-v1:0"
+
+
+class Claude35SonnetStepBackChain(Claude2StepBackChain):
+    model_id = "anthropic.claude-3-5-sonnet-20240620-v1:0"

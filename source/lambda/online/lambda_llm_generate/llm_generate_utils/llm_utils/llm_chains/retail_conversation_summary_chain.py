@@ -119,6 +119,9 @@ class Claude3HaikuRetailConversationSummaryChain(Claude2RetailConversationSummar
     model_id = "anthropic.claude-3-haiku-20240307-v1:0"
 
 
+class Claude35SonnetRetailConversationSummaryChain(Claude2RetailConversationSummaryChain):
+    model_id = "anthropic.claude-3-5-sonnet-20240620-v1:0"
+
 
 MIXTRAL_CQR_TEMPLATE = """下面有一段客户和客服的对话，以及当前客户的一个回复,请你站在客户的角度，结合上述对话数据对当前客户的回复内容进行改写，使得改写之后的内容可以作为一个独立的句子。下面是改写的要求:
 - 改写后的回复需要和当前客户的一个回复的内容意思一致。
