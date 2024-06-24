@@ -283,44 +283,8 @@ class Claude3SonnetRetailToolCallingChain(Claude2RetailToolCallingChain):
 
 
 class Claude3HaikuRetailToolCallingChain(Claude2RetailToolCallingChain):
-<<<<<<< HEAD:source/lambda/online/lambda_llm_generate/llm_generate_utils/llm_chains/retail_chains/retail_tool_calling_chain_claude_xml.py
     model_id = LLMModelType.CLAUDE_3_HAIKU
 
-=======
-    model_id = "anthropic.claude-3-haiku-20240307-v1:0"
-
-
-class Claude35SonnetRetailToolCallingChain(Claude2RetailToolCallingChain):
-    model_id = "anthropic.claude-3-5-sonnet-20240620-v1:0"
-
-
-# MIXTRAL8X7B_SYSTEM_MESSAGE_PROMPT=("你是安踏的客服客服助理小安, 主要职责是处理用户售前和售后的问题。下面是当前用户正在浏览的商品信息:\n<goods_info>\n{goods_info}\n</goods_info>"
-#         "In this environment you have access to a set of tools you can use to answer the customer's question."
-#         "\n"
-#         "You may call them like this:\n"
-#         "<function_calls>\n"
-#         "<invoke>\n"
-#         "<tool_name>$TOOL_NAME</tool_name>\n"
-#         "<parameters>\n"
-#         "<$PARAMETER_NAME>$PARAMETER_VALUE</$PARAMETER_NAME>\n"
-#         "...\n"
-#         "</parameters>\n"
-#         "</invoke>\n"
-#         "</function_calls>\n"
-#         "\n"
-#         "Here are the tools available:\n"
-#         "<tools>\n"
-#         "{tools}"
-#         "\n</tools>"
-#         "\nAnswer the user's request using relevant tools (if they are available). Before calling a tool, do some analysis within <thinking></thinking> tags. First, think about which of the provided tools is the relevant tool to answer the user's request. Second, go through each of the required parameters of the relevant tool and determine if the user has directly provided or given enough information to infer a value. When deciding if the parameter can be inferred, carefully consider all the context to see if it supports a specific value. If all of the required parameters are present or can be reasonably inferred, close the thinking tag and proceed with the tool call. BUT, if one of the values for a required parameter is missing, DO NOT invoke the function (not even with fillers for the missing params) and instead, ask the user to provide the missing parameters. DO NOT ask for more information on optional parameters if it is not provided."
-#         f"\nHere are some guidelines for you:\n{tool_call_guidelines}"
-#     )
-
-# MIXTRAL8X7B_SYSTEM_MESSAGE_PROMPT_WITH_FEWSHOT_EXAMPLES = MIXTRAL8X7B_SYSTEM_MESSAGE_PROMPT + (
-#     "Some examples of tool calls are given below, where the content within <query></query> represents the most recent reply in the dialog."
-#     "\n{fewshot_examples}"
-# )
->>>>>>> dev:source/lambda/online/lambda_llm_generate/llm_generate_utils/llm_utils/llm_chains/retail_tool_calling_chain_claude_xml.py
 
 MIXTRAL8X7B_QUERY_TEMPLATE = """下面是客户和客服的历史对话信息:
 {chat_history}
