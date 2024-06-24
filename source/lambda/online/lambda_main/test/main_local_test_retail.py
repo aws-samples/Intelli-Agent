@@ -296,8 +296,8 @@ def complete_test():
 
 
 if __name__ == "__main__":
-    complete_test()
-    # test_multi_turns()
+    # complete_test()
+    test_multi_turns()
     # batch_test()
     # batch_test()
     # test(

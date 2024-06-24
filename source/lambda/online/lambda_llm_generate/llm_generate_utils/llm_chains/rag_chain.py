@@ -39,8 +39,8 @@ class Claude2RagLLMChain(LLMChain):
     def create_chain(cls, model_kwargs=None, **kwargs):
         stream = kwargs.get("stream", False)
         # history
-        chat_history = kwargs.get("chat_history", [])
-
+        # chat_history = kwargs.get("chat_history", [])
+        
         system_prompt_template = get_prompt_template(
             model_id=cls.model_id,
             task_type=cls.intent_type,
@@ -50,10 +50,10 @@ class Claude2RagLLMChain(LLMChain):
         system_prompt_template = kwargs.get("system_prompt",system_prompt_template)
 
         chat_messages = [
-            SystemMessagePromptTemplate.from_template(system_prompt_template)
+            SystemMessagePromptTemplate.from_template(system_prompt_template),
+            ("placeholder", "{chat_history}"),
+            HumanMessagePromptTemplate.from_template("{query}")
         ]
-        chat_messages = chat_messages + chat_history
-        chat_messages += [HumanMessagePromptTemplate.from_template("{query}")]
         context_chain = RunnablePassthrough.assign(
             context=RunnableLambda(lambda x: get_claude_rag_context(x["contexts"]))
         )
