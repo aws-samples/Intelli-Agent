@@ -67,6 +67,9 @@
     "maxTokens": "最大 Token 数",
     "temperature": "发散度",
     "sessionHistory": "历史记录",
+    "prompt": "提示词",
+    "prompts": "提示词",
+    "type": "类型",
     "button": {
       "login": "登录到 AWS 大语言模型机器人",
       "reload": "重新加载",
@@ -77,7 +80,10 @@
       "backToList": "返回列表",
       "delete": "删除",
       "createDoc": "创建文档",
-      "upload": "上传"
+      "upload": "上传",
+      "createPrompt": "创建提示",
+      "edit": "编辑",
+      "save": "保存"
     },
     "header": {
       "reSignIn": "请重新登录",
@@ -88,7 +94,8 @@
       "requireTemperature": "请输入模型发散度",
       "requireMaxTokens": "请输入一个最大 token 数",
       "temperatureRange": "发散度必须介于 0 和 1 之间",
-      "maxTokensRange": "最大 token 数必须大于 0"
+      "maxTokensRange": "最大 token 数必须大于 0",
+      "requirePrompt": "请输入提示词"
     }
   }
 }
