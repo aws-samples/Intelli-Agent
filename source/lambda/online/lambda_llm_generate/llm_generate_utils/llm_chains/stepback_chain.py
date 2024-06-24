@@ -135,4 +135,12 @@ class Claude3SonnetStepBackChain(Claude2StepBackChain):
 
 
 class Claude3HaikuStepBackChain(Claude2StepBackChain):
+<<<<<<< HEAD:source/lambda/online/lambda_llm_generate/llm_generate_utils/llm_chains/stepback_chain.py
     model_id = LLMModelType.CLAUDE_3_HAIKU
+=======
+    model_id = "anthropic.claude-3-haiku-20240307-v1:0"
+
+
+class Claude35SonnetStepBackChain(Claude2StepBackChain):
+    model_id = "anthropic.claude-3-5-sonnet-20240620-v1:0"
+>>>>>>> dev:source/lambda/online/lambda_llm_generate/llm_generate_utils/llm_utils/llm_chains/stepback_chain.py

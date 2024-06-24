@@ -68,7 +68,7 @@
     "temperature": "Temperature",
     "sessionHistory": "Session History",
     "button": {
-      "login": "Log in to LLM Bot",
+      "login": "Log in to Intelli-Agent",
       "reload": "Reload",
       "send": "Send",
       "modelSettings": "Model Settings",

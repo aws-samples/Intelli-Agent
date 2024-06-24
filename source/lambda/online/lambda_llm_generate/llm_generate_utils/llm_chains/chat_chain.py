@@ -71,6 +71,9 @@ class Claude3HaikuChatChain(Claude2ChatChain):
     model_id = LLMModelType.CLAUDE_3_HAIKU
 
 
+class Claude35SonnetChatChain(Claude2ChatChain):
+    model_id = "anthropic.claude-3-5-sonnet-20240620-v1:0"
+
 
 class Mixtral8x7bChatChain(Claude2ChatChain):
     model_id = LLMModelType.MIXTRAL_8X7B_INSTRUCT
