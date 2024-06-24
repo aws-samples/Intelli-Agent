@@ -43,6 +43,7 @@ def test_multi_turns_pr(mode="agent"):
 def complete_test():
     print("start test in chat mode")
     test_multi_turns_pr("chat")
+    print(srg)
     print("finish test in chat mode")
     print("start test in rag mode")
     test_multi_turns_pr("rag")

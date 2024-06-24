@@ -88,6 +88,48 @@ register_prompt_templates(
     prompt_name="main"
 )
 
+CHIT_CHAT_SYSTEM_TEMPLATE = "You are a helpful assistant."
+
+register_prompt_templates(
+    model_ids=[
+        LLMModelType.CLAUDE_2,
+        LLMModelType.CLAUDE_21,
+        LLMModelType.CLAUDE_3_HAIKU,
+        LLMModelType.CLAUDE_3_SONNET,
+        LLMModelType.CLAUDE_INSTANCE,
+        LLMModelType.MIXTRAL_8X7B_INSTRUCT
+    ],
+    task_type=LLMTaskType.CHAT,
+    prompt_template=CHIT_CHAT_SYSTEM_TEMPLATE,
+    prompt_name="main"
+)
+
+
+
+CQR_TEMPLATE = """Given the following conversation between `USER` and `AI`, and a follow up `USER` reply, Put yourself in the shoes of `USER`, rephrase the follow up \
+`USER` reply to be a standalone reply.
+
+Chat History:
+{history}
+
+The USER's follow up reply: {question}"""
+
+register_prompt_templates(
+    model_ids=[
+        LLMModelType.CLAUDE_2,
+        LLMModelType.CLAUDE_21,
+        LLMModelType.CLAUDE_3_HAIKU,
+        LLMModelType.CLAUDE_3_SONNET,
+        LLMModelType.CLAUDE_INSTANCE,
+        LLMModelType.MIXTRAL_8X7B_INSTRUCT
+    ],
+    task_type=LLMTaskType.CONVERSATION_SUMMARY_TYPE,
+    prompt_template=CQR_TEMPLATE,
+    prompt_name="main"
+)
+
+
+
 
 
 if __name__ == "__main__":
