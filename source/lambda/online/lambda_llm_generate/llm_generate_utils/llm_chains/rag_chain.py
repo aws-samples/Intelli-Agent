@@ -40,13 +40,17 @@ class Claude2RagLLMChain(LLMChain):
         stream = kwargs.get("stream", False)
         # history
         chat_history = kwargs.get("chat_history", [])
-        prompt_template = get_prompt_template(
+
+        system_prompt_template = get_prompt_template(
             model_id=cls.model_id,
             task_type=cls.intent_type,
             prompt_name="main"     
         ).prompt_template
+
+        system_prompt_template = kwargs.get("system_prompt",system_prompt_template)
+
         chat_messages = [
-            SystemMessagePromptTemplate.from_template(prompt_template)
+            SystemMessagePromptTemplate.from_template(system_prompt_template)
         ]
         chat_messages = chat_messages + chat_history
         chat_messages += [HumanMessagePromptTemplate.from_template("{query}")]
