@@ -85,6 +85,10 @@ class Claude3Haiku(Claude2):
     model_id = "anthropic.claude-3-haiku-20240307-v1:0"
 
 
+class Claude35Sonnet(Claude2):
+    model_id = "anthropic.claude-3-5-sonnet-20240620-v1:0"
+
+
 class Mixtral8x7b(Claude2):
     model_id = "mistral.mixtral-8x7b-instruct-v0:1"
     default_model_kwargs = {"max_tokens": 4096, "temperature": 0.01}

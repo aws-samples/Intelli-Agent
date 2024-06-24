@@ -271,6 +271,9 @@ class Claude3HaikuRetailToolCallingChain(Claude2RetailToolCallingChain):
     model_id = "anthropic.claude-3-haiku-20240307-v1:0"
 
 
+class Claude35SonnetRetailToolCallingChain(Claude2RetailToolCallingChain):
+    model_id = "anthropic.claude-3-5-sonnet-20240620-v1:0"
+
 
 # MIXTRAL8X7B_SYSTEM_MESSAGE_PROMPT=("你是安踏的客服客服助理小安, 主要职责是处理用户售前和售后的问题。下面是当前用户正在浏览的商品信息:\n<goods_info>\n{goods_info}\n</goods_info>"
 #         "In this environment you have access to a set of tools you can use to answer the customer's question."

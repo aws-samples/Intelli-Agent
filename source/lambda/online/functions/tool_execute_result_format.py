@@ -74,6 +74,10 @@ class Claude3HaikuFormatToolResult(Claude3SonnetFormatToolResult):
     model_id = "anthropic.claude-3-haiku-20240307-v1:0"
 
 
+class Claude35SonnetFormatToolResult(Claude3SonnetFormatToolResult):
+    model_id = "anthropic.claude-3-5-sonnet-20240620-v1:0"
+
+
 class Claude2FormatToolResult(Claude3SonnetFormatToolResult):
     model_id = "anthropic.claude-v2"
 

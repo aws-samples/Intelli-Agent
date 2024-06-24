@@ -153,3 +153,7 @@ class Claude3SonnetConversationSummaryChain(Claude2ConversationSummaryChain):
 
 class Claude3HaikuConversationSummaryChain(Claude2ConversationSummaryChain):
     model_id = "anthropic.claude-3-haiku-20240307-v1:0"
+
+
+class Claude35SonnetConversationSummaryChain(Claude2ConversationSummaryChain):
+    model_id = "anthropic.claude-3-5-sonnet-20240620-v1:0"
