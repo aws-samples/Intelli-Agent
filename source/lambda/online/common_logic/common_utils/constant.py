@@ -97,6 +97,8 @@ class LLMModelType(ConstantBase):
     CHATGPT_35_TURBO = "gpt-3.5-turbo-0125"
     CHATGPT_4_TURBO = "gpt-4-turbo"
     CHATGPT_4O = "gpt-4o"
+    QWEN2INSTRUCT7B = "qwen2-7B-instruct"
+    QWEN2INSTRUCT72B = "qwen2-72B-instruct"
     
     
 

@@ -290,6 +290,16 @@ class GLM4Chat9B(SagemakerModelBase):
         input_str = json.dumps(body)
         return input_str
 
+
+class Qwen2Instruct7B(SagemakerModelBase):
+    model_id = LLMModelType.QWEN2INSTRUCT7B
+    default_model_kwargs = {
+        "max_new_tokens": 1024,
+        "timeout": 60,
+        "temperature": 0.1,
+    }
+
+
 # ChatGPT model type
 class ChatGPT35(Model):
     model_id = "gpt-3.5-turbo-0125"
