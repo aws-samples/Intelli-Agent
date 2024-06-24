@@ -142,6 +142,10 @@ class Claude3HaikuToolCallingParse(Claude3SonnetFToolCallingParse):
     model_id = LLMModelType.CLAUDE_3_HAIKU
 
 
+class Claude35SonnetFToolCallingParse(Claude3SonnetFToolCallingParse):
+    model_id = "anthropic.claude-3-5-sonnet-20240620-v1:0"
+
+
 class Claude2ToolCallingParse(Claude3SonnetFToolCallingParse):
     model_id = LLMModelType.CLAUDE_2
 

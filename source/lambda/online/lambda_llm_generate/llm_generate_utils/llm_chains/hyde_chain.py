@@ -72,6 +72,10 @@ class Claude3HaikuHydeChain(Claude2HydeChain):
     model_id = LLMModelType.CLAUDE_3_HAIKU
 
 
+class Claude35SonnetHydeChain(Claude2HydeChain):
+    model_id = "anthropic.claude-3-5-sonnet-20240620-v1:0"
+
+
 internlm2_meta_instruction = "You are a helpful AI Assistant."
 
 

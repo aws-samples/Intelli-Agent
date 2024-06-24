@@ -85,6 +85,10 @@ class Claude3Haiku(Claude2):
     model_id = LLMModelType.CLAUDE_3_HAIKU
 
 
+class Claude35Sonnet(Claude2):
+    model_id = "anthropic.claude-3-5-sonnet-20240620-v1:0"
+
+
 class Mixtral8x7b(Claude2):
     model_id = LLMModelType.MIXTRAL_8X7B_INSTRUCT
     default_model_kwargs = {"max_tokens": 4096, "temperature": 0.01}
