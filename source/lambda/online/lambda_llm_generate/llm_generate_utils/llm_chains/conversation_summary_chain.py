@@ -153,12 +153,4 @@ class Claude3SonnetConversationSummaryChain(Claude2ConversationSummaryChain):
 
 
 class Claude3HaikuConversationSummaryChain(Claude2ConversationSummaryChain):
-<<<<<<< HEAD:source/lambda/online/lambda_llm_generate/llm_generate_utils/llm_chains/conversation_summary_chain.py
     model_id = LLMModelType.CLAUDE_3_HAIKU
-=======
-    model_id = "anthropic.claude-3-haiku-20240307-v1:0"
-
-
-class Claude35SonnetConversationSummaryChain(Claude2ConversationSummaryChain):
-    model_id = "anthropic.claude-3-5-sonnet-20240620-v1:0"
->>>>>>> dev:source/lambda/online/lambda_llm_generate/llm_generate_utils/llm_utils/llm_chains/conversation_summary_chain.py
