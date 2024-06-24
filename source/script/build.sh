@@ -42,7 +42,7 @@ popd
 
 echo "Prepare model"
 pushd ../model
-sh prepare_model.sh -s $s3_bucket_name
+bash prepare_model.sh -s $s3_bucket_name
 popd
 
 pushd ../model/etl/code

@@ -12,7 +12,7 @@ from langchain.schema.runnable import (
     RunnablePassthrough,
 )
 
-from common_utils.constant import LLMTaskType
+from common_utils.constant import LLMTaskType,LLMModelType
 from ..llm_models import Model
 from .chat_chain import Iternlm2Chat7BChatChain
 from .llm_chain_base import LLMChain
@@ -49,7 +49,7 @@ def load_intention_file(intent_save_path=intent_save_path, seed=42):
 
 
 class Iternlm2Chat7BIntentRecognitionChain(Iternlm2Chat7BChatChain):
-    model_id = "internlm2-chat-7b"
+    model_id = LLMModelType.INTERNLM2_CHAT_7B
     intent_type =LLMTaskType.INTENT_RECOGNITION_TYPE
 
     default_model_kwargs = {
@@ -103,7 +103,7 @@ class Iternlm2Chat7BIntentRecognitionChain(Iternlm2Chat7BChatChain):
 
 
 class Iternlm2Chat20BIntentRecognitionChain(Iternlm2Chat7BIntentRecognitionChain):
-    model_id = "internlm2-chat-20b"
+    model_id = LLMModelType.INTERNLM2_CHAT_20B
 
 
 INTENT_RECOGINITION_PROMPT_TEMPLATE_CLUADE = """Please classify this query: <query>{query}</query>. The categories are:
@@ -121,7 +121,7 @@ INTENT_RECOGINITION_EXAMPLE_TEMPLATE = """<query>{query}</query>\n{label}"""
 
 
 class Claude2IntentRecognitionChain(LLMChain):
-    model_id = "anthropic.claude-v2"
+    model_id = LLMModelType.CLAUDE_2
     intent_type = LLMTaskType.INTENT_RECOGNITION_TYPE
 
     default_model_kwargs = {
@@ -209,20 +209,16 @@ class Claude2IntentRecognitionChain(LLMChain):
 
 
 class Claude21IntentRecognitionChain(Claude2IntentRecognitionChain):
-    model_id = "anthropic.claude-v2:1"
+    model_id = LLMModelType.CLAUDE_21
 
 
 class ClaudeInstanceIntentRecognitionChain(Claude2IntentRecognitionChain):
-    model_id = "anthropic.claude-instant-v1"
+    model_id = LLMModelType.CLAUDE_INSTANCE
 
 
 class Claude3SonnetIntentRecognitionChain(Claude2IntentRecognitionChain):
-    model_id = "anthropic.claude-3-sonnet-20240229-v1:0"
+    model_id = LLMModelType.CLAUDE_3_SONNET
 
 
 class Claude3HaikuIntentRecognitionChain(Claude2IntentRecognitionChain):
-    model_id = "anthropic.claude-3-haiku-20240307-v1:0"
-
-
-class Claude35SonnetIntentRecognitionChain(Claude2IntentRecognitionChain):
-    model_id = "anthropic.claude-3-5-sonnet-20240620-v1:0"
+    model_id = LLMModelType.CLAUDE_3_HAIKU

@@ -12,7 +12,8 @@ from .chat_chain import Iternlm2Chat7BChatChain
 from .llm_chain_base import LLMChain
 from common_utils.constant import (
     MessageType,
-    LLMTaskType
+    LLMTaskType,
+    LLMModelType
 )
 
 from langchain_core.messages import(
@@ -60,7 +61,7 @@ Follow Up Input: {question}
 
 
 class Iternlm2Chat20BConversationSummaryChain(Iternlm2Chat7BChatChain):
-    model_id = "internlm2-chat-20b"
+    model_id = LLMModelType.INTERNLM2_CHAT_20B
     meta_instruction_prompt_template = CQR_TEMPLATE
     default_model_kwargs = {
         "max_new_tokens": 300,
@@ -90,11 +91,11 @@ class Iternlm2Chat20BConversationSummaryChain(Iternlm2Chat7BChatChain):
         return prompt
 
 class Iternlm2Chat7BConversationSummaryChain(Iternlm2Chat20BConversationSummaryChain):
-    model_id = "internlm2-chat-7b"
+    model_id = LLMModelType.INTERNLM2_CHAT_7B
 
 
 class Claude2ConversationSummaryChain(LLMChain):
-    model_id = "anthropic.claude-v2"
+    model_id = LLMModelType.CLAUDE_2
     intent_type = LLMTaskType.CONVERSATION_SUMMARY_TYPE
 
     default_model_kwargs = {"max_tokens": 2000, "temperature": 0.1, "top_p": 0.9}
@@ -140,20 +141,16 @@ class Claude2ConversationSummaryChain(LLMChain):
 
 
 class Claude21ConversationSummaryChain(Claude2ConversationSummaryChain):
-    model_id = "anthropic.claude-v2:1"
+    model_id = LLMModelType.CLAUDE_21
 
 
 class ClaudeInstanceConversationSummaryChain(Claude2ConversationSummaryChain):
-    model_id = "anthropic.claude-instant-v1"
+    model_id = LLMModelType.CLAUDE_INSTANCE
 
 
 class Claude3SonnetConversationSummaryChain(Claude2ConversationSummaryChain):
-    model_id = "anthropic.claude-3-sonnet-20240229-v1:0"
+    model_id = LLMModelType.CLAUDE_3_SONNET
 
 
 class Claude3HaikuConversationSummaryChain(Claude2ConversationSummaryChain):
-    model_id = "anthropic.claude-3-haiku-20240307-v1:0"
-
-
-class Claude35SonnetConversationSummaryChain(Claude2ConversationSummaryChain):
-    model_id = "anthropic.claude-3-5-sonnet-20240620-v1:0"
+    model_id = LLMModelType.CLAUDE_3_HAIKU

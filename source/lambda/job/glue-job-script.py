@@ -399,7 +399,7 @@ class BatchQueryDocumentProcessor:
                 # use term-level queries only for fields mapped as keyword
                 "prefix": {"metadata.file_path.keyword": {"value": s3_path}},
             },
-            "size": 100000,
+            "size": 10000,
             "sort": [{"_score": {"order": "desc"}}],
             "_source": {"excludes": ["vector_field"]},
         }

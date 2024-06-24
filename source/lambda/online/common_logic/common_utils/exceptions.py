@@ -2,7 +2,18 @@ class LambdaInvokeError(Exception):
     pass
 
 
-class ToolNotExistError(Exception):
+class ToolExceptionBase(Exception):
+    def __init__(self, *args: object) -> None:
+        super().__init__(*args)
+        self.agent_message = None
+        self.error_message = None
+
+    def to_agent(self):
+        raise NotImplementedError
+
+
+
+class ToolNotExistError(ToolExceptionBase):
     def __init__(self, tool_name,function_call_content) -> None:
         self.tool_name = tool_name
         self.function_call_content = function_call_content
@@ -11,10 +22,10 @@ class ToolNotExistError(Exception):
         return f"tool: {self.tool_name} is currently unavailable."
 
     def __str__(self):
-        return self.to_agent() + "\nfunction_call:\n{self.function_call_content}"
+        return self.to_agent() + f"\nfunction_call:\n{self.function_call_content}"
     
     
-class ToolParameterNotExistError(Exception):
+class ToolParameterNotExistError(ToolExceptionBase):
     def __init__(self, tool_name,parameter_key,function_call_content) -> None:
         self.tool_name = tool_name
         self.parameter_key = parameter_key
@@ -27,7 +38,7 @@ class ToolParameterNotExistError(Exception):
         return self.to_agent() + f"\nfunction_call:\n{self.function_call_content}"
 
 
-class MultipleToolNameError(Exception):
+class MultipleToolNameError(ToolExceptionBase):
     def __init__(self,function_call_content) -> None:
         self.function_call_content = function_call_content
         self.tool_name = ""
@@ -37,3 +48,10 @@ class MultipleToolNameError(Exception):
 
     def __str__(self):
         return self.to_agent() + f"\nfunction_call:\n{self.function_call_content}"
+
+
+class ToolNotFound(ToolExceptionBase):
+    def __str__(self):
+        return "no tool found"
+    
+

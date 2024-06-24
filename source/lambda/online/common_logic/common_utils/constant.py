@@ -81,3 +81,25 @@ class ChatbotMode(ConstantBase):
     chat = "chat" # chi-chat
     rag_mode = "rag"  # rag
     agent = "agent" # rag + tool use
+
+
+class LLMModelType(ConstantBase):
+    CLAUDE_INSTANCE = "anthropic.claude-instant-v1"
+    CLAUDE_2 = "anthropic.claude-v2"
+    CLAUDE_21 = "anthropic.claude-v2:1"
+    CLAUDE_3_HAIKU = "anthropic.claude-3-haiku-20240307-v1:0"
+    CLAUDE_3_SONNET = "anthropic.claude-3-sonnet-20240229-v1:0"
+    MIXTRAL_8X7B_INSTRUCT = "mistral.mixtral-8x7b-instruct-v0:1"
+    BAICHUAN2_13B_CHAT = "Baichuan2-13B-Chat-4bits"
+    INTERNLM2_CHAT_7B = "internlm2-chat-7b"
+    INTERNLM2_CHAT_20B = "internlm2-chat-20b"
+    GLM_4_9B_CHAT = "glm-4-9b-chat"
+    CHATGPT_35_TURBO = "gpt-3.5-turbo-0125"
+    CHATGPT_4_TURBO = "gpt-4-turbo"
+    CHATGPT_4O = "gpt-4o"
+    QWEN2INSTRUCT7B = "qwen2-7B-instruct"
+    QWEN2INSTRUCT72B = "qwen2-72B-instruct"
+    
+    
+
+
