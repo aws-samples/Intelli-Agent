@@ -2,13 +2,11 @@ import logging
 import re
 import traceback
 import uuid
-from typing import Any, Dict, Iterator, List, Optional, Union
+from typing import Any, List
 
 import boto3
 from langchain.docstore.document import Document
 from langchain.text_splitter import (
-    Language,
-    RecursiveCharacterTextSplitter,
     TextSplitter,
 )
 from llm_bot_dep.constant import SplittingType, FigureNode

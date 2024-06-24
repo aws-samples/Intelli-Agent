@@ -202,41 +202,40 @@ class GLM4Chat9BChatChain(LLMChain):
         ) | RunnableLambda(lambda x: llm.invoke(x))
         
         return chain
+class ChatGPT35ChatChain(LLMChain):
+    model_id = LLMModelType.CHATGPT_35_TURBO
+    intent_type = LLMTaskType.CHAT
 
-# class ChatGPT35ChatChain(LLMChain):
-#     model_id = "gpt-3.5-turbo-0125"
-#     intent_type = LLMTaskType.CHAT
-
-#     @classmethod
-#     def create_chain(cls, model_kwargs=None, **kwargs):
-#         stream = kwargs.get("stream", False)
-#         system_prompt = kwargs.get('system_prompt',None)
-#         prefill =  kwargs.get('prefill',None)
-#         messages = [
-#             ("placeholder", "{chat_history}"),
-#             HumanMessagePromptTemplate.from_template("{query}")
-#         ]
-#         if system_prompt is not None:
-#             messages.insert(SystemMessage(content=system_prompt),0)
+    @classmethod
+    def create_chain(cls, model_kwargs=None, **kwargs):
+        stream = kwargs.get("stream", False)
+        system_prompt = kwargs.get('system_prompt',None)
+        prefill =  kwargs.get('prefill',None)
+        messages = [
+            ("placeholder", "{chat_history}"),
+            HumanMessagePromptTemplate.from_template("{query}")
+        ]
+        if system_prompt is not None:
+            messages.insert(SystemMessage(content=system_prompt),0)
         
-#         if prefill is not None:
-#             messages.append(AIMessage(content=prefill))
+        if prefill is not None:
+            messages.append(AIMessage(content=prefill))
 
-#         messages_template = ChatPromptTemplate.from_messages(messages)
-#         llm = Model.get_model(cls.model_id, model_kwargs=model_kwargs, **kwargs)
-#         chain = messages_template | RunnableLambda(lambda x: x.messages)
-#         if stream:
-#             chain = (
-#                 chain | RunnableLambda(lambda messages: llm.stream(messages))
-#                 | RunnableLambda(lambda x: (i.content for i in x))
-#             )
-#         else:
-#             chain = chain | llm | RunnableLambda(lambda x: x.content)
+        messages_template = ChatPromptTemplate.from_messages(messages)
+        llm = Model.get_model(cls.model_id, model_kwargs=model_kwargs, **kwargs)
+        chain = messages_template | RunnableLambda(lambda x: x.messages)
+        if stream:
+            chain = (
+                chain | RunnableLambda(lambda messages: llm.stream(messages))
+                | RunnableLambda(lambda x: (i.content for i in x))
+            )
+        else:
+            chain = chain | llm | RunnableLambda(lambda x: x.content)
 
-#         return chain
+        return chain
 
-# class ChatGPT4ChatChain(ChatGPT35ChatChain):
-#     model_id = "gpt-4-turbo"
+class ChatGPT4ChatChain(ChatGPT35ChatChain):
+    model_id = LLMModelType.CHATGPT_4_TURBO
 
-# class ChatGPT4oChatChain(ChatGPT35ChatChain):
-#     model_id = "gpt-4o"
+class ChatGPT4oChatChain(ChatGPT35ChatChain):
+    model_id = LLMModelType.CHATGPT_4O

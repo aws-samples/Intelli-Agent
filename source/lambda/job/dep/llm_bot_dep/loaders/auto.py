@@ -1,7 +1,5 @@
-import json
 import logging
 
-import numpy as np
 
 from llm_bot_dep.loaders.docx import process_doc
 from llm_bot_dep.loaders.markdown import process_md

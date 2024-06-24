@@ -94,6 +94,9 @@ class LLMModelType(ConstantBase):
     INTERNLM2_CHAT_7B = "internlm2-chat-7b"
     INTERNLM2_CHAT_20B = "internlm2-chat-20b"
     GLM_4_9B_CHAT = "glm-4-9b-chat"
+    CHATGPT_35_TURBO = "gpt-3.5-turbo-0125"
+    CHATGPT_4_TURBO = "gpt-4-turbo"
+    CHATGPT_4O = "gpt-4o"
     
     
 

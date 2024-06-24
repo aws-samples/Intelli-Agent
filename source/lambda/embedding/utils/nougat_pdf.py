@@ -1,13 +1,9 @@
-import json
 import logging
-import os
-import re
 import subprocess
 from pathlib import Path
-from typing import Dict, Iterator, List, Optional, Sequence
+from typing import Dict, Iterator, List, Optional
 
 from langchain.docstore.document import Document
-from langchain.document_loaders import PDFMinerPDFasHTMLLoader
 from langchain.document_loaders.pdf import BasePDFLoader
 
 from .splitter_utils import MarkdownHeaderTextSplitter, extract_headings

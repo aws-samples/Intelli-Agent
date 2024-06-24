@@ -1,7 +1,6 @@
 import json
 import logging
 import os
-from typing import List
 
 import boto3
 from langchain.docstore.document import Document
@@ -13,7 +12,6 @@ from sm_utils import (
     SagemakerEndpointVectorOrCross,
     create_sagemaker_embeddings_from_js_model,
 )
-from tenacity import retry, stop_after_attempt
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)

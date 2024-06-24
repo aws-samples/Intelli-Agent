@@ -20,7 +20,7 @@ from common_utils.logger_utils import get_logger
 from common_utils.serialization_utils import JSONEncoder
 from functions.tool_calling_parse import parse_tool_calling as _parse_tool_calling
 from functions.tool_execute_result_format import format_tool_call_results
-from functions.tools import Tool, get_tool_by_name
+from functions.tools import Tool, get_tool_by_name, tool_manager
 from lambda_main.main_utils.parse_config import parse_common_entry_config
 from langgraph.graph import END, StateGraph
 
@@ -39,24 +39,31 @@ class ChatbotState(TypedDict):
     message_id: str = None
     chat_history: Annotated[list[dict], add_messages]
     agent_chat_history: Annotated[list[dict], add_messages]
-    current_function_calls: list[str]
-    current_tool_execute_res: dict
     debug_infos: Annotated[dict, update_nest_dict]
     answer: Any  # final answer
     current_monitor_infos: str
     extra_response: Annotated[dict, update_nest_dict]
     contexts: str = None
     all_index_retriever_contexts: list
-    current_intent_tools: list  #
-    current_tool_calls: list
     current_agent_tools_def: list[dict]
     current_agent_model_id: str
     current_agent_output: dict
     parse_tool_calling_ok: bool
     enable_trace: bool
-    agent_recursion_limit: int # agent recursion limit
-    current_agent_recursion_num: int
     format_intention: str
+    ########### function calling parameters ###########
+    # 
+    current_function_calls: list[str]
+    current_tool_execute_res: dict
+    current_intent_tools: list
+    current_tool_calls: list
+    current_tool_name: str
+    valid_tool_calling_names: list[str]
+    # parameters to monitor the running of agent
+    agent_recursion_limit: int # the maximum number that tool_plan_and_results_generation node can be called
+    agent_recursion_validation: bool
+    current_agent_recursion_num: int #
+    
 
 def get_common_system_prompt():
     now = get_china_now()
@@ -101,7 +108,7 @@ def intention_detection_lambda(state: ChatbotState):
     return {
         "intention_fewshot_examples": intention_fewshot_examples,
         "current_intent_tools": current_intent_tools,
-        "intent_type": "other",
+        "intent_type": "intention detected",
     }
 
 
@@ -314,7 +321,14 @@ def give_rhetorical_question(state: ChatbotState):
 
 def give_final_response(state: ChatbotState):
     recent_tool_calling: list[dict] = state["current_tool_calls"][0]
-    return {"answer": recent_tool_calling["kwargs"]["response"]}
+    # give_rhetorical_question
+    if "question" in recent_tool_calling["kwargs"].keys():
+        answer = recent_tool_calling["kwargs"]["question"]
+    elif "response" in recent_tool_calling["kwargs"].keys():
+        answer = recent_tool_calling["kwargs"]["response"]
+    else:
+        answer = "no valid answer!"
+    return {"answer": answer}
 
 
 def qq_matched_reply(state: ChatbotState):
@@ -325,68 +339,89 @@ def qq_matched_reply(state: ChatbotState):
 # define edges #
 ################
 
-
 def query_route(state: dict):
-    return state["chatbot_config"]["chatbot_mode"]
+    return f"{state['chatbot_config']['chatbot_mode']} mode"
 
 
 def intent_route(state: dict):
     if not state['intention_fewshot_examples']:
         state['extra_response']['current_agent_intent_type'] = 'final_rag'
-        return 'no fewshot examples'
+        return 'no clear intention'
     return state["intent_type"]
 
 
-def agent_route(state: dict):
-    parse_tool_calling_ok = state["parse_tool_calling_ok"]
-    if not parse_tool_calling_ok:
-        if state['current_agent_recursion_num'] >= state['agent_recursion_limit']:
-            send_trace(f"Reach the agent recursion limit: {state['agent_recursion_limit']}, route to final rag")
-            return 'first final response/rag intention/recursion limit'
+def results_evaluation_route(state: dict):
+    state["agent_recursion_validation"] = state['current_agent_recursion_num'] < state['agent_recursion_limit']
+    if state["parse_tool_calling_ok"]:
+        state["current_tool_name"] = state["current_tool_calls"][0]["name"]
+    else:
+        state["current_tool_name"] = ""
+
+    if state["agent_recursion_validation"] and not state["parse_tool_calling_ok"]:
         return "invalid tool calling"
+    elif state["agent_recursion_validation"] and state["current_tool_name"] in state["valid_tool_calling_names"]:
+        return "valid tool calling"
+    else:
+        return "no need tool calling"
 
-    recent_tool_calls: list[dict] = state["current_tool_calls"]
+    # # invalid tool calling
+    # if not parse_tool_calling_ok:
+    #     if state['current_agent_recursion_num'] >= state['agent_recursion_limit']:
+    #         send_trace(f"Reach the agent recursion limit: {state['agent_recursion_limit']}, route to final rag")
+    #         return 'first final response/rag intention/recursion limit'
+    #     return "invalid tool calling"
 
-    if not recent_tool_calls:
-        return "no tool"
+    # recent_tool_calls: list[dict] = state["current_tool_calls"]
 
-    recent_tool_call = recent_tool_calls[0]
+    # if not recent_tool_calls:
+    #     return "no tool"
 
-    recent_tool_name = recent_tool_call["name"]
+    # recent_tool_call = recent_tool_calls[0]
 
-    if recent_tool_name in ["comfort", "transfer"]:
-        return "format reply"
+    # recent_tool_name = recent_tool_call["name"]
 
-    if recent_tool_name in ["QA", "service_availability", "explain_abbr"]:
-        return "aws qa"
+    # if recent_tool_name in ["comfort", "transfer"]:
+    #     return "no need tool calling"
+    #     # return "format reply"
 
-    if recent_tool_name in ["assist", "chat"]:
-        return "chat"
+    # if recent_tool_name in ["QA", "service_availability", "explain_abbr"]:
+    #     return "no need tool calling"
+    #     # return "aws qa"
 
-    if recent_tool_call["name"] == "give_rhetorical_question":
-        return "rhetorical question"
+    # if recent_tool_name in ["assist", "chat"]:
+    #     return "no need tool calling"
+    #     # return "chat"
 
-    if recent_tool_call["name"] == "give_final_response":
-        if state['current_agent_recursion_num'] == 1:
-            return "first final response/rag intention/recursion limit"
-        else:
-            return "give final response"
+    # if recent_tool_call["name"] == "give_rhetorical_question":
+    #     return "no need tool calling"
+    #     # return "rhetorical question"
+
+    # if recent_tool_call["name"] == "give_final_response":
+    #     if state['current_agent_recursion_num'] == 1:
+    #         return "no need tool calling"
+    #         # return "force to retrieve all knowledge"
+    #         # return "first final response/rag intention/recursion limit"
+    #     else:
+    #         return "no need tool calling"
+    #         # return "generate results"
+    #         # return "give final response"
     
-    if state['current_agent_recursion_num'] >= state['agent_recursion_limit']:
-        send_trace(f"Reach the agent recursion limit: {state['agent_recursion_limit']}, route to final rag")
-        return 'first final response/rag intention/recursion limit'
+    # if state['current_agent_recursion_num'] >= state['agent_recursion_limit']:
+    #     send_trace(f"Reach the agent recursion limit: {state['agent_recursion_limit']}, route to final rag")
+    #     return "no need tool calling"
+    #     # return "force to retrieve all knowledge"
 
-    return "continue"
+    # return "valid tool calling"
+    # # return "continue"
 
 def rag_all_index_lambda_route(state: dict):
     if state['chatbot_config']['chatbot_mode'] == ChatbotMode.rag_mode:
-        return "rag model/first final response/rag intention/recursion limit"
+        return "generate results in rag mode"
 
     if not state.get('intention_fewshot_examples',[]) and state['current_agent_recursion_num'] == 0:
-        return "no intention detected"
+        return "no clear intention"
     else:
-        return "rag model/first final response/rag intention/recursion limit"
-
+        return "generate results in rag mode"
 
 #############################
 # define whole online graph #
@@ -396,92 +431,124 @@ def rag_all_index_lambda_route(state: dict):
 def build_graph():
     workflow = StateGraph(ChatbotState)
     # add all nodes
-    workflow.add_node("query_preprocess_lambda", query_preprocess_lambda)
-    workflow.add_node("intention_detection_lambda", intention_detection_lambda)
-    workflow.add_node("rag_all_index_lambda", rag_all_index_lambda)
-    workflow.add_node("agent_lambda", agent_lambda)
-    workflow.add_node("tool_execute_lambda", tool_execute_lambda)
-    workflow.add_node("chat_llm_generate_lambda", chat_llm_generate_lambda)
-    workflow.add_node("format_reply", format_reply)
+    workflow.add_node("query_preprocess", query_preprocess_lambda)
+    # chat mode
+    workflow.add_node("llm_direct_results_generation", chat_llm_generate_lambda)
+    # rag mode
+    workflow.add_node("all_knowledge_retrieve", rag_all_index_lambda)
+    workflow.add_node("llm_rag_results_generation", rag_llm_lambda)
+    # agent mode
+    workflow.add_node("intention_detection", intention_detection_lambda)
+    workflow.add_node("matched_query_return", qq_matched_reply)
+    workflow.add_node("tools_choose_and_results_generation", agent_lambda)
+    workflow.add_node("tools_execution", tool_execute_lambda)
+    workflow.add_node("results_evaluation", parse_tool_calling)
+    workflow.add_node("final_results_preparation", give_final_response)
+    # workflow.add_node("format_reply", format_reply)
     # workflow.add_node("comfort_reply", comfort_reply)
     # workflow.add_node("transfer_reply", transfer_reply)
-    workflow.add_node("give_rhetorical_question", give_rhetorical_question)
-    workflow.add_node("give_final_response", give_final_response)
+    # workflow.add_node("give_rhetorical_question", give_rhetorical_question)
     # workflow.add_node("give_response_wo_tool", give_response_without_any_tool)
     # workflow.add_node("rag_all_index_lambda", rag_all_index_lambda)
-    workflow.add_node("aws_qa_lambda", aws_qa_lambda)
-    workflow.add_node("rag_llm_lambda", rag_llm_lambda)
-    workflow.add_node("qq_matched_reply", qq_matched_reply)
-    workflow.add_node("parse_tool_calling", parse_tool_calling)
+    # workflow.add_node("aws_qa_lambda", aws_qa_lambda)
+    # workflow.add_node("rag_generate_output", rag_llm_lambda)
+    # workflow.add_node("agent_evaluation", parse_tool_calling)
 
     # add all edges
-    workflow.set_entry_point("query_preprocess_lambda")
-    # workflow.add_edge("query_preprocess_lambda","intention_detection_lambda")
-    # workflow.add_edge("intention_detection_lambda", "agent_lambda")
-    # workflow.add_edge("rag_all_index_lambda","agent_lambda")
-    workflow.add_edge("tool_execute_lambda", "agent_lambda")
+    workflow.set_entry_point("query_preprocess")
+    # chat mode
+    workflow.add_edge("llm_direct_results_generation", END)
+    # rag mode
+    workflow.add_edge("all_knowledge_retrieve", "llm_rag_results_generation")
+    workflow.add_edge("llm_rag_results_generation", END)
+    # agent mode
+    workflow.add_edge("tools_choose_and_results_generation", "results_evaluation")
+    workflow.add_edge("tools_execution", "tools_choose_and_results_generation")
+    workflow.add_edge("matched_query_return", "final_results_preparation")
+    workflow.add_edge("final_results_preparation", END)
     # workflow.add_edge("rag_all_index_lambda", "rag_llm_lambda")
-    workflow.add_edge("aws_qa_lambda", "rag_llm_lambda")
-    workflow.add_edge("agent_lambda", "parse_tool_calling")
-    workflow.add_edge("rag_llm_lambda", END)
-    workflow.add_edge("format_reply", END)
+    # workflow.add_edge("aws_qa_lambda", "rag_llm_lambda")
+    # workflow.add_edge("rag_llm_lambda", END)
+    # workflow.add_edge("format_reply", END)
     # workflow.add_edge("comfort_reply", END)
     # workflow.add_edge("transfer_reply", END)
-    workflow.add_edge("chat_llm_generate_lambda", END)
-    workflow.add_edge("give_rhetorical_question", END)
-    workflow.add_edge("give_final_response", END)
+    # workflow.add_edge("give_rhetorical_question", END)
+    # workflow.add_edge("give_final_response", END)
     # workflow.add_edge("give_response_wo_tool", END)
     # workflow.add_edge("rag_all_index_lambda", "rag_llm_lambda")
-    workflow.add_edge("rag_llm_lambda", END)
-    workflow.add_edge("qq_matched_reply", END)
+    # workflow.add_edge("rag_llm_lambda", END)
 
     # add conditional edges
+    # choose running mode based on user selection:
+    # 1. chat mode: let llm generate results directly
+    # 2. rag mode: retrive all knowledge and let llm generate results
+    # 3. agent mode: let llm generate results based on intention detection, tool calling and retrieved knowledge
     workflow.add_conditional_edges(
-        "query_preprocess_lambda",
+        "query_preprocess",
         query_route,
         {
-            "chat": "chat_llm_generate_lambda",
-            "rag": "rag_all_index_lambda",
-            "agent": "intention_detection_lambda",
+            "chat mode": "llm_direct_results_generation",
+            "rag mode": "all_knowledge_retrieve",
+            "agent mode": "intention_detection",
         },
     )
 
-    # add conditional edges
+    # three running branch will be chosen based on intention detection results:
+    # 1. query matched: if very similar queries were found in knowledge base, these queries will be given as results
+    # 2. no clear intentions: if no clear intention detected, all knowledge will be retrieved and let llm give the answer based on retrieved results (rag mode)
+    # 3. intention detected: if intention detected, the agent logic will be invoked
     workflow.add_conditional_edges(
-        "intention_detection_lambda",
+        "intention_detection",
         intent_route,
         {
-            "other": "agent_lambda",
-            "qq_mathed": "qq_matched_reply",
-            "no fewshot examples": "rag_all_index_lambda"
+            "similar query found": "matched_query_return",
+            "intention detected": "tools_choose_and_results_generation",
+            # "no clear intentions": "all_knowledge_retrieve", 
         },
     )
 
+    # the results of agent planning will be evaluated and decide next step:
+    # 1. invalid tool calling: if agent makes clear mistakes, like wrong tool names or format, it will be forced to plan again
+    # 2. valid tool calling: the agent chooses the valid tools
+    # 3. generate results: based on running of tools, agent thinks it's ok to generate results.
+    # 4. force retrieve all knowledge and generate results: to address hallucination and stability issues, we force agent to retrieve all knowledge and generate results:
+    # 4.1 the agent believes that it can produce results without executing tools
+    # 4.2 the tools_choose_and_results_generation node reaches its maximum recusion limit
     workflow.add_conditional_edges(
-        "parse_tool_calling",
-        agent_route,
+        "results_evaluation",
+        results_evaluation_route,
         {
-            "invalid tool calling": "agent_lambda",
-            "give final response": "give_final_response",
-            "rhetorical question": "give_rhetorical_question",
-            "format reply": "format_reply",
+            "invalid tool calling": "tools_choose_and_results_generation",
+            "valid tool calling": "tools_execution",
+            "no need tool calling": "final_results_preparation",
+            # "force to retrieve all knowledge": "all_knowledge_retrieve", 
+            # "give final response": "give_final_response",
+            # "rhetorical question": "give_rhetorical_question",
+            # "format reply": "format_reply",
             # "comfort": "comfort_reply",
             # "transfer": "transfer_reply",
-            "chat": "chat_llm_generate_lambda",
-            "aws qa": "aws_qa_lambda",
-            "continue": "tool_execute_lambda",
-            "first final response/rag intention/recursion limit": "rag_all_index_lambda",
+            # "chat": "chat_llm_generate_lambda",
+            # "aws qa": "aws_qa_lambda",
+            # "continue": "tool_execute_lambda",
+            # "first final response/rag intention/recursion limit": "rag_all_index_lambda",
         },
     )
 
-    workflow.add_conditional_edges(
-        "rag_all_index_lambda",
-        rag_all_index_lambda_route,
-        {
-            "no intention detected": "agent_lambda",
-            "rag model/first final response/rag intention/recursion limit": "rag_llm_lambda",
-        },
-    )
+    # # when all knowledge retrieved, there are two possible next steps:
+    # # 1. no clear intention: this happens when no clear intention (no few shots) is detected, we give agent enough context to think and plan.
+    # # 2. generate results in rag mode: let llm generate results based on retrieved knowledge, this happens in the following scenarios:
+    # # 2.1 in rag mode based on user selection at beginning
+    # # 2.2 agent thinks it needs to retrieve all the knowledge to generate the results
+    # # 2.3 the agent believes that it can produce results without executing tools
+    # # 2.4 the tools_choose_and_results_generation node reaches its maximum recusion limit
+    # workflow.add_conditional_edges(
+    #     "all_knowledge_retrieve",
+    #     rag_all_index_lambda_route,
+    #     {
+    #         "no clear intentions": "tools_choose_and_results_generation",
+    #         "generate results in rag mode": "llm_rag_results_generation",
+    #     },
+    # )
     app = workflow.compile()
     return app
 
@@ -519,6 +586,8 @@ def common_entry(event_body):
     message_id = event_body["custom_message_id"]
     ws_connection_id = event_body["ws_connection_id"]
     enable_trace = chatbot_config["enable_trace"]
+    # get all registered tools with parameters
+    valid_tool_calling_names = tool_manager.get_names_from_tools_with_parameters()
 
     # invoke graph and get results
     response = app.invoke(
@@ -536,6 +605,7 @@ def common_entry(event_body):
             "extra_response": {},
             "agent_recursion_limit": chatbot_config['agent_recursion_limit'],
             "current_agent_recursion_num": 0,
+            "valid_tool_calling_names": valid_tool_calling_names
         }
     )
 

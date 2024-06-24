@@ -10,6 +10,7 @@ class Tool(BaseModel):
     lambda_module_path: str = Field(description="local module path")
     handler_name:str = Field(description="local handler name", default="lambda_handler")
     tool_def: dict = Field(description="tool definition")
+    running_mode: str = Field(description="tool running mode, can be loop or output", default="loop")
     tool_def_type: ToolDefType = Field(description="tool definition type",default=ToolDefType.openai.value)
     
 
@@ -32,6 +33,13 @@ class ToolManager:
 
     def get_tool_by_name(self,name):
         return self.tools[name]
+    
+    def get_names_from_tools_with_parameters(self):
+        valid_tool_names_with_parameters = []
+        for tool_name, tool_info in self.tools.items():
+            if tool_info.running_mode == 'loop':
+                valid_tool_names_with_parameters.append(tool_name)
+        return valid_tool_names_with_parameters
 
 tool_manager = ToolManager()
 get_tool_by_name = tool_manager.get_tool_by_name
@@ -53,7 +61,8 @@ tool_manager.register_tool({
                 },
                 "required": ["city_name"]
             }
-        }
+        },
+    "running_mode": "loop"
     }
 )
 
@@ -76,7 +85,8 @@ tool_manager.register_tool(
                 },
                 "required": ["question"]
             }
-        }
+        },
+        "running_mode": "output"
     }
 )
 
@@ -100,7 +110,8 @@ tool_manager.register_tool(
                 },
                 "required": ["response"]
             }
-        }
+        },
+        "running_mode": "output"
     }
 )
 
@@ -123,7 +134,8 @@ tool_manager.register_tool(
                 },
                 "required": ["query"]
             }
-        }
+        },
+        "running_mode": "loop"
     }
 )
 
@@ -153,7 +165,8 @@ tool_manager.register_tool({
                 "service",
                 "region"
             ]
-        }
+        },
+        "running_mode": "loop"
     }
 })
 
@@ -174,7 +187,8 @@ tool_manager.register_tool({
                 }
             },
             "required": ["abbr"]
-        }
+        },
+        "running_mode": "output"
     }
 })
 
@@ -208,7 +222,8 @@ tool_manager.register_tool({
             "required":[
                 "employee"
             ]
-        }
+        },
+        "running_mode": "loop"
      }
 })
 
@@ -244,7 +259,8 @@ tool_manager.register_tool({
                 }
             },
             "required": ["instance_type"]
-        }
+        },
+        "running_mode": "loop"
     }
 })
 
@@ -254,8 +270,9 @@ tool_manager.register_tool({
     "lambda_module_path": "",
     "tool_def": {
         "name": "assist",
-        "description": "assist user to do some office work"
-    }
+        "description": "assist user to do some office work",
+    },
+    "running_mode": "output"
 })
 
 tool_manager.register_tool({
@@ -264,8 +281,9 @@ tool_manager.register_tool({
     "lambda_module_path": "",
     "tool_def": {
         "name": "QA",
-        "description": "answer question about aws according to searched relevant content"
-    }
+        "description": "answer question about aws according to searched relevant content",
+    },
+    "running_mode": "output"
 })
 
 tool_manager.register_tool({
@@ -274,8 +292,9 @@ tool_manager.register_tool({
     "lambda_module_path": "",
     "tool_def": {
         "name": "chat",
-        "description": "chi-chat with AI"
-    }
+        "description": "chi-chat with AI",
+    },
+    "running_mode": "output"
 })
 
 tool_manager.register_tool({
@@ -284,8 +303,9 @@ tool_manager.register_tool({
     "lambda_module_path": "",
     "tool_def": {
         "name": "comfort",
-        "description": "comfort user to mitigate their bad emotion"
-    }
+        "description": "comfort user to mitigate their bad emotion",
+    },
+    "running_mode": "output"
 
 })
 
@@ -295,8 +315,9 @@ tool_manager.register_tool({
     "lambda_module_path": "",
     "tool_def": {
         "name": "transfer",
-        "description": "transfer the conversation to manual customer service"
-    }
+        "description": "transfer the conversation to manual customer service",
+    },
+    "running_mode": "output"
 })
 
 # retail tools
@@ -317,8 +338,8 @@ tool_manager.register_tool({
             },
             "required": ["response"]
         },
-       
-    }
+    },
+    "running_mode": "output"
 })
 
 
@@ -328,8 +349,9 @@ tool_manager.register_tool({
     "lambda_module_path": "functions.retail_tools.lambda_goods_exchage.goods_exchange",
     "tool_def": {
         "name": "goods_exchange",
-        "description": "This tool handles user requests for product returns or exchanges."
-    }
+        "description": "This tool handles user requests for product returns or exchanges.",
+    },
+    "running_mode": "output"
 })
 
 tool_manager.register_tool({
@@ -339,7 +361,8 @@ tool_manager.register_tool({
     "tool_def": {
         "name": "customer_complain",
         "description": "有关于客户抱怨的工具，比如商品质量，错发商品，漏发商品等",
-    }
+    },
+    "running_mode": "output"
 })
 
 tool_manager.register_tool({
@@ -348,8 +371,9 @@ tool_manager.register_tool({
     "lambda_module_path": "functions.retail_tools.lambda_promotion.promotion",
     "tool_def": {
         "name": "promotion",
-        "description": "有关于商品促销的信息，比如返点，奖品和奖励等"
-    }
+        "description": "有关于商品促销的信息，比如返点，奖品和奖励等",
+    },
+    "running_mode": "output"
 })
 
 tool_manager.register_tool({
@@ -358,8 +382,9 @@ tool_manager.register_tool({
     "lambda_module_path": "",
     "tool_def": {
         "name": "物流信息查询",
-        "description": "物流信息查询"
-    }
+        "description": "物流信息查询",
+    },
+    "running_mode": "output"
 })
 
 tool_manager.register_tool({
@@ -368,8 +393,9 @@ tool_manager.register_tool({
     "lambda_module_path": "",
     "tool_def": {
         "name": "下单流程",
-        "description": "下单流程"
-    }
+        "description": "下单流程",
+    },
+    "running_mode": "output"
 })
 
 tool_manager.register_tool({
@@ -401,8 +427,9 @@ tool_manager.register_tool({
             },
             # "required": ["height", "weight", "shoes_size", "foot_length"]
             "required": []
-        }
-    }
+        },
+    },
+    "running_mode": "loop"
 })
 
 # 商品信息查询
@@ -412,8 +439,9 @@ tool_manager.register_tool({
     "lambda_module_path": "functions.retail_tools.lambda_product_information_search.product_information_search",
     "tool_def": {
         "name": "goods_info",
-        "description": "search the information of the product, 包括库存等信息。"
-    }
+        "description": "search the information of the product, 包括库存等信息。",
+    },
+    "running_mode": "output"
 })
 
 # 商品推荐
@@ -423,8 +451,9 @@ tool_manager.register_tool({
     "lambda_module_path": "functions.retail_tools.lambda_product_information_search.product_information_search",
     "tool_def": {
         "name": "goods_recommendation",
-        "description": "recommend the product to the customer"
-    }
+        "description": "recommend the product to the customer",
+    },
+    "running_mode": "output"
 })
 
 # 下单流程
@@ -434,8 +463,9 @@ tool_manager.register_tool({
     "lambda_module_path": "functions.retail_tools.lambda_order_info.order_info",
     "tool_def": {
         "name": "order_pipeline",
-        "description": "query the order information"
-    }
+        "description": "query the order information",
+    },
+    "running_mode": "output"
 })
 
 # 物流信息查询
@@ -445,8 +475,9 @@ tool_manager.register_tool({
     "lambda_module_path": "functions.retail_tools.lambda_order_info.order_info",
     "tool_def": {
         "name": "delivery_track",
-        "description": "query the delivery information"
-    }
+        "description": "query the delivery information",
+    },
+    "running_mode": "output"
 })
 
 tool_manager.register_tool({
@@ -455,8 +486,9 @@ tool_manager.register_tool({
     "lambda_module_path": "",
     "tool_def": {
         "name": "rule_response",
-        "description": "If a user's reply contains just a link or a long number, use this tool to reply."
-    }
+        "description": "If a user's reply contains just a link or a long number, use this tool to reply.",
+    },
+    "running_mode": "output"
 })
 
 tool_manager.register_tool({
@@ -465,8 +497,9 @@ tool_manager.register_tool({
     "lambda_module_path": "",
     "tool_def": {
         "name": "下单流程",
-        "description": "下单流程"
-    }
+        "description": "下单流程",
+    },
+    "running_mode": "output"
 })
 
 tool_manager.register_tool({
@@ -475,8 +508,9 @@ tool_manager.register_tool({
     "lambda_module_path": "",
     "tool_def": {
         "name": "促销查询",
-        "description": "促销查询"
-    }
+        "description": "促销查询",
+    },
+    "running_mode": "output"
 })
 
 tool_manager.register_tool({
@@ -485,8 +519,9 @@ tool_manager.register_tool({
     "lambda_module_path": "functions.retail_tools.lambda_human",
     "tool_def": {
         "name": "转人工",
-        "description": "转人工"
-    }
+        "description": "转人工",
+    },
+    "running_mode": "output"
 })
 tool_manager.register_tool({
     "name":"信息缺失",
@@ -494,8 +529,9 @@ tool_manager.register_tool({
     "lambda_module_path": "",
     "tool_def": {
         "name": "信息缺失",
-        "description": "信息缺失"
-    }
+        "description": "信息缺失",
+    },
+    "running_mode": "output"
 })
 
 # 商品质量问题
@@ -507,7 +543,8 @@ tool_manager.register_tool(
         "tool_def": {
                 "name": "product_quality",
                 "description": "商品的售后处理，主要包括客户关于商品质量的抱怨等",
-        }
+        },
+        "running_mode": "output"
     }
 )
 
@@ -520,6 +557,7 @@ tool_manager.register_tool(
         "tool_def": {
                 "name": "product_logistics",
                 "description": "有关于商品物流的问题，主要运费包括退货，换货，错发商品，漏发商品等。 也包括什么时候发货，发货地址等信息。",
-        }
+        },
+        "running_mode": "output"
     }
 )

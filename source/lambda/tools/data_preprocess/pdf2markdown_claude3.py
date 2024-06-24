@@ -6,7 +6,7 @@ import os
 import argparse
 from tqdm import tqdm
 from PIL import Image
-from typing import Any, Dict, List, Optional, Mapping
+from typing import List
 from pdf2image import convert_from_path
 
 def format_to_message(query:str, image_base64_list:List[str]=None, role:str = "user"):

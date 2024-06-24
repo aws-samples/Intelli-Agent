@@ -102,6 +102,8 @@ def get_relevance_embedding(
             query_relevance_embedding_prompt = (
                 "Represent this sentence for searching relevant passages: " + query
             )
+        else:
+            query_relevance_embedding_prompt = query
     elif model_type == "m3":
         query_relevance_embedding_prompt = query
     else:

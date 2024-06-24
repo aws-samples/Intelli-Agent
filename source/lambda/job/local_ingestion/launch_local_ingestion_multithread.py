@@ -5,7 +5,6 @@ import os
 import sys
 import threading
 import tracemalloc
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from multiprocessing import Process, Queue
 from typing import Iterable
 

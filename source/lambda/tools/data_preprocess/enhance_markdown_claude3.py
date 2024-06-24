@@ -2,7 +2,6 @@ import os
 import boto3
 import pandas as pd
 import json
-from io import StringIO
 import pandas as pd
 import argparse
 from tqdm import tqdm

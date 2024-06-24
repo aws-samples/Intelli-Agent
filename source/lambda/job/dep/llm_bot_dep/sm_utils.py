@@ -1,7 +1,6 @@
 import json
-import re
 import io
-from typing import Any, Dict, Generic, Iterator, List, Mapping, Optional, TypeVar, Union
+from typing import Any, Dict, Iterator, List, Mapping, Optional
 from langchain.llms.sagemaker_endpoint import LLMContentHandler, SagemakerEndpoint
 from langchain.embeddings import SagemakerEndpointEmbeddings
 from langchain.embeddings.sagemaker_endpoint import EmbeddingsContentHandler
@@ -13,12 +12,7 @@ import boto3
 from langchain_core.pydantic_v1 import Extra, root_validator
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import (
-    AIMessage,
-    AnyMessage,
     BaseMessage,
-    BaseMessageChunk,
-    HumanMessage,
-    message_chunk_to_message,
 )
 
 import logging

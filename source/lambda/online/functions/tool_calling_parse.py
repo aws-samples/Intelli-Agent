@@ -63,11 +63,15 @@ class Claude3SonnetFToolCallingParse(ToolCallingParse):
             for parameter_key in cur_tool['parameters']['required']:
                 value = re.findall(f'<{parameter_key}>(.*?)</{parameter_key}>', function_call, re.DOTALL)
                 if not value:
-                    raise ToolParameterNotExistError(
-                        tool_name=tool_name,
-                        parameter_key=parameter_key,
-                        function_call_content=function_call
-                        )
+                    # expand search region
+                    search_region = re.findall(f'<parameter>\n<name>{parameter_key}</name>(.*?)</parameter>', function_call, re.DOTALL)
+                    value = re.findall(f'<value>(.*?)</value>', search_region, re.DOTALL)
+                    if not value:
+                        raise ToolParameterNotExistError(
+                            tool_name=tool_name,
+                            parameter_key=parameter_key,
+                            function_call_content=function_call
+                            )
                 # TODO, add too many parameters error
                 assert len(value) == 1,(parameter_key,function_call)
                 arguments[parameter_key] = value[0].strip()

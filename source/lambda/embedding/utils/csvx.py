@@ -2,7 +2,7 @@ import csv
 import uuid
 from datetime import datetime
 from io import TextIOWrapper
-from typing import Dict, Iterator, List, Optional, Sequence
+from typing import Dict, List, Optional, Sequence
 
 from langchain.docstore.document import Document
 from langchain.document_loaders.csv_loader import CSVLoader
