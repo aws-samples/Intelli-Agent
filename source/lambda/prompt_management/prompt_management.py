@@ -40,7 +40,7 @@ def __put(event, user_id):
     prompt_table.put_item(
                 Item={
                     "userId": user_id,
-                    "sortKey": f"{model_id}#{task_type}",
+                    "sortKey": f"{model_id}__{task_type}",
                     "modelId": model_id,
                     "taskType": task_type,
                     "prompt": body.get("prompt"),
@@ -94,7 +94,7 @@ def __list(event, user_id):
 
 
 def __get(event, user_id):
-    sort_key = event["path"].replace("/prompt/", "").strip().replace("/","#")
+    sort_key = event["path"].replace("/prompt/", "").strip().replace("/","__")
     response = prompt_table.get_item(
             Key={"userId": user_id, "sortKey": sort_key}
         )
@@ -103,7 +103,7 @@ def __get(event, user_id):
 
 
 def __delete_prompt(event, user_id):
-    sort_key = event["path"].replace("/prompt/", "").strip().replace("/","#")
+    sort_key = event["path"].replace("/prompt/", "").strip().replace("/","__")
     response = prompt_table.delete_item(
             Key={"userId": user_id, "sortKey": sort_key}
         )

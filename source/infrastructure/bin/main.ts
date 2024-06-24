@@ -118,6 +118,7 @@ export class RootStack extends Stack {
           : llmStack.instructEndPoint,
       sessionsTableName: dynamoDBConstruct.sessionTableName,
       messagesTableName: dynamoDBConstruct.messageTableName,
+      promptTableName: dynamoDBConstruct.promptTableName,
       workspaceTableName: etlStack.workspaceTableName,
       sfnOutput: etlStack.sfnOutput,
       openSearchIndex: cdkParameters.openSearchIndex.valueAsString,
