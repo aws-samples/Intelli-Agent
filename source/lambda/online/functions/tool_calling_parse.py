@@ -82,6 +82,10 @@ class Claude3HaikuToolCallingParse(Claude3SonnetFToolCallingParse):
     model_id = "anthropic.claude-3-haiku-20240307-v1:0"
 
 
+class Claude35SonnetFToolCallingParse(Claude3SonnetFToolCallingParse):
+    model_id = "anthropic.claude-3-5-sonnet-20240620-v1:0"
+
+
 class Claude2ToolCallingParse(Claude3SonnetFToolCallingParse):
     model_id = "anthropic.claude-v2"
 

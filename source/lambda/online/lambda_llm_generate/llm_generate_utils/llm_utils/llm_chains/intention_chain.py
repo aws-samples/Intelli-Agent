@@ -222,3 +222,7 @@ class Claude3SonnetIntentRecognitionChain(Claude2IntentRecognitionChain):
 
 class Claude3HaikuIntentRecognitionChain(Claude2IntentRecognitionChain):
     model_id = "anthropic.claude-3-haiku-20240307-v1:0"
+
+
+class Claude35SonnetIntentRecognitionChain(Claude2IntentRecognitionChain):
+    model_id = "anthropic.claude-3-5-sonnet-20240620-v1:0"
