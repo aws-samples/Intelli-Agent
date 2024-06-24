@@ -25,7 +25,7 @@ def test_multi_turns_pr(mode="agent"):
     session_id = f"multiturn_test_{time.time()}"
     user_queries = [
         {"query":"今天天气怎么样", "use_history":True},
-        {"query":"我在上海", "use_history":True},
+        {"query":"I am in Shanghai", "use_history":True},
     ]
 
     for query in user_queries:
