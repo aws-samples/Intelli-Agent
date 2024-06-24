@@ -408,14 +408,14 @@ export class ApiConstruct extends Construct {
 
     // Create Lambda prompt management
     const promptManagementLambda = new Function(this, "PromptManagementLambda", {
-      runtime: Runtime.PYTHON_3_11,
+      runtime: Runtime.PYTHON_3_12,
       handler: "prompt_management.lambda_handler",
       code: Code.fromAsset(join(__dirname, "../../../lambda/prompt_management")),
       timeout: Duration.minutes(15),
       memorySize: 1024,
       architecture: Architecture.X86_64,
       environment: {
-        PROMPt_TABLE_NAME: props.userPool.userPoolId,
+        PROMPT_TABLE_NAME: props.promptTableName,
       },
       layers: [apiLambdaOnlineUtilsLayer],
     });
@@ -581,7 +581,7 @@ export class ApiConstruct extends Construct {
       proxy: true,
     });
 
-    const apiResourcePrompt = api.root.addResource("prompt2");
+    const apiResourcePrompt = api.root.addResource("prompt");
     apiResourcePrompt.addMethod("POST", lambdaPromptIntegration, methodOption);
     apiResourcePrompt.addMethod("GET", lambdaPromptIntegration, methodOption);
 

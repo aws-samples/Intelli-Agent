@@ -13,7 +13,7 @@ dynamodb_client = boto3.client("dynamodb")
 encoder = TokenEncoder()
 
 dynamodb_resource = boto3.resource("dynamodb")
-prompt_table_name = os.getenv("PROMPt_TABLE_NAME","prompt")
+prompt_table_name = os.getenv("PROMPT_TABLE_NAME","prompt")
 prompt_table = dynamodb_resource.Table(prompt_table_name)
 
 resp_header = {
