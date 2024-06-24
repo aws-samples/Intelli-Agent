@@ -12,36 +12,11 @@ from common_utils.constant import (
     LLMTaskType,
     LLMModelType
 )
-from ..prompts import register_prompt_templates,get_prompt_template
+from common_utils.prompt_utils import get_prompt_template
 
 # from ...prompt_template import convert_chat_history_from_fstring_format
 from ..llm_models import Model
 from .llm_chain_base import LLMChain
-
-# TODO: pass prompt template to the chain
-BEDROCK_RAG_CHAT_SYSTEM_PROMPT = """You are a customer service agent, and answering user's query. You ALWAYS follow these guidelines when writing your response:
-<guidelines>
-- NERVER say "根据搜索结果/大家好/谢谢...".
-</guidelines>
-
-Here are some documents for you to reference for your query.
-<docs>
-{context}
-</docs>"""
-
-register_prompt_templates(
-    model_ids=[
-        LLMModelType.CLAUDE_2,
-        LLMModelType.CLAUDE_21,
-        LLMModelType.CLAUDE_3_HAIKU,
-        LLMModelType.CLAUDE_3_SONNET,
-        LLMModelType.CLAUDE_INSTANCE,
-        LLMModelType.MIXTRAL_8X7B_INSTRUCT
-    ],
-    task_type=LLMTaskType.RAG,
-    prompt_template=BEDROCK_RAG_CHAT_SYSTEM_PROMPT,
-    prompt_name="main"
-)
 
 
 def get_claude_rag_context(contexts: list):
