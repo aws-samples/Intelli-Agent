@@ -221,12 +221,4 @@ class Claude3SonnetIntentRecognitionChain(Claude2IntentRecognitionChain):
 
 
 class Claude3HaikuIntentRecognitionChain(Claude2IntentRecognitionChain):
-<<<<<<< HEAD:source/lambda/online/lambda_llm_generate/llm_generate_utils/llm_chains/intention_chain.py
     model_id = LLMModelType.CLAUDE_3_HAIKU
-=======
-    model_id = "anthropic.claude-3-haiku-20240307-v1:0"
-
-
-class Claude35SonnetIntentRecognitionChain(Claude2IntentRecognitionChain):
-    model_id = "anthropic.claude-3-5-sonnet-20240620-v1:0"
->>>>>>> dev:source/lambda/online/lambda_llm_generate/llm_generate_utils/llm_utils/llm_chains/intention_chain.py

@@ -3,7 +3,7 @@ from common_utils.constant import (
     LLMModelType
 )
 from ..chat_chain import Iternlm2Chat7BChatChain
-from ...prompts import register_prompt_templates,get_prompt_template
+from common_utils.prompt_utils import register_prompt_templates,get_prompt_template
 
 INTERLM2_RAG_PROMPT_TEMPLATE = "你是一个Amazon AWS的客服助理小Q，帮助的用户回答使用AWS过程中的各种问题。\n面对用户的问题，你需要给出中文回答，注意不要在回答中重复输出内容。\n下面给出相关问题的背景知识, 需要注意的是如果你认为当前的问题不能在背景知识中找到答案, 你需要拒答。\n背景知识:\n{context}\n\n"
 
