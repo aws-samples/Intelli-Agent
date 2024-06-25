@@ -52,7 +52,7 @@ export class LambdaLayers {
       {
         entry: path.join(__dirname, "../../../lambda/online/common_logic"),
         compatibleRuntimes: [Runtime.PYTHON_3_12],
-        description: `LLM Bot - Online Utils layer`,
+        description: `Intelli agent - Online Utils layer`,
       },
     );
     return LambdaOnlineUtilsLayer;
@@ -65,7 +65,7 @@ export class LambdaLayers {
       {
         entry: path.join(__dirname, "../../../lambda/online"),
         compatibleRuntimes: [Runtime.PYTHON_3_12],
-        description: `LLM Bot - Online Source layer`,
+        description: `Intelli agent - Online Source layer`,
       },
     );
     return LambdaOnlineSourceLayer;
