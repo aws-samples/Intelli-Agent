@@ -67,7 +67,7 @@ export class LambdaLayers {
         compatibleRuntimes: [Runtime.PYTHON_3_12],
         description: `Intelli agent - Online Source layer`,
         bundling: {
-          assetExcludes: ["*.pyc","*.txt","*/__pycache__/*","*.xls","*.jsonl","*.xlsx","*.csv","*.png"],
+          assetExcludes: ["*.pyc","*/__pycache__/*","*.xls","*.jsonl","*.xlsx","*.csv","*.png","lambda_main/retail/size/*"],
         }
       },
     );
@@ -81,7 +81,7 @@ export class LambdaLayers {
       {
         entry: path.join(__dirname, "../../../lambda/job/dep/llm_bot_dep"),
         compatibleRuntimes: [Runtime.PYTHON_3_12],
-        description: `LLM Bot - Job Source layer`,
+        description: `Intelli agent - Job Source layer`,
       },
     );
     return LambdaJobSourceLayer;
