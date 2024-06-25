@@ -295,21 +295,20 @@ class Qwen2Instruct7BToolCallingParse(ToolCallingParse):
     @classmethod
     def parse_tool(cls,agent_output):
         try: 
-            content:str = agent_output['agent_output']
+            output:dict = agent_output['agent_output']
             tools = agent_output['current_agent_tools_def']
             agent_message = {
                     "role": MessageType.AI_MESSAGE_TYPE,
-                    "content": content,
+                    "content": output['content'],
                     "additional_kwargs": {}
                 }
-            if content.endswith(cls.FN_RESULT):
-                str_tool_calls = re.findall(f"{cls.FN_NAME}.*?{cls.FN_RESULT}",content,re.S)
-                if not str_tool_calls:
-                    raise cls.tool_format(agent_message)
-                tool_call = cls.parse_tool_kwargs(str_tool_calls[0],tools_def=tools)
+            
+            function_calls = output['function_calls']
+            if function_calls:
+                tool_call = cls.parse_tool_kwargs(function_calls[0],tools_def=tools)
                 agent_message['additional_kwargs']['tool_calls'] = [tool_call]
             else:
-                response = re.sub("<thinking>.*?</thinking>","",content,flags=re.DOTALL).strip()
+                response = re.sub("<thinking>.*?</thinking>","",output['content'],flags=re.DOTALL).strip()
                 tool_call = {"name":"give_final_response","kwargs":{"response":response},"model_id":cls.model_id}
 
             return {

@@ -192,7 +192,7 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
 
 下面是当前用户正在浏览的商品信息:
 
-## 商品信息
+## 当前用户正在浏览的商品信息
 {goods_info}
 
 {tools}
@@ -256,7 +256,8 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
         _chat_history = x['chat_history'] + \
             [{"role": MessageType.HUMAN_MESSAGE_TYPE,"content": x['query']}] + \
             x['agent_chat_history']
-
+        
+        # print(f'chat_history_before create: {_chat_history}')
         # merge chat_history
         chat_history = []
         if system_prompt is not None:
@@ -275,6 +276,12 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
                 assert chat_history[-1]['role'] == MessageType.AI_MESSAGE_TYPE,_chat_history
                 chat_history[-1]['content'] += message['content']
                 continue 
+            elif role == MessageType.AI_MESSAGE_TYPE:
+                # continue ai message
+                if chat_history[-1]['role'] == MessageType.AI_MESSAGE_TYPE:
+                    chat_history[-1]['content'] += message['content']
+                    continue
+
             chat_history.append(message)
         
         # move the last tool call message to user 
@@ -292,10 +299,12 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
     def parse_function_calls_from_ai_message(cls,message:dict):
         stop_reason = message['stop_reason']
         content =  "<thinking>" + message['text']
-        if stop_reason:
-            content += stop_reason
-
-        return content
+        stop_reason = stop_reason or ""
+        function_calls = re.findall(f"{cls.FN_NAME}.*?{cls.FN_RESULT}", content + stop_reason,re.S)
+        return {
+            "function_calls":function_calls,
+            "content":content
+        }
     
     @classmethod
     def create_chain(cls, model_kwargs=None, **kwargs):
@@ -306,10 +315,15 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
             tools=tools,
             fewshot_examples=fewshot_examples
             )
+        model_kwargs = model_kwargs or {}
         kwargs['system_prompt'] = system_prompt
+        model_kwargs = {**model_kwargs}
+        model_kwargs["stop"] = ['✿RESULT✿', '✿RESULT✿:', '✿RESULT✿:\n']
+        model_kwargs["prefill"] = "我先看看调用哪个工具，下面是我的思考过程:\n<thinking>\nstep 1."
         return super().create_chain(model_kwargs=model_kwargs,**kwargs)
         
 
-    
 
+class Qwen2Instruct72BRetailToolCallingChain(Qwen2Instruct7BRetailToolCallingChain):
+    model_id = LLMModelType.QWEN2INSTRUCT72B
 

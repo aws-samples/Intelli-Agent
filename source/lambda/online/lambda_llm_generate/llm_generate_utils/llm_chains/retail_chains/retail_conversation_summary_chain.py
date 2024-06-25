@@ -190,6 +190,14 @@ class GLM4Chat9BRetailConversationSummaryChain(GLM4Chat9BChatChain,Claude2Retail
 
 class Qwen2Instruct7BRetailConversationSummaryChain(GLM4Chat9BRetailConversationSummaryChain):
     model_id = LLMModelType.QWEN2INSTRUCT7B
+    default_model_kwargs = {
+        "max_tokens": 1024,
+        "temperature": 0.1,
+    }
+    @classmethod
+    def create_chain(cls, model_kwargs=None, **kwargs):
+        chain = super().create_chain(model_kwargs=model_kwargs,**kwargs)
+        return chain | RunnableLambda(lambda x:x['text'])
 
 
 class Qwen2Instruct72BRetailConversationSummaryChain(Qwen2Instruct7BRetailConversationSummaryChain):

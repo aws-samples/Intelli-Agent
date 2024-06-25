@@ -39,7 +39,7 @@ class ModeMixins:
         for message in messages:
             message = {**message}
             role = message['role']
-            assert role in valid_roles,(role,valid_roles)
+            assert role in valid_roles,(role,valid_roles,messages)
             message['role'] = role_map[role]
             new_messages.append(message)
         return new_messages    
@@ -334,12 +334,13 @@ class Qwen2Instruct7B(SagemakerModelBase):
             x['chat_history'],
             role_map=self.role_map
         )
-        logger.info(f"qwen chat_history: {chat_history}")
+        
         body = {
             "chat_history": chat_history,
             "stream": x["stream"],
             **self.model_kwargs
         }
+        logger.info(f"qwen body: {body}")
         input_str = json.dumps(body)
         return input_str
 

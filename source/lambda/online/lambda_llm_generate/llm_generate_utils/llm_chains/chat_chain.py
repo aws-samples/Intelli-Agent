@@ -234,6 +234,10 @@ class GLM4Chat9BChatChain(LLMChain):
 class Qwen2Instruct7BChatChain(LLMChain):
     model_id = LLMModelType.QWEN2INSTRUCT7B
     intent_type = LLMTaskType.CHAT
+    default_model_kwargs = {
+        "max_tokens": 1024,
+        "temperature": 0.1,
+    }
 
     @classmethod
     def create_chat_history(cls,x, system_prompt=None):
@@ -249,17 +253,7 @@ class Qwen2Instruct7BChatChain(LLMChain):
         if system_prompt is not None:
             chat_history = [{"role":"system", "content": system_prompt}] + chat_history
         
-        _chat_history = chat_history + [{"role": MessageType.HUMAN_MESSAGE_TYPE, "content":x['query']}]
-        chat_history = []
-        for message in _chat_history:
-            assert MessageType.has_value(message['role']), message
-            if message['role'] == MessageType.HUMAN_MESSAGE_TYPE:
-                role  = 'user'
-            elif message['role'] == MessageType.AI_MESSAGE_TYPE:
-                role = 'assistant'
-            else:
-                role = "system"
-            chat_history.append({"role":role,"content":message['content']})
+        chat_history = chat_history + [{"role": MessageType.HUMAN_MESSAGE_TYPE, "content":x['query']}]
         return chat_history
 
 

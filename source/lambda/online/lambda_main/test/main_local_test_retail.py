@@ -110,17 +110,17 @@ def test_multi_turns():
     #         "query":"请问你们是哪里发货","goods_id":743353945710
     #     }
     # ]
-    user_queries = [
-        {"query":"能发顺丰嘛？","goods_id":641874887898},
-    ]
+    # user_queries = [
+    #     {"query":"能发顺丰嘛？","goods_id":641874887898},
+    # ]
 
     # user_queries = [
     #     {"query":"好的","goods_id": 745288790794}
     # ]
-    # user_queries = [
-    #     {"query":"这款还会有货吗？","goods_id": 760601512644},
-    #     {"query":"我穿180的","goods_id": 760601512644}
-    # ]
+    user_queries = [
+        {"query":"这款还会有货吗？","goods_id": 760601512644},
+        {"query":"我穿180的","goods_id": 760601512644}
+    ]
     # user_queries = [
     #     {"query":"正确","goods_id": 745288790794}
     # ]
@@ -136,10 +136,12 @@ def test_multi_turns():
     default_llm_config = {
         # 'model_id': 'anthropic.claude-3-haiku-20240307-v1:0',
         # 'model_id': 'anthropic.claude-3-sonnet-20240229-v1:0',
-        'model_id':"glm-4-9b-chat",
-        "endpoint_name": "glm-4-9b-chat-2024-06-18-07-37-03-843",
+        # 'model_id':"glm-4-9b-chat",
+        # "endpoint_name": "glm-4-9b-chat-2024-06-18-07-37-03-843",
+        "model_id": "qwen2-72B-instruct",
+        "endpoint_name":  "Qwen2-72B-Instruct-AWQ-2024-06-25-02-15-34-347",
         # 'model_id': 'mistral.mixtral-8x7b-instruct-v0:1',
-        'model_kwargs': {'temperature': 0.5}
+        'model_kwargs': {'temperature': 0.1}
     }
     chatbot_config = {
         "chatbot_mode": "agent",
@@ -171,10 +173,12 @@ def batch_test():
         # 'model_id': 'anthropic.claude-3-haiku-20240307-v1:0',
         # 'model_id': 'anthropic.claude-3-sonnet-20240229-v1:0',
         # 'model_id': 'mistral.mixtral-8x7b-instruct-v0:1',
-        'model_id':"glm-4-9b-chat",
-        "endpoint_name": "glm-4-9b-chat-2024-06-18-07-37-03-843",
+        # 'model_id':"glm-4-9b-chat",
+        # "endpoint_name": "glm-4-9b-chat-2024-06-18-07-37-03-843",
+        "model_id": "qwen2-72B-instruct",
+        "endpoint_name":  "Qwen2-72B-Instruct-AWQ-2024-06-25-02-15-34-347",
         'model_kwargs': {
-            'temperature': 0.5, 'max_tokens': 1000}
+            'temperature': 0.1, 'max_tokens': 1000}
         }
     chatbot_config = {
         "chatbot_mode": "agent",
@@ -244,12 +248,13 @@ def batch_test():
             "elpase_time":datum['elpase_time'],
             "ddb_session_id": session_id,
             "comments": None,
-            "owner": None
+            "owner": None,
+            "model_id": default_llm_config['model_id']
         })
     # session_id, goods_id, create_time, user_msg, ai_msg, ai_intent, intent, accuracy,rewrite_query
     
         pd.DataFrame(data_to_save).to_csv(
-            f'{session_prefix}_anta_test_glm_9b_chat_{len(data)}.csv',
+            f'{session_prefix}_anta_test_qwen2-72b-instruct_{len(data)}.csv',
             index=False
         )
 
@@ -297,8 +302,8 @@ def complete_test():
 
 if __name__ == "__main__":
     # complete_test()
-    test_multi_turns()
-    # batch_test()
+    # test_multi_turns()
+    batch_test()
     # batch_test()
     # test(
     #     chatbot_mode='agent',

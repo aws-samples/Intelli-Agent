@@ -317,6 +317,7 @@ def rag_product_aftersales_llm_lambda(state:ChatbotState):
                     </guidelines>
                     下面是消费者的问题: {state['query']}。结合guidelines的内容进行回答
 """)
+    # print('llm config',state['chatbot_config']['rag_product_aftersales_config']['llm_config'])
     output:str = invoke_lambda(
         lambda_name='Online_LLM_Generate',
         lambda_module_path="lambda_llm_generate.llm_generate",
