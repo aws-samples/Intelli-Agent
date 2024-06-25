@@ -101,8 +101,16 @@ def __get(event, user_id):
     item = response.get("Item")
     if item:
         return item
+    keys = sort_key.split("__")
     default_prompt = get_all_templates().get(sort_key)
-    return default_prompt
+    response_prompt = {
+        "modelId": keys[0],
+        "taskType": keys[1],
+        "prompt": default_prompt,
+        "sortKey": sort_key,
+        "userId": user_id,
+    }
+    return response_prompt
 
 
 def __delete_prompt(event, user_id):
