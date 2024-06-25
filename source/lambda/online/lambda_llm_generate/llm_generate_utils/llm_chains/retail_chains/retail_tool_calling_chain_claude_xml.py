@@ -2,6 +2,7 @@
 import json
 from typing import List,Dict,Any
 import re
+from datetime import datetime 
 
 from langchain.schema.runnable import (
     RunnableLambda,
@@ -16,19 +17,22 @@ from langchain.prompts import ChatPromptTemplate
 from langchain_core.messages import AIMessage,SystemMessage,HumanMessage
 
 from common_utils.constant import (
-    LLMTaskType
+    LLMTaskType,
+    LLMModelType
 )
-
-from .llm_chain_base import LLMChain
-from ..llm_models import Model
+from functions.tools import get_tool_by_name
+from ..llm_chain_base import LLMChain
+from ...llm_models import Model
 
 tool_call_guidelines = """<guidlines>
-- Don't forget to output <function_calls></function_calls> when any tool is called.
-- You should call tools that are described in <tools></tools>.
-- In <thinking></thinking>, you should check whether the tool name you want to call is exists in <tools></tools>.
+- Don't forget to output <function_calls> </function_calls> when any tool is called.
+- 每次回答总是先进行思考，并将思考过程写在<thinking>标签中。请你按照下面的步骤进行思考:
+    1. 判断根据当前的上下文是否足够回答用户的问题。
+    2. 如果当前的上下文足够回答用户的问题，请调用 `give_final_response` 工具。
+    3. 如果当前的上下文不能支持回答用户的问题，你可以考虑调用<tools> 标签中列举的工具。
+    4. 如果调用工具对应的参数不够，请调用反问工具 `give_rhetorical_question` 来让用户提供更加充分的信息。
+    5. 最后给出你要调用的工具名称。
 - Always output with "中文". 
-- Always choose one tool to call. 
-- 注意输出格式中参数名字应该作为xml的tag.
 </guidlines>
 """
 
@@ -151,7 +155,7 @@ def convert_openai_tool_to_anthropic(tools:list[dict])->str:
 
 
 class Claude2RetailToolCallingChain(LLMChain):
-    model_id = "anthropic.claude-v2"
+    model_id = LLMModelType.CLAUDE_2
     intent_type = LLMTaskType.RETAIL_TOOL_CALLING
     default_model_kwargs = {
         "max_tokens": 2000,
@@ -192,10 +196,10 @@ class Claude2RetailToolCallingChain(LLMChain):
     
     @classmethod
     def parse_function_calls_from_ai_message(cls,message:AIMessage):
-        content = message.content + "</function_calls>"
+        content = "<thinking>" + message.content + "</function_calls>"
         function_calls:List[str] = re.findall("<function_calls>(.*?)</function_calls>", content,re.S)
         if not function_calls:
-            content = message.content
+            content = "<thinking>" +  message.content
 
         return {
                 "function_calls": function_calls,
@@ -214,7 +218,17 @@ class Claude2RetailToolCallingChain(LLMChain):
     @classmethod
     def create_chain(cls, model_kwargs=None, **kwargs):
         model_kwargs = model_kwargs or {}
-        tools:list = kwargs['tools']
+        tools:list[dict] = kwargs['tools']
+
+        tool_names = [tool['name'] for tool in tools]
+
+        # add two extral tools
+        if "give_rhetorical_question" not in tool_names:
+            tools.append(get_tool_by_name("give_rhetorical_question").tool_def)
+
+        if "give_final_response" not in tool_names:
+            tools.append(get_tool_by_name("give_final_response").tool_def)
+
         fewshot_examples = kwargs.get('fewshot_examples',[])
         
         model_kwargs = {**cls.default_model_kwargs, **model_kwargs}
@@ -239,7 +253,8 @@ class Claude2RetailToolCallingChain(LLMChain):
         tool_calling_template = ChatPromptTemplate.from_messages(
             [
             SystemMessage(content=system_prompt),
-            ("placeholder", "{chat_history}")
+            ("placeholder", "{chat_history}"),
+            AIMessage(content="<thinking>")
         ])
 
         llm = Model.get_model(
@@ -256,59 +271,31 @@ class Claude2RetailToolCallingChain(LLMChain):
 
 
 class Claude21RetailToolCallingChain(Claude2RetailToolCallingChain):
-    model_id = "anthropic.claude-v2:1"
+    model_id = LLMModelType.CLAUDE_21
 
 
 class ClaudeInstanceRetailToolCallingChain(Claude2RetailToolCallingChain):
-    model_id = "anthropic.claude-instant-v1"
+    model_id = LLMModelType.CLAUDE_INSTANCE
 
 
 class Claude3SonnetRetailToolCallingChain(Claude2RetailToolCallingChain):
-    model_id = "anthropic.claude-3-sonnet-20240229-v1:0"
+    model_id = LLMModelType.CLAUDE_3_SONNET
 
 
 class Claude3HaikuRetailToolCallingChain(Claude2RetailToolCallingChain):
-    model_id = "anthropic.claude-3-haiku-20240307-v1:0"
+    model_id = LLMModelType.CLAUDE_3_HAIKU
 
-
-
-# MIXTRAL8X7B_SYSTEM_MESSAGE_PROMPT=("你是安踏的客服客服助理小安, 主要职责是处理用户售前和售后的问题。下面是当前用户正在浏览的商品信息:\n<goods_info>\n{goods_info}\n</goods_info>"
-#         "In this environment you have access to a set of tools you can use to answer the customer's question."
-#         "\n"
-#         "You may call them like this:\n"
-#         "<function_calls>\n"
-#         "<invoke>\n"
-#         "<tool_name>$TOOL_NAME</tool_name>\n"
-#         "<parameters>\n"
-#         "<$PARAMETER_NAME>$PARAMETER_VALUE</$PARAMETER_NAME>\n"
-#         "...\n"
-#         "</parameters>\n"
-#         "</invoke>\n"
-#         "</function_calls>\n"
-#         "\n"
-#         "Here are the tools available:\n"
-#         "<tools>\n"
-#         "{tools}"
-#         "\n</tools>"
-#         "\nAnswer the user's request using relevant tools (if they are available). Before calling a tool, do some analysis within <thinking></thinking> tags. First, think about which of the provided tools is the relevant tool to answer the user's request. Second, go through each of the required parameters of the relevant tool and determine if the user has directly provided or given enough information to infer a value. When deciding if the parameter can be inferred, carefully consider all the context to see if it supports a specific value. If all of the required parameters are present or can be reasonably inferred, close the thinking tag and proceed with the tool call. BUT, if one of the values for a required parameter is missing, DO NOT invoke the function (not even with fillers for the missing params) and instead, ask the user to provide the missing parameters. DO NOT ask for more information on optional parameters if it is not provided."
-#         f"\nHere are some guidelines for you:\n{tool_call_guidelines}"
-#     )
-
-# MIXTRAL8X7B_SYSTEM_MESSAGE_PROMPT_WITH_FEWSHOT_EXAMPLES = MIXTRAL8X7B_SYSTEM_MESSAGE_PROMPT + (
-#     "Some examples of tool calls are given below, where the content within <query></query> represents the most recent reply in the dialog."
-#     "\n{fewshot_examples}"
-# )
 
 MIXTRAL8X7B_QUERY_TEMPLATE = """下面是客户和客服的历史对话信息:
 {chat_history}
 
 当前客户的问题是: {query}
 
-请你从客服的角度回答客户当前的问题。你需要使用上述提供的各种工具进行回答。"""
+请你从安踏客服助理小安的角度回答客户当前的问题。你需要使用上述提供的各种工具进行回答。"""
 
 
 class Mixtral8x7bRetailToolCallingChain(Claude2RetailToolCallingChain):
-    model_id = "mistral.mixtral-8x7b-instruct-v0:1"
+    model_id = LLMModelType.MIXTRAL_8X7B_INSTRUCT
     default_model_kwargs = {"max_tokens": 1000, "temperature": 0.01,"stop":["</function_calls>"]}
 
     @classmethod
@@ -352,3 +339,10 @@ class Mixtral8x7bRetailToolCallingChain(Claude2RetailToolCallingChain):
             )
             }] + state['agent_chat_history']
         return {"chat_history": chat_history}
+
+        
+
+
+
+
+

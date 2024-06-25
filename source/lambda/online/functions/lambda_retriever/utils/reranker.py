@@ -101,13 +101,15 @@ class BGEReranker(BaseDocumentCompressor):
     enable_debug: Any
     target_model: Any
     rerank_model_endpoint: str=rerank_model_endpoint
+    top_k: int=10
 
-    def __init__(self, query_key='query', enable_debug=False, rerank_model_endpoint=rerank_model_endpoint, target_model=None):
+    def __init__(self, query_key='query', enable_debug=False, rerank_model_endpoint=rerank_model_endpoint, target_model=None, top_k=10):
         super().__init__()
         self.query_key = query_key
         self.enable_debug = enable_debug
         self.rerank_model_endpoint = rerank_model_endpoint
         self.target_model = target_model
+        self.top_k = top_k
 
     async def __ainvoke_rerank_model(self, batch, loop):
         logging.info("invoke endpoint")
@@ -177,7 +179,7 @@ class BGEReranker(BaseDocumentCompressor):
         recall_end_time = time.time()
         elpase_time = recall_end_time - start
         logger.info(f"runing time of rerank: {elpase_time}s seconds")
-        return final_results
+        return final_results[:self.top_k]
 
 """Document compressor that uses retriever score."""
 class MergeReranker(BaseDocumentCompressor):

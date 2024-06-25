@@ -9,7 +9,10 @@ from lambda_main.main_utils.response_utils import process_response
 from common_utils.constant import EntryType
 from common_utils.logger_utils import get_logger
 from common_utils.websocket_utils import load_ws_client
-from common_utils.lambda_invoke_utils import chatbot_lambda_call_wrapper
+from common_utils.lambda_invoke_utils import (
+    chatbot_lambda_call_wrapper,
+    is_running_local,
+)
 from botocore.exceptions import ClientError
 
 logger = get_logger("main")
@@ -64,7 +67,7 @@ def get_secret_value(secret_arn: str):
 
 @chatbot_lambda_call_wrapper
 def lambda_handler(event_body:dict, context:dict):
-    logger.info(event_body)
+    # logger.info(event_body)
     stream = context['stream']
     request_timestamp = context['request_timestamp']
     ws_connection_id = context.get('ws_connection_id')
@@ -105,13 +108,22 @@ def lambda_handler(event_body:dict, context:dict):
 
     # logger.info(f"event_body:\n{json.dumps(event_body,ensure_ascii=False,indent=2,cls=JSONEncoder)}")
     entry_executor = get_entry(entry_type)
-    try:
+    # debuging
+    # show debug info directly in local mode
+    if is_running_local():
         response:dict = entry_executor(event_body)
         r = process_response(event_body,response)
         if not stream:
             return r
         return "All records have been processed"
-    except Exception as e:
-        msg = traceback.format_exc()
-        logger.exception("Main exception:%s" % msg)
-        return "An exception has occurred"
+    else:
+        try:
+            response:dict = entry_executor(event_body)
+            r = process_response(event_body,response)
+            if not stream:
+                return r
+            return "All records have been processed"
+        except Exception as e:
+            msg = traceback.format_exc()
+            logger.exception("Main exception:%s" % msg)
+            return "An exception has occurred"

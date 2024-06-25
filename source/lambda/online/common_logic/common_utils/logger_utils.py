@@ -2,16 +2,8 @@
 import logging
 import threading 
 import os
+
 logger_lock = threading.Lock()
-
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
-
-opensearch_logger = logging.getLogger("opensearch")
-opensearch_logger.setLevel(logging.ERROR)
-boto3_logger = logging.getLogger("botocore")
-boto3_logger.setLevel(logging.ERROR)
-
 
 class Logger:
     logger_map = {}
@@ -47,3 +39,7 @@ class Logger:
             return cls._get_logger(*args,**kwargs)
     
 get_logger = Logger.get_logger
+
+# modify default logger
+logging.root = get_logger("root")
+logger = logging.root

@@ -12,7 +12,8 @@ from .chat_chain import Iternlm2Chat7BChatChain
 from .llm_chain_base import LLMChain
 from common_utils.constant import (
     MessageType,
-    LLMTaskType
+    LLMTaskType,
+    LLMModelType
 )
 
 from langchain_core.messages import(
@@ -24,6 +25,8 @@ from langchain.prompts import (
     HumanMessagePromptTemplate,
     ChatPromptTemplate
 )
+
+from common_utils.prompt_utils import get_prompt_template
 
 AI_MESSAGE_TYPE = MessageType.AI_MESSAGE_TYPE
 HUMAN_MESSAGE_TYPE = MessageType.HUMAN_MESSAGE_TYPE
@@ -49,19 +52,18 @@ SYSTEM_MESSAGE_TYPE = MessageType.SYSTEM_MESSAGE_TYPE
 # Question: {query}
 # """
 
-CQR_TEMPLATE = """Given the following conversation and a follow up question, rephrase the follow up \
-question to be a standalone question.
+# CQR_TEMPLATE = """Given the following conversation and a follow up question, rephrase the follow up \
+# question to be a standalone question.
 
-Chat History:
-{history}
-Follow Up Input: {question}
-"""
+# Chat History:
+# {history}
+# Follow Up Input: {question}
+# """
 
 
 
 class Iternlm2Chat20BConversationSummaryChain(Iternlm2Chat7BChatChain):
-    model_id = "internlm2-chat-20b"
-    meta_instruction_prompt_template = CQR_TEMPLATE
+    model_id = LLMModelType.INTERNLM2_CHAT_20B
     default_model_kwargs = {
         "max_new_tokens": 300,
         "temperature": 0.1,
@@ -69,7 +71,7 @@ class Iternlm2Chat20BConversationSummaryChain(Iternlm2Chat7BChatChain):
     }
 
     @classmethod
-    def create_prompt(cls, x):
+    def create_prompt(cls, x,system_prompt=None):
         chat_history = x["chat_history"]
         conversational_contexts = []
         for his in chat_history:
@@ -79,10 +81,16 @@ class Iternlm2Chat20BConversationSummaryChain(Iternlm2Chat7BChatChain):
                 conversational_contexts.append(f"Q: {his['content']}")
             else:
                 conversational_contexts.append(f"A: {his['content']}")
+        if system_prompt is None:
+            system_prompt  = get_prompt_template(
+            model_id=cls.model_id,
+            task_type=cls.intent_type,
+            prompt_name="main"     
+        ).prompt_template
 
         conversational_context = "\n".join(conversational_contexts)
         prompt = cls.build_prompt(
-            cls.meta_instruction_prompt_template.format(
+            system_prompt.format(
                 history=conversational_context, question=x["query"]
             )
         )
@@ -90,11 +98,11 @@ class Iternlm2Chat20BConversationSummaryChain(Iternlm2Chat7BChatChain):
         return prompt
 
 class Iternlm2Chat7BConversationSummaryChain(Iternlm2Chat20BConversationSummaryChain):
-    model_id = "internlm2-chat-7b"
+    model_id = LLMModelType.INTERNLM2_CHAT_7B
 
 
 class Claude2ConversationSummaryChain(LLMChain):
-    model_id = "anthropic.claude-v2"
+    model_id = LLMModelType.CLAUDE_2
     intent_type = LLMTaskType.CONVERSATION_SUMMARY_TYPE
 
     default_model_kwargs = {"max_tokens": 2000, "temperature": 0.1, "top_p": 0.9}
@@ -107,9 +115,9 @@ class Claude2ConversationSummaryChain(LLMChain):
             content = his.content
             assert role in [HUMAN_MESSAGE_TYPE, AI_MESSAGE_TYPE],(role,[HUMAN_MESSAGE_TYPE, AI_MESSAGE_TYPE])
             if role == HUMAN_MESSAGE_TYPE:
-                conversational_contexts.append(f"Q: {content}")
+                conversational_contexts.append(f"USER: {content}")
             else:
-                conversational_contexts.append(f"A: {content}")
+                conversational_contexts.append(f"AI: {content}")
         conversational_context = "\n".join(conversational_contexts)
         return conversational_context
         
@@ -117,10 +125,16 @@ class Claude2ConversationSummaryChain(LLMChain):
     def create_chain(cls, model_kwargs=None, **kwargs):
         model_kwargs = model_kwargs or {}
         model_kwargs = {**cls.default_model_kwargs, **model_kwargs}
+        prompt_template = get_prompt_template(
+            model_id=cls.model_id,
+            task_type=cls.intent_type,
+            prompt_name="main"     
+        ).prompt_template
 
+        prompt_template = kwargs.get("system_prompt",prompt_template)
         cqr_template = ChatPromptTemplate.from_messages([
-            HumanMessagePromptTemplate.from_template(CQR_TEMPLATE),
-            AIMessage(content="Standalone Question: ")
+            HumanMessagePromptTemplate.from_template(prompt_template),
+            AIMessage(content="Standalone USER's reply: ")
         ])
 
         llm = Model.get_model(
@@ -140,16 +154,16 @@ class Claude2ConversationSummaryChain(LLMChain):
 
 
 class Claude21ConversationSummaryChain(Claude2ConversationSummaryChain):
-    model_id = "anthropic.claude-v2:1"
+    model_id = LLMModelType.CLAUDE_21
 
 
 class ClaudeInstanceConversationSummaryChain(Claude2ConversationSummaryChain):
-    model_id = "anthropic.claude-instant-v1"
+    model_id = LLMModelType.CLAUDE_INSTANCE
 
 
 class Claude3SonnetConversationSummaryChain(Claude2ConversationSummaryChain):
-    model_id = "anthropic.claude-3-sonnet-20240229-v1:0"
+    model_id = LLMModelType.CLAUDE_3_SONNET
 
 
 class Claude3HaikuConversationSummaryChain(Claude2ConversationSummaryChain):
-    model_id = "anthropic.claude-3-haiku-20240307-v1:0"
+    model_id = LLMModelType.CLAUDE_3_HAIKU

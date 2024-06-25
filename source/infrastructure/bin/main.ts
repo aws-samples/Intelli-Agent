@@ -210,6 +210,6 @@ const devEnv = {
 
 const app = new App();
 const stackName = app.node.tryGetContext("StackName") || "intelli-agent";
-new RootStack(app, stackName, { env: devEnv })
+new RootStack(app, stackName, { env: devEnv });
 
 app.synth();
