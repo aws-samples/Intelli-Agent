@@ -12,9 +12,9 @@ class ToolExceptionBase(Exception):
         raise NotImplementedError
 
 
-
 class ToolNotExistError(ToolExceptionBase):
     def __init__(self, tool_name,function_call_content) -> None:
+        super().__init__()
         self.tool_name = tool_name
         self.function_call_content = function_call_content
     
@@ -27,6 +27,7 @@ class ToolNotExistError(ToolExceptionBase):
     
 class ToolParameterNotExistError(ToolExceptionBase):
     def __init__(self, tool_name,parameter_key,function_call_content,tool_format=None) -> None:
+        super().__init__()
         self.tool_name = tool_name
         self.parameter_key = parameter_key
         self.function_call_content = function_call_content
@@ -44,6 +45,7 @@ class ToolParameterNotExistError(ToolExceptionBase):
 
 class MultipleToolNameError(ToolExceptionBase):
     def __init__(self,function_call_content) -> None:
+        super().__init__()
         self.function_call_content = function_call_content
         self.tool_name = ""
         

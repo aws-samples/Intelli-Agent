@@ -3,6 +3,7 @@ import json
 from typing import List,Dict,Any
 import re
 from datetime import datetime 
+import copy
 
 from langchain.schema.runnable import (
     RunnableLambda,
@@ -253,37 +254,61 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
     def create_chat_history(cls,x,system_prompt=None):
         # deal with function
         _chat_history = x['chat_history'] + \
-            [{"role": "user","content": x['query']}] + \
+            [{"role": MessageType.HUMAN_MESSAGE_TYPE,"content": x['query']}] + \
             x['agent_chat_history']
-        
+
+        # merge chat_history
         chat_history = []
-        for message in _chat_history:
-            new_message = message 
-            if message['role'] == "ai":
-                new_message = {
-                    "role": "assistant",
-                    "content": message['content']
-                }
-                tool_calls = message.get('additional_kwargs',{}).get("tool_calls",[])
-                if tool_calls:
-                    new_message['metadata'] = tool_calls[0]['name']
-            chat_history.append(new_message)
-        chat_history = [{"role": "system", "content": system_prompt}] + chat_history
+        if system_prompt is not None:
+            chat_history.append({
+                "role": MessageType.SYSTEM_MESSAGE_TYPE,
+                "content":system_prompt
+            })
+        
+        # move tool call results  to assistant
+        for i,message in enumerate(copy.deepcopy(_chat_history)):
+            role = message['role']
+            if i==0:
+                assert role == MessageType.HUMAN_MESSAGE_TYPE, f"The first message should comes from human role"
+            
+            if role == MessageType.TOOL_MESSAGE_TYPE:
+                assert chat_history[-1]['role'] == MessageType.AI_MESSAGE_TYPE,_chat_history
+                chat_history[-1]['content'] += message['content']
+                continue 
+            chat_history.append(message)
+        
+        # move the last tool call message to user 
+        if chat_history[-1]['role'] == MessageType.AI_MESSAGE_TYPE:
+            assert chat_history[-2]['role'] == MessageType.HUMAN_MESSAGE_TYPE,chat_history
+            tool_calls = chat_history[-1].get("additional_kwargs",{}).get("tool_calls",[])
+            if tool_calls:
+                chat_history[-2]['content'] += ("\n\n" + chat_history[-1]['content'])
+                chat_history = chat_history[:-1]
+
         return chat_history
 
+    
+    @classmethod
+    def parse_function_calls_from_ai_message(cls,message:dict):
+        stop_reason = message['stop_reason']
+        content =  "<thinking>" + message['text']
+        if stop_reason:
+            content += stop_reason
+
+        return content
     
     @classmethod
     def create_chain(cls, model_kwargs=None, **kwargs):
         tools:list = kwargs.get('tools',[])
         fewshot_examples = kwargs.get('fewshot_examples',[])
-        glm_tools = cls.convert_openai_function_to_qwen(tools)
         system_prompt = cls.create_system_prompt(
             goods_info=kwargs['goods_info'], 
-            tools=glm_tools,
+            tools=tools,
             fewshot_examples=fewshot_examples
             )
         kwargs['system_prompt'] = system_prompt
         return super().create_chain(model_kwargs=model_kwargs,**kwargs)
+        
 
     
 

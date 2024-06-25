@@ -17,7 +17,8 @@ from langchain_core.messages import AIMessage,SystemMessage
 
 from common_logic.common_utils.constant import (
     LLMTaskType,
-    LLMModelType
+    LLMModelType,
+    MessageType
 )
 
 from .llm_chain_base import LLMChain
@@ -222,6 +223,16 @@ class Claude2ToolCallingChain(LLMChain):
                 "function_calls": function_calls,
                 "content": content
             } 
+
+    @classmethod
+    def create_chat_history(cls,x):
+        chat_history = x['chat_history'] + \
+            [{"role": MessageType.HUMAN_MESSAGE_TYPE,"content": x['query']}] + \
+            x['agent_chat_history']
+
+            
+        return chat_history
+    
         
     @classmethod
     def create_chain(cls, model_kwargs=None, **kwargs):
@@ -256,7 +267,7 @@ class Claude2ToolCallingChain(LLMChain):
             model_id=cls.model_id,
             model_kwargs=model_kwargs,
         )
-        chain = tool_calling_template \
+        chain = RunnableLambda.assign(chat_history=lambda x: cls.create_chat_history(x)) | tool_calling_template \
             | RunnableLambda(lambda x: x.messages ) \
             | llm | RunnableLambda(lambda message:cls.parse_function_calls_from_ai_message(
                 message
