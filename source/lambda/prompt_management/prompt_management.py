@@ -4,6 +4,7 @@ import os
 import boto3
 from botocore.paginate import TokenEncoder
 from common_utils.logger_utils import get_logger
+from common_utils.prompt_utils import get_all_templates
 
 DEFAULT_MAX_ITEMS = 50
 DEFAULT_SIZE = 50
@@ -98,7 +99,10 @@ def __get(event, user_id):
             Key={"userId": user_id, "sortKey": sort_key}
         )
     item = response.get("Item")
-    return item
+    if item:
+        return item
+    default_prompt = get_all_templates().get(sort_key)
+    return default_prompt
 
 
 def __delete_prompt(event, user_id):
