@@ -53,6 +53,9 @@ export class LambdaLayers {
         entry: path.join(__dirname, "../../../lambda/online/common_logic"),
         compatibleRuntimes: [Runtime.PYTHON_3_12],
         description: `LLM Bot - Online Utils layer`,
+        bundling: {
+          assetExcludes: ["__pycache__"]
+        }
       },
     );
     return LambdaOnlineUtilsLayer;
