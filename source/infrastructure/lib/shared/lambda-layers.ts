@@ -66,6 +66,9 @@ export class LambdaLayers {
         entry: path.join(__dirname, "../../../lambda/online"),
         compatibleRuntimes: [Runtime.PYTHON_3_12],
         description: `Intelli agent - Online Source layer`,
+        bundling: {
+          assetExcludes: ["*.pyc","*.txt","*/__pycache__/*","*.xls","*.jsonl","*.xlsx","*.csv","*.png"],
+        }
       },
     );
     return LambdaOnlineSourceLayer;
