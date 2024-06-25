@@ -541,8 +541,20 @@ tool_manager.register_tool(
         "lambda_name": "",
         "lambda_module_path": "functions.retail_tools.lambda_product_aftersales.product_aftersales",
         "tool_def": {
-                "name": "product_quality",
-                "description": "商品的售后处理，主要包括客户关于商品质量的抱怨等",
+            "name": "product_quality",
+            "description": "商品的售后处理，主要包括客户关于商品质量的抱怨，比如开胶等问题",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "shop": {
+                        "description": """The shop which the customer bought the product.
+                         If the customer do not provide the shop name, the shop name is 'tianmao' by default.
+                         The shop name must be in the list of ['tianmao', 'taobao','jingdong','dewu','other']""",
+                        "type": "str"
+                    }
+                },
+                "required": []
+            }
         },
         "running_mode": "output"
     }
