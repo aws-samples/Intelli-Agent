@@ -70,6 +70,8 @@
     "prompt": "Prompt",
     "prompts": "Prompts",
     "type": "Type",
+    "promptCreateTips": "New prompt will override the current prompt, are you sure to continue?",
+    "promptDeleteTips": "Delete the prompt will reset to the system default prompt.",
     "button": {
       "login": "Log in to Intelli-Agent",
       "reload": "Reload",

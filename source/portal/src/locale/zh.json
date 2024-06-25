@@ -70,6 +70,8 @@
     "prompt": "提示词",
     "prompts": "提示词",
     "type": "类型",
+    "promptCreateTips": "新的提示将覆盖当前提示词，您确定要继续吗？",
+    "promptDeleteTips": "删除此提示词将会恢复成系统默认提示词。",
     "button": {
       "login": "登录到 AWS 大语言模型机器人",
       "reload": "重新加载",

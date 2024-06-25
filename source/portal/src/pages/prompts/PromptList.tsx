@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import CommonLayout from 'src/layout/CommonLayout';
 import {
-  Autosuggest,
+  Alert,
   Box,
   Button,
   ButtonDropdown,
@@ -11,7 +11,10 @@ import {
   Header,
   Modal,
   Pagination,
+  Select,
+  SelectProps,
   SpaceBetween,
+  Spinner,
   Table,
   Textarea,
 } from '@cloudscape-design/components';
@@ -39,7 +42,10 @@ const PromptList: React.FC = () => {
   const [showEdit, setShowEdit] = useState(false);
   const [loadingSave, setLoadingSave] = useState(false);
   const [currentPrompt, setCurrentPrompt] = useState('');
-  const [modelOption, setModelOption] = useState<string>(LLM_BOT_MODEL_LIST[0]);
+  const [modelOption, setModelOption] = useState<SelectProps.Option>({
+    label: LLM_BOT_MODEL_LIST[0],
+    value: LLM_BOT_MODEL_LIST[0],
+  });
 
   const [loadingGet, setLoadingGet] = useState(false);
   // validation
@@ -75,18 +81,26 @@ const PromptList: React.FC = () => {
     }
   };
 
-  const getPromptById = async () => {
+  const getPromptById = async (type: 'create' | 'edit') => {
     setLoadingGet(true);
+    let requestUrl = `prompt/${modelOption.value}/rag`;
+    if (type === 'edit') {
+      requestUrl = `prompt/${selectedItems[0].modelId}/${selectedItems[0].taskType}`;
+    }
+    console.info('requestUrl:', requestUrl);
     try {
       const data: GetPromptResponse = await fetchData({
-        url: `prompt/${selectedItems[0].modelId}/${selectedItems[0].taskType}`,
+        url: requestUrl,
         method: 'get',
       });
       setLoadingGet(false);
-      setCurrentPrompt(data.prompt.main);
-      setShowEdit(true);
+      setCurrentPrompt(data?.prompt?.main);
+      if (type === 'edit') {
+        setShowEdit(true);
+      }
     } catch (error: unknown) {
-      setLoadingGet(true);
+      console.info('error:', error);
+      setLoadingGet(false);
     }
   };
 
@@ -107,7 +121,7 @@ const PromptList: React.FC = () => {
 
   const createPrompt = async () => {
     // validate model settings
-    if (!modelOption.trim()) {
+    if (!modelOption.value?.trim()) {
       setModelError(t('validation.requireModel'));
       return;
     }
@@ -117,7 +131,7 @@ const PromptList: React.FC = () => {
     }
     setLoadingSave(true);
     const paramData = {
-      model_id: modelOption,
+      model_id: modelOption.value,
       task_type: 'rag',
       prompt: {
         main: currentPrompt,
@@ -150,6 +164,12 @@ const PromptList: React.FC = () => {
       allPromptList.slice((currentPage - 1) * pageSize, currentPage * pageSize),
     );
   }, [currentPage, pageSize]);
+
+  useEffect(() => {
+    if (showCreate && modelOption) {
+      getPromptById('create');
+    }
+  }, [showCreate, modelOption]);
 
   return (
     <CommonLayout
@@ -251,7 +271,7 @@ const PromptList: React.FC = () => {
                         setShowDelete(true);
                       }
                       if (detail.id === 'edit') {
-                        getPromptById();
+                        getPromptById('edit');
                       }
                     }}
                     items={[
@@ -265,7 +285,6 @@ const PromptList: React.FC = () => {
                     variant="primary"
                     iconName="add-plus"
                     onClick={() => {
-                      setCurrentPrompt('');
                       setShowCreate(true);
                     }}
                   >
@@ -310,6 +329,7 @@ const PromptList: React.FC = () => {
                   </Button>
                 ) : (
                   <Button
+                    disabled={loadingGet}
                     loading={loadingSave}
                     variant="primary"
                     onClick={() => {
@@ -330,13 +350,13 @@ const PromptList: React.FC = () => {
               stretch={true}
               errorText={modelError}
             >
-              <Autosuggest
-                disabled={showEdit}
+              <Select
+                disabled={loadingGet || showEdit}
                 onChange={({ detail }) => {
                   setModelError('');
-                  setModelOption(detail.value);
+                  setModelOption(detail.selectedOption);
                 }}
-                value={modelOption}
+                selectedOption={modelOption}
                 options={LLM_BOT_MODEL_LIST.map((item) => {
                   return {
                     label: item,
@@ -352,15 +372,21 @@ const PromptList: React.FC = () => {
               stretch={true}
               errorText={promptError}
             >
-              <Textarea
-                placeholder={t('validation.requirePrompt')}
-                value={currentPrompt}
-                onChange={({ detail }) => {
-                  setPromptError('');
-                  setCurrentPrompt(detail.value);
-                }}
-              />
+              {loadingGet ? (
+                <Spinner />
+              ) : (
+                <Textarea
+                  rows={10}
+                  placeholder={t('validation.requirePrompt')}
+                  value={currentPrompt}
+                  onChange={({ detail }) => {
+                    setPromptError('');
+                    setCurrentPrompt(detail.value);
+                  }}
+                />
+              )}
             </FormField>
+            <Alert type="info">{t('promptCreateTips')}</Alert>
           </SpaceBetween>
         </Modal>
 
@@ -402,6 +428,7 @@ const PromptList: React.FC = () => {
               ))}
             </ul>
           </div>
+          <Alert type="warning">{t('promptDeleteTips')}</Alert>
         </Modal>
       </ContentLayout>
     </CommonLayout>
