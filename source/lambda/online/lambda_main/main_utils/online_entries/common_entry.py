@@ -1,23 +1,23 @@
 import json
 from typing import Annotated, Any, TypedDict
 
-from common_utils.constant import LLMTaskType,ChatbotMode
-from common_utils.exceptions import (
+from common_logic.common_utils.constant import LLMTaskType,ChatbotMode,MessageType
+from common_logic.common_utils.exceptions import (
     ToolNotExistError, 
     ToolParameterNotExistError,
     MultipleToolNameError,
     ToolNotFound
 )
-from common_utils.time_utils import get_china_now
-from common_utils.lambda_invoke_utils import (
+from common_logic.common_utils.time_utils import get_china_now
+from common_logic.common_utils.lambda_invoke_utils import (
     invoke_lambda,
     is_running_local,
     node_monitor_wrapper,
     send_trace,
 )
-from common_utils.python_utils import add_messages, update_nest_dict
-from common_utils.logger_utils import get_logger
-from common_utils.serialization_utils import JSONEncoder
+from common_logic.common_utils.python_utils import add_messages, update_nest_dict
+from common_logic.common_utils.logger_utils import get_logger
+from common_logic.common_utils.serialization_utils import JSONEncoder
 from functions.tool_calling_parse import parse_tool_calling as _parse_tool_calling
 from functions.tool_execute_result_format import format_tool_call_results
 from functions.tools import Tool, get_tool_by_name, tool_manager
@@ -599,7 +599,7 @@ def common_entry(event_body):
             "trace_infos": [],
             "message_id": message_id,
             "chat_history": chat_history,
-            "agent_chat_history": chat_history + [{"role": "user", "content": query}],
+            "agent_chat_history": chat_history + [{"role": MessageType.HUMAN_MESSAGE_TYPE, "content": query}],
             "ws_connection_id": ws_connection_id,
             "debug_infos": {},
             "extra_response": {},

@@ -1,7 +1,7 @@
 import json
 
 import boto3
-from common_utils.logger_utils import get_logger
+from common_logic.common_utils.logger_utils import get_logger
 
 logger = get_logger("websocket_utils")
 

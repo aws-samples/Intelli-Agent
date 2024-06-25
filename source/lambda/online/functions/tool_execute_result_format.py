@@ -2,8 +2,9 @@
 tool execute format
 """
 
-from common_utils.constant import (
-    LLMModelType
+from common_logic.common_utils.constant import (
+    LLMModelType,
+    MessageType
 )
 
 class FormatMeta(type):
@@ -88,7 +89,7 @@ class Claude3SonnetFormatToolResult(FormatToolResult):
         ret = "\n".join(tool_call_result_strs)
         return {
             "tool_message": {
-                "role":"user",
+                "role":MessageType.HUMAN_MESSAGE_TYPE,
                 "content": ret
             }
         }
@@ -132,7 +133,7 @@ class GLM4Chat9BFormatToolResult(FormatToolResult):
         ret = "\n".join(tool_call_result_strs)
         return {
             "tool_message": {
-                "role":"observation",
+                "role": MessageType.OBSERVATION,
                 "content": ret
             }
         }

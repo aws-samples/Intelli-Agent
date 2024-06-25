@@ -2,7 +2,7 @@ import os
 import re
 import boto3
 import pandas as pd
-from common_utils.s3_utils import download_dir_from_s3
+from common_logic.common_utils.s3_utils import download_dir_from_s3
 
 def download_dir_from_s3(bucket_name, s3_dir_path, local_dir_path):
     s3 = boto3.client('s3')

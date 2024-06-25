@@ -6,7 +6,7 @@ from langchain.schema.runnable import (
 
 from ..chat_chain import Claude2ChatChain, Iternlm2Chat7BChatChain
 
-from common_utils.constant import (
+from common_logic.common_utils.constant import (
     MessageType,
     LLMTaskType,
     LLMModelType

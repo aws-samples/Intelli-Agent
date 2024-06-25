@@ -1,7 +1,7 @@
 from langchain.prompts import PromptTemplate
 from langchain.chains import LLMChain
 from langchain.llms.bedrock import Bedrock
-from common_utils.constant import LLMModelType
+from common_logic.common_utils.constant import LLMModelType
 import boto3
 import os
 

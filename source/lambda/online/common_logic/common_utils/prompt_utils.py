@@ -1,6 +1,6 @@
 from langchain.pydantic_v1 import BaseModel,Field
 from collections import defaultdict
-from common_utils.constant import LLMModelType,LLMTaskType
+from common_logic.common_utils.constant import LLMModelType,LLMTaskType
 import copy
 
 class PromptTemplate(BaseModel):
@@ -64,7 +64,7 @@ get_all_templates = prompt_template_manager.get_all_templates
 
 #### rag template #######
 
-BEDROCK_RAG_CHAT_SYSTEM_PROMPT = """You are a customer service agent, and answering user's query. You ALWAYS follow these guidelines when writing your response:
+CLAUDE_RAG_SYSTEM_PROMPT = """You are a customer service agent, and answering user's query. You ALWAYS follow these guidelines when writing your response:
 <guidelines>
 - NERVER say "根据搜索结果/大家好/谢谢...".
 </guidelines>
@@ -84,9 +84,79 @@ register_prompt_templates(
         LLMModelType.MIXTRAL_8X7B_INSTRUCT
     ],
     task_type=LLMTaskType.RAG,
-    prompt_template=BEDROCK_RAG_CHAT_SYSTEM_PROMPT,
+    prompt_template=CLAUDE_RAG_SYSTEM_PROMPT,
     prompt_name="main"
 )
+
+
+GLM4_RAG_SYSTEM_PROMPT = """你是一个人工智能助手，正在回答人类的各种问题，下面是相关背景知识供参考:
+# 背景知识
+{context}
+
+# 回答规范:
+ - 简洁明了，言简意赅。
+"""
+
+
+register_prompt_templates(
+    model_ids=[
+        LLMModelType.QWEN2INSTRUCT72B,
+        LLMModelType.QWEN2INSTRUCT7B,
+        LLMModelType.GLM_4_9B_CHAT
+    ],
+    task_type=LLMTaskType.RAG,
+    prompt_template=CLAUDE_RAG_SYSTEM_PROMPT,
+    prompt_name="main"
+)
+
+
+
+CHIT_CHAT_SYSTEM_TEMPLATE = "You are a helpful assistant."
+
+register_prompt_templates(
+    model_ids=[
+        LLMModelType.CLAUDE_2,
+        LLMModelType.CLAUDE_21,
+        LLMModelType.CLAUDE_3_HAIKU,
+        LLMModelType.CLAUDE_3_SONNET,
+        LLMModelType.CLAUDE_INSTANCE,
+        LLMModelType.MIXTRAL_8X7B_INSTRUCT,
+        LLMModelType.QWEN2INSTRUCT72B,
+        LLMModelType.QWEN2INSTRUCT7B
+    ],
+    task_type=LLMTaskType.CHAT,
+    prompt_template=CHIT_CHAT_SYSTEM_TEMPLATE,
+    prompt_name="main"
+)
+
+
+
+CQR_TEMPLATE = """Given the following conversation between `USER` and `AI`, and a follow up `USER` reply, Put yourself in the shoes of `USER`, rephrase the follow up \
+`USER` reply to be a standalone reply.
+
+Chat History:
+{history}
+
+The USER's follow up reply: {question}"""
+
+register_prompt_templates(
+    model_ids=[
+        LLMModelType.CLAUDE_2,
+        LLMModelType.CLAUDE_21,
+        LLMModelType.CLAUDE_3_HAIKU,
+        LLMModelType.CLAUDE_3_SONNET,
+        LLMModelType.CLAUDE_INSTANCE,
+        LLMModelType.MIXTRAL_8X7B_INSTRUCT,
+        LLMModelType.QWEN2INSTRUCT72B,
+        LLMModelType.QWEN2INSTRUCT7B,
+        LLMModelType.GLM_4_9B_CHAT
+    ],
+    task_type=LLMTaskType.CONVERSATION_SUMMARY_TYPE,
+    prompt_template=CQR_TEMPLATE,
+    prompt_name="main"
+)
+
+
 
 
 

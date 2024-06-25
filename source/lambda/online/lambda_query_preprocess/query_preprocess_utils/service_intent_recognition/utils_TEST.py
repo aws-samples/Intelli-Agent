@@ -1,6 +1,6 @@
 import unittest
 
-from common_utils import get_service_name
+from common_logic.common_utils import get_service_name
 
 
 class TestDict(unittest.TestCase):

@@ -9,7 +9,7 @@ load_dotenv(
 )
 import json
 import time 
-from common_utils.lambda_invoke_utils import invoke_lambda
+from common_logic.common_utils.lambda_invoke_utils import invoke_lambda
 import common_utils.websocket_utils as websocket_utils
 
 class DummyWebSocket:

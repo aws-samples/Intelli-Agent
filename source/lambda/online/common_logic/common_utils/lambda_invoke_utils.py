@@ -6,9 +6,9 @@ import time
 from typing import Any, Dict, Optional, Callable
 
 import requests
-from common_utils.constant import StreamMessageType
-from common_utils.logger_utils import get_logger
-from common_utils.websocket_utils import is_websocket_request, send_to_ws_client
+from common_logic.common_utils.constant import StreamMessageType
+from common_logic.common_utils.logger_utils import get_logger
+from common_logic.common_utils.websocket_utils import is_websocket_request, send_to_ws_client
 from langchain.pydantic_v1 import BaseModel, Field, root_validator
 
 from .exceptions import LambdaInvokeError

@@ -9,11 +9,11 @@ from langchain_openai import ChatOpenAI
 from langchain_community.chat_models import BedrockChat
 from langchain_community.llms.sagemaker_endpoint import LineIterator
 
-from common_utils.constant import (
+from common_logic.common_utils.constant import (
     MessageType,
     LLMModelType
 )
-from common_utils.logger_utils import get_logger
+from common_logic.common_utils.logger_utils import get_logger
 
 AI_MESSAGE_TYPE = MessageType.AI_MESSAGE_TYPE
 HUMAN_MESSAGE_TYPE = MessageType.HUMAN_MESSAGE_TYPE
@@ -271,9 +271,14 @@ class GLM4Chat9B(SagemakerModelBase):
         for message in _chat_history:
             message = {**message}
             role = message['role']
-            if role == "ai":
+            assert role in (MessageType.AI_MESSAGE_TYPE,MessageType.HUMAN_MESSAGE_TYPE,MessageType.OBSERVATION),role
+            if role == MessageType.AI_MESSAGE_TYPE:
                 message['role'] = "assistant"
-
+            elif role == MessageType.HUMAN_MESSAGE_TYPE:
+                message['role'] = 'user'
+            elif role == MessageType.SYSTEM_MESSAGE_TYPE:
+                message['role'] = 'system'
+                
             if message['role'] == "assistant":
                 content = message['content']
                 if not content.endswith("<|observation|>"):
@@ -289,6 +294,29 @@ class GLM4Chat9B(SagemakerModelBase):
         }
         input_str = json.dumps(body)
         return input_str
+
+
+class Qwen2Instruct7B(SagemakerModelBase):
+    model_id = LLMModelType.QWEN2INSTRUCT7B
+    default_model_kwargs = {
+        "max_tokens": 1024,
+        "temperature": 0.1,
+    }
+
+    def transform_input(self, x:dict):
+        body = {
+            "chat_history": x['chat_history'],
+            "stream": x["stream"],
+            **self.model_kwargs
+        }
+        input_str = json.dumps(body)
+        return input_str
+
+
+class Qwen2Instruct72B(Qwen2Instruct7B):
+    model_id = LLMModelType.QWEN2INSTRUCT72B
+
+
 
 # ChatGPT model type
 class ChatGPT35(Model):

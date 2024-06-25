@@ -5,16 +5,17 @@ from langchain_core.messages import AIMessage,SystemMessage
 from langchain.prompts import ChatPromptTemplate,HumanMessagePromptTemplate
 from langchain_core.messages import convert_to_messages
 
-# from ...prompt_template import CHIT_CHAT_SYSTEM_TEMPLATE, get_chit_chat_prompt
+
 from ..llm_models import Model
 from .llm_chain_base import LLMChain
 
-from common_utils.constant import (
+from common_logic.common_utils.constant import (
     MessageType,
     LLMTaskType,
-    LLMModelType
+    LLMModelType,
 )
-from common_utils.time_utils import get_china_now
+from common_logic.common_utils.time_utils import get_china_now
+from common_logic.common_utils.prompt_utils import get_prompt_template
 
 AI_MESSAGE_TYPE = MessageType.AI_MESSAGE_TYPE
 HUMAN_MESSAGE_TYPE = MessageType.HUMAN_MESSAGE_TYPE
@@ -29,13 +30,19 @@ class Claude2ChatChain(LLMChain):
     @classmethod
     def create_chain(cls, model_kwargs=None, **kwargs):
         stream = kwargs.get("stream", False)
-        system_prompt = kwargs.get('system_prompt',None)
+        system_prompt_template = get_prompt_template(
+            model_id=cls.model_id,
+            task_type=cls.intent_type,
+            prompt_name="main"     
+        ).prompt_template
+
+        system_prompt = kwargs.get('system_prompt',system_prompt_template)
         prefill =  kwargs.get('prefill',None)
         messages = [
             ("placeholder", "{chat_history}"),
             HumanMessagePromptTemplate.from_template("{query}")
         ]
-        if system_prompt is not None:
+        if system_prompt:
             messages.insert(0,SystemMessage(content=system_prompt))
         
         if prefill is not None:
@@ -144,12 +151,19 @@ class Iternlm2Chat7BChatChain(LLMChain):
         return history
 
     @classmethod
-    def create_prompt(cls, x):
+    def create_prompt(cls, x,system_prompt=None):
         history = cls.create_history(x)
+        if system_prompt is None:
+            system_prompt = get_prompt_template(
+            model_id=cls.model_id,
+            task_type=cls.intent_type,
+            prompt_name="main"     
+        ).prompt_template
+
         prompt = cls.build_prompt(
             query=x["query"],
             history=history,
-            meta_instruction=CHIT_CHAT_SYSTEM_TEMPLATE,
+            meta_instruction=system_prompt,
         )
         return prompt
 
@@ -158,10 +172,11 @@ class Iternlm2Chat7BChatChain(LLMChain):
         model_kwargs = model_kwargs or {}
         model_kwargs = {**cls.default_model_kwargs, **model_kwargs}
         stream = kwargs.get("stream", False)
+        system_prompt = kwargs.get("system_prompt",None)
         llm = Model.get_model(cls.model_id, model_kwargs=model_kwargs, **kwargs)
 
         prompt_template = RunnablePassthrough.assign(
-            prompt=RunnableLambda(lambda x: cls.create_prompt(x))
+            prompt=RunnableLambda(lambda x: cls.create_prompt(x,system_prompt=system_prompt))
         )
         llm_chain = prompt_template | RunnableLambda(
             lambda x: llm.invoke(x, stream=stream)
@@ -172,21 +187,30 @@ class Iternlm2Chat7BChatChain(LLMChain):
 class Iternlm2Chat20BChatChain(Iternlm2Chat7BChatChain):
     model_id = LLMModelType.INTERNLM2_CHAT_20B
 
+
 class GLM4Chat9BChatChain(LLMChain):
     model_id = LLMModelType.GLM_4_9B_CHAT
     intent_type = LLMTaskType.CHAT
-    default_system_prompt = "You are a helpful assistant."
     default_model_kwargs = {
         "max_new_tokens": 1024,
         "timeout": 60,
         "temperature": 0.1,
     }
     @classmethod
-    def create_chat_history(cls,x,system_prompt=default_system_prompt):
+    def create_chat_history(cls,x, system_prompt=None):
+        if system_prompt is None:
+            system_prompt = get_prompt_template(
+                model_id=cls.model_id,
+                task_type=cls.intent_type,
+                prompt_name="main"     
+            ).prompt_template
+
         chat_history = x['chat_history']
+
         if system_prompt is not None:
             chat_history = [{"role":"system","content": system_prompt}] + chat_history
-        chat_history = chat_history + [{"role":"user","content":x['query']}]
+        chat_history = chat_history + [{"role":MessageType.HUMAN_MESSAGE_TYPE,"content":x['query']}]
+
         return chat_history
      
     @classmethod
@@ -205,6 +229,64 @@ class GLM4Chat9BChatChain(LLMChain):
         ) | RunnableLambda(lambda x: llm.invoke(x))
         
         return chain
+
+
+class Qwen2Instruct7BChatChain(LLMChain):
+    model_id = LLMModelType.QWEN2INSTRUCT7B
+    intent_type = LLMTaskType.CHAT
+
+    @classmethod
+    def create_chat_history(cls,x, system_prompt=None):
+        if system_prompt is None:
+            system_prompt = get_prompt_template(
+                model_id=cls.model_id,
+                task_type=cls.intent_type,
+                prompt_name="main"     
+            ).prompt_template
+
+        chat_history = x['chat_history']
+
+        if system_prompt is not None:
+            chat_history = [{"role":"system", "content": system_prompt}] + chat_history
+        
+        _chat_history = chat_history + [{"role": MessageType.HUMAN_MESSAGE_TYPE, "content":x['query']}]
+        chat_history = []
+        for message in _chat_history:
+            assert MessageType.has_value(message['role']), message
+            if message['role'] == MessageType.HUMAN_MESSAGE_TYPE:
+                role  = 'user'
+            elif message['role'] == MessageType.AI_MESSAGE_TYPE:
+                role = 'assistant'
+            else:
+                role = "system"
+            chat_history.append({"role":role,"content":message['content']})
+        return chat_history
+            
+
+    @classmethod
+    def create_chain(cls, model_kwargs=None, **kwargs):
+        stream = kwargs.get("stream", False)
+        model_kwargs = model_kwargs or {}
+        model_kwargs = {**cls.default_model_kwargs, **model_kwargs}
+        system_prompt = kwargs.get("system_prompt",None)
+
+        llm = Model.get_model(
+            model_id=cls.model_id,
+            model_kwargs=model_kwargs,
+            **kwargs
+        )
+
+        chain = RunnablePassthrough.assign(
+            chat_history = RunnableLambda(lambda x: cls.create_chat_history(x,system_prompt=system_prompt)) 
+        ) | RunnableLambda(lambda x: llm.invoke(x))
+
+        return chain
+
+class Qwen2Instruct72BChatChain(Qwen2Instruct7BChatChain):
+    model_id = LLMModelType.QWEN2INSTRUCT72B
+
+
+    
 class ChatGPT35ChatChain(LLMChain):
     model_id = LLMModelType.CHATGPT_35_TURBO
     intent_type = LLMTaskType.CHAT

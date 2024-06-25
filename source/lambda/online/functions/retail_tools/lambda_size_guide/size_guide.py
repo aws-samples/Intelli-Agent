@@ -4,7 +4,7 @@ import re
 import pandas as pd
 import numpy as np
 
-from common_utils.s3_utils import download_dir_from_s3
+from common_logic.common_utils.s3_utils import download_dir_from_s3
 
 def find_nearest(array, value):
     array = np.asarray(array)

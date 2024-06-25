@@ -1,7 +1,7 @@
 import json
 import pandas as pd
 
-from common_utils.s3_utils import download_dir_from_s3
+from common_logic.common_utils.s3_utils import download_dir_from_s3
 
 def get_goods_dict_1(data_file_path):
     goods_dict = {}

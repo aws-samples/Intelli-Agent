@@ -1,7 +1,7 @@
 import json
 
 from langchain.schema.messages import BaseMessage
-from common_utils.ddb_utils import DynamoDBChatMessageHistory
+from common_logic.common_utils.ddb_utils import DynamoDBChatMessageHistory
 
 
 class JSONEncoder(json.JSONEncoder):
