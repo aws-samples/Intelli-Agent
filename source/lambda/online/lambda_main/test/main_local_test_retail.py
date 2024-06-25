@@ -165,8 +165,7 @@ def test_multi_turns():
         print(r)
 
 
-def batch_test():
-    data_file = "/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/customer_poc/anta/conversation_turns.csv"
+def batch_test(data_file, count=1000):
     data = pd.read_csv(data_file).to_dict(orient='records')
     session_prefix = f"anta_test_{time.time()}"
     default_llm_config = {
@@ -191,7 +190,7 @@ def batch_test():
     }
     # data = data]
     data_to_save = []
-    for datum in tqdm.tqdm(data,total=len(data)):
+    for datum in tqdm.tqdm(data[:count], total=min(len(data), count)):
         print("=="*50,flush=True)
         start_time = time.time()
         print(f'query: {datum["user_msg"]},\ngoods_id: {datum["product_ids"]}',flush=True)

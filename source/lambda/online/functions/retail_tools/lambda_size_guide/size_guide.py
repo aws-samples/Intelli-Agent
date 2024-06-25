@@ -1,8 +1,15 @@
 import os
 import re
+
 import pandas as pd
+import numpy as np
 
 from common_logic.common_utils.s3_utils import download_dir_from_s3
+
+def find_nearest(array, value):
+    array = np.asarray(array)
+    idx = (np.abs(array - value)).argmin()
+    return array[idx]
 
 def get_goods_type_1(file_name):
     if "鞋" in file_name:
@@ -116,10 +123,12 @@ def lambda_handler(event_body, context=None):
     if goods_type_1 == "shoes":
         if "shoes_size" in kwargs:
             shoe_size = float(kwargs["shoes_size"])
-            result = size_dict.get(goods_type_1).get(goods_type_2).get("shoes_size").get(shoe_size, "42")
+            std_shoe_size = find_nearest(list(size_dict.get(goods_type_1).get(goods_type_2).get("shoes_size").keys()), shoe_size)
+            result = size_dict.get(goods_type_1).get(goods_type_2).get("shoes_size").get(std_shoe_size, "42")
         elif "foot_length" in kwargs:
-            shoe_size = float(kwargs["foot_length"])
-            result = size_dict.get(goods_type_1).get(goods_type_2).get("shoes_size").get(weight, "L")
+            foot_length = float(kwargs["foot_length"])
+            std_foot_length = find_nearest(list(size_dict.get(goods_type_1).get(goods_type_2).get("foot_length").keys()), foot_length)
+            result = size_dict.get(goods_type_1).get(goods_type_2).get("foot_length").get(std_foot_length, "28")
         else:
             return {"code":1, "result":"shoes size or foot length is required"}
     elif goods_type_1 == "apparel":

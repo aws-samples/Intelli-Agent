@@ -288,6 +288,10 @@ def rag_goods_exchange_llm_lambda(state:ChatbotState):
 @node_monitor_wrapper
 def rag_product_aftersales_retriever_lambda(state: ChatbotState):
     # call retriever
+    recent_tool_calling:list[dict] = state['current_tool_calls'][0]
+    if "shop" in recent_tool_calling['kwargs'] and recent_tool_calling['kwargs']['shop'] != "tianmao":
+        contexts = ["顾客不是在天猫购买的商品，请他咨询其他商家"]
+        return {"contexts": contexts}
     retriever_params = state["chatbot_config"]["rag_product_aftersales_config"]["retriever_config"]
     retriever_params["query"] = state["query"]
     output:str = invoke_lambda(
@@ -696,17 +700,16 @@ def retail_entry(event_body):
     goods_id = event_body['chatbot_config']['goods_id']
     if goods_id:
         try:
-            _goods_info = goods_dict.get(int(goods_id),None)
+            _goods_info = eval(goods_dict.get(int(goods_id),None).get("goods_info",None))
+            _goods_type = goods_dict.get(int(goods_id),None).get("goods_type",None)
         except Exception as e:
             import traceback 
             error = traceback.format_exc()
             logger.error(f"error meesasge {error}, invalid goods_id: {goods_id}")
             _goods_info = None
 
-        if _goods_info:
-            _goods_type = _goods_info.get('goods_type','')
+        if _goods_info and _goods_type:
             logger.info(_goods_info)
-            _goods_info = eval(_goods_info['goods_info'])
             goods_info = f"当前用户询问的商品类型: {_goods_type}\n"
             for k,v in _goods_info.items():
                 goods_info += f"{k}:{v}\n" 
