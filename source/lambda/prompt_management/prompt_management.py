@@ -1,14 +1,13 @@
 import json
-import logging
 import os
 
 import boto3
 from botocore.paginate import TokenEncoder
+from common_utils.logger_utils import get_logger
 
 DEFAULT_MAX_ITEMS = 50
 DEFAULT_SIZE = 50
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
+logger = get_logger("main")
 dynamodb_client = boto3.client("dynamodb")
 encoder = TokenEncoder()
 
@@ -78,7 +77,7 @@ def __list(event, user_id):
         page_json = []
         for item in page_items:
             item_json = {}
-            for key in ["modelId", "taskType", "prompt"]:
+            for key in ["modelId", "taskType"]:
                 item_json[key] = item.get(key, {"S": ""})["S"]
             page_json.append(item_json)
         output["Items"] = page_json

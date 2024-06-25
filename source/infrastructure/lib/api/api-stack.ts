@@ -616,6 +616,7 @@ export class ApiConstruct extends Construct {
           rerank_endpoint: props.embeddingAndRerankerEndPoint,
           sessions_table_name: sessionsTableName,
           messages_table_name: messagesTableName,
+          prompt_table_name: props.promptTableName,
           workspace_table: workspaceTableName,
           openai_key_arn: openAiKey.secretArn,
         },
