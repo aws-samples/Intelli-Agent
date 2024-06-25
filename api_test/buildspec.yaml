@@ -29,16 +29,26 @@ phases:
         echo "----------------------------------------------------------------"
         echo "$deploy_start_time deploy start..."
         echo "----------------------------------------------------------------"
+        npm i -g pnpm
+        pushd Intelli-Agent/source/portal
+        pnpm i
+        npm run build
+        popd
         if [ "$DEPLOY_STACK" = "cdk" ]; then
-          pushd "Intelli-Agent/source/infrastructure"
-          npm i -g pnpm
-          pnpm i
-          npx cdk deploy --parameters SubEmail=$SUB_EMAIL \
+          if [ -d "Intelli-Agent/source/infrastructure" ]; then
+            echo "===================="
+            pushd "Intelli-Agent/source/infrastructure"
+            pnpm i
+            npx cdk deploy --parameters SubEmail=$SUB_EMAIL \
                   --parameters S3ModelAssets="$S3_MODEL_ASSETS_BUCKET" \
                   --parameters EtlImageName="$ETL_IMAGE_NAME" \
                   --parameters ETLTag="$ETL_IMAGE_TAG" \
-                  --require-approval never
-          popd
+                  --require-approval never || exit 1
+            popd
+          else
+            echo "Directory Intelli-Agent/source/infrastructure does not exist."
+            exit 1
+          fi
         fi
         deploy_complete_time=$(date +"%Y-%m-%d_%H-%M-%S")
         echo "----------------------------------------------------------------"
