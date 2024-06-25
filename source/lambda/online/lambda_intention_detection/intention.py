@@ -1,7 +1,7 @@
 
 
-from common_utils.logger_utils  import get_logger
-from common_utils.lambda_invoke_utils import chatbot_lambda_call_wrapper,invoke_lambda
+from common_logic.common_utils.logger_utils  import get_logger
+from common_logic.common_utils.lambda_invoke_utils import chatbot_lambda_call_wrapper,invoke_lambda
 
 logger = get_logger("intention")
 

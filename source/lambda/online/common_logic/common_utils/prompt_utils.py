@@ -1,6 +1,6 @@
 from langchain.pydantic_v1 import BaseModel,Field
 from collections import defaultdict
-from common_utils.constant import LLMModelType,LLMTaskType
+from common_logic.common_utils.constant import LLMModelType,LLMTaskType
 import copy
 
 class PromptTemplate(BaseModel):

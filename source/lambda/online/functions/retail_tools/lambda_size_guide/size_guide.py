@@ -2,7 +2,7 @@ import os
 import re
 import pandas as pd
 
-from common_utils.s3_utils import download_dir_from_s3
+from common_logic.common_utils.s3_utils import download_dir_from_s3
 
 def get_goods_type_1(file_name):
     if "鞋" in file_name:

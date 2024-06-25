@@ -8,11 +8,11 @@ from langchain.prompts import (
 )
 
 from langchain.schema.runnable import RunnableLambda, RunnablePassthrough
-from common_utils.constant import (
+from common_logic.common_utils.constant import (
     LLMTaskType,
     LLMModelType
 )
-from common_utils.prompt_utils import get_prompt_template
+from common_logic.common_utils.prompt_utils import get_prompt_template
 
 # from ...prompt_template import convert_chat_history_from_fstring_format
 from ..llm_models import Model

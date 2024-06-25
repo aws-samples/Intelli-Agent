@@ -15,7 +15,7 @@ from langchain.prompts import ChatPromptTemplate
 
 from langchain_core.messages import AIMessage,SystemMessage
 
-from common_utils.constant import (
+from common_logic.common_utils.constant import (
     LLMTaskType,
     LLMModelType
 )

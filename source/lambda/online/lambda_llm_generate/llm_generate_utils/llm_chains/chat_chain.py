@@ -9,13 +9,13 @@ from langchain_core.messages import convert_to_messages
 from ..llm_models import Model
 from .llm_chain_base import LLMChain
 
-from common_utils.constant import (
+from common_logic.common_utils.constant import (
     MessageType,
     LLMTaskType,
     LLMModelType,
 )
-from common_utils.time_utils import get_china_now
-from common_utils.prompt_utils import get_prompt_template
+from common_logic.common_utils.time_utils import get_china_now
+from common_logic.common_utils.prompt_utils import get_prompt_template
 
 AI_MESSAGE_TYPE = MessageType.AI_MESSAGE_TYPE
 HUMAN_MESSAGE_TYPE = MessageType.HUMAN_MESSAGE_TYPE

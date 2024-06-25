@@ -9,11 +9,11 @@ from langchain_openai import ChatOpenAI
 from langchain_community.chat_models import BedrockChat
 from langchain_community.llms.sagemaker_endpoint import LineIterator
 
-from common_utils.constant import (
+from common_logic.common_utils.constant import (
     MessageType,
     LLMModelType
 )
-from common_utils.logger_utils import get_logger
+from common_logic.common_utils.logger_utils import get_logger
 
 AI_MESSAGE_TYPE = MessageType.AI_MESSAGE_TYPE
 HUMAN_MESSAGE_TYPE = MessageType.HUMAN_MESSAGE_TYPE

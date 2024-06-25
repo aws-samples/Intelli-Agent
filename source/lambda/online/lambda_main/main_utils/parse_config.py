@@ -1,7 +1,7 @@
 import collections.abc
 import copy
 import os
-from common_utils.constant import ChatbotMode
+from common_logic.common_utils.constant import ChatbotMode
 
 # update nest dict
 def update_nest_dict(d, u):
