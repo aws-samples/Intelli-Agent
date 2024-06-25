@@ -1,7 +1,7 @@
 import json
 from typing import Annotated, Any, TypedDict
 
-from common_utils.constant import LLMTaskType,ChatbotMode
+from common_utils.constant import LLMTaskType,ChatbotMode,MessageType
 from common_utils.exceptions import (
     ToolNotExistError, 
     ToolParameterNotExistError,
@@ -599,7 +599,7 @@ def common_entry(event_body):
             "trace_infos": [],
             "message_id": message_id,
             "chat_history": chat_history,
-            "agent_chat_history": chat_history + [{"role": "user", "content": query}],
+            "agent_chat_history": chat_history + [{"role": MessageType.HUMAN_MESSAGE_TYPE, "content": query}],
             "ws_connection_id": ws_connection_id,
             "debug_infos": {},
             "extra_response": {},

@@ -15,8 +15,10 @@ from common_utils.exceptions import (
 )
 from functions.tool_execute_result_format import format_tool_call_results
 from common_utils.constant import (
-    LLMModelType
+    LLMModelType,
+    MessageType
 )
+
 
 
 class ToolCallingParseMeta(type):
@@ -40,9 +42,19 @@ class ToolCallingParse(metaclass=ToolCallingParseMeta):
 
 class Claude3SonnetFToolCallingParse(ToolCallingParse):
     model_id = LLMModelType.CLAUDE_3_SONNET
+    tool_format = ("<function_calls>\n"
+            "<invoke>\n"
+            "<tool_name>$TOOL_NAME</tool_name>\n"
+            "<parameters>\n"
+            "<$PARAMETER_NAME>$PARAMETER_VALUE</$PARAMETER_NAME>\n"
+            "...\n"
+            "</parameters>\n"
+            "</invoke>\n"
+            "</function_calls>\n"
+            )
     
-    @staticmethod
-    def convert_anthropic_xml_to_dict(model_id,function_calls:List[str], tools:list[dict]) -> List[dict]:
+    @classmethod
+    def convert_anthropic_xml_to_dict(cls,model_id,function_calls:List[str], tools:list[dict]) -> List[dict]:
         # formatted_tools = [convert_to_openai_function(tool) for tool in tools]
         tool_calls:list[ToolCall] = []
         tools_mapping = {tool['name']:tool for tool in tools}
@@ -64,14 +76,16 @@ class Claude3SonnetFToolCallingParse(ToolCallingParse):
                 value = re.findall(f'<{parameter_key}>(.*?)</{parameter_key}>', function_call, re.DOTALL)
                 if not value:
                     # expand search region
-                    search_region = re.findall(f'<parameter>\n<name>{parameter_key}</name>(.*?)</parameter>', function_call, re.DOTALL)
-                    value = re.findall(f'<value>(.*?)</value>', search_region, re.DOTALL)
-                    if not value:
-                        raise ToolParameterNotExistError(
-                            tool_name=tool_name,
-                            parameter_key=parameter_key,
-                            function_call_content=function_call
-                            )
+                    # search_region = re.findall(f'<parameter>\n<name>{parameter_key}</name>(.*?)</parameter>', function_call, re.DOTALL)
+                    # # print(search_region)
+                    # value = re.findall(f'<value>(.*?)</value>', search_region, re.DOTALL)
+                    # if not value:
+                    raise ToolParameterNotExistError(
+                        tool_name=tool_name,
+                        parameter_key=parameter_key,
+                        function_call_content=function_call,
+                        tool_format=f"\n注意正确的工具调用格式应该是下面的:\n{cls.tool_format}\n"
+                        )
                 # TODO, add too many parameters error
                 assert len(value) == 1,(parameter_key,function_call)
                 arguments[parameter_key] = value[0].strip()
@@ -84,20 +98,11 @@ class Claude3SonnetFToolCallingParse(ToolCallingParse):
 
     @classmethod
     def tool_not_found(cls,agent_message):
-        tool_format = ("<function_calls>\n"
-            "<invoke>\n"
-            "<tool_name>$TOOL_NAME</tool_name>\n"
-            "<parameters>\n"
-            "<$PARAMETER_NAME>$PARAMETER_VALUE</$PARAMETER_NAME>\n"
-            "...\n"
-            "</parameters>\n"
-            "</invoke>\n"
-            "</function_calls>\n"
-            )
+        tool_format = cls.tool_format
         e = ToolNotFound()
         e.agent_message = agent_message
         e.error_message = {
-                    "role": "user",
+                    "role": MessageType.HUMAN_MESSAGE_TYPE,
                     "content": f"当前没有解析到tool,请检查tool调用的格式是否正确，并重新输出某个tool的调用。注意正确的tool调用格式应该为: {tool_format}。\n如果你认为当前不需要调用其他工具，请直接调用“give_final_response”工具进行返回。"
                 }
         return e
@@ -110,7 +115,7 @@ class Claude3SonnetFToolCallingParse(ToolCallingParse):
         function_calls = agent_output['agent_output']['function_calls']
         tools = agent_output['current_agent_tools_def']
         agent_message = {
-            "role": "ai",
+            "role": MessageType.AI_MESSAGE_TYPE,
             "content": agent_output['agent_output']['content']
         }
 
@@ -135,6 +140,7 @@ class Claude3SonnetFToolCallingParse(ToolCallingParse):
                             "tool_name": e.tool_name}
                         }]
                 )['tool_message']
+            e.agent_message = agent_message
             raise e 
 
 
@@ -199,7 +205,7 @@ class GLM4Chat9B(ToolCallingParse):
             # check use tool or direct reply
             tools = agent_output['current_agent_tools_def']
             agent_message = {
-                    "role": "assistant",
+                    "role": MessageType.AI_MESSAGE_TYPE,
                     "content": content,
                     "additional_kwargs": {}
                 }

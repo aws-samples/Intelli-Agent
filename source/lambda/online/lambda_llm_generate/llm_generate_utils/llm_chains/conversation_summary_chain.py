@@ -19,6 +19,7 @@ from common_utils.constant import (
 from langchain_core.messages import(
     AIMessage,
     BaseMessage,
+    HumanMessage,
     convert_to_messages
 ) 
 from langchain.prompts import (
@@ -32,34 +33,6 @@ AI_MESSAGE_TYPE = MessageType.AI_MESSAGE_TYPE
 HUMAN_MESSAGE_TYPE = MessageType.HUMAN_MESSAGE_TYPE
 QUERY_TRANSLATE_TYPE = LLMTaskType.QUERY_TRANSLATE_TYPE
 SYSTEM_MESSAGE_TYPE = MessageType.SYSTEM_MESSAGE_TYPE
-
-
-# CQR_TEMPLATE = """Given a question and its context, decontextualize the question by addressing coreference and omission issues. The resulting question should retain its original meaning and be as informative as possible, and should not duplicate any previously asked questions in the context.
-# Context: [Q: When was Born to Fly released?
-# A: Sara Evans’s third studio album, Born to Fly, was released on October 10, 2000.
-# ]
-# Question: Was Born to Fly well received by critics?
-# Rewrite: Was Born to Fly well received by critics?
-
-# Context: [Q: When was Keith Carradine born?
-# A: Keith Ian Carradine was born August 8, 1949.
-# Q: Is he married?
-# A: Keith Carradine married Sandra Will on February 6, 1982. ]
-# Question: Do they have any children?
-# Rewrite: Do Keith Carradine and Sandra Will have any children?
-
-# Context: {conversational_context}
-# Question: {query}
-# """
-
-# CQR_TEMPLATE = """Given the following conversation and a follow up question, rephrase the follow up \
-# question to be a standalone question.
-
-# Chat History:
-# {history}
-# Follow Up Input: {question}
-# """
-
 
 
 class Iternlm2Chat20BConversationSummaryChain(Iternlm2Chat7BChatChain):
@@ -78,9 +51,9 @@ class Iternlm2Chat20BConversationSummaryChain(Iternlm2Chat7BChatChain):
             role = his['role']
             assert role in [HUMAN_MESSAGE_TYPE, AI_MESSAGE_TYPE]
             if role == HUMAN_MESSAGE_TYPE:
-                conversational_contexts.append(f"Q: {his['content']}")
+                conversational_contexts.append(f"USER: {his['content']}")
             else:
-                conversational_contexts.append(f"A: {his['content']}")
+                conversational_contexts.append(f"AI: {his['content']}")
         if system_prompt is None:
             system_prompt  = get_prompt_template(
             model_id=cls.model_id,
@@ -111,10 +84,9 @@ class Claude2ConversationSummaryChain(LLMChain):
     def create_conversational_context(chat_history:List[BaseMessage]):
         conversational_contexts = []
         for his in chat_history:
-            role = his.type 
+            assert isinstance(his,(AIMessage,HumanMessage)), his
             content = his.content
-            assert role in [HUMAN_MESSAGE_TYPE, AI_MESSAGE_TYPE],(role,[HUMAN_MESSAGE_TYPE, AI_MESSAGE_TYPE])
-            if role == HUMAN_MESSAGE_TYPE:
+            if isinstance(his,HumanMessage):
                 conversational_contexts.append(f"USER: {content}")
             else:
                 conversational_contexts.append(f"AI: {content}")
@@ -152,7 +124,6 @@ class Claude2ConversationSummaryChain(LLMChain):
         
         return cqr_chain
 
-
 class Claude21ConversationSummaryChain(Claude2ConversationSummaryChain):
     model_id = LLMModelType.CLAUDE_21
 
@@ -167,3 +138,17 @@ class Claude3SonnetConversationSummaryChain(Claude2ConversationSummaryChain):
 
 class Claude3HaikuConversationSummaryChain(Claude2ConversationSummaryChain):
     model_id = LLMModelType.CLAUDE_3_HAIKU
+
+
+class Qwen2Instruct72BConversationSummaryChain(Claude2ConversationSummaryChain):
+    model_id = LLMModelType.QWEN2INSTRUCT72B
+
+
+class Qwen2Instruct7BConversationSummaryChain(Claude2ConversationSummaryChain):
+    model_id = LLMModelType.QWEN2INSTRUCT7B
+
+
+class GLM4Chat9BConversationSummaryChain(Claude2ConversationSummaryChain):
+    model_id = LLMModelType.GLM_4_9B_CHAT
+
+

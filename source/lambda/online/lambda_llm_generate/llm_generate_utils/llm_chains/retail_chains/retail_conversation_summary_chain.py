@@ -17,6 +17,7 @@ from common_utils.constant import (
 
 from langchain_core.messages import(
     AIMessage,
+    HumanMessage,
     BaseMessage,
     convert_to_messages
 ) 
@@ -158,11 +159,11 @@ class GLM4Chat9BRetailConversationSummaryChain(GLM4Chat9BChatChain,Claude2Retail
             query=x['query']
         )
         chat_history = [
-            {"role":"user",
+            {"role": MessageType.HUMAN_MESSAGE_TYPE,
                 "content": prompt
             },
             {
-                "role":"assistant",
+                "role":MessageType.AI_MESSAGE_TYPE,
                 "content": "好的，站在客户的角度，我将当前用户的回复内容改写为: "
             }
             ] 
@@ -185,4 +186,13 @@ class GLM4Chat9BRetailConversationSummaryChain(GLM4Chat9BChatChain,Claude2Retail
         ) | RunnableLambda(lambda x: llm.invoke(x))
         
         return cqr_chain
+    
+
+class Qwen2Instruct7BRetailConversationSummaryChain(GLM4Chat9BRetailConversationSummaryChain):
+    model_id = LLMModelType.QWEN2INSTRUCT7B
+
+
+class Qwen2Instruct72BRetailConversationSummaryChain(Qwen2Instruct7BRetailConversationSummaryChain):
+    model_id = LLMModelType.QWEN2INSTRUCT72B
+
 
