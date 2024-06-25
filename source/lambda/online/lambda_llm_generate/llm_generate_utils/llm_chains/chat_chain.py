@@ -261,6 +261,11 @@ class Qwen2Instruct7BChatChain(LLMChain):
                 role = "system"
             chat_history.append({"role":role,"content":message['content']})
         return chat_history
+
+
+    @classmethod
+    def parse_function_calls_from_ai_message(cls,message:dict):
+        return message['text']
             
 
     @classmethod
@@ -278,8 +283,8 @@ class Qwen2Instruct7BChatChain(LLMChain):
 
         chain = RunnablePassthrough.assign(
             chat_history = RunnableLambda(lambda x: cls.create_chat_history(x,system_prompt=system_prompt)) 
-        ) | RunnableLambda(lambda x: llm.invoke(x))
-
+        ) | RunnableLambda(lambda x: llm.invoke(x)) | RunnableLambda(lambda x: cls.parse_function_calls_from_ai_message(x))
+        
         return chain
 
 class Qwen2Instruct72BChatChain(Qwen2Instruct7BChatChain):

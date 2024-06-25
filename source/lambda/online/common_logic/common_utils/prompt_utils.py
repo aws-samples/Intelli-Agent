@@ -46,7 +46,11 @@ class PromptTemplateManager:
     
     def get_prompt_template(self,model_id:str,task_type:str,prompt_name="main"):
         prompt_template_id = self.get_prompt_template_id(model_id,task_type)
-        return self.prompt_templates[prompt_template_id][prompt_name]
+        try:
+            return self.prompt_templates[prompt_template_id][prompt_name]
+        except KeyError:
+            raise KeyError(f'prompt_template_id: {prompt_template_id}, prompt_name: {prompt_name}')
+
     
     def get_all_templates(self):
         prompt_templates = copy.deepcopy(self.prompt_templates)
@@ -121,6 +125,7 @@ register_prompt_templates(
         LLMModelType.CLAUDE_3_SONNET,
         LLMModelType.CLAUDE_INSTANCE,
         LLMModelType.MIXTRAL_8X7B_INSTRUCT,
+        LLMModelType.GLM_4_9B_CHAT,
         LLMModelType.QWEN2INSTRUCT72B,
         LLMModelType.QWEN2INSTRUCT7B
     ],

@@ -22,6 +22,29 @@ SYSTEM_MESSAGE_TYPE = MessageType.SYSTEM_MESSAGE_TYPE
 logger = get_logger("llm_model")
 
 
+
+class ModeMixins:
+    @staticmethod
+    def convert_messages_role(messages:list[dict],role_map:dict):
+        """
+        Args:
+            messages (list[dict]): 
+            role_map (dict): {"current_role":"targe_role"}
+
+        Returns:
+            _type_: as messages
+        """
+        valid_roles = list(role_map.keys())
+        new_messages = []
+        for message in messages:
+            message = {**message}
+            role = message['role']
+            assert role in valid_roles,(role,valid_roles)
+            message['role'] = role_map[role]
+            new_messages.append(message)
+        return new_messages    
+
+
 class ModelMeta(type):
     def __new__(cls, name, bases, attrs):
         new_cls = type.__new__(cls, name, bases, attrs)
@@ -31,7 +54,7 @@ class ModelMeta(type):
         return new_cls
 
 
-class Model(metaclass=ModelMeta):
+class Model(ModeMixins,metaclass=ModelMeta):
     model_id = None
     model_map = {}
 
@@ -264,21 +287,20 @@ class GLM4Chat9B(SagemakerModelBase):
         "timeout": 60,
         "temperature": 0.1,
     }
+    role_map={
+                MessageType.SYSTEM_MESSAGE_TYPE: 'system',
+                MessageType.HUMAN_MESSAGE_TYPE: 'user',
+                MessageType.AI_MESSAGE_TYPE: "assistant",
+                MessageType.TOOL_MESSAGE_TYPE:  "observation"
+            }
 
     def transform_input(self, x:dict):
-        _chat_history = x['chat_history']  
+        _chat_history = self.convert_messages_role(
+            x['chat_history'],
+            role_map=self.role_map
+        )
         chat_history = []
         for message in _chat_history:
-            message = {**message}
-            role = message['role']
-            assert role in (MessageType.AI_MESSAGE_TYPE,MessageType.HUMAN_MESSAGE_TYPE,MessageType.OBSERVATION),role
-            if role == MessageType.AI_MESSAGE_TYPE:
-                message['role'] = "assistant"
-            elif role == MessageType.HUMAN_MESSAGE_TYPE:
-                message['role'] = 'user'
-            elif role == MessageType.SYSTEM_MESSAGE_TYPE:
-                message['role'] = 'system'
-                
             if message['role'] == "assistant":
                 content = message['content']
                 if not content.endswith("<|observation|>"):
@@ -295,17 +317,26 @@ class GLM4Chat9B(SagemakerModelBase):
         input_str = json.dumps(body)
         return input_str
 
-
 class Qwen2Instruct7B(SagemakerModelBase):
     model_id = LLMModelType.QWEN2INSTRUCT7B
     default_model_kwargs = {
         "max_tokens": 1024,
         "temperature": 0.1,
     }
+    role_map={
+                MessageType.SYSTEM_MESSAGE_TYPE: 'system',
+                MessageType.HUMAN_MESSAGE_TYPE: 'user',
+                MessageType.AI_MESSAGE_TYPE: "assistant"
+            }
 
     def transform_input(self, x:dict):
+        chat_history = self.convert_messages_role(
+            x['chat_history'],
+            role_map=self.role_map
+        )
+        logger.info(f"qwen chat_history: {chat_history}")
         body = {
-            "chat_history": x['chat_history'],
+            "chat_history": chat_history,
             "stream": x["stream"],
             **self.model_kwargs
         }
@@ -315,7 +346,6 @@ class Qwen2Instruct7B(SagemakerModelBase):
 
 class Qwen2Instruct72B(Qwen2Instruct7B):
     model_id = LLMModelType.QWEN2INSTRUCT72B
-
 
 
 # ChatGPT model type
