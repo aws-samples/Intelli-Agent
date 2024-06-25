@@ -271,9 +271,14 @@ class GLM4Chat9B(SagemakerModelBase):
         for message in _chat_history:
             message = {**message}
             role = message['role']
-            if role == "ai":
+            assert role in (MessageType.AI_MESSAGE_TYPE,MessageType.HUMAN_MESSAGE_TYPE,MessageType.OBSERVATION),role
+            if role == MessageType.AI_MESSAGE_TYPE:
                 message['role'] = "assistant"
-
+            elif role == MessageType.HUMAN_MESSAGE_TYPE:
+                message['role'] = 'user'
+            elif role == MessageType.SYSTEM_MESSAGE_TYPE:
+                message['role'] = 'system'
+                
             if message['role'] == "assistant":
                 content = message['content']
                 if not content.endswith("<|observation|>"):
@@ -294,10 +299,23 @@ class GLM4Chat9B(SagemakerModelBase):
 class Qwen2Instruct7B(SagemakerModelBase):
     model_id = LLMModelType.QWEN2INSTRUCT7B
     default_model_kwargs = {
-        "max_new_tokens": 1024,
-        "timeout": 60,
+        "max_tokens": 1024,
         "temperature": 0.1,
     }
+
+    def transform_input(self, x:dict):
+        body = {
+            "chat_history": x['chat_history'],
+            "stream": x["stream"],
+            **self.model_kwargs
+        }
+        input_str = json.dumps(body)
+        return input_str
+
+
+class Qwen2Instruct72B(Qwen2Instruct7B):
+    model_id = LLMModelType.QWEN2INSTRUCT72B
+
 
 
 # ChatGPT model type

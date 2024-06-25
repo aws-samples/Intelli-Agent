@@ -95,6 +95,42 @@ class GLM4Chat9BRagChain(GLM4Chat9BChatChain):
     model_id = LLMModelType.GLM_4_9B_CHAT
     intent_type = LLMTaskType.RAG
 
+    @classmethod
+    def create_chat_history(cls,x, system_prompt=None):
+        if system_prompt is None:
+            system_prompt = get_prompt_template(
+                model_id=cls.model_id,
+                task_type=cls.intent_type,
+                prompt_name="main"     
+            ).prompt_template
+        context = ("\n" + "="*50+ "\n").join(x['contexts'])
+        system_prompt = system_prompt.format(context=context)
+
+        return super().create_chat_history(x,system_prompt=system_prompt)
+    
+
+from .chat_chain import Qwen2Instruct7BChatChain
+
+class Qwen2Instruct7BRagChain(Qwen2Instruct7BChatChain):
+    model_id = LLMModelType.QWEN2INSTRUCT7B
+    intent_type = LLMTaskType.RAG
+
+    @classmethod
+    def create_chat_history(cls,x, system_prompt=None):
+        if system_prompt is None:
+            system_prompt = get_prompt_template(
+                model_id=cls.model_id,
+                task_type=cls.intent_type,
+                prompt_name="main"     
+            ).prompt_template
+        
+        context = ("\n" + "="*50+ "\n").join(x['contexts'])
+        system_prompt = system_prompt.format(context=context)
+        return super().create_chat_history(x,system_prompt=system_prompt)
+
+
+class Qwen2Instruct72BRagChain(Qwen2Instruct7BRagChain):
+    model_id = LLMModelType.QWEN2INSTRUCT72B
 
 from .chat_chain import Baichuan2Chat13B4BitsChatChain
 
@@ -118,4 +154,7 @@ class Baichuan2Chat13B4BitsKnowledgeQaChain(Baichuan2Chat13B4BitsChatChain):
         )
         llm_chain = chat_history_chain | llm_chain
         return llm_chain
+
+
+
 

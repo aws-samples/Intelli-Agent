@@ -26,13 +26,17 @@ class ToolNotExistError(ToolExceptionBase):
     
     
 class ToolParameterNotExistError(ToolExceptionBase):
-    def __init__(self, tool_name,parameter_key,function_call_content) -> None:
+    def __init__(self, tool_name,parameter_key,function_call_content,tool_format=None) -> None:
         self.tool_name = tool_name
         self.parameter_key = parameter_key
         self.function_call_content = function_call_content
+        self.tool_format = tool_format
 
     def to_agent(self):
-        return f"The parameter ”{self.parameter_key}“ is required when calling tool: {self.tool_name}."
+        value = f"The parameter ”{self.parameter_key}“ is required when calling tool: {self.tool_name}."
+        if self.tool_format:
+            value += self.tool_format
+        return value
 
     def __str__(self):
         return self.to_agent() + f"\nfunction_call:\n{self.function_call_content}"
