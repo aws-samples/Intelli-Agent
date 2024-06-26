@@ -79,3 +79,4 @@ venv
 pem
 */ingestion.py
 poetry.lock
+.vscode/

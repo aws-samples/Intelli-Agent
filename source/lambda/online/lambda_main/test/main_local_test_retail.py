@@ -162,7 +162,7 @@ def test_multi_turns():
         "model_id": "qwen2-72B-instruct",
         "endpoint_name":  "Qwen2-72B-Instruct-AWQ-2024-06-25-02-15-34-347",
         # 'model_id': 'mistral.mixtral-8x7b-instruct-v0:1',
-        'model_kwargs': {'temperature': 0.1}
+        'model_kwargs': {'temperature': 0.01}
     }
     chatbot_config = {
         "chatbot_mode": "agent",
@@ -187,7 +187,7 @@ def test_multi_turns():
 
 
 def batch_test(data_file, count=1000,add_eval_score=True):
-    data = pd.read_csv(data_file).to_dict(orient='records')
+    data = pd.read_csv(data_file).fillna("").to_dict(orient='records')
     session_prefix = f"anta_test_{time.time()}"
     default_llm_config = {
         # 'model_id': 'anthropic.claude-3-haiku-20240307-v1:0',
@@ -198,7 +198,7 @@ def batch_test(data_file, count=1000,add_eval_score=True):
         "model_id": "qwen2-72B-instruct",
         "endpoint_name":  "Qwen2-72B-Instruct-AWQ-2024-06-25-02-15-34-347",
         'model_kwargs': {
-            'temperature': 0.1, 'max_tokens': 1000}
+            'temperature': 0.01, 'max_tokens': 1000}
         }
     chatbot_config = {
         "chatbot_mode": "agent",
@@ -254,9 +254,11 @@ def batch_test(data_file, count=1000,add_eval_score=True):
         else:
             datum['elpase_time'] = None
         
+        ground_truth = str(datum.get("ground truth","")).strip()
+        print('ground_truth: ',ground_truth,flush=True)
         sim_score = None
-        if add_eval_score and datum['ai_msg'] and datum['ground truth']:
-            sim_score = similarity_calculate(datum['ai_msg'],datum['ground truth'])
+        if add_eval_score and datum['ai_msg'] and ground_truth:
+            sim_score = similarity_calculate(str(datum['ai_msg']),str(ground_truth))
 
         data_to_save.append({
             "session_id": datum['desensitized_cnick'],
@@ -264,12 +266,13 @@ def batch_test(data_file, count=1000,add_eval_score=True):
             "create_time": datum['create_time'],
             "user_msg":datum['user_msg'],
             "ai_msg": datum['ai_msg'],
+            "ground truth": ground_truth,
             "ai_intent": datum['agent_intent_type'],
             "intent": None,
             "accuracy": None,
             "rewrite_query": datum['query_rewrite'],
             "elpase_time":datum['elpase_time'],
-            "ddb_session_id": session_id,
+            # "ddb_session_id": session_id,
             "comments": None,
             "owner": None,
             "model_id": default_llm_config['model_id'],
