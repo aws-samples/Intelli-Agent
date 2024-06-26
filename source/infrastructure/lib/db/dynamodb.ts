@@ -18,6 +18,7 @@ import { DynamoDBTable } from "../shared/table";
 export class DynamoDBConstruct extends Construct {
   public sessionTableName: string;
   public messageTableName: string;
+  public promptTableName: string;
   public readonly byUserIdIndex: string = "byUserId";
   public readonly bySessionIdIndex: string = "bySessionId";
   public readonly byTimestampIndex: string = "byTimestamp";
@@ -41,7 +42,10 @@ export class DynamoDBConstruct extends Construct {
       name: "createTimestamp",
       type: dynamodb.AttributeType.STRING,
     }
-
+    const sortKeyAttr = {
+      name: "sortKey",
+      type: dynamodb.AttributeType.STRING,
+    }
 
     const sessionsTable = new DynamoDBTable(this, "SessionsTable", sessionIdAttr, userIdAttr).table;
     sessionsTable.addGlobalSecondaryIndex({
@@ -50,14 +54,17 @@ export class DynamoDBConstruct extends Construct {
       sortKey: timestampAttr,
       projectionType: dynamodb.ProjectionType.ALL,
     });
-    
+
     const messagesTable = new DynamoDBTable(this, "MessagesTable", messageIdAttr, sessionIdAttr).table;
     messagesTable.addGlobalSecondaryIndex({
       indexName: this.bySessionIdIndex,
       partitionKey: { name: "sessionId", type: dynamodb.AttributeType.STRING },
     });
 
+    const promptTable = new DynamoDBTable(this, "PromptTable", userIdAttr, sortKeyAttr).table;
+
     this.sessionTableName = sessionsTable.tableName;
     this.messageTableName = messagesTable.tableName;
+    this.promptTableName = promptTable.tableName;
   }
 }
