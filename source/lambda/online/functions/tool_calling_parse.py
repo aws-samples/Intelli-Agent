@@ -256,10 +256,15 @@ class Qwen2Instruct7BToolCallingParse(ToolCallingParse):
                    )
 
     @classmethod
-    def parse_tool_kwargs(cls,content:str,tools_def:list[dict]):
-        r = re.match(f"{cls.FN_NAME}(.*?){cls.FN_ARGS}(.*?){cls.FN_RESULT}",content,re.S)
-        tool_name = r.group(1).strip().lstrip(":").strip()
-        tool_params = json.loads(r.group(2).strip().lstrip(":").strip())
+    def parse_tool_kwargs(cls,content:str,tools_def:list[dict],agent_message):
+        try:
+            r = re.match(f"{cls.FN_NAME}(.*?){cls.FN_ARGS}(.*?){cls.FN_RESULT}",content,re.S)
+            tool_name = r.group(1).strip().lstrip(":").strip()
+            tool_params = json.loads(r.group(2).strip().lstrip(":").strip())
+        except Exception as e:
+            e = cls.tool_not_found(agent_message,error=str(e))
+            raise e
+
         cur_tool_def = None
         for tool_def in tools_def:
             if tool_def['name'] == tool_name:
@@ -282,13 +287,13 @@ class Qwen2Instruct7BToolCallingParse(ToolCallingParse):
 
 
     @classmethod
-    def tool_not_found(cls,agent_message):
+    def tool_not_found(cls,agent_message,error=""):
         tool_format = cls.tool_format
         e = ToolNotFound()
         e.agent_message = agent_message
         e.error_message = {
                     "role": MessageType.TOOL_MESSAGE_TYPE,
-                    "content": f"当前没有解析到tool,请检查tool调用的格式是否正确，并重新输出某个tool的调用。注意正确的tool调用格式应该为: {tool_format}。"
+                    "content": f"当前没有解析到tool,{error}\n请检查tool调用的格式是否正确，并重新输出某个tool的调用。注意正确的tool调用格式应该为: {tool_format}。"
                 }
         return e
     
@@ -305,7 +310,7 @@ class Qwen2Instruct7BToolCallingParse(ToolCallingParse):
             
             function_calls = output['function_calls']
             if function_calls:
-                tool_call = cls.parse_tool_kwargs(function_calls[0],tools_def=tools)
+                tool_call = cls.parse_tool_kwargs(function_calls[0],tools_def=tools,agent_message=agent_message)
                 agent_message['additional_kwargs']['tool_calls'] = [tool_call]
             else:
                 response = re.sub("<thinking>.*?</thinking>","",output['content'],flags=re.DOTALL).strip()

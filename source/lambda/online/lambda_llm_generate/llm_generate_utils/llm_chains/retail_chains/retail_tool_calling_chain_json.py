@@ -22,6 +22,7 @@ from common_logic.common_utils.constant import (
     LLMModelType,
     MessageType
 )
+from functions.tools import get_tool_by_name
 
 from ..llm_chain_base import LLMChain
 from ...llm_models import Model
@@ -309,12 +310,16 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
     @classmethod
     def create_chain(cls, model_kwargs=None, **kwargs):
         tools:list = kwargs.get('tools',[])
+        # add  extral tools
+        if "give_rhetorical_question" not in tools:
+            tools.append(get_tool_by_name("give_rhetorical_question").tool_def)
         fewshot_examples = kwargs.get('fewshot_examples',[])
         system_prompt = cls.create_system_prompt(
             goods_info=kwargs['goods_info'], 
             tools=tools,
             fewshot_examples=fewshot_examples
             )
+    
         model_kwargs = model_kwargs or {}
         kwargs['system_prompt'] = system_prompt
         model_kwargs = {**model_kwargs}

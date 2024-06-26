@@ -117,9 +117,27 @@ def test_multi_turns():
     # user_queries = [
     #     {"query":"好的","goods_id": 745288790794}
     # ]
+    # user_queries = [
+    #     {"query":"这款还会有货吗？","goods_id": 760601512644},
+    #     {"query":"我穿180的","goods_id": 760601512644}
+    # ]
+    # user_queries = [
+    #     # {"query":"我在得物上购买的鞋子出现了开胶问题。","goods_id": 743891340644},
+    #     {"query":"我购买的鞋子出现了开胶问题。","goods_id": 743891340644},
+    #     # {"query":"我穿180的","goods_id": 760601512644}
+    # ]
     user_queries = [
-        {"query":"这款还会有货吗？","goods_id": 760601512644},
-        {"query":"我穿180的","goods_id": 760601512644}
+        # {"query":"我在得物上购买的鞋子出现了开胶问题。","goods_id": 743891340644},
+        {"query":"你好","goods_id": 748473922077},
+        {"query":"人工客服 拍好了给我备注一下吧","goods_id": 748473922077},
+        {"query":"我上次买的鞋上有污渍脏了你们之前的客服为我办理了退货申请我也寄回去了，但我还是想要这双鞋现在重新拍一双，这次给我检查好不要在有这种情况了 客服刚才说这次帮我备注一下一定检查好了","goods_id": 748473922077},
+        {"query":"你帮我备注一下吧谢谢了","goods_id": 748473922077},
+        {"query":"http://item.taobao.com/item.htm?id=725289865739","goods_id": 725289865739},
+        {"query":"平时运动鞋41","goods_id": 725289865739},
+        {"query":"多厚","goods_id": 725289865739},
+        {"query":"面料多厚","goods_id": 725289865739},
+        {"query":"炸胶了","goods_id": 636927012365},
+        # {"query":"我穿180的","goods_id": 760601512644}
     ]
     # user_queries = [
     #     {"query":"正确","goods_id": 745288790794}
@@ -301,8 +319,8 @@ def complete_test():
 
 if __name__ == "__main__":
     # complete_test()
-    # test_multi_turns()
-    batch_test()
+    test_multi_turns()
+    # batch_test(data_file="/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/customer_poc/anta/conversation_turns.csv")
     # batch_test()
     # test(
     #     chatbot_mode='agent',
