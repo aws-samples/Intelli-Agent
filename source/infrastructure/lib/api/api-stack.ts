@@ -417,7 +417,7 @@ export class ApiConstruct extends Construct {
       environment: {
         PROMPT_TABLE_NAME: props.promptTableName,
       },
-      layers: [apiLambdaOnlineUtilsLayer],
+      layers: [apiLambdaOnlineSourceLayer],
     });
 
     promptManagementLambda.addToRolePolicy(
