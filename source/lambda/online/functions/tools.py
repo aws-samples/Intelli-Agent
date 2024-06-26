@@ -404,7 +404,11 @@ tool_manager.register_tool({
     "lambda_module_path": "functions.retail_tools.lambda_size_guide.size_guide",
     "tool_def": {
         "name": "size_guide",
-        "description": "size guide for customer, if the customer's weight unit is 斤, you should convert it to kg, 1斤=0.5kg",
+        "description": """size guide for customer
+            Step1: Determin what type of goods the customer wants to buy, such as shoes or apparel.
+            Step2: If the customer wants to buy shoes, you should provide the customer's shoes_size or foot_length.
+            Step3: If the customer wants to buy apparel, you should provide the customer's height and weight.
+            Notice: if the customer's weight unit is 斤, you should convert it to kg, 1斤=0.5kg""",
         "parameters": {
             "type": "object",
             "properties": {
@@ -439,7 +443,7 @@ tool_manager.register_tool({
     "lambda_module_path": "functions.retail_tools.lambda_product_information_search.product_information_search",
     "tool_def": {
         "name": "goods_info",
-        "description": "search the information of the product, 包括库存等信息。",
+        "description": "search the information of the product",
     },
     "running_mode": "output"
 })
