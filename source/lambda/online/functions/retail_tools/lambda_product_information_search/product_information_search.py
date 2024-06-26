@@ -10,9 +10,8 @@ def lambda_handler(event_body, context=None):
     state = event_body["state"]
     if "goods_id" not in state["chatbot_config"]:
         return {"code":1, "result":"goods_id is required"}
-    goods_id = state["chatbot_config"]["goods_id"]
-    result = goods_dict.get(int(goods_id), {"goods_info": "面料：合成革/织物/牛剖层皮革/橡塑材料 卖点：1、KM代表“公里”的意思，灵感来自70年代复古跑鞋款式，从富有艺术感的建筑堆叠元素中打造双层鞋底设计，体现别致、多样化的设计语言2、体验到双层外底、双鞋舌带来的奇妙穿着感受。3、本季携手英国“V&A博物馆”，再造艺术联名系波段产品;本次选取博物馆中，英国艺术家威廉·德·摩根在十九世纪创作的一系列的瓷砖&瓷器艺术品。",
-                                            "goods_url": "https://item.taobao.com/item.htm?id=756104239829"})
+    goods_id = str(state["chatbot_config"]["goods_id"])
+    result = goods_dict[goods_id]
     return {"code":0, "result":result, "name": "product_information_search"}
 
 if __name__ == "__main__":
