@@ -303,7 +303,10 @@ const PromptList: React.FC = () => {
           }
         />
         <Modal
-          onDismiss={() => setShowCreate(false)}
+          onDismiss={() => {
+            setShowCreate(false);
+            setShowEdit(false);
+          }}
           visible={showCreate || showEdit}
           footer={
             <Box float="right">
