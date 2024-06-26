@@ -42,6 +42,7 @@ interface ApiStackProps extends StackProps {
   instructEndPoint: string;
   sessionsTableName: string;
   messagesTableName: string;
+  promptTableName: string;
   workspaceTableName: string;
   // Type of StepFunctions
   sfnOutput: sfn.StateMachine;
@@ -97,7 +98,6 @@ export class ApiConstruct extends Construct {
     const lambdaLayers = new LambdaLayers(this);
     // const apiLambdaExecutorLayer = lambdaLayers.createExecutorLayer();
     const apiLambdaEmbeddingLayer = lambdaLayers.createEmbeddingLayer();
-    // const apiLambdaOnlineUtilsLayer = lambdaLayers.createOnlineUtilsLayer();
     const apiLambdaOnlineSourceLayer = lambdaLayers.createOnlineSourceLayer();
     const apiLambdaJobSourceLayer = lambdaLayers.createJobSourceLayer();
     const apiLambdaAuthorizerLayer = lambdaLayers.createAuthorizerLayer();
@@ -405,6 +405,45 @@ export class ApiConstruct extends Construct {
     batchLambda.addToRolePolicy(this.iamHelper.s3Statement);
     batchLambda.addToRolePolicy(this.iamHelper.endpointStatement);
 
+    // Create Lambda prompt management
+    const promptManagementLambda = new Function(this, "PromptManagementLambda", {
+      runtime: Runtime.PYTHON_3_12,
+      handler: "prompt_management.lambda_handler",
+      code: Code.fromAsset(join(__dirname, "../../../lambda/prompt_management")),
+      timeout: Duration.minutes(15),
+      memorySize: 1024,
+      architecture: Architecture.X86_64,
+      environment: {
+        PROMPT_TABLE_NAME: props.promptTableName,
+      },
+      layers: [apiLambdaOnlineSourceLayer],
+    });
+
+    promptManagementLambda.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
+        ],
+        effect: iam.Effect.ALLOW,
+        resources: ["*"],
+      }),
+    );
+    promptManagementLambda.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: [
+          "dynamodb:PutItem",
+          "dynamodb:DeleteItem",
+          "dynamodb:GetItem",
+          "dynamodb:Query"
+        ],
+        effect: iam.Effect.ALLOW,
+        resources: [`arn:${Aws.PARTITION}:dynamodb:${Aws.REGION}:${Aws.ACCOUNT_ID}:table/${props.promptTableName}`],
+      }),
+    );
+
+
     // Define the API Gateway
     const api = new apigw.RestApi(this, "llmApi", {
       restApiName: "llmApi",
@@ -536,6 +575,19 @@ export class ApiConstruct extends Construct {
     const apiResourceBatch = api.root.addResource("batch");
     apiResourceBatch.addMethod("POST", lambdaBatchIntegration, methodOption);
 
+    // Define the API Gateway Lambda Integration to manage prompt
+    const lambdaPromptIntegration = new apigw.LambdaIntegration(promptManagementLambda, {
+      proxy: true,
+    });
+
+    const apiResourcePrompt = api.root.addResource("prompt");
+    apiResourcePrompt.addMethod("POST", lambdaPromptIntegration, methodOption);
+    apiResourcePrompt.addMethod("GET", lambdaPromptIntegration, methodOption);
+
+    const apiResourcePromptProxy = apiResourcePrompt.addResource("{proxy+}")
+    apiResourcePromptProxy.addMethod("DELETE", lambdaPromptIntegration, methodOption);
+    apiResourcePromptProxy.addMethod("GET", lambdaPromptIntegration, methodOption);
+
     if (BuildConfig.DEPLOYMENT_MODE === "ALL") {
       const openAiKey = new secretsmanager.Secret(this, "OpenAiSecret", {
         generateSecretString: {
@@ -563,6 +615,7 @@ export class ApiConstruct extends Construct {
           rerank_endpoint: props.embeddingAndRerankerEndPoint,
           sessions_table_name: sessionsTableName,
           messages_table_name: messagesTableName,
+          prompt_table_name: props.promptTableName,
           workspace_table: workspaceTableName,
           openai_key_arn: openAiKey.secretArn,
         },
@@ -763,7 +816,7 @@ export class ApiConstruct extends Construct {
       lambdaOnlineIntentionDetection.grantInvoke(lambdaOnlineMain);
 
       lambdaOnlineAgent.grantInvoke(lambdaOnlineMain);
-      
+
       lambdaOnlineLLMGenerate.grantInvoke(lambdaOnlineMain);
       lambdaOnlineLLMGenerate.grantInvoke(lambdaOnlineQueryPreprocess);
       lambdaOnlineLLMGenerate.grantInvoke(lambdaOnlineAgent);

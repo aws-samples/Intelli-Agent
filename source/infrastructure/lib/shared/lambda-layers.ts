@@ -45,18 +45,6 @@ export class LambdaLayers {
     return LambdaEmbeddingLayer;
   }
 
-  // createOnlineUtilsLayer() {
-  //   const LambdaOnlineUtilsLayer = new pyLambda.PythonLayerVersion(
-  //     this.scope,
-  //     "APILambdaOnlineUtilsLayer",
-  //     {
-  //       entry: path.join(__dirname, "../../../lambda/online/common_logic"),
-  //       compatibleRuntimes: [Runtime.PYTHON_3_12],
-  //       description: `Intelli agent - Online Utils layer`,
-  //     },
-  //   );
-  //   return LambdaOnlineUtilsLayer;
-  // }
 
   createOnlineSourceLayer() {
     const LambdaOnlineSourceLayer = new pyLambda.PythonLayerVersion(

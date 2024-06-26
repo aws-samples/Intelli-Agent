@@ -1,0 +1,117 @@
+version: 0.2
+
+env:
+  variables:
+    REPOSITORY_URL: "https://github.com/aws-samples/Intelli-Agent.git"
+    CODE_BRANCH: "dev"
+    STACK_NAME: "intelli-agent"
+    DEPLOY_STACK: "cdk"
+    CLEAN_RESOURCES: "no"
+    TEST_FAST: "false"
+    SNS_REGION: "ap-northeast-1"
+    S3_MODEL_ASSETS_BUCKET: "intelli-agent-rag-ap-northeast-1"
+    API_TEST_RESULT_BUCKET: "intelli-agent-rag-ap-northeast-1-api-test"
+    ETL_IMAGE_NAME: "intelli-agent-etl"
+    ETL_IMAGE_TAG: "latest"
+    SUB_EMAIL: "cuihubin@amazon.com"
+phases:
+  install:
+    commands:
+      - |
+        install_start_time=$(date +"%Y-%m-%d_%H-%M-%S")
+        echo "----------------------------------------------------------------"
+        echo "$install_start_time install start..."
+        echo "----------------------------------------------------------------" 
+        aws cloudformation delete-stack --stack-name "$STACK_NAME"
+        aws cloudformation wait stack-delete-complete --stack-name "$STACK_NAME"
+        git clone $REPOSITORY_URL --branch $CODE_BRANCH --single-branch
+        deploy_start_time=$(date +"%Y-%m-%d_%H-%M-%S")
+        echo "----------------------------------------------------------------"
+        echo "$deploy_start_time deploy start..."
+        echo "----------------------------------------------------------------"
+        npm i -g pnpm
+        pushd Intelli-Agent/source/portal
+        pnpm i
+        npm run build
+        popd
+        if [ "$DEPLOY_STACK" = "cdk" ]; then
+          if [ -d "Intelli-Agent/source/infrastructure" ]; then
+            echo "===================="
+            pushd "Intelli-Agent/source/infrastructure"
+            pnpm i
+            npx cdk deploy --parameters SubEmail=$SUB_EMAIL \
+                  --parameters S3ModelAssets="$S3_MODEL_ASSETS_BUCKET" \
+                  --parameters EtlImageName="$ETL_IMAGE_NAME" \
+                  --parameters ETLTag="$ETL_IMAGE_TAG" \
+                  --require-approval never || exit 1
+            popd
+          else
+            echo "Directory Intelli-Agent/source/infrastructure does not exist."
+            exit 1
+          fi
+        fi
+        deploy_complete_time=$(date +"%Y-%m-%d_%H-%M-%S")
+        echo "----------------------------------------------------------------"
+        echo "$deploy_complete_time deploy complete."
+        echo "----------------------------------------------------------------"
+        install_complete_time=$(date +"%Y-%m-%d_%H-%M-%S")
+        echo "----------------------------------------------------------------"
+        echo "$install_complete_time intstall complete."
+        echo "----------------------------------------------------------------"
+  pre_build:
+    commands:
+      - |
+        prebuild_start_time=$(date +"%Y-%m-%d_%H-%M-%S")
+        echo "----------------------------------------------------------------"
+        echo "$prebuild_start_time prebuild start..."
+        echo "----------------------------------------------------------------" 
+        cd Intelli-Agent/api_test || exit 1
+        rm -rf agentVenv
+        python3 -m venv agentVenv
+        source agentVenv/bin/activate
+        pip3 install --upgrade pip
+        pip3 --default-timeout=6000 install -r requirements.txt
+        stack_info=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME")
+        API_GATEWAY_URL=$(echo "$stack_info" | jq -r '.Stacks[0].Outputs[] | select(.OutputKey=="APIEndpointAddress").OutputValue')
+        set -euxo pipefail
+        prebuild_complete_time=$(date +"%Y-%m-%d_%H-%M-%S")
+        echo "----------------------------------------------------------------"
+        echo "$prebuild_complete_time prebuild complete."
+        echo "----------------------------------------------------------------"
+  build:
+    commands:
+      - |
+        test_start_time=$(date +"%Y-%m-%d_%H-%M-%S")
+        echo "----------------------------------------------------------------"
+        echo "$test_start_time test start..."
+        echo "----------------------------------------------------------------"
+        source agentVenv/bin/activate
+        pytest Intelli-Agent/api_test/test_case --continue-on-collection-errors --log-cli-level=INFO --json-report --json-report-file=detail.json --html=report.html --self-contained-html > detail.log
+        test_complete_time=$(date +"%Y-%m-%d_%H-%M-%S")
+        echo "----------------------------------------------------------------"
+        echo "$test_complete_time test complete."
+        echo "----------------------------------------------------------------"
+  post_build:
+    commands:
+      - |
+        post_build_start_time=$(date +"%Y-%m-%d_%H-%M-%S")
+        echo "----------------------------------------------------------------"
+        echo "$post_build_start_time post build start..."
+        echo "----------------------------------------------------------------"
+        report_datetime=$(date +"%Y-%m-%d_%H-%M-%S")
+        project_name="Intelli-Agent"
+        original_filename="report.html"
+        original_json_filename="detail.json"
+        original_log="detail.log"
+        cd Intelli-Agent/api_test || exit 1
+        aws s3 cp $original_filename "${API_TEST_RESULT_BUCKET}/${report_datetime}_${original_filename}"
+        aws s3 cp $original_json_filename "${API_TEST_RESULT_BUCKET}/${report_datetime}_${original_json_filename}"
+        aws s3 cp $original_log "${API_TEST_RESULT_BUCKET}/${report_datetime}_${original_log}"
+        echo "{\"project_name\":\"$project_name\",\"build_url\":\"$CODEBUILD_BUILD_URL\",\"s3_key\":\"$s3_key\",\"log\":\"$log\"}" > payload.json
+        aws lambda invoke --function-name gen-api-test-report-lambda --payload fileb://payload.json response.json
+      - aws cloudformation delete-stack --stack-name "$STACK_NAME"
+      - |
+        post_build_end_time=$(date +"%Y-%m-%d_%H-%M-%S")
+        echo "----------------------------------------------------------------"
+        echo "$post_build_end_time post build end."
+        echo "----------------------------------------------------------------"

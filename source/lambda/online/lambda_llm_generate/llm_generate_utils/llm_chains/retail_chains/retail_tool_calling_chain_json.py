@@ -200,9 +200,13 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
 {fewshot_examples}
 如果你发现工具的相关参数用户没有提供，请调用 `give_rhetorical_question` 工具反问用户。
 
+# 思考
 你的每次回答都要按照下面的步骤输出你的思考, 并将思考过程写在xml 标签<thinking> 和 </thinking> 中:
-    step 1. 判断是否需要使用某个工具。
-    step 2. 基于当前上下文检查需要调用的工具对应的参数是否充足。如果不需要使用任何工具，请直接输出回答。"""
+    step 1. 判断是否需要使用某个工具。如果前面已经调用某些工具, 需要分析之前调用工具的结果来判断现在是否需要使用某个工具。
+    step 2. 基于当前上下文检查需要调用的工具对应的参数是否充足。如果不需要使用任何工具，请直接输出回答。
+
+结束思考时候之后，要么直接进行工具调用，要么直接回复用户，不要输出冗余或者重复的内容。直接回复客户需要注意输出不超过一句话。
+"""
     @classmethod
     def get_function_description(cls,tool:dict):
         tool_name = tool['name']
@@ -300,7 +304,10 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
     def parse_function_calls_from_ai_message(cls,message:dict):
         stop_reason = message['stop_reason']
         content =  "<thinking>" + message['text']
+        content = content.strip()
         stop_reason = stop_reason or ""
+    
+
         function_calls = re.findall(f"{cls.FN_NAME}.*?{cls.FN_RESULT}", content + stop_reason,re.S)
         return {
             "function_calls":function_calls,
