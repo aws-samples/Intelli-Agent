@@ -49,6 +49,8 @@ def lambda_handler(event_body, context=None):
         weight = float(kwargs["weight"])
         std_weight = find_nearest(list(size_dict.get(goods_type_1).get(goods_type_2).get("height_weight").get(std_height).keys()), weight)
         result = size_dict.get(goods_type_1).get(goods_type_2).get("height_weight").get(std_height).get(std_weight)
+        if result == "亲亲，很抱歉，这款暂时没有适合您的尺码":
+            result += "，您当前输入的身高为{}cm，体重为{}kg".format(height, weight)
     return {"code":0, "result":result, "name": "尺码查询"}
 
 if __name__ == "__main__":
