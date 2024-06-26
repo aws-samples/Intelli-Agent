@@ -36,114 +36,8 @@ def test(chatbot_mode="agent",session_id=None,query=None,goods_id=None,use_histo
 
 def test_multi_turns():
     session_id = f"anta_test_{time.time()}"
-    # goods_id = "756327274174"
-    # user_queries = [
-    #     "http://item.taobao.com/item.htm?id=756327274174",
-    #     "亲，平常穿37联系多大码",
-    #     "还会有货吗？"
-    # ]
-    
-    # goods_id = "745288790794"
-    # user_queries = [
-    #     "https://detail.tmall.com/item.htm?id=745288790794",
-    #     "为啥要运费？",
-    #     "现在怎么还还有鞋啊",
-    #     "不是一个地址发货？\n买鞋了啊\n鞋和袜子不是一个地方发货吗？",
-    #     "https://img.alicdn.com/imgextra/i2/O1CN01B7yi6r1CavknQAhuz_!!0-amp.jpg",
-    #     "为啥要运费呢",
-    #     "我也么有只买袜子啊\n你们系统设定有问题吧\n原来没遇到过这种情况啊",
-    #     "好的",
-    #     "https://item.taobao.com/item.htm?id=725289865739\n一个订单可以分开发两个地址吗",
-    #     "https://img.alicdn.com/imgextra/i1/O1CN0160oEXO1CavkoLIirq_!!0-amp.jpg",
-    #     "这个券我抢到了，下单的时候自动使用吗",
-    #     "正确",
-    #     "发什么快递？今天能发货吗"
-    # ]
-
-
-    goods_id = 766158164989
-    # {"query":"杨幂同款裤子有吗","goods_id":},
-    # user_queries = [
-    #     {"query":"https://detail.tmall.com/item.htm?id=766158164989","goods_id":766158164989},
-    #     {"query":"155.厘米125斤", "goods_id":766158164989},
-    #     {"query":"http://item.taobao.com/item.htm?id=766277539992","goods_id":766277539992},
-    #     {"query":"亲，这个大人能穿吗\n165身高的话可以换165m吗","goods_id":766277539992},
-    #     {"query":"https://item.taobao.com/item.htm?id=766277539992\n好吧/:018","goods_id":766277539992}
-    # ]
-
-    # user_queries = [
-    #     {"query":"杨幂同款裤子有吗","goods_id":763841838892}
-    # ]
-
-    # user_queries = [
-    #     {"query":"你家鞋子开胶了\n怎么处理","goods_id":743891340644},
-    #     # {"query":"我在得物买的","goods_id":743891340644}
-    # ]
-
-
-    # user_queries = [
-    #     {"query":"https://detail.tmall.com/item.htm?id=748090908717","goods_id":748090908717},
-    #     {"query":"177 65kg多大","goods_id":748090908717},
-    #     # {"query":"我在得物买的","goods_id":743891340644}
-    # ]
-    # user_queries = [
-    #     {"query":"人工","goods_id":712058889741},
-    #     {"query":"人工","goods_id":712058889741},
-    #     {"query":"人工 https://detail.tmall.com/item.htm?id=712058889741","goods_id":712058889741},
-    #     {"query":"这个最大码能穿到多少斤","goods_id":712058889741},
-    #     {"query":"好的 我现在168 是个孕妇 身高174 就肚子大点 身上没那么胖 我该穿多大的 Xxl 就行了吧","goods_id":712058889741},
-    #     {"query":"168","goods_id":712058889741},
-    #     {"query":"但是没有码了","goods_id":712058889741},
-    #     {"query":"Xl能行不","goods_id":712058889741},
-    #     {"query":"Xxxl是不是太大了","goods_id":712058889741}
-    # ]
-    # user_queries = [
-    #     {"query":"http://item.taobao.com/item.htm?id=666167992985","goods_id":666167992985},
-    #     {"query":"在吗","goods_id":666167992985},
-    #     {"query":"断码吗","goods_id":666167992985}
-    # ]
-    # user_queries = [
-    #     {
-    #         "query":"http://item.taobao.com/item.htm?id=743353945710","goods_id":743353945710
-    #     },
-    #     {
-    #         "query":"请问你们是哪里发货","goods_id":743353945710
-    #     }
-    # ]
-    # user_queries = [
-    #     {"query":"能发顺丰嘛？","goods_id":641874887898},
-    # ]
-
-    # user_queries = [
-    #     {"query":"好的","goods_id": 745288790794}
-    # ]
-    # user_queries = [
-    #     {"query":"这款还会有货吗？","goods_id": 760601512644},
-    #     {"query":"我穿180的","goods_id": 760601512644}
-    # ]
-    # user_queries = [
-    #     # {"query":"我在得物上购买的鞋子出现了开胶问题。","goods_id": 743891340644},
-    #     {"query":"我购买的鞋子出现了开胶问题。","goods_id": 743891340644},
-    #     # {"query":"我穿180的","goods_id": 760601512644}
-    # ]
-    # user_queries = [
-    #     # {"query":"我在得物上购买的鞋子出现了开胶问题。","goods_id": 743891340644},
-    #     {"query":"你好","goods_id": 748473922077},
-    #     {"query":"人工客服 拍好了给我备注一下吧","goods_id": 748473922077},
-    #     {"query":"我上次买的鞋上有污渍脏了你们之前的客服为我办理了退货申请我也寄回去了，但我还是想要这双鞋现在重新拍一双，这次给我检查好不要在有这种情况了 客服刚才说这次帮我备注一下一定检查好了","goods_id": 748473922077},
-    #     {"query":"你帮我备注一下吧谢谢了","goods_id": 748473922077},
-    #     {"query":"http://item.taobao.com/item.htm?id=725289865739","goods_id": 725289865739},
-    #     {"query":"平时运动鞋41","goods_id": 725289865739},
-    #     {"query":"多厚","goods_id": 725289865739},
-    #     {"query":"面料多厚","goods_id": 725289865739},
-    #     {"query":"炸胶了","goods_id": 636927012365},
-    #     # {"query":"我穿180的","goods_id": 760601512644}
-    # ]
     user_queries = [
-        {"query":"人工","goods_id": 712058889741},
-        {"query":"人工","goods_id": 712058889741},
-        {"query":"人工 https://detail.tmall.com/item.htm?id=712058889741","goods_id": 712058889741},
-        {"query":"这个最大码能穿到多少斤","goods_id": 712058889741}
+        {"query":"今天怎么还没有发货","goods_id": 714845988113}
     ]
     
     # goods_id = 653918410246
@@ -328,8 +222,8 @@ def complete_test():
 
 if __name__ == "__main__":
     # complete_test()
-    # test_multi_turns()
-    batch_test(data_file="/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/customer_poc/anta/conversation_turns_626.csv")
+    test_multi_turns()
+    # batch_test(data_file="/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/customer_poc/anta/conversation_turns_626.csv")
     # batch_test()
     # test(
     #     chatbot_mode='agent',
