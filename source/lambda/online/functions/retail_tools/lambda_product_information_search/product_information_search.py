@@ -2,7 +2,7 @@ import json
 
 from common_logic.common_utils.s3_utils import download_file_from_s3
 
-goods_info_path = "/tmp/functions/retail_tools/lambda_order_info/order_info.json"
+goods_info_path = "/tmp/functions/retail_tools/lambda_order_info/goods_info.json"
 download_file_from_s3("aws-chatbot-knowledge-base-test", "retail_json/goods_info.json", goods_info_path)
 goods_dict = json.load(open(goods_info_path))
 
