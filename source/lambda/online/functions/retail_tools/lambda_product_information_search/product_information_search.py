@@ -1,39 +1,10 @@
 import json
-import pandas as pd
 
-from common_logic.common_utils.s3_utils import download_dir_from_s3
+from common_logic.common_utils.s3_utils import download_file_from_s3
 
-def get_goods_dict_1(data_file_path):
-    goods_dict = {}
-    # size_info_df = pd.read_excel(open(data_file_path, encoding="utf-8-sig", errors="ignore"))
-    goods_df = pd.read_excel(data_file_path, "商品信息登记").fillna("")
-    # get row
-    for index, row in goods_df.iterrows():
-        goods_id = row["商品ID"]
-        goods_info = json.dumps({"卖点（含材质属性）":row["卖点（含材质属性）"]},ensure_ascii=False)
-        goods_url = row["商品链接"]
-        goods_dict[goods_id] = {"goods_info": goods_info, "goods_url": goods_url}
-    return goods_dict
-
-def get_goods_dict_2(data_file_path):
-    goods_dict = {}
-    # size_info_df = pd.read_excel(open(data_file_path, encoding="utf-8-sig", errors="ignore"))
-    goods_df_dict = pd.read_excel(data_file_path,None)
-    # get row
-    for goods_type, goods_df in goods_df_dict.items():
-        goods_df = goods_df.fillna("")
-        for index, row in goods_df.iterrows():
-            if "商品ID" in row:
-                goods_id = row["商品ID"]
-                goods_info = json.dumps((row.to_dict()), ensure_ascii=False)
-                goods_url = row["商品链接"]
-                goods_dict[goods_id] = {"goods_info": goods_info, "goods_url": goods_url, "goods_type": goods_type}
-    return goods_dict
-
-download_dir_from_s3("aws-chatbot-knowledge-base-test", "retail", "/tmp/functions/retail_tools/lambda_product_information_search/")
-goods_dict = get_goods_dict_1("/tmp/functions/retail_tools/lambda_product_information_search/retail/detail/TB0327.xlsx")
-goods_dict_2 = get_goods_dict_2("/tmp/functions/retail_tools/lambda_product_information_search/retail/detail/商品属性表.xlsx")
-goods_dict.update(goods_dict_2)
+goods_info_path = "/tmp/functions/retail_tools/lambda_order_info/order_info.json"
+download_file_from_s3("aws-chatbot-knowledge-base-test", "retail_json/goods_info.json", goods_info_path)
+goods_dict = json.load(open(goods_info_path))
 
 def lambda_handler(event_body, context=None):
     state = event_body["state"]
