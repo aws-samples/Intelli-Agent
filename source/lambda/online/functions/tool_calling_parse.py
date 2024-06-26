@@ -313,6 +313,9 @@ class Qwen2Instruct7BToolCallingParse(ToolCallingParse):
                 tool_call = cls.parse_tool_kwargs(function_calls[0],tools_def=tools,agent_message=agent_message)
                 agent_message['additional_kwargs']['tool_calls'] = [tool_call]
             else:
+                if any(s in output['content'] for s in [cls.FN_ARGS,cls.FN_EXIT,cls.FN_NAME,cls.FN_RESULT]):
+                    e = cls.tool_not_found(agent_message=agent_message,error="如果你想调用某个工具，请确保格式正确。")
+                    raise e
                 response = re.sub("<thinking>.*?</thinking>","",output['content'],flags=re.DOTALL).strip()
                 tool_call = {"name":"give_final_response","kwargs":{"response":response},"model_id":cls.model_id}
 
