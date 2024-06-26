@@ -81,10 +81,7 @@ class DynamoDBChatMessageHistory(BaseChatMessageHistory):
                 MessageType.AI_MESSAGE_TYPE,
                 MessageType.HUMAN_MESSAGE_TYPE,
             ]
-            if item["role"] == MessageType.AI_MESSAGE_TYPE:
-                role = "ai"
-            else:
-                role = "user"
+            role = item["role"]
             additional_kwargs = json.loads(item["additional_kwargs"])
             langchain_message_template = {
                 "role": role,

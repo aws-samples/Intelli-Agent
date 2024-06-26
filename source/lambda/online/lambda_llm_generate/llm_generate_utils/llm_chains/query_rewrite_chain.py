@@ -7,7 +7,7 @@ from langchain.schema.runnable import (
     RunnablePassthrough,
 )
 
-from common_utils.constant import (
+from common_logic.common_utils.constant import (
     LLMTaskType,
     LLMModelType
 )

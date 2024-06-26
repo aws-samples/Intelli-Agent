@@ -98,7 +98,6 @@ export class ApiConstruct extends Construct {
     const lambdaLayers = new LambdaLayers(this);
     // const apiLambdaExecutorLayer = lambdaLayers.createExecutorLayer();
     const apiLambdaEmbeddingLayer = lambdaLayers.createEmbeddingLayer();
-    const apiLambdaOnlineUtilsLayer = lambdaLayers.createOnlineUtilsLayer();
     const apiLambdaOnlineSourceLayer = lambdaLayers.createOnlineSourceLayer();
     const apiLambdaJobSourceLayer = lambdaLayers.createJobSourceLayer();
     const apiLambdaAuthorizerLayer = lambdaLayers.createAuthorizerLayer();
@@ -417,7 +416,7 @@ export class ApiConstruct extends Construct {
       environment: {
         PROMPT_TABLE_NAME: props.promptTableName,
       },
-      layers: [apiLambdaOnlineUtilsLayer],
+      layers: [apiLambdaOnlineSourceLayer],
     });
 
     promptManagementLambda.addToRolePolicy(
@@ -610,7 +609,7 @@ export class ApiConstruct extends Construct {
         },
         securityGroups: [securityGroup],
         architecture: Architecture.X86_64,
-        layers: [apiLambdaOnlineUtilsLayer, apiLambdaOnlineSourceLayer, apiLambdaJobSourceLayer],
+        layers: [apiLambdaOnlineSourceLayer, apiLambdaJobSourceLayer],
         environment: {
           aos_endpoint: domainEndpoint,
           rerank_endpoint: props.embeddingAndRerankerEndPoint,
@@ -661,7 +660,7 @@ export class ApiConstruct extends Construct {
         },
         securityGroups: [securityGroup],
         architecture: Architecture.X86_64,
-        layers: [apiLambdaOnlineUtilsLayer, apiLambdaOnlineSourceLayer],
+        layers: [apiLambdaOnlineSourceLayer],
       });
 
       lambdaOnlineQueryPreprocess.addToRolePolicy(
@@ -698,7 +697,7 @@ export class ApiConstruct extends Construct {
         },
         securityGroups: [securityGroup],
         architecture: Architecture.X86_64,
-        layers: [apiLambdaOnlineUtilsLayer, apiLambdaOnlineSourceLayer],
+        layers: [apiLambdaOnlineSourceLayer],
       });
 
       const lambdaOnlineAgent = new Function(this, "lambdaOnlineAgent", {
@@ -716,7 +715,7 @@ export class ApiConstruct extends Construct {
         },
         securityGroups: [securityGroup],
         architecture: Architecture.X86_64,
-        layers: [apiLambdaOnlineUtilsLayer, apiLambdaOnlineSourceLayer],
+        layers: [apiLambdaOnlineSourceLayer],
       });
 
       lambdaOnlineAgent.addToRolePolicy(
@@ -753,7 +752,7 @@ export class ApiConstruct extends Construct {
         },
         securityGroups: [securityGroup],
         architecture: Architecture.X86_64,
-        layers: [apiLambdaOnlineUtilsLayer, apiLambdaOnlineSourceLayer],
+        layers: [apiLambdaOnlineSourceLayer],
       });
 
       lambdaOnlineLLMGenerate.addToRolePolicy(
@@ -791,7 +790,7 @@ export class ApiConstruct extends Construct {
         },
         securityGroups: [securityGroup],
         architecture: Architecture.X86_64,
-        layers: [apiLambdaOnlineUtilsLayer, apiLambdaOnlineSourceLayer],
+        layers: [apiLambdaOnlineSourceLayer],
       });
 
       const lambdaOnlineFunctionRetriever = new Function(this, "lambdaOnlineFunctionRetriever", {
@@ -809,7 +808,7 @@ export class ApiConstruct extends Construct {
         },
         securityGroups: [securityGroup],
         architecture: Architecture.X86_64,
-        layers: [apiLambdaOnlineUtilsLayer, apiLambdaOnlineSourceLayer, apiLambdaJobSourceLayer],
+        layers: [apiLambdaOnlineSourceLayer, apiLambdaJobSourceLayer],
       });
 
       lambdaOnlineQueryPreprocess.grantInvoke(lambdaOnlineMain);

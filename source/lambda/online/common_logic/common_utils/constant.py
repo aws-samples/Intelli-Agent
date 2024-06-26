@@ -66,6 +66,8 @@ class MessageType(ConstantBase):
     HUMAN_MESSAGE_TYPE = 'human'
     AI_MESSAGE_TYPE = 'ai'
     SYSTEM_MESSAGE_TYPE = 'system'
+    OBSERVATION = "observation"
+    TOOL_MESSAGE_TYPE = "tool"
 
 
 class StreamMessageType(ConstantBase):

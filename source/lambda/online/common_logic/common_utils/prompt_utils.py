@@ -1,6 +1,6 @@
 from langchain.pydantic_v1 import BaseModel,Field
 from collections import defaultdict
-from common_utils.constant import LLMModelType,LLMTaskType
+from common_logic.common_utils.constant import LLMModelType,LLMTaskType
 import copy
 
 class PromptTemplate(BaseModel):
@@ -46,7 +46,11 @@ class PromptTemplateManager:
     
     def get_prompt_template(self,model_id:str,task_type:str,prompt_name="main"):
         prompt_template_id = self.get_prompt_template_id(model_id,task_type)
-        return self.prompt_templates[prompt_template_id][prompt_name]
+        try:
+            return self.prompt_templates[prompt_template_id][prompt_name]
+        except KeyError:
+            raise KeyError(f'prompt_template_id: {prompt_template_id}, prompt_name: {prompt_name}')
+
     
     def get_all_templates(self):
         prompt_templates = copy.deepcopy(self.prompt_templates)
@@ -64,7 +68,7 @@ get_all_templates = prompt_template_manager.get_all_templates
 
 #### rag template #######
 
-BEDROCK_RAG_CHAT_SYSTEM_PROMPT = """You are a customer service agent, and answering user's query. You ALWAYS follow these guidelines when writing your response:
+CLAUDE_RAG_SYSTEM_PROMPT = """You are a customer service agent, and answering user's query. You ALWAYS follow these guidelines when writing your response:
 <guidelines>
 - NERVER say "根据搜索结果/大家好/谢谢...".
 </guidelines>
@@ -84,9 +88,32 @@ register_prompt_templates(
         LLMModelType.MIXTRAL_8X7B_INSTRUCT
     ],
     task_type=LLMTaskType.RAG,
-    prompt_template=BEDROCK_RAG_CHAT_SYSTEM_PROMPT,
+    prompt_template=CLAUDE_RAG_SYSTEM_PROMPT,
     prompt_name="main"
 )
+
+
+GLM4_RAG_SYSTEM_PROMPT = """你是一个人工智能助手，正在回答人类的各种问题，下面是相关背景知识供参考:
+# 背景知识
+{context}
+
+# 回答规范:
+ - 简洁明了，言简意赅。
+"""
+
+
+register_prompt_templates(
+    model_ids=[
+        LLMModelType.QWEN2INSTRUCT72B,
+        LLMModelType.QWEN2INSTRUCT7B,
+        LLMModelType.GLM_4_9B_CHAT
+    ],
+    task_type=LLMTaskType.RAG,
+    prompt_template=CLAUDE_RAG_SYSTEM_PROMPT,
+    prompt_name="main"
+)
+
+
 
 CHIT_CHAT_SYSTEM_TEMPLATE = "You are a helpful assistant."
 
@@ -97,7 +124,10 @@ register_prompt_templates(
         LLMModelType.CLAUDE_3_HAIKU,
         LLMModelType.CLAUDE_3_SONNET,
         LLMModelType.CLAUDE_INSTANCE,
-        LLMModelType.MIXTRAL_8X7B_INSTRUCT
+        LLMModelType.MIXTRAL_8X7B_INSTRUCT,
+        LLMModelType.GLM_4_9B_CHAT,
+        LLMModelType.QWEN2INSTRUCT72B,
+        LLMModelType.QWEN2INSTRUCT7B
     ],
     task_type=LLMTaskType.CHAT,
     prompt_template=CHIT_CHAT_SYSTEM_TEMPLATE,
@@ -121,7 +151,10 @@ register_prompt_templates(
         LLMModelType.CLAUDE_3_HAIKU,
         LLMModelType.CLAUDE_3_SONNET,
         LLMModelType.CLAUDE_INSTANCE,
-        LLMModelType.MIXTRAL_8X7B_INSTRUCT
+        LLMModelType.MIXTRAL_8X7B_INSTRUCT,
+        LLMModelType.QWEN2INSTRUCT72B,
+        LLMModelType.QWEN2INSTRUCT7B,
+        LLMModelType.GLM_4_9B_CHAT
     ],
     task_type=LLMTaskType.CONVERSATION_SUMMARY_TYPE,
     prompt_template=CQR_TEMPLATE,

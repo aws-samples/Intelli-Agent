@@ -1,7 +1,7 @@
 # translate chain
 from langchain.schema.runnable import RunnableLambda
 
-from common_utils.constant import (
+from common_logic.common_utils.constant import (
     LLMTaskType,
     LLMModelType
 )

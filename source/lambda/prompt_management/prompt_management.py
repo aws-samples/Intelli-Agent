@@ -3,8 +3,8 @@ import os
 
 import boto3
 from botocore.paginate import TokenEncoder
-from common_utils.logger_utils import get_logger
-from common_utils.prompt_utils import get_all_templates
+from common_logic.common_utils.logger_utils import get_logger
+from common_logic.common_utils.prompt_utils import get_all_templates
 
 DEFAULT_MAX_ITEMS = 50
 DEFAULT_SIZE = 50

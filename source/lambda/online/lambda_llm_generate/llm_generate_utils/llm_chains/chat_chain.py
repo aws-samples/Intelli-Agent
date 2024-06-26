@@ -9,13 +9,13 @@ from langchain_core.messages import convert_to_messages
 from ..llm_models import Model
 from .llm_chain_base import LLMChain
 
-from common_utils.constant import (
+from common_logic.common_utils.constant import (
     MessageType,
     LLMTaskType,
-    LLMModelType
+    LLMModelType,
 )
-from common_utils.time_utils import get_china_now
-from common_utils.prompt_utils import get_prompt_template
+from common_logic.common_utils.time_utils import get_china_now
+from common_logic.common_utils.prompt_utils import get_prompt_template
 
 AI_MESSAGE_TYPE = MessageType.AI_MESSAGE_TYPE
 HUMAN_MESSAGE_TYPE = MessageType.HUMAN_MESSAGE_TYPE
@@ -206,9 +206,11 @@ class GLM4Chat9BChatChain(LLMChain):
             ).prompt_template
 
         chat_history = x['chat_history']
+
         if system_prompt is not None:
             chat_history = [{"role":"system","content": system_prompt}] + chat_history
-        chat_history = chat_history + [{"role":"user","content":x['query']}]
+        chat_history = chat_history + [{"role":MessageType.HUMAN_MESSAGE_TYPE,"content":x['query']}]
+
         return chat_history
      
     @classmethod
@@ -227,6 +229,63 @@ class GLM4Chat9BChatChain(LLMChain):
         ) | RunnableLambda(lambda x: llm.invoke(x))
         
         return chain
+
+
+class Qwen2Instruct7BChatChain(LLMChain):
+    model_id = LLMModelType.QWEN2INSTRUCT7B
+    intent_type = LLMTaskType.CHAT
+    default_model_kwargs = {
+        "max_tokens": 1024,
+        "temperature": 0.1,
+    }
+
+    @classmethod
+    def create_chat_history(cls,x, system_prompt=None):
+        if system_prompt is None:
+            system_prompt = get_prompt_template(
+                model_id=cls.model_id,
+                task_type=cls.intent_type,
+                prompt_name="main"     
+            ).prompt_template
+
+        chat_history = x['chat_history']
+
+        if system_prompt is not None:
+            chat_history = [{"role":"system", "content": system_prompt}] + chat_history
+        
+        chat_history = chat_history + [{"role": MessageType.HUMAN_MESSAGE_TYPE, "content":x['query']}]
+        return chat_history
+
+
+    @classmethod
+    def parse_function_calls_from_ai_message(cls,message:dict):
+        return message['text']
+            
+
+    @classmethod
+    def create_chain(cls, model_kwargs=None, **kwargs):
+        stream = kwargs.get("stream", False)
+        model_kwargs = model_kwargs or {}
+        model_kwargs = {**cls.default_model_kwargs, **model_kwargs}
+        system_prompt = kwargs.get("system_prompt",None)
+
+        llm = Model.get_model(
+            model_id=cls.model_id,
+            model_kwargs=model_kwargs,
+            **kwargs
+        )
+
+        chain = RunnablePassthrough.assign(
+            chat_history = RunnableLambda(lambda x: cls.create_chat_history(x,system_prompt=system_prompt)) 
+        ) | RunnableLambda(lambda x: llm.invoke(x)) | RunnableLambda(lambda x: cls.parse_function_calls_from_ai_message(x))
+        
+        return chain
+
+class Qwen2Instruct72BChatChain(Qwen2Instruct7BChatChain):
+    model_id = LLMModelType.QWEN2INSTRUCT72B
+
+
+    
 class ChatGPT35ChatChain(LLMChain):
     model_id = LLMModelType.CHATGPT_35_TURBO
     intent_type = LLMTaskType.CHAT

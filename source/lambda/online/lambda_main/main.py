@@ -3,13 +3,13 @@ import uuid
 import boto3
 import traceback
 
-from common_utils.ddb_utils import DynamoDBChatMessageHistory
+from common_logic.common_utils.ddb_utils import DynamoDBChatMessageHistory
 from lambda_main.main_utils.online_entries import get_entry
 from lambda_main.main_utils.response_utils import process_response
-from common_utils.constant import EntryType
-from common_utils.logger_utils import get_logger
-from common_utils.websocket_utils import load_ws_client
-from common_utils.lambda_invoke_utils import (
+from common_logic.common_utils.constant import EntryType
+from common_logic.common_utils.logger_utils import get_logger
+from common_logic.common_utils.websocket_utils import load_ws_client
+from common_logic.common_utils.lambda_invoke_utils import (
     chatbot_lambda_call_wrapper,
     is_running_local,
 )

@@ -1,7 +1,7 @@
 # unified lambda tool calling
 from functions.tools import get_tool_by_name,Tool
-from common_utils.lambda_invoke_utils import invoke_lambda
-from common_utils.lambda_invoke_utils import chatbot_lambda_call_wrapper
+from common_logic.common_utils.lambda_invoke_utils import invoke_lambda
+from common_logic.common_utils.lambda_invoke_utils import chatbot_lambda_call_wrapper
 
 @chatbot_lambda_call_wrapper
 def lambda_handler(event_body,context=None):
