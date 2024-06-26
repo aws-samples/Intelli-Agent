@@ -77,7 +77,8 @@ def combine_goods_dict(goods_dict_list):
                     if key not in combined_goods_dict[goods_id]:
                         combined_goods_dict[goods_id][key] = value
                     else:
-                        combined_goods_dict[goods_id][key] += "\n" + value
+                        # TODO: combine goods_info
+                        combined_goods_dict[goods_id][key] = value
                 else:
                     combined_goods_dict[goods_id][key] = value
     return combined_goods_dict
