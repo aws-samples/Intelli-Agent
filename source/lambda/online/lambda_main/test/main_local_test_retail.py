@@ -1,4 +1,4 @@
-from local_test_base import generate_answer
+from local_test_base import generate_answer,similarity_calculate
 import time 
 import json 
 import pandas as pd 
@@ -126,22 +126,25 @@ def test_multi_turns():
     #     {"query":"我购买的鞋子出现了开胶问题。","goods_id": 743891340644},
     #     # {"query":"我穿180的","goods_id": 760601512644}
     # ]
-    user_queries = [
-        # {"query":"我在得物上购买的鞋子出现了开胶问题。","goods_id": 743891340644},
-        {"query":"你好","goods_id": 748473922077},
-        {"query":"人工客服 拍好了给我备注一下吧","goods_id": 748473922077},
-        {"query":"我上次买的鞋上有污渍脏了你们之前的客服为我办理了退货申请我也寄回去了，但我还是想要这双鞋现在重新拍一双，这次给我检查好不要在有这种情况了 客服刚才说这次帮我备注一下一定检查好了","goods_id": 748473922077},
-        {"query":"你帮我备注一下吧谢谢了","goods_id": 748473922077},
-        {"query":"http://item.taobao.com/item.htm?id=725289865739","goods_id": 725289865739},
-        {"query":"平时运动鞋41","goods_id": 725289865739},
-        {"query":"多厚","goods_id": 725289865739},
-        {"query":"面料多厚","goods_id": 725289865739},
-        {"query":"炸胶了","goods_id": 636927012365},
-        # {"query":"我穿180的","goods_id": 760601512644}
-    ]
     # user_queries = [
-    #     {"query":"正确","goods_id": 745288790794}
+    #     # {"query":"我在得物上购买的鞋子出现了开胶问题。","goods_id": 743891340644},
+    #     {"query":"你好","goods_id": 748473922077},
+    #     {"query":"人工客服 拍好了给我备注一下吧","goods_id": 748473922077},
+    #     {"query":"我上次买的鞋上有污渍脏了你们之前的客服为我办理了退货申请我也寄回去了，但我还是想要这双鞋现在重新拍一双，这次给我检查好不要在有这种情况了 客服刚才说这次帮我备注一下一定检查好了","goods_id": 748473922077},
+    #     {"query":"你帮我备注一下吧谢谢了","goods_id": 748473922077},
+    #     {"query":"http://item.taobao.com/item.htm?id=725289865739","goods_id": 725289865739},
+    #     {"query":"平时运动鞋41","goods_id": 725289865739},
+    #     {"query":"多厚","goods_id": 725289865739},
+    #     {"query":"面料多厚","goods_id": 725289865739},
+    #     {"query":"炸胶了","goods_id": 636927012365},
+    #     # {"query":"我穿180的","goods_id": 760601512644}
     # ]
+    user_queries = [
+        {"query":"人工","goods_id": 712058889741},
+        {"query":"人工","goods_id": 712058889741},
+        {"query":"人工 https://detail.tmall.com/item.htm?id=712058889741","goods_id": 712058889741},
+        {"query":"这个最大码能穿到多少斤","goods_id": 712058889741}
+    ]
     
     # goods_id = 653918410246
     # user_queries = [
@@ -183,7 +186,7 @@ def test_multi_turns():
         print(r)
 
 
-def batch_test(data_file, count=1000):
+def batch_test(data_file, count=1000,add_eval_score=True):
     data = pd.read_csv(data_file).to_dict(orient='records')
     session_prefix = f"anta_test_{time.time()}"
     default_llm_config = {
@@ -220,7 +223,6 @@ def batch_test(data_file, count=1000):
                 import traceback
                 print(f"error product_ids:\n {traceback.format_exc()}")
                 product_ids = datum["product_ids"]
-
         else:
             product_ids = None
         session_id = f"{session_prefix}_{datum['desensitized_cnick']}"
@@ -233,7 +235,6 @@ def batch_test(data_file, count=1000):
                 chatbot_config=chatbot_config,
                 entry_type="retail"
             )
-
             print('r: ',r)
             
             ai_msg = r['message']['content'].strip().rstrip("<|user|>").strip()
@@ -252,6 +253,11 @@ def batch_test(data_file, count=1000):
             datum['elpase_time'] = time.time()-start_time
         else:
             datum['elpase_time'] = None
+        
+        sim_score = None
+        if add_eval_score and datum['ai_msg'] and datum['ground truth']:
+            sim_score = similarity_calculate(datum['ai_msg'],datum['ground truth'])
+
         data_to_save.append({
             "session_id": datum['desensitized_cnick'],
             "goods_id": datum['product_ids'],
@@ -266,10 +272,10 @@ def batch_test(data_file, count=1000):
             "ddb_session_id": session_id,
             "comments": None,
             "owner": None,
-            "model_id": default_llm_config['model_id']
+            "model_id": default_llm_config['model_id'],
+            "sim_score_with_ground_truth": sim_score
         })
     # session_id, goods_id, create_time, user_msg, ai_msg, ai_intent, intent, accuracy,rewrite_query
-    
         pd.DataFrame(data_to_save).to_csv(
             f'{session_prefix}_anta_test_qwen2-72b-instruct_{len(data)}.csv',
             index=False
@@ -319,8 +325,8 @@ def complete_test():
 
 if __name__ == "__main__":
     # complete_test()
-    test_multi_turns()
-    # batch_test(data_file="/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/customer_poc/anta/conversation_turns.csv")
+    # test_multi_turns()
+    batch_test(data_file="/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/customer_poc/anta/conversation_turns_626.csv")
     # batch_test()
     # test(
     #     chatbot_mode='agent',
