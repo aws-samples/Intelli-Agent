@@ -23,3 +23,4 @@ class LLMChain(metaclass=LLMChainMeta):
         return cls.model_map[cls._get_chain_id(model_id, intent_type)].create_chain(
             model_kwargs=model_kwargs, **kwargs
         )
+
