@@ -33,7 +33,7 @@ class Claude2ChatChain(LLMChain):
         system_prompt_template = get_prompt_template(
             model_id=cls.model_id,
             task_type=cls.intent_type,
-            prompt_name="main"     
+            prompt_name="system_prompt"     
         ).prompt_template
 
         system_prompt = kwargs.get('system_prompt',system_prompt_template)
@@ -157,7 +157,7 @@ class Iternlm2Chat7BChatChain(LLMChain):
             system_prompt = get_prompt_template(
             model_id=cls.model_id,
             task_type=cls.intent_type,
-            prompt_name="main"     
+            prompt_name="system_prompt"     
         ).prompt_template
 
         prompt = cls.build_prompt(
@@ -202,7 +202,7 @@ class GLM4Chat9BChatChain(LLMChain):
             system_prompt = get_prompt_template(
                 model_id=cls.model_id,
                 task_type=cls.intent_type,
-                prompt_name="main"     
+                prompt_name="system_prompt"     
             ).prompt_template
 
         chat_history = x['chat_history']
@@ -245,7 +245,7 @@ class Qwen2Instruct7BChatChain(LLMChain):
             system_prompt = get_prompt_template(
                 model_id=cls.model_id,
                 task_type=cls.intent_type,
-                prompt_name="main"     
+                prompt_name="system_prompt"     
             ).prompt_template
 
         chat_history = x['chat_history']

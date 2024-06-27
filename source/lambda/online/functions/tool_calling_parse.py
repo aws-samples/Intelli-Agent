@@ -117,7 +117,7 @@ class Claude3SonnetFToolCallingParse(ToolCallingParse):
         agent_message = {
             "role": MessageType.AI_MESSAGE_TYPE,
             "content": agent_output['agent_output']['content'],
-            "additional_kwargs": {""}
+            "additional_kwargs": {}
         }
 
         if not function_calls:

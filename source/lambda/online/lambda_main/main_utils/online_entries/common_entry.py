@@ -17,6 +17,7 @@ from common_logic.common_utils.lambda_invoke_utils import (
 )
 from common_logic.common_utils.python_utils import add_messages, update_nest_dict
 from common_logic.common_utils.logger_utils import get_logger
+from common_logic.common_utils.prompt_utils import get_prompt_templates_from_ddb
 from common_logic.common_utils.serialization_utils import JSONEncoder
 from functions.tool_calling_parse import parse_tool_calling as _parse_tool_calling
 from functions.tool_execute_result_format import format_tool_call_results
@@ -140,7 +141,6 @@ def agent_lambda(state: ChatbotState):
     current_agent_output:dict = invoke_lambda(
         event_body={
             **state,
-            "chat_history":state['agent_chat_history'],
             "other_chain_kwargs": {"system_prompt": get_common_system_prompt()}
             },
         lambda_name="Online_Agent",
@@ -251,15 +251,25 @@ def rag_all_index_lambda(state: ChatbotState):
 
 @node_monitor_wrapper
 def rag_llm_lambda(state: ChatbotState):
+    user_id = state['chatbot_config']['user_id']
+    llm_config = state["chatbot_config"]["rag_config"]["llm_config"]
+    task_type = LLMTaskType.RAG
+    prompt_templates_from_ddb = get_prompt_templates_from_ddb(
+        user_id,
+        model_id = llm_config['model_id'],
+        task_type=task_type
+    )
+
     output: str = invoke_lambda(
         lambda_name="Online_LLM_Generate",
         lambda_module_path="lambda_llm_generate.llm_generate",
         handler_name="lambda_handler",
         event_body={
             "llm_config": {
-                **state["chatbot_config"]["rag_config"]["llm_config"],
+                **prompt_templates_from_ddb,
+                **llm_config,
                 "stream": state["stream"],
-                "intent_type": LLMTaskType.RAG,
+                "intent_type": task_type,
             },
             "llm_input": {
                 "contexts": [state["contexts"]],
@@ -269,6 +279,7 @@ def rag_llm_lambda(state: ChatbotState):
         },
     )
     return {"answer": output}
+
 
 @node_monitor_wrapper
 def aws_qa_lambda(state: ChatbotState):
@@ -286,13 +297,24 @@ def aws_qa_lambda(state: ChatbotState):
 
 @node_monitor_wrapper
 def chat_llm_generate_lambda(state: ChatbotState):
+    user_id = state['chatbot_config']['user_id']
+    llm_config = state["chatbot_config"]["chat_config"]
+    task_type = LLMTaskType.CHAT
+
+    prompt_templates_from_ddb = get_prompt_templates_from_ddb(
+        user_id,
+        model_id = llm_config['model_id'],
+        task_type=task_type
+    )
+
     answer: dict = invoke_lambda(
         event_body={
             "llm_config": {
-                **state["chatbot_config"]["chat_config"],
+                **llm_config,
                 "stream": state["stream"],
-                "intent_type": LLMTaskType.CHAT,
-                "system_prompt": get_common_system_prompt()
+                "intent_type": task_type,
+                "system_prompt": get_common_system_prompt(),
+                **prompt_templates_from_ddb
             },
             "llm_input": {
                 "query": state["query"],
@@ -599,7 +621,7 @@ def common_entry(event_body):
             "trace_infos": [],
             "message_id": message_id,
             "chat_history": chat_history,
-            "agent_chat_history": chat_history + [{"role": MessageType.HUMAN_MESSAGE_TYPE, "content": query}],
+            "agent_chat_history": [],
             "ws_connection_id": ws_connection_id,
             "debug_infos": {},
             "extra_response": {},

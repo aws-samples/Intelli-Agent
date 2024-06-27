@@ -41,6 +41,7 @@ def parse_common_entry_config(chatbot_config):
         "chatbot_mode": ChatbotMode.chat,
         "use_history": True,
         "enable_trace": True,
+        "prompt_templates": {},
         "agent_recursion_limit": 5,
         "query_process_config": {
             "conversation_query_rewrite_config": {**copy.deepcopy(default_llm_config)}

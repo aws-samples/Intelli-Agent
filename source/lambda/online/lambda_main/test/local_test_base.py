@@ -10,8 +10,7 @@ load_dotenv(
 )
 import json
 import time 
-from common_logic.common_utils.lambda_invoke_utils import invoke_lambda
-import common_utils.websocket_utils as websocket_utils
+import common_logic.common_utils.websocket_utils as websocket_utils
 
 class DummyWebSocket:
     def post_to_connection(self,ConnectionId,Data):
@@ -34,6 +33,7 @@ class DummyWebSocket:
 
 websocket_utils.ws_client = DummyWebSocket()
 
+from common_logic.common_utils.lambda_invoke_utils import invoke_lambda
 
 def generate_answer(query,
                     entry_type="common",

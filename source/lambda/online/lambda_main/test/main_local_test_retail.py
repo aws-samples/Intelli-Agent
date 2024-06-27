@@ -131,6 +131,7 @@ def batch_test(data_file, count=1000,add_eval_score=True):
                 entry_type="retail"
             )
             print('r: ',r)
+            trace_infos = r.get("trace_infos",[])
             
             ai_msg = r['message']['content'].strip().rstrip("<|user|>").strip()
         except:
@@ -138,6 +139,7 @@ def batch_test(data_file, count=1000,add_eval_score=True):
             print(f"error run:\n {traceback.format_exc()}",flush=True)
             ai_msg = None
             r = {}
+            trace_infos=None
 
         datum['agent_intent_type'] = r.get('current_agent_intent_type',None)
         datum['ai_msg'] = ai_msg
@@ -162,6 +164,8 @@ def batch_test(data_file, count=1000,add_eval_score=True):
             "user_msg":datum['user_msg'],
             "ai_msg": datum['ai_msg'],
             "ground truth": ground_truth,
+            "sim_score_with_ground_truth": sim_score,
+            "trace_infos":str(trace_infos),
             "ai_intent": datum['agent_intent_type'],
             "intent": None,
             "accuracy": None,
@@ -171,7 +175,7 @@ def batch_test(data_file, count=1000,add_eval_score=True):
             "comments": None,
             "owner": None,
             "model_id": default_llm_config['model_id'],
-            "sim_score_with_ground_truth": sim_score
+            
         })
     # session_id, goods_id, create_time, user_msg, ai_msg, ai_intent, intent, accuracy,rewrite_query
         pd.DataFrame(data_to_save).to_csv(
@@ -224,8 +228,8 @@ def complete_test():
 
 if __name__ == "__main__":
     # complete_test()
-    test_multi_turns()
-    # batch_test(data_file="/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/customer_poc/anta/conversation_turns_626.csv")
+    # test_multi_turns()
+    batch_test(data_file="/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/customer_poc/anta/anta_batch_test - batch-test-csv-file-626.csv")
     # batch_test()
     # test(
     #     chatbot_mode='agent',

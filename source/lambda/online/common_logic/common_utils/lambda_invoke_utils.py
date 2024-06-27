@@ -126,6 +126,7 @@ class LambdaInvoker(BaseModel):
         handler_name="lambda_handler",
         apigetway_url=None,
     ):
+
         lambda_invoke_mode = lambda_invoke_mode or _lambda_invoke_mode
 
         assert LAMBDA_INVOKE_MODE.has_value(lambda_invoke_mode), (
@@ -155,6 +156,9 @@ invoke_lambda = obj.invoke_lambda
 
 
 def chatbot_lambda_call_wrapper(fn):
+    """
+    A decorator to monitor the execution of a lambda function.
+    """
     @functools.wraps(fn)
     def inner(event: dict, context=None):
         global _lambda_invoke_mode, _is_current_invoke_local,_enable_trace,_ws_connection_id
@@ -242,7 +246,7 @@ def send_trace(
 
 def node_monitor_wrapper(fn: Optional[Callable[..., Any]] = None, *, monitor_key: str = "current_monitor_infos") -> Callable[..., Any]:
     """
-    A decorator to monitor the execution of a function.
+    A decorator to monitor the execution of a node function.
     """
     def inner(func: Callable[..., Any]) -> Callable[..., Dict[str, Any]]:
         @functools.wraps(func)
@@ -252,11 +256,13 @@ def node_monitor_wrapper(fn: Optional[Callable[..., Any]] = None, *, monitor_key
             ws_connection_id = state["ws_connection_id"]
             enable_trace = state["enable_trace"]
             send_trace(f"\n\n **Enter {func.__name__}**", current_stream_use, ws_connection_id, enable_trace)
+            state['trace_infos'].append(f"Enter: {func.__name__}, time: {time.time()}")
             output = func(state)
             current_monitor_infos = output.get(monitor_key, None)
             if current_monitor_infos is not None:
                 send_trace(f"\n\n {current_monitor_infos}", current_stream_use, ws_connection_id, enable_trace)
             exit_time = time.time()
+            state['trace_infos'].append(f"Exit: {func.__name__}, time: {time.time()}")
             send_trace(f"\n\n **Exit {func.__name__}**, elapsed time: {round((exit_time-enter_time)*100)/100} s", current_stream_use, ws_connection_id, enable_trace)
             return output
 

@@ -5,6 +5,7 @@ import re
 
 from langchain.schema.runnable import (
     RunnableLambda,
+    RunnablePassthrough
 )
 
 from langchain_core.messages import(
@@ -267,8 +268,8 @@ class Claude2ToolCallingChain(LLMChain):
             model_id=cls.model_id,
             model_kwargs=model_kwargs,
         )
-        chain = RunnableLambda.assign(chat_history=lambda x: cls.create_chat_history(x)) | tool_calling_template \
-            | RunnableLambda(lambda x: x.messages ) \
+        chain = RunnablePassthrough.assign(chat_history=lambda x: cls.create_chat_history(x)) | tool_calling_template \
+            | RunnableLambda(lambda x: print(x.messages) or x.messages ) \
             | llm | RunnableLambda(lambda message:cls.parse_function_calls_from_ai_message(
                 message
             ))
