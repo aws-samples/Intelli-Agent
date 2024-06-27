@@ -714,7 +714,7 @@ def retail_entry(event_body):
                 goods_info = f"商品类型: <goods_type>{_goods_type}</goods_type>\n"
             else:
                 goods_info = ""
-            goods_info += "<goods_info>"
+            goods_info += "<goods_info>\n"
             for k,v in _goods_info.items():
                 goods_info += f"{k}:{v}\n" 
             goods_info += "</goods_info>"

@@ -207,7 +207,7 @@ def test_multi_turns_pr(mode="agent"):
         chatbot_config['use_history'] = query['use_history']
         r = generate_answer(
                query=query['query'],
-               stream=True,
+               stream=False,
                session_id=session_id,
                chatbot_config={**chatbot_config,"goods_id": query.get("goods_id")},
                entry_type="retail"
@@ -229,7 +229,8 @@ def complete_test():
 if __name__ == "__main__":
     # complete_test()
     # test_multi_turns()
-    batch_test(data_file="/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/customer_poc/anta/anta_batch_test - batch-test-csv-file-626.csv")
+    test_multi_turns_pr("agent")
+    # batch_test(data_file="/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/customer_poc/anta/anta_batch_test - batch-test-csv-file-626.csv")
     # batch_test()
     # test(
     #     chatbot_mode='agent',
