@@ -107,3 +107,4 @@
 {"question": "为啥要运费", "answer": {"intent": "daily_reception", "description": "日常接待"}}
 {"question": "我在得物上购买的鞋子出现了开胶问题。", "answer": {"intent": "product_quality", "description": "日常接待", "kwargs": {"shop": "dewu"}}}
 {"question": "我购买的鞋子出现了开胶问题。", "answer": {"intent": "product_quality", "description": "日常接待", "kwargs": {"shop": "tianmao"}}}
+{"question": "我想换个号", "answer": {"intent": "goods_exchange", "description": "退换货"}}
