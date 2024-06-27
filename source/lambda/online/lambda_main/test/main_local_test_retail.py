@@ -1,3 +1,4 @@
+from email import message
 from local_test_base import generate_answer,similarity_calculate
 import time 
 import json 
@@ -77,7 +78,7 @@ def test_multi_turns():
                 chatbot_config={**chatbot_config,"goods_id": query.get("goods_id")},
                 entry_type="retail"
         )
-        print(r)
+        print(f"ans: {r['message']['content']}")
 
 
 def batch_test(data_file, count=1000,add_eval_score=True):
@@ -204,13 +205,14 @@ def test_multi_turns_pr(mode="agent"):
         if isinstance(query,str):
             query = {"query":query}
         chatbot_config['use_history'] = query['use_history']
-        generate_answer(
+        r = generate_answer(
                query=query['query'],
                stream=True,
                session_id=session_id,
                chatbot_config={**chatbot_config,"goods_id": query.get("goods_id")},
                entry_type="retail"
         )
+        print(r['message']['content'])
 
 def complete_test():
     print("start test in chat mode")
