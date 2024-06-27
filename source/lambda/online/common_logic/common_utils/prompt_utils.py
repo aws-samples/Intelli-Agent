@@ -182,8 +182,6 @@ register_prompt_templates(
 
 
 
-
-
 if __name__ == "__main__":
     print(get_all_templates())
 

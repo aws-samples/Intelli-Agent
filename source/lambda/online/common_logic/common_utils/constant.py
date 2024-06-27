@@ -60,6 +60,7 @@ class LLMTaskType(ConstantBase):
     RETAIL_TOOL_CALLING = "retail_tool_calling"
     RAG = "rag"
     CHAT = 'chat'
+    AUTO_EVALUATION = "auto_evaluation"
     
 
 class MessageType(ConstantBase):
