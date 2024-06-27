@@ -700,7 +700,7 @@ def retail_entry(event_body):
     goods_id = str(event_body['chatbot_config']['goods_id'])
     if goods_id:
         try:
-            _goods_info = eval(goods_dict.get(goods_id,None).get("goods_info",None))
+            _goods_info = json.loads(goods_dict.get(goods_id,None).get("goods_info",None))
             _goods_type = goods_dict.get(goods_id,None).get("goods_type",None)
         except Exception as e:
             import traceback 
@@ -734,6 +734,7 @@ def retail_entry(event_body):
         "debug_infos": {},
         "extra_response": {},
         "goods_info":goods_info,
+        "human_goods_info":goods_info,
         "agent_llm_type": LLMTaskType.RETAIL_TOOL_CALLING,
         "query_rewrite_llm_type":LLMTaskType.RETAIL_CONVERSATION_SUMMARY_TYPE,
         "agent_recursion_limit": chatbot_config['agent_recursion_limit'],
