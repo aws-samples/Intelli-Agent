@@ -36,11 +36,9 @@ def get_query_parameter(event, parameter_name, default_value=None):
 def lambda_handler(event, context):
 
     logger.info(event)
-    max_items = DEFAULT_MAX_ITEMS
-    page_size = DEFAULT_SIZE
 
-    max_items = get_query_parameter(event, "max_items")
-    page_size = get_query_parameter(event, "page_size")
+    max_items = get_query_parameter(event, "max_items", DEFAULT_MAX_ITEMS)
+    page_size = get_query_parameter(event, "page_size", DEFAULT_SIZE)
     starting_token = get_query_parameter(event, "starting_token")
     session_id = get_query_parameter(event, "session_id")
 

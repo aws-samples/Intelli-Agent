@@ -21,7 +21,7 @@ from langchain.schema.runnable import (
     RunnableLambda,
     RunnablePassthrough,
 )
-from common_utils.lambda_invoke_utils import chatbot_lambda_call_wrapper
+from common_logic.common_utils.lambda_invoke_utils import chatbot_lambda_call_wrapper
 
 logger = logging.getLogger("retriever")
 logger.setLevel(logging.INFO)
@@ -103,7 +103,8 @@ def get_whole_chain(retriever_list, reranker_config):
         default_reranker_config = {
             "enable_debug": False,
             "target_model": "bge_reranker_model.tar.gz",
-            "query_key": "query"
+            "query_key": "query",
+            "top_k": 10
         }
         reranker_config = {**default_reranker_config, **reranker_config}
         compressor = BGEReranker(**reranker_config)

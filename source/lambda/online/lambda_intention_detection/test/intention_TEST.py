@@ -3,7 +3,7 @@ import sys
 dotenv.load_dotenv()
 sys.path.extend([".",'common_logic'])
 
-from common_utils.lambda_invoke_utils import invoke_lambda
+from common_logic.common_utils.lambda_invoke_utils import invoke_lambda
 
 
 def test(lambda_invoke_mode="local"):

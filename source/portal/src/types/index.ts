@@ -87,3 +87,31 @@ export interface MessageDataType {
     content: string;
   };
 }
+
+export interface CreatePromptResponse {
+  message: string;
+}
+
+export type PromptItem = {
+  uuid: string;
+  modelId: string;
+  taskType: string;
+};
+
+export type PromptResponse = {
+  Items: PromptItem[];
+  Config: ResponseConfig;
+  Count: number;
+};
+
+export interface Prompt {
+  main: string;
+}
+
+export interface GetPromptResponse {
+  modelId: string;
+  taskType: string;
+  prompt: Prompt;
+  sortKey: string;
+  userId: string;
+}

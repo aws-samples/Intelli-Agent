@@ -7,8 +7,9 @@ from langchain.schema.runnable import (
     RunnablePassthrough,
 )
 
-from common_utils.constant import (
-    LLMTaskType
+from common_logic.common_utils.constant import (
+    LLMTaskType,
+    LLMModelType
 )
 from ..llm_chains import LLMChain
 from ..llm_models import Model as LLM_Model
@@ -38,7 +39,7 @@ Original question: {question}""")
 
 
 class Claude2QueryRewriteChain(LLMChain):
-    model_id = "anthropic.claude-v2"
+    model_id = LLMModelType.CLAUDE_2
     intent_type = QUERY_REWRITE_TYPE
 
     default_model_kwargs = {
@@ -69,19 +70,23 @@ class Claude2QueryRewriteChain(LLMChain):
 
 
 class Claude21QueryRewriteChain(Claude2QueryRewriteChain):
-    model_id = "anthropic.claude-v2:1"
+    model_id = LLMModelType.CLAUDE_21
 
 
 class ClaudeInstanceQueryRewriteChain(Claude2QueryRewriteChain):
-    model_id = "anthropic.claude-instant-v1"
+    model_id = LLMModelType.CLAUDE_INSTANCE
 
 
 class Claude3HaikuQueryRewriteChain(Claude2QueryRewriteChain):
-    model_id = "anthropic.claude-3-haiku-20240307-v1:0"
+    model_id = LLMModelType.CLAUDE_3_HAIKU
 
 
 class Claude3SonnetQueryRewriteChain(Claude2QueryRewriteChain):
-    mdoel_id = "anthropic.claude-3-sonnet-20240229-v1:0"
+    model_id = LLMModelType.CLAUDE_3_SONNET
+
+
+class Claude35SonnetQueryRewriteChain(Claude2QueryRewriteChain):
+    mdoel_id = "anthropic.claude-3-5-sonnet-20240620-v1:0"
 
 
 internlm2_meta_instruction = """You are an AI language model assistant. Your task is to generate 1 - 5 different sub questions OR alternate versions of the given user question to retrieve relevant documents from a vector database.
@@ -104,7 +109,7 @@ Provide these alternative questions separated by newlines between XML tags. For 
 
 
 class Iternlm2Chat7BQueryRewriteChain(Iternlm2Chat7BChatChain):
-    model_id = "internlm2-chat-7b"
+    model_id = LLMModelType.INTERNLM2_CHAT_7B
     intent_type = QUERY_REWRITE_TYPE
 
     default_model_kwargs = {"temperature": 0.5, "max_new_tokens": 100}
@@ -134,5 +139,5 @@ class Iternlm2Chat7BQueryRewriteChain(Iternlm2Chat7BChatChain):
 
 
 class Iternlm2Chat20BQueryRewriteChain(Iternlm2Chat7BQueryRewriteChain):
-    model_id = "internlm2-chat-20b"
+    model_id = LLMModelType.INTERNLM2_CHAT_20B
     intent_type = QUERY_REWRITE_TYPE

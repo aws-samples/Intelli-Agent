@@ -67,8 +67,13 @@
     "maxTokens": "Max Tokens",
     "temperature": "Temperature",
     "sessionHistory": "Session History",
+    "prompt": "Prompt",
+    "prompts": "Prompts",
+    "type": "Type",
+    "promptCreateTips": "New prompt will override the current prompt, are you sure to continue?",
+    "promptDeleteTips": "Delete the prompt will reset to the system default prompt.",
     "button": {
-      "login": "Log in to LLM Bot",
+      "login": "Log in to Intelli-Agent",
       "reload": "Reload",
       "send": "Send",
       "modelSettings": "Model Settings",
@@ -77,7 +82,10 @@
       "backToList": "Back to List",
       "delete": "Delete",
       "createDoc": "Create Document",
-      "upload": "Upload"
+      "upload": "Upload",
+      "createPrompt": "Create Prompt",
+      "edit": "Edit",
+      "save": "Save"
     },
     "header": {
       "reSignIn": "Please login again",
@@ -88,7 +96,8 @@
       "requireTemperature": "Please enter a temperature",
       "requireMaxTokens": "Please enter a maximum number of tokens",
       "temperatureRange": "The temperature must be between 0 and 1",
-      "maxTokensRange": "The maximum number of tokens must lager than 0"
+      "maxTokensRange": "The maximum number of tokens must lager than 0",
+      "requirePrompt": "Please enter a prompt"
     }
   }
 }

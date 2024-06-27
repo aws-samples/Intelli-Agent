@@ -1,218 +1,19 @@
-import sys
-import os
-import tqdm
-sys.path.append("./common_logic")
-sys.path.append("../job/dep/llm_bot_dep")
-from dotenv import load_dotenv
-load_dotenv(
-    dotenv_path=os.path.join(os.path.dirname(__file__),'.env')
-)
-import json
+from local_test_base import generate_answer,similarity_calculate
 import time 
-from common_utils.lambda_invoke_utils import invoke_lambda
-import common_utils.websocket_utils as websocket_utils
+import json 
 import pandas as pd 
-
-class DummyWebSocket:
-    def post_to_connection(self,ConnectionId,Data):
-        data = json.loads(Data)
-        ret = data
-        message_type = ret['message_type']
-        # print('message_type',message_type)
-        if message_type == "START":
-            pass
-        elif message_type == "CHUNK":
-            print(ret['message']['content'],end="",flush=True)
-        elif message_type == "END":
-            return 
-        elif message_type == "ERROR":
-            print(ret['message']['content'],flush=True)
-            return 
-        elif message_type == "MONITOR":
-            print("monitor info: ",ret['message'],flush=True)
-
-websocket_utils.ws_client = DummyWebSocket()
-
-
-def generate_answer(query,
-                    entry_type="retail",
-                    stream=False,
-                    session_id=None,
-                    chatbot_config=None
-                    ):
-    chatbot_config = chatbot_config or {}
-    session_id = session_id or time.time()
-
-    body = {
-            "query": query,
-            "entry_type": entry_type,
-            "session_id":session_id,
-            "chatbot_config": chatbot_config     
-            }
-    event = {
-        "body": json.dumps(body)
-    }
-    if stream:
-        event["requestContext"] = {
-            "eventType":"MESSAGE",
-            "connectionId":f'test_{int(time.time())}'
-        }
-    response = invoke_lambda(
-        lambda_invoke_mode="local",
-        lambda_module_path="lambda_main.main",
-        event_body=event
-    )
-    # response = main.lambda_handler(event, context)
-    if stream:
-        return
-    
-    if not stream:
-        body = json.loads(response["body"])
-        # print(body)
-        return body
-
-
+import tqdm 
 def test(chatbot_mode="agent",session_id=None,query=None,goods_id=None,use_history=True):
     default_llm_config = {
         'model_id': 'anthropic.claude-3-sonnet-20240229-v1:0',
         'model_kwargs': {
             'temperature': 0.5, 'max_tokens': 1000}
         }
-    # default_llm_config = {
-    #     'model_id': '"gpt-3.5-turbo-0125',
-    #     'model_kwargs': {
-    #         'temperature': 0.5, 'max_tokens': 4096}
-    #     }
+
     chatbot_config = {
         "goods_id":goods_id,
         "chatbot_mode": chatbot_mode,
-        "use_history": use_history,
-        "query_process_config":{
-            "conversation_query_rewrite_config":{
-                **default_llm_config
-            }
-        },
-        "intent_recognition_config":{
-        },
-        "agent_config":{
-            **default_llm_config,
-            "tools":[]
-        },
-        "tool_execute_config":{
-            "knowledge_base_retriever":{
-                "retrievers": [
-                {
-                    "type": "qd",
-                    "workspace_ids": [1],
-                    "top_k": 10,
-                }
-                ]
-            }
-        },
-        "chat_config":{
-            **default_llm_config,
-        },
-        "rag_config": {
-            "retriever_config":{
-                "retrievers": [
-                    {
-                        "type": "qd",
-                        "workspace_ids": [],
-                        "config": {
-                            "top_k": 20,
-                            "using_whole_doc": True,
-                        }
-                    },
-                ],
-                "rerankers": [
-                    {
-                        "type": "reranker",
-                        "config": {
-                            "enable_debug": False,
-                            "target_model": "bge_reranker_model.tar.gz"
-                        }
-                    }
-                ],
-            },
-            "llm_config":{
-                **default_llm_config,
-            }
-        },
-        "rag_product_aftersales_config": {
-            "retriever_config":{
-                "retrievers": [
-                    {
-                        "type": "qq",
-                        "workspace_ids": ['retail-shouhou-wuliu'],
-                        "config": {
-                            "top_k": 2,
-                        }
-                    },
-                ],
-                "rerankers": [
-                    {
-                        "type": "reranker",
-                        "config": {
-                            "enable_debug": False,
-                            "target_model": "bge_reranker_model.tar.gz"
-                        }
-                    }
-                ],
-            },
-            "llm_config":{
-                **default_llm_config,
-            }
-        },
-        "rag_customer_complain_config": {
-            "retriever_config":{
-                "retrievers": [
-                    {
-                        "type": "qq",
-                        "workspace_ids": ['retail-shouhou-wuliu','retail-quick-reply'],
-                        "config": {
-                            "top_k": 2,
-                        }
-                    },
-                ],
-                "rerankers": [
-                    {
-                        "type": "reranker",
-                        "config": {
-                            "enable_debug": False,
-                            "target_model": "bge_reranker_model.tar.gz"
-                        }
-                    }
-                ],
-            },
-            "llm_config":{
-                **default_llm_config,
-            }
-        },
-        "rag_promotion_config": {
-            "retriever_config":{
-                "retrievers": [
-                    {
-                        "type": "qq",
-                        "workspace_ids": ['retail-shouhou-wuliu','retail-quick-reply'],
-                        "config": {
-                            "top_k": 2,
-                        }
-                    },
-                ],
-                "rerankers": [
-                    {
-                        "type": "reranker",
-                        "config": {
-                            "enable_debug": False,
-                            "target_model": "bge_reranker_model.tar.gz"
-                        }
-                    }
-                ],
-            },
-            "llm_config":{
-                **default_llm_config,
-            }
-        }
+        "use_history": use_history
     }
     
     session_id = session_id or f"test_{time.time()}"
@@ -270,8 +71,79 @@ def test_multi_turns():
     #     {"query":"https://item.taobao.com/item.htm?id=766277539992\n好吧/:018","goods_id":766277539992}
     # ]
 
+    # user_queries = [
+    #     {"query":"杨幂同款裤子有吗","goods_id":763841838892}
+    # ]
+
+    # user_queries = [
+    #     {"query":"你家鞋子开胶了\n怎么处理","goods_id":743891340644},
+    #     # {"query":"我在得物买的","goods_id":743891340644}
+    # ]
+
+
+    # user_queries = [
+    #     {"query":"https://detail.tmall.com/item.htm?id=748090908717","goods_id":748090908717},
+    #     {"query":"177 65kg多大","goods_id":748090908717},
+    #     # {"query":"我在得物买的","goods_id":743891340644}
+    # ]
+    # user_queries = [
+    #     {"query":"人工","goods_id":712058889741},
+    #     {"query":"人工","goods_id":712058889741},
+    #     {"query":"人工 https://detail.tmall.com/item.htm?id=712058889741","goods_id":712058889741},
+    #     {"query":"这个最大码能穿到多少斤","goods_id":712058889741},
+    #     {"query":"好的 我现在168 是个孕妇 身高174 就肚子大点 身上没那么胖 我该穿多大的 Xxl 就行了吧","goods_id":712058889741},
+    #     {"query":"168","goods_id":712058889741},
+    #     {"query":"但是没有码了","goods_id":712058889741},
+    #     {"query":"Xl能行不","goods_id":712058889741},
+    #     {"query":"Xxxl是不是太大了","goods_id":712058889741}
+    # ]
+    # user_queries = [
+    #     {"query":"http://item.taobao.com/item.htm?id=666167992985","goods_id":666167992985},
+    #     {"query":"在吗","goods_id":666167992985},
+    #     {"query":"断码吗","goods_id":666167992985}
+    # ]
+    # user_queries = [
+    #     {
+    #         "query":"http://item.taobao.com/item.htm?id=743353945710","goods_id":743353945710
+    #     },
+    #     {
+    #         "query":"请问你们是哪里发货","goods_id":743353945710
+    #     }
+    # ]
+    # user_queries = [
+    #     {"query":"能发顺丰嘛？","goods_id":641874887898},
+    # ]
+
+    # user_queries = [
+    #     {"query":"好的","goods_id": 745288790794}
+    # ]
+    # user_queries = [
+    #     {"query":"这款还会有货吗？","goods_id": 760601512644},
+    #     {"query":"我穿180的","goods_id": 760601512644}
+    # ]
+    # user_queries = [
+    #     # {"query":"我在得物上购买的鞋子出现了开胶问题。","goods_id": 743891340644},
+    #     {"query":"我购买的鞋子出现了开胶问题。","goods_id": 743891340644},
+    #     # {"query":"我穿180的","goods_id": 760601512644}
+    # ]
+    # user_queries = [
+    #     # {"query":"我在得物上购买的鞋子出现了开胶问题。","goods_id": 743891340644},
+    #     {"query":"你好","goods_id": 748473922077},
+    #     {"query":"人工客服 拍好了给我备注一下吧","goods_id": 748473922077},
+    #     {"query":"我上次买的鞋上有污渍脏了你们之前的客服为我办理了退货申请我也寄回去了，但我还是想要这双鞋现在重新拍一双，这次给我检查好不要在有这种情况了 客服刚才说这次帮我备注一下一定检查好了","goods_id": 748473922077},
+    #     {"query":"你帮我备注一下吧谢谢了","goods_id": 748473922077},
+    #     {"query":"http://item.taobao.com/item.htm?id=725289865739","goods_id": 725289865739},
+    #     {"query":"平时运动鞋41","goods_id": 725289865739},
+    #     {"query":"多厚","goods_id": 725289865739},
+    #     {"query":"面料多厚","goods_id": 725289865739},
+    #     {"query":"炸胶了","goods_id": 636927012365},
+    #     # {"query":"我穿180的","goods_id": 760601512644}
+    # ]
     user_queries = [
-        {"query":"杨幂同款裤子有吗","goods_id":763841838892}
+        {"query":"人工","goods_id": 712058889741},
+        {"query":"人工","goods_id": 712058889741},
+        {"query":"人工 https://detail.tmall.com/item.htm?id=712058889741","goods_id": 712058889741},
+        {"query":"这个最大码能穿到多少斤","goods_id": 712058889741}
     ]
     
     # goods_id = 653918410246
@@ -285,10 +157,13 @@ def test_multi_turns():
     default_llm_config = {
         # 'model_id': 'anthropic.claude-3-haiku-20240307-v1:0',
         # 'model_id': 'anthropic.claude-3-sonnet-20240229-v1:0',
-        'model_id': 'mistral.mixtral-8x7b-instruct-v0:1',
-        'model_kwargs': {
-            'temperature': 0.5, 'max_tokens': 4096}
-        }
+        # 'model_id':"glm-4-9b-chat",
+        # "endpoint_name": "glm-4-9b-chat-2024-06-18-07-37-03-843",
+        "model_id": "qwen2-72B-instruct",
+        "endpoint_name":  "Qwen2-72B-Instruct-AWQ-2024-06-25-02-15-34-347",
+        # 'model_id': 'mistral.mixtral-8x7b-instruct-v0:1',
+        'model_kwargs': {'temperature': 0.01}
+    }
     chatbot_config = {
         "chatbot_mode": "agent",
         "use_history": True,
@@ -308,32 +183,37 @@ def test_multi_turns():
                 chatbot_config={**chatbot_config,"goods_id": query.get("goods_id")},
                 entry_type="retail"
         )
+        print(r)
 
 
-def batch_test():
-    data_file = "/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/customer_poc/anta/conversation_turns.csv"
-    data = pd.read_csv(data_file).to_dict(orient='records')
+def batch_test(data_file, count=1000,add_eval_score=True):
+    data = pd.read_csv(data_file).fillna("").to_dict(orient='records')
     session_prefix = f"anta_test_{time.time()}"
     default_llm_config = {
         # 'model_id': 'anthropic.claude-3-haiku-20240307-v1:0',
         # 'model_id': 'anthropic.claude-3-sonnet-20240229-v1:0',
-        'model_id': 'mistral.mixtral-8x7b-instruct-v0:1',
+        # 'model_id': 'mistral.mixtral-8x7b-instruct-v0:1',
+        # 'model_id':"glm-4-9b-chat",
+        # "endpoint_name": "glm-4-9b-chat-2024-06-18-07-37-03-843",
+        "model_id": "qwen2-72B-instruct",
+        "endpoint_name":  "Qwen2-72B-Instruct-AWQ-2024-06-25-02-15-34-347",
         'model_kwargs': {
-            'temperature': 0.1, 'max_tokens': 1000}
+            'temperature': 0.01, 'max_tokens': 1000}
         }
     chatbot_config = {
         "chatbot_mode": "agent",
         "use_history": True,
         "enable_trace": True,
-        "default_llm_config":default_llm_config,
+        "default_llm_config": default_llm_config,
         "intention_config": {
             "query_key": "query"
         }
     }
     # data = data]
     data_to_save = []
-    for datum in tqdm.tqdm(data,total=len(data)):
+    for datum in tqdm.tqdm(data[:count], total=min(len(data), count)):
         print("=="*50,flush=True)
+        start_time = time.time()
         print(f'query: {datum["user_msg"]},\ngoods_id: {datum["product_ids"]}',flush=True)
         
         if datum["product_ids"]:
@@ -343,7 +223,6 @@ def batch_test():
                 import traceback
                 print(f"error product_ids:\n {traceback.format_exc()}")
                 product_ids = datum["product_ids"]
-
         else:
             product_ids = None
         session_id = f"{session_prefix}_{datum['desensitized_cnick']}"
@@ -356,7 +235,9 @@ def batch_test():
                 chatbot_config=chatbot_config,
                 entry_type="retail"
             )
-            ai_msg = r['message']['content']
+            print('r: ',r)
+            
+            ai_msg = r['message']['content'].strip().rstrip("<|user|>").strip()
         except:
             import traceback
             print(f"error run:\n {traceback.format_exc()}",flush=True)
@@ -368,89 +249,87 @@ def batch_test():
         datum['session_id'] = session_id
         datum['query_rewrite'] = r.get('query_rewrite',None)
         datum['intention_fewshot_examples'] = r.get('intention_fewshot_examples',None)
+        if ai_msg:
+            datum['elpase_time'] = time.time()-start_time
+        else:
+            datum['elpase_time'] = None
+        
+        ground_truth = str(datum.get("ground truth","")).strip()
+        print('ground_truth: ',ground_truth,flush=True)
+        sim_score = None
+        if add_eval_score and datum['ai_msg'] and ground_truth:
+            sim_score = similarity_calculate(str(datum['ai_msg']),str(ground_truth))
+
         data_to_save.append({
             "session_id": datum['desensitized_cnick'],
             "goods_id": datum['product_ids'],
             "create_time": datum['create_time'],
             "user_msg":datum['user_msg'],
             "ai_msg": datum['ai_msg'],
+            "ground truth": ground_truth,
             "ai_intent": datum['agent_intent_type'],
             "intent": None,
             "accuracy": None,
             "rewrite_query": datum['query_rewrite'],
-            "ddb_session_id": session_id,
+            "elpase_time":datum['elpase_time'],
+            # "ddb_session_id": session_id,
             "comments": None,
-            "owner": None
+            "owner": None,
+            "model_id": default_llm_config['model_id'],
+            "sim_score_with_ground_truth": sim_score
         })
     # session_id, goods_id, create_time, user_msg, ai_msg, ai_intent, intent, accuracy,rewrite_query
-    
         pd.DataFrame(data_to_save).to_csv(
-            f'{session_prefix}_anta_test_mixtral8x7b_{len(data)}.csv',
+            f'{session_prefix}_anta_test_qwen2-72b-instruct_{len(data)}.csv',
             index=False
-            )
+        )
 
-def multi_turn_test():
-    # # 0099 test
-    # session_id = f"0099_test_{time.time()}"
-    # test(
-    #     chatbot_mode='agent',
-    #     session_id=session_id,
-    #     query="你家鞋子开胶了？怎么处理"
-    #     )
-    # test(
-    #     chatbot_mode='agent',
-    #     session_id=session_id,
-    #     query="我在得物购买的"
-    #     )
-    # test(
-    #     chatbot_mode='agent',
-    #     session_id=session_id,
-    #     query="如果在你家买的鞋子，出现质量问题你们怎么处理"
-    #     )
-    # test(
-    #     chatbot_mode='agent',
-    #     session_id=session_id,
-    #     query="如果在你家买的鞋子，出现质量问题你们怎么处理"
-    #     )
-    # # 0098 test
-    # session_id = f"0098_test_{time.time()}"
-    # test(
-    #     chatbot_mode='agent',
-    #     session_id=session_id,
-    #     query="为啥要运费？"
-    #     )
-    # test(
-    #     chatbot_mode='agent',
-    #     session_id=session_id,
-    #     query="现在怎么还还有鞋啊？"
-    #     )
-    # test(
-    #     chatbot_mode='agent',
-    #     session_id=session_id,
-    #     query="不是一个地址发货？买鞋了啊 鞋和袜子不是一个地方发货的吗？"
-    #     )
-    # 0099 test
-    session_id = f"0068_test_{time.time()}"
-    goods_id = 756327274174
-    test(
-        chatbot_mode='chat',
-        session_id=session_id,
-        goods_id=goods_id,
-        query="亲，平常穿37联系多大码",
-        use_history=True
+def test_multi_turns_pr(mode="agent"):
+    session_id = f"anta_multiturn_test_{time.time()}"
+    user_queries = [
+        {"query":"能发顺丰嘛？","goods_id":641874887898, "use_history":True},
+        {"query":"我170能穿吗？","goods_id":641874887898, "use_history":True},
+    ]
+
+    default_llm_config = {
+        'model_id': 'anthropic.claude-3-sonnet-20240229-v1:0',
+    }
+    chatbot_config = {
+        "chatbot_mode": mode,
+        "enable_trace": True,
+        "default_llm_config":default_llm_config,
+        "intention_config": {
+            "query_key": "query"
+        }
+    }
+    for query in user_queries:
+        if isinstance(query,str):
+            query = {"query":query}
+        chatbot_config['use_history'] = query['use_history']
+        generate_answer(
+               query=query['query'],
+               stream=True,
+               session_id=session_id,
+               chatbot_config={**chatbot_config,"goods_id": query.get("goods_id")},
+               entry_type="retail"
         )
-    test(
-        chatbot_mode='chat',
-        session_id=session_id,
-        goods_id=goods_id,
-        query="还会有货吗？"
-        )
-    # 
+
+def complete_test():
+    print("start test in chat mode")
+    test_multi_turns_pr("chat")
+    print("finish test in chat mode")
+    print("start test in rag mode")
+    test_multi_turns_pr("rag")
+    print("finish test in rag mode")
+    print("start test in agent mode")
+    test_multi_turns_pr("agent")
+    print("finish test in agent mode")
 
 
 if __name__ == "__main__":
+    # complete_test()
     # test_multi_turns()
-    batch_test()
+    batch_test(data_file="/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/customer_poc/anta/conversation_turns_626.csv")
     # batch_test()
     # test(
     #     chatbot_mode='agent',

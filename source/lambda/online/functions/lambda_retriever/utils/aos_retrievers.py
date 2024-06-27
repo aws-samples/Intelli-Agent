@@ -8,7 +8,7 @@ from langchain.schema.retriever import BaseRetriever
 from langchain.callbacks.manager import CallbackManagerForRetrieverRun
 from langchain.docstore.document import Document
 
-from common_utils.time_utils import timeit
+from common_logic.common_utils.time_utils import timeit
 from .aos_utils import LLMBotOpenSearchClient
 from sm_utils import SagemakerEndpointVectorOrCross
 
@@ -73,6 +73,8 @@ def get_relevance_embedding(
                 "Represent this sentence for searching relevant passages: "
                 + query
         )
+        else:
+            query_relevance_embedding_prompt = query
     elif model_type == "m3" or model_type == "bce":
         query_relevance_embedding_prompt = query
     else:

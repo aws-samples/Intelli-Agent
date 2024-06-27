@@ -1,11 +1,13 @@
-langchain==0.1.11
-langgraph==0.0.38
+langchain==0.2.4
+httpx==0.26.0
+langgraph==0.0.68
+langchain_openai==0.1.8
+langchain_community==0.2.4
 langchainhub==0.1.14
 opensearch-py==2.2.0
 requests_aws4auth==1.2.2
 python-dateutil==2.8.2
 prettytable==3.10.0
-pandas==2.1.4
 beautifulsoup4==4.12.2
 validators==0.28.3
 openpyxl==3.1.3

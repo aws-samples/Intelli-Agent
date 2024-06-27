@@ -15,24 +15,47 @@ from langchain.prompts import ChatPromptTemplate
 
 from langchain_core.messages import AIMessage,SystemMessage
 
-from common_utils.constant import (
-    LLMTaskType
+from common_logic.common_utils.constant import (
+    LLMTaskType,
+    LLMModelType,
+    MessageType
 )
 
 from .llm_chain_base import LLMChain
 from ..llm_models import Model
 
 tool_call_guidelines = """<guidlines>
-- Don't forget to output <function_calls></function_calls> when any tool is called.
-- You should call tools that are described in <tools></tools>.
-- In <thinking></thinking>, you should check whether the tool name you want to call is exists in <tools></tools>.
+- Don't forget to output <function_calls> </function_calls> when any tool is called.
+- 每次回答总是先进行思考，并将思考过程写在<thinking>标签中。请你按照下面的步骤进行思考:
+    1. 判断根据当前的上下文是否足够回答用户的问题。
+    2. 如果当前的上下文足够回答用户的问题，请调用 `give_final_response` 工具。
+    3. 如果当前的上下文不能支持回答用户的问题，你可以考虑调用<tools> 标签中列举的工具。
+    4. 如果调用工具对应的参数不够，请调用反问工具 `give_rhetorical_question` 来让用户提供更加充分的信息。
+    5. 最后给出你要调用的工具名称。
 - Always output with "中文". 
-- Always choose one tool to call. 
 </guidlines>
+"""
+incorrect_tool_call_example = """Here is an example of an incorrectly formatted tool call, which you should avoid.
+<incorrect_tool_calling>
+<function_calls>
+<invoke>
+<tool_name>tool_name</tool_name>
+<parameters>
+<parameter>
+<name>question</name>
+<type>string</type>
+<value>value</value>
+</parameter>
+</parameters>
+</invoke>
+</function_calls>
+</incorrect_tool_calling>
+
+In this incorrect tool calling example, the parameter `name` should form a <name> XLM tag. 
 """
 
 
-SYSTEM_MESSAGE_PROMPT =("In this environment you have access to a set of tools you can use to answer the user's question.\n"
+SYSTEM_MESSAGE_PROMPT =(f"In this environment you have access to a set of tools you can use to answer the user's question.\n"
         "\n"
         "You may call them like this:\n"
         "<function_calls>\n"
@@ -50,7 +73,8 @@ SYSTEM_MESSAGE_PROMPT =("In this environment you have access to a set of tools y
         "{tools}"
         "\n</tools>"
         "\nAnswer the user's request using relevant tools (if they are available). Before calling a tool, do some analysis within <thinking></thinking> tags. First, think about which of the provided tools is the relevant tool to answer the user's request. Second, go through each of the required parameters of the relevant tool and determine if the user has directly provided or given enough information to infer a value. When deciding if the parameter can be inferred, carefully consider all the context to see if it supports a specific value. If all of the required parameters are present or can be reasonably inferred, close the thinking tag and proceed with the tool call. BUT, if one of the values for a required parameter is missing, DO NOT invoke the function (not even with fillers for the missing params) and instead, ask the user to provide the missing parameters. DO NOT ask for more information on optional parameters if it is not provided."
-        f"\nHere are some guidelines for you:\n{tool_call_guidelines}"
+        f"\nHere are some guidelines for you:\n{tool_call_guidelines}."
+        f"\n{incorrect_tool_call_example}"
     )
 
 SYSTEM_MESSAGE_PROMPT_WITH_FEWSHOT_EXAMPLES = SYSTEM_MESSAGE_PROMPT + (
@@ -149,7 +173,7 @@ def convert_openai_tool_to_anthropic(tools:list[dict])->str:
 
 
 class Claude2ToolCallingChain(LLMChain):
-    model_id = "anthropic.claude-v2"
+    model_id = LLMModelType.CLAUDE_2
     intent_type = LLMTaskType.TOOL_CALLING
     default_model_kwargs = {
         "max_tokens": 2000,
@@ -190,23 +214,32 @@ class Claude2ToolCallingChain(LLMChain):
     
     @classmethod
     def parse_function_calls_from_ai_message(cls,message:AIMessage):
-        content = message.content + "</function_calls>"
+        content = "<thinking>" + message.content + "</function_calls>"
         function_calls:List[str] = re.findall("<function_calls>(.*?)</function_calls>", content,re.S)
-        # print(message.content)
-        # return {"function_calls":function_calls,"content":message.content}
         if not function_calls:
-            content = message.content
+            content = "<thinking>" +  message.content
 
         return {
                 "function_calls": function_calls,
                 "content": content
             } 
+
+    @classmethod
+    def create_chat_history(cls,x):
+        chat_history = x['chat_history'] + \
+            [{"role": MessageType.HUMAN_MESSAGE_TYPE,"content": x['query']}] + \
+            x['agent_chat_history']
+
+            
+        return chat_history
+    
         
     @classmethod
     def create_chain(cls, model_kwargs=None, **kwargs):
         model_kwargs = model_kwargs or {}
         tools:list = kwargs['tools']
         fewshot_examples = kwargs.get('fewshot_examples',[])
+        user_system_prompt = kwargs.get("system_prompt","")
         
         model_kwargs = {**cls.default_model_kwargs, **model_kwargs}
 
@@ -221,19 +254,21 @@ class Claude2ToolCallingChain(LLMChain):
             system_prompt = SYSTEM_MESSAGE_PROMPT.format(
                 tools=tools_formatted
             )
-         
+        
+        system_prompt = user_system_prompt + system_prompt 
         tool_calling_template = ChatPromptTemplate.from_messages(
             [
             SystemMessage(content=system_prompt),
-            ("placeholder", "{chat_history}")
+            ("placeholder", "{chat_history}"),
+            AIMessage(content="<thinking>")
         ])
 
         llm = Model.get_model(
             model_id=cls.model_id,
             model_kwargs=model_kwargs,
         )
-        chain = tool_calling_template \
-            | RunnableLambda(lambda x: print(x.messages) or x.messages ) \
+        chain = RunnableLambda.assign(chat_history=lambda x: cls.create_chat_history(x)) | tool_calling_template \
+            | RunnableLambda(lambda x: x.messages ) \
             | llm | RunnableLambda(lambda message:cls.parse_function_calls_from_ai_message(
                 message
             ))
@@ -242,18 +277,20 @@ class Claude2ToolCallingChain(LLMChain):
 
 
 class Claude21ToolCallingChain(Claude2ToolCallingChain):
-    model_id = "anthropic.claude-v2:1"
+    model_id = LLMModelType.CLAUDE_21
 
 
 class ClaudeInstanceToolCallingChain(Claude2ToolCallingChain):
-    model_id = "anthropic.claude-instant-v1"
+    model_id = LLMModelType.CLAUDE_INSTANCE
 
 
 class Claude3SonnetToolCallingChain(Claude2ToolCallingChain):
-    model_id = "anthropic.claude-3-sonnet-20240229-v1:0"
+    model_id = LLMModelType.CLAUDE_3_SONNET
 
 
 class Claude3HaikuToolCallingChain(Claude2ToolCallingChain):
-    model_id = "anthropic.claude-3-haiku-20240307-v1:0"
+    model_id = LLMModelType.CLAUDE_3_HAIKU
 
 
+class Claude35SonnetToolCallingChain(Claude2ToolCallingChain):
+    model_id = "anthropic.claude-3-5-sonnet-20240620-v1:0"

@@ -4,7 +4,7 @@ dotenv.load_dotenv()
 # os.environ['LAMBDA_INVOKE_MODE'] = 'local'
 sys.path.extend([".",'common_logic'])
 
-from common_utils.lambda_invoke_utils import invoke_lambda
+from common_logic.common_utils.lambda_invoke_utils import invoke_lambda
 
 
 def test_local():

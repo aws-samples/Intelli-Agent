@@ -1,23 +1,48 @@
 import json
 import logging
 import os
+from datetime import datetime
 
-# from llmbot_utils import concat_recall_knowledge
 
 import boto3
+from langchain_openai import ChatOpenAI
 from langchain_community.chat_models import BedrockChat
 from langchain_community.llms.sagemaker_endpoint import LineIterator
 
-from common_utils.constant import MessageType
-from common_utils.logger_utils import logger
+from common_logic.common_utils.constant import (
+    MessageType,
+    LLMModelType
+)
+from common_logic.common_utils.logger_utils import get_logger
 
 AI_MESSAGE_TYPE = MessageType.AI_MESSAGE_TYPE
 HUMAN_MESSAGE_TYPE = MessageType.HUMAN_MESSAGE_TYPE
 SYSTEM_MESSAGE_TYPE = MessageType.SYSTEM_MESSAGE_TYPE
 
+logger = get_logger("llm_model")
 
-logger = logging.getLogger("llm_model")
-logger.setLevel(logging.INFO)
+
+
+class ModeMixins:
+    @staticmethod
+    def convert_messages_role(messages:list[dict],role_map:dict):
+        """
+        Args:
+            messages (list[dict]): 
+            role_map (dict): {"current_role":"targe_role"}
+
+        Returns:
+            _type_: as messages
+        """
+        valid_roles = list(role_map.keys())
+        new_messages = []
+        for message in messages:
+            message = {**message}
+            role = message['role']
+            assert role in valid_roles,(role,valid_roles,messages)
+            message['role'] = role_map[role]
+            new_messages.append(message)
+        return new_messages    
 
 
 class ModelMeta(type):
@@ -29,7 +54,7 @@ class ModelMeta(type):
         return new_cls
 
 
-class Model(metaclass=ModelMeta):
+class Model(ModeMixins,metaclass=ModelMeta):
     model_id = None
     model_map = {}
 
@@ -37,9 +62,9 @@ class Model(metaclass=ModelMeta):
     def get_model(cls, model_id, model_kwargs=None, **kwargs):
         return cls.model_map[model_id].create_model(model_kwargs=model_kwargs, **kwargs)
 
-
+# Bedrock model type
 class Claude2(Model):
-    model_id = "anthropic.claude-v2"
+    model_id = LLMModelType.CLAUDE_2
     default_model_kwargs = {"max_tokens": 2000, "temperature": 0.7, "top_p": 0.9}
 
     @classmethod
@@ -57,8 +82,6 @@ class Claude2(Model):
             or os.environ.get("AWS_REGION", None)
             or None
         )
-        # return_chat_model=kwargs.get('return_chat_model',False)
-        # if return_chat_model:
         llm = BedrockChat(
             credentials_profile_name=credentials_profile_name,
             region_name=region_name,
@@ -70,26 +93,30 @@ class Claude2(Model):
 
 
 class ClaudeInstance(Claude2):
-    model_id = "anthropic.claude-instant-v1"
+    model_id = LLMModelType.CLAUDE_INSTANCE
 
 
 class Claude21(Claude2):
-    model_id = "anthropic.claude-v2:1"
+    model_id = LLMModelType.CLAUDE_21
 
 
 class Claude3Sonnet(Claude2):
-    model_id = "anthropic.claude-3-sonnet-20240229-v1:0"
+    model_id = LLMModelType.CLAUDE_3_SONNET
 
 
 class Claude3Haiku(Claude2):
-    model_id = "anthropic.claude-3-haiku-20240307-v1:0"
+    model_id = LLMModelType.CLAUDE_3_HAIKU
+
+
+class Claude35Sonnet(Claude2):
+    model_id = "anthropic.claude-3-5-sonnet-20240620-v1:0"
 
 
 class Mixtral8x7b(Claude2):
-    model_id = "mistral.mixtral-8x7b-instruct-v0:1"
+    model_id = LLMModelType.MIXTRAL_8X7B_INSTRUCT
     default_model_kwargs = {"max_tokens": 4096, "temperature": 0.01}
 
-
+# Sagemker Inference type
 class SagemakerModelBase(Model):
     default_model_kwargs = None
     content_type = "application/json"
@@ -164,7 +191,7 @@ class SagemakerModelBase(Model):
 
 
 class Baichuan2Chat13B4Bits(SagemakerModelBase):
-    model_id = "Baichuan2-13B-Chat-4bits"
+    model_id = LLMModelType.BAICHUAN2_13B_CHAT
     # content_handler=Baichuan2ContentHandlerChat()
     default_model_kwargs = {
         "max_new_tokens": 2048,
@@ -223,7 +250,7 @@ class Baichuan2Chat13B4Bits(SagemakerModelBase):
 
 
 class Internlm2Chat7B(SagemakerModelBase):
-    model_id = "internlm2-chat-7b"
+    model_id = LLMModelType.INTERNLM2_CHAT_7B
     default_model_kwargs = {
         "max_new_tokens": 1024,
         "timeout": 60,
@@ -250,31 +277,102 @@ class Internlm2Chat7B(SagemakerModelBase):
 
 
 class Internlm2Chat20B(Internlm2Chat7B):
-    model_id = "internlm2-chat-20b"
+    model_id = LLMModelType.INTERNLM2_CHAT_20B
 
-# class ChatGPT35(Model):
-#     model_id = "gpt-3.5-turbo-0125"
-#     default_model_kwargs = {"max_tokens": 2000, "temperature": 0.7, "top_p": 0.9}
 
-#     @classmethod
-#     def create_model(cls, model_kwargs=None, **kwargs):
-#         model_kwargs = model_kwargs or {}
-#         model_kwargs = {**cls.default_model_kwargs, **model_kwargs}
+class GLM4Chat9B(SagemakerModelBase):
+    model_id = LLMModelType.GLM_4_9B_CHAT
+    default_model_kwargs = {
+        "max_new_tokens": 1024,
+        "timeout": 60,
+        "temperature": 0.1,
+    }
+    role_map={
+                MessageType.SYSTEM_MESSAGE_TYPE: 'system',
+                MessageType.HUMAN_MESSAGE_TYPE: 'user',
+                MessageType.AI_MESSAGE_TYPE: "assistant",
+                MessageType.TOOL_MESSAGE_TYPE:  "observation"
+            }
 
-#         credentials_profile_name = (
-#             kwargs.get("credentials_profile_name", None)
-#             or os.environ.get("AWS_PROFILE", None)
-#             or None
-#         )
-#         region_name = (
-#             kwargs.get("region_name", None)
-#             or os.environ.get("AWS_REGION", None)
-#             or None
-#         )
+    def transform_input(self, x:dict):
+        _chat_history = self.convert_messages_role(
+            x['chat_history'],
+            role_map=self.role_map
+        )
+        chat_history = []
+        for message in _chat_history:
+            if message['role'] == "assistant":
+                content = message['content']
+                if not content.endswith("<|observation|>"):
+                    if not content.endswith("<|user|>"):
+                        message['content'] = message['content'] + "<|user|>"
+            chat_history.append(message)
+                
+        logger.info(f"glm chat_history: {chat_history}")
+        body = {
+            "chat_history": chat_history,
+            "stream": x["stream"],
+            **self.model_kwargs
+        }
+        input_str = json.dumps(body)
+        return input_str
 
-#         llm = ChatOpenAI(
-#             model=cls.model_id,
-#             model_kwargs=model_kwargs,
-#         )
+class Qwen2Instruct7B(SagemakerModelBase):
+    model_id = LLMModelType.QWEN2INSTRUCT7B
+    default_model_kwargs = {
+        "max_tokens": 1024,
+        "temperature": 0.1,
+    }
+    role_map={
+                MessageType.SYSTEM_MESSAGE_TYPE: 'system',
+                MessageType.HUMAN_MESSAGE_TYPE: 'user',
+                MessageType.AI_MESSAGE_TYPE: "assistant"
+            }
 
-#         return llm
+    def transform_input(self, x:dict):
+        chat_history = self.convert_messages_role(
+            x['chat_history'],
+            role_map=self.role_map
+        )
+        
+        body = {
+            "chat_history": chat_history,
+            "stream": x["stream"],
+            **self.model_kwargs
+        }
+        logger.info(f"qwen body: {body}")
+        input_str = json.dumps(body)
+        return input_str
+
+
+class Qwen2Instruct72B(Qwen2Instruct7B):
+    model_id = LLMModelType.QWEN2INSTRUCT72B
+
+
+# ChatGPT model type
+class ChatGPT35(Model):
+    model_id = "gpt-3.5-turbo-0125"
+    default_model_kwargs = {"max_tokens": 2000, "temperature": 0.7, "top_p": 0.9}
+
+    @classmethod
+    def create_model(cls, model_kwargs=None, **kwargs):
+        model_kwargs = model_kwargs or {}
+        model_kwargs = {**cls.default_model_kwargs, **model_kwargs}
+
+        credentials_profile_name = (
+            kwargs.get("credentials_profile_name", None)
+            or os.environ.get("AWS_PROFILE", None)
+            or None
+        )
+        region_name = (
+            kwargs.get("region_name", None)
+            or os.environ.get("AWS_REGION", None)
+            or None
+        )
+
+        llm = ChatOpenAI(
+            model=cls.model_id,
+            model_kwargs=model_kwargs,
+        )
+
+        return llm

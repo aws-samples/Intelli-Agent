@@ -86,7 +86,7 @@ def remote_proxy_call(**args):
         return None
     
 
-def query_ec2_price(**args) -> Union[str,None]:  
+def query_ec2_price(args) -> Union[str,None]:
     request = EC2PriceRequest(**args)
     region = request.region
     term = request.term
@@ -183,9 +183,9 @@ def lambda_handler(event, context=None):
         }"
     }
     '''
-    result = query_ec2_price(**event)
+    result = query_ec2_price(event["kwargs"])
     return {"code":0, "result": result}
 
 if __name__ == "__main__":
     args = {'instance_type':'m5.xlarge','region':'us-east-1','term':'Reserved','purchase_option':'All Upfront'}
-    print(query_ec2_price(**args))
+    print(query_ec2_price(args))

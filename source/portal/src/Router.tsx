@@ -10,6 +10,7 @@ import ReSignIn from './comps/ReSignIn';
 import { useTranslation } from 'react-i18next';
 import SessionHistory from './pages/history/SessionHistory';
 import SessionDetail from './pages/history/SessionDetail';
+import PromptList from './pages/prompts/PromptList';
 
 const LoginCallback: React.FC = () => {
   const gotoBasePage = () => {
@@ -35,6 +36,7 @@ const SignedInRouter = () => {
         <Route path="/library/detail/:id" element={<LibraryDetail />} />
         <Route path="/sessions" element={<SessionHistory />} />
         <Route path="/session/detail/:id" element={<SessionDetail />} />
+        <Route path="/prompts" element={<PromptList />} />
       </Routes>
       <CommonAlert />
     </BrowserRouter>

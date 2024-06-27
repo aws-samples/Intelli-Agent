@@ -1,6 +1,6 @@
-from common_utils.logger_utils  import get_logger
-from lambda_llm_generate.llm_generate_utils.llm_utils import LLMChain
-from common_utils.lambda_invoke_utils import chatbot_lambda_call_wrapper
+from common_logic.common_utils.logger_utils  import get_logger
+from lambda_llm_generate.llm_generate_utils import LLMChain
+from common_logic.common_utils.lambda_invoke_utils import chatbot_lambda_call_wrapper
 
 
 logger = get_logger("llm_generate")
@@ -15,9 +15,6 @@ def lambda_handler(event_body, context=None):
         **llm_chain_config
     )
     output = chain.invoke(llm_chain_inputs)
-    # response = {"statusCode": 200, "headers": {"Content-Type": "application/json"}}
-    # state["answer"] = "finish llm generate test"
-    # response["body"] = {"state": state}
 
     return output
 
