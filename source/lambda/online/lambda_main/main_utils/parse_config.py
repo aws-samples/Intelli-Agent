@@ -1,7 +1,7 @@
 import collections.abc
 import copy
 import os
-from common_utils.constant import ChatbotMode
+from common_logic.common_utils.constant import ChatbotMode
 
 # update nest dict
 def update_nest_dict(d, u):
@@ -43,7 +43,7 @@ def parse_common_entry_config(chatbot_config):
         "enable_trace": True,
         "agent_recursion_limit": 5,
         "query_process_config": {
-            "conversation_query_rewrite_config": {**default_llm_config}
+            "conversation_query_rewrite_config": {**copy.deepcopy(default_llm_config)}
         },
         "intention_config": {
             "retrievers": [
@@ -56,7 +56,7 @@ def parse_common_entry_config(chatbot_config):
                 },
             ]
         },
-        "agent_config": {**default_llm_config, "tools": []},
+        "agent_config": {**copy.deepcopy(default_llm_config), "tools": []},
         "tool_execute_config": {
             "knowledge_base_retriever": {
                 "retrievers": [
@@ -69,7 +69,7 @@ def parse_common_entry_config(chatbot_config):
             }
         },
         "chat_config": {
-            **default_llm_config,
+            **copy.deepcopy(default_llm_config),
         },
         "all_index_retriever_config":{
             "retrievers": [
@@ -106,7 +106,7 @@ def parse_common_entry_config(chatbot_config):
                 ],
             },
             "llm_config": {
-                **default_llm_config,
+                **copy.deepcopy(default_llm_config),
             },
         },
         "aws_qa_config": {
@@ -131,7 +131,7 @@ def parse_common_entry_config(chatbot_config):
                 ],
             },
             "llm_config":{
-                **default_llm_config,
+                **copy.deepcopy(default_llm_config),
             }
         },
     }
@@ -175,7 +175,7 @@ def parse_retail_entry_config(chatbot_config):
         "enable_trace": False,
         "agent_recursion_limit": 3,
         "query_process_config": {
-            "conversation_query_rewrite_config": {**default_llm_config}
+            "conversation_query_rewrite_config": copy.deepcopy(default_llm_config)
         },
         "intention_config": {
             "query_key": "query_rewrite",
@@ -189,7 +189,7 @@ def parse_retail_entry_config(chatbot_config):
                 },
             ]
         },
-        "agent_config": {**default_llm_config, "tools": []},
+        "agent_config": {**copy.deepcopy(default_llm_config), "tools": []},
         "tool_execute_config": {
             "knowledge_base_retriever": {
                 "retrievers": [
@@ -202,7 +202,7 @@ def parse_retail_entry_config(chatbot_config):
             }
         },
         "chat_config": {
-            **default_llm_config,
+            **copy.deepcopy(default_llm_config),
         },
         "rag_goods_exchange_config": {
             "retriever_config": {
@@ -217,7 +217,7 @@ def parse_retail_entry_config(chatbot_config):
                 ]
             },
             "llm_config": {
-                **default_llm_config,
+                **copy.deepcopy(default_llm_config),
             },
         },
         "rag_daily_reception_config": {
@@ -233,7 +233,7 @@ def parse_retail_entry_config(chatbot_config):
                 ]
             },
             "llm_config": {
-                **default_llm_config,
+                **copy.deepcopy(default_llm_config),
             },
         },
         "rag_product_aftersales_config": {
@@ -258,7 +258,7 @@ def parse_retail_entry_config(chatbot_config):
                 ],
             },
             "llm_config":{
-                **default_llm_config,
+                **copy.deepcopy(default_llm_config),
             }
         },
         "rag_customer_complain_config": {
@@ -283,7 +283,7 @@ def parse_retail_entry_config(chatbot_config):
                 ],
             },
             "llm_config":{
-                **default_llm_config,
+                **copy.deepcopy(default_llm_config),
             }
         },
         "rag_promotion_config": {
@@ -308,7 +308,7 @@ def parse_retail_entry_config(chatbot_config):
                 ],
             },
             "llm_config":{
-                **default_llm_config,
+                **copy.deepcopy(default_llm_config),
             }
         },
         "final_rag_retriever": {
@@ -333,7 +333,7 @@ def parse_retail_entry_config(chatbot_config):
                 ],
             },
             "llm_config":{
-                **default_llm_config,
+                **copy.deepcopy(default_llm_config),
             }
         },
     }

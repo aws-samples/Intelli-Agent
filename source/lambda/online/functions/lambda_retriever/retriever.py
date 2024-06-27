@@ -21,7 +21,7 @@ from langchain.schema.runnable import (
     RunnableLambda,
     RunnablePassthrough,
 )
-from common_utils.lambda_invoke_utils import chatbot_lambda_call_wrapper
+from common_logic.common_utils.lambda_invoke_utils import chatbot_lambda_call_wrapper
 
 logger = logging.getLogger("retriever")
 logger.setLevel(logging.INFO)

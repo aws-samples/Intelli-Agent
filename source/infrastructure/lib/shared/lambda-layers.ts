@@ -45,18 +45,6 @@ export class LambdaLayers {
     return LambdaEmbeddingLayer;
   }
 
-  createOnlineUtilsLayer() {
-    const LambdaOnlineUtilsLayer = new pyLambda.PythonLayerVersion(
-      this.scope,
-      "APILambdaOnlineUtilsLayer",
-      {
-        entry: path.join(__dirname, "../../../lambda/online/common_logic"),
-        compatibleRuntimes: [Runtime.PYTHON_3_12],
-        description: `LLM Bot - Online Utils layer`,
-      },
-    );
-    return LambdaOnlineUtilsLayer;
-  }
 
   createOnlineSourceLayer() {
     const LambdaOnlineSourceLayer = new pyLambda.PythonLayerVersion(
@@ -65,7 +53,10 @@ export class LambdaLayers {
       {
         entry: path.join(__dirname, "../../../lambda/online"),
         compatibleRuntimes: [Runtime.PYTHON_3_12],
-        description: `LLM Bot - Online Source layer`,
+        description: `Intelli agent - Online Source layer`,
+        bundling: {
+          assetExcludes: ["*.pyc","*/__pycache__/*","*.xls","*.jsonl","*.xlsx","*.csv","*.png","lambda_main/retail/size/*"],
+        }
       },
     );
     return LambdaOnlineSourceLayer;
@@ -78,7 +69,7 @@ export class LambdaLayers {
       {
         entry: path.join(__dirname, "../../../lambda/job/dep/llm_bot_dep"),
         compatibleRuntimes: [Runtime.PYTHON_3_12],
-        description: `LLM Bot - Job Source layer`,
+        description: `Intelli agent - Job Source layer`,
       },
     );
     return LambdaJobSourceLayer;

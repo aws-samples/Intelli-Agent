@@ -158,6 +158,11 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
                     text: t('docLibrary'),
                     href: '/library',
                   },
+                  {
+                    type: 'link',
+                    text: t('prompt'),
+                    href: '/prompts',
+                  },
                 ],
               },
               { type: 'divider' },

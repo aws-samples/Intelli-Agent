@@ -404,7 +404,11 @@ tool_manager.register_tool({
     "lambda_module_path": "functions.retail_tools.lambda_size_guide.size_guide",
     "tool_def": {
         "name": "size_guide",
-        "description": "size guide for customer, if the customer's weight unit is 斤, you should convert it to kg, 1斤=0.5kg",
+        "description": """size guide for customer
+            Step1: Determin what type of goods the customer wants to buy according to the goods information in <goods_info></goods_info> xml tag, such as shoes or apparel.
+            Step2: If the customer wants to buy shoes, you should provide the customer's shoes_size or foot_length.
+            Step3: If the customer wants to buy apparel, you should provide the customer's height and weight.
+            Notice: if the customer's weight unit is 斤, you should convert it to kg, 1斤=0.5kg""",
         "parameters": {
             "type": "object",
             "properties": {
@@ -439,7 +443,7 @@ tool_manager.register_tool({
     "lambda_module_path": "functions.retail_tools.lambda_product_information_search.product_information_search",
     "tool_def": {
         "name": "goods_info",
-        "description": "search the information of the product, 包括库存等信息。",
+        "description": "search the information of the product",
     },
     "running_mode": "output"
 })
@@ -541,8 +545,20 @@ tool_manager.register_tool(
         "lambda_name": "",
         "lambda_module_path": "functions.retail_tools.lambda_product_aftersales.product_aftersales",
         "tool_def": {
-                "name": "product_quality",
-                "description": "商品的售后处理，主要包括客户关于商品质量的抱怨等",
+            "name": "product_quality",
+            "description": "商品的售后处理，主要包括客户关于商品质量的抱怨，比如开胶等问题",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "shop": {
+                        "description": """The shop which the customer bought the product.
+                         If the customer do not provide the shop name, the shop name is 'tianmao' by default.
+                         The shop name must be in the list of ['tianmao', 'taobao','jingdong','dewu','other']""",
+                        "type": "str"
+                    }
+                },
+                "required": []
+            }
         },
         "running_mode": "output"
     }

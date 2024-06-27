@@ -36,8 +36,6 @@ def get_query_parameter(event, parameter_name, default_value=None):
 def lambda_handler(event, context):
 
     logger.info(event)
-    max_items = DEFAULT_MAX_ITEMS
-    page_size = DEFAULT_SIZE
     authorizer_type = event["requestContext"]["authorizer"].get("authorizerType")
     if authorizer_type == "lambda_authorizer":
         claims = json.loads(event["requestContext"]["authorizer"]["claims"])
@@ -45,8 +43,8 @@ def lambda_handler(event, context):
     else:
         raise Exception("Invalid authorizer type")
 
-    max_items = get_query_parameter(event, "max_items")
-    page_size = get_query_parameter(event, "page_size")
+    max_items = get_query_parameter(event, "max_items", DEFAULT_MAX_ITEMS)
+    page_size = get_query_parameter(event, "page_size", DEFAULT_SIZE)
     starting_token = get_query_parameter(event, "starting_token")
 
     config = {

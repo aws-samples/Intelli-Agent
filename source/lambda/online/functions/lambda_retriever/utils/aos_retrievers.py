@@ -8,7 +8,7 @@ from langchain.schema.retriever import BaseRetriever
 from langchain.callbacks.manager import CallbackManagerForRetrieverRun
 from langchain.docstore.document import Document
 
-from common_utils.time_utils import timeit
+from common_logic.common_utils.time_utils import timeit
 from .aos_utils import LLMBotOpenSearchClient
 from sm_utils import SagemakerEndpointVectorOrCross
 

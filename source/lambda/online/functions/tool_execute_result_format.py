@@ -2,8 +2,9 @@
 tool execute format
 """
 
-from common_utils.constant import (
-    LLMModelType
+from common_logic.common_utils.constant import (
+    LLMModelType,
+    MessageType
 )
 
 class FormatMeta(type):
@@ -88,7 +89,7 @@ class Claude3SonnetFormatToolResult(FormatToolResult):
         ret = "\n".join(tool_call_result_strs)
         return {
             "tool_message": {
-                "role":"user",
+                "role": MessageType.HUMAN_MESSAGE_TYPE,
                 "content": ret
             }
         }
@@ -132,10 +133,36 @@ class GLM4Chat9BFormatToolResult(FormatToolResult):
         ret = "\n".join(tool_call_result_strs)
         return {
             "tool_message": {
-                "role":"observation",
+                "role": MessageType.TOOL_MESSAGE_TYPE,
                 "content": ret
             }
         }
+
+class Qwen2Instruct7BFormatToolResult(FormatToolResult):
+    model_id = LLMModelType.QWEN2INSTRUCT7B
+    FN_RESULT = '✿RESULT✿'
+    FN_EXIT = '✿RETURN✿'
+
+    @classmethod
+    def format(cls,tool_call_outputs:list[dict]):
+        tool_call_result_strs = []
+        for tool_call_result in tool_call_outputs:
+            tool_exe_output = tool_call_result['output']
+            result = tool_exe_output["result"]
+            tool_call_result_strs.append(f'\n{cls.FN_RESULT}: {result}\n{cls.FN_EXIT}:')
+        
+        ret = "\n".join(tool_call_result_strs)
+        return {
+            "tool_message": {
+                "role": MessageType.TOOL_MESSAGE_TYPE,
+                "content": ret
+            }
+        }
+
+
+class Qwen2Instruct72BFormatToolResult(Qwen2Instruct7BFormatToolResult):
+    model_id = LLMModelType.QWEN2INSTRUCT72B
+
 
 format_tool_call_results = FormatToolResult.format
 
