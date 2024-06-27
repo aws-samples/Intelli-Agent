@@ -438,15 +438,36 @@ export class ApiConstruct extends Construct {
       identitySources: [apigw.IdentitySource.header('Authorization')],
     });
 
-    const methodOption = {
-      authorizer: auth,
-    };
-
     // Define the API Gateway Lambda Integration with proxy and no integration responses
     const lambdaEmbeddingIntegration = new apigw.LambdaIntegration(
       embeddingLambda,
       { proxy: true },
     );
+
+    const methodOption = {
+      authorizer: auth,
+      methodResponses: [
+        {
+          statusCode: '200',
+          responseParameters: {
+            'method.response.header.Access-Control-Allow-Origin': true,
+            'method.response.header.Access-Control-Allow-Methods': true,
+          },
+        },
+        {
+          statusCode: '400',
+          responseModels: {
+            'application/json': apigw.Model.EMPTY_MODEL,
+          },
+        },
+        {
+          statusCode: '500',
+          responseModels: {
+            'application/json': apigw.Model.EMPTY_MODEL,
+          },
+        }
+      ]
+    };
 
     // Define the API Gateway Method
     const apiResourceEmbedding = api.root.addResource("extract");
@@ -484,6 +505,7 @@ export class ApiConstruct extends Construct {
       "POST",
       new apigw.LambdaIntegration(sfnLambda),
       methodOption,
+      
     );
 
     const apiGetExecution = apiResourceStepFunction.addResource("execution");
