@@ -222,14 +222,14 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
         ).rstrip()
 
 
-    @staticmethod
-    def format_fewshot_examples(fewshot_examples:list[dict]):
+    @classmethod
+    def format_fewshot_examples(cls,fewshot_examples:list[dict]):
         fewshot_example_strs = []
         for i,example in enumerate(fewshot_examples):
             query = example['query']
             name = example['name']
             kwargs = example['kwargs']
-            fewshot_example_str = f"## 示例{i+1}\n### 输入:\n{query}\n### 调用工具:\n{name}"
+            fewshot_example_str = f"## 示例{i+1}\n### 输入:\n{query}\n### 输出:\n{cls.FN_NAME}: {name}\n{cls.FN_ARGS}: {json.dumps(kwargs,ensure_ascii=False)}\n{cls.FN_RESULT}"
             fewshot_example_strs.append(fewshot_example_str)
         return "\n\n".join(fewshot_example_strs)
      
@@ -241,7 +241,6 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
         tool_system = cls.FN_CALL_TEMPLATE.format(
             tool_descs=tool_descs,
             tool_names=tool_names
-            
         )
         fewshot_examples_str = ""
         if fewshot_examples:
