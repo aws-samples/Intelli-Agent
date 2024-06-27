@@ -86,17 +86,33 @@ def combine_goods_dict(goods_dict_list):
 def trans_goods_info_dict_to_jsonl(goods_info_dict, goods_info_jsonl_file_path):
     with open(goods_info_jsonl_file_path, "w") as f:
         for goods_id in goods_info_dict:
-            goods_info = goods_info_dict[goods_id]["goods_info"]
+            goods_info_str = goods_info_dict[goods_id]["goods_info"]
             goods_url = goods_info_dict[goods_id]["goods_url"]
             goods_type = goods_info_dict[goods_id].get("goods_type", "")
-            json_data = {
-                "question": goods_info,
+            all_json_data = {
+                "question": goods_info_str,
                 "answer": {
                     "goods_url": goods_url,
+                    "goods_info": goods_info_str,
+                    "goods_id": goods_id,
                     "goods_type": goods_type
                 }
             }
-            f.write(json.dumps(json_data, ensure_ascii=False) + "\n")
+            f.write(json.dumps(all_json_data, ensure_ascii=False) + "\n")
+            goods_info = json.loads(goods_info_str)
+            for key in goods_info:
+                if type(goods_info[key]) != str or len(goods_info[key]) <= 0:
+                    continue
+                json_data = {
+                    "question": f"{key}: {goods_info[key]}",
+                    "answer": {
+                        "goods_url": goods_url,
+                        "goods_info": goods_info_str,
+                        "goods_id": goods_id,
+                        "goods_type": goods_type
+                    }
+                }
+                f.write(json.dumps(json_data, ensure_ascii=False) + "\n")
 
 def get_goods_type_1(file_name):
     if "鞋" in file_name:
@@ -219,12 +235,12 @@ upload_file_to_s3("aws-chatbot-knowledge-base-test", "retail_json/goods_info.jso
 trans_goods_info_dict_to_jsonl(combined_goods_dict, "../job/poc/goods_data/detail/goods_info.jsonl")
 
 # Get size information
-download_dir_from_s3("aws-chatbot-knowledge-base-test", "retail", "/tmp/functions/retail_tools/lambda_size_guide/")
-good2type_dict, size_dict = get_size_dict()
-patch_good2type_dict(good2type_dict)
-good2type_dict_json_file = "/tmp/functions/retail_tools/lambda_size_guide/good2type_dict.json"
-size_dict_json_file = "/tmp/functions/retail_tools/lambda_size_guide/size_dict.json"
-json.dump(good2type_dict, open(good2type_dict_json_file, "w"), ensure_ascii=False, indent=4)
-json.dump(size_dict, open(size_dict_json_file, "w"), ensure_ascii=False, indent=4)
-upload_file_to_s3("aws-chatbot-knowledge-base-test", "retail_json/good2type_dict.json", good2type_dict_json_file)
-upload_file_to_s3("aws-chatbot-knowledge-base-test", "retail_json/size_dict.json", size_dict_json_file)
+# download_dir_from_s3("aws-chatbot-knowledge-base-test", "retail", "/tmp/functions/retail_tools/lambda_size_guide/")
+# good2type_dict, size_dict = get_size_dict()
+# patch_good2type_dict(good2type_dict)
+# good2type_dict_json_file = "/tmp/functions/retail_tools/lambda_size_guide/good2type_dict.json"
+# size_dict_json_file = "/tmp/functions/retail_tools/lambda_size_guide/size_dict.json"
+# json.dump(good2type_dict, open(good2type_dict_json_file, "w"), ensure_ascii=False, indent=4)
+# json.dump(size_dict, open(size_dict_json_file, "w"), ensure_ascii=False, indent=4)
+# upload_file_to_s3("aws-chatbot-knowledge-base-test", "retail_json/good2type_dict.json", good2type_dict_json_file)
+# upload_file_to_s3("aws-chatbot-knowledge-base-test", "retail_json/size_dict.json", size_dict_json_file)
