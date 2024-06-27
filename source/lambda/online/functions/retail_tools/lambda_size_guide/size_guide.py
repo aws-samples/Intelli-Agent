@@ -4,10 +4,12 @@ import json
 
 import numpy as np
 
-from common_logic.common_utils.s3_utils import download_file_from_s3
+from common_logic.common_utils.s3_utils import download_file_from_s3, check_local_folder
 
 good2type_dict_path = "/tmp/functions/retail_tools/lambda_size_guide/good2type_dict.json"
 size_dict_path = "/tmp/functions/retail_tools/lambda_size_guide/size_dict.json"
+check_local_folder(good2type_dict_path)
+check_local_folder(size_dict_path)
 download_file_from_s3("aws-chatbot-knowledge-base-test", "retail_json/good2type_dict.json", good2type_dict_path)
 download_file_from_s3("aws-chatbot-knowledge-base-test", "retail_json/size_dict.json", size_dict_path)
 good2type_dict = json.load(open(good2type_dict_path))
