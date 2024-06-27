@@ -443,7 +443,7 @@ tool_manager.register_tool({
     "lambda_module_path": "functions.retail_tools.lambda_product_information_search.product_information_search",
     "tool_def": {
         "name": "goods_info",
-        "description": "search the information of the product",
+        "description": "search the information of the product, do not ask the user for more information",
     },
     "running_mode": "output"
 })
