@@ -57,6 +57,7 @@ class ChatbotState(TypedDict):
     parse_tool_calling_ok: bool
     query_rule_classification: str
     goods_info: None
+    human_goods_info: None
     agent_llm_type: str
     query_rewrite_llm_type: str
     agent_recursion_limit: int # agent recursion limit
@@ -494,7 +495,7 @@ def rule_url_reply(state:ChatbotState):
     else:
         goods_id = 0
     if goods_id in goods_dict:
-        return {"answer":f"您好，该商品的特点是:\n{state['goods_info']}"}
+        return {"answer":f"您好，该商品的特点是:\n{state['human_goods_info']}"}
     
     return {"answer":"您好"}
 
@@ -715,8 +716,10 @@ def retail_entry(event_body):
             else:
                 goods_info = ""
             goods_info += "<goods_info>\n"
+            human_goods_info = ""
             for k,v in _goods_info.items():
                 goods_info += f"{k}:{v}\n" 
+                human_goods_info += f"{k}:{v}\n" 
             goods_info += "</goods_info>"
     
     logger.info(f"goods_info: {goods_info}")
@@ -734,7 +737,7 @@ def retail_entry(event_body):
         "debug_infos": {},
         "extra_response": {},
         "goods_info":goods_info,
-        "human_goods_info":goods_info,
+        "human_goods_info":human_goods_info,
         "agent_llm_type": LLMTaskType.RETAIL_TOOL_CALLING,
         "query_rewrite_llm_type":LLMTaskType.RETAIL_CONVERSATION_SUMMARY_TYPE,
         "agent_recursion_limit": chatbot_config['agent_recursion_limit'],
