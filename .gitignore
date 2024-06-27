@@ -80,3 +80,4 @@ pem
 */ingestion.py
 poetry.lock
 .vscode/
+source/lambda/online/functions/retail_tools/lambda_product_information_search/retail/**/*.xlsx

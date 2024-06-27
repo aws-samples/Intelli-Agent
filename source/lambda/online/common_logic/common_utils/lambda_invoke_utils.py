@@ -126,7 +126,6 @@ class LambdaInvoker(BaseModel):
         handler_name="lambda_handler",
         apigetway_url=None,
     ):
-
         lambda_invoke_mode = lambda_invoke_mode or _lambda_invoke_mode
 
         assert LAMBDA_INVOKE_MODE.has_value(lambda_invoke_mode), (

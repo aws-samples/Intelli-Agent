@@ -295,6 +295,7 @@ def aws_qa_lambda(state: ChatbotState):
     contexts = [doc["page_content"] for doc in output["result"]["docs"]]
     return {"contexts": contexts}
 
+
 @node_monitor_wrapper
 def chat_llm_generate_lambda(state: ChatbotState):
     user_id = state['chatbot_config']['user_id']

@@ -237,6 +237,22 @@ def parse_retail_entry_config(chatbot_config):
                 **copy.deepcopy(default_llm_config),
             },
         },
+        "rag_delivery_track_config": {
+            "retriever_config": {
+                "retrievers": [
+                    {
+                        "type": "qq",
+                        "workspace_ids": ["retail-quick-reply"],
+                        "config": {
+                            "top_k": 5
+                        },
+                    },
+                ]
+            },
+            "llm_config": {
+                **copy.deepcopy(default_llm_config),
+            },
+        },
         "rag_product_aftersales_config": {
             "retriever_config":{
                 "retrievers": [

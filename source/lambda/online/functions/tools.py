@@ -12,6 +12,7 @@ class Tool(BaseModel):
     tool_def: dict = Field(description="tool definition")
     running_mode: str = Field(description="tool running mode, can be loop or output", default="loop")
     tool_def_type: ToolDefType = Field(description="tool definition type",default=ToolDefType.openai.value)
+    should_ask_parameter: str = Field(description="whether should ask about parameters of tools", default="True")
     
 
 class ToolManager:
@@ -479,9 +480,10 @@ tool_manager.register_tool({
     "lambda_module_path": "functions.retail_tools.lambda_order_info.order_info",
     "tool_def": {
         "name": "delivery_track",
-        "description": "query the delivery information",
+        "description": "查询物流信息，还包括有关于商品物流的问题，主要运费包括退货，换货，错发商品，漏发商品等。 也包括什么时候发货，发货地址等信息。用户不需要提供单号",
     },
-    "running_mode": "output"
+    "running_mode": "output",
+    "should_ask_parameter": "False",
 })
 
 tool_manager.register_tool({
