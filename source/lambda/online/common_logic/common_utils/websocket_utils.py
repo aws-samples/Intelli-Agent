@@ -27,7 +27,6 @@ def is_websocket_request(event):
     else:
         return False
 
-
 def load_ws_client(websocket_url):
     global ws_client
     if ws_client is None:

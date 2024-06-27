@@ -156,7 +156,7 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
         "temperature": 0.1,
     }
 
-    DATE_PROMPT = "当前日期: %Y-%m-%d"
+    DATE_PROMPT = "当前日期: %Y-%m-%d 。"
     FN_NAME = '✿FUNCTION✿'
     FN_ARGS = '✿ARGS✿'
     FN_RESULT = '✿RESULT✿'
@@ -185,16 +185,7 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
     
     FN_CALL_TEMPLATE=FN_CALL_TEMPLATE_INFO_ZH + '\n\n' + FN_CALL_TEMPLATE_FMT_ZH
 
-    SYSTEM_PROMPT="""你是安踏的客服助理小安, 主要职责是处理用户售前和售后的问题。当前日期: 2024-06-18
-请遵守下面的规范回答用户的问题。
-## 回答规范
-   - 如果用户的提供的信息不足以回答问题，尽量反问用户。
-   - 回答简洁明了，一句话以内。
-
-下面是当前用户正在浏览的商品信息:
-
-## 当前用户正在浏览的商品信息
-{goods_info}
+    SYSTEM_PROMPT="""你是安踏的客服助理小安, 主要职责是处理用户售前和售后的问题。{date_prompt}
 
 {tools}
 {fewshot_examples}
@@ -205,7 +196,15 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
     step 1. 判断是否需要使用某个工具。如果前面已经调用某些工具, 需要分析之前调用工具的结果来判断现在是否需要使用某个工具。
     step 2. 基于当前上下文检查需要调用的工具对应的参数是否充足。如果不需要使用任何工具，请直接输出回答。
 
-结束思考时候之后，要么直接进行工具调用，要么直接回复用户，不要输出冗余或者重复的内容。直接回复客户需要注意输出不超过一句话。
+    
+## 当前用户正在浏览的商品信息
+{goods_info}
+
+
+请遵守下面的规范回答用户的问题。
+## 回答规范
+   - 如果用户的提供的信息不足以回答问题，尽量反问用户。
+   - 回答简洁明了，一句话以内。
 """
     @classmethod
     def get_function_description(cls,tool:dict):
@@ -252,7 +251,8 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
         return cls.SYSTEM_PROMPT.format(
                 goods_info=goods_info,
                 tools=tool_system,
-                fewshot_examples=fewshot_examples_str
+                fewshot_examples=fewshot_examples_str,
+                date_prompt=datetime.now().strftime(cls.DATE_PROMPT)
             )
 
     @classmethod

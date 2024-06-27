@@ -32,14 +32,14 @@ dynamodb_resource = boto3.resource("dynamodb")
 prompt_table = dynamodb_resource.Table(prompt_table_name)
 
 
-def get_prompt(user_id: str, model_id: str, task_type: str):
-    response = prompt_table.get_item(
-            Key={"userId": user_id, "sortKey": f"{model_id}__{task_type}"}
-        )
-    item = response.get("Item")
-    if item:
-        return item.get("prompt")
-    return None
+# def get_prompt(user_id: str, model_id: str, task_type: str):
+#     response = prompt_table.get_item(
+#             Key={"userId": user_id, "sortKey": f"{model_id}__{task_type}"}
+#         )
+#     item = response.get("Item")
+#     if item:
+#         return item.get("prompt")
+#     return None
 
 
 def get_secret_value(secret_arn: str):
@@ -101,10 +101,12 @@ def lambda_handler(event_body:dict, context:dict):
     event_body['custom_message_id'] = custom_message_id
     event_body['ddb_history_obj'] = ddb_history_obj
     event_body['request_timestamp'] = request_timestamp
+    event_body['chatbot_config']['user_id'] = user_id
+
     event_body['message_id'] = str(uuid.uuid4())
-    event_body['chatbot_config']['prompt'] = get_prompt(user_id,
-                                event_body['chatbot_config']['default_llm_config']['model_id'],
-                                event_body['chatbot_config']['chatbot_mode'])
+    # event_body['chatbot_config']['prompt_templates'] = get_prompt(user_id,
+    #                             event_body['chatbot_config']['default_llm_config']['model_id'],
+    #                             event_body['chatbot_config']['chatbot_mode'])
 
     # logger.info(f"event_body:\n{json.dumps(event_body,ensure_ascii=False,indent=2,cls=JSONEncoder)}")
     entry_executor = get_entry(entry_type)

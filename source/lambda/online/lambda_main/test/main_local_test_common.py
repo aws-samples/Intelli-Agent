@@ -54,7 +54,7 @@ def complete_test():
   
 if __name__ == "__main__":
     # complete test for PR
-    # complete_test()
-    test_multi_turns_pr("agent")
+    complete_test()
+    # test_multi_turns_pr("agent")
 
     
