@@ -1,5 +1,13 @@
 import os
-from common_utils import s3_utils
+from common_logic.common_utils import s3_utils
+
+from dotenv import load_dotenv
+try:
+    load_dotenv(
+        dotenv_path=os.path.join(os.path.dirname(__file__),'../../online/lambda_main/test/.env')
+    )
+except:
+    print("cannot find .env")
 
 # run multiple process ingestion
 

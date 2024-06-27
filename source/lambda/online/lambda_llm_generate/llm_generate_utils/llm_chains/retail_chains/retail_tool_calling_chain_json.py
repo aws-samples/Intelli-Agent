@@ -205,6 +205,7 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
 ## 回答规范
    - 如果用户的提供的信息不足以回答问题，尽量反问用户。
    - 回答简洁明了，一句话以内。
+   {non_ask_rules}
 """
     @classmethod
     def get_function_description(cls,tool:dict):
@@ -247,11 +248,21 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
             fewshot_examples_str = "\n\n# 下面给出不同问题调用不同工具的例子。"
             fewshot_examples_str += f"\n\n{cls.format_fewshot_examples(fewshot_examples)}"
             fewshot_examples_str += "\n\n请参考上述例子进行工具调用。"
+        
+        non_ask_tool_list = []
+        for tool in tools:
+            if get_tool_by_name(tool['name']).should_ask_parameter== "False":
+                non_ask_tool_list.append(tool['name'])
+        if len(non_ask_tool_list) == 0:
+            non_ask_rules = ""
+        else:
+            non_ask_rules = "- 不要对" + '，'.join(non_ask_tool_list) + "工具进行反问。"
             
         return cls.SYSTEM_PROMPT.format(
                 goods_info=goods_info,
                 tools=tool_system,
                 fewshot_examples=fewshot_examples_str,
+                non_ask_rules=non_ask_rules,
                 date_prompt=datetime.now().strftime(cls.DATE_PROMPT)
             )
 

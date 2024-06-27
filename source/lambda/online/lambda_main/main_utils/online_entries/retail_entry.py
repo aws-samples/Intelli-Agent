@@ -104,6 +104,45 @@ def intention_detection_lambda(state: ChatbotState):
 @node_monitor_wrapper
 def agent_lambda(state: ChatbotState):
     goods_info = state.get('goods_info',None) or ""
+    agent_chat_history = state.get('agent_chat_history',"")
+    if agent_chat_history:
+        search_result = agent_chat_history[-1]['additional_kwargs']['original'][0].get('search_result',1)
+        if search_result == 0:
+            context = agent_chat_history[-1]['additional_kwargs']['original'][0].get('result',"")
+            system_prompt = dedent(f"""你是安踏的客服助理，正在帮消费者解答问题，消费者提出的问题大多是属于商品的质量和物流规则。context列举了一些可能有关的具体场景及回复，你可以进行参考:
+                            <context>
+                            {context}
+                            </context>
+                            你需要按照下面的guidelines对消费者的问题进行回答:
+                            <guidelines>
+                            - 回答内容要简洁。
+                            - 如果问题与context内容不相关，就不要采用。
+                            - 消费者的问题里面可能包含口语化的表达，比如鞋子开胶的意思是用胶黏合的鞋体裂开。这和胶丝遗留没有关系
+                            </guidelines>
+                            """)
+            query = state['query']
+            # print('llm config',state['chatbot_config']['rag_product_aftersales_config']['llm_config'])
+            output:str = invoke_lambda(
+                lambda_name='Online_LLM_Generate',
+                lambda_module_path="lambda_llm_generate.llm_generate",
+                handler_name='lambda_handler',
+                event_body={
+                    "llm_config": {**state['chatbot_config']['rag_product_aftersales_config']['llm_config'], "system_prompt": system_prompt, "intent_type": LLMTaskType.CHAT},
+                    "llm_input": { "query": query, "chat_history": state['chat_history']}
+                    }
+            )
+            current_agent_recursion_num = state['current_agent_recursion_num'] + 1
+            current_agent_output = {}
+            current_agent_output['agent_output'] = {}
+            current_agent_output['agent_output']['function_calls'] = []
+            current_agent_output['agent_output']['content'] = output
+            current_agent_output['current_agent_model_id'] = "qwen2-72B-instruct"
+            current_agent_output['current_agent_tools_def'] = []
+            return {
+                "current_agent_output": current_agent_output,
+                "current_agent_recursion_num": current_agent_recursion_num
+            }
+
     current_agent_output:dict = invoke_lambda(
         event_body={
             **state,
