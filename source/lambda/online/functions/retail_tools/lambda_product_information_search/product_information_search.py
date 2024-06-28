@@ -28,7 +28,7 @@ def lambda_handler(event_body, context=None):
     )
     goods_info_list = [doc['page_content'] for doc in output['result']['docs']]
 
-    query_goods_info = ("\n" + "="*50+ "\n").join(goods_info_list)
+    query_goods_info = "\n\n".join(goods_info_list)
     send_trace(f'**rag_goods_info_retriever** {context}', state["stream"], state["ws_connection_id"])
     result = f"**用户当前咨询的商品是** {context_goods_info}\n\n**用户可能想找的商品是** {query_goods_info}"
 

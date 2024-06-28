@@ -48,6 +48,19 @@ def test_multi_turns():
         {"query":"你好","goods_id": 760601512644}
     ]
     
+    # user_queries = [
+    #     {"query":"https://item.taobao.com/item.htm?id=714895530125 订单号:3822277356669723400\n共2件商品,合计￥887.39元 \n交易时间:2024-03-2216:20:52","goods_id": 714895530125},
+    #     {"query":"可以吧黑的换成燕麦色吗","goods_id": 714895530125},
+    #     {"query":"订单","goods_id": 714895530125},
+    #     {"query":"改一下","goods_id": 714895530125},
+    #     {"query":"我这边退了很麻烦 几个订单呢","goods_id": 714895530125},
+    #     {"query":"是的","goods_id": 714895530125},
+    #     {"query":"40","goods_id": 714895530125},
+    #     {"query":"对的","goods_id": 714895530125},
+    #     {"query":"👌","goods_id": 714895530125},
+    #     {"query":"谢谢","goods_id": 714895530125},
+    # ]
+    
     # goods_id = 653918410246
     # user_queries = [
     #     {"query":"http://item.taobao.com/item.htm?id=653918410246","goods_id":653918410246},
@@ -266,9 +279,9 @@ def complete_test():
 
 if __name__ == "__main__":
     # complete_test()
-    # test_multi_turns()
+    test_multi_turns()
     # test_multi_turns_pr("agent")
-    batch_test(data_file="/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/customer_poc/anta/anta_batch_test - batch-test-csv-file-626.csv")
+    # batch_test(data_file="/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/customer_poc/anta/anta_batch_test - batch-test-csv-file-626.csv")
     # batch_test()
     # test(
     #     chatbot_mode='agent',

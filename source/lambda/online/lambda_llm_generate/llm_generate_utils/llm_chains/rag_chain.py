@@ -124,7 +124,7 @@ class Qwen2Instruct7BRagChain(Qwen2Instruct7BChatChain):
                 prompt_name="system_prompt"     
             ).prompt_template
         
-        context = ("\n" + "="*50+ "\n").join(x['contexts'])
+        context = ("\n\n").join(x['contexts'])
         system_prompt = system_prompt.format(context=context)
         return super().create_chat_history(x,system_prompt=system_prompt)
 
