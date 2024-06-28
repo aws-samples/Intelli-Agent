@@ -255,12 +255,14 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
         
         non_ask_tool_list = []
         for tool in tools:
-            if get_tool_by_name(tool['name']).should_ask_parameter== "False":
-                non_ask_tool_list.append(tool['name'])
+            should_ask_parameter = get_tool_by_name(tool['name']).should_ask_parameter
+            if should_ask_parameter != "True":
+                format_string = tool['name']+"工具"+should_ask_parameter
+                non_ask_tool_list.append(format_string)
         if len(non_ask_tool_list) == 0:
             non_ask_rules = ""
         else:
-            non_ask_rules = "\n - 不要对" + '，'.join(non_ask_tool_list) + "工具进行反问。"
+            non_ask_rules = "\n - " + '，'.join(non_ask_tool_list)
             
         return cls.SYSTEM_PROMPT.format(
                 goods_info=goods_info,
