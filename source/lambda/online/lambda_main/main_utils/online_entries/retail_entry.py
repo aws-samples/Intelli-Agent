@@ -498,7 +498,7 @@ def final_rag_retriever_lambda(state: ChatbotState):
 
 @node_monitor_wrapper
 def final_rag_llm_lambda(state:ChatbotState):
-    context = ("="*50).join(state['contexts'])
+    context = "\n\n".join(state['contexts'])
     system_prompt = ("你是安踏的客服助理，正在帮消费者解答售前或者售后的问题。 <context> 中列举了一些可能有关的具体场景及回复，你可以进行参考:\n"
                     "<context>\n"
                     f"{context}\n"
@@ -553,7 +553,28 @@ def rule_url_reply(state:ChatbotState):
     else:
         goods_id = 0
     if goods_id in goods_dict:
-        return {"answer":f"您好，该商品的特点是:\n{state['human_goods_info']}"}
+        # call llm to make summary of goods info
+        human_goods_info = state['human_goods_info']
+        output = f"您好，该商品的特点是:\n{human_goods_info}"
+        if human_goods_info:
+            system_prompt = (f"你是安踏的客服助理，当前用户对下面的商品感兴趣:\n"
+                        f"<goods_info>\n{human_goods_info}\n</goods_info>\n"
+                        "请你结合商品的基础信息，特别是卖点信息返回一句推荐语。"
+                    )
+            output:str = invoke_lambda(
+                lambda_name='Online_LLM_Generate',
+                lambda_module_path="lambda_llm_generate.llm_generate",
+                handler_name='lambda_handler',
+                event_body={
+                    "llm_config": {
+                        **state['chatbot_config']['rag_daily_reception_config']['llm_config'], 
+                        "system_prompt": system_prompt,
+                        "intent_type": LLMTaskType.CHAT},
+                    "llm_input": {"query": state['query'], "chat_history": state['chat_history']}
+                        }
+                    )
+         
+        return {"answer":output}
     
     return {"answer":"您好"}
 
