@@ -17,7 +17,7 @@ embedding_model_endpoint = "embedding-and-reranker-bce-embedding-and-bge-reranke
 s3_bucket = "aws-chatbot-knowledge-base-test"
 s3_prefix_list = ["retail/quick_reply/quick_reply_ingestion_data.jsonl",
                   "retail/intent_data/intent_ingestion_data.jsonl",
-                  "retail/quick_reply/quick_reply_ingestion_data.jsonl",
+                  "retail/quick_reply/shouhou_wuliu.jsonl",
                   "retail/goods_info/goods_info.jsonl",
                   "demo/yb_aos_examples.jsonl"]
 workspace_id_list = ["retail-quick-reply", "retail-intent", "retail-shouhou-wuliu", "goods_info", "yb_intent"]
@@ -34,12 +34,12 @@ index_type_list = index_type_list[3:4]
 op_type_list = op_type_list[3:4]
 local_file_list = local_file_list[3:4]
 
-for s3_prefix, workspace_id, index_type, local_file in zip(s3_prefix_list, workspace_id_list, index_type_list, local_file_list):
+for s3_prefix, workspace_id, index_type, local_file, op_type in zip(s3_prefix_list, workspace_id_list, index_type_list, local_file_list, op_type_list):
     s3_utils.delete_s3_file(s3_bucket, s3_prefix)
     s3_utils.upload_file_to_s3(s3_bucket, s3_prefix, local_file)
     for i in range(process_number):
         command = f"python3 glue-job-script.py --batch_indice {i} --batch_file_number {batch_file_number} \
                 --s3_prefix {s3_prefix} --s3_bucket {s3_bucket} --workspace_id {workspace_id} \
-                --index_type {index_type} --embedding_model_endpoint {embedding_model_endpoint} --operation_type=update"
+                --index_type {index_type} --embedding_model_endpoint {embedding_model_endpoint} --operation_type={op_type}"
         print(command)
         os.system(command)
