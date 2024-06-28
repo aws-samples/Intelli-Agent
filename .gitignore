@@ -80,3 +80,4 @@ pem
 */ingestion.py
 poetry.lock
 .vscode/
+.DS_Store

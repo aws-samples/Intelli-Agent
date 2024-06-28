@@ -187,6 +187,9 @@ export class RootStack extends Stack {
     new CfnOutput(this, "WebSocket Endpoint Address", {
       value: apiConstruct.wsEndpoint,
     });
+    new CfnOutput(this, "oidcClientId", {
+      value: userConstruct.oidcClientId,
+    });
   }
 
   private setBuildConfig() {
