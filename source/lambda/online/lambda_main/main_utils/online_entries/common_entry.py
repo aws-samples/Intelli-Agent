@@ -594,7 +594,7 @@ def common_entry(event_body):
     if is_running_local():
         with open("common_entry_workflow.png", "wb") as f:
             f.write(app.get_graph().draw_png())
-
+            
     ################################################################################
     # prepare inputs and invoke graph
     event_body["chatbot_config"] = parse_common_entry_config(
