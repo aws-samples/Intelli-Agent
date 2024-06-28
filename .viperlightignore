@@ -5,6 +5,7 @@ tests/buildspec_build.sh
 api_test/buildspec.yaml
 api_test/biz_logic/generated-client-rest-api/setup.py
 api_test/biz_logic/generated-client-rest-api/pyproject.toml
+api_test/test_data/*
 source/portal/src/utils/const.ts
 source/lambda/online/lambda_main/test/main_local_test_retail.py
 source/lambda/online/functions/retail_tools/lambda_product_information_search/product_information_search.py
