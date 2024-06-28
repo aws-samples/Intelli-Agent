@@ -20,7 +20,7 @@ def lambda_handler(event_body, context=None):
 #     如果遇到是关于是关于发货的问题，请回答‘根据您的问题,FILA实施全国多仓发货,下单后正常会48小时内帮您安排发货的哦。如果超过48小时还未发货,您可以随时联系我们客服,我们会尽快为您解决。’
 # """
     result = order_dict.get(goods_id, {}).get("status","") 
-
+    
     if result == "":
         search_result = 0
         retriever_params = state["chatbot_config"]["rag_delivery_track_config"]["retriever_config"]
@@ -34,6 +34,7 @@ def lambda_handler(event_body, context=None):
         contexts = [doc['page_content'] for doc in output['result']['docs']]
 
         result = "\n\n".join(contexts)
+
         # search_result = f"当前没有查询到相关内容，请参考下面的内容，用一句话进行简洁回复:\n<内容>\n{result}\n</内容>"
         # result = search_result
         # result = contexts

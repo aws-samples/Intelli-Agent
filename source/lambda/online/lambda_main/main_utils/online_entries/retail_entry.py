@@ -119,6 +119,7 @@ def agent_lambda(state: ChatbotState):
                             " - 回答内容为一句话，言简意赅。\n"
                             " - 如果问题与context内容不相关，就不要采用。\n"
                             " - 消费者的问题里面可能包含口语化的表达，比如鞋子开胶的意思是用胶黏合的鞋体裂开。这和胶丝遗留没有关系。\n"
+                            ' - 如果问题涉及到订单号，请回复: "请稍等，正在帮您查询订单。"'
                             "</guidelines>"
                             )
             query = state['query']
@@ -780,18 +781,19 @@ def retail_entry(event_body):
     goods_id = str(event_body['chatbot_config']['goods_id'])
     if goods_id:
         try:
-            _goods_info = json.loads(goods_dict.get(goods_id,None).get("goods_info",None))
-            _goods_type = goods_dict.get(goods_id,None).get("goods_type",None)
+            _goods_info = json.loads(goods_dict.get(goods_id,{}).get("goods_info",""))
+            _goods_type = goods_dict.get(goods_id,{}).get("goods_type","")
         except Exception as e:
             import traceback 
             error = traceback.format_exc()
             logger.error(f"error meesasge {error}, invalid goods_id: {goods_id}")
             _goods_info = None
-
+        
+        human_goods_info = ""
         if _goods_info:
             logger.info(_goods_info)
             if _goods_type:
-                goods_info = f"商品类型: <goods_type>{_goods_type}</goods_type>\n"
+                goods_info = f"商品类型: \n<goods_type>\n{_goods_type}\n</goods_type>\n"
             else:
                 goods_info = ""
             goods_info += "<goods_info>\n"
@@ -799,7 +801,7 @@ def retail_entry(event_body):
             for k,v in _goods_info.items():
                 goods_info += f"{k}:{v}\n" 
                 human_goods_info += f"{k}:{v}\n" 
-            goods_info += "</goods_info>"
+            goods_info += "\n</goods_info>"
     
     logger.info(f"goods_info: {goods_info}")
     # invoke graph and get results
