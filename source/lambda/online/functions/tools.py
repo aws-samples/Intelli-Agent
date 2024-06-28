@@ -330,14 +330,14 @@ tool_manager.register_tool({
         "name": "daily_reception",
         "description": "daily reception",
         "parameters":{
-            "type":"object",
-            "properties":{
-                "response":{
-                    "type": "string",
-                    "description": "This tool handles daily responses from customer"
-                }
-            },
-            "required": ["response"]
+            # "type":"object",
+            # "properties":{
+            #     "response":{
+            #         "type": "string",
+            #         "description": "This tool handles daily responses from customer"
+            #     }
+            # },
+            # "required": ["response"]
         },
     },
     "running_mode": "output"

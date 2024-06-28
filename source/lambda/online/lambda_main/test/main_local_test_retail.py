@@ -1,8 +1,10 @@
 from email import message
-from local_test_base import generate_answer,similarity_calculate
+from local_test_base import generate_answer,similarity_calculate,auto_evaluation_with_claude
 import time 
 import json 
 import pandas as pd 
+import queue 
+from threading import Thread
 import tqdm 
 def test(chatbot_mode="agent",session_id=None,query=None,goods_id=None,use_history=True):
     default_llm_config = {
@@ -37,8 +39,13 @@ def test(chatbot_mode="agent",session_id=None,query=None,goods_id=None,use_histo
 
 def test_multi_turns():
     session_id = f"anta_test_{time.time()}"
+    # user_queries = [
+    #     {"query":"今天怎么还没有发货","goods_id": 714845988113}
+    # ]
+    
     user_queries = [
-        {"query":"今天怎么还没有发货","goods_id": 714845988113}
+        {"query":"https://detail.tmall.com/item.htm?id=760601512644","goods_id": 760601512644},
+        {"query":"你好","goods_id": 760601512644}
     ]
     
     # goods_id = 653918410246
@@ -57,7 +64,7 @@ def test_multi_turns():
         "model_id": "qwen2-72B-instruct",
         "endpoint_name":  "Qwen2-72B-Instruct-AWQ-2024-06-25-02-15-34-347",
         # 'model_id': 'mistral.mixtral-8x7b-instruct-v0:1',
-        'model_kwargs': {'temperature': 0.01}
+        'model_kwargs': {'temperature': 0.01, "max_tokens":500}
     }
     chatbot_config = {
         "chatbot_mode": "agent",
@@ -93,7 +100,7 @@ def batch_test(data_file, count=1000,add_eval_score=True):
         "model_id": "qwen2-72B-instruct",
         "endpoint_name":  "Qwen2-72B-Instruct-AWQ-2024-06-25-02-15-34-347",
         'model_kwargs': {
-            'temperature': 0.01, 'max_tokens': 1000}
+            'temperature': 0.01, 'max_tokens': 500}
         }
     chatbot_config = {
         "chatbot_mode": "agent",
@@ -104,8 +111,64 @@ def batch_test(data_file, count=1000,add_eval_score=True):
             "query_key": "query"
         }
     }
+
+    save_csv_path = f'{session_prefix}_anta_test_qwen2-72b-instruct_{len(data)}.csv'
+
+
+    def _auto_eval_thread_helper(ret_q:queue.Queue):
+        data_to_save = []
+        while True:
+            datum = ret_q.get()
+            if datum is None:
+                return 
+            ground_truth = datum['ground_truth']
+            print('ground_truth: ',ground_truth,flush=True)
+            sim_score = None
+            if add_eval_score and datum['ai_msg'] and ground_truth:
+                try:
+                    # sim_score = similarity_calculate(str(datum['ai_msg']),str(ground_truth))
+                    sim_score = auto_evaluation_with_claude(
+                        ref_answer=str(ground_truth),
+                        model_answer=str(datum['ai_msg'])
+                        )
+                except Exception as e:
+                    print('auto evaluation error: ',str(e),(str(ground_truth),str(datum['ai_msg'])))
+                    
+
+            data_to_save.append({
+                "session_id": datum['desensitized_cnick'],
+                "goods_id": datum['product_ids'],
+                "create_time": datum['create_time'],
+                "user_msg":datum['user_msg'],
+                "ai_msg": datum['ai_msg'],
+                "ground truth": ground_truth,
+                "sim_score_with_ground_truth": sim_score,
+                "trace_infos":str(trace_infos),
+                "ai_intent": datum['agent_intent_type'],
+                "rewrite_query": datum['query_rewrite'],
+                # "intent": None,
+                # "accuracy": None,
+                "elpase_time":datum['elpase_time'],
+                # "ddb_session_id": session_id,
+                # "comments": None,
+                # "owner": None,
+                "model_id": default_llm_config['model_id'],
+                
+            })
+            # session_id, goods_id, create_time, user_msg, ai_msg, ai_intent, intent, accuracy,rewrite_query
+            pd.DataFrame(data_to_save).to_csv(
+                save_csv_path,
+                index=False
+            )
+
+    
+    ret_q = queue.Queue(maxsize=1)
+
+    t = Thread(target=_auto_eval_thread_helper,args=(ret_q,))
+    t.start()
+
     # data = data]
-    data_to_save = []
+    # data_to_save = []
     for datum in tqdm.tqdm(data[:count], total=min(len(data), count)):
         print("=="*50,flush=True)
         start_time = time.time()
@@ -152,36 +215,11 @@ def batch_test(data_file, count=1000,add_eval_score=True):
             datum['elpase_time'] = None
         
         ground_truth = str(datum.get("ground truth","")).strip()
-        print('ground_truth: ',ground_truth,flush=True)
-        sim_score = None
-        if add_eval_score and datum['ai_msg'] and ground_truth:
-            sim_score = similarity_calculate(str(datum['ai_msg']),str(ground_truth))
+        datum['ground_truth'] = ground_truth
+        ret_q.put(datum)
+    
+    ret_q.put(None)
 
-        data_to_save.append({
-            "session_id": datum['desensitized_cnick'],
-            "goods_id": datum['product_ids'],
-            "create_time": datum['create_time'],
-            "user_msg":datum['user_msg'],
-            "ai_msg": datum['ai_msg'],
-            "ground truth": ground_truth,
-            "sim_score_with_ground_truth": sim_score,
-            "trace_infos":str(trace_infos),
-            "ai_intent": datum['agent_intent_type'],
-            "rewrite_query": datum['query_rewrite'],
-            # "intent": None,
-            # "accuracy": None,
-            "elpase_time":datum['elpase_time'],
-            # "ddb_session_id": session_id,
-            # "comments": None,
-            # "owner": None,
-            "model_id": default_llm_config['model_id'],
-            
-        })
-    # session_id, goods_id, create_time, user_msg, ai_msg, ai_intent, intent, accuracy,rewrite_query
-        pd.DataFrame(data_to_save).to_csv(
-            f'{session_prefix}_anta_test_qwen2-72b-instruct_{len(data)}.csv',
-            index=False
-        )
 
 def test_multi_turns_pr(mode="agent"):
     session_id = f"anta_multiturn_test_{time.time()}"
@@ -228,9 +266,9 @@ def complete_test():
 
 if __name__ == "__main__":
     # complete_test()
-    test_multi_turns()
+    # test_multi_turns()
     # test_multi_turns_pr("agent")
-    # batch_test(data_file="/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/customer_poc/anta/anta_batch_test - batch-test-csv-file-626.csv")
+    batch_test(data_file="/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/customer_poc/anta/anta_batch_test - batch-test-csv-file-626.csv")
     # batch_test()
     # test(
     #     chatbot_mode='agent',

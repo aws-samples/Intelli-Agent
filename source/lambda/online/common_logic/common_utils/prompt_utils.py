@@ -10,6 +10,16 @@ ddb_prompt_table_name = os.environ.get("prompt_table_name", "")
 dynamodb_resource = boto3.resource("dynamodb")
 ddb_prompt_table = dynamodb_resource.Table(ddb_prompt_table_name)
 
+
+
+# export models to front
+EXPORT_MODEL_IDS = [
+    LLMModelType.CLAUDE_3_HAIKU,
+    LLMModelType.CLAUDE_3_SONNET,
+    LLMModelType.CLAUDE_2,
+    LLMModelType.CLAUDE_21
+]
+
 class PromptTemplate(BaseModel):
     model_id: str = Field(description="model_id")
     task_type: str = Field(description="task type")
@@ -69,12 +79,36 @@ class PromptTemplateManager:
         return {}
 
 
-    def get_all_templates(self):
+    def get_all_templates(self,allow_modle_ids=EXPORT_MODEL_IDS):
+        assert isinstance(allow_modle_ids,list),allow_modle_ids
         prompt_templates = copy.deepcopy(self.prompt_templates)
+        all_prompt_templates = []
+        allow_modle_ids = set(allow_modle_ids)
         for _,v in prompt_templates.items():
-            for prompt_name in list(v.keys()):
-                v[prompt_name] = v[prompt_name].prompt_template
-        return dict(prompt_templates)
+            for _, prompt in v.items():
+                if prompt.model_id in allow_modle_ids:
+                    all_prompt_templates.append(prompt)
+                # v[prompt_name] = v[prompt_name].prompt_template
+        
+        ret = {}
+        for prompt_template in all_prompt_templates:
+            model_id = prompt_template.model_id
+            task_type = prompt_template.task_type
+            prompt_name = prompt_template.prompt_name
+            prompt_template = prompt_template.prompt_template
+            if model_id not in ret:
+                ret[model_id] = {"common":{}}
+            if task_type not in ret[model_id]["common"]:
+                ret[model_id]["common"][task_type] = {}
+            
+            ret[model_id]["common"][task_type][prompt_name] = prompt_template
+
+        return ret
+
+    
+    def prompt_template_render(self,prompt_template:dict):
+        pass 
+
 
 
 prompt_template_manager = PromptTemplateManager()

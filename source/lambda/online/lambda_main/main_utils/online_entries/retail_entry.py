@@ -116,7 +116,7 @@ def agent_lambda(state: ChatbotState):
                             "</context>"
                             "你需要按照下面的guidelines对消费者的问题进行回答:\n"
                             "<guidelines>\n"
-                            " - 回答内容要简洁。\n"
+                            " - 回答内容为一句话，言简意赅。\n"
                             " - 如果问题与context内容不相关，就不要采用。\n"
                             " - 消费者的问题里面可能包含口语化的表达，比如鞋子开胶的意思是用胶黏合的鞋体裂开。这和胶丝遗留没有关系。\n"
                             "</guidelines>"
@@ -256,16 +256,16 @@ def rag_daily_reception_retriever_lambda(state: ChatbotState):
         handler_name="lambda_handler"
     )
     contexts = [doc['page_content'] for doc in output['result']['docs']]
-    context = ("\n" + "="*50+ "\n").join(contexts)
+    context = "\n\n".join(contexts)
     send_trace(f'**rag_goods_exchange_retriever** {context}', state["stream"], state["ws_connection_id"])
     return {"contexts": contexts}
 
 @node_monitor_wrapper
 def rag_daily_reception_llm_lambda(state:ChatbotState):
-    context = ("\n" + "="*50+ "\n").join(state['contexts'])
+    context = "\n\n".join(state['contexts'])
     system_prompt = (f"你是安踏的客服助理，正在帮用户解答问题，客户提出的问题大多是属于日常接待类别，你需要按照下面的guidelines进行回复:\n"
                     "<guidelines>\n"
-                    " - 回复内容需要展现出礼貌。\n"
+                    " - 回复内容需要展现出礼貌。回答内容为一句话，言简意赅。\n"
                     " - 使用中文回答。\n"
                     "</guidelines>\n"
                     "下面列举了一些具体的场景下的回复，你可以结合用户的问题进行参考:\n"
@@ -301,17 +301,17 @@ def rag_goods_exchange_retriever_lambda(state: ChatbotState):
     )
     contexts = [doc['page_content'] for doc in output['result']['docs']]
 
-    context = ("\n" + "="*50+ "\n").join(contexts)
+    context = "\n\n".join(contexts)
     send_trace(f'**rag_goods_exchange_retriever** {context}', state["stream"], state["ws_connection_id"])
     return {"contexts": contexts}
 
 
 @node_monitor_wrapper
 def rag_goods_exchange_llm_lambda(state:ChatbotState):
-    context = ("\n" + "="*50+ "\n").join(state['contexts'])
+    context = "\n\n".join(state['contexts'])
     system_prompt = (f"你是安踏的客服助理，正在帮用户解答问题，客户提出的问题大多是属于商品退换货范畴，你需要按照下面的guidelines进行回复:\n"
                     "<guidelines>\n"
-                    " - 回复内容需要展现出礼貌。\n"
+                    " - 回复内容需要展现出礼貌。回答内容为一句话，言简意赅。\n"
                     " - 使用中文回答。\n"
                     "</guidelines>\n"
                     "下面列举了一些具体的场景下的回复，你可以结合用户的问题进行参考回答:\n"
@@ -351,20 +351,20 @@ def rag_product_aftersales_retriever_lambda(state: ChatbotState):
     )
     contexts = [doc['page_content'] for doc in output['result']['docs']]
 
-    context = ("\n" + "="*50+ "\n").join(contexts)
+    context = "\n\n".join(contexts)
     send_trace(f'**rag_product_aftersales_retriever** {context}', state["stream"], state["ws_connection_id"])
     return {"contexts": contexts}
 
 @node_monitor_wrapper
 def rag_product_aftersales_llm_lambda(state:ChatbotState):
-    context = ("\n" + "="*50+ "\n").join(state['contexts'])
+    context = "\n\n".join(state['contexts'])
     system_prompt = (f"你是安踏的客服助理，正在帮消费者解答问题，消费者提出的问题大多是属于商品的质量和物流规则。context列举了一些可能有关的具体场景及回复，你可以进行参考:\n"
                     "<context>\n"
                     f"{context}\n"
                     "</context>\n"
                     "你需要按照下面的guidelines对消费者的问题进行回答:\n"
                     "<guidelines>\n"
-                    " - 回答内容要简洁。\n"
+                    " - 回答内容为一句话，言简意赅。\n"
                     " - 如果问题与context内容不相关，就不要采用。\n"
                     " - 消费者的问题里面可能包含口语化的表达，比如鞋子开胶的意思是用胶黏合的鞋体裂开。这和胶丝遗留没有关系\n"
                     "</guidelines>\n"
@@ -398,13 +398,13 @@ def rag_customer_complain_retriever_lambda(state: ChatbotState):
     )
     contexts = [doc['page_content'] for doc in output['result']['docs']]
 
-    context = ("\n" + "="*50+ "\n").join(contexts)
+    context = "\n\n".join(contexts)
     send_trace(f'**rag_customer_complain_retriever** {context}', state["stream"], state["ws_connection_id"])
     return {"contexts": contexts}
 
 @node_monitor_wrapper
 def rag_customer_complain_llm_lambda(state:ChatbotState):
-    context = ("\n" + "="*50+ "\n").join(state['contexts'])
+    context = "\n\n".join(state['contexts'])
     # prompt = dedent(f"""你是安踏的客服助理，正在处理有关于客户抱怨的问题，这些问题有关于商品质量等方面，需要你按照下面的guidelines进行回复:
     system_prompt = ("你是安踏的客服助理，正在处理有关于消费者抱怨的问题。context列举了一些可能和客户问题有关的具体场景及回复，你可以进行参考:\n"
                     "<context>\n"
@@ -412,7 +412,7 @@ def rag_customer_complain_llm_lambda(state:ChatbotState):
                     "</context>\n"
                     "需要你按照下面的guidelines进行回复:\n"
                     "<guidelines>\n"
-                    " - 回答要简洁。\n"
+                    " - 回答内容为一句话，言简意赅。\n"
                     " - 尽量安抚客户情绪。\n"
                     " - 直接回答，不要说\"亲爱的顾客，您好\"\n"
                     "</guidelines>\n"
@@ -444,20 +444,20 @@ def rag_promotion_retriever_lambda(state: ChatbotState):
     )
     contexts = [doc['page_content'] for doc in output['result']['docs']]
 
-    context = ("\n" + "="*50+ "\n").join(contexts)
+    context = "\n\n".join(contexts)
     send_trace(f'**rag_promotion_retriever** {context}', state["stream"], state["ws_connection_id"])
     return {"contexts": contexts}
 
 @node_monitor_wrapper
 def rag_promotion_llm_lambda(state:ChatbotState):
-    context = ("\n" + "="*50+ "\n").join(state['contexts'])
+    context = "\n\n".join(state['contexts'])
 
     system_prompt = ("你是安踏的客服助理，正在帮消费者解答有关于商品促销的问题，这些问题是有关于积分、奖品、奖励等方面。\n"
                      "context列举了一些可能有关的具体场景及回复，你可以进行参考:\n"
                     f"<context>\n{context}\n</context>\n"
                     "你需要按照下面的guidelines对消费者的问题进行回答:\n"
                     "<guidelines>\n"
-                    " - 回答内容要简洁。\n"
+                    " - 回答内容为一句话，言简意赅。\n"
                     " - 如果问题与context内容不相关，就不要采用。\n"
                     " - 使用中文进行回答。\n"
                     "</guidelines>"
@@ -505,7 +505,7 @@ def final_rag_llm_lambda(state:ChatbotState):
                     "</context>\n"
                     "你需要按照下面的guidelines对消费者的问题进行回答:\n"
                     "<guidelines>\n"
-                    " - 回答内容要简洁。\n"
+                    " - 回答内容为一句话，言简意赅。\n"
                     " - 如果问题与context内容不相关，就不要采用。\n"
                     "</guidelines>\n"
                 )

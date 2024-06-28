@@ -193,8 +193,9 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
 
 # 思考
 你的每次回答都要按照下面的步骤输出你的思考, 并将思考过程写在xml 标签<thinking> 和 </thinking> 中:
-    step 1. 判断是否需要使用某个工具。如果前面已经调用某些工具, 需要分析之前调用工具的结果来判断现在是否需要使用某个工具。
-    step 2. 基于当前上下文检查需要调用的工具对应的参数是否充足。如果不需要使用任何工具，请直接输出回答。
+    step 1. 根据各个工具的描述，分析当前用户的回复和示例中的相关性，如果相关性强，考虑直接利用示例中的工具进行调用。
+    step 2. 如果前面已经调用了某些工具, 需要分析之前调用工具的结果来判断现在是否需要继续使用某个工具。
+    step 3. 基于当前上下文检查需要调用的工具对应的参数是否充足。如果不需要使用任何工具，请直接输出回答。
 
     
 ## 当前用户正在浏览的商品信息
@@ -203,8 +204,9 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
 
 请遵守下面的规范回答用户的问题。
 ## 回答规范
+   - 如果调用工具，请参考示例中的调用格式。
    - 如果用户的提供的信息不足以回答问题，尽量反问用户。
-   - 回答简洁明了，一句话以内。
+   - 如果不调用工具，<thinking> 之后的内容应该为一句话。
    {non_ask_rules}
 """
     @classmethod
@@ -229,7 +231,7 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
             query = example['query']
             name = example['name']
             kwargs = example['kwargs']
-            fewshot_example_str = f"## 示例{i+1}\n### 输入:\n{query}\n### 输出:\n{cls.FN_NAME}: {name}\n{cls.FN_ARGS}: {json.dumps(kwargs,ensure_ascii=False)}\n{cls.FN_RESULT}"
+            fewshot_example_str = f"""## 示例{i+1}\n### Input:\n{query}\n### output:\n{cls.FN_NAME}: {name}\n{cls.FN_ARGS}: {json.dumps(kwargs,ensure_ascii=False)}\n{cls.FN_RESULT}"""
             fewshot_example_strs.append(fewshot_example_str)
         return "\n\n".join(fewshot_example_strs)
      
@@ -341,7 +343,8 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
         kwargs['system_prompt'] = system_prompt
         model_kwargs = {**model_kwargs}
         model_kwargs["stop"] = ['✿RESULT✿', '✿RESULT✿:', '✿RESULT✿:\n']
-        model_kwargs["prefill"] = "我先看看调用哪个工具，下面是我的思考过程:\n<thinking>\nstep 1."
+        # model_kwargs["prefill"] = "我先看看调用哪个工具，下面是我的思考过程:\n<thinking>\nstep 1."
+        model_kwargs["prefill"] = '结合用户正在浏览的商品信息，以及工具调用示例。下面是我的思考过程:\n<thinking>\nstep 1.'
         return super().create_chain(model_kwargs=model_kwargs,**kwargs)
         
 

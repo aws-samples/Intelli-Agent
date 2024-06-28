@@ -33,7 +33,7 @@ def lambda_handler(event_body, context=None):
         )
         contexts = [doc['page_content'] for doc in output['result']['docs']]
 
-        result = ("\n" + "="*50+ "\n").join(contexts)
+        result = "\n\n".join(contexts)
         # search_result = f"当前没有查询到相关内容，请参考下面的内容，用一句话进行简洁回复:\n<内容>\n{result}\n</内容>"
         # result = search_result
         # result = contexts
