@@ -245,26 +245,26 @@ def test_multi_turns_0077():
             "query": "谢谢",
             "goods_id": 747703824051
         },
-        # {
-        #     "query": "好像是袜子什么的",
-        #     "goods_id": 747703824051
-        # },
-        # {
-        #     "query": "应该是",
-        #     "goods_id": 747703824051
-        # },
-        # {
-        #     "query": "呵呵",
-        #     "goods_id": 747703824051
-        # },
-        # {
-        #     "query": "还是避重就轻，看来这是你们的习惯 买你们的东西可以相当于一次考试了",
-        #     "goods_id": 747703824051
-        # },
-        # {
-        #     "query": "https://item.taobao.com/item.htm?id=762121870703 在不？衣服收到了，太大了退货呢谢谢",
-        #     "goods_id": 762121870703
-        # }
+        {
+            "query": "好像是袜子什么的",
+            "goods_id": 747703824051
+        },
+        {
+            "query": "应该是",
+            "goods_id": 747703824051
+        },
+        {
+            "query": "呵呵",
+            "goods_id": 747703824051
+        },
+        {
+            "query": "还是避重就轻，看来这是你们的习惯 买你们的东西可以相当于一次考试了",
+            "goods_id": 747703824051
+        },
+        {
+            "query": "https://item.taobao.com/item.htm?id=762121870703 在不？衣服收到了，太大了退货呢谢谢",
+            "goods_id": 762121870703
+        }
         ]
     return _test_multi_turns(user_queries=user_queries)
 
