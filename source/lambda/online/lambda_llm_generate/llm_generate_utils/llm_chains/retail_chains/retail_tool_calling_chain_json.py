@@ -193,7 +193,8 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
 
 # 思考
 你的每次回答都要按照下面的步骤输出你的思考, 并将思考过程写在xml 标签<thinking> 和 </thinking> 中:
-    step 1. 如果你觉得当前用户的回复意图不清晰，或者和历史消息没有很强的相关性，请直接进行模版回复: "亲亲，请问还有什么问题吗？"。
+    step 1. 如果你觉得当前用户的回复意图不清晰，或者和历史消息没有很强的相关性，直接回复用户:
+               " 亲亲，请问还有什么问题吗？ "
     step 2. 根据各个工具的描述，分析当前用户的回复和示例中的相关性，如果相关性强，考虑直接利用示例中的工具进行调用。
     step 3. 如果前面已经调用了某些工具, 需要分析之前调用工具的结果来判断现在是否需要继续使用某个工具。
     step 4. 基于当前上下文检查需要调用的工具对应的参数是否充足。如果不需要使用任何工具，请直接输出回答。
@@ -207,9 +208,7 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
 ## 回答规范
    - 如果调用工具，请参考示例中的调用格式。
    - 如果用户的提供的信息不足以回答问题，尽量反问用户。
-   - 如果不调用工具，<thinking> 之后的内容应该为一句话。
-   {non_ask_rules}
-"""
+   - 如果不调用工具，<thinking> 之后的内容应该为一句话。{non_ask_rules}"""
     @classmethod
     def get_function_description(cls,tool:dict):
         tool_name = tool['name']
@@ -258,7 +257,7 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
         if len(non_ask_tool_list) == 0:
             non_ask_rules = ""
         else:
-            non_ask_rules = "- 不要对" + '，'.join(non_ask_tool_list) + "工具进行反问。"
+            non_ask_rules = "\n - 不要对" + '，'.join(non_ask_tool_list) + "工具进行反问。"
             
         return cls.SYSTEM_PROMPT.format(
                 goods_info=goods_info,
