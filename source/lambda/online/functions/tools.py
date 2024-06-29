@@ -479,7 +479,7 @@ tool_manager.register_tool({
     "lambda_name": "",
     "lambda_module_path": "functions.retail_tools.lambda_order_info.order_info",
     "tool_def": {
-        "name": "product_logstics",
+        "name": "product_logistics",
         "description": "查询商品物流信息，运费规则和物流规则，其中运费规则包括退货，换货，错发商品，漏发商品等。物流规则包括发货时间等"
     },
     "running_mode": "output",
