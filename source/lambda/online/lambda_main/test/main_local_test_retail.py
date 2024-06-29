@@ -112,6 +112,11 @@ def test_multi_turns():
     return _test_multi_turns(user_queries)
 
 
+def test_multi_turns_anta(session_id,user_queries_path="/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/source/lambda/online/session_user_queries.json"):
+    user_queries = json.load(open(user_queries_path))[session_id]
+    return _test_multi_turns(user_queries)
+
+
 def test_multi_turns_0090():
    
     user_queries = [
@@ -334,9 +339,9 @@ def batch_test(data_file, count=1000,add_eval_score=True):
                 "ai_msg": datum['ai_msg'],
                 "ground truth": ground_truth,
                 "sim_score_with_ground_truth": sim_score,
-                "trace_infos":str(trace_infos),
                 "ai_intent": datum['agent_intent_type'],
                 "rewrite_query": datum['query_rewrite'],
+                "trace_infos":str(trace_infos),
                 # "intent": None,
                 # "accuracy": None,
                 "elpase_time":datum['elpase_time'],
@@ -457,11 +462,11 @@ def complete_test():
 
 if __name__ == "__main__":
     # complete_test()
-    # test_multi_turns()
+    test_multi_turns()
     # test_multi_turns_0090() 
     # test_multi_turns_0077()
     # test_multi_turns_pr("agent")
-    batch_test(data_file="/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/customer_poc/anta/anta_batch_test - batch-test-csv-file-626.csv")
+    # batch_test(data_file="/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/customer_poc/anta/anta_batch_test - batch-test-csv-file-626.csv")
     # batch_test()
     # test(
     #     chatbot_mode='agent',
