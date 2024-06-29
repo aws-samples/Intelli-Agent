@@ -51,7 +51,7 @@ def _test_multi_turns(user_queries):
         # 'model_id': 'mistral.mixtral-8x7b-instruct-v0:1',
         'model_kwargs': {
             'temperature': 0.01, 
-            'max_tokens': 500,
+            'max_tokens': 1000,
             "repetition_penalty":1.05,
             "stop_token_ids": [151645,151643] ,
             "top_k":20,
