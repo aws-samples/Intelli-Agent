@@ -483,7 +483,7 @@ tool_manager.register_tool({
         "description": "查询物流信息，还包括有关于商品物流的问题，主要运费包括退货，换货，错发商品，漏发商品等。 也包括什么时候发货，发货地址等信息。",
     },
     "running_mode": "output",
-    "should_ask_parameter": "无需用户提供订单信息，物流单号",
+    # "should_ask_parameter": "无需用户提供订单信息，物流单号",
 })
 
 tool_manager.register_tool({
@@ -577,6 +577,6 @@ tool_manager.register_tool(
                 "description": "有关于商品物流的问题，主要运费包括退货，换货，错发商品，漏发商品等。也包括什么时候发货，发货地址，货仓等信息。",
         },
         "running_mode": "output",
-        "should_ask_parameter": "无需用户提供订单信息，物流单号",
+        # "should_ask_parameter": "无需用户提供订单信息，物流单号",
     }
 )
