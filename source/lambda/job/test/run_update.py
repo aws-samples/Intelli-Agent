@@ -29,7 +29,7 @@ local_file_list = ["poc/goods_data/quick_reply/quick_reply_ingestion_data.jsonl"
                    "poc/goods_data/detail/goods_info.jsonl",
                    "yb_aos_examples.jsonl"]
 
-sl = slice(1,2)
+sl = slice(0,2)
 
 workspace_id_list = workspace_id_list[sl]
 index_type_list = index_type_list[sl]
