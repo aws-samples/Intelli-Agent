@@ -6,35 +6,35 @@ import pandas as pd
 import queue 
 from threading import Thread
 import tqdm 
-def test(chatbot_mode="agent",session_id=None,query=None,goods_id=None,use_history=True):
-    default_llm_config = {
-        'model_id': 'anthropic.claude-3-sonnet-20240229-v1:0',
-        'model_kwargs': {
-            'temperature': 0.5, 'max_tokens': 1000}
-        }
+# def test(chatbot_mode="agent",session_id=None,query=None,goods_id=None,use_history=True):
+#     default_llm_config = {
+#         'model_id': 'anthropic.claude-3-sonnet-20240229-v1:0',
+#         'model_kwargs': {
+#             'temperature': 0.5, 'max_tokens': 1000}
+#         }
 
-    chatbot_config = {
-        "goods_id":goods_id,
-        "chatbot_mode": chatbot_mode,
-        "use_history": use_history
-    }
+#     chatbot_config = {
+#         "goods_id":goods_id,
+#         "chatbot_mode": chatbot_mode,
+#         "use_history": use_history
+#     }
     
-    session_id = session_id or f"test_{time.time()}"
-    query = query or "很浪费时间 出库的时候也不看清楚？"
-    # session_id = f"test_{time.time()}"
+#     session_id = session_id or f"test_{time.time()}"
+#     query = query or "很浪费时间 出库的时候也不看清楚？"
+#     # session_id = f"test_{time.time()}"
     
-    # 售后物流
-    #"可以发顺丰快递吗？",
-    # 客户抱怨
-    # "很浪费时间 出库的时候也不看清楚？",
-    # 促销查询
-    # "评论有惊喜吗？",
-    generate_answer(
-        query,
-        stream=True,
-        session_id=session_id,
-        chatbot_config=chatbot_config
-    )
+#     # 售后物流
+#     #"可以发顺丰快递吗？",
+#     # 客户抱怨
+#     # "很浪费时间 出库的时候也不看清楚？",
+#     # 促销查询
+#     # "评论有惊喜吗？",
+#     generate_answer(
+#         query,
+#         stream=True,
+#         session_id=session_id,
+#         chatbot_config=chatbot_config
+#     )
 
 
 def _test_multi_turns(user_queries):
@@ -49,11 +49,13 @@ def _test_multi_turns(user_queries):
         "endpoint_name":  "Qwen2-72B-Instruct-AWQ-2024-06-25-02-15-34-347",
         # 'model_id': 'mistral.mixtral-8x7b-instruct-v0:1',
         'model_kwargs': {
-            'temperature': 0.01, 'max_tokens': 500,
+            'temperature': 0.01, 
+            'max_tokens': 500,
             "repetition_penalty":1.05,
             "stop_token_ids": [151645,151643] ,
             "top_k":20,
-             'top_p': 0.8       
+            "seed":42,
+            'top_p': 0.8       
             }
     }
     chatbot_config = {
@@ -295,7 +297,8 @@ def batch_test(data_file, count=1000,add_eval_score=True):
             "repetition_penalty":1.05,
             "stop_token_ids": [151645,151643] ,
             "top_k":1,
-            'top_p': 0.8       
+            'top_p': 0.8,
+            "seed":42  
             }
         }
     chatbot_config = {
