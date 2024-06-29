@@ -29,10 +29,12 @@ local_file_list = ["poc/goods_data/quick_reply/quick_reply_ingestion_data.jsonl"
                    "poc/goods_data/detail/goods_info.jsonl",
                    "yb_aos_examples.jsonl"]
 
-workspace_id_list = workspace_id_list[3:4]
-index_type_list = index_type_list[3:4]
-op_type_list = op_type_list[3:4]
-local_file_list = local_file_list[3:4]
+sl = slice(0,1)
+
+workspace_id_list = workspace_id_list[sl]
+index_type_list = index_type_list[sl]
+op_type_list = op_type_list[sl]
+local_file_list = local_file_list[sl]
 
 for s3_prefix, workspace_id, index_type, local_file, op_type in zip(s3_prefix_list, workspace_id_list, index_type_list, local_file_list, op_type_list):
     s3_utils.delete_s3_file(s3_bucket, s3_prefix)

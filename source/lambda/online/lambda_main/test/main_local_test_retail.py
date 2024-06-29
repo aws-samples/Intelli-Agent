@@ -48,7 +48,13 @@ def _test_multi_turns(user_queries):
         "model_id": "qwen2-72B-instruct",
         "endpoint_name":  "Qwen2-72B-Instruct-AWQ-2024-06-25-02-15-34-347",
         # 'model_id': 'mistral.mixtral-8x7b-instruct-v0:1',
-        'model_kwargs': {'temperature': 0.01, "max_tokens":500}
+        'model_kwargs': {
+            'temperature': 0.01, 'max_tokens': 500,
+            "repetition_penalty":1.05,
+            "stop_token_ids": [151645,151643] ,
+            "top_k":20,
+             'top_p': 0.8       
+            }
     }
     chatbot_config = {
         "chatbot_mode": "agent",
@@ -74,14 +80,13 @@ def _test_multi_turns(user_queries):
 
 
 def test_multi_turns():
-
     # user_queries = [
     #     {"query":"今天怎么还没有发货","goods_id": 714845988113}
     # ]
-    user_queries = [
-        {"query":"https://detail.tmall.com/item.htm?id=760601512644","goods_id": 760601512644},
-        {"query":"你好","goods_id": 760601512644}
-    ]
+    # user_queries = [
+    #     {"query":"https://detail.tmall.com/item.htm?id=760601512644","goods_id": ""},
+    #     {"query":"你好","goods_id": ""}
+    # ]
 
     # user_queries = [
     #     {"query":"https://item.taobao.com/item.htm?id=714895530125 订单号:3822277356669723400\n共2件商品,合计￥887.39元 \n交易时间:2024-03-2216:20:52","goods_id": 714895530125},
@@ -281,7 +286,12 @@ def batch_test(data_file, count=1000,add_eval_score=True):
         "model_id": "qwen2-72B-instruct",
         "endpoint_name":  "Qwen2-72B-Instruct-AWQ-2024-06-25-02-15-34-347",
         'model_kwargs': {
-            'temperature': 0.01, 'max_tokens': 500}
+            'temperature': 0.01, 'max_tokens': 500,
+            "repetition_penalty":1.05,
+            "stop_token_ids": [151645,151643] ,
+            "top_k":1,
+            'top_p': 0.8       
+            }
         }
     chatbot_config = {
         "chatbot_mode": "agent",
@@ -447,10 +457,11 @@ def complete_test():
 
 if __name__ == "__main__":
     # complete_test()
-    # test_multi_turns_0090()
-    test_multi_turns_0077()
+    # test_multi_turns()
+    # test_multi_turns_0090() 
+    # test_multi_turns_0077()
     # test_multi_turns_pr("agent")
-    # batch_test(data_file="/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/customer_poc/anta/anta_batch_test - batch-test-csv-file-626.csv")
+    batch_test(data_file="/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/customer_poc/anta/anta_batch_test - batch-test-csv-file-626.csv")
     # batch_test()
     # test(
     #     chatbot_mode='agent',

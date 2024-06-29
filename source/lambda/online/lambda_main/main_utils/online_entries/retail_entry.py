@@ -776,7 +776,8 @@ def retail_entry(event_body):
     ws_connection_id = event_body['ws_connection_id']
     enable_trace = chatbot_config["enable_trace"]
     
-    goods_info = None
+    goods_info = ""
+    human_goods_info = ""
     goods_id = str(event_body['chatbot_config']['goods_id'])
     if goods_id:
         try:
@@ -788,7 +789,7 @@ def retail_entry(event_body):
             logger.error(f"error meesasge {error}, invalid goods_id: {goods_id}")
             _goods_info = None
         
-        human_goods_info = ""
+        
         if _goods_info:
             logger.info(_goods_info)
             if _goods_type:

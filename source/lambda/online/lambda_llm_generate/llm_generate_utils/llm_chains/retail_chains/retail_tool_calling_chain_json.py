@@ -185,7 +185,7 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
     
     FN_CALL_TEMPLATE=FN_CALL_TEMPLATE_INFO_ZH + '\n\n' + FN_CALL_TEMPLATE_FMT_ZH
 
-    SYSTEM_PROMPT="""你是安踏的客服助理小安, 主要职责是处理用户售前和售后的问题。{date_prompt}
+    SYSTEM_PROMPT="""你是安踏天猫的客服助理小安, 主要职责是处理用户售前和售后的问题。{date_prompt}
 
 {tools}
 {fewshot_examples}
@@ -193,7 +193,7 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
 
 # 思考
 你的每次回答都要按照下面的步骤输出你的思考, 注意你并不需要每次都进行所有步骤的思考。并将思考过程写在xml 标签<thinking> 和 </thinking> 中:
-    step 1. 根据各个工具的描述，分析当前用户的回复和示例中的相关性，如果相关性强，考虑直接利用示例中的工具进行调用。
+    step 1. 根据各个工具的描述，分析当前用户的回复和示例中的相关性，如果跟某个示例相关性强，直接利用示例中的工具进行调用。
     step 2. 如果你觉得当前用户的回复意图不清晰，或者和历史消息没有很强的相关性，同时当前不是第一轮对话，直接回复用户下面 XLM 标签 <fix_reply> 里面的内容:
                <fix_reply>
                亲亲，请问还有什么问题吗？
@@ -209,9 +209,10 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
 
 请遵守下面的规范回答用户的问题。
 ## 回答规范
+   - 当前主要服务天猫平台的客户，如果客户询问其他平台的问题，直接回复 “不好意思，亲亲，这里是天猫店铺，只能为您解答天猫的问题。建议您联系其他平台的客服或售后人员给您提供相关的帮助和支持。谢谢！”
    - 如果调用工具，请参考示例中的调用格式。
    - 如果用户的提供的信息不足以回答问题，尽量反问用户。
-   - 如果不调用工具，<thinking> 之后的内容应该为一句话。{non_ask_rules}"""
+   - 如果不调用工具，<thinking> 之后的内容应该为一句话，不要重复输出。{non_ask_rules}"""
     @classmethod
     def get_function_description(cls,tool:dict):
         tool_name = tool['name']
@@ -347,7 +348,7 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
         model_kwargs = model_kwargs or {}
         kwargs['system_prompt'] = system_prompt
         model_kwargs = {**model_kwargs}
-        model_kwargs["stop"] = ['✿RESULT✿', '✿RESULT✿:', '✿RESULT✿:\n']
+        model_kwargs["stop"] = ['✿RESULT✿', '✿RESULT✿:', '✿RESULT✿:\n','</fix_reply>']
         # model_kwargs["prefill"] = "我先看看调用哪个工具，下面是我的思考过程:\n<thinking>\nstep 1."
         model_kwargs["prefill"] = '结合用户正在浏览的商品信息，以及工具调用示例。下面是我的思考过程:\n<thinking>\nstep 1.'
         return super().create_chain(model_kwargs=model_kwargs,**kwargs)
