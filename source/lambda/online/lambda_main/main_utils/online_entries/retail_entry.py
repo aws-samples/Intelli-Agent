@@ -542,7 +542,7 @@ def rule_url_reply(state:ChatbotState):
     state["extra_response"]["current_agent_intent_type"] = "rule reply"
     if state['query'].endswith(('.jpg','.png')):
         answer = random.choice([
-            "收到，亲。请问我们可以怎么为您效劳呢？。",
+            "收到，亲。请问我们可以怎么为您效劳呢？",
             "您好，请问有什么需要帮助的吗？"
         ])
         return {"answer": answer}

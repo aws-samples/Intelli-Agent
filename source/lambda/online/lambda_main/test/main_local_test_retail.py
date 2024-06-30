@@ -53,7 +53,8 @@ def _test_multi_turns(user_queries, record_goods_id=False):
             'temperature': 0.01, 
             'max_tokens': 1000,
             "repetition_penalty":1.05,
-            "stop_token_ids": [151645,151643] ,
+            "stop_token_ids": [151645,151643],
+            "stop":["<|endoftext|>","<|im_end|>"],
             "top_k":20,
             "seed":42,
             'top_p': 0.8       
@@ -70,6 +71,7 @@ def _test_multi_turns(user_queries, record_goods_id=False):
     }
     if record_goods_id:
         chatbot_config["history_config"]=['goods_id']
+    query_answers = []
     for query in user_queries:
         if isinstance(query,str):
             query = {"query":query}
@@ -81,6 +83,10 @@ def _test_multi_turns(user_queries, record_goods_id=False):
                 entry_type="retail"
         )
         print(f"query: {query['query']}\nans: {r['message']['content']}")
+        query_answers.append((query['query'],r['message']['content']))
+
+    for query,ans in query_answers:
+        print(f"human: {query}\nAi: {ans}")
 
 
 
@@ -138,6 +144,7 @@ def batch_test(data_file, count=1000,add_eval_score=True):
             'temperature': 0.01, 'max_tokens': 500,
             "repetition_penalty":1.05,
             "stop_token_ids": [151645,151643] ,
+            "stop":["<|endoftext|>","<|im_end|>"],
             "top_k":1,
             'top_p': 0.8,
             "seed":42  
@@ -307,7 +314,7 @@ def complete_test():
 
 if __name__ == "__main__":
     # complete_test()
-    test_multi_turns_anta("cn****0038")
+    test_multi_turns_anta("cn****0076")
     # test_multi_turns()
     # test_multi_turns_0090() 
     # test_multi_turns_0077()

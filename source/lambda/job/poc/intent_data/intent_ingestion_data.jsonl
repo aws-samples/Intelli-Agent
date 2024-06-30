@@ -60,6 +60,7 @@
 {"question": "请问这个怎么购买呀\n显示有货，但是无法购买", "answer": {"intent": "goods_storage", "description": "商品库存信息"}}
 {"question": "这个是没有货了吗", "answer": {"intent": "goods_storage", "description": "商品库存信息"}}
 {"question": "黑色的175什么时候会有？", "answer": {"intent": "goods_storage", "description": "商品库存信息"}}
+{"question": "断码吗", "answer": {"intent": "goods_storage", "description": "商品库存信息"}}
 // product quality
 {"question": "发黄的厉害", "answer": {"intent": "product_quality", "description": "商品质量问题"}}
 {"question": "三包期是多久\n", "answer": {"intent": "product_quality", "description": "商品质量问题"}}
