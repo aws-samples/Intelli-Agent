@@ -590,7 +590,7 @@ def rule_number_reply(state:ChatbotState):
 def query_route(state:dict):
     # check if rule reply
     query = state['query']
-    if validators.url(query):
+    if validators.url(query.split()[0]):
         return "url"
     if query.isnumeric() and len(query)>=8:
         return "number"
