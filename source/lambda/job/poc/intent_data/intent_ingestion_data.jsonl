@@ -46,6 +46,7 @@
 {"question": "正确", "answer": {"intent": "daily_reception", "description": "日常接待"}}
 {"question": "在不", "answer": {"intent": "daily_reception", "description": "日常接待"}}
 {"question": "我也是卡点", "answer": {"intent": "daily_reception", "description": "日常接待"}}
+{"question": "这是去年的款\n今年的新款呢\n啥时候上来", "answer": {"intent": "daily_reception", "description": "商品推荐"}}
 // goods recommendation
 {"question": "杨幂同款裤子有吗", "answer": {"intent": "goods_recommendation", "description": "商品推荐"}}
 {"question": "可以定制工作服吗", "answer": {"intent": "goods_recommendation", "description": "商品推荐"}}
@@ -54,7 +55,6 @@
 {"question": "哦 我喜欢厚底的鞋  一般厚度就行", "answer": {"intent": "goods_recommendation", "description": "商品推荐"}}
 {"question": "这款鞋没有增高吧 不喜欢增高的", "answer": {"intent": "goods_recommendation", "description": "商品推荐"}}
 {"question": "差不多款式的有吗？", "answer": {"intent": "goods_recommendation", "description": "商品推荐"}}
-{"question": "这是去年的款\n今年的新款呢\n啥时候上来", "answer": {"intent": "goods_recommendation", "description": "商品推荐"}}
 {"question": "夏款是那个", "answer": {"intent": "goods_recommendation", "description": "商品推荐"}}
 // goods_storage
 {"question": "请问这个怎么购买呀\n显示有货，但是无法购买", "answer": {"intent": "goods_storage", "description": "商品库存信息"}}
