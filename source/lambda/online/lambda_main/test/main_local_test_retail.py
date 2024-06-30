@@ -83,7 +83,6 @@ def _test_multi_turns(user_queries, record_goods_id=False):
                 chatbot_config={**chatbot_config,"goods_id": query.get("goods_id")},
                 entry_type="retail"
         )
-        print(f"query: {query['query']}\nans: {r['message']['content']}")
         query_answers.append((query['query'],r['message']['content']))
     
     print()
