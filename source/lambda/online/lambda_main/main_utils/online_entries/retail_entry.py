@@ -750,6 +750,18 @@ def build_graph():
 
 app = None 
 
+def _prepare_chat_history(event_body):
+    if "history_config" in event_body["chatbot_config"]:
+        # experiment for chat history sep by goods_id
+        goods_id = str(event_body['chatbot_config']['goods_id'])
+        chat_history_by_goods_id = []
+        for hist in event_body["chat_history"]:
+            if goods_id == hist['additional_kwargs']['goods_id']:
+                chat_history_by_goods_id.append(hist)
+        return chat_history_by_goods_id
+    else:
+        return event_body["chat_history"]
+
 def retail_entry(event_body):
     """
     Entry point for the Lambda function.
@@ -772,8 +784,6 @@ def retail_entry(event_body):
     logger.info(f'event_body:\n{json.dumps(event_body,ensure_ascii=False,indent=2,cls=JSONEncoder)}')
     chatbot_config = event_body['chatbot_config']
     query = event_body['query']
-    use_history = chatbot_config['use_history']
-    chat_history = event_body['chat_history'] if use_history else []
     stream = event_body['stream']
     message_id = event_body['custom_message_id']
     ws_connection_id = event_body['ws_connection_id']
@@ -805,6 +815,9 @@ def retail_entry(event_body):
                 goods_info += f"{k}:{v}\n" 
                 human_goods_info += f"{k}:{v}\n" 
             goods_info += "\n</goods_info>"
+
+    use_history = chatbot_config['use_history']
+    chat_history = _prepare_chat_history(event_body) if use_history else []
     
     logger.info(f"goods_info: {goods_info}")
     # invoke graph and get results
