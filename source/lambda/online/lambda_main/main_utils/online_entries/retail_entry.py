@@ -635,6 +635,9 @@ def agent_route(state:dict):
     if recent_tool_call['name'] == 'product_quality':
         return "product aftersales"
 
+    if recent_tool_call['name'] == 'goods_storage':
+        return "product aftersales"
+
     if recent_tool_call['name'] == 'customer_complain':
         return "customer complain"
 

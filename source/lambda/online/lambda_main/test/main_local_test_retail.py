@@ -6,35 +6,35 @@ import pandas as pd
 import queue 
 from threading import Thread
 import tqdm 
-def test(chatbot_mode="agent",session_id=None,query=None,goods_id=None,use_history=True):
-    default_llm_config = {
-        'model_id': 'anthropic.claude-3-sonnet-20240229-v1:0',
-        'model_kwargs': {
-            'temperature': 0.5, 'max_tokens': 1000}
-        }
+# def test(chatbot_mode="agent",session_id=None,query=None,goods_id=None,use_history=True):
+#     default_llm_config = {
+#         'model_id': 'anthropic.claude-3-sonnet-20240229-v1:0',
+#         'model_kwargs': {
+#             'temperature': 0.5, 'max_tokens': 1000}
+#         }
 
-    chatbot_config = {
-        "goods_id":goods_id,
-        "chatbot_mode": chatbot_mode,
-        "use_history": use_history
-    }
+#     chatbot_config = {
+#         "goods_id":goods_id,
+#         "chatbot_mode": chatbot_mode,
+#         "use_history": use_history
+#     }
     
-    session_id = session_id or f"test_{time.time()}"
-    query = query or "很浪费时间 出库的时候也不看清楚？"
-    # session_id = f"test_{time.time()}"
+#     session_id = session_id or f"test_{time.time()}"
+#     query = query or "很浪费时间 出库的时候也不看清楚？"
+#     # session_id = f"test_{time.time()}"
     
-    # 售后物流
-    #"可以发顺丰快递吗？",
-    # 客户抱怨
-    # "很浪费时间 出库的时候也不看清楚？",
-    # 促销查询
-    # "评论有惊喜吗？",
-    generate_answer(
-        query,
-        stream=True,
-        session_id=session_id,
-        chatbot_config=chatbot_config
-    )
+#     # 售后物流
+#     #"可以发顺丰快递吗？",
+#     # 客户抱怨
+#     # "很浪费时间 出库的时候也不看清楚？",
+#     # 促销查询
+#     # "评论有惊喜吗？",
+#     generate_answer(
+#         query,
+#         stream=True,
+#         session_id=session_id,
+#         chatbot_config=chatbot_config
+#     )
 
 
 def _test_multi_turns(user_queries):
@@ -47,13 +47,16 @@ def _test_multi_turns(user_queries):
         # "endpoint_name": "glm-4-9b-chat-2024-06-18-07-37-03-843",
         "model_id": "qwen2-72B-instruct",
         "endpoint_name":  "Qwen2-72B-Instruct-AWQ-2024-06-25-02-15-34-347",
+        # "endpoint_name":  "Qwen2-72B-Instruct-AWQ-without-yarn-2024-06-29-12-31-04-818",
         # 'model_id': 'mistral.mixtral-8x7b-instruct-v0:1',
         'model_kwargs': {
-            'temperature': 0.01, 'max_tokens': 500,
+            'temperature': 0.01, 
+            'max_tokens': 1000,
             "repetition_penalty":1.05,
             "stop_token_ids": [151645,151643] ,
             "top_k":20,
-             'top_p': 0.8       
+            "seed":42,
+            'top_p': 0.8       
             }
     }
     chatbot_config = {
@@ -112,167 +115,10 @@ def test_multi_turns():
     return _test_multi_turns(user_queries)
 
 
-def test_multi_turns_0090():
-   
-    user_queries = [
-        {
-            "query": "http://item.taobao.com/item.htm?id=743353945710",
-            "goods_id": 743353945710
-        },
-        {
-            "query": "请问你们是哪里发货",
-            "goods_id": 743353945710
-        },
-        {
-            "query": "https://img.alicdn.com/imgextra/i3/O1CN01SaOrbI1CXGaMTn8ui_!!0-amp.jpg",
-            "goods_id": 743353945710
-        },
-        {
-            "query": "这个是你们发出的吗",
-            "goods_id": 743353945710
-        },
-        {
-            "query": "https://img.alicdn.com/imgextra/i3/O1CN01Qbz5wp1CXGaGnfGn6_!!0-amp.jpg",
-            "goods_id": 743353945710
-        },
-        {
-            "query": "SF1664371953288",
-            "goods_id": 743353945710
-        },
-        {
-            "query": "你好，能查到吗",
-            "goods_id": 743353945710
-        },
-        {
-            "query": "人工客服",
-            "goods_id": 743353945710
-        },
-        {
-            "query": "能查到吗 SF1664371953288",
-            "goods_id": 743353945710
-        },
-        {
-            "query": "人工客服",
-            "goods_id": 743353945710
-        },
-        {
-            "query": "https://img.alicdn.com/imgextra/i3/O1CN01azl0w61CXGaLA5RPk_!!0-amp.jpg",
-            "goods_id": 743353945710
-        },
-        {
-            "query": "你帮我查一下这个是你们发出的吗",
-            "goods_id": 743353945710
-        },
-        {
-            "query": "为什么？",
-            "goods_id": 743353945710
-        },
-        {
-            "query": "什么是跨账号",
-            "goods_id": 743353945710
-        },
-        {
-            "query": "我拼多多买的为什么是你们那里发货？",
-            "goods_id": 743353945710
-        },
-        {
-            "query": "那会不会是假的",
-            "goods_id": 743353945710
-        },
-        {
-            "query": "3821015593828779000",
-            "goods_id": 669632839577
-        },
-        {
-            "query": "这个订单号的物流号是什么 ？ 3821015593828779000",
-            "goods_id": 743353945710
-        },
-        {
-            "query": "人工客服",
-            "goods_id": 743353945710
-        },
-        {
-            "query": "帮我查一下这个物流单号",
-            "goods_id": 743353945710
-        },
-        {
-            "query": "有截图吗？发我一下",
-            "goods_id": 743353945710
-        },
-        {
-            "query": "SF1664371953288",
-            "goods_id": 743353945710
-        },
-        {
-            "query": "是这个吗 人工客服",
-            "goods_id": 743353945710
-        },
-        {
-            "query": "怎么了",
-            "goods_id": 743353945710
-        },
-        {
-            "query": "你不是能看到签收了吗 怎么查不了 谁签收的看不到吗",
-            "goods_id": 743353945710
-        },
-        {
-            "query": "那你怎么知道签收了",
-            "goods_id": 743353945710
-        },
-        {
-            "query": "我看一下截图",
-            "goods_id": 743353945710
-        }
-        ]
+def test_multi_turns_anta(session_id,user_queries_path="/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/source/lambda/online/session_user_queries.json"):
+    user_queries = json.load(open(user_queries_path))[session_id]
     return _test_multi_turns(user_queries)
     
-
-
-def test_multi_turns_0077():
-    user_queries = [
-        {
-            "query": "你好",
-            "goods_id": 747703824051
-        },
-        {
-            "query": "3804718501790257700",
-            "goods_id": 747703824051
-        },
-        {
-            "query": "订单号",
-            "goods_id": 747703824051
-        },
-        {
-            "query": "嗯",
-            "goods_id": 747703824051
-        },
-        {
-            "query": "谢谢",
-            "goods_id": 747703824051
-        },
-        {
-            "query": "好像是袜子什么的",
-            "goods_id": 747703824051
-        },
-        {
-            "query": "应该是",
-            "goods_id": 747703824051
-        },
-        {
-            "query": "呵呵",
-            "goods_id": 747703824051
-        },
-        {
-            "query": "还是避重就轻，看来这是你们的习惯 买你们的东西可以相当于一次考试了",
-            "goods_id": 747703824051
-        },
-        {
-            "query": "https://item.taobao.com/item.htm?id=762121870703 在不？衣服收到了，太大了退货呢谢谢",
-            "goods_id": 762121870703
-        }
-        ]
-    return _test_multi_turns(user_queries=user_queries)
-
 
 def batch_test(data_file, count=1000,add_eval_score=True):
     data = pd.read_csv(data_file).fillna("").to_dict(orient='records')
@@ -285,12 +131,14 @@ def batch_test(data_file, count=1000,add_eval_score=True):
         # "endpoint_name": "glm-4-9b-chat-2024-06-18-07-37-03-843",
         "model_id": "qwen2-72B-instruct",
         "endpoint_name":  "Qwen2-72B-Instruct-AWQ-2024-06-25-02-15-34-347",
+        # "endpoint_name":  "Qwen2-72B-Instruct-AWQ-without-yarn-2024-06-29-12-31-04-818",
         'model_kwargs': {
             'temperature': 0.01, 'max_tokens': 500,
             "repetition_penalty":1.05,
             "stop_token_ids": [151645,151643] ,
             "top_k":1,
-            'top_p': 0.8       
+            'top_p': 0.8,
+            "seed":42  
             }
         }
     chatbot_config = {
@@ -334,9 +182,9 @@ def batch_test(data_file, count=1000,add_eval_score=True):
                 "ai_msg": datum['ai_msg'],
                 "ground truth": ground_truth,
                 "sim_score_with_ground_truth": sim_score,
-                "trace_infos":str(trace_infos),
                 "ai_intent": datum['agent_intent_type'],
                 "rewrite_query": datum['query_rewrite'],
+                "trace_infos":str(trace_infos),
                 # "intent": None,
                 # "accuracy": None,
                 "elpase_time":datum['elpase_time'],
@@ -457,11 +305,12 @@ def complete_test():
 
 if __name__ == "__main__":
     # complete_test()
+    test_multi_turns_anta("cn****0038")
     # test_multi_turns()
     # test_multi_turns_0090() 
     # test_multi_turns_0077()
     # test_multi_turns_pr("agent")
-    batch_test(data_file="/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/customer_poc/anta/anta_batch_test - batch-test-csv-file-626.csv")
+    # batch_test(data_file="/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/customer_poc/anta/anta_batch_test - batch-test-csv-file-626.csv")
     # batch_test()
     # test(
     #     chatbot_mode='agent',

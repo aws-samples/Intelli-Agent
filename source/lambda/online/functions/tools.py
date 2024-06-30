@@ -473,18 +473,32 @@ tool_manager.register_tool({
     "running_mode": "output"
 })
 
-# 物流信息查询
+# 物流信息和规则查询
 tool_manager.register_tool({
-    "name":"delivery_track",
+    "name":"product_logistics",
     "lambda_name": "",
     "lambda_module_path": "functions.retail_tools.lambda_order_info.order_info",
     "tool_def": {
-        "name": "delivery_track",
-        "description": "查询物流信息，还包括有关于商品物流的问题，主要运费包括退货，换货，错发商品，漏发商品等。 也包括什么时候发货，发货地址等信息。",
+        "name": "product_logistics",
+        "description": "查询商品物流信息，运费规则和物流规则，其中运费规则包括退货，换货，错发商品，漏发商品等。物流规则包括发货时间等"
     },
     "running_mode": "output",
-    "should_ask_parameter": "无需用户提供订单信息，物流单号",
+    # "should_ask_parameter": "无需用户提供订单信息，物流单号",
 })
+
+# 商品库存信息
+tool_manager.register_tool({
+    "name":"goods_storage",
+    "lambda_name": "",
+    "lambda_module_path": "functions.retail_tools.lambda_order_info.order_info",
+    "tool_def": {
+        "name": "goods_storage",
+        "description": "商品的库存信息，比如应对没货的情况等"
+    },
+    "running_mode": "output",
+    # "should_ask_parameter": "无需用户提供订单信息，物流单号",
+})
+
 
 tool_manager.register_tool({
     "name":"rule_response",
@@ -548,7 +562,7 @@ tool_manager.register_tool(
         "lambda_module_path": "functions.retail_tools.lambda_product_aftersales.product_aftersales",
         "tool_def": {
             "name": "product_quality",
-            "description": "商品的售后处理，主要包括客户关于商品质量的抱怨，比如开胶等问题",
+            "description": "商品的售后处理，主要包括客户关于商品质量的抱怨，比如开胶等问题的",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -566,17 +580,17 @@ tool_manager.register_tool(
     }
 )
 
-# 物流规则
-tool_manager.register_tool(
-    {
-        "name":"product_logistics",
-        "lambda_name": "",
-        "lambda_module_path": "functions.retail_tools.lambda_product_aftersales.product_aftersales",
-        "tool_def": {
-                "name": "product_logistics",
-                "description": "有关于商品物流的问题，主要运费包括退货，换货，错发商品，漏发商品等。 也包括什么时候发货，发货地址等信息。",
-        },
-        "running_mode": "output",
-        "should_ask_parameter": "无需用户提供订单信息，物流单号",
-    }
-)
+# # 物流规则
+# tool_manager.register_tool(
+#     {
+#         "name":"product_logistics",
+#         "lambda_name": "",
+#         "lambda_module_path": "functions.retail_tools.lambda_product_aftersales.product_aftersales",
+#         "tool_def": {
+#                 "name": "product_logistics",
+#                 "description": "有关于商品物流的问题，主要运费包括退货，换货，错发商品，漏发商品等。也包括什么时候发货，发货地址，货仓等信息。",
+#         },
+#         "running_mode": "output",
+#         # "should_ask_parameter": "无需用户提供订单信息，物流单号",
+#     }
+# )
