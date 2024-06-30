@@ -47,6 +47,7 @@ def _test_multi_turns(user_queries):
         # "endpoint_name": "glm-4-9b-chat-2024-06-18-07-37-03-843",
         "model_id": "qwen2-72B-instruct",
         "endpoint_name":  "Qwen2-72B-Instruct-AWQ-2024-06-25-02-15-34-347",
+        # "endpoint_name": 'Qwen2-72B-Instruct-GPTQ-Int4-2024-06-30-05-59-54-352',
         # "endpoint_name":  "Qwen2-72B-Instruct-AWQ-without-yarn-2024-06-29-12-31-04-818",
         # 'model_id': 'mistral.mixtral-8x7b-instruct-v0:1',
         'model_kwargs': {
