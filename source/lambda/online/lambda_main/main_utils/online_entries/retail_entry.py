@@ -814,6 +814,8 @@ def retail_entry(event_body):
             for k,v in _goods_info.items():
                 goods_info += f"{k}:{v}\n" 
                 human_goods_info += f"{k}:{v}\n" 
+            
+            goods_info = goods_info.strip()
             goods_info += "\n</goods_info>"
 
     use_history = chatbot_config['use_history']
