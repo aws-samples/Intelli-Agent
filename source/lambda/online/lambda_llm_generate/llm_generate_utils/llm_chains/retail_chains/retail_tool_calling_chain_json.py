@@ -349,7 +349,7 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
         model_kwargs = model_kwargs or {}
         kwargs['system_prompt'] = system_prompt
         model_kwargs = {**model_kwargs}
-        model_kwargs["stop"] = ['✿RESULT✿', '✿RESULT✿:', '✿RESULT✿:\n','</fix_reply>']
+        model_kwargs["stop"] = model_kwargs.get("stop",[]) + ['✿RESULT✿', '✿RESULT✿:', '✿RESULT✿:\n','</fix_reply>']
         # model_kwargs["prefill"] = "我先看看调用哪个工具，下面是我的思考过程:\n<thinking>\nstep 1."
         model_kwargs["prefill"] = '结合用户正在浏览的商品信息，以及工具调用示例。下面是我的思考过程:\n<thinking>\nstep 1.'
         return super().create_chain(model_kwargs=model_kwargs,**kwargs)

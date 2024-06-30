@@ -321,6 +321,7 @@ class Qwen2Instruct7B(SagemakerModelBase):
     model_id = LLMModelType.QWEN2INSTRUCT7B
     default_model_kwargs = {
         "max_tokens": 1024,
+        "stop":["<|endoftext|>","<|im_end|>"],
         "temperature": 0.1,
     }
     role_map={

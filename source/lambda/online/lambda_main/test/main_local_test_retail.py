@@ -53,7 +53,8 @@ def _test_multi_turns(user_queries):
             'temperature': 0.01, 
             'max_tokens': 1000,
             "repetition_penalty":1.05,
-            "stop_token_ids": [151645,151643] ,
+            "stop_token_ids": [151645,151643],
+            "stop":["<|endoftext|>","<|im_end|>"],
             "top_k":20,
             "seed":42,
             'top_p': 0.8       
@@ -136,6 +137,7 @@ def batch_test(data_file, count=1000,add_eval_score=True):
             'temperature': 0.01, 'max_tokens': 500,
             "repetition_penalty":1.05,
             "stop_token_ids": [151645,151643] ,
+            "stop":["<|endoftext|>","<|im_end|>"],
             "top_k":1,
             'top_p': 0.8,
             "seed":42  
@@ -305,7 +307,7 @@ def complete_test():
 
 if __name__ == "__main__":
     # complete_test()
-    test_multi_turns_anta("cn****0038")
+    test_multi_turns_anta("cn****0043")
     # test_multi_turns()
     # test_multi_turns_0090() 
     # test_multi_turns_0077()
