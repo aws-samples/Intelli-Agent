@@ -46,20 +46,22 @@
 {"question": "正确", "answer": {"intent": "daily_reception", "description": "日常接待"}}
 {"question": "在不", "answer": {"intent": "daily_reception", "description": "日常接待"}}
 {"question": "我也是卡点", "answer": {"intent": "daily_reception", "description": "日常接待"}}
+{"question": "这是去年的款\n今年的新款呢\n啥时候上来", "answer": {"intent": "daily_reception", "description": "日常接待"}}
+{"question": "这款鞋没有增高吧 不喜欢增高的", "answer": {"intent": "daily_reception", "description": "日常接待"}}
 // goods recommendation
 {"question": "杨幂同款裤子有吗", "answer": {"intent": "goods_recommendation", "description": "商品推荐"}}
 {"question": "可以定制工作服吗", "answer": {"intent": "goods_recommendation", "description": "商品推荐"}}
 {"question": "能给我推荐一套衣服吗", "answer": {"intent": "goods_recommendation", "description": "商品推荐"}}
 {"question": "有别人家图片里的东西吗？", "answer": {"intent": "goods_recommendation", "description": "商品推荐"}}
 {"question": "哦 我喜欢厚底的鞋  一般厚度就行", "answer": {"intent": "goods_recommendation", "description": "商品推荐"}}
-{"question": "这款鞋没有增高吧 不喜欢增高的", "answer": {"intent": "goods_recommendation", "description": "商品推荐"}}
+
 {"question": "差不多款式的有吗？", "answer": {"intent": "goods_recommendation", "description": "商品推荐"}}
-{"question": "这是去年的款\n今年的新款呢\n啥时候上来", "answer": {"intent": "goods_recommendation", "description": "商品推荐"}}
 {"question": "夏款是那个", "answer": {"intent": "goods_recommendation", "description": "商品推荐"}}
 // goods_storage
 {"question": "请问这个怎么购买呀\n显示有货，但是无法购买", "answer": {"intent": "goods_storage", "description": "商品库存信息"}}
 {"question": "这个是没有货了吗", "answer": {"intent": "goods_storage", "description": "商品库存信息"}}
 {"question": "黑色的175什么时候会有？", "answer": {"intent": "goods_storage", "description": "商品库存信息"}}
+{"question": "断码吗", "answer": {"intent": "goods_storage", "description": "商品库存信息"}}
 // product quality
 {"question": "发黄的厉害", "answer": {"intent": "product_quality", "description": "商品质量问题"}}
 {"question": "三包期是多久\n", "answer": {"intent": "product_quality", "description": "商品质量问题"}}
@@ -96,6 +98,7 @@
 {"question": "你好麻烦帮我看一下这个售后", "answer": {"intent": "product_logistics", "description": "物流规则，物流信息查询"}}
 {"question": "我已下单，请问何时发货？", "answer": {"intent": "product_logistics", "description": "物流规则，物流信息查询"}}
 {"question": "为啥要运费", "answer": {"intent": "product_logistics", "description": "物流信息，运费原因等"}}
+{"question": "官方旗舰店的货仓发货", "answer": {"intent": "product_logistics", "description": "物流信息，运费原因等"}}
 // order pipeline
 {"question": "这个忘机用券了, 我重拍吧", "answer": {"intent": "order_pipeline", "description": "下单流程"}}
 {"question": "券 一天放多少呢？", "answer": {"intent": "order_pipeline", "description": "下单流程"}}

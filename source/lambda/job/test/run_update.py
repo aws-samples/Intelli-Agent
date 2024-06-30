@@ -1,4 +1,7 @@
 import os
+import sys
+
+sys.path.append('../online')
 from common_logic.common_utils import s3_utils
 
 from dotenv import load_dotenv

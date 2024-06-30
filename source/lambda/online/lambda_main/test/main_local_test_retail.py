@@ -37,7 +37,7 @@ import tqdm
 #     )
 
 
-def _test_multi_turns(user_queries):
+def _test_multi_turns(user_queries, record_goods_id=False):
     session_id = f"anta_test_{time.time()}"
     
     default_llm_config = {
@@ -47,13 +47,15 @@ def _test_multi_turns(user_queries):
         # "endpoint_name": "glm-4-9b-chat-2024-06-18-07-37-03-843",
         "model_id": "qwen2-72B-instruct",
         "endpoint_name":  "Qwen2-72B-Instruct-AWQ-2024-06-25-02-15-34-347",
+        # "endpoint_name": 'Qwen2-72B-Instruct-GPTQ-Int4-2024-06-30-05-59-54-352',
         # "endpoint_name":  "Qwen2-72B-Instruct-AWQ-without-yarn-2024-06-29-12-31-04-818",
         # 'model_id': 'mistral.mixtral-8x7b-instruct-v0:1',
         'model_kwargs': {
             'temperature': 0.01, 
             'max_tokens': 1000,
             "repetition_penalty":1.05,
-            "stop_token_ids": [151645,151643] ,
+            "stop_token_ids": [151645,151643],
+            "stop":["<|endoftext|>","<|im_end|>"],
             "top_k":20,
             "seed":42,
             'top_p': 0.8       
@@ -68,6 +70,9 @@ def _test_multi_turns(user_queries):
             "query_key": "query"
         }
     }
+    if record_goods_id:
+        chatbot_config["history_config"]=['goods_id']
+    query_answers = []
     for query in user_queries:
         if isinstance(query,str):
             query = {"query":query}
@@ -78,7 +83,13 @@ def _test_multi_turns(user_queries):
                 chatbot_config={**chatbot_config,"goods_id": query.get("goods_id")},
                 entry_type="retail"
         )
-        print(f"ans: {r['message']['content']}")
+        query_answers.append((query['query'],r['message']['content']))
+    
+    print()
+    print()
+    for query,ans in query_answers:
+        print("="*50)
+        print(f"human: {query}\nAi: {ans}")
 
 
 
@@ -136,6 +147,7 @@ def batch_test(data_file, count=1000,add_eval_score=True):
             'temperature': 0.01, 'max_tokens': 500,
             "repetition_penalty":1.05,
             "stop_token_ids": [151645,151643] ,
+            "stop":["<|endoftext|>","<|im_end|>"],
             "top_k":1,
             'top_p': 0.8,
             "seed":42  
@@ -305,7 +317,7 @@ def complete_test():
 
 if __name__ == "__main__":
     # complete_test()
-    test_multi_turns_anta("cn****0038")
+    test_multi_turns_anta("cn****0031")
     # test_multi_turns()
     # test_multi_turns_0090() 
     # test_multi_turns_0077()

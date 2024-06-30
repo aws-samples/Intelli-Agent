@@ -106,7 +106,7 @@ def intention_detection_lambda(state: ChatbotState):
 def agent_lambda(state: ChatbotState):
     goods_info = state.get('goods_info',None) or ""
     agent_chat_history = state.get('agent_chat_history',"")
-    if agent_chat_history:
+    if agent_chat_history and hasattr(agent_chat_history[-1],'additional_kwargs'):
         search_result = agent_chat_history[-1]['additional_kwargs']['original'][0].get('search_result',1)
         if search_result == 0:
             context = agent_chat_history[-1]['additional_kwargs']['original'][0].get('result',"")
@@ -368,6 +368,7 @@ def rag_product_aftersales_llm_lambda(state:ChatbotState):
                     " - 回答内容为一句话，言简意赅。\n"
                     " - 如果问题与context内容不相关，就不要采用。\n"
                     " - 消费者的问题里面可能包含口语化的表达，比如鞋子开胶的意思是用胶黏合的鞋体裂开。这和胶丝遗留没有关系\n"
+                    " - 消费者的回复不够清晰的时候，直接回复: 不知道刚才给您的建议是否有帮助？。不要有额外补充\n"
                     "</guidelines>\n"
                     )
     # print('llm config',state['chatbot_config']['rag_product_aftersales_config']['llm_config'])
@@ -526,7 +527,7 @@ def final_rag_llm_lambda(state:ChatbotState):
 
 
 def transfer_reply(state:ChatbotState):
-    return {"answer": "立即为您转人工客服，请稍后"}
+    return {"answer": "您好,我是安踏官方客服,很高兴为您服务。请问您有什么需要帮助的吗?"}
 
 
 def give_rhetorical_question(state:ChatbotState):
@@ -542,7 +543,7 @@ def rule_url_reply(state:ChatbotState):
     state["extra_response"]["current_agent_intent_type"] = "rule reply"
     if state['query'].endswith(('.jpg','.png')):
         answer = random.choice([
-            "收到，亲。请问我们可以怎么为您效劳呢？。",
+            "收到，亲。请问我们可以怎么为您效劳呢？",
             "您好，请问有什么需要帮助的吗？"
         ])
         return {"answer": answer}
@@ -750,6 +751,18 @@ def build_graph():
 
 app = None 
 
+def _prepare_chat_history(event_body):
+    if "history_config" in event_body["chatbot_config"]:
+        # experiment for chat history sep by goods_id
+        goods_id = str(event_body['chatbot_config']['goods_id'])
+        chat_history_by_goods_id = []
+        for hist in event_body["chat_history"]:
+            if goods_id == hist['additional_kwargs']['goods_id']:
+                chat_history_by_goods_id.append(hist)
+        return chat_history_by_goods_id
+    else:
+        return event_body["chat_history"]
+
 def retail_entry(event_body):
     """
     Entry point for the Lambda function.
@@ -772,8 +785,6 @@ def retail_entry(event_body):
     logger.info(f'event_body:\n{json.dumps(event_body,ensure_ascii=False,indent=2,cls=JSONEncoder)}')
     chatbot_config = event_body['chatbot_config']
     query = event_body['query']
-    use_history = chatbot_config['use_history']
-    chat_history = event_body['chat_history'] if use_history else []
     stream = event_body['stream']
     message_id = event_body['custom_message_id']
     ws_connection_id = event_body['ws_connection_id']
@@ -804,9 +815,15 @@ def retail_entry(event_body):
             for k,v in _goods_info.items():
                 goods_info += f"{k}:{v}\n" 
                 human_goods_info += f"{k}:{v}\n" 
+            
+            goods_info = goods_info.strip()
             goods_info += "\n</goods_info>"
+
+    use_history = chatbot_config['use_history']
+    chat_history = _prepare_chat_history(event_body) if use_history else []
     
     logger.info(f"goods_info: {goods_info}")
+    logger.info(f"chat_hisotry: {chat_history}")
     # invoke graph and get results
     response = app.invoke({
         "stream": stream,
