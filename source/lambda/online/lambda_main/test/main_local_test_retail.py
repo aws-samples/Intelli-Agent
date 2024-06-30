@@ -84,8 +84,10 @@ def _test_multi_turns(user_queries):
         )
         print(f"query: {query['query']}\nans: {r['message']['content']}")
         query_answers.append((query['query'],r['message']['content']))
+    
 
     for query,ans in query_answers:
+        print("="*50)
         print(f"human: {query}\nAi: {ans}")
 
 
@@ -314,7 +316,7 @@ def complete_test():
 
 if __name__ == "__main__":
     # complete_test()
-    test_multi_turns_anta("cn****0076")
+    test_multi_turns_anta("cn****0050")
     # test_multi_turns()
     # test_multi_turns_0090() 
     # test_multi_turns_0077()
