@@ -37,7 +37,7 @@ import tqdm
 #     )
 
 
-def _test_multi_turns(user_queries):
+def _test_multi_turns(user_queries, record_goods_id=False):
     session_id = f"anta_test_{time.time()}"
     
     default_llm_config = {
@@ -70,7 +70,8 @@ def _test_multi_turns(user_queries):
             "query_key": "query"
         }
     }
-
+    if record_goods_id:
+        chatbot_config["history_config"]=['goods_id']
     query_answers = []
     for query in user_queries:
         if isinstance(query,str):
