@@ -368,6 +368,7 @@ def rag_product_aftersales_llm_lambda(state:ChatbotState):
                     " - 回答内容为一句话，言简意赅。\n"
                     " - 如果问题与context内容不相关，就不要采用。\n"
                     " - 消费者的问题里面可能包含口语化的表达，比如鞋子开胶的意思是用胶黏合的鞋体裂开。这和胶丝遗留没有关系\n"
+                    " - 消费者的回复不够清晰的时候，直接回复: 不知道刚才给您的建议是否有帮助？。不要有额外补充\n"
                     "</guidelines>\n"
                     )
     # print('llm config',state['chatbot_config']['rag_product_aftersales_config']['llm_config'])
@@ -526,7 +527,7 @@ def final_rag_llm_lambda(state:ChatbotState):
 
 
 def transfer_reply(state:ChatbotState):
-    return {"answer": "立即为您转人工客服，请稍后"}
+    return {"answer": "您好,我是安踏官方客服,很高兴为您服务。请问您有什么需要帮助的吗?"}
 
 
 def give_rhetorical_question(state:ChatbotState):
