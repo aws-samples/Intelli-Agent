@@ -97,6 +97,7 @@
 {"question": "你好麻烦帮我看一下这个售后", "answer": {"intent": "product_logistics", "description": "物流规则，物流信息查询"}}
 {"question": "我已下单，请问何时发货？", "answer": {"intent": "product_logistics", "description": "物流规则，物流信息查询"}}
 {"question": "为啥要运费", "answer": {"intent": "product_logistics", "description": "物流信息，运费原因等"}}
+{"question": "官方旗舰店的货仓发货", "answer": {"intent": "product_logistics", "description": "物流信息，运费原因等"}}
 // order pipeline
 {"question": "这个忘机用券了, 我重拍吧", "answer": {"intent": "order_pipeline", "description": "下单流程"}}
 {"question": "券 一天放多少呢？", "answer": {"intent": "order_pipeline", "description": "下单流程"}}

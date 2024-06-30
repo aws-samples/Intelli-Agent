@@ -527,7 +527,7 @@ def final_rag_llm_lambda(state:ChatbotState):
 
 
 def transfer_reply(state:ChatbotState):
-    return {"answer": "立即为您转人工客服，请稍后"}
+    return {"answer": "您好,我是安踏官方客服,很高兴为您服务。请问您有什么需要帮助的吗?"}
 
 
 def give_rhetorical_question(state:ChatbotState):
