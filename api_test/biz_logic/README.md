@@ -6,7 +6,7 @@ If you haven't installed OpenAPI Generator yet, you can install it using npm (No
 
 To install with npm:
 ```shell
-npm install @openapitools/openapi-generator-cli -g
+sudo npm install @openapitools/openapi-generator-cli -g
 ```
 
 To install with Homebrew:

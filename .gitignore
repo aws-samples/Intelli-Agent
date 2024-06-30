@@ -81,3 +81,4 @@ pem
 poetry.lock
 .vscode/
 .DS_Store
+.pylintrc

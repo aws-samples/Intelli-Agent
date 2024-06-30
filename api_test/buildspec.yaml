@@ -3,7 +3,7 @@ version: 0.2
 env:
   variables:
     REPOSITORY_URL: "https://github.com/aws-samples/Intelli-Agent.git"
-    CODE_BRANCH: "dev"
+    CODE_BRANCH: "hubin-daily"
     PROJECT_NAME: "Chatbot Portal with Agent"
     STACK_NAME: "intelli-agent"
     DEPLOY_STACK: "cdk"
@@ -18,6 +18,7 @@ env:
     SUB_EMAIL: "cuihubin@amazon.com"
     TOPIC: "arn:aws:sns:ap-northeast-1:544919262599:agent-developers"
     GEN_REPORT_FUNCTION: "agent-api-test-report-function"
+    ADMIN_PASSWORD: "TEST123!"
 phases:
   install:
     commands:
@@ -39,7 +40,6 @@ phases:
         echo "----------------------------------------------------------------"
         if [ "$DEPLOY_STACK" = "cdk" ]; then
           if [ -d "Intelli-Agent/source/infrastructure" ]; then
-            echo "===================="
             pushd "Intelli-Agent/source/infrastructure"
             pnpm i
             npx cdk deploy --parameters SubEmail=$SUB_EMAIL \
@@ -76,14 +76,17 @@ phases:
         echo "----------------------------------------------------------------"
         echo "$prebuild_start_time prebuild start..."
         echo "----------------------------------------------------------------" 
-        cd Intelli-Agent/api_test || exit 1
+        pushd Intelli-Agent/api_test || exit 1
         rm -rf agentVenv
         python3 -m venv agentVenv
         source agentVenv/bin/activate
         pip3 install --upgrade pip
         pip3 --default-timeout=6000 install -r requirements.txt
+        popd
         stack_info=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME")
-        API_GATEWAY_URL=$(echo "$stack_info" | jq -r '.Stacks[0].Outputs[] | select(.OutputKey=="APIEndpointAddress").OutputValue')
+        api_gateway_url=$(echo "$stack_info" | jq -r '.Stacks[0].Outputs[] | select(.OutputKey=="APIEndpointAddress").OutputValue')
+        user_pool_id=$(echo "$stack_info" | jq -r '.Stacks[0].Outputs[] | select(.OutputKey=="UserPoolId").OutputValue')
+        oidc_client_id=$(echo "$stack_info" | jq -r '.Stacks[0].Outputs[] | select(.OutputKey=="OidcClientId").OutputValue')
         set -euxo pipefail
         prebuild_complete_time=$(date +"%Y-%m-%d_%H-%M-%S")
         echo "----------------------------------------------------------------"
@@ -96,8 +99,24 @@ phases:
         echo "----------------------------------------------------------------"
         echo "$test_start_time test start..."
         echo "----------------------------------------------------------------"
+        pushd Intelli-Agent/api_test || exit 1
+        aws cognito-idp admin-set-user-password \
+          --user-pool-id $user_pool_id \
+          --username $SUB_EMAIL \
+          --password $ADMIN_PASSWORD \
+          --permanent
+        credentials=$(aws cognito-idp initiate-auth \
+          --region $REGION \
+          --auth-flow USER_PASSWORD_AUTH \
+          --client-id $oidc_client_id \
+          --auth-parameters USERNAME=$SUB_EMAIL,PASSWORD=$ADMIN_PASSWORD)
+        token=$(echo $credentials | jq -r '.AuthenticationResult.IdToken')
+        echo "api_url=$api_gateway_url" > env.properties
+        echo "token=$token" >> env.properties
+        cat env.properties
         source agentVenv/bin/activate
-        pytest Intelli-Agent/api_test/test_case --continue-on-collection-errors --log-cli-level=INFO --json-report --json-report-file=detail.json --html=report.html --self-contained-html > detail.log
+        pytest test_case --continue-on-collection-errors --log-cli-level=INFO --json-report --json-report-file=detail.json --html=report.html --self-contained-html > detail.log
+        popd
         test_complete_time=$(date +"%Y-%m-%d_%H-%M-%S")
         echo "----------------------------------------------------------------"
         echo "$test_complete_time test complete."
