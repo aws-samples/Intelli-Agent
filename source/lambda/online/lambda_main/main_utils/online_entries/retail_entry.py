@@ -820,6 +820,7 @@ def retail_entry(event_body):
     chat_history = _prepare_chat_history(event_body) if use_history else []
     
     logger.info(f"goods_info: {goods_info}")
+    logger.info(f"chat_hisotry: {chat_history}")
     # invoke graph and get results
     response = app.invoke({
         "stream": stream,
