@@ -32,13 +32,25 @@ def lambda_handler(event_body, context=None):
     goods_type_1, goods_type_2 = good2type_dict[goods_id]
     if goods_type_1 == "shoes":
         if "shoes_size" in kwargs:
-            shoe_size = float(kwargs["shoes_size"])
+            try:
+                shoe_size = float(kwargs["shoes_size"])
+            except:
+                return {"code":1, "result":"shoes_size should be a number"}
             std_shoe_size = find_nearest(list(size_dict.get(goods_type_1).get(goods_type_2).get("shoes_size").keys()), shoe_size)
             result = size_dict.get(goods_type_1).get(goods_type_2).get("shoes_size").get(std_shoe_size, "42")
+            # No sutabale size for the input shoes size or foot length
+            if result == "此款暂无适合亲的尺码":
+                result += "，您当前输入的鞋码为{}，请确认一下参数是否正确，如果有修改可以再次调用尺码工具".format(shoe_size)
         elif "foot_length" in kwargs:
-            foot_length = float(kwargs["foot_length"])
+            try:
+                foot_length = float(kwargs["foot_length"])
+            except:
+                return {"code":1, "result":"foot_length should be a number"}
             std_foot_length = find_nearest(list(size_dict.get(goods_type_1).get(goods_type_2).get("foot_length").keys()), foot_length)
             result = size_dict.get(goods_type_1).get(goods_type_2).get("foot_length").get(std_foot_length, "28")
+            # No sutabale size for the input foot length
+            if result == "此款暂无适合亲的尺码":
+                result += "，您当前输入的脚长为{}cm，请确认一下参数是否正确，如果有修改可以再次调用尺码工具".format(foot_length)
         else:
             return {"code":1, "result":"shoes size or foot length is required"}
     elif goods_type_1 == "apparel":
@@ -46,13 +58,17 @@ def lambda_handler(event_body, context=None):
             return {"code":1, "result":"height is required"}
         if "weight" not in kwargs:
             return {"code":1, "result":"weight is required"}
-        height = float(kwargs["height"])
+        try:
+            height = float(kwargs["height"])
+            weight = float(kwargs["weight"])
+        except:
+            return {"code":1, "result":"height and weight should be numbers"}
         std_height = find_nearest(list(size_dict.get(goods_type_1).get(goods_type_2).get("height_weight").keys()), height)
-        weight = float(kwargs["weight"])
         std_weight = find_nearest(list(size_dict.get(goods_type_1).get(goods_type_2).get("height_weight").get(std_height).keys()), weight)
         result = size_dict.get(goods_type_1).get(goods_type_2).get("height_weight").get(std_height).get(std_weight)
+        # No sutabale size for the input height and weight
         if result == "亲亲，很抱歉，这款暂时没有适合您的尺码":
-            result += "，您当前输入的身高为{}cm，体重为{}kg".format(height, weight)
+            result += "，您当前输入的身高为{}cm，体重为{}kg，请确认一下参数是否正确，如果有修改可以再次调用尺码工具".format(height, weight)
     return {"code":0, "result":result, "name": "尺码查询"}
 
 if __name__ == "__main__":
