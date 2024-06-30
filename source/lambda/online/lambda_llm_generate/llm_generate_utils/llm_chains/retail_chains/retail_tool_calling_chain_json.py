@@ -201,6 +201,7 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
 
     step 3. 如果前面已经调用了某些工具, 需要分析之前调用工具的结果来判断现在是否需要继续使用某个工具。
     step 4. 基于当前上下文检查需要调用的工具是否需要输入参数，如果需要参数，检查对应的参数是否充足。如果不需要使用任何工具，请直接输出回答。
+    step 5. 最终决定是否要调用某个工具。
 
     
 ## 当前用户正在浏览的商品信息
@@ -236,7 +237,7 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
             query = example['query']
             name = example['name']
             kwargs = example['kwargs']
-            fewshot_example_str = f"""## 示例{i+1}\n### Input:\n{query}\n### output:\n{cls.FN_NAME}: {name}\n{cls.FN_ARGS}: {json.dumps(kwargs,ensure_ascii=False)}\n{cls.FN_RESULT}"""
+            fewshot_example_str = f"""## 工具调用例子{i+1}\nInput:\n{query}\nOutput:\n{cls.FN_NAME}: {name}\n{cls.FN_ARGS}: {json.dumps(kwargs,ensure_ascii=False)}\n{cls.FN_RESULT}"""
             fewshot_example_strs.append(fewshot_example_str)
         return "\n\n".join(fewshot_example_strs)
      
@@ -251,7 +252,7 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
         )
         fewshot_examples_str = ""
         if fewshot_examples:
-            fewshot_examples_str = "\n\n# 下面给出不同问题调用不同工具的例子。"
+            fewshot_examples_str = "\n\n# 下面给出不同客户回复下调用不同工具的例子。"
             fewshot_examples_str += f"\n\n{cls.format_fewshot_examples(fewshot_examples)}"
             fewshot_examples_str += "\n\n请参考上述例子进行工具调用。"
         

@@ -86,7 +86,8 @@ def _test_multi_turns(user_queries, record_goods_id=False):
         print(f"query: {query['query']}\nans: {r['message']['content']}")
         query_answers.append((query['query'],r['message']['content']))
     
-
+    print()
+    print()
     for query,ans in query_answers:
         print("="*50)
         print(f"human: {query}\nAi: {ans}")

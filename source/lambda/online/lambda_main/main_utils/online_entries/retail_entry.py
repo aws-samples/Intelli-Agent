@@ -106,7 +106,7 @@ def intention_detection_lambda(state: ChatbotState):
 def agent_lambda(state: ChatbotState):
     goods_info = state.get('goods_info',None) or ""
     agent_chat_history = state.get('agent_chat_history',"")
-    if agent_chat_history:
+    if agent_chat_history and hasattr(agent_chat_history[-1],'additional_kwargs'):
         search_result = agent_chat_history[-1]['additional_kwargs']['original'][0].get('search_result',1)
         if search_result == 0:
             context = agent_chat_history[-1]['additional_kwargs']['original'][0].get('result',"")
