@@ -3,10 +3,10 @@
   "info" : {
     "title" : "llmApi",
     "description" : "This service serves the LLM API.",
-    "version" : "2024-06-27T06:06:59Z"
+    "version" : "2024-07-01T08:16:34Z"
   },
   "servers" : [ {
-    "url" : "https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/{basePath}",
+    "url" : "https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/{basePath}",
     "variables" : {
       "basePath" : {
         "default" : "prod"
@@ -16,6 +16,16 @@
   "paths" : {
     "/aos" : {
       "get" : {
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/intellapicoKbfXMYu1W8Nr"
+              }
+            }
+          },
+          "required" : true
+        },
         "responses" : {
           "400" : {
             "description" : "400 response",
@@ -59,6 +69,16 @@
         } ]
       },
       "post" : {
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/intellapicoKbfXMYu1W8Nr"
+              }
+            }
+          },
+          "required" : true
+        },
         "responses" : {
           "400" : {
             "description" : "400 response",
@@ -134,6 +154,16 @@
     },
     "/ddb" : {
       "post" : {
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/intellapicoKbfXMYu1W8Nr"
+              }
+            }
+          },
+          "required" : true
+        },
         "responses" : {
           "400" : {
             "description" : "400 response",
@@ -209,6 +239,16 @@
     },
     "/ddb/list-messages" : {
       "get" : {
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/intellapicoKbfXMYu1W8Nr"
+              }
+            }
+          },
+          "required" : true
+        },
         "responses" : {
           "400" : {
             "description" : "400 response",
@@ -284,6 +324,16 @@
     },
     "/llm" : {
       "post" : {
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/intellapicoKbfXMYu1W8Nr"
+              }
+            }
+          },
+          "required" : true
+        },
         "responses" : {
           "400" : {
             "description" : "400 response",
@@ -359,6 +409,16 @@
     },
     "/prompt" : {
       "get" : {
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/intellapicoKbfXMYu1W8Nr"
+              }
+            }
+          },
+          "required" : true
+        },
         "responses" : {
           "400" : {
             "description" : "400 response",
@@ -402,6 +462,16 @@
         } ]
       },
       "post" : {
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/intellapicoKbfXMYu1W8Nr"
+              }
+            }
+          },
+          "required" : true
+        },
         "responses" : {
           "400" : {
             "description" : "400 response",
@@ -477,81 +547,16 @@
     },
     "/batch" : {
       "post" : {
-        "responses" : {
-          "400" : {
-            "description" : "400 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/intellapicoKbfXMYu1W8Nr"
               }
             }
           },
-          "500" : {
-            "description" : "500 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          },
-          "200" : {
-            "description" : "200 response",
-            "headers" : {
-              "Access-Control-Allow-Origin" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Methods" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              }
-            },
-            "content" : { }
-          }
+          "required" : true
         },
-        "security" : [ {
-          "intelliagentapiconstructApiAuthorizerFB94A0DF" : [ ]
-        } ]
-      },
-      "options" : {
-        "responses" : {
-          "204" : {
-            "description" : "204 response",
-            "headers" : {
-              "Access-Control-Allow-Origin" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Methods" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Credentials" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Headers" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              }
-            },
-            "content" : { }
-          }
-        }
-      }
-    },
-    "/etl/execution" : {
-      "get" : {
         "responses" : {
           "400" : {
             "description" : "400 response",
@@ -657,8 +662,103 @@
         }
       }
     },
+    "/etl/execution" : {
+      "get" : {
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/intellapicoKbfXMYu1W8Nr"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "400" : {
+            "description" : "400 response",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Empty"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "500 response",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Empty"
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "200 response",
+            "headers" : {
+              "Access-Control-Allow-Origin" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              },
+              "Access-Control-Allow-Methods" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            },
+            "content" : { }
+          }
+        },
+        "security" : [ {
+          "intelliagentapiconstructApiAuthorizerFB94A0DF" : [ ]
+        } ]
+      },
+      "options" : {
+        "responses" : {
+          "204" : {
+            "description" : "204 response",
+            "headers" : {
+              "Access-Control-Allow-Origin" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              },
+              "Access-Control-Allow-Methods" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              },
+              "Access-Control-Allow-Credentials" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              },
+              "Access-Control-Allow-Headers" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            },
+            "content" : { }
+          }
+        }
+      }
+    },
     "/etl/delete-execution" : {
       "post" : {
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/intellapicoKbfXMYu1W8Nr"
+              }
+            }
+          },
+          "required" : true
+        },
         "responses" : {
           "400" : {
             "description" : "400 response",
@@ -734,6 +834,16 @@
     },
     "/ddb/list-sessions" : {
       "get" : {
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/intellapicoKbfXMYu1W8Nr"
+              }
+            }
+          },
+          "required" : true
+        },
         "responses" : {
           "400" : {
             "description" : "400 response",
@@ -809,6 +919,16 @@
     },
     "/etl/list-execution" : {
       "get" : {
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/intellapicoKbfXMYu1W8Nr"
+              }
+            }
+          },
+          "required" : true
+        },
         "responses" : {
           "400" : {
             "description" : "400 response",
@@ -884,81 +1004,16 @@
     },
     "/etl/upload-s3-url" : {
       "post" : {
-        "responses" : {
-          "400" : {
-            "description" : "400 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/intellapicoKbfXMYu1W8Nr"
               }
             }
           },
-          "500" : {
-            "description" : "500 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          },
-          "200" : {
-            "description" : "200 response",
-            "headers" : {
-              "Access-Control-Allow-Origin" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Methods" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              }
-            },
-            "content" : { }
-          }
+          "required" : true
         },
-        "security" : [ {
-          "intelliagentapiconstructApiAuthorizerFB94A0DF" : [ ]
-        } ]
-      },
-      "options" : {
-        "responses" : {
-          "204" : {
-            "description" : "204 response",
-            "headers" : {
-              "Access-Control-Allow-Origin" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Methods" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Credentials" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Headers" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              }
-            },
-            "content" : { }
-          }
-        }
-      }
-    },
-    "/etl" : {
-      "post" : {
         "responses" : {
           "400" : {
             "description" : "400 response",
@@ -1034,6 +1089,101 @@
     },
     "/extract" : {
       "post" : {
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/intellapicoKbfXMYu1W8Nr"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "400" : {
+            "description" : "400 response",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Empty"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "500 response",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Empty"
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "200 response",
+            "headers" : {
+              "Access-Control-Allow-Origin" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              },
+              "Access-Control-Allow-Methods" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            },
+            "content" : { }
+          }
+        },
+        "security" : [ {
+          "intelliagentapiconstructApiAuthorizerFB94A0DF" : [ ]
+        } ]
+      },
+      "options" : {
+        "responses" : {
+          "204" : {
+            "description" : "204 response",
+            "headers" : {
+              "Access-Control-Allow-Origin" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              },
+              "Access-Control-Allow-Methods" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              },
+              "Access-Control-Allow-Credentials" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              },
+              "Access-Control-Allow-Headers" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            },
+            "content" : { }
+          }
+        }
+      }
+    },
+    "/etl" : {
+      "post" : {
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/intellapicoKbfXMYu1W8Nr"
+              }
+            }
+          },
+          "required" : true
+        },
         "responses" : {
           "400" : {
             "description" : "400 response",
@@ -1109,6 +1259,16 @@
     },
     "/etl/list-workspace" : {
       "get" : {
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/intellapicoKbfXMYu1W8Nr"
+              }
+            }
+          },
+          "required" : true
+        },
         "responses" : {
           "400" : {
             "description" : "400 response",
@@ -1188,6 +1348,19 @@
       "Empty" : {
         "title" : "Empty Schema",
         "type" : "object"
+      },
+      "intellapicoKbfXMYu1W8Nr" : {
+        "title" : "postRequest",
+        "required" : [ "name" ],
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          }
+        }
       }
     },
     "securitySchemes" : {

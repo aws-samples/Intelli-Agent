@@ -47,6 +47,9 @@ class TestDocument:
             'content_type': 'application/pdf',
             'file_name': 'summary.pdf'
         }
+        intellapico_kbf_xmyu1_w8_nr = openapi_client.IntellapicoKbfXMYu1W8Nr(name='agent')
+        # intellapico_kbf_xmyu1_w8_nr.from_dict(payload)
+
         # # 创建请求 body 对象
         # request_body = ExampleRequestBody(
         #     attribute1='value1',
@@ -54,7 +57,7 @@ class TestDocument:
         # )
 
         # self.api_instance
-        list_response = self.api_instance.etl_upload_s3_url_post(body=payload)
+        list_response = self.api_instance.etl_upload_s3_url_post(intellapico_kbf_xmyu1_w8_nr)
         logger.info(f'!!!!!{json.loads(list_response.data.decode("utf-8"))}')
 
         # response = json.loads(api_response.response.data.decode('utf-8'))

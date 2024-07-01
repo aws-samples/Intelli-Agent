@@ -18,7 +18,7 @@ brew install openapi-generator
 Use the following command to generate the client code. Assuming your OpenAPI specification file is named openapi.json and you want to generate a Python client:
 
 ```shell
-openapi-generator-cli generate -i openapi.json -g python -o ./generated-client
+openapi-generator-cli generate -i llmApi-prod-oas30.json -g python -o ./generated-client
 ```
 In this command:
 

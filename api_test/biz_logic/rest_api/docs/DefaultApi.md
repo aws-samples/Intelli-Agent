@@ -1,6 +1,6 @@
 # openapi_client.DefaultApi
 
-All URIs are relative to *https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod*
+All URIs are relative to *https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
@@ -38,7 +38,7 @@ Method | HTTP request | Description
 
 
 # **aos_get**
-> aos_get()
+> aos_get(intellapico_kbf_xmyu1_w8_nr)
 
 
 
@@ -48,13 +48,14 @@ Method | HTTP request | Description
 
 ```python
 import openapi_client
+from openapi_client.models.intellapico_kbf_xmyu1_w8_nr import IntellapicoKbfXMYu1W8Nr
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod
+# Defining the host is optional and defaults to https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod"
+    host = "https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod"
 )
 
 # The client must configure the authentication and authorization parameters
@@ -72,9 +73,10 @@ configuration.api_key['intelliagentapiconstructApiAuthorizerFB94A0DF'] = os.envi
 with openapi_client.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = openapi_client.DefaultApi(api_client)
+    intellapico_kbf_xmyu1_w8_nr = openapi_client.IntellapicoKbfXMYu1W8Nr() # IntellapicoKbfXMYu1W8Nr | 
 
     try:
-        api_instance.aos_get()
+        api_instance.aos_get(intellapico_kbf_xmyu1_w8_nr)
     except Exception as e:
         print("Exception when calling DefaultApi->aos_get: %s\n" % e)
 ```
@@ -83,7 +85,10 @@ with openapi_client.ApiClient(configuration) as api_client:
 
 ### Parameters
 
-This endpoint does not need any parameter.
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **intellapico_kbf_xmyu1_w8_nr** | [**IntellapicoKbfXMYu1W8Nr**](IntellapicoKbfXMYu1W8Nr.md)|  | 
 
 ### Return type
 
@@ -95,7 +100,7 @@ void (empty response body)
 
 ### HTTP request headers
 
- - **Content-Type**: Not defined
+ - **Content-Type**: application/json
  - **Accept**: application/json
 
 ### HTTP response details
@@ -121,10 +126,10 @@ import openapi_client
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod
+# Defining the host is optional and defaults to https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod"
+    host = "https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod"
 )
 
 
@@ -167,7 +172,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **aos_post**
-> aos_post()
+> aos_post(intellapico_kbf_xmyu1_w8_nr)
 
 
 
@@ -177,13 +182,14 @@ No authorization required
 
 ```python
 import openapi_client
+from openapi_client.models.intellapico_kbf_xmyu1_w8_nr import IntellapicoKbfXMYu1W8Nr
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod
+# Defining the host is optional and defaults to https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod"
+    host = "https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod"
 )
 
 # The client must configure the authentication and authorization parameters
@@ -201,9 +207,10 @@ configuration.api_key['intelliagentapiconstructApiAuthorizerFB94A0DF'] = os.envi
 with openapi_client.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = openapi_client.DefaultApi(api_client)
+    intellapico_kbf_xmyu1_w8_nr = openapi_client.IntellapicoKbfXMYu1W8Nr() # IntellapicoKbfXMYu1W8Nr | 
 
     try:
-        api_instance.aos_post()
+        api_instance.aos_post(intellapico_kbf_xmyu1_w8_nr)
     except Exception as e:
         print("Exception when calling DefaultApi->aos_post: %s\n" % e)
 ```
@@ -212,7 +219,10 @@ with openapi_client.ApiClient(configuration) as api_client:
 
 ### Parameters
 
-This endpoint does not need any parameter.
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **intellapico_kbf_xmyu1_w8_nr** | [**IntellapicoKbfXMYu1W8Nr**](IntellapicoKbfXMYu1W8Nr.md)|  | 
 
 ### Return type
 
@@ -224,7 +234,7 @@ void (empty response body)
 
 ### HTTP request headers
 
- - **Content-Type**: Not defined
+ - **Content-Type**: application/json
  - **Accept**: application/json
 
 ### HTTP response details
@@ -250,10 +260,10 @@ import openapi_client
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod
+# Defining the host is optional and defaults to https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod"
+    host = "https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod"
 )
 
 
@@ -296,7 +306,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **batch_post**
-> batch_post()
+> batch_post(intellapico_kbf_xmyu1_w8_nr)
 
 
 
@@ -306,13 +316,14 @@ No authorization required
 
 ```python
 import openapi_client
+from openapi_client.models.intellapico_kbf_xmyu1_w8_nr import IntellapicoKbfXMYu1W8Nr
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod
+# Defining the host is optional and defaults to https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod"
+    host = "https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod"
 )
 
 # The client must configure the authentication and authorization parameters
@@ -330,9 +341,10 @@ configuration.api_key['intelliagentapiconstructApiAuthorizerFB94A0DF'] = os.envi
 with openapi_client.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = openapi_client.DefaultApi(api_client)
+    intellapico_kbf_xmyu1_w8_nr = openapi_client.IntellapicoKbfXMYu1W8Nr() # IntellapicoKbfXMYu1W8Nr | 
 
     try:
-        api_instance.batch_post()
+        api_instance.batch_post(intellapico_kbf_xmyu1_w8_nr)
     except Exception as e:
         print("Exception when calling DefaultApi->batch_post: %s\n" % e)
 ```
@@ -341,7 +353,10 @@ with openapi_client.ApiClient(configuration) as api_client:
 
 ### Parameters
 
-This endpoint does not need any parameter.
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **intellapico_kbf_xmyu1_w8_nr** | [**IntellapicoKbfXMYu1W8Nr**](IntellapicoKbfXMYu1W8Nr.md)|  | 
 
 ### Return type
 
@@ -353,7 +368,7 @@ void (empty response body)
 
 ### HTTP request headers
 
- - **Content-Type**: Not defined
+ - **Content-Type**: application/json
  - **Accept**: application/json
 
 ### HTTP response details
@@ -367,7 +382,7 @@ void (empty response body)
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **ddb_list_messages_get**
-> ddb_list_messages_get()
+> ddb_list_messages_get(intellapico_kbf_xmyu1_w8_nr)
 
 
 
@@ -377,13 +392,14 @@ void (empty response body)
 
 ```python
 import openapi_client
+from openapi_client.models.intellapico_kbf_xmyu1_w8_nr import IntellapicoKbfXMYu1W8Nr
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod
+# Defining the host is optional and defaults to https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod"
+    host = "https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod"
 )
 
 # The client must configure the authentication and authorization parameters
@@ -401,9 +417,10 @@ configuration.api_key['intelliagentapiconstructApiAuthorizerFB94A0DF'] = os.envi
 with openapi_client.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = openapi_client.DefaultApi(api_client)
+    intellapico_kbf_xmyu1_w8_nr = openapi_client.IntellapicoKbfXMYu1W8Nr() # IntellapicoKbfXMYu1W8Nr | 
 
     try:
-        api_instance.ddb_list_messages_get()
+        api_instance.ddb_list_messages_get(intellapico_kbf_xmyu1_w8_nr)
     except Exception as e:
         print("Exception when calling DefaultApi->ddb_list_messages_get: %s\n" % e)
 ```
@@ -412,7 +429,10 @@ with openapi_client.ApiClient(configuration) as api_client:
 
 ### Parameters
 
-This endpoint does not need any parameter.
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **intellapico_kbf_xmyu1_w8_nr** | [**IntellapicoKbfXMYu1W8Nr**](IntellapicoKbfXMYu1W8Nr.md)|  | 
 
 ### Return type
 
@@ -424,7 +444,7 @@ void (empty response body)
 
 ### HTTP request headers
 
- - **Content-Type**: Not defined
+ - **Content-Type**: application/json
  - **Accept**: application/json
 
 ### HTTP response details
@@ -450,10 +470,10 @@ import openapi_client
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod
+# Defining the host is optional and defaults to https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod"
+    host = "https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod"
 )
 
 
@@ -496,7 +516,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **ddb_list_sessions_get**
-> ddb_list_sessions_get()
+> ddb_list_sessions_get(intellapico_kbf_xmyu1_w8_nr)
 
 
 
@@ -506,13 +526,14 @@ No authorization required
 
 ```python
 import openapi_client
+from openapi_client.models.intellapico_kbf_xmyu1_w8_nr import IntellapicoKbfXMYu1W8Nr
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod
+# Defining the host is optional and defaults to https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod"
+    host = "https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod"
 )
 
 # The client must configure the authentication and authorization parameters
@@ -530,9 +551,10 @@ configuration.api_key['intelliagentapiconstructApiAuthorizerFB94A0DF'] = os.envi
 with openapi_client.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = openapi_client.DefaultApi(api_client)
+    intellapico_kbf_xmyu1_w8_nr = openapi_client.IntellapicoKbfXMYu1W8Nr() # IntellapicoKbfXMYu1W8Nr | 
 
     try:
-        api_instance.ddb_list_sessions_get()
+        api_instance.ddb_list_sessions_get(intellapico_kbf_xmyu1_w8_nr)
     except Exception as e:
         print("Exception when calling DefaultApi->ddb_list_sessions_get: %s\n" % e)
 ```
@@ -541,7 +563,10 @@ with openapi_client.ApiClient(configuration) as api_client:
 
 ### Parameters
 
-This endpoint does not need any parameter.
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **intellapico_kbf_xmyu1_w8_nr** | [**IntellapicoKbfXMYu1W8Nr**](IntellapicoKbfXMYu1W8Nr.md)|  | 
 
 ### Return type
 
@@ -553,7 +578,7 @@ void (empty response body)
 
 ### HTTP request headers
 
- - **Content-Type**: Not defined
+ - **Content-Type**: application/json
  - **Accept**: application/json
 
 ### HTTP response details
@@ -579,10 +604,10 @@ import openapi_client
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod
+# Defining the host is optional and defaults to https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod"
+    host = "https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod"
 )
 
 
@@ -637,10 +662,10 @@ import openapi_client
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod
+# Defining the host is optional and defaults to https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod"
+    host = "https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod"
 )
 
 
@@ -683,7 +708,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **ddb_post**
-> ddb_post()
+> ddb_post(intellapico_kbf_xmyu1_w8_nr)
 
 
 
@@ -693,13 +718,14 @@ No authorization required
 
 ```python
 import openapi_client
+from openapi_client.models.intellapico_kbf_xmyu1_w8_nr import IntellapicoKbfXMYu1W8Nr
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod
+# Defining the host is optional and defaults to https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod"
+    host = "https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod"
 )
 
 # The client must configure the authentication and authorization parameters
@@ -717,9 +743,10 @@ configuration.api_key['intelliagentapiconstructApiAuthorizerFB94A0DF'] = os.envi
 with openapi_client.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = openapi_client.DefaultApi(api_client)
+    intellapico_kbf_xmyu1_w8_nr = openapi_client.IntellapicoKbfXMYu1W8Nr() # IntellapicoKbfXMYu1W8Nr | 
 
     try:
-        api_instance.ddb_post()
+        api_instance.ddb_post(intellapico_kbf_xmyu1_w8_nr)
     except Exception as e:
         print("Exception when calling DefaultApi->ddb_post: %s\n" % e)
 ```
@@ -728,7 +755,10 @@ with openapi_client.ApiClient(configuration) as api_client:
 
 ### Parameters
 
-This endpoint does not need any parameter.
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **intellapico_kbf_xmyu1_w8_nr** | [**IntellapicoKbfXMYu1W8Nr**](IntellapicoKbfXMYu1W8Nr.md)|  | 
 
 ### Return type
 
@@ -740,7 +770,7 @@ void (empty response body)
 
 ### HTTP request headers
 
- - **Content-Type**: Not defined
+ - **Content-Type**: application/json
  - **Accept**: application/json
 
 ### HTTP response details
@@ -766,10 +796,10 @@ import openapi_client
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod
+# Defining the host is optional and defaults to https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod"
+    host = "https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod"
 )
 
 
@@ -812,7 +842,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **etl_delete_execution_post**
-> etl_delete_execution_post()
+> etl_delete_execution_post(intellapico_kbf_xmyu1_w8_nr)
 
 
 
@@ -822,13 +852,14 @@ No authorization required
 
 ```python
 import openapi_client
+from openapi_client.models.intellapico_kbf_xmyu1_w8_nr import IntellapicoKbfXMYu1W8Nr
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod
+# Defining the host is optional and defaults to https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod"
+    host = "https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod"
 )
 
 # The client must configure the authentication and authorization parameters
@@ -846,9 +877,10 @@ configuration.api_key['intelliagentapiconstructApiAuthorizerFB94A0DF'] = os.envi
 with openapi_client.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = openapi_client.DefaultApi(api_client)
+    intellapico_kbf_xmyu1_w8_nr = openapi_client.IntellapicoKbfXMYu1W8Nr() # IntellapicoKbfXMYu1W8Nr | 
 
     try:
-        api_instance.etl_delete_execution_post()
+        api_instance.etl_delete_execution_post(intellapico_kbf_xmyu1_w8_nr)
     except Exception as e:
         print("Exception when calling DefaultApi->etl_delete_execution_post: %s\n" % e)
 ```
@@ -857,7 +889,10 @@ with openapi_client.ApiClient(configuration) as api_client:
 
 ### Parameters
 
-This endpoint does not need any parameter.
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **intellapico_kbf_xmyu1_w8_nr** | [**IntellapicoKbfXMYu1W8Nr**](IntellapicoKbfXMYu1W8Nr.md)|  | 
 
 ### Return type
 
@@ -869,7 +904,7 @@ void (empty response body)
 
 ### HTTP request headers
 
- - **Content-Type**: Not defined
+ - **Content-Type**: application/json
  - **Accept**: application/json
 
 ### HTTP response details
@@ -883,7 +918,7 @@ void (empty response body)
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **etl_execution_get**
-> etl_execution_get()
+> etl_execution_get(intellapico_kbf_xmyu1_w8_nr)
 
 
 
@@ -893,13 +928,14 @@ void (empty response body)
 
 ```python
 import openapi_client
+from openapi_client.models.intellapico_kbf_xmyu1_w8_nr import IntellapicoKbfXMYu1W8Nr
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod
+# Defining the host is optional and defaults to https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod"
+    host = "https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod"
 )
 
 # The client must configure the authentication and authorization parameters
@@ -917,9 +953,10 @@ configuration.api_key['intelliagentapiconstructApiAuthorizerFB94A0DF'] = os.envi
 with openapi_client.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = openapi_client.DefaultApi(api_client)
+    intellapico_kbf_xmyu1_w8_nr = openapi_client.IntellapicoKbfXMYu1W8Nr() # IntellapicoKbfXMYu1W8Nr | 
 
     try:
-        api_instance.etl_execution_get()
+        api_instance.etl_execution_get(intellapico_kbf_xmyu1_w8_nr)
     except Exception as e:
         print("Exception when calling DefaultApi->etl_execution_get: %s\n" % e)
 ```
@@ -928,7 +965,10 @@ with openapi_client.ApiClient(configuration) as api_client:
 
 ### Parameters
 
-This endpoint does not need any parameter.
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **intellapico_kbf_xmyu1_w8_nr** | [**IntellapicoKbfXMYu1W8Nr**](IntellapicoKbfXMYu1W8Nr.md)|  | 
 
 ### Return type
 
@@ -940,7 +980,7 @@ void (empty response body)
 
 ### HTTP request headers
 
- - **Content-Type**: Not defined
+ - **Content-Type**: application/json
  - **Accept**: application/json
 
 ### HTTP response details
@@ -966,10 +1006,10 @@ import openapi_client
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod
+# Defining the host is optional and defaults to https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod"
+    host = "https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod"
 )
 
 
@@ -1012,7 +1052,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **etl_list_execution_get**
-> etl_list_execution_get()
+> etl_list_execution_get(intellapico_kbf_xmyu1_w8_nr)
 
 
 
@@ -1022,13 +1062,14 @@ No authorization required
 
 ```python
 import openapi_client
+from openapi_client.models.intellapico_kbf_xmyu1_w8_nr import IntellapicoKbfXMYu1W8Nr
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod
+# Defining the host is optional and defaults to https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod"
+    host = "https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod"
 )
 
 # The client must configure the authentication and authorization parameters
@@ -1046,9 +1087,10 @@ configuration.api_key['intelliagentapiconstructApiAuthorizerFB94A0DF'] = os.envi
 with openapi_client.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = openapi_client.DefaultApi(api_client)
+    intellapico_kbf_xmyu1_w8_nr = openapi_client.IntellapicoKbfXMYu1W8Nr() # IntellapicoKbfXMYu1W8Nr | 
 
     try:
-        api_instance.etl_list_execution_get()
+        api_instance.etl_list_execution_get(intellapico_kbf_xmyu1_w8_nr)
     except Exception as e:
         print("Exception when calling DefaultApi->etl_list_execution_get: %s\n" % e)
 ```
@@ -1057,7 +1099,10 @@ with openapi_client.ApiClient(configuration) as api_client:
 
 ### Parameters
 
-This endpoint does not need any parameter.
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **intellapico_kbf_xmyu1_w8_nr** | [**IntellapicoKbfXMYu1W8Nr**](IntellapicoKbfXMYu1W8Nr.md)|  | 
 
 ### Return type
 
@@ -1069,7 +1114,7 @@ void (empty response body)
 
 ### HTTP request headers
 
- - **Content-Type**: Not defined
+ - **Content-Type**: application/json
  - **Accept**: application/json
 
 ### HTTP response details
@@ -1095,10 +1140,10 @@ import openapi_client
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod
+# Defining the host is optional and defaults to https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod"
+    host = "https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod"
 )
 
 
@@ -1141,7 +1186,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **etl_list_workspace_get**
-> etl_list_workspace_get()
+> etl_list_workspace_get(intellapico_kbf_xmyu1_w8_nr)
 
 
 
@@ -1151,13 +1196,14 @@ No authorization required
 
 ```python
 import openapi_client
+from openapi_client.models.intellapico_kbf_xmyu1_w8_nr import IntellapicoKbfXMYu1W8Nr
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod
+# Defining the host is optional and defaults to https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod"
+    host = "https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod"
 )
 
 # The client must configure the authentication and authorization parameters
@@ -1175,9 +1221,10 @@ configuration.api_key['intelliagentapiconstructApiAuthorizerFB94A0DF'] = os.envi
 with openapi_client.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = openapi_client.DefaultApi(api_client)
+    intellapico_kbf_xmyu1_w8_nr = openapi_client.IntellapicoKbfXMYu1W8Nr() # IntellapicoKbfXMYu1W8Nr | 
 
     try:
-        api_instance.etl_list_workspace_get()
+        api_instance.etl_list_workspace_get(intellapico_kbf_xmyu1_w8_nr)
     except Exception as e:
         print("Exception when calling DefaultApi->etl_list_workspace_get: %s\n" % e)
 ```
@@ -1186,7 +1233,10 @@ with openapi_client.ApiClient(configuration) as api_client:
 
 ### Parameters
 
-This endpoint does not need any parameter.
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **intellapico_kbf_xmyu1_w8_nr** | [**IntellapicoKbfXMYu1W8Nr**](IntellapicoKbfXMYu1W8Nr.md)|  | 
 
 ### Return type
 
@@ -1198,7 +1248,7 @@ void (empty response body)
 
 ### HTTP request headers
 
- - **Content-Type**: Not defined
+ - **Content-Type**: application/json
  - **Accept**: application/json
 
 ### HTTP response details
@@ -1224,10 +1274,10 @@ import openapi_client
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod
+# Defining the host is optional and defaults to https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod"
+    host = "https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod"
 )
 
 
@@ -1282,10 +1332,10 @@ import openapi_client
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod
+# Defining the host is optional and defaults to https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod"
+    host = "https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod"
 )
 
 
@@ -1328,7 +1378,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **etl_post**
-> etl_post()
+> etl_post(intellapico_kbf_xmyu1_w8_nr)
 
 
 
@@ -1338,13 +1388,14 @@ No authorization required
 
 ```python
 import openapi_client
+from openapi_client.models.intellapico_kbf_xmyu1_w8_nr import IntellapicoKbfXMYu1W8Nr
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod
+# Defining the host is optional and defaults to https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod"
+    host = "https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod"
 )
 
 # The client must configure the authentication and authorization parameters
@@ -1362,9 +1413,10 @@ configuration.api_key['intelliagentapiconstructApiAuthorizerFB94A0DF'] = os.envi
 with openapi_client.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = openapi_client.DefaultApi(api_client)
+    intellapico_kbf_xmyu1_w8_nr = openapi_client.IntellapicoKbfXMYu1W8Nr() # IntellapicoKbfXMYu1W8Nr | 
 
     try:
-        api_instance.etl_post()
+        api_instance.etl_post(intellapico_kbf_xmyu1_w8_nr)
     except Exception as e:
         print("Exception when calling DefaultApi->etl_post: %s\n" % e)
 ```
@@ -1373,7 +1425,10 @@ with openapi_client.ApiClient(configuration) as api_client:
 
 ### Parameters
 
-This endpoint does not need any parameter.
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **intellapico_kbf_xmyu1_w8_nr** | [**IntellapicoKbfXMYu1W8Nr**](IntellapicoKbfXMYu1W8Nr.md)|  | 
 
 ### Return type
 
@@ -1385,7 +1440,7 @@ void (empty response body)
 
 ### HTTP request headers
 
- - **Content-Type**: Not defined
+ - **Content-Type**: application/json
  - **Accept**: application/json
 
 ### HTTP response details
@@ -1411,10 +1466,10 @@ import openapi_client
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod
+# Defining the host is optional and defaults to https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod"
+    host = "https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod"
 )
 
 
@@ -1457,7 +1512,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **etl_upload_s3_url_post**
-> etl_upload_s3_url_post()
+> etl_upload_s3_url_post(intellapico_kbf_xmyu1_w8_nr)
 
 
 
@@ -1467,13 +1522,14 @@ No authorization required
 
 ```python
 import openapi_client
+from openapi_client.models.intellapico_kbf_xmyu1_w8_nr import IntellapicoKbfXMYu1W8Nr
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod
+# Defining the host is optional and defaults to https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod"
+    host = "https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod"
 )
 
 # The client must configure the authentication and authorization parameters
@@ -1491,9 +1547,10 @@ configuration.api_key['intelliagentapiconstructApiAuthorizerFB94A0DF'] = os.envi
 with openapi_client.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = openapi_client.DefaultApi(api_client)
+    intellapico_kbf_xmyu1_w8_nr = openapi_client.IntellapicoKbfXMYu1W8Nr() # IntellapicoKbfXMYu1W8Nr | 
 
     try:
-        api_instance.etl_upload_s3_url_post()
+        api_instance.etl_upload_s3_url_post(intellapico_kbf_xmyu1_w8_nr)
     except Exception as e:
         print("Exception when calling DefaultApi->etl_upload_s3_url_post: %s\n" % e)
 ```
@@ -1502,7 +1559,10 @@ with openapi_client.ApiClient(configuration) as api_client:
 
 ### Parameters
 
-This endpoint does not need any parameter.
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **intellapico_kbf_xmyu1_w8_nr** | [**IntellapicoKbfXMYu1W8Nr**](IntellapicoKbfXMYu1W8Nr.md)|  | 
 
 ### Return type
 
@@ -1514,7 +1574,7 @@ void (empty response body)
 
 ### HTTP request headers
 
- - **Content-Type**: Not defined
+ - **Content-Type**: application/json
  - **Accept**: application/json
 
 ### HTTP response details
@@ -1540,10 +1600,10 @@ import openapi_client
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod
+# Defining the host is optional and defaults to https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod"
+    host = "https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod"
 )
 
 
@@ -1586,7 +1646,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **extract_post**
-> extract_post()
+> extract_post(intellapico_kbf_xmyu1_w8_nr)
 
 
 
@@ -1596,13 +1656,14 @@ No authorization required
 
 ```python
 import openapi_client
+from openapi_client.models.intellapico_kbf_xmyu1_w8_nr import IntellapicoKbfXMYu1W8Nr
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod
+# Defining the host is optional and defaults to https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod"
+    host = "https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod"
 )
 
 # The client must configure the authentication and authorization parameters
@@ -1620,9 +1681,10 @@ configuration.api_key['intelliagentapiconstructApiAuthorizerFB94A0DF'] = os.envi
 with openapi_client.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = openapi_client.DefaultApi(api_client)
+    intellapico_kbf_xmyu1_w8_nr = openapi_client.IntellapicoKbfXMYu1W8Nr() # IntellapicoKbfXMYu1W8Nr | 
 
     try:
-        api_instance.extract_post()
+        api_instance.extract_post(intellapico_kbf_xmyu1_w8_nr)
     except Exception as e:
         print("Exception when calling DefaultApi->extract_post: %s\n" % e)
 ```
@@ -1631,7 +1693,10 @@ with openapi_client.ApiClient(configuration) as api_client:
 
 ### Parameters
 
-This endpoint does not need any parameter.
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **intellapico_kbf_xmyu1_w8_nr** | [**IntellapicoKbfXMYu1W8Nr**](IntellapicoKbfXMYu1W8Nr.md)|  | 
 
 ### Return type
 
@@ -1643,7 +1708,7 @@ void (empty response body)
 
 ### HTTP request headers
 
- - **Content-Type**: Not defined
+ - **Content-Type**: application/json
  - **Accept**: application/json
 
 ### HTTP response details
@@ -1669,10 +1734,10 @@ import openapi_client
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod
+# Defining the host is optional and defaults to https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod"
+    host = "https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod"
 )
 
 
@@ -1715,7 +1780,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **llm_post**
-> llm_post()
+> llm_post(intellapico_kbf_xmyu1_w8_nr)
 
 
 
@@ -1725,13 +1790,14 @@ No authorization required
 
 ```python
 import openapi_client
+from openapi_client.models.intellapico_kbf_xmyu1_w8_nr import IntellapicoKbfXMYu1W8Nr
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod
+# Defining the host is optional and defaults to https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod"
+    host = "https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod"
 )
 
 # The client must configure the authentication and authorization parameters
@@ -1749,9 +1815,10 @@ configuration.api_key['intelliagentapiconstructApiAuthorizerFB94A0DF'] = os.envi
 with openapi_client.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = openapi_client.DefaultApi(api_client)
+    intellapico_kbf_xmyu1_w8_nr = openapi_client.IntellapicoKbfXMYu1W8Nr() # IntellapicoKbfXMYu1W8Nr | 
 
     try:
-        api_instance.llm_post()
+        api_instance.llm_post(intellapico_kbf_xmyu1_w8_nr)
     except Exception as e:
         print("Exception when calling DefaultApi->llm_post: %s\n" % e)
 ```
@@ -1760,7 +1827,10 @@ with openapi_client.ApiClient(configuration) as api_client:
 
 ### Parameters
 
-This endpoint does not need any parameter.
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **intellapico_kbf_xmyu1_w8_nr** | [**IntellapicoKbfXMYu1W8Nr**](IntellapicoKbfXMYu1W8Nr.md)|  | 
 
 ### Return type
 
@@ -1772,7 +1842,7 @@ void (empty response body)
 
 ### HTTP request headers
 
- - **Content-Type**: Not defined
+ - **Content-Type**: application/json
  - **Accept**: application/json
 
 ### HTTP response details
@@ -1786,7 +1856,7 @@ void (empty response body)
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **prompt_get**
-> prompt_get()
+> prompt_get(intellapico_kbf_xmyu1_w8_nr)
 
 
 
@@ -1796,13 +1866,14 @@ void (empty response body)
 
 ```python
 import openapi_client
+from openapi_client.models.intellapico_kbf_xmyu1_w8_nr import IntellapicoKbfXMYu1W8Nr
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod
+# Defining the host is optional and defaults to https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod"
+    host = "https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod"
 )
 
 # The client must configure the authentication and authorization parameters
@@ -1820,9 +1891,10 @@ configuration.api_key['intelliagentapiconstructApiAuthorizerFB94A0DF'] = os.envi
 with openapi_client.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = openapi_client.DefaultApi(api_client)
+    intellapico_kbf_xmyu1_w8_nr = openapi_client.IntellapicoKbfXMYu1W8Nr() # IntellapicoKbfXMYu1W8Nr | 
 
     try:
-        api_instance.prompt_get()
+        api_instance.prompt_get(intellapico_kbf_xmyu1_w8_nr)
     except Exception as e:
         print("Exception when calling DefaultApi->prompt_get: %s\n" % e)
 ```
@@ -1831,7 +1903,10 @@ with openapi_client.ApiClient(configuration) as api_client:
 
 ### Parameters
 
-This endpoint does not need any parameter.
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **intellapico_kbf_xmyu1_w8_nr** | [**IntellapicoKbfXMYu1W8Nr**](IntellapicoKbfXMYu1W8Nr.md)|  | 
 
 ### Return type
 
@@ -1843,7 +1918,7 @@ void (empty response body)
 
 ### HTTP request headers
 
- - **Content-Type**: Not defined
+ - **Content-Type**: application/json
  - **Accept**: application/json
 
 ### HTTP response details
@@ -1869,10 +1944,10 @@ import openapi_client
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod
+# Defining the host is optional and defaults to https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod"
+    host = "https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod"
 )
 
 
@@ -1915,7 +1990,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **prompt_post**
-> prompt_post()
+> prompt_post(intellapico_kbf_xmyu1_w8_nr)
 
 
 
@@ -1925,13 +2000,14 @@ No authorization required
 
 ```python
 import openapi_client
+from openapi_client.models.intellapico_kbf_xmyu1_w8_nr import IntellapicoKbfXMYu1W8Nr
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod
+# Defining the host is optional and defaults to https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod"
+    host = "https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod"
 )
 
 # The client must configure the authentication and authorization parameters
@@ -1949,9 +2025,10 @@ configuration.api_key['intelliagentapiconstructApiAuthorizerFB94A0DF'] = os.envi
 with openapi_client.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = openapi_client.DefaultApi(api_client)
+    intellapico_kbf_xmyu1_w8_nr = openapi_client.IntellapicoKbfXMYu1W8Nr() # IntellapicoKbfXMYu1W8Nr | 
 
     try:
-        api_instance.prompt_post()
+        api_instance.prompt_post(intellapico_kbf_xmyu1_w8_nr)
     except Exception as e:
         print("Exception when calling DefaultApi->prompt_post: %s\n" % e)
 ```
@@ -1960,7 +2037,10 @@ with openapi_client.ApiClient(configuration) as api_client:
 
 ### Parameters
 
-This endpoint does not need any parameter.
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **intellapico_kbf_xmyu1_w8_nr** | [**IntellapicoKbfXMYu1W8Nr**](IntellapicoKbfXMYu1W8Nr.md)|  | 
 
 ### Return type
 
@@ -1972,7 +2052,7 @@ void (empty response body)
 
 ### HTTP request headers
 
- - **Content-Type**: Not defined
+ - **Content-Type**: application/json
  - **Accept**: application/json
 
 ### HTTP response details
@@ -1998,10 +2078,10 @@ import openapi_client
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod
+# Defining the host is optional and defaults to https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod"
+    host = "https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/prod"
 )
 
 
