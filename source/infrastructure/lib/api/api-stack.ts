@@ -544,25 +544,7 @@ export class ApiConstruct extends Construct {
     apiResourceStepFunction.addMethod(
       "POST",
       new apigw.LambdaIntegration(sfnLambda),
-      {...methodOption,
-        requestModels: {
-          'application/json': new Model(this, 'PostModel', {
-            restApi: api,
-            schema: {
-              schema: JsonSchemaVersion.DRAFT4,
-              title: 'PostPayload',
-              type: JsonSchemaType.OBJECT,
-              properties: {
-                content_type: { type: JsonSchemaType.STRING },
-                file_name: { type: JsonSchemaType.STRING },
-              },
-              required: ['content_type', 'file_name'],
-            },
-          })
-      },requestValidatorOptions: {
-        requestValidatorName: 'payload-validator',
-        validateRequestBody: true,
-      }}
+      methodOption
     );
 
     const apiGetExecution = apiResourceStepFunction.addResource("execution");
@@ -592,7 +574,25 @@ export class ApiConstruct extends Construct {
     apiUploadDoc.addMethod(
       "POST",
       new apigw.LambdaIntegration(uploadDocLambda),
-      methodOption,
+      {...methodOption,
+        requestModels: {
+          'application/json': new Model(this, 'PostModel', {
+            restApi: api,
+            schema: {
+              schema: JsonSchemaVersion.DRAFT4,
+              title: 'PostPayload',
+              type: JsonSchemaType.OBJECT,
+              properties: {
+                content_type: { type: JsonSchemaType.STRING },
+                file_name: { type: JsonSchemaType.STRING },
+              },
+              required: ['content_type', 'file_name'],
+            },
+          })
+      },requestValidatorOptions: {
+        requestValidatorName: 'payload-validator',
+        validateRequestBody: true,
+      }}
     );
     // apiUploadDoc.addMethod(
     //   "POST",
