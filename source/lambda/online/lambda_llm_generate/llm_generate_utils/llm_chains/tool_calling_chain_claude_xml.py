@@ -33,7 +33,7 @@ tool_call_guidelines = """<guidlines>
     3. 如果当前的上下文不能支持回答用户的问题，你可以考虑调用<tools> 标签中列举的工具。
     4. 如果调用工具对应的参数不够，请调用反问工具 `give_rhetorical_question` 来让用户提供更加充分的信息。
     5. 最后给出你要调用的工具名称。
-- Always output with "中文". 
+- Always output with the same language as the content within <query></query>. If the content is english, use englisth to output. If the content is chinese, use chinese to output.
 </guidlines>
 """
 incorrect_tool_call_example = """Here is an example of an incorrectly formatted tool call, which you should avoid.
