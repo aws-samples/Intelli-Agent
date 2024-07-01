@@ -6,36 +6,11 @@ import pandas as pd
 import queue 
 from threading import Thread
 import tqdm 
-# def test(chatbot_mode="agent",session_id=None,query=None,goods_id=None,use_history=True):
-#     default_llm_config = {
-#         'model_id': 'anthropic.claude-3-sonnet-20240229-v1:0',
-#         'model_kwargs': {
-#             'temperature': 0.5, 'max_tokens': 1000}
-#         }
+from datetime import datetime
 
-#     chatbot_config = {
-#         "goods_id":goods_id,
-#         "chatbot_mode": chatbot_mode,
-#         "use_history": use_history
-#     }
-    
-#     session_id = session_id or f"test_{time.time()}"
-#     query = query or "很浪费时间 出库的时候也不看清楚？"
-#     # session_id = f"test_{time.time()}"
-    
-#     # 售后物流
-#     #"可以发顺丰快递吗？",
-#     # 客户抱怨
-#     # "很浪费时间 出库的时候也不看清楚？",
-#     # 促销查询
-#     # "评论有惊喜吗？",
-#     generate_answer(
-#         query,
-#         stream=True,
-#         session_id=session_id,
-#         chatbot_config=chatbot_config
-#     )
 
+CREATE_TIME_FORMAT = '%Y-%m-%d %H:%M:%S.%f'
+CREATE_TIME_FORMAT_2 = '%Y-%m-%d%H:%M:%S.%f'
 
 def _test_multi_turns(user_queries, record_goods_id=False):
     session_id = f"anta_test_{time.time()}"
@@ -76,12 +51,21 @@ def _test_multi_turns(user_queries, record_goods_id=False):
     for query in user_queries:
         if isinstance(query,str):
             query = {"query":query}
+        
+        create_time = query.get('create_time',datetime.now().strftime(CREATE_TIME_FORMAT))
+        try:
+            create_time = datetime.strptime(create_time, CREATE_TIME_FORMAT)
+        except ValueError:
+            create_time = datetime.strptime(create_time, CREATE_TIME_FORMAT_2)
+
+        create_time = create_time.strftime(CREATE_TIME_FORMAT)
+
         r = generate_answer(
                query=query['query'],
             #    create_time=,
                stream=False,
                 session_id=session_id,
-                chatbot_config={**chatbot_config,"goods_id": query.get("goods_id"),"create_time":query.get('create_time',None)},
+                chatbot_config={**chatbot_config,"goods_id": query.get("goods_id"),"create_time":create_time},
                 entry_type="retail"
         )
         query_answers.append((query['query'],r['message']['content']))
@@ -95,9 +79,9 @@ def _test_multi_turns(user_queries, record_goods_id=False):
 
 
 def test_multi_turns():
-    # user_queries = [
-    #     {"query":"今天怎么还没有发货","goods_id": 714845988113}
-    # ]
+    user_queries = [
+        {"query":"今天怎么还没有发货","goods_id": 714845988113}
+    ]
     # user_queries = [
     #     {"query":"https://detail.tmall.com/item.htm?id=760601512644","goods_id": ""},
     #     {"query":"你好","goods_id": ""}
@@ -243,7 +227,16 @@ def batch_test(data_file, count=1000,add_eval_score=True,record_goods_id=False):
         else:
             product_ids = None
         session_id = f"{session_prefix}_{datum['desensitized_cnick']}"
-        chatbot_config.update({"goods_id":product_ids})
+        
+
+        create_time = datum.get('create_time',datetime.now().strftime(CREATE_TIME_FORMAT))
+        try:
+            create_time = datetime.strptime(create_time, CREATE_TIME_FORMAT)
+        except ValueError:
+            create_time = datetime.strptime(create_time, CREATE_TIME_FORMAT_2)
+        create_time = create_time.strftime(CREATE_TIME_FORMAT)
+
+        chatbot_config.update({"goods_id":product_ids,"create_time":create_time})
         try:
             r = generate_answer(
                 datum['user_msg'],
