@@ -1,6 +1,7 @@
 import json
 import re
 import random
+from datetime import datetime 
 from textwrap import dedent
 from typing import TypedDict,Any,Annotated
 import validators
@@ -25,13 +26,19 @@ from common_logic.common_utils.exceptions import (
 )
 from common_logic.common_utils.logger_utils import get_logger
 from common_logic.common_utils.serialization_utils import JSONEncoder
+from common_logic.common_utils.s3_utils import download_file_from_s3,check_local_folder
 
+order_info_path = "/tmp/functions/retail_tools/lambda_order_info/order_info.json"
+check_local_folder(order_info_path)
+download_file_from_s3("aws-chatbot-knowledge-base-test", "retail_json/order_info.json", order_info_path)
+order_dict = json.load(open(order_info_path))
 
 logger = get_logger('retail_entry')
 
 class ChatbotState(TypedDict):
     chatbot_config: dict # chatbot config
     query: str 
+    create_time: str 
     ws_connection_id: str 
     stream: bool 
     query_rewrite: str = None  # query rewrite ret
@@ -152,7 +159,7 @@ def agent_lambda(state: ChatbotState):
     current_agent_output:dict = invoke_lambda(
         event_body={
             **state,
-            "other_chain_kwargs":{"goods_info": goods_info}
+            "other_chain_kwargs":{"goods_info": goods_info, "create_time": state['create_time']}
         },
         lambda_name="Online_Agent",
         lambda_module_path="lambda_agent.agent",
@@ -358,8 +365,24 @@ def rag_product_aftersales_retriever_lambda(state: ChatbotState):
 
 @node_monitor_wrapper
 def rag_product_aftersales_llm_lambda(state:ChatbotState):
+    create_time = state.get('create_time', None)
+    goods_id = state.get('chatbot_config').get('goods_id', 757492962957)
+    try:
+        create_datetime_object = datetime.strptime(create_time, '%Y-%m-%d %H:%M:%S.%f')
+    except Exception as e:
+        create_datetime_object = datetime.now()
+        print(f"create_time: {create_time} is not valid, use current time instead.")
+    create_time_str = create_datetime_object.strftime('%Y-%m-%d')
+    received_time = order_dict.get(str(goods_id), {}).get("received_time", "2023/11/1215:03:13")
+    order_time = " ".join([received_time[:-8], received_time[-8:]])
+    order_date_str = datetime.strptime(order_time, '%Y/%m/%d %H:%M:%S').strftime('%Y-%m-%d')
+    receive_elapsed_days = (create_datetime_object - datetime.strptime(order_date_str, '%Y-%m-%d')).days
+    receive_elapsed_months = receive_elapsed_days // 30
     context = "\n\n".join(state['contexts'])
     system_prompt = (f"你是安踏的客服助理，正在帮消费者解答问题，消费者提出的问题大多是属于商品的质量和物流规则。context列举了一些可能有关的具体场景及回复，你可以进行参考:\n"
+                    f"客户咨询的问题所对应的订单日期为{order_date_str}。\n"
+                    f"当前时间{create_time_str}\n"
+                    f"客户收到商品已经超过{receive_elapsed_months}个月\n"
                     "<context>\n"
                     f"{context}\n"
                     "</context>\n"
@@ -368,7 +391,12 @@ def rag_product_aftersales_llm_lambda(state:ChatbotState):
                     " - 回答内容为一句话，言简意赅。\n"
                     " - 如果问题与context内容不相关，就不要采用。\n"
                     " - 消费者的问题里面可能包含口语化的表达，比如鞋子开胶的意思是用胶黏合的鞋体裂开。这和胶丝遗留没有关系\n"
+                    " - 洗涤后出现问题也属于质量问题\n"
                     " - 消费者的回复不够清晰的时候，直接回复: 不知道刚才给您的建议是否有帮助？。不要有额外补充\n"
+                    " - 如果客户问到质量相关问题，请按照下面步骤处理\n"
+                    "    - Step 1: 查看订单时间。\n"
+                    "    - Step 2: 查看三包时间期限。\n"
+                    "    - Step 3: 告知用户是否在三包范围内。\n"
                     "</guidelines>\n"
                     )
     # print('llm config',state['chatbot_config']['rag_product_aftersales_config']['llm_config'])
@@ -591,7 +619,11 @@ def rule_number_reply(state:ChatbotState):
 def query_route(state:dict):
     # check if rule reply
     query = state['query']
-    if validators.url(query):
+    is_all_url = True
+    for token in query.split():
+        if not validators.url(token):
+            is_all_url = False
+    if is_all_url:
         return "url"
     if query.isnumeric() and len(query)>=8:
         return "number"
@@ -791,6 +823,7 @@ def retail_entry(event_body):
     chatbot_config = event_body['chatbot_config']
     query = event_body['query']
     stream = event_body['stream']
+    create_time = event_body['create_time']
     message_id = event_body['custom_message_id']
     ws_connection_id = event_body['ws_connection_id']
     enable_trace = chatbot_config["enable_trace"]
@@ -836,6 +869,7 @@ def retail_entry(event_body):
         "stream": stream,
         "chatbot_config": chatbot_config,
         "query": query,
+        "create_time": create_time,
         "enable_trace": enable_trace,
         "trace_infos": [],
         "message_id": message_id,

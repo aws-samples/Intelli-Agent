@@ -245,7 +245,7 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
      
     
     @classmethod
-    def create_system_prompt(cls,goods_info:str,tools:list[dict],fewshot_examples:list) -> str:
+    def create_system_prompt(cls,goods_info:str,create_time:str,tools:list[dict],fewshot_examples:list) -> str:
         tool_descs = '\n\n'.join(cls.get_function_description(tool) for tool in tools)
         tool_names = ','.join(tool['name'] for tool in tools)
         tool_system = cls.FN_CALL_TEMPLATE.format(
@@ -268,13 +268,17 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
             non_ask_rules = ""
         else:
             non_ask_rules = "\n - " + '，'.join(non_ask_tool_list)
-            
+        try:
+            datetime_object = datetime.strptime(create_time, '%Y-%m-%d %H:%M:%S.%f')
+        except Exception as e:
+            datetime_object = datetime.now()
+            print(f"create_time: {create_time} is not valid, use current time instead.")
         return cls.SYSTEM_PROMPT.format(
                 goods_info=goods_info,
                 tools=tool_system,
                 fewshot_examples=fewshot_examples_str,
                 non_ask_rules=non_ask_rules,
-                date_prompt=datetime.now().strftime(cls.DATE_PROMPT)
+                date_prompt=datetime_object.strftime(cls.DATE_PROMPT)
             )
 
     @classmethod
@@ -345,6 +349,7 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
         fewshot_examples = kwargs.get('fewshot_examples',[])
         system_prompt = cls.create_system_prompt(
             goods_info=kwargs['goods_info'], 
+            create_time=kwargs['create_time'],
             tools=tools,
             fewshot_examples=fewshot_examples
             )

@@ -78,6 +78,7 @@ def _test_multi_turns(user_queries, record_goods_id=False):
             query = {"query":query}
         r = generate_answer(
                query=query['query'],
+               create_time=query['create_time'],
                stream=False,
                 session_id=session_id,
                 chatbot_config={**chatbot_config,"goods_id": query.get("goods_id")},
