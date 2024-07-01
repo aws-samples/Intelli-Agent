@@ -844,7 +844,16 @@ def retail_entry(event_body):
         "agent_recursion_limit": chatbot_config['agent_recursion_limit'],
         "current_agent_recursion_num": 0,
     })
-
-    return {"answer":response['answer'],**response["extra_response"],"trace_infos":response['trace_infos']}
+    
+    extra_response = response["extra_response"]
+    return {
+        "answer":response['answer'],
+        **extra_response,
+        "ddb_additional_kwargs": {
+             "goods_id":goods_id,
+             "current_agent_intent_type":extra_response['current_agent_intent_type']
+        },
+        "trace_infos":response['trace_infos'],
+        }
 
 main_chain_entry = retail_entry
