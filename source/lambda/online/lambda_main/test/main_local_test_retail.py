@@ -126,9 +126,13 @@ def test_multi_turns():
     return _test_multi_turns(user_queries)
 
 
-def test_multi_turns_anta(session_id,user_queries_path="/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/source/lambda/online/session_user_queries.json"):
+def test_multi_turns_anta(
+        session_id,
+        user_queries_path="/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/source/lambda/online/session_user_queries.json",
+        record_goods_id=False
+        ):
     user_queries = json.load(open(user_queries_path))[session_id]
-    return _test_multi_turns(user_queries)
+    return _test_multi_turns(user_queries,record_goods_id=record_goods_id)
     
 
 def batch_test(data_file, count=1000,add_eval_score=True):
@@ -317,7 +321,7 @@ def complete_test():
 
 if __name__ == "__main__":
     # complete_test()
-    test_multi_turns_anta("cn****0031")
+    test_multi_turns_anta("cn****0090",record_goods_id=True)
     # test_multi_turns()
     # test_multi_turns_0090() 
     # test_multi_turns_0077()
