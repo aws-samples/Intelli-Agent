@@ -68,4 +68,8 @@ export const RETAIL_GOODS_LIST: SelectProps.Option[] = [
     label: '女子运动鞋-756327274174',
     value: '756327274174',
   },
+  {
+    label: '男款外套上衣-743891340644',
+    value: '743891340644',
+  },
 ];
