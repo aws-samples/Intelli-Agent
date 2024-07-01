@@ -26,7 +26,7 @@ def lambda_handler(event_body, context=None):
         lambda_module_path="functions.lambda_retriever.retriever",
         handler_name="lambda_handler"
     )
-    goods_info_list = [doc['page_content'] for doc in output['result']['docs']]
+    goods_info_list = [doc['page_content'] for doc in output['result']['docs'] if doc['score'] > 0.6]
 
     query_goods_info = "\n\n".join(goods_info_list)
     send_trace(f'**rag_goods_info_retriever** {context}', state["stream"], state["ws_connection_id"])
