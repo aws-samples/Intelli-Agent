@@ -126,12 +126,16 @@ def test_multi_turns():
     return _test_multi_turns(user_queries)
 
 
-def test_multi_turns_anta(session_id,user_queries_path="/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/source/lambda/online/session_user_queries.json"):
+def test_multi_turns_anta(
+        session_id,
+        user_queries_path="/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/source/lambda/online/session_user_queries.json",
+        record_goods_id=False
+        ):
     user_queries = json.load(open(user_queries_path))[session_id]
-    return _test_multi_turns(user_queries)
+    return _test_multi_turns(user_queries,record_goods_id=record_goods_id)
     
 
-def batch_test(data_file, count=1000,add_eval_score=True):
+def batch_test(data_file, count=1000,add_eval_score=True,record_goods_id=False):
     data = pd.read_csv(data_file).fillna("").to_dict(orient='records')
     session_prefix = f"anta_test_{time.time()}"
     default_llm_config = {
@@ -162,6 +166,9 @@ def batch_test(data_file, count=1000,add_eval_score=True):
             "query_key": "query"
         }
     }
+
+    if record_goods_id:
+        chatbot_config["history_config"]=['goods_id']
 
     save_csv_path = f'{session_prefix}_anta_test_qwen2-72b-instruct_{len(data)}.csv'
 
@@ -317,12 +324,15 @@ def complete_test():
 
 if __name__ == "__main__":
     # complete_test()
-    test_multi_turns_anta("cn****0031")
+    # test_multi_turns_anta("cn****0090",record_goods_id=True)
     # test_multi_turns()
     # test_multi_turns_0090() 
     # test_multi_turns_0077()
     # test_multi_turns_pr("agent")
-    # batch_test(data_file="/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/customer_poc/anta/anta_batch_test - batch-test-csv-file-626.csv")
+    batch_test(
+        data_file="/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/customer_poc/anta/anta_batch_test - batch-test-csv-file-626.csv",
+        record_goods_id=True
+        )
     # batch_test()
     # test(
     #     chatbot_mode='agent',
