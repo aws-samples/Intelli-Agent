@@ -78,10 +78,10 @@ def _test_multi_turns(user_queries, record_goods_id=False):
             query = {"query":query}
         r = generate_answer(
                query=query['query'],
-               create_time=query['create_time'],
+            #    create_time=,
                stream=False,
                 session_id=session_id,
-                chatbot_config={**chatbot_config,"goods_id": query.get("goods_id")},
+                chatbot_config={**chatbot_config,"goods_id": query.get("goods_id"),"create_time":query.get('create_time',None)},
                 entry_type="retail"
         )
         query_answers.append((query['query'],r['message']['content']))
@@ -325,15 +325,15 @@ def complete_test():
 
 if __name__ == "__main__":
     # complete_test()
-    # test_multi_turns_anta("cn****0090",record_goods_id=True)
+    test_multi_turns_anta("cn****0090",record_goods_id=True)
     # test_multi_turns()
     # test_multi_turns_0090() 
     # test_multi_turns_0077()
     # test_multi_turns_pr("agent")
-    batch_test(
-        data_file="/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/customer_poc/anta/anta_batch_test - batch-test-csv-file-626.csv",
-        record_goods_id=True
-        )
+    # batch_test(
+    #     data_file="/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/customer_poc/anta/anta_batch_test - batch-test-csv-file-626.csv",
+    #     record_goods_id=True
+    #     )
     # batch_test()
     # test(
     #     chatbot_mode='agent',

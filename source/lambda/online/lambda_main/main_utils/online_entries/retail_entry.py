@@ -823,7 +823,7 @@ def retail_entry(event_body):
     chatbot_config = event_body['chatbot_config']
     query = event_body['query']
     stream = event_body['stream']
-    create_time = event_body['create_time']
+    create_time = chatbot_config.get('create_time',None)
     message_id = event_body['custom_message_id']
     ws_connection_id = event_body['ws_connection_id']
     enable_trace = chatbot_config["enable_trace"]
@@ -885,12 +885,6 @@ def retail_entry(event_body):
         "agent_recursion_limit": chatbot_config['agent_recursion_limit'],
         "current_agent_recursion_num": 0,
     })
-<<<<<<< HEAD
-
-    response["extra_response"]["goods_id"] = goods_id
-
-    return {"answer":response['answer'],**response["extra_response"],"trace_infos":response['trace_infos']}
-=======
     
     extra_response = response["extra_response"]
     return {
@@ -902,6 +896,5 @@ def retail_entry(event_body):
         },
         "trace_infos":response['trace_infos'],
         }
->>>>>>> 0bd281513e2039911eae653dff0c1af42e20f68d
 
 main_chain_entry = retail_entry
