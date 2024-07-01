@@ -12,9 +12,9 @@ import boto3
 from pprint import pprint
 
 logger = logging.getLogger(__name__)
-# sts = boto3.client('sts')
-# caller_identity = boto3.client('sts').get_caller_identity()
-# partition = caller_identity['Arn'].split(':')[1]
+sts = boto3.client('sts')
+caller_identity = boto3.client('sts').get_caller_identity()
+partition = caller_identity['Arn'].split(':')[1]
 
 class TestDocument:
     """DataSourceDiscovery test stubs"""
@@ -43,11 +43,7 @@ class TestDocument:
 
     def test_01_upload_document_pdf(self):
         step(f"test_01_upload_document_pdf start ....")
-        payload={
-            'content_type': 'application/pdf',
-            'file_name': 'summary.pdf'
-        }
-        intellapico_kbf_xmyu1_w8_nr = openapi_client.IntellapicoKbfXMYu1W8Nr(name='agent')
+        intellapico_kbf_xmyu1_w8_nr = openapi_client.IntellapicoKbfXMYu1W8Nr(content_type='application/pdf', file_name="summary.pdf")
         # intellapico_kbf_xmyu1_w8_nr.from_dict(payload)
 
         # # 创建请求 body 对象
@@ -57,8 +53,8 @@ class TestDocument:
         # )
 
         # self.api_instance
-        list_response = self.api_instance.etl_upload_s3_url_post(intellapico_kbf_xmyu1_w8_nr)
-        logger.info(f'!!!!!{json.loads(list_response.data.decode("utf-8"))}')
+        response = self.api_instance.etl_upload_s3_url_post(intellapico_kbf_xmyu1_w8_nr)
+        logger.info(f'!!!!!{response}')
 
         # response = json.loads(api_response.response.data.decode('utf-8'))
         # assert 1==1

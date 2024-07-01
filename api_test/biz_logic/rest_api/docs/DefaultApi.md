@@ -38,7 +38,7 @@ Method | HTTP request | Description
 
 
 # **aos_get**
-> aos_get(intellapico_kbf_xmyu1_w8_nr)
+> aos_get()
 
 
 
@@ -48,7 +48,6 @@ Method | HTTP request | Description
 
 ```python
 import openapi_client
-from openapi_client.models.intellapico_kbf_xmyu1_w8_nr import IntellapicoKbfXMYu1W8Nr
 from openapi_client.rest import ApiException
 from pprint import pprint
 
@@ -73,10 +72,9 @@ configuration.api_key['intelliagentapiconstructApiAuthorizerFB94A0DF'] = os.envi
 with openapi_client.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = openapi_client.DefaultApi(api_client)
-    intellapico_kbf_xmyu1_w8_nr = openapi_client.IntellapicoKbfXMYu1W8Nr() # IntellapicoKbfXMYu1W8Nr | 
 
     try:
-        api_instance.aos_get(intellapico_kbf_xmyu1_w8_nr)
+        api_instance.aos_get()
     except Exception as e:
         print("Exception when calling DefaultApi->aos_get: %s\n" % e)
 ```
@@ -85,10 +83,7 @@ with openapi_client.ApiClient(configuration) as api_client:
 
 ### Parameters
 
-
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **intellapico_kbf_xmyu1_w8_nr** | [**IntellapicoKbfXMYu1W8Nr**](IntellapicoKbfXMYu1W8Nr.md)|  | 
+This endpoint does not need any parameter.
 
 ### Return type
 
@@ -100,7 +95,7 @@ void (empty response body)
 
 ### HTTP request headers
 
- - **Content-Type**: application/json
+ - **Content-Type**: Not defined
  - **Accept**: application/json
 
 ### HTTP response details
@@ -172,7 +167,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **aos_post**
-> aos_post(intellapico_kbf_xmyu1_w8_nr)
+> aos_post()
 
 
 
@@ -182,7 +177,6 @@ No authorization required
 
 ```python
 import openapi_client
-from openapi_client.models.intellapico_kbf_xmyu1_w8_nr import IntellapicoKbfXMYu1W8Nr
 from openapi_client.rest import ApiException
 from pprint import pprint
 
@@ -207,10 +201,9 @@ configuration.api_key['intelliagentapiconstructApiAuthorizerFB94A0DF'] = os.envi
 with openapi_client.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = openapi_client.DefaultApi(api_client)
-    intellapico_kbf_xmyu1_w8_nr = openapi_client.IntellapicoKbfXMYu1W8Nr() # IntellapicoKbfXMYu1W8Nr | 
 
     try:
-        api_instance.aos_post(intellapico_kbf_xmyu1_w8_nr)
+        api_instance.aos_post()
     except Exception as e:
         print("Exception when calling DefaultApi->aos_post: %s\n" % e)
 ```
@@ -219,10 +212,7 @@ with openapi_client.ApiClient(configuration) as api_client:
 
 ### Parameters
 
-
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **intellapico_kbf_xmyu1_w8_nr** | [**IntellapicoKbfXMYu1W8Nr**](IntellapicoKbfXMYu1W8Nr.md)|  | 
+This endpoint does not need any parameter.
 
 ### Return type
 
@@ -234,7 +224,7 @@ void (empty response body)
 
 ### HTTP request headers
 
- - **Content-Type**: application/json
+ - **Content-Type**: Not defined
  - **Accept**: application/json
 
 ### HTTP response details
@@ -306,7 +296,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **batch_post**
-> batch_post(intellapico_kbf_xmyu1_w8_nr)
+> batch_post()
 
 
 
@@ -316,7 +306,6 @@ No authorization required
 
 ```python
 import openapi_client
-from openapi_client.models.intellapico_kbf_xmyu1_w8_nr import IntellapicoKbfXMYu1W8Nr
 from openapi_client.rest import ApiException
 from pprint import pprint
 
@@ -341,10 +330,9 @@ configuration.api_key['intelliagentapiconstructApiAuthorizerFB94A0DF'] = os.envi
 with openapi_client.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = openapi_client.DefaultApi(api_client)
-    intellapico_kbf_xmyu1_w8_nr = openapi_client.IntellapicoKbfXMYu1W8Nr() # IntellapicoKbfXMYu1W8Nr | 
 
     try:
-        api_instance.batch_post(intellapico_kbf_xmyu1_w8_nr)
+        api_instance.batch_post()
     except Exception as e:
         print("Exception when calling DefaultApi->batch_post: %s\n" % e)
 ```
@@ -353,10 +341,7 @@ with openapi_client.ApiClient(configuration) as api_client:
 
 ### Parameters
 
-
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **intellapico_kbf_xmyu1_w8_nr** | [**IntellapicoKbfXMYu1W8Nr**](IntellapicoKbfXMYu1W8Nr.md)|  | 
+This endpoint does not need any parameter.
 
 ### Return type
 
@@ -368,7 +353,7 @@ void (empty response body)
 
 ### HTTP request headers
 
- - **Content-Type**: application/json
+ - **Content-Type**: Not defined
  - **Accept**: application/json
 
 ### HTTP response details
@@ -382,7 +367,7 @@ void (empty response body)
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **ddb_list_messages_get**
-> ddb_list_messages_get(intellapico_kbf_xmyu1_w8_nr)
+> ddb_list_messages_get()
 
 
 
@@ -392,7 +377,6 @@ void (empty response body)
 
 ```python
 import openapi_client
-from openapi_client.models.intellapico_kbf_xmyu1_w8_nr import IntellapicoKbfXMYu1W8Nr
 from openapi_client.rest import ApiException
 from pprint import pprint
 
@@ -417,10 +401,9 @@ configuration.api_key['intelliagentapiconstructApiAuthorizerFB94A0DF'] = os.envi
 with openapi_client.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = openapi_client.DefaultApi(api_client)
-    intellapico_kbf_xmyu1_w8_nr = openapi_client.IntellapicoKbfXMYu1W8Nr() # IntellapicoKbfXMYu1W8Nr | 
 
     try:
-        api_instance.ddb_list_messages_get(intellapico_kbf_xmyu1_w8_nr)
+        api_instance.ddb_list_messages_get()
     except Exception as e:
         print("Exception when calling DefaultApi->ddb_list_messages_get: %s\n" % e)
 ```
@@ -429,10 +412,7 @@ with openapi_client.ApiClient(configuration) as api_client:
 
 ### Parameters
 
-
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **intellapico_kbf_xmyu1_w8_nr** | [**IntellapicoKbfXMYu1W8Nr**](IntellapicoKbfXMYu1W8Nr.md)|  | 
+This endpoint does not need any parameter.
 
 ### Return type
 
@@ -444,7 +424,7 @@ void (empty response body)
 
 ### HTTP request headers
 
- - **Content-Type**: application/json
+ - **Content-Type**: Not defined
  - **Accept**: application/json
 
 ### HTTP response details
@@ -516,7 +496,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **ddb_list_sessions_get**
-> ddb_list_sessions_get(intellapico_kbf_xmyu1_w8_nr)
+> ddb_list_sessions_get()
 
 
 
@@ -526,7 +506,6 @@ No authorization required
 
 ```python
 import openapi_client
-from openapi_client.models.intellapico_kbf_xmyu1_w8_nr import IntellapicoKbfXMYu1W8Nr
 from openapi_client.rest import ApiException
 from pprint import pprint
 
@@ -551,10 +530,9 @@ configuration.api_key['intelliagentapiconstructApiAuthorizerFB94A0DF'] = os.envi
 with openapi_client.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = openapi_client.DefaultApi(api_client)
-    intellapico_kbf_xmyu1_w8_nr = openapi_client.IntellapicoKbfXMYu1W8Nr() # IntellapicoKbfXMYu1W8Nr | 
 
     try:
-        api_instance.ddb_list_sessions_get(intellapico_kbf_xmyu1_w8_nr)
+        api_instance.ddb_list_sessions_get()
     except Exception as e:
         print("Exception when calling DefaultApi->ddb_list_sessions_get: %s\n" % e)
 ```
@@ -563,10 +541,7 @@ with openapi_client.ApiClient(configuration) as api_client:
 
 ### Parameters
 
-
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **intellapico_kbf_xmyu1_w8_nr** | [**IntellapicoKbfXMYu1W8Nr**](IntellapicoKbfXMYu1W8Nr.md)|  | 
+This endpoint does not need any parameter.
 
 ### Return type
 
@@ -578,7 +553,7 @@ void (empty response body)
 
 ### HTTP request headers
 
- - **Content-Type**: application/json
+ - **Content-Type**: Not defined
  - **Accept**: application/json
 
 ### HTTP response details
@@ -708,7 +683,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **ddb_post**
-> ddb_post(intellapico_kbf_xmyu1_w8_nr)
+> ddb_post()
 
 
 
@@ -718,7 +693,6 @@ No authorization required
 
 ```python
 import openapi_client
-from openapi_client.models.intellapico_kbf_xmyu1_w8_nr import IntellapicoKbfXMYu1W8Nr
 from openapi_client.rest import ApiException
 from pprint import pprint
 
@@ -743,10 +717,9 @@ configuration.api_key['intelliagentapiconstructApiAuthorizerFB94A0DF'] = os.envi
 with openapi_client.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = openapi_client.DefaultApi(api_client)
-    intellapico_kbf_xmyu1_w8_nr = openapi_client.IntellapicoKbfXMYu1W8Nr() # IntellapicoKbfXMYu1W8Nr | 
 
     try:
-        api_instance.ddb_post(intellapico_kbf_xmyu1_w8_nr)
+        api_instance.ddb_post()
     except Exception as e:
         print("Exception when calling DefaultApi->ddb_post: %s\n" % e)
 ```
@@ -755,10 +728,7 @@ with openapi_client.ApiClient(configuration) as api_client:
 
 ### Parameters
 
-
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **intellapico_kbf_xmyu1_w8_nr** | [**IntellapicoKbfXMYu1W8Nr**](IntellapicoKbfXMYu1W8Nr.md)|  | 
+This endpoint does not need any parameter.
 
 ### Return type
 
@@ -770,7 +740,7 @@ void (empty response body)
 
 ### HTTP request headers
 
- - **Content-Type**: application/json
+ - **Content-Type**: Not defined
  - **Accept**: application/json
 
 ### HTTP response details
@@ -842,7 +812,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **etl_delete_execution_post**
-> etl_delete_execution_post(intellapico_kbf_xmyu1_w8_nr)
+> etl_delete_execution_post()
 
 
 
@@ -852,7 +822,6 @@ No authorization required
 
 ```python
 import openapi_client
-from openapi_client.models.intellapico_kbf_xmyu1_w8_nr import IntellapicoKbfXMYu1W8Nr
 from openapi_client.rest import ApiException
 from pprint import pprint
 
@@ -877,10 +846,9 @@ configuration.api_key['intelliagentapiconstructApiAuthorizerFB94A0DF'] = os.envi
 with openapi_client.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = openapi_client.DefaultApi(api_client)
-    intellapico_kbf_xmyu1_w8_nr = openapi_client.IntellapicoKbfXMYu1W8Nr() # IntellapicoKbfXMYu1W8Nr | 
 
     try:
-        api_instance.etl_delete_execution_post(intellapico_kbf_xmyu1_w8_nr)
+        api_instance.etl_delete_execution_post()
     except Exception as e:
         print("Exception when calling DefaultApi->etl_delete_execution_post: %s\n" % e)
 ```
@@ -889,10 +857,7 @@ with openapi_client.ApiClient(configuration) as api_client:
 
 ### Parameters
 
-
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **intellapico_kbf_xmyu1_w8_nr** | [**IntellapicoKbfXMYu1W8Nr**](IntellapicoKbfXMYu1W8Nr.md)|  | 
+This endpoint does not need any parameter.
 
 ### Return type
 
@@ -904,7 +869,7 @@ void (empty response body)
 
 ### HTTP request headers
 
- - **Content-Type**: application/json
+ - **Content-Type**: Not defined
  - **Accept**: application/json
 
 ### HTTP response details
@@ -918,7 +883,7 @@ void (empty response body)
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **etl_execution_get**
-> etl_execution_get(intellapico_kbf_xmyu1_w8_nr)
+> etl_execution_get()
 
 
 
@@ -928,7 +893,6 @@ void (empty response body)
 
 ```python
 import openapi_client
-from openapi_client.models.intellapico_kbf_xmyu1_w8_nr import IntellapicoKbfXMYu1W8Nr
 from openapi_client.rest import ApiException
 from pprint import pprint
 
@@ -953,10 +917,9 @@ configuration.api_key['intelliagentapiconstructApiAuthorizerFB94A0DF'] = os.envi
 with openapi_client.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = openapi_client.DefaultApi(api_client)
-    intellapico_kbf_xmyu1_w8_nr = openapi_client.IntellapicoKbfXMYu1W8Nr() # IntellapicoKbfXMYu1W8Nr | 
 
     try:
-        api_instance.etl_execution_get(intellapico_kbf_xmyu1_w8_nr)
+        api_instance.etl_execution_get()
     except Exception as e:
         print("Exception when calling DefaultApi->etl_execution_get: %s\n" % e)
 ```
@@ -965,10 +928,7 @@ with openapi_client.ApiClient(configuration) as api_client:
 
 ### Parameters
 
-
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **intellapico_kbf_xmyu1_w8_nr** | [**IntellapicoKbfXMYu1W8Nr**](IntellapicoKbfXMYu1W8Nr.md)|  | 
+This endpoint does not need any parameter.
 
 ### Return type
 
@@ -980,7 +940,7 @@ void (empty response body)
 
 ### HTTP request headers
 
- - **Content-Type**: application/json
+ - **Content-Type**: Not defined
  - **Accept**: application/json
 
 ### HTTP response details
@@ -1052,7 +1012,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **etl_list_execution_get**
-> etl_list_execution_get(intellapico_kbf_xmyu1_w8_nr)
+> etl_list_execution_get()
 
 
 
@@ -1062,7 +1022,6 @@ No authorization required
 
 ```python
 import openapi_client
-from openapi_client.models.intellapico_kbf_xmyu1_w8_nr import IntellapicoKbfXMYu1W8Nr
 from openapi_client.rest import ApiException
 from pprint import pprint
 
@@ -1087,10 +1046,9 @@ configuration.api_key['intelliagentapiconstructApiAuthorizerFB94A0DF'] = os.envi
 with openapi_client.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = openapi_client.DefaultApi(api_client)
-    intellapico_kbf_xmyu1_w8_nr = openapi_client.IntellapicoKbfXMYu1W8Nr() # IntellapicoKbfXMYu1W8Nr | 
 
     try:
-        api_instance.etl_list_execution_get(intellapico_kbf_xmyu1_w8_nr)
+        api_instance.etl_list_execution_get()
     except Exception as e:
         print("Exception when calling DefaultApi->etl_list_execution_get: %s\n" % e)
 ```
@@ -1099,10 +1057,7 @@ with openapi_client.ApiClient(configuration) as api_client:
 
 ### Parameters
 
-
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **intellapico_kbf_xmyu1_w8_nr** | [**IntellapicoKbfXMYu1W8Nr**](IntellapicoKbfXMYu1W8Nr.md)|  | 
+This endpoint does not need any parameter.
 
 ### Return type
 
@@ -1114,7 +1069,7 @@ void (empty response body)
 
 ### HTTP request headers
 
- - **Content-Type**: application/json
+ - **Content-Type**: Not defined
  - **Accept**: application/json
 
 ### HTTP response details
@@ -1186,7 +1141,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **etl_list_workspace_get**
-> etl_list_workspace_get(intellapico_kbf_xmyu1_w8_nr)
+> etl_list_workspace_get()
 
 
 
@@ -1196,7 +1151,6 @@ No authorization required
 
 ```python
 import openapi_client
-from openapi_client.models.intellapico_kbf_xmyu1_w8_nr import IntellapicoKbfXMYu1W8Nr
 from openapi_client.rest import ApiException
 from pprint import pprint
 
@@ -1221,10 +1175,9 @@ configuration.api_key['intelliagentapiconstructApiAuthorizerFB94A0DF'] = os.envi
 with openapi_client.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = openapi_client.DefaultApi(api_client)
-    intellapico_kbf_xmyu1_w8_nr = openapi_client.IntellapicoKbfXMYu1W8Nr() # IntellapicoKbfXMYu1W8Nr | 
 
     try:
-        api_instance.etl_list_workspace_get(intellapico_kbf_xmyu1_w8_nr)
+        api_instance.etl_list_workspace_get()
     except Exception as e:
         print("Exception when calling DefaultApi->etl_list_workspace_get: %s\n" % e)
 ```
@@ -1233,10 +1186,7 @@ with openapi_client.ApiClient(configuration) as api_client:
 
 ### Parameters
 
-
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **intellapico_kbf_xmyu1_w8_nr** | [**IntellapicoKbfXMYu1W8Nr**](IntellapicoKbfXMYu1W8Nr.md)|  | 
+This endpoint does not need any parameter.
 
 ### Return type
 
@@ -1248,7 +1198,7 @@ void (empty response body)
 
 ### HTTP request headers
 
- - **Content-Type**: application/json
+ - **Content-Type**: Not defined
  - **Accept**: application/json
 
 ### HTTP response details
@@ -1378,7 +1328,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **etl_post**
-> etl_post(intellapico_kbf_xmyu1_w8_nr)
+> etl_post()
 
 
 
@@ -1388,7 +1338,6 @@ No authorization required
 
 ```python
 import openapi_client
-from openapi_client.models.intellapico_kbf_xmyu1_w8_nr import IntellapicoKbfXMYu1W8Nr
 from openapi_client.rest import ApiException
 from pprint import pprint
 
@@ -1413,10 +1362,9 @@ configuration.api_key['intelliagentapiconstructApiAuthorizerFB94A0DF'] = os.envi
 with openapi_client.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = openapi_client.DefaultApi(api_client)
-    intellapico_kbf_xmyu1_w8_nr = openapi_client.IntellapicoKbfXMYu1W8Nr() # IntellapicoKbfXMYu1W8Nr | 
 
     try:
-        api_instance.etl_post(intellapico_kbf_xmyu1_w8_nr)
+        api_instance.etl_post()
     except Exception as e:
         print("Exception when calling DefaultApi->etl_post: %s\n" % e)
 ```
@@ -1425,10 +1373,7 @@ with openapi_client.ApiClient(configuration) as api_client:
 
 ### Parameters
 
-
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **intellapico_kbf_xmyu1_w8_nr** | [**IntellapicoKbfXMYu1W8Nr**](IntellapicoKbfXMYu1W8Nr.md)|  | 
+This endpoint does not need any parameter.
 
 ### Return type
 
@@ -1440,7 +1385,7 @@ void (empty response body)
 
 ### HTTP request headers
 
- - **Content-Type**: application/json
+ - **Content-Type**: Not defined
  - **Accept**: application/json
 
 ### HTTP response details
@@ -1646,7 +1591,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **extract_post**
-> extract_post(intellapico_kbf_xmyu1_w8_nr)
+> extract_post()
 
 
 
@@ -1656,7 +1601,6 @@ No authorization required
 
 ```python
 import openapi_client
-from openapi_client.models.intellapico_kbf_xmyu1_w8_nr import IntellapicoKbfXMYu1W8Nr
 from openapi_client.rest import ApiException
 from pprint import pprint
 
@@ -1681,10 +1625,9 @@ configuration.api_key['intelliagentapiconstructApiAuthorizerFB94A0DF'] = os.envi
 with openapi_client.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = openapi_client.DefaultApi(api_client)
-    intellapico_kbf_xmyu1_w8_nr = openapi_client.IntellapicoKbfXMYu1W8Nr() # IntellapicoKbfXMYu1W8Nr | 
 
     try:
-        api_instance.extract_post(intellapico_kbf_xmyu1_w8_nr)
+        api_instance.extract_post()
     except Exception as e:
         print("Exception when calling DefaultApi->extract_post: %s\n" % e)
 ```
@@ -1693,10 +1636,7 @@ with openapi_client.ApiClient(configuration) as api_client:
 
 ### Parameters
 
-
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **intellapico_kbf_xmyu1_w8_nr** | [**IntellapicoKbfXMYu1W8Nr**](IntellapicoKbfXMYu1W8Nr.md)|  | 
+This endpoint does not need any parameter.
 
 ### Return type
 
@@ -1708,7 +1648,7 @@ void (empty response body)
 
 ### HTTP request headers
 
- - **Content-Type**: application/json
+ - **Content-Type**: Not defined
  - **Accept**: application/json
 
 ### HTTP response details
@@ -1780,7 +1720,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **llm_post**
-> llm_post(intellapico_kbf_xmyu1_w8_nr)
+> llm_post()
 
 
 
@@ -1790,7 +1730,6 @@ No authorization required
 
 ```python
 import openapi_client
-from openapi_client.models.intellapico_kbf_xmyu1_w8_nr import IntellapicoKbfXMYu1W8Nr
 from openapi_client.rest import ApiException
 from pprint import pprint
 
@@ -1815,10 +1754,9 @@ configuration.api_key['intelliagentapiconstructApiAuthorizerFB94A0DF'] = os.envi
 with openapi_client.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = openapi_client.DefaultApi(api_client)
-    intellapico_kbf_xmyu1_w8_nr = openapi_client.IntellapicoKbfXMYu1W8Nr() # IntellapicoKbfXMYu1W8Nr | 
 
     try:
-        api_instance.llm_post(intellapico_kbf_xmyu1_w8_nr)
+        api_instance.llm_post()
     except Exception as e:
         print("Exception when calling DefaultApi->llm_post: %s\n" % e)
 ```
@@ -1827,10 +1765,7 @@ with openapi_client.ApiClient(configuration) as api_client:
 
 ### Parameters
 
-
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **intellapico_kbf_xmyu1_w8_nr** | [**IntellapicoKbfXMYu1W8Nr**](IntellapicoKbfXMYu1W8Nr.md)|  | 
+This endpoint does not need any parameter.
 
 ### Return type
 
@@ -1842,7 +1777,7 @@ void (empty response body)
 
 ### HTTP request headers
 
- - **Content-Type**: application/json
+ - **Content-Type**: Not defined
  - **Accept**: application/json
 
 ### HTTP response details
@@ -1856,7 +1791,7 @@ void (empty response body)
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **prompt_get**
-> prompt_get(intellapico_kbf_xmyu1_w8_nr)
+> prompt_get()
 
 
 
@@ -1866,7 +1801,6 @@ void (empty response body)
 
 ```python
 import openapi_client
-from openapi_client.models.intellapico_kbf_xmyu1_w8_nr import IntellapicoKbfXMYu1W8Nr
 from openapi_client.rest import ApiException
 from pprint import pprint
 
@@ -1891,10 +1825,9 @@ configuration.api_key['intelliagentapiconstructApiAuthorizerFB94A0DF'] = os.envi
 with openapi_client.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = openapi_client.DefaultApi(api_client)
-    intellapico_kbf_xmyu1_w8_nr = openapi_client.IntellapicoKbfXMYu1W8Nr() # IntellapicoKbfXMYu1W8Nr | 
 
     try:
-        api_instance.prompt_get(intellapico_kbf_xmyu1_w8_nr)
+        api_instance.prompt_get()
     except Exception as e:
         print("Exception when calling DefaultApi->prompt_get: %s\n" % e)
 ```
@@ -1903,10 +1836,7 @@ with openapi_client.ApiClient(configuration) as api_client:
 
 ### Parameters
 
-
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **intellapico_kbf_xmyu1_w8_nr** | [**IntellapicoKbfXMYu1W8Nr**](IntellapicoKbfXMYu1W8Nr.md)|  | 
+This endpoint does not need any parameter.
 
 ### Return type
 
@@ -1918,7 +1848,7 @@ void (empty response body)
 
 ### HTTP request headers
 
- - **Content-Type**: application/json
+ - **Content-Type**: Not defined
  - **Accept**: application/json
 
 ### HTTP response details
@@ -1990,7 +1920,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **prompt_post**
-> prompt_post(intellapico_kbf_xmyu1_w8_nr)
+> prompt_post()
 
 
 
@@ -2000,7 +1930,6 @@ No authorization required
 
 ```python
 import openapi_client
-from openapi_client.models.intellapico_kbf_xmyu1_w8_nr import IntellapicoKbfXMYu1W8Nr
 from openapi_client.rest import ApiException
 from pprint import pprint
 
@@ -2025,10 +1954,9 @@ configuration.api_key['intelliagentapiconstructApiAuthorizerFB94A0DF'] = os.envi
 with openapi_client.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = openapi_client.DefaultApi(api_client)
-    intellapico_kbf_xmyu1_w8_nr = openapi_client.IntellapicoKbfXMYu1W8Nr() # IntellapicoKbfXMYu1W8Nr | 
 
     try:
-        api_instance.prompt_post(intellapico_kbf_xmyu1_w8_nr)
+        api_instance.prompt_post()
     except Exception as e:
         print("Exception when calling DefaultApi->prompt_post: %s\n" % e)
 ```
@@ -2037,10 +1965,7 @@ with openapi_client.ApiClient(configuration) as api_client:
 
 ### Parameters
 
-
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **intellapico_kbf_xmyu1_w8_nr** | [**IntellapicoKbfXMYu1W8Nr**](IntellapicoKbfXMYu1W8Nr.md)|  | 
+This endpoint does not need any parameter.
 
 ### Return type
 
@@ -2052,7 +1977,7 @@ void (empty response body)
 
 ### HTTP request headers
 
- - **Content-Type**: application/json
+ - **Content-Type**: Not defined
  - **Accept**: application/json
 
 ### HTTP response details

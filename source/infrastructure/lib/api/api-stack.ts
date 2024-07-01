@@ -484,15 +484,26 @@ export class ApiConstruct extends Construct {
       { proxy: true },
     );
 
+    const responseModel = new Model(this, 'ResponseModel', {
+      restApi: api,
+      schema: {
+        schema: JsonSchemaVersion.DRAFT4,
+        title: 'ResponsePayload',
+        type: JsonSchemaType.OBJECT,
+        properties: {
+          data: { type: JsonSchemaType.OBJECT },
+        },
+      },
+    });
+
     const methodOption = {
       authorizer: auth,
       methodResponses: [
         {
           statusCode: '200',
-          responseParameters: {
-            'method.response.header.Access-Control-Allow-Origin': true,
-            'method.response.header.Access-Control-Allow-Methods': true,
-          },
+          responseModels: {
+            'application/json': responseModel,
+          }
         },
         {
           statusCode: '400',
