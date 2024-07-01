@@ -31,6 +31,7 @@ import { Function, Runtime, Code, Architecture, DockerImageFunction, DockerImage
 import { UserPool } from "aws-cdk-lib/aws-cognito";
 import { IAMHelper } from "../shared/iam-helper";
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
+import { JsonSchemaType, JsonSchemaVersion, Model } from "aws-cdk-lib/aws-apigateway";
 
 
 interface ApiStackProps extends StackProps {
@@ -485,6 +486,21 @@ export class ApiConstruct extends Construct {
 
     const methodOption = {
       authorizer: auth,
+      requestModels:{
+        'application/json': new Model(this, 'PostModel', {
+          restApi: api,
+          schema: {
+            schema: JsonSchemaVersion.DRAFT4,
+            title: 'postRequest',
+            type: JsonSchemaType.OBJECT,
+            properties: {
+              name: { type: JsonSchemaType.STRING },
+              description: { type: JsonSchemaType.STRING },
+            },
+            required: ['name'],
+          },
+        })
+      },
       methodResponses: [
         {
           statusCode: '200',

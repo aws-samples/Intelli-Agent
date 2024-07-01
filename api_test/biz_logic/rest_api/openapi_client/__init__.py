@@ -16,6 +16,13 @@
 
 __version__ = "1.0.0"
 
+import sys
+import os
+
+# 获取 openapi_client 目录的路径
+openapi_client_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../biz_logic/rest_api'))
+sys.path.insert(0, openapi_client_path)
+
 # import apis into sdk package
 from openapi_client.api.default_api import DefaultApi
 

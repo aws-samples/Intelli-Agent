@@ -1,44 +1,64 @@
 import datetime
+import json
 import os
+# import api_test.config as config
 from dotenv import load_dotenv
-# from api_test.biz_logic.rest_api.openapi_client import DefaultApi
-# from api_test.biz_logic.rest_api.openapi_client import ApiClient
-# from api_test.biz_logic.rest_api.openapi_client import Configuration
+
 from api_test.biz_logic.rest_api import openapi_client
-from api_test.test_case.utils import step
+
+from .utils import step
 import logging
 import boto3
-# from api_test.biz_logic.rest_api.openapi_client import Configuration, ApiClient, DefaultApi
 from pprint import pprint
 
 logger = logging.getLogger(__name__)
-sts = boto3.client('sts')
-caller_identity = boto3.client('sts').get_caller_identity()
-partition = caller_identity['Arn'].split(':')[1]
+# sts = boto3.client('sts')
+# caller_identity = boto3.client('sts').get_caller_identity()
+# partition = caller_identity['Arn'].split(':')[1]
 
 class TestDocument:
     """DataSourceDiscovery test stubs"""
 
     @classmethod
     def setup_class(self):
+        step(
+            f"[{datetime.datetime.strftime(datetime.datetime.now(),'%Y-%m-%d')}] [{__name__}] Test start..."
+        )
         load_dotenv()
-        logger.info(
-            f"[{datetime.datetime.strftime(datetime.datetime.now(),'%Y-%m-%d')}]API Test start..."
-        )
-        self.configuration = openapi_client.Configuration(
-            host = os.getenv("api_url")
-        )
-        # self.configuration.api_key['token'] = os.environ["token"]
-        # print(f"!!!!!configuration is {self.configuration}")
-
+        self.configuration = openapi_client.Configuration(host=os.getenv('api_url'))
+        self.api_client = openapi_client.ApiClient(self.configuration)
+        self.api_client.set_default_header("Authorization", f'Bearer {os.getenv("token")}')
+        # self.api_client.set_default_header("content_type", 'application/pdf')
+        # self.api_client.set_default_header("file_name", 'summary.pdf')
+        self.api_instance = openapi_client.DefaultApi(self.api_client)
 
     @classmethod
     def teardown_class(self):
-        logger.info("Teardown class")
+        step(
+            f"[{datetime.datetime.strftime(datetime.datetime.now(),'%Y-%m-%d')}] [{__name__}] Test end."
+        )
         # cls.api_client.close()
 
-    def test_1_upload_document_pdf(self):
-        assert 1==1
+    # aws cognito-idp initiate-auth --region ap-northeast-1 --auth-flow USER_PASSWORD_AUTH --client-id 78dihnoo69jeen0d0e76j6ai0e  --auth-parameters USERNAME=cuihubin@amazon.com,PASSWORD=TEST123!
+
+    def test_01_upload_document_pdf(self):
+        step(f"test_01_upload_document_pdf start ....")
+        payload={
+            'content_type': 'application/pdf',
+            'file_name': 'summary.pdf'
+        }
+        # # 创建请求 body 对象
+        # request_body = ExampleRequestBody(
+        #     attribute1='value1',
+        #     attribute2='value2'
+        # )
+
+        # self.api_instance
+        list_response = self.api_instance.etl_upload_s3_url_post(body=payload)
+        logger.info(f'!!!!!{json.loads(list_response.data.decode("utf-8"))}')
+
+        # response = json.loads(api_response.response.data.decode('utf-8'))
+        # assert 1==1
         # with ApiClient(self.configuration) as api_client:
         # # Create an instance of the API class
         #     api_instance = DefaultApi(api_client)

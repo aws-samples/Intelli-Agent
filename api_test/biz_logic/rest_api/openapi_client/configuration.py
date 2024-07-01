@@ -87,6 +87,7 @@ conf = openapi_client.Configuration(
                  server_operation_index=None, server_operation_variables=None,
                  ssl_ca_cert=None,
                  ) -> None:
+        print('init start...')
         """Constructor
         """
         self._base_path = "https://nymg5b6i41.execute-api.ap-northeast-1.amazonaws.com/prod" if host is None else host
@@ -203,6 +204,7 @@ conf = openapi_client.Configuration(
         self.date_format = "%Y-%m-%d"
         """date format
         """
+        print('init complete...')
 
     def __deepcopy__(self, memo):
         cls = self.__class__
@@ -469,3 +471,11 @@ conf = openapi_client.Configuration(
         """Fix base path."""
         self._base_path = value
         self.server_index = None
+
+    def get_default_headers(self) -> dict:
+        headers = {}
+        if self.api_key:
+            headers['Authorization'] = f"Bearer {self.api_key}"
+        if self.access_token:
+            headers['Authorization'] = f"Bearer {self.access_token}"
+        return headers
