@@ -198,7 +198,7 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
 你的每次回答都要按照下面的步骤输出你的思考, 注意你并不需要每次都进行所有步骤的思考。并将思考过程写在 XML 标签 <thinking> 和 </thinking> 中:
     step 1. 根据各个工具的描述，分析当前用户的回复和示例中的相关性，如果跟某个示例相关性强，直接按照示例中的工具名称进行调用。
     step 2. 如果你觉得可以依据商品信息，<goods_info>里面的内容，进行回答，就直接就回答，不需要调用任何工具。
-    step 3. 如果你觉得当前用户的回复意图不清晰，或者和历史消息没有很强的相关性，同时当前不是第一轮对话，直接回复用户下面 XLM 标签 <fix_reply> 里面的内容:
+    step 3. 如果你觉得当前用户的回复意图不清晰，或者和历史消息没有很强的相关性，同时当前不是第一轮对话，直接回复用户下面 XML 标签 <fix_reply> 里面的内容:
                <fix_reply>
                亲亲，请问还有什么问题吗？
                </fix_reply>
@@ -271,7 +271,7 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
             non_ask_rules = ""
         else:
             non_ask_rules = "\n - " + '，'.join(non_ask_tool_list)
-            
+
         if create_time:
             datetime_object = datetime.strptime(create_time, '%Y-%m-%d %H:%M:%S.%f')
         else:

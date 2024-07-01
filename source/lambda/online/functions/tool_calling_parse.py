@@ -317,7 +317,7 @@ class Qwen2Instruct7BToolCallingParse(ToolCallingParse):
                     e = cls.tool_not_found(agent_message=agent_message,error="如果你想调用某个工具，请确保格式正确。")
                     raise e
                 response = re.sub("<thinking>.*?</thinking>","",output['content'],flags=re.DOTALL).strip()
-                response = response.replace('<fix_reply>',"").replace('</fix_reply>',"").strip()
+                response = response.replace('<fix_reply>',"").replace('</fix_reply>',"").replace("</thinking>","").strip()
                 tool_call = {"name":"give_final_response","kwargs":{"response":response},"model_id":cls.model_id}
 
             return {
