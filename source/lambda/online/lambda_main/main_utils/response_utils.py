@@ -41,8 +41,8 @@ def api_response(event_body:dict,response:dict):
     if not isinstance(answer, str):
         answer = json.dumps(answer, ensure_ascii=False)
     
-    additional_keys = event_body["chatbot_config"].get("history_config","")
-    additional_kwargs = dict(filter(lambda item: item[0] in additional_keys, event_body["chatbot_config"].items()))
+    # additional_keys = event_body["chatbot_config"].get("history_config","")
+    # additional_kwargs = dict(filter(lambda item: item[0] in additional_keys, event_body["chatbot_config"].items()))
     
     write_chat_history_to_ddb(
         query=event_body['query'],
@@ -51,7 +51,7 @@ def api_response(event_body:dict,response:dict):
         message_id=event_body['message_id'],
         custom_message_id=event_body['custom_message_id'],
         entry_type=event_body['entry_type'],
-        additional_kwargs=additional_kwargs
+        additional_kwargs=response
     )
 
     
