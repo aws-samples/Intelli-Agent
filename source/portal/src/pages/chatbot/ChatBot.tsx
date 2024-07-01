@@ -23,7 +23,8 @@ import ConfigContext from 'src/context/config-context';
 import { useAuth } from 'react-oidc-context';
 import {
   LLM_BOT_CHAT_MODE_LIST,
-  LLM_BOT_MODEL_LIST,
+  LLM_BOT_COMMON_MODEL_LIST,
+  LLM_BOT_RETAIL_MODEL_LIST,
   SCENARIO_LIST,
   RETAIL_GOODS_LIST,
 } from 'src/utils/const';
@@ -69,7 +70,10 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const [currentAIMessage, setCurrentAIMessage] = useState('');
   const [currentMonitorMessage, setCurrentMonitorMessage] = useState('');
   const [aiSpeaking, setAiSpeaking] = useState(false);
-  const [modelOption, setModelOption] = useState<string>(LLM_BOT_MODEL_LIST[0]);
+  const [modelOption, setModelOption] = useState('');
+  const [modelList, setModelList] = useState<SelectProps.Option[]>(
+    []
+  );
   const [chatModeOption, setChatModeOption] = useState<SelectProps.Option>(
     LLM_BOT_CHAT_MODE_LIST[0],
   );
@@ -307,6 +311,31 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     setUserMessage('');
   };
 
+  useEffect(()=>{
+    let optionList:SelectProps.Option[]=[]
+    if(scenario.value === 'common'){
+      optionList=LLM_BOT_COMMON_MODEL_LIST.map((item)=>{
+        return {
+          label:item,
+          value:item
+        }
+      })
+      setModelList(optionList)
+      setModelOption(optionList?.[0]?.value??"")
+    }
+    else if(scenario.value === 'retail'){
+      optionList=LLM_BOT_RETAIL_MODEL_LIST.map((item)=>{
+        return {
+          label:item,
+          value:item
+        }
+      })
+      setModelList(optionList)
+      setModelOption(optionList?.[0]?.value??"")
+    }
+
+  },[scenario])
+
   return (
     <CommonLayout
       isLoading={loadingHistory}
@@ -441,27 +470,6 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
               headerText={t('modelSettings')}
             >
               <ColumnLayout columns={3} variant="text-grid">
-                <FormField
-                  label={t('modelName')}
-                  stretch={true}
-                  errorText={t(modelError)}
-                >
-                  <Autosuggest
-                    onChange={({ detail }) => {
-                      setModelError('');
-                      setModelOption(detail.value);
-                    }}
-                    value={modelOption}
-                    options={LLM_BOT_MODEL_LIST.map((item) => {
-                      return {
-                        label: item,
-                        value: item,
-                      };
-                    })}
-                    placeholder={t('validation.requireModel')}
-                    empty={t('noModelFound')}
-                  />
-                </FormField>
                 <FormField label={t('scenario')} stretch={true}>
                   <Select
                     options={SCENARIO_LIST}
@@ -481,6 +489,22 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                       />
                     </div>
                   )}
+                </FormField>
+                <FormField
+                  label={t('modelName')}
+                  stretch={true}
+                  errorText={t(modelError)}
+                >
+                  <Autosuggest
+                    onChange={({ detail }) => {
+                      setModelError('');
+                      setModelOption(detail.value);
+                    }}
+                    value={modelOption}
+                    options={modelList}
+                    placeholder={t('validation.requireModel')}
+                    empty={t('noModelFound')}
+                  />
                 </FormField>
                 <FormField
                   label={t('maxTokens')}
