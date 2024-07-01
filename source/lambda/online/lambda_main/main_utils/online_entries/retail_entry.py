@@ -790,7 +790,13 @@ def _prepare_chat_history(event_body):
         chat_history_by_goods_id = []
         for hist in event_body["chat_history"]:
             if goods_id == hist['additional_kwargs']['goods_id']:
-                chat_history_by_goods_id.append(hist)
+                current_chat = {}
+                current_chat['role'] = hist['role']
+                current_chat['content'] = hist['content']
+                current_chat['addional_kwargs'] = {}
+                if 'goods_id' in hist['additional_kwargs']:
+                    current_chat['addional_kwargs']['goods_id'] = str(hist['additional_kwargs']['goods_id'])
+                chat_history_by_goods_id.append(current_chat)
         return chat_history_by_goods_id
     else:
         return event_body["chat_history"]
@@ -814,7 +820,6 @@ def retail_entry(event_body):
     ################################################################################
     # prepare inputs and invoke graph
     event_body['chatbot_config'] = parse_retail_entry_config(event_body['chatbot_config'])
-    logger.info(f'event_body:\n{json.dumps(event_body,ensure_ascii=False,indent=2,cls=JSONEncoder)}')
     chatbot_config = event_body['chatbot_config']
     query = event_body['query']
     stream = event_body['stream']
@@ -854,6 +859,8 @@ def retail_entry(event_body):
 
     use_history = chatbot_config['use_history']
     chat_history = _prepare_chat_history(event_body) if use_history else []
+    event_body['chat_history'] = chat_history
+    logger.info(f'event_body:\n{json.dumps(event_body,ensure_ascii=False,indent=2,cls=JSONEncoder)}')
     
     logger.info(f"goods_info: {goods_info}")
     logger.info(f"chat_hisotry: {chat_history}")
@@ -878,7 +885,23 @@ def retail_entry(event_body):
         "agent_recursion_limit": chatbot_config['agent_recursion_limit'],
         "current_agent_recursion_num": 0,
     })
+<<<<<<< HEAD
+
+    response["extra_response"]["goods_id"] = goods_id
 
     return {"answer":response['answer'],**response["extra_response"],"trace_infos":response['trace_infos']}
+=======
+    
+    extra_response = response["extra_response"]
+    return {
+        "answer":response['answer'],
+        **extra_response,
+        "ddb_additional_kwargs": {
+             "goods_id":goods_id,
+             "current_agent_intent_type":extra_response['current_agent_intent_type']
+        },
+        "trace_infos":response['trace_infos'],
+        }
+>>>>>>> 0bd281513e2039911eae653dff0c1af42e20f68d
 
 main_chain_entry = retail_entry
