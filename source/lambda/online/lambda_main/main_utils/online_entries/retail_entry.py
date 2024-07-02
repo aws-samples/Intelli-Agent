@@ -162,7 +162,11 @@ def agent_lambda(state: ChatbotState):
     current_agent_output:dict = invoke_lambda(
         event_body={
             **state,
-            "other_chain_kwargs":{"goods_info": goods_info, "create_time": state['create_time']}
+            "other_chain_kwargs":{
+                "goods_info": goods_info,
+                "create_time": state['create_time'],
+                "current_agent_recursion_num":state['current_agent_recursion_num']
+                }
         },
         lambda_name="Online_Agent",
         lambda_module_path="lambda_agent.agent",

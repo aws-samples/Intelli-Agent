@@ -169,6 +169,9 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
     fix_reply_tag = "固定回复"
     goods_info_tag = "商品信息"
     prefill_after_thinking = "Step 1. 根据各个工具的描述与调用示例，以及当前用户的回复"
+    prefill_after_second_thinking = ""
+    prefill = prefill_after_thinking
+
 
     FN_CALL_TEMPLATE_INFO_ZH="""# 工具
 
@@ -201,20 +204,18 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
 {{goods_info}}
 
 # 思考
-你的每次回答都要按照下面的步骤输出你的思考过程, 注意你并不需要每次都进行所有步骤的思考。并将思考过程写在 XML 标签 <{thinking_tag}> 和 </{thinking_tag}> 中:
+你每次给出最终回复前都要按照下面的步骤输出你的思考过程, 注意你并不需要每次都进行所有步骤的思考。并将思考过程写在 XML 标签 <{thinking_tag}> 和 </{thinking_tag}> 中:
     Step 1. 根据各个工具的描述，分析当前用户的回复和各个示例中的Input相关性，如果跟某个示例对应的Input相关性强，直接跳过后续所有步骤，之后按照示例中Output的工具名称进行调用。
-    Step 2. 如果你觉得可以依据商品信息，<{goods_info_tag}> 里面的内容，进行回答，就直接就回答，不需要调用任何工具。
+    Step 2. 如果你觉得可以依据商品信息 <{goods_info_tag}> 里面的内容进行回答，就直接就回答，不需要调用任何工具。并结束思考。
     Step 3. 如果你觉得当前用户的回复意图不清晰，或者仅仅是表达一些肯定的内容，或者和历史消息没有很强的相关性，同时当前不是第一轮对话，直接回复用户下面 XML 标签 <{fix_reply_tag}> 里面的内容:
             <{fix_reply_tag}> 亲亲，请问还有什么问题吗？ </{fix_reply_tag}>
-    Step 4. 如果前面已经调用了某些工具, 需要分析之前调用工具的结果来判断现在是否需要继续使用某个工具。
-    Step 5. 基于当前上下文检查需要调用的工具是否需要输入参数，如果需要参数，检查对应的参数是否充足。如果不需要使用任何工具，请直接输出回答。
+    Step 4. 如果需要调用某个工具，检查该工具的必选参数是否可以在上下文中找到。结束思考。
 
-请遵守下面的规范回答用户的问题。
 ## 回答规范
    - 如果客户没有明确指出在哪里购买的商品，则默认都是在天猫平台购买的
    - 当前主要服务天猫平台的客户，如果客户询问其他平台的问题，直接回复 “不好意思，亲亲，这里是天猫店铺，只能为您解答天猫的问题。建议您联系其他平台的客服或售后人员给您提供相关的帮助和支持。谢谢！”
    - 如果客户的回复里面包含订单号，则直接回复 ”您好，亲亲，这就帮您去查相关订单信息。请问还有什么问题吗？“
-   - 只能思考一次，不要重复输出文本，段落，句子。思考之后的文本保持简洁，有且仅能包含一句话。{{non_ask_rules}}"""
+   - 只能思考一次，在结束思考符号“</思考>”之后给出最终的回复。不要重复输出文本，段落，句子。思考之后的文本保持简洁，有且仅能包含一句话。{{non_ask_rules}}"""
 
     @classmethod
     def get_function_description(cls,tool:dict):
@@ -330,7 +331,7 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
     @classmethod
     def parse_function_calls_from_ai_message(cls,message:dict):
         stop_reason = message['stop_reason']
-        content =  f"<{cls.thinking_tag}>\n{cls.prefill_after_thinking}" + message['text']
+        content =  f"<{cls.thinking_tag}>\n{cls.prefill}" + message['text']
         content = content.strip()
         stop_reason = stop_reason or ""
     
@@ -354,13 +355,21 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
             tools=tools,
             fewshot_examples=fewshot_examples
             )
-    
+
+        current_agent_recursion_num = kwargs['current_agent_recursion_num']
+        
+        # give different prefill
+        if current_agent_recursion_num == 0:
+            cls.prefill = cls.prefill_after_thinking
+        else:
+            cls.prefill = cls.prefill_after_second_thinking
+
         model_kwargs = model_kwargs or {}
         kwargs['system_prompt'] = system_prompt
         model_kwargs = {**model_kwargs}
         model_kwargs["stop"] = model_kwargs.get("stop",[]) + ['✿RESULT✿', '✿RESULT✿:', '✿RESULT✿:\n','✿RETURN✿',f'<{cls.fix_reply_tag}>',f'</{cls.fix_reply_tag}>',f'<{cls.thinking_tag}>']
         # model_kwargs["prefill"] = "我先看看调用哪个工具，下面是我的思考过程:\n<thinking>\nstep 1."
-        model_kwargs["prefill"] = f'<{cls.thinking_tag}>\n{cls.prefill_after_thinking}'
+        model_kwargs["prefill"] = f'<{cls.thinking_tag}>\n{cls.prefill}'
         return super().create_chain(model_kwargs=model_kwargs,**kwargs)
         
 

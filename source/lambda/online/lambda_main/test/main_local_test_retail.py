@@ -157,7 +157,7 @@ def batch_test(data_file, count=1000,add_eval_score=True,record_goods_id=False):
     if record_goods_id:
         chatbot_config["history_config"]=['goods_id']
 
-    save_csv_path = f'{session_prefix}_anta_test_qwen2-72b-instruct_{len(data)}.csv'
+    save_csv_path = f'anta_test/{session_prefix}_anta_test_qwen2-72b-instruct_{len(data)}.csv'
 
 
     def _auto_eval_thread_helper(ret_q:queue.Queue):
@@ -320,14 +320,15 @@ def complete_test():
 
 if __name__ == "__main__":
     # complete_test()
-    # test_multi_turns_anta("cn****0043",record_goods_id=True)
+    # test_multi_turns_anta("cn****0046",record_goods_id=True)
     # test_multi_turns()
     # test_multi_turns_0090() 
     # test_multi_turns_0077()
     # test_multi_turns_pr("agent")
     batch_test(
         data_file="/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/customer_poc/anta/anta_batch_test - batch-test-csv-file-626.csv",
-        record_goods_id=True)
+        record_goods_id=True
+    )
     # batch_test()
     # test(
     #     chatbot_mode='agent',
