@@ -35,6 +35,9 @@ order_dict = json.load(open(order_info_path))
 
 logger = get_logger('retail_entry')
 
+goods_info_tag = "商品信息"
+
+
 class ChatbotState(TypedDict):
     chatbot_config: dict # chatbot config
     query: str 
@@ -78,7 +81,7 @@ class ChatbotState(TypedDict):
 @node_monitor_wrapper
 def query_preprocess_lambda(state: ChatbotState):
     output:str = invoke_lambda(
-        event_body=state,
+        event_body={**state,"chat_history":[]},
         lambda_name="Online_Query_Preprocess",
         lambda_module_path="lambda_query_preprocess.query_preprocess",
         handler_name="lambda_handler"
@@ -587,7 +590,7 @@ def rule_url_reply(state:ChatbotState):
         output = f"您好，该商品的特点是:\n{human_goods_info}"
         if human_goods_info:
             system_prompt = (f"你是安踏的客服助理，当前用户对下面的商品感兴趣:\n"
-                        f"<goods_info>\n{human_goods_info}\n</goods_info>\n"
+                        f"<{goods_info_tag}>\n{human_goods_info}\n</{goods_info_tag}>\n"
                         "请你结合商品的基础信息，特别是卖点信息返回一句推荐语。"
                     )
             output:str = invoke_lambda(
@@ -848,14 +851,15 @@ def retail_entry(event_body):
                 goods_info = f"商品类型: \n<goods_type>\n{_goods_type}\n</goods_type>\n"
             else:
                 goods_info = ""
-            goods_info += "<goods_info>\n"
+            goods_info += f"<{goods_info_tag}>\n"
+    
             human_goods_info = ""
             for k,v in _goods_info.items():
                 goods_info += f"{k}:{v}\n" 
                 human_goods_info += f"{k}:{v}\n" 
             
             goods_info = goods_info.strip()
-            goods_info += "\n</goods_info>"
+            goods_info += f"\n</{goods_info_tag}>"
 
     use_history = chatbot_config['use_history']
     chat_history = _prepare_chat_history(event_body) if use_history else []
