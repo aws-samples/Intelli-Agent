@@ -484,46 +484,48 @@ export class ApiConstruct extends Construct {
       { proxy: true },
     );
 
-    const responseModel = new Model(this, 'ResponseModel', {
-      restApi: api,
-      schema: {
-        schema: JsonSchemaVersion.DRAFT4,
-        title: 'ResponsePayload',
-        type: JsonSchemaType.OBJECT,
-        properties: {
-          data: { type: JsonSchemaType.STRING },
-          message: { type: JsonSchemaType.STRING }
-        },
-      },
-    });
+  //   const responseModel = new Model(this, 'ResponseModel', {
+  //   restApi: api,
+  //   schema: {
+  //     schema: JsonSchemaVersion.DRAFT4,
+  //     title: 'ResponsePayload',
+  //     type: JsonSchemaType.OBJECT,
+  //     properties: {
+  //       data: { type: JsonSchemaType.STRING },
+  //       message: { type: JsonSchemaType.STRING }
+  //     },
+  //   },
+  // });
 
-    const methodOption = {
-      authorizer: auth,
-      methodResponses: [
-        {
-          statusCode: '200',
-          responseModels: {
-            'application/json': responseModel,
-          }
-        },
-        {
-          statusCode: '400',
-          responseModels: {
-            'application/json': apigw.Model.EMPTY_MODEL,
-          },
-        },
-        {
-          statusCode: '500',
-          responseModels: {
-            'application/json': apigw.Model.EMPTY_MODEL,
-          },
-        }
-      ]
-    };
+  // const methodOption = {
+  //   authorizer: auth,
+  //   methodResponses: [
+  //     {
+  //       statusCode: '200',
+  //       responseModels: {
+  //         'application/json': responseModel,
+  //       }
+  //     },
+  //     {
+  //       statusCode: '400',
+  //       responseModels: {
+  //         'application/json': apigw.Model.EMPTY_MODEL,
+  //       },
+  //     },
+  //     {
+  //       statusCode: '500',
+  //       responseModels: {
+  //         'application/json': apigw.Model.EMPTY_MODEL,
+  //       },
+  //     }
+  //   ]
+  // };
+    
+
 
     // Define the API Gateway Method
     const apiResourceEmbedding = api.root.addResource("extract");
-    apiResourceEmbedding.addMethod("POST", lambdaEmbeddingIntegration, methodOption);
+    apiResourceEmbedding.addMethod("POST", lambdaEmbeddingIntegration, this.genMethodOption(api, auth, null),);
 
     // Define the API Gateway Lambda Integration with proxy and no integration responses
     const lambdaAosIntegration = new apigw.LambdaIntegration(aosLambda, {
@@ -532,10 +534,10 @@ export class ApiConstruct extends Construct {
 
     // All AOS wrapper should be within such lambda
     const apiResourceAos = api.root.addResource("aos");
-    apiResourceAos.addMethod("POST", lambdaAosIntegration, methodOption);
+    apiResourceAos.addMethod("POST", lambdaAosIntegration, this.genMethodOption(api, auth, null),);
 
     // Add Get method to query & search index in OpenSearch, such embedding lambda will be updated for online process
-    apiResourceAos.addMethod("GET", lambdaAosIntegration, methodOption);
+    apiResourceAos.addMethod("GET", lambdaAosIntegration, this.genMethodOption(api, auth, null),);
 
     // Define the API Gateway Lambda Integration with proxy and no integration responses
     const lambdaDdbIntegration = new apigw.LambdaIntegration(ddbLambda, {
@@ -544,40 +546,61 @@ export class ApiConstruct extends Construct {
 
     // All AOS wrapper should be within such lambda
     const apiResourceDdb = api.root.addResource("ddb");
-    apiResourceDdb.addMethod("POST", lambdaDdbIntegration, methodOption);
+    apiResourceDdb.addMethod("POST", lambdaDdbIntegration, this.genMethodOption(api, auth, null),);
 
     const apiResourceListSessions = apiResourceDdb.addResource("list-sessions");
-    apiResourceListSessions.addMethod("GET", new apigw.LambdaIntegration(listSessionsLambda), methodOption);
+    apiResourceListSessions.addMethod("GET", new apigw.LambdaIntegration(listSessionsLambda), this.genMethodOption(api, auth, null),);
 
     const apiResourceListMessages = apiResourceDdb.addResource("list-messages");
-    apiResourceListMessages.addMethod("GET", new apigw.LambdaIntegration(listMessagesLambda), methodOption);
+    apiResourceListMessages.addMethod("GET", new apigw.LambdaIntegration(listMessagesLambda), this.genMethodOption(api, auth, null),);
 
     const apiResourceStepFunction = api.root.addResource("etl");
     apiResourceStepFunction.addMethod(
       "POST",
       new apigw.LambdaIntegration(sfnLambda),
-      methodOption
+      this.genMethodOption(api, auth, null),
     );
 
     const apiGetExecution = apiResourceStepFunction.addResource("execution");
     apiGetExecution.addMethod(
       "GET",
       new apigw.LambdaIntegration(getExecutionLambda),
-      methodOption,
+      this.genMethodOption(api, auth, null),
     );
 
     const apiListExecution = apiResourceStepFunction.addResource("list-execution");
     apiListExecution.addMethod(
       "GET",
       new apigw.LambdaIntegration(listExecutionLambda),
-      methodOption,
+      {...this.genMethodOption(api, auth, {
+        Items: {type: JsonSchemaType.ARRAY}
+      }),
+        requestParameters: {
+          'method.request.querystring.max_items': false,
+          'method.request.querystring.page_size': false
+        },
+        requestValidatorOptions: {
+          requestValidatorName: 'query-validator',
+          validateRequestParameters: false
+        }
+      }
     );
 
     const apiDelExecution = apiResourceStepFunction.addResource("delete-execution");
     apiDelExecution.addMethod(
       "POST",
       new apigw.LambdaIntegration(delExecutionLambda),
-      methodOption,
+      {...this.genMethodOption(api, auth, {
+        data: { type: JsonSchemaType.ARRAY },
+        message: { type: JsonSchemaType.STRING }
+      }),
+      requestModels: this.genRequestModel(api, {
+        executionId: { type: JsonSchemaType.ARRAY },
+      })
+      ,requestValidatorOptions: {
+        requestValidatorName: 'payload-validator',
+        validateRequestBody: true,
+      }}
     );
 
     const apiUploadDoc = apiResourceStepFunction.addResource("upload-s3-url");
@@ -586,22 +609,16 @@ export class ApiConstruct extends Construct {
     apiUploadDoc.addMethod(
       "POST",
       new apigw.LambdaIntegration(uploadDocLambda),
-      {...methodOption,
-        requestModels: {
-          'application/json': new Model(this, 'PostModel', {
-            restApi: api,
-            schema: {
-              schema: JsonSchemaVersion.DRAFT4,
-              title: 'PostPayload',
-              type: JsonSchemaType.OBJECT,
-              properties: {
-                content_type: { type: JsonSchemaType.STRING },
-                file_name: { type: JsonSchemaType.STRING },
-              },
-              required: ['content_type', 'file_name'],
-            },
-          })
-      },requestValidatorOptions: {
+      {...
+        this.genMethodOption(api, auth, {
+          data: { type: JsonSchemaType.STRING },
+          message: { type: JsonSchemaType.STRING }
+        }),
+        requestModels: this.genRequestModel(api, {
+          content_type: { type: JsonSchemaType.STRING },
+          file_name: { type: JsonSchemaType.STRING },
+        })
+      ,requestValidatorOptions: {
         requestValidatorName: 'payload-validator',
         validateRequestBody: true,
       }}
@@ -615,7 +632,7 @@ export class ApiConstruct extends Construct {
     apiListWorkspace.addMethod(
       "GET",
       new apigw.LambdaIntegration(listWorkspaceLambda),
-      methodOption,
+      this.genMethodOption(api, auth, null),
     );
 
     // Define the API Gateway Lambda Integration to invoke Batch job
@@ -625,7 +642,7 @@ export class ApiConstruct extends Construct {
 
     // Define the API Gateway Method
     const apiResourceBatch = api.root.addResource("batch");
-    apiResourceBatch.addMethod("POST", lambdaBatchIntegration, methodOption);
+    apiResourceBatch.addMethod("POST", lambdaBatchIntegration, this.genMethodOption(api, auth, null),);
 
     // Define the API Gateway Lambda Integration to manage prompt
     const lambdaPromptIntegration = new apigw.LambdaIntegration(promptManagementLambda, {
@@ -633,12 +650,12 @@ export class ApiConstruct extends Construct {
     });
 
     const apiResourcePrompt = api.root.addResource("prompt");
-    apiResourcePrompt.addMethod("POST", lambdaPromptIntegration, methodOption);
-    apiResourcePrompt.addMethod("GET", lambdaPromptIntegration, methodOption);
+    apiResourcePrompt.addMethod("POST", lambdaPromptIntegration, this.genMethodOption(api, auth, null),);
+    apiResourcePrompt.addMethod("GET", lambdaPromptIntegration, this.genMethodOption(api, auth, null),);
 
     const apiResourcePromptProxy = apiResourcePrompt.addResource("{proxy+}")
-    apiResourcePromptProxy.addMethod("DELETE", lambdaPromptIntegration, methodOption);
-    apiResourcePromptProxy.addMethod("GET", lambdaPromptIntegration, methodOption);
+    apiResourcePromptProxy.addMethod("DELETE", lambdaPromptIntegration, this.genMethodOption(api, auth, null),);
+    apiResourcePromptProxy.addMethod("GET", lambdaPromptIntegration, this.genMethodOption(api, auth, null),);
 
     if (BuildConfig.DEPLOYMENT_MODE === "ALL") {
       const openAiKey = new secretsmanager.Secret(this, "OpenAiSecret", {
@@ -919,4 +936,64 @@ export class ApiConstruct extends Construct {
     this.apiEndpoint = api.url;
     this.documentBucket = s3Bucket.bucketName;
   }
+
+  genMethodOption =(api, auth, properties)=>{
+    let responseModel = apigw.Model.EMPTY_MODEL
+    if(properties!==null){
+      responseModel = new Model(this, 'ResponseModel', {
+        restApi: api,
+        schema: {
+          schema: JsonSchemaVersion.DRAFT4,
+          title: 'ResponsePayload',
+          type: JsonSchemaType.OBJECT,
+          properties,
+        },
+      });
+    }
+    return {
+      authorizer: auth,
+      methodResponses: [
+        {
+          statusCode: '200',
+          responseModels: {
+            'application/json': responseModel,
+          }
+        },
+        {
+          statusCode: '400',
+          responseModels: {
+            'application/json': apigw.Model.EMPTY_MODEL,
+          },
+        },
+        {
+          statusCode: '500',
+          responseModels: {
+            'application/json': apigw.Model.EMPTY_MODEL,
+          },
+        }
+      ]
+    };
+  }
+  
+  // properties: {
+  //   content_type: { type: JsonSchemaType.STRING },
+  //   file_name: { type: JsonSchemaType.STRING },
+  // },
+  genRequestModel = (api, properties) =>{
+    return {
+      'application/json': new Model(this, 'PostModel', {
+        restApi: api,
+        schema: {
+          schema: JsonSchemaVersion.DRAFT4,
+          title: 'PostPayload',
+          type: JsonSchemaType.OBJECT,
+          properties,
+          required: Object.keys(properties).map(key => properties[key as keyof typeof properties]),
+        },
+      })
+  }
+  }
+
+
+  
 }
