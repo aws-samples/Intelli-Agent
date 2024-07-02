@@ -168,7 +168,7 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
     thinking_tag = "思考"
     fix_reply_tag = "固定回复"
     goods_info_tag = "商品信息"
-    prefill_after_thinking = "Step 1. 根据各个工具的描述与调用示例，以及当前用户的回复"
+    prefill_after_thinking = f"<{thinking_tag}>\nStep 1. 根据各个工具的描述与调用示例，以及当前用户的回复"
     prefill_after_second_thinking = ""
     prefill = prefill_after_thinking
 
@@ -331,7 +331,7 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
     @classmethod
     def parse_function_calls_from_ai_message(cls,message:dict):
         stop_reason = message['stop_reason']
-        content =  f"<{cls.thinking_tag}>\n{cls.prefill}" + message['text']
+        content =  f"{cls.prefill}" + message['text']
         content = content.strip()
         stop_reason = stop_reason or ""
     
@@ -369,7 +369,7 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
         model_kwargs = {**model_kwargs}
         model_kwargs["stop"] = model_kwargs.get("stop",[]) + ['✿RESULT✿', '✿RESULT✿:', '✿RESULT✿:\n','✿RETURN✿',f'<{cls.fix_reply_tag}>',f'</{cls.fix_reply_tag}>',f'<{cls.thinking_tag}>']
         # model_kwargs["prefill"] = "我先看看调用哪个工具，下面是我的思考过程:\n<thinking>\nstep 1."
-        model_kwargs["prefill"] = f'<{cls.thinking_tag}>\n{cls.prefill}'
+        model_kwargs["prefill"] = f'{cls.prefill}'
         return super().create_chain(model_kwargs=model_kwargs,**kwargs)
         
 
