@@ -940,7 +940,7 @@ export class ApiConstruct extends Construct {
     this.documentBucket = s3Bucket.bucketName;
   }
 
-  genMethodOption =(api: apigw.RestApi, auth: apigw.RequestAuthorizer, properties: object)=>{
+  genMethodOption =(api: apigw.RestApi, auth: apigw.RequestAuthorizer, properties: any)=>{
     let responseModel = apigw.Model.EMPTY_MODEL
     if(properties!==null){
       responseModel = new Model(this, 'ResponseModel', {
@@ -982,7 +982,7 @@ export class ApiConstruct extends Construct {
   //   content_type: { type: JsonSchemaType.STRING },
   //   file_name: { type: JsonSchemaType.STRING },
   // },
-  genRequestModel = (api: apigw.RestApi, properties: object) =>{
+  genRequestModel = (api: apigw.RestApi, properties: any) =>{
     return {
       'application/json': new Model(this, 'PostModel', {
         restApi: api,
