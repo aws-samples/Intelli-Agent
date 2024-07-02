@@ -82,3 +82,7 @@ poetry.lock
 .vscode/
 .DS_Store
 .pylintrc
+source/lambda/online/functions/retail_tools/lambda_product_information_search/retail/**/*.xlsx
+script/
+test/
+source/lambda/online/lambda_main/retail/

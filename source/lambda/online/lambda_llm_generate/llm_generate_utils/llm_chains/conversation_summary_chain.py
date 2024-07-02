@@ -58,7 +58,7 @@ class Iternlm2Chat20BConversationSummaryChain(Iternlm2Chat7BChatChain):
             system_prompt  = get_prompt_template(
             model_id=cls.model_id,
             task_type=cls.intent_type,
-            prompt_name="main"     
+            prompt_name="system_prompt"     
         ).prompt_template
 
         conversational_context = "\n".join(conversational_contexts)
@@ -100,7 +100,7 @@ class Claude2ConversationSummaryChain(LLMChain):
         prompt_template = get_prompt_template(
             model_id=cls.model_id,
             task_type=cls.intent_type,
-            prompt_name="main"     
+            prompt_name="system_prompt"     
         ).prompt_template
 
         prompt_template = kwargs.get("system_prompt",prompt_template)
