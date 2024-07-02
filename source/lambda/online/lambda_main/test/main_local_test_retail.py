@@ -151,6 +151,8 @@ def batch_test(data_file, count=1000,add_eval_score=True,record_goods_id=False):
             "query_key": "query"
         }
     }
+    if record_goods_id:
+        chatbot_config["history_config"]=['goods_id']
 
     if record_goods_id:
         chatbot_config["history_config"]=['goods_id']
@@ -325,8 +327,7 @@ if __name__ == "__main__":
     # test_multi_turns_pr("agent")
     batch_test(
         data_file="/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/customer_poc/anta/anta_batch_test - batch-test-csv-file-626.csv",
-        record_goods_id=True
-        )
+        record_goods_id=True)
     # batch_test()
     # test(
     #     chatbot_mode='agent',
