@@ -31,6 +31,7 @@ import { Function, Runtime, Code, Architecture, DockerImageFunction, DockerImage
 import { UserPool } from "aws-cdk-lib/aws-cognito";
 import { IAMHelper } from "../shared/iam-helper";
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
+import { JsonSchemaType, JsonSchemaVersion, Model } from "aws-cdk-lib/aws-apigateway";
 
 
 interface ApiStackProps extends StackProps {
@@ -477,15 +478,48 @@ export class ApiConstruct extends Construct {
       identitySources: [apigw.IdentitySource.header('Authorization')],
     });
 
-    const methodOption = {
-      authorizer: auth,
-    };
-
     // Define the API Gateway Lambda Integration with proxy and no integration responses
     const lambdaEmbeddingIntegration = new apigw.LambdaIntegration(
       embeddingLambda,
       { proxy: true },
     );
+
+    const responseModel = new Model(this, 'ResponseModel', {
+      restApi: api,
+      schema: {
+        schema: JsonSchemaVersion.DRAFT4,
+        title: 'ResponsePayload',
+        type: JsonSchemaType.OBJECT,
+        properties: {
+          data: { type: JsonSchemaType.STRING },
+          message: { type: JsonSchemaType.STRING }
+        },
+      },
+    });
+
+    const methodOption = {
+      authorizer: auth,
+      methodResponses: [
+        {
+          statusCode: '200',
+          responseModels: {
+            'application/json': responseModel,
+          }
+        },
+        {
+          statusCode: '400',
+          responseModels: {
+            'application/json': apigw.Model.EMPTY_MODEL,
+          },
+        },
+        {
+          statusCode: '500',
+          responseModels: {
+            'application/json': apigw.Model.EMPTY_MODEL,
+          },
+        }
+      ]
+    };
 
     // Define the API Gateway Method
     const apiResourceEmbedding = api.root.addResource("extract");
@@ -522,7 +556,7 @@ export class ApiConstruct extends Construct {
     apiResourceStepFunction.addMethod(
       "POST",
       new apigw.LambdaIntegration(sfnLambda),
-      methodOption,
+      methodOption
     );
 
     const apiGetExecution = apiResourceStepFunction.addResource("execution");
@@ -552,7 +586,25 @@ export class ApiConstruct extends Construct {
     apiUploadDoc.addMethod(
       "POST",
       new apigw.LambdaIntegration(uploadDocLambda),
-      methodOption,
+      {...methodOption,
+        requestModels: {
+          'application/json': new Model(this, 'PostModel', {
+            restApi: api,
+            schema: {
+              schema: JsonSchemaVersion.DRAFT4,
+              title: 'PostPayload',
+              type: JsonSchemaType.OBJECT,
+              properties: {
+                content_type: { type: JsonSchemaType.STRING },
+                file_name: { type: JsonSchemaType.STRING },
+              },
+              required: ['content_type', 'file_name'],
+            },
+          })
+      },requestValidatorOptions: {
+        requestValidatorName: 'payload-validator',
+        validateRequestBody: true,
+      }}
     );
     // apiUploadDoc.addMethod(
     //   "POST",
