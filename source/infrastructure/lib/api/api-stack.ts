@@ -565,7 +565,10 @@ export class ApiConstruct extends Construct {
     apiGetExecution.addMethod(
       "GET",
       new apigw.LambdaIntegration(getExecutionLambda),
-      this.genMethodOption(api, auth, null),
+      this.genMethodOption(api, auth, {
+        Items: {type: JsonSchemaType.ARRAY},
+        Count: {type: JsonSchemaType.INTEGER}
+      }),
     );
 
     const apiListExecution = apiResourceStepFunction.addResource("list-execution");
@@ -903,7 +906,7 @@ export class ApiConstruct extends Construct {
 
       // Define the API Gateway Method
       const apiResourceLLM = api.root.addResource("llm");
-      apiResourceLLM.addMethod("POST", lambdaExecutorIntegration, methodOption);
+      apiResourceLLM.addMethod("POST", lambdaExecutorIntegration, this.genMethodOption(api, auth, null));
 
       const lambdaDispatcher = new Function(this, "lambdaDispatcher", {
         runtime: Runtime.PYTHON_3_11,
@@ -937,7 +940,7 @@ export class ApiConstruct extends Construct {
     this.documentBucket = s3Bucket.bucketName;
   }
 
-  genMethodOption =(api, auth, properties)=>{
+  genMethodOption =(api: apigw.RestApi, auth: apigw.RequestAuthorizer, properties: object)=>{
     let responseModel = apigw.Model.EMPTY_MODEL
     if(properties!==null){
       responseModel = new Model(this, 'ResponseModel', {
@@ -979,7 +982,7 @@ export class ApiConstruct extends Construct {
   //   content_type: { type: JsonSchemaType.STRING },
   //   file_name: { type: JsonSchemaType.STRING },
   // },
-  genRequestModel = (api, properties) =>{
+  genRequestModel = (api: apigw.RestApi, properties: object) =>{
     return {
       'application/json': new Model(this, 'PostModel', {
         restApi: api,
