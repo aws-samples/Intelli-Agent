@@ -290,7 +290,6 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
         use_websearch: true,
         google_api_key: '',
         default_workspace_config: {
-          intent_workspace_ids: [],
           rag_workspace_ids: workspaceIds,
         },
         default_llm_config: {
