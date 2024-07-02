@@ -582,10 +582,10 @@ export class ApiConstruct extends Construct {
           'method.request.querystring.max_items': false,
           'method.request.querystring.page_size': false
         },
-        requestValidatorOptions: {
-          requestValidatorName: `Validator-${Math.random().toString(36).substr(2, 9)}`,
-          validateRequestParameters: false
-        }
+        // requestValidatorOptions: {
+        //   requestValidatorName: `Validator-${Math.random().toString(36).substr(2, 9)}`,
+        //   validateRequestParameters: false
+        // }
       }
     );
 
@@ -600,10 +600,11 @@ export class ApiConstruct extends Construct {
       requestModels: this.genRequestModel(api, {
         executionId: { type: JsonSchemaType.ARRAY },
       })
-      ,requestValidatorOptions: {
-        requestValidatorName: `Validator-${Math.random().toString(36).substr(2, 9)}`,
-        validateRequestBody: true,
-      }}
+      // ,requestValidatorOptions: {
+      //   requestValidatorName: `Validator-${Math.random().toString(36).substr(2, 9)}`,
+      //   validateRequestBody: true,
+      // }
+    }
     );
 
     const apiUploadDoc = apiResourceStepFunction.addResource("upload-s3-url");
@@ -621,10 +622,11 @@ export class ApiConstruct extends Construct {
           content_type: { type: JsonSchemaType.STRING },
           file_name: { type: JsonSchemaType.STRING },
         })
-      ,requestValidatorOptions: {
-        requestValidatorName: `Validator-${Math.random().toString(36).substr(2, 9)}`,
-        validateRequestBody: true,
-      }}
+      // ,requestValidatorOptions: {
+      //   requestValidatorName: `Validator-${Math.random().toString(36).substr(2, 9)}`,
+      //   validateRequestBody: true,
+      // }
+    }
     );
     // apiUploadDoc.addMethod(
     //   "POST",
