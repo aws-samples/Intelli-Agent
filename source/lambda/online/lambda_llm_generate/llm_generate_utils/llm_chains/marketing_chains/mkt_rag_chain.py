@@ -11,7 +11,7 @@ register_prompt_templates(
     model_ids=[LLMModelType.INTERNLM2_CHAT_7B,LLMModelType.INTERNLM2_CHAT_20B],
     task_type=LLMTaskType.RAG,
     prompt_template=INTERLM2_RAG_PROMPT_TEMPLATE,
-    prompt_name="main"
+    prompt_name="system_prompt"
 )
 
 class Iternlm2Chat7BKnowledgeQaChain(Iternlm2Chat7BChatChain):
@@ -28,7 +28,7 @@ class Iternlm2Chat7BKnowledgeQaChain(Iternlm2Chat7BChatChain):
         prompt_template = get_prompt_template(
             model_id = cls.model_id,
             task_type = cls.task_type,
-            prompt_name = "main"
+            prompt_name = "system_prompt"
         ).prompt_template
         meta_instruction = prompt_template.format(context)
         # meta_instruction = f"You are an assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. If you don't know the answer, just say that you don't know. Use simplified Chinese to response the qustion. I’m going to tip $300K for a better answer! "

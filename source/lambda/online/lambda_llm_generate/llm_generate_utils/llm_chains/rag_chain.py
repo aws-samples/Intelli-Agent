@@ -44,7 +44,7 @@ class Claude2RagLLMChain(LLMChain):
         system_prompt_template = get_prompt_template(
             model_id=cls.model_id,
             task_type=cls.intent_type,
-            prompt_name="main"     
+            prompt_name="system_prompt"     
         ).prompt_template
 
         system_prompt_template = kwargs.get("system_prompt",system_prompt_template)
@@ -101,7 +101,7 @@ class GLM4Chat9BRagChain(GLM4Chat9BChatChain):
             system_prompt = get_prompt_template(
                 model_id=cls.model_id,
                 task_type=cls.intent_type,
-                prompt_name="main"     
+                prompt_name="system_prompt"     
             ).prompt_template
         context = ("\n" + "="*50+ "\n").join(x['contexts'])
         system_prompt = system_prompt.format(context=context)
@@ -121,10 +121,10 @@ class Qwen2Instruct7BRagChain(Qwen2Instruct7BChatChain):
             system_prompt = get_prompt_template(
                 model_id=cls.model_id,
                 task_type=cls.intent_type,
-                prompt_name="main"     
+                prompt_name="system_prompt"     
             ).prompt_template
         
-        context = ("\n" + "="*50+ "\n").join(x['contexts'])
+        context = ("\n\n").join(x['contexts'])
         system_prompt = system_prompt.format(context=context)
         return super().create_chat_history(x,system_prompt=system_prompt)
 

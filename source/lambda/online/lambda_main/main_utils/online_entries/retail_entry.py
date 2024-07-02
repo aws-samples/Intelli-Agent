@@ -57,6 +57,7 @@ class ChatbotState(TypedDict):
     parse_tool_calling_ok: bool
     query_rule_classification: str
     goods_info: None
+    human_goods_info: None
     agent_llm_type: str
     query_rewrite_llm_type: str
     agent_recursion_limit: int # agent recursion limit
@@ -104,6 +105,50 @@ def intention_detection_lambda(state: ChatbotState):
 @node_monitor_wrapper
 def agent_lambda(state: ChatbotState):
     goods_info = state.get('goods_info',None) or ""
+    agent_chat_history = state.get('agent_chat_history',"")
+    if agent_chat_history and hasattr(agent_chat_history[-1],'additional_kwargs'):
+        search_result = agent_chat_history[-1]['additional_kwargs']['original'][0].get('search_result',1)
+        if search_result == 0:
+            context = agent_chat_history[-1]['additional_kwargs']['original'][0].get('result',"")
+            system_prompt = ("你是安踏的客服助理，正在帮消费者解答问题，消费者提出的问题大多是属于商品的质量和物流规则。context列举了一些可能有关的具体场景及回复，你可以进行参考:\n"
+                            "<context>\n"
+                            f"{context}\n"
+                            "</context>"
+                            "你需要按照下面的guidelines对消费者的问题进行回答:\n"
+                            "<guidelines>\n"
+                            " - 回答内容为一句话，言简意赅。\n"
+                            " - 如果问题与context内容不相关，就不要采用。\n"
+                            " - 消费者的问题里面可能包含口语化的表达，比如鞋子开胶的意思是用胶黏合的鞋体裂开。这和胶丝遗留没有关系。\n"
+                            ' - 如果问题涉及到订单号，请回复: "请稍等，正在帮您查询订单。"'
+                            "</guidelines>"
+                            )
+            query = state['query']
+            # print('llm config',state['chatbot_config']['rag_product_aftersales_config']['llm_config'])
+            output:str = invoke_lambda(
+                lambda_name='Online_LLM_Generate',
+                lambda_module_path="lambda_llm_generate.llm_generate",
+                handler_name='lambda_handler',
+                event_body={
+                    "llm_config": {
+                        **state['chatbot_config']['rag_product_aftersales_config']['llm_config'], 
+                        "system_prompt": system_prompt,
+                          "intent_type": LLMTaskType.CHAT
+                        },
+                    "llm_input": { "query": query, "chat_history": state['chat_history']}
+                    }
+            )
+            current_agent_recursion_num = state['current_agent_recursion_num'] + 1
+            current_agent_output = {}
+            current_agent_output['agent_output'] = {}
+            current_agent_output['agent_output']['function_calls'] = []
+            current_agent_output['agent_output']['content'] = output
+            current_agent_output['current_agent_model_id'] = "qwen2-72B-instruct"
+            current_agent_output['current_agent_tools_def'] = []
+            return {
+                "current_agent_output": current_agent_output,
+                "current_agent_recursion_num": current_agent_recursion_num
+            }
+
     current_agent_output:dict = invoke_lambda(
         event_body={
             **state,
@@ -212,31 +257,34 @@ def rag_daily_reception_retriever_lambda(state: ChatbotState):
         handler_name="lambda_handler"
     )
     contexts = [doc['page_content'] for doc in output['result']['docs']]
-    context = ("\n" + "="*50+ "\n").join(contexts)
+    context = "\n\n".join(contexts)
     send_trace(f'**rag_goods_exchange_retriever** {context}', state["stream"], state["ws_connection_id"])
     return {"contexts": contexts}
 
 @node_monitor_wrapper
 def rag_daily_reception_llm_lambda(state:ChatbotState):
-    context = ("\n" + "="*50+ "\n").join(state['contexts'])
-    prompt = dedent(f"""你是安踏的客服助理，正在帮用户解答问题，客户提出的问题大多是属于日常接待类别，你需要按照下面的guidelines进行回复:
-                    <guidelines>
-                      - 回复内容需要展现出礼貌。
-                      - 使用中文回答。
-                    </guidelines>
-                    下面列举了一些具体的场景下的回复，你可以结合用户的问题进行参考:
-                    <context>
-                    {context}
-                    </context>
-                    下面是用户的回复: {state['query']}
-""")
+    context = "\n\n".join(state['contexts'])
+    system_prompt = (f"你是安踏的客服助理，正在帮用户解答问题，客户提出的问题大多是属于日常接待类别，你需要按照下面的guidelines进行回复:\n"
+                    "<guidelines>\n"
+                    " - 回复内容需要展现出礼貌。回答内容为一句话，言简意赅。\n"
+                    " - 使用中文回答。\n"
+                    "</guidelines>\n"
+                    "下面列举了一些具体的场景下的回复，你可以结合用户的问题进行参考:\n"
+                    "<context>\n"
+                    f"{context}\n"
+                    "</context>"
+                )
+    
     output:str = invoke_lambda(
         lambda_name='Online_LLM_Generate',
         lambda_module_path="lambda_llm_generate.llm_generate",
         handler_name='lambda_handler',
         event_body={
-            "llm_config": {**state['chatbot_config']['rag_daily_reception_config']['llm_config'], "intent_type": LLMTaskType.CHAT},
-            "llm_input": {"query": prompt, "chat_history": state['chat_history']}
+            "llm_config": {
+                **state['chatbot_config']['rag_daily_reception_config']['llm_config'], 
+                "system_prompt": system_prompt,
+                "intent_type": LLMTaskType.CHAT},
+            "llm_input": {"query": state['query'], "chat_history": state['chat_history']}
             }
         )
     return {"answer": output}
@@ -254,33 +302,35 @@ def rag_goods_exchange_retriever_lambda(state: ChatbotState):
     )
     contexts = [doc['page_content'] for doc in output['result']['docs']]
 
-    context = ("\n" + "="*50+ "\n").join(contexts)
+    context = "\n\n".join(contexts)
     send_trace(f'**rag_goods_exchange_retriever** {context}', state["stream"], state["ws_connection_id"])
     return {"contexts": contexts}
 
 
 @node_monitor_wrapper
 def rag_goods_exchange_llm_lambda(state:ChatbotState):
-    context = ("\n" + "="*50+ "\n").join(state['contexts'])
-    prompt = dedent(f"""你是安踏的客服助理，正在帮用户解答问题，客户提出的问题大多是属于商品退换货范畴，你需要按照下面的guidelines进行回复:
-                    <guidelines>
-                      - 回复内容需要展现出礼貌。
-                      - 使用中文回答。
-                    </guidelines>
-                    下面列举了一些具体的场景下的回复，你可以结合用户的问题进行参考回答:
-                    <context>
-                    {context}
-                    </context>
-                    下面是用户的回复: {state['query']}
-""")
+    context = "\n\n".join(state['contexts'])
+    system_prompt = (f"你是安踏的客服助理，正在帮用户解答问题，客户提出的问题大多是属于商品退换货范畴，你需要按照下面的guidelines进行回复:\n"
+                    "<guidelines>\n"
+                    " - 回复内容需要展现出礼貌。回答内容为一句话，言简意赅。\n"
+                    " - 使用中文回答。\n"
+                    "</guidelines>\n"
+                    "下面列举了一些具体的场景下的回复，你可以结合用户的问题进行参考回答:\n"
+                    "<context>\n"
+                    f"{context}\n"
+                    "</context>\n"
+                )
     
     output:str = invoke_lambda(
         lambda_name='Online_LLM_Generate',
         lambda_module_path="lambda_llm_generate.llm_generate",
         handler_name='lambda_handler',
         event_body={
-            "llm_config": {**state['chatbot_config']['rag_goods_exchange_config']['llm_config'], "intent_type": LLMTaskType.CHAT},
-            "llm_input": { "query": prompt, "chat_history": state['chat_history']}
+            "llm_config": {
+                **state['chatbot_config']['rag_goods_exchange_config']['llm_config'],
+                "system_prompt":system_prompt,
+                "intent_type": LLMTaskType.CHAT},
+            "llm_input": { "query": state['query'], "chat_history": state['chat_history']}
             }
         )
     return {"answer": output}
@@ -302,33 +352,37 @@ def rag_product_aftersales_retriever_lambda(state: ChatbotState):
     )
     contexts = [doc['page_content'] for doc in output['result']['docs']]
 
-    context = ("\n" + "="*50+ "\n").join(contexts)
+    context = "\n\n".join(contexts)
     send_trace(f'**rag_product_aftersales_retriever** {context}', state["stream"], state["ws_connection_id"])
     return {"contexts": contexts}
 
 @node_monitor_wrapper
 def rag_product_aftersales_llm_lambda(state:ChatbotState):
-    context = ("\n" + "="*50+ "\n").join(state['contexts'])
-    prompt = dedent(f"""你是安踏的客服助理，正在帮消费者解答问题，消费者提出的问题大多是属于商品的质量和物流规则。context列举了一些可能有关的具体场景及回复，你可以进行参考:
-                    <context>
-                    {context}
-                    </context>
-                    你需要按照下面的guidelines对消费者的问题进行回答:
-                    <guidelines>
-                      - 回答内容要简洁。
-                      - 如果问题与context内容不相关，就不要采用。
-                      - 消费者的问题里面可能包含口语化的表达，比如鞋子开胶的意思是用胶黏合的鞋体裂开。这和胶丝遗留没有关系
-                    </guidelines>
-                    下面是消费者的问题: {state['query']}。结合guidelines的内容进行回答
-""")
+    context = "\n\n".join(state['contexts'])
+    system_prompt = (f"你是安踏的客服助理，正在帮消费者解答问题，消费者提出的问题大多是属于商品的质量和物流规则。context列举了一些可能有关的具体场景及回复，你可以进行参考:\n"
+                    "<context>\n"
+                    f"{context}\n"
+                    "</context>\n"
+                    "你需要按照下面的guidelines对消费者的问题进行回答:\n"
+                    "<guidelines>\n"
+                    " - 回答内容为一句话，言简意赅。\n"
+                    " - 如果问题与context内容不相关，就不要采用。\n"
+                    " - 消费者的问题里面可能包含口语化的表达，比如鞋子开胶的意思是用胶黏合的鞋体裂开。这和胶丝遗留没有关系\n"
+                    " - 消费者的回复不够清晰的时候，直接回复: 不知道刚才给您的建议是否有帮助？。不要有额外补充\n"
+                    "</guidelines>\n"
+                    )
     # print('llm config',state['chatbot_config']['rag_product_aftersales_config']['llm_config'])
     output:str = invoke_lambda(
         lambda_name='Online_LLM_Generate',
         lambda_module_path="lambda_llm_generate.llm_generate",
         handler_name='lambda_handler',
         event_body={
-            "llm_config": {**state['chatbot_config']['rag_product_aftersales_config']['llm_config'], "intent_type": LLMTaskType.CHAT},
-            "llm_input": { "query": prompt, "chat_history": state['chat_history']}
+            "llm_config": {
+                **state['chatbot_config']['rag_product_aftersales_config']['llm_config'], 
+                "system_prompt":system_prompt,
+                "intent_type": LLMTaskType.CHAT
+            },
+            "llm_input": { "query": state['query'], "chat_history": state['chat_history']}
             }
         )
     return {"answer": output}
@@ -346,33 +400,35 @@ def rag_customer_complain_retriever_lambda(state: ChatbotState):
     )
     contexts = [doc['page_content'] for doc in output['result']['docs']]
 
-    context = ("\n" + "="*50+ "\n").join(contexts)
+    context = "\n\n".join(contexts)
     send_trace(f'**rag_customer_complain_retriever** {context}', state["stream"], state["ws_connection_id"])
     return {"contexts": contexts}
 
 @node_monitor_wrapper
 def rag_customer_complain_llm_lambda(state:ChatbotState):
-    context = ("\n" + "="*50+ "\n").join(state['contexts'])
+    context = "\n\n".join(state['contexts'])
     # prompt = dedent(f"""你是安踏的客服助理，正在处理有关于客户抱怨的问题，这些问题有关于商品质量等方面，需要你按照下面的guidelines进行回复:
-    prompt = dedent(f"""你是安踏的客服助理，正在处理有关于消费者抱怨的问题。context列举了一些可能和客户问题有关的具体场景及回复，你可以进行参考:
-                    <context>
-                    {context}
-                    </context>
-                    需要你按照下面的guidelines进行回复:
-                    <guidelines>
-                      - 回答要简洁。
-                      - 尽量安抚客户情绪。
-                      - 直接回答，不要说"亲爱的顾客，您好"
-                    </guidelines>
-                    下面是消费者的问题: {state['query']}
-""")
+    system_prompt = ("你是安踏的客服助理，正在处理有关于消费者抱怨的问题。context列举了一些可能和客户问题有关的具体场景及回复，你可以进行参考:\n"
+                    "<context>\n"
+                    f"{context}\n"
+                    "</context>\n"
+                    "需要你按照下面的guidelines进行回复:\n"
+                    "<guidelines>\n"
+                    " - 回答内容为一句话，言简意赅。\n"
+                    " - 尽量安抚客户情绪。\n"
+                    " - 直接回答，不要说\"亲爱的顾客，您好\"\n"
+                    "</guidelines>\n"
+                    )
     output:str = invoke_lambda(
         lambda_name='Online_LLM_Generate',
         lambda_module_path="lambda_llm_generate.llm_generate",
         handler_name='lambda_handler',
         event_body={
-            "llm_config": {**state['chatbot_config']['rag_customer_complain_config']['llm_config'], "intent_type": LLMTaskType.CHAT},
-            "llm_input": { "query": prompt, "chat_history": state['chat_history']}
+            "llm_config": {
+                **state['chatbot_config']['rag_customer_complain_config']['llm_config'],
+                "system_prompt":system_prompt,
+                "intent_type": LLMTaskType.CHAT},
+            "llm_input": { "query": state['query'], "chat_history": state['chat_history']}
             }
         )
     return {"answer": output}
@@ -390,32 +446,35 @@ def rag_promotion_retriever_lambda(state: ChatbotState):
     )
     contexts = [doc['page_content'] for doc in output['result']['docs']]
 
-    context = ("\n" + "="*50+ "\n").join(contexts)
+    context = "\n\n".join(contexts)
     send_trace(f'**rag_promotion_retriever** {context}', state["stream"], state["ws_connection_id"])
     return {"contexts": contexts}
 
 @node_monitor_wrapper
 def rag_promotion_llm_lambda(state:ChatbotState):
-    context = ("\n" + "="*50+ "\n").join(state['contexts'])
-    prompt = dedent(f"""你是安踏的客服助理，正在帮消费者解答有关于商品促销的问题，这些问题是有关于积分、奖品、奖励等方面。context列举了一些可能有关的具体场景及回复，你可以进行参考:
-                    <context>
-                    {context}
-                    </context>
-                    你需要按照下面的guidelines对消费者的问题进行回答:
-                    <guidelines>
-                      - 回答内容要简洁。
-                      - 如果问题与context内容不相关，就不要采用。
-                      - 使用中文进行回答。
-                    </guidelines>
-                    下面是消费者的问题: {state['query']}。结合guidelines的内容进行回答
-""")
+    context = "\n\n".join(state['contexts'])
+
+    system_prompt = ("你是安踏的客服助理，正在帮消费者解答有关于商品促销的问题，这些问题是有关于积分、奖品、奖励等方面。\n"
+                     "context列举了一些可能有关的具体场景及回复，你可以进行参考:\n"
+                    f"<context>\n{context}\n</context>\n"
+                    "你需要按照下面的guidelines对消费者的问题进行回答:\n"
+                    "<guidelines>\n"
+                    " - 回答内容为一句话，言简意赅。\n"
+                    " - 如果问题与context内容不相关，就不要采用。\n"
+                    " - 使用中文进行回答。\n"
+                    "</guidelines>"
+    )
+   
     output:str = invoke_lambda(
         lambda_name='Online_LLM_Generate',
         lambda_module_path="lambda_llm_generate.llm_generate",
         handler_name='lambda_handler',
         event_body={
-            "llm_config": {**state['chatbot_config']['rag_promotion_config']['llm_config'], "intent_type": LLMTaskType.CHAT},
-            "llm_input": { "query": prompt, "chat_history": state['chat_history']}
+            "llm_config": {
+                **state['chatbot_config']['rag_promotion_config']['llm_config'],
+                "system_prompt":system_prompt,
+                "intent_type": LLMTaskType.CHAT},
+            "llm_input": { "query": state['query'], "chat_history": state['chat_history']}
             }
         )
     return {"answer": output}
@@ -441,32 +500,34 @@ def final_rag_retriever_lambda(state: ChatbotState):
 
 @node_monitor_wrapper
 def final_rag_llm_lambda(state:ChatbotState):
-    context = ("="*50).join(state['contexts'])
-    prompt = dedent(f"""你是安踏的客服助理，正在帮消费者解答售前或者售后的问题。 <context> 中列举了一些可能有关的具体场景及回复，你可以进行参考:
-                    <context>
-                    {context}
-                    </context>
-                    你需要按照下面的guidelines对消费者的问题进行回答:
-                    <guidelines>
-                      - 回答内容要简洁。
-                      - 如果问题与context内容不相关，就不要采用。
-                    </guidelines>
-                    下面是消费者的问题: {state['query']}。结合guidelines的内容进行回答
-""")
+    context = "\n\n".join(state['contexts'])
+    system_prompt = ("你是安踏的客服助理，正在帮消费者解答售前或者售后的问题。 <context> 中列举了一些可能有关的具体场景及回复，你可以进行参考:\n"
+                    "<context>\n"
+                    f"{context}\n"
+                    "</context>\n"
+                    "你需要按照下面的guidelines对消费者的问题进行回答:\n"
+                    "<guidelines>\n"
+                    " - 回答内容为一句话，言简意赅。\n"
+                    " - 如果问题与context内容不相关，就不要采用。\n"
+                    "</guidelines>\n"
+                )
     output:str = invoke_lambda(
         lambda_name='Online_LLM_Generate',
         lambda_module_path="lambda_llm_generate.llm_generate",
         handler_name='lambda_handler',
         event_body={
-            "llm_config": {**state['chatbot_config']['final_rag_retriever']['llm_config'], "intent_type": LLMTaskType.CHAT},
-            "llm_input": { "query": prompt, "chat_history": state['chat_history']}
+            "llm_config": {
+                **state['chatbot_config']['final_rag_retriever']['llm_config'],
+                "system_prompt":system_prompt,
+                "intent_type": LLMTaskType.CHAT},
+            "llm_input": { "query": state["query"], "chat_history": state['chat_history']}
             }
         )
     return {"answer": output}
 
 
 def transfer_reply(state:ChatbotState):
-    return {"answer": "立即为您转人工客服，请稍后"}
+    return {"answer": "您好,我是安踏官方客服,很高兴为您服务。请问您有什么需要帮助的吗?"}
 
 
 def give_rhetorical_question(state:ChatbotState):
@@ -482,9 +543,8 @@ def rule_url_reply(state:ChatbotState):
     state["extra_response"]["current_agent_intent_type"] = "rule reply"
     if state['query'].endswith(('.jpg','.png')):
         answer = random.choice([
-            "好的，收到图片。",
-            "您好",
-            "请问有什么需要帮助的吗？"
+            "收到，亲。请问我们可以怎么为您效劳呢？",
+            "您好，请问有什么需要帮助的吗？"
         ])
         return {"answer": answer}
     # product information
@@ -494,7 +554,28 @@ def rule_url_reply(state:ChatbotState):
     else:
         goods_id = 0
     if goods_id in goods_dict:
-        return {"answer":f"您好，该商品的特点是:\n{state['goods_info']}"}
+        # call llm to make summary of goods info
+        human_goods_info = state['human_goods_info']
+        output = f"您好，该商品的特点是:\n{human_goods_info}"
+        if human_goods_info:
+            system_prompt = (f"你是安踏的客服助理，当前用户对下面的商品感兴趣:\n"
+                        f"<goods_info>\n{human_goods_info}\n</goods_info>\n"
+                        "请你结合商品的基础信息，特别是卖点信息返回一句推荐语。"
+                    )
+            output:str = invoke_lambda(
+                lambda_name='Online_LLM_Generate',
+                lambda_module_path="lambda_llm_generate.llm_generate",
+                handler_name='lambda_handler',
+                event_body={
+                    "llm_config": {
+                        **state['chatbot_config']['rag_daily_reception_config']['llm_config'], 
+                        "system_prompt": system_prompt,
+                        "intent_type": LLMTaskType.CHAT},
+                    "llm_input": {"query": state['query'], "chat_history": state['chat_history']}
+                        }
+                    )
+         
+        return {"answer":output}
     
     return {"answer":"您好"}
 
@@ -553,6 +634,9 @@ def agent_route(state:dict):
         return "product aftersales"
 
     if recent_tool_call['name'] == 'product_quality':
+        return "product aftersales"
+
+    if recent_tool_call['name'] == 'goods_storage':
         return "product aftersales"
 
     if recent_tool_call['name'] == 'customer_complain':
@@ -667,6 +751,18 @@ def build_graph():
 
 app = None 
 
+def _prepare_chat_history(event_body):
+    if "history_config" in event_body["chatbot_config"]:
+        # experiment for chat history sep by goods_id
+        goods_id = str(event_body['chatbot_config']['goods_id'])
+        chat_history_by_goods_id = []
+        for hist in event_body["chat_history"]:
+            if goods_id == hist['additional_kwargs']['goods_id']:
+                chat_history_by_goods_id.append(hist)
+        return chat_history_by_goods_id
+    else:
+        return event_body["chat_history"]
+
 def retail_entry(event_body):
     """
     Entry point for the Lambda function.
@@ -689,37 +785,45 @@ def retail_entry(event_body):
     logger.info(f'event_body:\n{json.dumps(event_body,ensure_ascii=False,indent=2,cls=JSONEncoder)}')
     chatbot_config = event_body['chatbot_config']
     query = event_body['query']
-    use_history = chatbot_config['use_history']
-    chat_history = event_body['chat_history'] if use_history else []
     stream = event_body['stream']
     message_id = event_body['custom_message_id']
     ws_connection_id = event_body['ws_connection_id']
     enable_trace = chatbot_config["enable_trace"]
     
-    goods_info = None
+    goods_info = ""
+    human_goods_info = ""
     goods_id = str(event_body['chatbot_config']['goods_id'])
     if goods_id:
         try:
-            _goods_info = eval(goods_dict.get(goods_id,None).get("goods_info",None))
-            _goods_type = goods_dict.get(goods_id,None).get("goods_type",None)
+            _goods_info = json.loads(goods_dict.get(goods_id,{}).get("goods_info",""))
+            _goods_type = goods_dict.get(goods_id,{}).get("goods_type","")
         except Exception as e:
             import traceback 
             error = traceback.format_exc()
             logger.error(f"error meesasge {error}, invalid goods_id: {goods_id}")
             _goods_info = None
-
+        
+        
         if _goods_info:
             logger.info(_goods_info)
             if _goods_type:
-                goods_info = f"商品类型: <goods_type>{_goods_type}</goods_type>\n"
+                goods_info = f"商品类型: \n<goods_type>\n{_goods_type}\n</goods_type>\n"
             else:
                 goods_info = ""
-            goods_info += "<goods_info>"
+            goods_info += "<goods_info>\n"
+            human_goods_info = ""
             for k,v in _goods_info.items():
                 goods_info += f"{k}:{v}\n" 
-            goods_info += "</goods_info>"
+                human_goods_info += f"{k}:{v}\n" 
+            
+            goods_info = goods_info.strip()
+            goods_info += "\n</goods_info>"
+
+    use_history = chatbot_config['use_history']
+    chat_history = _prepare_chat_history(event_body) if use_history else []
     
     logger.info(f"goods_info: {goods_info}")
+    logger.info(f"chat_hisotry: {chat_history}")
     # invoke graph and get results
     response = app.invoke({
         "stream": stream,
@@ -734,12 +838,13 @@ def retail_entry(event_body):
         "debug_infos": {},
         "extra_response": {},
         "goods_info":goods_info,
+        "human_goods_info":human_goods_info,
         "agent_llm_type": LLMTaskType.RETAIL_TOOL_CALLING,
         "query_rewrite_llm_type":LLMTaskType.RETAIL_CONVERSATION_SUMMARY_TYPE,
         "agent_recursion_limit": chatbot_config['agent_recursion_limit'],
         "current_agent_recursion_num": 0,
     })
 
-    return {"answer":response['answer'],**response["extra_response"]}
+    return {"answer":response['answer'],**response["extra_response"],"trace_infos":response['trace_infos']}
 
 main_chain_entry = retail_entry

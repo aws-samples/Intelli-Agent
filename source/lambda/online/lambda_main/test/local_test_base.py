@@ -10,8 +10,8 @@ load_dotenv(
 )
 import json
 import time 
-from common_logic.common_utils.lambda_invoke_utils import invoke_lambda
-import common_utils.websocket_utils as websocket_utils
+import common_logic.common_utils.websocket_utils as websocket_utils
+from common_logic.common_utils.constant import LLMTaskType
 
 class DummyWebSocket:
     def post_to_connection(self,ConnectionId,Data):
@@ -34,6 +34,7 @@ class DummyWebSocket:
 
 websocket_utils.ws_client = DummyWebSocket()
 
+from common_logic.common_utils.lambda_invoke_utils import invoke_lambda
 
 def generate_answer(query,
                     entry_type="common",
@@ -105,13 +106,52 @@ def similarity_calculate(sentence1,sentence2,model_name="tencent",**kwargs):
     return cos_sim(ret[0],ret[1]).tolist()[0][0]
 
 
-if __name__ == "__main__":
+
+def auto_evaluation_with_claude(ref_answer,model_answer,llm_config=None,examples=""):
+    if llm_config is None:
+        llm_config = {
+            'model_id': 'anthropic.claude-3-sonnet-20240229-v1:0',
+        }
+    output:float = invoke_lambda(
+                lambda_name='Online_LLM_Generate',
+                lambda_module_path="lambda_llm_generate.llm_generate",
+                handler_name='lambda_handler',
+                event_body={
+                    "llm_config": {
+                        **llm_config, 
+                          "intent_type": LLMTaskType.AUTO_EVALUATION
+                        },
+                    "llm_input": {
+                        "ref_answer":ref_answer,
+                         "model_answer":model_answer
+                         }
+                    }
+            )
+    return output
+
+
+def test_auto_evaluation_with_claude():
+    ref_answer = """非常抱歉给您带来这么大的麻烦，等收到您的退货商品后安排退款给您"""
+    model_answer = """非常抱歉给您带来了不愉快的体验，我们已经反馈给仓库，他们将对此进行核实并改进。对于您的订单，我们将尽快处理退货事宜，您不需要承担任何运费。请在后台申请退货，我将为您备注。再次为给您带来的不便道歉，感谢您的理解。"""
+    
+    r = auto_evaluation_with_claude(
+        ref_answer=ref_answer,
+        model_answer=model_answer
+    )
+    print(r)
+    
+def test_similarity_calculate():
     sentence1 = "如何更换花呗绑定银行卡"
     sentence2 = '花呗更改绑定银行卡'
     print(similarity_calculate(sentence1=sentence1,sentence2=sentence2))
     print(similarity_calculate(sentence1=sentence1,sentence2=sentence2))
     print(similarity_calculate(sentence1=sentence1,sentence2=sentence2))
+    
 
+
+if __name__ == "__main__":
+    test_auto_evaluation_with_claude()
+    
 
 
 

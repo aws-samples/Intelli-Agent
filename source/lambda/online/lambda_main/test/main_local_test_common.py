@@ -24,8 +24,8 @@ def test(chatbot_mode="agent",session_id=None,query=None,use_history=True):
 def test_multi_turns_pr(mode="agent"):
     session_id = f"multiturn_test_{time.time()}"
     user_queries = [
-        {"query":"今天天气怎么样", "use_history":True},
-        {"query":"I am in Shanghai", "use_history":True},
+        {"query":"What's the weather today?", "use_history":True},
+        {"query":"我在上海", "use_history":True},
     ]
 
     for query in user_queries:
@@ -53,8 +53,8 @@ def complete_test():
     print("finish test in agent mode")
   
 if __name__ == "__main__":
-    # complete test for PR
     # complete_test()
+    # complete test for PR
     test_multi_turns_pr("agent")
 
     
