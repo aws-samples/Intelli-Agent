@@ -28,7 +28,9 @@ def test_multi_turns_pr(mode="agent"):
     #     {"query":"我在上海", "use_history":True},
     # ]
     user_queries = [
-        {"query":"你好", "use_history":True}
+        {"query":"你好", "use_history":True},
+        {"query":"What's the weather today?", "use_history":True},
+        {"query":"我在上海", "use_history":True},
     ]
 
     for query in user_queries:
@@ -42,6 +44,7 @@ def test_multi_turns_pr(mode="agent"):
             query=query['query'],
             use_history=query['use_history']
         )
+        print()
 
 def complete_test():
     print("start test in chat mode")
