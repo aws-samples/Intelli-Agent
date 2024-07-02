@@ -3,7 +3,7 @@
   "info" : {
     "title" : "llmApi",
     "description" : "This service serves the LLM API.",
-    "version" : "2024-07-01T23:45:20Z"
+    "version" : "2024-07-02T00:55:53Z"
   },
   "servers" : [ {
     "url" : "https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/{basePath}",
@@ -1121,7 +1121,10 @@
         "type" : "object",
         "properties" : {
           "data" : {
-            "type" : "object"
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
           }
         }
       }
