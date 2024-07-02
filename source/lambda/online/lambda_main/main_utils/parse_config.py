@@ -185,7 +185,7 @@ def parse_retail_entry_config(chatbot_config):
                     "type": "qq",
                     "workspace_ids": ["retail-intent"],
                     "config": {
-                        "top_k": 10,
+                        "top_k": 5,
                     }
                 },
             ]

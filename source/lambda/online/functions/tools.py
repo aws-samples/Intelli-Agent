@@ -466,7 +466,7 @@ tool_manager.register_tool({
     "tool_def": {
         "name": "size_guide",
         "description": """size guide for customer
-            Step1: Determin what type of goods the customer wants to buy according to the goods information in <goods_info></goods_info> xml tag, such as shoes or apparel.
+            Step1: Determin what type of goods the customer wants to buy according to the goods information in <商品信息> </商品信息> xml tag, such as shoes or apparel.
             Step2: If the customer wants to buy shoes, you should provide the customer's shoes_size or foot_length.
             Step3: If the customer wants to buy apparel, you should provide the customer's height and weight.
             Notice: if the customer's weight unit is 斤, you should convert it to kg, 1斤=0.5kg""",

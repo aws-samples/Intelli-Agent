@@ -255,6 +255,9 @@ class Qwen2Instruct7BToolCallingParse(ToolCallingParse):
                    f"{FN_RESULT}"
                    )
 
+    thinking_tag = "思考"
+    fix_reply_tag = "固定回复"
+
     @classmethod
     def parse_tool_kwargs(cls,content:str,tools_def:list[dict],agent_message):
         try:
@@ -299,6 +302,7 @@ class Qwen2Instruct7BToolCallingParse(ToolCallingParse):
     
     @classmethod
     def parse_tool(cls,agent_output):
+        thinking_tag = cls.thinking_tag
         try: 
             output:dict = agent_output['agent_output']
             tools = agent_output['current_agent_tools_def']
@@ -316,8 +320,8 @@ class Qwen2Instruct7BToolCallingParse(ToolCallingParse):
                 if any(s in output['content'] for s in [cls.FN_ARGS,cls.FN_EXIT,cls.FN_NAME,cls.FN_RESULT]):
                     e = cls.tool_not_found(agent_message=agent_message,error="如果你想调用某个工具，请确保格式正确。")
                     raise e
-                response = re.sub("<thinking>.*?</thinking>","",output['content'],flags=re.DOTALL).strip()
-                response = response.replace('<fix_reply>',"").replace('</fix_reply>',"").replace("</thinking>","").strip()
+                response = re.sub(f"<{thinking_tag}>.*?</{thinking_tag}>","",output['content'],flags=re.DOTALL).strip()
+                response = response.replace(f'<{cls.fix_reply_tag}>',"").replace(f'</{cls.fix_reply_tag}>',"").replace(f"</{thinking_tag}>","").strip()
                 tool_call = {"name":"give_final_response","kwargs":{"response":response},"model_id":cls.model_id}
 
             return {
