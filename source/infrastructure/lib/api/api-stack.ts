@@ -943,7 +943,7 @@ export class ApiConstruct extends Construct {
   genMethodOption =(api: apigw.RestApi, auth: apigw.RequestAuthorizer, properties: any)=>{
     let responseModel = apigw.Model.EMPTY_MODEL
     if(properties!==null){
-      responseModel = new Model(this, 'ResponseModel', {
+      responseModel = new Model(this, `ResponseModel-${Math.random().toString(36).substr(2, 9)}`, {
         restApi: api,
         schema: {
           schema: JsonSchemaVersion.DRAFT4,
@@ -984,7 +984,7 @@ export class ApiConstruct extends Construct {
   // },
   genRequestModel = (api: apigw.RestApi, properties: any) =>{
     return {
-      'application/json': new Model(this, 'PostModel', {
+      'application/json': new Model(this, `PostModel-${Math.random().toString(36).substr(2, 9)}`, {
         restApi: api,
         schema: {
           schema: JsonSchemaVersion.DRAFT4,
