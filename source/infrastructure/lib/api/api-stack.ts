@@ -566,7 +566,18 @@ export class ApiConstruct extends Construct {
       "GET",
       new apigw.LambdaIntegration(getExecutionLambda),
       this.genMethodOption(api, auth, {
-        Items: {type: JsonSchemaType.ARRAY},
+        Items: {type: JsonSchemaType.ARRAY, items: {
+          type: JsonSchemaType.OBJECT,
+          properties: {
+            s3Prefix: { type: JsonSchemaType.STRING },
+            s3Bucket: { type: JsonSchemaType.STRING },
+            createTime: { type: JsonSchemaType.STRING }, // Consider using format: 'date-time'
+            executionId: { type: JsonSchemaType.STRING },
+            s3Path: { type: JsonSchemaType.STRING },
+            status: { type: JsonSchemaType.STRING },
+          },
+          required: ['s3Prefix', 's3Bucket', 'createTime', 'executionId', 's3Path', 'status'],
+        }},
         Count: {type: JsonSchemaType.INTEGER}
       }),
     );
@@ -576,7 +587,34 @@ export class ApiConstruct extends Construct {
       "GET",
       new apigw.LambdaIntegration(listExecutionLambda),
       {...this.genMethodOption(api, auth, {
-        Items: {type: JsonSchemaType.ARRAY}
+        Items: {type: JsonSchemaType.ARRAY, items: {
+          type: JsonSchemaType.OBJECT,
+          properties: {
+            s3Prefix: { type: JsonSchemaType.STRING },
+            offline: { type: JsonSchemaType.STRING },
+            s3Bucket: { type: JsonSchemaType.STRING },
+            executionId: { type: JsonSchemaType.STRING },
+            executionStatus: { type: JsonSchemaType.STRING },
+            qaEnhance: { type: JsonSchemaType.STRING },
+            operationType: { type: JsonSchemaType.STRING },
+            uiStatus: { type: JsonSchemaType.STRING },
+            createTime: { type: JsonSchemaType.STRING }, // Consider using format: 'date-time'
+            sfnExecutionId: { type: JsonSchemaType.STRING },
+            workspaceId: { type: JsonSchemaType.STRING },
+          },
+          required: ['s3Prefix',
+                     'offline',
+                     's3Bucket',
+                     'executionId',
+                     'executionStatus',
+                     'qaEnhance',
+                     'operationType',
+                     'uiStatus',
+                     'createTime',
+                     'sfnExecutionId',
+                     'workspaceId'],
+
+        }}
       }),
         requestParameters: {
           'method.request.querystring.max_items': false,
@@ -594,11 +632,11 @@ export class ApiConstruct extends Construct {
       "POST",
       new apigw.LambdaIntegration(delExecutionLambda),
       {...this.genMethodOption(api, auth, {
-        data: { type: JsonSchemaType.ARRAY },
+        data: { type: JsonSchemaType.ARRAY, items: {type: JsonSchemaType.STRING}},
         message: { type: JsonSchemaType.STRING }
       }),
       requestModels: this.genRequestModel(api, {
-        executionId: { type: JsonSchemaType.ARRAY },
+        executionId: { type: JsonSchemaType.ARRAY, items: {type: JsonSchemaType.STRING}},
       })
       // ,requestValidatorOptions: {
       //   requestValidatorName: `Validator-${Math.random().toString(36).substr(2, 9)}`,
