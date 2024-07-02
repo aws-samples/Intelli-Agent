@@ -61,7 +61,7 @@ def _test_multi_turns(user_queries, record_goods_id=False):
         create_time = create_time.strftime(CREATE_TIME_FORMAT)
 
         r = generate_answer(
-               query=query['query'],
+               query=query['query'].replace("/:018",""),
             #    create_time=,
                stream=False,
                 session_id=session_id,
@@ -133,7 +133,7 @@ def batch_test(data_file, count=1000,add_eval_score=True,record_goods_id=False):
         "endpoint_name":  "Qwen2-72B-Instruct-AWQ-2024-06-25-02-15-34-347",
         # "endpoint_name":  "Qwen2-72B-Instruct-AWQ-without-yarn-2024-06-29-12-31-04-818",
         'model_kwargs': {
-            'temperature': 0.01, 'max_tokens': 500,
+            'temperature': 0.01, 'max_tokens': 800,
             "repetition_penalty":1.05,
             "stop_token_ids": [151645,151643] ,
             "stop":["<|endoftext|>","<|im_end|>"],
@@ -151,6 +151,8 @@ def batch_test(data_file, count=1000,add_eval_score=True,record_goods_id=False):
             "query_key": "query"
         }
     }
+    if record_goods_id:
+        chatbot_config["history_config"]=['goods_id']
 
     if record_goods_id:
         chatbot_config["history_config"]=['goods_id']
@@ -239,7 +241,7 @@ def batch_test(data_file, count=1000,add_eval_score=True,record_goods_id=False):
         chatbot_config.update({"goods_id":product_ids,"create_time":create_time})
         try:
             r = generate_answer(
-                datum['user_msg'],
+                datum['user_msg'].replace("/:018",""),
                 stream=False,
                 session_id=session_id,
                 chatbot_config=chatbot_config,
@@ -318,15 +320,14 @@ def complete_test():
 
 if __name__ == "__main__":
     # complete_test()
-    # test_multi_turns_anta("cn****0090",record_goods_id=True)
+    # test_multi_turns_anta("cn****0043",record_goods_id=True)
     # test_multi_turns()
     # test_multi_turns_0090() 
     # test_multi_turns_0077()
     # test_multi_turns_pr("agent")
     batch_test(
         data_file="/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/customer_poc/anta/anta_batch_test - batch-test-csv-file-626.csv",
-        record_goods_id=True
-        )
+        record_goods_id=True)
     # batch_test()
     # test(
     #     chatbot_mode='agent',

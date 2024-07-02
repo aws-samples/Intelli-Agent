@@ -349,6 +349,8 @@ def give_final_response(state: ChatbotState):
         answer = recent_tool_calling["kwargs"]["question"]
     elif "response" in recent_tool_calling["kwargs"].keys():
         answer = recent_tool_calling["kwargs"]["response"]
+    elif "abbr" in recent_tool_calling["kwargs"].keys():
+        answer = recent_tool_calling["kwargs"]["abbr"]
     else:
         answer = "no valid answer!"
     return {"answer": answer}

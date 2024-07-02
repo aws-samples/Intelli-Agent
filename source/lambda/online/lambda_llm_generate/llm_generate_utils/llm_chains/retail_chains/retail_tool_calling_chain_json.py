@@ -165,6 +165,10 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
     FN_RESULT = '✿RESULT✿'
     FN_EXIT = '✿RETURN✿'
     FN_STOP_WORDS = [FN_RESULT, f'{FN_RESULT}:', f'{FN_RESULT}:\n']
+    thinking_tag = "思考"
+    fix_reply_tag = "固定回复"
+    goods_info_tag = "商品信息"
+    prefill_after_thinking = "Step 1. 根据各个工具的描述与调用示例，以及当前用户的回复"
 
     FN_CALL_TEMPLATE_INFO_ZH="""# 工具
 
@@ -188,38 +192,30 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
     
     FN_CALL_TEMPLATE=FN_CALL_TEMPLATE_INFO_ZH + '\n\n' + FN_CALL_TEMPLATE_FMT_ZH
 
-    SYSTEM_PROMPT="""你是安踏天猫的客服助理小安, 主要职责是处理用户售前和售后的问题。{date_prompt}
+    SYSTEM_PROMPT=f"""你是安踏天猫的客服助理小安, 主要职责是处理用户售前和售后的问题。{{date_prompt}}
 
-{tools}
-{fewshot_examples}
-如果你发现工具的相关参数用户没有提供，请调用 `give_rhetorical_question` 工具反问用户。
+{{tools}}
+{{fewshot_examples}}
+
+## 当前用户正在浏览的商品信息
+{{goods_info}}
 
 # 思考
-你的每次回答都要按照下面的步骤输出你的思考, 注意你并不需要每次都进行所有步骤的思考。并将思考过程写在 XML 标签 <thinking> 和 </thinking> 中:
-    step 1. 根据各个工具的描述，分析当前用户的回复和示例中的相关性，如果跟某个示例相关性强，直接按照示例中的工具名称进行调用。
-    step 2. 如果你觉得可以依据商品信息，<goods_info>里面的内容，进行回答，就直接就回答，不需要调用任何工具。
-    step 3. 如果你觉得当前用户的回复意图不清晰，或者和历史消息没有很强的相关性，同时当前不是第一轮对话，直接回复用户下面 XML 标签 <fix_reply> 里面的内容:
-               <fix_reply>
-               亲亲，请问还有什么问题吗？
-               </fix_reply>
-
-    step 4. 如果前面已经调用了某些工具, 需要分析之前调用工具的结果来判断现在是否需要继续使用某个工具。
-    step 5. 基于当前上下文检查需要调用的工具是否需要输入参数，如果需要参数，检查对应的参数是否充足。如果不需要使用任何工具，请直接输出回答。
-    step 6. 最终决定是否要调用某个工具。
-
-    
-## 当前用户正在浏览的商品信息
-{goods_info}
-
+你的每次回答都要按照下面的步骤输出你的思考过程, 注意你并不需要每次都进行所有步骤的思考。并将思考过程写在 XML 标签 <{thinking_tag}> 和 </{thinking_tag}> 中:
+    Step 1. 根据各个工具的描述，分析当前用户的回复和各个示例中的Input相关性，如果跟某个示例对应的Input相关性强，直接跳过后续所有步骤，之后按照示例中Output的工具名称进行调用。
+    Step 2. 如果你觉得可以依据商品信息，<{goods_info_tag}> 里面的内容，进行回答，就直接就回答，不需要调用任何工具。
+    Step 3. 如果你觉得当前用户的回复意图不清晰，或者仅仅是表达一些肯定的内容，或者和历史消息没有很强的相关性，同时当前不是第一轮对话，直接回复用户下面 XML 标签 <{fix_reply_tag}> 里面的内容:
+            <{fix_reply_tag}> 亲亲，请问还有什么问题吗？ </{fix_reply_tag}>
+    Step 4. 如果前面已经调用了某些工具, 需要分析之前调用工具的结果来判断现在是否需要继续使用某个工具。
+    Step 5. 基于当前上下文检查需要调用的工具是否需要输入参数，如果需要参数，检查对应的参数是否充足。如果不需要使用任何工具，请直接输出回答。
 
 请遵守下面的规范回答用户的问题。
 ## 回答规范
    - 如果客户没有明确指出在哪里购买的商品，则默认都是在天猫平台购买的
    - 当前主要服务天猫平台的客户，如果客户询问其他平台的问题，直接回复 “不好意思，亲亲，这里是天猫店铺，只能为您解答天猫的问题。建议您联系其他平台的客服或售后人员给您提供相关的帮助和支持。谢谢！”
-   - 如果调用工具，请参考示例中的调用格式。
-   - 如果客户的提供的信息不足以回答问题，尽量反问用户。
-   - 如果客户的回复里面包含订单号，则直接回复 ”您好，亲亲，这就帮您去查相关订单信息。请问还有什么问题吗？
-   - 如果不调用工具，</thinking> 之后的内容应该为一句话，不要重复输出, 也不要继续输入思考内容。{non_ask_rules}"""
+   - 如果客户的回复里面包含订单号，则直接回复 ”您好，亲亲，这就帮您去查相关订单信息。请问还有什么问题吗？“
+   - 只能思考一次，不要重复输出文本，段落，句子。思考之后的文本保持简洁，有且仅能包含一句话。{{non_ask_rules}}"""
+
     @classmethod
     def get_function_description(cls,tool:dict):
         tool_name = tool['name']
@@ -334,7 +330,7 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
     @classmethod
     def parse_function_calls_from_ai_message(cls,message:dict):
         stop_reason = message['stop_reason']
-        content =  "<thinking>" + message['text']
+        content =  f"<{cls.thinking_tag}>\n{cls.prefill_after_thinking}" + message['text']
         content = content.strip()
         stop_reason = stop_reason or ""
     
@@ -362,12 +358,11 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
         model_kwargs = model_kwargs or {}
         kwargs['system_prompt'] = system_prompt
         model_kwargs = {**model_kwargs}
-        model_kwargs["stop"] = model_kwargs.get("stop",[]) + ['✿RESULT✿', '✿RESULT✿:', '✿RESULT✿:\n','</fix_reply>']
+        model_kwargs["stop"] = model_kwargs.get("stop",[]) + ['✿RESULT✿', '✿RESULT✿:', '✿RESULT✿:\n','✿RETURN✿',f'<{cls.fix_reply_tag}>',f'</{cls.fix_reply_tag}>',f'<{cls.thinking_tag}>']
         # model_kwargs["prefill"] = "我先看看调用哪个工具，下面是我的思考过程:\n<thinking>\nstep 1."
-        model_kwargs["prefill"] = '结合用户正在浏览的商品信息，以及工具调用示例。下面是我的思考过程:\n<thinking>\nstep 1.'
+        model_kwargs["prefill"] = f'<{cls.thinking_tag}>\n{cls.prefill_after_thinking}'
         return super().create_chain(model_kwargs=model_kwargs,**kwargs)
         
-
 
 class Qwen2Instruct72BRetailToolCallingChain(Qwen2Instruct7BRetailToolCallingChain):
     model_id = LLMModelType.QWEN2INSTRUCT72B
