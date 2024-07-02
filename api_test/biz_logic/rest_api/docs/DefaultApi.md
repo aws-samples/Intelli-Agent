@@ -38,7 +38,7 @@ Method | HTTP request | Description
 
 
 # **aos_get**
-> aos_get()
+> IntellapiconnnHdtwRWUXa aos_get()
 
 
 
@@ -48,6 +48,7 @@ Method | HTTP request | Description
 
 ```python
 import openapi_client
+from openapi_client.models.intellapiconnn_hdtw_rwuxa import IntellapiconnnHdtwRWUXa
 from openapi_client.rest import ApiException
 from pprint import pprint
 
@@ -74,7 +75,9 @@ with openapi_client.ApiClient(configuration) as api_client:
     api_instance = openapi_client.DefaultApi(api_client)
 
     try:
-        api_instance.aos_get()
+        api_response = api_instance.aos_get()
+        print("The response of DefaultApi->aos_get:\n")
+        pprint(api_response)
     except Exception as e:
         print("Exception when calling DefaultApi->aos_get: %s\n" % e)
 ```
@@ -87,7 +90,7 @@ This endpoint does not need any parameter.
 
 ### Return type
 
-void (empty response body)
+[**IntellapiconnnHdtwRWUXa**](IntellapiconnnHdtwRWUXa.md)
 
 ### Authorization
 
@@ -104,7 +107,7 @@ void (empty response body)
 |-------------|-------------|------------------|
 **400** | 400 response |  -  |
 **500** | 500 response |  -  |
-**200** | 200 response |  * Access-Control-Allow-Origin -  <br>  * Access-Control-Allow-Methods -  <br>  |
+**200** | 200 response |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
@@ -167,7 +170,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **aos_post**
-> aos_post()
+> IntellapiconnnHdtwRWUXa aos_post()
 
 
 
@@ -177,6 +180,7 @@ No authorization required
 
 ```python
 import openapi_client
+from openapi_client.models.intellapiconnn_hdtw_rwuxa import IntellapiconnnHdtwRWUXa
 from openapi_client.rest import ApiException
 from pprint import pprint
 
@@ -203,7 +207,9 @@ with openapi_client.ApiClient(configuration) as api_client:
     api_instance = openapi_client.DefaultApi(api_client)
 
     try:
-        api_instance.aos_post()
+        api_response = api_instance.aos_post()
+        print("The response of DefaultApi->aos_post:\n")
+        pprint(api_response)
     except Exception as e:
         print("Exception when calling DefaultApi->aos_post: %s\n" % e)
 ```
@@ -216,7 +222,7 @@ This endpoint does not need any parameter.
 
 ### Return type
 
-void (empty response body)
+[**IntellapiconnnHdtwRWUXa**](IntellapiconnnHdtwRWUXa.md)
 
 ### Authorization
 
@@ -233,7 +239,7 @@ void (empty response body)
 |-------------|-------------|------------------|
 **400** | 400 response |  -  |
 **500** | 500 response |  -  |
-**200** | 200 response |  * Access-Control-Allow-Origin -  <br>  * Access-Control-Allow-Methods -  <br>  |
+**200** | 200 response |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
@@ -296,7 +302,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **batch_post**
-> batch_post()
+> IntellapiconnnHdtwRWUXa batch_post()
 
 
 
@@ -306,6 +312,7 @@ No authorization required
 
 ```python
 import openapi_client
+from openapi_client.models.intellapiconnn_hdtw_rwuxa import IntellapiconnnHdtwRWUXa
 from openapi_client.rest import ApiException
 from pprint import pprint
 
@@ -332,7 +339,9 @@ with openapi_client.ApiClient(configuration) as api_client:
     api_instance = openapi_client.DefaultApi(api_client)
 
     try:
-        api_instance.batch_post()
+        api_response = api_instance.batch_post()
+        print("The response of DefaultApi->batch_post:\n")
+        pprint(api_response)
     except Exception as e:
         print("Exception when calling DefaultApi->batch_post: %s\n" % e)
 ```
@@ -345,7 +354,7 @@ This endpoint does not need any parameter.
 
 ### Return type
 
-void (empty response body)
+[**IntellapiconnnHdtwRWUXa**](IntellapiconnnHdtwRWUXa.md)
 
 ### Authorization
 
@@ -362,12 +371,12 @@ void (empty response body)
 |-------------|-------------|------------------|
 **400** | 400 response |  -  |
 **500** | 500 response |  -  |
-**200** | 200 response |  * Access-Control-Allow-Origin -  <br>  * Access-Control-Allow-Methods -  <br>  |
+**200** | 200 response |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **ddb_list_messages_get**
-> ddb_list_messages_get()
+> IntellapiconnnHdtwRWUXa ddb_list_messages_get()
 
 
 
@@ -377,6 +386,7 @@ void (empty response body)
 
 ```python
 import openapi_client
+from openapi_client.models.intellapiconnn_hdtw_rwuxa import IntellapiconnnHdtwRWUXa
 from openapi_client.rest import ApiException
 from pprint import pprint
 
@@ -403,7 +413,9 @@ with openapi_client.ApiClient(configuration) as api_client:
     api_instance = openapi_client.DefaultApi(api_client)
 
     try:
-        api_instance.ddb_list_messages_get()
+        api_response = api_instance.ddb_list_messages_get()
+        print("The response of DefaultApi->ddb_list_messages_get:\n")
+        pprint(api_response)
     except Exception as e:
         print("Exception when calling DefaultApi->ddb_list_messages_get: %s\n" % e)
 ```
@@ -416,7 +428,7 @@ This endpoint does not need any parameter.
 
 ### Return type
 
-void (empty response body)
+[**IntellapiconnnHdtwRWUXa**](IntellapiconnnHdtwRWUXa.md)
 
 ### Authorization
 
@@ -433,7 +445,7 @@ void (empty response body)
 |-------------|-------------|------------------|
 **400** | 400 response |  -  |
 **500** | 500 response |  -  |
-**200** | 200 response |  * Access-Control-Allow-Origin -  <br>  * Access-Control-Allow-Methods -  <br>  |
+**200** | 200 response |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
@@ -496,7 +508,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **ddb_list_sessions_get**
-> ddb_list_sessions_get()
+> IntellapiconnnHdtwRWUXa ddb_list_sessions_get()
 
 
 
@@ -506,6 +518,7 @@ No authorization required
 
 ```python
 import openapi_client
+from openapi_client.models.intellapiconnn_hdtw_rwuxa import IntellapiconnnHdtwRWUXa
 from openapi_client.rest import ApiException
 from pprint import pprint
 
@@ -532,7 +545,9 @@ with openapi_client.ApiClient(configuration) as api_client:
     api_instance = openapi_client.DefaultApi(api_client)
 
     try:
-        api_instance.ddb_list_sessions_get()
+        api_response = api_instance.ddb_list_sessions_get()
+        print("The response of DefaultApi->ddb_list_sessions_get:\n")
+        pprint(api_response)
     except Exception as e:
         print("Exception when calling DefaultApi->ddb_list_sessions_get: %s\n" % e)
 ```
@@ -545,7 +560,7 @@ This endpoint does not need any parameter.
 
 ### Return type
 
-void (empty response body)
+[**IntellapiconnnHdtwRWUXa**](IntellapiconnnHdtwRWUXa.md)
 
 ### Authorization
 
@@ -562,7 +577,7 @@ void (empty response body)
 |-------------|-------------|------------------|
 **400** | 400 response |  -  |
 **500** | 500 response |  -  |
-**200** | 200 response |  * Access-Control-Allow-Origin -  <br>  * Access-Control-Allow-Methods -  <br>  |
+**200** | 200 response |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
@@ -683,7 +698,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **ddb_post**
-> ddb_post()
+> IntellapiconnnHdtwRWUXa ddb_post()
 
 
 
@@ -693,6 +708,7 @@ No authorization required
 
 ```python
 import openapi_client
+from openapi_client.models.intellapiconnn_hdtw_rwuxa import IntellapiconnnHdtwRWUXa
 from openapi_client.rest import ApiException
 from pprint import pprint
 
@@ -719,7 +735,9 @@ with openapi_client.ApiClient(configuration) as api_client:
     api_instance = openapi_client.DefaultApi(api_client)
 
     try:
-        api_instance.ddb_post()
+        api_response = api_instance.ddb_post()
+        print("The response of DefaultApi->ddb_post:\n")
+        pprint(api_response)
     except Exception as e:
         print("Exception when calling DefaultApi->ddb_post: %s\n" % e)
 ```
@@ -732,7 +750,7 @@ This endpoint does not need any parameter.
 
 ### Return type
 
-void (empty response body)
+[**IntellapiconnnHdtwRWUXa**](IntellapiconnnHdtwRWUXa.md)
 
 ### Authorization
 
@@ -749,7 +767,7 @@ void (empty response body)
 |-------------|-------------|------------------|
 **400** | 400 response |  -  |
 **500** | 500 response |  -  |
-**200** | 200 response |  * Access-Control-Allow-Origin -  <br>  * Access-Control-Allow-Methods -  <br>  |
+**200** | 200 response |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
@@ -812,7 +830,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **etl_delete_execution_post**
-> etl_delete_execution_post()
+> IntellapiconnnHdtwRWUXa etl_delete_execution_post()
 
 
 
@@ -822,6 +840,7 @@ No authorization required
 
 ```python
 import openapi_client
+from openapi_client.models.intellapiconnn_hdtw_rwuxa import IntellapiconnnHdtwRWUXa
 from openapi_client.rest import ApiException
 from pprint import pprint
 
@@ -848,7 +867,9 @@ with openapi_client.ApiClient(configuration) as api_client:
     api_instance = openapi_client.DefaultApi(api_client)
 
     try:
-        api_instance.etl_delete_execution_post()
+        api_response = api_instance.etl_delete_execution_post()
+        print("The response of DefaultApi->etl_delete_execution_post:\n")
+        pprint(api_response)
     except Exception as e:
         print("Exception when calling DefaultApi->etl_delete_execution_post: %s\n" % e)
 ```
@@ -861,7 +882,7 @@ This endpoint does not need any parameter.
 
 ### Return type
 
-void (empty response body)
+[**IntellapiconnnHdtwRWUXa**](IntellapiconnnHdtwRWUXa.md)
 
 ### Authorization
 
@@ -878,12 +899,12 @@ void (empty response body)
 |-------------|-------------|------------------|
 **400** | 400 response |  -  |
 **500** | 500 response |  -  |
-**200** | 200 response |  * Access-Control-Allow-Origin -  <br>  * Access-Control-Allow-Methods -  <br>  |
+**200** | 200 response |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **etl_execution_get**
-> etl_execution_get()
+> IntellapiconnnHdtwRWUXa etl_execution_get()
 
 
 
@@ -893,6 +914,7 @@ void (empty response body)
 
 ```python
 import openapi_client
+from openapi_client.models.intellapiconnn_hdtw_rwuxa import IntellapiconnnHdtwRWUXa
 from openapi_client.rest import ApiException
 from pprint import pprint
 
@@ -919,7 +941,9 @@ with openapi_client.ApiClient(configuration) as api_client:
     api_instance = openapi_client.DefaultApi(api_client)
 
     try:
-        api_instance.etl_execution_get()
+        api_response = api_instance.etl_execution_get()
+        print("The response of DefaultApi->etl_execution_get:\n")
+        pprint(api_response)
     except Exception as e:
         print("Exception when calling DefaultApi->etl_execution_get: %s\n" % e)
 ```
@@ -932,7 +956,7 @@ This endpoint does not need any parameter.
 
 ### Return type
 
-void (empty response body)
+[**IntellapiconnnHdtwRWUXa**](IntellapiconnnHdtwRWUXa.md)
 
 ### Authorization
 
@@ -949,7 +973,7 @@ void (empty response body)
 |-------------|-------------|------------------|
 **400** | 400 response |  -  |
 **500** | 500 response |  -  |
-**200** | 200 response |  * Access-Control-Allow-Origin -  <br>  * Access-Control-Allow-Methods -  <br>  |
+**200** | 200 response |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
@@ -1012,7 +1036,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **etl_list_execution_get**
-> etl_list_execution_get()
+> IntellapiconnnHdtwRWUXa etl_list_execution_get()
 
 
 
@@ -1022,6 +1046,7 @@ No authorization required
 
 ```python
 import openapi_client
+from openapi_client.models.intellapiconnn_hdtw_rwuxa import IntellapiconnnHdtwRWUXa
 from openapi_client.rest import ApiException
 from pprint import pprint
 
@@ -1048,7 +1073,9 @@ with openapi_client.ApiClient(configuration) as api_client:
     api_instance = openapi_client.DefaultApi(api_client)
 
     try:
-        api_instance.etl_list_execution_get()
+        api_response = api_instance.etl_list_execution_get()
+        print("The response of DefaultApi->etl_list_execution_get:\n")
+        pprint(api_response)
     except Exception as e:
         print("Exception when calling DefaultApi->etl_list_execution_get: %s\n" % e)
 ```
@@ -1061,7 +1088,7 @@ This endpoint does not need any parameter.
 
 ### Return type
 
-void (empty response body)
+[**IntellapiconnnHdtwRWUXa**](IntellapiconnnHdtwRWUXa.md)
 
 ### Authorization
 
@@ -1078,7 +1105,7 @@ void (empty response body)
 |-------------|-------------|------------------|
 **400** | 400 response |  -  |
 **500** | 500 response |  -  |
-**200** | 200 response |  * Access-Control-Allow-Origin -  <br>  * Access-Control-Allow-Methods -  <br>  |
+**200** | 200 response |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
@@ -1141,7 +1168,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **etl_list_workspace_get**
-> etl_list_workspace_get()
+> IntellapiconnnHdtwRWUXa etl_list_workspace_get()
 
 
 
@@ -1151,6 +1178,7 @@ No authorization required
 
 ```python
 import openapi_client
+from openapi_client.models.intellapiconnn_hdtw_rwuxa import IntellapiconnnHdtwRWUXa
 from openapi_client.rest import ApiException
 from pprint import pprint
 
@@ -1177,7 +1205,9 @@ with openapi_client.ApiClient(configuration) as api_client:
     api_instance = openapi_client.DefaultApi(api_client)
 
     try:
-        api_instance.etl_list_workspace_get()
+        api_response = api_instance.etl_list_workspace_get()
+        print("The response of DefaultApi->etl_list_workspace_get:\n")
+        pprint(api_response)
     except Exception as e:
         print("Exception when calling DefaultApi->etl_list_workspace_get: %s\n" % e)
 ```
@@ -1190,7 +1220,7 @@ This endpoint does not need any parameter.
 
 ### Return type
 
-void (empty response body)
+[**IntellapiconnnHdtwRWUXa**](IntellapiconnnHdtwRWUXa.md)
 
 ### Authorization
 
@@ -1207,7 +1237,7 @@ void (empty response body)
 |-------------|-------------|------------------|
 **400** | 400 response |  -  |
 **500** | 500 response |  -  |
-**200** | 200 response |  * Access-Control-Allow-Origin -  <br>  * Access-Control-Allow-Methods -  <br>  |
+**200** | 200 response |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
@@ -1328,7 +1358,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **etl_post**
-> etl_post()
+> IntellapiconnnHdtwRWUXa etl_post()
 
 
 
@@ -1338,6 +1368,7 @@ No authorization required
 
 ```python
 import openapi_client
+from openapi_client.models.intellapiconnn_hdtw_rwuxa import IntellapiconnnHdtwRWUXa
 from openapi_client.rest import ApiException
 from pprint import pprint
 
@@ -1364,7 +1395,9 @@ with openapi_client.ApiClient(configuration) as api_client:
     api_instance = openapi_client.DefaultApi(api_client)
 
     try:
-        api_instance.etl_post()
+        api_response = api_instance.etl_post()
+        print("The response of DefaultApi->etl_post:\n")
+        pprint(api_response)
     except Exception as e:
         print("Exception when calling DefaultApi->etl_post: %s\n" % e)
 ```
@@ -1377,7 +1410,7 @@ This endpoint does not need any parameter.
 
 ### Return type
 
-void (empty response body)
+[**IntellapiconnnHdtwRWUXa**](IntellapiconnnHdtwRWUXa.md)
 
 ### Authorization
 
@@ -1394,7 +1427,7 @@ void (empty response body)
 |-------------|-------------|------------------|
 **400** | 400 response |  -  |
 **500** | 500 response |  -  |
-**200** | 200 response |  * Access-Control-Allow-Origin -  <br>  * Access-Control-Allow-Methods -  <br>  |
+**200** | 200 response |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
@@ -1457,7 +1490,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **etl_upload_s3_url_post**
-> etl_upload_s3_url_post(intellapico_kbf_xmyu1_w8_nr)
+> IntellapiconnnHdtwRWUXa etl_upload_s3_url_post(intellapico_kbf_xmyu1_w8_nr)
 
 
 
@@ -1468,6 +1501,7 @@ No authorization required
 ```python
 import openapi_client
 from openapi_client.models.intellapico_kbf_xmyu1_w8_nr import IntellapicoKbfXMYu1W8Nr
+from openapi_client.models.intellapiconnn_hdtw_rwuxa import IntellapiconnnHdtwRWUXa
 from openapi_client.rest import ApiException
 from pprint import pprint
 
@@ -1495,7 +1529,9 @@ with openapi_client.ApiClient(configuration) as api_client:
     intellapico_kbf_xmyu1_w8_nr = openapi_client.IntellapicoKbfXMYu1W8Nr() # IntellapicoKbfXMYu1W8Nr | 
 
     try:
-        api_instance.etl_upload_s3_url_post(intellapico_kbf_xmyu1_w8_nr)
+        api_response = api_instance.etl_upload_s3_url_post(intellapico_kbf_xmyu1_w8_nr)
+        print("The response of DefaultApi->etl_upload_s3_url_post:\n")
+        pprint(api_response)
     except Exception as e:
         print("Exception when calling DefaultApi->etl_upload_s3_url_post: %s\n" % e)
 ```
@@ -1511,7 +1547,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-void (empty response body)
+[**IntellapiconnnHdtwRWUXa**](IntellapiconnnHdtwRWUXa.md)
 
 ### Authorization
 
@@ -1528,7 +1564,7 @@ void (empty response body)
 |-------------|-------------|------------------|
 **400** | 400 response |  -  |
 **500** | 500 response |  -  |
-**200** | 200 response |  * Access-Control-Allow-Origin -  <br>  * Access-Control-Allow-Methods -  <br>  |
+**200** | 200 response |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
@@ -1591,7 +1627,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **extract_post**
-> extract_post()
+> IntellapiconnnHdtwRWUXa extract_post()
 
 
 
@@ -1601,6 +1637,7 @@ No authorization required
 
 ```python
 import openapi_client
+from openapi_client.models.intellapiconnn_hdtw_rwuxa import IntellapiconnnHdtwRWUXa
 from openapi_client.rest import ApiException
 from pprint import pprint
 
@@ -1627,7 +1664,9 @@ with openapi_client.ApiClient(configuration) as api_client:
     api_instance = openapi_client.DefaultApi(api_client)
 
     try:
-        api_instance.extract_post()
+        api_response = api_instance.extract_post()
+        print("The response of DefaultApi->extract_post:\n")
+        pprint(api_response)
     except Exception as e:
         print("Exception when calling DefaultApi->extract_post: %s\n" % e)
 ```
@@ -1640,7 +1679,7 @@ This endpoint does not need any parameter.
 
 ### Return type
 
-void (empty response body)
+[**IntellapiconnnHdtwRWUXa**](IntellapiconnnHdtwRWUXa.md)
 
 ### Authorization
 
@@ -1657,7 +1696,7 @@ void (empty response body)
 |-------------|-------------|------------------|
 **400** | 400 response |  -  |
 **500** | 500 response |  -  |
-**200** | 200 response |  * Access-Control-Allow-Origin -  <br>  * Access-Control-Allow-Methods -  <br>  |
+**200** | 200 response |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
@@ -1720,7 +1759,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **llm_post**
-> llm_post()
+> IntellapiconnnHdtwRWUXa llm_post()
 
 
 
@@ -1730,6 +1769,7 @@ No authorization required
 
 ```python
 import openapi_client
+from openapi_client.models.intellapiconnn_hdtw_rwuxa import IntellapiconnnHdtwRWUXa
 from openapi_client.rest import ApiException
 from pprint import pprint
 
@@ -1756,7 +1796,9 @@ with openapi_client.ApiClient(configuration) as api_client:
     api_instance = openapi_client.DefaultApi(api_client)
 
     try:
-        api_instance.llm_post()
+        api_response = api_instance.llm_post()
+        print("The response of DefaultApi->llm_post:\n")
+        pprint(api_response)
     except Exception as e:
         print("Exception when calling DefaultApi->llm_post: %s\n" % e)
 ```
@@ -1769,7 +1811,7 @@ This endpoint does not need any parameter.
 
 ### Return type
 
-void (empty response body)
+[**IntellapiconnnHdtwRWUXa**](IntellapiconnnHdtwRWUXa.md)
 
 ### Authorization
 
@@ -1786,12 +1828,12 @@ void (empty response body)
 |-------------|-------------|------------------|
 **400** | 400 response |  -  |
 **500** | 500 response |  -  |
-**200** | 200 response |  * Access-Control-Allow-Origin -  <br>  * Access-Control-Allow-Methods -  <br>  |
+**200** | 200 response |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **prompt_get**
-> prompt_get()
+> IntellapiconnnHdtwRWUXa prompt_get()
 
 
 
@@ -1801,6 +1843,7 @@ void (empty response body)
 
 ```python
 import openapi_client
+from openapi_client.models.intellapiconnn_hdtw_rwuxa import IntellapiconnnHdtwRWUXa
 from openapi_client.rest import ApiException
 from pprint import pprint
 
@@ -1827,7 +1870,9 @@ with openapi_client.ApiClient(configuration) as api_client:
     api_instance = openapi_client.DefaultApi(api_client)
 
     try:
-        api_instance.prompt_get()
+        api_response = api_instance.prompt_get()
+        print("The response of DefaultApi->prompt_get:\n")
+        pprint(api_response)
     except Exception as e:
         print("Exception when calling DefaultApi->prompt_get: %s\n" % e)
 ```
@@ -1840,7 +1885,7 @@ This endpoint does not need any parameter.
 
 ### Return type
 
-void (empty response body)
+[**IntellapiconnnHdtwRWUXa**](IntellapiconnnHdtwRWUXa.md)
 
 ### Authorization
 
@@ -1857,7 +1902,7 @@ void (empty response body)
 |-------------|-------------|------------------|
 **400** | 400 response |  -  |
 **500** | 500 response |  -  |
-**200** | 200 response |  * Access-Control-Allow-Origin -  <br>  * Access-Control-Allow-Methods -  <br>  |
+**200** | 200 response |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
@@ -1920,7 +1965,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **prompt_post**
-> prompt_post()
+> IntellapiconnnHdtwRWUXa prompt_post()
 
 
 
@@ -1930,6 +1975,7 @@ No authorization required
 
 ```python
 import openapi_client
+from openapi_client.models.intellapiconnn_hdtw_rwuxa import IntellapiconnnHdtwRWUXa
 from openapi_client.rest import ApiException
 from pprint import pprint
 
@@ -1956,7 +2002,9 @@ with openapi_client.ApiClient(configuration) as api_client:
     api_instance = openapi_client.DefaultApi(api_client)
 
     try:
-        api_instance.prompt_post()
+        api_response = api_instance.prompt_post()
+        print("The response of DefaultApi->prompt_post:\n")
+        pprint(api_response)
     except Exception as e:
         print("Exception when calling DefaultApi->prompt_post: %s\n" % e)
 ```
@@ -1969,7 +2017,7 @@ This endpoint does not need any parameter.
 
 ### Return type
 
-void (empty response body)
+[**IntellapiconnnHdtwRWUXa**](IntellapiconnnHdtwRWUXa.md)
 
 ### Authorization
 
@@ -1986,7 +2034,7 @@ void (empty response body)
 |-------------|-------------|------------------|
 **400** | 400 response |  -  |
 **500** | 500 response |  -  |
-**200** | 200 response |  * Access-Control-Allow-Origin -  <br>  * Access-Control-Allow-Methods -  <br>  |
+**200** | 200 response |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 

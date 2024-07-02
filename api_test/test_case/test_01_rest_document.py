@@ -5,6 +5,7 @@ import os
 from dotenv import load_dotenv
 
 from api_test.biz_logic.rest_api import openapi_client
+# from api_test.biz_logic.rest_api import IntellapiconnnHdtwRWUXa
 
 from .utils import step
 import logging
@@ -54,7 +55,8 @@ class TestDocument:
 
         # self.api_instance
         response = self.api_instance.etl_upload_s3_url_post(intellapico_kbf_xmyu1_w8_nr)
-        logger.info(f'!!!!!{response}')
+        # assert response.data
+        # print(f'res is {response.data}')
 
         # response = json.loads(api_response.response.data.decode('utf-8'))
         # assert 1==1

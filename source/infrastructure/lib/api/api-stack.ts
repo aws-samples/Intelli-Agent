@@ -491,7 +491,8 @@ export class ApiConstruct extends Construct {
         title: 'ResponsePayload',
         type: JsonSchemaType.OBJECT,
         properties: {
-          data: { type: JsonSchemaType.OBJECT },
+          data: { type: JsonSchemaType.STRING },
+          message: { type: JsonSchemaType.STRING }
         },
       },
     });

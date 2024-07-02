@@ -17,18 +17,17 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, StrictStr
-from typing import Any, ClassVar, Dict, List
+from pydantic import BaseModel, ConfigDict
+from typing import Any, ClassVar, Dict, List, Optional
 from typing import Optional, Set
 from typing_extensions import Self
 
-class IntellapicoKbfXMYu1W8Nr(BaseModel):
+class IntellapiconnnHdtwRWUXa(BaseModel):
     """
-    IntellapicoKbfXMYu1W8Nr
+    IntellapiconnnHdtwRWUXa
     """ # noqa: E501
-    content_type: StrictStr
-    file_name: StrictStr
-    __properties: ClassVar[List[str]] = ["content_type", "file_name"]
+    data: Optional[Dict[str, Any]] = None
+    __properties: ClassVar[List[str]] = ["data"]
 
     model_config = ConfigDict(
         populate_by_name=True,
@@ -48,7 +47,7 @@ class IntellapicoKbfXMYu1W8Nr(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str) -> Optional[Self]:
-        """Create an instance of IntellapicoKbfXMYu1W8Nr from a JSON string"""
+        """Create an instance of IntellapiconnnHdtwRWUXa from a JSON string"""
         return cls.from_dict(json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -73,7 +72,7 @@ class IntellapicoKbfXMYu1W8Nr(BaseModel):
 
     @classmethod
     def from_dict(cls, obj: Optional[Dict[str, Any]]) -> Optional[Self]:
-        """Create an instance of IntellapicoKbfXMYu1W8Nr from a dict"""
+        """Create an instance of IntellapiconnnHdtwRWUXa from a dict"""
         if obj is None:
             return None
 
@@ -81,8 +80,7 @@ class IntellapicoKbfXMYu1W8Nr(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "content_type": obj.get("content_type"),
-            "file_name": obj.get("file_name")
+            "data": obj.get("data")
         })
         return _obj
 

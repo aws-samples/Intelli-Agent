@@ -3,7 +3,7 @@
   "info" : {
     "title" : "llmApi",
     "description" : "This service serves the LLM API.",
-    "version" : "2024-07-01T14:38:20Z"
+    "version" : "2024-07-01T23:45:20Z"
   },
   "servers" : [ {
     "url" : "https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/{basePath}",
@@ -39,19 +39,13 @@
           },
           "200" : {
             "description" : "200 response",
-            "headers" : {
-              "Access-Control-Allow-Origin" : {
+            "content" : {
+              "application/json" : {
                 "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Methods" : {
-                "schema" : {
-                  "type" : "string"
+                  "$ref" : "#/components/schemas/intellapiconnnHdtwRWUXa"
                 }
               }
-            },
-            "content" : { }
+            }
           }
         },
         "security" : [ {
@@ -82,19 +76,13 @@
           },
           "200" : {
             "description" : "200 response",
-            "headers" : {
-              "Access-Control-Allow-Origin" : {
+            "content" : {
+              "application/json" : {
                 "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Methods" : {
-                "schema" : {
-                  "type" : "string"
+                  "$ref" : "#/components/schemas/intellapiconnnHdtwRWUXa"
                 }
               }
-            },
-            "content" : { }
+            }
           }
         },
         "security" : [ {
@@ -157,19 +145,13 @@
           },
           "200" : {
             "description" : "200 response",
-            "headers" : {
-              "Access-Control-Allow-Origin" : {
+            "content" : {
+              "application/json" : {
                 "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Methods" : {
-                "schema" : {
-                  "type" : "string"
+                  "$ref" : "#/components/schemas/intellapiconnnHdtwRWUXa"
                 }
               }
-            },
-            "content" : { }
+            }
           }
         },
         "security" : [ {
@@ -232,19 +214,13 @@
           },
           "200" : {
             "description" : "200 response",
-            "headers" : {
-              "Access-Control-Allow-Origin" : {
+            "content" : {
+              "application/json" : {
                 "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Methods" : {
-                "schema" : {
-                  "type" : "string"
+                  "$ref" : "#/components/schemas/intellapiconnnHdtwRWUXa"
                 }
               }
-            },
-            "content" : { }
+            }
           }
         },
         "security" : [ {
@@ -307,19 +283,13 @@
           },
           "200" : {
             "description" : "200 response",
-            "headers" : {
-              "Access-Control-Allow-Origin" : {
+            "content" : {
+              "application/json" : {
                 "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Methods" : {
-                "schema" : {
-                  "type" : "string"
+                  "$ref" : "#/components/schemas/intellapiconnnHdtwRWUXa"
                 }
               }
-            },
-            "content" : { }
+            }
           }
         },
         "security" : [ {
@@ -382,19 +352,13 @@
           },
           "200" : {
             "description" : "200 response",
-            "headers" : {
-              "Access-Control-Allow-Origin" : {
+            "content" : {
+              "application/json" : {
                 "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Methods" : {
-                "schema" : {
-                  "type" : "string"
+                  "$ref" : "#/components/schemas/intellapiconnnHdtwRWUXa"
                 }
               }
-            },
-            "content" : { }
+            }
           }
         },
         "security" : [ {
@@ -425,19 +389,13 @@
           },
           "200" : {
             "description" : "200 response",
-            "headers" : {
-              "Access-Control-Allow-Origin" : {
+            "content" : {
+              "application/json" : {
                 "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Methods" : {
-                "schema" : {
-                  "type" : "string"
+                  "$ref" : "#/components/schemas/intellapiconnnHdtwRWUXa"
                 }
               }
-            },
-            "content" : { }
+            }
           }
         },
         "security" : [ {
@@ -500,19 +458,13 @@
           },
           "200" : {
             "description" : "200 response",
-            "headers" : {
-              "Access-Control-Allow-Origin" : {
+            "content" : {
+              "application/json" : {
                 "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Methods" : {
-                "schema" : {
-                  "type" : "string"
+                  "$ref" : "#/components/schemas/intellapiconnnHdtwRWUXa"
                 }
               }
-            },
-            "content" : { }
+            }
           }
         },
         "security" : [ {
@@ -607,19 +559,13 @@
           },
           "200" : {
             "description" : "200 response",
-            "headers" : {
-              "Access-Control-Allow-Origin" : {
+            "content" : {
+              "application/json" : {
                 "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Methods" : {
-                "schema" : {
-                  "type" : "string"
+                  "$ref" : "#/components/schemas/intellapiconnnHdtwRWUXa"
                 }
               }
-            },
-            "content" : { }
+            }
           }
         },
         "security" : [ {
@@ -682,19 +628,13 @@
           },
           "200" : {
             "description" : "200 response",
-            "headers" : {
-              "Access-Control-Allow-Origin" : {
+            "content" : {
+              "application/json" : {
                 "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Methods" : {
-                "schema" : {
-                  "type" : "string"
+                  "$ref" : "#/components/schemas/intellapiconnnHdtwRWUXa"
                 }
               }
-            },
-            "content" : { }
+            }
           }
         },
         "security" : [ {
@@ -757,19 +697,13 @@
           },
           "200" : {
             "description" : "200 response",
-            "headers" : {
-              "Access-Control-Allow-Origin" : {
+            "content" : {
+              "application/json" : {
                 "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Methods" : {
-                "schema" : {
-                  "type" : "string"
+                  "$ref" : "#/components/schemas/intellapiconnnHdtwRWUXa"
                 }
               }
-            },
-            "content" : { }
+            }
           }
         },
         "security" : [ {
@@ -832,19 +766,13 @@
           },
           "200" : {
             "description" : "200 response",
-            "headers" : {
-              "Access-Control-Allow-Origin" : {
+            "content" : {
+              "application/json" : {
                 "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Methods" : {
-                "schema" : {
-                  "type" : "string"
+                  "$ref" : "#/components/schemas/intellapiconnnHdtwRWUXa"
                 }
               }
-            },
-            "content" : { }
+            }
           }
         },
         "security" : [ {
@@ -917,19 +845,13 @@
           },
           "200" : {
             "description" : "200 response",
-            "headers" : {
-              "Access-Control-Allow-Origin" : {
+            "content" : {
+              "application/json" : {
                 "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Methods" : {
-                "schema" : {
-                  "type" : "string"
+                  "$ref" : "#/components/schemas/intellapiconnnHdtwRWUXa"
                 }
               }
-            },
-            "content" : { }
+            }
           }
         },
         "security" : [ {
@@ -992,19 +914,13 @@
           },
           "200" : {
             "description" : "200 response",
-            "headers" : {
-              "Access-Control-Allow-Origin" : {
+            "content" : {
+              "application/json" : {
                 "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Methods" : {
-                "schema" : {
-                  "type" : "string"
+                  "$ref" : "#/components/schemas/intellapiconnnHdtwRWUXa"
                 }
               }
-            },
-            "content" : { }
+            }
           }
         },
         "security" : [ {
@@ -1067,19 +983,13 @@
           },
           "200" : {
             "description" : "200 response",
-            "headers" : {
-              "Access-Control-Allow-Origin" : {
+            "content" : {
+              "application/json" : {
                 "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Methods" : {
-                "schema" : {
-                  "type" : "string"
+                  "$ref" : "#/components/schemas/intellapiconnnHdtwRWUXa"
                 }
               }
-            },
-            "content" : { }
+            }
           }
         },
         "security" : [ {
@@ -1142,19 +1052,13 @@
           },
           "200" : {
             "description" : "200 response",
-            "headers" : {
-              "Access-Control-Allow-Origin" : {
+            "content" : {
+              "application/json" : {
                 "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Methods" : {
-                "schema" : {
-                  "type" : "string"
+                  "$ref" : "#/components/schemas/intellapiconnnHdtwRWUXa"
                 }
               }
-            },
-            "content" : { }
+            }
           }
         },
         "security" : [ {
@@ -1209,6 +1113,15 @@
           },
           "file_name" : {
             "type" : "string"
+          }
+        }
+      },
+      "intellapiconnnHdtwRWUXa" : {
+        "title" : "ResponsePayload",
+        "type" : "object",
+        "properties" : {
+          "data" : {
+            "type" : "object"
           }
         }
       }
