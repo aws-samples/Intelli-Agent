@@ -510,7 +510,7 @@ def build_graph():
     # chat mode
     workflow.add_edge("llm_direct_results_generation", END)
     # rag mode
-    workflow.add_edge("all_knowledge_retrieve", "llm_rag_results_generation")
+    # workflow.add_edge("all_knowledge_retrieve", "llm_rag_results_generation")
     workflow.add_edge("llm_rag_results_generation", END)
     # agent mode
     # workflow.add_edge("tools_choose_and_results_generation", "results_evaluation")
@@ -585,21 +585,21 @@ def build_graph():
         },
     )
 
-    # # when all knowledge retrieved, there are two possible next steps:
-    # # 1. no clear intention: this happens when no clear intention (no few shots) is detected, we give agent enough context to think and plan.
-    # # 2. generate results in rag mode: let llm generate results based on retrieved knowledge, this happens in the following scenarios:
-    # # 2.1 in rag mode based on user selection at beginning
-    # # 2.2 agent thinks it needs to retrieve all the knowledge to generate the results
-    # # 2.3 the agent believes that it can produce results without executing tools
-    # # 2.4 the tools_choose_and_results_generation node reaches its maximum recusion limit
-    # workflow.add_conditional_edges(
-    #     "all_knowledge_retrieve",
-    #     rag_all_index_lambda_route,
-    #     {
-    #         "no clear intentions": "tools_choose_and_results_generation",
-    #         "generate results in rag mode": "llm_rag_results_generation",
-    #     },
-    # )
+    # when all knowledge retrieved, there are two possible next steps:
+    # 1. no clear intention: this happens when no clear intention (no few shots) is detected, we give agent enough context to think and plan.
+    # 2. generate results in rag mode: let llm generate results based on retrieved knowledge, this happens in the following scenarios:
+    # 2.1 in rag mode based on user selection at beginning
+    # 2.2 agent thinks it needs to retrieve all the knowledge to generate the results
+    # 2.3 the agent believes that it can produce results without executing tools
+    # 2.4 the tools_choose_and_results_generation node reaches its maximum recusion limit
+    workflow.add_conditional_edges(
+        "all_knowledge_retrieve",
+        rag_all_index_lambda_route,
+        {
+            "no clear intention": "agent",
+            "generate results in rag mode": "llm_rag_results_generation",
+        },
+    )
     app = workflow.compile()
     return app
 
