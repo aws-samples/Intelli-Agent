@@ -312,15 +312,15 @@ tool_manager.register_tool({
     "tool_def":{
         "name": "chat",
         "description": "casual talk with AI",
-        # "parameters": {
-        #     "type": "object",
-        #     "properties": {
-        #         "response": {
-        #             "description": "response to users",
-        #             "type": "string"
-        #     }},
-        #     "required": ["response"]
-        # },
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "response": {
+                    "description": "response to users",
+                    "type": "string"
+            }},
+            "required": ["response"]
+        },
     },
     "running_mode": "output"
 })
