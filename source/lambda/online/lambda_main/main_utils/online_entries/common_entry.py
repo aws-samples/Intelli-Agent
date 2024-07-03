@@ -384,8 +384,13 @@ def intent_route(state: dict):
         return 'no clear intention'
     return state["intent_type"]
 
+# def agent_route(state: dict):
+#     if state["agent_state"] == "tool calling":
+#         return "tool calling"
+#     else:
+#         return "no need tool calling"
 
-def results_evaluation_route(state: dict):
+def agent_route(state: dict):
     state["agent_recursion_validation"] = state['current_agent_recursion_num'] < state['agent_recursion_limit']
     if state["parse_tool_calling_ok"]:
         state["current_tool_name"] = state["current_tool_calls"][0]["name"]
@@ -459,9 +464,8 @@ def rag_all_index_lambda_route(state: dict):
         return "generate results in rag mode"
 
 #############################
-# define whole online graph #
+# define online top-level graph #
 #############################
-
 
 def build_graph():
     workflow = StateGraph(ChatbotState)
@@ -552,10 +556,10 @@ def build_graph():
     # 4.2 the tools_choose_and_results_generation node reaches its maximum recusion limit
     workflow.add_conditional_edges(
         "agent",
-        results_evaluation_route,
+        agent_route,
         {
             # "invalid tool calling": "tools_choose_and_results_generation",
-            "valid tool calling": "tools_execution",
+            "tool calling": "tools_execution",
             "no need tool calling": "final_results_preparation",
             # "force to retrieve all knowledge": "all_knowledge_retrieve", 
             # "give final response": "give_final_response",
@@ -588,11 +592,13 @@ def build_graph():
     app = workflow.compile()
     return app
 
-
-
+#############################
+# define online agent graph #
+#############################
 
 def build_agent_graph():
     def _results_evaluation_route(state: dict):
+        #TODO: pass no need tool calling or valid tool calling?
         state["agent_recursion_validation"] = state['current_agent_recursion_num'] < state['agent_recursion_limit']
         if state["agent_recursion_validation"] and not state["parse_tool_calling_ok"]:
             return "invalid tool calling"
