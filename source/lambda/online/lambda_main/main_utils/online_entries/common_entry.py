@@ -341,7 +341,7 @@ def chat_llm_generate_lambda(state: ChatbotState):
 
 
 def format_reply(state: ChatbotState):
-    recent_tool_name = state["current_tool_calls"][0]
+    recent_tool_name = state["current_tool_calls"][0]['name']
     if recent_tool_name == 'comfort':
         return {"answer": "不好意思没能帮到您，是否帮你转人工客服？"}
     if recent_tool_name == 'transfer':
@@ -362,7 +362,7 @@ def give_final_response(state: ChatbotState):
     elif "abbr" in recent_tool_calling["kwargs"].keys():
         answer = recent_tool_calling["kwargs"]["abbr"]
     else:
-        answer = "no valid answer!"
+        answer = format_reply(state)["answer"]
     return {"answer": answer}
 
 
