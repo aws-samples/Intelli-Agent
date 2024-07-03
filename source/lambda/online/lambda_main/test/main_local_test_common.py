@@ -105,7 +105,5 @@ def complete_test_pr():
     print("finish test in chat mode")
   
 if __name__ == "__main__":
-    complete_test_pr()
-    # complete test for PR
-
-    
+    # complete_test_pr()
+    test_multi_turns_agent_pr()
