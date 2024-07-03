@@ -634,10 +634,10 @@ export class ApiConstruct extends Construct {
       {...this.genMethodOption(api, auth, {
         data: { type: JsonSchemaType.ARRAY, items: {type: JsonSchemaType.STRING}},
         message: { type: JsonSchemaType.STRING }
-      }),
-      requestModels: this.genRequestModel(api, {
-        executionId: { type: JsonSchemaType.ARRAY, items: {type: JsonSchemaType.STRING}},
       })
+      // requestModels: this.genRequestModel(api, {
+      //   executionId: { type: JsonSchemaType.ARRAY, items: {type: JsonSchemaType.STRING}},
+      // })
       // ,requestValidatorOptions: {
       //   requestValidatorName: `Validator-${Math.random().toString(36).substr(2, 9)}`,
       //   validateRequestBody: true,
