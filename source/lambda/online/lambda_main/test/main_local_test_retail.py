@@ -22,6 +22,7 @@ def _test_multi_turns(user_queries, record_goods_id=False):
         # "endpoint_name": "glm-4-9b-chat-2024-06-18-07-37-03-843",
         "model_id": "qwen2-72B-instruct",
         "endpoint_name":  "Qwen2-72B-Instruct-AWQ-2024-06-25-02-15-34-347",
+        # "endpoint_name":  "Qwen2-7B-Instruct-AWQ-2024-07-03-14-42-22-781",
         # "endpoint_name": 'Qwen2-72B-Instruct-GPTQ-Int4-2024-06-30-05-59-54-352',
         # "endpoint_name":  "Qwen2-72B-Instruct-AWQ-without-yarn-2024-06-29-12-31-04-818",
         # 'model_id': 'mistral.mixtral-8x7b-instruct-v0:1',
@@ -298,14 +299,14 @@ def complete_test():
 if __name__ == "__main__":
     # complete_test()
     # test_multi_turns_anta("cn****0094",record_goods_id=True)
-    test_multi_turns()
+    # test_multi_turns()
     # test_multi_turns_0090() 
     # test_multi_turns_0077()
     # test_multi_turns_pr("agent")
-    # batch_test(
-    #     data_file="/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/customer_poc/anta/anta_batch_test - batch-test-csv-file-626.csv",
-    #     record_goods_id=True
-    # )
+    batch_test(
+        data_file="/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/customer_poc/anta/anta_batch_test - batch-test-csv-file-626.csv",
+        record_goods_id=True
+    )
     # batch_test()
     # test(
     #     chatbot_mode='agent',
