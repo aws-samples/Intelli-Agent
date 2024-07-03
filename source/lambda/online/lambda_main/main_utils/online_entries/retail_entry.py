@@ -897,6 +897,7 @@ def retail_entry(event_body):
         "query_rewrite_llm_type":LLMTaskType.RETAIL_CONVERSATION_SUMMARY_TYPE,
         "agent_recursion_limit": chatbot_config['agent_recursion_limit'],
         "current_agent_recursion_num": 0,
+        "current_agent_intent_type":""
     })
     
     extra_response = response["extra_response"]
@@ -905,7 +906,7 @@ def retail_entry(event_body):
         **extra_response,
         "ddb_additional_kwargs": {
              "goods_id":goods_id,
-             "current_agent_intent_type":extra_response['current_agent_intent_type']
+             "current_agent_intent_type":extra_response.get('current_agent_intent_type',"")
         },
         "trace_infos":response['trace_infos'],
         }

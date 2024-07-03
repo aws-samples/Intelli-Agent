@@ -163,7 +163,7 @@ def rag_llm_lambda(state: ChatbotState):
 
 @node_monitor_wrapper
 def agent_lambda(state: ChatbotState):
-    system_prompt = get_common_system_prompt()
+    # system_prompt = get_common_system_prompt()
     # all_index_retriever_contexts = state.get("all_index_retriever_contexts",[])
     # all_index_retriever_contexts = state.get("contexts",[])
     # if all_index_retriever_contexts:
@@ -341,7 +341,7 @@ def chat_llm_generate_lambda(state: ChatbotState):
 
 
 def format_reply(state: ChatbotState):
-    recent_tool_name = state["current_tool_calls"][0]
+    recent_tool_name = state["current_tool_calls"][0]['name']
     if recent_tool_name == 'comfort':
         return {"answer": "不好意思没能帮到您，是否帮你转人工客服？"}
     if recent_tool_name == 'transfer':
@@ -362,7 +362,7 @@ def give_final_response(state: ChatbotState):
     elif "abbr" in recent_tool_calling["kwargs"].keys():
         answer = recent_tool_calling["kwargs"]["abbr"]
     else:
-        answer = "no valid answer!"
+        answer = format_reply(state)["answer"]
     return {"answer": answer}
 
 

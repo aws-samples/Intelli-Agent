@@ -296,7 +296,7 @@ class Qwen2Instruct7BToolCallingParse(ToolCallingParse):
         e.agent_message = agent_message
         e.error_message = {
                     "role": MessageType.TOOL_MESSAGE_TYPE,
-                    "content": f"当前没有解析到tool,{error}\n请检查tool调用的格式是否正确，并重新输出某个tool的调用。注意正确的tool调用格式应该为: {tool_format}。"
+                    "content": f"\n{cls.FN_RESULT}: 当前没有解析到tool,{error}\n请检查tool调用的格式是否正确，并重新输出某个tool的调用。注意正确的tool调用格式应该为: {tool_format}。"
                 }
         return e
     
