@@ -291,9 +291,6 @@ def rag_all_index_lambda(state: ChatbotState):
     contexts = [doc["page_content"] for doc in output["result"]["docs"]]
     return {"contexts": contexts}
 
-
-
-
 @node_monitor_wrapper
 def aws_qa_lambda(state: ChatbotState):
     # call retrivever
