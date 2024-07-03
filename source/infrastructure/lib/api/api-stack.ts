@@ -45,6 +45,9 @@ interface ApiStackProps extends StackProps {
   messagesTableName: string;
   promptTableName: string;
   workspaceTableName: string;
+  indexTableName: string;
+  chatbotTableName: string;
+  modelTableName: string;
   // Type of StepFunctions
   sfnOutput: sfn.StateMachine;
   openSearchIndex: string;
@@ -249,6 +252,10 @@ export class ApiConstruct extends Construct {
       environment: {
         sfn_arn: props.sfnOutput.stateMachineArn,
         EXECUTION_TABLE: props.executionTableName,
+        INDEX_TABLE: props.indexTableName,
+        CHATBOT_TABLE: props.chatbotTableName,
+        MODEL_TABLE: props.modelTableName,
+        EMBEDDING_ENDPOINT: props.embeddingAndRerankerEndPoint,
       },
       memorySize: 256,
     });
