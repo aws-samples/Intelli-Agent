@@ -399,10 +399,21 @@ def agent_route(state: dict):
 
     # if state["agent_recursion_validation"] and not state["parse_tool_calling_ok"]:
     #     return "invalid tool calling"
-    if state["agent_recursion_validation"] and state["current_tool_name"] in state["valid_tool_calling_names"]:
-        return "valid tool calling"
+    if state["agent_recursion_validation"]:
+        if state["current_tool_name"] in ["QA", "service_availability", "explain_abbr"]:
+            return "force to retrieve all knowledge"
+        elif state["current_tool_name"] in state["valid_tool_calling_names"]:
+            return "valid tool calling"
+        else:
+            return "no need tool calling"
     else:
-        return "no need tool calling"
+        return "force to retrieve all knowledge"
+
+    # # if recent_tool_name in ["assist", "chat"]:
+    # if state["agent_recursion_validation"] and state["current_tool_name"] in state["valid_tool_calling_names"]:
+    #     return "valid tool calling"
+    # else:
+    #     return "no need tool calling"
 
     # # invalid tool calling
     # if not parse_tool_calling_ok:
@@ -543,7 +554,7 @@ def build_graph():
         {
             "similar query found": "matched_query_return",
             "intention detected": "agent",
-            # "no clear intentions": "all_knowledge_retrieve", 
+            "no clear intentions": "all_knowledge_retrieve", 
         },
     )
 
@@ -561,7 +572,7 @@ def build_graph():
             # "invalid tool calling": "tools_choose_and_results_generation",
             "tool calling": "tools_execution",
             "no need tool calling": "final_results_preparation",
-            # "force to retrieve all knowledge": "all_knowledge_retrieve", 
+            "force to retrieve all knowledge": "all_knowledge_retrieve", 
             # "give final response": "give_final_response",
             # "rhetorical question": "give_rhetorical_question",
             # "format reply": "format_reply",
