@@ -26,7 +26,7 @@ def parse_common_entry_config(chatbot_config):
         **chatbot_config.get("default_llm_config", {}),
     }
 
-    default_workspace_config = {"intent_workspace_ids": ["yb_intent"], "rag_workspace_ids": ["test-pdf"]}
+    default_workspace_config = {"intent_workspace_ids": ["default_intent"], "rag_workspace_ids": ["test-pdf"]}
 
     default_workspace_config = {
         **default_workspace_config,
