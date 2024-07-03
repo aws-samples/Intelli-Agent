@@ -36,6 +36,8 @@ def lambda_handler(event_body, context=None):
                 shoe_size = float(kwargs["shoes_size"])
             except:
                 return {"code":1, "result":"shoes_size should be a number"}
+            if goods_type_1 == "shoes" and goods_type_2 == "童鞋":
+                return {"code":1, "result":"童鞋不存在鞋码，请输入脚长查询"}
             std_shoe_size = find_nearest(list(size_dict.get(goods_type_1).get(goods_type_2).get("shoes_size").keys()), shoe_size)
             result = size_dict.get(goods_type_1).get(goods_type_2).get("shoes_size").get(std_shoe_size, "42")
             # No sutabale size for the input shoes size or foot length
