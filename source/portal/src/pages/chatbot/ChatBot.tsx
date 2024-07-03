@@ -13,6 +13,7 @@ import {
   Input,
   Select,
   SelectProps,
+  SpaceBetween,
   StatusIndicator,
   Textarea,
   Toggle,
@@ -23,7 +24,8 @@ import ConfigContext from 'src/context/config-context';
 import { useAuth } from 'react-oidc-context';
 import {
   LLM_BOT_CHAT_MODE_LIST,
-  LLM_BOT_MODEL_LIST,
+  LLM_BOT_COMMON_MODEL_LIST,
+  LLM_BOT_RETAIL_MODEL_LIST,
   SCENARIO_LIST,
   RETAIL_GOODS_LIST,
 } from 'src/utils/const';
@@ -69,7 +71,8 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const [currentAIMessage, setCurrentAIMessage] = useState('');
   const [currentMonitorMessage, setCurrentMonitorMessage] = useState('');
   const [aiSpeaking, setAiSpeaking] = useState(false);
-  const [modelOption, setModelOption] = useState<string>(LLM_BOT_MODEL_LIST[0]);
+  const [modelOption, setModelOption] = useState('');
+  const [modelList, setModelList] = useState<SelectProps.Option[]>([]);
   const [chatModeOption, setChatModeOption] = useState<SelectProps.Option>(
     LLM_BOT_CHAT_MODE_LIST[0],
   );
@@ -91,6 +94,9 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const [temperature, setTemperature] = useState<string>('0.1');
   const [maxToken, setMaxToken] = useState<string>('4096');
 
+  const [endPoint, setEndPoint] = useState('');
+  const [showEndpoint, setShowEndpoint] = useState(false);
+  const [endPointError, setEndPointError] = useState('');
   const [showMessageError, setShowMessageError] = useState(false);
   // const [googleAPIKeyError, setGoogleAPIKeyError] = useState(false);
   const [isMessageEnd, setIsMessageEnd] = useState(false);
@@ -256,6 +262,13 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       setModelSettingExpand(true);
       return;
     }
+    // validate endpoint
+    if (modelOption === 'qwen2-72B-instruct' && !endPoint.trim()) {
+      setEndPointError('validation.requireEndPoint');
+      setModelSettingExpand(true);
+      return;
+    }
+
     setUserMessage('');
     setAiSpeaking(true);
     setCurrentAIMessage('');
@@ -277,11 +290,12 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
         use_websearch: true,
         google_api_key: '',
         default_workspace_config: {
-          intent_workspace_ids: [],
           rag_workspace_ids: workspaceIds,
         },
         default_llm_config: {
           model_id: modelOption,
+          endpoint_name:
+            modelOption === 'qwen2-72B-instruct' ? endPoint.trim() : '',
           model_kwargs: {
             temperature: parseFloat(temperature),
             max_tokens: parseInt(maxToken),
@@ -306,6 +320,38 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     });
     setUserMessage('');
   };
+
+  useEffect(() => {
+    let optionList: SelectProps.Option[] = [];
+    if (scenario.value === 'common') {
+      optionList = LLM_BOT_COMMON_MODEL_LIST.map((item) => {
+        return {
+          label: item,
+          value: item,
+        };
+      });
+      setModelList(optionList);
+      setModelOption(optionList?.[0]?.value ?? '');
+    } else if (scenario.value === 'retail') {
+      optionList = LLM_BOT_RETAIL_MODEL_LIST.map((item) => {
+        return {
+          label: item,
+          value: item,
+        };
+      });
+      setModelList(optionList);
+      setModelOption(optionList?.[0]?.value ?? '');
+    }
+  }, [scenario]);
+
+  useEffect(() => {
+    if (modelOption === 'qwen2-72B-instruct') {
+      setShowEndpoint(true);
+    } else {
+      setEndPoint('');
+      setShowEndpoint(false);
+    }
+  }, [modelOption]);
 
   return (
     <CommonLayout
@@ -441,27 +487,6 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
               headerText={t('modelSettings')}
             >
               <ColumnLayout columns={3} variant="text-grid">
-                <FormField
-                  label={t('modelName')}
-                  stretch={true}
-                  errorText={t(modelError)}
-                >
-                  <Autosuggest
-                    onChange={({ detail }) => {
-                      setModelError('');
-                      setModelOption(detail.value);
-                    }}
-                    value={modelOption}
-                    options={LLM_BOT_MODEL_LIST.map((item) => {
-                      return {
-                        label: item,
-                        value: item,
-                      };
-                    })}
-                    placeholder={t('validation.requireModel')}
-                    empty={t('noModelFound')}
-                  />
-                </FormField>
                 <FormField label={t('scenario')} stretch={true}>
                   <Select
                     options={SCENARIO_LIST}
@@ -482,6 +507,40 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                     </div>
                   )}
                 </FormField>
+                <SpaceBetween size="xs">
+                  <FormField
+                    label={t('modelName')}
+                    stretch={true}
+                    errorText={t(modelError)}
+                  >
+                    <Autosuggest
+                      onChange={({ detail }) => {
+                        setModelError('');
+                        setModelOption(detail.value);
+                      }}
+                      value={modelOption}
+                      options={modelList}
+                      placeholder={t('validation.requireModel')}
+                      empty={t('noModelFound')}
+                    />
+                  </FormField>
+                  {showEndpoint && (
+                    <FormField
+                      label={t('endPoint')}
+                      stretch={true}
+                      errorText={t(endPointError)}
+                    >
+                      <Input
+                        onChange={({ detail }) => {
+                          setEndPointError('');
+                          setEndPoint(detail.value);
+                        }}
+                        value={endPoint}
+                        placeholder="QWen2-72B-XXXXX"
+                      />
+                    </FormField>
+                  )}
+                </SpaceBetween>
                 <FormField
                   label={t('maxTokens')}
                   stretch={true}
