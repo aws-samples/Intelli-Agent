@@ -234,6 +234,12 @@ def parse_tool_calling(state: ChatbotState):
 
 
 @node_monitor_wrapper
+def agent(state: ChatbotState):
+    response = app_agent.invoke(state)
+    return response
+
+
+@node_monitor_wrapper
 def tool_execute_lambda(state: ChatbotState):
     """executor lambda
     Args:
@@ -389,9 +395,9 @@ def results_evaluation_route(state: dict):
     else:
         state["current_tool_name"] = ""
 
-    if state["agent_recursion_validation"] and not state["parse_tool_calling_ok"]:
-        return "invalid tool calling"
-    elif state["agent_recursion_validation"] and state["current_tool_name"] in state["valid_tool_calling_names"]:
+    # if state["agent_recursion_validation"] and not state["parse_tool_calling_ok"]:
+    #     return "invalid tool calling"
+    if state["agent_recursion_validation"] and state["current_tool_name"] in state["valid_tool_calling_names"]:
         return "valid tool calling"
     else:
         return "no need tool calling"
@@ -472,9 +478,10 @@ def build_graph():
     # agent mode
     workflow.add_node("intention_detection", intention_detection_lambda)
     workflow.add_node("matched_query_return", qq_matched_reply)
-    workflow.add_node("tools_choose_and_results_generation", agent_lambda)
+    # workflow.add_node("tools_choose_and_results_generation", agent_lambda)
+    workflow.add_node("agent", agent)
     workflow.add_node("tools_execution", tool_execute_lambda)
-    workflow.add_node("results_evaluation", parse_tool_calling)
+    # workflow.add_node("results_evaluation", parse_tool_calling)
     workflow.add_node("final_results_preparation", give_final_response)
     # workflow.add_node("format_reply", format_reply)
     # workflow.add_node("comfort_reply", comfort_reply)
@@ -494,8 +501,8 @@ def build_graph():
     workflow.add_edge("all_knowledge_retrieve", "llm_rag_results_generation")
     workflow.add_edge("llm_rag_results_generation", END)
     # agent mode
-    workflow.add_edge("tools_choose_and_results_generation", "results_evaluation")
-    workflow.add_edge("tools_execution", "tools_choose_and_results_generation")
+    # workflow.add_edge("tools_choose_and_results_generation", "results_evaluation")
+    workflow.add_edge("tools_execution", "agent")
     workflow.add_edge("matched_query_return", "final_results_preparation")
     workflow.add_edge("final_results_preparation", END)
     # workflow.add_edge("rag_all_index_lambda", "rag_llm_lambda")
@@ -534,7 +541,7 @@ def build_graph():
         intent_route,
         {
             "similar query found": "matched_query_return",
-            "intention detected": "tools_choose_and_results_generation",
+            "intention detected": "agent",
             # "no clear intentions": "all_knowledge_retrieve", 
         },
     )
@@ -547,10 +554,10 @@ def build_graph():
     # 4.1 the agent believes that it can produce results without executing tools
     # 4.2 the tools_choose_and_results_generation node reaches its maximum recusion limit
     workflow.add_conditional_edges(
-        "results_evaluation",
+        "agent",
         results_evaluation_route,
         {
-            "invalid tool calling": "tools_choose_and_results_generation",
+            # "invalid tool calling": "tools_choose_and_results_generation",
             "valid tool calling": "tools_execution",
             "no need tool calling": "final_results_preparation",
             # "force to retrieve all knowledge": "all_knowledge_retrieve", 
@@ -585,7 +592,37 @@ def build_graph():
     return app
 
 
+
+
+def build_agent_graph():
+    def _results_evaluation_route(state: dict):
+        state["agent_recursion_validation"] = state['current_agent_recursion_num'] < state['agent_recursion_limit']
+        if state["agent_recursion_validation"] and not state["parse_tool_calling_ok"]:
+            return "invalid tool calling"
+        return "continue"
+
+    workflow = StateGraph(ChatbotState)
+    workflow.add_node("tools_choose_and_results_generation", agent_lambda)
+    workflow.add_node("results_evaluation", parse_tool_calling)
+
+    # edge
+    workflow.set_entry_point("tools_choose_and_results_generation")
+    workflow.add_edge("tools_choose_and_results_generation","results_evaluation")
+    workflow.add_conditional_edges(
+        "results_evaluation",
+        _results_evaluation_route,
+        {
+            "invalid tool calling": "tools_choose_and_results_generation",
+            "continue": END,
+            # "no need tool calling": "final_results_preparation",
+        }
+    )
+    app = workflow.compile()
+    return app
+
+    
 app = None
+app_agent = None
 
 
 def common_entry(event_body):
@@ -594,15 +631,21 @@ def common_entry(event_body):
     :param event_body: The event body for lambda function.
     return: answer(str)
     """
-    global app
+    global app,app_agent
     if app is None:
         app = build_graph()
+    
+    if app_agent is None:
+        app_agent = build_agent_graph()
 
     # debuging
     # TODO only write when run local
     if is_running_local():
         with open("common_entry_workflow.png", "wb") as f:
             f.write(app.get_graph().draw_png())
+        
+        with open("common_entry_agent_workflow.png", "wb") as f:
+            f.write(app_agent.get_graph().draw_png())
             
     ################################################################################
     # prepare inputs and invoke graph

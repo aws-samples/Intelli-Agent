@@ -28,7 +28,7 @@ def lambda_handler(event_body, context=None):
     goods_id = str(state["chatbot_config"]["goods_id"])
     kwargs = event_body["kwargs"]
     if goods_id not in good2type_dict:
-        return {"code":1, "result":"goods_id is invalid"}
+        return {"code":1, "result":"该商品的尺码信息缺失，请不要使用尺码工具"}
     goods_type_1, goods_type_2 = good2type_dict[goods_id]
     if goods_type_1 == "shoes":
         if "shoes_size" in kwargs:

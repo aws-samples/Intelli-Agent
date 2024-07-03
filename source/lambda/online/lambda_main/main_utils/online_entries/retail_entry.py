@@ -162,7 +162,11 @@ def agent_lambda(state: ChatbotState):
     current_agent_output:dict = invoke_lambda(
         event_body={
             **state,
-            "other_chain_kwargs":{"goods_info": goods_info, "create_time": state['create_time']}
+            "other_chain_kwargs":{
+                "goods_info": goods_info,
+                "create_time": state['create_time'],
+                "current_agent_recursion_num":state['current_agent_recursion_num']
+                }
         },
         lambda_name="Online_Agent",
         lambda_module_path="lambda_agent.agent",
@@ -376,11 +380,16 @@ def rag_product_aftersales_llm_lambda(state:ChatbotState):
         create_datetime_object = datetime.now()
         print(f"create_time: {create_time} is not valid, use current time instead.")
     create_time_str = create_datetime_object.strftime('%Y-%m-%d')
-    received_time = order_dict.get(str(goods_id), {}).get("received_time", "2023/11/1215:03:13")
-    order_time = " ".join([received_time[:-8], received_time[-8:]])
-    order_date_str = datetime.strptime(order_time, '%Y/%m/%d %H:%M:%S').strftime('%Y-%m-%d')
-    receive_elapsed_days = (create_datetime_object - datetime.strptime(order_date_str, '%Y-%m-%d')).days
-    receive_elapsed_months = receive_elapsed_days // 30
+    # TODO: fix received time format
+    received_time = order_dict.get(str(goods_id), {}).get("received_time", "2023/9/129:03:13")
+    order_time = " ".join([received_time[:9], received_time[9:]])
+    try:
+        order_date_str = datetime.strptime(order_time, '%Y/%m/%d %H:%M:%S').strftime('%Y-%m-%d')
+        receive_elapsed_days = (create_datetime_object - datetime.strptime(order_date_str, '%Y-%m-%d')).days
+        receive_elapsed_months = receive_elapsed_days // 30
+    except Exception as e:
+        order_date_str = "2023-9-12"
+        receive_elapsed_months = 6
     context = "\n\n".join(state['contexts'])
     system_prompt = (f"你是安踏的客服助理，正在帮消费者解答问题，消费者提出的问题大多是属于商品的质量和物流规则。context列举了一些可能有关的具体场景及回复，你可以进行参考:\n"
                     f"客户咨询的问题所对应的订单日期为{order_date_str}。\n"
