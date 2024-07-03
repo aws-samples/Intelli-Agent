@@ -333,15 +333,15 @@ tool_manager.register_tool({
     "tool_def": {
         "name": "comfort",
         "description": "comfort user to mitigate their bad emotion",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "response": {
-                    "description": "response to users",
-                    "type": "string"
-            }},
-            "required": ["response"]
-        },
+        # "parameters": {
+        #     "type": "object",
+        #     "properties": {
+        #         "response": {
+        #             "description": "response to users",
+        #             "type": "string"
+        #     }},
+        #     "required": ["response"]
+        # },
     },
     "running_mode": "output"
 })
@@ -353,15 +353,15 @@ tool_manager.register_tool({
     "tool_def": {
         "name": "transfer",
         "description": "transfer the conversation to manual customer service",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "response": {
-                    "description": "response to users",
-                    "type": "string"
-            }},
-            "required": ["response"]
-        },
+        # "parameters": {
+        #     "type": "object",
+        #     "properties": {
+        #         "response": {
+        #             "description": "response to users",
+        #             "type": "string"
+        #     }},
+        #     "required": ["response"]
+        # },
     },
     "running_mode": "output"
 })
@@ -382,7 +382,7 @@ tool_manager.register_tool({
             #         "description": "This tool handles daily responses from customer"
             #     }
             # },
-            "required": ["response"]
+            # "required": ["response"]
         },
     },
     "running_mode": "output"
@@ -396,9 +396,9 @@ tool_manager.register_tool({
     "tool_def": {
         "name": "goods_exchange",
         "description": "This tool handles user requests for product returns or exchanges.",
-        "parameters":{
-            "required": ["response"]
-        },
+        # "parameters":{
+        #     "required": ["response"]
+        # },
     },
     "running_mode": "output"
 })
@@ -410,9 +410,9 @@ tool_manager.register_tool({
     "tool_def": {
         "name": "customer_complain",
         "description": "有关于客户抱怨的工具，比如商品质量，错发商品，漏发商品等",
-        "parameters":{
-            "required": ["response"]
-        },
+        # "parameters":{
+        #     "required": ["response"]
+        # },
     },
     "running_mode": "output"
 })
@@ -424,9 +424,9 @@ tool_manager.register_tool({
     "tool_def": {
         "name": "promotion",
         "description": "有关于商品促销的信息，比如返点，奖品和奖励等",
-        "parameters":{
-            "required": ["response"]
-        },
+        # "parameters":{
+        #     "required": ["response"]
+        # },
     },
     "running_mode": "output"
 })
@@ -438,9 +438,9 @@ tool_manager.register_tool({
     "tool_def": {
         "name": "物流信息查询",
         "description": "物流信息查询",
-        "parameters":{
-            "required": ["response"]
-        },
+        # "parameters":{
+        #     "required": ["response"]
+        # },
     },
     "running_mode": "output"
 })
@@ -452,9 +452,9 @@ tool_manager.register_tool({
     "tool_def": {
         "name": "下单流程",
         "description": "下单流程",
-        "parameters":{
-            "required": ["response"]
-        },
+        # "parameters":{
+        #     "required": ["response"]
+        # },
     },
     "running_mode": "output"
 })
@@ -505,9 +505,9 @@ tool_manager.register_tool({
     "tool_def": {
         "name": "goods_info",
         "description": "search the information of the product, do not ask the user for more information",
-        "parameters":{
-            "required": ["response"]
-        },
+        # "parameters":{
+        #     "required": ["response"]
+        # },
     },
     "running_mode": "output"
 })
@@ -520,9 +520,9 @@ tool_manager.register_tool({
     "tool_def": {
         "name": "goods_recommendation",
         "description": "recommend the product to the customer",
-        "parameters":{
-            "required": ["response"]
-        },
+        # "parameters":{
+        #     "required": ["response"]
+        # },
     },
     "running_mode": "output"
 })
@@ -535,9 +535,9 @@ tool_manager.register_tool({
     "tool_def": {
         "name": "order_pipeline",
         "description": "query the order information",
-        "parameters":{
-            "required": ["response"]
-        },
+        # "parameters":{
+        #     "required": ["response"]
+        # },
     },
     "running_mode": "output"
 })
@@ -550,9 +550,9 @@ tool_manager.register_tool({
     "tool_def": {
         "name": "product_logistics",
         "description": "查询商品物流信息，运费规则和物流规则，其中运费规则包括退货，换货，错发商品，漏发商品等。物流规则包括发货时间等",
-        "parameters":{
-            "required": ["response"]
-        },
+        # "parameters":{
+        #     "required": ["response"]
+        # },
     },
     "running_mode": "output",
     # "should_ask_parameter": "无需用户提供订单信息，物流单号",
@@ -566,9 +566,9 @@ tool_manager.register_tool({
     "tool_def": {
         "name": "goods_storage",
         "description": "商品的库存信息，比如应对没货的情况等",
-        "parameters":{
-            "required": ["response"]
-        },
+        # "parameters":{
+        #     "required": ["response"]
+        # },
     },
     "running_mode": "output",
     # "should_ask_parameter": "无需用户提供订单信息，物流单号",
@@ -582,9 +582,9 @@ tool_manager.register_tool({
     "tool_def": {
         "name": "rule_response",
         "description": "If a user's reply contains just a link or a long number, use this tool to reply.",
-        "parameters":{
-            "required": ["response"]
-        },
+        # "parameters":{
+        #     "required": ["response"]
+        # },
     },
     "running_mode": "output"
 })
@@ -596,9 +596,9 @@ tool_manager.register_tool({
     "tool_def": {
         "name": "下单流程",
         "description": "下单流程",
-        "parameters":{
-            "required": ["response"]
-        },
+        # "parameters":{
+        #     "required": ["response"]
+        # },
     },
     "running_mode": "output"
 })
@@ -610,9 +610,9 @@ tool_manager.register_tool({
     "tool_def": {
         "name": "促销查询",
         "description": "促销查询",
-        "parameters":{
-            "required": ["response"]
-        },
+        # "parameters":{
+        #     "required": ["response"]
+        # },
     },
     "running_mode": "output"
 })
@@ -624,9 +624,9 @@ tool_manager.register_tool({
     "tool_def": {
         "name": "转人工",
         "description": "转人工",
-        "parameters":{
-            "required": ["response"]
-        },
+        # "parameters":{
+        #     "required": ["response"]
+        # },
     },
     "running_mode": "output"
 })
@@ -637,9 +637,9 @@ tool_manager.register_tool({
     "tool_def": {
         "name": "信息缺失",
         "description": "信息缺失",
-        "parameters":{
-            "required": ["response"]
-        },
+        # "parameters":{
+        #     "required": ["response"]
+        # },
     },
     "running_mode": "output"
 })
