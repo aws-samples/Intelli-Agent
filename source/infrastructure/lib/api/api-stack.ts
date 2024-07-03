@@ -636,7 +636,8 @@ export class ApiConstruct extends Construct {
         message: { type: JsonSchemaType.STRING }
       }),
       requestModels: this.genRequestModel(api, {
-        executionId: { type: JsonSchemaType.ARRAY, items: {type: JsonSchemaType.STRING}},
+        executionId: { type: JsonSchemaType.STRING }
+        // executionId: { type: JsonSchemaType.ARRAY, items: {type: JsonSchemaType.STRING}},
       })
       // ,requestValidatorOptions: {
       //   requestValidatorName: `Validator-${Math.random().toString(36).substr(2, 9)}`,
