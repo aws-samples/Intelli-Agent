@@ -636,7 +636,7 @@ export class ApiConstruct extends Construct {
         message: { type: JsonSchemaType.STRING }
       }),
       requestModels: this.genRequestModel(api, {
-        executionId: { type: JsonSchemaType.STRING }
+        "executionId": { "type": JsonSchemaType.STRING }
         // executionId: { type: JsonSchemaType.ARRAY, items: {type: JsonSchemaType.STRING}},
       })
       // ,requestValidatorOptions: {
@@ -657,10 +657,10 @@ export class ApiConstruct extends Construct {
           data: { type: JsonSchemaType.STRING },
           message: { type: JsonSchemaType.STRING }
         }),
-        // requestModels: this.genRequestModel(api, {
-        //   content_type: { type: JsonSchemaType.STRING },
-        //   file_name: { type: JsonSchemaType.STRING },
-        // })
+        requestModels: this.genRequestModel(api, {
+          "content_type": { "type": JsonSchemaType.STRING },
+          "file_name": { "type": JsonSchemaType.STRING },
+        })
       // ,requestValidatorOptions: {
       //   requestValidatorName: `Validator-${Math.random().toString(36).substr(2, 9)}`,
       //   validateRequestBody: true,
@@ -1032,7 +1032,7 @@ export class ApiConstruct extends Construct {
           title: 'PostPayload',
           type: JsonSchemaType.OBJECT,
           properties,
-          required: Object.keys(properties).map(key => properties[key as keyof typeof properties]),
+          required: Object.keys(properties),
         },
       })
   }
