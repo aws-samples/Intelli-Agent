@@ -80,34 +80,11 @@ def _test_multi_turns(user_queries, record_goods_id=False):
 
 def test_multi_turns():
     user_queries = [
-        {"query":"今天怎么还没有发货","goods_id": 714845988113}
-    ]
-    # user_queries = [
-    #     {"query":"https://detail.tmall.com/item.htm?id=760601512644","goods_id": ""},
-    #     {"query":"你好","goods_id": ""}
-    # ]
-
-    # user_queries = [
-    #     {"query":"https://item.taobao.com/item.htm?id=714895530125 订单号:3822277356669723400\n共2件商品,合计￥887.39元 \n交易时间:2024-03-2216:20:52","goods_id": 714895530125},
-    #     {"query":"可以吧黑的换成燕麦色吗","goods_id": 714895530125},
-    #     {"query":"订单","goods_id": 714895530125},
-    #     {"query":"改一下","goods_id": 714895530125},
-    #     {"query":"我这边退了很麻烦 几个订单呢","goods_id": 714895530125},
-    #     {"query":"是的","goods_id": 714895530125},
-    #     {"query":"40","goods_id": 714895530125},
-    #     {"query":"对的","goods_id": 714895530125},
-    #     {"query":"👌","goods_id": 714895530125},
-    #     {"query":"谢谢","goods_id": 714895530125},
-    # ]
-    
-    # goods_id = 653918410246
-    # user_queries = [
-    #     {"query":"http://item.taobao.com/item.htm?id=653918410246","goods_id":653918410246},
-    #     {"query":"跑步有没有问题","goods_id":653918410246},
-    #     {"query":"https://detail.tmall.com/item.htm?id=760740990909","goods_id":760740990909},
-    #     {"query":"160 110穿多大","goods_id":760740990909},
-    #     {"query":"我换个号","goods_id":760740990909}
-    # ]
+        {"query":"我平时穿37，这个鞋合适吗？","goods_id": 756327274174},
+        {"query":"需要运费吗？","goods_id": 743891340644},
+        {"query":"我已经下完单了，什么时候发货？","goods_id": 743891340644},
+        {"query":"身高170，能穿吗？","goods_id": 743891340644},
+        {"query":"45kg","goods_id": 743891340644}]
     return _test_multi_turns(user_queries)
 
 
@@ -321,14 +298,14 @@ def complete_test():
 if __name__ == "__main__":
     # complete_test()
     # test_multi_turns_anta("cn****0094",record_goods_id=True)
-    # test_multi_turns()
+    test_multi_turns()
     # test_multi_turns_0090() 
     # test_multi_turns_0077()
     # test_multi_turns_pr("agent")
-    batch_test(
-        data_file="/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/customer_poc/anta/anta_batch_test - batch-test-csv-file-626.csv",
-        record_goods_id=True
-    )
+    # batch_test(
+    #     data_file="/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/customer_poc/anta/anta_batch_test - batch-test-csv-file-626.csv",
+    #     record_goods_id=True
+    # )
     # batch_test()
     # test(
     #     chatbot_mode='agent',

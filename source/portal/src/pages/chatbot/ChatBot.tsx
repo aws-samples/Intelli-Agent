@@ -91,8 +91,8 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const [sessionId, setSessionId] = useState(historySessionId);
   const [workspaceIds, setWorkspaceIds] = useState<any[]>([]);
 
-  const [temperature, setTemperature] = useState<string>('0.1');
-  const [maxToken, setMaxToken] = useState<string>('4096');
+  const [temperature, setTemperature] = useState<string>('0.01');
+  const [maxToken, setMaxToken] = useState<string>('1000');
 
   const [endPoint, setEndPoint] = useState('');
   const [showEndpoint, setShowEndpoint] = useState(false);
@@ -348,7 +348,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     if (modelOption === 'qwen2-72B-instruct') {
       setShowEndpoint(true);
     } else {
-      setEndPoint('');
+      setEndPoint('Qwen2-72B-Instruct-AWQ-2024-06-25-02-15-34-347');
       setShowEndpoint(false);
     }
   }, [modelOption]);
