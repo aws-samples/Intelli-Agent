@@ -209,7 +209,7 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
     Step 2. 如果你觉得可以依据商品信息 <{goods_info_tag}> 里面的内容进行回答，就直接就回答，不需要调用任何工具。并结束思考。
     Step 3. 如果你觉得当前用户的回复意图不清晰，或者仅仅是表达一些肯定的内容，或者和历史消息没有很强的相关性，同时当前不是第一轮对话，直接回复用户下面 XML 标签 <{fix_reply_tag}> 里面的内容:
             <{fix_reply_tag}> 亲亲，请问还有什么问题吗？ </{fix_reply_tag}>
-    Step 4. 如果需要调用某个工具，检查该工具的必选参数是否可以在上下文中找到。结束思考。
+    Step 4. 如果需要调用某个工具，检查该工具的必选参数是否可以在上下文中找到。结束思考，输出结束思考符号。
 
 ## 回答规范
    - 如果客户没有明确指出在哪里购买的商品，则默认都是在天猫平台购买的
@@ -367,7 +367,7 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
         model_kwargs = model_kwargs or {}
         kwargs['system_prompt'] = system_prompt
         model_kwargs = {**model_kwargs}
-        model_kwargs["stop"] = model_kwargs.get("stop",[]) + ['✿RESULT✿', '✿RESULT✿:', '✿RESULT✿:\n','✿RETURN✿',f'<{cls.fix_reply_tag}>',f'</{cls.fix_reply_tag}>',f'<{cls.thinking_tag}>']
+        model_kwargs["stop"] = model_kwargs.get("stop",[]) + ['✿RESULT✿', '✿RESULT✿:', '✿RESULT✿:\n','✿RETURN✿',f'<{cls.thinking_tag}>']
         # model_kwargs["prefill"] = "我先看看调用哪个工具，下面是我的思考过程:\n<thinking>\nstep 1."
         model_kwargs["prefill"] = f'{cls.prefill}'
         return super().create_chain(model_kwargs=model_kwargs,**kwargs)

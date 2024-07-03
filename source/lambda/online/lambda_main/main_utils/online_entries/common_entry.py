@@ -163,7 +163,7 @@ def rag_llm_lambda(state: ChatbotState):
 
 @node_monitor_wrapper
 def agent_lambda(state: ChatbotState):
-    system_prompt = get_common_system_prompt()
+    # system_prompt = get_common_system_prompt()
     # all_index_retriever_contexts = state.get("all_index_retriever_contexts",[])
     # all_index_retriever_contexts = state.get("contexts",[])
     # if all_index_retriever_contexts:
