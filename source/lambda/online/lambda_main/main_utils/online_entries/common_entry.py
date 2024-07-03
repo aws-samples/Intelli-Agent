@@ -554,7 +554,7 @@ def build_graph():
         {
             "similar query found": "matched_query_return",
             "intention detected": "agent",
-            "no clear intentions": "all_knowledge_retrieve", 
+            "no clear intention": "all_knowledge_retrieve", 
         },
     )
 
