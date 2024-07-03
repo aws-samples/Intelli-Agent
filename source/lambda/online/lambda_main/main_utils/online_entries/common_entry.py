@@ -510,7 +510,7 @@ def build_graph():
     # chat mode
     workflow.add_edge("llm_direct_results_generation", END)
     # rag mode
-    workflow.add_edge("all_knowledge_retrieve", "llm_rag_results_generation")
+    # workflow.add_edge("all_knowledge_retrieve", "llm_rag_results_generation")
     workflow.add_edge("llm_rag_results_generation", END)
     # agent mode
     # workflow.add_edge("tools_choose_and_results_generation", "results_evaluation")
