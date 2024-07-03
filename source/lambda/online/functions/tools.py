@@ -288,21 +288,21 @@ tool_manager.register_tool({
 tool_manager.register_tool({
     "name":"QA",
     "lambda_name": "",
-    "lambda_module_path": "",
+    "lambda_module_path": "functions.lambda_retriever.retriever",
     "tool_def": {
-        "name": "QA",
-        "description": "answer question about aws according to searched relevant content",
-        # "parameters": {
-        #     "type": "object",
-        #     "properties": {
-        #         "response": {
-        #             "description": "response to users",
-        #             "type": "string",
-        #     }},
-        #     "required": ["response"],
-        # },
+                "name": "QA",
+                "description": "answer question about aws according to searched relevant content",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "query": {
+                            "description": "query to retrieve",
+                            "type": "string"
+                    }},
+                    "required": ["query"]
+                },
     },
-    "running_mode": "output"
+    "running_mode": "loop"
 })
 
 tool_manager.register_tool({

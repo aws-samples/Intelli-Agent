@@ -129,15 +129,52 @@ def intention_detection_lambda(state: ChatbotState):
 #     send_trace("**all index retriever lambda result** \n" + ("\n"+"="*50 + "\n").join(contexts))
 #     return {"all_index_retriever_contexts": contexts}
 
+@node_monitor_wrapper
+def rag_llm_lambda(state: ChatbotState):
+    user_id = state['chatbot_config']['user_id']
+    llm_config = state["chatbot_config"]["rag_config"]["llm_config"]
+    task_type = LLMTaskType.RAG
+    prompt_templates_from_ddb = get_prompt_templates_from_ddb(
+        user_id,
+        model_id = llm_config['model_id'],
+        task_type=task_type
+    )
+
+    output: str = invoke_lambda(
+        lambda_name="Online_LLM_Generate",
+        lambda_module_path="lambda_llm_generate.llm_generate",
+        handler_name="lambda_handler",
+        event_body={
+            "llm_config": {
+                **prompt_templates_from_ddb,
+                **llm_config,
+                "stream": state["stream"],
+                "intent_type": task_type,
+            },
+            "llm_input": {
+                "contexts": [state["contexts"]],
+                "query": state["query"],
+                "chat_history": state["chat_history"],
+            },
+        },
+    )
+    return {"answer": output}
+
 
 @node_monitor_wrapper
 def agent_lambda(state: ChatbotState):
     system_prompt = get_common_system_prompt()
     # all_index_retriever_contexts = state.get("all_index_retriever_contexts",[])
-    all_index_retriever_contexts = state.get("contexts",[])
-    if all_index_retriever_contexts:
-        context = '\n\n'.join(all_index_retriever_contexts)
-        system_prompt += f"\n下面有一些背景信息供参考:\n<context>\n{context}\n</context>\n"
+    # all_index_retriever_contexts = state.get("contexts",[])
+    # if all_index_retriever_contexts:
+    #     context = '\n\n'.join(all_index_retriever_contexts)
+    #     system_prompt += f"\n下面有一些背景信息供参考:\n<context>\n{context}\n</context>\n"
+    # judge recent tool calling type, if it's 
+    # if retriever_tool_check(state):
+        
+    #     contexts = [doc["page_content"] for doc in output["result"]["docs"]]
+    #     state["contexts"] = contexts
+
     current_agent_output:dict = invoke_lambda(
         event_body={
             **state,
@@ -253,39 +290,6 @@ def rag_all_index_lambda(state: ChatbotState):
     )
     contexts = [doc["page_content"] for doc in output["result"]["docs"]]
     return {"contexts": contexts}
-
-
-@node_monitor_wrapper
-def rag_llm_lambda(state: ChatbotState):
-    user_id = state['chatbot_config']['user_id']
-    llm_config = state["chatbot_config"]["rag_config"]["llm_config"]
-    task_type = LLMTaskType.RAG
-    prompt_templates_from_ddb = get_prompt_templates_from_ddb(
-        user_id,
-        model_id = llm_config['model_id'],
-        task_type=task_type
-    )
-
-    output: str = invoke_lambda(
-        lambda_name="Online_LLM_Generate",
-        lambda_module_path="lambda_llm_generate.llm_generate",
-        handler_name="lambda_handler",
-        event_body={
-            "llm_config": {
-                **prompt_templates_from_ddb,
-                **llm_config,
-                "stream": state["stream"],
-                "intent_type": task_type,
-            },
-            "llm_input": {
-                "contexts": [state["contexts"]],
-                "query": state["query"],
-                "chat_history": state["chat_history"],
-            },
-        },
-    )
-    return {"answer": output}
-
 
 @node_monitor_wrapper
 def aws_qa_lambda(state: ChatbotState):

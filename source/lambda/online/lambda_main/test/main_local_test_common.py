@@ -28,6 +28,7 @@ def test_multi_turns_pr(mode="agent"):
     #     {"query":"我在上海", "use_history":True},
     # ]
     user_queries = [
+        {"query":"请用中文回答 what if the customer has EBS requirement", "use_history":True},
         {"query":"你好", "use_history":True},
         {"query":"What's the weather today?", "use_history":True},
         {"query":"我在上海", "use_history":True},
