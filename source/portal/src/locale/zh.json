@@ -70,6 +70,8 @@
     "prompt": "提示词",
     "prompts": "提示词",
     "type": "类型",
+    "updateBy": "更新者",
+    "updateTime": "更新时间",
     "promptCreateTips": "新的提示将覆盖当前提示词，您确定要继续吗？",
     "promptDeleteTips": "删除此提示词将会恢复成系统默认提示词。",
     "button": {
@@ -85,7 +87,8 @@
       "upload": "上传",
       "createPrompt": "创建提示",
       "edit": "编辑",
-      "save": "保存"
+      "save": "保存",
+      "action": "操作"
     },
     "header": {
       "reSignIn": "请重新登录",
