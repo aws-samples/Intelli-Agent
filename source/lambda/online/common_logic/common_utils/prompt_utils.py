@@ -6,7 +6,7 @@ from collections import defaultdict
 from common_logic.common_utils.constant import LLMModelType,LLMTaskType
 import copy
 
-ddb_prompt_table_name = os.environ.get("prompt_table_name", "")
+ddb_prompt_table_name = os.environ.get("PROMPT_TABLE_NAME", "")
 dynamodb_resource = boto3.resource("dynamodb")
 ddb_prompt_table = dynamodb_resource.Table(ddb_prompt_table_name)
 
@@ -18,6 +18,10 @@ EXPORT_MODEL_IDS = [
     LLMModelType.CLAUDE_3_SONNET,
     LLMModelType.CLAUDE_2,
     LLMModelType.CLAUDE_21
+]
+
+EXPORT_SCENES = [
+    "common"
 ]
 
 class PromptTemplate(BaseModel):

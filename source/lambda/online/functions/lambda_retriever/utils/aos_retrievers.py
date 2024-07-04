@@ -18,7 +18,7 @@ logger.setLevel(logging.INFO)
 # region = os.environ["AWS_REGION"]
 zh_embedding_model_endpoint = os.environ.get("zh_embedding_endpoint", "")
 en_embedding_model_endpoint = os.environ.get("en_embedding_endpoint", "")
-aos_endpoint = os.environ.get("aos_endpoint", "")
+aos_endpoint = os.environ.get("AOS_ENDPOINT", "")
 
 aos_client = LLMBotOpenSearchClient(aos_endpoint)
 

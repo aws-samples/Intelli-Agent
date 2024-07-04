@@ -12,6 +12,6 @@
  *********************************************************************************************************************/
 
 export class Constants {
-  static readonly SOLUTION_NAME = "LLM-BOT";
+  static readonly SOLUTION_NAME = "Intelli-Agent";
   static readonly API_QUEUE_NAME = "LLMAPI";
 }

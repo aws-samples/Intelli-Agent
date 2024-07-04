@@ -42,8 +42,12 @@ export class DynamoDBConstruct extends Construct {
       name: "createTimestamp",
       type: dynamodb.AttributeType.STRING,
     }
+    const groupNameAttr = {
+      name: "GroupName",
+      type: dynamodb.AttributeType.STRING,
+    }
     const sortKeyAttr = {
-      name: "sortKey",
+      name: "SortKey",
       type: dynamodb.AttributeType.STRING,
     }
 
@@ -61,7 +65,7 @@ export class DynamoDBConstruct extends Construct {
       partitionKey: { name: "sessionId", type: dynamodb.AttributeType.STRING },
     });
 
-    const promptTable = new DynamoDBTable(this, "PromptTable", userIdAttr, sortKeyAttr).table;
+    const promptTable = new DynamoDBTable(this, "PromptTable", groupNameAttr, sortKeyAttr).table;
 
     this.sessionTableName = sessionsTable.tableName;
     this.messageTableName = messagesTable.tableName;

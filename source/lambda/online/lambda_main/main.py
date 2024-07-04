@@ -17,11 +17,11 @@ from botocore.exceptions import ClientError
 
 logger = get_logger("main")
 
-sessions_table_name = os.environ.get("sessions_table_name", "")
-messages_table_name = os.environ.get("messages_table_name", "")
-prompt_table_name = os.environ.get("prompt_table_name", "")
-websocket_url = os.environ.get("websocket_url", "")
-openai_key_arn = os.environ.get("openai_key_arn", "")
+sessions_table_name = os.environ.get("SESSIONS_TABLE_NAME", "")
+messages_table_name = os.environ.get("MESSAGES_TABLE_NAME", "")
+prompt_table_name = os.environ.get("PROMPT_TABLE_NAME", "")
+websocket_url = os.environ.get("WEBSOCKET_URL", "")
+openai_key_arn = os.environ.get("OPENAI_KEY_ARN", "")
 region_name = os.environ["AWS_REGION"]
 session = boto3.session.Session()
 secret_manager_client = session.client(
