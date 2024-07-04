@@ -27,6 +27,7 @@ import {
 } from 'src/types';
 import useAxiosRequest from 'src/hooks/useAxiosRequest';
 import { useTranslation } from 'react-i18next';
+import { formatTime } from 'src/utils/utils';
 
 const PromptList: React.FC = () => {
   const [selectedItems, setSelectedItems] = useState<PromptItem[]>([]);
@@ -244,7 +245,8 @@ const PromptList: React.FC = () => {
             {
               id: 'updateTime',
               header: t('updateTime'),
-              cell: (item: PromptItem) => item.LastModifiedTime,
+              cell: (item: PromptItem) =>
+                formatTime(parseInt(item.LastModifiedTime) * 1000),
             },
           ]}
           items={tablePromptList}
