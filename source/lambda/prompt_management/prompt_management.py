@@ -1,6 +1,6 @@
 import json
 import os
-from datetime import datetime
+import time
 import boto3
 from botocore.paginate import TokenEncoder
 from common_logic.common_utils.logger_utils import get_logger
@@ -41,8 +41,6 @@ def __put_prompt(event, group_name, email):
     body = json.loads(event["body"])
     model_id = body.get("ModelId")
     scene = body.get("Scene")
-    now = datetime.now()
-    formatted_time = now.strftime("%Y-%m-%d %H:%M:%S")
     prompt_table.put_item(
                 Item={
                     "GroupName": group_name,
@@ -51,7 +49,7 @@ def __put_prompt(event, group_name, email):
                     "Scene": scene,
                     "Prompt": body.get("Prompt"),
                     "LastModifiedBy": email,
-                    "LastModifiedTime": formatted_time,
+                    "LastModifiedTime": str(int(time.time())),
                 }
             )
     return {"Message":"OK"}
