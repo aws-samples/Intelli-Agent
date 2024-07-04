@@ -46,7 +46,7 @@ try:
             "CHATBOT_ID",
             "INDEX_ID",
             "EMBEDDING_MODEL_TYPE",
-            "WORKSPACE_TABLE",
+            "CHATBOT_TABLE",
             "INDEX_TYPE",
             "OPERATION_TYPE",
         ],
@@ -76,7 +76,7 @@ except Exception as e:
     for key in command_line_args_dict.keys():
         args[key.upper()] = command_line_args_dict[key]
     args["AOS_ENDPOINT"] = os.environ["aos_endpoint"]
-    args["WORKSPACE_TABLE"] = os.environ["workspace_table"]
+    args["CHATBOT_TABLE"] = os.environ["chatbot_table"]
     args["ETL_OBJECT_TABLE"] = os.environ["etl_object_table"]
     args["ETL_MODEL_ENDPOINT"] = os.environ["etl_endpoint"]
     args["RES_BUCKET"] = os.environ["res_bucket"]
@@ -115,7 +115,7 @@ s3_prefix = args["S3_PREFIX"]
 chatbot_id = args["CHATBOT_ID"]
 aos_index_name = args["INDEX_ID"]
 embedding_model_type = args["EMBEDDING_MODEL_TYPE"]
-workspace_table = args["WORKSPACE_TABLE"]
+chatbot_table = args["CHATBOT_TABLE"]
 index_type = args["INDEX_TYPE"]
 # Valid Operation types: "create", "delete", "update", "extract_only"
 operation_type = args["OPERATION_TYPE"]
@@ -125,8 +125,6 @@ s3_client = boto3.client("s3")
 smr_client = boto3.client("sagemaker-runtime")
 dynamodb = boto3.resource("dynamodb")
 etl_object_table = dynamodb.Table(etl_object_table_name)
-workspace_table = dynamodb.Table(workspace_table)
-workspace_manager = WorkspaceManager(workspace_table)
 
 ENHANCE_CHUNK_SIZE = 25000
 OBJECT_EXPIRY_TIME = 3600
@@ -503,29 +501,6 @@ class OpenSearchDeleteWorker:
             )
             logger.info("Deleted %d documents", len(document_ids))
             return
-
-
-def update_workspace(chatbot_id, embedding_model_endpoint, index_type):
-    (
-        embeddings_model_provider,
-        embeddings_model_name,
-        embeddings_model_dimensions,
-        embeddings_model_type,
-    ) = get_embedding_info(embedding_model_endpoint)
-
-    aos_index = workspace_manager.update_workspace_open_search(
-        chatbot_id,
-        embedding_model_endpoint,
-        embeddings_model_provider,
-        embeddings_model_name,
-        embeddings_model_dimensions,
-        embeddings_model_type,
-        ["zh"],
-        index_type,
-        workspace_offline_flag=offline,
-    )
-
-    return aos_index, embeddings_model_type
 
 
 def ingestion_pipeline(
