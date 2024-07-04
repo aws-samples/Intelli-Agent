@@ -8,7 +8,7 @@ logger.setLevel(logging.INFO)
 
 s3_client = boto3.client("s3")
 
-supported_file_types = ["pdf", "txt", "doc", "md", "html", "json", "jsonl", "csv"]
+supported_file_types = ["pdf", "txt", "doc", "md", "html", "json", "jsonl", "csv", "png", "jpg", "jpeg", "webp"]
 default_embedding_endpoint = os.environ.get("DEFAULT_EMBEDDING_ENDPOINT")
 
 
@@ -30,6 +30,7 @@ def lambda_handler(event, context):
     # fetch index from event with default value none
     chatbot_id = event["chatbotId"]
     index_id = event["indexId"]
+    embedding_model_type = event["embeddingModelType"]
     index_type = event.get("indexType", "qd")
     operation_type = event.get("operationType", "create")
     embedding_endpoint = event.get("embeddingEndpoint", default_embedding_endpoint)
@@ -68,7 +69,8 @@ def lambda_handler(event, context):
             "s3Prefix": prefix,
             "fileCount": file_count,
             "chatbotId": chatbot_id,
-            "indexId": ,
+            "indexId": index_id,
+            "embeddingModelType": embedding_model_type,
             "qaEnhance": (
                 event["qaEnhance"].lower() if "qaEnhance" in event else "false"
             ),
@@ -94,6 +96,8 @@ def lambda_handler(event, context):
             "offline": "false",
             "batchFileNumber": "1",
             "batchIndices": "0",
+            "indexId": index_id,
+            "embeddingModelType": embedding_model_type,
             "indexType": index_type,
             "operationType": operation_type,
             "embeddingEndpoint": embedding_endpoint,

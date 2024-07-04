@@ -45,6 +45,7 @@ try:
             "S3_PREFIX",
             "CHATBOT_ID",
             "INDEX_ID",
+            "EMBEDDING_MODEL_TYPE",
             "WORKSPACE_TABLE",
             "INDEX_TYPE",
             "OPERATION_TYPE",
@@ -65,6 +66,7 @@ except Exception as e:
     parser.add_argument("--s3_prefix", type=str, required=True)
     parser.add_argument("--chatbot_id", type=str, required=True)
     parser.add_argument("--index_id", type=str, required=True)
+    parser.add_argument("--embedding_model_type", type=str, required=True)
     parser.add_argument("--index_type", type=str, required=True)
     parser.add_argument("--operation_type", type=str, default="create")
     command_line_args=parser.parse_args()
@@ -111,7 +113,8 @@ res_bucket = args["RES_BUCKET"]
 s3_bucket = args["S3_BUCKET"]
 s3_prefix = args["S3_PREFIX"]
 chatbot_id = args["CHATBOT_ID"]
-index_id = args["INDEX_ID"]
+aos_index_name = args["INDEX_ID"]
+embedding_model_type = args["EMBEDDING_MODEL_TYPE"]
 workspace_table = args["WORKSPACE_TABLE"]
 index_type = args["INDEX_TYPE"]
 # Valid Operation types: "create", "delete", "update", "extract_only"
@@ -667,10 +670,6 @@ def main():
             "jpg",
             "webp"
         ]
-
-    aos_index_name, embedding_model_type = update_workspace(
-        chatbot_id, embedding_model_endpoint, index_type
-    )
 
     file_processor = S3FileProcessor(s3_bucket, s3_prefix, supported_file_types)
 

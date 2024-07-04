@@ -35,7 +35,8 @@ def initiate_model(model_table, group_name, model_id):
             "updateTime": create_time,
             "status": Status.ACTIVE.value
         }
-    )    
+    )
+    return embedding_info["ModelType"]
 
 
 def initiate_index(index_table, group_name, index_id, model_id):
@@ -167,12 +168,13 @@ def handler(event, context):
         )
     
     model_id = f"{chatbot_id}-embedding"
-    initiate_model(model_table, group_name, index_id)
+    embedding_model_type = initiate_model(model_table, group_name, model_id)
     initiate_index(index_table, group_name, index_id, model_id)
     initiate_chatbot(chatbot_table, group_name, chatbot_id, index_id)
 
     input_body["tableItemId"] = context.aws_request_id
     input_body["chatbotId"] = chatbot_id
+    input_body["embeddingModelType"] = embedding_model_type
     input_payload = json.dumps(input_body)
     response = client.start_execution(
         stateMachineArn=os.environ["sfn_arn"], input=input_payload

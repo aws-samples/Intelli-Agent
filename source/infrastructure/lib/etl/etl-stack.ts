@@ -436,6 +436,7 @@ export class EtlStack extends NestedStack {
             "qaEnhance.$": "$.Payload.qaEnhance",
             "chatbotId.$": "$.Payload.chatbotId",
             "indexId.$": "$.Payload.indexId",
+            "embeddingModelType.$": "$.Payload.embeddingModelType",
             "offline.$": "$.Payload.offline",
             "batchFileNumber.$": "$.Payload.batchFileNumber",
             "batchIndices.$": "$.Payload.batchIndices",
@@ -479,6 +480,7 @@ export class EtlStack extends NestedStack {
         "--S3_PREFIX.$": "$.s3Prefix",
         "--CHATBOT_ID.$": "$.chatbotId",
         "--INDEX_ID.$": "$.indexId",
+        "--EMBEDDING_MODEL_TYPE.$": "$.embeddingModelType",
         "--job-language": "python",
       }),
     });
@@ -497,6 +499,7 @@ export class EtlStack extends NestedStack {
         "s3Prefix.$": "$.s3Prefix",
         "chatbotId.$": "$.chatbotId",
         "indexId.$": "$.indexId",
+        "embeddingModelType.$": "$.Payload.embeddingModelType",
         "qaEnhance.$": "$.qaEnhance",
         "offline.$": "$.offline",
         "batchFileNumber.$": "$.batchFileNumber",
@@ -544,6 +547,7 @@ export class EtlStack extends NestedStack {
         "--S3_PREFIX.$": "$.s3Prefix",
         "--CHATBOT_ID.$": "$.chatbotId",
         "--INDEX_ID.$": "$.indexId",
+        "--EMBEDDING_MODEL_TYPE.$": "$.embeddingModelType",
         "--job-language": "python",
       }),
     });
