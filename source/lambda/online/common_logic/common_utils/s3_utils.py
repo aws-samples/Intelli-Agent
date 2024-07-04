@@ -22,3 +22,8 @@ def delete_s3_file(bucket_name, s3_file_path):
 def upload_file_to_s3(bucket_name, s3_file_path, local_file_path):
     s3 = boto3.client('s3')
     s3.upload_file(local_file_path, bucket_name, s3_file_path)
+
+def check_local_folder(file_path):
+    folder = '/'.join(file_path.split('/')[:-1])
+    if not os.path.exists(folder):
+        os.makedirs(folder)

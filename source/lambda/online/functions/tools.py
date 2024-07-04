@@ -12,6 +12,7 @@ class Tool(BaseModel):
     tool_def: dict = Field(description="tool definition")
     running_mode: str = Field(description="tool running mode, can be loop or output", default="loop")
     tool_def_type: ToolDefType = Field(description="tool definition type",default=ToolDefType.openai.value)
+    should_ask_parameter: str = Field(description="whether should ask about parameters of tools", default="True")
     
 
 class ToolManager:
@@ -81,11 +82,11 @@ tool_manager.register_tool(
                         "question": {
                             "description": "Rhetorical questions for users",
                             "type": "string"
-                    }
+                    },
+                    },
+                    "required": ["question"],
                 },
-                "required": ["question"]
-            }
-        },
+            },
         "running_mode": "output"
     }
 )
@@ -107,11 +108,11 @@ tool_manager.register_tool(
                             "description": "Response to user",
                             "type": "string"
                     }
+                    },
+                    "required": ["response"]
                 },
-                "required": ["response"]
-            }
-        },
-        "running_mode": "output"
+            },
+         "running_mode": "output"
     }
 )
 
@@ -130,11 +131,10 @@ tool_manager.register_tool(
                         "query": {
                             "description": "query to retrieve",
                             "type": "string"
-                    }
+                    }},
+                    "required": ["query"]
                 },
-                "required": ["query"]
-            }
-        },
+            },
         "running_mode": "loop"
     }
 )
@@ -174,7 +174,7 @@ tool_manager.register_tool({
 tool_manager.register_tool({
     "name": "explain_abbr",
     "lambda_name": "",
-    "lambda_module_path": "",
+    "lambda_module_path": "functions.lambda_tool",
     "tool_def":{
         "name": "explain_abbr",
         "description": "explain abbreviation for user",
@@ -271,6 +271,16 @@ tool_manager.register_tool({
     "tool_def": {
         "name": "assist",
         "description": "assist user to do some office work",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "response": {
+                    "description": "Response to user",
+                    "type": "string"
+            }
+            },
+            "required": ["response"]
+        },
     },
     "running_mode": "output"
 })
@@ -278,44 +288,80 @@ tool_manager.register_tool({
 tool_manager.register_tool({
     "name":"QA",
     "lambda_name": "",
-    "lambda_module_path": "",
+    "lambda_module_path": "functions.lambda_retriever.retriever",
     "tool_def": {
-        "name": "QA",
-        "description": "answer question about aws according to searched relevant content",
+                "name": "QA",
+                "description": "answer question about aws according to searched relevant content",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "query": {
+                            "description": "query to retrieve",
+                            "type": "string"
+                    }},
+                    "required": ["query"]
+                },
     },
-    "running_mode": "output"
+    "running_mode": "loop"
 })
 
 tool_manager.register_tool({
     "name": "chat",
-    "lambda_name": "",
-    "lambda_module_path": "",
-    "tool_def": {
+    "lambda_name": "chat",
+    "lambda_module_path": "function.common_tools.chat",
+    "tool_def":{
         "name": "chat",
-        "description": "chi-chat with AI",
+        "description": "casual talk with AI",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "response": {
+                    "description": "response to users",
+                    "type": "string"
+            }},
+            "required": ["response"]
+        },
     },
     "running_mode": "output"
 })
 
 tool_manager.register_tool({
     "name":"comfort",
-    "lambda_name": "",
-    "lambda_module_path": "",
+    "scenario":"common",
+    "lambda_name": "comfort",
+    "lambda_module_path": "functions.common_tools.comfort",
     "tool_def": {
         "name": "comfort",
         "description": "comfort user to mitigate their bad emotion",
+        # "parameters": {
+        #     "type": "object",
+        #     "properties": {
+        #         "response": {
+        #             "description": "response to users",
+        #             "type": "string"
+        #     }},
+        #     "required": ["response"]
+        # },
     },
     "running_mode": "output"
-
 })
 
 tool_manager.register_tool({
     "name":"transfer",
     "lambda_name": "",
-    "lambda_module_path": "",
+    "lambda_module_path": "functions.common_tools.transfer",
     "tool_def": {
         "name": "transfer",
         "description": "transfer the conversation to manual customer service",
+        # "parameters": {
+        #     "type": "object",
+        #     "properties": {
+        #         "response": {
+        #             "description": "response to users",
+        #             "type": "string"
+        #     }},
+        #     "required": ["response"]
+        # },
     },
     "running_mode": "output"
 })
@@ -329,14 +375,14 @@ tool_manager.register_tool({
         "name": "daily_reception",
         "description": "daily reception",
         "parameters":{
-            "type":"object",
-            "properties":{
-                "response":{
-                    "type": "string",
-                    "description": "This tool handles daily responses from customer"
-                }
-            },
-            "required": ["response"]
+            # "type":"object",
+            # "properties":{
+            #     "response":{
+            #         "type": "string",
+            #         "description": "This tool handles daily responses from customer"
+            #     }
+            # },
+            # "required": ["response"]
         },
     },
     "running_mode": "output"
@@ -350,6 +396,9 @@ tool_manager.register_tool({
     "tool_def": {
         "name": "goods_exchange",
         "description": "This tool handles user requests for product returns or exchanges.",
+        # "parameters":{
+        #     "required": ["response"]
+        # },
     },
     "running_mode": "output"
 })
@@ -361,6 +410,9 @@ tool_manager.register_tool({
     "tool_def": {
         "name": "customer_complain",
         "description": "有关于客户抱怨的工具，比如商品质量，错发商品，漏发商品等",
+        # "parameters":{
+        #     "required": ["response"]
+        # },
     },
     "running_mode": "output"
 })
@@ -372,6 +424,9 @@ tool_manager.register_tool({
     "tool_def": {
         "name": "promotion",
         "description": "有关于商品促销的信息，比如返点，奖品和奖励等",
+        # "parameters":{
+        #     "required": ["response"]
+        # },
     },
     "running_mode": "output"
 })
@@ -383,6 +438,9 @@ tool_manager.register_tool({
     "tool_def": {
         "name": "物流信息查询",
         "description": "物流信息查询",
+        # "parameters":{
+        #     "required": ["response"]
+        # },
     },
     "running_mode": "output"
 })
@@ -394,6 +452,9 @@ tool_manager.register_tool({
     "tool_def": {
         "name": "下单流程",
         "description": "下单流程",
+        # "parameters":{
+        #     "required": ["response"]
+        # },
     },
     "running_mode": "output"
 })
@@ -405,7 +466,7 @@ tool_manager.register_tool({
     "tool_def": {
         "name": "size_guide",
         "description": """size guide for customer
-            Step1: Determin what type of goods the customer wants to buy according to the goods information in <goods_info></goods_info> xml tag, such as shoes or apparel.
+            Step1: Determin what type of goods the customer wants to buy according to the goods information in <商品信息> </商品信息> xml tag, such as shoes or apparel.
             Step2: If the customer wants to buy shoes, you should provide the customer's shoes_size or foot_length.
             Step3: If the customer wants to buy apparel, you should provide the customer's height and weight.
             Notice: if the customer's weight unit is 斤, you should convert it to kg, 1斤=0.5kg""",
@@ -443,7 +504,10 @@ tool_manager.register_tool({
     "lambda_module_path": "functions.retail_tools.lambda_product_information_search.product_information_search",
     "tool_def": {
         "name": "goods_info",
-        "description": "search the information of the product",
+        "description": "search the information of the product, do not ask the user for more information",
+        # "parameters":{
+        #     "required": ["response"]
+        # },
     },
     "running_mode": "output"
 })
@@ -456,6 +520,9 @@ tool_manager.register_tool({
     "tool_def": {
         "name": "goods_recommendation",
         "description": "recommend the product to the customer",
+        # "parameters":{
+        #     "required": ["response"]
+        # },
     },
     "running_mode": "output"
 })
@@ -468,21 +535,45 @@ tool_manager.register_tool({
     "tool_def": {
         "name": "order_pipeline",
         "description": "query the order information",
+        # "parameters":{
+        #     "required": ["response"]
+        # },
     },
     "running_mode": "output"
 })
 
-# 物流信息查询
+# 物流信息和规则查询
 tool_manager.register_tool({
-    "name":"delivery_track",
+    "name":"product_logistics",
     "lambda_name": "",
     "lambda_module_path": "functions.retail_tools.lambda_order_info.order_info",
     "tool_def": {
-        "name": "delivery_track",
-        "description": "query the delivery information",
+        "name": "product_logistics",
+        "description": "查询商品物流信息，运费规则和物流规则，其中运费规则包括退货，换货，错发商品，漏发商品等。物流规则包括发货时间等",
+        # "parameters":{
+        #     "required": ["response"]
+        # },
     },
-    "running_mode": "output"
+    "running_mode": "output",
+    # "should_ask_parameter": "无需用户提供订单信息，物流单号",
 })
+
+# 商品库存信息
+tool_manager.register_tool({
+    "name":"goods_storage",
+    "lambda_name": "",
+    "lambda_module_path": "functions.retail_tools.lambda_order_info.order_info",
+    "tool_def": {
+        "name": "goods_storage",
+        "description": "商品的库存信息，比如应对没货的情况等",
+        # "parameters":{
+        #     "required": ["response"]
+        # },
+    },
+    "running_mode": "output",
+    # "should_ask_parameter": "无需用户提供订单信息，物流单号",
+})
+
 
 tool_manager.register_tool({
     "name":"rule_response",
@@ -491,6 +582,9 @@ tool_manager.register_tool({
     "tool_def": {
         "name": "rule_response",
         "description": "If a user's reply contains just a link or a long number, use this tool to reply.",
+        # "parameters":{
+        #     "required": ["response"]
+        # },
     },
     "running_mode": "output"
 })
@@ -502,6 +596,9 @@ tool_manager.register_tool({
     "tool_def": {
         "name": "下单流程",
         "description": "下单流程",
+        # "parameters":{
+        #     "required": ["response"]
+        # },
     },
     "running_mode": "output"
 })
@@ -513,6 +610,9 @@ tool_manager.register_tool({
     "tool_def": {
         "name": "促销查询",
         "description": "促销查询",
+        # "parameters":{
+        #     "required": ["response"]
+        # },
     },
     "running_mode": "output"
 })
@@ -524,6 +624,9 @@ tool_manager.register_tool({
     "tool_def": {
         "name": "转人工",
         "description": "转人工",
+        # "parameters":{
+        #     "required": ["response"]
+        # },
     },
     "running_mode": "output"
 })
@@ -534,6 +637,9 @@ tool_manager.register_tool({
     "tool_def": {
         "name": "信息缺失",
         "description": "信息缺失",
+        # "parameters":{
+        #     "required": ["response"]
+        # },
     },
     "running_mode": "output"
 })
@@ -546,7 +652,7 @@ tool_manager.register_tool(
         "lambda_module_path": "functions.retail_tools.lambda_product_aftersales.product_aftersales",
         "tool_def": {
             "name": "product_quality",
-            "description": "商品的售后处理，主要包括客户关于商品质量的抱怨，比如开胶等问题",
+            "description": "商品的售后处理，主要包括客户关于商品质量的抱怨，比如开胶等问题的",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -559,20 +665,6 @@ tool_manager.register_tool(
                 },
                 "required": []
             }
-        },
-        "running_mode": "output"
-    }
-)
-
-# 物流规则
-tool_manager.register_tool(
-    {
-        "name":"product_logistics",
-        "lambda_name": "",
-        "lambda_module_path": "functions.retail_tools.lambda_product_aftersales.product_aftersales",
-        "tool_def": {
-                "name": "product_logistics",
-                "description": "有关于商品物流的问题，主要运费包括退货，换货，错发商品，漏发商品等。 也包括什么时候发货，发货地址等信息。",
         },
         "running_mode": "output"
     }

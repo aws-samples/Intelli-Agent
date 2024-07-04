@@ -47,10 +47,10 @@
   "dependencies": {
     "@aws-cdk/aws-glue-alpha": "^2.118.0-alpha.0",
     "@aws-cdk/aws-lambda-python-alpha": "^2.139.0-alpha.0",
+    "@aws-solutions-constructs/aws-cloudfront-s3": "2.9.0",
     "aws-cdk-lib": "^2.118.0",
     "constructs": "^10.0.5",
-    "dotenv": "^16.0.3",
-    "@aws-solutions-constructs/aws-cloudfront-s3": "2.9.0"
+    "dotenv": "^16.0.3"
   },
   "license": "Apache-2.0",
   "version": "0.0.0",

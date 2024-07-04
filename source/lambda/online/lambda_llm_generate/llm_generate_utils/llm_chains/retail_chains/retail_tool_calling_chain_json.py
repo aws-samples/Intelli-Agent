@@ -27,6 +27,9 @@ from functions.tools import get_tool_by_name
 from ..llm_chain_base import LLMChain
 from ...llm_models import Model
 from ..chat_chain import GLM4Chat9BChatChain
+from common_logic.common_utils.logger_utils import get_logger
+
+logger = get_logger("retail_tool_calling_chain_json")
 
 GLM4_SYSTEM_PROMPT = """你是安踏的客服助理小安, 主要职责是处理用户售前和售后的问题。{date_prompt}
 请遵守下面的规范回答用户的问题。
@@ -156,12 +159,19 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
         "temperature": 0.1,
     }
 
-    DATE_PROMPT = "当前日期: %Y-%m-%d"
+    DATE_PROMPT = "当前日期: %Y-%m-%d 。"
     FN_NAME = '✿FUNCTION✿'
     FN_ARGS = '✿ARGS✿'
     FN_RESULT = '✿RESULT✿'
     FN_EXIT = '✿RETURN✿'
     FN_STOP_WORDS = [FN_RESULT, f'{FN_RESULT}:', f'{FN_RESULT}:\n']
+    thinking_tag = "思考"
+    fix_reply_tag = "固定回复"
+    goods_info_tag = "商品信息"
+    prefill_after_thinking = f"<{thinking_tag}>\nStep 1. 根据各个工具的描述与调用示例，以及当前用户的回复"
+    prefill_after_second_thinking = ""
+    prefill = prefill_after_thinking
+
 
     FN_CALL_TEMPLATE_INFO_ZH="""# 工具
 
@@ -185,28 +195,28 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
     
     FN_CALL_TEMPLATE=FN_CALL_TEMPLATE_INFO_ZH + '\n\n' + FN_CALL_TEMPLATE_FMT_ZH
 
-    SYSTEM_PROMPT="""你是安踏的客服助理小安, 主要职责是处理用户售前和售后的问题。当前日期: 2024-06-18
-请遵守下面的规范回答用户的问题。
-## 回答规范
-   - 如果用户的提供的信息不足以回答问题，尽量反问用户。
-   - 回答简洁明了，一句话以内。
+    SYSTEM_PROMPT=f"""你是安踏天猫的客服助理小安, 主要职责是处理用户售前和售后的问题。{{date_prompt}}
 
-下面是当前用户正在浏览的商品信息:
+{{tools}}
+{{fewshot_examples}}
 
 ## 当前用户正在浏览的商品信息
-{goods_info}
-
-{tools}
-{fewshot_examples}
-如果你发现工具的相关参数用户没有提供，请调用 `give_rhetorical_question` 工具反问用户。
+{{goods_info}}
 
 # 思考
-你的每次回答都要按照下面的步骤输出你的思考, 并将思考过程写在xml 标签<thinking> 和 </thinking> 中:
-    step 1. 判断是否需要使用某个工具。如果前面已经调用某些工具, 需要分析之前调用工具的结果来判断现在是否需要使用某个工具。
-    step 2. 基于当前上下文检查需要调用的工具对应的参数是否充足。如果不需要使用任何工具，请直接输出回答。
+你每次给出最终回复前都要按照下面的步骤输出你的思考过程, 注意你并不需要每次都进行所有步骤的思考。并将思考过程写在 XML 标签 <{thinking_tag}> 和 </{thinking_tag}> 中:
+    Step 1. 根据各个工具的描述，分析当前用户的回复和各个示例中的Input相关性，如果跟某个示例对应的Input相关性强，直接跳过后续所有步骤，之后按照示例中Output的工具名称进行调用。
+    Step 2. 如果你觉得可以依据商品信息 <{goods_info_tag}> 里面的内容进行回答，就直接就回答，不需要调用任何工具。并结束思考。
+    Step 3. 如果你觉得当前用户的回复意图不清晰，或者仅仅是表达一些肯定的内容，或者和历史消息没有很强的相关性，同时当前不是第一轮对话，直接回复用户下面 XML 标签 <{fix_reply_tag}> 里面的内容:
+            <{fix_reply_tag}> 亲亲，请问还有什么问题吗？ </{fix_reply_tag}>
+    Step 4. 如果需要调用某个工具，检查该工具的必选参数是否可以在上下文中找到。结束思考，输出结束思考符号。
 
-结束思考时候之后，要么直接进行工具调用，要么直接回复用户，不要输出冗余或者重复的内容。直接回复客户需要注意输出不超过一句话。
-"""
+## 回答规范
+   - 如果客户没有明确指出在哪里购买的商品，则默认都是在天猫平台购买的
+   - 当前主要服务天猫平台的客户，如果客户询问其他平台的问题，直接回复 “不好意思，亲亲，这里是天猫店铺，只能为您解答天猫的问题。建议您联系其他平台的客服或售后人员给您提供相关的帮助和支持。谢谢！”
+   - 如果客户的回复里面包含订单号，则直接回复 ”您好，亲亲，这就帮您去查相关订单信息。请问还有什么问题吗？“
+   - 只能思考一次，在结束思考符号“</思考>”之后给出最终的回复。不要重复输出文本，段落，句子。思考之后的文本保持简洁，有且仅能包含一句话。{{non_ask_rules}}"""
+
     @classmethod
     def get_function_description(cls,tool:dict):
         tool_name = tool['name']
@@ -222,37 +232,55 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
         ).rstrip()
 
 
-    @staticmethod
-    def format_fewshot_examples(fewshot_examples:list[dict]):
+    @classmethod
+    def format_fewshot_examples(cls,fewshot_examples:list[dict]):
         fewshot_example_strs = []
         for i,example in enumerate(fewshot_examples):
             query = example['query']
             name = example['name']
             kwargs = example['kwargs']
-            fewshot_example_str = f"## 示例{i+1}\n### 输入:\n{query}\n### 调用工具:\n{name}"
+            fewshot_example_str = f"""## 工具调用例子{i+1}\nInput:\n{query}\nOutput:\n{cls.FN_NAME}: {name}\n{cls.FN_ARGS}: {json.dumps(kwargs,ensure_ascii=False)}\n{cls.FN_RESULT}"""
             fewshot_example_strs.append(fewshot_example_str)
         return "\n\n".join(fewshot_example_strs)
      
     
     @classmethod
-    def create_system_prompt(cls,goods_info:str,tools:list[dict],fewshot_examples:list) -> str:
+    def create_system_prompt(cls,goods_info:str,tools:list[dict],fewshot_examples:list,create_time=None) -> str:
         tool_descs = '\n\n'.join(cls.get_function_description(tool) for tool in tools)
         tool_names = ','.join(tool['name'] for tool in tools)
         tool_system = cls.FN_CALL_TEMPLATE.format(
             tool_descs=tool_descs,
             tool_names=tool_names
-            
         )
         fewshot_examples_str = ""
         if fewshot_examples:
-            fewshot_examples_str = "\n\n# 下面给出不同问题调用不同工具的例子。"
+            fewshot_examples_str = "\n\n# 下面给出不同客户回复下调用不同工具的例子。"
             fewshot_examples_str += f"\n\n{cls.format_fewshot_examples(fewshot_examples)}"
             fewshot_examples_str += "\n\n请参考上述例子进行工具调用。"
-            
+        
+        non_ask_tool_list = []
+        for tool in tools:
+            should_ask_parameter = get_tool_by_name(tool['name']).should_ask_parameter
+            if should_ask_parameter != "True":
+                format_string = tool['name']+"工具"+should_ask_parameter
+                non_ask_tool_list.append(format_string)
+        if len(non_ask_tool_list) == 0:
+            non_ask_rules = ""
+        else:
+            non_ask_rules = "\n - " + '，'.join(non_ask_tool_list)
+
+        if create_time:
+            datetime_object = datetime.strptime(create_time, '%Y-%m-%d %H:%M:%S.%f')
+        else:
+            datetime_object = datetime.now()
+            logger.info(f"create_time: {create_time} is not valid, use current time instead.")
+        
         return cls.SYSTEM_PROMPT.format(
                 goods_info=goods_info,
                 tools=tool_system,
-                fewshot_examples=fewshot_examples_str
+                fewshot_examples=fewshot_examples_str,
+                non_ask_rules=non_ask_rules,
+                date_prompt=datetime_object.strftime(cls.DATE_PROMPT)
             )
 
     @classmethod
@@ -303,7 +331,7 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
     @classmethod
     def parse_function_calls_from_ai_message(cls,message:dict):
         stop_reason = message['stop_reason']
-        content =  "<thinking>" + message['text']
+        content =  f"{cls.prefill}" + message['text']
         content = content.strip()
         stop_reason = stop_reason or ""
     
@@ -323,18 +351,27 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
         fewshot_examples = kwargs.get('fewshot_examples',[])
         system_prompt = cls.create_system_prompt(
             goods_info=kwargs['goods_info'], 
+            create_time=kwargs.get('create_time',None),
             tools=tools,
             fewshot_examples=fewshot_examples
             )
-    
+
+        current_agent_recursion_num = kwargs['current_agent_recursion_num']
+        
+        # give different prefill
+        if current_agent_recursion_num == 0:
+            cls.prefill = cls.prefill_after_thinking
+        else:
+            cls.prefill = cls.prefill_after_second_thinking
+
         model_kwargs = model_kwargs or {}
         kwargs['system_prompt'] = system_prompt
         model_kwargs = {**model_kwargs}
-        model_kwargs["stop"] = ['✿RESULT✿', '✿RESULT✿:', '✿RESULT✿:\n']
-        model_kwargs["prefill"] = "我先看看调用哪个工具，下面是我的思考过程:\n<thinking>\nstep 1."
+        model_kwargs["stop"] = model_kwargs.get("stop",[]) + ['✿RESULT✿', '✿RESULT✿:', '✿RESULT✿:\n','✿RETURN✿',f'<{cls.thinking_tag}>']
+        # model_kwargs["prefill"] = "我先看看调用哪个工具，下面是我的思考过程:\n<thinking>\nstep 1."
+        model_kwargs["prefill"] = f'{cls.prefill}'
         return super().create_chain(model_kwargs=model_kwargs,**kwargs)
         
-
 
 class Qwen2Instruct72BRetailToolCallingChain(Qwen2Instruct7BRetailToolCallingChain):
     model_id = LLMModelType.QWEN2INSTRUCT72B

@@ -17,3 +17,10 @@ from .retail_tool_calling_chain_claude_xml import (
 from .retail_tool_calling_chain_json import (
     GLM4Chat9BRetailToolCallingChain
 )
+
+from .auto_evaluation_chain import (
+    Claude3HaikuAutoEvaluationChain,
+    Claude21AutoEvaluationChain,
+    Claude2AutoEvaluationChain
+
+)

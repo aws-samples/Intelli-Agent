@@ -139,7 +139,7 @@ flowchart TD
     query_preprocess == chat mode ==> llm_direct_results_generation["llm_direct_results_generation"]
     query_preprocess == rag mode ==> all_knowledge_retrieve["all_knowledge_retrieve"]
     query_preprocess == agent mode ==> intention_detection["intention_detection"]
-    all_knowledge_retrieve --> llm_direct_results_generation & llm_rag_results_generation["llm_rag_results_generation"]
+    all_knowledge_retrieve --> llm_rag_results_generation["llm_rag_results_generation"]
     intention_detection -- similar query found --> matched_query_return["matched_query_return"]
     intention_detection -- intention detected --> tools_choose_and_results_generation
     tools_choose_and_results_generation --> results_evaluation
@@ -166,6 +166,9 @@ flowchart TD
 ```
 
 ## Quick Start
+
+[<img src="https://aws-gcr-solutions.s3.cn-north-1.amazonaws.com.cn/intelli-agent/images/logo.jpg" width="25%">](https://aws-gcr-solutions.s3.cn-north-1.amazonaws.com.cn/intelli-agent/videos/intelli-agent-deployment.mp4 "Intelli-Agent Deployment")
+
 Follow these steps to get started:
 
 1. [Prerequisites](#prerequisites)

@@ -26,7 +26,7 @@ def parse_common_entry_config(chatbot_config):
         **chatbot_config.get("default_llm_config", {}),
     }
 
-    default_workspace_config = {"intent_workspace_ids": ["yb_intent"], "rag_workspace_ids": ["test-pdf"]}
+    default_workspace_config = {"intent_workspace_ids": ["default-intent"], "rag_workspace_ids": ["test-pdf"]}
 
     default_workspace_config = {
         **default_workspace_config,
@@ -41,6 +41,7 @@ def parse_common_entry_config(chatbot_config):
         "chatbot_mode": ChatbotMode.chat,
         "use_history": True,
         "enable_trace": True,
+        "prompt_templates": {},
         "agent_recursion_limit": 5,
         "query_process_config": {
             "conversation_query_rewrite_config": {**copy.deepcopy(default_llm_config)}
@@ -184,7 +185,7 @@ def parse_retail_entry_config(chatbot_config):
                     "type": "qq",
                     "workspace_ids": ["retail-intent"],
                     "config": {
-                        "top_k": 10,
+                        "top_k": 5,
                     }
                 },
             ]
@@ -236,6 +237,22 @@ def parse_retail_entry_config(chatbot_config):
                 **copy.deepcopy(default_llm_config),
             },
         },
+        "rag_delivery_track_config": {
+            "retriever_config": {
+                "retrievers": [
+                    {
+                        "type": "qq",
+                        "workspace_ids": ["retail-quick-reply"],
+                        "config": {
+                            "top_k": 5
+                        },
+                    },
+                ]
+            },
+            "llm_config": {
+                **copy.deepcopy(default_llm_config),
+            },
+        },
         "rag_product_aftersales_config": {
             "retriever_config":{
                 "retrievers": [
@@ -243,7 +260,7 @@ def parse_retail_entry_config(chatbot_config):
                         "type": "qq",
                         "workspace_ids": ['retail-shouhou-wuliu', 'retail-quick-reply'],
                         "config": {
-                            "top_k": 10,
+                            "top_k": 5,
                         }
                     },
                 ],
@@ -310,6 +327,22 @@ def parse_retail_entry_config(chatbot_config):
             "llm_config":{
                 **copy.deepcopy(default_llm_config),
             }
+        },
+        "rag_goods_info_config": {
+            "retriever_config": {
+                "retrievers": [
+                    {
+                        "type": "qq",
+                        "workspace_ids": ["goods-info"],
+                        "config": {
+                            "top_k": 5
+                        },
+                    },
+                ]
+            },
+            "llm_config": {
+                **copy.deepcopy(default_llm_config),
+            },
         },
         "final_rag_retriever": {
             "retriever_config":{

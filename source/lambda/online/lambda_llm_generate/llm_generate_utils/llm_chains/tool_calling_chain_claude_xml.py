@@ -5,6 +5,7 @@ import re
 
 from langchain.schema.runnable import (
     RunnableLambda,
+    RunnablePassthrough
 )
 
 from langchain_core.messages import(
@@ -32,7 +33,7 @@ tool_call_guidelines = """<guidlines>
     3. 如果当前的上下文不能支持回答用户的问题，你可以考虑调用<tools> 标签中列举的工具。
     4. 如果调用工具对应的参数不够，请调用反问工具 `give_rhetorical_question` 来让用户提供更加充分的信息。
     5. 最后给出你要调用的工具名称。
-- Always output with "中文". 
+- Always output with the same language as the content within <query></query>. If the content is english, use englisth to output. If the content is chinese, use chinese to output.
 </guidlines>
 """
 incorrect_tool_call_example = """Here is an example of an incorrectly formatted tool call, which you should avoid.
@@ -267,8 +268,8 @@ class Claude2ToolCallingChain(LLMChain):
             model_id=cls.model_id,
             model_kwargs=model_kwargs,
         )
-        chain = RunnableLambda.assign(chat_history=lambda x: cls.create_chat_history(x)) | tool_calling_template \
-            | RunnableLambda(lambda x: x.messages ) \
+        chain = RunnablePassthrough.assign(chat_history=lambda x: cls.create_chat_history(x)) | tool_calling_template \
+            | RunnableLambda(lambda x: print(x.messages) or x.messages ) \
             | llm | RunnableLambda(lambda message:cls.parse_function_calls_from_ai_message(
                 message
             ))

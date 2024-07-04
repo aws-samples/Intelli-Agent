@@ -17,10 +17,11 @@ def write_chat_history_to_ddb(
         ddb_obj:DynamoDBChatMessageHistory,
         message_id,
         custom_message_id,
-        entry_type
+        entry_type,
+        additional_kwargs=None,
         ):
     ddb_obj.add_user_message(
-                f"user_{message_id}", custom_message_id, entry_type, query
+                f"user_{message_id}", custom_message_id, entry_type, query, additional_kwargs
             )
     ddb_obj.add_ai_message(
         f"ai_{message_id}",
@@ -28,6 +29,7 @@ def write_chat_history_to_ddb(
         entry_type,
         answer,
         input_message_id=f"user_{message_id}",
+        additional_kwargs=additional_kwargs
     )
 
 
@@ -45,7 +47,8 @@ def api_response(event_body:dict,response:dict):
         ddb_obj=ddb_history_obj,
         message_id=event_body['message_id'],
         custom_message_id=event_body['custom_message_id'],
-        entry_type=event_body['entry_type']
+        entry_type=event_body['entry_type'],
+        additional_kwargs=response.get("ddb_additional_kwargs",{})
     )
 
     
@@ -125,7 +128,8 @@ def stream_response(event_body:dict, response:dict):
             ddb_obj=ddb_history_obj,
             message_id=message_id,
             custom_message_id=custom_message_id,
-            entry_type=entry_type
+            entry_type=entry_type,
+            additional_kwargs=response.get("ddb_additional_kwargs",{})
         )
 
         # sed source and contexts

@@ -155,7 +155,8 @@ class Qwen2Instruct7BFormatToolResult(FormatToolResult):
         return {
             "tool_message": {
                 "role": MessageType.TOOL_MESSAGE_TYPE,
-                "content": ret
+                "content": ret,
+                "additional_kwargs": {"original": [out['output'] for out in tool_call_outputs]},
             }
         }
 

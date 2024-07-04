@@ -7,7 +7,7 @@ This guide will walk you through the process of invoking the ETL API.
 <!---
 #### Extract Document
 
-To extract a document from a specified S3 bucket and prefix, make a POST request to `https://xxxx.execute-api.us-east-1.amazonaws.com/v1/extract`. Use the `need_split` flag to configure if the extracted document needs to be split semantically or kept with the original content.
+To extract a document from a specified S3 bucket and prefix, make a POST request to `https://xxxx.execute-api.us-east-1.amazonaws.com/prod/extract`. Use the `need_split` flag to configure if the extracted document needs to be split semantically or kept with the original content.
 
 Here is an example of the request body:
 
@@ -22,7 +22,7 @@ Here is an example of the request body:
 
 #### Offline Batch Processing
 
-To perform offline (asynchronous) batch processing of documents specified in an S3 bucket and prefix, make a POST request to `https://xxxx.execute-api.us-east-1.amazonaws.com/v1/etl`. This process includes extracting, splitting document content, converting to vector representation, and injecting into Amazon Open Search (AOS).
+To perform offline (asynchronous) batch processing of documents specified in an S3 bucket and prefix, make a POST request to `https://xxxx.execute-api.us-east-1.amazonaws.com/prod/etl`. This process includes extracting, splitting document content, converting to vector representation, and injecting into Amazon Open Search (AOS).
 
 Here is an example of the request body:
 
@@ -34,7 +34,7 @@ Here is an example of the request body:
     "qaEnhance": "false",
     "workspaceId": "<Your Workspace index>" // You can name the workspace index as you like
     "operationType": "create" // You can choose create/update/delete/extract_only
-    "documentLanguage": "zh" // You can input the language of the pdf document to increase the accuracy of the extraction
+    "indexType": "qq" // You can choose qq/qd
 }
 ```
 
@@ -54,12 +54,12 @@ ETLStateA5DEA10E-Tgtw66LqdlNH:4dd19f1c-45e1-4d18-9d70-7593f96d001a",
 
 #### Get ETL Status
 
-To get the ETL status by execution id, make a GET request to `https://xxxx.execute-api.us-east-1.amazonaws.com/v1/etl/execution`.
+To get the ETL status by execution id, make a GET request to `https://xxxx.execute-api.us-east-1.amazonaws.com/prod/etl/execution`.
 
 Here is an example of the request:
 
 ```bash
-https://xxxx.execute-api.us-east-1.amazonaws.com/v1/etl/execution?executionId=24c9bfdb-f604-4bb2-9495-187b3a38be75
+https://xxxx.execute-api.us-east-1.amazonaws.com/prod/etl/execution?executionId=24c9bfdb-f604-4bb2-9495-187b3a38be75
 ```
 
 After making the request, you should see a response similar to this:

@@ -17,6 +17,7 @@ from common_logic.common_utils.lambda_invoke_utils import (
 )
 from common_logic.common_utils.python_utils import add_messages, update_nest_dict
 from common_logic.common_utils.logger_utils import get_logger
+from common_logic.common_utils.prompt_utils import get_prompt_templates_from_ddb
 from common_logic.common_utils.serialization_utils import JSONEncoder
 from functions.tool_calling_parse import parse_tool_calling as _parse_tool_calling
 from functions.tool_execute_result_format import format_tool_call_results
@@ -128,19 +129,55 @@ def intention_detection_lambda(state: ChatbotState):
 #     send_trace("**all index retriever lambda result** \n" + ("\n"+"="*50 + "\n").join(contexts))
 #     return {"all_index_retriever_contexts": contexts}
 
+@node_monitor_wrapper
+def rag_llm_lambda(state: ChatbotState):
+    user_id = state['chatbot_config']['user_id']
+    llm_config = state["chatbot_config"]["rag_config"]["llm_config"]
+    task_type = LLMTaskType.RAG
+    prompt_templates_from_ddb = get_prompt_templates_from_ddb(
+        user_id,
+        model_id = llm_config['model_id'],
+        task_type=task_type
+    )
+
+    output: str = invoke_lambda(
+        lambda_name="Online_LLM_Generate",
+        lambda_module_path="lambda_llm_generate.llm_generate",
+        handler_name="lambda_handler",
+        event_body={
+            "llm_config": {
+                **prompt_templates_from_ddb,
+                **llm_config,
+                "stream": state["stream"],
+                "intent_type": task_type,
+            },
+            "llm_input": {
+                "contexts": [state["contexts"]],
+                "query": state["query"],
+                "chat_history": state["chat_history"],
+            },
+        },
+    )
+    return {"answer": output}
+
 
 @node_monitor_wrapper
 def agent_lambda(state: ChatbotState):
-    system_prompt = get_common_system_prompt()
+    # system_prompt = get_common_system_prompt()
     # all_index_retriever_contexts = state.get("all_index_retriever_contexts",[])
-    all_index_retriever_contexts = state.get("contexts",[])
-    if all_index_retriever_contexts:
-        context = '\n\n'.join(all_index_retriever_contexts)
-        system_prompt += f"\n下面有一些背景信息供参考:\n<context>\n{context}\n</context>\n"
+    # all_index_retriever_contexts = state.get("contexts",[])
+    # if all_index_retriever_contexts:
+    #     context = '\n\n'.join(all_index_retriever_contexts)
+    #     system_prompt += f"\n下面有一些背景信息供参考:\n<context>\n{context}\n</context>\n"
+    # judge recent tool calling type, if it's 
+    # if retriever_tool_check(state):
+        
+    #     contexts = [doc["page_content"] for doc in output["result"]["docs"]]
+    #     state["contexts"] = contexts
+
     current_agent_output:dict = invoke_lambda(
         event_body={
             **state,
-            "chat_history":state['agent_chat_history'],
             "other_chain_kwargs": {"system_prompt": get_common_system_prompt()}
             },
         lambda_name="Online_Agent",
@@ -197,6 +234,12 @@ def parse_tool_calling(state: ChatbotState):
 
 
 @node_monitor_wrapper
+def agent(state: ChatbotState):
+    response = app_agent.invoke(state)
+    return response
+
+
+@node_monitor_wrapper
 def tool_execute_lambda(state: ChatbotState):
     """executor lambda
     Args:
@@ -248,28 +291,6 @@ def rag_all_index_lambda(state: ChatbotState):
     contexts = [doc["page_content"] for doc in output["result"]["docs"]]
     return {"contexts": contexts}
 
-
-@node_monitor_wrapper
-def rag_llm_lambda(state: ChatbotState):
-    output: str = invoke_lambda(
-        lambda_name="Online_LLM_Generate",
-        lambda_module_path="lambda_llm_generate.llm_generate",
-        handler_name="lambda_handler",
-        event_body={
-            "llm_config": {
-                **state["chatbot_config"]["rag_config"]["llm_config"],
-                "stream": state["stream"],
-                "intent_type": LLMTaskType.RAG,
-            },
-            "llm_input": {
-                "contexts": [state["contexts"]],
-                "query": state["query"],
-                "chat_history": state["chat_history"],
-            },
-        },
-    )
-    return {"answer": output}
-
 @node_monitor_wrapper
 def aws_qa_lambda(state: ChatbotState):
     # call retrivever
@@ -284,15 +305,27 @@ def aws_qa_lambda(state: ChatbotState):
     contexts = [doc["page_content"] for doc in output["result"]["docs"]]
     return {"contexts": contexts}
 
+
 @node_monitor_wrapper
 def chat_llm_generate_lambda(state: ChatbotState):
+    user_id = state['chatbot_config']['user_id']
+    llm_config = state["chatbot_config"]["chat_config"]
+    task_type = LLMTaskType.CHAT
+
+    prompt_templates_from_ddb = get_prompt_templates_from_ddb(
+        user_id,
+        model_id = llm_config['model_id'],
+        task_type=task_type
+    )
+
     answer: dict = invoke_lambda(
         event_body={
             "llm_config": {
-                **state["chatbot_config"]["chat_config"],
+                **llm_config,
                 "stream": state["stream"],
-                "intent_type": LLMTaskType.CHAT,
-                "system_prompt": get_common_system_prompt()
+                "intent_type": task_type,
+                "system_prompt": get_common_system_prompt(),
+                **prompt_templates_from_ddb
             },
             "llm_input": {
                 "query": state["query"],
@@ -326,6 +359,8 @@ def give_final_response(state: ChatbotState):
         answer = recent_tool_calling["kwargs"]["question"]
     elif "response" in recent_tool_calling["kwargs"].keys():
         answer = recent_tool_calling["kwargs"]["response"]
+    elif "abbr" in recent_tool_calling["kwargs"].keys():
+        answer = recent_tool_calling["kwargs"]["abbr"]
     else:
         answer = "no valid answer!"
     return {"answer": answer}
@@ -349,20 +384,36 @@ def intent_route(state: dict):
         return 'no clear intention'
     return state["intent_type"]
 
+# def agent_route(state: dict):
+#     if state["agent_state"] == "tool calling":
+#         return "tool calling"
+#     else:
+#         return "no need tool calling"
 
-def results_evaluation_route(state: dict):
+def agent_route(state: dict):
     state["agent_recursion_validation"] = state['current_agent_recursion_num'] < state['agent_recursion_limit']
     if state["parse_tool_calling_ok"]:
         state["current_tool_name"] = state["current_tool_calls"][0]["name"]
     else:
         state["current_tool_name"] = ""
 
-    if state["agent_recursion_validation"] and not state["parse_tool_calling_ok"]:
-        return "invalid tool calling"
-    elif state["agent_recursion_validation"] and state["current_tool_name"] in state["valid_tool_calling_names"]:
-        return "valid tool calling"
+    # if state["agent_recursion_validation"] and not state["parse_tool_calling_ok"]:
+    #     return "invalid tool calling"
+    if state["agent_recursion_validation"]:
+        if state["current_tool_name"] in ["QA", "service_availability", "explain_abbr"]:
+            return "force to retrieve all knowledge"
+        elif state["current_tool_name"] in state["valid_tool_calling_names"]:
+            return "valid tool calling"
+        else:
+            return "no need tool calling"
     else:
-        return "no need tool calling"
+        return "force to retrieve all knowledge"
+
+    # # if recent_tool_name in ["assist", "chat"]:
+    # if state["agent_recursion_validation"] and state["current_tool_name"] in state["valid_tool_calling_names"]:
+    #     return "valid tool calling"
+    # else:
+    #     return "no need tool calling"
 
     # # invalid tool calling
     # if not parse_tool_calling_ok:
@@ -424,9 +475,8 @@ def rag_all_index_lambda_route(state: dict):
         return "generate results in rag mode"
 
 #############################
-# define whole online graph #
+# define online top-level graph #
 #############################
-
 
 def build_graph():
     workflow = StateGraph(ChatbotState)
@@ -440,9 +490,10 @@ def build_graph():
     # agent mode
     workflow.add_node("intention_detection", intention_detection_lambda)
     workflow.add_node("matched_query_return", qq_matched_reply)
-    workflow.add_node("tools_choose_and_results_generation", agent_lambda)
+    # workflow.add_node("tools_choose_and_results_generation", agent_lambda)
+    workflow.add_node("agent", agent)
     workflow.add_node("tools_execution", tool_execute_lambda)
-    workflow.add_node("results_evaluation", parse_tool_calling)
+    # workflow.add_node("results_evaluation", parse_tool_calling)
     workflow.add_node("final_results_preparation", give_final_response)
     # workflow.add_node("format_reply", format_reply)
     # workflow.add_node("comfort_reply", comfort_reply)
@@ -459,11 +510,11 @@ def build_graph():
     # chat mode
     workflow.add_edge("llm_direct_results_generation", END)
     # rag mode
-    workflow.add_edge("all_knowledge_retrieve", "llm_rag_results_generation")
+    # workflow.add_edge("all_knowledge_retrieve", "llm_rag_results_generation")
     workflow.add_edge("llm_rag_results_generation", END)
     # agent mode
-    workflow.add_edge("tools_choose_and_results_generation", "results_evaluation")
-    workflow.add_edge("tools_execution", "tools_choose_and_results_generation")
+    # workflow.add_edge("tools_choose_and_results_generation", "results_evaluation")
+    workflow.add_edge("tools_execution", "agent")
     workflow.add_edge("matched_query_return", "final_results_preparation")
     workflow.add_edge("final_results_preparation", END)
     # workflow.add_edge("rag_all_index_lambda", "rag_llm_lambda")
@@ -502,8 +553,8 @@ def build_graph():
         intent_route,
         {
             "similar query found": "matched_query_return",
-            "intention detected": "tools_choose_and_results_generation",
-            # "no clear intentions": "all_knowledge_retrieve", 
+            "intention detected": "agent",
+            "no clear intention": "all_knowledge_retrieve", 
         },
     )
 
@@ -515,13 +566,13 @@ def build_graph():
     # 4.1 the agent believes that it can produce results without executing tools
     # 4.2 the tools_choose_and_results_generation node reaches its maximum recusion limit
     workflow.add_conditional_edges(
-        "results_evaluation",
-        results_evaluation_route,
+        "agent",
+        agent_route,
         {
-            "invalid tool calling": "tools_choose_and_results_generation",
+            # "invalid tool calling": "tools_choose_and_results_generation",
             "valid tool calling": "tools_execution",
             "no need tool calling": "final_results_preparation",
-            # "force to retrieve all knowledge": "all_knowledge_retrieve", 
+            "force to retrieve all knowledge": "all_knowledge_retrieve", 
             # "give final response": "give_final_response",
             # "rhetorical question": "give_rhetorical_question",
             # "format reply": "format_reply",
@@ -534,26 +585,58 @@ def build_graph():
         },
     )
 
-    # # when all knowledge retrieved, there are two possible next steps:
-    # # 1. no clear intention: this happens when no clear intention (no few shots) is detected, we give agent enough context to think and plan.
-    # # 2. generate results in rag mode: let llm generate results based on retrieved knowledge, this happens in the following scenarios:
-    # # 2.1 in rag mode based on user selection at beginning
-    # # 2.2 agent thinks it needs to retrieve all the knowledge to generate the results
-    # # 2.3 the agent believes that it can produce results without executing tools
-    # # 2.4 the tools_choose_and_results_generation node reaches its maximum recusion limit
-    # workflow.add_conditional_edges(
-    #     "all_knowledge_retrieve",
-    #     rag_all_index_lambda_route,
-    #     {
-    #         "no clear intentions": "tools_choose_and_results_generation",
-    #         "generate results in rag mode": "llm_rag_results_generation",
-    #     },
-    # )
+    # when all knowledge retrieved, there are two possible next steps:
+    # 1. no clear intention: this happens when no clear intention (no few shots) is detected, we give agent enough context to think and plan.
+    # 2. generate results in rag mode: let llm generate results based on retrieved knowledge, this happens in the following scenarios:
+    # 2.1 in rag mode based on user selection at beginning
+    # 2.2 agent thinks it needs to retrieve all the knowledge to generate the results
+    # 2.3 the agent believes that it can produce results without executing tools
+    # 2.4 the tools_choose_and_results_generation node reaches its maximum recusion limit
+    workflow.add_conditional_edges(
+        "all_knowledge_retrieve",
+        rag_all_index_lambda_route,
+        {
+            "no clear intention": "agent",
+            "generate results in rag mode": "llm_rag_results_generation",
+        },
+    )
     app = workflow.compile()
     return app
 
+#############################
+# define online agent graph #
+#############################
 
+def build_agent_graph():
+    def _results_evaluation_route(state: dict):
+        #TODO: pass no need tool calling or valid tool calling?
+        state["agent_recursion_validation"] = state['current_agent_recursion_num'] < state['agent_recursion_limit']
+        if state["agent_recursion_validation"] and not state["parse_tool_calling_ok"]:
+            return "invalid tool calling"
+        return "continue"
+
+    workflow = StateGraph(ChatbotState)
+    workflow.add_node("tools_choose_and_results_generation", agent_lambda)
+    workflow.add_node("results_evaluation", parse_tool_calling)
+
+    # edge
+    workflow.set_entry_point("tools_choose_and_results_generation")
+    workflow.add_edge("tools_choose_and_results_generation","results_evaluation")
+    workflow.add_conditional_edges(
+        "results_evaluation",
+        _results_evaluation_route,
+        {
+            "invalid tool calling": "tools_choose_and_results_generation",
+            "continue": END,
+            # "no need tool calling": "final_results_preparation",
+        }
+    )
+    app = workflow.compile()
+    return app
+
+    
 app = None
+app_agent = None
 
 
 def common_entry(event_body):
@@ -562,16 +645,22 @@ def common_entry(event_body):
     :param event_body: The event body for lambda function.
     return: answer(str)
     """
-    global app
+    global app,app_agent
     if app is None:
         app = build_graph()
+    
+    if app_agent is None:
+        app_agent = build_agent_graph()
 
     # debuging
     # TODO only write when run local
     if is_running_local():
         with open("common_entry_workflow.png", "wb") as f:
             f.write(app.get_graph().draw_png())
-
+        
+        with open("common_entry_agent_workflow.png", "wb") as f:
+            f.write(app_agent.get_graph().draw_png())
+            
     ################################################################################
     # prepare inputs and invoke graph
     event_body["chatbot_config"] = parse_common_entry_config(
@@ -599,7 +688,7 @@ def common_entry(event_body):
             "trace_infos": [],
             "message_id": message_id,
             "chat_history": chat_history,
-            "agent_chat_history": chat_history + [{"role": MessageType.HUMAN_MESSAGE_TYPE, "content": query}],
+            "agent_chat_history": [],
             "ws_connection_id": ws_connection_id,
             "debug_infos": {},
             "extra_response": {},
