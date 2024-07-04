@@ -41,7 +41,7 @@ class TestCreateWorkspaceApiPdf:
             "s3Bucket": s3_bucket,
             "s3Prefix": s3_key,
             "offline": "true",
-            "workspaceId": "llm-bot-test-pdf-workspace",
+            "chatbotId": "llm-bot-test-pdf-workspace",
             "operationType": "create",
         }
 

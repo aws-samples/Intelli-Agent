@@ -14,7 +14,7 @@ export type LibraryListItem = {
   operationType: string;
   sfnExecutionId: string;
   indexType: string;
-  workspaceId: string;
+  chatbotId: string;
   createTime: string;
 };
 

@@ -124,9 +124,9 @@ def handler(event, context):
                 "s3Prefix": key,
                 "offline": "false",
                 "qaEnhance": "false",
-                # "workspaceId": workspace_id,
                 "groupName": group_name,
                 "chatbotId": chatbot_id,
+                "indexId": index_id,
                 "operationType": "update",
             }
         elif event["Records"][0]["eventName"].startswith("ObjectRemoved:"):
@@ -139,6 +139,7 @@ def handler(event, context):
                 "qaEnhance": "false",
                 "groupName": group_name,
                 "chatbotId": chatbot_id,
+                "indexId": index_id,
                 "operationType": "delete",
             }
     else:
@@ -158,6 +159,7 @@ def handler(event, context):
         )
         chatbot_id = group_name.lower()
         index_id = f"{chatbot_id}-qd-offline"
+        input_body["indexId"] = index_id
         input_body["groupName"] = (
             group_name
             if "groupName" not in input_body
@@ -182,6 +184,7 @@ def handler(event, context):
     execution_id = response["executionArn"].split(":")[-1]
     input_body["sfnExecutionId"] = execution_id
     input_body["executionStatus"] = "IN-PROGRESS"
+    input_body["indexId"] = index_id
     input_body["executionId"] = context.aws_request_id
     input_body["uiStatus"] = "ACTIVE"
     input_body["createTime"] = create_time

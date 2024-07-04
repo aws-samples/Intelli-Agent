@@ -43,7 +43,8 @@ try:
             "RES_BUCKET",
             "S3_BUCKET",
             "S3_PREFIX",
-            "WORKSPACE_ID",
+            "CHATBOT_ID",
+            "INDEX_ID",
             "WORKSPACE_TABLE",
             "INDEX_TYPE",
             "OPERATION_TYPE",
@@ -62,7 +63,8 @@ except Exception as e:
     parser.add_argument("--qa_enhancement", type=str, default=False)
     parser.add_argument("--s3_bucket", type=str, required=True)
     parser.add_argument("--s3_prefix", type=str, required=True)
-    parser.add_argument("--workspace_id", type=str, required=True)
+    parser.add_argument("--chatbot_id", type=str, required=True)
+    parser.add_argument("--index_id", type=str, required=True)
     parser.add_argument("--index_type", type=str, required=True)
     parser.add_argument("--operation_type", type=str, default="create")
     command_line_args=parser.parse_args()
@@ -108,7 +110,8 @@ region = args["REGION"]
 res_bucket = args["RES_BUCKET"]
 s3_bucket = args["S3_BUCKET"]
 s3_prefix = args["S3_PREFIX"]
-workspace_id = args["WORKSPACE_ID"]
+chatbot_id = args["CHATBOT_ID"]
+index_id = args["INDEX_ID"]
 workspace_table = args["WORKSPACE_TABLE"]
 index_type = args["INDEX_TYPE"]
 # Valid Operation types: "create", "delete", "update", "extract_only"
@@ -499,7 +502,7 @@ class OpenSearchDeleteWorker:
             return
 
 
-def update_workspace(workspace_id, embedding_model_endpoint, index_type):
+def update_workspace(chatbot_id, embedding_model_endpoint, index_type):
     (
         embeddings_model_provider,
         embeddings_model_name,
@@ -508,7 +511,7 @@ def update_workspace(workspace_id, embedding_model_endpoint, index_type):
     ) = get_embedding_info(embedding_model_endpoint)
 
     aos_index = workspace_manager.update_workspace_open_search(
-        workspace_id,
+        chatbot_id,
         embedding_model_endpoint,
         embeddings_model_provider,
         embeddings_model_name,
@@ -666,7 +669,7 @@ def main():
         ]
 
     aos_index_name, embedding_model_type = update_workspace(
-        workspace_id, embedding_model_endpoint, index_type
+        chatbot_id, embedding_model_endpoint, index_type
     )
 
     file_processor = S3FileProcessor(s3_bucket, s3_prefix, supported_file_types)

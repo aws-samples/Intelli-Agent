@@ -28,7 +28,8 @@ def lambda_handler(event, context):
     bucket_name = event["s3Bucket"]
     prefix = event["s3Prefix"]
     # fetch index from event with default value none
-    workspace_id = event["workspaceId"]
+    chatbot_id = event["chatbotId"]
+    index_id = event["indexId"]
     index_type = event.get("indexType", "qd")
     operation_type = event.get("operationType", "create")
     embedding_endpoint = event.get("embeddingEndpoint", default_embedding_endpoint)
@@ -66,7 +67,8 @@ def lambda_handler(event, context):
             "s3Bucket": bucket_name,
             "s3Prefix": prefix,
             "fileCount": file_count,
-            "workspaceId": workspace_id,
+            "chatbotId": chatbot_id,
+            "indexId": ,
             "qaEnhance": (
                 event["qaEnhance"].lower() if "qaEnhance" in event else "false"
             ),
@@ -85,7 +87,7 @@ def lambda_handler(event, context):
             "s3Bucket": bucket_name,
             "s3Prefix": prefix,
             "fileCount": "1",
-            "workspaceId": workspace_id,
+            "chatbotId": chatbot_id,
             "qaEnhance": (
                 event["qaEnhance"].lower() if "qaEnhance" in event else "false"
             ),

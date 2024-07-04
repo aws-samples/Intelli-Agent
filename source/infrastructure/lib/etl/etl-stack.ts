@@ -95,11 +95,11 @@ export class EtlStack extends NestedStack {
 
     const chatbotTable = new dynamodb.Table(this, "Chatbot", {
       partitionKey: {
-        name: "workspace_id",
+        name: "groupName",
         type: dynamodb.AttributeType.STRING,
       },
       sortKey: {
-        name: "object_type",
+        name: "chatbotId",
         type: dynamodb.AttributeType.STRING,
       },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
@@ -108,17 +108,17 @@ export class EtlStack extends NestedStack {
       removalPolicy: RemovalPolicy.DESTROY,
     });
 
-    chatbotTable.addGlobalSecondaryIndex({
-      indexName: "by_object_type_idx",
-      partitionKey: {
-        name: "object_type",
-        type: dynamodb.AttributeType.STRING,
-      },
-      sortKey: {
-        name: "created_at",
-        type: dynamodb.AttributeType.STRING,
-      },
-    });
+    // chatbotTable.addGlobalSecondaryIndex({
+    //   indexName: "by_object_type_idx",
+    //   partitionKey: {
+    //     name: "object_type",
+    //     type: dynamodb.AttributeType.STRING,
+    //   },
+    //   sortKey: {
+    //     name: "created_at",
+    //     type: dynamodb.AttributeType.STRING,
+    //   },
+    // });
 
     const dynamodbStatement = this.iamHelper.createPolicyStatement(
       [
@@ -434,7 +434,8 @@ export class EtlStack extends NestedStack {
             "s3Bucket.$": "$.Payload.s3Bucket",
             "s3Prefix.$": "$.Payload.s3Prefix",
             "qaEnhance.$": "$.Payload.qaEnhance",
-            "workspaceId.$": "$.Payload.workspaceId",
+            "chatbotId.$": "$.Payload.chatbotId",
+            "indexId.$": "$.Payload.indexId",
             "offline.$": "$.Payload.offline",
             "batchFileNumber.$": "$.Payload.batchFileNumber",
             "batchIndices.$": "$.Payload.batchIndices",
@@ -476,7 +477,8 @@ export class EtlStack extends NestedStack {
         "--RES_BUCKET": s3Bucket.bucketName,
         "--S3_BUCKET.$": "$.s3Bucket",
         "--S3_PREFIX.$": "$.s3Prefix",
-        "--WORKSPACE_ID.$": "$.workspaceId",
+        "--CHATBOT_ID.$": "$.chatbotId",
+        "--INDEX_ID.$": "$.indexId",
         "--job-language": "python",
       }),
     });
@@ -493,7 +495,8 @@ export class EtlStack extends NestedStack {
         // These parameters are passed to each iteration of the map state
         "s3Bucket.$": "$.s3Bucket",
         "s3Prefix.$": "$.s3Prefix",
-        "workspaceId.$": "$.workspaceId",
+        "chatbotId.$": "$.chatbotId",
+        "indexId.$": "$.indexId",
         "qaEnhance.$": "$.qaEnhance",
         "offline.$": "$.offline",
         "batchFileNumber.$": "$.batchFileNumber",
@@ -539,7 +542,8 @@ export class EtlStack extends NestedStack {
         "--RES_BUCKET": s3Bucket.bucketName,
         "--S3_BUCKET.$": "$.s3Bucket",
         "--S3_PREFIX.$": "$.s3Prefix",
-        "--WORKSPACE_ID.$": "$.workspaceId",
+        "--CHATBOT_ID.$": "$.chatbotId",
+        "--INDEX_ID.$": "$.indexId",
         "--job-language": "python",
       }),
     });
