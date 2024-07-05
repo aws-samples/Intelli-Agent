@@ -76,7 +76,9 @@ else
 fi
 
 
-rm bce_embedding_model.tar.gz
+if [ -f bce_embedding_model.tar.gz ]; then
+  rm bce_embedding_model.tar.gz
+fi
 tar czvf bce_embedding_model.tar.gz *
 
 code_path="${model_name}_deploy_code"
