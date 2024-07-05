@@ -827,8 +827,7 @@ def retail_entry(event_body):
     # TODO only write when run local
     if is_running_local():
         with open('retail_entry_workflow.png','wb') as f:
-            f.write(app.get_graph().draw_png())
-    
+            f.write(app.get_graph().draw_mermaid_png())
     ################################################################################
     # prepare inputs and invoke graph
     event_body['chatbot_config'] = parse_retail_entry_config(event_body['chatbot_config'])

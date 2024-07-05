@@ -490,7 +490,6 @@ tool_manager.register_tool({
                     "type": "float"
                 }
             },
-            # "required": ["height", "weight", "shoes_size", "foot_length"]
             "required": []
         },
     },
@@ -566,12 +565,8 @@ tool_manager.register_tool({
     "tool_def": {
         "name": "goods_storage",
         "description": "商品的库存信息，比如应对没货的情况等",
-        # "parameters":{
-        #     "required": ["response"]
-        # },
     },
-    "running_mode": "output",
-    # "should_ask_parameter": "无需用户提供订单信息，物流单号",
+    "running_mode": "output"
 })
 
 
