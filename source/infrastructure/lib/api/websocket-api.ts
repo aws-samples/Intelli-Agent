@@ -69,7 +69,7 @@ export class WebSocketConstruct extends Construct {
           "ConnectIntegration",
           onConnectLambda,
         ),
-        authorizer: new WebSocketLambdaAuthorizer('Authorizer', 
+        authorizer: new WebSocketLambdaAuthorizer('Authorizer',
           props.customAuthorizerLambda,
           {
             identitySource: ["route.request.querystring.idToken"],
@@ -102,7 +102,7 @@ export class WebSocketConstruct extends Construct {
       ),
     });
 
-    props.sendMessageLambda.addEnvironment("websocket_url", stage.callbackUrl);
+    props.sendMessageLambda.addEnvironment("WEBSOCKET_URL", stage.callbackUrl);
     webSocketApi.grantManageConnections(props.sendMessageLambda);
     webSocketApi.grantManageConnections(props.dispatcherLambda);
 

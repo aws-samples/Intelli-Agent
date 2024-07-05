@@ -405,10 +405,7 @@ def rag_product_aftersales_llm_lambda(state:ChatbotState):
                     " - 消费者的问题里面可能包含口语化的表达，比如鞋子开胶的意思是用胶黏合的鞋体裂开。这和胶丝遗留没有关系\n"
                     " - 洗涤后出现问题也属于质量问题\n"
                     " - 消费者的回复不够清晰的时候，直接回复: 不知道刚才给您的建议是否有帮助？。不要有额外补充\n"
-                    " - 如果客户问到质量相关问题，请按照下面步骤处理\n"
-                    "    - Step 1: 查看订单时间。\n"
-                    "    - Step 2: 查看三包时间期限。\n"
-                    "    - Step 3: 告知用户是否在三包范围内。\n"
+                    " - 如果客户问到质量相关问题，请根据前面的订单信息和三包规则，确定是否超出三包期限，如果超出三包期限请告知消费者无法处理，如果在三包期限内请按照三包要求处理，并安抚。\n"
                     "</guidelines>\n"
                     )
     # print('llm config',state['chatbot_config']['rag_product_aftersales_config']['llm_config'])

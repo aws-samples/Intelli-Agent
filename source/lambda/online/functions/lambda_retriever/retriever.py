@@ -29,7 +29,7 @@ logger.setLevel(logging.INFO)
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(SCRIPT_DIR))
 
-workspace_table = os.environ.get("workspace_table", "")
+workspace_table = os.environ.get("WORKSPACE_TABLE", "")
 
 dynamodb = boto3.resource("dynamodb")
 workspace_table = dynamodb.Table(workspace_table)
