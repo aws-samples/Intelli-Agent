@@ -71,8 +71,8 @@ except Exception as e:
     args = {}
     for key in command_line_args_dict.keys():
         args[key.upper()] = command_line_args_dict[key]
-    args["AOS_ENDPOINT"] = os.environ["aos_endpoint"]
-    args["WORKSPACE_TABLE"] = os.environ["workspace_table"]
+    args["AOS_ENDPOINT"] = os.environ["AOS_ENDPOINT"]
+    args["WORKSPACE_TABLE"] = os.environ["WORKSPACE_TABLE"]
     args["ETL_OBJECT_TABLE"] = os.environ["etl_object_table"]
     args["ETL_MODEL_ENDPOINT"] = os.environ["etl_endpoint"]
     args["RES_BUCKET"] = os.environ["res_bucket"]

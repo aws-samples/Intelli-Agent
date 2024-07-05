@@ -50,8 +50,13 @@ export class DynamoDBConstruct extends Construct {
       name: "createTimestamp",
       type: dynamodb.AttributeType.STRING,
     }
+    // Need to be unified
+    const groupNameAttr2 = {
+      name: "GroupName",
+      type: dynamodb.AttributeType.STRING,
+    }
     const sortKeyAttr = {
-      name: "sortKey",
+      name: "SortKey",
       type: dynamodb.AttributeType.STRING,
     }
     const indexIdAttr = {
@@ -81,7 +86,7 @@ export class DynamoDBConstruct extends Construct {
       partitionKey: { name: "sessionId", type: dynamodb.AttributeType.STRING },
     });
 
-    const promptTable = new DynamoDBTable(this, "Prompt", userIdAttr, sortKeyAttr).table;
+    const promptTable = new DynamoDBTable(this, "Prompt", groupNameAttr2, sortKeyAttr).table;
     const indexTable = new DynamoDBTable(this, "Index", groupNameAttr, indexIdAttr).table;
     const modelTable = new DynamoDBTable(this, "Model", groupNameAttr, modelIdAttr).table;
     const intentionTable = new DynamoDBTable(this, "Intention", groupNameAttr, intentionIdAttr).table;
