@@ -6,7 +6,7 @@ from collections import defaultdict
 from common_logic.common_utils.constant import LLMModelType,LLMTaskType
 import copy
 
-ddb_prompt_table_name = os.environ.get("prompt_table_name", "")
+ddb_prompt_table_name = os.environ.get("PROMPT_TABLE_NAME", "")
 dynamodb_resource = boto3.resource("dynamodb")
 ddb_prompt_table = dynamodb_resource.Table(ddb_prompt_table_name)
 
@@ -18,6 +18,10 @@ EXPORT_MODEL_IDS = [
     LLMModelType.CLAUDE_3_SONNET,
     LLMModelType.CLAUDE_2,
     LLMModelType.CLAUDE_21
+]
+
+EXPORT_SCENES = [
+    "common"
 ]
 
 class PromptTemplate(BaseModel):
@@ -69,13 +73,13 @@ class PromptTemplateManager:
             raise KeyError(f'prompt_template_id: {prompt_template_id}, prompt_name: {prompt_name}')
 
     
-    def get_prompt_templates_from_ddb(self,user_id,model_id:str,task_type:str):
+    def get_prompt_templates_from_ddb(self, group_name:str, model_id:str, scene:str="common"):
         response = ddb_prompt_table.get_item(
-            Key={"userId": user_id, "sortKey": f"{model_id}__{task_type}"}
+            Key={"GroupName": group_name, "SortKey": f"{model_id}__{scene}"}
         )
         item = response.get("Item")
         if item:
-            return item.get("prompt")
+            return item.get("Prompt")
         return {}
 
     def get_all_templates(self,allow_model_ids=EXPORT_MODEL_IDS):
