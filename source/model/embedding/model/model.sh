@@ -75,8 +75,9 @@ else
   sed -i "s|option.tensor_parallel_degree=tpd|option.tensor_parallel_degree=$tensor_parallel_degree|g" $file_path
 fi
 
-
-rm s2e_model.tar.gz
+if [ -f bce_embedding_model.tar.gz ]; then
+  rm s2e_model.tar.gz
+fi
 tar czvf s2e_model.tar.gz *
 
 code_path="${model_name}_deploy_code"
