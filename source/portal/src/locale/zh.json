@@ -74,6 +74,7 @@
     "updateTime": "更新时间",
     "promptCreateTips": "新的提示将覆盖当前提示词，您确定要继续吗？",
     "promptDeleteTips": "删除此提示词将会恢复成系统默认提示词。",
+    "endPoint": "端点",
     "button": {
       "login": "登录到 AWS 大语言模型机器人",
       "reload": "重新加载",
@@ -100,7 +101,8 @@
       "requireMaxTokens": "请输入一个最大 token 数",
       "temperatureRange": "发散度必须介于 0 和 1 之间",
       "maxTokensRange": "最大 token 数必须大于 0",
-      "requirePrompt": "请输入提示词"
+      "requirePrompt": "请输入提示词",
+      "requireEndPoint": "请输入端点"
     }
   }
 }

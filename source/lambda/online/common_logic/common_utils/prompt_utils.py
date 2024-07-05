@@ -82,15 +82,14 @@ class PromptTemplateManager:
             return item.get("prompt")
         return {}
 
-
-    def get_all_templates(self,allow_modle_ids=EXPORT_MODEL_IDS):
-        assert isinstance(allow_modle_ids,list),allow_modle_ids
+    def get_all_templates(self,allow_model_ids=EXPORT_MODEL_IDS):
+        assert isinstance(allow_model_ids,list),allow_model_ids
         prompt_templates = copy.deepcopy(self.prompt_templates)
         all_prompt_templates = []
-        allow_modle_ids = set(allow_modle_ids)
+        allow_model_ids = set(allow_model_ids)
         for _,v in prompt_templates.items():
             for _, prompt in v.items():
-                if prompt.model_id in allow_modle_ids:
+                if prompt.model_id in allow_model_ids:
                     all_prompt_templates.append(prompt)
                 # v[prompt_name] = v[prompt_name].prompt_template
         

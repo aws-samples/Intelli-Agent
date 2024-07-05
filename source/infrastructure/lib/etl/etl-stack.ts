@@ -93,7 +93,7 @@ export class EtlStack extends NestedStack {
       partitionKey: { name: "executionId", type: dynamodb.AttributeType.STRING },
     });
 
-    const workspaceTable = new dynamodb.Table(this, "WorkspaceTable", {
+    const chatbotTable = new dynamodb.Table(this, "Chatbot", {
       partitionKey: {
         name: "workspace_id",
         type: dynamodb.AttributeType.STRING,
@@ -108,7 +108,7 @@ export class EtlStack extends NestedStack {
       removalPolicy: RemovalPolicy.DESTROY,
     });
 
-    workspaceTable.addGlobalSecondaryIndex({
+    chatbotTable.addGlobalSecondaryIndex({
       indexName: "by_object_type_idx",
       partitionKey: {
         name: "object_type",
@@ -133,7 +133,7 @@ export class EtlStack extends NestedStack {
       [
         executionTable.tableArn,
         etlObjTable.tableArn,
-        workspaceTable.tableArn,
+        chatbotTable.tableArn,
       ],
     );
 
@@ -388,7 +388,7 @@ export class EtlStack extends NestedStack {
         "--DOC_INDEX_TABLE": props.openSearchIndex,
         "--RES_BUCKET": s3Bucket.bucketName,
         "--ETL_OBJECT_TABLE": etlObjTable.tableName,
-        "--WORKSPACE_TABLE": workspaceTable.tableName,
+        "--WORKSPACE_TABLE": chatbotTable.tableName,
         "--additional-python-modules":
           "langchain==0.1.11,beautifulsoup4==4.12.2,requests-aws4auth==1.2.3,boto3==1.28.84,openai==0.28.1,pyOpenSSL==23.3.0,tenacity==8.2.3,markdownify==0.11.6,mammoth==1.6.0,chardet==5.2.0,python-docx==1.1.0,nltk==3.8.1,pdfminer.six==20221105,smart-open==7.0.4,lxml==5.2.2",
         "--python-modules-installer-option": BuildConfig.JOB_PIP_OPTION,
@@ -577,7 +577,7 @@ export class EtlStack extends NestedStack {
     this.jobArn = glueJob.jobArn;
     this.executionTableName = executionTable.tableName;
     this.etlObjTableName = etlObjTable.tableName;
-    this.workspaceTableName = workspaceTable.tableName;
+    this.workspaceTableName = chatbotTable.tableName;
     this.resBucketName = s3Bucket.bucketName;
   }
 }

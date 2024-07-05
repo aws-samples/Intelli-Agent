@@ -74,6 +74,7 @@
     "updateTime": "Update time",
     "promptCreateTips": "New prompt will override the current prompt, are you sure to continue?",
     "promptDeleteTips": "Delete the prompt will reset to the system default prompt.",
+    "endPoint": "Endpoint",
     "button": {
       "login": "Log in to Intelli-Agent",
       "reload": "Reload",
@@ -100,7 +101,8 @@
       "requireMaxTokens": "Please enter a maximum number of tokens",
       "temperatureRange": "The temperature must be between 0 and 1",
       "maxTokensRange": "The maximum number of tokens must lager than 0",
-      "requirePrompt": "Please enter a prompt"
+      "requirePrompt": "Please enter a prompt",
+      "requireEndPoint": "Please enter an endpoint"
     }
   }
 }
