@@ -1,3 +1,5 @@
+set -e
+
 function usage {
   echo "Make sure python3 installed properly. Usage: $0 -t TOKEN [-m MODEL_NAME] [-c COMMIT_HASH] [-s S3_BUCKET_NAME]"
   echo "  -t TOKEN                             Hugging Face token "
@@ -74,7 +76,9 @@ else
 fi
 
 
-rm bce_embedding_model.tar.gz
+if [ -f bce_embedding_model.tar.gz ]; then
+  rm bce_embedding_model.tar.gz
+fi
 tar czvf bce_embedding_model.tar.gz *
 
 code_path="${model_name}_deploy_code"
