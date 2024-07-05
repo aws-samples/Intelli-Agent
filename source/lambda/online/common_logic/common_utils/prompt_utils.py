@@ -79,7 +79,7 @@ class PromptTemplateManager:
         )
         item = response.get("Item")
         if item:
-            return item.get("prompt")
+            return item.get("Prompt")
         return {}
 
     def get_all_templates(self,allow_model_ids=EXPORT_MODEL_IDS):
