@@ -1,3 +1,5 @@
+set -e
+
 function usage {
   echo "Make sure python3 installed properly. Usage: $0 -t TOKEN [-m MODEL_NAME] [-c COMMIT_HASH] [-s S3_BUCKET_NAME]"
   echo "  -t TOKEN                             Hugging Face token "
