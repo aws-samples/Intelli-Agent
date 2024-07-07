@@ -55,7 +55,7 @@ export class EtlStack extends NestedStack {
   public jobArn;
   public executionTableName;
   public etlObjTableName;
-  public workspaceTableName;
+  public chatbotTableName;
   public etlEndpoint: string;
   public resBucketName: string;
   public etlObjIndexName: string = "ExecutionIdIndex";
@@ -585,7 +585,7 @@ export class EtlStack extends NestedStack {
     this.jobArn = glueJob.jobArn;
     this.executionTableName = executionTable.tableName;
     this.etlObjTableName = etlObjTable.tableName;
-    this.workspaceTableName = chatbotTable.tableName;
+    this.chatbotTableName = chatbotTable.tableName;
     this.resBucketName = s3Bucket.bucketName;
   }
 }

@@ -84,8 +84,6 @@ except Exception as e:
 
 from llm_bot_dep import sm_utils
 from llm_bot_dep.constant import SplittingType
-from llm_bot_dep.ddb_utils import WorkspaceManager
-from llm_bot_dep.embeddings import get_embedding_info
 from llm_bot_dep.loaders.auto import cb_process_object
 from llm_bot_dep.storage_utils import save_content_to_s3
 
