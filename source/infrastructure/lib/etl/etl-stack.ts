@@ -499,7 +499,7 @@ export class EtlStack extends NestedStack {
         "s3Prefix.$": "$.s3Prefix",
         "chatbotId.$": "$.chatbotId",
         "indexId.$": "$.indexId",
-        "embeddingModelType.$": "$.Payload.embeddingModelType",
+        "embeddingModelType.$": "$.embeddingModelType",
         "qaEnhance.$": "$.qaEnhance",
         "offline.$": "$.offline",
         "batchFileNumber.$": "$.batchFileNumber",

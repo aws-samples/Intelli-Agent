@@ -28,3 +28,7 @@ class ModelType(Enum):
     EMBEDDING = "embedding_and_rerank"
     LLM = "llm"
 
+
+@unique
+class IndexTag(Enum):
+    COMMON = "common"
