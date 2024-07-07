@@ -6,6 +6,7 @@ from utils.ddb_utils import create_item_if_not_exist
 from utils.embeddings import get_embedding_info
 from constant import KBType, Status, IndexType, ModelType
 import boto3
+import logging
 
 
 client = boto3.client("stepfunctions")
@@ -16,6 +17,9 @@ chatbot_table = dynamodb.Table(os.environ.get("CHATBOT_TABLE"))
 model_table = dynamodb.Table(os.environ.get("MODEL_TABLE"))
 embedding_endpoint = os.environ.get("EMBEDDING_ENDPOINT")
 create_time = str(datetime.now(timezone.utc))
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
 
 
 def initiate_model(model_table, group_name, model_id):
@@ -61,8 +65,8 @@ def initiate_index(index_table, group_name, index_id, model_id):
 
 
 def initiate_chatbot(chatbot_table, group_name, chatbot_id, index_id):
-    qq_index_id = f"{chatbot_id}-qq"
-    intention_index_id = f"{chatbot_id}-intention"
+    qq_index_id = f"{chatbot_id}-qq-offline"
+    intention_index_id = f"{chatbot_id}-intention-offline"
     create_item_if_not_exist(
         chatbot_table,
         {
@@ -88,16 +92,16 @@ def initiate_chatbot(chatbot_table, group_name, chatbot_id, index_id):
 def handler(event, context):
     # Check the event for possible S3 created event
     input_payload = {}
-    print(event)
+    logger.info(event)
     resp_header = {
         "Content-Type": "application/json",
         "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "*",
     }
-
+ 
     if "Records" in event:
-        print("S3 event detected")
+        logger.info("S3 event detected")
         # TODO, Aggregate the bucket and key from the event object for S3 created event
         bucket = event["Records"][0]["s3"]["bucket"]["name"]
         key = event["Records"][0]["s3"]["object"]["key"]
@@ -108,7 +112,7 @@ def handler(event, context):
         index_id = f"{chatbot_id}-qd-online"
 
         if key.endswith("/"):
-            print("This is a folder, skip")
+            logger.info("This is a folder, skip")
             return {
                 "statusCode": 200,
                 "body": json.dumps(
@@ -144,7 +148,7 @@ def handler(event, context):
                 "operationType": "delete",
             }
     else:
-        print("API Gateway event detected")
+        logger.info("API Gateway event detected")
         authorizer_type = event["requestContext"]["authorizer"].get("authorizerType")
         if authorizer_type == "lambda_authorizer":
             claims = json.loads(event["requestContext"]["authorizer"]["claims"])
@@ -154,12 +158,25 @@ def handler(event, context):
             raise Exception("Invalid authorizer type")
         # Parse the body from the event object
         input_body = json.loads(event["body"])
-
+        if "indexType" not in input_body or \
+            input_body["indexType"] not in [IndexType.QD.value, IndexType.QQ.value, IndexType.INTENTION.value]:
+            return {
+                "statusCode": 400,
+                "headers": resp_header,
+                "body": f"Invalid indexType, valid values are {IndexType.QD.value}, {IndexType.QQ.value}, {IndexType.INTENTION.value}"
+            }
+        index_type = input_body["indexType"]
         group_name = (
             "Admin" if "Admin" in cognito_groups_list else cognito_groups_list[0]
         )
-        chatbot_id = group_name.lower()
+        chatbot_id = input_body.get("chatbotId", group_name.lower())
+        
         index_id = f"{chatbot_id}-qd-offline"
+        if index_type == IndexType.QQ.value:
+            index_id = f"{chatbot_id}-qq-offline"
+        elif index_type == IndexType.INTENTION.value:
+            index_id = f"{chatbot_id}-intention-offline"
+
         input_body["indexId"] = index_id
         input_body["groupName"] = (
             group_name
