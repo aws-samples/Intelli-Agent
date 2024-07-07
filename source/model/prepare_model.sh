@@ -64,3 +64,5 @@ done
 
 aws s3 cp --recursive s3://$s3_bucket_name/bce-embedding-base_deploy_code s3://$s3_bucket_name/bce-embedding-and-bge-reranker_deploy_code
 aws s3 cp --recursive s3://$s3_bucket_name/bge-reranker-large_deploy_code s3://$s3_bucket_name/bce-embedding-and-bge-reranker_deploy_code
+
+echo "Successfully prepared model for Intelli-Agent."
