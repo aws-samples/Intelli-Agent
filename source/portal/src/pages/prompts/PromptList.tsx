@@ -16,6 +16,7 @@ import {
   SpaceBetween,
   Spinner,
   Table,
+  Tabs,
   Textarea,
 } from '@cloudscape-design/components';
 import {
@@ -26,7 +27,7 @@ import {
 } from 'src/types';
 import useAxiosRequest from 'src/hooks/useAxiosRequest';
 import { useTranslation } from 'react-i18next';
-import { LLM_BOT_MODEL_LIST } from 'src/utils/const';
+import { formatTime } from 'src/utils/utils';
 
 const PromptList: React.FC = () => {
   const [selectedItems, setSelectedItems] = useState<PromptItem[]>([]);
@@ -41,11 +42,11 @@ const PromptList: React.FC = () => {
   const [showCreate, setShowCreate] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [loadingSave, setLoadingSave] = useState(false);
-  const [currentPrompt, setCurrentPrompt] = useState('');
-  const [modelOption, setModelOption] = useState<SelectProps.Option>({
-    label: LLM_BOT_MODEL_LIST[0],
-    value: LLM_BOT_MODEL_LIST[0],
-  });
+  const [currentPrompt, setCurrentPrompt] = useState<GetPromptResponse>();
+  const [modelList, setModelList] = useState<SelectProps.Option[]>([]);
+  const [modelOption, setModelOption] = useState<SelectProps.Option | null>(
+    null,
+  );
 
   const [loadingGet, setLoadingGet] = useState(false);
   // validation
@@ -62,7 +63,7 @@ const PromptList: React.FC = () => {
     };
     try {
       const data = await fetchData({
-        url: 'prompt',
+        url: 'prompt-management/prompts',
         method: 'get',
         params,
       });
@@ -70,7 +71,7 @@ const PromptList: React.FC = () => {
       const preSortItem = items.Items.map((prompt) => {
         return {
           ...prompt,
-          uuid: prompt.modelId + prompt.taskType,
+          uuid: prompt.SortKey,
         };
       });
       setAllPromptList(preSortItem);
@@ -81,20 +82,47 @@ const PromptList: React.FC = () => {
     }
   };
 
+  const getModalList = async (type: 'create' | 'edit') => {
+    setLoadingGet(true);
+    try {
+      const data = await fetchData({
+        url: 'prompt-management/models',
+        method: 'get',
+      });
+      const items: string[] = data;
+      const getModels = items.map((item) => {
+        return {
+          label: item,
+          value: item,
+        };
+      });
+      setModelList(getModels);
+      if (type === 'create') {
+        setModelOption(getModels[0]);
+      }
+    } catch (error: unknown) {
+      setLoadingGet(false);
+    }
+  };
+
   const getPromptById = async (type: 'create' | 'edit') => {
     setLoadingGet(true);
-    let requestUrl = `prompt/${modelOption.value}/rag`;
+    let requestUrl = `prompt-management/prompts/${modelOption?.value}/common`;
     if (type === 'edit') {
-      requestUrl = `prompt/${selectedItems[0].modelId}/${selectedItems[0].taskType}`;
+      requestUrl = `prompt-management/prompts/${selectedItems[0].ModelId}/common`;
+      setModelOption({
+        label: selectedItems[0].ModelId,
+        value: selectedItems[0].ModelId,
+      });
     }
-    console.info('requestUrl:', requestUrl);
     try {
       const data: GetPromptResponse = await fetchData({
         url: requestUrl,
         method: 'get',
       });
       setLoadingGet(false);
-      setCurrentPrompt(data?.prompt?.main);
+      console.info('data:', data);
+      setCurrentPrompt(data);
       if (type === 'edit') {
         setShowEdit(true);
       }
@@ -108,7 +136,7 @@ const PromptList: React.FC = () => {
     setLoadingSave(true);
     try {
       await fetchData({
-        url: `prompt/${selectedItems[0].modelId}/${selectedItems[0].taskType}`,
+        url: `prompt-management/prompts/${selectedItems[0].ModelId}/common`,
         method: 'delete',
       });
       setLoadingSave(false);
@@ -121,30 +149,19 @@ const PromptList: React.FC = () => {
 
   const createPrompt = async () => {
     // validate model settings
-    if (!modelOption.value?.trim()) {
+    if (!modelOption?.value?.trim()) {
       setModelError(t('validation.requireModel'));
       return;
     }
-    if (!currentPrompt.trim()) {
-      setPromptError(t('validation.requirePrompt'));
-      return;
-    }
     setLoadingSave(true);
-    const paramData = {
-      model_id: modelOption.value,
-      task_type: 'rag',
-      prompt: {
-        main: currentPrompt,
-      },
-    };
     try {
       const data = await fetchData({
-        url: 'prompt',
+        url: 'prompt-management/prompts',
         method: 'post',
-        data: paramData,
+        data: currentPrompt,
       });
       const createRes: CreatePromptResponse = data;
-      if (createRes.message === 'OK') {
+      if (createRes.Message === 'OK') {
         setShowCreate(false);
         setShowEdit(false);
         getPromptList();
@@ -153,6 +170,19 @@ const PromptList: React.FC = () => {
     } catch (error: unknown) {
       setLoadingSave(false);
     }
+  };
+
+  const handlePromptChange = (key: string, value: string) => {
+    setCurrentPrompt((prevData: any) => ({
+      ...prevData,
+      Prompt: {
+        ...prevData.Prompt,
+        [key]: {
+          ...prevData.Prompt[key],
+          system_prompt: value,
+        },
+      },
+    }));
   };
 
   useEffect(() => {
@@ -169,7 +199,7 @@ const PromptList: React.FC = () => {
     if (showCreate && modelOption) {
       getPromptById('create');
     }
-  }, [showCreate, modelOption]);
+  }, [modelOption]);
 
   return (
     <CommonLayout
@@ -204,13 +234,19 @@ const PromptList: React.FC = () => {
             {
               id: 'modelId',
               header: t('modelName'),
-              cell: (item: PromptItem) => item.modelId,
+              cell: (item: PromptItem) => item.ModelId,
               isRowHeader: true,
             },
             {
-              id: 'type',
-              header: t('type'),
-              cell: (item: PromptItem) => item.taskType,
+              id: 'updateBy',
+              header: t('updateBy'),
+              cell: (item: PromptItem) => item.LastModifiedBy,
+            },
+            {
+              id: 'updateTime',
+              header: t('updateTime'),
+              cell: (item: PromptItem) =>
+                formatTime(parseInt(item.LastModifiedTime) * 1000),
             },
           ]}
           items={tablePromptList}
@@ -275,16 +311,16 @@ const PromptList: React.FC = () => {
                       }
                     }}
                     items={[
-                      { text: 'Edit', id: 'edit', disabled: false },
-                      { text: 'Delete', id: 'delete', disabled: false },
+                      { text: t('button.edit'), id: 'edit' },
+                      { text: t('button.delete'), id: 'delete' },
                     ]}
                   >
-                    Action
+                    {t('button.action')}
                   </ButtonDropdown>
                   <Button
                     variant="primary"
-                    iconName="add-plus"
                     onClick={() => {
+                      getModalList('create');
                       setShowCreate(true);
                     }}
                   >
@@ -347,7 +383,7 @@ const PromptList: React.FC = () => {
           }
           header={t('button.createPrompt')}
         >
-          <SpaceBetween direction="vertical" size="l">
+          <SpaceBetween direction="vertical" size="xs">
             <FormField
               label={t('modelName')}
               stretch={true}
@@ -360,32 +396,39 @@ const PromptList: React.FC = () => {
                   setModelOption(detail.selectedOption);
                 }}
                 selectedOption={modelOption}
-                options={LLM_BOT_MODEL_LIST.map((item) => {
-                  return {
-                    label: item,
-                    value: item,
-                  };
-                })}
+                options={modelList}
                 placeholder={t('validation.requireModel')}
                 empty={t('noModelFound')}
               />
             </FormField>
             <FormField
-              label={t('prompt')}
+              label={t('prompts')}
               stretch={true}
               errorText={promptError}
             >
               {loadingGet ? (
                 <Spinner />
               ) : (
-                <Textarea
-                  rows={10}
-                  placeholder={t('validation.requirePrompt')}
-                  value={currentPrompt}
-                  onChange={({ detail }) => {
-                    setPromptError('');
-                    setCurrentPrompt(detail.value);
-                  }}
+                <Tabs
+                  tabs={
+                    currentPrompt?.Prompt
+                      ? Object.keys(currentPrompt?.Prompt).map((key) => ({
+                          label: key,
+                          id: key,
+                          content: (
+                            <Textarea
+                              rows={10}
+                              placeholder={t('validation.requirePrompt')}
+                              value={currentPrompt.Prompt[key].system_prompt}
+                              onChange={({ detail }) => {
+                                setPromptError('');
+                                handlePromptChange(key, detail.value);
+                              }}
+                            />
+                          ),
+                        }))
+                      : []
+                  }
                 />
               )}
             </FormField>
@@ -425,9 +468,7 @@ const PromptList: React.FC = () => {
           <div className="selected-items-list">
             <ul className="gap-5 flex-v">
               {selectedItems.map((item) => (
-                <li key={item.modelId + item.taskType}>
-                  {item.modelId}({item.taskType})
-                </li>
+                <li key={item.SortKey}>{item.ModelId}</li>
               ))}
             </ul>
           </div>

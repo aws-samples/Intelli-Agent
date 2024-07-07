@@ -6,36 +6,11 @@ import pandas as pd
 import queue 
 from threading import Thread
 import tqdm 
-# def test(chatbot_mode="agent",session_id=None,query=None,goods_id=None,use_history=True):
-#     default_llm_config = {
-#         'model_id': 'anthropic.claude-3-sonnet-20240229-v1:0',
-#         'model_kwargs': {
-#             'temperature': 0.5, 'max_tokens': 1000}
-#         }
+from datetime import datetime
 
-#     chatbot_config = {
-#         "goods_id":goods_id,
-#         "chatbot_mode": chatbot_mode,
-#         "use_history": use_history
-#     }
-    
-#     session_id = session_id or f"test_{time.time()}"
-#     query = query or "很浪费时间 出库的时候也不看清楚？"
-#     # session_id = f"test_{time.time()}"
-    
-#     # 售后物流
-#     #"可以发顺丰快递吗？",
-#     # 客户抱怨
-#     # "很浪费时间 出库的时候也不看清楚？",
-#     # 促销查询
-#     # "评论有惊喜吗？",
-#     generate_answer(
-#         query,
-#         stream=True,
-#         session_id=session_id,
-#         chatbot_config=chatbot_config
-#     )
 
+CREATE_TIME_FORMAT = '%Y-%m-%d %H:%M:%S.%f'
+CREATE_TIME_FORMAT_2 = '%Y-%m-%d%H:%M:%S.%f'
 
 def _test_multi_turns(user_queries, record_goods_id=False):
     session_id = f"anta_test_{time.time()}"
@@ -76,11 +51,21 @@ def _test_multi_turns(user_queries, record_goods_id=False):
     for query in user_queries:
         if isinstance(query,str):
             query = {"query":query}
+        
+        create_time = query.get('create_time',datetime.now().strftime(CREATE_TIME_FORMAT))
+        try:
+            create_time = datetime.strptime(create_time, CREATE_TIME_FORMAT)
+        except ValueError:
+            create_time = datetime.strptime(create_time, CREATE_TIME_FORMAT_2)
+
+        create_time = create_time.strftime(CREATE_TIME_FORMAT)
+
         r = generate_answer(
-               query=query['query'],
+               query=query['query'].replace("/:018",""),
+            #    create_time=,
                stream=False,
                 session_id=session_id,
-                chatbot_config={**chatbot_config,"goods_id": query.get("goods_id")},
+                chatbot_config={**chatbot_config,"goods_id": query.get("goods_id"),"create_time":create_time},
                 entry_type="retail"
         )
         query_answers.append((query['query'],r['message']['content']))
@@ -94,9 +79,9 @@ def _test_multi_turns(user_queries, record_goods_id=False):
 
 
 def test_multi_turns():
-    # user_queries = [
-    #     {"query":"今天怎么还没有发货","goods_id": 714845988113}
-    # ]
+    user_queries = [
+        {"query":"今天怎么还没有发货","goods_id": 714845988113}
+    ]
     # user_queries = [
     #     {"query":"https://detail.tmall.com/item.htm?id=760601512644","goods_id": ""},
     #     {"query":"你好","goods_id": ""}
@@ -126,9 +111,13 @@ def test_multi_turns():
     return _test_multi_turns(user_queries)
 
 
-def test_multi_turns_anta(session_id,user_queries_path="/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/source/lambda/online/session_user_queries.json"):
+def test_multi_turns_anta(
+        session_id,
+        user_queries_path="/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/source/lambda/online/session_user_queries.json",
+        record_goods_id=False
+        ):
     user_queries = json.load(open(user_queries_path))[session_id]
-    return _test_multi_turns(user_queries)
+    return _test_multi_turns(user_queries,record_goods_id=record_goods_id)
     
 
 def batch_test(data_file, count=1000,add_eval_score=True,record_goods_id=False):
@@ -144,7 +133,7 @@ def batch_test(data_file, count=1000,add_eval_score=True,record_goods_id=False):
         "endpoint_name":  "Qwen2-72B-Instruct-AWQ-2024-06-25-02-15-34-347",
         # "endpoint_name":  "Qwen2-72B-Instruct-AWQ-without-yarn-2024-06-29-12-31-04-818",
         'model_kwargs': {
-            'temperature': 0.01, 'max_tokens': 500,
+            'temperature': 0.01, 'max_tokens': 800,
             "repetition_penalty":1.05,
             "stop_token_ids": [151645,151643] ,
             "stop":["<|endoftext|>","<|im_end|>"],
@@ -165,7 +154,10 @@ def batch_test(data_file, count=1000,add_eval_score=True,record_goods_id=False):
     if record_goods_id:
         chatbot_config["history_config"]=['goods_id']
 
-    save_csv_path = f'{session_prefix}_anta_test_qwen2-72b-instruct_{len(data)}.csv'
+    if record_goods_id:
+        chatbot_config["history_config"]=['goods_id']
+
+    save_csv_path = f'anta_test/{session_prefix}_anta_test_qwen2-72b-instruct_{len(data)}.csv'
 
 
     def _auto_eval_thread_helper(ret_q:queue.Queue):
@@ -237,10 +229,19 @@ def batch_test(data_file, count=1000,add_eval_score=True,record_goods_id=False):
         else:
             product_ids = None
         session_id = f"{session_prefix}_{datum['desensitized_cnick']}"
-        chatbot_config.update({"goods_id":product_ids})
+        
+
+        create_time = datum.get('create_time',datetime.now().strftime(CREATE_TIME_FORMAT))
+        try:
+            create_time = datetime.strptime(create_time, CREATE_TIME_FORMAT)
+        except ValueError:
+            create_time = datetime.strptime(create_time, CREATE_TIME_FORMAT_2)
+        create_time = create_time.strftime(CREATE_TIME_FORMAT)
+
+        chatbot_config.update({"goods_id":product_ids,"create_time":create_time})
         try:
             r = generate_answer(
-                datum['user_msg'],
+                datum['user_msg'].replace("/:018",""),
                 stream=False,
                 session_id=session_id,
                 chatbot_config=chatbot_config,
@@ -319,14 +320,15 @@ def complete_test():
 
 if __name__ == "__main__":
     # complete_test()
-    # test_multi_turns_anta("cn****0031")
+    # test_multi_turns_anta("cn****0094",record_goods_id=True)
     # test_multi_turns()
     # test_multi_turns_0090() 
     # test_multi_turns_0077()
     # test_multi_turns_pr("agent")
     batch_test(
         data_file="/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/customer_poc/anta/anta_batch_test - batch-test-csv-file-626.csv",
-        record_goods_id=True)
+        record_goods_id=True
+    )
     # batch_test()
     # test(
     #     chatbot_mode='agent',

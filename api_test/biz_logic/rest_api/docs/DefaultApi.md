@@ -38,7 +38,7 @@ Method | HTTP request | Description
 
 
 # **aos_get**
-> IntellapiconnnHdtwRWUXa aos_get()
+> object aos_get()
 
 
 
@@ -48,7 +48,6 @@ Method | HTTP request | Description
 
 ```python
 import openapi_client
-from openapi_client.models.intellapiconnn_hdtw_rwuxa import IntellapiconnnHdtwRWUXa
 from openapi_client.rest import ApiException
 from pprint import pprint
 
@@ -90,7 +89,7 @@ This endpoint does not need any parameter.
 
 ### Return type
 
-[**IntellapiconnnHdtwRWUXa**](IntellapiconnnHdtwRWUXa.md)
+**object**
 
 ### Authorization
 
@@ -170,7 +169,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **aos_post**
-> IntellapiconnnHdtwRWUXa aos_post()
+> object aos_post()
 
 
 
@@ -180,7 +179,6 @@ No authorization required
 
 ```python
 import openapi_client
-from openapi_client.models.intellapiconnn_hdtw_rwuxa import IntellapiconnnHdtwRWUXa
 from openapi_client.rest import ApiException
 from pprint import pprint
 
@@ -222,7 +220,7 @@ This endpoint does not need any parameter.
 
 ### Return type
 
-[**IntellapiconnnHdtwRWUXa**](IntellapiconnnHdtwRWUXa.md)
+**object**
 
 ### Authorization
 
@@ -302,7 +300,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **batch_post**
-> IntellapiconnnHdtwRWUXa batch_post()
+> object batch_post()
 
 
 
@@ -312,7 +310,6 @@ No authorization required
 
 ```python
 import openapi_client
-from openapi_client.models.intellapiconnn_hdtw_rwuxa import IntellapiconnnHdtwRWUXa
 from openapi_client.rest import ApiException
 from pprint import pprint
 
@@ -354,7 +351,7 @@ This endpoint does not need any parameter.
 
 ### Return type
 
-[**IntellapiconnnHdtwRWUXa**](IntellapiconnnHdtwRWUXa.md)
+**object**
 
 ### Authorization
 
@@ -376,7 +373,7 @@ This endpoint does not need any parameter.
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **ddb_list_messages_get**
-> IntellapiconnnHdtwRWUXa ddb_list_messages_get()
+> object ddb_list_messages_get()
 
 
 
@@ -386,7 +383,6 @@ This endpoint does not need any parameter.
 
 ```python
 import openapi_client
-from openapi_client.models.intellapiconnn_hdtw_rwuxa import IntellapiconnnHdtwRWUXa
 from openapi_client.rest import ApiException
 from pprint import pprint
 
@@ -428,7 +424,7 @@ This endpoint does not need any parameter.
 
 ### Return type
 
-[**IntellapiconnnHdtwRWUXa**](IntellapiconnnHdtwRWUXa.md)
+**object**
 
 ### Authorization
 
@@ -508,7 +504,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **ddb_list_sessions_get**
-> IntellapiconnnHdtwRWUXa ddb_list_sessions_get()
+> object ddb_list_sessions_get()
 
 
 
@@ -518,7 +514,6 @@ No authorization required
 
 ```python
 import openapi_client
-from openapi_client.models.intellapiconnn_hdtw_rwuxa import IntellapiconnnHdtwRWUXa
 from openapi_client.rest import ApiException
 from pprint import pprint
 
@@ -560,7 +555,7 @@ This endpoint does not need any parameter.
 
 ### Return type
 
-[**IntellapiconnnHdtwRWUXa**](IntellapiconnnHdtwRWUXa.md)
+**object**
 
 ### Authorization
 
@@ -698,7 +693,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **ddb_post**
-> IntellapiconnnHdtwRWUXa ddb_post()
+> object ddb_post()
 
 
 
@@ -708,7 +703,6 @@ No authorization required
 
 ```python
 import openapi_client
-from openapi_client.models.intellapiconnn_hdtw_rwuxa import IntellapiconnnHdtwRWUXa
 from openapi_client.rest import ApiException
 from pprint import pprint
 
@@ -750,7 +744,7 @@ This endpoint does not need any parameter.
 
 ### Return type
 
-[**IntellapiconnnHdtwRWUXa**](IntellapiconnnHdtwRWUXa.md)
+**object**
 
 ### Authorization
 
@@ -830,7 +824,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **etl_delete_execution_post**
-> IntellapiconnnHdtwRWUXa etl_delete_execution_post()
+> Intellapico9lnc5odz4zt7 etl_delete_execution_post(intellapico_djp0_elr6_yya_k)
 
 
 
@@ -840,7 +834,8 @@ No authorization required
 
 ```python
 import openapi_client
-from openapi_client.models.intellapiconnn_hdtw_rwuxa import IntellapiconnnHdtwRWUXa
+from openapi_client.models.intellapico9lnc5odz4zt7 import Intellapico9lnc5odz4zt7
+from openapi_client.models.intellapico_djp0_elr6_yya_k import IntellapicoDjp0ELR6YyaK
 from openapi_client.rest import ApiException
 from pprint import pprint
 
@@ -865,9 +860,10 @@ configuration.api_key['intelliagentapiconstructApiAuthorizerFB94A0DF'] = os.envi
 with openapi_client.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = openapi_client.DefaultApi(api_client)
+    intellapico_djp0_elr6_yya_k = openapi_client.IntellapicoDjp0ELR6YyaK() # IntellapicoDjp0ELR6YyaK | 
 
     try:
-        api_response = api_instance.etl_delete_execution_post()
+        api_response = api_instance.etl_delete_execution_post(intellapico_djp0_elr6_yya_k)
         print("The response of DefaultApi->etl_delete_execution_post:\n")
         pprint(api_response)
     except Exception as e:
@@ -878,11 +874,14 @@ with openapi_client.ApiClient(configuration) as api_client:
 
 ### Parameters
 
-This endpoint does not need any parameter.
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **intellapico_djp0_elr6_yya_k** | [**IntellapicoDjp0ELR6YyaK**](IntellapicoDjp0ELR6YyaK.md)|  | 
 
 ### Return type
 
-[**IntellapiconnnHdtwRWUXa**](IntellapiconnnHdtwRWUXa.md)
+[**Intellapico9lnc5odz4zt7**](Intellapico9lnc5odz4zt7.md)
 
 ### Authorization
 
@@ -890,7 +889,7 @@ This endpoint does not need any parameter.
 
 ### HTTP request headers
 
- - **Content-Type**: Not defined
+ - **Content-Type**: application/json
  - **Accept**: application/json
 
 ### HTTP response details
@@ -904,7 +903,7 @@ This endpoint does not need any parameter.
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **etl_execution_get**
-> IntellapiconnnHdtwRWUXa etl_execution_get()
+> Intellapico8XmICzoFHhRz etl_execution_get()
 
 
 
@@ -914,7 +913,7 @@ This endpoint does not need any parameter.
 
 ```python
 import openapi_client
-from openapi_client.models.intellapiconnn_hdtw_rwuxa import IntellapiconnnHdtwRWUXa
+from openapi_client.models.intellapico8_xm_i_czo_fhh_rz import Intellapico8XmICzoFHhRz
 from openapi_client.rest import ApiException
 from pprint import pprint
 
@@ -956,7 +955,7 @@ This endpoint does not need any parameter.
 
 ### Return type
 
-[**IntellapiconnnHdtwRWUXa**](IntellapiconnnHdtwRWUXa.md)
+[**Intellapico8XmICzoFHhRz**](Intellapico8XmICzoFHhRz.md)
 
 ### Authorization
 
@@ -1036,7 +1035,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **etl_list_execution_get**
-> IntellapiconnnHdtwRWUXa etl_list_execution_get()
+> IntellapiconBOMQnj7TTWc etl_list_execution_get(page_size=page_size, max_items=max_items)
 
 
 
@@ -1046,7 +1045,7 @@ No authorization required
 
 ```python
 import openapi_client
-from openapi_client.models.intellapiconnn_hdtw_rwuxa import IntellapiconnnHdtwRWUXa
+from openapi_client.models.intellapicon_bom_qnj7_ttwc import IntellapiconBOMQnj7TTWc
 from openapi_client.rest import ApiException
 from pprint import pprint
 
@@ -1071,9 +1070,11 @@ configuration.api_key['intelliagentapiconstructApiAuthorizerFB94A0DF'] = os.envi
 with openapi_client.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = openapi_client.DefaultApi(api_client)
+    page_size = 'page_size_example' # str |  (optional)
+    max_items = 'max_items_example' # str |  (optional)
 
     try:
-        api_response = api_instance.etl_list_execution_get()
+        api_response = api_instance.etl_list_execution_get(page_size=page_size, max_items=max_items)
         print("The response of DefaultApi->etl_list_execution_get:\n")
         pprint(api_response)
     except Exception as e:
@@ -1084,11 +1085,15 @@ with openapi_client.ApiClient(configuration) as api_client:
 
 ### Parameters
 
-This endpoint does not need any parameter.
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **page_size** | **str**|  | [optional] 
+ **max_items** | **str**|  | [optional] 
 
 ### Return type
 
-[**IntellapiconnnHdtwRWUXa**](IntellapiconnnHdtwRWUXa.md)
+[**IntellapiconBOMQnj7TTWc**](IntellapiconBOMQnj7TTWc.md)
 
 ### Authorization
 
@@ -1168,7 +1173,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **etl_list_workspace_get**
-> IntellapiconnnHdtwRWUXa etl_list_workspace_get()
+> object etl_list_workspace_get()
 
 
 
@@ -1178,7 +1183,6 @@ No authorization required
 
 ```python
 import openapi_client
-from openapi_client.models.intellapiconnn_hdtw_rwuxa import IntellapiconnnHdtwRWUXa
 from openapi_client.rest import ApiException
 from pprint import pprint
 
@@ -1220,7 +1224,7 @@ This endpoint does not need any parameter.
 
 ### Return type
 
-[**IntellapiconnnHdtwRWUXa**](IntellapiconnnHdtwRWUXa.md)
+**object**
 
 ### Authorization
 
@@ -1358,7 +1362,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **etl_post**
-> IntellapiconnnHdtwRWUXa etl_post()
+> object etl_post()
 
 
 
@@ -1368,7 +1372,6 @@ No authorization required
 
 ```python
 import openapi_client
-from openapi_client.models.intellapiconnn_hdtw_rwuxa import IntellapiconnnHdtwRWUXa
 from openapi_client.rest import ApiException
 from pprint import pprint
 
@@ -1410,7 +1413,7 @@ This endpoint does not need any parameter.
 
 ### Return type
 
-[**IntellapiconnnHdtwRWUXa**](IntellapiconnnHdtwRWUXa.md)
+**object**
 
 ### Authorization
 
@@ -1490,7 +1493,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **etl_upload_s3_url_post**
-> IntellapiconnnHdtwRWUXa etl_upload_s3_url_post(intellapico_kbf_xmyu1_w8_nr)
+> Intellapico2Ts7jJyTjysw etl_upload_s3_url_post(intellapico_xwl_prwx_lr93_j)
 
 
 
@@ -1500,8 +1503,8 @@ No authorization required
 
 ```python
 import openapi_client
-from openapi_client.models.intellapico_kbf_xmyu1_w8_nr import IntellapicoKbfXMYu1W8Nr
-from openapi_client.models.intellapiconnn_hdtw_rwuxa import IntellapiconnnHdtwRWUXa
+from openapi_client.models.intellapico2_ts7j_jy_tjysw import Intellapico2Ts7jJyTjysw
+from openapi_client.models.intellapico_xwl_prwx_lr93_j import IntellapicoXWLPrwxLR93J
 from openapi_client.rest import ApiException
 from pprint import pprint
 
@@ -1526,10 +1529,10 @@ configuration.api_key['intelliagentapiconstructApiAuthorizerFB94A0DF'] = os.envi
 with openapi_client.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = openapi_client.DefaultApi(api_client)
-    intellapico_kbf_xmyu1_w8_nr = openapi_client.IntellapicoKbfXMYu1W8Nr() # IntellapicoKbfXMYu1W8Nr | 
+    intellapico_xwl_prwx_lr93_j = openapi_client.IntellapicoXWLPrwxLR93J() # IntellapicoXWLPrwxLR93J | 
 
     try:
-        api_response = api_instance.etl_upload_s3_url_post(intellapico_kbf_xmyu1_w8_nr)
+        api_response = api_instance.etl_upload_s3_url_post(intellapico_xwl_prwx_lr93_j)
         print("The response of DefaultApi->etl_upload_s3_url_post:\n")
         pprint(api_response)
     except Exception as e:
@@ -1543,11 +1546,11 @@ with openapi_client.ApiClient(configuration) as api_client:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **intellapico_kbf_xmyu1_w8_nr** | [**IntellapicoKbfXMYu1W8Nr**](IntellapicoKbfXMYu1W8Nr.md)|  | 
+ **intellapico_xwl_prwx_lr93_j** | [**IntellapicoXWLPrwxLR93J**](IntellapicoXWLPrwxLR93J.md)|  | 
 
 ### Return type
 
-[**IntellapiconnnHdtwRWUXa**](IntellapiconnnHdtwRWUXa.md)
+[**Intellapico2Ts7jJyTjysw**](Intellapico2Ts7jJyTjysw.md)
 
 ### Authorization
 
@@ -1627,7 +1630,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **extract_post**
-> IntellapiconnnHdtwRWUXa extract_post()
+> object extract_post()
 
 
 
@@ -1637,7 +1640,6 @@ No authorization required
 
 ```python
 import openapi_client
-from openapi_client.models.intellapiconnn_hdtw_rwuxa import IntellapiconnnHdtwRWUXa
 from openapi_client.rest import ApiException
 from pprint import pprint
 
@@ -1679,7 +1681,7 @@ This endpoint does not need any parameter.
 
 ### Return type
 
-[**IntellapiconnnHdtwRWUXa**](IntellapiconnnHdtwRWUXa.md)
+**object**
 
 ### Authorization
 
@@ -1759,7 +1761,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **llm_post**
-> IntellapiconnnHdtwRWUXa llm_post()
+> object llm_post()
 
 
 
@@ -1769,7 +1771,6 @@ No authorization required
 
 ```python
 import openapi_client
-from openapi_client.models.intellapiconnn_hdtw_rwuxa import IntellapiconnnHdtwRWUXa
 from openapi_client.rest import ApiException
 from pprint import pprint
 
@@ -1811,7 +1812,7 @@ This endpoint does not need any parameter.
 
 ### Return type
 
-[**IntellapiconnnHdtwRWUXa**](IntellapiconnnHdtwRWUXa.md)
+**object**
 
 ### Authorization
 
@@ -1833,7 +1834,7 @@ This endpoint does not need any parameter.
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **prompt_get**
-> IntellapiconnnHdtwRWUXa prompt_get()
+> object prompt_get()
 
 
 
@@ -1843,7 +1844,6 @@ This endpoint does not need any parameter.
 
 ```python
 import openapi_client
-from openapi_client.models.intellapiconnn_hdtw_rwuxa import IntellapiconnnHdtwRWUXa
 from openapi_client.rest import ApiException
 from pprint import pprint
 
@@ -1885,7 +1885,7 @@ This endpoint does not need any parameter.
 
 ### Return type
 
-[**IntellapiconnnHdtwRWUXa**](IntellapiconnnHdtwRWUXa.md)
+**object**
 
 ### Authorization
 
@@ -1965,7 +1965,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **prompt_post**
-> IntellapiconnnHdtwRWUXa prompt_post()
+> object prompt_post()
 
 
 
@@ -1975,7 +1975,6 @@ No authorization required
 
 ```python
 import openapi_client
-from openapi_client.models.intellapiconnn_hdtw_rwuxa import IntellapiconnnHdtwRWUXa
 from openapi_client.rest import ApiException
 from pprint import pprint
 
@@ -2017,7 +2016,7 @@ This endpoint does not need any parameter.
 
 ### Return type
 
-[**IntellapiconnnHdtwRWUXa**](IntellapiconnnHdtwRWUXa.md)
+**object**
 
 ### Authorization
 

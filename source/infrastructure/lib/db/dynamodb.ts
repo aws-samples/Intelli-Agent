@@ -19,6 +19,10 @@ export class DynamoDBConstruct extends Construct {
   public sessionTableName: string;
   public messageTableName: string;
   public promptTableName: string;
+  public indexTableName: string;
+  public modelTableName: string;
+  public intentionTableName: string;
+
   public readonly byUserIdIndex: string = "byUserId";
   public readonly bySessionIdIndex: string = "bySessionId";
   public readonly byTimestampIndex: string = "byTimestamp";
@@ -34,6 +38,10 @@ export class DynamoDBConstruct extends Construct {
       name: "userId",
       type: dynamodb.AttributeType.STRING,
     }
+    const groupNameAttr = {
+      name: "groupName",
+      type: dynamodb.AttributeType.STRING,
+    }
     const messageIdAttr = {
       name: "messageId",
       type: dynamodb.AttributeType.STRING,
@@ -42,12 +50,29 @@ export class DynamoDBConstruct extends Construct {
       name: "createTimestamp",
       type: dynamodb.AttributeType.STRING,
     }
+    // Need to be unified
+    const groupNameAttr2 = {
+      name: "GroupName",
+      type: dynamodb.AttributeType.STRING,
+    }
     const sortKeyAttr = {
-      name: "sortKey",
+      name: "SortKey",
+      type: dynamodb.AttributeType.STRING,
+    }
+    const indexIdAttr = {
+      name: "indexId",
+      type: dynamodb.AttributeType.STRING,
+    }
+    const modelIdAttr = {
+      name: "modelId",
+      type: dynamodb.AttributeType.STRING,
+    }
+    const intentionIdAttr = {
+      name: "intentionId",
       type: dynamodb.AttributeType.STRING,
     }
 
-    const sessionsTable = new DynamoDBTable(this, "SessionsTable", sessionIdAttr, userIdAttr).table;
+    const sessionsTable = new DynamoDBTable(this, "Session", sessionIdAttr, userIdAttr).table;
     sessionsTable.addGlobalSecondaryIndex({
       indexName: this.byTimestampIndex,
       partitionKey: userIdAttr,
@@ -55,16 +80,22 @@ export class DynamoDBConstruct extends Construct {
       projectionType: dynamodb.ProjectionType.ALL,
     });
 
-    const messagesTable = new DynamoDBTable(this, "MessagesTable", messageIdAttr, sessionIdAttr).table;
+    const messagesTable = new DynamoDBTable(this, "Message", messageIdAttr, sessionIdAttr).table;
     messagesTable.addGlobalSecondaryIndex({
       indexName: this.bySessionIdIndex,
       partitionKey: { name: "sessionId", type: dynamodb.AttributeType.STRING },
     });
 
-    const promptTable = new DynamoDBTable(this, "PromptTable", userIdAttr, sortKeyAttr).table;
+    const promptTable = new DynamoDBTable(this, "Prompt", groupNameAttr2, sortKeyAttr).table;
+    const indexTable = new DynamoDBTable(this, "Index", groupNameAttr, indexIdAttr).table;
+    const modelTable = new DynamoDBTable(this, "Model", groupNameAttr, modelIdAttr).table;
+    const intentionTable = new DynamoDBTable(this, "Intention", groupNameAttr, intentionIdAttr).table;
 
     this.sessionTableName = sessionsTable.tableName;
     this.messageTableName = messagesTable.tableName;
     this.promptTableName = promptTable.tableName;
+    this.indexTableName = indexTable.tableName;
+    this.modelTableName = modelTable.tableName;
+    this.intentionTableName = intentionTable.tableName;
   }
 }

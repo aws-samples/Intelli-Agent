@@ -3,7 +3,7 @@
   "info" : {
     "title" : "llmApi",
     "description" : "This service serves the LLM API.",
-    "version" : "2024-07-02T00:55:53Z"
+    "version" : "2024-07-03T03:36:34Z"
   },
   "servers" : [ {
     "url" : "https://2ijmvn7vq3.execute-api.ap-northeast-1.amazonaws.com/{basePath}",
@@ -42,7 +42,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/intellapiconnnHdtwRWUXa"
+                  "$ref" : "#/components/schemas/Empty"
                 }
               }
             }
@@ -79,7 +79,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/intellapiconnnHdtwRWUXa"
+                  "$ref" : "#/components/schemas/Empty"
                 }
               }
             }
@@ -148,7 +148,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/intellapiconnnHdtwRWUXa"
+                  "$ref" : "#/components/schemas/Empty"
                 }
               }
             }
@@ -217,7 +217,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/intellapiconnnHdtwRWUXa"
+                  "$ref" : "#/components/schemas/Empty"
                 }
               }
             }
@@ -286,7 +286,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/intellapiconnnHdtwRWUXa"
+                  "$ref" : "#/components/schemas/Empty"
                 }
               }
             }
@@ -355,7 +355,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/intellapiconnnHdtwRWUXa"
+                  "$ref" : "#/components/schemas/Empty"
                 }
               }
             }
@@ -392,7 +392,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/intellapiconnnHdtwRWUXa"
+                  "$ref" : "#/components/schemas/Empty"
                 }
               }
             }
@@ -461,7 +461,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/intellapiconnnHdtwRWUXa"
+                  "$ref" : "#/components/schemas/Empty"
                 }
               }
             }
@@ -562,7 +562,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/intellapiconnnHdtwRWUXa"
+                  "$ref" : "#/components/schemas/intellapico8XmICzoFHhRz"
                 }
               }
             }
@@ -605,6 +605,16 @@
     },
     "/etl/delete-execution" : {
       "post" : {
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/intellapicoDjp0ELR6YyaK"
+              }
+            }
+          },
+          "required" : true
+        },
         "responses" : {
           "400" : {
             "description" : "400 response",
@@ -631,7 +641,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/intellapiconnnHdtwRWUXa"
+                  "$ref" : "#/components/schemas/intellapico9lnc5odz4zt7"
                 }
               }
             }
@@ -700,7 +710,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/intellapiconnnHdtwRWUXa"
+                  "$ref" : "#/components/schemas/Empty"
                 }
               }
             }
@@ -743,6 +753,19 @@
     },
     "/etl/list-execution" : {
       "get" : {
+        "parameters" : [ {
+          "name" : "page_size",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "max_items",
+          "in" : "query",
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
         "responses" : {
           "400" : {
             "description" : "400 response",
@@ -769,7 +792,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/intellapiconnnHdtwRWUXa"
+                  "$ref" : "#/components/schemas/intellapiconBOMQnj7TTWc"
                 }
               }
             }
@@ -816,7 +839,7 @@
           "content" : {
             "application/json" : {
               "schema" : {
-                "$ref" : "#/components/schemas/intellapicoKbfXMYu1W8Nr"
+                "$ref" : "#/components/schemas/intellapicoXWLPrwxLR93J"
               }
             }
           },
@@ -848,7 +871,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/intellapiconnnHdtwRWUXa"
+                  "$ref" : "#/components/schemas/intellapico2Ts7jJyTjysw"
                 }
               }
             }
@@ -917,7 +940,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/intellapiconnnHdtwRWUXa"
+                  "$ref" : "#/components/schemas/Empty"
                 }
               }
             }
@@ -986,7 +1009,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/intellapiconnnHdtwRWUXa"
+                  "$ref" : "#/components/schemas/Empty"
                 }
               }
             }
@@ -1055,7 +1078,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/intellapiconnnHdtwRWUXa"
+                  "$ref" : "#/components/schemas/Empty"
                 }
               }
             }
@@ -1103,7 +1126,131 @@
         "title" : "Empty Schema",
         "type" : "object"
       },
-      "intellapicoKbfXMYu1W8Nr" : {
+      "intellapicoDjp0ELR6YyaK" : {
+        "title" : "PostPayload",
+        "required" : [ "executionId" ],
+        "type" : "object",
+        "properties" : {
+          "executionId" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        }
+      },
+      "intellapiconBOMQnj7TTWc" : {
+        "title" : "ResponsePayload",
+        "type" : "object",
+        "properties" : {
+          "Items" : {
+            "type" : "array",
+            "items" : {
+              "required" : [ "createTime", "executionId", "executionStatus", "offline", "operationType", "qaEnhance", "s3Bucket", "s3Prefix", "sfnExecutionId", "uiStatus", "workspaceId" ],
+              "type" : "object",
+              "properties" : {
+                "offline" : {
+                  "type" : "string"
+                },
+                "executionId" : {
+                  "type" : "string"
+                },
+                "createTime" : {
+                  "type" : "string"
+                },
+                "executionStatus" : {
+                  "type" : "string"
+                },
+                "operationType" : {
+                  "type" : "string"
+                },
+                "s3Prefix" : {
+                  "type" : "string"
+                },
+                "uiStatus" : {
+                  "type" : "string"
+                },
+                "s3Bucket" : {
+                  "type" : "string"
+                },
+                "qaEnhance" : {
+                  "type" : "string"
+                },
+                "sfnExecutionId" : {
+                  "type" : "string"
+                },
+                "workspaceId" : {
+                  "type" : "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "intellapico8XmICzoFHhRz" : {
+        "title" : "ResponsePayload",
+        "type" : "object",
+        "properties" : {
+          "Items" : {
+            "type" : "array",
+            "items" : {
+              "required" : [ "createTime", "executionId", "s3Bucket", "s3Path", "s3Prefix", "status" ],
+              "type" : "object",
+              "properties" : {
+                "executionId" : {
+                  "type" : "string"
+                },
+                "s3Path" : {
+                  "type" : "string"
+                },
+                "createTime" : {
+                  "type" : "string"
+                },
+                "s3Prefix" : {
+                  "type" : "string"
+                },
+                "s3Bucket" : {
+                  "type" : "string"
+                },
+                "status" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "Count" : {
+            "type" : "integer"
+          }
+        }
+      },
+      "intellapico9lnc5odz4zt7" : {
+        "title" : "ResponsePayload",
+        "type" : "object",
+        "properties" : {
+          "data" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "message" : {
+            "type" : "string"
+          }
+        }
+      },
+      "intellapico2Ts7jJyTjysw" : {
+        "title" : "ResponsePayload",
+        "type" : "object",
+        "properties" : {
+          "data" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          }
+        }
+      },
+      "intellapicoXWLPrwxLR93J" : {
         "title" : "PostPayload",
         "required" : [ "content_type", "file_name" ],
         "type" : "object",
@@ -1112,18 +1259,6 @@
             "type" : "string"
           },
           "file_name" : {
-            "type" : "string"
-          }
-        }
-      },
-      "intellapiconnnHdtwRWUXa" : {
-        "title" : "ResponsePayload",
-        "type" : "object",
-        "properties" : {
-          "data" : {
-            "type" : "string"
-          },
-          "message" : {
             "type" : "string"
           }
         }

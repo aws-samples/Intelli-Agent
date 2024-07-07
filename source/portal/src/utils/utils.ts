@@ -19,7 +19,7 @@ export const alertMsg = (alertTxt: string, alertType: AlertType = 'error') => {
   window.dispatchEvent(patchEvent);
 };
 
-export const formatTime = (timeStr: string) => {
+export const formatTime = (timeStr: string | number) => {
   if (!timeStr) {
     return '-';
   }

@@ -2,11 +2,26 @@ import pandas as pd
 import re
 import json
 import os
+import sys
 
 from common_logic.common_utils.s3_utils import download_dir_from_s3, upload_file_to_s3
 
+def trans_quick_reply_xls2jsonl(xls_data_file_path, json_data_file_path):
+    quick_reply_df = pd.read_excel(xls_data_file_path)
+    with open(json_data_file_path, "w") as f:
+        for index, row in quick_reply_df.iterrows():
+            line = ""
+            for key in row.keys():
+                line += f"{key}: {row[key]}\n"
+                json_data = {
+                    "question": line,
+                    "answer": {}
+                }
+            f.write(json.dumps(json_data, ensure_ascii=False) + "\n")
+
 def get_order_dict(data_file_path):
-    order_dict = {} 
+    order_dict = {}
+    good2order_dict = {}
     order_df = pd.read_excel(data_file_path, "订单号")
     for index, row in order_df.iterrows():
         order_id = row["消费者原生"]
@@ -19,8 +34,12 @@ def get_order_dict(data_file_path):
         order_dict[order_id]["received_time"] = row["签收时间"]
         if "goods_list" not in order_dict[order_id]:
             order_dict[order_id]["goods_list"] = []
-        order_dict[order_id]["goods_list"].append(row["订单ID"])
-    return order_dict
+        goods_id = str(row["订单ID"])
+        order_dict[order_id]["goods_list"].append(goods_id)
+        good2order_dict[row["订单ID"]] = order_dict[order_id]
+        if goods_id == str(757492962957):
+            good2order_dict["743891340644"] = order_dict[order_id]
+    return good2order_dict
 
 def get_goods_dict_1(data_file_path):
     goods_dict = {}
@@ -214,17 +233,23 @@ def get_foot_length_dict(data_file_path):
 
 def patch_good2type_dict(good2type_dict):
     good2type_dict["748090908717"] = ("apparel", "标准男装")
+    good2type_dict["766158164989"] = ("apparel", "标准男装")
+    good2type_dict["751465119152"] = ("apparel", "标准男装")
     return good2type_dict
 
+# Get quick reply information
+download_dir_from_s3("aws-chatbot-knowledge-base-test", "retail", "/tmp/functions/retail_tools/lambda_quick_reply/")
+trans_quick_reply_xls2jsonl("/tmp/functions/retail_tools/lambda_quick_reply/retail/detail/天猫官旗-团队快捷导出.xlsx", "/tmp/functions/retail_tools/lambda_quick_reply/quick_reply.jsonl")
+
 # Get order information
-# download_dir_from_s3("aws-chatbot-knowledge-base-test", "retail", "/tmp/functions/retail_tools/lambda_order_info/")
-# order_dict = get_order_dict("/tmp/functions/retail_tools/lambda_order_info/retail/detail/TB0327.xlsx")
-# order_dict_json_file = "/tmp/functions/retail_tools/lambda_order_info/order_info.json"
-# json.dump(order_dict, open(order_dict_json_file, "w"), ensure_ascii=False, indent=4)
-# upload_file_to_s3("aws-chatbot-knowledge-base-test", "retail_json/order_info.json", order_dict_json_file)
+download_dir_from_s3("aws-chatbot-knowledge-base-test", "retail", "/tmp/functions/retail_tools/lambda_order_info/")
+order_dict = get_order_dict("/tmp/functions/retail_tools/lambda_order_info/retail/detail/TB0327.xlsx")
+order_dict_json_file = "/tmp/functions/retail_tools/lambda_order_info/order_info.json"
+json.dump(order_dict, open(order_dict_json_file, "w"), ensure_ascii=False, indent=4)
+upload_file_to_s3("aws-chatbot-knowledge-base-test", "retail_json/order_info.json", order_dict_json_file)
 
 # Get goods information
-# download_dir_from_s3("aws-chatbot-knowledge-base-test", "retail", "/tmp/functions/retail_tools/lambda_product_information_search/")
+download_dir_from_s3("aws-chatbot-knowledge-base-test", "retail", "/tmp/functions/retail_tools/lambda_product_information_search/")
 goods_dict = get_goods_dict_1("/tmp/functions/retail_tools/lambda_product_information_search/retail/detail/TB0327.xlsx")
 goods_dict_2 = get_goods_dict_2("/tmp/functions/retail_tools/lambda_product_information_search/retail/detail/商品属性表.xlsx")
 goods_dict_3 = get_goods_dict_3("/tmp/functions/retail_tools/lambda_product_information_search/retail/detail/天猫官旗-商品信息.xlsx")
@@ -235,12 +260,12 @@ upload_file_to_s3("aws-chatbot-knowledge-base-test", "retail_json/goods_info.jso
 trans_goods_info_dict_to_jsonl(combined_goods_dict, "../job/poc/goods_data/detail/goods_info.jsonl")
 
 # Get size information
-# download_dir_from_s3("aws-chatbot-knowledge-base-test", "retail", "/tmp/functions/retail_tools/lambda_size_guide/")
-# good2type_dict, size_dict = get_size_dict()
-# patch_good2type_dict(good2type_dict)
-# good2type_dict_json_file = "/tmp/functions/retail_tools/lambda_size_guide/good2type_dict.json"
-# size_dict_json_file = "/tmp/functions/retail_tools/lambda_size_guide/size_dict.json"
-# json.dump(good2type_dict, open(good2type_dict_json_file, "w"), ensure_ascii=False, indent=4)
-# json.dump(size_dict, open(size_dict_json_file, "w"), ensure_ascii=False, indent=4)
-# upload_file_to_s3("aws-chatbot-knowledge-base-test", "retail_json/good2type_dict.json", good2type_dict_json_file)
-# upload_file_to_s3("aws-chatbot-knowledge-base-test", "retail_json/size_dict.json", size_dict_json_file)
+download_dir_from_s3("aws-chatbot-knowledge-base-test", "retail", "/tmp/functions/retail_tools/lambda_size_guide/")
+good2type_dict, size_dict = get_size_dict()
+patch_good2type_dict(good2type_dict)
+good2type_dict_json_file = "/tmp/functions/retail_tools/lambda_size_guide/good2type_dict.json"
+size_dict_json_file = "/tmp/functions/retail_tools/lambda_size_guide/size_dict.json"
+json.dump(good2type_dict, open(good2type_dict_json_file, "w"), ensure_ascii=False, indent=4)
+json.dump(size_dict, open(size_dict_json_file, "w"), ensure_ascii=False, indent=4)
+upload_file_to_s3("aws-chatbot-knowledge-base-test", "retail_json/good2type_dict.json", good2type_dict_json_file)
+upload_file_to_s3("aws-chatbot-knowledge-base-test", "retail_json/size_dict.json", size_dict_json_file)

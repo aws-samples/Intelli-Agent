@@ -688,9 +688,17 @@ export class ApiConstruct extends Construct {
       proxy: true,
     });
 
-    const apiResourcePrompt = api.root.addResource("prompt");
-    apiResourcePrompt.addMethod("POST", lambdaPromptIntegration, this.genMethodOption(api, auth, null),);
-    apiResourcePrompt.addMethod("GET", lambdaPromptIntegration, this.genMethodOption(api, auth, null),);
+    const apiResourcePromptManagement = api.root.addResource("prompt-management");
+
+    const apiResourcePromptManagementModels = apiResourcePromptManagement.addResource("models")
+    apiResourcePromptManagementModels.addMethod("GET", lambdaPromptIntegration, this.genMethodOption(api, auth, null));
+
+    const apiResourcePromptManagementScenes = apiResourcePromptManagement.addResource("scenes")
+    apiResourcePromptManagementScenes.addMethod("GET", lambdaPromptIntegration, this.genMethodOption(api, auth, null));
+
+    const apiResourcePrompt = apiResourcePromptManagement.addResource("prompts");
+    apiResourcePrompt.addMethod("POST", lambdaPromptIntegration, this.genMethodOption(api, auth, null));
+    apiResourcePrompt.addMethod("GET", lambdaPromptIntegration, this.genMethodOption(api, auth, null));
 
     const apiResourcePromptProxy = apiResourcePrompt.addResource("{proxy+}")
     apiResourcePromptProxy.addMethod("DELETE", lambdaPromptIntegration, this.genMethodOption(api, auth, null),);
@@ -719,13 +727,13 @@ export class ApiConstruct extends Construct {
         architecture: Architecture.X86_64,
         layers: [apiLambdaOnlineSourceLayer, apiLambdaJobSourceLayer],
         environment: {
-          aos_endpoint: domainEndpoint,
-          rerank_endpoint: props.embeddingAndRerankerEndPoint,
-          sessions_table_name: sessionsTableName,
-          messages_table_name: messagesTableName,
-          prompt_table_name: props.promptTableName,
-          workspace_table: workspaceTableName,
-          openai_key_arn: openAiKey.secretArn,
+          AOS_ENDPOINT: domainEndpoint,
+          RERANK_ENDPOINT: props.embeddingAndRerankerEndPoint,
+          SESSIONS_TABLE_NAME: sessionsTableName,
+          MESSAGES_TABLE_NAME: messagesTableName,
+          PROMPT_TABLE_NAME: props.promptTableName,
+          WORKSPACE_TABLE: workspaceTableName,
+          OPENAI_KEY_ARN: openAiKey.secretArn,
         },
       });
 
