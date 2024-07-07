@@ -75,7 +75,7 @@ else
   sed -i "s|option.tensor_parallel_degree=tpd|option.tensor_parallel_degree=$tensor_parallel_degree|g" $file_path
 fi
 
-if [ -f bce_embedding_model.tar.gz ]; then
+if [ -f bge_reranker_model.tar.gz ]; then
   rm bge_reranker_model.tar.gz
 fi
 tar czvf bge_reranker_model.tar.gz *
