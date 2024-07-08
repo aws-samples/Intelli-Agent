@@ -171,7 +171,7 @@ if __name__ == "__main__":
                     "retrievers": [
                         {
                             "type": "qq",
-                            "workspace_ids": ["test"],
+                            "index_ids": ["test"],
                             "config": {
                                 "top_k": 10,
                             }

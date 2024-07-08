@@ -1,3 +1,5 @@
+from enum import Enum, unique
+
 class ConstantBase:
     @classmethod
     def has_value(cls, value):
@@ -104,5 +106,30 @@ class LLMModelType(ConstantBase):
     QWEN2INSTRUCT72B = "qwen2-72B-instruct"
     
     
+unique
+class Status(Enum):
+    ACTIVE = "active"
+    INACTIVE = "inactive"
 
 
+@unique
+class IndexType(Enum):
+    QD = "qd"
+    QQ = "qq"
+    INTENTION = "intention"
+
+
+@unique
+class ModelType(Enum):
+    EMBEDDING = "embedding_and_rerank"
+    LLM = "llm"
+
+
+@unique
+class IndexTag(Enum):
+    COMMON = "common"
+
+
+@unique
+class KBType(Enum):
+    AOS = "aos"

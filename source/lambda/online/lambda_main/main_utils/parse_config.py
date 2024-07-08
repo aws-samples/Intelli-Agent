@@ -183,7 +183,7 @@ def parse_retail_entry_config(chatbot_config):
             "retrievers": [
                 {
                     "type": "qq",
-                    "workspace_ids": ["retail-intent"],
+                    "index_ids": ["retail-intent"],
                     "config": {
                         "top_k": 5,
                     }
@@ -196,7 +196,7 @@ def parse_retail_entry_config(chatbot_config):
                 "retrievers": [
                     {
                         "type": "qd",
-                        "workspace_ids": [1],
+                        "index_ids": [1],
                         "top_k": 10,
                     }
                 ]
@@ -210,7 +210,7 @@ def parse_retail_entry_config(chatbot_config):
                 "retrievers": [
                     {
                         "type": "qq",
-                        "workspace_ids": ["retail-quick-reply"],
+                        "index_ids": ["retail-quick-reply"],
                         "config": {
                             "top_k": 5
                         },
@@ -226,7 +226,7 @@ def parse_retail_entry_config(chatbot_config):
                 "retrievers": [
                     {
                         "type": "qq",
-                        "workspace_ids": ["retail-quick-reply"],
+                        "index_ids": ["retail-quick-reply"],
                         "config": {
                             "top_k": 5
                         },
@@ -242,7 +242,7 @@ def parse_retail_entry_config(chatbot_config):
                 "retrievers": [
                     {
                         "type": "qq",
-                        "workspace_ids": ["retail-quick-reply"],
+                        "index_ids": ["retail-quick-reply"],
                         "config": {
                             "top_k": 5
                         },
@@ -258,7 +258,7 @@ def parse_retail_entry_config(chatbot_config):
                 "retrievers": [
                     {
                         "type": "qq",
-                        "workspace_ids": ['retail-shouhou-wuliu', 'retail-quick-reply'],
+                        "index_ids": ['retail-shouhou-wuliu', 'retail-quick-reply'],
                         "config": {
                             "top_k": 5,
                         }
@@ -283,7 +283,7 @@ def parse_retail_entry_config(chatbot_config):
                 "retrievers": [
                     {
                         "type": "qq",
-                        "workspace_ids": ['retail-shouhou-wuliu','retail-quick-reply'],
+                        "index_ids": ['retail-shouhou-wuliu','retail-quick-reply'],
                         "config": {
                             "top_k": 2,
                         }
@@ -308,7 +308,7 @@ def parse_retail_entry_config(chatbot_config):
                 "retrievers": [
                     {
                         "type": "qq",
-                        "workspace_ids": ['retail-shouhou-wuliu','retail-quick-reply'],
+                        "index_ids": ['retail-shouhou-wuliu','retail-quick-reply'],
                         "config": {
                             "top_k": 2,
                         }
@@ -333,7 +333,7 @@ def parse_retail_entry_config(chatbot_config):
                 "retrievers": [
                     {
                         "type": "qq",
-                        "workspace_ids": ["goods-info"],
+                        "index_ids": ["goods-info"],
                         "config": {
                             "top_k": 5
                         },
@@ -349,7 +349,7 @@ def parse_retail_entry_config(chatbot_config):
                 "retrievers": [
                     {
                         "type": "qq",
-                        "workspace_ids": ['retail-shouhou-wuliu','retail-quick-reply'],
+                        "index_ids": ['retail-shouhou-wuliu','retail-quick-reply'],
                         "config": {
                             "top_k": 2,
                         }

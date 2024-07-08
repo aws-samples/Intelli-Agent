@@ -678,7 +678,10 @@ export class ApiConstruct extends Construct {
           SESSIONS_TABLE_NAME: sessionsTableName,
           MESSAGES_TABLE_NAME: messagesTableName,
           PROMPT_TABLE_NAME: props.promptTableName,
-          CHATBOT_TABLE_NAME: chatbotTableName,
+          CHATBOT_TABLE_NAME: props.chatbotTableName,
+          MODEL_TABLE: props.modelTableName,
+          INDEX_TABLE: props.indexTableName,
+          EMBEDDING_ENDPOINT: props.embeddingAndRerankerEndPoint,
           OPENAI_KEY_ARN: openAiKey.secretArn,
         },
       });

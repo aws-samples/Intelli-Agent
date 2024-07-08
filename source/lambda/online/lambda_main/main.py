@@ -6,6 +6,8 @@ import traceback
 from common_logic.common_utils.ddb_utils import DynamoDBChatMessageHistory
 from lambda_main.main_utils.online_entries import get_entry
 from lambda_main.main_utils.response_utils import process_response
+from lambda_main.main_utils.embeddings import get_embedding_info
+from lambda_main.main_utils.ddb_utils import create_item_if_not_exist
 from common_logic.common_utils.constant import EntryType
 from common_logic.common_utils.logger_utils import get_logger
 from common_logic.common_utils.websocket_utils import load_ws_client
@@ -13,7 +15,9 @@ from common_logic.common_utils.lambda_invoke_utils import (
     chatbot_lambda_call_wrapper,
     is_running_local,
 )
+from common_logic.common_utils.constant import ModelType, Status, KBType, IndexTag
 from botocore.exceptions import ClientError
+from datetime import datetime, timezone
 
 logger = get_logger("main")
 
@@ -28,8 +32,13 @@ secret_manager_client = session.client(
     service_name="secretsmanager",
     region_name=region_name
 )
-dynamodb_resource = boto3.resource("dynamodb")
-prompt_table = dynamodb_resource.Table(prompt_table_name)
+dynamodb = boto3.resource("dynamodb")
+prompt_table = dynamodb.Table(prompt_table_name)
+index_table = dynamodb.Table(os.environ.get("INDEX_TABLE"))
+chatbot_table = dynamodb.Table(os.environ.get("CHATBOT_TABLE"))
+model_table = dynamodb.Table(os.environ.get("MODEL_TABLE"))
+embedding_endpoint = os.environ.get("EMBEDDING_ENDPOINT")
+create_time = str(datetime.now(timezone.utc))
 
 
 # def get_prompt(user_id: str, model_id: str, task_type: str):
@@ -40,6 +49,100 @@ prompt_table = dynamodb_resource.Table(prompt_table_name)
 #     if item:
 #         return item.get("prompt")
 #     return None
+
+
+def initiate_model(model_table, group_name, model_id):
+    embedding_info = get_embedding_info(embedding_endpoint)
+    embedding_info["ModelEndpoint"] = embedding_endpoint
+    create_item_if_not_exist(
+        model_table,
+        {
+            "groupName": group_name, 
+            "modelId": model_id
+        },
+        {
+            "groupName": group_name, 
+            "modelId": model_id,
+            "modelType": ModelType.EMBEDDING.value,
+            "parameter": embedding_info,
+            "createTime": create_time,
+            "updateTime": create_time,
+            "status": Status.ACTIVE.value
+        }
+    )
+    return embedding_info["ModelType"]
+
+
+def initiate_index(index_table, group_name, index_id, model_id, index_type, tag):
+    create_item_if_not_exist(
+        index_table,
+        {
+            "groupName": group_name, 
+            "indexId": index_id
+        },
+        {
+            "groupName": group_name, 
+            "indexId": index_id,
+            "indexType": index_type,
+            "kbType": KBType.AOS.value,
+            "modelIds": {
+                "embedding": model_id
+            },
+            "tag": tag,
+            "createTime": create_time,
+            "status": Status.ACTIVE.value
+        }
+    )
+
+
+def initiate_chatbot(chatbot_table, group_name, chatbot_id, index_id, index_type, tag):
+    is_existed, item = create_item_if_not_exist(
+        chatbot_table,
+        {
+            "groupName": group_name, 
+            "chatbotId": chatbot_id
+        },
+        {
+            "groupName": group_name, 
+            "chatbotId": chatbot_id,
+            "languages": [ "zh" ],
+            "indexIds": {
+                index_type: {
+                    "count": 1,
+                    "value": {
+                        IndexTag.COMMON.value: index_id
+                    }
+                }
+            },
+            "createTime": create_time,
+            "updateTime": create_time,
+            "status": Status.ACTIVE.value
+        }
+    )
+
+    if is_existed:
+        index_id_dict = item.get("indexIds", {})
+        append_index = True
+        if index_type in index_id_dict:
+            # Append it with the same index type
+            for key in index_id_dict[index_type]["value"].keys():
+                if key == tag:
+                    append_index = False
+                    break
+            
+            if append_index:
+                item["indexIds"][index_type]["value"][tag] = index_id
+                item["indexIds"][index_type]["count"] = len(item["indexIds"][index_type]["value"])
+                chatbot_table.put_item(Item=item)
+        else:
+            # Add a new index type
+            item["indexIds"][index_type] = {
+                "count": 1,
+                "value": {
+                    tag: index_id
+                }
+            }
+            chatbot_table.put_item(Item=item)
 
 
 def get_secret_value(secret_arn: str):
@@ -64,6 +167,7 @@ def get_secret_value(secret_arn: str):
         else:
             raise Exception("Fail to retrieve the secret value")
 
+
 @chatbot_lambda_call_wrapper
 def lambda_handler(event_body:dict, context:dict):
     # logger.info(event_body)
@@ -80,8 +184,15 @@ def lambda_handler(event_body:dict, context:dict):
     custom_message_id = event_body.get("custom_message_id", "")
     user_id = event_body.get("user_id", "default_user_id")
     # TODO Need to modify key
-    # TODO: update group name
-    group_name = event_body.get("chatbot_config").get("default_workspace_config",{"rag_index_ids":["Admin"]}).get("rag_index_ids")[0]
+    group_name = event_body.get("chatbot_config").get("default_index_config",{"rag_index_ids":["Admin"]}).get("rag_index_ids")[0]
+    chatbot_id = event_body.get("chatbot_id", group_name.lower())
+    model_id = f"{chatbot_id}-embedding"
+    initiate_model(model_table, group_name, model_id)
+    index_type_list = ["qd", "qq", "intention"]
+    for index_type in index_type_list:
+        index_id = f"{chatbot_id}-{index_type}-offline"
+        initiate_index(index_table, group_name, index_id, model_id, index_type, index_tag)
+        initiate_chatbot(chatbot_table, group_name, chatbot_id, index_id, index_type, index_tag)
 
     if not session_id:
         session_id = f"session_{int(request_timestamp)}"
