@@ -416,7 +416,8 @@ export class EtlStack extends NestedStack {
       environment: {
         DEFAULT_EMBEDDING_ENDPOINT:
           props.embeddingAndRerankerEndPoint ||
-          "Default Embedding Endpoint Not Created",
+          "-",
+        AOS_DOMAIN_ENDPOINT: props.domainEndpoint || "-",
       },
     });
     etlLambda.addToRolePolicy(this.iamHelper.glueStatement);
@@ -459,7 +460,7 @@ export class EtlStack extends NestedStack {
       glueJobName: glueJob.jobName,
       integrationPattern: sfn.IntegrationPattern.RUN_JOB,
       arguments: sfn.TaskInput.fromObject({
-        "--AOS_ENDPOINT": props.domainEndpoint || "AOS Endpoint Not Created",
+        "--AOS_ENDPOINT": props.domainEndpoint || "-",
         "--BATCH_FILE_NUMBER.$": "$.batchFileNumber",
         "--BATCH_INDICE.$": 'States.Format(\'{}\', $.batchIndices)',
         "--DOCUMENT_LANGUAGE.$": "$.documentLanguage",
@@ -522,7 +523,7 @@ export class EtlStack extends NestedStack {
       integrationPattern: sfn.IntegrationPattern.RUN_JOB,
       resultPath: "$.mapResults",
       arguments: sfn.TaskInput.fromObject({
-        "--AOS_ENDPOINT": props.domainEndpoint,
+        "--AOS_ENDPOINT": props.domainEndpoint || "-",
         "--BATCH_FILE_NUMBER.$": "$.batchFileNumber",
         "--BATCH_INDICE.$": 'States.Format(\'{}\', $.batchIndices)',
         "--DOCUMENT_LANGUAGE.$": "$.documentLanguage",
