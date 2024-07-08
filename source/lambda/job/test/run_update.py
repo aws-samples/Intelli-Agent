@@ -22,17 +22,18 @@ s3_prefix_list = ["retail/quick_reply/quick_reply_ingestion_data.jsonl",
                   "retail/intent_data/intent_ingestion_data.jsonl",
                   "retail/quick_reply/shouhou_wuliu.jsonl",
                   "retail/goods_info/goods_info.jsonl",
-                  "demo/yb_aos_examples.jsonl"]
-workspace_id_list = ["retail-quick-reply", "retail-intent", "retail-shouhou-wuliu", "goods_info", "yb_intent"]
+                  "demo/default_intent.jsonl"]
+workspace_id_list = ["retail-quick-reply", "retail-intent", "retail-shouhou-wuliu", "goods-info", "default-intent"]
 index_type_list = ["qq", "qq", "qq", "qq", "qq"]
 op_type_list = ["update", "update", "update", "update", "update"]
-local_file_list = ["poc/goods_data/quick_reply/quick_reply_ingestion_data.jsonl",
+# op_type_list = ["update", "create", "create", "create", "update"]
+local_file_list = ["poc/goods_data/quick_reply/quick_reply_ingestion_data_v2.jsonl",
                    "poc/intent_data/intent_ingestion_data.jsonl",
                    "poc/goods_data/quick_reply/shouhou_wuliu.jsonl",
                    "poc/goods_data/detail/goods_info.jsonl",
-                   "yb_aos_examples.jsonl"]
+                   "default_intent.jsonl"]
 
-sl = slice(0,2)
+sl = slice(2,3)
 
 workspace_id_list = workspace_id_list[sl]
 index_type_list = index_type_list[sl]
