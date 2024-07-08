@@ -49,7 +49,7 @@ class LangchainOpenSearchClient:
         cls,
         index_name,
         embedding_endpoint_name,
-        host=os.environ.get("aos_endpoint", None),
+        host=os.environ.get("AOS_ENDPOINT", None),
     ):
         identity = f"{index_name}_{host}_{embedding_endpoint_name}"
         with opensearch_client_lock:
@@ -65,7 +65,7 @@ class LangchainOpenSearchClient:
         cls,
         index_name,
         embedding_endpoint_name,
-        host=os.environ.get("aos_endpoint", None),
+        host=os.environ.get("AOS_ENDPOINT", None),
         region_name=os.environ["AWS_REGION"],
     ):
         embedding = BGEM3EmbeddingSagemakerEndpoint(
@@ -95,7 +95,7 @@ class IntentRecognitionAOSIndex:
         intent_example_path=intent_example_path,
         index_name=None,
         embedding_endpoint_name=None,
-        host=os.environ.get("aos_endpoint", None),
+        host=os.environ.get("AOS_ENDPOINT", None),
     ):
         if index_name is None:
             index_name = self.create_index_name(

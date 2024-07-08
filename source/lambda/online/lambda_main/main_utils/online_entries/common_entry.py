@@ -131,13 +131,12 @@ def intention_detection_lambda(state: ChatbotState):
 
 @node_monitor_wrapper
 def rag_llm_lambda(state: ChatbotState):
-    user_id = state['chatbot_config']['user_id']
+    group_name = state['chatbot_config']['group_name']
     llm_config = state["chatbot_config"]["rag_config"]["llm_config"]
     task_type = LLMTaskType.RAG
     prompt_templates_from_ddb = get_prompt_templates_from_ddb(
-        user_id,
+        group_name,
         model_id = llm_config['model_id'],
-        task_type=task_type
     )
 
     output: str = invoke_lambda(
@@ -308,15 +307,15 @@ def aws_qa_lambda(state: ChatbotState):
 
 @node_monitor_wrapper
 def chat_llm_generate_lambda(state: ChatbotState):
-    user_id = state['chatbot_config']['user_id']
+    group_name = state['chatbot_config']['group_name']
     llm_config = state["chatbot_config"]["chat_config"]
     task_type = LLMTaskType.CHAT
 
     prompt_templates_from_ddb = get_prompt_templates_from_ddb(
-        user_id,
+        group_name,
         model_id = llm_config['model_id'],
-        task_type=task_type
     )
+    logger.info(prompt_templates_from_ddb)
 
     answer: dict = invoke_lambda(
         event_body={

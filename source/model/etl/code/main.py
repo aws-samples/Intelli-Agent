@@ -18,6 +18,7 @@ from xycut import recursive_xy_cut
 import time
 from PIL import Image
 import cv2
+import io
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -128,6 +129,25 @@ class StructureSystem(object):
 structure_engine = StructureSystem()
 figure_understand = figureUnderstand()
 s3 = boto3.client("s3")
+def upload_images_to_s3(
+    images, bucket: str, prefix: str, splitting_type: str
+):
+    # round the timestamp to hours to avoid too many folders
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d-%H")
+    # make the logger file name unique
+    name_s3path = {}
+    for key,image in images.items():
+        object_key = f"{prefix}/{splitting_type}/{timestamp}/{key.replace('.jpg', '-'+datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S-%f')+'.jpg')}"
+        try:
+            buffer = io.BytesIO()
+            image.save(buffer, format='JPEG')
+            buffer.seek(0)
+            res = s3.put_object(Bucket=bucket, Key=object_key, Body=buffer, ContentType='image/jpeg')
+        except Exception as e:
+            continue
+        name_s3path[key] = f'{object_key}'
+    return name_s3path
+
 
 def upload_chunk_to_s3(
     logger_content: str, bucket: str, prefix: str, splitting_type: str
@@ -190,15 +210,16 @@ def structure_predict(file_path: Path, lang: str, auto_dpi, figure_rec) -> str:
             continue
         if region["type"].lower() == "figure":
             if figure_rec:
-                doc += '<{{figure_' + str(len(figure)) + '}}>'
-                figure['<{{figure_' + str(len(figure)) + '}}>'] = Image.fromarray(region["img"])
-            else:    
+                doc += '<{{figure_' + str(len(figure)) + '}}>\n'
+            else:
+                doc += '<{{figure_' + str(len(figure)) + '}}>\n'
                 region_text = ""
                 for _, line in enumerate(region["res"]):
                     region_text += line["text"] + " "
                 if remove_symbols(region_text) != remove_symbols(prev_region_text):
                     doc += region_text
                     prev_region_text = region_text
+            figure['<{{figure_' + str(len(figure)) + '}}>'] = Image.fromarray(region["img"])
         elif region["type"].lower() == "title":
             region_text = ''
             for i, line in enumerate(region['res']):
@@ -232,12 +253,17 @@ def structure_predict(file_path: Path, lang: str, auto_dpi, figure_rec) -> str:
 
         doc += "\n\n"
     doc = re.sub("\n{2,}", "\n\n", doc.strip())
-    for k,v in figure.items():
-        start_pos = doc.index(k)
-        context = doc[max(start_pos-200, 0): min(start_pos+200, len(doc))]
-        doc = doc.replace(k, figure_understand(v, context, k))
+    images = {}
+    for figure_idx, (k,v) in enumerate(figure.items()):
+        images[f'{figure_idx:05d}.jpg'] = v
+        if figure_rec:
+            start_pos = doc.index(k)
+            context = doc[max(start_pos-200, 0): min(start_pos+200, len(doc))]
+            doc = doc.replace(k, figure_understand(v, context, k, s3_link=f'{figure_idx:05d}.jpg'))
+        else:
+            doc = doc.replace(k, f"<figure><link>{figure_idx:05d}.jpg</link></figure>")
     doc = re.sub("\n{2,}", "\n\n", doc.strip())
-    return doc
+    return doc, images
 
 def process_pdf_pipeline(request_body):
     """
@@ -269,9 +295,13 @@ def process_pdf_pipeline(request_body):
     logger.info("Downloading %s to %s", object_key, local_path)
     s3.download_file(Bucket=bucket, Key=object_key, Filename=local_path)
 
-    content = structure_predict(local_path, lang, auto_dpi, figure_rec)
-    return content
+    content, images = structure_predict(local_path, lang, auto_dpi, figure_rec)
     filename = file_path.stem
+    name_s3path = upload_images_to_s3(
+        images, destination_bucket, filename, "before-splitting"
+    )
+    for key, s3_path in name_s3path.items():
+        content = content.replace(f'<link>{key}</link>', s3_path)
     destination_s3_path = upload_chunk_to_s3(
         content, destination_bucket, filename, "before-splitting"
     )
