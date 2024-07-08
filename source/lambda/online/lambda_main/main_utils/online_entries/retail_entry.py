@@ -1,6 +1,7 @@
 import json
 import re
 import random
+from datetime import datetime 
 from textwrap import dedent
 from typing import TypedDict,Any,Annotated
 import validators
@@ -25,13 +26,22 @@ from common_logic.common_utils.exceptions import (
 )
 from common_logic.common_utils.logger_utils import get_logger
 from common_logic.common_utils.serialization_utils import JSONEncoder
+from common_logic.common_utils.s3_utils import download_file_from_s3,check_local_folder
 
+order_info_path = "/tmp/functions/retail_tools/lambda_order_info/order_info.json"
+check_local_folder(order_info_path)
+download_file_from_s3("aws-chatbot-knowledge-base-test", "retail_json/order_info.json", order_info_path)
+order_dict = json.load(open(order_info_path))
 
 logger = get_logger('retail_entry')
+
+goods_info_tag = "商品信息"
+
 
 class ChatbotState(TypedDict):
     chatbot_config: dict # chatbot config
     query: str 
+    create_time: str 
     ws_connection_id: str 
     stream: bool 
     query_rewrite: str = None  # query rewrite ret
@@ -71,7 +81,7 @@ class ChatbotState(TypedDict):
 @node_monitor_wrapper
 def query_preprocess_lambda(state: ChatbotState):
     output:str = invoke_lambda(
-        event_body=state,
+        event_body={**state,"chat_history":[]},
         lambda_name="Online_Query_Preprocess",
         lambda_module_path="lambda_query_preprocess.query_preprocess",
         handler_name="lambda_handler"
@@ -152,7 +162,11 @@ def agent_lambda(state: ChatbotState):
     current_agent_output:dict = invoke_lambda(
         event_body={
             **state,
-            "other_chain_kwargs":{"goods_info": goods_info}
+            "other_chain_kwargs":{
+                "goods_info": goods_info,
+                "create_time": state['create_time'],
+                "current_agent_recursion_num":state['current_agent_recursion_num']
+                }
         },
         lambda_name="Online_Agent",
         lambda_module_path="lambda_agent.agent",
@@ -358,8 +372,29 @@ def rag_product_aftersales_retriever_lambda(state: ChatbotState):
 
 @node_monitor_wrapper
 def rag_product_aftersales_llm_lambda(state:ChatbotState):
+    create_time = state.get('create_time', None)
+    goods_id = state.get('chatbot_config').get('goods_id', 757492962957)
+    try:
+        create_datetime_object = datetime.strptime(create_time, '%Y-%m-%d %H:%M:%S.%f')
+    except Exception as e:
+        create_datetime_object = datetime.now()
+        print(f"create_time: {create_time} is not valid, use current time instead.")
+    create_time_str = create_datetime_object.strftime('%Y-%m-%d')
+    # TODO: fix received time format
+    received_time = order_dict.get(str(goods_id), {}).get("received_time", "2023/9/129:03:13")
+    order_time = " ".join([received_time[:9], received_time[9:]])
+    try:
+        order_date_str = datetime.strptime(order_time, '%Y/%m/%d %H:%M:%S').strftime('%Y-%m-%d')
+        receive_elapsed_days = (create_datetime_object - datetime.strptime(order_date_str, '%Y-%m-%d')).days
+        receive_elapsed_months = receive_elapsed_days // 30
+    except Exception as e:
+        order_date_str = "2023-9-12"
+        receive_elapsed_months = 6
     context = "\n\n".join(state['contexts'])
     system_prompt = (f"你是安踏的客服助理，正在帮消费者解答问题，消费者提出的问题大多是属于商品的质量和物流规则。context列举了一些可能有关的具体场景及回复，你可以进行参考:\n"
+                    f"客户咨询的问题所对应的订单日期为{order_date_str}。\n"
+                    f"当前时间{create_time_str}\n"
+                    f"客户收到商品已经超过{receive_elapsed_months}个月\n"
                     "<context>\n"
                     f"{context}\n"
                     "</context>\n"
@@ -368,7 +403,9 @@ def rag_product_aftersales_llm_lambda(state:ChatbotState):
                     " - 回答内容为一句话，言简意赅。\n"
                     " - 如果问题与context内容不相关，就不要采用。\n"
                     " - 消费者的问题里面可能包含口语化的表达，比如鞋子开胶的意思是用胶黏合的鞋体裂开。这和胶丝遗留没有关系\n"
+                    " - 洗涤后出现问题也属于质量问题\n"
                     " - 消费者的回复不够清晰的时候，直接回复: 不知道刚才给您的建议是否有帮助？。不要有额外补充\n"
+                    " - 如果客户问到质量相关问题，请根据前面的订单信息和三包规则，确定是否超出三包期限，如果超出三包期限请告知消费者无法处理，如果在三包期限内请按照三包要求处理，并安抚。\n"
                     "</guidelines>\n"
                     )
     # print('llm config',state['chatbot_config']['rag_product_aftersales_config']['llm_config'])
@@ -559,7 +596,7 @@ def rule_url_reply(state:ChatbotState):
         output = f"您好，该商品的特点是:\n{human_goods_info}"
         if human_goods_info:
             system_prompt = (f"你是安踏的客服助理，当前用户对下面的商品感兴趣:\n"
-                        f"<goods_info>\n{human_goods_info}\n</goods_info>\n"
+                        f"<{goods_info_tag}>\n{human_goods_info}\n</{goods_info_tag}>\n"
                         "请你结合商品的基础信息，特别是卖点信息返回一句推荐语。"
                     )
             output:str = invoke_lambda(
@@ -591,7 +628,11 @@ def rule_number_reply(state:ChatbotState):
 def query_route(state:dict):
     # check if rule reply
     query = state['query']
-    if validators.url(query):
+    is_all_url = True
+    for token in query.split():
+        if not validators.url(token):
+            is_all_url = False
+    if is_all_url:
         return "url"
     if query.isnumeric() and len(query)>=8:
         return "number"
@@ -758,7 +799,13 @@ def _prepare_chat_history(event_body):
         chat_history_by_goods_id = []
         for hist in event_body["chat_history"]:
             if goods_id == hist['additional_kwargs']['goods_id']:
-                chat_history_by_goods_id.append(hist)
+                current_chat = {}
+                current_chat['role'] = hist['role']
+                current_chat['content'] = hist['content']
+                current_chat['addional_kwargs'] = {}
+                if 'goods_id' in hist['additional_kwargs']:
+                    current_chat['addional_kwargs']['goods_id'] = str(hist['additional_kwargs']['goods_id'])
+                chat_history_by_goods_id.append(current_chat)
         return chat_history_by_goods_id
     else:
         return event_body["chat_history"]
@@ -782,10 +829,10 @@ def retail_entry(event_body):
     ################################################################################
     # prepare inputs and invoke graph
     event_body['chatbot_config'] = parse_retail_entry_config(event_body['chatbot_config'])
-    logger.info(f'event_body:\n{json.dumps(event_body,ensure_ascii=False,indent=2,cls=JSONEncoder)}')
     chatbot_config = event_body['chatbot_config']
     query = event_body['query']
     stream = event_body['stream']
+    create_time = chatbot_config.get('create_time',None)
     message_id = event_body['custom_message_id']
     ws_connection_id = event_body['ws_connection_id']
     enable_trace = chatbot_config["enable_trace"]
@@ -810,17 +857,20 @@ def retail_entry(event_body):
                 goods_info = f"商品类型: \n<goods_type>\n{_goods_type}\n</goods_type>\n"
             else:
                 goods_info = ""
-            goods_info += "<goods_info>\n"
+            goods_info += f"<{goods_info_tag}>\n"
+    
             human_goods_info = ""
             for k,v in _goods_info.items():
                 goods_info += f"{k}:{v}\n" 
                 human_goods_info += f"{k}:{v}\n" 
             
             goods_info = goods_info.strip()
-            goods_info += "\n</goods_info>"
+            goods_info += f"\n</{goods_info_tag}>"
 
     use_history = chatbot_config['use_history']
     chat_history = _prepare_chat_history(event_body) if use_history else []
+    event_body['chat_history'] = chat_history
+    logger.info(f'event_body:\n{json.dumps(event_body,ensure_ascii=False,indent=2,cls=JSONEncoder)}')
     
     logger.info(f"goods_info: {goods_info}")
     logger.info(f"chat_hisotry: {chat_history}")
@@ -829,6 +879,7 @@ def retail_entry(event_body):
         "stream": stream,
         "chatbot_config": chatbot_config,
         "query": query,
+        "create_time": create_time,
         "enable_trace": enable_trace,
         "trace_infos": [],
         "message_id": message_id,
@@ -843,8 +894,18 @@ def retail_entry(event_body):
         "query_rewrite_llm_type":LLMTaskType.RETAIL_CONVERSATION_SUMMARY_TYPE,
         "agent_recursion_limit": chatbot_config['agent_recursion_limit'],
         "current_agent_recursion_num": 0,
+        "current_agent_intent_type":""
     })
-
-    return {"answer":response['answer'],**response["extra_response"],"trace_infos":response['trace_infos']}
+    
+    extra_response = response["extra_response"]
+    return {
+        "answer":response['answer'],
+        **extra_response,
+        "ddb_additional_kwargs": {
+             "goods_id":goods_id,
+             "current_agent_intent_type":extra_response.get('current_agent_intent_type',"")
+        },
+        "trace_infos":response['trace_infos'],
+        }
 
 main_chain_entry = retail_entry

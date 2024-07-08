@@ -28,7 +28,7 @@ def lambda_handler(event_body, context=None):
     goods_id = str(state["chatbot_config"]["goods_id"])
     kwargs = event_body["kwargs"]
     if goods_id not in good2type_dict:
-        return {"code":1, "result":"goods_id is invalid"}
+        return {"code":1, "result":"该商品的尺码信息缺失，请不要使用尺码工具"}
     goods_type_1, goods_type_2 = good2type_dict[goods_id]
     if goods_type_1 == "shoes":
         if "shoes_size" in kwargs:
@@ -36,6 +36,8 @@ def lambda_handler(event_body, context=None):
                 shoe_size = float(kwargs["shoes_size"])
             except:
                 return {"code":1, "result":"shoes_size should be a number"}
+            if goods_type_1 == "shoes" and goods_type_2 == "童鞋":
+                return {"code":1, "result":"童鞋不存在鞋码，请输入脚长查询"}
             std_shoe_size = find_nearest(list(size_dict.get(goods_type_1).get(goods_type_2).get("shoes_size").keys()), shoe_size)
             result = size_dict.get(goods_type_1).get(goods_type_2).get("shoes_size").get(std_shoe_size, "42")
             # No sutabale size for the input shoes size or foot length
@@ -52,12 +54,12 @@ def lambda_handler(event_body, context=None):
             if result == "此款暂无适合亲的尺码":
                 result += "，您当前输入的脚长为{}cm，请确认一下参数是否正确，如果有修改可以再次调用尺码工具".format(foot_length)
         else:
-            return {"code":1, "result":"shoes size or foot length is required"}
+            return {"code":1, "result":"请继续询问用户的脚长或鞋码"}
     elif goods_type_1 == "apparel":
         if "height" not in kwargs:
-            return {"code":1, "result":"height is required"}
+            return {"code":1, "result":"请继续询问用户的身高"}
         if "weight" not in kwargs:
-            return {"code":1, "result":"weight is required"}
+            return {"code":1, "result":"请继续询问用户的体重"}
         try:
             height = float(kwargs["height"])
             weight = float(kwargs["weight"])
