@@ -10,6 +10,7 @@ s3_client = boto3.client("s3")
 
 supported_file_types = ["pdf", "txt", "doc", "md", "html", "json", "jsonl", "csv"]
 default_embedding_endpoint = os.environ.get("DEFAULT_EMBEDDING_ENDPOINT")
+aos_domain_endpoint = os.environ.get("AOS_DOMAIN_ENDPOINT")
 
 
 def get_job_number(event, file_count):
@@ -30,7 +31,10 @@ def lambda_handler(event, context):
     # fetch index from event with default value none
     workspace_id = event["workspaceId"]
     index_type = event.get("indexType", "qd")
-    operation_type = event.get("operationType", "create")
+    if aos_domain_endpoint and aos_domain_endpoint != "-":
+        operation_type = event.get("operationType", "create")
+    else:
+        operation_type = "extract_only"
     embedding_endpoint = event.get("embeddingEndpoint", default_embedding_endpoint)
     table_item_id = event["tableItemId"]
 
