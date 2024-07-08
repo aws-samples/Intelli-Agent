@@ -305,67 +305,6 @@ tool_manager.register_tool({
     "running_mode": "loop"
 })
 
-tool_manager.register_tool({
-    "name": "chat",
-    "lambda_name": "chat",
-    "lambda_module_path": "function.common_tools.chat",
-    "tool_def":{
-        "name": "chat",
-        "description": "casual talk with AI",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "response": {
-                    "description": "response to users",
-                    "type": "string"
-            }},
-            "required": ["response"]
-        },
-    },
-    "running_mode": "output"
-})
-
-tool_manager.register_tool({
-    "name":"comfort",
-    "scenario":"common",
-    "lambda_name": "comfort",
-    "lambda_module_path": "functions.common_tools.comfort",
-    "tool_def": {
-        "name": "comfort",
-        "description": "comfort user to mitigate their bad emotion",
-        # "parameters": {
-        #     "type": "object",
-        #     "properties": {
-        #         "response": {
-        #             "description": "response to users",
-        #             "type": "string"
-        #     }},
-        #     "required": ["response"]
-        # },
-    },
-    "running_mode": "output"
-})
-
-tool_manager.register_tool({
-    "name":"transfer",
-    "lambda_name": "",
-    "lambda_module_path": "functions.common_tools.transfer",
-    "tool_def": {
-        "name": "transfer",
-        "description": "transfer the conversation to manual customer service",
-        # "parameters": {
-        #     "type": "object",
-        #     "properties": {
-        #         "response": {
-        #             "description": "response to users",
-        #             "type": "string"
-        #     }},
-        #     "required": ["response"]
-        # },
-    },
-    "running_mode": "output"
-})
-
 # retail tools
 tool_manager.register_tool({
     "name":"daily_reception",

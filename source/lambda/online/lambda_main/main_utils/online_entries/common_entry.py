@@ -28,6 +28,919 @@ from langgraph.graph import END, StateGraph
 
 logger = get_logger('common_entry')
 
+intention_fewshot_default = [
+    {
+        "query": "早上好，你好吗?",
+        "score": 0.9,
+        "name": "chat",
+        "intent": "chat",
+        "kwargs": {}
+    },
+    {
+        "query": "你好",
+        "score": 0.9,
+        "name": "chat",
+        "intent": "chat",
+        "kwargs": {}
+    },
+    {
+        "query": "你好吗?",
+        "score": 0.9,
+        "name": "chat",
+        "intent": "chat",
+        "kwargs": {}
+    },
+    {
+        "query": "你听到新闻了吗?",
+        "score": 0.9,
+        "name": "chat",
+        "intent": "chat",
+        "kwargs": {}
+    },
+    {
+        "query": "你最喜欢什么书?",
+        "score": 0.9,
+        "name": "chat",
+        "intent": "chat",
+        "kwargs": {}
+    },
+    {
+        "query": "你是谁?",
+        "score": 0.9,
+        "name": "chat",
+        "intent": "chat",
+        "kwargs": {}
+    },
+    {
+        "query": "我在做个东西.",
+        "score": 0.9,
+        "name": "chat",
+        "intent": "chat",
+        "kwargs": {}
+    },
+    {
+        "query": "蛋糕是一个谎言.",
+        "score": 0.9,
+        "name": "chat",
+        "intent": "chat",
+        "kwargs": {}
+    },
+    {
+        "query": "复杂优于晦涩.",
+        "score": 0.9,
+        "name": "chat",
+        "intent": "chat",
+        "kwargs": {}
+    },
+    {
+        "query": "你是一个程序员吗?",
+        "score": 0.9,
+        "name": "chat",
+        "intent": "chat",
+        "kwargs": {}
+    },
+    {
+        "query": "YOLO是什么意思?",
+        "score": 0.9,
+        "name": "chat",
+        "intent": "chat",
+        "kwargs": {}
+    },
+    {
+        "query": "我从未活过吗?",
+        "score": 0.9,
+        "name": "chat",
+        "intent": "chat",
+        "kwargs": {}
+    },
+    {
+        "query": "我能问你一个问题吗?",
+        "score": 0.9,
+        "name": "chat",
+        "intent": "chat",
+        "kwargs": {}
+    },
+    {
+        "query": "你喜欢什么食物?",
+        "score": 0.9,
+        "name": "chat",
+        "intent": "chat",
+        "kwargs": {}
+    },
+    {
+        "query": "你的爱好是什么？",
+        "score": 0.9,
+        "name": "chat",
+        "intent": "chat",
+        "kwargs": {}
+    },
+    {
+        "query": "我告诉你一个秘密，你不要和别人说",
+        "score": 0.9,
+        "name": "chat",
+        "intent": "chat",
+        "kwargs": {}
+    },
+    {
+        "query": "什么是爱",
+        "score": 0.9,
+        "name": "chat",
+        "intent": "chat",
+        "kwargs": {}
+    },
+    {
+        "query": "你爱我吗？",
+        "score": 0.9,
+        "name": "chat",
+        "intent": "chat",
+        "kwargs": {}
+    },
+    {
+        "query": "中国首都是哪？",
+        "score": 0.9,
+        "name": "chat",
+        "intent": "chat",
+        "kwargs": {}
+    },
+    {
+        "query": "今天心情有点糟",
+        "score": 0.9,
+        "name": "chat",
+        "intent": "chat",
+        "kwargs": {}
+    },
+    {
+        "query": "中国区有没有glue interactive session?",
+        "score": 0.9,
+        "name": "service_availability",
+        "intent": "service_availability",
+        "kwargs": {"service": "glue interactive session", "region": "cn-north-1"}
+    },
+    {
+        "query": "北京region 有没有clean room服务？",
+        "score": 0.9,
+        "name": "service_availability",
+        "intent": "service_availability",
+        "kwargs": {"service": "clean room", "region": "cn-north-1"}
+    },
+    {
+        "query": "zero-etl在中国可用了吗？",
+        "score": 0.9,
+        "name": "service_availability",
+        "intent": "service_availability",
+        "kwargs": {"service": "zero-etl", "region": "cn-north-1"}
+    },
+    {
+        "query": "中国区sagemaker有jumpstart吗",
+        "score": 0.9,
+        "name": "service_availability",
+        "intent": "service_availability",
+        "kwargs": {"service": "jumpstart", "region": "cn-north-1"}
+    },
+    {
+        "query": "quicksight在中国区可用吗？",
+        "score": 0.9,
+        "name": "service_availability",
+        "intent": "service_availability",
+        "kwargs": {"service": "quicksight", "region": "cn-north-1"}
+    },
+    {
+        "query": "quicksight在伦敦region可用吗？",
+        "score": 0.9,
+        "name": "service_availability",
+        "intent": "service_availability",
+        "kwargs": {"service": "quicksight", "region": "eu-west-2"}
+    },
+    {
+        "query": "DataZone在global region GA了吗？",
+        "score": 0.9,
+        "name": "service_availability",
+        "intent": "service_availability",
+        "kwargs": {"service": "DataZone", "region": "us-east-1"}
+    },
+    {
+        "query": "你们的服务烂透了",
+        "score": 0.9,
+        "name": "comfort",
+        "intent": "comfort",
+        "kwargs": {}
+    },
+    {
+        "query": "你这个系统弱智啊",
+        "score": 0.9,
+        "name": "comfort",
+        "intent": "comfort",
+        "kwargs": {}
+    },
+    {
+        "query": "到底行不行，不行别浪费时间",
+        "score": 0.9,
+        "name": "comfort",
+        "intent": "comfort",
+        "kwargs": {}
+    },
+    {
+        "query": "无语了，没见过这么垃圾的玩意",
+        "score": 0.9,
+        "name": "comfort",
+        "intent": "comfort",
+        "kwargs": {}
+    },
+    {
+        "query": "回复的什么乱七八糟的",
+        "score": 0.9,
+        "name": "comfort",
+        "intent": "comfort",
+        "kwargs": {}
+    },
+    {
+        "query": "傻逼",
+        "score": 0.9,
+        "name": "comfort",
+        "intent": "comfort",
+        "kwargs": {}
+    },
+    {
+        "query": "中国区有哪些大模型可以推荐",
+        "score": 0.9,
+        "name": "QA",
+        "intent": "QA",
+        "kwargs": {}
+    },
+    {
+        "query": "gloabl有哪些大模型可以推荐",
+        "score": 0.9,
+        "name": "QA",
+        "intent": "QA",
+        "kwargs": {}
+    },
+    {
+        "query": "什么是 AWS Organizations？",
+        "score": 0.9,
+        "name": "QA",
+        "intent": "QA",
+        "kwargs": {}
+    },
+    {
+        "query": "如何从组织删除 AWS 成员账户？",
+        "score": 0.9,
+        "name": "QA",
+        "intent": "QA",
+        "kwargs": {}
+    },
+    {
+        "query": "一个 AWS 账户可以是多个 OU 的成员吗？",
+        "score": 0.9,
+        "name": "QA",
+        "intent": "QA",
+        "kwargs": {}
+    },
+    {
+        "query": "Amazon Rekognition 支持哪些图像和视频格式？",
+        "score": 0.9,
+        "name": "QA",
+        "intent": "QA",
+        "kwargs": {}
+    },
+    {
+        "query": "Network Load Balancer 是否支持内部负载均衡器？",
+        "score": 0.9,
+        "name": "QA",
+        "intent": "QA",
+        "kwargs": {}
+    },
+    {
+        "query": "对于创建堆栈失败期间回滚的资源，我是否需要付费？",
+        "score": 0.9,
+        "name": "QA",
+        "intent": "QA",
+        "kwargs": {}
+    },
+    {
+        "query": "Amazon SQS 符合 HIPAA 要求吗？",
+        "score": 0.9,
+        "name": "QA",
+        "intent": "QA",
+        "kwargs": {}
+    },
+    {
+        "query": "如何共享消息队列？",
+        "score": 0.9,
+        "name": "QA",
+        "intent": "QA",
+        "kwargs": {}
+    },
+    {
+        "query": "Amazon EMR有哪些优势",
+        "score": 0.9,
+        "name": "QA",
+        "intent": "QA",
+        "kwargs": {}
+    },
+    {
+        "query": "FOOB Ticket 的链接是什么",
+        "score": 0.9,
+        "name": "QA",
+        "intent": "QA",
+        "kwargs": {}
+    },
+    {
+        "query": "怎么提交FOOB？",
+        "score": 0.9,
+        "name": "QA",
+        "intent": "QA",
+        "kwargs": {}
+    },
+    {
+        "query": "怎么申请p4d p5?",
+        "score": 0.9,
+        "name": "QA",
+        "intent": "QA",
+        "kwargs": {}
+    },
+    {
+        "query": "P5的spot limit应该怎么提？",
+        "score": 0.9,
+        "name": "QA",
+        "intent": "QA",
+        "kwargs": {}
+    },
+    {
+        "query": "宁夏区的GPU资源的情况？",
+        "score": 0.9,
+        "name": "QA",
+        "intent": "QA",
+        "kwargs": {}
+    },
+    {
+        "query": "inferentia2/traninium1中国区landing plan？",
+        "score": 0.9,
+        "name": "QA",
+        "intent": "QA",
+        "kwargs": {}
+    },
+    {
+        "query": "GPU OD的价格基础上如何可以有进一步的折扣？",
+        "score": 0.9,
+        "name": "QA",
+        "intent": "QA",
+        "kwargs": {}
+    },
+    {
+        "query": "需要提前多久申请FOOB？",
+        "score": 0.9,
+        "name": "QA",
+        "intent": "QA",
+        "kwargs": {}
+    },
+    {
+        "query": "申请GPU实例的FOOB 链接是什么？",
+        "score": 0.9,
+        "name": "QA",
+        "intent": "QA",
+        "kwargs": {}
+    },
+    {
+        "query": "ODCR预留实例怎么计费？",
+        "score": 0.9,
+        "name": "QA",
+        "intent": "QA",
+        "kwargs": {}
+    },
+    {
+        "query": "怎么看资源分配是否有risk？",
+        "score": 0.9,
+        "name": "QA",
+        "intent": "QA",
+        "kwargs": {}
+    },
+    {
+        "query": "What is \"Unoccupied hosts\" in baywatch",
+        "score": 0.9,
+        "name": "QA",
+        "intent": "QA",
+        "kwargs": {}
+    },
+    {
+        "query": "what is Free slots in baywatch?",
+        "score": 0.9,
+        "name": "QA",
+        "intent": "QA",
+        "kwargs": {}
+    },
+    {
+        "query": "How do I know if the instance type is GA or not GA?",
+        "score": 0.9,
+        "name": "QA",
+        "intent": "QA",
+        "kwargs": {}
+    },
+    {
+        "query": "what is FOOB?",
+        "score": 0.9,
+        "name": "QA",
+        "intent": "QA",
+        "kwargs": {}
+    },
+    {
+        "query": "what are the use cases for FOOB?",
+        "score": 0.9,
+        "name": "QA",
+        "intent": "QA",
+        "kwargs": {}
+    },
+    {
+        "query": "in what senarios, I need FOOB?",
+        "score": 0.9,
+        "name": "QA",
+        "intent": "QA",
+        "kwargs": {}
+    },
+    {
+        "query": "what if the customer has EBS requirement",
+        "score": 0.9,
+        "name": "QA",
+        "intent": "QA",
+        "kwargs": {}
+    },
+    {
+        "query": "请用中文回答 what if the customer has EBS requirement",
+        "score": 0.9,
+        "name": "QA",
+        "intent": "QA",
+        "kwargs": {}
+    },
+    {
+        "query": "what are the differences between Incremental Capacity Request ICR ticket and Limit increase (Service Quota) request?",
+        "score": 0.9,
+        "name": "QA",
+        "intent": "QA",
+        "kwargs": {}
+    },
+    {
+        "query": "how to request for p4d, p5",
+        "score": 0.9,
+        "name": "QA",
+        "intent": "QA",
+        "kwargs": {}
+    },
+    {
+        "query": "what is the approval template for requesting p4d?",
+        "score": 0.9,
+        "name": "QA",
+        "intent": "QA",
+        "kwargs": {}
+    },
+    {
+        "query": "ODCR预留怎么计费？",
+        "score": 0.9,
+        "name": "QA",
+        "intent": "QA",
+        "kwargs": {}
+    },
+    {
+        "query": "ODCR怎么享受RI 或者Savings Plan计费？",
+        "score": 0.9,
+        "name": "QA",
+        "intent": "QA",
+        "kwargs": {}
+    },
+    {
+        "query": "what is baywatch?",
+        "score": 0.9,
+        "name": "QA",
+        "intent": "QA",
+        "kwargs": {}
+    },
+    {
+        "query": "怎么看现有的Capacity？",
+        "score": 0.9,
+        "name": "QA",
+        "intent": "QA",
+        "kwargs": {}
+    },
+    {
+        "query": "申请gpu foob的流程是什么？",
+        "score": 0.9,
+        "name": "QA",
+        "intent": "QA",
+        "kwargs": {}
+    },
+    {
+        "query": "OCI的资料有哪些？",
+        "score": 0.9,
+        "name": "QA",
+        "intent": "QA",
+        "kwargs": {}
+    },
+    {
+        "query": "什么是生成式AI?",
+        "score": 0.9,
+        "name": "QA",
+        "intent": "QA",
+        "kwargs": {}
+    },
+    {
+        "query": "什么是Gen-AI?",
+        "score": 0.9,
+        "name": "QA",
+        "intent": "QA",
+        "kwargs": {}
+    },
+    {
+        "query": "SageMaker Feature Store 与 Azure 托管功能商店有什么不同?",
+        "score": 0.9,
+        "name": "QA",
+        "intent": "QA",
+        "kwargs": {}
+    },
+    {
+        "query": "Sagemaker如何使用张量并行技术对模型分层",
+        "score": 0.9,
+        "name": "QA",
+        "intent": "QA",
+        "kwargs": {}
+    },
+    {
+        "query": "翻译：在中国背景下，创业意向影响因素可划分为两层次(个体特质水平和个体资源水平)六维度(成就动机，风险承担，自主性，创业回馈，资源获得和未来就业)",
+        "score": 0.9,
+        "name": "assist",
+        "intent": "assist",
+        "kwargs": {}
+    },
+    {
+        "query": "你是一个英语学术论文写作专家，以下是一篇论文中的一段内容，请先对齐进行翻译，并将此部分润色以满足学术标准，提高语法,清晰度和整体可读性",
+        "score": 0.9,
+        "name": "assist",
+        "intent": "assist",
+        "kwargs": {}
+    },
+    {
+        "query": "帮我写一段工作小结，以下是我的一些工作内容:...",
+        "score": 0.9,
+        "name": "assist",
+        "intent": "assist",
+        "kwargs": {}
+    },
+    {
+        "query": "帮我写一个PPT大纲，用于年中汇报",
+        "score": 0.9,
+        "name": "assist",
+        "intent": "assist",
+        "kwargs": {}
+    },
+    {
+        "query": "翻译成中文：Bought In Team",
+        "score": 0.9,
+        "name": "assist",
+        "intent": "assist",
+        "kwargs": {}
+    },
+    {
+        "query": "改写得更简练，但是要适合口述演讲，不能机械化",
+        "score": 0.9,
+        "name": "assist",
+        "intent": "assist",
+        "kwargs": {}
+    },
+    {
+        "query": "翻译：场景化解决方案的最佳实践大力促进了genai在类似客户里的推广",
+        "score": 0.9,
+        "name": "assist",
+        "intent": "assist",
+        "kwargs": {}
+    },
+    {
+        "query": "revise to be more readable",
+        "score": 0.9,
+        "name": "assist",
+        "intent": "assist",
+        "kwargs": {}
+    },
+    {
+        "query": "把下面的readme翻译成英文：本项目为一个基于Amazon Bedrock，Amazon SageMaker，Amazon RDS和Amazon Opensearch实现的轻量级的Text2SQL Agent的Workshop：包括Plan-and-Execute Agent和ReAct两种不同的实现。",
+        "score": 0.9,
+        "name": "assist",
+        "intent": "assist",
+        "kwargs": {}
+    },
+    {
+        "query": "translate into english: lxq_voc_gen.csv是option1需要用到的数据，lxq_cm_gen_raw.csv是option2需要用到的数据",
+        "score": 0.9,
+        "name": "assist",
+        "intent": "assist",
+        "kwargs": {}
+    },
+    {
+        "query": "pydantic 中文意思",
+        "score": 0.9,
+        "name": "assist",
+        "intent": "assist",
+        "kwargs": {}
+    },
+    {
+        "query": "给我一段脚本，实现连接mysql数据库",
+        "score": 0.9,
+        "name": "assist",
+        "intent": "assist",
+        "kwargs": {}
+    },
+    {
+        "query": "英文怎么说：中文大语言模型",
+        "score": 0.9,
+        "name": "assist",
+        "intent": "assist",
+        "kwargs": {}
+    },
+    {
+        "query": "summarize into one",
+        "score": 0.9,
+        "name": "assist",
+        "intent": "assist",
+        "kwargs": {}
+    },
+    {
+        "query": "refine below documentation to be more formal",
+        "score": 0.9,
+        "name": "assist",
+        "intent": "assist",
+        "kwargs": {}
+    },
+    {
+        "query": "帮我写一段适用于sdxl生成图片的prompt，要求效果好",
+        "score": 0.9,
+        "name": "assist",
+        "intent": "assist",
+        "kwargs": {}
+    },
+    {
+        "query": "帮我写一段适用于sdxl生成“运动会”图片的prompt，要求效果好，用英文",
+        "score": 0.9,
+        "name": "assist",
+        "intent": "assist",
+        "kwargs": {}
+    },
+    {
+        "query": "帮我把下面的文本整理成markdown格式",
+        "score": 0.9,
+        "name": "assist",
+        "intent": "assist",
+        "kwargs": {}
+    },
+    {
+        "query": "竞品 英文",
+        "score": 0.9,
+        "name": "assist",
+        "intent": "assist",
+        "kwargs": {}
+    },
+    {
+        "query": "代码生成 英文",
+        "score": 0.9,
+        "name": "assist",
+        "intent": "assist",
+        "kwargs": {}
+    },
+    {
+        "query": "错误归因 英文",
+        "score": 0.9,
+        "name": "assist",
+        "intent": "assist",
+        "kwargs": {}
+    },
+    {
+        "query": "请翻译成中文",
+        "score": 0.9,
+        "name": "assist",
+        "intent": "assist",
+        "kwargs": {}
+    },
+    {
+        "query": "please translate to chinese",
+        "score": 0.9,
+        "name": "assist",
+        "intent": "assist",
+        "kwargs": {}
+    },
+    {
+        "query": "请翻译",
+        "score": 0.9,
+        "name": "assist",
+        "intent": "assist",
+        "kwargs": {}
+    },
+    {
+        "query": "MDU啥意思",
+        "score": 0.9,
+        "name": "explain_abbr",
+        "intent": "explain_abbr",
+        "kwargs": {"abbr": "MDU"}
+    },
+    {
+        "query": "YOY什么意思",
+        "score": 0.9,
+        "name": "explain_abbr",
+        "intent": "explain_abbr",
+        "kwargs": {"abbr": "YOY"}
+    },
+    {
+        "query": "CSDC是啥？",
+        "score": 0.9,
+        "name": "explain_abbr",
+        "intent": "explain_abbr",
+        "kwargs": {"abbr": "CSDC"}
+    },
+    {
+        "query": "WWSO",
+        "score": 0.9,
+        "name": "explain_abbr",
+        "intent": "explain_abbr",
+        "kwargs": {"abbr": "WWSO"}
+    },
+    {
+        "query": "CSDC",
+        "score": 0.9,
+        "name": "explain_abbr",
+        "intent": "explain_abbr",
+        "kwargs": {"abbr": "CSDC"}
+    },
+    {
+        "query": "缩写OP2",
+        "score": 0.9,
+        "name": "explain_abbr",
+        "intent": "explain_abbr",
+        "kwargs": {"abbr": "OP2"}
+    },
+    {
+        "query": "Bruce负责哪一块？",
+        "score": 0.9,
+        "name": "get_contact",
+        "intent": "get_contact",
+        "kwargs": {"employee": "Bruce"}
+    },
+    {
+        "query": "Lily 负责哪一部份？？",
+        "score": 0.9,
+        "name": "get_contact",
+        "intent": "get_contact",
+        "kwargs": {"employee": "Lily"}
+    },
+    {
+        "query": "请问Lex是哪位SSA老师负责啊？有个api的问题请教一下",
+        "score": 0.9,
+        "name": "get_contact",
+        "intent": "get_contact",
+        "kwargs": {"role": "Tech", "scope": "Lex"}
+    },
+    {
+        "query": "quicksight的GTMS是谁",
+        "score": 0.9,
+        "name": "get_contact",
+        "intent": "get_contact",
+        "kwargs": {"role": "Product Manager", "scope": "quicksight"}
+    },
+    {
+        "query": "quicksight的产品经理是谁？",
+        "score": 0.9,
+        "name": "get_contact",
+        "intent": "get_contact",
+        "kwargs": {"role": "Product Manager", "scope": "quicksight"}
+    },
+    {
+        "query": "数据治理的GTMS是谁？",
+        "score": 0.9,
+        "name": "get_contact",
+        "intent": "get_contact",
+        "kwargs": {"role": "Product Manager", "scope": "Analytics"}
+    },
+    {
+        "query": "AIML北区的Sales是谁？",
+        "score": 0.9,
+        "name": "get_contact",
+        "intent": "get_contact",
+        "kwargs": {"role": "Sales", "domain": "AIML", "scope": "north"}
+    },
+    {
+        "query": "AIML北区的BD是谁？",
+        "score": 0.9,
+        "name": "get_contact",
+        "intent": "get_contact",
+        "kwargs": {"role": "Sales", "domain": "AIML", "scope": "north"}
+    },
+    {
+        "query": "Sagemaker相关问题应该联系谁？",
+        "score": 0.9,
+        "name": "get_contact",
+        "intent": "get_contact",
+        "kwargs": {"scope": "SageMaker"}
+    },
+    {
+        "query": "Emr相关问题应该联系谁？",
+        "score": 0.9,
+        "name": "get_contact",
+        "intent": "get_contact",
+        "kwargs": {"scope": "EMR"}
+    },
+    {
+        "query": "g4dn的价格是多少",
+        "score": 0.9,
+        "name": "ec2_price",
+        "intent": "ec2_price",
+        "kwargs": {"instance_type": "g4dn"}
+    },
+    {
+        "query": "g4dn在美西2的价格？",
+        "score": 0.9,
+        "name": "ec2_price",
+        "intent": "ec2_price",
+        "kwargs": {"instance_type": "g4dn", "region": "us-west-2"}
+    },
+    {
+        "query": "p4d的价格是多少",
+        "score": 0.9,
+        "name": "ec2_price",
+        "intent": "ec2_price",
+        "kwargs": {"instance_type": "p4d"}
+    },
+    {
+        "query": "p4d在宁夏的价格？",
+        "score": 0.9,
+        "name": "ec2_price",
+        "intent": "ec2_price",
+        "kwargs": {"instance_type": "p4d", "region": "cn-northwest-1"}
+    },
+    {
+        "query": "c5.large的价格是多少",
+        "score": 0.9,
+        "name": "ec2_price",
+        "intent": "ec2_price",
+        "kwargs": {"instance_type": "c5.large"}
+    },
+    {
+        "query": "c5.large在东京的价格？",
+        "score": 0.9,
+        "name": "ec2_price",
+        "intent": "ec2_price",
+        "kwargs": {"instance_type": "c5.large", "region": "ap-northeast-1"}
+    },
+    {
+        "query": "t3.micro的价格是多少",
+        "score": 0.9,
+        "name": "ec2_price",
+        "intent": "ec2_price",
+        "kwargs": {"instance_type": "t3.micro"}
+    },
+    {
+        "query": "t3.micro在弗吉尼亚北部的价格？",
+        "score": 0.9,
+        "name": "ec2_price",
+        "intent": "ec2_price",
+        "kwargs": {"instance_type": "t3.micro", "region": "us-east-1"}
+    },
+    {
+        "query": "m5.xlarge的价格是多少",
+        "score": 0.9,
+        "name": "ec2_price",
+        "intent": "ec2_price",
+        "kwargs": {"instance_type": "m5.xlarge"}
+    },
+    {
+        "query": "m5.xlarge在悉尼的价格？",
+        "score": 0.9,
+        "name": "ec2_price",
+        "intent": "ec2_price",
+        "kwargs": {"instance_type": "m5.xlarge", "region": "ap-southeast-2"}
+    },
+    {
+        "query": "r5.2xlarge的价格是多少",
+        "score": 0.9,
+        "name": "ec2_price",
+        "intent": "ec2_price",
+        "kwargs": {"instance_type": "r5.2xlarge"}
+    },
+    {
+        "query": "r5.2xlarge在法兰克福的价格？",
+        "score": 0.9,
+        "name": "ec2_price",
+        "intent": "ec2_price",
+        "kwargs": {"instance_type": "r5.2xlarge", "region": "eu-central-1"}
+    },
+    {
+        "query": "i3.metal的价格是多少",
+        "score": 0.9,
+        "name": "ec2_price",
+        "intent": "ec2_price",
+        "kwargs": {"instance_type": "i3.metal"}
+    },
+    {
+        "query": "i3.metal在圣保罗的价格？",
+        "score": 0.9,
+        "name": "ec2_price",
+        "intent": "ec2_price",
+        "kwargs": {"instance_type": "i3.metal", "region": "sa-east-1"}
+    }
+]
+
 class ChatbotState(TypedDict):
     chatbot_config: dict  # chatbot config
     query: str
@@ -99,10 +1012,20 @@ def intention_detection_lambda(state: ChatbotState):
         handler_name="lambda_handler",
         event_body=state,
     )
+    # default intention_fewshot_examples using context in /source/lambda/online/lambda_intention_detection/intention_utils/intent_utils/intent_examples    
+    use_default = False
+    if not intention_fewshot_examples:
+        intention_fewshot_examples = intention_fewshot_default
+        use_default = True
 
     # send trace
     send_trace(
-        f"**intention retrieved:**\n{json.dumps(intention_fewshot_examples,ensure_ascii=False,indent=2)}", state["stream"], state["ws_connection_id"], state["enable_trace"])
+        f"**intention retrieved (use default: {use_default}):**\n{json.dumps(intention_fewshot_examples,ensure_ascii=False,indent=2)}", 
+        state["stream"], 
+        state["ws_connection_id"], 
+        state["enable_trace"]
+    )
+    # Tools will be empty and will redirect to LLM implicitly by default
     current_intent_tools: list[str] = list(
         set([e["intent"] for e in intention_fewshot_examples])
     )
