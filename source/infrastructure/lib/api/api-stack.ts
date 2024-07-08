@@ -870,6 +870,11 @@ export class ApiConstruct extends Construct {
         },
         securityGroups: [securityGroup],
         architecture: Architecture.X86_64,
+        environment: {
+          INDEX_TABLE: props.indexTableName,
+          CHATBOT_TABLE: props.chatbotTableName,
+          MODEL_TABLE: props.modelTableName,
+        },
         layers: [apiLambdaOnlineSourceLayer, apiLambdaJobSourceLayer],
       });
 

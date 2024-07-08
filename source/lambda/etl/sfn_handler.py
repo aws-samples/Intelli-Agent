@@ -24,6 +24,7 @@ logger.setLevel(logging.INFO)
 
 def initiate_model(model_table, group_name, model_id):
     embedding_info = get_embedding_info(embedding_endpoint)
+    embedding_info["ModelEndpoint"] = embedding_endpoint
     create_item_if_not_exist(
         model_table,
         {

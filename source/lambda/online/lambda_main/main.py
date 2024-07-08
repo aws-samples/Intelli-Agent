@@ -73,6 +73,7 @@ def lambda_handler(event_body:dict, context:dict):
     if stream:
         load_ws_client(websocket_url)
 
+    index_tag = event_body.get("tag", "common")
     client_type = event_body.get("client_type", "default_client_type")
     entry_type = event_body.get("entry_type", EntryType.COMMON).lower()
     session_id = event_body.get("session_id", None)
@@ -104,6 +105,7 @@ def lambda_handler(event_body:dict, context:dict):
     event_body['request_timestamp'] = request_timestamp
     event_body['chatbot_config']['user_id'] = user_id
     event_body['chatbot_config']['group_name'] = group_name
+    event_body["chatbot_config"]["index_tag"] = index_tag
 
     event_body['message_id'] = str(uuid.uuid4())
     # event_body['chatbot_config']['prompt_templates'] = get_prompt(user_id,
