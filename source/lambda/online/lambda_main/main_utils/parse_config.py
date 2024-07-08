@@ -26,11 +26,11 @@ def parse_common_entry_config(chatbot_config):
         **chatbot_config.get("default_llm_config", {}),
     }
 
-    default_workspace_config = {"intent_workspace_ids": ["default-intent"], "rag_workspace_ids": ["test-pdf"]}
+    default_index_config = {"intent_index_ids": ["default-intent"], "rag_index_ids": ["test-pdf"]}
 
-    default_workspace_config = {
-        **default_workspace_config,
-        **chatbot_config.get("default_workspace_config", {}),
+    default_index_config = {
+        **default_index_config,
+        **chatbot_config.get("default_index_config", {}),
     }
 
     assert ChatbotMode.has_value(chatbot_config["chatbot_mode"]), chatbot_config[
@@ -50,7 +50,7 @@ def parse_common_entry_config(chatbot_config):
             "retrievers": [
                 {
                     "type": "qq",
-                    "workspace_ids": default_workspace_config["intent_workspace_ids"],
+                    "index_ids": default_index_config["intent_index_ids"],
                     "config": {
                         "top_k": 10,
                     },
@@ -63,7 +63,7 @@ def parse_common_entry_config(chatbot_config):
                 "retrievers": [
                     {
                         "type": "qd",
-                        "workspace_ids": [1],
+                        "index_ids": [1],
                         "top_k": 10,
                     }
                 ]
@@ -76,7 +76,7 @@ def parse_common_entry_config(chatbot_config):
             "retrievers": [
                     {
                         "type": "qd",
-                        "workspace_ids": default_workspace_config["rag_workspace_ids"],
+                        "index_ids": default_index_config["rag_index_ids"],
                         "config": {
                             "top_k": 5,
                             "using_whole_doc": False,
@@ -89,7 +89,7 @@ def parse_common_entry_config(chatbot_config):
                 "retrievers": [
                     {
                         "type": "qd",
-                        "workspace_ids": default_workspace_config["rag_workspace_ids"],
+                        "index_ids": default_index_config["rag_index_ids"],
                         "config": {
                             "top_k": 5,
                             "using_whole_doc": False,
@@ -115,7 +115,7 @@ def parse_common_entry_config(chatbot_config):
                 "retrievers": [
                     {
                         "type": "qd",
-                        "workspace_ids": ['aws-ug-qd', 'aws-acts-qd'],
+                        "index_ids": ['aws-ug-qd', 'aws-acts-qd'],
                         "config": {
                             "top_k": 10,
                         }

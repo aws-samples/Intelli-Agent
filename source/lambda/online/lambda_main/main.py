@@ -80,7 +80,8 @@ def lambda_handler(event_body:dict, context:dict):
     custom_message_id = event_body.get("custom_message_id", "")
     user_id = event_body.get("user_id", "default_user_id")
     # TODO Need to modify key
-    group_name = event_body.get("chatbot_config").get("default_workspace_config",{"rag_workspace_ids":["Admin"]}).get("rag_workspace_ids")[0]
+    # TODO: update group name
+    group_name = event_body.get("chatbot_config").get("default_workspace_config",{"rag_index_ids":["Admin"]}).get("rag_index_ids")[0]
 
     if not session_id:
         session_id = f"session_{int(request_timestamp)}"
@@ -106,6 +107,7 @@ def lambda_handler(event_body:dict, context:dict):
     event_body['chatbot_config']['user_id'] = user_id
     event_body['chatbot_config']['group_name'] = group_name
     event_body["chatbot_config"]["index_tag"] = index_tag
+    # TODO: chatbot id add to event body
 
     event_body['message_id'] = str(uuid.uuid4())
     # event_body['chatbot_config']['prompt_templates'] = get_prompt(user_id,
