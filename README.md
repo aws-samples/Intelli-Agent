@@ -231,7 +231,7 @@ npx cdk deploy --parameters S3ModelAssets=<S3 bucket name> --parameters SubEmail
 
 | Context | Description |
 |---------|-------------|
-| DeploymentMode | The mode for deployment. There are three modes: `OFFLINE_EXTRACT`, `OFFLINE_OPENSEARCH`, and `ALL`. Default deployment mode is `ALL`. |
+| DeploymentMode | The mode for deployment. There are two modes: `OFFLINE_EXTRACT`, and `ALL`. Default deployment mode is `ALL`. |
 
 
 ### API Reference

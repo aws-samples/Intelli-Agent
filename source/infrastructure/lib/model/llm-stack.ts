@@ -73,7 +73,6 @@ export class LLMStack extends cdk.NestedStack {
 
     // If Deployment mode is OFFLINE_OPENSEARCH or ALL, then create the following resources
     if (
-      BuildConfig.DEPLOYMENT_MODE === "OFFLINE_OPENSEARCH" ||
       BuildConfig.DEPLOYMENT_MODE === "ALL"
     ) {
       // Embedding and Reranker MODEL
