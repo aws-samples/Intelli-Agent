@@ -74,6 +74,8 @@ def test_multi_turns_agent_pr():
     session_id = f"multiturn_test_{time.time()}"
     user_queries = [
         {"query":"你好", "use_history":True},
+        {"query":"人工客服", "use_history":True},
+        {"query":"垃圾", "use_history":True},
         {"query":"什么是aws ec2", "use_history":True},
         {"query":"今天天气怎么样", "use_history":True},
         {"query":"我在上海", "use_history":True},
@@ -105,5 +107,5 @@ def complete_test_pr():
     print("finish test in chat mode")
   
 if __name__ == "__main__":
-    # complete_test_pr()
-    test_multi_turns_agent_pr()
+    complete_test_pr()
+    # test_multi_turns_agent_pr()

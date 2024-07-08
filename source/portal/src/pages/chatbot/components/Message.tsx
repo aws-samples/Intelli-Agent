@@ -30,7 +30,7 @@ const Message: React.FC<MessageProps> = ({
           <div className={`message-content flex-1 ai`}>
             <div className="message">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {message.data}
+                {message.data.replace(/~/g, '\\~')}
               </ReactMarkdown>
               {aiSpeaking && (
                 <div className="mt-5">

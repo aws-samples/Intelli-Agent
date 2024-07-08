@@ -12,7 +12,7 @@ except ModuleNotFoundError:
 import json 
 
 # ws_url from api gateway
-jwt = os.environ['jwt']
+jwt = os.environ['JWT']
 ws_url = f"wss://w2druwcuc3.execute-api.us-west-2.amazonaws.com/prod/?idToken={jwt}"
 
 def get_answer(body,ws):
