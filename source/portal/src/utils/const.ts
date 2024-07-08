@@ -53,10 +53,10 @@ export const SCENARIO_LIST: SelectProps.Option[] = [
     label: 'common',
     value: 'common',
   },
-  {
-    label: 'retail',
-    value: 'retail',
-  },
+  // {
+  //   label: 'retail',
+  //   value: 'retail',
+  // },
 ];
 
 export const RETAIL_GOODS_LIST: SelectProps.Option[] = [
