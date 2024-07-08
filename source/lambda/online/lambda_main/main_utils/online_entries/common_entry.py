@@ -1012,11 +1012,18 @@ def intention_detection_lambda(state: ChatbotState):
         handler_name="lambda_handler",
         event_body=state,
     )
-    # default intention_fewshot_examples using context in /source/lambda/online/lambda_intention_detection/intention_utils/intent_utils/intent_examples    
+    
+    # Tools will be empty and will redirect to LLM implicitly by default
+    current_intent_tools: list[str] = list(
+        set([e["intent"] for e in intention_fewshot_examples])
+    )
+    # default intention_fewshot_examples using context in built-in bucket
     use_default = False
     if not intention_fewshot_examples:
-        intention_fewshot_examples = intention_fewshot_default
         use_default = True
+        intention_fewshot_examples = intention_fewshot_default
+        # use assist and give_rhetorical_question as default
+        current_intent_tools = ["assist", "give_rhetorical_question"]
 
     # send trace
     send_trace(
@@ -1025,10 +1032,7 @@ def intention_detection_lambda(state: ChatbotState):
         state["ws_connection_id"], 
         state["enable_trace"]
     )
-    # Tools will be empty and will redirect to LLM implicitly by default
-    current_intent_tools: list[str] = list(
-        set([e["intent"] for e in intention_fewshot_examples])
-    )
+
     return {
         "intention_fewshot_examples": intention_fewshot_examples,
         "current_intent_tools": current_intent_tools,
