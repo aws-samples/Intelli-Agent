@@ -33,7 +33,7 @@ workspace_table = os.environ.get("WORKSPACE_TABLE", "")
 
 dynamodb = boto3.resource("dynamodb")
 workspace_table = dynamodb.Table(workspace_table)
-workspace_manageworkspace_managerr = WorkspaceManager(workspace_table)
+workspace_manager = WorkspaceManager(workspace_table)
 
 
 
