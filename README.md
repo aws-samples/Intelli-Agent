@@ -48,7 +48,7 @@ The execution process is as follows:
 7. If the RAG model is selected, the Amazon Lambda function vectorizes the query message using the Embedding model deployed in the Amazon SageMaker Endpoint, retrieves matching knowledge from Amazon OpenSearch, reorders the results, and sends the knowledge to the large language model, which then returns the answer to the front end.
 8. During the chat, messages between the user and AI are stored in Amazon DynamoDB. The solution's website retrieves a specific chat record through Amazon API Gateway and Amazon Lambda, allowing the user to continue the conversation based on the content of that chat record.
 
-### Enterprise Knowledge Base Creation
+### Enterprise Knowledge Base Construction
 Its data preprocessing module includes format recognition, content extraction, metadata conversion, and semantic segmentation, seamlessly in the background.
 
 ![Offline Workflow](docs/images/intelli-agent-kb-etl.png)
@@ -224,35 +224,103 @@ If your account is using CDK for the first time, please refer to [this document]
 cdk bootstrap aws://<Your AWS account ID>/<AWS region>
 ```
 
-Please make sure **docker** is installed and the CDK command is executed in the **same region** of the model files which were uploaded in the previous step. 
+There are two deployment options for this solution:
 
-Start the deployment by executing the following command:
+1. Deploy `all modules`, which enables full functionality from knowledge base construction to online interactive Q&A.
+2. Deploy only the `knowledge base construction (offline processing)` module.
+
+#### Option 1: Deploy all modules
+
+Execute the following command to deploy. Please use the parameters S3ModelAssets, EtlImageName, and ETLTag that you have set in the `Prerequisites` section. (Default deployment mode)
+
 ```bash
-cd source/infrastructure
-npx cdk deploy --parameters S3ModelAssets=<S3 Bucket Name> --parameters SubEmail=<email address> --parameters EtlImageName=<ETL model name> --parameters ETLTag=<ETL tag name>
+cd source
+aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
+cd infrastructure
+npx cdk deploy --parameters S3ModelAssets=<Your S3 Bucket Name> --parameters SubEmail=<Your email address> --parameters EtlImageName=<Your ETL model name> --parameters ETLTag=<Your ETL tag name> --require-approval never
 ```
 
-To deploy the offline process only, you can configure context parameters to skip the online process. 
+For example:
 
 ```bash
-npx cdk deploy --parameters S3ModelAssets=<S3 bucket name> --parameters SubEmail=<email address> --parameters EtlImageName=<ETL model name> --parameters ETLTag=<ETL tag name> --context DeploymentMode="OFFLINE_EXTRACT"
+npx cdk deploy --rollback true --parameters S3ModelAssets=intelli-agent-model-bucket --parameters SubEmail=foo@email.com --parameters EtlImageName=intelli-agent-etl --parameters ETLTag=latest --require-approval never
 ```
 
-#### Deployment Parameters
-| Parameter | Description |
-|-|-|
-| S3ModelAssets | Your bucket name to store models |
-| SubEmail | Your email address to receive notifications |
-| OpenSearchIndex | OpenSearch index name to store the knowledge, if the index does not exist, the solution will create one |
-| EtlImageName | ETL image name, eg. etl-model, it is set when you executing source/model/etl/code/model.sh script |
-| EtlTag | ETL tag, eg. latest, v1.0, v2.0, the default value is latest, it is set when you executing source/model/etl/code/model.sh script |
+
+##### Deployment Parameters
+| Parameter | Type | Description |
+| - | - | - |
+| S3ModelAssets | Required | The name of your S3 bucket where models are stored. |
+| SubEmail | Required | Your email address for receiving notifications. |
+| EtlImageName | Required | The name of the ETL image (e.g., etl-model) used when executing the source/model/etl/code/model.sh script. |
+| EtlTag | Required | The ETL tag (e.g., latest, v1.0, v2.0); default is latest. Set when executing the source/model/etl/code/model.sh script. |
+| DeploymentMode | Optional | Leave it blank or set it to ALL |
 
 
-#### Optional Context Parameters
+#### Option 2: Deploy only `knowledge base construction (offline processing)` module
 
-| Context | Description |
-|---------|-------------|
-| DeploymentMode | The mode for deployment. There are two modes: `OFFLINE_EXTRACT`, and `ALL`. Default deployment mode is `ALL`. |
+If you only need to parse and slice documents and upload the chunk to the S3 bucket without injecting them into the vector database, execute the following command to deploy. Please use the parameters S3ModelAssets, EtlImageName, and ETLTag that you have set in the `Prerequisites` section.
+
+
+
+```bash
+cd source
+aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
+cd infrastructure
+npx cdk deploy --parameters S3ModelAssets=<Your S3 Bucket Name> --parameters SubEmail=<Your email address> --parameters EtlImageName=<Your ETL model name> --parameters ETLTag=<Your ETL tag name> --context DeploymentMode="OFFLINE_EXTRACT" --require-approval never
+```
+
+##### Deployment Parameters
+| Parameter | Type | Description |
+| - | - | - |
+| S3ModelAssets | Required | The name of your S3 bucket where models are stored. |
+| SubEmail | Required | Your email address for receiving notifications. |
+| EtlImageName | Required | The name of the ETL image (e.g., etl-model) used when executing the source/model/etl/code/model.sh script. |
+| EtlTag | Required | The ETL tag (e.g., latest, v1.0, v2.0); default is latest. Set when executing the source/model/etl/code/model.sh script. |
+| DeploymentMode | Required | OFFLINE_EXTRACT |
+
+
+
+#### Solution Information
+
+After deployment, you can find a stack containing `intelli-agent` in the CloudFormation console. On the Output tab of the stack, you can find key solution information, commonly explained as follows:
+
+| Name | Description |
+| - | - |
+| WebPortalURL | Link to the Intelli-Agent frontend website. |
+| APIEndpointAddress | RESTful API endpoint address primarily used for data preprocessing, chat history, etc. |
+| WebSocketEndpointAddress | WebSocket API endpoint address primarily used for chat functionality. |
+| ChunkBucket | Intermediate storage in this S3 bucket for processed document chunks. |
+
+### Updating an Existing Deployment
+
+You can update an existing deployment using CDK with the following command:
+
+```bash
+cd source
+aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
+cd infrastructure
+npx cdk deploy --rollback true --parameters S3ModelAssets=<Your S3 Bucket Name> --parameters SubEmail=<Your email address> --parameters EtlImageName=<Your ETL model name> --parameters ETLTag=<Your ETL tag name>
+```
+
+For example:
+
+```bash
+npx cdk deploy --rollback true --parameters S3ModelAssets=intelli-agent-model-bucket --parameters SubEmail=foo@email.com --parameters EtlImageName=intelli-agent-etl --parameters ETLTag=latest --require-approval never
+```
+
+
+### Uninstalling the Solution
+
+To uninstall the solution, follow these steps:
+
+1. Log in to the AWS Management Console and navigate to the CloudFormation page.
+2. Select the stack that contains the keyword `intelli-agent`.
+3. Click on the Delete button to initiate the deletion process.
+
+
+
+
 
 
 ### API Reference
