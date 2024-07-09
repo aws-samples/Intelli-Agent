@@ -140,7 +140,7 @@ def rag_llm_lambda(state: ChatbotState):
     prompt_templates_from_ddb = get_prompt_templates_from_ddb(
         group_name,
         model_id = llm_config['model_id'],
-    )
+    ).get(task_type,{})
 
     output: str = invoke_lambda(
         lambda_name="Online_LLM_Generate",
@@ -348,7 +348,7 @@ def chat_llm_generate_lambda(state: ChatbotState):
     prompt_templates_from_ddb = get_prompt_templates_from_ddb(
         group_name,
         model_id = llm_config['model_id'],
-    )
+    ).get(task_type,{})
     logger.info(prompt_templates_from_ddb)
 
     answer: dict = invoke_lambda(
@@ -357,7 +357,6 @@ def chat_llm_generate_lambda(state: ChatbotState):
                 **llm_config,
                 "stream": state["stream"],
                 "intent_type": task_type,
-                "system_prompt": get_common_system_prompt(),
                 **prompt_templates_from_ddb
             },
             "llm_input": {

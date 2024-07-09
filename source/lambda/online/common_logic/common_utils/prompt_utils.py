@@ -171,7 +171,7 @@ register_prompt_templates(
 
 
 
-CHIT_CHAT_SYSTEM_TEMPLATE = "You are a helpful assistant."
+CHIT_CHAT_SYSTEM_TEMPLATE = "你是一个AI助理。今天是{date},{weekday}. "
 
 register_prompt_templates(
     model_ids=[

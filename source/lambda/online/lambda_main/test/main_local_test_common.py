@@ -53,6 +53,7 @@ def test_multi_turns_chat_pr():
     mode="chat"
     session_id = f"multiturn_test_{time.time()}"
     user_queries = [
+        {"query":"今天几号", "use_history":True},
         {"query":"你好", "use_history":True},
         {"query":"你今天心情如何", "use_history":True},
     ]
@@ -113,3 +114,4 @@ def complete_test_pr():
 if __name__ == "__main__":
     complete_test_pr()
     # test_multi_turns_agent_pr()
+    # test_multi_turns_chat_pr()

@@ -27,6 +27,16 @@ class Claude2ChatChain(LLMChain):
     model_id = LLMModelType.CLAUDE_2
     intent_type = LLMTaskType.CHAT
 
+
+    @classmethod
+    def get_common_system_prompt(cls,system_prompt_template:str):
+        now = get_china_now()
+        date_str = now.strftime("%Y年%m月%d日")
+        weekdays = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日']
+        weekday = weekdays[now.weekday()]
+        system_prompt = system_prompt_template.format(date=date_str,weekday=weekday)
+        return system_prompt
+
     @classmethod
     def create_chain(cls, model_kwargs=None, **kwargs):
         stream = kwargs.get("stream", False)
@@ -36,7 +46,8 @@ class Claude2ChatChain(LLMChain):
             prompt_name="system_prompt"     
         ).prompt_template
 
-        system_prompt = kwargs.get('system_prompt',system_prompt_template)
+        system_prompt = kwargs.get('system_prompt',system_prompt_template) or "" 
+        system_prompt = cls.get_common_system_prompt(system_prompt)
         prefill =  kwargs.get('prefill',None)
         messages = [
             ("placeholder", "{chat_history}"),
@@ -95,7 +106,6 @@ class Baichuan2Chat13B4BitsChatChain(LLMChain):
         "temperature": 0.3,
         "top_k": 5,
         "top_p": 0.85,
-        # "repetition_penalty": 1.05,
         "do_sample": True,
     }
 
