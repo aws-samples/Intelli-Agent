@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 print_usage() {
     echo "Usage: $0 -b s3_bucket_name -i etl_image_name -t etl_image_tag -r aws_region"
     echo
@@ -48,3 +50,5 @@ sh model.sh ./Dockerfile $etl_image_name $aws_region $etl_image_tag
 echo "Build frontend"
 cd ../../../portal
 npm install && npm run build
+
+echo "Successfully built Assets for Intelli-Agent. Please proceed to deploy the stack."

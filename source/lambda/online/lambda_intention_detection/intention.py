@@ -21,15 +21,34 @@ def lambda_handler(state:dict, context=None):
         handler_name='lambda_handler',
         event_body=event_body
     )
-    
-    intention_fewshot_examples = [{
-        "query": doc['page_content'],
-        "score": doc['score'],
-        "name": doc['answer']['jsonlAnswer']['intent'],
-        "intent": doc['answer']['jsonlAnswer']['intent'],
-        "kwargs": doc['answer']['jsonlAnswer'].get('kwargs', {}),
-        } for doc in res['result']['docs'] if doc['score'] > 0.5
-    ]
+
+    if not res['result']['docs']:
+        # add default intention
+        import json
+        import pathlib
+        current_path = pathlib.Path(__file__).parent.resolve()
+        with open(f'{current_path}/intention_utils/default_intent.jsonl', 'r') as json_file:
+            json_list = list(json_file)
+
+        for json_str in json_list:
+            intent_result = json.loads(json_str)
+            intention_fewshot_examples = [{
+                "query": intent_result["question"],
+                "score": 'n/a',
+                "name": intent_result['answer']['intent'],
+                "intent": intent_result['answer']['intent'],
+                "kwargs": intent_result['answer'].get('kwargs', {}),
+            }]
+    else:
+        
+        intention_fewshot_examples = [{
+            "query": doc['page_content'],
+            "score": doc['score'],
+            "name": doc['answer']['jsonlAnswer']['intent'],
+            "intent": doc['answer']['jsonlAnswer']['intent'],
+            "kwargs": doc['answer']['jsonlAnswer'].get('kwargs', {}),
+            } for doc in res['result']['docs'] if doc['score'] > 0.4
+        ]
 
     return intention_fewshot_examples
 
