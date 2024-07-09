@@ -30,6 +30,7 @@ Intelli-Agent 旨在以最小的开销和最大的效率帮助开发人员快速
 - [架构](#架构)
 - [快速开始](#快速开始)
 - [API 调用](#API调用)
+- [FAQ](#FAQ)
 - [贡献](#贡献)
 - [License](#license)
 
@@ -284,7 +285,7 @@ npx cdk deploy --parameters S3ModelAssets=<Your S3 Bucket Name> --parameters Sub
 cd source
 aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
 cd infrastructure
-npx cdk deploy --rollback true --parameters S3ModelAssets=<Your S3 Bucket Name> --parameters SubEmail=<Your email address> --parameters EtlImageName=<Your ETL model name> --parameters ETLTag=<Your ETL tag name>
+npx cdk deploy --rollback true --parameters S3ModelAssets=<Your S3 Bucket Name> --parameters SubEmail=<Your email address> --parameters EtlImageName=<Your ETL model name> --parameters ETLTag=<Your ETL tag name> --require-approval never
 ```
 
 示例：
@@ -299,14 +300,124 @@ npx cdk deploy --rollback true --parameters S3ModelAssets=intelli-agent-model-bu
 登录 AWS 控制台，进入到 CloudFormation 页面，选择包含`intelli-agent`关键字的堆栈，点击删除按钮。
 
 
-### API调用
+## 功能介绍
+
+![Portal](docs/images/portal-ui.png)
+
+### 1 对话模型
+目前支持3种对话模式：agent，RAG和chat。
+- Agent：适用于需要通过对话，由大模型判断下一步需要调用的资源（如已有或自定义的tools）的场景。
+- RAG：适合需要基于知识库的对话能力。注：需要提前上传文档进入`文档库`。
+- Chat：适合随意聊天，直接体验大语言模型的对话能力。
+
+### 2 大语言模型切换
+目前支持LLM如下：
+- Claude3 Haiku
+- Claude3 Sonnet
+- Claude3.5 Sonnet
+
+### 3 聊天窗口
+聊天区域由两个功能组成：聊天机器人和历史记录。
+聊天机器人可以即时开启一段新的基于支持的LLM模型的对话。
+历史记录 -> 需要重启的聊天记录ID，页面即会展示出过去的历史记录。用户可以在此基础上继续对话。
+
+![KB](docs/images/chat-history-ui.png)
+
+
+### 4 文档库（知识库）
+目前文档库（即RAG所需的知识库）支持基于文档的创建（一次上传一个）、删除（一次可删除多个）。
+- 支持文档格式（12种）：pdf, docx, txt, csv, jsonl, json, html, md, png, jpg, jpeg, webp
+- UI上传文档大小限制：10MB
+
+提示：
+- 如果用户重复上传了同名的文档，后台将会用最新的文档进行覆盖。
+- 创建文档 -> 选择文件并点击上传后，后台操作分两部分：文档上传和离线处理。全部完成后才会在状态栏展示`完成`。
+- 示例：
+![KB](docs/images/kb-ui.png)
+
+### 5 用户管理
+右上角显示当前用户名。点击`退出登录`即可退出。
+
+### 6 界面展示语种切换
+目前支持简体中文和英文。
+
+
+## API调用
 在 CDK 部署后，您可以使用 HTTP client，例如 Postman/cURL 来调取 API.
-- [llm api schema](https://github.com/aws-samples/intelli-agent/blob/main/docs/llm_api_schema.md): send question to llm and get a response.
-- [ETL API Schema](https://github.com/aws-samples/Intelli-Agent/blob/main/docs/ETL_API_SCHEMA.md): upload knowledge to the vector database.
-- [AOS API Schema](https://github.com/aws-samples/Intelli-Agent/blob/main/docs/AOS_API_SCHEMA.md): search data in the vector database.
+- [llm api schema](docs/llm_api_schema.md): send question to llm and get a response.
+- [ETL API Schema](docs/ETL_API_SCHEMA.md): upload knowledge to the vector database.
+- [AOS API Schema](docs/AOS_API_SCHEMA.md): search data in the vector database.
 
 
-## Testing
+## FAQ
+
+### 目前各处理环节的模型选型是什么
+目前各环节使用的模型如下，是团队内部测试后、选用的当下效果比较理想的选项。支持客户自定义更换。详细模型更换。
+
+| Function | Model |
+| - | - |
+| Rerank | BGE-reranker-large |
+| Embedding | BCE |
+| LLM | Claude |
+
+### 如何获取支持
+通过在 GitHub 上创建 Issue 获取支持。
+
+### 部署后，如何获取初始用户名和密码
+在CDK部署时您指定了SubEmail参数，它是用于接受邮件通知的邮箱地址，当CDK部署成功后，初始用户名和密码会发送到此邮箱。
+
+### 如何切分文档
+各种类型的文档首先会转换成Markdown格式，然后根据段落进行切分，如果切分后的段落超过最大token（默认值500，用户可以在glue-job-script.py中自定义），则进行二次切分，切分后的文本块和元数据会记录在S3桶中，在向量化后最终注入向量数据库。
+
+### 如何注入意图数据
+- 根据[文档](docs/auth.md)获取jwt token，并参考postman使用的方式。
+- 根据[文档](docs/ETL_API_SCHEMA.md)进行注入。注入参数可以参考下面的格式，替换其中S3相关参数即可。
+
+```bash
+{
+    "s3Bucket": "git",
+    "s3Prefix": "demo/default-intent.jsonl",
+    "offline": "true",
+    "qaEnhance": "false",
+    "workspaceId": "default-intent",
+    "operationType": "create",
+    "documentLanguage": "zh",
+    "indexType": "qq"
+}
+```
+
+- 注入数据格式
+
+```bash
+{"question": "你好", "answer": {"intent": "chat"}}
+```
+
+### 如何更新ETL使用的资源
+目前方案在持续更新当中，对于文档解析部分更新需要手动进行
+
+1. [可选] 更新文档解析模型Endpoint
+
+```bash
+# 在执行sh build.sh时输入一个新的ETL tag
+cd source/script
+sh build.sh -b <S3 bucket name> -i <ETL model name> -t <new ETL tag name> -r <AWS region>
+
+# 在执行cdk deploy时输入一个新的ETL tag，触发ETL endpoint的更新
+npx cdk deploy --rollback true --parameters S3ModelAssets=<Your S3 Bucket Name> --parameters SubEmail=<Your email address> --parameters EtlImageName=<Your ETL model name> --parameters ETLTag=<Your new ETL tag name> --require-approval never
+```
+
+2. 手动更新一下ETL依赖的whl包，需要先确认一下ETL Job中--extra-py-files对应的路径
+
+![Glue S3 bucket](docs/images/glue-s3-bucket.png)
+
+然后将source/lambda/job/dep/dist/llm_bot_dep-0.1.0-py3-none-any.whl 上传到Glue依赖的位置
+
+```bash
+aws s3 cp source/lambda/job/dep/dist/llm_bot_dep-0.1.0-py3-none-any.whl s3://<Your Glue job bucket>/llm_bot_dep-0.1.0-py3-none-any.whl
+```
+
+
+## 测试
 参考[测试文档](https://github.com/aws-samples/Intelli-Agent/blob/dev/tests/README.md)获取更多测试信息。
 
 ## 贡献

@@ -29,6 +29,7 @@ Intelli-Agent is designed to empower developers to rapidly deploy intelligent, c
 - [Architecture](#architecture)
 - [Quick Start](#quick-start)
 - [API Reference](#api-reference)
+- [FAQ](#FAQ)
 - [Contribution](#Contribution)
 - [License](#license)
 
@@ -209,7 +210,7 @@ cd source/script
 sh build.sh -b <S3 bucket name> -i <ETL model name> -t <ETL tag name> -r <AWS region>
 ```
 
-For example:
+Example:
 
 ```bash
 sh build.sh -b intelli-agent-model-bucket -i intelli-agent-etl -t latest -r us-east-1
@@ -240,7 +241,7 @@ cd infrastructure
 npx cdk deploy --parameters S3ModelAssets=<Your S3 Bucket Name> --parameters SubEmail=<Your email address> --parameters EtlImageName=<Your ETL model name> --parameters ETLTag=<Your ETL tag name> --require-approval never
 ```
 
-For example:
+Example:
 
 ```bash
 npx cdk deploy --rollback true --parameters S3ModelAssets=intelli-agent-model-bucket --parameters SubEmail=foo@email.com --parameters EtlImageName=intelli-agent-etl --parameters ETLTag=latest --require-approval never
@@ -300,7 +301,7 @@ You can update an existing deployment using CDK with the following command:
 cd source
 aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
 cd infrastructure
-npx cdk deploy --rollback true --parameters S3ModelAssets=<Your S3 Bucket Name> --parameters SubEmail=<Your email address> --parameters EtlImageName=<Your ETL model name> --parameters ETLTag=<Your ETL tag name>
+npx cdk deploy --rollback true --parameters S3ModelAssets=<Your S3 Bucket Name> --parameters SubEmail=<Your email address> --parameters EtlImageName=<Your ETL model name> --parameters ETLTag=<Your ETL tag name> --require-approval never
 ```
 
 For example:
@@ -319,15 +320,141 @@ To uninstall the solution, follow these steps:
 3. Click on the Delete button to initiate the deletion process.
 
 
+## Feature Overview
+
+![Portal](docs/images/portal-ui.png)
+
+### 1. Conversation Models
+Currently supports 3 conversation modes: Agent, RAG, and Chat.
+- Agent: Suitable for scenarios where decisions on next steps are made by a large model based on the conversation and available tools (existing or custom).
+- RAG: Ideal for dialogue capabilities based on a knowledge base. Note: Documents need to be uploaded to the "Document Library" in advance.
+- Chat: Ideal for casual conversation, directly experiencing the conversation capabilities of a large language model.
+
+### 2. Large Language Model Switching
+Currently supports the following LLMs:
+- Claude3 Haiku
+- Claude3 Sonnet
+- Claude3.5 Sonnet
+
+### 3. Chat Window
+The chat area consists of two main functionalities: Chatbot and History.
+The Chatbot can initiate a new conversation based on supported LLM models.
+History -> The chat history ID that needs to be restarted will display past chat records on the page. Users can continue their conversation based on it.
+
+![KB](docs/images/chat-history-ui.png)
+
+### 4. Document Library (Knowledge Base)
+The Document Library (required for RAG) currently supports document creation (one upload at a time) and deletion (multiple deletions at a time).
+- Supports 12 document formats: pdf, docx, txt, csv, jsonl, json, html, md, png, jpg, jpeg, webp
+- UI upload document size limit: 10MB
+
+Tips:
+- If users repeatedly upload the same document name, the backend will overwrite it with the latest document.
+- Create Document -> After selecting the file and clicking upload, the backend operation is divided into two parts: document upload and offline processing. Only when both are completed will the status bar display "Completed".
+- Example:
+![KB](docs/images/kb-ui.png)
+
+### 5. User Management
+The current username is displayed in the upper right corner. Click "Logout" to log out.
+
+### 6. Interface Display Language Switching
+Currently supports Simplified Chinese and English.
 
 
-
-
-### API Reference
+## API Reference
 After CDK deployment, you can use a HTTP client such as Postman/cURL to invoke the API by following below API schema. 
 - [LLM API Schema](https://github.com/aws-samples/Intelli-Agent/blob/main/docs/LLM_API_SCHEMA.md): send question to LLM and get a response.
 - [ETL API Schema](https://github.com/aws-samples/Intelli-Agent/blob/main/docs/ETL_API_SCHEMA.md): upload knowledge to the vector database.
 - [AOS API Schema](https://github.com/aws-samples/Intelli-Agent/blob/main/docs/AOS_API_SCHEMA.md): search data in the vector database.
+
+
+## FAQ
+
+### Current Model Selection for Each Processing Stage
+The current models used in each stage are as follows, selected based on internal team testing and current effectiveness. Customers can customize and replace these models. Detailed model replacement is available.
+
+| Function | Model |
+| - | - |
+| Rerank | BGE-reranker-large |
+| Embedding | BCE |
+| LLM | Claude |
+
+### How to Get Support
+Get support by creating an issue on GitHub.
+
+### After Deployment, How to Get Initial Username and Password
+During CDK deployment, you specified the SubEmail parameter, which is the email address used for receiving notifications. After a successful CDK deployment, the initial username and password will be sent to this email.
+
+### How Documents are Split
+Documents of various types are first converted to Markdown format and then split based on paragraphs. If the split paragraphs exceed the maximum token limit (default is 500, customizable in glue-job-script.py), they are split again. The split text blocks and metadata are recorded in an S3 bucket and injected into the vector database after vectorization.
+
+To inject intent data into your system, follow these steps:
+
+### Step-by-Step Guide to Inject Intent Data
+
+1. **Obtain JWT Token:**
+   - Refer to the documentation at [docs/auth.md](docs/auth.md) to understand how to obtain a JWT token.
+   - Use Postman or a similar tool for this process.
+
+2. **Injection Using ETL API:**
+   - Use the schema specified in [docs/ETL_API_SCHEMA.md](docs/ETL_API_SCHEMA.md) for intent data injection.
+   - Below is a sample JSON structure that you can use to inject intent data. Replace the placeholders with your specific S3 bucket and file details:
+
+   ```json
+   {
+       "s3Bucket": "your-bucket-name",
+       "s3Prefix": "path/to/your/file.jsonl",
+       "offline": "true",
+       "qaEnhance": "false",
+       "workspaceId": "your-workspace-id",
+       "operationType": "create",
+       "documentLanguage": "zh",
+       "indexType": "qq"
+   }
+   ```
+
+3. **Data Injection Format:**
+   - Use the following JSON format for injecting individual intent data:
+
+   ```json
+   {
+       "question": "Hello",
+       "answer": {
+           "intent": "chat"
+       }
+   }
+   ```
+
+   - Replace `"Hello"` with the actual question text in Chinese.
+
+
+### How to Update Resources Used by ETL
+
+The current solution is undergoing continuous updates, requiring manual updates for the document parsing component.
+
+1. [Optional] Update Document Parsing Model Endpoint
+
+```bash
+# Input a new ETL tag when executing sh build.sh
+cd source/script
+sh build.sh -b <S3 bucket name> -i <ETL model name> -t <new ETL tag name> -r <AWS region>
+
+# Input a new ETL tag when executing cdk deploy to trigger ETL endpoint update
+npx cdk deploy --rollback true --parameters S3ModelAssets=<Your S3 Bucket Name> --parameters SubEmail=<Your email address> --parameters EtlImageName=<Your ETL model name> --parameters ETLTag=<Your new ETL tag name> --require-approval never
+```
+
+2. Manually Update ETL Dependencies' whl Package
+
+
+First, confirm the path corresponding to `--extra-py-files` in your ETL Job.
+
+![Glue S3 bucket](docs/images/glue-s3-bucket.png)
+
+Next, upload `source/lambda/job/dep/dist/llm_bot_dep-0.1.0-py3-none-any.whl` to the location where Glue dependencies are stored.
+
+```bash
+aws s3 cp source/lambda/job/dep/dist/llm_bot_dep-0.1.0-py3-none-any.whl s3://<Your Glue job bucket>/llm_bot_dep-0.1.0-py3-none-any.whl
+```
 
 
 ## Testing
