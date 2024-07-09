@@ -12,7 +12,7 @@ def test(chatbot_mode="agent",session_id=None,query=None,use_history=True):
         "use_history": use_history,
         "default_llm_config": default_llm_config,
         "default_workspace_config":{
-            "intent_workspace_ids":["default-intent"],
+            "intent_workspace_ids":["default-intent-debug"],
         },
     }
     
