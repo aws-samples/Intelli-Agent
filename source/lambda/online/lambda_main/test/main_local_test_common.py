@@ -10,7 +10,10 @@ def test(chatbot_mode="agent",session_id=None,query=None,use_history=True):
     chatbot_config = {
         "chatbot_mode": chatbot_mode,
         "use_history": use_history,
-        "default_llm_config": default_llm_config
+        "default_llm_config": default_llm_config,
+        "default_workspace_config":{
+            "intent_workspace_ids":["default-intent-debug"],
+        },
     }
     
     generate_answer(
