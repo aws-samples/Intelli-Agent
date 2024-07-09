@@ -73,6 +73,7 @@ def test_multi_turns_agent_pr():
     mode="agent"
     session_id = f"multiturn_test_{time.time()}"
     user_queries = [
+        {"query":"什么是s3", "use_history":True},
         {"query":"你好", "use_history":True},
         {"query":"人工客服", "use_history":True},
         {"query":"垃圾", "use_history":True},

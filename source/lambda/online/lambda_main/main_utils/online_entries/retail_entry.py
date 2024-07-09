@@ -37,7 +37,6 @@ logger = get_logger('retail_entry')
 
 goods_info_tag = "商品信息"
 
-
 class ChatbotState(TypedDict):
     chatbot_config: dict # chatbot config
     query: str 

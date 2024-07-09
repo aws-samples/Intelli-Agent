@@ -22,7 +22,7 @@ from common_logic.common_utils.constant import (
     LLMModelType,
     MessageType
 )
-from functions.tools import get_tool_by_name
+from functions import get_tool_by_name
 
 from ..llm_chain_base import LLMChain
 from ...llm_models import Model
@@ -254,7 +254,8 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
     - 当前主要服务天猫平台的客户，如果客户询问其他平台的问题，直接回复 “不好意思，亲亲，这里是天猫店铺，只能为您解答天猫的问题。建议您联系其他平台的客服或售后人员给您提供相关的帮助和支持。谢谢！“
 
 ## Tips
-   - 如果客户没有明确指出在哪里购买的商品，则默认都是在天猫平台购买的。{{non_ask_rules}}"""
+   - 如果客户没有明确指出在哪里购买的商品，则默认都是在天猫平台购买的。
+   - 回答必须简洁，不允许出现超过2句话的回复。{{non_ask_rules}}"""
     @classmethod
     def get_function_description(cls,tool:dict):
         tool_name = tool['name']

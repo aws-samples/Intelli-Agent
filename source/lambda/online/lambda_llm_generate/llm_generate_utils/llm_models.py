@@ -21,8 +21,6 @@ SYSTEM_MESSAGE_TYPE = MessageType.SYSTEM_MESSAGE_TYPE
 
 logger = get_logger("llm_model")
 
-
-
 class ModeMixins:
     @staticmethod
     def convert_messages_role(messages:list[dict],role_map:dict):

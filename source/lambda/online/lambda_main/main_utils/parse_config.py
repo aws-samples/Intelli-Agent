@@ -33,6 +33,11 @@ def parse_common_entry_config(chatbot_config):
         **chatbot_config.get("default_workspace_config", {}),
     }
 
+    # default_tool_config = {
+    #     "tool_id": {}
+    # }
+
+
     assert ChatbotMode.has_value(chatbot_config["chatbot_mode"]), chatbot_config[
         "chatbot_mode"
     ]
@@ -41,7 +46,7 @@ def parse_common_entry_config(chatbot_config):
         "chatbot_mode": ChatbotMode.chat,
         "use_history": True,
         "enable_trace": True,
-        "prompt_templates": {},
+        # "prompt_templates": {},
         "agent_recursion_limit": 5,
         "query_process_config": {
             "conversation_query_rewrite_config": {**copy.deepcopy(default_llm_config)}
@@ -58,32 +63,32 @@ def parse_common_entry_config(chatbot_config):
             ]
         },
         "agent_config": {**copy.deepcopy(default_llm_config), "tools": []},
-        "tool_execute_config": {
-            "knowledge_base_retriever": {
-                "retrievers": [
-                    {
-                        "type": "qd",
-                        "workspace_ids": [1],
-                        "top_k": 10,
-                    }
-                ]
-            }
-        },
+        # "tool_execute_config": {
+        #     "knowledge_base_retriever": {
+        #         "retrievers": [
+        #             {
+        #                 "type": "qd",
+        #                 "workspace_ids": [1],
+        #                 "top_k": 10,
+        #             }
+        #         ]
+        #     }
+        # },
         "chat_config": {
             **copy.deepcopy(default_llm_config),
         },
-        "all_index_retriever_config":{
-            "retrievers": [
-                    {
-                        "type": "qd",
-                        "workspace_ids": default_workspace_config["rag_workspace_ids"],
-                        "config": {
-                            "top_k": 5,
-                            "using_whole_doc": False,
-                        },
-                    },
-                ],
-        },
+        # "all_index_retriever_config":{
+        #     "retrievers": [
+        #             {
+        #                 "type": "qd",
+        #                 "workspace_ids": default_workspace_config["rag_workspace_ids"],
+        #                 "config": {
+        #                     "top_k": 5,
+        #                     "using_whole_doc": False,
+        #                 },
+        #             },
+        #         ],
+        # },
         "rag_config": {
             "retriever_config": {
                 "retrievers": [
@@ -110,31 +115,31 @@ def parse_common_entry_config(chatbot_config):
                 **copy.deepcopy(default_llm_config),
             },
         },
-        "aws_qa_config": {
-            "retriever_config":{
-                "retrievers": [
-                    {
-                        "type": "qd",
-                        "workspace_ids": ['aws-ug-qd', 'aws-acts-qd'],
-                        "config": {
-                            "top_k": 10,
-                        }
-                    },
-                ],
-                "rerankers": [
-                    {
-                        "type": "reranker",
-                        "config": {
-                            "enable_debug": False,
-                            "target_model": "bge_reranker_model.tar.gz"
-                        }
-                    }
-                ],
-            },
-            "llm_config":{
-                **copy.deepcopy(default_llm_config),
-            }
-        },
+        # "aws_qa_config": {
+        #     "retriever_config":{
+        #         "retrievers": [
+        #             {
+        #                 "type": "qd",
+        #                 "workspace_ids": ['aws-ug-qd', 'aws-acts-qd'],
+        #                 "config": {
+        #                     "top_k": 10,
+        #                 }
+        #             },
+        #         ],
+        #         "rerankers": [
+        #             {
+        #                 "type": "reranker",
+        #                 "config": {
+        #                     "enable_debug": False,
+        #                     "target_model": "bge_reranker_model.tar.gz"
+        #                 }
+        #             }
+        #         ],
+        #     },
+        #     "llm_config":{
+        #         **copy.deepcopy(default_llm_config),
+        #     }
+        # },
     }
     chatbot_config = update_nest_dict(
         copy.deepcopy(default_chatbot_config), chatbot_config

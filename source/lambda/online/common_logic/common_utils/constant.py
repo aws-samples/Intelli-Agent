@@ -7,6 +7,13 @@ class EntryType(ConstantBase):
     COMMON = "common"
     RETAIL = "retail"
     DGR = "aws-knowledge"
+
+class SceneType(ConstantBase):
+    COMMON = "common"
+    RETAIL = "retail"
+    AWS_QA = "aws-qa"
+
+
     
 Type = EntryType
 class IntentType(ConstantBase):
@@ -84,6 +91,11 @@ class ChatbotMode(ConstantBase):
     chat = "chat" # chi-chat
     rag_mode = "rag"  # rag
     agent = "agent" # rag + tool use
+
+
+class ToolRuningMode(ConstantBase):
+    LOOP = "loop"
+    ONCE = "once"
 
 
 class LLMModelType(ConstantBase):

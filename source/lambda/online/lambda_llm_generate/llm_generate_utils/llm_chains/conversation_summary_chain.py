@@ -28,6 +28,9 @@ from langchain.prompts import (
 )
 
 from common_logic.common_utils.prompt_utils import get_prompt_template
+from common_logic.common_utils.logger_utils import get_logger
+
+logger = get_logger("conversation_summary")
 
 AI_MESSAGE_TYPE = MessageType.AI_MESSAGE_TYPE
 HUMAN_MESSAGE_TYPE = MessageType.HUMAN_MESSAGE_TYPE
@@ -106,7 +109,7 @@ class Claude2ConversationSummaryChain(LLMChain):
         prompt_template = kwargs.get("system_prompt",prompt_template)
         cqr_template = ChatPromptTemplate.from_messages([
             HumanMessagePromptTemplate.from_template(prompt_template),
-            AIMessage(content="Standalone USER's reply: ")
+            AIMessage(content="Standalone USER's reply:")
         ])
 
         llm = Model.get_model(
@@ -119,8 +122,8 @@ class Claude2ConversationSummaryChain(LLMChain):
                     convert_to_messages(x["chat_history"])
                 )
             ))  \
-            | RunnableLambda(lambda x: cqr_template.format(history=x["conversational_context"],question=x['query'])) \
-            | llm | RunnableLambda(lambda x: x.content)
+            | RunnableLambda(lambda x: {"history":x["conversational_context"],"question":x['query']}) | cqr_template \
+            | RunnableLambda(lambda x: logger.info(f"conversation summary:\n{x.messages}") or x.messages) | llm | RunnableLambda(lambda x: x.content)
         
         return cqr_chain
 

@@ -1,24 +1,30 @@
+from typing import Union,Callable
 from langchain.pydantic_v1 import BaseModel,Field
 from enum import Enum
-from common_logic.common_utils.constant import EntryType
+from common_logic.common_utils.constant import SceneType,ToolRuningMode
 
 class ToolDefType(Enum):
     openai = "openai"
 
+
 class Tool(BaseModel):
     name: str = Field(description="tool name")
-    # lambda_name: str = Field(description="lambda name")
-    lambda_module_path: str = Field(description="local module path")
+    lambda_name: str = Field(description="lambda name")
+    lambda_module_path: Union[str, Callable] = Field(description="local module path")
     handler_name:str = Field(description="local handler name", default="lambda_handler")
     tool_def: dict = Field(description="tool definition")
-    running_mode: str = Field(description="tool running mode, can be loop or output", default="loop")
+    tool_init_kwargs:dict = Field(description="tool initial kwargs",default=None)
+    running_mode: str = Field(description="tool running mode, can be loop or output", default=ToolRuningMode.LOOP)
     tool_def_type: ToolDefType = Field(description="tool definition type",default=ToolDefType.openai.value)
-    scene: str = Field(description="tool use scene",default=EntryType.COMMON)
+    scene: str = Field(description="tool use scene",default=SceneType.COMMON)
     
 
 class ToolManager:
     def __init__(self) -> None:
         self.tools = {}
+    
+    def get_tool_id(self,tool_name:str,scene:str):
+        return f"{tool_name}__{scene}"
     
     def register_tool(self,tool_info:dict):
         tool_def = tool_info['tool_def']
@@ -31,91 +37,20 @@ class ToolManager:
 
         tool = Tool(**tool_info)
         assert tool.tool_def_type == ToolDefType.openai.value, f"tool_def_type: {tool.tool_def_type} not support"
-        self.tools[tool.name] = tool
+        self.tools[self.get_tool_id(tool.name,tool.scene)] = tool
 
-    def get_tool_by_name(self,name):
-        return self.tools[name]
+    def get_tool_by_name(self,name,scene=SceneType.COMMON):
+        return self.tools[self.get_tool_id(name,scene)]
     
-    def get_names_from_tools_with_parameters(self):
-        valid_tool_names_with_parameters = []
-        for tool_name, tool_info in self.tools.items():
-            if tool_info.running_mode == 'loop':
-                valid_tool_names_with_parameters.append(tool_name)
-        return valid_tool_names_with_parameters
+    # def get_names_from_tools_with_parameters(self):
+    #     valid_tool_names_with_parameters = []
+    #     for tool_name, tool_info in self.tools.items():
+    #         if tool_info.running_mode == 'loop':
+    #             valid_tool_names_with_parameters.append(tool_name)
+    #     return valid_tool_names_with_parameters
 
 tool_manager = ToolManager()
 get_tool_by_name = tool_manager.get_tool_by_name
-
-tool_manager.register_tool({
-    "name": "get_weather",
-    "lambda_name": "",
-    "lambda_module_path": "functions.lambda_get_weather.get_weather",
-    "tool_def":{
-            "name": "get_weather",
-            "description": "Get the current weather for `city_name`",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                "city_name": {
-                    "description": "The name of the city to be queried",
-                    "type": "string"
-                }, 
-                },
-                "required": ["city_name"]
-            }
-        },
-    "running_mode": "loop"
-    }
-)
-
-
-tool_manager.register_tool(
-    {
-        "name":"give_rhetorical_question",
-        "lambda_name": "",
-        "lambda_module_path": "functions.lambda_give_rhetorical_question.give_rhetorical_question",
-        "tool_def":{
-                "name": "give_rhetorical_question",
-                "description": "If the user's question is not clear and specific, resulting in the inability to call other tools, please call this tool to ask the user a rhetorical question",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "question": {
-                            "description": "Rhetorical questions for users",
-                            "type": "string"
-                    },
-                    },
-                    "required": ["question"],
-                },
-            },
-        "running_mode": "output"
-    }
-)
-
-
-
-tool_manager.register_tool(
-    {
-        "name": "give_final_response",
-        "lambda_name": "",
-        "lambda_module_path": "",
-        "tool_def":{
-                "name": "give_final_response",
-                "description": "If none of the other tools need to be called, call the current tool to complete the direct response to the user.",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "response": {
-                            "description": "Response to user",
-                            "type": "string"
-                    }
-                    },
-                    "required": ["response"]
-                },
-            },
-         "running_mode": "output"
-    }
-)
 
 
 tool_manager.register_tool(
@@ -141,150 +76,7 @@ tool_manager.register_tool(
 )
 
 
-
 ##### default tools #########
-tool_manager.register_tool({
-    "name": "service_availability",
-    "lambda_name": "check_service_availability",
-    "lambda_module_path": "functions.lambda_aws_api.check_service_availability",
-    "tool_def":{
-        "name": "service_availability",
-        "description":"query the availability of service in specified region",
-        "parameters":{
-            "type":"object",
-            "properties":{
-                "service":{
-                    "type":"string",
-                    "description":"the AWS service name"
-                },
-                "region":{
-                    "type":"string",
-                    "description":"the AWS region name where the service is located in, for example us-east-1(N.Virginal), us-west-2(Oregon), eu-west-2(London), ap-southeast-1(Singapore)"
-                }
-            },
-            "required":[
-                "service",
-                "region"
-            ]
-        },
-        "running_mode": "loop"
-    }
-})
-
-
-tool_manager.register_tool({
-    "name": "explain_abbr",
-    "lambda_name": "",
-    "lambda_module_path": "functions.lambda_tool",
-    "tool_def":{
-        "name": "explain_abbr",
-        "description": "explain abbreviation for user",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "abbr": {
-                    "type": "string",
-                    "description": "the abbreviation of terms in AWS"
-                }
-            },
-            "required": ["abbr"]
-        },
-        "running_mode": "output"
-    }
-})
-
-tool_manager.register_tool({
-    "name": "get_contact",
-    "lambda_name": "service_org",
-    "lambda_module_path": "functions.lambda_service_org.service_org",
-    "tool_def":{
-        "name":"get_contact",
-        "description":"query the contact person in the 'SSO' organization",
-        "parameters":{
-            "type":"object",
-            "properties":{
-                "employee":{
-                    "type":"string",
-                    "description":"employee name in the 'SSO' organization"
-                },
-                "role":{
-                    "type":"string",
-                    "description":"employee's role, usually it's Sales, Product Manager, Tech, Program Manager, Leader"
-                },
-                "domain":{
-                    "type":"string",
-                    "description":"Techical domain for the employee，For Example AIML, Analytics, Compute"
-                },
-                "scope":{
-                    "type":"string",
-                    "description":"employee's scope of responsibility. For Sales role, it could be territory like north/east/south/west, For tech role, it could be specific service"
-                }
-            },
-            "required":[
-                "employee"
-            ]
-        },
-        "running_mode": "loop"
-     }
-})
-
-tool_manager.register_tool({
-    "name": "ec2_price",
-    "lambda_name": "ec2_price",
-    "lambda_module_path": "functions.lambda_aws_api.aws_api",
-    "tool_def": {
-        "name": "ec2_price",
-        "description": "query the price of AWS ec2 instance",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "instance_type": {
-                    "type": "string",
-                    "description": "the AWS ec2 instance type, for example, c5.xlarge, m5.large, t3.mirco, g4dn.2xlarge, if it is a partial of the instance type, you should try to auto complete it. for example, if it is r6g.2x, you can complete it as r6g.2xlarge"
-                },
-                "region": {
-                    "type": "string",
-                    "description": "the AWS region name where the ec2 is located in, for example us-east-1, us-west-1, if it is common words such as 'us east 1','美东1','美西2',you should try to normalize it to standard AWS region name, for example, 'us east 1' is normalized to 'us-east-1', '美东2' is normalized to 'us-east-2','美西2' is normalized to 'us-west-2','北京' is normalized to 'cn-north-1', '宁夏' is normalized to 'cn-northwest-1', '中国区' is normalized to 'cn-north-1'"
-                },
-                "os": {
-                    "type": "string",
-                    "description": "the operating system of ec2 instance, the valid value should be 'Linux' or 'Windows'"
-                },
-                "term": {
-                    "type": "string",
-                    "description": "the payment term, the valid value should be 'OnDemand' or 'Reserved' "
-                },
-                "purchase_option": {
-                    "type": "string",
-                    "description": "the purchase option of Reserved instance, the valid value should be 'No Upfront', 'Partial Upfront' or 'All Upfront' "
-                }
-            },
-            "required": ["instance_type"]
-        },
-        "running_mode": "loop"
-    }
-})
-
-tool_manager.register_tool({
-    "name":"assist",
-    "lambda_name": "",
-    "lambda_module_path": "",
-    "tool_def": {
-        "name": "assist",
-        "description": "assist user to do some office work",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "response": {
-                    "description": "Response to user",
-                    "type": "string"
-            }
-            },
-            "required": ["response"]
-        },
-    },
-    "running_mode": "output"
-})
 
 tool_manager.register_tool({
     "name":"QA",
@@ -306,25 +98,6 @@ tool_manager.register_tool({
     "running_mode": "loop"
 })
 
-tool_manager.register_tool({
-    "name": "chat",
-    "lambda_name": "chat",
-    "lambda_module_path": "function.common_tools.chat",
-    "tool_def":{
-        "name": "chat",
-        "description": "casual talk with AI",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "response": {
-                    "description": "response to users",
-                    "type": "string"
-            }},
-            "required": ["response"]
-        },
-    },
-    "running_mode": "output"
-})
 
 tool_manager.register_tool({
     "name":"comfort",

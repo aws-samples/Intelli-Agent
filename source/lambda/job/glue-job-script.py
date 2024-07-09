@@ -73,10 +73,10 @@ except Exception as e:
         args[key.upper()] = command_line_args_dict[key]
     args["AOS_ENDPOINT"] = os.environ["AOS_ENDPOINT"]
     args["WORKSPACE_TABLE"] = os.environ["WORKSPACE_TABLE"]
-    args["ETL_OBJECT_TABLE"] = os.environ["etl_object_table"]
-    args["ETL_MODEL_ENDPOINT"] = os.environ["etl_endpoint"]
-    args["RES_BUCKET"] = os.environ["res_bucket"]
-    args["REGION"] = os.environ["region"]
+    args["ETL_OBJECT_TABLE"] = os.environ["ETL_OBJECT_TABLE"]
+    args["ETL_MODEL_ENDPOINT"] = os.environ["ETL_ENDPOINT"]
+    args["RES_BUCKET"] = os.environ["RES_BUCKET"]
+    args["REGION"] = os.environ["REGION"]
 
 from llm_bot_dep import sm_utils
 from llm_bot_dep.constant import SplittingType
