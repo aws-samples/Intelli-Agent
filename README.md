@@ -29,7 +29,7 @@ Intelli-Agent is designed to empower developers to rapidly deploy intelligent, c
 - [Architecture](#architecture)
 - [Quick Start](#quick-start)
 - [API Reference](#api-reference)
-- [Security](#security)
+- [Contribution](#Contribution)
 - [License](#license)
 
 ## Architecture
@@ -175,10 +175,12 @@ flowchart TD
 Follow these steps to get started:
 
 1. [Prerequisites](#prerequisites)
-2. [Deploy CDK Template](#deploy-cdk-template)
+2. [Deployment](#Deployment)
 
 ### Prerequisites
 Execute following commands to install dependencies such as Python, Git, npm, docker and create a service linked role for Amazon OpenSearch service. You can skip this step if they are already installed.
+The `setup_env.sh` script is adapted for Amazon Linux 2023. If you are using other operating systems, please manually install these dependencies.
+
 
 ```bash
 wget https://raw.githubusercontent.com/aws-samples/Intelli-Agent/dev/source/script/setup_env.sh
@@ -186,12 +188,21 @@ sh setup_env.sh
 ```
 
 Executing the following command to clone the GitHub repo:
+
 ```bash
-git clone <this repo>
+git clone git@github.com:aws-samples/Intelli-Agent.git
+cd Intelli-Agent
+```
+
+Execute the following command to configure your AWS account (please skip this step if you have already configured your AWS account). Refer to the [AWS CLI](https://docs.aws.amazon.com/cli/latest/reference/configure/) command for more usage instructions.
+
+
+```bash
+aws configure
 ```
 
 
-Navigate to the script directory and run the build.sh script. This script requires an S3 bucket name as an argument, which will be used to upload the model. Please make sure the bucket name is located in the same region as the CDK deployment. It also requires ETL image name, ETL image tag, and AWS region as arguments. The ETL image will be pushed to your ECR repo with the image name you specified.
+Navigate to the script directory and run the build.sh script. This script requires an S3 bucket name as an argument, which will be used to upload the model. Please make sure the bucket name is located in the same region as the CDK deployment. For example: If the S3 bucket is in `us-west-2`, then you can only deploy CDK in `us-west-2`. It also requires ETL image name, ETL image tag, and AWS region as arguments. The ETL image will be pushed to your ECR repo with the image name you specified.
 
 ```bash
 cd source/script
@@ -201,11 +212,11 @@ sh build.sh -b <S3 bucket name> -i <ETL model name> -t <ETL tag name> -r <AWS re
 For example:
 
 ```bash
-sh build.sh -b intelli-agent-model-bucket -i etl-image -t latest -r us-east-1
+sh build.sh -b intelli-agent-model-bucket -i intelli-agent-etl -t latest -r us-east-1
 ```
 
 
-### Deploy CDK Template
+### Deployment
 Please make sure **docker** is installed and the CDK command is executed in the **same region** of the model files which were uploaded in the previous step. 
 
 Start the deployment by executing the following command:

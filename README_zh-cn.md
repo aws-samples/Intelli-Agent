@@ -27,10 +27,10 @@ Intelli-Agent 提供一个高效简洁的工作流程，用于开发可扩展的
 Intelli-Agent 旨在以最小的开销和最大的效率帮助开发人员快速部署智能、上下文感知的应用程序。
 
 ## 目录
-- [架构](#architecture)
-- [快速开始](#quick-start)
-- [API 调用](#api-reference)
-- [安全](#security)
+- [架构](#架构)
+- [快速开始](#快速开始)
+- [API 调用](#API调用)
+- [贡献](#贡献)
 - [License](#license)
 
 ## 架构
@@ -156,86 +156,98 @@ flowchart TD
 
 ## 快速开始
 
+部署视频：
+
 [<img src="https://aws-gcr-solutions.s3.cn-north-1.amazonaws.com.cn/intelli-agent/images/logo.jpg" width="25%">](https://aws-gcr-solutions.s3.cn-north-1.amazonaws.com.cn/intelli-agent/videos/intelli-agent-deployment.mp4 "Intelli-Agent Deployment")
 
-Follow these steps to get started:
+按照以下步骤开始：
 
-1. [预置条件](#prerequisites)
-2. [CDK 部署](#deploy-cdk-template)
+
+1. [预置条件](#预置条件)
+2. [部署方案](#部署方案)
 
 ### 预置条件
 
 执行以下命令以安装 Python、Git、npm、Docker 等依赖项，并为 Amazon OpenSearch 服务创建一个服务关联角色。如果这些依赖项已经安装，可以跳过此步骤。
+setup_env.sh脚本适配Amazon Linux 2023，如果您使用其他操作系统，请手动安装这些依赖。
 
 ```bash
 wget https://raw.githubusercontent.com/aws-samples/Intelli-Agent/dev/source/script/setup_env.sh
 sh setup_env.sh
 ```
 
-Executing the following command to clone the GitHub repo:
+执行以下命令克隆GitHub代码：
+
 ```bash
-git clone <this repo>
+git clone git@github.com:aws-samples/Intelli-Agent.git
+cd Intelli-Agent
+```
+
+执行以下命令配置 AWS 账号（请跳过此步骤如果您已经配置过 AWS 账号），参考 [AWS CLI](https://docs.aws.amazon.com/cli/latest/reference/configure/) 命令获取更多使用说明。
+
+```bash
+aws configure
 ```
 
 
-Navigate to the script directory and run the build.sh script. This script requires an S3 bucket name as an argument, which will be used to upload the model. Please make sure the bucket name is located in the same region as the CDK deployment. It also requires ETL image name, ETL image tag, and AWS region as arguments. The ETL image will be pushed to your ECR repo with the image name you specified.
+请进入到脚本目录并运行 build.sh 脚本。此脚本需要一个 S3 存储桶名称作为参数，用于上传模型。请确保存储桶名称位于与 CDK 部署相同的 AWS 区域内。例如：如果S3桶在us-west-2，则您只能在us-west-2进行CDK部署。此外，还需要提供 ETL 镜像名称、ETL 镜像标签和 AWS 区域作为参数。ETL 镜像将会被推送到您指定的 ECR 仓库中。
 
 ```bash
 cd source/script
 sh build.sh -b <S3 bucket name> -i <ETL model name> -t <ETL tag name> -r <AWS region>
 ```
 
-For example:
+例如：
 
 ```bash
-sh build.sh -b intelli-agent-model-bucket -i etl-image -t latest -r us-east-1
+sh build.sh -b intelli-agent-model-bucket -i intelli-agent-etl -t latest -r us-east-1
 ```
 
 
-### Deploy CDK Template
-Please make sure **docker** is installed and the CDK command is executed in the **same region** of the model files which were uploaded in the previous step. 
+### 部署方案
+please make sure **docker** is installed and the cdk command is executed in the **same region** of the model files which were uploaded in the previous step. 
 
-Start the deployment by executing the following command:
+start the deployment by executing the following command:
 ```bash
 cd source/infrastructure
-npx cdk deploy --parameters S3ModelAssets=<S3 Bucket Name> --parameters SubEmail=<email address> --parameters EtlImageName=<ETL model name> --parameters ETLTag=<ETL tag name>
+npx cdk deploy --parameters s3modelassets=<s3 bucket name> --parameters subemail=<email address> --parameters etlimagename=<etl model name> --parameters etltag=<etl tag name>
 ```
 
-To deploy the offline process only, you can configure context parameters to skip the online process. 
+to deploy the offline process only, you can configure context parameters to skip the online process. 
 
 ```bash
-npx cdk deploy --parameters S3ModelAssets=<S3 bucket name> --parameters SubEmail=<email address> --parameters EtlImageName=<ETL model name> --parameters ETLTag=<ETL tag name> --context DeploymentMode="OFFLINE_EXTRACT"
+npx cdk deploy --parameters s3modelassets=<s3 bucket name> --parameters subemail=<email address> --parameters etlimagename=<etl model name> --parameters etltag=<etl tag name> --context deploymentmode="offline_extract"
 ```
 
-#### Deployment Parameters
-| Parameter | Description |
+#### deployment parameters
+| parameter | description |
 |-|-|
-| S3ModelAssets | Your bucket name to store models |
-| SubEmail | Your email address to receive notifications |
-| OpenSearchIndex | OpenSearch index name to store the knowledge, if the index does not exist, the solution will create one |
-| EtlImageName | ETL image name, eg. etl-model, it is set when you executing source/model/etl/code/model.sh script |
-| EtlTag | ETL tag, eg. latest, v1.0, v2.0, the default value is latest, it is set when you executing source/model/etl/code/model.sh script |
+| s3modelassets | your bucket name to store models |
+| subemail | your email address to receive notifications |
+| opensearchindex | opensearch index name to store the knowledge, if the index does not exist, the solution will create one |
+| etlimagename | etl image name, eg. etl-model, it is set when you executing source/model/etl/code/model.sh script |
+| etltag | etl tag, eg. latest, v1.0, v2.0, the default value is latest, it is set when you executing source/model/etl/code/model.sh script |
 
 
-#### Optional Context Parameters
+#### optional context parameters
 
-| Context | Description |
+| context | description |
 |---------|-------------|
-| DeploymentMode | The mode for deployment. There are two modes: `OFFLINE_EXTRACT`, and `ALL`. Default deployment mode is `ALL`. |
+| deploymentmode | the mode for deployment. there are two modes: `offline_extract`, and `all`. default deployment mode is `all`. |
 
 
-### API Reference
-After CDK deployment, you can use a HTTP client such as Postman/cURL to invoke the API by following below API schema. 
-- [LLM API Schema](https://github.com/aws-samples/Intelli-Agent/blob/main/docs/LLM_API_SCHEMA.md): send question to LLM and get a response.
+### API调用
+在 CDK 部署后，您可以使用 HTTP client，例如 Postman/cURL 来调取 API.
+- [llm api schema](https://github.com/aws-samples/intelli-agent/blob/main/docs/llm_api_schema.md): send question to llm and get a response.
 - [ETL API Schema](https://github.com/aws-samples/Intelli-Agent/blob/main/docs/ETL_API_SCHEMA.md): upload knowledge to the vector database.
 - [AOS API Schema](https://github.com/aws-samples/Intelli-Agent/blob/main/docs/AOS_API_SCHEMA.md): search data in the vector database.
 
 
 ## Testing
-For detailed test information, please refer to the [Test Doc](https://github.com/aws-samples/Intelli-Agent/blob/dev/tests/README.md)
+参考[测试文档](https://github.com/aws-samples/Intelli-Agent/blob/dev/tests/README.md)获取更多测试信息。
 
-## Contribution
-See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more information.
+## 贡献
+参考[贡献文档](CONTRIBUTING.md#security-issue-notifications)获取更多信息。
 
 ## License
-This project is licensed under the Apache-2.0 License.
+此项目采用 Apache-2.0 License。
