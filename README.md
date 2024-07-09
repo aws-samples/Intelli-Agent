@@ -217,6 +217,13 @@ sh build.sh -b intelli-agent-model-bucket -i intelli-agent-etl -t latest -r us-e
 
 
 ### Deployment
+
+If your account is using CDK for the first time, please refer to [this document](https://docs.aws.amazon.com/cdk/v2/guide/bootstrapping-env.html) for CDK bootstrap.
+
+```bash
+cdk bootstrap aws://<Your AWS account ID>/<AWS region>
+```
+
 Please make sure **docker** is installed and the CDK command is executed in the **same region** of the model files which were uploaded in the previous step. 
 
 Start the deployment by executing the following command:

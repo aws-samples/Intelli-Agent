@@ -205,35 +205,98 @@ sh build.sh -b intelli-agent-model-bucket -i intelli-agent-etl -t latest -r us-e
 
 
 ### 部署方案
-please make sure **docker** is installed and the cdk command is executed in the **same region** of the model files which were uploaded in the previous step. 
-
-start the deployment by executing the following command:
-```bash
-cd source/infrastructure
-npx cdk deploy --parameters s3modelassets=<s3 bucket name> --parameters subemail=<email address> --parameters etlimagename=<etl model name> --parameters etltag=<etl tag name>
-```
-
-to deploy the offline process only, you can configure context parameters to skip the online process. 
+如果您的账号是第一次用 CDK，请参考[此文档](https://docs.aws.amazon.com/cdk/v2/guide/bootstrapping-env.html)进行 CDK boostrap。
 
 ```bash
-npx cdk deploy --parameters s3modelassets=<s3 bucket name> --parameters subemail=<email address> --parameters etlimagename=<etl model name> --parameters etltag=<etl tag name> --context deploymentmode="offline_extract"
+cdk bootstrap aws://<Your AWS account ID>/<AWS region>
 ```
 
-#### deployment parameters
-| parameter | description |
-|-|-|
-| s3modelassets | your bucket name to store models |
-| subemail | your email address to receive notifications |
-| opensearchindex | opensearch index name to store the knowledge, if the index does not exist, the solution will create one |
-| etlimagename | etl image name, eg. etl-model, it is set when you executing source/model/etl/code/model.sh script |
-| etltag | etl tag, eg. latest, v1.0, v2.0, the default value is latest, it is set when you executing source/model/etl/code/model.sh script |
+本方案部署可以有两种选项：
+1. 部署`全部模块`。即可实现从知识库构建到在线交互问答全量功能。
+2. 仅部署`知识库构建（离线处理）`模块。
+
+#### 选项1 部署全部模块
+
+执行如下命令进行部署，其中，S3ModelAssets，EtlImageName和ETLTag请使用在`预置条件`章节中您设置过的参数。（默认部署模式）
 
 
-#### optional context parameters
+```bash
+cd source
+aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
+cd infrastructure
+npx cdk deploy --parameters S3ModelAssets=<Your S3 Bucket Name> --parameters SubEmail=<Your email address> --parameters EtlImageName=<Your ETL model name> --parameters ETLTag=<Your ETL tag name> --require-approval never
+```
 
-| context | description |
-|---------|-------------|
-| deploymentmode | the mode for deployment. there are two modes: `offline_extract`, and `all`. default deployment mode is `all`. |
+
+示例：
+
+```bash
+npx cdk deploy --rollback true --parameters S3ModelAssets=intelli-agent-model-bucket --parameters SubEmail=foo@email.com --parameters EtlImageName=intelli-agent-etl --parameters ETLTag=latest --require-approval never
+```
+
+
+##### 部署参数
+| 参数 | 参数类型 | 描述 |
+| - | - | - |
+| S3ModelAssets | 必填 | 存储模型的您的 S3 存储桶名称 |
+| SubEmail | 必填 | 接收通知的您的电子邮件地址 |
+| EtlImageName | 必填 | ETL 镜像名称，例如 etl-model，在执行 source/model/etl/code/model.sh 脚本时设置 |
+| EtlTag | 必填 | ETL 标签，例如 latest、v1.0、v2.0，默认值为 latest，在执行 source/model/etl/code/model.sh 脚本时设置 |
+| DeploymentMode | 选填 | 不填或ALL |
+
+
+#### 选项2 仅部署`知识库构建（离线处理）`模块
+
+如果仅要求对文档进行解析切片并将切片后的文本块上传到 S3，而不需要将文本块注入到 Amazon OpenSearch，执行如下命令进行部署，其中，S3ModelAssets，EtlImageName和ETLTag请使用在“前置条件”章节中您设置过的参数。
+
+```bash
+cd source
+aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
+cd infrastructure
+npx cdk deploy --parameters S3ModelAssets=<Your S3 Bucket Name> --parameters SubEmail=<Your email address> --parameters EtlImageName=<Your ETL model name> --parameters ETLTag=<Your ETL tag name> --context DeploymentMode="OFFLINE_EXTRACT" --require-approval never
+```
+
+##### 部署参数
+| 参数 | 参数类型 | 描述 |
+| - | - | - |
+| S3ModelAssets | 必填 | 存储模型的您的 S3 存储桶名称 |
+| SubEmail | 必填 | 接收通知的您的电子邮件地址 |
+| EtlImageName | 必填 | ETL 镜像名称，例如 etl-model，在执行 source/model/etl/code/model.sh 脚本时设置 |
+| EtlTag | 必填 | ETL 标签，例如 latest、v1.0、v2.0，默认值为 latest，在执行 source/model/etl/code/model.sh 脚本时设置 |
+| DeploymentMode | 必填 | OFFLINE_EXTRACT |
+
+#### 方案信息
+
+部署后您可以在 CloudFormation 控制台中找到包含`intelli-agent`的堆栈，在Output标签页中可以找到方案信息，常用的信息解释如下：
+
+| 名称	| 描述 |
+| - | - |
+| WebPortalURL |	Intelli-Agent前端网站链接 |
+| APIEndpointAddress |	RestFul API地址，主要用数据预处理、聊天记录等功能 |
+| WebSocketEndpointAddress | WebSocket API地址，主要用于聊天功能 |
+| ChunkBucket | 文档预处理后的中间状态保存在此S3桶中 |
+
+### 更新已有的部署
+
+您可以通过 CDK 更新已有的部署，具体命令如下：
+
+```bash
+cd source
+aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
+cd infrastructure
+npx cdk deploy --rollback true --parameters S3ModelAssets=<Your S3 Bucket Name> --parameters SubEmail=<Your email address> --parameters EtlImageName=<Your ETL model name> --parameters ETLTag=<Your ETL tag name>
+```
+
+示例：
+
+```bash
+npx cdk deploy --rollback true --parameters S3ModelAssets=intelli-agent-model-bucket --parameters SubEmail=foo@email.com --parameters EtlImageName=intelli-agent-etl --parameters ETLTag=latest --require-approval never
+```
+
+
+### 卸载解决方案
+
+登录 AWS 控制台，进入到 CloudFormation 页面，选择包含`intelli-agent`关键字的堆栈，点击删除按钮。
 
 
 ### API调用
