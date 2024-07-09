@@ -13,13 +13,12 @@ def knowledge_base_retrieve(event_body, context=None):
         handler_name="lambda_handler",
     )
     contexts = [doc["page_content"] for doc in output["result"]["docs"]]
-
     return contexts
 
 
 def lambda_handler(event_body, context=None):
     contexts = knowledge_base_retrieve(event_body,context=context)
-    return {"code":0, "result":"\n\n".join(contexts)}
+    return {"code":0, "result":"\n\n".join(contexts),"raw_results":contexts}
 
 
 

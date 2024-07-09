@@ -298,11 +298,11 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
             fewshot_examples_str += "\n\n请参考上述例子进行工具调用。"
         
         non_ask_tool_list = []
-        for tool in tools:
-            should_ask_parameter = get_tool_by_name(tool['name']).should_ask_parameter
-            if should_ask_parameter != "True":
-                format_string = tool['name']+"工具"+should_ask_parameter
-                non_ask_tool_list.append(format_string)
+        # for tool in tools:
+        #     should_ask_parameter = get_tool_by_name(tool['name']).should_ask_parameter
+        #     if should_ask_parameter != "True":
+        #         format_string = tool['name']+"工具"+should_ask_parameter
+        #         non_ask_tool_list.append(format_string)
         if len(non_ask_tool_list) == 0:
             non_ask_rules = ""
         else:

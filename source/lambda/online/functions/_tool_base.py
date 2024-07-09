@@ -17,7 +17,7 @@ class Tool(BaseModel):
     running_mode: str = Field(description="tool running mode, can be loop or output", default=ToolRuningMode.LOOP)
     tool_def_type: ToolDefType = Field(description="tool definition type",default=ToolDefType.openai.value)
     scene: str = Field(description="tool use scene",default=SceneType.COMMON)
-    
+    # should_ask_parameter: bool = Field(description="tool use scene")
 
 class ToolManager:
     def __init__(self) -> None:
@@ -51,6 +51,7 @@ class ToolManager:
 
 tool_manager = ToolManager()
 get_tool_by_name = tool_manager.get_tool_by_name
+
 
 
 tool_manager.register_tool(
@@ -99,46 +100,46 @@ tool_manager.register_tool({
 })
 
 
-tool_manager.register_tool({
-    "name":"comfort",
-    "scenario":"common",
-    "lambda_name": "comfort",
-    "lambda_module_path": "functions.common_tools.comfort",
-    "tool_def": {
-        "name": "comfort",
-        "description": "comfort user to mitigate their bad emotion",
-        # "parameters": {
-        #     "type": "object",
-        #     "properties": {
-        #         "response": {
-        #             "description": "response to users",
-        #             "type": "string"
-        #     }},
-        #     "required": ["response"]
-        # },
-    },
-    "running_mode": "output"
-})
+# tool_manager.register_tool({
+#     "name":"comfort",
+#     "scenario":"common",
+#     "lambda_name": "comfort",
+#     "lambda_module_path": "functions.common_tools.comfort",
+#     "tool_def": {
+#         "name": "comfort",
+#         "description": "comfort user to mitigate their bad emotion",
+#         # "parameters": {
+#         #     "type": "object",
+#         #     "properties": {
+#         #         "response": {
+#         #             "description": "response to users",
+#         #             "type": "string"
+#         #     }},
+#         #     "required": ["response"]
+#         # },
+#     },
+#     "running_mode": "output"
+# })
 
-tool_manager.register_tool({
-    "name":"transfer",
-    "lambda_name": "",
-    "lambda_module_path": "functions.common_tools.transfer",
-    "tool_def": {
-        "name": "transfer",
-        "description": "transfer the conversation to manual customer service",
-        # "parameters": {
-        #     "type": "object",
-        #     "properties": {
-        #         "response": {
-        #             "description": "response to users",
-        #             "type": "string"
-        #     }},
-        #     "required": ["response"]
-        # },
-    },
-    "running_mode": "output"
-})
+# tool_manager.register_tool({
+#     "name":"transfer",
+#     "lambda_name": "",
+#     "lambda_module_path": "functions.common_tools.transfer",
+#     "tool_def": {
+#         "name": "transfer",
+#         "description": "transfer the conversation to manual customer service",
+#         # "parameters": {
+#         #     "type": "object",
+#         #     "properties": {
+#         #         "response": {
+#         #             "description": "response to users",
+#         #             "type": "string"
+#         #     }},
+#         #     "required": ["response"]
+#         # },
+#     },
+#     "running_mode": "output"
+# })
 
 # retail tools
 tool_manager.register_tool({
