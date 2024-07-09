@@ -57,7 +57,7 @@ Intelli-Agent 旨在以最小的开销和最大的效率帮助开发人员快速
 
 ![Offline Workflow](docs/images/intelli-agent-kb-etl.png)
 
-当收到大量内容注入请求时，它可以通过同时运行多个 Amazon Glue 任务来自动扩展，确保这些请求及时处理。
+当系统收到大量内容注入请求时，它可以通过同时运行多个 Amazon Glue 任务来自动扩展，确保这些请求及时处理。
 
 
 #### 文本块元数据
@@ -109,7 +109,7 @@ Intelli-Agent 旨在以最小的开销和最大的效率帮助开发人员快速
 
 ### 灵活的模式选项
 
-下图是基于 [langgraph](https://langchain-ai.github.io/langgraph/) 生成的在线逻辑。第一个节点是 **query_preprocess_lambda**，它处理聊天历史记录。然后用户可以从三种模式中选择：聊天模式（chat）、检索生成模式（rag）和代理模式（agent）。**聊天模式（chat）** 让您可以直接与不同的 LLM（如 Anthropic Claude 3）进行交互。**检索生成模式（rag）** 将检索与当前查询相关的内容并让 LLM 回答。**代理模式（agent）** 是最复杂的模式，能够处理复杂的业务场景。根据 **intention_detection_lambda** 提供的最相关意图和 **query_preprocess_lambda** 提供的聊天历史记录，**agent_lambda** 将决定使用哪些工具以及这些信息是否足以回答查询。**parse_tool_calling** 节点将解析 **agent_lambda** 的输出：
+下图是基于 [LangGraph](https://langchain-ai.github.io/langgraph/) 生成的在线逻辑。第一个节点是 **query_preprocess_lambda**，它处理聊天历史记录。然后用户可以从三种模式中选择：聊天模式（chat）、检索生成模式（rag）和代理模式（agent）。**聊天模式（chat）** 让您可以直接与不同的 LLM（如 Anthropic Claude 3）进行交互。**检索生成模式（rag）** 将检索与当前查询相关的内容并让 LLM 回答。**代理模式（agent）** 是最复杂的模式，能够处理复杂的业务场景。根据 **intention_detection_lambda** 提供的最相关意图和 **query_preprocess_lambda** 提供的聊天历史记录，**agent_lambda** 将决定使用哪些工具以及这些信息是否足以回答查询。**parse_tool_calling** 节点将解析 **agent_lambda** 的输出：
 
 * 如果 **agent_lambda** 从工具格式的角度选择了错误的工具，那么会通过 **invalid_tool_calling** 进行重新思考。
 * 如果 **agent_lambda** 选择了有效工具，那么会通过 **tool_execute_lambda** 执行该工具。然后，**agent_lambda** 将决定运行结果是否足以回答查询。
@@ -206,7 +206,7 @@ sh build.sh -b intelli-agent-model-bucket -i intelli-agent-etl -t latest -r us-e
 
 
 ### 部署方案
-如果您的账号是第一次用 CDK，请参考[此文档](https://docs.aws.amazon.com/cdk/v2/guide/bootstrapping-env.html)进行 CDK boostrap。
+如果您的账号是首次使用 AWS CDK 部署资源，请参考[此文档](https://docs.aws.amazon.com/cdk/v2/guide/bootstrapping-env.html)进行 CDK boostrap。
 
 ```bash
 cdk bootstrap aws://<Your AWS account ID>/<AWS region>
@@ -358,7 +358,7 @@ npx cdk deploy --rollback true --parameters S3ModelAssets=intelli-agent-model-bu
 | - | - |
 | Rerank | BGE-reranker-large |
 | Embedding | BCE |
-| LLM | Claude |
+| LLM | Claude3/Claude3.5 |
 
 ### 如何获取支持
 通过在 GitHub 上创建 Issue 获取支持。
@@ -373,10 +373,10 @@ npx cdk deploy --rollback true --parameters S3ModelAssets=intelli-agent-model-bu
 - 根据[文档](docs/auth.md)获取jwt token，并参考postman使用的方式。
 - 根据[文档](docs/ETL_API_SCHEMA.md)进行注入。注入参数可以参考下面的格式，替换其中S3相关参数即可。
 
-```bash
+```json
 {
-    "s3Bucket": "git",
-    "s3Prefix": "demo/default-intent.jsonl",
+    "s3Bucket": "your-bucket-name",
+    "s3Prefix": "s3path/default-intent.jsonl",
     "offline": "true",
     "qaEnhance": "false",
     "workspaceId": "default-intent",
@@ -388,7 +388,7 @@ npx cdk deploy --rollback true --parameters S3ModelAssets=intelli-agent-model-bu
 
 - 注入数据格式
 
-```bash
+```json
 {"question": "你好", "answer": {"intent": "chat"}}
 ```
 
