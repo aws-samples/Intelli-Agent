@@ -626,9 +626,9 @@ export class ApiConstruct extends Construct {
         Count: { type: JsonSchemaType.INTEGER },
         Config: { type: JsonSchemaType.OBJECT,
                   properties: {
-                    MaxItems: JsonSchemaType.INTEGER,
-                    PageSize: JsonSchemaType.INTEGER,
-                    StartingToken: JsonSchemaType.NULL
+                    MaxItems: { type: JsonSchemaType.INTEGER },
+                    PageSize: { type: JsonSchemaType.INTEGER },
+                    StartingToken: { type: JsonSchemaType.NULL }
                   }
                 }
       }),
