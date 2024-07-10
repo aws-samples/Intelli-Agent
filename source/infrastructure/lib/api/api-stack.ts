@@ -565,7 +565,7 @@ export class ApiConstruct extends Construct {
     apiGetExecution.addMethod(
       "GET",
       new apigw.LambdaIntegration(getExecutionLambda),
-      this.genMethodOption(api, auth, {
+      {...this.genMethodOption(api, auth, {
         Items: {type: JsonSchemaType.ARRAY, items: {
           type: JsonSchemaType.OBJECT,
           properties: {
@@ -580,6 +580,13 @@ export class ApiConstruct extends Construct {
         }},
         Count: {type: JsonSchemaType.INTEGER}
       }),
+      requestParameters: {
+        'method.request.querystring.executionId': false
+      },
+      // requestModels: this.genRequestModel(api, {
+      //   "executionId": { "type": JsonSchemaType.ARRAY, "items": {"type": JsonSchemaType.STRING}},
+      // })
+    }
     );
 
     const apiListExecution = apiResourceStepFunction.addResource("list-execution");
@@ -614,7 +621,13 @@ export class ApiConstruct extends Construct {
                      'sfnExecutionId',
                      'workspaceId'],
 
-        }}
+        },
+        Count: { type: JsonSchemaType.INTEGER },
+        Config: { MaxItems: JsonSchemaType.INTEGER,
+                  PageSize: JsonSchemaType.INTEGER,
+                  StartingToken: JsonSchemaType.NULL
+                }
+      }
       }),
         requestParameters: {
           'method.request.querystring.max_items': false,

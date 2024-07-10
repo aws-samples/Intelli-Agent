@@ -1,7 +1,9 @@
 import datetime
 import os
+import time
 # import api_test.config as config
 from dotenv import load_dotenv
+import pytest
 
 from api_test.biz_logic.rest_api import openapi_client
 # from api_test.biz_logic.rest_api import IntellapiconnnHdtwRWUXa
@@ -29,6 +31,7 @@ class TestDocument:
         cls.api_client = openapi_client.ApiClient(cls.configuration)
         cls.api_client.set_default_header("Authorization", f'Bearer {os.getenv("token")}')
         cls.api_instance = openapi_client.DefaultApi(cls.api_client)
+        globals()["exe_ids"] = None
 
     @classmethod
     def teardown_class(cls):
@@ -128,7 +131,33 @@ class TestDocument:
         logger.info("test_11_upload_document_jsonl end.")
         assert response.message==self.upload_success_msg and response.data.startswith(self.upload_prefix_data), "test_11_upload_document_jsonl test failed"
     
-    def test_12_delete_document(self):
+    def test_12_list_document(self):
+        '''test case'''
+        logger.info("test_12_list_document start ....")
+        response = self.api_instance.etl_list_execution_get(page_size='9999', max_items='9999')
+        logger.info("test_12_list_document end.")
+        for item in response.items:
+            key = item.s3_prefix.rsplit('.', 1)[-1]
+            globals()["exe_ids"][key] = item.execution_id
+        assert response.count==11, "test_12_list_document test failed"
+    
+
+    @pytest.fixture(autouse=True)
+    def delay_between_list_and_exec(self):
+       '''sleep 30*60'''
+       yield
+       time.sleep(1800)
+
+    def test_13_exec_document_pdf(self, delay_between_list_and_exec):
+        '''test case'''
+        logger.info("test_13_exec_document_pdf start ....")
+        # param = openapi_client.IntellapicoDjp0ELR6YyaK()
+        globals()["exe_ids"]["pdf"]
+        # response = self.api_instance.etl_delete_execution_post(param)
+        logger.info("test_13_exec_document_pdf end.")
+        # assert response.message==self.upload_success_msg and response.data.startswith(self.upload_prefix_data), "test_13_exec_document_pdf test failed"
+    
+    def test_13_delete_document(self):
         '''test case'''
         logger.info("test_12_delete_document start ....")
         # param = openapi_client.IntellapicoDjp0ELR6YyaK()
