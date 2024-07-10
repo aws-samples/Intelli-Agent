@@ -267,7 +267,7 @@ def structure_predict(file_path: Path, lang: str, auto_dpi, figure_rec) -> str:
             context = doc[max(start_pos-200, 0): min(start_pos+200, len(doc))]
             doc = doc.replace(k, figure_understand(v[0], context, k, s3_link=f'{figure_idx:05d}.jpg'))
         else:
-            doc = doc.replace(k, f"<figure><link>{figure_idx:05d}.jpg</link><type>ocr</type><desp>{region_text}</desp></figure>")
+            doc = doc.replace(k, f"\n<figure>\n<link>{figure_idx:05d}.jpg</link><type>ocr</type><desp>{region_text}</desp>\n</figure>\n")
     doc = re.sub("\n{2,}", "\n\n", doc.strip())
     return doc, images
 
@@ -288,6 +288,9 @@ def process_pdf_pipeline(request_body):
         dict: The result of the pipeline containing the following key:
             - destination_prefix (str): The prefix of the processed PDF in the destination bucket.
     """
+    logger.info("ning====pdf")
+    logger.info(request_body)
+    print(request_body)
     bucket = request_body["s3_bucket"]
     object_key = request_body["object_key"]
     destination_bucket = request_body["destination_bucket"]
