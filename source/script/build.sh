@@ -50,3 +50,5 @@ sh model.sh ./Dockerfile $etl_image_name $aws_region $etl_image_tag
 echo "Build frontend"
 cd ../../../portal
 npm install && npm run build
+
+echo "Successfully built Assets for Intelli-Agent. Please proceed to deploy the stack."

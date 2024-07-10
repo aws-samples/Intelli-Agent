@@ -121,7 +121,6 @@ const PromptList: React.FC = () => {
         method: 'get',
       });
       setLoadingGet(false);
-      console.info('data:', data);
       setCurrentPrompt(data);
       if (type === 'edit') {
         setShowEdit(true);
@@ -172,14 +171,14 @@ const PromptList: React.FC = () => {
     }
   };
 
-  const handlePromptChange = (key: string, value: string) => {
+  const handlePromptChange = (key: string, subKey: string, value: string) => {
     setCurrentPrompt((prevData: any) => ({
       ...prevData,
       Prompt: {
         ...prevData.Prompt,
         [key]: {
           ...prevData.Prompt[key],
-          system_prompt: value,
+          [subKey]: value,
         },
       },
     }));
@@ -416,15 +415,29 @@ const PromptList: React.FC = () => {
                           label: key,
                           id: key,
                           content: (
-                            <Textarea
-                              rows={10}
-                              placeholder={t('validation.requirePrompt')}
-                              value={currentPrompt.Prompt[key].system_prompt}
-                              onChange={({ detail }) => {
-                                setPromptError('');
-                                handlePromptChange(key, detail.value);
-                              }}
-                            />
+                            <>
+                              {Object.keys(currentPrompt?.Prompt[key]).map(
+                                (subKey) => (
+                                  <FormField key={subKey} label={subKey}>
+                                    <Textarea
+                                      rows={5}
+                                      placeholder={t(
+                                        'validation.requirePrompt',
+                                      )}
+                                      value={currentPrompt.Prompt[key][subKey]}
+                                      onChange={({ detail }) => {
+                                        setPromptError('');
+                                        handlePromptChange(
+                                          key,
+                                          subKey,
+                                          detail.value,
+                                        );
+                                      }}
+                                    />
+                                  </FormField>
+                                ),
+                              )}
+                            </>
                           ),
                         }))
                       : []
