@@ -275,7 +275,7 @@ class MarkdownHeaderTextSplitter:
             return ""
 
         return joint_title_list
-
+    
     def split_text(self, text: Document) -> List[Document]:
         if self.res_bucket is not None:
             save_content_to_s3(s3, text, self.res_bucket, SplittingType.BEFORE.value)
@@ -313,13 +313,7 @@ class MarkdownHeaderTextSplitter:
                         current_heading, current_heading_level_map
                     )
                     current_heading = current_heading.replace("#", "").strip()
-                    # split_words = '*' * 100
-                    # logger.info(f"{split_words}")
-                    # logger.info(f"current line is {line}")
-                    # logger.info(f"current metadata is {text.metadata}")
-                    # logger.info(f"current heading list is {current_heading_list}")
-                    # logger.info(f"current heading level map is {current_heading_level_map}")
-                    # logger.info(f"{split_words}")
+                    
                     try:
                         self._set_chunk_id(
                             id_index_dict, current_heading, metadata, same_heading_dict
@@ -361,11 +355,13 @@ class MarkdownHeaderTextSplitter:
                 figure_type = xml_node.findtext(FigureNode.TYPE.value)
                 figure_description = xml_node.find(FigureNode.DESCRIPTION.value)
                 figure_value = xml_node.find(FigureNode.VALUE.value)
+                figure_s3_link = xml_node.find(FigureNode.LINK.value)
                 chunk_figure_content = etree.tostring(figure_description).decode("utf-8")
                 if figure_value is not None:
                     chunk_figure_content += "\n" + etree.tostring(figure_value).decode("utf-8")
                 metadata = text.metadata.copy()
                 metadata["content_type"] = figure_type
+                metadata["figure_path"] = figure_s3_link
                 metadata["current_heading"] = current_heading
                 current_heading_list = self._get_current_heading_list(
                     current_heading, current_heading_level_map
@@ -394,7 +390,7 @@ class MarkdownHeaderTextSplitter:
                         page_content=chunk_figure_content, metadata=metadata
                     )
                 )
-                current_figure = ""       
+                current_figure = ""
             elif inside_figure:
                 current_figure += line
 
