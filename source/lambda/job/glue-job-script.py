@@ -47,6 +47,7 @@ try:
             "WORKSPACE_TABLE",
             "INDEX_TYPE",
             "OPERATION_TYPE",
+            "PORTAL_BUCKET",
         ],
     )
 except Exception as e:

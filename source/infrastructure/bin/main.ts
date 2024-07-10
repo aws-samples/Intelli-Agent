@@ -156,13 +156,10 @@ export class RootStack extends Stack {
     });
     uiExports.node.addDependency(uiPortal);
 
-    new CfnOutput(this, "API Endpoint Address", {
-      value: apiConstruct.apiEndpoint,
-    });
     new CfnOutput(this, "Chunk Bucket", { value: etlStack.resBucketName });
     new CfnOutput(this, "WebPortalURL", {
       value: uiPortal.portalUrl,
-      description: "LLM-Bot web portal url",
+      description: "Web portal url",
     });
     new CfnOutput(this, "WebSocket Endpoint Address", {
       value: apiConstruct.wsEndpoint,
