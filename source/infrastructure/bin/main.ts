@@ -67,6 +67,7 @@ export class RootStack extends Stack {
     aosConstruct.node.addDependency(vpcConstruct);
 
     const dynamoDBConstruct = new DynamoDBConstruct(this, "ddb-construct");
+    const uiPortal = new PortalConstruct(this, "ui-construct");
 
     const etlStack = new EtlStack(this, "etl-stack", {
       domainEndpoint: aosConstruct.domainEndpoint || "",
@@ -80,10 +81,12 @@ export class RootStack extends Stack {
       openSearchIndex: cdkParameters.openSearchIndex.valueAsString,
       imageName: cdkParameters.etlImageName.valueAsString,
       etlTag: cdkParameters.etlImageTag.valueAsString,
+      portalBucket: uiPortal.portalBucket.bucketName,
       iamHelper: iamHelper,
     });
     etlStack.node.addDependency(vpcConstruct);
     etlStack.node.addDependency(aosConstruct);
+    etlStack.node.addDependency(uiPortal);
     etlStack.addDependency(llmStack);
 
     const connectorConstruct = new ConnectorConstruct(this, "connector-construct", {
@@ -98,8 +101,6 @@ export class RootStack extends Stack {
     connectorConstruct.node.addDependency(vpcConstruct);
     connectorConstruct.node.addDependency(aosConstruct);
     connectorConstruct.node.addDependency(llmStack);
-
-    const uiPortal = new PortalConstruct(this, "ui-construct");
 
     const userConstruct = new UserConstruct(this, "user", {
       adminEmail: cdkParameters.subEmail.valueAsString,

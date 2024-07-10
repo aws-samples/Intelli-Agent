@@ -102,6 +102,7 @@ embedding_model_endpoint = args["EMBEDDING_MODEL_ENDPOINT"]
 etlModelEndpoint = args["ETL_MODEL_ENDPOINT"]
 offline = args["OFFLINE"]
 etl_object_table_name = args["ETL_OBJECT_TABLE"]
+portal_bucket_name = args["PORTAL_BUCKET"]
 table_item_id = args["TABLE_ITEM_ID"]
 qa_enhancement = args["QA_ENHANCEMENT"]
 region = args["REGION"]
@@ -170,6 +171,7 @@ class S3FileProcessor:
             "res_bucket": res_bucket,
             "table_item_id": table_item_id,
             "create_time": create_time,
+            "portal_bucket_name": portal_bucket_name,
             "document_language": document_language,
         }
 
