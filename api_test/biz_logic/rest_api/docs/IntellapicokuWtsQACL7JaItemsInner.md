@@ -1,4 +1,4 @@
-# IntellapiconBOMQnj7TTWcItemsInner
+# IntellapicokuWtsQACL7JaItemsInner
 
 
 ## Properties
@@ -20,19 +20,19 @@ Name | Type | Description | Notes
 ## Example
 
 ```python
-from openapi_client.models.intellapicon_bom_qnj7_ttwc_items_inner import IntellapiconBOMQnj7TTWcItemsInner
+from openapi_client.models.intellapicoku_wts_qacl7_ja_items_inner import IntellapicokuWtsQACL7JaItemsInner
 
 # TODO update the JSON string below
 json = "{}"
-# create an instance of IntellapiconBOMQnj7TTWcItemsInner from a JSON string
-intellapicon_bom_qnj7_ttwc_items_inner_instance = IntellapiconBOMQnj7TTWcItemsInner.from_json(json)
+# create an instance of IntellapicokuWtsQACL7JaItemsInner from a JSON string
+intellapicoku_wts_qacl7_ja_items_inner_instance = IntellapicokuWtsQACL7JaItemsInner.from_json(json)
 # print the JSON string representation of the object
-print(IntellapiconBOMQnj7TTWcItemsInner.to_json())
+print(IntellapicokuWtsQACL7JaItemsInner.to_json())
 
 # convert the object into a dict
-intellapicon_bom_qnj7_ttwc_items_inner_dict = intellapicon_bom_qnj7_ttwc_items_inner_instance.to_dict()
-# create an instance of IntellapiconBOMQnj7TTWcItemsInner from a dict
-intellapicon_bom_qnj7_ttwc_items_inner_from_dict = IntellapiconBOMQnj7TTWcItemsInner.from_dict(intellapicon_bom_qnj7_ttwc_items_inner_dict)
+intellapicoku_wts_qacl7_ja_items_inner_dict = intellapicoku_wts_qacl7_ja_items_inner_instance.to_dict()
+# create an instance of IntellapicokuWtsQACL7JaItemsInner from a dict
+intellapicoku_wts_qacl7_ja_items_inner_from_dict = IntellapicokuWtsQACL7JaItemsInner.from_dict(intellapicoku_wts_qacl7_ja_items_inner_dict)
 ```
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 
