@@ -96,7 +96,7 @@ class figureUnderstand():
             pattern = fr"<{tag}>(.*?)</{tag}>"
             output = re.findall(pattern, llm_output, re.DOTALL)[0].strip()
         except:
-            output = result.replace(f"<{tag}>", '').replace(f"</{tag}>", '')
+            output = llm_output.replace(f"<{tag}>", '').replace(f"</{tag}>", '')
         return output
     def __call__(self, img, context, tag, s3_link):
         classification = self.get_classification(img)

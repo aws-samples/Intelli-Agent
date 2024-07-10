@@ -176,6 +176,4 @@ def check_and_read(img_path):
 
                 img = Image.frombytes("RGB", [pm.width, pm.height], pm.samples)
                 img = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
-                imgs.append(img)
-            return imgs, False, True
-    return None, False, False
+                yield img
