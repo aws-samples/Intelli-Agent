@@ -292,6 +292,8 @@ class MarkdownHeaderTextSplitter:
         inside_table = False
         current_figure = ""
         inside_figure = False
+        have_figure = False
+        figure_metadata = {}
         heading_hierarchy, id_index_dict = extract_headings(text.page_content.strip())
         if len(lines) > 0:
             current_heading = lines[0]
@@ -329,12 +331,12 @@ class MarkdownHeaderTextSplitter:
                             metadata["chunk_id"]
                         ]
                     page_content = "\n".join(current_chunk_content)
-                    if "service" in metadata:
-                        metadata["complete_heading"] = (
-                            metadata["service"] + " " + current_heading_list
-                        )
-                    else:
-                        metadata["complete_heading"] = current_heading_list
+                    metadata["complete_heading"] = current_heading_list
+                    if have_figure:
+                        metadata["figure"] = figure_metadata
+                        metadata["content_type"] = "contain_image"
+                        have_figure = False
+                        figure_metadata = {}
                     chunks.append(
                         Document(
                             page_content=page_content,
@@ -346,6 +348,7 @@ class MarkdownHeaderTextSplitter:
 
             if FigureNode.START.value == line:
                 inside_figure = True
+                have_figure = True
                 current_figure += line + "\n"
             elif FigureNode.END.value == line:
                 current_figure += line
@@ -359,37 +362,10 @@ class MarkdownHeaderTextSplitter:
                 chunk_figure_content = etree.tostring(figure_description).decode("utf-8")
                 if figure_value is not None:
                     chunk_figure_content += "\n" + etree.tostring(figure_value).decode("utf-8")
-                metadata = text.metadata.copy()
-                metadata["content_type"] = figure_type
-                metadata["figure_path"] = figure_s3_link
-                metadata["current_heading"] = current_heading
-                current_heading_list = self._get_current_heading_list(
-                    current_heading, current_heading_level_map
-                )
-                current_heading = current_heading.replace("#", "").strip()
-                try:
-                    self._set_chunk_id(
-                        id_index_dict, current_heading, metadata, same_heading_dict
-                    )
-                except KeyError:
-                    logger.info(f"No standard heading found")
-                    id_prefix = str(uuid.uuid4())[:8]
-                    metadata["chunk_id"] = f"$0-{id_prefix}"
-                if metadata["chunk_id"] in heading_hierarchy:
-                    metadata["heading_hierarchy"] = heading_hierarchy[
-                        metadata["chunk_id"]
-                    ]
-                if "service" in metadata:
-                    metadata["complete_heading"] = (
-                        metadata["service"] + " " + current_heading_list
-                    )
-                else:
-                    metadata["complete_heading"] = current_heading_list
-                chunks.append(
-                    Document(
-                        page_content=chunk_figure_content, metadata=metadata
-                    )
-                )
+                
+                figure_metadata["content_type"] = figure_type
+                figure_metadata["figure_path"] = figure_s3_link
+                current_chunk_content.append(chunk_figure_content)
                 current_figure = ""
             elif inside_figure:
                 current_figure += line
@@ -420,12 +396,7 @@ class MarkdownHeaderTextSplitter:
                         metadata["heading_hierarchy"] = heading_hierarchy[
                             metadata["chunk_id"]
                         ]
-                    if "service" in metadata:
-                        metadata["complete_heading"] = (
-                            metadata["service"] + " " + current_heading_list
-                        )
-                    else:
-                        metadata["complete_heading"] = current_heading_list
+                    metadata["complete_heading"] = current_heading_list
                     chunks.append(
                         Document(
                             page_content="\n".join(table_content), metadata=metadata
@@ -458,12 +429,12 @@ class MarkdownHeaderTextSplitter:
             if metadata["chunk_id"] in heading_hierarchy:
                 metadata["heading_hierarchy"] = heading_hierarchy[metadata["chunk_id"]]
             page_content = "\n".join(current_chunk_content)
-            if "service" in metadata:
-                metadata["complete_heading"] = (
-                    metadata["service"] + " " + current_heading_list
-                )
-            else:
-                metadata["complete_heading"] = current_heading_list
+            metadata["complete_heading"] = current_heading_list
+            if have_figure:
+                metadata["figure"] = figure_metadata
+                metadata["content_type"] = "contain_image"
+                have_figure = False
+                figure_metadata = {}
             chunks.append(
                 Document(
                     page_content=page_content,
