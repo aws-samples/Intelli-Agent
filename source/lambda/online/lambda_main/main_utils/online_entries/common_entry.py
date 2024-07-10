@@ -515,8 +515,9 @@ def agent_route(state: dict):
 #         return "generate results in rag mode"
 
 #############################
-# define online top-level graph #
+# define online top-level graph for app #
 #############################
+app = None
 
 def build_graph():
     workflow = StateGraph(ChatbotState)
@@ -648,6 +649,7 @@ def build_graph():
 #############################
 # define online agent graph #
 #############################
+app_agent = None
 
 def build_agent_graph():
     def _results_evaluation_route(state: dict):
@@ -676,11 +678,6 @@ def build_agent_graph():
     app = workflow.compile()
     return app
 
-    
-app = None
-app_agent = None
-
-
 def common_entry(event_body):
     """
     Entry point for the Lambda function.
@@ -695,7 +692,6 @@ def common_entry(event_body):
         app_agent = build_agent_graph()
 
     # debuging
-    # TODO only write when run local
     if is_running_local():
         with open("common_entry_workflow.png", "wb") as f:
             f.write(app.get_graph().draw_mermaid_png())
@@ -736,7 +732,6 @@ def common_entry(event_body):
             "extra_response": {},
             "agent_recursion_limit": chatbot_config['agent_recursion_limit'],
             "current_agent_recursion_num": 0,
-            # "valid_tool_calling_names": valid_tool_calling_names
         }
     )
 
