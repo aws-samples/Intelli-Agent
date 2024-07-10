@@ -621,6 +621,7 @@ export class ApiConstruct extends Construct {
                      'sfnExecutionId',
                      'workspaceId'],
 
+        }
         },
         Count: { type: JsonSchemaType.INTEGER },
         Config: { type: JsonSchemaType.OBJECT,
@@ -630,7 +631,6 @@ export class ApiConstruct extends Construct {
                     StartingToken: JsonSchemaType.NULL
                   }
                 }
-        }
       }),
         requestParameters: {
           'method.request.querystring.max_items': false,
