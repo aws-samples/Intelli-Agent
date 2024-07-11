@@ -18,7 +18,8 @@ from langchain_core.messages import AIMessage,SystemMessage,HumanMessage
 
 from common_logic.common_utils.constant import (
     LLMTaskType,
-    LLMModelType
+    LLMModelType,
+    SceneType
 )
 from functions import get_tool_by_name
 from ..llm_chain_base import LLMChain
@@ -224,10 +225,10 @@ class Claude2RetailToolCallingChain(LLMChain):
 
         # add two extral tools
         if "give_rhetorical_question" not in tool_names:
-            tools.append(get_tool_by_name("give_rhetorical_question").tool_def)
+            tools.append(get_tool_by_name("give_rhetorical_question",scene=SceneType.RETAIL).tool_def)
 
         if "give_final_response" not in tool_names:
-            tools.append(get_tool_by_name("give_final_response").tool_def)
+            tools.append(get_tool_by_name("give_final_response",scene=SceneType.RETAIL).tool_def)
 
         fewshot_examples = kwargs.get('fewshot_examples',[])
         

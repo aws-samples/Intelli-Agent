@@ -20,7 +20,8 @@ from langchain_core.messages import AIMessage,SystemMessage,HumanMessage
 from common_logic.common_utils.constant import (
     LLMTaskType,
     LLMModelType,
-    MessageType
+    MessageType,
+    SceneType
 )
 from functions import get_tool_by_name
 
@@ -385,7 +386,7 @@ class Qwen2Instruct72BRetailToolCallingChain(Qwen2Instruct7BChatChain):
         tools:list = kwargs.get('tools',[])
         # add  extral tools
         if "give_rhetorical_question" not in tools:
-            tools.append(get_tool_by_name("give_rhetorical_question").tool_def)
+            tools.append(get_tool_by_name("give_rhetorical_question",scene=SceneType.RETAIL).tool_def)
         fewshot_examples = kwargs.get('fewshot_examples',[])
         system_prompt = cls.create_system_prompt(
             goods_info=kwargs['goods_info'], 
@@ -415,9 +416,6 @@ class Qwen2Instruct72BRetailToolCallingChain(Qwen2Instruct7BChatChain):
         return super().create_chain(model_kwargs=model_kwargs,**kwargs)
         
 
-class Qwen15Instruct32BRetailToolCallingChain(Qwen2Instruct72BRetailToolCallingChain):
-    model_id = LLMModelType.QWEN15INSTRUCT32B
-
 class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct72BRetailToolCallingChain):
     model_id = LLMModelType.QWEN2INSTRUCT7B
     goods_info_tag = "商品信息"
@@ -444,38 +442,13 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct72BRetailToolCallingCha
 
     @classmethod
     def create_chain(cls, model_kwargs=None, **kwargs):
-        # tools:list = kwargs.get('tools',[])
-        # # add  extral tools
-        # if "give_rhetorical_question" not in tools:
-        #     tools.append(get_tool_by_name("give_rhetorical_question").tool_def)
-        # fewshot_examples = kwargs.get('fewshot_examples',[])
-        # system_prompt = cls.create_system_prompt(
-        #     goods_info=kwargs['goods_info'], 
-        #     create_time=kwargs.get('create_time',None),
-        #     tools=tools,
-        #     fewshot_examples=fewshot_examples
-        #     )
-
-        # current_agent_recursion_num = kwargs['current_agent_recursion_num']
-        
-        # # give different prefill
-        # if current_agent_recursion_num == 0:
-        #     cls.prefill = cls.prefill_after_thinking
-        # else:
-        #     cls.prefill = cls.prefill_after_second_thinking
-        # cls.prefill = ''
-        
-        # model_kwargs = model_kwargs or {}
-        # kwargs['system_prompt'] = system_prompt
-        # model_kwargs = {**model_kwargs}
-        # # model_kwargs["stop"] = model_kwargs.get("stop",[]) + ['✿RESULT✿', '✿RESULT✿:', '✿RESULT✿:\n','✿RETURN✿',f'<{cls.thinking_tag}>',f'<{cls.thinking_tag}/>']
-        # model_kwargs["stop"] = model_kwargs.get("stop",[]) + ['✿RESULT✿', '✿RESULT✿:', '✿RESULT✿:\n','✿RETURN✿',f'<{cls.thinking_tag}/>']
-        # model_kwargs["prefill"] = "我先看看调用哪个工具，下面是我的思考过程:\n<thinking>\nstep 1."
-        
         model_kwargs["prefill"] = ""
         res = super().create_chain(model_kwargs=model_kwargs,**kwargs)
         cls.prefill = ""
         return res
+
+class Qwen15Instruct32BRetailToolCallingChain(Qwen2Instruct7BRetailToolCallingChain):
+    model_id = LLMModelType.QWEN15INSTRUCT32B
 
         
         
