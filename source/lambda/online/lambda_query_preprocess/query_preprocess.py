@@ -24,7 +24,7 @@ def conversation_query_rewrite(query:str, chat_history:list, message_id:str, tra
         query_rewrite_llm_type (str): llm type for query rewrite function
 
     Returns:
-        output (str): query rewrite result
+        rewrite_query (dict): query rewrite result
     """
     group_name = chatbot_config['group_name']
     conversation_query_rewrite_config = chatbot_config["query_process_config"][
@@ -65,8 +65,8 @@ def conversation_query_rewrite(query:str, chat_history:list, message_id:str, tra
     conversation_summary_input = {}
     conversation_summary_input["chat_history"] = chat_history
     conversation_summary_input["query"] = query
-    output = conversation_summary_chain.invoke(conversation_summary_input)
-    return output
+    rewrite_query = conversation_summary_chain.invoke(conversation_summary_input)
+    return rewrite_query
     
 @chatbot_lambda_call_wrapper
 def lambda_handler(state:dict, context=None):

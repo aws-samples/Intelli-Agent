@@ -5,13 +5,18 @@ import pathlib
 
 logger = get_logger("intention")
 
+def get_intention_results(query:str, intention_config:dict):
+    """get intentino few shots results according embedding similarity
 
-@chatbot_lambda_call_wrapper
-def lambda_handler(state:dict, context=None):
-    intention_config = state['chatbot_config'].get("intention_config",{})
-    query_key = intention_config.get("query_key","query")
+    Args:
+        query (str): input query from human
+        intention_config (dict): intentino config information
+
+    Returns:
+        intention_fewshot_examples (dict): retrieved few shot examples
+    """
     event_body = {
-        "query": state[query_key],
+        "query": query,
         **intention_config
     }
     # call retriver
@@ -63,4 +68,14 @@ def lambda_handler(state:dict, context=None):
 
     return intention_fewshot_examples
 
+
+@chatbot_lambda_call_wrapper
+def lambda_handler(state:dict, context=None):
+    intention_config = state['chatbot_config'].get("intention_config",{})
+    query_key = intention_config.get("query_key","query")
+    query = state[query_key]
+
+    output:list = get_intention_results(query, intention_config)
+
+    return output
 

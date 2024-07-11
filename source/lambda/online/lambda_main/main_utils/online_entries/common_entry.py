@@ -83,13 +83,15 @@ class ChatbotState(TypedDict):
 
 
 @node_monitor_wrapper
-def query_preprocess_lambda(state: ChatbotState):
+def query_preprocess(state: ChatbotState):
     output: str = invoke_lambda(
         event_body=state,
         lambda_name="Online_Query_Preprocess",
         lambda_module_path="lambda_query_preprocess.query_preprocess",
         handler_name="lambda_handler",
     )
+
+    # send trace
     send_trace(f"\n\n**query_rewrite:** \n{output}", state["stream"], state["ws_connection_id"], state["enable_trace"])
     return {"query_rewrite": output}
 
@@ -103,37 +105,21 @@ def intention_detection_lambda(state: ChatbotState):
         event_body=state,
     )
 
-    # send trace
-    send_trace(
-        f"**intention retrieved:**\n{json.dumps(intention_fewshot_examples,ensure_ascii=False,indent=2)}", state["stream"], state["ws_connection_id"], state["enable_trace"])
     current_intent_tools: list[str] = list(
         set([e["intent"] for e in intention_fewshot_examples])
     )
+
+    # send trace
+    send_trace(
+        f"**intention retrieved:**\n{json.dumps(intention_fewshot_examples,ensure_ascii=False,indent=2)}", state["stream"], state["ws_connection_id"], state["enable_trace"])
     return {
         "intention_fewshot_examples": intention_fewshot_examples,
         "current_intent_tools": current_intent_tools,
         "intent_type": "intention detected",
     }
 
-
-
-# @node_monitor_wrapper
-# def rag_all_index_lambda(state: ChatbotState):
-#     # call retrivever
-#     retriever_params = state["chatbot_config"]["all_index_retriever_config"]
-#     retriever_params["query"] = state["query"]
-#     output: str = invoke_lambda(
-#         event_body=retriever_params,
-#         lambda_name="Online_Function_Retriever",
-#         lambda_module_path="functions.lambda_retriever.retriever",
-#         handler_name="lambda_handler",
-#     )
-#     contexts = [doc["page_content"] for doc in output["result"]["docs"]]
-#     send_trace("**all index retriever lambda result** \n" + ("\n"+"="*50 + "\n").join(contexts))
-#     return {"all_index_retriever_contexts": contexts}
-
 @node_monitor_wrapper
-def rag_llm_lambda(state: ChatbotState):
+def llm_rag_results_generation(state: ChatbotState):
     group_name = state['chatbot_config']['group_name']
     llm_config = state["chatbot_config"]["rag_config"]["llm_config"]
     task_type = LLMTaskType.RAG
@@ -201,9 +187,9 @@ def agent_lambda(state: ChatbotState):
 def agent(state: ChatbotState):
     if not state['intention_fewshot_examples']:
         send_trace("no clear intention, switch to rag")
-        contexts = rag_mode_knowledge_retrieve(state)['contexts']
+        contexts = knowledge_retrieve(state)['contexts']
         state['contexts'] = contexts
-        answer:str = rag_llm_lambda(state)['answer']
+        answer:str = llm_rag_results_generation(state)['answer']
         return {
             "answer": answer,
             "is_current_tool_calling_once": True
@@ -321,7 +307,7 @@ def rag_all_index_lambda(state: ChatbotState):
     return {"contexts": contexts}
 
 
-rag_mode_knowledge_retrieve = rag_all_index_lambda
+knowledge_retrieve = rag_all_index_lambda
 
 
 # @node_monitor_wrapper
@@ -340,7 +326,7 @@ rag_mode_knowledge_retrieve = rag_all_index_lambda
 
 
 @node_monitor_wrapper
-def chat_llm_generate_lambda(state: ChatbotState):
+def llm_direct_results_generation(state: ChatbotState):
     group_name = state['chatbot_config']['group_name']
     llm_config = state["chatbot_config"]["chat_config"]
     task_type = LLMTaskType.CHAT
@@ -398,7 +384,7 @@ def give_final_response(state: ChatbotState):
     return {"answer": state['answer']}
 
 
-def qq_matched_reply(state: ChatbotState):
+def matched_query_return(state: ChatbotState):
     return {"answer": state["answer"]}
 
 
@@ -521,18 +507,17 @@ app = None
 
 def build_graph():
     workflow = StateGraph(ChatbotState)
-    # add all nodes
-    workflow.add_node("query_preprocess", query_preprocess_lambda)
+    # add node for all chat/rag/agent mode
+    workflow.add_node("query_preprocess", query_preprocess)
     # chat mode
-    workflow.add_node("llm_direct_results_generation", chat_llm_generate_lambda)
+    workflow.add_node("llm_direct_results_generation", llm_direct_results_generation)
     # rag mode
-    workflow.add_node("knowledge_retrieve", rag_mode_knowledge_retrieve)
-    # workflow.add_node("all_knowledge_retrieve", rag_all_index_lambda)
-    workflow.add_node("llm_rag_results_generation", rag_llm_lambda)
+    workflow.add_node("knowledge_retrieve", knowledge_retrieve)
+    workflow.add_node("llm_rag_results_generation", llm_rag_results_generation)
     # agent mode
     workflow.add_node("intention_detection", intention_detection_lambda)
-    workflow.add_node("matched_query_return", qq_matched_reply)
-    # workflow.add_node("tools_choose_and_results_generation", agent_lambda)
+    workflow.add_node("matched_query_return", matched_query_return)
+    # agent sub graph
     workflow.add_node("agent", agent)
     workflow.add_node("tools_execution", tool_execute_lambda)
     # workflow.add_node("results_evaluation", parse_tool_calling)
@@ -544,7 +529,7 @@ def build_graph():
     # workflow.add_node("give_response_wo_tool", give_response_without_any_tool)
     # workflow.add_node("rag_all_index_lambda", rag_all_index_lambda)
     # workflow.add_node("aws_qa_lambda", aws_qa_lambda)
-    # workflow.add_node("rag_generate_output", rag_llm_lambda)
+    # workflow.add_node("rag_generate_output", llm_rag_results_generation)
     # workflow.add_node("agent_evaluation", parse_tool_calling)
 
     # add all edges
@@ -560,17 +545,17 @@ def build_graph():
     workflow.add_edge("tools_execution", "agent")
     workflow.add_edge("matched_query_return", "final_results_preparation")
     workflow.add_edge("final_results_preparation", END)
-    # workflow.add_edge("rag_all_index_lambda", "rag_llm_lambda")
-    # workflow.add_edge("aws_qa_lambda", "rag_llm_lambda")
-    # workflow.add_edge("rag_llm_lambda", END)
+    # workflow.add_edge("rag_all_index_lambda", "llm_rag_results_generation")
+    # workflow.add_edge("aws_qa_lambda", "llm_rag_results_generation")
+    # workflow.add_edge("llm_rag_results_generation", END)
     # workflow.add_edge("format_reply", END)
     # workflow.add_edge("comfort_reply", END)
     # workflow.add_edge("transfer_reply", END)
     # workflow.add_edge("give_rhetorical_question", END)
     # workflow.add_edge("give_final_response", END)
     # workflow.add_edge("give_response_wo_tool", END)
-    # workflow.add_edge("rag_all_index_lambda", "rag_llm_lambda")
-    # workflow.add_edge("rag_llm_lambda", END)
+    # workflow.add_edge("rag_all_index_lambda", "llm_rag_results_generation")
+    # workflow.add_edge("llm_rag_results_generation", END)
 
     # add conditional edges
     # choose running mode based on user selection:
@@ -621,7 +606,7 @@ def build_graph():
             # "format reply": "format_reply",
             # "comfort": "comfort_reply",
             # "transfer": "transfer_reply",
-            # "chat": "chat_llm_generate_lambda",
+            # "chat": "llm_direct_results_generation",
             # "aws qa": "aws_qa_lambda",
             # "continue": "tool_execute_lambda",
             # "first final response/rag intention/recursion limit": "rag_all_index_lambda",
