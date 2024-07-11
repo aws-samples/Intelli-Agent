@@ -176,6 +176,10 @@ class Qwen2Instruct72BFormatToolResult(Qwen2Instruct7BFormatToolResult):
     model_id = LLMModelType.QWEN2INSTRUCT72B
 
 
+class QWEN15INSTRUCT32BFormatToolResult(Qwen2Instruct7BFormatToolResult):
+    model_id = LLMModelType.QWEN15INSTRUCT32B
+
+
 format_tool_call_results = FormatToolResult.format
 
 

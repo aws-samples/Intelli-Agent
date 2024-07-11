@@ -147,6 +147,10 @@ class Qwen2Instruct72BConversationSummaryChain(Claude2ConversationSummaryChain):
     model_id = LLMModelType.QWEN2INSTRUCT72B
 
 
+class Qwen2Instruct72BConversationSummaryChain(Claude2ConversationSummaryChain):
+    model_id = LLMModelType.QWEN15INSTRUCT32B
+
+
 class Qwen2Instruct7BConversationSummaryChain(Claude2ConversationSummaryChain):
     model_id = LLMModelType.QWEN2INSTRUCT7B
 

@@ -17,5 +17,3 @@
 {"question": "中国首都是哪？", "answer": {"intent": "chat", "kwargs": {}}}
 {"question": "今天心情有点糟", "answer": {"intent": "chat", "kwargs": {}}}
 {"question": "上海今天天气怎么样？", "answer": {"intent": "get_weather", "kwargs": {"city_name":"上海"}}}
-{"question": "什么是s3", "answer": {"intent": "knowledge_base_retrieve", "kwargs": {"query":"什么是s3"}}}
-{"question": "什么是SageMaker", "answer": {"intent": "knowledge_base_retrieve", "kwargs": {"query":"什么是SageMaker"}}}

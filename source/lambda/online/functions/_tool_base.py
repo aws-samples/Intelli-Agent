@@ -206,33 +206,33 @@ tool_manager.register_tool({
     "running_mode": "output"
 })
 
-tool_manager.register_tool({
-    "name":"物流信息查询",
-    "lambda_name": "",
-    "lambda_module_path": "",
-    "tool_def": {
-        "name": "物流信息查询",
-        "description": "物流信息查询",
-        # "parameters":{
-        #     "required": ["response"]
-        # },
-    },
-    "running_mode": "output"
-})
+# tool_manager.register_tool({
+#     "name":"物流信息查询",
+#     "lambda_name": "",
+#     "lambda_module_path": "",
+#     "tool_def": {
+#         "name": "物流信息查询",
+#         "description": "物流信息查询",
+#         # "parameters":{
+#         #     "required": ["response"]
+#         # },
+#     },
+#     "running_mode": "output"
+# })
 
-tool_manager.register_tool({
-    "name":"下单流程",
-    "lambda_name": "",
-    "lambda_module_path": "",
-    "tool_def": {
-        "name": "下单流程",
-        "description": "下单流程",
-        # "parameters":{
-        #     "required": ["response"]
-        # },
-    },
-    "running_mode": "output"
-})
+# tool_manager.register_tool({
+#     "name":"下单流程",
+#     "lambda_name": "",
+#     "lambda_module_path": "",
+#     "tool_def": {
+#         "name": "下单流程",
+#         "description": "下单流程",
+#         # "parameters":{
+#         #     "required": ["response"]
+#         # },
+#     },
+#     "running_mode": "output"
+# })
 
 tool_manager.register_tool({
     "name":"size_guide",
@@ -359,60 +359,57 @@ tool_manager.register_tool({
     "running_mode": "output"
 })
 
-tool_manager.register_tool({
-    "name":"下单流程",
-    "lambda_name": "",
-    "lambda_module_path": "",
-    "tool_def": {
-        "name": "下单流程",
-        "description": "下单流程",
-        # "parameters":{
-        #     "required": ["response"]
-        # },
-    },
-    "running_mode": "output"
-})
+# tool_manager.register_tool({
+#     "name":"下单流程",
+#     "lambda_name": "",
+#     "lambda_module_path": "",
+#     "tool_def": {
+#         "name": "下单流程",
+#         "description": "下单流程",
+#         # "parameters":{
+#         #     "required": ["response"]
+#         # },
+#     },
+#     "running_mode": "output"
+# })
+
+# tool_manager.register_tool({
+#     "name":"促销查询",
+#     "lambda_name": "",
+#     "lambda_module_path": "",
+#     "tool_def": {
+#         "name": "促销查询",
+#         "description": "促销查询",
+#         # "parameters":{
+#         #     "required": ["response"]
+#         # },
+#     },
+#     "running_mode": "output"
+# })
 
 tool_manager.register_tool({
-    "name":"促销查询",
+    "name":"transfer",
     "lambda_name": "",
-    "lambda_module_path": "",
-    "tool_def": {
-        "name": "促销查询",
-        "description": "促销查询",
-        # "parameters":{
-        #     "required": ["response"]
-        # },
-    },
-    "running_mode": "output"
-})
-
-tool_manager.register_tool({
-    "name":"转人工",
-    "lambda_name": "",
-    "lambda_module_path": "functions.retail_tools.lambda_human",
+    "lambda_module_path": "functions.lambda_aws_qa_tools.transfer",
     "tool_def": {
         "name": "转人工",
-        "description": "转人工",
-        # "parameters":{
-        #     "required": ["response"]
-        # },
+        "description": "转人工"
     },
-    "running_mode": "output"
+    "running_mode": ToolRuningMode.ONCE
 })
-tool_manager.register_tool({
-    "name":"信息缺失",
-    "lambda_name": "",
-    "lambda_module_path": "",
-    "tool_def": {
-        "name": "信息缺失",
-        "description": "信息缺失",
-        # "parameters":{
-        #     "required": ["response"]
-        # },
-    },
-    "running_mode": "output"
-})
+# tool_manager.register_tool({
+#     "name":"信息缺失",
+#     "lambda_name": "",
+#     "lambda_module_path": "",
+#     "tool_def": {
+#         "name": "信息缺失",
+#         "description": "信息缺失",
+#         # "parameters":{
+#         #     "required": ["response"]
+#         # },
+#     },
+#     "running_mode": "output"
+# })
 
 # 商品质量问题
 tool_manager.register_tool(

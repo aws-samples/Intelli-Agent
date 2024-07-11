@@ -348,6 +348,10 @@ class Qwen2Instruct72B(Qwen2Instruct7B):
     model_id = LLMModelType.QWEN2INSTRUCT72B
 
 
+class Qwen2Instruct72B(Qwen2Instruct7B):
+    model_id = LLMModelType.QWEN15INSTRUCT32B
+
+
 # ChatGPT model type
 class ChatGPT35(Model):
     model_id = "gpt-3.5-turbo-0125"
