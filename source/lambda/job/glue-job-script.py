@@ -630,7 +630,7 @@ def create_processors_and_workers(
     if operation_type in ["create", "extract_only"]:
         s3_files_iterator = file_processor.iterate_s3_files(extract_content=True)
         batch_processor = BatchChunkDocumentProcessor(
-            chunk_size=500, chunk_overlap=30, batch_size=10
+            chunk_size=1024, chunk_overlap=30, batch_size=10
         )
         worker = OpenSearchIngestionWorker(docsearch, embedding_model_endpoint)
     elif operation_type in ["delete", "update"]:

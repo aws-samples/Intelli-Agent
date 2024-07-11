@@ -288,8 +288,6 @@ class MarkdownHeaderTextSplitter:
         chunks = []
         current_chunk_content = []
         same_heading_dict = {}
-        table_content = []
-        inside_table = False
         current_figure = ""
         inside_figure = False
         have_figure = False
@@ -358,7 +356,7 @@ class MarkdownHeaderTextSplitter:
                 figure_type = xml_node.findtext(FigureNode.TYPE.value)
                 figure_description = xml_node.find(FigureNode.DESCRIPTION.value)
                 figure_value = xml_node.find(FigureNode.VALUE.value)
-                figure_s3_link = xml_node.find(FigureNode.LINK.value)
+                figure_s3_link = xml_node.findtext(FigureNode.LINK.value)
                 chunk_figure_content = etree.tostring(figure_description).decode("utf-8")
                 if figure_value is not None:
                     chunk_figure_content += "\n" + etree.tostring(figure_value).decode("utf-8")
@@ -368,45 +366,9 @@ class MarkdownHeaderTextSplitter:
                 current_chunk_content.append(chunk_figure_content)
                 current_figure = ""
             elif inside_figure:
-                current_figure += line
+                current_figure += line + "\n"
 
-            if self._is_markdown_table_row(line) and not inside_figure:
-                inside_table = True
-            elif inside_table:
-                # The first line under a table
-                inside_table = False
-                # Save table content as a separate document
-                if table_content:
-                    metadata = text.metadata.copy()
-                    metadata["content_type"] = "table"
-                    metadata["current_heading"] = current_heading
-                    current_heading_list = self._get_current_heading_list(
-                        current_heading, current_heading_level_map
-                    )
-                    current_heading = current_heading.replace("#", "").strip()
-                    try:
-                        self._set_chunk_id(
-                            id_index_dict, current_heading, metadata, same_heading_dict
-                        )
-                    except KeyError:
-                        logger.info(f"No standard heading found")
-                        id_prefix = str(uuid.uuid4())[:8]
-                        metadata["chunk_id"] = f"$0-{id_prefix}"
-                    if metadata["chunk_id"] in heading_hierarchy:
-                        metadata["heading_hierarchy"] = heading_hierarchy[
-                            metadata["chunk_id"]
-                        ]
-                    metadata["complete_heading"] = current_heading_list
-                    chunks.append(
-                        Document(
-                            page_content="\n".join(table_content), metadata=metadata
-                        )
-                    )
-                    table_content = []  # Reset for the next table
-
-            if inside_table:
-                table_content.append(line)
-            elif not inside_figure and FigureNode.END.value != line:
+            if not inside_figure and FigureNode.END.value != line:
                 current_chunk_content.append(line)
 
         # Save the last chunk if it exists
