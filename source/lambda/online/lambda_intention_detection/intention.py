@@ -53,7 +53,6 @@ def get_intention_results(query:str, intention_config:dict):
                 "intent": answer.get('intent','chat'),
                 "kwargs": answer.get('kwargs', {}),
             })
-
                 
     else:
         
