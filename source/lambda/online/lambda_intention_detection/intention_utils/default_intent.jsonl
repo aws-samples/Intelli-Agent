@@ -1,0 +1,3 @@
+{"question": "早上好，你好吗?", "answer": {"intent": "chat", "kwargs": {"response":""}}}
+{"question": "你最喜欢什么书?", "answer": {"intent": "chat", "kwargs": {"response":""}}}
+{"question": "上海天气是多少？", "answer": {"intent": "get_weather", "kwargs": {"city_name":"上海"}}}

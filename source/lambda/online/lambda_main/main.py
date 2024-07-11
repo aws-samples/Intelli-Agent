@@ -79,7 +79,7 @@ def lambda_handler(event_body:dict, context:dict):
     custom_message_id = event_body.get("custom_message_id", "")
     user_id = event_body.get("user_id", "default_user_id")
     # TODO Need to modify key
-    group_name = event_body.get("chatbot_config").get("default_workspace_config",{"rag_workspace_ids":["Admin"]}).get("rag_workspace_ids")[0]
+    group_name = event_body.get("chatbot_config").get("default_workspace_config",{"rag_workspace_ids":["Admin"]}).get("rag_workspace_ids","Admin")[0]
 
     if not session_id:
         session_id = f"session_{int(request_timestamp)}"

@@ -233,7 +233,7 @@ def get_foot_length_dict(data_file_path):
 
 def patch_good2type_dict(good2type_dict):
     good2type_dict["748090908717"] = ("apparel", "标准男装")
-    good2type_dict["766158164989"] = ("apparel", "标准男装")
+    good2type_dict["766158164989"] = ("apparel", "标准女装")
     good2type_dict["751465119152"] = ("apparel", "标准男装")
     return good2type_dict
 
