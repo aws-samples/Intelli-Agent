@@ -6,14 +6,11 @@ class ConstantBase:
 class EntryType(ConstantBase):
     COMMON = "common"
     RETAIL = "retail"
-    DGR = "aws-knowledge"
 
 class SceneType(ConstantBase):
     COMMON = "common"
     RETAIL = "retail"
     AWS_QA = "aws-qa"
-
-
     
 Type = EntryType
 class IntentType(ConstantBase):

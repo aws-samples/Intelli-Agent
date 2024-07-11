@@ -1,17 +1,22 @@
-
-
 from common_logic.common_utils.logger_utils  import get_logger
 from common_logic.common_utils.lambda_invoke_utils import chatbot_lambda_call_wrapper,invoke_lambda
+import json
+import pathlib
 
 logger = get_logger("intention")
 
+def get_intention_results(query:str, intention_config:dict):
+    """get intentino few shots results according embedding similarity
 
-@chatbot_lambda_call_wrapper
-def lambda_handler(state:dict, context=None):
-    intention_config = state['chatbot_config'].get("intention_config",{})
-    query_key = intention_config.get("query_key","query")
+    Args:
+        query (str): input query from human
+        intention_config (dict): intentino config information
+
+    Returns:
+        intention_fewshot_examples (dict): retrieved few shot examples
+    """
     event_body = {
-        "query": state[query_key],
+        "query": query,
         **intention_config
     }
     # call retriver
@@ -24,21 +29,31 @@ def lambda_handler(state:dict, context=None):
 
     if not res['result']['docs']:
         # add default intention
-        import json
-        import pathlib
         current_path = pathlib.Path(__file__).parent.resolve()
-        with open(f'{current_path}/intention_utils/default_intent.jsonl', 'r') as json_file:
-            json_list = list(json_file)
+        try:
+            with open(f'{current_path}/intention_utils/default_intent.jsonl', 'r') as json_file:
+                json_list = list(json_file)
+        except FileNotFoundError:
+            logger.error(f"File note found: {current_path}/intention_utils/default_intent.jsonl")
+            json_list = []
 
+        intention_fewshot_examples = []
         for json_str in json_list:
-            intent_result = json.loads(json_str)
-            intention_fewshot_examples = [{
-                "query": intent_result["question"],
+            try:
+                intent_result = json.loads(json_str)
+            except json.JSONDecodeError as e:
+                logger.error(f"Error decoding JSON: {e}")
+                intent_result = {}
+            question = intent_result.get("question","你好")
+            answer = intent_result.get("answer",{})
+            intention_fewshot_examples.append({
+                "query": question,
                 "score": 'n/a',
-                "name": intent_result['answer']['intent'],
-                "intent": intent_result['answer']['intent'],
-                "kwargs": intent_result['answer'].get('kwargs', {}),
-            }]
+                "name": answer.get('intent','chat'),
+                "intent": answer.get('intent','chat'),
+                "kwargs": answer.get('kwargs', {}),
+            })
+                
     else:
         
         intention_fewshot_examples = [{
@@ -52,4 +67,14 @@ def lambda_handler(state:dict, context=None):
 
     return intention_fewshot_examples
 
+
+@chatbot_lambda_call_wrapper
+def lambda_handler(state:dict, context=None):
+    intention_config = state['chatbot_config'].get("intention_config",{})
+    query_key = intention_config.get("query_key","query")
+    query = state[query_key]
+
+    output:list = get_intention_results(query, intention_config)
+
+    return output
 
