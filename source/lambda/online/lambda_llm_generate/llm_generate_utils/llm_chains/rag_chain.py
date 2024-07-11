@@ -132,6 +132,11 @@ class Qwen2Instruct7BRagChain(Qwen2Instruct7BChatChain):
 class Qwen2Instruct72BRagChain(Qwen2Instruct7BRagChain):
     model_id = LLMModelType.QWEN2INSTRUCT72B
 
+
+class Qwen2Instruct72BRagChain(Qwen2Instruct7BRagChain):
+    model_id = LLMModelType.QWEN15INSTRUCT32B
+
+
 from .chat_chain import Baichuan2Chat13B4BitsChatChain
 
 class Baichuan2Chat13B4BitsKnowledgeQaChain(Baichuan2Chat13B4BitsChatChain):

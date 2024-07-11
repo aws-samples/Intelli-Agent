@@ -114,6 +114,7 @@ class LLMModelType(ConstantBase):
     CHATGPT_4O = "gpt-4o"
     QWEN2INSTRUCT7B = "qwen2-7B-instruct"
     QWEN2INSTRUCT72B = "qwen2-72B-instruct"
+    QWEN15INSTRUCT32B = "qwen1_5-32B-instruct"
     
     
 

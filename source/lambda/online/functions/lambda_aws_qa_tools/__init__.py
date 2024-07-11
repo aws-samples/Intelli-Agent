@@ -4,8 +4,8 @@ from . import (
     check_service_availability,
     explain_abbr,
     service_org,
-    aws_ec2_price
-
+    aws_ec2_price,
+    transfer
 )
 
 SCENE = SceneType.AWS_QA
@@ -135,6 +135,19 @@ tool_manager.register_tool({
         },
         "running_mode": ToolRuningMode.LOOP
     }
+})
+
+
+tool_manager.register_tool({
+    "name":"transfer",
+    "scene": SCENE,
+    "lambda_name": LAMBDA_NAME,
+    "lambda_module_path": transfer.lambda_handler,
+    "tool_def": {
+        "name": "转人工",
+        "description": "转人工"
+    },
+    "running_mode": ToolRuningMode.ONCE
 })
 
 # tool_manager.register_tool({

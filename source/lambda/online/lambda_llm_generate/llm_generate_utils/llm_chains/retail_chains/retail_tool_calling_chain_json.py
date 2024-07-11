@@ -151,8 +151,8 @@ from ..chat_chain import Qwen2Instruct7BChatChain
 
 
 
-class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
-    model_id = LLMModelType.QWEN2INSTRUCT7B
+class Qwen2Instruct72BRetailToolCallingChain(Qwen2Instruct7BChatChain):
+    model_id = LLMModelType.QWEN2INSTRUCT72B
     intent_type = LLMTaskType.RETAIL_TOOL_CALLING 
     default_model_kwargs = {
         "max_tokens": 1024,
@@ -313,7 +313,6 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
         else:
             datetime_object = datetime.now()
             logger.info(f"create_time: {create_time} is not valid, use current time instead.")
-        
         return cls.SYSTEM_PROMPT.format(
                 goods_info=goods_info,
                 tools=tool_system,
@@ -402,6 +401,7 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
             cls.prefill = cls.prefill_after_thinking
         else:
             cls.prefill = cls.prefill_after_second_thinking
+        
         # cls.prefill = ''
 
         model_kwargs = model_kwargs or {}
@@ -410,10 +410,73 @@ class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct7BChatChain):
         # model_kwargs["stop"] = model_kwargs.get("stop",[]) + ['✿RESULT✿', '✿RESULT✿:', '✿RESULT✿:\n','✿RETURN✿',f'<{cls.thinking_tag}>',f'<{cls.thinking_tag}/>']
         model_kwargs["stop"] = model_kwargs.get("stop",[]) + ['✿RESULT✿', '✿RESULT✿:', '✿RESULT✿:\n','✿RETURN✿',f'<{cls.thinking_tag}/>']
         # model_kwargs["prefill"] = "我先看看调用哪个工具，下面是我的思考过程:\n<thinking>\nstep 1."
-        model_kwargs["prefill"] = f'{cls.prefill}'
+        if "prefill" not in model_kwargs:
+             model_kwargs["prefill"] = f'{cls.prefill}'
         return super().create_chain(model_kwargs=model_kwargs,**kwargs)
         
 
-class Qwen2Instruct72BRetailToolCallingChain(Qwen2Instruct7BRetailToolCallingChain):
-    model_id = LLMModelType.QWEN2INSTRUCT72B
+class Qwen15Instruct32BRetailToolCallingChain(Qwen2Instruct72BRetailToolCallingChain):
+    model_id = LLMModelType.QWEN15INSTRUCT32B
+
+class Qwen2Instruct7BRetailToolCallingChain(Qwen2Instruct72BRetailToolCallingChain):
+    model_id = LLMModelType.QWEN2INSTRUCT7B
+    goods_info_tag = "商品信息"
+    SYSTEM_PROMPT=f"""你是安踏天猫的客服助理小安, 主要职责是处理用户售前和售后的问题。{{date_prompt}}
+
+{{tools}}
+{{fewshot_examples}}
+
+## 当前用户正在浏览的商品信息
+{{goods_info}}
+
+# 回复策略
+下面是一些常见的回复策略:
+    - 如果根据各个工具的描述，当前用户的回复跟某个示例对应的Input相关性强，直接按照示例中Output的工具名称进行调用。
+    - 考虑使用商品信息 <{goods_info_tag}> 里面的内容回答用户的问题。
+    - 如果你觉得当前用户的回复意图不清晰，或者仅仅是表达一些肯定的内容，或者和历史消息没有很强的相关性，同时当前不是第一轮对话，直接回复用户: “ 亲亲，请问还有什么问题吗？“
+    - 如果需要调用某个工具，检查该工具的必选参数是否可以在上下文中找到。
+    - 如果客户的回复里面包含订单号，则直接回复 “您好，亲亲，这就帮您去查相关订单信息。请问还有什么问题吗？“
+    - 当前主要服务天猫平台的客户，如果客户询问其他平台的问题，直接回复 “不好意思，亲亲，这里是天猫店铺，只能为您解答天猫的问题。建议您联系其他平台的客服或售后人员给您提供相关的帮助和支持。谢谢！“
+
+## Tips
+   - 如果客户没有明确指出在哪里购买的商品，则默认都是在天猫平台购买的。
+   - 回答必须简洁，不允许出现超过2句话的回复。{{non_ask_rules}}"""
+
+    @classmethod
+    def create_chain(cls, model_kwargs=None, **kwargs):
+        # tools:list = kwargs.get('tools',[])
+        # # add  extral tools
+        # if "give_rhetorical_question" not in tools:
+        #     tools.append(get_tool_by_name("give_rhetorical_question").tool_def)
+        # fewshot_examples = kwargs.get('fewshot_examples',[])
+        # system_prompt = cls.create_system_prompt(
+        #     goods_info=kwargs['goods_info'], 
+        #     create_time=kwargs.get('create_time',None),
+        #     tools=tools,
+        #     fewshot_examples=fewshot_examples
+        #     )
+
+        # current_agent_recursion_num = kwargs['current_agent_recursion_num']
+        
+        # # give different prefill
+        # if current_agent_recursion_num == 0:
+        #     cls.prefill = cls.prefill_after_thinking
+        # else:
+        #     cls.prefill = cls.prefill_after_second_thinking
+        # cls.prefill = ''
+        
+        # model_kwargs = model_kwargs or {}
+        # kwargs['system_prompt'] = system_prompt
+        # model_kwargs = {**model_kwargs}
+        # # model_kwargs["stop"] = model_kwargs.get("stop",[]) + ['✿RESULT✿', '✿RESULT✿:', '✿RESULT✿:\n','✿RETURN✿',f'<{cls.thinking_tag}>',f'<{cls.thinking_tag}/>']
+        # model_kwargs["stop"] = model_kwargs.get("stop",[]) + ['✿RESULT✿', '✿RESULT✿:', '✿RESULT✿:\n','✿RETURN✿',f'<{cls.thinking_tag}/>']
+        # model_kwargs["prefill"] = "我先看看调用哪个工具，下面是我的思考过程:\n<thinking>\nstep 1."
+        
+        model_kwargs["prefill"] = ""
+        res = super().create_chain(model_kwargs=model_kwargs,**kwargs)
+        cls.prefill = ""
+        return res
+
+        
+        
 
