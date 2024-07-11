@@ -26,11 +26,11 @@ def parse_common_entry_config(chatbot_config):
         **chatbot_config.get("default_llm_config", {}),
     }
 
-    default_workspace_config = {"intent_workspace_ids": ["default-intent"], "rag_workspace_ids": ["test-pdf"]}
+    default_index_config = {"intent_index_ids": ["default-intent"], "rag_index_ids": ["test-pdf"]}
 
-    default_workspace_config = {
-        **default_workspace_config,
-        **chatbot_config.get("default_workspace_config", {}),
+    default_index_config = {
+        **default_index_config,
+        **chatbot_config.get("default_index_config", {}),
     }
 
     # default_tool_config = {
@@ -55,7 +55,7 @@ def parse_common_entry_config(chatbot_config):
             "retrievers": [
                 {
                     "type": "qq",
-                    "workspace_ids": default_workspace_config["intent_workspace_ids"],
+                    "index_ids": default_index_config["intent_index_ids"],
                     "config": {
                         "top_k": 10,
                     },
@@ -94,7 +94,7 @@ def parse_common_entry_config(chatbot_config):
                 "retrievers": [
                     {
                         "type": "qd",
-                        "workspace_ids": default_workspace_config["rag_workspace_ids"],
+                        "index_ids": default_index_config["rag_index_ids"],
                         "config": {
                             "top_k": 5,
                             "using_whole_doc": False,
@@ -115,6 +115,7 @@ def parse_common_entry_config(chatbot_config):
                 **copy.deepcopy(default_llm_config),
             },
         },
+<<<<<<< HEAD
         # "aws_qa_config": {
         #     "retriever_config":{
         #         "retrievers": [
@@ -140,6 +141,33 @@ def parse_common_entry_config(chatbot_config):
         #         **copy.deepcopy(default_llm_config),
         #     }
         # },
+=======
+        "aws_qa_config": {
+            "retriever_config":{
+                "retrievers": [
+                    {
+                        "type": "qd",
+                        "index_ids": ['aws-ug-qd', 'aws-acts-qd'],
+                        "config": {
+                            "top_k": 10,
+                        }
+                    },
+                ],
+                "rerankers": [
+                    {
+                        "type": "reranker",
+                        "config": {
+                            "enable_debug": False,
+                            "target_model": "bge_reranker_model.tar.gz"
+                        }
+                    }
+                ],
+            },
+            "llm_config":{
+                **copy.deepcopy(default_llm_config),
+            }
+        },
+>>>>>>> workspace-refactor
     }
     chatbot_config = update_nest_dict(
         copy.deepcopy(default_chatbot_config), chatbot_config
@@ -188,7 +216,7 @@ def parse_retail_entry_config(chatbot_config):
             "retrievers": [
                 {
                     "type": "qq",
-                    "workspace_ids": ["retail-intent"],
+                    "index_ids": ["retail-intent"],
                     "config": {
                         "top_k": 5,
                     }
@@ -201,7 +229,7 @@ def parse_retail_entry_config(chatbot_config):
                 "retrievers": [
                     {
                         "type": "qd",
-                        "workspace_ids": [1],
+                        "index_ids": [1],
                         "top_k": 10,
                     }
                 ]
@@ -215,7 +243,7 @@ def parse_retail_entry_config(chatbot_config):
                 "retrievers": [
                     {
                         "type": "qq",
-                        "workspace_ids": ["retail-quick-reply"],
+                        "index_ids": ["retail-quick-reply"],
                         "config": {
                             "top_k": 5
                         },
@@ -231,7 +259,7 @@ def parse_retail_entry_config(chatbot_config):
                 "retrievers": [
                     {
                         "type": "qq",
-                        "workspace_ids": ["retail-quick-reply"],
+                        "index_ids": ["retail-quick-reply"],
                         "config": {
                             "top_k": 5
                         },
@@ -247,7 +275,7 @@ def parse_retail_entry_config(chatbot_config):
                 "retrievers": [
                     {
                         "type": "qq",
-                        "workspace_ids": ["retail-quick-reply"],
+                        "index_ids": ["retail-quick-reply"],
                         "config": {
                             "top_k": 5
                         },
@@ -263,7 +291,7 @@ def parse_retail_entry_config(chatbot_config):
                 "retrievers": [
                     {
                         "type": "qq",
-                        "workspace_ids": ['retail-shouhou-wuliu', 'retail-quick-reply'],
+                        "index_ids": ['retail-shouhou-wuliu', 'retail-quick-reply'],
                         "config": {
                             "top_k": 5,
                         }
@@ -288,7 +316,7 @@ def parse_retail_entry_config(chatbot_config):
                 "retrievers": [
                     {
                         "type": "qq",
-                        "workspace_ids": ['retail-shouhou-wuliu','retail-quick-reply'],
+                        "index_ids": ['retail-shouhou-wuliu','retail-quick-reply'],
                         "config": {
                             "top_k": 2,
                         }
@@ -313,7 +341,7 @@ def parse_retail_entry_config(chatbot_config):
                 "retrievers": [
                     {
                         "type": "qq",
-                        "workspace_ids": ['retail-shouhou-wuliu','retail-quick-reply'],
+                        "index_ids": ['retail-shouhou-wuliu','retail-quick-reply'],
                         "config": {
                             "top_k": 2,
                         }
@@ -338,7 +366,7 @@ def parse_retail_entry_config(chatbot_config):
                 "retrievers": [
                     {
                         "type": "qq",
-                        "workspace_ids": ["goods-info"],
+                        "index_ids": ["goods-info"],
                         "config": {
                             "top_k": 5
                         },
@@ -354,7 +382,7 @@ def parse_retail_entry_config(chatbot_config):
                 "retrievers": [
                     {
                         "type": "qq",
-                        "workspace_ids": ['retail-shouhou-wuliu','retail-quick-reply'],
+                        "index_ids": ['retail-shouhou-wuliu','retail-quick-reply'],
                         "config": {
                             "top_k": 2,
                         }
