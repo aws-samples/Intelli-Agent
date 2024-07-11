@@ -184,15 +184,7 @@ def lambda_handler(event_body:dict, context:dict):
     custom_message_id = event_body.get("custom_message_id", "")
     user_id = event_body.get("user_id", "default_user_id")
     # TODO Need to modify key
-    group_name = event_body.get("chatbot_config").get("default_index_config",{"rag_index_ids":["Admin"]}).get("rag_index_ids")[0]
-    chatbot_id = event_body.get("chatbot_id", group_name.lower())
-    model_id = f"{chatbot_id}-embedding"
-    initiate_model(model_table, group_name, model_id)
-    index_type_list = ["qd", "qq", "intention"]
-    for index_type in index_type_list:
-        index_id = f"{chatbot_id}-{index_type}-offline"
-        initiate_index(index_table, group_name, index_id, model_id, index_type, index_tag)
-        initiate_chatbot(chatbot_table, group_name, chatbot_id, index_id, index_type, index_tag)
+    group_name = event_body.get("chatbot_config").get("default_workspace_config",{"rag_workspace_ids":["Admin"]}).get("rag_workspace_ids","Admin")[0]
 
     if not session_id:
         session_id = f"session_{int(request_timestamp)}"

@@ -12,7 +12,7 @@
  *********************************************************************************************************************/
 
 export class BuildConfig {
-  // There are three mode for deployment: OFFLINE_EXTRACT, OFFLINE_OPENSEARCH, ALL
+  // There are three mode for deployment: OFFLINE_EXTRACT, ALL
   static DEPLOYMENT_MODE = "ALL";
   static LAYER_PIP_OPTION = "";
   static JOB_PIP_OPTION = "";

@@ -32,9 +32,8 @@ export class AOSConstruct extends Construct {
     super(scope, id);
     console.log("BuildConfig.DEPLOYMENT_MODE: ", BuildConfig.DEPLOYMENT_MODE);
 
-    // If deployment mode is OFFLINE_OPENSEARCH or ALL, then create the following resources
+    // If deployment mode is ALL, then create the following resources
     if (
-      BuildConfig.DEPLOYMENT_MODE === "OFFLINE_OPENSEARCH" ||
       BuildConfig.DEPLOYMENT_MODE === "ALL"
     ) {
       const devDomain = new Domain(this, "Domain", {

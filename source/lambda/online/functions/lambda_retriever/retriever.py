@@ -58,7 +58,7 @@ def get_websearch_retrievers(top_k:int):
     ]
     return retriever_list
 
-def get_custom_qd_retrievers(chatbot, index_tag, qd_config):
+def get_custom_qd_retrievers(workspace_ids, qd_config, using_bm25=False):
     default_qd_config = {
         "using_whole_doc": False,
         "context_num": 1,
@@ -75,16 +75,13 @@ def get_custom_qd_retrievers(chatbot, index_tag, qd_config):
             chatbot,
             **qd_config
         )
-        for index_id, index_type in index_dict.items()
+        for workspace in workspace_list
     ] + [
         QueryDocumentBM25Retriever(
-            index_id,
-            index_type,
-            index_tag,
-            chatbot,
+            workspace=workspace,
             **qd_config
         )
-        for index_id, index_type in index_dict.items()
+        for workspace in workspace_list
     ]
     return retriever_list
 

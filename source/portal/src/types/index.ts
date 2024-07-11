@@ -109,7 +109,7 @@ export type PromptResponse = {
 
 export interface Prompt {
   [key: string]: {
-    system_prompt: string;
+    [subKey: string]: string;
   };
 }
 
