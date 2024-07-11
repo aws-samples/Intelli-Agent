@@ -14,7 +14,7 @@ export type LibraryListItem = {
   operationType: string;
   sfnExecutionId: string;
   indexType: string;
-  workspaceId: string;
+  chatbotId: string;
   createTime: string;
 };
 
@@ -109,7 +109,7 @@ export type PromptResponse = {
 
 export interface Prompt {
   [key: string]: {
-    system_prompt: string;
+    [subKey: string]: string;
   };
 }
 

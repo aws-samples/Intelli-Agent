@@ -32,7 +32,7 @@ Here is an example of the request body:
     "s3Prefix": "<Your S3 prefix>", // e.g., "input_samples/"
     "offline": "true",
     "qaEnhance": "false",
-    "workspaceId": "<Your Workspace index>" // You can name the workspace index as you like
+    "chatbotId": "<Your chatbot ID>" // Chatbot id is the Cognito group name in lower case
     "operationType": "create" // You can choose create/update/delete/extract_only
     "indexType": "qq" // You can choose qq/qd
 }

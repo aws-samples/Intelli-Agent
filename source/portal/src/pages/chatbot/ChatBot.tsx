@@ -289,8 +289,8 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
         enable_trace: enableTrace,
         use_websearch: true,
         google_api_key: '',
-        default_workspace_config: {
-          rag_workspace_ids: workspaceIds,
+        default_index_config: {
+          rag_index_ids: workspaceIds,
         },
         default_llm_config: {
           model_id: modelOption,

@@ -384,19 +384,21 @@ class QueryQuestionRetriever(BaseRetriever):
     query_key: str= "query"
     enable_debug: Any
 
-    def __init__(self, workspace:Dict, top_k: int, query_key="query", enable_debug=False):
+    def __init__(self, index_id: str, index_type: str, index_tag: str, chatbot, top_k: int, query_key="query", enable_debug=False):
         super().__init__()
-        self.index = workspace["open_search_index_name"]
+        self.index = index_id
+        self.index_tag = index_tag
         self.vector_field = "vector_field"
         self.source_field = "source"
         self.top_k = top_k
-        self.lang = workspace["languages"][0]
-        self.embedding_model_endpoint = workspace["embeddings_model_endpoint"]
-        if workspace["embeddings_model_name"].endswith("tar.gz"):
-            self.target_model = workspace["embeddings_model_name"]
+        self.lang = chatbot.languages[0]
+        model_parameter = chatbot.index_ids[index_type]["value"][index_tag]["modelIds"]["embedding"]["parameter"]
+        self.embedding_model_endpoint = model_parameter.get("ModelEndpoint")
+        if model_parameter["ModelName"].endswith("tar.gz"):
+            self.target_model = model_parameter["ModelName"]
         else:
             self.target_model = None
-        self.model_type = workspace["model_type"]
+        self.model_type = model_parameter["ModelType"]
         self.query_key = query_key
         self.enable_debug = enable_debug
 
@@ -439,21 +441,23 @@ class QueryDocumentKNNRetriever(BaseRetriever):
     embedding_model_endpoint: Any
     target_model: Any
     query_key: str="query"
-    enable_debug: Any
+    enable_debug: Any        
 
-    def __init__(self, workspace, using_whole_doc, context_num, top_k,query_key='query', enable_debug=False):
+    def __init__(self, index_id: str, index_type: str, index_tag: str, chatbot, using_whole_doc, context_num, top_k,query_key='query', enable_debug=False):
         super().__init__()
-        self.index = workspace["open_search_index_name"]
+        self.index = index_id
+        self.index_tag = index_tag
         self.vector_field = "vector_field"
         self.source_field = "file_path"
         self.text_field = "text"
-        self.lang = workspace["languages"][0]
-        self.embedding_model_endpoint = workspace["embeddings_model_endpoint"]
-        if workspace["embeddings_model_name"].endswith("tar.gz"):
-            self.target_model = workspace["embeddings_model_name"]
+        self.lang = chatbot.languages[0]
+        model_parameter = chatbot.index_ids[index_type]["value"][index_tag]["modelIds"]["embedding"]["parameter"]
+        self.embedding_model_endpoint = model_parameter.get("ModelEndpoint")
+        if model_parameter["ModelName"].endswith("tar.gz"):
+            self.target_model = model_parameter["ModelName"]
         else:
             self.target_model = None
-        self.model_type = workspace["model_type"]
+        self.model_type = model_parameter["ModelType"]
         self.using_whole_doc = using_whole_doc
         self.context_num = context_num
         self.top_k = top_k
@@ -584,14 +588,16 @@ class QueryDocumentBM25Retriever(BaseRetriever):
     enable_debug: Any
     config: Dict={"run_name": "BM25"}
 
-    def __init__(self, workspace, using_whole_doc, context_num, top_k,query_key='query', enable_debug=False):
+    def __init__(self, index_id: str, index_type: str, index_tag: str, chatbot, using_whole_doc, context_num, top_k,query_key='query', enable_debug=False):
         super().__init__()
-        self.index = workspace["open_search_index_name"]
+        self.index = index_id
+        self.index_tag = index_tag
         self.vector_field = "vector_field"
         self.source_field = "file_path"
         self.text_field = "text"
-        self.lang = workspace["languages"][0]
-        self.model_type = workspace["model_type"]
+        self.lang = chatbot.languages[0]
+        model_parameter = chatbot.index_ids[index_type]["value"][index_tag]["modelIds"]["embedding"]["parameter"]
+        self.model_type = model_parameter["ModelType"]
         self.using_whole_doc = using_whole_doc
         self.context_num = context_num
         self.top_k = top_k

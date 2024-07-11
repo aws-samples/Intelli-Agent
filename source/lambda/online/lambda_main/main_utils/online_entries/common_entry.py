@@ -83,7 +83,6 @@ def query_preprocess(state: ChatbotState):
         handler_name="lambda_handler",
     )
 
-    # send trace
     send_trace(f"\n\n**query_rewrite:** \n{output}", state["stream"], state["ws_connection_id"], state["enable_trace"])
     return {"query_rewrite": output}
 
@@ -100,7 +99,6 @@ def intention_detection(state: ChatbotState):
         set([e["intent"] for e in intention_fewshot_examples])
     )
 
-    # send trace
     send_trace(
         f"**intention retrieved:**\n{json.dumps(intention_fewshot_examples,ensure_ascii=False,indent=2)}", state["stream"], state["ws_connection_id"], state["enable_trace"])
     return {
@@ -141,9 +139,8 @@ def llm_rag_results_generation(state: ChatbotState):
 
 
 @node_monitor_wrapper
-def agent_lambda(state: ChatbotState):
+def tools_choose_and_results_generation(state: ChatbotState):
     # check once tool calling
-
     current_agent_output:dict = invoke_lambda(
         event_body={
             **state,
@@ -155,16 +152,30 @@ def agent_lambda(state: ChatbotState):
    
     )
     current_agent_recursion_num = state['current_agent_recursion_num'] + 1
+    agent_recursion_validation = state['current_agent_recursion_num'] < state['agent_recursion_limit']
+
     send_trace(f"\n\n**current_agent_output:** \n{json.dumps(current_agent_output['agent_output'],ensure_ascii=False,indent=2)}\n\n **current_agent_recursion_num:** {current_agent_recursion_num}", state["stream"], state["ws_connection_id"])
     return {
         "current_agent_output": current_agent_output,
-        "current_agent_recursion_num": current_agent_recursion_num
+        "current_agent_recursion_num": current_agent_recursion_num,
+        "agent_recursion_validation": agent_recursion_validation
     }
 
 
 @node_monitor_wrapper
 def agent(state: ChatbotState):
-    if not state['intention_fewshot_examples']:
+    # two cases to invoke rag function
+    # 1. when valid intention fewshot found
+    # 2. for the first time, agent decides to give final results
+    no_intention_condition = not state['intention_fewshot_examples']
+    first_tool_final_response = False
+    if (state['current_agent_recursion_num'] == 1) and state['parse_tool_calling_ok'] and state['agent_chat_history']:
+        tool_execute_res = state['agent_chat_history'][-1]['additional_kwargs']['raw_tool_call_results'][0]
+        tool_name = tool_execute_res['name']
+        if tool_name == "give_final_response":
+            first_tool_final_response = True
+
+    if no_intention_condition or first_tool_final_response:
         send_trace("no clear intention, switch to rag")
         contexts = knowledge_retrieve(state)['contexts']
         state['contexts'] = contexts
@@ -174,9 +185,8 @@ def agent(state: ChatbotState):
             "is_current_tool_calling_once": True
         }
 
-    agent_recursion_validation = state['current_agent_recursion_num'] < state['agent_recursion_limit']
     # deal with once tool calling
-    if agent_recursion_validation and state['parse_tool_calling_ok'] and state['agent_chat_history']:
+    if state['agent_recursion_validation'] and state['parse_tool_calling_ok'] and state['agent_chat_history']:
         tool_execute_res = state['agent_chat_history'][-1]['additional_kwargs']['raw_tool_call_results'][0]
         tool_name = tool_execute_res['name']
         output = tool_execute_res['output']
@@ -186,7 +196,7 @@ def agent(state: ChatbotState):
             return {
                 "answer": str(output['result']),
                 "is_current_tool_calling_once": True
-                }
+            }
 
     response = app_agent.invoke(state)
 
@@ -194,14 +204,7 @@ def agent(state: ChatbotState):
 
 
 @node_monitor_wrapper
-def parse_tool_calling(state: ChatbotState):
-    """executor lambda
-    Args:
-        state (NestUpdateState): _description_
-
-    Returns:
-        _type_: _description_
-    """
+def results_evaluation(state: ChatbotState):
     # parse tool_calls:
     try:
         output = _parse_tool_calling(
@@ -235,13 +238,6 @@ def parse_tool_calling(state: ChatbotState):
 
 @node_monitor_wrapper
 def tool_execution(state: ChatbotState):
-    """executor lambda
-    Args:
-        state (NestUpdateState): _description_
-
-    Returns:
-        _type_: _description_
-    """
     tool_calls = state['current_tool_calls']
     assert len(tool_calls) == 1, tool_calls
     tool_call_results = []
@@ -288,22 +284,6 @@ def rag_all_index_lambda(state: ChatbotState):
 
 knowledge_retrieve = rag_all_index_lambda
 
-
-# @node_monitor_wrapper
-# def aws_qa_lambda(state: ChatbotState):
-#     # call retrivever
-#     retriever_params = state["chatbot_config"]["aws_qa_config"]["retriever_config"]
-#     retriever_params["query"] = state["query"]
-#     output: str = invoke_lambda(
-#         event_body=retriever_params,
-#         lambda_name="Online_Function_Retriever",
-#         lambda_module_path="functions.lambda_retriever.retriever",
-#         handler_name="lambda_handler",
-#     )
-#     contexts = [doc["page_content"] for doc in output["result"]["docs"]]
-#     return {"contexts": contexts}
-
-
 @node_monitor_wrapper
 def llm_direct_results_generation(state: ChatbotState):
     group_name = state['chatbot_config']['group_name']
@@ -336,36 +316,12 @@ def llm_direct_results_generation(state: ChatbotState):
     )
     return {"answer": answer}
 
-
-# def format_reply(state: ChatbotState):
-#     recent_tool_name = state["current_tool_calls"][0]['name']
-#     if recent_tool_name == 'comfort':
-#         return {"answer": "不好意思没能帮到您，是否帮你转人工客服？"}
-#     if recent_tool_name == 'transfer':
-#         return {"answer": "立即为您转人工客服，请稍后"}
-
-# def give_rhetorical_question(state: ChatbotState):
-#     recent_tool_calling: list[dict] = state["current_tool_calls"][0]
-#     return {"answer": recent_tool_calling["kwargs"]["question"]}
-
-
 def final_results_preparation(state: ChatbotState):
-    # recent_tool_calling: list[dict] = state["current_tool_calls"][0]
-    # # give_rhetorical_question
-    # if "question" in recent_tool_calling["kwargs"].keys():
-    #     answer = recent_tool_calling["kwargs"]["question"]
-    # elif "response" in recent_tool_calling["kwargs"].keys():
-    #     answer = recent_tool_calling["kwargs"]["response"]
-    # elif "abbr" in recent_tool_calling["kwargs"].keys():
-    #     answer = recent_tool_calling["kwargs"]["abbr"]
-    # else:
-    #     answer = format_reply(state)["answer"]
     return {"answer": state['answer']}
 
 
 def matched_query_return(state: ChatbotState):
     return {"answer": state["answer"]}
-
 
 ################
 # define edges #
@@ -469,7 +425,7 @@ def build_graph():
 
     # the results of agent planning will be evaluated and decide next step:
     # 1. valid tool calling: the agent chooses the valid tools, and the tools will be executed
-    # 2. no need tool calling: the agent thinks or format, it will be forced to pla
+    # 2. no need tool calling: the agent thinks no tool needs to be called, the final results can be generated
     workflow.add_conditional_edges(
         "agent",
         agent_route,
@@ -479,21 +435,6 @@ def build_graph():
         },
     )
 
-    # when all knowledge retrieved, there are two possible next steps:
-    # 1. no clear intention: this happens when no clear intention (no few shots) is detected, we give agent enough context to think and plan.
-    # 2. generate results in rag mode: let llm generate results based on retrieved knowledge, this happens in the following scenarios:
-    # 2.1 in rag mode based on user selection at beginning
-    # 2.2 agent thinks it needs to retrieve all the knowledge to generate the results
-    # 2.3 the agent believes that it can produce results without executing tools
-    # 2.4 the tools_choose_and_results_generation node reaches its maximum recusion limit
-    # workflow.add_conditional_edges(
-    #     "all_knowledge_retrieve",
-    #     rag_all_index_lambda_route,
-    #     {
-    #         "no clear intention": "agent",
-    #         # "generate results in rag mode": "llm_rag_results_generation",
-    #     },
-    # )
     app = workflow.compile()
     return app
 
@@ -505,32 +446,28 @@ app_agent = None
 def build_agent_graph():
     def _results_evaluation_route(state: dict):
         #TODO: pass no need tool calling or valid tool calling?
-        state["agent_recursion_validation"] = state['current_agent_recursion_num'] < state['agent_recursion_limit']
         if state["agent_recursion_validation"] and not state["parse_tool_calling_ok"]:
             return "invalid tool calling"
         return "continue"
 
     workflow = StateGraph(ChatbotState)
-    workflow.add_node("tools_choose_and_results_generation", agent_lambda)
-    workflow.add_node("results_evaluation", parse_tool_calling)
+    workflow.add_node("tools_choose_and_results_generation", tools_choose_and_results_generation)
+    workflow.add_node("results_evaluation", results_evaluation)
 
-    # edge
+    # add all edges
+    workflow.set_entry_point("tools_choose_and_results_generation")
+    workflow.add_edge("tools_choose_and_results_generation","results_evaluation")
+
+    # add conditional edges
     # the results of agent planning will be evaluated and decide next step:
     # 1. invalid tool calling: if agent makes clear mistakes, like wrong tool names or format, it will be forced to plan again
     # 2. valid tool calling: the agent chooses the valid tools
-    # 3. generate results: based on running of tools, agent thinks it's ok to generate results.
-    # 4. force retrieve all knowledge and generate results: to address hallucination and stability issues, we force agent to retrieve all knowledge and generate results:
-    # 4.1 the agent believes that it can produce results without executing tools
-    # 4.2 the tools_choose_and_results_generation node reaches its maximum recusion limit
-    workflow.set_entry_point("tools_choose_and_results_generation")
-    workflow.add_edge("tools_choose_and_results_generation","results_evaluation")
     workflow.add_conditional_edges(
         "results_evaluation",
         _results_evaluation_route,
         {
             "invalid tool calling": "tools_choose_and_results_generation",
             "continue": END,
-            # "no need tool calling": "final_results_preparation",
         }
     )
     app = workflow.compile()
