@@ -70,6 +70,8 @@
     "prompt": "Prompt",
     "prompts": "Prompts",
     "type": "Type",
+    "updateBy": "Update by",
+    "updateTime": "Update time",
     "promptCreateTips": "New prompt will override the current prompt, are you sure to continue?",
     "promptDeleteTips": "Delete the prompt will reset to the system default prompt.",
     "endPoint": "Endpoint",
@@ -86,7 +88,8 @@
       "upload": "Upload",
       "createPrompt": "Create Prompt",
       "edit": "Edit",
-      "save": "Save"
+      "save": "Save",
+      "action": "Action"
     },
     "header": {
       "reSignIn": "Please login again",

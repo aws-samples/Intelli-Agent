@@ -29,7 +29,7 @@ logger.setLevel(logging.INFO)
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(SCRIPT_DIR))
 
-workspace_table = os.environ.get("workspace_table", "")
+workspace_table = os.environ.get("WORKSPACE_TABLE", "")
 
 dynamodb = boto3.resource("dynamodb")
 workspace_table = dynamodb.Table(workspace_table)
@@ -57,7 +57,7 @@ def get_websearch_retrievers(top_k:int):
     ]
     return retriever_list
 
-def get_custom_qd_retrievers(workspace_ids, qd_config):
+def get_custom_qd_retrievers(workspace_ids, qd_config, using_bm25=False):
     default_qd_config = {
         "using_whole_doc": False,
         "context_num": 1,
@@ -72,13 +72,15 @@ def get_custom_qd_retrievers(workspace_ids, qd_config):
             **qd_config
         )
         for workspace in workspace_list
-    ] + [
-        QueryDocumentBM25Retriever(
-            workspace=workspace,
-            **qd_config
-        )
-        for workspace in workspace_list
     ]
+    if using_bm25:
+        retriever_list += [
+            QueryDocumentBM25Retriever(
+                workspace=workspace,
+                **qd_config
+            )
+            for workspace in workspace_list
+        ]
     return retriever_list
 
 def get_custom_qq_retrievers(workspace_ids, qq_config):

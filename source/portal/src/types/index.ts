@@ -89,13 +89,16 @@ export interface MessageDataType {
 }
 
 export interface CreatePromptResponse {
-  message: string;
+  Message: string;
 }
 
 export type PromptItem = {
   uuid: string;
-  modelId: string;
-  taskType: string;
+  LastModifiedTime: string;
+  LastModifiedBy: string;
+  ModelId: string;
+  SortKey: string;
+  Scene: string;
 };
 
 export type PromptResponse = {
@@ -105,13 +108,15 @@ export type PromptResponse = {
 };
 
 export interface Prompt {
-  main: string;
+  [key: string]: {
+    [subKey: string]: string;
+  };
 }
 
 export interface GetPromptResponse {
-  modelId: string;
-  taskType: string;
-  prompt: Prompt;
-  sortKey: string;
-  userId: string;
+  GroupName: string;
+  SortKey: string;
+  ModelId: string;
+  Scene: string;
+  Prompt: Prompt;
 }

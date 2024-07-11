@@ -54,12 +54,12 @@ def lambda_handler(event_body, context=None):
             if result == "此款暂无适合亲的尺码":
                 result += "，您当前输入的脚长为{}cm，请确认一下参数是否正确，如果有修改可以再次调用尺码工具".format(foot_length)
         else:
-            return {"code":1, "result":"shoes size or foot length is required"}
+            return {"code":1, "result":"请继续询问用户的脚长或鞋码"}
     elif goods_type_1 == "apparel":
         if "height" not in kwargs:
-            return {"code":1, "result":"height is required"}
+            return {"code":1, "result":"请继续询问用户的身高"}
         if "weight" not in kwargs:
-            return {"code":1, "result":"weight is required"}
+            return {"code":1, "result":"请继续询问用户的体重"}
         try:
             height = float(kwargs["height"])
             weight = float(kwargs["weight"])

@@ -53,17 +53,13 @@ export const SCENARIO_LIST: SelectProps.Option[] = [
     label: 'common',
     value: 'common',
   },
-  {
-    label: 'retail',
-    value: 'retail',
-  },
+  // {
+  //   label: 'retail',
+  //   value: 'retail',
+  // },
 ];
 
 export const RETAIL_GOODS_LIST: SelectProps.Option[] = [
-  {
-    label: '男款长袖T-shirt-751501610432',
-    value: '751501610432',
-  },
   {
     label: '女子运动鞋-756327274174',
     value: '756327274174',

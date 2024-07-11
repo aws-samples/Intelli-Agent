@@ -15,7 +15,7 @@ logger = get_logger("query_preprocess")
 def conversation_query_rewrite(state:dict):
     message_id = state.get('message_id',"")
     trace_infos = state.get('trace_infos',[])
-    user_id = state['chatbot_config']['user_id']
+    group_name = state['chatbot_config']['group_name']
 
     chatbot_config = state["chatbot_config"]
     conversation_query_rewrite_config = chatbot_config["query_process_config"][
@@ -25,10 +25,10 @@ def conversation_query_rewrite(state:dict):
     query_rewrite_llm_type = state.get("query_rewrite_llm_type",None) or LLMTaskType.CONVERSATION_SUMMARY_TYPE
     
     prompt_templates_from_ddb = get_prompt_templates_from_ddb(
-        user_id,
+        group_name,
         model_id=conversation_query_rewrite_config['model_id'],
-        task_type=query_rewrite_llm_type
     )
+    logger.info(prompt_templates_from_ddb)
 
     cqr_llm_chain = RunnableLambda(lambda x: invoke_lambda(
         lambda_name='Online_LLM_Generate',
