@@ -291,7 +291,7 @@ class MarkdownHeaderTextSplitter:
         current_figure = ""
         inside_figure = False
         have_figure = False
-        figure_metadata = {}
+        figure_metadata = []
         heading_hierarchy, id_index_dict = extract_headings(text.page_content.strip())
         if len(lines) > 0:
             current_heading = lines[0]
@@ -334,7 +334,7 @@ class MarkdownHeaderTextSplitter:
                         metadata["figure"] = figure_metadata
                         metadata["content_type"] = "contain_image"
                         have_figure = False
-                        figure_metadata = {}
+                        figure_metadata = []
                     chunks.append(
                         Document(
                             page_content=page_content,
@@ -361,8 +361,10 @@ class MarkdownHeaderTextSplitter:
                 if figure_value is not None:
                     chunk_figure_content += "\n" + etree.tostring(figure_value).decode("utf-8")
                 
-                figure_metadata["content_type"] = figure_type
-                figure_metadata["figure_path"] = figure_s3_link
+                figure_item = {}
+                figure_item["content_type"] = figure_type
+                figure_item["figure_path"] = figure_s3_link
+                figure_metadata.append(figure_item)
                 current_chunk_content.append(chunk_figure_content)
                 current_figure = ""
             elif inside_figure:
@@ -396,7 +398,7 @@ class MarkdownHeaderTextSplitter:
                 metadata["figure"] = figure_metadata
                 metadata["content_type"] = "contain_image"
                 have_figure = False
-                figure_metadata = {}
+                figure_metadata = []
             chunks.append(
                 Document(
                     page_content=page_content,

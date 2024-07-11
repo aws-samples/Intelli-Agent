@@ -108,11 +108,11 @@ class figureUnderstand():
             if classification in ('XY Chart', 'Pie chart diagrams'):
                 table = self.get_chart(img, context, tag)
                 table = self.parse_result(table, 'output')
-                output = f'\n<figure>\n<type>chart</type><link>{s3_link}</link><desp>{description}</desp><value>{table}</value>\n</figure>\n'
+                output = f'\n<figure>\n<type>chart</type>\n<link>{s3_link}</link>\n<desp>\n{description}\n</desp>\n<value>\n{table}\n</value>\n</figure>\n'
             else:
-                output = f'\n<figure>\n<type>chart-mermaid</type><link>{s3_link}</link><desp>{description}</desp><value>{mermaid_code}</value>\n</figure>\n'
+                output = f'\n<figure>\n<type>chart-mermaid</type>\n<link>{s3_link}</link>\n<desp>\n{description}\n</desp>\n<value>\n{mermaid_code}\n</value>\n</figure>\n'
         else:
             description = self.get_description(img, context, tag)
             description = self.parse_result(description, 'output')
-            output = f'\n<figure>\n<type>image</type><link>{s3_link}</link><desp>{description}</desp>\n</figure>\n'
+            output = f'\n<figure>\n<type>image</type>\n<link>{s3_link}</link>\n<desp>\n{description}\n</desp>\n</figure>\n'
         return output
