@@ -81,7 +81,7 @@ export class PortalConstruct extends Construct {
         priceClass: cloudfront.PriceClass.PRICE_CLASS_100,
         minimumProtocolVersion: cloudfront.SecurityPolicyProtocol.TLS_V1_2_2019,
         enableIpv6: false,
-        comment: `${Aws.STACK_NAME} - LLMBot Portal Distribution (${Aws.REGION})`,
+        comment: `${Aws.STACK_NAME} portal (${Aws.REGION})`,
         enableLogging: true,
         errorResponses: [
           {
