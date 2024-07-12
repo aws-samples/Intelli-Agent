@@ -1,7 +1,7 @@
 import collections.abc
 import copy
 import os
-from common_logic.common_utils.constant import ChatbotMode
+from common_logic.common_utils.constant import ChatbotMode,SceneType
 
 # update nest dict
 def update_nest_dict(d, u):
@@ -46,7 +46,7 @@ def parse_common_entry_config(chatbot_config):
         "chatbot_mode": ChatbotMode.chat,
         "use_history": True,
         "enable_trace": True,
-        # "prompt_templates": {},
+        "scene": SceneType.COMMON,
         "agent_recursion_limit": 5,
         "query_process_config": {
             "conversation_query_rewrite_config": {**copy.deepcopy(default_llm_config)}
@@ -63,32 +63,9 @@ def parse_common_entry_config(chatbot_config):
             ]
         },
         "agent_config": {**copy.deepcopy(default_llm_config), "tools": []},
-        # "tool_execute_config": {
-        #     "knowledge_base_retriever": {
-        #         "retrievers": [
-        #             {
-        #                 "type": "qd",
-        #                 "workspace_ids": [1],
-        #                 "top_k": 10,
-        #             }
-        #         ]
-        #     }
-        # },
         "chat_config": {
             **copy.deepcopy(default_llm_config),
         },
-        # "all_index_retriever_config":{
-        #     "retrievers": [
-        #             {
-        #                 "type": "qd",
-        #                 "workspace_ids": default_workspace_config["rag_workspace_ids"],
-        #                 "config": {
-        #                     "top_k": 5,
-        #                     "using_whole_doc": False,
-        #                 },
-        #             },
-        #         ],
-        # },
         "rag_config": {
             "retriever_config": {
                 "retrievers": [
@@ -114,61 +91,9 @@ def parse_common_entry_config(chatbot_config):
             "llm_config": {
                 **copy.deepcopy(default_llm_config),
             },
-        },
-<<<<<<< HEAD
-        # "aws_qa_config": {
-        #     "retriever_config":{
-        #         "retrievers": [
-        #             {
-        #                 "type": "qd",
-        #                 "workspace_ids": ['aws-ug-qd', 'aws-acts-qd'],
-        #                 "config": {
-        #                     "top_k": 10,
-        #                 }
-        #             },
-        #         ],
-        #         "rerankers": [
-        #             {
-        #                 "type": "reranker",
-        #                 "config": {
-        #                     "enable_debug": False,
-        #                     "target_model": "bge_reranker_model.tar.gz"
-        #                 }
-        #             }
-        #         ],
-        #     },
-        #     "llm_config":{
-        #         **copy.deepcopy(default_llm_config),
-        #     }
-        # },
-=======
-        "aws_qa_config": {
-            "retriever_config":{
-                "retrievers": [
-                    {
-                        "type": "qd",
-                        "index_ids": ['aws-ug-qd', 'aws-acts-qd'],
-                        "config": {
-                            "top_k": 10,
-                        }
-                    },
-                ],
-                "rerankers": [
-                    {
-                        "type": "reranker",
-                        "config": {
-                            "enable_debug": False,
-                            "target_model": "bge_reranker_model.tar.gz"
-                        }
-                    }
-                ],
-            },
-            "llm_config":{
-                **copy.deepcopy(default_llm_config),
-            }
-        },
->>>>>>> workspace-refactor
-    }
+        }
+        }
+    
     chatbot_config = update_nest_dict(
         copy.deepcopy(default_chatbot_config), chatbot_config
     )
@@ -205,6 +130,7 @@ def parse_retail_entry_config(chatbot_config):
 
     default_chatbot_config = {
         "chatbot_mode": ChatbotMode.agent,
+        "scene": SceneType.RETAIL,
         "use_history": True,
         "enable_trace": False,
         "agent_recursion_limit": 3,

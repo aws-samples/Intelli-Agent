@@ -4,7 +4,8 @@ from typing import Annotated, Any, TypedDict
 from common_logic.common_utils.constant import (
     LLMTaskType,
     ChatbotMode,
-    ToolRuningMode
+    ToolRuningMode,
+    SceneType
 )
 from common_logic.common_utils.exceptions import (
     ToolNotExistError, 
@@ -189,7 +190,7 @@ def agent(state: ChatbotState):
         tool_execute_res = state['agent_chat_history'][-1]['additional_kwargs']['raw_tool_call_results'][0]
         tool_name = tool_execute_res['name']
         output = tool_execute_res['output']
-        tool = get_tool_by_name(tool_name)
+        tool = get_tool_by_name(tool_name,scene=SceneType.COMMON)
         if tool.running_mode == ToolRuningMode.ONCE:
             send_trace("once tool")
             return {

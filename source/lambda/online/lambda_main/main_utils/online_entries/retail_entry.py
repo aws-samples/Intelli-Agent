@@ -12,7 +12,7 @@ from common_logic.common_utils.constant import (
     LLMTaskType
 )
 
-from functions.retail_tools.lambda_product_information_search.product_information_search import goods_dict
+from functions.lambda_retail_tools.lambda_product_information_search.product_information_search import goods_dict
 from functions.tool_execute_result_format import format_tool_call_results
 from functions.tool_calling_parse import parse_tool_calling as _parse_tool_calling
 

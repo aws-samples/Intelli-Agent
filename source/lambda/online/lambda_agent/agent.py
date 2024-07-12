@@ -15,7 +15,7 @@ def tool_calling(state:dict):
     agent_config = state["chatbot_config"]['agent_config']
 
     tools = state['current_intent_tools'] + state['chatbot_config']['agent_config']['tools']
-    tool_defs = [get_tool_by_name(tool_name).tool_def for tool_name in tools]
+    tool_defs = [get_tool_by_name(tool_name,scene=state["chatbot_config"]['scene']).tool_def for tool_name in tools]
     
     other_chain_kwargs = state.get('other_chain_kwargs',{})
     llm_config = {
