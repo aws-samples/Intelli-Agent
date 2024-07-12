@@ -35,7 +35,7 @@ class TestChat:
         cls.api_client = openapi_client.ApiClient(cls.configuration)
         cls.api_client.set_default_header("Authorization", f'Bearer {os.getenv("token")}')
         cls.api_instance = openapi_client.DefaultApi(cls.api_client)
-        globals()["exe_ids"] = None
+
 
     @classmethod
     def teardown_class(cls):

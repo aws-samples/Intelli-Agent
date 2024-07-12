@@ -141,7 +141,11 @@ phases:
         echo "{\"project_name\":\"$PROJECT_NAME\",\"build_url\":\"$CODEBUILD_BUILD_URL\",\"status\":\"completed\",\"bucket\":\"$API_TEST_RESULT_BUCKET\",\"s3_key\":\"$s3_key\",\"log\":\"$log\",\"topic\":\"$TOPIC\"}" > payload.json
         aws lambda invoke --function-name $GEN_REPORT_FUNCTION --payload fileb://payload.json response.json
       - aws cloudformation delete-stack --stack-name "$STACK_NAME"
-      - aws cloudformation wait stack-delete-complete --stack-name "$STACK_NAME"
+      - |
+        delete_res=$(aws cloudformation wait stack-delete-complete --stack-name "$STACK_NAME")
+        if [[ "$delete_res" == *"Waiter StackDeleteComplete failed"* ]]; then
+          reason_detail=$(aws cloudformation describe-stack-events --stack-name "$STACK_NAME" --query "StackEvents[?ResourceStatus=='DELETE_FAILED'] | [-1]")
+          reason=$(echo $reason_detail | jq -r '.ResourceStatusReason')
       - |
         post_build_end_time=$(date +"%Y-%m-%d_%H-%M-%S")
         echo "----------------------------------------------------------------"
