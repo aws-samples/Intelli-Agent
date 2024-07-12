@@ -11,7 +11,6 @@ from functions.lambda_retriever.utils.aos_retrievers import QueryDocumentKNNRetr
 from functions.lambda_retriever.utils.reranker import BGEReranker, MergeReranker
 from functions.lambda_retriever.utils.context_utils import retriever_results_format
 from functions.lambda_retriever.utils.websearch_retrievers import GoogleRetriever
-from functions.lambda_retriever.utils.chatbot_utils import ChatbotManager
 
 from langchain.retrievers import ContextualCompressionRetriever, AmazonKnowledgeBasesRetriever
 from langchain_community.retrievers import AmazonKnowledgeBasesRetriever
@@ -22,6 +21,7 @@ from langchain.schema.runnable import (
     RunnablePassthrough,
 )
 from common_logic.common_utils.lambda_invoke_utils import chatbot_lambda_call_wrapper
+from common_logic.common_utils.chatbot_utils import ChatbotManager
 
 logger = logging.getLogger("retriever")
 logger.setLevel(logging.INFO)
@@ -58,6 +58,7 @@ def get_websearch_retrievers(top_k:int):
     ]
     return retriever_list
 
+# def get_custom_qd_retrievers(chatbot, index_tag, retriever_config["config"], using_bm25=False):
 def get_custom_qd_retrievers(workspace_ids, qd_config, using_bm25=False):
     default_qd_config = {
         "using_whole_doc": False,
