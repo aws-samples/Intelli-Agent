@@ -47,6 +47,7 @@ try:
             "WORKSPACE_TABLE",
             "INDEX_TYPE",
             "OPERATION_TYPE",
+            "PORTAL_BUCKET",
         ],
     )
 except Exception as e:
@@ -102,6 +103,7 @@ embedding_model_endpoint = args["EMBEDDING_MODEL_ENDPOINT"]
 etlModelEndpoint = args["ETL_MODEL_ENDPOINT"]
 offline = args["OFFLINE"]
 etl_object_table_name = args["ETL_OBJECT_TABLE"]
+portal_bucket_name = args["PORTAL_BUCKET"]
 table_item_id = args["TABLE_ITEM_ID"]
 qa_enhancement = args["QA_ENHANCEMENT"]
 region = args["REGION"]
@@ -170,6 +172,7 @@ class S3FileProcessor:
             "res_bucket": res_bucket,
             "table_item_id": table_item_id,
             "create_time": create_time,
+            "portal_bucket_name": portal_bucket_name,
             "document_language": document_language,
         }
 
@@ -627,7 +630,7 @@ def create_processors_and_workers(
     if operation_type in ["create", "extract_only"]:
         s3_files_iterator = file_processor.iterate_s3_files(extract_content=True)
         batch_processor = BatchChunkDocumentProcessor(
-            chunk_size=500, chunk_overlap=30, batch_size=10
+            chunk_size=1024, chunk_overlap=30, batch_size=10
         )
         worker = OpenSearchIngestionWorker(docsearch, embedding_model_endpoint)
     elif operation_type in ["delete", "update"]:

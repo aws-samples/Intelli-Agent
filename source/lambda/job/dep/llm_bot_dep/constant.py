@@ -20,4 +20,5 @@ class FigureNode(Enum):
     TYPE = "type"
     DESCRIPTION = "desp"
     VALUE = "value"
+    LINK = "link"
 
