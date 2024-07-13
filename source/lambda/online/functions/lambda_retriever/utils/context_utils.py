@@ -52,6 +52,7 @@ def retriever_results_format(
                 "source": doc.metadata["source"],
                 "answer": doc.metadata.get("answer", ""),
                 "question": doc.metadata.get("question", ""),
+                "figure": doc.metadata.get("figure", []),
             }
         )
     if print_source:
