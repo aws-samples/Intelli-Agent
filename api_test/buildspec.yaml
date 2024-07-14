@@ -84,7 +84,8 @@ phases:
         pip3 --default-timeout=6000 install -r requirements.txt
         popd
         stack_info=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME")
-        api_gateway_url=$(echo "$stack_info" | jq -r '.Stacks[0].Outputs[] | select(.OutputKey=="APIEndpointAddress").OutputValue')
+        rest_api_gateway_url=$(echo "$stack_info" | jq -r '.Stacks[0].Outputs[] | select(.OutputKey=="APIEndpointAddress").OutputValue')
+        ws_api_gateway_url=$(echo "$stack_info" | jq -r '.Stacks[0].Outputs[] | select(.OutputKey=="WebSocketEndpointAddress").OutputValue')
         user_pool_id=$(echo "$stack_info" | jq -r '.Stacks[0].Outputs[] | select(.OutputKey=="UserPoolId").OutputValue')
         oidc_client_id=$(echo "$stack_info" | jq -r '.Stacks[0].Outputs[] | select(.OutputKey=="OidcClientId").OutputValue')
         set -euxo pipefail
@@ -111,9 +112,9 @@ phases:
           --client-id $oidc_client_id \
           --auth-parameters USERNAME=$SUB_EMAIL,PASSWORD=$ADMIN_PASSWORD)
         token=$(echo $credentials | jq -r '.AuthenticationResult.IdToken')
-        echo "api_url=$api_gateway_url" > env.properties
+        echo "rest_api_url=$rest_api_gateway_url" > env.properties
+        echo "ws_api_url=$ws_api_gateway_url" > env.properties
         echo "token=$token" >> env.properties
-        cat env.properties
         source agentVenv/bin/activate
         pytest test_case --continue-on-collection-errors --log-cli-level=INFO --json-report --json-report-file=detail.json --html=report.html --self-contained-html > detail.log
         popd

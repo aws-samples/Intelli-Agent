@@ -19,7 +19,7 @@ s3_client = boto3.client('s3')
 caller_identity = boto3.client('sts').get_caller_identity()
 partition = caller_identity['Arn'].split(':')[1]
 
-class TestSession:
+class TestPrompt:
     """DataSourceDiscovery test stubs"""
 
     @classmethod
@@ -41,3 +41,7 @@ class TestSession:
         step(
             f"[{datetime.datetime.strftime(datetime.datetime.now(),'%Y-%m-%d')}] [{__name__}] Test end."
         )
+
+    def test_39_list_prompt(self):
+        # TBD
+        pass

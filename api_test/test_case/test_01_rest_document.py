@@ -20,16 +20,16 @@ caller_identity = boto3.client('sts').get_caller_identity()
 partition = caller_identity['Arn'].split(':')[1]
 
 # aws cognito-idp admin-set-user-password \
-#   --user-pool-id ap-northeast-1_IZ2ecGAup \
+#   --user-pool-id us-east-1_mnQ87vF26 \
 #   --username cuihubin@amazon.com \
 #   --password TEST123! \
 #   --permanent
 
 # aws cognito-idp initiate-auth \
-#     --region ap-northeast-1 \
+#     --region us-east-1 \
 #     --auth-flow USER_PASSWORD_AUTH \
-#     --client-id 5mf91t5cgsm200gd9l77bl26th \
-#     --auth-parameters USERNAME=cuihubin@amazon.com,PASSWORD=TEST123!
+#     --client-id p880fbijno32gtp2o0i651ukl \
+#     --auth-parameters USERNAME=cuihubin@amazon.com,PASSWORD=CSDC23!
 
 class TestDocument:
     """DataSourceDiscovery test stubs"""
@@ -41,7 +41,7 @@ class TestDocument:
             f"[{datetime.datetime.strftime(datetime.datetime.now(),'%Y-%m-%d')}] [{__name__}] Test start..."
         )
         load_dotenv()
-        cls.configuration = openapi_client.Configuration(host=os.getenv('api_url'))
+        cls.configuration = openapi_client.Configuration(host=os.getenv('rest_api_url'))
         cls.api_client = openapi_client.ApiClient(cls.configuration)
         cls.api_client.set_default_header("Authorization", f'Bearer {os.getenv("token")}')
         cls.api_instance = openapi_client.DefaultApi(cls.api_client)
@@ -186,7 +186,8 @@ class TestDocument:
 
     def test_13_exec_document_pdf(self):
         '''test case'''
-        print(f"self.exeIdDict is ===== {self.exeIdDict}")
+        # print(f"self.exeIdDict is ===== {self.exeIdDict}")
+        time.sleep(10 * 60)
         logger.info("test_13_exec_document_pdf start ....")
         # param = openapi_client.IntellapicoDjp0ELR6YyaK()
         response = self.api_instance.etl_execution_get(execution_id=self.exeIdDict["pdf"])
