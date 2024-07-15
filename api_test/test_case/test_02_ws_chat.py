@@ -61,6 +61,9 @@ class TestChat:
         """Setup method to create a WebSocket client connection before each test."""
         logger.info("%s start...", method.__name__)
         self.ws.connect(self.request_url)
+        logger.info("websocket connection status: %s", self.ws.connected)
+        # self.ws = websocket.create_connection(self.request_url)
+        # print("WebSocket connection succeeded")
         time.sleep(self.wait_time)
     
     def teardown_method(self, method):
