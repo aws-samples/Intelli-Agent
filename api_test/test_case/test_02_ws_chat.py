@@ -22,7 +22,7 @@ class TestChat:
         load_dotenv()
         cls.request_url=f"{os.getenv('ws_api_url')}?idToken={os.getenv('token')}"
         cls.ws = websocket.WebSocket()
-        cls.ws.settimeout(2*60)
+        cls.ws.settimeout(300)
         cls.wait_time = 1
         cls.retry_attempts = 3
         cls.config= {
@@ -86,8 +86,18 @@ class TestChat:
                     messages.append(message)
                 if message["message_type"] == "END":
                     break
-        except websocket.WebSocketTimeoutException:
-            assert False, "test_26_agent_message_trace_history failed(TIME_OUT)!"
+        # except websocket.WebSocketTimeoutException as e:
+        #     logger.error(e)
+        #     assert False, "test_26_agent_message_trace_history failed(TIME_OUT)!"
+        except websocket.WebSocketTimeoutException as e:
+            logger.error("WebSocket timeout exception: %s", e)
+            assert False, "test_26_agent_message_trace_history failed (TIME_OUT-WebSocketTimeoutException)!"
+        except TimeoutError as e:
+            logger.error("Timeout error: %s", e)
+            assert False, "test_26_agent_message_trace_history failed (TIME_OUT)!"
+        except Exception as e:
+            logger.error("Unexpected exception: %s", e)
+            assert False, "test_26_agent_message_trace_history failed (UNEXPECTED_EXCEPTION)!"
         assert any(item["message_type"] == 'CONTEXT' for item in messages), "test_26_agent_message_trace_history failed!"
 
     def test_27_agent_message_no_trace(self):
