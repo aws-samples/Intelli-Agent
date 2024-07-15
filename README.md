@@ -72,7 +72,7 @@ Chunk metadata is defined as below shown:
 |previous| The chunk id of previous paragraph at the same Level |
 |child| The chunk ids of sub sections |
 |next|The chunk id of next paragraph at the same Level |
-|size| The number of the chunks when the paragraph is splitted by a fixed chunk size |
+|size| The number of the chunks when the paragraph is split by a fixed chunk size |
 
 Here is an example
 

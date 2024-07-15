@@ -87,7 +87,7 @@ jobs:
         with:
           only_warn: 1
           check_filenames: true
-          skip: .git,*.png,*.jpg,*.jpeg
+          skip: .git,*.png,*.jpg,*.jpeg,package-lock.json
 
   sematic-validate:
     name: Validate PR title

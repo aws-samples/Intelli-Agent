@@ -45,6 +45,7 @@ class ChatbotState(TypedDict):
     current_monitor_infos: str
     extra_response: Annotated[dict, update_nest_dict]
     contexts: str = None
+    figure: list = None
     all_index_retriever_contexts: list
     current_agent_tools_def: list[dict]
     current_agent_model_id: str
@@ -133,6 +134,9 @@ def intention_detection_lambda(state: ChatbotState):
 def rag_llm_lambda(state: ChatbotState):
     group_name = state['chatbot_config']['group_name']
     llm_config = state["chatbot_config"]["rag_config"]["llm_config"]
+    figure_list = state["figure"]
+    if figure_list and len(figure_list) > 1:
+        figure_list = [figure_list[0]]
     task_type = LLMTaskType.RAG
     prompt_templates_from_ddb = get_prompt_templates_from_ddb(
         group_name,
@@ -157,7 +161,13 @@ def rag_llm_lambda(state: ChatbotState):
             },
         },
     )
-    return {"answer": output}
+    
+    return {
+        "answer": output,
+        "ddb_additional_kwargs": {
+            "figure": figure_list
+        }
+    }
 
 
 @node_monitor_wrapper
@@ -278,7 +288,10 @@ def tool_execute_lambda(state: ChatbotState):
 
 @node_monitor_wrapper
 def rag_all_index_lambda(state: ChatbotState):
-    # call retrivever
+    # Call retriever
+    context_list = []
+    figure_list = []
+
     retriever_params = state["chatbot_config"]["rag_config"]["retriever_config"]
     retriever_params["query"] = state["query"]
     output: str = invoke_lambda(
@@ -287,8 +300,16 @@ def rag_all_index_lambda(state: ChatbotState):
         lambda_module_path="functions.lambda_retriever.retriever",
         handler_name="lambda_handler",
     )
-    contexts = [doc["page_content"] for doc in output["result"]["docs"]]
-    return {"contexts": contexts}
+
+    for doc in output["result"]["docs"]:
+        context_list.append(doc["page_content"])
+        figure_list = figure_list + doc["figure"]
+    
+    # Remove duplicate figures
+    unique_set = {tuple(d.items()) for d in figure_list}
+    unique_figure_list = [dict(t) for t in unique_set]
+
+    return {"contexts": context_list, "figure": unique_figure_list}
 
 @node_monitor_wrapper
 def aws_qa_lambda(state: ChatbotState):
@@ -697,7 +718,13 @@ def common_entry(event_body):
         }
     )
 
-    return {"answer": response["answer"], **response["extra_response"]}
+    return {
+        "answer": response["answer"],
+        **response["extra_response"],
+        "ddb_additional_kwargs": {
+            "figure":response.get("figure", [])
+        }
+    }
 
 
 main_chain_entry = common_entry

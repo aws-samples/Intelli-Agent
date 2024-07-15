@@ -74,6 +74,9 @@ def stream_response(event_body:dict, response:dict):
     custom_message_id = event_body["custom_message_id"]
     
     answer = response.pop("answer")
+    if "ddb_additional_kwargs" in response:
+        figure = response.get("ddb_additional_kwargs").get("figure")
+
     if isinstance(answer, str):
         answer = iter([answer])
 
@@ -132,7 +135,7 @@ def stream_response(event_body:dict, response:dict):
             additional_kwargs=response.get("ddb_additional_kwargs",{})
         )
 
-        # sed source and contexts
+        # Send source and contexts
         if response:
             context_msg = {
                 "message_type": StreamMessageType.CONTEXT,
@@ -140,6 +143,8 @@ def stream_response(event_body:dict, response:dict):
                 "custom_message_id": custom_message_id,
                 **response
             }
+            if figure and len(figure) > 1:
+                context_msg["figure"] = figure
             send_to_ws_client(
                 message=context_msg,
                 ws_connection_id=ws_connection_id
