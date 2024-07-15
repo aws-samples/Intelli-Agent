@@ -164,6 +164,8 @@ class TestDocument:
             key = item.s3_prefix.rsplit('.', 1)[-1]
             self.exeIdDict[key]=item.execution_id
             # self.exeIdDict[key] = item.execution_id
+        logger.info("###############")
+        logger.info(self.exeIdDict)    
         assert response.count>0, "test_12_list_document test failed"
 
     def test_13_exec_document_pdf(self):
