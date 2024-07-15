@@ -143,11 +143,13 @@ class TestDocument:
         '''test case'''
         time.sleep(2 * 60)
         response = self.api_instance.etl_list_execution_get(page_size='9999', max_items='9999')
+        logger.info("response>>>>>>>>>>>")
+        logger.info(response) 
         for item in response.items:
             key = item.s3_prefix.rsplit('.', 1)[-1]
             self.exeIdDict[key]=item.execution_id 
         logger.info("file list>>>>>>>>>>>")
-        logger.info(self.exeIdDict)  
+        logger.info(self.exeIdDict) 
         assert response.count>0, "test_12_list_document test failed"
 
     def test_13_exec_document_pdf(self):
