@@ -188,6 +188,15 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       setCurrentAIMessage((prev) => {
         return prev + (message?.message?.content ?? '');
       });
+    } else if (message.message_type === 'CONTEXT') {
+      // handle context message
+      if (message.ddb_additional_kwargs?.figure?.length > 0) {
+        message.ddb_additional_kwargs.figure.forEach((item) => {
+          setCurrentAIMessage((prev) => {
+            return prev + `![${item.content_type}](/${item.figure_path})`;
+          });
+        });
+      }
     } else if (message.message_type === 'END') {
       setIsMessageEnd(true);
     }
