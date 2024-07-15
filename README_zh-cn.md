@@ -206,7 +206,7 @@ sh build.sh -b intelli-agent-model-bucket -i intelli-agent-etl -t latest -r us-e
 
 
 ### 部署方案
-如果您的账号是首次使用 AWS CDK 部署资源，请参考[此文档](https://docs.aws.amazon.com/cdk/v2/guide/bootstrapping-env.html)进行 CDK boostrap。
+如果您的账号是首次使用 AWS CDK 部署资源，请参考[此文档](https://docs.aws.amazon.com/cdk/v2/guide/bootstrapping-env.html)进行 CDK bootstrap
 
 ```bash
 cdk bootstrap aws://<Your AWS account ID>/<AWS region>
