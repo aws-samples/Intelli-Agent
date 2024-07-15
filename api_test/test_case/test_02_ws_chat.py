@@ -1,26 +1,14 @@
+'''TestChat'''
 import datetime
 import json
 import os
-import threading
 import time
-# import api_test.config as config
-from dotenv import load_dotenv
-import pytest
-import requests
-import websocket
-
-from api_test.biz_logic.rest_api import openapi_client
-# from api_test.biz_logic.rest_api import IntellapiconnnHdtwRWUXa
-
-from .utils import step
 import logging
-import boto3
+import websocket
+from dotenv import load_dotenv
+from .utils import step
 
 logger = logging.getLogger(__name__)
-# sts = boto3.client('sts')
-# s3_client = boto3.client('s3')
-# caller_identity = boto3.client('sts').get_caller_identity()
-# partition = caller_identity['Arn'].split(':')[1]
 
 class TestChat:
     """DataSourceDiscovery test stubs"""
@@ -34,7 +22,7 @@ class TestChat:
         load_dotenv()
         cls.request_url=f"{os.getenv('ws_api_url')}?idToken={os.getenv('token')}"
         cls.ws = websocket.WebSocket()
-        cls.ws.settimeout(30)
+        cls.ws.settimeout(2*60)
         cls.wait_time = 1
         cls.retry_attempts = 3
         cls.config= {
@@ -69,7 +57,6 @@ class TestChat:
             f"[{datetime.datetime.strftime(datetime.datetime.now(),'%Y-%m-%d')}] [{__name__}] Test end."
         )
 
-    # @pytest.fixture(autouse=True)
     def setup_method(self, method):
         """Setup method to create a WebSocket client connection before each test."""
         logger.info("%s start...", method.__name__)

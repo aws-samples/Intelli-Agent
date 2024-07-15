@@ -52,7 +52,7 @@ phases:
             if [ $deploy_exit_code -ne 0 ]; then
               echo "CDK deployment failed. Sending email and exiting with status code 1."
               msg=$(aws cloudformation describe-stack-events --stack-name intelli-agent --query "StackEvents[?ResourceStatus=='CREATE_FAILED'] | [-1]")
-              echo "{\"project_name\":\"$PROJECT_NAME\",\"build_url\":\"$CODEBUILD_BUILD_URL\",\"status\":\"unCompleted\",\"detail\":\"$msg\",\"topic\":\"$TOPIC\"}" > payload.json
+              echo "{\"project_name\":\"$PROJECT_NAME\",\"build_url\":\"$CODEBUILD_BUILD_URL\",\"status\":\"unCompleted\",\"detail\":\"$msg\",\"topic\":\"$TOPIC\",\"repository\":\"$REPOSITORY_URL\",\"branch\":\"$CODE_BRANCH\"}" > payload.json
               aws lambda invoke --function-name $GEN_REPORT_FUNCTION --payload fileb://payload.json response.json
               exit 1
             fi
@@ -113,9 +113,9 @@ phases:
           --client-id $oidc_client_id \
           --auth-parameters USERNAME=$SUB_EMAIL,PASSWORD=$ADMIN_PASSWORD)
         token=$(echo $credentials | jq -r '.AuthenticationResult.IdToken')
-        echo "rest_api_url=$rest_api_gateway_url" > env.properties
-        echo "ws_api_url=$ws_api_gateway_url" > env.properties
-        echo "token=$token" >> env.properties
+        echo "rest_api_url=$rest_api_gateway_url" > .env
+        echo "ws_api_url=$ws_api_gateway_url" >> .env
+        echo "token=$token" >> .env
         source agentVenv/bin/activate
         pytest test_case --continue-on-collection-errors --log-cli-level=INFO --json-report --json-report-file=detail.json --html=report.html --self-contained-html > detail.log
         popd
