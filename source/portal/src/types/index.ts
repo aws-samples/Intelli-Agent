@@ -41,6 +41,9 @@ export type SessionMessage = {
   role: 'ai' | 'human';
   content: string;
   createTimestamp: string;
+  additional_kwargs: {
+    figure: AdditionalImageType[];
+  };
 };
 
 export interface CachedDataType {
