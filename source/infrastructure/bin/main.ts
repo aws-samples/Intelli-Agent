@@ -156,6 +156,9 @@ export class RootStack extends Stack {
     });
     uiExports.node.addDependency(uiPortal);
 
+    new CfnOutput(this, "API Endpoint Address", {
+      value: apiConstruct.apiEndpoint,
+    });
     new CfnOutput(this, "Chunk Bucket", { value: etlStack.resBucketName });
     new CfnOutput(this, "WebPortalURL", {
       value: uiPortal.portalUrl,
