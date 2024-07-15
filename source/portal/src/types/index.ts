@@ -78,10 +78,17 @@ export type LibraryExecutionResponse = {
   Count: number;
 };
 
+export type AdditionalImageType = {
+  content_type: string;
+  figure_path: string;
+};
 export interface MessageDataType {
   message_id: string;
   custom_message_id: string;
-  message_type: 'START' | 'CHUNK' | 'END' | 'MONITOR'; // START CHUNK END MONITORING
+  ddb_additional_kwargs: {
+    figure: AdditionalImageType[];
+  };
+  message_type: 'START' | 'CHUNK' | 'END' | 'MONITOR' | 'CONTEXT'; // START CHUNK END MONITORING
   message: {
     role: string;
     content: string;
