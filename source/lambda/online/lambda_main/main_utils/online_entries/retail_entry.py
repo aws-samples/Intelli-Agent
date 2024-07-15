@@ -620,6 +620,31 @@ def rule_number_reply(state:ChatbotState):
     return {"answer":"收到订单信息"}
 
 
+
+@node_monitor_wrapper
+def tools_choose_and_results_generation(state: ChatbotState):
+    # check once tool calling
+    current_agent_output:dict = invoke_lambda(
+        event_body={
+            **state,
+            # "other_chain_kwargs": {"system_prompt": get_common_system_prompt()}
+            },
+        lambda_name="Online_Agent",
+        lambda_module_path="lambda_agent.agent",
+        handler_name="lambda_handler",
+   
+    )
+    current_agent_recursion_num = state['current_agent_recursion_num'] + 1
+    agent_recursion_validation = state['current_agent_recursion_num'] < state['agent_recursion_limit']
+
+    send_trace(f"\n\n**current_agent_output:** \n{json.dumps(current_agent_output['agent_output'],ensure_ascii=False,indent=2)}\n\n **current_agent_recursion_num:** {current_agent_recursion_num}", state["stream"], state["ws_connection_id"])
+    return {
+        "current_agent_output": current_agent_output,
+        "current_agent_recursion_num": current_agent_recursion_num,
+        "agent_recursion_validation": agent_recursion_validation
+    }
+
+
 ################
 # define edges #
 ################
@@ -699,6 +724,39 @@ def agent_route(state:dict):
 #############################
 # define whole online graph #
 #############################
+
+app_agent = None
+
+def build_agent_graph():
+    def _results_evaluation_route(state: dict):
+        #TODO: pass no need tool calling or valid tool calling?
+        if state["agent_recursion_validation"] and not state["parse_tool_calling_ok"]:
+            return "invalid tool calling"
+        return "continue"
+
+    workflow = StateGraph(ChatbotState)
+    workflow.add_node("tools_choose_and_results_generation", tools_choose_and_results_generation)
+    workflow.add_node("results_evaluation", results_evaluation)
+
+    # add all edges
+    workflow.set_entry_point("tools_choose_and_results_generation")
+    workflow.add_edge("tools_choose_and_results_generation","results_evaluation")
+
+    # add conditional edges
+    # the results of agent planning will be evaluated and decide next step:
+    # 1. invalid tool calling: if agent makes clear mistakes, like wrong tool names or format, it will be forced to plan again
+    # 2. valid tool calling: the agent chooses the valid tools
+    workflow.add_conditional_edges(
+        "results_evaluation",
+        _results_evaluation_route,
+        {
+            "invalid tool calling": "tools_choose_and_results_generation",
+            "continue": END,
+        }
+    )
+    app = workflow.compile()
+    return app
+
 
 def build_graph():
     workflow = StateGraph(ChatbotState)
