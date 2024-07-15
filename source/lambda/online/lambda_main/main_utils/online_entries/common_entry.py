@@ -17,15 +17,16 @@ from common_logic.common_utils.python_utils import add_messages, update_nest_dic
 from common_logic.common_utils.logger_utils import get_logger
 from common_logic.common_utils.prompt_utils import get_prompt_templates_from_ddb
 from common_logic.common_utils.serialization_utils import JSONEncoder
-from functions.tool_calling_parse import parse_tool_calling as _parse_tool_calling
-from functions.tool_execute_result_format import format_tool_call_results
-from functions import get_tool_by_name
+from functions import get_tool_by_name,init_common_tools
 from lambda_main.main_utils.parse_config import CommonConfigParser
 from langgraph.graph import END, StateGraph
-from functions.lambda_common_tools.knowledge_base_retrieve import knowledge_base_retrieve
-from ._agent_base import build_agent_graph
+from lambda_main.main_utils.online_entries.agent_base import build_agent_graph,tool_execution
+
+
+init_common_tools()
 
 logger = get_logger('common_entry')
+
 class ChatbotState(TypedDict):
     ########### input/output states ###########
     # inputs
@@ -184,37 +185,6 @@ def agent(state: ChatbotState):
 
 
 @node_monitor_wrapper
-def tool_execution(state: ChatbotState):
-    tool_calls = state['current_tool_calls']
-    assert len(tool_calls) == 1, tool_calls
-    tool_call_results = []
-    for tool_call in tool_calls:
-        tool_name = tool_call["name"]
-        tool_kwargs = tool_call['kwargs']
-        # call tool
-        output = invoke_lambda(
-            event_body = {
-                "tool_name":tool_name,
-                "state":state,
-                "kwargs":tool_kwargs
-                },
-            lambda_name="Online_Tool_Execute",
-            lambda_module_path="functions.lambda_tool",
-            handler_name="lambda_handler"   
-        )
-        tool_call_results.append({
-            "name": tool_name,
-            "output": output,
-            "kwargs": tool_call['kwargs'],
-            "model_id": tool_call['model_id']
-        })
-    
-    output = format_tool_call_results(tool_calls[0]['model_id'],tool_call_results)
-    send_trace(f'**tool_execute_res:** \n{output["tool_message"]["content"]}')
-    return {"agent_chat_history": [output['tool_message']]}
-
-
-@node_monitor_wrapper
 def rag_all_index_lambda(state: ChatbotState):
     # Call retriever
     context_list = []
@@ -290,9 +260,6 @@ def query_route(state: dict):
 
 
 def intent_route(state: dict):
-    # if not state['intention_fewshot_examples']:
-    #     state['extra_response']['current_agent_intent_type'] = 'final_rag'
-    #     return 'no clear intention'
     return state["intent_type"]
 
 def agent_route(state: dict):

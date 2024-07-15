@@ -11,6 +11,7 @@ from common_logic.common_utils.exceptions import (
     ToolNotFound
 )
 from common_logic.common_utils.logger_utils import get_logger
+from functions.tool_execute_result_format import format_tool_call_results
 
 logger = get_logger("agent_base")
 
@@ -19,8 +20,7 @@ def tools_choose_and_results_generation(state):
     # check once tool calling
     current_agent_output:dict = invoke_lambda(
         event_body={
-            **state,
-            # "other_chain_kwargs": {"system_prompt": get_common_system_prompt()}
+            **state
             },
         lambda_name="Online_Agent",
         lambda_module_path="lambda_agent.agent",
@@ -36,6 +36,7 @@ def tools_choose_and_results_generation(state):
         "current_agent_recursion_num": current_agent_recursion_num,
         "agent_recursion_validation": agent_recursion_validation
     }
+
 
 @node_monitor_wrapper
 def results_evaluation(state):
@@ -68,6 +69,48 @@ def results_evaluation(state):
                 e.error_message
             ]
         }
+
+
+@node_monitor_wrapper
+def tool_execution(state):
+    """executor lambda
+    Args:
+        state (NestUpdateState): _description_
+
+    Returns:
+        _type_: _description_
+    """
+    tool_calls = state['current_tool_calls']
+    assert len(tool_calls) == 1, tool_calls
+    tool_call_results = []
+    for tool_call in tool_calls:
+        tool_name = tool_call["name"]
+        tool_kwargs = tool_call['kwargs']
+        # call tool
+        output = invoke_lambda(
+            event_body = {
+                "tool_name":tool_name,
+                "state":state,
+                "kwargs":tool_kwargs
+                },
+            lambda_name="Online_Tool_Execute",
+            lambda_module_path="functions.lambda_tool",
+            handler_name="lambda_handler"   
+        )
+        tool_call_results.append({
+            "name": tool_name,
+            "output": output,
+            "kwargs": tool_call['kwargs'],
+            "model_id": tool_call['model_id']
+        })
+    
+    output = format_tool_call_results(tool_call['model_id'],tool_call_results)
+    send_trace(f'**tool_execute_res:** \n{output["tool_message"]["content"]}')
+    return {
+        "agent_chat_history": [output['tool_message']]
+        }
+
+
 
 def build_agent_graph(chatbot_state_cls):
     def _results_evaluation_route(state: dict):

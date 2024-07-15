@@ -82,7 +82,7 @@ class ConfigParserBase:
         **chatbot_config.get("default_llm_config", {})
         }
         default_index_config = {
-            **default_index_config,
+            **cls.default_index_config,
             **chatbot_config.get("default_index_config", {})
         }
         assert ChatbotMode.has_value(chatbot_config["chatbot_mode"]), chatbot_config[
