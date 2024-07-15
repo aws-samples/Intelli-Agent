@@ -70,7 +70,7 @@ export class RootStack extends Stack {
     const uiPortal = new PortalConstruct(this, "ui-construct");
 
     const etlStack = new EtlStack(this, "etl-stack", {
-      domainEndpoint: aosConstruct.domainEndpoint || "",
+      domainEndpoint: aosConstruct.domainEndpoint || "AOSnotcreated",
       embeddingAndRerankerEndPoint: llmStack.embeddingAndRerankerEndPoint,
       region: props.env?.region || "us-east-1",
       subEmail: cdkParameters.subEmail.valueAsString ?? "",
