@@ -70,7 +70,7 @@ def lambda_handler(event, context):
             for key in ["role", "content", "createTimestamp"]:
                 item_json[key] = item[key]["S"]
             if item["role"]["S"] == "ai":
-                item_json["additional_kwargs"] = item["additional_kwargs"]["S"]
+                item_json["additional_kwargs"] = json.loads(item["additional_kwargs"]["S"])
             page_json.append(item_json)
 
         if "LastEvaluatedKey" in page:
