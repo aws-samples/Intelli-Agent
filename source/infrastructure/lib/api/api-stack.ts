@@ -843,7 +843,7 @@ export class ApiConstruct extends Construct {
       const lambdaOnlineFunctions = new Function(this, "lambdaOnlineFunctions", {
         runtime: Runtime.PYTHON_3_12,
         handler: "lambda_tools.lambda_handler",
-        functionName: "Online_Function_Retriever",
+        functionName: "Online_Functions",
         code: Code.fromAsset(
           join(__dirname, "../../../lambda/online/functions/functions_utils"),
         ),
