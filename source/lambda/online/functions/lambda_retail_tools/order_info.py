@@ -28,7 +28,7 @@ def lambda_handler(event_body, context=None):
         output:str = invoke_lambda(
             event_body=retriever_params,
             lambda_name="Online_Function_Retriever",
-            lambda_module_path="functions.lambda_retriever.retriever",
+            lambda_module_path="functions.functions_utils.retriever.retriever",
             handler_name="lambda_handler"
         )
         contexts = [doc['page_content'] for doc in output['result']['docs']]

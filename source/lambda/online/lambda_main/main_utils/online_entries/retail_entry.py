@@ -22,17 +22,14 @@ from common_logic.common_utils.logger_utils import get_logger
 from common_logic.common_utils.serialization_utils import JSONEncoder
 from common_logic.common_utils.s3_utils import download_file_from_s3,check_local_folder
 from lambda_main.main_utils.online_entries.agent_base import build_agent_graph,tool_execution
-from functions import get_tool_by_name,init_retail_tools
+from functions import get_tool_by_name
 
 order_info_path = "/tmp/functions/retail_tools/lambda_order_info/order_info.json"
 check_local_folder(order_info_path)
 download_file_from_s3("aws-chatbot-knowledge-base-test", "retail_json/order_info.json", order_info_path)
 order_dict = json.load(open(order_info_path))
-
 logger = get_logger('retail_entry')
 
-init_retail_tools()
-# goods_info_tag = "商品信息"
 
 class ChatbotState(TypedDict):
     chatbot_config: dict # chatbot config
@@ -249,7 +246,7 @@ def agent(state: ChatbotState):
 #     output:str = invoke_lambda(
 #         event_body=retriever_params,
 #         lambda_name="Online_Function_Retriever",
-#         lambda_module_path="functions.lambda_retriever.retriever",
+#         lambda_module_path="functions.functions_utils.retriever.retriever",
 #         handler_name="lambda_handler"
 #     )
 #     contexts = [doc['page_content'] for doc in output['result']['docs']]
@@ -293,7 +290,7 @@ def agent(state: ChatbotState):
 #     output:str = invoke_lambda(
 #         event_body=retriever_params,
 #         lambda_name="Online_Function_Retriever",
-#         lambda_module_path="functions.lambda_retriever.retriever",
+#         lambda_module_path="functions.functions_utils.retriever.retriever",
 #         handler_name="lambda_handler"
 #     )
 #     contexts = [doc['page_content'] for doc in output['result']['docs']]
@@ -343,7 +340,7 @@ def agent(state: ChatbotState):
 #     output:str = invoke_lambda(
 #         event_body=retriever_params,
 #         lambda_name="Online_Function_Retriever",
-#         lambda_module_path="functions.lambda_retriever.retriever",
+#         lambda_module_path="functions.functions_utils.retriever.retriever",
 #         handler_name="lambda_handler"
 #     )
 #     contexts = [doc['page_content'] for doc in output['result']['docs']]
@@ -414,7 +411,7 @@ def agent(state: ChatbotState):
 #     output:str = invoke_lambda(
 #         event_body=retriever_params,
 #         lambda_name="Online_Function_Retriever",
-#         lambda_module_path="functions.lambda_retriever.retriever",
+#         lambda_module_path="functions.functions_utils.retriever.retriever",
 #         handler_name="lambda_handler"
 #     )
 #     contexts = [doc['page_content'] for doc in output['result']['docs']]
@@ -460,7 +457,7 @@ def agent(state: ChatbotState):
 #     output:str = invoke_lambda(
 #         event_body=retriever_params,
 #         lambda_name="Online_Function_Retriever",
-#         lambda_module_path="functions.lambda_retriever.retriever",
+#         lambda_module_path="functions.functions_utils.retriever.retriever",
 #         handler_name="lambda_handler"
 #     )
 #     contexts = [doc['page_content'] for doc in output['result']['docs']]
@@ -508,7 +505,7 @@ def final_rag_retriever_lambda(state: ChatbotState):
     output:str = invoke_lambda(
         event_body=retriever_params,
         lambda_name="Online_Function_Retriever",
-        lambda_module_path="functions.lambda_retriever.retriever",
+        lambda_module_path="functions.functions_utils.retriever.retriever",
         handler_name="lambda_handler"
     )
     contexts = [doc['page_content'] for doc in output['result']['docs']]

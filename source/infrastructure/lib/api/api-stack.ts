@@ -863,7 +863,7 @@ export class ApiConstruct extends Construct {
         handler: "retriever.lambda_handler",
         functionName: "Online_Function_Retriever",
         code: Code.fromAsset(
-          join(__dirname, "../../../lambda/online/functions/lambda_retriever"),
+          join(__dirname, "../../../lambda/online/functions/functions_utils/retriever"),
         ),
         timeout: Duration.minutes(15),
         memorySize: 4096,
