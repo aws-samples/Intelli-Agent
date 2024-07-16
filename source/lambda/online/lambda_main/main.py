@@ -17,11 +17,11 @@ from botocore.exceptions import ClientError
 
 logger = get_logger("main")
 
-sessions_table_name = os.environ.get("sessions_table_name", "")
-messages_table_name = os.environ.get("messages_table_name", "")
-prompt_table_name = os.environ.get("prompt_table_name", "")
-websocket_url = os.environ.get("websocket_url", "")
-openai_key_arn = os.environ.get("openai_key_arn", "")
+sessions_table_name = os.environ.get("SESSIONS_TABLE_NAME", "")
+messages_table_name = os.environ.get("MESSAGES_TABLE_NAME", "")
+prompt_table_name = os.environ.get("PROMPT_TABLE_NAME", "")
+websocket_url = os.environ.get("WEBSOCKET_URL", "")
+openai_key_arn = os.environ.get("OPENAI_KEY_ARN", "")
 region_name = os.environ["AWS_REGION"]
 session = boto3.session.Session()
 secret_manager_client = session.client(
@@ -64,7 +64,6 @@ def get_secret_value(secret_arn: str):
         else:
             raise Exception("Fail to retrieve the secret value")
 
-
 @chatbot_lambda_call_wrapper
 def lambda_handler(event_body:dict, context:dict):
     # logger.info(event_body)
@@ -79,6 +78,8 @@ def lambda_handler(event_body:dict, context:dict):
     session_id = event_body.get("session_id", None)
     custom_message_id = event_body.get("custom_message_id", "")
     user_id = event_body.get("user_id", "default_user_id")
+    # TODO Need to modify key
+    group_name = event_body.get("chatbot_config").get("default_workspace_config",{"rag_workspace_ids":["Admin"]}).get("rag_workspace_ids","Admin")[0]
 
     if not session_id:
         session_id = f"session_{int(request_timestamp)}"
@@ -102,6 +103,7 @@ def lambda_handler(event_body:dict, context:dict):
     event_body['ddb_history_obj'] = ddb_history_obj
     event_body['request_timestamp'] = request_timestamp
     event_body['chatbot_config']['user_id'] = user_id
+    event_body['chatbot_config']['group_name'] = group_name
 
     event_body['message_id'] = str(uuid.uuid4())
     # event_body['chatbot_config']['prompt_templates'] = get_prompt(user_id,

@@ -41,6 +41,9 @@ export type SessionMessage = {
   role: 'ai' | 'human';
   content: string;
   createTimestamp: string;
+  additional_kwargs: {
+    figure: AdditionalImageType[];
+  };
 };
 
 export interface CachedDataType {
@@ -78,10 +81,17 @@ export type LibraryExecutionResponse = {
   Count: number;
 };
 
+export type AdditionalImageType = {
+  content_type: string;
+  figure_path: string;
+};
 export interface MessageDataType {
   message_id: string;
   custom_message_id: string;
-  message_type: 'START' | 'CHUNK' | 'END' | 'MONITOR'; // START CHUNK END MONITORING
+  ddb_additional_kwargs: {
+    figure: AdditionalImageType[];
+  };
+  message_type: 'START' | 'CHUNK' | 'END' | 'MONITOR' | 'CONTEXT'; // START CHUNK END MONITORING
   message: {
     role: string;
     content: string;
@@ -89,13 +99,16 @@ export interface MessageDataType {
 }
 
 export interface CreatePromptResponse {
-  message: string;
+  Message: string;
 }
 
 export type PromptItem = {
   uuid: string;
-  modelId: string;
-  taskType: string;
+  LastModifiedTime: string;
+  LastModifiedBy: string;
+  ModelId: string;
+  SortKey: string;
+  Scene: string;
 };
 
 export type PromptResponse = {
@@ -105,13 +118,15 @@ export type PromptResponse = {
 };
 
 export interface Prompt {
-  main: string;
+  [key: string]: {
+    [subKey: string]: string;
+  };
 }
 
 export interface GetPromptResponse {
-  modelId: string;
-  taskType: string;
-  prompt: Prompt;
-  sortKey: string;
-  userId: string;
+  GroupName: string;
+  SortKey: string;
+  ModelId: string;
+  Scene: string;
+  Prompt: Prompt;
 }

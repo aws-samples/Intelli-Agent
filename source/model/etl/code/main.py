@@ -130,6 +130,8 @@ class StructureSystem(object):
 structure_engine = StructureSystem()
 figure_understand = figureUnderstand()
 s3 = boto3.client("s3")
+
+
 def upload_images_to_s3(
     images, bucket: str, prefix: str, splitting_type: str
 ):
@@ -266,7 +268,7 @@ def structure_predict(file_path: Path, lang: str, auto_dpi, figure_rec) -> str:
             context = doc[max(start_pos-200, 0): min(start_pos+200, len(doc))]
             doc = doc.replace(k, figure_understand(v[0], context, k, s3_link=f'{figure_idx:05d}.jpg'))
         else:
-            doc = doc.replace(k, f"<figure><link>{figure_idx:05d}.jpg</link><type>ocr</type><desp>{region_text}</desp></figure>")
+            doc = doc.replace(k, f"\n<figure>\n<link>{figure_idx:05d}.jpg</link>\n<type>ocr</type>\n<desp>\n{region_text}\n</desp>\n</figure>\n")
     doc = re.sub("\n{2,}", "\n\n", doc.strip())
     return doc, images
 
@@ -279,6 +281,7 @@ def process_pdf_pipeline(request_body):
             - s3_bucket (str): The source S3 bucket name.
             - object_key (str): The key of the PDF object in the source bucket.
             - destination_bucket (str): The destination S3 bucket name.
+            - portal_bucket (str): The portal S3 bucket name
             - mode (str, optional): The processing mode. Defaults to "ppstructure".
             - lang (str, optional): The language of the PDF. Defaults to "zh".
 
@@ -289,6 +292,7 @@ def process_pdf_pipeline(request_body):
     bucket = request_body["s3_bucket"]
     object_key = request_body["object_key"]
     destination_bucket = request_body["destination_bucket"]
+    portal_bucket = request_body["portal_bucket"]
     mode = request_body.get("mode", "ppstructure")
     lang = request_body.get("lang", "zh")
     auto_dpi = bool(request_body.get("auto_dpi", True))
@@ -303,7 +307,7 @@ def process_pdf_pipeline(request_body):
     content, images = structure_predict(local_path, lang, auto_dpi, figure_rec)
     filename = file_path.stem
     name_s3path = upload_images_to_s3(
-        images, destination_bucket, filename, "before-splitting"
+        images, portal_bucket, filename, "image"
     )
     for key, s3_path in name_s3path.items():
         content = content.replace(f'<link>{key}</link>', f'<link>{s3_path}</link>')

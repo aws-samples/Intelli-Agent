@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 print_usage() {
     echo "Usage: $0 -b s3_bucket_name -i etl_image_name -t etl_image_tag -r aws_region"
     echo
@@ -31,27 +33,22 @@ echo "ETL image tag: $etl_image_tag"
 echo "AWS region: $aws_region"
 
 echo "Install dependencies"
-pushd ../infrastructure
+cd ../infrastructure
 npm install
-popd
 
 echo "Login ECR"
-pushd ..
+cd ..
 aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
-popd
 
 echo "Prepare model"
-pushd ../model
+cd model
 bash prepare_model.sh -s $s3_bucket_name
-popd
 
-pushd ../model/etl/code
+cd etl/code
 sh model.sh ./Dockerfile $etl_image_name $aws_region $etl_image_tag
-popd
 
 echo "Build frontend"
-pushd ../portal
+cd ../../../portal
 npm install && npm run build
-popd
 
-
+echo "Successfully built Assets for Intelli-Agent. Please proceed to deploy the stack."

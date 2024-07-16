@@ -15,7 +15,7 @@ from langchain.retrievers.document_compressors.base import BaseDocumentCompresso
 
 from sm_utils import SagemakerEndpointVectorOrCross
 
-rerank_model_endpoint = os.environ.get("rerank_endpoint", "")
+rerank_model_endpoint = os.environ.get("RERANK_ENDPOINT", "")
 
 """Document compressor that uses BGE reranker model."""
 class BGEM3Reranker(BaseDocumentCompressor):

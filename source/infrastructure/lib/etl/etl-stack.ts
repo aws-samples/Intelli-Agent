@@ -46,6 +46,7 @@ interface ETLStackProps extends StackProps {
   openSearchIndex: string;
   imageName: string;
   etlTag: string;
+  portalBucket: string;
   iamHelper: IAMHelper;
 }
 
@@ -389,6 +390,7 @@ export class EtlStack extends NestedStack {
         "--RES_BUCKET": s3Bucket.bucketName,
         "--ETL_OBJECT_TABLE": etlObjTable.tableName,
         "--WORKSPACE_TABLE": chatbotTable.tableName,
+        "--PORTAL_BUCKET": props.portalBucket,
         "--additional-python-modules":
           "langchain==0.1.11,beautifulsoup4==4.12.2,requests-aws4auth==1.2.3,boto3==1.28.84,openai==0.28.1,pyOpenSSL==23.3.0,tenacity==8.2.3,markdownify==0.11.6,mammoth==1.6.0,chardet==5.2.0,python-docx==1.1.0,nltk==3.8.1,pdfminer.six==20221105,smart-open==7.0.4,lxml==5.2.2",
         "--python-modules-installer-option": BuildConfig.JOB_PIP_OPTION,
@@ -416,7 +418,8 @@ export class EtlStack extends NestedStack {
       environment: {
         DEFAULT_EMBEDDING_ENDPOINT:
           props.embeddingAndRerankerEndPoint ||
-          "Default Embedding Endpoint Not Created",
+          "-",
+        AOS_DOMAIN_ENDPOINT: props.domainEndpoint || "-",
       },
     });
     etlLambda.addToRolePolicy(this.iamHelper.glueStatement);
@@ -459,7 +462,7 @@ export class EtlStack extends NestedStack {
       glueJobName: glueJob.jobName,
       integrationPattern: sfn.IntegrationPattern.RUN_JOB,
       arguments: sfn.TaskInput.fromObject({
-        "--AOS_ENDPOINT": props.domainEndpoint || "AOS Endpoint Not Created",
+        "--AOS_ENDPOINT": props.domainEndpoint || "-",
         "--BATCH_FILE_NUMBER.$": "$.batchFileNumber",
         "--BATCH_INDICE.$": 'States.Format(\'{}\', $.batchIndices)',
         "--DOCUMENT_LANGUAGE.$": "$.documentLanguage",
@@ -476,6 +479,7 @@ export class EtlStack extends NestedStack {
         "--RES_BUCKET": s3Bucket.bucketName,
         "--S3_BUCKET.$": "$.s3Bucket",
         "--S3_PREFIX.$": "$.s3Prefix",
+        "--PORTAL_BUCKET": props.portalBucket,
         "--WORKSPACE_ID.$": "$.workspaceId",
         "--job-language": "python",
       }),
@@ -522,7 +526,7 @@ export class EtlStack extends NestedStack {
       integrationPattern: sfn.IntegrationPattern.RUN_JOB,
       resultPath: "$.mapResults",
       arguments: sfn.TaskInput.fromObject({
-        "--AOS_ENDPOINT": props.domainEndpoint,
+        "--AOS_ENDPOINT": props.domainEndpoint || "-",
         "--BATCH_FILE_NUMBER.$": "$.batchFileNumber",
         "--BATCH_INDICE.$": 'States.Format(\'{}\', $.batchIndices)',
         "--DOCUMENT_LANGUAGE.$": "$.documentLanguage",
@@ -539,6 +543,7 @@ export class EtlStack extends NestedStack {
         "--RES_BUCKET": s3Bucket.bucketName,
         "--S3_BUCKET.$": "$.s3Bucket",
         "--S3_PREFIX.$": "$.s3Prefix",
+        "--PORTAL_BUCKET": props.portalBucket,
         "--WORKSPACE_ID.$": "$.workspaceId",
         "--job-language": "python",
       }),

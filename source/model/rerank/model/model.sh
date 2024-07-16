@@ -1,3 +1,5 @@
+set -e
+
 function usage {
   echo "Make sure python3 installed properly. Usage: $0 -t TOKEN [-m MODEL_NAME] [-c COMMIT_HASH] [-s S3_BUCKET_NAME]"
   echo "  -t TOKEN                             Hugging Face token "
@@ -73,7 +75,9 @@ else
   sed -i "s|option.tensor_parallel_degree=tpd|option.tensor_parallel_degree=$tensor_parallel_degree|g" $file_path
 fi
 
-rm bge_reranker_model.tar.gz
+if [ -f bge_reranker_model.tar.gz ]; then
+  rm bge_reranker_model.tar.gz
+fi
 tar czvf bge_reranker_model.tar.gz *
 
 code_path="${model_name}_deploy_code"

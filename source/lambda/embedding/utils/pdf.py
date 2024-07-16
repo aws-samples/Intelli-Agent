@@ -44,6 +44,7 @@ def invoke_etl_model(
     bucket,
     key,
     res_bucket,
+    portal_bucket_name: str,
     mode="ppstructure",
     lang="ch",
 ):
@@ -54,6 +55,7 @@ def invoke_etl_model(
                 "s3_bucket": bucket,
                 "object_key": key,
                 "destination_bucket": res_bucket,
+                "portal_bucket": portal_bucket_name,
                 "mode": mode,
                 "lang": lang,
             }
@@ -98,6 +100,7 @@ def process_pdf(s3, pdf: bytes, **kwargs):
     etl_model_endpoint = kwargs.get("etl_model_endpoint", None)
     smr_client = kwargs.get("smr_client", None)
     res_bucket = kwargs.get("res_bucket", None)
+    portal_bucket_name = kwargs.get("portal_bucket_name", None)
     need_split = kwargs.get("need_split", None)
     logger.info("Input arguments: {}".format(kwargs))
     # extract the file into tmp folder
@@ -124,6 +127,7 @@ def process_pdf(s3, pdf: bytes, **kwargs):
                 bucket,
                 key,
                 res_bucket,
+                portal_bucket_name,
                 mode="ppstructure",
                 lang="ch",
             )
@@ -137,6 +141,7 @@ def process_pdf(s3, pdf: bytes, **kwargs):
                 bucket,
                 key,
                 res_bucket,
+                portal_bucket_name,
                 mode="ppstructure",
                 lang="en",
             )
