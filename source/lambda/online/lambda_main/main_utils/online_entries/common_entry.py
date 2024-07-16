@@ -3,15 +3,8 @@ from typing import Annotated, Any, TypedDict
 
 from common_logic.common_utils.constant import (
     LLMTaskType,
-    ChatbotMode,
     ToolRuningMode,
     SceneType
-)
-from common_logic.common_utils.exceptions import (
-    ToolNotExistError, 
-    ToolParameterNotExistError,
-    MultipleToolNameError,
-    ToolNotFound
 )
 
 from common_logic.common_utils.lambda_invoke_utils import (
@@ -24,14 +17,16 @@ from common_logic.common_utils.python_utils import add_messages, update_nest_dic
 from common_logic.common_utils.logger_utils import get_logger
 from common_logic.common_utils.prompt_utils import get_prompt_templates_from_ddb
 from common_logic.common_utils.serialization_utils import JSONEncoder
-from functions.tool_calling_parse import parse_tool_calling as _parse_tool_calling
-from functions.tool_execute_result_format import format_tool_call_results
-from functions import get_tool_by_name
-from lambda_main.main_utils.parse_config import parse_common_entry_config
+from functions import get_tool_by_name,init_common_tools
+from lambda_main.main_utils.parse_config import CommonConfigParser
 from langgraph.graph import END, StateGraph
-from functions.lambda_common_tools.knowledge_base_retrieve import knowledge_base_retrieve
+from lambda_main.main_utils.online_entries.agent_base import build_agent_graph,tool_execution
+
+
+init_common_tools()
 
 logger = get_logger('common_entry')
+
 class ChatbotState(TypedDict):
     ########### input/output states ###########
     # inputs
@@ -147,30 +142,6 @@ def llm_rag_results_generation(state: ChatbotState):
 
 
 @node_monitor_wrapper
-def tools_choose_and_results_generation(state: ChatbotState):
-    # check once tool calling
-    current_agent_output:dict = invoke_lambda(
-        event_body={
-            **state,
-            # "other_chain_kwargs": {"system_prompt": get_common_system_prompt()}
-            },
-        lambda_name="Online_Agent",
-        lambda_module_path="lambda_agent.agent",
-        handler_name="lambda_handler",
-   
-    )
-    current_agent_recursion_num = state['current_agent_recursion_num'] + 1
-    agent_recursion_validation = state['current_agent_recursion_num'] < state['agent_recursion_limit']
-
-    send_trace(f"\n\n**current_agent_output:** \n{json.dumps(current_agent_output['agent_output'],ensure_ascii=False,indent=2)}\n\n **current_agent_recursion_num:** {current_agent_recursion_num}", state["stream"], state["ws_connection_id"])
-    return {
-        "current_agent_output": current_agent_output,
-        "current_agent_recursion_num": current_agent_recursion_num,
-        "agent_recursion_validation": agent_recursion_validation
-    }
-
-
-@node_monitor_wrapper
 def agent(state: ChatbotState):
     # two cases to invoke rag function
     # 1. when valid intention fewshot found
@@ -209,70 +180,6 @@ def agent(state: ChatbotState):
     response = app_agent.invoke(state)
 
     return response
-
-
-@node_monitor_wrapper
-def results_evaluation(state: ChatbotState):
-    # parse tool_calls:
-    try:
-        output = _parse_tool_calling(
-            agent_output=state['current_agent_output']
-        )
-        tool_calls = output['tool_calls']
-        send_trace(f"\n\n**tool_calls parsed:** \n{tool_calls}", state["stream"], state["ws_connection_id"], state["enable_trace"])
-        if not state["extra_response"].get("current_agent_intent_type", None):
-            state["extra_response"]["current_agent_intent_type"] = output['tool_calls'][0]["name"]
-       
-        return {
-            "parse_tool_calling_ok": True,
-            "current_tool_calls": tool_calls,
-            "agent_chat_history": [output['agent_message']]
-        }
-    
-    except (ToolNotExistError,
-             ToolParameterNotExistError,
-             MultipleToolNameError,
-             ToolNotFound
-             ) as e:
-        send_trace(f"\n\n**tool_calls parse failed:** \n{str(e)}", state["stream"], state["ws_connection_id"], state["enable_trace"])
-        return {
-            "parse_tool_calling_ok": False,
-            "agent_chat_history":[
-                e.agent_message,
-                e.error_message
-            ]
-        }
-
-
-@node_monitor_wrapper
-def tool_execution(state: ChatbotState):
-    tool_calls = state['current_tool_calls']
-    assert len(tool_calls) == 1, tool_calls
-    tool_call_results = []
-    for tool_call in tool_calls:
-        tool_name = tool_call["name"]
-        tool_kwargs = tool_call['kwargs']
-        # call tool
-        output = invoke_lambda(
-            event_body = {
-                "tool_name":tool_name,
-                "state":state,
-                "kwargs":tool_kwargs
-                },
-            lambda_name="Online_Tool_Execute",
-            lambda_module_path="functions.lambda_tool",
-            handler_name="lambda_handler"   
-        )
-        tool_call_results.append({
-            "name": tool_name,
-            "output": output,
-            "kwargs": tool_call['kwargs'],
-            "model_id": tool_call['model_id']
-        })
-    
-    output = format_tool_call_results(tool_calls[0]['model_id'],tool_call_results)
-    send_trace(f'**tool_execute_res:** \n{output["tool_message"]["content"]}')
-    return {"agent_chat_history": [output['tool_message']]}
 
 
 @node_monitor_wrapper
@@ -351,9 +258,6 @@ def query_route(state: dict):
 
 
 def intent_route(state: dict):
-    # if not state['intention_fewshot_examples']:
-    #     state['extra_response']['current_agent_intent_type'] = 'final_rag'
-    #     return 'no clear intention'
     return state["intent_type"]
 
 def agent_route(state: dict):
@@ -384,10 +288,9 @@ def agent_route(state: dict):
 #############################
 # define online top-level graph for app #
 #############################
-app = None
 
-def build_graph():
-    workflow = StateGraph(ChatbotState)
+def build_graph(chatbot_state_cls):
+    workflow = StateGraph(chatbot_state_cls)
     # add node for all chat/rag/agent mode
     workflow.add_node("query_preprocess", query_preprocess)
     # chat mode
@@ -457,40 +360,12 @@ def build_graph():
     app = workflow.compile()
     return app
 
-#############################
+#####################################
 # define online sub-graph for agent #
-#############################
+#####################################
 app_agent = None
+app = None
 
-def build_agent_graph():
-    def _results_evaluation_route(state: dict):
-        #TODO: pass no need tool calling or valid tool calling?
-        if state["agent_recursion_validation"] and not state["parse_tool_calling_ok"]:
-            return "invalid tool calling"
-        return "continue"
-
-    workflow = StateGraph(ChatbotState)
-    workflow.add_node("tools_choose_and_results_generation", tools_choose_and_results_generation)
-    workflow.add_node("results_evaluation", results_evaluation)
-
-    # add all edges
-    workflow.set_entry_point("tools_choose_and_results_generation")
-    workflow.add_edge("tools_choose_and_results_generation","results_evaluation")
-
-    # add conditional edges
-    # the results of agent planning will be evaluated and decide next step:
-    # 1. invalid tool calling: if agent makes clear mistakes, like wrong tool names or format, it will be forced to plan again
-    # 2. valid tool calling: the agent chooses the valid tools
-    workflow.add_conditional_edges(
-        "results_evaluation",
-        _results_evaluation_route,
-        {
-            "invalid tool calling": "tools_choose_and_results_generation",
-            "continue": END,
-        }
-    )
-    app = workflow.compile()
-    return app
 
 def common_entry(event_body):
     """
@@ -500,10 +375,10 @@ def common_entry(event_body):
     """
     global app,app_agent
     if app is None:
-        app = build_graph()
+        app = build_graph(ChatbotState)
     
     if app_agent is None:
-        app_agent = build_agent_graph()
+        app_agent = build_agent_graph(ChatbotState)
 
     # debuging
     if is_running_local():
@@ -515,7 +390,7 @@ def common_entry(event_body):
             
     ################################################################################
     # prepare inputs and invoke graph
-    event_body["chatbot_config"] = parse_common_entry_config(
+    event_body["chatbot_config"] = CommonConfigParser.from_chatbot_config(
         event_body["chatbot_config"]
     )
     logger.info(f'event_body:\n{json.dumps(event_body,ensure_ascii=False,indent=2,cls=JSONEncoder)}')
