@@ -7,10 +7,10 @@ import logging
 import boto3
 import sys
 
-from functions.lambda_retriever.utils.aos_retrievers import QueryDocumentKNNRetriever, QueryDocumentBM25Retriever, QueryQuestionRetriever
-from functions.lambda_retriever.utils.reranker import BGEReranker, MergeReranker
-from functions.lambda_retriever.utils.context_utils import retriever_results_format
-from functions.lambda_retriever.utils.websearch_retrievers import GoogleRetriever
+from functions.functions_utils.retriever.utils.aos_retrievers import QueryDocumentKNNRetriever, QueryDocumentBM25Retriever, QueryQuestionRetriever
+from functions.functions_utils.retriever.utils.reranker import BGEReranker, MergeReranker
+from functions.functions_utils.retriever.utils.context_utils import retriever_results_format
+from functions.functions_utils.retriever.utils.websearch_retrievers import GoogleRetriever
 
 from langchain.retrievers import ContextualCompressionRetriever, AmazonKnowledgeBasesRetriever
 from langchain_community.retrievers import AmazonKnowledgeBasesRetriever

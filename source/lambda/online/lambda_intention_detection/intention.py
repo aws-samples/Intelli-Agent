@@ -22,7 +22,7 @@ def get_intention_results(query:str, intention_config:dict):
     # call retriver
     res:list[dict] = invoke_lambda(
         lambda_name='Online_Function_Retriever',
-        lambda_module_path="functions.lambda_retriever.retriever",
+        lambda_module_path="functions.functions_utils.retriever.retriever",
         handler_name='lambda_handler',
         event_body=event_body
     )

@@ -17,13 +17,10 @@ from common_logic.common_utils.python_utils import add_messages, update_nest_dic
 from common_logic.common_utils.logger_utils import get_logger
 from common_logic.common_utils.prompt_utils import get_prompt_templates_from_ddb
 from common_logic.common_utils.serialization_utils import JSONEncoder
-from functions import get_tool_by_name,init_common_tools
+from functions import get_tool_by_name
 from lambda_main.main_utils.parse_config import CommonConfigParser
 from langgraph.graph import END, StateGraph
 from lambda_main.main_utils.online_entries.agent_base import build_agent_graph,tool_execution
-
-
-init_common_tools()
 
 logger = get_logger('common_entry')
 
@@ -195,7 +192,7 @@ def rag_all_index_lambda(state: ChatbotState):
     output: str = invoke_lambda(
         event_body=retriever_params,
         lambda_name="Online_Function_Retriever",
-        lambda_module_path="functions.lambda_retriever.retriever",
+        lambda_module_path="functions.functions_utils.retriever.retriever",
         handler_name="lambda_handler",
     )
 
