@@ -27,4 +27,4 @@ def __delete_subnet(subnet_id):
             logger.info("!!!!!%s is deleted!!!!!", eni['NetworkInterfaceId'])
         ec2_client.delete_subnet(SubnetId=subnet_id)
     except ClientError as e:
-        logger.error(f"Error in deleting subnet: {e}")
+        logger.error("Error in deleting subnet: %s", e)

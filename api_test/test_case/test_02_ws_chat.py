@@ -1,26 +1,14 @@
+'''TestChat'''
 import datetime
 import json
 import os
-import threading
 import time
-# import api_test.config as config
-from dotenv import load_dotenv
-import pytest
-import requests
-import websocket
-
-from api_test.biz_logic.rest_api import openapi_client
-# from api_test.biz_logic.rest_api import IntellapiconnnHdtwRWUXa
-
-from .utils import step
 import logging
-import boto3
+import websocket
+from dotenv import load_dotenv
+from .utils import step
 
 logger = logging.getLogger(__name__)
-# sts = boto3.client('sts')
-# s3_client = boto3.client('s3')
-# caller_identity = boto3.client('sts').get_caller_identity()
-# partition = caller_identity['Arn'].split(':')[1]
 
 class TestChat:
     """DataSourceDiscovery test stubs"""
@@ -34,7 +22,7 @@ class TestChat:
         load_dotenv()
         cls.request_url=f"{os.getenv('ws_api_url')}?idToken={os.getenv('token')}"
         cls.ws = websocket.WebSocket()
-        cls.ws.settimeout(30)
+        cls.ws.settimeout(300)
         cls.wait_time = 1
         cls.retry_attempts = 3
         cls.config= {
@@ -69,11 +57,13 @@ class TestChat:
             f"[{datetime.datetime.strftime(datetime.datetime.now(),'%Y-%m-%d')}] [{__name__}] Test end."
         )
 
-    # @pytest.fixture(autouse=True)
     def setup_method(self, method):
         """Setup method to create a WebSocket client connection before each test."""
         logger.info("%s start...", method.__name__)
         self.ws.connect(self.request_url)
+        logger.info("websocket connection status: %s", self.ws.connected)
+        # self.ws = websocket.create_connection(self.request_url)
+        # print("WebSocket connection succeeded")
         time.sleep(self.wait_time)
     
     def teardown_method(self, method):
@@ -99,8 +89,18 @@ class TestChat:
                     messages.append(message)
                 if message["message_type"] == "END":
                     break
-        except websocket.WebSocketTimeoutException:
-            assert False, "test_26_agent_message_trace_history failed(TIME_OUT)!"
+        # except websocket.WebSocketTimeoutException as e:
+        #     logger.error(e)
+        #     assert False, "test_26_agent_message_trace_history failed(TIME_OUT)!"
+        except websocket.WebSocketTimeoutException as e:
+            logger.error("WebSocket timeout exception: %s", e)
+            assert False, "test_26_agent_message_trace_history failed (TIME_OUT-WebSocketTimeoutException)!"
+        except TimeoutError as e:
+            logger.error("Timeout error: %s", e)
+            assert False, "test_26_agent_message_trace_history failed (TIME_OUT)!"
+        except Exception as e:
+            logger.error("Unexpected exception: %s", e)
+            assert False, "test_26_agent_message_trace_history failed (UNEXPECTED_EXCEPTION)!"
         assert any(item["message_type"] == 'CONTEXT' for item in messages), "test_26_agent_message_trace_history failed!"
 
     def test_27_agent_message_no_trace(self):

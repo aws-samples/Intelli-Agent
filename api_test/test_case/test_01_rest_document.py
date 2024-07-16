@@ -1,35 +1,19 @@
+'''TestDocument'''
 import datetime
 import os
 import time
-# import api_test.config as config
-from dotenv import load_dotenv
-import pytest
-import requests
-
-from api_test.biz_logic.rest_api import openapi_client
-# from api_test.biz_logic.rest_api import IntellapiconnnHdtwRWUXa
-
-from .utils import step
 import logging
+from dotenv import load_dotenv
+import requests
 import boto3
+from api_test.biz_logic.rest_api import openapi_client
+from .utils import step
 
 logger = logging.getLogger(__name__)
 sts = boto3.client('sts')
 s3_client = boto3.client('s3')
 caller_identity = boto3.client('sts').get_caller_identity()
 partition = caller_identity['Arn'].split(':')[1]
-
-# aws cognito-idp admin-set-user-password \
-#   --user-pool-id us-east-1_mnQ87vF26 \
-#   --username cuihubin@amazon.com \
-#   --password TEST123! \
-#   --permanent
-
-# aws cognito-idp initiate-auth \
-#     --region us-east-1 \
-#     --auth-flow USER_PASSWORD_AUTH \
-#     --client-id p880fbijno32gtp2o0i651ukl \
-#     --auth-parameters USERNAME=cuihubin@amazon.com,PASSWORD=CSDC23!
 
 class TestDocument:
     """DataSourceDiscovery test stubs"""
@@ -77,8 +61,6 @@ class TestDocument:
     def teardown_method(self, method):
         """Setup method to create a rest client connection before each test."""
         logger.info("%s end.", method.__name__)
-
-    # aws cognito-idp initiate-auth --region ap-northeast-1 --auth-flow USER_PASSWORD_AUTH --client-id 78dihnoo69jeen0d0e76j6ai0e  --auth-parameters USERNAME=cuihubin@amazon.com,PASSWORD=TEST123!
     
     def test_01_upload_document_pdf(self):
         '''test case'''
@@ -159,13 +141,15 @@ class TestDocument:
     
     def test_12_list_document(self):
         '''test case'''
+        time.sleep(2 * 60)
         response = self.api_instance.etl_list_execution_get(page_size='9999', max_items='9999')
+        logger.info("response>>>>>>>>>>>")
+        logger.info(response) 
         for item in response.items:
             key = item.s3_prefix.rsplit('.', 1)[-1]
-            self.exeIdDict[key]=item.execution_id
-            # self.exeIdDict[key] = item.execution_id
-        logger.info("###############")
-        logger.info(self.exeIdDict)    
+            self.exeIdDict[key]=item.execution_id 
+        logger.info("file list>>>>>>>>>>>")
+        logger.info(self.exeIdDict) 
         assert response.count>0, "test_12_list_document test failed"
 
     def test_13_exec_document_pdf(self):
