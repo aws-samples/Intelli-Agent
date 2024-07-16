@@ -18,7 +18,7 @@ logger = get_logger("agent_base")
 @node_monitor_wrapper
 def tools_choose_and_results_generation(state):
     # check once tool calling
-    current_agent_output:dict = invoke_lambda(
+    agent_current_output:dict = invoke_lambda(
         event_body={
             **state
             },
@@ -30,9 +30,9 @@ def tools_choose_and_results_generation(state):
     agent_current_call_number = state['agent_current_call_number'] + 1
     agent_repeated_call_validation = state['agent_current_call_number'] < state['agent_repeated_call_limit']
 
-    send_trace(f"\n\n**current_agent_output:** \n{json.dumps(current_agent_output['agent_output'],ensure_ascii=False,indent=2)}\n\n **agent_current_call_number:** {agent_current_call_number}", state["stream"], state["ws_connection_id"])
+    send_trace(f"\n\n**agent_current_output:** \n{json.dumps(agent_current_output['agent_output'],ensure_ascii=False,indent=2)}\n\n **agent_current_call_number:** {agent_current_call_number}", state["stream"], state["ws_connection_id"])
     return {
-        "current_agent_output": current_agent_output,
+        "agent_current_output": agent_current_output,
         "agent_current_call_number": agent_current_call_number,
         "agent_repeated_call_validation": agent_repeated_call_validation
     }
@@ -43,7 +43,7 @@ def results_evaluation(state):
     # parse tool_calls:
     try:
         output = _parse_tool_calling(
-            agent_output=state['current_agent_output']
+            agent_output=state['agent_current_output']
         )
         tool_calls = output['tool_calls']
         send_trace(f"\n\n**tool_calls parsed:** \n{tool_calls}", state["stream"], state["ws_connection_id"], state["enable_trace"])
@@ -51,8 +51,8 @@ def results_evaluation(state):
             state["extra_response"]["current_agent_intent_type"] = output['tool_calls'][0]["name"]
        
         return {
-            "parse_tool_calling_ok": True,
-            "current_tool_calls": tool_calls,
+            "function_calling_parse_ok": True,
+            "function_calling_parsed_tool_calls": tool_calls,
             "agent_tool_history": [output['agent_message']]
         }
     
@@ -63,7 +63,7 @@ def results_evaluation(state):
              ) as e:
         send_trace(f"\n\n**tool_calls parse failed:** \n{str(e)}", state["stream"], state["ws_connection_id"], state["enable_trace"])
         return {
-            "parse_tool_calling_ok": False,
+            "function_calling_parse_ok": False,
             "agent_tool_history":[
                 e.agent_message,
                 e.error_message
@@ -80,7 +80,7 @@ def tool_execution(state):
     Returns:
         _type_: _description_
     """
-    tool_calls = state['current_tool_calls']
+    tool_calls = state['function_calling_parsed_tool_calls']
     assert len(tool_calls) == 1, tool_calls
     tool_call_results = []
     for tool_call in tool_calls:
@@ -115,7 +115,7 @@ def tool_execution(state):
 def build_agent_graph(chatbot_state_cls):
     def _results_evaluation_route(state: dict):
         #TODO: pass no need tool calling or valid tool calling?
-        if state["agent_repeated_call_validation"] and not state["parse_tool_calling_ok"]:
+        if state["agent_repeated_call_validation"] and not state["function_calling_parse_ok"]:
             return "invalid tool calling"
         return "continue"
 

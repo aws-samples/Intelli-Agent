@@ -48,21 +48,27 @@ class ChatbotState(TypedDict):
     answer: Any  
     # information needed return to user, e.g. intention, context and so on, anything you can get during execution
     extra_response: Annotated[dict, update_nest_dict]
+
     ########### query rewrite states ###########
     # query rewrite results
     query_rewrite: str = None 
+
     ########### intention detection states ###########
     # intention type of retrieved intention samples in search engine, e.g. OpenSearch
     intent_type: str = None 
     # retrieved intention samples in search engine, e.g. OpenSearch
-    intention_fewshot_examples: list 
+    intent_fewshot_examples: list 
+    # tools of retrieved intention samples in search engine, e.g. OpenSearch
+    intent_fewshot_tools: list
+
     ########### retriever states ###########
     # contexts information retrieved in search engine, e.g. OpenSearch
     contexts: str = None
     figure: list = None
+    
     ########### agent states ###########
     # current output of agent
-    current_agent_output: dict
+    agent_current_output: dict
     # record messages during agent tool choose and calling, including agent message, tool ouput and error messages
     agent_tool_history: Annotated[list[dict], add_messages] 
     # the maximum number that agent node can be called
@@ -72,12 +78,14 @@ class ChatbotState(TypedDict):
     # whehter the current call time is less than maximum number of agent call
     agent_repeated_call_validation: bool
     # function calling
-    current_function_calls: list[str]
-    parse_tool_calling_ok: bool
-    current_intent_tools: list
-    current_tool_calls: list
-    current_tool_name: str
-    is_current_tool_calling_once: bool
+    # whether the output of agent can be parsed as the valid tool calling
+    function_calling_parse_ok: bool
+    # the parsed tool calling of agent output, it can be used to further execute tools
+    function_calling_parsed_tool_calls: list
+    # the parsed tool name of agent output
+    function_calling_parsed_tool_name: str
+    # whether the current parsed tool calling is run once
+    function_calling_is_run_once: bool
 
 ####################
 # nodes in graph #
@@ -97,22 +105,22 @@ def query_preprocess(state: ChatbotState):
 
 @node_monitor_wrapper
 def intention_detection(state: ChatbotState):
-    intention_fewshot_examples = invoke_lambda(
+    intent_fewshot_examples = invoke_lambda(
         lambda_module_path="lambda_intention_detection.intention",
         lambda_name="Online_Intention_Detection",
         handler_name="lambda_handler",
         event_body=state,
     )
 
-    current_intent_tools: list[str] = list(
-        set([e["intent"] for e in intention_fewshot_examples])
+    intent_fewshot_tools: list[str] = list(
+        set([e["intent"] for e in intent_fewshot_examples])
     )
 
     send_trace(
-        f"**intention retrieved:**\n{json.dumps(intention_fewshot_examples,ensure_ascii=False,indent=2)}", state["stream"], state["ws_connection_id"], state["enable_trace"])
+        f"**intention retrieved:**\n{json.dumps(intent_fewshot_examples,ensure_ascii=False,indent=2)}", state["stream"], state["ws_connection_id"], state["enable_trace"])
     return {
-        "intention_fewshot_examples": intention_fewshot_examples,
-        "current_intent_tools": current_intent_tools,
+        "intent_fewshot_examples": intent_fewshot_examples,
+        "intent_fewshot_tools": intent_fewshot_tools,
         "intent_type": "intention detected",
     }
 
@@ -161,9 +169,9 @@ def agent(state: ChatbotState):
     # two cases to invoke rag function
     # 1. when valid intention fewshot found
     # 2. for the first time, agent decides to give final results
-    no_intention_condition = not state['intention_fewshot_examples']
+    no_intention_condition = not state['intent_fewshot_examples']
     first_tool_final_response = False
-    if (state['agent_current_call_number'] == 1) and state['parse_tool_calling_ok'] and state['agent_tool_history']:
+    if (state['agent_current_call_number'] == 1) and state['function_calling_parse_ok'] and state['agent_tool_history']:
         tool_execute_res = state['agent_tool_history'][-1]['additional_kwargs']['raw_tool_call_results'][0]
         tool_name = tool_execute_res['name']
         if tool_name == "give_final_response":
@@ -176,11 +184,11 @@ def agent(state: ChatbotState):
         answer:str = llm_rag_results_generation(state)['answer']
         return {
             "answer": answer,
-            "is_current_tool_calling_once": True
+            "function_calling_is_run_once": True
         }
 
     # deal with once tool calling
-    if state['agent_repeated_call_validation'] and state['parse_tool_calling_ok'] and state['agent_tool_history']:
+    if state['agent_repeated_call_validation'] and state['function_calling_parse_ok'] and state['agent_tool_history']:
         tool_execute_res = state['agent_tool_history'][-1]['additional_kwargs']['raw_tool_call_results'][0]
         tool_name = tool_execute_res['name']
         output = tool_execute_res['output']
@@ -189,7 +197,7 @@ def agent(state: ChatbotState):
             send_trace("once tool")
             return {
                 "answer": str(output['result']),
-                "is_current_tool_calling_once": True
+                "function_calling_is_run_once": True
             }
 
     response = app_agent.invoke(state)
@@ -276,23 +284,23 @@ def intent_route(state: dict):
     return state["intent_type"]
 
 def agent_route(state: dict):
-    if state.get("is_current_tool_calling_once",False):
+    if state.get("function_calling_is_run_once",False):
         return "no need tool calling"
 
     state["agent_repeated_call_validation"] = state['agent_current_call_number'] < state['agent_repeated_call_limit']
-    # if state["parse_tool_calling_ok"]:
-    #     state["current_tool_name"] = state["current_tool_calls"][0]["name"]
+    # if state["function_calling_parse_ok"]:
+    #     state["function_calling_parsed_tool_name"] = state["function_calling_parsed_tool_calls"][0]["name"]
     # else:
-    #     state["current_tool_name"] = ""
+    #     state["function_calling_parsed_tool_name"] = ""
 
-    # if state["agent_repeated_call_validation"] and not state["parse_tool_calling_ok"]:
+    # if state["agent_repeated_call_validation"] and not state["function_calling_parse_ok"]:
     #     return "invalid tool calling"
 
     if state["agent_repeated_call_validation"]:
         return "valid tool calling"
-        # if state["current_tool_name"] in ["QA", "service_availability", "explain_abbr"]:
+        # if state["function_calling_parsed_tool_name"] in ["QA", "service_availability", "explain_abbr"]:
         #     return "force to retrieve all knowledge"
-        # elif state["current_tool_name"] in state["valid_tool_calling_names"]:
+        # elif state["function_calling_parsed_tool_name"] in state["valid_tool_calling_names"]:
         #     return "valid tool calling"
         # else:
         #     return "no need tool calling"
