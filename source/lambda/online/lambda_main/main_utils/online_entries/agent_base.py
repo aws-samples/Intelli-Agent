@@ -27,14 +27,14 @@ def tools_choose_and_results_generation(state):
         handler_name="lambda_handler",
    
     )
-    current_agent_recursion_num = state['current_agent_recursion_num'] + 1
-    agent_recursion_validation = state['current_agent_recursion_num'] < state['agent_recursion_limit']
+    agent_current_call_number = state['agent_current_call_number'] + 1
+    agent_repeated_call_validation = state['agent_current_call_number'] < state['agent_repeated_call_limit']
 
-    send_trace(f"\n\n**current_agent_output:** \n{json.dumps(current_agent_output['agent_output'],ensure_ascii=False,indent=2)}\n\n **current_agent_recursion_num:** {current_agent_recursion_num}", state["stream"], state["ws_connection_id"])
+    send_trace(f"\n\n**current_agent_output:** \n{json.dumps(current_agent_output['agent_output'],ensure_ascii=False,indent=2)}\n\n **agent_current_call_number:** {agent_current_call_number}", state["stream"], state["ws_connection_id"])
     return {
         "current_agent_output": current_agent_output,
-        "current_agent_recursion_num": current_agent_recursion_num,
-        "agent_recursion_validation": agent_recursion_validation
+        "agent_current_call_number": agent_current_call_number,
+        "agent_repeated_call_validation": agent_repeated_call_validation
     }
 
 
@@ -53,7 +53,7 @@ def results_evaluation(state):
         return {
             "parse_tool_calling_ok": True,
             "current_tool_calls": tool_calls,
-            "agent_thinking_history": [output['agent_message']]
+            "agent_tool_history": [output['agent_message']]
         }
     
     except (ToolNotExistError,
@@ -64,7 +64,7 @@ def results_evaluation(state):
         send_trace(f"\n\n**tool_calls parse failed:** \n{str(e)}", state["stream"], state["ws_connection_id"], state["enable_trace"])
         return {
             "parse_tool_calling_ok": False,
-            "agent_thinking_history":[
+            "agent_tool_history":[
                 e.agent_message,
                 e.error_message
             ]
@@ -107,7 +107,7 @@ def tool_execution(state):
     output = format_tool_call_results(tool_call['model_id'],tool_call_results)
     send_trace(f'**tool_execute_res:** \n{output["tool_message"]["content"]}')
     return {
-        "agent_thinking_history": [output['tool_message']]
+        "agent_tool_history": [output['tool_message']]
         }
 
 
@@ -115,7 +115,7 @@ def tool_execution(state):
 def build_agent_graph(chatbot_state_cls):
     def _results_evaluation_route(state: dict):
         #TODO: pass no need tool calling or valid tool calling?
-        if state["agent_recursion_validation"] and not state["parse_tool_calling_ok"]:
+        if state["agent_repeated_call_validation"] and not state["parse_tool_calling_ok"]:
             return "invalid tool calling"
         return "continue"
 

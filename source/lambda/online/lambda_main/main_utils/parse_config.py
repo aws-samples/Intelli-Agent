@@ -24,7 +24,7 @@ class ConfigParserBase:
             "use_history": True,
             "enable_trace": True,
             "scene": SceneType.COMMON,
-            "agent_recursion_limit": 5,
+            "agent_repeated_call_limit": 5,
             "query_process_config": {
                 "conversation_query_rewrite_config": {**copy.deepcopy(default_llm_config)}
             },
@@ -120,7 +120,7 @@ class RetailConfigParser(ConfigParserBase):
     @classmethod
     def get_default_chatbot_config(cls, default_llm_config, default_index_config):
         default_chatbot_config = super().get_default_chatbot_config(default_llm_config, default_index_config)
-        default_chatbot_config['agent_recursion_limit'] = 3
+        default_chatbot_config['agent_repeated_call_limit'] = 3
         default_chatbot_config['intention_config'] = {
             "query_key": "query_rewrite",
             "retrievers": [
@@ -164,7 +164,7 @@ class RetailConfigParser(ConfigParserBase):
     #     "use_history": True,
     #     "enable_trace": True,
     #     "scene": SceneType.COMMON,
-    #     "agent_recursion_limit": 5,
+    #     "agent_repeated_call_limit": 5,
     #     "query_process_config": {
     #         "conversation_query_rewrite_config": {**copy.deepcopy(default_llm_config)}
     #     },
@@ -254,7 +254,7 @@ def parse_retail_entry_config(chatbot_config):
         "scene": SceneType.RETAIL,
         "use_history": True,
         "enable_trace": False,
-        "agent_recursion_limit": 3,
+        "agent_repeated_call_limit": 3,
         "query_process_config": {
             "conversation_query_rewrite_config": copy.deepcopy(default_llm_config)
         },
