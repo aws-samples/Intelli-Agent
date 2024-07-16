@@ -192,6 +192,7 @@ def structure_predict(file_path: Path, lang: str, auto_dpi, figure_rec) -> str:
     """
 
     # img_list, flag_gif, flag_pdf are returned from check_and_read
+    #img_list, _, _ = check_and_read(file_path)
 
     all_res = []
     for index, img in enumerate(check_and_read(file_path)):
@@ -212,16 +213,16 @@ def structure_predict(file_path: Path, lang: str, auto_dpi, figure_rec) -> str:
             region_text = ""
             if figure_rec:
                 doc += '<{{figure_' + str(len(figure)) + '}}>\n'
-                figure['<{{figure_' + str(len(figure)) + '}}>'] = [Image.fromarray(region["img"]), None]
+                figure['<{{figure_' + str(len(figure)) + '}}>'] = [Image.fromarray(region["img"][:,:,::-1]), None]
             else:
                 doc += '<{{figure_' + str(len(figure)) + '}}>\n'
                 for _, line in enumerate(region["res"]):
                     region_text += line["text"] + " "
                 if remove_symbols(region_text) != remove_symbols(prev_region_text):
-                    figure['<{{figure_' + str(len(figure)) + '}}>'] = [Image.fromarray(region["img"]), region_text]
+                    figure['<{{figure_' + str(len(figure)) + '}}>'] = [Image.fromarray(region["img"][:,:,::-1]), region_text]
                     prev_region_text = region_text
                 else:
-                    figure['<{{figure_' + str(len(figure)) + '}}>'] = [Image.fromarray(region["img"]), None]
+                    figure['<{{figure_' + str(len(figure)) + '}}>'] = [Image.fromarray(region["img"][:,:,::-1]), None]
             
         elif region["type"].lower() == "title":
             region_text = ''
