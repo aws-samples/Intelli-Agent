@@ -146,10 +146,17 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       const sessionMessage: SessionMessage[] = data.Items;
       setMessages(
         sessionMessage.map((msg) => {
+          let messageContent = msg.content;
+          // Handle AI images message
+          if (msg.role === 'ai' && msg.additional_kwargs.figure.length > 0) {
+            msg.additional_kwargs.figure.forEach((item) => {
+              messageContent += `![${item.content_type}](/${item.figure_path})`;
+            });
+          }
           return {
             type: msg.role,
             message: {
-              data: msg.content,
+              data: messageContent,
               monitoring: '',
             },
           };
