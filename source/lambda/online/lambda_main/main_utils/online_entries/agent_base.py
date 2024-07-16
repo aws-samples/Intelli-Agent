@@ -53,7 +53,7 @@ def results_evaluation(state):
         return {
             "parse_tool_calling_ok": True,
             "current_tool_calls": tool_calls,
-            "agent_chat_history": [output['agent_message']]
+            "agent_thinking_history": [output['agent_message']]
         }
     
     except (ToolNotExistError,
@@ -64,7 +64,7 @@ def results_evaluation(state):
         send_trace(f"\n\n**tool_calls parse failed:** \n{str(e)}", state["stream"], state["ws_connection_id"], state["enable_trace"])
         return {
             "parse_tool_calling_ok": False,
-            "agent_chat_history":[
+            "agent_thinking_history":[
                 e.agent_message,
                 e.error_message
             ]
@@ -107,7 +107,7 @@ def tool_execution(state):
     output = format_tool_call_results(tool_call['model_id'],tool_call_results)
     send_trace(f'**tool_execute_res:** \n{output["tool_message"]["content"]}')
     return {
-        "agent_chat_history": [output['tool_message']]
+        "agent_thinking_history": [output['tool_message']]
         }
 
 
