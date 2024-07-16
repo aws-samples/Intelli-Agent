@@ -55,7 +55,7 @@ export class LambdaLayers {
         compatibleRuntimes: [Runtime.PYTHON_3_12],
         description: `Intelli agent - Online Source layer`,
         bundling: {
-          assetExcludes: ["*.pyc","*/__pycache__/*","*.xls","*.jsonl","*.xlsx","*.csv","*.png","lambda_main/retail/size/*"],
+          assetExcludes: ["*.pyc","*/__pycache__/*","*.xls","*.xlsx","*.csv","*.png","lambda_main/retail/size/*"],
         }
       },
     );

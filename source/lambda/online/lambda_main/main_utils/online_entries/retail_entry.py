@@ -43,7 +43,7 @@ class ChatbotState(TypedDict):
     trace_infos: Annotated[list[str],add_messages]
     message_id: str = None
     chat_history: Annotated[list[dict],add_messages]
-    agent_chat_history: Annotated[list[dict],add_messages]
+    agent_thinking_history: Annotated[list[dict],add_messages]
     current_function_calls: list[str]
     current_tool_execute_res: dict
     debug_infos: Annotated[dict,update_nest_dict]
@@ -109,11 +109,11 @@ def intention_detection(state: ChatbotState):
 @node_monitor_wrapper
 def agent(state: ChatbotState):
     goods_info = state.get('goods_info',None) or ""
-    agent_chat_history = state.get('agent_chat_history',"")
-    if agent_chat_history and hasattr(agent_chat_history[-1],'additional_kwargs'):
-        search_result = agent_chat_history[-1]['additional_kwargs']['original'][0].get('search_result',1)
+    agent_thinking_history = state.get('agent_thinking_history',"")
+    if agent_thinking_history and hasattr(agent_thinking_history[-1],'additional_kwargs'):
+        search_result = agent_thinking_history[-1]['additional_kwargs']['original'][0].get('search_result',1)
         if search_result == 0:
-            context = agent_chat_history[-1]['additional_kwargs']['original'][0].get('result',"")
+            context = agent_thinking_history[-1]['additional_kwargs']['original'][0].get('result',"")
             system_prompt = ("你是安踏的客服助理，正在帮消费者解答问题，消费者提出的问题大多是属于商品的质量和物流规则。context列举了一些可能有关的具体场景及回复，你可以进行参考:\n"
                             "<context>\n"
                             f"{context}\n"
@@ -154,8 +154,8 @@ def agent(state: ChatbotState):
             }
 
     # deal with once tool calling
-    if state['agent_recursion_validation'] and state['parse_tool_calling_ok'] and state['agent_chat_history']:
-        tool_execute_res = state['agent_chat_history'][-1]['additional_kwargs']['raw_tool_call_results'][0]
+    if state['agent_recursion_validation'] and state['parse_tool_calling_ok'] and state['agent_thinking_history']:
+        tool_execute_res = state['agent_thinking_history'][-1]['additional_kwargs']['raw_tool_call_results'][0]
         tool_name = tool_execute_res['name']
         output = tool_execute_res['output']
         tool = get_tool_by_name(tool_name,scene=SceneType.RETAIL)
@@ -234,7 +234,7 @@ def agent(state: ChatbotState):
 #     output = format_tool_call_results(tool_call['model_id'],tool_call_results)
 #     send_trace(f'**tool_execute_res:** \n{output["tool_message"]["content"]}')
 #     return {
-#         "agent_chat_history": [output['tool_message']]
+#         "agent_thinking_history": [output['tool_message']]
 #         }
 
 
@@ -911,7 +911,7 @@ def retail_entry(event_body):
         "trace_infos": [],
         "message_id": message_id,
         "chat_history": chat_history,
-        "agent_chat_history": [],
+        "agent_thinking_history": [],
         "ws_connection_id": ws_connection_id,
         "debug_infos": {},
         "extra_response": {},
