@@ -245,7 +245,7 @@ def agent(state: ChatbotState):
 #     retriever_params["query"] = state["query"]
 #     output:str = invoke_lambda(
 #         event_body=retriever_params,
-#         lambda_name="Online_Function_Retriever",
+#         lambda_name="Online_Functions",
 #         lambda_module_path="functions.functions_utils.retriever.retriever",
 #         handler_name="lambda_handler"
 #     )
@@ -289,7 +289,7 @@ def agent(state: ChatbotState):
 #     retriever_params["query"] = state["query"]
 #     output:str = invoke_lambda(
 #         event_body=retriever_params,
-#         lambda_name="Online_Function_Retriever",
+#         lambda_name="Online_Functions",
 #         lambda_module_path="functions.functions_utils.retriever.retriever",
 #         handler_name="lambda_handler"
 #     )
@@ -339,7 +339,7 @@ def agent(state: ChatbotState):
 #     retriever_params["query"] = state["query"]
 #     output:str = invoke_lambda(
 #         event_body=retriever_params,
-#         lambda_name="Online_Function_Retriever",
+#         lambda_name="Online_Functions",
 #         lambda_module_path="functions.functions_utils.retriever.retriever",
 #         handler_name="lambda_handler"
 #     )
@@ -410,7 +410,7 @@ def agent(state: ChatbotState):
 #     retriever_params["query"] = state["query"]
 #     output:str = invoke_lambda(
 #         event_body=retriever_params,
-#         lambda_name="Online_Function_Retriever",
+#         lambda_name="Online_Functions",
 #         lambda_module_path="functions.functions_utils.retriever.retriever",
 #         handler_name="lambda_handler"
 #     )
@@ -456,7 +456,7 @@ def agent(state: ChatbotState):
 #     retriever_params["query"] = state["query"]
 #     output:str = invoke_lambda(
 #         event_body=retriever_params,
-#         lambda_name="Online_Function_Retriever",
+#         lambda_name="Online_Functions",
 #         lambda_module_path="functions.functions_utils.retriever.retriever",
 #         handler_name="lambda_handler"
 #     )
@@ -504,7 +504,7 @@ def final_rag_retriever_lambda(state: ChatbotState):
     retriever_params["query"] = state["query"]
     output:str = invoke_lambda(
         event_body=retriever_params,
-        lambda_name="Online_Function_Retriever",
+        lambda_name="Online_Functions",
         lambda_module_path="functions.functions_utils.retriever.retriever",
         handler_name="lambda_handler"
     )
