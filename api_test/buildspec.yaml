@@ -3,20 +3,20 @@ version: 0.2
 env:
   variables:
     REPOSITORY_URL: "https://github.com/aws-samples/Intelli-Agent.git"
-    CODE_BRANCH: "hubin-daily"
+    CODE_BRANCH: "dev"
     PROJECT_NAME: "Intelli-Agent"
     STACK_NAME: "intelli-agent"
     DEPLOY_STACK: "cdk"
     CLEAN_RESOURCES: "no"
     TEST_FAST: "false"
-    REGION: "ap-northeast-1"
+    REGION: "us-east-1"
     EXEC_ROLE: "arn:aws:iam::544919262599:role/agent-api-test-role"
-    S3_MODEL_ASSETS_BUCKET: "intelli-agent-rag-ap-northeast-1"
-    API_TEST_RESULT_BUCKET: "intelli-agent-rag-ap-northeast-1-api-test"
+    S3_MODEL_ASSETS_BUCKET: "intelli-agent-rag"
+    API_TEST_RESULT_BUCKET: "intelli-agent-rag-us-east-1-api-test"
     ETL_REPOSITORY_NAME: "intelli-agent-etl"
     ETL_IMAGE_TAG: "latest"
     SUB_EMAIL: "cuihubin@amazon.com"
-    TOPIC: "arn:aws:sns:ap-northeast-1:544919262599:agent-developers"
+    TOPIC: "arn:aws:sns:us-east-1:544919262599:agent-developers"
     GEN_REPORT_FUNCTION: "agent-api-test-report-function"
     CLEAR_RESOURCES_FUNCTION: "agent-clear-resources-function"
     ADMIN_PASSWORD: "TEST123!"
@@ -140,7 +140,7 @@ phases:
         aws s3 cp $original_filename s3://${API_TEST_RESULT_BUCKET}/${report_datetime}_${original_filename}
         aws s3 cp $original_json_filename s3://${API_TEST_RESULT_BUCKET}/$s3_key
         aws s3 cp $original_log s3://${API_TEST_RESULT_BUCKET}/$log
-        echo "{\"project_name\":\"$PROJECT_NAME\",\"build_url\":\"$CODEBUILD_BUILD_URL\",\"status\":\"completed\",\"bucket\":\"$API_TEST_RESULT_BUCKET\",\"s3_key\":\"$s3_key\",\"log\":\"$log\",\"topic\":\"$TOPIC\"}" > payload.json
+        echo "{\"project_name\":\"$PROJECT_NAME\",\"build_url\":\"$CODEBUILD_BUILD_URL\",\"status\":\"completed\",\"bucket\":\"$API_TEST_RESULT_BUCKET\",\"s3_key\":\"$s3_key\",\"log\":\"$log\",\"topic\":\"$TOPIC\",\"repository\":\"$REPOSITORY_URL\",\"branch\":\"$CODE_BRANCH\"}" > payload.json
         aws lambda invoke --function-name $GEN_REPORT_FUNCTION --payload fileb://payload.json response.json
       - aws cloudformation delete-stack --stack-name "$STACK_NAME"
       - |
