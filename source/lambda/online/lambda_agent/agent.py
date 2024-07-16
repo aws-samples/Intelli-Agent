@@ -13,7 +13,7 @@ logger = get_logger("agent")
 
 def tool_calling(state:dict):
     agent_config = state["chatbot_config"]['agent_config']
-    tools = state['current_intent_tools'] + state['chatbot_config']['agent_config']['tools']
+    tools = state['intent_fewshot_tools'] + state['chatbot_config']['agent_config']['tools']
     tool_defs = [get_tool_by_name(
         tool_name,
         scene=state["chatbot_config"]['scene']).tool_def 
@@ -27,7 +27,7 @@ def tool_calling(state:dict):
         # "model_id": agent_config['model_id'],
         **other_chain_kwargs,
         "tools": tool_defs,
-        "fewshot_examples": state['intention_fewshot_examples'],
+        "fewshot_examples": state['intent_fewshot_examples'],
     }
 
     agent_llm_type = state.get("agent_llm_type",None) or LLMTaskType.TOOL_CALLING

@@ -39,7 +39,7 @@ class ChatbotState(TypedDict):
     stream: bool 
     query_rewrite: str = None  # query rewrite ret
     intent_type: str = None # intent
-    intention_fewshot_examples: list
+    intent_fewshot_examples: list
     trace_infos: Annotated[list[str],add_messages]
     message_id: str = None
     chat_history: Annotated[list[dict],add_messages]
@@ -51,13 +51,13 @@ class ChatbotState(TypedDict):
     current_monitor_infos: str 
     extra_response: Annotated[dict,update_nest_dict]
     contexts: str = None
-    current_intent_tools: list #
+    intent_fewshot_tools: list #
     current_agent_intent_type: str = None
-    current_tool_calls:list 
+    function_calling_parsed_tool_calls:list 
     # current_agent_tools_def: list[dict]
     # current_agent_model_id: str
-    current_agent_output: dict
-    parse_tool_calling_ok: bool
+    agent_current_output: dict
+    function_calling_parse_ok: bool
     query_rule_classification: str
     goods_info: None
     human_goods_info: None
@@ -89,20 +89,20 @@ def query_preprocess(state: ChatbotState):
 
 @node_monitor_wrapper
 def intention_detection(state: ChatbotState):
-    intention_fewshot_examples = invoke_lambda(
+    intent_fewshot_examples = invoke_lambda(
         lambda_module_path='lambda_intention_detection.intention',
         lambda_name="Online_Intention_Detection",
         handler_name="lambda_handler",
         event_body=state 
     )
-    state['extra_response']['intention_fewshot_examples'] = intention_fewshot_examples
+    state['extra_response']['intent_fewshot_examples'] = intent_fewshot_examples
 
     # send trace
-    send_trace(f"\n\nintention retrieved:\n{json.dumps(intention_fewshot_examples,ensure_ascii=False,indent=2)}", state["stream"], state["ws_connection_id"])
-    current_intent_tools:list[str] = list(set([e['intent'] for e in intention_fewshot_examples]))
+    send_trace(f"\n\nintention retrieved:\n{json.dumps(intent_fewshot_examples,ensure_ascii=False,indent=2)}", state["stream"], state["ws_connection_id"])
+    intent_fewshot_tools:list[str] = list(set([e['intent'] for e in intent_fewshot_examples]))
     return {
-        "intention_fewshot_examples": intention_fewshot_examples,
-        "current_intent_tools": current_intent_tools,
+        "intent_fewshot_examples": intent_fewshot_examples,
+        "intent_fewshot_tools": intent_fewshot_tools,
         "intent_type": "other"
         }
 
@@ -142,19 +142,19 @@ def agent(state: ChatbotState):
                     }
             )
             agent_current_call_number = state['agent_current_call_number'] + 1
-            current_agent_output = {}
-            current_agent_output['agent_output'] = {}
-            current_agent_output['agent_output']['function_calls'] = []
-            current_agent_output['agent_output']['content'] = output
-            current_agent_output['current_agent_model_id'] = "qwen2-72B-instruct"
-            current_agent_output['current_agent_tools_def'] = []
+            agent_current_output = {}
+            agent_current_output['agent_output'] = {}
+            agent_current_output['agent_output']['function_calls'] = []
+            agent_current_output['agent_output']['content'] = output
+            agent_current_output['current_agent_model_id'] = "qwen2-72B-instruct"
+            agent_current_output['current_agent_tools_def'] = []
             return {
-                "current_agent_output": current_agent_output,
+                "agent_current_output": agent_current_output,
                 "agent_current_call_number": agent_current_call_number
             }
 
     # deal with once tool calling
-    if state['agent_repeated_call_validation'] and state['parse_tool_calling_ok'] and state['agent_tool_history']:
+    if state['agent_repeated_call_validation'] and state['function_calling_parse_ok'] and state['agent_tool_history']:
         tool_execute_res = state['agent_tool_history'][-1]['additional_kwargs']['raw_tool_call_results'][0]
         tool_name = tool_execute_res['name']
         output = tool_execute_res['output']
@@ -163,7 +163,7 @@ def agent(state: ChatbotState):
             send_trace("once tool")
             return {
                 "answer": str(output['result']),
-                "is_current_tool_calling_once": True
+                "function_calling_is_run_once": True
             }
     
     other_chain_kwargs = {
@@ -178,7 +178,7 @@ def agent(state: ChatbotState):
     })
     return response
     
-    # current_agent_output:dict = invoke_lambda(
+    # agent_current_output:dict = invoke_lambda(
     #     event_body={
     #         **state,
     #         "other_chain_kwargs":{
@@ -192,9 +192,9 @@ def agent(state: ChatbotState):
     #     handler_name="lambda_handler"
     # )
     # agent_current_call_number = state['agent_current_call_number'] + 1
-    # send_trace(f"\n\n**current_agent_output:** \n{json.dumps(current_agent_output['agent_output'],ensure_ascii=False,indent=2)}\n\n **agent_current_call_number:** {agent_current_call_number}", state["stream"], state["ws_connection_id"])
+    # send_trace(f"\n\n**agent_current_output:** \n{json.dumps(agent_current_output['agent_output'],ensure_ascii=False,indent=2)}\n\n **agent_current_call_number:** {agent_current_call_number}", state["stream"], state["ws_connection_id"])
     # return {
-    #     "current_agent_output": current_agent_output,
+    #     "agent_current_output": agent_current_output,
     #     "agent_current_call_number": agent_current_call_number
     # }
 
@@ -207,7 +207,7 @@ def agent(state: ChatbotState):
 #     Returns:
 #         _type_: _description_
 #     """
-#     tool_calls = state['current_tool_calls']
+#     tool_calls = state['function_calling_parsed_tool_calls']
 #     assert len(tool_calls) == 1, tool_calls
 #     tool_call_results = []
 #     for tool_call in tool_calls:
@@ -331,7 +331,7 @@ def agent(state: ChatbotState):
 # @node_monitor_wrapper
 # def rag_product_aftersales_retriever_lambda(state: ChatbotState):
 #     # call retriever
-#     recent_tool_calling:list[dict] = state['current_tool_calls'][0]
+#     recent_tool_calling:list[dict] = state['function_calling_parsed_tool_calls'][0]
 #     if "shop" in recent_tool_calling['kwargs'] and recent_tool_calling['kwargs']['shop'] != "tianmao":
 #         contexts = ["顾客不是在天猫购买的商品，请他咨询其他商家"]
 #         return {"contexts": contexts}
@@ -547,12 +547,12 @@ def final_rag_llm_lambda(state:ChatbotState):
 
 
 # def give_rhetorical_question(state:ChatbotState):
-#     recent_tool_calling:list[dict] = state['current_tool_calls'][0]
+#     recent_tool_calling:list[dict] = state['function_calling_parsed_tool_calls'][0]
 #     return {"answer": recent_tool_calling['kwargs']['question']}
 
 
 # def give_final_response(state:ChatbotState):
-#     recent_tool_calling:list[dict] = state['current_tool_calls'][0]
+#     recent_tool_calling:list[dict] = state['function_calling_parsed_tool_calls'][0]
 #     return {"answer": recent_tool_calling['kwargs']['response']}
 
 # def rule_url_reply(state:ChatbotState):
@@ -606,7 +606,7 @@ def final_results_preparation(state: ChatbotState):
 # @node_monitor_wrapper
 # def tools_choose_and_results_generation(state: ChatbotState):
 #     # check once tool calling
-#     current_agent_output:dict = invoke_lambda(
+#     agent_current_output:dict = invoke_lambda(
 #         event_body={
 #             **state,
 #             # "other_chain_kwargs": {"system_prompt": get_common_system_prompt()}
@@ -619,9 +619,9 @@ def final_results_preparation(state: ChatbotState):
 #     agent_current_call_number = state['agent_current_call_number'] + 1
 #     agent_repeated_call_validation = state['agent_current_call_number'] < state['agent_repeated_call_limit']
 
-#     send_trace(f"\n\n**current_agent_output:** \n{json.dumps(current_agent_output['agent_output'],ensure_ascii=False,indent=2)}\n\n **agent_current_call_number:** {agent_current_call_number}", state["stream"], state["ws_connection_id"])
+#     send_trace(f"\n\n**agent_current_output:** \n{json.dumps(agent_current_output['agent_output'],ensure_ascii=False,indent=2)}\n\n **agent_current_call_number:** {agent_current_call_number}", state["stream"], state["ws_connection_id"])
 #     return {
-#         "current_agent_output": current_agent_output,
+#         "agent_current_output": agent_current_output,
 #         "agent_current_call_number": agent_current_call_number,
 #         "agent_repeated_call_validation": agent_repeated_call_validation
 #     }
@@ -649,14 +649,14 @@ def intent_route(state:dict):
     return state['intent_type']
 
 # def agent_route(state:dict):
-#     parse_tool_calling_ok = state['parse_tool_calling_ok']
-#     if not parse_tool_calling_ok:
+#     function_calling_parse_ok = state['function_calling_parse_ok']
+#     if not function_calling_parse_ok:
 #         if state['agent_current_call_number'] >= state['agent_repeated_call_limit']:
 #             send_trace(f"Reach the agent recursion limit: {state['agent_repeated_call_limit']}, route to final rag")
 #             return 'final rag'
 #         return 'invalid tool calling'
     
-#     recent_tool_calls:list[dict] = state['current_tool_calls']
+#     recent_tool_calls:list[dict] = state['function_calling_parsed_tool_calls']
     
 #     recent_tool_call = recent_tool_calls[0]
 
@@ -703,7 +703,7 @@ def intent_route(state:dict):
 
 
 def agent_route(state: dict):
-    if state.get("is_current_tool_calling_once",False):
+    if state.get("function_calling_is_run_once",False):
         return "no need tool calling"
     
     state["agent_repeated_call_validation"] = state['agent_current_call_number'] < state['agent_repeated_call_limit']

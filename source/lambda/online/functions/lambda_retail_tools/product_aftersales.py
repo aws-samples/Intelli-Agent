@@ -9,7 +9,7 @@ from datetime import datetime
 
 def lambda_handler(event_body,context=None):
     state = event_body['state']
-    recent_tool_calling:list[dict] = state['current_tool_calls'][0]
+    recent_tool_calling:list[dict] = state['function_calling_parsed_tool_calls'][0]
     if "shop" in recent_tool_calling['kwargs'] and recent_tool_calling['kwargs']['shop'] != "tianmao":
         contexts = ["顾客不是在天猫购买的商品，请他咨询其他商家"]
         # return {"contexts": contexts}
