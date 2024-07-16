@@ -43,7 +43,7 @@ class ChatbotState(TypedDict):
     trace_infos: Annotated[list[str],add_messages]
     message_id: str = None
     chat_history: Annotated[list[dict],add_messages]
-    agent_thinking_history: Annotated[list[dict],add_messages]
+    agent_tool_history: Annotated[list[dict],add_messages]
     current_function_calls: list[str]
     current_tool_execute_res: dict
     debug_infos: Annotated[dict,update_nest_dict]
@@ -63,8 +63,8 @@ class ChatbotState(TypedDict):
     human_goods_info: None
     agent_llm_type: str
     query_rewrite_llm_type: str
-    agent_recursion_limit: int # agent recursion limit
-    current_agent_recursion_num: int
+    agent_repeated_call_limit: int # agent recursion limit
+    agent_current_call_number: int
     enable_trace: bool
     goods_info_tag = "商品信息"
 
@@ -109,11 +109,11 @@ def intention_detection(state: ChatbotState):
 @node_monitor_wrapper
 def agent(state: ChatbotState):
     goods_info = state.get('goods_info',None) or ""
-    agent_thinking_history = state.get('agent_thinking_history',"")
-    if agent_thinking_history and hasattr(agent_thinking_history[-1],'additional_kwargs'):
-        search_result = agent_thinking_history[-1]['additional_kwargs']['original'][0].get('search_result',1)
+    agent_tool_history = state.get('agent_tool_history',"")
+    if agent_tool_history and hasattr(agent_tool_history[-1],'additional_kwargs'):
+        search_result = agent_tool_history[-1]['additional_kwargs']['original'][0].get('search_result',1)
         if search_result == 0:
-            context = agent_thinking_history[-1]['additional_kwargs']['original'][0].get('result',"")
+            context = agent_tool_history[-1]['additional_kwargs']['original'][0].get('result',"")
             system_prompt = ("你是安踏的客服助理，正在帮消费者解答问题，消费者提出的问题大多是属于商品的质量和物流规则。context列举了一些可能有关的具体场景及回复，你可以进行参考:\n"
                             "<context>\n"
                             f"{context}\n"
@@ -141,7 +141,7 @@ def agent(state: ChatbotState):
                     "llm_input": { "query": query, "chat_history": state['chat_history']}
                     }
             )
-            current_agent_recursion_num = state['current_agent_recursion_num'] + 1
+            agent_current_call_number = state['agent_current_call_number'] + 1
             current_agent_output = {}
             current_agent_output['agent_output'] = {}
             current_agent_output['agent_output']['function_calls'] = []
@@ -150,12 +150,12 @@ def agent(state: ChatbotState):
             current_agent_output['current_agent_tools_def'] = []
             return {
                 "current_agent_output": current_agent_output,
-                "current_agent_recursion_num": current_agent_recursion_num
+                "agent_current_call_number": agent_current_call_number
             }
 
     # deal with once tool calling
-    if state['agent_recursion_validation'] and state['parse_tool_calling_ok'] and state['agent_thinking_history']:
-        tool_execute_res = state['agent_thinking_history'][-1]['additional_kwargs']['raw_tool_call_results'][0]
+    if state['agent_repeated_call_validation'] and state['parse_tool_calling_ok'] and state['agent_tool_history']:
+        tool_execute_res = state['agent_tool_history'][-1]['additional_kwargs']['raw_tool_call_results'][0]
         tool_name = tool_execute_res['name']
         output = tool_execute_res['output']
         tool = get_tool_by_name(tool_name,scene=SceneType.RETAIL)
@@ -169,7 +169,7 @@ def agent(state: ChatbotState):
     other_chain_kwargs = {
                 "goods_info": goods_info,
                 "create_time": state['create_time'],
-                "current_agent_recursion_num":state['current_agent_recursion_num']
+                "agent_current_call_number":state['agent_current_call_number']
         }
     
     response = app_agent.invoke({
@@ -184,18 +184,18 @@ def agent(state: ChatbotState):
     #         "other_chain_kwargs":{
     #             "goods_info": goods_info,
     #             "create_time": state['create_time'],
-    #             "current_agent_recursion_num":state['current_agent_recursion_num']
+    #             "agent_current_call_number":state['agent_current_call_number']
     #             }
     #     },
     #     lambda_name="Online_Agent",
     #     lambda_module_path="lambda_agent.agent",
     #     handler_name="lambda_handler"
     # )
-    # current_agent_recursion_num = state['current_agent_recursion_num'] + 1
-    # send_trace(f"\n\n**current_agent_output:** \n{json.dumps(current_agent_output['agent_output'],ensure_ascii=False,indent=2)}\n\n **current_agent_recursion_num:** {current_agent_recursion_num}", state["stream"], state["ws_connection_id"])
+    # agent_current_call_number = state['agent_current_call_number'] + 1
+    # send_trace(f"\n\n**current_agent_output:** \n{json.dumps(current_agent_output['agent_output'],ensure_ascii=False,indent=2)}\n\n **agent_current_call_number:** {agent_current_call_number}", state["stream"], state["ws_connection_id"])
     # return {
     #     "current_agent_output": current_agent_output,
-    #     "current_agent_recursion_num": current_agent_recursion_num
+    #     "agent_current_call_number": agent_current_call_number
     # }
 
 # @node_monitor_wrapper
@@ -234,7 +234,7 @@ def agent(state: ChatbotState):
 #     output = format_tool_call_results(tool_call['model_id'],tool_call_results)
 #     send_trace(f'**tool_execute_res:** \n{output["tool_message"]["content"]}')
 #     return {
-#         "agent_thinking_history": [output['tool_message']]
+#         "agent_tool_history": [output['tool_message']]
 #         }
 
 
@@ -616,14 +616,14 @@ def final_results_preparation(state: ChatbotState):
 #         handler_name="lambda_handler",
    
 #     )
-#     current_agent_recursion_num = state['current_agent_recursion_num'] + 1
-#     agent_recursion_validation = state['current_agent_recursion_num'] < state['agent_recursion_limit']
+#     agent_current_call_number = state['agent_current_call_number'] + 1
+#     agent_repeated_call_validation = state['agent_current_call_number'] < state['agent_repeated_call_limit']
 
-#     send_trace(f"\n\n**current_agent_output:** \n{json.dumps(current_agent_output['agent_output'],ensure_ascii=False,indent=2)}\n\n **current_agent_recursion_num:** {current_agent_recursion_num}", state["stream"], state["ws_connection_id"])
+#     send_trace(f"\n\n**current_agent_output:** \n{json.dumps(current_agent_output['agent_output'],ensure_ascii=False,indent=2)}\n\n **agent_current_call_number:** {agent_current_call_number}", state["stream"], state["ws_connection_id"])
 #     return {
 #         "current_agent_output": current_agent_output,
-#         "current_agent_recursion_num": current_agent_recursion_num,
-#         "agent_recursion_validation": agent_recursion_validation
+#         "agent_current_call_number": agent_current_call_number,
+#         "agent_repeated_call_validation": agent_repeated_call_validation
 #     }
 
 
@@ -651,8 +651,8 @@ def intent_route(state:dict):
 # def agent_route(state:dict):
 #     parse_tool_calling_ok = state['parse_tool_calling_ok']
 #     if not parse_tool_calling_ok:
-#         if state['current_agent_recursion_num'] >= state['agent_recursion_limit']:
-#             send_trace(f"Reach the agent recursion limit: {state['agent_recursion_limit']}, route to final rag")
+#         if state['agent_current_call_number'] >= state['agent_repeated_call_limit']:
+#             send_trace(f"Reach the agent recursion limit: {state['agent_repeated_call_limit']}, route to final rag")
 #             return 'final rag'
 #         return 'invalid tool calling'
     
@@ -695,8 +695,8 @@ def intent_route(state:dict):
 #     if recent_tool_call['name'] == "give_final_response":
 #         return "give final response"
 
-#     if state['current_agent_recursion_num'] >= state['agent_recursion_limit']:
-#         send_trace(f"Reach the agent recursion limit: {state['agent_recursion_limit']}, route to final rag")
+#     if state['agent_current_call_number'] >= state['agent_repeated_call_limit']:
+#         send_trace(f"Reach the agent recursion limit: {state['agent_repeated_call_limit']}, route to final rag")
 #         return 'final rag'
 
 #     return "continue"
@@ -706,9 +706,9 @@ def agent_route(state: dict):
     if state.get("is_current_tool_calling_once",False):
         return "no need tool calling"
     
-    state["agent_recursion_validation"] = state['current_agent_recursion_num'] < state['agent_recursion_limit']
+    state["agent_repeated_call_validation"] = state['agent_current_call_number'] < state['agent_repeated_call_limit']
 
-    if state["agent_recursion_validation"]:
+    if state["agent_repeated_call_validation"]:
         return "valid tool calling"
     else:
         # TODO give final strategy
@@ -911,7 +911,7 @@ def retail_entry(event_body):
         "trace_infos": [],
         "message_id": message_id,
         "chat_history": chat_history,
-        "agent_thinking_history": [],
+        "agent_tool_history": [],
         "ws_connection_id": ws_connection_id,
         "debug_infos": {},
         "extra_response": {},
@@ -919,8 +919,8 @@ def retail_entry(event_body):
         "human_goods_info":human_goods_info,
         "agent_llm_type": LLMTaskType.RETAIL_TOOL_CALLING,
         "query_rewrite_llm_type":LLMTaskType.RETAIL_CONVERSATION_SUMMARY_TYPE,
-        "agent_recursion_limit": chatbot_config['agent_recursion_limit'],
-        "current_agent_recursion_num": 0,
+        "agent_repeated_call_limit": chatbot_config['agent_repeated_call_limit'],
+        "agent_current_call_number": 0,
         "current_agent_intent_type":""
     })
     
