@@ -130,16 +130,16 @@ retriever_dict = {
     "bedrock_kb": get_bedrock_kb_retrievers,
 }
 
-def get_custom_retrievers(retrievers):
-    # retriever_type = retriever_config["indexType"]
-    return retriever_dict[retrievers['indexType']](retrievers)
+def get_custom_retrievers(retrievers,retriever_type):
+    return retriever_dict[retriever_type](retrievers)
 
 @chatbot_lambda_call_wrapper
 def lambda_handler(event, context=None):
     event_body = event
-    retriever_list = []
-    for retriever_config in event_body["retrievers"]:
-        retriever_list.extend(get_custom_retrievers(retriever_config))
+    retriever_type = event['type']
+    # retriever_list = []
+    # for retriever in event_body["retrievers"]:
+    retriever_list = get_custom_retrievers(event_body["retrievers"],retriever_type)
     rerankers = event_body.get("rerankers", None)
     if rerankers:
         reranker_config = rerankers[0]["config"]
