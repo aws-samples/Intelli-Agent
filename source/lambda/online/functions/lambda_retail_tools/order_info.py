@@ -6,9 +6,10 @@ import json
 from common_logic.common_utils.s3_utils import download_file_from_s3,check_local_folder
 from common_logic.common_utils.lambda_invoke_utils import invoke_lambda
 
+data_bucket_name = os.environ.get("RES_BUCKET", "aws-chatbot-knowledge-base-test")
 order_info_path = "/tmp/functions/retail_tools/lambda_order_info/order_info.json"
 check_local_folder(order_info_path)
-download_file_from_s3("aws-chatbot-knowledge-base-test", "retail_json/order_info.json", order_info_path)
+download_file_from_s3(data_bucket_name, "retail_json/order_info.json", order_info_path)
 order_dict = json.load(open(order_info_path))
 
 def lambda_handler(event_body, context=None):

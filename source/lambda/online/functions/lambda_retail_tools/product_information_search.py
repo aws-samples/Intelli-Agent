@@ -8,7 +8,8 @@ goods_info_path = "/tmp/functions/retail_tools/lambda_order_info/goods_info.json
 parent_path = '/'.join((goods_info_path).split('/')[:-1])
 os.system(f"mkdir -p {parent_path}")
 
-download_file_from_s3("aws-chatbot-knowledge-base-test", "retail_json/goods_info.json", goods_info_path)
+data_bucket_name = os.environ.get("RES_BUCKET", "aws-chatbot-knowledge-base-test")
+download_file_from_s3(data_bucket_name, "retail_json/goods_info.json", goods_info_path)
 goods_dict = json.load(open(goods_info_path))
 
 def lambda_handler(event_body, context=None):
