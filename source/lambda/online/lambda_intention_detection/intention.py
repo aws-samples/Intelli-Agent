@@ -13,16 +13,17 @@ def get_intention_results(query:str, intention_config:dict):
         intention_config (dict): intentino config information
 
     Returns:
-        intention_fewshot_examples (dict): retrieved few shot examples
+        intent_fewshot_examples (dict): retrieved few shot examples
     """
     event_body = {
         "query": query,
+        "type": 'qq',
         **intention_config
     }
     # call retriver
     res:list[dict] = invoke_lambda(
-        lambda_name='Online_Function_Retriever',
-        lambda_module_path="functions.lambda_retriever.retriever",
+        lambda_name='Online_Functions',
+        lambda_module_path="functions.functions_utils.retriever.retriever",
         handler_name='lambda_handler',
         event_body=event_body
     )
@@ -37,7 +38,7 @@ def get_intention_results(query:str, intention_config:dict):
             logger.error(f"File note found: {current_path}/intention_utils/default_intent.jsonl")
             json_list = []
 
-        intention_fewshot_examples = []
+        intent_fewshot_examples = []
         for json_str in json_list:
             try:
                 intent_result = json.loads(json_str)
@@ -46,7 +47,7 @@ def get_intention_results(query:str, intention_config:dict):
                 intent_result = {}
             question = intent_result.get("question","你好")
             answer = intent_result.get("answer",{})
-            intention_fewshot_examples.append({
+            intent_fewshot_examples.append({
                 "query": question,
                 "score": 'n/a',
                 "name": answer.get('intent','chat'),
@@ -56,7 +57,7 @@ def get_intention_results(query:str, intention_config:dict):
                 
     else:
         
-        intention_fewshot_examples = [{
+        intent_fewshot_examples = [{
             "query": doc['page_content'],
             "score": doc['score'],
             "name": doc['answer']['jsonlAnswer']['intent'],
@@ -65,7 +66,7 @@ def get_intention_results(query:str, intention_config:dict):
             } for doc in res['result']['docs'] if doc['score'] > 0.4
         ]
 
-    return intention_fewshot_examples
+    return intent_fewshot_examples
 
 
 @chatbot_lambda_call_wrapper
@@ -74,7 +75,12 @@ def lambda_handler(state:dict, context=None):
     query_key = intention_config.get("query_key","query")
     query = state[query_key]
 
-    output:list = get_intention_results(query, intention_config)
+    output:list = get_intention_results(
+            query,
+            {
+                **intention_config,
+            }
+        )
 
     return output
 

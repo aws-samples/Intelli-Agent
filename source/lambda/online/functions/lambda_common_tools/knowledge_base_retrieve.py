@@ -8,8 +8,8 @@ def knowledge_base_retrieve(event_body, context=None):
     # retriever_params = event_body['tool_init_kwargs']
     output: str = invoke_lambda(
         event_body=retriever_params,
-        lambda_name="Online_Function_Retriever",
-        lambda_module_path="functions.lambda_retriever.retriever",
+        lambda_name="Online_Functions",
+        lambda_module_path="functions.functions_utils.retriever.retriever",
         handler_name="lambda_handler",
     )
     contexts = [doc["page_content"] for doc in output["result"]["docs"]]

@@ -118,7 +118,7 @@ class GLM4Chat9BRetailToolCallingChain(GLM4Chat9BChatChain):
     def create_chat_history(cls,x,system_prompt=None):
         _chat_history = x['chat_history'] + \
             [{"role":MessageType.HUMAN_MESSAGE_TYPE,"content": x['query']}] + \
-            x['agent_chat_history']
+            x['agent_tool_history']
         
         chat_history = []
         for message in _chat_history:
@@ -327,7 +327,7 @@ class Qwen2Instruct72BRetailToolCallingChain(Qwen2Instruct7BChatChain):
         # deal with function
         _chat_history = x['chat_history'] + \
             [{"role": MessageType.HUMAN_MESSAGE_TYPE,"content": x['query']}] + \
-            x['agent_chat_history']
+            x['agent_tool_history']
         
         # print(f'chat_history_before create: {_chat_history}')
         # merge chat_history
@@ -395,10 +395,10 @@ class Qwen2Instruct72BRetailToolCallingChain(Qwen2Instruct7BChatChain):
             fewshot_examples=fewshot_examples
             )
 
-        current_agent_recursion_num = kwargs['current_agent_recursion_num']
+        agent_current_call_number = kwargs['agent_current_call_number']
         
         # give different prefill
-        if current_agent_recursion_num == 0:
+        if agent_current_call_number == 0:
             cls.prefill = cls.prefill_after_thinking
         else:
             cls.prefill = cls.prefill_after_second_thinking

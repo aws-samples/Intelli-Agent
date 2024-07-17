@@ -28,7 +28,7 @@ import { CloudFrontToS3 } from "@aws-solutions-constructs/aws-cloudfront-s3";
  * Construct to provision Portal assets and CloudFront Distribution
  */
 export class PortalConstruct extends Construct {
-  readonly portalBucket: s3.Bucket;
+  public portalBucket: s3.Bucket;
   public portalUrl: string;
 
   constructor(scope: Construct, id: string) {
@@ -40,7 +40,7 @@ export class PortalConstruct extends Construct {
           "ResponseHeadersPolicy",
           {
             responseHeadersPolicyName: `SecHdr${Aws.REGION}${Aws.STACK_NAME}`,
-            comment: "LLMBot Security Headers Policy",
+            comment: "Intelli-Agent Security Headers Policy",
             securityHeadersBehavior: {
               contentTypeOptions: { override: true },
               frameOptions: {
@@ -81,7 +81,7 @@ export class PortalConstruct extends Construct {
         priceClass: cloudfront.PriceClass.PRICE_CLASS_100,
         minimumProtocolVersion: cloudfront.SecurityPolicyProtocol.TLS_V1_2_2019,
         enableIpv6: false,
-        comment: `${Aws.STACK_NAME} - LLMBot Portal Distribution (${Aws.REGION})`,
+        comment: `${Aws.STACK_NAME} portal (${Aws.REGION})`,
         enableLogging: true,
         errorResponses: [
           {

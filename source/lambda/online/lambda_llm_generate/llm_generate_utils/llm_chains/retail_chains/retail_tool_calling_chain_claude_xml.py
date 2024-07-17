@@ -212,7 +212,7 @@ class Claude2RetailToolCallingChain(LLMChain):
     def generate_chat_history(state:dict):
         chat_history = state['chat_history'] \
             + [{"role": "user","content":state['query']}] \
-            + state['agent_chat_history']
+            + state['agent_tool_history']
         return {"chat_history":chat_history}
 
         
@@ -338,7 +338,7 @@ class Mixtral8x7bRetailToolCallingChain(Claude2RetailToolCallingChain):
                 chat_history=chat_history_str,
                 query = state['query']
             )
-            }] + state['agent_chat_history']
+            }] + state['agent_tool_history']
         return {"chat_history": chat_history}
 
         

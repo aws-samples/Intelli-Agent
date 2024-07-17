@@ -222,7 +222,7 @@ class Claude2ToolCallingChain(LLMChain):
     def create_chat_history(cls,x):
         chat_history = x['chat_history'] + \
             [{"role": MessageType.HUMAN_MESSAGE_TYPE,"content": x['query']}] + \
-            x['agent_chat_history']
+            x['agent_tool_history']
 
             
         return chat_history

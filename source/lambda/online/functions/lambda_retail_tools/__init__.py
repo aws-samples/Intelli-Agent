@@ -1,14 +1,17 @@
 from common_logic.common_utils.constant import SceneType,ToolRuningMode
 from .._tool_base import tool_manager 
-from .lambda_daily_reception import daily_reception
-from .lambda_goods_exchange import goods_exchange
-from .lambda_customer_complain import customer_complain
-from .lambda_size_guide import size_guide
-from .lambda_product_information_search import product_information_search
-from .lambda_order_info import order_info
-from .lambda_product_aftersales import product_aftersales
+from . import daily_reception
+from . import goods_exchange
+from . import customer_complain
+from .  import size_guide
+from . import product_information_search
+from . import order_info
+from . import product_aftersales
 from ..lambda_common_tools import give_rhetorical_question  
 from ..lambda_common_tools import give_final_response
+from . import rule_response
+from . import transfer
+from . import promotion
 
 
 SCENE = SceneType.RETAIL  
@@ -60,7 +63,7 @@ tool_manager.register_tool({
     "name":"promotion",
     "scene": SCENE,
     "lambda_name": LAMBDA_NAME,
-    "lambda_module_path": "",
+    "lambda_module_path": promotion.lambda_handler,
     "tool_def": {
         "name": "promotion",
         "description": "有关于商品促销的信息，比如返点，奖品和奖励等",
@@ -106,19 +109,6 @@ tool_manager.register_tool({
     },
     "running_mode": ToolRuningMode.LOOP
 })
-
-
-# tool_manager.register_tool({
-#     "name":"goods_info",
-#     "scene": SCENE,
-#     "lambda_name": LAMBDA_NAME,
-#     "lambda_module_path": product_information_search.lambda_handler,
-#     "tool_def": {
-#         "name": "goods_info",
-#         "description": "search the information of the product, do not ask the user for more information",
-#     },
-#     "running_mode": 
-# })
 
 
 tool_manager.register_tool({
@@ -173,12 +163,11 @@ tool_manager.register_tool({
 })
 
 
-
 tool_manager.register_tool({
-    "name":"rule_response",
+    "name": "rule_response",
     "scene": SCENE,
     "lambda_name": LAMBDA_NAME,
-    "lambda_module_path": "",
+    "lambda_module_path": rule_response.lambda_handler,
     "tool_def": {
         "name": "rule_response",
         "description": "If a user's reply contains just a link or a long number, use this tool to reply.",
@@ -191,7 +180,7 @@ tool_manager.register_tool({
     "name":"transfer",
     "scene": SCENE,
     "lambda_name": LAMBDA_NAME,
-    "lambda_module_path": "functions.lambda_aws_qa_tools.transfer",
+    "lambda_module_path": transfer.lambda_handler,
     "tool_def": {
         "name": "转人工",
         "description": "转人工"
