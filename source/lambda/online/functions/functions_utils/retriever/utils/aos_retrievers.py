@@ -10,10 +10,6 @@ from langchain.docstore.document import Document
 
 from common_logic.common_utils.time_utils import timeit
 from .aos_utils import LLMBotOpenSearchClient
-<<<<<<< HEAD
-=======
-# from langchain_core.utils import pre_init
->>>>>>> ca1c977a0e2d055cefcfaba032c64f1317e8133c
 from sm_utils import SagemakerEndpointVectorOrCross
 
 logger = logging.getLogger()
