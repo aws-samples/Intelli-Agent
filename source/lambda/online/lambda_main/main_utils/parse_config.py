@@ -100,10 +100,10 @@ class ConfigParserBase:
             elif task_name == "intention":
                 task_name = "intention"
             all_index_names = list(index_info['value'].values())
-            default_index_names = default_index_names[task_name]
-            if default_index_names:
-                all_index_names = [name for name in all_index_names if name in default_index_names]
-            index_infos[task_name] = list(index_info['value'].values())
+            allow_index_names = default_index_names[task_name]
+            if allow_index_names:
+                all_index_names = [name for name in all_index_names if name in allow_index_names]
+            index_infos[task_name] = all_index_names
         return index_infos
 
 
