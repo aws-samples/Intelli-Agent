@@ -144,8 +144,8 @@ def get_custom_retrievers(group_name, index_tag, retriever_config):
 @chatbot_lambda_call_wrapper
 def lambda_handler(event, context=None):
     event_body = event
-    group_name = event_body["chatbot_config"]["group_name"]
-    index_tag = event_body["chatbot_config"]["index_tag"]
+    group_name = event_body["group_name"]
+    index_tag = event_body["index_tag"]
     retriever_list = []
     for retriever_config in event_body["retrievers"]:
         retriever_type = retriever_config["type"]
