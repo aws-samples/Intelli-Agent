@@ -384,7 +384,7 @@ class QueryQuestionRetriever(BaseRetriever):
     query_key: str= "query"
     enable_debug: Any
 
-    def __init__(self, index_id: str, index_type: str, index_tag: str, chatbot, top_k: int, query_key="query", enable_debug=False):
+    def __init__(self, index_id: str, lang: str, emebdding_model_endpoint: str, target_model: str, top_k: int, query_key="query", enable_debug=False):
         super().__init__()
         self.index = index_id
         self.index_tag = index_tag

@@ -88,23 +88,19 @@ def get_custom_qd_retrievers(chatbot, index_tag, qd_config, using_bm25=False):
     ]
     return retriever_list
 
-def get_custom_qq_retrievers(workspace_list, qq_config):
-    default_qq_config = {
-        "top_k": 10,
-        "query_key": "query"
-    }
-    qq_config = {**default_qq_config, **qq_config}
+def get_custom_qq_retrievers(qq_config_list):
+    # default_qq_config = {
+    #     "top_k": 10,
+    #     "query_key": "query"
+    # }
+    # qq_config = {**default_qq_config, **qq_config}
     # index_dict = chatbot.get_index_dict()
     # workspace_list = get_workspace_list(workspace_ids)
     retriever_list = [
         QueryQuestionRetriever(
-            index_id,
-            index_type,
-            index_tag,
-            chatbot,
             **qq_config
         )
-        for index_id, index_type in index_dict.items()
+        for qq_config in qq_config_list
     ]
     return retriever_list
 
@@ -139,18 +135,14 @@ retriever_dict = {
 
 def get_custom_retrievers(retriever_config):
     retriever_type = retriever_config["type"]
-    chatbot = chatbot_manager.get_chatbot(group_name, retriever_config["chatbot_id"])
-    return retriever_dict[retriever_type](chatbot, index_tag, retriever_config["config"])
+    return retriever_dict[retriever_type](retriever_config)
 
 @chatbot_lambda_call_wrapper
 def lambda_handler(event, context=None):
     event_body = event
-    group_name = event_body["group_name"]
-    index_tag = event_body["index_tag"]
     retriever_list = []
     for retriever_config in event_body["retrievers"]:
-        retriever_type = retriever_config["type"]
-        retriever_list.extend(get_custom_retrievers(group_name, index_tag, retriever_config))
+        retriever_list.extend(get_custom_retrievers(retriever_config))
     rerankers = event_body.get("rerankers", None)
     if rerankers:
         reranker_config = rerankers[0]["config"]
