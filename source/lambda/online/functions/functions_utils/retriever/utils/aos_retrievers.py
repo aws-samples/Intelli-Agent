@@ -431,7 +431,7 @@ class QueryQuestionRetriever(BaseRetriever):
 class QueryDocumentKNNRetriever(BaseRetriever):
     index: str
     vector_field: str = "vector_field"
-    source_field: str = "source"
+    source_field: str = "file_path"
     text_field: str = "text"
     using_whole_doc: bool = False
     context_num: int = 2
