@@ -90,9 +90,9 @@ class ConfigParserBase:
         chatbot_id = chatbot_config['chatbot_id']
         chatbot = chatbot_manager.get_chatbot(group_name, chatbot_id)
         index_infos = {}
-        for index_name,index_info in chatbot.index_ids:
+        for index_name,index_info in chatbot.index_ids.items():
             # TODO some modify needed
-            assert index_name in ("qq","qd",'intention')
+            assert index_name in ("qq","qd",'intention'),index_name
             if index_name == "qq":
                 index_name = 'qq_match'
             elif index_name == "qd":
@@ -107,6 +107,7 @@ class ConfigParserBase:
     def index_postprocess(cls,chatbot_config):
         def _dict_update(config):
             retrievers = []
+            
             _retrievers = config.pop('retrievers')
             for retriever_dict in _retrievers:
                 retrievers.append({
@@ -124,7 +125,7 @@ class ConfigParserBase:
         _dict_update(qq_match_config)
 
         # private knowledge 
-        private_knowledge_config = chatbot_config['private_knowledge_config']
+        private_knowledge_config = chatbot_config['private_knowledge_config']['retriever_config']
         _dict_update(private_knowledge_config)
     
     @classmethod
@@ -141,7 +142,7 @@ class ConfigParserBase:
         default_index_config = cls.parse_aos_indexs(chatbot_config)
 
         default_index_config = {
-            **cls.default_index_config,
+            **default_index_config,
             **chatbot_config.get("default_index_config", {})
         }
 
