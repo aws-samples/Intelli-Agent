@@ -4,6 +4,7 @@ from typing import List
 from .chatbot import Chatbot
 
 
+
 class ChatbotManager:
     def __init__(self, chatbot_table, index_table, model_table):
         self.chatbot_table = chatbot_table
