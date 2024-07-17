@@ -88,13 +88,14 @@ def get_custom_qd_retrievers(chatbot, index_tag, qd_config, using_bm25=False):
     ]
     return retriever_list
 
-def get_custom_qq_retrievers(chatbot, index_tag, qq_config):
+def get_custom_qq_retrievers(workspace_list, qq_config):
     default_qq_config = {
         "top_k": 10,
         "query_key": "query"
     }
     qq_config = {**default_qq_config, **qq_config}
-    index_dict = chatbot.get_index_dict()
+    # index_dict = chatbot.get_index_dict()
+    # workspace_list = get_workspace_list(workspace_ids)
     retriever_list = [
         QueryQuestionRetriever(
             index_id,
@@ -136,7 +137,7 @@ retriever_dict = {
     "bedrock_kb": get_bedrock_kb_retrievers,
 }
 
-def get_custom_retrievers(group_name, index_tag, retriever_config):
+def get_custom_retrievers(retriever_config):
     retriever_type = retriever_config["type"]
     chatbot = chatbot_manager.get_chatbot(group_name, retriever_config["chatbot_id"])
     return retriever_dict[retriever_type](chatbot, index_tag, retriever_config["config"])

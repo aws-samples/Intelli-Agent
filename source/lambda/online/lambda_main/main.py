@@ -144,7 +144,6 @@ def initiate_chatbot(chatbot_table, group_name, chatbot_id, index_id, index_type
             }
             chatbot_table.put_item(Item=item)
 
-
 def get_secret_value(secret_arn: str):
     """Get secret value from secret manager
 
@@ -185,6 +184,7 @@ def lambda_handler(event_body:dict, context:dict):
     user_id = event_body.get("user_id", "default_user_id")
     # TODO Need to modify key
     group_name = event_body.get("chatbot_config").get("default_workspace_config",{"rag_workspace_ids":["Admin"]}).get("rag_workspace_ids","Admin")[0]
+    chatbot_id = event_body.get("chatbot_config").get("default_chatbot_id",'admin')
 
     if not session_id:
         session_id = f"session_{int(request_timestamp)}"
@@ -209,6 +209,7 @@ def lambda_handler(event_body:dict, context:dict):
     event_body['request_timestamp'] = request_timestamp
     event_body['chatbot_config']['user_id'] = user_id
     event_body['chatbot_config']['group_name'] = group_name
+    event_body["chatbot_config"]["chatbot_id"] = chatbot_id
     event_body["chatbot_config"]["index_tag"] = index_tag
     # TODO: chatbot id add to event body
 

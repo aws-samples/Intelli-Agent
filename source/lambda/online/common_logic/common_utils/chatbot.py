@@ -42,7 +42,7 @@ class Chatbot:
         index_dict = {}
         
         for index_type, item_dict in self.index_ids.items():
-            for index_id in item_dict["value"].values():
-                index_dict[index_id] = index_type
+            for index_content in item_dict["value"].values():
+                index_dict[index_content['indexId']] = index_type
         return index_dict
 

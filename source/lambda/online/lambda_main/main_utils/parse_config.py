@@ -1,7 +1,19 @@
 import collections.abc
 import copy
 import os
+import boto3
+
+from click import group
 from common_logic.common_utils.constant import ChatbotMode,SceneType
+from common_logic.common_utils.chatbot_utils import ChatbotManager
+chatbot_table_name = os.environ.get("CHATBOT_TABLE", "")
+model_table_name = os.environ.get("MODEL_TABLE", "")
+index_table_name = os.environ.get("INDEX_TABLE", "")
+dynamodb = boto3.resource("dynamodb")
+chatbot_table = dynamodb.Table(chatbot_table_name)
+model_table = dynamodb.Table(model_table_name)
+index_table = dynamodb.Table(index_table_name)
+chatbot_manager = ChatbotManager(chatbot_table, index_table, model_table)
 
 # update nest dict
 def update_nest_dict(d, u):
@@ -96,6 +108,11 @@ class ConfigParserBase:
             )),
             chatbot_config
         )
+        # get parameters from chatbot manager
+        group_name = chatbot_config['group_name']
+        chatbot_id = chatbot_config['chatbot_id']
+        chatbot = chatbot_manager.get_chatbot(group_name, chatbot_id)
+        index_dict = chatbot.get_index_dict()
         return chatbot_config
 
 
