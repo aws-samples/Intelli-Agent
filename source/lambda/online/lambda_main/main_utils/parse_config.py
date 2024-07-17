@@ -27,8 +27,8 @@ def update_nest_dict(d, u):
 
 class ConfigParserBase:
     default_llm_config_str = "{'model_id': 'anthropic.claude-3-sonnet-20240229-v1:0', 'model_kwargs': {'temperature': 0.0, 'max_tokens': 4096}}"
-    default_index_config = {"intent_index_ids": ["default-intent"], "rag_index_ids": ["test-pdf"]}
-    
+    # default_index_config = {"intent_index_ids": ["default-intent"], "rag_index_ids": ["test-pdf"]}
+
     @classmethod
     def get_default_chatbot_config(cls,default_llm_config,default_index_config,**kwargs):
         default_chatbot_config = {
@@ -41,32 +41,31 @@ class ConfigParserBase:
                 "conversation_query_rewrite_config": {**copy.deepcopy(default_llm_config)}
             },
             "intention_config": {
-                "retrievers": [
-                    {
-                        "type": "qq",
-                        "index_ids": default_index_config["intent_index_ids"],
-                        "config": {
-                            "top_k": 10,
-                        },
-                    },
-                ]
+                "retrieve_config":{
+                    "top_k": 10,
+                    "query_key": "query"
+                },
+                "retrievers": default_index_config.get("intention",[])
+            },
+            "qq_match_config": {
+                "retrieve_config": {
+                    "query_key": "query"
+                },
+                "retrievers": default_index_config.get("qq_match",[])
             },
             "agent_config": {**copy.deepcopy(default_llm_config), "tools": []},
             "chat_config": {
                 **copy.deepcopy(default_llm_config),
             },
-            "rag_config": {
+            "private_knowledge_config": {
                 "retriever_config": {
-                    "retrievers": [
-                        {
-                            "type": "qd",
-                            "index_ids": default_index_config["rag_index_ids"],
-                            "config": {
-                                "top_k": 5,
-                                "using_whole_doc": False,
-                            },
-                        },
-                    ],
+                    "retrieve_config":{
+                            "top_k": 10,
+                            "context_num": 1,
+                            "using_whole_doc": False,
+                            "query_key": "query"
+                    },
+                    "retrievers": default_index_config.get("private_knowledge",[]),
                     "rerankers": [
                         {
                             "type": "reranker",
@@ -83,23 +82,71 @@ class ConfigParserBase:
             }
         }
         return default_chatbot_config
+
+
+    @classmethod
+    def parse_aos_indexs(cls,chatbot_config):
+        group_name = chatbot_config['group_name']
+        chatbot_id = chatbot_config['chatbot_id']
+        chatbot = chatbot_manager.get_chatbot(group_name, chatbot_id)
+        index_infos = {}
+        for index_name,index_info in chatbot.index_ids:
+            # TODO some modify needed
+            assert index_name in ("qq","qd",'intention')
+            if index_name == "qq":
+                index_name = 'qq_match'
+            elif index_name == "qd":
+                index_name = "private_knowledge"
+            elif index_name == "intention":
+                index_name = "intention"
+            index_infos[index_name] = list(index_info['value'].values())
+        return index_infos
+
+
+    @classmethod
+    def index_postprocess(cls,chatbot_config):
+        def _dict_update(config):
+            retrievers = []
+            _retrievers = config.pop('retrievers')
+            for retriever_dict in _retrievers:
+                retrievers.append({
+                    **config['retrieve_config'],
+                    **retriever_dict
+                })
+            config['retrievers'] = retrievers
+
+        # intention 
+        intention_config = chatbot_config['intention_config']
+        _dict_update(intention_config)
+    
+        # qq_match 
+        qq_match_config = chatbot_config['qq_match_config']
+        _dict_update(qq_match_config)
+
+        # private knowledge 
+        private_knowledge_config = chatbot_config['private_knowledge_config']
+        _dict_update(private_knowledge_config)
     
     @classmethod
     def from_chatbot_config(cls,chatbot_config:dict):
         chatbot_config = copy.deepcopy(chatbot_config)
         default_llm_config = eval(
-        os.environ.get("default_llm_config", cls.default_llm_config_str)
+            os.environ.get("default_llm_config", cls.default_llm_config_str)
         )
         default_llm_config = {
         **default_llm_config,
         **chatbot_config.get("default_llm_config", {})
         }
+
+        default_index_config = cls.parse_aos_indexs(chatbot_config)
+
         default_index_config = {
             **cls.default_index_config,
             **chatbot_config.get("default_index_config", {})
         }
+
         assert ChatbotMode.has_value(chatbot_config["chatbot_mode"]), chatbot_config[
-        "chatbot_mode"
+             "chatbot_mode"
         ]
         chatbot_config = update_nest_dict(
             copy.deepcopy(cls.get_default_chatbot_config(
@@ -108,11 +155,9 @@ class ConfigParserBase:
             )),
             chatbot_config
         )
-        # get parameters from chatbot manager
-        group_name = chatbot_config['group_name']
-        chatbot_id = chatbot_config['chatbot_id']
-        chatbot = chatbot_manager.get_chatbot(group_name, chatbot_id)
-        index_dict = chatbot.get_index_dict()
+        # deal with index params
+        cls.index_postprocess(chatbot_config)
+        
         return chatbot_config
 
 
@@ -130,7 +175,6 @@ class CommonConfigParser(ConfigParserBase):
 
         if "get_weather" not in tools:
             tools.append("get_weather")
-
         return chatbot_config
 
 

@@ -115,8 +115,8 @@ class LLMModelType(ConstantBase):
     QWEN2INSTRUCT72B = "qwen2-72B-instruct"
     QWEN15INSTRUCT32B = "qwen1_5-32B-instruct"
     
-    
-unique
+
+@unique
 class Status(Enum):
     ACTIVE = "active"
     INACTIVE = "inactive"

@@ -17,6 +17,7 @@ def get_intention_results(query:str, intention_config:dict):
     """
     event_body = {
         "query": query,
+        "type": 'qq',
         **intention_config
     }
     # call retriver
@@ -71,15 +72,13 @@ def get_intention_results(query:str, intention_config:dict):
 @chatbot_lambda_call_wrapper
 def lambda_handler(state:dict, context=None):
     intention_config = state['chatbot_config'].get("intention_config",{})
-
     query_key = intention_config.get("query_key","query")
     query = state[query_key]
 
     output:list = get_intention_results(
             query,
-            {**intention_config,
-            "group_name": state['chatbot_config']['group_name'],
-            "index_tag": state['chatbot_config']['index_tag']
+            {
+                **intention_config,
             }
         )
 

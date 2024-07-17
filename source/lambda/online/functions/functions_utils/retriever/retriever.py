@@ -58,49 +58,53 @@ def get_websearch_retrievers(top_k:int):
     ]
     return retriever_list
 
-def get_custom_qd_retrievers(chatbot, index_tag, qd_config, using_bm25=False):
-    default_qd_config = {
-        "using_whole_doc": False,
-        "context_num": 1,
-        "top_k": 10,
-        "query_key": "query"
-    }
-    qd_config = {**default_qd_config, **qd_config}
-    index_dict = chatbot.get_index_dict()
+def get_custom_qd_retrievers(qd_config_list:list[dict],using_bm25=False):
     retriever_list = [
         QueryDocumentKNNRetriever(
-            index_id,
-            index_type,
-            index_tag,
-            chatbot,
-            **qd_config
+            **{
+                "index": config['indexId'],
+                "top_k": config['top_k'],
+                "embedding_model_endpoint": config['modelIds']['embedding']['ModelEndpoint'],
+                "target_model": config['modelIds']['embedding']['ModelName'],
+                "model_type": "vector",
+                "query_key": config.get("query_key","query"),
+                "text_field": config.get("text_field","text"),
+                "using_whole_doc": config.get("using_whole_doc",False),
+                "context_num":config["context_num"],
+                "enable_debug": config.get('enable_debug',False)
+            }  
         )
-        for index_id, index_type, index_tag in index_dict
-    ] + [
-        QueryDocumentBM25Retriever(
-            index_id,
-            index_type,
-            index_tag,
-            chatbot,
-            **qd_config
-        )
-        for index_id, index_type, index_tag in index_dict
+        for config in qd_config_list
     ]
+
+    if using_bm25:
+        retriever_list += [
+                QueryDocumentBM25Retriever(
+                    **{
+                        "index": config['indexId'],
+                        "using_whole_doc": config.get("using_whole_doc",False),
+                        "context_num":config["context_num"],
+                        "enable_debug": config.get('enable_debug',False)
+                    }
+                )
+                for config in qd_config_list
+            ]
     return retriever_list
 
-def get_custom_qq_retrievers(qq_config_list):
-    # default_qq_config = {
-    #     "top_k": 10,
-    #     "query_key": "query"
-    # }
-    # qq_config = {**default_qq_config, **qq_config}
-    # index_dict = chatbot.get_index_dict()
-    # workspace_list = get_workspace_list(workspace_ids)
+def get_custom_qq_retrievers(qq_config_list:list[dict]):
     retriever_list = [
         QueryQuestionRetriever(
-            **qq_config
+            **{
+                "index": config['indexId'],
+                "top_k": config['top_k'],
+                "embedding_model_endpoint": config['modelIds']['embedding']['ModelEndpoint'],
+                "target_model": config['modelIds']['embedding']['ModelName'],
+                "model_type": "vector",
+                "query_key": config.get("query_key","query"),
+                "enable_debug": config.get('enable_debug',False)
+            }
         )
-        for qq_config in qq_config_list
+        for config in qq_config_list
     ]
     return retriever_list
 
@@ -135,7 +139,7 @@ retriever_dict = {
 
 def get_custom_retrievers(retriever_config):
     retriever_type = retriever_config["type"]
-    return retriever_dict[retriever_type](retriever_config)
+    return retriever_dict[retriever_type](retriever_config['retrievers'])
 
 @chatbot_lambda_call_wrapper
 def lambda_handler(event, context=None):

@@ -2,7 +2,7 @@ import os
 import logging
 import traceback 
 import asyncio
-from typing import Any, Dict, List 
+from typing import Any, Dict, List, Union
 
 from langchain.schema.retriever import BaseRetriever
 from langchain.callbacks.manager import CallbackManagerForRetrieverRun
@@ -10,6 +10,7 @@ from langchain.docstore.document import Document
 
 from common_logic.common_utils.time_utils import timeit
 from .aos_utils import LLMBotOpenSearchClient
+from langchain_core.utils import pre_init
 from sm_utils import SagemakerEndpointVectorOrCross
 
 logger = logging.getLogger()
@@ -373,34 +374,34 @@ def organize_faq_results(response, index_name, source_field="file_path", text_fi
     return results
 
 class QueryQuestionRetriever(BaseRetriever):
-    index: Any
-    vector_field: Any
-    source_field: Any
-    top_k: Any
-    lang: Any
-    embedding_model_endpoint: Any
-    target_model: Any
-    model_type: Any
+    index: str
+    vector_field: str = "vector_field"
+    source_field: str = "source"
+    top_k: int = 10
+    # lang: str = 'zh'
+    embedding_model_endpoint: str
+    target_model: str
+    model_type: str = "vector"
     query_key: str= "query"
-    enable_debug: Any
+    enable_debug: bool = False
 
-    def __init__(self, index_id: str, lang: str, emebdding_model_endpoint: str, target_model: str, top_k: int, query_key="query", enable_debug=False):
-        super().__init__()
-        self.index = index_id
-        self.index_tag = index_tag
-        self.vector_field = "vector_field"
-        self.source_field = "source"
-        self.top_k = top_k
-        self.lang = chatbot.languages[0]
-        model_parameter = chatbot.index_ids[index_type]["value"][index_tag]["modelIds"]["embedding"]["parameter"]
-        self.embedding_model_endpoint = model_parameter.get("ModelEndpoint")
-        if model_parameter["ModelName"].endswith("tar.gz"):
-            self.target_model = model_parameter["ModelName"]
-        else:
-            self.target_model = None
-        self.model_type = model_parameter["ModelType"]
-        self.query_key = query_key
-        self.enable_debug = enable_debug
+    # def __init__(self, index_id: str, lang: str, emebdding_model_endpoint: str, target_model: str, top_k: int, query_key="query", enable_debug=False):
+    #     super().__init__()
+    #     self.index = index_id
+    #     self.index_tag = index_tag
+    #     self.vector_field = "vector_field"
+    #     self.source_field = "source"
+    #     self.top_k = top_k
+    #     self.lang = chatbot.languages[0]
+    #     model_parameter = chatbot.index_ids[index_type]["value"][index_tag]["modelIds"]["embedding"]["parameter"]
+    #     self.embedding_model_endpoint = model_parameter.get("ModelEndpoint")
+    #     if model_parameter["ModelName"].endswith("tar.gz"):
+    #         self.target_model = model_parameter["ModelName"]
+    #     else:
+    #         self.target_model = None
+    #     self.model_type = model_parameter["ModelType"]
+    #     self.query_key = query_key
+    #     self.enable_debug = enable_debug
 
     @timeit
     def _get_relevant_documents(self, question: Dict, *, run_manager: CallbackManagerForRetrieverRun) -> List[Document]:
@@ -425,44 +426,44 @@ class QueryQuestionRetriever(BaseRetriever):
                 "retrieval_content": result["content"],"answer": result["answer"], 
                 "question": result["question"]}))
         if self.enable_debug:
-            debug_info[f"qq-knn-recall-{self.index}-{self.lang}"] = remove_redundancy_debug_info(opensearch_knn_results)
+            debug_info[f"qq-knn-recall-{self.index}"] = remove_redundancy_debug_info(opensearch_knn_results)
         return docs
 
 class QueryDocumentKNNRetriever(BaseRetriever):
-    index: Any
-    vector_field: Any
-    text_field: Any
-    source_field: Any
-    using_whole_doc: Any
-    context_num: Any
-    top_k: Any
-    lang: Any
-    model_type: Any
+    index: str
+    vector_field: str = "vector_field"
+    source_field: str = "source"
+    text_field: str = "text"
+    using_whole_doc: bool = False
+    context_num: int = 2
+    top_k: int = 10
+    # lang: Any
+    model_type: str = "vector"
     embedding_model_endpoint: Any
     target_model: Any
-    query_key: str="query"
-    enable_debug: Any        
+    query_key: str = "query"
+    enable_debug: bool = False        
 
-    def __init__(self, index_id: str, index_type: str, index_tag: str, chatbot, using_whole_doc, context_num, top_k,query_key='query', enable_debug=False):
-        super().__init__()
-        self.index = index_id
-        self.index_tag = index_tag
-        self.vector_field = "vector_field"
-        self.source_field = "file_path"
-        self.text_field = "text"
-        self.lang = chatbot.languages[0]
-        model_parameter = chatbot.index_ids[index_type]["value"][index_tag]["modelIds"]["embedding"]["parameter"]
-        self.embedding_model_endpoint = model_parameter.get("ModelEndpoint")
-        if model_parameter["ModelName"].endswith("tar.gz"):
-            self.target_model = model_parameter["ModelName"]
-        else:
-            self.target_model = None
-        self.model_type = model_parameter["ModelType"]
-        self.using_whole_doc = using_whole_doc
-        self.context_num = context_num
-        self.top_k = top_k
-        self.query_key = query_key
-        self.enable_debug = enable_debug
+    # def __init__(self, index_id: str, index_type: str, index_tag: str, chatbot, using_whole_doc, context_num, top_k,query_key='query', enable_debug=False):
+    #     super().__init__()
+    #     self.index = index_id
+    #     self.index_tag = index_tag
+    #     self.vector_field = "vector_field"
+    #     self.source_field = "file_path"
+    #     self.text_field = "text"
+    #     self.lang = chatbot.languages[0]
+    #     model_parameter = chatbot.index_ids[index_type]["value"][index_tag]["modelIds"]["embedding"]["parameter"]
+    #     self.embedding_model_endpoint = model_parameter.get("ModelEndpoint")
+    #     if model_parameter["ModelName"].endswith("tar.gz"):
+    #         self.target_model = model_parameter["ModelName"]
+    #     else:
+    #         self.target_model = None
+    #     self.model_type = model_parameter["ModelType"]
+    #     self.using_whole_doc = using_whole_doc
+    #     self.context_num = context_num
+    #     self.top_k = top_k
+    #     self.query_key = query_key
+    #     self.enable_debug = enable_debug
 
     async def __ainvoke_get_context(self, aos_hit, window_size, loop):
         return await loop.run_in_executor(None,
@@ -545,8 +546,8 @@ class QueryDocumentKNNRetriever(BaseRetriever):
     @timeit
     def _get_relevant_documents(self, question: Dict, *, run_manager: CallbackManagerForRetrieverRun) -> List[Document]:
         query = question[self.query_key]
-        if "query_lang" in question and question["query_lang"] != self.lang and "translated_text" in question:
-            query = question["translated_text"]
+        # if "query_lang" in question and question["query_lang"] != self.lang and "translated_text" in question:
+        #     query = question["translated_text"]
         debug_info = question["debug_info"]
         query_repr = get_relevance_embedding(query, self.lang, self.embedding_model_endpoint, self.target_model, self.model_type)
         # question["colbert"] = query_repr["colbert_vecs"][0]
@@ -575,39 +576,39 @@ class QueryDocumentKNNRetriever(BaseRetriever):
                 result_metadata["content_type"] = result["detail"]["metadata"]["content_type"]
             doc_list.append(Document(page_content=result["doc"], metadata=result_metadata))
         if self.enable_debug:
-            debug_info[f"qd-knn-recall-{self.index}-{self.lang}"] = remove_redundancy_debug_info(opensearch_knn_results)
+            debug_info[f"qd-knn-recall-{self.index}"] = remove_redundancy_debug_info(opensearch_knn_results)
 
         return doc_list
 
 class QueryDocumentBM25Retriever(BaseRetriever):
-    index: Any
-    vector_field: Any
-    text_field: Any
-    source_field: Any
-    using_whole_doc: Any
+    index: str
+    vector_field: str = "vector_field"
+    source_field: str = "source"
+    text_field: str = "text"
+    using_whole_doc: bool = False
     context_num: Any
-    top_k: Any
-    lang: Any
-    model_type: Any
+    top_k: 5
+    # lang: Any
+    # model_type: Any
     query_key: str="query"
     enable_debug: Any
     config: Dict={"run_name": "BM25"}
 
-    def __init__(self, index_id: str, index_type: str, index_tag: str, chatbot, using_whole_doc, context_num, top_k,query_key='query', enable_debug=False):
-        super().__init__()
-        self.index = index_id
-        self.index_tag = index_tag
-        self.vector_field = "vector_field"
-        self.source_field = "file_path"
-        self.text_field = "text"
-        self.lang = chatbot.languages[0]
-        model_parameter = chatbot.index_ids[index_type]["value"][index_tag]["modelIds"]["embedding"]["parameter"]
-        self.model_type = model_parameter["ModelType"]
-        self.using_whole_doc = using_whole_doc
-        self.context_num = context_num
-        self.top_k = top_k
-        self.query_key = query_key
-        self.enable_debug = enable_debug
+    # def __init__(self, index_id: str, index_type: str, index_tag: str, chatbot, using_whole_doc, context_num, top_k,query_key='query', enable_debug=False):
+    #     super().__init__()
+    #     self.index = index_id
+    #     self.index_tag = index_tag
+    #     self.vector_field = "vector_field"
+    #     self.source_field = "file_path"
+    #     self.text_field = "text"
+    #     self.lang = chatbot.languages[0]
+    #     model_parameter = chatbot.index_ids[index_type]["value"][index_tag]["modelIds"]["embedding"]["parameter"]
+    #     self.model_type = model_parameter["ModelType"]
+    #     self.using_whole_doc = using_whole_doc
+    #     self.context_num = context_num
+    #     self.top_k = top_k
+    #     self.query_key = query_key
+    #     self.enable_debug = enable_debug
 
     async def __ainvoke_get_context(self, aos_hit, window_size, loop):
         return await loop.run_in_executor(None,
@@ -695,8 +696,8 @@ class QueryDocumentBM25Retriever(BaseRetriever):
     @timeit
     def _get_relevant_documents(self, question: Dict, *, run_manager: CallbackManagerForRetrieverRun) -> List[Document]:
         query = question[self.query_key]
-        if "query_lang" in question and question["query_lang"] != self.lang and "translated_text" in question:
-            query = question["translated_text"]
+        # if "query_lang" in question and question["query_lang"] != self.lang and "translated_text" in question:
+        #     query = question["translated_text"]
         debug_info = question["debug_info"]
         # query_repr = get_relevance_embedding(query, self.lang, self.embedding_model_endpoint, self.model_type)
         # question["colbert"] = query_repr["colbert_vecs"][0]
@@ -724,7 +725,7 @@ class QueryDocumentBM25Retriever(BaseRetriever):
             doc_list.append(Document(page_content=result["doc"],
                                      metadata=result_metadata))
         if self.enable_debug:
-            debug_info[f"qd-bm25-recall-{self.index}-{self.lang}"] = remove_redundancy_debug_info(opensearch_bm25_results)
+            debug_info[f"qd-bm25-recall-{self.index}"] = remove_redundancy_debug_info(opensearch_bm25_results)
         return doc_list
 
 def index_results_format(docs:list, threshold=-1):
