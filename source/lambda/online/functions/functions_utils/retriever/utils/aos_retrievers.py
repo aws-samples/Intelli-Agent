@@ -441,28 +441,8 @@ class QueryDocumentKNNRetriever(BaseRetriever):
     embedding_model_endpoint: Any
     target_model: Any
     query_key: str = "query"
-    enable_debug: bool = False        
-
-    # def __init__(self, index_id: str, index_type: str, index_tag: str, chatbot, using_whole_doc, context_num, top_k,query_key='query', enable_debug=False):
-    #     super().__init__()
-    #     self.index = index_id
-    #     self.index_tag = index_tag
-    #     self.vector_field = "vector_field"
-    #     self.source_field = "file_path"
-    #     self.text_field = "text"
-    #     self.lang = chatbot.languages[0]
-    #     model_parameter = chatbot.index_ids[index_type]["value"][index_tag]["modelIds"]["embedding"]["parameter"]
-    #     self.embedding_model_endpoint = model_parameter.get("ModelEndpoint")
-    #     if model_parameter["ModelName"].endswith("tar.gz"):
-    #         self.target_model = model_parameter["ModelName"]
-    #     else:
-    #         self.target_model = None
-    #     self.model_type = model_parameter["ModelType"]
-    #     self.using_whole_doc = using_whole_doc
-    #     self.context_num = context_num
-    #     self.top_k = top_k
-    #     self.query_key = query_key
-    #     self.enable_debug = enable_debug
+    enable_debug: bool = False     
+    lang: str = 'zh' 
 
     async def __ainvoke_get_context(self, aos_hit, window_size, loop):
         return await loop.run_in_executor(None,
@@ -520,12 +500,6 @@ class QueryDocumentKNNRetriever(BaseRetriever):
             response_list = asyncio.run(self.__spawn_task(aos_hits, context_size))
             for context, result in zip(response_list, results):
                 result["doc"] = "\n".join(context[0] + [result["doc"]] + context[1])
-            # context = get_context(aos_hit['_source']["metadata"]["heading_hierarchy"]["previous"],
-            #                     aos_hit['_source']["metadata"]["heading_hierarchy"]["next"],
-            #                     aos_index,
-            #                     context_size)
-            # if context:
-            #     result["doc"] = "\n".join(context[0] + [result["doc"]] + context[1])
         return results
 
     @timeit
@@ -592,22 +566,6 @@ class QueryDocumentBM25Retriever(BaseRetriever):
     query_key: str="query"
     enable_debug: Any
     config: Dict={"run_name": "BM25"}
-
-    # def __init__(self, index_id: str, index_type: str, index_tag: str, chatbot, using_whole_doc, context_num, top_k,query_key='query', enable_debug=False):
-    #     super().__init__()
-    #     self.index = index_id
-    #     self.index_tag = index_tag
-    #     self.vector_field = "vector_field"
-    #     self.source_field = "file_path"
-    #     self.text_field = "text"
-    #     self.lang = chatbot.languages[0]
-    #     model_parameter = chatbot.index_ids[index_type]["value"][index_tag]["modelIds"]["embedding"]["parameter"]
-    #     self.model_type = model_parameter["ModelType"]
-    #     self.using_whole_doc = using_whole_doc
-    #     self.context_num = context_num
-    #     self.top_k = top_k
-    #     self.query_key = query_key
-    #     self.enable_debug = enable_debug
 
     async def __ainvoke_get_context(self, aos_hit, window_size, loop):
         return await loop.run_in_executor(None,

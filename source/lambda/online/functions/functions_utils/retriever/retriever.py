@@ -63,13 +63,13 @@ def get_custom_qd_retrievers(config:dict,using_bm25=False):
             **{
                 "index": config['indexId'],
                 "top_k": config['top_k'],
-                "embedding_model_endpoint": config['modelIds']['embedding']['ModelEndpoint'],
-                "target_model": config['modelIds']['embedding']['ModelName'],
-                "model_type": "vector",
+                "embedding_model_endpoint": config['modelIds']['embedding']['parameter']['ModelEndpoint'],
+                "target_model": config['modelIds']['embedding']['parameter']['ModelName'],
+                "model_type": config['modelIds']['embedding']['parameter']['ModelType'],
                 "query_key": config.get("query_key","query"),
                 "text_field": config.get("text_field","text"),
                 "using_whole_doc": config.get("using_whole_doc",False),
-                "context_num":config["context_num"],
+                "context_num": config["context_num"],
                 "enable_debug": config.get('enable_debug',False)
             }  
         )
@@ -136,7 +136,6 @@ def get_custom_retrievers(retriever):
 @chatbot_lambda_call_wrapper
 def lambda_handler(event, context=None):
     event_body = event
-    retriever_type = event['type']
     retriever_list = []
     for retriever in event_body["retrievers"]:
         retriever_list.extend(get_custom_retrievers(retriever))

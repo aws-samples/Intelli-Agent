@@ -108,7 +108,6 @@ class ConfigParserBase:
     def index_postprocess(cls,chatbot_config):
         def _dict_update(config):
             retrievers = []
-            
             _retrievers = config.pop('retrievers')
             for retriever_dict in _retrievers:
                 retrievers.append({
@@ -136,8 +135,8 @@ class ConfigParserBase:
             os.environ.get("default_llm_config", cls.default_llm_config_str)
         )
         default_llm_config = {
-        **default_llm_config,
-        **chatbot_config.get("default_llm_config", {})
+            **default_llm_config,
+            **chatbot_config.get("default_llm_config", {})
         }
 
         default_index_config = cls.parse_aos_indexs(chatbot_config)

@@ -82,6 +82,8 @@ class ChatbotState(TypedDict):
     function_calling_parse_ok: bool
     # whether the current parsed tool calling is run once
     function_calling_is_run_once: bool
+    # current tool calls
+    function_calling_parsed_tool_calls: list
 
 ####################
 # nodes in graph #
@@ -123,7 +125,7 @@ def intention_detection(state: ChatbotState):
 @node_monitor_wrapper
 def llm_rag_results_generation(state: ChatbotState):
     group_name = state['chatbot_config']['group_name']
-    llm_config = state["chatbot_config"]["rag_config"]["llm_config"]
+    llm_config = state["chatbot_config"]["private_knowledge_config"]["llm_config"]
     figure_list = state["figure"]
     if figure_list and len(figure_list) > 1:
         figure_list = [figure_list[0]]
@@ -197,6 +199,7 @@ def agent(state: ChatbotState):
             }
 
     response = app_agent.invoke(state)
+    print(response)
 
     return response
 
@@ -207,7 +210,7 @@ def rag_all_index_lambda(state: ChatbotState):
     context_list = []
     figure_list = []
 
-    retriever_params = state["chatbot_config"]["rag_config"]["retriever_config"]
+    retriever_params = state["chatbot_config"]["private_knowledge_config"]["retriever_config"]
     retriever_params["query"] = state["query"]
     output: str = invoke_lambda(
         event_body=retriever_params,
