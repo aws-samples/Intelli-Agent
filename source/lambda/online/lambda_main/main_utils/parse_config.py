@@ -41,14 +41,14 @@ class ConfigParserBase:
                 "conversation_query_rewrite_config": {**copy.deepcopy(default_llm_config)}
             },
             "intention_config": {
-                "retrieve_config":{
+                "retriever_config":{
                     "top_k": 10,
                     "query_key": "query"
                 },
                 "retrievers": default_index_config.get("intention",[])
             },
             "qq_match_config": {
-                "retrieve_config": {
+                "retriever_config": {
                     "query_key": "query"
                 },
                 "retrievers": default_index_config.get("qq_match",[])
@@ -59,7 +59,7 @@ class ConfigParserBase:
             },
             "private_knowledge_config": {
                 "retriever_config": {
-                    "retrieve_config":{
+                    "retriever_config":{
                             "top_k": 10,
                             "context_num": 1,
                             "using_whole_doc": False,
@@ -93,6 +93,7 @@ class ConfigParserBase:
         for index_name,index_info in chatbot.index_ids.items():
             # TODO some modify needed
             assert index_name in ("qq","qd",'intention'),index_name
+            # prepare list value
             if index_name == "qq":
                 index_name = 'qq_match'
             elif index_name == "qd":
@@ -111,7 +112,7 @@ class ConfigParserBase:
             _retrievers = config.pop('retrievers')
             for retriever_dict in _retrievers:
                 retrievers.append({
-                    **config['retrieve_config'],
+                    **config['retriever_config'],
                     **retriever_dict
                 })
             config['retrievers'] = retrievers
