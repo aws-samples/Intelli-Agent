@@ -58,9 +58,8 @@ def get_websearch_retrievers(top_k:int):
     ]
     return retriever_list
 
-def get_custom_qd_retrievers(qd_config_list:list[dict],using_bm25=False):
-    retriever_list = [
-        QueryDocumentKNNRetriever(
+def get_custom_qd_retrievers(config:dict,using_bm25=False):
+    qd_retriever = QueryDocumentKNNRetriever(
             **{
                 "index": config['indexId'],
                 "top_k": config['top_k'],
@@ -74,12 +73,9 @@ def get_custom_qd_retrievers(qd_config_list:list[dict],using_bm25=False):
                 "enable_debug": config.get('enable_debug',False)
             }  
         )
-        for config in qd_config_list
-    ]
 
     if using_bm25:
-        retriever_list += [
-                QueryDocumentBM25Retriever(
+        bm25_retrievert = QueryDocumentBM25Retriever(
                     **{
                         "index": config['indexId'],
                         "using_whole_doc": config.get("using_whole_doc",False),
@@ -87,13 +83,11 @@ def get_custom_qd_retrievers(qd_config_list:list[dict],using_bm25=False):
                         "enable_debug": config.get('enable_debug',False)
                     }
                 )
-                for config in qd_config_list
-            ]
-    return retriever_list
+        return [qd_retriever, bm25_retrievert]
+    return [qd_retriever]
 
-def get_custom_qq_retrievers(qq_config_list:list[dict]):
-    retriever_list = [
-        QueryQuestionRetriever(
+def get_custom_qq_retrievers(config:dict):
+    qq_retriever = QueryQuestionRetriever(
             **{
                 "index": config['indexId'],
                 "top_k": config['top_k'],
@@ -104,9 +98,7 @@ def get_custom_qq_retrievers(qq_config_list:list[dict]):
                 "enable_debug": config.get('enable_debug',False)
             }
         )
-        for config in qq_config_list
-    ]
-    return retriever_list
+    return [qq_retriever]
 
 def get_whole_chain(retriever_list, reranker_config):
     lotr = MergerRetriever(retrievers=retriever_list)
@@ -132,6 +124,7 @@ def get_whole_chain(retriever_list, reranker_config):
 
 retriever_dict = {
     "qq": get_custom_qq_retrievers,
+    "intention": get_custom_qq_retrievers,
     "qd": get_custom_qd_retrievers,
     "websearch": get_websearch_retrievers,
     "bedrock_kb": get_bedrock_kb_retrievers,
