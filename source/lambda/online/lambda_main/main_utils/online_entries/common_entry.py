@@ -103,6 +103,20 @@ def query_preprocess(state: ChatbotState):
 
 @node_monitor_wrapper
 def intention_detection(state: ChatbotState):
+    retriever_params = state["chatbot_config"]["qq_match_config"]
+    retriever_params["query"] = state["query"]
+    output: str = invoke_lambda(
+        event_body=retriever_params,
+        lambda_name="Online_Functions",
+        lambda_module_path="functions.functions_utils.retriever.retriever",
+        handler_name="lambda_handler",
+    )
+
+    context_list = []
+
+    for doc in output["result"]["docs"]:
+        context_list.append(doc["page_content"])
+
     intent_fewshot_examples = invoke_lambda(
         lambda_module_path="lambda_intention_detection.intention",
         lambda_name="Online_Intention_Detection",
