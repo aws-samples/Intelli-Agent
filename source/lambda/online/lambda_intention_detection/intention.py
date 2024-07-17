@@ -56,6 +56,7 @@ def get_intention_results(query:str, intention_config:dict):
             })
                 
     else:
+        print(res['result']['docs'])
         
         intent_fewshot_examples = [{
             "query": doc['page_content'],

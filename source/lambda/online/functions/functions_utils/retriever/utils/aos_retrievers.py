@@ -10,7 +10,6 @@ from langchain.docstore.document import Document
 
 from common_logic.common_utils.time_utils import timeit
 from .aos_utils import LLMBotOpenSearchClient
-from langchain_core.utils import pre_init
 from sm_utils import SagemakerEndpointVectorOrCross
 
 logger = logging.getLogger()
@@ -587,7 +586,7 @@ class QueryDocumentBM25Retriever(BaseRetriever):
     text_field: str = "text"
     using_whole_doc: bool = False
     context_num: Any
-    top_k: 5
+    top_k: int = 5
     # lang: Any
     # model_type: Any
     query_key: str="query"

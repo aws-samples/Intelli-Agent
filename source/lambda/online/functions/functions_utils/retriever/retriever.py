@@ -97,8 +97,8 @@ def get_custom_qq_retrievers(qq_config_list:list[dict]):
             **{
                 "index": config['indexId'],
                 "top_k": config['top_k'],
-                "embedding_model_endpoint": config['modelIds']['embedding']['ModelEndpoint'],
-                "target_model": config['modelIds']['embedding']['ModelName'],
+                "embedding_model_endpoint": config['modelIds']['embedding']['parameter']['ModelEndpoint'],
+                "target_model": config['modelIds']['embedding']['parameter']['ModelName'],
                 "model_type": "vector",
                 "query_key": config.get("query_key","query"),
                 "enable_debug": config.get('enable_debug',False)
@@ -137,16 +137,16 @@ retriever_dict = {
     "bedrock_kb": get_bedrock_kb_retrievers,
 }
 
-def get_custom_retrievers(retriever_config):
-    retriever_type = retriever_config["type"]
-    return retriever_dict[retriever_type](retriever_config['retrievers'])
+def get_custom_retrievers(retrievers,retriever_type):
+    return retriever_dict[retriever_type](retrievers)
 
 @chatbot_lambda_call_wrapper
 def lambda_handler(event, context=None):
     event_body = event
-    retriever_list = []
-    for retriever_config in event_body["retrievers"]:
-        retriever_list.extend(get_custom_retrievers(retriever_config))
+    retriever_type = event['type']
+    # retriever_list = []
+    # for retriever in event_body["retrievers"]:
+    retriever_list = get_custom_retrievers(event_body["retrievers"],retriever_type)
     rerankers = event_body.get("rerankers", None)
     if rerankers:
         reranker_config = rerankers[0]["config"]
