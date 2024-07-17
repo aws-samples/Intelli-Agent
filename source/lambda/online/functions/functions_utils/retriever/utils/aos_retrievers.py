@@ -384,24 +384,6 @@ class QueryQuestionRetriever(BaseRetriever):
     query_key: str= "query"
     enable_debug: bool = False
 
-    # def __init__(self, index_id: str, lang: str, emebdding_model_endpoint: str, target_model: str, top_k: int, query_key="query", enable_debug=False):
-    #     super().__init__()
-    #     self.index = index_id
-    #     self.index_tag = index_tag
-    #     self.vector_field = "vector_field"
-    #     self.source_field = "source"
-    #     self.top_k = top_k
-    #     self.lang = chatbot.languages[0]
-    #     model_parameter = chatbot.index_ids[index_type]["value"][index_tag]["modelIds"]["embedding"]["parameter"]
-    #     self.embedding_model_endpoint = model_parameter.get("ModelEndpoint")
-    #     if model_parameter["ModelName"].endswith("tar.gz"):
-    #         self.target_model = model_parameter["ModelName"]
-    #     else:
-    #         self.target_model = None
-    #     self.model_type = model_parameter["ModelType"]
-    #     self.query_key = query_key
-    #     self.enable_debug = enable_debug
-
     @timeit
     def _get_relevant_documents(self, question: Dict, *, run_manager: CallbackManagerForRetrieverRun) -> List[Document]:
         query = question[self.query_key] 
@@ -431,7 +413,7 @@ class QueryQuestionRetriever(BaseRetriever):
 class QueryDocumentKNNRetriever(BaseRetriever):
     index: str
     vector_field: str = "vector_field"
-    source_field: str = "source"
+    source_field: str = "file_path"
     text_field: str = "text"
     using_whole_doc: bool = False
     context_num: int = 2
