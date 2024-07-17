@@ -1,5 +1,6 @@
 import json
 import re
+import os
 import random
 from datetime import datetime 
 from textwrap import dedent
@@ -28,9 +29,10 @@ from common_logic.common_utils.logger_utils import get_logger
 from common_logic.common_utils.serialization_utils import JSONEncoder
 from common_logic.common_utils.s3_utils import download_file_from_s3,check_local_folder
 
+data_bucket_name = os.environ.get("RES_BUCKET", "aws-chatbot-knowledge-base-test")
 order_info_path = "/tmp/functions/retail_tools/lambda_order_info/order_info.json"
 check_local_folder(order_info_path)
-download_file_from_s3("aws-chatbot-knowledge-base-test", "retail_json/order_info.json", order_info_path)
+download_file_from_s3(data_bucket_name, "retail_json/order_info.json", order_info_path)
 order_dict = json.load(open(order_info_path))
 
 logger = get_logger('retail_entry')
