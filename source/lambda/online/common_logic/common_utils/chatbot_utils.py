@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime
 from typing import List
-from chatbot import Chatbot
+from common_utils.chatbot import Chatbot
 
 
 class ChatbotManager:
