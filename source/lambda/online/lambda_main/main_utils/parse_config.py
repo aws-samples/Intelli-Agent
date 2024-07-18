@@ -48,6 +48,7 @@ class ConfigParserBase:
             },
             "qq_match_config": {
                 "retriever_config": {
+                    "top_k": 10,
                     "query_key": "query"
                 },
                 "retrievers": default_index_config.get("qq_match",[])
