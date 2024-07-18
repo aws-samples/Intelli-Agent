@@ -688,13 +688,8 @@ export class ApiConstruct extends Construct {
     const apiListChatbot = apiResourceStepFunction.addResource("list-workspace");
     apiListChatbot.addMethod(
       "GET",
-<<<<<<< HEAD
       new apigw.LambdaIntegration(listChatbotLambda),
-      methodOption,
-=======
-      new apigw.LambdaIntegration(listWorkspaceLambda),
       this.genMethodOption(api, auth, null),
->>>>>>> dev
     );
 
     // Define the API Gateway Lambda Integration to invoke Batch job
