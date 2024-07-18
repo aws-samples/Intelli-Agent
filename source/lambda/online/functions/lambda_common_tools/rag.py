@@ -31,7 +31,7 @@ def lambda_handler(event_body,context=None):
     unique_figure_list = [dict(t) for t in unique_set]
     state['extra_response']['figures'] = unique_figure_list
     
-    send_trace(f"\n\n**rag-contexts:** {context_list}")
+    send_trace(f"\n\n**rag-contexts:** {context_list}", enable_trace=state["enable_trace"])
     
     group_name = state['chatbot_config']['group_name']
     llm_config = state["chatbot_config"]["chat_config"]

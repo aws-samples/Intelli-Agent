@@ -120,7 +120,7 @@ def intention_detection(state: ChatbotState):
 
     for doc in output["result"]["docs"]:
         if doc['retrieval_score'] > qq_match_threshold:
-            send_trace(f"\n\n**similar query found**\n")
+            send_trace(f"\n\n**similar query found**\n", state["stream"], state["ws_connection_id"], state["enable_trace"])
             query_content = doc['answer']
             return {
                 "answer": query_content,
@@ -164,7 +164,7 @@ def agent(state: ChatbotState):
         output = tool_execute_res['output']
         tool = get_tool_by_name(tool_name, scene=SceneType.COMMON)
         if tool.running_mode == ToolRuningMode.ONCE:
-            send_trace("once tool")
+            send_trace("once tool", enable_trace=state["enable_trace"])
             return {
                 "answer": output['result'],
                 "function_calling_is_run_once": True
@@ -180,11 +180,11 @@ def agent(state: ChatbotState):
 
     if no_intention_condition or first_tool_final_response or state['chatbot_config']['chatbot_mode']==ChatbotMode.rag_mode:
         if  state['chatbot_config']['chatbot_mode']==ChatbotMode.rag_mode:
-            send_trace("rag mode, switch to rag")
+            send_trace("rag mode, switch to rag", enable_trace=state["enable_trace"])
         elif no_intention_condition:
-            send_trace("no_intention_condition, switch to rag")
+            send_trace("no_intention_condition, switch to rag", enable_trace=state["enable_trace"])
         elif first_tool_final_response:
-            send_trace("first tool is final response, switch to rag")
+            send_trace("first tool is final response, switch to rag", enable_trace=state["enable_trace"])
 
         return {
             "function_calling_parse_ok": True,

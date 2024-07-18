@@ -104,7 +104,7 @@ def tool_execution(state):
         })
     
     output = format_tool_call_results(tool_call['model_id'],tool_call_results)
-    send_trace(f'**tool_execute_res:** \n{output["tool_message"]["content"]}')
+    send_trace(f'**tool_execute_res:** \n{output["tool_message"]["content"]}', enable_trace=state["enable_trace"])
     return {
         "agent_tool_history": [output['tool_message']]
         }
