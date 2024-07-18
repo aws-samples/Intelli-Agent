@@ -4,7 +4,8 @@ from typing import Annotated, Any, TypedDict
 from common_logic.common_utils.constant import (
     LLMTaskType,
     ToolRuningMode,
-    SceneType
+    SceneType,
+    ChatbotMode
 )
 
 from common_logic.common_utils.lambda_invoke_utils import (
@@ -122,44 +123,44 @@ def intention_detection(state: ChatbotState):
         "intent_type": "intention detected",
     }
 
-@node_monitor_wrapper
-def llm_rag_results_generation(state: ChatbotState):
-    group_name = state['chatbot_config']['group_name']
-    llm_config = state["chatbot_config"]["private_knowledge_config"]["llm_config"]
-    figure_list = state["figure"]
-    if figure_list and len(figure_list) > 1:
-        figure_list = [figure_list[0]]
-    task_type = LLMTaskType.RAG
-    prompt_templates_from_ddb = get_prompt_templates_from_ddb(
-        group_name,
-        model_id = llm_config['model_id'],
-    ).get(task_type,{})
+# @node_monitor_wrapper
+# def llm_rag_results_generation(state: ChatbotState):
+#     group_name = state['chatbot_config']['group_name']
+#     llm_config = state["chatbot_config"]["private_knowledge_config"]["llm_config"]
+#     figure_list = state["figure"]
+#     if figure_list and len(figure_list) > 1:
+#         figure_list = [figure_list[0]]
+#     task_type = LLMTaskType.RAG
+#     prompt_templates_from_ddb = get_prompt_templates_from_ddb(
+#         group_name,
+#         model_id = llm_config['model_id'],
+#     ).get(task_type,{})
 
-    output: str = invoke_lambda(
-        lambda_name="Online_LLM_Generate",
-        lambda_module_path="lambda_llm_generate.llm_generate",
-        handler_name="lambda_handler",
-        event_body={
-            "llm_config": {
-                **prompt_templates_from_ddb,
-                **llm_config,
-                "stream": state["stream"],
-                "intent_type": task_type,
-            },
-            "llm_input": {
-                "contexts": [state["contexts"]],
-                "query": state["query"],
-                "chat_history": state["chat_history"],
-            },
-        },
-    )
+#     output: str = invoke_lambda(
+#         lambda_name="Online_LLM_Generate",
+#         lambda_module_path="lambda_llm_generate.llm_generate",
+#         handler_name="lambda_handler",
+#         event_body={
+#             "llm_config": {
+#                 **prompt_templates_from_ddb,
+#                 **llm_config,
+#                 "stream": state["stream"],
+#                 "intent_type": task_type,
+#             },
+#             "llm_input": {
+#                 "contexts": [state["contexts"]],
+#                 "query": state["query"],
+#                 "chat_history": state["chat_history"],
+#             },
+#         },
+#     )
     
-    return {
-        "answer": output,
-        "ddb_additional_kwargs": {
-            "figure": figure_list
-        }
-    }
+#     return {
+#         "answer": output,
+#         "ddb_additional_kwargs": {
+#             "figure": figure_list
+#         }
+#     }
 
 
 @node_monitor_wrapper
@@ -167,6 +168,20 @@ def agent(state: ChatbotState):
     # two cases to invoke rag function
     # 1. when valid intention fewshot found
     # 2. for the first time, agent decides to give final results
+
+    # deal with once tool calling
+    if state['agent_repeated_call_validation'] and state['function_calling_parse_ok'] and state['agent_tool_history']:
+        tool_execute_res = state['agent_tool_history'][-1]['additional_kwargs']['raw_tool_call_results'][0]
+        tool_name = tool_execute_res['name']
+        output = tool_execute_res['output']
+        tool = get_tool_by_name(tool_name, scene=SceneType.COMMON)
+        if tool.running_mode == ToolRuningMode.ONCE:
+            send_trace("once tool")
+            return {
+                "answer": output['result'],
+                "function_calling_is_run_once": True
+            }
+
     no_intention_condition = not state['intent_fewshot_examples']
     first_tool_final_response = False
     if (state['agent_current_call_number'] == 1) and state['function_calling_parse_ok'] and state['agent_tool_history']:
@@ -175,62 +190,62 @@ def agent(state: ChatbotState):
         if tool_name == "give_final_response":
             first_tool_final_response = True
 
-    if no_intention_condition or first_tool_final_response:
-        send_trace("no clear intention, switch to rag")
-        contexts = knowledge_retrieve(state)['contexts']
-        state['contexts'] = contexts
-        answer:str = llm_rag_results_generation(state)['answer']
+    if no_intention_condition or first_tool_final_response or state['chatbot_config']['chatbot_mode']==ChatbotMode.rag_mode:
+        if no_intention_condition:
+            send_trace("no_intention_condition, switch to rag")
+        elif first_tool_final_response:
+            send_trace("first tool is final response, switch to rag")
+        elif state['chatbot_config']['chatbot_mode']==ChatbotMode.rag_mode:
+            send_trace("rag mode, switch to rag")
+
         return {
-            "answer": answer,
-            "function_calling_is_run_once": True
+            "function_calling_parse_ok": True,
+            "agent_repeated_call_validation":True,
+            "function_calling_parsed_tool_calls": [{
+                "name": "rag_tool",
+                "kwargs": {},
+                "model_id": state['chatbot_config']['agent_config']['model_id']
+            }]
         }
-
-    # deal with once tool calling
-    if state['agent_repeated_call_validation'] and state['function_calling_parse_ok'] and state['agent_tool_history']:
-        tool_execute_res = state['agent_tool_history'][-1]['additional_kwargs']['raw_tool_call_results'][0]
-        tool_name = tool_execute_res['name']
-        output = tool_execute_res['output']
-        tool = get_tool_by_name(tool_name,scene=SceneType.COMMON)
-        if tool.running_mode == ToolRuningMode.ONCE:
-            send_trace("once tool")
-            return {
-                "answer": str(output['result']),
-                "function_calling_is_run_once": True
-            }
-
+        # contexts = knowledge_retrieve(state)['contexts']
+        # state['contexts'] = contexts
+        # answer:str = llm_rag_results_generation(state)['answer']
+        # return {
+        #     "answer": answer,
+        #     "function_calling_is_run_once": True
+        # }
     response = app_agent.invoke(state)
-    print(response)
-
+    
     return response
 
 
-@node_monitor_wrapper
-def rag_all_index_lambda(state: ChatbotState):
-    # Call retriever
-    context_list = []
-    figure_list = []
+# @node_monitor_wrapper
+# def rag_all_index_lambda(state: ChatbotState):
+#     # Call retriever
+#     context_list = []
+#     figure_list = []
 
-    retriever_params = state["chatbot_config"]["private_knowledge_config"]["retriever_config"]
-    retriever_params["query"] = state["query"]
-    output: str = invoke_lambda(
-        event_body=retriever_params,
-        lambda_name="Online_Functions",
-        lambda_module_path="functions.functions_utils.retriever.retriever",
-        handler_name="lambda_handler",
-    )
+#     retriever_params = state["chatbot_config"]["private_knowledge_config"]["retriever_config"]
+#     retriever_params["query"] = state["query"]
+#     output: str = invoke_lambda(
+#         event_body=retriever_params,
+#         lambda_name="Online_Functions",
+#         lambda_module_path="functions.functions_utils.retriever.retriever",
+#         handler_name="lambda_handler",
+#     )
 
-    for doc in output["result"]["docs"]:
-        context_list.append(doc["page_content"])
-        figure_list = figure_list + doc["figure"]
+#     for doc in output["result"]["docs"]:
+#         context_list.append(doc["page_content"])
+#         figure_list = figure_list + doc["figure"]
     
-    # Remove duplicate figures
-    unique_set = {tuple(d.items()) for d in figure_list}
-    unique_figure_list = [dict(t) for t in unique_set]
+#     # Remove duplicate figures
+#     unique_set = {tuple(d.items()) for d in figure_list}
+#     unique_figure_list = [dict(t) for t in unique_set]
 
-    return {"contexts": context_list, "figure": unique_figure_list}
+#     return {"contexts": context_list, "figure": unique_figure_list}
 
 
-knowledge_retrieve = rag_all_index_lambda
+# knowledge_retrieve = rag_all_index_lambda
 
 @node_monitor_wrapper
 def llm_direct_results_generation(state: ChatbotState):
@@ -318,8 +333,8 @@ def build_graph(chatbot_state_cls):
     # chat mode
     workflow.add_node("llm_direct_results_generation", llm_direct_results_generation)
     # rag mode
-    workflow.add_node("knowledge_retrieve", knowledge_retrieve)
-    workflow.add_node("llm_rag_results_generation", llm_rag_results_generation)
+    # workflow.add_node("knowledge_retrieve", knowledge_retrieve)
+    # workflow.add_node("llm_rag_results_generation", llm_rag_results_generation)
     # agent mode
     workflow.add_node("intention_detection", intention_detection)
     workflow.add_node("matched_query_return", matched_query_return)
@@ -333,8 +348,8 @@ def build_graph(chatbot_state_cls):
     # chat mode
     workflow.add_edge("llm_direct_results_generation", END)
     # rag mode
-    workflow.add_edge("knowledge_retrieve", "llm_rag_results_generation")
-    workflow.add_edge("llm_rag_results_generation", END)
+    # workflow.add_edge("knowledge_retrieve", "llm_rag_results_generation")
+    # workflow.add_edge("llm_rag_results_generation", END)
     # agent mode
     workflow.add_edge("tools_execution", "agent")
     workflow.add_edge("matched_query_return", "final_results_preparation")
@@ -350,7 +365,7 @@ def build_graph(chatbot_state_cls):
         query_route,
         {
             "chat mode": "llm_direct_results_generation",
-            "rag mode": "knowledge_retrieve",
+            "rag mode": "intention_detection",
             "agent mode": "intention_detection",
         },
     )
@@ -448,7 +463,7 @@ def common_entry(event_body):
         "answer": response["answer"],
         **response["extra_response"],
         "ddb_additional_kwargs": {
-            "figure":response.get("figure", [])
+            "figure": response["extra_response"].get("figure", [])
         }
     }
 

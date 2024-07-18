@@ -24,8 +24,7 @@ def tools_choose_and_results_generation(state):
             },
         lambda_name="Online_Agent",
         lambda_module_path="lambda_agent.agent",
-        handler_name="lambda_handler",
-   
+        handler_name="lambda_handler"
     )
     agent_current_call_number = state['agent_current_call_number'] + 1
     agent_repeated_call_validation = state['agent_current_call_number'] < state['agent_repeated_call_limit']
