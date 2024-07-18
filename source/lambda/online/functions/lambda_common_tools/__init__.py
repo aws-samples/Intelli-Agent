@@ -5,7 +5,8 @@ from . import (
     give_rhetorical_question,
     give_final_response,
     chat,
-    knowledge_base_retrieve
+    knowledge_base_retrieve,
+    rag
 )
 
 
@@ -127,6 +128,48 @@ tool_manager.register_tool({
     },
     "running_mode": ToolRuningMode.LOOP
 })
+
+
+tool_manager.register_tool({
+    "name": "rag_tool",
+    "scene": SCENE,
+    "lambda_name": LAMBDA_NAME,
+    "lambda_module_path": rag.lambda_handler,
+    "tool_def":{
+        "name": "rag_tool",
+        "description": "private knowledge",
+        "parameters": {}
+    },
+    "running_mode": ToolRuningMode.ONCE
+})
+
+tool_manager.register_tool({
+    "name": "rag_bedrock_tool",
+    "scene": SCENE,
+    "lambda_name": LAMBDA_NAME,
+    "lambda_module_path": rag.lambda_handler,
+    "tool_def":{
+        "name": "rag_bedrock_tool",
+        "description": "knowledge about Amazon Bedrock. Amazon Bedrock is a fully managed service that offers a choice of high-performing foundation models (FMs) from leading AI companies like AI21 Labs, Anthropic, Cohere, Meta, Mistral AI, Stability AI, and Amazon through a single API, along with a broad set of capabilities you need to build generative AI applications with security, privacy, and responsible AI.",
+        "parameters": {}
+    },
+    "running_mode": ToolRuningMode.ONCE
+})
+
+tool_manager.register_tool({
+    "name": "rag_s3_tool",
+    "scene": SCENE,
+    "lambda_name": LAMBDA_NAME,
+    "lambda_module_path": rag.lambda_handler,
+    "tool_def":{
+        "name": "rag_s3_tool",
+        "description": "knowledge about Amazon Bedrock. Amazon Bedrock is a fully managed service that offers a choice of high-performing foundation models (FMs) from leading AI companies like AI21 Labs, Anthropic, Cohere, Meta, Mistral AI, Stability AI, and Amazon through a single API, along with a broad set of capabilities you need to build generative AI applications with security, privacy, and responsible AI.",
+        "parameters": {}
+    },
+    "running_mode": ToolRuningMode.ONCE
+})
+
+
 
 
 
