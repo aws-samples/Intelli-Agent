@@ -15,7 +15,6 @@ from .exceptions import LambdaInvokeError
 
 logger = get_logger("lambda_invoke_utils")
 
-
 class LAMBDA_INVOKE_MODE(enum.Enum):
     LAMBDA = "lambda"
     LOCAL = "local"
@@ -48,7 +47,6 @@ class LambdaInvoker(BaseModel):
     def validate_environment(cls, values: Dict):
         if values.get("client") is not None:
             return values
-
         try:
             import boto3
 
