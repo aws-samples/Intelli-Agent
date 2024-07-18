@@ -137,45 +137,6 @@ def intention_detection(state: ChatbotState):
         "intent_type": "intention detected",
     }
 
-# @node_monitor_wrapper
-# def llm_rag_results_generation(state: ChatbotState):
-#     group_name = state['chatbot_config']['group_name']
-#     llm_config = state["chatbot_config"]["private_knowledge_config"]["llm_config"]
-#     figure_list = state["figure"]
-#     if figure_list and len(figure_list) > 1:
-#         figure_list = [figure_list[0]]
-#     task_type = LLMTaskType.RAG
-#     prompt_templates_from_ddb = get_prompt_templates_from_ddb(
-#         group_name,
-#         model_id = llm_config['model_id'],
-#     ).get(task_type,{})
-
-#     output: str = invoke_lambda(
-#         lambda_name="Online_LLM_Generate",
-#         lambda_module_path="lambda_llm_generate.llm_generate",
-#         handler_name="lambda_handler",
-#         event_body={
-#             "llm_config": {
-#                 **prompt_templates_from_ddb,
-#                 **llm_config,
-#                 "stream": state["stream"],
-#                 "intent_type": task_type,
-#             },
-#             "llm_input": {
-#                 "contexts": [state["contexts"]],
-#                 "query": state["query"],
-#                 "chat_history": state["chat_history"],
-#             },
-#         },
-#     )
-    
-#     return {
-#         "answer": output,
-#         "ddb_additional_kwargs": {
-#             "figure": figure_list
-#         }
-#     }
-
 
 @node_monitor_wrapper
 def agent(state: ChatbotState):
@@ -205,12 +166,12 @@ def agent(state: ChatbotState):
             first_tool_final_response = True
 
     if no_intention_condition or first_tool_final_response or state['chatbot_config']['chatbot_mode']==ChatbotMode.rag_mode:
-        if no_intention_condition:
+        if  state['chatbot_config']['chatbot_mode']==ChatbotMode.rag_mode:
+            send_trace("rag mode, switch to rag")
+        elif no_intention_condition:
             send_trace("no_intention_condition, switch to rag")
         elif first_tool_final_response:
             send_trace("first tool is final response, switch to rag")
-        elif state['chatbot_config']['chatbot_mode']==ChatbotMode.rag_mode:
-            send_trace("rag mode, switch to rag")
 
         return {
             "function_calling_parse_ok": True,
@@ -221,45 +182,10 @@ def agent(state: ChatbotState):
                 "model_id": state['chatbot_config']['agent_config']['model_id']
             }]
         }
-        # contexts = knowledge_retrieve(state)['contexts']
-        # state['contexts'] = contexts
-        # answer:str = llm_rag_results_generation(state)['answer']
-        # return {
-        #     "answer": answer,
-        #     "function_calling_is_run_once": True
-        # }
     response = app_agent.invoke(state)
     
     return response
 
-
-# @node_monitor_wrapper
-# def rag_all_index_lambda(state: ChatbotState):
-#     # Call retriever
-#     context_list = []
-#     figure_list = []
-
-#     retriever_params = state["chatbot_config"]["private_knowledge_config"]["retriever_config"]
-#     retriever_params["query"] = state["query"]
-#     output: str = invoke_lambda(
-#         event_body=retriever_params,
-#         lambda_name="Online_Functions",
-#         lambda_module_path="functions.functions_utils.retriever.retriever",
-#         handler_name="lambda_handler",
-#     )
-
-#     for doc in output["result"]["docs"]:
-#         context_list.append(doc["page_content"])
-#         figure_list = figure_list + doc["figure"]
-    
-#     # Remove duplicate figures
-#     unique_set = {tuple(d.items()) for d in figure_list}
-#     unique_figure_list = [dict(t) for t in unique_set]
-
-#     return {"contexts": context_list, "figure": unique_figure_list}
-
-
-# knowledge_retrieve = rag_all_index_lambda
 
 @node_monitor_wrapper
 def llm_direct_results_generation(state: ChatbotState):
@@ -316,22 +242,9 @@ def agent_route(state: dict):
         return "no need tool calling"
 
     state["agent_repeated_call_validation"] = state['agent_current_call_number'] < state['agent_repeated_call_limit']
-    # if state["function_calling_parse_ok"]:
-    #     state["function_calling_parsed_tool_name"] = state["function_calling_parsed_tool_calls"][0]["name"]
-    # else:
-    #     state["function_calling_parsed_tool_name"] = ""
-
-    # if state["agent_repeated_call_validation"] and not state["function_calling_parse_ok"]:
-    #     return "invalid tool calling"
 
     if state["agent_repeated_call_validation"]:
         return "valid tool calling"
-        # if state["function_calling_parsed_tool_name"] in ["QA", "service_availability", "explain_abbr"]:
-        #     return "force to retrieve all knowledge"
-        # elif state["function_calling_parsed_tool_name"] in state["valid_tool_calling_names"]:
-        #     return "valid tool calling"
-        # else:
-        #     return "no need tool calling"
     else:
         # TODO give final strategy
         raise RuntimeError
