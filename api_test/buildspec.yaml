@@ -36,7 +36,7 @@ phases:
           echo $reason | jq -R --arg reason "$reason" '{"error_msg":$reason}' > clear_resources.json
           cat clear_resources.json
           aws lambda invoke --function-name $CLEAR_RESOURCES_FUNCTION --payload fileb://clear_resources.json response.json
-          lambda_status=$(jq -r '.StatusCode' < response.json)
+          lambda_status=$(jq -r '.statusCode' < response.json)
           if [ $lambda_status -eq 200 ]; then
             echo "Lambda executed successfully. Proceeding with stack deletion."
             aws cloudformation delete-stack --stack-name "$STACK_NAME"

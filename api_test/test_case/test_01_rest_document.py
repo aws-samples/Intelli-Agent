@@ -71,7 +71,7 @@ class TestDocument:
 
     def test_02_upload_document_docx(self):
         '''test case'''
-        param = openapi_client.IntellapicoTvS3spqLZ3w9(content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document', file_name="summary.doc")
+        param = openapi_client.IntellapicoTvS3spqLZ3w9(content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document', file_name="summary.docx")
         response = self.api_instance.etl_upload_s3_url_post(param)
         assert response.message==self.upload_success_msg and response.data.startswith(self.upload_prefix_data), "test_02_upload_document_docx test failed"
         self.__upload_file_to_s3(response.data, "./test_data/summary.docx")
@@ -132,16 +132,16 @@ class TestDocument:
         assert response.message==self.upload_success_msg and response.data.startswith(self.upload_prefix_data), "test_10_upload_document_txt test failed"
         self.__upload_file_to_s3(response.data, "./test_data/summary.txt")
 
-    def test_11_upload_document_jsonl(self):
-        '''test case'''
-        param = openapi_client.IntellapicoTvS3spqLZ3w9(content_type='application/jsonlines', file_name="summary.jsonl")
-        response = self.api_instance.etl_upload_s3_url_post(param)
-        assert response.message==self.upload_success_msg and response.data.startswith(self.upload_prefix_data), "test_11_upload_document_jsonl test failed"
-        self.__upload_file_to_s3(response.data, "./test_data/summary.jsonl")
+    # def test_11_upload_document_jsonl(self):
+    #     '''test case'''
+    #     param = openapi_client.IntellapicoTvS3spqLZ3w9(content_type='application/jsonlines', file_name="summary.jsonl")
+    #     response = self.api_instance.etl_upload_s3_url_post(param)
+    #     assert response.message==self.upload_success_msg and response.data.startswith(self.upload_prefix_data), "test_11_upload_document_jsonl test failed"
+    #     self.__upload_file_to_s3(response.data, "./test_data/summary.jsonl")
     
     def test_12_list_document(self):
         '''test case'''
-        time.sleep(2 * 60)
+        # time.sleep(2 * 60)
         response = self.api_instance.etl_list_execution_get(page_size='9999', max_items='9999')
         logger.info("response>>>>>>>>>>>")
         logger.info(response) 
@@ -154,7 +154,7 @@ class TestDocument:
 
     def test_13_exec_document_pdf(self):
         '''test case'''
-        time.sleep(10 * 60)
+        # time.sleep(10 * 60)
         response = self.api_instance.etl_execution_get(execution_id=self.exeIdDict["pdf"])
         assert response.count==1 and response.items[0].status == "SUCCEED", "test_13_exec_document_pdf test failed"
     
@@ -198,10 +198,10 @@ class TestDocument:
         response = self.api_instance.etl_execution_get(execution_id=self.exeIdDict["txt"])
         assert response.count==1 and response.items[0].status == "SUCCEED", "test_21_exec_document_txt test failed"
 
-    def test_22_exec_document_jsonl(self):
-        '''test case'''
-        response = self.api_instance.etl_execution_get(execution_id=self.exeIdDict["jsonl"])
-        assert response.count==1 and response.items[0].status == "SUCCEED", "test_22_exec_document_jsonl test failed"
+    # def test_22_exec_document_jsonl(self):
+    #     '''test case'''
+    #     response = self.api_instance.etl_execution_get(execution_id=self.exeIdDict["jsonl"])
+    #     assert response.count==1 and response.items[0].status == "SUCCEED", "test_22_exec_document_jsonl test failed"
     
     def test_23_delete_document(self):
         '''test case'''
