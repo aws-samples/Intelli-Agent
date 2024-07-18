@@ -10,6 +10,8 @@ def lambda_handler(event_body,context=None):
     state = event_body['state']
 
     context_list = []
+    # add qq match results
+    context_list.extend(state['qq_match_results'])
     figure_list = []
     retriever_params = state["chatbot_config"]["private_knowledge_config"]["retriever_config"]
     retriever_params["query"] = state["query"]
@@ -27,7 +29,7 @@ def lambda_handler(event_body,context=None):
     # Remove duplicate figures
     unique_set = {tuple(d.items()) for d in figure_list}
     unique_figure_list = [dict(t) for t in unique_set]
-    state['extra_response']['figure'] = unique_figure_list
+    state['extra_response']['figures'] = unique_figure_list
     
     send_trace(f"\n\n**rag-contexts:** {context_list}")
     

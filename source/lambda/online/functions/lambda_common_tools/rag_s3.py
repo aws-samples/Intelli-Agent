@@ -27,7 +27,7 @@ def lambda_handler(event_body,context=None):
     # Remove duplicate figures
     unique_set = {tuple(d.items()) for d in figure_list}
     unique_figure_list = [dict(t) for t in unique_set]
-    state['extra_response']['figure'] = unique_figure_list
+    state['extra_response']['figures'] = unique_figure_list
     
     send_trace(f"\n\n**rag-s3-contexts:** {context_list}")
     

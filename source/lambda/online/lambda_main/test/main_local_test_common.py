@@ -111,8 +111,44 @@ def complete_test_pr():
     test_multi_turns_chat_pr()
     # print(srg)
     print("finish test in chat mode")
-  
+
+def bigo_test():
+    mode="rag"
+    session_id = f"multiturn_test_{time.time()}"
+    user_queries = [
+        {"query":"什么是aws ec2", "use_history":True},
+    ]
+
+    for query in user_queries:
+        print()
+        print("=="*50)
+
+        default_llm_config = {
+            'model_id': 'anthropic.claude-3-sonnet-20240229-v1:0',
+            'model_kwargs': {
+                'temperature': 0.5, 'max_tokens': 4096}
+            }
+        chatbot_config = {
+            "chatbot_mode": mode,
+            "use_history": query['use_history'],
+            "default_llm_config": default_llm_config,
+            "default_index_names":{
+                "qq_match":['bingo_qq']
+            },
+        }
+        
+        generate_answer(
+            query['query'],
+            stream=True,
+            session_id=session_id,
+            chatbot_config=chatbot_config,
+            entry_type="common",
+        )
+        print() 
+
 if __name__ == "__main__":
-    complete_test_pr()
+    # complete_test_pr()
+    # test_multi_turns_rag_pr()
     # test_multi_turns_agent_pr()
     # test_multi_turns_chat_pr()
+    bigo_test()

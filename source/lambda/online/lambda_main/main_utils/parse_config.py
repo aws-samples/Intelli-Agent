@@ -49,7 +49,8 @@ class ConfigParserBase:
             "qq_match_config": {
                 "retriever_config": {
                     "top_k": 10,
-                    "query_key": "query"
+                    "query_key": "query",
+                    "threshold": 0.9,
                 },
                 "retrievers": default_index_config.get("qq_match",[])
             },
@@ -103,7 +104,7 @@ class ConfigParserBase:
             all_index_names = list(index_info['value'].values())
             allow_index_names = default_index_names[task_name]
             if allow_index_names:
-                all_index_names = [name for name in all_index_names if name in allow_index_names]
+                all_index_names = [index for index in all_index_names if index['indexId'] in allow_index_names]
             index_infos[task_name] = all_index_names
         return index_infos
 
