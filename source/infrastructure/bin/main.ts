@@ -67,9 +67,10 @@ export class RootStack extends Stack {
     aosConstruct.node.addDependency(vpcConstruct);
 
     const dynamoDBConstruct = new DynamoDBConstruct(this, "ddb-construct");
+    const uiPortal = new PortalConstruct(this, "ui-construct");
 
     const etlStack = new EtlStack(this, "etl-stack", {
-      domainEndpoint: aosConstruct.domainEndpoint || "",
+      domainEndpoint: aosConstruct.domainEndpoint || "AOSnotcreated",
       embeddingAndRerankerEndPoint: llmStack.embeddingAndRerankerEndPoint,
       region: props.env?.region || "us-east-1",
       subEmail: cdkParameters.subEmail.valueAsString ?? "",
@@ -80,10 +81,12 @@ export class RootStack extends Stack {
       openSearchIndex: cdkParameters.openSearchIndex.valueAsString,
       imageName: cdkParameters.etlImageName.valueAsString,
       etlTag: cdkParameters.etlImageTag.valueAsString,
+      portalBucket: uiPortal.portalBucket.bucketName,
       iamHelper: iamHelper,
     });
     etlStack.node.addDependency(vpcConstruct);
     etlStack.node.addDependency(aosConstruct);
+    etlStack.node.addDependency(uiPortal);
     etlStack.addDependency(llmStack);
 
     const connectorConstruct = new ConnectorConstruct(this, "connector-construct", {
@@ -98,8 +101,6 @@ export class RootStack extends Stack {
     connectorConstruct.node.addDependency(vpcConstruct);
     connectorConstruct.node.addDependency(aosConstruct);
     connectorConstruct.node.addDependency(llmStack);
-
-    const uiPortal = new PortalConstruct(this, "ui-construct");
 
     const userConstruct = new UserConstruct(this, "user", {
       adminEmail: cdkParameters.subEmail.valueAsString,
@@ -155,34 +156,13 @@ export class RootStack extends Stack {
     });
     uiExports.node.addDependency(uiPortal);
 
-    new CfnOutput(this, "AOS Index Dict", {
-      value: cdkParameters.openSearchIndexDict.valueAsString,
-    });
     new CfnOutput(this, "API Endpoint Address", {
       value: apiConstruct.apiEndpoint,
     });
     new CfnOutput(this, "Chunk Bucket", { value: etlStack.resBucketName });
-    new CfnOutput(this, "Document Bucket", { value: apiConstruct.documentBucket });
-    new CfnOutput(this, "Embedding and Rerank Endpoint", {
-      value: llmStack.embeddingAndRerankerEndPoint || "No Embedding Endpoint Created",
-    });
-    new CfnOutput(this, "ETL Object Table", {
-      value: etlStack.etlObjTableName,
-    });
-    new CfnOutput(this, "Execution Table", {
-      value: etlStack.executionTableName,
-    });
-    new CfnOutput(this, "Glue Job Name", { value: etlStack.jobName });
-    new CfnOutput(this, "Instruct Model Endpoint", {
-      value: llmStack.instructEndPoint || "No Instruct Endpoint Created",
-    });
-    new CfnOutput(this, "OpenSearch Endpoint", {
-      value: aosConstruct.domainEndpoint || "No OpenSearch Endpoint Created",
-    });
-    new CfnOutput(this, "VPC", { value: vpcConstruct.connectorVpc.vpcId });
     new CfnOutput(this, "WebPortalURL", {
       value: uiPortal.portalUrl,
-      description: "LLM-Bot web portal url",
+      description: "Web portal url",
     });
     new CfnOutput(this, "WebSocket Endpoint Address", {
       value: apiConstruct.wsEndpoint,

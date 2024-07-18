@@ -2,9 +2,9 @@ English | [简体中文](README_zh-cn.md)
 
 
 <h1 align="center">
-  Intelli-Agent
+  Chatbot Portal with Agent
 </h1>
-<h4 align="center">Intelli-Agent: Streamlined Workflow for Building Agent-Based Applications</h4>
+<h4 align="center">Chatbot Portal with Agent: Streamlined Workflow for Building Agent-Based Applications</h4>
 <div align="center">
   <h4>
     <a href="https://github.com/aws-samples/Intelli-Agent/commits/main/stargazers"><img src="https://img.shields.io/github/stars/aws-samples/Intelli-Agent.svg?style=plasticr"></a>
@@ -13,7 +13,7 @@ English | [简体中文](README_zh-cn.md)
   </h4>
 </div>
 
-Intelli-Agent offers a streamlined workflow for developing scalable, production-grade agent-based applications, such as conversational chatbots. Key features include:
+Chatbot Portal with Agent offers a streamlined workflow for developing scalable, production-grade agent-based applications, such as conversational chatbots. Key features include:
 
 1. **Enterprise Knowledge Base Creation**: Users can upload private documents in various formats (PDF, DOCX, HTML, CSV, TXT, MD, JSON, JSONL, PNG, JPG, JPEG, WEBP) to construct a personalized knowledge base.
 
@@ -23,7 +23,7 @@ Intelli-Agent offers a streamlined workflow for developing scalable, production-
 
 4. **Comprehensive RESTful API**: Our full-featured API facilitates easy integration with existing applications, enhancing functionality and user experience.
 
-Intelli-Agent is designed to empower developers to rapidly deploy intelligent, context-aware applications with minimal overhead and maximum efficiency.
+Chatbot Portal with Agent is designed to empower developers to rapidly deploy intelligent, context-aware applications with minimal overhead and maximum efficiency.
 
 ## Table of Contents
 - [Architecture](#architecture)
@@ -72,7 +72,7 @@ Chunk metadata is defined as below shown:
 |previous| The chunk id of previous paragraph at the same Level |
 |child| The chunk ids of sub sections |
 |next|The chunk id of next paragraph at the same Level |
-|size| The number of the chunks when the paragraph is splitted by a fixed chunk size |
+|size| The number of the chunks when the paragraph is split by a fixed chunk size |
 
 Here is an example
 

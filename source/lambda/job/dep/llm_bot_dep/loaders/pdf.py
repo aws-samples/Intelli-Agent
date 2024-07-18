@@ -55,6 +55,7 @@ def invoke_etl_model(
     bucket: str,
     key: str,
     res_bucket: str,
+    portal_bucket_name: str,
     mode: str = "ppstructure",
     lang: str = "zh",
 ):
@@ -62,6 +63,7 @@ def invoke_etl_model(
         "s3_bucket": bucket,
         "object_key": key,
         "destination_bucket": res_bucket,
+        "portal_bucket": portal_bucket_name,
         "mode": mode,
         "lang": lang,
     }
@@ -134,6 +136,7 @@ def process_pdf(s3, pdf: bytes, **kwargs):
     etl_model_endpoint = kwargs.get("etl_model_endpoint", None)
     smr_client = kwargs.get("smr_client", None)
     res_bucket = kwargs.get("res_bucket", None)
+    portal_bucket_name = kwargs.get("portal_bucket_name", None)
     # TODO: make it configurable in frontend
     document_language = kwargs.get("document_language", "zh")
     # Extract file name also in consideration of file name with blank space
@@ -167,6 +170,7 @@ def process_pdf(s3, pdf: bytes, **kwargs):
                 bucket,
                 key,
                 res_bucket,
+                portal_bucket_name,
                 mode="ppstructure",
                 lang="zh",
             )
@@ -181,6 +185,7 @@ def process_pdf(s3, pdf: bytes, **kwargs):
                 bucket,
                 key,
                 res_bucket,
+                portal_bucket_name,
                 mode="ppstructure",
                 lang="en",
             )

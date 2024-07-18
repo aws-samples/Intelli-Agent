@@ -547,7 +547,7 @@ class QueryDocumentKNNRetriever(BaseRetriever):
         query_repr = get_relevance_embedding(query, self.lang, self.embedding_model_endpoint, self.target_model, self.model_type)
         # question["colbert"] = query_repr["colbert_vecs"][0]
         filter = get_filter_list(question)
-        # 1. get AOS KNN results.
+        # Get AOS KNN results.
         opensearch_knn_results = self.__get_knn_results(query_repr, filter)
         final_results = opensearch_knn_results
         doc_list = []
@@ -556,18 +556,23 @@ class QueryDocumentKNNRetriever(BaseRetriever):
             if result["doc"] in content_set:
                 continue
             content_set.add(result["content"])
-            #TODO add jsonlans
-            doc_list.append(Document(page_content=result["doc"],
-                                     metadata={"source": result["source"],
-                                               "retrieval_content": result["content"],
-                                               "retrieval_data": result["data"],
-                                               "retrieval_score": result["score"],
-                                               # "jsonlAnswer": result["detail"]["metadata"]["jsonlAnswer"],
-                                               #
-                                                # set common score for llm.
-                                               "score": result["score"]}))
+            #TODO: add jsonlans
+            result_metadata = {
+                "source": result["source"],
+                "retrieval_content": result["content"],
+                "retrieval_data": result["data"],
+                "retrieval_score": result["score"],
+                # Set common score for llm.
+                "score": result["score"],
+            }
+            if "figure" in result["detail"]["metadata"]:
+                result_metadata["figure"] = result["detail"]["metadata"]["figure"]
+            if "content_type" in result["detail"]["metadata"]:
+                result_metadata["content_type"] = result["detail"]["metadata"]["content_type"]
+            doc_list.append(Document(page_content=result["doc"], metadata=result_metadata))
         if self.enable_debug:
             debug_info[f"qd-knn-recall-{self.index}-{self.lang}"] = remove_redundancy_debug_info(opensearch_knn_results)
+
         return doc_list
 
 class QueryDocumentBM25Retriever(BaseRetriever):
@@ -698,13 +703,20 @@ class QueryDocumentBM25Retriever(BaseRetriever):
             if result["doc"] in content_set:
                 continue
             content_set.add(result["content"])
+            result_metadata = {
+                "source": result["source"],
+                "retrieval_content": result["content"],
+                "retrieval_data": result["data"],
+                "retrieval_score": result["score"],
+                # Set common score for llm.
+                "score": result["score"],
+            }
+            if "figure" in result["detail"]["metadata"]:
+                result_metadata["figure"] = result["detail"]["metadata"]["figure"]
+            if "content_type" in result["detail"]["metadata"]:
+                result_metadata["content_type"] = result["detail"]["metadata"]["content_type"]
             doc_list.append(Document(page_content=result["doc"],
-                                     metadata={"source": result["source"],
-                                               "retrieval_content": result["content"],
-                                               "retrieval_data": result["data"],
-                                               "retrieval_score": result["score"],
-                                                # set common score for llm.
-                                               "score": result["score"]}))
+                                     metadata=result_metadata))
         if self.enable_debug:
             debug_info[f"qd-bm25-recall-{self.index}-{self.lang}"] = remove_redundancy_debug_info(opensearch_bm25_results)
         return doc_list
