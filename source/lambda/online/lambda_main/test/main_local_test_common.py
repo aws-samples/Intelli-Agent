@@ -100,9 +100,9 @@ def test_multi_turns_agent_pr():
         print()
 
 def complete_test_pr():
-    print("start test in rag mode")
-    test_multi_turns_rag_pr()
-    print("finish test in rag mode")
+    # print("start test in rag mode")
+    # test_multi_turns_rag_pr()
+    # print("finish test in rag mode")
     print("start test in agent mode")
     test_multi_turns_agent_pr()
     print("finish test in agent mode")

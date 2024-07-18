@@ -27,8 +27,7 @@ def update_nest_dict(d, u):
 
 class ConfigParserBase:
     default_llm_config_str = "{'model_id': 'anthropic.claude-3-sonnet-20240229-v1:0', 'model_kwargs': {'temperature': 0.0, 'max_tokens': 4096}}"
-    # default_index_config = {"intent_index_ids": ["default-intent"], "rag_index_ids": ["test-pdf"]}
-
+    default_index_names = {"intention":[], "private_knowledge":[], "qq_match":[]}
     @classmethod
     def get_default_chatbot_config(cls,default_llm_config,default_index_config,**kwargs):
         default_chatbot_config = {
@@ -49,6 +48,7 @@ class ConfigParserBase:
             },
             "qq_match_config": {
                 "retriever_config": {
+                    "top_k": 10,
                     "query_key": "query"
                 },
                 "retrievers": default_index_config.get("qq_match",[])
@@ -85,22 +85,26 @@ class ConfigParserBase:
 
 
     @classmethod
-    def parse_aos_indexs(cls,chatbot_config):
+    def parse_aos_indexs(cls,chatbot_config,default_index_names):
         group_name = chatbot_config['group_name']
         chatbot_id = chatbot_config['chatbot_id']
         chatbot = chatbot_manager.get_chatbot(group_name, chatbot_id)
         index_infos = {}
-        for index_name,index_info in chatbot.index_ids.items():
+        for task_name,index_info in chatbot.index_ids.items():
             # TODO some modify needed
-            assert index_name in ("qq","qd",'intention'),index_name
+            assert task_name in ("qq","qd",'intention'),task_name
             # prepare list value
-            if index_name == "qq":
-                index_name = 'qq_match'
-            elif index_name == "qd":
-                index_name = "private_knowledge"
-            elif index_name == "intention":
-                index_name = "intention"
-            index_infos[index_name] = list(index_info['value'].values())
+            if task_name == "qq":
+                task_name = 'qq_match'
+            elif task_name == "qd":
+                task_name = "private_knowledge"
+            elif task_name == "intention":
+                task_name = "intention"
+            all_index_names = list(index_info['value'].values())
+            allow_index_names = default_index_names[task_name]
+            if allow_index_names:
+                all_index_names = [name for name in all_index_names if name in allow_index_names]
+            index_infos[task_name] = all_index_names
         return index_infos
 
 
@@ -115,31 +119,34 @@ class ConfigParserBase:
                     **retriever_dict
                 })
             config['retrievers'] = retrievers
-
         # intention 
         intention_config = chatbot_config['intention_config']
         _dict_update(intention_config)
-    
         # qq_match 
         qq_match_config = chatbot_config['qq_match_config']
         _dict_update(qq_match_config)
-
         # private knowledge 
         private_knowledge_config = chatbot_config['private_knowledge_config']['retriever_config']
         _dict_update(private_knowledge_config)
     
+
     @classmethod
     def from_chatbot_config(cls,chatbot_config:dict):
         chatbot_config = copy.deepcopy(chatbot_config)
         default_llm_config = eval(
             os.environ.get("default_llm_config", cls.default_llm_config_str)
         )
-        default_llm_config = {
-            **default_llm_config,
-            **chatbot_config.get("default_llm_config", {})
-        }
+        default_llm_config = update_nest_dict(
+            copy.deepcopy(default_llm_config),
+            chatbot_config.get("default_llm_config", {})
+        )
 
-        default_index_config = cls.parse_aos_indexs(chatbot_config)
+        default_index_names = update_nest_dict(
+            copy.deepcopy(cls.default_index_names),
+            chatbot_config.get('default_index_names',{})
+        )
+
+        default_index_config = cls.parse_aos_indexs(chatbot_config,default_index_names)
 
         default_index_config = {
             **default_index_config,
@@ -158,7 +165,6 @@ class ConfigParserBase:
         )
         # deal with index params
         cls.index_postprocess(chatbot_config)
-        
         return chatbot_config
 
 
