@@ -189,7 +189,7 @@ def agent(state: ChatbotState):
         if tool_name == "give_final_response":
             first_tool_final_response = True
 
-    if no_intention_condition or first_tool_final_response:
+    if no_intention_condition or first_tool_final_response :
         send_trace("no clear intention, switch to rag")
         contexts = knowledge_retrieve(state)['contexts']
         state['contexts'] = contexts
