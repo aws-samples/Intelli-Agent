@@ -60,6 +60,10 @@ def iterate_s3_files(bucket: str, key: str, need_split: bool) -> Generator:
         # Update row count here, the default row count is 1
         kwargs["csv_row_count"] = 1
         yield "csv", decode_file_content(file_content), kwargs
+    elif file_type in ["xlsx", "xls"]:
+        # Update row count here, the default row count is 1
+        kwargs["xlsx_row_count"] = 1
+        yield "xlsx", decode_file_content(file_content), kwargs
     elif file_type == "html":
         yield "html", decode_file_content(file_content), kwargs
     elif file_type in ["pdf"]:

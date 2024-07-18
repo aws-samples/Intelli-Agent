@@ -8,7 +8,7 @@ logger.setLevel(logging.INFO)
 
 s3_client = boto3.client("s3")
 
-supported_file_types = ["pdf", "txt", "doc", "md", "html", "json", "jsonl", "csv"]
+supported_file_types = ["pdf", "txt", "doc", "md", "html", "json", "jsonl", "csv", "xlsx", "xls"]
 default_embedding_endpoint = os.environ.get("DEFAULT_EMBEDDING_ENDPOINT")
 aos_domain_endpoint = os.environ.get("AOS_DOMAIN_ENDPOINT")
 
