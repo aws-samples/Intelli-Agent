@@ -35,31 +35,30 @@ def lambda_handler(event_body,context=None):
     
     group_name = state['chatbot_config']['group_name']
     llm_config = state["chatbot_config"]["chat_config"]
-    task_type = LLMTaskType.CHAT
-
+    task_type = LLMTaskType.RAG
     prompt_templates_from_ddb = get_prompt_templates_from_ddb(
         group_name,
         model_id = llm_config['model_id'],
-    ).get(task_type,{})
+    )
 
-    answer: dict = invoke_lambda(
-        event_body={
-            "llm_config": {
-                **llm_config,
-                "stream": state["stream"],
-                "intent_type": task_type,
-                **prompt_templates_from_ddb
-            },
-            "llm_input": {
-                "query": state["query"],
-                "chat_history": state["chat_history"],
-               
-            },
-        },
+    output: str = invoke_lambda(
         lambda_name="Online_LLM_Generate",
         lambda_module_path="lambda_llm_generate.llm_generate",
         handler_name="lambda_handler",
+        event_body={
+            "llm_config": {
+                **prompt_templates_from_ddb,
+                **llm_config,
+                "stream": state["stream"],
+                "intent_type": task_type,
+            },
+            "llm_input": {
+                "contexts": context_list,
+                "query": state["query"],
+                "chat_history": state["chat_history"],
+            },
+        },
     )
 
-    return {"code":0,"result":answer}
+    return {"code":0,"result":output}
 

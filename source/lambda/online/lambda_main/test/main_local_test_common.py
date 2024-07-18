@@ -116,7 +116,7 @@ def bigo_test():
     mode="rag"
     session_id = f"multiturn_test_{time.time()}"
     user_queries = [
-        {"query":"什么是aws ec2", "use_history":True},
+        {"query":"怎么进行个体户注册", "use_history":True},
     ]
 
     for query in user_queries:
@@ -133,7 +133,8 @@ def bigo_test():
             "use_history": query['use_history'],
             "default_llm_config": default_llm_config,
             "default_index_names":{
-                "qq_match":['bingo_qq']
+                "qq_match":['bingo_qq'],
+                "private_knowledge":['wrong']
             },
         }
         

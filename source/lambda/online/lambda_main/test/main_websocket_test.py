@@ -143,7 +143,29 @@ def test_multi_turns():
     ws.close() 
 
 if __name__ == "__main__":
-    test_multi_turns()
+    # test_multi_turns()
+    ws = create_connection(ws_url)
+    body = {
+        "query": "怎么进行个体户备案",
+        "entry_type": "common",
+        "session_id":f"test_xxx",
+        "chatbot_config": {
+            "chatbot_mode": "rag",
+            "use_history": True,
+            "use_websearch": False,
+            "enable_trace": False,
+            "default_llm_config":{
+                "model_id": "anthropic.claude-3-sonnet-20240229-v1:0", 
+                "model_kwargs": {"temperature": 0.0, "max_tokens": 4096}
+            },
+            "default_index_names":{
+                "qq_match":['bingo_qq'],
+                "private_knowledge":['wrong']
+            },
+        }
+    }
+    r = get_answer(body,ws)
+    ws.close() 
 
 
 
