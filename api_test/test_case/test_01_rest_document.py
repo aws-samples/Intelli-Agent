@@ -141,7 +141,7 @@ class TestDocument:
     
     def test_12_list_document(self):
         '''test case'''
-        # time.sleep(2 * 60)
+        time.sleep(2 * 60)
         response = self.api_instance.etl_list_execution_get(page_size='9999', max_items='9999')
         logger.info("response>>>>>>>>>>>")
         logger.info(response) 
@@ -154,7 +154,7 @@ class TestDocument:
 
     def test_13_exec_document_pdf(self):
         '''test case'''
-        # time.sleep(10 * 60)
+        time.sleep(10 * 60)
         response = self.api_instance.etl_execution_get(execution_id=self.exeIdDict["pdf"])
         assert response.count==1 and response.items[0].status == "SUCCEED", "test_13_exec_document_pdf test failed"
     
