@@ -3,12 +3,11 @@ import copy
 import os
 import boto3
 
-from click import group
 from common_logic.common_utils.constant import ChatbotMode,SceneType
 from common_logic.common_utils.chatbot_utils import ChatbotManager
-chatbot_table_name = os.environ.get("CHATBOT_TABLE", "")
-model_table_name = os.environ.get("MODEL_TABLE", "")
-index_table_name = os.environ.get("INDEX_TABLE", "")
+chatbot_table_name = os.environ.get("CHATBOT_TABLE_NAME", "")
+model_table_name = os.environ.get("MODEL_TABLE_NAME", "")
+index_table_name = os.environ.get("INDEX_TABLE_NAME", "")
 dynamodb = boto3.resource("dynamodb")
 chatbot_table = dynamodb.Table(chatbot_table_name)
 model_table = dynamodb.Table(model_table_name)

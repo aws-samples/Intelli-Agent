@@ -13,7 +13,8 @@ import json
 
 # ws_url from api gateway
 jwt = os.environ['JWT']
-ws_url = f"wss://w2druwcuc3.execute-api.us-west-2.amazonaws.com/prod/?idToken={jwt}"
+# ws_url = f"wss://w2druwcuc3.execute-api.us-west-2.amazonaws.com/prod/?idToken={jwt}"
+ws_url = f"wss://rh36ovsp52.execute-api.us-east-1.amazonaws.com/prod?idToken={jwt}"
 
 def get_answer(body,ws):
     ws.send(json.dumps(body))
@@ -39,16 +40,19 @@ def get_answer(body,ws):
 def test():
     ws = create_connection(ws_url)
     body = {
-        "query": "hi",
+        "query": "如何进行个体户备案",
         "entry_type": "common",
         "session_id":f"test_{time.time()}",
         "chatbot_config": {
-            "chatbot_mode": "chat",
+            "chatbot_mode": "agent",
             "use_history": True,
             "use_websearch": False,
             "default_llm_config":{
                 "model_id": "anthropic.claude-3-sonnet-20240229-v1:0", 
                 "model_kwargs": {"temperature": 0.0, "max_tokens": 4096}
+            },
+            "default_index_names":{
+                "qq_match":['bingo_qq']
             }
         }
     }
