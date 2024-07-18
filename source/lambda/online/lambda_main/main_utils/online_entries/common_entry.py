@@ -205,12 +205,12 @@ def agent(state: ChatbotState):
             first_tool_final_response = True
 
     if no_intention_condition or first_tool_final_response or state['chatbot_config']['chatbot_mode']==ChatbotMode.rag_mode:
-        if no_intention_condition:
+        if  state['chatbot_config']['chatbot_mode']==ChatbotMode.rag_mode:
+            send_trace("rag mode, switch to rag")
+        elif no_intention_condition:
             send_trace("no_intention_condition, switch to rag")
         elif first_tool_final_response:
             send_trace("first tool is final response, switch to rag")
-        elif state['chatbot_config']['chatbot_mode']==ChatbotMode.rag_mode:
-            send_trace("rag mode, switch to rag")
 
         return {
             "function_calling_parse_ok": True,
