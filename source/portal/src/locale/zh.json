@@ -59,6 +59,7 @@
     "fileEmptyError": "请选择需要上传的文件",
     "docName": "文档名称",
     "multiRound": "多轮对话",
+    "onlyRAGTool": "只使用RAG工具",
     "trace": "跟踪",
     "modelSettings": "模型设置",
     "modelName": "模型名称",

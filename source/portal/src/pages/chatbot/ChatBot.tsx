@@ -79,6 +79,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const [useChatHistory, setUseChatHistory] = useState(true);
   const [enableTrace, setEnableTrace] = useState(true);
   const [showTrace, setShowTrace] = useState(true);
+  const [onlyRAGTool, setOnlyRAGTool] = useState(false);
   // const [useWebSearch, setUseWebSearch] = useState(false);
   // const [googleAPIKey, setGoogleAPIKey] = useState('');
   const [retailGoods, setRetailGoods] = useState<SelectProps.Option>(
@@ -317,6 +318,9 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
             max_tokens: parseInt(maxToken),
           },
         },
+        aget_config: {
+          only_use_rag_tool: onlyRAGTool,
+        }
       },
     };
 
@@ -458,6 +462,12 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                     Show trace
                   </Toggle>
                 )}
+                <Toggle
+                  onChange={({ detail }) => setOnlyRAGTool(detail.checked)}
+                  checked={onlyRAGTool}
+                >
+                  Only use RAG tool
+                </Toggle>
 
                 {/*
                 <Toggle

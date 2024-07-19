@@ -59,6 +59,7 @@
     "fileEmptyError": "Please select files to upload",
     "docName": "Document Name",
     "multiRound": "Multi-rounds",
+    "onlyRAGTool": "Only use rag tool",
     "trace": "Trace",
     "modelSettings": "Model Settings",
     "modelName": "Model name",
