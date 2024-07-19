@@ -44,7 +44,9 @@ interface ApiStackProps extends StackProps {
   sessionsTableName: string;
   messagesTableName: string;
   promptTableName: string;
-  workspaceTableName: string;
+  chatbotTableName: string;
+  indexTableName: string;
+  modelTableName: string;
   // Type of StepFunctions
   sfnOutput: sfn.StateMachine;
   openSearchIndex: string;
@@ -76,13 +78,9 @@ export class ApiConstruct extends Construct {
     const apiVpc = props.apiVpc;
     const securityGroup = props.securityGroup;
     const domainEndpoint = props.domainEndpoint;
-    const aosIndex = props.openSearchIndex;
-    const aosIndexDict = props.openSearchIndexDict;
     const sessionsTableName = props.sessionsTableName;
     const messagesTableName = props.messagesTableName;
-    const workspaceTableName = props.workspaceTableName;
-    const jobQueueArn = props.jobQueueArn;
-    const jobDefinitionArn = props.jobDefinitionArn;
+    const chatbotTableName = props.chatbotTableName;
     const etlEndpoint = props.etlEndpoint;
     const resBucketName = props.resBucketName;
     const executionTableName = props.executionTableName;
@@ -248,7 +246,11 @@ export class ApiConstruct extends Construct {
       timeout: Duration.seconds(30),
       environment: {
         sfn_arn: props.sfnOutput.stateMachineArn,
-        EXECUTION_TABLE: props.executionTableName,
+        EXECUTION_TABLE_NAME: props.executionTableName,
+        INDEX_TABLE_NAME: props.indexTableName,
+        CHATBOT_TABLE_NAME: props.chatbotTableName,
+        MODEL_TABLE_NAME: props.modelTableName,
+        EMBEDDING_ENDPOINT: props.embeddingAndRerankerEndPoint,
       },
       memorySize: 256,
     });
@@ -353,9 +355,9 @@ export class ApiConstruct extends Construct {
       }),
     );
 
-    const listWorkspaceLambda = new Function(this, "ListWorkspaceLambda", {
+    const listChatbotLambda = new Function(this, "ListChatbotLambda", {
       code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
-      handler: "list_workspace.lambda_handler",
+      handler: "list_chatbot.lambda_handler",
       runtime: Runtime.PYTHON_3_11,
       timeout: Duration.minutes(15),
       memorySize: 512,
@@ -365,7 +367,7 @@ export class ApiConstruct extends Construct {
       },
     });
 
-    listWorkspaceLambda.addToRolePolicy(this.iamHelper.cognitoStatement);
+    listChatbotLambda.addToRolePolicy(this.iamHelper.cognitoStatement);
 
 
     const batchLambda = new Function(this, "BatchLambda", {
@@ -683,10 +685,10 @@ export class ApiConstruct extends Construct {
     //   new apigw.LambdaIntegration(uploadDocLambda),
     // );
 
-    const apiListWorkspace = apiResourceStepFunction.addResource("list-workspace");
-    apiListWorkspace.addMethod(
+    const apiListChatbot = apiResourceStepFunction.addResource("list-workspace");
+    apiListChatbot.addMethod(
       "GET",
-      new apigw.LambdaIntegration(listWorkspaceLambda),
+      new apigw.LambdaIntegration(listChatbotLambda),
       this.genMethodOption(api, auth, null),
     );
 
@@ -748,7 +750,10 @@ export class ApiConstruct extends Construct {
           SESSIONS_TABLE_NAME: sessionsTableName,
           MESSAGES_TABLE_NAME: messagesTableName,
           PROMPT_TABLE_NAME: props.promptTableName,
-          WORKSPACE_TABLE: workspaceTableName,
+          CHATBOT_TABLE_NAME: props.chatbotTableName,
+          MODEL_TABLE_NAME: props.modelTableName,
+          INDEX_TABLE_NAME: props.indexTableName,
+          EMBEDDING_ENDPOINT: props.embeddingAndRerankerEndPoint,
           OPENAI_KEY_ARN: openAiKey.secretArn,
         },
       });
@@ -907,12 +912,12 @@ export class ApiConstruct extends Construct {
       lambdaOnlineLLMGenerate.addToRolePolicy(this.iamHelper.endpointStatement);
       lambdaOnlineLLMGenerate.addToRolePolicy(this.iamHelper.dynamodbStatement);
 
-      const lambdaOnlineFunctionAWSAPI = new Function(this, "lambdaOnlineFunctionAWSAPI", {
+      const lambdaOnlineFunctions = new Function(this, "lambdaOnlineFunctions", {
         runtime: Runtime.PYTHON_3_12,
-        handler: "aws_api.lambda_handler",
-        functionName: "Online_Function_AWS_API",
+        handler: "lambda_tools.lambda_handler",
+        functionName: "Online_Functions",
         code: Code.fromAsset(
-          join(__dirname, "../../../lambda/online/functions/lambda_aws_api"),
+          join(__dirname, "../../../lambda/online/functions/functions_utils"),
         ),
         timeout: Duration.minutes(15),
         memorySize: 4096,
@@ -922,24 +927,11 @@ export class ApiConstruct extends Construct {
         },
         securityGroups: [securityGroup],
         architecture: Architecture.X86_64,
-        layers: [apiLambdaOnlineSourceLayer],
-      });
-
-      const lambdaOnlineFunctionRetriever = new Function(this, "lambdaOnlineFunctionRetriever", {
-        runtime: Runtime.PYTHON_3_12,
-        handler: "retriever.lambda_handler",
-        functionName: "Online_Function_Retriever",
-        code: Code.fromAsset(
-          join(__dirname, "../../../lambda/online/functions/lambda_retriever"),
-        ),
-        timeout: Duration.minutes(15),
-        memorySize: 4096,
-        vpc: apiVpc,
-        vpcSubnets: {
-          subnets: apiVpc.privateSubnets,
+        environment: {
+          INDEX_TABLE: props.indexTableName,
+          CHATBOT_TABLE: props.chatbotTableName,
+          MODEL_TABLE: props.modelTableName,
         },
-        securityGroups: [securityGroup],
-        architecture: Architecture.X86_64,
         layers: [apiLambdaOnlineSourceLayer, apiLambdaJobSourceLayer],
       });
 
@@ -953,10 +945,8 @@ export class ApiConstruct extends Construct {
       lambdaOnlineLLMGenerate.grantInvoke(lambdaOnlineQueryPreprocess);
       lambdaOnlineLLMGenerate.grantInvoke(lambdaOnlineAgent);
 
-      lambdaOnlineFunctionAWSAPI.grantInvoke(lambdaOnlineMain);
-
-      lambdaOnlineFunctionRetriever.grantInvoke(lambdaOnlineMain);
-      lambdaOnlineFunctionRetriever.grantInvoke(lambdaOnlineIntentionDetection);
+      lambdaOnlineFunctions.grantInvoke(lambdaOnlineMain);
+      lambdaOnlineFunctions.grantInvoke(lambdaOnlineIntentionDetection);
 
       // Define the API Gateway Lambda Integration with proxy and no integration responses
       const lambdaExecutorIntegration = new apigw.LambdaIntegration(

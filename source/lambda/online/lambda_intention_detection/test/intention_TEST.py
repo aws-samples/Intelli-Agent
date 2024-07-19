@@ -14,7 +14,7 @@ def test(lambda_invoke_mode="local"):
                 "retrievers": [
                         {
                             "type": "qq",
-                            "workspace_ids": ["yb_intent"],
+                            "index_ids": ["yb_intent"],
                             "config": {
                                 "top_k": 10,
                             }

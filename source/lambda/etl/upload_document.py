@@ -48,10 +48,10 @@ def lambda_handler(event, context):
 
     try:
         input_body = json.loads(event["body"])
-        workspace_id = (
+        chatbot_id = (
             "Admin" if "Admin" in cognito_groups_list else cognito_groups_list[0]
         )
-        file_name = "documents/" + workspace_id + "/" + input_body["file_name"]
+        file_name = "documents/" + chatbot_id + "/" + input_body["file_name"]
         if "content_type" in input_body:
             content_type = input_body["content_type"]
         if "expiration" in input_body:

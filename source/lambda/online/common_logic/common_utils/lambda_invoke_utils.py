@@ -3,7 +3,7 @@ import functools
 import importlib
 import json
 import time
-from typing import Any, Dict, Optional, Callable
+from typing import Any, Dict, Optional, Callable,Union
 
 import requests
 from common_logic.common_utils.constant import StreamMessageType
@@ -14,7 +14,6 @@ from langchain.pydantic_v1 import BaseModel, Field, root_validator
 from .exceptions import LambdaInvokeError
 
 logger = get_logger("lambda_invoke_utils")
-
 
 class LAMBDA_INVOKE_MODE(enum.Enum):
     LAMBDA = "lambda"
@@ -48,7 +47,6 @@ class LambdaInvoker(BaseModel):
     def validate_environment(cls, values: Dict):
         if values.get("client") is not None:
             return values
-
         try:
             import boto3
 
@@ -102,10 +100,17 @@ class LambdaInvoker(BaseModel):
         return response_body
 
     def invoke_with_local(
-        self, lambda_module_path: str, event_body: dict, handler_name="lambda_handler"
-    ):
-        lambda_module = importlib.import_module(lambda_module_path)
-        ret = getattr(lambda_module, handler_name)(event_body)
+        self, 
+        lambda_module_path: Union[str, Callable],
+        event_body: dict, 
+        handler_name="lambda_handler"
+        ):
+        if callable(lambda_module_path):
+            lambda_fn = lambda_module_path
+        else:
+            lambda_module = importlib.import_module(lambda_module_path)
+            lambda_fn = getattr(lambda_module, handler_name)
+        ret =lambda_fn(event_body)
         return ret
 
     def invoke_with_apigateway(self, url, event_body: dict):
@@ -239,6 +244,8 @@ def send_trace(
                 },
                 ws_connection_id=ws_connection_id,
             )
+            if not is_running_local():
+                logger.info(trace_info)
         else:
             logger.info(trace_info)
 
