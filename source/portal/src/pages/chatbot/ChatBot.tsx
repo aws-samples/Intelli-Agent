@@ -318,7 +318,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
             max_tokens: parseInt(maxToken),
           },
         },
-        aget_config: {
+        agent_config: {
           only_use_rag_tool: onlyRAGTool,
         }
       },
