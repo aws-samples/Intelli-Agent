@@ -295,11 +295,11 @@ def anta_test():
         print() 
 
 if __name__ == "__main__":
-    # complete_test_pr()
+    complete_test_pr()
     # test_multi_turns_rag_pr()
     # test_multi_turns_agent_pr()
     # test_multi_turns_chat_pr()
     # bigo_test()
-    sso_batch_test()
+    # sso_batch_test()
     # anta_test()
     # bigo_test()

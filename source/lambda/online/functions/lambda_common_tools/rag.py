@@ -14,7 +14,7 @@ def lambda_handler(event_body,context=None):
     context_list.extend(state['qq_match_results'])
     figure_list = []
     retriever_params = state["chatbot_config"]["private_knowledge_config"]["retriever_config"]
-    retriever_params["query"] = state["query"]
+    retriever_params["query"] = state[retriever_params.get("retriever_config",{}).get("query_key","query")]
     output: str = invoke_lambda(
         event_body=retriever_params,
         lambda_name="Online_Functions",

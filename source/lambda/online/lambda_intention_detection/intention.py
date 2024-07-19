@@ -71,7 +71,7 @@ def get_intention_results(query:str, intention_config:dict):
 @chatbot_lambda_call_wrapper
 def lambda_handler(state:dict, context=None):
     intention_config = state['chatbot_config'].get("intention_config",{})
-    query_key = intention_config.get("query_key","query")
+    query_key = intention_config.get('retriever_config',{}).get("query_key","query")
     query = state[query_key]
 
     output:list = get_intention_results(
