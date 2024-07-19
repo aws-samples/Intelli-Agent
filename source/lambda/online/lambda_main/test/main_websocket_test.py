@@ -159,8 +159,8 @@ if __name__ == "__main__":
                 "model_kwargs": {"temperature": 0.5, "max_tokens": 4096}
             },
             "default_index_names":{
-                "qq_match":['bingo_qq'],
-                "private_knowledge":['wrong']
+                "qq_match":["bigo_qq"],
+                "private_knowledge":["wrong"]
             },
         }
     }
