@@ -134,7 +134,7 @@ def bigo_test():
             "use_history": query['use_history'],
             "default_llm_config": default_llm_config,
             "default_index_names":{
-                "qq_match":['bingo_qq'],
+                "qq_match":['bigo_qq'],
                 "private_knowledge":['wrong']
             },
             "agent_config": {
