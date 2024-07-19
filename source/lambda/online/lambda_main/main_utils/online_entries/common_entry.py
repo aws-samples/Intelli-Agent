@@ -178,13 +178,13 @@ def agent(state: ChatbotState):
         if tool_name == "give_final_response":
             first_tool_final_response = True
 
-    if no_intention_condition or first_tool_final_response or state['chatbot_config']['chatbot_mode']==ChatbotMode.rag_mode:
-        if  state['chatbot_config']['chatbot_mode']==ChatbotMode.rag_mode:
-            send_trace("rag mode, switch to rag", enable_trace=state["enable_trace"])
+    if no_intention_condition or first_tool_final_response or state['chatbot_config']['agent_config']['only_use_rag_tool']:
+        if  state['chatbot_config']['agent_config']['only_use_rag_tool']:
+            send_trace("agent only use rag tool", enable_trace=state["enable_trace"])
         elif no_intention_condition:
-            send_trace("no_intention_condition, switch to rag", enable_trace=state["enable_trace"])
+            send_trace("no_intention_condition, switch to rag tool", enable_trace=state["enable_trace"])
         elif first_tool_final_response:
-            send_trace("first tool is final response, switch to rag", enable_trace=state["enable_trace"])
+            send_trace("first tool is final response, switch to rag tool", enable_trace=state["enable_trace"])
 
         return {
             "function_calling_parse_ok": True,
@@ -305,7 +305,6 @@ def build_graph(chatbot_state_cls):
         query_route,
         {
             "chat mode": "llm_direct_results_generation",
-            "rag mode": "intention_detection",
             "agent mode": "intention_detection",
         },
     )

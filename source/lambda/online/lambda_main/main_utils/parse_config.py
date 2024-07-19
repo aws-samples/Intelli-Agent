@@ -53,7 +53,7 @@ class ConfigParserBase:
                 },
                 "retrievers": default_index_config.get("qq_match",[])
             },
-            "agent_config": {**copy.deepcopy(default_llm_config), "tools": []},
+            "agent_config": {**copy.deepcopy(default_llm_config), "tools": [], "only_use_rag_tool": False},
             "chat_config": {
                 **copy.deepcopy(default_llm_config),
             },
