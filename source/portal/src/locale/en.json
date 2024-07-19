@@ -76,6 +76,10 @@
     "promptCreateTips": "New prompt will override the current prompt, are you sure to continue?",
     "promptDeleteTips": "Delete the prompt will reset to the system default prompt.",
     "endPoint": "Endpoint",
+    "enableTrace": "Enable trace",
+    "showTrace": "Show trace",
+    "onlyUseRAGTool": "Only use RAG tool",
+    "additionalSettings": "Additional Settings",
     "button": {
       "login": "Log in to Intelli-Agent",
       "reload": "Reload",
@@ -103,7 +107,8 @@
       "temperatureRange": "The temperature must be between 0 and 1",
       "maxTokensRange": "The maximum number of tokens must lager than 0",
       "requirePrompt": "Please enter a prompt",
-      "requireEndPoint": "Please enter an endpoint"
+      "requireEndPoint": "Please enter an endpoint",
+      "invalidJson": "Invalid JSON format"
     }
   }
 }

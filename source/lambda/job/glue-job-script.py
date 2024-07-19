@@ -77,8 +77,8 @@ except Exception as e:
     for key in command_line_args_dict.keys():
         args[key.upper()] = command_line_args_dict[key]
     args["AOS_ENDPOINT"] = os.environ["AOS_ENDPOINT"]
-    args["CHATBOT_TABLE"] = os.environ["CHATBOT_TABLE"]
-    args["ETL_OBJECT_TABLE"] = os.environ["ETL_OBJECT_TABLE"]
+    args["CHATBOT_TABLE"] = os.environ["CHATBOT_TABLE_NAME"]
+    args["ETL_OBJECT_TABLE"] = os.environ["ETL_OBJECT_TABLE_NAME"]
     args["ETL_MODEL_ENDPOINT"] = os.environ["ETL_ENDPOINT"]
     args["RES_BUCKET"] = os.environ["RES_BUCKET"]
     args["REGION"] = os.environ["REGION"]

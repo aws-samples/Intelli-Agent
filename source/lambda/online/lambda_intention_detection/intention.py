@@ -56,7 +56,6 @@ def get_intention_results(query:str, intention_config:dict):
             })
                 
     else:
-        print(res['result']['docs'])
         
         intent_fewshot_examples = [{
             "query": doc['page_content'],
@@ -66,7 +65,6 @@ def get_intention_results(query:str, intention_config:dict):
             "kwargs": doc['answer']['jsonlAnswer'].get('kwargs', {}),
             } for doc in res['result']['docs'] if doc['score'] > 0.4
         ]
-
     return intent_fewshot_examples
 
 
