@@ -24,7 +24,7 @@ def lambda_handler(event_body,context=None):
 
     for doc in output["result"]["docs"]:
         context_list.append(doc["page_content"])
-        figure_list = figure_list + doc["figure"]
+        figure_list = figure_list + doc.get("figure",[])
     
     # Remove duplicate figures
     unique_set = {tuple(d.items()) for d in figure_list}

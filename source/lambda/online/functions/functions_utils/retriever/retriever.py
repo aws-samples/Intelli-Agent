@@ -133,7 +133,7 @@ retriever_dict = {
 def get_custom_retrievers(retriever):
     return retriever_dict[retriever['indexType']](retriever)
 
-@chatbot_lambda_call_wrapper
+
 def lambda_handler(event, context=None):
     event_body = event
     retriever_list = []

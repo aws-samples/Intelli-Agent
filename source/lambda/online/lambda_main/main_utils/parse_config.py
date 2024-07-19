@@ -156,6 +156,8 @@ class ConfigParserBase:
         assert ChatbotMode.has_value(chatbot_config["chatbot_mode"]), chatbot_config[
              "chatbot_mode"
         ]
+
+        
         chatbot_config = update_nest_dict(
             copy.deepcopy(cls.get_default_chatbot_config(
                 default_llm_config,
