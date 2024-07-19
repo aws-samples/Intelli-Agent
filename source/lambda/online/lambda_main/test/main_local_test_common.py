@@ -237,7 +237,7 @@ def anta_test():
             "default_index_names":{
                 "qq_match":['bingo_qq'],
                 "private_knowledge":['wrong'],
-                "intention":['retail-intention']
+                "intention":['retail-intent']
             },
             "agent_config": {
                 "only_use_rag_tool": True
