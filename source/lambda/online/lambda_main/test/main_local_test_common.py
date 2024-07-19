@@ -180,16 +180,10 @@ def bigo_test():
             "chatbot_mode": mode,
             "use_history": query['use_history'],
             "default_llm_config": default_llm_config,
-<<<<<<< Updated upstream
-            "default_index_names":{
-                "qq_match":['bigo-qq'],
-                "private_knowledge":['wrong']
-=======
             "default_index_names": {
                 "intention": ['default-intent'],
                 "qq_match": ['bingo_qq'],
                 "private_knowledge": ['wrong']
->>>>>>> Stashed changes
             },
             "agent_config": {
                 "only_use_rag_tool": True
@@ -204,6 +198,18 @@ def bigo_test():
             entry_type="common",
         )
         print()
+
+
+def sso_test():
+    mode = "agent"
+    session_id = f"multiturn_test_{time.time()}"
+    user_queries = [
+        {
+            "query": "怎么进行个体户注册",
+            "use_history": True
+        },
+    ]
+
 
 
 if __name__ == "__main__":
