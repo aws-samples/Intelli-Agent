@@ -630,7 +630,7 @@ def main():
     logger.info("Starting Glue job with passing arguments: %s", args)
     logger.info("Running in offline mode with consideration for large file size...")
 
-    if index_type == "qq":
+    if index_type == "qq" or index_type == "intention":
         supported_file_types = ["jsonl"]
     else:
         # Default is qd
