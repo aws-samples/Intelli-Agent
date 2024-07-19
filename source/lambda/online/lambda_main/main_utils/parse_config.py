@@ -122,7 +122,7 @@ class ConfigParserBase:
         # intention 
         intention_config = chatbot_config['intention_config']
         _dict_update(intention_config)
-        # qq_match 
+        # qq_match
         qq_match_config = chatbot_config['qq_match_config']
         _dict_update(qq_match_config)
         # private knowledge 
@@ -190,16 +190,214 @@ class RetailConfigParser(ConfigParserBase):
     def get_default_chatbot_config(cls, default_llm_config, default_index_config):
         default_chatbot_config = super().get_default_chatbot_config(default_llm_config, default_index_config)
         default_chatbot_config['agent_repeated_call_limit'] = 3
-        default_chatbot_config['intention_config'] = {
-            "query_key": "query_rewrite",
-            "retrievers": [
-                {
-                    "type": "qq",
-                    "index_ids": ["retail-intent"],
-                    "config": {
-                        "top_k": 5,
-                    }
-                },
-            ]
-        }
+        # default_chatbot_config['intention_config'] = {
+        #     "query_key": "query_rewrite",
+        #     "retrievers": [
+        #         {
+        #             "type": "qq",
+        #             "index_ids": ["retail-intent"],
+        #             "config": {
+        #                 "top_k": 5,
+        #             }
+        #         },
+        #     ]
+        # }
         return default_chatbot_config
+
+    @classmethod
+    def parse_aos_indexs(cls,chatbot_config,default_index_names):
+        group_name = chatbot_config['group_name']
+        chatbot_id = chatbot_config['chatbot_id']
+        default_llm_config = chatbot_config['default_llm_config']
+        chatbot = chatbot_manager.get_chatbot(group_name, chatbot_id)
+        index_infos = {}
+        index_id_map = {}
+        for task_name,index_info in chatbot.index_ids.items():
+            # TODO some modify needed
+            assert task_name in ("qq","qd",'intention'),task_name
+            # prepare list value
+            if task_name == "qq":
+                task_name = 'qq_match'
+            elif task_name == "qd":
+                task_name = "private_knowledge"
+            elif task_name == "intention":
+                task_name = "intention"
+            all_index_names = list(index_info['value'].values())
+            allow_index_names = default_index_names[task_name]
+            if allow_index_names:
+                all_index_names = [index for index in all_index_names if index['indexId'] in allow_index_names]
+            index_infos[task_name] = all_index_names
+        for tool_name,index_info in chatbot.index_ids.items():
+            all_index = list(index_info['value'].values())
+            for index in all_index:
+                index_id_map[index['indexId']] = index
+
+        retail_tool_config = {
+            "rag_goods_exchange_config": {
+                "retriever_config": {
+                    "retrievers": [
+                        {
+                            "type": "qq",
+                            "workspace_ids": ["retail-quick-reply"],
+                            "config": {
+                                "top_k": 5
+                            },
+                        },
+                    ]
+                },
+                "llm_config": {
+                    **copy.deepcopy(default_llm_config),
+                },
+            },
+            "rag_daily_reception_config": {
+                "retriever_config": {
+                    "retrievers": [
+                        {
+                            "type": "qq",
+                            "workspace_ids": ["retail-quick-reply"],
+                            "config": {
+                                "top_k": 5
+                            },
+                        },
+                    ]
+                },
+                "llm_config": {
+                    **copy.deepcopy(default_llm_config),
+                },
+            },
+            "rag_delivery_track_config": {
+                "retriever_config": {
+                    "retrievers": [
+                        {
+                            "type": "qq",
+                            "workspace_ids": ["retail-quick-reply"],
+                            "config": {
+                                "top_k": 5
+                            },
+                        },
+                    ]
+                },
+                "llm_config": {
+                    **copy.deepcopy(default_llm_config),
+                },
+            },
+            "rag_product_aftersales_config": {
+                "retriever_config":{
+                    "retrievers": [
+                        {
+                            "type": "qq",
+                            "workspace_ids": ['retail-shouhou-wuliu', 'retail-quick-reply'],
+                            "config": {
+                                "top_k": 5,
+                            }
+                        },
+                    ],
+                    "rerankers": [
+                        {
+                            "type": "reranker",
+                            "config": {
+                                "enable_debug": False,
+                                "target_model": "bge_reranker_model.tar.gz"
+                            }
+                        }
+                    ],
+                },
+                "llm_config":{
+                    **copy.deepcopy(default_llm_config),
+                }
+            },
+            "rag_customer_complain_config": {
+                "retriever_config":{
+                    "retrievers": [
+                        {
+                            "type": "qq",
+                            "workspace_ids": ['retail-shouhou-wuliu','retail-quick-reply'],
+                            "config": {
+                                "top_k": 2,
+                            }
+                        },
+                    ],
+                    "rerankers": [
+                        {
+                            "type": "reranker",
+                            "config": {
+                                "enable_debug": False,
+                                "target_model": "bge_reranker_model.tar.gz"
+                            }
+                        }
+                    ],
+                },
+                "llm_config":{
+                    **copy.deepcopy(default_llm_config),
+                }
+            },
+            "rag_promotion_config": {
+                "retriever_config":{
+                    "retrievers": [
+                        {
+                            "type": "qq",
+                            "workspace_ids": ['retail-shouhou-wuliu','retail-quick-reply'],
+                            "config": {
+                                "top_k": 2,
+                            }
+                        },
+                    ],
+                    "rerankers": [
+                        {
+                            "type": "reranker",
+                            "config": {
+                                "enable_debug": False,
+                                "target_model": "bge_reranker_model.tar.gz"
+                            }
+                        }
+                    ],
+                },
+                "llm_config":{
+                    **copy.deepcopy(default_llm_config),
+                }
+            },
+            "rag_goods_info_config": {
+                "retriever_config": {
+                    "retrievers": [
+                        {
+                            "type": "qq",
+                            "workspace_ids": ["goods-info"],
+                            "config": {
+                                "top_k": 5
+                            },
+                        },
+                    ]
+                },
+                "llm_config": {
+                    **copy.deepcopy(default_llm_config),
+                },
+            },
+            "final_rag_retriever": {
+                "retriever_config":{
+                    "retrievers": [
+                        {
+                            "type": "qq",
+                            "workspace_ids": ['retail-shouhou-wuliu','retail-quick-reply'],
+                            "config": {
+                                "top_k": 2,
+                            }
+                        },
+                    ],
+                    "rerankers": [
+                        {
+                            "type": "reranker",
+                            "config": {
+                                "enable_debug": False,
+                                "target_model": "bge_reranker_model.tar.gz"
+                            }
+                        }
+                    ],
+                },
+                "llm_config":{
+                    **copy.deepcopy(default_llm_config),
+                }
+            }
+        }
+        chatbot_config.update(retail_tool_config)
+        return index_infos
+
