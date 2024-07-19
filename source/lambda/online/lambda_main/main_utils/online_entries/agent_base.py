@@ -24,8 +24,7 @@ def tools_choose_and_results_generation(state):
             },
         lambda_name="Online_Agent",
         lambda_module_path="lambda_agent.agent",
-        handler_name="lambda_handler",
-   
+        handler_name="lambda_handler"
     )
     agent_current_call_number = state['agent_current_call_number'] + 1
     agent_repeated_call_validation = state['agent_current_call_number'] < state['agent_repeated_call_limit']
@@ -105,7 +104,7 @@ def tool_execution(state):
         })
     
     output = format_tool_call_results(tool_call['model_id'],tool_call_results)
-    send_trace(f'**tool_execute_res:** \n{output["tool_message"]["content"]}')
+    send_trace(f'**tool_execute_res:** \n{output["tool_message"]["content"]}', enable_trace=state["enable_trace"])
     return {
         "agent_tool_history": [output['tool_message']]
         }

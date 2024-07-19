@@ -3,12 +3,11 @@ import copy
 import os
 import boto3
 
-from click import group
 from common_logic.common_utils.constant import ChatbotMode,SceneType
 from common_logic.common_utils.chatbot_utils import ChatbotManager
-chatbot_table_name = os.environ.get("CHATBOT_TABLE", "")
-model_table_name = os.environ.get("MODEL_TABLE", "")
-index_table_name = os.environ.get("INDEX_TABLE", "")
+chatbot_table_name = os.environ.get("CHATBOT_TABLE_NAME", "")
+model_table_name = os.environ.get("MODEL_TABLE_NAME", "")
+index_table_name = os.environ.get("INDEX_TABLE_NAME", "")
 dynamodb = boto3.resource("dynamodb")
 chatbot_table = dynamodb.Table(chatbot_table_name)
 model_table = dynamodb.Table(model_table_name)
@@ -49,11 +48,12 @@ class ConfigParserBase:
             "qq_match_config": {
                 "retriever_config": {
                     "top_k": 10,
-                    "query_key": "query"
+                    "query_key": "query",
+                    "threshold": 0.9,
                 },
                 "retrievers": default_index_config.get("qq_match",[])
             },
-            "agent_config": {**copy.deepcopy(default_llm_config), "tools": []},
+            "agent_config": {**copy.deepcopy(default_llm_config), "tools": [], "only_use_rag_tool": False},
             "chat_config": {
                 **copy.deepcopy(default_llm_config),
             },
@@ -103,7 +103,7 @@ class ConfigParserBase:
             all_index_names = list(index_info['value'].values())
             allow_index_names = default_index_names[task_name]
             if allow_index_names:
-                all_index_names = [name for name in all_index_names if name in allow_index_names]
+                all_index_names = [index for index in all_index_names if index['indexId'] in allow_index_names]
             index_infos[task_name] = all_index_names
         return index_infos
 

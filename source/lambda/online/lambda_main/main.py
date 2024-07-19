@@ -34,9 +34,9 @@ secret_manager_client = session.client(
 )
 dynamodb = boto3.resource("dynamodb")
 prompt_table = dynamodb.Table(prompt_table_name)
-index_table = dynamodb.Table(os.environ.get("INDEX_TABLE"))
-chatbot_table = dynamodb.Table(os.environ.get("CHATBOT_TABLE"))
-model_table = dynamodb.Table(os.environ.get("MODEL_TABLE"))
+index_table = dynamodb.Table(os.environ.get("INDEX_TABLE_NAME"))
+chatbot_table = dynamodb.Table(os.environ.get("CHATBOT_TABLE_NAME"))
+model_table = dynamodb.Table(os.environ.get("MODEL_TABLE_NAME"))
 embedding_endpoint = os.environ.get("EMBEDDING_ENDPOINT")
 create_time = str(datetime.now(timezone.utc))
 

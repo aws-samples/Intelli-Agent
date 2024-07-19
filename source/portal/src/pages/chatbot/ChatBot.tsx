@@ -79,6 +79,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const [useChatHistory, setUseChatHistory] = useState(true);
   const [enableTrace, setEnableTrace] = useState(true);
   const [showTrace, setShowTrace] = useState(true);
+  const [onlyRAGTool, setOnlyRAGTool] = useState(false);
   // const [useWebSearch, setUseWebSearch] = useState(false);
   // const [googleAPIKey, setGoogleAPIKey] = useState('');
   const [retailGoods, setRetailGoods] = useState<SelectProps.Option>(
@@ -146,10 +147,17 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       const sessionMessage: SessionMessage[] = data.Items;
       setMessages(
         sessionMessage.map((msg) => {
+          let messageContent = msg.content;
+          // Handle AI images message
+          if (msg.role === 'ai' && msg.additional_kwargs.figure.length > 0) {
+            msg.additional_kwargs.figure.forEach((item) => {
+              messageContent += `![${item.content_type}](/${item.figure_path})`;
+            });
+          }
           return {
             type: msg.role,
             message: {
-              data: msg.content,
+              data: messageContent,
               monitoring: '',
             },
           };
@@ -188,6 +196,15 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       setCurrentAIMessage((prev) => {
         return prev + (message?.message?.content ?? '');
       });
+    } else if (message.message_type === 'CONTEXT') {
+      // handle context message
+      if (message.ddb_additional_kwargs?.figure?.length > 0) {
+        message.ddb_additional_kwargs.figure.forEach((item) => {
+          setCurrentAIMessage((prev) => {
+            return prev + `![${item.content_type}](/${item.figure_path})`;
+          });
+        });
+      }
     } else if (message.message_type === 'END') {
       setIsMessageEnd(true);
     }
@@ -301,6 +318,9 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
             max_tokens: parseInt(maxToken),
           },
         },
+        agent_config: {
+          only_use_rag_tool: onlyRAGTool,
+        }
       },
     };
 
@@ -442,6 +462,12 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                     Show trace
                   </Toggle>
                 )}
+                <Toggle
+                  onChange={({ detail }) => setOnlyRAGTool(detail.checked)}
+                  checked={onlyRAGTool}
+                >
+                  Only use RAG tool
+                </Toggle>
 
                 {/*
                 <Toggle

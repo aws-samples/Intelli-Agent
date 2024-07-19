@@ -58,7 +58,7 @@ class Claude2RagLLMChain(LLMChain):
             context=RunnableLambda(lambda x: get_claude_rag_context(x["contexts"]))
         )
         llm = Model.get_model(cls.model_id, model_kwargs=model_kwargs, **kwargs)
-        chain = context_chain | ChatPromptTemplate.from_messages(chat_messages)
+        chain = context_chain | ChatPromptTemplate.from_messages(chat_messages) | RunnableLambda(lambda x: print(f"rag message {x.messages}") or x)
         if stream:
             chain = (
                 chain
