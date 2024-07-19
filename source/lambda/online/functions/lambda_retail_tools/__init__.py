@@ -26,8 +26,6 @@ tool_manager.register_tool({
     "tool_def": {
         "name": "daily_reception",
         "description": "daily reception",
-        "parameters":{
-        },
     },
     "running_mode": ToolRuningMode.ONCE
 })
