@@ -242,7 +242,12 @@ class Claude2ToolCallingChain(LLMChain):
         model_kwargs = model_kwargs or {}
         tools:list = kwargs['tools']
         fewshot_examples = kwargs.get('fewshot_examples',[])
-
+        if fewshot_examples:
+            fewshot_examples.append({
+                "name": "give_rhetorical_question",
+                "query": "今天天气怎么样?",
+                "kwargs": {"question": "请问你想了解哪个城市的天气?"}
+            })
         user_system_prompt = get_prompt_template(
             model_id=cls.model_id,
             task_type=cls.intent_type,

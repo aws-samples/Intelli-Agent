@@ -278,7 +278,7 @@ def anta_test():
             "default_index_names":{
                 "qq_match":['bingo_qq'],
                 "private_knowledge":['wrong'],
-                "intention":['retail-intention']
+                "intention":['retail-intent']
             },
             "agent_config": {
                 "only_use_rag_tool": True
@@ -295,11 +295,11 @@ def anta_test():
         print() 
 
 if __name__ == "__main__":
-    # complete_test_pr()
+    complete_test_pr()
     # test_multi_turns_rag_pr()
     # test_multi_turns_agent_pr()
     # test_multi_turns_chat_pr()
     # bigo_test()
-    sso_batch_test()
+    # sso_batch_test()
     # anta_test()
     # bigo_test()
