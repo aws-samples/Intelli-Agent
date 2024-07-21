@@ -86,6 +86,7 @@ class ChatbotState(TypedDict):
     function_calling_is_run_once: bool
     # current tool calls
     function_calling_parsed_tool_calls: list
+    current_agent_tools_def: list
 
 ####################
 # nodes in graph #
@@ -110,7 +111,7 @@ def intention_detection(state: ChatbotState):
             "intent_type": "intention detected"
         }
     retriever_params = state["chatbot_config"]["qq_match_config"]
-    retriever_params["query"] = state["query"]
+    retriever_params["query"] = state[retriever_params.get('retriever_config',{}).get("query_key","query")]
     output: str = invoke_lambda(
         event_body=retriever_params,
         lambda_name="Online_Functions",

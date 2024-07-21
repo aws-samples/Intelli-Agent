@@ -66,7 +66,7 @@ def get_custom_qd_retrievers(config:dict,using_bm25=False):
                 "embedding_model_endpoint": config['modelIds']['embedding']['parameter']['ModelEndpoint'],
                 "target_model": config['modelIds']['embedding']['parameter']['ModelName'],
                 "model_type": config['modelIds']['embedding']['parameter']['ModelType'],
-                "query_key": config.get("query_key","query"),
+                # "query_key": config.get("query_key","query"),
                 "text_field": config.get("text_field","text"),
                 "using_whole_doc": config.get("using_whole_doc",False),
                 "context_num": config["context_num"],
@@ -94,7 +94,7 @@ def get_custom_qq_retrievers(config:dict):
                 "embedding_model_endpoint": config['modelIds']['embedding']['parameter']['ModelEndpoint'],
                 "target_model": config['modelIds']['embedding']['parameter']['ModelName'],
                 "model_type": "vector",
-                "query_key": config.get("query_key","query"),
+                # "query_key": config.get("query_key","query"),
                 "enable_debug": config.get('enable_debug',False)
             }
         )
@@ -106,7 +106,6 @@ def get_whole_chain(retriever_list, reranker_config):
         default_reranker_config = {
             "enable_debug": False,
             "target_model": "bge_reranker_model.tar.gz",
-            "query_key": "query",
             "top_k": 10
         }
         reranker_config = {**default_reranker_config, **reranker_config}

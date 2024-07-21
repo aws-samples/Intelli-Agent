@@ -96,16 +96,14 @@ class BGEM3Reranker(BaseDocumentCompressor):
 class BGEReranker(BaseDocumentCompressor):
 
     """Number of documents to return."""
-    query_key: str="query"
     config: Dict={"run_name": "BGEReranker"}
     enable_debug: Any
     target_model: Any
     rerank_model_endpoint: str=rerank_model_endpoint
     top_k: int=10
 
-    def __init__(self, query_key='query', enable_debug=False, rerank_model_endpoint=rerank_model_endpoint, target_model=None, top_k=10):
+    def __init__(self,enable_debug=False, rerank_model_endpoint=rerank_model_endpoint, target_model=None, top_k=10):
         super().__init__()
-        self.query_key = query_key
         self.enable_debug = enable_debug
         self.rerank_model_endpoint = rerank_model_endpoint
         self.target_model = target_model
@@ -157,7 +155,7 @@ class BGEReranker(BaseDocumentCompressor):
         rerank_pair = []
         rerank_text_length = 1024 * 10
         for doc in _docs:
-            rerank_pair.append([query[self.query_key], doc[:rerank_text_length]])
+            rerank_pair.append([query["query"], doc[:rerank_text_length]])
         score_list = []
         logger.info(f'rerank pair num {len(rerank_pair)}, endpoint_name: {self.rerank_model_endpoint}')
         response_list = asyncio.run(self.__spawn_task(rerank_pair))
