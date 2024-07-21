@@ -99,7 +99,6 @@ class ChatbotState(TypedDict):
     goods_info: None
     human_goods_info: None
     agent_llm_type: str
-<<<<<<< HEAD
     other_chain_kwargs: dict
 
 # class ChatbotState(TypedDict):
@@ -138,13 +137,6 @@ class ChatbotState(TypedDict):
 #     agent_current_call_number: int
 #     enable_trace: bool
 goods_info_tag = "商品信息"
-=======
-    query_rewrite_llm_type: str
-    agent_repeated_call_limit: int # agent recursion limit
-    agent_current_call_number: int
-    enable_trace: bool
-    goods_info_tag: str
->>>>>>> d11b4c115855499e170129b9869da09f8294f550
 
 ####################
 # nodes in lambdas #
@@ -302,8 +294,6 @@ def final_rag_llm_lambda(state:ChatbotState):
         )
     return {"answer": output}
 
-
-<<<<<<< HEAD
 # def transfer_reply(state:ChatbotState):
 #     return {"answer": "您好,我是安踏官方客服,很高兴为您服务。请问您有什么需要帮助的吗?"}
 
@@ -357,8 +347,6 @@ def rule_url_reply(state:ChatbotState):
   
     return {"answer":"您好"}
 
-=======
->>>>>>> d11b4c115855499e170129b9869da09f8294f550
 def rule_number_reply(state:ChatbotState):
     state["extra_response"]["current_agent_intent_type"] = "rule reply"
     return {"answer":"收到订单信息"}
@@ -479,17 +467,9 @@ def build_graph(chatbot_state_cls):
         "agent",
         agent_route,
         {
-<<<<<<< HEAD
             "valid tool calling": "tools_execution",
             "no need tool calling": "final_results_preparation",
         },
-=======
-            "invalid tool calling": "agent_lambda",
-            "final rag": "final_rag_retriever",
-            "continue": "tool_execute",
-            
-        }
->>>>>>> d11b4c115855499e170129b9869da09f8294f550
     )
     app = workflow.compile()
     return app
