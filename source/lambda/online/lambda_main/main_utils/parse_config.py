@@ -81,7 +81,6 @@ class ConfigParserBase:
         }
         return default_chatbot_config
 
-
     @classmethod
     def parse_aos_indexs(cls,chatbot_config,default_index_names):
         group_name = chatbot_config['group_name']

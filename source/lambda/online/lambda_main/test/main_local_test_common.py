@@ -6,7 +6,9 @@ def test(chatbot_mode="agent",
          session_id=None,
          query=None,
          use_history=True,
-         only_use_rag_tool=False):
+         only_use_rag_tool=False,
+         **kwargs
+         ):
     default_llm_config = {
         'model_id': 'anthropic.claude-3-sonnet-20240229-v1:0',
         'model_kwargs': {
@@ -23,6 +25,7 @@ def test(chatbot_mode="agent",
         }
     }
 
+    chatbot_config.update(kwargs)
     generate_answer(
         query,
         stream=True,
@@ -129,7 +132,6 @@ def test_multi_turns_agent_pr():
     ]
 
     for query in user_queries:
-        print()
         print("==" * 50)
         if isinstance(query, str):
             query = {"query": query}
@@ -137,17 +139,19 @@ def test_multi_turns_agent_pr():
              session_id=session_id,
              query=query['query'],
              use_history=query['use_history'],
-             only_use_rag_tool=True)
+             default_chatbot_id="admin1",
+             only_use_rag_tool=False)
         print()
 
 
 def complete_test_pr():
-    print("start test in rag mode")
-    test_multi_turns_rag_pr()
-    print("finish test in rag mode")
     print("start test in agent mode")
     test_multi_turns_agent_pr()
     print("finish test in agent mode")
+
+    print("start test in rag mode")
+    test_multi_turns_rag_pr()
+    print("finish test in rag mode")
 
     print("start test in chat mode")
     test_multi_turns_chat_pr()

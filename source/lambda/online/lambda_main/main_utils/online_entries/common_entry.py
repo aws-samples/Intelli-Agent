@@ -404,11 +404,12 @@ def common_entry(event_body):
         }
     )
 
+    figures = response["extra_response"].pop("figures",[])
     return {
         "answer": response["answer"],
         **response["extra_response"],
         "ddb_additional_kwargs": {
-            "figure": response["extra_response"].get("figures", [])
+            "figure": figures
         }
     }
 
