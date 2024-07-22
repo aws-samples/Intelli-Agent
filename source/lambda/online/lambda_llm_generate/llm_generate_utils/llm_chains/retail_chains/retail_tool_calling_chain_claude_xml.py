@@ -18,9 +18,10 @@ from langchain_core.messages import AIMessage,SystemMessage,HumanMessage
 
 from common_logic.common_utils.constant import (
     LLMTaskType,
-    LLMModelType
+    LLMModelType,
+    SceneType
 )
-from functions.tools import get_tool_by_name
+from functions import get_tool_by_name
 from ..llm_chain_base import LLMChain
 from ...llm_models import Model
 
@@ -211,7 +212,7 @@ class Claude2RetailToolCallingChain(LLMChain):
     def generate_chat_history(state:dict):
         chat_history = state['chat_history'] \
             + [{"role": "user","content":state['query']}] \
-            + state['agent_chat_history']
+            + state['agent_tool_history']
         return {"chat_history":chat_history}
 
         
@@ -224,10 +225,10 @@ class Claude2RetailToolCallingChain(LLMChain):
 
         # add two extral tools
         if "give_rhetorical_question" not in tool_names:
-            tools.append(get_tool_by_name("give_rhetorical_question").tool_def)
+            tools.append(get_tool_by_name("give_rhetorical_question",scene=SceneType.RETAIL).tool_def)
 
         if "give_final_response" not in tool_names:
-            tools.append(get_tool_by_name("give_final_response").tool_def)
+            tools.append(get_tool_by_name("give_final_response",scene=SceneType.RETAIL).tool_def)
 
         fewshot_examples = kwargs.get('fewshot_examples',[])
         
@@ -337,7 +338,7 @@ class Mixtral8x7bRetailToolCallingChain(Claude2RetailToolCallingChain):
                 chat_history=chat_history_str,
                 query = state['query']
             )
-            }] + state['agent_chat_history']
+            }] + state['agent_tool_history']
         return {"chat_history": chat_history}
 
         

@@ -8,7 +8,7 @@ logger.setLevel(logging.INFO)
 
 s3_client = boto3.client("s3")
 
-supported_file_types = ["pdf", "txt", "doc", "md", "html", "json", "jsonl", "csv"]
+supported_file_types = ["pdf", "txt", "doc", "md", "html", "json", "jsonl", "csv", "png", "jpg", "jpeg", "webp"]
 default_embedding_endpoint = os.environ.get("DEFAULT_EMBEDDING_ENDPOINT")
 aos_domain_endpoint = os.environ.get("AOS_DOMAIN_ENDPOINT")
 
@@ -29,7 +29,9 @@ def lambda_handler(event, context):
     bucket_name = event["s3Bucket"]
     prefix = event["s3Prefix"]
     # fetch index from event with default value none
-    workspace_id = event["workspaceId"]
+    chatbot_id = event["chatbotId"]
+    index_id = event["indexId"]
+    embedding_model_type = event["embeddingModelType"]
     index_type = event.get("indexType", "qd")
     if aos_domain_endpoint and aos_domain_endpoint != "-":
         operation_type = event.get("operationType", "create")
@@ -70,7 +72,9 @@ def lambda_handler(event, context):
             "s3Bucket": bucket_name,
             "s3Prefix": prefix,
             "fileCount": file_count,
-            "workspaceId": workspace_id,
+            "chatbotId": chatbot_id,
+            "indexId": index_id,
+            "embeddingModelType": embedding_model_type,
             "qaEnhance": (
                 event["qaEnhance"].lower() if "qaEnhance" in event else "false"
             ),
@@ -89,13 +93,15 @@ def lambda_handler(event, context):
             "s3Bucket": bucket_name,
             "s3Prefix": prefix,
             "fileCount": "1",
-            "workspaceId": workspace_id,
+            "chatbotId": chatbot_id,
             "qaEnhance": (
                 event["qaEnhance"].lower() if "qaEnhance" in event else "false"
             ),
             "offline": "false",
             "batchFileNumber": "1",
             "batchIndices": "0",
+            "indexId": index_id,
+            "embeddingModelType": embedding_model_type,
             "indexType": index_type,
             "operationType": operation_type,
             "embeddingEndpoint": embedding_endpoint,

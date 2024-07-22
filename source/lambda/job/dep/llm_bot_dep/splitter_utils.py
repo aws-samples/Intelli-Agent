@@ -150,7 +150,7 @@ def find_child(headers: dict, header_id: str):
 
 def parse_string_to_xml_node(xml_string):
     try:
-        xml_node = etree.fromstring(xml_string)
+        xml_node = etree.fromstring(xml_string.replace("&", "&amp;"))
         return xml_node
     except etree.XMLSyntaxError as e:
         logger.error(f"Error parsing XML: {e}")
@@ -353,6 +353,8 @@ class MarkdownHeaderTextSplitter:
                 inside_figure = False
                 # Parse xml node to get content and metadata
                 xml_node = parse_string_to_xml_node(current_figure)
+                if not xml_node:
+                    continue
                 figure_type = xml_node.findtext(FigureNode.TYPE.value)
                 figure_description = xml_node.find(FigureNode.DESCRIPTION.value)
                 figure_value = xml_node.find(FigureNode.VALUE.value)
