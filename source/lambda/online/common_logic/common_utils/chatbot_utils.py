@@ -25,6 +25,9 @@ class ChatbotManager:
             Key={"groupName": group_name, "chatbotId": chatbot_id}
         )
         chatbot_content = chatbot_response.get("Item")
+        if not chatbot_content:
+            return Chatbot.from_dynamodb_item({})
+        
         for index_type, index_item in chatbot_content.get("indexIds").items():
             for tag, index_id in index_item.get("value").items():
                 index_content = self.index_table.get_item(
