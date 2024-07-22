@@ -28,12 +28,15 @@ class ToolManager:
     
     def register_tool(self,tool_info:dict):
         tool_def = tool_info['tool_def']
-        if "parameters" not in tool_def:
-            tool_def['parameters'] = {
+        default_paramters = {
                 "type": "object",
                 "properties": {},
                 "required": []
             }
+        if "parameters" not in tool_def:
+            tool_def['parameters'] = default_paramters
+        else:
+            tool_def['parameters'] = {**default_paramters, **tool_def['parameters']}
 
         tool = Tool(**tool_info)
         assert tool.tool_def_type == ToolDefType.openai.value, f"tool_def_type: {tool.tool_def_type} not support"

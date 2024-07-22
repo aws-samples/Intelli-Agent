@@ -86,6 +86,7 @@ class ChatbotState(TypedDict):
     function_calling_is_run_once: bool
     # current tool calls
     function_calling_parsed_tool_calls: list
+    current_agent_tools_def: list
 
 ####################
 # nodes in graph #
@@ -105,8 +106,12 @@ def query_preprocess(state: ChatbotState):
 
 @node_monitor_wrapper
 def intention_detection(state: ChatbotState):
+    if state['chatbot_config']['agent_config']['only_use_rag_tool']:
+        return {
+            "intent_type": "intention detected"
+        }
     retriever_params = state["chatbot_config"]["qq_match_config"]
-    retriever_params["query"] = state["query"]
+    retriever_params["query"] = state[retriever_params.get('retriever_config',{}).get("query_key","query")]
     output: str = invoke_lambda(
         event_body=retriever_params,
         lambda_name="Online_Functions",
@@ -393,6 +398,7 @@ def common_entry(event_body):
             "ws_connection_id": ws_connection_id,
             "debug_infos": {},
             "extra_response": {},
+            "qq_match_results": [],
             "agent_repeated_call_limit": chatbot_config['agent_repeated_call_limit'],
             "agent_current_call_number": 0,
         }
