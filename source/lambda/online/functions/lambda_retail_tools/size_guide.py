@@ -65,13 +65,17 @@ def lambda_handler(event_body, context=None):
             height = float(kwargs["height"])
             weight = float(kwargs["weight"])
         except:
-            return {"code":1, "result":"height and weight should be numbers"}
-        std_height = find_nearest(list(size_dict.get(goods_type_1).get(goods_type_2).get("height_weight").keys()), height)
-        std_weight = find_nearest(list(size_dict.get(goods_type_1).get(goods_type_2).get("height_weight").get(std_height).keys()), weight)
-        result = size_dict.get(goods_type_1).get(goods_type_2).get("height_weight").get(std_height).get(std_weight)
+            return {"code":1, "result":"身高和体重必须是数值，请确认输入是否正确"}
+        std_height = find_nearest(list(size_dict.get(goods_type_1).get(goods_type_2).\
+                                       get("height_weight").keys()), height)
+        std_weight = find_nearest(list(size_dict.get(goods_type_1).get(goods_type_2).\
+                                       get("height_weight").get(std_height).keys()), weight)
+        result = size_dict.get(goods_type_1).get(goods_type_2).get("height_weight").\
+            get(std_height).get(std_weight)
         # No sutabale size for the input height and weight
         if result == "亲亲，很抱歉，这款暂时没有适合您的尺码":
-            result += "，您当前输入的身高为{}cm，体重为{}kg，请确认一下参数是否正确，如果有修改可以再次调用尺码工具".format(height, weight)
+            result += "，您当前输入的身高为{}cm，体重为{}kg，请确认一下参数是否正确，如果有修改可以再次调用尺码工具".\
+                format(height, weight)
     return {"code":0, "result":result, "name": "尺码查询"}
 
 if __name__ == "__main__":

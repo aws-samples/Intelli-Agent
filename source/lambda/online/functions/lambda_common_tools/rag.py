@@ -13,8 +13,8 @@ def lambda_handler(event_body,context=None):
     # add qq match results
     context_list.extend(state['qq_match_results'])
     figure_list = []
-    retriever_params = state["chatbot_config"]["private_knowledge_config"]["retriever_config"]
-    retriever_params["query"] = state["query"]
+    retriever_params = state["chatbot_config"]["private_knowledge_config"]
+    retriever_params["query"] = state[retriever_params.get("retriever_config",{}).get("query_key","query")]
     output: str = invoke_lambda(
         event_body=retriever_params,
         lambda_name="Online_Functions",
@@ -24,7 +24,7 @@ def lambda_handler(event_body,context=None):
 
     for doc in output["result"]["docs"]:
         context_list.append(doc["page_content"])
-        figure_list = figure_list + doc["figure"]
+        figure_list = figure_list + doc.get("figure",[])
     
     # Remove duplicate figures
     unique_set = {tuple(d.items()) for d in figure_list}
