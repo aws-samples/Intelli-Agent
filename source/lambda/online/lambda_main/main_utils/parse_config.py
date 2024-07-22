@@ -25,7 +25,7 @@ def update_nest_dict(d, u):
 
 
 class ConfigParserBase:
-    default_llm_config_str = "{'model_id': 'anthropic.claude-3-sonnet-20240229-v1:0', 'model_kwargs': {'temperature': 0.0, 'max_tokens': 4096}}"
+    default_llm_config_str = "{'model_id': 'anthropic.claude-3-sonnet-20240229-v1:0', 'model_kwargs': {'temperature': 0.01, 'max_tokens': 4096}}"
     default_index_names = {"intention":[], "private_knowledge":[], "qq_match":[]}
     @classmethod
     def get_default_chatbot_config(cls,default_llm_config,default_index_config,**kwargs):
@@ -58,24 +58,22 @@ class ConfigParserBase:
                 **copy.deepcopy(default_llm_config),
             },
             "private_knowledge_config": {
-                "retriever_config": {
-                    "retriever_config":{
-                            "top_k": 10,
-                            "context_num": 1,
-                            "using_whole_doc": False,
-                            "query_key": "query"
-                    },
-                    "retrievers": default_index_config.get("private_knowledge",[]),
-                    "rerankers": [
-                        {
-                            "type": "reranker",
-                            "config": {
-                                "enable_debug": False,
-                                "target_model": "bge_reranker_model.tar.gz",
-                            },
-                        }
-                    ],
+                "retriever_config":{
+                        "top_k": 10,
+                        "context_num": 1,
+                        "using_whole_doc": False,
+                        "query_key": "query"
                 },
+                "retrievers": default_index_config.get("private_knowledge",[]),
+                "rerankers": [
+                    {
+                        "type": "reranker",
+                        "config": {
+                            "enable_debug": False,
+                            "target_model": "bge_reranker_model.tar.gz",
+                        },
+                    }
+                ],
                 "llm_config": {
                     **copy.deepcopy(default_llm_config),
                 },
@@ -126,7 +124,7 @@ class ConfigParserBase:
         qq_match_config = chatbot_config['qq_match_config']
         _dict_update(qq_match_config)
         # private knowledge 
-        private_knowledge_config = chatbot_config['private_knowledge_config']['retriever_config']
+        private_knowledge_config = chatbot_config['private_knowledge_config']
         _dict_update(private_knowledge_config)
     
 
@@ -156,8 +154,6 @@ class ConfigParserBase:
         assert ChatbotMode.has_value(chatbot_config["chatbot_mode"]), chatbot_config[
              "chatbot_mode"
         ]
-
-        
         chatbot_config = update_nest_dict(
             copy.deepcopy(cls.get_default_chatbot_config(
                 default_llm_config,
@@ -188,6 +184,16 @@ class CommonConfigParser(ConfigParserBase):
 
 
 class RetailConfigParser(ConfigParserBase):
+
+    @classmethod
+    def from_chatbot_config(cls,chatbot_config:dict):
+        chatbot_config = super().from_chatbot_config(chatbot_config)
+         # add default tools
+        # tools: list = chatbot_config["agent_config"]["tools"]
+        # if "give_rhetorical_question" not in tools:
+        #     tools.append("give_rhetorical_question")
+        return chatbot_config
+
     @classmethod
     def get_default_chatbot_config(cls, default_llm_config, default_index_config):
         default_chatbot_config = super().get_default_chatbot_config(default_llm_config, default_index_config)
@@ -253,16 +259,11 @@ class RetailConfigParser(ConfigParserBase):
             },
             "rag_daily_reception_config": {
                 "retriever_config": {
-                    "retrievers": [
-                        {
-                            "type": "qq",
-                            "workspace_ids": ["retail-quick-reply"],
-                            "config": {
-                                "top_k": 5
-                            },
-                        },
-                    ]
+                    "top_k": 10,
                 },
+                "retrievers": [
+                        index_id_map['retail-quick-reply'],
+                ],
                 "llm_config": {
                     **copy.deepcopy(default_llm_config),
                 },
@@ -358,21 +359,13 @@ class RetailConfigParser(ConfigParserBase):
                     **copy.deepcopy(default_llm_config),
                 }
             },
-            "rag_goods_info_config": {
+            "comparison_rag_config": {
                 "retriever_config": {
-                    "retrievers": [
-                        {
-                            "type": "qq",
-                            "workspace_ids": ["goods-info"],
-                            "config": {
-                                "top_k": 5
-                            },
-                        },
-                    ]
+                    "retrievers": [index_id_map['aws-acts-knowledge']]
                 },
-                "llm_config": {
+                "llm_config":{
                     **copy.deepcopy(default_llm_config),
-                },
+                }
             },
             "final_rag_retriever": {
                 "retriever_config":{
@@ -402,4 +395,25 @@ class RetailConfigParser(ConfigParserBase):
         }
         chatbot_config.update(retail_tool_config)
         return index_infos
+
+    @classmethod
+    def index_postprocess(cls,chatbot_config):
+        def _dict_update(config):
+            retrievers = []
+            _retrievers = config.pop('retrievers')
+            for retriever_dict in _retrievers:
+                retrievers.append({
+                    **config['retriever_config'],
+                    **retriever_dict
+                })
+            config['retrievers'] = retrievers
+        # intention 
+        intention_config = chatbot_config['intention_config']
+        _dict_update(intention_config)
+        # qq_match
+        qq_match_config = chatbot_config['qq_match_config']
+        _dict_update(qq_match_config)
+        # private knowledge 
+        private_knowledge_config = chatbot_config['private_knowledge_config']
+        _dict_update(private_knowledge_config)
 
