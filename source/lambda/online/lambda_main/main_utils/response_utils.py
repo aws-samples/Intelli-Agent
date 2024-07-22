@@ -176,6 +176,7 @@ def stream_response(event_body:dict, response:dict):
             },
             ws_connection_id=ws_connection_id
         )
+    return answer_str
 
 
 class WebSocketCallback:

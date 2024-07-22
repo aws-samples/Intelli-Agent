@@ -117,9 +117,10 @@ def lambda_handler(event_body:dict, context:dict):
     if is_running_local():
         response:dict = entry_executor(event_body)
         r = process_response(event_body,response)
-        if not stream:
-            return r
-        return "All records have been processed"
+        # if not stream:
+        #     return r
+        # return "All records have been processed"
+        return r
     else:
         try:
             response:dict = entry_executor(event_body)
