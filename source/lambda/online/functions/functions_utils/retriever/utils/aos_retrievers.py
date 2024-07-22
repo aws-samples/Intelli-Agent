@@ -473,7 +473,7 @@ class QueryDocumentKNNRetriever(BaseRetriever):
         else:
             response_list = asyncio.run(self.__spawn_task(aos_hits, context_size))
             for context, result in zip(response_list, results):
-                result["doc"] = "\n".join(context[0] + [result["doc"]] + context[1])
+                result["doc"] = "\n".join(context[0] + [result["content"]] + context[1])
         return results
 
     @timeit
