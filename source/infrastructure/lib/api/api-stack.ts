@@ -609,7 +609,10 @@ export class ApiConstruct extends Construct {
             uiStatus: { type: JsonSchemaType.STRING },
             createTime: { type: JsonSchemaType.STRING }, // Consider using format: 'date-time'
             sfnExecutionId: { type: JsonSchemaType.STRING },
-            workspaceId: { type: JsonSchemaType.STRING },
+            embeddingModelType: { type: JsonSchemaType.STRING },
+            groupName: { type: JsonSchemaType.STRING },
+            chatbotId: { type: JsonSchemaType.STRING },
+            indexId: { type: JsonSchemaType.STRING },
           },
           required: ['s3Prefix',
                      'offline',
@@ -621,7 +624,10 @@ export class ApiConstruct extends Construct {
                      'uiStatus',
                      'createTime',
                      'sfnExecutionId',
-                     'workspaceId'],
+                     'embeddingModelType',
+                     'groupName',
+                     'chatbotId',
+                     'indexId'],
 
         }
         },

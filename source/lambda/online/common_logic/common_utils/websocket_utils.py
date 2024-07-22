@@ -35,7 +35,10 @@ def load_ws_client(websocket_url):
 
 
 def send_to_ws_client(message: dict, ws_connection_id):
+    # ws_client.post_to_connection(
+    #     ConnectionId=ws_connection_id,
+    #     Data=json.dumps(message).encode("utf-8"),
+    # )
     ws_client.post_to_connection(
-        ConnectionId=ws_connection_id,
-        Data=json.dumps(message).encode("utf-8"),
+        data=message,
     )
