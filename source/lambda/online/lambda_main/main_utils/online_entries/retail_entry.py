@@ -417,7 +417,6 @@ def build_graph(chatbot_state_cls):
     # add all edges
     workflow.set_entry_point("query_preprocess")
     workflow.add_edge("intention_detection","agent")
-<<<<<<< HEAD
     workflow.add_edge("tools_execution","agent")
     # workflow.add_edge("agent",'parse_tool_calling')
     # workflow.add_edge("rag_daily_reception_retriever","rag_daily_reception_llm")
@@ -440,13 +439,6 @@ def build_graph(chatbot_state_cls):
     # workflow.add_edge("rag_promotion_llm",END)
     # workflow.add_edge("give_final_response",END)
     # workflow.add_edge("final_rag_llm",END)
-=======
-    workflow.add_edge("tool_execute","agent")
-    workflow.add_edge('final_rag_retriever',"final_rag_llm")
-    
-    workflow.add_edge('rule_number_reply',END)
-    workflow.add_edge("final_rag_llm",END)
->>>>>>> d11b4c115855499e170129b9869da09f8294f550
 
     # temporal add edges for ending logic
     # add conditional edges
