@@ -9,7 +9,7 @@ ec2_client = boto3.client('ec2')
 
 def lambda_handler(event, context):
     '''lambda_handler'''
-    if event['error_msg'].startswith("The subnet "):
+    if event['error_msg'].startswith("Resource handler returned message: \"The subnet "):
         __delete_subnet(re.search(r"'(.*?)'", event['error_msg']).group(1))
     else:
         logger.error("invalid Parameter!!!")
