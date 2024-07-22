@@ -62,14 +62,14 @@ def get_custom_qd_retrievers(config:dict,using_bm25=False):
     qd_retriever = QueryDocumentKNNRetriever(
             **{
                 "index": config['indexId'],
-                "top_k": config['top_k'],
+                "top_k": config.get('top_k', 2),
                 "embedding_model_endpoint": config['modelIds']['embedding']['parameter']['ModelEndpoint'],
                 "target_model": config['modelIds']['embedding']['parameter']['ModelName'],
                 "model_type": config['modelIds']['embedding']['parameter']['ModelType'],
                 # "query_key": config.get("query_key","query"),
                 "text_field": config.get("text_field","text"),
                 "using_whole_doc": config.get("using_whole_doc",False),
-                "context_num": config["context_num"],
+                "context_num": config.get("context_num", 2),
                 "enable_debug": config.get('enable_debug',False)
             }  
         )
