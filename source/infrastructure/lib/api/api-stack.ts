@@ -386,44 +386,6 @@ export class ApiConstruct extends Construct {
     listChatbotLambda.addToRolePolicy(this.iamHelper.cognitoStatement);
 
 
-    const batchLambda = new Function(this, "BatchLambda", {
-      code: Code.fromAsset(join(__dirname, "../../../lambda/batch")),
-      handler: "main.lambda_handler",
-      runtime: Runtime.PYTHON_3_11,
-      timeout: Duration.minutes(15),
-      memorySize: 1024,
-      vpc: apiVpc,
-      vpcSubnets: {
-        subnets: apiVpc.privateSubnets,
-      },
-      securityGroups: [securityGroup],
-      architecture: Architecture.X86_64,
-      environment: {
-        document_bucket: s3Bucket.bucketName,
-        opensearch_cluster_domain: domainEndpoint,
-        embedding_endpoint: props.embeddingAndRerankerEndPoint,
-        jobName: props.jobName,
-        jobQueueArn: props.jobQueueArn,
-        jobDefinitionArn: props.jobDefinitionArn,
-      },
-    });
-
-    batchLambda.addToRolePolicy(
-      new iam.PolicyStatement({
-        actions: [
-          "es:ESHttpGet",
-          "es:ESHttpPut",
-          "es:ESHttpPost",
-          "es:ESHttpHead",
-          "batch:*",
-        ],
-        effect: iam.Effect.ALLOW,
-        resources: ["*"],
-      }),
-    );
-    batchLambda.addToRolePolicy(this.iamHelper.s3Statement);
-    batchLambda.addToRolePolicy(this.iamHelper.endpointStatement);
-
     // Create Lambda prompt management
     const promptManagementLambda = new Function(this, "PromptManagementLambda", {
       runtime: Runtime.PYTHON_3_12,
@@ -573,50 +535,23 @@ export class ApiConstruct extends Construct {
     apiResourceListMessages.addMethod("GET", new apigw.LambdaIntegration(listMessagesLambda), this.genMethodOption(api, auth, null),);
 
     const apiResourceChatbot = api.root.addResource("chatbot-management");
-    const apiCreateChatbot = apiResourceChatbot.addResource("chatbots");
-    apiCreateChatbot.addMethod(
+    const apiChatbot = apiResourceChatbot.addResource("chatbots");
+    apiChatbot.addMethod(
       "POST",
       new apigw.LambdaIntegration(createChatbotLambda),
       this.genMethodOption(api, auth, null),
     );
 
-    const apiResourceStepFunction = api.root.addResource("etl");
-    apiResourceStepFunction.addMethod(
+    const apiResourceStepFunction = api.root.addResource("knowledge-base");
+
+    const apiKBExecution = apiResourceStepFunction.addResource("executions");
+    apiKBExecution.addMethod(
       "POST",
       new apigw.LambdaIntegration(sfnLambda),
       this.genMethodOption(api, auth, null),
     );
 
-    const apiGetExecution = apiResourceStepFunction.addResource("execution");
-    apiGetExecution.addMethod(
-      "GET",
-      new apigw.LambdaIntegration(getExecutionLambda),
-      {...this.genMethodOption(api, auth, {
-        Items: {type: JsonSchemaType.ARRAY, items: {
-          type: JsonSchemaType.OBJECT,
-          properties: {
-            s3Prefix: { type: JsonSchemaType.STRING },
-            s3Bucket: { type: JsonSchemaType.STRING },
-            createTime: { type: JsonSchemaType.STRING }, // Consider using format: 'date-time'
-            executionId: { type: JsonSchemaType.STRING },
-            s3Path: { type: JsonSchemaType.STRING },
-            status: { type: JsonSchemaType.STRING },
-          },
-          required: ['s3Prefix', 's3Bucket', 'createTime', 'executionId', 's3Path', 'status'],
-        }},
-        Count: {type: JsonSchemaType.INTEGER}
-      }),
-      requestParameters: {
-        'method.request.querystring.executionId': false
-      },
-      // requestModels: this.genRequestModel(api, {
-      //   "executionId": { "type": JsonSchemaType.ARRAY, "items": {"type": JsonSchemaType.STRING}},
-      // })
-    }
-    );
-
-    const apiListExecution = apiResourceStepFunction.addResource("list-execution");
-    apiListExecution.addMethod(
+    apiKBExecution.addMethod(
       "GET",
       new apigw.LambdaIntegration(listExecutionLambda),
       {...this.genMethodOption(api, auth, {
@@ -689,9 +624,35 @@ export class ApiConstruct extends Construct {
       }
     );
 
-    const apiUploadDoc = apiResourceStepFunction.addResource("upload-s3-url");
-    // TODO: Add authorizer after lambda authorizer is completed. 
-    // Lambda authorizer should contains cors header or else uploading will fail
+    const apiGetExecutionById = apiKBExecution.addResource("{id}");
+    apiGetExecutionById.addMethod(
+      "GET",
+      new apigw.LambdaIntegration(getExecutionLambda),
+      {...this.genMethodOption(api, auth, {
+        Items: {type: JsonSchemaType.ARRAY, items: {
+          type: JsonSchemaType.OBJECT,
+          properties: {
+            s3Prefix: { type: JsonSchemaType.STRING },
+            s3Bucket: { type: JsonSchemaType.STRING },
+            createTime: { type: JsonSchemaType.STRING }, // Consider using format: 'date-time'
+            // executionId: { type: JsonSchemaType.STRING },
+            s3Path: { type: JsonSchemaType.STRING },
+            status: { type: JsonSchemaType.STRING },
+          },
+          required: ['s3Prefix', 's3Bucket', 'createTime', 's3Path', 'status'],
+        }},
+        Count: {type: JsonSchemaType.INTEGER}
+      }),
+      requestParameters: {
+        'method.request.querystring.executionId': false
+      },
+      // requestModels: this.genRequestModel(api, {
+      //   "executionId": { "type": JsonSchemaType.ARRAY, "items": {"type": JsonSchemaType.STRING}},
+      // })
+    }
+    );
+
+    const apiUploadDoc = apiResourceStepFunction.addResource("kb-presigned-url");
     apiUploadDoc.addMethod(
       "POST",
       new apigw.LambdaIntegration(uploadDocLambda),
@@ -715,21 +676,12 @@ export class ApiConstruct extends Construct {
     //   new apigw.LambdaIntegration(uploadDocLambda),
     // );
 
-    const apiListChatbot = apiResourceStepFunction.addResource("list-workspace");
-    apiListChatbot.addMethod(
+    apiChatbot.addMethod(
       "GET",
       new apigw.LambdaIntegration(listChatbotLambda),
       this.genMethodOption(api, auth, null),
     );
 
-    // Define the API Gateway Lambda Integration to invoke Batch job
-    const lambdaBatchIntegration = new apigw.LambdaIntegration(batchLambda, {
-      proxy: true,
-    });
-
-    // Define the API Gateway Method
-    const apiResourceBatch = api.root.addResource("batch");
-    apiResourceBatch.addMethod("POST", lambdaBatchIntegration, this.genMethodOption(api, auth, null),);
 
     // Define the API Gateway Lambda Integration to manage prompt
     const lambdaPromptIntegration = new apigw.LambdaIntegration(promptManagementLambda, {
