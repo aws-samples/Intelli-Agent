@@ -19,7 +19,7 @@ const LoginCallback: React.FC = () => {
       url: 'chatbot-management/chatbots',
       method: 'post',
       data: {
-        groupName: groupName[0],
+        groupName: groupName?.[0] ?? 'Admin',
       },
     });
     if (data.chatbotId) {
