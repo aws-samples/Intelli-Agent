@@ -355,6 +355,22 @@ export class ApiConstruct extends Construct {
       }),
     );
 
+    const createChatbotLambda = new Function(this, "CreateChatbot", {
+      code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
+      handler: "create_chatbot.lambda_handler",
+      runtime: Runtime.PYTHON_3_12,
+      timeout: Duration.minutes(5),
+      memorySize: 512,
+      architecture: Architecture.X86_64,
+      environment: {
+        INDEX_TABLE_NAME: props.indexTableName,
+        CHATBOT_TABLE_NAME: props.chatbotTableName,
+        MODEL_TABLE_NAME: props.modelTableName,
+        EMBEDDING_ENDPOINT: props.embeddingAndRerankerEndPoint,
+      },
+    });
+    createChatbotLambda.addToRolePolicy(this.iamHelper.dynamodbStatement);
+
     const listChatbotLambda = new Function(this, "ListChatbotLambda", {
       code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
       handler: "list_chatbot.lambda_handler",
@@ -555,6 +571,14 @@ export class ApiConstruct extends Construct {
 
     const apiResourceListMessages = apiResourceDdb.addResource("list-messages");
     apiResourceListMessages.addMethod("GET", new apigw.LambdaIntegration(listMessagesLambda), this.genMethodOption(api, auth, null),);
+
+    const apiResourceChatbot = api.root.addResource("chatbot-management");
+    const apiCreateChatbot = apiResourceChatbot.addResource("chatbots");
+    apiCreateChatbot.addMethod(
+      "POST",
+      new apigw.LambdaIntegration(createChatbotLambda),
+      this.genMethodOption(api, auth, null),
+    );
 
     const apiResourceStepFunction = api.root.addResource("etl");
     apiResourceStepFunction.addMethod(
