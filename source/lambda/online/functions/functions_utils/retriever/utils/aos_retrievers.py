@@ -377,16 +377,14 @@ class QueryQuestionRetriever(BaseRetriever):
     vector_field: str = "vector_field"
     source_field: str = "source"
     top_k: int = 10
-    # lang: str = 'zh'
     embedding_model_endpoint: str
     target_model: str
     model_type: str = "vector"
-    query_key: str= "query"
     enable_debug: bool = False
 
     @timeit
     def _get_relevant_documents(self, question: Dict, *, run_manager: CallbackManagerForRetrieverRun) -> List[Document]:
-        query = question[self.query_key] 
+        query = question["query"] 
         debug_info = question["debug_info"]
         opensearch_knn_results = []
         query_repr = get_similarity_embedding(query, self.embedding_model_endpoint, self.target_model, self.model_type)
@@ -422,7 +420,6 @@ class QueryDocumentKNNRetriever(BaseRetriever):
     model_type: str = "vector"
     embedding_model_endpoint: Any
     target_model: Any
-    query_key: str = "query"
     enable_debug: bool = False     
     lang: str = 'zh' 
 
@@ -466,12 +463,7 @@ class QueryDocumentKNNRetriever(BaseRetriever):
             result["source"] = source
             result["score"] = aos_hit["_score"]
             result["detail"] = aos_hit['_source']
-            # result["content"] = aos_hit['_source'][text_field]
             result["content"] = aos_hit['_source'][text_field]
-            result["doc"] = result["content"]
-            # if 'additional_vecs' in aos_hit['_source']['metadata'] and \
-            #     'colbert_vecs' in aos_hit['_source']['metadata']['additional_vecs']:
-            #     result["data"]["colbert"] = aos_hit['_source']['metadata']['additional_vecs']['colbert_vecs']
             results.append(result)
         if using_whole_doc:
             for result in results:
@@ -481,7 +473,7 @@ class QueryDocumentKNNRetriever(BaseRetriever):
         else:
             response_list = asyncio.run(self.__spawn_task(aos_hits, context_size))
             for context, result in zip(response_list, results):
-                result["doc"] = "\n".join(context[0] + [result["doc"]] + context[1])
+                result["doc"] = "\n".join(context[0] + [result["content"]] + context[1])
         return results
 
     @timeit
@@ -500,7 +492,7 @@ class QueryDocumentKNNRetriever(BaseRetriever):
 
     @timeit
     def _get_relevant_documents(self, question: Dict, *, run_manager: CallbackManagerForRetrieverRun) -> List[Document]:
-        query = question[self.query_key]
+        query = question["query"]
         # if "query_lang" in question and question["query_lang"] != self.lang and "translated_text" in question:
         #     query = question["translated_text"]
         debug_info = question["debug_info"]
@@ -543,9 +535,6 @@ class QueryDocumentBM25Retriever(BaseRetriever):
     using_whole_doc: bool = False
     context_num: Any
     top_k: int = 5
-    # lang: Any
-    # model_type: Any
-    query_key: str="query"
     enable_debug: Any
     config: Dict={"run_name": "BM25"}
 
@@ -634,7 +623,7 @@ class QueryDocumentBM25Retriever(BaseRetriever):
 
     @timeit
     def _get_relevant_documents(self, question: Dict, *, run_manager: CallbackManagerForRetrieverRun) -> List[Document]:
-        query = question[self.query_key]
+        query = question["query"]
         # if "query_lang" in question and question["query_lang"] != self.lang and "translated_text" in question:
         #     query = question["translated_text"]
         debug_info = question["debug_info"]

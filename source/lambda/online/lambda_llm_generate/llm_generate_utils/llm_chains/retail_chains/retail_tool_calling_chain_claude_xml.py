@@ -231,6 +231,12 @@ class Claude2RetailToolCallingChain(LLMChain):
             tools.append(get_tool_by_name("give_final_response",scene=SceneType.RETAIL).tool_def)
 
         fewshot_examples = kwargs.get('fewshot_examples',[])
+        if fewshot_examples:
+            fewshot_examples.append({
+                "name": "give_rhetorical_question",
+                "query": "今天天气怎么样?",
+                "kwargs": {"question": "请问你想了解哪个城市的天气?"}
+            })
         
         model_kwargs = {**cls.default_model_kwargs, **model_kwargs}
 
@@ -263,7 +269,7 @@ class Claude2RetailToolCallingChain(LLMChain):
             model_kwargs=model_kwargs,
         )
         chain = RunnableLambda(cls.generate_chat_history) | tool_calling_template \
-            | RunnableLambda(lambda x: x.messages ) \
+            | RunnableLambda(lambda x: x.messages) \
             | llm | RunnableLambda(lambda message:cls.parse_function_calls_from_ai_message(
                 message
             ))

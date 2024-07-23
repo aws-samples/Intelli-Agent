@@ -9,6 +9,7 @@ from . import order_info
 from . import product_aftersales
 from ..lambda_common_tools import give_rhetorical_question  
 from ..lambda_common_tools import give_final_response
+from ..lambda_common_tools import comparison_rag
 from . import rule_response
 from . import transfer
 from . import promotion
@@ -26,8 +27,6 @@ tool_manager.register_tool({
     "tool_def": {
         "name": "daily_reception",
         "description": "daily reception",
-        "parameters":{
-        },
     },
     "running_mode": ToolRuningMode.ONCE
 })
@@ -80,7 +79,8 @@ tool_manager.register_tool({
     "tool_def": {
         "name": "size_guide",
         "description": """size guide for customer
-            Step1: Determin what type of goods the customer wants to buy according to the goods information in <商品信息> </商品信息> xml tag, such as shoes or apparel.
+            Step1: Determin what type of goods the customer wants to buy according to the goods information in <商品信息> </商品信息> xml tag,
+                such as shoes or apparel.
             Step2: If the customer wants to buy shoes, you should provide the customer's shoes_size or foot_length.
             Step3: If the customer wants to buy apparel, you should provide the customer's height and weight.
             Notice: if the customer's weight unit is 斤, you should convert it to kg, 1斤=0.5kg""",
@@ -215,6 +215,37 @@ tool_manager.register_tool(
     }
 )
 
+tool_manager.register_tool(
+    {
+        "name":"comparison_rag",
+        "scene": SCENE,
+        "lambda_name": LAMBDA_NAME,
+        "lambda_module_path": comparison_rag.lambda_handler,
+        "tool_def": {
+            "name": "comparison_rag",
+            "description": "在处理比较类型的问题，比如比较两个产品的区别时，使用这个工具",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "description": """基于历史消息改写的问题""",
+                        "type": "str"
+                    },
+                    "query_a": {
+                        "description": """比较对象A的查询语句""",
+                        "type": "str"
+                    },
+                    "query_b": {
+                        "description": """比较对象B的查询语句""",
+                        "type": "str"
+                    }
+                },
+                "required": ["query", "query_a", "query_b"]
+            }
+        },
+        "running_mode": ToolRuningMode.ONCE
+    }
+)
 
 tool_manager.register_tool(
     {
