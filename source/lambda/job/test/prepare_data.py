@@ -6,6 +6,9 @@ import sys
 
 from common_logic.common_utils.s3_utils import download_dir_from_s3, upload_file_to_s3
 
+# data_bucket_name = "aws-chatbot-knowledge-base-test"
+data_bucket_name = os.environ.get("RES_BUCKET", "aws-chatbot-knowledge-base-test")
+
 def trans_quick_reply_xls2jsonl(xls_data_file_path, json_data_file_path):
     quick_reply_df = pd.read_excel(xls_data_file_path)
     with open(json_data_file_path, "w") as f:
@@ -238,34 +241,34 @@ def patch_good2type_dict(good2type_dict):
     return good2type_dict
 
 # Get quick reply information
-download_dir_from_s3("aws-chatbot-knowledge-base-test", "retail", "/tmp/functions/retail_tools/lambda_quick_reply/")
+download_dir_from_s3(data_bucket_name, "retail", "/tmp/functions/retail_tools/lambda_quick_reply/")
 trans_quick_reply_xls2jsonl("/tmp/functions/retail_tools/lambda_quick_reply/retail/detail/天猫官旗-团队快捷导出.xlsx", "/tmp/functions/retail_tools/lambda_quick_reply/quick_reply.jsonl")
 
 # Get order information
-download_dir_from_s3("aws-chatbot-knowledge-base-test", "retail", "/tmp/functions/retail_tools/lambda_order_info/")
+download_dir_from_s3(data_bucket_name, "retail", "/tmp/functions/retail_tools/lambda_order_info/")
 order_dict = get_order_dict("/tmp/functions/retail_tools/lambda_order_info/retail/detail/TB0327.xlsx")
 order_dict_json_file = "/tmp/functions/retail_tools/lambda_order_info/order_info.json"
 json.dump(order_dict, open(order_dict_json_file, "w"), ensure_ascii=False, indent=4)
-upload_file_to_s3("aws-chatbot-knowledge-base-test", "retail_json/order_info.json", order_dict_json_file)
+upload_file_to_s3(data_bucket_name, "retail_json/order_info.json", order_dict_json_file)
 
 # Get goods information
-download_dir_from_s3("aws-chatbot-knowledge-base-test", "retail", "/tmp/functions/retail_tools/lambda_product_information_search/")
+download_dir_from_s3(data_bucket_name, "retail", "/tmp/functions/retail_tools/lambda_product_information_search/")
 goods_dict = get_goods_dict_1("/tmp/functions/retail_tools/lambda_product_information_search/retail/detail/TB0327.xlsx")
 goods_dict_2 = get_goods_dict_2("/tmp/functions/retail_tools/lambda_product_information_search/retail/detail/商品属性表.xlsx")
 goods_dict_3 = get_goods_dict_3("/tmp/functions/retail_tools/lambda_product_information_search/retail/detail/天猫官旗-商品信息.xlsx")
 combined_goods_dict = combine_goods_dict([goods_dict, goods_dict_2, goods_dict_3])
 goods_dict_json_file = "/tmp/functions/retail_tools/lambda_product_information_search/goods_info.json"
 json.dump(combined_goods_dict, open(goods_dict_json_file, "w"), ensure_ascii=False, indent=4)
-upload_file_to_s3("aws-chatbot-knowledge-base-test", "retail_json/goods_info.json", goods_dict_json_file)
+upload_file_to_s3(data_bucket_name, "retail_json/goods_info.json", goods_dict_json_file)
 trans_goods_info_dict_to_jsonl(combined_goods_dict, "../job/poc/goods_data/detail/goods_info.jsonl")
 
 # Get size information
-download_dir_from_s3("aws-chatbot-knowledge-base-test", "retail", "/tmp/functions/retail_tools/lambda_size_guide/")
+download_dir_from_s3(data_bucket_name, "retail", "/tmp/functions/retail_tools/lambda_size_guide/")
 good2type_dict, size_dict = get_size_dict()
 patch_good2type_dict(good2type_dict)
 good2type_dict_json_file = "/tmp/functions/retail_tools/lambda_size_guide/good2type_dict.json"
 size_dict_json_file = "/tmp/functions/retail_tools/lambda_size_guide/size_dict.json"
 json.dump(good2type_dict, open(good2type_dict_json_file, "w"), ensure_ascii=False, indent=4)
 json.dump(size_dict, open(size_dict_json_file, "w"), ensure_ascii=False, indent=4)
-upload_file_to_s3("aws-chatbot-knowledge-base-test", "retail_json/good2type_dict.json", good2type_dict_json_file)
-upload_file_to_s3("aws-chatbot-knowledge-base-test", "retail_json/size_dict.json", size_dict_json_file)
+upload_file_to_s3(data_bucket_name, "retail_json/good2type_dict.json", good2type_dict_json_file)
+upload_file_to_s3(data_bucket_name, "retail_json/size_dict.json", size_dict_json_file)

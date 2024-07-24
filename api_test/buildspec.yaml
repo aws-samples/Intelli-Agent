@@ -23,6 +23,35 @@ env:
 phases:
   install:
     commands:
+      - aws cloudformation delete-stack --stack-name "$STACK_NAME"
+      - |
+        aws cloudformation wait stack-delete-complete --stack-name "$STACK_NAME"
+        WAIT_STATUS=$?
+        if [ $WAIT_STATUS -eq 0 ]; then
+          echo "Stack deletion complete."
+        else
+          echo "Failed to delete stack."
+          reason_detail=$(aws cloudformation describe-stack-events --stack-name "$STACK_NAME" --query "StackEvents[?ResourceStatus=='DELETE_FAILED'] | [-1]")
+          reason=$(echo $reason_detail | jq -r '.ResourceStatusReason')
+          echo $reason | jq -R --arg reason "$reason" '{"error_msg":$reason}' > clear_resources.json
+          cat clear_resources.json
+          aws lambda invoke --function-name $CLEAR_RESOURCES_FUNCTION --payload fileb://clear_resources.json response.json
+          cat response.json
+          lambda_status=$(jq -r '.statusCode' < response.json)
+          echo $lambda_status
+          if [ $lambda_status -eq 200 ]; then
+            echo "Lambda executed successfully. Proceeding with stack deletion."
+            aws cloudformation delete-stack --stack-name "$STACK_NAME"
+            aws cloudformation wait stack-delete-complete --stack-name "$STACK_NAME"
+            if [ $? -eq 0 ]; then
+              echo "Stack deletion complete after Lambda execution."
+            else
+              echo "Failed to delete stack after Lambda execution."
+            fi
+          else
+            echo "Lambda execution failed. Stack deletion not retried."
+          fi
+        fi
       - |
         install_start_time=$(date +"%Y-%m-%d_%H-%M-%S")
         echo "----------------------------------------------------------------"
@@ -39,6 +68,21 @@ phases:
         echo "----------------------------------------------------------------"
         echo "$deploy_start_time deploy start..."
         echo "----------------------------------------------------------------"
+      - |
+        if [ -d "Intelli-Agent/source/infrastructure" ]; then
+          echo "Synthesizing start..."
+          pushd "Intelli-Agent/source/infrastructure"
+          npx cdk synth 2>&1 | tee synth.log
+          if [ ${PIPESTATUS[0]} -ne 0 ]; then
+            echo "cdk synth failed"
+            jq -n --arg error "$(cat synth.log)" '{error: $error}' > sync_error.json
+            aws lambda invoke --function-name $GEN_REPORT_FUNCTION --payload fileb://payload.json sync_error.json
+            exit 1
+          else
+            echo "Synthesizing complete."
+          fi
+          popd
+        fi
         if [ "$DEPLOY_STACK" = "cdk" ]; then
           if [ -d "Intelli-Agent/source/infrastructure" ]; then
             pushd "Intelli-Agent/source/infrastructure"
@@ -89,6 +133,20 @@ phases:
         ws_api_gateway_url=$(echo "$stack_info" | jq -r '.Stacks[0].Outputs[] | select(.OutputKey=="WebSocketEndpointAddress").OutputValue')
         user_pool_id=$(echo "$stack_info" | jq -r '.Stacks[0].Outputs[] | select(.OutputKey=="UserPoolId").OutputValue')
         oidc_client_id=$(echo "$stack_info" | jq -r '.Stacks[0].Outputs[] | select(.OutputKey=="OidcClientId").OutputValue')
+        aws cognito-idp admin-create-user \
+          --user-pool-id $user_pool_id \
+          --username lvning@amazon.com \
+          --user-attributes Name=email,Value=lvning@amazon.com \
+          --temporary-password TempPassword123!
+        aws cognito-idp admin-set-user-password \
+          --user-pool-id $user_pool_id \
+          --username lvning@amazon.com \
+          --password CSDC123! \
+          --permanent
+        aws cognito-idp admin-add-user-to-group \
+          --user-pool-id $user_pool_id \
+          --username lvning@amazon.com \
+          --group-name Admin
         set -euxo pipefail
         prebuild_complete_time=$(date +"%Y-%m-%d_%H-%M-%S")
         echo "----------------------------------------------------------------"
@@ -116,7 +174,9 @@ phases:
         echo "rest_api_url=$rest_api_gateway_url" > .env
         echo "ws_api_url=$ws_api_gateway_url" >> .env
         echo "token=$token" >> .env
+        cat .env
         source agentVenv/bin/activate
+        # pytest test_case --continue-on-collection-errors --log-cli-level=INFO
         pytest test_case --continue-on-collection-errors --log-cli-level=INFO --json-report --json-report-file=detail.json --html=report.html --self-contained-html > detail.log
         popd
         test_complete_time=$(date +"%Y-%m-%d_%H-%M-%S")
@@ -137,19 +197,15 @@ phases:
         original_log="detail.log"
         s3_key=${report_datetime}_${original_json_filename}
         log=${report_datetime}_${original_log}
+        pushd Intelli-Agent/api_test || exit 1
+        pwd
+        ls -l
         aws s3 cp $original_filename s3://${API_TEST_RESULT_BUCKET}/${report_datetime}_${original_filename}
         aws s3 cp $original_json_filename s3://${API_TEST_RESULT_BUCKET}/$s3_key
         aws s3 cp $original_log s3://${API_TEST_RESULT_BUCKET}/$log
+        popd
         echo "{\"project_name\":\"$PROJECT_NAME\",\"build_url\":\"$CODEBUILD_BUILD_URL\",\"status\":\"completed\",\"bucket\":\"$API_TEST_RESULT_BUCKET\",\"s3_key\":\"$s3_key\",\"log\":\"$log\",\"topic\":\"$TOPIC\",\"repository\":\"$REPOSITORY_URL\",\"branch\":\"$CODE_BRANCH\"}" > payload.json
         aws lambda invoke --function-name $GEN_REPORT_FUNCTION --payload fileb://payload.json response.json
-      - aws cloudformation delete-stack --stack-name "$STACK_NAME"
-      - |
-        delete_res=$(aws cloudformation wait stack-delete-complete --stack-name "$STACK_NAME")
-        if [[ "$delete_res" == *"Waiter StackDeleteComplete failed"* ]]; then
-          reason_detail=$(aws cloudformation describe-stack-events --stack-name "$STACK_NAME" --query "StackEvents[?ResourceStatus=='DELETE_FAILED'] | [-1]")
-          reason=$(echo $reason_detail | jq -r '.ResourceStatusReason')
-          echo "{\"error_msg\":\"$reason\"}" > clear_resources.json
-          aws lambda invoke --function-name $CLEAR_RESOURCES_FUNCTION --payload fileb://clear_resources.json response.json
       - |
         post_build_end_time=$(date +"%Y-%m-%d_%H-%M-%S")
         echo "----------------------------------------------------------------"

@@ -1,3 +1,5 @@
+from enum import Enum, unique
+
 class ConstantBase:
     @classmethod
     def has_value(cls, value):
@@ -6,7 +8,11 @@ class ConstantBase:
 class EntryType(ConstantBase):
     COMMON = "common"
     RETAIL = "retail"
-    DGR = "aws-knowledge"
+
+class SceneType(ConstantBase):
+    COMMON = "common"
+    RETAIL = "retail"
+    AWS_QA = "aws-qa"
     
 Type = EntryType
 class IntentType(ConstantBase):
@@ -86,6 +92,11 @@ class ChatbotMode(ConstantBase):
     agent = "agent" # rag + tool use
 
 
+class ToolRuningMode(ConstantBase):
+    LOOP = "loop"
+    ONCE = "once"
+
+
 class LLMModelType(ConstantBase):
     CLAUDE_INSTANCE = "anthropic.claude-instant-v1"
     CLAUDE_2 = "anthropic.claude-v2"
@@ -102,7 +113,33 @@ class LLMModelType(ConstantBase):
     CHATGPT_4O = "gpt-4o"
     QWEN2INSTRUCT7B = "qwen2-7B-instruct"
     QWEN2INSTRUCT72B = "qwen2-72B-instruct"
-    
+    QWEN15INSTRUCT32B = "qwen1_5-32B-instruct"
     
 
+@unique
+class Status(Enum):
+    ACTIVE = "active"
+    INACTIVE = "inactive"
 
+
+@unique
+class IndexType(Enum):
+    QD = "qd"
+    QQ = "qq"
+    INTENTION = "intention"
+
+
+@unique
+class ModelType(Enum):
+    EMBEDDING = "embedding_and_rerank"
+    LLM = "llm"
+
+
+@unique
+class IndexTag(Enum):
+    COMMON = "common"
+
+
+@unique
+class KBType(Enum):
+    AOS = "aos"

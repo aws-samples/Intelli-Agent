@@ -90,7 +90,11 @@ class Claude3SonnetFormatToolResult(FormatToolResult):
         return {
             "tool_message": {
                 "role": MessageType.HUMAN_MESSAGE_TYPE,
-                "content": ret
+                "content": ret,
+                "additional_kwargs": {
+                    "original": [out['output'] for out in tool_call_outputs],
+                    "raw_tool_call_results": tool_call_outputs,
+                    },
             }
         }
 
@@ -134,7 +138,11 @@ class GLM4Chat9BFormatToolResult(FormatToolResult):
         return {
             "tool_message": {
                 "role": MessageType.TOOL_MESSAGE_TYPE,
-                "content": ret
+                "content": ret,
+                "additional_kwargs": {
+                    "original": [out['output'] for out in tool_call_outputs],
+                    "raw_tool_call_results":tool_call_outputs,
+                    },
             }
         }
 
@@ -156,13 +164,20 @@ class Qwen2Instruct7BFormatToolResult(FormatToolResult):
             "tool_message": {
                 "role": MessageType.TOOL_MESSAGE_TYPE,
                 "content": ret,
-                "additional_kwargs": {"original": [out['output'] for out in tool_call_outputs]},
+                "additional_kwargs": {
+                    "original": [out['output'] for out in tool_call_outputs],
+                    "raw_tool_call_results":tool_call_outputs,
+                    },
             }
         }
 
 
 class Qwen2Instruct72BFormatToolResult(Qwen2Instruct7BFormatToolResult):
     model_id = LLMModelType.QWEN2INSTRUCT72B
+
+
+class QWEN15INSTRUCT32BFormatToolResult(Qwen2Instruct7BFormatToolResult):
+    model_id = LLMModelType.QWEN15INSTRUCT32B
 
 
 format_tool_call_results = FormatToolResult.format

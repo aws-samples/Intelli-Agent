@@ -42,10 +42,6 @@ export const LLM_BOT_CHAT_MODE_LIST: SelectProps.Option[] = [
     label: 'Chat',
     value: 'chat',
   },
-  {
-    label: 'RAG',
-    value: 'rag',
-  },
 ];
 
 export const SCENARIO_LIST: SelectProps.Option[] = [
@@ -53,10 +49,10 @@ export const SCENARIO_LIST: SelectProps.Option[] = [
     label: 'common',
     value: 'common',
   },
-  // {
-  //   label: 'retail',
-  //   value: 'retail',
-  // },
+  {
+    label: 'retail',
+    value: 'retail',
+  },
 ];
 
 export const RETAIL_GOODS_LIST: SelectProps.Option[] = [

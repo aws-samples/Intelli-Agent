@@ -5,6 +5,7 @@ from langchain.pydantic_v1 import BaseModel,Field
 from collections import defaultdict
 from common_logic.common_utils.constant import LLMModelType,LLMTaskType
 import copy
+from common_logic.common_utils.constant import SceneType
 
 ddb_prompt_table_name = os.environ.get("PROMPT_TABLE_NAME", "")
 dynamodb_resource = boto3.resource("dynamodb")
@@ -21,7 +22,7 @@ EXPORT_MODEL_IDS = [
 ]
 
 EXPORT_SCENES = [
-    "common"
+    SceneType.COMMON
 ]
 
 class PromptTemplate(BaseModel):
@@ -108,10 +109,9 @@ class PromptTemplateManager:
 
         return ret
 
-    
+
     def prompt_template_render(self,prompt_template:dict):
         pass 
-
 
 
 prompt_template_manager = PromptTemplateManager()
@@ -171,7 +171,7 @@ register_prompt_templates(
 
 
 
-CHIT_CHAT_SYSTEM_TEMPLATE = "You are a helpful assistant."
+CHIT_CHAT_SYSTEM_TEMPLATE = "你是一个AI助理。今天是{date},{weekday}. "
 
 register_prompt_templates(
     model_ids=[
@@ -215,6 +215,45 @@ register_prompt_templates(
     task_type=LLMTaskType.CONVERSATION_SUMMARY_TYPE,
     prompt_template=CQR_TEMPLATE,
     prompt_name="system_prompt"
+)
+
+
+# agent prompt
+AGENT_SYSTEM_PROMPT = "你是一个AI助理。今天是{date},{weekday}. "
+register_prompt_templates(
+    model_ids=[
+        LLMModelType.CLAUDE_2,
+        LLMModelType.CLAUDE_21,
+        LLMModelType.CLAUDE_3_HAIKU,
+        LLMModelType.CLAUDE_3_SONNET
+    ],
+    task_type=LLMTaskType.TOOL_CALLING,
+    prompt_template=AGENT_SYSTEM_PROMPT,
+    prompt_name="system_prompt"
+)
+
+AGENT_GUIDELINES_PROMPT = """<guidlines>
+- Don't forget to output <function_calls> </function_calls> when any tool is called.
+- 每次回答总是先进行思考，并将思考过程写在<thinking>标签中。请你按照下面的步骤进行思考:
+    1. 判断根据当前的上下文是否足够回答用户的问题。
+    2. 如果当前的上下文足够回答用户的问题，请调用 `give_final_response` 工具。
+    3. 如果当前的上下文不能支持回答用户的问题，你可以考虑调用<tools> 标签中列举的工具。
+    4. 如果调用工具对应的参数不够，请调用反问工具 `give_rhetorical_question` 来让用户提供更加充分的信息。
+    5. 最后给出你要调用的工具名称。
+- Always output with the same language as the content within <query></query>. If the content is english, use englisth to output. If the content is chinese, use chinese to output.
+</guidlines>
+"""
+
+register_prompt_templates(
+    model_ids=[
+        LLMModelType.CLAUDE_2,
+        LLMModelType.CLAUDE_21,
+        LLMModelType.CLAUDE_3_HAIKU,
+        LLMModelType.CLAUDE_3_SONNET
+    ],
+    task_type=LLMTaskType.TOOL_CALLING,
+    prompt_template=AGENT_GUIDELINES_PROMPT,
+    prompt_name="guidelines_prompt"
 )
 
 

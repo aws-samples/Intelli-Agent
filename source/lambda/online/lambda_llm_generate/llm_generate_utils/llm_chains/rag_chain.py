@@ -58,7 +58,7 @@ class Claude2RagLLMChain(LLMChain):
             context=RunnableLambda(lambda x: get_claude_rag_context(x["contexts"]))
         )
         llm = Model.get_model(cls.model_id, model_kwargs=model_kwargs, **kwargs)
-        chain = context_chain | ChatPromptTemplate.from_messages(chat_messages)
+        chain = context_chain | ChatPromptTemplate.from_messages(chat_messages) | RunnableLambda(lambda x: print(f"rag message {x.messages}") or x)
         if stream:
             chain = (
                 chain
@@ -131,6 +131,11 @@ class Qwen2Instruct7BRagChain(Qwen2Instruct7BChatChain):
 
 class Qwen2Instruct72BRagChain(Qwen2Instruct7BRagChain):
     model_id = LLMModelType.QWEN2INSTRUCT72B
+
+
+class Qwen2Instruct72BRagChain(Qwen2Instruct7BRagChain):
+    model_id = LLMModelType.QWEN15INSTRUCT32B
+
 
 from .chat_chain import Baichuan2Chat13B4BitsChatChain
 

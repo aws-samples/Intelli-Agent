@@ -44,7 +44,9 @@ interface ApiStackProps extends StackProps {
   sessionsTableName: string;
   messagesTableName: string;
   promptTableName: string;
-  workspaceTableName: string;
+  chatbotTableName: string;
+  indexTableName: string;
+  modelTableName: string;
   // Type of StepFunctions
   sfnOutput: sfn.StateMachine;
   openSearchIndex: string;
@@ -76,13 +78,9 @@ export class ApiConstruct extends Construct {
     const apiVpc = props.apiVpc;
     const securityGroup = props.securityGroup;
     const domainEndpoint = props.domainEndpoint;
-    const aosIndex = props.openSearchIndex;
-    const aosIndexDict = props.openSearchIndexDict;
     const sessionsTableName = props.sessionsTableName;
     const messagesTableName = props.messagesTableName;
-    const workspaceTableName = props.workspaceTableName;
-    const jobQueueArn = props.jobQueueArn;
-    const jobDefinitionArn = props.jobDefinitionArn;
+    const chatbotTableName = props.chatbotTableName;
     const etlEndpoint = props.etlEndpoint;
     const resBucketName = props.resBucketName;
     const executionTableName = props.executionTableName;
@@ -189,7 +187,7 @@ export class ApiConstruct extends Construct {
     aosLambda.addToRolePolicy(this.iamHelper.s3Statement);
     aosLambda.addToRolePolicy(this.iamHelper.endpointStatement);
 
-    const ddbLambda = new Function(this, "DDBLambda", {
+    const chatHistoryLambda = new Function(this, "ChatHistoryLambda", {
       runtime: Runtime.PYTHON_3_11,
       handler: "rating.lambda_handler",
       code: Code.fromAsset(join(__dirname, "../../../lambda/ddb")),
@@ -205,7 +203,7 @@ export class ApiConstruct extends Construct {
       },
       securityGroups: [props.securityGroup],
     });
-    ddbLambda.addToRolePolicy(this.iamHelper.dynamodbStatement);
+    chatHistoryLambda.addToRolePolicy(this.iamHelper.dynamodbStatement);
 
     const listSessionsLambda = new Function(this, "ListSessionsLambda", {
       runtime: Runtime.PYTHON_3_11,
@@ -248,7 +246,11 @@ export class ApiConstruct extends Construct {
       timeout: Duration.seconds(30),
       environment: {
         sfn_arn: props.sfnOutput.stateMachineArn,
-        EXECUTION_TABLE: props.executionTableName,
+        EXECUTION_TABLE_NAME: props.executionTableName,
+        INDEX_TABLE_NAME: props.indexTableName,
+        CHATBOT_TABLE_NAME: props.chatbotTableName,
+        MODEL_TABLE_NAME: props.modelTableName,
+        EMBEDDING_ENDPOINT: props.embeddingAndRerankerEndPoint,
       },
       memorySize: 256,
     });
@@ -353,9 +355,25 @@ export class ApiConstruct extends Construct {
       }),
     );
 
-    const listWorkspaceLambda = new Function(this, "ListWorkspaceLambda", {
+    const createChatbotLambda = new Function(this, "CreateChatbot", {
       code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
-      handler: "list_workspace.lambda_handler",
+      handler: "create_chatbot.lambda_handler",
+      runtime: Runtime.PYTHON_3_12,
+      timeout: Duration.minutes(5),
+      memorySize: 512,
+      architecture: Architecture.X86_64,
+      environment: {
+        INDEX_TABLE_NAME: props.indexTableName,
+        CHATBOT_TABLE_NAME: props.chatbotTableName,
+        MODEL_TABLE_NAME: props.modelTableName,
+        EMBEDDING_ENDPOINT: props.embeddingAndRerankerEndPoint,
+      },
+    });
+    createChatbotLambda.addToRolePolicy(this.iamHelper.dynamodbStatement);
+
+    const listChatbotLambda = new Function(this, "ListChatbotLambda", {
+      code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
+      handler: "list_chatbot.lambda_handler",
       runtime: Runtime.PYTHON_3_11,
       timeout: Duration.minutes(15),
       memorySize: 512,
@@ -365,46 +383,7 @@ export class ApiConstruct extends Construct {
       },
     });
 
-    listWorkspaceLambda.addToRolePolicy(this.iamHelper.cognitoStatement);
-
-
-    const batchLambda = new Function(this, "BatchLambda", {
-      code: Code.fromAsset(join(__dirname, "../../../lambda/batch")),
-      handler: "main.lambda_handler",
-      runtime: Runtime.PYTHON_3_11,
-      timeout: Duration.minutes(15),
-      memorySize: 1024,
-      vpc: apiVpc,
-      vpcSubnets: {
-        subnets: apiVpc.privateSubnets,
-      },
-      securityGroups: [securityGroup],
-      architecture: Architecture.X86_64,
-      environment: {
-        document_bucket: s3Bucket.bucketName,
-        opensearch_cluster_domain: domainEndpoint,
-        embedding_endpoint: props.embeddingAndRerankerEndPoint,
-        jobName: props.jobName,
-        jobQueueArn: props.jobQueueArn,
-        jobDefinitionArn: props.jobDefinitionArn,
-      },
-    });
-
-    batchLambda.addToRolePolicy(
-      new iam.PolicyStatement({
-        actions: [
-          "es:ESHttpGet",
-          "es:ESHttpPut",
-          "es:ESHttpPost",
-          "es:ESHttpHead",
-          "batch:*",
-        ],
-        effect: iam.Effect.ALLOW,
-        resources: ["*"],
-      }),
-    );
-    batchLambda.addToRolePolicy(this.iamHelper.s3Statement);
-    batchLambda.addToRolePolicy(this.iamHelper.endpointStatement);
+    listChatbotLambda.addToRolePolicy(this.iamHelper.cognitoStatement);
 
     // Create Lambda prompt management
     const promptManagementLambda = new Function(this, "PromptManagementLambda", {
@@ -444,11 +423,10 @@ export class ApiConstruct extends Construct {
       }),
     );
 
-
     // Define the API Gateway
-    const api = new apigw.RestApi(this, "llmApi", {
-      restApiName: "llmApi",
-      description: "This service serves the LLM API.",
+    const api = new apigw.RestApi(this, "Intelli-Agent-RESTful-API", {
+      restApiName: "Intelli-Agent-RESTful-API",
+      description: "Intelli-Agent RESTful API",
       endpointConfiguration: {
         types: [apigw.EndpointType.REGIONAL],
       },
@@ -520,8 +498,6 @@ export class ApiConstruct extends Construct {
   //     }
   //   ]
   // };
-    
-
 
     // Define the API Gateway Method
     const apiResourceEmbedding = api.root.addResource("extract");
@@ -535,62 +511,42 @@ export class ApiConstruct extends Construct {
     // All AOS wrapper should be within such lambda
     const apiResourceAos = api.root.addResource("aos");
     apiResourceAos.addMethod("POST", lambdaAosIntegration, this.genMethodOption(api, auth, null),);
-
     // Add Get method to query & search index in OpenSearch, such embedding lambda will be updated for online process
     apiResourceAos.addMethod("GET", lambdaAosIntegration, this.genMethodOption(api, auth, null),);
 
     // Define the API Gateway Lambda Integration with proxy and no integration responses
-    const lambdaDdbIntegration = new apigw.LambdaIntegration(ddbLambda, {
+    const lambdaChatHistoryIntegration = new apigw.LambdaIntegration(chatHistoryLambda, {
       proxy: true,
     });
 
-    // All AOS wrapper should be within such lambda
-    const apiResourceDdb = api.root.addResource("ddb");
-    apiResourceDdb.addMethod("POST", lambdaDdbIntegration, this.genMethodOption(api, auth, null),);
-
-    const apiResourceListSessions = apiResourceDdb.addResource("list-sessions");
+    const apiResourceDdb = api.root.addResource("chat-history");
+    apiResourceDdb.addMethod("POST", lambdaChatHistoryIntegration, this.genMethodOption(api, auth, null),);
+    const apiResourceListSessions = apiResourceDdb.addResource("sessions");
     apiResourceListSessions.addMethod("GET", new apigw.LambdaIntegration(listSessionsLambda), this.genMethodOption(api, auth, null),);
-
-    const apiResourceListMessages = apiResourceDdb.addResource("list-messages");
+    const apiResourceListMessages = apiResourceDdb.addResource("messages");
     apiResourceListMessages.addMethod("GET", new apigw.LambdaIntegration(listMessagesLambda), this.genMethodOption(api, auth, null),);
 
-    const apiResourceStepFunction = api.root.addResource("etl");
-    apiResourceStepFunction.addMethod(
+    const apiResourceChatbot = api.root.addResource("chatbot-management");
+    const apiChatbot = apiResourceChatbot.addResource("chatbots");
+    apiChatbot.addMethod(
+      "POST",
+      new apigw.LambdaIntegration(createChatbotLambda),
+      this.genMethodOption(api, auth, null),
+    );
+    apiChatbot.addMethod(
+      "GET",
+      new apigw.LambdaIntegration(listChatbotLambda),
+      this.genMethodOption(api, auth, null),
+    );
+
+    const apiResourceStepFunction = api.root.addResource("knowledge-base");
+    const apiKBExecution = apiResourceStepFunction.addResource("executions");
+    apiKBExecution.addMethod(
       "POST",
       new apigw.LambdaIntegration(sfnLambda),
       this.genMethodOption(api, auth, null),
     );
-
-    const apiGetExecution = apiResourceStepFunction.addResource("execution");
-    apiGetExecution.addMethod(
-      "GET",
-      new apigw.LambdaIntegration(getExecutionLambda),
-      {...this.genMethodOption(api, auth, {
-        Items: {type: JsonSchemaType.ARRAY, items: {
-          type: JsonSchemaType.OBJECT,
-          properties: {
-            s3Prefix: { type: JsonSchemaType.STRING },
-            s3Bucket: { type: JsonSchemaType.STRING },
-            createTime: { type: JsonSchemaType.STRING }, // Consider using format: 'date-time'
-            executionId: { type: JsonSchemaType.STRING },
-            s3Path: { type: JsonSchemaType.STRING },
-            status: { type: JsonSchemaType.STRING },
-          },
-          required: ['s3Prefix', 's3Bucket', 'createTime', 'executionId', 's3Path', 'status'],
-        }},
-        Count: {type: JsonSchemaType.INTEGER}
-      }),
-      requestParameters: {
-        'method.request.querystring.executionId': false
-      },
-      // requestModels: this.genRequestModel(api, {
-      //   "executionId": { "type": JsonSchemaType.ARRAY, "items": {"type": JsonSchemaType.STRING}},
-      // })
-    }
-    );
-
-    const apiListExecution = apiResourceStepFunction.addResource("list-execution");
-    apiListExecution.addMethod(
+    apiKBExecution.addMethod(
       "GET",
       new apigw.LambdaIntegration(listExecutionLambda),
       {...this.genMethodOption(api, auth, {
@@ -607,7 +563,10 @@ export class ApiConstruct extends Construct {
             uiStatus: { type: JsonSchemaType.STRING },
             createTime: { type: JsonSchemaType.STRING }, // Consider using format: 'date-time'
             sfnExecutionId: { type: JsonSchemaType.STRING },
-            workspaceId: { type: JsonSchemaType.STRING },
+            embeddingModelType: { type: JsonSchemaType.STRING },
+            groupName: { type: JsonSchemaType.STRING },
+            chatbotId: { type: JsonSchemaType.STRING },
+            indexId: { type: JsonSchemaType.STRING },
           },
           required: ['s3Prefix',
                      'offline',
@@ -619,7 +578,10 @@ export class ApiConstruct extends Construct {
                      'uiStatus',
                      'createTime',
                      'sfnExecutionId',
-                     'workspaceId'],
+                     'embeddingModelType',
+                     'groupName',
+                     'chatbotId',
+                     'indexId'],
 
         }
         },
@@ -642,24 +604,52 @@ export class ApiConstruct extends Construct {
         // }
       }
     );
-
-    const apiDelExecution = apiResourceStepFunction.addResource("delete-execution");
-    apiDelExecution.addMethod(
-      "POST",
+    apiKBExecution.addMethod(
+      "DELETE",
       new apigw.LambdaIntegration(delExecutionLambda),
-      {...this.genMethodOption(api, auth, {
-        data: { type: JsonSchemaType.ARRAY, items: {type: JsonSchemaType.STRING}},
-        message: { type: JsonSchemaType.STRING }
-      }),
-      requestModels: this.genRequestModel(api, {
-        "executionId": { "type": JsonSchemaType.ARRAY, "items": {"type": JsonSchemaType.STRING}},
-      })
+      {
+        ...this.genMethodOption(api, auth, {
+          data: { type: JsonSchemaType.ARRAY, items: { type: JsonSchemaType.STRING } },
+          message: { type: JsonSchemaType.STRING }
+        }),
+        requestModels: this.genRequestModel(api, {
+          "executionId": { "type": JsonSchemaType.ARRAY, "items": { "type": JsonSchemaType.STRING } },
+        })
       }
     );
 
-    const apiUploadDoc = apiResourceStepFunction.addResource("upload-s3-url");
-    // TODO: Add authorizer after lambda authorizer is completed. 
-    // Lambda authorizer should contains cors header or else uploading will fail
+    const apiGetExecutionById = apiKBExecution.addResource("{executionId}");
+    apiGetExecutionById.addMethod(
+      "GET",
+      new apigw.LambdaIntegration(getExecutionLambda),
+      {
+        ...this.genMethodOption(api, auth, {
+          Items: {
+            type: JsonSchemaType.ARRAY, items: {
+              type: JsonSchemaType.OBJECT,
+              properties: {
+                s3Prefix: { type: JsonSchemaType.STRING },
+                s3Bucket: { type: JsonSchemaType.STRING },
+                createTime: { type: JsonSchemaType.STRING }, // Consider using format: 'date-time'
+                // executionId: { type: JsonSchemaType.STRING },
+                s3Path: { type: JsonSchemaType.STRING },
+                status: { type: JsonSchemaType.STRING },
+              },
+              required: ['s3Prefix', 's3Bucket', 'createTime', 's3Path', 'status'],
+            }
+          },
+          Count: { type: JsonSchemaType.INTEGER }
+        }),
+        requestParameters: {
+          'method.request.querystring.executionId': false
+        },
+        // requestModels: this.genRequestModel(api, {
+        //   "executionId": { "type": JsonSchemaType.ARRAY, "items": {"type": JsonSchemaType.STRING}},
+        // })
+      }
+    );
+
+    const apiUploadDoc = apiResourceStepFunction.addResource("kb-presigned-url");
     apiUploadDoc.addMethod(
       "POST",
       new apigw.LambdaIntegration(uploadDocLambda),
@@ -678,26 +668,6 @@ export class ApiConstruct extends Construct {
       // }
     }
     );
-    // apiUploadDoc.addMethod(
-    //   "POST",
-    //   new apigw.LambdaIntegration(uploadDocLambda),
-    // );
-
-    const apiListWorkspace = apiResourceStepFunction.addResource("list-workspace");
-    apiListWorkspace.addMethod(
-      "GET",
-      new apigw.LambdaIntegration(listWorkspaceLambda),
-      this.genMethodOption(api, auth, null),
-    );
-
-    // Define the API Gateway Lambda Integration to invoke Batch job
-    const lambdaBatchIntegration = new apigw.LambdaIntegration(batchLambda, {
-      proxy: true,
-    });
-
-    // Define the API Gateway Method
-    const apiResourceBatch = api.root.addResource("batch");
-    apiResourceBatch.addMethod("POST", lambdaBatchIntegration, this.genMethodOption(api, auth, null),);
 
     // Define the API Gateway Lambda Integration to manage prompt
     const lambdaPromptIntegration = new apigw.LambdaIntegration(promptManagementLambda, {
@@ -748,7 +718,10 @@ export class ApiConstruct extends Construct {
           SESSIONS_TABLE_NAME: sessionsTableName,
           MESSAGES_TABLE_NAME: messagesTableName,
           PROMPT_TABLE_NAME: props.promptTableName,
-          WORKSPACE_TABLE: workspaceTableName,
+          CHATBOT_TABLE_NAME: props.chatbotTableName,
+          MODEL_TABLE_NAME: props.modelTableName,
+          INDEX_TABLE_NAME: props.indexTableName,
+          EMBEDDING_ENDPOINT: props.embeddingAndRerankerEndPoint,
           OPENAI_KEY_ARN: openAiKey.secretArn,
         },
       });
@@ -907,12 +880,12 @@ export class ApiConstruct extends Construct {
       lambdaOnlineLLMGenerate.addToRolePolicy(this.iamHelper.endpointStatement);
       lambdaOnlineLLMGenerate.addToRolePolicy(this.iamHelper.dynamodbStatement);
 
-      const lambdaOnlineFunctionAWSAPI = new Function(this, "lambdaOnlineFunctionAWSAPI", {
+      const lambdaOnlineFunctions = new Function(this, "lambdaOnlineFunctions", {
         runtime: Runtime.PYTHON_3_12,
-        handler: "aws_api.lambda_handler",
-        functionName: "Online_Function_AWS_API",
+        handler: "lambda_tools.lambda_handler",
+        functionName: "Online_Functions",
         code: Code.fromAsset(
-          join(__dirname, "../../../lambda/online/functions/lambda_aws_api"),
+          join(__dirname, "../../../lambda/online/functions/functions_utils"),
         ),
         timeout: Duration.minutes(15),
         memorySize: 4096,
@@ -922,24 +895,11 @@ export class ApiConstruct extends Construct {
         },
         securityGroups: [securityGroup],
         architecture: Architecture.X86_64,
-        layers: [apiLambdaOnlineSourceLayer],
-      });
-
-      const lambdaOnlineFunctionRetriever = new Function(this, "lambdaOnlineFunctionRetriever", {
-        runtime: Runtime.PYTHON_3_12,
-        handler: "retriever.lambda_handler",
-        functionName: "Online_Function_Retriever",
-        code: Code.fromAsset(
-          join(__dirname, "../../../lambda/online/functions/lambda_retriever"),
-        ),
-        timeout: Duration.minutes(15),
-        memorySize: 4096,
-        vpc: apiVpc,
-        vpcSubnets: {
-          subnets: apiVpc.privateSubnets,
+        environment: {
+          INDEX_TABLE: props.indexTableName,
+          CHATBOT_TABLE: props.chatbotTableName,
+          MODEL_TABLE: props.modelTableName,
         },
-        securityGroups: [securityGroup],
-        architecture: Architecture.X86_64,
         layers: [apiLambdaOnlineSourceLayer, apiLambdaJobSourceLayer],
       });
 
@@ -953,10 +913,8 @@ export class ApiConstruct extends Construct {
       lambdaOnlineLLMGenerate.grantInvoke(lambdaOnlineQueryPreprocess);
       lambdaOnlineLLMGenerate.grantInvoke(lambdaOnlineAgent);
 
-      lambdaOnlineFunctionAWSAPI.grantInvoke(lambdaOnlineMain);
-
-      lambdaOnlineFunctionRetriever.grantInvoke(lambdaOnlineMain);
-      lambdaOnlineFunctionRetriever.grantInvoke(lambdaOnlineIntentionDetection);
+      lambdaOnlineFunctions.grantInvoke(lambdaOnlineMain);
+      lambdaOnlineFunctions.grantInvoke(lambdaOnlineIntentionDetection);
 
       // Define the API Gateway Lambda Integration with proxy and no integration responses
       const lambdaExecutorIntegration = new apigw.LambdaIntegration(
@@ -1038,10 +996,6 @@ export class ApiConstruct extends Construct {
     };
   }
   
-  // properties: {
-  //   content_type: { type: JsonSchemaType.STRING },
-  //   file_name: { type: JsonSchemaType.STRING },
-  // },
   genRequestModel = (api: apigw.RestApi, properties: any) =>{
     return {
       'application/json': new Model(this, `PostModel-${Math.random().toString(36).substr(2, 9)}`, {

@@ -3,6 +3,9 @@ import logging
 import threading 
 import os
 
+opensearch_logger = logging.getLogger("opensearch")
+opensearch_logger.setLevel(logging.ERROR)
+
 logger_lock = threading.Lock()
 
 class Logger:

@@ -3,10 +3,10 @@
   "info" : {
     "title" : "llmApi",
     "description" : "This service serves the LLM API.",
-    "version" : "2024-07-10T06:22:41Z"
+    "version" : "2024-07-23T05:25:57Z"
   },
   "servers" : [ {
-    "url" : "https://76t697soa7.execute-api.ap-northeast-1.amazonaws.com/{basePath}",
+    "url" : "https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/{basePath}",
     "variables" : {
       "basePath" : {
         "default" : "prod"
@@ -290,6 +290,75 @@
         }
       }
     },
+    "/llm" : {
+      "post" : {
+        "responses" : {
+          "400" : {
+            "description" : "400 response",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Empty"
+                }
+              }
+            }
+          },
+          "500" : {
+            "description" : "500 response",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Empty"
+                }
+              }
+            }
+          },
+          "200" : {
+            "description" : "200 response",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Empty"
+                }
+              }
+            }
+          }
+        },
+        "security" : [ {
+          "intelliagentapiconstructApiAuthorizerFB94A0DF" : [ ]
+        } ]
+      },
+      "options" : {
+        "responses" : {
+          "204" : {
+            "description" : "204 response",
+            "headers" : {
+              "Access-Control-Allow-Origin" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              },
+              "Access-Control-Allow-Methods" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              },
+              "Access-Control-Allow-Credentials" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              },
+              "Access-Control-Allow-Headers" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            },
+            "content" : { }
+          }
+        }
+      }
+    },
     "/prompt-management/models" : {
       "get" : {
         "responses" : {
@@ -463,7 +532,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/intellapicoJAOkR451tRep"
+                  "$ref" : "#/components/schemas/intellapicoL9zyN3IdG4Fk"
                 }
               }
             }
@@ -542,7 +611,7 @@
           "content" : {
             "application/json" : {
               "schema" : {
-                "$ref" : "#/components/schemas/intellapicoLVFWYrm87vJk"
+                "$ref" : "#/components/schemas/intellapicovMMwzxdQlzVd"
               }
             }
           },
@@ -574,7 +643,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/intellapicoCM7BKmCCw4d6"
+                  "$ref" : "#/components/schemas/intellapicojs5mziOpCNDS"
                 }
               }
             }
@@ -900,7 +969,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/intellapicokuWtsQACL7Ja"
+                  "$ref" : "#/components/schemas/intellapicoOYWAgDRMKvGu"
                 }
               }
             }
@@ -947,7 +1016,7 @@
           "content" : {
             "application/json" : {
               "schema" : {
-                "$ref" : "#/components/schemas/intellapicoTvS3spqLZ3w9"
+                "$ref" : "#/components/schemas/intellapico6CfX42Se4lJe"
               }
             }
           },
@@ -979,7 +1048,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/intellapicoyq82hnRNio2x"
+                  "$ref" : "#/components/schemas/intellapicox3CAt3KYt0ws"
                 }
               }
             }
@@ -1234,7 +1303,20 @@
         "title" : "Empty Schema",
         "type" : "object"
       },
-      "intellapicoCM7BKmCCw4d6" : {
+      "intellapico6CfX42Se4lJe" : {
+        "title" : "PostPayload",
+        "required" : [ "content_type", "file_name" ],
+        "type" : "object",
+        "properties" : {
+          "content_type" : {
+            "type" : "string"
+          },
+          "file_name" : {
+            "type" : "string"
+          }
+        }
+      },
+      "intellapicojs5mziOpCNDS" : {
         "title" : "ResponsePayload",
         "type" : "object",
         "properties" : {
@@ -1249,7 +1331,7 @@
           }
         }
       },
-      "intellapicoLVFWYrm87vJk" : {
+      "intellapicovMMwzxdQlzVd" : {
         "title" : "PostPayload",
         "required" : [ "executionId" ],
         "type" : "object",
@@ -1262,7 +1344,78 @@
           }
         }
       },
-      "intellapicoJAOkR451tRep" : {
+      "intellapicoOYWAgDRMKvGu" : {
+        "title" : "ResponsePayload",
+        "type" : "object",
+        "properties" : {
+          "Config" : {
+            "type" : "object",
+            "properties" : {
+              "PageSize" : {
+                "type" : "integer"
+              },
+              "MaxItems" : {
+                "type" : "integer"
+              }
+            }
+          },
+          "Items" : {
+            "type" : "array",
+            "items" : {
+              "required" : [ "chatbotId", "createTime", "embeddingModelType", "executionId", "executionStatus", "groupName", "indexId", "offline", "operationType", "qaEnhance", "s3Bucket", "s3Prefix", "sfnExecutionId", "uiStatus" ],
+              "type" : "object",
+              "properties" : {
+                "executionStatus" : {
+                  "type" : "string"
+                },
+                "s3Prefix" : {
+                  "type" : "string"
+                },
+                "uiStatus" : {
+                  "type" : "string"
+                },
+                "s3Bucket" : {
+                  "type" : "string"
+                },
+                "qaEnhance" : {
+                  "type" : "string"
+                },
+                "sfnExecutionId" : {
+                  "type" : "string"
+                },
+                "embeddingModelType" : {
+                  "type" : "string"
+                },
+                "offline" : {
+                  "type" : "string"
+                },
+                "executionId" : {
+                  "type" : "string"
+                },
+                "groupName" : {
+                  "type" : "string"
+                },
+                "chatbotId" : {
+                  "type" : "string"
+                },
+                "createTime" : {
+                  "type" : "string"
+                },
+                "indexId" : {
+                  "type" : "string"
+                },
+                "operationType" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "Count" : {
+            "type" : "integer"
+          }
+        }
+      },
+      "intellapicoL9zyN3IdG4Fk" : {
         "title" : "ResponsePayload",
         "type" : "object",
         "properties" : {
@@ -1298,82 +1451,7 @@
           }
         }
       },
-      "intellapicokuWtsQACL7Ja" : {
-        "title" : "ResponsePayload",
-        "type" : "object",
-        "properties" : {
-          "Config" : {
-            "type" : "object",
-            "properties" : {
-              "PageSize" : {
-                "type" : "integer"
-              },
-              "MaxItems" : {
-                "type" : "integer"
-              }
-            }
-          },
-          "Items" : {
-            "type" : "array",
-            "items" : {
-              "required" : [ "createTime", "executionId", "executionStatus", "offline", "operationType", "qaEnhance", "s3Bucket", "s3Prefix", "sfnExecutionId", "uiStatus", "workspaceId" ],
-              "type" : "object",
-              "properties" : {
-                "offline" : {
-                  "type" : "string"
-                },
-                "executionId" : {
-                  "type" : "string"
-                },
-                "createTime" : {
-                  "type" : "string"
-                },
-                "executionStatus" : {
-                  "type" : "string"
-                },
-                "operationType" : {
-                  "type" : "string"
-                },
-                "s3Prefix" : {
-                  "type" : "string"
-                },
-                "uiStatus" : {
-                  "type" : "string"
-                },
-                "s3Bucket" : {
-                  "type" : "string"
-                },
-                "qaEnhance" : {
-                  "type" : "string"
-                },
-                "sfnExecutionId" : {
-                  "type" : "string"
-                },
-                "workspaceId" : {
-                  "type" : "string"
-                }
-              }
-            }
-          },
-          "Count" : {
-            "type" : "integer"
-          }
-        }
-      },
-      "intellapicoTvS3spqLZ3w9" : {
-        "title" : "PostPayload",
-        "required" : [ "content_type", "file_name" ],
-        "type" : "object",
-        "properties" : {
-          "content_type" : {
-            "type" : "string"
-          },
-          "file_name" : {
-            "type" : "string"
-          }
-        }
-      },
-      "intellapicoyq82hnRNio2x" : {
+      "intellapicox3CAt3KYt0ws" : {
         "title" : "ResponsePayload",
         "type" : "object",
         "properties" : {

@@ -50,7 +50,7 @@ const SessionHistory: React.FC = () => {
     };
     try {
       const data = await fetchData({
-        url: 'ddb/list-sessions',
+        url: 'chat-history/sessions',
         method: 'get',
         params,
       });
