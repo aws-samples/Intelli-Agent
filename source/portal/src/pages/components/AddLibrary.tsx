@@ -57,7 +57,7 @@ const AddLibrary: React.FC<AddLibraryProps> = (props: AddLibraryProps) => {
       const user = getUser(config?.oidcIssuer, config?.oidcClientId);
       const token = user?.id_token;
       const resData: any = await axios.post(
-        `${config?.apiUrl}/etl/upload-s3-url`,
+        `${config?.apiUrl}/knowledge-base/kb-presigned-url`,
         {
           file_name: file.name,
           content_type: file.type,
