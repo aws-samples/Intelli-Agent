@@ -194,6 +194,9 @@ class S3FileProcessor:
         elif file_type == "csv":
             kwargs["csv_row_count"] = 1
             return "csv", self.decode_file_content(file_content), kwargs
+        elif file_type in ["xlsx", "xls"]:
+            kwargs["xlsx_row_count"] = 1
+            return "xlsx", self.decode_file_content(file_content), kwargs
         elif file_type == "html":
             return "html", self.decode_file_content(file_content), kwargs
         elif file_type in ["pdf"]:
@@ -631,13 +634,15 @@ def main():
     logger.info("Running in offline mode with consideration for large file size...")
 
     if index_type == "qq" or index_type == "intention":
-        supported_file_types = ["jsonl"]
+        supported_file_types = ["jsonl", "xlsx", "xls"]
     else:
         # Default is qd
         supported_file_types = [
             "pdf",
             "txt",
             "docx",
+            "xlsx",
+            "xls",
             "md",
             "html",
             "json",
