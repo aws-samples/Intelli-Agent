@@ -72,7 +72,7 @@ phases:
         if [ -d "Intelli-Agent/source/infrastructure" ]; then
           echo "Synthesizing start..."
           pushd "Intelli-Agent/source/infrastructure"
-          cdk synth 2>&1 | tee synth.log
+          npx cdk synth 2>&1 | tee synth.log
           if [ ${PIPESTATUS[0]} -ne 0 ]; then
             echo "cdk synth failed"
             jq -n --arg error "$(cat synth.log)" '{error: $error}' > sync_error.json
@@ -81,7 +81,8 @@ phases:
           else
             echo "Synthesizing complete."
           fi
-        popd
+          popd
+        fi
         if [ "$DEPLOY_STACK" = "cdk" ]; then
           if [ -d "Intelli-Agent/source/infrastructure" ]; then
             pushd "Intelli-Agent/source/infrastructure"
