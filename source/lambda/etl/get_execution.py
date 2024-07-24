@@ -23,7 +23,7 @@ def lambda_handler(event, context):
     }
 
     try:
-        execution_id = event["queryStringParameters"]["executionId"]
+        execution_id = event["pathParameters"]["executionId"]
         response = object_table.query(
             IndexName=index_name,
             KeyConditionExpression=Key('executionId').eq(execution_id)

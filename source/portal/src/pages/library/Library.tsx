@@ -56,7 +56,7 @@ const Library: React.FC = () => {
     };
     try {
       const data = await fetchData({
-        url: 'etl/list-execution',
+        url: 'knowledge-base/executions',
         method: 'get',
         params,
       });
@@ -77,8 +77,8 @@ const Library: React.FC = () => {
     try {
       setLoadingDelete(true);
       const data = await fetchData({
-        url: 'etl/delete-execution',
-        method: 'post',
+        url: `knowledge-base/executions`,
+        method: 'delete',
         data: { executionId: selectedItems.map((item) => item.executionId) },
       });
       setVisible(false);
