@@ -604,6 +604,19 @@ export class ApiConstruct extends Construct {
         // }
       }
     );
+    apiKBExecution.addMethod(
+      "DELETE",
+      new apigw.LambdaIntegration(delExecutionLambda),
+      {
+        ...this.genMethodOption(api, auth, {
+          data: { type: JsonSchemaType.ARRAY, items: { type: JsonSchemaType.STRING } },
+          message: { type: JsonSchemaType.STRING }
+        }),
+        requestModels: this.genRequestModel(api, {
+          "executionId": { "type": JsonSchemaType.ARRAY, "items": { "type": JsonSchemaType.STRING } },
+        })
+      }
+    );
 
     const apiGetExecutionById = apiKBExecution.addResource("{executionId}");
     apiGetExecutionById.addMethod(
@@ -633,18 +646,6 @@ export class ApiConstruct extends Construct {
         // requestModels: this.genRequestModel(api, {
         //   "executionId": { "type": JsonSchemaType.ARRAY, "items": {"type": JsonSchemaType.STRING}},
         // })
-      }
-    );
-    apiGetExecutionById.addMethod(
-      "DELETE",
-      new apigw.LambdaIntegration(delExecutionLambda),
-      {...this.genMethodOption(api, auth, {
-        data: { type: JsonSchemaType.ARRAY, items: {type: JsonSchemaType.STRING}},
-        message: { type: JsonSchemaType.STRING }
-      }),
-      requestModels: this.genRequestModel(api, {
-        "executionId": { "type": JsonSchemaType.ARRAY, "items": {"type": JsonSchemaType.STRING}},
-      })
       }
     );
 
