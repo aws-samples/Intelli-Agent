@@ -125,7 +125,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const getWorkspaceList = async () => {
     try {
       const data = await fetchData({
-        url: 'etl/list-workspace',
+        url: 'chatbot-management/chatbots',
         method: 'get',
       });
       setWorkspaceIds(data.workspace_ids);
@@ -139,7 +139,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     try {
       setLoadingHistory(true);
       const data = await fetchData({
-        url: `ddb/list-messages`,
+        url: `chat-history/messages`,
         method: 'get',
         params: {
           session_id: historySessionId,

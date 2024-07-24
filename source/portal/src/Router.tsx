@@ -5,26 +5,12 @@ import LibraryDetail from './pages/library/LibraryDetail';
 import CommonAlert from './comps/alert';
 import { useAuth } from 'react-oidc-context';
 import { Box, Button, Spinner } from '@cloudscape-design/components';
-import { LAST_VISIT_URL } from './utils/const';
 import ReSignIn from './comps/ReSignIn';
 import { useTranslation } from 'react-i18next';
 import SessionHistory from './pages/history/SessionHistory';
 import SessionDetail from './pages/history/SessionDetail';
 import PromptList from './pages/prompts/PromptList';
-
-const LoginCallback: React.FC = () => {
-  const gotoBasePage = () => {
-    const lastVisitUrl = localStorage.getItem(LAST_VISIT_URL) ?? '/';
-    localStorage.removeItem(LAST_VISIT_URL);
-    window.location.href = `${lastVisitUrl}`;
-  };
-  gotoBasePage();
-  return (
-    <div className="page-loading">
-      <Spinner />
-    </div>
-  );
-};
+import LoginCallback from './comps/LoginCallback';
 
 const SignedInRouter = () => {
   return (
