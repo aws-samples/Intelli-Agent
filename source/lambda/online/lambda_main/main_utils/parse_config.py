@@ -367,6 +367,14 @@ class RetailConfigParser(ConfigParserBase):
                     **copy.deepcopy(default_llm_config),
                 }
             },
+            "step_back_rag_config": {
+                "retriever_config": {
+                    "retrievers": [index_id_map['aws-acts-knowledge']]
+                },
+                "llm_config":{
+                    **copy.deepcopy(default_llm_config),
+                }
+            },
             "final_rag_retriever": {
                 "retriever_config":{
                     "retrievers": [
