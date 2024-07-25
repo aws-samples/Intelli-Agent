@@ -3,7 +3,7 @@ import os
 from datetime import datetime, timezone
 from urllib.parse import unquote_plus
 from constant import IndexType, IndexTag
-from utils.ddb_utils import initiate_model
+from utils.ddb_utils import initiate_model, initiate_index, initiate_chatbot
 import boto3
 import logging
 
@@ -40,7 +40,7 @@ def handler(event, context):
         group_name = parts[-2] if len(parts) >= 2 else key
         # Update it after supporting create multiple chatbots in one group
         chatbot_id = group_name.lower()
-        index_id = f"{chatbot_id}-qd-online"
+        index_id = f"{chatbot_id}-qd-default"
         index_type = IndexType.QD.value
         tag = IndexTag.COMMON.value
 
@@ -123,6 +123,8 @@ def handler(event, context):
     
     model_id = f"{chatbot_id}-embedding"
     embedding_model_type = initiate_model(model_table, group_name, model_id, embedding_endpoint, create_time)
+    initiate_index(index_table, group_name, index_id, model_id, index_type, tag, create_time)
+    initiate_chatbot(chatbot_table, group_name, chatbot_id, index_id, index_type, tag, create_time)
 
     input_body["tableItemId"] = context.aws_request_id
     input_body["chatbotId"] = chatbot_id
