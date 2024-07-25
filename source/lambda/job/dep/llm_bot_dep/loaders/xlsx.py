@@ -45,7 +45,7 @@ def process_xlsx(s3, jsonl: bytes, **kwargs) -> List[Document]:
         df = pd.read_excel(local_path)
         columns = df.columns
         doc_list = []
-        if columns.tolist() == ['question', 'answer'] and False:
+        if columns.tolist() == ["question", "answer"]:
             for index, json_obj in df.iterrows():
                 try:
                     # instantiate the metadata template for each document
