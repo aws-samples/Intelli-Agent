@@ -24,6 +24,7 @@ def handler(event, context):
     # Check the event for possible S3 created event
     input_payload = {}
     logger.info(event)
+    tag = IndexTag.COMMON.value
     resp_header = {
         "Content-Type": "application/json",
         "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
@@ -42,7 +43,6 @@ def handler(event, context):
         chatbot_id = group_name.lower()
         index_id = f"{chatbot_id}-qd-default"
         index_type = IndexType.QD.value
-        tag = IndexTag.COMMON.value
 
         if key.endswith("/"):
             logger.info("This is a folder, skip")
@@ -113,6 +113,9 @@ def handler(event, context):
                 index_id = f"{chatbot_id}-qq-default"
             elif index_type == IndexType.INTENTION.value:
                 index_id = f"{chatbot_id}-intention-default"
+
+        if "tag" in input_body:
+            tag = input_body["tag"]
 
         input_body["indexId"] = index_id
         input_body["groupName"] = (

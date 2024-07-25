@@ -196,7 +196,7 @@ class S3FileProcessor:
             return "csv", self.decode_file_content(file_content), kwargs
         elif file_type in ["xlsx", "xls"]:
             kwargs["xlsx_row_count"] = 1
-            return "xlsx", self.decode_file_content(file_content), kwargs
+            return "xlsx", file_content, kwargs
         elif file_type == "html":
             return "html", self.decode_file_content(file_content), kwargs
         elif file_type in ["pdf"]:
