@@ -259,18 +259,19 @@ export class ApiConstruct extends Construct {
     // Grant lambda function to invoke step function
     props.sfnOutput.grantStartExecution(sfnLambda);
 
+    // Uncomment below event bridge if you want to handle the S3 files
     // Add S3 event notification when file uploaded to the bucket
-    s3Bucket.addEventNotification(
-      s3.EventType.OBJECT_CREATED,
-      new s3n.LambdaDestination(sfnLambda),
-      { prefix: "documents/" },
-    );
+    // s3Bucket.addEventNotification(
+    //   s3.EventType.OBJECT_CREATED,
+    //   new s3n.LambdaDestination(sfnLambda),
+    //   { prefix: "documents/" },
+    // );
     // Add S3 event notification when file deleted in the bucket
-    s3Bucket.addEventNotification(
-      s3.EventType.OBJECT_REMOVED,
-      new s3n.LambdaDestination(sfnLambda),
-      { prefix: "documents/" },
-    );
+    // s3Bucket.addEventNotification(
+    //   s3.EventType.OBJECT_REMOVED,
+    //   new s3n.LambdaDestination(sfnLambda),
+    //   { prefix: "documents/" },
+    // );
     s3Bucket.grantReadWrite(sfnLambda);
 
     const listExecutionLambda = new Function(this, "ListExecution", {
