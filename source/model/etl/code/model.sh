@@ -2,20 +2,23 @@
 
 # Build the docker image and push it to ECR
 
-# The arguments to this script are the docker file, image name, AWS region, and the tag for the image.
+# The arguments to this script are the docker file, image name, and the tag for the image.
 dockerfile=$1
 image=$2
-region=$3
-tag=$4  # New argument for the tag
+tag=$3  # New argument for the tag
 
-if [ "$image" = "" ] || [ "$dockerfile" = "" ] || [ "$region" = "" ] || [ "$tag" = "" ]
+if [ "$image" = "" ] || [ "$dockerfile" = "" ] || [ "$tag" = "" ]
 then
-    echo "Usage: \$0 <docker-file> <image-name> <aws-region> <tag>"
+    echo "Usage: \$0 <docker-file> <image-name> <tag>"
     exit 1
 fi
 
 # Get the account number associated with the current IAM credentials
 account=$(aws sts get-caller-identity --query Account --output text)
+aws_region=$(aws configure get region)
+
+echo "Account: $account"
+echo "Region: $aws_region"
 
 if [ $? -ne 0 ]
 then
@@ -26,12 +29,12 @@ fi
 image_name="${image}"
 
 # Check if aws-cn is in the ARN
-if [ "$(aws sts get-caller-identity --query Arn --output text | cut -d':' -f2)" == "aws-cn" ]; then
-    fullname="${account}.dkr.ecr.${region}.amazonaws.com.cn/${image_name}:${tag}"  # Use the provided tag
-    aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ${account}.dkr.ecr.${region}.amazonaws.com.cn
+if [ "$(aws sts get-caller-identity --query Arn --output text | cut -d':' -f2)" = "aws-cn" ]; then
+    fullname="${account}.dkr.ecr.${aws_region}.amazonaws.com.cn/${image_name}:${tag}"  # Use the provided tag
+    aws ecr get-login-password --region ${aws_region} | docker login --username AWS --password-stdin ${account}.dkr.ecr.${aws_region}.amazonaws.com.cn
 else
-    fullname="${account}.dkr.ecr.${region}.amazonaws.com/${image_name}:${tag}"  # Use the provided tag
-    aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ${account}.dkr.ecr.${region}.amazonaws.com
+    fullname="${account}.dkr.ecr.${aws_region}.amazonaws.com/${image_name}:${tag}"  # Use the provided tag
+    aws ecr get-login-password --region ${aws_region} | docker login --username AWS --password-stdin ${account}.dkr.ecr.${aws_region}.amazonaws.com
 fi
 
 # If the repository doesn't exist in ECR, create it.
@@ -48,15 +51,14 @@ then
     fi
 fi
 
+echo "Building the docker image"
+
 # Get the login command from ECR and execute it directly, check the aws-cn for different partition
-if [ "$(aws sts get-caller-identity --query Arn --output text | cut -d':' -f2)" == "aws-cn" ]; then
+if [ "$(aws sts get-caller-identity --query Arn --output text | cut -d':' -f2)" = "aws-cn" ]; then
     aws ecr get-login-password --region cn-north-1 | docker login --username AWS --password-stdin 727897471807.dkr.ecr.cn-north-1.amazonaws.com.cn
 else
     aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 763104351884.dkr.ecr.us-east-1.amazonaws.com
 fi
-
-# mkdir build
-cp ${dockerfile} .
 
 docker build -t ${image_name} -f ${dockerfile} .
 docker tag ${image_name} ${fullname}

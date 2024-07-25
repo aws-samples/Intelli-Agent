@@ -1,5 +1,6 @@
 set -e
 
+# TODO: function is not supported by sh prepare_model.sh
 function usage {
   echo "Make sure python3 installed properly. Usage: $0 -s S3_BUCKET_NAME"
   echo "  -s S3_BUCKET_NAME   S3 bucket name to upload the model"
