@@ -7,6 +7,10 @@ class EnumDirectValueMeta(EnumMeta):
         if isinstance(value, cls):
             value = value.value
         return value
+    
+    def __call__(*args,**kwargs):
+        r = EnumMeta.__call__(*args,**kwargs)
+        return r.value
 
 class ConstantBase(Enum,metaclass=EnumDirectValueMeta):
     @classmethod

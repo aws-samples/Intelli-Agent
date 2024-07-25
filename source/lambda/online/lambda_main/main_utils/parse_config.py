@@ -40,7 +40,7 @@ class LLMConfig(AllowBaseModel):
 class QueryProcessConfig(ForbidBaseModel):
     conversation_query_rewrite_config: LLMConfig = Field(default_factory=LLMConfig)
 
-class RetrieverConfigBase(ForbidBaseModel):
+class RetrieverConfigBase(AllowBaseModel):
     pass
 
 class IntentionRetrieverConfig(RetrieverConfigBase):
@@ -52,12 +52,10 @@ class IntentionRetrieverConfig(RetrieverConfigBase):
 class QQMatchRetrieverConfig(RetrieverConfigBase):
     top_k: int = 5
     query_key: str = "query"
-    threshold: float = 0.9
     index_name: str 
 
 
 class PrivateKnowledgeRetrieverConfig(RetrieverConfigBase):
-    model_config = ConfigDict(extra="allow")
     top_k: int = 5
     context_num: int = 1
     using_whole_doc: bool = False 
@@ -77,7 +75,7 @@ class RerankConfig(AllowBaseModel):
 class QQMatchConfig(ForbidBaseModel):
     retrievers: list[QQMatchRetrieverConfig] = Field(default_factory=list)
     reranks: list[RerankConfig] = Field(default_factory=list)
-
+    threshold: float = 0.9
 
 class RagToolConfig(AllowBaseModel):
     retrievers: list[PrivateKnowledgeRetrieverConfig] = Field(default_factory=list)
@@ -164,12 +162,17 @@ class ChatbotConfig(ForbidBaseModel):
             allow_index_infos = [info for info in all_index_infos if info['index_name'] in allow_index_names]
             allow_index_infos  = [{**default_retriever_config[task_name],**info} for info in allow_index_infos]
             getattr(self,f"{task_name}_config").retrievers.extend(allow_index_infos)
-
+    
     def model_copy(self,update=None,deep=True):
-        if update:
-            cls = type(self)
-            cls(**copy.deepcopy(update))
-        return super().model_copy(update=update,deep=deep)
+        update = update or {}
+        new_dict = update_nest_dict(
+            copy.deepcopy(self.model_dump()),
+            update
+        )
+
+        cls = type(self)
+        obj = cls(**new_dict)
+        return obj
 
     
 class ConfigParserBase:
@@ -188,8 +191,7 @@ class ConfigParserBase:
         },
         "qq_match": {
             "top_k":5,
-            "query_key": "query",
-            "threshold": 0.9
+            "query_key": "query"
         }
     }
     
@@ -228,10 +230,11 @@ class ConfigParserBase:
             default_index_names,
             default_retriever_config
         )
-
         # update chatbot config obj from event body
-        chatbot_config_obj.model_copy(deep=True,update=chatbot_config)
-        return chatbot_config_obj.model_dump()
+        new_chatbot_config_obj = chatbot_config_obj.model_copy(
+            deep=True,update=chatbot_config
+        )
+        return new_chatbot_config_obj.model_dump()
 
 
 class CommonConfigParser(ConfigParserBase):
@@ -248,6 +251,15 @@ class CommonConfigParser(ConfigParserBase):
 
         if "get_weather" not in tools:
             tools.append("get_weather")
+        return chatbot_config
+
+
+class RetailConfigParser(ConfigParserBase):
+    default_tool_names = {}
+    @classmethod
+    def from_chatbot_config(cls,chatbot_config:dict):
+        # add retail tools
+        chatbot_config = super().from_chatbot_config(chatbot_config)
         return chatbot_config
 
 

@@ -133,6 +133,12 @@ def test_multi_turns_agent_pr():
         },
     ]
 
+    default_index_names = {
+        "intention":["intention-offline-1"],
+        "qq_match": ['bigo_qq'],
+        "private_knowledge": ['amazon-ec2-address']
+    }
+
     for query in user_queries:
         print("==" * 50)
         if isinstance(query, str):
@@ -142,7 +148,9 @@ def test_multi_turns_agent_pr():
              query=query['query'],
              use_history=query['use_history'],
              chatbot_id="admin",
-             only_use_rag_tool=False)
+             only_use_rag_tool=False,
+             default_index_names=default_index_names
+             )
         print()
 
 
@@ -218,6 +226,14 @@ def sso_batch_test():
                 'max_tokens': 4096
             }
         }
+    default_retriever_config =  {
+        "private_knowledge": {
+            "top_k":10,
+            "query_key": "query",
+            "context_num": 1,
+            "using_whole_doc": False
+        }
+    }
     results = []
     for i,datum in enumerate(data[2:3]):
         query = datum['Question']
@@ -229,9 +245,8 @@ def sso_batch_test():
             "chatbot_mode": mode,
             "use_history": False,
             "default_llm_config": default_llm_config,
+            "default_retriever_config":default_retriever_config,
             "default_index_names": {
-                # "intention": ['default-intent'],
-                # "qq_match": ['bingo_qq'],
                 "private_knowledge": ['sso_poc']
             },
             "agent_config": {
@@ -301,11 +316,11 @@ def anta_test():
         print() 
 
 if __name__ == "__main__":
-    # complete_test_pr()
+    complete_test_pr()
     # test_multi_turns_rag_pr()
     # test_multi_turns_agent_pr()
     # test_multi_turns_chat_pr()
     # bigo_test()
-    sso_batch_test()
+    # sso_batch_test()
     # anta_test()
     # bigo_test()
