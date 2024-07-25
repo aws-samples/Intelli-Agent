@@ -1,13 +1,13 @@
 import os
 import sys
 import boto3
+from dotenv import load_dotenv
 
 sys.path.append('../online')
-sys.path.append('../etl')
+sys.path.insert(0, '../etl')
 import sfn_handler
 from common_logic.common_utils import s3_utils
 
-from dotenv import load_dotenv
 try:
     load_dotenv(
         dotenv_path=os.path.join(os.path.dirname(__file__),'../../online/lambda_main/test/.env')
@@ -18,9 +18,9 @@ except:
 # run multiple process ingestion
 
 dynamodb = boto3.resource("dynamodb")
-model_table = dynamodb.Table(os.environ.get("MODEL_TABLE", "chatbot-model"))
-index_table = dynamodb.Table(os.environ.get("INDEX_TABLE", "chatbot-index"))
-chatbot_table = dynamodb.Table(os.environ.get("CHATBOT_TABLE", "chatbot"))
+model_table = dynamodb.Table(os.environ.get("MODEL_TABLE_NAME", "chatbot-model"))
+index_table = dynamodb.Table(os.environ.get("INDEX_TABLE_NAME", "chatbot-index"))
+chatbot_table = dynamodb.Table(os.environ.get("CHATBOT_TABLE_NAME", "chatbot"))
 group_name = "Admin"
 chatbot_id = "admin"
 model_id = "admin-embedding"
@@ -34,20 +34,23 @@ s3_prefix_list = ["retail/quick_reply/quick_reply_ingestion_data.jsonl",
                   "retail/intent_data/intent_ingestion_data.jsonl",
                   "retail/quick_reply/shouhou_wuliu.jsonl",
                   "retail/goods_info/goods_info.jsonl",
-                  "demo/default_intent.jsonl"]
-workspace_id_list = ["retail-quick-reply", "retail-intent", "retail-shouhou-wuliu", "goods-info", "default-intent-2"]
-index_type_list = ["qq", "qq", "qq", "qq", "qq"]
-op_type_list = ["update", "update", "update", "update", "update"]
+                  "demo/default_intent.jsonl",
+                  "aws-acts-knowledge/qd/"]
+workspace_id_list = ["retail-quick-reply", "retail-intent", "retail-shouhou-wuliu", "goods-info", "default-intent-2", "aws-acts-knowledge"]
+index_type_list = ["qq", "intention", "qq", "qq", "qq", "qd"]
+op_type_list = ["update", "create", "update", "update", "update", "create"]
 # op_type_list = ["update", "create", "create", "create", "update"]
 local_file_list = ["poc/goods_data/quick_reply/quick_reply_ingestion_data_v2.jsonl",
                    "poc/intent_data/intent_ingestion_data.jsonl",
                    "poc/goods_data/quick_reply/shouhou_wuliu.jsonl",
                    "poc/goods_data/detail/goods_info.jsonl",
-                   "../online/lambda_intention_detection/intention_utils/default_intent.jsonl"]
+                   "../online/lambda_intention_detection/intention_utils/default_intent.jsonl",
+                   "aws_data/aws-acts-knowledge/qd/"]
 
-sl1 = slice(0,3)
-sl2 = slice(4,5)
+sl1 = slice(1,2)
+sl2 = slice(4,4)
 
+s3_prefix_list = s3_prefix_list[sl1] + s3_prefix_list[sl2]
 workspace_id_list = workspace_id_list[sl1] + workspace_id_list[sl2]
 index_type_list = index_type_list[sl1] + index_type_list[sl2]
 op_type_list = op_type_list[sl1] + op_type_list[sl2]
@@ -55,7 +58,11 @@ local_file_list = local_file_list[sl1] + local_file_list[sl2]
 
 for s3_prefix, workspace_id, index_type, local_file, op_type in zip(s3_prefix_list, workspace_id_list, index_type_list, local_file_list, op_type_list):
     s3_utils.delete_s3_file(s3_bucket, s3_prefix)
-    s3_utils.upload_file_to_s3(s3_bucket, s3_prefix, local_file)
+    # check local_path is file or directory
+    if os.path.isdir(local_file):
+        s3_utils.upload_dir_to_s3(s3_bucket, s3_prefix, local_file)
+    else:
+        s3_utils.upload_file_to_s3(s3_bucket, s3_prefix, local_file)
     embedding_model_type = sfn_handler.initiate_model(model_table, group_name, model_id)
     tag = workspace_id
     index_id = workspace_id
