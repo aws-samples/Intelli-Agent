@@ -345,7 +345,7 @@ MAX_OS_DOCS_PER_PUT = 8
 # Set the NLTK data path to the /tmp directory for AWS Glue jobs
 nltk.data.path.append("/tmp/nltk_data")
 
-supported_file_types = ["pdf", "txt", "doc", "md", "html", "json", "jsonl", "csv"]
+supported_file_types = ["pdf", "txt", "doc", "md", "html", "json", "jsonl", "csv", "xlsx", "xls"]
 
 
 def decode_file_content(content: str, default_encoding: str = "utf-8"):
@@ -422,6 +422,9 @@ def iterate_s3_files(
                 # Update row count here, the default row count is 1
                 kwargs["csv_row_count"] = 1
                 yield "csv", decode_file_content(file_content), kwargs
+            elif file_type in ["xlsx", "xls"]:
+                kwargs["xlsx_row_count"] = 1
+                yield "xlsx", decode_file_content(file_content), kwargs
             elif file_type == "html":
                 yield "html", decode_file_content(file_content), kwargs
             elif file_type in ["pdf"]:
