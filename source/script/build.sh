@@ -51,6 +51,7 @@ while getopts "b:i:t:r:eof" opt; do
         b) s3_bucket_name="$OPTARG" ;;
         i) etl_image_name="$OPTARG" ;;
         t) etl_image_tag="$OPTARG" ;;
+        r) aws_region="$OPTARG" ;;
         e) etl_model=true ;;
         o) online_model=true ;;
         f) frontend=true ;;
