@@ -91,6 +91,8 @@ if $frontend; then
     modules_prepared="${modules_prepared}Frontend, "
 fi
 
+aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
+
 # Remove the trailing comma and space
 modules_prepared=$(echo "$modules_prepared" | sed 's/, $//')
 
