@@ -203,7 +203,7 @@ aws configure
 ```
 
 
-Then navigate to the script directory to run the `build.sh` script. This script simplifies the asset preparation process by providing default values for the S3 bucket name, ETL image name, and ETL image tag. These defaults are used for uploading the model to S3 and pushing the ETL image to your ECR repository. While you can specify custom values for these parameters, it's not required. If the specified S3 bucket or ECR repository does not exist, the script will create them for you.
+Then navigate to the script directory to run the `build.sh` script. This script simplifies the asset preparation process by providing default values for the S3 bucket name, ETL image name, and ETL image tag. These defaults are used for uploading the model to S3 and pushing the ETL image to your ECR repository. While you can specify custom values for these parameters, it's not required. If the specified S3 bucket or ECR repository does not exist, the script will create them for you. If you wish to specify existing s3 bucket, please make sure the bucket is in the same region as the deployment region.
 
 Default Values:
 - S3 Bucket Name: `intelli-agent-models-${account}-${aws_region}`
