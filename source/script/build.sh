@@ -42,9 +42,9 @@ aws_region=$(aws configure get region)
 s3_bucket_name="intelli-agent-models-${account}-${aws_region}"
 etl_image_name="intelli-agent-etl"
 etl_image_tag="latest"
-etl_model=false
-online_model=false
-frontend=false
+etl_model=true
+online_model=true
+frontend=true
 
 while getopts "b:i:t:r:eof" opt; do
     case ${opt} in
