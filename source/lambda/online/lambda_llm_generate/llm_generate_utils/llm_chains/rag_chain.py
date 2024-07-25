@@ -4,8 +4,9 @@
 from langchain.prompts import (
     ChatPromptTemplate,
     HumanMessagePromptTemplate,
-    SystemMessagePromptTemplate,
+    SystemMessagePromptTemplate
 )
+from langchain_core.messages import AIMessage,SystemMessage,HumanMessage
 
 from langchain.schema.runnable import RunnableLambda, RunnablePassthrough
 from common_logic.common_utils.constant import (
@@ -38,9 +39,6 @@ class Claude2RagLLMChain(LLMChain):
     @classmethod
     def create_chain(cls, model_kwargs=None, **kwargs):
         stream = kwargs.get("stream", False)
-        # history
-        # chat_history = kwargs.get("chat_history", [])
-        
         system_prompt_template = get_prompt_template(
             model_id=cls.model_id,
             task_type=cls.intent_type,

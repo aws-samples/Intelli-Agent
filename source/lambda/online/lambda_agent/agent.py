@@ -23,8 +23,6 @@ def tool_calling(state:dict):
     other_chain_kwargs = state.get('other_chain_kwargs',{})
     llm_config = {
         **agent_config,
-        # "model_kwargs": agent_config.get('model_kwargs',{}),
-        # "model_id": agent_config['model_id'],
         **other_chain_kwargs,
         "tools": tool_defs,
         "fewshot_examples": state['intent_fewshot_examples'],

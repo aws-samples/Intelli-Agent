@@ -2,17 +2,12 @@ import collections.abc
 import copy
 import os
 import boto3
+from pydantic import BaseModel,ConfigDict,Field
+from typing import Union
 
-from common_logic.common_utils.constant import ChatbotMode,SceneType
+
+from common_logic.common_utils.constant import ChatbotMode,SceneType,LLMModelType
 from common_logic.common_utils.chatbot_utils import ChatbotManager
-chatbot_table_name = os.environ.get("CHATBOT_TABLE_NAME", "")
-model_table_name = os.environ.get("MODEL_TABLE_NAME", "")
-index_table_name = os.environ.get("INDEX_TABLE_NAME", "")
-dynamodb = boto3.resource("dynamodb")
-chatbot_table = dynamodb.Table(chatbot_table_name)
-model_table = dynamodb.Table(model_table_name)
-index_table = dynamodb.Table(index_table_name)
-chatbot_manager = ChatbotManager(chatbot_table, index_table, model_table)
 
 # update nest dict
 def update_nest_dict(d, u):
@@ -23,110 +18,181 @@ def update_nest_dict(d, u):
             d[k] = v
     return d
 
+class ForbidBaseModel(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        protected_namespaces=()
+    )
 
-class ConfigParserBase:
-    default_llm_config_str = "{'model_id': 'anthropic.claude-3-sonnet-20240229-v1:0', 'model_kwargs': {'temperature': 0.01, 'max_tokens': 4096}}"
-    default_index_names = {"intention":[], "private_knowledge":[], "qq_match":[]}
-    @classmethod
-    def get_default_chatbot_config(cls,default_llm_config,default_index_config,**kwargs):
-        default_chatbot_config = {
-            "chatbot_mode": ChatbotMode.chat,
-            "use_history": True,
-            "enable_trace": True,
-            "scene": SceneType.COMMON,
-            "agent_repeated_call_limit": 5,
-            "query_process_config": {
-                "conversation_query_rewrite_config": {**copy.deepcopy(default_llm_config)}
-            },
-            "intention_config": {
-                "retriever_config":{
-                    "top_k": 10,
-                    "query_key": "query"
-                },
-                "retrievers": default_index_config.get("intention",[])
-            },
-            "qq_match_config": {
-                "retriever_config": {
-                    "top_k": 10,
-                    "query_key": "query",
-                    "threshold": 0.9,
-                },
-                "retrievers": default_index_config.get("qq_match",[])
-            },
-            "agent_config": {**copy.deepcopy(default_llm_config), "tools": [], "only_use_rag_tool": False},
-            "chat_config": {
-                **copy.deepcopy(default_llm_config),
-            },
-            "private_knowledge_config": {
-                "retriever_config":{
-                        "top_k": 10,
-                        "context_num": 1,
-                        "using_whole_doc": False,
-                        "query_key": "query"
-                },
-                "retrievers": default_index_config.get("private_knowledge",[]),
-                "rerankers": [
-                    {
-                        "type": "reranker",
-                        "config": {
-                            "enable_debug": False,
-                            "target_model": "bge_reranker_model.tar.gz",
-                        },
-                    }
-                ],
-                "llm_config": {
-                    **copy.deepcopy(default_llm_config),
-                },
-            }
+
+class AllowBaseModel(BaseModel):
+    model_config = ConfigDict(
+        extra="allow",
+        protected_namespaces=()
+    )
+
+
+class LLMConfig(AllowBaseModel):
+    model_id: LLMModelType = LLMModelType.CLAUDE_3_SONNET
+    model_kwargs: dict = {'temperature': 0.01, 'max_tokens': 4096}
+
+
+class QueryProcessConfig(ForbidBaseModel):
+    conversation_query_rewrite_config: LLMConfig = Field(default_factory=LLMConfig)
+
+class RetrieverConfigBase(ForbidBaseModel):
+    pass
+
+class IntentionRetrieverConfig(RetrieverConfigBase):
+    top_k: int = 5
+    query_key: str = "query"
+    index_name: str 
+
+
+class QQMatchRetrieverConfig(RetrieverConfigBase):
+    top_k: int = 5
+    query_key: str = "query"
+    threshold: float = 0.9
+    index_name: str 
+
+
+class PrivateKnowledgeRetrieverConfig(RetrieverConfigBase):
+    model_config = ConfigDict(extra="allow")
+    top_k: int = 5
+    context_num: int = 1
+    using_whole_doc: bool = False 
+    query_key: str = "query"
+    index_name: str 
+
+
+class IntentionConfig(ForbidBaseModel):
+    retrievers: list[IntentionRetrieverConfig] = Field(default_factory=list)
+
+
+class RerankConfig(AllowBaseModel):
+    endpoint_name: str = None
+    target_model: str = None
+
+
+class QQMatchConfig(ForbidBaseModel):
+    retrievers: list[QQMatchRetrieverConfig] = Field(default_factory=list)
+    reranks: list[RerankConfig] = Field(default_factory=list)
+
+
+class RagToolConfig(AllowBaseModel):
+    retrievers: list[PrivateKnowledgeRetrieverConfig] = Field(default_factory=list)
+    rerankers: list[RerankConfig] = Field(default_factory=list)
+    llm_config: LLMConfig = Field(default_factory=LLMConfig)
+
+
+class AgentConfig(ForbidBaseModel):
+    llm_config: LLMConfig = Field(default_factory=LLMConfig)
+    tools:list[str] = Field(default_factory=list)
+    only_use_rag_tool: bool = False
+
+
+class PrivateKnowledgeConfig(RagToolConfig):
+    pass
+
+
+class ChatbotConfig(ForbidBaseModel):
+    user_id: str = "default_user_id"
+    group_name: str = "Admin"
+    chatbot_id: str = "admin"
+    chatbot_mode: ChatbotMode = ChatbotMode.chat
+    use_history: bool = True
+    enable_trace: bool = True 
+    scene: SceneType = SceneType.COMMON
+    agent_repeated_call_limit: int = 5
+    query_process_config: QueryProcessConfig = Field(default_factory=QueryProcessConfig)
+    intention_config: IntentionConfig = Field(default_factory=IntentionConfig)
+    qq_match_config: QQMatchConfig = Field(default_factory=QQMatchConfig)
+    agent_config: AgentConfig = Field(default_factory=AgentConfig)
+    chat_config: LLMConfig = Field(default_factory=LLMConfig)
+    private_knowledge_config: PrivateKnowledgeConfig = Field(default_factory=PrivateKnowledgeConfig)
+    tools_config: dict[str, dict] = Field(default_factory=dict)
+
+    def update_llm_config(self,new_llm_config:dict):
+        """unified update llm config
+
+        Args:
+            new_llm_config (dict): _description_
+        """
+        def _update_llm_config(m):
+            if isinstance(m,LLMConfig):
+                for k,v in new_llm_config.items():
+                    setattr(m,k,copy.deepcopy(v))
+                return 
+            elif isinstance(m,BaseModel):
+                for k,v in m:
+                    _update_llm_config(v)
+        _update_llm_config(self)
+     
+    def format_index_info(self,index_info_from_ddb:dict):
+        return {
+            "index_name": index_info_from_ddb["indexId"],
+            "embedding_model_endpoint": index_info_from_ddb['modelIds']['embedding']['parameter']['ModelEndpoint'],
+            "target_model": index_info_from_ddb['modelIds']['embedding']['parameter']['ModelName'],
+            "group_name": index_info_from_ddb['groupName'],
+            "kb_type": index_info_from_ddb['kbType'],
+            "index_type": index_info_from_ddb['indexType']
         }
-        return default_chatbot_config
 
-    @classmethod
-    def parse_aos_indexs(cls,chatbot_config,default_index_names):
-        group_name = chatbot_config['group_name']
-        chatbot_id = chatbot_config['chatbot_id']
-        chatbot = chatbot_manager.get_chatbot(group_name, chatbot_id)
-        index_infos = {}
-        for task_name,index_info in chatbot.index_ids.items():
-            # TODO some modify needed
-            assert task_name in ("qq","qd",'intention'),task_name
-            # prepare list value
+    def get_index_infos_from_ddb(self):
+        chatbot_manager = ChatbotManager.from_environ()
+        chatbot = chatbot_manager.get_chatbot(self.group_name, self.chatbot_id)
+        _infos = chatbot.index_ids or {}
+        infos = {}
+        for task_name,index_info in _infos.items():
             if task_name == "qq":
                 task_name = 'qq_match'
             elif task_name == "qd":
                 task_name = "private_knowledge"
             elif task_name == "intention":
                 task_name = "intention"
-            all_index_names = list(index_info['value'].values())
-            allow_index_names = default_index_names[task_name]
-            if allow_index_names:
-                all_index_names = [index for index in all_index_names if index['indexId'] in allow_index_names]
-            index_infos[task_name] = all_index_names
-        return index_infos
-
-
-    @classmethod
-    def index_postprocess(cls,chatbot_config):
-        def _dict_update(config):
-            retrievers = []
-            _retrievers = config.pop('retrievers')
-            for retriever_dict in _retrievers:
-                retrievers.append({
-                    **config['retriever_config'],
-                    **retriever_dict
-                })
-            config['retrievers'] = retrievers
-        # intention 
-        intention_config = chatbot_config['intention_config']
-        _dict_update(intention_config)
-        # qq_match
-        qq_match_config = chatbot_config['qq_match_config']
-        _dict_update(qq_match_config)
-        # private knowledge 
-        private_knowledge_config = chatbot_config['private_knowledge_config']
-        _dict_update(private_knowledge_config)
+            infos[task_name] = [self.format_index_info(info) for info in list(index_info['value'].values()) ]  
+        return infos
     
+    def update_retrievers(
+        self,
+        default_index_names: dict[str,list],
+        default_retriever_config: dict[str,dict]
+    ):
+        index_infos = self.get_index_infos_from_ddb()
+        for task_name,allow_index_names in default_index_names.items():
+            all_index_infos = index_infos[task_name]
+            allow_index_infos = [info for info in all_index_infos if info['index_name'] in allow_index_names]
+            allow_index_infos  = [{**default_retriever_config[task_name],**info} for info in allow_index_infos]
+            getattr(self,f"{task_name}_config").retrievers.extend(allow_index_infos)
 
+    def model_copy(self,update=None,deep=True):
+        if update:
+            cls = type(self)
+            cls(**copy.deepcopy(update))
+        return super().model_copy(update=update,deep=deep)
+
+    
+class ConfigParserBase:
+    default_llm_config_str = "{'model_id': 'anthropic.claude-3-sonnet-20240229-v1:0', 'model_kwargs': {'temperature': 0.01, 'max_tokens': 4096}}"
+    default_index_names = {"intention":[], "private_knowledge":[], "qq_match":[]}
+    default_retriever_config = {
+        "intention": {
+            "top_k":5,
+            "query_key": "query"
+        },
+        "private_knowledge": {
+            "top_k":5,
+            "query_key": "query",
+            "context_num": 1,
+            "using_whole_doc": False
+        },
+        "qq_match": {
+            "top_k":5,
+            "query_key": "query",
+            "threshold": 0.9
+        }
+    }
+    
     @classmethod
     def from_chatbot_config(cls,chatbot_config:dict):
         chatbot_config = copy.deepcopy(chatbot_config)
@@ -135,41 +201,44 @@ class ConfigParserBase:
         )
         default_llm_config = update_nest_dict(
             copy.deepcopy(default_llm_config),
-            chatbot_config.get("default_llm_config", {})
+            chatbot_config.pop("default_llm_config", {})
         )
 
         default_index_names = update_nest_dict(
             copy.deepcopy(cls.default_index_names),
-            chatbot_config.get('default_index_names',{})
+            chatbot_config.pop('default_index_names',{})
+        )
+        default_retriever_config = update_nest_dict(
+            copy.deepcopy(cls.default_retriever_config),
+            chatbot_config.pop("default_retriever_config", {})
+        )
+        group_name = chatbot_config['group_name']
+        chatbot_id = chatbot_config['chatbot_id']
+        
+        # init chatbot config
+        chatbot_config_obj = ChatbotConfig(
+            group_name=group_name,
+            chatbot_id=chatbot_id
+        )
+        # init default llm
+        chatbot_config_obj.update_llm_config(default_llm_config)
+
+        # init retriever
+        chatbot_config_obj.update_retrievers(
+            default_index_names,
+            default_retriever_config
         )
 
-        default_index_config = cls.parse_aos_indexs(chatbot_config,default_index_names)
-
-        default_index_config = {
-            **default_index_config,
-            **chatbot_config.get("default_index_config", {})
-        }
-
-        assert ChatbotMode.has_value(chatbot_config["chatbot_mode"]), chatbot_config[
-             "chatbot_mode"
-        ]
-        chatbot_config = update_nest_dict(
-            copy.deepcopy(cls.get_default_chatbot_config(
-                default_llm_config,
-                default_index_config
-            )),
-            chatbot_config
-        )
-        # deal with index params
-        cls.index_postprocess(chatbot_config)
-        return chatbot_config
+        # update chatbot config obj from event body
+        chatbot_config_obj.model_copy(deep=True,update=chatbot_config)
+        return chatbot_config_obj.model_dump()
 
 
 class CommonConfigParser(ConfigParserBase):
     @classmethod
     def from_chatbot_config(cls,chatbot_config:dict):
         chatbot_config = super().from_chatbot_config(chatbot_config)
-         # add default tools
+        # add default tools
         tools: list = chatbot_config["agent_config"]["tools"]
         if "give_rhetorical_question" not in tools:
             tools.append("give_rhetorical_question")
@@ -183,7 +252,6 @@ class CommonConfigParser(ConfigParserBase):
 
 
 class RetailConfigParser(ConfigParserBase):
-
     @classmethod
     def from_chatbot_config(cls,chatbot_config:dict):
         chatbot_config = super().from_chatbot_config(chatbot_config)

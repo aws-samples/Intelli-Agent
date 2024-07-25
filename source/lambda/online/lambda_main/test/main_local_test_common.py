@@ -59,7 +59,9 @@ def test_multi_turns_rag_pr():
              session_id=session_id,
              query=query['query'],
              use_history=query['use_history'],
-             only_use_rag_tool=True)
+             only_use_rag_tool=True,
+             default_index_names={"private_knowledge":["xfg"]}
+             )
         print()
 
 
@@ -139,7 +141,7 @@ def test_multi_turns_agent_pr():
              session_id=session_id,
              query=query['query'],
              use_history=query['use_history'],
-             default_chatbot_id="admin1",
+             chatbot_id="admin",
              only_use_rag_tool=False)
         print()
 
@@ -217,7 +219,7 @@ def sso_batch_test():
             }
         }
     results = []
-    for i,datum in enumerate(data):
+    for i,datum in enumerate(data[2:3]):
         query = datum['Question']
         if not query:
             continue
@@ -299,11 +301,11 @@ def anta_test():
         print() 
 
 if __name__ == "__main__":
-    complete_test_pr()
+    # complete_test_pr()
     # test_multi_turns_rag_pr()
     # test_multi_turns_agent_pr()
     # test_multi_turns_chat_pr()
     # bigo_test()
-    # sso_batch_test()
+    sso_batch_test()
     # anta_test()
     # bigo_test()

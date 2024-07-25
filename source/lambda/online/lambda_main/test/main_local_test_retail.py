@@ -305,7 +305,7 @@ def complete_test():
 
 if __name__ == "__main__":
     # complete_test()
-    test_multi_turns_anta("cn****0094",record_goods_id=True)
+    test_multi_turns_anta("cn****0094", record_goods_id=True)
     # test_multi_turns()
     # test_multi_turns_0090() 
     # test_multi_turns_0077()

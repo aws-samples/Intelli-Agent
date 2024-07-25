@@ -1,9 +1,18 @@
-from enum import Enum, unique
+from enum import Enum, unique, EnumMeta
 
-class ConstantBase:
+
+class EnumDirectValueMeta(EnumMeta):
+    def __getattribute__(cls, name):
+        value = super().__getattribute__(name)
+        if isinstance(value, cls):
+            value = value.value
+        return value
+
+class ConstantBase(Enum,metaclass=EnumDirectValueMeta):
     @classmethod
     def has_value(cls, value):
-        return value in list(cls.__dict__.values())
+        return value in cls._value2member_map_ 
+    
 
 class EntryType(ConstantBase):
     COMMON = "common"
@@ -88,7 +97,7 @@ class StreamMessageType(ConstantBase):
 
 class ChatbotMode(ConstantBase):
     chat = "chat" # chi-chat
-    rag_mode = "rag"  # rag
+    # rag_mode = "rag"  # rag
     agent = "agent" # rag + tool use
 
 
