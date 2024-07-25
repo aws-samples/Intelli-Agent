@@ -641,7 +641,7 @@ export class ApiConstruct extends Construct {
           Count: { type: JsonSchemaType.INTEGER }
         }),
         requestParameters: {
-          'method.request.querystring.executionId': false
+          'method.request.path.executionId': true
         },
         // requestModels: this.genRequestModel(api, {
         //   "executionId": { "type": JsonSchemaType.ARRAY, "items": {"type": JsonSchemaType.STRING}},
