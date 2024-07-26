@@ -46,7 +46,7 @@ const AddLibrary: React.FC<AddLibraryProps> = (props: AddLibraryProps) => {
   );
   const [tagName, setTagName] = useState('');
   const [tagNameError, setTagNameError] = useState('');
-  const [advanceExpand, setAdvanceExpand] = useState(true);
+  const [advanceExpand, setAdvanceExpand] = useState(false);
 
   const executionKnowledgeBase = async (bucket: string, prefix: string) => {
     const groupName: string[] = auth?.user?.profile?.['cognito:groups'] as any;
