@@ -32,7 +32,6 @@ export const LLM_BOT_RETAIL_MODEL_LIST = [
   'anthropic.claude-3-5-sonnet-20240620-v1:0',
 ];
 
-
 export const LLM_BOT_CHAT_MODE_LIST: SelectProps.Option[] = [
   {
     label: 'Agent',
@@ -63,5 +62,16 @@ export const RETAIL_GOODS_LIST: SelectProps.Option[] = [
   {
     label: '男款外套上衣-743891340644',
     value: '743891340644',
+  },
+];
+
+export const DOC_INDEX_TYPE_LIST: SelectProps.Option[] = [
+  {
+    label: 'qd',
+    value: 'qd',
+  },
+  {
+    label: 'qq',
+    value: 'qq',
   },
 ];

@@ -56,12 +56,12 @@ ETLStateA5DEA10E-Tgtw66LqdlNH:4dd19f1c-45e1-4d18-9d70-7593f96d001a",
 
 #### Get ETL Status
 
-To get the ETL status by execution id, make a **GET** request to `https://<host_name_prefix>.amazonaws.com/prod/knowledge-base/executions`.
+To get the ETL status by execution id, make a **GET** request to `https://<host_name_prefix>.amazonaws.com/prod/knowledge-base/executions/{executionId}`.
 
 Here is an example of the request:
 
 ```bash
-https://xxxx.execute-api.us-east-1.amazonaws.com/prod/etl/execution?executionId=24c9bfdb-f604-4bb2-9495-187b3a38be75
+https://xxxx.execute-api.us-east-1.amazonaws.com/prod/knowledge-base/executions/24c9bfdb-f604-4bb2-9495-187b3a38be75
 ```
 
 After making the request, you should see a response similar to this:
