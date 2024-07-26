@@ -25,3 +25,12 @@ export const formatTime = (timeStr: string | number) => {
   }
   return moment(timeStr).format(TIME_FORMAT);
 };
+
+export const isValidJson = (str: string) => {
+  try {
+    JSON.parse(str);
+    return true;
+  } catch (e) {
+    return false;
+  }
+};

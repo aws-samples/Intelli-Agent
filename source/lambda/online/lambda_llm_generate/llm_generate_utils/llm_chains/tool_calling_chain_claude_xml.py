@@ -7,6 +7,7 @@ from langchain.schema.runnable import (
     RunnableLambda,
     RunnablePassthrough
 )
+from common_logic.common_utils.prompt_utils import get_prompt_template
 
 from langchain_core.messages import(
     AIMessage,
@@ -21,21 +22,11 @@ from common_logic.common_utils.constant import (
     LLMModelType,
     MessageType
 )
+from common_logic.common_utils.time_utils import get_china_now
 
 from .llm_chain_base import LLMChain
 from ..llm_models import Model
 
-tool_call_guidelines = """<guidlines>
-- Don't forget to output <function_calls> </function_calls> when any tool is called.
-- 每次回答总是先进行思考，并将思考过程写在<thinking>标签中。请你按照下面的步骤进行思考:
-    1. 判断根据当前的上下文是否足够回答用户的问题。
-    2. 如果当前的上下文足够回答用户的问题，请调用 `give_final_response` 工具。
-    3. 如果当前的上下文不能支持回答用户的问题，你可以考虑调用<tools> 标签中列举的工具。
-    4. 如果调用工具对应的参数不够，请调用反问工具 `give_rhetorical_question` 来让用户提供更加充分的信息。
-    5. 最后给出你要调用的工具名称。
-- Always output with the same language as the content within <query></query>. If the content is english, use englisth to output. If the content is chinese, use chinese to output.
-</guidlines>
-"""
 incorrect_tool_call_example = """Here is an example of an incorrectly formatted tool call, which you should avoid.
 <incorrect_tool_calling>
 <function_calls>
@@ -74,7 +65,7 @@ SYSTEM_MESSAGE_PROMPT =(f"In this environment you have access to a set of tools 
         "{tools}"
         "\n</tools>"
         "\nAnswer the user's request using relevant tools (if they are available). Before calling a tool, do some analysis within <thinking></thinking> tags. First, think about which of the provided tools is the relevant tool to answer the user's request. Second, go through each of the required parameters of the relevant tool and determine if the user has directly provided or given enough information to infer a value. When deciding if the parameter can be inferred, carefully consider all the context to see if it supports a specific value. If all of the required parameters are present or can be reasonably inferred, close the thinking tag and proceed with the tool call. BUT, if one of the values for a required parameter is missing, DO NOT invoke the function (not even with fillers for the missing params) and instead, ask the user to provide the missing parameters. DO NOT ask for more information on optional parameters if it is not provided."
-        f"\nHere are some guidelines for you:\n{tool_call_guidelines}."
+        "\nHere are some guidelines for you:\n{tool_call_guidelines}."
         f"\n{incorrect_tool_call_example}"
     )
 
@@ -118,6 +109,8 @@ TOOL_EXECUTE_FAIL_TEMPLATE = """
 </error>
 </function_results>
 """
+
+AGENT_SYSTEM_PROMPT = "你是一个亚马逊云科技的AI助理，你的名字是亚麻小Q。今天是{date_str},{weekday}. "
 
 
 def _get_type(parameter: Dict[str, Any]) -> str:
@@ -229,10 +222,19 @@ class Claude2ToolCallingChain(LLMChain):
     def create_chat_history(cls,x):
         chat_history = x['chat_history'] + \
             [{"role": MessageType.HUMAN_MESSAGE_TYPE,"content": x['query']}] + \
-            x['agent_chat_history']
+            x['agent_tool_history']
 
             
         return chat_history
+
+    @classmethod
+    def get_common_system_prompt(cls,system_prompt_template:str):
+        now = get_china_now()
+        date_str = now.strftime("%Y年%m月%d日")
+        weekdays = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日']
+        weekday = weekdays[now.weekday()]
+        system_prompt = system_prompt_template.format(date=date_str,weekday=weekday)
+        return system_prompt
     
         
     @classmethod
@@ -240,8 +242,30 @@ class Claude2ToolCallingChain(LLMChain):
         model_kwargs = model_kwargs or {}
         tools:list = kwargs['tools']
         fewshot_examples = kwargs.get('fewshot_examples',[])
-        user_system_prompt = kwargs.get("system_prompt","")
-        
+        if fewshot_examples:
+            fewshot_examples.append({
+                "name": "give_rhetorical_question",
+                "query": "今天天气怎么样?",
+                "kwargs": {"question": "请问你想了解哪个城市的天气?"}
+            })
+        user_system_prompt = get_prompt_template(
+            model_id=cls.model_id,
+            task_type=cls.intent_type,
+            prompt_name="system_prompt"     
+        ).prompt_template
+
+        user_system_prompt = kwargs.get("system_prompt",None) or user_system_prompt
+
+        user_system_prompt = cls.get_common_system_prompt(
+            user_system_prompt
+        )
+        guidelines_prompt = get_prompt_template(
+            model_id=cls.model_id,
+            task_type=cls.intent_type,
+            prompt_name="guidelines_prompt"     
+        ).prompt_template
+
+        guidelines_prompt = kwargs.get("guidelines_prompt",None) or guidelines_prompt
         model_kwargs = {**cls.default_model_kwargs, **model_kwargs}
 
         tools_formatted = convert_openai_tool_to_anthropic(tools)
@@ -249,11 +273,13 @@ class Claude2ToolCallingChain(LLMChain):
         if fewshot_examples:
             system_prompt = SYSTEM_MESSAGE_PROMPT_WITH_FEWSHOT_EXAMPLES.format(
                 tools=tools_formatted,
-                fewshot_examples=cls.format_fewshot_examples(fewshot_examples)
+                fewshot_examples=cls.format_fewshot_examples(fewshot_examples),
+                tool_call_guidelines=guidelines_prompt
             )
         else:
             system_prompt = SYSTEM_MESSAGE_PROMPT.format(
-                tools=tools_formatted
+                tools=tools_formatted,
+                tool_call_guidelines=guidelines_prompt
             )
         
         system_prompt = user_system_prompt + system_prompt 

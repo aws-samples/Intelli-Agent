@@ -23,6 +23,14 @@ def upload_file_to_s3(bucket_name, s3_file_path, local_file_path):
     s3 = boto3.client('s3')
     s3.upload_file(local_file_path, bucket_name, s3_file_path)
 
+def upload_dir_to_s3(bucket_name, s3_dir_path, local_dir_path):
+    for root, dirs, files in os.walk(local_dir_path):
+        for file in files:
+            local_file_path = os.path.join(root, file)
+            s3_file_path = os.path.join(s3_dir_path, local_file_path[len(local_dir_path)+1:])
+            print(f"Uploading {local_file_path} to {s3_file_path}")
+            upload_file_to_s3(bucket_name, s3_file_path, local_file_path)
+
 def check_local_folder(file_path):
     folder = '/'.join(file_path.split('/')[:-1])
     if not os.path.exists(folder):

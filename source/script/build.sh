@@ -3,52 +3,102 @@
 set -e
 
 print_usage() {
-    echo "Usage: $0 -b s3_bucket_name -i etl_image_name -t etl_image_tag -r aws_region"
+    echo "Usage: $0 [-b s3_bucket_name] [-i etl_image_name] [-t etl_image_tag] [-e] [-o] [-f]"
+    echo
+    echo "Options:"
+    echo "  -e  Prepare ETL Model"
+    echo "  -o  Prepare Online Model"
+    echo "  -f  Build Frontend"
     echo
     echo "Examples:"
-    echo "  $0 -b my-s3-bucket -i my-etl-image -t latest -r us-west-2"
-    echo "  $0 -b another-bucket -i another-etl-image -t v1.0.0 -r us-east-1"
+    echo "  $0 -b my-s3-bucket -i my-etl-image -t latest -e -o -f"
     exit 1
 }
 
-while getopts "b:i:t:r:" opt; do
+prepare_etl_model() {
+    echo "Prepare ETL Model"
+    cd model/etl/code
+    sh model.sh ./Dockerfile $etl_image_name $etl_image_tag
+    cd - > /dev/null
+    pwd
+}
+
+prepare_online_model() {
+    echo "Prepare Online Model"
+    cd model
+    bash prepare_model.sh -s $s3_bucket_name
+    cd - > /dev/null
+}
+
+build_frontend() {
+    echo "Build Frontend"
+    cd portal
+    npm install && npm run build
+    cd - > /dev/null
+}
+
+account=$(aws sts get-caller-identity --query Account --output text)
+aws_region=$(aws configure get region)
+s3_bucket_name="intelli-agent-models-${account}-${aws_region}"
+etl_image_name="intelli-agent-etl"
+etl_image_tag="latest"
+etl_model=true
+online_model=true
+frontend=true
+
+while getopts "b:i:t:r:eof" opt; do
     case ${opt} in
         b) s3_bucket_name="$OPTARG" ;;
         i) etl_image_name="$OPTARG" ;;
         t) etl_image_tag="$OPTARG" ;;
         r) aws_region="$OPTARG" ;;
+        e) etl_model=true ;;
+        o) online_model=true ;;
+        f) frontend=true ;;
         *) print_usage ;;
     esac
 done
-
-# Check if all required arguments are provided
-if [ -z "$s3_bucket_name" ] || [ -z "$etl_image_name" ] || [ -z "$etl_image_tag" ] || [ -z "$aws_region" ]; then
-    echo "Error: s3_bucket_name, etl_image_name, etl_image_tag and aws_region parameters are required."
-    print_usage
-fi
 
 echo "S3 bucket name: $s3_bucket_name"
 echo "ETL image name: $etl_image_name"
 echo "ETL image tag: $etl_image_tag"
 echo "AWS region: $aws_region"
+echo "Prepare ETL Model: $etl_model"
+echo "Prepare Online Model: $online_model"
+echo "Build Frontend: $frontend"
 
 echo "Install dependencies"
-cd ../infrastructure
-npm install
-
-echo "Login ECR"
 cd ..
+cd infrastructure
+npm install
+pwd
+cd - > /dev/null
+pwd
+
+modules_prepared=""
+
+if $etl_model; then
+    prepare_etl_model
+    modules_prepared="${modules_prepared}ETL Model, "
+fi
+
+if $online_model; then
+    prepare_online_model
+    modules_prepared="${modules_prepared}Online Model, "
+fi
+
+if $frontend; then
+    build_frontend
+    modules_prepared="${modules_prepared}Frontend, "
+fi
+
 aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
 
-echo "Prepare model"
-cd model
-bash prepare_model.sh -s $s3_bucket_name
+# Remove the trailing comma and space
+modules_prepared=$(echo "$modules_prepared" | sed 's/, $//')
 
-cd etl/code
-sh model.sh ./Dockerfile $etl_image_name $aws_region $etl_image_tag
-
-echo "Build frontend"
-cd ../../../portal
-npm install && npm run build
-
-echo "Successfully built Assets for Intelli-Agent. Please proceed to deploy the stack."
+if [ -n "$modules_prepared" ]; then
+    echo "You have prepared assets for the following modules: $modules_prepared."
+else
+    echo "No modules were prepared."
+fi

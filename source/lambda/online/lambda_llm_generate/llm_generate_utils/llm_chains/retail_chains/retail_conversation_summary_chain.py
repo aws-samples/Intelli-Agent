@@ -204,3 +204,5 @@ class Qwen2Instruct72BRetailConversationSummaryChain(Qwen2Instruct7BRetailConver
     model_id = LLMModelType.QWEN2INSTRUCT72B
 
 
+class Qwen2Instruct72BRetailConversationSummaryChain(Qwen2Instruct7BRetailConversationSummaryChain):
+    model_id = LLMModelType.QWEN15INSTRUCT32B

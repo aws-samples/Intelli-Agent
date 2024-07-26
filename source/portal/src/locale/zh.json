@@ -59,6 +59,7 @@
     "fileEmptyError": "请选择需要上传的文件",
     "docName": "文档名称",
     "multiRound": "多轮对话",
+    "onlyRAGTool": "只使用RAG工具",
     "trace": "跟踪",
     "modelSettings": "模型设置",
     "modelName": "模型名称",
@@ -75,6 +76,10 @@
     "promptCreateTips": "新的提示将覆盖当前提示词，您确定要继续吗？",
     "promptDeleteTips": "删除此提示词将会恢复成系统默认提示词。",
     "endPoint": "端点",
+    "enableTrace": "启用 trace",
+    "showTrace": "显示 trace",
+    "onlyUseRAGTool": "只使用 RAG 工具",
+    "additionalSettings": "附加设置",
     "button": {
       "login": "登录到 AWS 大语言模型机器人",
       "reload": "重新加载",
@@ -102,7 +107,8 @@
       "temperatureRange": "发散度必须介于 0 和 1 之间",
       "maxTokensRange": "最大 token 数必须大于 0",
       "requirePrompt": "请输入提示词",
-      "requireEndPoint": "请输入端点"
+      "requireEndPoint": "请输入端点",
+      "invalidJson": "无效的 JSON 格式"
     }
   }
 }

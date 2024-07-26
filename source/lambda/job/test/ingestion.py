@@ -210,6 +210,11 @@ def iterate_s3_files(bucket: str, prefix: str, batchIndice=0) -> Generator:
                 kwargs["csv_row_count"] = 1
                 yield "csv", decode_file_content(file_content), kwargs
                 break
+            elif file_type in ["xlsx", "xls"]:
+                # Update row count here, the default row count is 1
+                kwargs["xlsx_row_count"] = 1
+                yield "xlsx", decode_file_content(file_content), kwargs
+                break
             elif file_type == "html":
                 yield "html", decode_file_content(file_content), kwargs
                 break
