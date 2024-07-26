@@ -1,4 +1,4 @@
-# IntellapicoOYWAgDRMKvGuItemsInner
+# IntellapicollZHBI8WaBMpItemsInner
 
 
 ## Properties
@@ -23,19 +23,19 @@ Name | Type | Description | Notes
 ## Example
 
 ```python
-from openapi_client.models.intellapico_oywag_drmkv_gu_items_inner import IntellapicoOYWAgDRMKvGuItemsInner
+from openapi_client.models.intellapicoll_zhbi8_wa_bmp_items_inner import IntellapicollZHBI8WaBMpItemsInner
 
 # TODO update the JSON string below
 json = "{}"
-# create an instance of IntellapicoOYWAgDRMKvGuItemsInner from a JSON string
-intellapico_oywag_drmkv_gu_items_inner_instance = IntellapicoOYWAgDRMKvGuItemsInner.from_json(json)
+# create an instance of IntellapicollZHBI8WaBMpItemsInner from a JSON string
+intellapicoll_zhbi8_wa_bmp_items_inner_instance = IntellapicollZHBI8WaBMpItemsInner.from_json(json)
 # print the JSON string representation of the object
-print(IntellapicoOYWAgDRMKvGuItemsInner.to_json())
+print(IntellapicollZHBI8WaBMpItemsInner.to_json())
 
 # convert the object into a dict
-intellapico_oywag_drmkv_gu_items_inner_dict = intellapico_oywag_drmkv_gu_items_inner_instance.to_dict()
-# create an instance of IntellapicoOYWAgDRMKvGuItemsInner from a dict
-intellapico_oywag_drmkv_gu_items_inner_from_dict = IntellapicoOYWAgDRMKvGuItemsInner.from_dict(intellapico_oywag_drmkv_gu_items_inner_dict)
+intellapicoll_zhbi8_wa_bmp_items_inner_dict = intellapicoll_zhbi8_wa_bmp_items_inner_instance.to_dict()
+# create an instance of IntellapicollZHBI8WaBMpItemsInner from a dict
+intellapicoll_zhbi8_wa_bmp_items_inner_from_dict = IntellapicollZHBI8WaBMpItemsInner.from_dict(intellapicoll_zhbi8_wa_bmp_items_inner_dict)
 ```
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 
