@@ -78,19 +78,11 @@ const AddLibrary: React.FC<AddLibraryProps> = (props: AddLibraryProps) => {
       return;
     }
     // validate index name
-    if (indexName === '') {
-      setIndexNameError('validation.requiredIndexName');
-      return;
-    }
     if (!validateNameTagString(indexName.trim())) {
       setIndexNameError('validation.formatInvalidTagIndex');
       return;
     }
     // validate tag
-    if (tagName === '') {
-      setTagNameError('validation.requiredTag');
-      return;
-    }
     if (!validateNameTagString(tagName.trim())) {
       setTagNameError('validation.formatInvalidTagIndex');
       return;
@@ -224,7 +216,14 @@ const AddLibrary: React.FC<AddLibraryProps> = (props: AddLibraryProps) => {
               >
                 <SpaceBetween direction="vertical" size="l">
                   <FormField
-                    label={t('indexName')}
+                    label={
+                      <>
+                        {t('indexName')} -{' '}
+                        <Box variant="span" fontWeight="normal">
+                          <i>{t('optional')}</i>
+                        </Box>
+                      </>
+                    }
                     stretch={true}
                     errorText={t(indexNameError)}
                   >
@@ -247,7 +246,14 @@ const AddLibrary: React.FC<AddLibraryProps> = (props: AddLibraryProps) => {
                     />
                   </FormField>
                   <FormField
-                    label={t('tag')}
+                    label={
+                      <>
+                        {t('tag')} -{' '}
+                        <Box variant="span" fontWeight="normal">
+                          <i>{t('optional')}</i>
+                        </Box>
+                      </>
+                    }
                     stretch={true}
                     errorText={t(tagNameError)}
                   >

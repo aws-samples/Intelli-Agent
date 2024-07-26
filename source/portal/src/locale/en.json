@@ -82,6 +82,7 @@
     "additionalSettings": "Additional Settings",
     "indexName": "Index name",
     "tag": "Tag",
+    "optional": "Optional",
     "button": {
       "login": "Log in to Intelli-Agent",
       "reload": "Reload",

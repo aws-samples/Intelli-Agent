@@ -82,6 +82,7 @@
     "additionalSettings": "附加设置",
     "indexName": "索引名称",
     "tag": "标签",
+    "optional": "可选",
     "button": {
       "login": "登录到 AWS 大语言模型机器人",
       "reload": "重新加载",

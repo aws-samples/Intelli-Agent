@@ -37,7 +37,7 @@ export const isValidJson = (str: string) => {
 
 const nameTagAllowedPattern = /^[a-zA-Z0-9-_]+$/;
 export const validateNameTagString = (input: string): boolean => {
-  if (!nameTagAllowedPattern.test(input)) {
+  if (input && !nameTagAllowedPattern.test(input)) {
     return false;
   }
   return true;
