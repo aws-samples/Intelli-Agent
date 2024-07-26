@@ -59,10 +59,10 @@ const AddLibrary: React.FC<AddLibraryProps> = (props: AddLibraryProps) => {
         offline: 'true',
         qaEnhance: 'false',
         chatbotId: groupName?.[0]?.toLocaleLowerCase() ?? 'admin',
-        indexId: indexName.trim(),
+        indexId: indexName ? indexName.trim() : undefined,
         indexType: indexType.value,
         operationType: 'create',
-        tag: tagName.trim(),
+        tag: tagName ? tagName.trim() : undefined,
       },
     });
     if (resExecution.execution_id) {
