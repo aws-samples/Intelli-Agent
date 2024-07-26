@@ -80,6 +80,9 @@
     "showTrace": "Show trace",
     "onlyUseRAGTool": "Only use RAG tool",
     "additionalSettings": "Additional Settings",
+    "indexName": "Index name",
+    "tag": "Tag",
+    "optional": "Optional",
     "button": {
       "login": "Log in to Intelli-Agent",
       "reload": "Reload",
@@ -108,7 +111,10 @@
       "maxTokensRange": "The maximum number of tokens must lager than 0",
       "requirePrompt": "Please enter a prompt",
       "requireEndPoint": "Please enter an endpoint",
-      "invalidJson": "Invalid JSON format"
+      "invalidJson": "Invalid JSON format",
+      "requiredIndexName": "Please input the index name",
+      "requiredTag": "Please input the tag",
+      "formatInvalidTagIndex": "Only letters, numbers, -, and _ are allowed"
     }
   }
 }

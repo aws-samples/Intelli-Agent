@@ -34,7 +34,8 @@ def handler(event, context):
 
     if "Records" in event:
         logger.info("S3 event detected")
-        # TODO, Aggregate the bucket and key from the event object for S3 created event
+        # This is the legacy codes which can handle files in S3 bucket, 
+        # the S3 eventbridge is removed, re-add it if needed
         bucket = event["Records"][0]["s3"]["bucket"]["name"]
         key = event["Records"][0]["s3"]["object"]["key"]
         parts = key.split("/")

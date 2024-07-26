@@ -1,34 +1,33 @@
 # openapi_client.DefaultApi
 
-All URIs are relative to *https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod*
+All URIs are relative to *https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
 [**aos_get**](DefaultApi.md#aos_get) | **GET** /aos | 
 [**aos_options**](DefaultApi.md#aos_options) | **OPTIONS** /aos | 
 [**aos_post**](DefaultApi.md#aos_post) | **POST** /aos | 
-[**batch_options**](DefaultApi.md#batch_options) | **OPTIONS** /batch | 
-[**batch_post**](DefaultApi.md#batch_post) | **POST** /batch | 
-[**ddb_list_messages_get**](DefaultApi.md#ddb_list_messages_get) | **GET** /ddb/list-messages | 
-[**ddb_list_messages_options**](DefaultApi.md#ddb_list_messages_options) | **OPTIONS** /ddb/list-messages | 
-[**ddb_list_sessions_get**](DefaultApi.md#ddb_list_sessions_get) | **GET** /ddb/list-sessions | 
-[**ddb_list_sessions_options**](DefaultApi.md#ddb_list_sessions_options) | **OPTIONS** /ddb/list-sessions | 
-[**ddb_options**](DefaultApi.md#ddb_options) | **OPTIONS** /ddb | 
-[**ddb_post**](DefaultApi.md#ddb_post) | **POST** /ddb | 
-[**etl_delete_execution_options**](DefaultApi.md#etl_delete_execution_options) | **OPTIONS** /etl/delete-execution | 
-[**etl_delete_execution_post**](DefaultApi.md#etl_delete_execution_post) | **POST** /etl/delete-execution | 
-[**etl_execution_get**](DefaultApi.md#etl_execution_get) | **GET** /etl/execution | 
-[**etl_execution_options**](DefaultApi.md#etl_execution_options) | **OPTIONS** /etl/execution | 
-[**etl_list_execution_get**](DefaultApi.md#etl_list_execution_get) | **GET** /etl/list-execution | 
-[**etl_list_execution_options**](DefaultApi.md#etl_list_execution_options) | **OPTIONS** /etl/list-execution | 
-[**etl_list_workspace_get**](DefaultApi.md#etl_list_workspace_get) | **GET** /etl/list-workspace | 
-[**etl_list_workspace_options**](DefaultApi.md#etl_list_workspace_options) | **OPTIONS** /etl/list-workspace | 
-[**etl_options**](DefaultApi.md#etl_options) | **OPTIONS** /etl | 
-[**etl_post**](DefaultApi.md#etl_post) | **POST** /etl | 
-[**etl_upload_s3_url_options**](DefaultApi.md#etl_upload_s3_url_options) | **OPTIONS** /etl/upload-s3-url | 
-[**etl_upload_s3_url_post**](DefaultApi.md#etl_upload_s3_url_post) | **POST** /etl/upload-s3-url | 
+[**chat_history_messages_get**](DefaultApi.md#chat_history_messages_get) | **GET** /chat-history/messages | 
+[**chat_history_messages_options**](DefaultApi.md#chat_history_messages_options) | **OPTIONS** /chat-history/messages | 
+[**chat_history_options**](DefaultApi.md#chat_history_options) | **OPTIONS** /chat-history | 
+[**chat_history_post**](DefaultApi.md#chat_history_post) | **POST** /chat-history | 
+[**chat_history_sessions_get**](DefaultApi.md#chat_history_sessions_get) | **GET** /chat-history/sessions | 
+[**chat_history_sessions_options**](DefaultApi.md#chat_history_sessions_options) | **OPTIONS** /chat-history/sessions | 
+[**chatbot_management_chatbots_get**](DefaultApi.md#chatbot_management_chatbots_get) | **GET** /chatbot-management/chatbots | 
+[**chatbot_management_chatbots_options**](DefaultApi.md#chatbot_management_chatbots_options) | **OPTIONS** /chatbot-management/chatbots | 
+[**chatbot_management_chatbots_post**](DefaultApi.md#chatbot_management_chatbots_post) | **POST** /chatbot-management/chatbots | 
+[**chatbot_management_options**](DefaultApi.md#chatbot_management_options) | **OPTIONS** /chatbot-management | 
 [**extract_options**](DefaultApi.md#extract_options) | **OPTIONS** /extract | 
 [**extract_post**](DefaultApi.md#extract_post) | **POST** /extract | 
+[**knowledge_base_executions_delete**](DefaultApi.md#knowledge_base_executions_delete) | **DELETE** /knowledge-base/executions | 
+[**knowledge_base_executions_execution_id_get**](DefaultApi.md#knowledge_base_executions_execution_id_get) | **GET** /knowledge-base/executions/{executionId} | 
+[**knowledge_base_executions_execution_id_options**](DefaultApi.md#knowledge_base_executions_execution_id_options) | **OPTIONS** /knowledge-base/executions/{executionId} | 
+[**knowledge_base_executions_get**](DefaultApi.md#knowledge_base_executions_get) | **GET** /knowledge-base/executions | 
+[**knowledge_base_executions_options**](DefaultApi.md#knowledge_base_executions_options) | **OPTIONS** /knowledge-base/executions | 
+[**knowledge_base_executions_post**](DefaultApi.md#knowledge_base_executions_post) | **POST** /knowledge-base/executions | 
+[**knowledge_base_kb_presigned_url_options**](DefaultApi.md#knowledge_base_kb_presigned_url_options) | **OPTIONS** /knowledge-base/kb-presigned-url | 
+[**knowledge_base_kb_presigned_url_post**](DefaultApi.md#knowledge_base_kb_presigned_url_post) | **POST** /knowledge-base/kb-presigned-url | 
+[**knowledge_base_options**](DefaultApi.md#knowledge_base_options) | **OPTIONS** /knowledge-base | 
 [**llm_options**](DefaultApi.md#llm_options) | **OPTIONS** /llm | 
 [**llm_post**](DefaultApi.md#llm_post) | **POST** /llm | 
 [**prompt_management_models_get**](DefaultApi.md#prompt_management_models_get) | **GET** /prompt-management/models | 
@@ -56,10 +55,10 @@ import openapi_client
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod
+# Defining the host is optional and defaults to https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod"
+    host = "https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod"
 )
 
 # The client must configure the authentication and authorization parameters
@@ -128,10 +127,10 @@ import openapi_client
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod
+# Defining the host is optional and defaults to https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod"
+    host = "https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod"
 )
 
 
@@ -187,10 +186,10 @@ import openapi_client
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod
+# Defining the host is optional and defaults to https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod"
+    host = "https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod"
 )
 
 # The client must configure the authentication and authorization parameters
@@ -246,66 +245,8 @@ This endpoint does not need any parameter.
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-# **batch_options**
-> batch_options()
-
-
-
-### Example
-
-
-```python
-import openapi_client
-from openapi_client.rest import ApiException
-from pprint import pprint
-
-# Defining the host is optional and defaults to https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod
-# See configuration.py for a list of all supported configuration parameters.
-configuration = openapi_client.Configuration(
-    host = "https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod"
-)
-
-
-# Enter a context with an instance of the API client
-with openapi_client.ApiClient(configuration) as api_client:
-    # Create an instance of the API class
-    api_instance = openapi_client.DefaultApi(api_client)
-
-    try:
-        api_instance.batch_options()
-    except Exception as e:
-        print("Exception when calling DefaultApi->batch_options: %s\n" % e)
-```
-
-
-
-### Parameters
-
-This endpoint does not need any parameter.
-
-### Return type
-
-void (empty response body)
-
-### Authorization
-
-No authorization required
-
-### HTTP request headers
-
- - **Content-Type**: Not defined
- - **Accept**: Not defined
-
-### HTTP response details
-
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-**204** | 204 response |  * Access-Control-Allow-Origin -  <br>  * Access-Control-Allow-Methods -  <br>  * Access-Control-Allow-Credentials -  <br>  * Access-Control-Allow-Headers -  <br>  |
-
-[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-
-# **batch_post**
-> object batch_post()
+# **chat_history_messages_get**
+> object chat_history_messages_get()
 
 
 
@@ -318,10 +259,10 @@ import openapi_client
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod
+# Defining the host is optional and defaults to https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod"
+    host = "https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod"
 )
 
 # The client must configure the authentication and authorization parameters
@@ -341,11 +282,11 @@ with openapi_client.ApiClient(configuration) as api_client:
     api_instance = openapi_client.DefaultApi(api_client)
 
     try:
-        api_response = api_instance.batch_post()
-        print("The response of DefaultApi->batch_post:\n")
+        api_response = api_instance.chat_history_messages_get()
+        print("The response of DefaultApi->chat_history_messages_get:\n")
         pprint(api_response)
     except Exception as e:
-        print("Exception when calling DefaultApi->batch_post: %s\n" % e)
+        print("Exception when calling DefaultApi->chat_history_messages_get: %s\n" % e)
 ```
 
 
@@ -377,8 +318,124 @@ This endpoint does not need any parameter.
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-# **ddb_list_messages_get**
-> object ddb_list_messages_get()
+# **chat_history_messages_options**
+> chat_history_messages_options()
+
+
+
+### Example
+
+
+```python
+import openapi_client
+from openapi_client.rest import ApiException
+from pprint import pprint
+
+# Defining the host is optional and defaults to https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod
+# See configuration.py for a list of all supported configuration parameters.
+configuration = openapi_client.Configuration(
+    host = "https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod"
+)
+
+
+# Enter a context with an instance of the API client
+with openapi_client.ApiClient(configuration) as api_client:
+    # Create an instance of the API class
+    api_instance = openapi_client.DefaultApi(api_client)
+
+    try:
+        api_instance.chat_history_messages_options()
+    except Exception as e:
+        print("Exception when calling DefaultApi->chat_history_messages_options: %s\n" % e)
+```
+
+
+
+### Parameters
+
+This endpoint does not need any parameter.
+
+### Return type
+
+void (empty response body)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: Not defined
+
+### HTTP response details
+
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+**204** | 204 response |  * Access-Control-Allow-Origin -  <br>  * Access-Control-Allow-Methods -  <br>  * Access-Control-Allow-Credentials -  <br>  * Access-Control-Allow-Headers -  <br>  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **chat_history_options**
+> chat_history_options()
+
+
+
+### Example
+
+
+```python
+import openapi_client
+from openapi_client.rest import ApiException
+from pprint import pprint
+
+# Defining the host is optional and defaults to https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod
+# See configuration.py for a list of all supported configuration parameters.
+configuration = openapi_client.Configuration(
+    host = "https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod"
+)
+
+
+# Enter a context with an instance of the API client
+with openapi_client.ApiClient(configuration) as api_client:
+    # Create an instance of the API class
+    api_instance = openapi_client.DefaultApi(api_client)
+
+    try:
+        api_instance.chat_history_options()
+    except Exception as e:
+        print("Exception when calling DefaultApi->chat_history_options: %s\n" % e)
+```
+
+
+
+### Parameters
+
+This endpoint does not need any parameter.
+
+### Return type
+
+void (empty response body)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: Not defined
+
+### HTTP response details
+
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+**204** | 204 response |  * Access-Control-Allow-Origin -  <br>  * Access-Control-Allow-Methods -  <br>  * Access-Control-Allow-Credentials -  <br>  * Access-Control-Allow-Headers -  <br>  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **chat_history_post**
+> object chat_history_post()
 
 
 
@@ -391,10 +448,10 @@ import openapi_client
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod
+# Defining the host is optional and defaults to https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod"
+    host = "https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod"
 )
 
 # The client must configure the authentication and authorization parameters
@@ -414,11 +471,11 @@ with openapi_client.ApiClient(configuration) as api_client:
     api_instance = openapi_client.DefaultApi(api_client)
 
     try:
-        api_response = api_instance.ddb_list_messages_get()
-        print("The response of DefaultApi->ddb_list_messages_get:\n")
+        api_response = api_instance.chat_history_post()
+        print("The response of DefaultApi->chat_history_post:\n")
         pprint(api_response)
     except Exception as e:
-        print("Exception when calling DefaultApi->ddb_list_messages_get: %s\n" % e)
+        print("Exception when calling DefaultApi->chat_history_post: %s\n" % e)
 ```
 
 
@@ -450,66 +507,8 @@ This endpoint does not need any parameter.
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-# **ddb_list_messages_options**
-> ddb_list_messages_options()
-
-
-
-### Example
-
-
-```python
-import openapi_client
-from openapi_client.rest import ApiException
-from pprint import pprint
-
-# Defining the host is optional and defaults to https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod
-# See configuration.py for a list of all supported configuration parameters.
-configuration = openapi_client.Configuration(
-    host = "https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod"
-)
-
-
-# Enter a context with an instance of the API client
-with openapi_client.ApiClient(configuration) as api_client:
-    # Create an instance of the API class
-    api_instance = openapi_client.DefaultApi(api_client)
-
-    try:
-        api_instance.ddb_list_messages_options()
-    except Exception as e:
-        print("Exception when calling DefaultApi->ddb_list_messages_options: %s\n" % e)
-```
-
-
-
-### Parameters
-
-This endpoint does not need any parameter.
-
-### Return type
-
-void (empty response body)
-
-### Authorization
-
-No authorization required
-
-### HTTP request headers
-
- - **Content-Type**: Not defined
- - **Accept**: Not defined
-
-### HTTP response details
-
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-**204** | 204 response |  * Access-Control-Allow-Origin -  <br>  * Access-Control-Allow-Methods -  <br>  * Access-Control-Allow-Credentials -  <br>  * Access-Control-Allow-Headers -  <br>  |
-
-[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-
-# **ddb_list_sessions_get**
-> object ddb_list_sessions_get()
+# **chat_history_sessions_get**
+> object chat_history_sessions_get()
 
 
 
@@ -522,10 +521,10 @@ import openapi_client
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod
+# Defining the host is optional and defaults to https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod"
+    host = "https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod"
 )
 
 # The client must configure the authentication and authorization parameters
@@ -545,11 +544,11 @@ with openapi_client.ApiClient(configuration) as api_client:
     api_instance = openapi_client.DefaultApi(api_client)
 
     try:
-        api_response = api_instance.ddb_list_sessions_get()
-        print("The response of DefaultApi->ddb_list_sessions_get:\n")
+        api_response = api_instance.chat_history_sessions_get()
+        print("The response of DefaultApi->chat_history_sessions_get:\n")
         pprint(api_response)
     except Exception as e:
-        print("Exception when calling DefaultApi->ddb_list_sessions_get: %s\n" % e)
+        print("Exception when calling DefaultApi->chat_history_sessions_get: %s\n" % e)
 ```
 
 
@@ -581,8 +580,8 @@ This endpoint does not need any parameter.
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-# **ddb_list_sessions_options**
-> ddb_list_sessions_options()
+# **chat_history_sessions_options**
+> chat_history_sessions_options()
 
 
 
@@ -594,10 +593,10 @@ import openapi_client
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod
+# Defining the host is optional and defaults to https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod"
+    host = "https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod"
 )
 
 
@@ -607,9 +606,9 @@ with openapi_client.ApiClient(configuration) as api_client:
     api_instance = openapi_client.DefaultApi(api_client)
 
     try:
-        api_instance.ddb_list_sessions_options()
+        api_instance.chat_history_sessions_options()
     except Exception as e:
-        print("Exception when calling DefaultApi->ddb_list_sessions_options: %s\n" % e)
+        print("Exception when calling DefaultApi->chat_history_sessions_options: %s\n" % e)
 ```
 
 
@@ -639,66 +638,8 @@ No authorization required
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-# **ddb_options**
-> ddb_options()
-
-
-
-### Example
-
-
-```python
-import openapi_client
-from openapi_client.rest import ApiException
-from pprint import pprint
-
-# Defining the host is optional and defaults to https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod
-# See configuration.py for a list of all supported configuration parameters.
-configuration = openapi_client.Configuration(
-    host = "https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod"
-)
-
-
-# Enter a context with an instance of the API client
-with openapi_client.ApiClient(configuration) as api_client:
-    # Create an instance of the API class
-    api_instance = openapi_client.DefaultApi(api_client)
-
-    try:
-        api_instance.ddb_options()
-    except Exception as e:
-        print("Exception when calling DefaultApi->ddb_options: %s\n" % e)
-```
-
-
-
-### Parameters
-
-This endpoint does not need any parameter.
-
-### Return type
-
-void (empty response body)
-
-### Authorization
-
-No authorization required
-
-### HTTP request headers
-
- - **Content-Type**: Not defined
- - **Accept**: Not defined
-
-### HTTP response details
-
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-**204** | 204 response |  * Access-Control-Allow-Origin -  <br>  * Access-Control-Allow-Methods -  <br>  * Access-Control-Allow-Credentials -  <br>  * Access-Control-Allow-Headers -  <br>  |
-
-[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-
-# **ddb_post**
-> object ddb_post()
+# **chatbot_management_chatbots_get**
+> object chatbot_management_chatbots_get()
 
 
 
@@ -711,10 +652,10 @@ import openapi_client
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod
+# Defining the host is optional and defaults to https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod"
+    host = "https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod"
 )
 
 # The client must configure the authentication and authorization parameters
@@ -734,11 +675,11 @@ with openapi_client.ApiClient(configuration) as api_client:
     api_instance = openapi_client.DefaultApi(api_client)
 
     try:
-        api_response = api_instance.ddb_post()
-        print("The response of DefaultApi->ddb_post:\n")
+        api_response = api_instance.chatbot_management_chatbots_get()
+        print("The response of DefaultApi->chatbot_management_chatbots_get:\n")
         pprint(api_response)
     except Exception as e:
-        print("Exception when calling DefaultApi->ddb_post: %s\n" % e)
+        print("Exception when calling DefaultApi->chatbot_management_chatbots_get: %s\n" % e)
 ```
 
 
@@ -770,8 +711,8 @@ This endpoint does not need any parameter.
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-# **etl_delete_execution_options**
-> etl_delete_execution_options()
+# **chatbot_management_chatbots_options**
+> chatbot_management_chatbots_options()
 
 
 
@@ -783,10 +724,10 @@ import openapi_client
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod
+# Defining the host is optional and defaults to https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod"
+    host = "https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod"
 )
 
 
@@ -796,9 +737,9 @@ with openapi_client.ApiClient(configuration) as api_client:
     api_instance = openapi_client.DefaultApi(api_client)
 
     try:
-        api_instance.etl_delete_execution_options()
+        api_instance.chatbot_management_chatbots_options()
     except Exception as e:
-        print("Exception when calling DefaultApi->etl_delete_execution_options: %s\n" % e)
+        print("Exception when calling DefaultApi->chatbot_management_chatbots_options: %s\n" % e)
 ```
 
 
@@ -828,8 +769,8 @@ No authorization required
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-# **etl_delete_execution_post**
-> Intellapicojs5mziOpCNDS etl_delete_execution_post(intellapicov_m_mwzxd_qlz_vd)
+# **chatbot_management_chatbots_post**
+> object chatbot_management_chatbots_post()
 
 
 
@@ -839,366 +780,13 @@ No authorization required
 
 ```python
 import openapi_client
-from openapi_client.models.intellapicojs5mzi_op_cnds import Intellapicojs5mziOpCNDS
-from openapi_client.models.intellapicov_m_mwzxd_qlz_vd import IntellapicovMMwzxdQlzVd
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod
+# Defining the host is optional and defaults to https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod"
-)
-
-# The client must configure the authentication and authorization parameters
-# in accordance with the API server security policy.
-# Examples for each auth method are provided below, use the example that
-# satisfies your auth use case.
-
-# Configure API key authorization: intelliagentapiconstructApiAuthorizerFB94A0DF
-configuration.api_key['intelliagentapiconstructApiAuthorizerFB94A0DF'] = os.environ["API_KEY"]
-
-# Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
-# configuration.api_key_prefix['intelliagentapiconstructApiAuthorizerFB94A0DF'] = 'Bearer'
-
-# Enter a context with an instance of the API client
-with openapi_client.ApiClient(configuration) as api_client:
-    # Create an instance of the API class
-    api_instance = openapi_client.DefaultApi(api_client)
-    intellapicov_m_mwzxd_qlz_vd = openapi_client.IntellapicovMMwzxdQlzVd() # IntellapicovMMwzxdQlzVd | 
-
-    try:
-        api_response = api_instance.etl_delete_execution_post(intellapicov_m_mwzxd_qlz_vd)
-        print("The response of DefaultApi->etl_delete_execution_post:\n")
-        pprint(api_response)
-    except Exception as e:
-        print("Exception when calling DefaultApi->etl_delete_execution_post: %s\n" % e)
-```
-
-
-
-### Parameters
-
-
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **intellapicov_m_mwzxd_qlz_vd** | [**IntellapicovMMwzxdQlzVd**](IntellapicovMMwzxdQlzVd.md)|  | 
-
-### Return type
-
-[**Intellapicojs5mziOpCNDS**](Intellapicojs5mziOpCNDS.md)
-
-### Authorization
-
-[intelliagentapiconstructApiAuthorizerFB94A0DF](../README.md#intelliagentapiconstructApiAuthorizerFB94A0DF)
-
-### HTTP request headers
-
- - **Content-Type**: application/json
- - **Accept**: application/json
-
-### HTTP response details
-
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-**400** | 400 response |  -  |
-**500** | 500 response |  -  |
-**200** | 200 response |  -  |
-
-[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-
-# **etl_execution_get**
-> IntellapicoL9zyN3IdG4Fk etl_execution_get(execution_id=execution_id)
-
-
-
-### Example
-
-* Api Key Authentication (intelliagentapiconstructApiAuthorizerFB94A0DF):
-
-```python
-import openapi_client
-from openapi_client.models.intellapico_l9zy_n3_id_g4_fk import IntellapicoL9zyN3IdG4Fk
-from openapi_client.rest import ApiException
-from pprint import pprint
-
-# Defining the host is optional and defaults to https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod
-# See configuration.py for a list of all supported configuration parameters.
-configuration = openapi_client.Configuration(
-    host = "https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod"
-)
-
-# The client must configure the authentication and authorization parameters
-# in accordance with the API server security policy.
-# Examples for each auth method are provided below, use the example that
-# satisfies your auth use case.
-
-# Configure API key authorization: intelliagentapiconstructApiAuthorizerFB94A0DF
-configuration.api_key['intelliagentapiconstructApiAuthorizerFB94A0DF'] = os.environ["API_KEY"]
-
-# Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
-# configuration.api_key_prefix['intelliagentapiconstructApiAuthorizerFB94A0DF'] = 'Bearer'
-
-# Enter a context with an instance of the API client
-with openapi_client.ApiClient(configuration) as api_client:
-    # Create an instance of the API class
-    api_instance = openapi_client.DefaultApi(api_client)
-    execution_id = 'execution_id_example' # str |  (optional)
-
-    try:
-        api_response = api_instance.etl_execution_get(execution_id=execution_id)
-        print("The response of DefaultApi->etl_execution_get:\n")
-        pprint(api_response)
-    except Exception as e:
-        print("Exception when calling DefaultApi->etl_execution_get: %s\n" % e)
-```
-
-
-
-### Parameters
-
-
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **execution_id** | **str**|  | [optional] 
-
-### Return type
-
-[**IntellapicoL9zyN3IdG4Fk**](IntellapicoL9zyN3IdG4Fk.md)
-
-### Authorization
-
-[intelliagentapiconstructApiAuthorizerFB94A0DF](../README.md#intelliagentapiconstructApiAuthorizerFB94A0DF)
-
-### HTTP request headers
-
- - **Content-Type**: Not defined
- - **Accept**: application/json
-
-### HTTP response details
-
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-**400** | 400 response |  -  |
-**500** | 500 response |  -  |
-**200** | 200 response |  -  |
-
-[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-
-# **etl_execution_options**
-> etl_execution_options()
-
-
-
-### Example
-
-
-```python
-import openapi_client
-from openapi_client.rest import ApiException
-from pprint import pprint
-
-# Defining the host is optional and defaults to https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod
-# See configuration.py for a list of all supported configuration parameters.
-configuration = openapi_client.Configuration(
-    host = "https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod"
-)
-
-
-# Enter a context with an instance of the API client
-with openapi_client.ApiClient(configuration) as api_client:
-    # Create an instance of the API class
-    api_instance = openapi_client.DefaultApi(api_client)
-
-    try:
-        api_instance.etl_execution_options()
-    except Exception as e:
-        print("Exception when calling DefaultApi->etl_execution_options: %s\n" % e)
-```
-
-
-
-### Parameters
-
-This endpoint does not need any parameter.
-
-### Return type
-
-void (empty response body)
-
-### Authorization
-
-No authorization required
-
-### HTTP request headers
-
- - **Content-Type**: Not defined
- - **Accept**: Not defined
-
-### HTTP response details
-
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-**204** | 204 response |  * Access-Control-Allow-Origin -  <br>  * Access-Control-Allow-Methods -  <br>  * Access-Control-Allow-Credentials -  <br>  * Access-Control-Allow-Headers -  <br>  |
-
-[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-
-# **etl_list_execution_get**
-> IntellapicoOYWAgDRMKvGu etl_list_execution_get(page_size=page_size, max_items=max_items)
-
-
-
-### Example
-
-* Api Key Authentication (intelliagentapiconstructApiAuthorizerFB94A0DF):
-
-```python
-import openapi_client
-from openapi_client.models.intellapico_oywag_drmkv_gu import IntellapicoOYWAgDRMKvGu
-from openapi_client.rest import ApiException
-from pprint import pprint
-
-# Defining the host is optional and defaults to https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod
-# See configuration.py for a list of all supported configuration parameters.
-configuration = openapi_client.Configuration(
-    host = "https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod"
-)
-
-# The client must configure the authentication and authorization parameters
-# in accordance with the API server security policy.
-# Examples for each auth method are provided below, use the example that
-# satisfies your auth use case.
-
-# Configure API key authorization: intelliagentapiconstructApiAuthorizerFB94A0DF
-configuration.api_key['intelliagentapiconstructApiAuthorizerFB94A0DF'] = os.environ["API_KEY"]
-
-# Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
-# configuration.api_key_prefix['intelliagentapiconstructApiAuthorizerFB94A0DF'] = 'Bearer'
-
-# Enter a context with an instance of the API client
-with openapi_client.ApiClient(configuration) as api_client:
-    # Create an instance of the API class
-    api_instance = openapi_client.DefaultApi(api_client)
-    page_size = 'page_size_example' # str |  (optional)
-    max_items = 'max_items_example' # str |  (optional)
-
-    try:
-        api_response = api_instance.etl_list_execution_get(page_size=page_size, max_items=max_items)
-        print("The response of DefaultApi->etl_list_execution_get:\n")
-        pprint(api_response)
-    except Exception as e:
-        print("Exception when calling DefaultApi->etl_list_execution_get: %s\n" % e)
-```
-
-
-
-### Parameters
-
-
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **page_size** | **str**|  | [optional] 
- **max_items** | **str**|  | [optional] 
-
-### Return type
-
-[**IntellapicoOYWAgDRMKvGu**](IntellapicoOYWAgDRMKvGu.md)
-
-### Authorization
-
-[intelliagentapiconstructApiAuthorizerFB94A0DF](../README.md#intelliagentapiconstructApiAuthorizerFB94A0DF)
-
-### HTTP request headers
-
- - **Content-Type**: Not defined
- - **Accept**: application/json
-
-### HTTP response details
-
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-**400** | 400 response |  -  |
-**500** | 500 response |  -  |
-**200** | 200 response |  -  |
-
-[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-
-# **etl_list_execution_options**
-> etl_list_execution_options()
-
-
-
-### Example
-
-
-```python
-import openapi_client
-from openapi_client.rest import ApiException
-from pprint import pprint
-
-# Defining the host is optional and defaults to https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod
-# See configuration.py for a list of all supported configuration parameters.
-configuration = openapi_client.Configuration(
-    host = "https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod"
-)
-
-
-# Enter a context with an instance of the API client
-with openapi_client.ApiClient(configuration) as api_client:
-    # Create an instance of the API class
-    api_instance = openapi_client.DefaultApi(api_client)
-
-    try:
-        api_instance.etl_list_execution_options()
-    except Exception as e:
-        print("Exception when calling DefaultApi->etl_list_execution_options: %s\n" % e)
-```
-
-
-
-### Parameters
-
-This endpoint does not need any parameter.
-
-### Return type
-
-void (empty response body)
-
-### Authorization
-
-No authorization required
-
-### HTTP request headers
-
- - **Content-Type**: Not defined
- - **Accept**: Not defined
-
-### HTTP response details
-
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-**204** | 204 response |  * Access-Control-Allow-Origin -  <br>  * Access-Control-Allow-Methods -  <br>  * Access-Control-Allow-Credentials -  <br>  * Access-Control-Allow-Headers -  <br>  |
-
-[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-
-# **etl_list_workspace_get**
-> object etl_list_workspace_get()
-
-
-
-### Example
-
-* Api Key Authentication (intelliagentapiconstructApiAuthorizerFB94A0DF):
-
-```python
-import openapi_client
-from openapi_client.rest import ApiException
-from pprint import pprint
-
-# Defining the host is optional and defaults to https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod
-# See configuration.py for a list of all supported configuration parameters.
-configuration = openapi_client.Configuration(
-    host = "https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod"
+    host = "https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod"
 )
 
 # The client must configure the authentication and authorization parameters
@@ -1218,11 +806,11 @@ with openapi_client.ApiClient(configuration) as api_client:
     api_instance = openapi_client.DefaultApi(api_client)
 
     try:
-        api_response = api_instance.etl_list_workspace_get()
-        print("The response of DefaultApi->etl_list_workspace_get:\n")
+        api_response = api_instance.chatbot_management_chatbots_post()
+        print("The response of DefaultApi->chatbot_management_chatbots_post:\n")
         pprint(api_response)
     except Exception as e:
-        print("Exception when calling DefaultApi->etl_list_workspace_get: %s\n" % e)
+        print("Exception when calling DefaultApi->chatbot_management_chatbots_post: %s\n" % e)
 ```
 
 
@@ -1254,8 +842,8 @@ This endpoint does not need any parameter.
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-# **etl_list_workspace_options**
-> etl_list_workspace_options()
+# **chatbot_management_options**
+> chatbot_management_options()
 
 
 
@@ -1267,10 +855,10 @@ import openapi_client
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod
+# Defining the host is optional and defaults to https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod"
+    host = "https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod"
 )
 
 
@@ -1280,9 +868,9 @@ with openapi_client.ApiClient(configuration) as api_client:
     api_instance = openapi_client.DefaultApi(api_client)
 
     try:
-        api_instance.etl_list_workspace_options()
+        api_instance.chatbot_management_options()
     except Exception as e:
-        print("Exception when calling DefaultApi->etl_list_workspace_options: %s\n" % e)
+        print("Exception when calling DefaultApi->chatbot_management_options: %s\n" % e)
 ```
 
 
@@ -1309,274 +897,6 @@ No authorization required
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 **204** | 204 response |  * Access-Control-Allow-Origin -  <br>  * Access-Control-Allow-Methods -  <br>  * Access-Control-Allow-Credentials -  <br>  * Access-Control-Allow-Headers -  <br>  |
-
-[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-
-# **etl_options**
-> etl_options()
-
-
-
-### Example
-
-
-```python
-import openapi_client
-from openapi_client.rest import ApiException
-from pprint import pprint
-
-# Defining the host is optional and defaults to https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod
-# See configuration.py for a list of all supported configuration parameters.
-configuration = openapi_client.Configuration(
-    host = "https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod"
-)
-
-
-# Enter a context with an instance of the API client
-with openapi_client.ApiClient(configuration) as api_client:
-    # Create an instance of the API class
-    api_instance = openapi_client.DefaultApi(api_client)
-
-    try:
-        api_instance.etl_options()
-    except Exception as e:
-        print("Exception when calling DefaultApi->etl_options: %s\n" % e)
-```
-
-
-
-### Parameters
-
-This endpoint does not need any parameter.
-
-### Return type
-
-void (empty response body)
-
-### Authorization
-
-No authorization required
-
-### HTTP request headers
-
- - **Content-Type**: Not defined
- - **Accept**: Not defined
-
-### HTTP response details
-
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-**204** | 204 response |  * Access-Control-Allow-Origin -  <br>  * Access-Control-Allow-Methods -  <br>  * Access-Control-Allow-Credentials -  <br>  * Access-Control-Allow-Headers -  <br>  |
-
-[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-
-# **etl_post**
-> object etl_post()
-
-
-
-### Example
-
-* Api Key Authentication (intelliagentapiconstructApiAuthorizerFB94A0DF):
-
-```python
-import openapi_client
-from openapi_client.rest import ApiException
-from pprint import pprint
-
-# Defining the host is optional and defaults to https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod
-# See configuration.py for a list of all supported configuration parameters.
-configuration = openapi_client.Configuration(
-    host = "https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod"
-)
-
-# The client must configure the authentication and authorization parameters
-# in accordance with the API server security policy.
-# Examples for each auth method are provided below, use the example that
-# satisfies your auth use case.
-
-# Configure API key authorization: intelliagentapiconstructApiAuthorizerFB94A0DF
-configuration.api_key['intelliagentapiconstructApiAuthorizerFB94A0DF'] = os.environ["API_KEY"]
-
-# Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
-# configuration.api_key_prefix['intelliagentapiconstructApiAuthorizerFB94A0DF'] = 'Bearer'
-
-# Enter a context with an instance of the API client
-with openapi_client.ApiClient(configuration) as api_client:
-    # Create an instance of the API class
-    api_instance = openapi_client.DefaultApi(api_client)
-
-    try:
-        api_response = api_instance.etl_post()
-        print("The response of DefaultApi->etl_post:\n")
-        pprint(api_response)
-    except Exception as e:
-        print("Exception when calling DefaultApi->etl_post: %s\n" % e)
-```
-
-
-
-### Parameters
-
-This endpoint does not need any parameter.
-
-### Return type
-
-**object**
-
-### Authorization
-
-[intelliagentapiconstructApiAuthorizerFB94A0DF](../README.md#intelliagentapiconstructApiAuthorizerFB94A0DF)
-
-### HTTP request headers
-
- - **Content-Type**: Not defined
- - **Accept**: application/json
-
-### HTTP response details
-
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-**400** | 400 response |  -  |
-**500** | 500 response |  -  |
-**200** | 200 response |  -  |
-
-[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-
-# **etl_upload_s3_url_options**
-> etl_upload_s3_url_options()
-
-
-
-### Example
-
-
-```python
-import openapi_client
-from openapi_client.rest import ApiException
-from pprint import pprint
-
-# Defining the host is optional and defaults to https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod
-# See configuration.py for a list of all supported configuration parameters.
-configuration = openapi_client.Configuration(
-    host = "https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod"
-)
-
-
-# Enter a context with an instance of the API client
-with openapi_client.ApiClient(configuration) as api_client:
-    # Create an instance of the API class
-    api_instance = openapi_client.DefaultApi(api_client)
-
-    try:
-        api_instance.etl_upload_s3_url_options()
-    except Exception as e:
-        print("Exception when calling DefaultApi->etl_upload_s3_url_options: %s\n" % e)
-```
-
-
-
-### Parameters
-
-This endpoint does not need any parameter.
-
-### Return type
-
-void (empty response body)
-
-### Authorization
-
-No authorization required
-
-### HTTP request headers
-
- - **Content-Type**: Not defined
- - **Accept**: Not defined
-
-### HTTP response details
-
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-**204** | 204 response |  * Access-Control-Allow-Origin -  <br>  * Access-Control-Allow-Methods -  <br>  * Access-Control-Allow-Credentials -  <br>  * Access-Control-Allow-Headers -  <br>  |
-
-[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
-
-# **etl_upload_s3_url_post**
-> Intellapicox3CAt3KYt0ws etl_upload_s3_url_post(intellapico6_cf_x42_se4l_je)
-
-
-
-### Example
-
-* Api Key Authentication (intelliagentapiconstructApiAuthorizerFB94A0DF):
-
-```python
-import openapi_client
-from openapi_client.models.intellapico6_cf_x42_se4l_je import Intellapico6CfX42Se4lJe
-from openapi_client.models.intellapicox3_cat3_kyt0ws import Intellapicox3CAt3KYt0ws
-from openapi_client.rest import ApiException
-from pprint import pprint
-
-# Defining the host is optional and defaults to https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod
-# See configuration.py for a list of all supported configuration parameters.
-configuration = openapi_client.Configuration(
-    host = "https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod"
-)
-
-# The client must configure the authentication and authorization parameters
-# in accordance with the API server security policy.
-# Examples for each auth method are provided below, use the example that
-# satisfies your auth use case.
-
-# Configure API key authorization: intelliagentapiconstructApiAuthorizerFB94A0DF
-configuration.api_key['intelliagentapiconstructApiAuthorizerFB94A0DF'] = os.environ["API_KEY"]
-
-# Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
-# configuration.api_key_prefix['intelliagentapiconstructApiAuthorizerFB94A0DF'] = 'Bearer'
-
-# Enter a context with an instance of the API client
-with openapi_client.ApiClient(configuration) as api_client:
-    # Create an instance of the API class
-    api_instance = openapi_client.DefaultApi(api_client)
-    intellapico6_cf_x42_se4l_je = openapi_client.Intellapico6CfX42Se4lJe() # Intellapico6CfX42Se4lJe | 
-
-    try:
-        api_response = api_instance.etl_upload_s3_url_post(intellapico6_cf_x42_se4l_je)
-        print("The response of DefaultApi->etl_upload_s3_url_post:\n")
-        pprint(api_response)
-    except Exception as e:
-        print("Exception when calling DefaultApi->etl_upload_s3_url_post: %s\n" % e)
-```
-
-
-
-### Parameters
-
-
-Name | Type | Description  | Notes
-------------- | ------------- | ------------- | -------------
- **intellapico6_cf_x42_se4l_je** | [**Intellapico6CfX42Se4lJe**](Intellapico6CfX42Se4lJe.md)|  | 
-
-### Return type
-
-[**Intellapicox3CAt3KYt0ws**](Intellapicox3CAt3KYt0ws.md)
-
-### Authorization
-
-[intelliagentapiconstructApiAuthorizerFB94A0DF](../README.md#intelliagentapiconstructApiAuthorizerFB94A0DF)
-
-### HTTP request headers
-
- - **Content-Type**: application/json
- - **Accept**: application/json
-
-### HTTP response details
-
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-**400** | 400 response |  -  |
-**500** | 500 response |  -  |
-**200** | 200 response |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
@@ -1593,10 +913,10 @@ import openapi_client
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod
+# Defining the host is optional and defaults to https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod"
+    host = "https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod"
 )
 
 
@@ -1652,10 +972,10 @@ import openapi_client
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod
+# Defining the host is optional and defaults to https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod"
+    host = "https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod"
 )
 
 # The client must configure the authentication and authorization parameters
@@ -1711,6 +1031,631 @@ This endpoint does not need any parameter.
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
+# **knowledge_base_executions_delete**
+> IntellapicooRaF6JYGkSXc knowledge_base_executions_delete(intellapicobi_goe5_lboi9l)
+
+
+
+### Example
+
+* Api Key Authentication (intelliagentapiconstructApiAuthorizerFB94A0DF):
+
+```python
+import openapi_client
+from openapi_client.models.intellapicobi_goe5_lboi9l import IntellapicobiGoe5Lboi9l
+from openapi_client.models.intellapicoo_ra_f6_jygk_sxc import IntellapicooRaF6JYGkSXc
+from openapi_client.rest import ApiException
+from pprint import pprint
+
+# Defining the host is optional and defaults to https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod
+# See configuration.py for a list of all supported configuration parameters.
+configuration = openapi_client.Configuration(
+    host = "https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod"
+)
+
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
+
+# Configure API key authorization: intelliagentapiconstructApiAuthorizerFB94A0DF
+configuration.api_key['intelliagentapiconstructApiAuthorizerFB94A0DF'] = os.environ["API_KEY"]
+
+# Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
+# configuration.api_key_prefix['intelliagentapiconstructApiAuthorizerFB94A0DF'] = 'Bearer'
+
+# Enter a context with an instance of the API client
+with openapi_client.ApiClient(configuration) as api_client:
+    # Create an instance of the API class
+    api_instance = openapi_client.DefaultApi(api_client)
+    intellapicobi_goe5_lboi9l = openapi_client.IntellapicobiGoe5Lboi9l() # IntellapicobiGoe5Lboi9l | 
+
+    try:
+        api_response = api_instance.knowledge_base_executions_delete(intellapicobi_goe5_lboi9l)
+        print("The response of DefaultApi->knowledge_base_executions_delete:\n")
+        pprint(api_response)
+    except Exception as e:
+        print("Exception when calling DefaultApi->knowledge_base_executions_delete: %s\n" % e)
+```
+
+
+
+### Parameters
+
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **intellapicobi_goe5_lboi9l** | [**IntellapicobiGoe5Lboi9l**](IntellapicobiGoe5Lboi9l.md)|  | 
+
+### Return type
+
+[**IntellapicooRaF6JYGkSXc**](IntellapicooRaF6JYGkSXc.md)
+
+### Authorization
+
+[intelliagentapiconstructApiAuthorizerFB94A0DF](../README.md#intelliagentapiconstructApiAuthorizerFB94A0DF)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json
+
+### HTTP response details
+
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+**400** | 400 response |  -  |
+**500** | 500 response |  -  |
+**200** | 200 response |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **knowledge_base_executions_execution_id_get**
+> IntellapicoDVrhxLpgo6Jl knowledge_base_executions_execution_id_get(execution_id)
+
+
+
+### Example
+
+* Api Key Authentication (intelliagentapiconstructApiAuthorizerFB94A0DF):
+
+```python
+import openapi_client
+from openapi_client.models.intellapico_d_vrhx_lpgo6_jl import IntellapicoDVrhxLpgo6Jl
+from openapi_client.rest import ApiException
+from pprint import pprint
+
+# Defining the host is optional and defaults to https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod
+# See configuration.py for a list of all supported configuration parameters.
+configuration = openapi_client.Configuration(
+    host = "https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod"
+)
+
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
+
+# Configure API key authorization: intelliagentapiconstructApiAuthorizerFB94A0DF
+configuration.api_key['intelliagentapiconstructApiAuthorizerFB94A0DF'] = os.environ["API_KEY"]
+
+# Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
+# configuration.api_key_prefix['intelliagentapiconstructApiAuthorizerFB94A0DF'] = 'Bearer'
+
+# Enter a context with an instance of the API client
+with openapi_client.ApiClient(configuration) as api_client:
+    # Create an instance of the API class
+    api_instance = openapi_client.DefaultApi(api_client)
+    execution_id = 'execution_id_example' # str | 
+
+    try:
+        api_response = api_instance.knowledge_base_executions_execution_id_get(execution_id)
+        print("The response of DefaultApi->knowledge_base_executions_execution_id_get:\n")
+        pprint(api_response)
+    except Exception as e:
+        print("Exception when calling DefaultApi->knowledge_base_executions_execution_id_get: %s\n" % e)
+```
+
+
+
+### Parameters
+
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **execution_id** | **str**|  | 
+
+### Return type
+
+[**IntellapicoDVrhxLpgo6Jl**](IntellapicoDVrhxLpgo6Jl.md)
+
+### Authorization
+
+[intelliagentapiconstructApiAuthorizerFB94A0DF](../README.md#intelliagentapiconstructApiAuthorizerFB94A0DF)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+### HTTP response details
+
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+**400** | 400 response |  -  |
+**500** | 500 response |  -  |
+**200** | 200 response |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **knowledge_base_executions_execution_id_options**
+> knowledge_base_executions_execution_id_options(execution_id)
+
+
+
+### Example
+
+
+```python
+import openapi_client
+from openapi_client.rest import ApiException
+from pprint import pprint
+
+# Defining the host is optional and defaults to https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod
+# See configuration.py for a list of all supported configuration parameters.
+configuration = openapi_client.Configuration(
+    host = "https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod"
+)
+
+
+# Enter a context with an instance of the API client
+with openapi_client.ApiClient(configuration) as api_client:
+    # Create an instance of the API class
+    api_instance = openapi_client.DefaultApi(api_client)
+    execution_id = 'execution_id_example' # str | 
+
+    try:
+        api_instance.knowledge_base_executions_execution_id_options(execution_id)
+    except Exception as e:
+        print("Exception when calling DefaultApi->knowledge_base_executions_execution_id_options: %s\n" % e)
+```
+
+
+
+### Parameters
+
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **execution_id** | **str**|  | 
+
+### Return type
+
+void (empty response body)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: Not defined
+
+### HTTP response details
+
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+**204** | 204 response |  * Access-Control-Allow-Origin -  <br>  * Access-Control-Allow-Methods -  <br>  * Access-Control-Allow-Credentials -  <br>  * Access-Control-Allow-Headers -  <br>  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **knowledge_base_executions_get**
+> IntellapicollZHBI8WaBMp knowledge_base_executions_get(page_size=page_size, max_items=max_items)
+
+
+
+### Example
+
+* Api Key Authentication (intelliagentapiconstructApiAuthorizerFB94A0DF):
+
+```python
+import openapi_client
+from openapi_client.models.intellapicoll_zhbi8_wa_bmp import IntellapicollZHBI8WaBMp
+from openapi_client.rest import ApiException
+from pprint import pprint
+
+# Defining the host is optional and defaults to https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod
+# See configuration.py for a list of all supported configuration parameters.
+configuration = openapi_client.Configuration(
+    host = "https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod"
+)
+
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
+
+# Configure API key authorization: intelliagentapiconstructApiAuthorizerFB94A0DF
+configuration.api_key['intelliagentapiconstructApiAuthorizerFB94A0DF'] = os.environ["API_KEY"]
+
+# Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
+# configuration.api_key_prefix['intelliagentapiconstructApiAuthorizerFB94A0DF'] = 'Bearer'
+
+# Enter a context with an instance of the API client
+with openapi_client.ApiClient(configuration) as api_client:
+    # Create an instance of the API class
+    api_instance = openapi_client.DefaultApi(api_client)
+    page_size = 'page_size_example' # str |  (optional)
+    max_items = 'max_items_example' # str |  (optional)
+
+    try:
+        api_response = api_instance.knowledge_base_executions_get(page_size=page_size, max_items=max_items)
+        print("The response of DefaultApi->knowledge_base_executions_get:\n")
+        pprint(api_response)
+    except Exception as e:
+        print("Exception when calling DefaultApi->knowledge_base_executions_get: %s\n" % e)
+```
+
+
+
+### Parameters
+
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **page_size** | **str**|  | [optional] 
+ **max_items** | **str**|  | [optional] 
+
+### Return type
+
+[**IntellapicollZHBI8WaBMp**](IntellapicollZHBI8WaBMp.md)
+
+### Authorization
+
+[intelliagentapiconstructApiAuthorizerFB94A0DF](../README.md#intelliagentapiconstructApiAuthorizerFB94A0DF)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+### HTTP response details
+
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+**400** | 400 response |  -  |
+**500** | 500 response |  -  |
+**200** | 200 response |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **knowledge_base_executions_options**
+> knowledge_base_executions_options()
+
+
+
+### Example
+
+
+```python
+import openapi_client
+from openapi_client.rest import ApiException
+from pprint import pprint
+
+# Defining the host is optional and defaults to https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod
+# See configuration.py for a list of all supported configuration parameters.
+configuration = openapi_client.Configuration(
+    host = "https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod"
+)
+
+
+# Enter a context with an instance of the API client
+with openapi_client.ApiClient(configuration) as api_client:
+    # Create an instance of the API class
+    api_instance = openapi_client.DefaultApi(api_client)
+
+    try:
+        api_instance.knowledge_base_executions_options()
+    except Exception as e:
+        print("Exception when calling DefaultApi->knowledge_base_executions_options: %s\n" % e)
+```
+
+
+
+### Parameters
+
+This endpoint does not need any parameter.
+
+### Return type
+
+void (empty response body)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: Not defined
+
+### HTTP response details
+
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+**204** | 204 response |  * Access-Control-Allow-Origin -  <br>  * Access-Control-Allow-Methods -  <br>  * Access-Control-Allow-Credentials -  <br>  * Access-Control-Allow-Headers -  <br>  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **knowledge_base_executions_post**
+> object knowledge_base_executions_post()
+
+
+
+### Example
+
+* Api Key Authentication (intelliagentapiconstructApiAuthorizerFB94A0DF):
+
+```python
+import openapi_client
+from openapi_client.rest import ApiException
+from pprint import pprint
+
+# Defining the host is optional and defaults to https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod
+# See configuration.py for a list of all supported configuration parameters.
+configuration = openapi_client.Configuration(
+    host = "https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod"
+)
+
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
+
+# Configure API key authorization: intelliagentapiconstructApiAuthorizerFB94A0DF
+configuration.api_key['intelliagentapiconstructApiAuthorizerFB94A0DF'] = os.environ["API_KEY"]
+
+# Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
+# configuration.api_key_prefix['intelliagentapiconstructApiAuthorizerFB94A0DF'] = 'Bearer'
+
+# Enter a context with an instance of the API client
+with openapi_client.ApiClient(configuration) as api_client:
+    # Create an instance of the API class
+    api_instance = openapi_client.DefaultApi(api_client)
+
+    try:
+        api_response = api_instance.knowledge_base_executions_post()
+        print("The response of DefaultApi->knowledge_base_executions_post:\n")
+        pprint(api_response)
+    except Exception as e:
+        print("Exception when calling DefaultApi->knowledge_base_executions_post: %s\n" % e)
+```
+
+
+
+### Parameters
+
+This endpoint does not need any parameter.
+
+### Return type
+
+**object**
+
+### Authorization
+
+[intelliagentapiconstructApiAuthorizerFB94A0DF](../README.md#intelliagentapiconstructApiAuthorizerFB94A0DF)
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: application/json
+
+### HTTP response details
+
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+**400** | 400 response |  -  |
+**500** | 500 response |  -  |
+**200** | 200 response |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **knowledge_base_kb_presigned_url_options**
+> knowledge_base_kb_presigned_url_options()
+
+
+
+### Example
+
+
+```python
+import openapi_client
+from openapi_client.rest import ApiException
+from pprint import pprint
+
+# Defining the host is optional and defaults to https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod
+# See configuration.py for a list of all supported configuration parameters.
+configuration = openapi_client.Configuration(
+    host = "https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod"
+)
+
+
+# Enter a context with an instance of the API client
+with openapi_client.ApiClient(configuration) as api_client:
+    # Create an instance of the API class
+    api_instance = openapi_client.DefaultApi(api_client)
+
+    try:
+        api_instance.knowledge_base_kb_presigned_url_options()
+    except Exception as e:
+        print("Exception when calling DefaultApi->knowledge_base_kb_presigned_url_options: %s\n" % e)
+```
+
+
+
+### Parameters
+
+This endpoint does not need any parameter.
+
+### Return type
+
+void (empty response body)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: Not defined
+
+### HTTP response details
+
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+**204** | 204 response |  * Access-Control-Allow-Origin -  <br>  * Access-Control-Allow-Methods -  <br>  * Access-Control-Allow-Credentials -  <br>  * Access-Control-Allow-Headers -  <br>  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **knowledge_base_kb_presigned_url_post**
+> IntellapicoaPl9oPKDboEh knowledge_base_kb_presigned_url_post(intellapicop_ale5_pxt4ttp)
+
+
+
+### Example
+
+* Api Key Authentication (intelliagentapiconstructApiAuthorizerFB94A0DF):
+
+```python
+import openapi_client
+from openapi_client.models.intellapicoa_pl9o_pk_dbo_eh import IntellapicoaPl9oPKDboEh
+from openapi_client.models.intellapicop_ale5_pxt4ttp import IntellapicopALE5PXT4ttp
+from openapi_client.rest import ApiException
+from pprint import pprint
+
+# Defining the host is optional and defaults to https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod
+# See configuration.py for a list of all supported configuration parameters.
+configuration = openapi_client.Configuration(
+    host = "https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod"
+)
+
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
+
+# Configure API key authorization: intelliagentapiconstructApiAuthorizerFB94A0DF
+configuration.api_key['intelliagentapiconstructApiAuthorizerFB94A0DF'] = os.environ["API_KEY"]
+
+# Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
+# configuration.api_key_prefix['intelliagentapiconstructApiAuthorizerFB94A0DF'] = 'Bearer'
+
+# Enter a context with an instance of the API client
+with openapi_client.ApiClient(configuration) as api_client:
+    # Create an instance of the API class
+    api_instance = openapi_client.DefaultApi(api_client)
+    intellapicop_ale5_pxt4ttp = openapi_client.IntellapicopALE5PXT4ttp() # IntellapicopALE5PXT4ttp | 
+
+    try:
+        api_response = api_instance.knowledge_base_kb_presigned_url_post(intellapicop_ale5_pxt4ttp)
+        print("The response of DefaultApi->knowledge_base_kb_presigned_url_post:\n")
+        pprint(api_response)
+    except Exception as e:
+        print("Exception when calling DefaultApi->knowledge_base_kb_presigned_url_post: %s\n" % e)
+```
+
+
+
+### Parameters
+
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **intellapicop_ale5_pxt4ttp** | [**IntellapicopALE5PXT4ttp**](IntellapicopALE5PXT4ttp.md)|  | 
+
+### Return type
+
+[**IntellapicoaPl9oPKDboEh**](IntellapicoaPl9oPKDboEh.md)
+
+### Authorization
+
+[intelliagentapiconstructApiAuthorizerFB94A0DF](../README.md#intelliagentapiconstructApiAuthorizerFB94A0DF)
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json
+
+### HTTP response details
+
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+**400** | 400 response |  -  |
+**500** | 500 response |  -  |
+**200** | 200 response |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **knowledge_base_options**
+> knowledge_base_options()
+
+
+
+### Example
+
+
+```python
+import openapi_client
+from openapi_client.rest import ApiException
+from pprint import pprint
+
+# Defining the host is optional and defaults to https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod
+# See configuration.py for a list of all supported configuration parameters.
+configuration = openapi_client.Configuration(
+    host = "https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod"
+)
+
+
+# Enter a context with an instance of the API client
+with openapi_client.ApiClient(configuration) as api_client:
+    # Create an instance of the API class
+    api_instance = openapi_client.DefaultApi(api_client)
+
+    try:
+        api_instance.knowledge_base_options()
+    except Exception as e:
+        print("Exception when calling DefaultApi->knowledge_base_options: %s\n" % e)
+```
+
+
+
+### Parameters
+
+This endpoint does not need any parameter.
+
+### Return type
+
+void (empty response body)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+ - **Content-Type**: Not defined
+ - **Accept**: Not defined
+
+### HTTP response details
+
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+**204** | 204 response |  * Access-Control-Allow-Origin -  <br>  * Access-Control-Allow-Methods -  <br>  * Access-Control-Allow-Credentials -  <br>  * Access-Control-Allow-Headers -  <br>  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
 # **llm_options**
 > llm_options()
 
@@ -1724,10 +1669,10 @@ import openapi_client
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod
+# Defining the host is optional and defaults to https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod"
+    host = "https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod"
 )
 
 
@@ -1783,10 +1728,10 @@ import openapi_client
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod
+# Defining the host is optional and defaults to https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod"
+    host = "https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod"
 )
 
 # The client must configure the authentication and authorization parameters
@@ -1856,10 +1801,10 @@ import openapi_client
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod
+# Defining the host is optional and defaults to https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod"
+    host = "https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod"
 )
 
 # The client must configure the authentication and authorization parameters
@@ -1928,10 +1873,10 @@ import openapi_client
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod
+# Defining the host is optional and defaults to https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod"
+    host = "https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod"
 )
 
 
@@ -1986,10 +1931,10 @@ import openapi_client
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod
+# Defining the host is optional and defaults to https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod"
+    host = "https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod"
 )
 
 
@@ -2045,10 +1990,10 @@ import openapi_client
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod
+# Defining the host is optional and defaults to https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod"
+    host = "https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod"
 )
 
 # The client must configure the authentication and authorization parameters
@@ -2117,10 +2062,10 @@ import openapi_client
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod
+# Defining the host is optional and defaults to https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod"
+    host = "https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod"
 )
 
 
@@ -2176,10 +2121,10 @@ import openapi_client
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod
+# Defining the host is optional and defaults to https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod"
+    host = "https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod"
 )
 
 # The client must configure the authentication and authorization parameters
@@ -2249,10 +2194,10 @@ import openapi_client
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod
+# Defining the host is optional and defaults to https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod"
+    host = "https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod"
 )
 
 # The client must configure the authentication and authorization parameters
@@ -2321,10 +2266,10 @@ import openapi_client
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod
+# Defining the host is optional and defaults to https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod"
+    host = "https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod"
 )
 
 
@@ -2379,10 +2324,10 @@ import openapi_client
 from openapi_client.rest import ApiException
 from pprint import pprint
 
-# Defining the host is optional and defaults to https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod
+# Defining the host is optional and defaults to https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod
 # See configuration.py for a list of all supported configuration parameters.
 configuration = openapi_client.Configuration(
-    host = "https://vlwz0sprs7.execute-api.us-east-1.amazonaws.com/prod"
+    host = "https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/prod"
 )
 
 

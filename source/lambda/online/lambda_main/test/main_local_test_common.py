@@ -251,10 +251,13 @@ def sso_batch_test():
         chatbot_config = {
             "chatbot_mode": mode,
             "use_history": False,
+            "enable_trace": False,
             "default_llm_config": default_llm_config,
             "default_retriever_config":default_retriever_config,
+            "chatbot_id": "pr_test",
+            "group_name": 'pr_test',
             "default_index_names": {
-                "private_knowledge": ['sso_poc']
+                "private_knowledge": ['pr_test-qd-sso_poc']
             },
             "agent_config": {
                 "only_use_rag_tool": True
@@ -325,9 +328,9 @@ def anta_test():
 if __name__ == "__main__":
     # complete_test_pr()
     # test_multi_turns_rag_pr()
-    test_multi_turns_agent_pr()
+    # test_multi_turns_agent_pr()
     # test_multi_turns_chat_pr()
     # bigo_test()
-    # sso_batch_test()
+    sso_batch_test()
     # anta_test()
     # bigo_test()
