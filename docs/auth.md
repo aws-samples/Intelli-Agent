@@ -21,7 +21,7 @@ The client id can be found in Cognito console
 1. Go to Cognito console and select your user pool
 2. Click App integration tab and scroll down to the bottom, you will see client id in the bottom
 
-The response is as below shown, you can see there are three types of token, you need to use IdToken to invoke APIs.
+The response is as below shown, you can see there are three types of token, you need to use **IdToken** to invoke APIs.
 
 ```bash
 {
