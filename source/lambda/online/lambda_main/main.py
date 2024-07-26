@@ -66,7 +66,7 @@ def get_secret_value(secret_arn: str):
 
 @chatbot_lambda_call_wrapper
 def lambda_handler(event_body:dict, context:dict):
-    # logger.info(event_body)
+    logger.info(f"raw event_body: {event_body}")
     stream = context['stream']
     request_timestamp = context['request_timestamp']
     ws_connection_id = context.get('ws_connection_id')
@@ -80,8 +80,8 @@ def lambda_handler(event_body:dict, context:dict):
     custom_message_id = event_body.get("custom_message_id", "")
     user_id = event_body.get("user_id", "default_user_id")
     # TODO Need to modify key
-    group_name = event_body.get("chatbot_config").get("default_workspace_config",{"rag_workspace_ids":["Admin"]}).get("rag_workspace_ids","Admin")[0]
-    chatbot_id = event_body.get("chatbot_config").get("default_chatbot_id",'admin')
+    group_name = event_body.get("chatbot_config").get("group_name","Admin")
+    chatbot_id = event_body.get("chatbot_config").get("chatbot_id",'admin')
 
     if not session_id:
         session_id = f"session_{int(request_timestamp)}"
@@ -96,8 +96,6 @@ def lambda_handler(event_body:dict, context:dict):
     
     chat_history = ddb_history_obj.messages_as_langchain
 
-    # logger.info(f'chat_history:\n{json.dumps(chat_history,ensure_ascii=False,indent=2)}')
-
     event_body['stream'] = stream 
     event_body["chat_history"] = chat_history
     event_body["ws_connection_id"] = ws_connection_id
@@ -107,13 +105,9 @@ def lambda_handler(event_body:dict, context:dict):
     event_body['chatbot_config']['user_id'] = user_id
     event_body['chatbot_config']['group_name'] = group_name
     event_body["chatbot_config"]["chatbot_id"] = chatbot_id
-    event_body["chatbot_config"]["index_tag"] = index_tag
     # TODO: chatbot id add to event body
 
     event_body['message_id'] = str(uuid.uuid4())
-    # event_body['chatbot_config']['prompt_templates'] = get_prompt(user_id,
-    #                             event_body['chatbot_config']['default_llm_config']['model_id'],
-    #                             event_body['chatbot_config']['chatbot_mode'])
 
     # logger.info(f"event_body:\n{json.dumps(event_body,ensure_ascii=False,indent=2,cls=JSONEncoder)}")
     entry_executor = get_entry(entry_type)
@@ -122,9 +116,10 @@ def lambda_handler(event_body:dict, context:dict):
     if is_running_local():
         response:dict = entry_executor(event_body)
         r = process_response(event_body,response)
-        if not stream:
-            return r
-        return "All records have been processed"
+        # if not stream:
+        #     return r
+        # return "All records have been processed"
+        return r
     else:
         try:
             response:dict = entry_executor(event_body)

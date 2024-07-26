@@ -21,13 +21,13 @@ class Chatbot:
             Chatbot instance
         """
         return cls(
-            group_name=item["groupName"],
-            chatbot_id=item["chatbotId"],
-            create_time=item["createTime"],
-            index_ids=item["indexIds"],
-            languages=item["languages"],
-            status=item["status"],
-            update_time=item["updateTime"]
+            group_name=item.get("groupName"),
+            chatbot_id=item.get("chatbotId"),
+            create_time=item.get("createTime"),
+            index_ids=item.get("indexIds",{}),
+            languages=item.get("languages"),
+            status=item.get("status"),
+            update_time=item.get("updateTime")
         )
 
     def __repr__(self):

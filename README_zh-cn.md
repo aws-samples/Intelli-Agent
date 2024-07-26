@@ -191,17 +191,25 @@ aws configure
 ```
 
 
-请进入到脚本目录并运行 build.sh 脚本。此脚本需要一个 S3 存储桶名称作为参数，用于上传模型。请确保存储桶名称位于与 CDK 部署相同的 AWS 区域内。例如：如果S3桶在us-west-2，则您只能在us-west-2进行CDK部署。此外，还需要提供 ETL 镜像名称、ETL 镜像标签和 AWS 区域作为参数。ETL 镜像将会被推送到您指定的 ECR 仓库中。
+请进入`source/script`目录，并执行 `build.sh` 脚本。该脚本为您提供了一种便捷的方式，通过预设的 S3 存储桶名称、ETL 镜像名称和 ETL 镜像标签来简化资源准备流程。这些预设值将用于将模型上传至 S3 以及将 ETL 镜像推送至您的 ECR 仓库。您也可以根据需要为这些参数设置自定义值，如果您指定的 S3 存储桶或 ECR 仓库尚未创建，脚本会自动为您完成资源创建。如果您希望指定自定义的S3储存桶用于存储模型，请确认储存桶所在区域与您的AWS账号默认区域一致。
+
+默认配置如下：
+- S3 存储桶名称：`intelli-agent-models-${account}-${aws_region}`
+- ETL 镜像名称：`intelli-agent-etl`
+- ETL 镜像标签：`latest`
+
+直接运行脚本即可采用默认配置，无需传递任何参数。
 
 ```bash
 cd source/script
-sh build.sh -b <S3 bucket name> -i <ETL model name> -t <ETL tag name> -r <AWS region>
+sh build.sh
 ```
 
-例如：
+如果您希望使用自定义的 S3 存储桶名称、ETL 镜像名称和标签，可以执行如下命令：
 
 ```bash
-sh build.sh -b intelli-agent-model-bucket -i intelli-agent-etl -t latest -r us-east-1
+cd source/script
+sh build.sh -b intelli-agent-model-bucket -i intelli-agent-etl -t latest
 ```
 
 

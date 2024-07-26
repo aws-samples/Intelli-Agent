@@ -39,3 +39,4 @@ def send_to_ws_client(message: dict, ws_connection_id):
         ConnectionId=ws_connection_id,
         Data=json.dumps(message).encode("utf-8"),
     )
+

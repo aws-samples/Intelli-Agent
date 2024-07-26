@@ -114,7 +114,6 @@ class CustomCSVLoader(CSVLoader):
                     for k, v in row.items():
                         row_content += v + "|"
                 content = header + "\n" + md_separator + "\n" + row_content
-                print(f"markdown content: {content}")
 
                 metadata = {"source": source, "row": i, "file_path": self.aws_path}
                 for col in self.metadata_columns:

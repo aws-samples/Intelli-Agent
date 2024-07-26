@@ -26,14 +26,10 @@ const LibraryDetail: React.FC = () => {
 
   const getLibraryDetail = async () => {
     setLoadingData(true);
-    const params = {
-      executionId: id,
-    };
     try {
       const data: LibraryExecutionResponse = await fetchData({
-        url: 'etl/execution',
+        url: `knowledge-base/executions/${id}`,
         method: 'get',
-        params,
       });
       const executionRes: LibraryExecutionResponse = data;
       setExecutionFileList(executionRes.Items);

@@ -125,7 +125,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const getWorkspaceList = async () => {
     try {
       const data = await fetchData({
-        url: 'etl/list-workspace',
+        url: 'chatbot-management/chatbots',
         method: 'get',
       });
       setWorkspaceIds(data.workspace_ids);
@@ -139,7 +139,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     try {
       setLoadingHistory(true);
       const data = await fetchData({
-        url: `ddb/list-messages`,
+        url: `chat-history/messages`,
         method: 'get',
         params: {
           session_id: historySessionId,
@@ -154,7 +154,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
           // Handle AI images message
           if (msg.role === 'ai' && msg.additional_kwargs.figure.length > 0) {
             msg.additional_kwargs.figure.forEach((item) => {
-              messageContent += `![${item.content_type}](/${item.figure_path})`;
+              messageContent += ` \n ![${item.content_type}](/${encodeURIComponent(item.figure_path)})`;
             });
           }
           return {
@@ -204,7 +204,10 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       if (message.ddb_additional_kwargs?.figure?.length > 0) {
         message.ddb_additional_kwargs.figure.forEach((item) => {
           setCurrentAIMessage((prev) => {
-            return prev + `![${item.content_type}](/${item.figure_path})`;
+            return (
+              prev +
+              ` \n ![${item.content_type}](/${encodeURIComponent(item.figure_path)})`
+            );
           });
         });
       }
