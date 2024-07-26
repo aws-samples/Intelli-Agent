@@ -1,5 +1,6 @@
 from utils.embeddings import get_embedding_info
 from constant import KBType, Status, ModelType, IndexTag
+from datetime import datetime, timezone
 
 
 def create_item_if_not_exist(ddb_table, item_key: dict, body: str):
@@ -13,7 +14,9 @@ def create_item_if_not_exist(ddb_table, item_key: dict, body: str):
     return True, item
 
 
-def initiate_model(model_table, group_name, model_id, embedding_endpoint, create_time):
+def initiate_model(model_table, group_name, model_id, embedding_endpoint, create_time=None):
+    if not create_time:
+        create_time = str(datetime.now(timezone.utc))
     embedding_info = get_embedding_info(embedding_endpoint)
     embedding_info["ModelEndpoint"] = embedding_endpoint
     create_item_if_not_exist(
@@ -35,7 +38,9 @@ def initiate_model(model_table, group_name, model_id, embedding_endpoint, create
     return embedding_info["ModelType"]
 
 
-def initiate_index(index_table, group_name, index_id, model_id, index_type, tag, create_time):
+def initiate_index(index_table, group_name, index_id, model_id, index_type, tag, create_time=None):
+    if not create_time:
+        create_time = str(datetime.now(timezone.utc))
     create_item_if_not_exist(
         index_table,
         {
@@ -57,7 +62,9 @@ def initiate_index(index_table, group_name, index_id, model_id, index_type, tag,
     )
 
 
-def initiate_chatbot(chatbot_table, group_name, chatbot_id, index_id, index_type, tag, create_time):
+def initiate_chatbot(chatbot_table, group_name, chatbot_id, index_id, index_type, tag, create_time=None):
+    if not create_time:
+        create_time = str(datetime.now(timezone.utc))
     is_existed, item = create_item_if_not_exist(
         chatbot_table,
         {

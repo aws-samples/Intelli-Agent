@@ -80,6 +80,9 @@
     "showTrace": "显示 trace",
     "onlyUseRAGTool": "只使用 RAG 工具",
     "additionalSettings": "附加设置",
+    "indexName": "索引名称",
+    "tag": "标签",
+    "optional": "可选",
     "button": {
       "login": "登录到 AWS 大语言模型机器人",
       "reload": "重新加载",
@@ -108,7 +111,10 @@
       "maxTokensRange": "最大 token 数必须大于 0",
       "requirePrompt": "请输入提示词",
       "requireEndPoint": "请输入端点",
-      "invalidJson": "无效的 JSON 格式"
+      "invalidJson": "无效的 JSON 格式",
+      "requiredIndexName": "请输入索引名称",
+      "requiredTag": "请输入标签",
+      "formatInvalidTagIndex": "仅允许字母、数字、- 和 _"
     }
   }
 }
