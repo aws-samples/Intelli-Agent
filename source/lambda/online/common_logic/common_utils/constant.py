@@ -17,6 +17,12 @@ class ConstantBase(Enum,metaclass=EnumDirectValueMeta):
     def has_value(cls, value):
         return value in cls._value2member_map_ 
     
+    @classmethod
+    def all_values(cls):
+        return list(cls._value2member_map_.keys())
+    
+
+    
 
 class EntryType(ConstantBase):
     COMMON = "common"
@@ -135,8 +141,8 @@ class Status(Enum):
     INACTIVE = "inactive"
 
 
-@unique
-class IndexType(Enum):
+
+class IndexType(ConstantBase):
     QD = "qd"
     QQ = "qq"
     INTENTION = "intention"

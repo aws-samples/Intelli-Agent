@@ -3,11 +3,13 @@ import copy
 import os
 import boto3
 from pydantic import BaseModel,ConfigDict,Field
-from typing import Union
+from typing import Union,Any
 
-
-from common_logic.common_utils.constant import ChatbotMode,SceneType,LLMModelType
+from common_logic.common_utils.constant import ChatbotMode,SceneType,LLMModelType,IndexType
 from common_logic.common_utils.chatbot_utils import ChatbotManager
+from common_logic.common_utils.logger_utils import get_logger
+
+logger = get_logger("parse_config")
 
 # update nest dict
 def update_nest_dict(d, u):
@@ -41,7 +43,7 @@ class QueryProcessConfig(ForbidBaseModel):
     conversation_query_rewrite_config: LLMConfig = Field(default_factory=LLMConfig)
 
 class RetrieverConfigBase(AllowBaseModel):
-    pass
+    index_type: str
 
 class IntentionRetrieverConfig(RetrieverConfigBase):
     top_k: int = 5
@@ -108,7 +110,7 @@ class ChatbotConfig(ForbidBaseModel):
     agent_config: AgentConfig = Field(default_factory=AgentConfig)
     chat_config: LLMConfig = Field(default_factory=LLMConfig)
     private_knowledge_config: PrivateKnowledgeConfig = Field(default_factory=PrivateKnowledgeConfig)
-    tools_config: dict[str, dict] = Field(default_factory=dict)
+    tools_config: dict[str, Any] = Field(default_factory=dict)
 
     def update_llm_config(self,new_llm_config:dict):
         """unified update llm config
@@ -126,7 +128,9 @@ class ChatbotConfig(ForbidBaseModel):
                     _update_llm_config(v)
         _update_llm_config(self)
      
-    def format_index_info(self,index_info_from_ddb:dict):
+
+    @staticmethod
+    def format_index_info(index_info_from_ddb:dict):
         return {
             "index_name": index_info_from_ddb["indexId"],
             "embedding_model_endpoint": index_info_from_ddb['modelIds']['embedding']['parameter']['ModelEndpoint'],
@@ -135,20 +139,36 @@ class ChatbotConfig(ForbidBaseModel):
             "kb_type": index_info_from_ddb['kbType'],
             "index_type": index_info_from_ddb['indexType']
         }
-
-    def get_index_infos_from_ddb(self):
+     
+    @staticmethod
+    def get_index_info(index_infos:dict,index_type:str,index_name:str):
+        try:
+            index_info = index_infos[index_type][index_name]
+            return index_info
+        except KeyError:
+            valid_index_names = []
+            for task_name,infos in index_infos.items():
+                for key in infos.keys():
+                    valid_index_names.append(f"{task_name}->{key}")
+            valid_index_name_str = "\n".join(valid_index_names)
+            logger.error(f"valid index_names:\n{valid_index_name_str}")
+            raise KeyError(f"key: {index_type}->{index_name} not exits")
+    
+    @classmethod
+    def get_index_infos_from_ddb(cls,group_name,chatbot_id):
         chatbot_manager = ChatbotManager.from_environ()
-        chatbot = chatbot_manager.get_chatbot(self.group_name, self.chatbot_id)
+        chatbot = chatbot_manager.get_chatbot(group_name, chatbot_id)
         _infos = chatbot.index_ids or {}
         infos = {}
-        for task_name,index_info in _infos.items():
-            if task_name == "qq":
-                task_name = 'qq_match'
-            elif task_name == "qd":
-                task_name = "private_knowledge"
-            elif task_name == "intention":
-                task_name = "intention"
-            infos[task_name] = [self.format_index_info(info) for info in list(index_info['value'].values()) ]  
+        for index_type,index_info in _infos.items():
+            assert IndexType.has_value(index_type), IndexType.all_values()
+            info_list = [cls.format_index_info(info) for info in list(index_info['value'].values())]
+            infos[index_type] = {info['index_name']:info for info in info_list}
+        
+        for index_type in IndexType.all_values():
+            if index_type not in infos:
+                infos[index_type] = {}
+
         return infos
     
     def update_retrievers(
@@ -156,12 +176,33 @@ class ChatbotConfig(ForbidBaseModel):
         default_index_names: dict[str,list],
         default_retriever_config: dict[str,dict]
     ):
-        index_infos = self.get_index_infos_from_ddb()
-        for task_name,allow_index_names in default_index_names.items():
-            all_index_infos = index_infos[task_name]
-            allow_index_infos = [info for info in all_index_infos if info['index_name'] in allow_index_names]
-            allow_index_infos  = [{**default_retriever_config[task_name],**info} for info in allow_index_infos]
-            getattr(self,f"{task_name}_config").retrievers.extend(allow_index_infos)
+        index_infos = self.get_index_infos_from_ddb(self.group_name,self.chatbot_id)
+        for task_name,index_names in default_index_names.items():
+            assert task_name in ("qq_match","intention","private_knowledge")
+            if task_name == "qq_match":
+                index_type = IndexType.QQ
+            elif task_name == "intention":
+                index_type = IndexType.INTENTION
+            elif task_name == "private_knowledge":
+                index_type = IndexType.QD
+            
+            # default to use all index
+            if not index_names:
+                index_info_list = list(index_infos[index_type].values())
+                index_info_list = [{
+                    **default_retriever_config[task_name],
+                    **index_info
+                } for index_info in index_info_list]
+                getattr(self,f"{task_name}_config").retrievers.extend(index_info_list)
+            else:
+                for index_name in index_names:     
+                    index_info = self.get_index_info(index_infos,index_type,index_name)
+                    getattr(self,f"{task_name}_config").retrievers.append(
+                        {
+                            **default_retriever_config[task_name],
+                            **index_info
+                        }
+                    )
     
     def model_copy(self,update=None,deep=True):
         update = update or {}
@@ -169,7 +210,6 @@ class ChatbotConfig(ForbidBaseModel):
             copy.deepcopy(self.model_dump()),
             update
         )
-
         cls = type(self)
         obj = cls(**new_dict)
         return obj
@@ -196,8 +236,7 @@ class ConfigParserBase:
     }
     
     @classmethod
-    def from_chatbot_config(cls,chatbot_config:dict):
-        chatbot_config = copy.deepcopy(chatbot_config)
+    def parse_default_llm_config(cls,chatbot_config):
         default_llm_config = eval(
             os.environ.get("default_llm_config", cls.default_llm_config_str)
         )
@@ -205,15 +244,32 @@ class ConfigParserBase:
             copy.deepcopy(default_llm_config),
             chatbot_config.pop("default_llm_config", {})
         )
+        return default_llm_config
 
+    @classmethod
+    def parse_default_index_names(cls,chatbot_config):
         default_index_names = update_nest_dict(
             copy.deepcopy(cls.default_index_names),
             chatbot_config.pop('default_index_names',{})
         )
+        return default_index_names
+    
+    @classmethod
+    def parse_default_retriever_config(cls,chatbot_config):
         default_retriever_config = update_nest_dict(
             copy.deepcopy(cls.default_retriever_config),
             chatbot_config.pop("default_retriever_config", {})
         )
+        return default_retriever_config
+
+    
+    @classmethod
+    def from_chatbot_config(cls,chatbot_config:dict):
+        chatbot_config = copy.deepcopy(chatbot_config)
+        default_llm_config = cls.parse_default_llm_config(chatbot_config)
+        default_index_names = cls.parse_default_index_names(chatbot_config)
+        default_retriever_config = cls.parse_default_retriever_config(chatbot_config)
+
         group_name = chatbot_config['group_name']
         chatbot_id = chatbot_config['chatbot_id']
         
@@ -255,252 +311,275 @@ class CommonConfigParser(ConfigParserBase):
 
 
 class RetailConfigParser(ConfigParserBase):
-    default_tool_names = {}
     @classmethod
     def from_chatbot_config(cls,chatbot_config:dict):
+        # get index_infos
+        index_infos = ChatbotConfig.get_index_infos_from_ddb(
+            chatbot_config['group_name'],
+            chatbot_config['chatbot_id']
+        )
+        default_llm_config = cls.parse_default_llm_config(chatbot_config)
         # add retail tools
+        default_tools_config = {}
+        rag_goods_exchange_config = RagToolConfig(
+            retrievers=[
+                PrivateKnowledgeRetrieverConfig(
+                    top_k=5,
+                    **ChatbotConfig.get_index_info(
+                        index_infos,
+                        index_type=IndexType.QQ,
+                        index_name="retail-quick-reply"
+                    )
+                )
+            ],
+            llm_config=LLMConfig(**default_llm_config)
+        )
+        default_tools_config['rag_goods_exchange_config'] = rag_goods_exchange_config
+        # 
+
+        chatbot_config['tools_config'] = default_tools_config
         chatbot_config = super().from_chatbot_config(chatbot_config)
         return chatbot_config
 
 
-class RetailConfigParser(ConfigParserBase):
-    @classmethod
-    def from_chatbot_config(cls,chatbot_config:dict):
-        chatbot_config = super().from_chatbot_config(chatbot_config)
-         # add default tools
-        # tools: list = chatbot_config["agent_config"]["tools"]
-        # if "give_rhetorical_question" not in tools:
-        #     tools.append("give_rhetorical_question")
-        return chatbot_config
+# class RetailConfigParser(ConfigParserBase):
+#     @classmethod
+#     def from_chatbot_config(cls,chatbot_config:dict):
+#         chatbot_config = super().from_chatbot_config(chatbot_config)
+#          # add default tools
+#         # tools: list = chatbot_config["agent_config"]["tools"]
+#         # if "give_rhetorical_question" not in tools:
+#         #     tools.append("give_rhetorical_question")
+#         return chatbot_config
 
-    @classmethod
-    def get_default_chatbot_config(cls, default_llm_config, default_index_config):
-        default_chatbot_config = super().get_default_chatbot_config(default_llm_config, default_index_config)
-        default_chatbot_config['agent_repeated_call_limit'] = 3
-        # default_chatbot_config['intention_config'] = {
-        #     "query_key": "query_rewrite",
-        #     "retrievers": [
-        #         {
-        #             "type": "qq",
-        #             "index_ids": ["retail-intent"],
-        #             "config": {
-        #                 "top_k": 5,
-        #             }
-        #         },
-        #     ]
-        # }
-        return default_chatbot_config
+#     @classmethod
+#     def get_default_chatbot_config(cls, default_llm_config, default_index_config):
+#         default_chatbot_config = super().get_default_chatbot_config(default_llm_config, default_index_config)
+#         default_chatbot_config['agent_repeated_call_limit'] = 3
+#         # default_chatbot_config['intention_config'] = {
+#         #     "query_key": "query_rewrite",
+#         #     "retrievers": [
+#         #         {
+#         #             "type": "qq",
+#         #             "index_ids": ["retail-intent"],
+#         #             "config": {
+#         #                 "top_k": 5,
+#         #             }
+#         #         },
+#         #     ]
+#         # }
+#         return default_chatbot_config
 
-    @classmethod
-    def parse_aos_indexs(cls,chatbot_config,default_index_names):
-        group_name = chatbot_config['group_name']
-        chatbot_id = chatbot_config['chatbot_id']
-        default_llm_config = chatbot_config['default_llm_config']
-        chatbot = chatbot_manager.get_chatbot(group_name, chatbot_id)
-        index_infos = {}
-        index_id_map = {}
-        for task_name,index_info in chatbot.index_ids.items():
-            # TODO some modify needed
-            assert task_name in ("qq","qd",'intention'),task_name
-            # prepare list value
-            if task_name == "qq":
-                task_name = 'qq_match'
-            elif task_name == "qd":
-                task_name = "private_knowledge"
-            elif task_name == "intention":
-                task_name = "intention"
-            all_index_names = list(index_info['value'].values())
-            allow_index_names = default_index_names[task_name]
-            if allow_index_names:
-                all_index_names = [index for index in all_index_names if index['indexId'] in allow_index_names]
-            index_infos[task_name] = all_index_names
-        for tool_name,index_info in chatbot.index_ids.items():
-            all_index = list(index_info['value'].values())
-            for index in all_index:
-                index_id_map[index['indexId']] = index
+#     @classmethod
+#     def parse_aos_indexs(cls,chatbot_config,default_index_names):
+#         group_name = chatbot_config['group_name']
+#         chatbot_id = chatbot_config['chatbot_id']
+#         default_llm_config = chatbot_config['default_llm_config']
+#         chatbot = chatbot_manager.get_chatbot(group_name, chatbot_id)
+#         index_infos = {}
+#         index_id_map = {}
+#         for task_name,index_info in chatbot.index_ids.items():
+#             # TODO some modify needed
+#             assert task_name in ("qq","qd",'intention'),task_name
+#             # prepare list value
+#             if task_name == "qq":
+#                 task_name = 'qq_match'
+#             elif task_name == "qd":
+#                 task_name = "private_knowledge"
+#             elif task_name == "intention":
+#                 task_name = "intention"
+#             all_index_names = list(index_info['value'].values())
+#             allow_index_names = default_index_names[task_name]
+#             if allow_index_names:
+#                 all_index_names = [index for index in all_index_names if index['indexId'] in allow_index_names]
+#             index_infos[task_name] = all_index_names
+#         for tool_name,index_info in chatbot.index_ids.items():
+#             all_index = list(index_info['value'].values())
+#             for index in all_index:
+#                 index_id_map[index['indexId']] = index
 
-        retail_tool_config = {
-            "rag_goods_exchange_config": {
-                "retriever_config": {
-                    "retrievers": [
-                        {
-                            "type": "qq",
-                            "workspace_ids": ["retail-quick-reply"],
-                            "config": {
-                                "top_k": 5
-                            },
-                        },
-                    ]
-                },
-                "llm_config": {
-                    **copy.deepcopy(default_llm_config),
-                },
-            },
-            "rag_daily_reception_config": {
-                "retriever_config": {
-                    "top_k": 10,
-                },
-                "retrievers": [
-                        index_id_map['retail-quick-reply'],
-                ],
-                "llm_config": {
-                    **copy.deepcopy(default_llm_config),
-                },
-            },
-            "rag_delivery_track_config": {
-                "retriever_config": {
-                    "retrievers": [
-                        {
-                            "type": "qq",
-                            "workspace_ids": ["retail-quick-reply"],
-                            "config": {
-                                "top_k": 5
-                            },
-                        },
-                    ]
-                },
-                "llm_config": {
-                    **copy.deepcopy(default_llm_config),
-                },
-            },
-            "rag_product_aftersales_config": {
-                "retriever_config":{
-                    "retrievers": [
-                        {
-                            "type": "qq",
-                            "workspace_ids": ['retail-shouhou-wuliu', 'retail-quick-reply'],
-                            "config": {
-                                "top_k": 5,
-                            }
-                        },
-                    ],
-                    "rerankers": [
-                        {
-                            "type": "reranker",
-                            "config": {
-                                "enable_debug": False,
-                                "target_model": "bge_reranker_model.tar.gz"
-                            }
-                        }
-                    ],
-                },
-                "llm_config":{
-                    **copy.deepcopy(default_llm_config),
-                }
-            },
-            "rag_customer_complain_config": {
-                "retriever_config":{
-                    "retrievers": [
-                        {
-                            "type": "qq",
-                            "workspace_ids": ['retail-shouhou-wuliu','retail-quick-reply'],
-                            "config": {
-                                "top_k": 2,
-                            }
-                        },
-                    ],
-                    "rerankers": [
-                        {
-                            "type": "reranker",
-                            "config": {
-                                "enable_debug": False,
-                                "target_model": "bge_reranker_model.tar.gz"
-                            }
-                        }
-                    ],
-                },
-                "llm_config":{
-                    **copy.deepcopy(default_llm_config),
-                }
-            },
-            "rag_promotion_config": {
-                "retriever_config":{
-                    "retrievers": [
-                        {
-                            "type": "qq",
-                            "workspace_ids": ['retail-shouhou-wuliu','retail-quick-reply'],
-                            "config": {
-                                "top_k": 2,
-                            }
-                        },
-                    ],
-                    "rerankers": [
-                        {
-                            "type": "reranker",
-                            "config": {
-                                "enable_debug": False,
-                                "target_model": "bge_reranker_model.tar.gz"
-                            }
-                        }
-                    ],
-                },
-                "llm_config":{
-                    **copy.deepcopy(default_llm_config),
-                }
-            },
-            "comparison_rag_config": {
-                "retriever_config": {
-                    "retrievers": [index_id_map['aws-acts-knowledge']]
-                },
-                "llm_config":{
-                    **copy.deepcopy(default_llm_config),
-                }
-            },
-            "step_back_rag_config": {
-                "retriever_config": {
-                    "retrievers": [index_id_map['aws-acts-knowledge']]
-                },
-                "llm_config":{
-                    **copy.deepcopy(default_llm_config),
-                }
-            },
-            "final_rag_retriever": {
-                "retriever_config":{
-                    "retrievers": [
-                        {
-                            "type": "qq",
-                            "workspace_ids": ['retail-shouhou-wuliu','retail-quick-reply'],
-                            "config": {
-                                "top_k": 2,
-                            }
-                        },
-                    ],
-                    "rerankers": [
-                        {
-                            "type": "reranker",
-                            "config": {
-                                "enable_debug": False,
-                                "target_model": "bge_reranker_model.tar.gz"
-                            }
-                        }
-                    ],
-                },
-                "llm_config":{
-                    **copy.deepcopy(default_llm_config),
-                }
-            }
-        }
-        chatbot_config.update(retail_tool_config)
-        return index_infos
+#         retail_tool_config = {
+#             "rag_goods_exchange_config": {
+#                 "retriever_config": {
+#                     "retrievers": [
+#                         {
+#                             "type": "qq",
+#                             "workspace_ids": ["retail-quick-reply"],
+#                             "config": {
+#                                 "top_k": 5
+#                             },
+#                         },
+#                     ]
+#                 },
+#                 "llm_config": {
+#                     **copy.deepcopy(default_llm_config),
+#                 },
+#             },
+#             "rag_daily_reception_config": {
+#                 "retriever_config": {
+#                     "top_k": 10,
+#                 },
+#                 "retrievers": [
+#                         index_id_map['retail-quick-reply'],
+#                 ],
+#                 "llm_config": {
+#                     **copy.deepcopy(default_llm_config),
+#                 },
+#             },
+#             "rag_delivery_track_config": {
+#                 "retriever_config": {
+#                     "retrievers": [
+#                         {
+#                             "type": "qq",
+#                             "workspace_ids": ["retail-quick-reply"],
+#                             "config": {
+#                                 "top_k": 5
+#                             },
+#                         },
+#                     ]
+#                 },
+#                 "llm_config": {
+#                     **copy.deepcopy(default_llm_config),
+#                 },
+#             },
+#             "rag_product_aftersales_config": {
+#                 "retriever_config":{
+#                     "retrievers": [
+#                         {
+#                             "type": "qq",
+#                             "workspace_ids": ['retail-shouhou-wuliu', 'retail-quick-reply'],
+#                             "config": {
+#                                 "top_k": 5,
+#                             }
+#                         },
+#                     ],
+#                     "rerankers": [
+#                         {
+#                             "type": "reranker",
+#                             "config": {
+#                                 "enable_debug": False,
+#                                 "target_model": "bge_reranker_model.tar.gz"
+#                             }
+#                         }
+#                     ],
+#                 },
+#                 "llm_config":{
+#                     **copy.deepcopy(default_llm_config),
+#                 }
+#             },
+#             "rag_customer_complain_config": {
+#                 "retriever_config":{
+#                     "retrievers": [
+#                         {
+#                             "type": "qq",
+#                             "workspace_ids": ['retail-shouhou-wuliu','retail-quick-reply'],
+#                             "config": {
+#                                 "top_k": 2,
+#                             }
+#                         },
+#                     ],
+#                     "rerankers": [
+#                         {
+#                             "type": "reranker",
+#                             "config": {
+#                                 "enable_debug": False,
+#                                 "target_model": "bge_reranker_model.tar.gz"
+#                             }
+#                         }
+#                     ],
+#                 },
+#                 "llm_config":{
+#                     **copy.deepcopy(default_llm_config),
+#                 }
+#             },
+#             "rag_promotion_config": {
+#                 "retriever_config":{
+#                     "retrievers": [
+#                         {
+#                             "type": "qq",
+#                             "workspace_ids": ['retail-shouhou-wuliu','retail-quick-reply'],
+#                             "config": {
+#                                 "top_k": 2,
+#                             }
+#                         },
+#                     ],
+#                     "rerankers": [
+#                         {
+#                             "type": "reranker",
+#                             "config": {
+#                                 "enable_debug": False,
+#                                 "target_model": "bge_reranker_model.tar.gz"
+#                             }
+#                         }
+#                     ],
+#                 },
+#                 "llm_config":{
+#                     **copy.deepcopy(default_llm_config),
+#                 }
+#             },
+#             "comparison_rag_config": {
+#                 "retriever_config": {
+#                     "retrievers": [index_id_map['aws-acts-knowledge']]
+#                 },
+#                 "llm_config":{
+#                     **copy.deepcopy(default_llm_config),
+#                 }
+#             },
+#             "step_back_rag_config": {
+#                 "retriever_config": {
+#                     "retrievers": [index_id_map['aws-acts-knowledge']]
+#                 },
+#                 "llm_config":{
+#                     **copy.deepcopy(default_llm_config),
+#                 }
+#             },
+#             "final_rag_retriever": {
+#                 "retriever_config":{
+#                     "retrievers": [
+#                         {
+#                             "type": "qq",
+#                             "workspace_ids": ['retail-shouhou-wuliu','retail-quick-reply'],
+#                             "config": {
+#                                 "top_k": 2,
+#                             }
+#                         },
+#                     ],
+#                     "rerankers": [
+#                         {
+#                             "type": "reranker",
+#                             "config": {
+#                                 "enable_debug": False,
+#                                 "target_model": "bge_reranker_model.tar.gz"
+#                             }
+#                         }
+#                     ],
+#                 },
+#                 "llm_config":{
+#                     **copy.deepcopy(default_llm_config),
+#                 }
+#             }
+#         }
+#         chatbot_config.update(retail_tool_config)
+#         return index_infos
 
-    @classmethod
-    def index_postprocess(cls,chatbot_config):
-        def _dict_update(config):
-            retrievers = []
-            _retrievers = config.pop('retrievers')
-            for retriever_dict in _retrievers:
-                retrievers.append({
-                    **config['retriever_config'],
-                    **retriever_dict
-                })
-            config['retrievers'] = retrievers
-        # intention 
-        intention_config = chatbot_config['intention_config']
-        _dict_update(intention_config)
-        # qq_match
-        qq_match_config = chatbot_config['qq_match_config']
-        _dict_update(qq_match_config)
-        # private knowledge 
-        private_knowledge_config = chatbot_config['private_knowledge_config']
-        _dict_update(private_knowledge_config)
+#     @classmethod
+#     def index_postprocess(cls,chatbot_config):
+#         def _dict_update(config):
+#             retrievers = []
+#             _retrievers = config.pop('retrievers')
+#             for retriever_dict in _retrievers:
+#                 retrievers.append({
+#                     **config['retriever_config'],
+#                     **retriever_dict
+#                 })
+#             config['retrievers'] = retrievers
+#         # intention 
+#         intention_config = chatbot_config['intention_config']
+#         _dict_update(intention_config)
+#         # qq_match
+#         qq_match_config = chatbot_config['qq_match_config']
+#         _dict_update(qq_match_config)
+#         # private knowledge 
+#         private_knowledge_config = chatbot_config['private_knowledge_config']
+#         _dict_update(private_knowledge_config)
 

@@ -58,6 +58,8 @@ def initiate_index(index_table, group_name, index_id, model_id, index_type, tag,
 
 
 def initiate_chatbot(chatbot_table, group_name, chatbot_id, index_id, index_type, tag, create_time):
+        
+
     is_existed, item = create_item_if_not_exist(
         chatbot_table,
         {

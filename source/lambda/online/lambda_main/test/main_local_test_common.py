@@ -133,10 +133,15 @@ def test_multi_turns_agent_pr():
         },
     ]
 
+    # default_index_names = {
+    #     "intention":["pr_test-intention-default"],
+    #     "qq_match": [],
+    #     "private_knowledge": ['pr_test-qd-sso_poc']
+    # }
     default_index_names = {
-        "intention":["intention-offline-1"],
-        "qq_match": ['bigo_qq'],
-        "private_knowledge": ['amazon-ec2-address']
+        "intention":[],
+        "qq_match": [],
+        "private_knowledge": []
     }
 
     for query in user_queries:
@@ -147,9 +152,11 @@ def test_multi_turns_agent_pr():
              session_id=session_id,
              query=query['query'],
              use_history=query['use_history'],
-             chatbot_id="admin",
+             chatbot_id="pr_test",
+             group_name='pr_test',
              only_use_rag_tool=False,
-             default_index_names=default_index_names
+             default_index_names=default_index_names,
+             enable_trace = False
              )
         print()
 
@@ -298,7 +305,7 @@ def anta_test():
             "default_llm_config": default_llm_config,
             "default_index_names":{
                 "qq_match":['bingo_qq'],
-                "private_knowledge":['wrong'],
+                "private_knowledge":[],
                 "intention":['retail-intent']
             },
             "agent_config": {
@@ -316,9 +323,9 @@ def anta_test():
         print() 
 
 if __name__ == "__main__":
-    complete_test_pr()
+    # complete_test_pr()
     # test_multi_turns_rag_pr()
-    # test_multi_turns_agent_pr()
+    test_multi_turns_agent_pr()
     # test_multi_turns_chat_pr()
     # bigo_test()
     # sso_batch_test()

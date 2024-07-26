@@ -29,7 +29,11 @@ def tools_choose_and_results_generation(state):
     agent_current_call_number = state['agent_current_call_number'] + 1
     agent_repeated_call_validation = state['agent_current_call_number'] < state['agent_repeated_call_limit']
 
-    send_trace(f"\n\n**agent_current_output:** \n{json.dumps(agent_current_output['agent_output'],ensure_ascii=False,indent=2)}\n\n **agent_current_call_number:** {agent_current_call_number}", state["stream"], state["ws_connection_id"])
+    send_trace(
+        f"\n\n**agent_current_output:** \n{json.dumps(agent_current_output['agent_output'],ensure_ascii=False,indent=2)}\n\n **agent_current_call_number:** {agent_current_call_number}",
+        state["stream"],
+        state["ws_connection_id"]
+    )
     return {
         "agent_current_output": agent_current_output,
         "agent_current_call_number": agent_current_call_number,
