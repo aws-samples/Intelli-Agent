@@ -3,10 +3,10 @@
   "info" : {
     "title" : "Intelli-Agent-RESTful-API",
     "description" : "Intelli-Agent RESTful API",
-    "version" : "2024-07-25T14:29:44Z"
+    "version" : "2024-07-29T06:23:46Z"
   },
   "servers" : [ {
-    "url" : "https://o9ey3xyse7.execute-api.us-east-1.amazonaws.com/{basePath}",
+    "url" : "https://14ixphvl88.execute-api.us-east-1.amazonaws.com/{basePath}",
     "variables" : {
       "basePath" : {
         "default" : "prod"
@@ -120,6 +120,38 @@
         }
       }
     },
+    "/prompt-management" : {
+      "options" : {
+        "responses" : {
+          "204" : {
+            "description" : "204 response",
+            "headers" : {
+              "Access-Control-Allow-Origin" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              },
+              "Access-Control-Allow-Methods" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              },
+              "Access-Control-Allow-Credentials" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              },
+              "Access-Control-Allow-Headers" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            },
+            "content" : { }
+          }
+        }
+      }
+    },
     "/chat-history/sessions" : {
       "get" : {
         "responses" : {
@@ -158,38 +190,6 @@
           "intelliagentapiconstructApiAuthorizerFB94A0DF" : [ ]
         } ]
       },
-      "options" : {
-        "responses" : {
-          "204" : {
-            "description" : "204 response",
-            "headers" : {
-              "Access-Control-Allow-Origin" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Methods" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Credentials" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Headers" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              }
-            },
-            "content" : { }
-          }
-        }
-      }
-    },
-    "/prompt-management" : {
       "options" : {
         "responses" : {
           "204" : {
@@ -400,7 +400,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/intellapicollZHBI8WaBMp"
+                  "$ref" : "#/components/schemas/intellapicorVOJKT5wIzUC"
                 }
               }
             }
@@ -411,6 +411,16 @@
         } ]
       },
       "post" : {
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/intellapicoNK9oLf1K1uex"
+              }
+            }
+          },
+          "required" : true
+        },
         "responses" : {
           "400" : {
             "description" : "400 response",
@@ -452,7 +462,7 @@
           "content" : {
             "application/json" : {
               "schema" : {
-                "$ref" : "#/components/schemas/intellapicobiGoe5Lboi9l"
+                "$ref" : "#/components/schemas/intellapicoH4A9yvm8c1p3"
               }
             }
           },
@@ -484,7 +494,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/intellapicooRaF6JYGkSXc"
+                  "$ref" : "#/components/schemas/intellapicoNbA0nyPxxk6q"
                 }
               }
             }
@@ -494,38 +504,6 @@
           "intelliagentapiconstructApiAuthorizerFB94A0DF" : [ ]
         } ]
       },
-      "options" : {
-        "responses" : {
-          "204" : {
-            "description" : "204 response",
-            "headers" : {
-              "Access-Control-Allow-Origin" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Methods" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Credentials" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Headers" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              }
-            },
-            "content" : { }
-          }
-        }
-      }
-    },
-    "/" : {
       "options" : {
         "responses" : {
           "204" : {
@@ -663,6 +641,38 @@
         }
       }
     },
+    "/" : {
+      "options" : {
+        "responses" : {
+          "204" : {
+            "description" : "204 response",
+            "headers" : {
+              "Access-Control-Allow-Origin" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              },
+              "Access-Control-Allow-Methods" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              },
+              "Access-Control-Allow-Credentials" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              },
+              "Access-Control-Allow-Headers" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            },
+            "content" : { }
+          }
+        }
+      }
+    },
     "/knowledge-base/executions/{executionId}" : {
       "get" : {
         "parameters" : [ {
@@ -699,7 +709,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/intellapicoDVrhxLpgo6Jl"
+                  "$ref" : "#/components/schemas/intellapicowXaFAEWeTgPt"
                 }
               }
             }
@@ -1200,7 +1210,7 @@
           "content" : {
             "application/json" : {
               "schema" : {
-                "$ref" : "#/components/schemas/intellapicopALE5PXT4ttp"
+                "$ref" : "#/components/schemas/intellapicormo5LBZXS9Rb"
               }
             }
           },
@@ -1232,7 +1242,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/intellapicoaPl9oPKDboEh"
+                  "$ref" : "#/components/schemas/intellapicoXeXaUMjaXtPx"
                 }
               }
             }
@@ -1276,7 +1286,24 @@
   },
   "components" : {
     "schemas" : {
-      "intellapicooRaF6JYGkSXc" : {
+      "intellapicormo5LBZXS9Rb" : {
+        "title" : "PostPayload",
+        "required" : [ "content_type", "file_name" ],
+        "type" : "object",
+        "properties" : {
+          "content_type" : {
+            "type" : "string"
+          },
+          "file_name" : {
+            "type" : "string"
+          }
+        }
+      },
+      "Empty" : {
+        "title" : "Empty Schema",
+        "type" : "object"
+      },
+      "intellapicoNbA0nyPxxk6q" : {
         "title" : "ResponsePayload",
         "type" : "object",
         "properties" : {
@@ -1291,44 +1318,7 @@
           }
         }
       },
-      "Empty" : {
-        "title" : "Empty Schema",
-        "type" : "object"
-      },
-      "intellapicoDVrhxLpgo6Jl" : {
-        "title" : "ResponsePayload",
-        "type" : "object",
-        "properties" : {
-          "Items" : {
-            "type" : "array",
-            "items" : {
-              "required" : [ "createTime", "s3Bucket", "s3Path", "s3Prefix", "status" ],
-              "type" : "object",
-              "properties" : {
-                "s3Path" : {
-                  "type" : "string"
-                },
-                "createTime" : {
-                  "type" : "string"
-                },
-                "s3Prefix" : {
-                  "type" : "string"
-                },
-                "s3Bucket" : {
-                  "type" : "string"
-                },
-                "status" : {
-                  "type" : "string"
-                }
-              }
-            }
-          },
-          "Count" : {
-            "type" : "integer"
-          }
-        }
-      },
-      "intellapicollZHBI8WaBMp" : {
+      "intellapicorVOJKT5wIzUC" : {
         "title" : "ResponsePayload",
         "type" : "object",
         "properties" : {
@@ -1346,7 +1336,7 @@
           "Items" : {
             "type" : "array",
             "items" : {
-              "required" : [ "chatbotId", "createTime", "embeddingModelType", "executionId", "executionStatus", "groupName", "indexId", "offline", "operationType", "qaEnhance", "s3Bucket", "s3Prefix", "sfnExecutionId", "uiStatus" ],
+              "required" : [ "chatbotId", "createTime", "embeddingModelType", "executionId", "executionStatus", "groupName", "indexId", "indexType", "offline", "operationType", "qaEnhance", "s3Bucket", "s3Prefix", "sfnExecutionId", "uiStatus" ],
               "type" : "object",
               "properties" : {
                 "executionStatus" : {
@@ -1382,6 +1372,9 @@
                 "chatbotId" : {
                   "type" : "string"
                 },
+                "indexType" : {
+                  "type" : "string"
+                },
                 "createTime" : {
                   "type" : "string"
                 },
@@ -1399,7 +1392,71 @@
           }
         }
       },
-      "intellapicoaPl9oPKDboEh" : {
+      "intellapicowXaFAEWeTgPt" : {
+        "title" : "ResponsePayload",
+        "type" : "object",
+        "properties" : {
+          "Items" : {
+            "type" : "array",
+            "items" : {
+              "required" : [ "createTime", "executionId", "s3Bucket", "s3Path", "s3Prefix", "status" ],
+              "type" : "object",
+              "properties" : {
+                "executionId" : {
+                  "type" : "string"
+                },
+                "s3Path" : {
+                  "type" : "string"
+                },
+                "createTime" : {
+                  "type" : "string"
+                },
+                "s3Prefix" : {
+                  "type" : "string"
+                },
+                "s3Bucket" : {
+                  "type" : "string"
+                },
+                "status" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "Count" : {
+            "type" : "integer"
+          }
+        }
+      },
+      "intellapicoNK9oLf1K1uex" : {
+        "title" : "PostPayload",
+        "required" : [ "chatbotId", "indexType", "offline", "operationType", "qaEnhance", "s3Bucket", "s3Prefix" ],
+        "type" : "object",
+        "properties" : {
+          "offline" : {
+            "type" : "string"
+          },
+          "chatbotId" : {
+            "type" : "string"
+          },
+          "indexType" : {
+            "type" : "string"
+          },
+          "operationType" : {
+            "type" : "string"
+          },
+          "s3Prefix" : {
+            "type" : "string"
+          },
+          "s3Bucket" : {
+            "type" : "string"
+          },
+          "qaEnhance" : {
+            "type" : "string"
+          }
+        }
+      },
+      "intellapicoXeXaUMjaXtPx" : {
         "title" : "ResponsePayload",
         "type" : "object",
         "properties" : {
@@ -1408,10 +1465,16 @@
           },
           "message" : {
             "type" : "string"
+          },
+          "s3Prefix" : {
+            "type" : "string"
+          },
+          "s3Bucket" : {
+            "type" : "string"
           }
         }
       },
-      "intellapicobiGoe5Lboi9l" : {
+      "intellapicoH4A9yvm8c1p3" : {
         "title" : "PostPayload",
         "required" : [ "executionId" ],
         "type" : "object",
@@ -1421,19 +1484,6 @@
             "items" : {
               "type" : "string"
             }
-          }
-        }
-      },
-      "intellapicopALE5PXT4ttp" : {
-        "title" : "PostPayload",
-        "required" : [ "content_type", "file_name" ],
-        "type" : "object",
-        "properties" : {
-          "content_type" : {
-            "type" : "string"
-          },
-          "file_name" : {
-            "type" : "string"
           }
         }
       }
