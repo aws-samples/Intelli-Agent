@@ -1,11 +1,12 @@
 import boto3
 import os
+import json 
 
 from langchain.pydantic_v1 import BaseModel,Field
 from collections import defaultdict
 from common_logic.common_utils.constant import LLMModelType,LLMTaskType
 import copy
-from common_logic.common_utils.constant import SceneType
+from common_logic.common_utils.constant import SceneType, MessageType
 
 ddb_prompt_table_name = os.environ.get("PROMPT_TABLE_NAME", "")
 dynamodb_resource = boto3.resource("dynamodb")
@@ -65,7 +66,7 @@ class PromptTemplateManager:
                 prompt_template=prompt_template
             )
     
-    def get_prompt_template(self,model_id:str,task_type:str,prompt_name="system_prompt"):
+    def get_prompt_template(self,model_id:str, task_type:str, prompt_name="system_prompt"):
         prompt_template_id = self.get_prompt_template_id(model_id,task_type)
         try:
             return self.prompt_templates[prompt_template_id][prompt_name]
@@ -73,14 +74,11 @@ class PromptTemplateManager:
             raise KeyError(f'prompt_template_id: {prompt_template_id}, prompt_name: {prompt_name}')
 
     
-    def get_prompt_templates_from_ddb(self, group_name:str, model_id:str, scene:str="common"):
+    def get_prompt_templates_from_ddb(self, group_name:str, model_id:str, task_type:str, scene:str="common"):
         response = ddb_prompt_table.get_item(
             Key={"GroupName": group_name, "SortKey": f"{model_id}__{scene}"}
         )
-        item = response.get("Item")
-        if item:
-            return item.get("Prompt")
-        return {}
+        return response.get("Item",{}).get("Prompt",{}).get(task_type,{})
 
     def get_all_templates(self,allow_model_ids=EXPORT_MODEL_IDS):
         assert isinstance(allow_model_ids,list),allow_model_ids
@@ -91,7 +89,6 @@ class PromptTemplateManager:
             for _, prompt in v.items():
                 if prompt.model_id in allow_model_ids:
                     all_prompt_templates.append(prompt)
-                # v[prompt_name] = v[prompt_name].prompt_template
         
         ret = {}
         for prompt_template in all_prompt_templates:
@@ -191,13 +188,68 @@ register_prompt_templates(
 
 
 
-CQR_TEMPLATE = """Given the following conversation between `USER` and `AI`, and a follow up `USER` reply, Put yourself in the shoes of `USER`, rephrase the follow up \
-`USER` reply to be a standalone reply.
+# CQR_TEMPLATE = """Given the following conversation between `USER` and `AI`, and a follow up `USER` reply, Put yourself in the shoes of `USER`, rephrase the follow up \
+# `USER` reply to be a standalone reply.
 
-Chat History:
-{history}
+# Chat History:
+# {history}
 
-The USER's follow up reply: {question}"""
+# The USER's follow up reply: {question}"""
+
+
+# query rewrite prompt template from paper https://arxiv.org/pdf/2401.10225
+CQR_SYSTEM_PROMPT = """You are a helpful, pattern-following assistant."""
+
+CQR_USER_PROMPT_TEMPLATE = """Given the following conversation between PersonU and PersonA:
+{conversation}
+Instead of having this entire conversation, how can PersonU get what he or she is
+looking for using a single question? Respond with that question."""
+
+
+CQR_FEW_SHOTS = [
+    {
+    "conversation":[
+            {
+                "role": MessageType.HUMAN_MESSAGE_TYPE,
+                "content": "Hello, I would like to know what to do if I do not agree with any decision."
+            },
+            {
+                "role": MessageType.AI_MESSAGE_TYPE,
+                "content": "disagree with our decision about your monthly income adjustment amounts?"
+            },
+            {
+                "role": MessageType.HUMAN_MESSAGE_TYPE,
+                "content": "no. Where can I find my SHIP contact information?"
+            },
+            {
+                "role": MessageType.AI_MESSAGE_TYPE,
+                "content": "You can find your local SHIP contact information in the back of your Medicare & You 2020 Handbook online."
+            },
+            {
+                "role": MessageType.HUMAN_MESSAGE_TYPE,
+                "content": "and how do they calculate the adjustments?"
+            }
+        ],
+    "rewrite_query": "How is the calculation for adjustments made by SHIP determined?"
+   },
+   {
+       "conversation":[
+            {
+                "role": MessageType.HUMAN_MESSAGE_TYPE,
+                "content": "I need to know how to prepare for college."
+            },
+            {
+                "role": MessageType.AI_MESSAGE_TYPE,
+                "content": "You should first define your goals and interest and be sure to know the costs and how to plan financially and academically for college."
+            },
+            {
+                "role": MessageType.HUMAN_MESSAGE_TYPE,
+                "content": "Is there something I can use as a guide to get ready for it?"
+            }
+        ],
+    "rewrite_query": "What resources or guides can I use to help me prepare for college?"
+   }
+]
 
 register_prompt_templates(
     model_ids=[
@@ -212,13 +264,47 @@ register_prompt_templates(
         LLMModelType.GLM_4_9B_CHAT
     ],
     task_type=LLMTaskType.CONVERSATION_SUMMARY_TYPE,
-    prompt_template=CQR_TEMPLATE,
+    prompt_template=CQR_SYSTEM_PROMPT,
     prompt_name="system_prompt"
 )
 
+register_prompt_templates(
+    model_ids=[
+        LLMModelType.CLAUDE_2,
+        LLMModelType.CLAUDE_21,
+        LLMModelType.CLAUDE_3_HAIKU,
+        LLMModelType.CLAUDE_3_SONNET,
+        LLMModelType.CLAUDE_INSTANCE,
+        LLMModelType.MIXTRAL_8X7B_INSTRUCT,
+        LLMModelType.QWEN2INSTRUCT72B,
+        LLMModelType.QWEN2INSTRUCT7B,
+        LLMModelType.GLM_4_9B_CHAT
+    ],
+    task_type=LLMTaskType.CONVERSATION_SUMMARY_TYPE,
+    prompt_template=CQR_USER_PROMPT_TEMPLATE,
+    prompt_name="user_prompt"
+)
+
+
+register_prompt_templates(
+    model_ids=[
+        LLMModelType.CLAUDE_2,
+        LLMModelType.CLAUDE_21,
+        LLMModelType.CLAUDE_3_HAIKU,
+        LLMModelType.CLAUDE_3_SONNET,
+        LLMModelType.CLAUDE_INSTANCE,
+        LLMModelType.MIXTRAL_8X7B_INSTRUCT,
+        LLMModelType.QWEN2INSTRUCT72B,
+        LLMModelType.QWEN2INSTRUCT7B,
+        LLMModelType.GLM_4_9B_CHAT
+    ],
+    task_type=LLMTaskType.CONVERSATION_SUMMARY_TYPE,
+    prompt_template=json.dumps(CQR_FEW_SHOTS,ensure_ascii=False,indent=2),
+    prompt_name="few_shots"
+)
 
 # agent prompt
-AGENT_SYSTEM_PROMPT = "你是一个AI助理。今天是{date},{weekday}. "
+AGENT_USER_PROMPT = "你是一个AI助理。今天是{date},{weekday}. "
 register_prompt_templates(
     model_ids=[
         LLMModelType.CLAUDE_2,
@@ -227,8 +313,8 @@ register_prompt_templates(
         LLMModelType.CLAUDE_3_SONNET
     ],
     task_type=LLMTaskType.TOOL_CALLING,
-    prompt_template=AGENT_SYSTEM_PROMPT,
-    prompt_name="system_prompt"
+    prompt_template=AGENT_USER_PROMPT,
+    prompt_name="user_prompt"
 )
 
 AGENT_GUIDELINES_PROMPT = """<guidlines>

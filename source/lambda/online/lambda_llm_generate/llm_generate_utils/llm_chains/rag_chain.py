@@ -1,12 +1,9 @@
 # rag llm chains
-
-
 from langchain.prompts import (
     ChatPromptTemplate,
     HumanMessagePromptTemplate,
     SystemMessagePromptTemplate
 )
-from langchain_core.messages import AIMessage,SystemMessage,HumanMessage
 
 from langchain.schema.runnable import RunnableLambda, RunnablePassthrough
 from common_logic.common_utils.constant import (
@@ -14,6 +11,7 @@ from common_logic.common_utils.constant import (
     LLMModelType
 )
 from common_logic.common_utils.prompt_utils import get_prompt_template
+from common_logic.common_utils.logger_utils import print_llm_messages
 
 # from ...prompt_template import convert_chat_history_from_fstring_format
 from ..llm_models import Model
@@ -56,7 +54,7 @@ class Claude2RagLLMChain(LLMChain):
             context=RunnableLambda(lambda x: get_claude_rag_context(x["contexts"]))
         )
         llm = Model.get_model(cls.model_id, model_kwargs=model_kwargs, **kwargs)
-        chain = context_chain | ChatPromptTemplate.from_messages(chat_messages) | RunnableLambda(lambda x: print(f"rag message {x.messages}") or x)
+        chain = context_chain | ChatPromptTemplate.from_messages(chat_messages) | RunnableLambda(lambda x: print_llm_messages(f"rag messages: {x.messages}") or x)
         if stream:
             chain = (
                 chain

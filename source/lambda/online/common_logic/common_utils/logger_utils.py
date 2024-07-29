@@ -62,3 +62,9 @@ get_logger = Logger.get_logger
 # modify default logger
 logging.root = get_logger("root")
 logger = logging.root
+
+
+def print_llm_messages(msg,logger=logger):
+    enable_print_messages = os.getenv("ENABLE_PRINT_MESSAGES", 'True').lower() in ('true', '1', 't')
+    if enable_print_messages:
+        logger.info(msg)

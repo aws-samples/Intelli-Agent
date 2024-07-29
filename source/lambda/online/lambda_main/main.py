@@ -6,8 +6,6 @@ import traceback
 from common_logic.common_utils.ddb_utils import DynamoDBChatMessageHistory
 from lambda_main.main_utils.online_entries import get_entry
 from lambda_main.main_utils.response_utils import process_response
-from lambda_main.main_utils.embeddings import get_embedding_info
-from lambda_main.main_utils.ddb_utils import create_item_if_not_exist
 from common_logic.common_utils.constant import EntryType
 from common_logic.common_utils.logger_utils import get_logger
 from common_logic.common_utils.websocket_utils import load_ws_client
@@ -15,9 +13,9 @@ from common_logic.common_utils.lambda_invoke_utils import (
     chatbot_lambda_call_wrapper,
     is_running_local,
 )
-from common_logic.common_utils.constant import ModelType, Status, KBType, IndexTag
 from botocore.exceptions import ClientError
 from datetime import datetime, timezone
+
 
 logger = get_logger("main")
 
@@ -73,7 +71,6 @@ def lambda_handler(event_body:dict, context:dict):
     if stream:
         load_ws_client(websocket_url)
 
-    index_tag = event_body.get("tag", "common")
     client_type = event_body.get("client_type", "default_client_type")
     entry_type = event_body.get("entry_type", EntryType.COMMON).lower()
     session_id = event_body.get("session_id", None)

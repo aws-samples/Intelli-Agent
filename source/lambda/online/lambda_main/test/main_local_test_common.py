@@ -241,17 +241,18 @@ def sso_batch_test():
             "using_whole_doc": False
         }
     }
+    session_id = f"multiturn_test_{time.time()}"
     results = []
-    for i,datum in enumerate(data[2:3]):
+    for i,datum in enumerate(data):
         query = datum['Question']
         if not query:
             continue
         print("="*25 + f"{i+1}.{query}" + "="*25)
-        session_id = f"multiturn_test_{time.time()}"
+        # session_id = f"multiturn_test_{time.time()}"
         chatbot_config = {
             "chatbot_mode": mode,
-            "use_history": False,
-            "enable_trace": False,
+            "use_history": True,
+            "enable_trace": True,
             "default_llm_config": default_llm_config,
             "default_retriever_config":default_retriever_config,
             "chatbot_id": "pr_test",

@@ -101,7 +101,7 @@ def query_preprocess(state: ChatbotState):
         handler_name="lambda_handler",
     )
 
-    send_trace(f"\n\n**query_rewrite:** \n{output}", state["stream"], state["ws_connection_id"], state["enable_trace"])
+    send_trace(f"\n**query rewrite:** {output}\n**origin query:** {state['query']}")
     return {"query_rewrite": output}
 
 @node_monitor_wrapper
@@ -213,8 +213,9 @@ def llm_direct_results_generation(state: ChatbotState):
 
     prompt_templates_from_ddb = get_prompt_templates_from_ddb(
         group_name,
-        model_id = llm_config['model_id'],
-    ).get(task_type,{})
+        model_id=llm_config['model_id'],
+        task_type=task_type
+    )
     logger.info(prompt_templates_from_ddb)
 
     answer: dict = invoke_lambda(
