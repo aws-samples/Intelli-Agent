@@ -48,12 +48,6 @@ def get_similarity_embedding(
         target_model=target_model
     )
     return response
-    # if model_type in ["vector","m3"]:
-    #     response = {"dense_vecs": response}
-    # # elif model_type == "m3":
-    # #     # response["dense_vecs"] = response["dense_vecs"]
-    # #     response = {"dense_vecs": response}
-    # return response
 
 @timeit
 def get_relevance_embedding(
@@ -373,7 +367,7 @@ def organize_faq_results(response, index_name, source_field="file_path", text_fi
     return results
 
 class QueryQuestionRetriever(BaseRetriever):
-    index: str
+    index_name: str
     vector_field: str = "vector_field"
     source_field: str = "source"
     top_k: int = 10
@@ -389,14 +383,14 @@ class QueryQuestionRetriever(BaseRetriever):
         opensearch_knn_results = []
         query_repr = get_similarity_embedding(query, self.embedding_model_endpoint, self.target_model, self.model_type)
         opensearch_knn_response = aos_client.search(
-            index_name=self.index,
+            index_name=self.index_name,
             query_type="knn",
             query_term=query_repr,
             field=self.vector_field,
             size=self.top_k,
         )
         opensearch_knn_results.extend(
-            organize_faq_results(opensearch_knn_response, self.index, self.source_field)
+            organize_faq_results(opensearch_knn_response, self.index_name, self.source_field)
         )
         docs = []
         for result in opensearch_knn_results:
@@ -405,11 +399,11 @@ class QueryQuestionRetriever(BaseRetriever):
                 "retrieval_content": result["content"],"answer": result["answer"], 
                 "question": result["question"]}))
         if self.enable_debug:
-            debug_info[f"qq-knn-recall-{self.index}"] = remove_redundancy_debug_info(opensearch_knn_results)
+            debug_info[f"qq-knn-recall-{self.index_name}"] = remove_redundancy_debug_info(opensearch_knn_results)
         return docs
 
 class QueryDocumentKNNRetriever(BaseRetriever):
-    index: str
+    index_name: str
     vector_field: str = "vector_field"
     source_field: str = "file_path"
     text_field: str = "text"
@@ -427,7 +421,7 @@ class QueryDocumentKNNRetriever(BaseRetriever):
         return await loop.run_in_executor(None,
                                           get_context,
                                           aos_hit,
-                                          self.index,
+                                          self.index_name,
                                           window_size)
 
     async def __spawn_task(self, aos_hits, context_size):
@@ -479,14 +473,14 @@ class QueryDocumentKNNRetriever(BaseRetriever):
     @timeit
     def __get_knn_results(self, query_term, filter):
         opensearch_knn_response = aos_client.search(
-            index_name=self.index,
+            index_name=self.index_name,
             query_type="knn",
             query_term=query_term,
             field=self.vector_field,
             size=self.top_k,
             filter=filter
         )
-        opensearch_knn_results = self.organize_results(opensearch_knn_response, self.index, self.source_field,
+        opensearch_knn_results = self.organize_results(opensearch_knn_response, self.index_name, self.source_field,
                                                        self.text_field, self.using_whole_doc, self.context_num)[:self.top_k]
         return opensearch_knn_results
 
@@ -523,12 +517,12 @@ class QueryDocumentKNNRetriever(BaseRetriever):
                 result_metadata["content_type"] = result["detail"]["metadata"]["content_type"]
             doc_list.append(Document(page_content=result["doc"], metadata=result_metadata))
         if self.enable_debug:
-            debug_info[f"qd-knn-recall-{self.index}"] = remove_redundancy_debug_info(opensearch_knn_results)
+            debug_info[f"qd-knn-recall-{self.index_name}"] = remove_redundancy_debug_info(opensearch_knn_results)
 
         return doc_list
 
 class QueryDocumentBM25Retriever(BaseRetriever):
-    index: str
+    index_name: str
     vector_field: str = "vector_field"
     source_field: str = "source"
     text_field: str = "text"
@@ -542,7 +536,7 @@ class QueryDocumentBM25Retriever(BaseRetriever):
         return await loop.run_in_executor(None,
                                           get_context,
                                           aos_hit,
-                                          self.index,
+                                          self.index_name,
                                           window_size)
 
     async def __spawn_task(self, aos_hits, context_size):
@@ -610,14 +604,14 @@ class QueryDocumentBM25Retriever(BaseRetriever):
     @timeit
     def __get_bm25_results(self, query_term, filter):
         opensearch_bm25_response = aos_client.search(
-            index_name=self.index,
+            index_name=self.index_name,
             query_type="fuzzy",
             query_term=query_term,
             field=self.text_field,
             size=self.top_k,
             filter=filter
         )
-        opensearch_bm25_results = self.organize_results(opensearch_bm25_response, self.index, self.source_field,
+        opensearch_bm25_results = self.organize_results(opensearch_bm25_response, self.index_name, self.source_field,
                                                         self.text_field, self.using_whole_doc, self.context_num)[:self.top_k]
         return opensearch_bm25_results
 
@@ -653,7 +647,7 @@ class QueryDocumentBM25Retriever(BaseRetriever):
             doc_list.append(Document(page_content=result["doc"],
                                      metadata=result_metadata))
         if self.enable_debug:
-            debug_info[f"qd-bm25-recall-{self.index}"] = remove_redundancy_debug_info(opensearch_bm25_results)
+            debug_info[f"qd-bm25-recall-{self.index_name}"] = remove_redundancy_debug_info(opensearch_bm25_results)
         return doc_list
 
 def index_results_format(docs:list, threshold=-1):
