@@ -121,7 +121,7 @@ def intention_detection(state: ChatbotState):
 
     context_list = []
 
-    qq_match_threshold = retriever_params['retriever_config']['threshold']
+    qq_match_threshold = retriever_params['threshold']
 
     for doc in output["result"]["docs"]:
         if doc['retrieval_score'] > qq_match_threshold:
@@ -197,7 +197,7 @@ def agent(state: ChatbotState):
             "function_calling_parsed_tool_calls": [{
                 "name": "rag_tool",
                 "kwargs": {},
-                "model_id": state['chatbot_config']['agent_config']['model_id']
+                "model_id": state['chatbot_config']['agent_config']['llm_config']['model_id']
             }]
         }
     response = app_agent.invoke(state)
@@ -404,11 +404,12 @@ def common_entry(event_body):
         }
     )
 
+    figures = response["extra_response"].pop("figures",[])
     return {
         "answer": response["answer"],
         **response["extra_response"],
         "ddb_additional_kwargs": {
-            "figure": response["extra_response"].get("figures", [])
+            "figure": figures
         }
     }
 

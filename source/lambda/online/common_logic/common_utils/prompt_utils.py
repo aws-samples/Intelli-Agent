@@ -12,7 +12,6 @@ dynamodb_resource = boto3.resource("dynamodb")
 ddb_prompt_table = dynamodb_resource.Table(ddb_prompt_table_name)
 
 
-
 # export models to front
 EXPORT_MODEL_IDS = [
     LLMModelType.CLAUDE_3_HAIKU,

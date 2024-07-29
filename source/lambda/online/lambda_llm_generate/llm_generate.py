@@ -4,7 +4,6 @@ from common_logic.common_utils.lambda_invoke_utils import chatbot_lambda_call_wr
 
 logger = get_logger("llm_generate")
 
-
 @chatbot_lambda_call_wrapper
 def lambda_handler(event_body, context=None):
     llm_chain_config = event_body['llm_config']

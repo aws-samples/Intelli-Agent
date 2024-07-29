@@ -59,25 +59,12 @@ def get_websearch_retrievers(top_k:int):
     return retriever_list
 
 def get_custom_qd_retrievers(config:dict,using_bm25=False):
-    qd_retriever = QueryDocumentKNNRetriever(
-            **{
-                "index": config['indexId'],
-                "top_k": config.get('top_k', 2),
-                "embedding_model_endpoint": config['modelIds']['embedding']['parameter']['ModelEndpoint'],
-                "target_model": config['modelIds']['embedding']['parameter']['ModelName'],
-                "model_type": config['modelIds']['embedding']['parameter']['ModelType'],
-                # "query_key": config.get("query_key","query"),
-                "text_field": config.get("text_field","text"),
-                "using_whole_doc": config.get("using_whole_doc",False),
-                "context_num": config.get("context_num", 2),
-                "enable_debug": config.get('enable_debug',False)
-            }  
-        )
+    qd_retriever = QueryDocumentKNNRetriever(**config)
 
     if using_bm25:
         bm25_retrievert = QueryDocumentBM25Retriever(
                     **{
-                        "index": config['indexId'],
+                        "index_name": config['index_name'],
                         "using_whole_doc": config.get("using_whole_doc",False),
                         "context_num":config["context_num"],
                         "enable_debug": config.get('enable_debug',False)
@@ -88,16 +75,9 @@ def get_custom_qd_retrievers(config:dict,using_bm25=False):
 
 def get_custom_qq_retrievers(config:dict):
     qq_retriever = QueryQuestionRetriever(
-            **{
-                "index": config['indexId'],
-                "top_k": config['top_k'],
-                "embedding_model_endpoint": config['modelIds']['embedding']['parameter']['ModelEndpoint'],
-                "target_model": config['modelIds']['embedding']['parameter']['ModelName'],
-                "model_type": "vector",
-                # "query_key": config.get("query_key","query"),
-                "enable_debug": config.get('enable_debug',False)
-            }
-        )
+        model_type="vector",
+        **config
+    )
     return [qq_retriever]
 
 def get_whole_chain(retriever_list, reranker_config):
@@ -130,7 +110,7 @@ retriever_dict = {
 }
 
 def get_custom_retrievers(retriever):
-    return retriever_dict[retriever['indexType']](retriever)
+    return retriever_dict[retriever['index_type']](retriever)
 
 
 def lambda_handler(event, context=None):

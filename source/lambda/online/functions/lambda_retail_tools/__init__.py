@@ -9,7 +9,7 @@ from . import order_info
 from . import product_aftersales
 from ..lambda_common_tools import give_rhetorical_question  
 from ..lambda_common_tools import give_final_response
-from ..lambda_common_tools import comparison_rag
+from ..lambda_common_tools import comparison_rag, step_back_rag
 from . import rule_response
 from . import transfer
 from . import promotion
@@ -214,6 +214,35 @@ tool_manager.register_tool(
         "running_mode": ToolRuningMode.ONCE
     }
 )
+
+tool_manager.register_tool(
+    {
+        "name":"step_back_rag",
+        "scene": SCENE,
+        "lambda_name": LAMBDA_NAME,
+        "lambda_module_path": step_back_rag.lambda_handler,
+        "tool_def": {
+            "name": "step_back_rag",
+            "description": "如果用户的问题过于具体，请把改写为更加通用的问题",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "description": """基于历史消息改写的问题""",
+                        "type": "str"
+                    },
+                    "step_back_query": {
+                        "description": """改写后的问题""",
+                        "type": "str"
+                    }
+                },
+                "required": ["query", "step_back_query"]
+            }
+        },
+        "running_mode": ToolRuningMode.ONCE
+    }
+)
+
 
 tool_manager.register_tool(
     {
