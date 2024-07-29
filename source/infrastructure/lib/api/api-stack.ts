@@ -545,7 +545,18 @@ export class ApiConstruct extends Construct {
     apiKBExecution.addMethod(
       "POST",
       new apigw.LambdaIntegration(sfnLambda),
-      this.genMethodOption(api, auth, null),
+      {
+        ...this.genMethodOption(api, auth, null),
+        requestModels: this.genRequestModel(api, {
+          "chatbotId": { "type": JsonSchemaType.STRING },
+          "indexType": { "type": JsonSchemaType.STRING },
+          "offline": { "type": JsonSchemaType.STRING },
+          "operationType": { "type": JsonSchemaType.STRING },
+          "qaEnhance": { "type": JsonSchemaType.STRING },
+          "s3Bucket": { "type": JsonSchemaType.STRING },
+          "s3Prefix": { "type": JsonSchemaType.STRING }
+        })
+      }
     );
     apiKBExecution.addMethod(
       "GET",
