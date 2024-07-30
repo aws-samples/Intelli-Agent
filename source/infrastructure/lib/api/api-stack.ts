@@ -545,7 +545,18 @@ export class ApiConstruct extends Construct {
     apiKBExecution.addMethod(
       "POST",
       new apigw.LambdaIntegration(sfnLambda),
-      this.genMethodOption(api, auth, null),
+      {
+        ...this.genMethodOption(api, auth, null),
+        requestModels: this.genRequestModel(api, {
+          "chatbotId": { "type": JsonSchemaType.STRING },
+          "indexType": { "type": JsonSchemaType.STRING },
+          "offline": { "type": JsonSchemaType.STRING },
+          "operationType": { "type": JsonSchemaType.STRING },
+          "qaEnhance": { "type": JsonSchemaType.STRING },
+          "s3Bucket": { "type": JsonSchemaType.STRING },
+          "s3Prefix": { "type": JsonSchemaType.STRING }
+        })
+      }
     );
     apiKBExecution.addMethod(
       "GET",
@@ -567,6 +578,7 @@ export class ApiConstruct extends Construct {
             embeddingModelType: { type: JsonSchemaType.STRING },
             groupName: { type: JsonSchemaType.STRING },
             chatbotId: { type: JsonSchemaType.STRING },
+            indexType: { type: JsonSchemaType.STRING },
             indexId: { type: JsonSchemaType.STRING },
           },
           required: ['s3Prefix',
@@ -582,8 +594,8 @@ export class ApiConstruct extends Construct {
                      'embeddingModelType',
                      'groupName',
                      'chatbotId',
+                     'indexType',
                      'indexId'],
-
         }
         },
         Count: { type: JsonSchemaType.INTEGER },
@@ -632,11 +644,11 @@ export class ApiConstruct extends Construct {
                 s3Prefix: { type: JsonSchemaType.STRING },
                 s3Bucket: { type: JsonSchemaType.STRING },
                 createTime: { type: JsonSchemaType.STRING }, // Consider using format: 'date-time'
-                // executionId: { type: JsonSchemaType.STRING },
+                executionId: { type: JsonSchemaType.STRING },
                 s3Path: { type: JsonSchemaType.STRING },
                 status: { type: JsonSchemaType.STRING },
               },
-              required: ['s3Prefix', 's3Bucket', 'createTime', 's3Path', 'status'],
+              required: ['s3Prefix', 's3Bucket', 'createTime', 's3Path', 'status','executionId'],
             }
           },
           Count: { type: JsonSchemaType.INTEGER }
@@ -657,11 +669,14 @@ export class ApiConstruct extends Construct {
       {...
         this.genMethodOption(api, auth, {
           data: { type: JsonSchemaType.STRING },
-          message: { type: JsonSchemaType.STRING }
+          message: { type: JsonSchemaType.STRING },
+          s3Bucket: { type: JsonSchemaType.STRING },
+          s3Prefix: { type: JsonSchemaType.STRING }
         }),
         requestModels: this.genRequestModel(api, {
           "content_type": { "type": JsonSchemaType.STRING },
           "file_name": { "type": JsonSchemaType.STRING },
+
         })
       // ,requestValidatorOptions: {
       //   requestValidatorName: `Validator-${Math.random().toString(36).substr(2, 9)}`,
