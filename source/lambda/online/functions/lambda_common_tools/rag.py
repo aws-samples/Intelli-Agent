@@ -21,7 +21,6 @@ def llm_stream_helper(res:Iterable, state:dict):
 
 def lambda_handler(event_body,context=None):
     state = event_body['state']
-
     context_list = []
     # add qq match results
     context_list.extend(state['qq_match_results'])
@@ -52,7 +51,8 @@ def lambda_handler(event_body,context=None):
     task_type = LLMTaskType.RAG
     prompt_templates_from_ddb = get_prompt_templates_from_ddb(
         group_name,
-        model_id = llm_config['model_id'],
+        model_id=llm_config['model_id'],
+        task_type=task_type
     )
 
     output: str = invoke_lambda(

@@ -35,6 +35,7 @@ _is_current_invoke_local = False
 _current_stream_use = True
 _ws_connection_id = None
 _enable_trace = True
+_is_main_lambda = True 
 
 
 class LambdaInvoker(BaseModel):
@@ -165,16 +166,14 @@ def chatbot_lambda_call_wrapper(fn):
     """
     @functools.wraps(fn)
     def inner(event: dict, context=None):
-        global _lambda_invoke_mode, _is_current_invoke_local,_enable_trace,_ws_connection_id
+        global _lambda_invoke_mode, _is_current_invoke_local,_enable_trace,_ws_connection_id,_is_main_lambda
         _is_current_invoke_local = True if context is None else False
         current_lambda_invoke_mode = LAMBDA_INVOKE_MODE.LOCAL.value
         # avoid recursive lambda calling
         if context is not None and type(context).__name__ == "LambdaContext":
             context = context.__dict__
             _lambda_invoke_mode = LAMBDA_INVOKE_MODE.LOCAL.value
-            _enable_trace = event.get('chatbot_config',{}).get("enable_trace",True)
-            # logger.info(f'event: {json.dumps(event,ensure_ascii=False,indent=2,cls=JSONEncoder)}')
-
+        
         if "Records" in event:
             records = event["Records"]
             assert len(records) == 1, "Please set sqs batch size to 1"
@@ -196,7 +195,13 @@ def chatbot_lambda_call_wrapper(fn):
             _lambda_invoke_mode = LAMBDA_INVOKE_MODE.LOCAL.value
             current_lambda_invoke_mode = LAMBDA_INVOKE_MODE.API_GW.value
             event = json.loads(event["body"])
-       
+        
+        # set _enable_trace
+        if _is_main_lambda:
+            _enable_trace = event.get('chatbot_config',{}).get("enable_trace",True)
+        
+        _is_main_lambda = not _is_main_lambda
+        # run 
         ret = fn(event, context=context)
         # save response to body
         # TODO
@@ -206,9 +211,8 @@ def chatbot_lambda_call_wrapper(fn):
                 "body": json.dumps(ret),
                 "headers": {"content-type": "application/json"},
             }
-
+        _is_main_lambda = True
         return ret
-
     return inner
 
 
@@ -218,9 +222,9 @@ def is_running_local():
 
 def send_trace(
         trace_info: str, 
-        current_stream_use: bool = None, 
+        current_stream_use: Union[bool,None] = None, 
         ws_connection_id: Optional[str] = None, 
-        enable_trace: bool = None
+        enable_trace: Union[bool,None] = None
     ) -> None:
     """
     Send trace information either to a WebSocket client or log it.
@@ -230,6 +234,7 @@ def send_trace(
 
     if enable_trace is None:
         enable_trace = _enable_trace
+
     
     if ws_connection_id is None:
         ws_connection_id = _ws_connection_id

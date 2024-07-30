@@ -130,3 +130,16 @@ export interface GetPromptResponse {
   Scene: string;
   Prompt: Prompt;
 }
+
+export interface PresignedUrlResponse {
+  data: string;
+  message: string;
+  s3Bucket: string;
+  s3Prefix: string;
+}
+
+export interface ExecutionResponse {
+  execution_id: string;
+  input_payload: string;
+  step_function_arn: string;
+}

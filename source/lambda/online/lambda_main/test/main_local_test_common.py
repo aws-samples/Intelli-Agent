@@ -134,10 +134,15 @@ def test_multi_turns_agent_pr():
         },
     ]
 
+    # default_index_names = {
+    #     "intention":["pr_test-intention-default"],
+    #     "qq_match": [],
+    #     "private_knowledge": ['pr_test-qd-sso_poc']
+    # }
     default_index_names = {
-        "intention":["intention-offline-1"],
-        "qq_match": ['bigo_qq'],
-        "private_knowledge": ['amazon-ec2-address']
+        "intention":[],
+        "qq_match": [],
+        "private_knowledge": []
     }
 
     for query in user_queries:
@@ -148,9 +153,11 @@ def test_multi_turns_agent_pr():
              session_id=session_id,
              query=query['query'],
              use_history=query['use_history'],
-             chatbot_id="admin",
+             chatbot_id="pr_test",
+             group_name='pr_test',
              only_use_rag_tool=False,
-             default_index_names=default_index_names
+             default_index_names=default_index_names,
+             enable_trace = False
              )
         print()
 
@@ -235,20 +242,24 @@ def sso_batch_test():
             "using_whole_doc": False
         }
     }
+    session_id = f"multiturn_test_{time.time()}"
     results = []
-    for i,datum in enumerate(data[2:3]):
+    for i,datum in enumerate(data):
         query = datum['Question']
         if not query:
             continue
         print("="*25 + f"{i+1}.{query}" + "="*25)
-        session_id = f"multiturn_test_{time.time()}"
+        # session_id = f"multiturn_test_{time.time()}"
         chatbot_config = {
             "chatbot_mode": mode,
             "use_history": False,
+            "enable_trace": True,
             "default_llm_config": default_llm_config,
             "default_retriever_config":default_retriever_config,
+            "chatbot_id": "pr_test",
+            "group_name": 'pr_test',
             "default_index_names": {
-                "private_knowledge": ['sso_poc']
+                "private_knowledge": ['pr_test-qd-sso_poc']
             },
             "agent_config": {
                 "only_use_rag_tool": True
@@ -299,7 +310,7 @@ def anta_test():
             "default_llm_config": default_llm_config,
             "default_index_names":{
                 "qq_match":['bingo_qq'],
-                "private_knowledge":['wrong'],
+                "private_knowledge":[],
                 "intention":['retail-intent']
             },
             "agent_config": {
@@ -379,7 +390,7 @@ def elec_test():
 if __name__ == "__main__":
     # complete_test_pr()
     # test_multi_turns_rag_pr()
-    # test_multi_turns_agent_pr()
+    test_multi_turns_agent_pr()
     # test_multi_turns_chat_pr()
     # bigo_test()
     # sso_batch_test()
