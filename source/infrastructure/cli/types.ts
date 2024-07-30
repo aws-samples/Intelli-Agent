@@ -13,9 +13,15 @@ export enum SupportedSageMakerModels {
 }
 
 export interface SystemConfig {
-  llms: {
-    sagemaker: SupportedSageMakerModels[];
+  knowledgeBase: {
+    enabled: boolean;
+    knowledgeBaseModels: {
+      enabled: boolean;
+      ecrRepository: string;
+      ecrImageTag: string;
+    };
   };
+  llms: {};
   rag: {
     enabled: boolean;
     engines: {
@@ -26,17 +32,14 @@ export interface SystemConfig {
         enabled: boolean;
       };
     };
-    embeddingsModels: {
-      provider: ModelProvider;
-      name: string;
-      dimensions: number;
-      default?: boolean;
-    }[];
-    crossEncoderModels: {
-      provider: ModelProvider;
-      name: string;
-      default?: boolean;
-    }[];
+    embeddingsModels: string[];
+    crossEncoderModels: string[];
+  };
+  sagemaker: {
+    modelAssetsBucket: string;
+  };
+  ui: {
+    enabled: boolean;
   };
 }
 

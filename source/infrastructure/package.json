@@ -1,7 +1,7 @@
 {
   "name": "llm-bot",
   "scripts": {
-    "build": "npx projen build",
+    "build": "cd ../script && sh build.sh",
     "bundle": "npx projen bundle",
     "clobber": "npx projen clobber",
     "compile": "npx projen compile",

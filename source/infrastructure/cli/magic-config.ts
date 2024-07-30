@@ -111,7 +111,8 @@ async function processCreateOptions(options: any): Promise<void> {
           : "Enter a valid ECR Repository Name in the specified format: (?:[a-z0-9]+(?:[._-][a-z0-9]+)*/)*[a-z0-9]+(?:[._-][a-z0-9]+)*";
       },
       skip(): boolean {
-        return !(this as any).state.answers.enableKnowledgeBaseModels;
+        return (!(this as any).state.answers.enableKnowledgeBaseModels ||
+          !(this as any).state.answers.enableKnowledgeBaseConstruction);
       }
     },
     {
@@ -126,7 +127,8 @@ async function processCreateOptions(options: any): Promise<void> {
           : "Enter a valid ECR Image Tag in the specified format: ";
       },
       skip(): boolean {
-        return !(this as any).state.answers.enableKnowledgeBaseModels;
+        return (!(this as any).state.answers.enableKnowledgeBaseModels ||
+          !(this as any).state.answers.enableKnowledgeBaseConstruction);
       }
     },
     {
@@ -209,9 +211,7 @@ async function processCreateOptions(options: any): Promise<void> {
         ecrImageTag: answers.knowledgeBaseModelEcrImageTag,
       }
     },
-    llms: {
-      sagemaker: answers.selectedAgentModels,
-    },
+    llms: {},
     rag: {
       enabled: answers.enableRag,
       engines: {
@@ -227,7 +227,10 @@ async function processCreateOptions(options: any): Promise<void> {
     },
     sagemaker: {
       modelAssetsBucket: answers.sagemakerModelS3Bucket,
-    }
+    },
+    ui: {
+      enabled: answers.enableUI,
+    },
   };
 
   console.log("\n✨ This is the chosen configuration:\n");
