@@ -678,10 +678,6 @@ export class ApiConstruct extends Construct {
           "file_name": { "type": JsonSchemaType.STRING },
 
         })
-      // ,requestValidatorOptions: {
-      //   requestValidatorName: `Validator-${Math.random().toString(36).substr(2, 9)}`,
-      //   validateRequestBody: true,
-      // }
     }
     );
 
