@@ -143,7 +143,7 @@ def stream_response(event_body:dict, response:dict):
                 "custom_message_id": custom_message_id,
                 **response
             }
-            if figure and len(figure) > 1:
+            if figure:
                 context_msg["figure"] = figure
             send_to_ws_client(
                 message=context_msg,

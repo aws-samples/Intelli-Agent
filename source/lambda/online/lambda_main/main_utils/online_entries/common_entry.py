@@ -408,7 +408,9 @@ def common_entry(event_body):
         "answer": response["answer"],
         **response["extra_response"],
         "ddb_additional_kwargs": {
-            "figure": response["extra_response"].get("figures", [])
+            "figure": response["extra_response"].get("figures", []),
+            "docs": response["extra_response"].get("docs", []),
+            "reference": response["extra_response"].get("references", []),
         }
     }
 

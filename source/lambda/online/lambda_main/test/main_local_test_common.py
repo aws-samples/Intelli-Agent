@@ -1,4 +1,5 @@
 from local_test_base import generate_answer
+import copy
 import time
 
 
@@ -294,8 +295,68 @@ def anta_test():
         )
         print() 
 
+def elec_test():
+    mode = "agent"
+    session_id = f"multiturn_test_{time.time()}"
+    user_queries = [
+        {
+            "query": "怎么进行个体户注册",
+            "use_history": True
+        },
+    ]
+
+    for query in user_queries:
+        print()
+        print("==" * 50)
+
+        default_llm_config = {
+            'model_id': 'anthropic.claude-3-sonnet-20240229-v1:0',
+            'model_kwargs': {
+                'temperature': 0.5,
+                'max_tokens': 4096,
+            },
+        }
+        chatbot_config = {
+            "chatbot_mode": mode,
+            "use_history": query['use_history'],
+            "default_llm_config": default_llm_config,
+            "default_index_names": {
+                "intention": ['default-intent'],
+                "qq_match": ['bingo_qq'],
+                "private_knowledge": ['ai-solar']
+            },
+            "agent_config": {
+                "only_use_rag_tool": True
+            },
+           "private_knowledge_config": {
+                "llm_config": {
+                    **copy.deepcopy(default_llm_config),
+                    'system_prompt': """You are a customer service agent, and answering user's query. You ALWAYS follow these guidelines when writing your response:
+                                    <guidelines>
+                                    - NERVER say "根据搜索结果/大家好/谢谢...".
+                                    - Output the context id which you refer to in the response in the <reference> tag.
+                                    - Output the answer in the <answer> tag.
+                                    </guidelines>
+
+                                    Here are some documents for you to reference for your query.
+                                    <docs>
+                                    {context}
+                                    </docs>"""
+                },
+           }
+        }
+
+        generate_answer(
+            query['query'],
+            stream=True,
+            session_id=session_id,
+            chatbot_config=chatbot_config,
+            entry_type="common",
+        )
+        print()
+
 if __name__ == "__main__":
-    complete_test_pr()
+    # complete_test_pr()
     # test_multi_turns_rag_pr()
     # test_multi_turns_agent_pr()
     # test_multi_turns_chat_pr()
@@ -303,3 +364,4 @@ if __name__ == "__main__":
     # sso_batch_test()
     # anta_test()
     # bigo_test()
+    elec_test()

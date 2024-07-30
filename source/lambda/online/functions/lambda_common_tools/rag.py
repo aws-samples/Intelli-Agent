@@ -4,7 +4,20 @@ from common_logic.common_utils.constant import (
     LLMTaskType
 )
 from common_logic.common_utils.lambda_invoke_utils import send_trace
+from typing import Iterable
 
+def llm_stream_helper(res:Iterable, state:dict):
+    reference_close_flag = False
+    reference_str = ""
+    all_str = ""
+    for r in res:
+        all_str += r
+        if all_str.endswith("</reference>"):
+            reference_str = all_str.split("</reference>")[0]
+            state["extra_response"]["references"] = reference_str.split(",")
+            reference_close_flag = True
+        if reference_close_flag:
+            yield r
 
 def lambda_handler(event_body,context=None):
     state = event_body['state']
@@ -30,11 +43,12 @@ def lambda_handler(event_body,context=None):
     unique_set = {tuple(d.items()) for d in figure_list}
     unique_figure_list = [dict(t) for t in unique_set]
     state['extra_response']['figures'] = unique_figure_list
+    state['extra_response']['docs'] = output["result"]["docs"]
     
     send_trace(f"\n\n**rag-contexts:** {context_list}", enable_trace=state["enable_trace"])
     
     group_name = state['chatbot_config']['group_name']
-    llm_config = state["chatbot_config"]["chat_config"]
+    llm_config = state["chatbot_config"]["private_knowledge_config"]["llm_config"]
     task_type = LLMTaskType.RAG
     prompt_templates_from_ddb = get_prompt_templates_from_ddb(
         group_name,
@@ -60,5 +74,7 @@ def lambda_handler(event_body,context=None):
         },
     )
 
-    return {"code":0,"result":output}
+    filtered_output = llm_stream_helper(output, state)
+    # return {"code":0,"result":output}
+    return {"code":0,"result":filtered_output}
 
