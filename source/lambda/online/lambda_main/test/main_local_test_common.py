@@ -251,7 +251,7 @@ def sso_batch_test():
         # session_id = f"multiturn_test_{time.time()}"
         chatbot_config = {
             "chatbot_mode": mode,
-            "use_history": True,
+            "use_history": False,
             "enable_trace": True,
             "default_llm_config": default_llm_config,
             "default_retriever_config":default_retriever_config,
@@ -329,9 +329,9 @@ def anta_test():
 if __name__ == "__main__":
     # complete_test_pr()
     # test_multi_turns_rag_pr()
-    # test_multi_turns_agent_pr()
+    test_multi_turns_agent_pr()
     # test_multi_turns_chat_pr()
     # bigo_test()
-    sso_batch_test()
+    # sso_batch_test()
     # anta_test()
     # bigo_test()

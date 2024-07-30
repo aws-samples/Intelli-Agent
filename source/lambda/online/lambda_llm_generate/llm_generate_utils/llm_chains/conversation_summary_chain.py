@@ -83,6 +83,7 @@ class Claude2ConversationSummaryChain(LLMChain):
     intent_type = LLMTaskType.CONVERSATION_SUMMARY_TYPE
 
     default_model_kwargs = {"max_tokens": 2000, "temperature": 0.1, "top_p": 0.9}
+    prefill = "From PersonU's point of view, here is the single standalone sentence:"
 
     @staticmethod
     def create_conversational_context(chat_history:List[BaseMessage]):
@@ -97,8 +98,8 @@ class Claude2ConversationSummaryChain(LLMChain):
         conversational_context = "\n".join(conversational_contexts)
         return conversational_context
 
-    @staticmethod
-    def format_conversation(conversation:list[BaseMessage]):
+    @classmethod
+    def format_conversation(cls,conversation:list[BaseMessage]):
         conversation_strs = []
         for message in conversation: 
             assert isinstance(message,(AIMessage,HumanMessage)), message
@@ -112,23 +113,27 @@ class Claude2ConversationSummaryChain(LLMChain):
     @classmethod
     def create_messages_inputs(cls,x:dict,user_prompt,few_shots:list[dict]):
         # create few_shots
-        few_shot_messages = sum([
-            [
-                HumanMessage(content=user_prompt.format(
-                    conversation=cls.format_conversation(convert_to_messages(few_shot['conversation']))
-                    )
-                    ),
-                AIMessage(content=few_shot['rewrite_query'])
-            ] for few_shot in few_shots],
-            []
-        )
+        few_shot_messages = []
+        for few_shot in few_shots:
+            conversation=cls.format_conversation(
+                                convert_to_messages(few_shot['conversation'])
+            )
+            few_shot_messages.append(HumanMessage(content=user_prompt.format(
+                            conversation=conversation,
+                            current_query=few_shot['conversation'][-1]['content']
+                    )))
+            few_shot_messages.append(AIMessage(content=f"{cls.prefill} {few_shot['rewrite_query']}"))
 
         # create current cocnversation
-        cur_messages = convert_to_messages(x['chat_history'] + [{"role":MessageType.HUMAN_MESSAGE_TYPE,"content":x['query']}])
+        cur_messages = convert_to_messages(
+            x['chat_history'] + [{"role":MessageType.HUMAN_MESSAGE_TYPE,"content":x['query']}]
+        )
+                                        
         conversation = cls.format_conversation(cur_messages)
         return {
             "conversation":conversation,
-            "few_shots":few_shot_messages
+            "few_shots":few_shot_messages,
+            "current_query": x['query']
         }
 
     @classmethod
@@ -157,7 +162,8 @@ class Claude2ConversationSummaryChain(LLMChain):
         cqr_template = ChatPromptTemplate.from_messages([
             SystemMessage(content=system_prompt),
             ('placeholder','{few_shots}'),
-            HumanMessagePromptTemplate.from_template(user_prompt)
+            HumanMessagePromptTemplate.from_template(user_prompt),
+            AIMessage(content=cls.prefill)
         ])
         return RunnableLambda(lambda x: cls.create_messages_inputs(x,user_prompt=user_prompt,few_shots=json.loads(few_shots))) | cqr_template 
  

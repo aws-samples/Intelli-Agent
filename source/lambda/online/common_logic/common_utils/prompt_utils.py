@@ -203,12 +203,12 @@ CQR_SYSTEM_PROMPT = """You are a helpful, pattern-following assistant."""
 CQR_USER_PROMPT_TEMPLATE = """Given the following conversation between PersonU and PersonA:
 {conversation}
 Instead of having this entire conversation, how can PersonU get what he or she is
-looking for using a single question? Respond with that question."""
+looking for using a single sentence? Keep the recent sentence of PersonU: “{current_query}” to be same if it is already self-explanatory. Don't make any explanations."""
 
 
 CQR_FEW_SHOTS = [
     {
-    "conversation":[
+        "conversation":[
             {
                 "role": MessageType.HUMAN_MESSAGE_TYPE,
                 "content": "Hello, I would like to know what to do if I do not agree with any decision."
@@ -230,7 +230,7 @@ CQR_FEW_SHOTS = [
                 "content": "and how do they calculate the adjustments?"
             }
         ],
-    "rewrite_query": "How is the calculation for adjustments made by SHIP determined?"
+        "rewrite_query": "How is the calculation for adjustments made by SHIP determined?"
    },
    {
        "conversation":[
@@ -247,8 +247,26 @@ CQR_FEW_SHOTS = [
                 "content": "Is there something I can use as a guide to get ready for it?"
             }
         ],
-    "rewrite_query": "What resources or guides can I use to help me prepare for college?"
-   }
+        "rewrite_query": "What resources or guides can I use to help me prepare for college?"
+   },
+   {
+       "conversation":[
+            {
+                "role": MessageType.HUMAN_MESSAGE_TYPE,
+                "content": "垃圾"
+            }
+        ],
+        "rewrite_query": "垃圾"
+   },
+   {
+       "conversation":[
+            {
+                "role": MessageType.HUMAN_MESSAGE_TYPE,
+                "content": "你好"
+            }
+        ],
+        "rewrite_query": "你好"
+   },
 ]
 
 register_prompt_templates(
