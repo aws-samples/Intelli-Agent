@@ -45,7 +45,7 @@ export class RootStack extends Stack {
 
     const assetConstruct = new AssetsConstruct(this, "assets-construct", {
       s3ModelAssets: cdkParameters.s3ModelAssets.valueAsString,
-      env: process.env,
+      env: props.env,
     });
     const llmStack = new LLMStack(this, "rag-stack", {
       s3ModelAssets: cdkParameters.s3ModelAssets.valueAsString,
@@ -54,7 +54,7 @@ export class RootStack extends Stack {
       instructModelPrefix: assetConstruct.instructModelPrefix,
       instructModelVersion: assetConstruct.instructModelVersion,
       iamHelper: iamHelper,
-      env: process.env,
+      env: props.env,
     });
     llmStack.node.addDependency(assetConstruct);
 
@@ -96,7 +96,7 @@ export class RootStack extends Stack {
       embeddingEndPoints: [llmStack.embeddingAndRerankerEndPoint],
       openSearchIndex: cdkParameters.openSearchIndex.valueAsString,
       openSearchIndexDict: cdkParameters.openSearchIndexDict.valueAsString,
-      env: process.env,
+      env: props.env,
     });
     connectorConstruct.node.addDependency(vpcConstruct);
     connectorConstruct.node.addDependency(aosConstruct);
@@ -134,7 +134,7 @@ export class RootStack extends Stack {
       etlObjIndexName: etlStack.etlObjIndexName,
       indexTableName: dynamoDBConstruct.indexTableName,
       modelTableName: dynamoDBConstruct.modelTableName,
-      env: process.env,
+      env: props.env,
       userPool: userConstruct.userPool,
       userPoolClientId: userConstruct.oidcClientId,
       iamHelper: iamHelper,

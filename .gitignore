@@ -86,3 +86,7 @@ source/lambda/online/functions/retail_tools/lambda_product_information_search/re
 script/
 poc/
 source/lambda/online/lambda_main/retail/
+source/infrastructure/cli/*.js
+source/infrastructure/bin/*.js
+source/infrastructure/lib/**/*.js
+*.d.ts

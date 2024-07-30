@@ -21,13 +21,14 @@
     "test:watch": "npx projen test:watch",
     "upgrade": "npx projen upgrade",
     "watch": "npx projen watch",
-    "projen": "npx projen"
+    "projen": "npx projen",
+    "config": "npx tsc && node ./cli/magic.js config"
   },
   "devDependencies": {
     "@aws-cdk/aws-apigatewayv2-alpha": "^2.1.0-alpha.0",
     "@aws-cdk/aws-apigatewayv2-integrations-alpha": "2.1.0-alpha.0",
     "@types/jest": "^29.5.2",
-    "@types/node": "^14.18.53",
+    "@types/node": "20.1.7",
     "@typescript-eslint/eslint-plugin": "^5",
     "@typescript-eslint/parser": "^5",
     "aws-cdk": "^2.118.0",
@@ -48,9 +49,12 @@
     "@aws-cdk/aws-glue-alpha": "^2.118.0-alpha.0",
     "@aws-cdk/aws-lambda-python-alpha": "^2.139.0-alpha.0",
     "@aws-solutions-constructs/aws-cloudfront-s3": "2.9.0",
+    "aws-sdk": "^2.1664.0",
     "aws-cdk-lib": "^2.118.0",
+    "commander": "^11.0.0",
     "constructs": "^10.0.5",
-    "dotenv": "^16.0.3"
+    "dotenv": "^16.0.3",
+    "enquirer": "2.4.1"
   },
   "license": "Apache-2.0",
   "version": "0.0.0",
