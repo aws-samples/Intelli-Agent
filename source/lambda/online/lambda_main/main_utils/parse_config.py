@@ -95,7 +95,7 @@ class PrivateKnowledgeConfig(RagToolConfig):
     pass
 
 
-class ChatbotConfig(ForbidBaseModel):
+class ChatbotConfig(AllowBaseModel):
     user_id: str = "default_user_id"
     group_name: str = "Admin"
     chatbot_id: str = "admin"

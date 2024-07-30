@@ -1,4 +1,4 @@
-# IntellapicollZHBI8WaBMpItemsInner
+# IntellapicorVOJKT5wIzUCItemsInner
 
 
 ## Properties
@@ -16,6 +16,7 @@ Name | Type | Description | Notes
 **execution_id** | **str** |  | 
 **group_name** | **str** |  | 
 **chatbot_id** | **str** |  | 
+**index_type** | **str** |  | 
 **create_time** | **str** |  | 
 **index_id** | **str** |  | 
 **operation_type** | **str** |  | 
@@ -23,19 +24,19 @@ Name | Type | Description | Notes
 ## Example
 
 ```python
-from openapi_client.models.intellapicoll_zhbi8_wa_bmp_items_inner import IntellapicollZHBI8WaBMpItemsInner
+from openapi_client.models.intellapicor_vojkt5w_iz_uc_items_inner import IntellapicorVOJKT5wIzUCItemsInner
 
 # TODO update the JSON string below
 json = "{}"
-# create an instance of IntellapicollZHBI8WaBMpItemsInner from a JSON string
-intellapicoll_zhbi8_wa_bmp_items_inner_instance = IntellapicollZHBI8WaBMpItemsInner.from_json(json)
+# create an instance of IntellapicorVOJKT5wIzUCItemsInner from a JSON string
+intellapicor_vojkt5w_iz_uc_items_inner_instance = IntellapicorVOJKT5wIzUCItemsInner.from_json(json)
 # print the JSON string representation of the object
-print(IntellapicollZHBI8WaBMpItemsInner.to_json())
+print(IntellapicorVOJKT5wIzUCItemsInner.to_json())
 
 # convert the object into a dict
-intellapicoll_zhbi8_wa_bmp_items_inner_dict = intellapicoll_zhbi8_wa_bmp_items_inner_instance.to_dict()
-# create an instance of IntellapicollZHBI8WaBMpItemsInner from a dict
-intellapicoll_zhbi8_wa_bmp_items_inner_from_dict = IntellapicollZHBI8WaBMpItemsInner.from_dict(intellapicoll_zhbi8_wa_bmp_items_inner_dict)
+intellapicor_vojkt5w_iz_uc_items_inner_dict = intellapicor_vojkt5w_iz_uc_items_inner_instance.to_dict()
+# create an instance of IntellapicorVOJKT5wIzUCItemsInner from a dict
+intellapicor_vojkt5w_iz_uc_items_inner_from_dict = IntellapicorVOJKT5wIzUCItemsInner.from_dict(intellapicor_vojkt5w_iz_uc_items_inner_dict)
 ```
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 
