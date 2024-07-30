@@ -18,6 +18,7 @@ from common_logic.common_utils.python_utils import add_messages, update_nest_dic
 from common_logic.common_utils.logger_utils import get_logger
 from common_logic.common_utils.prompt_utils import get_prompt_templates_from_ddb
 from common_logic.common_utils.serialization_utils import JSONEncoder
+from common_logic.common_utils.response_utils import process_response
 from functions import get_tool_by_name
 from lambda_main.main_utils.parse_config import CommonConfigParser
 from langgraph.graph import END, StateGraph
@@ -28,6 +29,8 @@ logger = get_logger('common_entry')
 class ChatbotState(TypedDict):
     ########### input/output states ###########
     # inputs
+    # origin event body
+    event_body: dict
     # origianl input question
     query: str 
     # chat history between human and agent
@@ -49,6 +52,10 @@ class ChatbotState(TypedDict):
     answer: Any  
     # information needed return to user, e.g. intention, context, figure and so on, anything you can get during execution
     extra_response: Annotated[dict, update_nest_dict]
+    # addition kwargs which need to save into ddb
+    ddb_additional_kwargs: dict
+    # response of entire app
+    app_response: Any
 
     ########### query rewrite states ###########
     # query rewrite results
@@ -239,7 +246,8 @@ def llm_direct_results_generation(state: ChatbotState):
     return {"answer": answer}
 
 def final_results_preparation(state: ChatbotState):
-    return {"answer": state['answer']}
+    app_response = process_response(state['event_body'],state)
+    return {"app_response": app_response}
 
 
 def matched_query_return(state: ChatbotState):
@@ -292,7 +300,7 @@ def build_graph(chatbot_state_cls):
     # add all edges
     workflow.set_entry_point("query_preprocess")
     # chat mode
-    workflow.add_edge("llm_direct_results_generation", END)
+    workflow.add_edge("llm_direct_results_generation", "final_results_preparation")
     # rag mode
     # workflow.add_edge("knowledge_retrieve", "llm_rag_results_generation")
     # workflow.add_edge("llm_rag_results_generation", END)
@@ -388,6 +396,7 @@ def common_entry(event_body):
     # invoke graph and get results
     response = app.invoke(
         {
+            "event_body":event_body,
             "stream": stream,
             "chatbot_config": chatbot_config,
             "query": query,
@@ -402,17 +411,9 @@ def common_entry(event_body):
             "qq_match_results": [],
             "agent_repeated_call_limit": chatbot_config['agent_repeated_call_limit'],
             "agent_current_call_number": 0,
+            "ddb_additional_kwargs":{}
         }
     )
-
-    figures = response["extra_response"].pop("figures",[])
-    return {
-        "answer": response["answer"],
-        **response["extra_response"],
-        "ddb_additional_kwargs": {
-            "figure": figures
-        }
-    }
-
+    return response['app_response']
 
 main_chain_entry = common_entry
