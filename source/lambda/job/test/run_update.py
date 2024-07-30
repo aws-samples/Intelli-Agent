@@ -10,7 +10,6 @@ sys.path.append('../etl')
 from utils.ddb_utils import initiate_index, initiate_model, initiate_chatbot, is_chatbot_existed
 from common_logic.common_utils import s3_utils
 
-from dotenv import load_dotenv
 try:
     load_dotenv(
         dotenv_path=os.path.join(os.path.dirname(__file__),'../../online/lambda_main/test/.env')
@@ -49,11 +48,13 @@ local_file_list = ["poc/ai-solar/solar.pdf",
                    "poc/intent_data/intent_ingestion_data.jsonl",
                    "poc/goods_data/quick_reply/shouhou_wuliu.jsonl",
                    "poc/goods_data/detail/goods_info.jsonl",
-                   "../online/lambda_intention_detection/intention_utils/default_intent.jsonl"]
+                   "../online/lambda_intention_detection/intention_utils/default_intent.jsonl",
+                   "aws_data/aws-acts-knowledge/qd/"]
 
 sl1 = slice(0,1)
 sl2 = slice(5,5)
 
+s3_prefix_list = s3_prefix_list[sl1] + s3_prefix_list[sl2]
 workspace_id_list = workspace_id_list[sl1] + workspace_id_list[sl2]
 index_type_list = index_type_list[sl1] + index_type_list[sl2]
 op_type_list = op_type_list[sl1] + op_type_list[sl2]

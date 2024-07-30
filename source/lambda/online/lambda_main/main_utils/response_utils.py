@@ -92,8 +92,6 @@ def stream_response(event_body:dict, response:dict):
         )
         answer_str = ""
 
-        filter_sentence_fn = lambda x: x
-
         for i, chunk in enumerate(answer):
             if i == 0 and log_first_token_time:
                 first_token_time = time.time()
@@ -101,7 +99,6 @@ def stream_response(event_body:dict, response:dict):
                 logger.info(
                     f"{custom_message_id} running time of first token whole {entry_type} entry: {first_token_time-request_timestamp}s"
                 )
-            chunk = filter_sentence_fn(chunk)
             send_to_ws_client(message={
                     "message_type": StreamMessageType.CHUNK,
                     "message_id": f"ai_{message_id}",
@@ -117,7 +114,7 @@ def stream_response(event_body:dict, response:dict):
             )
 
             answer_str += chunk
-
+        
         if log_first_token_time:
             logger.info(
                 f"{custom_message_id} running time of last token whole {entry_type} entry: {time.time()-request_timestamp}s"
