@@ -12,7 +12,6 @@ from common_logic.common_utils.pydantic_models import (
 )
 logger = get_logger("parse_config")
 
-    
 class ConfigParserBase:
     default_llm_config_str = "{'model_id': 'anthropic.claude-3-sonnet-20240229-v1:0', 'model_kwargs': {'temperature': 0.01, 'max_tokens': 4096}}"
     default_index_names = {"intention":[], "private_knowledge":[], "qq_match":[]}
