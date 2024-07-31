@@ -51,9 +51,6 @@ interface ApiStackProps extends StackProps {
   sfnOutput: sfn.StateMachine;
   openSearchIndex: string;
   openSearchIndexDict: string;
-  jobName: string;
-  jobQueueArn: string;
-  jobDefinitionArn: string;
   etlEndpoint: string;
   resBucketName: string;
   executionTableName: string;
