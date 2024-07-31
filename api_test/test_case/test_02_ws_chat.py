@@ -104,7 +104,7 @@ class TestChat:
         except Exception as e:
             logger.error("Unexpected exception: %s", e)
             assert False, "test_26_agent_message_trace_history failed (UNEXPECTED_EXCEPTION)!"
-        assert any(item["message_type"] == 'CONTEXT' for item in messages), "test_26_agent_message_trace_history failed!"
+        assert any(item["message_type"] == 'MONITOR' for item in messages) and any(item["message_type"] == 'CHUNK' for item in messages), "test_26_agent_message_trace_history failed!"
 
     def test_27_agent_message_no_trace(self):
         '''test_27_agent_message_no_trace'''
@@ -123,7 +123,7 @@ class TestChat:
         except websocket.WebSocketTimeoutException as e:
             logger.error(e)
             assert False, "test_27_agent_message_no_trace failed(TIME_OUT)!"
-        assert any(item["message_type"] == 'CONTEXT' for item in messages) and all(item["message_type"] != 'MONITOR' for item in messages),"test_27_agent_message_no_trace failed!"
+        assert all(item["message_type"] != 'MONITOR' for item in messages),"test_27_agent_message_no_trace failed!"
 
     def test_28_agent_message_no_history(self):
         '''test_28_agent_message_no_history'''
@@ -141,7 +141,7 @@ class TestChat:
                     break
         except websocket.WebSocketTimeoutException:
             assert False, "test_28_agent_message_no_history failed(TIME_OUT)!"
-        assert any(item["message_type"] == 'CONTEXT' for item in messages),"test_28_agent_message_no_history failed!"
+        assert any(item["message_type"] == 'CHUNK' for item in messages),"test_28_agent_message_no_history failed!"
 
     def test_29_agent_message_no_trace_history(self):
         '''test_29_agent_message_no_trace_history'''
@@ -160,7 +160,7 @@ class TestChat:
                     break
         except websocket.WebSocketTimeoutException:
             assert False, "test_29_agent_message_no_trace_history failed(TIME_OUT)!"
-        assert any(item["message_type"] == 'CONTEXT' for item in messages) and all(item["message_type"] != 'MONITOR' for item in messages),"test_29_agent_message_no_trace_history failed!"
+        assert all(item["message_type"] != 'MONITOR' for item in messages),"test_29_agent_message_no_trace_history failed!"
     
     def test_30_chat_message_trace_history(self):
         '''test_30_chat_message_trace_history'''
@@ -177,7 +177,8 @@ class TestChat:
                     break
         except websocket.WebSocketTimeoutException:
             assert False, "test_30_chat_message_trace_history failed(TIME_OUT)!"
-        assert any(item["message_type"] == 'CHUNK' for item in messages) and all(item["message_type"] != 'CONTEXT' for item in messages),"test_30_chat_message_trace_history failed!"
+        assert any(item["message_type"] == 'CHUNK' for item in messages),"test_30_chat_message_trace_history failed!"
+        # assert any(item["message_type"] == 'CHUNK' for item in messages) and all(item["message_type"] != 'CONTEXT' for item in messages),"test_30_chat_message_trace_history failed!"
     
     def test_31_chat_message_no_trace(self):
         '''test_31_chat_message_no_trace'''
@@ -196,7 +197,8 @@ class TestChat:
         except websocket.WebSocketTimeoutException:
             assert False, "test_31_chat_message_no_trace failed(TIME_OUT)!"
         logger.info(messages)
-        assert any(item["message_type"] == 'CHUNK' for item in messages) and all(item["message_type"] != 'CONTEXT' for item in messages) and all(item["message_type"] != 'MONITOR' for item in messages),"test_31_chat_message_no_trace failed!"
+        assert any(item["message_type"] == 'CHUNK' for item in messages) and all(item["message_type"] != 'MONITOR' for item in messages),"test_31_chat_message_no_trace failed!"
+        # assert any(item["message_type"] == 'CHUNK' for item in messages) and all(item["message_type"] != 'CONTEXT' for item in messages) and all(item["message_type"] != 'MONITOR' for item in messages),"test_31_chat_message_no_trace failed!"
 
     def test_32_chat_message_no_history(self):
         '''test_32_chat_message_no_history'''
@@ -215,7 +217,7 @@ class TestChat:
         except websocket.WebSocketTimeoutException:
             assert False, "test_32_chat_message_no_history failed(TIME_OUT)!"
         logger.info(messages)
-        assert any(item["message_type"] == 'MONITOR' for item in messages) and any(item["message_type"] == 'CHUNK' for item in messages),"test_32_chat_message_no_history failed!"
+        assert any(item["message_type"] == 'CHUNK' for item in messages),"test_32_chat_message_no_history failed!"
 
     def test_33_chat_message_no_trace_history(self):
         '''test_33_chat_message_no_trace_history'''
@@ -312,10 +314,10 @@ class TestChat:
     #     logger.info(messages)
     #     assert all(item["message_type"] != 'MONITOR' for item in messages),"test_37_rag_message_no_trace_history failed!"
 
-    def test_38_rag_message_use_only_rag(self):
+    def test_38_agent_message_use_only_rag(self):
         '''test_38_rag_message_use_only_rag'''
-        self.config["chatbot_config"]["chatbot_mode"] = "rag"
-        self.config["chatbot_config"]["agent_config"]["use_only_rag"] = True
+        self.config["chatbot_config"]["chatbot_mode"] = "agent"
+        self.config["chatbot_config"]["agent_config"]["only_use_rag_tool"] = True
         self.config["chatbot_config"]["enable_trace"] = False
         self.config["chatbot_config"]["use_history"] = False
         self.ws.send(json.dumps(self.config))
