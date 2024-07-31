@@ -22,8 +22,6 @@ class ConstantBase(Enum,metaclass=EnumDirectValueMeta):
         return list(cls._value2member_map_.keys())
     
 
-    
-
 class EntryType(ConstantBase):
     COMMON = "common"
     RETAIL = "retail"

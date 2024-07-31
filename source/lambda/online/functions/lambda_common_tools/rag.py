@@ -8,7 +8,6 @@ from common_logic.common_utils.lambda_invoke_utils import send_trace
 
 def lambda_handler(event_body,context=None):
     state = event_body['state']
-
     context_list = []
     # add qq match results
     context_list.extend(state['qq_match_results'])
@@ -34,11 +33,12 @@ def lambda_handler(event_body,context=None):
     send_trace(f"\n\n**rag-contexts:** {context_list}", enable_trace=state["enable_trace"])
     
     group_name = state['chatbot_config']['group_name']
-    llm_config = state["chatbot_config"]["chat_config"]
+    llm_config = state["chatbot_config"]["private_knowledge_config"]['llm_config']
     task_type = LLMTaskType.RAG
     prompt_templates_from_ddb = get_prompt_templates_from_ddb(
         group_name,
-        model_id = llm_config['model_id'],
+        model_id=llm_config['model_id'],
+        task_type=task_type
     )
 
     output: str = invoke_lambda(

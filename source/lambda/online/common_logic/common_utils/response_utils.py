@@ -35,9 +35,7 @@ def write_chat_history_to_ddb(
 
 def api_response(event_body:dict,response:dict):
     ddb_history_obj = event_body["ddb_history_obj"]
-
-    answer = response.pop("answer")
-
+    answer = response["answer"]
     if not isinstance(answer, str):
         answer = json.dumps(answer, ensure_ascii=False)
     
@@ -51,7 +49,6 @@ def api_response(event_body:dict,response:dict):
         additional_kwargs=response.get("ddb_additional_kwargs",{})
     )
 
-    
     return {
             "session_id": event_body['session_id'],
             "entry_type": event_body['entry_type'],
@@ -61,7 +58,7 @@ def api_response(event_body:dict,response:dict):
                 "role": "assistant",
                 "content": answer
             },
-            **response
+            **response['extra_response']
     }
 
 
@@ -72,11 +69,8 @@ def stream_response(event_body:dict, response:dict):
     log_first_token_time = True 
     ws_connection_id = event_body["ws_connection_id"]
     custom_message_id = event_body["custom_message_id"]
-    
-    answer = response.pop("answer")
-    if "ddb_additional_kwargs" in response:
-        figure = response.get("ddb_additional_kwargs").get("figure")
-
+    answer = response["answer"]
+    figure = response.get("ddb_additional_kwargs").get("figure")
     if isinstance(answer, str):
         answer = iter([answer])
 
@@ -138,7 +132,7 @@ def stream_response(event_body:dict, response:dict):
                 "message_type": StreamMessageType.CONTEXT,
                 "message_id": f"ai_{message_id}",
                 "custom_message_id": custom_message_id,
-                **response
+                **response["extra_response"]
             }
             if figure and len(figure) > 1:
                 context_msg["figure"] = figure
