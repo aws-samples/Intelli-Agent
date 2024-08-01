@@ -5,18 +5,20 @@ set -e
 # Load config.json
 config_file="../infrastructure/bin/config.json"
 knowledge_base_enabled=$(jq -r '.knowledgeBase.enabled' $config_file)
-knowledge_base_models_enabled=$(jq -r '.knowledgeBase.knowledgeBaseModels.enabled' $config_file)
-ecr_repository=$(jq -r '.knowledgeBase.knowledgeBaseModels.ecrRepository' $config_file)
-ecr_image_tag=$(jq -r '.knowledgeBase.knowledgeBaseModels.ecrImageTag' $config_file)
-rag_enabled=$(jq -r '.rag.enabled' $config_file)
-model_assets_bucket=$(jq -r '.sagemaker.modelAssetsBucket' $config_file)
+knowledge_base_intelliagent_enabled=$(jq -r '.knowledgeBase.knowledgeBaseType.intelliAgentKb.enabled' $config_file)
+knowledge_base_models_enabled=$(jq -r '.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.enabled' $config_file)
+ecr_repository=$(jq -r '.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.ecrRepository' $config_file)
+ecr_image_tag=$(jq -r '.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.ecrImageTag' $config_file)
+opensearch_enabled=$(jq -r '.knowledgeBase.knowledgeBaseType.intelliAgentKb.vectorStore.opensearch.enabled' $config_file)
+model_assets_bucket=$(jq -r '.model.modelConfig.modelAssetsBucket' $config_file)
 ui_enabled=$(jq -r '.ui.enabled' $config_file)
 
 echo "Knowledge Base Enabled: $knowledge_base_enabled"
+echo "IntelliAgent Knowledge Base Enabled: $knowledge_base_intelliagent_enabled"
 echo "Knowledge Base Models Enabled: $knowledge_base_models_enabled"
 echo "ECR Repository: $ecr_repository"
 echo "ECR Image Tag: $ecr_image_tag"
-echo "RAG Enabled: $rag_enabled"
+echo "OpenSearch Enabled: $opensearch_enabled"
 echo "Model Assets Bucket: $model_assets_bucket"
 echo "UI Enabled: $ui_enabled"
 
@@ -46,12 +48,12 @@ build_frontend() {
 modules_prepared=""
 cd ..
 
-if $knowledge_base_enabled && $knowledge_base_models_enabled; then
+if $knowledge_base_enabled && $knowledge_base_intelliagent_enabled && $knowledge_base_models_enabled; then
     prepare_etl_model
     modules_prepared="${modules_prepared}ETL Model, "
 fi
 
-if $rag_enabled; then
+if $opensearch_enabled; then
     prepare_online_model
     modules_prepared="${modules_prepared}Online Model, "
 fi
