@@ -25,8 +25,8 @@ dynamodb = boto3.resource("dynamodb")
 model_table = dynamodb.Table(os.environ.get("MODEL_TABLE_NAME", "chatbot-model"))
 index_table = dynamodb.Table(os.environ.get("INDEX_TABLE_NAME", "chatbot-index"))
 chatbot_table = dynamodb.Table(os.environ.get("CHATBOT_TABLE_NAME", "chatbot"))
-group_name = "pr_test"
-chatbot_id = "pr_test"
+group_name = "hanxu_test"
+chatbot_id = "hanxu_test"
 model_id = "admin-embedding"
 
 process_number = 1
@@ -36,24 +36,31 @@ embedding_model_endpoint = "embedding-and-reranker-bce-embedding-and-bge-reranke
 s3_prefix_base = "."
 
 files = [
+    # {
+    #     "workspace_id": "default",
+    #     "local_path":"/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/docs/intention/default_intent_aos_examples.jsonl",
+    #     "index_type": "intention",
+    #     "op_type": "update",
+    #     "s3_bucket": os.environ.get("RES_BUCKET", "aws-chatbot-knowledge-base-test")
+    # },
+    # {
+    #     "workspace_id": "sso_poc",
+    #     "local_path": "/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/sso_poc/memgpt2310.08560v2.pdf",
+    #     "index_type": "qd",
+    #     "op_type": "update",
+    #     "s3_bucket": os.environ.get("RES_BUCKET", "aws-chatbot-knowledge-base-test")
+    # },
+    # {
+    # "workspace_id": "sso_poc",
+    # "local_path": "/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/sso_poc/Morgan_Stanley_Oct_21_(EMEA).pdf",
+    # "index_type": "qd",
+    # "op_type": "update",
+    # "s3_bucket": os.environ.get("RES_BUCKET", "aws-chatbot-knowledge-base-test")
+    # }
     {
-        "workspace_id": "default",
-        "local_path":"/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/docs/intention/default_intent_aos_examples.jsonl",
-        "index_type": "intention",
-        "op_type": "update",
-        "s3_bucket": os.environ.get("RES_BUCKET", "aws-chatbot-knowledge-base-test")
-    },
-    {
-        "workspace_id": "sso_poc",
-        "local_path": "/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/sso_poc/memgpt2310.08560v2.pdf",
-        "index_type": "qd",
-        "op_type": "update",
-        "s3_bucket": os.environ.get("RES_BUCKET", "aws-chatbot-knowledge-base-test")
-    },
-    {
-    "workspace_id": "sso_poc",
-    "local_path": "/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/sso_poc/Morgan_Stanley_Oct_21_(EMEA).pdf",
-    "index_type": "qd",
+    "workspace_id": "hanxu_poc",
+    "local_path": "/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/poc_from_hanxu/FAQ_TEST_20240412_chk.xlsx",
+    "index_type": "qq",
     "op_type": "update",
     "s3_bucket": os.environ.get("RES_BUCKET", "aws-chatbot-knowledge-base-test")
     }
@@ -82,6 +89,7 @@ for file in files:
         )
     tag = workspace_id
     index_id = f"{chatbot_id}-{index_type}-{workspace_id}"
+    print(index_id)
 
     sfn_handler.initiate_index(index_table, group_name, index_id, model_id, index_type, tag, create_time)
     sfn_handler.initiate_chatbot(chatbot_table, group_name, chatbot_id, index_id, index_type, tag,create_time)
