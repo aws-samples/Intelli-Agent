@@ -125,15 +125,12 @@ def intention_detection(state: ChatbotState):
         lambda_module_path="functions.functions_utils.retriever.retriever",
         handler_name="lambda_handler",
     )
-
     context_list = []
-
     qq_match_threshold = retriever_params['threshold']
-
     for doc in output["result"]["docs"]:
         if doc['retrieval_score'] > qq_match_threshold:
-            send_trace(f"\n\n**similar query found**\n", state["stream"], state["ws_connection_id"], state["enable_trace"])
-            query_content = doc['answer']
+            send_trace(f"\n\n**similar query found**\n{doc}", state["stream"], state["ws_connection_id"], state["enable_trace"])
+            query_content = doc['answer']['jsonlAnswer']
             return {
                 "answer": query_content,
                 "intent_type": "similar query found",
