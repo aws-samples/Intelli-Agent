@@ -197,10 +197,12 @@ def chatbot_lambda_call_wrapper(fn):
             event = json.loads(event["body"])
         
         # set _enable_trace
+        _is_main_lambda_inner = False # local valiable to represent main lambda
         if _is_main_lambda:
             _enable_trace = event.get('chatbot_config',{}).get("enable_trace",True)
-        
-        _is_main_lambda = not _is_main_lambda
+            _is_main_lambda = False  # global valiable to represent main lambda
+            _is_main_lambda_inner = True 
+
         # run 
         ret = fn(event, context=context)
         # save response to body
@@ -211,7 +213,9 @@ def chatbot_lambda_call_wrapper(fn):
                 "body": json.dumps(ret),
                 "headers": {"content-type": "application/json"},
             }
-        _is_main_lambda = True
+        
+        if _is_main_lambda_inner:
+            _is_main_lambda = True
         return ret
     return inner
 
