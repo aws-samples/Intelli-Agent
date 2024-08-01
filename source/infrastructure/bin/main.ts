@@ -16,6 +16,8 @@ import { Construct } from "constructs";
 import * as dotenv from "dotenv";
 import * as path from "path";
 
+import { getConfig } from "./config";
+import { SystemConfig } from "../cli/types";
 import { ApiConstruct } from "../lib/api/api-stack";
 import { ConnectorConstruct } from "../lib/connector/connector-stack";
 import { DynamoDBConstruct } from "../lib/db/dynamodb";
@@ -33,8 +35,12 @@ import { UserConstruct } from "../lib/user/user-stack";
 
 dotenv.config();
 
+export interface RootStackProps extends StackProps {
+  readonly config: SystemConfig;
+}
+
 export class RootStack extends Stack {
-  constructor(scope: Construct, id: string, props: StackProps = {}) {
+  constructor(scope: Construct, id: string, props: RootStackProps) {
     super(scope, id, props);
     this.templateOptions.description = "(SO8034) - Intelli-Agent";
 
@@ -45,7 +51,7 @@ export class RootStack extends Stack {
 
     const assetConstruct = new AssetsConstruct(this, "assets-construct", {
       s3ModelAssets: cdkParameters.s3ModelAssets.valueAsString,
-      env: process.env,
+      env: props.env,
     });
     const llmStack = new LLMStack(this, "rag-stack", {
       s3ModelAssets: cdkParameters.s3ModelAssets.valueAsString,
@@ -54,7 +60,7 @@ export class RootStack extends Stack {
       instructModelPrefix: assetConstruct.instructModelPrefix,
       instructModelVersion: assetConstruct.instructModelVersion,
       iamHelper: iamHelper,
-      env: process.env,
+      env: props.env,
     });
     llmStack.node.addDependency(assetConstruct);
 
@@ -96,7 +102,7 @@ export class RootStack extends Stack {
       embeddingEndPoints: [llmStack.embeddingAndRerankerEndPoint],
       openSearchIndex: cdkParameters.openSearchIndex.valueAsString,
       openSearchIndexDict: cdkParameters.openSearchIndexDict.valueAsString,
-      env: process.env,
+      env: props.env,
     });
     connectorConstruct.node.addDependency(vpcConstruct);
     connectorConstruct.node.addDependency(aosConstruct);
@@ -134,7 +140,7 @@ export class RootStack extends Stack {
       etlObjIndexName: etlStack.etlObjIndexName,
       indexTableName: dynamoDBConstruct.indexTableName,
       modelTableName: dynamoDBConstruct.modelTableName,
-      env: process.env,
+      env: props.env,
       userPool: userConstruct.userPool,
       userPoolClientId: userConstruct.oidcClientId,
       iamHelper: iamHelper,
@@ -193,6 +199,8 @@ export class RootStack extends Stack {
   }
 }
 
+const config = getConfig();
+
 // For development, use account/region from CDK CLI
 const devEnv = {
   account: process.env.CDK_DEFAULT_ACCOUNT,
@@ -201,6 +209,6 @@ const devEnv = {
 
 const app = new App();
 const stackName = app.node.tryGetContext("StackName") || "intelli-agent";
-new RootStack(app, stackName, { env: devEnv });
+new RootStack(app, stackName, { config, env: devEnv });
 
 app.synth();
