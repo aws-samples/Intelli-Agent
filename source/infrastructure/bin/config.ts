@@ -12,34 +12,57 @@ export function getConfig(): SystemConfig {
   return {
     knowledgeBase: {
       enabled: true,
-      knowledgeBaseModels: {
-        enabled: true,
-        ecrRepository: "intelli-agent-knowledge-base",
-        ecrImageTag: "latest",
-      },
-    },
-    llms: {},
-    rag: {
-      enabled: true,
-      engines: {
-        opensearch: {
+      knowledgeBaseType: {
+        intelliAgentKb: {
           enabled: true,
-        },
-        smartsearch: {
-          enabled: false,
+          vectorStore: {
+            opensearch: {
+              enabled: true,
+            },
+          },
+          knowledgeBaseModel: {
+            enabled: true,
+            ecrRepository: "intelli-agent-knowledge-base",
+            ecrImageTag: "latest",
+          },
         },
       },
-      embeddingsModels: [
-        "maidalun1020/bce-embedding-base_v1"
-      ],
-      crossEncoderModels: [
-      ],
     },
-    sagemaker: {
-      modelAssetsBucket: custom_assets_bucket,
+    chat: {
+      enabled: true,
+    },
+    model: {
+      embeddingsModels: [
+        {
+          provider: "sagemaker",
+          name: "bce-embedding",
+          dimensions: 1024,
+          default: true,
+        },
+      ],
+      llms: [
+        {
+          provider: "bedrock",
+          name: "intelli-agent-llm",
+        },
+      ],
+      modelConfig: {
+        modelAssetsBucket: custom_assets_bucket,
+      },
     },
     ui: {
       enabled: true,
+    },
+    federatedAuth: {
+      enabled: true,
+      provider: {
+        cognito: {
+          enabled: true,
+        },
+        authing: {
+          enabled: false,
+        },
+      },
     },
   };
 }

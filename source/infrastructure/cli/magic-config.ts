@@ -14,8 +14,16 @@ const embeddingModels = [
     provider: "sagemaker",
     name: "maidalun1020/bce-embedding-base_v1",
     dimensions: 1024,
+    default: true,
   }
 ];
+
+const llms = [
+  {
+    provider: "bedrock",
+    name: "anthropic.claude-3-sonnet-20240229-v1:0",
+  }
+]
 
 // Use AWS SDK to get the account and region
 AWS.config.credentials = new AWS.SharedIniFileCredentials({ profile: "default" });
@@ -55,7 +63,8 @@ async function getAwsAccountAndRegion() {
       const config: SystemConfig = JSON.parse(
         fs.readFileSync("./bin/config.json").toString("utf8")
       );
-      options.enableRag = config.rag.enabled;
+      // options.enableKnowledgeBaseConstruction = config.knowledgeBase.enabled;
+
     }
     try {
       await processCreateOptions(options);
@@ -86,17 +95,59 @@ async function processCreateOptions(options: any): Promise<void> {
   let questions = [
     {
       type: "confirm",
-      name: "enableKnowledgeBaseConstruction",
-      message: "Do you want to construct a knowledge base using this solution?",
-      initial: options.enableKnowledgeBaseConstruction || true,
+      name: "enableKnowledgeBase",
+      message: "Do you want to use knowledge base in this solution?",
+      initial: options.enableKnowledgeBase || true,
+    },
+    {
+      type: "select",
+      name: "enableKnowledgeBaseType",
+      hint: "ENTER to confirm selection",
+      message: "Which knowledge base type do you want to use?",
+      choices: [
+        { message: "Intelli-Agent Knowledge Base", name: "intelliAgentKb" },
+        { message: "Bedrock Knowledge Base (To Be Implemented)", name: "bedrockKb" },
+      ],
+      validate(value: string) {
+        if ((this as any).state.answers.enableKnowledgeBase) {
+          return value ? true : "Select a knowledge base type";
+        }
+        return true;
+      },
+      skip(): boolean {
+        return !(this as any).state.answers.enableKnowledgeBase;
+      },
+      initial: options.enableKnowledgeBaseType || "intelliAgentKb",
+    },
+    {
+      type: "select",
+      name: "intelliAgentKbVectorStoreType",
+      hint: "ENTER to confirm selection",
+      message: "Which vector store type do you want to use?",
+      choices: [
+        { message: "OpenSearch", name: "opensearch" },
+      ],
+      validate(value: string) {
+        if ((this as any).state.answers.intelliAgentKbVectorStoreType) {
+          return value ? true : "Select a vector store type";
+        }
+
+        return true;
+      },
+      skip(): boolean {
+        return ( !(this as any).state.answers.enableKnowledgeBase ||
+          (this as any).state.answers.enableKnowledgeBaseType !== "intelliAgentKb");
+      },
+      initial: options.enableIntelliAgentKbVectorStoreType || "opensearch",
     },
     {
       type: "confirm",
-      name: "enableKnowledgeBaseModels",
-      message: "Do you want to use Sagemaker Models to enhance the construction of the knowledge base?",
-      initial: options.enableKnowledgeBaseModels || true,
+      name: "enableIntelliAgentKbModel",
+      message: "Do you want to use Sagemaker Models to enhance the construction of the Intelli-Agent Knowledge Base?",
+      initial: options.enableIntelliAgentKbModel || true,
       skip(): boolean {
-        return !(this as any).state.answers.enableKnowledgeBaseConstruction;
+        return ( !(this as any).state.answers.enableKnowledgeBase ||
+          (this as any).state.answers.enableKnowledgeBaseType !== "intelliAgentKb");
       },
     },
     {
@@ -111,9 +162,10 @@ async function processCreateOptions(options: any): Promise<void> {
           : "Enter a valid ECR Repository Name in the specified format: (?:[a-z0-9]+(?:[._-][a-z0-9]+)*/)*[a-z0-9]+(?:[._-][a-z0-9]+)*";
       },
       skip(): boolean {
-        return (!(this as any).state.answers.enableKnowledgeBaseModels ||
-          !(this as any).state.answers.enableKnowledgeBaseConstruction);
-      }
+        return ( !(this as any).state.answers.enableKnowledgeBase ||
+          (this as any).state.answers.enableKnowledgeBaseType !== "intelliAgentKb" || 
+          !(this as any).state.answers.enableIntelliAgentKbModel);
+      },
     },
     {
       type: "input",
@@ -127,36 +179,16 @@ async function processCreateOptions(options: any): Promise<void> {
           : "Enter a valid ECR Image Tag in the specified format: ";
       },
       skip(): boolean {
-        return (!(this as any).state.answers.enableKnowledgeBaseModels ||
-          !(this as any).state.answers.enableKnowledgeBaseConstruction);
-      }
+        return ( !(this as any).state.answers.enableKnowledgeBase ||
+          (this as any).state.answers.enableKnowledgeBaseType !== "intelliAgentKb" || 
+          !(this as any).state.answers.enableIntelliAgentKbModel);
+      },
     },
     {
       type: "confirm",
-      name: "enableRag",
-      message: "Do you want to enable RAG",
-      initial: options.enableRag || false,
-    },
-    {
-      type: "select",
-      name: "ragsToEnable",
-      hint: "SPACE to select, ENTER to confirm selection",
-      message: "Which datastores do you want to enable for RAG",
-      choices: [
-        { message: "OpenSearch", name: "opensearch" },
-        { message: "SmartSearch Guidance (Working In Porgress)", name: "smartsearch" },
-      ],
-      validate(value: string) {
-        if ((this as any).state.answers.enableRag) {
-          return value ? true : "Select a rag engine";
-        }
-
-        return true;
-      },
-      skip(): boolean {
-        return !(this as any).state.answers.enableRag;
-      },
-      initial: options.ragsToEnable || [],
+      name: "enableChat",
+      message: "Do you want to enable Chat?",
+      initial: options.enableChat || true,
     },
     {
       type: "select",
@@ -172,9 +204,26 @@ async function processCreateOptions(options: any): Promise<void> {
         return true;
       },
       skip(): boolean {
-        return (
-          !(this as any).state.answers.enableRag || !(this as any).state.answers.ragsToEnable.includes("opensearch")
-        );
+        return ( !(this as any).state.answers.enableKnowledgeBase ||
+          (this as any).state.answers.enableKnowledgeBaseType !== "intelliAgentKb" || 
+          (this as any).state.answers.enableIntelliAgentKbVectorStoreType !== "opensearch");
+      },
+    },
+    {
+      type: "select",
+      name: "defaultLlm",
+      message: "Select a default llm model",
+      choices: llms.map((m) => ({ name: m.name, value: m })),
+      initial: options.defaultLlm,
+      validate(value: string) {
+        if ((this as any).state.answers.enableChat) {
+          return value ? true : "Select a default llm model";
+        }
+
+        return true;
+      },
+      skip(): boolean {
+        return !(this as any).state.answers.enableChat;
       },
     },
     {
@@ -187,9 +236,6 @@ async function processCreateOptions(options: any): Promise<void> {
           RegExp(/^(?!(^xn--|.+-s3alias$))^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/i).test(sagemakerModelS3Bucket)
           ? true
           : "Enter a valid S3 Bucket Name in the specified format: (?!^xn--|.+-s3alias$)^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]";
-      },
-      skip(): boolean {
-        return !(this as any).state.answers.enableRag;
       }
     },
     {
@@ -201,35 +247,99 @@ async function processCreateOptions(options: any): Promise<void> {
   ];
   const answers: any = await prompt(questions);
 
+  const advancedSettingsPrompts = [
+    {
+      type: "confirm",
+      name: "federatedAuthEnabled",
+      message: "Do you want to enable Federated Authentication?",
+      initial: options.cognitoFederationEnabled || true,
+      skip(): boolean {
+        return !(this as any).state.answers.enableUI;
+      }
+    },
+    {
+      type: "select",
+      name: "federatedAuthProvider",
+      message: "Select a Federated Authentication Provider",
+      choices: [
+        { message: "Cognito", name: "cognito" },
+        { message: "Authing", name: "authing" },
+      ],
+      initial: options.cognitoFederationProvider || "cognito",
+      skip(): boolean {
+        return (!(this as any).state.answers.federatedAuthEnabled || !(this as any).state.answers.enableUI);
+      },
+    },
+  ];
+
+  const doAdvancedConfirm: any = await prompt([
+    {
+      type: "confirm",
+      name: "doAdvancedSettings",
+      message: "Do you want to configure advanced settings?",
+      initial: false,
+    },
+  ]);
+  let advancedSettings: any = {};
+  if (doAdvancedConfirm.doAdvancedSettings) {
+    advancedSettings = await prompt(advancedSettingsPrompts);
+  }
+
   // Create the config object
   const config = {
     knowledgeBase: {
-      enabled: answers.enableKnowledgeBaseConstruction,
-      knowledgeBaseModels: {
-        enabled: answers.enableKnowledgeBaseModels,
-        ecrRepository: answers.knowledgeBaseModelEcrRepository,
-        ecrImageTag: answers.knowledgeBaseModelEcrImageTag,
-      }
-    },
-    llms: {},
-    rag: {
-      enabled: answers.enableRag,
-      engines: {
-        opensearch: {
-          enabled: answers.ragsToEnable.includes("opensearch"),
-        },
-        smartsearch: {
-          enabled: answers.ragsToEnable.includes("smartsearch"),
+      enabled: answers.enableKnowledgeBase,
+      knowledgeBaseType: {
+        intelliAgentKb: {
+          enabled: answers.enableKnowledgeBaseType === "intelliAgentKb",
+          vectorStore: {
+            opensearch: {
+              enabled: answers.intelliAgentKbVectorStoreType === "opensearch",
+            },
+          },
+          knowledgeBaseModel: {
+            enabled: answers.enableIntelliAgentKbModel,
+            ecrRepository: answers.knowledgeBaseModelEcrRepository,
+            ecrImageTag: answers.knowledgeBaseModelEcrImageTag,
+          },
         },
       },
-      embeddingsModels: [answers.defaultEmbedding],
-      crossEncoderModels: [],
     },
-    sagemaker: {
-      modelAssetsBucket: answers.sagemakerModelS3Bucket,
+    chat: {
+      enabled: answers.enableChat,
+    },
+    model: {
+      embeddingsModels: [
+        {
+          provider: answers.defaultEmbedding.provider,
+          name: answers.defaultEmbedding.name,
+          dimensions: answers.defaultEmbedding.dimensions,
+          default: true,
+        },
+      ],
+      llms: [
+        {
+          provider: answers.defaultLlm.provider,
+          name: answers.defaultLlm.name,
+        },
+      ],
+      modelConfig: {
+        modelAssetsBucket: answers.sagemakerModelS3Bucket,
+      },
     },
     ui: {
       enabled: answers.enableUI,
+    },
+    federatedAuth: {
+      enabled: advancedSettings.federatedAuthEnabled,
+      provider: {
+        cognito: {
+          enabled: advancedSettings.federatedAuthProvider === "cognito",
+        },
+        authing: {
+          enabled: advancedSettings.federatedAuthProvider === "authing",
+        },
+      },
     },
   };
 

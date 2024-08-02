@@ -95,19 +95,6 @@ export class RootStack extends Stack {
     etlStack.node.addDependency(uiPortal);
     etlStack.addDependency(llmStack);
 
-    const connectorConstruct = new ConnectorConstruct(this, "connector-construct", {
-      connectorVpc: vpcConstruct.connectorVpc,
-      securityGroup: vpcConstruct.securityGroup,
-      domainEndpoint: aosConstruct.domainEndpoint || "",
-      embeddingEndPoints: [llmStack.embeddingAndRerankerEndPoint],
-      openSearchIndex: cdkParameters.openSearchIndex.valueAsString,
-      openSearchIndexDict: cdkParameters.openSearchIndexDict.valueAsString,
-      env: props.env,
-    });
-    connectorConstruct.node.addDependency(vpcConstruct);
-    connectorConstruct.node.addDependency(aosConstruct);
-    connectorConstruct.node.addDependency(llmStack);
-
     const userConstruct = new UserConstruct(this, "user", {
       adminEmail: cdkParameters.subEmail.valueAsString,
       callbackUrl: uiPortal.portalUrl,
@@ -130,9 +117,6 @@ export class RootStack extends Stack {
       sfnOutput: etlStack.sfnOutput,
       openSearchIndex: cdkParameters.openSearchIndex.valueAsString,
       openSearchIndexDict: cdkParameters.openSearchIndexDict.valueAsString,
-      jobName: connectorConstruct.jobName,
-      jobQueueArn: connectorConstruct.jobQueueArn,
-      jobDefinitionArn: connectorConstruct.jobDefinitionArn,
       etlEndpoint: etlStack.etlEndpoint,
       resBucketName: etlStack.resBucketName,
       executionTableName: etlStack.executionTableName,
@@ -148,7 +132,6 @@ export class RootStack extends Stack {
     apiConstruct.node.addDependency(vpcConstruct);
     apiConstruct.node.addDependency(aosConstruct);
     apiConstruct.node.addDependency(llmStack);
-    apiConstruct.node.addDependency(connectorConstruct);
     apiConstruct.node.addDependency(etlStack);
 
     const uiExports = new UiExportsConstruct(this, "ui-exports", {
@@ -192,10 +175,6 @@ export class RootStack extends Stack {
     BuildConfig.LAYER_PIP_OPTION =
       this.node.tryGetContext("LayerPipOption") ?? "";
     BuildConfig.JOB_PIP_OPTION = this.node.tryGetContext("JobPipOption") ?? "";
-    BuildConfig.LLM_MODEL_ID =
-      this.node.tryGetContext("LlmModelId") ?? "internlm2-chat-7b";
-    BuildConfig.LLM_ENDPOINT_NAME =
-      this.node.tryGetContext("LlmEndpointName") ?? "";
   }
 }
 
