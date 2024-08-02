@@ -35,6 +35,8 @@ embedding_model_endpoint = "embedding-and-reranker-bce-embedding-and-bge-reranke
 
 s3_prefix_base = "."
 
+knowledge_injection_folder = os.path.dirname(__file__) + "/../../../../docs"
+
 files = [
     # {
     #     "workspace_id": "default",
@@ -57,10 +59,31 @@ files = [
     # "op_type": "update",
     # "s3_bucket": os.environ.get("RES_BUCKET", "aws-chatbot-knowledge-base-test")
     # }
+    # {
+    # "workspace_id": "hanxu_poc",
+    # "local_path": "/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/poc_from_hanxu/FAQ_TEST_20240412_chk.xlsx",
+    # "index_type": "qq",
+    # "op_type": "update",
+    # "s3_bucket": os.environ.get("RES_BUCKET", "aws-chatbot-knowledge-base-test")
+    # }
     {
-    "workspace_id": "hanxu_poc",
-    "local_path": "/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/poc_from_hanxu/FAQ_TEST_20240412_chk.xlsx",
+    "workspace_id": "demo-intention",
+    "local_path": f"{knowledge_injection_folder}/intention/default_intent_aos_examples.jsonl",
+    "index_type": "intention",
+    "op_type": "update",
+    "s3_bucket": os.environ.get("RES_BUCKET", "aws-chatbot-knowledge-base-test")
+    },
+    {
+    "workspace_id": "demo-qq",
+    "local_path": f"{knowledge_injection_folder}/qq/default_qq_aos_examples.jsonl",
     "index_type": "qq",
+    "op_type": "update",
+    "s3_bucket": os.environ.get("RES_BUCKET", "aws-chatbot-knowledge-base-test")
+    },
+    {
+    "workspace_id": "demo-qd",
+    "local_path": f"{knowledge_injection_folder}/qd/default_qd_aos_examples.pdf",
+    "index_type": "qd",
     "op_type": "update",
     "s3_bucket": os.environ.get("RES_BUCKET", "aws-chatbot-knowledge-base-test")
     }
