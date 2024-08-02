@@ -19,6 +19,7 @@ class Tool(BaseModel):
     scene: str = Field(description="tool use scene",default=SceneType.COMMON)
     # should_ask_parameter: bool = Field(description="tool use scene")
 
+
 class ToolManager:
     def __init__(self) -> None:
         self.tools = {}
