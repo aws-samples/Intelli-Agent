@@ -8,7 +8,7 @@ from langchain.schema.runnable import (
     RunnablePassthrough
 )
 from common_logic.common_utils.prompt_utils import get_prompt_template
-
+from common_logic.common_utils.logger_utils import print_llm_messages
 from langchain_core.messages import(
     AIMessage,
     SystemMessage
@@ -223,8 +223,6 @@ class Claude2ToolCallingChain(LLMChain):
         chat_history = x['chat_history'] + \
             [{"role": MessageType.HUMAN_MESSAGE_TYPE,"content": x['query']}] + \
             x['agent_tool_history']
-
-            
         return chat_history
 
     @classmethod
@@ -251,10 +249,10 @@ class Claude2ToolCallingChain(LLMChain):
         user_system_prompt = get_prompt_template(
             model_id=cls.model_id,
             task_type=cls.intent_type,
-            prompt_name="system_prompt"     
+            prompt_name="user_prompt"     
         ).prompt_template
 
-        user_system_prompt = kwargs.get("system_prompt",None) or user_system_prompt
+        user_system_prompt = kwargs.get("user_prompt",None) or user_system_prompt
 
         user_system_prompt = cls.get_common_system_prompt(
             user_system_prompt
@@ -295,11 +293,10 @@ class Claude2ToolCallingChain(LLMChain):
             model_kwargs=model_kwargs,
         )
         chain = RunnablePassthrough.assign(chat_history=lambda x: cls.create_chat_history(x)) | tool_calling_template \
-            | RunnableLambda(lambda x: print(x.messages) or x.messages ) \
+            | RunnableLambda(lambda x: print_llm_messages(f"Agent messages: {x.messages}") or x.messages ) \
             | llm | RunnableLambda(lambda message:cls.parse_function_calls_from_ai_message(
                 message
             ))
-        
         return chain
 
 
