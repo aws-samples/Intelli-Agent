@@ -105,19 +105,23 @@ def test_multi_turns_agent_pr():
     user_queries = [
         {
             "query": "什么是s3",
-            "use_history": True
+            "use_history": True,
+            "enable_trace": True
         },
         {
             "query": "你好",
-            "use_history": True
+            "use_history": True,
+            "enable_trace": False
         },
         {
             "query": "人工客服",
-            "use_history": True
+            "use_history": True,
+            "enable_trace": True
         },
         {
             "query": "垃圾",
-            "use_history": True
+            "use_history": True,
+            "enable_trace": True
         },
         {
             "query": "什么是aws ec2",
@@ -125,11 +129,13 @@ def test_multi_turns_agent_pr():
         },
         {
             "query": "今天天气怎么样",
-            "use_history": True
+            "use_history": True,
+            "enable_trace": False
         },
         {
             "query": "我在上海",
-            "use_history": True
+            "use_history": True,
+            "enable_trace": False
         },
     ]
 
@@ -156,9 +162,44 @@ def test_multi_turns_agent_pr():
              group_name='pr_test',
              only_use_rag_tool=False,
              default_index_names=default_index_names,
-             enable_trace = False
+             enable_trace = query.get('enable_trace',True)
              )
         print()
+
+
+def test_qq_case_from_hanxu():
+    mode = "agent"
+    session_id = f"multiturn_test_{time.time()}"
+    user_queries = [
+        {
+            "query": "ceph怎么挂载",
+            "use_history": True
+        },
+    ]
+    default_index_names = {
+        "intention":[],
+        "qq_match": ['hanxu_test-qq-hanxu_poc'],
+        "private_knowledge": []
+    }
+
+    for query in user_queries:
+        print("==" * 50)
+        if isinstance(query, str):
+            query = {"query": query}
+        test(chatbot_mode=mode,
+             session_id=session_id,
+             query=query['query'],
+             use_history=query['use_history'],
+             chatbot_id="hanxu_test",
+             group_name='hanxu_test',
+             only_use_rag_tool=False,
+             default_index_names=default_index_names,
+             enable_trace = True
+             )
+        print()
+
+
+
 
 
 def complete_test_pr():
@@ -241,17 +282,18 @@ def sso_batch_test():
             "using_whole_doc": False
         }
     }
+    session_id = f"multiturn_test_{time.time()}"
     results = []
-    for i,datum in enumerate(data[2:3]):
+    for i,datum in enumerate(data):
         query = datum['Question']
         if not query:
             continue
         print("="*25 + f"{i+1}.{query}" + "="*25)
-        session_id = f"multiturn_test_{time.time()}"
+        # session_id = f"multiturn_test_{time.time()}"
         chatbot_config = {
             "chatbot_mode": mode,
             "use_history": False,
-            "enable_trace": False,
+            "enable_trace": True,
             "default_llm_config": default_llm_config,
             "default_retriever_config":default_retriever_config,
             "chatbot_id": "pr_test",
@@ -328,9 +370,10 @@ def anta_test():
 if __name__ == "__main__":
     # complete_test_pr()
     # test_multi_turns_rag_pr()
-    # test_multi_turns_agent_pr()
+    test_multi_turns_agent_pr()
+    # test_qq_case_from_hanxu()
     # test_multi_turns_chat_pr()
     # bigo_test()
-    sso_batch_test()
+    # sso_batch_test()
     # anta_test()
     # bigo_test()

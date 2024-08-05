@@ -20,6 +20,7 @@ from functions.lambda_retail_tools.product_information_search import goods_dict
 from lambda_main.main_utils.parse_config import RetailConfigParser
 from common_logic.common_utils.lambda_invoke_utils import send_trace,is_running_local
 from common_logic.common_utils.logger_utils import get_logger
+from common_logic.common_utils.response_utils import process_response
 from common_logic.common_utils.serialization_utils import JSONEncoder
 from common_logic.common_utils.s3_utils import download_file_from_s3,check_local_folder
 from lambda_main.main_utils.online_entries.agent_base import build_agent_graph,tool_execution
@@ -35,12 +36,15 @@ logger = get_logger('retail_entry')
 class ChatbotState(TypedDict):
     ########### input/output states ###########
     # inputs
+    # origin event body
+    event_body: dict
     # origianl input question
     query: str 
     # chat history between human and agent
     chat_history: Annotated[list[dict], add_messages] 
     # complete chatbot config, consumed by all the nodes
     chatbot_config: dict  
+    goods_id:Any 
     # websocket connection id for the agent
     ws_connection_id: str 
     # whether to enbale stream output via ws_connection_id
@@ -56,6 +60,10 @@ class ChatbotState(TypedDict):
     answer: Any  
     # information needed return to user, e.g. intention, context, figure and so on, anything you can get during execution
     extra_response: Annotated[dict, update_nest_dict]
+    # addition kwargs which need to save into ddb
+    ddb_additional_kwargs: dict
+    # response of entire app
+    app_response: Any
 
     ########### query rewrite states ###########
     # query rewrite results
@@ -353,7 +361,12 @@ def rule_number_reply(state:ChatbotState):
 
 
 def final_results_preparation(state: ChatbotState):
-    return {"answer": state['answer']}
+    state['ddb_additional_kwargs'] = {
+        "goods_id":state['goods_id'],
+        "current_agent_intent_type":state['extra_response'].get('current_agent_intent_type',"")
+        }
+    app_response = process_response(state['event_body'],state)
+    return {"app_response": app_response}
 
 
 ################
@@ -577,18 +590,9 @@ def retail_entry(event_body):
         "agent_repeated_call_limit": chatbot_config['agent_repeated_call_limit'],
         "agent_current_call_number": 0,
         "current_agent_intent_type":"",
-        "goods_info_tag": "商品信息"
+        "goods_info_tag": "商品信息",
+        "goods_id": goods_id
     })
-    
-    extra_response = response["extra_response"]
-    return {
-        "answer":response['answer'],
-        **extra_response,
-        "ddb_additional_kwargs": {
-             "goods_id":goods_id,
-             "current_agent_intent_type":extra_response.get('current_agent_intent_type',"")
-        },
-        "trace_infos":response['trace_infos'],
-        }
+    return response['app_response']
 
 main_chain_entry = retail_entry
