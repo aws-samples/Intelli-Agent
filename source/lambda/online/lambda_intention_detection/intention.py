@@ -28,43 +28,43 @@ def get_intention_results(query:str, intention_config:dict):
         event_body=event_body
     )
 
-    if not res['result']['docs']:
+    # if not res['result']['docs']:
         # add default intention
-        current_path = pathlib.Path(__file__).parent.resolve()
-        try:
-            with open(f'{current_path}/intention_utils/default_intent.jsonl', 'r') as json_file:
-                json_list = list(json_file)
-        except FileNotFoundError:
-            logger.error(f"File note found: {current_path}/intention_utils/default_intent.jsonl")
-            json_list = []
+        # current_path = pathlib.Path(__file__).parent.resolve()
+        # try:
+        #     with open(f'{current_path}/intention_utils/default_intent.jsonl', 'r') as json_file:
+        #         json_list = list(json_file)
+        # except FileNotFoundError:
+        #     logger.error(f"File note found: {current_path}/intention_utils/default_intent.jsonl")
+        #     json_list = []
 
-        intent_fewshot_examples = []
-        for json_str in json_list:
-            try:
-                intent_result = json.loads(json_str)
-            except json.JSONDecodeError as e:
-                logger.error(f"Error decoding JSON: {e}")
-                intent_result = {}
-            question = intent_result.get("question","你好")
-            answer = intent_result.get("answer",{})
-            intent_fewshot_examples.append({
-                "query": question,
-                "score": 'n/a',
-                "name": answer.get('intent','chat'),
-                "intent": answer.get('intent','chat'),
-                "kwargs": answer.get('kwargs', {}),
-            })
+        # intent_fewshot_examples = []
+        # for json_str in json_list:
+        #     try:
+        #         intent_result = json.loads(json_str)
+        #     except json.JSONDecodeError as e:
+        #         logger.error(f"Error decoding JSON: {e}")
+        #         intent_result = {}
+        #     question = intent_result.get("question","你好")
+        #     answer = intent_result.get("answer",{})
+        #     intent_fewshot_examples.append({
+        #         "query": question,
+        #         "score": 'n/a',
+        #         "name": answer.get('intent','chat'),
+        #         "intent": answer.get('intent','chat'),
+        #         "kwargs": answer.get('kwargs', {}),
+        #     })
                 
-    else:
+    # else:
         
-        intent_fewshot_examples = [{
-            "query": doc['page_content'],
-            "score": doc['score'],
-            "name": doc['answer']['jsonlAnswer']['intent'],
-            "intent": doc['answer']['jsonlAnswer']['intent'],
-            "kwargs": doc['answer']['jsonlAnswer'].get('kwargs', {}),
-            } for doc in res['result']['docs'] if doc['score'] > 0.4
-        ]
+    intent_fewshot_examples = [{
+        "query": doc['page_content'],
+        "score": doc['score'],
+        "name": doc['answer']['jsonlAnswer']['intent'],
+        "intent": doc['answer']['jsonlAnswer']['intent'],
+        "kwargs": doc['answer']['jsonlAnswer'].get('kwargs', {}),
+        } for doc in res['result']['docs'] if doc['score'] > 0.4
+    ]
     return intent_fewshot_examples
 
 
