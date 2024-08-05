@@ -28,6 +28,7 @@ export interface SystemConfig {
     embeddingsModels: {
       provider: ModelProvider;
       name: string;
+      commitId: string;
       dimensions: number;
       default?: boolean;
     }[];

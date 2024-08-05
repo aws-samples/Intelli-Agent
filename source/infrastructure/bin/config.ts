@@ -1,4 +1,4 @@
-import { SystemConfig } from "../cli/types";
+import { SystemConfig } from "../lib/shared/types";
 import { existsSync, readFileSync } from "fs";
 
 export function getConfig(): SystemConfig {
@@ -36,7 +36,8 @@ export function getConfig(): SystemConfig {
       embeddingsModels: [
         {
           provider: "sagemaker",
-          name: "maidalun1020/bce-embedding-base_v1",
+          name: "bce-embedding-and-bge-reranker",
+          commitId: "43972580a35ceacacd31b95b9f430f695d07dde9",
           dimensions: 1024,
           default: true,
         },
