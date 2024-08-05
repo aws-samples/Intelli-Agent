@@ -8,6 +8,7 @@ export interface SystemConfig {
     knowledgeBaseType: {
       intelliAgentKb: {
         enabled: boolean;
+        email: string;
         vectorStore: {
           opensearch: {
             enabled: boolean;
