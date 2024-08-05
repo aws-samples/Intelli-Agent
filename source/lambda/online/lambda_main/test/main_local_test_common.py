@@ -353,29 +353,13 @@ def elec_test():
             "use_history": query['use_history'],
             "default_llm_config": default_llm_config,
             "default_index_names": {
-                "intention": ['default-intent'],
-                "qq_match": ['bingo_qq'],
+                "intention": [],
+                "qq_match": [],
                 "private_knowledge": ['ai-solar']
             },
             "agent_config": {
-                "only_use_rag_tool": True
+                "only_use_rag_tool": False
             },
-           "private_knowledge_config": {
-                "llm_config": {
-                    **copy.deepcopy(default_llm_config),
-                    'system_prompt': """You are a customer service agent, and answering user's query. You ALWAYS follow these guidelines when writing your response:
-                                    <guidelines>
-                                    - NERVER say "根据搜索结果/大家好/谢谢...".
-                                    - Output the context id which you refer to in the response in the <reference> tag.
-                                    - Output the answer in the <answer> tag.
-                                    </guidelines>
-
-                                    Here are some documents for you to reference for your query.
-                                    <docs>
-                                    {context}
-                                    </docs>"""
-                },
-           }
         }
 
         generate_answer(
@@ -388,12 +372,12 @@ def elec_test():
         print()
 
 if __name__ == "__main__":
-    # complete_test_pr()
+    complete_test_pr()
     # test_multi_turns_rag_pr()
-    test_multi_turns_agent_pr()
+    # test_multi_turns_agent_pr()
     # test_multi_turns_chat_pr()
     # bigo_test()
     # sso_batch_test()
     # anta_test()
     # bigo_test()
-    elec_test()
+    # elec_test()
