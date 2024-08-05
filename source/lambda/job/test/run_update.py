@@ -33,17 +33,17 @@ batch_file_number = 3000
 embedding_model_endpoint = "embedding-and-reranker-bce-embedding-and-bge-reranker-43972"
 s3_bucket = "aws-chatbot-knowledge-base-test"
 # s3_bucket = os.environ.get("RES_BUCKET", "aws-chatbot-knowledge-base-test")
-s3_prefix_list = ["ai-solar/ai-solar-app-guide.pdf",
+s3_prefix_list = ["ai-solar/ai-solar-app-guide-2.pdf",
                   "retail/quick_reply/quick_reply_ingestion_data.jsonl",
                   "retail/intent_data/intent_ingestion_data.jsonl",
                   "retail/quick_reply/shouhou_wuliu.jsonl",
                   "retail/goods_info/goods_info.jsonl",
                   "demo/default_intent.jsonl"]
-workspace_id_list = ["ai-solar", "retail-quick-reply", "retail-intent", "retail-shouhou-wuliu", "goods-info", "default-intent-2"]
+workspace_id_list = ["ai-solar-2", "retail-quick-reply", "retail-intent", "retail-shouhou-wuliu", "goods-info", "default-intent-2"]
 index_type_list = ["qd", "qq", "qq", "qq", "qq", "qq"]
 op_type_list = ["create", "update", "update", "update", "update", "update"]
 # op_type_list = ["update", "create", "create", "create", "update"]
-local_file_list = ["poc/ai-solar/solar.pdf",
+local_file_list = ["poc/ai-solar/user-manual-2.pdf",
                    "poc/goods_data/quick_reply/quick_reply_ingestion_data_v2.jsonl",
                    "poc/intent_data/intent_ingestion_data.jsonl",
                    "poc/goods_data/quick_reply/shouhou_wuliu.jsonl",
