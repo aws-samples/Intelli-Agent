@@ -187,7 +187,7 @@ const devEnv = {
 };
 
 const app = new App();
-const stackName = app.node.tryGetContext("StackName") || "intelli-agent";
+const stackName = `${config.prefix}intelli-agent`;
 new RootStack(app, stackName, { config, env: devEnv });
 
 app.synth();

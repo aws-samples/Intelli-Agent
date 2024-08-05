@@ -2,6 +2,7 @@
 export type ModelProvider = "sagemaker" | "bedrock" | "openai";
 
 export interface SystemConfig {
+  prefix: string;
   knowledgeBase: {
     enabled: boolean;
     knowledgeBaseType: {

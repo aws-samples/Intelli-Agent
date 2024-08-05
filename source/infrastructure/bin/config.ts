@@ -10,6 +10,7 @@ export function getConfig(): SystemConfig {
   }
   // Default config
   return {
+    prefix: "",
     knowledgeBase: {
       enabled: true,
       knowledgeBaseType: {
@@ -35,7 +36,7 @@ export function getConfig(): SystemConfig {
       embeddingsModels: [
         {
           provider: "sagemaker",
-          name: "bce-embedding",
+          name: "maidalun1020/bce-embedding-base_v1",
           dimensions: 1024,
           default: true,
         },
@@ -43,7 +44,7 @@ export function getConfig(): SystemConfig {
       llms: [
         {
           provider: "bedrock",
-          name: "intelli-agent-llm",
+          name: "anthropic.claude-3-sonnet-20240229-v1:0",
         },
       ],
       modelConfig: {

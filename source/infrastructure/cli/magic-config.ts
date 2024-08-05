@@ -63,6 +63,7 @@ async function getAwsAccountAndRegion() {
       const config: SystemConfig = JSON.parse(
         fs.readFileSync("./bin/config.json").toString("utf8")
       );
+      options.prefix = config.prefix;
       options.enableKnowledgeBase = config.knowledgeBase.enabled;
       options.knowledgeBaseType = config.knowledgeBase.knowledgeBaseType.intelliAgentKb.enabled
         ? "intelliAgentKb"
@@ -113,6 +114,13 @@ async function processCreateOptions(options: any): Promise<void> {
   // Get AWS account ID and region
   const { AWS_ACCOUNT, AWS_REGION } = await getAwsAccountAndRegion();
   let questions = [
+    {
+      type: "input",
+      name: "prefix",
+      message: "Prefix to differentiate this deployment",
+      initial: options.prefix,
+      askAnswered: false,
+    },
     {
       type: "confirm",
       name: "enableKnowledgeBase",
@@ -312,6 +320,7 @@ async function processCreateOptions(options: any): Promise<void> {
 
   // Create the config object
   const config = {
+    prefix: answers.prefix,
     knowledgeBase: {
       enabled: answers.enableKnowledgeBase,
       knowledgeBaseType: {
