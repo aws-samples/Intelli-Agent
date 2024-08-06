@@ -11,38 +11,46 @@
  *  and limitations under the License.                                                                                *
  *********************************************************************************************************************/
 
-import { StackProps } from "aws-cdk-lib";
+import * as ec2 from "aws-cdk-lib/aws-ec2";
 import { Construct } from "constructs";
 import * as dotenv from "dotenv";
 
 dotenv.config();
 
-interface AssetsStackProps extends StackProps {
-  s3ModelAssets: string;
-}
+export class VpcConstruct extends Construct {
+  public vpc;
+  public privateSubnets;
+  public securityGroup;
 
-export class AssetsConstruct extends Construct {
-  public embeddingAndRerankerModelPrefix;
-  public embeddingAndRerankerModelVersion;
-  public instructModelPrefix;
-  public instructModelVersion;
-  public etlCodePrefix;
-  public s3ModelAssets: string;
-
-  constructor(scope: Construct, id: string, props: AssetsStackProps) {
+  constructor(scope: Construct, id: string) {
     super(scope, id);
 
-    const embeddingAndRerankerModelPrefix = "bce-embedding-and-bge-reranker";
-    const embeddingAndRerankerModelVersion = "43972580a35ceacacd31b95b9f430f695d07dde9";
-    const instructModelPrefix = "internlm2-chat-20b";
-    const instructModelVersion = "7bae8edab7cf91371e62506847f2e7fdc24c6a65";
-    const etlCodePrefix = "buffer_etl_deploy_code";
+    this.vpc = new ec2.Vpc(this, "LLM-VPC", {
+      ipAddresses: ec2.IpAddresses.cidr("10.100.0.0/16"),
+      maxAzs: 2,
+    });
 
-    this.embeddingAndRerankerModelPrefix = embeddingAndRerankerModelPrefix;
-    this.embeddingAndRerankerModelVersion = embeddingAndRerankerModelVersion;
-    this.instructModelPrefix = instructModelPrefix;
-    this.instructModelVersion = instructModelVersion;
-    this.etlCodePrefix = etlCodePrefix;
-    this.s3ModelAssets = props.s3ModelAssets;
+    this.privateSubnets = this.vpc.privateSubnets;
+
+    this.securityGroup = new ec2.SecurityGroup(this, "LLM-VPC-SG", {
+      vpc: this.vpc,
+      description: "LLM Security Group",
+    });
+
+    this.securityGroup.addIngressRule(
+      this.securityGroup,
+      ec2.Port.allTraffic(),
+      "allow self traffic",
+    );
+
+    this.vpc.addGatewayEndpoint("DynamoDbEndpoint", {
+      service: ec2.GatewayVpcEndpointAwsService.DYNAMODB,
+    });
+
+    this.vpc.addInterfaceEndpoint("Glue", {
+      service: ec2.InterfaceVpcEndpointAwsService.GLUE,
+      securityGroups: [this.securityGroup],
+      subnets: { subnets: this.privateSubnets },
+    });
   }
 }

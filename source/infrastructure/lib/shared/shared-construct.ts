@@ -11,11 +11,51 @@
  *  and limitations under the License.                                                                                *
  *********************************************************************************************************************/
 
-export class BuildConfig {
-  // There are three mode for deployment: OFFLINE_EXTRACT, ALL
-  static DEPLOYMENT_MODE = "ALL";
-  static LAYER_PIP_OPTION = "";
-  static JOB_PIP_OPTION = "";
-  static LLM_MODEL_ID = "";
-  static LLM_ENDPOINT_NAME = "";
+import { Construct } from "constructs";
+import * as dotenv from "dotenv";
+import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
+import { RemovalPolicy } from 'aws-cdk-lib';
+
+import { SystemConfig } from "../shared/types";
+import { IAMHelper } from "../shared/iam-helper";
+import { VpcConstruct } from "./vpc-construct";
+
+dotenv.config();
+
+export interface SharedConstructProps {
+  readonly config: SystemConfig;
 }
+
+export class SharedConstruct extends Construct {
+  public iamHelper: IAMHelper;
+  public vpcConstruct: VpcConstruct;
+  public chatbotTable: dynamodb.Table;
+
+  constructor(scope: Construct, id: string) {
+    super(scope, id);
+
+    const iamHelper = new IAMHelper(this, "iam-helper");
+
+    const vpcConstruct = new VpcConstruct(this, "vpc-construct");
+
+    const chatbotTable = new dynamodb.Table(this, "Chatbot", {
+      partitionKey: {
+        name: "groupName",
+        type: dynamodb.AttributeType.STRING,
+      },
+      sortKey: {
+        name: "chatbotId",
+        type: dynamodb.AttributeType.STRING,
+      },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      encryption: dynamodb.TableEncryption.AWS_MANAGED,
+      pointInTimeRecovery: true,
+      removalPolicy: RemovalPolicy.DESTROY,
+    });
+
+    this.iamHelper = iamHelper;
+    this.vpcConstruct = vpcConstruct;
+    this.chatbotTable = chatbotTable;
+  }
+}
+

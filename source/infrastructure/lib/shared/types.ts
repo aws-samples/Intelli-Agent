@@ -2,11 +2,13 @@
 export type ModelProvider = "sagemaker" | "bedrock" | "openai";
 
 export interface SystemConfig {
+  prefix: string;
   knowledgeBase: {
     enabled: boolean;
     knowledgeBaseType: {
       intelliAgentKb: {
         enabled: boolean;
+        email: string;
         vectorStore: {
           opensearch: {
             enabled: boolean;
@@ -27,6 +29,7 @@ export interface SystemConfig {
     embeddingsModels: {
       provider: ModelProvider;
       name: string;
+      commitId: string;
       dimensions: number;
       default?: boolean;
     }[];
