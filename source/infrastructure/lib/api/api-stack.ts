@@ -22,7 +22,6 @@ import * as sfn from "aws-cdk-lib/aws-stepfunctions";
 import { Construct } from "constructs";
 import { join } from "path";
 
-import { BuildConfig } from "../../lib/shared/build-config";
 import { Constants } from "../shared/constants";
 import { LambdaLayers } from "../shared/lambda-layers";
 import { QueueConstruct } from "./api-queue";
@@ -39,8 +38,6 @@ interface ApiStackProps extends StackProps {
   securityGroup: ec2.SecurityGroup;
   domainEndpoint: string;
   embeddingAndRerankerEndPoint: string;
-  llmModelId: string;
-  instructEndPoint: string;
   sessionsTableName: string;
   messagesTableName: string;
   promptTableName: string;
@@ -49,8 +46,6 @@ interface ApiStackProps extends StackProps {
   modelTableName: string;
   // Type of StepFunctions
   sfnOutput: sfn.StateMachine;
-  openSearchIndex: string;
-  openSearchIndexDict: string;
   etlEndpoint: string;
   resBucketName: string;
   executionTableName: string;
@@ -699,269 +694,269 @@ export class ApiConstruct extends Construct {
     apiResourcePromptProxy.addMethod("DELETE", lambdaPromptIntegration, this.genMethodOption(api, auth, null),);
     apiResourcePromptProxy.addMethod("GET", lambdaPromptIntegration, this.genMethodOption(api, auth, null),);
 
-    if (BuildConfig.DEPLOYMENT_MODE === "ALL") {
-      const openAiKey = new secretsmanager.Secret(this, "OpenAiSecret", {
-        generateSecretString: {
-          secretStringTemplate: JSON.stringify({ key: "ReplaceItWithRealKey" }),
-          generateStringKey: "key",
-        }
-      });
-      const lambdaOnlineMain = new Function(this, "lambdaOnlineMain", {
-        runtime: Runtime.PYTHON_3_12,
-        handler: "main.lambda_handler",
-        code: Code.fromAsset(
-          join(__dirname, "../../../lambda/online/lambda_main"),
-        ),
-        timeout: Duration.minutes(15),
-        memorySize: 4096,
-        vpc: apiVpc,
-        vpcSubnets: {
-          subnets: apiVpc.privateSubnets,
-        },
-        securityGroups: [securityGroup],
-        architecture: Architecture.X86_64,
-        layers: [apiLambdaOnlineSourceLayer, apiLambdaJobSourceLayer],
-        environment: {
-          AOS_ENDPOINT: domainEndpoint,
-          RERANK_ENDPOINT: props.embeddingAndRerankerEndPoint,
-          SESSIONS_TABLE_NAME: sessionsTableName,
-          MESSAGES_TABLE_NAME: messagesTableName,
-          PROMPT_TABLE_NAME: props.promptTableName,
-          CHATBOT_TABLE_NAME: props.chatbotTableName,
-          MODEL_TABLE_NAME: props.modelTableName,
-          INDEX_TABLE_NAME: props.indexTableName,
-          EMBEDDING_ENDPOINT: props.embeddingAndRerankerEndPoint,
-          OPENAI_KEY_ARN: openAiKey.secretArn,
-        },
-      });
 
-      lambdaOnlineMain.addToRolePolicy(
-        new iam.PolicyStatement({
-          actions: [
-            "es:ESHttpGet",
-            "es:ESHttpPut",
-            "es:ESHttpPost",
-            "es:ESHttpHead",
-            "secretsmanager:GetSecretValue",
-            "bedrock:*",
-            "lambda:InvokeFunction",
-          ],
-          effect: iam.Effect.ALLOW,
-          resources: ["*"],
-        }),
-      );
-      lambdaOnlineMain.addToRolePolicy(sqsStatement);
-      lambdaOnlineMain.addEventSource(
-        new lambdaEventSources.SqsEventSource(messageQueue, { batchSize: 1 }),
-      );
-      lambdaOnlineMain.addToRolePolicy(this.iamHelper.s3Statement);
-      lambdaOnlineMain.addToRolePolicy(this.iamHelper.endpointStatement);
-      lambdaOnlineMain.addToRolePolicy(this.iamHelper.dynamodbStatement);
-      openAiKey.grantRead(lambdaOnlineMain);
+    const openAiKey = new secretsmanager.Secret(this, "OpenAiSecret", {
+      generateSecretString: {
+        secretStringTemplate: JSON.stringify({ key: "ReplaceItWithRealKey" }),
+        generateStringKey: "key",
+      }
+    });
+    const lambdaOnlineMain = new Function(this, "lambdaOnlineMain", {
+      runtime: Runtime.PYTHON_3_12,
+      handler: "main.lambda_handler",
+      code: Code.fromAsset(
+        join(__dirname, "../../../lambda/online/lambda_main"),
+      ),
+      timeout: Duration.minutes(15),
+      memorySize: 4096,
+      vpc: apiVpc,
+      vpcSubnets: {
+        subnets: apiVpc.privateSubnets,
+      },
+      securityGroups: [securityGroup],
+      architecture: Architecture.X86_64,
+      layers: [apiLambdaOnlineSourceLayer, apiLambdaJobSourceLayer],
+      environment: {
+        AOS_ENDPOINT: domainEndpoint,
+        RERANK_ENDPOINT: props.embeddingAndRerankerEndPoint,
+        SESSIONS_TABLE_NAME: sessionsTableName,
+        MESSAGES_TABLE_NAME: messagesTableName,
+        PROMPT_TABLE_NAME: props.promptTableName,
+        CHATBOT_TABLE_NAME: props.chatbotTableName,
+        MODEL_TABLE_NAME: props.modelTableName,
+        INDEX_TABLE_NAME: props.indexTableName,
+        EMBEDDING_ENDPOINT: props.embeddingAndRerankerEndPoint,
+        OPENAI_KEY_ARN: openAiKey.secretArn,
+      },
+    });
 
-      const lambdaOnlineQueryPreprocess = new Function(this, "lambdaOnlineQueryPreprocess", {
-        runtime: Runtime.PYTHON_3_12,
-        handler: "query_preprocess.lambda_handler",
-        functionName: "Online_Query_Preprocess",
-        code: Code.fromAsset(
-          join(__dirname, "../../../lambda/online/lambda_query_preprocess"),
-        ),
-        timeout: Duration.minutes(15),
-        memorySize: 4096,
-        vpc: apiVpc,
-        vpcSubnets: {
-          subnets: apiVpc.privateSubnets,
-        },
-        securityGroups: [securityGroup],
-        architecture: Architecture.X86_64,
-        layers: [apiLambdaOnlineSourceLayer],
-      });
+    lambdaOnlineMain.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: [
+          "es:ESHttpGet",
+          "es:ESHttpPut",
+          "es:ESHttpPost",
+          "es:ESHttpHead",
+          "secretsmanager:GetSecretValue",
+          "bedrock:*",
+          "lambda:InvokeFunction",
+        ],
+        effect: iam.Effect.ALLOW,
+        resources: ["*"],
+      }),
+    );
+    lambdaOnlineMain.addToRolePolicy(sqsStatement);
+    lambdaOnlineMain.addEventSource(
+      new lambdaEventSources.SqsEventSource(messageQueue, { batchSize: 1 }),
+    );
+    lambdaOnlineMain.addToRolePolicy(this.iamHelper.s3Statement);
+    lambdaOnlineMain.addToRolePolicy(this.iamHelper.endpointStatement);
+    lambdaOnlineMain.addToRolePolicy(this.iamHelper.dynamodbStatement);
+    openAiKey.grantRead(lambdaOnlineMain);
 
-      lambdaOnlineQueryPreprocess.addToRolePolicy(
-        new iam.PolicyStatement({
-          actions: [
-            "es:ESHttpGet",
-            "es:ESHttpPut",
-            "es:ESHttpPost",
-            "es:ESHttpHead",
-            "secretsmanager:GetSecretValue",
-            "bedrock:*",
-            "lambda:InvokeFunction",
-          ],
-          effect: iam.Effect.ALLOW,
-          resources: ["*"],
-        }),
-      );
-      lambdaOnlineQueryPreprocess.addToRolePolicy(this.iamHelper.s3Statement);
-      lambdaOnlineQueryPreprocess.addToRolePolicy(this.iamHelper.endpointStatement);
-      lambdaOnlineQueryPreprocess.addToRolePolicy(this.iamHelper.dynamodbStatement);
+    const lambdaOnlineQueryPreprocess = new Function(this, "lambdaOnlineQueryPreprocess", {
+      runtime: Runtime.PYTHON_3_12,
+      handler: "query_preprocess.lambda_handler",
+      functionName: "Online_Query_Preprocess",
+      code: Code.fromAsset(
+        join(__dirname, "../../../lambda/online/lambda_query_preprocess"),
+      ),
+      timeout: Duration.minutes(15),
+      memorySize: 4096,
+      vpc: apiVpc,
+      vpcSubnets: {
+        subnets: apiVpc.privateSubnets,
+      },
+      securityGroups: [securityGroup],
+      architecture: Architecture.X86_64,
+      layers: [apiLambdaOnlineSourceLayer],
+    });
 
-      const lambdaOnlineIntentionDetection = new Function(this, "lambdaOnlineIntentionDetection", {
-        runtime: Runtime.PYTHON_3_12,
-        handler: "intention_detection.lambda_handler",
-        functionName: "Online_Intention_Detection",
-        code: Code.fromAsset(
-          join(__dirname, "../../../lambda/online/lambda_intention_detection"),
-        ),
-        timeout: Duration.minutes(15),
-        memorySize: 4096,
-        vpc: apiVpc,
-        vpcSubnets: {
-          subnets: apiVpc.privateSubnets,
-        },
-        securityGroups: [securityGroup],
-        architecture: Architecture.X86_64,
-        layers: [apiLambdaOnlineSourceLayer],
-      });
+    lambdaOnlineQueryPreprocess.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: [
+          "es:ESHttpGet",
+          "es:ESHttpPut",
+          "es:ESHttpPost",
+          "es:ESHttpHead",
+          "secretsmanager:GetSecretValue",
+          "bedrock:*",
+          "lambda:InvokeFunction",
+        ],
+        effect: iam.Effect.ALLOW,
+        resources: ["*"],
+      }),
+    );
+    lambdaOnlineQueryPreprocess.addToRolePolicy(this.iamHelper.s3Statement);
+    lambdaOnlineQueryPreprocess.addToRolePolicy(this.iamHelper.endpointStatement);
+    lambdaOnlineQueryPreprocess.addToRolePolicy(this.iamHelper.dynamodbStatement);
 
-      const lambdaOnlineAgent = new Function(this, "lambdaOnlineAgent", {
-        runtime: Runtime.PYTHON_3_12,
-        handler: "agent.lambda_handler",
-        functionName: "Online_Agent",
-        code: Code.fromAsset(
-          join(__dirname, "../../../lambda/online/lambda_agent"),
-        ),
-        timeout: Duration.minutes(15),
-        memorySize: 4096,
-        vpc: apiVpc,
-        vpcSubnets: {
-          subnets: apiVpc.privateSubnets,
-        },
-        securityGroups: [securityGroup],
-        architecture: Architecture.X86_64,
-        layers: [apiLambdaOnlineSourceLayer],
-      });
+    const lambdaOnlineIntentionDetection = new Function(this, "lambdaOnlineIntentionDetection", {
+      runtime: Runtime.PYTHON_3_12,
+      handler: "intention_detection.lambda_handler",
+      functionName: "Online_Intention_Detection",
+      code: Code.fromAsset(
+        join(__dirname, "../../../lambda/online/lambda_intention_detection"),
+      ),
+      timeout: Duration.minutes(15),
+      memorySize: 4096,
+      vpc: apiVpc,
+      vpcSubnets: {
+        subnets: apiVpc.privateSubnets,
+      },
+      securityGroups: [securityGroup],
+      architecture: Architecture.X86_64,
+      layers: [apiLambdaOnlineSourceLayer],
+    });
 
-      lambdaOnlineAgent.addToRolePolicy(
-        new iam.PolicyStatement({
-          actions: [
-            "es:ESHttpGet",
-            "es:ESHttpPut",
-            "es:ESHttpPost",
-            "es:ESHttpHead",
-            "secretsmanager:GetSecretValue",
-            "bedrock:*",
-            "lambda:InvokeFunction",
-          ],
-          effect: iam.Effect.ALLOW,
-          resources: ["*"],
-        }),
-      );
-      lambdaOnlineAgent.addToRolePolicy(this.iamHelper.s3Statement);
-      lambdaOnlineAgent.addToRolePolicy(this.iamHelper.endpointStatement);
-      lambdaOnlineAgent.addToRolePolicy(this.iamHelper.dynamodbStatement);
+    const lambdaOnlineAgent = new Function(this, "lambdaOnlineAgent", {
+      runtime: Runtime.PYTHON_3_12,
+      handler: "agent.lambda_handler",
+      functionName: "Online_Agent",
+      code: Code.fromAsset(
+        join(__dirname, "../../../lambda/online/lambda_agent"),
+      ),
+      timeout: Duration.minutes(15),
+      memorySize: 4096,
+      vpc: apiVpc,
+      vpcSubnets: {
+        subnets: apiVpc.privateSubnets,
+      },
+      securityGroups: [securityGroup],
+      architecture: Architecture.X86_64,
+      layers: [apiLambdaOnlineSourceLayer],
+    });
 
-      const lambdaOnlineLLMGenerate = new Function(this, "lambdaOnlineLLMGenerate", {
-        runtime: Runtime.PYTHON_3_12,
-        handler: "llm_generate.lambda_handler",
-        functionName: "Online_LLM_Generate",
-        code: Code.fromAsset(
-          join(__dirname, "../../../lambda/online/lambda_llm_generate"),
-        ),
-        timeout: Duration.minutes(15),
-        memorySize: 4096,
-        vpc: apiVpc,
-        vpcSubnets: {
-          subnets: apiVpc.privateSubnets,
-        },
-        securityGroups: [securityGroup],
-        architecture: Architecture.X86_64,
-        layers: [apiLambdaOnlineSourceLayer],
-      });
+    lambdaOnlineAgent.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: [
+          "es:ESHttpGet",
+          "es:ESHttpPut",
+          "es:ESHttpPost",
+          "es:ESHttpHead",
+          "secretsmanager:GetSecretValue",
+          "bedrock:*",
+          "lambda:InvokeFunction",
+        ],
+        effect: iam.Effect.ALLOW,
+        resources: ["*"],
+      }),
+    );
+    lambdaOnlineAgent.addToRolePolicy(this.iamHelper.s3Statement);
+    lambdaOnlineAgent.addToRolePolicy(this.iamHelper.endpointStatement);
+    lambdaOnlineAgent.addToRolePolicy(this.iamHelper.dynamodbStatement);
 
-      lambdaOnlineLLMGenerate.addToRolePolicy(
-        new iam.PolicyStatement({
-          // principals: [new iam.AnyPrincipal()],
-          actions: [
-            "es:ESHttpGet",
-            "es:ESHttpPut",
-            "es:ESHttpPost",
-            "es:ESHttpHead",
-            "secretsmanager:GetSecretValue",
-            "bedrock:*",
-            "lambda:InvokeFunction",
-          ],
-          effect: iam.Effect.ALLOW,
-          resources: ["*"],
-        }),
-      );
-      lambdaOnlineLLMGenerate.addToRolePolicy(this.iamHelper.s3Statement);
-      lambdaOnlineLLMGenerate.addToRolePolicy(this.iamHelper.endpointStatement);
-      lambdaOnlineLLMGenerate.addToRolePolicy(this.iamHelper.dynamodbStatement);
+    const lambdaOnlineLLMGenerate = new Function(this, "lambdaOnlineLLMGenerate", {
+      runtime: Runtime.PYTHON_3_12,
+      handler: "llm_generate.lambda_handler",
+      functionName: "Online_LLM_Generate",
+      code: Code.fromAsset(
+        join(__dirname, "../../../lambda/online/lambda_llm_generate"),
+      ),
+      timeout: Duration.minutes(15),
+      memorySize: 4096,
+      vpc: apiVpc,
+      vpcSubnets: {
+        subnets: apiVpc.privateSubnets,
+      },
+      securityGroups: [securityGroup],
+      architecture: Architecture.X86_64,
+      layers: [apiLambdaOnlineSourceLayer],
+    });
 
-      const lambdaOnlineFunctions = new Function(this, "lambdaOnlineFunctions", {
-        runtime: Runtime.PYTHON_3_12,
-        handler: "lambda_tools.lambda_handler",
-        functionName: "Online_Functions",
-        code: Code.fromAsset(
-          join(__dirname, "../../../lambda/online/functions/functions_utils"),
-        ),
-        timeout: Duration.minutes(15),
-        memorySize: 4096,
-        vpc: apiVpc,
-        vpcSubnets: {
-          subnets: apiVpc.privateSubnets,
-        },
-        securityGroups: [securityGroup],
-        architecture: Architecture.X86_64,
-        environment: {
-          INDEX_TABLE: props.indexTableName,
-          CHATBOT_TABLE: props.chatbotTableName,
-          MODEL_TABLE: props.modelTableName,
-        },
-        layers: [apiLambdaOnlineSourceLayer, apiLambdaJobSourceLayer],
-      });
+    lambdaOnlineLLMGenerate.addToRolePolicy(
+      new iam.PolicyStatement({
+        // principals: [new iam.AnyPrincipal()],
+        actions: [
+          "es:ESHttpGet",
+          "es:ESHttpPut",
+          "es:ESHttpPost",
+          "es:ESHttpHead",
+          "secretsmanager:GetSecretValue",
+          "bedrock:*",
+          "lambda:InvokeFunction",
+        ],
+        effect: iam.Effect.ALLOW,
+        resources: ["*"],
+      }),
+    );
+    lambdaOnlineLLMGenerate.addToRolePolicy(this.iamHelper.s3Statement);
+    lambdaOnlineLLMGenerate.addToRolePolicy(this.iamHelper.endpointStatement);
+    lambdaOnlineLLMGenerate.addToRolePolicy(this.iamHelper.dynamodbStatement);
 
-      lambdaOnlineQueryPreprocess.grantInvoke(lambdaOnlineMain);
+    const lambdaOnlineFunctions = new Function(this, "lambdaOnlineFunctions", {
+      runtime: Runtime.PYTHON_3_12,
+      handler: "lambda_tools.lambda_handler",
+      functionName: "Online_Functions",
+      code: Code.fromAsset(
+        join(__dirname, "../../../lambda/online/functions/functions_utils"),
+      ),
+      timeout: Duration.minutes(15),
+      memorySize: 4096,
+      vpc: apiVpc,
+      vpcSubnets: {
+        subnets: apiVpc.privateSubnets,
+      },
+      securityGroups: [securityGroup],
+      architecture: Architecture.X86_64,
+      environment: {
+        INDEX_TABLE: props.indexTableName,
+        CHATBOT_TABLE: props.chatbotTableName,
+        MODEL_TABLE: props.modelTableName,
+      },
+      layers: [apiLambdaOnlineSourceLayer, apiLambdaJobSourceLayer],
+    });
 
-      lambdaOnlineIntentionDetection.grantInvoke(lambdaOnlineMain);
+    lambdaOnlineQueryPreprocess.grantInvoke(lambdaOnlineMain);
 
-      lambdaOnlineAgent.grantInvoke(lambdaOnlineMain);
+    lambdaOnlineIntentionDetection.grantInvoke(lambdaOnlineMain);
 
-      lambdaOnlineLLMGenerate.grantInvoke(lambdaOnlineMain);
-      lambdaOnlineLLMGenerate.grantInvoke(lambdaOnlineQueryPreprocess);
-      lambdaOnlineLLMGenerate.grantInvoke(lambdaOnlineAgent);
+    lambdaOnlineAgent.grantInvoke(lambdaOnlineMain);
 
-      lambdaOnlineFunctions.grantInvoke(lambdaOnlineMain);
-      lambdaOnlineFunctions.grantInvoke(lambdaOnlineIntentionDetection);
+    lambdaOnlineLLMGenerate.grantInvoke(lambdaOnlineMain);
+    lambdaOnlineLLMGenerate.grantInvoke(lambdaOnlineQueryPreprocess);
+    lambdaOnlineLLMGenerate.grantInvoke(lambdaOnlineAgent);
 
-      // Define the API Gateway Lambda Integration with proxy and no integration responses
-      const lambdaExecutorIntegration = new apigw.LambdaIntegration(
-        lambdaOnlineMain,
-        { proxy: true },
-      );
+    lambdaOnlineFunctions.grantInvoke(lambdaOnlineMain);
+    lambdaOnlineFunctions.grantInvoke(lambdaOnlineIntentionDetection);
 
-      // Define the API Gateway Method
-      const apiResourceLLM = api.root.addResource("llm");
-      apiResourceLLM.addMethod("POST", lambdaExecutorIntegration, this.genMethodOption(api, auth, null));
+    // Define the API Gateway Lambda Integration with proxy and no integration responses
+    const lambdaExecutorIntegration = new apigw.LambdaIntegration(
+      lambdaOnlineMain,
+      { proxy: true },
+    );
 
-      const lambdaDispatcher = new Function(this, "lambdaDispatcher", {
-        runtime: Runtime.PYTHON_3_11,
-        handler: "main.lambda_handler",
-        code: Code.fromAsset(join(__dirname, "../../../lambda/dispatcher")),
-        timeout: Duration.minutes(15),
-        memorySize: 1024,
-        vpc: apiVpc,
-        vpcSubnets: {
-          subnets: apiVpc.privateSubnets,
-        },
-        securityGroups: [securityGroup],
-        architecture: Architecture.X86_64,
-        environment: {
-          SQS_QUEUE_URL: messageQueue.queueUrl,
-        },
-      });
-      lambdaDispatcher.addToRolePolicy(sqsStatement);
+    // Define the API Gateway Method
+    const apiResourceLLM = api.root.addResource("llm");
+    apiResourceLLM.addMethod("POST", lambdaExecutorIntegration, this.genMethodOption(api, auth, null));
 
-      const webSocketApi = new WebSocketConstruct(this, "WebSocketApi", {
-        dispatcherLambda: lambdaDispatcher,
-        sendMessageLambda: lambdaOnlineMain,
-        customAuthorizerLambda: customAuthorizerLambda,
-      });
-      let wsStage = webSocketApi.websocketApiStage
-      this.wsEndpoint = `${wsStage.api.apiEndpoint}/${wsStage.stageName}/`;
+    const lambdaDispatcher = new Function(this, "lambdaDispatcher", {
+      runtime: Runtime.PYTHON_3_11,
+      handler: "main.lambda_handler",
+      code: Code.fromAsset(join(__dirname, "../../../lambda/dispatcher")),
+      timeout: Duration.minutes(15),
+      memorySize: 1024,
+      vpc: apiVpc,
+      vpcSubnets: {
+        subnets: apiVpc.privateSubnets,
+      },
+      securityGroups: [securityGroup],
+      architecture: Architecture.X86_64,
+      environment: {
+        SQS_QUEUE_URL: messageQueue.queueUrl,
+      },
+    });
+    lambdaDispatcher.addToRolePolicy(sqsStatement);
 
-    }
+    const webSocketApi = new WebSocketConstruct(this, "WebSocketApi", {
+      dispatcherLambda: lambdaDispatcher,
+      sendMessageLambda: lambdaOnlineMain,
+      customAuthorizerLambda: customAuthorizerLambda,
+    });
+    let wsStage = webSocketApi.websocketApiStage
+    this.wsEndpoint = `${wsStage.api.apiEndpoint}/${wsStage.stageName}/`;
+
+    
 
     this.apiEndpoint = api.url;
     this.documentBucket = s3Bucket.bucketName;

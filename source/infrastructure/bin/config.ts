@@ -16,6 +16,7 @@ export function getConfig(): SystemConfig {
       knowledgeBaseType: {
         intelliAgentKb: {
           enabled: true,
+          email: "test@test.com",
           vectorStore: {
             opensearch: {
               enabled: true,
@@ -36,7 +37,7 @@ export function getConfig(): SystemConfig {
       embeddingsModels: [
         {
           provider: "sagemaker",
-          name: "bce-embedding-and-bge-reranker",
+          name: "bce-embedding-and-bge-reranking",
           commitId: "43972580a35ceacacd31b95b9f430f695d07dde9",
           dimensions: 1024,
           default: true,

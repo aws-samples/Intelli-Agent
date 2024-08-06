@@ -11,11 +11,30 @@
  *  and limitations under the License.                                                                                *
  *********************************************************************************************************************/
 
-export class BuildConfig {
-  // There are three mode for deployment: OFFLINE_EXTRACT, ALL
-  static DEPLOYMENT_MODE = "ALL";
-  static LAYER_PIP_OPTION = "";
-  static JOB_PIP_OPTION = "";
-  static LLM_MODEL_ID = "";
-  static LLM_ENDPOINT_NAME = "";
+import { Construct } from "constructs";
+import * as dotenv from "dotenv";
+import * as s3 from 'aws-cdk-lib/aws-s3';
+import { RemovalPolicy } from 'aws-cdk-lib';
+import * as defaults from '@aws-solutions-constructs/core';
+
+import { SystemConfig } from "../shared/types";
+import { IAMHelper } from "../shared/iam-helper";
+
+dotenv.config();
+
+export interface SharedConstructProps {
+  readonly config: SystemConfig;
 }
+
+export class SharedConstruct extends Construct {
+  public iamHelper: IAMHelper;
+  public uiPortalBucket?: s3.Bucket;
+
+  constructor(scope: Construct, id: string) {
+    super(scope, id);
+
+    const iamHelper = new IAMHelper(this, "iam-helper");
+    this.iamHelper = iamHelper;
+  }
+}
+
