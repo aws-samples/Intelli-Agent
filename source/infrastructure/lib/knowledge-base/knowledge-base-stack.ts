@@ -13,7 +13,6 @@
 
 import { Aws, Duration, NestedStack, RemovalPolicy, StackProps, CustomResource } from "aws-cdk-lib";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
-import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as iam from "aws-cdk-lib/aws-iam";
 import { Architecture, Code, Function, Runtime } from "aws-cdk-lib/aws-lambda";
 import * as s3 from "aws-cdk-lib/aws-s3";
@@ -35,16 +34,14 @@ import { IAMHelper } from "../shared/iam-helper";
 
 import { SystemConfig } from "../shared/types";
 import { SharedConstruct } from "../shared/shared-construct";
-import { VpcConstruct } from "./vpc-construct";
-import { AOSConstruct } from "./os-stack";
 import { ModelConstruct } from "../model/model-construct";
-import { PortalConstruct } from "../ui/ui-portal";
+import { AOSConstruct } from "./os-stack";
 
 interface KnowledgeBaseStackProps extends StackProps {
   readonly config: SystemConfig;
   readonly sharedConstruct: SharedConstruct;
   readonly modelConstruct: ModelConstruct;
-  readonly portalConstruct: PortalConstruct;
+  readonly uiPortalBucketName?: string;
 }
 
 export class KnowledgeBaseStack extends NestedStack {
@@ -59,8 +56,6 @@ export class KnowledgeBaseStack extends NestedStack {
   public executionTable: dynamodb.Table;
   public etlObjTable: dynamodb.Table;
   private glueLibS3Bucket: s3.Bucket;
-  public chatbotTable: dynamodb.Table;
-  public vpcConstruct: VpcConstruct;
   public aosConstruct: AOSConstruct;
   public sfnOutput: sfn.StateMachine;
 
@@ -69,13 +64,11 @@ export class KnowledgeBaseStack extends NestedStack {
     super(scope, id, props);
 
     this.iamHelper = props.sharedConstruct.iamHelper;
-    this.uiPortalBucketName = props.portalConstruct.portalBucket.bucketName;
-
-    const vpcConstruct = new VpcConstruct(this, "vpc-construct");
+    this.uiPortalBucketName = props.uiPortalBucketName || "";
 
     const aosConstruct = new AOSConstruct(this, "aos-construct", {
-      osVpc: vpcConstruct.connectorVpc,
-      securityGroup: vpcConstruct.securityGroup,
+      osVpc: props.sharedConstruct.vpcConstruct.vpc,
+      securityGroup: props.sharedConstruct.vpcConstruct.securityGroup,
     });
 
     const glueResultBucket = new s3.Bucket(this, "llm-bot-glue-result-bucket", {
@@ -106,21 +99,6 @@ export class KnowledgeBaseStack extends NestedStack {
       partitionKey: { name: "executionId", type: dynamodb.AttributeType.STRING },
     });
 
-    const chatbotTable = new dynamodb.Table(this, "Chatbot", {
-      partitionKey: {
-        name: "groupName",
-        type: dynamodb.AttributeType.STRING,
-      },
-      sortKey: {
-        name: "chatbotId",
-        type: dynamodb.AttributeType.STRING,
-      },
-      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-      encryption: dynamodb.TableEncryption.AWS_MANAGED,
-      pointInTimeRecovery: true,
-      removalPolicy: RemovalPolicy.DESTROY,
-    });
-
     const dynamodbStatement = this.iamHelper.createPolicyStatement(
       [
         "dynamodb:Query",
@@ -134,7 +112,7 @@ export class KnowledgeBaseStack extends NestedStack {
       [
         executionTable.tableArn,
         etlObjTable.tableArn,
-        chatbotTable.tableArn,
+        props.sharedConstruct.chatbotTable.tableArn,
       ],
     );
     this.dynamodbStatement = dynamodbStatement;
@@ -145,11 +123,9 @@ export class KnowledgeBaseStack extends NestedStack {
     this.etlEndpoint = createKnowledgeBaseEndpointResult.etlEndpoint;
     this.etlEndpointVariantName = createKnowledgeBaseEndpointResult.etlVariantName;
 
-    this.vpcConstruct = vpcConstruct;
     this.aosConstruct = aosConstruct;
     this.executionTable = executionTable;
     this.etlObjTable = etlObjTable;
-    this.chatbotTable = chatbotTable;
 
     this.createKnowledgeBaseEndpointScaling();
     this.sfnOutput = this.createKnowledgeBaseJob(props);
@@ -310,8 +286,8 @@ export class KnowledgeBaseStack extends NestedStack {
   private createKnowledgeBaseJob(props: any) {
     const connection = new glue.Connection(this, "GlueJobConnection", {
       type: glue.ConnectionType.NETWORK,
-      subnet: this.vpcConstruct.privateSubnets[0],
-      securityGroups: [this.vpcConstruct.securityGroup],
+      subnet: props.sharedConstruct.vpcConstruct.privateSubnets[0],
+      securityGroups: [props.sharedConstruct.vpcConstruct.securityGroup],
     });
 
     const notificationLambda = new Function(this, "ETLNotification", {
@@ -407,8 +383,8 @@ export class KnowledgeBaseStack extends NestedStack {
         "--ETL_MODEL_ENDPOINT": this.etlEndpoint.endpointName || "",
         "--RES_BUCKET": this.glueResultBucket.bucketName,
         "--ETL_OBJECT_TABLE": this.etlObjTable.tableName,
-        "--PORTAL_BUCKET": props.portalConstruct.portalBucket.bucketName,
-        "--CHATBOT_TABLE": this.chatbotTable.tableName,
+        "--PORTAL_BUCKET": this.uiPortalBucketName,
+        "--CHATBOT_TABLE": props.sharedConstruct.chatbotTable.tableName,
         "--additional-python-modules":
           "langchain==0.1.11,beautifulsoup4==4.12.2,requests-aws4auth==1.2.3,boto3==1.28.84,openai==0.28.1,pyOpenSSL==23.3.0,tenacity==8.2.3,markdownify==0.11.6,mammoth==1.6.0,chardet==5.2.0,python-docx==1.1.0,nltk==3.8.1,pdfminer.six==20221105,smart-open==7.0.4,lxml==5.2.2,pandas==2.1.2,openpyxl==3.1.5,xlrd==2.0.1",
         // Add multiple extra python files
@@ -433,7 +409,7 @@ export class KnowledgeBaseStack extends NestedStack {
       architecture: Architecture.X86_64,
       environment: {
         DEFAULT_EMBEDDING_ENDPOINT:
-          props.modelConstruct.embeddingAndRerankerEndPoint || "-",
+          props.modelConstruct.embeddingAndRerankerEndPointName || "-",
         AOS_DOMAIN_ENDPOINT: this.aosConstruct.domainEndpoint || "-",
       },
     });

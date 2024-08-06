@@ -39,7 +39,7 @@ interface SagemakerModelResourcesProps {
 }
 
 export class ModelConstruct extends Construct {
-  public embeddingAndRerankerEndPoint: string = "";
+  public embeddingAndRerankerEndPointName: string = "";
   public instructEndPoint: string = "";
   private iamHelper: IAMHelper;
 
@@ -77,25 +77,25 @@ export class ModelConstruct extends Construct {
     executionRole.addToPolicy(this.iamHelper.llmStatement);
 
     // Deploy Embedding and Reranker model
-    let embeddingAndRerankingModelPrefix = props.config.model.embeddingsModels.find(
+    let embeddingAndRerankerModelPrefix = props.config.model.embeddingsModels.find(
       (model) => model.default === true,
     )?.name ?? "";
-    let embeddingAndRerankingModelVersion = props.config.model.embeddingsModels.find(
+    let embeddingAndRerankerModelVersion = props.config.model.embeddingsModels.find(
       (model) => model.default === true,
     )?.commitId ?? "";
-    let embeddingAndRerankingImageUrl = modelImageUrlAccount + modelDeployRegion + modelImageUrlDomain + "djl-inference:0.21.0-deepspeed0.8.3-cu117";
+    let embeddingAndRerankerImageUrl = modelImageUrlAccount + modelDeployRegion + modelImageUrlDomain + "djl-inference:0.21.0-deepspeed0.8.3-cu117";
 
-    const embeddingAndRerankingModelResources = this.createModelResources({
-      modelName: embeddingAndRerankingModelPrefix,
-      modelVersion: embeddingAndRerankingModelVersion,
+    const embeddingAndRerankerModelResources = this.createModelResources({
+      modelName: embeddingAndRerankerModelPrefix,
+      modelVersion: embeddingAndRerankerModelVersion,
       executionRoleArn: executionRole.roleArn,
-      imageUrl: embeddingAndRerankingImageUrl,
+      imageUrl: embeddingAndRerankerImageUrl,
       modelAssetsBucket: props.config.model.modelConfig.modelAssetsBucket,
       modelDeployMode: "MultiModel",
       modelInstanceType: "ml.g4dn.4xlarge",
     });
 
-    this.embeddingAndRerankerEndPoint = embeddingAndRerankingModelResources.endpoint.attrEndpointName;
+    this.embeddingAndRerankerEndPointName = embeddingAndRerankerModelResources.endpoint.attrEndpointName;
 
   }
 

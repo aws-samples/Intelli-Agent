@@ -20,12 +20,12 @@ import { getConfig } from "./config";
 import { SystemConfig } from "../lib/shared/types";
 import { SharedConstruct } from "../lib/shared/shared-construct";
 import { ApiConstruct } from "../lib/api/api-stack";
-import { DynamoDBConstruct } from "../lib/db/dynamodb";
 import { ModelConstruct } from "../lib/model/model-construct";
 import { KnowledgeBaseStack } from "../lib/knowledge-base/knowledge-base-stack";
 import { PortalConstruct } from "../lib/ui/ui-portal";
 import { UiExportsConstruct } from "../lib/ui/ui-exports";
-import { UserConstruct } from "../lib/user/user-stack";
+import { UserConstruct } from "../lib/user/user-construct";
+import { ChatStack } from "../lib/chat/chat-stack";
 
 dotenv.config();
 
@@ -52,12 +52,17 @@ export class RootStack extends Stack {
       config: props.config,
       sharedConstruct: sharedConstruct,
       modelConstruct: modelConstruct,
-      portalConstruct: portalConstruct,
+      uiPortalBucketName: portalConstruct.portalBucket.bucketName,
     });
     knowledgeBaseStack.node.addDependency(sharedConstruct);
     knowledgeBaseStack.node.addDependency(modelConstruct);
 
-    const dynamoDBConstruct = new DynamoDBConstruct(this, "ddb-construct");
+    const chatStack = new ChatStack(this, "chat-stack", {
+      config: props.config,
+      sharedConstruct: sharedConstruct,
+      modelConstruct: modelConstruct,
+      domainEndpoint: knowledgeBaseStack.aosConstruct.domainEndpoint
+    });
 
     const userConstruct = new UserConstruct(this, "user", {
       adminEmail: props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.email,
@@ -65,30 +70,15 @@ export class RootStack extends Stack {
     });
 
     const apiConstruct = new ApiConstruct(this, "api-construct", {
-      apiVpc: knowledgeBaseStack.vpcConstruct.connectorVpc,
-      securityGroup: knowledgeBaseStack.vpcConstruct.securityGroup,
-      domainEndpoint: knowledgeBaseStack.aosConstruct.domainEndpoint ?? "",
-      embeddingAndRerankerEndPoint: modelConstruct.embeddingAndRerankerEndPoint,
-      sessionsTableName: dynamoDBConstruct.sessionTableName,
-      messagesTableName: dynamoDBConstruct.messageTableName,
-      promptTableName: dynamoDBConstruct.promptTableName,
-      chatbotTableName: knowledgeBaseStack.chatbotTable.tableName,
-      sfnOutput: knowledgeBaseStack.sfnOutput,
-      etlEndpoint: knowledgeBaseStack.etlEndpoint.endpointName ?? "",
-      resBucketName: knowledgeBaseStack.glueResultBucket.bucketName,
-      executionTableName: knowledgeBaseStack.executionTable.tableName,
-      etlObjTableName: knowledgeBaseStack.etlObjTable.tableName,
-      etlObjIndexName: knowledgeBaseStack.etlObjIndexName,
-      indexTableName: dynamoDBConstruct.indexTableName,
-      modelTableName: dynamoDBConstruct.modelTableName,
-      env: props.env,
-      userPool: userConstruct.userPool,
-      userPoolClientId: userConstruct.oidcClientId,
-      iamHelper: sharedConstruct.iamHelper,
+      config: props.config,
+      sharedConstruct: sharedConstruct,
+      modelConstruct: modelConstruct,
+      knowledgeBaseStack: knowledgeBaseStack,
+      chatStack: chatStack,
+      userConstruct: userConstruct,
     });
     apiConstruct.node.addDependency(sharedConstruct);
     apiConstruct.node.addDependency(modelConstruct);
-    apiConstruct.node.addDependency(dynamoDBConstruct);
     apiConstruct.node.addDependency(knowledgeBaseStack);
     apiConstruct.node.addDependency(portalConstruct);
 
