@@ -222,8 +222,28 @@ def bigo_test():
     session_id = f"multiturn_test_{time.time()}"
     user_queries = [
         {
-            "query": "怎么进行个体户注册",
-            "use_history": True
+            "query": "如何申请跳板机和服务器的登录权限",
+            "use_history": False
+        },
+        {
+            "query": "问一下sgjump跳板机登录权限怎么申请",
+            "use_history": False
+        },
+        {
+            "query": "可以给我开通下gitlab的权限吗",
+            "use_history": False
+        },
+        {
+            "query": "需要开通git的账号",
+            "use_history": False
+        },
+        {
+            "query": "vscode连接不上远程服务器",
+            "use_history": False
+        },
+        {
+            "query": "哈喽，我们这边用vscode连不上服务器，不知道什么原因",
+            "use_history": False
         },
     ]
 
@@ -243,9 +263,8 @@ def bigo_test():
             "use_history": query['use_history'],
             "default_llm_config": default_llm_config,
             "default_index_names": {
-                "intention": ['default-intent'],
-                "qq_match": ['bingo_qq'],
-                "private_knowledge": ['wrong']
+                "qq_match": ['admin-qq-bigo_qq'],
+                "private_knowledge": ['admin-qd-bigo_qd'],
             },
             "agent_config": {
                 "only_use_rag_tool": True
@@ -370,10 +389,10 @@ def anta_test():
 if __name__ == "__main__":
     # complete_test_pr()
     # test_multi_turns_rag_pr()
-    test_multi_turns_agent_pr()
+    # test_multi_turns_agent_pr()
     # test_qq_case_from_hanxu()
     # test_multi_turns_chat_pr()
     # bigo_test()
     # sso_batch_test()
     # anta_test()
-    # bigo_test()
+    bigo_test()
