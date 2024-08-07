@@ -42,17 +42,17 @@ interface KnowledgeBaseStackProps extends StackProps {
 
 export class KnowledgeBaseStack extends NestedStack {
   public etlObjIndexName: string = "ExecutionIdIndex";
+  public etlEndpoint: sagemaker.CfnEndpoint;
+  public glueResultBucket: s3.Bucket;
+  public executionTable: dynamodb.Table;
+  public etlObjTable: dynamodb.Table;
+  public aosConstruct: AOSConstruct;
+  public sfnOutput: sfn.StateMachine;
 
   private iamHelper: IAMHelper;
   private uiPortalBucketName: string;
-  public etlEndpoint: sagemaker.CfnEndpoint;
-  public glueResultBucket: s3.Bucket;
   private dynamodbStatement: iam.PolicyStatement;
-  public executionTable: dynamodb.Table;
-  public etlObjTable: dynamodb.Table;
   private glueLibS3Bucket: s3.Bucket;
-  public aosConstruct: AOSConstruct;
-  public sfnOutput: sfn.StateMachine;
 
 
   constructor(scope: Construct, id: string, props: KnowledgeBaseStackProps) {
@@ -60,16 +60,26 @@ export class KnowledgeBaseStack extends NestedStack {
 
     this.iamHelper = props.sharedConstruct.iamHelper;
     this.uiPortalBucketName = props.uiPortalBucketName || "";
+    this.glueResultBucket = props.sharedConstruct.resultBucket;
 
-    const aosConstruct = new AOSConstruct(this, "aos-construct", {
+    this.aosConstruct = new AOSConstruct(this, "aos-construct", {
       osVpc: props.sharedConstruct.vpcConstruct.vpc,
       securityGroup: props.sharedConstruct.vpcConstruct.securityGroup,
     });
-
-    const glueLibS3Bucket = new s3.Bucket(this, "llm-bot-glue-lib-bucket", {
+    this.glueLibS3Bucket = new s3.Bucket(this, "llm-bot-glue-lib-bucket", {
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
     });
+    const createKnowledgeBaseTablesAndPoliciesResult = this.createKnowledgeBaseTablesAndPolicies(props);
+    this.executionTable = createKnowledgeBaseTablesAndPoliciesResult.executionTable;
+    this.etlObjTable = createKnowledgeBaseTablesAndPoliciesResult.etlObjTable;
+    this.dynamodbStatement = createKnowledgeBaseTablesAndPoliciesResult.dynamodbStatement;
 
+    this.etlEndpoint = props.modelConstruct.knowledgeBaseEndpoint;
+    this.sfnOutput = this.createKnowledgeBaseJob(props);
+
+  }
+
+  private createKnowledgeBaseTablesAndPolicies(props: any) {
     const idAttr = {
       name: "executionId",
       type: dynamodb.AttributeType.STRING,
@@ -106,19 +116,10 @@ export class KnowledgeBaseStack extends NestedStack {
         props.sharedConstruct.chatbotTable.tableArn,
       ],
     );
-    this.dynamodbStatement = dynamodbStatement;
-    this.glueResultBucket = props.sharedConstruct.resultBucket;
 
-    this.glueLibS3Bucket = glueLibS3Bucket;
-    this.etlEndpoint = props.modelConstruct.knowledgeBaseEndpoint;
-
-    this.aosConstruct = aosConstruct;
-    this.executionTable = executionTable;
-    this.etlObjTable = etlObjTable;
-
-    this.sfnOutput = this.createKnowledgeBaseJob(props);
-
+    return { executionTable, etlObjTable, dynamodbStatement };
   }
+
 
   private createKnowledgeBaseJob(props: any) {
     const connection = new glue.Connection(this, "GlueJobConnection", {
@@ -135,8 +136,8 @@ export class KnowledgeBaseStack extends NestedStack {
       memorySize: 256,
       architecture: Architecture.X86_64,
       environment: {
-        EXECUTION_TABLE: this.executionTable.tableName,
-        ETL_OBJECT_TABLE: this.etlObjTable.tableName,
+        EXECUTION_TABLE: this.executionTable?.tableName ?? "",
+        ETL_OBJECT_TABLE: this.etlObjTable?.tableName ?? "",
       },
     });
     notificationLambda.addToRolePolicy(this.dynamodbStatement);
@@ -219,7 +220,7 @@ export class KnowledgeBaseStack extends NestedStack {
         "--REGION": process.env.CDK_DEFAULT_REGION || "",
         "--ETL_MODEL_ENDPOINT": this.etlEndpoint.endpointName || "",
         "--RES_BUCKET": this.glueResultBucket.bucketName,
-        "--ETL_OBJECT_TABLE": this.etlObjTable.tableName,
+        "--ETL_OBJECT_TABLE": this.etlObjTable?.tableName || "",
         "--PORTAL_BUCKET": this.uiPortalBucketName,
         "--CHATBOT_TABLE": props.sharedConstruct.chatbotTable.tableName,
         "--additional-python-modules":
@@ -284,10 +285,6 @@ export class KnowledgeBaseStack extends NestedStack {
       },
     );
 
-    const offlineChoice = new sfn.Choice(this, "Offline or Online", {
-      comment: "Check if the job is offline or online",
-    });
-
     const offlineGlueJob = new tasks.GlueStartJobRun(this, "OfflineGlueJob", {
       glueJobName: glueJob.jobName,
       integrationPattern: sfn.IntegrationPattern.RUN_JOB,
@@ -302,10 +299,10 @@ export class KnowledgeBaseStack extends NestedStack {
         "--JOB_NAME": glueJob.jobName,
         "--OFFLINE": "true",
         "--OPERATION_TYPE.$": "$.operationType",
-        "--ETL_OBJECT_TABLE": this.etlObjTable.tableName,
+        "--ETL_OBJECT_TABLE": this.etlObjTable?.tableName || "-",
         "--TABLE_ITEM_ID.$": "$.tableItemId",
         "--QA_ENHANCEMENT.$": "$.qaEnhance",
-        "--REGION": process.env.CDK_DEFAULT_REGION || "",
+        "--REGION": process.env.CDK_DEFAULT_REGION || "-",
         "--RES_BUCKET": this.glueResultBucket.bucketName,
         "--S3_BUCKET.$": "$.s3Bucket",
         "--S3_PREFIX.$": "$.s3Prefix",
@@ -354,37 +351,6 @@ export class KnowledgeBaseStack extends NestedStack {
       }),
     );
 
-    // multiplex the same glue job to offline and online
-    const onlineGlueJob = new tasks.GlueStartJobRun(this, "OnlineGlueJob", {
-      glueJobName: glueJob.jobName,
-      integrationPattern: sfn.IntegrationPattern.RUN_JOB,
-      resultPath: "$.mapResults",
-      arguments: sfn.TaskInput.fromObject({
-        "--AOS_ENDPOINT": this.aosConstruct.domainEndpoint,
-        "--BATCH_FILE_NUMBER.$": "$.batchFileNumber",
-        "--BATCH_INDICE.$": 'States.Format(\'{}\', $.batchIndices)',
-        "--DOCUMENT_LANGUAGE.$": "$.documentLanguage",
-        "--EMBEDDING_MODEL_ENDPOINT.$": "$.embeddingEndpoint",
-        "--ETL_MODEL_ENDPOINT": this.etlEndpoint.endpointName,
-        "--INDEX_TYPE.$": "$.indexType",
-        "--JOB_NAME": glueJob.jobName,
-        "--OFFLINE": "false",
-        "--OPERATION_TYPE.$": "$.operationType",
-        "--ETL_OBJECT_TABLE": this.etlObjTable.tableName,
-        "--TABLE_ITEM_ID.$": "$.tableItemId",
-        "--QA_ENHANCEMENT.$": "$.qaEnhance",
-        "--REGION": process.env.CDK_DEFAULT_REGION || "",
-        "--RES_BUCKET": this.glueResultBucket.bucketName,
-        "--S3_BUCKET.$": "$.s3Bucket",
-        "--S3_PREFIX.$": "$.s3Prefix",
-        "--PORTAL_BUCKET": this.uiPortalBucketName,
-        "--CHATBOT_ID.$": "$.chatbotId",
-        "--INDEX_ID.$": "$.indexId",
-        "--EMBEDDING_MODEL_TYPE.$": "$.embeddingModelType",
-        "--job-language": "python",
-      }),
-    });
-
     // Notify the result of the glue job
     const notifyTask = new tasks.SnsPublish(this, "NotifyTask", {
       integrationPattern: sfn.IntegrationPattern.REQUEST_RESPONSE,
@@ -395,15 +361,10 @@ export class KnowledgeBaseStack extends NestedStack {
       }),
     });
 
-    offlineChoice
-      .when(sfn.Condition.stringEquals("$.offline", "true"), mapState)
-      .when(sfn.Condition.stringEquals("$.offline", "false"), onlineGlueJob);
-
     // Add the notify task to both online and offline branches
     mapState.next(notifyTask);
-    onlineGlueJob.next(notifyTask);
 
-    const sfnDefinition = lambdaETLIntegration.next(offlineChoice);
+    const sfnDefinition = lambdaETLIntegration.next(mapState);
 
     const sfnStateMachine = new sfn.StateMachine(this, "ETLState", {
       definitionBody: sfn.DefinitionBody.fromChainable(sfnDefinition),
