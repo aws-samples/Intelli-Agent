@@ -22,14 +22,10 @@ import * as sns from "aws-cdk-lib/aws-sns";
 import * as subscriptions from "aws-cdk-lib/aws-sns-subscriptions";
 import * as sfn from "aws-cdk-lib/aws-stepfunctions";
 import * as tasks from "aws-cdk-lib/aws-stepfunctions-tasks";
-import * as cr from 'aws-cdk-lib/custom-resources';
-import * as logs from 'aws-cdk-lib/aws-logs';
 import { Construct } from "constructs";
 import { join } from "path";
 import { DynamoDBTable } from "../shared/table";
-import * as appAutoscaling from "aws-cdk-lib/aws-applicationautoscaling";
 import * as glue from "@aws-cdk/aws-glue-alpha";
-import { Metric } from 'aws-cdk-lib/aws-cloudwatch';
 import { IAMHelper } from "../shared/iam-helper";
 
 import { SystemConfig } from "../shared/types";
@@ -50,7 +46,6 @@ export class KnowledgeBaseStack extends NestedStack {
   private iamHelper: IAMHelper;
   private uiPortalBucketName: string;
   public etlEndpoint: sagemaker.CfnEndpoint;
-  private etlEndpointVariantName: string;
   public glueResultBucket: s3.Bucket;
   private dynamodbStatement: iam.PolicyStatement;
   public executionTable: dynamodb.Table;
@@ -69,10 +64,6 @@ export class KnowledgeBaseStack extends NestedStack {
     const aosConstruct = new AOSConstruct(this, "aos-construct", {
       osVpc: props.sharedConstruct.vpcConstruct.vpc,
       securityGroup: props.sharedConstruct.vpcConstruct.securityGroup,
-    });
-
-    const glueResultBucket = new s3.Bucket(this, "llm-bot-glue-result-bucket", {
-      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
     });
 
     const glueLibS3Bucket = new s3.Bucket(this, "llm-bot-glue-lib-bucket", {
@@ -116,171 +107,17 @@ export class KnowledgeBaseStack extends NestedStack {
       ],
     );
     this.dynamodbStatement = dynamodbStatement;
-    this.glueResultBucket = glueResultBucket;
+    this.glueResultBucket = props.sharedConstruct.resultBucket;
 
-    const createKnowledgeBaseEndpointResult = this.createKnowledgeBaseEndpoint(props);
     this.glueLibS3Bucket = glueLibS3Bucket;
-    this.etlEndpoint = createKnowledgeBaseEndpointResult.etlEndpoint;
-    this.etlEndpointVariantName = createKnowledgeBaseEndpointResult.etlVariantName;
+    this.etlEndpoint = props.modelConstruct.knowledgeBaseEndpoint;
 
     this.aosConstruct = aosConstruct;
     this.executionTable = executionTable;
     this.etlObjTable = etlObjTable;
 
-    this.createKnowledgeBaseEndpointScaling();
     this.sfnOutput = this.createKnowledgeBaseJob(props);
 
-  }
-
-  private createKnowledgeBaseEndpoint(props: any) {
-    const endpointRole = new iam.Role(this, "etl-endpoint-role", {
-      assumedBy: new iam.ServicePrincipal("sagemaker.amazonaws.com"),
-      managedPolicies: [
-        iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonSageMakerFullAccess"),
-        iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonS3FullAccess"),
-        iam.ManagedPolicy.fromAwsManagedPolicyName("CloudWatchLogsFullAccess"),
-      ],
-    });
-    endpointRole.addToPolicy(this.iamHelper.logStatement);
-    endpointRole.addToPolicy(this.iamHelper.s3Statement);
-    endpointRole.addToPolicy(this.iamHelper.endpointStatement);
-    endpointRole.addToPolicy(this.iamHelper.stsStatement);
-    endpointRole.addToPolicy(this.iamHelper.ecrStatement);
-    endpointRole.addToPolicy(this.iamHelper.llmStatement);
-    endpointRole.addToPolicy(this.iamHelper.bedrockStatement);
-
-    const imageUrlDomain =
-      this.region === "cn-north-1" || this.region === "cn-northwest-1"
-        ? ".amazonaws.com.cn/"
-        : ".amazonaws.com/";
-    
-    let imageName = props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.ecrRepository;
-    let etlTag = props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.ecrImageTag;
-
-    const imageUrl =
-      this.account +
-      ".dkr.ecr." +
-      this.region +
-      imageUrlDomain +
-      imageName +
-      ":" +
-      etlTag;
-    const model = new sagemaker.CfnModel(this, "etl-model", {
-      executionRoleArn: endpointRole.roleArn,
-      primaryContainer: {
-        image: imageUrl,
-      },
-    });
-    const etlVariantName = "variantProd";
-    const endpointConfig = new sagemaker.CfnEndpointConfig(
-      this,
-      "etl-endpoint-config",
-      {
-        productionVariants: [
-          {
-            initialVariantWeight: 1.0,
-            modelName: model.attrModelName,
-            variantName: etlVariantName,
-            containerStartupHealthCheckTimeoutInSeconds: 15 * 60,
-            initialInstanceCount: 1,
-            instanceType: "ml.g4dn.2xlarge",
-          },
-        ],
-        asyncInferenceConfig: {
-          clientConfig: {
-            maxConcurrentInvocationsPerInstance: 1,
-          },
-          outputConfig: {
-            s3OutputPath: `s3://${this.glueResultBucket.bucketName}/${model.modelName}/`,
-          },
-        },
-      }
-    );
-
-    const etlEndpoint = new sagemaker.CfnEndpoint(this, "etl-endpoint", {
-      endpointConfigName: endpointConfig.attrEndpointConfigName,
-      endpointName: "etl-endpoint-20240805",
-    });
-
-    return { etlEndpoint, etlVariantName };
-  }
-
-  private createKnowledgeBaseEndpointScaling() {
-    const scalingTarget = new appAutoscaling.ScalableTarget(
-      this,
-      "ETLAutoScalingTarget",
-      {
-        minCapacity: 0,
-        maxCapacity: 10,
-        resourceId: `endpoint/${this.etlEndpoint.endpointName}/variant/${this.etlEndpointVariantName}`,
-        scalableDimension: "sagemaker:variant:DesiredInstanceCount",
-        serviceNamespace: appAutoscaling.ServiceNamespace.SAGEMAKER,
-      }
-    );
-    scalingTarget.node.addDependency(this.etlEndpoint);
-    scalingTarget.scaleToTrackMetric("ApproximateBacklogSizePerInstanceTrackMetric", {
-      targetValue: 2,
-      customMetric: new Metric({
-        metricName: "ApproximateBacklogSizePerInstance",
-        namespace: "AWS/SageMaker",
-        dimensionsMap: {
-          EndpointName: this.etlEndpoint.endpointName || "",
-        },
-        period: Duration.minutes(1),
-        statistic: "avg",
-      }),
-      scaleInCooldown: Duration.seconds(60),
-      scaleOutCooldown: Duration.seconds(60),
-    });
-
-    // Custom resource to update ETL endpoint autoscaling setting
-    const crLambda = new Function(this, "ETLCustomResource", {
-      runtime: Runtime.PYTHON_3_11,
-      code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
-      handler: "etl_custom_resource.lambda_handler",
-      environment: {
-        ENDPOINT_NAME: this.etlEndpoint.endpointName || "",
-        VARIANT_NAME: this.etlEndpointVariantName,
-      },
-      memorySize: 512,
-      timeout: Duration.seconds(300),
-    });
-    crLambda.addToRolePolicy(
-      new iam.PolicyStatement({
-        actions: [
-          "sagemaker:UpdateEndpoint",
-          "sagemaker:DescribeEndpoint",
-          "sagemaker:DescribeEndpointConfig",
-          "sagemaker:UpdateEndpointWeightsAndCapacities",
-        ],
-        effect: iam.Effect.ALLOW,
-        resources: [`arn:${Aws.PARTITION}:sagemaker:${Aws.REGION}:${Aws.ACCOUNT_ID}:endpoint/${this.etlEndpoint.endpointName}`],
-      }),
-    );
-    crLambda.addToRolePolicy(
-      new iam.PolicyStatement({
-        actions: [
-          "application-autoscaling:PutScalingPolicy",
-          "application-autoscaling:RegisterScalableTarget",
-          "iam:CreateServiceLinkedRole",
-          "cloudwatch:PutMetricAlarm",
-          "cloudwatch:DescribeAlarms",
-          "cloudwatch:DeleteAlarms",
-        ],
-        effect: iam.Effect.ALLOW,
-        resources: [ "*" ],
-      }),
-    );
-    crLambda.node.addDependency(scalingTarget);
-    const customResourceProvider = new cr.Provider(this, 'CustomResourceProvider', {
-      onEventHandler: crLambda,
-      logRetention: logs.RetentionDays.ONE_DAY,
-    });
-
-    new CustomResource(this, 'EtlEndpointCustomResource', {
-      serviceToken: customResourceProvider.serviceToken,
-      resourceType: "Custom::ETLEndpoint",
-    });
   }
 
   private createKnowledgeBaseJob(props: any) {
@@ -409,7 +246,7 @@ export class KnowledgeBaseStack extends NestedStack {
       architecture: Architecture.X86_64,
       environment: {
         DEFAULT_EMBEDDING_ENDPOINT:
-          props.modelConstruct.embeddingAndRerankerEndPointName || "-",
+          props.modelConstruct.embeddingAndRerankerEndpoint.endpointName || "-",
         AOS_DOMAIN_ENDPOINT: this.aosConstruct.domainEndpoint || "-",
       },
     });

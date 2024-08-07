@@ -90,8 +90,8 @@ export class ChatStack extends NestedStack {
       layers: [apiLambdaOnlineSourceLayer, apiLambdaJobSourceLayer],
       environment: {
         AOS_ENDPOINT: domainEndpoint,
-        RERANK_ENDPOINT: props.modelConstruct.embeddingAndRerankerEndPointName,
-        EMBEDDING_ENDPOINT: props.modelConstruct.embeddingAndRerankerEndPointName,
+        RERANK_ENDPOINT: props.modelConstruct.embeddingAndRerankerEndpoint.endpointName ?? "",
+        EMBEDDING_ENDPOINT: props.modelConstruct.embeddingAndRerankerEndpoint.endpointName ?? "",
         CHATBOT_TABLE_NAME: props.sharedConstruct.chatbotTable.tableName,
         SESSIONS_TABLE_NAME: chatTablesConstruct.sessionsTableName,
         MESSAGES_TABLE_NAME: chatTablesConstruct.messagesTableName,

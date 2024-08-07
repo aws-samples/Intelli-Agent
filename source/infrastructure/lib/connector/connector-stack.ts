@@ -21,7 +21,7 @@ interface connectorStackProps extends StackProps {
   connectorVpc: ec2.Vpc;
   securityGroup: ec2.SecurityGroup;
   domainEndpoint: string;
-  embeddingEndPoints: string[];
+  embeddingEndpoints: string[];
   openSearchIndex: string;
   openSearchIndexDict: string;
 }
@@ -37,7 +37,7 @@ export class ConnectorConstruct extends Construct {
     const connectorVpc = props.connectorVpc;
     const securityGroup = props.securityGroup;
     const domainEndpoint = props.domainEndpoint;
-    const embeddingEndPoints = props.embeddingEndPoints;
+    const embeddingEndpoints = props.embeddingEndpoints;
     const aosIndex = props.openSearchIndex;
     const aosIndexDict = props.openSearchIndexDict;
 
@@ -79,7 +79,7 @@ export class ConnectorConstruct extends Construct {
           cpu: 1,
           environment: {
             DOMAIN_ENDPOINT: domainEndpoint,
-            EMBEDDING_ENDPOINTS: embeddingEndPoints.join(","),
+            EMBEDDING_ENDPOINTS: embeddingEndpoints.join(","),
             AOS_INDEX: aosIndex,
             AOS_INDEX_DICT: aosIndexDict,
           },
