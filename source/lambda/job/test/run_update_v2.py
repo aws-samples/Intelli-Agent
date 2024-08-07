@@ -25,8 +25,8 @@ dynamodb = boto3.resource("dynamodb")
 model_table = dynamodb.Table(os.environ.get("MODEL_TABLE_NAME", "chatbot-model"))
 index_table = dynamodb.Table(os.environ.get("INDEX_TABLE_NAME", "chatbot-index"))
 chatbot_table = dynamodb.Table(os.environ.get("CHATBOT_TABLE_NAME", "chatbot"))
-group_name = "hanxu_test"
-chatbot_id = "hanxu_test"
+group_name = "Admin"
+chatbot_id = "admin"
 model_id = "admin-embedding"
 
 process_number = 1
@@ -57,9 +57,24 @@ files = [
     # "op_type": "update",
     # "s3_bucket": os.environ.get("RES_BUCKET", "aws-chatbot-knowledge-base-test")
     # }
+    # {
+    # "workspace_id": "hanxu_poc",
+    # "local_path": "/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/poc_from_hanxu/FAQ_TEST_20240412_chk.xlsx",
+    # "index_type": "qq",
+    # "op_type": "update",
+    # "s3_bucket": os.environ.get("RES_BUCKET", "aws-chatbot-knowledge-base-test")
+    # }
+    # bigo injection
     {
-    "workspace_id": "hanxu_poc",
-    "local_path": "/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/poc_from_hanxu/FAQ_TEST_20240412_chk.xlsx",
+    "workspace_id": "bigo_qd",
+    "local_path": "/home/ubuntu/pytorch_gpu_base_ubuntu_uw2_workplace/csdc/llm-bot-env/llm-bot/poc/bigo/qd/bigo_qd.pdf",
+    "index_type": "qd",
+    "op_type": "update",
+    "s3_bucket": os.environ.get("RES_BUCKET", "aws-chatbot-knowledge-base-test")
+    },
+    {
+    "workspace_id": "bigo_qq",
+    "local_path": "/home/ubuntu/pytorch_gpu_base_ubuntu_uw2_workplace/csdc/llm-bot-env/llm-bot/poc/bigo/qq/bigo_qq.jsonl",
     "index_type": "qq",
     "op_type": "update",
     "s3_bucket": os.environ.get("RES_BUCKET", "aws-chatbot-knowledge-base-test")
@@ -94,7 +109,7 @@ for file in files:
     sfn_handler.initiate_index(index_table, group_name, index_id, model_id, index_type, tag, create_time)
     sfn_handler.initiate_chatbot(chatbot_table, group_name, chatbot_id, index_id, index_type, tag,create_time)
     for i in range(process_number):
-        command = f"""python3 glue-job-script.py --batch_indice {i} --batch_file_number {batch_file_number} \
+        command = f"""{sys.executable} glue-job-script.py --batch_indice {i} --batch_file_number {batch_file_number} \
             --s3_prefix "{s3_prefix}" --s3_bucket {s3_bucket} \
             --index_type {index_type} --embedding_model_endpoint {embedding_model_endpoint} \
             --operation_type={op_type} --chatbot_id={chatbot_id} --index_id {index_id} --embedding_model_type {embedding_model_type}"""
