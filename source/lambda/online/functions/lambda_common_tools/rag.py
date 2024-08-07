@@ -25,12 +25,10 @@ def llm_stream_helper(res:Iterable, state:dict):
             for ref in state['extra_response']['references']:
                 try:
                     doc_id = int(ref)
+                    ref_docs.append(all_docs[doc_id-1])
+                    ref_figures.append(all_docs[doc_id-1].get("figure",[]))
                 except:
                     logger.error(f"Invalid reference doc id: {ref} in {all_str}")
-                    doc_id = 0
-                if len(all_docs) > doc_id:
-                    ref_docs.append(all_docs[doc_id])
-                    ref_figures.append(all_docs[doc_id].get("figure",[]))
             state['extra_response']['ref_docs'] = ref_docs
             state['extra_response']['ref_figures'] = ref_figures
             continue
