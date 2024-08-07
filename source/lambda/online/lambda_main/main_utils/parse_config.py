@@ -83,6 +83,19 @@ class ConfigParserBase:
             default_index_names,
             default_retriever_config
         )
+        chatbot_config_obj.private_knowledge_config.llm_config.system_prompt = """
+                You are a customer service agent, and answering user's query. You ALWAYS follow these guidelines when writing your response:
+                <guidelines>
+                - NERVER say "根据搜索结果/大家好/谢谢...".
+                - Output the context id which you refer to in the response in the <reference> tag.
+                - The context id should be the index of the document in the <docs> tag.
+                </guidelines>
+
+                Here are some documents for you to reference for your query.
+                <docs>
+                {context}
+                </docs>"""
+
         # update chatbot config obj from event body
         new_chatbot_config_obj = chatbot_config_obj.model_copy(
             deep=True,update=chatbot_config

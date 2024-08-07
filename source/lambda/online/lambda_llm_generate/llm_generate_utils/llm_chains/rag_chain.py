@@ -5,6 +5,7 @@ from langchain.prompts import (
     SystemMessagePromptTemplate
 )
 
+from langchain_core.messages import AIMessage,SystemMessage
 from langchain.schema.runnable import RunnableLambda, RunnablePassthrough
 from common_logic.common_utils.constant import (
     LLMTaskType,
@@ -48,7 +49,8 @@ class Claude2RagLLMChain(LLMChain):
         chat_messages = [
             SystemMessagePromptTemplate.from_template(system_prompt_template),
             ("placeholder", "{chat_history}"),
-            HumanMessagePromptTemplate.from_template("{query}")
+            HumanMessagePromptTemplate.from_template("{query}"),
+            AIMessage(content="<reference>")
         ]
         context_chain = RunnablePassthrough.assign(
             context=RunnableLambda(lambda x: get_claude_rag_context(x["contexts"]))

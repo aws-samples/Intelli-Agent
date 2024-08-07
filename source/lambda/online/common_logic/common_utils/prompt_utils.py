@@ -124,6 +124,8 @@ CLAUDE_RAG_SYSTEM_PROMPT = """You are a customer service agent, and answering us
 <guidelines>
 - NERVER say "根据搜索结果/大家好/谢谢/根据这个文档...".
 - 回答简单明了
+- Output the context id which you refer to in the response in the <reference> tag.
+- The context id should be the index of the document in the <docs> tag.
 </guidelines>
 
 Here are some documents for you to reference for your query.
