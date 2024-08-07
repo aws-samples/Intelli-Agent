@@ -113,10 +113,10 @@ def query_preprocess(state: ChatbotState):
 
 @node_monitor_wrapper
 def intention_detection(state: ChatbotState):
-    if state['chatbot_config']['agent_config']['only_use_rag_tool']:
-        return {
-            "intent_type": "intention detected"
-        }
+    # if state['chatbot_config']['agent_config']['only_use_rag_tool']:
+    #     return {
+    #         "intent_type": "intention detected"
+    #     }
     retriever_params = state["chatbot_config"]["qq_match_config"]
     retriever_params["query"] = state[retriever_params.get('retriever_config',{}).get("query_key","query")]
     output: str = invoke_lambda(
@@ -130,7 +130,8 @@ def intention_detection(state: ChatbotState):
     for doc in output["result"]["docs"]:
         if doc['retrieval_score'] > qq_match_threshold:
             send_trace(f"\n\n**similar query found**\n{doc}", state["stream"], state["ws_connection_id"], state["enable_trace"])
-            query_content = doc['answer']['jsonlAnswer']
+            query_content = doc['answer']
+            # query_content = doc['answer']['jsonlAnswer']
             return {
                 "answer": query_content,
                 "intent_type": "similar query found",
@@ -138,6 +139,12 @@ def intention_detection(state: ChatbotState):
         question = doc['question']
         answer = doc['answer']
         context_list.append(f"问题: {question}, \n答案：{answer}")
+
+    if state['chatbot_config']['agent_config']['only_use_rag_tool']:
+        return {
+            "qq_match_results": context_list,
+            "intent_type": "intention detected"
+        }
 
     intent_fewshot_examples = invoke_lambda(
         lambda_module_path="lambda_intention_detection.intention",
