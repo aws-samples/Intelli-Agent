@@ -57,7 +57,6 @@ export class ApiConstruct extends Construct {
     const domainEndpoint = props.knowledgeBaseStack.aosConstruct.domainEndpoint;
     const sessionsTableName = props.chatStack.chatTablesConstruct.sessionsTableName;
     const messagesTableName = props.chatStack.chatTablesConstruct.messagesTableName;
-    const etlEndpointName = props.knowledgeBaseStack.etlEndpoint.endpointName ?? '';
     const resBucketName = props.knowledgeBaseStack.glueResultBucket.bucketName;
     const executionTableName = props.knowledgeBaseStack.executionTable.tableName;
     const etlObjTableName = props.knowledgeBaseStack.etlObjTable.tableName;
@@ -95,7 +94,7 @@ export class ApiConstruct extends Construct {
       vpc: vpc,
       securityGroups: [securityGroup],
       environment: {
-        ETL_MODEL_ENDPOINT: etlEndpointName,
+        ETL_MODEL_ENDPOINT: props.modelConstruct.defaultKnowledgeBaseModelName,
         REGION: Aws.REGION,
         RES_BUCKET: resBucketName,
       },
@@ -113,7 +112,7 @@ export class ApiConstruct extends Construct {
       securityGroups: [securityGroup],
       environment: {
         opensearch_cluster_domain: domainEndpoint,
-        embedding_endpoint: props.modelConstruct.embeddingAndRerankerEndpoint.endpointName ?? '',
+        embedding_endpoint: props.modelConstruct.defaultEmbeddingModelName,
       },
       layers: [apiLambdaEmbeddingLayer],
       statements: [
@@ -167,7 +166,7 @@ export class ApiConstruct extends Construct {
         INDEX_TABLE_NAME: props.chatStack.chatTablesConstruct.indexTableName,
         CHATBOT_TABLE_NAME: props.sharedConstruct.chatbotTable.tableName,
         MODEL_TABLE_NAME: props.chatStack.chatTablesConstruct.modelTableName,
-        EMBEDDING_ENDPOINT: props.modelConstruct.embeddingAndRerankerEndpoint.endpointName ?? '',
+        EMBEDDING_ENDPOINT: props.modelConstruct.defaultEmbeddingModelName,
       },
       statements: [this.iamHelper.dynamodbStatement],
     });
@@ -219,7 +218,7 @@ export class ApiConstruct extends Construct {
         INDEX_TABLE_NAME: props.chatStack.chatTablesConstruct.indexTableName,
         CHATBOT_TABLE_NAME: props.sharedConstruct.chatbotTable.tableName,
         MODEL_TABLE_NAME: props.chatStack.chatTablesConstruct.modelTableName,
-        EMBEDDING_ENDPOINT: props.modelConstruct.embeddingAndRerankerEndpoint.endpointName ?? '',
+        EMBEDDING_ENDPOINT: props.modelConstruct.defaultEmbeddingModelName,
       },
       statements: [this.iamHelper.dynamodbStatement],
     });

@@ -42,7 +42,6 @@ interface KnowledgeBaseStackProps extends StackProps {
 
 export class KnowledgeBaseStack extends NestedStack {
   public etlObjIndexName: string = "ExecutionIdIndex";
-  public etlEndpoint: sagemaker.CfnEndpoint;
   public glueResultBucket: s3.Bucket;
   public executionTable: dynamodb.Table;
   public etlObjTable: dynamodb.Table;
@@ -74,7 +73,6 @@ export class KnowledgeBaseStack extends NestedStack {
     this.etlObjTable = createKnowledgeBaseTablesAndPoliciesResult.etlObjTable;
     this.dynamodbStatement = createKnowledgeBaseTablesAndPoliciesResult.dynamodbStatement;
 
-    this.etlEndpoint = props.modelConstruct.knowledgeBaseEndpoint;
     this.sfnOutput = this.createKnowledgeBaseJob(props);
 
   }
@@ -218,7 +216,7 @@ export class KnowledgeBaseStack extends NestedStack {
       defaultArguments: {
         "--AOS_ENDPOINT": this.aosConstruct.domainEndpoint,
         "--REGION": process.env.CDK_DEFAULT_REGION || "",
-        "--ETL_MODEL_ENDPOINT": this.etlEndpoint.endpointName || "",
+        "--ETL_MODEL_ENDPOINT": props.modelConstruct.defaultKnowledgeBaseModelName,
         "--RES_BUCKET": this.glueResultBucket.bucketName,
         "--ETL_OBJECT_TABLE": this.etlObjTable?.tableName || "",
         "--PORTAL_BUCKET": this.uiPortalBucketName,
@@ -294,7 +292,7 @@ export class KnowledgeBaseStack extends NestedStack {
         "--BATCH_INDICE.$": 'States.Format(\'{}\', $.batchIndices)',
         "--DOCUMENT_LANGUAGE.$": "$.documentLanguage",
         "--EMBEDDING_MODEL_ENDPOINT.$": "$.embeddingEndpoint",
-        "--ETL_MODEL_ENDPOINT": this.etlEndpoint.endpointName,
+        "--ETL_MODEL_ENDPOINT": props.modelConstruct.defaultKnowledgeBaseModelName,
         "--INDEX_TYPE.$": "$.indexType",
         "--JOB_NAME": glueJob.jobName,
         "--OFFLINE": "true",

@@ -62,29 +62,35 @@ interface DeploySagemakerEndpointResponse {
 }
 
 export class ModelConstruct extends Construct {
-  public embeddingAndRerankerEndpoint: sagemaker.CfnEndpoint;
-  public knowledgeBaseEndpoint: sagemaker.CfnEndpoint;
-  public instructEndpoint: string = "";
+  public defaultEmbeddingModelName: string = "";
+  public defaultKnowledgeBaseModelName: string = "";
 
   private iamHelper: IAMHelper;
   private account = Aws.ACCOUNT_ID;
   private region = Aws.REGION;
   private executionRole: iam.Role;
+  private modelImageUrlDomain: string;
+  private modelPublicEcrAccount: string;
+  private modelVariantName: string;
+  private embeddingAndRerankerEndpoint?: sagemaker.CfnEndpoint;
+  private knowledgeBaseEndpoint?: sagemaker.CfnEndpoint;
 
   constructor(scope: Construct, id: string, props: ModelStackProps) {
     super(scope, id);
 
     this.iamHelper = props.sharedConstruct.iamHelper;
+    this.modelVariantName = "variantProd";
 
-    const modelImageUrlDomain =
+    this.modelImageUrlDomain =
       this.region === "cn-north-1" || this.region === "cn-northwest-1"
         ? ".amazonaws.com.cn/"
         : ".amazonaws.com/";
 
-    const modelPublicEcrAccount =
+    this.modelPublicEcrAccount =
       this.region === "cn-north-1" || this.region === "cn-northwest-1"
         ? "727897471807.dkr.ecr."
         : "763104351884.dkr.ecr.";
+
 
     // Create IAM execution role
     const executionRole = new iam.Role(this, "intelli-agent-endpoint-execution-role", {
@@ -104,6 +110,24 @@ export class ModelConstruct extends Construct {
 
     this.executionRole = executionRole;
 
+    // Check if props.config.model.embeddingsModels includes a model with the name 'bce-embedding-and-bge-reranker'
+    if (props.config.model.embeddingsModels.some(model => model.name === 'bce-embedding-and-bge-reranker')) {
+      // Create the resource
+      let embeddingAndRerankerModelResources = this.deployEmbeddingAndRerankerEndpoint(props);
+      this.embeddingAndRerankerEndpoint = embeddingAndRerankerModelResources.endpoint;
+      this.defaultEmbeddingModelName = embeddingAndRerankerModelResources.endpoint.endpointName ?? "";
+    }
+
+    if (props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.enabled) {
+      let knowledgeBaseModelResources = this.deployKnowledgeBaseEndpoint(props);
+      this.knowledgeBaseEndpoint = knowledgeBaseModelResources.endpoint;
+      this.createKnowledgeBaseEndpointScaling(this.knowledgeBaseEndpoint);
+      this.defaultKnowledgeBaseModelName = knowledgeBaseModelResources.endpoint.endpointName ?? "";
+    }
+
+  }
+
+  private deployEmbeddingAndRerankerEndpoint(props: ModelStackProps) {
     // Deploy Embedding and Reranker model
     let embeddingAndRerankerModelPrefix = props.config.model.embeddingsModels.find(
       (model) => model.default === true,
@@ -112,14 +136,14 @@ export class ModelConstruct extends Construct {
       (model) => model.default === true,
     )?.commitId ?? "";
     let embeddingAndRerankerModelName = embeddingAndRerankerModelPrefix + "-" + embeddingAndRerankerModelVersion.slice(0, 5)
-    let embeddingAndRerankerImageUrl = modelPublicEcrAccount + this.region + modelImageUrlDomain + "djl-inference:0.21.0-deepspeed0.8.3-cu117";
+    let embeddingAndRerankerImageUrl = this.modelPublicEcrAccount + this.region + this.modelImageUrlDomain + "djl-inference:0.21.0-deepspeed0.8.3-cu117";
     let embeddingAndRerankerModelDataUrl = `s3://${props.config.model.modelConfig.modelAssetsBucket}/${embeddingAndRerankerModelPrefix}_deploy_code/`;
     let codePrefix = embeddingAndRerankerModelPrefix + "_deploy_code";
 
     const embeddingAndRerankerModelResources = this.deploySagemakerEndpoint({
       modelProps: {
         modelName: embeddingAndRerankerModelName,
-        executionRoleArn: executionRole.roleArn,
+        executionRoleArn: this.executionRole.roleArn,
         primaryContainer: {
           image: embeddingAndRerankerImageUrl,
           modelDataUrl: embeddingAndRerankerModelDataUrl,
@@ -135,7 +159,7 @@ export class ModelConstruct extends Construct {
           {
             initialVariantWeight: 1.0,
             modelName: embeddingAndRerankerModelName,
-            variantName: "variantProd",
+            variantName: this.modelVariantName,
             containerStartupHealthCheckTimeoutInSeconds: 15 * 60,
             initialInstanceCount: 1,
             instanceType: "ml.g4dn.4xlarge",
@@ -154,15 +178,15 @@ export class ModelConstruct extends Construct {
       },
     });
 
-    this.embeddingAndRerankerEndpoint = embeddingAndRerankerModelResources.endpoint;
+    return embeddingAndRerankerModelResources;
+  }
 
-
+  private deployKnowledgeBaseEndpoint(props: ModelStackProps) {
     // Deploy Knowledge Base model
     let knowledgeBaseModelName = "knowledge-base-model";
     let knowledgeBaseModelEcrRepository = props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.ecrRepository;
     let knowledgeBaseModelEcrImageTag = props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.ecrImageTag;
-    let knowledgeBaseModelImageUrl = this.account + ".dkr.ecr." + this.region + modelImageUrlDomain + knowledgeBaseModelEcrRepository + ":" + knowledgeBaseModelEcrImageTag;
-    let knowledgeBaseVariantName = "variantProd";
+    let knowledgeBaseModelImageUrl = this.account + ".dkr.ecr." + this.region + this.modelImageUrlDomain + knowledgeBaseModelEcrRepository + ":" + knowledgeBaseModelEcrImageTag;
 
     const knowledgeBaseModelResources = this.deploySagemakerEndpoint({
       modelProps: {
@@ -170,7 +194,7 @@ export class ModelConstruct extends Construct {
         primaryContainer: {
           image: knowledgeBaseModelImageUrl,
         },
-        executionRoleArn: executionRole.roleArn,
+        executionRoleArn: this.executionRole.roleArn,
       },
       endpointConfigProps: {
         endpointConfigName: knowledgeBaseModelName + "-endpoint-config",
@@ -178,7 +202,7 @@ export class ModelConstruct extends Construct {
           {
             initialVariantWeight: 1.0,
             modelName: knowledgeBaseModelName,
-            variantName: knowledgeBaseVariantName,
+            variantName: this.modelVariantName,
             containerStartupHealthCheckTimeoutInSeconds: 15 * 60,
             initialInstanceCount: 1,
             instanceType: "ml.g4dn.2xlarge",
@@ -199,10 +223,7 @@ export class ModelConstruct extends Construct {
       },
     });
 
-    this.knowledgeBaseEndpoint = knowledgeBaseModelResources.endpoint;
-
-    this.createKnowledgeBaseEndpointScaling(this.knowledgeBaseEndpoint, knowledgeBaseVariantName);
-
+    return knowledgeBaseModelResources;
   }
 
   private deploySagemakerEndpoint(props: BuildSagemakerEndpointProps): DeploySagemakerEndpointResponse {
@@ -234,14 +255,14 @@ export class ModelConstruct extends Construct {
     }
   }
 
-  private createKnowledgeBaseEndpointScaling(endpoint: sagemaker.CfnEndpoint, variantName: string) {
+  private createKnowledgeBaseEndpointScaling(endpoint: sagemaker.CfnEndpoint) {
     const scalingTarget = new appAutoscaling.ScalableTarget(
       this,
       "ETLAutoScalingTarget",
       {
         minCapacity: 0,
         maxCapacity: 10,
-        resourceId: `endpoint/${endpoint.endpointName}/variant/${variantName}`,
+        resourceId: `endpoint/${endpoint.endpointName}/variant/${this.modelVariantName}`,
         scalableDimension: "sagemaker:variant:DesiredInstanceCount",
         serviceNamespace: appAutoscaling.ServiceNamespace.SAGEMAKER,
       }
@@ -269,7 +290,7 @@ export class ModelConstruct extends Construct {
       handler: "etl_custom_resource.lambda_handler",
       environment: {
         ENDPOINT_NAME: endpoint.endpointName || "",
-        VARIANT_NAME: variantName
+        VARIANT_NAME: this.modelVariantName,
       },
       memorySize: 512,
       timeout: Duration.seconds(300),
