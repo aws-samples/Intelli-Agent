@@ -140,7 +140,7 @@ export class ApiConstruct extends Construct {
       architecture: Architecture.X86_64,
       environment: {
         opensearch_cluster_domain: domainEndpoint,
-        embedding_endpoint: props.modelConstruct.embeddingAndRerankerEndPointName,
+        embedding_endpoint: props.modelConstruct.embeddingAndRerankerEndpoint.endpointName ?? '',
       },
       layers: [apiLambdaEmbeddingLayer],
     });
@@ -223,7 +223,7 @@ export class ApiConstruct extends Construct {
         INDEX_TABLE_NAME: props.chatStack.chatTablesConstruct.indexTableName,
         CHATBOT_TABLE_NAME: props.sharedConstruct.chatbotTable.tableName,
         MODEL_TABLE_NAME: props.chatStack.chatTablesConstruct.modelTableName,
-        EMBEDDING_ENDPOINT: props.modelConstruct.embeddingAndRerankerEndPointName,
+        EMBEDDING_ENDPOINT: props.modelConstruct.embeddingAndRerankerEndpoint.endpointName ?? '',
       },
       memorySize: 256,
     });
@@ -340,7 +340,7 @@ export class ApiConstruct extends Construct {
         INDEX_TABLE_NAME: props.chatStack.chatTablesConstruct.indexTableName,
         CHATBOT_TABLE_NAME: props.sharedConstruct.chatbotTable.tableName,
         MODEL_TABLE_NAME: props.chatStack.chatTablesConstruct.modelTableName,
-        EMBEDDING_ENDPOINT: props.modelConstruct.embeddingAndRerankerEndPointName,
+        EMBEDDING_ENDPOINT: props.modelConstruct.embeddingAndRerankerEndpoint.endpointName ?? '',
       },
     });
     createChatbotLambda.addToRolePolicy(this.iamHelper.dynamodbStatement);

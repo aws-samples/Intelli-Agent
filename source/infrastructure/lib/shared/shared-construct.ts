@@ -11,10 +11,11 @@
  *  and limitations under the License.                                                                                *
  *********************************************************************************************************************/
 
+import { RemovalPolicy } from 'aws-cdk-lib';
 import { Construct } from "constructs";
 import * as dotenv from "dotenv";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
-import { RemovalPolicy } from 'aws-cdk-lib';
+import * as s3 from "aws-cdk-lib/aws-s3";
 
 import { SystemConfig } from "../shared/types";
 import { IAMHelper } from "../shared/iam-helper";
@@ -30,6 +31,7 @@ export class SharedConstruct extends Construct {
   public iamHelper: IAMHelper;
   public vpcConstruct: VpcConstruct;
   public chatbotTable: dynamodb.Table;
+  public resultBucket: s3.Bucket;
 
   constructor(scope: Construct, id: string) {
     super(scope, id);
@@ -53,9 +55,14 @@ export class SharedConstruct extends Construct {
       removalPolicy: RemovalPolicy.DESTROY,
     });
 
+    const resultBucket = new s3.Bucket(this, "intelli-agent-result-bucket", {
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+    });
+
     this.iamHelper = iamHelper;
     this.vpcConstruct = vpcConstruct;
     this.chatbotTable = chatbotTable;
+    this.resultBucket = resultBucket;
   }
 }
 

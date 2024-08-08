@@ -127,6 +127,6 @@ const devEnv = {
 
 const app = new App();
 const stackName = `${config.prefix}intelli-agent`;
-new RootStack(app, stackName, { config, env: devEnv });
+new RootStack(app, stackName, { config, env: devEnv, suppressTemplateIndentation: true });
 
 app.synth();
