@@ -54,12 +54,12 @@ export class ApiConstruct extends Construct {
     this.iamHelper = props.sharedConstruct.iamHelper;
     const vpc = props.sharedConstruct.vpcConstruct.vpc;
     const securityGroup = props.sharedConstruct.vpcConstruct.securityGroup;
-    const domainEndpoint = props.knowledgeBaseStack.aosConstruct.domainEndpoint;
+    const domainEndpoint = props.knowledgeBaseStack.aosDomainEndpoint;
     const sessionsTableName = props.chatStack.chatTablesConstruct.sessionsTableName;
     const messagesTableName = props.chatStack.chatTablesConstruct.messagesTableName;
-    const resBucketName = props.knowledgeBaseStack.glueResultBucket.bucketName;
-    const executionTableName = props.knowledgeBaseStack.executionTable.tableName;
-    const etlObjTableName = props.knowledgeBaseStack.etlObjTable.tableName;
+    const resBucketName = props.sharedConstruct.resultBucket.bucketName;
+    const executionTableName = props.knowledgeBaseStack.executionTableName;
+    const etlObjTableName = props.knowledgeBaseStack.etlObjTableName;
     const etlObjIndexName = props.knowledgeBaseStack.etlObjIndexName;
 
     const chatQueueConstruct = props.chatStack.chatQueueConstruct;
@@ -153,26 +153,6 @@ export class ApiConstruct extends Construct {
       },
       statements: [this.iamHelper.dynamodbStatement],
     });
-
-
-    // Integration with Step Function to trigger ETL process
-    // Lambda function to trigger Step Function
-    const sfnLambda = new LambdaFunction(this, "StepFunctionLambda", {
-      code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
-      handler: "sfn_handler.handler",
-      environment: {
-        sfn_arn: props.knowledgeBaseStack.sfnOutput.stateMachineArn,
-        EXECUTION_TABLE_NAME: props.knowledgeBaseStack.executionTable.tableName,
-        INDEX_TABLE_NAME: props.chatStack.chatTablesConstruct.indexTableName,
-        CHATBOT_TABLE_NAME: props.sharedConstruct.chatbotTable.tableName,
-        MODEL_TABLE_NAME: props.chatStack.chatTablesConstruct.modelTableName,
-        EMBEDDING_ENDPOINT: props.modelConstruct.defaultEmbeddingModelName,
-      },
-      statements: [this.iamHelper.dynamodbStatement],
-    });
-    // Grant lambda function to invoke step function
-    props.knowledgeBaseStack.sfnOutput.grantStartExecution(sfnLambda.function);
-    s3Bucket.grantReadWrite(sfnLambda.function);
 
     const listExecutionLambda = new LambdaFunction(this, "ListExecution", {
       code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
@@ -393,22 +373,43 @@ export class ApiConstruct extends Construct {
 
     const apiResourceStepFunction = api.root.addResource("knowledge-base");
     const apiKBExecution = apiResourceStepFunction.addResource("executions");
-    apiKBExecution.addMethod(
-      "POST",
-      new apigw.LambdaIntegration(sfnLambda.function),
-      {
-        ...this.genMethodOption(api, auth, null),
-        requestModels: this.genRequestModel(api, {
-          "chatbotId": { "type": JsonSchemaType.STRING },
-          "indexType": { "type": JsonSchemaType.STRING },
-          "offline": { "type": JsonSchemaType.STRING },
-          "operationType": { "type": JsonSchemaType.STRING },
-          "qaEnhance": { "type": JsonSchemaType.STRING },
-          "s3Bucket": { "type": JsonSchemaType.STRING },
-          "s3Prefix": { "type": JsonSchemaType.STRING }
-        })
-      }
-    );
+    if ( props.knowledgeBaseStack.sfnOutput !== undefined) {
+      // Integration with Step Function to trigger ETL process
+      // Lambda function to trigger Step Function
+      const sfnLambda = new LambdaFunction(this, "StepFunctionLambda", {
+        code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
+        handler: "sfn_handler.handler",
+        environment: {
+          sfn_arn: props.knowledgeBaseStack.sfnOutput.stateMachineArn,
+          EXECUTION_TABLE_NAME: props.knowledgeBaseStack.executionTableName,
+          INDEX_TABLE_NAME: props.chatStack.chatTablesConstruct.indexTableName,
+          CHATBOT_TABLE_NAME: props.sharedConstruct.chatbotTable.tableName,
+          MODEL_TABLE_NAME: props.chatStack.chatTablesConstruct.modelTableName,
+          EMBEDDING_ENDPOINT: props.modelConstruct.defaultEmbeddingModelName,
+        },
+        statements: [this.iamHelper.dynamodbStatement],
+      });
+      // Grant lambda function to invoke step function
+      props.knowledgeBaseStack.sfnOutput.grantStartExecution(sfnLambda.function);
+      s3Bucket.grantReadWrite(sfnLambda.function);
+
+      apiKBExecution.addMethod(
+        "POST",
+        new apigw.LambdaIntegration(sfnLambda.function),
+        {
+          ...this.genMethodOption(api, auth, null),
+          requestModels: this.genRequestModel(api, {
+            "chatbotId": { "type": JsonSchemaType.STRING },
+            "indexType": { "type": JsonSchemaType.STRING },
+            "offline": { "type": JsonSchemaType.STRING },
+            "operationType": { "type": JsonSchemaType.STRING },
+            "qaEnhance": { "type": JsonSchemaType.STRING },
+            "s3Bucket": { "type": JsonSchemaType.STRING },
+            "s3Prefix": { "type": JsonSchemaType.STRING }
+          })
+        }
+      );
+    }
     apiKBExecution.addMethod(
       "GET",
       new apigw.LambdaIntegration(listExecutionLambda.function),

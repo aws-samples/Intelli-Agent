@@ -42,16 +42,16 @@ interface KnowledgeBaseStackProps extends StackProps {
 
 export class KnowledgeBaseStack extends NestedStack {
   public etlObjIndexName: string = "ExecutionIdIndex";
-  public glueResultBucket: s3.Bucket;
-  public executionTable: dynamodb.Table;
-  public etlObjTable: dynamodb.Table;
-  public aosConstruct: AOSConstruct;
-  public sfnOutput: sfn.StateMachine;
+  public executionTableName: string = "";
+  public etlObjTableName: string = "";
+  public aosDomainEndpoint: string = "";
+  public sfnOutput?: sfn.StateMachine = undefined;
 
   private iamHelper: IAMHelper;
   private uiPortalBucketName: string;
-  private dynamodbStatement: iam.PolicyStatement;
-  private glueLibS3Bucket: s3.Bucket;
+  private glueResultBucket: s3.Bucket;
+  private dynamodbStatement?: iam.PolicyStatement;
+  private glueLibS3Bucket?: s3.Bucket;
 
 
   constructor(scope: Construct, id: string, props: KnowledgeBaseStackProps) {
@@ -61,19 +61,23 @@ export class KnowledgeBaseStack extends NestedStack {
     this.uiPortalBucketName = props.uiPortalBucketName || "";
     this.glueResultBucket = props.sharedConstruct.resultBucket;
 
-    this.aosConstruct = new AOSConstruct(this, "aos-construct", {
-      osVpc: props.sharedConstruct.vpcConstruct.vpc,
-      securityGroup: props.sharedConstruct.vpcConstruct.securityGroup,
-    });
-    this.glueLibS3Bucket = new s3.Bucket(this, "llm-bot-glue-lib-bucket", {
-      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
-    });
-    const createKnowledgeBaseTablesAndPoliciesResult = this.createKnowledgeBaseTablesAndPolicies(props);
-    this.executionTable = createKnowledgeBaseTablesAndPoliciesResult.executionTable;
-    this.etlObjTable = createKnowledgeBaseTablesAndPoliciesResult.etlObjTable;
-    this.dynamodbStatement = createKnowledgeBaseTablesAndPoliciesResult.dynamodbStatement;
+    if (props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.enabled) {
 
-    this.sfnOutput = this.createKnowledgeBaseJob(props);
+      const aosConstruct = new AOSConstruct(this, "aos-construct", {
+        osVpc: props.sharedConstruct.vpcConstruct.vpc,
+        securityGroup: props.sharedConstruct.vpcConstruct.securityGroup,
+      });
+      this.aosDomainEndpoint = aosConstruct.domainEndpoint;
+      this.glueLibS3Bucket = new s3.Bucket(this, "llm-bot-glue-lib-bucket", {
+        blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+      });
+      const createKnowledgeBaseTablesAndPoliciesResult = this.createKnowledgeBaseTablesAndPolicies(props);
+      this.executionTableName = createKnowledgeBaseTablesAndPoliciesResult.executionTable.tableName;
+      this.etlObjTableName = createKnowledgeBaseTablesAndPoliciesResult.etlObjTable.tableName;
+      this.dynamodbStatement = createKnowledgeBaseTablesAndPoliciesResult.dynamodbStatement;
+
+      this.sfnOutput = this.createKnowledgeBaseJob(props);
+    }
 
   }
 
@@ -134,37 +138,43 @@ export class KnowledgeBaseStack extends NestedStack {
       memorySize: 256,
       architecture: Architecture.X86_64,
       environment: {
-        EXECUTION_TABLE: this.executionTable?.tableName ?? "",
-        ETL_OBJECT_TABLE: this.etlObjTable?.tableName ?? "",
+        EXECUTION_TABLE: this.executionTableName ?? "",
+        ETL_OBJECT_TABLE: this.etlObjTableName ?? "",
       },
     });
-    notificationLambda.addToRolePolicy(this.dynamodbStatement);
     notificationLambda.addToRolePolicy(this.iamHelper.logStatement);
+    if (this.dynamodbStatement) {
+      notificationLambda.addToRolePolicy(this.dynamodbStatement);
+    }
 
     // If this.region is cn-north-1 or cn-northwest-1, use the glue-job-script-cn.py
     const glueJobScript =
       this.region === "cn-north-1" || this.region === "cn-northwest-1"
         ? "glue-job-script-cn.py"
         : "glue-job-script.py";
-
-    const extraPythonFiles = new s3deploy.BucketDeployment(
-      this,
-      "extraPythonFiles",
-      {
-        sources: [
-          s3deploy.Source.asset(
-            join(__dirname, "../../../lambda/job/dep/dist"),
-          ),
-        ],
-        destinationBucket: this.glueLibS3Bucket
-      },
-    );
-
-    // Assemble the extra python files list using _S3Bucket.s3UrlForObject("llm_bot_dep-0.1.0-py3-none-any.whl") and _S3Bucket.s3UrlForObject("nougat_ocr-0.1.17-py3-none-any.whl") and convert to string
-    const extraPythonFilesList = [
-      this.glueLibS3Bucket.s3UrlForObject("llm_bot_dep-0.1.0-py3-none-any.whl"),
-    ].join(",");
-
+    
+    let extraPythonFilesList = "";
+    if (this.glueLibS3Bucket) {
+      const extraPythonFiles = new s3deploy.BucketDeployment(
+        this,
+        "extraPythonFiles",
+        {
+          sources: [
+            s3deploy.Source.asset(
+              join(__dirname, "../../../lambda/job/dep/dist"),
+            ),
+          ],
+          destinationBucket: this.glueLibS3Bucket
+        },
+      );
+  
+      // Assemble the extra python files list using _S3Bucket.s3UrlForObject("llm_bot_dep-0.1.0-py3-none-any.whl") and _S3Bucket.s3UrlForObject("nougat_ocr-0.1.17-py3-none-any.whl") and convert to string
+      extraPythonFilesList = [
+        this.glueLibS3Bucket.s3UrlForObject("llm_bot_dep-0.1.0-py3-none-any.whl"),
+      ].join(",");
+  
+    }
+  
     const glueRole = new iam.Role(this, "ETLGlueJobRole", {
       assumedBy: new iam.ServicePrincipal("glue.amazonaws.com"),
       // The role is used by the glue job to access AOS and by default it has 1 hour session duration which is not enough for the glue job to finish the embedding injection
@@ -193,8 +203,10 @@ export class KnowledgeBaseStack extends NestedStack {
     glueRole.addToPolicy(this.iamHelper.endpointStatement);
     glueRole.addToPolicy(this.iamHelper.s3Statement);
     glueRole.addToPolicy(this.iamHelper.logStatement);
-    glueRole.addToPolicy(this.dynamodbStatement);
     glueRole.addToPolicy(this.iamHelper.glueStatement);
+    if (this.dynamodbStatement) {
+      glueRole.addToPolicy(this.dynamodbStatement);
+    }
 
     // Create glue job to process files specified in s3 bucket and prefix
     const glueJob = new glue.Job(this, "PythonShellJob", {
@@ -214,17 +226,17 @@ export class KnowledgeBaseStack extends NestedStack {
       maxCapacity: 1,
       role: glueRole,
       defaultArguments: {
-        "--AOS_ENDPOINT": this.aosConstruct.domainEndpoint,
+        "--AOS_ENDPOINT": this.aosDomainEndpoint,
         "--REGION": process.env.CDK_DEFAULT_REGION || "",
         "--ETL_MODEL_ENDPOINT": props.modelConstruct.defaultKnowledgeBaseModelName,
         "--RES_BUCKET": this.glueResultBucket.bucketName,
-        "--ETL_OBJECT_TABLE": this.etlObjTable?.tableName || "",
+        "--ETL_OBJECT_TABLE": this.etlObjTableName || "",
         "--PORTAL_BUCKET": this.uiPortalBucketName,
         "--CHATBOT_TABLE": props.sharedConstruct.chatbotTable.tableName,
         "--additional-python-modules":
           "langchain==0.1.11,beautifulsoup4==4.12.2,requests-aws4auth==1.2.3,boto3==1.28.84,openai==0.28.1,pyOpenSSL==23.3.0,tenacity==8.2.3,markdownify==0.11.6,mammoth==1.6.0,chardet==5.2.0,python-docx==1.1.0,nltk==3.8.1,pdfminer.six==20221105,smart-open==7.0.4,lxml==5.2.2,pandas==2.1.2,openpyxl==3.1.5,xlrd==2.0.1",
         // Add multiple extra python files
-        "--extra-py-files": extraPythonFilesList,
+        "--extra-py-files": extraPythonFilesList
       },
     });
 
@@ -246,7 +258,7 @@ export class KnowledgeBaseStack extends NestedStack {
       environment: {
         DEFAULT_EMBEDDING_ENDPOINT:
           props.modelConstruct.embeddingAndRerankerEndpoint.endpointName || "-",
-        AOS_DOMAIN_ENDPOINT: this.aosConstruct.domainEndpoint || "-",
+        AOS_DOMAIN_ENDPOINT: this.aosDomainEndpoint
       },
     });
     etlLambda.addToRolePolicy(this.iamHelper.glueStatement);
@@ -287,7 +299,7 @@ export class KnowledgeBaseStack extends NestedStack {
       glueJobName: glueJob.jobName,
       integrationPattern: sfn.IntegrationPattern.RUN_JOB,
       arguments: sfn.TaskInput.fromObject({
-        "--AOS_ENDPOINT": this.aosConstruct.domainEndpoint || "-",
+        "--AOS_ENDPOINT": this.aosDomainEndpoint,
         "--BATCH_FILE_NUMBER.$": "$.batchFileNumber",
         "--BATCH_INDICE.$": 'States.Format(\'{}\', $.batchIndices)',
         "--DOCUMENT_LANGUAGE.$": "$.documentLanguage",
@@ -297,7 +309,7 @@ export class KnowledgeBaseStack extends NestedStack {
         "--JOB_NAME": glueJob.jobName,
         "--OFFLINE": "true",
         "--OPERATION_TYPE.$": "$.operationType",
-        "--ETL_OBJECT_TABLE": this.etlObjTable?.tableName || "-",
+        "--ETL_OBJECT_TABLE": this.etlObjTableName || "-",
         "--TABLE_ITEM_ID.$": "$.tableItemId",
         "--QA_ENHANCEMENT.$": "$.qaEnhance",
         "--REGION": process.env.CDK_DEFAULT_REGION || "-",

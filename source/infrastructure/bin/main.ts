@@ -61,7 +61,7 @@ export class RootStack extends Stack {
       config: props.config,
       sharedConstruct: sharedConstruct,
       modelConstruct: modelConstruct,
-      domainEndpoint: knowledgeBaseStack.aosConstruct.domainEndpoint
+      domainEndpoint: knowledgeBaseStack.aosDomainEndpoint
     });
 
     const userConstruct = new UserConstruct(this, "user", {
