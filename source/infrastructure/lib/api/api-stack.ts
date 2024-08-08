@@ -20,7 +20,7 @@ import { join } from "path";
 
 import { LambdaLayers } from "../shared/lambda-layers";
 import { WebSocketConstruct } from "./websocket-api";
-import { Function, Runtime, Code, Architecture, DockerImageFunction, DockerImageCode } from 'aws-cdk-lib/aws-lambda';
+import { Function, Runtime, Code, Architecture } from 'aws-cdk-lib/aws-lambda';
 import { IAMHelper } from "../shared/iam-helper";
 import { JsonSchemaType, JsonSchemaVersion, Model } from "aws-cdk-lib/aws-apigateway";
 import { SystemConfig } from "../shared/types";
@@ -29,6 +29,7 @@ import { ModelConstruct } from "../model/model-construct";
 import { KnowledgeBaseStack } from "../knowledge-base/knowledge-base-stack";
 import { ChatStack } from "../chat/chat-stack";
 import { UserConstruct } from "../user/user-construct";
+import { LambdaFunction } from "../shared/lambda-helper";
 
 
 interface ApiStackProps extends StackProps {
@@ -56,7 +57,6 @@ export class ApiConstruct extends Construct {
     const domainEndpoint = props.knowledgeBaseStack.aosConstruct.domainEndpoint;
     const sessionsTableName = props.chatStack.chatTablesConstruct.sessionsTableName;
     const messagesTableName = props.chatStack.chatTablesConstruct.messagesTableName;
-    const chatbotTableName = props.sharedConstruct.chatbotTable.tableName;
     const etlEndpointName = props.knowledgeBaseStack.etlEndpoint.endpointName ?? '';
     const resBucketName = props.knowledgeBaseStack.glueResultBucket.bucketName;
     const executionTableName = props.knowledgeBaseStack.executionTable.tableName;
@@ -71,7 +71,6 @@ export class ApiConstruct extends Construct {
     // const apiLambdaExecutorLayer = lambdaLayers.createExecutorLayer();
     const apiLambdaEmbeddingLayer = lambdaLayers.createEmbeddingLayer();
     const apiLambdaOnlineSourceLayer = lambdaLayers.createOnlineSourceLayer();
-    const apiLambdaJobSourceLayer = lambdaLayers.createJobSourceLayer();
     const apiLambdaAuthorizerLayer = lambdaLayers.createAuthorizerLayer();
 
     // S3 bucket for storing documents
@@ -91,77 +90,40 @@ export class ApiConstruct extends Construct {
       ],
     });
 
-    const embeddingLambda = new Function(this, "lambdaEmbedding", {
-      runtime: Runtime.PYTHON_3_11,
-      handler: "main.lambda_handler",
+    const embeddingLambda = new LambdaFunction(this, "lambdaEmbedding", {
       code: Code.fromAsset(join(__dirname, "../../../lambda/embedding")),
-      timeout: Duration.minutes(15),
-      memorySize: 4096,
       vpc: vpc,
-      vpcSubnets: {
-        subnets: vpc.privateSubnets,
-      },
       securityGroups: [securityGroup],
-      architecture: Architecture.X86_64,
       environment: {
         ETL_MODEL_ENDPOINT: etlEndpointName,
         REGION: Aws.REGION,
         RES_BUCKET: resBucketName,
       },
       layers: [apiLambdaEmbeddingLayer],
+      statements: [
+        this.iamHelper.esStatement,
+        this.iamHelper.s3Statement,
+        this.iamHelper.endpointStatement,
+      ],
     });
 
-    embeddingLambda.addToRolePolicy(
-      new iam.PolicyStatement({
-        actions: [
-          "es:ESHttpGet",
-          "es:ESHttpPut",
-          "es:ESHttpPost",
-          "es:ESHttpHead",
-        ],
-        effect: iam.Effect.ALLOW,
-        resources: ["*"],
-      }),
-    );
-    embeddingLambda.addToRolePolicy(this.iamHelper.s3Statement);
-    embeddingLambda.addToRolePolicy(this.iamHelper.endpointStatement);
-
-    const aosLambda = new Function(this, "AOSLambda", {
-      runtime: Runtime.PYTHON_3_11,
-      handler: "main.lambda_handler",
+    const aosLambda = new LambdaFunction(this, "AOSLambda", {
       code: Code.fromAsset(join(__dirname, "../../../lambda/aos")),
-      timeout: Duration.minutes(15),
-      memorySize: 1024,
       vpc: vpc,
-      vpcSubnets: {
-        subnets: vpc.privateSubnets,
-      },
       securityGroups: [securityGroup],
-      architecture: Architecture.X86_64,
       environment: {
         opensearch_cluster_domain: domainEndpoint,
         embedding_endpoint: props.modelConstruct.embeddingAndRerankerEndpoint.endpointName ?? '',
       },
       layers: [apiLambdaEmbeddingLayer],
+      statements: [
+        this.iamHelper.esStatement,
+        this.iamHelper.s3Statement,
+        this.iamHelper.endpointStatement,
+      ],
     });
 
-    aosLambda.addToRolePolicy(
-      new iam.PolicyStatement({
-        actions: [
-          "es:ESHttpGet",
-          "es:ESHttpPut",
-          "es:ESHttpPost",
-          "es:ESHttpHead",
-        ],
-        effect: iam.Effect.ALLOW,
-        resources: ["*"],
-      }),
-    );
-    aosLambda.addToRolePolicy(this.iamHelper.s3Statement);
-    aosLambda.addToRolePolicy(this.iamHelper.endpointStatement);
-
-    const chatHistoryLambda = new Function(this, "ChatHistoryLambda", {
-      runtime: Runtime.PYTHON_3_11,
+    const chatHistoryLambda = new LambdaFunction(this, "ChatHistoryLambda", {
       handler: "rating.lambda_handler",
       code: Code.fromAsset(join(__dirname, "../../../lambda/ddb")),
       environment: {
@@ -170,53 +132,35 @@ export class ApiConstruct extends Construct {
         SESSIONS_BY_TIMESTAMP_INDEX_NAME: "byTimestamp",
         MESSAGES_BY_SESSION_ID_INDEX_NAME: "bySessionId",
       },
-      vpc: vpc,
-      vpcSubnets: {
-        subnets: vpc.privateSubnets,
-      },
-      securityGroups: [securityGroup],
+      statements: [this.iamHelper.dynamodbStatement],
     });
-    chatHistoryLambda.addToRolePolicy(this.iamHelper.dynamodbStatement);
 
-    const listSessionsLambda = new Function(this, "ListSessionsLambda", {
-      runtime: Runtime.PYTHON_3_11,
+    const listSessionsLambda = new LambdaFunction(this, "ListSessionsLambda", {
       handler: "list_sessions.lambda_handler",
       code: Code.fromAsset(join(__dirname, "../../../lambda/ddb")),
       environment: {
         SESSIONS_TABLE_NAME: sessionsTableName,
         SESSIONS_BY_TIMESTAMP_INDEX_NAME: "byTimestamp",
       },
-      vpc: vpc,
-      vpcSubnets: {
-        subnets: vpc.privateSubnets,
-      },
-      securityGroups: [securityGroup],
+      statements: [this.iamHelper.dynamodbStatement],
     });
-    listSessionsLambda.addToRolePolicy(this.iamHelper.dynamodbStatement);
 
-    const listMessagesLambda = new Function(this, "ListMessagesLambda", {
-      runtime: Runtime.PYTHON_3_11,
+    const listMessagesLambda = new LambdaFunction(this, "ListMessagesLambda", {
       handler: "list_messages.lambda_handler",
       code: Code.fromAsset(join(__dirname, "../../../lambda/ddb")),
       environment: {
         MESSAGES_TABLE_NAME: messagesTableName,
         MESSAGES_BY_SESSION_ID_INDEX_NAME: "bySessionId",
       },
-      vpc: vpc,
-      vpcSubnets: {
-        subnets: vpc.privateSubnets,
-      },
-      securityGroups: [securityGroup],
+      statements: [this.iamHelper.dynamodbStatement],
     });
-    listMessagesLambda.addToRolePolicy(this.iamHelper.dynamodbStatement);
+
 
     // Integration with Step Function to trigger ETL process
     // Lambda function to trigger Step Function
-    const sfnLambda = new Function(this, "StepFunctionLambda", {
+    const sfnLambda = new LambdaFunction(this, "StepFunctionLambda", {
       code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
       handler: "sfn_handler.handler",
-      runtime: Runtime.PYTHON_3_11,
-      timeout: Duration.seconds(30),
       environment: {
         sfn_arn: props.knowledgeBaseStack.sfnOutput.stateMachineArn,
         EXECUTION_TABLE_NAME: props.knowledgeBaseStack.executionTable.tableName,
@@ -225,80 +169,83 @@ export class ApiConstruct extends Construct {
         MODEL_TABLE_NAME: props.chatStack.chatTablesConstruct.modelTableName,
         EMBEDDING_ENDPOINT: props.modelConstruct.embeddingAndRerankerEndpoint.endpointName ?? '',
       },
-      memorySize: 256,
+      statements: [this.iamHelper.dynamodbStatement],
     });
-    sfnLambda.addToRolePolicy(this.iamHelper.dynamodbStatement);
-
     // Grant lambda function to invoke step function
-    props.knowledgeBaseStack.sfnOutput.grantStartExecution(sfnLambda);
+    props.knowledgeBaseStack.sfnOutput.grantStartExecution(sfnLambda.function);
+    s3Bucket.grantReadWrite(sfnLambda.function);
 
-    // Uncomment below event bridge if you want to handle the S3 files
-    // Add S3 event notification when file uploaded to the bucket
-    // s3Bucket.addEventNotification(
-    //   s3.EventType.OBJECT_CREATED,
-    //   new s3n.LambdaDestination(sfnLambda),
-    //   { prefix: "documents/" },
-    // );
-    // Add S3 event notification when file deleted in the bucket
-    // s3Bucket.addEventNotification(
-    //   s3.EventType.OBJECT_REMOVED,
-    //   new s3n.LambdaDestination(sfnLambda),
-    //   { prefix: "documents/" },
-    // );
-    s3Bucket.grantReadWrite(sfnLambda);
-
-    const listExecutionLambda = new Function(this, "ListExecution", {
+    const listExecutionLambda = new LambdaFunction(this, "ListExecution", {
       code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
       handler: "list_execution.lambda_handler",
-      runtime: Runtime.PYTHON_3_11,
-      timeout: Duration.minutes(15),
-      memorySize: 512,
-      architecture: Architecture.X86_64,
       environment: {
         EXECUTION_TABLE: executionTableName,
       },
+      statements: [this.iamHelper.dynamodbStatement],
     });
-    listExecutionLambda.addToRolePolicy(this.iamHelper.dynamodbStatement);
 
-    const getExecutionLambda = new Function(this, "GetExecution", {
+    const getExecutionLambda = new LambdaFunction(this, "GetExecution", {
       code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
       handler: "get_execution.lambda_handler",
-      runtime: Runtime.PYTHON_3_11,
-      timeout: Duration.minutes(15),
-      memorySize: 512,
-      architecture: Architecture.X86_64,
       environment: {
         ETL_OBJECT_TABLE: etlObjTableName,
         ETL_OBJECT_INDEX: etlObjIndexName,
       },
+      statements: [this.iamHelper.dynamodbStatement],
     });
-    getExecutionLambda.addToRolePolicy(this.iamHelper.dynamodbStatement);
 
-    const delExecutionLambda = new Function(this, "DeleteExecution", {
+    const delExecutionLambda = new LambdaFunction(this, "DeleteExecution", {
       code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
       handler: "delete_execution.lambda_handler",
-      runtime: Runtime.PYTHON_3_11,
-      timeout: Duration.minutes(15),
-      memorySize: 512,
-      architecture: Architecture.X86_64,
       environment: {
         EXECUTION_TABLE: executionTableName,
       },
+      statements: [this.iamHelper.dynamodbStatement],
     });
-    delExecutionLambda.addToRolePolicy(this.iamHelper.dynamodbStatement);
 
-    const uploadDocLambda = new Function(this, "UploadDocument", {
+    const uploadDocLambda = new LambdaFunction(this, "UploadDocument", {
       code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
       handler: "upload_document.lambda_handler",
-      runtime: Runtime.PYTHON_3_11,
-      timeout: Duration.minutes(3),
-      memorySize: 512,
-      architecture: Architecture.X86_64,
       environment: {
         S3_BUCKET: s3Bucket.bucketName,
       },
+      statements: [this.iamHelper.s3Statement],
     });
-    uploadDocLambda.addToRolePolicy(this.iamHelper.s3Statement);
+
+    const createChatbotLambda = new LambdaFunction(this, "CreateChatbot", {
+      code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
+      handler: "create_chatbot.lambda_handler",
+      environment: {
+        INDEX_TABLE_NAME: props.chatStack.chatTablesConstruct.indexTableName,
+        CHATBOT_TABLE_NAME: props.sharedConstruct.chatbotTable.tableName,
+        MODEL_TABLE_NAME: props.chatStack.chatTablesConstruct.modelTableName,
+        EMBEDDING_ENDPOINT: props.modelConstruct.embeddingAndRerankerEndpoint.endpointName ?? '',
+      },
+      statements: [this.iamHelper.dynamodbStatement],
+    });
+
+    const listChatbotLambda = new LambdaFunction(this, "ListChatbot", {
+      code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
+      handler: "list_chatbot.lambda_handler",
+      environment: {
+        USER_POOL_ID: props.userConstruct.userPool.userPoolId,
+      },
+      statements: [this.iamHelper.cognitoStatement],
+    });
+
+    const promptManagementLambda = new LambdaFunction(this, "PromptManagementLambda", {
+      runtime: Runtime.PYTHON_3_12,
+      code: Code.fromAsset(join(__dirname, "../../../lambda/prompt_management")),
+      handler: "prompt_management.lambda_handler",
+      environment: {
+        PROMPT_TABLE_NAME: props.chatStack.chatTablesConstruct.promptTableName,
+      },
+      layers: [apiLambdaOnlineSourceLayer],
+      statements: [this.iamHelper.dynamodbStatement,
+                    this.iamHelper.logStatement],
+    });
+
+
 
     // Create Lambda Authorizer for WebSocket API
     const customAuthorizerLambda = new Function(this, "CustomAuthorizerLambda", {
@@ -326,74 +273,6 @@ export class ApiConstruct extends Construct {
         actions: ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"],
         effect: iam.Effect.ALLOW,
         resources: ["*"],
-      }),
-    );
-
-    const createChatbotLambda = new Function(this, "CreateChatbot", {
-      code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
-      handler: "create_chatbot.lambda_handler",
-      runtime: Runtime.PYTHON_3_12,
-      timeout: Duration.minutes(5),
-      memorySize: 512,
-      architecture: Architecture.X86_64,
-      environment: {
-        INDEX_TABLE_NAME: props.chatStack.chatTablesConstruct.indexTableName,
-        CHATBOT_TABLE_NAME: props.sharedConstruct.chatbotTable.tableName,
-        MODEL_TABLE_NAME: props.chatStack.chatTablesConstruct.modelTableName,
-        EMBEDDING_ENDPOINT: props.modelConstruct.embeddingAndRerankerEndpoint.endpointName ?? '',
-      },
-    });
-    createChatbotLambda.addToRolePolicy(this.iamHelper.dynamodbStatement);
-
-    const listChatbotLambda = new Function(this, "ListChatbotLambda", {
-      code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
-      handler: "list_chatbot.lambda_handler",
-      runtime: Runtime.PYTHON_3_11,
-      timeout: Duration.minutes(15),
-      memorySize: 512,
-      architecture: Architecture.X86_64,
-      environment: {
-        USER_POOL_ID: props.userConstruct.userPool.userPoolId,
-      },
-    });
-
-    listChatbotLambda.addToRolePolicy(this.iamHelper.cognitoStatement);
-
-    // Create Lambda prompt management
-    const promptManagementLambda = new Function(this, "PromptManagementLambda", {
-      runtime: Runtime.PYTHON_3_12,
-      handler: "prompt_management.lambda_handler",
-      code: Code.fromAsset(join(__dirname, "../../../lambda/prompt_management")),
-      timeout: Duration.minutes(15),
-      memorySize: 1024,
-      architecture: Architecture.X86_64,
-      environment: {
-        PROMPT_TABLE_NAME: props.chatStack.chatTablesConstruct.promptTableName,
-      },
-      layers: [apiLambdaOnlineSourceLayer],
-    });
-
-    promptManagementLambda.addToRolePolicy(
-      new iam.PolicyStatement({
-        actions: [
-          "logs:CreateLogGroup",
-          "logs:CreateLogStream",
-          "logs:PutLogEvents"
-        ],
-        effect: iam.Effect.ALLOW,
-        resources: ["*"],
-      }),
-    );
-    promptManagementLambda.addToRolePolicy(
-      new iam.PolicyStatement({
-        actions: [
-          "dynamodb:PutItem",
-          "dynamodb:DeleteItem",
-          "dynamodb:GetItem",
-          "dynamodb:Query"
-        ],
-        effect: iam.Effect.ALLOW,
-        resources: [`arn:${Aws.PARTITION}:dynamodb:${Aws.REGION}:${Aws.ACCOUNT_ID}:table/${props.chatStack.chatTablesConstruct.promptTableName}`],
       }),
     );
 
@@ -432,7 +311,7 @@ export class ApiConstruct extends Construct {
 
     // Define the API Gateway Lambda Integration with proxy and no integration responses
     const lambdaEmbeddingIntegration = new apigw.LambdaIntegration(
-      embeddingLambda,
+      embeddingLambda.function,
       { proxy: true },
     );
 
@@ -478,7 +357,7 @@ export class ApiConstruct extends Construct {
     apiResourceEmbedding.addMethod("POST", lambdaEmbeddingIntegration, this.genMethodOption(api, auth, null),);
 
     // Define the API Gateway Lambda Integration with proxy and no integration responses
-    const lambdaAosIntegration = new apigw.LambdaIntegration(aosLambda, {
+    const lambdaAosIntegration = new apigw.LambdaIntegration(aosLambda.function, {
       proxy: true,
     });
 
@@ -489,27 +368,27 @@ export class ApiConstruct extends Construct {
     apiResourceAos.addMethod("GET", lambdaAosIntegration, this.genMethodOption(api, auth, null),);
 
     // Define the API Gateway Lambda Integration with proxy and no integration responses
-    const lambdaChatHistoryIntegration = new apigw.LambdaIntegration(chatHistoryLambda, {
+    const lambdaChatHistoryIntegration = new apigw.LambdaIntegration(chatHistoryLambda.function, {
       proxy: true,
     });
 
     const apiResourceDdb = api.root.addResource("chat-history");
     apiResourceDdb.addMethod("POST", lambdaChatHistoryIntegration, this.genMethodOption(api, auth, null),);
     const apiResourceListSessions = apiResourceDdb.addResource("sessions");
-    apiResourceListSessions.addMethod("GET", new apigw.LambdaIntegration(listSessionsLambda), this.genMethodOption(api, auth, null),);
+    apiResourceListSessions.addMethod("GET", new apigw.LambdaIntegration(listSessionsLambda.function), this.genMethodOption(api, auth, null),);
     const apiResourceListMessages = apiResourceDdb.addResource("messages");
-    apiResourceListMessages.addMethod("GET", new apigw.LambdaIntegration(listMessagesLambda), this.genMethodOption(api, auth, null),);
+    apiResourceListMessages.addMethod("GET", new apigw.LambdaIntegration(listMessagesLambda.function), this.genMethodOption(api, auth, null),);
 
     const apiResourceChatbot = api.root.addResource("chatbot-management");
     const apiChatbot = apiResourceChatbot.addResource("chatbots");
     apiChatbot.addMethod(
       "POST",
-      new apigw.LambdaIntegration(createChatbotLambda),
+      new apigw.LambdaIntegration(createChatbotLambda.function),
       this.genMethodOption(api, auth, null),
     );
     apiChatbot.addMethod(
       "GET",
-      new apigw.LambdaIntegration(listChatbotLambda),
+      new apigw.LambdaIntegration(listChatbotLambda.function),
       this.genMethodOption(api, auth, null),
     );
 
@@ -517,7 +396,7 @@ export class ApiConstruct extends Construct {
     const apiKBExecution = apiResourceStepFunction.addResource("executions");
     apiKBExecution.addMethod(
       "POST",
-      new apigw.LambdaIntegration(sfnLambda),
+      new apigw.LambdaIntegration(sfnLambda.function),
       {
         ...this.genMethodOption(api, auth, null),
         requestModels: this.genRequestModel(api, {
@@ -533,7 +412,7 @@ export class ApiConstruct extends Construct {
     );
     apiKBExecution.addMethod(
       "GET",
-      new apigw.LambdaIntegration(listExecutionLambda),
+      new apigw.LambdaIntegration(listExecutionLambda.function),
       {...this.genMethodOption(api, auth, {
         Items: {type: JsonSchemaType.ARRAY, items: {
           type: JsonSchemaType.OBJECT,
@@ -592,7 +471,7 @@ export class ApiConstruct extends Construct {
     );
     apiKBExecution.addMethod(
       "DELETE",
-      new apigw.LambdaIntegration(delExecutionLambda),
+      new apigw.LambdaIntegration(delExecutionLambda.function),
       {
         ...this.genMethodOption(api, auth, {
           data: { type: JsonSchemaType.ARRAY, items: { type: JsonSchemaType.STRING } },
@@ -607,7 +486,7 @@ export class ApiConstruct extends Construct {
     const apiGetExecutionById = apiKBExecution.addResource("{executionId}");
     apiGetExecutionById.addMethod(
       "GET",
-      new apigw.LambdaIntegration(getExecutionLambda),
+      new apigw.LambdaIntegration(getExecutionLambda.function),
       {
         ...this.genMethodOption(api, auth, {
           Items: {
@@ -638,7 +517,7 @@ export class ApiConstruct extends Construct {
     const apiUploadDoc = apiResourceStepFunction.addResource("kb-presigned-url");
     apiUploadDoc.addMethod(
       "POST",
-      new apigw.LambdaIntegration(uploadDocLambda),
+      new apigw.LambdaIntegration(uploadDocLambda.function),
       {...
         this.genMethodOption(api, auth, {
           data: { type: JsonSchemaType.STRING },
@@ -655,7 +534,7 @@ export class ApiConstruct extends Construct {
     );
 
     // Define the API Gateway Lambda Integration to manage prompt
-    const lambdaPromptIntegration = new apigw.LambdaIntegration(promptManagementLambda, {
+    const lambdaPromptIntegration = new apigw.LambdaIntegration(promptManagementLambda.function, {
       proxy: true,
     });
 
