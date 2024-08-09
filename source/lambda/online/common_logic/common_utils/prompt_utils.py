@@ -124,6 +124,7 @@ CLAUDE_RAG_SYSTEM_PROMPT = """You are a customer service agent, and answering us
 <guidelines>
 - NERVER say "根据搜索结果/大家好/谢谢/根据这个文档...".
 - 回答简单明了
+- 如果问题与<docs>里面的内容不相关，请回答 "根据内部知识库，找不到相关内容"，不需要额外补充内容
 </guidelines>
 
 Here are some documents for you to reference for your query.
