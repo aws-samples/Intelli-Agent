@@ -50,8 +50,8 @@ export class KnowledgeBaseStack extends NestedStack {
   private iamHelper: IAMHelper;
   private uiPortalBucketName: string;
   private glueResultBucket: s3.Bucket;
-  private dynamodbStatement?: iam.PolicyStatement;
-  private glueLibS3Bucket?: s3.Bucket;
+  private dynamodbStatement: iam.PolicyStatement;
+  private glueLibS3Bucket: s3.Bucket;
 
 
   constructor(scope: Construct, id: string, props: KnowledgeBaseStackProps) {
@@ -61,24 +61,21 @@ export class KnowledgeBaseStack extends NestedStack {
     this.uiPortalBucketName = props.uiPortalBucketName || "";
     this.glueResultBucket = props.sharedConstruct.resultBucket;
 
-    if (props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.enabled) {
+    const aosConstruct = new AOSConstruct(this, "aos-construct", {
+      osVpc: props.sharedConstruct.vpcConstruct.vpc,
+      securityGroup: props.sharedConstruct.vpcConstruct.securityGroup,
+    });
+    this.aosDomainEndpoint = aosConstruct.domainEndpoint;
+    this.glueLibS3Bucket = new s3.Bucket(this, "llm-bot-glue-lib-bucket", {
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+    });
+    const createKnowledgeBaseTablesAndPoliciesResult = this.createKnowledgeBaseTablesAndPolicies(props);
+    this.executionTableName = createKnowledgeBaseTablesAndPoliciesResult.executionTable.tableName;
+    this.etlObjTableName = createKnowledgeBaseTablesAndPoliciesResult.etlObjTable.tableName;
+    this.dynamodbStatement = createKnowledgeBaseTablesAndPoliciesResult.dynamodbStatement;
 
-      const aosConstruct = new AOSConstruct(this, "aos-construct", {
-        osVpc: props.sharedConstruct.vpcConstruct.vpc,
-        securityGroup: props.sharedConstruct.vpcConstruct.securityGroup,
-      });
-      this.aosDomainEndpoint = aosConstruct.domainEndpoint;
-      this.glueLibS3Bucket = new s3.Bucket(this, "llm-bot-glue-lib-bucket", {
-        blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
-      });
-      const createKnowledgeBaseTablesAndPoliciesResult = this.createKnowledgeBaseTablesAndPolicies(props);
-      this.executionTableName = createKnowledgeBaseTablesAndPoliciesResult.executionTable.tableName;
-      this.etlObjTableName = createKnowledgeBaseTablesAndPoliciesResult.etlObjTable.tableName;
-      this.dynamodbStatement = createKnowledgeBaseTablesAndPoliciesResult.dynamodbStatement;
-
-      this.sfnOutput = this.createKnowledgeBaseJob(props);
-    }
-
+    this.sfnOutput = this.createKnowledgeBaseJob(props);
+    
   }
 
   private createKnowledgeBaseTablesAndPolicies(props: any) {
@@ -143,9 +140,7 @@ export class KnowledgeBaseStack extends NestedStack {
       },
     });
     notificationLambda.addToRolePolicy(this.iamHelper.logStatement);
-    if (this.dynamodbStatement) {
-      notificationLambda.addToRolePolicy(this.dynamodbStatement);
-    }
+    notificationLambda.addToRolePolicy(this.dynamodbStatement);
 
     // If this.region is cn-north-1 or cn-northwest-1, use the glue-job-script-cn.py
     const glueJobScript =
@@ -153,27 +148,26 @@ export class KnowledgeBaseStack extends NestedStack {
         ? "glue-job-script-cn.py"
         : "glue-job-script.py";
     
-    let extraPythonFilesList = "";
-    if (this.glueLibS3Bucket) {
-      const extraPythonFiles = new s3deploy.BucketDeployment(
-        this,
-        "extraPythonFiles",
-        {
-          sources: [
-            s3deploy.Source.asset(
-              join(__dirname, "../../../lambda/job/dep/dist"),
-            ),
-          ],
-          destinationBucket: this.glueLibS3Bucket
-        },
-      );
+
+    const extraPythonFiles = new s3deploy.BucketDeployment(
+      this,
+      "extraPythonFiles",
+      {
+        sources: [
+          s3deploy.Source.asset(
+            join(__dirname, "../../../lambda/job/dep/dist"),
+          ),
+        ],
+        destinationBucket: this.glueLibS3Bucket
+      },
+    );
+
+    // Assemble the extra python files list using _S3Bucket.s3UrlForObject("llm_bot_dep-0.1.0-py3-none-any.whl") and _S3Bucket.s3UrlForObject("nougat_ocr-0.1.17-py3-none-any.whl") and convert to string
+    const extraPythonFilesList = [
+      this.glueLibS3Bucket.s3UrlForObject("llm_bot_dep-0.1.0-py3-none-any.whl"),
+    ].join(",");
   
-      // Assemble the extra python files list using _S3Bucket.s3UrlForObject("llm_bot_dep-0.1.0-py3-none-any.whl") and _S3Bucket.s3UrlForObject("nougat_ocr-0.1.17-py3-none-any.whl") and convert to string
-      extraPythonFilesList = [
-        this.glueLibS3Bucket.s3UrlForObject("llm_bot_dep-0.1.0-py3-none-any.whl"),
-      ].join(",");
-  
-    }
+
   
     const glueRole = new iam.Role(this, "ETLGlueJobRole", {
       assumedBy: new iam.ServicePrincipal("glue.amazonaws.com"),
@@ -204,9 +198,7 @@ export class KnowledgeBaseStack extends NestedStack {
     glueRole.addToPolicy(this.iamHelper.s3Statement);
     glueRole.addToPolicy(this.iamHelper.logStatement);
     glueRole.addToPolicy(this.iamHelper.glueStatement);
-    if (this.dynamodbStatement) {
-      glueRole.addToPolicy(this.dynamodbStatement);
-    }
+    glueRole.addToPolicy(this.dynamodbStatement);
 
     // Create glue job to process files specified in s3 bucket and prefix
     const glueJob = new glue.Job(this, "PythonShellJob", {
@@ -257,7 +249,7 @@ export class KnowledgeBaseStack extends NestedStack {
       architecture: Architecture.X86_64,
       environment: {
         DEFAULT_EMBEDDING_ENDPOINT:
-          props.modelConstruct.embeddingAndRerankerEndpoint.endpointName || "-",
+          props.modelConstruct.defaultEmbeddingModelName || "-",
         AOS_DOMAIN_ENDPOINT: this.aosDomainEndpoint
       },
     });

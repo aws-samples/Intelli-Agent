@@ -72,8 +72,6 @@ export class ModelConstruct extends Construct {
   private modelImageUrlDomain: string;
   private modelPublicEcrAccount: string;
   private modelVariantName: string;
-  private embeddingAndRerankerEndpoint?: sagemaker.CfnEndpoint;
-  private knowledgeBaseEndpoint?: sagemaker.CfnEndpoint;
 
   constructor(scope: Construct, id: string, props: ModelStackProps) {
     super(scope, id);
@@ -114,14 +112,12 @@ export class ModelConstruct extends Construct {
     if (props.config.model.embeddingsModels.some(model => model.name === 'bce-embedding-and-bge-reranker')) {
       // Create the resource
       let embeddingAndRerankerModelResources = this.deployEmbeddingAndRerankerEndpoint(props);
-      this.embeddingAndRerankerEndpoint = embeddingAndRerankerModelResources.endpoint;
       this.defaultEmbeddingModelName = embeddingAndRerankerModelResources.endpoint.endpointName ?? "";
     }
 
     if (props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.enabled) {
       let knowledgeBaseModelResources = this.deployKnowledgeBaseEndpoint(props);
-      this.knowledgeBaseEndpoint = knowledgeBaseModelResources.endpoint;
-      this.createKnowledgeBaseEndpointScaling(this.knowledgeBaseEndpoint);
+      this.createKnowledgeBaseEndpointScaling(knowledgeBaseModelResources.endpoint);
       this.defaultKnowledgeBaseModelName = knowledgeBaseModelResources.endpoint.endpointName ?? "";
     }
 
