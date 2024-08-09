@@ -26,9 +26,9 @@ import { JsonSchemaType, JsonSchemaVersion, Model } from "aws-cdk-lib/aws-apigat
 import { SystemConfig } from "../shared/types";
 import { SharedConstructOutputs } from "../shared/shared-construct";
 import { ModelConstructOutputs } from "../model/model-construct";
-import { KnowledgeBaseStack } from "../knowledge-base/knowledge-base-stack";
-import { ChatStack } from "../chat/chat-stack";
-import { UserConstruct } from "../user/user-construct";
+import { KnowledgeBaseStackOutputs } from "../knowledge-base/knowledge-base-stack";
+import { ChatStackOutputs } from "../chat/chat-stack";
+import { UserConstructOutputs } from "../user/user-construct";
 import { LambdaFunction } from "../shared/lambda-helper";
 
 
@@ -36,9 +36,9 @@ interface ApiStackProps extends StackProps {
   config: SystemConfig;
   sharedConstructOutputs: SharedConstructOutputs;
   modelConstructOutputs: ModelConstructOutputs;
-  knowledgeBaseStack: KnowledgeBaseStack;
-  chatStack: ChatStack;
-  userConstruct: UserConstruct;
+  knowledgeBaseStackOutputs: KnowledgeBaseStackOutputs;
+  chatStackOutputs: ChatStackOutputs;
+  userConstructOutputs: UserConstructOutputs;
 }
 
 export class ApiConstruct extends Construct {
@@ -54,17 +54,16 @@ export class ApiConstruct extends Construct {
     this.iamHelper = props.sharedConstructOutputs.iamHelper;
     const vpc = props.sharedConstructOutputs.vpc;
     const securityGroup = props.sharedConstructOutputs.securityGroup;
-    const domainEndpoint = props.knowledgeBaseStack.aosDomainEndpoint;
-    const sessionsTableName = props.chatStack.chatTablesConstruct.sessionsTableName;
-    const messagesTableName = props.chatStack.chatTablesConstruct.messagesTableName;
+    const domainEndpoint = props.knowledgeBaseStackOutputs.aosDomainEndpoint;
+    const sessionsTableName = props.chatStackOutputs.sessionsTableName;
+    const messagesTableName = props.chatStackOutputs.messagesTableName;
     const resBucketName = props.sharedConstructOutputs.resultBucket.bucketName;
-    const executionTableName = props.knowledgeBaseStack.executionTableName;
-    const etlObjTableName = props.knowledgeBaseStack.etlObjTableName;
-    const etlObjIndexName = props.knowledgeBaseStack.etlObjIndexName;
+    const executionTableName = props.knowledgeBaseStackOutputs.executionTableName;
+    const etlObjTableName = props.knowledgeBaseStackOutputs.etlObjTableName;
+    const etlObjIndexName = props.knowledgeBaseStackOutputs.etlObjIndexName;
 
-    const chatQueueConstruct = props.chatStack.chatQueueConstruct;
-    const sqsStatement = chatQueueConstruct.sqsStatement;
-    const messageQueue = chatQueueConstruct.messageQueue;
+    const sqsStatement = props.chatStackOutputs.sqsStatement;
+    const messageQueue = props.chatStackOutputs.messageQueue;
 
     const lambdaLayers = new LambdaLayers(this);
     // const apiLambdaExecutorLayer = lambdaLayers.createExecutorLayer();
@@ -195,9 +194,9 @@ export class ApiConstruct extends Construct {
       code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
       handler: "create_chatbot.lambda_handler",
       environment: {
-        INDEX_TABLE_NAME: props.chatStack.chatTablesConstruct.indexTableName,
+        INDEX_TABLE_NAME: props.chatStackOutputs.indexTableName,
         CHATBOT_TABLE_NAME: props.sharedConstructOutputs.chatbotTable.tableName,
-        MODEL_TABLE_NAME: props.chatStack.chatTablesConstruct.modelTableName,
+        MODEL_TABLE_NAME: props.chatStackOutputs.modelTableName,
         EMBEDDING_ENDPOINT: props.modelConstructOutputs.defaultEmbeddingModelName,
       },
       statements: [this.iamHelper.dynamodbStatement],
@@ -207,7 +206,7 @@ export class ApiConstruct extends Construct {
       code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
       handler: "list_chatbot.lambda_handler",
       environment: {
-        USER_POOL_ID: props.userConstruct.userPool.userPoolId,
+        USER_POOL_ID: props.userConstructOutputs.userPool.userPoolId,
       },
       statements: [this.iamHelper.cognitoStatement],
     });
@@ -217,7 +216,7 @@ export class ApiConstruct extends Construct {
       code: Code.fromAsset(join(__dirname, "../../../lambda/prompt_management")),
       handler: "prompt_management.lambda_handler",
       environment: {
-        PROMPT_TABLE_NAME: props.chatStack.chatTablesConstruct.promptTableName,
+        PROMPT_TABLE_NAME: props.chatStackOutputs.promptTableName,
       },
       layers: [apiLambdaOnlineSourceLayer],
       statements: [this.iamHelper.dynamodbStatement,
@@ -240,9 +239,9 @@ export class ApiConstruct extends Construct {
       securityGroups: [securityGroup],
       architecture: Architecture.X86_64,
       environment: {
-        USER_POOL_ID: props.userConstruct.userPool.userPoolId,
+        USER_POOL_ID: props.userConstructOutputs.userPool.userPoolId,
         REGION: Aws.REGION,
-        APP_CLIENT_ID: props.userConstruct.oidcClientId,
+        APP_CLIENT_ID: props.userConstructOutputs.oidcClientId,
       },
       layers: [apiLambdaAuthorizerLayer],
     });
@@ -373,24 +372,24 @@ export class ApiConstruct extends Construct {
 
     const apiResourceStepFunction = api.root.addResource("knowledge-base");
     const apiKBExecution = apiResourceStepFunction.addResource("executions");
-    if ( props.knowledgeBaseStack.sfnOutput !== undefined) {
+    if ( props.knowledgeBaseStackOutputs.sfnOutput !== undefined) {
       // Integration with Step Function to trigger ETL process
       // Lambda function to trigger Step Function
       const sfnLambda = new LambdaFunction(this, "StepFunctionLambda", {
         code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
         handler: "sfn_handler.handler",
         environment: {
-          sfn_arn: props.knowledgeBaseStack.sfnOutput.stateMachineArn,
-          EXECUTION_TABLE_NAME: props.knowledgeBaseStack.executionTableName,
-          INDEX_TABLE_NAME: props.chatStack.chatTablesConstruct.indexTableName,
+          sfn_arn: props.knowledgeBaseStackOutputs.sfnOutput.stateMachineArn,
+          EXECUTION_TABLE_NAME: props.knowledgeBaseStackOutputs.executionTableName,
+          INDEX_TABLE_NAME: props.chatStackOutputs.indexTableName,
           CHATBOT_TABLE_NAME: props.sharedConstructOutputs.chatbotTable.tableName,
-          MODEL_TABLE_NAME: props.chatStack.chatTablesConstruct.modelTableName,
+          MODEL_TABLE_NAME: props.chatStackOutputs.modelTableName,
           EMBEDDING_ENDPOINT: props.modelConstructOutputs.defaultEmbeddingModelName,
         },
         statements: [this.iamHelper.dynamodbStatement],
       });
       // Grant lambda function to invoke step function
-      props.knowledgeBaseStack.sfnOutput.grantStartExecution(sfnLambda.function);
+      props.knowledgeBaseStackOutputs.sfnOutput.grantStartExecution(sfnLambda.function);
       s3Bucket.grantReadWrite(sfnLambda.function);
 
       apiKBExecution.addMethod(
@@ -557,7 +556,7 @@ export class ApiConstruct extends Construct {
 
     // Define the API Gateway Lambda Integration with proxy and no integration responses
     const lambdaExecutorIntegration = new apigw.LambdaIntegration(
-      props.chatStack.lambdaOnlineMain,
+      props.chatStackOutputs.lambdaOnlineMain,
       { proxy: true },
     );
 
@@ -585,7 +584,7 @@ export class ApiConstruct extends Construct {
 
     const webSocketApi = new WebSocketConstruct(this, "WebSocketApi", {
       dispatcherLambda: lambdaDispatcher,
-      sendMessageLambda: props.chatStack.lambdaOnlineMain,
+      sendMessageLambda: props.chatStackOutputs.lambdaOnlineMain,
       customAuthorizerLambda: customAuthorizerLambda,
     });
     let wsStage = webSocketApi.websocketApiStage

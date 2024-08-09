@@ -73,9 +73,9 @@ export class RootStack extends Stack {
       config: props.config,
       sharedConstructOutputs: sharedConstruct,
       modelConstructOutputs: modelConstruct,
-      knowledgeBaseStack: knowledgeBaseStack,
-      chatStack: chatStack,
-      userConstruct: userConstruct,
+      knowledgeBaseStackOutputs: knowledgeBaseStack,
+      chatStackOutputs: chatStack,
+      userConstructOutputs: userConstruct,
     });
     apiConstruct.node.addDependency(sharedConstruct);
     apiConstruct.node.addDependency(modelConstruct);

@@ -39,12 +39,20 @@ interface KnowledgeBaseStackProps extends StackProps {
   readonly uiPortalBucketName?: string;
 }
 
-export class KnowledgeBaseStack extends NestedStack {
+export interface KnowledgeBaseStackOutputs {
+  readonly sfnOutput: sfn.StateMachine;
+  readonly executionTableName: string;
+  readonly etlObjTableName: string;
+  readonly aosDomainEndpoint: string;
+  readonly etlObjIndexName: string;
+}
+
+export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStackOutputs {
   public etlObjIndexName: string = "ExecutionIdIndex";
   public executionTableName: string = "";
   public etlObjTableName: string = "";
   public aosDomainEndpoint: string = "";
-  public sfnOutput?: sfn.StateMachine = undefined;
+  public sfnOutput: sfn.StateMachine;
 
   private iamHelper: IAMHelper;
   private uiPortalBucketName: string;

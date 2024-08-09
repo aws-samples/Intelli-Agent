@@ -23,6 +23,7 @@ import { QueueConstruct } from "./chat-queue";
 import { Function, Runtime, Code, Architecture } from 'aws-cdk-lib/aws-lambda';
 import { IAMHelper } from "../shared/iam-helper";
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
+import { Queue } from 'aws-cdk-lib/aws-sqs';
 import { SystemConfig } from "../shared/types";
 import { SharedConstructOutputs } from "../shared/shared-construct";
 import { ModelConstructOutputs } from "../model/model-construct";
@@ -36,12 +37,33 @@ interface ChatStackProps extends StackProps {
   readonly domainEndpoint: string;
 }
 
-export class ChatStack extends NestedStack {
+export interface ChatStackOutputs {
+  sessionsTableName: string;
+  messagesTableName: string;
+  promptTableName: string;
+  indexTableName: string;
+  modelTableName: string;
+  intentionTableName: string;
+  sqsStatement: iam.PolicyStatement;
+  messageQueue: Queue;
+  dlq: Queue;
+  lambdaOnlineMain: Function;
+}
+
+export class ChatStack extends NestedStack implements ChatStackOutputs {
+
+  public sessionsTableName: string;
+  public messagesTableName: string;
+  public promptTableName: string;
+  public indexTableName: string;
+  public modelTableName: string;
+  public intentionTableName: string;
+  public sqsStatement: iam.PolicyStatement;
+  public messageQueue: Queue;
+  public dlq: Queue;
+  public lambdaOnlineMain: Function;
 
   private iamHelper: IAMHelper;
-  public chatTablesConstruct: ChatTablesConstruct;
-  public chatQueueConstruct: QueueConstruct;
-  public lambdaOnlineMain: Function;
 
   constructor(scope: Construct, id: string, props: ChatStackProps) {
     super(scope, id);
@@ -53,14 +75,19 @@ export class ChatStack extends NestedStack {
 
     const chatTablesConstruct = new ChatTablesConstruct(this, "chat-tables");
 
-    this.chatTablesConstruct = chatTablesConstruct;
+    this.sessionsTableName = chatTablesConstruct.sessionsTableName;
+    this.messagesTableName = chatTablesConstruct.messagesTableName;
+    this.promptTableName = chatTablesConstruct.promptTableName;
+    this.indexTableName = chatTablesConstruct.indexTableName;
+    this.modelTableName = chatTablesConstruct.modelTableName;
+    this.intentionTableName = chatTablesConstruct.intentionTableName;
 
     const chatQueueConstruct = new QueueConstruct(this, "LLMQueueStack", {
       namePrefix: Constants.API_QUEUE_NAME,
     });
-    this.chatQueueConstruct = chatQueueConstruct;
-    const sqsStatement = chatQueueConstruct.sqsStatement;
-    const messageQueue = chatQueueConstruct.messageQueue;
+    this.sqsStatement = chatQueueConstruct.sqsStatement;
+    this.messageQueue = chatQueueConstruct.messageQueue;
+    this.dlq = chatQueueConstruct.dlq;
 
     const lambdaLayers = new LambdaLayers(this);
     const apiLambdaOnlineSourceLayer = lambdaLayers.createOnlineSourceLayer();
@@ -117,9 +144,9 @@ export class ChatStack extends NestedStack {
         resources: ["*"],
       }),
     );
-    lambdaOnlineMain.addToRolePolicy(sqsStatement);
+    lambdaOnlineMain.addToRolePolicy(this.sqsStatement);
     lambdaOnlineMain.addEventSource(
-      new lambdaEventSources.SqsEventSource(messageQueue, { batchSize: 1 }),
+      new lambdaEventSources.SqsEventSource(this.messageQueue, { batchSize: 1 }),
     );
     lambdaOnlineMain.addToRolePolicy(this.iamHelper.s3Statement);
     lambdaOnlineMain.addToRolePolicy(this.iamHelper.endpointStatement);
