@@ -24,8 +24,8 @@ import { Function, Runtime, Code, Architecture } from 'aws-cdk-lib/aws-lambda';
 import { IAMHelper } from "../shared/iam-helper";
 import { JsonSchemaType, JsonSchemaVersion, Model } from "aws-cdk-lib/aws-apigateway";
 import { SystemConfig } from "../shared/types";
-import { SharedConstruct } from "../shared/shared-construct";
-import { ModelConstruct } from "../model/model-construct";
+import { SharedConstructOutputs } from "../shared/shared-construct";
+import { ModelConstructOutputs } from "../model/model-construct";
 import { KnowledgeBaseStack } from "../knowledge-base/knowledge-base-stack";
 import { ChatStack } from "../chat/chat-stack";
 import { UserConstruct } from "../user/user-construct";
@@ -34,8 +34,8 @@ import { LambdaFunction } from "../shared/lambda-helper";
 
 interface ApiStackProps extends StackProps {
   config: SystemConfig;
-  sharedConstruct: SharedConstruct;
-  modelConstruct: ModelConstruct;
+  sharedConstructOutputs: SharedConstructOutputs;
+  modelConstructOutputs: ModelConstructOutputs;
   knowledgeBaseStack: KnowledgeBaseStack;
   chatStack: ChatStack;
   userConstruct: UserConstruct;
@@ -51,13 +51,13 @@ export class ApiConstruct extends Construct {
   constructor(scope: Construct, id: string, props: ApiStackProps) {
     super(scope, id);
 
-    this.iamHelper = props.sharedConstruct.iamHelper;
-    const vpc = props.sharedConstruct.vpcConstruct.vpc;
-    const securityGroup = props.sharedConstruct.vpcConstruct.securityGroup;
+    this.iamHelper = props.sharedConstructOutputs.iamHelper;
+    const vpc = props.sharedConstructOutputs.vpc;
+    const securityGroup = props.sharedConstructOutputs.securityGroup;
     const domainEndpoint = props.knowledgeBaseStack.aosDomainEndpoint;
     const sessionsTableName = props.chatStack.chatTablesConstruct.sessionsTableName;
     const messagesTableName = props.chatStack.chatTablesConstruct.messagesTableName;
-    const resBucketName = props.sharedConstruct.resultBucket.bucketName;
+    const resBucketName = props.sharedConstructOutputs.resultBucket.bucketName;
     const executionTableName = props.knowledgeBaseStack.executionTableName;
     const etlObjTableName = props.knowledgeBaseStack.etlObjTableName;
     const etlObjIndexName = props.knowledgeBaseStack.etlObjIndexName;
@@ -94,7 +94,7 @@ export class ApiConstruct extends Construct {
       vpc: vpc,
       securityGroups: [securityGroup],
       environment: {
-        ETL_MODEL_ENDPOINT: props.modelConstruct.defaultKnowledgeBaseModelName,
+        ETL_MODEL_ENDPOINT: props.modelConstructOutputs.defaultKnowledgeBaseModelName,
         REGION: Aws.REGION,
         RES_BUCKET: resBucketName,
       },
@@ -112,7 +112,7 @@ export class ApiConstruct extends Construct {
       securityGroups: [securityGroup],
       environment: {
         opensearch_cluster_domain: domainEndpoint,
-        embedding_endpoint: props.modelConstruct.defaultEmbeddingModelName,
+        embedding_endpoint: props.modelConstructOutputs.defaultEmbeddingModelName,
       },
       layers: [apiLambdaEmbeddingLayer],
       statements: [
@@ -196,9 +196,9 @@ export class ApiConstruct extends Construct {
       handler: "create_chatbot.lambda_handler",
       environment: {
         INDEX_TABLE_NAME: props.chatStack.chatTablesConstruct.indexTableName,
-        CHATBOT_TABLE_NAME: props.sharedConstruct.chatbotTable.tableName,
+        CHATBOT_TABLE_NAME: props.sharedConstructOutputs.chatbotTable.tableName,
         MODEL_TABLE_NAME: props.chatStack.chatTablesConstruct.modelTableName,
-        EMBEDDING_ENDPOINT: props.modelConstruct.defaultEmbeddingModelName,
+        EMBEDDING_ENDPOINT: props.modelConstructOutputs.defaultEmbeddingModelName,
       },
       statements: [this.iamHelper.dynamodbStatement],
     });
@@ -383,9 +383,9 @@ export class ApiConstruct extends Construct {
           sfn_arn: props.knowledgeBaseStack.sfnOutput.stateMachineArn,
           EXECUTION_TABLE_NAME: props.knowledgeBaseStack.executionTableName,
           INDEX_TABLE_NAME: props.chatStack.chatTablesConstruct.indexTableName,
-          CHATBOT_TABLE_NAME: props.sharedConstruct.chatbotTable.tableName,
+          CHATBOT_TABLE_NAME: props.sharedConstructOutputs.chatbotTable.tableName,
           MODEL_TABLE_NAME: props.chatStack.chatTablesConstruct.modelTableName,
-          EMBEDDING_ENDPOINT: props.modelConstruct.defaultEmbeddingModelName,
+          EMBEDDING_ENDPOINT: props.modelConstructOutputs.defaultEmbeddingModelName,
         },
         statements: [this.iamHelper.dynamodbStatement],
       });

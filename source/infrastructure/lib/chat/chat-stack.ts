@@ -20,19 +20,19 @@ import { join } from "path";
 import { Constants } from "../shared/constants";
 import { LambdaLayers } from "../shared/lambda-layers";
 import { QueueConstruct } from "./chat-queue";
-import { Function, Runtime, Code, Architecture, DockerImageFunction, DockerImageCode } from 'aws-cdk-lib/aws-lambda';
+import { Function, Runtime, Code, Architecture } from 'aws-cdk-lib/aws-lambda';
 import { IAMHelper } from "../shared/iam-helper";
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import { SystemConfig } from "../shared/types";
-import { SharedConstruct } from "../shared/shared-construct";
-import { ModelConstruct } from "../model/model-construct";
+import { SharedConstructOutputs } from "../shared/shared-construct";
+import { ModelConstructOutputs } from "../model/model-construct";
 import { ChatTablesConstruct } from "./chat-tables";
 
 
 interface ChatStackProps extends StackProps {
   readonly config: SystemConfig;
-  readonly sharedConstruct: SharedConstruct;
-  readonly modelConstruct: ModelConstruct;
+  readonly sharedConstructOutputs: SharedConstructOutputs;
+  readonly modelConstructOutputs: ModelConstructOutputs;
   readonly domainEndpoint: string;
 }
 
@@ -46,9 +46,9 @@ export class ChatStack extends NestedStack {
   constructor(scope: Construct, id: string, props: ChatStackProps) {
     super(scope, id);
 
-    this.iamHelper = props.sharedConstruct.iamHelper;
-    const vpc = props.sharedConstruct.vpcConstruct.vpc;
-    const securityGroup = props.sharedConstruct.vpcConstruct.securityGroup;
+    this.iamHelper = props.sharedConstructOutputs.iamHelper;
+    const vpc = props.sharedConstructOutputs.vpc;
+    const securityGroup = props.sharedConstructOutputs.securityGroup;
     const domainEndpoint = props.domainEndpoint;
 
     const chatTablesConstruct = new ChatTablesConstruct(this, "chat-tables");
@@ -90,9 +90,9 @@ export class ChatStack extends NestedStack {
       layers: [apiLambdaOnlineSourceLayer, apiLambdaJobSourceLayer],
       environment: {
         AOS_ENDPOINT: domainEndpoint,
-        RERANK_ENDPOINT: props.modelConstruct.defaultEmbeddingModelName,
-        EMBEDDING_ENDPOINT: props.modelConstruct.defaultEmbeddingModelName,
-        CHATBOT_TABLE_NAME: props.sharedConstruct.chatbotTable.tableName,
+        RERANK_ENDPOINT: props.modelConstructOutputs.defaultEmbeddingModelName,
+        EMBEDDING_ENDPOINT: props.modelConstructOutputs.defaultEmbeddingModelName,
+        CHATBOT_TABLE_NAME: props.sharedConstructOutputs.chatbotTable.tableName,
         SESSIONS_TABLE_NAME: chatTablesConstruct.sessionsTableName,
         MESSAGES_TABLE_NAME: chatTablesConstruct.messagesTableName,
         PROMPT_TABLE_NAME: chatTablesConstruct.promptTableName,
@@ -274,7 +274,7 @@ export class ChatStack extends NestedStack {
       securityGroups: [securityGroup],
       architecture: Architecture.X86_64,
       environment: {
-        CHATBOT_TABLE: props.sharedConstruct.chatbotTable.tableName,
+        CHATBOT_TABLE: props.sharedConstructOutputs.chatbotTable.tableName,
         INDEX_TABLE: chatTablesConstruct.indexTableName,
         MODEL_TABLE: chatTablesConstruct.modelTableName,
       },

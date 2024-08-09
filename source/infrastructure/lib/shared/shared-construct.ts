@@ -20,6 +20,7 @@ import * as s3 from "aws-cdk-lib/aws-s3";
 import { SystemConfig } from "../shared/types";
 import { IAMHelper } from "../shared/iam-helper";
 import { VpcConstruct } from "./vpc-construct";
+import { Vpc, SecurityGroup } from 'aws-cdk-lib/aws-ec2';
 
 dotenv.config();
 
@@ -27,9 +28,18 @@ export interface SharedConstructProps {
   readonly config: SystemConfig;
 }
 
-export class SharedConstruct extends Construct {
+export interface SharedConstructOutputs {
+  iamHelper: IAMHelper;
+  vpc: Vpc;
+  securityGroup: SecurityGroup;
+  chatbotTable: dynamodb.Table;
+  resultBucket: s3.Bucket;
+}
+
+export class SharedConstruct extends Construct implements SharedConstructOutputs {
   public iamHelper: IAMHelper;
-  public vpcConstruct: VpcConstruct;
+  public vpc: Vpc;
+  public securityGroup: SecurityGroup;
   public chatbotTable: dynamodb.Table;
   public resultBucket: s3.Bucket;
 
@@ -60,7 +70,8 @@ export class SharedConstruct extends Construct {
     });
 
     this.iamHelper = iamHelper;
-    this.vpcConstruct = vpcConstruct;
+    this.vpc = vpcConstruct.vpc;
+    this.securityGroup = vpcConstruct.securityGroup;
     this.chatbotTable = chatbotTable;
     this.resultBucket = resultBucket;
   }

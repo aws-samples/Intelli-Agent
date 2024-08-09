@@ -24,14 +24,19 @@ import { Architecture, Code, Function, Runtime } from "aws-cdk-lib/aws-lambda";
 import { join } from "path";
 
 import { SystemConfig } from "../shared/types";
-import { SharedConstruct } from "../shared/shared-construct";
+import { SharedConstructOutputs } from "../shared/shared-construct";
 import { IAMHelper } from "../shared/iam-helper";
 
 dotenv.config();
 
-export interface ModelStackProps {
+export interface ModelConstructProps {
   readonly config: SystemConfig;
-  readonly sharedConstruct: SharedConstruct;
+  readonly sharedConstructOutputs: SharedConstructOutputs;
+}
+
+export interface ModelConstructOutputs {
+  defaultEmbeddingModelName: string;
+  defaultKnowledgeBaseModelName: string;
 }
 
 interface BuildSagemakerEndpointProps {
@@ -61,7 +66,7 @@ interface DeploySagemakerEndpointResponse {
   readonly model?: sagemaker.CfnModel
 }
 
-export class ModelConstruct extends Construct {
+export class ModelConstruct extends Construct implements ModelConstructOutputs {
   public defaultEmbeddingModelName: string = "";
   public defaultKnowledgeBaseModelName: string = "";
 
@@ -73,10 +78,10 @@ export class ModelConstruct extends Construct {
   private modelPublicEcrAccount: string;
   private modelVariantName: string;
 
-  constructor(scope: Construct, id: string, props: ModelStackProps) {
+  constructor(scope: Construct, id: string, props: ModelConstructProps) {
     super(scope, id);
 
-    this.iamHelper = props.sharedConstruct.iamHelper;
+    this.iamHelper = props.sharedConstructOutputs.iamHelper;
     this.modelVariantName = "variantProd";
 
     this.modelImageUrlDomain =
@@ -123,7 +128,7 @@ export class ModelConstruct extends Construct {
 
   }
 
-  private deployEmbeddingAndRerankerEndpoint(props: ModelStackProps) {
+  private deployEmbeddingAndRerankerEndpoint(props: ModelConstructProps) {
     // Deploy Embedding and Reranker model
     let embeddingAndRerankerModelPrefix = props.config.model.embeddingsModels.find(
       (model) => model.default === true,
@@ -177,7 +182,7 @@ export class ModelConstruct extends Construct {
     return embeddingAndRerankerModelResources;
   }
 
-  private deployKnowledgeBaseEndpoint(props: ModelStackProps) {
+  private deployKnowledgeBaseEndpoint(props: ModelConstructProps) {
     // Deploy Knowledge Base model
     let knowledgeBaseModelName = "knowledge-base-model";
     let knowledgeBaseModelEcrRepository = props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.ecrRepository;
@@ -209,7 +214,7 @@ export class ModelConstruct extends Construct {
             maxConcurrentInvocationsPerInstance: 1,
           },
           outputConfig: {
-            s3OutputPath: `s3://${props.sharedConstruct.resultBucket.bucketName}/${knowledgeBaseModelName}/`,
+            s3OutputPath: `s3://${props.sharedConstructOutputs.resultBucket.bucketName}/${knowledgeBaseModelName}/`,
           },
         },
       },

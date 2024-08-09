@@ -17,7 +17,6 @@ import * as iam from "aws-cdk-lib/aws-iam";
 import { Architecture, Code, Function, Runtime } from "aws-cdk-lib/aws-lambda";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import * as s3deploy from "aws-cdk-lib/aws-s3-deployment";
-import * as sagemaker from "aws-cdk-lib/aws-sagemaker";
 import * as sns from "aws-cdk-lib/aws-sns";
 import * as subscriptions from "aws-cdk-lib/aws-sns-subscriptions";
 import * as sfn from "aws-cdk-lib/aws-stepfunctions";
@@ -29,14 +28,14 @@ import * as glue from "@aws-cdk/aws-glue-alpha";
 import { IAMHelper } from "../shared/iam-helper";
 
 import { SystemConfig } from "../shared/types";
-import { SharedConstruct } from "../shared/shared-construct";
-import { ModelConstruct } from "../model/model-construct";
+import { SharedConstructOutputs } from "../shared/shared-construct";
+import { ModelConstructOutputs } from "../model/model-construct";
 import { AOSConstruct } from "./os-stack";
 
 interface KnowledgeBaseStackProps extends StackProps {
   readonly config: SystemConfig;
-  readonly sharedConstruct: SharedConstruct;
-  readonly modelConstruct: ModelConstruct;
+  readonly sharedConstructOutputs: SharedConstructOutputs
+  readonly modelConstructOutputs: ModelConstructOutputs;
   readonly uiPortalBucketName?: string;
 }
 
@@ -57,13 +56,13 @@ export class KnowledgeBaseStack extends NestedStack {
   constructor(scope: Construct, id: string, props: KnowledgeBaseStackProps) {
     super(scope, id, props);
 
-    this.iamHelper = props.sharedConstruct.iamHelper;
+    this.iamHelper = props.sharedConstructOutputs.iamHelper;
     this.uiPortalBucketName = props.uiPortalBucketName || "";
-    this.glueResultBucket = props.sharedConstruct.resultBucket;
+    this.glueResultBucket = props.sharedConstructOutputs.resultBucket;
 
     const aosConstruct = new AOSConstruct(this, "aos-construct", {
-      osVpc: props.sharedConstruct.vpcConstruct.vpc,
-      securityGroup: props.sharedConstruct.vpcConstruct.securityGroup,
+      osVpc: props.sharedConstructOutputs.vpc,
+      securityGroup: props.sharedConstructOutputs.securityGroup,
     });
     this.aosDomainEndpoint = aosConstruct.domainEndpoint;
     this.glueLibS3Bucket = new s3.Bucket(this, "llm-bot-glue-lib-bucket", {
@@ -112,7 +111,7 @@ export class KnowledgeBaseStack extends NestedStack {
       [
         executionTable.tableArn,
         etlObjTable.tableArn,
-        props.sharedConstruct.chatbotTable.tableArn,
+        props.sharedConstructOutputs.chatbotTable.tableArn,
       ],
     );
 
@@ -123,8 +122,8 @@ export class KnowledgeBaseStack extends NestedStack {
   private createKnowledgeBaseJob(props: any) {
     const connection = new glue.Connection(this, "GlueJobConnection", {
       type: glue.ConnectionType.NETWORK,
-      subnet: props.sharedConstruct.vpcConstruct.privateSubnets[0],
-      securityGroups: [props.sharedConstruct.vpcConstruct.securityGroup],
+      subnet: props.sharedConstructOutputs.vpc.privateSubnets[0],
+      securityGroups: [props.sharedConstructOutputs.securityGroup],
     });
 
     const notificationLambda = new Function(this, "ETLNotification", {
@@ -220,11 +219,11 @@ export class KnowledgeBaseStack extends NestedStack {
       defaultArguments: {
         "--AOS_ENDPOINT": this.aosDomainEndpoint,
         "--REGION": process.env.CDK_DEFAULT_REGION || "",
-        "--ETL_MODEL_ENDPOINT": props.modelConstruct.defaultKnowledgeBaseModelName,
+        "--ETL_MODEL_ENDPOINT": props.modelConstructOutputs.defaultKnowledgeBaseModelName,
         "--RES_BUCKET": this.glueResultBucket.bucketName,
         "--ETL_OBJECT_TABLE": this.etlObjTableName || "",
         "--PORTAL_BUCKET": this.uiPortalBucketName,
-        "--CHATBOT_TABLE": props.sharedConstruct.chatbotTable.tableName,
+        "--CHATBOT_TABLE": props.sharedConstructOutputs.chatbotTable.tableName,
         "--additional-python-modules":
           "langchain==0.1.11,beautifulsoup4==4.12.2,requests-aws4auth==1.2.3,boto3==1.28.84,openai==0.28.1,pyOpenSSL==23.3.0,tenacity==8.2.3,markdownify==0.11.6,mammoth==1.6.0,chardet==5.2.0,python-docx==1.1.0,nltk==3.8.1,pdfminer.six==20221105,smart-open==7.0.4,lxml==5.2.2,pandas==2.1.2,openpyxl==3.1.5,xlrd==2.0.1",
         // Add multiple extra python files
@@ -249,7 +248,7 @@ export class KnowledgeBaseStack extends NestedStack {
       architecture: Architecture.X86_64,
       environment: {
         DEFAULT_EMBEDDING_ENDPOINT:
-          props.modelConstruct.defaultEmbeddingModelName || "-",
+          props.modelConstructOutputs.defaultEmbeddingModelName,
         AOS_DOMAIN_ENDPOINT: this.aosDomainEndpoint
       },
     });
@@ -296,7 +295,7 @@ export class KnowledgeBaseStack extends NestedStack {
         "--BATCH_INDICE.$": 'States.Format(\'{}\', $.batchIndices)',
         "--DOCUMENT_LANGUAGE.$": "$.documentLanguage",
         "--EMBEDDING_MODEL_ENDPOINT.$": "$.embeddingEndpoint",
-        "--ETL_MODEL_ENDPOINT": props.modelConstruct.defaultKnowledgeBaseModelName,
+        "--ETL_MODEL_ENDPOINT": props.modelConstructOutputs.defaultKnowledgeBaseModelName,
         "--INDEX_TYPE.$": "$.indexType",
         "--JOB_NAME": glueJob.jobName,
         "--OFFLINE": "true",

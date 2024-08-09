@@ -42,7 +42,7 @@ export class RootStack extends Stack {
 
     const modelConstruct = new ModelConstruct(this, "model-construct", {
       config: props.config,
-      sharedConstruct: sharedConstruct,
+      sharedConstructOutputs: sharedConstruct,
     });
     modelConstruct.node.addDependency(sharedConstruct);
 
@@ -50,8 +50,8 @@ export class RootStack extends Stack {
 
     const knowledgeBaseStack = new KnowledgeBaseStack(this, "knowledge-base-stack", {
       config: props.config,
-      sharedConstruct: sharedConstruct,
-      modelConstruct: modelConstruct,
+      sharedConstructOutputs: sharedConstruct,
+      modelConstructOutputs: modelConstruct,
       uiPortalBucketName: portalConstruct.portalBucket.bucketName,
     });
     knowledgeBaseStack.node.addDependency(sharedConstruct);
@@ -59,8 +59,8 @@ export class RootStack extends Stack {
 
     const chatStack = new ChatStack(this, "chat-stack", {
       config: props.config,
-      sharedConstruct: sharedConstruct,
-      modelConstruct: modelConstruct,
+      sharedConstructOutputs: sharedConstruct,
+      modelConstructOutputs: modelConstruct,
       domainEndpoint: knowledgeBaseStack.aosDomainEndpoint
     });
 
@@ -71,8 +71,8 @@ export class RootStack extends Stack {
 
     const apiConstruct = new ApiConstruct(this, "api-construct", {
       config: props.config,
-      sharedConstruct: sharedConstruct,
-      modelConstruct: modelConstruct,
+      sharedConstructOutputs: sharedConstruct,
+      modelConstructOutputs: modelConstruct,
       knowledgeBaseStack: knowledgeBaseStack,
       chatStack: chatStack,
       userConstruct: userConstruct,
