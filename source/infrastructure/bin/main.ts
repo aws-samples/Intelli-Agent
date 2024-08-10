@@ -21,11 +21,11 @@ import { SystemConfig } from "../lib/shared/types";
 import { SharedConstruct } from "../lib/shared/shared-construct";
 import { ApiConstruct } from "../lib/api/api-stack";
 import { ModelConstruct } from "../lib/model/model-construct";
-import { KnowledgeBaseStack } from "../lib/knowledge-base/knowledge-base-stack";
+import { KnowledgeBaseStack, KnowledgeBaseStackOutputs } from "../lib/knowledge-base/knowledge-base-stack";
 import { PortalConstruct } from "../lib/ui/ui-portal";
 import { UiExportsConstruct } from "../lib/ui/ui-exports";
 import { UserConstruct } from "../lib/user/user-construct";
-import { ChatStack } from "../lib/chat/chat-stack";
+import { ChatStack, ChatStackOutputs } from "../lib/chat/chat-stack";
 
 dotenv.config();
 
@@ -38,6 +38,11 @@ export class RootStack extends Stack {
     super(scope, id, props);
     this.templateOptions.description = "(SO8034) - Intelli-Agent";
 
+    let knowledgeBaseStack: KnowledgeBaseStack = {} as KnowledgeBaseStack;
+    let knowledgeBaseStackOutputs: KnowledgeBaseStackOutputs = {} as KnowledgeBaseStackOutputs;
+    let chatStack: ChatStack = {} as ChatStack;
+    let chatStackOutputs: ChatStackOutputs = {} as ChatStackOutputs;
+
     const sharedConstruct = new SharedConstruct(this, "shared-construct");
 
     const modelConstruct = new ModelConstruct(this, "model-construct", {
@@ -48,21 +53,27 @@ export class RootStack extends Stack {
 
     const portalConstruct = new PortalConstruct(this, "ui-construct");
 
-    const knowledgeBaseStack = new KnowledgeBaseStack(this, "knowledge-base-stack", {
-      config: props.config,
-      sharedConstructOutputs: sharedConstruct,
-      modelConstructOutputs: modelConstruct,
-      uiPortalBucketName: portalConstruct.portalBucket.bucketName,
-    });
-    knowledgeBaseStack.node.addDependency(sharedConstruct);
-    knowledgeBaseStack.node.addDependency(modelConstruct);
+    if (props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.enabled) {
+      knowledgeBaseStack = new KnowledgeBaseStack(this, "knowledge-base-stack", {
+        config: props.config,
+        sharedConstructOutputs: sharedConstruct,
+        modelConstructOutputs: modelConstruct,
+        uiPortalBucketName: portalConstruct.portalBucket.bucketName,
+      });
+      knowledgeBaseStack.node.addDependency(sharedConstruct);
+      knowledgeBaseStack.node.addDependency(modelConstruct);
+      knowledgeBaseStackOutputs = knowledgeBaseStack;
+    }
 
-    const chatStack = new ChatStack(this, "chat-stack", {
-      config: props.config,
-      sharedConstructOutputs: sharedConstruct,
-      modelConstructOutputs: modelConstruct,
-      domainEndpoint: knowledgeBaseStack.aosDomainEndpoint
-    });
+    if (props.config.chat.enabled) {
+      const chatStack = new ChatStack(this, "chat-stack", {
+        config: props.config,
+        sharedConstructOutputs: sharedConstruct,
+        modelConstructOutputs: modelConstruct,
+        domainEndpoint: knowledgeBaseStackOutputs.aosDomainEndpoint,
+      });
+      chatStackOutputs = chatStack;
+    }
 
     const userConstruct = new UserConstruct(this, "user", {
       adminEmail: props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.email,
@@ -73,14 +84,19 @@ export class RootStack extends Stack {
       config: props.config,
       sharedConstructOutputs: sharedConstruct,
       modelConstructOutputs: modelConstruct,
-      knowledgeBaseStackOutputs: knowledgeBaseStack,
-      chatStackOutputs: chatStack,
+      knowledgeBaseStackOutputs: knowledgeBaseStackOutputs,
+      chatStackOutputs: chatStackOutputs,
       userConstructOutputs: userConstruct,
     });
     apiConstruct.node.addDependency(sharedConstruct);
     apiConstruct.node.addDependency(modelConstruct);
-    apiConstruct.node.addDependency(knowledgeBaseStack);
     apiConstruct.node.addDependency(portalConstruct);
+    if ( chatStack.node ) {
+      apiConstruct.node.addDependency(chatStack);
+    }
+    if ( knowledgeBaseStack.node ) {
+      apiConstruct.node.addDependency(knowledgeBaseStack);
+    }
 
     const uiExports = new UiExportsConstruct(this, "ui-exports", {
       portalBucket: portalConstruct.portalBucket,

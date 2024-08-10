@@ -25,7 +25,7 @@ import { IAMHelper } from "../shared/iam-helper";
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
 import { SystemConfig } from "../shared/types";
-import { SharedConstructOutputs } from "../shared/shared-construct";
+import { SharedConstruct, SharedConstructOutputs } from "../shared/shared-construct";
 import { ModelConstructOutputs } from "../model/model-construct";
 import { ChatTablesConstruct } from "./chat-tables";
 
@@ -41,8 +41,6 @@ export interface ChatStackOutputs {
   sessionsTableName: string;
   messagesTableName: string;
   promptTableName: string;
-  indexTableName: string;
-  modelTableName: string;
   intentionTableName: string;
   sqsStatement: iam.PolicyStatement;
   messageQueue: Queue;
@@ -55,8 +53,6 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
   public sessionsTableName: string;
   public messagesTableName: string;
   public promptTableName: string;
-  public indexTableName: string;
-  public modelTableName: string;
   public intentionTableName: string;
   public sqsStatement: iam.PolicyStatement;
   public messageQueue: Queue;
@@ -64,6 +60,9 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
   public lambdaOnlineMain: Function;
 
   private iamHelper: IAMHelper;
+  private indexTableName: string;
+  private modelTableName: string;
+  private chatbotTableName: string;
 
   constructor(scope: Construct, id: string, props: ChatStackProps) {
     super(scope, id);
@@ -78,9 +77,11 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
     this.sessionsTableName = chatTablesConstruct.sessionsTableName;
     this.messagesTableName = chatTablesConstruct.messagesTableName;
     this.promptTableName = chatTablesConstruct.promptTableName;
-    this.indexTableName = chatTablesConstruct.indexTableName;
-    this.modelTableName = chatTablesConstruct.modelTableName;
     this.intentionTableName = chatTablesConstruct.intentionTableName;
+    this.chatbotTableName = props.sharedConstructOutputs.chatbotTable.tableName;
+    this.indexTableName = props.sharedConstructOutputs.indexTable.tableName;
+    this.modelTableName = props.sharedConstructOutputs.modelTable.tableName;
+    this.chatbotTableName = props.sharedConstructOutputs.chatbotTable.tableName;
 
     const chatQueueConstruct = new QueueConstruct(this, "LLMQueueStack", {
       namePrefix: Constants.API_QUEUE_NAME,
@@ -123,8 +124,8 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
         SESSIONS_TABLE_NAME: chatTablesConstruct.sessionsTableName,
         MESSAGES_TABLE_NAME: chatTablesConstruct.messagesTableName,
         PROMPT_TABLE_NAME: chatTablesConstruct.promptTableName,
-        MODEL_TABLE_NAME: chatTablesConstruct.modelTableName,
-        INDEX_TABLE_NAME: chatTablesConstruct.indexTableName,
+        MODEL_TABLE_NAME: this.modelTableName,
+        INDEX_TABLE_NAME: this.indexTableName,
         OPENAI_KEY_ARN: openAiKey.secretArn,
       },
     });
@@ -302,8 +303,8 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
       architecture: Architecture.X86_64,
       environment: {
         CHATBOT_TABLE: props.sharedConstructOutputs.chatbotTable.tableName,
-        INDEX_TABLE: chatTablesConstruct.indexTableName,
-        MODEL_TABLE: chatTablesConstruct.modelTableName,
+        INDEX_TABLE: this.indexTableName,
+        MODEL_TABLE: this.modelTableName,
       },
       layers: [apiLambdaOnlineSourceLayer, apiLambdaJobSourceLayer],
     });

@@ -241,8 +241,6 @@ export class ModelConstruct extends Construct implements ModelConstructOutputs {
       model = new sagemaker.CfnModel(this, `${props.modelProps.modelName}`, props.modelProps);
       // Create Sagemaker EndpointConfig
       endpointConfig = new sagemaker.CfnEndpointConfig(this, `${props.modelProps.modelName}-endpoint-config`, props.endpointConfigProps);
-      console.log("EndpointConfigName: ");
-      console.log(endpointConfig.endpointConfigName);
       // Add dependency on model
       endpointConfig.addDependency(model);
       // Create Sagemaker Endpoint
