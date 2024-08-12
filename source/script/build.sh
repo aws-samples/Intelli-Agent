@@ -53,7 +53,7 @@ if $knowledge_base_enabled && $knowledge_base_intelliagent_enabled && $knowledge
     modules_prepared="${modules_prepared}ETL Model, "
 fi
 
-if $opensearch_enabled; then
+if $knowledge_base_enabled && $knowledge_base_intelliagent_enabled && $opensearch_enabled; then
     prepare_online_model
     modules_prepared="${modules_prepared}Online Model, "
 fi

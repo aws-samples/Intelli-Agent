@@ -113,17 +113,20 @@ export class ModelConstruct extends Construct implements ModelConstructOutputs {
 
     this.executionRole = executionRole;
 
-    // Check if props.config.model.embeddingsModels includes a model with the name 'bce-embedding-and-bge-reranker'
-    if (props.config.model.embeddingsModels.some(model => model.name === 'bce-embedding-and-bge-reranker')) {
-      // Create the resource
-      let embeddingAndRerankerModelResources = this.deployEmbeddingAndRerankerEndpoint(props);
-      this.defaultEmbeddingModelName = embeddingAndRerankerModelResources.endpoint.endpointName ?? "";
-    }
+    if ( props.config.knowledgeBase.enabled && props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.enabled ) {
 
-    if (props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.enabled) {
-      let knowledgeBaseModelResources = this.deployKnowledgeBaseEndpoint(props);
-      this.createKnowledgeBaseEndpointScaling(knowledgeBaseModelResources.endpoint);
-      this.defaultKnowledgeBaseModelName = knowledgeBaseModelResources.endpoint.endpointName ?? "";
+      // Check if props.config.model.embeddingsModels includes a model with the name 'bce-embedding-and-bge-reranker'
+      if (props.config.model.embeddingsModels.some(model => model.name === 'bce-embedding-and-bge-reranker')) {
+        // Create the resource
+        let embeddingAndRerankerModelResources = this.deployEmbeddingAndRerankerEndpoint(props);
+        this.defaultEmbeddingModelName = embeddingAndRerankerModelResources.endpoint.endpointName ?? "";
+      }
+
+      if (props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.enabled) {
+        let knowledgeBaseModelResources = this.deployKnowledgeBaseEndpoint(props);
+        this.createKnowledgeBaseEndpointScaling(knowledgeBaseModelResources.endpoint);
+        this.defaultKnowledgeBaseModelName = knowledgeBaseModelResources.endpoint.endpointName ?? "";
+      }
     }
 
   }

@@ -13,7 +13,6 @@
 
 import { Aws, Duration, StackProps } from "aws-cdk-lib";
 import * as apigw from "aws-cdk-lib/aws-apigateway";
-import * as iam from "aws-cdk-lib/aws-iam";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import { Construct } from "constructs";
 import { join } from "path";
@@ -116,31 +115,21 @@ export class ApiConstruct extends Construct {
       },
     });
 
-    // Create Lambda Authorizer for WebSocket API
-    const customAuthorizerLambda = new Function(this, "CustomAuthorizerLambda", {
-      runtime: Runtime.PYTHON_3_11,
-      handler: "custom_authorizer.lambda_handler",
+    const customAuthorizerLambda = new LambdaFunction(this, "CustomAuthorizerLambda", {
       code: Code.fromAsset(join(__dirname, "../../../lambda/authorizer")),
-      timeout: Duration.minutes(15),
-      memorySize: 1024,
-      vpc: vpc,
-      vpcSubnets: {
-        subnets: vpc.privateSubnets,
-      },
-      securityGroups: [securityGroup],
-      architecture: Architecture.X86_64,
+      handler: "custom_authorizer.lambda_handler",
       environment: {
         USER_POOL_ID: props.userConstructOutputs.userPool.userPoolId,
         REGION: Aws.REGION,
         APP_CLIENT_ID: props.userConstructOutputs.oidcClientId,
       },
       layers: [apiLambdaAuthorizerLayer],
+      statements: [props.sharedConstructOutputs.iamHelper.logStatement],
     });
 
-    customAuthorizerLambda.addToRolePolicy(props.sharedConstructOutputs.iamHelper.logStatement);
 
     const auth = new apigw.RequestAuthorizer(this, 'ApiAuthorizer', {
-      handler: customAuthorizerLambda,
+      handler: customAuthorizerLambda.function,
       identitySources: [apigw.IdentitySource.header('Authorization')],
     });
 
@@ -523,28 +512,18 @@ export class ApiConstruct extends Construct {
       const apiResourceLLM = api.root.addResource("llm");
       apiResourceLLM.addMethod("POST", lambdaExecutorIntegration, this.genMethodOption(api, auth, null));
 
-      const lambdaDispatcher = new Function(this, "lambdaDispatcher", {
-        runtime: Runtime.PYTHON_3_11,
-        handler: "main.lambda_handler",
+      const lambdaDispatcher = new LambdaFunction(this, "lambdaDispatcher", {
         code: Code.fromAsset(join(__dirname, "../../../lambda/dispatcher")),
-        timeout: Duration.minutes(15),
-        memorySize: 1024,
-        vpc: vpc,
-        vpcSubnets: {
-          subnets: vpc.privateSubnets,
-        },
-        securityGroups: [securityGroup],
-        architecture: Architecture.X86_64,
         environment: {
           SQS_QUEUE_URL: messageQueue.queueUrl,
         },
+        statements: [sqsStatement],
       });
-      lambdaDispatcher.addToRolePolicy(sqsStatement);
 
       const webSocketApi = new WebSocketConstruct(this, "WebSocketApi", {
-        dispatcherLambda: lambdaDispatcher,
+        dispatcherLambda: lambdaDispatcher.function,
         sendMessageLambda: props.chatStackOutputs.lambdaOnlineMain,
-        customAuthorizerLambda: customAuthorizerLambda,
+        customAuthorizerLambda: customAuthorizerLambda.function,
       });
       let wsStage = webSocketApi.websocketApiStage
       this.wsEndpoint = `${wsStage.api.apiEndpoint}/${wsStage.stageName}/`;

@@ -16,7 +16,7 @@ import { Function, Runtime, Code, Architecture, FunctionProps } from 'aws-cdk-li
 import { Construct } from "constructs";
 import { IVpc, SecurityGroup } from "aws-cdk-lib/aws-ec2";
 import { ILayerVersion } from "aws-cdk-lib/aws-lambda";
-import { PolicyStatement } from "aws-cdk-lib/aws-iam";
+import { Role, PolicyStatement } from "aws-cdk-lib/aws-iam";
 
 
 interface LambdaFunctionProps {
@@ -28,6 +28,7 @@ interface LambdaFunctionProps {
   environment?: { [key: string]: string };
   layers?: ILayerVersion[];
   memorySize?: number;
+  role?: Role;
   statements?: PolicyStatement[];
 }
 
@@ -63,6 +64,12 @@ export class LambdaFunction extends Construct {
       functionProps = {
         ...functionProps,
         securityGroups: props.securityGroups,
+      };
+    }
+    if (props.role) {
+      functionProps = {
+        ...functionProps,
+        role: props.role,
       };
     }
 

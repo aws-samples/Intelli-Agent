@@ -169,137 +169,179 @@ flowchart TD
 
 ### 预置条件
 
+**步骤 1**: 安装所需的依赖项
 执行以下命令以安装 Python、Git、npm、Docker 等依赖项，并为 Amazon OpenSearch 服务创建一个服务关联角色。如果这些依赖项已经安装，可以跳过此步骤。
-setup_env.sh脚本适配Amazon Linux 2023，如果您使用其他操作系统，请手动安装这些依赖。
+`setup_env.sh` 脚本适配 Amazon Linux 2023，如果您使用其他操作系统，请手动安装这些依赖。
 
 ```bash
 wget https://raw.githubusercontent.com/aws-samples/Intelli-Agent/dev/source/script/setup_env.sh
 sh setup_env.sh
 ```
 
-执行以下命令克隆GitHub代码：
-
-```bash
-git clone git@github.com:aws-samples/Intelli-Agent.git
-cd Intelli-Agent
-```
-
-执行以下命令配置 AWS 账号（请跳过此步骤如果您已经配置过 AWS 账号），参考 [AWS CLI](https://docs.aws.amazon.com/cli/latest/reference/configure/) 命令获取更多使用说明。
+**步骤 2**: 安装 AWS CLI 并配置您的 AWS 账号
+执行以下命令配置您的 AWS 账号（请跳过此步骤如果您已经配置过 AWS 账号），参考 [AWS CLI](https://docs.aws.amazon.com/cli/latest/reference/configure/) 命令获取更多使用说明。
 
 ```bash
 aws configure
 ```
 
 
-请进入`source/script`目录，并执行 `build.sh` 脚本。该脚本为您提供了一种便捷的方式，通过预设的 S3 存储桶名称、ETL 镜像名称和 ETL 镜像标签来简化资源准备流程。这些预设值将用于将模型上传至 S3 以及将 ETL 镜像推送至您的 ECR 仓库。您也可以根据需要为这些参数设置自定义值，如果您指定的 S3 存储桶或 ECR 仓库尚未创建，脚本会自动为您完成资源创建。如果您希望指定自定义的S3储存桶用于存储模型，请确认储存桶所在区域与您的AWS账号默认区域一致。
-
-默认配置如下：
-- S3 存储桶名称：`intelli-agent-models-${account}-${aws_region}`
-- ETL 镜像名称：`intelli-agent-etl`
-- ETL 镜像标签：`latest`
-
-直接运行脚本即可采用默认配置，无需传递任何参数。
-
-```bash
-cd source/script
-sh build.sh
-```
-
-如果您希望使用自定义的 S3 存储桶名称、ETL 镜像名称和标签，可以执行如下命令：
-
-```bash
-cd source/script
-sh build.sh -b intelli-agent-model-bucket -i intelli-agent-etl -t latest
-```
-
-
 ### 部署方案
-如果您的账号是首次使用 AWS CDK 部署资源，请参考[此文档](https://docs.aws.amazon.com/cdk/v2/guide/bootstrapping-env.html)进行 CDK bootstrap
+
+要部署该解决方案，请按照以下步骤操作：
+
+**步骤 1**: 克隆 GitHub 仓库
 
 ```bash
-cdk bootstrap aws://<Your AWS account ID>/<AWS region>
+git clone git@github.com:aws-samples/Intelli-Agent.git
 ```
 
-本方案部署可以有两种选项：
-1. 部署`全部模块`。即可实现从知识库构建到在线交互问答全量功能。
-2. 仅部署`知识库构建（离线处理）`模块。
-
-#### 选项1 部署全部模块
-
-执行如下命令进行部署，其中，S3ModelAssets，EtlImageName和ETLTag请使用在`预置条件`章节中您设置过的参数。（默认部署模式）
-
+**步骤 2**: 进入 `source/infrastructure` 目录
 
 ```bash
-cd source
-aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
-cd infrastructure
-npx cdk deploy --parameters S3ModelAssets=<Your S3 Bucket Name> --parameters SubEmail=<Your email address> --parameters EtlImageName=<Your ETL model name> --parameters ETLTag=<Your ETL tag name> --require-approval never
+cd Intelli-Agent/source/infrastructure
 ```
 
-
-示例：
+**步骤 3**: 安装项目依赖
 
 ```bash
-npx cdk deploy --rollback true --parameters S3ModelAssets=intelli-agent-model-bucket --parameters SubEmail=foo@email.com --parameters EtlImageName=intelli-agent-etl --parameters ETLTag=latest --require-approval never
+npm install
 ```
 
-
-##### 部署参数
-| 参数 | 参数类型 | 描述 |
-| - | - | - |
-| S3ModelAssets | 必填 | 存储模型的您的 S3 存储桶名称 |
-| SubEmail | 必填 | 接收通知的您的电子邮件地址 |
-| EtlImageName | 必填 | ETL 镜像名称，例如 etl-model，在执行 source/model/etl/code/model.sh 脚本时设置 |
-| EtlTag | 必填 | ETL 标签，例如 latest、v1.0、v2.0，默认值为 latest，在执行 source/model/etl/code/model.sh 脚本时设置 |
-| DeploymentMode | 选填 | 不填或ALL |
-
-
-#### 选项2 仅部署`知识库构建（离线处理）`模块
-
-如果仅要求对文档进行解析切片并将切片后的文本块上传到 S3，而不需要将文本块注入到 Amazon OpenSearch，执行如下命令进行部署，其中，S3ModelAssets，EtlImageName和ETLTag请使用在“前置条件”章节中您设置过的参数。
+**步骤 4**: 运行配置命令以设置所需功能的解决方案：
 
 ```bash
-cd source
-aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
-cd infrastructure
-npx cdk deploy --parameters S3ModelAssets=<Your S3 Bucket Name> --parameters SubEmail=<Your email address> --parameters EtlImageName=<Your ETL model name> --parameters ETLTag=<Your ETL tag name> --context DeploymentMode="OFFLINE_EXTRACT" --require-approval never
+npm run config
 ```
 
-##### 部署参数
-| 参数 | 参数类型 | 描述 |
-| - | - | - |
-| S3ModelAssets | 必填 | 存储模型的您的 S3 存储桶名称 |
-| SubEmail | 必填 | 接收通知的您的电子邮件地址 |
-| EtlImageName | 必填 | ETL 镜像名称，例如 etl-model，在执行 source/model/etl/code/model.sh 脚本时设置 |
-| EtlTag | 必填 | ETL 标签，例如 latest、v1.0、v2.0，默认值为 latest，在执行 source/model/etl/code/model.sh 脚本时设置 |
-| DeploymentMode | 必填 | OFFLINE_EXTRACT |
+您将被提示输入以下信息：
 
-#### 方案信息
+- **Prefix**: 解决方案堆栈名称的前缀。此前缀将添加到解决方案创建的所有资源中。
+- **SubEmail**: 接收通知的电子邮件地址。
+- **KnowledgeBase**: 启用或禁用知识库功能。
+- **KnowledgeBaseType**: 选择要启用的知识库类型。
+- **Chat**: 启用或禁用聊天功能。
+- **Model**: 选择要用于解决方案的模型。
+- **UI**: 启用或禁用 UI 功能。
 
-部署后您可以在 CloudFormation 控制台中找到包含`intelli-agent`的堆栈，在Output标签页中可以找到方案信息，常用的信息解释如下：
+输入信息后，配置文件 `config.json` 将生成在 [`source/infrastructure/bin`]目录中。您可以重新运行 `npm run config` 命令或修改此文件以自定义解决方案配置。
 
-| 名称	| 描述 |
+**步骤 5**: 准备所需的部署资源，包括前端和模型资产
+
+```bash
+npm run build
+```
+
+**步骤 6**: （可选）在目标账户和区域上引导 AWS CDK
+
+如果这是您的账户首次使用 CDK 部署资源，请参考[此文档](https://docs.aws.amazon.com/cdk/v2/guide/bootstrapping-env.html)进行 CDK bootstrap。
+
+```bash
+npx cdk bootstrap aws://<Your AWS account ID>/<AWS region>
+```
+
+**步骤 7**: 部署解决方案
+
+```bash
+npx cdk deploy
+```
+
+**步骤 8**: 确认部署
+
+部署后，您可以在 CloudFormation 控制台中找到包含 `intelli-agent` 的堆栈。在堆栈的 Output 标签页中，您可以找到关键的解决方案信息，常用的信息解释如下：
+
+| 名称 | 描述 |
 | - | - |
-| WebPortalURL |	Intelli-Agent前端网站链接 |
-| APIEndpointAddress |	RestFul API地址，主要用数据预处理、聊天记录等功能 |
-| WebSocketEndpointAddress | WebSocket API地址，主要用于聊天功能 |
-| ChunkBucket | 文档预处理后的中间状态保存在此S3桶中 |
+| WebPortalURL | Intelli-Agent 前端网站链接。 |
+| APIEndpointAddress | RESTful API 地址，主要用于数据预处理、聊天记录等功能。 |
+| WebSocketEndpointAddress | WebSocket API 地址，主要用于聊天功能。 |
+| ChunkBucket | 处理后的文档块的中间存储在此 S3 桶中。 |
 
 ### 更新已有的部署
 
-您可以通过 CDK 更新已有的部署，具体命令如下：
+**步骤 1**: 进入 `source/infrastructure` 目录
 
 ```bash
-cd source
-aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
-cd infrastructure
-npx cdk deploy --rollback true --parameters S3ModelAssets=<Your S3 Bucket Name> --parameters SubEmail=<Your email address> --parameters EtlImageName=<Your ETL model name> --parameters ETLTag=<Your ETL tag name> --require-approval never
+cd Intelli-Agent/source/infrastructure
 ```
 
-示例：
+**步骤 2**: 重新运行 `npm run config` 命令，或者直接修改`source/infrastructure/bin` 路径下的 `config.json` 文件以更新解决方案配置。
+
+样本配置文件如下：
+
+```json
+{
+  "prefix": "",
+  "knowledgeBase": {
+    "enabled": false,
+    "knowledgeBaseType": {
+      "intelliAgentKb": {
+        "enabled": true,
+        "email": "test@test.com",
+        "vectorStore": {
+          "opensearch": {
+            "enabled": true
+          }
+        },
+        "knowledgeBaseModel": {
+          "enabled": true,
+          "ecrRepository": "intelli-agent-knowledge-base",
+          "ecrImageTag": "latest"
+        }
+      }
+    }
+  },
+  "chat": {
+    "enabled": true
+  },
+  "model": {
+    "embeddingsModels": [
+      {
+        "provider": "sagemaker",
+        "name": "bce-embedding-and-bge-reranker",
+        "commitId": "43972580a35ceacacd31b95b9f430f695d07dde9",
+        "dimensions": 1024,
+        "default": true
+      }
+    ],
+    "llms": [
+      {
+        "provider": "bedrock",
+        "name": "anthropic.claude-3-sonnet-20240229-v1:0"
+      }
+    ],
+    "modelConfig": {
+      "modelAssetsBucket": "intelli-agent-models-078604973627-us-west-2"
+    }
+  },
+  "ui": {
+    "enabled": true
+  },
+  "federatedAuth": {
+    "enabled": true,
+    "provider": {
+      "cognito": {
+        "enabled": true
+      },
+      "authing": {
+        "enabled": false
+      }
+    }
+  }
+}
+```
+
+**步骤 3**: (可选) 如果需要添加新的SageMaker模型，或者需要更新前端资源，您需要重新运行 `npm run build` 命令来构建新的资源。
 
 ```bash
-npx cdk deploy --rollback true --parameters S3ModelAssets=intelli-agent-model-bucket --parameters SubEmail=foo@email.com --parameters EtlImageName=intelli-agent-etl --parameters ETLTag=latest --require-approval never
+npm run build
+```
+
+**步骤 4**: 更新已有的部署
+
+```bash
+aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
+npm run build
 ```
 
 
