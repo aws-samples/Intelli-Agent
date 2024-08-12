@@ -181,6 +181,7 @@ Follow these steps to get started:
 ### Prerequisites
 
 **Step 1**: Install the required dependencies
+
 Execute following commands to install dependencies such as Python, Git, npm, docker and create a service linked role for Amazon OpenSearch service. You can skip this step if they are already installed.
 The `setup_env.sh` script is adapted for Amazon Linux 2023. If you are using other operating systems, please manually install these dependencies.
 
@@ -191,6 +192,7 @@ sh setup_env.sh
 ```
 
 **Step 2**: Install the AWS CLI and configure your AWS account
+
 Execute the following command to configure your AWS account (please skip this step if you have already configured your AWS account). Refer to the [AWS CLI](https://docs.aws.amazon.com/cli/latest/reference/configure/) command for more usage instructions.
 
 
@@ -280,7 +282,9 @@ You can update an existing deployment following these steps:
 cd Intelli-Agent/source/infrastructure
 ```
 
-**Step 2**: Rerun the `npm run config` command, or modify the config.json located under the `source/infrastructure/bin` directory.
+**Step 2**: Adjust the configuration
+
+Rerun the `npm run config` command, or modify the config.json located under the `source/infrastructure/bin` directory.
 
 Sample config.json:
 
@@ -356,7 +360,7 @@ npm run build
 
 ```bash
 aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
-npm run build
+npx cdk deploy
 ```
 
 ### Uninstalling the Solution

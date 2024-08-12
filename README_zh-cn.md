@@ -170,6 +170,7 @@ flowchart TD
 ### 预置条件
 
 **步骤 1**: 安装所需的依赖项
+
 执行以下命令以安装 Python、Git、npm、Docker 等依赖项，并为 Amazon OpenSearch 服务创建一个服务关联角色。如果这些依赖项已经安装，可以跳过此步骤。
 `setup_env.sh` 脚本适配 Amazon Linux 2023，如果您使用其他操作系统，请手动安装这些依赖。
 
@@ -179,6 +180,7 @@ sh setup_env.sh
 ```
 
 **步骤 2**: 安装 AWS CLI 并配置您的 AWS 账号
+
 执行以下命令配置您的 AWS 账号（请跳过此步骤如果您已经配置过 AWS 账号），参考 [AWS CLI](https://docs.aws.amazon.com/cli/latest/reference/configure/) 命令获取更多使用说明。
 
 ```bash
@@ -265,7 +267,9 @@ npx cdk deploy
 cd Intelli-Agent/source/infrastructure
 ```
 
-**步骤 2**: 重新运行 `npm run config` 命令，或者直接修改`source/infrastructure/bin` 路径下的 `config.json` 文件以更新解决方案配置。
+**步骤 2**: 更新解决方案配置
+
+重新运行 `npm run config` 命令，或者直接修改`source/infrastructure/bin` 路径下的 `config.json` 文件以更新解决方案配置。
 
 样本配置文件如下：
 
@@ -341,7 +345,7 @@ npm run build
 
 ```bash
 aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
-npm run build
+npx cdk deploy
 ```
 
 
