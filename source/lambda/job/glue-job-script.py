@@ -43,10 +43,13 @@ try:
             "RES_BUCKET",
             "S3_BUCKET",
             "S3_PREFIX",
-            "WORKSPACE_ID",
-            "WORKSPACE_TABLE",
+            "CHATBOT_ID",
+            "INDEX_ID",
+            "EMBEDDING_MODEL_TYPE",
+            "CHATBOT_TABLE",
             "INDEX_TYPE",
             "OPERATION_TYPE",
+            "PORTAL_BUCKET",
         ],
     )
 except Exception as e:
@@ -62,7 +65,9 @@ except Exception as e:
     parser.add_argument("--qa_enhancement", type=str, default=False)
     parser.add_argument("--s3_bucket", type=str, required=True)
     parser.add_argument("--s3_prefix", type=str, required=True)
-    parser.add_argument("--workspace_id", type=str, required=True)
+    parser.add_argument("--chatbot_id", type=str, required=True)
+    parser.add_argument("--index_id", type=str, required=True)
+    parser.add_argument("--embedding_model_type", type=str, required=True)
     parser.add_argument("--index_type", type=str, required=True)
     parser.add_argument("--operation_type", type=str, default="create")
     command_line_args=parser.parse_args()
@@ -72,16 +77,15 @@ except Exception as e:
     for key in command_line_args_dict.keys():
         args[key.upper()] = command_line_args_dict[key]
     args["AOS_ENDPOINT"] = os.environ["AOS_ENDPOINT"]
-    args["WORKSPACE_TABLE"] = os.environ["WORKSPACE_TABLE"]
-    args["ETL_OBJECT_TABLE"] = os.environ["etl_object_table"]
-    args["ETL_MODEL_ENDPOINT"] = os.environ["etl_endpoint"]
-    args["RES_BUCKET"] = os.environ["res_bucket"]
-    args["REGION"] = os.environ["region"]
+    args["CHATBOT_TABLE"] = os.environ["CHATBOT_TABLE_NAME"]
+    args["ETL_OBJECT_TABLE"] = os.environ["ETL_OBJECT_TABLE_NAME"]
+    args["ETL_MODEL_ENDPOINT"] = os.environ["ETL_ENDPOINT"]
+    args["RES_BUCKET"] = os.environ["RES_BUCKET"]
+    args["REGION"] = os.environ["REGION"]
+    args["PORTAL_BUCKET"] = os.environ.get("PORTAL_BUCKET", None)
 
 from llm_bot_dep import sm_utils
 from llm_bot_dep.constant import SplittingType
-from llm_bot_dep.ddb_utils import WorkspaceManager
-from llm_bot_dep.embeddings import get_embedding_info
 from llm_bot_dep.loaders.auto import cb_process_object
 from llm_bot_dep.storage_utils import save_content_to_s3
 
@@ -102,14 +106,17 @@ embedding_model_endpoint = args["EMBEDDING_MODEL_ENDPOINT"]
 etlModelEndpoint = args["ETL_MODEL_ENDPOINT"]
 offline = args["OFFLINE"]
 etl_object_table_name = args["ETL_OBJECT_TABLE"]
+portal_bucket_name = args["PORTAL_BUCKET"]
 table_item_id = args["TABLE_ITEM_ID"]
 qa_enhancement = args["QA_ENHANCEMENT"]
 region = args["REGION"]
 res_bucket = args["RES_BUCKET"]
 s3_bucket = args["S3_BUCKET"]
 s3_prefix = args["S3_PREFIX"]
-workspace_id = args["WORKSPACE_ID"]
-workspace_table = args["WORKSPACE_TABLE"]
+chatbot_id = args["CHATBOT_ID"]
+aos_index_name = args["INDEX_ID"]
+embedding_model_type = args["EMBEDDING_MODEL_TYPE"]
+chatbot_table = args["CHATBOT_TABLE"]
 index_type = args["INDEX_TYPE"]
 # Valid Operation types: "create", "delete", "update", "extract_only"
 operation_type = args["OPERATION_TYPE"]
@@ -119,8 +126,6 @@ s3_client = boto3.client("s3")
 smr_client = boto3.client("sagemaker-runtime")
 dynamodb = boto3.resource("dynamodb")
 etl_object_table = dynamodb.Table(etl_object_table_name)
-workspace_table = dynamodb.Table(workspace_table)
-workspace_manager = WorkspaceManager(workspace_table)
 
 ENHANCE_CHUNK_SIZE = 25000
 OBJECT_EXPIRY_TIME = 3600
@@ -170,6 +175,7 @@ class S3FileProcessor:
             "res_bucket": res_bucket,
             "table_item_id": table_item_id,
             "create_time": create_time,
+            "portal_bucket_name": portal_bucket_name,
             "document_language": document_language,
         }
 
@@ -188,6 +194,9 @@ class S3FileProcessor:
         elif file_type == "csv":
             kwargs["csv_row_count"] = 1
             return "csv", self.decode_file_content(file_content), kwargs
+        elif file_type in ["xlsx", "xls"]:
+            kwargs["xlsx_row_count"] = 1
+            return "xlsx", file_content, kwargs
         elif file_type == "html":
             return "html", self.decode_file_content(file_content), kwargs
         elif file_type in ["pdf"]:
@@ -499,29 +508,6 @@ class OpenSearchDeleteWorker:
             return
 
 
-def update_workspace(workspace_id, embedding_model_endpoint, index_type):
-    (
-        embeddings_model_provider,
-        embeddings_model_name,
-        embeddings_model_dimensions,
-        embeddings_model_type,
-    ) = get_embedding_info(embedding_model_endpoint)
-
-    aos_index = workspace_manager.update_workspace_open_search(
-        workspace_id,
-        embedding_model_endpoint,
-        embeddings_model_provider,
-        embeddings_model_name,
-        embeddings_model_dimensions,
-        embeddings_model_type,
-        ["zh"],
-        index_type,
-        workspace_offline_flag=offline,
-    )
-
-    return aos_index, embeddings_model_type
-
-
 def ingestion_pipeline(
     s3_files_iterator, batch_chunk_processor, ingestion_worker, extract_only=False
 ):
@@ -627,7 +613,7 @@ def create_processors_and_workers(
     if operation_type in ["create", "extract_only"]:
         s3_files_iterator = file_processor.iterate_s3_files(extract_content=True)
         batch_processor = BatchChunkDocumentProcessor(
-            chunk_size=500, chunk_overlap=30, batch_size=10
+            chunk_size=1024, chunk_overlap=30, batch_size=10
         )
         worker = OpenSearchIngestionWorker(docsearch, embedding_model_endpoint)
     elif operation_type in ["delete", "update"]:
@@ -647,14 +633,16 @@ def main():
     logger.info("Starting Glue job with passing arguments: %s", args)
     logger.info("Running in offline mode with consideration for large file size...")
 
-    if index_type == "qq":
-        supported_file_types = ["jsonl"]
+    if index_type == "qq" or index_type == "intention":
+        supported_file_types = ["jsonl", "xlsx", "xls"]
     else:
         # Default is qd
         supported_file_types = [
             "pdf",
             "txt",
             "docx",
+            "xlsx",
+            "xls",
             "md",
             "html",
             "json",
@@ -664,10 +652,6 @@ def main():
             "jpg",
             "webp"
         ]
-
-    aos_index_name, embedding_model_type = update_workspace(
-        workspace_id, embedding_model_endpoint, index_type
-    )
 
     file_processor = S3FileProcessor(s3_bucket, s3_prefix, supported_file_types)
 

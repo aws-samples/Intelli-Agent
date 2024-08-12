@@ -62,8 +62,8 @@ export class WebSocketConstruct extends Construct {
       timeout: Duration.minutes(15),
     });
 
-    const webSocketApi = new apigwv2.WebSocketApi(this, "wsApi", {
-      description: "LLM bot WebSocket API",
+    const webSocketApi = new apigwv2.WebSocketApi(this, "Intelli-Agent-WebSocket-API", {
+      description: "Intelli-Agent WebSocket API for chat scenarios",
       connectRouteOptions: {
         integration: new WebSocketLambdaIntegration(
           "ConnectIntegration",

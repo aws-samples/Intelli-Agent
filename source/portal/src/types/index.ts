@@ -14,7 +14,7 @@ export type LibraryListItem = {
   operationType: string;
   sfnExecutionId: string;
   indexType: string;
-  workspaceId: string;
+  chatbotId: string;
   createTime: string;
 };
 
@@ -41,6 +41,9 @@ export type SessionMessage = {
   role: 'ai' | 'human';
   content: string;
   createTimestamp: string;
+  additional_kwargs: {
+    figure: AdditionalImageType[];
+  };
 };
 
 export interface CachedDataType {
@@ -78,10 +81,17 @@ export type LibraryExecutionResponse = {
   Count: number;
 };
 
+export type AdditionalImageType = {
+  content_type: string;
+  figure_path: string;
+};
 export interface MessageDataType {
   message_id: string;
   custom_message_id: string;
-  message_type: 'START' | 'CHUNK' | 'END' | 'MONITOR'; // START CHUNK END MONITORING
+  ddb_additional_kwargs: {
+    figure: AdditionalImageType[];
+  };
+  message_type: 'START' | 'CHUNK' | 'END' | 'MONITOR' | 'CONTEXT'; // START CHUNK END MONITORING
   message: {
     role: string;
     content: string;
@@ -119,4 +129,17 @@ export interface GetPromptResponse {
   ModelId: string;
   Scene: string;
   Prompt: Prompt;
+}
+
+export interface PresignedUrlResponse {
+  data: string;
+  message: string;
+  s3Bucket: string;
+  s3Prefix: string;
+}
+
+export interface ExecutionResponse {
+  execution_id: string;
+  input_payload: string;
+  step_function_arn: string;
 }

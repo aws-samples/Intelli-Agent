@@ -78,6 +78,13 @@
             line-height: 1.5em;
           }
         }
+        img {
+          display: block;
+          padding: 4px;
+          margin-top: 10px;
+          border: 1px solid #ccc;
+          max-width: 500px;
+        }
       }
     }
     &.human {

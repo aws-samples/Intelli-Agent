@@ -72,7 +72,7 @@ Chunk metadata is defined as below shown:
 |previous| The chunk id of previous paragraph at the same Level |
 |child| The chunk ids of sub sections |
 |next|The chunk id of next paragraph at the same Level |
-|size| The number of the chunks when the paragraph is splitted by a fixed chunk size |
+|size| The number of the chunks when the paragraph is split by a fixed chunk size |
 
 Here is an example
 
@@ -203,17 +203,25 @@ aws configure
 ```
 
 
-Navigate to the script directory and run the build.sh script. This script requires an S3 bucket name as an argument, which will be used to upload the model. Please make sure the bucket name is located in the same region as the CDK deployment. For example: If the S3 bucket is in `us-west-2`, then you can only deploy CDK in `us-west-2`. It also requires ETL image name, ETL image tag, and AWS region as arguments. The ETL image will be pushed to your ECR repo with the image name you specified.
+Then navigate to the script directory to run the `build.sh` script. This script simplifies the asset preparation process by providing default values for the S3 bucket name, ETL image name, and ETL image tag. These defaults are used for uploading the model to S3 and pushing the ETL image to your ECR repository. While you can specify custom values for these parameters, it's not required. If the specified S3 bucket or ECR repository does not exist, the script will create them for you. If you wish to specify existing s3 bucket, please make sure the bucket is in the same region as the deployment region.
+
+Default Values:
+- S3 Bucket Name: `intelli-agent-models-${account}-${aws_region}`
+- ETL Image Name: `intelli-agent-etl`
+- ETL Image Tag: `latest`
+
+You can simply run the script without any parameters to use the default settings.
 
 ```bash
 cd source/script
-sh build.sh -b <S3 bucket name> -i <ETL model name> -t <ETL tag name> -r <AWS region>
+sh build.sh
 ```
 
-Example:
+If you prefer to use custom values for the S3 bucket name, ETL image name, and ETL tag, you can specify them as follows:
 
 ```bash
-sh build.sh -b intelli-agent-model-bucket -i intelli-agent-etl -t latest -r us-east-1
+cd source/script
+sh build.sh -b intelli-agent-model-bucket -i intelli-agent-etl -t latest
 ```
 
 

@@ -1,385 +1,139 @@
-import collections.abc
 import copy
 import os
-from common_logic.common_utils.constant import ChatbotMode
+from common_logic.common_utils.constant import IndexType
+from common_logic.common_utils.logger_utils import get_logger
+from common_logic.common_utils.python_utils import update_nest_dict
+from common_logic.common_utils.pydantic_models import (
+    ChatbotConfig,
+    RagToolConfig,
+    ChatbotConfig,
+    LLMConfig,
+    PrivateKnowledgeRetrieverConfig
+)
+logger = get_logger("parse_config")
 
-# update nest dict
-def update_nest_dict(d, u):
-    for k, v in u.items():
-        if isinstance(v, collections.abc.Mapping):
-            d[k] = update_nest_dict(d.get(k, {}), v)
-        else:
-            d[k] = v
-    return d
-
-
-def parse_common_entry_config(chatbot_config):
-    chatbot_config = copy.deepcopy(chatbot_config)
-    default_llm_config_str = "{'model_id': 'anthropic.claude-3-sonnet-20240229-v1:0', 'model_kwargs': {'temperature': 0.0, 'max_tokens': 4096}}"
-    # get default_llm_kwargs from env
-    default_llm_config = eval(
-        os.environ.get("default_llm_config", default_llm_config_str)
-    )
-
-    default_llm_config = {
-        **default_llm_config,
-        **chatbot_config.get("default_llm_config", {}),
+class ConfigParserBase:
+    default_llm_config_str = "{'model_id': 'anthropic.claude-3-sonnet-20240229-v1:0', 'model_kwargs': {'temperature': 0.01, 'max_tokens': 4096}}"
+    default_index_names = {"intention":[], "private_knowledge":[], "qq_match":[]}
+    default_retriever_config = {
+        "intention": {
+            "top_k":5,
+            "query_key": "query"
+        },
+        "private_knowledge": {
+            "top_k":5,
+            "query_key": "query",
+            "context_num": 1,
+            "using_whole_doc": False
+        },
+        "qq_match": {
+            "top_k":5,
+            "query_key": "query"
+        }
     }
+    
+    @classmethod
+    def parse_default_llm_config(cls,chatbot_config):
+        default_llm_config = eval(
+            os.environ.get("default_llm_config", cls.default_llm_config_str)
+        )
+        default_llm_config = update_nest_dict(
+            copy.deepcopy(default_llm_config),
+            chatbot_config.pop("default_llm_config", {})
+        )
+        return default_llm_config
 
-    default_workspace_config = {"intent_workspace_ids": ["default-intent"], "rag_workspace_ids": ["test-pdf"]}
+    @classmethod
+    def parse_default_index_names(cls,chatbot_config):
+        default_index_names = update_nest_dict(
+            copy.deepcopy(cls.default_index_names),
+            chatbot_config.pop('default_index_names',{})
+        )
+        return default_index_names
+    
+    @classmethod
+    def parse_default_retriever_config(cls,chatbot_config):
+        default_retriever_config = update_nest_dict(
+            copy.deepcopy(cls.default_retriever_config),
+            chatbot_config.pop("default_retriever_config", {})
+        )
+        return default_retriever_config
 
-    default_workspace_config = {
-        **default_workspace_config,
-        **chatbot_config.get("default_workspace_config", {}),
-    }
+    
+    @classmethod
+    def from_chatbot_config(cls,chatbot_config:dict):
+        chatbot_config = copy.deepcopy(chatbot_config)
+        default_llm_config = cls.parse_default_llm_config(chatbot_config)
+        default_index_names = cls.parse_default_index_names(chatbot_config)
+        default_retriever_config = cls.parse_default_retriever_config(chatbot_config)
 
-    assert ChatbotMode.has_value(chatbot_config["chatbot_mode"]), chatbot_config[
-        "chatbot_mode"
-    ]
+        group_name = chatbot_config['group_name']
+        chatbot_id = chatbot_config['chatbot_id']
+        
+        # init chatbot config
+        chatbot_config_obj = ChatbotConfig(
+            group_name=group_name,
+            chatbot_id=chatbot_id
+        )
+        # init default llm
+        chatbot_config_obj.update_llm_config(default_llm_config)
 
-    default_chatbot_config = {
-        "chatbot_mode": ChatbotMode.chat,
-        "use_history": True,
-        "enable_trace": True,
-        "prompt_templates": {},
-        "agent_recursion_limit": 5,
-        "query_process_config": {
-            "conversation_query_rewrite_config": {**copy.deepcopy(default_llm_config)}
-        },
-        "intention_config": {
-            "retrievers": [
-                {
-                    "type": "qq",
-                    "workspace_ids": default_workspace_config["intent_workspace_ids"],
-                    "config": {
-                        "top_k": 10,
-                    },
-                },
-            ]
-        },
-        "agent_config": {**copy.deepcopy(default_llm_config), "tools": []},
-        "tool_execute_config": {
-            "knowledge_base_retriever": {
-                "retrievers": [
-                    {
-                        "type": "qd",
-                        "workspace_ids": [1],
-                        "top_k": 10,
-                    }
-                ]
-            }
-        },
-        "chat_config": {
-            **copy.deepcopy(default_llm_config),
-        },
-        "all_index_retriever_config":{
-            "retrievers": [
-                    {
-                        "type": "qd",
-                        "workspace_ids": default_workspace_config["rag_workspace_ids"],
-                        "config": {
-                            "top_k": 5,
-                            "using_whole_doc": False,
-                        },
-                    },
-                ],
-        },
-        "rag_config": {
-            "retriever_config": {
-                "retrievers": [
-                    {
-                        "type": "qd",
-                        "workspace_ids": default_workspace_config["rag_workspace_ids"],
-                        "config": {
-                            "top_k": 5,
-                            "using_whole_doc": False,
-                        },
-                    },
-                ],
-                "rerankers": [
-                    {
-                        "type": "reranker",
-                        "config": {
-                            "enable_debug": False,
-                            "target_model": "bge_reranker_model.tar.gz",
-                        },
-                    }
-                ],
-            },
-            "llm_config": {
-                **copy.deepcopy(default_llm_config),
-            },
-        },
-        "aws_qa_config": {
-            "retriever_config":{
-                "retrievers": [
-                    {
-                        "type": "qd",
-                        "workspace_ids": ['aws-ug-qd', 'aws-acts-qd'],
-                        "config": {
-                            "top_k": 10,
-                        }
-                    },
-                ],
-                "rerankers": [
-                    {
-                        "type": "reranker",
-                        "config": {
-                            "enable_debug": False,
-                            "target_model": "bge_reranker_model.tar.gz"
-                        }
-                    }
-                ],
-            },
-            "llm_config":{
-                **copy.deepcopy(default_llm_config),
-            }
-        },
-    }
-    chatbot_config = update_nest_dict(
-        copy.deepcopy(default_chatbot_config), chatbot_config
-    )
+        # init retriever
+        chatbot_config_obj.update_retrievers(
+            default_index_names,
+            default_retriever_config
+        )
+        # update chatbot config obj from event body
+        new_chatbot_config_obj = chatbot_config_obj.model_copy(
+            deep=True,update=chatbot_config
+        )
+        return new_chatbot_config_obj.model_dump()
 
-    # add default tools
-    tools: list = chatbot_config["agent_config"]["tools"]
-    if "give_rhetorical_question" not in tools:
-        tools.append("give_rhetorical_question")
 
-    if "give_final_response" not in tools:
-        tools.append("give_final_response")
+class CommonConfigParser(ConfigParserBase):
+    @classmethod
+    def from_chatbot_config(cls,chatbot_config:dict):
+        chatbot_config = super().from_chatbot_config(chatbot_config)
+        # add default tools
+        tools: list = chatbot_config["agent_config"]["tools"]
+        if "give_rhetorical_question" not in tools:
+            tools.append("give_rhetorical_question")
 
-    if "get_weather" not in tools:
-        tools.append("get_weather")
+        if "give_final_response" not in tools:
+            tools.append("give_final_response")
 
-    return chatbot_config
+        if "get_weather" not in tools:
+            tools.append("get_weather")
+        return chatbot_config
 
-def parse_retail_entry_config(chatbot_config):
-    chatbot_config = copy.deepcopy(chatbot_config)
-    default_llm_config_str = "{'model_id': 'anthropic.claude-3-sonnet-20240229-v1:0', 'model_kwargs': {'temperature': 0.1, 'max_tokens': 4096}}"
-    # get default_llm_kwargs from env
-    default_llm_config = eval(
-        os.environ.get("default_llm_config", default_llm_config_str)
-    )
 
-    default_llm_config = {
-        **default_llm_config,
-        **chatbot_config.get("default_llm_config", {}),
-    }
+class RetailConfigParser(ConfigParserBase):
+    @classmethod
+    def from_chatbot_config(cls,chatbot_config:dict):
+        # get index_infos
+        index_infos = ChatbotConfig.get_index_infos_from_ddb(
+            chatbot_config['group_name'],
+            chatbot_config['chatbot_id']
+        )
+        default_llm_config = cls.parse_default_llm_config(chatbot_config)
+        # add retail tools
+        default_tools_config = {}
+        rag_goods_exchange_config = RagToolConfig(
+            retrievers=[
+                PrivateKnowledgeRetrieverConfig(
+                    top_k=5,
+                    **ChatbotConfig.get_index_info(
+                        index_infos,
+                        index_type=IndexType.QQ,
+                        index_name="retail-quick-reply"
+                    )
+                )
+            ],
+            llm_config=LLMConfig(**default_llm_config)
+        )
+        default_tools_config['rag_goods_exchange_config'] = rag_goods_exchange_config
+        # 
 
-    assert ChatbotMode.has_value(chatbot_config["chatbot_mode"]), chatbot_config[
-        "chatbot_mode"
-    ]
-
-    default_chatbot_config = {
-        "chatbot_mode": ChatbotMode.agent,
-        "use_history": True,
-        "enable_trace": False,
-        "agent_recursion_limit": 3,
-        "query_process_config": {
-            "conversation_query_rewrite_config": copy.deepcopy(default_llm_config)
-        },
-        "intention_config": {
-            "query_key": "query_rewrite",
-            "retrievers": [
-                {
-                    "type": "qq",
-                    "workspace_ids": ["retail-intent"],
-                    "config": {
-                        "top_k": 5,
-                    }
-                },
-            ]
-        },
-        "agent_config": {**copy.deepcopy(default_llm_config), "tools": []},
-        "tool_execute_config": {
-            "knowledge_base_retriever": {
-                "retrievers": [
-                    {
-                        "type": "qd",
-                        "workspace_ids": [1],
-                        "top_k": 10,
-                    }
-                ]
-            }
-        },
-        "chat_config": {
-            **copy.deepcopy(default_llm_config),
-        },
-        "rag_goods_exchange_config": {
-            "retriever_config": {
-                "retrievers": [
-                    {
-                        "type": "qq",
-                        "workspace_ids": ["retail-quick-reply"],
-                        "config": {
-                            "top_k": 5
-                        },
-                    },
-                ]
-            },
-            "llm_config": {
-                **copy.deepcopy(default_llm_config),
-            },
-        },
-        "rag_daily_reception_config": {
-            "retriever_config": {
-                "retrievers": [
-                    {
-                        "type": "qq",
-                        "workspace_ids": ["retail-quick-reply"],
-                        "config": {
-                            "top_k": 5
-                        },
-                    },
-                ]
-            },
-            "llm_config": {
-                **copy.deepcopy(default_llm_config),
-            },
-        },
-        "rag_delivery_track_config": {
-            "retriever_config": {
-                "retrievers": [
-                    {
-                        "type": "qq",
-                        "workspace_ids": ["retail-quick-reply"],
-                        "config": {
-                            "top_k": 5
-                        },
-                    },
-                ]
-            },
-            "llm_config": {
-                **copy.deepcopy(default_llm_config),
-            },
-        },
-        "rag_product_aftersales_config": {
-            "retriever_config":{
-                "retrievers": [
-                    {
-                        "type": "qq",
-                        "workspace_ids": ['retail-shouhou-wuliu', 'retail-quick-reply'],
-                        "config": {
-                            "top_k": 5,
-                        }
-                    },
-                ],
-                "rerankers": [
-                    {
-                        "type": "reranker",
-                        "config": {
-                            "enable_debug": False,
-                            "target_model": "bge_reranker_model.tar.gz"
-                        }
-                    }
-                ],
-            },
-            "llm_config":{
-                **copy.deepcopy(default_llm_config),
-            }
-        },
-        "rag_customer_complain_config": {
-            "retriever_config":{
-                "retrievers": [
-                    {
-                        "type": "qq",
-                        "workspace_ids": ['retail-shouhou-wuliu','retail-quick-reply'],
-                        "config": {
-                            "top_k": 2,
-                        }
-                    },
-                ],
-                "rerankers": [
-                    {
-                        "type": "reranker",
-                        "config": {
-                            "enable_debug": False,
-                            "target_model": "bge_reranker_model.tar.gz"
-                        }
-                    }
-                ],
-            },
-            "llm_config":{
-                **copy.deepcopy(default_llm_config),
-            }
-        },
-        "rag_promotion_config": {
-            "retriever_config":{
-                "retrievers": [
-                    {
-                        "type": "qq",
-                        "workspace_ids": ['retail-shouhou-wuliu','retail-quick-reply'],
-                        "config": {
-                            "top_k": 2,
-                        }
-                    },
-                ],
-                "rerankers": [
-                    {
-                        "type": "reranker",
-                        "config": {
-                            "enable_debug": False,
-                            "target_model": "bge_reranker_model.tar.gz"
-                        }
-                    }
-                ],
-            },
-            "llm_config":{
-                **copy.deepcopy(default_llm_config),
-            }
-        },
-        "rag_goods_info_config": {
-            "retriever_config": {
-                "retrievers": [
-                    {
-                        "type": "qq",
-                        "workspace_ids": ["goods-info"],
-                        "config": {
-                            "top_k": 5
-                        },
-                    },
-                ]
-            },
-            "llm_config": {
-                **copy.deepcopy(default_llm_config),
-            },
-        },
-        "final_rag_retriever": {
-            "retriever_config":{
-                "retrievers": [
-                    {
-                        "type": "qq",
-                        "workspace_ids": ['retail-shouhou-wuliu','retail-quick-reply'],
-                        "config": {
-                            "top_k": 2,
-                        }
-                    },
-                ],
-                "rerankers": [
-                    {
-                        "type": "reranker",
-                        "config": {
-                            "enable_debug": False,
-                            "target_model": "bge_reranker_model.tar.gz"
-                        }
-                    }
-                ],
-            },
-            "llm_config":{
-                **copy.deepcopy(default_llm_config),
-            }
-        },
-    }
-    chatbot_config = update_nest_dict(
-        copy.deepcopy(default_chatbot_config), chatbot_config
-    )
-
-    # add default tools
-    tools: list = chatbot_config["agent_config"]["tools"]
-    # if "give_rhetorical_question" not in tools:
-    #     tools.append("give_rhetorical_question")
-
-    # if "give_final_response" not in tools:
-    #     tools.append("give_final_response")
-
-    return chatbot_config
+        chatbot_config['tools_config'] = default_tools_config
+        chatbot_config = super().from_chatbot_config(chatbot_config)
+        return chatbot_config

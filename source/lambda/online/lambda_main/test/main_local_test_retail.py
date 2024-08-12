@@ -20,9 +20,12 @@ def _test_multi_turns(user_queries, record_goods_id=False):
         # 'model_id': 'anthropic.claude-3-sonnet-20240229-v1:0',
         # 'model_id':"glm-4-9b-chat",
         # "endpoint_name": "glm-4-9b-chat-2024-06-18-07-37-03-843",
-        "model_id": "qwen2-72B-instruct",
-        "endpoint_name":  "Qwen2-72B-Instruct-AWQ-2024-06-25-02-15-34-347",
-        # "endpoint_name":  "Qwen2-7B-Instruct-AWQ-2024-07-03-14-42-22-781",
+        # "model_id": "qwen2-72B-instruct",
+        # "endpoint_name":  "Qwen2-72B-Instruct-AWQ-2024-06-25-02-15-34-347",
+        # "model_id": "qwen2-7B-instruct",
+        # "endpoint_name":  "Qwen2-7B-Instruct-AWQ-2024-07-10-09-49-39-020",
+        "model_id": "qwen1_5-32B-instruct",
+        "endpoint_name":  "Qwen1-2024-07-10-03-35-21-876",
         # "endpoint_name": 'Qwen2-72B-Instruct-GPTQ-Int4-2024-06-30-05-59-54-352',
         # "endpoint_name":  "Qwen2-72B-Instruct-AWQ-without-yarn-2024-06-29-12-31-04-818",
         # 'model_id': 'mistral.mixtral-8x7b-instruct-v0:1',
@@ -108,7 +111,12 @@ def batch_test(data_file, count=1000,add_eval_score=True,record_goods_id=False):
         # 'model_id':"glm-4-9b-chat",
         # "endpoint_name": "glm-4-9b-chat-2024-06-18-07-37-03-843",
         "model_id": "qwen2-72B-instruct",
-        "endpoint_name":  "Qwen2-72B-Instruct-AWQ-2024-06-25-02-15-34-347",
+        "endpoint_name": "Qwen2-72B-Instruct-AWQ-2024-06-25-02-15-34-347",
+        # "model_id": "qwen2-7B-instruct",
+        # "endpoint_name":  "Qwen2-7B-Instruct-AWQ-2024-07-10-09-49-39-020",
+        # "model_id": "qwen1_5-32B-instruct",
+        # "endpoint_name":  "Qwen1-2024-07-10-03-35-21-876",
+        
         # "endpoint_name":  "Qwen2-72B-Instruct-AWQ-without-yarn-2024-06-29-12-31-04-818",
         'model_kwargs': {
             'temperature': 0.01, 'max_tokens': 800,
@@ -135,7 +143,7 @@ def batch_test(data_file, count=1000,add_eval_score=True,record_goods_id=False):
     if record_goods_id:
         chatbot_config["history_config"]=['goods_id']
 
-    save_csv_path = f'anta_test/{session_prefix}_anta_test_qwen2-72b-instruct_{len(data)}.csv'
+    save_csv_path = f'anta_test/{session_prefix}_anta_test_{default_llm_config["model_id"]}_{len(data)}.csv'
 
 
     def _auto_eval_thread_helper(ret_q:queue.Queue):
@@ -185,7 +193,7 @@ def batch_test(data_file, count=1000,add_eval_score=True,record_goods_id=False):
             )
 
     
-    ret_q = queue.Queue(maxsize=1)
+    ret_q = queue.Queue()
 
     t = Thread(target=_auto_eval_thread_helper,args=(ret_q,))
     t.start()
@@ -227,7 +235,6 @@ def batch_test(data_file, count=1000,add_eval_score=True,record_goods_id=False):
             )
             print('r: ',r)
             trace_infos = r.get("trace_infos",[])
-            
             ai_msg = r['message']['content'].strip().rstrip("<|user|>").strip()
         except:
             import traceback
@@ -298,15 +305,15 @@ def complete_test():
 
 if __name__ == "__main__":
     # complete_test()
-    # test_multi_turns_anta("cn****0094",record_goods_id=True)
+    test_multi_turns_anta("cn****0094", record_goods_id=True)
     # test_multi_turns()
     # test_multi_turns_0090() 
     # test_multi_turns_0077()
     # test_multi_turns_pr("agent")
-    batch_test(
-        data_file="/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/customer_poc/anta/anta_batch_test - batch-test-csv-file-626.csv",
-        record_goods_id=True
-    )
+    # batch_test(
+    #     data_file="/efs/projects/aws-samples-llm-bot-branches/aws-samples-llm-bot-dev-online-refactor/customer_poc/anta/anta_batch_test - batch-test-csv-file-626.csv",
+    #     record_goods_id=True
+    # )
     # batch_test()
     # test(
     #     chatbot_mode='agent',

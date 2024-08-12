@@ -1,10 +1,8 @@
 # rag llm chains
-
-
 from langchain.prompts import (
     ChatPromptTemplate,
     HumanMessagePromptTemplate,
-    SystemMessagePromptTemplate,
+    SystemMessagePromptTemplate
 )
 
 from langchain.schema.runnable import RunnableLambda, RunnablePassthrough
@@ -13,6 +11,7 @@ from common_logic.common_utils.constant import (
     LLMModelType
 )
 from common_logic.common_utils.prompt_utils import get_prompt_template
+from common_logic.common_utils.logger_utils import print_llm_messages
 
 # from ...prompt_template import convert_chat_history_from_fstring_format
 from ..llm_models import Model
@@ -38,9 +37,6 @@ class Claude2RagLLMChain(LLMChain):
     @classmethod
     def create_chain(cls, model_kwargs=None, **kwargs):
         stream = kwargs.get("stream", False)
-        # history
-        # chat_history = kwargs.get("chat_history", [])
-        
         system_prompt_template = get_prompt_template(
             model_id=cls.model_id,
             task_type=cls.intent_type,
@@ -58,7 +54,7 @@ class Claude2RagLLMChain(LLMChain):
             context=RunnableLambda(lambda x: get_claude_rag_context(x["contexts"]))
         )
         llm = Model.get_model(cls.model_id, model_kwargs=model_kwargs, **kwargs)
-        chain = context_chain | ChatPromptTemplate.from_messages(chat_messages)
+        chain = context_chain | ChatPromptTemplate.from_messages(chat_messages) | RunnableLambda(lambda x: print_llm_messages(f"rag messages: {x.messages}") or x)
         if stream:
             chain = (
                 chain
@@ -131,6 +127,11 @@ class Qwen2Instruct7BRagChain(Qwen2Instruct7BChatChain):
 
 class Qwen2Instruct72BRagChain(Qwen2Instruct7BRagChain):
     model_id = LLMModelType.QWEN2INSTRUCT72B
+
+
+class Qwen2Instruct72BRagChain(Qwen2Instruct7BRagChain):
+    model_id = LLMModelType.QWEN15INSTRUCT32B
+
 
 from .chat_chain import Baichuan2Chat13B4BitsChatChain
 

@@ -31,6 +31,7 @@ import {
 } from 'src/utils/const';
 import { v4 as uuidv4 } from 'uuid';
 import { MessageDataType, SessionMessage } from 'src/types';
+import { isValidJson } from 'src/utils/utils';
 
 interface MessageType {
   type: 'ai' | 'human';
@@ -79,6 +80,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const [useChatHistory, setUseChatHistory] = useState(true);
   const [enableTrace, setEnableTrace] = useState(true);
   const [showTrace, setShowTrace] = useState(true);
+  const [onlyRAGTool, setOnlyRAGTool] = useState(false);
   // const [useWebSearch, setUseWebSearch] = useState(false);
   // const [googleAPIKey, setGoogleAPIKey] = useState('');
   const [retailGoods, setRetailGoods] = useState<SelectProps.Option>(
@@ -100,12 +102,14 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const [showMessageError, setShowMessageError] = useState(false);
   // const [googleAPIKeyError, setGoogleAPIKeyError] = useState(false);
   const [isMessageEnd, setIsMessageEnd] = useState(false);
+  const [additionalConfig, setAdditionalConfig] = useState('');
 
   // validation
   const [modelError, setModelError] = useState('');
   const [temperatureError, setTemperatureError] = useState('');
   const [maxTokenError, setMaxTokenError] = useState('');
   const [modelSettingExpand, setModelSettingExpand] = useState(false);
+  const [additionalConfigError, setAdditionalConfigError] = useState('');
 
   const connectionStatus = {
     [ReadyState.CONNECTING]: 'loading',
@@ -121,7 +125,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const getWorkspaceList = async () => {
     try {
       const data = await fetchData({
-        url: 'etl/list-workspace',
+        url: 'chatbot-management/chatbots',
         method: 'get',
       });
       setWorkspaceIds(data.workspace_ids);
@@ -135,7 +139,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     try {
       setLoadingHistory(true);
       const data = await fetchData({
-        url: `ddb/list-messages`,
+        url: `chat-history/messages`,
         method: 'get',
         params: {
           session_id: historySessionId,
@@ -146,10 +150,17 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       const sessionMessage: SessionMessage[] = data.Items;
       setMessages(
         sessionMessage.map((msg) => {
+          let messageContent = msg.content;
+          // Handle AI images message
+          if (msg.role === 'ai' && msg.additional_kwargs.figure.length > 0) {
+            msg.additional_kwargs.figure.forEach((item) => {
+              messageContent += ` \n ![${item.content_type}](/${encodeURIComponent(item.figure_path)})`;
+            });
+          }
           return {
             type: msg.role,
             message: {
-              data: msg.content,
+              data: messageContent,
               monitoring: '',
             },
           };
@@ -188,6 +199,18 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       setCurrentAIMessage((prev) => {
         return prev + (message?.message?.content ?? '');
       });
+    } else if (message.message_type === 'CONTEXT') {
+      // handle context message
+      if (message.ddb_additional_kwargs?.figure?.length > 0) {
+        message.ddb_additional_kwargs.figure.forEach((item) => {
+          setCurrentAIMessage((prev) => {
+            return (
+              prev +
+              ` \n ![${item.content_type}](/${encodeURIComponent(item.figure_path)})`
+            );
+          });
+        });
+      }
     } else if (message.message_type === 'END') {
       setIsMessageEnd(true);
     }
@@ -269,6 +292,13 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       return;
     }
 
+    // validate additional config
+    if (additionalConfig.trim() && !isValidJson(additionalConfig)) {
+      setAdditionalConfigError('validation.invalidJson');
+      setModelSettingExpand(true);
+      return;
+    }
+
     setUserMessage('');
     setAiSpeaking(true);
     setCurrentAIMessage('');
@@ -278,7 +308,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     //   setGoogleAPIKeyError(true);
     //   return;
     // }
-    const message = {
+    let message = {
       query: userMessage,
       entry_type: scenario.value,
       session_id: sessionId,
@@ -289,8 +319,8 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
         enable_trace: enableTrace,
         use_websearch: true,
         google_api_key: '',
-        default_workspace_config: {
-          rag_workspace_ids: workspaceIds,
+        default_index_config: {
+          rag_index_ids: workspaceIds,
         },
         default_llm_config: {
           model_id: modelOption,
@@ -301,8 +331,23 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
             max_tokens: parseInt(maxToken),
           },
         },
+        agent_config: {
+          only_use_rag_tool: onlyRAGTool,
+        },
       },
     };
+
+    // add additional config
+    if (additionalConfig.trim()) {
+      const knownObject = JSON.parse(additionalConfig);
+      message = {
+        ...message,
+        chatbot_config: {
+          ...message.chatbot_config,
+          ...knownObject,
+        },
+      };
+    }
 
     console.info('send message:', message);
     sendMessage(JSON.stringify(message));
@@ -432,14 +477,22 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                   onChange={({ detail }) => setEnableTrace(detail.checked)}
                   checked={enableTrace}
                 >
-                  Enable trace
+                  {t('enableTrace')}
                 </Toggle>
                 {enableTrace && (
                   <Toggle
                     onChange={({ detail }) => setShowTrace(detail.checked)}
                     checked={showTrace}
                   >
-                    Show trace
+                    {t('showTrace')}
+                  </Toggle>
+                )}
+                {chatModeOption.value === 'agent' && (
+                  <Toggle
+                    onChange={({ detail }) => setOnlyRAGTool(detail.checked)}
+                    checked={onlyRAGTool}
+                  >
+                    {t('onlyUseRAGTool')}
                   </Toggle>
                 )}
 
@@ -486,90 +539,113 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
               headingTagOverride="h4"
               headerText={t('modelSettings')}
             >
-              <ColumnLayout columns={3} variant="text-grid">
-                <FormField label={t('scenario')} stretch={true}>
-                  <Select
-                    options={SCENARIO_LIST}
-                    selectedOption={scenario}
-                    onChange={({ detail }) => {
-                      setScenario(detail.selectedOption);
-                    }}
-                  />
-                  {scenario.value == 'retail' && (
-                    <div style={{ minWidth: 300 }}>
-                      <Select
-                        options={RETAIL_GOODS_LIST}
-                        selectedOption={retailGoods}
-                        onChange={({ detail }) => {
-                          setRetailGoods(detail.selectedOption);
-                        }}
-                      />
-                    </div>
-                  )}
-                </FormField>
-                <SpaceBetween size="xs">
-                  <FormField
-                    label={t('modelName')}
-                    stretch={true}
-                    errorText={t(modelError)}
-                  >
-                    <Autosuggest
+              <SpaceBetween direction="vertical" size="l">
+                <ColumnLayout columns={3} variant="text-grid">
+                  <FormField label={t('scenario')} stretch={true}>
+                    <Select
+                      options={SCENARIO_LIST}
+                      selectedOption={scenario}
                       onChange={({ detail }) => {
-                        setModelError('');
-                        setModelOption(detail.value);
+                        setScenario(detail.selectedOption);
                       }}
-                      value={modelOption}
-                      options={modelList}
-                      placeholder={t('validation.requireModel')}
-                      empty={t('noModelFound')}
                     />
+                    {scenario.value == 'retail' && (
+                      <div style={{ minWidth: 300 }}>
+                        <Select
+                          options={RETAIL_GOODS_LIST}
+                          selectedOption={retailGoods}
+                          onChange={({ detail }) => {
+                            setRetailGoods(detail.selectedOption);
+                          }}
+                        />
+                      </div>
+                    )}
                   </FormField>
-                  {showEndpoint && (
+                  <SpaceBetween size="xs">
                     <FormField
-                      label={t('endPoint')}
+                      label={t('modelName')}
                       stretch={true}
-                      errorText={t(endPointError)}
+                      errorText={t(modelError)}
                     >
-                      <Input
+                      <Autosuggest
                         onChange={({ detail }) => {
-                          setEndPointError('');
-                          setEndPoint(detail.value);
+                          setModelError('');
+                          setModelOption(detail.value);
                         }}
-                        value={endPoint}
-                        placeholder="QWen2-72B-XXXXX"
+                        value={modelOption}
+                        options={modelList}
+                        placeholder={t('validation.requireModel')}
+                        empty={t('noModelFound')}
                       />
                     </FormField>
-                  )}
-                </SpaceBetween>
+                    {showEndpoint && (
+                      <FormField
+                        label={t('endPoint')}
+                        stretch={true}
+                        errorText={t(endPointError)}
+                      >
+                        <Input
+                          onChange={({ detail }) => {
+                            setEndPointError('');
+                            setEndPoint(detail.value);
+                          }}
+                          value={endPoint}
+                          placeholder="QWen2-72B-XXXXX"
+                        />
+                      </FormField>
+                    )}
+                  </SpaceBetween>
+                  <FormField
+                    label={t('maxTokens')}
+                    stretch={true}
+                    errorText={t(maxTokenError)}
+                  >
+                    <Input
+                      type="number"
+                      value={maxToken}
+                      onChange={({ detail }) => {
+                        setMaxTokenError('');
+                        setMaxToken(detail.value);
+                      }}
+                    />
+                  </FormField>
+                  <FormField
+                    label={t('temperature')}
+                    stretch={true}
+                    errorText={t(temperatureError)}
+                  >
+                    <Input
+                      type="number"
+                      value={temperature}
+                      onChange={({ detail }) => {
+                        setTemperatureError('');
+                        setTemperature(detail.value);
+                      }}
+                    />
+                  </FormField>
+                </ColumnLayout>
                 <FormField
-                  label={t('maxTokens')}
-                  stretch={true}
-                  errorText={t(maxTokenError)}
+                  label={t('additionalSettings')}
+                  errorText={t(additionalConfigError)}
                 >
-                  <Input
-                    type="number"
-                    value={maxToken}
+                  <Textarea
+                    rows={7}
+                    value={additionalConfig}
                     onChange={({ detail }) => {
-                      setMaxTokenError('');
-                      setMaxToken(detail.value);
+                      setAdditionalConfigError('');
+                      setAdditionalConfig(detail.value);
                     }}
+                    placeholder={JSON.stringify(
+                      {
+                        key: 'value',
+                        key2: ['value1', 'value2'],
+                      },
+                      null,
+                      4,
+                    )}
                   />
                 </FormField>
-                <FormField
-                  label={t('temperature')}
-                  stretch={true}
-                  errorText={t(temperatureError)}
-                >
-                  <Input
-                    type="number"
-                    value={temperature}
-                    onChange={({ detail }) => {
-                      setTemperatureError('');
-                      setTemperature(detail.value);
-                    }}
-                  />
-                </FormField>
-              </ColumnLayout>
+              </SpaceBetween>
             </ExpandableSection>
           </div>
         </div>

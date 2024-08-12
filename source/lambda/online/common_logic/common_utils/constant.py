@@ -1,12 +1,35 @@
-class ConstantBase:
+from enum import Enum, unique, EnumMeta
+
+
+class EnumDirectValueMeta(EnumMeta):
+    def __getattribute__(cls, name):
+        value = super().__getattribute__(name)
+        if isinstance(value, cls):
+            value = value.value
+        return value
+    
+    def __call__(*args,**kwargs):
+        r = EnumMeta.__call__(*args,**kwargs)
+        return r.value
+
+class ConstantBase(Enum,metaclass=EnumDirectValueMeta):
     @classmethod
     def has_value(cls, value):
-        return value in list(cls.__dict__.values())
+        return value in cls._value2member_map_ 
+    
+    @classmethod
+    def all_values(cls):
+        return list(cls._value2member_map_.keys())
+    
 
 class EntryType(ConstantBase):
     COMMON = "common"
     RETAIL = "retail"
-    DGR = "aws-knowledge"
+
+class SceneType(ConstantBase):
+    COMMON = "common"
+    RETAIL = "retail"
+    AWS_QA = "aws-qa"
     
 Type = EntryType
 class IntentType(ConstantBase):
@@ -82,8 +105,13 @@ class StreamMessageType(ConstantBase):
 
 class ChatbotMode(ConstantBase):
     chat = "chat" # chi-chat
-    rag_mode = "rag"  # rag
+    # rag_mode = "rag"  # rag
     agent = "agent" # rag + tool use
+
+
+class ToolRuningMode(ConstantBase):
+    LOOP = "loop"
+    ONCE = "once"
 
 
 class LLMModelType(ConstantBase):
@@ -102,7 +130,33 @@ class LLMModelType(ConstantBase):
     CHATGPT_4O = "gpt-4o"
     QWEN2INSTRUCT7B = "qwen2-7B-instruct"
     QWEN2INSTRUCT72B = "qwen2-72B-instruct"
-    
+    QWEN15INSTRUCT32B = "qwen1_5-32B-instruct"
     
 
+@unique
+class Status(Enum):
+    ACTIVE = "active"
+    INACTIVE = "inactive"
 
+
+
+class IndexType(ConstantBase):
+    QD = "qd"
+    QQ = "qq"
+    INTENTION = "intention"
+
+
+@unique
+class ModelType(Enum):
+    EMBEDDING = "embedding_and_rerank"
+    LLM = "llm"
+
+
+@unique
+class IndexTag(Enum):
+    COMMON = "common"
+
+
+@unique
+class KBType(Enum):
+    AOS = "aos"

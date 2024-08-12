@@ -21,8 +21,6 @@ SYSTEM_MESSAGE_TYPE = MessageType.SYSTEM_MESSAGE_TYPE
 
 logger = get_logger("llm_model")
 
-
-
 class ModeMixins:
     @staticmethod
     def convert_messages_role(messages:list[dict],role_map:dict):
@@ -348,6 +346,10 @@ class Qwen2Instruct7B(SagemakerModelBase):
 
 class Qwen2Instruct72B(Qwen2Instruct7B):
     model_id = LLMModelType.QWEN2INSTRUCT72B
+
+
+class Qwen2Instruct72B(Qwen2Instruct7B):
+    model_id = LLMModelType.QWEN15INSTRUCT32B
 
 
 # ChatGPT model type
