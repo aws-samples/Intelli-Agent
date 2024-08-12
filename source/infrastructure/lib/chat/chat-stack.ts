@@ -20,47 +20,75 @@ import { join } from "path";
 import { Constants } from "../shared/constants";
 import { LambdaLayers } from "../shared/lambda-layers";
 import { QueueConstruct } from "./chat-queue";
-import { Function, Runtime, Code, Architecture, DockerImageFunction, DockerImageCode } from 'aws-cdk-lib/aws-lambda';
+import { Function, Runtime, Code, Architecture } from 'aws-cdk-lib/aws-lambda';
 import { IAMHelper } from "../shared/iam-helper";
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
+import { Queue } from 'aws-cdk-lib/aws-sqs';
 import { SystemConfig } from "../shared/types";
-import { SharedConstruct } from "../shared/shared-construct";
-import { ModelConstruct } from "../model/model-construct";
+import { SharedConstruct, SharedConstructOutputs } from "../shared/shared-construct";
+import { ModelConstructOutputs } from "../model/model-construct";
 import { ChatTablesConstruct } from "./chat-tables";
 
 
 interface ChatStackProps extends StackProps {
   readonly config: SystemConfig;
-  readonly sharedConstruct: SharedConstruct;
-  readonly modelConstruct: ModelConstruct;
+  readonly sharedConstructOutputs: SharedConstructOutputs;
+  readonly modelConstructOutputs: ModelConstructOutputs;
   readonly domainEndpoint: string;
 }
 
-export class ChatStack extends NestedStack {
+export interface ChatStackOutputs {
+  sessionsTableName: string;
+  messagesTableName: string;
+  promptTableName: string;
+  intentionTableName: string;
+  sqsStatement: iam.PolicyStatement;
+  messageQueue: Queue;
+  dlq: Queue;
+  lambdaOnlineMain: Function;
+}
+
+export class ChatStack extends NestedStack implements ChatStackOutputs {
+
+  public sessionsTableName: string;
+  public messagesTableName: string;
+  public promptTableName: string;
+  public intentionTableName: string;
+  public sqsStatement: iam.PolicyStatement;
+  public messageQueue: Queue;
+  public dlq: Queue;
+  public lambdaOnlineMain: Function;
 
   private iamHelper: IAMHelper;
-  public chatTablesConstruct: ChatTablesConstruct;
-  public chatQueueConstruct: QueueConstruct;
-  public lambdaOnlineMain: Function;
+  private indexTableName: string;
+  private modelTableName: string;
+  private chatbotTableName: string;
 
   constructor(scope: Construct, id: string, props: ChatStackProps) {
     super(scope, id);
 
-    this.iamHelper = props.sharedConstruct.iamHelper;
-    const vpc = props.sharedConstruct.vpcConstruct.vpc;
-    const securityGroup = props.sharedConstruct.vpcConstruct.securityGroup;
+    this.iamHelper = props.sharedConstructOutputs.iamHelper;
+    const vpc = props.sharedConstructOutputs.vpc;
+    const securityGroup = props.sharedConstructOutputs.securityGroup;
     const domainEndpoint = props.domainEndpoint;
 
     const chatTablesConstruct = new ChatTablesConstruct(this, "chat-tables");
 
-    this.chatTablesConstruct = chatTablesConstruct;
+    this.sessionsTableName = chatTablesConstruct.sessionsTableName;
+    this.messagesTableName = chatTablesConstruct.messagesTableName;
+    this.promptTableName = chatTablesConstruct.promptTableName;
+    this.intentionTableName = chatTablesConstruct.intentionTableName;
+    this.chatbotTableName = props.sharedConstructOutputs.chatbotTable.tableName;
+    this.indexTableName = props.sharedConstructOutputs.indexTable.tableName;
+    this.modelTableName = props.sharedConstructOutputs.modelTable.tableName;
+    this.chatbotTableName = props.sharedConstructOutputs.chatbotTable.tableName;
 
     const chatQueueConstruct = new QueueConstruct(this, "LLMQueueStack", {
       namePrefix: Constants.API_QUEUE_NAME,
     });
-    this.chatQueueConstruct = chatQueueConstruct;
-    const sqsStatement = chatQueueConstruct.sqsStatement;
-    const messageQueue = chatQueueConstruct.messageQueue;
+    this.sqsStatement = chatQueueConstruct.sqsStatement;
+    this.messageQueue = chatQueueConstruct.messageQueue;
+    this.dlq = chatQueueConstruct.dlq;
 
     const lambdaLayers = new LambdaLayers(this);
     const apiLambdaOnlineSourceLayer = lambdaLayers.createOnlineSourceLayer();
@@ -90,14 +118,14 @@ export class ChatStack extends NestedStack {
       layers: [apiLambdaOnlineSourceLayer, apiLambdaJobSourceLayer],
       environment: {
         AOS_ENDPOINT: domainEndpoint,
-        RERANK_ENDPOINT: props.modelConstruct.embeddingAndRerankerEndpoint.endpointName ?? "",
-        EMBEDDING_ENDPOINT: props.modelConstruct.embeddingAndRerankerEndpoint.endpointName ?? "",
-        CHATBOT_TABLE_NAME: props.sharedConstruct.chatbotTable.tableName,
+        RERANK_ENDPOINT: props.modelConstructOutputs.defaultEmbeddingModelName,
+        EMBEDDING_ENDPOINT: props.modelConstructOutputs.defaultEmbeddingModelName,
+        CHATBOT_TABLE_NAME: props.sharedConstructOutputs.chatbotTable.tableName,
         SESSIONS_TABLE_NAME: chatTablesConstruct.sessionsTableName,
         MESSAGES_TABLE_NAME: chatTablesConstruct.messagesTableName,
         PROMPT_TABLE_NAME: chatTablesConstruct.promptTableName,
-        MODEL_TABLE_NAME: chatTablesConstruct.modelTableName,
-        INDEX_TABLE_NAME: chatTablesConstruct.indexTableName,
+        MODEL_TABLE_NAME: this.modelTableName,
+        INDEX_TABLE_NAME: this.indexTableName,
         OPENAI_KEY_ARN: openAiKey.secretArn,
       },
     });
@@ -117,9 +145,9 @@ export class ChatStack extends NestedStack {
         resources: ["*"],
       }),
     );
-    lambdaOnlineMain.addToRolePolicy(sqsStatement);
+    lambdaOnlineMain.addToRolePolicy(this.sqsStatement);
     lambdaOnlineMain.addEventSource(
-      new lambdaEventSources.SqsEventSource(messageQueue, { batchSize: 1 }),
+      new lambdaEventSources.SqsEventSource(this.messageQueue, { batchSize: 1 }),
     );
     lambdaOnlineMain.addToRolePolicy(this.iamHelper.s3Statement);
     lambdaOnlineMain.addToRolePolicy(this.iamHelper.endpointStatement);
@@ -274,9 +302,9 @@ export class ChatStack extends NestedStack {
       securityGroups: [securityGroup],
       architecture: Architecture.X86_64,
       environment: {
-        CHATBOT_TABLE: props.sharedConstruct.chatbotTable.tableName,
-        INDEX_TABLE: chatTablesConstruct.indexTableName,
-        MODEL_TABLE: chatTablesConstruct.modelTableName,
+        CHATBOT_TABLE: props.sharedConstructOutputs.chatbotTable.tableName,
+        INDEX_TABLE: this.indexTableName,
+        MODEL_TABLE: this.modelTableName,
       },
       layers: [apiLambdaOnlineSourceLayer, apiLambdaJobSourceLayer],
     });

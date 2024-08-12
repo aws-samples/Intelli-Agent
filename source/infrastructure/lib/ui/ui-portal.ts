@@ -23,11 +23,14 @@ import {
 } from "aws-cdk-lib";
 import { CloudFrontToS3 } from "@aws-solutions-constructs/aws-cloudfront-s3";
 
-
+export interface PortalConstructOutputs {
+  portalBucket: s3.Bucket;
+  portalUrl: string;
+}
 /**
  * Construct to provision Portal assets and CloudFront Distribution
  */
-export class PortalConstruct extends Construct {
+export class PortalConstruct extends Construct implements PortalConstructOutputs {
   public portalBucket: s3.Bucket;
   public portalUrl: string;
 
