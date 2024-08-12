@@ -53,7 +53,7 @@ export class RootStack extends Stack {
 
     const portalConstruct = new PortalConstruct(this, "ui-construct");
 
-    if (props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.enabled) {
+    if (props.config.knowledgeBase.enabled && props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.enabled) {
       knowledgeBaseStack = new KnowledgeBaseStack(this, "knowledge-base-stack", {
         config: props.config,
         sharedConstructOutputs: sharedConstruct,
