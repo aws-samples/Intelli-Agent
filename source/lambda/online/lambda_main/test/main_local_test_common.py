@@ -222,6 +222,10 @@ def bigo_test():
     session_id = f"multiturn_test_{time.time()}"
     user_queries = [
         {
+            "query": "可以帮忙看看xx这台机，是不是配置太低还是怎么，感觉没启动几个服务，负载比较高",
+            "use_history": False
+        },
+        {
             "query": "如何申请跳板机和服务器的登录权限",
             "use_history": False
         },
@@ -246,6 +250,17 @@ def bigo_test():
             "use_history": False
         },
     ]
+    test_rag_system_prompt = """You are a customer service agent, and answering user's query. You ALWAYS follow these guidelines when writing your response:
+    <guidelines>
+    - NERVER say "根据搜索结果/大家好/谢谢/根据这个文档...".
+    - 回答简单明了
+    - 如果问题与<docs>里面的内容不相关，请回答 "根据内部知识库，找不到相关内容"，不需要额外补充内容
+    </guidelines>
+
+    Here are some documents for you to reference for your query.
+    <docs>
+    {context}
+    </docs>"""
 
     for query in user_queries:
         print()
@@ -265,6 +280,11 @@ def bigo_test():
             "default_index_names": {
                 "qq_match": ['admin-qq-bigo_qq'],
                 "private_knowledge": ['admin-qd-bigo_qd'],
+            },
+            "private_knowledge_config": {
+                "llm_config":{
+                    "system_prompt": test_rag_system_prompt,
+                }
             },
             "agent_config": {
                 "only_use_rag_tool": True
