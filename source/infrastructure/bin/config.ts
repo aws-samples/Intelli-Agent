@@ -11,12 +11,12 @@ export function getConfig(): SystemConfig {
   // Default config
   return {
     prefix: "",
+    email: "test@test.com",
     knowledgeBase: {
       enabled: true,
       knowledgeBaseType: {
         intelliAgentKb: {
           enabled: true,
-          email: "test@test.com",
           vectorStore: {
             opensearch: {
               enabled: true,
