@@ -31,29 +31,27 @@ export interface SharedConstructProps {
 
 export interface SharedConstructOutputs {
   iamHelper: IAMHelper;
-  vpc: Vpc;
-  securityGroup: SecurityGroup;
   chatbotTable: dynamodb.Table;
   indexTable: dynamodb.Table;
   modelTable: dynamodb.Table;
   resultBucket: s3.Bucket;
+  vpc?: Vpc;
+  securityGroups?: [SecurityGroup];
 }
 
 export class SharedConstruct extends Construct implements SharedConstructOutputs {
   public iamHelper: IAMHelper;
-  public vpc: Vpc;
-  public securityGroup: SecurityGroup;
   public chatbotTable: dynamodb.Table;
   public indexTable: dynamodb.Table;
   public modelTable: dynamodb.Table;
   public resultBucket: s3.Bucket;
+  public vpc?: Vpc;
+  public securityGroups?: [SecurityGroup];
 
   constructor(scope: Construct, id: string) {
     super(scope, id);
 
     const iamHelper = new IAMHelper(this, "iam-helper");
-
-    const vpcConstruct = new VpcConstruct(this, "vpc-construct");
 
     const groupNameAttr = {
       name: "groupName",
@@ -81,8 +79,6 @@ export class SharedConstruct extends Construct implements SharedConstructOutputs
     });
 
     this.iamHelper = iamHelper;
-    this.vpc = vpcConstruct.vpc;
-    this.securityGroup = vpcConstruct.securityGroup;
     this.chatbotTable = chatbotTable;
     this.indexTable = indexTable;
     this.modelTable = modelTable;

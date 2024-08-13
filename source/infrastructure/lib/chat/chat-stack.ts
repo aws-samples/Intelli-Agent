@@ -20,7 +20,6 @@ import { join } from "path";
 import { Constants } from "../shared/constants";
 import { LambdaLayers } from "../shared/lambda-layers";
 import { QueueConstruct } from "./chat-queue";
-import { Function, Runtime, Code, Architecture } from 'aws-cdk-lib/aws-lambda';
 import { IAMHelper } from "../shared/iam-helper";
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
@@ -28,6 +27,8 @@ import { SystemConfig } from "../shared/types";
 import { SharedConstruct, SharedConstructOutputs } from "../shared/shared-construct";
 import { ModelConstructOutputs } from "../model/model-construct";
 import { ChatTablesConstruct } from "./chat-tables";
+import { LambdaFunction } from "../shared/lambda-helper";
+import { Runtime, Code, Function, Architecture } from "aws-cdk-lib/aws-lambda";
 
 
 interface ChatStackProps extends StackProps {
@@ -62,14 +63,19 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
   private iamHelper: IAMHelper;
   private indexTableName: string;
   private modelTableName: string;
+  private lambdaOnlineQueryPreprocess: Function;
+  private lambdaOnlineIntentionDetection: Function;
+  private lambdaOnlineAgent: Function;
+  private lambdaOnlineLLMGenerate: Function;
   private chatbotTableName: string;
+  private lambdaOnlineFunctions: Function;
 
   constructor(scope: Construct, id: string, props: ChatStackProps) {
     super(scope, id);
 
     this.iamHelper = props.sharedConstructOutputs.iamHelper;
     const vpc = props.sharedConstructOutputs.vpc;
-    const securityGroup = props.sharedConstructOutputs.securityGroup;
+    const securityGroups = props.sharedConstructOutputs.securityGroups;
     const domainEndpoint = props.domainEndpoint;
 
     const chatTablesConstruct = new ChatTablesConstruct(this, "chat-tables");
@@ -81,7 +87,6 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
     this.chatbotTableName = props.sharedConstructOutputs.chatbotTable.tableName;
     this.indexTableName = props.sharedConstructOutputs.indexTable.tableName;
     this.modelTableName = props.sharedConstructOutputs.modelTable.tableName;
-    this.chatbotTableName = props.sharedConstructOutputs.chatbotTable.tableName;
 
     const chatQueueConstruct = new QueueConstruct(this, "LLMQueueStack", {
       namePrefix: Constants.API_QUEUE_NAME,
@@ -101,21 +106,15 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
         generateStringKey: "key",
       }
     });
-    const lambdaOnlineMain = new Function(this, "lambdaOnlineMain", {
+    const lambdaOnlineMain = new LambdaFunction(this, "lambdaOnlineMain", {
       runtime: Runtime.PYTHON_3_12,
       handler: "main.lambda_handler",
       code: Code.fromAsset(
         join(__dirname, "../../../lambda/online/lambda_main"),
       ),
-      timeout: Duration.minutes(15),
       memorySize: 4096,
       vpc: vpc,
-      vpcSubnets: {
-        subnets: vpc.privateSubnets,
-      },
-      securityGroups: [securityGroup],
-      architecture: Architecture.X86_64,
-      layers: [apiLambdaOnlineSourceLayer, apiLambdaJobSourceLayer],
+      securityGroups: securityGroups,
       environment: {
         AOS_ENDPOINT: domainEndpoint,
         RERANK_ENDPOINT: props.modelConstructOutputs.defaultEmbeddingModelName,
@@ -128,9 +127,11 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
         INDEX_TABLE_NAME: this.indexTableName,
         OPENAI_KEY_ARN: openAiKey.secretArn,
       },
+      layers: [apiLambdaOnlineSourceLayer, apiLambdaJobSourceLayer],
     });
+    this.lambdaOnlineMain = lambdaOnlineMain.function;
 
-    lambdaOnlineMain.addToRolePolicy(
+    this.lambdaOnlineMain.addToRolePolicy(
       new iam.PolicyStatement({
         actions: [
           "es:ESHttpGet",
@@ -145,36 +146,29 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
         resources: ["*"],
       }),
     );
-    lambdaOnlineMain.addToRolePolicy(this.sqsStatement);
-    lambdaOnlineMain.addEventSource(
+    this.lambdaOnlineMain.addToRolePolicy(this.sqsStatement);
+    this.lambdaOnlineMain.addEventSource(
       new lambdaEventSources.SqsEventSource(this.messageQueue, { batchSize: 1 }),
     );
-    lambdaOnlineMain.addToRolePolicy(this.iamHelper.s3Statement);
-    lambdaOnlineMain.addToRolePolicy(this.iamHelper.endpointStatement);
-    lambdaOnlineMain.addToRolePolicy(this.iamHelper.dynamodbStatement);
-    openAiKey.grantRead(lambdaOnlineMain);
+    this.lambdaOnlineMain.addToRolePolicy(this.iamHelper.s3Statement);
+    this.lambdaOnlineMain.addToRolePolicy(this.iamHelper.endpointStatement);
+    this.lambdaOnlineMain.addToRolePolicy(this.iamHelper.dynamodbStatement);
+    openAiKey.grantRead(this.lambdaOnlineMain);
 
-    this.lambdaOnlineMain = lambdaOnlineMain;
-
-    const lambdaOnlineQueryPreprocess = new Function(this, "lambdaOnlineQueryPreprocess", {
+    const lambdaOnlineQueryPreprocess = new LambdaFunction(this, "lambdaOnlineQueryPreprocess", {
       runtime: Runtime.PYTHON_3_12,
       handler: "query_preprocess.lambda_handler",
-      functionName: "Online_Query_Preprocess",
       code: Code.fromAsset(
         join(__dirname, "../../../lambda/online/lambda_query_preprocess"),
       ),
-      timeout: Duration.minutes(15),
       memorySize: 4096,
       vpc: vpc,
-      vpcSubnets: {
-        subnets: vpc.privateSubnets,
-      },
-      securityGroups: [securityGroup],
-      architecture: Architecture.X86_64,
+      securityGroups: securityGroups,
       layers: [apiLambdaOnlineSourceLayer],
     });
+    this.lambdaOnlineQueryPreprocess = lambdaOnlineQueryPreprocess.function;
 
-    lambdaOnlineQueryPreprocess.addToRolePolicy(
+    this.lambdaOnlineQueryPreprocess.addToRolePolicy(
       new iam.PolicyStatement({
         actions: [
           "es:ESHttpGet",
@@ -189,47 +183,37 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
         resources: ["*"],
       }),
     );
-    lambdaOnlineQueryPreprocess.addToRolePolicy(this.iamHelper.s3Statement);
-    lambdaOnlineQueryPreprocess.addToRolePolicy(this.iamHelper.endpointStatement);
-    lambdaOnlineQueryPreprocess.addToRolePolicy(this.iamHelper.dynamodbStatement);
+    this.lambdaOnlineQueryPreprocess.addToRolePolicy(this.iamHelper.s3Statement);
+    this.lambdaOnlineQueryPreprocess.addToRolePolicy(this.iamHelper.endpointStatement);
+    this.lambdaOnlineQueryPreprocess.addToRolePolicy(this.iamHelper.dynamodbStatement);
 
-    const lambdaOnlineIntentionDetection = new Function(this, "lambdaOnlineIntentionDetection", {
+    const lambdaOnlineIntentionDetection = new LambdaFunction(this, "lambdaOnlineIntentionDetection", {
       runtime: Runtime.PYTHON_3_12,
       handler: "intention_detection.lambda_handler",
-      functionName: "Online_Intention_Detection",
       code: Code.fromAsset(
         join(__dirname, "../../../lambda/online/lambda_intention_detection"),
       ),
-      timeout: Duration.minutes(15),
       memorySize: 4096,
       vpc: vpc,
-      vpcSubnets: {
-        subnets: vpc.privateSubnets,
-      },
-      securityGroups: [securityGroup],
-      architecture: Architecture.X86_64,
+      securityGroups: securityGroups,
       layers: [apiLambdaOnlineSourceLayer],
     });
+    this.lambdaOnlineIntentionDetection = lambdaOnlineIntentionDetection.function;
 
-    const lambdaOnlineAgent = new Function(this, "lambdaOnlineAgent", {
+    const lambdaOnlineAgent = new LambdaFunction(this, "lambdaOnlineAgent", {
       runtime: Runtime.PYTHON_3_12,
       handler: "agent.lambda_handler",
-      functionName: "Online_Agent",
       code: Code.fromAsset(
         join(__dirname, "../../../lambda/online/lambda_agent"),
       ),
-      timeout: Duration.minutes(15),
       memorySize: 4096,
       vpc: vpc,
-      vpcSubnets: {
-        subnets: vpc.privateSubnets,
-      },
-      securityGroups: [securityGroup],
-      architecture: Architecture.X86_64,
+      securityGroups: securityGroups,
       layers: [apiLambdaOnlineSourceLayer],
     });
+    this.lambdaOnlineAgent = lambdaOnlineAgent.function;
 
-    lambdaOnlineAgent.addToRolePolicy(
+    this.lambdaOnlineAgent.addToRolePolicy(
       new iam.PolicyStatement({
         actions: [
           "es:ESHttpGet",
@@ -244,29 +228,27 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
         resources: ["*"],
       }),
     );
-    lambdaOnlineAgent.addToRolePolicy(this.iamHelper.s3Statement);
-    lambdaOnlineAgent.addToRolePolicy(this.iamHelper.endpointStatement);
-    lambdaOnlineAgent.addToRolePolicy(this.iamHelper.dynamodbStatement);
+    this.lambdaOnlineAgent.addToRolePolicy(this.iamHelper.s3Statement);
+    this.lambdaOnlineAgent.addToRolePolicy(this.iamHelper.endpointStatement);
+    this.lambdaOnlineAgent.addToRolePolicy(this.iamHelper.dynamodbStatement);
 
-    const lambdaOnlineLLMGenerate = new Function(this, "lambdaOnlineLLMGenerate", {
+
+    const lambdaOnlineLLMGenerate = new LambdaFunction(this, "lambdaOnlineLLMGenerate", {
       runtime: Runtime.PYTHON_3_12,
       handler: "llm_generate.lambda_handler",
-      functionName: "Online_LLM_Generate",
       code: Code.fromAsset(
         join(__dirname, "../../../lambda/online/lambda_llm_generate"),
       ),
-      timeout: Duration.minutes(15),
       memorySize: 4096,
       vpc: vpc,
-      vpcSubnets: {
-        subnets: vpc.privateSubnets,
-      },
-      securityGroups: [securityGroup],
-      architecture: Architecture.X86_64,
+      securityGroups: securityGroups,
       layers: [apiLambdaOnlineSourceLayer],
     });
+    this.lambdaOnlineLLMGenerate = lambdaOnlineLLMGenerate.function;
 
-    lambdaOnlineLLMGenerate.addToRolePolicy(
+
+
+    this.lambdaOnlineLLMGenerate.addToRolePolicy(
       new iam.PolicyStatement({
         // principals: [new iam.AnyPrincipal()],
         actions: [
@@ -282,45 +264,43 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
         resources: ["*"],
       }),
     );
-    lambdaOnlineLLMGenerate.addToRolePolicy(this.iamHelper.s3Statement);
-    lambdaOnlineLLMGenerate.addToRolePolicy(this.iamHelper.endpointStatement);
-    lambdaOnlineLLMGenerate.addToRolePolicy(this.iamHelper.dynamodbStatement);
+    this.lambdaOnlineLLMGenerate.addToRolePolicy(this.iamHelper.s3Statement);
+    this.lambdaOnlineLLMGenerate.addToRolePolicy(this.iamHelper.endpointStatement);
+    this.lambdaOnlineLLMGenerate.addToRolePolicy(this.iamHelper.dynamodbStatement);
 
-    const lambdaOnlineFunctions = new Function(this, "lambdaOnlineFunctions", {
+
+    const lambdaOnlineFunctions = new LambdaFunction(this, "lambdaOnlineFunctions", {
       runtime: Runtime.PYTHON_3_12,
       handler: "lambda_tools.lambda_handler",
-      functionName: "Online_Functions",
       code: Code.fromAsset(
         join(__dirname, "../../../lambda/online/functions/functions_utils"),
       ),
-      timeout: Duration.minutes(15),
       memorySize: 4096,
       vpc: vpc,
-      vpcSubnets: {
-        subnets: vpc.privateSubnets,
-      },
-      securityGroups: [securityGroup],
-      architecture: Architecture.X86_64,
+      securityGroups: securityGroups,
+      layers: [apiLambdaOnlineSourceLayer, apiLambdaJobSourceLayer],
       environment: {
         CHATBOT_TABLE: props.sharedConstructOutputs.chatbotTable.tableName,
         INDEX_TABLE: this.indexTableName,
         MODEL_TABLE: this.modelTableName,
       },
-      layers: [apiLambdaOnlineSourceLayer, apiLambdaJobSourceLayer],
     });
+    this.lambdaOnlineFunctions = lambdaOnlineFunctions.function;
 
-    lambdaOnlineQueryPreprocess.grantInvoke(lambdaOnlineMain);
 
-    lambdaOnlineIntentionDetection.grantInvoke(lambdaOnlineMain);
 
-    lambdaOnlineAgent.grantInvoke(lambdaOnlineMain);
+    this.lambdaOnlineQueryPreprocess.grantInvoke(this.lambdaOnlineMain);
 
-    lambdaOnlineLLMGenerate.grantInvoke(lambdaOnlineMain);
-    lambdaOnlineLLMGenerate.grantInvoke(lambdaOnlineQueryPreprocess);
-    lambdaOnlineLLMGenerate.grantInvoke(lambdaOnlineAgent);
+    this.lambdaOnlineIntentionDetection.grantInvoke(this.lambdaOnlineMain);
 
-    lambdaOnlineFunctions.grantInvoke(lambdaOnlineMain);
-    lambdaOnlineFunctions.grantInvoke(lambdaOnlineIntentionDetection);
+    this.lambdaOnlineAgent.grantInvoke(this.lambdaOnlineMain);
+
+    this.lambdaOnlineLLMGenerate.grantInvoke(this.lambdaOnlineMain);
+    this.lambdaOnlineLLMGenerate.grantInvoke(this.lambdaOnlineQueryPreprocess);
+    this.lambdaOnlineLLMGenerate.grantInvoke(this.lambdaOnlineAgent);
+
+    this.lambdaOnlineFunctions.grantInvoke(this.lambdaOnlineMain);
+    this.lambdaOnlineFunctions.grantInvoke(this.lambdaOnlineIntentionDetection);
 
 
   }
