@@ -40,10 +40,7 @@ export class RootStack extends Stack {
 
     const sharedConstruct = new SharedConstruct(this, "shared-construct");
 
-    const modelConstruct = new ModelConstruct(this, "model-construct", {
-      config: props.config,
-      sharedConstructOutputs: sharedConstruct,
-    });
+    const modelConstruct = new ModelConstruct(this, "model-construct");
     modelConstruct.node.addDependency(sharedConstruct);
 
     const portalConstruct = new PortalConstruct(this, "ui-construct");
