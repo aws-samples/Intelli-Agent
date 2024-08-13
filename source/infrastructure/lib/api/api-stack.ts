@@ -52,7 +52,7 @@ export class ApiConstruct extends Construct {
 
     this.iamHelper = props.sharedConstructOutputs.iamHelper;
     const vpc = props.sharedConstructOutputs.vpc;
-    const securityGroup = props.sharedConstructOutputs.securityGroup;
+    const securityGroups = props.sharedConstructOutputs.securityGroups;
     const domainEndpoint = props.knowledgeBaseStackOutputs.aosDomainEndpoint;
     const sessionsTableName = props.chatStackOutputs.sessionsTableName;
     const messagesTableName = props.chatStackOutputs.messagesTableName;
@@ -137,7 +137,7 @@ export class ApiConstruct extends Construct {
       const embeddingLambda = new LambdaFunction(this, "lambdaEmbedding", {
         code: Code.fromAsset(join(__dirname, "../../../lambda/embedding")),
         vpc: vpc,
-        securityGroups: [securityGroup],
+        securityGroups: securityGroups,
         environment: {
           ETL_MODEL_ENDPOINT: props.modelConstructOutputs.defaultKnowledgeBaseModelName,
           REGION: Aws.REGION,
@@ -154,7 +154,7 @@ export class ApiConstruct extends Construct {
       const aosLambda = new LambdaFunction(this, "AOSLambda", {
         code: Code.fromAsset(join(__dirname, "../../../lambda/aos")),
         vpc: vpc,
-        securityGroups: [securityGroup],
+        securityGroups: securityGroups,
         environment: {
           opensearch_cluster_domain: domainEndpoint,
           embedding_endpoint: props.modelConstructOutputs.defaultEmbeddingModelName,
