@@ -62,9 +62,9 @@ export function getConfig(): SystemConfig {
         cognito: {
           enabled: true,
         },
-        authing: {
-          enabled: false,
-        },
+        // authing: {
+        //   enabled: false,
+        // },
       },
     },
   };

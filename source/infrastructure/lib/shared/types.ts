@@ -50,9 +50,9 @@ export interface SystemConfig {
       cognito: {
         enabled: boolean;
       };
-      authing: {
-        enabled: boolean;
-      };
+      // authing: {
+      //   enabled: boolean;
+      // };
     }
   };
 }

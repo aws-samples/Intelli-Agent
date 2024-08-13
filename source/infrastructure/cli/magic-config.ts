@@ -309,7 +309,7 @@ async function processCreateOptions(options: any): Promise<void> {
       message: "Select a Federated Authentication Provider",
       choices: [
         { message: "Cognito", name: "cognito" },
-        { message: "Authing", name: "authing" },
+        // { message: "Authing", name: "authing" },
       ],
       initial: options.cognitoFederationProvider ?? "cognito",
       skip(): boolean {
@@ -377,9 +377,9 @@ async function processCreateOptions(options: any): Promise<void> {
         cognito: {
           enabled: advancedSettings.federatedAuthProvider === "cognito",
         },
-        authing: {
-          enabled: advancedSettings.federatedAuthProvider === "authing",
-        },
+        // authing: {
+        //   enabled: advancedSettings.federatedAuthProvider === "authing",
+        // },
       },
     },
   };
