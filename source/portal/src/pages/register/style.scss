@@ -1,0 +1,163 @@
+.register-div {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(45deg, rgba(0, 7, 22, 1), rgb(128 128 128 / 0%));
+}
+
+.container {
+  width: 600px;
+  // height: 450px;
+  background-color: white;
+  padding: 15px;
+  padding-bottom: 30px;
+  // box-shadow: 3px 5px 10px -5px rgba(0, 0, 0, 0.6);
+  border-radius: 8px;
+  
+  // box-shadow: 10px 10px 5px 0px rgba(240, 238, 238, 0.75);
+}
+// .banner {
+//   display: flex;
+//   justify-content: center;
+//   align-items: center;
+//   height: 70px;
+//   width:283px;
+//   margin-left: 26%;
+//   margin-top: 20px;
+//   vertical-align: middle;
+//   font-size: 30px;
+//   font-family: fantasy;
+//   font-weight: 800;
+// }
+.banner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 70px;
+  width:283px;
+  margin-left: 26%;
+  margin-top: 20px;
+  // text-align: center;
+  vertical-align: middle;
+  font-size: 30px;
+  font-family: fantasy;
+  font-weight: 800;
+}
+
+.sub-title {
+  width: 100%;
+  text-align: center;
+  color: grey;
+  font-size: 12px;
+  margin-bottom: 35px;
+}
+
+.awsui_tabs-tab-label_14rmt_b9m39_238 {
+  border-right: none !important;
+}
+
+// .awsui_tabs-header_14rmt_b9m39_186 {
+  .awsui_tabs-header-with-divider_14rmt_b9m39_352 {
+    border-bottom: none !important;
+  }
+// }
+.bottom-setting {
+  width:90%;
+  // margin-left: 10%;
+  
+}
+.tab-name {
+  text-align: center;
+  font-family: "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+  font-size: 16px;
+  font-weight: 800 !important;
+  padding-bottom: 15px;
+}
+
+.keep {
+  color: grey;
+}
+
+.disable {
+  color: rgb(155, 167, 182)
+}
+
+.selected {
+  color: #0972d3;
+  // border-bottom: 2px solid #0972d3;
+}
+
+.bottom-button {
+  margin-top: 20px;
+  width:90%;
+  // margin-left: 10%;
+}
+
+.login-buttom {
+  width: 100%;
+  text-align: center;
+  height: 40px;
+}
+
+.register {
+  padding-top: 20px;
+  text-align: center;
+}
+
+.bottom-button .awsui_variant-primary_vjswe_jz1q6_210 {
+  text-align: center !important;
+
+}
+
+.error {
+  width: auto; /* 宽度根据内容变化 */
+  height: 0;
+  background-color: rgba(0, 0, 0, 0.703); /* 半透明黑色背景 */
+  color: white; /* 字体颜色为白色 */
+  font-weight: 800;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 20px; /* 增加左右内边距 */
+  animation: expandAndCollapse 11s forwards;
+  white-space: nowrap; /* 防止内容换行 */
+  border-radius: 20px;
+}
+
+@keyframes expandAndCollapse {
+  0% {
+    height: 0;
+  }
+  20% {
+    height: 50px; /* 向下展开 */
+  }
+  60% {
+    height: 50px; /* 停留2秒 */
+  }
+  100% {
+    height: 0; /* 向上收起 */
+  }
+}
+
+.register-div .awsui_button-trigger_18eso_7qpbu_97 {
+  border: 1px solid #80808061 !important;
+  border-radius: 5px !important;
+  height: 40px !important;
+}
+
+.register-div .awsui_input_2rhyz_13pa9_97 {
+  border: 1px solid #80808061 !important;
+  border-radius: 5px !important;
+  height: 40px !important;
+}
+
+.register-div .awsui_options-list_19gcf_qv6vk_93 li {
+  border: 1px solid #80808061 !important;
+  border-radius: 0px !important;
+}
+.item {
+  margin-bottom: 15px;
+}

@@ -11,18 +11,27 @@ import SessionHistory from './pages/history/SessionHistory';
 import SessionDetail from './pages/history/SessionDetail';
 import PromptList from './pages/prompts/PromptList';
 import LoginCallback from './comps/LoginCallback';
+import Login from './pages/login';
+import FindPWD from './pages/find-pwd';
+import Register from './pages/register';
+import ChangePWD from './pages/change-pwd';
+import { ROUTES } from './utils/const';
 
 const SignedInRouter = () => {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/signin" element={<LoginCallback />} />
-        <Route path="/" element={<ChatBot />} />
-        <Route path="/library" element={<Library />} />
-        <Route path="/library/detail/:id" element={<LibraryDetail />} />
-        <Route path="/sessions" element={<SessionHistory />} />
-        <Route path="/session/detail/:id" element={<SessionDetail />} />
-        <Route path="/prompts" element={<PromptList />} />
+        <Route path={ROUTES.Login} element={<Login />} />
+        <Route path={ROUTES.FindPWD}  element={<FindPWD />} />
+        <Route path={ROUTES.Register}  element={<Register />} />
+        <Route path={ROUTES.ChangePWD}  element={<ChangePWD />} />
+        <Route path={ROUTES.LoginCallback}  element={<LoginCallback />} />
+        <Route path={ROUTES.ChatBot} element={<ChatBot />} />
+        <Route path={ROUTES.Library}  element={<Library />} />
+        <Route path={ROUTES.LibraryDetail}  element={<LibraryDetail />} />
+        <Route path={ROUTES.SessionHistory}  element={<SessionHistory />} />
+        <Route path={ROUTES.SessionDetail}  element={<SessionDetail />} />
+        <Route path={ROUTES.PromptList}  element={<PromptList />} />
       </Routes>
       <CommonAlert />
     </BrowserRouter>
@@ -49,20 +58,22 @@ const AppRouter = () => {
     );
   }
 
-  if (auth.isAuthenticated) {
-    return <SignedInRouter />;
-  }
+  // if (auth.isAuthenticated) {
+  //   return <SignedInRouter />;
+  // }
   return (
-    <div className="login-container">
-      <div className="text-center">
-        <Box variant="h2">{t('welcome')}</Box>
-        <div className="mt-10">
-          <Button variant="primary" onClick={() => void auth.signinRedirect()}>
-            {t('button.login')}
-          </Button>
-        </div>
-      </div>
-    </div>
+    <SignedInRouter />
+    // <Login />
+    // <div className="login-container">
+    //   <div className="text-center">
+    //     <Box variant="h2">{t('welcome')}</Box>
+    //     <div className="mt-10">
+    //       <Button variant="primary" onClick={() => void auth.signinRedirect()}>
+    //         {t('button.login')}
+    //       </Button>
+    //     </div>
+    //   </div>
+    // </div>
   );
 };
 

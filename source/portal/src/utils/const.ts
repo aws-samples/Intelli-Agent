@@ -1,4 +1,5 @@
 import { SelectProps } from '@cloudscape-design/components';
+import Library from 'src/pages/library/Library';
 
 export const DEFAULT_ZH_LANG = 'zh';
 export const DEFAULT_EN_LANG = 'en';
@@ -75,3 +76,33 @@ export const DOC_INDEX_TYPE_LIST: SelectProps.Option[] = [
     value: 'qq',
   },
 ];
+
+export const ROUTES = {
+  ChatBot: '/',
+  Library: '/library',
+  LibraryDetail: '/library/detail/:id',
+  SessionHistory: '/sessions',
+  SessionDetail: '/session/detail/:id',
+  PromptList: '/prompts',
+  Login: '/login',
+  FindPWD: '/find-password',
+  Register: '/create-account',
+  ChangePWD: '/change-password',
+  LoginCallback: '/signin',
+
+  // 其他路径
+};
+
+export const TOKEN = "token"
+export const USER = "user"
+export const API_URL = "api_url"
+export const OIDC_REDIRECT_URL = "oidc_uri"
+export const PROVIDER = "provider"
+export const CLIENT_ID = "client_id"
+export const REFRESH_TOKEN = "refresh_token"
+
+export const LOGIN_TYPE = {
+  USER: 'user',
+  SNS: 'sns',
+  OIDC: 'oidc',
+};
