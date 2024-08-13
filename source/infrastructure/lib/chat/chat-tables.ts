@@ -15,12 +15,10 @@ import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import { Construct } from "constructs";
 import { DynamoDBTable } from "../shared/table";
 
-export class DynamoDBConstruct extends Construct {
-  public sessionTableName: string;
-  public messageTableName: string;
+export class ChatTablesConstruct extends Construct {
+  public sessionsTableName: string;
+  public messagesTableName: string;
   public promptTableName: string;
-  public indexTableName: string;
-  public modelTableName: string;
   public intentionTableName: string;
 
   public readonly byUserIdIndex: string = "byUserId";
@@ -59,14 +57,6 @@ export class DynamoDBConstruct extends Construct {
       name: "SortKey",
       type: dynamodb.AttributeType.STRING,
     }
-    const indexIdAttr = {
-      name: "indexId",
-      type: dynamodb.AttributeType.STRING,
-    }
-    const modelIdAttr = {
-      name: "modelId",
-      type: dynamodb.AttributeType.STRING,
-    }
     const intentionIdAttr = {
       name: "intentionId",
       type: dynamodb.AttributeType.STRING,
@@ -87,15 +77,11 @@ export class DynamoDBConstruct extends Construct {
     });
 
     const promptTable = new DynamoDBTable(this, "Prompt", groupNameAttr2, sortKeyAttr).table;
-    const indexTable = new DynamoDBTable(this, "Index", groupNameAttr, indexIdAttr).table;
-    const modelTable = new DynamoDBTable(this, "Model", groupNameAttr, modelIdAttr).table;
     const intentionTable = new DynamoDBTable(this, "Intention", groupNameAttr, intentionIdAttr).table;
 
-    this.sessionTableName = sessionsTable.tableName;
-    this.messageTableName = messagesTable.tableName;
+    this.sessionsTableName = sessionsTable.tableName;
+    this.messagesTableName = messagesTable.tableName;
     this.promptTableName = promptTable.tableName;
-    this.indexTableName = indexTable.tableName;
-    this.modelTableName = modelTable.tableName;
     this.intentionTableName = intentionTable.tableName;
   }
 }

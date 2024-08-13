@@ -14,3 +14,5 @@ source/lambda/online/functions/retail_tools/lambda_product_information_search/pr
 source/lambda/job/test/prepare_data.py
 README.md
 README_zh-cn.md
+source/infrastructure/bin/config.ts
+source/infrastructure/cli/magic-config.ts

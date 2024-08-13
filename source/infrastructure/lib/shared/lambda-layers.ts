@@ -14,7 +14,6 @@
 import { LayerVersion, Runtime, Code } from "aws-cdk-lib/aws-lambda";
 import * as path from "path";
 import { Construct } from "constructs";
-import { BuildConfig } from "./build-config";
 import * as pyLambda from "@aws-cdk/aws-lambda-python-alpha";
 
 export class LambdaLayers {
@@ -33,7 +32,7 @@ export class LambdaLayers {
               command: [
                 "bash",
                 "-c",
-                `pip install -r requirements.txt ${BuildConfig.LAYER_PIP_OPTION} -t /asset-output/python`,
+                `pip install -r requirements.txt -t /asset-output/python`,
               ],
             },
           },

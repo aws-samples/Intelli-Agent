@@ -18,12 +18,18 @@ export interface UserProps extends StackProps {
   readonly callbackUrl: string;
 }
 
+export interface UserConstructOutputs {
+  oidcIssuer: string;
+  oidcClientId: string;
+  oidcLogoutUrl: string;
+  userPool: UserPool;
+}
 
-export class UserConstruct extends Construct {
-  readonly oidcIssuer: string;
-  readonly oidcClientId: string;
-  readonly oidcLogoutUrl: string;
-  readonly userPool: UserPool;
+export class UserConstruct extends Construct implements UserConstructOutputs {
+  public readonly oidcIssuer: string;
+  public readonly oidcClientId: string;
+  public readonly oidcLogoutUrl: string;
+  public readonly userPool: UserPool;
 
   constructor(scope: Construct, id: string, props: UserProps) {
     super(scope, id);

@@ -16,154 +16,106 @@ import { Construct } from "constructs";
 import * as dotenv from "dotenv";
 import * as path from "path";
 
+import { getConfig } from "./config";
+import { SystemConfig } from "../lib/shared/types";
+import { SharedConstruct } from "../lib/shared/shared-construct";
 import { ApiConstruct } from "../lib/api/api-stack";
-import { ConnectorConstruct } from "../lib/connector/connector-stack";
-import { DynamoDBConstruct } from "../lib/db/dynamodb";
-import { EtlStack } from "../lib/etl/etl-stack";
-import { AssetsConstruct } from "../lib/model/assets-stack";
-import { LLMStack } from "../lib/model/llm-stack";
-import { BuildConfig } from "../lib/shared/build-config";
-import { DeploymentParameters } from "../lib/shared/cdk-parameters";
-import { VpcConstruct } from "../lib/shared/vpc-stack";
-import { IAMHelper } from "../lib/shared/iam-helper";
-import { AOSConstruct } from "../lib/vector-store/os-stack";
+import { ModelConstruct } from "../lib/model/model-construct";
+import { KnowledgeBaseStack, KnowledgeBaseStackOutputs } from "../lib/knowledge-base/knowledge-base-stack";
 import { PortalConstruct } from "../lib/ui/ui-portal";
 import { UiExportsConstruct } from "../lib/ui/ui-exports";
-import { UserConstruct } from "../lib/user/user-stack";
+import { UserConstruct } from "../lib/user/user-construct";
+import { ChatStack, ChatStackOutputs } from "../lib/chat/chat-stack";
 
 dotenv.config();
 
+export interface RootStackProps extends StackProps {
+  readonly config: SystemConfig;
+}
+
 export class RootStack extends Stack {
-  constructor(scope: Construct, id: string, props: StackProps = {}) {
+  constructor(scope: Construct, id: string, props: RootStackProps) {
     super(scope, id, props);
     this.templateOptions.description = "(SO8034) - Intelli-Agent";
 
-    this.setBuildConfig();
+    let knowledgeBaseStack: KnowledgeBaseStack = {} as KnowledgeBaseStack;
+    let knowledgeBaseStackOutputs: KnowledgeBaseStackOutputs = {} as KnowledgeBaseStackOutputs;
+    let chatStack: ChatStack = {} as ChatStack;
+    let chatStackOutputs: ChatStackOutputs = {} as ChatStackOutputs;
 
-    const cdkParameters = new DeploymentParameters(this);
-    const iamHelper = new IAMHelper(this, "iam-helper");
+    const sharedConstruct = new SharedConstruct(this, "shared-construct");
 
-    const assetConstruct = new AssetsConstruct(this, "assets-construct", {
-      s3ModelAssets: cdkParameters.s3ModelAssets.valueAsString,
-      env: process.env,
+    const modelConstruct = new ModelConstruct(this, "model-construct", {
+      config: props.config,
+      sharedConstructOutputs: sharedConstruct,
     });
-    const llmStack = new LLMStack(this, "rag-stack", {
-      s3ModelAssets: cdkParameters.s3ModelAssets.valueAsString,
-      embeddingAndRerankerModelPrefix: assetConstruct.embeddingAndRerankerModelPrefix,
-      embeddingAndRerankerModelVersion: assetConstruct.embeddingAndRerankerModelVersion,
-      instructModelPrefix: assetConstruct.instructModelPrefix,
-      instructModelVersion: assetConstruct.instructModelVersion,
-      iamHelper: iamHelper,
-      env: process.env,
-    });
-    llmStack.node.addDependency(assetConstruct);
+    modelConstruct.node.addDependency(sharedConstruct);
 
-    const vpcConstruct = new VpcConstruct(this, "vpc-construct");
+    const portalConstruct = new PortalConstruct(this, "ui-construct");
 
-    const aosConstruct = new AOSConstruct(this, "aos-construct", {
-      osVpc: vpcConstruct.connectorVpc,
-      securityGroup: vpcConstruct.securityGroup,
-    });
-    aosConstruct.node.addDependency(vpcConstruct);
+    if (props.config.knowledgeBase.enabled && props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.enabled) {
+      knowledgeBaseStack = new KnowledgeBaseStack(this, "knowledge-base-stack", {
+        config: props.config,
+        sharedConstructOutputs: sharedConstruct,
+        modelConstructOutputs: modelConstruct,
+        uiPortalBucketName: portalConstruct.portalBucket.bucketName,
+      });
+      knowledgeBaseStack.node.addDependency(sharedConstruct);
+      knowledgeBaseStack.node.addDependency(modelConstruct);
+      knowledgeBaseStackOutputs = knowledgeBaseStack;
+    }
 
-    const dynamoDBConstruct = new DynamoDBConstruct(this, "ddb-construct");
-    const uiPortal = new PortalConstruct(this, "ui-construct");
-
-    const etlStack = new EtlStack(this, "etl-stack", {
-      domainEndpoint: aosConstruct.domainEndpoint || "AOSnotcreated",
-      embeddingAndRerankerEndPoint: llmStack.embeddingAndRerankerEndPoint,
-      region: props.env?.region || "us-east-1",
-      subEmail: cdkParameters.subEmail.valueAsString ?? "",
-      etlVpc: vpcConstruct.connectorVpc,
-      subnets: vpcConstruct.privateSubnets,
-      securityGroups: vpcConstruct.securityGroup,
-      s3ModelAssets: cdkParameters.s3ModelAssets.valueAsString,
-      openSearchIndex: cdkParameters.openSearchIndex.valueAsString,
-      imageName: cdkParameters.etlImageName.valueAsString,
-      etlTag: cdkParameters.etlImageTag.valueAsString,
-      portalBucket: uiPortal.portalBucket.bucketName,
-      iamHelper: iamHelper,
-    });
-    etlStack.node.addDependency(vpcConstruct);
-    etlStack.node.addDependency(aosConstruct);
-    etlStack.node.addDependency(uiPortal);
-    etlStack.addDependency(llmStack);
-
-    const connectorConstruct = new ConnectorConstruct(this, "connector-construct", {
-      connectorVpc: vpcConstruct.connectorVpc,
-      securityGroup: vpcConstruct.securityGroup,
-      domainEndpoint: aosConstruct.domainEndpoint || "",
-      embeddingEndPoints: [llmStack.embeddingAndRerankerEndPoint],
-      openSearchIndex: cdkParameters.openSearchIndex.valueAsString,
-      openSearchIndexDict: cdkParameters.openSearchIndexDict.valueAsString,
-      env: process.env,
-    });
-    connectorConstruct.node.addDependency(vpcConstruct);
-    connectorConstruct.node.addDependency(aosConstruct);
-    connectorConstruct.node.addDependency(llmStack);
+    if (props.config.chat.enabled) {
+      const chatStack = new ChatStack(this, "chat-stack", {
+        config: props.config,
+        sharedConstructOutputs: sharedConstruct,
+        modelConstructOutputs: modelConstruct,
+        domainEndpoint: knowledgeBaseStackOutputs.aosDomainEndpoint,
+      });
+      chatStackOutputs = chatStack;
+    }
 
     const userConstruct = new UserConstruct(this, "user", {
-      adminEmail: cdkParameters.subEmail.valueAsString,
-      callbackUrl: uiPortal.portalUrl,
+      adminEmail: props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.email,
+      callbackUrl: portalConstruct.portalUrl,
     });
 
     const apiConstruct = new ApiConstruct(this, "api-construct", {
-      apiVpc: vpcConstruct.connectorVpc,
-      securityGroup: vpcConstruct.securityGroup,
-      domainEndpoint: aosConstruct.domainEndpoint || "",
-      embeddingAndRerankerEndPoint: llmStack.embeddingAndRerankerEndPoint || "",
-      llmModelId: BuildConfig.LLM_MODEL_ID,
-      instructEndPoint:
-        BuildConfig.LLM_ENDPOINT_NAME !== ""
-          ? BuildConfig.LLM_ENDPOINT_NAME
-          : llmStack.instructEndPoint,
-      sessionsTableName: dynamoDBConstruct.sessionTableName,
-      messagesTableName: dynamoDBConstruct.messageTableName,
-      promptTableName: dynamoDBConstruct.promptTableName,
-      chatbotTableName: etlStack.chatbotTableName,
-      sfnOutput: etlStack.sfnOutput,
-      openSearchIndex: cdkParameters.openSearchIndex.valueAsString,
-      openSearchIndexDict: cdkParameters.openSearchIndexDict.valueAsString,
-      jobName: connectorConstruct.jobName,
-      jobQueueArn: connectorConstruct.jobQueueArn,
-      jobDefinitionArn: connectorConstruct.jobDefinitionArn,
-      etlEndpoint: etlStack.etlEndpoint,
-      resBucketName: etlStack.resBucketName,
-      executionTableName: etlStack.executionTableName,
-      etlObjTableName: etlStack.etlObjTableName,
-      etlObjIndexName: etlStack.etlObjIndexName,
-      indexTableName: dynamoDBConstruct.indexTableName,
-      modelTableName: dynamoDBConstruct.modelTableName,
-      env: process.env,
-      userPool: userConstruct.userPool,
-      userPoolClientId: userConstruct.oidcClientId,
-      iamHelper: iamHelper,
+      config: props.config,
+      sharedConstructOutputs: sharedConstruct,
+      modelConstructOutputs: modelConstruct,
+      knowledgeBaseStackOutputs: knowledgeBaseStackOutputs,
+      chatStackOutputs: chatStackOutputs,
+      userConstructOutputs: userConstruct,
     });
-    apiConstruct.node.addDependency(vpcConstruct);
-    apiConstruct.node.addDependency(aosConstruct);
-    apiConstruct.node.addDependency(llmStack);
-    apiConstruct.node.addDependency(connectorConstruct);
-    apiConstruct.node.addDependency(etlStack);
+    apiConstruct.node.addDependency(sharedConstruct);
+    apiConstruct.node.addDependency(modelConstruct);
+    apiConstruct.node.addDependency(portalConstruct);
+    if ( chatStack.node ) {
+      apiConstruct.node.addDependency(chatStack);
+    }
+    if ( knowledgeBaseStack.node ) {
+      apiConstruct.node.addDependency(knowledgeBaseStack);
+    }
 
     const uiExports = new UiExportsConstruct(this, "ui-exports", {
-      portalBucket: uiPortal.portalBucket,
+      portalBucket: portalConstruct.portalBucket,
       uiProps: {
         websocket: apiConstruct.wsEndpoint,
         apiUrl: apiConstruct.apiEndpoint,
         oidcIssuer: userConstruct.oidcIssuer,
         oidcClientId: userConstruct.oidcClientId,
         oidcLogoutUrl: userConstruct.oidcLogoutUrl,
-        oidcRedirectUrl: `https://${uiPortal.portalUrl}/signin`,
+        oidcRedirectUrl: `https://${portalConstruct.portalUrl}/signin`,
       },
     });
-    uiExports.node.addDependency(uiPortal);
+    uiExports.node.addDependency(portalConstruct);
 
     new CfnOutput(this, "API Endpoint Address", {
       value: apiConstruct.apiEndpoint,
     });
-    new CfnOutput(this, "Chunk Bucket", { value: etlStack.resBucketName });
     new CfnOutput(this, "WebPortalURL", {
-      value: uiPortal.portalUrl,
+      value: portalConstruct.portalUrl,
       description: "Web portal url",
     });
     new CfnOutput(this, "WebSocket Endpoint Address", {
@@ -179,19 +131,9 @@ export class RootStack extends Stack {
       value: userConstruct.userPool.userPoolId,
     });
   }
-
-  private setBuildConfig() {
-    BuildConfig.DEPLOYMENT_MODE =
-      this.node.tryGetContext("DeploymentMode") ?? "ALL";
-    BuildConfig.LAYER_PIP_OPTION =
-      this.node.tryGetContext("LayerPipOption") ?? "";
-    BuildConfig.JOB_PIP_OPTION = this.node.tryGetContext("JobPipOption") ?? "";
-    BuildConfig.LLM_MODEL_ID =
-      this.node.tryGetContext("LlmModelId") ?? "internlm2-chat-7b";
-    BuildConfig.LLM_ENDPOINT_NAME =
-      this.node.tryGetContext("LlmEndpointName") ?? "";
-  }
 }
+
+const config = getConfig();
 
 // For development, use account/region from CDK CLI
 const devEnv = {
@@ -200,7 +142,7 @@ const devEnv = {
 };
 
 const app = new App();
-const stackName = app.node.tryGetContext("StackName") || "intelli-agent";
-new RootStack(app, stackName, { env: devEnv });
+const stackName = `${config.prefix}intelli-agent`;
+new RootStack(app, stackName, { config, env: devEnv, suppressTemplateIndentation: true });
 
 app.synth();
