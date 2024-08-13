@@ -287,7 +287,7 @@ export class ModelConstruct extends Construct implements ModelConstructOutputs {
 
     // Custom resource to update ETL endpoint autoscaling setting
     const crLambda = new Function(this, "ETLCustomResource", {
-      runtime: Runtime.PYTHON_3_11,
+      runtime: Runtime.PYTHON_3_12,
       code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
       handler: "etl_custom_resource.lambda_handler",
       environment: {

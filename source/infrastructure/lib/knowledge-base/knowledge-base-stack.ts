@@ -137,7 +137,7 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
     const notificationLambda = new Function(this, "ETLNotification", {
       code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
       handler: "notification.lambda_handler",
-      runtime: Runtime.PYTHON_3_11,
+      runtime: Runtime.PYTHON_3_12,
       timeout: Duration.minutes(15),
       memorySize: 256,
       architecture: Architecture.X86_64,
@@ -250,7 +250,7 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
     const etlLambda = new Function(this, "ETLLambda", {
       code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
       handler: "main.lambda_handler",
-      runtime: Runtime.PYTHON_3_11,
+      runtime: Runtime.PYTHON_3_12,
       timeout: Duration.minutes(15),
       memorySize: 1024,
       architecture: Architecture.X86_64,

@@ -28,7 +28,7 @@ export class LambdaLayers {
           path.join(__dirname, "../../../lambda/embedding"),
           {
             bundling: {
-              image: Runtime.PYTHON_3_11.bundlingImage,
+              image: Runtime.PYTHON_3_12.bundlingImage,
               command: [
                 "bash",
                 "-c",
@@ -37,7 +37,7 @@ export class LambdaLayers {
             },
           },
         ),
-        compatibleRuntimes: [Runtime.PYTHON_3_11],
+        compatibleRuntimes: [Runtime.PYTHON_3_12],
         description: `LLM Bot - API layer`,
       },
     );
@@ -80,7 +80,7 @@ export class LambdaLayers {
       "APILambdaAuthorizerLayer",
       {
         entry: path.join(__dirname, "../../../lambda/authorizer"),
-        compatibleRuntimes: [Runtime.PYTHON_3_11],
+        compatibleRuntimes: [Runtime.PYTHON_3_12],
         description: `LLM Bot - Authorizer layer`,
       },
     );
