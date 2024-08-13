@@ -38,11 +38,6 @@ export class RootStack extends Stack {
     super(scope, id, props);
     this.templateOptions.description = "(SO8034) - Intelli-Agent";
 
-    let knowledgeBaseStack: KnowledgeBaseStack = {} as KnowledgeBaseStack;
-    let knowledgeBaseStackOutputs: KnowledgeBaseStackOutputs = {} as KnowledgeBaseStackOutputs;
-    let chatStack: ChatStack = {} as ChatStack;
-    let chatStackOutputs: ChatStackOutputs = {} as ChatStackOutputs;
-
     const sharedConstruct = new SharedConstruct(this, "shared-construct");
 
     const modelConstruct = new ModelConstruct(this, "model-construct", {
@@ -53,28 +48,13 @@ export class RootStack extends Stack {
 
     const portalConstruct = new PortalConstruct(this, "ui-construct");
 
-    if (props.config.knowledgeBase.enabled && props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.enabled) {
-      knowledgeBaseStack = new KnowledgeBaseStack(this, "knowledge-base-stack", {
-        config: props.config,
-        sharedConstructOutputs: sharedConstruct,
-        modelConstructOutputs: modelConstruct,
-        uiPortalBucketName: portalConstruct.portalBucket.bucketName,
-      });
-      knowledgeBaseStack.node.addDependency(sharedConstruct);
-      knowledgeBaseStack.node.addDependency(modelConstruct);
-      knowledgeBaseStackOutputs = knowledgeBaseStack;
-    }
-
-    if (props.config.chat.enabled) {
-      const chatStack = new ChatStack(this, "chat-stack", {
-        config: props.config,
-        sharedConstructOutputs: sharedConstruct,
-        modelConstructOutputs: modelConstruct,
-        domainEndpoint: knowledgeBaseStackOutputs.aosDomainEndpoint,
-      });
-      chatStackOutputs = chatStack;
-    }
-
+    const chatStack = new ChatStack(this, "chat-stack", {
+      config: props.config,
+      sharedConstructOutputs: sharedConstruct,
+      modelConstructOutputs: modelConstruct,
+      domainEndpoint: ''
+    });
+    
     const userConstruct = new UserConstruct(this, "user", {
       adminEmail: props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.email,
       callbackUrl: portalConstruct.portalUrl,
@@ -84,19 +64,13 @@ export class RootStack extends Stack {
       config: props.config,
       sharedConstructOutputs: sharedConstruct,
       modelConstructOutputs: modelConstruct,
-      knowledgeBaseStackOutputs: knowledgeBaseStackOutputs,
-      chatStackOutputs: chatStackOutputs,
+      knowledgeBaseStackOutputs: {} as KnowledgeBaseStackOutputs,
+      chatStackOutputs: chatStack,
       userConstructOutputs: userConstruct,
     });
     apiConstruct.node.addDependency(sharedConstruct);
     apiConstruct.node.addDependency(modelConstruct);
     apiConstruct.node.addDependency(portalConstruct);
-    if ( chatStack.node ) {
-      apiConstruct.node.addDependency(chatStack);
-    }
-    if ( knowledgeBaseStack.node ) {
-      apiConstruct.node.addDependency(knowledgeBaseStack);
-    }
 
     const uiExports = new UiExportsConstruct(this, "ui-exports", {
       portalBucket: portalConstruct.portalBucket,
