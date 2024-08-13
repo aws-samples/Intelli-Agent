@@ -22,6 +22,7 @@ import { WebSocketLambdaIntegration } from "aws-cdk-lib/aws-apigatewayv2-integra
 import { WebSocketLambdaAuthorizer } from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
 
 import { createBasicLambdaPolicy } from "../shared/utils";
+import { LambdaFunction } from "../shared/lambda-helper";
 
 interface WebSocketProps extends StackProps {
   dispatcherLambda: lambda.Function;
@@ -42,24 +43,20 @@ export class WebSocketConstruct extends Construct {
       },
     });
 
-    const onConnectLambda = new lambda.Function(this, "OnConnect", {
+    const onConnectLambda = new LambdaFunction(this, "OnConnect", {
       code: lambda.Code.fromAsset(
         join(__dirname, "../../../lambda/websocket/connect"),
       ),
       role: lambdaRole,
-      runtime: lambda.Runtime.PYTHON_3_11,
       handler: "connect.lambda_handler",
-      timeout: Duration.minutes(15),
     });
 
-    const onDisconnectLambda = new lambda.Function(this, "OnDisconnect", {
+    const onDisconnectLambda = new LambdaFunction(this, "OnDisconnect", {
       code: lambda.Code.fromAsset(
         join(__dirname, "../../../lambda/websocket/disconnect"),
       ),
       role: lambdaRole,
-      runtime: lambda.Runtime.PYTHON_3_11,
       handler: "disconnect.lambda_handler",
-      timeout: Duration.minutes(15),
     });
 
     const webSocketApi = new apigwv2.WebSocketApi(this, "Intelli-Agent-WebSocket-API", {
@@ -67,7 +64,7 @@ export class WebSocketConstruct extends Construct {
       connectRouteOptions: {
         integration: new WebSocketLambdaIntegration(
           "ConnectIntegration",
-          onConnectLambda,
+          onConnectLambda.function,
         ),
         authorizer: new WebSocketLambdaAuthorizer('Authorizer',
           props.customAuthorizerLambda,
@@ -78,7 +75,7 @@ export class WebSocketConstruct extends Construct {
       disconnectRouteOptions: {
         integration: new WebSocketLambdaIntegration(
           "DisconnectIntegration",
-          onDisconnectLambda,
+          onDisconnectLambda.function,
         ),
       },
       defaultRouteOptions: {

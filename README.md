@@ -179,6 +179,9 @@ Follow these steps to get started:
 2. [Deployment](#Deployment)
 
 ### Prerequisites
+
+**Step 1**: Install the required dependencies
+
 Execute following commands to install dependencies such as Python, Git, npm, docker and create a service linked role for Amazon OpenSearch service. You can skip this step if they are already installed.
 The `setup_env.sh` script is adapted for Amazon Linux 2023. If you are using other operating systems, please manually install these dependencies.
 
@@ -188,12 +191,7 @@ wget https://raw.githubusercontent.com/aws-samples/Intelli-Agent/dev/source/scri
 sh setup_env.sh
 ```
 
-Executing the following command to clone the GitHub repo:
-
-```bash
-git clone git@github.com:aws-samples/Intelli-Agent.git
-cd Intelli-Agent
-```
+**Step 2**: Install the AWS CLI and configure your AWS account
 
 Execute the following command to configure your AWS account (please skip this step if you have already configured your AWS account). Refer to the [AWS CLI](https://docs.aws.amazon.com/cli/latest/reference/configure/) command for more usage instructions.
 
@@ -202,95 +200,67 @@ Execute the following command to configure your AWS account (please skip this st
 aws configure
 ```
 
-
-Then navigate to the script directory to run the `build.sh` script. This script simplifies the asset preparation process by providing default values for the S3 bucket name, ETL image name, and ETL image tag. These defaults are used for uploading the model to S3 and pushing the ETL image to your ECR repository. While you can specify custom values for these parameters, it's not required. If the specified S3 bucket or ECR repository does not exist, the script will create them for you. If you wish to specify existing s3 bucket, please make sure the bucket is in the same region as the deployment region.
-
-Default Values:
-- S3 Bucket Name: `intelli-agent-models-${account}-${aws_region}`
-- ETL Image Name: `intelli-agent-etl`
-- ETL Image Tag: `latest`
-
-You can simply run the script without any parameters to use the default settings.
-
-```bash
-cd source/script
-sh build.sh
-```
-
-If you prefer to use custom values for the S3 bucket name, ETL image name, and ETL tag, you can specify them as follows:
-
-```bash
-cd source/script
-sh build.sh -b intelli-agent-model-bucket -i intelli-agent-etl -t latest
-```
-
-
 ### Deployment
 
-If this is the first time that your account is using CDK to deploy resources, please refer to [this document](https://docs.aws.amazon.com/cdk/v2/guide/bootstrapping-env.html) for CDK bootstrap.
+To deploy the solution, follow these steps:
+
+**Step 1**: Clone the GitHub repository
 
 ```bash
-cdk bootstrap aws://<Your AWS account ID>/<AWS region>
+git clone git@github.com:aws-samples/Intelli-Agent.git
 ```
 
-There are two deployment options for this solution:
-
-1. Deploy `all modules`, which enables full functionality from knowledge base construction to online interactive Q&A.
-2. Deploy only the `knowledge base construction (offline processing)` module.
-
-#### Option 1: Deploy all modules
-
-Execute the following command to deploy. Please use the parameters S3ModelAssets, EtlImageName, and ETLTag that you have set in the `Prerequisites` section. (Default deployment mode)
+**Step 2**: Navigate to the `source/infrastructure` directory
 
 ```bash
-cd source
-aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
-cd infrastructure
-npx cdk deploy --parameters S3ModelAssets=<Your S3 Bucket Name> --parameters SubEmail=<Your email address> --parameters EtlImageName=<Your ETL model name> --parameters ETLTag=<Your ETL tag name> --require-approval never
+cd Intelli-Agent/source/infrastructure
 ```
 
-Example:
+**Step 3**: Install the project dependencies
 
 ```bash
-npx cdk deploy --rollback true --parameters S3ModelAssets=intelli-agent-model-bucket --parameters SubEmail=foo@email.com --parameters EtlImageName=intelli-agent-etl --parameters ETLTag=latest --require-approval never
+npm install
 ```
 
-
-##### Deployment Parameters
-| Parameter | Type | Description |
-| - | - | - |
-| S3ModelAssets | Required | The name of your S3 bucket where models are stored. |
-| SubEmail | Required | Your email address for receiving notifications. |
-| EtlImageName | Required | The name of the ETL image (e.g., etl-model) used when executing the source/model/etl/code/model.sh script. |
-| EtlTag | Required | The ETL tag (e.g., latest, v1.0, v2.0); default is latest. Set when executing the source/model/etl/code/model.sh script. |
-| DeploymentMode | Optional | Leave it blank or set it to ALL |
-
-
-#### Option 2: Deploy only `knowledge base construction (offline processing)` module
-
-If you only need to parse and slice documents and upload the chunk to the S3 bucket without injecting them into the vector database, execute the following command to deploy. Please use the parameters S3ModelAssets, EtlImageName, and ETLTag that you have set in the `Prerequisites` section.
-
-
+**Step 4**: Run the configuration command to set up the solution with the desired features:
 
 ```bash
-cd source
-aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
-cd infrastructure
-npx cdk deploy --parameters S3ModelAssets=<Your S3 Bucket Name> --parameters SubEmail=<Your email address> --parameters EtlImageName=<Your ETL model name> --parameters ETLTag=<Your ETL tag name> --context DeploymentMode="OFFLINE_EXTRACT" --require-approval never
+npm run config
 ```
 
-##### Deployment Parameters
-| Parameter | Type | Description |
-| - | - | - |
-| S3ModelAssets | Required | The name of your S3 bucket where models are stored. |
-| SubEmail | Required | Your email address for receiving notifications. |
-| EtlImageName | Required | The name of the ETL image (e.g., etl-model) used when executing the source/model/etl/code/model.sh script. |
-| EtlTag | Required | The ETL tag (e.g., latest, v1.0, v2.0); default is latest. Set when executing the source/model/etl/code/model.sh script. |
-| DeploymentMode | Required | OFFLINE_EXTRACT |
+You will be prompted to enter the following information:
 
+- **Prefix**: A prefix for the solution stack name. This prefix will be added to all resources created by the solution.
+- **SubEmail**: The email address to receive notifications.
+- **KnowledgeBase**: Enable or disable the knowledge base feature.
+- **KnowledgeBaseType**: Select the type of knowledge base to enable.
+- **Chat**: Enable or disable the chat feature.
+- **Model**: Select the model to use for the solution.
+- **UI**: Enable or disable the UI feature.
 
+After entering the information, the configuration file `config.json` will be generated in the `source/infrastructure/bin` directory. You can rerun the `npm run config` command or modify this file to customize the solution configuration.
 
-#### Solution Information
+**Step 5**: Prepare the required deployment resources, including the frontend and model assets
+
+```bash
+npm run build
+```
+
+**Step 6**: (Optional) Bootstrap AWS CDK on the target account and region
+
+If this is the first time your account is using CDK to deploy resources, please refer to [this document](https://docs.aws.amazon.com/cdk/v2/guide/bootstrapping-env.html) for CDK bootstrap.
+
+```bash
+npx cdk bootstrap aws://<Your AWS account ID>/<AWS region>
+```
+
+**Step 7**: Deploy the solution
+
+```bash
+npx cdk deploy
+```
+
+**Step 8**: Confirm the deployment
 
 After deployment, you can find a stack containing `intelli-agent` in the CloudFormation console. On the Output tab of the stack, you can find key solution information, commonly explained as follows:
 
@@ -301,23 +271,97 @@ After deployment, you can find a stack containing `intelli-agent` in the CloudFo
 | WebSocketEndpointAddress | WebSocket API endpoint address primarily used for chat functionality. |
 | ChunkBucket | Intermediate storage in this S3 bucket for processed document chunks. |
 
+
 ### Updating an Existing Deployment
 
-You can update an existing deployment using CDK with the following command:
+You can update an existing deployment following these steps:
+
+**Step 1**: Navigate to the `source/infrastructure` directory
 
 ```bash
-cd source
+cd Intelli-Agent/source/infrastructure
+```
+
+**Step 2**: Adjust the configuration
+
+Rerun the `npm run config` command, or modify the config.json located under the `source/infrastructure/bin` directory.
+
+Sample config.json:
+
+```json
+{
+  "prefix": "",
+  "knowledgeBase": {
+    "enabled": false,
+    "knowledgeBaseType": {
+      "intelliAgentKb": {
+        "enabled": true,
+        "email": "test@test.com",
+        "vectorStore": {
+          "opensearch": {
+            "enabled": true
+          }
+        },
+        "knowledgeBaseModel": {
+          "enabled": true,
+          "ecrRepository": "intelli-agent-knowledge-base",
+          "ecrImageTag": "latest"
+        }
+      }
+    }
+  },
+  "chat": {
+    "enabled": true
+  },
+  "model": {
+    "embeddingsModels": [
+      {
+        "provider": "sagemaker",
+        "name": "bce-embedding-and-bge-reranker",
+        "commitId": "43972580a35ceacacd31b95b9f430f695d07dde9",
+        "dimensions": 1024,
+        "default": true
+      }
+    ],
+    "llms": [
+      {
+        "provider": "bedrock",
+        "name": "anthropic.claude-3-sonnet-20240229-v1:0"
+      }
+    ],
+    "modelConfig": {
+      "modelAssetsBucket": "intelli-agent-models-078604973627-us-west-2"
+    }
+  },
+  "ui": {
+    "enabled": true
+  },
+  "federatedAuth": {
+    "enabled": true,
+    "provider": {
+      "cognito": {
+        "enabled": true
+      },
+      "authing": {
+        "enabled": false
+      }
+    }
+  }
+}
+```
+
+**Step 3**: (Optional) If you wish to create new sagemaker models, or update frontend assets, run the following command:
+
+```bash
+npm run build
+```
+
+**Step 4**: Execute the following command to update the deployment:
+
+```bash
 aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
-cd infrastructure
-npx cdk deploy --rollback true --parameters S3ModelAssets=<Your S3 Bucket Name> --parameters SubEmail=<Your email address> --parameters EtlImageName=<Your ETL model name> --parameters ETLTag=<Your ETL tag name> --require-approval never
+npx cdk deploy
 ```
-
-For example:
-
-```bash
-npx cdk deploy --rollback true --parameters S3ModelAssets=intelli-agent-model-bucket --parameters SubEmail=foo@email.com --parameters EtlImageName=intelli-agent-etl --parameters ETLTag=latest --require-approval never
-```
-
 
 ### Uninstalling the Solution
 

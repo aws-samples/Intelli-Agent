@@ -11,46 +11,55 @@
  *  and limitations under the License.                                                                                *
  *********************************************************************************************************************/
 
+import { RemovalPolicy, StackProps } from "aws-cdk-lib";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
+import * as iam from "aws-cdk-lib/aws-iam";
+import { Domain, EngineVersion } from "aws-cdk-lib/aws-opensearchservice";
 import { Construct } from "constructs";
-import * as dotenv from "dotenv";
 
-dotenv.config();
+interface AOSProps extends StackProps {
+  osVpc: ec2.Vpc;
+  securityGroup: ec2.SecurityGroup;
+}
 
-export class VpcConstruct extends Construct {
-  public connectorVpc;
-  public privateSubnets;
-  public securityGroup;
+export class AOSConstruct extends Construct {
+  public domainEndpoint;
+  public domain;
 
-  constructor(scope: Construct, id: string) {
+  constructor(scope: Construct, id: string, props: AOSProps) {
     super(scope, id);
 
-    this.connectorVpc = new ec2.Vpc(this, "LLM-VPC", {
-      ipAddresses: ec2.IpAddresses.cidr("10.100.0.0/16"),
-      maxAzs: 2,
+    // If deployment mode is ALL, then create the following resources
+
+    const devDomain = new Domain(this, "Domain", {
+      version: EngineVersion.OPENSEARCH_2_5,
+      removalPolicy: RemovalPolicy.DESTROY,
+      vpc: props.osVpc,
+      zoneAwareness: {
+        enabled: true,
+      },
+      securityGroups: [props.securityGroup],
+      capacity: {
+        dataNodes: 2,
+        dataNodeInstanceType: "r6g.2xlarge.search",
+      },
+      ebs: {
+        volumeSize: 300,
+        volumeType: ec2.EbsDeviceVolumeType.GENERAL_PURPOSE_SSD_GP3,
+      },
     });
 
-    this.privateSubnets = this.connectorVpc.privateSubnets;
-
-    this.securityGroup = new ec2.SecurityGroup(this, "LLM-VPC-SG", {
-      vpc: this.connectorVpc,
-      description: "LLM Security Group",
-    });
-
-    this.securityGroup.addIngressRule(
-      this.securityGroup,
-      ec2.Port.allTraffic(),
-      "allow self traffic",
+    devDomain.addAccessPolicies(
+      new iam.PolicyStatement({
+        actions: ["es:*"],
+        effect: iam.Effect.ALLOW,
+        principals: [new iam.AnyPrincipal()],
+        resources: [`${devDomain.domainArn}/*`],
+      }),
     );
 
-    this.connectorVpc.addGatewayEndpoint("DynamoDbEndpoint", {
-      service: ec2.GatewayVpcEndpointAwsService.DYNAMODB,
-    });
-
-    this.connectorVpc.addInterfaceEndpoint("Glue", {
-      service: ec2.InterfaceVpcEndpointAwsService.GLUE,
-      securityGroups: [this.securityGroup],
-      subnets: { subnets: this.privateSubnets },
-    });
+    this.domainEndpoint = devDomain.domainEndpoint;
+    this.domain = devDomain;
+    
   }
 }

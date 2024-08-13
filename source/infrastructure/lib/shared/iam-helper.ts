@@ -26,6 +26,7 @@ export class IAMHelper extends Construct {
   public llmStatement: PolicyStatement;
   public cognitoStatement: PolicyStatement;
   public bedrockStatement: PolicyStatement;
+  public esStatement: PolicyStatement;
 
   public createPolicyStatement(actions: string[], resources: string[]) {
     return new PolicyStatement({
@@ -137,6 +138,15 @@ export class IAMHelper extends Construct {
     this.bedrockStatement = this.createPolicyStatement(
       [
         "bedrock:*",
+      ],
+      [ "*" ],
+    );
+    this.esStatement = this.createPolicyStatement(
+      [
+        "es:ESHttpGet",
+        "es:ESHttpPut",
+        "es:ESHttpPost",
+        "es:ESHttpHead",
       ],
       [ "*" ],
     );
