@@ -31,15 +31,15 @@ const ConfigProvider: React.FC<ConfigProviderProps> = ({ children }) => {
     );
   }
 
-  const updateOIDC = (newOIDC: string) => {
-    setConfig((prevInfo: any) => ({
-      ...prevInfo,
-      oidc: newOIDC
-    }));
-  };
+  // const updateOIDC = (newOIDC: string) => {
+  //   setConfig((prevInfo: any) => ({
+  //     ...prevInfo,
+  //     oidc: newOIDC
+  //   }));
+  // };
 
   return (
-    <ConfigContext.Provider value={{...config}}>{children}</ConfigContext.Provider>
+    <ConfigContext.Provider value={config}>{children}</ConfigContext.Provider>
   );
 };
 
