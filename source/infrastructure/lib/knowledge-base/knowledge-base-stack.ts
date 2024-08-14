@@ -137,7 +137,7 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
     const notificationLambda = new Function(this, "ETLNotification", {
       code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
       handler: "notification.lambda_handler",
-      runtime: Runtime.PYTHON_3_11,
+      runtime: Runtime.PYTHON_3_12,
       timeout: Duration.minutes(15),
       memorySize: 256,
       architecture: Architecture.X86_64,
@@ -243,14 +243,14 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
     const topic = new sns.Topic(this, "etl-topic", {
       displayName: "etl-topic",
     });
-    topic.addSubscription(new subscriptions.EmailSubscription(props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.email));
+    topic.addSubscription(new subscriptions.EmailSubscription(props.config.email));
     topic.addSubscription(new subscriptions.LambdaSubscription(notificationLambda));
 
     // Lambda function to for file deduplication and glue job allocation based on file number
     const etlLambda = new Function(this, "ETLLambda", {
       code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
       handler: "main.lambda_handler",
-      runtime: Runtime.PYTHON_3_11,
+      runtime: Runtime.PYTHON_3_12,
       timeout: Duration.minutes(15),
       memorySize: 1024,
       architecture: Architecture.X86_64,

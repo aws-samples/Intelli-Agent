@@ -38,7 +38,7 @@ export class LambdaFunction extends Construct {
   constructor(scope: Construct, name: string, props: LambdaFunctionProps) {
     super(scope, name);
 
-    const defaultRuntime = Runtime.PYTHON_3_11;
+    const defaultRuntime = Runtime.PYTHON_3_12;
     const defaultHandler = "main.lambda_handler";
 
     let functionProps: FunctionProps = {
