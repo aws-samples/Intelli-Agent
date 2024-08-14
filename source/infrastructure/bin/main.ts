@@ -76,7 +76,7 @@ export class RootStack extends Stack {
     }
 
     const userConstruct = new UserConstruct(this, "user", {
-      adminEmail: props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.email,
+      adminEmail: props.config.email,
       callbackUrl: portalConstruct.portalUrl,
     });
 

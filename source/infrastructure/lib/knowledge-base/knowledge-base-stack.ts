@@ -243,7 +243,7 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
     const topic = new sns.Topic(this, "etl-topic", {
       displayName: "etl-topic",
     });
-    topic.addSubscription(new subscriptions.EmailSubscription(props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.email));
+    topic.addSubscription(new subscriptions.EmailSubscription(props.config.email));
     topic.addSubscription(new subscriptions.LambdaSubscription(notificationLambda));
 
     // Lambda function to for file deduplication and glue job allocation based on file number

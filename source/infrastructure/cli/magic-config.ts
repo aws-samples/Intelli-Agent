@@ -69,7 +69,7 @@ async function getAwsAccountAndRegion() {
       options.knowledgeBaseType = config.knowledgeBase.knowledgeBaseType.intelliAgentKb.enabled
         ? "intelliAgentKb"
         : "bedrockKb";
-      options.intelliAgentKbNotificationEmail = config.knowledgeBase.knowledgeBaseType.intelliAgentKb.email;
+      options.intelliAgentUserEmail = config.email;
       options.intelliAgentKbVectorStoreType = config.knowledgeBase.knowledgeBaseType.intelliAgentKb.vectorStore.opensearch.enabled
         ? "opensearch"
         : "unsupported";
@@ -124,6 +124,18 @@ async function processCreateOptions(options: any): Promise<void> {
       askAnswered: false,
     },
     {
+      type: "input",
+      name: "intelliAgentUserEmail",
+      message: "Please enter the name of the email you want to use for notifications",
+      initial: options.intelliAgentUserEmail ?? "test@test.com",
+      validate(intelliAgentUserEmail: string) {
+        return (this as any).skipped ||
+          RegExp(/^[a-zA-Z0-9]+([._-][0-9a-zA-Z]+)*@[a-zA-Z0-9]+([.-][0-9a-zA-Z]+)*\.[a-zA-Z]{2,}$/i).test(intelliAgentUserEmail)
+          ? true
+          : "Enter a valid email address in specified format: [a-zA-Z0-9]+([._-][0-9a-zA-Z]+)*@[a-zA-Z0-9]+([.-][0-9a-zA-Z]+)*\\.[a-zA-Z]{2,}";
+      },
+    },
+    {
       type: "confirm",
       name: "enableKnowledgeBase",
       message: "Do you want to use knowledge base in this solution?",
@@ -148,22 +160,6 @@ async function processCreateOptions(options: any): Promise<void> {
         return !(this as any).state.answers.enableKnowledgeBase;
       },
       initial: options.knowledgeBaseType ?? "intelliAgentKb",
-    },
-    {
-      type: "input",
-      name: "intelliAgentKbNotificationEmail",
-      message: "Please enter the name of the email you want to use for notifications",
-      initial: options.intelliAgentKbNotificationEmail ?? "test@test.com",
-      validate(intelliAgentKbNotificationEmail: string) {
-        return (this as any).skipped ||
-          RegExp(/^[a-zA-Z0-9]+([._-][0-9a-zA-Z]+)*@[a-zA-Z0-9]+([.-][0-9a-zA-Z]+)*\.[a-zA-Z]{2,}$/i).test(intelliAgentKbNotificationEmail)
-          ? true
-          : "Enter a valid email address in specified format: [a-zA-Z0-9]+([._-][0-9a-zA-Z]+)*@[a-zA-Z0-9]+([.-][0-9a-zA-Z]+)*\\.[a-zA-Z]{2,}";
-      },
-      skip(): boolean {
-        return ( !(this as any).state.answers.enableKnowledgeBase ||
-          (this as any).state.answers.knowledgeBaseType !== "intelliAgentKb");
-      },
     },
     {
       type: "select",
@@ -339,12 +335,12 @@ async function processCreateOptions(options: any): Promise<void> {
   // Create the config object
   const config = {
     prefix: answers.prefix,
+    email: answers.intelliAgentUserEmail,
     knowledgeBase: {
       enabled: answers.enableKnowledgeBase,
       knowledgeBaseType: {
         intelliAgentKb: {
           enabled: answers.knowledgeBaseType === "intelliAgentKb",
-          email: answers.intelliAgentKbNotificationEmail,
           vectorStore: {
             opensearch: {
               enabled: answers.intelliAgentKbVectorStoreType === "opensearch",
