@@ -83,6 +83,8 @@
     "indexName": "Index name",
     "tag": "Tag",
     "optional": "Optional",
+    "intention": "Intention",
+    "addIntention": "Add Intention",
     "button": {
       "login": "Log in to Intelli-Agent",
       "reload": "Reload",
@@ -93,6 +95,7 @@
       "backToList": "Back to List",
       "delete": "Delete",
       "createDoc": "Create Document",
+      "createIntention": "Create Intention",
       "upload": "Upload",
       "createPrompt": "Create Prompt",
       "edit": "Edit",

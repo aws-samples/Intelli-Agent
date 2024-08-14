@@ -83,6 +83,8 @@
     "indexName": "索引名称",
     "tag": "标签",
     "optional": "可选",
+    "intention": "意图",
+    "addIntention": "添加意图",
     "button": {
       "login": "登录到 AWS 大语言模型机器人",
       "reload": "重新加载",
@@ -93,6 +95,7 @@
       "backToList": "返回列表",
       "delete": "删除",
       "createDoc": "创建文档",
+      "createIntention": "创建意图",
       "upload": "上传",
       "createPrompt": "创建提示",
       "edit": "编辑",

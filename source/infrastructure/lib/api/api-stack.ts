@@ -386,8 +386,6 @@ export class ApiConstruct extends Construct {
           })
       }
       );
-
-
     }
 
     if (props.config.chat.enabled) {
@@ -456,6 +454,15 @@ export class ApiConstruct extends Construct {
                       this.iamHelper.logStatement],
       });
 
+      const intentionLambda = new LambdaFunction(this, "IntentionLambda", {
+        runtime: Runtime.PYTHON_3_12,
+        code: Code.fromAsset(join(__dirname, "../../../lambda/intention")),
+        handler: "intention.lambda_handler",
+        layers: [apiLambdaOnlineSourceLayer],
+        statements: [this.iamHelper.dynamodbStatement,
+                      this.iamHelper.logStatement],
+      });
+
       // Define the API Gateway Lambda Integration with proxy and no integration responses
       const lambdaChatHistoryIntegration = new apigw.LambdaIntegration(chatHistoryLambda.function, {
         proxy: true,
@@ -502,6 +509,44 @@ export class ApiConstruct extends Construct {
       apiResourcePromptProxy.addMethod("DELETE", lambdaPromptIntegration, this.genMethodOption(api, auth, null),);
       apiResourcePromptProxy.addMethod("GET", lambdaPromptIntegration, this.genMethodOption(api, auth, null),);
 
+      // Define the API Gateway Lambda Integration to manage intention
+      const lambdaIntentionIntegration = new apigw.LambdaIntegration(intentionLambda.function, {
+        proxy: true,
+      });
+      const apiResourceIntentionManagement = api.root.addResource("intentions");
+      apiResourceIntentionManagement.addMethod("GET", lambdaIntentionIntegration, this.genMethodOption(api, auth, null));
+      apiResourceIntentionManagement.addMethod("DELETE", lambdaIntentionIntegration, this.genMethodOption(api, auth, null));
+      const apiGetIntentionById = apiResourceIntentionManagement.addResource("{intentionId}");
+      apiGetIntentionById.addMethod(
+        "GET",
+        lambdaIntentionIntegration,
+        {
+          ...this.genMethodOption(api, auth, {
+            Items: {
+              type: JsonSchemaType.ARRAY, items: {
+                type: JsonSchemaType.OBJECT,
+                properties: {
+                  s3Prefix: { type: JsonSchemaType.STRING },
+                  s3Bucket: { type: JsonSchemaType.STRING },
+                  createTime: { type: JsonSchemaType.STRING }, // Consider using format: 'date-time'
+                  executionId: { type: JsonSchemaType.STRING },
+                  s3Path: { type: JsonSchemaType.STRING },
+                  status: { type: JsonSchemaType.STRING },
+                },
+                required: ['s3Prefix', 's3Bucket', 'createTime', 's3Path', 'status','executionId'],
+              }
+            },
+            Count: { type: JsonSchemaType.INTEGER }
+          }),
+          requestParameters: {
+            'method.request.path.intentionId': true
+          },
+        }
+      );
+      const apiUploadIntention = apiResourceIntentionManagement.addResource("upload");
+      apiUploadIntention.addMethod("POST", lambdaIntentionIntegration, this.genMethodOption(api, auth, null))
+      
+      
       // Define the API Gateway Lambda Integration with proxy and no integration responses
       const lambdaExecutorIntegration = new apigw.LambdaIntegration(
         props.chatStackOutputs.lambdaOnlineMain,
