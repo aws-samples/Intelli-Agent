@@ -51,7 +51,7 @@ const AppRouter = () => {
     );
   }
 
-  auth.isAuthenticated = true
+  // auth.isAuthenticated = false
 
   if (auth.isAuthenticated) {
     return <SignedInRouter />;
