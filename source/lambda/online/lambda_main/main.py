@@ -152,7 +152,7 @@ def compose_connect_body(event_body: dict, context: dict):
     agent_flow_body["query"] = query
     agent_flow_body["entry_type"] = "common"
     agent_flow_body["user_profile"] = "default"
-    agent_flow_body["bot_id"] = bot_id
+    agent_flow_body["bot_id"] = chatbot_id
     agent_flow_body["use_history"] = True
     agent_flow_body["enable_trace"] = False
     agent_flow_body["session_id"] = session_id
