@@ -14,7 +14,7 @@ from common_logic.common_utils.lambda_invoke_utils import (
 )
 from botocore.exceptions import ClientError
 from datetime import datetime, timezone
-from utils.response_utils import process_response
+from common_logic.common_utils.response_utils import process_response
 
 
 logger = get_logger("main")
