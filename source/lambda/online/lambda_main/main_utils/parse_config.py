@@ -87,7 +87,7 @@ class ConfigParserBase:
         new_chatbot_config_obj = chatbot_config_obj.model_copy(
             deep=True,update=chatbot_config
         )
-        return new_chatbot_config_obj.model_dump()
+        return new_chatbot_config_obj.dict()
 
 
 class CommonConfigParser(ConfigParserBase):
