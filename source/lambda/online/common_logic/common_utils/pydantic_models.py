@@ -202,7 +202,7 @@ class ChatbotConfig(AllowBaseModel):
     def model_copy(self,update=None,deep=True):
         update = update or {}
         new_dict = update_nest_dict(
-            copy.deepcopy(self.model_dump()),
+            copy.deepcopy(self.dict()),
             update
         )
         cls = type(self)
