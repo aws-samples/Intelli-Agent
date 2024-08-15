@@ -91,19 +91,16 @@ def get_custom_qq_retrievers(config: dict):
 
 def get_whole_chain(retriever_list, reranker_config):
     lotr = MergerRetriever(retrievers=retriever_list)
-    # if len(reranker_config):
-    #     default_reranker_config = {
-    #         "enable_debug": False,
-    #         "target_model": "bge_reranker_model.tar.gz",
-    #         "top_k": 10,
-    #     }
-    #     reranker_config = {**default_reranker_config, **reranker_config}
-    #     compressor = BGEReranker(**reranker_config)
-    # else:
-    #     compressor = MergeReranker()
-
-    # Disable Reranker for AICS Guidance
-    compressor = MergeReranker()
+    if len(reranker_config):
+        default_reranker_config = {
+            "enable_debug": False,
+            "target_model": "bge_reranker_model.tar.gz",
+            "top_k": 10,
+        }
+        reranker_config = {**default_reranker_config, **reranker_config}
+        compressor = BGEReranker(**reranker_config)
+    else:
+        compressor = MergeReranker()
 
     compression_retriever = ContextualCompressionRetriever(
         base_compressor=compressor, base_retriever=lotr
@@ -130,18 +127,11 @@ def get_custom_retrievers(retriever):
 def lambda_handler(event, context=None):
     logger.info(f"Retrieval event: {event}")
     event_body = event
-    event_body["retrievers"].append(
-        {
-            "index_type": "qd",
-            "index_name": "test",
-            "vector_field": "sentence_vector",
-            "source_field": "source",
-            "text_field": "paragraph",
-        }
-    )
     retriever_list = []
-    print(retriever_list)
     for retriever in event_body["retrievers"]:
+        retriever["vector_field"] = "sentence_vector"
+        retriever["source_field"] = "source"
+        retriever["text_field"] = "paragraph"
         retriever_list.extend(get_custom_retrievers(retriever))
     rerankers = event_body.get("rerankers", None)
     if rerankers:
