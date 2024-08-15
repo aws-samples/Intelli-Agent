@@ -19,12 +19,15 @@ class ForbidBaseModel(BaseModel):
     )
 
 
-class AllowBaseModel(BaseModel):
-    model_config = ConfigDict(
-        extra="allow",
-        protected_namespaces=()
-    )
+# class AllowBaseModel(BaseModel):
+#     model_config = ConfigDict(
+#         extra="allow",
+#         protected_namespaces=()
+#     )
 
+class AllowBaseModel(BaseModel):
+    class Config:
+        extra="allow"
 
 class LLMConfig(AllowBaseModel):
     model_id: LLMModelType = LLMModelType.CLAUDE_3_SONNET
