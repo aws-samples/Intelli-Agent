@@ -50,17 +50,19 @@ def get_similarity_embedding(
     target_model: str,
     model_type: str = "vector",
 ) -> List[List[float]]:
-    # query_similarity_embedding_prompt = query
-    # response = SagemakerEndpointVectorOrCross(
-    #     prompt=query_similarity_embedding_prompt,
-    #     endpoint_name=embedding_model_endpoint,
-    #     model_type=model_type,
-    #     stop=None,
-    #     region_name=None,
-    #     target_model=target_model,
-    # )
-    embeddings = BedrockEmbeddings(model_id="amazon.titan-embed-text-v1")
-    response = embeddings.embed_query(query)
+    if model_type == "bedrock":
+        embeddings = BedrockEmbeddings(model_id=embedding_model_endpoint)
+        response = embeddings.embed_query(query)
+    else:
+        query_similarity_embedding_prompt = query
+        response = SagemakerEndpointVectorOrCross(
+            prompt=query_similarity_embedding_prompt,
+            endpoint_name=embedding_model_endpoint,
+            model_type=model_type,
+            stop=None,
+            region_name=None,
+            target_model=target_model,
+        )
     return response
 
 
@@ -72,31 +74,34 @@ def get_relevance_embedding(
     target_model: str,
     model_type: str = "vector",
 ):
-    # if model_type == "vector":
-    #     if query_lang == "zh":
-    #         query_relevance_embedding_prompt = (
-    #             "为这个句子生成表示以用于检索相关文章：" + query
-    #         )
-    #     elif query_lang == "en":
-    #         query_relevance_embedding_prompt = (
-    #             "Represent this sentence for searching relevant passages: " + query
-    #         )
-    #     else:
-    #         query_relevance_embedding_prompt = query
-    # elif model_type == "m3" or model_type == "bce":
-    #     query_relevance_embedding_prompt = query
-    # else:
-    #     raise ValueError(f"invalid embedding model type: {model_type}")
-    # response = SagemakerEndpointVectorOrCross(
-    #     prompt=query_relevance_embedding_prompt,
-    #     endpoint_name=embedding_model_endpoint,
-    #     model_type=model_type,
-    #     region_name=None,
-    #     stop=None,
-    #     target_model=target_model,
-    # )
-    embeddings = BedrockEmbeddings(model_id="amazon.titan-embed-text-v1")
-    response = embeddings.embed_query(query)
+    if model_type == "bedrock":
+        embeddings = BedrockEmbeddings(model_id="amazon.titan-embed-text-v1")
+        response = embeddings.embed_query(query)
+    else:
+        if model_type == "vector":
+            if query_lang == "zh":
+                query_relevance_embedding_prompt = (
+                    "为这个句子生成表示以用于检索相关文章：" + query
+                )
+            elif query_lang == "en":
+                query_relevance_embedding_prompt = (
+                    "Represent this sentence for searching relevant passages: " + query
+                )
+            else:
+                query_relevance_embedding_prompt = query
+        elif model_type == "m3" or model_type == "bce":
+            query_relevance_embedding_prompt = query
+        else:
+            raise ValueError(f"invalid embedding model type: {model_type}")
+        response = SagemakerEndpointVectorOrCross(
+            prompt=query_relevance_embedding_prompt,
+            endpoint_name=embedding_model_endpoint,
+            model_type=model_type,
+            region_name=None,
+            stop=None,
+            target_model=target_model,
+        )
+
     return response
 
 

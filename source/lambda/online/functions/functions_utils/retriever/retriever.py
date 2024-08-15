@@ -85,7 +85,7 @@ def get_custom_qd_retrievers(config: dict, using_bm25=False):
 
 
 def get_custom_qq_retrievers(config: dict):
-    qq_retriever = QueryQuestionRetriever(model_type="vector", **config)
+    qq_retriever = QueryQuestionRetriever(**config)
     return [qq_retriever]
 
 
