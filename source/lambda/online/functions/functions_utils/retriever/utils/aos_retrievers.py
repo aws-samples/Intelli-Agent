@@ -22,10 +22,18 @@ logger.setLevel(logging.INFO)
 aos_endpoint = os.environ.get("AOS_ENDPOINT", "")
 aos_domain_name = os.environ.get("AOS_DOMAIN_NAME", "smartsearch")
 aos_secret = os.environ.get("AOS_SECRET_NAME", "opensearch-master-user")
-
 sm_client = boto3.client("secretsmanager")
 master_user = sm_client.get_secret_value(SecretId=aos_secret)["SecretString"]
 
+DEFAULT_TEXT_FIELD_NAME = "text"
+DEFAULT_VECTOR_FIELD_NAME = "vector_field"
+DEFAULT_SOURCE_FIELD_NAME = "source"
+
+if not aos_endpoint:
+    opensearch_client = boto3.client("opensearch")
+    response = opensearch_client.describe_domain(DomainName=aos_domain_name)
+
+    aos_endpoint = response["DomainStatus"]["Endpoint"]
 cred = json.loads(master_user)
 username = cred.get("username")
 password = cred.get("password")
