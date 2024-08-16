@@ -4,12 +4,14 @@ export interface Config {
   apiUrl: string;
   docsS3Bucket: string;
   workspaceId: string;
-  oidcIssuer: string;
-  oidcClientId: string;
-  oidcLogoutUrl: string;
-  oidcRedirectUrl: string;
-  user?: any,
-  oidc?: any,
+  builtInCognito: {
+    oidcIssuer: string;
+    oidcClientId: string;
+    oidcLogoutUrl: string;
+    oidcRedirectUrl: string;
+  }
+  currentUser?: any,
+  currentOidc?: any,
   updateOIDC: (newOIDC: string)=>void
 }
 const ConfigContext = React.createContext<Config | null>(null);

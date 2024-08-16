@@ -11,19 +11,24 @@
     align-items: center;
 }
 
-.oidc .awsui_button-trigger_18eso_7qpbu_97 {
+.oidc [class*="awsui_button-trigger"] {
     border: 1px solid #80808061 !important;
     border-radius: 5px !important;
     height: 40px !important;
 }
 
-.oidc .awsui_input_2rhyz_13pa9_97 {
+.oidc [class*="awsui_input"] {
     border: 1px solid #80808061 !important;
     border-radius: 5px !important;
     height: 40px !important;
 }
+.oidc [class*="awsui_input-container"] {
+    border: 0px solid #80808061 !important;
+    border-radius: 5px !important;
+    height: 40px !important;
+}
 
-.oidc .awsui_options-list_19gcf_qv6vk_93 li {
+.oidc [class*="awsui_options-list"] li {
     border: 1px solid #80808061 !important;
     border-radius: 0px !important;
 }

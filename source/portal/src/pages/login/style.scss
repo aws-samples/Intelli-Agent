@@ -41,14 +41,16 @@
   margin-bottom: 35px;
 }
 
-.awsui_tabs-tab-label_14rmt_b9m39_238 {
+[class*="awsui_tabs-tab-label"] {
   border-right: none !important;
 }
 
+
+
 // .awsui_tabs-header_14rmt_b9m39_186 {
-  .awsui_tabs-header-with-divider_14rmt_b9m39_352 {
+[class*="awsui_tabs-header-with-divider"] {
     border-bottom: none !important;
-  }
+}
 // }
 .bottom-setting {
   width:90%;
@@ -93,7 +95,7 @@
   text-align: center;
 }
 
-.bottom-button .awsui_variant-primary_vjswe_jz1q6_210 {
+.bottom-button [class*="awsui_variant-primary"] {
   text-align: center !important;
 
 }

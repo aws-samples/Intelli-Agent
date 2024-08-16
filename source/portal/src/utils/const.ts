@@ -89,8 +89,6 @@ export const ROUTES = {
   Register: '/create-account',
   ChangePWD: '/change-password',
   LoginCallback: '/signin',
-
-  // 其他路径
 };
 
 export const TOKEN = "token"
@@ -105,4 +103,10 @@ export const LOGIN_TYPE = {
   USER: 'user',
   SNS: 'sns',
   OIDC: 'oidc',
+};
+
+export const AUTHING = {
+  CLIENT_ID: "66b769cf5c2d439dfd37f237",
+  REDIRECT_URI: "https://demo-center.authing.cn",
+  CLIENT_SECRET: "7dab7e589bf215fa8778609c54d90f9c"
 };

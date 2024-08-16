@@ -23,16 +23,12 @@ login:
       - name: "Authing"
         iconUrl: "authing"
         description: "Authentication service for ensuring application security"
-        clientId: "66b769cf5c2d439dfd37f237"
-        redirectUri: "https://demo-center.authing.cn"
-        issuer: ""
-        audience: ""
-      - name: "Keycloak"
-        iconUrl: "keycloak"
-        description: "Open Source Identity and Access Management"
-        clientId: "668d3fa8e264cf3675dcc42a"
-        redirectUri: "https://intelli-agent.authing.cn"
-        diabled: true
+      # - name: "Keycloak"
+      #   iconUrl: "keycloak"
+      #   description: "Open Source Identity and Access Management"
+      #   clientId: "668d3fa8e264cf3675dcc42a"
+      #   redirectUri: "https://intelli-agent.authing.cn"
+      #   diabled: true
   # third:
   #   - type: "google"
   #     iconUrlSelected: "google_in"

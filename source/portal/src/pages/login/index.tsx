@@ -1,3 +1,4 @@
+import { AuthFlowType, CognitoIdentityProviderClient, InitiateAuthCommand } from '@aws-sdk/client-cognito-identity-provider';
 import { Button, Checkbox, Grid, Link, SpaceBetween, Spinner, Tabs } from '@cloudscape-design/components';
 // import { LOGIN_TYPE } from 'enum/common_types';
 import { FC, useEffect, useState } from 'react';
@@ -8,7 +9,7 @@ import SNS from './component/sns';
 import User from './component/user';
 import './style.scss';
 import axios, { AxiosError } from 'axios';
-import { CLIENT_ID, LOGIN_TYPE, OIDC_REDIRECT_URL, PROVIDER, ROUTES, TOKEN, USER } from 'src/utils/const';
+import { AUTHING, CLIENT_ID, LOGIN_TYPE, OIDC_REDIRECT_URL, PROVIDER, ROUTES, TOKEN, USER } from 'src/utils/const';
 import useAxiosRequest from 'src/hooks/useAxiosRequest';
 // import apiClient from 'request/client';
 // import { CLIENT_ID, OIDC_REDIRECT_URL, PROVIDER, ROUTES, TOKEN, USER } from 'common/constants';
@@ -32,6 +33,7 @@ const Login: FC = () => {
   const [version, setVersion] = useState(0)
   const [loginParams, setLoginParams] = useState(null as any);
   const [isLoading, setIsloading] = useState(true)
+  const fetchData = useAxiosRequest();
 
   useEffect(()=>{
     const loadConfig = async ()=> {
@@ -43,6 +45,7 @@ const Login: FC = () => {
       setConfig(configData)
       setIsloading(false)
     })
+    setError("")
   },[])
 
   useEffect(()=>{
@@ -117,9 +120,7 @@ const Login: FC = () => {
       }
       setTabs(tmp_tabs)}
   },[config, selectedProvider, username, password])
-  
-  const fetchData = useAxiosRequest();
-  
+   
   const forgetPwd =()=>{
     navigate(ROUTES.FindPWD)
   }
@@ -160,66 +161,86 @@ const Login: FC = () => {
 
     switch(selectedProvider.value){
       case "Cognito":
-        // cognitoLogin();
+        cognitoLogin();
         break;
       default:
-        oidcLogin()
+        oidcLogin(selectedProvider.value.toLowerCase())
         break;
     }
   }
-//   const cognitoLogin = async()=>{
-//   try {
-//     const authResponse = await initiateAuth(selectedProvider.clientId, selectedProvider.region, username, password);
-//       if(authResponse.ChallengeName==="NEW_PASSWORD_REQUIRED"){
-//         navigate(ROUTES.ChangePWD, { 
-//           state: {
-//             session: authResponse.Session,
-//             reason:"First Login",
-//             username,
-//             loginType: activeTabId,
-//             provider: selectedProviderName,
-//             author,
-//             thirdLogin,
-//             region: selectedProvider.region,
-//             clientId: selectedProvider.clientId
-//           }
-//         });
-//       }
-//     if (authResponse.AuthenticationResult) {
-//       localStorage.setItem("loginType", activeTabId || '');
-//       localStorage.setItem("providerName", selectedProviderName || '');
-//       localStorage.setItem("userName", username || '');
-//       localStorage.setItem("idToken", authResponse.AuthenticationResult.IdToken || '');
-//       localStorage.setItem("accessToken", authResponse.AuthenticationResult.AccessToken || '');
-//       localStorage.setItem("refreshToken", authResponse.AuthenticationResult.RefreshToken || '');
-//       localStorage.setItem("session", authResponse.Session || '');
-//       navigate(ROUTES.ChatBot)
-//     }
-//   } catch (error) {
-//     if(error instanceof Error) {
-//       setError(error.message)
-//     } else {
-//       setError("Unknown error, please contact the administrator.")
-//     }
-//     setLogging(false)
-//     return
-//   }
-// }
+    const cognitoLogin = async()=>{
+  try {
+    const authResponse = await initiateAuth(selectedProvider.clientId, selectedProvider.region, username, password);
+      if(authResponse.ChallengeName==="NEW_PASSWORD_REQUIRED"){
+        navigate(ROUTES.ChangePWD, { 
+          state: {
+            session: authResponse.Session,
+            reason:"First Login",
+            username,
+            loginType: activeTabId,
+            provider: selectedProviderName,
+            author,
+            thirdLogin,
+            region: selectedProvider.region,
+            clientId: selectedProvider.clientId
+          }
+        });
+      }
+    if (authResponse.AuthenticationResult) {
+      localStorage.setItem("loginType", activeTabId || '');
+      localStorage.setItem("providerName", selectedProviderName || '');
+      localStorage.setItem("userName", username || '');
+      localStorage.setItem("idToken", authResponse.AuthenticationResult.IdToken || '');
+      localStorage.setItem("accessToken", authResponse.AuthenticationResult.AccessToken || '');
+      localStorage.setItem("refreshToken", authResponse.AuthenticationResult.RefreshToken || '');
+      localStorage.setItem("session", authResponse.Session || '');
+      navigate(ROUTES.ChatBot)
+    }
+  } catch (error) {
+    if(error instanceof Error) {
+      setError(error.message)
+    } else {
+      setError("Unknown error, please contact the administrator.")
+    }
+    setLogging(false)
+    return
+  }
+}
 
-const oidcLogin = async()=>{
+const oidcLogin = async(oidc: string)=>{
   let response: any
+  let payload: any
+  let redirectUri: string = ''
+  const headers = {'Content-Type': 'application/x-www-form-urlencoded'}
+  if(oidc==='authing'){
+    redirectUri = AUTHING.REDIRECT_URI
+    payload = {
+      "client_id": AUTHING.CLIENT_ID,
+      "client_secret": AUTHING.CLIENT_SECRET,
+      "grant_type": "password",
+      "username": username,
+      "password": password
+    }
+  }
   try{
-    response = await fetchData({
-      url: '/login',
-      method: 'post',
-      data: {
-        redirect_uri: selectedProvider.redirectUri,
-        client_id: selectedProvider.clientId,
-        provider: selectedProvider.label.toLowerCase(),
-        username,
-        password
-      },
-    })
+    // response = await axios.
+    response = await axios({
+      method: "post",
+      url: `${redirectUri}/oidc/token`,
+      data: payload,
+      headers,
+    });
+    // response = await fetchData({
+    //   url: '/login',
+    //   method: 'post',
+    //   data: {
+    //     redirect_uri: selectedProvider.redirectUri,
+    //     client_id: selectedProvider.clientId,
+    //     provider: selectedProvider.label.toLowerCase(),
+    //     username,
+    //     password
+    //   },
+    // })
   } catch (error){
     if(error instanceof AxiosError) {
       setError(JSON.parse(error.response?.data.detail).error_description)
@@ -320,18 +341,18 @@ const oidcLogin = async()=>{
 };
 
 export default Login;
-// const initiateAuth= async(clientId: string, region: string, username:string, password:string) => {
-//   const params = {
-//       AuthFlow: AuthFlowType.USER_PASSWORD_AUTH,
-//       ClientId: clientId,
-//       AuthParameters: {
-//         USERNAME: username,
-//         PASSWORD: password,
-//       }
-//   }
-//   const client = new CognitoIdentityProviderClient({
-//       region,
-//   });
-//   const command = new InitiateAuthCommand(params);
-//   return await client.send(command);
-// };
+const initiateAuth= async(clientId: string, region: string, username:string, password:string) => {
+  const params = {
+      AuthFlow: AuthFlowType.USER_PASSWORD_AUTH,
+      ClientId: clientId,
+      AuthParameters: {
+        USERNAME: username,
+        PASSWORD: password,
+      }
+  }
+  const client = new CognitoIdentityProviderClient({
+      region,
+  });
+  const command = new InitiateAuthCommand(params);
+  return await client.send(command);
+};

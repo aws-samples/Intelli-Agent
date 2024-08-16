@@ -38,16 +38,12 @@ const OIDC = (props: OIDCProps) => {
                updateContext(detail.selectedOption)
                setProvider(detail.selectedOption)
                setSelectedProviderName(detail.selectedOption.value)
+               console.log(context)
               }
             }
             options={oidcOptions}
     />
          </div>
-    {/* </Grid> */}
-    {/* <Grid
-      gridDefinition={[{ colspan: 3 }, { colspan: 9 }]}
-    >
-        <div className='label'>Username</div> */}
         <div className='item'>
         <Input
       onChange={({ detail }) => setUsername(detail.value)}
