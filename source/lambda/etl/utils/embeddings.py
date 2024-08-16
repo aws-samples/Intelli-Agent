@@ -32,7 +32,11 @@ def get_embedding_info(embedding_endpoint_name):
         embeddings_model_name = "cohere.embed-english-v3"
         embeddings_model_dimensions = 1024
         embeddings_model_type = "bedrock"
-
+    elif "titan" in embedding_endpoint_name:
+        embeddings_model_provider = "Titan"
+        embeddings_model_name = "amazon.titan-embed-text-v1"
+        embeddings_model_dimensions = 1024
+        embeddings_model_type = "bedrock"
     else:
         embeddings_model_provider = "Not Found"
         embeddings_model_name = "Not Found"

@@ -76,7 +76,8 @@ export class ModelConstruct extends Construct implements ModelConstructOutputs {
   constructor(scope: Construct, id: string) {
     super(scope, id);
 
-    this.defaultEmbeddingModelName = "cohere.embed-english-v3"
+    // this.defaultEmbeddingModelName = "cohere.embed-english-v3"
+    this.defaultEmbeddingModelName = "amazon.titan-embed-text-v1"
     this.defaultKnowledgeBaseModelName = "anthropic.claude-3-sonnet-20240229-v1:0"
 
   }
