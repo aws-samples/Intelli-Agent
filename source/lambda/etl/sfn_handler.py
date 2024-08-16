@@ -1,12 +1,12 @@
 import json
+import logging
 import os
 from datetime import datetime, timezone
 from urllib.parse import unquote_plus
-from constant import IndexType, IndexTag
-from utils.ddb_utils import initiate_model, initiate_index, initiate_chatbot
-import boto3
-import logging
 
+import boto3
+from constant import IndexTag, IndexType
+from utils.ddb_utils import initiate_chatbot, initiate_index, initiate_model
 
 client = boto3.client("stepfunctions")
 dynamodb = boto3.resource("dynamodb")
@@ -34,7 +34,7 @@ def handler(event, context):
 
     if "Records" in event:
         logger.info("S3 event detected")
-        # This is the legacy codes which can handle files in S3 bucket, 
+        # This is the legacy codes which can handle files in S3 bucket,
         # the S3 eventbridge is removed, re-add it if needed
         bucket = event["Records"][0]["s3"]["bucket"]["name"]
         key = event["Records"][0]["s3"]["object"]["key"]
@@ -83,28 +83,33 @@ def handler(event, context):
             }
     else:
         logger.info("API Gateway event detected")
-        authorizer_type = event["requestContext"]["authorizer"].get("authorizerType")
+        authorizer_type = (
+            event["requestContext"].get("authorizer", {}).get("authorizerType")
+        )
         if authorizer_type == "lambda_authorizer":
             claims = json.loads(event["requestContext"]["authorizer"]["claims"])
             cognito_groups = claims["cognito:groups"]
             cognito_groups_list = cognito_groups.split(",")
         else:
-            raise Exception("Invalid authorizer type")
+            cognito_groups_list = ["Admin"]
         # Parse the body from the event object
         input_body = json.loads(event["body"])
-        if "indexType" not in input_body or \
-            input_body["indexType"] not in [IndexType.QD.value, IndexType.QQ.value, IndexType.INTENTION.value]:
+        if "indexType" not in input_body or input_body["indexType"] not in [
+            IndexType.QD.value,
+            IndexType.QQ.value,
+            IndexType.INTENTION.value,
+        ]:
             return {
                 "statusCode": 400,
                 "headers": resp_header,
-                "body": f"Invalid indexType, valid values are {IndexType.QD.value}, {IndexType.QQ.value}, {IndexType.INTENTION.value}"
+                "body": f"Invalid indexType, valid values are {IndexType.QD.value}, {IndexType.QQ.value}, {IndexType.INTENTION.value}",
             }
         index_type = input_body["indexType"]
         group_name = (
             "Admin" if "Admin" in cognito_groups_list else cognito_groups_list[0]
         )
         chatbot_id = input_body.get("chatbotId", group_name.lower())
-        
+
         if "indexId" in input_body:
             index_id = input_body["indexId"]
         else:
@@ -120,15 +125,19 @@ def handler(event, context):
 
         input_body["indexId"] = index_id
         input_body["groupName"] = (
-            group_name
-            if "groupName" not in input_body
-            else input_body["groupName"]
+            group_name if "groupName" not in input_body else input_body["groupName"]
         )
-    
+
     model_id = f"{chatbot_id}-embedding"
-    embedding_model_type = initiate_model(model_table, group_name, model_id, embedding_endpoint, create_time)
-    initiate_index(index_table, group_name, index_id, model_id, index_type, tag, create_time)
-    initiate_chatbot(chatbot_table, group_name, chatbot_id, index_id, index_type, tag, create_time)
+    embedding_model_type = initiate_model(
+        model_table, group_name, model_id, embedding_endpoint, create_time
+    )
+    initiate_index(
+        index_table, group_name, index_id, model_id, index_type, tag, create_time
+    )
+    initiate_chatbot(
+        chatbot_table, group_name, chatbot_id, index_id, index_type, tag, create_time
+    )
 
     input_body["tableItemId"] = context.aws_request_id
     input_body["chatbotId"] = chatbot_id

@@ -14,14 +14,14 @@
 import { Aws, Duration, StackProps } from "aws-cdk-lib";
 import * as apigw from "aws-cdk-lib/aws-apigateway";
 import * as s3 from "aws-cdk-lib/aws-s3";
+import { Function, Runtime, Code, Architecture } from 'aws-cdk-lib/aws-lambda';
+import { JsonSchemaType, JsonSchemaVersion, Model } from "aws-cdk-lib/aws-apigateway";
 import { Construct } from "constructs";
 import { join } from "path";
 
 import { LambdaLayers } from "../shared/lambda-layers";
 import { WebSocketConstruct } from "./websocket-api";
-import { Function, Runtime, Code, Architecture } from 'aws-cdk-lib/aws-lambda';
 import { IAMHelper } from "../shared/iam-helper";
-import { JsonSchemaType, JsonSchemaVersion, Model } from "aws-cdk-lib/aws-apigateway";
 import { SystemConfig } from "../shared/types";
 import { SharedConstructOutputs } from "../shared/shared-construct";
 import { ModelConstructOutputs } from "../model/model-construct";
@@ -46,6 +46,7 @@ export class ApiConstruct extends Construct {
   public wsEndpoint: string = "";
   public wsEndpointV2: string = "";
   private iamHelper: IAMHelper;
+  public apiKey: string = "";
 
   constructor(scope: Construct, id: string, props: ApiStackProps) {
     super(scope, id);
@@ -128,10 +129,12 @@ export class ApiConstruct extends Construct {
     });
 
 
-    const auth = new apigw.RequestAuthorizer(this, 'ApiAuthorizer', {
-      handler: customAuthorizerLambda.function,
-      identitySources: [apigw.IdentitySource.header('Authorization')],
-    });
+    // const auth = new apigw.RequestAuthorizer(this, 'ApiAuthorizer', {
+    //   handler: customAuthorizerLambda.function,
+    //   identitySources: [apigw.IdentitySource.header('Authorization')],
+    // });
+
+    let auth = true;
 
     if (props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.enabled) {
       const embeddingLambda = new LambdaFunction(this, "lambdaEmbedding", {
@@ -530,12 +533,28 @@ export class ApiConstruct extends Construct {
 
     }
 
+    const plan = api.addUsagePlan('ExternalUsagePlan', {
+      name: 'external-api-usage-plan'
+    });
+    
+    // This is not safe, but for the purpose of the test, we will use this
+    // For deployment, we suggest user manually create the key and use it on the console
+    const key = api.addApiKey('ApiKey', {
+      value: "AICustomerServiceTestKey",
+    });
+    
+    plan.addApiKey(key);
+    plan.addApiStage({
+      stage: api.deploymentStage
+    })
 
     this.apiEndpoint = api.url;
     this.documentBucket = s3Bucket.bucketName;
+    this.apiKey = "AICustomerServiceTestKey"
   }
 
-  genMethodOption =(api: apigw.RestApi, auth: apigw.RequestAuthorizer, properties: any)=>{
+  genMethodOption =(api: apigw.RestApi, auth: boolean, properties: any)=>{
+    let unusedAuth = auth;
     let responseModel = apigw.Model.EMPTY_MODEL
     if(properties!==null){
       responseModel = new Model(this, `ResponseModel-${Math.random().toString(36).substr(2, 9)}`, {
@@ -549,7 +568,8 @@ export class ApiConstruct extends Construct {
       });
     }
     return {
-      authorizer: auth,
+      // authorizer: auth,
+      apiKeyRequired: auth,
       methodResponses: [
         {
           statusCode: '200',

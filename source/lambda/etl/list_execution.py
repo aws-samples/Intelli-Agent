@@ -26,15 +26,15 @@ def get_query_parameter(event, parameter_name, default_value=None):
 def lambda_handler(event, context):
     logger.info(event)
 
-    authorizer_type = event["requestContext"]["authorizer"].get("authorizerType")
+    authorizer_type = (
+        event["requestContext"].get("authorizer", {}).get("authorizerType")
+    )
     if authorizer_type == "lambda_authorizer":
         claims = json.loads(event["requestContext"]["authorizer"]["claims"])
         group_id = claims["cognito:groups"]
         cognito_groups_list = group_id.split(",")
     else:
-        raise Exception(
-            "Invalid authorizer type. This API should only be invoked by the lambda authorizer"
-        )
+        cognito_groups_list = ["Admin"]
     logger.info(f"Group ID: {group_id}")
 
     max_items = get_query_parameter(event, "max_items", DEFAULT_MAX_ITEMS)

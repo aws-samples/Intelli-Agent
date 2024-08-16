@@ -49,7 +49,7 @@ export class RootStack extends Stack {
       config: props.config,
       sharedConstructOutputs: sharedConstruct,
       modelConstructOutputs: modelConstruct,
-      domainEndpoint: ''
+      domainEndpoint: 'https://search-smartsearch-iil74miirht3d3ih4gnitnyn2e.us-west-2.es.amazonaws.com'
     });
     
     const userConstruct = new UserConstruct(this, "user", {
@@ -78,10 +78,14 @@ export class RootStack extends Stack {
         oidcClientId: userConstruct.oidcClientId,
         oidcLogoutUrl: userConstruct.oidcLogoutUrl,
         oidcRedirectUrl: `https://${portalConstruct.portalUrl}/signin`,
+        apiKey: apiConstruct.apiKey,
       },
     });
     uiExports.node.addDependency(portalConstruct);
 
+    new CfnOutput(this, "TestApiKey", {
+      value: apiConstruct.apiKey,
+    });
     new CfnOutput(this, "API Endpoint Address", {
       value: apiConstruct.apiEndpoint,
     });

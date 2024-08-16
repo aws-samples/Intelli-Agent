@@ -14,14 +14,15 @@ logger.setLevel(logging.INFO)
 
 def lambda_handler(event, context):
 
-    authorizer_type = event["requestContext"]["authorizer"].get("authorizerType")
+    authorizer_type = (
+        event["requestContext"].get("authorizer", {}).get("authorizerType")
+    )
     if authorizer_type == "lambda_authorizer":
         claims = json.loads(event["requestContext"]["authorizer"]["claims"])
         cognito_groups = claims["cognito:groups"]
         cognito_groups_list = cognito_groups.split(",")
     else:
-        raise Exception("Invalid authorizer type")
-    logger.info(f"Cognito Groups: {cognito_groups}")
+        cognito_groups_list = ["Admin"]
 
     output = {}
 

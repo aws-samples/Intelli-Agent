@@ -312,6 +312,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       query: userMessage,
       entry_type: scenario.value,
       session_id: sessionId,
+      user_id: config?.apiKey,
       chatbot_config: {
         goods_id: retailGoods.value,
         chatbot_mode: chatModeOption.value,

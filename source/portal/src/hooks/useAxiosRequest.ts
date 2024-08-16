@@ -18,6 +18,7 @@ const useAxiosRequest = () => {
   const config = useContext(ConfigContext);
   const user = getUser(config?.oidcIssuer, config?.oidcClientId);
   const token = user?.id_token;
+  console.log('token', token);
   const sendRequest = async ({
     url = '',
     method = 'get',
@@ -39,7 +40,7 @@ const useAxiosRequest = () => {
         params: params,
         headers: {
           ...headers,
-          Authorization: `Bearer ${token}`,
+          'x-api-key': config?.apiKey,
         },
       });
       return response.data;

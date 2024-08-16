@@ -36,12 +36,14 @@ def get_query_parameter(event, parameter_name, default_value=None):
 def lambda_handler(event, context):
 
     logger.info(event)
-    authorizer_type = event["requestContext"]["authorizer"].get("authorizerType")
+    authorizer_type = (
+        event["requestContext"].get("authorizer", {}).get("authorizerType")
+    )
     if authorizer_type == "lambda_authorizer":
         claims = json.loads(event["requestContext"]["authorizer"]["claims"])
         cognito_username = claims["cognito:username"]
     else:
-        raise Exception("Invalid authorizer type")
+        cognito_username = event.get("headers", {}).get("x-api-key")
 
     max_items = get_query_parameter(event, "max_items", DEFAULT_MAX_ITEMS)
     page_size = get_query_parameter(event, "page_size", DEFAULT_SIZE)
