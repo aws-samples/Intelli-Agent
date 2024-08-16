@@ -27,6 +27,12 @@ def get_embedding_info(embedding_endpoint_name):
         embeddings_model_dimensions = 768
         embeddings_model_type = "bce"
 
+    elif "cohere" in embedding_endpoint_name:
+        embeddings_model_provider = "Cohere"
+        embeddings_model_name = "cohere.embed-english-v3"
+        embeddings_model_dimensions = 1024
+        embeddings_model_type = "bedrock"
+
     else:
         embeddings_model_provider = "Not Found"
         embeddings_model_name = "Not Found"

@@ -8,6 +8,7 @@ export interface Config {
   oidcClientId: string;
   oidcLogoutUrl: string;
   oidcRedirectUrl: string;
+  apiKey: string;
 }
 const ConfigContext = React.createContext<Config | null>(null);
 export default ConfigContext;

@@ -75,7 +75,7 @@ def get_relevance_embedding(
     model_type: str = "vector",
 ):
     if model_type == "bedrock":
-        embeddings = BedrockEmbeddings(model_id="amazon.titan-embed-text-v1")
+        embeddings = BedrockEmbeddings(model_id=embedding_model_endpoint)
         response = embeddings.embed_query(query)
     else:
         if model_type == "vector":

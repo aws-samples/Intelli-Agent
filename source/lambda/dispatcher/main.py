@@ -22,12 +22,14 @@ def send_msg(queue_url, event):
 
 def lambda_handler(event, context):
     logger.info(f"Received event: {event}")
-    authorizer_type = event["requestContext"]["authorizer"].get("authorizerType")
+    authorizer_type = (
+        event["requestContext"].get("authorizer", {}).get("authorizerType")
+    )
     if authorizer_type == "lambda_authorizer":
         claims = json.loads(event["requestContext"]["authorizer"]["claims"])
         cognito_username = claims["cognito:username"]
     else:
-        raise Exception("Invalid authorizer type")
+        cognito_username = event.get("headers", {}).get("x-api-key")
 
     event_body = json.loads(event["body"])
     event_body["user_id"] = cognito_username
