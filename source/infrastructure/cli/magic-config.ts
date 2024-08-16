@@ -11,11 +11,17 @@ import { LIB_VERSION } from "./version.js";
 
 const embeddingModels = [
   {
+    provider: "bedrock",
+    name: "amazon.titan-embed-text-v1",
+    commitId: "",
+    dimensions: 1024,
+    default: true,
+  },
+  {
     provider: "sagemaker",
     name: "bce-embedding-and-bge-reranker",
     commitId: "43972580a35ceacacd31b95b9f430f695d07dde9",
     dimensions: 1024,
-    default: true,
   }
 ];
 
@@ -139,7 +145,7 @@ async function processCreateOptions(options: any): Promise<void> {
       type: "confirm",
       name: "enableKnowledgeBase",
       message: "Do you want to use knowledge base in this solution?",
-      initial: options.enableKnowledgeBase ?? true,
+      initial: options.enableKnowledgeBase ?? false,
     },
     {
       type: "select",
@@ -239,17 +245,17 @@ async function processCreateOptions(options: any): Promise<void> {
       choices: embeddingModels.map((m) => ({ name: m.name, value: m })),
       initial: options.defaultEmbedding,
       validate(value: string) {
-        if ((this as any).state.answers.enableRag) {
+        if ((this as any).state.answers.enableChat) {
           return value ? true : "Select a default embedding model";
         }
 
         return true;
       },
-      skip(): boolean {
-        return ( !(this as any).state.answers.enableKnowledgeBase ||
-          (this as any).state.answers.knowledgeBaseType !== "intelliAgentKb" || 
-          (this as any).state.answers.intelliAgentKbVectorStoreType !== "opensearch");
-      },
+      // skip(): boolean {
+      //   return ( !(this as any).state.answers.enableKnowledgeBase ||
+      //     (this as any).state.answers.knowledgeBaseType !== "intelliAgentKb" || 
+      //     (this as any).state.answers.intelliAgentKbVectorStoreType !== "opensearch");
+      // },
     },
     {
       type: "select",
@@ -358,7 +364,7 @@ async function processCreateOptions(options: any): Promise<void> {
       enabled: answers.enableChat,
     },
     model: {
-      embeddingsModels: embeddingModels,
+      embeddingsModels: embeddingModels.filter(model => model.name === answers.defaultEmbedding),
       llms: llms,
       modelConfig: {
         modelAssetsBucket: answers.sagemakerModelS3Bucket,

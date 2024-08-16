@@ -31,7 +31,6 @@ dotenv.config();
 
 export interface ModelConstructProps {
   readonly config: SystemConfig;
-  readonly sharedConstructOutputs: SharedConstructOutputs;
 }
 
 export interface ModelConstructOutputs {
@@ -73,12 +72,11 @@ export class ModelConstruct extends Construct implements ModelConstructOutputs {
   private account = Aws.ACCOUNT_ID;
   private region = Aws.REGION;
 
-  constructor(scope: Construct, id: string) {
+  constructor(scope: Construct, id: string, props: ModelConstructProps) {
     super(scope, id);
 
     // this.defaultEmbeddingModelName = "cohere.embed-english-v3"
-    this.defaultEmbeddingModelName = "amazon.titan-embed-text-v1"
-    this.defaultKnowledgeBaseModelName = "anthropic.claude-3-sonnet-20240229-v1:0"
+    this.defaultEmbeddingModelName = props.config.model.embeddingsModels[0].name;
 
   }
 
