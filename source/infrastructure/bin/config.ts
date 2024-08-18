@@ -36,12 +36,12 @@ export function getConfig(): SystemConfig {
     model: {
       embeddingsModels: [
         {
-          provider: "sagemaker",
-          name: "bce-embedding-and-bge-reranker",
-          commitId: "43972580a35ceacacd31b95b9f430f695d07dde9",
+          provider: "bedrock",
+          name: "amazon.titan-embed-text-v1",
+          commitId: "",
           dimensions: 1024,
-          default: true,
-        },
+          default: true
+        }
       ],
       llms: [
         {

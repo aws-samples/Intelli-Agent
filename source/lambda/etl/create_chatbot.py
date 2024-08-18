@@ -57,12 +57,13 @@ def lambda_handler(event, context):
     initiate_model(model_table, group_name, model_id, embedding_endpoint, create_time)
 
     index_id_list = {}
+    DESCRIPTION = "Answer question based on search result"
     # Iterate over all enum members and create DDB metadata
     for member in IndexType.__members__.values():
         index_type = member.value
         index_id = tag = f"{chatbot_id}-{index_type}-default"
         index_id_list[index_type] = index_id
-        initiate_index(index_table, group_name, index_id, model_id, index_type, tag, create_time)
+        initiate_index(index_table, group_name, index_id, model_id, index_type, tag, create_time, DESCRIPTION)
         initiate_chatbot(chatbot_table, group_name, chatbot_id, index_id, index_type, tag, create_time)
 
     return {

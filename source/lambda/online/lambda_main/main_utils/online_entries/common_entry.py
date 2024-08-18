@@ -5,7 +5,8 @@ from common_logic.common_utils.constant import (
     LLMTaskType,
     ToolRuningMode,
     SceneType,
-    ChatbotMode
+    ChatbotMode,
+    IndexType
 )
 
 from common_logic.common_utils.lambda_invoke_utils import (
@@ -19,7 +20,10 @@ from common_logic.common_utils.logger_utils import get_logger
 from common_logic.common_utils.prompt_utils import get_prompt_templates_from_ddb
 from common_logic.common_utils.serialization_utils import JSONEncoder
 from common_logic.common_utils.response_utils import process_response
+from common_logic.common_utils.chatbot_utils import ChatbotManager
 from functions import get_tool_by_name
+from functions._tool_base import tool_manager
+from functions.lambda_common_tools import rag
 from lambda_main.main_utils.parse_config import CommonConfigParser
 from langgraph.graph import END, StateGraph
 from lambda_main.main_utils.online_entries.agent_base import build_agent_graph,tool_execution
@@ -361,6 +365,33 @@ app_agent = None
 app = None
 
 
+def register_rag_tool(name: str, description: str, scene=SceneType.COMMON, lambda_name:str="lambda_common_tools"):
+    tool_manager.register_tool({
+        "name": name,
+        "scene": scene,
+        "lambda_name": lambda_name,
+        "lambda_module_path": rag.lambda_handler,
+        "tool_def": {
+            "name": name,
+            "description": description,
+        },
+        "running_mode": ToolRuningMode.ONCE
+    })
+
+
+def register_rag_tool_from_config(event_body: dict):
+    group_name = event_body.get("chatbot_config").get("group_name","Admin")
+    chatbot_id = event_body.get("chatbot_config").get("chatbot_id",'admin')
+    chatbot_manager = ChatbotManager.from_environ()
+    chatbot = chatbot_manager.get_chatbot(group_name, chatbot_id)
+    logger.info(chatbot)
+    for index_type, item_dict in chatbot.index_ids.items():
+        if index_type != IndexType.INTENTION:
+            for index_content in item_dict["value"].values():
+                if "indexId" in index_content and "description" in index_content:
+                    register_rag_tool(index_content["indexId"], index_content["description"])
+
+
 def common_entry(event_body):
     """
     Entry point for the Lambda function.
@@ -396,6 +427,7 @@ def common_entry(event_body):
     message_id = event_body["custom_message_id"]
     ws_connection_id = event_body["ws_connection_id"]
     enable_trace = chatbot_config["enable_trace"]
+    register_rag_tool_from_config(event_body)
 
     # invoke graph and get results
     response = app.invoke(
