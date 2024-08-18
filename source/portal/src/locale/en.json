@@ -85,6 +85,8 @@
     "optional": "Optional",
     "intention": "Intention",
     "addIntention": "Add Intention",
+    "bot": "Bot",
+    "model": "Model",
     "button": {
       "login": "Log in to Intelli-Agent",
       "reload": "Reload",

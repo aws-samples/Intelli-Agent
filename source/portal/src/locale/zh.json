@@ -85,6 +85,8 @@
     "optional": "可选",
     "intention": "意图",
     "addIntention": "添加意图",
+    "bot": "Bot",
+    "model": "模型",
     "button": {
       "login": "登录到 AWS 大语言模型机器人",
       "reload": "重新加载",

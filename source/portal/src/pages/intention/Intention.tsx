@@ -18,7 +18,7 @@ import { alertMsg, formatTime } from 'src/utils/utils';
 import TableLink from 'src/comps/link/TableLink';
 import useAxiosRequest from 'src/hooks/useAxiosRequest';
 import { useTranslation } from 'react-i18next';
-import AddLibrary from '../components/AddLibrary';
+import AddIntention from '../components/AddIntention';
 
 const parseDate = (item: LibraryListItem) => {
   return item.createTime ? new Date(item.createTime) : 0;
@@ -339,7 +339,7 @@ const Intention: React.FC = () => {
             </ul>
           </div>
         </Modal>
-        <AddLibrary
+        <AddIntention
           showAddModal={showAddModal}
           setShowAddModal={setShowAddModal}
           reloadLibrary={() => {
