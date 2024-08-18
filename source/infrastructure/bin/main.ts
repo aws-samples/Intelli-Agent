@@ -154,6 +154,7 @@ export class RootStack extends Stack {
         oidcClientId: userConstruct.oidcClientId,
         oidcLogoutUrl: userConstruct.oidcLogoutUrl,
         oidcRedirectUrl: `https://${uiPortal.portalUrl}/signin`,
+        region: props.env?.region || "us-east-1"
       },
     });
     uiExports.node.addDependency(uiPortal);

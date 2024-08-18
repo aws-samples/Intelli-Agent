@@ -9,6 +9,7 @@ export interface Config {
     oidcClientId: string;
     oidcLogoutUrl: string;
     oidcRedirectUrl: string;
+    region: string;
   }
   currentUser?: any,
   currentOidc?: any,

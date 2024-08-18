@@ -26,7 +26,8 @@ const ConfigProvider: React.FC<ConfigProviderProps> = ({ children }) => {
               oidcIssuer: '',
               oidcClientId: '',
               oidcLogoutUrl: '',
-              oidcRedirectUrl: ''
+              oidcRedirectUrl: '',
+              region: ''
             },
             currentUser: {},
             currentOidc: {},
@@ -39,7 +40,8 @@ const ConfigProvider: React.FC<ConfigProviderProps> = ({ children }) => {
               oidcIssuer: res.oidcIssuer,
               oidcClientId: res.oidcClientId,
               oidcLogoutUrl: res.oidcLogoutUrl,
-              oidcRedirectUrl: res.oidcRedirectUrl
+              oidcRedirectUrl: res.oidcRedirectUrl,
+              region: res.region
             }),
           }
         }));

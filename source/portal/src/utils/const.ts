@@ -98,6 +98,8 @@ export const OIDC_REDIRECT_URL = "oidc_uri"
 export const PROVIDER = "provider"
 export const CLIENT_ID = "client_id"
 export const REFRESH_TOKEN = "refresh_token"
+export const STACK_NAME = "refresh_token"
+export const STACK_BUILT_IN_CLIENT = "OidcClientId"
 
 export const LOGIN_TYPE = {
   USER: 'user',

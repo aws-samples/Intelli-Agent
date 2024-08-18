@@ -1,7 +1,7 @@
 import { AuthFlowType, CognitoIdentityProviderClient, InitiateAuthCommand } from '@aws-sdk/client-cognito-identity-provider';
+import ConfigContext from 'src/context/config-context';
 import { Button, Checkbox, Grid, Link, SpaceBetween, Spinner, Tabs } from '@cloudscape-design/components';
-// import { LOGIN_TYPE } from 'enum/common_types';
-import { FC, useEffect, useState } from 'react';
+import { FC, useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import yaml from 'yaml';
 import OIDC from './component/oidc';
@@ -9,10 +9,8 @@ import SNS from './component/sns';
 import User from './component/user';
 import './style.scss';
 import axios, { AxiosError } from 'axios';
-import { AUTHING, CLIENT_ID, LOGIN_TYPE, OIDC_REDIRECT_URL, PROVIDER, ROUTES, TOKEN, USER } from 'src/utils/const';
+import { AUTHING, LOGIN_TYPE, PROVIDER, ROUTES, TOKEN, USER } from 'src/utils/const';
 import useAxiosRequest from 'src/hooks/useAxiosRequest';
-// import apiClient from 'request/client';
-// import { CLIENT_ID, OIDC_REDIRECT_URL, PROVIDER, ROUTES, TOKEN, USER } from 'common/constants';
 
 const Login: FC = () => {
   const [activeTabId, setActiveTabId] = useState(LOGIN_TYPE.OIDC);
@@ -34,8 +32,11 @@ const Login: FC = () => {
   const [loginParams, setLoginParams] = useState(null as any);
   const [isLoading, setIsloading] = useState(true)
   const fetchData = useAxiosRequest();
+  const configContext = useContext(ConfigContext);
 
   useEffect(()=>{
+    // const currentRegion = getCurrentRegion()
+    // const currentClientId = getCloudFormationOutput("", "")
     const loadConfig = async ()=> {
       let response = await fetch('/config.yaml')
       let data = await response.text()
@@ -46,6 +47,7 @@ const Login: FC = () => {
       setIsloading(false)
     })
     setError("")
+    // setRegion(currentRegion)
   },[])
 
   useEffect(()=>{
@@ -170,7 +172,9 @@ const Login: FC = () => {
   }
     const cognitoLogin = async()=>{
   try {
-    const authResponse = await initiateAuth(selectedProvider.clientId, selectedProvider.region, username, password);
+    // "oidcIssuer":"https://cognito-idp.us-east-1.amazonaws.com/us-east-1_kebZf6bDh"
+    // const oidcIssuer = configContext?.currentOidc.oidcIssuer
+    const authResponse = await initiateAuth(configContext?.currentOidc.clientId, configContext?.currentOidc.clientId.region, username, password);
       if(authResponse.ChallengeName==="NEW_PASSWORD_REQUIRED"){
         navigate(ROUTES.ChangePWD, { 
           state: {
@@ -187,12 +191,12 @@ const Login: FC = () => {
         });
       }
     if (authResponse.AuthenticationResult) {
-      localStorage.setItem("loginType", activeTabId || '');
-      localStorage.setItem("providerName", selectedProviderName || '');
+      // localStorage.setItem("loginType", activeTabId || '');
+      localStorage.setItem(PROVIDER, "cognito");
+      localStorage.setItem(TOKEN, JSON.stringify(authResponse.AuthenticationResult));
       localStorage.setItem("userName", username || '');
-      localStorage.setItem("idToken", authResponse.AuthenticationResult.IdToken || '');
-      localStorage.setItem("accessToken", authResponse.AuthenticationResult.AccessToken || '');
-      localStorage.setItem("refreshToken", authResponse.AuthenticationResult.RefreshToken || '');
+      // localStorage.setItem("accessToken", authResponse.AuthenticationResult.AccessToken || '');
+      // localStorage.setItem("refreshToken", authResponse.AuthenticationResult.RefreshToken || '');
       localStorage.setItem("session", authResponse.Session || '');
       navigate(ROUTES.ChatBot)
     }
@@ -209,8 +213,9 @@ const Login: FC = () => {
 
 const oidcLogin = async(oidc: string)=>{
   let response: any
+  let userInfo: any
   let payload: any
-  let redirectUri: string = ''
+  let redirectUri: string
   const headers = {'Content-Type': 'application/x-www-form-urlencoded'}
   if(oidc==='authing'){
     redirectUri = AUTHING.REDIRECT_URI
@@ -221,49 +226,35 @@ const oidcLogin = async(oidc: string)=>{
       "username": username,
       "password": password
     }
-  }
-  try{
-    // response = await axios.
-    response = await axios({
-      method: "post",
-      url: `${redirectUri}/oidc/token`,
-      data: payload,
-      headers,
-    });
-    // response = await fetchData({
-    //   url: '/login',
-    //   method: 'post',
-    //   data: {
-    //     redirect_uri: selectedProvider.redirectUri,
-    //     client_id: selectedProvider.clientId,
-    //     provider: selectedProvider.label.toLowerCase(),
-    //     username,
-    //     password
-    //   },
-    // })
-  } catch (error){
-    if(error instanceof AxiosError) {
-      setError(JSON.parse(error.response?.data.detail).error_description)
-    } else {
-      setError("Unknown error, please contact the administrator.")
-    }
-    setLogging(false)
-    return
-  }
-  localStorage.setItem(PROVIDER, selectedProvider.name)
-  localStorage.setItem(CLIENT_ID, selectedProvider.client_id)
-  console.log(response.data.body.access_token)
-  const userInfo: any = await axios.get(
-    `${selectedProvider.redirectUri}/oidc/me`,
-    {
-      headers: {
-        'Authorization': `Bearer ${response.data.body.access_token}`
+    try{
+      response = await axios({
+        method: "post",
+        url: `${redirectUri}/oidc/token`,
+        data: payload,
+        headers,
+      });
+    } catch (error){
+      if(error instanceof AxiosError) {
+        setError(JSON.parse(error.response?.data.detail).error_description)
+      } else {
+        setError("Unknown error, please contact the administrator.")
       }
+      setLogging(false)
+      return
     }
-  );
-  localStorage.setItem(OIDC_REDIRECT_URL, selectedProvider.redirectUri);
-  localStorage.setItem(TOKEN, JSON.stringify(response.data.body));
-  localStorage.setItem(USER, JSON.stringify(userInfo.data));
+    userInfo = await axios.get(
+      `${redirectUri}/oidc/me`,
+      {
+        headers: {
+          'Authorization': `Bearer ${response.data.access_token}`,
+        }
+      }
+    );
+  }
+  localStorage.setItem(PROVIDER, oidc)
+  localStorage.setItem(TOKEN, JSON.stringify(response.data));
+  localStorage.setItem("userName", username || '');
+  // localStorage.setItem(USER, JSON.stringify(userInfo.data));
   navigate(ROUTES.ChatBot)
 }
 
