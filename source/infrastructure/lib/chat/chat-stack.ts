@@ -29,6 +29,7 @@ import { ModelConstructOutputs } from "../model/model-construct";
 import { ChatTablesConstruct } from "./chat-tables";
 import { LambdaFunction } from "../shared/lambda-helper";
 import { Runtime, Code, Function, Architecture } from "aws-cdk-lib/aws-lambda";
+import { ConnectConstruct } from "../connect/connect-construct";
 
 
 interface ChatStackProps extends StackProps {
@@ -250,8 +251,6 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
     });
     this.lambdaOnlineLLMGenerate = lambdaOnlineLLMGenerate.function;
 
-
-
     this.lambdaOnlineLLMGenerate.addToRolePolicy(
       new iam.PolicyStatement({
         // principals: [new iam.AnyPrincipal()],
@@ -292,8 +291,6 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
     });
     this.lambdaOnlineFunctions = lambdaOnlineFunctions.function;
 
-
-
     this.lambdaOnlineQueryPreprocess.grantInvoke(this.lambdaOnlineMain);
 
     this.lambdaOnlineIntentionDetection.grantInvoke(this.lambdaOnlineMain);
@@ -307,8 +304,10 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
     this.lambdaOnlineFunctions.grantInvoke(this.lambdaOnlineMain);
     this.lambdaOnlineFunctions.grantInvoke(this.lambdaOnlineIntentionDetection);
 
-
+    if (props.config.chat.amazonConnect.enabled) {
+      new ConnectConstruct(this, "connect-construct", {
+        lambdaOnlineMain: lambdaOnlineMain.function,
+      });
+    }
   }
-
-
 }

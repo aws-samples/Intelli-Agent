@@ -24,6 +24,9 @@ export interface SystemConfig {
   };
   chat: {
     enabled: boolean;
+    amazonConnect: {
+      enabled: boolean;
+    }
   };
   model: {
     embeddingsModels: {
