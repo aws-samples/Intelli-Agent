@@ -35,7 +35,7 @@ interface ChatStackProps extends StackProps {
   readonly config: SystemConfig;
   readonly sharedConstructOutputs: SharedConstructOutputs;
   readonly modelConstructOutputs: ModelConstructOutputs;
-  readonly domainEndpoint: string;
+  readonly domainEndpoint?: string;
 }
 
 export interface ChatStackOutputs {
@@ -76,7 +76,7 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
     this.iamHelper = props.sharedConstructOutputs.iamHelper;
     const vpc = props.sharedConstructOutputs.vpc;
     const securityGroups = props.sharedConstructOutputs.securityGroups;
-    const domainEndpoint = props.domainEndpoint;
+    const domainEndpoint = props.domainEndpoint ?? '';
 
     const chatTablesConstruct = new ChatTablesConstruct(this, "chat-tables");
 
@@ -138,6 +138,7 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
           "es:ESHttpPut",
           "es:ESHttpPost",
           "es:ESHttpHead",
+          "es:DescribeDomain",
           "secretsmanager:GetSecretValue",
           "bedrock:*",
           "lambda:InvokeFunction",
@@ -176,6 +177,7 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
           "es:ESHttpPut",
           "es:ESHttpPost",
           "es:ESHttpHead",
+          "es:DescribeDomain",
           "secretsmanager:GetSecretValue",
           "bedrock:*",
           "lambda:InvokeFunction",
@@ -221,6 +223,7 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
           "es:ESHttpPut",
           "es:ESHttpPost",
           "es:ESHttpHead",
+          "es:DescribeDomain",
           "secretsmanager:GetSecretValue",
           "bedrock:*",
           "lambda:InvokeFunction",
@@ -257,6 +260,7 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
           "es:ESHttpPut",
           "es:ESHttpPost",
           "es:ESHttpHead",
+          "es:DescribeDomain",
           "secretsmanager:GetSecretValue",
           "bedrock:*",
           "lambda:InvokeFunction",

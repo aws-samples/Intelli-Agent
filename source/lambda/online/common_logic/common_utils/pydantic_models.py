@@ -22,8 +22,11 @@ class ForbidBaseModel(BaseModel):
     model_config = ConfigDict(extra="forbid", protected_namespaces=())
 
 
+# class AllowBaseModel(BaseModel):
+#     model_config = ConfigDict(extra="allow", protected_namespaces=())
 class AllowBaseModel(BaseModel):
-    model_config = ConfigDict(extra="allow", protected_namespaces=())
+    class Config:
+        extra = "allow"
 
 
 class LLMConfig(AllowBaseModel):
@@ -134,9 +137,9 @@ class ChatbotConfig(AllowBaseModel):
             "embedding_model_endpoint": index_info_from_ddb["modelIds"]["embedding"][
                 "parameter"
             ]["ModelEndpoint"],
-            "model_type": index_info_from_ddb["modelIds"]["embedding"][
-                "parameter"
-            ]["ModelType"],
+            "model_type": index_info_from_ddb["modelIds"]["embedding"]["parameter"][
+                "ModelType"
+            ],
             "target_model": index_info_from_ddb["modelIds"]["embedding"]["parameter"][
                 "ModelName"
             ],
@@ -213,7 +216,7 @@ class ChatbotConfig(AllowBaseModel):
 
     def model_copy(self, update=None, deep=True):
         update = update or {}
-        new_dict = update_nest_dict(copy.deepcopy(self.model_dump()), update)
+        new_dict = update_nest_dict(copy.deepcopy(self.dict()), update)
         cls = type(self)
         obj = cls(**new_dict)
         return obj
