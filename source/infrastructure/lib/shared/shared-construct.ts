@@ -74,7 +74,7 @@ export class SharedConstruct extends Construct implements SharedConstructOutputs
     const indexTable = new DynamoDBTable(this, "Index", groupNameAttr, indexIdAttr).table;
     const modelTable = new DynamoDBTable(this, "Model", groupNameAttr, modelIdAttr).table;
 
-    const resultBucket = new s3.Bucket(this, "intelli-agent-result-bucket", {
+    const resultBucket = new s3.Bucket(this, "ai-customer-service-result-bucket", {
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
     });
 

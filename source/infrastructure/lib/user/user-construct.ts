@@ -54,7 +54,7 @@ export class UserConstruct extends Construct implements UserConstructOutputs {
         requireSymbols: true,
       },
       userInvitation: {
-        emailSubject: 'Welcome to use Intelli Agent',
+        emailSubject: 'Welcome to use AI Customer Service',
         emailBody: 'Hello {username}, your temporary password is {####}',
       },
     });
