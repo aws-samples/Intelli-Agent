@@ -127,6 +127,8 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
         MODEL_TABLE_NAME: this.modelTableName,
         INDEX_TABLE_NAME: this.indexTableName,
         OPENAI_KEY_ARN: openAiKey.secretArn,
+        CONNECT_USER_ARN: "",
+        CONNECT_DOMAIN_ID: "",
       },
       layers: [apiLambdaOnlineSourceLayer, apiLambdaJobSourceLayer],
     });
