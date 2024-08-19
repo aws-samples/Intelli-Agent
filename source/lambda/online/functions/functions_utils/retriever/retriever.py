@@ -150,29 +150,28 @@ def lambda_handler(event, context=None):
 if __name__ == "__main__":
     query = """test"""
     event = {
-        "body": json.dumps(
+        "retrievers": [
             {
-                "retrievers": [
-                    {
-                        "type": "qq",
-                        "index_ids": ["test"],
-                        "config": {
-                            "top_k": 10,
-                        },
-                    },
-                ],
-                "rerankers": [
-                    {
-                        "type": "reranker",
-                        "config": {
-                            "enable_debug": False,
-                            "target_model": "bge_reranker_model.tar.gz",
-                        },
-                    }
-                ],
-                "query": query,
+                "index_type": "qd",
+                "top_k": 5,
+                "context_num": 1,
+                "using_whole_doc": False,
+                "query_key": "query",
+                "index_name": "admin-qd-default",
+                "kb_type": "aos",
+                "target_model": "amazon.titan-embed-text-v1",
+                "embedding_model_endpoint": "amazon.titan-embed-text-v1",
+                "model_type": "bedrock",
+                "group_name": "Admin",
             }
-        )
+        ],
+        "rerankers": [],
+        "llm_config": {
+            "model_id": "anthropic.claude-3-sonnet-20240229-v1:0",
+            "model_kwargs": {"temperature": 0.01, "max_tokens": 1000},
+            "endpoint_name": "",
+        },
+        "query": "亚马逊云计算服务可以通过超文本传输协议（HTTP）访问吗？",
     }
     response = lambda_handler(event, None)
     print(response)

@@ -12,6 +12,7 @@
  *********************************************************************************************************************/
 
 export class Constants {
-  static readonly SOLUTION_NAME = "LLM-BOT";
-  static readonly API_QUEUE_NAME = "LLMAPI";
+  static readonly SOLUTION_NAME = "AI-Customer-Service";
+  static readonly SOLUTION_SHORT_NAME = "AICS";
+  static readonly API_QUEUE_NAME = "AICS-API";
 }
