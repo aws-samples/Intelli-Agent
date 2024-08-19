@@ -4,7 +4,8 @@ import { AnyPrincipal, Effect, PolicyStatement } from "aws-cdk-lib/aws-iam";
 import { Function } from "aws-cdk-lib/aws-lambda";
 import { Construct } from "constructs";
 import { Rule } from "aws-cdk-lib/aws-events";
-import { LambdaFunction } from "aws-cdk-lib/aws-events-targets";
+import { LambdaFunction, SqsQueue } from "aws-cdk-lib/aws-events-targets";
+import { SqsEventSource } from "aws-cdk-lib/aws-lambda-event-sources";
 
 export interface ConnectProps extends StackProps {
   readonly lambdaOnlineMain: Function;
@@ -56,7 +57,9 @@ export class ConnectConstruct extends Construct {
       }
     );
 
-    const eventLambdaFunction = new LambdaFunction(props.lambdaOnlineMain);
-    connectRule.addTarget(eventLambdaFunction);
+    connectRule.addTarget(new SqsQueue(messageQueue));
+    props.lambdaOnlineMain.addEventSource(
+      new SqsEventSource(messageQueue, { batchSize: 1 }),
+    );
   }
 }
