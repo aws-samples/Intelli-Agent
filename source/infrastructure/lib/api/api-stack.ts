@@ -385,7 +385,6 @@ export class ApiConstruct extends Construct {
           requestModels: this.genRequestModel(api, {
             "content_type": { "type": JsonSchemaType.STRING },
             "file_name": { "type": JsonSchemaType.STRING },
-
           })
       }
       );
@@ -516,9 +515,22 @@ export class ApiConstruct extends Construct {
       const lambdaIntentionIntegration = new apigw.LambdaIntegration(intentionLambda.function, {
         proxy: true,
       });
-      const apiResourceIntentionManagement = api.root.addResource("intentions");
+      const apiResourceIntentionManagement = api.root.addResource("intention");
       apiResourceIntentionManagement.addMethod("GET", lambdaIntentionIntegration, this.genMethodOption(api, auth, null));
       apiResourceIntentionManagement.addMethod("DELETE", lambdaIntentionIntegration, this.genMethodOption(api, auth, null));
+      const presignedUrl = apiResourceIntentionManagement.addResource("intention-presigned-url");
+      presignedUrl.addMethod("POST", lambdaIntentionIntegration, {...
+        this.genMethodOption(api, auth, {
+          data: { type: JsonSchemaType.STRING },
+          message: { type: JsonSchemaType.STRING },
+          s3Bucket: { type: JsonSchemaType.STRING },
+          s3Prefix: { type: JsonSchemaType.STRING }
+        }),
+        requestModels: this.genRequestModel(api, {
+          "content_type": { "type": JsonSchemaType.STRING },
+          "file_name": { "type": JsonSchemaType.STRING },
+        })
+    })
       const apiGetIntentionById = apiResourceIntentionManagement.addResource("{intentionId}");
       apiGetIntentionById.addMethod(
         "GET",

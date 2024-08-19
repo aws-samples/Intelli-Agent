@@ -8,8 +8,8 @@ from common_logic.common_utils.prompt_utils import get_all_templates, EXPORT_MOD
 
 DEFAULT_MAX_ITEMS = 50
 DEFAULT_SIZE = 50
-ROOT_RESOURCE = "/prompt-management"
-MODELS_RESOURCE = f"{ROOT_RESOURCE}/models"
+ROOT_RESOURCE = "/intention"
+PRESIGNED_URL_RESOURCE = f"{ROOT_RESOURCE}/intention-presigned-url"
 SCENES_RESOURCE = f"{ROOT_RESOURCE}/scenes"
 PROMPTS_RESOURCE = f"{ROOT_RESOURCE}/prompts"
 logger = get_logger("main")
@@ -148,7 +148,7 @@ def lambda_handler(event, context):
         raise Exception("Invalid authorizer type")
     http_method = event["httpMethod"]
     resource:str = event["resource"]
-    if resource == MODELS_RESOURCE:
+    if resource == PRESIGNED_URL_RESOURCE:
         output = __list_model()
     elif resource == SCENES_RESOURCE:
         output = __list_scene()

@@ -12,6 +12,7 @@ import SessionDetail from './pages/history/SessionDetail';
 import PromptList from './pages/prompts/PromptList';
 import LoginCallback from './comps/LoginCallback';
 import Intention from './pages/intention/Intention';
+import IntentionDetail from './pages/intention/IntentionDetail';
 
 const SignedInRouter = () => {
   return (
@@ -25,6 +26,7 @@ const SignedInRouter = () => {
         <Route path="/session/detail/:id" element={<SessionDetail />} />
         <Route path="/prompts" element={<PromptList />} />
         <Route path="/intention" element={<Intention />} />
+        <Route path="/intention/detail/:id" element={<IntentionDetail />} />
       </Routes>
       <CommonAlert />
     </BrowserRouter>
@@ -51,7 +53,7 @@ const AppRouter = () => {
     );
   }
 
-  // auth.isAuthenticated = false
+  // auth.isAuthenticated = true
 
   if (auth.isAuthenticated) {
     return <SignedInRouter />;

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import CommonLayout from 'src/layout/CommonLayout';
 import {
   Box,
@@ -13,32 +13,32 @@ import {
   Table,
   TableProps,
 } from '@cloudscape-design/components';
-import { LibraryListItem, LibraryListResponse } from 'src/types';
+import { IntentionsItem } from 'src/types';
 import { alertMsg, formatTime } from 'src/utils/utils';
 import TableLink from 'src/comps/link/TableLink';
 import useAxiosRequest from 'src/hooks/useAxiosRequest';
 import { useTranslation } from 'react-i18next';
 import AddIntention from '../components/AddIntention';
 
-const parseDate = (item: LibraryListItem) => {
+const parseDate = (item: IntentionsItem) => {
   return item.createTime ? new Date(item.createTime) : 0;
 };
 
 const Intention: React.FC = () => {
-  const [selectedItems, setSelectedItems] = useState<LibraryListItem[]>([]);
+  const [selectedItems, setSelectedItems] = useState<IntentionsItem[]>([]);
   const fetchData = useAxiosRequest();
   const [visible, setVisible] = useState(false);
   const { t } = useTranslation();
   const [loadingData, setLoadingData] = useState(false);
-  const [allLibraryList, setAllLibraryList] = useState<LibraryListItem[]>([]);
-  const [tableLibraryList, setTableLibraryList] = useState<LibraryListItem[]>(
+  const [allIntentions, setAllIntentions] = useState<IntentionsItem[]>([]);
+  const [tableIntentions, setTableIntentions] = useState<IntentionsItem[]>(
     [],
   );
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [loadingDelete, setLoadingDelete] = useState(false);
   const [sortingColumn, setSortingColumn] = useState<
-    TableProps.SortingColumn<LibraryListItem>
+    TableProps.SortingColumn<IntentionsItem>
   >({
     sortingField: 'createTime',
   });
@@ -46,43 +46,54 @@ const Intention: React.FC = () => {
 
   // ingest document
   const [showAddModal, setShowAddModal] = useState(false);
+  const isFirstRender = useRef(true);
 
-  const getLibraryList = async () => {
+  const getIntentionList = async () => {
     setLoadingData(true);
     setSelectedItems([]);
-    const params = {
-      max_items: 9999,
-      page_size: 9999,
-    };
+    // const params = {
+    //   max_items: 9999,
+    //   page_size: 9999,
+    // };
     try {
-      const data = await fetchData({
-        url: 'knowledge-base/executions',
-        method: 'get',
-        params,
-      });
-      const items: LibraryListResponse = data;
-      const preSortItem = items.Items;
+      const preSortItem = [{
+        s3Prefix: "intentions/Admin/testindeto.xlsx", // "intentions/Admin/testindeto.xlsx"
+        offline: "true",  // true
+        s3Bucket: "intelli-agent-apiconstructllmbotintentionsfc4f8a7a-6vbr3vihybqs", // intelli-agent-apiconstructllmbotintentionsfc4f8a7a-6vbr3vihybqs
+        executionId: "2ed65d3d-3d78-4557-917f-a8fe4c65276f",
+        executionStatus: "COMPLETED",
+        operationType: "create", // create
+        sfnExecutionId: "99041951-b0c5-4b39-9efa-fcee12f751c0", // 99041951-b0c5-4b39-9efa-fcee12f751c0
+        indexType: "qq", // 需要吗？
+        index: "index-taddsaffg",
+        model: "cohere-embedding-ssdd-v2:0",
+        tag: "tagaaaaa",
+        chatbotId: "admin", // 同groupName admin
+        createTime: "2024-08-18 18:49:23.199713+00:00",
+      }]
       preSortItem.sort((a, b) => {
         return Number(parseDate(b)) - Number(parseDate(a));
       });
-      setAllLibraryList(preSortItem);
-      setTableLibraryList(preSortItem.slice(0, pageSize));
+      setAllIntentions(preSortItem);
+      const tabdata = preSortItem.slice(0, pageSize)
+      // const tabdata = preSortItem
+      setTableIntentions(tabdata);
       setLoadingData(false);
     } catch (error: unknown) {
       setLoadingData(false);
     }
   };
 
-  const removeLibrary = async () => {
+  const removeIntention = async () => {
     try {
       setLoadingDelete(true);
       const data = await fetchData({
-        url: `knowledge-base/executions`,
+        url: `intention/executions`,
         method: 'delete',
         data: { executionId: selectedItems.map((item) => item.executionId) },
       });
       setVisible(false);
-      getLibraryList();
+      getIntentionList();
       alertMsg(data.message, 'success');
       setLoadingDelete(false);
       setSelectedItems([]);
@@ -92,17 +103,21 @@ const Intention: React.FC = () => {
   };
 
   useEffect(() => {
-    getLibraryList();
+    getIntentionList();
   }, []);
 
   useEffect(() => {
-    setTableLibraryList(
-      allLibraryList.slice(
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    setTableIntentions(
+      allIntentions.slice(
         (currentPage - 1) * pageSize,
         currentPage * pageSize,
       ),
     );
-  }, [currentPage, pageSize]);
+  }, [currentPage, pageSize, allIntentions]);
 
   const renderStatus = (status: string) => {
     if (status === 'COMPLETED') {
@@ -117,9 +132,9 @@ const Intention: React.FC = () => {
   };
 
   const LinkComp = useCallback(
-    (item: LibraryListItem) => (
+    (item: IntentionsItem) => (
       <TableLink
-        url={`/library/detail/${item.executionId}`}
+        url={`/intention/detail/${item.executionId}`}
         name={item.executionId}
       />
     ),
@@ -128,7 +143,7 @@ const Intention: React.FC = () => {
 
   return (
     <CommonLayout
-      activeHref="/library"
+      activeHref="/intention"
       breadCrumbs={[
         {
           text: t('name'),
@@ -151,7 +166,7 @@ const Intention: React.FC = () => {
           sortingColumn={sortingColumn}
           onSortingChange={({ detail }) => {
             const { sortingColumn, isDescending } = detail;
-            const sortedItems = [...tableLibraryList].sort((a, b) => {
+            const sortedItems = [...tableIntentions].sort((a, b) => {
               setSortingColumn(sortingColumn);
               setIsDescending(isDescending);
               if (sortingColumn.sortingField === 'createTime') {
@@ -164,11 +179,6 @@ const Intention: React.FC = () => {
                   ? a.s3Prefix.localeCompare(b.s3Prefix)
                   : b.s3Prefix.localeCompare(a.s3Prefix);
               }
-              // if (sortingColumn.sortingField === 'indexType') {
-              //   return !isDescending
-              //     ? a.indexType.localeCompare(b.indexType)
-              //     : b.indexType.localeCompare(a.indexType);
-              // }
               if (sortingColumn.sortingField === 'executionStatus') {
                 return !isDescending
                   ? a.executionStatus.localeCompare(b.executionStatus)
@@ -176,7 +186,7 @@ const Intention: React.FC = () => {
               }
               return 0;
             });
-            setTableLibraryList(sortedItems);
+            setTableIntentions(sortedItems);
           }}
           selectedItems={selectedItems}
           ariaLabels={{
@@ -189,30 +199,46 @@ const Intention: React.FC = () => {
             {
               id: 'executionId',
               header: t('id'),
-              cell: (item: LibraryListItem) => LinkComp(item),
+              cell: (item: IntentionsItem) => LinkComp(item),
               isRowHeader: true,
             },
             {
               id: 's3Prefix',
-              header: t('docName'),
+              header: t('intentionName'),
               sortingField: 's3Prefix',
-              cell: (item: LibraryListItem) => {
+              cell: (item: IntentionsItem) => {
                 return item.s3Prefix.split('/').pop();
               },
             },
-            // {
-            //   width: 120,
-            //   id: 'indexType',
-            //   header: t('indexType'),
-            //   sortingField: 'indexType',
-            //   cell: (item: LibraryListItem) => item.indexType,
-            // },
             {
+              width: 150,
+              id: 'chatbotId',
+              header: t('bot'),
+              sortingField: 'chatbotId',
+              cell: (item: IntentionsItem) =>
+                item.chatbotId,
+            },
+            {
+              width: 150,
+              id: 'index',
+              header: t('index'),
+              sortingField: 'index',
+              cell: (item: IntentionsItem) =>
+                item.index,
+            },{
+              width: 150,
+              id: 'tag',
+              header: t('tag'),
+              sortingField: 'tag',
+              cell: (item: IntentionsItem) =>
+                item.tag,
+            }
+            ,{
               width: 150,
               id: 'executionStatus',
               header: t('status'),
               sortingField: 'executionStatus',
-              cell: (item: LibraryListItem) =>
+              cell: (item: IntentionsItem) =>
                 renderStatus(item.executionStatus),
             },
             {
@@ -220,12 +246,11 @@ const Intention: React.FC = () => {
               id: 'createTime',
               header: t('createTime'),
               sortingField: 'createTime',
-              cell: (item: LibraryListItem) => formatTime(item.createTime),
+              cell: (item: IntentionsItem) => formatTime(item.createTime),
             },
           ]}
-          items={tableLibraryList}
+          items={tableIntentions||[]}
           loadingText={t('loadingData')}
-          selectionType="multi"
           trackBy="executionId"
           empty={
             <Box margin={{ vertical: 'xs' }} textAlign="center" color="inherit">
@@ -238,7 +263,7 @@ const Intention: React.FC = () => {
             <Pagination
               disabled={loadingData}
               currentPageIndex={currentPage}
-              pagesCount={Math.ceil(allLibraryList.length / pageSize)}
+              pagesCount={Math.ceil(allIntentions.length / pageSize)}
               onChange={({ detail }) => setCurrentPage(detail.currentPageIndex)}
             />
           }
@@ -271,7 +296,7 @@ const Intention: React.FC = () => {
                     iconName="refresh"
                     loading={loadingData}
                     onClick={() => {
-                      getLibraryList();
+                      getIntentionList();
                     }}
                   />
                   <Button
@@ -294,8 +319,8 @@ const Intention: React.FC = () => {
               }
               counter={
                 selectedItems.length
-                  ? `(${selectedItems.length}/${allLibraryList.length})`
-                  : `(${allLibraryList.length})`
+                  ? `(${selectedItems.length}/${allIntentions.length})`
+                  : `(${allIntentions.length})`
               }
             >
               {t('intention')}
@@ -320,7 +345,7 @@ const Intention: React.FC = () => {
                   loading={loadingDelete}
                   variant="primary"
                   onClick={() => {
-                    removeLibrary();
+                    removeIntention();
                   }}
                 >
                   {t('button.delete')}
@@ -344,7 +369,7 @@ const Intention: React.FC = () => {
           setShowAddModal={setShowAddModal}
           reloadLibrary={() => {
             setTimeout(() => {
-              getLibraryList();
+              getIntentionList();
             }, 2000);
           }}
         />

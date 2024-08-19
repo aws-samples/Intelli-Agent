@@ -9,10 +9,10 @@ import {
   FormField,
   Header,
   Input,
+  Link,
   Modal,
   ProgressBar,
   Select,
-  SelectProps,
   SpaceBetween,
 } from '@cloudscape-design/components';
 import { alertMsg, validateNameTagString } from 'src/utils/utils';
@@ -20,7 +20,7 @@ import { AxiosProgressEvent } from 'axios';
 import { useTranslation } from 'react-i18next';
 import useAxiosRequest from 'src/hooks/useAxiosRequest';
 import { ExecutionResponse, PresignedUrlResponse } from 'src/types';
-import { DOC_INDEX_TYPE_LIST } from 'src/utils/const';
+// import { DOC_INDEX_TYPE_LIST } from 'src/utils/const';
 import { useAuth } from 'react-oidc-context';
 
 interface AddIntentionProps {
@@ -46,9 +46,9 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
 
   const [indexName, setIndexName] = useState('');
   const [indexNameError, setIndexNameError] = useState('');
-  const [indexType, setIndexType] = useState<SelectProps.Option>(
-    DOC_INDEX_TYPE_LIST[0],
-  );
+  // const [indexType, setIndexType] = useState<SelectProps.Option>(
+  //   DOC_INDEX_TYPE_LIST[0],
+  // );
   const [tagName, setTagName] = useState('');
   const [tagNameError, setTagNameError] = useState('');
   const [advanceExpand, setAdvanceExpand] = useState(false);
@@ -66,16 +66,19 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
     const models=[{
       value: "cohere.embed-english-v3",
       label: "cohere.embed-english-v3"
-    },{
-      value: "cohere.embed-multilingual-v3",
-      label: "cohere.embed-multilingual-v3"
-    },{
-      value: "amazon.titan-embed-text-v1",
-      label: "amazon.titan-embed-text-v1"
-    },{
-      value: "amazon.titan-embed-image-v1",
-      label: "amazon.titan-embed-image-v1"
-    },{
+    }
+    // ,{
+    //   value: "cohere.embed-multilingual-v3",
+    //   label: "cohere.embed-multilingual-v3"
+    // },{
+    //   value: "amazon.titan-embed-text-v1",
+    //   label: "amazon.titan-embed-text-v1"
+    // },{
+    //   value: "amazon.titan-embed-image-v1",
+    //   label: "amazon.titan-embed-image-v1"
+    // }
+    ,
+    {
       value: "amazon.titan-embed-text-v2:0",
       label: "amazon.titan-embed-text-v2:0"
     }]
@@ -85,7 +88,7 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
     setSelectedModel(models[0])
   },[])
 
-  const executionKnowledgeBase = async (bucket: string, prefix: string) => {
+  const executionIntention = async (bucket: string, prefix: string) => {
     const groupName: string[] = auth?.user?.profile?.['cognito:groups'] as any;
     const resExecution: ExecutionResponse = await fetchData({
       url: `/knowledge-base/executions`,
@@ -97,7 +100,7 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
         qaEnhance: 'false',
         chatbotId: groupName?.[0]?.toLocaleLowerCase() ?? 'admin',
         indexId: indexName ? indexName.trim() : undefined,
-        indexType: indexType.value,
+        // indexType: indexType.value,
         operationType: 'create',
         tag: tagName ? tagName.trim() : undefined,
       },
@@ -155,7 +158,7 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
           percentage = Math.floor((totalUploaded / totalSize) * 100);
           setUploadProgress(percentage);
           if (percentage >= 100) {
-            executionKnowledgeBase(
+            executionIntention(
               resPresignedData.s3Bucket,
               resPresignedData.s3Prefix,
             );
@@ -207,7 +210,7 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
           </SpaceBetween>
         </Box>
       }
-      header={<Header description={t('ingestDesc')}>{t('ingest')}</Header>}
+      header={<Header description={t('ingestIntentionDesc')}>{t('createIntention')}</Header>}
     >
       <SpaceBetween direction="vertical" size="l">
         <Form variant="embedded">
@@ -215,7 +218,7 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
             <FormField
               errorText={fileEmptyError ? t('fileEmptyError') : ''}
               label={t('selectFile')}
-              description={t('selectFileDesc')}
+              description={<>{t('selectFileDesc')}<Link href="#" variant="info" >下载模版</Link></>}
             >
               <div className="mt-10">
                 <FileUpload
