@@ -51,7 +51,6 @@ export class RootStack extends Stack {
       config: props.config,
       sharedConstructOutputs: sharedConstruct,
       modelConstructOutputs: modelConstruct,
-      domainEndpoint: 'https://search-smartsearch-iil74miirht3d3ih4gnitnyn2e.us-west-2.es.amazonaws.com'
     });
     
     const userConstruct = new UserConstruct(this, "user", {
