@@ -83,6 +83,7 @@ async function getAwsAccountAndRegion() {
       options.knowledgeBaseModelEcrRepository = config.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.ecrRepository;
       options.knowledgeBaseModelEcrImageTag = config.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.ecrImageTag;
       options.enableChat = config.chat.enabled;
+      options.enableConnect = config.chat.amazonConnect.enabled;
       options.defaultEmbedding = (config.model.embeddingsModels ?? []).filter(
         (m: any) => m.default
       )[0].name;
@@ -133,7 +134,7 @@ async function processCreateOptions(options: any): Promise<void> {
       type: "input",
       name: "intelliAgentUserEmail",
       message: "Please enter the name of the email you want to use for notifications",
-      initial: options.intelliAgentUserEmail ?? "test@test.com",
+      initial: options.intelliAgentUserEmail ?? "support@example.com",
       validate(intelliAgentUserEmail: string) {
         return (this as any).skipped ||
           RegExp(/^[a-zA-Z0-9]+([._-][0-9a-zA-Z]+)*@[a-zA-Z0-9]+([.-][0-9a-zA-Z]+)*\.[a-zA-Z]{2,}$/i).test(intelliAgentUserEmail)
@@ -239,6 +240,12 @@ async function processCreateOptions(options: any): Promise<void> {
       initial: options.enableChat ?? true,
     },
     {
+      type: "confirm",
+      name: "enableConnect",
+      message: "Do you want to integrate it with Amazon Connect?",
+      initial: options.enableConnect ?? true,
+    },
+    {
       type: "select",
       name: "defaultEmbedding",
       message: "Select a default sagemaker embedding model",
@@ -284,6 +291,9 @@ async function processCreateOptions(options: any): Promise<void> {
           RegExp(/^(?!(^xn--|.+-s3alias$))^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/i).test(sagemakerModelS3Bucket)
           ? true
           : "Enter a valid S3 Bucket Name in the specified format: (?!^xn--|.+-s3alias$)^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]";
+      },
+      skip(): boolean {
+        return true;
       }
     },
     {
@@ -362,6 +372,9 @@ async function processCreateOptions(options: any): Promise<void> {
     },
     chat: {
       enabled: answers.enableChat,
+      amazonConnect: {
+        enabled: answers.enableConnect,
+      },
     },
     model: {
       embeddingsModels: embeddingModels.filter(model => model.name === answers.defaultEmbedding),

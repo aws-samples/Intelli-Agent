@@ -296,7 +296,7 @@ Sample config.json:
     "knowledgeBaseType": {
       "intelliAgentKb": {
         "enabled": true,
-        "email": "test@test.com",
+        "email": "support@example.com",
         "vectorStore": {
           "opensearch": {
             "enabled": true

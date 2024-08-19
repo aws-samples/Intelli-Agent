@@ -29,6 +29,7 @@ import { KnowledgeBaseStackOutputs } from "../knowledge-base/knowledge-base-stac
 import { ChatStackOutputs } from "../chat/chat-stack";
 import { UserConstructOutputs } from "../user/user-construct";
 import { LambdaFunction } from "../shared/lambda-helper";
+import { Constants } from "../shared/constants";
 
 
 interface ApiStackProps extends StackProps {
@@ -89,9 +90,8 @@ export class ApiConstruct extends Construct {
     });
 
     // Define the API Gateway
-    const api = new apigw.RestApi(this, "Intelli-Agent-RESTful-API", {
-      restApiName: "Intelli-Agent-RESTful-API",
-      description: "Intelli-Agent RESTful API",
+    const api = new apigw.RestApi(this, `${Constants.SOLUTION_SHORT_NAME.toLowerCase()}-api`, {
+      description: `${Constants.SOLUTION_NAME} - Core API`,
       endpointConfiguration: {
         types: [apigw.EndpointType.REGIONAL],
       },

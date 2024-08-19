@@ -29,13 +29,14 @@ import { ModelConstructOutputs } from "../model/model-construct";
 import { ChatTablesConstruct } from "./chat-tables";
 import { LambdaFunction } from "../shared/lambda-helper";
 import { Runtime, Code, Function, Architecture } from "aws-cdk-lib/aws-lambda";
+import { ConnectConstruct } from "../connect/connect-construct";
 
 
 interface ChatStackProps extends StackProps {
   readonly config: SystemConfig;
   readonly sharedConstructOutputs: SharedConstructOutputs;
   readonly modelConstructOutputs: ModelConstructOutputs;
-  readonly domainEndpoint: string;
+  readonly domainEndpoint?: string;
 }
 
 export interface ChatStackOutputs {
@@ -76,7 +77,7 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
     this.iamHelper = props.sharedConstructOutputs.iamHelper;
     const vpc = props.sharedConstructOutputs.vpc;
     const securityGroups = props.sharedConstructOutputs.securityGroups;
-    const domainEndpoint = props.domainEndpoint;
+    const domainEndpoint = props.domainEndpoint ?? '';
 
     const chatTablesConstruct = new ChatTablesConstruct(this, "chat-tables");
 
@@ -138,6 +139,7 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
           "es:ESHttpPut",
           "es:ESHttpPost",
           "es:ESHttpHead",
+          "es:DescribeDomain",
           "secretsmanager:GetSecretValue",
           "bedrock:*",
           "lambda:InvokeFunction",
@@ -176,6 +178,7 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
           "es:ESHttpPut",
           "es:ESHttpPost",
           "es:ESHttpHead",
+          "es:DescribeDomain",
           "secretsmanager:GetSecretValue",
           "bedrock:*",
           "lambda:InvokeFunction",
@@ -221,6 +224,7 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
           "es:ESHttpPut",
           "es:ESHttpPost",
           "es:ESHttpHead",
+          "es:DescribeDomain",
           "secretsmanager:GetSecretValue",
           "bedrock:*",
           "lambda:InvokeFunction",
@@ -247,8 +251,6 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
     });
     this.lambdaOnlineLLMGenerate = lambdaOnlineLLMGenerate.function;
 
-
-
     this.lambdaOnlineLLMGenerate.addToRolePolicy(
       new iam.PolicyStatement({
         // principals: [new iam.AnyPrincipal()],
@@ -257,6 +259,7 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
           "es:ESHttpPut",
           "es:ESHttpPost",
           "es:ESHttpHead",
+          "es:DescribeDomain",
           "secretsmanager:GetSecretValue",
           "bedrock:*",
           "lambda:InvokeFunction",
@@ -288,8 +291,6 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
     });
     this.lambdaOnlineFunctions = lambdaOnlineFunctions.function;
 
-
-
     this.lambdaOnlineQueryPreprocess.grantInvoke(this.lambdaOnlineMain);
 
     this.lambdaOnlineIntentionDetection.grantInvoke(this.lambdaOnlineMain);
@@ -303,8 +304,10 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
     this.lambdaOnlineFunctions.grantInvoke(this.lambdaOnlineMain);
     this.lambdaOnlineFunctions.grantInvoke(this.lambdaOnlineIntentionDetection);
 
-
+    if (props.config.chat.amazonConnect.enabled) {
+      new ConnectConstruct(this, "connect-construct", {
+        lambdaOnlineMain: lambdaOnlineMain.function,
+      });
+    }
   }
-
-
 }

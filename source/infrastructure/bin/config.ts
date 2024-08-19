@@ -11,7 +11,7 @@ export function getConfig(): SystemConfig {
   // Default config
   return {
     prefix: "",
-    email: "test@test.com",
+    email: "support@example.com",
     knowledgeBase: {
       enabled: true,
       knowledgeBaseType: {
@@ -32,6 +32,9 @@ export function getConfig(): SystemConfig {
     },
     chat: {
       enabled: true,
+      amazonConnect: {
+        enabled: true
+      }
     },
     model: {
       embeddingsModels: [

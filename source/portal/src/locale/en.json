@@ -1,7 +1,7 @@
 {
   "translation": {
-    "name": "Intelli-Agent",
-    "welcome": "Welcome to Intelli-Agent",
+    "name": "AI Customer Service",
+    "welcome": "Welcome to AI Customer Service",
     "you": "Y o u",
     "welcomeMessage": "Hello, how can I help you today?",
     "server": "Server",
@@ -92,7 +92,7 @@
     "bot": "Bot",
     "model": "Model",
     "button": {
-      "login": "Log in to Intelli-Agent",
+      "login": "Log in to AI Customer Service",
       "reload": "Reload",
       "send": "Send",
       "modelSettings": "Model Settings",

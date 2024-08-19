@@ -36,7 +36,7 @@ export interface RootStackProps extends StackProps {
 export class RootStack extends Stack {
   constructor(scope: Construct, id: string, props: RootStackProps) {
     super(scope, id, props);
-    this.templateOptions.description = "(SO8034) - Intelli-Agent";
+    this.templateOptions.description = "AI Customer Service";
 
     const sharedConstruct = new SharedConstruct(this, "shared-construct");
 
@@ -51,7 +51,6 @@ export class RootStack extends Stack {
       config: props.config,
       sharedConstructOutputs: sharedConstruct,
       modelConstructOutputs: modelConstruct,
-      domainEndpoint: 'https://search-smartsearch-iil74miirht3d3ih4gnitnyn2e.us-west-2.es.amazonaws.com'
     });
     
     const userConstruct = new UserConstruct(this, "user", {
@@ -119,7 +118,7 @@ const devEnv = {
 };
 
 const app = new App();
-const stackName = `${config.prefix}intelli-agent`;
+const stackName = `${config.prefix}ai-customer-service`;
 new RootStack(app, stackName, { config, env: devEnv, suppressTemplateIndentation: true });
 
 app.synth();
