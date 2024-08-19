@@ -284,6 +284,9 @@ async function processCreateOptions(options: any): Promise<void> {
           RegExp(/^(?!(^xn--|.+-s3alias$))^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/i).test(sagemakerModelS3Bucket)
           ? true
           : "Enter a valid S3 Bucket Name in the specified format: (?!^xn--|.+-s3alias$)^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]";
+      },
+      skip(): boolean {
+        return true;
       }
     },
     {
