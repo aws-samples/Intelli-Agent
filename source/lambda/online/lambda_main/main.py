@@ -105,7 +105,7 @@ def connect_case_event_handler(event_body: dict, context: dict, executor):
 
 def compose_connect_body(event_body: dict, context: dict):
     request_timestamp = context["request_timestamp"]
-    chatbot_id = event_body.get("chatbot_config").get("chatbot_id", "admin")
+    chatbot_id = os.environ.get("CONNECT_BOT_ID", "admin")
 
     related_item = event_body["detail"]["relatedItem"]
     case_id = related_item["caseId"]

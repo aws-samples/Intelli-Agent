@@ -129,6 +129,7 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
         OPENAI_KEY_ARN: openAiKey.secretArn,
         CONNECT_USER_ARN: "",
         CONNECT_DOMAIN_ID: "",
+        CONNECT_BOT_ID: "admin",
       },
       layers: [apiLambdaOnlineSourceLayer, apiLambdaJobSourceLayer],
     });

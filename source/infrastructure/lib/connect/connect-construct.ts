@@ -16,13 +16,13 @@ export class ConnectConstruct extends Construct {
     super(scope, id);
 
     const dlq = new Queue(this, "ConnectDLQ", {
-      encryption: QueueEncryption.KMS_MANAGED,
+      encryption: QueueEncryption.SQS_MANAGED,
       retentionPeriod: Duration.days(14),
       visibilityTimeout: Duration.hours(10),
     });
 
     const messageQueue = new Queue(this, "ConnectMessageQueue", {
-      encryption: QueueEncryption.KMS_MANAGED,
+      encryption: QueueEncryption.SQS_MANAGED,
       visibilityTimeout: Duration.hours(3),
       deadLetterQueue: {
         queue: dlq,
@@ -30,21 +30,9 @@ export class ConnectConstruct extends Construct {
       },
     });
 
-    messageQueue.addToResourcePolicy(
-      new PolicyStatement({
-        effect: Effect.DENY,
-        principals: [new AnyPrincipal()],
-        actions: ["sqs:*"],
-        resources: ["*"],
-        conditions: {
-          Bool: { "aws:SecureTransport": "false" }
-        }
-      })
-    );
-
     const connectRule = new Rule(
       this,
-      "ConnectRule",
+      "CaseRule",
       {
         eventPattern: {
           source: ["aws.cases"],
@@ -59,7 +47,7 @@ export class ConnectConstruct extends Construct {
 
     connectRule.addTarget(new SqsQueue(messageQueue));
     props.lambdaOnlineMain.addEventSource(
-      new SqsEventSource(messageQueue, { batchSize: 1 }),
+      new SqsEventSource(messageQueue, { batchSize: 10 }),
     );
   }
 }
