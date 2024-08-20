@@ -19,12 +19,15 @@ class ForbidBaseModel(BaseModel):
     )
 
 
-class AllowBaseModel(BaseModel):
-    model_config = ConfigDict(
-        extra="allow",
-        protected_namespaces=()
-    )
+# class AllowBaseModel(BaseModel):
+#     model_config = ConfigDict(
+#         extra="allow",
+#         protected_namespaces=()
+#     )
 
+class AllowBaseModel(BaseModel):
+    class Config:
+        extra="allow"
 
 class LLMConfig(AllowBaseModel):
     model_id: LLMModelType = LLMModelType.CLAUDE_3_SONNET
@@ -199,7 +202,7 @@ class ChatbotConfig(AllowBaseModel):
     def model_copy(self,update=None,deep=True):
         update = update or {}
         new_dict = update_nest_dict(
-            copy.deepcopy(self.model_dump()),
+            copy.deepcopy(self.dict()),
             update
         )
         cls = type(self)
