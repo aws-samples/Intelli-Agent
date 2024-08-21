@@ -11,7 +11,6 @@ from common_logic.common_utils.lambda_invoke_utils import (
     chatbot_lambda_call_wrapper,
     is_running_local,
 )
-
 from common_logic.common_utils.logger_utils import get_logger
 from common_logic.common_utils.response_utils import process_response
 from common_logic.common_utils.websocket_utils import load_ws_client
@@ -169,22 +168,13 @@ def compose_connect_body(event_body: dict, context: dict):
         "use_history": True,
         "enable_trace": True,
         "use_websearch": True,
-        "default_index_config": {
-            "rag_index_ids": [
-                "Admin"
-            ]
-        },
+        "default_index_config": {"rag_index_ids": ["Admin"]},
         "default_llm_config": {
             "model_id": "anthropic.claude-3-sonnet-20240229-v1:0",
             "endpoint_name": "",
-            "model_kwargs": {
-                "temperature": 0.01,
-                "max_tokens": 1000
-            }
+            "model_kwargs": {"temperature": 0.01, "max_tokens": 1000},
         },
-        "agent_config": {
-            "only_use_rag_tool": False
-        }
+        "agent_config": {"only_use_rag_tool": False},
     }
 
     logger.info(agent_flow_body)
@@ -213,6 +203,7 @@ def lambda_handler(event_body: dict, context: dict):
     # TODO Need to modify key
     group_name = event_body.get("chatbot_config").get("group_name", "Admin")
     chatbot_id = event_body.get("chatbot_config").get("chatbot_id", "admin")
+    user_profile = event_body.get("chatbot_config").get("user_profile", "admin")
 
     if not session_id:
         session_id = f"session_{int(request_timestamp)}"
@@ -236,6 +227,7 @@ def lambda_handler(event_body: dict, context: dict):
     event_body["chatbot_config"]["user_id"] = user_id
     event_body["chatbot_config"]["group_name"] = group_name
     event_body["chatbot_config"]["chatbot_id"] = chatbot_id
+    event_body["chatbot_config"]["user_profile"] = user_profile
     # TODO: chatbot id add to event body
 
     event_body["message_id"] = str(uuid.uuid4())
