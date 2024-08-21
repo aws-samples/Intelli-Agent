@@ -42,7 +42,7 @@ def get_query_parameter(event, parameter_name, default_value=None):
     return default_value
 
 
-def __put_prompt(event, group_name, email):
+def __put_prompt(event, group_name):
     body = json.loads(event["body"])
     model_id = body.get("ModelId")
     scene = body.get("Scene")
@@ -53,7 +53,7 @@ def __put_prompt(event, group_name, email):
             "ModelId": model_id,
             "Scene": scene,
             "Prompt": body.get("Prompt"),
-            "LastModifiedBy": email,
+            # "LastModifiedBy": email,
             "LastModifiedTime": str(int(time.time())),
         }
     )
@@ -163,7 +163,7 @@ def lambda_handler(event, context):
         output = __list_scene()
     elif resource.startswith(PROMPTS_RESOURCE):
         if http_method == "POST":
-            output = __put_prompt(event, group_name, email)
+            output = __put_prompt(event, group_name)
         elif http_method == "GET":
             if event["resource"] == PROMPTS_RESOURCE:
                 output = __list_prompt(event, group_name)

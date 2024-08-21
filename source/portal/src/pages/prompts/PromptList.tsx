@@ -236,11 +236,11 @@ const PromptList: React.FC = () => {
               cell: (item: PromptItem) => item.ModelId,
               isRowHeader: true,
             },
-            {
-              id: 'updateBy',
-              header: t('updateBy'),
-              cell: (item: PromptItem) => item.LastModifiedBy,
-            },
+            // {
+            //   id: 'updateBy',
+            //   header: t('updateBy'),
+            //   cell: (item: PromptItem) => item.LastModifiedBy,
+            // },
             {
               id: 'updateTime',
               header: t('updateTime'),

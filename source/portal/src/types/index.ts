@@ -105,7 +105,7 @@ export interface CreatePromptResponse {
 export type PromptItem = {
   uuid: string;
   LastModifiedTime: string;
-  LastModifiedBy: string;
+  // LastModifiedBy: string;
   ModelId: string;
   SortKey: string;
   Scene: string;
