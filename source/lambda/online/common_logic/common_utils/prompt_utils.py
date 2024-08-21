@@ -137,6 +137,7 @@ register_prompt_templates(
         LLMModelType.CLAUDE_21,
         LLMModelType.CLAUDE_3_HAIKU,
         LLMModelType.CLAUDE_3_SONNET,
+        LLMModelType.CLAUDE_3_5_SONNET,
         LLMModelType.CLAUDE_INSTANCE,
         LLMModelType.MIXTRAL_8X7B_INSTRUCT
     ],
@@ -168,24 +169,25 @@ register_prompt_templates(
 
 
 
-CHIT_CHAT_SYSTEM_TEMPLATE = "你是一个AI助理。今天是{date},{weekday}. "
+# CHIT_CHAT_SYSTEM_TEMPLATE = "你是一个AI助理。今天是{date},{weekday}. "
 
-register_prompt_templates(
-    model_ids=[
-        LLMModelType.CLAUDE_2,
-        LLMModelType.CLAUDE_21,
-        LLMModelType.CLAUDE_3_HAIKU,
-        LLMModelType.CLAUDE_3_SONNET,
-        LLMModelType.CLAUDE_INSTANCE,
-        LLMModelType.MIXTRAL_8X7B_INSTRUCT,
-        LLMModelType.GLM_4_9B_CHAT,
-        LLMModelType.QWEN2INSTRUCT72B,
-        LLMModelType.QWEN2INSTRUCT7B
-    ],
-    task_type=LLMTaskType.CHAT,
-    prompt_template=CHIT_CHAT_SYSTEM_TEMPLATE,
-    prompt_name="system_prompt"
-)
+# register_prompt_templates(
+#     model_ids=[
+#         LLMModelType.CLAUDE_2,
+#         LLMModelType.CLAUDE_21,
+#         LLMModelType.CLAUDE_3_HAIKU,
+#         LLMModelType.CLAUDE_3_SONNET,
+#         LLMModelType.CLAUDE_3_5_SONNET,
+#         LLMModelType.CLAUDE_INSTANCE,
+#         LLMModelType.MIXTRAL_8X7B_INSTRUCT,
+#         LLMModelType.GLM_4_9B_CHAT,
+#         LLMModelType.QWEN2INSTRUCT72B,
+#         LLMModelType.QWEN2INSTRUCT7B
+#     ],
+#     task_type=LLMTaskType.CHAT,
+#     prompt_template=CHIT_CHAT_SYSTEM_TEMPLATE,
+#     prompt_name="system_prompt"
+# )
 
 
 
@@ -276,6 +278,7 @@ register_prompt_templates(
         LLMModelType.CLAUDE_21,
         LLMModelType.CLAUDE_3_HAIKU,
         LLMModelType.CLAUDE_3_SONNET,
+        LLMModelType.CLAUDE_3_5_SONNET,
         LLMModelType.CLAUDE_INSTANCE,
         LLMModelType.MIXTRAL_8X7B_INSTRUCT,
         LLMModelType.QWEN2INSTRUCT72B,
@@ -293,6 +296,7 @@ register_prompt_templates(
         LLMModelType.CLAUDE_21,
         LLMModelType.CLAUDE_3_HAIKU,
         LLMModelType.CLAUDE_3_SONNET,
+        LLMModelType.CLAUDE_3_5_SONNET,
         LLMModelType.CLAUDE_INSTANCE,
         LLMModelType.MIXTRAL_8X7B_INSTRUCT,
         LLMModelType.QWEN2INSTRUCT72B,
@@ -311,6 +315,7 @@ register_prompt_templates(
         LLMModelType.CLAUDE_21,
         LLMModelType.CLAUDE_3_HAIKU,
         LLMModelType.CLAUDE_3_SONNET,
+        LLMModelType.CLAUDE_3_5_SONNET,
         LLMModelType.CLAUDE_INSTANCE,
         LLMModelType.MIXTRAL_8X7B_INSTRUCT,
         LLMModelType.QWEN2INSTRUCT72B,
@@ -329,7 +334,8 @@ register_prompt_templates(
         LLMModelType.CLAUDE_2,
         LLMModelType.CLAUDE_21,
         LLMModelType.CLAUDE_3_HAIKU,
-        LLMModelType.CLAUDE_3_SONNET
+        LLMModelType.CLAUDE_3_SONNET,
+        LLMModelType.CLAUDE_3_5_SONNET,
     ],
     task_type=LLMTaskType.TOOL_CALLING,
     prompt_template=AGENT_USER_PROMPT,
@@ -353,7 +359,8 @@ register_prompt_templates(
         LLMModelType.CLAUDE_2,
         LLMModelType.CLAUDE_21,
         LLMModelType.CLAUDE_3_HAIKU,
-        LLMModelType.CLAUDE_3_SONNET
+        LLMModelType.CLAUDE_3_SONNET,
+        LLMModelType.CLAUDE_3_5_SONNET,
     ],
     task_type=LLMTaskType.TOOL_CALLING,
     prompt_template=AGENT_GUIDELINES_PROMPT,
