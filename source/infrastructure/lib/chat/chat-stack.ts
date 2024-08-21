@@ -147,6 +147,7 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
           "bedrock:*",
           "lambda:InvokeFunction",
           "secretmanager:GetSecretValue",
+          "cases:*",
         ],
         effect: iam.Effect.ALLOW,
         resources: ["*"],
