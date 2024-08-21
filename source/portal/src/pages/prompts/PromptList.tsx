@@ -117,7 +117,7 @@ const PromptList: React.FC = () => {
         url: 'chatbot-management/chatbots',
         method: 'get',
       });
-      const items: string[] = data;
+      const items: string[] = data.chatbot_ids;
       const getChatbots = items.map((item) => {
         return {
           label: item,

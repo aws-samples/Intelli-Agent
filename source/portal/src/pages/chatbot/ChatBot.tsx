@@ -128,7 +128,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
         url: 'chatbot-management/chatbots',
         method: 'get',
       });
-      setWorkspaceIds(data.workspace_ids);
+      setWorkspaceIds(data.chatbot_ids);
     } catch (error) {
       console.error(error);
       return [];
