@@ -29,9 +29,9 @@ def lambda_handler(event, context):
     if "Admin" in cognito_groups_list:
         # Return a list of all cognito groups
         response = cognito.list_groups(UserPoolId=cognito_user_pool_id)
-        output["workspace_ids"] = [group["GroupName"] for group in response["Groups"]]
+        output["chatbot_ids"] = [group["GroupName"] for group in response["Groups"]]
     else:
-        output["workspace_ids"] = cognito_groups_list
+        output["chatbot_ids"] = cognito_groups_list
     resp_header = {
         "Content-Type": "application/json",
         "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",

@@ -128,6 +128,9 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
         MODEL_TABLE_NAME: this.modelTableName,
         INDEX_TABLE_NAME: this.indexTableName,
         OPENAI_KEY_ARN: openAiKey.secretArn,
+        CONNECT_USER_ARN: "",
+        CONNECT_DOMAIN_ID: "",
+        CONNECT_BOT_ID: "admin",
       },
       layers: [apiLambdaOnlineSourceLayer, apiLambdaJobSourceLayer],
     });
@@ -145,6 +148,8 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
           "bedrock:*",
           "lambda:InvokeFunction",
           "secretmanager:GetSecretValue",
+          "cases:*",
+          "connect:*",
         ],
         effect: iam.Effect.ALLOW,
         resources: ["*"],

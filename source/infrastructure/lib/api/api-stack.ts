@@ -602,8 +602,10 @@ export class ApiConstruct extends Construct {
     
     // This is not safe, but for the purpose of the test, we will use this
     // For deployment, we suggest user manually create the key and use it on the console
+
+    const apiKeyValue = this.makeApiKey(24);
     const key = api.addApiKey('ApiKey', {
-      value: "AICustomerServiceTestKey",
+      value: apiKeyValue,
     });
     
     plan.addApiKey(key);
@@ -613,8 +615,20 @@ export class ApiConstruct extends Construct {
 
     this.apiEndpoint = api.url;
     this.documentBucket = s3Bucket.bucketName;
-    this.apiKey = "AICustomerServiceTestKey"
+    this.apiKey = apiKeyValue;
   }
+
+  private makeApiKey(length: number) {
+    let apiKeyValue = '';
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    const charactersLength = characters.length;
+    let counter = 0;
+    while (counter < length) {
+      apiKeyValue += characters.charAt(Math.floor(Math.random() * charactersLength));
+      counter += 1;
+    }
+    return apiKeyValue;
+}
 
   genMethodOption =(api: apigw.RestApi, auth: boolean, properties: any)=>{
     let unusedAuth = auth;

@@ -4,7 +4,8 @@ import { AnyPrincipal, Effect, PolicyStatement } from "aws-cdk-lib/aws-iam";
 import { Function } from "aws-cdk-lib/aws-lambda";
 import { Construct } from "constructs";
 import { Rule } from "aws-cdk-lib/aws-events";
-import { LambdaFunction } from "aws-cdk-lib/aws-events-targets";
+import { LambdaFunction, SqsQueue } from "aws-cdk-lib/aws-events-targets";
+import { SqsEventSource } from "aws-cdk-lib/aws-lambda-event-sources";
 
 export interface ConnectProps extends StackProps {
   readonly lambdaOnlineMain: Function;
@@ -15,13 +16,13 @@ export class ConnectConstruct extends Construct {
     super(scope, id);
 
     const dlq = new Queue(this, "ConnectDLQ", {
-      encryption: QueueEncryption.KMS_MANAGED,
+      encryption: QueueEncryption.SQS_MANAGED,
       retentionPeriod: Duration.days(14),
       visibilityTimeout: Duration.hours(10),
     });
 
     const messageQueue = new Queue(this, "ConnectMessageQueue", {
-      encryption: QueueEncryption.KMS_MANAGED,
+      encryption: QueueEncryption.SQS_MANAGED,
       visibilityTimeout: Duration.hours(3),
       deadLetterQueue: {
         queue: dlq,
@@ -29,21 +30,9 @@ export class ConnectConstruct extends Construct {
       },
     });
 
-    messageQueue.addToResourcePolicy(
-      new PolicyStatement({
-        effect: Effect.DENY,
-        principals: [new AnyPrincipal()],
-        actions: ["sqs:*"],
-        resources: ["*"],
-        conditions: {
-          Bool: { "aws:SecureTransport": "false" }
-        }
-      })
-    );
-
     const connectRule = new Rule(
       this,
-      "ConnectRule",
+      "CaseRule",
       {
         eventPattern: {
           source: ["aws.cases"],
@@ -56,7 +45,9 @@ export class ConnectConstruct extends Construct {
       }
     );
 
-    const eventLambdaFunction = new LambdaFunction(props.lambdaOnlineMain);
-    connectRule.addTarget(eventLambdaFunction);
+    connectRule.addTarget(new SqsQueue(messageQueue));
+    props.lambdaOnlineMain.addEventSource(
+      new SqsEventSource(messageQueue, { batchSize: 10 }),
+    );
   }
 }
