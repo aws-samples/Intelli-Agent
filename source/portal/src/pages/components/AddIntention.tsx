@@ -19,25 +19,26 @@ import { alertMsg, validateNameTagString } from 'src/utils/utils';
 import { AxiosProgressEvent } from 'axios';
 import { useTranslation } from 'react-i18next';
 import useAxiosRequest from 'src/hooks/useAxiosRequest';
-import { ExecutionResponse, PresignedUrlResponse } from 'src/types';
+import { ExecutionResponse, PresignedUrlResponse, SelectedOption } from 'src/types';
 // import { DOC_INDEX_TYPE_LIST } from 'src/utils/const';
 import { useAuth } from 'react-oidc-context';
 
 interface AddIntentionProps {
   showAddModal: boolean;
+  models: SelectedOption[];
+  botsOption: SelectedOption[];
+  selectedBotOption: SelectedOption | undefined;
+  selectedModelOption: SelectedOption | undefined;
+  changeBotOption: (option: SelectedOption) => void;
+  changeSelectedModel: (option: SelectedOption) => void;
   setShowAddModal: (show: boolean) => void;
-  reloadLibrary: () => void;
-}
-
-interface SelectedOption {
-  value: string;
-  label: string;
+  reloadIntention: () => void;
 }
 
 const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => {
   const { t } = useTranslation();
   const auth = useAuth();
-  const { showAddModal, setShowAddModal, reloadLibrary } = props;
+  const {models, botsOption, selectedModelOption, selectedBotOption, showAddModal, changeBotOption, changeSelectedModel, setShowAddModal, reloadIntention } = props;
   const fetchData = useAxiosRequest();
   const [uploadFiles, setUploadFiles] = useState<File[]>([]);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -46,52 +47,14 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
 
   const [indexName, setIndexName] = useState('');
   const [indexNameError, setIndexNameError] = useState('');
-  // const [indexType, setIndexType] = useState<SelectProps.Option>(
-  //   DOC_INDEX_TYPE_LIST[0],
-  // );
   const [tagName, setTagName] = useState('');
   const [tagNameError, setTagNameError] = useState('');
   const [advanceExpand, setAdvanceExpand] = useState(false);
-  const [selectedBot, setSelectedBot]  = useState<SelectedOption>(null as any);
-  const [selectedModel, setSelectedModel]  = useState<SelectedOption>(null as any);
-  const [bots, setBots] = useState<SelectedOption[]>([])
-  const [models, setModels] = useState<SelectedOption[]>([])
-
-
-  useEffect(()=>{
-    const bots =[{
-      value: "default",
-      label: "default"
-    }]
-    const models=[{
-      value: "cohere.embed-english-v3",
-      label: "cohere.embed-english-v3"
-    }
-    // ,{
-    //   value: "cohere.embed-multilingual-v3",
-    //   label: "cohere.embed-multilingual-v3"
-    // },{
-    //   value: "amazon.titan-embed-text-v1",
-    //   label: "amazon.titan-embed-text-v1"
-    // },{
-    //   value: "amazon.titan-embed-image-v1",
-    //   label: "amazon.titan-embed-image-v1"
-    // }
-    ,
-    {
-      value: "amazon.titan-embed-text-v2:0",
-      label: "amazon.titan-embed-text-v2:0"
-    }]
-    setBots(bots)
-    setModels(models)
-    setSelectedBot(bots[0])
-    setSelectedModel(models[0])
-  },[])
-
+  const [uploadFileError, setUploadFileError] = useState('');
   const executionIntention = async (bucket: string, prefix: string) => {
     const groupName: string[] = auth?.user?.profile?.['cognito:groups'] as any;
     const resExecution: ExecutionResponse = await fetchData({
-      url: `/knowledge-base/executions`,
+      url: `intention/executions`,
       method: 'post',
       data: {
         s3Bucket: bucket,
@@ -100,7 +63,6 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
         qaEnhance: 'false',
         chatbotId: groupName?.[0]?.toLocaleLowerCase() ?? 'admin',
         indexId: indexName ? indexName.trim() : undefined,
-        // indexType: indexType.value,
         operationType: 'create',
         tag: tagName ? tagName.trim() : undefined,
       },
@@ -110,6 +72,10 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
       setTagName('');
     }
   };
+
+  const downloadTemplate = ()=>{
+
+  }
 
   const uploadFilesToS3 = async () => {
     // validate  file
@@ -134,15 +100,15 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
 
     const uploadPromises = uploadFiles.map(async (file) => {
       const resPresignedData: PresignedUrlResponse = await fetchData({
-        url: `/knowledge-base/kb-presigned-url`,
+        url: `intention/execution-presigned-url`,
         method: 'post',
         data: {
           file_name: file.name,
           content_type: file.type,
         },
       });
-      const uploadPreSignUrl = resPresignedData.data;
-      return axios.put(uploadPreSignUrl, file, {
+      const uploadPreSignUrl = resPresignedData;
+      return axios.put(`${uploadPreSignUrl}`, file, {
         headers: {
           'Content-Type': file.type,
         },
@@ -175,11 +141,14 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
         setUploadProgress(0);
         alertMsg(t('uploadSuccess'), 'success');
         setShowAddModal(false);
-        reloadLibrary();
+        reloadIntention();
       }
     } catch (error) {
       console.error('error', error);
+      setUploadFileError("error")
     }
+    setShowProgress(false)
+    setUploadFiles([])  
   };
 
   return (
@@ -212,13 +181,15 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
       }
       header={<Header description={t('ingestIntentionDesc')}>{t('createIntention')}</Header>}
     >
+      
       <SpaceBetween direction="vertical" size="l">
         <Form variant="embedded">
           <SpaceBetween direction="vertical" size="l">
+            {/* <div>BOTS: {bots}</div> */}
             <FormField
               errorText={fileEmptyError ? t('fileEmptyError') : ''}
               label={t('selectFile')}
-              description={<>{t('selectFileDesc')}<Link href="#" variant="info" >下载模版</Link></>}
+              description={<>{t('selectFileDesc')}<Link href="#" variant="info" onFollow={downloadTemplate} >下载模版</Link></>}
             >
               <div className="mt-10">
                 <FileUpload
@@ -242,6 +213,7 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
                   showFileSize
                   accept=".xlsx,.xls"
                   constraintText={`${t('supportFiles')} xlsx, xls.`}
+                  errorText={uploadFileError}
                 />
               </div>
             </FormField>
@@ -257,10 +229,10 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
                 <SpaceBetween direction="vertical" size="l">
                   <FormField label={t('bot')} stretch={true}>
                     <Select
-                      options={bots}
-                      selectedOption={selectedBot}
+                      options={botsOption}
+                      selectedOption={selectedBotOption||{}}
                       onChange={({ detail }:{detail: any}) => {
-                        setSelectedBot(detail.selectedOption);
+                        changeBotOption(detail.selectedOption);
                       }}
                     />
                   </FormField>
@@ -288,9 +260,9 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
                   <FormField label={t('model')} stretch={true}>
                     <Select
                       options={models}
-                      selectedOption={selectedModel}
+                      selectedOption={selectedModelOption||{}}
                       onChange={({ detail }:{detail: any}) => {
-                        setSelectedModel(detail.selectedOption);
+                        changeSelectedModel(detail.selectedOption);
                       }}
                     />
                   </FormField>

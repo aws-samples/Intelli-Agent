@@ -4,21 +4,23 @@ import time
 import boto3
 from botocore.paginate import TokenEncoder
 from common_logic.common_utils.logger_utils import get_logger
-from common_logic.common_utils.prompt_utils import get_all_templates, EXPORT_MODEL_IDS, EXPORT_SCENES
 
 DEFAULT_MAX_ITEMS = 50
 DEFAULT_SIZE = 50
+DEFAULT_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 ROOT_RESOURCE = "/intention"
-PRESIGNED_URL_RESOURCE = f"{ROOT_RESOURCE}/intention-presigned-url"
-SCENES_RESOURCE = f"{ROOT_RESOURCE}/scenes"
-PROMPTS_RESOURCE = f"{ROOT_RESOURCE}/prompts"
-logger = get_logger("main")
-dynamodb_client = boto3.client("dynamodb")
+PRESIGNED_URL_RESOURCE = f"{ROOT_RESOURCE}/execution-presigned-url"
+EXECUTION_RESOURCE = f"{ROOT_RESOURCE}/executions"
+logger = get_logger(__name__)
 encoder = TokenEncoder()
 
 dynamodb_resource = boto3.resource("dynamodb")
-prompt_table_name = os.getenv("PROMPT_TABLE_NAME","prompt")
-prompt_table = dynamodb_resource.Table(prompt_table_name)
+intention_table_name = os.getenv("INTENTION_TABLE_NAME","intention")
+intention_table = dynamodb_resource.Table(intention_table_name)
+
+dynamodb_client = boto3.client("dynamodb")
+s3_client = boto3.client("s3")
+s3_bucket_name = os.environ.get("S3_BUCKET")
 
 resp_header = {
     "Content-Type": "application/json",
@@ -27,8 +29,52 @@ resp_header = {
     "Access-Control-Allow-Methods": "*",
 }
 
+def lambda_handler(event, context):
+    logger.info(event)
+    authorizer_type = (
+        event["requestContext"].get("authorizer", {}).get("authorizerType")
+    )
+    if authorizer_type == "lambda_authorizer":
+        claims = json.loads(event["requestContext"]["authorizer"]["claims"])
+        email = claims["email"]
+        cognito_groups = claims["cognito:groups"]
+        cognito_groups_list = cognito_groups.split(",")
+    else:
+        cognito_groups_list = ["Admin"]
+    #     group_name = claims["cognito:groups"] #Agree to only be in one group
+    # else:
+    #     group_name = "Admin"
+    http_method = event["httpMethod"]
+    resource:str = event["resource"]
+    chatbot_id = (
+            "Admin" if "Admin" in cognito_groups_list else cognito_groups_list[0]
+        )
+    if resource == PRESIGNED_URL_RESOURCE:
+        input_body = json.loads(event["body"])
+        file_name = "intentions/" + chatbot_id + "/" + input_body["file_name"]
+        output = __gen_presigned_url(file_name, 
+                                     input_body.get("content_type", DEFAULT_CONTENT_TYPE),
+                                     input_body.get("expiration", 60*60))
+    elif resource == EXECUTION_RESOURCE:
+        if http_method == "POST":
+            output = __create_execution(event, context, email)
+        else:
+            output = __list_execution(event, chatbot_id)
+    try:
+        return {
+            "statusCode": 200,
+            "headers": resp_header,
+            "body": json.dumps(output),
+        }
+    except Exception as e:
+        logger.error("Error: %s", str(e))
+        return {
+            "statusCode": 500,
+            "headers": resp_header,
+            "body": json.dumps(f"Error: {str(e)}"),
+        }
 
-def get_query_parameter(event, parameter_name, default_value=None):
+def __get_query_parameter(event, parameter_name, default_value=None):
     if (
         event.get("queryStringParameters")
         and parameter_name in event["queryStringParameters"]
@@ -36,64 +82,40 @@ def get_query_parameter(event, parameter_name, default_value=None):
         return event["queryStringParameters"][parameter_name]
     return default_value
 
-
-def __put_prompt(event, group_name, email):
-    body = json.loads(event["body"])
-    model_id = body.get("ModelId")
-    scene = body.get("Scene")
-    prompt_table.put_item(
-                Item={
-                    "GroupName": group_name,
-                    "SortKey": f"{model_id}__{scene}",
-                    "ModelId": model_id,
-                    "Scene": scene,
-                    "Prompt": body.get("Prompt"),
-                    "LastModifiedBy": email,
-                    "LastModifiedTime": str(int(time.time())),
-                }
-            )
-    return {"Message":"OK"}
+def __gen_presigned_url(object_name: str, content_type: str, expiration: int):
+    return s3_client.generate_presigned_url(
+        ClientMethod="put_object",
+        Params={"Bucket": s3_bucket_name, "Key": object_name, "ContentType": content_type},
+        ExpiresIn=expiration,
+        HttpMethod="PUT",
+    )
 
 
-def __list_model():
-    return EXPORT_MODEL_IDS
-
-
-def __list_scene():
-    return EXPORT_SCENES
-
-
-def __list_prompt(event, group_name):
-    max_items = get_query_parameter(event, "MaxItems", DEFAULT_MAX_ITEMS)
-    page_size = get_query_parameter(event, "PageSize", DEFAULT_SIZE)
-    starting_token = get_query_parameter(event, "StartingToken")
-
+def __list_execution(event, group_name):
+    max_items = __get_query_parameter(event, "MaxItems", DEFAULT_MAX_ITEMS)
+    page_size = __get_query_parameter(event, "PageSize", DEFAULT_SIZE)
+    starting_token = __get_query_parameter(event, "StartingToken")
     config = {
         "MaxItems": int(max_items),
         "PageSize": int(page_size),
         "StartingToken": starting_token,
     }
-
-    # Use query after adding a filter
     paginator = dynamodb_client.get_paginator("query")
-
     response_iterator = paginator.paginate(
-        TableName=prompt_table_name,
+        TableName=intention_table_name,
         PaginationConfig=config,
-        KeyConditionExpression="GroupName = :GroupName",
-        ExpressionAttributeValues={":GroupName": {"S": group_name}},
+        KeyConditionExpression="groupName = :groupName",
+        ExpressionAttributeValues={":groupName": {"S": group_name}},
         ScanIndexForward=False,
     )
-
     output = {}
-
     for page in response_iterator:
         page_items = page["Items"]
         page_json = []
         for item in page_items:
             item_json = {}
             for key in list(item.keys()):
-                if key in ["Prompt"]:
+                if key in ["Intention"]:
                     continue
                 item_json[key] = item.get(key, {"S": ""})["S"]
             page_json.append(item_json)
@@ -109,70 +131,40 @@ def __list_prompt(event, group_name):
     return output
 
 
-def __get_prompt(event, group_name):
-    sort_key = event["path"].replace(f"{PROMPTS_RESOURCE}/", "").strip().replace("/","__")
-    response = prompt_table.get_item(
-            Key={"GroupName": group_name, "SortKey": sort_key}
-        )
-    item = response.get("Item")
-    if item:
-        return item
-    keys = sort_key.split("__")
-    default_prompt = get_all_templates().get(keys[0],{}).get(keys[1])
-    response_prompt = {
-        "GroupName": group_name,
-        "SortKey": sort_key,
-        "ModelId": keys[0],
-        "Scene": keys[1],
-        "Prompt": default_prompt,
+def __create_execution(event, context, email):
+    input_body = json.loads(event["body"])
+    execution_detail = {}
+    execution_detail["tableItemId"] = context.aws_request_id
+    execution_detail["botId"] = input_body.get("botId")
+    execution_detail["index"] = input_body.get("index")
+    execution_detail["modelId"] = input_body.get("modelId")
+    execution_detail["fileName"] = input_body.get("file")
+    execution_detail["tag"] = input_body.get("tag")
+    # write to ddb(meta data)
+    intention_table.put_item(
+        Item={
+            "GroupName": execution_detail["botId"],
+            "SortKey": f'{execution_detail["botId"]}__{execution_detail["modelId"]}',
+            "ModelId": execution_detail["modelId"],
+            "Tag": execution_detail["tag"],
+            "File": f'{input_body.get("s3Bucket")}{input_body.get("s3Prefix")}',
+            "LastModifiedBy": email,
+            "LastModifiedTime": str(int(time.time())),
+        }
+    )
+    intention_table_name.put_item(Item=input_body)
+
+    # write to aos(vectorData)
+
+
+    return {
+        "statusCode": 200,
+        "headers": resp_header,
+        "body": json.dumps(
+            {
+                "execution_id": execution_detail["tableItemId"],
+                "input_payload": json.dumps(execution_detail),
+                "result": "success"
+            }
+        ),
     }
-    return response_prompt
-
-
-def __delete_prompt(event, group_name):
-    sort_key = event["path"].replace(f"{PROMPTS_RESOURCE}/", "").strip().replace("/","__")
-    response = prompt_table.delete_item(
-            Key={"GroupName": group_name, "SortKey": sort_key}
-        )
-    return {"Message":"OK"}
-
-
-def lambda_handler(event, context):
-    logger.info(event)
-    authorizer_type = event["requestContext"]["authorizer"].get("authorizerType")
-    if authorizer_type == "lambda_authorizer":
-        claims = json.loads(event["requestContext"]["authorizer"]["claims"])
-        email = claims["email"]
-        group_name = claims["cognito:groups"] #Agree to only be in one group
-    else:
-        raise Exception("Invalid authorizer type")
-    http_method = event["httpMethod"]
-    resource:str = event["resource"]
-    if resource == PRESIGNED_URL_RESOURCE:
-        output = __list_model()
-    elif resource == SCENES_RESOURCE:
-        output = __list_scene()
-    elif resource.startswith(PROMPTS_RESOURCE):
-        if http_method == "POST":
-            output = __put_prompt(event, group_name, email)
-        elif http_method == "GET":
-            if event["resource"] == PROMPTS_RESOURCE:
-                output = __list_prompt(event, group_name)
-            else:
-                output = __get_prompt(event, group_name)
-        elif http_method == "DELETE":
-            output = __delete_prompt(event, group_name)
-
-    try:
-        return {
-            "statusCode": 200,
-            "headers": resp_header,
-            "body": json.dumps(output),
-        }
-    except Exception as e:
-        logger.error("Error: %s", str(e))
-        return {
-            "statusCode": 500,
-            "headers": resp_header,
-            "body": json.dumps(f"Error: {str(e)}"),
-        }

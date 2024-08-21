@@ -188,3 +188,7 @@ export interface ExecutionResponse {
   input_payload: string;
   step_function_arn: string;
 }
+export interface SelectedOption {
+  value: string;
+  label: string;
+}

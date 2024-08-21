@@ -124,6 +124,7 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
         SESSIONS_TABLE_NAME: chatTablesConstruct.sessionsTableName,
         MESSAGES_TABLE_NAME: chatTablesConstruct.messagesTableName,
         PROMPT_TABLE_NAME: chatTablesConstruct.promptTableName,
+        INTENTION_TABLE_NAME: chatTablesConstruct.intentionTableName,
         MODEL_TABLE_NAME: this.modelTableName,
         INDEX_TABLE_NAME: this.indexTableName,
         OPENAI_KEY_ARN: openAiKey.secretArn,

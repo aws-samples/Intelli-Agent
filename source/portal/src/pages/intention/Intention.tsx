@@ -13,12 +13,13 @@ import {
   Table,
   TableProps,
 } from '@cloudscape-design/components';
-import { IntentionsItem } from 'src/types';
+import { IntentionsItem, IntentionsResponse, SelectedOption } from 'src/types';
 import { alertMsg, formatTime } from 'src/utils/utils';
 import TableLink from 'src/comps/link/TableLink';
 import useAxiosRequest from 'src/hooks/useAxiosRequest';
 import { useTranslation } from 'react-i18next';
 import AddIntention from '../components/AddIntention';
+import { useAuth } from 'react-oidc-context';
 
 const parseDate = (item: IntentionsItem) => {
   return item.createTime ? new Date(item.createTime) : 0;
@@ -43,34 +44,38 @@ const Intention: React.FC = () => {
     sortingField: 'createTime',
   });
   const [isDescending, setIsDescending] = useState<boolean | undefined>(true);
+  const auth = useAuth();
 
   // ingest document
   const [showAddModal, setShowAddModal] = useState(false);
   const isFirstRender = useRef(true);
+  const [botsOption, setBotsOption] = useState<SelectedOption[]>([]);
+  const [selectedBotsOption, setSelectedBotsOption] = useState<SelectedOption>();
+  const [models, setModels] = useState<SelectedOption[]>([])
+  const [selectedModelOption, setSelectedModelOption] = useState<SelectedOption>();
+
+  const changeBotOption = (selectedBotOption: SelectedOption)=>{
+    setSelectedBotsOption(selectedBotOption)
+  }
+
+  const changeModelOption = (selectedBotOption: SelectedOption)=>{
+    setSelectedModelOption(selectedBotOption)
+  }
 
   const getIntentionList = async () => {
     setLoadingData(true);
     setSelectedItems([]);
-    // const params = {
-    //   max_items: 9999,
-    //   page_size: 9999,
-    // };
+    const params = {
+      max_items: 9999,
+      page_size: 9999,
+    };
     try {
-      const preSortItem = [{
-        s3Prefix: "intentions/Admin/testindeto.xlsx", // "intentions/Admin/testindeto.xlsx"
-        offline: "true",  // true
-        s3Bucket: "intelli-agent-apiconstructllmbotintentionsfc4f8a7a-6vbr3vihybqs", // intelli-agent-apiconstructllmbotintentionsfc4f8a7a-6vbr3vihybqs
-        executionId: "2ed65d3d-3d78-4557-917f-a8fe4c65276f",
-        executionStatus: "COMPLETED",
-        operationType: "create", // create
-        sfnExecutionId: "99041951-b0c5-4b39-9efa-fcee12f751c0", // 99041951-b0c5-4b39-9efa-fcee12f751c0
-        indexType: "qq", // 需要吗？
-        index: "index-taddsaffg",
-        model: "cohere-embedding-ssdd-v2:0",
-        tag: "tagaaaaa",
-        chatbotId: "admin", // 同groupName admin
-        createTime: "2024-08-18 18:49:23.199713+00:00",
-      }]
+      const res: IntentionsResponse = await fetchData({
+        url: 'intention/executions',
+        method: 'get',
+        params,
+      });
+      const preSortItem = res.Items
       preSortItem.sort((a, b) => {
         return Number(parseDate(b)) - Number(parseDate(a));
       });
@@ -102,8 +107,54 @@ const Intention: React.FC = () => {
     }
   };
 
+  const getBots = async ()=>{
+    const groupName: string[] = auth?.user?.profile?.['cognito:groups'] as any;
+    const data: any = await fetchData({
+      url: 'chatbot-management/chatbots',
+      method: 'get',
+      data: {
+        groupName: groupName?.[0] ?? 'Admin',
+      },
+    });
+    const options: SelectedOption[] = []
+    data.workspace_ids.forEach((item:any)=>{
+      options.push({
+         label: item,
+         value: item
+      })
+    })
+    setBotsOption(options)
+    setSelectedBotsOption(options[0])
+  }
+
+  const getModels  = async ()=>{
+    const tempModels = [{
+      value: "cohere.embed-english-v3",
+      label: "cohere.embed-english-v3"
+    }
+    // ,{
+    //   value: "cohere.embed-multilingual-v3",
+    //   label: "cohere.embed-multilingual-v3"
+    // },{
+    //   value: "amazon.titan-embed-text-v1",
+    //   label: "amazon.titan-embed-text-v1"
+    // },{
+    //   value: "amazon.titan-embed-image-v1",
+    //   label: "amazon.titan-embed-image-v1"
+    // }
+    ,
+    {
+      value: "amazon.titan-embed-text-v2:0",
+      label: "amazon.titan-embed-text-v2:0"
+    }]
+    setModels(tempModels)
+    setSelectedModelOption(tempModels[0])
+  }
+
   useEffect(() => {
     getIntentionList();
+    getBots();
+    getModels();
   }, []);
 
   useEffect(() => {
@@ -365,14 +416,20 @@ const Intention: React.FC = () => {
           </div>
         </Modal>
         <AddIntention
+          models={models}
+          botsOption={botsOption}
           showAddModal={showAddModal}
+          selectedModelOption={selectedModelOption}
+          selectedBotOption={selectedBotsOption}
+          changeBotOption={changeBotOption}
+          changeSelectedModel={changeModelOption}
           setShowAddModal={setShowAddModal}
-          reloadLibrary={() => {
+          reloadIntention={() => {
             setTimeout(() => {
               getIntentionList();
             }, 2000);
-          }}
-        />
+          } }         />
+        
       </ContentLayout>
     </CommonLayout>
   );
