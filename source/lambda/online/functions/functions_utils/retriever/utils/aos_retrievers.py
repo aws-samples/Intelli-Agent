@@ -400,36 +400,27 @@ def organize_faq_results(
         result = {}
         try:
             result["score"] = aos_hit["_score"]
-            result["detail"] = aos_hit["_source"]
-            if "field" in aos_hit["_source"]["metadata"]:
+            data = aos_hit["_source"]
+            metadata = data["metadata"]
+            if "field" in metadata:
                 result["answer"] = get_faq_answer(
                     result["source"], index_name, source_field
                 )
                 result["content"] = aos_hit["_source"]["content"]
                 result["question"] = aos_hit["_source"]["content"]
                 result[source_field] = aos_hit["_source"]["metadata"][source_field]
-            elif (
-                "jsonlAnswer" in aos_hit["_source"]["metadata"]
-                and "answer" in aos_hit["_source"]["metadata"]["jsonlAnswer"]
-            ):
-                result["answer"] = aos_hit["_source"]["metadata"]["jsonlAnswer"][
-                    "answer"
-                ]
-                result["question"] = aos_hit["_source"]["metadata"]["jsonlAnswer"][
-                    "question"
-                ]
-                result["content"] = aos_hit["_source"]["text"]
-                if source_field in aos_hit["_source"]["metadata"]["jsonlAnswer"].keys():
-                    result[source_field] = aos_hit["_source"]["metadata"][
-                        "jsonlAnswer"
-                    ][source_field]
-                else:
-                    result[source_field] = aos_hit["_source"]["metadata"]["file_path"]
+            elif "answer" in metadata:
+                # Intentions
+                result["answer"] = metadata["answer"]
+                result["question"] = data["text"]
+                result["content"] = data["text"]
+                result["source"] = metadata[source_field]
+                result["kwargs"] = metadata.get("kwargs", {})
             else:
                 result["answer"] = aos_hit["_source"]["metadata"]
-                result["content"] = aos_hit["_source"]["text"]
-                result["question"] = aos_hit["_source"]["text"]
-                result[source_field] = aos_hit["_source"]["metadata"]["file_path"]
+                result["content"] = aos_hit["_source"][text_field]
+                result["question"] = aos_hit["_source"][text_field]
+                result[source_field] = aos_hit["_source"]["metadata"][source_field]
         except:
             logger.info("index_error")
             logger.info(traceback.format_exc())
@@ -554,16 +545,17 @@ class QueryDocumentKNNRetriever(BaseRetriever):
             result["score"] = aos_hit["_score"]
             result["detail"] = aos_hit["_source"]
             result["content"] = aos_hit["_source"][text_field]
+            result["doc"] = result["content"]
             results.append(result)
-        if using_whole_doc:
-            for result in results:
-                doc = get_doc(result["source"], aos_index)
-                if doc:
-                    result["doc"] = doc
-        else:
-            response_list = asyncio.run(self.__spawn_task(aos_hits, context_size))
-            for context, result in zip(response_list, results):
-                result["doc"] = "\n".join(context[0] + [result["content"]] + context[1])
+        # if using_whole_doc:
+        #     for result in results:
+        #         doc = get_doc(result["source"], aos_index)
+        #         if doc:
+        #             result["doc"] = doc
+        # else:
+        #     response_list = asyncio.run(self.__spawn_task(aos_hits, context_size))
+        #     for context, result in zip(response_list, results):
+        #         result["doc"] = "\n".join(context[0] + [result["content"]] + context[1])
         return results
 
     @timeit

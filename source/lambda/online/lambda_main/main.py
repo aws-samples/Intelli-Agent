@@ -73,7 +73,7 @@ def connect_case_event_handler(event_body: dict, context: dict, executor):
     executor_body = compose_connect_body(event_body, context)
 
     try:
-        response: dict = executor.run(executor_body)
+        response: dict = executor(executor_body)
         r = process_response(executor_body, response)
 
         response_message = r["message"]["content"]
@@ -106,7 +106,6 @@ def connect_case_event_handler(event_body: dict, context: dict, executor):
 def compose_connect_body(event_body: dict, context: dict):
     request_timestamp = context["request_timestamp"]
     chatbot_id = os.environ.get("CONNECT_BOT_ID", "admin")
-
     related_item = event_body["detail"]["relatedItem"]
     case_id = related_item["caseId"]
     logger.info(case_id)
@@ -129,7 +128,7 @@ def compose_connect_body(event_body: dict, context: dict):
         if field["id"] == "summary":
             summary = field["value"]["stringValue"]
     query = title + "\n" + summary
-    logger.info("Query:", query)
+    # logger.info("Query:", str(query))
     context_round = event_body.get("context_round", 0)
 
     # Fix user_id for now
@@ -165,6 +164,30 @@ def compose_connect_body(event_body: dict, context: dict):
     agent_flow_body["stream"] = False
     agent_flow_body["custom_message_id"] = ""
     agent_flow_body["ws_connection_id"] = ""
+    agent_flow_body["chatbot_config"] = {
+        "chatbot_mode": "agent",
+        "group_name": "Admin",
+        "chatbot_id": chatbot_id,
+        "use_history": True,
+        "enable_trace": True,
+        "use_websearch": True,
+        "default_index_config": {
+            "rag_index_ids": [
+                "Admin"
+            ]
+        },
+        "default_llm_config": {
+            "model_id": "anthropic.claude-3-sonnet-20240229-v1:0",
+            "endpoint_name": "",
+            "model_kwargs": {
+                "temperature": 0.01,
+                "max_tokens": 1000
+            }
+        },
+        "agent_config": {
+            "only_use_rag_tool": False
+        }
+    }
 
     logger.info(agent_flow_body)
     return agent_flow_body
