@@ -58,6 +58,7 @@ export class ApiConstruct extends Construct {
     const domainEndpoint = props.knowledgeBaseStackOutputs.aosDomainEndpoint;
     const sessionsTableName = props.chatStackOutputs.sessionsTableName;
     const messagesTableName = props.chatStackOutputs.messagesTableName;
+    const profileTableName = props.chatStackOutputs.profileTableName;
     const resBucketName = props.sharedConstructOutputs.resultBucket.bucketName;
     const executionTableName = props.knowledgeBaseStackOutputs.executionTableName;
     const etlObjTableName = props.knowledgeBaseStackOutputs.etlObjTableName;
@@ -432,6 +433,7 @@ export class ApiConstruct extends Construct {
         environment: {
           INDEX_TABLE_NAME: props.sharedConstructOutputs.indexTable.tableName,
           CHATBOT_TABLE_NAME: props.sharedConstructOutputs.chatbotTable.tableName,
+          PROFILE_TABLE_NAME: profileTableName,
           MODEL_TABLE_NAME: props.sharedConstructOutputs.modelTable.tableName,
           EMBEDDING_ENDPOINT: props.modelConstructOutputs.defaultEmbeddingModelName,
         },

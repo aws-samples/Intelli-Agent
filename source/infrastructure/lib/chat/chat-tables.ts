@@ -20,6 +20,7 @@ export class ChatTablesConstruct extends Construct {
   public messagesTableName: string;
   public promptTableName: string;
   public intentionTableName: string;
+  public profileTableName: string;
 
   public readonly byUserIdIndex: string = "byUserId";
   public readonly bySessionIdIndex: string = "bySessionId";
@@ -61,6 +62,10 @@ export class ChatTablesConstruct extends Construct {
       name: "intentionId",
       type: dynamodb.AttributeType.STRING,
     }
+    const profileIdAttr = {
+      name: "profileId",
+      type: dynamodb.AttributeType.STRING,
+    }
 
     const sessionsTable = new DynamoDBTable(this, "Session", sessionIdAttr, userIdAttr).table;
     sessionsTable.addGlobalSecondaryIndex({
@@ -78,10 +83,12 @@ export class ChatTablesConstruct extends Construct {
 
     const promptTable = new DynamoDBTable(this, "Prompt", groupNameAttr2, sortKeyAttr).table;
     const intentionTable = new DynamoDBTable(this, "Intention", groupNameAttr, intentionIdAttr).table;
+    const profileTable = new DynamoDBTable(this, "Profile", groupNameAttr, profileIdAttr).table;
 
     this.sessionsTableName = sessionsTable.tableName;
     this.messagesTableName = messagesTable.tableName;
     this.promptTableName = promptTable.tableName;
     this.intentionTableName = intentionTable.tableName;
+    this.profileTableName = profileTable.tableName;
   }
 }
