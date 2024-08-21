@@ -153,11 +153,11 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
                 type: 'section',
                 text: t('settings'),
                 items: [
-                  {
-                    type: 'link',
-                    text: t('docLibrary'),
-                    href: '/library',
-                  },
+                  // {
+                  //   type: 'link',
+                  //   text: t('docLibrary'),
+                  //   href: '/library',
+                  // },
                   {
                     type: 'link',
                     text: t('prompt'),
@@ -169,7 +169,7 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
               {
                 type: 'link',
                 text: t('documentation'),
-                href: 'https://docs.aws.amazon.com/',
+                href: 'https://github.com/aws-samples/Intelli-Agent',
                 external: true,
               },
             ]}

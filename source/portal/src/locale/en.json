@@ -64,6 +64,8 @@
     "modelSettings": "Model Settings",
     "modelName": "Model name",
     "noModelFound": "No model found",
+    "chatbotName": "Chatbot name",
+    "noChatbotFound": "No chatbot found",
     "scenario": "Scenario",
     "maxTokens": "Max Tokens",
     "temperature": "Temperature",
@@ -105,6 +107,7 @@
     },
     "validation": {
       "requireModel": "Please select or input a model",
+      "requireChatbot": "Please select a chatbot",
       "requireTemperature": "Please enter a temperature",
       "requireMaxTokens": "Please enter a maximum number of tokens",
       "temperatureRange": "The temperature must be between 0 and 1",

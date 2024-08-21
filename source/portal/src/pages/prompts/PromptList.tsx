@@ -44,13 +44,18 @@ const PromptList: React.FC = () => {
   const [loadingSave, setLoadingSave] = useState(false);
   const [currentPrompt, setCurrentPrompt] = useState<GetPromptResponse>();
   const [modelList, setModelList] = useState<SelectProps.Option[]>([]);
+  const [chatbotList, setChatbotList] = useState<SelectProps.Option[]>([]);
   const [modelOption, setModelOption] = useState<SelectProps.Option | null>(
+    null,
+  );
+  const [chatbotOption, setChatbotOption] = useState<SelectProps.Option | null>(
     null,
   );
 
   const [loadingGet, setLoadingGet] = useState(false);
   // validation
   const [modelError, setModelError] = useState('');
+  const [chatbotError, setChatbotError] = useState('');
   const [promptError, setPromptError] = useState('');
 
   const [showDelete, setShowDelete] = useState(false);
@@ -100,6 +105,27 @@ const PromptList: React.FC = () => {
       if (type === 'create') {
         setModelOption(getModels[0]);
       }
+    } catch (error: unknown) {
+      setLoadingGet(false);
+    }
+  };
+
+  const getChatbotList = async () => {
+    setLoadingGet(true);
+    try {
+      const data = await fetchData({
+        url: 'chatbot-management/chatbots',
+        method: 'get',
+      });
+      const items: string[] = data;
+      const getChatbots = items.map((item) => {
+        return {
+          label: item,
+          value: item,
+        };
+      });
+      setChatbotList(getChatbots);
+      setChatbotOption(getChatbots[0]);
     } catch (error: unknown) {
       setLoadingGet(false);
     }
@@ -320,6 +346,7 @@ const PromptList: React.FC = () => {
                     variant="primary"
                     onClick={() => {
                       getModalList('create');
+                      getChatbotList();
                       setShowCreate(true);
                     }}
                   >
@@ -383,6 +410,23 @@ const PromptList: React.FC = () => {
           header={t('button.createPrompt')}
         >
           <SpaceBetween direction="vertical" size="xs">
+            <FormField
+              label={t('chatbotName')}
+              stretch={true}
+              errorText={chatbotError}
+            >
+              <Select
+                disabled={loadingGet || showEdit}
+                onChange={({ detail }) => {
+                  setChatbotError('');
+                  setChatbotOption(detail.selectedOption);
+                }}
+                selectedOption={chatbotOption}
+                options={chatbotList}
+                placeholder={t('validation.requireChatbot')}
+                empty={t('noChatbotFound')}
+              />
+            </FormField>
             <FormField
               label={t('modelName')}
               stretch={true}

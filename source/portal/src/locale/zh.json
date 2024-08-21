@@ -64,6 +64,8 @@
     "modelSettings": "模型设置",
     "modelName": "模型名称",
     "noModelFound": "未找到模型",
+    "chatbotName": "机器人名称",
+    "noChatbotFound": "未找到机器人",
     "scenario": "场景",
     "maxTokens": "最大 Token 数",
     "temperature": "发散度",
@@ -105,6 +107,7 @@
     },
     "validation": {
       "requireModel": "请选择或输入一个模型",
+      "requireChatbot": "请选择一个机器人",
       "requireTemperature": "请输入模型发散度",
       "requireMaxTokens": "请输入一个最大 token 数",
       "temperatureRange": "发散度必须介于 0 和 1 之间",
