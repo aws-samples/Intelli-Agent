@@ -73,10 +73,8 @@ def connect_case_event_handler(event_body: dict, context: dict, executor):
     executor_body = compose_connect_body(event_body, context)
 
     try:
-        response: dict = executor(executor_body)
-        r = process_response(executor_body, response)
-
-        response_message = r["message"]["content"]
+        executor_response: dict = executor(executor_body)
+        response_message = executor_response["message"]["content"]
         logger.info(response_message)
         logger.info("Add response message to case comment")
 
