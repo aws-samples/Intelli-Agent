@@ -52,8 +52,8 @@ export const LLM_BOT_USER_PROFILE_LIST: SelectProps.Option[] = [
 
 export const SCENARIO_LIST: SelectProps.Option[] = [
   {
-    label: 'admin',
-    value: 'admin',
+    label: 'common',
+    value: 'common',
   },
 ];
 
