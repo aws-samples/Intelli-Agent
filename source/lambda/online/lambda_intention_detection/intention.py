@@ -56,14 +56,28 @@ def get_intention_results(query:str, intention_config:dict):
             })
                 
     else:
-        intent_fewshot_examples = [{
-            "query": doc['page_content'],
-            "score": doc['score'],
-            "name": doc['answer']['jsonlAnswer']['intent'],
-            "intent": doc['answer']['jsonlAnswer']['intent'],
-            "kwargs": doc['answer']['jsonlAnswer'].get('kwargs', {}),
-            } for doc in res['result']['docs'] if doc['score'] > 0.4
-        ]
+        # intent_fewshot_examples = [{
+        #     "query": doc['page_content'],
+        #     "score": doc['score'],
+        #     "name": doc['answer']['jsonlAnswer']['intent'],
+        #     "intent": doc['answer']['jsonlAnswer']['intent'],
+        #     "kwargs": doc['answer']['jsonlAnswer'].get('kwargs', {}),
+        #     } for doc in res['result']['docs'] if doc['score'] > 0.4
+        # ]
+        intent_fewshot_examples = []
+        for doc in res["result"]["docs"]:
+            threshold_score = 0.4
+            if "titan" in intention_config["retrievers"][0]["target_model"]:
+                threshold_score = 0.001
+            if doc["score"] > threshold_score:
+                doc_item = {
+                    "query": doc["page_content"],
+                    "score": doc["score"],
+                    "name": doc["answer"],
+                    "intent": doc["answer"],
+                    "kwargs": doc.get("kwargs", {}),
+                }
+                intent_fewshot_examples.append(doc_item)
         
     return intent_fewshot_examples
 
