@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { axios } from 'src/utils/request';
 import {
   Box,
@@ -20,8 +20,7 @@ import { AxiosProgressEvent } from 'axios';
 import { useTranslation } from 'react-i18next';
 import useAxiosRequest from 'src/hooks/useAxiosRequest';
 import { ExecutionResponse, PresignedUrlResponse, SelectedOption } from 'src/types';
-// import { DOC_INDEX_TYPE_LIST } from 'src/utils/const';
-import { useAuth } from 'react-oidc-context';
+import { DEFAULT_EMBEDDING_MODEL } from 'src/utils/const';
 
 interface AddIntentionProps {
   showAddModal: boolean;
@@ -37,7 +36,6 @@ interface AddIntentionProps {
 
 const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => {
   const { t } = useTranslation();
-  const auth = useAuth();
   const {models, botsOption, selectedModelOption, selectedBotOption, showAddModal, changeBotOption, changeSelectedModel, setShowAddModal, reloadIntention } = props;
   const fetchData = useAxiosRequest();
   const [uploadFiles, setUploadFiles] = useState<File[]>([]);
@@ -50,20 +48,19 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
   const [tagName, setTagName] = useState('');
   const [tagNameError, setTagNameError] = useState('');
   const [advanceExpand, setAdvanceExpand] = useState(false);
-  const [uploadFileError, setUploadFileError] = useState('');
   const executionIntention = async (bucket: string, prefix: string) => {
-    const groupName: string[] = auth?.user?.profile?.['cognito:groups'] as any;
     const resExecution: ExecutionResponse = await fetchData({
       url: `intention/executions`,
       method: 'post',
       data: {
         s3Bucket: bucket,
         s3Prefix: prefix,
-        offline: 'true',
-        qaEnhance: 'false',
-        chatbotId: groupName?.[0]?.toLocaleLowerCase() ?? 'admin',
-        indexId: indexName ? indexName.trim() : undefined,
-        operationType: 'create',
+        // offline: 'true',
+        // qaEnhance: 'false',
+        chatbotId: selectedBotOption?.value.toLocaleLowerCase() ?? 'admin',
+        index: indexName ? indexName.trim() : undefined,
+        model: selectedModelOption?.value ?? DEFAULT_EMBEDDING_MODEL,
+        // operationType: 'create',
         tag: tagName ? tagName.trim() : undefined,
       },
     });
@@ -103,12 +100,12 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
         url: `intention/execution-presigned-url`,
         method: 'post',
         data: {
-          file_name: file.name,
+          file_name: `[${new Date().toISOString()}]${file.name}`,
           content_type: file.type,
         },
       });
-      const uploadPreSignUrl = resPresignedData;
-      return axios.put(`${uploadPreSignUrl}`, file, {
+      const uploadPreSignUrlData = resPresignedData.data;
+      return axios.put(`${uploadPreSignUrlData.url}`, file, {
         headers: {
           'Content-Type': file.type,
         },
@@ -125,8 +122,8 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
           setUploadProgress(percentage);
           if (percentage >= 100) {
             executionIntention(
-              resPresignedData.s3Bucket,
-              resPresignedData.s3Prefix,
+              uploadPreSignUrlData.s3Bucket,
+              uploadPreSignUrlData.s3Prefix,
             );
           }
         },
@@ -145,7 +142,7 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
       }
     } catch (error) {
       console.error('error', error);
-      setUploadFileError("error")
+      // setUploadFileError("error")
     }
     setShowProgress(false)
     setUploadFiles([])  
@@ -213,7 +210,7 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
                   showFileSize
                   accept=".xlsx,.xls"
                   constraintText={`${t('supportFiles')} xlsx, xls.`}
-                  errorText={uploadFileError}
+                  // errorText={uploadFileError}
                 />
               </div>
             </FormField>

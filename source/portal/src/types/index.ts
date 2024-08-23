@@ -26,14 +26,15 @@ export type LibraryListResponse = {
 };
 
 export type IntentionsItem = {
-  s3Prefix: string; // "intentions/Admin/testindeto.xlsx"
-  offline: string;  // true
-  s3Bucket: string; // intelli-agent-apiconstructllmbotdocumentsfc4f8a7a-6vbr3vihybqs
+  // s3Prefix: string; // "intentions/Admin/testindeto.xlsx"
+  // offline: string;  // true
+  // s3Bucket: string; // intelli-agent-apiconstructllmbotdocumentsfc4f8a7a-6vbr3vihybqs
   executionId: string;
   executionStatus: string;
-  operationType: string; // create
-  sfnExecutionId: string; // 99041951-b0c5-4b39-9efa-fcee12f751c0
-  indexType: string; // 需要吗？intention 需要改job代码
+  // operationType: string; // create
+  // sfnExecutionId: string; // 99041951-b0c5-4b39-9efa-fcee12f751c0
+  // indexType: string; // 需要吗？intention 需要改job代码
+  fileName: string;
   index: string;
   model: string;
   tag: string;
@@ -176,11 +177,16 @@ export interface GetPromptResponse {
   Prompt: Prompt;
 }
 
-export interface PresignedUrlResponse {
-  data: string;
-  message: string;
+
+export interface PresignedUrlData {
+  url: string;
   s3Bucket: string;
   s3Prefix: string;
+}
+
+export interface PresignedUrlResponse {
+  data: PresignedUrlData;
+  message: string;
 }
 
 export interface ExecutionResponse {

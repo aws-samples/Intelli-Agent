@@ -1,0 +1,10 @@
+DEFAULT_MAX_ITEMS = 50
+DEFAULT_SIZE = 50
+HTTPS_PORT_NUMBER = "443"
+DEFAULT_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+ROOT_RESOURCE = "/intention"
+PRESIGNED_URL_RESOURCE = f"{ROOT_RESOURCE}/execution-presigned-url"
+EXECUTION_RESOURCE = f"{ROOT_RESOURCE}/executions"
+SECRET_NAME = "opensearch-master-user"
+AOS_INDEX = "aics_intention_index"
+BULK_SIZE = 100000000

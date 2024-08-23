@@ -93,6 +93,7 @@
     "addIntention": "Add Intention",
     "bot": "Bot",
     "model": "Model",
+    "empty":"No resources",
     "button": {
       "login": "Log in to AI Customer Service",
       "reload": "Reload",

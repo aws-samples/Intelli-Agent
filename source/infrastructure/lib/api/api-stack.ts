@@ -101,6 +101,7 @@ export class ApiConstruct extends Construct {
           "X-Amz-Date",
           "Authorization",
           "X-Api-Key",
+          "Author",
           "X-Amz-Security-Token",
         ],
         allowMethods: apigw.Cors.ALL_METHODS,
@@ -462,11 +463,16 @@ export class ApiConstruct extends Construct {
         handler: "intention.lambda_handler",
         environment: {
           INTENTION_TABLE_NAME: props.chatStackOutputs.intentionTableName,
-          S3_BUCKET: s3Bucket.bucketName
+          S3_BUCKET: s3Bucket.bucketName,
         },
         layers: [apiLambdaOnlineSourceLayer],
         statements: [this.iamHelper.dynamodbStatement,
-                      this.iamHelper.logStatement],
+                     this.iamHelper.logStatement,
+                     this.iamHelper.secretStatement,
+                     this.iamHelper.esStatement,
+                     this.iamHelper.s3Statement,
+                     this.iamHelper.bedrockStatement
+                    ],
       });
 
       // Define the API Gateway Lambda Integration with proxy and no integration responses
@@ -534,8 +540,8 @@ export class ApiConstruct extends Construct {
           "file_name": { "type": JsonSchemaType.STRING },
         })
       })
-      apiResourceIntentionManagement.addMethod("POST", lambdaIntentionIntegration, this.genMethodOption(api, auth, null));
       const apiResourceExecutionManagement = apiResourceIntentionManagement.addResource("executions");
+      apiResourceExecutionManagement.addMethod("POST", lambdaIntentionIntegration, this.genMethodOption(api, auth, null));
       apiResourceExecutionManagement.addMethod("GET", lambdaIntentionIntegration, this.genMethodOption(api, auth, null));
       const apiGetIntentionById = apiResourceExecutionManagement.addResource("{executionId}");
       apiGetIntentionById.addMethod(

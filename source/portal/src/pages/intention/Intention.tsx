@@ -14,7 +14,7 @@ import {
   TableProps,
 } from '@cloudscape-design/components';
 import { IntentionsItem, IntentionsResponse, SelectedOption } from 'src/types';
-import { alertMsg, formatTime } from 'src/utils/utils';
+import { formatTime } from 'src/utils/utils';
 import TableLink from 'src/comps/link/TableLink';
 import useAxiosRequest from 'src/hooks/useAxiosRequest';
 import { useTranslation } from 'react-i18next';
@@ -37,7 +37,7 @@ const Intention: React.FC = () => {
   );
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [loadingDelete, setLoadingDelete] = useState(false);
+  // const [loadingDelete, setLoadingDelete] = useState(false);
   const [sortingColumn, setSortingColumn] = useState<
     TableProps.SortingColumn<IntentionsItem>
   >({
@@ -75,7 +75,36 @@ const Intention: React.FC = () => {
         method: 'get',
         params,
       });
+    //   res.Items=[{
+    //     executionId:"4d5e6f70-8901-23de-f456-4879WABGFBBC",
+    //     fileName:"基于周会讨论的QA对.xlsx",
+    //     chatbotId:"admin",
+    //     index:"admin-intention-default",
+    //     model:"cohere.embed-english-v3",
+    //     tag:"default",
+    //     executionStatus:"COMPLETED",
+    //     createTime:"2022-08-21 17:28:32"
+    // },{
+    //     executionId:"5e6f7081-9012-34ef-5678-BDAL2344BBAA",
+    //     fileName:"pricinglist.xlsx",
+    //     chatbotId:"admin",
+    //     index:"admin-intention-default",
+    //     model:"cohere.embed-english-v3",
+    //     tag:"default",
+    //     executionStatus:"COMPLETED",
+    //     createTime:"2022-08-21 17:28:32"
+    // },{
+    //     executionId:"2b3c4d5e-6789-01bc-def2-FD34678CDDAB",
+    //     fileName:"初识语料列表.xlsx",
+    //     chatbotId:"admin",
+    //     index:"admin-intention-default",
+    //     model:"cohere.embed-english-v3",
+    //     tag:"default",
+    //     executionStatus:"COMPLETED",
+    //     createTime:"2022-08-21 17:28:32"
+    // }]
       const preSortItem = res.Items
+
       preSortItem.sort((a, b) => {
         return Number(parseDate(b)) - Number(parseDate(a));
       });
@@ -89,23 +118,23 @@ const Intention: React.FC = () => {
     }
   };
 
-  const removeIntention = async () => {
-    try {
-      setLoadingDelete(true);
-      const data = await fetchData({
-        url: `intention/executions`,
-        method: 'delete',
-        data: { executionId: selectedItems.map((item) => item.executionId) },
-      });
-      setVisible(false);
-      getIntentionList();
-      alertMsg(data.message, 'success');
-      setLoadingDelete(false);
-      setSelectedItems([]);
-    } catch (error: unknown) {
-      setLoadingDelete(false);
-    }
-  };
+  // const removeIntention = async () => {
+  //   try {
+  //     setLoadingDelete(true);
+  //     const data = await fetchData({
+  //       url: `intention/executions`,
+  //       method: 'delete',
+  //       data: { executionId: selectedItems.map((item) => item.executionId) },
+  //     });
+  //     setVisible(false);
+  //     getIntentionList();
+  //     alertMsg(data.message, 'success');
+  //     setLoadingDelete(false);
+  //     setSelectedItems([]);
+  //   } catch (error: unknown) {
+  //     setLoadingDelete(false);
+  //   }
+  // };
 
   const getBots = async ()=>{
     const groupName: string[] = auth?.user?.profile?.['cognito:groups'] as any;
@@ -116,8 +145,8 @@ const Intention: React.FC = () => {
         groupName: groupName?.[0] ?? 'Admin',
       },
     });
-    const options: SelectedOption[] = []
-    data.workspace_ids.forEach((item:any)=>{
+    const options: SelectedOption[] = [];
+    (data.chatbot_ids||[]).forEach((item:any)=>{
       options.push({
          label: item,
          value: item
@@ -225,10 +254,10 @@ const Intention: React.FC = () => {
                   ? Number(parseDate(a)) - Number(parseDate(b))
                   : Number(parseDate(b)) - Number(parseDate(a));
               }
-              if (sortingColumn.sortingField === 's3Prefix') {
+              if (sortingColumn.sortingField === 'fileName') {
                 return !isDescending
-                  ? a.s3Prefix.localeCompare(b.s3Prefix)
-                  : b.s3Prefix.localeCompare(a.s3Prefix);
+                  ? a.fileName.localeCompare(b.fileName)
+                  : b.fileName.localeCompare(a.fileName);
               }
               if (sortingColumn.sortingField === 'executionStatus') {
                 return !isDescending
@@ -254,11 +283,11 @@ const Intention: React.FC = () => {
               isRowHeader: true,
             },
             {
-              id: 's3Prefix',
+              id: 'fileName',
               header: t('intentionName'),
-              sortingField: 's3Prefix',
+              sortingField: 'fileName',
               cell: (item: IntentionsItem) => {
-                return item.s3Prefix.split('/').pop();
+                return item.fileName;
               },
             },
             {
@@ -272,10 +301,18 @@ const Intention: React.FC = () => {
             {
               width: 150,
               id: 'index',
-              header: t('index'),
+              header: t('indexName'),
               sortingField: 'index',
               cell: (item: IntentionsItem) =>
                 item.index,
+            },
+            {
+              width: 150,
+              id: 'model',
+              header: t('model'),
+              sortingField: 'model',
+              cell: (item: IntentionsItem) =>
+                item.model,
             },{
               width: 150,
               id: 'tag',
@@ -350,14 +387,14 @@ const Intention: React.FC = () => {
                       getIntentionList();
                     }}
                   />
-                  <Button
+                  {/* <Button
                     disabled={selectedItems.length <= 0}
                     onClick={() => {
                       setVisible(true);
                     }}
                   >
                     {t('button.delete')}
-                  </Button>
+                  </Button> */}
                   <Button
                     variant="primary"
                     onClick={() => {
@@ -392,7 +429,7 @@ const Intention: React.FC = () => {
                 >
                   {t('button.cancel')}
                 </Button>
-                <Button
+                {/* <Button
                   loading={loadingDelete}
                   variant="primary"
                   onClick={() => {
@@ -400,7 +437,7 @@ const Intention: React.FC = () => {
                   }}
                 >
                   {t('button.delete')}
-                </Button>
+                </Button> */}
               </SpaceBetween>
             </Box>
           }
@@ -410,7 +447,7 @@ const Intention: React.FC = () => {
           <div className="selected-items-list">
             <ul className="gap-5 flex-v">
               {selectedItems.map((item) => (
-                <li key={item.executionId}>{item.s3Prefix.split('/').pop()}</li>
+                <li key={item.executionId}>{item.fileName}</li>
               ))}
             </ul>
           </div>

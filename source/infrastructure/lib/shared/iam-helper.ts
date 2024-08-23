@@ -27,6 +27,7 @@ export class IAMHelper extends Construct {
   public cognitoStatement: PolicyStatement;
   public bedrockStatement: PolicyStatement;
   public esStatement: PolicyStatement;
+  public secretStatement: PolicyStatement;
 
   public createPolicyStatement(actions: string[], resources: string[]) {
     return new PolicyStatement({
@@ -147,8 +148,15 @@ export class IAMHelper extends Construct {
         "es:ESHttpPut",
         "es:ESHttpPost",
         "es:ESHttpHead",
+        "es:DescribeDomain"
       ],
       [ "*" ],
     );
+    this.secretStatement = this.createPolicyStatement(
+      [
+        "secretsmanager:GetSecretValue",
+      ],
+      [ "*" ],
+    )
   }
 }

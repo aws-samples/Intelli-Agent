@@ -1,26 +1,58 @@
+import __main__
+from datetime import datetime
+import hashlib
 import json
 import os
 import time
 import boto3
+from openpyxl import load_workbook
+from io import BytesIO
 from botocore.paginate import TokenEncoder
-from common_logic.common_utils.logger_utils import get_logger
+from opensearchpy import RequestError, helpers
+import logging
+# from requests.auth import HTTPBasicAuth
+from langchain.embeddings.bedrock import BedrockEmbeddings
+# from common_logic.common_utils.logger_utils import get_logger
 
-DEFAULT_MAX_ITEMS = 50
-DEFAULT_SIZE = 50
-DEFAULT_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-ROOT_RESOURCE = "/intention"
-PRESIGNED_URL_RESOURCE = f"{ROOT_RESOURCE}/execution-presigned-url"
-EXECUTION_RESOURCE = f"{ROOT_RESOURCE}/executions"
-logger = get_logger(__name__)
+from aos.aos_utils import LLMBotOpenSearchClient
+from constant import AOS_INDEX, BULK_SIZE, DEFAULT_CONTENT_TYPE, DEFAULT_MAX_ITEMS, DEFAULT_SIZE, EXECUTION_RESOURCE, PRESIGNED_URL_RESOURCE, SECRET_NAME
+
+logger = logging.getLogger(__name__)
 encoder = TokenEncoder()
 
-dynamodb_resource = boto3.resource("dynamodb")
+s3_bucket_name = os.environ.get("S3_BUCKET")
+aos_endpoint = os.environ.get("AOS_ENDPOINT", "")
+region = os.environ.get("REGION", "us-east-1")
+aos_domain_name = os.environ.get("AOS_DOMAIN_NAME", "smartsearch")
+aos_secret = os.environ.get("AOS_SECRET_NAME", "opensearch-master-user")
 intention_table_name = os.getenv("INTENTION_TABLE_NAME","intention")
+dynamodb_resource = boto3.resource("dynamodb")
 intention_table = dynamodb_resource.Table(intention_table_name)
+
+sm_client = boto3.client("secretsmanager")
+master_user = sm_client.get_secret_value(SecretId=aos_secret)["SecretString"]
+secret_body = sm_client.get_secret_value(SecretId=SECRET_NAME)['SecretString']
+secret = json.loads(secret_body)
+username = secret.get("username")
+password = secret.get("password")
+
+if not aos_endpoint:
+    opensearch_client = boto3.client("opensearch")
+    response = opensearch_client.describe_domain(DomainName=aos_domain_name)
+    aos_endpoint = response["DomainStatus"]["Endpoint"]
 
 dynamodb_client = boto3.client("dynamodb")
 s3_client = boto3.client("s3")
-s3_bucket_name = os.environ.get("S3_BUCKET")
+bedrock_client = boto3.client("bedrock-runtime",region_name=region)
+aos_client = LLMBotOpenSearchClient(aos_endpoint, (username, password)).client
+
+# aos_client = OpenSearch(
+#         hosts = [{'host': aos_endpoint, 'port': HTTPS_PORT_NUMBER}],
+#         http_auth = HTTPBasicAuth(username,password),
+#         use_ssl = True,
+#         verify_certs = True,
+#         connection_class = RequestsHttpConnection
+    # )
 
 resp_header = {
     "Content-Type": "application/json",
@@ -40,6 +72,7 @@ def lambda_handler(event, context):
         cognito_groups = claims["cognito:groups"]
         cognito_groups_list = cognito_groups.split(",")
     else:
+        email = event["multiValueHeaders"]["author"][0]
         cognito_groups_list = ["Admin"]
     #     group_name = claims["cognito:groups"] #Agree to only be in one group
     # else:
@@ -52,14 +85,26 @@ def lambda_handler(event, context):
     if resource == PRESIGNED_URL_RESOURCE:
         input_body = json.loads(event["body"])
         file_name = "intentions/" + chatbot_id + "/" + input_body["file_name"]
-        output = __gen_presigned_url(file_name, 
+        presigned_url = __gen_presigned_url(file_name, 
                                      input_body.get("content_type", DEFAULT_CONTENT_TYPE),
                                      input_body.get("expiration", 60*60))
-    elif resource == EXECUTION_RESOURCE:
+        output = {
+            "message": "The S3 presigned url is generated",
+            "data": {
+                "url": presigned_url,
+                "s3Bucket": s3_bucket_name,
+                "s3Prefix": file_name,
+            },
+         
+        }
+    elif resource.startswith(EXECUTION_RESOURCE):
         if http_method == "POST":
             output = __create_execution(event, context, email)
         else:
-            output = __list_execution(event, chatbot_id)
+            if resource == EXECUTION_RESOURCE:
+                output = __list_execution(event)
+            else:
+                output = __get_execution(event)
     try:
         return {
             "statusCode": 200,
@@ -91,7 +136,7 @@ def __gen_presigned_url(object_name: str, content_type: str, expiration: int):
     )
 
 
-def __list_execution(event, group_name):
+def __list_execution(event):
     max_items = __get_query_parameter(event, "MaxItems", DEFAULT_MAX_ITEMS)
     page_size = __get_query_parameter(event, "PageSize", DEFAULT_SIZE)
     starting_token = __get_query_parameter(event, "StartingToken")
@@ -100,34 +145,42 @@ def __list_execution(event, group_name):
         "PageSize": int(page_size),
         "StartingToken": starting_token,
     }
-    paginator = dynamodb_client.get_paginator("query")
-    response_iterator = paginator.paginate(
-        TableName=intention_table_name,
-        PaginationConfig=config,
-        KeyConditionExpression="groupName = :groupName",
-        ExpressionAttributeValues={":groupName": {"S": group_name}},
-        ScanIndexForward=False,
-    )
+    response = dynamodb_client.scan(TableName=intention_table_name)
     output = {}
-    for page in response_iterator:
-        page_items = page["Items"]
-        page_json = []
-        for item in page_items:
-            item_json = {}
-            for key in list(item.keys()):
-                if key in ["Intention"]:
-                    continue
-                item_json[key] = item.get(key, {"S": ""})["S"]
-            page_json.append(item_json)
-        output["Items"] = page_json
-        if "LastEvaluatedKey" in page:
-            output["LastEvaluatedKey"] = encoder.encode(
-                {"ExclusiveStartKey": page["LastEvaluatedKey"]}
-            )
-        break
+    page_json = []
+    items = response['Items']
 
+    # 处理分页
+    while 'LastEvaluatedKey' in response:
+        response = dynamodb_client.scan(
+            TableName=intention_table_name,
+            ExclusiveStartKey=response['LastEvaluatedKey']
+        )
+        items.extend(response['Items'])
+
+    for item in items:
+        item_json = {}
+        for key in list(item.keys()):
+            value = item.get(key, {"S": ""}).get("S","-")
+            if key == "File":
+                item_json["fileName"] = value.split("/").pop()
+            elif key == "modelId":
+                item_json["model"] = value
+            elif key == "groupName":
+                item_json["chatbotId"] = value
+            elif key == "LastModifiedTime":
+                item_json["createTime"] = value
+            elif key == "LastModifiedBy":
+                item_json["createBy"] = value
+            elif key == "intentionId":
+                item_json["executionId"] = value
+            else:
+                item_json[key] = value
+            item_json["executionStatus"] = "COMPLETED"
+        page_json.append(item_json)
+        output["Items"] = page_json
     output["Config"] = config
-    output["Count"] = len(page_json)
+    output["Count"] = len(items)
     return output
 
 
@@ -135,27 +188,28 @@ def __create_execution(event, context, email):
     input_body = json.loads(event["body"])
     execution_detail = {}
     execution_detail["tableItemId"] = context.aws_request_id
-    execution_detail["botId"] = input_body.get("botId")
-    execution_detail["index"] = input_body.get("index")
-    execution_detail["modelId"] = input_body.get("modelId")
-    execution_detail["fileName"] = input_body.get("file")
-    execution_detail["tag"] = input_body.get("tag")
+    execution_detail["chatbotId"] = input_body.get("chatbotId")
+    execution_detail["index"] = input_body.get("index") if input_body.get("index") else f'{input_body.get("chatbotId")}-default-index'
+    execution_detail["model"] = input_body.get("model")
+    execution_detail["fileName"] = input_body.get("s3Prefix").split("/").pop()
+    execution_detail["tag"] = input_body.get("tag") if input_body.get("tag") else f'{input_body.get("chatbotId")}-default-tag'
     # write to ddb(meta data)
     intention_table.put_item(
         Item={
-            "GroupName": execution_detail["botId"],
-            "SortKey": f'{execution_detail["botId"]}__{execution_detail["modelId"]}',
-            "ModelId": execution_detail["modelId"],
-            "Tag": execution_detail["tag"],
+            "groupName": execution_detail["chatbotId"],
+            "intentionId": context.aws_request_id,
+            "model": execution_detail["model"],
+            "index": execution_detail["index"],
+            "tag": execution_detail["tag"],
             "File": f'{input_body.get("s3Bucket")}{input_body.get("s3Prefix")}',
             "LastModifiedBy": email,
-            "LastModifiedTime": str(int(time.time())),
+            "LastModifiedTime": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         }
     )
-    intention_table_name.put_item(Item=input_body)
+    # intention_table_name.put_item(Item=input_body)
 
     # write to aos(vectorData)
-
+    __save_2_aos(input_body.get("s3Bucket"), input_body.get("s3Prefix"), input_body.get("modelId"), execution_detail["index"])
 
     return {
         "statusCode": 200,
@@ -168,3 +222,182 @@ def __create_execution(event, context, email):
             }
         ),
     }
+
+def __save_2_aos(bucket: str, prefix: str, modelId: str, index: str):
+    
+    # 检查索引是否存在
+    index_exists = aos_client.indices.exists(index=index)
+    if not index_exists:
+        __create_index(index)
+    __refresh_index(index, bucket, prefix, modelId)
+    # 添加文档到索引中
+    # doc = {
+    #     'title': 'Sample Document',
+    #     'content': 'This is a sample document content.',
+    #     'timestamp': '2024-08-21T00:00:00'
+    # }
+    # response = client.index(index=AOS_INDEX, body=doc)
+    # return response
+   
+# def __create_index():
+#     body = {
+#         "settings" : {
+#             "index":{
+#                 "number_of_shards" : 1,
+#                 "number_of_replicas" : 0,
+#                 "knn": True,
+#                 "knn.algo_param.ef_search": 32
+#             }
+#         },
+#         "mappings": {
+#             "properties": {
+#                 "text" : {
+#                     "type" : "text"
+#                 },
+#                 "sentence_vector" : {
+#                     "type" : "knn_vector",
+#                     "dimension" : 1536,
+#                     "method" : {
+#                         "engine" : "nmslib",
+#                         "space_type" : "l2",
+#                         "name" : "hnsw",
+#                         "parameters" : {
+#                         "ef_construction" : 512,
+#                         "m" : 16
+#                         }
+#                     }
+#                 }
+#             }
+#         }
+#     }
+#     try:
+#         aos_client.indices.create(index=AOS_INDEX, body=body)
+#         print(f"Index {AOS_INDEX} created successfully.")
+#     except RequestError as e:
+#         print(f"====={e.error}")
+
+def __create_index(index: str):
+    body = {
+        "settings" : {
+            "index":{
+                "number_of_shards" : 1,
+                "number_of_replicas" : 0,
+                "knn": True,
+                "knn.algo_param.ef_search": 32
+            }
+        },
+        "mappings": {
+            "properties": {
+                "text" : {
+                    "type" : "text"
+                },
+                "sentence_vector" : {
+                    "type" : "knn_vector",
+                    "dimension" : 1536,
+                    "method" : {
+                        "engine" : "nmslib",
+                        "space_type" : "l2",
+                        "name" : "hnsw",
+                        "parameters" : {
+                        "ef_construction" : 512,
+                        "m" : 16
+                        }
+                    }
+                }
+            }
+        }
+    }
+    try:
+        aos_client.indices.create(index=index, body=body)
+        print(f"Index {index} created successfully.")
+    except RequestError as e:
+        print(f"====={e.error}")
+    
+
+def __refresh_index(index: str, bucket: str, prefix: str, modelId: str):
+    
+    # Open the file and read its contents
+    response = s3_client.get_object(Bucket=bucket, Key=prefix)
+    file_content = response['Body'].read()
+    # 使用 pandas 读取 Excel 文件内容
+    excel_file = BytesIO(file_content)
+    # df = pd.read_excel(excel_file)
+    workbook = load_workbook(excel_file)
+    sheet = workbook.active
+    
+    success, failed = helpers.bulk(aos_client,  __append_embeddings(index, modelId, sheet), chunk_size=BULK_SIZE)
+    aos_client.indices.refresh(index=index)
+    print(f"Successfully added: {success} ")
+    print(f"Failed: {len(failed)} ")
+
+def  __append_embeddings(index, modelId, sheet):
+    documents = []
+    for row in sheet.iter_rows(values_only=True):
+        question, answer, kwargs = row[0], row[1], row[2]
+        print(f"- Column 1: {question}, Column 2: {answer}, Column 3: {kwargs}")
+        # embeddings_vectors = get_embedding(question)
+        embedding_func = BedrockEmbeddings(
+            client=bedrock_client,
+            model_id=modelId,
+            normalize=True
+        )
+        
+        embeddings_vectors = embedding_func.embed_documents(
+            [question]
+        )
+        documents.append(
+                    { 
+                        "text" : question,
+                        "metadata" : {
+                            "answer": answer,
+                            "source": "portal",
+                            "kwargs": kwargs,
+                            "type": "Intent"
+                            },
+                        "sentence_vector" : embeddings_vectors[0]
+                    }
+                )
+        for document in documents:
+            yield {"_op_type": "index", "_index": index, "_source": document, "_id": hashlib.md5(str(document).encode('utf-8')).hexdigest()}
+
+
+def __get_execution(event):
+    executionId = event.get("path", "").split("/").pop()
+    # 设置过滤条件
+    filter_expression = "attribute_exists(intentionId) AND intentionId = :value"
+
+    # 执行 scan 操作
+    response = dynamodb_client.scan(
+        TableName=intention_table_name,
+        FilterExpression=filter_expression,
+        ExpressionAttributeValues={
+            ":value": {"S": executionId}  # 替换为你的实际值
+        }
+    )
+
+    # 获取结果
+    items = response['Items']
+    res = {}
+    Items = []
+    for item in items:
+        item_json = {}
+        for key in list(item.keys()):
+            value = item.get(key, {"S": ""}).get("S","-")
+            if key == "File":
+                split_index = value.rfind('/')
+                if split_index != -1:
+                    item_json["s3Path"] = value[:split_index]
+                    item_json["s3Prefix"] = value[split_index + 1:]
+                else:
+                    item_json["s3Path"] = value
+                    item_json["s3Prefix"] = "-"
+            elif key == "LastModifiedTime":
+                item_json["createTime"] = value
+            else:
+                continue
+            item_json["status"] = "COMPLETED"
+            item_json["QAList"] = []
+        Items.append(item_json)
+    res["Items"] = Items
+    res["Count"] = len(items)
+    return res

@@ -102,7 +102,7 @@ const AddLibrary: React.FC<AddLibraryProps> = (props: AddLibraryProps) => {
         },
       });
       const uploadPreSignUrl = resPresignedData.data;
-      return axios.put(uploadPreSignUrl, file, {
+      return axios.put(uploadPreSignUrl.url, file, {
         headers: {
           'Content-Type': file.type,
         },
@@ -119,8 +119,8 @@ const AddLibrary: React.FC<AddLibraryProps> = (props: AddLibraryProps) => {
           setUploadProgress(percentage);
           if (percentage >= 100) {
             executionKnowledgeBase(
-              resPresignedData.s3Bucket,
-              resPresignedData.s3Prefix,
+              uploadPreSignUrl.s3Bucket,
+              uploadPreSignUrl.s3Prefix,
             );
           }
         },
