@@ -40,13 +40,11 @@ sys.path.append(os.path.dirname(SCRIPT_DIR))
 chatbot_table_name = os.environ.get("CHATBOT_TABLE", "")
 model_table_name = os.environ.get("MODEL_TABLE", "")
 index_table_name = os.environ.get("INDEX_TABLE", "")
-profile_table_name = os.environ.get("PROFILE_TABLE", "")
 dynamodb = boto3.resource("dynamodb")
 chatbot_table = dynamodb.Table(chatbot_table_name)
 model_table = dynamodb.Table(model_table_name)
 index_table = dynamodb.Table(index_table_name)
-profile_table = dynamodb.Table(profile_table_name)
-chatbot_manager = ChatbotManager(chatbot_table, index_table, model_table, profile_table)
+chatbot_manager = ChatbotManager(chatbot_table, index_table, model_table)
 
 region = boto3.Session().region_name
 
