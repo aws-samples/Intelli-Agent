@@ -141,11 +141,11 @@ def aics_restapi_event_handler(event_body: dict, context: dict, entry_executor):
     user_id = "default_user_id"
     group_name = "Admin"
     chatbot_id = event_body.get("user_profile", {}).get("channel", "admin")
-    agent = event_body.get("user_profile", {}).get("agent")
-    if agent == 1:
-        user_profile = "admin"
-    else:
-        user_profile = "host"
+    # agent = event_body.get("user_profile", {}).get("agent")
+    # if agent == 1:
+    #     user_profile = "admin"
+    # else:
+    #     user_profile = "host"
 
     ddb_history_obj = DynamoDBChatMessageHistory(
         sessions_table_name=sessions_table_name,
@@ -175,7 +175,6 @@ def aics_restapi_event_handler(event_body: dict, context: dict, entry_executor):
     standard_event_body["chatbot_config"]["user_id"] = user_id
     standard_event_body["chatbot_config"]["group_name"] = group_name
     standard_event_body["chatbot_config"]["chatbot_id"] = chatbot_id
-    standard_event_body["chatbot_config"]["user_profile"] = user_profile
     standard_event_body["message_id"] = str(uuid.uuid4())
     standard_event_body["custom_message_id"] = ""
     standard_event_body["ws_connection_id"] = ""
@@ -298,7 +297,6 @@ def lambda_handler(event_body: dict, context: dict):
         # TODO Need to modify key
         group_name = event_body.get("chatbot_config", {}).get("group_name", "Admin")
         chatbot_id = event_body.get("chatbot_config", {}).get("chatbot_id", "admin")
-        user_profile = event_body.get("chatbot_config", {}).get("user_profile", "admin")
 
         ddb_history_obj = DynamoDBChatMessageHistory(
             sessions_table_name=sessions_table_name,
@@ -320,7 +318,6 @@ def lambda_handler(event_body: dict, context: dict):
         event_body["chatbot_config"]["user_id"] = user_id
         event_body["chatbot_config"]["group_name"] = group_name
         event_body["chatbot_config"]["chatbot_id"] = chatbot_id
-        event_body["chatbot_config"]["user_profile"] = user_profile
         # TODO: chatbot id add to event body
 
         # logger.info(f"event_body:\n{json.dumps(event_body,ensure_ascii=False,indent=2,cls=JSONEncoder)}")

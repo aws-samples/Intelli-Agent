@@ -97,7 +97,6 @@ class ChatbotConfig(AllowBaseModel):
     user_id: str = "default_user_id"
     group_name: str = "Admin"
     chatbot_id: str = "admin"
-    user_profile: str = "admin"
     chatbot_mode: ChatbotMode = ChatbotMode.chat
     use_history: bool = True
     enable_trace: bool = True
@@ -164,9 +163,9 @@ class ChatbotConfig(AllowBaseModel):
             raise KeyError(f"key: {index_type}->{index_name} not exits")
 
     @classmethod
-    def get_index_infos_from_ddb(cls, group_name, chatbot_id, user_profile):
+    def get_index_infos_from_ddb(cls, group_name, chatbot_id):
         chatbot_manager = ChatbotManager.from_environ()
-        chatbot = chatbot_manager.get_chatbot(group_name, chatbot_id, user_profile)
+        chatbot = chatbot_manager.get_chatbot(group_name, chatbot_id)
         _infos = chatbot.index_ids or {}
         infos = {}
         for index_type, index_info in _infos.items():
@@ -188,9 +187,10 @@ class ChatbotConfig(AllowBaseModel):
         default_index_names: dict[str, list],
         default_retriever_config: dict[str, dict],
     ):
-        index_infos = self.get_index_infos_from_ddb(
-            self.group_name, self.chatbot_id, self.user_profile
-        )
+        index_infos = self.get_index_infos_from_ddb(self.group_name, self.chatbot_id)
+        print(f"index_infos: {index_infos}")
+        print(f"default_index_names: {default_index_names}")
+        print(f"default_retriever_config: {default_retriever_config}")
         for task_name, index_names in default_index_names.items():
             assert task_name in ("qq_match", "intention", "private_knowledge")
             if task_name == "qq_match":
