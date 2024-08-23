@@ -1,11 +1,17 @@
+import json
 import logging
 import os
-import json
-import boto3
 from datetime import datetime, timezone
-from utils.ddb_utils import initiate_index, initiate_model, initiate_chatbot, is_chatbot_existed
-from constant import IndexType
 
+import boto3
+from constant import IndexType
+from utils.ddb_utils import (
+    initiate_chatbot,
+    initiate_index,
+    initiate_model,
+    initiate_profile,
+    is_chatbot_existed,
+)
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -15,6 +21,7 @@ dynamodb = boto3.resource("dynamodb", region_name=region_name)
 index_table = dynamodb.Table(os.environ.get("INDEX_TABLE_NAME"))
 chatbot_table = dynamodb.Table(os.environ.get("CHATBOT_TABLE_NAME"))
 model_table = dynamodb.Table(os.environ.get("MODEL_TABLE_NAME"))
+profile_table = dynamodb.Table(os.environ.get("PROFILE_TABLE_NAME"))
 
 
 def lambda_handler(event, context):
@@ -63,8 +70,26 @@ def lambda_handler(event, context):
         index_type = member.value
         index_id = tag = f"{chatbot_id}-{index_type}-default"
         index_id_list[index_type] = index_id
-        initiate_index(index_table, group_name, index_id, model_id, index_type, tag, create_time, DESCRIPTION)
-        initiate_chatbot(chatbot_table, group_name, chatbot_id, index_id, index_type, tag, create_time)
+        initiate_index(
+            index_table,
+            group_name,
+            index_id,
+            model_id,
+            index_type,
+            tag,
+            create_time,
+            DESCRIPTION,
+        )
+        initiate_chatbot(chatbot_table, group_name, chatbot_id, create_time)
+        initiate_profile(
+            profile_table,
+            group_name,
+            chatbot_id,
+            index_id,
+            index_type,
+            tag,
+            create_time,
+        )
 
     return {
         "statusCode": 200,

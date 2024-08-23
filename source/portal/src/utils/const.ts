@@ -37,20 +37,23 @@ export const LLM_BOT_CHAT_MODE_LIST: SelectProps.Option[] = [
     label: 'Agent',
     value: 'agent',
   },
+];
+
+export const LLM_BOT_USER_PROFILE_LIST: SelectProps.Option[] = [
   {
-    label: 'Chat',
-    value: 'chat',
+    label: 'admin',
+    value: 'admin',
   },
+  {
+    label: 'host',
+    value: 'host',
+  }
 ];
 
 export const SCENARIO_LIST: SelectProps.Option[] = [
   {
     label: 'common',
     value: 'common',
-  },
-  {
-    label: 'retail',
-    value: 'retail',
   },
 ];
 

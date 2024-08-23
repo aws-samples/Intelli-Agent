@@ -23,9 +23,9 @@ import { identity } from 'lodash';
 import ConfigContext from 'src/context/config-context';
 import { useAuth } from 'react-oidc-context';
 import {
-  LLM_BOT_CHAT_MODE_LIST,
   LLM_BOT_COMMON_MODEL_LIST,
   LLM_BOT_RETAIL_MODEL_LIST,
+  LLM_BOT_USER_PROFILE_LIST,
   SCENARIO_LIST,
   RETAIL_GOODS_LIST,
 } from 'src/utils/const';
@@ -74,8 +74,11 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const [aiSpeaking, setAiSpeaking] = useState(false);
   const [modelOption, setModelOption] = useState('');
   const [modelList, setModelList] = useState<SelectProps.Option[]>([]);
-  const [chatModeOption, setChatModeOption] = useState<SelectProps.Option>(
-    LLM_BOT_CHAT_MODE_LIST[0],
+  // const [chatModeOption, setChatModeOption] = useState<SelectProps.Option>(
+  //   LLM_BOT_CHAT_MODE_LIST[0],
+  // );
+  const [userProfileOption, setUserProfileOption] = useState<SelectProps.Option>(
+    LLM_BOT_USER_PROFILE_LIST[0],
   );
   const [useChatHistory, setUseChatHistory] = useState(true);
   const [enableTrace, setEnableTrace] = useState(true);
@@ -152,7 +155,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
         sessionMessage.map((msg) => {
           let messageContent = msg.content;
           // Handle AI images message
-          if (msg.role === 'ai' && msg.additional_kwargs.figure.length > 0) {
+          if (msg.role === 'ai' && msg.additional_kwargs?.figure?.length > 0) {
             msg.additional_kwargs.figure.forEach((item) => {
               messageContent += ` \n ![${item.content_type}](/${encodeURIComponent(item.figure_path)})`;
             });
@@ -315,7 +318,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       user_id: config?.apiKey,
       chatbot_config: {
         goods_id: retailGoods.value,
-        chatbot_mode: chatModeOption.value,
+        chatbot_mode: 'agent',
         use_history: useChatHistory,
         enable_trace: enableTrace,
         use_websearch: true,
@@ -430,10 +433,10 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
         <div className="flex-v gap-10">
           <div className="flex gap-5 send-message">
             <Select
-              options={LLM_BOT_CHAT_MODE_LIST}
-              selectedOption={chatModeOption}
+              options={LLM_BOT_USER_PROFILE_LIST}
+              selectedOption={userProfileOption}
               onChange={({ detail }) => {
-                setChatModeOption(detail.selectedOption);
+                setUserProfileOption(detail.selectedOption);
               }}
             />
             <div className="flex-1 pr">
@@ -488,7 +491,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                     {t('showTrace')}
                   </Toggle>
                 )}
-                {chatModeOption.value === 'agent' && (
+                {(
                   <Toggle
                     onChange={({ detail }) => setOnlyRAGTool(detail.checked)}
                     checked={onlyRAGTool}

@@ -44,6 +44,7 @@ export interface ChatStackOutputs {
   messagesTableName: string;
   promptTableName: string;
   intentionTableName: string;
+  profileTableName: string;
   sqsStatement: iam.PolicyStatement;
   messageQueue: Queue;
   dlq: Queue;
@@ -56,6 +57,7 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
   public messagesTableName: string;
   public promptTableName: string;
   public intentionTableName: string;
+  public profileTableName: string;
   public sqsStatement: iam.PolicyStatement;
   public messageQueue: Queue;
   public dlq: Queue;
@@ -85,6 +87,7 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
     this.messagesTableName = chatTablesConstruct.messagesTableName;
     this.promptTableName = chatTablesConstruct.promptTableName;
     this.intentionTableName = chatTablesConstruct.intentionTableName;
+    this.profileTableName = chatTablesConstruct.profileTableName
     this.chatbotTableName = props.sharedConstructOutputs.chatbotTable.tableName;
     this.indexTableName = props.sharedConstructOutputs.indexTable.tableName;
     this.modelTableName = props.sharedConstructOutputs.modelTable.tableName;
@@ -121,6 +124,7 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
         RERANK_ENDPOINT: props.modelConstructOutputs.defaultEmbeddingModelName,
         EMBEDDING_ENDPOINT: props.modelConstructOutputs.defaultEmbeddingModelName,
         CHATBOT_TABLE_NAME: props.sharedConstructOutputs.chatbotTable.tableName,
+        PROFILE_TABLE_NAME: chatTablesConstruct.profileTableName,
         SESSIONS_TABLE_NAME: chatTablesConstruct.sessionsTableName,
         MESSAGES_TABLE_NAME: chatTablesConstruct.messagesTableName,
         PROMPT_TABLE_NAME: chatTablesConstruct.promptTableName,
