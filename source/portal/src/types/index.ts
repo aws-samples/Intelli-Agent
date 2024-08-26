@@ -131,6 +131,39 @@ export interface GetPromptResponse {
   Prompt: Prompt;
 }
 
+export interface CreateChatbotResponse {
+  Message: string;
+}
+
+export type ChatbotItem = {
+  uuid: string;
+  LastModifiedTime: string;
+  // LastModifiedBy: string;
+  ModelId: string;
+  SortKey: string;
+  Scene: string;
+};
+
+export type ChatbotResponse = {
+  Items: ChatbotItem[];
+  Config: ResponseConfig;
+  Count: number;
+};
+
+export interface Chatbot {
+  [key: string]: {
+    [subKey: string]: string;
+  };
+}
+
+export interface GetChatbotResponse {
+  GroupName: string;
+  SortKey: string;
+  ModelId: string;
+  Scene: string;
+  Chatbot: Chatbot;
+}
+
 export interface PresignedUrlResponse {
   data: string;
   message: string;
