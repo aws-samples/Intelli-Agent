@@ -25,7 +25,7 @@ import { useAuth } from 'react-oidc-context';
 import {
   LLM_BOT_COMMON_MODEL_LIST,
   LLM_BOT_RETAIL_MODEL_LIST,
-  LLM_BOT_USER_PROFILE_LIST,
+  LLM_BOT_CHATBOT_LIST,
   SCENARIO_LIST,
   RETAIL_GOODS_LIST,
 } from 'src/utils/const';
@@ -77,8 +77,8 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   // const [chatModeOption, setChatModeOption] = useState<SelectProps.Option>(
   //   LLM_BOT_CHAT_MODE_LIST[0],
   // );
-  const [userProfileOption, setUserProfileOption] = useState<SelectProps.Option>(
-    LLM_BOT_USER_PROFILE_LIST[0],
+  const [chatbotOption, setChatbotOption] = useState<SelectProps.Option>(
+    LLM_BOT_CHATBOT_LIST[0],
   );
   const [useChatHistory, setUseChatHistory] = useState(true);
   const [enableTrace, setEnableTrace] = useState(true);
@@ -433,10 +433,10 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
         <div className="flex-v gap-10">
           <div className="flex gap-5 send-message">
             <Select
-              options={LLM_BOT_USER_PROFILE_LIST}
-              selectedOption={userProfileOption}
+              options={LLM_BOT_CHATBOT_LIST}
+              selectedOption={chatbotOption}
               onChange={({ detail }) => {
-                setUserProfileOption(detail.selectedOption);
+                setChatbotOption(detail.selectedOption);
               }}
             />
             <div className="flex-1 pr">

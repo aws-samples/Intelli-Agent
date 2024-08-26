@@ -67,35 +67,18 @@ def initiate_index(
     )
 
 
-def initiate_chatbot(chatbot_table, group_name, chatbot_id, create_time=None):
+def initiate_chatbot(
+    chatbot_table, group_name, chatbot_id, index_id, index_type, tag, create_time=None
+):
     if not create_time:
         create_time = str(datetime.now(timezone.utc))
-    create_item_if_not_exist(
+    is_existed, item = create_item_if_not_exist(
         chatbot_table,
         {"groupName": group_name, "chatbotId": chatbot_id},
         {
             "groupName": group_name,
             "chatbotId": chatbot_id,
             "languages": ["zh"],
-            "profileIds": [chatbot_id],
-            "createTime": create_time,
-            "updateTime": create_time,
-            "status": Status.ACTIVE.value,
-        },
-    )
-
-
-def initiate_profile(
-    profile_table, group_name, profile_id, index_id, index_type, tag, create_time=None
-):
-    if not create_time:
-        create_time = str(datetime.now(timezone.utc))
-    is_existed, item = create_item_if_not_exist(
-        profile_table,
-        {"groupName": group_name, "profileId": profile_id},
-        {
-            "groupName": group_name,
-            "profileId": profile_id,
             "indexIds": {index_type: {"count": 1, "value": {tag: index_id}}},
             "createTime": create_time,
             "updateTime": create_time,
@@ -118,11 +101,11 @@ def initiate_profile(
                 item["indexIds"][index_type]["count"] = len(
                     item["indexIds"][index_type]["value"]
                 )
-                profile_table.put_item(Item=item)
+                chatbot_table.put_item(Item=item)
         else:
             # Add a new index type
             item["indexIds"][index_type] = {"count": 1, "value": {tag: index_id}}
-            profile_table.put_item(Item=item)
+            chatbot_table.put_item(Item=item)
 
 
 def is_chatbot_existed(ddb_table, group_name: str, chatbot_id: str):

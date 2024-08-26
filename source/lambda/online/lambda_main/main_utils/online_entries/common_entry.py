@@ -432,9 +432,8 @@ def register_rag_tool(
 def register_rag_tool_from_config(event_body: dict):
     group_name = event_body.get("chatbot_config").get("group_name", "Admin")
     chatbot_id = event_body.get("chatbot_config").get("chatbot_id", "admin")
-    user_profile = event_body.get("chatbot_config").get("user_profile", "admin")
     chatbot_manager = ChatbotManager.from_environ()
-    chatbot = chatbot_manager.get_chatbot(group_name, chatbot_id, user_profile)
+    chatbot = chatbot_manager.get_chatbot(group_name, chatbot_id)
     logger.info(chatbot)
     for index_type, item_dict in chatbot.index_ids.items():
         if index_type != IndexType.INTENTION:

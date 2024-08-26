@@ -64,12 +64,9 @@ class ConfigParserBase:
 
         group_name = chatbot_config["group_name"]
         chatbot_id = chatbot_config["chatbot_id"]
-        user_profile = chatbot_config["user_profile"]
 
         # init chatbot config
-        chatbot_config_obj = ChatbotConfig(
-            group_name=group_name, chatbot_id=chatbot_id, user_profile=user_profile
-        )
+        chatbot_config_obj = ChatbotConfig(group_name=group_name, chatbot_id=chatbot_id)
         # init default llm
         chatbot_config_obj.update_llm_config(default_llm_config)
 
