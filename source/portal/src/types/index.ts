@@ -107,7 +107,7 @@ export type LibraryExecutionResponse = {
 
 export type QAItem = {
   question: string,
-  answer: string,
+  intention: string,
   kwargs: string
 }
 

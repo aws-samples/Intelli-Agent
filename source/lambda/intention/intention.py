@@ -3,7 +3,9 @@ from datetime import datetime
 import hashlib
 import json
 import os
+import re
 import time
+from aiohttp import ClientError
 import boto3
 from openpyxl import load_workbook
 from io import BytesIO
@@ -12,6 +14,7 @@ from opensearchpy import RequestError, helpers
 import logging
 # from requests.auth import HTTPBasicAuth
 from langchain.embeddings.bedrock import BedrockEmbeddings
+# from opensearchpy.exceptions import BulkIndexError
 # from common_logic.common_utils.logger_utils import get_logger
 
 from aos.aos_utils import LLMBotOpenSearchClient
@@ -84,7 +87,7 @@ def lambda_handler(event, context):
         )
     if resource == PRESIGNED_URL_RESOURCE:
         input_body = json.loads(event["body"])
-        file_name = "intentions/" + chatbot_id + "/" + input_body["file_name"]
+        file_name = f"intentions/{chatbot_id}/[{input_body['timestamp']}]{input_body['file_name']}"
         presigned_url = __gen_presigned_url(file_name, 
                                      input_body.get("content_type", DEFAULT_CONTENT_TYPE),
                                      input_body.get("expiration", 60*60))
@@ -104,6 +107,7 @@ def lambda_handler(event, context):
             if resource == EXECUTION_RESOURCE:
                 output = __list_execution(event)
             else:
+                # executionId = resource.split("/").pop()
                 output = __get_execution(event)
     try:
         return {
@@ -203,13 +207,13 @@ def __create_execution(event, context, email):
             "tag": execution_detail["tag"],
             "File": f'{input_body.get("s3Bucket")}{input_body.get("s3Prefix")}',
             "LastModifiedBy": email,
-            "LastModifiedTime": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "LastModifiedTime": re.findall(r'\[(.*?)\]', input_body.get("s3Prefix"))[0],
         }
     )
     # intention_table_name.put_item(Item=input_body)
 
     # write to aos(vectorData)
-    __save_2_aos(input_body.get("s3Bucket"), input_body.get("s3Prefix"), input_body.get("modelId"), execution_detail["index"])
+    __save_2_aos(input_body.get("s3Bucket"), input_body.get("s3Prefix"), input_body.get("model"), execution_detail["index"],context.aws_request_id)
 
     return {
         "statusCode": 200,
@@ -223,58 +227,16 @@ def __create_execution(event, context, email):
         ),
     }
 
-def __save_2_aos(bucket: str, prefix: str, modelId: str, index: str):
-    
+def __save_2_aos(bucket: str, prefix: str, modelId: str, index: str, executionId: str):
+    index_prefix="amazon-titan"
+    if modelId.startswith('cohere'):
+        index_prefix="cohere"
     # 检查索引是否存在
-    index_exists = aos_client.indices.exists(index=index)
+    index_exists = aos_client.indices.exists(index=f'{index_prefix}-{index}')
     if not index_exists:
-        __create_index(index)
-    __refresh_index(index, bucket, prefix, modelId)
-    # 添加文档到索引中
-    # doc = {
-    #     'title': 'Sample Document',
-    #     'content': 'This is a sample document content.',
-    #     'timestamp': '2024-08-21T00:00:00'
-    # }
-    # response = client.index(index=AOS_INDEX, body=doc)
-    # return response
-   
-# def __create_index():
-#     body = {
-#         "settings" : {
-#             "index":{
-#                 "number_of_shards" : 1,
-#                 "number_of_replicas" : 0,
-#                 "knn": True,
-#                 "knn.algo_param.ef_search": 32
-#             }
-#         },
-#         "mappings": {
-#             "properties": {
-#                 "text" : {
-#                     "type" : "text"
-#                 },
-#                 "sentence_vector" : {
-#                     "type" : "knn_vector",
-#                     "dimension" : 1536,
-#                     "method" : {
-#                         "engine" : "nmslib",
-#                         "space_type" : "l2",
-#                         "name" : "hnsw",
-#                         "parameters" : {
-#                         "ef_construction" : 512,
-#                         "m" : 16
-#                         }
-#                     }
-#                 }
-#             }
-#         }
-#     }
-#     try:
-#         aos_client.indices.create(index=AOS_INDEX, body=body)
-#         print(f"Index {AOS_INDEX} created successfully.")
-#     except RequestError as e:
-#         print(f"====={e.error}")
+        __create_index(f'{index_prefix}-{index}')
+    __refresh_index(f'{index_prefix}-{index}', bucket, prefix, modelId,executionId)
+
 
 def __create_index(index: str):
     body = {
@@ -293,7 +255,7 @@ def __create_index(index: str):
                 },
                 "sentence_vector" : {
                     "type" : "knn_vector",
-                    "dimension" : 1536,
+                    "dimension" : 1024 if index.startswith("cohere") else 1536,
                     "method" : {
                         "engine" : "nmslib",
                         "space_type" : "l2",
@@ -314,26 +276,25 @@ def __create_index(index: str):
         print(f"====={e.error}")
     
 
-def __refresh_index(index: str, bucket: str, prefix: str, modelId: str):
-    
+def __refresh_index(index: str, bucket: str, prefix: str, modelId: str, executionId: str):
     # Open the file and read its contents
-    response = s3_client.get_object(Bucket=bucket, Key=prefix)
+    response = __get_s3_object_with_retry(bucket, prefix)
+    # response = s3_client.get_object(Bucket=bucket, Key=prefix)
     file_content = response['Body'].read()
     # 使用 pandas 读取 Excel 文件内容
     excel_file = BytesIO(file_content)
     # df = pd.read_excel(excel_file)
     workbook = load_workbook(excel_file)
     sheet = workbook.active
-    
-    success, failed = helpers.bulk(aos_client,  __append_embeddings(index, modelId, sheet), chunk_size=BULK_SIZE)
+    success, failed = helpers.bulk(aos_client,  __append_embeddings(index, modelId, sheet, executionId), chunk_size=BULK_SIZE)
     aos_client.indices.refresh(index=index)
     print(f"Successfully added: {success} ")
     print(f"Failed: {len(failed)} ")
 
-def  __append_embeddings(index, modelId, sheet):
+def  __append_embeddings(index, modelId, sheet, executionId):
     documents = []
-    for row in sheet.iter_rows(values_only=True):
-        question, answer, kwargs = row[0], row[1], row[2]
+    for row in sheet.iter_rows(min_row=2, values_only=True):
+        question, answer, kwargs = row[0], row[1], row[2] if len(row) > 2 else None
         print(f"- Column 1: {question}, Column 2: {answer}, Column 3: {kwargs}")
         # embeddings_vectors = get_embedding(question)
         embedding_func = BedrockEmbeddings(
@@ -349,6 +310,7 @@ def  __append_embeddings(index, modelId, sheet):
                     { 
                         "text" : question,
                         "metadata" : {
+                            "executionId": executionId,
                             "answer": answer,
                             "source": "portal",
                             "kwargs": kwargs,
@@ -382,6 +344,8 @@ def __get_execution(event):
     for item in items:
         item_json = {}
         for key in list(item.keys()):
+            model = item.get("model", {"S": ""}).get("S","-")
+            index = item.get("index", {"S": ""}).get("S","-")
             value = item.get(key, {"S": ""}).get("S","-")
             if key == "File":
                 split_index = value.rfind('/')
@@ -396,8 +360,51 @@ def __get_execution(event):
             else:
                 continue
             item_json["status"] = "COMPLETED"
-            item_json["QAList"] = []
+            item_json["QAList"] = __retrieve_source_from_aos(model, index, executionId)
         Items.append(item_json)
     res["Items"] = Items
     res["Count"] = len(items)
+    return res
+
+def __get_s3_object_with_retry(bucket: str, key: str, max_retries: int = 5, delay: int = 1):
+    attempt = 0
+    while attempt < max_retries:
+        try:
+            # 尝试获取 S3 对象
+            response = s3_client.get_object(Bucket=bucket, Key=key)
+            return response
+        except Exception as e:
+            print(f'------{type(e)}')
+            # 打印错误信息（可选）
+            print(f"Attempt {attempt + 1} failed: {e}")
+            attempt += 1
+            if attempt >= max_retries:
+                # 如果超过最大重试次数，则抛出异常
+                print("Time out, retry...")
+                raise 
+            # 等待指定时间后重试
+            time.sleep(delay)
+
+def __retrieve_source_from_aos(model: str, index: str, executionId: str):
+    index_prefix="amazon-titan"
+    if model.startswith('cohere'):
+        index_prefix="cohere"
+    # 执行查询，返回所有文档的 _source 字段
+    response = aos_client.search(index=f"{index_prefix}-{index}", body={
+        "_source": True,  # 只返回 _source 字段
+        "query": {
+            "match_all": {}
+        }
+    })
+    res = []
+    # 打印所有文档的 _source 字段
+    for item in response["hits"]["hits"]: 
+        source = item["_source"]
+        metadata = source["metadata"]
+        if metadata["executionId"]== executionId:
+            res.append({
+               "question": source["text"],
+               "intention": source["metadata"]["answer"],
+               "kwargs": source["metadata"]["kwargs"]
+            })
     return res

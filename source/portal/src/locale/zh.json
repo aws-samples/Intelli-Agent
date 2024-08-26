@@ -51,7 +51,7 @@
     "executionDetail": "执行详情",
     "executionDetailDesc": "请检查下方的文件列表，并点击信息图标了解更多详情。",
     "qaList": "QA列表",
-    "qaListDesc": "本次意图包含问题对一览",
+    "qaListDesc": "本批次上传的问题语料一览",
     "detailNoFiles": "没有文件或请等待执行完成",
     "loading": "正在连接...",
     "success": "连接成功",
@@ -95,6 +95,7 @@
     "addIntention": "上传文件",
     "bot": "Bot",
     "model": "模型",
+    "empty":"没找到语料",
     "button": {
       "login": "登录到 AWS 大语言模型机器人",
       "reload": "重新加载",

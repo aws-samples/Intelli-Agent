@@ -16,7 +16,7 @@ import CommonLayout from 'src/layout/CommonLayout';
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { IntentionExecutionItem, IntentionExecutionResponse, QAItem } from 'src/types';
-import { alertMsg, formatTime } from 'src/utils/utils';
+import { alertMsg } from 'src/utils/utils';
 import { useTranslation } from 'react-i18next';
 import useAxiosRequest from 'src/hooks/useAxiosRequest';
 
@@ -158,7 +158,7 @@ const IntentionDetail: React.FC = () => {
               executionFileList.map((item) => (
                 <div className="flex align-center" key={item.s3Prefix}>
                   <StatusIndicator type={showIngestStatus(item.status)}>
-                    [{formatTime(item.createTime)}] {item.s3Prefix}
+                    {item.s3Prefix}
                   </StatusIndicator>
                   {item.status === 'FAILED' && (
                     <Popover
@@ -200,9 +200,9 @@ const IntentionDetail: React.FC = () => {
           isRowHeader: true
         },
         {
-          id: "answer",
+          id: "intention",
           header: "意图",
-          cell: item => item.answer,
+          cell: item => item.intention,
           sortingField: "alt"
         },
         {
@@ -213,7 +213,7 @@ const IntentionDetail: React.FC = () => {
       ]}
       columnDisplay={[
         { id: "question", visible: true },
-        { id: "answer", visible: true },
+        { id: "intention", visible: true },
         { id: "kwargs", visible: true }
       ]}
       enableKeyboardNavigation
@@ -256,7 +256,7 @@ const IntentionDetail: React.FC = () => {
             pageSize: 10,
             contentDisplay: [
               { id: "question", visible: true },
-              { id: "answer", visible: true },
+              { id: "intention", visible: true },
               { id: "kwargs", visible: true },
               { id: "comment", visible: true }
             ]

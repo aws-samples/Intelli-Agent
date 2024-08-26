@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { format } from 'date-fns';
 import { axios } from 'src/utils/request';
 import {
   Box,
@@ -100,7 +101,8 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
         url: `intention/execution-presigned-url`,
         method: 'post',
         data: {
-          file_name: `[${new Date().toISOString()}]${file.name}`,
+          timestamp: format(new Date(), 'yyyy-MM-dd HH:mm:ss'),
+          file_name: file.name,
           content_type: file.type,
         },
       });

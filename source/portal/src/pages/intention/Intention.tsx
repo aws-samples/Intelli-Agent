@@ -287,7 +287,12 @@ const Intention: React.FC = () => {
               header: t('intentionName'),
               sortingField: 'fileName',
               cell: (item: IntentionsItem) => {
-                return item.fileName;
+                const index = item.fileName.indexOf(']');
+                if (index !== -1) {
+                  return item.fileName.substring(index + 1).trim();
+                } else {
+                  return item.fileName;
+                }
               },
             },
             {
