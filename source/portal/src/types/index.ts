@@ -6,17 +6,16 @@ type ResponseConfig = {
 
 export type LibraryListItem = {
   s3Prefix: string;
-  offline: string; // 一直为true？？？
+  offline: string;
   s3Bucket: string;
   executionId: string;
   executionStatus: string;
-  qaEnhance: string; //？？？？
+  qaEnhance: string;
   operationType: string;
   sfnExecutionId: string;
-  indexType: string; // qq/qd 
-  chatbotId: string; // groupName.lower()
+  indexType: string; 
+  chatbotId: string;
   createTime: string;
-  // uiStatus/tag/indexId/embeddingModelType/groupName
 };
 
 export type LibraryListResponse = {
@@ -26,19 +25,13 @@ export type LibraryListResponse = {
 };
 
 export type IntentionsItem = {
-  // s3Prefix: string; // "intentions/Admin/testindeto.xlsx"
-  // offline: string;  // true
-  // s3Bucket: string; // intelli-agent-apiconstructllmbotdocumentsfc4f8a7a-6vbr3vihybqs
   executionId: string;
   executionStatus: string;
-  // operationType: string; // create
-  // sfnExecutionId: string; // 99041951-b0c5-4b39-9efa-fcee12f751c0
-  // indexType: string; // 需要吗？intention 需要改job代码
   fileName: string;
   index: string;
   model: string;
   tag: string;
-  chatbotId: string; // 同groupName admin
+  chatbotId: string;
   createTime: string;
 };
 

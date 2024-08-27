@@ -11,14 +11,14 @@
  *  and limitations under the License.                                                                                *
  *********************************************************************************************************************/
 
-import { Aws, Duration, StackProps } from "aws-cdk-lib";
+import { Aws, Duration, Size, StackProps } from "aws-cdk-lib";
 import * as apigw from "aws-cdk-lib/aws-apigateway";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import { Function, Runtime, Code, Architecture } from 'aws-cdk-lib/aws-lambda';
 import { JsonSchemaType, JsonSchemaVersion, Model } from "aws-cdk-lib/aws-apigateway";
 import { Construct } from "constructs";
 import { join } from "path";
-
+import * as S3Deployment from 'aws-cdk-lib/aws-s3-deployment';
 import { LambdaLayers } from "../shared/lambda-layers";
 import { WebSocketConstruct } from "./websocket-api";
 import { IAMHelper } from "../shared/iam-helper";
@@ -87,6 +87,14 @@ export class ApiConstruct extends Construct {
           allowedHeaders: ["*"],
         },
       ],
+    });
+
+    new S3Deployment.BucketDeployment(this, 'IntentionCorpusTemplate', {
+      memoryLimit: 512,
+      ephemeralStorageSize: Size.mebibytes(512),
+      sources: [S3Deployment.Source.asset('lib/api/asset')],
+      destinationBucket: s3Bucket,
+      destinationKeyPrefix: 'templates',
     });
 
     // Define the API Gateway
@@ -540,6 +548,8 @@ export class ApiConstruct extends Construct {
           "file_name": { "type": JsonSchemaType.STRING },
         })
       })
+      const apiResourceDownload = apiResourceIntentionManagement.addResource("download-template");
+      apiResourceDownload.addMethod("GET", lambdaIntentionIntegration, this.genMethodOption(api, auth, null));
       const apiResourceExecutionManagement = apiResourceIntentionManagement.addResource("executions");
       apiResourceExecutionManagement.addMethod("POST", lambdaIntentionIntegration, this.genMethodOption(api, auth, null));
       apiResourceExecutionManagement.addMethod("GET", lambdaIntentionIntegration, this.genMethodOption(api, auth, null));

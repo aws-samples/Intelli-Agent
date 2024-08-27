@@ -12,13 +12,10 @@ from io import BytesIO
 from botocore.paginate import TokenEncoder
 from opensearchpy import RequestError, helpers
 import logging
-# from requests.auth import HTTPBasicAuth
 from langchain.embeddings.bedrock import BedrockEmbeddings
-# from opensearchpy.exceptions import BulkIndexError
-# from common_logic.common_utils.logger_utils import get_logger
 
 from aos.aos_utils import LLMBotOpenSearchClient
-from constant import AOS_INDEX, BULK_SIZE, DEFAULT_CONTENT_TYPE, DEFAULT_MAX_ITEMS, DEFAULT_SIZE, EXECUTION_RESOURCE, PRESIGNED_URL_RESOURCE, SECRET_NAME
+from constant import AOS_INDEX, BULK_SIZE, DEFAULT_CONTENT_TYPE, DEFAULT_MAX_ITEMS, DEFAULT_SIZE, DOWNLOAD_RESOURCE, EXECUTION_RESOURCE, PRESIGNED_URL_RESOURCE, SECRET_NAME
 
 logger = logging.getLogger(__name__)
 encoder = TokenEncoder()
@@ -49,14 +46,6 @@ s3_client = boto3.client("s3")
 bedrock_client = boto3.client("bedrock-runtime",region_name=region)
 aos_client = LLMBotOpenSearchClient(aos_endpoint, (username, password)).client
 
-# aos_client = OpenSearch(
-#         hosts = [{'host': aos_endpoint, 'port': HTTPS_PORT_NUMBER}],
-#         http_auth = HTTPBasicAuth(username,password),
-#         use_ssl = True,
-#         verify_certs = True,
-#         connection_class = RequestsHttpConnection
-    # )
-
 resp_header = {
     "Content-Type": "application/json",
     "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
@@ -77,9 +66,6 @@ def lambda_handler(event, context):
     else:
         email = event["multiValueHeaders"]["author"][0]
         cognito_groups_list = ["Admin"]
-    #     group_name = claims["cognito:groups"] #Agree to only be in one group
-    # else:
-    #     group_name = "Admin"
     http_method = event["httpMethod"]
     resource:str = event["resource"]
     chatbot_id = (
@@ -109,6 +95,8 @@ def lambda_handler(event, context):
             else:
                 # executionId = resource.split("/").pop()
                 output = __get_execution(event)
+    elif resource == DOWNLOAD_RESOURCE:
+        output = __download_template()
     try:
         return {
             "statusCode": 200,
@@ -153,8 +141,6 @@ def __list_execution(event):
     output = {}
     page_json = []
     items = response['Items']
-
-    # 处理分页
     while 'LastEvaluatedKey' in response:
         response = dynamodb_client.scan(
             TableName=intention_table_name,
@@ -197,6 +183,24 @@ def __create_execution(event, context, email):
     execution_detail["model"] = input_body.get("model")
     execution_detail["fileName"] = input_body.get("s3Prefix").split("/").pop()
     execution_detail["tag"] = input_body.get("tag") if input_body.get("tag") else f'{input_body.get("chatbotId")}-default-tag'
+    bucket=input_body.get("s3Bucket")
+    prefix=input_body.get("s3Prefix")
+    response = __get_s3_object_with_retry(bucket, prefix)
+    file_content = response['Body'].read()
+    excel_file = BytesIO(file_content)
+    workbook = load_workbook(excel_file)
+    sheet = workbook.active
+    qaList =[]
+    for row in sheet.iter_rows(min_row=2, values_only=True):
+        question, intention, kwargs = row[0], row[1], row[2] if len(row) > 2 else None
+        if not question: 
+            continue
+        qaList.append({
+            "question": question,
+            "intention": intention,
+            "kwargs": kwargs    
+        })
+
     # write to ddb(meta data)
     intention_table.put_item(
         Item={
@@ -205,15 +209,14 @@ def __create_execution(event, context, email):
             "model": execution_detail["model"],
             "index": execution_detail["index"],
             "tag": execution_detail["tag"],
-            "File": f'{input_body.get("s3Bucket")}{input_body.get("s3Prefix")}',
+            "File": f'{bucket}{input_body.get("s3Prefix")}',
             "LastModifiedBy": email,
             "LastModifiedTime": re.findall(r'\[(.*?)\]', input_body.get("s3Prefix"))[0],
+            "details": json.dumps(qaList)
         }
     )
-    # intention_table_name.put_item(Item=input_body)
-
     # write to aos(vectorData)
-    __save_2_aos(input_body.get("s3Bucket"), input_body.get("s3Prefix"), input_body.get("model"), execution_detail["index"],context.aws_request_id)
+    __save_2_aos(input_body.get("model"), execution_detail["index"], qaList)
 
     return {
         "statusCode": 200,
@@ -227,15 +230,14 @@ def __create_execution(event, context, email):
         ),
     }
 
-def __save_2_aos(bucket: str, prefix: str, modelId: str, index: str, executionId: str):
+def __save_2_aos(modelId: str, index: str, qaList:list):
     index_prefix="amazon-titan"
     if modelId.startswith('cohere'):
         index_prefix="cohere"
-    # 检查索引是否存在
     index_exists = aos_client.indices.exists(index=f'{index_prefix}-{index}')
     if not index_exists:
         __create_index(f'{index_prefix}-{index}')
-    __refresh_index(f'{index_prefix}-{index}', bucket, prefix, modelId,executionId)
+    __refresh_index(f'{index_prefix}-{index}', modelId, qaList)
 
 
 def __create_index(index: str):
@@ -251,7 +253,12 @@ def __create_index(index: str):
         "mappings": {
             "properties": {
                 "text" : {
-                    "type" : "text"
+                    "type" : "text",
+                    "fields": {
+                        "keyword": { 
+                           "type": "keyword"
+                        }
+                    }
                 },
                 "sentence_vector" : {
                     "type" : "knn_vector",
@@ -273,30 +280,19 @@ def __create_index(index: str):
         aos_client.indices.create(index=index, body=body)
         print(f"Index {index} created successfully.")
     except RequestError as e:
-        print(f"====={e.error}")
+        print(e.error)
     
 
-def __refresh_index(index: str, bucket: str, prefix: str, modelId: str, executionId: str):
-    # Open the file and read its contents
-    response = __get_s3_object_with_retry(bucket, prefix)
-    # response = s3_client.get_object(Bucket=bucket, Key=prefix)
-    file_content = response['Body'].read()
-    # 使用 pandas 读取 Excel 文件内容
-    excel_file = BytesIO(file_content)
-    # df = pd.read_excel(excel_file)
-    workbook = load_workbook(excel_file)
-    sheet = workbook.active
-    success, failed = helpers.bulk(aos_client,  __append_embeddings(index, modelId, sheet, executionId), chunk_size=BULK_SIZE)
+def __refresh_index(index: str, modelId: str, qaList):
+    success, failed = helpers.bulk(aos_client,  __append_embeddings(index, modelId, qaList), chunk_size=BULK_SIZE)
     aos_client.indices.refresh(index=index)
     print(f"Successfully added: {success} ")
     print(f"Failed: {len(failed)} ")
 
-def  __append_embeddings(index, modelId, sheet, executionId):
+def  __append_embeddings(index, modelId, qaList:list):
     documents = []
-    for row in sheet.iter_rows(min_row=2, values_only=True):
-        question, answer, kwargs = row[0], row[1], row[2] if len(row) > 2 else None
-        print(f"- Column 1: {question}, Column 2: {answer}, Column 3: {kwargs}")
-        # embeddings_vectors = get_embedding(question)
+    for item in qaList:
+        question=item["question"]
         embedding_func = BedrockEmbeddings(
             client=bedrock_client,
             model_id=modelId,
@@ -310,42 +306,34 @@ def  __append_embeddings(index, modelId, sheet, executionId):
                     { 
                         "text" : question,
                         "metadata" : {
-                            "executionId": executionId,
-                            "answer": answer,
+                            "intention": item["intention"],
                             "source": "portal",
-                            "kwargs": kwargs,
+                            "kwargs": item["kwargs"],
                             "type": "Intent"
-                            },
+                        },
                         "sentence_vector" : embeddings_vectors[0]
                     }
                 )
-        for document in documents:
-            yield {"_op_type": "index", "_index": index, "_source": document, "_id": hashlib.md5(str(document).encode('utf-8')).hexdigest()}
+    for document in documents:
+        yield {"_op_type": "index", "_index": index, "_source": document, "_id": hashlib.md5(str(document).encode('utf-8')).hexdigest() }
 
 
 def __get_execution(event):
     executionId = event.get("path", "").split("/").pop()
-    # 设置过滤条件
     filter_expression = "attribute_exists(intentionId) AND intentionId = :value"
-
-    # 执行 scan 操作
     response = dynamodb_client.scan(
         TableName=intention_table_name,
         FilterExpression=filter_expression,
         ExpressionAttributeValues={
-            ":value": {"S": executionId}  # 替换为你的实际值
+            ":value": {"S": executionId}
         }
     )
-
-    # 获取结果
     items = response['Items']
     res = {}
     Items = []
     for item in items:
         item_json = {}
         for key in list(item.keys()):
-            model = item.get("model", {"S": ""}).get("S","-")
-            index = item.get("index", {"S": ""}).get("S","-")
             value = item.get(key, {"S": ""}).get("S","-")
             if key == "File":
                 split_index = value.rfind('/')
@@ -357,10 +345,11 @@ def __get_execution(event):
                     item_json["s3Prefix"] = "-"
             elif key == "LastModifiedTime":
                 item_json["createTime"] = value
+            elif key == "details":
+                item_json["QAList"] = json.loads(value)  
             else:
                 continue
             item_json["status"] = "COMPLETED"
-            item_json["QAList"] = __retrieve_source_from_aos(model, index, executionId)
         Items.append(item_json)
     res["Items"] = Items
     res["Count"] = len(items)
@@ -370,41 +359,19 @@ def __get_s3_object_with_retry(bucket: str, key: str, max_retries: int = 5, dela
     attempt = 0
     while attempt < max_retries:
         try:
-            # 尝试获取 S3 对象
-            response = s3_client.get_object(Bucket=bucket, Key=key)
-            return response
+            return s3_client.get_object(Bucket=bucket, Key=key)
         except Exception as e:
-            print(f'------{type(e)}')
-            # 打印错误信息（可选）
             print(f"Attempt {attempt + 1} failed: {e}")
             attempt += 1
             if attempt >= max_retries:
-                # 如果超过最大重试次数，则抛出异常
                 print("Time out, retry...")
                 raise 
-            # 等待指定时间后重试
             time.sleep(delay)
 
-def __retrieve_source_from_aos(model: str, index: str, executionId: str):
-    index_prefix="amazon-titan"
-    if model.startswith('cohere'):
-        index_prefix="cohere"
-    # 执行查询，返回所有文档的 _source 字段
-    response = aos_client.search(index=f"{index_prefix}-{index}", body={
-        "_source": True,  # 只返回 _source 字段
-        "query": {
-            "match_all": {}
-        }
-    })
-    res = []
-    # 打印所有文档的 _source 字段
-    for item in response["hits"]["hits"]: 
-        source = item["_source"]
-        metadata = source["metadata"]
-        if metadata["executionId"]== executionId:
-            res.append({
-               "question": source["text"],
-               "intention": source["metadata"]["answer"],
-               "kwargs": source["metadata"]["kwargs"]
-            })
-    return res
+def __download_template():
+    url = s3_client.generate_presigned_url(
+        ClientMethod="get_object",
+        Params={'Bucket': s3_bucket_name, 'Key': "templates/intention_corpus.xlsx"},
+        ExpiresIn=60
+    )
+    return url

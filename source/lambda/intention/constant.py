@@ -5,6 +5,7 @@ DEFAULT_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.spreadshee
 ROOT_RESOURCE = "/intention"
 PRESIGNED_URL_RESOURCE = f"{ROOT_RESOURCE}/execution-presigned-url"
 EXECUTION_RESOURCE = f"{ROOT_RESOURCE}/executions"
+DOWNLOAD_RESOURCE = f"{ROOT_RESOURCE}/download-template"
 SECRET_NAME = "opensearch-master-user"
 AOS_INDEX = "aics_intention_index"
 BULK_SIZE = 100000000

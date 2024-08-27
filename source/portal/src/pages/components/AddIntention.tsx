@@ -71,9 +71,39 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
     }
   };
 
-  const downloadTemplate = ()=>{
-
+  const downloadTemplate = async ()=>{
+    // setLoadingDownload(true);
+    let url:any  = await fetchData({
+      url: `intention/download-template`,
+      method: 'get',
+    });
+    startDownload(url);
   }
+
+  const startDownload = (url: string) => {
+    const link = document.createElement('a');
+    link.href = url;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // const downloadTemplate = async (type:string) => {
+  //   console.log('download template');
+  //   setLoadingDownload(true);
+  //   let url:any
+  //   if(type==="identifier"){
+  //     url = await downloadIdentifierBatchFiles({
+  //       filename: `identifier-template-${i18n.language}`,
+  //     });
+  //   } else {
+  //     url = await downloadDataSourceBatchFiles({
+  //       filename: `template-${i18n.language}`,
+  //     });
+  //   }
+  //   setLoadingDownload(false);
+  //   startDownload(url);
+  // };
 
   const uploadFilesToS3 = async () => {
     // validate  file
@@ -188,7 +218,7 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
             <FormField
               errorText={fileEmptyError ? t('fileEmptyError') : ''}
               label={t('selectFile')}
-              description={<>{t('selectFileDesc')}<Link href="#" variant="info" onFollow={downloadTemplate} >下载模版</Link></>}
+              description={<>{t('selectFileDesc')}<Link href="#" variant="info" onFollow={downloadTemplate}>下载模版</Link></>}
             >
               <div className="mt-10">
                 <FileUpload
@@ -210,8 +240,8 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
                   multiple={false}
                   showFileLastModified
                   showFileSize
-                  accept=".xlsx,.xls"
-                  constraintText={`${t('supportFiles')} xlsx, xls.`}
+                  accept=".xlsx"
+                  constraintText={`${t('supportFiles')} xlsx.`}
                   // errorText={uploadFileError}
                 />
               </div>

@@ -24,6 +24,7 @@ const IntentionDetail: React.FC = () => {
   
   const pageSize = 10;
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuestionName, setSearchQuestionName] = useState("")
   const [loadingData, setLoadingData] = useState(false);
   const [executionFileList, setExecutionFileList] = useState<
     IntentionExecutionItem[]
@@ -154,7 +155,7 @@ const IntentionDetail: React.FC = () => {
               <b>{`${getIntentionPrefix(executionFileList?.[0]?.s3Path)}`} </b>
             </div>
             <div className="mt-10"></div>
-            {executionFileList.length > 0 ? (
+            {executionFileList?.length > 0 ? (
               executionFileList.map((item) => (
                 <div className="flex align-center" key={item.s3Prefix}>
                   <StatusIndicator type={showIngestStatus(item.status)}>
@@ -236,14 +237,15 @@ const IntentionDetail: React.FC = () => {
       filter={
         <TextFilter
           filteringPlaceholder={t('findResources')}
-          filteringText=""
+          filteringText={searchQuestionName}
+          onChange={({ detail }) => setSearchQuestionName(detail.filteringText)}
         />
       }
       pagination={
         <Pagination
               disabled={loadingData}
               currentPageIndex={currentPage}
-              pagesCount={Math.ceil(executionFileList[0]?.QAList.length / pageSize)}
+              pagesCount={Math.ceil(executionFileList[0]?.QAList?.length / pageSize)}
               onChange={({ detail }) => setCurrentPage(detail.currentPageIndex)}
             />
       }
