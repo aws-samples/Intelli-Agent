@@ -17,8 +17,8 @@ function getUser(authority?: string, clientId?: string) {
 const useAxiosRequest = () => {
   const config = useContext(ConfigContext);
   const user = getUser(config?.oidcIssuer, config?.oidcClientId);
-  const token = user?.id_token;
-  console.log('token', token);
+  // const token = user?.id_token;
+  // console.log('token', token);
   const sendRequest = async ({
     url = '',
     method = 'get',
