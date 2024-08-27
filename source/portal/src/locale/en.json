@@ -79,7 +79,7 @@
     "type": "Type",
     "updateBy": "Update by",
     "updateTime": "Update time",
-    "promptCreateTips": "New prompt will override the current prompt, are you sure to continue?",
+    "promptCreateTips": "New prompt will override current prompt, are you sure to continue?",
     "promptDeleteTips": "Delete the prompt will reset to the system default prompt.",
     "endPoint": "Endpoint",
     "enableTrace": "Enable trace",
