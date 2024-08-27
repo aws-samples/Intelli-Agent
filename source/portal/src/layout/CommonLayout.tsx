@@ -163,6 +163,11 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
                     text: t('prompt'),
                     href: '/prompts',
                   },
+                  {
+                    type: 'link',
+                    text: t('intention'),
+                    href: '/intention',
+                  },
                 ],
               },
               { type: 'divider' },

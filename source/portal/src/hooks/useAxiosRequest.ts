@@ -41,6 +41,8 @@ const useAxiosRequest = () => {
         headers: {
           ...headers,
           'x-api-key': config?.apiKey,
+          'author': user?.profile.email || 'anonumous user'
+          // 'x-api-key': "mDX4kERuV4Mv41ctQD4WX1Q9"
         },
       });
       return response.data;

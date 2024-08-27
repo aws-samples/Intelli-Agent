@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { format } from 'date-fns';
 import { axios } from 'src/utils/request';
 import {
   Box,
@@ -9,30 +10,34 @@ import {
   FormField,
   Header,
   Input,
+  Link,
   Modal,
   ProgressBar,
   Select,
-  SelectProps,
   SpaceBetween,
 } from '@cloudscape-design/components';
 import { alertMsg, validateNameTagString } from 'src/utils/utils';
 import { AxiosProgressEvent } from 'axios';
 import { useTranslation } from 'react-i18next';
 import useAxiosRequest from 'src/hooks/useAxiosRequest';
-import { ExecutionResponse, PresignedUrlResponse } from 'src/types';
-import { DOC_INDEX_TYPE_LIST } from 'src/utils/const';
-import { useAuth } from 'react-oidc-context';
+import { ExecutionResponse, PresignedUrlResponse, SelectedOption } from 'src/types';
+import { DEFAULT_EMBEDDING_MODEL } from 'src/utils/const';
 
-interface AddLibraryProps {
+interface AddIntentionProps {
   showAddModal: boolean;
+  models: SelectedOption[];
+  botsOption: SelectedOption[];
+  selectedBotOption: SelectedOption | undefined;
+  selectedModelOption: SelectedOption | undefined;
+  changeBotOption: (option: SelectedOption) => void;
+  changeSelectedModel: (option: SelectedOption) => void;
   setShowAddModal: (show: boolean) => void;
-  reloadLibrary: () => void;
+  reloadIntention: () => void;
 }
 
-const AddLibrary: React.FC<AddLibraryProps> = (props: AddLibraryProps) => {
+const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => {
   const { t } = useTranslation();
-  const auth = useAuth();
-  const { showAddModal, setShowAddModal, reloadLibrary } = props;
+  const {models, botsOption, selectedModelOption, selectedBotOption, showAddModal, changeBotOption, changeSelectedModel, setShowAddModal, reloadIntention } = props;
   const fetchData = useAxiosRequest();
   const [uploadFiles, setUploadFiles] = useState<File[]>([]);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -41,27 +46,22 @@ const AddLibrary: React.FC<AddLibraryProps> = (props: AddLibraryProps) => {
 
   const [indexName, setIndexName] = useState('');
   const [indexNameError, setIndexNameError] = useState('');
-  const [indexType, setIndexType] = useState<SelectProps.Option>(
-    DOC_INDEX_TYPE_LIST[0],
-  );
   const [tagName, setTagName] = useState('');
   const [tagNameError, setTagNameError] = useState('');
   const [advanceExpand, setAdvanceExpand] = useState(false);
-
-  const executionKnowledgeBase = async (bucket: string, prefix: string) => {
-    const groupName: string[] = auth?.user?.profile?.['cognito:groups'] as any;
+  const executionIntention = async (bucket: string, prefix: string) => {
     const resExecution: ExecutionResponse = await fetchData({
-      url: `/knowledge-base/executions`,
+      url: `intention/executions`,
       method: 'post',
       data: {
         s3Bucket: bucket,
         s3Prefix: prefix,
-        offline: 'true',
-        qaEnhance: 'false',
-        chatbotId: groupName?.[0]?.toLocaleLowerCase() ?? 'admin',
-        indexId: indexName ? indexName.trim() : undefined,
-        indexType: indexType.value,
-        operationType: 'create',
+        // offline: 'true',
+        // qaEnhance: 'false',
+        chatbotId: selectedBotOption?.value.toLocaleLowerCase() ?? 'admin',
+        index: indexName ? indexName.trim() : undefined,
+        model: selectedModelOption?.value ?? DEFAULT_EMBEDDING_MODEL,
+        // operationType: 'create',
         tag: tagName ? tagName.trim() : undefined,
       },
     });
@@ -70,6 +70,40 @@ const AddLibrary: React.FC<AddLibraryProps> = (props: AddLibraryProps) => {
       setTagName('');
     }
   };
+
+  const downloadTemplate = async ()=>{
+    // setLoadingDownload(true);
+    let url:any  = await fetchData({
+      url: `intention/download-template`,
+      method: 'get',
+    });
+    startDownload(url);
+  }
+
+  const startDownload = (url: string) => {
+    const link = document.createElement('a');
+    link.href = url;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // const downloadTemplate = async (type:string) => {
+  //   console.log('download template');
+  //   setLoadingDownload(true);
+  //   let url:any
+  //   if(type==="identifier"){
+  //     url = await downloadIdentifierBatchFiles({
+  //       filename: `identifier-template-${i18n.language}`,
+  //     });
+  //   } else {
+  //     url = await downloadDataSourceBatchFiles({
+  //       filename: `template-${i18n.language}`,
+  //     });
+  //   }
+  //   setLoadingDownload(false);
+  //   startDownload(url);
+  // };
 
   const uploadFilesToS3 = async () => {
     // validate  file
@@ -94,15 +128,16 @@ const AddLibrary: React.FC<AddLibraryProps> = (props: AddLibraryProps) => {
 
     const uploadPromises = uploadFiles.map(async (file) => {
       const resPresignedData: PresignedUrlResponse = await fetchData({
-        url: `/knowledge-base/kb-presigned-url`,
+        url: `intention/execution-presigned-url`,
         method: 'post',
         data: {
+          timestamp: format(new Date(), 'yyyy-MM-dd HH:mm:ss'),
           file_name: file.name,
           content_type: file.type,
         },
       });
-      const uploadPreSignUrl = resPresignedData.data;
-      return axios.put(uploadPreSignUrl.url, file, {
+      const uploadPreSignUrlData = resPresignedData.data;
+      return axios.put(`${uploadPreSignUrlData.url}`, file, {
         headers: {
           'Content-Type': file.type,
         },
@@ -118,9 +153,9 @@ const AddLibrary: React.FC<AddLibraryProps> = (props: AddLibraryProps) => {
           percentage = Math.floor((totalUploaded / totalSize) * 100);
           setUploadProgress(percentage);
           if (percentage >= 100) {
-            executionKnowledgeBase(
-              uploadPreSignUrl.s3Bucket,
-              uploadPreSignUrl.s3Prefix,
+            executionIntention(
+              uploadPreSignUrlData.s3Bucket,
+              uploadPreSignUrlData.s3Prefix,
             );
           }
         },
@@ -135,11 +170,14 @@ const AddLibrary: React.FC<AddLibraryProps> = (props: AddLibraryProps) => {
         setUploadProgress(0);
         alertMsg(t('uploadSuccess'), 'success');
         setShowAddModal(false);
-        reloadLibrary();
+        reloadIntention();
       }
     } catch (error) {
       console.error('error', error);
+      // setUploadFileError("error")
     }
+    setShowProgress(false)
+    setUploadFiles([])  
   };
 
   return (
@@ -170,15 +208,17 @@ const AddLibrary: React.FC<AddLibraryProps> = (props: AddLibraryProps) => {
           </SpaceBetween>
         </Box>
       }
-      header={<Header description={t('ingestDesc')}>{t('ingest')}</Header>}
+      header={<Header description={t('ingestIntentionDesc')}>{t('createIntention')}</Header>}
     >
+      
       <SpaceBetween direction="vertical" size="l">
         <Form variant="embedded">
           <SpaceBetween direction="vertical" size="l">
+            {/* <div>BOTS: {bots}</div> */}
             <FormField
               errorText={fileEmptyError ? t('fileEmptyError') : ''}
               label={t('selectFile')}
-              description={t('selectFileDesc')}
+              description={<>{t('selectFileDesc')}<Link href="#" variant="info" onFollow={downloadTemplate}>下载模版</Link></>}
             >
               <div className="mt-10">
                 <FileUpload
@@ -200,8 +240,9 @@ const AddLibrary: React.FC<AddLibraryProps> = (props: AddLibraryProps) => {
                   multiple={false}
                   showFileLastModified
                   showFileSize
-                  accept=".pdf,.csv,.doc,.docx,.html,.json,.txt,.md,.png,.jpg,.jpeg,.webp,.xlsx,.xls"
-                  constraintText={`${t('supportFiles')} pdf, csv, docx, html, json, txt, md, png, jpg, jpeg, webp, xlsx, xls.`}
+                  accept=".xlsx"
+                  constraintText={`${t('supportFiles')} xlsx.`}
+                  // errorText={uploadFileError}
                 />
               </div>
             </FormField>
@@ -215,6 +256,15 @@ const AddLibrary: React.FC<AddLibraryProps> = (props: AddLibraryProps) => {
                 headerText={t('additionalSettings')}
               >
                 <SpaceBetween direction="vertical" size="l">
+                  <FormField label={t('bot')} stretch={true}>
+                    <Select
+                      options={botsOption}
+                      selectedOption={selectedBotOption||{}}
+                      onChange={({ detail }:{detail: any}) => {
+                        changeBotOption(detail.selectedOption);
+                      }}
+                    />
+                  </FormField>
                   <FormField
                     label={
                       <>
@@ -236,12 +286,12 @@ const AddLibrary: React.FC<AddLibraryProps> = (props: AddLibraryProps) => {
                       }}
                     />
                   </FormField>
-                  <FormField label={t('indexType')} stretch={true}>
+                  <FormField label={t('model')} stretch={true}>
                     <Select
-                      options={DOC_INDEX_TYPE_LIST}
-                      selectedOption={indexType}
-                      onChange={({ detail }) => {
-                        setIndexType(detail.selectedOption);
+                      options={models}
+                      selectedOption={selectedModelOption||{}}
+                      onChange={({ detail }:{detail: any}) => {
+                        changeSelectedModel(detail.selectedOption);
                       }}
                     />
                   </FormField>
@@ -284,4 +334,4 @@ const AddLibrary: React.FC<AddLibraryProps> = (props: AddLibraryProps) => {
   );
 };
 
-export default AddLibrary;
+export default AddIntention;

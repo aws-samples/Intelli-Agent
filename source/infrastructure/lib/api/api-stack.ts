@@ -11,14 +11,14 @@
  *  and limitations under the License.                                                                                *
  *********************************************************************************************************************/
 
-import { Aws, Duration, StackProps } from "aws-cdk-lib";
+import { Aws, Duration, Size, StackProps } from "aws-cdk-lib";
 import * as apigw from "aws-cdk-lib/aws-apigateway";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import { Function, Runtime, Code, Architecture } from 'aws-cdk-lib/aws-lambda';
 import { JsonSchemaType, JsonSchemaVersion, Model } from "aws-cdk-lib/aws-apigateway";
 import { Construct } from "constructs";
 import { join } from "path";
-
+import * as S3Deployment from 'aws-cdk-lib/aws-s3-deployment';
 import { LambdaLayers } from "../shared/lambda-layers";
 import { WebSocketConstruct } from "./websocket-api";
 import { IAMHelper } from "../shared/iam-helper";
@@ -89,6 +89,14 @@ export class ApiConstruct extends Construct {
       ],
     });
 
+    new S3Deployment.BucketDeployment(this, 'IntentionCorpusTemplate', {
+      memoryLimit: 512,
+      ephemeralStorageSize: Size.mebibytes(512),
+      sources: [S3Deployment.Source.asset('lib/api/asset')],
+      destinationBucket: s3Bucket,
+      destinationKeyPrefix: 'templates',
+    });
+
     // Define the API Gateway
     const api = new apigw.RestApi(this, `${Constants.SOLUTION_SHORT_NAME.toLowerCase()}-api`, {
       description: `${Constants.SOLUTION_NAME} - Core API`,
@@ -101,6 +109,7 @@ export class ApiConstruct extends Construct {
           "X-Amz-Date",
           "Authorization",
           "X-Api-Key",
+          "Author",
           "X-Amz-Security-Token",
         ],
         allowMethods: apigw.Cors.ALL_METHODS,
@@ -385,12 +394,9 @@ export class ApiConstruct extends Construct {
           requestModels: this.genRequestModel(api, {
             "content_type": { "type": JsonSchemaType.STRING },
             "file_name": { "type": JsonSchemaType.STRING },
-
           })
       }
       );
-
-
     }
 
     if (props.config.chat.enabled) {
@@ -459,6 +465,24 @@ export class ApiConstruct extends Construct {
                       this.iamHelper.logStatement],
       });
 
+      const intentionLambda = new LambdaFunction(this, "IntentionLambda", {
+        runtime: Runtime.PYTHON_3_12,
+        code: Code.fromAsset(join(__dirname, "../../../lambda/intention")),
+        handler: "intention.lambda_handler",
+        environment: {
+          INTENTION_TABLE_NAME: props.chatStackOutputs.intentionTableName,
+          S3_BUCKET: s3Bucket.bucketName,
+        },
+        layers: [apiLambdaOnlineSourceLayer],
+        statements: [this.iamHelper.dynamodbStatement,
+                     this.iamHelper.logStatement,
+                     this.iamHelper.secretStatement,
+                     this.iamHelper.esStatement,
+                     this.iamHelper.s3Statement,
+                     this.iamHelper.bedrockStatement
+                    ],
+      });
+
       // Define the API Gateway Lambda Integration with proxy and no integration responses
       const lambdaChatHistoryIntegration = new apigw.LambdaIntegration(chatHistoryLambda.function, {
         proxy: true,
@@ -505,6 +529,61 @@ export class ApiConstruct extends Construct {
       apiResourcePromptProxy.addMethod("DELETE", lambdaPromptIntegration, this.genMethodOption(api, auth, null),);
       apiResourcePromptProxy.addMethod("GET", lambdaPromptIntegration, this.genMethodOption(api, auth, null),);
 
+      // Define the API Gateway Lambda Integration to manage intention
+      const lambdaIntentionIntegration = new apigw.LambdaIntegration(intentionLambda.function, {
+        proxy: true,
+      });
+      const apiResourceIntentionManagement = api.root.addResource("intention");
+      // apiResourceIntentionManagement.addMethod("DELETE", lambdaIntentionIntegration, this.genMethodOption(api, auth, null));
+      const presignedUrl = apiResourceIntentionManagement.addResource("execution-presigned-url");
+      presignedUrl.addMethod("POST", lambdaIntentionIntegration, {...
+        this.genMethodOption(api, auth, {
+          data: { type: JsonSchemaType.STRING },
+          message: { type: JsonSchemaType.STRING },
+          s3Bucket: { type: JsonSchemaType.STRING },
+          s3Prefix: { type: JsonSchemaType.STRING }
+        }),
+        requestModels: this.genRequestModel(api, {
+          "content_type": { "type": JsonSchemaType.STRING },
+          "file_name": { "type": JsonSchemaType.STRING },
+        })
+      })
+      const apiResourceDownload = apiResourceIntentionManagement.addResource("download-template");
+      apiResourceDownload.addMethod("GET", lambdaIntentionIntegration, this.genMethodOption(api, auth, null));
+      const apiResourceExecutionManagement = apiResourceIntentionManagement.addResource("executions");
+      apiResourceExecutionManagement.addMethod("POST", lambdaIntentionIntegration, this.genMethodOption(api, auth, null));
+      apiResourceExecutionManagement.addMethod("GET", lambdaIntentionIntegration, this.genMethodOption(api, auth, null));
+      const apiGetIntentionById = apiResourceExecutionManagement.addResource("{executionId}");
+      apiGetIntentionById.addMethod(
+        "GET",
+        lambdaIntentionIntegration,
+        {
+          ...this.genMethodOption(api, auth, {
+            Items: {
+              type: JsonSchemaType.ARRAY, items: {
+                type: JsonSchemaType.OBJECT,
+                properties: {
+                  s3Prefix: { type: JsonSchemaType.STRING },
+                  s3Bucket: { type: JsonSchemaType.STRING },
+                  createTime: { type: JsonSchemaType.STRING }, // Consider using format: 'date-time'
+                  executionId: { type: JsonSchemaType.STRING },
+                  s3Path: { type: JsonSchemaType.STRING },
+                  status: { type: JsonSchemaType.STRING },
+                },
+                required: ['s3Prefix', 's3Bucket', 'createTime', 's3Path', 'status','executionId'],
+              }
+            },
+            Count: { type: JsonSchemaType.INTEGER }
+          }),
+          requestParameters: {
+            'method.request.path.intentionId': true
+          },
+        }
+      );
+      // const apiUploadIntention = apiResourceIntentionManagement.addResource("upload");
+      // apiUploadIntention.addMethod("POST", lambdaIntentionIntegration, this.genMethodOption(api, auth, null))
+      
+      
       // Define the API Gateway Lambda Integration with proxy and no integration responses
       const lambdaExecutorIntegration = new apigw.LambdaIntegration(
         props.chatStackOutputs.lambdaOnlineMain,

@@ -74,3 +74,5 @@ export const DOC_INDEX_TYPE_LIST: SelectProps.Option[] = [
     value: 'qq',
   },
 ];
+
+export const DEFAULT_EMBEDDING_MODEL = "cohere.embed-english-v3"
