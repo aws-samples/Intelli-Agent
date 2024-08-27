@@ -221,10 +221,10 @@ const PromptList: React.FC = () => {
   }, [currentPage, pageSize]);
 
   useEffect(() => {
-    if (showCreate && modelOption) {
+    if (showCreate && modelOption && chatbotOption) {
       getPromptById('create');
     }
-  }, [modelOption]);
+  }, [modelOption, chatbotOption]);
 
   return (
     <CommonLayout
