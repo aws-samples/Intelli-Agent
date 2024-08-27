@@ -120,8 +120,8 @@ const PromptList: React.FC = () => {
       const items: string[] = data.chatbot_ids;
       const getChatbots = items.map((item) => {
         return {
-          label: item,
-          value: item,
+          label: item.toLowerCase(),
+          value: item.toLowerCase(),
         };
       });
       setChatbotList(getChatbots);
@@ -133,9 +133,9 @@ const PromptList: React.FC = () => {
 
   const getPromptById = async (type: 'create' | 'edit') => {
     setLoadingGet(true);
-    let requestUrl = `prompt-management/prompts/${modelOption?.value}/common`;
+    let requestUrl = `prompt-management/prompts/${modelOption?.value}/common/${chatbotOption?.value}`;
     if (type === 'edit') {
-      requestUrl = `prompt-management/prompts/${selectedItems[0].ModelId}/common`;
+      requestUrl = `prompt-management/prompts/${selectedItems[0].ModelId}/common/${selectedItems[0].ChatbotId}`;
       setModelOption({
         label: selectedItems[0].ModelId,
         value: selectedItems[0].ModelId,
@@ -161,7 +161,7 @@ const PromptList: React.FC = () => {
     setLoadingSave(true);
     try {
       await fetchData({
-        url: `prompt-management/prompts/${selectedItems[0].ModelId}/common`,
+        url: `prompt-management/prompts/${selectedItems[0].ModelId}/common/${selectedItems[0].ChatbotId}`,
         method: 'delete',
       });
       setLoadingSave(false);
@@ -267,6 +267,12 @@ const PromptList: React.FC = () => {
             //   header: t('updateBy'),
             //   cell: (item: PromptItem) => item.LastModifiedBy,
             // },
+            {
+              id: 'chatbotId',
+              header: t('chatbotName'),
+              cell: (item: PromptItem) => item.ChatbotId,
+              isRowHeader: true,
+            },
             {
               id: 'updateTime',
               header: t('updateTime'),

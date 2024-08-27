@@ -148,6 +148,7 @@ export type PromptItem = {
   ModelId: string;
   SortKey: string;
   Scene: string;
+  ChatbotId: string;
 };
 
 export type PromptResponse = {
@@ -167,6 +168,7 @@ export interface GetPromptResponse {
   SortKey: string;
   ModelId: string;
   Scene: string;
+  ChatbotId: string;
   Prompt: Prompt;
 }
 

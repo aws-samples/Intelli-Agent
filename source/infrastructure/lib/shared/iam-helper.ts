@@ -90,6 +90,7 @@ export class IAMHelper extends Construct {
         "dynamodb:Describe*",
         "dynamodb:List*",
         "dynamodb:Scan",
+        "dynamodb:DeleteItem",
       ],
       [`arn:${Aws.PARTITION}:dynamodb:${Aws.REGION}:${Aws.ACCOUNT_ID}:table/*`],
     );
