@@ -144,12 +144,49 @@ def __list_chatbot(event, group_name):
 
     output["Config"] = config
     output["Count"] = len(page_json)
-    output = {"chatbot_ids": ["Admin"]}
+    output = {"chatbot_ids": ["admin"]}
     return output
 
 
 def __get_chatbot(event, group_name):
-    return {"Message": "Not Implemented"}
+
+    chatbot_id = get_query_parameter(event, "chatbotId")
+    chatbot_item = chatbot_table.get_item(
+        Key={"groupName": group_name, "chatbotId": chatbot_id}
+    ).get("Item")
+
+    def merge_index(chatbot_index_ids, key):
+        return ",".join(list(chatbot_index_ids.get(key, {}).get("value", {}).values()))
+
+    if chatbot_item:
+        chatbot_index_ids = chatbot_item.get("indexIds", {})
+
+        response = {
+            "GroupName": group_name,
+            "ChatbotId": chatbot_id,
+            "Chatbot": {
+                "inention": {
+                    "index": merge_index(chatbot_index_ids, "intention"),
+                },
+                "qq": {
+                    "index": merge_index(chatbot_index_ids, "qq"),
+                },
+                "qd": {
+                    "index": merge_index(chatbot_index_ids, "qd"),
+                },
+            },
+        }
+    else:
+        response = {
+            "GroupName": group_name,
+            "ChatbotId": chatbot_id,
+            "Chatbot": {
+                "inention": {"index": f"{chatbot_id}-intention-default"},
+                "qq": {"index": f"{chatbot_id}-qq-default"},
+                "qd": {"index": f"{chatbot_id}-qd-default"},
+            },
+        }
+    return response
 
 
 def __delete_chatbot(event, group_name):

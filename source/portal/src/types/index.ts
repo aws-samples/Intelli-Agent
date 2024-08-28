@@ -184,7 +184,7 @@ export interface CreateChatbotResponse {
 }
 
 export type ChatbotItem = {
-  uuid: string;
+  chatbotId: string;
   LastModifiedTime: string;
   // LastModifiedBy: string;
   ModelId: string;

@@ -97,6 +97,7 @@ const ChatbotManagement: React.FC = () => {
       });
       setChatbotList(getChatbots);
       setChatbotOption(getChatbots[0]);
+      console.log('chatbotList:', chatbotList);
     } catch (error: unknown) {
       setLoadingGet(false);
     }
@@ -104,9 +105,9 @@ const ChatbotManagement: React.FC = () => {
 
   const getChatbotById = async (type: 'create' | 'edit') => {
     setLoadingGet(true);
-    let requestUrl = `chatbot-management/chatbots/${modelOption?.value}/common`;
+    let requestUrl = `chatbot-management/chatbots/${chatbotOption?.value}/common`;
     if (type === 'edit') {
-      requestUrl = `chatbot-management/chatbots/${selectedItems[0].ModelId}/common`;
+      requestUrl = `chatbot-management/chatbots/${selectedItems[0].chatbotId}/common`;
       setModelOption({
         label: selectedItems[0].ModelId,
         value: selectedItems[0].ModelId,
@@ -116,6 +117,9 @@ const ChatbotManagement: React.FC = () => {
       const data: GetChatbotResponse = await fetchData({
         url: requestUrl,
         method: 'get',
+        params: {
+          chatbotId: chatbotOption?.value,
+        },
       });
       setLoadingGet(false);
       setCurrentChatbot(data);
@@ -381,23 +385,21 @@ const ChatbotManagement: React.FC = () => {
           header={t('button.createChatbot')}
         >
           <SpaceBetween direction="vertical" size="xs">
-            <FormField
-              label={t('chatbotName')}
-              stretch={true}
-              errorText={chatbotError}
-            >
-              <Select
-                disabled={loadingGet || showEdit}
-                onChange={({ detail }) => {
-                  setChatbotError('');
-                  setChatbotOption(detail.selectedOption);
-                }}
-                selectedOption={chatbotOption}
-                options={chatbotList}
-                placeholder={t('validation.requireChatbot')}
-                empty={t('noChatbotFound')}
-              />
-            </FormField>
+          <FormField
+            label={t('chatbotName')}
+            stretch={true}
+            errorText={chatbotError}
+          >
+            <Textarea
+              rows={1}
+              value={chatbotOption?.value ?? ''}
+              placeholder={'admin'}
+              onChange={({ detail }) => {
+                setChatbotError('');
+                setChatbotOption({ value: detail.value, label: detail.value})
+              }}
+            />
+          </FormField>
             <FormField
               label={t('modelName')}
               stretch={true}
