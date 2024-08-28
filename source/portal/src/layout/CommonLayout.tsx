@@ -168,6 +168,11 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
                     text: t('intention'),
                     href: '/intention',
                   },
+                  {
+                    type: 'link',
+                    text: t('chatbotManagement'),
+                    href: '/chatbot-management',
+                  },
                 ],
               },
               { type: 'divider' },

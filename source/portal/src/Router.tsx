@@ -10,6 +10,8 @@ import { useTranslation } from 'react-i18next';
 import SessionHistory from './pages/history/SessionHistory';
 import SessionDetail from './pages/history/SessionDetail';
 import PromptList from './pages/prompts/PromptList';
+import ChatbotManagement from './pages/chatbotManagement/ChatbotManagement';
+
 import LoginCallback from './comps/LoginCallback';
 import Intention from './pages/intention/Intention';
 import IntentionDetail from './pages/intention/IntentionDetail';
@@ -27,6 +29,7 @@ const SignedInRouter = () => {
         <Route path="/prompts" element={<PromptList />} />
         <Route path="/intention" element={<Intention />} />
         <Route path="/intention/detail/:id" element={<IntentionDetail />} />
+        <Route path="/chatbot-management" element={<ChatbotManagement />} />
       </Routes>
       <CommonAlert />
     </BrowserRouter>
