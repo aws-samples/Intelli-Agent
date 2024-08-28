@@ -104,7 +104,14 @@ def initiate_index(
 
 
 def initiate_chatbot(
-    chatbot_table, group_name, chatbot_id, index_id, index_type, tag, create_time=None
+    chatbot_table,
+    group_name,
+    chatbot_id,
+    chatbot_description,
+    index_id,
+    index_type,
+    tag,
+    create_time=None,
 ):
     existing_item = item_exist(
         chatbot_table, {"groupName": group_name, "chatbotId": chatbot_id}
@@ -136,7 +143,7 @@ def initiate_chatbot(
             {
                 "groupName": group_name,
                 "chatbotId": chatbot_id,
-                "languages": ["zh"],
+                "chatbotDescription": chatbot_description,
                 "indexIds": {index_type: {"count": 1, "value": {tag: index_id}}},
                 "createTime": create_time,
                 "updateTime": create_time,

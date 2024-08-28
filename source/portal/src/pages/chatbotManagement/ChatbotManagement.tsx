@@ -107,10 +107,10 @@ const ChatbotManagement: React.FC = () => {
     setLoadingGet(true);
     let requestUrl = `chatbot-management/chatbots/${chatbotOption?.value}/common`;
     if (type === 'edit') {
-      requestUrl = `chatbot-management/chatbots/${selectedItems[0].chatbotId}/common`;
+      requestUrl = `chatbot-management/chatbots/${selectedItems[0].ChatbotId}/common`;
       setModelOption({
-        label: selectedItems[0].ModelId,
-        value: selectedItems[0].ModelId,
+        label: selectedItems[0].ModelName,
+        value: selectedItems[0].ModelName,
       });
     }
     try {
@@ -136,7 +136,7 @@ const ChatbotManagement: React.FC = () => {
     setLoadingSave(true);
     try {
       await fetchData({
-        url: `chatbot-management/chatbots/${selectedItems[0].ModelId}/common`,
+        url: `chatbot-management/chatbots/${selectedItems[0].ModelName}/common`,
         method: 'delete',
       });
       setLoadingSave(false);
@@ -232,16 +232,17 @@ const ChatbotManagement: React.FC = () => {
           }}
           columnDefinitions={[
             {
-              id: 'modelId',
-              header: t('modelName'),
-              cell: (item: ChatbotItem) => item.ModelId,
+              id: 'chatbotId',
+              header: t('chatbotName'),
+              cell: (item: ChatbotItem) => item.ChatbotId,
               isRowHeader: true,
             },
-            // {
-            //   id: 'updateBy',
-            //   header: t('updateBy'),
-            //   cell: (item: ChatbotItem) => item.LastModifiedBy,
-            // },
+            {
+              id: 'modelId',
+              header: t('modelName'),
+              cell: (item: ChatbotItem) => item.ModelName,
+              isRowHeader: true,
+            },
             {
               id: 'updateTime',
               header: t('updateTime'),
@@ -498,7 +499,7 @@ const ChatbotManagement: React.FC = () => {
           <div className="selected-items-list">
             <ul className="gap-5 flex-v">
               {selectedItems.map((item) => (
-                <li key={item.SortKey}>{item.ModelId}</li>
+                <li key={item.SortKey}>{item.ModelName}</li>
               ))}
             </ul>
           </div>
