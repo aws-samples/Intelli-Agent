@@ -1,10 +1,22 @@
 import axios from 'axios';
+import { User } from 'oidc-client-ts';
 import { useContext } from 'react';
 import ConfigContext from 'src/context/config-context';
 import { alertMsg } from 'src/utils/utils';
 
+function getUser(authority?: string, clientId?: string) {
+  const oidcStorage = localStorage.getItem(
+    `oidc.user:${authority}:${clientId}`,
+  );
+  if (!oidcStorage) {
+    return null;
+  }
+  return User.fromStorageString(oidcStorage);
+}
+
 const useAxiosRequest = () => {
   const config = useContext(ConfigContext);
+  const user = getUser(config?.oidcIssuer, config?.oidcClientId);
   const sendRequest = async ({
     url = '',
     method = 'get',
@@ -28,7 +40,6 @@ const useAxiosRequest = () => {
           ...headers,
           'x-api-key': config?.apiKey,
           'author': user?.profile.email || 'anonumous user'
-          // 'x-api-key': "mDX4kERuV4Mv41ctQD4WX1Q9"
         },
       });
       return response.data;

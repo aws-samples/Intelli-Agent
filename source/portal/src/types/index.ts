@@ -178,6 +178,7 @@ export interface PresignedUrlData {
   s3Bucket: string;
   s3Prefix: string;
 }
+
 export interface CreateChatbotResponse {
   Message: string;
 }
@@ -209,11 +210,6 @@ export interface GetChatbotResponse {
   ModelId: string;
   Scene: string;
   Chatbot: Chatbot;
-}
-
-export interface PresignedUrlResponse {
-  data: string;
-  message: string;
 }
 
 export interface PresignedUrlResponse {
