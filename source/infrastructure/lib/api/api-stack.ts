@@ -473,8 +473,8 @@ export class ApiConstruct extends Construct {
       apiResourceChatbot.addMethod("POST", lambdaChatbotIntegration, this.genMethodOption(api, auth, null));
       apiResourceChatbot.addMethod("GET", lambdaChatbotIntegration, this.genMethodOption(api, auth, null));
 
-      const apiResourceChatbotManagementModels = apiResourceChatbotManagement.addResource("models")
-      apiResourceChatbotManagementModels.addMethod("GET", lambdaChatbotIntegration, this.genMethodOption(api, auth, null));
+      const apiResourceChatbotManagementEmbeddings = apiResourceChatbotManagement.addResource("embeddings")
+      apiResourceChatbotManagementEmbeddings.addMethod("GET", lambdaChatbotIntegration, this.genMethodOption(api, auth, null));
 
       const apiResourceChatbotProxy = apiResourceChatbot.addResource("{proxy+}")
       apiResourceChatbotProxy.addMethod("DELETE", lambdaChatbotIntegration, this.genMethodOption(api, auth, null),);

@@ -62,7 +62,7 @@ const ChatbotManagement: React.FC = () => {
     setLoadingGet(true);
     try {
       const data = await fetchData({
-        url: 'prompt-management/models',
+        url: 'chatbot-management/embeddings',
         method: 'get',
       });
       const items: string[] = data;
@@ -102,11 +102,11 @@ const ChatbotManagement: React.FC = () => {
     }
   };
 
-  const getPromptById = async (type: 'create' | 'edit') => {
+  const getChatbotById = async (type: 'create' | 'edit') => {
     setLoadingGet(true);
-    let requestUrl = `prompt-management/prompts/${modelOption?.value}/common`;
+    let requestUrl = `chatbot-management/chatbots/${modelOption?.value}/common`;
     if (type === 'edit') {
-      requestUrl = `prompt-management/prompts/${selectedItems[0].ModelId}/common`;
+      requestUrl = `chatbot-management/chatbots/${selectedItems[0].ModelId}/common`;
       setModelOption({
         label: selectedItems[0].ModelId,
         value: selectedItems[0].ModelId,
@@ -128,11 +128,11 @@ const ChatbotManagement: React.FC = () => {
     }
   };
 
-  const deletePrompt = async () => {
+  const deleteChatbot = async () => {
     setLoadingSave(true);
     try {
       await fetchData({
-        url: `prompt-management/prompts/${selectedItems[0].ModelId}/common`,
+        url: `chatbot-management/chatbots/${selectedItems[0].ModelId}/common`,
         method: 'delete',
       });
       setLoadingSave(false);
@@ -143,7 +143,7 @@ const ChatbotManagement: React.FC = () => {
     }
   };
 
-  const createPrompt = async () => {
+  const createChatbot = async () => {
     // validate model settings
     if (!modelOption?.value?.trim()) {
       setModelError(t('validation.requireModel'));
@@ -152,7 +152,7 @@ const ChatbotManagement: React.FC = () => {
     setLoadingSave(true);
     try {
       const data = await fetchData({
-        url: 'prompt-management/prompts',
+        url: 'chatbot-management/chatbots',
         method: 'post',
         data: currentChatbot,
       });
@@ -168,13 +168,13 @@ const ChatbotManagement: React.FC = () => {
     }
   };
 
-  const handlePromptChange = (key: string, subKey: string, value: string) => {
+  const handleChatbotChange = (key: string, subKey: string, value: string) => {
     setCurrentChatbot((prevData: any) => ({
       ...prevData,
-      Prompt: {
-        ...prevData.Prompt,
+      Chatbot: {
+        ...prevData.Chatbot,
         [key]: {
-          ...prevData.Prompt[key],
+          ...prevData.Chatbot[key],
           [subKey]: value,
         },
       },
@@ -193,21 +193,21 @@ const ChatbotManagement: React.FC = () => {
 
   useEffect(() => {
     if (showCreate && modelOption) {
-      getPromptById('create');
+      getChatbotById('create');
     }
   }, [modelOption]);
 
   return (
     <CommonLayout
-      activeHref="/prompts"
+      activeHref="/chatbots"
       breadCrumbs={[
         {
           text: t('name'),
           href: '/',
         },
         {
-          text: t('prompt'),
-          href: '/prompts',
+          text: t('chatbot'),
+          href: '/chatbots',
         },
       ]}
     >
@@ -303,7 +303,7 @@ const ChatbotManagement: React.FC = () => {
                         setShowDelete(true);
                       }
                       if (detail.id === 'edit') {
-                        getPromptById('edit');
+                        getChatbotById('edit');
                       }
                     }}
                     items={[
@@ -321,7 +321,7 @@ const ChatbotManagement: React.FC = () => {
                       setShowCreate(true);
                     }}
                   >
-                    {t('button.createPrompt')}
+                    {t('button.createChatbot')}
                   </Button>
                 </SpaceBetween>
               }
@@ -331,7 +331,7 @@ const ChatbotManagement: React.FC = () => {
                   : `(${allChatbotList.length})`
               }
             >
-              {t('prompts')}
+              {t('chatbots')}
             </Header>
           }
         />
@@ -358,7 +358,7 @@ const ChatbotManagement: React.FC = () => {
                     loading={loadingSave}
                     variant="primary"
                     onClick={() => {
-                      createPrompt();
+                      createChatbot();
                     }}
                   >
                     {t('button.save')}
@@ -369,16 +369,16 @@ const ChatbotManagement: React.FC = () => {
                     loading={loadingSave}
                     variant="primary"
                     onClick={() => {
-                      createPrompt();
+                      createChatbot();
                     }}
                   >
-                    {t('button.createPrompt')}
+                    {t('button.createChatbot')}
                   </Button>
                 )}
               </SpaceBetween>
             </Box>
           }
-          header={t('button.createPrompt')}
+          header={t('button.createChatbot')}
         >
           <SpaceBetween direction="vertical" size="xs">
             <FormField
@@ -416,7 +416,7 @@ const ChatbotManagement: React.FC = () => {
               />
             </FormField>
             <FormField
-              label={t('prompts')}
+              label={t('chatbots')}
               stretch={true}
               errorText={chatbotError}
             >
@@ -437,12 +437,12 @@ const ChatbotManagement: React.FC = () => {
                                     <Textarea
                                       rows={5}
                                       placeholder={t(
-                                        'validation.requirePrompt',
+                                        'validation.requireChatbot',
                                       )}
                                       value={currentChatbot.Chatbot[key][subKey]}
                                       onChange={({ detail }) => {
                                         setChatbotError('');
-                                        handlePromptChange(
+                                        handleChatbotChange(
                                           key,
                                           subKey,
                                           detail.value,
@@ -460,7 +460,7 @@ const ChatbotManagement: React.FC = () => {
                 />
               )}
             </FormField>
-            <Alert type="info">{t('promptCreateTips')}</Alert>
+            <Alert type="info">{t('chatbotCreateTips')}</Alert>
           </SpaceBetween>
         </Modal>
 
@@ -482,7 +482,7 @@ const ChatbotManagement: React.FC = () => {
                   loading={loadingSave}
                   variant="primary"
                   onClick={() => {
-                    deletePrompt();
+                    deleteChatbot();
                   }}
                 >
                   {t('button.delete')}
@@ -500,7 +500,7 @@ const ChatbotManagement: React.FC = () => {
               ))}
             </ul>
           </div>
-          <Alert type="warning">{t('promptDeleteTips')}</Alert>
+          <Alert type="warning">{t('chatbotDeleteTips')}</Alert>
         </Modal>
       </ContentLayout>
     </CommonLayout>

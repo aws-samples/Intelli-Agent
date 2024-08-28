@@ -53,11 +53,12 @@ def get_query_parameter(event, parameter_name, default_value=None):
 
 
 def __create_chatbot(event, group_name):
-    chatbot_id = event.get("chatbotId", group_name.lower())
-    chatbot_description = event.get(
+    request_body = json.loads(event["body"])
+    chatbot_id = request_body.get("chatbotId", group_name.lower())
+    chatbot_description = request_body.get(
         "chatbotDescription", "Answer question based on search result"
     )
-    chatbot_embedding = event.get("chatbotEmbedding", embedding_endpoint)
+    chatbot_embedding = request_body.get("chatbotEmbedding", embedding_endpoint)
     model_id = f"{chatbot_id}-embedding"
     create_time = str(datetime.now(timezone.utc))
 
@@ -67,7 +68,7 @@ def __create_chatbot(event, group_name):
     # Iterate over all enum members and create DDB metadata
     for member in IndexType.__members__.values():
         index_type = member.value
-        index_ids = event.get(index_type, f"{chatbot_id}-{index_type}-default")
+        index_ids = request_body.get(index_type, f"{chatbot_id}-{index_type}-default")
         index_id_list[index_type] = index_ids
         for index_id in index_ids.split(","):
             tag = index_id
