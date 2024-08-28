@@ -160,15 +160,20 @@ def __list_chatbot(event, group_name):
     return output
 
 
+def merge_index(chatbot_index_ids, key):
+    return ",".join(list(chatbot_index_ids.get(key, {}).get("value", {}).values()))
+
+
 def __get_chatbot(event, group_name):
 
     chatbot_id = get_query_parameter(event, "chatbotId")
-    chatbot_item = chatbot_table.get_item(
-        Key={"groupName": group_name, "chatbotId": chatbot_id}
-    ).get("Item")
 
-    def merge_index(chatbot_index_ids, key):
-        return ",".join(list(chatbot_index_ids.get(key, {}).get("value", {}).values()))
+    if chatbot_id:
+        chatbot_item = chatbot_table.get_item(
+            Key={"groupName": group_name, "chatbotId": chatbot_id}
+        ).get("Item")
+    else:
+        chatbot_item = None
 
     if chatbot_item:
         chatbot_index_ids = chatbot_item.get("indexIds", {})
