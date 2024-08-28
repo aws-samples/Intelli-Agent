@@ -86,6 +86,7 @@ def __create_chatbot(event, group_name):
                 chatbot_table,
                 group_name,
                 chatbot_id,
+                chatbot_description,
                 index_id,
                 index_type,
                 tag,
@@ -133,7 +134,18 @@ def __list_chatbot(event, group_name):
         page_json = []
         for item in page_items:
             item_json = {}
-            item_json["chatbotId"] = item.get("chatbotId", {"S": ""})["S"]
+            chatbot_id = item.get("chatbotId", {"S": ""})["S"]
+            item_json["ChatbotId"] = chatbot_id
+            chatbot_model_item = model_table.get_item(
+                Key={
+                    "groupName": group_name,
+                    "modelId": f"{chatbot_id}-embedding",
+                }
+            ).get("Item")
+            item_json["ModelName"] = chatbot_model_item.get("parameter", {}).get(
+                "ModelEndpoint", ""
+            )
+            item_json["LastModifiedTime"] = item.get("updateTime", {"S": ""})["S"]
             page_json.append(item_json)
         output["Items"] = page_json
         if "LastEvaluatedKey" in page:
@@ -144,12 +156,54 @@ def __list_chatbot(event, group_name):
 
     output["Config"] = config
     output["Count"] = len(page_json)
-    output = {"chatbot_ids": ["Admin"]}
+    output["chatbot_ids"] = [item["ChatbotId"] for item in page_json]
     return output
 
 
+def merge_index(chatbot_index_ids, key):
+    return ",".join(list(chatbot_index_ids.get(key, {}).get("value", {}).values()))
+
+
 def __get_chatbot(event, group_name):
-    return {"Message": "Not Implemented"}
+
+    chatbot_id = get_query_parameter(event, "chatbotId")
+
+    if chatbot_id:
+        chatbot_item = chatbot_table.get_item(
+            Key={"groupName": group_name, "chatbotId": chatbot_id}
+        ).get("Item")
+    else:
+        chatbot_item = None
+
+    if chatbot_item:
+        chatbot_index_ids = chatbot_item.get("indexIds", {})
+
+        response = {
+            "GroupName": group_name,
+            "ChatbotId": chatbot_id,
+            "Chatbot": {
+                "inention": {
+                    "index": merge_index(chatbot_index_ids, "intention"),
+                },
+                "qq": {
+                    "index": merge_index(chatbot_index_ids, "qq"),
+                },
+                "qd": {
+                    "index": merge_index(chatbot_index_ids, "qd"),
+                },
+            },
+        }
+    else:
+        response = {
+            "GroupName": group_name,
+            "ChatbotId": chatbot_id,
+            "Chatbot": {
+                "inention": {"index": f"{chatbot_id}-intention-default"},
+                "qq": {"index": f"{chatbot_id}-qq-default"},
+                "qd": {"index": f"{chatbot_id}-qd-default"},
+            },
+        }
+    return response
 
 
 def __delete_chatbot(event, group_name):

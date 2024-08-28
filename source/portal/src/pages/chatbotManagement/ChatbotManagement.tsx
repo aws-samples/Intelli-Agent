@@ -22,7 +22,8 @@ import {
 import {
   CreateChatbotResponse,
   GetChatbotResponse,
-  ChatbotItem
+  ChatbotItem,
+  ChatbotResponse
 } from 'src/types';
 import useAxiosRequest from 'src/hooks/useAxiosRequest';
 import { useTranslation } from 'react-i18next';
@@ -32,8 +33,8 @@ const ChatbotManagement: React.FC = () => {
   const [selectedItems, setSelectedItems] = useState<ChatbotItem[]>([]);
   const fetchData = useAxiosRequest();
   const { t } = useTranslation();
-  const [loadingData] = useState(false);
-  const [allChatbotList] = useState<ChatbotItem[]>([]);
+  const [loadingData, setLoadingData] = useState(false);
+  const [allChatbotList, setAllChatbotList] = useState<ChatbotItem[]>([]);
   const [tableChatbotList, setTableChatbotList] = useState<ChatbotItem[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -43,7 +44,7 @@ const ChatbotManagement: React.FC = () => {
   const [loadingSave, setLoadingSave] = useState(false);
   const [currentChatbot, setCurrentChatbot] = useState<GetChatbotResponse>();
   const [modelList, setModelList] = useState<SelectProps.Option[]>([]);
-  const [chatbotList, setChatbotList] = useState<SelectProps.Option[]>([]);
+  // const [chatbotList, setChatbotList] = useState<SelectProps.Option[]>([]);
   const [modelOption, setModelOption] = useState<SelectProps.Option | null>(
     null,
   );
@@ -82,40 +83,54 @@ const ChatbotManagement: React.FC = () => {
   };
 
   const getChatbotList = async () => {
-    setLoadingGet(true);
+    setLoadingData(true);
+    setSelectedItems([]);
+    const params = {
+      max_items: 9999,
+      page_size: 9999,
+    };
     try {
       const data = await fetchData({
         url: 'chatbot-management/chatbots',
         method: 'get',
+        params,
       });
-      const items: string[] = data.chatbot_ids;
-      const getChatbots = items.map((item) => {
+      const items: ChatbotResponse = data;
+      const preSortItem = items.Items.map((chatbot) => {
         return {
-          label: item,
-          value: item,
+          ...chatbot,
+          uuid: chatbot.ChatbotId,
         };
       });
-      setChatbotList(getChatbots);
-      setChatbotOption(getChatbots[0]);
+      setAllChatbotList(preSortItem);
+      setTableChatbotList(preSortItem.slice(0, pageSize));
+      setLoadingData(false);
     } catch (error: unknown) {
-      setLoadingGet(false);
+      setLoadingData(false);
     }
   };
 
   const getChatbotById = async (type: 'create' | 'edit') => {
     setLoadingGet(true);
-    let requestUrl = `chatbot-management/chatbots/${modelOption?.value}/common`;
+    let requestUrl = `chatbot-management/chatbots/default`;
     if (type === 'edit') {
-      requestUrl = `chatbot-management/chatbots/${selectedItems[0].ModelId}/common`;
+      requestUrl = `chatbot-management/chatbots/common`;
+      setChatbotOption({
+        label: selectedItems[0].ChatbotId,
+        value: selectedItems[0].ChatbotId,
+      });
       setModelOption({
-        label: selectedItems[0].ModelId,
-        value: selectedItems[0].ModelId,
+        label: selectedItems[0].ModelName,
+        value: selectedItems[0].ModelName,
       });
     }
     try {
       const data: GetChatbotResponse = await fetchData({
         url: requestUrl,
         method: 'get',
+        params: {
+          chatbotId: selectedItems[0].ChatbotId,
+        },
       });
       setLoadingGet(false);
       setCurrentChatbot(data);
@@ -132,7 +147,7 @@ const ChatbotManagement: React.FC = () => {
     setLoadingSave(true);
     try {
       await fetchData({
-        url: `chatbot-management/chatbots/${selectedItems[0].ModelId}/common`,
+        url: `chatbot-management/chatbots/common`,
         method: 'delete',
       });
       setLoadingSave(false);
@@ -228,16 +243,17 @@ const ChatbotManagement: React.FC = () => {
           }}
           columnDefinitions={[
             {
-              id: 'modelId',
-              header: t('modelName'),
-              cell: (item: ChatbotItem) => item.ModelId,
+              id: 'chatbotId',
+              header: t('chatbotName'),
+              cell: (item: ChatbotItem) => item.ChatbotId,
               isRowHeader: true,
             },
-            // {
-            //   id: 'updateBy',
-            //   header: t('updateBy'),
-            //   cell: (item: ChatbotItem) => item.LastModifiedBy,
-            // },
+            {
+              id: 'modelId',
+              header: t('modelName'),
+              cell: (item: ChatbotItem) => item.ModelName,
+              isRowHeader: true,
+            },
             {
               id: 'updateTime',
               header: t('updateTime'),
@@ -381,23 +397,21 @@ const ChatbotManagement: React.FC = () => {
           header={t('button.createChatbot')}
         >
           <SpaceBetween direction="vertical" size="xs">
-            <FormField
-              label={t('chatbotName')}
-              stretch={true}
-              errorText={chatbotError}
-            >
-              <Select
-                disabled={loadingGet || showEdit}
-                onChange={({ detail }) => {
-                  setChatbotError('');
-                  setChatbotOption(detail.selectedOption);
-                }}
-                selectedOption={chatbotOption}
-                options={chatbotList}
-                placeholder={t('validation.requireChatbot')}
-                empty={t('noChatbotFound')}
-              />
-            </FormField>
+          <FormField
+            label={t('chatbotName')}
+            stretch={true}
+            errorText={chatbotError}
+          >
+            <Textarea
+              rows={1}
+              value={chatbotOption?.value ?? ''}
+              placeholder={'admin'}
+              onChange={({ detail }) => {
+                setChatbotError('');
+                setChatbotOption({ value: detail.value, label: detail.value})
+              }}
+            />
+          </FormField>
             <FormField
               label={t('modelName')}
               stretch={true}
@@ -496,7 +510,7 @@ const ChatbotManagement: React.FC = () => {
           <div className="selected-items-list">
             <ul className="gap-5 flex-v">
               {selectedItems.map((item) => (
-                <li key={item.SortKey}>{item.ModelId}</li>
+                <li key={item.SortKey}>{item.ModelName}</li>
               ))}
             </ul>
           </div>
