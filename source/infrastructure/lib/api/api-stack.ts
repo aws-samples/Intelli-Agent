@@ -426,33 +426,27 @@ export class ApiConstruct extends Construct {
         statements: [this.iamHelper.dynamodbStatement],
       });
   
-      const createChatbotLambda = new LambdaFunction(this, "CreateChatbot", {
-        code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
-        handler: "create_chatbot.lambda_handler",
-        environment: {
-          INDEX_TABLE_NAME: props.sharedConstructOutputs.indexTable.tableName,
-          CHATBOT_TABLE_NAME: props.sharedConstructOutputs.chatbotTable.tableName,
-          MODEL_TABLE_NAME: props.sharedConstructOutputs.modelTable.tableName,
-          EMBEDDING_ENDPOINT: props.modelConstructOutputs.defaultEmbeddingModelName,
-        },
-        statements: [this.iamHelper.dynamodbStatement],
-      });
-  
-      const listChatbotLambda = new LambdaFunction(this, "ListChatbot", {
-        code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
-        handler: "list_chatbot.lambda_handler",
-        environment: {
-          USER_POOL_ID: props.userConstructOutputs.userPool.userPoolId,
-        },
-        statements: [this.iamHelper.cognitoStatement],
-      });
-  
       const promptManagementLambda = new LambdaFunction(this, "PromptManagementLambda", {
         runtime: Runtime.PYTHON_3_12,
         code: Code.fromAsset(join(__dirname, "../../../lambda/prompt_management")),
         handler: "prompt_management.lambda_handler",
         environment: {
           PROMPT_TABLE_NAME: props.chatStackOutputs.promptTableName,
+        },
+        layers: [apiLambdaOnlineSourceLayer],
+        statements: [this.iamHelper.dynamodbStatement,
+                      this.iamHelper.logStatement],
+      });
+
+      const chatbotManagementLambda = new LambdaFunction(this, "ChatbotManagementLambda", {
+        runtime: Runtime.PYTHON_3_12,
+        code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
+        handler: "chatbot_management.lambda_handler",
+        environment: {
+          INDEX_TABLE_NAME: props.sharedConstructOutputs.indexTable.tableName,
+          CHATBOT_TABLE_NAME: props.sharedConstructOutputs.chatbotTable.tableName,
+          MODEL_TABLE_NAME: props.sharedConstructOutputs.modelTable.tableName,
+          EMBEDDING_ENDPOINT: props.modelConstructOutputs.defaultEmbeddingModelName,
         },
         layers: [apiLambdaOnlineSourceLayer],
         statements: [this.iamHelper.dynamodbStatement,
@@ -471,18 +465,20 @@ export class ApiConstruct extends Construct {
       const apiResourceListMessages = apiResourceDdb.addResource("messages");
       apiResourceListMessages.addMethod("GET", new apigw.LambdaIntegration(listMessagesLambda.function), this.genMethodOption(api, auth, null),);
 
-      const apiResourceChatbot = api.root.addResource("chatbot-management");
-      const apiChatbot = apiResourceChatbot.addResource("chatbots");
-      apiChatbot.addMethod(
-        "POST",
-        new apigw.LambdaIntegration(createChatbotLambda.function),
-        this.genMethodOption(api, auth, null),
-      );
-      apiChatbot.addMethod(
-        "GET",
-        new apigw.LambdaIntegration(listChatbotLambda.function),
-        this.genMethodOption(api, auth, null),
-      );
+      const lambdaChatbotIntegration = new apigw.LambdaIntegration(chatbotManagementLambda.function, {
+        proxy: true,
+      });
+      const apiResourceChatbotManagement = api.root.addResource("chatbot-management");
+      const apiResourceChatbot = apiResourceChatbotManagement.addResource("chatbots");
+      apiResourceChatbot.addMethod("POST", lambdaChatbotIntegration, this.genMethodOption(api, auth, null));
+      apiResourceChatbot.addMethod("GET", lambdaChatbotIntegration, this.genMethodOption(api, auth, null));
+
+      const apiResourceChatbotManagementModels = apiResourceChatbotManagement.addResource("models")
+      apiResourceChatbotManagementModels.addMethod("GET", lambdaChatbotIntegration, this.genMethodOption(api, auth, null));
+
+      const apiResourceChatbotProxy = apiResourceChatbot.addResource("{proxy+}")
+      apiResourceChatbotProxy.addMethod("DELETE", lambdaChatbotIntegration, this.genMethodOption(api, auth, null),);
+      apiResourceChatbotProxy.addMethod("GET", lambdaChatbotIntegration, this.genMethodOption(api, auth, null),);
 
       // Define the API Gateway Lambda Integration to manage prompt
       const lambdaPromptIntegration = new apigw.LambdaIntegration(promptManagementLambda.function, {
