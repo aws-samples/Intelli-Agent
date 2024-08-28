@@ -56,7 +56,7 @@ export class UiExportsConstruct extends Construct {
           Key: configFile,
         },
         service: 'S3',
-        physicalResourceId: PhysicalResourceId.of('config'),
+        physicalResourceId: PhysicalResourceId.of(`config-${Date.now()}`),
       },
       policy: AwsCustomResourcePolicy.fromStatements([
         new PolicyStatement({

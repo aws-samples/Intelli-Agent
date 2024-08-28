@@ -17,7 +17,7 @@ ddb_prompt_table = dynamodb_resource.Table(ddb_prompt_table_name)
 EXPORT_MODEL_IDS = [
     LLMModelType.CLAUDE_3_HAIKU,
     LLMModelType.CLAUDE_3_SONNET,
-    LLMModelType.CLAUDE_3_5_SONNET,
+    # LLMModelType.CLAUDE_3_5_SONNET,
 ]
 
 EXPORT_SCENES = [

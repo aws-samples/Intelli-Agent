@@ -46,10 +46,12 @@ def __put_prompt(event, group_name):
     body = json.loads(event["body"])
     model_id = body.get("ModelId")
     scene = body.get("Scene")
+    chatbot_id = body.get("ChatbotId")
     prompt_table.put_item(
         Item={
             "GroupName": group_name,
-            "SortKey": f"{model_id}__{scene}",
+            "SortKey": f"{model_id}__{scene}__{chatbot_id}",
+            "ChatbotId": chatbot_id,
             "ModelId": model_id,
             "Scene": scene,
             "Prompt": body.get("Prompt"),
@@ -128,6 +130,7 @@ def __get_prompt(event, group_name):
         "GroupName": group_name,
         "SortKey": sort_key,
         "ModelId": keys[0],
+        "ChatbotId": keys[2],
         "Scene": keys[1],
         "Prompt": default_prompt,
     }

@@ -13,13 +13,30 @@ export type LibraryListItem = {
   qaEnhance: string;
   operationType: string;
   sfnExecutionId: string;
-  indexType: string;
+  indexType: string; 
   chatbotId: string;
   createTime: string;
 };
 
 export type LibraryListResponse = {
   Items: LibraryListItem[];
+  Count: number;
+  config: ResponseConfig;
+};
+
+export type IntentionsItem = {
+  executionId: string;
+  executionStatus: string;
+  fileName: string;
+  index: string;
+  model: string;
+  tag: string;
+  chatbotId: string;
+  createTime: string;
+};
+
+export type IntentionsResponse = {
+  Items: IntentionsItem[];
   Count: number;
   config: ResponseConfig;
 };
@@ -81,6 +98,28 @@ export type LibraryExecutionResponse = {
   Count: number;
 };
 
+export type QAItem = {
+  question: string,
+  intention: string,
+  kwargs: string
+}
+
+export type IntentionExecutionItem = {
+  s3Prefix: string;
+  detail?: string;
+  s3Bucket: string;
+  executionId: string;
+  status: string;
+  createTime: string;
+  s3Path: string;
+  QAList: QAItem[]
+};
+
+export type IntentionExecutionResponse = {
+  Items: IntentionExecutionItem[];
+  Count: number;
+};
+
 export type AdditionalImageType = {
   content_type: string;
   figure_path: string;
@@ -109,6 +148,7 @@ export type PromptItem = {
   ModelId: string;
   SortKey: string;
   Scene: string;
+  ChatbotId: string;
 };
 
 export type PromptResponse = {
@@ -128,9 +168,16 @@ export interface GetPromptResponse {
   SortKey: string;
   ModelId: string;
   Scene: string;
+  ChatbotId: string;
   Prompt: Prompt;
 }
 
+
+export interface PresignedUrlData {
+  url: string;
+  s3Bucket: string;
+  s3Prefix: string;
+}
 export interface CreateChatbotResponse {
   Message: string;
 }
@@ -167,12 +214,19 @@ export interface GetChatbotResponse {
 export interface PresignedUrlResponse {
   data: string;
   message: string;
-  s3Bucket: string;
-  s3Prefix: string;
+}
+
+export interface PresignedUrlResponse {
+  data: PresignedUrlData;
+  message: string;
 }
 
 export interface ExecutionResponse {
   execution_id: string;
   input_payload: string;
   step_function_arn: string;
+}
+export interface SelectedOption {
+  value: string;
+  label: string;
 }

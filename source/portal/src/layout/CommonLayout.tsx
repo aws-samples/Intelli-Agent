@@ -165,6 +165,11 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
                   },
                   {
                     type: 'link',
+                    text: t('intention'),
+                    href: '/intention',
+                  },
+                  {
+                    type: 'link',
                     text: t('chatbotManagement'),
                     href: '/chatbot-management',
                   },
