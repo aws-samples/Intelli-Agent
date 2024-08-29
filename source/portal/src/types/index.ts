@@ -189,7 +189,6 @@ export type ChatbotItem = {
   // LastModifiedBy: string;
   ModelName: string;
   SortKey: string;
-  Scene: string;
 };
 
 export type ChatbotResponse = {
@@ -206,9 +205,7 @@ export interface Chatbot {
 
 export interface GetChatbotResponse {
   GroupName: string;
-  SortKey: string;
-  ModelId: string;
-  Scene: string;
+  ChatbotId: string;
   Chatbot: Chatbot;
 }
 

@@ -43,6 +43,7 @@ const ChatbotManagement: React.FC = () => {
   const [showEdit, setShowEdit] = useState(false);
   const [loadingSave, setLoadingSave] = useState(false);
   const [currentChatbot, setCurrentChatbot] = useState<GetChatbotResponse>();
+  const [createChatbotId, setCreateChatbotId] = useState('');
   const [modelList, setModelList] = useState<SelectProps.Option[]>([]);
   // const [chatbotList, setChatbotList] = useState<SelectProps.Option[]>([]);
   const [modelOption, setModelOption] = useState<SelectProps.Option | null>(
@@ -112,9 +113,9 @@ const ChatbotManagement: React.FC = () => {
 
   const getChatbotById = async (type: 'create' | 'edit') => {
     setLoadingGet(true);
-    let requestUrl = `chatbot-management/chatbots/default`;
+    let requestUrl = `chatbot-management/chatbots/create`;
     if (type === 'edit') {
-      requestUrl = `chatbot-management/chatbots/common`;
+      requestUrl = `chatbot-management/chatbots/edit`;
       setChatbotOption({
         label: selectedItems[0].ChatbotId,
         value: selectedItems[0].ChatbotId,
@@ -125,11 +126,17 @@ const ChatbotManagement: React.FC = () => {
       });
     }
     try {
+      let chatbotIdParam = '';
+      if (selectedItems.length > 0) {
+        chatbotIdParam = selectedItems[0].ChatbotId;
+      } else {
+        chatbotIdParam = 'admin';
+      }
       const data: GetChatbotResponse = await fetchData({
         url: requestUrl,
         method: 'get',
         params: {
-          chatbotId: selectedItems[0].ChatbotId,
+          chatbotId: chatbotIdParam,
         },
       });
       setLoadingGet(false);
@@ -147,7 +154,7 @@ const ChatbotManagement: React.FC = () => {
     setLoadingSave(true);
     try {
       await fetchData({
-        url: `chatbot-management/chatbots/common`,
+        url: `chatbot-management/chatbots/delete/${selectedItems[0].ChatbotId}`,
         method: 'delete',
       });
       setLoadingSave(false);
@@ -166,6 +173,9 @@ const ChatbotManagement: React.FC = () => {
     }
     setLoadingSave(true);
     try {
+      if (currentChatbot) {
+        currentChatbot.ChatbotId = createChatbotId;
+      }
       const data = await fetchData({
         url: 'chatbot-management/chatbots',
         method: 'post',
@@ -333,7 +343,7 @@ const ChatbotManagement: React.FC = () => {
                     variant="primary"
                     onClick={() => {
                       getModelList('create');
-                      getChatbotList();
+                      getChatbotById('create');
                       setShowCreate(true);
                     }}
                   >
@@ -409,6 +419,7 @@ const ChatbotManagement: React.FC = () => {
               onChange={({ detail }) => {
                 setChatbotError('');
                 setChatbotOption({ value: detail.value, label: detail.value})
+                setCreateChatbotId(detail.value);
               }}
             />
           </FormField>
