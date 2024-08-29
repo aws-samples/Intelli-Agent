@@ -186,7 +186,6 @@ export interface CreateChatbotResponse {
 export type ChatbotItem = {
   ChatbotId: string;
   LastModifiedTime: string;
-  // LastModifiedBy: string;
   ModelName: string;
   SortKey: string;
 };
