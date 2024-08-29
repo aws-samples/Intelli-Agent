@@ -77,6 +77,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   // const [chatModeOption, setChatModeOption] = useState<SelectProps.Option>(
   //   LLM_BOT_CHAT_MODE_LIST[0],
   // );
+  const [chatbotList, setChatbotList] = useState<SelectProps.Option[]>([]);
   const [chatbotOption, setChatbotOption] = useState<SelectProps.Option>(
     LLM_BOT_CHATBOT_LIST[0],
   );
@@ -94,7 +95,6 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   );
 
   const [sessionId, setSessionId] = useState(historySessionId);
-  const [workspaceIds, setWorkspaceIds] = useState<any[]>([]);
 
   const [temperature, setTemperature] = useState<string>('0.01');
   const [maxToken, setMaxToken] = useState<string>('1000');
@@ -131,7 +131,15 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
         url: 'chatbot-management/chatbots',
         method: 'get',
       });
-      setWorkspaceIds(data.chatbot_ids);
+      const chatbots: string[] = data.chatbot_ids;
+      const getChatbots = chatbots.map((item) => {
+        return {
+          label: item,
+          value: item,
+        };
+      }
+      );
+      setChatbotList(getChatbots);
     } catch (error) {
       console.error(error);
       return [];
@@ -323,9 +331,6 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
         enable_trace: enableTrace,
         use_websearch: true,
         google_api_key: '',
-        default_index_config: {
-          rag_index_ids: workspaceIds,
-        },
         default_llm_config: {
           model_id: modelOption,
           endpoint_name:
@@ -433,7 +438,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
         <div className="flex-v gap-10">
           <div className="flex gap-5 send-message">
             <Select
-              options={LLM_BOT_CHATBOT_LIST}
+              options={chatbotList}
               selectedOption={chatbotOption}
               onChange={({ detail }) => {
                 setChatbotOption(detail.selectedOption);
