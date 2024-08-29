@@ -112,9 +112,9 @@ const ChatbotManagement: React.FC = () => {
 
   const getChatbotById = async (type: 'create' | 'edit') => {
     setLoadingGet(true);
-    let requestUrl = `chatbot-management/chatbots/default`;
+    let requestUrl = `chatbot-management/chatbots/create`;
     if (type === 'edit') {
-      requestUrl = `chatbot-management/chatbots/common`;
+      requestUrl = `chatbot-management/chatbots/edit`;
       setChatbotOption({
         label: selectedItems[0].ChatbotId,
         value: selectedItems[0].ChatbotId,
@@ -125,11 +125,17 @@ const ChatbotManagement: React.FC = () => {
       });
     }
     try {
+      let chatbotIdParam = '';
+      if (selectedItems.length > 0) {
+        chatbotIdParam = selectedItems[0].ChatbotId;
+      } else {
+        chatbotIdParam = 'admin';
+      }
       const data: GetChatbotResponse = await fetchData({
         url: requestUrl,
         method: 'get',
         params: {
-          chatbotId: selectedItems[0].ChatbotId,
+          chatbotId: chatbotIdParam,
         },
       });
       setLoadingGet(false);
@@ -333,7 +339,7 @@ const ChatbotManagement: React.FC = () => {
                     variant="primary"
                     onClick={() => {
                       getModelList('create');
-                      getChatbotList();
+                      getChatbotById('create');
                       setShowCreate(true);
                     }}
                   >
@@ -409,6 +415,10 @@ const ChatbotManagement: React.FC = () => {
               onChange={({ detail }) => {
                 setChatbotError('');
                 setChatbotOption({ value: detail.value, label: detail.value})
+                // setCurrentChatbot((prevData: any) => ({
+                //   ...prevData,
+                //   ChatbotId: detail.value,
+                // }));
               }}
             />
           </FormField>
