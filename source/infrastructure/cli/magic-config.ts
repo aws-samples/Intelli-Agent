@@ -12,10 +12,22 @@ import { LIB_VERSION } from "./version.js";
 const embeddingModels = [
   {
     provider: "bedrock",
-    name: "amazon.titan-embed-text-v1",
+    name: "amazon.titan-embed-text-v2",
     commitId: "",
     dimensions: 1024,
     default: true,
+  },
+  {
+    provider: "bedrock",
+    name: "cohere.embed-english-v3",
+    commitId: "",
+    dimensions: 1024,
+  },
+  {
+    provider: "bedrock",
+    name: "amazon.titan-embed-text-v1",
+    commitId: "",
+    dimensions: 1024,
   },
   {
     provider: "sagemaker",
