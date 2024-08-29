@@ -43,6 +43,7 @@ const ChatbotManagement: React.FC = () => {
   const [showEdit, setShowEdit] = useState(false);
   const [loadingSave, setLoadingSave] = useState(false);
   const [currentChatbot, setCurrentChatbot] = useState<GetChatbotResponse>();
+  const [createChatbotId, setCreateChatbotId] = useState('');
   const [modelList, setModelList] = useState<SelectProps.Option[]>([]);
   // const [chatbotList, setChatbotList] = useState<SelectProps.Option[]>([]);
   const [modelOption, setModelOption] = useState<SelectProps.Option | null>(
@@ -153,7 +154,7 @@ const ChatbotManagement: React.FC = () => {
     setLoadingSave(true);
     try {
       await fetchData({
-        url: `chatbot-management/chatbots/common`,
+        url: `chatbot-management/chatbots/delete/${selectedItems[0].ChatbotId}`,
         method: 'delete',
       });
       setLoadingSave(false);
@@ -172,6 +173,9 @@ const ChatbotManagement: React.FC = () => {
     }
     setLoadingSave(true);
     try {
+      if (currentChatbot) {
+        currentChatbot.ChatbotId = createChatbotId;
+      }
       const data = await fetchData({
         url: 'chatbot-management/chatbots',
         method: 'post',
@@ -415,10 +419,7 @@ const ChatbotManagement: React.FC = () => {
               onChange={({ detail }) => {
                 setChatbotError('');
                 setChatbotOption({ value: detail.value, label: detail.value})
-                // setCurrentChatbot((prevData: any) => ({
-                //   ...prevData,
-                //   ChatbotId: detail.value,
-                // }));
+                setCreateChatbotId(detail.value);
               }}
             />
           </FormField>

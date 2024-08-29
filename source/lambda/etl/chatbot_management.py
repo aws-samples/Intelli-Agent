@@ -54,7 +54,7 @@ def get_query_parameter(event, parameter_name, default_value=None):
 
 def __create_chatbot(event, group_name):
     request_body = json.loads(event["body"])
-    chatbot_id = request_body.get("chatbotId", group_name.lower())
+    chatbot_id = request_body.get("ChatbotId", group_name.lower())
     chatbot_description = request_body.get(
         "chatbotDescription", "Answer question based on search result"
     )
@@ -68,7 +68,11 @@ def __create_chatbot(event, group_name):
     # Iterate over all enum members and create DDB metadata
     for member in IndexType.__members__.values():
         index_type = member.value
-        index_ids = request_body.get(index_type, f"{chatbot_id}-{index_type}-default")
+        index_ids = (
+            request_body.get("Chatbot", {})
+            .get(index_type, {})
+            .get("index", f"{chatbot_id}-{index_type}-default")
+        )
         index_id_list[index_type] = index_ids
         for index_id in index_ids.split(","):
             tag = index_id
@@ -207,7 +211,12 @@ def __get_chatbot(event, group_name):
 
 
 def __delete_chatbot(event, group_name):
-    return {"Message": "Not Implemented"}
+    chatbot_id = event["path"].split("/")[-1]
+
+    response = chatbot_table.delete_item(
+        Key={"groupName": group_name, "chatbotId": chatbot_id}
+    )
+    return response
 
 
 def lambda_handler(event, context):
