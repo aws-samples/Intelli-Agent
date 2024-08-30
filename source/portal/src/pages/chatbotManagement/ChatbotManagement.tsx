@@ -165,7 +165,7 @@ const ChatbotManagement: React.FC = () => {
     }
   };
 
-  const createChatbot = async () => {
+  const createChatbot = async ( type: 'create' | 'edit') => {
     // validate model settings
     if (!modelOption?.value?.trim()) {
       setModelError(t('validation.requireModel'));
@@ -173,7 +173,7 @@ const ChatbotManagement: React.FC = () => {
     }
     setLoadingSave(true);
     try {
-      if (currentChatbot) {
+      if (type === 'create' && currentChatbot) {
         currentChatbot.ChatbotId = createChatbotId;
       }
       const data = await fetchData({
@@ -384,7 +384,7 @@ const ChatbotManagement: React.FC = () => {
                     loading={loadingSave}
                     variant="primary"
                     onClick={() => {
-                      createChatbot();
+                      createChatbot('edit');
                     }}
                   >
                     {t('button.save')}
@@ -395,7 +395,7 @@ const ChatbotManagement: React.FC = () => {
                     loading={loadingSave}
                     variant="primary"
                     onClick={() => {
-                      createChatbot();
+                      createChatbot('create');
                     }}
                   >
                     {t('button.createChatbot')}

@@ -12,7 +12,7 @@ import { LIB_VERSION } from "./version.js";
 const embeddingModels = [
   {
     provider: "bedrock",
-    name: "amazon.titan-embed-text-v2",
+    name: "amazon.titan-embed-text-v2:0",
     commitId: "",
     dimensions: 1024,
     default: true,
