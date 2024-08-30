@@ -131,7 +131,7 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
     const connection = new glue.Connection(this, "GlueJobConnection", {
       type: glue.ConnectionType.NETWORK,
       subnet: props.sharedConstructOutputs.vpc.privateSubnets[0],
-      securityGroups: [props.sharedConstructOutputs.securityGroup],
+      securityGroups: props.sharedConstructOutputs.securityGroups,
     });
 
     const notificationLambda = new Function(this, "ETLNotification", {
@@ -151,7 +151,7 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
 
     // If this.region is cn-north-1 or cn-northwest-1, use the glue-job-script-cn.py
     const glueJobScript =
-      this.region === "cn-north-1" || this.region === "cn-northwest-1"
+      this.modelRegion === "cn-north-1" || this.modelRegion === "cn-northwest-1"
         ? "glue-job-script-cn.py"
         : "glue-job-script.py";
     

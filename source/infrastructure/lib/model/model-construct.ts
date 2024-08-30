@@ -11,7 +11,7 @@
  *  and limitations under the License.                                                                                *
  *********************************************************************************************************************/
 
-import { Aws, Duration, CustomResource } from "aws-cdk-lib";
+import { Aws, Duration, CustomResource, NestedStack } from "aws-cdk-lib";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as sagemaker from "aws-cdk-lib/aws-sagemaker";
 import { Construct } from "constructs";
@@ -66,16 +66,16 @@ interface DeploySagemakerEndpointResponse {
   readonly model?: sagemaker.CfnModel
 }
 
-export class ModelConstruct extends Construct implements ModelConstructOutputs {
+export class ModelConstruct extends NestedStack implements ModelConstructOutputs {
   public defaultEmbeddingModelName: string = "";
   public defaultKnowledgeBaseModelName: string = "";
-  private account = Aws.ACCOUNT_ID;
-  private region = Aws.REGION;
-  private iamHelper?: IAMHelper;
-  private executionRole?: iam.Role;
-  private modelImageUrlDomain?: string;
-  private modelPublicEcrAccount?: string;
-  private modelVariantName?: string;
+  modelAccount = Aws.ACCOUNT_ID;
+  modelRegion = Aws.REGION;
+  modelIamHelper?: IAMHelper;
+  modelExecutionRole?: iam.Role;
+  modelImageUrlDomain?: string;
+  modelPublicEcrAccount?: string;
+  modelVariantName?: string;
 
   constructor(scope: Construct, id: string, props: ModelConstructProps) {
     super(scope, id);
@@ -84,15 +84,15 @@ export class ModelConstruct extends Construct implements ModelConstructOutputs {
     if (props.config.model.embeddingsModels[0].provider === "bedrock") {
       this.defaultEmbeddingModelName = props.config.model.embeddingsModels[0].name;
     } else {
-      this.iamHelper = props.sharedConstructOutputs.iamHelper;
+      this.modelIamHelper = props.sharedConstructOutputs.iamHelper;
       this.modelVariantName = "variantProd";
       this.modelImageUrlDomain =
-        this.region === "cn-north-1" || this.region === "cn-northwest-1"
+        this.modelRegion === "cn-north-1" || this.modelRegion === "cn-northwest-1"
           ? ".amazonaws.com.cn/"
           : ".amazonaws.com/";
   
       this.modelPublicEcrAccount =
-        this.region === "cn-north-1" || this.region === "cn-northwest-1"
+        this.modelRegion === "cn-north-1" || this.modelRegion === "cn-northwest-1"
           ? "727897471807.dkr.ecr."
           : "763104351884.dkr.ecr.";
   
@@ -106,14 +106,14 @@ export class ModelConstruct extends Construct implements ModelConstructOutputs {
           iam.ManagedPolicy.fromAwsManagedPolicyName("CloudWatchLogsFullAccess"),
         ],
       });
-      executionRole.addToPolicy(this.iamHelper.logStatement);
-      executionRole.addToPolicy(this.iamHelper.s3Statement);
-      executionRole.addToPolicy(this.iamHelper.endpointStatement);
-      executionRole.addToPolicy(this.iamHelper.stsStatement);
-      executionRole.addToPolicy(this.iamHelper.ecrStatement);
-      executionRole.addToPolicy(this.iamHelper.llmStatement);
+      executionRole.addToPolicy(this.modelIamHelper.logStatement);
+      executionRole.addToPolicy(this.modelIamHelper.s3Statement);
+      executionRole.addToPolicy(this.modelIamHelper.endpointStatement);
+      executionRole.addToPolicy(this.modelIamHelper.stsStatement);
+      executionRole.addToPolicy(this.modelIamHelper.ecrStatement);
+      executionRole.addToPolicy(this.modelIamHelper.llmStatement);
   
-      this.executionRole = executionRole;
+      this.modelExecutionRole = executionRole;
   
       if ( props.config.knowledgeBase.enabled && props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.enabled ) {
   
@@ -135,21 +135,17 @@ export class ModelConstruct extends Construct implements ModelConstructOutputs {
 
   private deployEmbeddingAndRerankerEndpoint(props: ModelConstructProps) {
     // Deploy Embedding and Reranker model
-    let embeddingAndRerankerModelPrefix = props.config.model.embeddingsModels.find(
-      (model) => model.default === true,
-    )?.name ?? "";
-    let embeddingAndRerankerModelVersion = props.config.model.embeddingsModels.find(
-      (model) => model.default === true,
-    )?.commitId ?? "";
+    let embeddingAndRerankerModelPrefix = props.config.model.embeddingsModels[0].name ?? "";
+    let embeddingAndRerankerModelVersion = props.config.model.embeddingsModels[0].commitId ?? "";
     let embeddingAndRerankerModelName = embeddingAndRerankerModelPrefix + "-" + embeddingAndRerankerModelVersion.slice(0, 5)
-    let embeddingAndRerankerImageUrl = this.modelPublicEcrAccount + this.region + this.modelImageUrlDomain + "djl-inference:0.21.0-deepspeed0.8.3-cu117";
+    let embeddingAndRerankerImageUrl = this.modelPublicEcrAccount + this.modelRegion + this.modelImageUrlDomain + "djl-inference:0.21.0-deepspeed0.8.3-cu117";
     let embeddingAndRerankerModelDataUrl = `s3://${props.config.model.modelConfig.modelAssetsBucket}/${embeddingAndRerankerModelPrefix}_deploy_code/`;
     let codePrefix = embeddingAndRerankerModelPrefix + "_deploy_code";
 
     const embeddingAndRerankerModelResources = this.deploySagemakerEndpoint({
       modelProps: {
         modelName: embeddingAndRerankerModelName,
-        executionRoleArn: this.executionRole?.roleArn,
+        executionRoleArn: this.modelExecutionRole?.roleArn,
         primaryContainer: {
           image: embeddingAndRerankerImageUrl,
           modelDataUrl: embeddingAndRerankerModelDataUrl,
@@ -192,7 +188,7 @@ export class ModelConstruct extends Construct implements ModelConstructOutputs {
     let knowledgeBaseModelName = "knowledge-base-model";
     let knowledgeBaseModelEcrRepository = props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.ecrRepository;
     let knowledgeBaseModelEcrImageTag = props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.ecrImageTag;
-    let knowledgeBaseModelImageUrl = this.account + ".dkr.ecr." + this.region + this.modelImageUrlDomain + knowledgeBaseModelEcrRepository + ":" + knowledgeBaseModelEcrImageTag;
+    let knowledgeBaseModelImageUrl = this.modelAccount + ".dkr.ecr." + this.modelRegion + this.modelImageUrlDomain + knowledgeBaseModelEcrRepository + ":" + knowledgeBaseModelEcrImageTag;
 
     const knowledgeBaseModelResources = this.deploySagemakerEndpoint({
       modelProps: {
@@ -200,7 +196,7 @@ export class ModelConstruct extends Construct implements ModelConstructOutputs {
         primaryContainer: {
           image: knowledgeBaseModelImageUrl,
         },
-        executionRoleArn: this.executionRole?.roleArn,
+        executionRoleArn: this.modelExecutionRole?.roleArn,
       },
       endpointConfigProps: {
         endpointConfigName: knowledgeBaseModelName + "-endpoint-config",
@@ -240,16 +236,20 @@ export class ModelConstruct extends Construct implements ModelConstructOutputs {
 
     // Create Sagemaker's model, endpointConfig, and endpoint
     if (props.modelProps) {
-      sagemakerRole = this.executionRole;
+      sagemakerRole = this.modelExecutionRole;
+      // const randomString = Math.random().toString(36).substring(2, 8);
+      // const smModelName = `${props.modelProps.modelName}ia-${randomString}`;
+      const smModelName = `${props.modelProps.modelName}`;
 
       // Create Sagemaker Model
-      model = new sagemaker.CfnModel(this, `${props.modelProps.modelName}`, props.modelProps);
+      model = new sagemaker.CfnModel(this, smModelName, props.modelProps);
+      // model = new sagemaker.CfnModel(this, smModelName, props.modelProps);
       // Create Sagemaker EndpointConfig
-      endpointConfig = new sagemaker.CfnEndpointConfig(this, `${props.modelProps.modelName}-endpoint-config`, props.endpointConfigProps);
+      endpointConfig = new sagemaker.CfnEndpointConfig(this, `${smModelName}-endpoint-config`, props.endpointConfigProps);
       // Add dependency on model
       endpointConfig.addDependency(model);
       // Create Sagemaker Endpoint
-      endpoint = new sagemaker.CfnEndpoint(this, `${props.modelProps.modelName}-endpoint`, props.endpointProps);
+      endpoint = new sagemaker.CfnEndpoint(this, `${smModelName}-endpoint`, props.endpointProps);
       // Add dependency on EndpointConfig
       endpoint.addDependency(endpointConfig);
 
