@@ -37,6 +37,7 @@ const Intention: React.FC = () => {
   );
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [indexName, setIndexName] = useState('');
   // const [loadingDelete, setLoadingDelete] = useState(false);
   const [sortingColumn, setSortingColumn] = useState<
     TableProps.SortingColumn<IntentionsItem>
@@ -45,7 +46,6 @@ const Intention: React.FC = () => {
   });
   const [isDescending, setIsDescending] = useState<boolean | undefined>(true);
   const auth = useAuth();
-
   // ingest document
   const [showAddModal, setShowAddModal] = useState(false);
   const isFirstRender = useRef(true);
@@ -53,10 +53,19 @@ const Intention: React.FC = () => {
   const [selectedBotsOption, setSelectedBotsOption] = useState<SelectedOption>();
   const [models, setModels] = useState<SelectedOption[]>([])
   const [selectedModelOption, setSelectedModelOption] = useState<SelectedOption>();
+  const [useDefaultIndex, setUseDefaultIndex] = useState(true);
 
   const changeBotOption = (selectedBotOption: SelectedOption)=>{
     setSelectedBotsOption(selectedBotOption)
+    if(useDefaultIndex){
+      setIndexName(`${selectedBotOption.value.toLocaleLowerCase()}-intention-default`)
+    }
   }
+
+  // const changeUseDefaultIndex = (useDefault: boolean)=>{
+  //    console.log(!useDefault)
+  //    setUseDefaultIndex(!useDefault)
+  // }
 
   const changeModelOption = (selectedBotOption: SelectedOption)=>{
     setSelectedModelOption(selectedBotOption)
@@ -75,34 +84,6 @@ const Intention: React.FC = () => {
         method: 'get',
         params,
       });
-    //   res.Items=[{
-    //     executionId:"4d5e6f70-8901-23de-f456-4879WABGFBBC",
-    //     fileName:"基于周会讨论的QA对.xlsx",
-    //     chatbotId:"admin",
-    //     index:"admin-intention-default",
-    //     model:"cohere.embed-english-v3",
-    //     tag:"default",
-    //     executionStatus:"COMPLETED",
-    //     createTime:"2022-08-21 17:28:32"
-    // },{
-    //     executionId:"5e6f7081-9012-34ef-5678-BDAL2344BBAA",
-    //     fileName:"pricinglist.xlsx",
-    //     chatbotId:"admin",
-    //     index:"admin-intention-default",
-    //     model:"cohere.embed-english-v3",
-    //     tag:"default",
-    //     executionStatus:"COMPLETED",
-    //     createTime:"2022-08-21 17:28:32"
-    // },{
-    //     executionId:"2b3c4d5e-6789-01bc-def2-FD34678CDDAB",
-    //     fileName:"初识语料列表.xlsx",
-    //     chatbotId:"admin",
-    //     index:"admin-intention-default",
-    //     model:"cohere.embed-english-v3",
-    //     tag:"default",
-    //     executionStatus:"COMPLETED",
-    //     createTime:"2022-08-21 17:28:32"
-    // }]
       const preSortItem = res.Items
 
       preSortItem.sort((a, b) => {
@@ -117,24 +98,6 @@ const Intention: React.FC = () => {
       setLoadingData(false);
     }
   };
-
-  // const removeIntention = async () => {
-  //   try {
-  //     setLoadingDelete(true);
-  //     const data = await fetchData({
-  //       url: `intention/executions`,
-  //       method: 'delete',
-  //       data: { executionId: selectedItems.map((item) => item.executionId) },
-  //     });
-  //     setVisible(false);
-  //     getIntentionList();
-  //     alertMsg(data.message, 'success');
-  //     setLoadingDelete(false);
-  //     setSelectedItems([]);
-  //   } catch (error: unknown) {
-  //     setLoadingDelete(false);
-  //   }
-  // };
 
   const getBots = async ()=>{
     const groupName: string[] = auth?.user?.profile?.['cognito:groups'] as any;
@@ -152,9 +115,24 @@ const Intention: React.FC = () => {
          value: item
       })
     })
+
+    // options.push({
+    //   label: "Test",
+    //   value: "Test"
+    // })
     setBotsOption(options)
     setSelectedBotsOption(options[0])
+    setIndexName(`${options[0].value.toLocaleLowerCase()}-intention-default`)
   }
+
+  useEffect(()=>{
+    if(useDefaultIndex == false){
+      setIndexName("")
+    } else {
+      setIndexName(`${selectedBotsOption?.value.toLocaleLowerCase()}-intention-default`)
+    }
+
+  },[useDefaultIndex])
 
   const getModels  = async ()=>{
     const tempModels = [{
@@ -164,10 +142,12 @@ const Intention: React.FC = () => {
     // ,{
     //   value: "cohere.embed-multilingual-v3",
     //   label: "cohere.embed-multilingual-v3"
-    // },{
-    //   value: "amazon.titan-embed-text-v1",
-    //   label: "amazon.titan-embed-text-v1"
-    // },{
+    // }
+    ,{
+      value: "amazon.titan-embed-text-v1",
+      label: "amazon.titan-embed-text-v1"
+    }
+    //,{
     //   value: "amazon.titan-embed-image-v1",
     //   label: "amazon.titan-embed-image-v1"
     // }
@@ -434,15 +414,6 @@ const Intention: React.FC = () => {
                 >
                   {t('button.cancel')}
                 </Button>
-                {/* <Button
-                  loading={loadingDelete}
-                  variant="primary"
-                  onClick={() => {
-                    removeIntention();
-                  }}
-                >
-                  {t('button.delete')}
-                </Button> */}
               </SpaceBetween>
             </Box>
           }
@@ -459,10 +430,14 @@ const Intention: React.FC = () => {
         </Modal>
         <AddIntention
           models={models}
+          indexName={indexName}
+          useDefaultIndex={useDefaultIndex}
           botsOption={botsOption}
           showAddModal={showAddModal}
           selectedModelOption={selectedModelOption}
           selectedBotOption={selectedBotsOption}
+          setIndexName={setIndexName}
+          changeUseDefaultIndex={setUseDefaultIndex}
           changeBotOption={changeBotOption}
           changeSelectedModel={changeModelOption}
           setShowAddModal={setShowAddModal}

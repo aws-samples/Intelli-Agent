@@ -1,5 +1,5 @@
 import __main__
-from datetime import datetime
+from datetime import datetime, timezone
 import hashlib
 import json
 import os
@@ -15,7 +15,8 @@ import logging
 from langchain.embeddings.bedrock import BedrockEmbeddings
 
 from aos.aos_utils import LLMBotOpenSearchClient
-from constant import AOS_INDEX, BULK_SIZE, DEFAULT_CONTENT_TYPE, DEFAULT_MAX_ITEMS, DEFAULT_SIZE, DOWNLOAD_RESOURCE, EXECUTION_RESOURCE, PRESIGNED_URL_RESOURCE, SECRET_NAME
+from constant import AOS_INDEX, BULK_SIZE, DEFAULT_CONTENT_TYPE, DEFAULT_MAX_ITEMS, DEFAULT_SIZE, DOWNLOAD_RESOURCE, EXECUTION_RESOURCE, INDEX_USED_SCAN_RESOURCE, PRESIGNED_URL_RESOURCE, SECRET_NAME, IndexType, ModelDimensionMap
+from ddb_utils import initiate_chatbot, initiate_index
 
 logger = logging.getLogger(__name__)
 encoder = TokenEncoder()
@@ -26,8 +27,12 @@ region = os.environ.get("REGION", "us-east-1")
 aos_domain_name = os.environ.get("AOS_DOMAIN_NAME", "smartsearch")
 aos_secret = os.environ.get("AOS_SECRET_NAME", "opensearch-master-user")
 intention_table_name = os.getenv("INTENTION_TABLE_NAME","intention")
-dynamodb_resource = boto3.resource("dynamodb")
-intention_table = dynamodb_resource.Table(intention_table_name)
+chatbot_table_name = os.getenv("CHATBOT_TABLE_NAME","chatbot")
+index_table_name = os.getenv("INDEX_TABLE_NAME","index")
+dynamodb_client = boto3.resource("dynamodb")
+intention_table = dynamodb_client.Table(intention_table_name)
+index_table = dynamodb_client.Table(index_table_name)
+chatbot_table = dynamodb_client.Table(chatbot_table_name)
 
 sm_client = boto3.client("secretsmanager")
 master_user = sm_client.get_secret_value(SecretId=aos_secret)["SecretString"]
@@ -97,6 +102,8 @@ def lambda_handler(event, context):
                 output = __get_execution(event)
     elif resource == DOWNLOAD_RESOURCE:
         output = __download_template()
+    elif resource == INDEX_USED_SCAN_RESOURCE:
+        output = __index_used_scan(event)
     try:
         return {
             "statusCode": 200,
@@ -179,12 +186,41 @@ def __create_execution(event, context, email):
     execution_detail = {}
     execution_detail["tableItemId"] = context.aws_request_id
     execution_detail["chatbotId"] = input_body.get("chatbotId")
-    execution_detail["index"] = input_body.get("index") if input_body.get("index") else f'{input_body.get("chatbotId")}-default-index'
+    execution_detail["groupName"] = input_body.get("groupName")
+    # execution_detail["index"] = input_body.get("index") if input_body.get("index") else f'{input_body.get("chatbotId")}-default-index'
+    execution_detail["index"] = input_body.get("index")
     execution_detail["model"] = input_body.get("model")
     execution_detail["fileName"] = input_body.get("s3Prefix").split("/").pop()
-    execution_detail["tag"] = input_body.get("tag") if input_body.get("tag") else f'{input_body.get("chatbotId")}-default-tag'
+    execution_detail["tag"] = input_body.get("tag") if input_body.get("tag") else execution_detail["index"]
     bucket=input_body.get("s3Bucket")
     prefix=input_body.get("s3Prefix")
+    create_time = str(datetime.now(timezone.utc))
+    # if index is used by other model，return error
+    
+
+
+    # update chatbot table
+    initiate_chatbot(
+        chatbot_table,
+        input_body.get("groupName"),
+        input_body.get("chatbotId"),
+        input_body.get("index"),
+        IndexType.INTENTION.value,
+        execution_detail["tag"],
+        create_time,
+    )
+
+    # update index table
+    initiate_index(
+        index_table,
+        input_body.get("groupName"),
+        input_body.get("index"),
+        input_body.get("model"),
+        IndexType.INTENTION.value,
+        execution_detail["tag"],
+        create_time,
+        "Answer question based on intention",
+    )
     response = __get_s3_object_with_retry(bucket, prefix)
     file_content = response['Body'].read()
     excel_file = BytesIO(file_content)
@@ -231,16 +267,13 @@ def __create_execution(event, context, email):
     }
 
 def __save_2_aos(modelId: str, index: str, qaList:list):
-    index_prefix="amazon-titan"
-    if modelId.startswith('cohere'):
-        index_prefix="cohere"
-    index_exists = aos_client.indices.exists(index=f'{index_prefix}-{index}')
+    index_exists = aos_client.indices.exists(index=index)
     if not index_exists:
-        __create_index(f'{index_prefix}-{index}')
-    __refresh_index(f'{index_prefix}-{index}', modelId, qaList)
+        __create_index(index, modelId)
+    __refresh_index(index, modelId, qaList)
 
 
-def __create_index(index: str):
+def __create_index(index: str, modelId: str):
     body = {
         "settings" : {
             "index":{
@@ -262,7 +295,7 @@ def __create_index(index: str):
                 },
                 "sentence_vector" : {
                     "type" : "knn_vector",
-                    "dimension" : 1024 if index.startswith("cohere") else 1536,
+                    "dimension" : ModelDimensionMap[modelId],
                     "method" : {
                         "engine" : "nmslib",
                         "space_type" : "l2",
@@ -295,8 +328,7 @@ def  __append_embeddings(index, modelId, qaList:list):
         question=item["question"]
         embedding_func = BedrockEmbeddings(
             client=bedrock_client,
-            model_id=modelId,
-            normalize=True
+            model_id=modelId
         )
         
         embeddings_vectors = embedding_func.embed_documents(
@@ -314,6 +346,7 @@ def  __append_embeddings(index, modelId, qaList:list):
                         "sentence_vector" : embeddings_vectors[0]
                     }
                 )
+        
     for document in documents:
         yield {"_op_type": "index", "_index": index, "_source": document, "_id": hashlib.md5(str(document).encode('utf-8')).hexdigest() }
 
@@ -375,3 +408,31 @@ def __download_template():
         ExpiresIn=60
     )
     return url
+
+def __index_used_scan(event):
+    input_body = json.loads(event["body"])
+    index_response = index_table.get_item(
+        Key={
+            "groupName": input_body.get("groupName"),
+            "chatbotId": input_body.get("chatbotId"),
+        },
+    )
+    pre_model = index_response.get("Item",{}).get("modelIds",{}).get("embedding")
+    if not pre_model and pre_model!=input_body.get("model"):
+        return {
+        "statusCode": 200,
+        "headers": resp_header,
+        "body": json.dumps({
+            "result":"invalid"
+        })
+        
+        # "body": "The index with the same name is already in use by another model. Please use a different index."
+    }
+    else: 
+        return {
+            "statusCode": 200,
+            "headers": resp_header,
+            "body": json.dumps({
+            "result":"valid"
+            }
+        )}

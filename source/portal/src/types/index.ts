@@ -184,6 +184,10 @@ export interface PresignedUrlResponse {
   message: string;
 }
 
+export interface indexScanResponse {
+  result: string;
+}
+
 export interface ExecutionResponse {
   execution_id: string;
   input_payload: string;
