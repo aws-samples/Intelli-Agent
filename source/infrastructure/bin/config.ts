@@ -40,7 +40,7 @@ export function getConfig(): SystemConfig {
       embeddingsModels: [
         {
           provider: "bedrock",
-          name: "amazon.titan-embed-text-v1",
+          name: "amazon.titan-embed-text-v2",
           commitId: "",
           dimensions: 1024,
           default: true
