@@ -260,7 +260,6 @@ def compose_connect_body(event_body: dict, context: dict):
         "use_history": True,
         "enable_trace": True,
         "use_websearch": True,
-        "default_index_config": {"rag_index_ids": ["Admin"]},
         "default_llm_config": {
             "model_id": "anthropic.claude-3-sonnet-20240229-v1:0",
             "endpoint_name": "",

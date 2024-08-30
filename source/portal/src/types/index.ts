@@ -179,6 +179,35 @@ export interface PresignedUrlData {
   s3Prefix: string;
 }
 
+export interface CreateChatbotResponse {
+  Message: string;
+}
+
+export type ChatbotItem = {
+  ChatbotId: string;
+  LastModifiedTime: string;
+  ModelName: string;
+  SortKey: string;
+};
+
+export type ChatbotResponse = {
+  Items: ChatbotItem[];
+  Config: ResponseConfig;
+  Count: number;
+};
+
+export interface Chatbot {
+  [key: string]: {
+    [subKey: string]: string;
+  };
+}
+
+export interface GetChatbotResponse {
+  GroupName: string;
+  ChatbotId: string;
+  Chatbot: Chatbot;
+}
+
 export interface PresignedUrlResponse {
   data: PresignedUrlData;
   message: string;

@@ -6,11 +6,11 @@ import pathlib
 logger = get_logger("intention")
 
 def get_intention_results(query:str, intention_config:dict):
-    """get intentino few shots results according embedding similarity
+    """get intention few shots results according embedding similarity
 
     Args:
         query (str): input query from human
-        intention_config (dict): intentino config information
+        intention_config (dict): intention config information
 
     Returns:
         intent_fewshot_examples (dict): retrieved few shot examples

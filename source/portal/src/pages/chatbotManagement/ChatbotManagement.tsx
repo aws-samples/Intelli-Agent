@@ -20,31 +20,32 @@ import {
   Textarea,
 } from '@cloudscape-design/components';
 import {
-  CreatePromptResponse,
-  GetPromptResponse,
-  PromptItem,
-  PromptResponse,
+  CreateChatbotResponse,
+  GetChatbotResponse,
+  ChatbotItem,
+  ChatbotResponse
 } from 'src/types';
 import useAxiosRequest from 'src/hooks/useAxiosRequest';
 import { useTranslation } from 'react-i18next';
 import { formatTime } from 'src/utils/utils';
 
-const PromptList: React.FC = () => {
-  const [selectedItems, setSelectedItems] = useState<PromptItem[]>([]);
+const ChatbotManagement: React.FC = () => {
+  const [selectedItems, setSelectedItems] = useState<ChatbotItem[]>([]);
   const fetchData = useAxiosRequest();
   const { t } = useTranslation();
   const [loadingData, setLoadingData] = useState(false);
-  const [allPromptList, setAllPromptList] = useState<PromptItem[]>([]);
-  const [tablePromptList, setTablePromptList] = useState<PromptItem[]>([]);
+  const [allChatbotList, setAllChatbotList] = useState<ChatbotItem[]>([]);
+  const [tableChatbotList, setTableChatbotList] = useState<ChatbotItem[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
   const [showCreate, setShowCreate] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [loadingSave, setLoadingSave] = useState(false);
-  const [currentPrompt, setCurrentPrompt] = useState<GetPromptResponse>();
+  const [currentChatbot, setCurrentChatbot] = useState<GetChatbotResponse>();
+  const [createChatbotId, setCreateChatbotId] = useState('');
   const [modelList, setModelList] = useState<SelectProps.Option[]>([]);
-  const [chatbotList, setChatbotList] = useState<SelectProps.Option[]>([]);
+  // const [chatbotList, setChatbotList] = useState<SelectProps.Option[]>([]);
   const [modelOption, setModelOption] = useState<SelectProps.Option | null>(
     null,
   );
@@ -56,42 +57,14 @@ const PromptList: React.FC = () => {
   // validation
   const [modelError, setModelError] = useState('');
   const [chatbotError, setChatbotError] = useState('');
-  const [promptError, setPromptError] = useState('');
 
   const [showDelete, setShowDelete] = useState(false);
-  const getPromptList = async () => {
-    setLoadingData(true);
-    setSelectedItems([]);
-    const params = {
-      max_items: 9999,
-      page_size: 9999,
-    };
-    try {
-      const data = await fetchData({
-        url: 'prompt-management/prompts',
-        method: 'get',
-        params,
-      });
-      const items: PromptResponse = data;
-      const preSortItem = items.Items.map((prompt) => {
-        return {
-          ...prompt,
-          uuid: prompt.SortKey,
-        };
-      });
-      setAllPromptList(preSortItem);
-      setTablePromptList(preSortItem.slice(0, pageSize));
-      setLoadingData(false);
-    } catch (error: unknown) {
-      setLoadingData(false);
-    }
-  };
 
-  const getModalList = async (type: 'create' | 'edit') => {
+  const getModelList = async (type: 'create' | 'edit') => {
     setLoadingGet(true);
     try {
       const data = await fetchData({
-        url: 'prompt-management/models',
+        url: 'chatbot-management/embeddings',
         method: 'get',
       });
       const items: string[] = data;
@@ -111,43 +84,63 @@ const PromptList: React.FC = () => {
   };
 
   const getChatbotList = async () => {
-    setLoadingGet(true);
+    setLoadingData(true);
+    setSelectedItems([]);
+    const params = {
+      max_items: 9999,
+      page_size: 9999,
+    };
     try {
       const data = await fetchData({
         url: 'chatbot-management/chatbots',
         method: 'get',
+        params,
       });
-      const items: string[] = data.chatbot_ids;
-      const getChatbots = items.map((item) => {
+      const items: ChatbotResponse = data;
+      const preSortItem = items.Items.map((chatbot) => {
         return {
-          label: item.toLowerCase(),
-          value: item.toLowerCase(),
+          ...chatbot,
+          uuid: chatbot.ChatbotId,
         };
       });
-      setChatbotList(getChatbots);
-      setChatbotOption(getChatbots[0]);
+      setAllChatbotList(preSortItem);
+      setTableChatbotList(preSortItem.slice(0, pageSize));
+      setLoadingData(false);
     } catch (error: unknown) {
-      setLoadingGet(false);
+      setLoadingData(false);
     }
   };
 
-  const getPromptById = async (type: 'create' | 'edit') => {
+  const getChatbotById = async (type: 'create' | 'edit') => {
     setLoadingGet(true);
-    let requestUrl = `prompt-management/prompts/${modelOption?.value}/common/${chatbotOption?.value}`;
+    let requestUrl = `chatbot-management/chatbots/create`;
     if (type === 'edit') {
-      requestUrl = `prompt-management/prompts/${selectedItems[0].ModelId}/common/${selectedItems[0].ChatbotId}`;
+      requestUrl = `chatbot-management/chatbots/edit`;
+      setChatbotOption({
+        label: selectedItems[0].ChatbotId,
+        value: selectedItems[0].ChatbotId,
+      });
       setModelOption({
-        label: selectedItems[0].ModelId,
-        value: selectedItems[0].ModelId,
+        label: selectedItems[0].ModelName,
+        value: selectedItems[0].ModelName,
       });
     }
     try {
-      const data: GetPromptResponse = await fetchData({
+      let chatbotIdParam = '';
+      if (selectedItems.length > 0) {
+        chatbotIdParam = selectedItems[0].ChatbotId;
+      } else {
+        chatbotIdParam = 'admin';
+      }
+      const data: GetChatbotResponse = await fetchData({
         url: requestUrl,
         method: 'get',
+        params: {
+          chatbotId: chatbotIdParam,
+        },
       });
       setLoadingGet(false);
-      setCurrentPrompt(data);
+      setCurrentChatbot(data);
       if (type === 'edit') {
         setShowEdit(true);
       }
@@ -157,22 +150,22 @@ const PromptList: React.FC = () => {
     }
   };
 
-  const deletePrompt = async () => {
+  const deleteChatbot = async () => {
     setLoadingSave(true);
     try {
       await fetchData({
-        url: `prompt-management/prompts/${selectedItems[0].ModelId}/common/${selectedItems[0].ChatbotId}`,
+        url: `chatbot-management/chatbots/delete/${selectedItems[0].ChatbotId}`,
         method: 'delete',
       });
       setLoadingSave(false);
-      getPromptList();
+      getChatbotList();
       setShowDelete(false);
     } catch (error: unknown) {
       setLoadingSave(false);
     }
   };
 
-  const createPrompt = async () => {
+  const createChatbot = async () => {
     // validate model settings
     if (!modelOption?.value?.trim()) {
       setModelError(t('validation.requireModel'));
@@ -180,16 +173,19 @@ const PromptList: React.FC = () => {
     }
     setLoadingSave(true);
     try {
+      if (currentChatbot) {
+        currentChatbot.ChatbotId = createChatbotId;
+      }
       const data = await fetchData({
-        url: 'prompt-management/prompts',
+        url: 'chatbot-management/chatbots',
         method: 'post',
-        data: currentPrompt,
+        data: currentChatbot,
       });
-      const createRes: CreatePromptResponse = data;
+      const createRes: CreateChatbotResponse = data;
       if (createRes.Message === 'OK') {
         setShowCreate(false);
         setShowEdit(false);
-        getPromptList();
+        getChatbotList();
       }
       setLoadingSave(false);
     } catch (error: unknown) {
@@ -197,13 +193,13 @@ const PromptList: React.FC = () => {
     }
   };
 
-  const handlePromptChange = (key: string, subKey: string, value: string) => {
-    setCurrentPrompt((prevData: any) => ({
+  const handleChatbotChange = (key: string, subKey: string, value: string) => {
+    setCurrentChatbot((prevData: any) => ({
       ...prevData,
-      Prompt: {
-        ...prevData.Prompt,
+      Chatbot: {
+        ...prevData.Chatbot,
         [key]: {
-          ...prevData.Prompt[key],
+          ...prevData.Chatbot[key],
           [subKey]: value,
         },
       },
@@ -211,32 +207,32 @@ const PromptList: React.FC = () => {
   };
 
   useEffect(() => {
-    getPromptList();
+    getChatbotList();
   }, []);
 
   useEffect(() => {
-    setTablePromptList(
-      allPromptList.slice((currentPage - 1) * pageSize, currentPage * pageSize),
+    setTableChatbotList(
+      allChatbotList.slice((currentPage - 1) * pageSize, currentPage * pageSize),
     );
   }, [currentPage, pageSize]);
 
   useEffect(() => {
-    if (showCreate && modelOption && chatbotOption) {
-      getPromptById('create');
+    if (showCreate && modelOption) {
+      getChatbotById('create');
     }
-  }, [modelOption, chatbotOption]);
+  }, [modelOption]);
 
   return (
     <CommonLayout
-      activeHref="/prompts"
+      activeHref="/chatbots"
       breadCrumbs={[
         {
           text: t('name'),
           href: '/',
         },
         {
-          text: t('prompt'),
-          href: '/prompts',
+          text: t('chatbot'),
+          href: '/chatbots',
         },
       ]}
     >
@@ -257,30 +253,25 @@ const PromptList: React.FC = () => {
           }}
           columnDefinitions={[
             {
-              id: 'modelId',
-              header: t('modelName'),
-              cell: (item: PromptItem) => item.ModelId,
-              isRowHeader: true,
-            },
-            // {
-            //   id: 'updateBy',
-            //   header: t('updateBy'),
-            //   cell: (item: PromptItem) => item.LastModifiedBy,
-            // },
-            {
               id: 'chatbotId',
               header: t('chatbotName'),
-              cell: (item: PromptItem) => item.ChatbotId,
+              cell: (item: ChatbotItem) => item.ChatbotId,
+              isRowHeader: true,
+            },
+            {
+              id: 'modelId',
+              header: t('modelName'),
+              cell: (item: ChatbotItem) => item.ModelName,
               isRowHeader: true,
             },
             {
               id: 'updateTime',
               header: t('updateTime'),
-              cell: (item: PromptItem) =>
-                formatTime(parseInt(item.LastModifiedTime) * 1000),
+              cell: (item: ChatbotItem) =>
+                formatTime(item.LastModifiedTime),
             },
           ]}
-          items={tablePromptList}
+          items={tableChatbotList}
           loadingText={t('loadingData')}
           trackBy="uuid"
           empty={
@@ -294,7 +285,7 @@ const PromptList: React.FC = () => {
             <Pagination
               disabled={loadingData}
               currentPageIndex={currentPage}
-              pagesCount={Math.ceil(allPromptList.length / pageSize)}
+              pagesCount={Math.ceil(allChatbotList.length / pageSize)}
               onChange={({ detail }) => setCurrentPage(detail.currentPageIndex)}
             />
           }
@@ -327,7 +318,7 @@ const PromptList: React.FC = () => {
                     iconName="refresh"
                     loading={loadingData}
                     onClick={() => {
-                      getPromptList();
+                      getChatbotList();
                     }}
                   />
                   <ButtonDropdown
@@ -338,7 +329,7 @@ const PromptList: React.FC = () => {
                         setShowDelete(true);
                       }
                       if (detail.id === 'edit') {
-                        getPromptById('edit');
+                        getChatbotById('edit');
                       }
                     }}
                     items={[
@@ -351,22 +342,22 @@ const PromptList: React.FC = () => {
                   <Button
                     variant="primary"
                     onClick={() => {
-                      getModalList('create');
-                      getChatbotList();
+                      getModelList('create');
+                      getChatbotById('create');
                       setShowCreate(true);
                     }}
                   >
-                    {t('button.createPrompt')}
+                    {t('button.createChatbot')}
                   </Button>
                 </SpaceBetween>
               }
               counter={
                 selectedItems.length
-                  ? `(${selectedItems.length}/${allPromptList.length})`
-                  : `(${allPromptList.length})`
+                  ? `(${selectedItems.length}/${allChatbotList.length})`
+                  : `(${allChatbotList.length})`
               }
             >
-              {t('prompts')}
+              {t('chatbots')}
             </Header>
           }
         />
@@ -393,7 +384,7 @@ const PromptList: React.FC = () => {
                     loading={loadingSave}
                     variant="primary"
                     onClick={() => {
-                      createPrompt();
+                      createChatbot();
                     }}
                   >
                     {t('button.save')}
@@ -404,35 +395,35 @@ const PromptList: React.FC = () => {
                     loading={loadingSave}
                     variant="primary"
                     onClick={() => {
-                      createPrompt();
+                      createChatbot();
                     }}
                   >
-                    {t('button.createPrompt')}
+                    {t('button.createChatbot')}
                   </Button>
                 )}
               </SpaceBetween>
             </Box>
           }
-          header={t('button.createPrompt')}
+          header={t('button.createChatbot')}
         >
           <SpaceBetween direction="vertical" size="xs">
-            <FormField
-              label={t('chatbotName')}
-              stretch={true}
-              errorText={chatbotError}
-            >
-              <Select
-                disabled={loadingGet || showEdit}
-                onChange={({ detail }) => {
-                  setChatbotError('');
-                  setChatbotOption(detail.selectedOption);
-                }}
-                selectedOption={chatbotOption}
-                options={chatbotList}
-                placeholder={t('validation.requireChatbot')}
-                empty={t('noChatbotFound')}
-              />
-            </FormField>
+          <FormField
+            label={t('chatbotName')}
+            stretch={true}
+            errorText={chatbotError}
+          >
+            <Textarea
+              rows={1}
+              disabled={loadingGet || showEdit}
+              value={chatbotOption?.value ?? ''}
+              placeholder={'admin'}
+              onChange={({ detail }) => {
+                setChatbotError('');
+                setChatbotOption({ value: detail.value, label: detail.value})
+                setCreateChatbotId(detail.value);
+              }}
+            />
+          </FormField>
             <FormField
               label={t('modelName')}
               stretch={true}
@@ -451,33 +442,33 @@ const PromptList: React.FC = () => {
               />
             </FormField>
             <FormField
-              label={t('prompts')}
+              label={t('chatbots')}
               stretch={true}
-              errorText={promptError}
+              errorText={chatbotError}
             >
               {loadingGet ? (
                 <Spinner />
               ) : (
                 <Tabs
                   tabs={
-                    currentPrompt?.Prompt
-                      ? Object.keys(currentPrompt?.Prompt).map((key) => ({
+                    currentChatbot?.Chatbot
+                      ? Object.keys(currentChatbot?.Chatbot).map((key) => ({
                           label: key,
                           id: key,
                           content: (
                             <>
-                              {Object.keys(currentPrompt?.Prompt[key]).map(
+                              {Object.keys(currentChatbot?.Chatbot[key]).map(
                                 (subKey) => (
                                   <FormField key={subKey} label={subKey}>
                                     <Textarea
                                       rows={5}
                                       placeholder={t(
-                                        'validation.requirePrompt',
+                                        'validation.requireChatbot',
                                       )}
-                                      value={currentPrompt.Prompt[key][subKey]}
+                                      value={currentChatbot.Chatbot[key][subKey]}
                                       onChange={({ detail }) => {
-                                        setPromptError('');
-                                        handlePromptChange(
+                                        setChatbotError('');
+                                        handleChatbotChange(
                                           key,
                                           subKey,
                                           detail.value,
@@ -495,7 +486,7 @@ const PromptList: React.FC = () => {
                 />
               )}
             </FormField>
-            <Alert type="info">{t('promptCreateTips')}</Alert>
+            <Alert type="info">{t('chatbotCreateTips')}</Alert>
           </SpaceBetween>
         </Modal>
 
@@ -517,7 +508,7 @@ const PromptList: React.FC = () => {
                   loading={loadingSave}
                   variant="primary"
                   onClick={() => {
-                    deletePrompt();
+                    deleteChatbot();
                   }}
                 >
                   {t('button.delete')}
@@ -531,15 +522,15 @@ const PromptList: React.FC = () => {
           <div className="selected-items-list">
             <ul className="gap-5 flex-v">
               {selectedItems.map((item) => (
-                <li key={item.SortKey}>{item.ModelId}</li>
+                <li key={item.SortKey}>{item.ChatbotId}</li>
               ))}
             </ul>
           </div>
-          <Alert type="warning">{t('promptDeleteTips')}</Alert>
+          <Alert type="warning">{t('chatbotDeleteTips')}</Alert>
         </Modal>
       </ContentLayout>
     </CommonLayout>
   );
 };
 
-export default PromptList;
+export default ChatbotManagement;

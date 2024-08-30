@@ -1,4 +1,4 @@
-from enum import Enum, unique, EnumMeta
+from enum import Enum, EnumMeta, unique
 
 
 class EnumDirectValueMeta(EnumMeta):
@@ -132,7 +132,9 @@ class LLMModelType(ConstantBase):
     QWEN2INSTRUCT7B = "qwen2-7B-instruct"
     QWEN2INSTRUCT72B = "qwen2-72B-instruct"
     QWEN15INSTRUCT32B = "qwen1_5-32B-instruct"
-    
+
+class EmbeddingModelType(ConstantBase):
+    BEDROCK_TITAN_V1 = "amazon.titan-embed-text-v1"
 
 @unique
 class Status(Enum):
