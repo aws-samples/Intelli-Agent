@@ -1,4 +1,4 @@
-import { StackProps, Duration } from "aws-cdk-lib";
+import { StackProps, Duration, NestedStack } from "aws-cdk-lib";
 import { Queue, QueueEncryption } from "aws-cdk-lib/aws-sqs";
 import { AnyPrincipal, Effect, PolicyStatement } from "aws-cdk-lib/aws-iam";
 import { Function } from "aws-cdk-lib/aws-lambda";
@@ -11,7 +11,7 @@ export interface ConnectProps extends StackProps {
   readonly lambdaOnlineMain: Function;
 }
 
-export class ConnectConstruct extends Construct {
+export class ConnectConstruct extends NestedStack {
   constructor(scope: Construct, id: string, props: ConnectProps) {
     super(scope, id);
 

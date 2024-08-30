@@ -36,22 +36,46 @@ export interface RootStackProps extends StackProps {
 export class RootStack extends Stack {
   constructor(scope: Construct, id: string, props: RootStackProps) {
     super(scope, id, props);
-    this.templateOptions.description = "AI Customer Service";
+    this.templateOptions.description = "(SO8034) - Intelli-Agent";
 
-    const sharedConstruct = new SharedConstruct(this, "shared-construct");
+    let knowledgeBaseStack: KnowledgeBaseStack = {} as KnowledgeBaseStack;
+    let knowledgeBaseStackOutputs: KnowledgeBaseStackOutputs = {} as KnowledgeBaseStackOutputs;
+    let chatStack: ChatStack = {} as ChatStack;
+    let chatStackOutputs: ChatStackOutputs = {} as ChatStackOutputs;
+
+    const sharedConstruct = new SharedConstruct(this, "shared-construct", {
+      config: props.config,
+    });
 
     const modelConstruct = new ModelConstruct(this, "model-construct", {
       config: props.config,
+      sharedConstructOutputs: sharedConstruct,
     });
     modelConstruct.node.addDependency(sharedConstruct);
 
     const portalConstruct = new PortalConstruct(this, "ui-construct");
 
-    const chatStack = new ChatStack(this, "chat-stack", {
-      config: props.config,
-      sharedConstructOutputs: sharedConstruct,
-      modelConstructOutputs: modelConstruct,
-    });
+    if (props.config.knowledgeBase.enabled && props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.enabled) {
+      knowledgeBaseStack = new KnowledgeBaseStack(this, "knowledge-base-stack", {
+        config: props.config,
+        sharedConstructOutputs: sharedConstruct,
+        modelConstructOutputs: modelConstruct,
+        uiPortalBucketName: portalConstruct.portalBucket.bucketName,
+      });
+      knowledgeBaseStack.node.addDependency(sharedConstruct);
+      knowledgeBaseStack.node.addDependency(modelConstruct);
+      knowledgeBaseStackOutputs = knowledgeBaseStack;
+    }
+
+    if (props.config.chat.enabled) {
+      const chatStack = new ChatStack(this, "chat-stack", {
+        config: props.config,
+        sharedConstructOutputs: sharedConstruct,
+        modelConstructOutputs: modelConstruct,
+        domainEndpoint: knowledgeBaseStackOutputs.aosDomainEndpoint,
+      });
+      chatStackOutputs = chatStack;
+    }
     
     const userConstruct = new UserConstruct(this, "user", {
       adminEmail: props.config.email,
@@ -62,13 +86,19 @@ export class RootStack extends Stack {
       config: props.config,
       sharedConstructOutputs: sharedConstruct,
       modelConstructOutputs: modelConstruct,
-      knowledgeBaseStackOutputs: {} as KnowledgeBaseStackOutputs,
-      chatStackOutputs: chatStack,
+      knowledgeBaseStackOutputs: knowledgeBaseStackOutputs,
+      chatStackOutputs: chatStackOutputs,
       userConstructOutputs: userConstruct,
     });
     apiConstruct.node.addDependency(sharedConstruct);
     apiConstruct.node.addDependency(modelConstruct);
     apiConstruct.node.addDependency(portalConstruct);
+    if (chatStack.node) {
+      apiConstruct.node.addDependency(chatStack);
+    }
+    if (knowledgeBaseStack.node) {
+      apiConstruct.node.addDependency(knowledgeBaseStack);
+    }
 
     const uiExports = new UiExportsConstruct(this, "ui-exports", {
       portalBucket: portalConstruct.portalBucket,
@@ -84,26 +114,26 @@ export class RootStack extends Stack {
     });
     uiExports.node.addDependency(portalConstruct);
 
-    new CfnOutput(this, "TestApiKey", {
+    new CfnOutput(this, "API Key", {
       value: apiConstruct.apiKey,
     });
     new CfnOutput(this, "API Endpoint Address", {
       value: apiConstruct.apiEndpoint,
     });
-    new CfnOutput(this, "WebPortalURL", {
+    new CfnOutput(this, "Web Portal URL", {
       value: portalConstruct.portalUrl,
       description: "Web portal url",
     });
     new CfnOutput(this, "WebSocket Endpoint Address", {
       value: apiConstruct.wsEndpoint,
     });
-    new CfnOutput(this, "OidcClientId", {
+    new CfnOutput(this, "OIDC Client ID", {
       value: userConstruct.oidcClientId,
     });
     // new CfnOutput(this, "InitialPassword", {
     //   value: userConstruct.oidcClientId,
     // });
-    new CfnOutput(this, "UserPoolId", {
+    new CfnOutput(this, "User Pool ID", {
       value: userConstruct.userPool.userPoolId,
     });
   }
