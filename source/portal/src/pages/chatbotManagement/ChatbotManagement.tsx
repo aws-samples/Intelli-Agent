@@ -268,7 +268,7 @@ const ChatbotManagement: React.FC = () => {
               id: 'updateTime',
               header: t('updateTime'),
               cell: (item: ChatbotItem) =>
-                formatTime(parseInt(item.LastModifiedTime) * 1000),
+                formatTime(item.LastModifiedTime),
             },
           ]}
           items={tableChatbotList}
@@ -414,6 +414,7 @@ const ChatbotManagement: React.FC = () => {
           >
             <Textarea
               rows={1}
+              disabled={loadingGet || showEdit}
               value={chatbotOption?.value ?? ''}
               placeholder={'admin'}
               onChange={({ detail }) => {
@@ -521,7 +522,7 @@ const ChatbotManagement: React.FC = () => {
           <div className="selected-items-list">
             <ul className="gap-5 flex-v">
               {selectedItems.map((item) => (
-                <li key={item.SortKey}>{item.ModelName}</li>
+                <li key={item.SortKey}>{item.ChatbotId}</li>
               ))}
             </ul>
           </div>

@@ -101,7 +101,7 @@ def __create_chatbot(event, group_name):
         "chatbotId": chatbot_id,
         "groupName": group_name,
         "indexIds": index_id_list,
-        "message": "Chatbot created",
+        "Message": "OK",  # Need to be OK for the frontend to know the chatbot is created successfully and redirect to the chatbot management page
     }
 
 
