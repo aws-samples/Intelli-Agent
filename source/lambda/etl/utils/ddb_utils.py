@@ -108,32 +108,30 @@ def initiate_chatbot(
     group_name,
     chatbot_id,
     chatbot_description,
-    index_id,
     index_type,
-    tag,
+    index_id_list,
     create_time=None,
 ):
     existing_item = item_exist(
         chatbot_table, {"groupName": group_name, "chatbotId": chatbot_id}
     )
     if existing_item:
-        index_id_dict = existing_item.get("indexIds", {})
-        if index_type in index_id_dict:
-            # Append it with the same index type
-            if tag not in index_id_dict[index_type]["value"].keys():
-
-                existing_item["indexIds"][index_type]["value"][tag] = index_id
-                existing_item["indexIds"][index_type]["count"] = len(
-                    existing_item["indexIds"][index_type]["value"]
-                )
-                chatbot_table.put_item(Item=existing_item)
-        else:
-            # Add a new index type
-            existing_item["indexIds"][index_type] = {
-                "count": 1,
-                "value": {tag: index_id},
-            }
-            chatbot_table.put_item(Item=existing_item)
+        chatbot_table.update_item(
+            Key={"groupName": group_name, "chatbotId": chatbot_id},
+            UpdateExpression="SET #indexIds.#indexType = :indexIdTypeDict, #updateTime = :updateTime",
+            ExpressionAttributeNames={
+                "#indexIds": "indexIds",
+                "#indexType": index_type,
+                "#updateTime": "updateTime",
+            },
+            ExpressionAttributeValues={
+                ":indexIdTypeDict": {
+                    "count": len(index_id_list),
+                    "value": {index_id: index_id for index_id in index_id_list},
+                },
+                ":updateTime": str(datetime.now(timezone.utc)),
+            },
+        )
     else:
         if not create_time:
             create_time = str(datetime.now(timezone.utc))
@@ -144,7 +142,12 @@ def initiate_chatbot(
                 "groupName": group_name,
                 "chatbotId": chatbot_id,
                 "chatbotDescription": chatbot_description,
-                "indexIds": {index_type: {"count": 1, "value": {tag: index_id}}},
+                "indexIds": {
+                    index_type: {
+                        "count": len(index_id_list),
+                        "value": {index_id: index_id for index_id in index_id_list},
+                    }
+                },
                 "createTime": create_time,
                 "updateTime": create_time,
                 "status": Status.ACTIVE.value,
