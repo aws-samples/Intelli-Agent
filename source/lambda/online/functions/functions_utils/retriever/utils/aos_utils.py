@@ -35,7 +35,7 @@ def _import_not_found_error():
 class LLMBotOpenSearchClient:
     instance = None
 
-    def __new__(cls, host, auth):
+    def __new__(cls, host, auth=None):
         with open_search_client_lock:
             if cls.instance is not None and cls.instance.host == host:
                 return cls.instance
@@ -43,7 +43,7 @@ class LLMBotOpenSearchClient:
             cls.instance = obj
             return obj
 
-    def __init__(self, host, auth):
+    def __init__(self, host, auth=None):
         """
         Initialize OpenSearch client using OpenSearch Endpoint
         """
@@ -55,7 +55,7 @@ class LLMBotOpenSearchClient:
                     "port": int(os.environ.get("AOS_PORT", 443)),
                 }
             ],
-            http_auth=auth,
+            http_auth=auth if auth is not None else awsauth,
             use_ssl=True,
             verify_certs=True,
             connection_class=RequestsHttpConnection,

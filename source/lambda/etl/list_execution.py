@@ -31,11 +31,15 @@ def lambda_handler(event, context):
     )
     if authorizer_type == "lambda_authorizer":
         claims = json.loads(event["requestContext"]["authorizer"]["claims"])
-        group_id = claims["cognito:groups"]
-        cognito_groups_list = group_id.split(",")
+        if "use_api_key" in claims:
+            group_name = get_query_parameter(event, "GroupName", "Admin")
+            cognito_groups_list = [group_name]
+        else:
+            cognito_groups = claims["cognito:groups"]
+            cognito_groups_list = cognito_groups.split(",")
     else:
-        cognito_groups_list = ["Admin"]
-    logger.info(f"Group ID: {group_id}")
+        logger.error("Invalid authorizer type")
+        raise
 
     max_items = get_query_parameter(event, "max_items", DEFAULT_MAX_ITEMS)
     page_size = get_query_parameter(event, "page_size", DEFAULT_SIZE)

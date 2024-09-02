@@ -153,11 +153,16 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
                 type: 'section',
                 text: t('settings'),
                 items: [
-                  // {
-                  //   type: 'link',
-                  //   text: t('docLibrary'),
-                  //   href: '/library',
-                  // },
+                  {
+                    type: 'link',
+                    text: t('chatbotManagement'),
+                    href: '/chatbot-management',
+                  },
+                  {
+                    type: 'link',
+                    text: t('docLibrary'),
+                    href: '/library',
+                  },
                   {
                     type: 'link',
                     text: t('prompt'),
@@ -167,11 +172,6 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
                     type: 'link',
                     text: t('intention'),
                     href: '/intention',
-                  },
-                  {
-                    type: 'link',
-                    text: t('chatbotManagement'),
-                    href: '/chatbot-management',
                   },
                 ],
               },

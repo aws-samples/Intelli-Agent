@@ -17,6 +17,7 @@ function getUser(authority?: string, clientId?: string) {
 const useAxiosRequest = () => {
   const config = useContext(ConfigContext);
   const user = getUser(config?.oidcIssuer, config?.oidcClientId);
+  const token = user?.id_token;
   const sendRequest = async ({
     url = '',
     method = 'get',
@@ -38,6 +39,7 @@ const useAxiosRequest = () => {
         params: params,
         headers: {
           ...headers,
+          Authorization: `Bearer ${token}`,
           'x-api-key': config?.apiKey,
           'author': user?.profile.email || 'anonumous user'
         },

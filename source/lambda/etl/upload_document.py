@@ -1,7 +1,7 @@
 import json
 import logging
 import os
-
+from utils.parameter_utils import get_query_parameter
 import boto3
 
 logger = logging.getLogger()
@@ -35,10 +35,16 @@ def lambda_handler(event, context):
     )
     if authorizer_type == "lambda_authorizer":
         claims = json.loads(event["requestContext"]["authorizer"]["claims"])
-        cognito_groups = claims["cognito:groups"]
-        cognito_groups_list = cognito_groups.split(",")
+        if "use_api_key" in claims:
+            group_name = get_query_parameter(event, "GroupName", "Admin")
+            cognito_groups_list = [group_name]
+        else:
+            cognito_groups = claims["cognito:groups"]
+            cognito_groups_list = cognito_groups.split(",")
     else:
-        cognito_groups_list = ["Admin"]
+        logger.error("Invalid authorizer type")
+        raise
+
     resp_header = {
         "Content-Type": "application/json",
         "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",

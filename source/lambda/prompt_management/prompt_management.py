@@ -154,10 +154,15 @@ def lambda_handler(event, context):
     )
     if authorizer_type == "lambda_authorizer":
         claims = json.loads(event["requestContext"]["authorizer"]["claims"])
-        email = claims["email"]
-        group_name = claims["cognito:groups"]  # Agree to only be in one group
+        if "use_api_key" in claims:
+            group_name = get_query_parameter(event, "GroupName", "Admin")
+        else:
+            email = claims["email"]
+            group_name = claims["cognito:groups"]  # Agree to only be in one group
     else:
-        group_name = "Admin"
+        logger.error("Invalid authorizer type")
+        raise
+
     http_method = event["httpMethod"]
     resource: str = event["resource"]
     if resource == MODELS_RESOURCE:
