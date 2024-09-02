@@ -38,6 +38,8 @@ create_time = str(datetime.now(timezone.utc))
 connect_client = boto3.client("connectcases")
 connect_domain_id = os.environ.get("CONNECT_DOMAIN_ID", "")
 connect_user_arn = os.environ.get("CONNECT_USER_ARN", "")
+kb_enabled = os.environ["KNOWLEDGE_BASE_ENABLED"]
+kb_type = os.environ["KNOWLEDGE_BASE_TYPE"]
 
 
 def get_secret_value(secret_arn: str):
@@ -317,6 +319,8 @@ def lambda_handler(event_body: dict, context: dict):
         event_body["chatbot_config"]["user_id"] = user_id
         event_body["chatbot_config"]["group_name"] = group_name
         event_body["chatbot_config"]["chatbot_id"] = chatbot_id
+        event_body["kb_enabled"] = kb_enabled
+        event_body["kb_type"] = kb_type
         # TODO: chatbot id add to event body
 
         # logger.info(f"event_body:\n{json.dumps(event_body,ensure_ascii=False,indent=2,cls=JSONEncoder)}")

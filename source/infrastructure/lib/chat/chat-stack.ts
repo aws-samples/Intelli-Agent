@@ -131,6 +131,8 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
         CONNECT_USER_ARN: "",
         CONNECT_DOMAIN_ID: "",
         CONNECT_BOT_ID: "admin",
+        KNOWLEDGE_BASE_ENABLED: props.config.knowledgeBase.enabled.toString(),
+        KNOWLEDGE_BASE_TYPE: props.config.knowledgeBase.knowledgeBaseType?.toString() || "N/A",
       },
       layers: [apiLambdaOnlineSourceLayer, apiLambdaJobSourceLayer],
     });
