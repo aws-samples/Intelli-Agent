@@ -12,7 +12,7 @@ import { LIB_VERSION } from "./version.js";
 const embeddingModels = [
   {
     provider: "bedrock",
-    name: "amazon.titan-embed-text-v2",
+    name: "amazon.titan-embed-text-v2:0",
     commitId: "",
     dimensions: 1024,
     default: true,
@@ -167,7 +167,7 @@ async function processCreateOptions(options: any): Promise<void> {
       message: "Which knowledge base type do you want to use?",
       choices: [
         { message: "Intelli-Agent Knowledge Base", name: "intelliAgentKb" },
-        { message: "Bedrock Knowledge Base (To Be Implemented)", name: "bedrockKb" },
+        // { message: "Bedrock Knowledge Base (To Be Implemented)", name: "bedrockKb" },
       ],
       validate(value: string) {
         if ((this as any).state.answers.enableKnowledgeBase) {
@@ -204,7 +204,7 @@ async function processCreateOptions(options: any): Promise<void> {
     {
       type: "confirm",
       name: "enableIntelliAgentKbModel",
-      message: "Do you want to use Sagemaker Models to enhance the construction of the Intelli-Agent Knowledge Base?",
+      message: "Do you want to inject PDF files into your knowledge base?",
       initial: options.enableIntelliAgentKbModel ?? true,
       skip(): boolean {
         return ( !(this as any).state.answers.enableKnowledgeBase ||
@@ -256,11 +256,14 @@ async function processCreateOptions(options: any): Promise<void> {
       name: "enableConnect",
       message: "Do you want to integrate it with Amazon Connect?",
       initial: options.enableConnect ?? true,
+      skip(): boolean {
+        return (!(this as any).state.answers.enableChat);
+      },
     },
     {
       type: "select",
       name: "defaultEmbedding",
-      message: "Select a default sagemaker embedding model",
+      message: "Select an embedding model, it is used when injecting and retrieving knowledges or intentions",
       choices: embeddingModels.map((m) => ({ name: m.name, value: m })),
       initial: options.defaultEmbedding,
       validate(value: string) {
@@ -270,16 +273,15 @@ async function processCreateOptions(options: any): Promise<void> {
 
         return true;
       },
-      // skip(): boolean {
-      //   return ( !(this as any).state.answers.enableKnowledgeBase ||
-      //     (this as any).state.answers.knowledgeBaseType !== "intelliAgentKb" || 
-      //     (this as any).state.answers.intelliAgentKbVectorStoreType !== "opensearch");
-      // },
+      skip(): boolean {
+        return (!(this as any).state.answers.enableKnowledgeBase &&
+          !(this as any).state.answers.enableChat);
+      },
     },
     {
       type: "select",
       name: "defaultLlm",
-      message: "Select a default llm model",
+      message: "Select a llm model",
       choices: llms.map((m) => ({ name: m.name, value: m })),
       initial: options.defaultLlm,
       validate(value: string) {
@@ -305,7 +307,7 @@ async function processCreateOptions(options: any): Promise<void> {
           : "Enter a valid S3 Bucket Name in the specified format: (?!^xn--|.+-s3alias$)^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]";
       },
       skip(): boolean {
-        return true;
+        return (this as any).state.answers.defaultEmbedding !== "bce-embedding-and-bge-reranker";
       }
     },
     {

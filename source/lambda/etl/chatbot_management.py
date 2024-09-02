@@ -74,7 +74,17 @@ def __create_chatbot(event, group_name):
             .get("index", f"{chatbot_id}-{index_type}-default")
         )
         index_id_list[index_type] = index_ids
+        initiate_chatbot(
+            chatbot_table,
+            group_name,
+            chatbot_id,
+            chatbot_description,
+            index_type,
+            index_ids.split(","),
+            create_time,
+        )
         for index_id in index_ids.split(","):
+            # simply set the tag as the index_id, since for now in real retrieve, we only use the index_id to retrieve the content
             tag = index_id
             initiate_index(
                 index_table,
@@ -85,16 +95,6 @@ def __create_chatbot(event, group_name):
                 tag,
                 create_time,
                 chatbot_description,
-            )
-            initiate_chatbot(
-                chatbot_table,
-                group_name,
-                chatbot_id,
-                chatbot_description,
-                index_id,
-                index_type,
-                tag,
-                create_time,
             )
 
     return {
@@ -186,7 +186,7 @@ def __get_chatbot(event, group_name):
             "GroupName": group_name,
             "ChatbotId": chatbot_id,
             "Chatbot": {
-                "inention": {
+                "intention": {
                     "index": merge_index(chatbot_index_ids, "intention"),
                 },
                 "qq": {
@@ -202,7 +202,7 @@ def __get_chatbot(event, group_name):
             "GroupName": group_name,
             "ChatbotId": chatbot_id,
             "Chatbot": {
-                "inention": {"index": f"{chatbot_id}-intention-default"},
+                "intention": {"index": f"{chatbot_id}-intention-default"},
                 "qq": {"index": f"{chatbot_id}-qq-default"},
                 "qd": {"index": f"{chatbot_id}-qd-default"},
             },
