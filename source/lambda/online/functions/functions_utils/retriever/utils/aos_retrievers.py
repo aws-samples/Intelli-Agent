@@ -19,6 +19,9 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 # region = os.environ["AWS_REGION"]
+kb_enabled = os.environ["KNOWLEDGE_BASE_ENABLED"]
+kb_type = json.loads(os.environ["KNOWLEDGE_BASE_TYPE"])
+intelli_agent_kb_enabled = kb_type.get("intelliAgentKb", {}).get("enabled", "")
 aos_endpoint = os.environ.get("AOS_ENDPOINT", "")
 aos_domain_name = os.environ.get("AOS_DOMAIN_NAME", "smartsearch")
 aos_secret = os.environ.get("AOS_SECRET_NAME", "opensearch-master-user")
