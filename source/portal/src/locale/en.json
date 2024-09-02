@@ -138,7 +138,8 @@
       "formatInvalidTagIndex": "Only letters, numbers, -, and _ are allowed",
       "indexNameEmpty": "Index name can not be empty.",
       "tagEmpty": "Tag can not be empty.",
-      "indexExisted":"Index name is the same as the default. Please change index name."
+      "indexValid": "Index is used by other model, please change index name",
+      "defaultIndexValid": "Default index is used by other model, please customize index name"
     }
   }
 }

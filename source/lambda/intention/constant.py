@@ -35,3 +35,8 @@ ModelDimensionMap = {
     "cohere.embed-english-v3": 1024,
     "amazon.titan-embed-text-v2:0": 1024
 }
+
+@unique
+class ModelType(Enum):
+    EMBEDDING = "embedding_and_rerank"
+    LLM = "llm"

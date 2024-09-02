@@ -21,7 +21,7 @@ import { alertMsg, validateNameTagString } from 'src/utils/utils';
 import { AxiosProgressEvent } from 'axios';
 import { useTranslation } from 'react-i18next';
 import useAxiosRequest from 'src/hooks/useAxiosRequest';
-import { ExecutionResponse, PresignedUrlResponse, SelectedOption, indexScanResponse } from 'src/types';
+import { ExecutionResponse, PresignedUrlResponse, SelectedOption } from 'src/types';
 import { DEFAULT_EMBEDDING_MODEL } from 'src/utils/const';
 
 interface AddIntentionProps {
@@ -89,6 +89,21 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
     document.body.removeChild(link);
   };
 
+
+  const isValidIndex = async () =>{
+    const resIndexScan = await fetchData({
+      url: `intention/index-used-scan`,
+      method: 'post',
+      data: {
+        chatbotId: selectedBotOption?.value.toLocaleLowerCase() ?? 'admin',
+        // groupName: selectedBotOption?.value,
+        index: indexName ? indexName.trim() : undefined, 
+        model: selectedModelOption?.value
+      },
+    });
+    return JSON.parse(resIndexScan.body).result === 'valid'
+  }
+
   const uploadFilesToS3 = async () => {
     // validate  file
     if (uploadFiles.length <= 0) {
@@ -118,24 +133,15 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
       return;
     }
 
-    if(!useDefaultIndex && indexName==`${selectedBotOption?.value.toLowerCase()}-intention-default`){
-      setIndexNameError('validation.indexExisted')
+    const indexIsValid = await isValidIndex()
+
+    if(!indexIsValid){
+      if(useDefaultIndex){
+        setIndexNameError('validation.defaultIndexValid')
+      } else {
+        setIndexNameError('validation.indexValid')
+      }
       return;
-    }
-
-    const resIndexScan: indexScanResponse = await fetchData({
-      url: `intention/execution-presigned-url`,
-      method: 'get',
-      data: {
-        chatbotId: selectedBotOption?.value.toLocaleLowerCase() ?? 'admin',
-        groupName: selectedBotOption?.value,
-        index: indexName ? indexName.trim() : undefined, 
-      },
-    });
-
-    if(resIndexScan.result === "invalid") {
-      setIndexNameError("The index with the same name is already in use by another model. Please customize a different index.")
-      return
     }
 
     setShowProgress(true);
@@ -148,6 +154,7 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
         url: `intention/execution-presigned-url`,
         method: 'post',
         data: {
+          chatbotId: selectedBotOption?.value.toLocaleLowerCase() ?? 'admin',
           timestamp: format(new Date(), 'yyyy-MM-dd HH:mm:ss'),
           file_name: file.name,
           content_type: file.type,
@@ -295,7 +302,12 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
                   <FormField stretch={true}>
                   <Toggle
                     onChange={({ detail }) =>
-                      changeUseDefaultIndex(!detail.checked)
+                      {
+                        setIndexNameError('');
+                        setTagName('')
+                        setTagNameError('')
+                        changeUseDefaultIndex(!detail.checked)
+                      }
                     }
                     checked={!useDefaultIndex}
                   >

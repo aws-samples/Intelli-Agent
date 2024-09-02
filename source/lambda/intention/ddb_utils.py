@@ -1,6 +1,8 @@
 from datetime import datetime, timezone
+from typing import Any
 
-from constant import IndexType, KBType, Status
+from constant import IndexType, KBType, ModelType, Status
+from embeddings import get_embedding_info
 
 def create_item_if_not_exist(ddb_table, item_key: dict, body: str):
     response = ddb_table.get_item(Key=item_key)
@@ -10,28 +12,33 @@ def create_item_if_not_exist(ddb_table, item_key: dict, body: str):
         return False, item
     return True, item
 
+def check_item_exist(ddb_table, item_key: dict):
+    response = ddb_table.get_item(Key=item_key)
+    item = response.get("Item")
+    return True, item if item else False, None
 
-# def initiate_model(
-#     model_table, group_name, model_id, embedding_endpoint, create_time=None
-# ):
-#     if not create_time:
-#         create_time = str(datetime.now(timezone.utc))
-#     embedding_info = get_embedding_info(embedding_endpoint)
-#     embedding_info["ModelEndpoint"] = embedding_endpoint
-#     create_item_if_not_exist(
-#         model_table,
-#         {"groupName": group_name, "modelId": model_id},
-#         {
-#             "groupName": group_name,
-#             "modelId": model_id,
-#             "modelType": ModelType.EMBEDDING.value,
-#             "parameter": embedding_info,
-#             "createTime": create_time,
-#             "updateTime": create_time,
-#             "status": Status.ACTIVE.value,
-#         },
-#     )
-#     return embedding_info["ModelType"]
+
+def initiate_model(
+    model_table, group_name, model_id, embedding_endpoint, create_time=None
+):
+    if not create_time:
+        create_time = str(datetime.now(timezone.utc))
+    embedding_info = dict(get_embedding_info(embedding_endpoint))
+    embedding_info["ModelEndpoint"] = embedding_endpoint
+    create_item_if_not_exist(
+        model_table,
+        {"groupName": group_name, "modelId": model_id},
+        {
+            "groupName": group_name,
+            "modelId": model_id,
+            "modelType": ModelType.EMBEDDING.value,
+            "parameter": embedding_info,
+            "createTime": create_time,
+            "updateTime": create_time,
+            "status": Status.ACTIVE.value,
+        },
+    )
+    return embedding_info["ModelType"]
 
 
 def initiate_index(

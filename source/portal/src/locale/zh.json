@@ -140,7 +140,8 @@
       "formatInvalidTagIndex": "仅允许字母、数字、- 和 _",
       "indexNameEmpty": "索引名称不能为空",
       "tagEmpty": "标签不能为空",
-      "indexExisted": "索引和默认名称一致，请变更索引名称"
+      "indexValid": "索引已经被其他模型使用，请变更索引名称",
+      "defaultIndexValid": "该默认索引已经被其他模型使用，请自定义索引名称"
     }
   }
 }

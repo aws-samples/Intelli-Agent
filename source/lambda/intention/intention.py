@@ -16,7 +16,7 @@ from langchain.embeddings.bedrock import BedrockEmbeddings
 
 from aos.aos_utils import LLMBotOpenSearchClient
 from constant import AOS_INDEX, BULK_SIZE, DEFAULT_CONTENT_TYPE, DEFAULT_MAX_ITEMS, DEFAULT_SIZE, DOWNLOAD_RESOURCE, EXECUTION_RESOURCE, INDEX_USED_SCAN_RESOURCE, PRESIGNED_URL_RESOURCE, SECRET_NAME, IndexType, ModelDimensionMap
-from ddb_utils import initiate_chatbot, initiate_index
+from ddb_utils import check_item_exist, initiate_chatbot, initiate_index, initiate_model
 
 logger = logging.getLogger(__name__)
 encoder = TokenEncoder()
@@ -29,10 +29,12 @@ aos_secret = os.environ.get("AOS_SECRET_NAME", "opensearch-master-user")
 intention_table_name = os.getenv("INTENTION_TABLE_NAME","intention")
 chatbot_table_name = os.getenv("CHATBOT_TABLE_NAME","chatbot")
 index_table_name = os.getenv("INDEX_TABLE_NAME","index")
+model_table_name = os.getenv("MODEL_TABLE_NAME","model")
 dynamodb_client = boto3.resource("dynamodb")
 intention_table = dynamodb_client.Table(intention_table_name)
 index_table = dynamodb_client.Table(index_table_name)
 chatbot_table = dynamodb_client.Table(chatbot_table_name)
+model_table = dynamodb_client.Table(model_table_name)
 
 sm_client = boto3.client("secretsmanager")
 master_user = sm_client.get_secret_value(SecretId=aos_secret)["SecretString"]
@@ -73,12 +75,9 @@ def lambda_handler(event, context):
         cognito_groups_list = ["Admin"]
     http_method = event["httpMethod"]
     resource:str = event["resource"]
-    chatbot_id = (
-            "Admin" if "Admin" in cognito_groups_list else cognito_groups_list[0]
-        )
     if resource == PRESIGNED_URL_RESOURCE:
         input_body = json.loads(event["body"])
-        file_name = f"intentions/{chatbot_id}/[{input_body['timestamp']}]{input_body['file_name']}"
+        file_name = f"intentions/{input_body['chatbotId'].capitalize()}/[{input_body['timestamp']}]{input_body['file_name']}"
         presigned_url = __gen_presigned_url(file_name, 
                                      input_body.get("content_type", DEFAULT_CONTENT_TYPE),
                                      input_body.get("expiration", 60*60))
@@ -186,7 +185,7 @@ def __create_execution(event, context, email):
     execution_detail = {}
     execution_detail["tableItemId"] = context.aws_request_id
     execution_detail["chatbotId"] = input_body.get("chatbotId")
-    execution_detail["groupName"] = input_body.get("groupName")
+    execution_detail["groupName"] = input_body.get("chatbotId").capitalize()
     # execution_detail["index"] = input_body.get("index") if input_body.get("index") else f'{input_body.get("chatbotId")}-default-index'
     execution_detail["index"] = input_body.get("index")
     execution_detail["model"] = input_body.get("model")
@@ -195,14 +194,17 @@ def __create_execution(event, context, email):
     bucket=input_body.get("s3Bucket")
     prefix=input_body.get("s3Prefix")
     create_time = str(datetime.now(timezone.utc))
-    # if index is used by other model，return error
-    
 
-
+    initiate_model(
+        model_table=model_table,
+        group_name=execution_detail["groupName"],
+        model_id=input_body.get("model"), 
+        embedding_endpoint=input_body.get("model")
+    )
     # update chatbot table
     initiate_chatbot(
         chatbot_table,
-        input_body.get("groupName"),
+        execution_detail["groupName"],
         input_body.get("chatbotId"),
         input_body.get("index"),
         IndexType.INTENTION.value,
@@ -213,7 +215,7 @@ def __create_execution(event, context, email):
     # update index table
     initiate_index(
         index_table,
-        input_body.get("groupName"),
+        execution_detail["groupName"],
         input_body.get("index"),
         input_body.get("model"),
         IndexType.INTENTION.value,
@@ -411,28 +413,37 @@ def __download_template():
 
 def __index_used_scan(event):
     input_body = json.loads(event["body"])
+    group_name = input_body.get("chatbotId").capitalize()
     index_response = index_table.get_item(
         Key={
-            "groupName": input_body.get("groupName"),
-            "chatbotId": input_body.get("chatbotId"),
+            "groupName": group_name,
+            "indexId": input_body.get("index"),
         },
     )
-    pre_model = index_response.get("Item",{}).get("modelIds",{}).get("embedding")
-    if not pre_model and pre_model!=input_body.get("model"):
-        return {
-        "statusCode": 200,
-        "headers": resp_header,
-        "body": json.dumps({
-            "result":"invalid"
-        })
-        
-        # "body": "The index with the same name is already in use by another model. Please use a different index."
-    }
-    else: 
+    pre_model = index_response.get("Item")
+    model_name = ''
+    if pre_model:
+        model_response = model_table.get_item(
+            Key={
+                "groupName": group_name,
+                "modelId": pre_model.get("modelIds",{}).get("embedding"),
+            }
+        )
+        model_name = model_response.get("Item",{}).get("parameter",{}).get("ModelName", "")
+        #  model_name = model_response.get("ModelName", {}).get("S","-")
+    if not pre_model or model_name==input_body.get("model"):
         return {
             "statusCode": 200,
             "headers": resp_header,
             "body": json.dumps({
             "result":"valid"
+            })
+        }
+    else: 
+        return {
+            "statusCode": 200,
+            "headers": resp_header,
+            "body": json.dumps({
+            "result":"invalid"
             }
         )}

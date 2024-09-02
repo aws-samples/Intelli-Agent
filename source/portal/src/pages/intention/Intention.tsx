@@ -134,6 +134,17 @@ const Intention: React.FC = () => {
 
   },[useDefaultIndex])
 
+  // const getExistedIndex = async ()=>{
+  //   const data: any = await fetchData({
+  //     url: 'intention/get-all-index',
+  //     method: 'get',
+  //     data: {
+  //       groupName: groupName?.[0] ?? 'Admin',
+  //     },
+  //   });
+
+  // }
+
   const getModels  = async ()=>{
     const tempModels = [{
       value: "cohere.embed-english-v3",
@@ -142,6 +153,10 @@ const Intention: React.FC = () => {
     // ,{
     //   value: "cohere.embed-multilingual-v3",
     //   label: "cohere.embed-multilingual-v3"
+    // }
+    // ,{
+    //   value: "amazon.titan-embed-text-v1",
+    //   label: "amazon.titan-embed-text-v1"
     // }
     ,{
       value: "amazon.titan-embed-text-v1",
@@ -164,6 +179,7 @@ const Intention: React.FC = () => {
     getIntentionList();
     getBots();
     getModels();
+    // getExistedIndex();
   }, []);
 
   useEffect(() => {
