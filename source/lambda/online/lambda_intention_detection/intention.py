@@ -22,22 +22,22 @@ def get_intention_results(query:str, intention_config:dict):
     """
     event_body = {
         "query": query,
-        "type": 'qq',
+        "type": "qq",
         **intention_config
     }
     # call retriver
     res:list[dict] = invoke_lambda(
-        lambda_name='Online_Functions',
+        lambda_name="Online_Functions",
         lambda_module_path="functions.functions_utils.retriever.retriever",
-        handler_name='lambda_handler',
+        handler_name="lambda_handler",
         event_body=event_body
     )
 
-    if not res['result']['docs']:
+    if not res["result"]["docs"]:
         # add default intention
         current_path = pathlib.Path(__file__).parent.resolve()
         try:
-            with open(f'{current_path}/intention_utils/default_intent.jsonl', 'r') as json_file:
+            with open(f"{current_path}/intention_utils/default_intent.jsonl", "r") as json_file:
                 json_list = list(json_file)
         except FileNotFoundError:
             logger.error(f"File note found: {current_path}/intention_utils/default_intent.jsonl")
@@ -54,12 +54,11 @@ def get_intention_results(query:str, intention_config:dict):
             answer = intent_result.get("answer",{})
             intent_fewshot_examples.append({
                 "query": question,
-                "score": 'n/a',
-                "name": answer.get('intent','chat'),
-                "intent": answer.get('intent','chat'),
-                "kwargs": answer.get('kwargs', {}),
-            })
-                
+                "score": "n/a",
+                "name": answer.get("intent","chat"),
+                "intent": answer.get("intent","chat"),
+                "kwargs": answer.get("kwargs", {}),
+            })       
     else:
         intent_fewshot_examples = []
         for doc in res["result"]["docs"]:
@@ -69,11 +68,11 @@ def get_intention_results(query:str, intention_config:dict):
             if doc["score"] > threshold_score:
                 if kb_enabled and intelli_agent_kb_enabled:
                     doc_item = {
-                        "query": doc['page_content'],
-                        "score": doc['score'],
-                        "name": doc['answer']['jsonlAnswer']['intent'],
-                        "intent": doc['answer']['jsonlAnswer']['intent'],
-                        "kwargs": doc['answer']['jsonlAnswer'].get('kwargs', {}),
+                        "query": doc["page_content"],
+                        "score": doc["score"],
+                        "name": doc["answer"]["jsonlAnswer"]["intent"],
+                        "intent": doc["answer"]["jsonlAnswer"]["intent"],
+                        "kwargs": doc["answer"]["jsonlAnswer"].get("kwargs", {}),
                     }
                 else:
                     doc_item = {
@@ -90,8 +89,8 @@ def get_intention_results(query:str, intention_config:dict):
 
 @chatbot_lambda_call_wrapper
 def lambda_handler(state:dict, context=None):
-    intention_config = state['chatbot_config'].get("intention_config",{})
-    query_key = intention_config.get('retriever_config',{}).get("query_key","query")
+    intention_config = state["chatbot_config"].get("intention_config",{})
+    query_key = intention_config.get("retriever_config",{}).get("query_key","query")
     query = state[query_key]
 
     output:list = get_intention_results(
