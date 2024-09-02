@@ -150,10 +150,7 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
     notificationLambda.addToRolePolicy(this.dynamodbStatement);
 
     // If this.region is cn-north-1 or cn-northwest-1, use the glue-job-script-cn.py
-    const glueJobScript =
-      this.modelRegion === "cn-north-1" || this.modelRegion === "cn-northwest-1"
-        ? "glue-job-script-cn.py"
-        : "glue-job-script.py";
+    const glueJobScript = "glue-job-script.py";
     
 
     const extraPythonFiles = new s3deploy.BucketDeployment(
