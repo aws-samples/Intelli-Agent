@@ -103,51 +103,12 @@ def connect_case_event_handler(event_body: dict, context: dict, executor):
 
 
 def aics_restapi_event_handler(event_body: dict, context: dict, entry_executor):
-    """
-
-    Convert this format:
-    {
-        "messages": [
-            {
-                "role": "user",
-                "content": "明天天气如何",
-                "intent_id": "",
-                "intent_completed": true
-            }
-    ],
-        "user_profile": {
-            "channel": "a1b1",
-            "agent": 1
-        }
-    }
-
-    Into this format:
-
-    {
-        "query": "Hi",
-        "entry_type": "common",
-        "session_id": "test_session",
-        "user_id": "test_user_1",
-        "chatbot_config": {
-            "chatbot_mode": "agent",
-            "use_history": true
-        },
-        "stream": false
-    }
-
-    """
-
     request_timestamp = context["request_timestamp"]
     client_type = event_body.get("client_type", "default_client_type")
     session_id = event_body.get("session_id", f"session_{request_timestamp}")
     user_id = "default_user_id"
     group_name = "Admin"
     chatbot_id = event_body.get("user_profile", {}).get("channel", "admin")
-    # agent = event_body.get("user_profile", {}).get("agent")
-    # if agent == 1:
-    #     user_profile = "admin"
-    # else:
-    #     user_profile = "host"
 
     ddb_history_obj = DynamoDBChatMessageHistory(
         sessions_table_name=sessions_table_name,

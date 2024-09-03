@@ -29,10 +29,19 @@ def lambda_handler(event, context):
             event["requestContext"].get("authorizer", {}).get("authorizerType")
         )
         if authorizer_type == "lambda_authorizer":
-            claims = json.loads(event["requestContext"]["authorizer"]["claims"])
-            cognito_username = claims["cognito:username"]
+            claims = json.loads(
+                event["requestContext"]["authorizer"]["claims"]
+            )
+            if "cognito:username" in claims:
+                cognito_username = claims["cognito:username"]
+            else:
+                cognito_username = "default_user_id"
         else:
-            cognito_username = "default_user_id"
+            logger.error("Invalid authorizer type")
+            return {
+                "statusCode": 403,
+                "body": json.dumps({"error": "Invalid authorizer type"}),
+            }
 
         event_body["user_id"] = cognito_username
     updated_event_body_str = json.dumps(event_body, ensure_ascii=False)

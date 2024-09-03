@@ -30,6 +30,14 @@ def create_presigned_url(bucket_name, object_name, content_type, expiration):
 
 def lambda_handler(event, context):
     logger.info(event)
+    resp_header = {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "*",
+    }
+    content_type = "text/plain;charset=UTF-8"
+    expiration = 3600
     authorizer_type = (
         event["requestContext"].get("authorizer", {}).get("authorizerType")
     )
@@ -43,16 +51,11 @@ def lambda_handler(event, context):
             cognito_groups_list = cognito_groups.split(",")
     else:
         logger.error("Invalid authorizer type")
-        raise
-
-    resp_header = {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "*",
-    }
-    content_type = "text/plain;charset=UTF-8"
-    expiration = 3600
+        return {
+            "statusCode": 403,
+            "headers": resp_header,
+            "body": json.dumps({"error": "Invalid authorizer type"}),
+        }
 
     try:
         input_body = json.loads(event["body"])
