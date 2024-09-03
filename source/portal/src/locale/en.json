@@ -99,6 +99,8 @@
     "bot": "Bot",
     "model": "Model",
     "empty":"No resources",
+    "customizeIndex": "Customize Index",
+    "downloadTemplate":"Download Template",
     "button": {
       "login": "Log in to AI Customer Service",
       "reload": "Reload",
@@ -133,7 +135,11 @@
       "invalidJson": "Invalid JSON format",
       "requiredIndexName": "Please input the index name",
       "requiredTag": "Please input the tag",
-      "formatInvalidTagIndex": "Only letters, numbers, -, and _ are allowed"
+      "formatInvalidTagIndex": "Only letters, numbers, -, and _ are allowed",
+      "indexNameEmpty": "Index name can not be empty.",
+      "tagEmpty": "Tag can not be empty.",
+      "indexValid": "Index is used by other model, please change index name",
+      "defaultIndexValid": "Default index is used by other model, please customize index name"
     }
   }
 }

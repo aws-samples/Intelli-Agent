@@ -15,6 +15,7 @@ import {
   ProgressBar,
   Select,
   SpaceBetween,
+  Toggle,
 } from '@cloudscape-design/components';
 import { alertMsg, validateNameTagString } from 'src/utils/utils';
 import { AxiosProgressEvent } from 'axios';
@@ -25,30 +26,33 @@ import { DEFAULT_EMBEDDING_MODEL } from 'src/utils/const';
 
 interface AddIntentionProps {
   showAddModal: boolean;
+  indexName: string;
+  useDefaultIndex: boolean;
   models: SelectedOption[];
   botsOption: SelectedOption[];
   selectedBotOption: SelectedOption | undefined;
   selectedModelOption: SelectedOption | undefined;
+  changeUseDefaultIndex: (arg: boolean) => void;
   changeBotOption: (option: SelectedOption) => void;
   changeSelectedModel: (option: SelectedOption) => void;
   setShowAddModal: (show: boolean) => void;
+  setIndexName: (name: string) => void;
   reloadIntention: () => void;
 }
 
 const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => {
   const { t } = useTranslation();
-  const {models, botsOption, selectedModelOption, selectedBotOption, showAddModal, changeBotOption, changeSelectedModel, setShowAddModal, reloadIntention } = props;
+  const {models, botsOption, selectedModelOption, selectedBotOption, showAddModal, indexName, useDefaultIndex, changeUseDefaultIndex, setIndexName, changeBotOption, changeSelectedModel, setShowAddModal, reloadIntention } = props;
   const fetchData = useAxiosRequest();
   const [uploadFiles, setUploadFiles] = useState<File[]>([]);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [showProgress, setShowProgress] = useState(false);
   const [fileEmptyError, setFileEmptyError] = useState(false);
-
-  const [indexName, setIndexName] = useState('');
   const [indexNameError, setIndexNameError] = useState('');
   const [tagName, setTagName] = useState('');
   const [tagNameError, setTagNameError] = useState('');
   const [advanceExpand, setAdvanceExpand] = useState(false);
+
   const executionIntention = async (bucket: string, prefix: string) => {
     const resExecution: ExecutionResponse = await fetchData({
       url: `intention/executions`,
@@ -56,12 +60,10 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
       data: {
         s3Bucket: bucket,
         s3Prefix: prefix,
-        // offline: 'true',
-        // qaEnhance: 'false',
         chatbotId: selectedBotOption?.value.toLocaleLowerCase() ?? 'admin',
+        groupName: selectedBotOption?.value,
         index: indexName ? indexName.trim() : undefined,
         model: selectedModelOption?.value ?? DEFAULT_EMBEDDING_MODEL,
-        // operationType: 'create',
         tag: tagName ? tagName.trim() : undefined,
       },
     });
@@ -72,7 +74,6 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
   };
 
   const downloadTemplate = async ()=>{
-    // setLoadingDownload(true);
     let url:any  = await fetchData({
       url: `intention/download-template`,
       method: 'get',
@@ -88,22 +89,20 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
     document.body.removeChild(link);
   };
 
-  // const downloadTemplate = async (type:string) => {
-  //   console.log('download template');
-  //   setLoadingDownload(true);
-  //   let url:any
-  //   if(type==="identifier"){
-  //     url = await downloadIdentifierBatchFiles({
-  //       filename: `identifier-template-${i18n.language}`,
-  //     });
-  //   } else {
-  //     url = await downloadDataSourceBatchFiles({
-  //       filename: `template-${i18n.language}`,
-  //     });
-  //   }
-  //   setLoadingDownload(false);
-  //   startDownload(url);
-  // };
+
+  const isValidIndex = async () =>{
+    const resIndexScan = await fetchData({
+      url: `intention/index-used-scan`,
+      method: 'post',
+      data: {
+        chatbotId: selectedBotOption?.value.toLocaleLowerCase() ?? 'admin',
+        // groupName: selectedBotOption?.value,
+        index: indexName ? indexName.trim() : undefined, 
+        model: selectedModelOption?.value
+      },
+    });
+    return JSON.parse(resIndexScan.body).result === 'valid'
+  }
 
   const uploadFilesToS3 = async () => {
     // validate  file
@@ -121,6 +120,30 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
       setTagNameError('validation.formatInvalidTagIndex');
       return;
     }
+
+    if(!useDefaultIndex && (indexName==null||indexName=='')){
+      setIndexNameError('validation.indexNameEmpty')
+      return;
+    }
+
+    // console.log(`${selectedBotOption?.value.toLowerCase()}-intention-default`)
+
+    if(!useDefaultIndex && (tagName==null||tagName=='')){
+      setTagNameError('validation.tagEmpty')
+      return;
+    }
+
+    const indexIsValid = await isValidIndex()
+
+    if(!indexIsValid){
+      if(useDefaultIndex){
+        setIndexNameError('validation.defaultIndexValid')
+      } else {
+        setIndexNameError('validation.indexValid')
+      }
+      return;
+    }
+
     setShowProgress(true);
     const totalSize = uploadFiles.reduce((acc, file) => acc + file.size, 0);
     let progressMap = new Map();
@@ -131,6 +154,7 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
         url: `intention/execution-presigned-url`,
         method: 'post',
         data: {
+          chatbotId: selectedBotOption?.value.toLocaleLowerCase() ?? 'admin',
           timestamp: format(new Date(), 'yyyy-MM-dd HH:mm:ss'),
           file_name: file.name,
           content_type: file.type,
@@ -218,7 +242,7 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
             <FormField
               errorText={fileEmptyError ? t('fileEmptyError') : ''}
               label={t('selectFile')}
-              description={<>{t('selectFileDesc')}<Link href="#" variant="info" onFollow={downloadTemplate}>下载模版</Link></>}
+              description={<>{t('selectFileDesc')}<Link href="#" variant="info" onFollow={downloadTemplate}>{t('downloadTemplate')}</Link></>}
             >
               <div className="mt-10">
                 <FileUpload
@@ -256,33 +280,13 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
                 headerText={t('additionalSettings')}
               >
                 <SpaceBetween direction="vertical" size="l">
+                  
                   <FormField label={t('bot')} stretch={true}>
                     <Select
                       options={botsOption}
                       selectedOption={selectedBotOption||{}}
                       onChange={({ detail }:{detail: any}) => {
                         changeBotOption(detail.selectedOption);
-                      }}
-                    />
-                  </FormField>
-                  <FormField
-                    label={
-                      <>
-                        {t('indexName')} -{' '}
-                        <Box variant="span" fontWeight="normal">
-                          <i>{t('optional')}</i>
-                        </Box>
-                      </>
-                    }
-                    stretch={true}
-                    errorText={t(indexNameError)}
-                  >
-                    <Input
-                      placeholder="example-index-name"
-                      value={indexName}
-                      onChange={({ detail }) => {
-                        setIndexNameError('');
-                        setIndexName(detail.value);
                       }}
                     />
                   </FormField>
@@ -295,13 +299,64 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
                       }}
                     />
                   </FormField>
-                  <FormField
+                  <FormField stretch={true}>
+                  <Toggle
+                    onChange={({ detail }) =>
+                      {
+                        setIndexNameError('');
+                        setTagName('')
+                        setTagNameError('')
+                        changeUseDefaultIndex(!detail.checked)
+                      }
+                    }
+                    checked={!useDefaultIndex}
+                  >
+                  {t('customizeIndex')}
+                  </Toggle>
+                  </FormField>
+                  
+                  {useDefaultIndex?(<FormField
                     label={
                       <>
-                        {t('tag')} -{' '}
-                        <Box variant="span" fontWeight="normal">
-                          <i>{t('optional')}</i>
-                        </Box>
+                        {t('indexName')}
+                      </>
+                    }
+                    stretch={true}
+                    errorText={t(indexNameError)}
+                  >
+                    <Input
+                      placeholder="example-index-name"
+                      value={indexName}
+                      disabled
+                      onChange={({ detail }) => {
+                        setIndexNameError('');
+                        setIndexName(detail.value);
+                      }}
+                    />
+                  </FormField>):(
+                    <>
+                    <FormField
+                      label={
+                        <>
+                          {t('indexName')}
+                        </>
+                      }
+                      stretch={true}
+                      errorText={t(indexNameError)}
+                    >
+                      <Input
+                        placeholder="example-index-name"
+                        value={indexName}
+                        onChange={({ detail }) => {
+                          setIndexNameError('');
+                          setIndexName(detail.value);
+                        }}
+                      />
+                    </FormField>
+                    <FormField
+                    label={
+                      <>
+                        {t('tag')}
                       </>
                     }
                     stretch={true}
@@ -316,7 +371,11 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
                       }}
                     />
                   </FormField>
-                </SpaceBetween>
+                  </>
+                  )}
+                  
+                  
+                  </SpaceBetween>
               </ExpandableSection>
             </div>
             {showProgress && (

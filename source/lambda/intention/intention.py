@@ -1,5 +1,5 @@
 import __main__
-from datetime import datetime
+from datetime import datetime, timezone
 import hashlib
 import json
 import os
@@ -15,7 +15,8 @@ import logging
 from langchain.embeddings.bedrock import BedrockEmbeddings
 
 from aos.aos_utils import LLMBotOpenSearchClient
-from constant import AOS_INDEX, BULK_SIZE, DEFAULT_CONTENT_TYPE, DEFAULT_MAX_ITEMS, DEFAULT_SIZE, DOWNLOAD_RESOURCE, EXECUTION_RESOURCE, PRESIGNED_URL_RESOURCE, SECRET_NAME
+from constant import AOS_INDEX, BULK_SIZE, DEFAULT_CONTENT_TYPE, DEFAULT_MAX_ITEMS, DEFAULT_SIZE, DOWNLOAD_RESOURCE, EXECUTION_RESOURCE, INDEX_USED_SCAN_RESOURCE, PRESIGNED_URL_RESOURCE, SECRET_NAME, IndexType, ModelDimensionMap
+from ddb_utils import check_item_exist, initiate_chatbot, initiate_index, initiate_model
 
 logger = logging.getLogger(__name__)
 encoder = TokenEncoder()
@@ -26,8 +27,14 @@ region = os.environ.get("REGION", "us-east-1")
 aos_domain_name = os.environ.get("AOS_DOMAIN_NAME", "smartsearch")
 aos_secret = os.environ.get("AOS_SECRET_NAME", "opensearch-master-user")
 intention_table_name = os.getenv("INTENTION_TABLE_NAME","intention")
-dynamodb_resource = boto3.resource("dynamodb")
-intention_table = dynamodb_resource.Table(intention_table_name)
+chatbot_table_name = os.getenv("CHATBOT_TABLE_NAME","chatbot")
+index_table_name = os.getenv("INDEX_TABLE_NAME","index")
+model_table_name = os.getenv("MODEL_TABLE_NAME","model")
+dynamodb_client = boto3.resource("dynamodb")
+intention_table = dynamodb_client.Table(intention_table_name)
+index_table = dynamodb_client.Table(index_table_name)
+chatbot_table = dynamodb_client.Table(chatbot_table_name)
+model_table = dynamodb_client.Table(model_table_name)
 
 sm_client = boto3.client("secretsmanager")
 master_user = sm_client.get_secret_value(SecretId=aos_secret)["SecretString"]
@@ -60,20 +67,25 @@ def lambda_handler(event, context):
     )
     if authorizer_type == "lambda_authorizer":
         claims = json.loads(event["requestContext"]["authorizer"]["claims"])
-        email = claims["email"]
-        cognito_groups = claims["cognito:groups"]
-        cognito_groups_list = cognito_groups.split(",")
+        # email = claims["email"]
+        # cognito_groups = claims["cognito:groups"]
+        # cognito_groups_list = cognito_groups.split(",")
+        if "use_api_key" in claims:
+            group_name = __get_query_parameter(event, "GroupName", "Admin")
+        else:
+            email = claims["email"]
+            group_name = claims["cognito:groups"]  # Agree to only be in one group
     else:
-        email = event["multiValueHeaders"]["author"][0]
-        cognito_groups_list = ["Admin"]
+        logger.error("Invalid authorizer type")
+        raise
+    # else:
+    #     email = event["multiValueHeaders"]["author"][0]
+    #     cognito_groups_list = ["Admin"]
     http_method = event["httpMethod"]
     resource:str = event["resource"]
-    chatbot_id = (
-            "Admin" if "Admin" in cognito_groups_list else cognito_groups_list[0]
-        )
     if resource == PRESIGNED_URL_RESOURCE:
         input_body = json.loads(event["body"])
-        file_name = f"intentions/{chatbot_id}/[{input_body['timestamp']}]{input_body['file_name']}"
+        file_name = f"intentions/{group_name}/[{input_body['timestamp']}]{input_body['file_name']}"
         presigned_url = __gen_presigned_url(file_name, 
                                      input_body.get("content_type", DEFAULT_CONTENT_TYPE),
                                      input_body.get("expiration", 60*60))
@@ -88,7 +100,7 @@ def lambda_handler(event, context):
         }
     elif resource.startswith(EXECUTION_RESOURCE):
         if http_method == "POST":
-            output = __create_execution(event, context, email)
+            output = __create_execution(event, context, email, group_name)
         else:
             if resource == EXECUTION_RESOURCE:
                 output = __list_execution(event)
@@ -97,6 +109,8 @@ def lambda_handler(event, context):
                 output = __get_execution(event)
     elif resource == DOWNLOAD_RESOURCE:
         output = __download_template()
+    elif resource == INDEX_USED_SCAN_RESOURCE:
+        output = __index_used_scan(event, group_name)
     try:
         return {
             "statusCode": 200,
@@ -174,17 +188,49 @@ def __list_execution(event):
     return output
 
 
-def __create_execution(event, context, email):
+def __create_execution(event, context, email, group_name):
     input_body = json.loads(event["body"])
     execution_detail = {}
     execution_detail["tableItemId"] = context.aws_request_id
     execution_detail["chatbotId"] = input_body.get("chatbotId")
-    execution_detail["index"] = input_body.get("index") if input_body.get("index") else f'{input_body.get("chatbotId")}-default-index'
+    execution_detail["groupName"] = group_name
+    # execution_detail["index"] = input_body.get("index") if input_body.get("index") else f'{input_body.get("chatbotId")}-default-index'
+    execution_detail["index"] = input_body.get("index")
     execution_detail["model"] = input_body.get("model")
     execution_detail["fileName"] = input_body.get("s3Prefix").split("/").pop()
-    execution_detail["tag"] = input_body.get("tag") if input_body.get("tag") else f'{input_body.get("chatbotId")}-default-tag'
+    execution_detail["tag"] = input_body.get("tag") if input_body.get("tag") else execution_detail["index"]
     bucket=input_body.get("s3Bucket")
     prefix=input_body.get("s3Prefix")
+    create_time = str(datetime.now(timezone.utc))
+
+    initiate_model(
+        model_table=model_table,
+        group_name=execution_detail["groupName"],
+        model_id=input_body.get("model"), 
+        embedding_endpoint=input_body.get("model")
+    )
+    # update chatbot table
+    initiate_chatbot(
+        chatbot_table,
+        execution_detail["groupName"],
+        input_body.get("chatbotId"),
+        input_body.get("index"),
+        IndexType.INTENTION.value,
+        execution_detail["tag"],
+        create_time,
+    )
+
+    # update index table
+    initiate_index(
+        index_table,
+        execution_detail["groupName"],
+        input_body.get("index"),
+        input_body.get("model"),
+        IndexType.INTENTION.value,
+        execution_detail["tag"],
+        create_time,
+        "Answer question based on intention",
+    )
     response = __get_s3_object_with_retry(bucket, prefix)
     file_content = response['Body'].read()
     excel_file = BytesIO(file_content)
@@ -231,16 +277,13 @@ def __create_execution(event, context, email):
     }
 
 def __save_2_aos(modelId: str, index: str, qaList:list):
-    index_prefix="amazon-titan"
-    if modelId.startswith('cohere'):
-        index_prefix="cohere"
-    index_exists = aos_client.indices.exists(index=f'{index_prefix}-{index}')
+    index_exists = aos_client.indices.exists(index=index)
     if not index_exists:
-        __create_index(f'{index_prefix}-{index}')
-    __refresh_index(f'{index_prefix}-{index}', modelId, qaList)
+        __create_index(index, modelId)
+    __refresh_index(index, modelId, qaList)
 
 
-def __create_index(index: str):
+def __create_index(index: str, modelId: str):
     body = {
         "settings" : {
             "index":{
@@ -262,7 +305,7 @@ def __create_index(index: str):
                 },
                 "sentence_vector" : {
                     "type" : "knn_vector",
-                    "dimension" : 1024 if index.startswith("cohere") else 1536,
+                    "dimension" : ModelDimensionMap[modelId],
                     "method" : {
                         "engine" : "nmslib",
                         "space_type" : "l2",
@@ -295,8 +338,7 @@ def  __append_embeddings(index, modelId, qaList:list):
         question=item["question"]
         embedding_func = BedrockEmbeddings(
             client=bedrock_client,
-            model_id=modelId,
-            normalize=True
+            model_id=modelId
         )
         
         embeddings_vectors = embedding_func.embed_documents(
@@ -314,6 +356,7 @@ def  __append_embeddings(index, modelId, qaList:list):
                         "sentence_vector" : embeddings_vectors[0]
                     }
                 )
+        
     for document in documents:
         yield {"_op_type": "index", "_index": index, "_source": document, "_id": hashlib.md5(str(document).encode('utf-8')).hexdigest() }
 
@@ -375,3 +418,47 @@ def __download_template():
         ExpiresIn=60
     )
     return url
+
+def __index_used_scan(event, group_name):
+    input_body = json.loads(event["body"])
+    index_response = index_table.get_item(
+        Key={
+            "groupName": group_name,
+            "indexId": input_body.get("index"),
+        },
+    )
+    pre_model = index_response.get("Item")
+    model_name = ''
+    if pre_model:
+        model_response = model_table.get_item(
+            Key={
+                "groupName": group_name,
+                "modelId": pre_model.get("modelIds",{}).get("embedding"),
+            }
+        )
+        model_name = model_response.get("Item",{}).get("parameter",{}).get("ModelName", "")
+        #  model_name = model_response.get("ModelName", {}).get("S","-")
+    if not pre_model or model_name==input_body.get("model"):
+        return {
+            "statusCode": 200,
+            "headers": resp_header,
+            "body": json.dumps({
+            "result":"valid"
+            })
+        }
+    else: 
+        return {
+            "statusCode": 200,
+            "headers": resp_header,
+            "body": json.dumps({
+            "result":"invalid"
+            }
+        )}
+
+def __get_query_parameter(event, parameter_name, default_value=None):
+    if (
+        event.get("queryStringParameters")
+        and parameter_name in event["queryStringParameters"]
+    ):
+        return event["queryStringParameters"][parameter_name]
+    return default_value

@@ -449,6 +449,9 @@ export class ApiConstruct extends Construct {
         handler: "intention.lambda_handler",
         environment: {
           INTENTION_TABLE_NAME: props.chatStackOutputs.intentionTableName,
+          INDEX_TABLE_NAME: props.sharedConstructOutputs.indexTable.tableName,
+          CHATBOT_TABLE_NAME: props.sharedConstructOutputs.chatbotTable.tableName,
+          MODEL_TABLE_NAME: props.sharedConstructOutputs.modelTable.tableName,
           S3_BUCKET: s3Bucket.bucketName,
         },
         layers: [apiLambdaOnlineSourceLayer],
@@ -529,6 +532,8 @@ export class ApiConstruct extends Construct {
         proxy: true,
       });
       const apiResourceIntentionManagement = api.root.addResource("intention");
+      const indexScan = apiResourceIntentionManagement.addResource("index-used-scan")
+      indexScan.addMethod("POST", lambdaIntentionIntegration, this.genMethodOption(api, auth, null));
       // apiResourceIntentionManagement.addMethod("DELETE", lambdaIntentionIntegration, this.genMethodOption(api, auth, null));
       const presignedUrl = apiResourceIntentionManagement.addResource("execution-presigned-url");
       presignedUrl.addMethod("POST", lambdaIntentionIntegration, {...

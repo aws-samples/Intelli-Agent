@@ -76,3 +76,9 @@ export const DOC_INDEX_TYPE_LIST: SelectProps.Option[] = [
 ];
 
 export const DEFAULT_EMBEDDING_MODEL = "cohere.embed-english-v3"
+
+export const EMBEDDING_MODEL_LIST = [
+  {"model_id": "amazon.titan-embed-text-v2:0", "model_name": "amazon.titan-embed-text-v2:0"},
+  {"model_id": "cohere.embed-english-v3", "model_name": "cohere.embed-english-v3"},
+  {"model_id": "amazon.titan-embed-text-v1", "model_name": "amazon.titan-embed-text-v1"}
+]

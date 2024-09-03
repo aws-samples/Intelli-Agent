@@ -101,6 +101,8 @@
     "bot": "Bot",
     "model": "模型",
     "empty":"没找到语料",
+    "customizeIndex": "自定义索引",
+    "downloadTemplate":"下载模板",
     "button": {
       "login": "登录到 AWS 大语言模型机器人",
       "reload": "重新加载",
@@ -135,7 +137,11 @@
       "invalidJson": "无效的 JSON 格式",
       "requiredIndexName": "请输入索引名称",
       "requiredTag": "请输入标签",
-      "formatInvalidTagIndex": "仅允许字母、数字、- 和 _"
+      "formatInvalidTagIndex": "仅允许字母、数字、- 和 _",
+      "indexNameEmpty": "索引名称不能为空",
+      "tagEmpty": "标签不能为空",
+      "indexValid": "索引已经被其他模型使用，请变更索引名称",
+      "defaultIndexValid": "该默认索引已经被其他模型使用，请自定义索引名称"
     }
   }
 }
