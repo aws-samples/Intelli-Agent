@@ -3,6 +3,7 @@ import logging
 import os
 from datetime import datetime, timezone
 from urllib.parse import unquote_plus
+from utils.parameter_utils import get_query_parameter
 
 import boto3
 from constant import IndexTag, IndexType
@@ -88,10 +89,20 @@ def handler(event, context):
         )
         if authorizer_type == "lambda_authorizer":
             claims = json.loads(event["requestContext"]["authorizer"]["claims"])
-            cognito_groups = claims["cognito:groups"]
-            cognito_groups_list = cognito_groups.split(",")
+            if "use_api_key" in claims:
+                group_name = get_query_parameter(event, "GroupName", "Admin")
+                cognito_groups_list = [group_name]
+            else:
+                cognito_groups = claims["cognito:groups"]
+                cognito_groups_list = cognito_groups.split(",")
         else:
-            cognito_groups_list = ["Admin"]
+            logger.error("Invalid authorizer type")
+            return {
+                "statusCode": 403,
+                "headers": resp_header,
+                "body": json.dumps({"error": "Invalid authorizer type"}),
+            }
+
         # Parse the body from the event object
         input_body = json.loads(event["body"])
         if "indexType" not in input_body or input_body["indexType"] not in [
@@ -102,7 +113,11 @@ def handler(event, context):
             return {
                 "statusCode": 400,
                 "headers": resp_header,
-                "body": f"Invalid indexType, valid values are {IndexType.QD.value}, {IndexType.QQ.value}, {IndexType.INTENTION.value}",
+                "body": (
+                    f"Invalid indexType, valid values are "
+                    f"{IndexType.QD.value}, {IndexType.QQ.value}, "
+                    f"{IndexType.INTENTION.value}"
+                ),
             }
         index_type = input_body["indexType"]
         group_name = (

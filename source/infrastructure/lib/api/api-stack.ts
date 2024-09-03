@@ -138,12 +138,10 @@ export class ApiConstruct extends Construct {
     });
 
 
-    // const auth = new apigw.RequestAuthorizer(this, 'ApiAuthorizer', {
-    //   handler: customAuthorizerLambda.function,
-    //   identitySources: [apigw.IdentitySource.header('Authorization')],
-    // });
-
-    let auth = true;
+    const auth = new apigw.RequestAuthorizer(this, 'ApiAuthorizer', {
+      handler: customAuthorizerLambda.function,
+      identitySources: [apigw.IdentitySource.header('Authorization')],
+    });
 
     if (props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.enabled) {
       const embeddingLambda = new LambdaFunction(this, "lambdaEmbedding", {
@@ -648,8 +646,7 @@ export class ApiConstruct extends Construct {
     return apiKeyValue;
 }
 
-  genMethodOption =(api: apigw.RestApi, auth: boolean, properties: any)=>{
-    let unusedAuth = auth;
+  genMethodOption =(api: apigw.RestApi, auth: apigw.RequestAuthorizer, properties: any)=>{
     let responseModel = apigw.Model.EMPTY_MODEL
     if(properties!==null){
       responseModel = new Model(this, `ResponseModel-${Math.random().toString(36).substr(2, 9)}`, {
@@ -663,8 +660,8 @@ export class ApiConstruct extends Construct {
       });
     }
     return {
-      // authorizer: auth,
-      apiKeyRequired: auth,
+      authorizer: auth,
+      apiKeyRequired: true,
       methodResponses: [
         {
           statusCode: '200',

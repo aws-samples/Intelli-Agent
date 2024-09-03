@@ -41,9 +41,19 @@ def lambda_handler(event, context):
     )
     if authorizer_type == "lambda_authorizer":
         claims = json.loads(event["requestContext"]["authorizer"]["claims"])
-        cognito_username = claims["cognito:username"]
+        if "cognito:username" in claims:
+            cognito_username = claims["cognito:username"]
+        else:
+            cognito_username = get_query_parameter(
+                event, "UserName", "default_user_id"
+            )
     else:
-        cognito_username = event.get("headers", {}).get("x-api-key")
+        logger.error("Invalid authorizer type")
+        return {
+            "statusCode": 403,
+            "headers": resp_header,
+            "body": json.dumps({"error": "Invalid authorizer type"}),
+        }
 
     max_items = get_query_parameter(event, "max_items", DEFAULT_MAX_ITEMS)
     page_size = get_query_parameter(event, "page_size", DEFAULT_SIZE)

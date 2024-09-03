@@ -319,12 +319,14 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     //   setGoogleAPIKeyError(true);
     //   return;
     // }
+    const groupName: string[] = auth?.user?.profile?.['cognito:groups'] as any;
     let message = {
       query: userMessage,
       entry_type: scenario.value,
       session_id: sessionId,
-      user_id: config?.apiKey,
+      user_id: auth?.user?.profile?.['cognito:username'] || 'default_user_id',
       chatbot_config: {
+        group_name: groupName?.[0] ?? 'Admin',
         goods_id: retailGoods.value,
         chatbot_mode: 'agent',
         use_history: useChatHistory,

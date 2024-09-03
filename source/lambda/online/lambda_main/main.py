@@ -38,6 +38,8 @@ create_time = str(datetime.now(timezone.utc))
 connect_client = boto3.client("connectcases")
 connect_domain_id = os.environ.get("CONNECT_DOMAIN_ID", "")
 connect_user_arn = os.environ.get("CONNECT_USER_ARN", "")
+kb_enabled = os.environ["KNOWLEDGE_BASE_ENABLED"]
+kb_type = os.environ["KNOWLEDGE_BASE_TYPE"]
 
 
 def get_secret_value(secret_arn: str):
@@ -101,51 +103,12 @@ def connect_case_event_handler(event_body: dict, context: dict, executor):
 
 
 def aics_restapi_event_handler(event_body: dict, context: dict, entry_executor):
-    """
-
-    Convert this format:
-    {
-        "messages": [
-            {
-                "role": "user",
-                "content": "明天天气如何",
-                "intent_id": "",
-                "intent_completed": true
-            }
-    ],
-        "user_profile": {
-            "channel": "a1b1",
-            "agent": 1
-        }
-    }
-
-    Into this format:
-
-    {
-        "query": "Hi",
-        "entry_type": "common",
-        "session_id": "test_session",
-        "user_id": "test_user_1",
-        "chatbot_config": {
-            "chatbot_mode": "agent",
-            "use_history": true
-        },
-        "stream": false
-    }
-
-    """
-
     request_timestamp = context["request_timestamp"]
     client_type = event_body.get("client_type", "default_client_type")
     session_id = event_body.get("session_id", f"session_{request_timestamp}")
     user_id = "default_user_id"
     group_name = "Admin"
     chatbot_id = event_body.get("user_profile", {}).get("channel", "admin")
-    # agent = event_body.get("user_profile", {}).get("agent")
-    # if agent == 1:
-    #     user_profile = "admin"
-    # else:
-    #     user_profile = "host"
 
     ddb_history_obj = DynamoDBChatMessageHistory(
         sessions_table_name=sessions_table_name,
@@ -317,6 +280,8 @@ def lambda_handler(event_body: dict, context: dict):
         event_body["chatbot_config"]["user_id"] = user_id
         event_body["chatbot_config"]["group_name"] = group_name
         event_body["chatbot_config"]["chatbot_id"] = chatbot_id
+        event_body["kb_enabled"] = kb_enabled
+        event_body["kb_type"] = kb_type
         # TODO: chatbot id add to event body
 
         # logger.info(f"event_body:\n{json.dumps(event_body,ensure_ascii=False,indent=2,cls=JSONEncoder)}")
