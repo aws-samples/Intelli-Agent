@@ -223,6 +223,7 @@ npm run config
 - **KnowledgeBase**: 启用或禁用知识库功能。
 - **KnowledgeBaseType**: 选择要启用的知识库类型。
 - **Chat**: 启用或禁用聊天功能。
+- **Connect**: 启用或禁用Amazon Connect集成，您可以使用本方案回复Amazon Connect中的信息。
 - **Model**: 选择要用于解决方案的模型。
 - **UI**: 启用或禁用 UI 功能。
 
@@ -257,7 +258,6 @@ npx cdk deploy
 | WebPortalURL | Intelli-Agent 前端网站链接。 |
 | APIEndpointAddress | RESTful API 地址，主要用于数据预处理、聊天记录等功能。 |
 | WebSocketEndpointAddress | WebSocket API 地址，主要用于聊天功能。 |
-| ChunkBucket | 处理后的文档块的中间存储在此 S3 桶中。 |
 
 ### 更新已有的部署
 
@@ -296,7 +296,10 @@ cd Intelli-Agent/source/infrastructure
     }
   },
   "chat": {
-    "enabled": true
+    "enabled": true,
+    "amazonConnect": {
+      "enabled": true
+    }
   },
   "model": {
     "embeddingsModels": [
@@ -358,19 +361,13 @@ npx cdk deploy
 
 ![Portal](docs/images/portal-ui.png)
 
-### 1 对话模型
-目前支持3种对话模式：agent，RAG和chat。
-- Agent：适用于需要通过对话，由大模型判断下一步需要调用的资源（如已有或自定义的tools）的场景。
-- RAG：适合需要基于知识库的对话能力。注：需要提前上传文档进入`文档库`。
-- Chat：适合随意聊天，直接体验大语言模型的对话能力。
-
-### 2 大语言模型切换
+### 1 大语言模型切换
 目前支持LLM如下：
 - Claude3 Haiku
 - Claude3 Sonnet
 - Claude3.5 Sonnet
 
-### 3 聊天窗口
+### 2 聊天窗口
 聊天区域由两个功能组成：聊天机器人和历史记录。
 聊天机器人可以即时开启一段新的基于支持的LLM模型的对话。
 历史记录 -> 需要重启的聊天记录ID，页面即会展示出过去的历史记录。用户可以在此基础上继续对话。
@@ -378,7 +375,7 @@ npx cdk deploy
 ![KB](docs/images/chat-history-ui.png)
 
 
-### 4 文档库（知识库）
+### 3 文档库（知识库）
 目前文档库（即RAG所需的知识库）支持基于文档的创建（一次上传一个）、删除（一次可删除多个）。
 - 支持文档格式（12种）：pdf, docx, txt, csv, jsonl, json, html, md, png, jpg, jpeg, webp
 - UI上传文档大小限制：10MB
@@ -389,10 +386,10 @@ npx cdk deploy
 - 示例：
 ![KB](docs/images/kb-ui.png)
 
-### 5 用户管理
+### 4 用户管理
 右上角显示当前用户名。点击`退出登录`即可退出。
 
-### 6 界面展示语种切换
+### 5 界面展示语种切换
 目前支持简体中文和英文。
 
 

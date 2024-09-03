@@ -235,6 +235,7 @@ You will be prompted to enter the following information:
 - **KnowledgeBase**: Enable or disable the knowledge base feature.
 - **KnowledgeBaseType**: Select the type of knowledge base to enable.
 - **Chat**: Enable or disable the chat feature.
+- **Connect**: Enable or disable the integration with Amazon Connect, it can answer the question from Amazon Connect.
 - **Model**: Select the model to use for the solution.
 - **UI**: Enable or disable the UI feature.
 
@@ -269,7 +270,6 @@ After deployment, you can find a stack containing `intelli-agent` in the CloudFo
 | WebPortalURL | Link to the Intelli-Agent frontend website. |
 | APIEndpointAddress | RESTful API endpoint address primarily used for data preprocessing, chat history, etc. |
 | WebSocketEndpointAddress | WebSocket API endpoint address primarily used for chat functionality. |
-| ChunkBucket | Intermediate storage in this S3 bucket for processed document chunks. |
 
 
 ### Updating an Existing Deployment
@@ -311,7 +311,10 @@ Sample config.json:
     }
   },
   "chat": {
-    "enabled": true
+    "enabled": true,
+    "amazonConnect": {
+      "enabled": true
+    }
   },
   "model": {
     "embeddingsModels": [
@@ -376,26 +379,20 @@ To uninstall the solution, follow these steps:
 
 ![Portal](docs/images/portal-ui.png)
 
-### 1. Conversation Models
-Currently supports 3 conversation modes: Agent, RAG, and Chat.
-- Agent: Suitable for scenarios where decisions on next steps are made by a large model based on the conversation and available tools (existing or custom).
-- RAG: Ideal for dialogue capabilities based on a knowledge base. Note: Documents need to be uploaded to the "Document Library" in advance.
-- Chat: Ideal for casual conversation, directly experiencing the conversation capabilities of a large language model.
-
-### 2. Large Language Model Switching
+### 1. Large Language Model Switching
 Currently supports the following LLMs:
 - Claude3 Haiku
 - Claude3 Sonnet
 - Claude3.5 Sonnet
 
-### 3. Chat Window
+### 2. Chat Window
 The chat area consists of two main functionalities: Chatbot and History.
 The Chatbot can initiate a new conversation based on supported LLM models.
 History -> The chat history ID that needs to be restarted will display past chat records on the page. Users can continue their conversation based on it.
 
 ![KB](docs/images/chat-history-ui.png)
 
-### 4. Document Library (Knowledge Base)
+### 3. Document Library (Knowledge Base)
 The Document Library (required for RAG) currently supports document creation (one upload at a time) and deletion (multiple deletions at a time).
 - Supports 12 document formats: pdf, docx, txt, csv, jsonl, json, html, md, png, jpg, jpeg, webp
 - UI upload document size limit: 10MB
@@ -406,10 +403,10 @@ Tips:
 - Example:
 ![KB](docs/images/kb-ui.png)
 
-### 5. User Management
+### 4. User Management
 The current username is displayed in the upper right corner. Click "Logout" to log out.
 
-### 6. Interface Display Language Switching
+### 5. Interface Display Language Switching
 Currently supports Simplified Chinese and English.
 
 
