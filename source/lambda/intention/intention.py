@@ -67,17 +67,25 @@ def lambda_handler(event, context):
     )
     if authorizer_type == "lambda_authorizer":
         claims = json.loads(event["requestContext"]["authorizer"]["claims"])
-        email = claims["email"]
-        cognito_groups = claims["cognito:groups"]
-        cognito_groups_list = cognito_groups.split(",")
+        # email = claims["email"]
+        # cognito_groups = claims["cognito:groups"]
+        # cognito_groups_list = cognito_groups.split(",")
+        if "use_api_key" in claims:
+            group_name = __get_query_parameter(event, "GroupName", "Admin")
+        else:
+            email = claims["email"]
+            group_name = claims["cognito:groups"]  # Agree to only be in one group
     else:
-        email = event["multiValueHeaders"]["author"][0]
-        cognito_groups_list = ["Admin"]
+        logger.error("Invalid authorizer type")
+        raise
+    # else:
+    #     email = event["multiValueHeaders"]["author"][0]
+    #     cognito_groups_list = ["Admin"]
     http_method = event["httpMethod"]
     resource:str = event["resource"]
     if resource == PRESIGNED_URL_RESOURCE:
         input_body = json.loads(event["body"])
-        file_name = f"intentions/{input_body['chatbotId'].capitalize()}/[{input_body['timestamp']}]{input_body['file_name']}"
+        file_name = f"intentions/{group_name}/[{input_body['timestamp']}]{input_body['file_name']}"
         presigned_url = __gen_presigned_url(file_name, 
                                      input_body.get("content_type", DEFAULT_CONTENT_TYPE),
                                      input_body.get("expiration", 60*60))
@@ -92,7 +100,7 @@ def lambda_handler(event, context):
         }
     elif resource.startswith(EXECUTION_RESOURCE):
         if http_method == "POST":
-            output = __create_execution(event, context, email)
+            output = __create_execution(event, context, email, group_name)
         else:
             if resource == EXECUTION_RESOURCE:
                 output = __list_execution(event)
@@ -102,7 +110,7 @@ def lambda_handler(event, context):
     elif resource == DOWNLOAD_RESOURCE:
         output = __download_template()
     elif resource == INDEX_USED_SCAN_RESOURCE:
-        output = __index_used_scan(event)
+        output = __index_used_scan(event, group_name)
     try:
         return {
             "statusCode": 200,
@@ -180,12 +188,12 @@ def __list_execution(event):
     return output
 
 
-def __create_execution(event, context, email):
+def __create_execution(event, context, email, group_name):
     input_body = json.loads(event["body"])
     execution_detail = {}
     execution_detail["tableItemId"] = context.aws_request_id
     execution_detail["chatbotId"] = input_body.get("chatbotId")
-    execution_detail["groupName"] = input_body.get("chatbotId").capitalize()
+    execution_detail["groupName"] = group_name
     # execution_detail["index"] = input_body.get("index") if input_body.get("index") else f'{input_body.get("chatbotId")}-default-index'
     execution_detail["index"] = input_body.get("index")
     execution_detail["model"] = input_body.get("model")
@@ -411,9 +419,8 @@ def __download_template():
     )
     return url
 
-def __index_used_scan(event):
+def __index_used_scan(event, group_name):
     input_body = json.loads(event["body"])
-    group_name = input_body.get("chatbotId").capitalize()
     index_response = index_table.get_item(
         Key={
             "groupName": group_name,
@@ -447,3 +454,11 @@ def __index_used_scan(event):
             "result":"invalid"
             }
         )}
+
+def __get_query_parameter(event, parameter_name, default_value=None):
+    if (
+        event.get("queryStringParameters")
+        and parameter_name in event["queryStringParameters"]
+    ):
+        return event["queryStringParameters"][parameter_name]
+    return default_value

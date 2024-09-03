@@ -28,6 +28,7 @@ import {
 import useAxiosRequest from 'src/hooks/useAxiosRequest';
 import { useTranslation } from 'react-i18next';
 import { formatTime } from 'src/utils/utils';
+import { EMBEDDING_MODEL_LIST } from 'src/utils/const';
 
 const ChatbotManagement: React.FC = () => {
   const [selectedItems, setSelectedItems] = useState<ChatbotItem[]>([]);
@@ -61,25 +62,16 @@ const ChatbotManagement: React.FC = () => {
   const [showDelete, setShowDelete] = useState(false);
 
   const getModelList = async (type: 'create' | 'edit') => {
-    setLoadingGet(true);
-    try {
-      const data = await fetchData({
-        url: 'chatbot-management/embeddings',
-        method: 'get',
-      });
-      const items: string[] = data;
-      const getModels = items.map((item) => {
-        return {
-          label: item,
-          value: item,
-        };
-      });
-      setModelList(getModels);
-      if (type === 'create') {
-        setModelOption(getModels[0]);
-      }
-    } catch (error: unknown) {
-      setLoadingGet(false);
+    const tempModels:{label: string; value:string}[] =[]
+    EMBEDDING_MODEL_LIST.forEach((item: {model_id: string; model_name: string})=>{
+      tempModels.push({
+        label: item.model_name,
+        value: item.model_id
+      })
+    })
+    setModelList(tempModels)
+    if (type === 'create') {
+      setModelOption(tempModels[0]);
     }
   };
 

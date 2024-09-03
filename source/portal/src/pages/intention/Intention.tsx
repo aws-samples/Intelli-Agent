@@ -20,6 +20,7 @@ import useAxiosRequest from 'src/hooks/useAxiosRequest';
 import { useTranslation } from 'react-i18next';
 import AddIntention from '../components/AddIntention';
 import { useAuth } from 'react-oidc-context';
+import { EMBEDDING_MODEL_LIST } from 'src/utils/const';
 
 const parseDate = (item: IntentionsItem) => {
   return item.createTime ? new Date(item.createTime) : 0;
@@ -146,31 +147,14 @@ const Intention: React.FC = () => {
   // }
 
   const getModels  = async ()=>{
-    const tempModels = [{
-      value: "cohere.embed-english-v3",
-      label: "cohere.embed-english-v3"
-    }
-    // ,{
-    //   value: "cohere.embed-multilingual-v3",
-    //   label: "cohere.embed-multilingual-v3"
-    // }
-    // ,{
-    //   value: "amazon.titan-embed-text-v1",
-    //   label: "amazon.titan-embed-text-v1"
-    // }
-    ,{
-      value: "amazon.titan-embed-text-v1",
-      label: "amazon.titan-embed-text-v1"
-    }
-    //,{
-    //   value: "amazon.titan-embed-image-v1",
-    //   label: "amazon.titan-embed-image-v1"
-    // }
-    ,
-    {
-      value: "amazon.titan-embed-text-v2:0",
-      label: "amazon.titan-embed-text-v2:0"
-    }]
+    const tempModels:{label: string; value:string}[] =[]
+
+    EMBEDDING_MODEL_LIST.forEach((item: {model_id: string; model_name: string})=>{
+       tempModels.push({
+            label: item.model_name,
+            value: item.model_id
+       })
+    })
     setModels(tempModels)
     setSelectedModelOption(tempModels[0])
   }
