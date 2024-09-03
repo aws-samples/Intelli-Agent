@@ -97,8 +97,11 @@ def handler(event, context):
                 cognito_groups_list = cognito_groups.split(",")
         else:
             logger.error("Invalid authorizer type")
-            raise
-
+            return {
+                "statusCode": 403,
+                "headers": resp_header,
+                "body": json.dumps({"error": "Invalid authorizer type"}),
+            }
 
         # Parse the body from the event object
         input_body = json.loads(event["body"])
@@ -110,7 +113,11 @@ def handler(event, context):
             return {
                 "statusCode": 400,
                 "headers": resp_header,
-                "body": f"Invalid indexType, valid values are {IndexType.QD.value}, {IndexType.QQ.value}, {IndexType.INTENTION.value}",
+                "body": (
+                    f"Invalid indexType, valid values are "
+                    f"{IndexType.QD.value}, {IndexType.QQ.value}, "
+                    f"{IndexType.INTENTION.value}"
+                ),
             }
         index_type = input_body["indexType"]
         group_name = (
