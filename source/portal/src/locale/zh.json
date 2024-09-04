@@ -96,7 +96,7 @@
     "indexName": "索引名称",
     "tag": "标签",
     "optional": "可选",
-    "intention": "意图管理",
+    "intention": "意图",
     "addIntention": "上传文件",
     "bot": "Bot",
     "model": "模型",

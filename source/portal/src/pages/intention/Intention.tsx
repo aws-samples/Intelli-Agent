@@ -278,7 +278,7 @@ const Intention: React.FC = () => {
             {
               width: 150,
               id: 'chatbotId',
-              header: t('bot'),
+              header: t('chatbotName'),
               sortingField: 'chatbotId',
               cell: (item: IntentionsItem) =>
                 item.chatbotId,
@@ -294,7 +294,7 @@ const Intention: React.FC = () => {
             {
               width: 150,
               id: 'model',
-              header: t('model'),
+              header: t('modelName'),
               sortingField: 'model',
               cell: (item: IntentionsItem) =>
                 item.model,

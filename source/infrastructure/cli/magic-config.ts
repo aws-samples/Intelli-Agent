@@ -29,12 +29,12 @@ const embeddingModels = [
     commitId: "",
     dimensions: 1024,
   },
-  {
-    provider: "sagemaker",
-    name: "bce-embedding-and-bge-reranker",
-    commitId: "43972580a35ceacacd31b95b9f430f695d07dde9",
-    dimensions: 1024,
-  }
+  // {
+  //   provider: "sagemaker",
+  //   name: "bce-embedding-and-bge-reranker",
+  //   commitId: "43972580a35ceacacd31b95b9f430f695d07dde9",
+  //   dimensions: 1024,
+  // }
 ];
 
 const llms = [
