@@ -160,18 +160,18 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
                   },
                   {
                     type: 'link',
-                    text: t('docLibrary'),
-                    href: '/library',
+                    text: t('intention'),
+                    href: '/intention',
                   },
+                  // {
+                  //   type: 'link',
+                  //   text: t('docLibrary'),
+                  //   href: '/library',
+                  // },
                   {
                     type: 'link',
                     text: t('prompt'),
                     href: '/prompts',
-                  },
-                  {
-                    type: 'link',
-                    text: t('intention'),
-                    href: '/intention',
                   },
                 ],
               },
