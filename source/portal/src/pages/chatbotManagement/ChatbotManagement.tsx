@@ -22,7 +22,8 @@ import {
 import {
   CreateChatbotResponse,
   ChatbotItem,
-  ChatbotResponse
+  ChatbotResponse,
+  GetChatbotResponse
 } from 'src/types';
 import useAxiosRequest from 'src/hooks/useAxiosRequest';
 import { useTranslation } from 'react-i18next';
@@ -53,7 +54,7 @@ const ChatbotManagement: React.FC = () => {
   const [chatbotName, setChatbotName] = useState('');
   const [chatbotNameError, setChatbotNameError] = useState('');
 
-  // const [loadingGet, setLoadingGet] = useState(false);
+  const [loadingGet, setLoadingGet] = useState(false);
   // validation
   const [modelError, setModelError] = useState('');
   // const [chatbotError, setChatbotError] = useState('');
@@ -109,41 +110,40 @@ const ChatbotManagement: React.FC = () => {
     }
   };
 
-  // const getChatbotById = async (type: 'create' | 'edit') => {
-  //   setLoadingGet(true);
-  //   let requestUrl = `chatbot-management/chatbots/create`;
-  //   if (type === 'edit') {
-  //     requestUrl = `chatbot-management/chatbots/edit`;
-  //     setChatbotName(selectedItems[0].ChatbotId);
-  //     setModelOption({
-  //       label: selectedItems[0].ModelName,
-  //       value: selectedItems[0].ModelName,
-  //     });
-  //   }
-  //   try {
-  //     let chatbotIdParam = '';
-  //     if (selectedItems.length > 0) {
-  //       chatbotIdParam = selectedItems[0].ChatbotId;
-  //     } else {
-  //       chatbotIdParam = 'admin';
-  //     }
-  //     const data: GetChatbotResponse = await fetchData({
-  //       url: requestUrl,
-  //       method: 'get',
-  //       params: {
-  //         chatbotId: chatbotIdParam,
-  //       },
-  //     });
-  //     setLoadingGet(false);
-  //     setCurrentChatbot(data);
-  //     if (type === 'edit') {
-  //       setShowEdit(true);
-  //     }
-  //   } catch (error: unknown) {
-  //     console.info('error:', error);
-  //     setLoadingGet(false);
-  //   }
-  // };
+  const getChatbotById = async () => {
+    setLoadingGet(true);
+    // let requestUrl = `chatbot-management/chatbots/create`;
+    // if (type === 'edit') {
+    // requestUrl = `chatbot-management/chatbots/edit`;
+    setChatbotName(selectedItems[0].ChatbotId);
+      // setModelOption({
+      //   label: selectedItems[0].ModelName,
+      //   value: selectedItems[0].ModelName,
+      // });
+    // }
+    // try {
+    //   let chatbotIdParam = '';
+    //   if (selectedItems.length > 0) {
+    //     chatbotIdParam = selectedItems[0].ChatbotId;
+    //   } else {
+    //     chatbotIdParam = 'admin';
+    //   }
+    const data: GetChatbotResponse = await fetchData({
+      url: 'chatbot-management/chatbots/detail',
+      method: 'get',
+      params: {
+        chatbotId: selectedItems[0].ChatbotId,
+      },
+    });
+    setLoadingGet(false);
+    // setCurrentChatbot(data);
+    setShowEdit(true);
+      
+    // } catch (error: unknown) {
+    //   console.info('error:', error);
+    //   setLoadingGet(false);
+    // }
+  };
 
   const deleteChatbot = async () => {
     setLoadingSave(true);
@@ -396,13 +396,13 @@ const ChatbotManagement: React.FC = () => {
                   />
                   <ButtonDropdown
                     disabled={selectedItems.length === 0 || selectedItems[0].ChatbotId==="admin"}
-                    // loading={loadingGet}
+                    loading={loadingGet}
                     onItemClick={({ detail }) => {
                       if (detail.id === 'delete') {
                         setShowDelete(true);
                       }
                       if (detail.id === 'edit') {
-                        // getChatbotById('edit');
+                        getChatbotById();
                       }
                     }}
                     items={[
@@ -526,7 +526,7 @@ const ChatbotManagement: React.FC = () => {
                 empty={t('noModelFound')}
               />
             </FormField>
-            <FormField stretch={true} constraintText="This is a description.">
+            <FormField stretch={true} constraintText={t('indexComment')}>
                   <Toggle
                     onChange={({ detail }) =>
                       {

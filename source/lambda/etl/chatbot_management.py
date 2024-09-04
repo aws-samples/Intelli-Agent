@@ -33,6 +33,7 @@ ROOT_RESOURCE = "/chatbot-management"
 EMBEDDING_MODELS_RESOURCE = f"{ROOT_RESOURCE}/embeddings"
 INDEXES_RESOURCE = f"{ROOT_RESOURCE}/indexes"
 CHATBOTS_RESOURCE = f"{ROOT_RESOURCE}/chatbots"
+DETAILS_RESOURCE = f"{CHATBOTS_RESOURCE}/details"
 CHATBOTCHECK_RESOURCE = f"{ROOT_RESOURCE}/check-chatbot"
 logger = logging.getLogger(__name__)
 encoder = TokenEncoder()
@@ -260,6 +261,8 @@ def lambda_handler(event, context):
             output = __delete_chatbot(event, group_name)
     elif resource == CHATBOTCHECK_RESOURCE:
         output = __validate_chatbot(event, group_name)
+    elif resource == DETAILS_RESOURCE:
+        output == __chatbot_details(event, group_name)
 
     try:
         return {
@@ -342,3 +345,17 @@ def __find_key(index, index_id):
         if value.contains(index_id):
             return key
     return None
+
+def __chatbot_details(event, group_name):
+    chatbot_id = get_query_parameter(event, "chatbotId", "admin")
+    res={chatbot_id:chatbot_id}
+    index = chatbot_table.get_item(
+         Key={"groupName": group_name, 
+              "chatbotId": chatbot_id
+              }
+        ).get("Item",{}).get("indexIds")
+    for key, value in index.items():
+        value.get("value",{}).get("M",{}).keys()
+        res[key]=""
+    
+    pass

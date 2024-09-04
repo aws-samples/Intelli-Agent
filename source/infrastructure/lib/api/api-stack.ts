@@ -500,6 +500,8 @@ export class ApiConstruct extends Construct {
       const apiResourceChatbot = apiResourceChatbotManagement.addResource("chatbots");
       apiResourceChatbot.addMethod("POST", lambdaChatbotIntegration, this.genMethodOption(api, auth, null));
       apiResourceChatbot.addMethod("GET", lambdaChatbotIntegration, this.genMethodOption(api, auth, null));
+      const apiResourceChatbotDetail = apiResourceChatbot.addResource('detail')
+      apiResourceChatbotDetail.addMethod("GET", lambdaChatbotIntegration, this.genMethodOption(api, auth, null));
 
       const apiResourceChatbotManagementEmbeddings = apiResourceChatbotManagement.addResource("embeddings")
       apiResourceChatbotManagementEmbeddings.addMethod("GET", lambdaChatbotIntegration, this.genMethodOption(api, auth, null));

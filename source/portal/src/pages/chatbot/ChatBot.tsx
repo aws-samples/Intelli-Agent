@@ -78,9 +78,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   //   LLM_BOT_CHAT_MODE_LIST[0],
   // );
   const [chatbotList, setChatbotList] = useState<SelectProps.Option[]>([]);
-  const [chatbotOption, setChatbotOption] = useState<SelectProps.Option>(
-    LLM_BOT_CHATBOT_LIST[0],
-  );
+  const [chatbotOption, setChatbotOption] = useState<SelectProps.Option>(null as any);
   const [useChatHistory, setUseChatHistory] = useState(true);
   const [enableTrace, setEnableTrace] = useState(true);
   const [showTrace, setShowTrace] = useState(true);
@@ -140,6 +138,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       }
       );
       setChatbotList(getChatbots);
+      setChatbotOption(getChatbots[0])
     } catch (error) {
       console.error(error);
       return [];
@@ -327,6 +326,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       user_id: auth?.user?.profile?.['cognito:username'] || 'default_user_id',
       chatbot_config: {
         group_name: groupName?.[0] ?? 'Admin',
+        chatbot_id: chatbotOption.value?? 'admin',
         goods_id: retailGoods.value,
         chatbot_mode: 'agent',
         use_history: useChatHistory,
