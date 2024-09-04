@@ -139,7 +139,7 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
                 items: [
                   {
                     type: 'link',
-                    text: t('chatBot'),
+                    text: t('chat'),
                     href: '/',
                   },
                   {

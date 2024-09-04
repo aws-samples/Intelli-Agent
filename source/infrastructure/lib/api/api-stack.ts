@@ -31,7 +31,6 @@ import { UserConstructOutputs } from "../user/user-construct";
 import { LambdaFunction } from "../shared/lambda-helper";
 import { Constants } from "../shared/constants";
 
-
 interface ApiStackProps extends StackProps {
   config: SystemConfig;
   sharedConstructOutputs: SharedConstructOutputs;
@@ -47,7 +46,6 @@ export class ApiConstruct extends Construct {
   public wsEndpoint: string = "";
   public wsEndpointV2: string = "";
   private iamHelper: IAMHelper;
-  public apiKey: string = "";
 
   constructor(scope: Construct, id: string, props: ApiStackProps) {
     super(scope, id);
@@ -614,26 +612,26 @@ export class ApiConstruct extends Construct {
 
     }
 
-    const plan = api.addUsagePlan('ExternalUsagePlan', {
-      name: 'external-api-usage-plan'
-    });
+    // const plan = api.addUsagePlan('ExternalUsagePlan', {
+    //   name: 'external-api-usage-plan'
+    // });
     
     // This is not safe, but for the purpose of the test, we will use this
     // For deployment, we suggest user manually create the key and use it on the console
 
-    const apiKeyValue = this.makeApiKey(24);
-    const key = api.addApiKey('ApiKey', {
-      value: apiKeyValue,
-    });
+    // const apiKeyValue = this.makeApiKey(24);
+    // const key = api.addApiKey('ApiKey', {
+    //   value: apiKeyValue,
+    // });
     
-    plan.addApiKey(key);
-    plan.addApiStage({
-      stage: api.deploymentStage
-    })
+    // plan.addApiKey(key);
+    // plan.addApiStage({
+    //   stage: api.deploymentStage
+    // })
 
     this.apiEndpoint = api.url;
     this.documentBucket = s3Bucket.bucketName;
-    this.apiKey = apiKeyValue;
+    // this.apiKey = apiKeyValue;
   }
 
   private makeApiKey(length: number) {
@@ -663,7 +661,7 @@ export class ApiConstruct extends Construct {
     }
     return {
       authorizer: auth,
-      apiKeyRequired: true,
+      // apiKeyRequired: true,
       methodResponses: [
         {
           statusCode: '200',
