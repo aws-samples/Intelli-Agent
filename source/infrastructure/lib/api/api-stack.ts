@@ -495,6 +495,8 @@ export class ApiConstruct extends Construct {
         proxy: true,
       });
       const apiResourceChatbotManagement = api.root.addResource("chatbot-management");
+      const apiResourceCheckChatbot = apiResourceChatbotManagement.addResource('check-chatbot')
+      apiResourceCheckChatbot.addMethod("POST", lambdaChatbotIntegration, this.genMethodOption(api, auth, null))
       const apiResourceChatbot = apiResourceChatbotManagement.addResource("chatbots");
       apiResourceChatbot.addMethod("POST", lambdaChatbotIntegration, this.genMethodOption(api, auth, null));
       apiResourceChatbot.addMethod("GET", lambdaChatbotIntegration, this.genMethodOption(api, auth, null));

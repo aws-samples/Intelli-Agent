@@ -86,7 +86,7 @@
     "updateTime": "更新时间",
     "promptCreateTips": "新的提示将覆盖当前提示词，您确定要继续吗？",
     "promptDeleteTips": "删除此提示词将会恢复成系统默认提示词。",
-    "chatbotCreateTips": "新的聊天机器人将覆盖当前聊天机器人，您确定要继续吗？",
+    "chatbotCreateTips": "新的聊天机器人将覆盖现有的同名聊天机器人，请谨慎操作",
     "chatbotDeleteTips": "删除此聊天机器人将会恢复成系统默认聊天机器人。",
     "endPoint": "端点",
     "enableTrace": "启用 trace",
@@ -103,6 +103,8 @@
     "empty":"没找到语料",
     "customizeIndex": "自定义索引",
     "downloadTemplate":"下载模板",
+    "chatbotNamePlaceholder": "请输入聊天机器人名称",
+    "indexPlaceholder": "请输入相应索引名称",
     "button": {
       "login": "登录到 AWS 大语言模型机器人",
       "reload": "重新加载",
@@ -127,6 +129,7 @@
     },
     "validation": {
       "requireModel": "请选择或输入一个模型",
+      "requireChatbotName": "请输入机器人名称",
       "requireChatbot": "请选择一个机器人",
       "requireTemperature": "请输入模型发散度",
       "requireMaxTokens": "请输入一个最大 token 数",
