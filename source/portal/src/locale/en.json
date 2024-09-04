@@ -101,6 +101,8 @@
     "empty":"No resources",
     "customizeIndex": "Customize Index",
     "downloadTemplate":"Download Template",
+    "chatbotNamePlaceholder": "Please input chatbot name",
+    "indexPlaceholder": "Please input index name",
     "button": {
       "login": "Log in to AI Customer Service",
       "reload": "Reload",
@@ -125,6 +127,9 @@
     },
     "validation": {
       "requireModel": "Please select or input a model",
+      "requireChatbotName": "Please input chatbot name",
+      "repeatChatbotName": "Chatbot name is already used, please change the name",
+      "repeatIndex": "This index is already used, please change the index",
       "requireChatbot": "Please select a chatbot",
       "requireTemperature": "Please enter a temperature",
       "requireMaxTokens": "Please enter a maximum number of tokens",

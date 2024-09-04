@@ -348,9 +348,9 @@ def  __append_embeddings(index, modelId, qaList:list):
                     { 
                         "text" : question,
                         "metadata" : {
-                            "intention": item["intention"],
+                            "answer": item["intention"],
                             "source": "portal",
-                            "kwargs": item["kwargs"],
+                            "kwargs": item["kwargs"] or {},
                             "type": "Intent"
                         },
                         "sentence_vector" : embeddings_vectors[0]

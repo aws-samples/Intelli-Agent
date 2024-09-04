@@ -8,20 +8,19 @@ import {
   CollectionPreferences,
   ContentLayout,
   FormField,
+  Grid,
   Header,
+  Input,
   Modal,
   Pagination,
   Select,
   SelectProps,
   SpaceBetween,
-  Spinner,
   Table,
-  Tabs,
-  Textarea,
+  Toggle,
 } from '@cloudscape-design/components';
 import {
   CreateChatbotResponse,
-  GetChatbotResponse,
   ChatbotItem,
   ChatbotResponse
 } from 'src/types';
@@ -43,23 +42,30 @@ const ChatbotManagement: React.FC = () => {
   const [showCreate, setShowCreate] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [loadingSave, setLoadingSave] = useState(false);
-  const [currentChatbot, setCurrentChatbot] = useState<GetChatbotResponse>();
-  const [createChatbotId, setCreateChatbotId] = useState('');
   const [modelList, setModelList] = useState<SelectProps.Option[]>([]);
   // const [chatbotList, setChatbotList] = useState<SelectProps.Option[]>([]);
-  const [modelOption, setModelOption] = useState<SelectProps.Option | null>(
+  const [modelOption, setModelOption] = useState<{label:string;value:string} | null>(
     null,
   );
-  const [chatbotOption, setChatbotOption] = useState<SelectProps.Option | null>(
-    null,
-  );
+  // const [chatbotOption, setChatbotOption] = useState<SelectProps.Option | null>(
+  //   null,
+  // );
+  const [chatbotName, setChatbotName] = useState('');
+  const [chatbotNameError, setChatbotNameError] = useState('');
 
-  const [loadingGet, setLoadingGet] = useState(false);
+  // const [loadingGet, setLoadingGet] = useState(false);
   // validation
   const [modelError, setModelError] = useState('');
-  const [chatbotError, setChatbotError] = useState('');
+  // const [chatbotError, setChatbotError] = useState('');
 
   const [showDelete, setShowDelete] = useState(false);
+  const [useDefaultIndex, setUseDefaultIndex] = useState(true);
+  const [qqIndex, setQqIndex] = useState('');
+  const [qdIndex, setQdIndex] = useState('');
+  const [intentionIndex, setIntentionIndex] = useState('');
+  const [qqIndexError, setQqIndexError] = useState('');
+  const [qdIndexError, setQdIndexError] = useState('');
+  const [intentionIndexError, setIntentionIndexError] = useState('');
 
   const getModelList = async (type: 'create' | 'edit') => {
     const tempModels:{label: string; value:string}[] =[]
@@ -103,44 +109,41 @@ const ChatbotManagement: React.FC = () => {
     }
   };
 
-  const getChatbotById = async (type: 'create' | 'edit') => {
-    setLoadingGet(true);
-    let requestUrl = `chatbot-management/chatbots/create`;
-    if (type === 'edit') {
-      requestUrl = `chatbot-management/chatbots/edit`;
-      setChatbotOption({
-        label: selectedItems[0].ChatbotId,
-        value: selectedItems[0].ChatbotId,
-      });
-      setModelOption({
-        label: selectedItems[0].ModelName,
-        value: selectedItems[0].ModelName,
-      });
-    }
-    try {
-      let chatbotIdParam = '';
-      if (selectedItems.length > 0) {
-        chatbotIdParam = selectedItems[0].ChatbotId;
-      } else {
-        chatbotIdParam = 'admin';
-      }
-      const data: GetChatbotResponse = await fetchData({
-        url: requestUrl,
-        method: 'get',
-        params: {
-          chatbotId: chatbotIdParam,
-        },
-      });
-      setLoadingGet(false);
-      setCurrentChatbot(data);
-      if (type === 'edit') {
-        setShowEdit(true);
-      }
-    } catch (error: unknown) {
-      console.info('error:', error);
-      setLoadingGet(false);
-    }
-  };
+  // const getChatbotById = async (type: 'create' | 'edit') => {
+  //   setLoadingGet(true);
+  //   let requestUrl = `chatbot-management/chatbots/create`;
+  //   if (type === 'edit') {
+  //     requestUrl = `chatbot-management/chatbots/edit`;
+  //     setChatbotName(selectedItems[0].ChatbotId);
+  //     setModelOption({
+  //       label: selectedItems[0].ModelName,
+  //       value: selectedItems[0].ModelName,
+  //     });
+  //   }
+  //   try {
+  //     let chatbotIdParam = '';
+  //     if (selectedItems.length > 0) {
+  //       chatbotIdParam = selectedItems[0].ChatbotId;
+  //     } else {
+  //       chatbotIdParam = 'admin';
+  //     }
+  //     const data: GetChatbotResponse = await fetchData({
+  //       url: requestUrl,
+  //       method: 'get',
+  //       params: {
+  //         chatbotId: chatbotIdParam,
+  //       },
+  //     });
+  //     setLoadingGet(false);
+  //     setCurrentChatbot(data);
+  //     if (type === 'edit') {
+  //       setShowEdit(true);
+  //     }
+  //   } catch (error: unknown) {
+  //     console.info('error:', error);
+  //     setLoadingGet(false);
+  //   }
+  // };
 
   const deleteChatbot = async () => {
     setLoadingSave(true);
@@ -156,22 +159,85 @@ const ChatbotManagement: React.FC = () => {
       setLoadingSave(false);
     }
   };
+  const editChatbot = async ()=>{
 
-  const createChatbot = async ( type: 'create' | 'edit') => {
+  }
+
+  const isValidChatbot = async (type:string) =>{
+    return await fetchData({
+      url: `chatbot-management/check-chatbot`,
+      method: 'post',
+      data: {
+        type,
+        chatbotId: chatbotName,
+        // groupName: selectedBotOption?.value,
+        index: {qq: qqIndex, qd: qdIndex, intention: intentionIndex}, 
+        model: modelOption?.value
+      },
+    });
+    // return 
+  }
+  const createChatbot = async () => {
     // validate model settings
     if (!modelOption?.value?.trim()) {
       setModelError(t('validation.requireModel'));
       return;
     }
-    setLoadingSave(true);
-    try {
-      if (type === 'create' && currentChatbot) {
-        currentChatbot.ChatbotId = createChatbotId;
+
+    if (!chatbotName?.trim()) {
+      setChatbotNameError(t('validation.requireChatbotName'));
+      return;
+    }
+
+    if(!useDefaultIndex){
+      if(!qqIndex?.trim()){
+        setQqIndexError(t('validation.requiredIndexName'));
+        return;
       }
+      if(!qdIndex?.trim()){
+        setQdIndexError(t('validation.requiredIndexName'));
+        return;
+      }
+      if(!intentionIndex?.trim()){
+        setIntentionIndexError(t('validation.requiredIndexName'));
+        return;
+      }
+    }
+    
+    setLoadingSave(true);
+
+    const indexIsValid = await isValidChatbot('create')
+
+    if(!indexIsValid.result){
+      if(indexIsValid.item=="chatbotName"){
+        setChatbotNameError('validation.repeatChatbotName')
+      } else if(indexIsValid.item=="qq") {
+        setQqIndexError('validation.repeatIndex')
+      } else if(indexIsValid.item=="qd") {
+        setQdIndexError('validation.repeatIndex')
+      } else if(indexIsValid.item=="intention") {
+        setIntentionIndexError('validation.repeatIndex')
+      }
+      setLoadingSave(false) 
+      return;
+    }
+    try {
+      // if (type === 'create' && currentChatbot) {
+      //   currentChatbot.ChatbotId = createChatbotId;
+      // }
       const data = await fetchData({
         url: 'chatbot-management/chatbots',
         method: 'post',
-        data: currentChatbot,
+        data: {
+          chatbotId: chatbotName,
+          modelId: modelOption.value,
+          modelName: modelOption.label,
+          index:{
+             qq: qqIndex,
+             qd: qdIndex,
+             intention: intentionIndex
+          }
+        },
       });
       const createRes: CreateChatbotResponse = data;
       if (createRes.Message === 'OK') {
@@ -185,18 +251,18 @@ const ChatbotManagement: React.FC = () => {
     }
   };
 
-  const handleChatbotChange = (key: string, subKey: string, value: string) => {
-    setCurrentChatbot((prevData: any) => ({
-      ...prevData,
-      Chatbot: {
-        ...prevData.Chatbot,
-        [key]: {
-          ...prevData.Chatbot[key],
-          [subKey]: value,
-        },
-      },
-    }));
-  };
+  // const handleChatbotChange = (key: string, subKey: string, value: string) => {
+  //   setCurrentChatbot((prevData: any) => ({
+  //     ...prevData,
+  //     Chatbot: {
+  //       ...prevData.Chatbot,
+  //       [key]: {
+  //         ...prevData.Chatbot[key],
+  //         [subKey]: value,
+  //       },
+  //     },
+  //   }));
+  // };
 
   useEffect(() => {
     getChatbotList();
@@ -208,11 +274,26 @@ const ChatbotManagement: React.FC = () => {
     );
   }, [currentPage, pageSize]);
 
-  useEffect(() => {
-    if (showCreate && modelOption) {
-      getChatbotById('create');
-    }
-  }, [modelOption]);
+  useEffect(()=>{
+    if(chatbotName?.trim()!==""){
+      if(useDefaultIndex){
+          setQdIndex(`${chatbotName}-qd-default`);
+          setQqIndex(`${chatbotName}-qq-default`);
+          setIntentionIndex(`${chatbotName}-intention-default`);
+        }}
+        
+        setQdIndexError('');
+        setQqIndexError('');
+        setIntentionIndexError('');
+      }
+    
+
+  ,[chatbotName, useDefaultIndex])
+  // useEffect(() => {
+  //   if (showCreate && modelOption) {
+  //     getChatbotById('create');
+  //   }
+  // }, [modelOption]);
 
   return (
     <CommonLayout
@@ -314,19 +395,19 @@ const ChatbotManagement: React.FC = () => {
                     }}
                   />
                   <ButtonDropdown
-                    disabled={selectedItems.length === 0}
-                    loading={loadingGet}
+                    disabled={selectedItems.length === 0 || selectedItems[0].ChatbotId==="admin"}
+                    // loading={loadingGet}
                     onItemClick={({ detail }) => {
                       if (detail.id === 'delete') {
                         setShowDelete(true);
                       }
                       if (detail.id === 'edit') {
-                        getChatbotById('edit');
+                        // getChatbotById('edit');
                       }
                     }}
                     items={[
                       { text: t('button.edit'), id: 'edit' },
-                      { text: t('button.delete'), id: 'delete' },
+                      { text: t('button.delete'), id: 'delete'},
                     ]}
                   >
                     {t('button.action')}
@@ -334,8 +415,11 @@ const ChatbotManagement: React.FC = () => {
                   <Button
                     variant="primary"
                     onClick={() => {
+                      setChatbotName('')
+                      setChatbotNameError('')
+                      setLoadingSave(false)
                       getModelList('create');
-                      getChatbotById('create');
+                      // getChatbotById('create');
                       setShowCreate(true);
                     }}
                   >
@@ -376,18 +460,18 @@ const ChatbotManagement: React.FC = () => {
                     loading={loadingSave}
                     variant="primary"
                     onClick={() => {
-                      createChatbot('edit');
+                      editChatbot();
                     }}
                   >
                     {t('button.save')}
                   </Button>
                 ) : (
                   <Button
-                    disabled={loadingGet}
+                    // disabled={loadingGet}
                     loading={loadingSave}
                     variant="primary"
                     onClick={() => {
-                      createChatbot('create');
+                      createChatbot();
                     }}
                   >
                     {t('button.createChatbot')}
@@ -398,13 +482,22 @@ const ChatbotManagement: React.FC = () => {
           }
           header={t('button.createChatbot')}
         >
-          <SpaceBetween direction="vertical" size="xs">
+          <SpaceBetween direction="vertical" size="m">
           <FormField
             label={t('chatbotName')}
             stretch={true}
-            errorText={chatbotError}
+            errorText={chatbotNameError}
           >
-            <Textarea
+            <Input
+              placeholder={t('chatbotNamePlaceholder')}
+              value={chatbotName}
+              onChange={({ detail }) => {
+                setChatbotNameError('');
+                setChatbotName(detail.value);
+                
+              }}
+            />
+            {/* <Textarea
               rows={1}
               disabled={loadingGet || showEdit}
               value={chatbotOption?.value ?? ''}
@@ -414,7 +507,7 @@ const ChatbotManagement: React.FC = () => {
                 setChatbotOption({ value: detail.value, label: detail.value})
                 setCreateChatbotId(detail.value);
               }}
-            />
+            /> */}
           </FormField>
             <FormField
               label={t('modelName')}
@@ -422,8 +515,8 @@ const ChatbotManagement: React.FC = () => {
               errorText={modelError}
             >
               <Select
-                disabled={loadingGet || showEdit}
-                onChange={({ detail }) => {
+                disabled={showEdit}
+                onChange={({ detail }:{detail: any}) => {
                   setModelError('');
                   setModelOption(detail.selectedOption);
                 }}
@@ -433,7 +526,78 @@ const ChatbotManagement: React.FC = () => {
                 empty={t('noModelFound')}
               />
             </FormField>
-            <FormField
+            <FormField stretch={true} constraintText="This is a description.">
+                  <Toggle
+                    onChange={({ detail }) =>
+                      {
+                        setQdIndexError('');
+                        setQqIndexError('');
+                        setIntentionIndexError('');
+                        // if(chatbotName !==null && chatbotName.trim() !==""){
+                        //   setQdIndex(`${chatbotName}-qd-default`);
+                        //   setQqIndex(`${chatbotName}-qq-default`);
+                        //   setIntentionIndex(`${chatbotName}-intention-default`);
+                        // } else {
+                        //   setQdIndex('');
+                        //   setQqIndex('');
+                        //   setIntentionIndex('');
+                        // }
+                        
+                        setUseDefaultIndex(!detail.checked)
+                      }
+                    }
+                    checked={!useDefaultIndex}
+                  >
+                  {t('customizeIndex')}
+                  </Toggle>
+                  </FormField>
+            {/* <Grid gridDefinition={[{ colspan: 4 }, { colspan: 4 }, { colspan: 4 }]}> */}
+              <Grid gridDefinition={[{ colspan: 2 }, { colspan: 10 }]}> 
+              <div style={{ height: '100%',display: "flex", alignItems: "center"}}>qq</div>
+              <FormField errorText={qqIndexError}>
+              <Input
+                placeholder={t('indexPlaceholder')}
+                disabled={useDefaultIndex}
+                onChange={({ detail }) => {
+                  setQqIndexError('')
+                  setQqIndex(detail.value)
+                }}
+                value={qqIndex}
+              />
+              </FormField>
+              </Grid>
+              
+              <Grid gridDefinition={[{ colspan: 2 }, { colspan: 10 }]}> 
+              <div style={{ height: '100%',display: "flex", alignItems: "center"}}>qd</div>
+              <FormField errorText={qdIndexError}>
+              <Input
+                placeholder={t('indexPlaceholder')}
+                disabled={useDefaultIndex}
+                onChange={({ detail }) => {
+                  setQdIndexError('')
+                  setQdIndex(detail.value)
+                }}
+                value={qdIndex}
+              />
+              </FormField>
+              </Grid>
+              <Grid gridDefinition={[{ colspan: 2 }, { colspan: 10 }]}> 
+              <div style={{ height: '100%',display: "flex", alignItems: "center"}}>intention</div>
+              <FormField errorText={intentionIndexError}>
+              <Input
+                placeholder={t('indexPlaceholder')}
+                disabled={useDefaultIndex}
+                onChange={({ detail }) => {
+                  setIntentionIndexError('')
+                  setIntentionIndex(detail.value)
+                }}
+                value={intentionIndex}
+              />
+              </FormField>
+              </Grid>
+              <div style={{height:20}}></div>
+            {/* </Grid> */}
+            {/* <FormField
               label={t('chatbots')}
               stretch={true}
               errorText={chatbotError}
@@ -477,8 +641,8 @@ const ChatbotManagement: React.FC = () => {
                   }
                 />
               )}
-            </FormField>
-            <Alert type="info">{t('chatbotCreateTips')}</Alert>
+            </FormField> */}
+            {/* <Alert type="info">{t('chatbotCreateTips')}</Alert> */}
           </SpaceBetween>
         </Modal>
 
