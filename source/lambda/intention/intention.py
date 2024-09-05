@@ -103,10 +103,10 @@ def lambda_handler(event, context):
             output = __create_execution(event, context, email, group_name)
         else:
             if resource == EXECUTION_RESOURCE:
-                output = __list_execution(event)
+                output = __list_execution(event, group_name)
             else:
                 # executionId = resource.split("/").pop()
-                output = __get_execution(event)
+                output = __get_execution(event, group_name)
     elif resource == DOWNLOAD_RESOURCE:
         output = __download_template()
     elif resource == INDEX_USED_SCAN_RESOURCE:
@@ -142,7 +142,7 @@ def __gen_presigned_url(object_name: str, content_type: str, expiration: int):
     )
 
 
-def __list_execution(event):
+def __list_execution(event, group_name):
     max_items = __get_query_parameter(event, "MaxItems", DEFAULT_MAX_ITEMS)
     page_size = __get_query_parameter(event, "PageSize", DEFAULT_SIZE)
     starting_token = __get_query_parameter(event, "StartingToken")
@@ -151,15 +151,25 @@ def __list_execution(event):
         "PageSize": int(page_size),
         "StartingToken": starting_token,
     }
-    response = dynamodb_client.scan(TableName=intention_table_name)
+    response = dynamodb_client.query(
+        TableName=intention_table_name,
+        KeyConditionExpression='groupName = :groupName',
+        ExpressionAttributeValues={
+            ':groupName': {'S': group_name}
+        }
+    )
     output = {}
     page_json = []
     items = response['Items']
     while 'LastEvaluatedKey' in response:
-        response = dynamodb_client.scan(
-            TableName=intention_table_name,
-            ExclusiveStartKey=response['LastEvaluatedKey']
-        )
+        response = dynamodb_client.query(
+        TableName=intention_table_name,
+        KeyConditionExpression='groupName = :pk_val',
+        ExpressionAttributeValues={
+            ':pk_val': {'S': group_name}
+        },
+        ExclusiveStartKey=response['LastEvaluatedKey']
+    )
         items.extend(response['Items'])
 
     for item in items:
@@ -252,7 +262,7 @@ def __create_execution(event, context, email, group_name):
     # write to ddb(meta data)
     intention_table.put_item(
         Item={
-            "groupName": execution_detail["chatbotId"],
+            "groupName": group_name,
             "intentionId": context.aws_request_id,
             "model": execution_detail["model"],
             "index": execution_detail["index"],
@@ -363,41 +373,39 @@ def  __append_embeddings(index, modelId, qaList:list):
         yield {"_op_type": "index", "_index": index, "_source": document, "_id": hashlib.md5(str(document).encode('utf-8')).hexdigest() }
 
 
-def __get_execution(event):
+def __get_execution(event, group_name):
     executionId = event.get("path", "").split("/").pop()
-    filter_expression = "attribute_exists(intentionId) AND intentionId = :value"
-    response = dynamodb_client.scan(
-        TableName=intention_table_name,
-        FilterExpression=filter_expression,
-        ExpressionAttributeValues={
-            ":value": {"S": executionId}
-        }
+    index_response = intention_table.get_item(
+        Key={
+            "groupName": group_name,
+            "intentionId": executionId,
+        },
     )
-    items = response['Items']
+    item = index_response['Item']
     res = {}
     Items = []
-    for item in items:
-        item_json = {}
-        for key in list(item.keys()):
-            value = item.get(key, {"S": ""}).get("S","-")
-            if key == "File":
-                split_index = value.rfind('/')
-                if split_index != -1:
-                    item_json["s3Path"] = value[:split_index]
-                    item_json["s3Prefix"] = value[split_index + 1:]
-                else:
-                    item_json["s3Path"] = value
-                    item_json["s3Prefix"] = "-"
-            elif key == "LastModifiedTime":
-                item_json["createTime"] = value
-            elif key == "details":
-                item_json["QAList"] = json.loads(value)  
+    # for item in items:
+    item_json = {}
+    for key in list(item.keys()):
+        value = item.get(key)
+        if key == "File":
+            split_index = value.rfind('/')
+            if split_index != -1:
+                item_json["s3Path"] = value[:split_index]
+                item_json["s3Prefix"] = value[split_index + 1:]
             else:
-                continue
-            item_json["status"] = "COMPLETED"
-        Items.append(item_json)
+                item_json["s3Path"] = value
+                item_json["s3Prefix"] = "-"
+        elif key == "LastModifiedTime":
+            item_json["createTime"] = value
+        elif key == "details":
+            item_json["QAList"] = json.loads(value)  
+        else:
+            continue
+        item_json["status"] = "COMPLETED"
+    Items.append(item_json)
     res["Items"] = Items
-    res["Count"] = len(items)
+    res["Count"] = len(Items)
     return res
 
 def __get_s3_object_with_retry(bucket: str, key: str, max_retries: int = 5, delay: int = 1):

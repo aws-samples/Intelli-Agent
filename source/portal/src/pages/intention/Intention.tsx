@@ -19,7 +19,7 @@ import TableLink from 'src/comps/link/TableLink';
 import useAxiosRequest from 'src/hooks/useAxiosRequest';
 import { useTranslation } from 'react-i18next';
 import AddIntention from '../components/AddIntention';
-import { useAuth } from 'react-oidc-context';
+// import { useAuth } from 'react-oidc-context';
 import { EMBEDDING_MODEL_LIST } from 'src/utils/const';
 
 const parseDate = (item: IntentionsItem) => {
@@ -46,7 +46,7 @@ const Intention: React.FC = () => {
     sortingField: 'createTime',
   });
   const [isDescending, setIsDescending] = useState<boolean | undefined>(true);
-  const auth = useAuth();
+  // const auth = useAuth();
   // ingest document
   const [showAddModal, setShowAddModal] = useState(false);
   const isFirstRender = useRef(true);
@@ -57,6 +57,7 @@ const Intention: React.FC = () => {
   const [useDefaultIndex, setUseDefaultIndex] = useState(true);
   const [fileEmptyError, setFileEmptyError] = useState(false);
   const [indexNameError, setIndexNameError] = useState('');
+  const [uploadFiles, setUploadFiles] = useState<File[]>([]);
 
   const changeBotOption = (selectedBotOption: SelectedOption)=>{
     setSelectedBotsOption(selectedBotOption)
@@ -103,13 +104,13 @@ const Intention: React.FC = () => {
   };
 
   const getBots = async ()=>{
-    const groupName: string[] = auth?.user?.profile?.['cognito:groups'] as any;
+    // const groupName: string[] = auth?.user?.profile?.['cognito:groups'] as any;
     const data: any = await fetchData({
       url: 'chatbot-management/chatbots',
       method: 'get',
-      data: {
-        groupName: groupName?.[0] ?? 'Admin',
-      },
+      // data: {
+      //   groupName: groupName?.[0] ?? 'Admin',
+      // },
     });
     const options: SelectedOption[] = [];
     (data.chatbot_ids||[]).forEach((item:any)=>{
@@ -385,9 +386,11 @@ const Intention: React.FC = () => {
                   <Button
                     variant="primary"
                     onClick={() => {
+                      setUseDefaultIndex(true)
                       setFileEmptyError(false)
                       setIndexNameError('')
-                      setShowAddModal(true);
+                      setShowAddModal(true)
+                      setUploadFiles([])
                     }}
                   >
                     {t('button.createIntention')}
@@ -440,6 +443,7 @@ const Intention: React.FC = () => {
           showAddModal={showAddModal}
           selectedModelOption={selectedModelOption}
           selectedBotOption={selectedBotsOption}
+          uploadFiles={uploadFiles}
           setIndexName={setIndexName}
           changeUseDefaultIndex={setUseDefaultIndex}
           changeBotOption={changeBotOption}
@@ -449,6 +453,7 @@ const Intention: React.FC = () => {
           indexNameError={indexNameError} 
           setFileEmptyError={setFileEmptyError} 
           setIndexNameError={setIndexNameError}
+          setUploadFiles={setUploadFiles}
           reloadIntention={() => {
             setTimeout(() => {
               getIntentionList();

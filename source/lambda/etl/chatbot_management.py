@@ -45,16 +45,6 @@ resp_header = {
     "Access-Control-Allow-Methods": "*",
 }
 
-
-def get_query_parameter(event, parameter_name, default_value=None):
-    if (
-        event.get("queryStringParameters")
-        and parameter_name in event["queryStringParameters"]
-    ):
-        return event["queryStringParameters"][parameter_name]
-    return default_value
-
-
 def __create_chatbot(event, group_name):
     request_body = json.loads(event["body"])
     chatbot_id = request_body.get("chatbotId", group_name.lower())
@@ -122,9 +112,9 @@ def __list_embedding_model():
 
 
 def __list_chatbot(event, group_name):
-    max_items = get_query_parameter(event, "MaxItems", DEFAULT_MAX_ITEMS)
-    page_size = get_query_parameter(event, "PageSize", DEFAULT_SIZE)
-    starting_token = get_query_parameter(event, "StartingToken")
+    max_items = __get_query_parameter(event, "MaxItems", DEFAULT_MAX_ITEMS)
+    page_size = __get_query_parameter(event, "PageSize", DEFAULT_SIZE)
+    starting_token = __get_query_parameter(event, "StartingToken")
 
     config = {
         "MaxItems": int(max_items),
@@ -193,7 +183,7 @@ def merge_index(chatbot_index_ids, key):
 
 def __get_chatbot(event, group_name):
 
-    chatbot_id = get_query_parameter(event, "chatbotId")
+    chatbot_id = __get_query_parameter(event, "chatbotId")
 
     if chatbot_id:
         chatbot_item = chatbot_table.get_item(
@@ -243,9 +233,18 @@ def __delete_chatbot(event, group_name):
 
 
 def lambda_handler(event, context):
-    logger.info(f"event:{event}")
+    # logger.info(f"event:{event}")
+    authorizer_type = (
+        event["requestContext"].get("authorizer", {}).get("authorizerType")
+    )
+    if authorizer_type == "lambda_authorizer":
+        claims = json.loads(event["requestContext"]["authorizer"]["claims"])
 
-    group_name = "Admin"
+    if "use_api_key" in claims:
+        group_name = __get_query_parameter(event, "GroupName", "Admin")
+    else:
+        email = claims["email"]
+        group_name = claims["cognito:groups"]  # Agree to only be in one group
     http_method = event["httpMethod"]
     resource: str = event["resource"]
     if resource == EMBEDDING_MODELS_RESOURCE:
@@ -358,3 +357,11 @@ def __chatbot_details(chatbot_id, group_name):
         value.get("value",{}).get("M",{}).keys()
         res[key]=""
     return res
+
+def __get_query_parameter(event, parameter_name, default_value=None):
+    if (
+        event.get("queryStringParameters")
+        and parameter_name in event["queryStringParameters"]
+    ):
+        return event["queryStringParameters"][parameter_name]
+    return default_value
