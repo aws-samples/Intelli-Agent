@@ -278,23 +278,23 @@ async function processCreateOptions(options: any): Promise<void> {
           !(this as any).state.answers.enableChat);
       },
     },
-    {
-      type: "select",
-      name: "defaultLlm",
-      message: "Select a llm model",
-      choices: llms.map((m) => ({ name: m.name, value: m })),
-      initial: options.defaultLlm,
-      validate(value: string) {
-        if ((this as any).state.answers.enableChat) {
-          return value ? true : "Select a default llm model";
-        }
+    // {
+    //   type: "select",
+    //   name: "defaultLlm",
+    //   message: "Select a llm model",
+    //   choices: llms.map((m) => ({ name: m.name, value: m })),
+    //   initial: options.defaultLlm,
+    //   validate(value: string) {
+    //     if ((this as any).state.answers.enableChat) {
+    //       return value ? true : "Select a default llm model";
+    //     }
 
-        return true;
-      },
-      skip(): boolean {
-        return !(this as any).state.answers.enableChat;
-      },
-    },
+    //     return true;
+    //   },
+    //   skip(): boolean {
+    //     return !(this as any).state.answers.enableChat;
+    //   },
+    // },
     {
       type: "input",
       name: "sagemakerModelS3Bucket",
