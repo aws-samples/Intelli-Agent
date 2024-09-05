@@ -493,7 +493,19 @@ export class ApiConstruct extends Construct {
       apiResourceCheckChatbot.addMethod("POST", lambdaChatbotIntegration, this.genMethodOption(api, auth, null))
       const apiResourceChatbots = apiResourceChatbotManagement.addResource("chatbots");
       apiResourceChatbots.addMethod("POST", lambdaChatbotIntegration, {
-        ...this.genMethodOption(api, auth, null),
+        ...this.genMethodOption(api, auth, {
+          chatbotId: {type: JsonSchemaType.STRING},
+          groupName: {type: JsonSchemaType.STRING},
+          indexIds: {
+             type: JsonSchemaType.OBJECT,
+             properties: {
+              qq: { type: JsonSchemaType.STRING },
+              qd: { type: JsonSchemaType.STRING },
+              intention: { type: JsonSchemaType.STRING }
+             }
+          },
+          Message: {type: JsonSchemaType.STRING},
+        }),
         requestModels: this.genRequestModel(api, {
           "chatbotId": { "type": JsonSchemaType.STRING },
           "index": {type: JsonSchemaType.OBJECT,
@@ -535,12 +547,13 @@ export class ApiConstruct extends Construct {
             type: JsonSchemaType.STRING,
           }
         }
-      }),
+      })
+      ,
         requestParameters: {
           'method.request.querystring.max_items': false,
           'method.request.querystring.page_size': false
         }
-      });
+      })
 
 
 
@@ -602,7 +615,21 @@ export class ApiConstruct extends Construct {
       apiResourceDownload.addMethod("GET", lambdaIntentionIntegration, this.genMethodOption(api, auth, null));
       const apiResourceExecutionManagement = apiResourceIntentionManagement.addResource("executions");
       apiResourceExecutionManagement.addMethod("POST", lambdaIntentionIntegration, {
-        ...this.genMethodOption(api, auth, null),
+        ...this.genMethodOption(api, auth, {
+          execution_id: { type: JsonSchemaType.STRING },
+          input_payload: {
+            type: JsonSchemaType.OBJECT,
+            properties: {
+              tableItemId: { type: JsonSchemaType.STRING },
+              chatbotId: { type: JsonSchemaType.STRING },
+              groupName: { type: JsonSchemaType.STRING },
+              index: { type: JsonSchemaType.STRING },
+              model: { type: JsonSchemaType.STRING },
+              fieldName: { type: JsonSchemaType.STRING }
+            }
+          },
+          result: { type: JsonSchemaType.STRING }
+        }),
         requestModels: this.genRequestModel(api, {
           "chatbotId": { "type": JsonSchemaType.STRING },
           "index": { "type": JsonSchemaType.STRING },
