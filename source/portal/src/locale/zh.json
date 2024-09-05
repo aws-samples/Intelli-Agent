@@ -120,6 +120,7 @@
       "upload": "上传",
       "createPrompt": "创建提示",
       "createChatbot": "创建聊天机器人",
+      "editChatbot": "编辑聊天机器人",
       "edit": "编辑",
       "save": "保存",
       "action": "操作"

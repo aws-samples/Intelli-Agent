@@ -120,6 +120,7 @@
       "upload": "Upload",
       "createPrompt": "Create Prompt",
       "createChatbot": "Create Chatbot",
+      "editChatbot": "Edit Chatbot",
       "edit": "Edit",
       "save": "Save",
       "action": "Action"

@@ -25,7 +25,6 @@ import { useAuth } from 'react-oidc-context';
 import {
   LLM_BOT_COMMON_MODEL_LIST,
   LLM_BOT_RETAIL_MODEL_LIST,
-  LLM_BOT_CHATBOT_LIST,
   SCENARIO_LIST,
   RETAIL_GOODS_LIST,
 } from 'src/utils/const';
