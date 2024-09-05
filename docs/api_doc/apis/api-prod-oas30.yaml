@@ -9,6 +9,8 @@ servers:
     basePath:
       default: "prod"
 paths:
+# Chat
+
 # Chatbot
   /chatbot-management/embeddings:
     get:
@@ -505,6 +507,20 @@ paths:
       - aicsaicustomerserviceapiconstructApiAuthorizer94F43DD0: []
   /chat-history/sessions:
     get:
+      summary: List chat sessions
+      description: |
+        GET /chat-history/sessions - This endpoint retrieves a list of chat sessions. The results can be paginated using the 'max_items' and 'page_size' query parameters.
+      parameters:
+        - name: max_items
+          in: query
+          schema:
+            type: integer
+          description: Maximum number of items to return
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+          description: Number of items per page
       responses:
         "400":
           description: "400 response"
@@ -528,6 +544,25 @@ paths:
       - aicsaicustomerserviceapiconstructApiAuthorizer94F43DD0: []
   /chat-history/messages:
     get:
+      summary: List chat messages
+      description: |
+        GET /chat-history/messages - This endpoint retrieves a list of chat messages in a chat session. The results can be paginated using the 'max_items' and 'page_size' query parameters.
+      parameters:
+        - name: session_id
+          in: query
+          schema:
+            type: string
+          description: Chat session id which contains chat messages, e.g. b8a34e07-48ad-417c-9ddc-f2801ebf6a47
+        - name: max_items
+          in: query
+          schema:
+            type: integer
+          description: Maximum number of items to return
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+          description: Number of items per page
       responses:
         "400":
           description: "400 response"
