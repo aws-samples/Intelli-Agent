@@ -106,9 +106,9 @@ def aics_restapi_event_handler(event_body: dict, context: dict, entry_executor):
     request_timestamp = context["request_timestamp"]
     client_type = event_body.get("client_type", "default_client_type")
     session_id = event_body.get("session_id", f"session_{request_timestamp}")
-    user_id = "default_user_id"
-    group_name = "Admin"
-    chatbot_id = event_body.get("user_profile", {}).get("channel", "admin")
+    user_id = event_body.get("user_id", "default_user_id")
+    group_name = event_body.get("group_name", "Admin")
+    chatbot_id = event_body.get("chatbot_id", "admin")
 
     ddb_history_obj = DynamoDBChatMessageHistory(
         sessions_table_name=sessions_table_name,
@@ -121,7 +121,7 @@ def aics_restapi_event_handler(event_body: dict, context: dict, entry_executor):
     chat_history = ddb_history_obj.messages_as_langchain
 
     standard_event_body = {
-        "query": event_body["messages"][0]["content"],
+        "query": event_body["query"],
         "entry_type": EntryType.COMMON,
         "session_id": session_id,
         "user_id": user_id,
