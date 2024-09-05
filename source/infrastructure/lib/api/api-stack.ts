@@ -495,16 +495,17 @@ export class ApiConstruct extends Construct {
       const apiResourceChatbotManagement = api.root.addResource("chatbot-management");
       const apiResourceCheckChatbot = apiResourceChatbotManagement.addResource('check-chatbot')
       apiResourceCheckChatbot.addMethod("POST", lambdaChatbotIntegration, this.genMethodOption(api, auth, null))
-      const apiResourceChatbot = apiResourceChatbotManagement.addResource("chatbots");
-      apiResourceChatbot.addMethod("POST", lambdaChatbotIntegration, this.genMethodOption(api, auth, null));
-      apiResourceChatbot.addMethod("GET", lambdaChatbotIntegration, this.genMethodOption(api, auth, null));
-      const apiResourceChatbotDetail = apiResourceChatbot.addResource('detail')
+      const apiResourceChatbots = apiResourceChatbotManagement.addResource("chatbots");
+      apiResourceChatbots.addMethod("POST", lambdaChatbotIntegration, this.genMethodOption(api, auth, null));
+      apiResourceChatbots.addMethod("GET", lambdaChatbotIntegration, this.genMethodOption(api, auth, null));
+      const apiResourceChatbot = apiResourceChatbotManagement.addResource("chatbot");
+      const apiResourceChatbotDetail = apiResourceChatbot.addResource('{chatbotId}')
       apiResourceChatbotDetail.addMethod("GET", lambdaChatbotIntegration, this.genMethodOption(api, auth, null));
 
       const apiResourceChatbotManagementEmbeddings = apiResourceChatbotManagement.addResource("embeddings")
       apiResourceChatbotManagementEmbeddings.addMethod("GET", lambdaChatbotIntegration, this.genMethodOption(api, auth, null));
 
-      const apiResourceChatbotProxy = apiResourceChatbot.addResource("{proxy+}")
+      const apiResourceChatbotProxy = apiResourceChatbots.addResource("{proxy+}")
       apiResourceChatbotProxy.addMethod("DELETE", lambdaChatbotIntegration, this.genMethodOption(api, auth, null),);
       apiResourceChatbotProxy.addMethod("GET", lambdaChatbotIntegration, this.genMethodOption(api, auth, null),);
 

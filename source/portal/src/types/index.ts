@@ -179,7 +179,7 @@ export interface PresignedUrlData {
   s3Prefix: string;
 }
 
-export interface CreateChatbotResponse {
+export interface CreEditChatbotResponse {
   Message: string;
 }
 
@@ -197,12 +197,12 @@ export type ChatbotResponse = {
 };
 
 export interface Chatbot {
-  [key: string]: {
-    [subKey: string]: string;
-  };
+  qd: string;
+  qq: string;
+  intention: string;
 }
 
-export interface GetChatbotResponse {
+export interface chatbotDetail {
   GroupName: string;
   ChatbotId: string;
   Chatbot: Chatbot;

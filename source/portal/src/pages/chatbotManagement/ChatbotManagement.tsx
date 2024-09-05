@@ -4,7 +4,7 @@ import {
   Alert,
   Box,
   Button,
-  ButtonDropdown,
+  // ButtonDropdown,
   CollectionPreferences,
   ContentLayout,
   FormField,
@@ -20,10 +20,11 @@ import {
   Toggle,
 } from '@cloudscape-design/components';
 import {
-  CreateChatbotResponse,
+  // CreateChatbotResponse,
   ChatbotItem,
   ChatbotResponse,
-  GetChatbotResponse
+  // chatbotDetail,
+  CreEditChatbotResponse
 } from 'src/types';
 import useAxiosRequest from 'src/hooks/useAxiosRequest';
 import { useTranslation } from 'react-i18next';
@@ -54,7 +55,7 @@ const ChatbotManagement: React.FC = () => {
   const [chatbotName, setChatbotName] = useState('');
   const [chatbotNameError, setChatbotNameError] = useState('');
 
-  const [loadingGet, setLoadingGet] = useState(false);
+  // const [loadingGet, setLoadingGet] = useState(false);
   // validation
   const [modelError, setModelError] = useState('');
   // const [chatbotError, setChatbotError] = useState('');
@@ -110,40 +111,40 @@ const ChatbotManagement: React.FC = () => {
     }
   };
 
-  const getChatbotById = async () => {
-    setLoadingGet(true);
-    // let requestUrl = `chatbot-management/chatbots/create`;
-    // if (type === 'edit') {
-    // requestUrl = `chatbot-management/chatbots/edit`;
-    setChatbotName(selectedItems[0].ChatbotId);
-      // setModelOption({
-      //   label: selectedItems[0].ModelName,
-      //   value: selectedItems[0].ModelName,
-      // });
-    // }
-    // try {
-    //   let chatbotIdParam = '';
-    //   if (selectedItems.length > 0) {
-    //     chatbotIdParam = selectedItems[0].ChatbotId;
-    //   } else {
-    //     chatbotIdParam = 'admin';
-    //   }
-    const data: GetChatbotResponse = await fetchData({
-      url: 'chatbot-management/chatbots/detail',
-      method: 'get',
-      params: {
-        chatbotId: selectedItems[0].ChatbotId,
-      },
-    });
-    setLoadingGet(false);
-    // setCurrentChatbot(data);
-    setShowEdit(true);
+  // const getChatbotById = async () => {
+  //   setLoadingGet(true);
+  //   // let requestUrl = `chatbot-management/chatbots/create`;
+  //   // if (type === 'edit') {
+  //   // requestUrl = `chatbot-management/chatbots/edit`;
+  //   setChatbotName(selectedItems[0].ChatbotId);
+  //     // setModelOption({
+  //     //   label: selectedItems[0].ModelName,
+  //     //   value: selectedItems[0].ModelName,
+  //     // });
+  //   // }
+  //   // try {
+  //   //   let chatbotIdParam = '';
+  //   //   if (selectedItems.length > 0) {
+  //   //     chatbotIdParam = selectedItems[0].ChatbotId;
+  //   //   } else {
+  //   //     chatbotIdParam = 'admin';
+  //   //   }
+  //   const data: chatbotDetail = await fetchData({
+  //     url: `chatbot-management/chatbot/${selectedItems[0].ChatbotId}`,
+  //     method: 'get'
+  //   });
+  //   setLoadingGet(false);
+  //   setQdIndex(data.Chatbot.qd);
+  //   setQqIndex(data.Chatbot.qq);
+  //   setIntentionIndex(data.Chatbot.intention);
+  //   // setCurrentChatbot(data);
+  //   setShowEdit(true);
       
-    // } catch (error: unknown) {
-    //   console.info('error:', error);
-    //   setLoadingGet(false);
-    // }
-  };
+  //   // } catch (error: unknown) {
+  //   //   console.info('error:', error);
+  //   //   setLoadingGet(false);
+  //   // }
+  // };
 
   const deleteChatbot = async () => {
     setLoadingSave(true);
@@ -160,7 +161,55 @@ const ChatbotManagement: React.FC = () => {
     }
   };
   const editChatbot = async ()=>{
+    setLoadingSave(true)
+    if(!qqIndex?.trim()){
+      setQqIndexError(t('validation.requiredIndexName'));
+      setLoadingSave(false)
+      return;
+    }
+    if(!qdIndex?.trim()){
+      setQdIndexError(t('validation.requiredIndexName'));
+      setLoadingSave(false)
+      return;
+    }
+    if(!intentionIndex?.trim()){
+      setIntentionIndexError(t('validation.requiredIndexName'));
+      setLoadingSave(false)
+      return;
+    }
 
+    const indexIsValid = await isValidChatbot('edit')
+
+    if(!indexIsValid.result){
+      if(indexIsValid.item=="qq") {
+        setQqIndexError(t('validation.repeatIndex'))
+      } else if(indexIsValid.item=="qd") {
+        setQdIndexError(t('validation.repeatIndex'))
+      } else if(indexIsValid.item=="intention") {
+        setIntentionIndexError(t('validation.repeatIndex'))
+      }
+      setLoadingSave(false) 
+      return;
+    }
+
+    const editRes: CreEditChatbotResponse = await fetchData({
+      url: `chatbot-management/chatbot/${selectedItems[0].ChatbotId}`,
+      method: 'post',
+      data: {
+         index: {
+            qq: qqIndex,
+            qd: qdIndex,
+            intention: intentionIndex
+         }
+      }
+    });
+
+    if (editRes.Message === 'OK') {
+      setShowCreate(false);
+      setShowEdit(false);
+      getChatbotList();
+    }
+    setLoadingSave(false);
   }
 
   const isValidChatbot = async (type:string) =>{
@@ -210,13 +259,13 @@ const ChatbotManagement: React.FC = () => {
 
     if(!indexIsValid.result){
       if(indexIsValid.item=="chatbotName"){
-        setChatbotNameError('validation.repeatChatbotName')
+        setChatbotNameError(t('validation.repeatChatbotName'))
       } else if(indexIsValid.item=="qq") {
-        setQqIndexError('validation.repeatIndex')
+        setQqIndexError(t('validation.repeatIndex'))
       } else if(indexIsValid.item=="qd") {
-        setQdIndexError('validation.repeatIndex')
+        setQdIndexError(t('validation.repeatIndex'))
       } else if(indexIsValid.item=="intention") {
-        setIntentionIndexError('validation.repeatIndex')
+        setIntentionIndexError(t('validation.repeatIndex'))
       }
       setLoadingSave(false) 
       return;
@@ -225,7 +274,7 @@ const ChatbotManagement: React.FC = () => {
       // if (type === 'create' && currentChatbot) {
       //   currentChatbot.ChatbotId = createChatbotId;
       // }
-      const data = await fetchData({
+      const createRes: CreEditChatbotResponse = await fetchData({
         url: 'chatbot-management/chatbots',
         method: 'post',
         data: {
@@ -239,7 +288,7 @@ const ChatbotManagement: React.FC = () => {
           }
         },
       });
-      const createRes: CreateChatbotResponse = data;
+      // const createRes: CreateChatbotResponse = data;
       if (createRes.Message === 'OK') {
         setShowCreate(false);
         setShowEdit(false);
@@ -394,7 +443,7 @@ const ChatbotManagement: React.FC = () => {
                       getChatbotList();
                     }}
                   />
-                  <ButtonDropdown
+                  {/* <ButtonDropdown
                     disabled={selectedItems.length === 0 || selectedItems[0].ChatbotId==="admin"}
                     loading={loadingGet}
                     onItemClick={({ detail }) => {
@@ -411,14 +460,18 @@ const ChatbotManagement: React.FC = () => {
                     ]}
                   >
                     {t('button.action')}
-                  </ButtonDropdown>
+                  </ButtonDropdown> */}
                   <Button
                     variant="primary"
                     onClick={() => {
                       setChatbotName('')
                       setChatbotNameError('')
+                      setQdIndex('')
+                      setQqIndex('')
+                      setIntentionIndex('')
                       setLoadingSave(false)
-                      getModelList('create');
+                      getModelList('create')
+                      setUseDefaultIndex(true)
                       // getChatbotById('create');
                       setShowCreate(true);
                     }}
@@ -480,17 +533,19 @@ const ChatbotManagement: React.FC = () => {
               </SpaceBetween>
             </Box>
           }
-          header={t('button.createChatbot')}
+          header={showCreate?t('button.createChatbot'):t('button.editChatbot')}
         >
           <SpaceBetween direction="vertical" size="m">
           <FormField
             label={t('chatbotName')}
+            
             stretch={true}
             errorText={chatbotNameError}
           >
             <Input
               placeholder={t('chatbotNamePlaceholder')}
               value={chatbotName}
+              disabled={showEdit}
               onChange={({ detail }) => {
                 setChatbotNameError('');
                 setChatbotName(detail.value);

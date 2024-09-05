@@ -33,7 +33,7 @@ ROOT_RESOURCE = "/chatbot-management"
 EMBEDDING_MODELS_RESOURCE = f"{ROOT_RESOURCE}/embeddings"
 INDEXES_RESOURCE = f"{ROOT_RESOURCE}/indexes"
 CHATBOTS_RESOURCE = f"{ROOT_RESOURCE}/chatbots"
-DETAILS_RESOURCE = f"{CHATBOTS_RESOURCE}/details"
+DETAILS_RESOURCE = f"{ROOT_RESOURCE}/chatbot"
 CHATBOTCHECK_RESOURCE = f"{ROOT_RESOURCE}/check-chatbot"
 logger = logging.getLogger(__name__)
 encoder = TokenEncoder()
@@ -62,8 +62,8 @@ def __create_chatbot(event, group_name):
         "chatbotDescription", "Answer question based on search result"
     )
     chatbot_embedding = request_body.get("modelId", embedding_endpoint)
-    # model_id = f"{chatbot_id}-embedding"
-    model_id = request_body.get("modelId", f"{chatbot_id}-embedding")
+    model_id = f"{chatbot_id}-embedding"
+    # model_id = request_body.get("modelId", f"{chatbot_id}-embedding")
     create_time = str(datetime.now(timezone.utc))
 
     initiate_model(model_table, group_name, model_id, chatbot_embedding, create_time)
@@ -173,6 +173,7 @@ def __list_chatbot(event, group_name):
             item_json["ModelId"] = chatbot_model_item.get("modelId", "")
             item_json["LastModifiedTime"] = item.get("updateTime", {"S": ""})["S"]
             page_json.append(item_json)
+        page_json.sort(key=lambda x: x["LastModifiedTime"], reverse=True)
         output["Items"] = page_json
         if "LastEvaluatedKey" in page:
             output["LastEvaluatedKey"] = encoder.encode(
@@ -261,8 +262,8 @@ def lambda_handler(event, context):
             output = __delete_chatbot(event, group_name)
     elif resource == CHATBOTCHECK_RESOURCE:
         output = __validate_chatbot(event, group_name)
-    elif resource == DETAILS_RESOURCE:
-        output == __chatbot_details(event, group_name)
+    elif resource.startswith(DETAILS_RESOURCE):
+        output == __chatbot_details(resource.split("/").pop(), group_name)
 
     try:
         return {
@@ -293,7 +294,7 @@ def __validate_chatbot(event, group_name):
     if chatbot_type=="create":
         chatbot_item = chatbot_table.get_item(
             Key={"groupName": group_name, "chatbotId": chatbot_id}
-        )
+        ).get("Item")
         if chatbot_item:
             return {
                 "result": False,
@@ -317,7 +318,7 @@ def __validate_chatbot(event, group_name):
         FilterExpression=Attr('indexId').is_in(list(index_set))
     )
     items = response.get('Items')
-    if not items:
+    if items:
         for item in items:
             if item['groupName'] != group_name:
                 # 其他人用了index，报错
@@ -327,7 +328,7 @@ def __validate_chatbot(event, group_name):
                     "Message": "repeat in other group name"
                 }
             else:
-                if item.get("modelIds", {}).get("embedding",{}).get("S") != model:
+                if item.get("modelIds", {}).get("embedding","") != model:
                 # 自己用了index，但是模型 不对，报错
                     return {
                         "result": False,
@@ -342,12 +343,11 @@ def __validate_chatbot(event, group_name):
 
 def __find_key(index, index_id):
     for key, value in index.items():
-        if value.contains(index_id):
+        if index_id in value.split(","):
             return key
     return None
 
-def __chatbot_details(event, group_name):
-    chatbot_id = get_query_parameter(event, "chatbotId", "admin")
+def __chatbot_details(chatbot_id, group_name):
     res={chatbot_id:chatbot_id}
     index = chatbot_table.get_item(
          Key={"groupName": group_name, 
@@ -357,5 +357,4 @@ def __chatbot_details(event, group_name):
     for key, value in index.items():
         value.get("value",{}).get("M",{}).keys()
         res[key]=""
-    
-    pass
+    return res
