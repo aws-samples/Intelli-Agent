@@ -385,6 +385,7 @@ const Intention: React.FC = () => {
                   <Button
                     variant="primary"
                     onClick={() => {
+                      setUseDefaultIndex(true)
                       setFileEmptyError(false)
                       setIndexNameError('')
                       setShowAddModal(true);
