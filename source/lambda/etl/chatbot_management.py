@@ -173,6 +173,7 @@ def __list_chatbot(event, group_name):
             item_json["ModelId"] = chatbot_model_item.get("modelId", "")
             item_json["LastModifiedTime"] = item.get("updateTime", {"S": ""})["S"]
             page_json.append(item_json)
+        page_json.sort(key=lambda x: x["LastModifiedTime"], reverse=True)
         output["Items"] = page_json
         if "LastEvaluatedKey" in page:
             output["LastEvaluatedKey"] = encoder.encode(
