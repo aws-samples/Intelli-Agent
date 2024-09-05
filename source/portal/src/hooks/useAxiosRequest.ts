@@ -40,8 +40,8 @@ const useAxiosRequest = () => {
         headers: {
           ...headers,
           Authorization: `Bearer ${token}`,
-          'x-api-key': config?.apiKey,
-          'author': user?.profile.email || 'anonumous user'
+          // 'x-api-key': config?.apiKey,
+          // 'author': user?.profile.email || 'anonumous user'
         },
       });
       return response.data;

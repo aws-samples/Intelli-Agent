@@ -109,14 +109,11 @@ export class RootStack extends Stack {
         oidcClientId: userConstruct.oidcClientId,
         oidcLogoutUrl: userConstruct.oidcLogoutUrl,
         oidcRedirectUrl: `https://${portalConstruct.portalUrl}/signin`,
-        apiKey: apiConstruct.apiKey,
+        // apiKey: apiConstruct.apiKey,
       },
     });
     uiExports.node.addDependency(portalConstruct);
 
-    new CfnOutput(this, "API Key", {
-      value: apiConstruct.apiKey,
-    });
     new CfnOutput(this, "API Endpoint Address", {
       value: apiConstruct.apiEndpoint,
     });

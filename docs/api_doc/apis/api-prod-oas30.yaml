@@ -1,0 +1,733 @@
+openapi: "3.0.1"
+info:
+  title: "aics-api"
+  description: "AI-Customer-Service - Core API"
+  version: "2024-09-05T01:54:32Z"
+servers:
+- url: "https://{hostUrl}.amazonaws.com/{basePath}"
+  variables:
+    basePath:
+      default: "prod"
+paths:
+  /llm:
+    post:
+      responses:
+        "400":
+          description: "400 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+        "500":
+          description: "500 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+        "200":
+          description: "200 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+      security:
+      - aicsaicustomerserviceapiconstructApiAuthorizer94F43DD0: []
+  /chatbot-management/embeddings:
+    get:
+      responses:
+        "400":
+          description: "400 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+        "500":
+          description: "500 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+        "200":
+          description: "200 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+      security:
+      - aicsaicustomerserviceapiconstructApiAuthorizer94F43DD0: []
+  /chatbot-management/chatbots/{proxy+}:
+    get:
+      parameters:
+      - name: "proxy"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "400":
+          description: "400 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+        "500":
+          description: "500 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+        "200":
+          description: "200 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+      security:
+      - aicsaicustomerserviceapiconstructApiAuthorizer94F43DD0: []
+  /chatbot-management/chatbots:
+    get:
+      responses:
+        "400":
+          description: "400 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+        "500":
+          description: "500 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+        "200":
+          description: "200 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+      security:
+      - aicsaicustomerserviceapiconstructApiAuthorizer94F43DD0: []
+    post:
+      responses:
+        "400":
+          description: "400 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+        "500":
+          description: "500 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+        "200":
+          description: "200 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+      security:
+      - aicsaicustomerserviceapiconstructApiAuthorizer94F43DD0: []
+
+  /chatbot-management/check-chatbot:
+    post:
+      responses:
+        "400":
+          description: "400 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+        "500":
+          description: "500 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+        "200":
+          description: "200 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+      security:
+      - aicsaicustomerserviceapiconstructApiAuthorizer94F43DD0: []    
+
+  /intention/executions:
+    get:
+      responses:
+        "400":
+          description: "400 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+        "500":
+          description: "500 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+        "200":
+          description: "200 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+      security:
+      - aicsaicustomerserviceapiconstructApiAuthorizer94F43DD0: []
+    post:
+      responses:
+        "400":
+          description: "400 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+        "500":
+          description: "500 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+        "200":
+          description: "200 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+      security:
+      - aicsaicustomerserviceapiconstructApiAuthorizer94F43DD0: []
+  /intention/executions/{executionId}:
+    get:
+      parameters:
+      - name: "intentionId"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      - name: "executionId"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "400":
+          description: "400 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+        "500":
+          description: "500 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+        "200":
+          description: "200 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/aicsaiapicohmy8hNMRxNWN"
+      security:
+      - aicsaicustomerserviceapiconstructApiAuthorizer94F43DD0: []
+  /intention/execution-presigned-url:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/aicsaiapicoS7193iOfsONP"
+        required: true
+      responses:
+        "400":
+          description: "400 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+        "500":
+          description: "500 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+        "200":
+          description: "200 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/aicsaiapicoFa1ujqwjnv8W"
+      security:
+      - aicsaicustomerserviceapiconstructApiAuthorizer94F43DD0: []
+  /intention/download-template:
+    get:
+      responses:
+        "400":
+          description: "400 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+        "500":
+          description: "500 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+        "200":
+          description: "200 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+      security:
+      - aicsaicustomerserviceapiconstructApiAuthorizer94F43DD0: []
+
+  /intention/index-used-scan:
+    post:
+      responses:
+        "400":
+          description: "400 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+        "500":
+          description: "500 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+        "200":
+          description: "200 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+      security:
+      - aicsaicustomerserviceapiconstructApiAuthorizer94F43DD0: []
+  /prompt-management/prompts:
+    get:
+      responses:
+        "400":
+          description: "400 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+        "500":
+          description: "500 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+        "200":
+          description: "200 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+      security:
+      - aicsaicustomerserviceapiconstructApiAuthorizer94F43DD0: []
+    post:
+      responses:
+        "400":
+          description: "400 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+        "500":
+          description: "500 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+        "200":
+          description: "200 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+      security:
+      - aicsaicustomerserviceapiconstructApiAuthorizer94F43DD0: []
+
+  /prompt-management/scenes:
+    get:
+      responses:
+        "400":
+          description: "400 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+        "500":
+          description: "500 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+        "200":
+          description: "200 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+      security:
+      - aicsaicustomerserviceapiconstructApiAuthorizer94F43DD0: []
+  /prompt-management/models:
+    get:
+      responses:
+        "400":
+          description: "400 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+        "500":
+          description: "500 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+        "200":
+          description: "200 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+      security:
+      - aicsaicustomerserviceapiconstructApiAuthorizer94F43DD0: []
+
+  /prompt-management/prompts/{proxy+}:
+    get:
+      parameters:
+      - name: "proxy"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "400":
+          description: "400 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+        "500":
+          description: "500 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+        "200":
+          description: "200 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+      security:
+      - aicsaicustomerserviceapiconstructApiAuthorizer94F43DD0: []
+    delete:
+      parameters:
+      - name: "proxy"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "400":
+          description: "400 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+        "500":
+          description: "500 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+        "200":
+          description: "200 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+      security:
+      - aicsaicustomerserviceapiconstructApiAuthorizer94F43DD0: []
+
+
+  /chat-history:
+    post:
+      responses:
+        "400":
+          description: "400 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+        "500":
+          description: "500 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+        "200":
+          description: "200 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+      security:
+      - aicsaicustomerserviceapiconstructApiAuthorizer94F43DD0: []
+  /chat-history/sessions:
+    get:
+      responses:
+        "400":
+          description: "400 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+        "500":
+          description: "500 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+        "200":
+          description: "200 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+      security:
+      - aicsaicustomerserviceapiconstructApiAuthorizer94F43DD0: []
+  /chat-history/messages:
+    get:
+      responses:
+        "400":
+          description: "400 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+        "500":
+          description: "500 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+        "200":
+          description: "200 response"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Empty"
+      security:
+      - aicsaicustomerserviceapiconstructApiAuthorizer94F43DD0: []
+components:
+  schemas:
+    aicsaiapicopvCPtvHlfMt6:
+      title: "PostPayload"
+      required:
+      - "executionId"
+      type: "object"
+      properties:
+        executionId:
+          type: "array"
+          items:
+            type: "string"
+    Empty:
+      title: "Empty Schema"
+      type: "object"
+    aicsaiapicolKK6o7ptLSTP:
+      title: "ResponsePayload"
+      type: "object"
+      properties:
+        data:
+          type: "array"
+          items:
+            type: "string"
+        message:
+          type: "string"
+    aicsaiapicoFa1ujqwjnv8W:
+      title: "ResponsePayload"
+      type: "object"
+      properties:
+        data:
+          type: "string"
+        message:
+          type: "string"
+        s3Prefix:
+          type: "string"
+        s3Bucket:
+          type: "string"
+    aicsaiapicoS7193iOfsONP:
+      title: "PostPayload"
+      required:
+      - "content_type"
+      - "file_name"
+      type: "object"
+      properties:
+        content_type:
+          type: "string"
+        file_name:
+          type: "string"
+    aicsaiapicodXYuMBB70dV2:
+      title: "ResponsePayload"
+      type: "object"
+      properties:
+        Items:
+          type: "array"
+          items:
+            required:
+            - "createTime"
+            - "executionId"
+            - "s3Bucket"
+            - "s3Path"
+            - "s3Prefix"
+            - "status"
+            type: "object"
+            properties:
+              executionId:
+                type: "string"
+              s3Path:
+                type: "string"
+              createTime:
+                type: "string"
+              s3Prefix:
+                type: "string"
+              s3Bucket:
+                type: "string"
+              status:
+                type: "string"
+        Count:
+          type: "integer"
+    aicsaiapico2Mc4B0i5CYHk:
+      title: "ResponsePayload"
+      type: "object"
+      properties:
+        data:
+          type: "string"
+        message:
+          type: "string"
+        s3Prefix:
+          type: "string"
+        s3Bucket:
+          type: "string"
+    aicsaiapicoPUseVtfPvX5T:
+      title: "PostPayload"
+      required:
+      - "content_type"
+      - "file_name"
+      type: "object"
+      properties:
+        content_type:
+          type: "string"
+        file_name:
+          type: "string"
+    aicsaiapicohmy8hNMRxNWN:
+      title: "ResponsePayload"
+      type: "object"
+      properties:
+        Items:
+          type: "array"
+          items:
+            required:
+            - "createTime"
+            - "executionId"
+            - "s3Bucket"
+            - "s3Path"
+            - "s3Prefix"
+            - "status"
+            type: "object"
+            properties:
+              executionId:
+                type: "string"
+              s3Path:
+                type: "string"
+              createTime:
+                type: "string"
+              s3Prefix:
+                type: "string"
+              s3Bucket:
+                type: "string"
+              status:
+                type: "string"
+        Count:
+          type: "integer"
+    aicsaiapicocohEaD85KKTd:
+      title: "ResponsePayload"
+      type: "object"
+      properties:
+        Config:
+          type: "object"
+          properties:
+            PageSize:
+              type: "integer"
+            MaxItems:
+              type: "integer"
+        Items:
+          type: "array"
+          items:
+            required:
+            - "chatbotId"
+            - "createTime"
+            - "embeddingModelType"
+            - "executionId"
+            - "executionStatus"
+            - "groupName"
+            - "indexId"
+            - "indexType"
+            - "offline"
+            - "operationType"
+            - "qaEnhance"
+            - "s3Bucket"
+            - "s3Prefix"
+            - "sfnExecutionId"
+            - "uiStatus"
+            type: "object"
+            properties:
+              executionStatus:
+                type: "string"
+              s3Prefix:
+                type: "string"
+              uiStatus:
+                type: "string"
+              s3Bucket:
+                type: "string"
+              qaEnhance:
+                type: "string"
+              sfnExecutionId:
+                type: "string"
+              embeddingModelType:
+                type: "string"
+              offline:
+                type: "string"
+              executionId:
+                type: "string"
+              groupName:
+                type: "string"
+              chatbotId:
+                type: "string"
+              indexType:
+                type: "string"
+              createTime:
+                type: "string"
+              indexId:
+                type: "string"
+              operationType:
+                type: "string"
+        Count:
+          type: "integer"
+  securitySchemes:
+    aicsaicustomerserviceapiconstructApiAuthorizer94F43DD0:
+      type: "apiKey"
+      name: "Authorization"
+      in: "header"
+      x-amazon-apigateway-authtype: "custom"
