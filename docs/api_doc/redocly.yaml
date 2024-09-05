@@ -1,0 +1,7 @@
+footer:
+  items:
+    - group: Resources
+      items:
+        - href: https://github.com/aws-samples/Intelli-Agent
+          label: GitHub repository
+          
