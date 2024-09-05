@@ -1,4 +1,5 @@
 - page: index.md
+  label: Overview
 - group: AI Customer Service API
-  page: apis/openapi.yaml
+  page: apis/api-prod-oas30.yaml
 
