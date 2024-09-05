@@ -27,6 +27,8 @@ import { DEFAULT_EMBEDDING_MODEL } from 'src/utils/const';
 interface AddIntentionProps {
   showAddModal: boolean;
   indexName: string;
+  fileEmptyError: boolean;
+  indexNameError: string;
   useDefaultIndex: boolean;
   models: SelectedOption[];
   botsOption: SelectedOption[];
@@ -37,20 +39,37 @@ interface AddIntentionProps {
   changeSelectedModel: (option: SelectedOption) => void;
   setShowAddModal: (show: boolean) => void;
   setIndexName: (name: string) => void;
+  setFileEmptyError: (error: boolean) => void;
+  setIndexNameError: (error: string) => void;
   reloadIntention: () => void;
 }
 
 const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => {
   const { t } = useTranslation();
-  const {models, botsOption, selectedModelOption, selectedBotOption, showAddModal, indexName, useDefaultIndex, changeUseDefaultIndex, setIndexName, changeBotOption, changeSelectedModel, setShowAddModal, reloadIntention } = props;
+  const {models, 
+    botsOption, 
+    selectedModelOption, 
+    selectedBotOption, 
+    showAddModal, 
+    indexName, 
+    useDefaultIndex,
+    fileEmptyError,
+    indexNameError,
+    changeUseDefaultIndex, 
+    setIndexName, 
+    changeBotOption, 
+    changeSelectedModel, 
+    setShowAddModal,
+    setFileEmptyError,
+    setIndexNameError,
+    reloadIntention } = props;
   const fetchData = useAxiosRequest();
   const [uploadFiles, setUploadFiles] = useState<File[]>([]);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [showProgress, setShowProgress] = useState(false);
-  const [fileEmptyError, setFileEmptyError] = useState(false);
-  const [indexNameError, setIndexNameError] = useState('');
-  const [tagName, setTagName] = useState('');
-  const [tagNameError, setTagNameError] = useState('');
+  // const [fileEmptyError, setFileEmptyError] = useState(false);
+  // const [indexNameError, setIndexNameError] = useState('');
+  // const [tagNameError, setTagNameError] = useState('');
   const [advanceExpand, setAdvanceExpand] = useState(false);
 
   const executionIntention = async (bucket: string, prefix: string) => {
@@ -64,12 +83,11 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
         groupName: selectedBotOption?.value,
         index: indexName ? indexName.trim() : undefined,
         model: selectedModelOption?.value ?? DEFAULT_EMBEDDING_MODEL,
-        tag: tagName ? tagName.trim() : undefined,
+        // tag: indexName ? indexName.trim() : undefined,
       },
     });
     if (resExecution.execution_id) {
       setIndexName('');
-      setTagName('');
     }
   };
 
@@ -105,31 +123,24 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
   }
 
   const uploadFilesToS3 = async () => {
+    setShowProgress(true);
     // validate  file
     if (uploadFiles.length <= 0) {
       setFileEmptyError(true);
+      setShowProgress(false);
       return;
     }
     // validate index name
     if (!validateNameTagString(indexName.trim())) {
       setIndexNameError('validation.formatInvalidTagIndex');
+      setShowProgress(false);
       return;
     }
-    // validate tag
-    if (!validateNameTagString(tagName.trim())) {
-      setTagNameError('validation.formatInvalidTagIndex');
-      return;
-    }
+
 
     if(!useDefaultIndex && (indexName==null||indexName=='')){
       setIndexNameError('validation.indexNameEmpty')
-      return;
-    }
-
-    // console.log(`${selectedBotOption?.value.toLowerCase()}-intention-default`)
-
-    if(!useDefaultIndex && (tagName==null||tagName=='')){
-      setTagNameError('validation.tagEmpty')
+      setShowProgress(false);
       return;
     }
 
@@ -141,10 +152,10 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
       } else {
         setIndexNameError('validation.indexValid')
       }
+      setShowProgress(false);
       return;
     }
 
-    setShowProgress(true);
     const totalSize = uploadFiles.reduce((acc, file) => acc + file.size, 0);
     let progressMap = new Map();
     let percentage = 0;
@@ -304,8 +315,6 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
                     onChange={({ detail }) =>
                       {
                         setIndexNameError('');
-                        setTagName('')
-                        setTagNameError('')
                         changeUseDefaultIndex(!detail.checked)
                       }
                     }
@@ -353,24 +362,6 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
                         }}
                       />
                     </FormField>
-                    <FormField
-                    label={
-                      <>
-                        {t('tag')}
-                      </>
-                    }
-                    stretch={true}
-                    errorText={t(tagNameError)}
-                  >
-                    <Input
-                      placeholder="example-tag"
-                      value={tagName}
-                      onChange={({ detail }) => {
-                        setTagNameError('');
-                        setTagName(detail.value);
-                      }}
-                    />
-                  </FormField>
                   </>
                   )}
                   

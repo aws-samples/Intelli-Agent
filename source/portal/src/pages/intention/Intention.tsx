@@ -55,6 +55,8 @@ const Intention: React.FC = () => {
   const [models, setModels] = useState<SelectedOption[]>([])
   const [selectedModelOption, setSelectedModelOption] = useState<SelectedOption>();
   const [useDefaultIndex, setUseDefaultIndex] = useState(true);
+  const [fileEmptyError, setFileEmptyError] = useState(false);
+  const [indexNameError, setIndexNameError] = useState('');
 
   const changeBotOption = (selectedBotOption: SelectedOption)=>{
     setSelectedBotsOption(selectedBotOption)
@@ -278,7 +280,7 @@ const Intention: React.FC = () => {
             {
               width: 150,
               id: 'chatbotId',
-              header: t('chatbotName'),
+              header: t('bot'),
               sortingField: 'chatbotId',
               cell: (item: IntentionsItem) =>
                 item.chatbotId,
@@ -294,7 +296,7 @@ const Intention: React.FC = () => {
             {
               width: 150,
               id: 'model',
-              header: t('modelName'),
+              header: t('model'),
               sortingField: 'model',
               cell: (item: IntentionsItem) =>
                 item.model,
@@ -383,6 +385,8 @@ const Intention: React.FC = () => {
                   <Button
                     variant="primary"
                     onClick={() => {
+                      setFileEmptyError(false)
+                      setIndexNameError('')
                       setShowAddModal(true);
                     }}
                   >
@@ -441,11 +445,16 @@ const Intention: React.FC = () => {
           changeBotOption={changeBotOption}
           changeSelectedModel={changeModelOption}
           setShowAddModal={setShowAddModal}
+          fileEmptyError={fileEmptyError} 
+          indexNameError={indexNameError} 
+          setFileEmptyError={setFileEmptyError} 
+          setIndexNameError={setIndexNameError}
           reloadIntention={() => {
             setTimeout(() => {
               getIntentionList();
             }, 2000);
-          } }         />
+          } }
+        />
         
       </ContentLayout>
     </CommonLayout>

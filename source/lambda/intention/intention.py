@@ -198,7 +198,7 @@ def __create_execution(event, context, email, group_name):
     execution_detail["index"] = input_body.get("index")
     execution_detail["model"] = input_body.get("model")
     execution_detail["fileName"] = input_body.get("s3Prefix").split("/").pop()
-    execution_detail["tag"] = input_body.get("tag") if input_body.get("tag") else execution_detail["index"]
+    # execution_detail["tag"] = input_body.get("tag") if input_body.get("tag") else execution_detail["index"]
     bucket=input_body.get("s3Bucket")
     prefix=input_body.get("s3Prefix")
     create_time = str(datetime.now(timezone.utc))
@@ -206,31 +206,33 @@ def __create_execution(event, context, email, group_name):
     initiate_model(
         model_table=model_table,
         group_name=execution_detail["groupName"],
-        model_id=input_body.get("model"), 
+        model_id=f"{input_body.get('chatbotId')}-embedding",
         embedding_endpoint=input_body.get("model")
     )
-    # update chatbot table
-    initiate_chatbot(
-        chatbot_table,
-        execution_detail["groupName"],
-        input_body.get("chatbotId"),
-        input_body.get("index"),
-        IndexType.INTENTION.value,
-        execution_detail["tag"],
-        create_time,
-    )
+    index_list = input_body.get("index").split(",")
+    for index in index_list:
+        # update chatbot table
+        initiate_chatbot(
+            chatbot_table,
+            execution_detail["groupName"],
+            input_body.get("chatbotId"),
+            index,
+            IndexType.INTENTION.value,
+            index,
+            create_time,
+        )
 
-    # update index table
-    initiate_index(
-        index_table,
-        execution_detail["groupName"],
-        input_body.get("index"),
-        input_body.get("model"),
-        IndexType.INTENTION.value,
-        execution_detail["tag"],
-        create_time,
-        "Answer question based on intention",
-    )
+        # update index table
+        initiate_index(
+            index_table,
+            execution_detail["groupName"],
+            index,
+            input_body.get("model"),
+            IndexType.INTENTION.value,
+            index,
+            create_time,
+            "Answer question based on intention",
+        )
     response = __get_s3_object_with_retry(bucket, prefix)
     file_content = response['Body'].read()
     excel_file = BytesIO(file_content)
@@ -254,7 +256,7 @@ def __create_execution(event, context, email, group_name):
             "intentionId": context.aws_request_id,
             "model": execution_detail["model"],
             "index": execution_detail["index"],
-            "tag": execution_detail["tag"],
+            "tag": execution_detail["index"],
             "File": f'{bucket}{input_body.get("s3Prefix")}',
             "LastModifiedBy": email,
             "LastModifiedTime": re.findall(r'\[(.*?)\]', input_body.get("s3Prefix"))[0],
@@ -350,7 +352,7 @@ def  __append_embeddings(index, modelId, qaList:list):
                         "metadata" : {
                             "answer": item["intention"],
                             "source": "portal",
-                            "kwargs": item["kwargs"] or {},
+                            **({"kwargs": item["kwargs"]} if item.get("kwargs") else {}),
                             "type": "Intent"
                         },
                         "sentence_vector" : embeddings_vectors[0]
