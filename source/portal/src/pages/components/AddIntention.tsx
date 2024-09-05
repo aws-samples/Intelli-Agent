@@ -34,6 +34,7 @@ interface AddIntentionProps {
   botsOption: SelectedOption[];
   selectedBotOption: SelectedOption | undefined;
   selectedModelOption: SelectedOption | undefined;
+  uploadFiles: File[];
   changeUseDefaultIndex: (arg: boolean) => void;
   changeBotOption: (option: SelectedOption) => void;
   changeSelectedModel: (option: SelectedOption) => void;
@@ -42,6 +43,7 @@ interface AddIntentionProps {
   setFileEmptyError: (error: boolean) => void;
   setIndexNameError: (error: string) => void;
   reloadIntention: () => void;
+  setUploadFiles: (files: File[]) => void;
 }
 
 const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => {
@@ -55,6 +57,7 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
     useDefaultIndex,
     fileEmptyError,
     indexNameError,
+    uploadFiles,
     changeUseDefaultIndex, 
     setIndexName, 
     changeBotOption, 
@@ -62,15 +65,18 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
     setShowAddModal,
     setFileEmptyError,
     setIndexNameError,
+    setUploadFiles,
     reloadIntention } = props;
   const fetchData = useAxiosRequest();
-  const [uploadFiles, setUploadFiles] = useState<File[]>([]);
+  // const [uploadFiles, setUploadFiles] = useState<File[]>([]);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [showProgress, setShowProgress] = useState(false);
   // const [fileEmptyError, setFileEmptyError] = useState(false);
   // const [indexNameError, setIndexNameError] = useState('');
   // const [tagNameError, setTagNameError] = useState('');
   const [advanceExpand, setAdvanceExpand] = useState(false);
+
+
 
   const executionIntention = async (bucket: string, prefix: string) => {
     const resExecution: ExecutionResponse = await fetchData({
@@ -80,7 +86,7 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
         s3Bucket: bucket,
         s3Prefix: prefix,
         chatbotId: selectedBotOption?.value.toLocaleLowerCase() ?? 'admin',
-        groupName: selectedBotOption?.value,
+        // groupName: selectedBotOption?.value,
         index: indexName ? indexName.trim() : undefined,
         model: selectedModelOption?.value ?? DEFAULT_EMBEDDING_MODEL,
         // tag: indexName ? indexName.trim() : undefined,
