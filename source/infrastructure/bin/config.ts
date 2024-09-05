@@ -46,12 +46,12 @@ export function getConfig(): SystemConfig {
           default: true
         }
       ],
-      // llms: [
-      //   {
-      //     provider: "bedrock",
-      //     name: "anthropic.claude-3-sonnet-20240229-v1:0",
-      //   },
-      // ],
+      llms: [
+        {
+          provider: "bedrock",
+          name: "anthropic.claude-3-sonnet-20240229-v1:0",
+        },
+      ],
       modelConfig: {
         modelAssetsBucket: custom_assets_bucket,
       },
