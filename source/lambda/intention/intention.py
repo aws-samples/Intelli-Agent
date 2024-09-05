@@ -277,15 +277,9 @@ def __create_execution(event, context, email, group_name):
     __save_2_aos(input_body.get("model"), execution_detail["index"], qaList)
 
     return {
-        "statusCode": 200,
-        "headers": resp_header,
-        "body": json.dumps(
-            {
                 "execution_id": execution_detail["tableItemId"],
-                "input_payload": json.dumps(execution_detail),
+                "input_payload": execution_detail,
                 "result": "success"
-            }
-        ),
     }
 
 def __save_2_aos(modelId: str, index: str, qaList:list):
