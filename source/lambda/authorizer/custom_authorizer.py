@@ -52,70 +52,50 @@ def generateDeny(principalId, resource, claims):
 
 
 def lambda_handler(event, context):
-    use_cognito = False
-    use_api_key = False
     logger.info(event)
     try:
         if event.get("httpMethod"):
             # REST API
             if event["headers"].get("authorization"):
                 # Browser will change the Authorization header to lowercase
-                if "Bearer" in event["headers"]["authorization"]:
-                    token = event["headers"]["authorization"].replace("Bearer", "").strip()
-                    use_cognito = True
-                else:
-                    use_api_key = True
+                token = event["headers"]["authorization"].replace("Bearer", "").strip()
             else:
                 # Postman
-                if "Bearer" in event["headers"]["Authorization"]:
-                    token = event["headers"]["Authorization"].replace("Bearer", "").strip()
-                    use_cognito = True
-                else:
-                    use_api_key = True
+                token = event["headers"]["Authorization"].replace("Bearer", "").strip()
         else:
             # WebSocket API
             token = event["queryStringParameters"]["idToken"]
-            use_cognito = True
-        
-        if use_cognito:
-            headers = jwt.get_unverified_header(token)
-            kid = headers["kid"]
-    
-            # Search for the kid in the downloaded public keys
-            key_index = -1
-            for i in range(len(keys)):
-                if kid == keys[i]["kid"]:
-                    key_index = i
-                    break
-            if key_index == -1:
-                logger.error("Public key not found in jwks.json")
-                raise Exception(
-                    "Custom Authorizer Error: Public key not found in jwks.json"
-                )
-    
-            # Construct the public key
-            public_key = jwt.algorithms.RSAAlgorithm.from_jwk(json.dumps(keys[key_index]))
-    
-            # Verify the signature of the JWT token
-            claims = jwt.decode(
-                token, public_key, algorithms=["RS256"], audience=APP_CLIENT_ID,
-                issuer=issuer, options={"verify_exp": verify_exp}
+
+        headers = jwt.get_unverified_header(token)
+        kid = headers["kid"]
+
+        # Search for the kid in the downloaded public keys
+        key_index = -1
+        for i in range(len(keys)):
+            if kid == keys[i]["kid"]:
+                key_index = i
+                break
+        if key_index == -1:
+            logger.error("Public key not found in jwks.json")
+            raise Exception(
+                "Custom Authorizer Error: Public key not found in jwks.json"
             )
-            # reformat claims to align with cognito output
-            claims["cognito:groups"] = ",".join(claims["cognito:groups"])
-            logger.info(claims)
-    
-            response = generateAllow("me", "*", claims)
-            logger.info("Authorized")
-            return json.loads(response)
-        
-        if use_api_key:
-            claims = {
-                "use_api_key": use_api_key
-            }
-            response = generateAllow("me", "*", claims)
-            logger.info("Authorized")
-            return json.loads(response)
+
+        # Construct the public key
+        public_key = jwt.algorithms.RSAAlgorithm.from_jwk(json.dumps(keys[key_index]))
+
+        # Verify the signature of the JWT token
+        claims = jwt.decode(
+            token, public_key, algorithms=["RS256"], audience=APP_CLIENT_ID,
+            issuer=issuer, options={"verify_exp": verify_exp}
+        )
+        # reformat claims to align with cognito output
+        claims["cognito:groups"] = ",".join(claims["cognito:groups"])
+        logger.info(claims)
+
+        response = generateAllow("me", "*", claims)
+        logger.info("Authorized")
+        return json.loads(response)
 
     except Exception as e:
         logger.info("Not Authorized")

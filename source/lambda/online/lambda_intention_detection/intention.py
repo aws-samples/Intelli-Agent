@@ -63,7 +63,8 @@ def get_intention_results(query:str, intention_config:dict):
         intent_fewshot_examples = []
         for doc in res["result"]["docs"]:
             threshold_score = 0.4
-            if "titan" in intention_config["retrievers"][0]["target_model"]:
+            if "titan-embed-text-v1" in intention_config["retrievers"][0]["target_model"]:
+                # Titan v1 threshold is 0.001, Titan v2 threshold is 0.4
                 threshold_score = 0.001
             if doc["score"] > threshold_score:
                 if kb_enabled and intelli_agent_kb_enabled:
