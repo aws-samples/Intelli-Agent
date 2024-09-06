@@ -180,8 +180,6 @@ def __list_execution(event, group_name):
                 item_json["fileName"] = value.split("/").pop()
             elif key == "modelId":
                 item_json["model"] = value
-            elif key == "groupName":
-                item_json["chatbotId"] = value
             elif key == "LastModifiedTime":
                 item_json["createTime"] = value
             elif key == "LastModifiedBy":
