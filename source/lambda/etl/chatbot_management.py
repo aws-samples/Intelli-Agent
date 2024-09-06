@@ -154,7 +154,7 @@ def __list_chatbot(event, group_name):
             chatbot_model_item = model_table.get_item(
                 Key={
                     "groupName": group_name,
-                    "modelId": model_id,
+                    "modelId": f"{chatbot_id}-embedding",
                 }
             ).get("Item")
             item_json["ModelName"] = chatbot_model_item.get("parameter", {}).get(
