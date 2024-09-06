@@ -62,58 +62,58 @@ paths:
       - aicsaicustomerserviceapiconstructApiAuthorizer94F43DD0: []
 
 # Chatbot
-  /chatbot-management/embeddings:
-    get:
-      responses:
-        "400":
-          description: "400 response"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Empty"
-        "500":
-          description: "500 response"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Empty"
-        "200":
-          description: "200 response"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Empty"
-      security:
-      - aicsaicustomerserviceapiconstructApiAuthorizer94F43DD0: []
-  /chatbot-management/chatbots/{proxy+}:
-    get:
-      parameters:
-      - name: "proxy"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
-      responses:
-        "400":
-          description: "400 response"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Empty"
-        "500":
-          description: "500 response"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Empty"
-        "200":
-          description: "200 response"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Empty"
-      security:
-      - aicsaicustomerserviceapiconstructApiAuthorizer94F43DD0: []
+  # /chatbot-management/embeddings:
+  #   get:
+  #     responses:
+  #       "400":
+  #         description: "400 response"
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: "#/components/schemas/Empty"
+  #       "500":
+  #         description: "500 response"
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: "#/components/schemas/Empty"
+  #       "200":
+  #         description: "200 response"
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: "#/components/schemas/Empty"
+  #     security:
+  #     - aicsaicustomerserviceapiconstructApiAuthorizer94F43DD0: []
+  # /chatbot-management/chatbots/{proxy+}:
+  #   get:
+  #     parameters:
+  #     - name: "proxy"
+  #       in: "path"
+  #       required: true
+  #       schema:
+  #         type: "string"
+  #     responses:
+  #       "400":
+  #         description: "400 response"
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: "#/components/schemas/Empty"
+  #       "500":
+  #         description: "500 response"
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: "#/components/schemas/Empty"
+  #       "200":
+  #         description: "200 response"
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: "#/components/schemas/Empty"
+  #     security:
+  #     - aicsaicustomerserviceapiconstructApiAuthorizer94F43DD0: []
   /chatbot-management/chatbots:
     get:
       summary: List chatbots
@@ -182,29 +182,29 @@ paths:
                 $ref: "#/components/schemas/aicusapicoM92ois3mRqdG"
       security:
       - aicsaicustomerserviceapiconstructApiAuthorizer94F43DD0: []
-  /chatbot-management/check-chatbot:
-    post:
-      responses:
-        "400":
-          description: "400 response"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Empty"
-        "500":
-          description: "500 response"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Empty"
-        "200":
-          description: "200 response"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Empty"
-      security:
-      - aicsaicustomerserviceapiconstructApiAuthorizer94F43DD0: []    
+  # /chatbot-management/check-chatbot:
+  #   post:
+  #     responses:
+  #       "400":
+  #         description: "400 response"
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: "#/components/schemas/Empty"
+  #       "500":
+  #         description: "500 response"
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: "#/components/schemas/Empty"
+  #       "200":
+  #         description: "200 response"
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: "#/components/schemas/Empty"
+  #     security:
+  #     - aicsaicustomerserviceapiconstructApiAuthorizer94F43DD0: []    
 
 # Intention
   /intention/executions:
@@ -312,81 +312,81 @@ paths:
                 $ref: "#/components/schemas/aicsaiapicohmy8hNMRxNWN"
       security:
       - aicsaicustomerserviceapiconstructApiAuthorizer94F43DD0: []
-  /intention/execution-presigned-url:
-    post:
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/aicsaiapicoS7193iOfsONP"
-        required: true
-      responses:
-        "400":
-          description: "400 response"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Empty"
-        "500":
-          description: "500 response"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Empty"
-        "200":
-          description: "200 response"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/aicsaiapicoFa1ujqwjnv8W"
-      security:
-      - aicsaicustomerserviceapiconstructApiAuthorizer94F43DD0: []
-  /intention/download-template:
-    get:
-      responses:
-        "400":
-          description: "400 response"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Empty"
-        "500":
-          description: "500 response"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Empty"
-        "200":
-          description: "200 response"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Empty"
-      security:
-      - aicsaicustomerserviceapiconstructApiAuthorizer94F43DD0: []
-  /intention/index-used-scan:
-    post:
-      responses:
-        "400":
-          description: "400 response"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Empty"
-        "500":
-          description: "500 response"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Empty"
-        "200":
-          description: "200 response"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Empty"
-      security:
-      - aicsaicustomerserviceapiconstructApiAuthorizer94F43DD0: []
+  # /intention/execution-presigned-url:
+  #   post:
+  #     requestBody:
+  #       content:
+  #         application/json:
+  #           schema:
+  #             $ref: "#/components/schemas/aicsaiapicoS7193iOfsONP"
+  #       required: true
+  #     responses:
+  #       "400":
+  #         description: "400 response"
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: "#/components/schemas/Empty"
+  #       "500":
+  #         description: "500 response"
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: "#/components/schemas/Empty"
+  #       "200":
+  #         description: "200 response"
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: "#/components/schemas/aicsaiapicoFa1ujqwjnv8W"
+  #     security:
+  #     - aicsaicustomerserviceapiconstructApiAuthorizer94F43DD0: []
+  # /intention/download-template:
+  #   get:
+  #     responses:
+  #       "400":
+  #         description: "400 response"
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: "#/components/schemas/Empty"
+  #       "500":
+  #         description: "500 response"
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: "#/components/schemas/Empty"
+  #       "200":
+  #         description: "200 response"
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: "#/components/schemas/Empty"
+  #     security:
+  #     - aicsaicustomerserviceapiconstructApiAuthorizer94F43DD0: []
+  # /intention/index-used-scan:
+  #   post:
+  #     responses:
+  #       "400":
+  #         description: "400 response"
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: "#/components/schemas/Empty"
+  #       "500":
+  #         description: "500 response"
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: "#/components/schemas/Empty"
+  #       "200":
+  #         description: "200 response"
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: "#/components/schemas/Empty"
+  #     security:
+  #     - aicsaicustomerserviceapiconstructApiAuthorizer94F43DD0: []
 
 # Prompt  
   /prompt-management/prompts:
@@ -476,134 +476,134 @@ paths:
       security:
       - aicsaicustomerserviceapiconstructApiAuthorizer94F43DD0: []
 
-  /prompt-management/scenes:
-    get:
-      responses:
-        "400":
-          description: "400 response"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Empty"
-        "500":
-          description: "500 response"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Empty"
-        "200":
-          description: "200 response"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Empty"
-      security:
-      - aicsaicustomerserviceapiconstructApiAuthorizer94F43DD0: []
-  /prompt-management/models:
-    get:
-      responses:
-        "400":
-          description: "400 response"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Empty"
-        "500":
-          description: "500 response"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Empty"
-        "200":
-          description: "200 response"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Empty"
-      security:
-      - aicsaicustomerserviceapiconstructApiAuthorizer94F43DD0: []
-  /prompt-management/prompts/{proxy+}:
-    get:
-      parameters:
-      - name: "proxy"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
-      responses:
-        "400":
-          description: "400 response"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Empty"
-        "500":
-          description: "500 response"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Empty"
-        "200":
-          description: "200 response"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Empty"
-      security:
-      - aicsaicustomerserviceapiconstructApiAuthorizer94F43DD0: []
-    delete:
-      parameters:
-      - name: "proxy"
-        in: "path"
-        required: true
-        schema:
-          type: "string"
-      responses:
-        "400":
-          description: "400 response"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Empty"
-        "500":
-          description: "500 response"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Empty"
-        "200":
-          description: "200 response"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Empty"
-      security:
-      - aicsaicustomerserviceapiconstructApiAuthorizer94F43DD0: []
+  # /prompt-management/scenes:
+  #   get:
+  #     responses:
+  #       "400":
+  #         description: "400 response"
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: "#/components/schemas/Empty"
+  #       "500":
+  #         description: "500 response"
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: "#/components/schemas/Empty"
+  #       "200":
+  #         description: "200 response"
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: "#/components/schemas/Empty"
+  #     security:
+  #     - aicsaicustomerserviceapiconstructApiAuthorizer94F43DD0: []
+  # /prompt-management/models:
+  #   get:
+  #     responses:
+  #       "400":
+  #         description: "400 response"
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: "#/components/schemas/Empty"
+  #       "500":
+  #         description: "500 response"
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: "#/components/schemas/Empty"
+  #       "200":
+  #         description: "200 response"
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: "#/components/schemas/Empty"
+  #     security:
+  #     - aicsaicustomerserviceapiconstructApiAuthorizer94F43DD0: []
+  # /prompt-management/prompts/{proxy+}:
+  #   get:
+  #     parameters:
+  #     - name: "proxy"
+  #       in: "path"
+  #       required: true
+  #       schema:
+  #         type: "string"
+  #     responses:
+  #       "400":
+  #         description: "400 response"
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: "#/components/schemas/Empty"
+  #       "500":
+  #         description: "500 response"
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: "#/components/schemas/Empty"
+  #       "200":
+  #         description: "200 response"
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: "#/components/schemas/Empty"
+  #     security:
+  #     - aicsaicustomerserviceapiconstructApiAuthorizer94F43DD0: []
+  #   delete:
+  #     parameters:
+  #     - name: "proxy"
+  #       in: "path"
+  #       required: true
+  #       schema:
+  #         type: "string"
+  #     responses:
+  #       "400":
+  #         description: "400 response"
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: "#/components/schemas/Empty"
+  #       "500":
+  #         description: "500 response"
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: "#/components/schemas/Empty"
+  #       "200":
+  #         description: "200 response"
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: "#/components/schemas/Empty"
+  #     security:
+  #     - aicsaicustomerserviceapiconstructApiAuthorizer94F43DD0: []
 
 # Chat history
-  /chat-history:
-    post:
-      responses:
-        "400":
-          description: "400 response"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Empty"
-        "500":
-          description: "500 response"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Empty"
-        "200":
-          description: "200 response"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Empty"
-      security:
-      - aicsaicustomerserviceapiconstructApiAuthorizer94F43DD0: []
+  # /chat-history:
+  #   post:
+  #     responses:
+  #       "400":
+  #         description: "400 response"
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: "#/components/schemas/Empty"
+  #       "500":
+  #         description: "500 response"
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: "#/components/schemas/Empty"
+  #       "200":
+  #         description: "200 response"
+  #         content:
+  #           application/json:
+  #             schema:
+  #               $ref: "#/components/schemas/Empty"
+  #     security:
+  #     - aicsaicustomerserviceapiconstructApiAuthorizer94F43DD0: []
   /chat-history/sessions:
     get:
       summary: List chat sessions
