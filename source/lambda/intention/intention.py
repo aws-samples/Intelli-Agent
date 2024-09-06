@@ -180,8 +180,6 @@ def __list_execution(event, group_name):
                 item_json["fileName"] = value.split("/").pop()
             elif key == "modelId":
                 item_json["model"] = value
-            elif key == "groupName":
-                item_json["chatbotId"] = value
             elif key == "LastModifiedTime":
                 item_json["createTime"] = value
             elif key == "LastModifiedBy":
@@ -264,6 +262,7 @@ def __create_execution(event, context, email, group_name):
         Item={
             "groupName": group_name,
             "intentionId": context.aws_request_id,
+            "chatbotId": input_body.get("chatbotId"),
             "model": execution_detail["model"],
             "index": execution_detail["index"],
             "tag": execution_detail["index"],

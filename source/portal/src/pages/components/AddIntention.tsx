@@ -298,7 +298,7 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
               >
                 <SpaceBetween direction="vertical" size="l">
                   
-                  <FormField label={t('bot')} stretch={true}>
+                  <FormField label={t('chatbotName')} stretch={true}>
                     <Select
                       options={botsOption}
                       selectedOption={selectedBotOption||{}}
