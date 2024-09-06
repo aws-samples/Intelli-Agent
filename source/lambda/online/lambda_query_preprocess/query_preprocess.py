@@ -27,6 +27,7 @@ def conversation_query_rewrite(query:str, chat_history:list, message_id:str, tra
         rewrite_query (dict): query rewrite result
     """
     group_name = chatbot_config['group_name']
+    chatbot_id = chatbot_config['chatbot_id']
     conversation_query_rewrite_config = chatbot_config["query_process_config"][
         "conversation_query_rewrite_config"
     ]
@@ -34,7 +35,8 @@ def conversation_query_rewrite(query:str, chat_history:list, message_id:str, tra
     prompt_templates_from_ddb = get_prompt_templates_from_ddb(
         group_name,
         model_id=conversation_query_rewrite_config['model_id'],
-        task_type=query_rewrite_llm_type
+        task_type=query_rewrite_llm_type,
+        chatbot_id=chatbot_id
     )
     logger.info(f'conversation summary prompt templates: {prompt_templates_from_ddb}')
 

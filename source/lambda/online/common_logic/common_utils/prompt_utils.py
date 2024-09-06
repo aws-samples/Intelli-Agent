@@ -73,9 +73,9 @@ class PromptTemplateManager:
             raise KeyError(f'prompt_template_id: {prompt_template_id}, prompt_name: {prompt_name}')
 
     
-    def get_prompt_templates_from_ddb(self, group_name:str, model_id:str, task_type:str, scene:str="common"):
+    def get_prompt_templates_from_ddb(self, group_name:str, model_id:str, task_type:str, chatbot_id:str="admin", scene:str="common"):
         response = ddb_prompt_table.get_item(
-            Key={"GroupName": group_name, "SortKey": f"{model_id}__{scene}"}
+            Key={"GroupName": group_name, "SortKey": f"{model_id}__{scene}__{chatbot_id}"}
         )
         return response.get("Item",{}).get("Prompt",{}).get(task_type,{})
 
