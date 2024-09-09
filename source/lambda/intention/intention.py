@@ -23,7 +23,7 @@ encoder = TokenEncoder()
 
 s3_bucket_name = os.environ.get("S3_BUCKET")
 aos_endpoint = os.environ.get("AOS_ENDPOINT", "")
-region = os.environ.get("REGION", "us-east-1")
+region = os.environ.get("AWS_REGION", "us-east-1")
 aos_domain_name = os.environ.get("AOS_DOMAIN_NAME", "smartsearch")
 aos_secret = os.environ.get("AOS_SECRET_NAME", "opensearch-master-user")
 intention_table_name = os.getenv("INTENTION_TABLE_NAME","intention")
