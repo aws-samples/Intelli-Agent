@@ -103,56 +103,54 @@ def initiate_index(
         )
 
 
+def create_item_if_not_exist(ddb_table, item_key: dict, body: str):
+    response = ddb_table.get_item(Key=item_key)
+    item = response.get("Item")
+    if not item:
+        ddb_table.put_item(Item=body)
+        return False, item
+    return True, item
+
+
 def initiate_chatbot(
-    chatbot_table,
-    group_name,
-    chatbot_id,
-    chatbot_description,
-    index_type,
-    index_id_list,
-    create_time=None,
+    chatbot_table, group_name, chatbot_id, index_id, index_type, tag, create_time=None
 ):
-    existing_item = item_exist(
-        chatbot_table, {"groupName": group_name, "chatbotId": chatbot_id}
+    if not create_time:
+        create_time = str(datetime.now(timezone.utc))
+    is_existed, item = create_item_if_not_exist(
+        chatbot_table,
+        {"groupName": group_name, "chatbotId": chatbot_id},
+        {
+            "groupName": group_name,
+            "chatbotId": chatbot_id,
+            "languages": ["zh"],
+            "indexIds": {index_type: {"count": 1, "value": {tag: index_id}}},
+            "createTime": create_time,
+            "updateTime": create_time,
+            "status": Status.ACTIVE.value,
+        },
     )
-    if existing_item:
-        chatbot_table.update_item(
-            Key={"groupName": group_name, "chatbotId": chatbot_id},
-            UpdateExpression="SET #indexIds.#indexType = :indexIdTypeDict, #updateTime = :updateTime",
-            ExpressionAttributeNames={
-                "#indexIds": "indexIds",
-                "#indexType": index_type,
-                "#updateTime": "updateTime",
-            },
-            ExpressionAttributeValues={
-                ":indexIdTypeDict": {
-                    "count": len(index_id_list),
-                    "value": {index_id: index_id for index_id in index_id_list},
-                },
-                ":updateTime": str(datetime.now(timezone.utc)),
-            },
-        )
-    else:
-        if not create_time:
-            create_time = str(datetime.now(timezone.utc))
-        create_item(
-            chatbot_table,
-            {"groupName": group_name, "chatbotId": chatbot_id},
-            {
-                "groupName": group_name,
-                "chatbotId": chatbot_id,
-                "chatbotDescription": chatbot_description,
-                "indexIds": {
-                    index_type: {
-                        "count": len(index_id_list),
-                        "value": {index_id: index_id for index_id in index_id_list},
-                    }
-                },
-                "createTime": create_time,
-                "updateTime": create_time,
-                "status": Status.ACTIVE.value,
-            },
-        )
+
+    if is_existed:
+        index_id_dict = item.get("indexIds", {})
+        append_index = True
+        if index_type in index_id_dict:
+            # Append it with the same index type
+            for key in index_id_dict[index_type]["value"].keys():
+                if key == tag:
+                    append_index = False
+                    break
+
+            if append_index:
+                item["indexIds"][index_type]["value"][tag] = index_id
+                item["indexIds"][index_type]["count"] = len(
+                    item["indexIds"][index_type]["value"]
+                )
+                chatbot_table.put_item(Item=item)
+        else:
+            # Add a new index type
+            item["indexIds"][index_type] = {"count": 1, "value": {tag: index_id}}
+            chatbot_table.put_item(Item=item)
 
 
 def is_chatbot_existed(ddb_table, group_name: str, chatbot_id: str):

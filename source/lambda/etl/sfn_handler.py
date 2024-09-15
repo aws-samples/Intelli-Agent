@@ -9,6 +9,7 @@ import boto3
 from constant import IndexTag, IndexType
 from utils.ddb_utils import initiate_chatbot, initiate_index, initiate_model
 
+
 client = boto3.client("stepfunctions")
 dynamodb = boto3.resource("dynamodb")
 execution_table = dynamodb.Table(os.environ.get("EXECUTION_TABLE_NAME"))
@@ -25,7 +26,6 @@ def handler(event, context):
     # Check the event for possible S3 created event
     input_payload = {}
     logger.info(event)
-    tag = IndexTag.COMMON.value
     resp_header = {
         "Content-Type": "application/json",
         "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
@@ -86,6 +86,8 @@ def handler(event, context):
 
     if "tag" in input_body:
         tag = input_body["tag"]
+    else:
+        tag = index_id
 
     input_body["indexId"] = index_id
     input_body["groupName"] = (
