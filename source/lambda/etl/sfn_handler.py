@@ -33,115 +33,64 @@ def handler(event, context):
         "Access-Control-Allow-Methods": "*",
     }
 
-    if "Records" in event:
-        logger.info("S3 event detected")
-        # This is the legacy codes which can handle files in S3 bucket,
-        # the S3 eventbridge is removed, re-add it if needed
-        bucket = event["Records"][0]["s3"]["bucket"]["name"]
-        key = event["Records"][0]["s3"]["object"]["key"]
-        parts = key.split("/")
-        group_name = parts[-2] if len(parts) >= 2 else key
-        # Update it after supporting create multiple chatbots in one group
-        chatbot_id = group_name.lower()
-        index_id = f"{chatbot_id}-qd-default"
-        index_type = IndexType.QD.value
-
-        if key.endswith("/"):
-            logger.info("This is a folder, skip")
-            return {
-                "statusCode": 200,
-                "body": json.dumps(
-                    {
-                        "message": "This is a folder, skip",
-                    }
-                ),
-            }
-        elif event["Records"][0]["eventName"].startswith("ObjectCreated:"):
-            key = unquote_plus(key)
-
-            input_body = {
-                "s3Bucket": bucket,
-                "s3Prefix": key,
-                "offline": "false",
-                "qaEnhance": "false",
-                "groupName": group_name,
-                "chatbotId": chatbot_id,
-                "indexId": index_id,
-                "operationType": "update",
-            }
-        elif event["Records"][0]["eventName"].startswith("ObjectRemoved:"):
-            key = unquote_plus(key)
-
-            input_body = {
-                "s3Bucket": bucket,
-                "s3Prefix": key,
-                "offline": "false",
-                "qaEnhance": "false",
-                "groupName": group_name,
-                "chatbotId": chatbot_id,
-                "indexId": index_id,
-                "operationType": "delete",
-            }
+    authorizer_type = (
+        event["requestContext"].get("authorizer", {}).get("authorizerType")
+    )
+    if authorizer_type == "lambda_authorizer":
+        claims = json.loads(event["requestContext"]["authorizer"]["claims"])
+        if "use_api_key" in claims:
+            group_name = get_query_parameter(event, "GroupName", "Admin")
+            cognito_groups_list = [group_name]
+        else:
+            cognito_groups = claims["cognito:groups"]
+            cognito_groups_list = cognito_groups.split(",")
     else:
-        logger.info("API Gateway event detected")
-        authorizer_type = (
-            event["requestContext"].get("authorizer", {}).get("authorizerType")
-        )
-        if authorizer_type == "lambda_authorizer":
-            claims = json.loads(event["requestContext"]["authorizer"]["claims"])
-            if "use_api_key" in claims:
-                group_name = get_query_parameter(event, "GroupName", "Admin")
-                cognito_groups_list = [group_name]
-            else:
-                cognito_groups = claims["cognito:groups"]
-                cognito_groups_list = cognito_groups.split(",")
-        else:
-            logger.error("Invalid authorizer type")
-            return {
-                "statusCode": 403,
-                "headers": resp_header,
-                "body": json.dumps({"error": "Invalid authorizer type"}),
-            }
+        logger.error("Invalid authorizer type")
+        return {
+            "statusCode": 403,
+            "headers": resp_header,
+            "body": json.dumps({"error": "Invalid authorizer type"}),
+        }
 
-        # Parse the body from the event object
-        input_body = json.loads(event["body"])
-        if "indexType" not in input_body or input_body["indexType"] not in [
-            IndexType.QD.value,
-            IndexType.QQ.value,
-            IndexType.INTENTION.value,
-        ]:
-            return {
-                "statusCode": 400,
-                "headers": resp_header,
-                "body": (
-                    f"Invalid indexType, valid values are "
-                    f"{IndexType.QD.value}, {IndexType.QQ.value}, "
-                    f"{IndexType.INTENTION.value}"
-                ),
-            }
-        index_type = input_body["indexType"]
-        group_name = (
-            "Admin" if "Admin" in cognito_groups_list else cognito_groups_list[0]
-        )
-        chatbot_id = input_body.get("chatbotId", group_name.lower())
+    # Parse the body from the event object
+    input_body = json.loads(event["body"])
+    if "indexType" not in input_body or input_body["indexType"] not in [
+        IndexType.QD.value,
+        IndexType.QQ.value,
+        IndexType.INTENTION.value,
+    ]:
+        return {
+            "statusCode": 400,
+            "headers": resp_header,
+            "body": (
+                f"Invalid indexType, valid values are "
+                f"{IndexType.QD.value}, {IndexType.QQ.value}, "
+                f"{IndexType.INTENTION.value}"
+            ),
+        }
+    index_type = input_body["indexType"]
+    group_name = (
+        "Admin" if "Admin" in cognito_groups_list else cognito_groups_list[0]
+    )
+    chatbot_id = input_body.get("chatbotId", group_name.lower())
 
-        if "indexId" in input_body:
-            index_id = input_body["indexId"]
-        else:
-            # Use default index id if not specified in the request
-            index_id = f"{chatbot_id}-qd-default"
-            if index_type == IndexType.QQ.value:
-                index_id = f"{chatbot_id}-qq-default"
-            elif index_type == IndexType.INTENTION.value:
-                index_id = f"{chatbot_id}-intention-default"
+    if "indexId" in input_body:
+        index_id = input_body["indexId"]
+    else:
+        # Use default index id if not specified in the request
+        index_id = f"{chatbot_id}-qd-default"
+        if index_type == IndexType.QQ.value:
+            index_id = f"{chatbot_id}-qq-default"
+        elif index_type == IndexType.INTENTION.value:
+            index_id = f"{chatbot_id}-intention-default"
 
-        if "tag" in input_body:
-            tag = input_body["tag"]
+    if "tag" in input_body:
+        tag = input_body["tag"]
 
-        input_body["indexId"] = index_id
-        input_body["groupName"] = (
-            group_name if "groupName" not in input_body else input_body["groupName"]
-        )
+    input_body["indexId"] = index_id
+    input_body["groupName"] = (
+        group_name if "groupName" not in input_body else input_body["groupName"]
+    )
 
     model_id = f"{chatbot_id}-embedding"
     embedding_model_type = initiate_model(
