@@ -4,7 +4,7 @@ import os
 from datetime import datetime, timezone
 from urllib.parse import unquote_plus
 from utils.parameter_utils import get_query_parameter
-
+from chatbot_management import create_chatbot
 import boto3
 from constant import IndexTag, IndexType
 from utils.ddb_utils import initiate_chatbot, initiate_index, initiate_model
@@ -93,21 +93,14 @@ def handler(event, context):
     input_body["groupName"] = (
         group_name if "groupName" not in input_body else input_body["groupName"]
     )
-
-    model_id = f"{chatbot_id}-embedding"
-    embedding_model_type = initiate_model(
-        model_table, group_name, model_id, embedding_endpoint, create_time
-    )
-    initiate_index(
-        index_table, group_name, index_id, model_id, index_type, tag, create_time
-    )
-    initiate_chatbot(
-        chatbot_table, group_name, chatbot_id, index_id, index_type, tag, create_time
-    )
+    chatbot_event = {
+        "body": json.dumps({"group_name": group_name})
+    }
+    chatbot_result = create_chatbot(chatbot_event, group_name)
 
     input_body["tableItemId"] = context.aws_request_id
     input_body["chatbotId"] = chatbot_id
-    input_body["embeddingModelType"] = embedding_model_type
+    input_body["embeddingModelType"] = chatbot_result["modelType"]
     input_payload = json.dumps(input_body)
     response = client.start_execution(
         stateMachineArn=os.environ["sfn_arn"], input=input_payload
