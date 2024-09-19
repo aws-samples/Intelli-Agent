@@ -194,7 +194,7 @@ class OpenSearchClient:
                 "body": json.dumps({"error": f"index {index} does not exist"}),
             }
         body_dict = json.loads(body)
-        document_id = body_dict.get("body", {}).get("document_id", {})
+        document_id = body_dict.get("document_id", "")
         # delete the document
         self.client.delete(index=index, id=document_id)
 
