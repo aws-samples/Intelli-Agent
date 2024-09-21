@@ -8,13 +8,29 @@ logger.setLevel(logging.INFO)
 
 s3_client = boto3.client("s3")
 
-supported_file_types = ["pdf", "txt", "doc", "md", "html", "json", "jsonl", "csv", "png", "jpg", "jpeg", "webp", "xlsx", "xls"]
+supported_file_types = [
+    "pdf",
+    "txt",
+    "xml",
+    "doc",
+    "md",
+    "html",
+    "json",
+    "jsonl",
+    "csv",
+    "png",
+    "jpg",
+    "jpeg",
+    "webp",
+    "xlsx",
+    "xls",
+]
 default_embedding_endpoint = os.environ.get("DEFAULT_EMBEDDING_ENDPOINT")
 aos_domain_endpoint = os.environ.get("AOS_DOMAIN_ENDPOINT")
 
 
 def get_job_number(event, file_count):
-    job_number = event.get("JobNumber", 50)
+    job_number = event.get("JobNumber", 10)
 
     if file_count < job_number:
         job_number = file_count

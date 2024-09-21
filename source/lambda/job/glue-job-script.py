@@ -55,7 +55,8 @@ try:
 except Exception as e:
     logger.warning("Running locally")
     import argparse
-    parser=argparse.ArgumentParser(description="local ingestion parameters")
+
+    parser = argparse.ArgumentParser(description="local ingestion parameters")
     parser.add_argument("--offline", type=bool, default=True)
     parser.add_argument("--batch_indice", type=int, default=0)
     parser.add_argument("--batch_file_number", type=int, default=1000)
@@ -70,7 +71,7 @@ except Exception as e:
     parser.add_argument("--embedding_model_type", type=str, required=True)
     parser.add_argument("--index_type", type=str, required=True)
     parser.add_argument("--operation_type", type=str, default="create")
-    command_line_args=parser.parse_args()
+    command_line_args = parser.parse_args()
     sys.path.append("dep")
     command_line_args_dict = vars(command_line_args)
     args = {}
@@ -191,6 +192,8 @@ class S3FileProcessor:
 
         if file_type == "txt":
             return "txt", self.decode_file_content(file_content), kwargs
+        elif file_type == "xml":
+            return "xml", self.decode_file_content(file_content), kwargs
         elif file_type == "csv":
             kwargs["csv_row_count"] = 1
             return "csv", self.decode_file_content(file_content), kwargs
@@ -640,6 +643,7 @@ def main():
         supported_file_types = [
             "pdf",
             "txt",
+            "xml",
             "docx",
             "xlsx",
             "xls",
@@ -650,7 +654,7 @@ def main():
             "png",
             "jpeg",
             "jpg",
-            "webp"
+            "webp",
         ]
 
     file_processor = S3FileProcessor(s3_bucket, s3_prefix, supported_file_types)

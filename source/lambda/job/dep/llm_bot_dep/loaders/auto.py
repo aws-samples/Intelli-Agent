@@ -1,17 +1,17 @@
 import logging
 
-
 from llm_bot_dep.loaders.docx import process_doc
 from llm_bot_dep.loaders.markdown import process_md
 
 from .csv import process_csv
 from .html import process_html
+from .image import process_image
 from .json import process_json
 from .jsonl import process_jsonl
 from .pdf import process_pdf
 from .text import process_text
-from .image import process_image
 from .xlsx import process_xlsx
+from .xml import process_xml
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -30,6 +30,8 @@ def cb_process_object(s3, file_type: str, file_content, **kwargs):
     res = None
     if file_type == "txt":
         res = process_text(file_content, **kwargs)
+    elif file_type == "xml":
+        res = process_xml(file_content, **kwargs)
     elif file_type == "csv":
         res = process_csv(s3, file_content, **kwargs)
     elif file_type == "html":
