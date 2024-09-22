@@ -24,6 +24,57 @@ aos_endpoint = os.environ.get("AOS_ENDPOINT", "")
 aos_client = LLMBotOpenSearchClient(aos_endpoint)
 
 
+def get_specific_item(item_id):
+    # Construct the search query
+    query = {"query": {"match_phrase": {"metadata.id": item_id}}}
+
+    # Perform the search
+    try:
+        response = aos_client.client.search(body=query, index="rch-items")
+
+        # Check if any hits were found
+        if response["hits"]["total"]["value"] > 0:
+            # Return the first hit (assuming id is unique)
+            item_detail = response["hits"]["hits"][0]["_source"]
+            return [item_detail]
+        else:
+            return []
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return []
+
+
+def get_similar_items(item_details):
+    # get similar items using vector similarity
+    item_vector = item_details["vector_field"]
+    # get similar items using vector similarity
+
+    query = {
+        "size": 3,
+        "query": {"knn": {"vector_field": {"vector": item_vector, "k": 3}}},
+    }
+
+    # Perform the search
+    try:
+        response = aos_client.client.search(body=query, index="rch-items")
+
+        # Check if any hits were found
+        if response["hits"]["total"]["value"] > 0:
+            similar_items = []
+            for hit in response["hits"]["hits"]:
+                similar_item = hit["_source"]
+                similar_item.pop("vector_field")
+                similar_items.append(similar_item)
+            return similar_items
+        else:
+            return []
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return []
+
+
 def remove_redundancy_debug_info(results):
     # filtered_results = copy.deepcopy(results)
     filtered_results = results

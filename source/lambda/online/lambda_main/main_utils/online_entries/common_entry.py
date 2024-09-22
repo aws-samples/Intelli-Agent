@@ -1,11 +1,7 @@
 import json
 from typing import Annotated, Any, TypedDict
 
-from common_logic.common_utils.constant import (
-    LLMTaskType,
-    SceneType,
-    ToolRuningMode,
-)
+from common_logic.common_utils.constant import LLMTaskType, SceneType, ToolRuningMode
 from common_logic.common_utils.lambda_invoke_utils import (
     invoke_lambda,
     is_running_local,
@@ -16,7 +12,6 @@ from common_logic.common_utils.logger_utils import get_logger
 from common_logic.common_utils.prompt_utils import get_prompt_templates_from_ddb
 from common_logic.common_utils.python_utils import add_messages, update_nest_dict
 from common_logic.common_utils.response_utils import process_response
-from common_logic.common_utils.serialization_utils import JSONEncoder
 from functions import get_tool_by_name
 from lambda_main.main_utils.online_entries.agent_base import (
     build_agent_graph,
@@ -126,6 +121,12 @@ def intention_detection(state: ChatbotState):
     retriever_params["query"] = state[
         retriever_params.get("retriever_config", {}).get("query_key", "query")
     ]
+    send_trace(
+        f"**retriever_params: {retriever_params}",
+        state["stream"],
+        state["ws_connection_id"],
+        state["enable_trace"],
+    )
     output: str = invoke_lambda(
         event_body=retriever_params,
         lambda_name="Online_Functions",
@@ -429,9 +430,7 @@ def common_entry(event_body):
     event_body["chatbot_config"] = CommonConfigParser.from_chatbot_config(
         event_body["chatbot_config"]
     )
-    logger.info(
-        f"event_body:\n{json.dumps(event_body,ensure_ascii=False,indent=2,cls=JSONEncoder)}"
-    )
+    logger.info(f"event_body: {event_body}")
     chatbot_config = event_body["chatbot_config"]
     query = event_body["query"]
     use_history = chatbot_config["use_history"]

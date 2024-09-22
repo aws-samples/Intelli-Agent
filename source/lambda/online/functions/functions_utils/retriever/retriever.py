@@ -11,6 +11,8 @@ from functions.functions_utils.retriever.utils.aos_retrievers import (
     QueryDocumentBM25Retriever,
     QueryDocumentKNNRetriever,
     QueryQuestionRetriever,
+    get_similar_items,
+    get_specific_item,
 )
 from functions.functions_utils.retriever.utils.context_utils import (
     retriever_results_format,
@@ -125,7 +127,12 @@ def get_custom_retrievers(retriever):
 
 def lambda_handler(event, context=None):
     event_body = event
-
+    if event_body.get("query_specific_item"):
+        item_id = event_body.get("item_id")
+        return {"code": 0, "result": get_specific_item(item_id)}
+    elif event_body.get("query_similar_items"):
+        item_detail = event_body.get("item_detail")
+        return {"code": 0, "result": get_similar_items(item_detail)}
     retriever_list = []
     for retriever in event_body["retrievers"]:
         retriever_list.extend(get_custom_retrievers(retriever))
