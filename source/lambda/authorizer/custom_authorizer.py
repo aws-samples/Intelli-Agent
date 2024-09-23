@@ -1,9 +1,8 @@
 import json
 import logging
 import os
-from urllib.request import urlopen
 import traceback
-import jwt
+from urllib.request import urlopen
 
 # Replace with your Cognito User Pool info
 USER_POOL_ID = os.environ["USER_POOL_ID"]
@@ -15,7 +14,9 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 issuer = f"https://cognito-idp.{REGION}.amazonaws.com/{USER_POOL_ID}"
-keys_url = f"https://cognito-idp.{REGION}.amazonaws.com/{USER_POOL_ID}/.well-known/jwks.json"
+keys_url = (
+    f"https://cognito-idp.{REGION}.amazonaws.com/{USER_POOL_ID}/.well-known/jwks.json"
+)
 response = urlopen(keys_url)
 keys = json.loads(response.read())["keys"]
 
@@ -54,41 +55,49 @@ def generateDeny(principalId, resource, claims):
 def lambda_handler(event, context):
     logger.info(event)
     try:
-        if event.get("httpMethod"):
-            # REST API
-            if event["headers"].get("authorization"):
-                # Browser will change the Authorization header to lowercase
-                token = event["headers"]["authorization"].replace("Bearer", "").strip()
-            else:
-                # Postman
-                token = event["headers"]["Authorization"].replace("Bearer", "").strip()
-        else:
-            # WebSocket API
-            token = event["queryStringParameters"]["idToken"]
+        # if event.get("httpMethod"):
+        #     # REST API
+        #     if event["headers"].get("authorization"):
+        #         # Browser will change the Authorization header to lowercase
+        #         token = event["headers"]["authorization"].replace("Bearer", "").strip()
+        #     else:
+        #         # Postman
+        #         token = event["headers"]["Authorization"].replace("Bearer", "").strip()
+        # else:
+        #     # WebSocket API
+        #     token = event["queryStringParameters"]["idToken"]
 
-        headers = jwt.get_unverified_header(token)
-        kid = headers["kid"]
+        # headers = jwt.get_unverified_header(token)
+        # kid = headers["kid"]
 
-        # Search for the kid in the downloaded public keys
-        key_index = -1
-        for i in range(len(keys)):
-            if kid == keys[i]["kid"]:
-                key_index = i
-                break
-        if key_index == -1:
-            logger.error("Public key not found in jwks.json")
-            raise Exception(
-                "Custom Authorizer Error: Public key not found in jwks.json"
-            )
+        # # Search for the kid in the downloaded public keys
+        # key_index = -1
+        # for i in range(len(keys)):
+        #     if kid == keys[i]["kid"]:
+        #         key_index = i
+        #         break
+        # if key_index == -1:
+        #     logger.error("Public key not found in jwks.json")
+        #     raise Exception(
+        #         "Custom Authorizer Error: Public key not found in jwks.json"
+        #     )
 
-        # Construct the public key
-        public_key = jwt.algorithms.RSAAlgorithm.from_jwk(json.dumps(keys[key_index]))
+        # # Construct the public key
+        # public_key = jwt.algorithms.RSAAlgorithm.from_jwk(json.dumps(keys[key_index]))
 
-        # Verify the signature of the JWT token
-        claims = jwt.decode(
-            token, public_key, algorithms=["RS256"], audience=APP_CLIENT_ID,
-            issuer=issuer, options={"verify_exp": verify_exp}
-        )
+        # # Verify the signature of the JWT token
+        # claims = jwt.decode(
+        #     token, public_key, algorithms=["RS256"], audience=APP_CLIENT_ID,
+        #     issuer=issuer, options={"verify_exp": verify_exp}
+        # )
+        claims = {
+            "cognito:groups": ["Admin"],
+            "email_verified": True,
+            "cognito:username": "98f11340-7091-70b9-e14b-7577336445a6",
+            "token_use": "id",
+            "email": "aics-no-auth@amazon.com",
+        }
+
         # reformat claims to align with cognito output
         claims["cognito:groups"] = ",".join(claims["cognito:groups"])
         logger.info(claims)
