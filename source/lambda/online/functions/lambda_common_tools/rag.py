@@ -39,8 +39,8 @@ def specific_item_rag(state):
         enable_trace=state["enable_trace"],
     )
 
-    if len(item_detail_response["result"]) > 0:
-        item_detail = item_detail_response["result"][0]
+    if item_detail_response["result"]:
+        item_detail = item_detail_response["result"]
         similar_items_response = invoke_lambda(
             event_body={
                 "query_similar_items": True,

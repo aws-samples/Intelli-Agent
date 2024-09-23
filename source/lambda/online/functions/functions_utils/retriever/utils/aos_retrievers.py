@@ -36,13 +36,13 @@ def get_specific_item(item_id):
         if response["hits"]["total"]["value"] > 0:
             # Return the first hit (assuming id is unique)
             item_detail = response["hits"]["hits"][0]["_source"]
-            return [item_detail]
+            return item_detail
         else:
-            return []
+            return None
 
     except Exception as e:
         print(f"An error occurred: {e}")
-        return []
+        return None
 
 
 def get_similar_items(item_details):
