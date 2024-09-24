@@ -40,6 +40,7 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
   const { t, i18n } = useTranslation();
   const auth = useAuth();
   const [displayName, setDisplayName] = useState('');
+  // const [kbEnabled] = useState(false);
   const [fullLogoutUrl, setFullLogoutUrl] = useState('');
   const config = useContext(ConfigContext);
   const navigate = useNavigate();

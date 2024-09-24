@@ -139,6 +139,7 @@ const AddLibrary: React.FC<AddLibraryProps> = (props: AddLibraryProps) => {
       }
     } catch (error) {
       console.error('error', error);
+      alertMsg(error instanceof Error ? error.message : String(error), 'error');
     }
   };
 

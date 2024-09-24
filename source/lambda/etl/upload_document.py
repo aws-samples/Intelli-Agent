@@ -73,9 +73,11 @@ def lambda_handler(event, context):
         )
         output = {
             "message": "The S3 presigned url is generated",
-            "data": presigned_url,
-            "s3Bucket": s3_bucket_name,
-            "s3Prefix": file_name,
+            "data": {
+                "url": presigned_url,
+                "s3Bucket": s3_bucket_name,
+                "s3Prefix": file_name,
+            }
         }
 
         return {

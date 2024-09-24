@@ -16,6 +16,9 @@ class Status(Enum):
     INACTIVE = "inactive"
 
 
+class EmbeddingModelType(Enum):
+    BEDROCK_TITAN_V1 = "amazon.titan-embed-text-v1"
+
 @unique
 class IndexType(Enum):
     QD = "qd"

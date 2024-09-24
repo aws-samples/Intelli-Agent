@@ -109,6 +109,8 @@ export class RootStack extends Stack {
         oidcClientId: userConstruct.oidcClientId,
         oidcLogoutUrl: userConstruct.oidcLogoutUrl,
         oidcRedirectUrl: `https://${portalConstruct.portalUrl}/signin`,
+        kbEnabled: props.config.knowledgeBase.enabled.toString(),
+        kbType: JSON.stringify(props.config.knowledgeBase.knowledgeBaseType || {}),
         // apiKey: apiConstruct.apiKey,
       },
     });

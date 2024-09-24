@@ -37,6 +37,8 @@ logger.setLevel(logging.INFO)
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(SCRIPT_DIR))
 
+kb_enabled = os.environ["KNOWLEDGE_BASE_ENABLED"].lower() == "true"
+kb_type = json.loads(os.environ["KNOWLEDGE_BASE_TYPE"])
 chatbot_table_name = os.environ.get("CHATBOT_TABLE", "")
 model_table_name = os.environ.get("MODEL_TABLE", "")
 index_table_name = os.environ.get("INDEX_TABLE", "")
@@ -129,9 +131,10 @@ def lambda_handler(event, context=None):
     event_body = event
     retriever_list = []
     for retriever in event_body["retrievers"]:
-        retriever["vector_field"] = "sentence_vector"
-        retriever["source_field"] = "source"
-        retriever["text_field"] = "paragraph"
+        if not kb_enabled:
+            retriever["vector_field"] = "sentence_vector"
+            retriever["source_field"] = "source"
+            retriever["text_field"] = "paragraph"
         retriever_list.extend(get_custom_retrievers(retriever))
     rerankers = event_body.get("rerankers", None)
     if rerankers:

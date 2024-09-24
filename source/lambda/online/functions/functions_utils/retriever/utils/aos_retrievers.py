@@ -428,6 +428,14 @@ def organize_faq_results(
                 result["content"] = data["text"]
                 result["source"] = metadata[source_field]
                 result["kwargs"] = metadata.get("kwargs", {})
+            elif "jsonlAnswer" in aos_hit["_source"]["metadata"] and "answer" in aos_hit["_source"]["metadata"]["jsonlAnswer"]:
+                result["answer"] = aos_hit["_source"]["metadata"]["jsonlAnswer"]["answer"]
+                result["question"] = aos_hit["_source"]["metadata"]["jsonlAnswer"]["question"]
+                result["content"] = aos_hit["_source"]["text"]
+                if source_field in aos_hit["_source"]["metadata"]["jsonlAnswer"].keys():
+                    result[source_field] = aos_hit["_source"]["metadata"]["jsonlAnswer"][source_field]
+                else:
+                    result[source_field] = aos_hit["_source"]["metadata"]["file_path"]
             else:
                 result["answer"] = aos_hit["_source"]["metadata"]
                 result["content"] = aos_hit["_source"][text_field]
@@ -559,15 +567,16 @@ class QueryDocumentKNNRetriever(BaseRetriever):
             result["content"] = aos_hit["_source"][text_field]
             result["doc"] = result["content"]
             results.append(result)
-        # if using_whole_doc:
-        #     for result in results:
-        #         doc = get_doc(result["source"], aos_index)
-        #         if doc:
-        #             result["doc"] = doc
-        # else:
-        #     response_list = asyncio.run(self.__spawn_task(aos_hits, context_size))
-        #     for context, result in zip(response_list, results):
-        #         result["doc"] = "\n".join(context[0] + [result["content"]] + context[1])
+        if kb_enabled:
+            if using_whole_doc:
+                for result in results:
+                    doc = get_doc(result["source"], aos_index)
+                    if doc:
+                        result["doc"] = doc
+            else:
+                response_list = asyncio.run(self.__spawn_task(aos_hits, context_size))
+                for context, result in zip(response_list, results):
+                    result["doc"] = "\n".join(context[0] + [result["content"]] + context[1])
         return results
 
     @timeit
