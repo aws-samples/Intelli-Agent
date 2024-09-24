@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { axios } from 'src/utils/request';
 import {
   Box,
@@ -21,7 +21,6 @@ import { useTranslation } from 'react-i18next';
 import useAxiosRequest from 'src/hooks/useAxiosRequest';
 import { ExecutionResponse, PresignedUrlResponse } from 'src/types';
 import { DOC_INDEX_TYPE_LIST } from 'src/utils/const';
-import { useAuth } from 'react-oidc-context';
 
 interface AddLibraryProps {
   showAddModal: boolean;
@@ -31,7 +30,6 @@ interface AddLibraryProps {
 
 const AddLibrary: React.FC<AddLibraryProps> = (props: AddLibraryProps) => {
   const { t } = useTranslation();
-  const auth = useAuth();
   const { showAddModal, setShowAddModal, reloadLibrary } = props;
   const fetchData = useAxiosRequest();
   const [uploadFiles, setUploadFiles] = useState<File[]>([]);
@@ -47,9 +45,12 @@ const AddLibrary: React.FC<AddLibraryProps> = (props: AddLibraryProps) => {
   const [tagName, setTagName] = useState('');
   const [tagNameError, setTagNameError] = useState('');
   const [advanceExpand, setAdvanceExpand] = useState(false);
+  const [chatbotList, setChatbotList] = useState<SelectProps.Option[]>([]);
+  const [chatbotOption, setChatbotOption] = useState<SelectProps.Option | null>(
+    null,
+  );
 
   const executionKnowledgeBase = async (bucket: string, prefix: string) => {
-    const groupName: string[] = auth?.user?.profile?.['cognito:groups'] as any;
     const resExecution: ExecutionResponse = await fetchData({
       url: `/knowledge-base/executions`,
       method: 'post',
@@ -58,7 +59,7 @@ const AddLibrary: React.FC<AddLibraryProps> = (props: AddLibraryProps) => {
         s3Prefix: prefix,
         offline: 'true',
         qaEnhance: 'false',
-        chatbotId: groupName?.[0]?.toLocaleLowerCase() ?? 'admin',
+        chatbotId: chatbotOption ? chatbotOption.value : 'admin',
         indexId: indexName ? indexName.trim() : undefined,
         indexType: indexType.value,
         operationType: 'create',
@@ -68,6 +69,26 @@ const AddLibrary: React.FC<AddLibraryProps> = (props: AddLibraryProps) => {
     if (resExecution.execution_id) {
       setIndexName('');
       setTagName('');
+    }
+  };
+
+  const getChatbotList = async () => {
+    try {
+      const data = await fetchData({
+        url: 'chatbot-management/chatbots',
+        method: 'get',
+      });
+      const items: string[] = data.chatbot_ids;
+      const getChatbots = items.map((item) => {
+        return {
+          label: item.toLowerCase(),
+          value: item.toLowerCase(),
+        };
+      });
+      setChatbotList(getChatbots);
+      setChatbotOption(getChatbots[0]);
+    } catch (error: unknown) {
+      alertMsg(error instanceof Error ? error.message : String(error), 'error');
     }
   };
 
@@ -143,6 +164,10 @@ const AddLibrary: React.FC<AddLibraryProps> = (props: AddLibraryProps) => {
     }
   };
 
+  useEffect(() => {
+    getChatbotList();
+  }, []);
+
   return (
     <Modal
       onDismiss={() => setShowAddModal(false)}
@@ -216,6 +241,20 @@ const AddLibrary: React.FC<AddLibraryProps> = (props: AddLibraryProps) => {
                 headerText={t('additionalSettings')}
               >
                 <SpaceBetween direction="vertical" size="l">
+                  <FormField
+                    label={t('chatbotName')}
+                    stretch={true}
+                  >
+                    <Select
+                      onChange={({ detail }) => {
+                        setChatbotOption(detail.selectedOption);
+                      }}
+                      selectedOption={chatbotOption}
+                      options={chatbotList}
+                      placeholder={t('validation.requireChatbot')}
+                      empty={t('noChatbotFound')}
+                    />
+                  </FormField>
                   <FormField
                     label={
                       <>
