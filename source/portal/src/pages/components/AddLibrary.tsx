@@ -101,7 +101,6 @@ const AddLibrary: React.FC<AddLibraryProps> = (props: AddLibraryProps) => {
           content_type: file.type,
         },
       });
-      console.log()
       const uploadPreSignUrl = resPresignedData.data;
       return axios.put(uploadPreSignUrl.url, file, {
         headers: {
