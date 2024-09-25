@@ -5,14 +5,22 @@ import json
 import os
 import re
 import time
+from typing import List
 from aiohttp import ClientError
 import boto3
 from openpyxl import load_workbook
 from io import BytesIO
 from botocore.paginate import TokenEncoder
-from opensearchpy import RequestError, helpers
+from opensearchpy import RequestError, helpers, RequestsHttpConnection
 import logging
 from langchain.embeddings.bedrock import BedrockEmbeddings
+from langchain.docstore.document import Document
+from langchain_community.vectorstores import OpenSearchVectorSearch
+from langchain_community.vectorstores.opensearch_vector_search import (
+    OpenSearchVectorSearch,
+)
+from aos import sm_utils
+from requests_aws4auth import AWS4Auth
 
 from aos.aos_utils import LLMBotOpenSearchClient
 from constant import AOS_INDEX, BULK_SIZE, DEFAULT_CONTENT_TYPE, DEFAULT_MAX_ITEMS, DEFAULT_SIZE, DOWNLOAD_RESOURCE, EXECUTION_RESOURCE, INDEX_USED_SCAN_RESOURCE, PRESIGNED_URL_RESOURCE, SECRET_NAME, IndexType, ModelDimensionMap
@@ -22,9 +30,12 @@ logger = logging.getLogger(__name__)
 encoder = TokenEncoder()
 
 s3_bucket_name = os.environ.get("S3_BUCKET")
-aos_endpoint = os.environ.get("AOS_ENDPOINT", "")
+embedding_model_endpoint = os.environ.get("EMBEDDING_MODEL_ENDPOINT", "")
+aosEndpoint = os.environ.get("AOS_ENDPOINT")
+kb_enabled = os.environ["KNOWLEDGE_BASE_ENABLED"].lower() == "true"
 region = os.environ.get("AWS_REGION", "us-east-1")
 aos_domain_name = os.environ.get("AOS_DOMAIN_NAME", "smartsearch")
+aos_endpoint = os.environ.get("AOS_ENDPOINT", "")
 aos_secret = os.environ.get("AOS_SECRET_NAME", "opensearch-master-user")
 intention_table_name = os.getenv("INTENTION_TABLE_NAME","intention")
 chatbot_table_name = os.getenv("CHATBOT_TABLE_NAME","chatbot")
@@ -37,21 +48,31 @@ chatbot_table = dynamodb_client.Table(chatbot_table_name)
 model_table = dynamodb_client.Table(model_table_name)
 
 sm_client = boto3.client("secretsmanager")
-master_user = sm_client.get_secret_value(SecretId=aos_secret)["SecretString"]
-secret_body = sm_client.get_secret_value(SecretId=SECRET_NAME)['SecretString']
-secret = json.loads(secret_body)
-username = secret.get("username")
-password = secret.get("password")
+try:
+    master_user = sm_client.get_secret_value(SecretId=aos_secret)["SecretString"]
+    secret_body = sm_client.get_secret_value(SecretId=SECRET_NAME)['SecretString']
+    secret = json.loads(secret_body)
+    username = secret.get("username")
+    password = secret.get("password")
 
-if not aos_endpoint:
-    opensearch_client = boto3.client("opensearch")
-    response = opensearch_client.describe_domain(DomainName=aos_domain_name)
-    aos_endpoint = response["DomainStatus"]["Endpoint"]
+    if not aos_endpoint:
+        opensearch_client = boto3.client("opensearch")
+        response = opensearch_client.describe_domain(DomainName=aos_domain_name)
+        aos_endpoint = response["DomainStatus"]["Endpoint"]
+        aos_client = LLMBotOpenSearchClient(aos_endpoint, (username, password)).client
+except sm_client.exceptions.ResourceNotFoundException:
+    logger.info(f"Secret '{aos_secret}' not found in Secrets Manager")
+    aos_client = LLMBotOpenSearchClient(aos_endpoint)
+except Exception as e:
+    logger.error(f"Error retrieving secret '{aos_secret}': {str(e)}")
+    raise
 
 dynamodb_client = boto3.client("dynamodb")
 s3_client = boto3.client("s3")
 bedrock_client = boto3.client("bedrock-runtime",region_name=region)
-aos_client = LLMBotOpenSearchClient(aos_endpoint, (username, password)).client
+
+credentials = boto3.Session().get_credentials()
+awsauth = AWS4Auth(refreshable_credentials=credentials, region=region, service="es")
 
 resp_header = {
     "Content-Type": "application/json",
@@ -59,6 +80,38 @@ resp_header = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "*",
 }
+
+class OpenSearchIngestionWorker:
+    def __init__(
+        self,
+        docsearch: OpenSearchVectorSearch,
+        embedding_model_endpoint: str,
+    ):
+        self.docsearch = docsearch
+        self.embedding_model_endpoint = embedding_model_endpoint
+
+    def aos_ingestion(self, documents: List[Document]) -> None:
+        texts = [doc.page_content for doc in documents]
+        metadatas = [doc.metadata for doc in documents]
+        embeddings_vectors = self.docsearch.embedding_function.embed_documents(
+            list(texts)
+        )
+
+        if isinstance(embeddings_vectors[0], dict):
+            embeddings_vectors_list = []
+            metadata_list = []
+            for doc_id, metadata in enumerate(metadatas):
+                embeddings_vectors_list.append(
+                    embeddings_vectors[0]["dense_vecs"][doc_id]
+                )
+                metadata["embedding_endpoint_name"] = self.embedding_model_endpoint
+                metadata_list.append(metadata)
+            embeddings_vectors = embeddings_vectors_list
+            metadatas = metadata_list
+        self.docsearch._OpenSearchVectorSearch__add(
+            texts, embeddings_vectors, metadatas=metadatas
+        )
+
 
 def lambda_handler(event, context):
     logger.info(event)
@@ -283,9 +336,26 @@ def __create_execution(event, context, email, group_name):
 
 def __save_2_aos(modelId: str, index: str, qaList:list):
     index_exists = aos_client.indices.exists(index=index)
-    if not index_exists:
-        __create_index(index, modelId)
-    __refresh_index(index, modelId, qaList)
+    if kb_enabled:
+        embedding_function = sm_utils.getCustomEmbeddings(
+            embedding_model_endpoint, region, "bce"
+        )
+        docsearch = OpenSearchVectorSearch(
+            index_name=index,
+            embedding_function=embedding_function,
+            opensearch_url="https://{}".format(aosEndpoint),
+            http_auth=awsauth,
+            use_ssl=True,
+            verify_certs=True,
+            connection_class=RequestsHttpConnection,
+        )
+
+        worker = OpenSearchIngestionWorker(docsearch, embedding_model_endpoint)
+        worker.aos_ingestion(qaList)
+    else:
+        if not index_exists:
+            __create_index(index, modelId)
+        __refresh_index(index, modelId, qaList)
 
 
 def __create_index(index: str, modelId: str):
@@ -465,3 +535,4 @@ def __get_query_parameter(event, parameter_name, default_value=None):
     ):
         return event["queryStringParameters"][parameter_name]
     return default_value
+

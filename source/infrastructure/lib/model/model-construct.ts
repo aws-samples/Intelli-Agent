@@ -109,6 +109,7 @@ export class ModelConstruct extends NestedStack implements ModelConstructOutputs
       executionRole.addToPolicy(this.modelIamHelper.logStatement);
       executionRole.addToPolicy(this.modelIamHelper.s3Statement);
       executionRole.addToPolicy(this.modelIamHelper.endpointStatement);
+      executionRole.addToPolicy(this.modelIamHelper.bedrockStatement);
       executionRole.addToPolicy(this.modelIamHelper.stsStatement);
       executionRole.addToPolicy(this.modelIamHelper.ecrStatement);
       executionRole.addToPolicy(this.modelIamHelper.llmStatement);
