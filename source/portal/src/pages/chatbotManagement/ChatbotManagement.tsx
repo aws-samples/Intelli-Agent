@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import CommonLayout from 'src/layout/CommonLayout';
 import {
   Alert,
@@ -29,6 +29,7 @@ import {
 import useAxiosRequest from 'src/hooks/useAxiosRequest';
 import { useTranslation } from 'react-i18next';
 import { formatTime } from 'src/utils/utils';
+import ConfigContext from 'src/context/config-context';
 import { EMBEDDING_MODEL_LIST } from 'src/utils/const';
 
 const ChatbotManagement: React.FC = () => {
@@ -40,6 +41,7 @@ const ChatbotManagement: React.FC = () => {
   const [tableChatbotList, setTableChatbotList] = useState<ChatbotItem[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const config = useContext(ConfigContext);
 
   const [showCreate, setShowCreate] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
@@ -71,7 +73,11 @@ const ChatbotManagement: React.FC = () => {
 
   const getModelList = async (type: 'create' | 'edit') => {
     const tempModels:{label: string; value:string}[] =[]
-    EMBEDDING_MODEL_LIST.forEach((item: {model_id: string; model_name: string})=>{
+    const BCEMBEDDING = [
+      {"model_id": config?.embeddingEndpoint || "", "model_name": "BCEmbedding"},
+    ]
+    const embedding_models = config?.kbEnabled === 'true' ? BCEMBEDDING : EMBEDDING_MODEL_LIST
+    embedding_models.forEach((item: {model_id: string; model_name: string})=>{
       tempModels.push({
         label: item.model_name,
         value: item.model_id
