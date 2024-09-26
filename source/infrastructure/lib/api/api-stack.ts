@@ -489,8 +489,9 @@ export class ApiConstruct extends Construct {
         proxy: true,
       });
       const apiResourceChatbotManagement = api.root.addResource("chatbot-management");
-      const apiResourceCheckChatbot = apiResourceChatbotManagement.addResource('check-chatbot')
-      apiResourceCheckChatbot.addMethod("POST", lambdaChatbotIntegration, this.genMethodOption(api, auth, null))
+      const chatbotResource = apiResourceChatbotManagement.addResource('chatbot');
+      const apiResourceCheckChatbot = apiResourceChatbotManagement.addResource('check-chatbot');
+      apiResourceCheckChatbot.addMethod("POST", lambdaChatbotIntegration, this.genMethodOption(api, auth, null));
       const apiResourceChatbots = apiResourceChatbotManagement.addResource("chatbots");
       apiResourceChatbots.addMethod("POST", lambdaChatbotIntegration, {
         ...this.genMethodOption(api, auth, {
@@ -555,6 +556,34 @@ export class ApiConstruct extends Construct {
         }
       })
 
+      const apiGetChatbotById = chatbotResource.addResource("{chatbotId}");
+      apiGetChatbotById.addMethod(
+        "GET",
+        new apigw.LambdaIntegration(chatbotManagementLambda.function),
+        {
+          ...this.genMethodOption(api, auth, {
+            Items: {
+              type: JsonSchemaType.ARRAY, items: {
+                type: JsonSchemaType.OBJECT,
+                properties: {
+                  chatbotId: { type: JsonSchemaType.STRING },
+                  index: { type: JsonSchemaType.STRING },
+                  model: { type: JsonSchemaType.STRING },
+                },
+                required: ['chatbotId', 'index', 'model'],
+              }
+            },
+            Count: { type: JsonSchemaType.INTEGER }
+          }),
+          requestParameters: {
+            'method.request.path.chatbotId': true
+          },
+          // requestModels: this.genRequestModel(api, {
+          //   "executionId": { "type": JsonSchemaType.ARRAY, "items": {"type": JsonSchemaType.STRING}},
+          // })
+        }
+      );
+
 
 
 
@@ -587,14 +616,16 @@ export class ApiConstruct extends Construct {
       apiResourcePrompt.addMethod("GET", lambdaPromptIntegration, this.genMethodOption(api, auth, null));
   
       const apiResourcePromptProxy = apiResourcePrompt.addResource("{proxy+}")
-      apiResourcePromptProxy.addMethod("DELETE", lambdaPromptIntegration, this.genMethodOption(api, auth, null),);
-      apiResourcePromptProxy.addMethod("GET", lambdaPromptIntegration, this.genMethodOption(api, auth, null),);
+      apiResourcePromptProxy.addMethod("POST", lambdaPromptIntegration, this.genMethodOption(api, auth, null));
+      apiResourcePromptProxy.addMethod("DELETE", lambdaPromptIntegration, this.genMethodOption(api, auth, null));
+      apiResourcePromptProxy.addMethod("GET", lambdaPromptIntegration, this.genMethodOption(api, auth, null));
 
       // Define the API Gateway Lambda Integration to manage intention
       const lambdaIntentionIntegration = new apigw.LambdaIntegration(intentionLambda.function, {
         proxy: true,
       });
       const apiResourceIntentionManagement = api.root.addResource("intention");
+      // apiResourceIntentionManagement.addMethod("DELETE", lambdaIntentionIntegration, this.genMethodOption(api, auth, null))
       const indexScan = apiResourceIntentionManagement.addResource("index-used-scan")
       indexScan.addMethod("POST", lambdaIntentionIntegration, this.genMethodOption(api, auth, null));
       // apiResourceIntentionManagement.addMethod("DELETE", lambdaIntentionIntegration, this.genMethodOption(api, auth, null));
@@ -614,6 +645,7 @@ export class ApiConstruct extends Construct {
       const apiResourceDownload = apiResourceIntentionManagement.addResource("download-template");
       apiResourceDownload.addMethod("GET", lambdaIntentionIntegration, this.genMethodOption(api, auth, null));
       const apiResourceExecutionManagement = apiResourceIntentionManagement.addResource("executions");
+      apiResourceExecutionManagement.addMethod("DELETE", lambdaIntentionIntegration, this.genMethodOption(api, auth, null))
       apiResourceExecutionManagement.addMethod("POST", lambdaIntentionIntegration, {
         ...this.genMethodOption(api, auth, {
           execution_id: { type: JsonSchemaType.STRING },

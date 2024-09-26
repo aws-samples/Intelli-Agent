@@ -30,10 +30,11 @@ model_table = dynamodb.Table(os.environ.get("MODEL_TABLE_NAME"))
 DEFAULT_MAX_ITEMS = 50
 DEFAULT_SIZE = 50
 ROOT_RESOURCE = "/chatbot-management"
+CHATBOT_RESOURCE = "/chatbot-management/chatbot"
 EMBEDDING_MODELS_RESOURCE = f"{ROOT_RESOURCE}/embeddings"
 INDEXES_RESOURCE = f"{ROOT_RESOURCE}/indexes"
 CHATBOTS_RESOURCE = f"{ROOT_RESOURCE}/chatbots"
-DETAILS_RESOURCE = f"{ROOT_RESOURCE}/chatbot"
+# DETAILS_RESOURCE = f"{ROOT_RESOURCE}/chatbot"
 CHATBOTCHECK_RESOURCE = f"{ROOT_RESOURCE}/check-chatbot"
 logger = logging.getLogger(__name__)
 encoder = TokenEncoder()
@@ -183,41 +184,44 @@ def merge_index(chatbot_index_ids, key):
 
 def __get_chatbot(event, group_name):
 
-    chatbot_id = __get_query_parameter(event, "chatbotId")
-
+    chatbot_id = event.get("pathParameters", {}).get("chatbotId")
     if chatbot_id:
         chatbot_item = chatbot_table.get_item(
             Key={"groupName": group_name, "chatbotId": chatbot_id}
         ).get("Item")
+        model_item = model_table.get_item(
+            Key={"groupName": group_name, "modelId": f'{chatbot_id}-embedding'}
+        ).get("Item")
     else:
         chatbot_item = None
+        model_item = None
 
-    if chatbot_item:
+    if chatbot_item and model_item:
         chatbot_index_ids = chatbot_item.get("indexIds", {})
-
+        model = model_item.get("parameter", {})
+        model_endpoint = model.get("ModelEndpoint", {})
+        model_name = model.get("ModelName", {})
         response = {
-            "GroupName": group_name,
-            "ChatbotId": chatbot_id,
-            "Chatbot": {
-                "inention": {
-                    "index": merge_index(chatbot_index_ids, "intention"),
-                },
-                "qq": {
-                    "index": merge_index(chatbot_index_ids, "qq"),
-                },
-                "qd": {
-                    "index": merge_index(chatbot_index_ids, "qd"),
-                },
+            "groupName": group_name,
+            "chatbotId": chatbot_id,
+            "model": {
+                "model_endpoint": model_endpoint,
+                "model_name": model_name
+            },
+            "index": {
+                "intention": merge_index(chatbot_index_ids, "intention"),
+                "qq":  merge_index(chatbot_index_ids, "qq"),
+                "qd": merge_index(chatbot_index_ids, "qd")
             },
         }
     else:
         response = {
-            "GroupName": group_name,
-            "ChatbotId": chatbot_id,
-            "Chatbot": {
-                "inention": {"index": f"{chatbot_id}-intention-default"},
-                "qq": {"index": f"{chatbot_id}-qq-default"},
-                "qd": {"index": f"{chatbot_id}-qd-default"},
+            "groupName": group_name,
+            "chatbotId": chatbot_id,
+            "index": {
+                "inention": f"{chatbot_id}-intention-default",
+                "qq": f"{chatbot_id}-qq-default",
+                "qd": f"{chatbot_id}-qd-default"
             },
         }
     return response
@@ -247,6 +251,7 @@ def lambda_handler(event, context):
         group_name = claims["cognito:groups"]  # Agree to only be in one group
     http_method = event["httpMethod"]
     resource: str = event["resource"]
+
     if resource == EMBEDDING_MODELS_RESOURCE:
         output = __list_embedding_model()
     elif resource.startswith(CHATBOTS_RESOURCE):
@@ -255,14 +260,14 @@ def lambda_handler(event, context):
         elif http_method == "GET":
             if resource == CHATBOTS_RESOURCE:
                 output = __list_chatbot(event, group_name)
-            else:
-                output = __get_chatbot(event, group_name)
         elif http_method == "DELETE":
             output = __delete_chatbot(event, group_name)
     elif resource == CHATBOTCHECK_RESOURCE:
         output = __validate_chatbot(event, group_name)
-    elif resource.startswith(DETAILS_RESOURCE):
-        output == __chatbot_details(resource.split("/").pop(), group_name)
+    elif resource.startswith(CHATBOT_RESOURCE):
+        output = __get_chatbot(event, group_name)
+    # elif resource.startswith(DETAILS_RESOURCE):
+    #     output == __chatbot_details(resource.split("/").pop(), group_name)
 
     try:
         return {
@@ -346,17 +351,17 @@ def __find_key(index, index_id):
             return key
     return None
 
-def __chatbot_details(chatbot_id, group_name):
-    res={chatbot_id:chatbot_id}
-    index = chatbot_table.get_item(
-         Key={"groupName": group_name, 
-              "chatbotId": chatbot_id
-              }
-        ).get("Item",{}).get("indexIds")
-    for key, value in index.items():
-        value.get("value",{}).get("M",{}).keys()
-        res[key]=""
-    return res
+# def __chatbot_details(chatbot_id, group_name):
+#     res={chatbot_id:chatbot_id}
+#     index = chatbot_table.get_item(
+#          Key={"groupName": group_name, 
+#               "chatbotId": chatbot_id
+#               }
+#         ).get("Item",{}).get("indexIds")
+#     for key, value in index.items():
+#         value.get("value",{}).get("M",{}).keys()
+#         res[key]=""
+#     return res
 
 def __get_query_parameter(event, parameter_name, default_value=None):
     if (

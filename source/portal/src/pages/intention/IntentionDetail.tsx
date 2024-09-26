@@ -12,6 +12,7 @@ import {
   CollectionPreferences,
   Table,
 } from '@cloudscape-design/components';
+import './style.scss';
 import CommonLayout from 'src/layout/CommonLayout';
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';

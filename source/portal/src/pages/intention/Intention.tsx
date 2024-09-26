@@ -1,11 +1,14 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import CommonLayout from 'src/layout/CommonLayout';
+import './style.scss';
 import {
+  Alert,
   Box,
   Button,
   CollectionPreferences,
   ContentLayout,
   Header,
+  Input,
   Modal,
   Pagination,
   SpaceBetween,
@@ -13,14 +16,13 @@ import {
   Table,
   TableProps,
 } from '@cloudscape-design/components';
-import { IntentionsItem, IntentionsResponse, SelectedOption } from 'src/types';
-import { formatTime } from 'src/utils/utils';
+import { ChatbotsItem, IntentionsItem, IntentionsResponse, SelectedOption } from 'src/types';
+import { alertMsg, formatTime } from 'src/utils/utils';
 import TableLink from 'src/comps/link/TableLink';
 import useAxiosRequest from 'src/hooks/useAxiosRequest';
 import { useTranslation } from 'react-i18next';
 import AddIntention from '../components/AddIntention';
 // import { useAuth } from 'react-oidc-context';
-import { EMBEDDING_MODEL_LIST } from 'src/utils/const';
 
 const parseDate = (item: IntentionsItem) => {
   return item.createTime ? new Date(item.createTime) : 0;
@@ -39,6 +41,7 @@ const Intention: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [indexName, setIndexName] = useState('');
+  const [confirmInput, setConfirmInput] = useState('');
   // const [loadingDelete, setLoadingDelete] = useState(false);
   const [sortingColumn, setSortingColumn] = useState<
     TableProps.SortingColumn<IntentionsItem>
@@ -52,18 +55,89 @@ const Intention: React.FC = () => {
   const isFirstRender = useRef(true);
   const [botsOption, setBotsOption] = useState<SelectedOption[]>([]);
   const [selectedBotsOption, setSelectedBotsOption] = useState<SelectedOption>();
-  const [models, setModels] = useState<SelectedOption[]>([])
-  const [selectedModelOption, setSelectedModelOption] = useState<SelectedOption>();
-  const [useDefaultIndex, setUseDefaultIndex] = useState(true);
+  const [model, setModel] = useState<SelectedOption>(null as any)
+  // const [selectedModelOption, setSelectedModelOption] = useState<SelectedOption>();
   const [fileEmptyError, setFileEmptyError] = useState(false);
-  const [indexNameError, setIndexNameError] = useState('');
+  // const [indexNameError, setIndexNameError] = useState('');
   const [uploadFiles, setUploadFiles] = useState<File[]>([]);
+  const [showDelete, setShowDelete] = useState(false);
+  const [loadingDelete, setLoadingDelete] = useState(false);
+  const [showDeleteError, setShowDeleteError] = useState(false)
+  const [deleteErrorItem, setDeleteErrorItem] = useState([] as any)
 
-  const changeBotOption = (selectedBotOption: SelectedOption)=>{
-    setSelectedBotsOption(selectedBotOption)
-    if(useDefaultIndex){
-      setIndexName(`${selectedBotOption.value.toLocaleLowerCase()}-intention-default`)
+  const deleteExecutiuonsConfirmed = async () => {
+    if (!confirmInput || confirmInput !== t('confirm')) {
+      alertMsg(t('confirmDelete'), 'warning');
+      return;
     }
+    setLoadingDelete(true)
+    // const deleteRes = await fetchData({
+    //   url: 'intention/executions',
+    //   method: 'delete',
+    //   data: {executionIds : selectedItems.map(item => item.executionId)}
+    // });
+
+    try {
+      const deleteRes = await fetchData({
+        url: 'intention/executions',
+        method: 'delete',
+        data: {executionIds : selectedItems.map(item => item.executionId)}
+      });
+      setLoadingDelete(false);
+      getIntentionList();
+      
+      const { errors } = deleteRes.reduce((acc: any, item: any) => {
+        if (item.status === 'error') {
+          acc.errors.push(item);
+        } else if (item.status === 'success') {
+          acc.successes.push(item);
+        }
+        return acc;
+      }, { errors: [] });
+      if(errors.length === 0){
+        // setShowDeleteSuccess(true)
+        setShowDelete(false);
+        alertMsg(t('deleteSuccess'), 'success');
+      } else {
+        setDeleteErrorItem(errors)
+        setShowDeleteError(true)
+      }
+    } catch (error: unknown) {
+      setLoadingDelete(false);
+    }
+    
+  }
+
+  const deleteExecutions = ()=>{
+    if (!selectedItems || selectedItems.length === 0) {
+      alertMsg(t('selectOneItem'), 'error');
+      return;
+    }
+    setConfirmInput('');
+    setShowDeleteError(false);
+    // setIsShowDelete(true);
+    setShowDelete(true) 
+  }
+
+  const getChatBotDetail = async (chatbotId: string) =>{
+    const res: ChatbotsItem = await fetchData({
+      url: `chatbot-management/chatbot/${chatbotId}`,
+      method: 'get',
+    });
+    setModel({label: res.model.model_name, value: res.model.model_endpoint})
+    setIndexName(res.index.intention)
+  }
+
+  const changeBotOption = async (selectedBotOption: SelectedOption)=>{
+    setSelectedBotsOption(selectedBotOption)
+    await getChatBotDetail(selectedBotOption.value)
+    // setModel({label: res.model.model_name, value: res.model.model_endpoint})
+    // setIndexName(res.index.intention)
+
+
+    // if(useDefaultIndex){
+    //   setIndexName(`${selectedBotOption.value.toLocaleLowerCase()}-intention-default`)
+    // }
   }
 
   // const changeUseDefaultIndex = (useDefault: boolean)=>{
@@ -71,9 +145,9 @@ const Intention: React.FC = () => {
   //    setUseDefaultIndex(!useDefault)
   // }
 
-  const changeModelOption = (selectedBotOption: SelectedOption)=>{
-    setSelectedModelOption(selectedBotOption)
-  }
+  // const changeModelOption = (selectedBotOption: SelectedOption)=>{
+  //   setSelectedModelOption(selectedBotOption)
+  // }
 
   const getIntentionList = async () => {
     setLoadingData(true);
@@ -108,9 +182,6 @@ const Intention: React.FC = () => {
     const data: any = await fetchData({
       url: 'chatbot-management/chatbots',
       method: 'get',
-      // data: {
-      //   groupName: groupName?.[0] ?? 'Admin',
-      // },
     });
     const options: SelectedOption[] = [];
     (data.chatbot_ids||[]).forEach((item:any)=>{
@@ -119,24 +190,21 @@ const Intention: React.FC = () => {
          value: item
       })
     })
-
-    // options.push({
-    //   label: "Test",
-    //   value: "Test"
-    // })
     setBotsOption(options)
-    setSelectedBotsOption(options[0])
-    setIndexName(`${options[0].value.toLocaleLowerCase()}-intention-default`)
+    // setSelectedBotsOption(options[0])
+    // const res: ChatbotsItem = await getChatBotDetail(options[0].value)
+    // setModel({label: res.model.model_name, value: res.model.model_endpoint})
+    // setIndexName(res.index.intention)
   }
 
-  useEffect(()=>{
-    if(useDefaultIndex == false){
-      setIndexName("")
-    } else {
-      setIndexName(`${selectedBotsOption?.value.toLocaleLowerCase()}-intention-default`)
-    }
+  // useEffect(()=>{
+  //   if(useDefaultIndex == false){
+  //     setIndexName("")
+  //   } else {
+  //     setIndexName(`${selectedBotsOption?.value.toLocaleLowerCase()}-intention-default`)
+  //   }
 
-  },[useDefaultIndex])
+  // },[useDefaultIndex])
 
   // const getExistedIndex = async ()=>{
   //   const data: any = await fetchData({
@@ -149,23 +217,23 @@ const Intention: React.FC = () => {
 
   // }
 
-  const getModels  = async ()=>{
-    const tempModels:{label: string; value:string}[] =[]
+  // const getModels  = async ()=>{
+  //   const tempModels:{label: string; value:string}[] =[]
 
-    EMBEDDING_MODEL_LIST.forEach((item: {model_id: string; model_name: string})=>{
-       tempModels.push({
-            label: item.model_name,
-            value: item.model_id
-       })
-    })
-    setModels(tempModels)
-    setSelectedModelOption(tempModels[0])
-  }
+  //   EMBEDDING_MODEL_LIST.forEach((item: {model_id: string; model_name: string})=>{
+  //      tempModels.push({
+  //           label: item.model_name,
+  //           value: item.model_id
+  //      })
+  //   })
+  //   setModels(tempModels)
+  //   setSelectedModelOption(tempModels[0])
+  // }
 
   useEffect(() => {
     getIntentionList();
     getBots();
-    getModels();
+    // getModels();
     // getExistedIndex();
   }, []);
 
@@ -327,6 +395,7 @@ const Intention: React.FC = () => {
           ]}
           items={tableIntentions||[]}
           loadingText={t('loadingData')}
+          selectionType="multi"
           trackBy="executionId"
           empty={
             <Box margin={{ vertical: 'xs' }} textAlign="center" color="inherit">
@@ -375,22 +444,22 @@ const Intention: React.FC = () => {
                       getIntentionList();
                     }}
                   />
-                  {/* <Button
+                  <Button
                     disabled={selectedItems.length <= 0}
                     onClick={() => {
-                      setVisible(true);
+                      deleteExecutions()
                     }}
                   >
                     {t('button.delete')}
-                  </Button> */}
+                  </Button>
                   <Button
                     variant="primary"
                     onClick={() => {
-                      setUseDefaultIndex(true)
                       setFileEmptyError(false)
-                      setIndexNameError('')
                       setShowAddModal(true)
+                      setSelectedBotsOption(botsOption[0])
                       setUploadFiles([])
+                      getChatBotDetail(botsOption[0].value)
                     }}
                   >
                     {t('button.createIntention')}
@@ -435,24 +504,115 @@ const Intention: React.FC = () => {
             </ul>
           </div>
         </Modal>
+        <Modal
+          onDismiss={() => setShowDelete(false)}
+          visible={showDelete}
+          footer={
+            <Box float="right">
+              <SpaceBetween direction="horizontal" size="xs">
+                
+                {showDeleteError && (
+                  <Button
+                  variant="link"
+                  onClick={() => {
+                    setShowDelete(false);
+                  }}
+                >
+                  {t('button.confirm')}
+                </Button>
+                )}
+                {!showDeleteError && (
+                  <>
+                  <Button
+                  variant="link"
+                  onClick={() => {
+                    setShowDelete(false);
+                  }}
+                >
+                  {t('button.cancel')}
+                </Button>
+                  <Button
+                  loading={loadingDelete}
+                  variant="primary"
+                  onClick={() => {
+                    deleteExecutiuonsConfirmed();
+                  }}
+                >
+                  {t('button.delete')}
+                </Button>
+                </>
+                )}
+                
+              </SpaceBetween>
+            </Box>
+          }
+          header={t('deleteIntentionTitle')}
+        >
+        {!showDeleteError && (<p className="delete-top">{t('deleteIntentionTips')}</p>)}
+        {showDeleteError && (
+          <>
+            <div className="delete-intention">
+              <div className="warning-desc">
+                {t('deleteIntentionFailed')}
+              </div>
+              <div className="warning-list">
+              <ul>
+              {deleteErrorItem.map((item:any) => 
+                <li>
+                  {item.executionId}
+                </li>
+              )}  
+              </ul>
+              </div>
+            </div>
+          </>
+        )}
+        {!showDeleteError && (
+          <>
+            {/* <Alert type="info">{t('deleteTips')}</Alert> */}
+            <div className="selected-items-list">
+            <ul className="gap-5 flex-v">
+              {selectedItems.map((item) => (
+                <li key={item.executionId}>{item.executionId}</li>
+              ))}
+            </ul>
+          </div>
+            <Alert type="info">{t('deleteAlert')}</Alert>
+            <div className="confirm-top">{t('toAvoidTips')}</div>
+            <div className="confirm-agree">{t('typeConfirm')}</div>
+            <Input
+              value={confirmInput}
+              onChange={({ detail }) => setConfirmInput(detail.value)}
+              placeholder={t('confirm') || ''}
+              className="confirm-input"
+            />
+          </>
+        )}
+          {/* <Box variant="h4">{t('deleteTips')}</Box>
+          <div className="selected-items-list">
+            <ul className="gap-5 flex-v">
+              {selectedItems.map((item) => (
+                <li key={item.executionId}>{item.executionId}</li>
+              ))}
+            </ul>
+          </div>
+          <Alert type="warning">{t('intentionDeleteTips')}</Alert> */}
+        </Modal>
+        
+    
+        
         <AddIntention
-          models={models}
+          model={model}
           indexName={indexName}
-          useDefaultIndex={useDefaultIndex}
           botsOption={botsOption}
           showAddModal={showAddModal}
-          selectedModelOption={selectedModelOption}
           selectedBotOption={selectedBotsOption}
           uploadFiles={uploadFiles}
-          setIndexName={setIndexName}
-          changeUseDefaultIndex={setUseDefaultIndex}
           changeBotOption={changeBotOption}
-          changeSelectedModel={changeModelOption}
           setShowAddModal={setShowAddModal}
+          setIndexName={setIndexName}
           fileEmptyError={fileEmptyError} 
-          indexNameError={indexNameError} 
           setFileEmptyError={setFileEmptyError} 
-          setIndexNameError={setIndexNameError}
           setUploadFiles={setUploadFiles}
           reloadIntention={() => {
             setTimeout(() => {
