@@ -40,7 +40,6 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
   const { t, i18n } = useTranslation();
   const auth = useAuth();
   const [displayName, setDisplayName] = useState('');
-  // const [kbEnabled] = useState(false);
   const [fullLogoutUrl, setFullLogoutUrl] = useState('');
   const config = useContext(ConfigContext);
   const navigate = useNavigate();
@@ -78,6 +77,33 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
       setFullLogoutUrl(decodeURIComponent(logoutUrl.toString()));
     }
   }, []);
+
+  const baseItems = [
+    {
+      type: 'link',
+      text: t('chatbotManagement'),
+      href: '/chatbot-management',
+    },
+    {
+      type: 'link',
+      text: t('intention'),
+      href: '/intention',
+    },
+  ]
+
+  const promptItem = {
+    type: 'link',
+    text: t('prompt'),
+    href: '/prompts',
+  }
+
+  const kbItem = config?.kbEnabled === 'true' ? {
+    type: 'link',
+    text: t('docLibrary'),
+    href: '/library',
+  } : null
+
+  const layoutItems = kbItem ? [...baseItems, kbItem, promptItem] : [...baseItems, promptItem];
 
   return (
     <I18nProvider locale={i18n.language} messages={[messages]}>
@@ -153,28 +179,25 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
               {
                 type: 'section',
                 text: t('settings'),
-                items: [
-                  {
-                    type: 'link',
-                    text: t('chatbotManagement'),
-                    href: '/chatbot-management',
-                  },
-                  {
-                    type: 'link',
-                    text: t('intention'),
-                    href: '/intention',
-                  },
-                  // {
-                  //   type: 'link',
-                  //   text: t('docLibrary'),
-                  //   href: '/library',
-                  // },
-                  {
-                    type: 'link',
-                    text: t('prompt'),
-                    href: '/prompts',
-                  },
-                ],
+                items: layoutItems as readonly any[],
+                //     href: '/chatbot-management',
+                //   },
+                //   {
+                //     type: 'link',
+                //     text: t('intention'),
+                //     href: '/intention',
+                //   },
+                //   {
+                //     type: 'link',
+                //     text: t('docLibrary'),
+                //     href: '/library',
+                //   },
+                //   {
+                //     type: 'link',
+                //     text: t('prompt'),
+                //     href: '/prompts',
+                //   },
+                // ],
               },
               { type: 'divider' },
               {
