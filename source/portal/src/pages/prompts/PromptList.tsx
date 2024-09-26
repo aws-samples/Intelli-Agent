@@ -140,6 +140,10 @@ const PromptList: React.FC = () => {
         label: selectedItems[0].ModelId,
         value: selectedItems[0].ModelId,
       });
+      setChatbotOption({
+        label: selectedItems[0].ChatbotId.toLowerCase(),
+        value: selectedItems[0].ChatbotId.toLowerCase(),
+      });
     }
     try {
       const data: GetPromptResponse = await fetchData({

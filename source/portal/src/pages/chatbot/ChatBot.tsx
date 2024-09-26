@@ -161,11 +161,11 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
         sessionMessage.map((msg) => {
           let messageContent = msg.content;
           // Handle AI images message
-          if (msg.role === 'ai' && msg.additional_kwargs?.figure?.length > 0) {
-            msg.additional_kwargs.figure.forEach((item) => {
-              messageContent += ` \n ![${item.content_type}](/${encodeURIComponent(item.figure_path)})`;
-            });
-          }
+          // if (msg.role === 'ai' && msg.additional_kwargs?.figure?.length > 0) {
+          //   msg.additional_kwargs.figure.forEach((item) => {
+          //     messageContent += ` \n ![${item.content_type}](/${encodeURIComponent(item.figure_path)})`;
+          //   });
+          // }
           return {
             type: msg.role,
             message: {
@@ -211,14 +211,14 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     } else if (message.message_type === 'CONTEXT') {
       // handle context message
       if (message.ddb_additional_kwargs?.figure?.length > 0) {
-        message.ddb_additional_kwargs.figure.forEach((item) => {
-          setCurrentAIMessage((prev) => {
-            return (
-              prev +
-              ` \n ![${item.content_type}](/${encodeURIComponent(item.figure_path)})`
-            );
-          });
-        });
+        // message.ddb_additional_kwargs.figure.forEach((item) => {
+        //   setCurrentAIMessage((prev) => {
+        //     return (
+        //       prev +
+        //       ` \n ![${item.content_type}](/${encodeURIComponent(item.figure_path)})`
+        //     );
+        //   });
+        // });
       }
     } else if (message.message_type === 'END') {
       setIsMessageEnd(true);

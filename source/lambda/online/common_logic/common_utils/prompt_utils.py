@@ -73,9 +73,9 @@ class PromptTemplateManager:
             raise KeyError(f'prompt_template_id: {prompt_template_id}, prompt_name: {prompt_name}')
 
     
-    def get_prompt_templates_from_ddb(self, group_name:str, model_id:str, task_type:str, scene:str="common"):
+    def get_prompt_templates_from_ddb(self, group_name:str, model_id:str, task_type:str, chatbot_id:str="admin", scene:str="common"):
         response = ddb_prompt_table.get_item(
-            Key={"GroupName": group_name, "SortKey": f"{model_id}__{scene}"}
+            Key={"GroupName": group_name, "SortKey": f"{model_id}__{scene}__{chatbot_id}"}
         )
         return response.get("Item",{}).get("Prompt",{}).get(task_type,{})
 
@@ -348,7 +348,7 @@ AGENT_GUIDELINES_PROMPT = """<guidlines>
     1. 判断根据当前的上下文是否足够回答用户的问题。
     2. 如果当前的上下文足够回答用户的问题，请调用 `give_final_response` 工具。
     3. 如果当前的上下文不能支持回答用户的问题，你可以考虑调用<tools> 标签中列举的工具。
-    4. 如果调用工具对应的参数不够，请调用反问工具 `give_rhetorical_question` 来让用户提供更加充分的信息。
+    4. 如果调用工具对应的参数不够，请调用反问工具 `give_rhetorical_question` 来让用户提供更加充分的信息。如果调用工具不需要参数，则不需要调用反问工具。
     5. 最后给出你要调用的工具名称。
 - Always output with the same language as the content within <query></query>. If the content is english, use englisth to output. If the content is chinese, use chinese to output.
 </guidlines>

@@ -7,8 +7,7 @@ from datetime import datetime, timezone
 import boto3
 from boto3.dynamodb.conditions import Attr
 from botocore.paginate import TokenEncoder
-from common_logic.common_utils.constant import EmbeddingModelType
-from constant import IndexType
+from constant import IndexType, EmbeddingModelType
 from utils.ddb_utils import (
     initiate_chatbot,
     initiate_index,
@@ -46,7 +45,7 @@ resp_header = {
     "Access-Control-Allow-Methods": "*",
 }
 
-def __create_chatbot(event, group_name):
+def create_chatbot(event, group_name):
     request_body = json.loads(event["body"])
     chatbot_id = request_body.get("chatbotId", group_name.lower())
     chatbot_description = request_body.get(
@@ -57,7 +56,7 @@ def __create_chatbot(event, group_name):
     # model_id = request_body.get("modelId", f"{chatbot_id}-embedding")
     create_time = str(datetime.now(timezone.utc))
 
-    initiate_model(model_table, group_name, model_id, chatbot_embedding, create_time)
+    model_type = initiate_model(model_table, group_name, model_id, chatbot_embedding, create_time)
 
     index_id_list = {}
     # Iterate over all enum members and create DDB metadata
@@ -91,19 +90,11 @@ def __create_chatbot(event, group_name):
                 chatbot_description,
             )
 
-    #         chatbot_table,
-    # group_name,
-    # chatbot_id,
-    # chatbot_description,
-    # index_type,
-    # index_id_list,
-    # create_time=None,
-            
-
     return {
         "chatbotId": chatbot_id,
         "groupName": group_name,
         "indexIds": index_id_list,
+        "modelType": model_type,
         "Message": "OK",  # Need to be OK for the frontend to know the chatbot is created successfully and redirect to the chatbot management page
     }
 
@@ -256,7 +247,7 @@ def lambda_handler(event, context):
         output = __list_embedding_model()
     elif resource.startswith(CHATBOTS_RESOURCE):
         if http_method == "POST":
-            output = __create_chatbot(event, group_name)
+            output = create_chatbot(event, group_name)
         elif http_method == "GET":
             if resource == CHATBOTS_RESOURCE:
                 output = __list_chatbot(event, group_name)

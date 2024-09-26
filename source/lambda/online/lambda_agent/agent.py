@@ -29,13 +29,15 @@ def tool_calling(state:dict):
     agent_llm_type = state.get("agent_llm_type",None) or LLMTaskType.TOOL_CALLING
     
     group_name = state['chatbot_config']['group_name']
+    chatbot_id = state['chatbot_config']['chatbot_id']
      
 
     # add prompt template from ddb
     prompt_templates_from_ddb = get_prompt_templates_from_ddb(
         group_name,
         model_id = llm_config['model_id'],
-        task_type=agent_llm_type
+        task_type=agent_llm_type,
+        chatbot_id=chatbot_id
     )
 
     output = invoke_lambda(
