@@ -37,10 +37,10 @@ region = os.environ.get("AWS_REGION", "us-east-1")
 aos_domain_name = os.environ.get("AOS_DOMAIN_NAME", "smartsearch")
 aos_endpoint = os.environ.get("AOS_ENDPOINT", "")
 aos_secret = os.environ.get("AOS_SECRET_NAME", "opensearch-master-user")
-intention_table_name = os.getenv("INTENTION_TABLE_NAME","intention")
-chatbot_table_name = os.getenv("CHATBOT_TABLE_NAME","chatbot")
-index_table_name = os.getenv("INDEX_TABLE_NAME","index")
-model_table_name = os.getenv("MODEL_TABLE_NAME","model")
+intention_table_name = os.getenv("INTENTION_TABLE_NAME", "intention")
+chatbot_table_name = os.getenv("CHATBOT_TABLE_NAME", "chatbot")
+index_table_name = os.getenv("INDEX_TABLE_NAME", "index")
+model_table_name = os.getenv("MODEL_TABLE_NAME", "model")
 dynamodb_client = boto3.resource("dynamodb")
 intention_table = dynamodb_client.Table(intention_table_name)
 index_table = dynamodb_client.Table(index_table_name)
@@ -49,30 +49,34 @@ model_table = dynamodb_client.Table(model_table_name)
 
 sm_client = boto3.client("secretsmanager")
 try:
-    master_user = sm_client.get_secret_value(SecretId=aos_secret)["SecretString"]
-    secret_body = sm_client.get_secret_value(SecretId=SECRET_NAME)['SecretString']
+    master_user = sm_client.get_secret_value(
+        SecretId=aos_secret)["SecretString"]
+    secret_body = sm_client.get_secret_value(
+        SecretId=SECRET_NAME)['SecretString']
     secret = json.loads(secret_body)
     username = secret.get("username")
     password = secret.get("password")
 
     if not aos_endpoint:
         opensearch_client = boto3.client("opensearch")
-        response = opensearch_client.describe_domain(DomainName=aos_domain_name)
+        response = opensearch_client.describe_domain(
+            DomainName=aos_domain_name)
         aos_endpoint = response["DomainStatus"]["Endpoint"]
-        aos_client = LLMBotOpenSearchClient(aos_endpoint, (username, password)).client
+        aos_client = LLMBotOpenSearchClient(
+            aos_endpoint, (username, password)).client
 except sm_client.exceptions.ResourceNotFoundException:
     logger.info(f"Secret '{aos_secret}' not found in Secrets Manager")
-    aos_client = LLMBotOpenSearchClient(aos_endpoint)
 except Exception as e:
     logger.error(f"Error retrieving secret '{aos_secret}': {str(e)}")
     raise
 
 dynamodb_client = boto3.client("dynamodb")
 s3_client = boto3.client("s3")
-bedrock_client = boto3.client("bedrock-runtime",region_name=region)
+bedrock_client = boto3.client("bedrock-runtime", region_name=region)
 
 credentials = boto3.Session().get_credentials()
-awsauth = AWS4Auth(refreshable_credentials=credentials, region=region, service="es")
+awsauth = AWS4Auth(refreshable_credentials=credentials,
+                   region=region, service="es")
 
 resp_header = {
     "Content-Type": "application/json",
@@ -80,6 +84,7 @@ resp_header = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "*",
 }
+
 
 class OpenSearchIngestionWorker:
     def __init__(
@@ -127,7 +132,8 @@ def lambda_handler(event, context):
             group_name = __get_query_parameter(event, "GroupName", "Admin")
         else:
             email = claims["email"]
-            group_name = claims["cognito:groups"]  # Agree to only be in one group
+            # Agree to only be in one group
+            group_name = claims["cognito:groups"]
     else:
         logger.error("Invalid authorizer type")
         raise
@@ -135,13 +141,14 @@ def lambda_handler(event, context):
     #     email = event["multiValueHeaders"]["author"][0]
     #     cognito_groups_list = ["Admin"]
     http_method = event["httpMethod"]
-    resource:str = event["resource"]
+    resource: str = event["resource"]
     if resource == PRESIGNED_URL_RESOURCE:
         input_body = json.loads(event["body"])
         file_name = f"intentions/{group_name}/[{input_body['timestamp']}]{input_body['file_name']}"
-        presigned_url = __gen_presigned_url(file_name, 
-                                     input_body.get("content_type", DEFAULT_CONTENT_TYPE),
-                                     input_body.get("expiration", 60*60))
+        presigned_url = __gen_presigned_url(file_name,
+                                            input_body.get(
+                                                "content_type", DEFAULT_CONTENT_TYPE),
+                                            input_body.get("expiration", 60*60))
         output = {
             "message": "The S3 presigned url is generated",
             "data": {
@@ -149,7 +156,7 @@ def lambda_handler(event, context):
                 "s3Bucket": s3_bucket_name,
                 "s3Prefix": file_name,
             },
-         
+
         }
     elif resource.startswith(EXECUTION_RESOURCE):
         if http_method == "POST":
@@ -178,6 +185,7 @@ def lambda_handler(event, context):
             "body": json.dumps(f"Error: {str(e)}"),
         }
 
+
 def __get_query_parameter(event, parameter_name, default_value=None):
     if (
         event.get("queryStringParameters")
@@ -186,10 +194,12 @@ def __get_query_parameter(event, parameter_name, default_value=None):
         return event["queryStringParameters"][parameter_name]
     return default_value
 
+
 def __gen_presigned_url(object_name: str, content_type: str, expiration: int):
     return s3_client.generate_presigned_url(
         ClientMethod="put_object",
-        Params={"Bucket": s3_bucket_name, "Key": object_name, "ContentType": content_type},
+        Params={"Bucket": s3_bucket_name,
+                "Key": object_name, "ContentType": content_type},
         ExpiresIn=expiration,
         HttpMethod="PUT",
     )
@@ -216,19 +226,19 @@ def __list_execution(event, group_name):
     items = response['Items']
     while 'LastEvaluatedKey' in response:
         response = dynamodb_client.query(
-        TableName=intention_table_name,
-        KeyConditionExpression='groupName = :pk_val',
-        ExpressionAttributeValues={
-            ':pk_val': {'S': group_name}
-        },
-        ExclusiveStartKey=response['LastEvaluatedKey']
-    )
+            TableName=intention_table_name,
+            KeyConditionExpression='groupName = :pk_val',
+            ExpressionAttributeValues={
+                ':pk_val': {'S': group_name}
+            },
+            ExclusiveStartKey=response['LastEvaluatedKey']
+        )
         items.extend(response['Items'])
 
     for item in items:
         item_json = {}
         for key in list(item.keys()):
-            value = item.get(key, {"S": ""}).get("S","-")
+            value = item.get(key, {"S": ""}).get("S", "-")
             if key == "File":
                 item_json["fileName"] = value.split("/").pop()
             elif key == "modelId":
@@ -260,8 +270,8 @@ def __create_execution(event, context, email, group_name):
     execution_detail["model"] = input_body.get("model")
     execution_detail["fileName"] = input_body.get("s3Prefix").split("/").pop()
     # execution_detail["tag"] = input_body.get("tag") if input_body.get("tag") else execution_detail["index"]
-    bucket=input_body.get("s3Bucket")
-    prefix=input_body.get("s3Prefix")
+    bucket = input_body.get("s3Bucket")
+    prefix = input_body.get("s3Prefix")
     create_time = str(datetime.now(timezone.utc))
 
     initiate_model(
@@ -299,17 +309,17 @@ def __create_execution(event, context, email, group_name):
     excel_file = BytesIO(file_content)
     workbook = load_workbook(excel_file)
     sheet = workbook.active
-    qaList =[]
+    qaList = []
     for row in sheet.iter_rows(min_row=2, values_only=True):
-        question, intention, kwargs = row[0], row[1], row[2] if len(row) > 2 else None
-        if not question: 
+        question, intention, kwargs = row[0], row[1], row[2] if len(
+            row) > 2 else None
+        if not question:
             continue
         qaList.append({
             "question": question,
             "intention": intention,
-            "kwargs": kwargs    
+            "kwargs": kwargs
         })
-
     # write to ddb(meta data)
     intention_table.put_item(
         Item={
@@ -326,16 +336,41 @@ def __create_execution(event, context, email, group_name):
         }
     )
     # write to aos(vectorData)
-    __save_2_aos(input_body.get("model"), execution_detail["index"], qaList)
+    __save_2_aos(input_body.get("model"), execution_detail["index"], qaList, bucket, prefix)
 
     return {
-                "execution_id": execution_detail["tableItemId"],
-                "input_payload": execution_detail,
-                "result": "success"
+        "execution_id": execution_detail["tableItemId"],
+        "input_payload": execution_detail,
+        "result": "success"
     }
 
-def __save_2_aos(modelId: str, index: str, qaList:list):
-    index_exists = aos_client.indices.exists(index=index)
+
+def convert_qa_list(qa_list: list, bucket: str, prefix: str) -> List[Document]:
+    doc_list = []
+    for qa in qa_list:
+        metadata_template = {
+            "content_type": "paragraph",
+            "heading_hierarchy": {},
+            "figure_list": [],
+            "chunk_id": "$$",
+            "file_path": "",
+            "keywords": [],
+            "summary": "",
+            "type": "Intent"
+        }
+        page_content = qa["question"]
+        metadata = metadata_template
+        metadata["jsonlAnswer"] = qa["intention"]
+        metadata["kwargs"] = qa["kwargs"]
+        metadata["file_path"] = f"s3://{bucket}/{prefix}"
+        # Assemble the document
+        doc = Document(page_content=page_content, metadata=metadata)
+        doc_list.append(doc)
+
+    return doc_list
+
+
+def __save_2_aos(modelId: str, index: str, qaList: list, bucket: str, prefix: str):
     if kb_enabled:
         embedding_function = sm_utils.getCustomEmbeddings(
             embedding_model_endpoint, region, "bce"
@@ -351,8 +386,10 @@ def __save_2_aos(modelId: str, index: str, qaList:list):
         )
 
         worker = OpenSearchIngestionWorker(docsearch, embedding_model_endpoint)
-        worker.aos_ingestion(qaList)
+        intention_list = convert_qa_list(qaList, bucket, prefix)
+        worker.aos_ingestion(intention_list)
     else:
+        index_exists = aos_client.indices.exists(index=index)
         if not index_exists:
             __create_index(index, modelId)
         __refresh_index(index, modelId, qaList)
@@ -360,34 +397,34 @@ def __save_2_aos(modelId: str, index: str, qaList:list):
 
 def __create_index(index: str, modelId: str):
     body = {
-        "settings" : {
-            "index":{
-                "number_of_shards" : 1,
-                "number_of_replicas" : 0,
+        "settings": {
+            "index": {
+                "number_of_shards": 1,
+                "number_of_replicas": 0,
                 "knn": True,
                 "knn.algo_param.ef_search": 32
             }
         },
         "mappings": {
             "properties": {
-                "text" : {
-                    "type" : "text",
+                "text": {
+                    "type": "text",
                     "fields": {
-                        "keyword": { 
-                           "type": "keyword"
+                        "keyword": {
+                            "type": "keyword"
                         }
                     }
                 },
-                "sentence_vector" : {
-                    "type" : "knn_vector",
-                    "dimension" : ModelDimensionMap[modelId],
-                    "method" : {
-                        "engine" : "nmslib",
-                        "space_type" : "l2",
-                        "name" : "hnsw",
-                        "parameters" : {
-                        "ef_construction" : 512,
-                        "m" : 16
+                "sentence_vector": {
+                    "type": "knn_vector",
+                    "dimension": ModelDimensionMap[modelId],
+                    "method": {
+                        "engine": "nmslib",
+                        "space_type": "l2",
+                        "name": "hnsw",
+                        "parameters": {
+                            "ef_construction": 512,
+                            "m": 16
                         }
                     }
                 }
@@ -396,44 +433,46 @@ def __create_index(index: str, modelId: str):
     }
     try:
         aos_client.indices.create(index=index, body=body)
-        print(f"Index {index} created successfully.")
+        logger.info(f"Index {index} created successfully.")
     except RequestError as e:
-        print(e.error)
-    
+        logger.error(e.error)
+
 
 def __refresh_index(index: str, modelId: str, qaList):
-    success, failed = helpers.bulk(aos_client,  __append_embeddings(index, modelId, qaList), chunk_size=BULK_SIZE)
+    success, failed = helpers.bulk(aos_client,  __append_embeddings(
+        index, modelId, qaList), chunk_size=BULK_SIZE)
     aos_client.indices.refresh(index=index)
-    print(f"Successfully added: {success} ")
-    print(f"Failed: {len(failed)} ")
+    logger.info(f"Successfully added: {success} ")
+    logger.info(f"Failed: {len(failed)} ")
 
-def  __append_embeddings(index, modelId, qaList:list):
+
+def __append_embeddings(index, modelId, qaList: list):
     documents = []
     for item in qaList:
-        question=item["question"]
+        question = item["question"]
         embedding_func = BedrockEmbeddings(
             client=bedrock_client,
             model_id=modelId
         )
-        
+
         embeddings_vectors = embedding_func.embed_documents(
             [question]
         )
         documents.append(
-                    { 
-                        "text" : question,
-                        "metadata" : {
-                            "answer": item["intention"],
-                            "source": "portal",
-                            **({"kwargs": item["kwargs"]} if item.get("kwargs") else {}),
-                            "type": "Intent"
-                        },
-                        "sentence_vector" : embeddings_vectors[0]
-                    }
-                )
-        
+            {
+                "text": question,
+                "metadata": {
+                    "answer": item["intention"],
+                    "source": "portal",
+                    **({"kwargs": item["kwargs"]} if item.get("kwargs") else {}),
+                    "type": "Intent"
+                },
+                "sentence_vector": embeddings_vectors[0]
+            }
+        )
+
     for document in documents:
-        yield {"_op_type": "index", "_index": index, "_source": document, "_id": hashlib.md5(str(document).encode('utf-8')).hexdigest() }
+        yield {"_op_type": "index", "_index": index, "_source": document, "_id": hashlib.md5(str(document).encode('utf-8')).hexdigest()}
 
 
 def __get_execution(event, group_name):
@@ -462,7 +501,7 @@ def __get_execution(event, group_name):
         elif key == "LastModifiedTime":
             item_json["createTime"] = value
         elif key == "details":
-            item_json["QAList"] = json.loads(value)  
+            item_json["QAList"] = json.loads(value)
         else:
             continue
         item_json["status"] = "COMPLETED"
@@ -471,26 +510,30 @@ def __get_execution(event, group_name):
     res["Count"] = len(Items)
     return res
 
+
 def __get_s3_object_with_retry(bucket: str, key: str, max_retries: int = 5, delay: int = 1):
     attempt = 0
     while attempt < max_retries:
         try:
             return s3_client.get_object(Bucket=bucket, Key=key)
         except Exception as e:
-            print(f"Attempt {attempt + 1} failed: {e}")
+            logger.info(f"Attempt {attempt + 1} failed: {e}")
             attempt += 1
             if attempt >= max_retries:
-                print("Time out, retry...")
-                raise 
+                logger.info("Time out, retry...")
+                raise
             time.sleep(delay)
+
 
 def __download_template():
     url = s3_client.generate_presigned_url(
         ClientMethod="get_object",
-        Params={'Bucket': s3_bucket_name, 'Key': "templates/intention_corpus.xlsx"},
+        Params={'Bucket': s3_bucket_name,
+                'Key': "templates/intention_corpus.xlsx"},
         ExpiresIn=60
     )
     return url
+
 
 def __index_used_scan(event, group_name):
     input_body = json.loads(event["body"])
@@ -506,27 +549,29 @@ def __index_used_scan(event, group_name):
         model_response = model_table.get_item(
             Key={
                 "groupName": group_name,
-                "modelId": pre_model.get("modelIds",{}).get("embedding"),
+                "modelId": pre_model.get("modelIds", {}).get("embedding"),
             }
         )
-        model_name = model_response.get("Item",{}).get("parameter",{}).get("ModelName", "")
+        model_name = model_response.get("Item", {}).get(
+            "parameter", {}).get("ModelName", "")
         #  model_name = model_response.get("ModelName", {}).get("S","-")
-    if not pre_model or model_name==input_body.get("model"):
+    if not pre_model or model_name == input_body.get("model"):
         return {
             "statusCode": 200,
             "headers": resp_header,
             "body": json.dumps({
-            "result":"valid"
+                "result": "valid"
             })
         }
-    else: 
+    else:
         return {
             "statusCode": 200,
             "headers": resp_header,
             "body": json.dumps({
-            "result":"invalid"
+                "result": "invalid"
             }
-        )}
+            )}
+
 
 def __get_query_parameter(event, parameter_name, default_value=None):
     if (
@@ -535,4 +580,3 @@ def __get_query_parameter(event, parameter_name, default_value=None):
     ):
         return event["queryStringParameters"][parameter_name]
     return default_value
-

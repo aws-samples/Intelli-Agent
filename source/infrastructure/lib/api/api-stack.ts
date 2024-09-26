@@ -441,6 +441,8 @@ export class ApiConstruct extends Construct {
         runtime: Runtime.PYTHON_3_12,
         code: Code.fromAsset(join(__dirname, "../../../lambda/intention")),
         handler: "intention.lambda_handler",
+        vpc: vpc,
+        securityGroups: securityGroups,
         environment: {
           INTENTION_TABLE_NAME: props.chatStackOutputs.intentionTableName,
           INDEX_TABLE_NAME: props.sharedConstructOutputs.indexTable.tableName,
@@ -458,7 +460,8 @@ export class ApiConstruct extends Construct {
                      this.iamHelper.secretStatement,
                      this.iamHelper.esStatement,
                      this.iamHelper.s3Statement,
-                     this.iamHelper.bedrockStatement
+                     this.iamHelper.bedrockStatement,
+                     this.iamHelper.endpointStatement,
                     ],
       });
 
