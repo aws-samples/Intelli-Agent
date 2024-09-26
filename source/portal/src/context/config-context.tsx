@@ -10,6 +10,7 @@ export interface Config {
   oidcRedirectUrl: string;
   kbEnabled: string;
   kbType: string;
+  embeddingEndpoint: string;
   // apiKey: string;
 }
 const ConfigContext = React.createContext<Config | null>(null);
