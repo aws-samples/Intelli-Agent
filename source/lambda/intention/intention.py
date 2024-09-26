@@ -72,9 +72,9 @@ try:
         aos_client = LLMBotOpenSearchClient(
             aos_endpoint, (username, password)).client
 except sm_client.exceptions.ResourceNotFoundException:
-    logger.info(f"Secret '{aos_secret}' not found in Secrets Manager")
+    logger.info("Secret '%s' not found in Secrets Manager", aos_secret)
 except Exception as e:
-    logger.error(f"Error retrieving secret '{aos_secret}': {str(e)}")
+    logger.error("Error retrieving secret '%s': %s", aos_secret, str(e))
     raise
 
 dynamodb_client = boto3.client("dynamodb")
