@@ -111,6 +111,7 @@ export class RootStack extends Stack {
         oidcRedirectUrl: `https://${portalConstruct.portalUrl}/signin`,
         kbEnabled: props.config.knowledgeBase.enabled.toString(),
         kbType: JSON.stringify(props.config.knowledgeBase.knowledgeBaseType || {}),
+        embeddingEndpoint: modelConstruct.defaultEmbeddingModelName || "",
         // apiKey: apiConstruct.apiKey,
       },
     });
