@@ -9,15 +9,13 @@ import {
   Form,
   FormField,
   Header,
-  Input,
   Link,
   Modal,
   ProgressBar,
   Select,
   SpaceBetween,
-  Toggle,
 } from '@cloudscape-design/components';
-import { alertMsg, validateNameTagString } from 'src/utils/utils';
+import { alertMsg } from 'src/utils/utils';
 import { AxiosProgressEvent } from 'axios';
 import { useTranslation } from 'react-i18next';
 import useAxiosRequest from 'src/hooks/useAxiosRequest';
@@ -28,44 +26,33 @@ interface AddIntentionProps {
   showAddModal: boolean;
   indexName: string;
   fileEmptyError: boolean;
-  indexNameError: string;
-  useDefaultIndex: boolean;
-  models: SelectedOption[];
+  model: SelectedOption;
   botsOption: SelectedOption[];
   selectedBotOption: SelectedOption | undefined;
-  selectedModelOption: SelectedOption | undefined;
   uploadFiles: File[];
-  changeUseDefaultIndex: (arg: boolean) => void;
   changeBotOption: (option: SelectedOption) => void;
-  changeSelectedModel: (option: SelectedOption) => void;
   setShowAddModal: (show: boolean) => void;
-  setIndexName: (name: string) => void;
+  setIndexName: (arg: string) => void;
   setFileEmptyError: (error: boolean) => void;
-  setIndexNameError: (error: string) => void;
   reloadIntention: () => void;
   setUploadFiles: (files: File[]) => void;
 }
 
 const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => {
   const { t } = useTranslation();
-  const {models, 
+  const {
+    model,
     botsOption, 
-    selectedModelOption, 
     selectedBotOption, 
     showAddModal, 
     indexName, 
-    useDefaultIndex,
     fileEmptyError,
-    indexNameError,
     uploadFiles,
-    changeUseDefaultIndex, 
-    setIndexName, 
     changeBotOption, 
-    changeSelectedModel, 
     setShowAddModal,
     setFileEmptyError,
-    setIndexNameError,
     setUploadFiles,
+    setIndexName,
     reloadIntention } = props;
   const fetchData = useAxiosRequest();
   // const [uploadFiles, setUploadFiles] = useState<File[]>([]);
@@ -88,7 +75,7 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
         chatbotId: selectedBotOption?.value.toLocaleLowerCase() ?? 'admin',
         // groupName: selectedBotOption?.value,
         index: indexName ? indexName.trim() : undefined,
-        model: selectedModelOption?.value ?? DEFAULT_EMBEDDING_MODEL,
+        model: model ?? DEFAULT_EMBEDDING_MODEL,
         // tag: indexName ? indexName.trim() : undefined,
       },
     });
@@ -114,19 +101,19 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
   };
 
 
-  const isValidIndex = async () =>{
-    const resIndexScan = await fetchData({
-      url: `intention/index-used-scan`,
-      method: 'post',
-      data: {
-        chatbotId: selectedBotOption?.value.toLocaleLowerCase() ?? 'admin',
-        // groupName: selectedBotOption?.value,
-        index: indexName ? indexName.trim() : undefined, 
-        model: selectedModelOption?.value
-      },
-    });
-    return JSON.parse(resIndexScan.body).result === 'valid'
-  }
+  // const isValidIndex = async () =>{
+  //   const resIndexScan = await fetchData({
+  //     url: `intention/index-used-scan`,
+  //     method: 'post',
+  //     data: {
+  //       chatbotId: selectedBotOption?.value.toLocaleLowerCase() ?? 'admin',
+  //       // groupName: selectedBotOption?.value,
+  //       index: indexName ? indexName.trim() : undefined, 
+  //       model: selectedModelOption?.value
+  //     },
+  //   });
+  //   return JSON.parse(resIndexScan.body).result === 'valid'
+  // }
 
   const uploadFilesToS3 = async () => {
     setShowProgress(true);
@@ -137,30 +124,30 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
       return;
     }
     // validate index name
-    if (!validateNameTagString(indexName.trim())) {
-      setIndexNameError('validation.formatInvalidTagIndex');
-      setShowProgress(false);
-      return;
-    }
+    // if (!validateNameTagString(indexName.trim())) {
+    //   setIndexNameError('validation.formatInvalidTagIndex');
+    //   setShowProgress(false);
+    //   return;
+    // }
 
 
-    if(!useDefaultIndex && (indexName==null||indexName=='')){
-      setIndexNameError('validation.indexNameEmpty')
-      setShowProgress(false);
-      return;
-    }
+    // if(!useDefaultIndex && (indexName==null||indexName=='')){
+    //   setIndexNameError('validation.indexNameEmpty')
+    //   setShowProgress(false);
+    //   return;
+    // }
 
-    const indexIsValid = await isValidIndex()
+    // const indexIsValid = await isValidIndex()
 
-    if(!indexIsValid){
-      if(useDefaultIndex){
-        setIndexNameError('validation.defaultIndexValid')
-      } else {
-        setIndexNameError('validation.indexValid')
-      }
-      setShowProgress(false);
-      return;
-    }
+    // if(!indexIsValid){
+    //   if(useDefaultIndex){
+    //     setIndexNameError('validation.defaultIndexValid')
+    //   } else {
+    //     setIndexNameError('validation.indexValid')
+    //   }
+    //   setShowProgress(false);
+    //   return;
+    // }
 
     const totalSize = uploadFiles.reduce((acc, file) => acc + file.size, 0);
     let progressMap = new Map();
@@ -308,15 +295,16 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
                     />
                   </FormField>
                   <FormField label={t('model')} stretch={true}>
-                    <Select
+                    {model?.label}
+                    {/* <Select
                       options={models}
                       selectedOption={selectedModelOption||{}}
                       onChange={({ detail }:{detail: any}) => {
                         changeSelectedModel(detail.selectedOption);
                       }}
-                    />
+                    /> */}
                   </FormField>
-                  <FormField stretch={true}>
+                  {/* <FormField stretch={true}>
                   <Toggle
                     onChange={({ detail }) =>
                       {
@@ -328,27 +316,20 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
                   >
                   {t('customizeIndex')}
                   </Toggle>
-                  </FormField>
+                  </FormField> */}
                   
-                  {useDefaultIndex?(<FormField
+                  {/* {useDefaultIndex?( */}
+                  <FormField
                     label={
                       <>
                         {t('indexName')}
                       </>
                     }
                     stretch={true}
-                    errorText={t(indexNameError)}
                   >
-                    <Input
-                      placeholder="example-index-name"
-                      value={indexName}
-                      disabled
-                      onChange={({ detail }) => {
-                        setIndexNameError('');
-                        setIndexName(detail.value);
-                      }}
-                    />
-                  </FormField>):(
+                    {indexName}
+                  </FormField>
+                  {/* ):(
                     <>
                     <FormField
                       label={
@@ -369,7 +350,7 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
                       />
                     </FormField>
                   </>
-                  )}
+                  )} */}
                   
                   
                   </SpaceBetween>

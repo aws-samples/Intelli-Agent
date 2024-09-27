@@ -1,17 +1,14 @@
-import __main__
-from datetime import datetime, timezone
 import hashlib
 import json
 import os
 import re
 import time
 from typing import List
-from aiohttp import ClientError
 import boto3
 from openpyxl import load_workbook
 from io import BytesIO
 from botocore.paginate import TokenEncoder
-from opensearchpy import RequestError, helpers, RequestsHttpConnection
+from opensearchpy import NotFoundError, RequestError, helpers, RequestsHttpConnection
 import logging
 from langchain.embeddings.bedrock import BedrockEmbeddings
 from langchain.docstore.document import Document
@@ -23,8 +20,18 @@ from aos import sm_utils
 from requests_aws4auth import AWS4Auth
 
 from aos.aos_utils import LLMBotOpenSearchClient
-from constant import AOS_INDEX, BULK_SIZE, DEFAULT_CONTENT_TYPE, DEFAULT_MAX_ITEMS, DEFAULT_SIZE, DOWNLOAD_RESOURCE, EXECUTION_RESOURCE, INDEX_USED_SCAN_RESOURCE, PRESIGNED_URL_RESOURCE, SECRET_NAME, IndexType, ModelDimensionMap
-from ddb_utils import check_item_exist, initiate_chatbot, initiate_index, initiate_model
+from constant import (AOS_INDEX, 
+                      BULK_SIZE, 
+                      DEFAULT_CONTENT_TYPE, 
+                      DEFAULT_MAX_ITEMS, 
+                      DEFAULT_SIZE, 
+                      DOWNLOAD_RESOURCE, 
+                      EXECUTION_RESOURCE, 
+                      INDEX_USED_SCAN_RESOURCE, 
+                      PRESIGNED_URL_RESOURCE, 
+                      SECRET_NAME, 
+                      IndexType, 
+                      ModelDimensionMap)
 
 logger = logging.getLogger(__name__)
 encoder = TokenEncoder()
@@ -65,9 +72,9 @@ try:
         aos_client = LLMBotOpenSearchClient(
             aos_endpoint, (username, password)).client
 except sm_client.exceptions.ResourceNotFoundException:
-    logger.info(f"Secret '{aos_secret}' not found in Secrets Manager")
+    logger.info("Secret '%s' not found in Secrets Manager", aos_secret)
 except Exception as e:
-    logger.error(f"Error retrieving secret '{aos_secret}': {str(e)}")
+    logger.error("Error retrieving secret '%s': %s", aos_secret, str(e))
     raise
 
 dynamodb_client = boto3.client("dynamodb")
@@ -125,9 +132,6 @@ def lambda_handler(event, context):
     )
     if authorizer_type == "lambda_authorizer":
         claims = json.loads(event["requestContext"]["authorizer"]["claims"])
-        # email = claims["email"]
-        # cognito_groups = claims["cognito:groups"]
-        # cognito_groups_list = cognito_groups.split(",")
         if "use_api_key" in claims:
             group_name = __get_query_parameter(event, "GroupName", "Admin")
         else:
@@ -136,10 +140,6 @@ def lambda_handler(event, context):
             group_name = claims["cognito:groups"]
     else:
         logger.error("Invalid authorizer type")
-        raise
-    # else:
-    #     email = event["multiValueHeaders"]["author"][0]
-    #     cognito_groups_list = ["Admin"]
     http_method = event["httpMethod"]
     resource: str = event["resource"]
     if resource == PRESIGNED_URL_RESOURCE:
@@ -161,11 +161,12 @@ def lambda_handler(event, context):
     elif resource.startswith(EXECUTION_RESOURCE):
         if http_method == "POST":
             output = __create_execution(event, context, email, group_name)
+        elif http_method == "DELETE":
+            output = __delete_execution(event, group_name)
         else:
             if resource == EXECUTION_RESOURCE:
                 output = __list_execution(event, group_name)
             else:
-                # executionId = resource.split("/").pop()
                 output = __get_execution(event, group_name)
     elif resource == DOWNLOAD_RESOURCE:
         output = __download_template()
@@ -185,6 +186,61 @@ def lambda_handler(event, context):
             "body": json.dumps(f"Error: {str(e)}"),
         }
 
+def __delete_execution(event, group_name):
+    input_body = json.loads(event["body"])
+    execution_ids = input_body.get("executionIds")
+    res=[]
+    for execution_id in execution_ids:
+        index_response = intention_table.get_item(
+            Key={
+                "groupName": group_name,
+                "intentionId": execution_id,
+            },
+        )
+        item = index_response.get('Item')
+        if item:
+            indexes = item.get("index").split(",")
+            details = json.loads(item.get("details"))
+            questions = [detail.get("question") for detail in details]
+            # delete aos data
+            for index in indexes:
+                __delete_documents_by_text_set(index, questions)
+            # delete intention（ddb）
+            intention_table.delete_item(
+                Key={
+                    "groupName": group_name,
+                    "intentionId": execution_id,
+                }
+            )
+    return res
+
+# def __can_be_deleted(execution_id):
+
+#     return False, ""
+def __delete_documents_by_text_set(index_name, text_values):
+    # Search for the documents based on the "text" field matching any value in text_values set
+    search_body = {
+        "size": 10000,
+        "query": {
+            "terms": {
+                "text.keyword": list(text_values)  # Convert set to list
+            }
+        }
+    }
+
+    # Perform the search
+    try:
+        search_result = aos_client.search(index=index_name, body=search_body)  # Adjust size if needed
+        hits = search_result['hits']['hits']
+    
+        # If documents exist, delete them
+        if hits:
+            for hit in hits:
+                doc_id = hit['_id']
+                aos_client.delete(index=index_name, id=doc_id)
+                logger.info("Deleted document with id %s", doc_id)
+    except NotFoundError:
+            logger.info("Index is not existed: %s", index_name)
 
 def __get_query_parameter(event, parameter_name, default_value=None):
     if (
@@ -265,47 +321,13 @@ def __create_execution(event, context, email, group_name):
     execution_detail["tableItemId"] = context.aws_request_id
     execution_detail["chatbotId"] = input_body.get("chatbotId")
     execution_detail["groupName"] = group_name
-    # execution_detail["index"] = input_body.get("index") if input_body.get("index") else f'{input_body.get("chatbotId")}-default-index'
     execution_detail["index"] = input_body.get("index")
     execution_detail["model"] = input_body.get("model")
     execution_detail["fileName"] = input_body.get("s3Prefix").split("/").pop()
-    # execution_detail["tag"] = input_body.get("tag") if input_body.get("tag") else execution_detail["index"]
-    bucket = input_body.get("s3Bucket")
-    prefix = input_body.get("s3Prefix")
-    create_time = str(datetime.now(timezone.utc))
-
-    initiate_model(
-        model_table=model_table,
-        group_name=execution_detail["groupName"],
-        model_id=f"{input_body.get('chatbotId')}-embedding",
-        embedding_endpoint=input_body.get("model")
-    )
-    index_list = input_body.get("index").split(",")
-    for index in index_list:
-        # update chatbot table
-        initiate_chatbot(
-            chatbot_table,
-            execution_detail["groupName"],
-            input_body.get("chatbotId"),
-            index,
-            IndexType.INTENTION.value,
-            index,
-            create_time,
-        )
-
-        # update index table
-        initiate_index(
-            index_table,
-            execution_detail["groupName"],
-            index,
-            input_body.get("model"),
-            IndexType.INTENTION.value,
-            index,
-            create_time,
-            "Answer question based on intention",
-        )
-    response = __get_s3_object_with_retry(bucket, prefix)
-    file_content = response['Body'].read()
+    bucket=input_body.get("s3Bucket")
+    prefix=input_body.get("s3Prefix")
+    s3_response = __get_s3_object_with_retry(bucket, prefix)
+    file_content = s3_response['Body'].read()
     excel_file = BytesIO(file_content)
     workbook = load_workbook(excel_file)
     sheet = workbook.active
@@ -336,7 +358,7 @@ def __create_execution(event, context, email, group_name):
         }
     )
     # write to aos(vectorData)
-    __save_2_aos(input_body.get("model"), execution_detail["index"], qaList, bucket, prefix)
+    __save_2_aos(input_body.get("model", {}).get("value"), execution_detail["index"], qaList, bucket, prefix)
 
     return {
         "execution_id": execution_detail["tableItemId"],
@@ -433,17 +455,16 @@ def __create_index(index: str, modelId: str):
     }
     try:
         aos_client.indices.create(index=index, body=body)
-        logger.info(f"Index {index} created successfully.")
+        logger.info("Index %s created successfully.", index)
     except RequestError as e:
-        logger.error(e.error)
-
+        logger.info(e.error)
 
 def __refresh_index(index: str, modelId: str, qaList):
     success, failed = helpers.bulk(aos_client,  __append_embeddings(
         index, modelId, qaList), chunk_size=BULK_SIZE)
     aos_client.indices.refresh(index=index)
-    logger.info(f"Successfully added: {success} ")
-    logger.info(f"Failed: {len(failed)} ")
+    logger.info("Successfully added: %d ", success)
+    logger.info("Failed: %d ", len(failed))
 
 
 def __append_embeddings(index, modelId, qaList: list):
@@ -516,12 +537,12 @@ def __get_s3_object_with_retry(bucket: str, key: str, max_retries: int = 5, dela
     while attempt < max_retries:
         try:
             return s3_client.get_object(Bucket=bucket, Key=key)
-        except Exception as e:
-            logger.info(f"Attempt {attempt + 1} failed: {e}")
+        except Exception:
+            logger.info("Attempt %d failed", attempt + 1)
             attempt += 1
             if attempt >= max_retries:
                 logger.info("Time out, retry...")
-                raise
+                raise 
             time.sleep(delay)
 
 

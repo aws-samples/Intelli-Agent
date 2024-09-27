@@ -41,6 +41,26 @@ export type IntentionsResponse = {
   config: ResponseConfig;
 };
 
+export type ChatbotsItem = {
+  groupName: string,
+  chatbotId: string,
+  model: {
+    model_endpoint: string,
+    model_name: string,
+  };
+  index: {
+    intention: string,
+    qq: string,
+    qd: string
+  }
+};
+
+export type ChatbotsResponse = {
+  Items: ChatbotsItem[];
+  Count: number;
+  config: ResponseConfig;
+};
+
 export type SessionHistoryItem = {
   sessionId: string;
   userId: string;
