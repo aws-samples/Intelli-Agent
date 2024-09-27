@@ -29,7 +29,7 @@ model_table = dynamodb.Table(os.environ.get("MODEL_TABLE_NAME"))
 DEFAULT_MAX_ITEMS = 50
 DEFAULT_SIZE = 50
 ROOT_RESOURCE = "/chatbot-management"
-CHATBOT_RESOURCE = "/chatbot-management/chatbot"
+# CHATBOT_RESOURCE = "/chatbot-management/chatbot"
 EMBEDDING_MODELS_RESOURCE = f"{ROOT_RESOURCE}/embeddings"
 INDEXES_RESOURCE = f"{ROOT_RESOURCE}/indexes"
 CHATBOTS_RESOURCE = f"{ROOT_RESOURCE}/chatbots"
@@ -174,8 +174,7 @@ def merge_index(chatbot_index_ids, key):
 
 
 def __get_chatbot(event, group_name):
-
-    chatbot_id = event.get("pathParameters", {}).get("chatbotId")
+    chatbot_id = event.get("pathParameters", {}).get("proxy")
     if chatbot_id:
         chatbot_item = chatbot_table.get_item(
             Key={"groupName": group_name, "chatbotId": chatbot_id}
@@ -251,14 +250,12 @@ def lambda_handler(event, context):
         elif http_method == "GET":
             if resource == CHATBOTS_RESOURCE:
                 output = __list_chatbot(event, group_name)
+            else:
+                output = __get_chatbot(event, group_name) 
         elif http_method == "DELETE":
             output = __delete_chatbot(event, group_name)
     elif resource == CHATBOTCHECK_RESOURCE:
         output = __validate_chatbot(event, group_name)
-    elif resource.startswith(CHATBOT_RESOURCE):
-        output = __get_chatbot(event, group_name)
-    # elif resource.startswith(DETAILS_RESOURCE):
-    #     output == __chatbot_details(resource.split("/").pop(), group_name)
 
     try:
         return {

@@ -496,7 +496,7 @@ export class ApiConstruct extends Construct {
         proxy: true,
       });
       const apiResourceChatbotManagement = api.root.addResource("chatbot-management");
-      const chatbotResource = apiResourceChatbotManagement.addResource('chatbot');
+      // const chatbotResource = apiResourceChatbotManagement.addResource('chatbot');
       const apiResourceCheckChatbot = apiResourceChatbotManagement.addResource('check-chatbot');
       apiResourceCheckChatbot.addMethod("POST", lambdaChatbotIntegration, this.genMethodOption(api, auth, null));
       const apiResourceChatbots = apiResourceChatbotManagement.addResource("chatbots");
@@ -563,33 +563,33 @@ export class ApiConstruct extends Construct {
         }
       })
 
-      const apiGetChatbotById = chatbotResource.addResource("{chatbotId}");
-      apiGetChatbotById.addMethod(
-        "GET",
-        new apigw.LambdaIntegration(chatbotManagementLambda.function),
-        {
-          ...this.genMethodOption(api, auth, {
-            Items: {
-              type: JsonSchemaType.ARRAY, items: {
-                type: JsonSchemaType.OBJECT,
-                properties: {
-                  chatbotId: { type: JsonSchemaType.STRING },
-                  index: { type: JsonSchemaType.STRING },
-                  model: { type: JsonSchemaType.STRING },
-                },
-                required: ['chatbotId', 'index', 'model'],
-              }
-            },
-            Count: { type: JsonSchemaType.INTEGER }
-          }),
-          requestParameters: {
-            'method.request.path.chatbotId': true
-          },
-          // requestModels: this.genRequestModel(api, {
-          //   "executionId": { "type": JsonSchemaType.ARRAY, "items": {"type": JsonSchemaType.STRING}},
-          // })
-        }
-      );
+      // const apiGetChatbotById = chatbotResource.addResource("{chatbotId}");
+      // apiGetChatbotById.addMethod(
+      //   "GET",
+      //   new apigw.LambdaIntegration(chatbotManagementLambda.function),
+      //   {
+      //     ...this.genMethodOption(api, auth, {
+      //       Items: {
+      //         type: JsonSchemaType.ARRAY, items: {
+      //           type: JsonSchemaType.OBJECT,
+      //           properties: {
+      //             chatbotId: { type: JsonSchemaType.STRING },
+      //             index: { type: JsonSchemaType.STRING },
+      //             model: { type: JsonSchemaType.STRING },
+      //           },
+      //           required: ['chatbotId', 'index', 'model'],
+      //         }
+      //       },
+      //       Count: { type: JsonSchemaType.INTEGER }
+      //     }),
+      //     requestParameters: {
+      //       'method.request.path.chatbotId': true
+      //     },
+      //     // requestModels: this.genRequestModel(api, {
+      //     //   "executionId": { "type": JsonSchemaType.ARRAY, "items": {"type": JsonSchemaType.STRING}},
+      //     // })
+      //   }
+      // );
 
 
 

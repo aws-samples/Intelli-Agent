@@ -358,11 +358,7 @@ def __create_execution(event, context, email, group_name):
         }
     )
     # write to aos(vectorData)
-# # <<<<<<< HEAD
-#     __save_2_aos(input_body.get("model", {}).get("value"), execution_detail["index"], qaList)
-# # =======
-    __save_2_aos(input_body.get("model"), execution_detail["index"], qaList, bucket, prefix)
-# >>>>>>> de5812df214387970b7f0a344707524c82bd19fe
+    __save_2_aos(input_body.get("model", {}).get("value"), execution_detail["index"], qaList, bucket, prefix)
 
     return {
         "execution_id": execution_detail["tableItemId"],
@@ -468,7 +464,7 @@ def __refresh_index(index: str, modelId: str, qaList):
         index, modelId, qaList), chunk_size=BULK_SIZE)
     aos_client.indices.refresh(index=index)
     logger.info("Successfully added: %d ", success)
-    logger.info("Failed: %d ", failed)
+    logger.info("Failed: %d ", len(failed))
 
 
 def __append_embeddings(index, modelId, qaList: list):

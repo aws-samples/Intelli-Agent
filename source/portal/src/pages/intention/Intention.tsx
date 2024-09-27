@@ -121,7 +121,7 @@ const Intention: React.FC = () => {
 
   const getChatBotDetail = async (chatbotId: string) =>{
     const res: ChatbotsItem = await fetchData({
-      url: `chatbot-management/chatbot/${chatbotId}`,
+      url: `chatbot-management/chatbots/${chatbotId}`,
       method: 'get',
     });
     setModel({label: res.model.model_name, value: res.model.model_endpoint})
