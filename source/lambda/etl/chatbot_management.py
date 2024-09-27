@@ -251,7 +251,7 @@ def lambda_handler(event, context):
             if resource == CHATBOTS_RESOURCE:
                 output = __list_chatbot(event, group_name)
             else:
-                output = __get_chatbot(event, group_name) 
+                output = __get_chatbot(event, group_name)
         elif http_method == "DELETE":
             output = __delete_chatbot(event, group_name)
     elif resource == CHATBOTCHECK_RESOURCE:
