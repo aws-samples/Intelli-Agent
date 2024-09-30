@@ -493,7 +493,9 @@ def __append_embeddings(index, modelId, qaList: list):
         )
 
     for document in documents:
-        yield {"_op_type": "index", "_index": index, "_source": document, "_id": hashlib.md5(str(document).encode('utf-8')).hexdigest()}
+        index_list = index.split(",")
+        for index_item in index_list:
+            yield {"_op_type": "index", "_index": index_item, "_source": document, "_id": hashlib.md5(str(document).encode('utf-8')).hexdigest()}
 
 
 def __get_execution(event, group_name):
