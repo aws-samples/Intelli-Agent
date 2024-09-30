@@ -75,7 +75,7 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
         chatbotId: selectedBotOption?.value.toLocaleLowerCase() ?? 'admin',
         // groupName: selectedBotOption?.value,
         index: indexName ? indexName.trim() : undefined,
-        model: model ?? DEFAULT_EMBEDDING_MODEL,
+        model: model?.value ?? DEFAULT_EMBEDDING_MODEL,
         // tag: indexName ? indexName.trim() : undefined,
       },
     });
@@ -295,7 +295,7 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
                     />
                   </FormField>
                   <FormField label={t('model')} stretch={true}>
-                    {model?.label}
+                    {model?.value}
                     {/* <Select
                       options={models}
                       selectedOption={selectedModelOption||{}}

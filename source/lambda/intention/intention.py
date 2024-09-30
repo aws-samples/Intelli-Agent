@@ -41,6 +41,7 @@ embedding_model_endpoint = os.environ.get("EMBEDDING_MODEL_ENDPOINT", "")
 aosEndpoint = os.environ.get("AOS_ENDPOINT")
 kb_enabled = os.environ["KNOWLEDGE_BASE_ENABLED"].lower() == "true"
 region = os.environ.get("AWS_REGION", "us-east-1")
+bedrock_region = os.environ.get("BEDROCK_REGION", "us-east-1")
 aos_domain_name = os.environ.get("AOS_DOMAIN_NAME", "smartsearch")
 aos_endpoint = os.environ.get("AOS_ENDPOINT", "")
 aos_secret = os.environ.get("AOS_SECRET_NAME", "opensearch-master-user")
@@ -79,7 +80,7 @@ except Exception as e:
 
 dynamodb_client = boto3.client("dynamodb")
 s3_client = boto3.client("s3")
-bedrock_client = boto3.client("bedrock-runtime", region_name=region)
+bedrock_client = boto3.client("bedrock-runtime", region_name=bedrock_region)
 
 credentials = boto3.Session().get_credentials()
 awsauth = AWS4Auth(refreshable_credentials=credentials,
@@ -358,7 +359,7 @@ def __create_execution(event, context, email, group_name):
         }
     )
     # write to aos(vectorData)
-    __save_2_aos(input_body.get("model", {}).get("value"), execution_detail["index"], qaList, bucket, prefix)
+    __save_2_aos(input_body.get("model"), execution_detail["index"], qaList, bucket, prefix)
 
     return {
         "execution_id": execution_detail["tableItemId"],

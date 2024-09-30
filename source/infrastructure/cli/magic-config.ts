@@ -33,7 +33,7 @@ const embeddingModels = [
     provider: "sagemaker",
     name: "bce-embedding-and-bge-reranker",
     commitId: "43972580a35ceacacd31b95b9f430f695d07dde9",
-    dimensions: 1024,
+    dimensions: 768,
   }
 ];
 
@@ -95,6 +95,7 @@ async function getAwsAccountAndRegion() {
       options.knowledgeBaseModelEcrRepository = config.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.ecrRepository;
       options.knowledgeBaseModelEcrImageTag = config.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.ecrImageTag;
       options.enableChat = config.chat.enabled;
+      options.bedrockRegion = config.chat.bedrockRegion;
       options.enableConnect = config.chat.amazonConnect.enabled;
       options.defaultEmbedding = (config.model.embeddingsModels ?? []).filter(
         (m: any) => m.default
@@ -252,6 +253,15 @@ async function processCreateOptions(options: any): Promise<void> {
       initial: options.enableChat ?? true,
     },
     {
+      type: "input",
+      name: "bedrockRegion",
+      message: "Which region would you like to use Bedrock?",
+      initial: options.bedrockRegion ?? AWS_REGION,
+      skip(): boolean {
+        return (!(this as any).state.answers.enableChat);
+      },
+    },
+    {
       type: "confirm",
       name: "enableConnect",
       message: "Do you want to integrate it with Amazon Connect?",
@@ -386,6 +396,7 @@ async function processCreateOptions(options: any): Promise<void> {
     },
     chat: {
       enabled: answers.enableChat,
+      bedrockRegion: answers.bedrockRegion,
       amazonConnect: {
         enabled: answers.enableConnect,
       },
