@@ -18,8 +18,8 @@ import { Domain, EngineVersion } from "aws-cdk-lib/aws-opensearchservice";
 import { Construct } from "constructs";
 
 interface AOSProps extends StackProps {
-  osVpc: ec2.Vpc;
-  securityGroup: ec2.SecurityGroup;
+  osVpc?: ec2.Vpc;
+  securityGroup?: [ec2.SecurityGroup];
 }
 
 export class AOSConstruct extends Construct {
@@ -38,7 +38,7 @@ export class AOSConstruct extends Construct {
       zoneAwareness: {
         enabled: true,
       },
-      securityGroups: [props.securityGroup],
+      securityGroups: props.securityGroup,
       capacity: {
         dataNodes: 2,
         dataNodeInstanceType: "r6g.2xlarge.search",

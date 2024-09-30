@@ -17,8 +17,7 @@ ddb_prompt_table = dynamodb_resource.Table(ddb_prompt_table_name)
 EXPORT_MODEL_IDS = [
     LLMModelType.CLAUDE_3_HAIKU,
     LLMModelType.CLAUDE_3_SONNET,
-    LLMModelType.CLAUDE_2,
-    LLMModelType.CLAUDE_21
+    # LLMModelType.CLAUDE_3_5_SONNET,
 ]
 
 EXPORT_SCENES = [
@@ -74,9 +73,9 @@ class PromptTemplateManager:
             raise KeyError(f'prompt_template_id: {prompt_template_id}, prompt_name: {prompt_name}')
 
     
-    def get_prompt_templates_from_ddb(self, group_name:str, model_id:str, task_type:str, scene:str="common"):
+    def get_prompt_templates_from_ddb(self, group_name:str, model_id:str, task_type:str, chatbot_id:str="admin", scene:str="common"):
         response = ddb_prompt_table.get_item(
-            Key={"GroupName": group_name, "SortKey": f"{model_id}__{scene}"}
+            Key={"GroupName": group_name, "SortKey": f"{model_id}__{scene}__{chatbot_id}"}
         )
         return response.get("Item",{}).get("Prompt",{}).get(task_type,{})
 
@@ -138,6 +137,7 @@ register_prompt_templates(
         LLMModelType.CLAUDE_21,
         LLMModelType.CLAUDE_3_HAIKU,
         LLMModelType.CLAUDE_3_SONNET,
+        LLMModelType.CLAUDE_3_5_SONNET,
         LLMModelType.CLAUDE_INSTANCE,
         LLMModelType.MIXTRAL_8X7B_INSTRUCT
     ],
@@ -169,24 +169,25 @@ register_prompt_templates(
 
 
 
-CHIT_CHAT_SYSTEM_TEMPLATE = "你是一个AI助理。今天是{date},{weekday}. "
+# CHIT_CHAT_SYSTEM_TEMPLATE = "你是一个AI助理。今天是{date},{weekday}. "
 
-register_prompt_templates(
-    model_ids=[
-        LLMModelType.CLAUDE_2,
-        LLMModelType.CLAUDE_21,
-        LLMModelType.CLAUDE_3_HAIKU,
-        LLMModelType.CLAUDE_3_SONNET,
-        LLMModelType.CLAUDE_INSTANCE,
-        LLMModelType.MIXTRAL_8X7B_INSTRUCT,
-        LLMModelType.GLM_4_9B_CHAT,
-        LLMModelType.QWEN2INSTRUCT72B,
-        LLMModelType.QWEN2INSTRUCT7B
-    ],
-    task_type=LLMTaskType.CHAT,
-    prompt_template=CHIT_CHAT_SYSTEM_TEMPLATE,
-    prompt_name="system_prompt"
-)
+# register_prompt_templates(
+#     model_ids=[
+#         LLMModelType.CLAUDE_2,
+#         LLMModelType.CLAUDE_21,
+#         LLMModelType.CLAUDE_3_HAIKU,
+#         LLMModelType.CLAUDE_3_SONNET,
+#         LLMModelType.CLAUDE_3_5_SONNET,
+#         LLMModelType.CLAUDE_INSTANCE,
+#         LLMModelType.MIXTRAL_8X7B_INSTRUCT,
+#         LLMModelType.GLM_4_9B_CHAT,
+#         LLMModelType.QWEN2INSTRUCT72B,
+#         LLMModelType.QWEN2INSTRUCT7B
+#     ],
+#     task_type=LLMTaskType.CHAT,
+#     prompt_template=CHIT_CHAT_SYSTEM_TEMPLATE,
+#     prompt_name="system_prompt"
+# )
 
 
 
@@ -277,6 +278,7 @@ register_prompt_templates(
         LLMModelType.CLAUDE_21,
         LLMModelType.CLAUDE_3_HAIKU,
         LLMModelType.CLAUDE_3_SONNET,
+        LLMModelType.CLAUDE_3_5_SONNET,
         LLMModelType.CLAUDE_INSTANCE,
         LLMModelType.MIXTRAL_8X7B_INSTRUCT,
         LLMModelType.QWEN2INSTRUCT72B,
@@ -294,6 +296,7 @@ register_prompt_templates(
         LLMModelType.CLAUDE_21,
         LLMModelType.CLAUDE_3_HAIKU,
         LLMModelType.CLAUDE_3_SONNET,
+        LLMModelType.CLAUDE_3_5_SONNET,
         LLMModelType.CLAUDE_INSTANCE,
         LLMModelType.MIXTRAL_8X7B_INSTRUCT,
         LLMModelType.QWEN2INSTRUCT72B,
@@ -312,6 +315,7 @@ register_prompt_templates(
         LLMModelType.CLAUDE_21,
         LLMModelType.CLAUDE_3_HAIKU,
         LLMModelType.CLAUDE_3_SONNET,
+        LLMModelType.CLAUDE_3_5_SONNET,
         LLMModelType.CLAUDE_INSTANCE,
         LLMModelType.MIXTRAL_8X7B_INSTRUCT,
         LLMModelType.QWEN2INSTRUCT72B,
@@ -330,7 +334,8 @@ register_prompt_templates(
         LLMModelType.CLAUDE_2,
         LLMModelType.CLAUDE_21,
         LLMModelType.CLAUDE_3_HAIKU,
-        LLMModelType.CLAUDE_3_SONNET
+        LLMModelType.CLAUDE_3_SONNET,
+        LLMModelType.CLAUDE_3_5_SONNET,
     ],
     task_type=LLMTaskType.TOOL_CALLING,
     prompt_template=AGENT_USER_PROMPT,
@@ -343,7 +348,7 @@ AGENT_GUIDELINES_PROMPT = """<guidlines>
     1. 判断根据当前的上下文是否足够回答用户的问题。
     2. 如果当前的上下文足够回答用户的问题，请调用 `give_final_response` 工具。
     3. 如果当前的上下文不能支持回答用户的问题，你可以考虑调用<tools> 标签中列举的工具。
-    4. 如果调用工具对应的参数不够，请调用反问工具 `give_rhetorical_question` 来让用户提供更加充分的信息。
+    4. 如果调用工具对应的参数不够，请调用反问工具 `give_rhetorical_question` 来让用户提供更加充分的信息。如果调用工具不需要参数，则不需要调用反问工具。
     5. 最后给出你要调用的工具名称。
 - Always output with the same language as the content within <query></query>. If the content is english, use englisth to output. If the content is chinese, use chinese to output.
 </guidlines>
@@ -354,7 +359,8 @@ register_prompt_templates(
         LLMModelType.CLAUDE_2,
         LLMModelType.CLAUDE_21,
         LLMModelType.CLAUDE_3_HAIKU,
-        LLMModelType.CLAUDE_3_SONNET
+        LLMModelType.CLAUDE_3_SONNET,
+        LLMModelType.CLAUDE_3_5_SONNET,
     ],
     task_type=LLMTaskType.TOOL_CALLING,
     prompt_template=AGENT_GUIDELINES_PROMPT,

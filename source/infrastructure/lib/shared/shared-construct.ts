@@ -31,29 +31,32 @@ export interface SharedConstructProps {
 
 export interface SharedConstructOutputs {
   iamHelper: IAMHelper;
-  vpc: Vpc;
-  securityGroup: SecurityGroup;
   chatbotTable: dynamodb.Table;
   indexTable: dynamodb.Table;
   modelTable: dynamodb.Table;
   resultBucket: s3.Bucket;
+  vpc?: Vpc;
+  securityGroups?: [SecurityGroup];
 }
 
 export class SharedConstruct extends Construct implements SharedConstructOutputs {
   public iamHelper: IAMHelper;
-  public vpc: Vpc;
-  public securityGroup: SecurityGroup;
   public chatbotTable: dynamodb.Table;
   public indexTable: dynamodb.Table;
   public modelTable: dynamodb.Table;
   public resultBucket: s3.Bucket;
+  public vpc?: Vpc;
+  public securityGroups?: [SecurityGroup];
 
-  constructor(scope: Construct, id: string) {
+  constructor(scope: Construct, id: string, props: SharedConstructProps) {
     super(scope, id);
 
     const iamHelper = new IAMHelper(this, "iam-helper");
+    let vpcConstruct;
 
-    const vpcConstruct = new VpcConstruct(this, "vpc-construct");
+    if (props.config.knowledgeBase.enabled && props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.enabled) {
+      vpcConstruct = new VpcConstruct(this, "vpc-construct");
+    }
 
     const groupNameAttr = {
       name: "groupName",
@@ -76,13 +79,15 @@ export class SharedConstruct extends Construct implements SharedConstructOutputs
     const indexTable = new DynamoDBTable(this, "Index", groupNameAttr, indexIdAttr).table;
     const modelTable = new DynamoDBTable(this, "Model", groupNameAttr, modelIdAttr).table;
 
-    const resultBucket = new s3.Bucket(this, "intelli-agent-result-bucket", {
+    const resultBucket = new s3.Bucket(this, "ai-customer-service-result-bucket", {
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
     });
 
+    if (vpcConstruct !== undefined) {
+      this.vpc = vpcConstruct.vpc;
+      this.securityGroups = [vpcConstruct.securityGroup];
+    }
     this.iamHelper = iamHelper;
-    this.vpc = vpcConstruct.vpc;
-    this.securityGroup = vpcConstruct.securityGroup;
     this.chatbotTable = chatbotTable;
     this.indexTable = indexTable;
     this.modelTable = modelTable;

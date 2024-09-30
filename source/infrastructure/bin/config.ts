@@ -11,7 +11,7 @@ export function getConfig(): SystemConfig {
   // Default config
   return {
     prefix: "",
-    email: "test@test.com",
+    email: "support@example.com",
     knowledgeBase: {
       enabled: true,
       knowledgeBaseType: {
@@ -32,16 +32,20 @@ export function getConfig(): SystemConfig {
     },
     chat: {
       enabled: true,
+      bedrockRegion: "us-east-1",
+      amazonConnect: {
+        enabled: true
+      }
     },
     model: {
       embeddingsModels: [
         {
-          provider: "sagemaker",
-          name: "bce-embedding-and-bge-reranker",
-          commitId: "43972580a35ceacacd31b95b9f430f695d07dde9",
+          provider: "bedrock",
+          name: "amazon.titan-embed-text-v2",
+          commitId: "",
           dimensions: 1024,
-          default: true,
-        },
+          default: true
+        }
       ],
       llms: [
         {

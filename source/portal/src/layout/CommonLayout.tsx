@@ -78,6 +78,33 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
     }
   }, []);
 
+  const baseItems = [
+    {
+      type: 'link',
+      text: t('chatbotManagement'),
+      href: '/chatbot-management',
+    },
+    {
+      type: 'link',
+      text: t('intention'),
+      href: '/intention',
+    },
+  ]
+
+  const promptItem = {
+    type: 'link',
+    text: t('prompt'),
+    href: '/prompts',
+  }
+
+  const kbItem = config?.kbEnabled === 'true' ? {
+    type: 'link',
+    text: t('docLibrary'),
+    href: '/library',
+  } : null
+
+  const layoutItems = kbItem ? [...baseItems, kbItem, promptItem] : [...baseItems, promptItem];
+
   return (
     <I18nProvider locale={i18n.language} messages={[messages]}>
       <TopNavigation
@@ -139,7 +166,7 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
                 items: [
                   {
                     type: 'link',
-                    text: t('chatBot'),
+                    text: t('chat'),
                     href: '/',
                   },
                   {
@@ -152,24 +179,31 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
               {
                 type: 'section',
                 text: t('settings'),
-                items: [
-                  {
-                    type: 'link',
-                    text: t('docLibrary'),
-                    href: '/library',
-                  },
-                  {
-                    type: 'link',
-                    text: t('prompt'),
-                    href: '/prompts',
-                  },
-                ],
+                items: layoutItems as readonly any[],
+                //     href: '/chatbot-management',
+                //   },
+                //   {
+                //     type: 'link',
+                //     text: t('intention'),
+                //     href: '/intention',
+                //   },
+                //   {
+                //     type: 'link',
+                //     text: t('docLibrary'),
+                //     href: '/library',
+                //   },
+                //   {
+                //     type: 'link',
+                //     text: t('prompt'),
+                //     href: '/prompts',
+                //   },
+                // ],
               },
               { type: 'divider' },
               {
                 type: 'link',
                 text: t('documentation'),
-                href: 'https://docs.aws.amazon.com/',
+                href: 'https://github.com/aws-samples/Intelli-Agent',
                 external: true,
               },
             ]}

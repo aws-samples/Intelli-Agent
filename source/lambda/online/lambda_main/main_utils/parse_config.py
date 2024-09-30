@@ -89,12 +89,12 @@ class CommonConfigParser(ConfigParserBase):
         tools: list = chatbot_config["agent_config"]["tools"]
         if "give_rhetorical_question" not in tools:
             tools.append("give_rhetorical_question")
-
         if "give_final_response" not in tools:
             tools.append("give_final_response")
-
         if "get_weather" not in tools:
             tools.append("get_weather")
+
+        logger.info(chatbot_config)
         return chatbot_config
 
 

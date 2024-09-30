@@ -43,7 +43,7 @@ export class PortalConstruct extends Construct implements PortalConstructOutputs
           "ResponseHeadersPolicy",
           {
             responseHeadersPolicyName: `SecHdr${Aws.REGION}${Aws.STACK_NAME}`,
-            comment: "Intelli-Agent Security Headers Policy",
+            comment: "AI-Customer-Service Security Headers Policy",
             securityHeadersBehavior: {
               contentTypeOptions: { override: true },
               frameOptions: {

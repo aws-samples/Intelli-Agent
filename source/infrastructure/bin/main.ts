@@ -43,7 +43,9 @@ export class RootStack extends Stack {
     let chatStack: ChatStack = {} as ChatStack;
     let chatStackOutputs: ChatStackOutputs = {} as ChatStackOutputs;
 
-    const sharedConstruct = new SharedConstruct(this, "shared-construct");
+    const sharedConstruct = new SharedConstruct(this, "shared-construct", {
+      config: props.config,
+    });
 
     const modelConstruct = new ModelConstruct(this, "model-construct", {
       config: props.config,
@@ -74,7 +76,7 @@ export class RootStack extends Stack {
       });
       chatStackOutputs = chatStack;
     }
-
+    
     const userConstruct = new UserConstruct(this, "user", {
       adminEmail: props.config.email,
       callbackUrl: portalConstruct.portalUrl,
@@ -91,10 +93,10 @@ export class RootStack extends Stack {
     apiConstruct.node.addDependency(sharedConstruct);
     apiConstruct.node.addDependency(modelConstruct);
     apiConstruct.node.addDependency(portalConstruct);
-    if ( chatStack.node ) {
+    if (chatStack.node) {
       apiConstruct.node.addDependency(chatStack);
     }
-    if ( knowledgeBaseStack.node ) {
+    if (knowledgeBaseStack.node) {
       apiConstruct.node.addDependency(knowledgeBaseStack);
     }
 
@@ -107,6 +109,10 @@ export class RootStack extends Stack {
         oidcClientId: userConstruct.oidcClientId,
         oidcLogoutUrl: userConstruct.oidcLogoutUrl,
         oidcRedirectUrl: `https://${portalConstruct.portalUrl}/signin`,
+        kbEnabled: props.config.knowledgeBase.enabled.toString(),
+        kbType: JSON.stringify(props.config.knowledgeBase.knowledgeBaseType || {}),
+        embeddingEndpoint: modelConstruct.defaultEmbeddingModelName || "",
+        // apiKey: apiConstruct.apiKey,
       },
     });
     uiExports.node.addDependency(portalConstruct);
@@ -114,20 +120,20 @@ export class RootStack extends Stack {
     new CfnOutput(this, "API Endpoint Address", {
       value: apiConstruct.apiEndpoint,
     });
-    new CfnOutput(this, "WebPortalURL", {
+    new CfnOutput(this, "Web Portal URL", {
       value: portalConstruct.portalUrl,
       description: "Web portal url",
     });
     new CfnOutput(this, "WebSocket Endpoint Address", {
       value: apiConstruct.wsEndpoint,
     });
-    new CfnOutput(this, "OidcClientId", {
+    new CfnOutput(this, "OIDC Client ID", {
       value: userConstruct.oidcClientId,
     });
     // new CfnOutput(this, "InitialPassword", {
     //   value: userConstruct.oidcClientId,
     // });
-    new CfnOutput(this, "UserPoolId", {
+    new CfnOutput(this, "User Pool ID", {
       value: userConstruct.userPool.userPoolId,
     });
   }
@@ -142,7 +148,7 @@ const devEnv = {
 };
 
 const app = new App();
-const stackName = `${config.prefix}intelli-agent`;
+const stackName = `${config.prefix}ai-customer-service`;
 new RootStack(app, stackName, { config, env: devEnv, suppressTemplateIndentation: true });
 
 app.synth();

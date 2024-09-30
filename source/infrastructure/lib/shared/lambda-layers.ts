@@ -28,7 +28,7 @@ export class LambdaLayers {
           path.join(__dirname, "../../../lambda/embedding"),
           {
             bundling: {
-              image: Runtime.PYTHON_3_11.bundlingImage,
+              image: Runtime.PYTHON_3_12.bundlingImage,
               command: [
                 "bash",
                 "-c",
@@ -37,7 +37,7 @@ export class LambdaLayers {
             },
           },
         ),
-        compatibleRuntimes: [Runtime.PYTHON_3_11],
+        compatibleRuntimes: [Runtime.PYTHON_3_12],
         description: `LLM Bot - API layer`,
       },
     );
@@ -52,7 +52,7 @@ export class LambdaLayers {
       {
         entry: path.join(__dirname, "../../../lambda/online"),
         compatibleRuntimes: [Runtime.PYTHON_3_12],
-        description: `Intelli agent - Online Source layer`,
+        description: `AI-Customer-Service - Online Source layer`,
         bundling: {
           assetExcludes: ["*.pyc","*/__pycache__/*","*.xls","*.xlsx","*.csv","*.png","lambda_main/retail/size/*"],
         }
@@ -68,7 +68,7 @@ export class LambdaLayers {
       {
         entry: path.join(__dirname, "../../../lambda/job/dep/llm_bot_dep"),
         compatibleRuntimes: [Runtime.PYTHON_3_12],
-        description: `Intelli agent - Job Source layer`,
+        description: `AI Customer Service agent - Job Source layer`,
       },
     );
     return LambdaJobSourceLayer;
@@ -80,7 +80,7 @@ export class LambdaLayers {
       "APILambdaAuthorizerLayer",
       {
         entry: path.join(__dirname, "../../../lambda/authorizer"),
-        compatibleRuntimes: [Runtime.PYTHON_3_11],
+        compatibleRuntimes: [Runtime.PYTHON_3_12],
         description: `LLM Bot - Authorizer layer`,
       },
     );

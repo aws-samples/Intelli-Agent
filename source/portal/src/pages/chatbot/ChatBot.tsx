@@ -23,7 +23,6 @@ import { identity } from 'lodash';
 import ConfigContext from 'src/context/config-context';
 import { useAuth } from 'react-oidc-context';
 import {
-  LLM_BOT_CHAT_MODE_LIST,
   LLM_BOT_COMMON_MODEL_LIST,
   LLM_BOT_RETAIL_MODEL_LIST,
   SCENARIO_LIST,
@@ -74,9 +73,11 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const [aiSpeaking, setAiSpeaking] = useState(false);
   const [modelOption, setModelOption] = useState('');
   const [modelList, setModelList] = useState<SelectProps.Option[]>([]);
-  const [chatModeOption, setChatModeOption] = useState<SelectProps.Option>(
-    LLM_BOT_CHAT_MODE_LIST[0],
-  );
+  // const [chatModeOption, setChatModeOption] = useState<SelectProps.Option>(
+  //   LLM_BOT_CHAT_MODE_LIST[0],
+  // );
+  const [chatbotList, setChatbotList] = useState<SelectProps.Option[]>([]);
+  const [chatbotOption, setChatbotOption] = useState<SelectProps.Option>(null as any);
   const [useChatHistory, setUseChatHistory] = useState(true);
   const [enableTrace, setEnableTrace] = useState(true);
   const [showTrace, setShowTrace] = useState(true);
@@ -91,7 +92,6 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   );
 
   const [sessionId, setSessionId] = useState(historySessionId);
-  const [workspaceIds, setWorkspaceIds] = useState<any[]>([]);
 
   const [temperature, setTemperature] = useState<string>('0.01');
   const [maxToken, setMaxToken] = useState<string>('1000');
@@ -128,7 +128,16 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
         url: 'chatbot-management/chatbots',
         method: 'get',
       });
-      setWorkspaceIds(data.workspace_ids);
+      const chatbots: string[] = data.chatbot_ids;
+      const getChatbots = chatbots.map((item) => {
+        return {
+          label: item,
+          value: item,
+        };
+      }
+      );
+      setChatbotList(getChatbots);
+      setChatbotOption(getChatbots[0])
     } catch (error) {
       console.error(error);
       return [];
@@ -152,11 +161,11 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
         sessionMessage.map((msg) => {
           let messageContent = msg.content;
           // Handle AI images message
-          if (msg.role === 'ai' && msg.additional_kwargs.figure.length > 0) {
-            msg.additional_kwargs.figure.forEach((item) => {
-              messageContent += ` \n ![${item.content_type}](/${encodeURIComponent(item.figure_path)})`;
-            });
-          }
+          // if (msg.role === 'ai' && msg.additional_kwargs?.figure?.length > 0) {
+          //   msg.additional_kwargs.figure.forEach((item) => {
+          //     messageContent += ` \n ![${item.content_type}](/${encodeURIComponent(item.figure_path)})`;
+          //   });
+          // }
           return {
             type: msg.role,
             message: {
@@ -202,14 +211,14 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     } else if (message.message_type === 'CONTEXT') {
       // handle context message
       if (message.ddb_additional_kwargs?.figure?.length > 0) {
-        message.ddb_additional_kwargs.figure.forEach((item) => {
-          setCurrentAIMessage((prev) => {
-            return (
-              prev +
-              ` \n ![${item.content_type}](/${encodeURIComponent(item.figure_path)})`
-            );
-          });
-        });
+        // message.ddb_additional_kwargs.figure.forEach((item) => {
+        //   setCurrentAIMessage((prev) => {
+        //     return (
+        //       prev +
+        //       ` \n ![${item.content_type}](/${encodeURIComponent(item.figure_path)})`
+        //     );
+        //   });
+        // });
       }
     } else if (message.message_type === 'END') {
       setIsMessageEnd(true);
@@ -308,20 +317,21 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     //   setGoogleAPIKeyError(true);
     //   return;
     // }
+    const groupName: string[] = auth?.user?.profile?.['cognito:groups'] as any;
     let message = {
       query: userMessage,
       entry_type: scenario.value,
       session_id: sessionId,
+      user_id: auth?.user?.profile?.['cognito:username'] || 'default_user_id',
       chatbot_config: {
+        group_name: groupName?.[0] ?? 'Admin',
+        chatbot_id: chatbotOption.value?? 'admin',
         goods_id: retailGoods.value,
-        chatbot_mode: chatModeOption.value,
+        chatbot_mode: 'agent',
         use_history: useChatHistory,
         enable_trace: enableTrace,
         use_websearch: true,
         google_api_key: '',
-        default_index_config: {
-          rag_index_ids: workspaceIds,
-        },
         default_llm_config: {
           model_id: modelOption,
           endpoint_name:
@@ -429,10 +439,10 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
         <div className="flex-v gap-10">
           <div className="flex gap-5 send-message">
             <Select
-              options={LLM_BOT_CHAT_MODE_LIST}
-              selectedOption={chatModeOption}
+              options={chatbotList}
+              selectedOption={chatbotOption}
               onChange={({ detail }) => {
-                setChatModeOption(detail.selectedOption);
+                setChatbotOption(detail.selectedOption);
               }}
             />
             <div className="flex-1 pr">
@@ -487,7 +497,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                     {t('showTrace')}
                   </Toggle>
                 )}
-                {chatModeOption.value === 'agent' && (
+                {(
                   <Toggle
                     onChange={({ detail }) => setOnlyRAGTool(detail.checked)}
                     checked={onlyRAGTool}

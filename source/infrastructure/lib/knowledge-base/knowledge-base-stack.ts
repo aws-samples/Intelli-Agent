@@ -70,7 +70,7 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
 
     const aosConstruct = new AOSConstruct(this, "aos-construct", {
       osVpc: props.sharedConstructOutputs.vpc,
-      securityGroup: props.sharedConstructOutputs.securityGroup,
+      securityGroup: props.sharedConstructOutputs.securityGroups,
     });
     this.aosDomainEndpoint = aosConstruct.domainEndpoint;
     this.glueLibS3Bucket = new s3.Bucket(this, "llm-bot-glue-lib-bucket", {
@@ -131,13 +131,13 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
     const connection = new glue.Connection(this, "GlueJobConnection", {
       type: glue.ConnectionType.NETWORK,
       subnet: props.sharedConstructOutputs.vpc.privateSubnets[0],
-      securityGroups: [props.sharedConstructOutputs.securityGroup],
+      securityGroups: props.sharedConstructOutputs.securityGroups,
     });
 
     const notificationLambda = new Function(this, "ETLNotification", {
       code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
       handler: "notification.lambda_handler",
-      runtime: Runtime.PYTHON_3_11,
+      runtime: Runtime.PYTHON_3_12,
       timeout: Duration.minutes(15),
       memorySize: 256,
       architecture: Architecture.X86_64,
@@ -150,10 +150,7 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
     notificationLambda.addToRolePolicy(this.dynamodbStatement);
 
     // If this.region is cn-north-1 or cn-northwest-1, use the glue-job-script-cn.py
-    const glueJobScript =
-      this.region === "cn-north-1" || this.region === "cn-northwest-1"
-        ? "glue-job-script-cn.py"
-        : "glue-job-script.py";
+    const glueJobScript = "glue-job-script.py";
     
 
     const extraPythonFiles = new s3deploy.BucketDeployment(
@@ -250,7 +247,7 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
     const etlLambda = new Function(this, "ETLLambda", {
       code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
       handler: "main.lambda_handler",
-      runtime: Runtime.PYTHON_3_11,
+      runtime: Runtime.PYTHON_3_12,
       timeout: Duration.minutes(15),
       memorySize: 1024,
       architecture: Architecture.X86_64,

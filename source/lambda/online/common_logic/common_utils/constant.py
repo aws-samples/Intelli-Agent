@@ -1,4 +1,4 @@
-from enum import Enum, unique, EnumMeta
+from enum import Enum, EnumMeta, unique
 
 
 class EnumDirectValueMeta(EnumMeta):
@@ -120,6 +120,7 @@ class LLMModelType(ConstantBase):
     CLAUDE_21 = "anthropic.claude-v2:1"
     CLAUDE_3_HAIKU = "anthropic.claude-3-haiku-20240307-v1:0"
     CLAUDE_3_SONNET = "anthropic.claude-3-sonnet-20240229-v1:0"
+    CLAUDE_3_5_SONNET = "anthropic.claude-3-5-sonnet-20240620-v1:0"
     MIXTRAL_8X7B_INSTRUCT = "mistral.mixtral-8x7b-instruct-v0:1"
     BAICHUAN2_13B_CHAT = "Baichuan2-13B-Chat-4bits"
     INTERNLM2_CHAT_7B = "internlm2-chat-7b"
@@ -131,7 +132,9 @@ class LLMModelType(ConstantBase):
     QWEN2INSTRUCT7B = "qwen2-7B-instruct"
     QWEN2INSTRUCT72B = "qwen2-72B-instruct"
     QWEN15INSTRUCT32B = "qwen1_5-32B-instruct"
-    
+
+class EmbeddingModelType(ConstantBase):
+    BEDROCK_TITAN_V1 = "amazon.titan-embed-text-v1"
 
 @unique
 class Status(Enum):

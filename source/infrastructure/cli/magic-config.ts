@@ -11,11 +11,29 @@ import { LIB_VERSION } from "./version.js";
 
 const embeddingModels = [
   {
+    provider: "bedrock",
+    name: "amazon.titan-embed-text-v2:0",
+    commitId: "",
+    dimensions: 1024,
+    default: true,
+  },
+  {
+    provider: "bedrock",
+    name: "cohere.embed-english-v3",
+    commitId: "",
+    dimensions: 1024,
+  },
+  {
+    provider: "bedrock",
+    name: "amazon.titan-embed-text-v1",
+    commitId: "",
+    dimensions: 1024,
+  },
+  {
     provider: "sagemaker",
     name: "bce-embedding-and-bge-reranker",
     commitId: "43972580a35ceacacd31b95b9f430f695d07dde9",
-    dimensions: 1024,
-    default: true,
+    dimensions: 768,
   }
 ];
 
@@ -77,6 +95,8 @@ async function getAwsAccountAndRegion() {
       options.knowledgeBaseModelEcrRepository = config.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.ecrRepository;
       options.knowledgeBaseModelEcrImageTag = config.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.ecrImageTag;
       options.enableChat = config.chat.enabled;
+      options.bedrockRegion = config.chat.bedrockRegion;
+      options.enableConnect = config.chat.amazonConnect.enabled;
       options.defaultEmbedding = (config.model.embeddingsModels ?? []).filter(
         (m: any) => m.default
       )[0].name;
@@ -127,7 +147,7 @@ async function processCreateOptions(options: any): Promise<void> {
       type: "input",
       name: "intelliAgentUserEmail",
       message: "Please enter the name of the email you want to use for notifications",
-      initial: options.intelliAgentUserEmail ?? "test@test.com",
+      initial: options.intelliAgentUserEmail ?? "support@example.com",
       validate(intelliAgentUserEmail: string) {
         return (this as any).skipped ||
           RegExp(/^[a-zA-Z0-9]+([._-][0-9a-zA-Z]+)*@[a-zA-Z0-9]+([.-][0-9a-zA-Z]+)*\.[a-zA-Z]{2,}$/i).test(intelliAgentUserEmail)
@@ -139,7 +159,7 @@ async function processCreateOptions(options: any): Promise<void> {
       type: "confirm",
       name: "enableKnowledgeBase",
       message: "Do you want to use knowledge base in this solution?",
-      initial: options.enableKnowledgeBase ?? true,
+      initial: options.enableKnowledgeBase ?? false,
     },
     {
       type: "select",
@@ -148,7 +168,7 @@ async function processCreateOptions(options: any): Promise<void> {
       message: "Which knowledge base type do you want to use?",
       choices: [
         { message: "Intelli-Agent Knowledge Base", name: "intelliAgentKb" },
-        { message: "Bedrock Knowledge Base (To Be Implemented)", name: "bedrockKb" },
+        // { message: "Bedrock Knowledge Base (To Be Implemented)", name: "bedrockKb" },
       ],
       validate(value: string) {
         if ((this as any).state.answers.enableKnowledgeBase) {
@@ -185,7 +205,7 @@ async function processCreateOptions(options: any): Promise<void> {
     {
       type: "confirm",
       name: "enableIntelliAgentKbModel",
-      message: "Do you want to use Sagemaker Models to enhance the construction of the Intelli-Agent Knowledge Base?",
+      message: "Do you want to inject PDF files into your knowledge base?",
       initial: options.enableIntelliAgentKbModel ?? true,
       skip(): boolean {
         return ( !(this as any).state.answers.enableKnowledgeBase ||
@@ -233,41 +253,58 @@ async function processCreateOptions(options: any): Promise<void> {
       initial: options.enableChat ?? true,
     },
     {
+      type: "input",
+      name: "bedrockRegion",
+      message: "Which region would you like to use Bedrock?",
+      initial: options.bedrockRegion ?? AWS_REGION,
+      skip(): boolean {
+        return (!(this as any).state.answers.enableChat);
+      },
+    },
+    {
+      type: "confirm",
+      name: "enableConnect",
+      message: "Do you want to integrate it with Amazon Connect?",
+      initial: options.enableConnect ?? true,
+      skip(): boolean {
+        return (!(this as any).state.answers.enableChat);
+      },
+    },
+    {
       type: "select",
       name: "defaultEmbedding",
-      message: "Select a default sagemaker embedding model",
+      message: "Select an embedding model, it is used when injecting and retrieving knowledges or intentions",
       choices: embeddingModels.map((m) => ({ name: m.name, value: m })),
       initial: options.defaultEmbedding,
       validate(value: string) {
-        if ((this as any).state.answers.enableRag) {
+        if ((this as any).state.answers.enableChat) {
           return value ? true : "Select a default embedding model";
         }
 
         return true;
       },
       skip(): boolean {
-        return ( !(this as any).state.answers.enableKnowledgeBase ||
-          (this as any).state.answers.knowledgeBaseType !== "intelliAgentKb" || 
-          (this as any).state.answers.intelliAgentKbVectorStoreType !== "opensearch");
+        return (!(this as any).state.answers.enableKnowledgeBase &&
+          !(this as any).state.answers.enableChat);
       },
     },
-    {
-      type: "select",
-      name: "defaultLlm",
-      message: "Select a default llm model",
-      choices: llms.map((m) => ({ name: m.name, value: m })),
-      initial: options.defaultLlm,
-      validate(value: string) {
-        if ((this as any).state.answers.enableChat) {
-          return value ? true : "Select a default llm model";
-        }
+    // {
+    //   type: "select",
+    //   name: "defaultLlm",
+    //   message: "Select a llm model",
+    //   choices: llms.map((m) => ({ name: m.name, value: m })),
+    //   initial: options.defaultLlm,
+    //   validate(value: string) {
+    //     if ((this as any).state.answers.enableChat) {
+    //       return value ? true : "Select a default llm model";
+    //     }
 
-        return true;
-      },
-      skip(): boolean {
-        return !(this as any).state.answers.enableChat;
-      },
-    },
+    //     return true;
+    //   },
+    //   skip(): boolean {
+    //     return !(this as any).state.answers.enableChat;
+    //   },
+    // },
     {
       type: "input",
       name: "sagemakerModelS3Bucket",
@@ -278,6 +315,9 @@ async function processCreateOptions(options: any): Promise<void> {
           RegExp(/^(?!(^xn--|.+-s3alias$))^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/i).test(sagemakerModelS3Bucket)
           ? true
           : "Enter a valid S3 Bucket Name in the specified format: (?!^xn--|.+-s3alias$)^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]";
+      },
+      skip(): boolean {
+        return (this as any).state.answers.defaultEmbedding !== "bce-embedding-and-bge-reranker";
       }
     },
     {
@@ -356,9 +396,13 @@ async function processCreateOptions(options: any): Promise<void> {
     },
     chat: {
       enabled: answers.enableChat,
+      bedrockRegion: answers.bedrockRegion,
+      amazonConnect: {
+        enabled: answers.enableConnect,
+      },
     },
     model: {
-      embeddingsModels: embeddingModels,
+      embeddingsModels: embeddingModels.filter(model => model.name === answers.defaultEmbedding),
       llms: llms,
       modelConfig: {
         modelAssetsBucket: answers.sagemakerModelS3Bucket,

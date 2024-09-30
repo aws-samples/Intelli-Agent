@@ -1,7 +1,8 @@
 import logging
+import os
 from datetime import datetime
 from typing import List
-import os
+
 import boto3
 
 from .chatbot import Chatbot
@@ -23,7 +24,7 @@ class ChatbotManager:
         model_table = dynamodb.Table(model_table_name)
         index_table = dynamodb.Table(index_table_name)
         chatbot_manager = cls(chatbot_table, index_table, model_table)
-        return chatbot_manager 
+        return chatbot_manager
 
     def get_chatbot(self, group_name: str, chatbot_id: str):
         """Get chatbot from chatbot id and add index, model, etc. data
@@ -57,4 +58,3 @@ class ChatbotManager:
         chatbot = Chatbot.from_dynamodb_item(chatbot_content)
 
         return chatbot
-

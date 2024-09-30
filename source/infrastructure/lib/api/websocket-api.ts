@@ -23,6 +23,7 @@ import { WebSocketLambdaAuthorizer } from 'aws-cdk-lib/aws-apigatewayv2-authoriz
 
 import { createBasicLambdaPolicy } from "../shared/utils";
 import { LambdaFunction } from "../shared/lambda-helper";
+import { Constants } from "../shared/constants";
 
 interface WebSocketProps extends StackProps {
   dispatcherLambda: lambda.Function;
@@ -59,8 +60,8 @@ export class WebSocketConstruct extends Construct {
       handler: "disconnect.lambda_handler",
     });
 
-    const webSocketApi = new apigwv2.WebSocketApi(this, "Intelli-Agent-WebSocket-API", {
-      description: "Intelli-Agent WebSocket API for chat scenarios",
+    const webSocketApi = new apigwv2.WebSocketApi(this, `${Constants.SOLUTION_SHORT_NAME.toLowerCase()}-ws-api`, {
+      description: `${Constants.SOLUTION_NAME} - WebSocket API`,
       connectRouteOptions: {
         integration: new WebSocketLambdaIntegration(
           "ConnectIntegration",

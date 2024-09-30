@@ -25,17 +25,31 @@ def get_query_parameter(event, parameter_name, default_value=None):
 
 def lambda_handler(event, context):
     logger.info(event)
+    resp_header = {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "*",
+    }
 
-    authorizer_type = event["requestContext"]["authorizer"].get("authorizerType")
+    authorizer_type = (
+        event["requestContext"].get("authorizer", {}).get("authorizerType")
+    )
     if authorizer_type == "lambda_authorizer":
         claims = json.loads(event["requestContext"]["authorizer"]["claims"])
-        group_id = claims["cognito:groups"]
-        cognito_groups_list = group_id.split(",")
+        if "use_api_key" in claims:
+            group_name = get_query_parameter(event, "GroupName", "Admin")
+            cognito_groups_list = [group_name]
+        else:
+            cognito_groups = claims["cognito:groups"]
+            cognito_groups_list = cognito_groups.split(",")
     else:
-        raise Exception(
-            "Invalid authorizer type. This API should only be invoked by the lambda authorizer"
-        )
-    logger.info(f"Group ID: {group_id}")
+        logger.error("Invalid authorizer type")
+        return {
+            "statusCode": 403,
+            "headers": resp_header,
+            "body": json.dumps({"error": "Invalid authorizer type"}),
+        }
 
     max_items = get_query_parameter(event, "max_items", DEFAULT_MAX_ITEMS)
     page_size = get_query_parameter(event, "page_size", DEFAULT_SIZE)
@@ -61,10 +75,10 @@ def lambda_handler(event, context):
         response_iterator = paginator.paginate(
             TableName=table_name,
             PaginationConfig=config,
-            FilterExpression="uiStatus = :active AND groupId = :group_id",
+            FilterExpression="uiStatus = :active AND groupName = :group_id",
             ExpressionAttributeValues={
                 ":active": {"S": "ACTIVE"},
-                ":group_id": {"S": group_id},
+                ":group_id": {"S": cognito_groups_list[0]},
             },
         )
 
@@ -86,13 +100,6 @@ def lambda_handler(event, context):
             )
 
     output["Config"] = config
-
-    resp_header = {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "*",
-    }
 
     try:
         return {

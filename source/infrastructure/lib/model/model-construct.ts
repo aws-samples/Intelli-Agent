@@ -11,7 +11,7 @@
  *  and limitations under the License.                                                                                *
  *********************************************************************************************************************/
 
-import { Aws, Duration, CustomResource } from "aws-cdk-lib";
+import { Aws, Duration, CustomResource, NestedStack } from "aws-cdk-lib";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as sagemaker from "aws-cdk-lib/aws-sagemaker";
 import { Construct } from "constructs";
@@ -66,88 +66,87 @@ interface DeploySagemakerEndpointResponse {
   readonly model?: sagemaker.CfnModel
 }
 
-export class ModelConstruct extends Construct implements ModelConstructOutputs {
+export class ModelConstruct extends NestedStack implements ModelConstructOutputs {
   public defaultEmbeddingModelName: string = "";
   public defaultKnowledgeBaseModelName: string = "";
-
-  private iamHelper: IAMHelper;
-  private account = Aws.ACCOUNT_ID;
-  private region = Aws.REGION;
-  private executionRole: iam.Role;
-  private modelImageUrlDomain: string;
-  private modelPublicEcrAccount: string;
-  private modelVariantName: string;
+  modelAccount = Aws.ACCOUNT_ID;
+  modelRegion = Aws.REGION;
+  modelIamHelper?: IAMHelper;
+  modelExecutionRole?: iam.Role;
+  modelImageUrlDomain?: string;
+  modelPublicEcrAccount?: string;
+  modelVariantName?: string;
 
   constructor(scope: Construct, id: string, props: ModelConstructProps) {
     super(scope, id);
 
-    this.iamHelper = props.sharedConstructOutputs.iamHelper;
-    this.modelVariantName = "variantProd";
-
-    this.modelImageUrlDomain =
-      this.region === "cn-north-1" || this.region === "cn-northwest-1"
-        ? ".amazonaws.com.cn/"
-        : ".amazonaws.com/";
-
-    this.modelPublicEcrAccount =
-      this.region === "cn-north-1" || this.region === "cn-northwest-1"
-        ? "727897471807.dkr.ecr."
-        : "763104351884.dkr.ecr.";
-
-
-    // Create IAM execution role
-    const executionRole = new iam.Role(this, "intelli-agent-endpoint-execution-role", {
-      assumedBy: new iam.ServicePrincipal("sagemaker.amazonaws.com"),
-      managedPolicies: [
-        iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonSageMakerFullAccess"),
-        iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonS3FullAccess"),
-        iam.ManagedPolicy.fromAwsManagedPolicyName("CloudWatchLogsFullAccess"),
-      ],
-    });
-    executionRole.addToPolicy(this.iamHelper.logStatement);
-    executionRole.addToPolicy(this.iamHelper.s3Statement);
-    executionRole.addToPolicy(this.iamHelper.endpointStatement);
-    executionRole.addToPolicy(this.iamHelper.stsStatement);
-    executionRole.addToPolicy(this.iamHelper.ecrStatement);
-    executionRole.addToPolicy(this.iamHelper.llmStatement);
-
-    this.executionRole = executionRole;
-
-    if ( props.config.knowledgeBase.enabled && props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.enabled ) {
-
-      // Check if props.config.model.embeddingsModels includes a model with the name 'bce-embedding-and-bge-reranker'
-      if (props.config.model.embeddingsModels.some(model => model.name === 'bce-embedding-and-bge-reranker')) {
-        // Create the resource
-        let embeddingAndRerankerModelResources = this.deployEmbeddingAndRerankerEndpoint(props);
-        this.defaultEmbeddingModelName = embeddingAndRerankerModelResources.endpoint.endpointName ?? "";
-      }
-
-      if (props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.enabled) {
-        let knowledgeBaseModelResources = this.deployKnowledgeBaseEndpoint(props);
-        this.createKnowledgeBaseEndpointScaling(knowledgeBaseModelResources.endpoint);
-        this.defaultKnowledgeBaseModelName = knowledgeBaseModelResources.endpoint.endpointName ?? "";
+    // this.defaultEmbeddingModelName = "cohere.embed-english-v3"
+    if (props.config.model.embeddingsModels[0].provider === "bedrock") {
+      this.defaultEmbeddingModelName = props.config.model.embeddingsModels[0].name;
+    } else {
+      this.modelIamHelper = props.sharedConstructOutputs.iamHelper;
+      this.modelVariantName = "variantProd";
+      this.modelImageUrlDomain =
+        this.modelRegion === "cn-north-1" || this.modelRegion === "cn-northwest-1"
+          ? ".amazonaws.com.cn/"
+          : ".amazonaws.com/";
+  
+      this.modelPublicEcrAccount =
+        this.modelRegion === "cn-north-1" || this.modelRegion === "cn-northwest-1"
+          ? "727897471807.dkr.ecr."
+          : "763104351884.dkr.ecr.";
+  
+  
+      // Create IAM execution role
+      const executionRole = new iam.Role(this, "intelli-agent-endpoint-execution-role", {
+        assumedBy: new iam.ServicePrincipal("sagemaker.amazonaws.com"),
+        managedPolicies: [
+          iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonSageMakerFullAccess"),
+          iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonS3FullAccess"),
+          iam.ManagedPolicy.fromAwsManagedPolicyName("CloudWatchLogsFullAccess"),
+        ],
+      });
+      executionRole.addToPolicy(this.modelIamHelper.logStatement);
+      executionRole.addToPolicy(this.modelIamHelper.s3Statement);
+      executionRole.addToPolicy(this.modelIamHelper.endpointStatement);
+      executionRole.addToPolicy(this.modelIamHelper.bedrockStatement);
+      executionRole.addToPolicy(this.modelIamHelper.stsStatement);
+      executionRole.addToPolicy(this.modelIamHelper.ecrStatement);
+      executionRole.addToPolicy(this.modelIamHelper.llmStatement);
+  
+      this.modelExecutionRole = executionRole;
+  
+      if ( props.config.knowledgeBase.enabled && props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.enabled ) {
+  
+        // Check if props.config.model.embeddingsModels includes a model with the name 'bce-embedding-and-bge-reranker'
+        if (props.config.model.embeddingsModels.some(model => model.name === 'bce-embedding-and-bge-reranker')) {
+          // Create the resource
+          let embeddingAndRerankerModelResources = this.deployEmbeddingAndRerankerEndpoint(props);
+          this.defaultEmbeddingModelName = embeddingAndRerankerModelResources.endpoint.endpointName ?? "";
+        }
+  
+        if (props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.enabled) {
+          let knowledgeBaseModelResources = this.deployKnowledgeBaseEndpoint(props);
+          this.createKnowledgeBaseEndpointScaling(knowledgeBaseModelResources.endpoint);
+          this.defaultKnowledgeBaseModelName = knowledgeBaseModelResources.endpoint.endpointName ?? "";
+        }
       }
     }
-
   }
 
   private deployEmbeddingAndRerankerEndpoint(props: ModelConstructProps) {
     // Deploy Embedding and Reranker model
-    let embeddingAndRerankerModelPrefix = props.config.model.embeddingsModels.find(
-      (model) => model.default === true,
-    )?.name ?? "";
-    let embeddingAndRerankerModelVersion = props.config.model.embeddingsModels.find(
-      (model) => model.default === true,
-    )?.commitId ?? "";
+    let embeddingAndRerankerModelPrefix = props.config.model.embeddingsModels[0].name ?? "";
+    let embeddingAndRerankerModelVersion = props.config.model.embeddingsModels[0].commitId ?? "";
     let embeddingAndRerankerModelName = embeddingAndRerankerModelPrefix + "-" + embeddingAndRerankerModelVersion.slice(0, 5)
-    let embeddingAndRerankerImageUrl = this.modelPublicEcrAccount + this.region + this.modelImageUrlDomain + "djl-inference:0.21.0-deepspeed0.8.3-cu117";
+    let embeddingAndRerankerImageUrl = this.modelPublicEcrAccount + this.modelRegion + this.modelImageUrlDomain + "djl-inference:0.21.0-deepspeed0.8.3-cu117";
     let embeddingAndRerankerModelDataUrl = `s3://${props.config.model.modelConfig.modelAssetsBucket}/${embeddingAndRerankerModelPrefix}_deploy_code/`;
     let codePrefix = embeddingAndRerankerModelPrefix + "_deploy_code";
 
     const embeddingAndRerankerModelResources = this.deploySagemakerEndpoint({
       modelProps: {
         modelName: embeddingAndRerankerModelName,
-        executionRoleArn: this.executionRole.roleArn,
+        executionRoleArn: this.modelExecutionRole?.roleArn,
         primaryContainer: {
           image: embeddingAndRerankerImageUrl,
           modelDataUrl: embeddingAndRerankerModelDataUrl,
@@ -163,7 +162,7 @@ export class ModelConstruct extends Construct implements ModelConstructOutputs {
           {
             initialVariantWeight: 1.0,
             modelName: embeddingAndRerankerModelName,
-            variantName: this.modelVariantName,
+            variantName: this.modelVariantName || "",
             containerStartupHealthCheckTimeoutInSeconds: 15 * 60,
             initialInstanceCount: 1,
             instanceType: "ml.g4dn.4xlarge",
@@ -190,7 +189,7 @@ export class ModelConstruct extends Construct implements ModelConstructOutputs {
     let knowledgeBaseModelName = "knowledge-base-model";
     let knowledgeBaseModelEcrRepository = props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.ecrRepository;
     let knowledgeBaseModelEcrImageTag = props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.ecrImageTag;
-    let knowledgeBaseModelImageUrl = this.account + ".dkr.ecr." + this.region + this.modelImageUrlDomain + knowledgeBaseModelEcrRepository + ":" + knowledgeBaseModelEcrImageTag;
+    let knowledgeBaseModelImageUrl = this.modelAccount + ".dkr.ecr." + this.modelRegion + this.modelImageUrlDomain + knowledgeBaseModelEcrRepository + ":" + knowledgeBaseModelEcrImageTag;
 
     const knowledgeBaseModelResources = this.deploySagemakerEndpoint({
       modelProps: {
@@ -198,7 +197,7 @@ export class ModelConstruct extends Construct implements ModelConstructOutputs {
         primaryContainer: {
           image: knowledgeBaseModelImageUrl,
         },
-        executionRoleArn: this.executionRole.roleArn,
+        executionRoleArn: this.modelExecutionRole?.roleArn,
       },
       endpointConfigProps: {
         endpointConfigName: knowledgeBaseModelName + "-endpoint-config",
@@ -206,7 +205,7 @@ export class ModelConstruct extends Construct implements ModelConstructOutputs {
           {
             initialVariantWeight: 1.0,
             modelName: knowledgeBaseModelName,
-            variantName: this.modelVariantName,
+            variantName: this.modelVariantName || "",
             containerStartupHealthCheckTimeoutInSeconds: 15 * 60,
             initialInstanceCount: 1,
             instanceType: "ml.g4dn.2xlarge",
@@ -234,20 +233,24 @@ export class ModelConstruct extends Construct implements ModelConstructOutputs {
     let model: sagemaker.CfnModel;
     let endpointConfig: sagemaker.CfnEndpointConfig;
     let endpoint: sagemaker.CfnEndpoint;
-    let sagemakerRole: iam.Role;
+    let sagemakerRole: iam.Role | undefined;
 
     // Create Sagemaker's model, endpointConfig, and endpoint
     if (props.modelProps) {
-      sagemakerRole = this.executionRole;
+      sagemakerRole = this.modelExecutionRole;
+      // const randomString = Math.random().toString(36).substring(2, 8);
+      // const smModelName = `${props.modelProps.modelName}ia-${randomString}`;
+      const smModelName = `${props.modelProps.modelName}`;
 
       // Create Sagemaker Model
-      model = new sagemaker.CfnModel(this, `${props.modelProps.modelName}`, props.modelProps);
+      model = new sagemaker.CfnModel(this, smModelName, props.modelProps);
+      // model = new sagemaker.CfnModel(this, smModelName, props.modelProps);
       // Create Sagemaker EndpointConfig
-      endpointConfig = new sagemaker.CfnEndpointConfig(this, `${props.modelProps.modelName}-endpoint-config`, props.endpointConfigProps);
+      endpointConfig = new sagemaker.CfnEndpointConfig(this, `${smModelName}-endpoint-config`, props.endpointConfigProps);
       // Add dependency on model
       endpointConfig.addDependency(model);
       // Create Sagemaker Endpoint
-      endpoint = new sagemaker.CfnEndpoint(this, `${props.modelProps.modelName}-endpoint`, props.endpointProps);
+      endpoint = new sagemaker.CfnEndpoint(this, `${smModelName}-endpoint`, props.endpointProps);
       // Add dependency on EndpointConfig
       endpoint.addDependency(endpointConfig);
 
@@ -292,7 +295,7 @@ export class ModelConstruct extends Construct implements ModelConstructOutputs {
       handler: "etl_custom_resource.lambda_handler",
       environment: {
         ENDPOINT_NAME: endpoint.endpointName || "",
-        VARIANT_NAME: this.modelVariantName,
+        VARIANT_NAME: this.modelVariantName || "",
       },
       memorySize: 512,
       timeout: Duration.seconds(300),
@@ -333,6 +336,8 @@ export class ModelConstruct extends Construct implements ModelConstructOutputs {
       serviceToken: customResourceProvider.serviceToken,
       resourceType: "Custom::ETLEndpoint",
     });
+
+
   }
 
 }
