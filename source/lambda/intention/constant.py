@@ -14,11 +14,13 @@ SECRET_NAME = "opensearch-master-user"
 AOS_INDEX = "aics_intention_index"
 BULK_SIZE = 100000000
 
+
 @unique
 class IndexType(Enum):
     QD = "qd"
     QQ = "qq"
     INTENTION = "intention"
+
 
 @unique
 class KBType(Enum):
@@ -30,11 +32,13 @@ class Status(Enum):
     ACTIVE = "active"
     INACTIVE = "inactive"
 
+
 ModelDimensionMap = {
     "amazon.titan-embed-text-v1": 1536,
     "cohere.embed-english-v3": 1024,
     "amazon.titan-embed-text-v2:0": 1024
 }
+
 
 @unique
 class ModelType(Enum):

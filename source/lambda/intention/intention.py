@@ -20,17 +20,17 @@ from aos import sm_utils
 from requests_aws4auth import AWS4Auth
 
 from aos.aos_utils import LLMBotOpenSearchClient
-from constant import (AOS_INDEX, 
-                      BULK_SIZE, 
-                      DEFAULT_CONTENT_TYPE, 
-                      DEFAULT_MAX_ITEMS, 
-                      DEFAULT_SIZE, 
-                      DOWNLOAD_RESOURCE, 
-                      EXECUTION_RESOURCE, 
-                      INDEX_USED_SCAN_RESOURCE, 
-                      PRESIGNED_URL_RESOURCE, 
-                      SECRET_NAME, 
-                      IndexType, 
+from constant import (AOS_INDEX,
+                      BULK_SIZE,
+                      DEFAULT_CONTENT_TYPE,
+                      DEFAULT_MAX_ITEMS,
+                      DEFAULT_SIZE,
+                      DOWNLOAD_RESOURCE,
+                      EXECUTION_RESOURCE,
+                      INDEX_USED_SCAN_RESOURCE,
+                      PRESIGNED_URL_RESOURCE,
+                      SECRET_NAME,
+                      IndexType,
                       ModelDimensionMap)
 
 logger = logging.getLogger(__name__)
@@ -187,10 +187,11 @@ def lambda_handler(event, context):
             "body": json.dumps(f"Error: {str(e)}"),
         }
 
+
 def __delete_execution(event, group_name):
     input_body = json.loads(event["body"])
     execution_ids = input_body.get("executionIds")
-    res=[]
+    res = []
     for execution_id in execution_ids:
         index_response = intention_table.get_item(
             Key={
@@ -218,6 +219,8 @@ def __delete_execution(event, group_name):
 # def __can_be_deleted(execution_id):
 
 #     return False, ""
+
+
 def __delete_documents_by_text_set(index_name, text_values):
     # Search for the documents based on the "text" field matching any value in text_values set
     search_body = {
@@ -231,9 +234,10 @@ def __delete_documents_by_text_set(index_name, text_values):
 
     # Perform the search
     try:
-        search_result = aos_client.search(index=index_name, body=search_body)  # Adjust size if needed
+        search_result = aos_client.search(
+            index=index_name, body=search_body)  # Adjust size if needed
         hits = search_result['hits']['hits']
-    
+
         # If documents exist, delete them
         if hits:
             for hit in hits:
@@ -241,7 +245,8 @@ def __delete_documents_by_text_set(index_name, text_values):
                 aos_client.delete(index=index_name, id=doc_id)
                 logger.info("Deleted document with id %s", doc_id)
     except NotFoundError:
-            logger.info("Index is not existed: %s", index_name)
+        logger.info("Index is not existed: %s", index_name)
+
 
 def __get_query_parameter(event, parameter_name, default_value=None):
     if (
@@ -325,8 +330,8 @@ def __create_execution(event, context, email, group_name):
     execution_detail["index"] = input_body.get("index")
     execution_detail["model"] = input_body.get("model")
     execution_detail["fileName"] = input_body.get("s3Prefix").split("/").pop()
-    bucket=input_body.get("s3Bucket")
-    prefix=input_body.get("s3Prefix")
+    bucket = input_body.get("s3Bucket")
+    prefix = input_body.get("s3Prefix")
     s3_response = __get_s3_object_with_retry(bucket, prefix)
     file_content = s3_response['Body'].read()
     excel_file = BytesIO(file_content)
@@ -359,7 +364,8 @@ def __create_execution(event, context, email, group_name):
         }
     )
     # write to aos(vectorData)
-    __save_2_aos(input_body.get("model"), execution_detail["index"], qaList, bucket, prefix)
+    __save_2_aos(input_body.get("model"),
+                 execution_detail["index"], qaList, bucket, prefix)
 
     return {
         "execution_id": execution_detail["tableItemId"],
@@ -460,6 +466,7 @@ def __create_index(index: str, modelId: str):
     except RequestError as e:
         logger.info(e.error)
 
+
 def __refresh_index(index: str, modelId: str, qaList):
     success, failed = helpers.bulk(aos_client,  __append_embeddings(
         index, modelId, qaList), chunk_size=BULK_SIZE)
@@ -545,7 +552,7 @@ def __get_s3_object_with_retry(bucket: str, key: str, max_retries: int = 5, dela
             attempt += 1
             if attempt >= max_retries:
                 logger.info("Time out, retry...")
-                raise 
+                raise
             time.sleep(delay)
 
 
