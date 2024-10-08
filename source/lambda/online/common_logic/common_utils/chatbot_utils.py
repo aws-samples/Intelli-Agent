@@ -47,10 +47,12 @@ class ChatbotManager:
                 index_content = self.index_table.get_item(
                     Key={"groupName": group_name, "indexId": index_id}
                 ).get("Item")
-                embedding_model_id = index_content.get("modelIds").get("embedding")
+                embedding_model_id = index_content.get(
+                    "modelIds").get("embedding")
                 if embedding_model_id:
                     model_content = self.model_table.get_item(
-                        Key={"groupName": group_name, "modelId": embedding_model_id}
+                        Key={"groupName": group_name,
+                             "modelId": embedding_model_id}
                     ).get("Item")
                     index_content["modelIds"]["embedding"] = model_content
                 chatbot_content["indexIds"][index_type]["value"][tag] = index_content

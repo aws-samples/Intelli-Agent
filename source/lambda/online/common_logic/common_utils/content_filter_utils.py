@@ -17,7 +17,8 @@ class MarketContentFilter(ContentFilterBase):
         sensitive_words_path=os.path.join(abs_dir, "sensitive_word.csv"),
         aws_products_path=os.path.join(abs_dir, "aws_products.csv"),
     ) -> None:
-        self.sensitive_words = self.create_sensitive_words(sensitive_words_path)
+        self.sensitive_words = self.create_sensitive_words(
+            sensitive_words_path)
         self.aws_products = self.create_aws_products(aws_products_path)
         # Define a regular expression pattern to match Chinese characters
         self.chinese_pattern = re.compile(r"[\u4e00-\u9fff]")
@@ -65,7 +66,7 @@ class MarketContentFilter(ContentFilterBase):
         for key, value in cn_rebranding_dict.items():
             index = sentence.find(key)
             while index != -1:
-                substring = sentence[index : index + 10]
+                substring = sentence[index: index + 10]
                 if self.contains_chinese_characters(substring):
                     sentence = sentence.replace(key, value, 1)
                     index = sentence.find(key)
