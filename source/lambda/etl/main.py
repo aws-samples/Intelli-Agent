@@ -8,7 +8,8 @@ logger.setLevel(logging.INFO)
 
 s3_client = boto3.client("s3")
 
-supported_file_types = ["pdf", "txt", "doc", "md", "html", "json", "jsonl", "csv", "png", "jpg", "jpeg", "webp", "xlsx", "xls"]
+supported_file_types = ["pdf", "txt", "doc", "md", "html", "json",
+                        "jsonl", "csv", "png", "jpg", "jpeg", "webp", "xlsx", "xls"]
 default_embedding_endpoint = os.environ.get("DEFAULT_EMBEDDING_ENDPOINT")
 aos_domain_endpoint = os.environ.get("AOS_DOMAIN_ENDPOINT")
 
@@ -37,7 +38,8 @@ def lambda_handler(event, context):
         operation_type = event.get("operationType", "create")
     else:
         operation_type = "extract_only"
-    embedding_endpoint = event.get("embeddingEndpoint", default_embedding_endpoint)
+    embedding_endpoint = event.get(
+        "embeddingEndpoint", default_embedding_endpoint)
     table_item_id = event["tableItemId"]
 
     if "offline" not in event:
@@ -54,7 +56,8 @@ def lambda_handler(event, context):
         for page in page_iterator:
             for obj in page.get("Contents", []):
                 key = obj["Key"]
-                file_type = key.split(".")[-1].lower()  # Extract file extension
+                # Extract file extension
+                file_type = key.split(".")[-1].lower()
                 if key.endswith("/") or file_type not in supported_file_types:
                     continue
 
