@@ -20,9 +20,10 @@ const Home: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   return (
-    <CommonLayout toolsHide activeHref="/home" headerVariant="high-contrast">
+    // <CommonLayout toolsHide activeHref="/home" headerVariant="high-contrast">
+    <CommonLayout activeHref="/home">
       <ContentLayout
-        headerVariant="high-contrast"
+        // headerVariant="high-contrast"
         header={
           <div>
             <Box variant="p">
