@@ -109,7 +109,7 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
     <I18nProvider locale={i18n.language} messages={[messages]}>
       <TopNavigation
         identity={{
-          href: '#',
+          href: '/',
           title: t('name'),
         }}
         utilities={[
@@ -152,7 +152,7 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
         navigation={
           <SideNavigation
             activeHref={activeHref}
-            header={{ href: '#/', text: t('name') }}
+            header={{ href: '/', text: t('name') }}
             onFollow={(e) => {
               if (!e.detail.external) {
                 e.preventDefault();
@@ -167,7 +167,7 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
                   {
                     type: 'link',
                     text: t('chat'),
-                    href: '/',
+                    href: '/chats',
                   },
                   {
                     type: 'link',
