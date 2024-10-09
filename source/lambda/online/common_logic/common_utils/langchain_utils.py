@@ -1,7 +1,7 @@
 import threading
 import time
 from functools import partial
-from typing import TypedDict,Annotated
+from typing import TypedDict, Annotated
 
 from langchain.schema.runnable import (
     RunnableLambda,
@@ -168,7 +168,8 @@ class LogTimeListener:
         logger.info(
             f"{self.message_id} Exit: {self.chain_name}, elpase time(s): {exe_time}"
         )
-        logger.info(f"{self.message_id} running time of {self.chain_name}: {exe_time}s")
+        logger.info(
+            f"{self.message_id} running time of {self.chain_name}: {exe_time}s")
 
         if self.trace_infos is not None:
             with self.trace_infos_lock:
@@ -238,4 +239,4 @@ def format_trace_infos(trace_infos: list, use_pretty_table=True):
 
 
 class NestUpdateState(TypedDict):
-    keys: Annotated[dict,update_nest_dict]
+    keys: Annotated[dict, update_nest_dict]

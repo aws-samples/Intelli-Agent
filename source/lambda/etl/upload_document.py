@@ -20,7 +20,8 @@ def create_presigned_url(bucket_name, object_name, content_type, expiration):
     """
     presigned_url = s3_client.generate_presigned_url(
         ClientMethod="put_object",
-        Params={"Bucket": bucket_name, "Key": object_name, "ContentType": content_type},
+        Params={"Bucket": bucket_name, "Key": object_name,
+                "ContentType": content_type},
         ExpiresIn=expiration,
         HttpMethod="PUT",
     )

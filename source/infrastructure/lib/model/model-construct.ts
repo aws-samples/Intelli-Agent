@@ -90,13 +90,13 @@ export class ModelConstruct extends NestedStack implements ModelConstructOutputs
         this.modelRegion === "cn-north-1" || this.modelRegion === "cn-northwest-1"
           ? ".amazonaws.com.cn/"
           : ".amazonaws.com/";
-  
+
       this.modelPublicEcrAccount =
         this.modelRegion === "cn-north-1" || this.modelRegion === "cn-northwest-1"
           ? "727897471807.dkr.ecr."
           : "763104351884.dkr.ecr.";
-  
-  
+
+
       // Create IAM execution role
       const executionRole = new iam.Role(this, "intelli-agent-endpoint-execution-role", {
         assumedBy: new iam.ServicePrincipal("sagemaker.amazonaws.com"),
@@ -113,21 +113,21 @@ export class ModelConstruct extends NestedStack implements ModelConstructOutputs
       executionRole.addToPolicy(this.modelIamHelper.stsStatement);
       executionRole.addToPolicy(this.modelIamHelper.ecrStatement);
       executionRole.addToPolicy(this.modelIamHelper.llmStatement);
-  
+
       this.modelExecutionRole = executionRole;
-  
-      if ( props.config.knowledgeBase.enabled && props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.enabled ) {
-  
+
+      if (props.config.knowledgeBase.enabled && props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.enabled) {
+
         // Check if props.config.model.embeddingsModels includes a model with the name 'bce-embedding-and-bge-reranker'
         if (props.config.model.embeddingsModels.some(model => model.name === 'bce-embedding-and-bge-reranker')) {
           // Create the resource
           let embeddingAndRerankerModelResources = this.deployEmbeddingAndRerankerEndpoint(props);
           this.defaultEmbeddingModelName = embeddingAndRerankerModelResources.endpoint.endpointName ?? "";
         }
-  
+
         if (props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.enabled) {
           let knowledgeBaseModelResources = this.deployKnowledgeBaseEndpoint(props);
-          this.createKnowledgeBaseEndpointScaling(knowledgeBaseModelResources.endpoint);
+          // this.createKnowledgeBaseEndpointScaling(knowledgeBaseModelResources.endpoint);
           this.defaultKnowledgeBaseModelName = knowledgeBaseModelResources.endpoint.endpointName ?? "";
         }
       }

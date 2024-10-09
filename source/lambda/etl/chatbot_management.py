@@ -45,6 +45,7 @@ resp_header = {
     "Access-Control-Allow-Methods": "*",
 }
 
+
 def create_chatbot(event, group_name):
     request_body = json.loads(event["body"])
     chatbot_id = request_body.get("chatbotId", group_name.lower())
@@ -56,7 +57,8 @@ def create_chatbot(event, group_name):
     # model_id = request_body.get("modelId", f"{chatbot_id}-embedding")
     create_time = str(datetime.now(timezone.utc))
 
-    model_type = initiate_model(model_table, group_name, model_id, chatbot_embedding, create_time)
+    model_type = initiate_model(
+        model_table, group_name, model_id, chatbot_embedding, create_time)
 
     index_id_list = {}
     # Iterate over all enum members and create DDB metadata
@@ -133,7 +135,8 @@ def __list_chatbot(event, group_name):
         for item in page_items:
             item_json = {}
             chatbot_id = item.get("chatbotId", {"S": ""})["S"]
-            index_dict=list(item.get("indexIds", {}).get("M",{}).get("intention",{}).get("M",{}).get("value",{}).values())[0]
+            index_dict = list(item.get("indexIds", {}).get("M", {}).get(
+                "intention", {}).get("M", {}).get("value", {}).values())[0]
             index_id = list(index_dict.keys())[0]
             index_table_item = index_table.get_item(
                 Key={
@@ -141,7 +144,8 @@ def __list_chatbot(event, group_name):
                     "indexId": index_id,
                 }
             )
-            model_id=index_table_item.get("Item",{}).get("modelIds",{}).get("embedding","")
+            model_id = index_table_item.get("Item", {}).get(
+                "modelIds", {}).get("embedding", "")
             item_json["ChatbotId"] = chatbot_id
             chatbot_model_item = model_table.get_item(
                 Key={
@@ -153,7 +157,8 @@ def __list_chatbot(event, group_name):
                 "ModelEndpoint", ""
             )
             item_json["ModelId"] = chatbot_model_item.get("modelId", "")
-            item_json["LastModifiedTime"] = item.get("updateTime", {"S": ""})["S"]
+            item_json["LastModifiedTime"] = item.get(
+                "updateTime", {"S": ""})["S"]
             page_json.append(item_json)
         page_json.sort(key=lambda x: x["LastModifiedTime"], reverse=True)
         output["Items"] = page_json
@@ -274,7 +279,7 @@ def lambda_handler(event, context):
 
 def __validate_chatbot(event, group_name):
     input_body = json.loads(event["body"])
-    # chabotName 
+    # chabotName
     chatbot_id = input_body.get("chatbotId")
     chatbot_type = input_body.get("type")
     model = input_body.get("model")
@@ -282,8 +287,8 @@ def __validate_chatbot(event, group_name):
     if not chatbot_id or not chatbot_type or not model or not index:
         logger.error("Invalid paramater.")
         raise
-  
-    if chatbot_type=="create":
+
+    if chatbot_type == "create":
         chatbot_item = chatbot_table.get_item(
             Key={"groupName": group_name, "chatbotId": chatbot_id}
         ).get("Item")
@@ -295,17 +300,17 @@ def __validate_chatbot(event, group_name):
             }
     # index
     # index_ids=[]
-    index_set=set()
+    index_set = set()
     for member in IndexType.__members__.values():
         index_type = member.value
-        index_list=index.get(index_type).split(",")
+        index_list = index.get(index_type).split(",")
         # index_ids.append({
         #     index_type: index_list
         # })
         index_set |= set(index_list)
         # index_ids.append(index.get(index_type))
-            # .get("index", f"{chatbot_id}-{index_type}-default")
-        
+        # .get("index", f"{chatbot_id}-{index_type}-default")
+
     response = index_table.scan(
         FilterExpression=Attr('indexId').is_in(list(index_set))
     )
@@ -320,8 +325,8 @@ def __validate_chatbot(event, group_name):
                     "Message": "repeat in other group name"
                 }
             else:
-                if item.get("modelIds", {}).get("embedding","") != model:
-                # 自己用了index，但是模型 不对，报错
+                if item.get("modelIds", {}).get("embedding", "") != model:
+                    # 自己用了index，但是模型 不对，报错
                     return {
                         "result": False,
                         "item": __find_key(index, item['indexId']),
@@ -333,6 +338,7 @@ def __validate_chatbot(event, group_name):
         "Message": None
     }
 
+
 def __find_key(index, index_id):
     for key, value in index.items():
         if index_id in value.split(","):
@@ -342,7 +348,7 @@ def __find_key(index, index_id):
 # def __chatbot_details(chatbot_id, group_name):
 #     res={chatbot_id:chatbot_id}
 #     index = chatbot_table.get_item(
-#          Key={"groupName": group_name, 
+#          Key={"groupName": group_name,
 #               "chatbotId": chatbot_id
 #               }
 #         ).get("Item",{}).get("indexIds")
@@ -350,6 +356,7 @@ def __find_key(index, index_id):
 #         value.get("value",{}).get("M",{}).keys()
 #         res[key]=""
 #     return res
+
 
 def __get_query_parameter(event, parameter_name, default_value=None):
     if (

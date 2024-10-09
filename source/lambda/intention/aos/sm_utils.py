@@ -6,7 +6,7 @@ from langchain.embeddings import SagemakerEndpointEmbeddings
 from langchain.embeddings.sagemaker_endpoint import EmbeddingsContentHandler
 from langchain.callbacks.manager import CallbackManagerForLLMRun
 from langchain.llms.utils import enforce_stop_tokens
-from typing import Dict, List, Optional, Any,Iterator
+from typing import Dict, List, Optional, Any, Iterator
 from langchain_core.outputs import GenerationChunk
 import boto3
 from langchain_core.pydantic_v1 import Extra, root_validator
@@ -18,6 +18,7 @@ from langchain_core.messages import (
 import logging
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
+
 
 class vectorContentHandler(EmbeddingsContentHandler):
     content_type = "application/json"
@@ -31,6 +32,7 @@ class vectorContentHandler(EmbeddingsContentHandler):
         response_json = json.loads(output.read().decode("utf-8"))
         return response_json["sentence_embeddings"]
 
+
 class m3ContentHandler(EmbeddingsContentHandler):
     content_type = "application/json"
     accepts = "application/json"
@@ -43,17 +45,20 @@ class m3ContentHandler(EmbeddingsContentHandler):
         response_json = json.loads(output.read().decode("utf-8"))
         return response_json["sentence_embeddings"]['dense_vecs']
 
+
 class crossContentHandler(LLMContentHandler):
     content_type = "application/json"
     accepts = "application/json"
 
     def transform_input(self, prompt: str, model_kwargs: Dict) -> bytes:
-        input_str = json.dumps({"inputs": prompt, "docs":model_kwargs["context"]})
+        input_str = json.dumps(
+            {"inputs": prompt, "docs": model_kwargs["context"]})
         return input_str.encode('utf-8')
 
     def transform_output(self, output: bytes) -> str:
         response_json = json.loads(output.read().decode("utf-8"))
         return response_json['scores'][0][1]
+
 
 class rerankContentHandler(LLMContentHandler):
     content_type = "application/json"
@@ -67,6 +72,7 @@ class rerankContentHandler(LLMContentHandler):
         response_json = json.loads(output.read().decode("utf-8"))
         return json.dumps(response_json['rerank_scores'])
 
+
 class answerContentHandler(LLMContentHandler):
     content_type = "application/json"
     accepts = "application/json"
@@ -75,11 +81,12 @@ class answerContentHandler(LLMContentHandler):
 
         template_1 = '以下context xml tag内的文本内容为背景知识：\n<context>\n{context}\n</context>\n请根据背景知识, 回答这个问题：{question}'
         context = model_kwargs["context"]
-        
+
         if len(context) == 0:
             prompt = question
         else:
-            prompt = template_1.format(context = model_kwargs["context"], question = question)
+            prompt = template_1.format(
+                context=model_kwargs["context"], question=question)
 
         input_str = json.dumps({"inputs": prompt,
                                 "history": model_kwargs["history"],
@@ -116,7 +123,7 @@ class LineIterator:
     the buffer via the 'scan_lines' function. It maintains the position of the last read 
     position to ensure that previous bytes are not exposed again. 
     """
-    
+
     def __init__(self, stream):
         self.byte_iterator = iter(stream)
         self.buffer = io.BytesIO()
@@ -144,7 +151,7 @@ class LineIterator:
             self.buffer.seek(0, io.SEEK_END)
             self.buffer.write(chunk['PayloadPart']['Bytes'])
 
-            
+
 class SagemakerEndpointWithStreaming(SagemakerEndpoint):
     chat_history: List[Dict] = None
 
@@ -159,15 +166,16 @@ class SagemakerEndpointWithStreaming(SagemakerEndpoint):
         _model_kwargs = {**_model_kwargs, **kwargs}
         _endpoint_kwargs = self.endpoint_kwargs or {}
 
-        body = self.content_handler.transform_input(prompt, self.chat_history, _model_kwargs)
+        body = self.content_handler.transform_input(
+            prompt, self.chat_history, _model_kwargs)
         # content_type = self.content_handler.content_type
         # accepts = self.content_handler.accepts
         resp = self.client.invoke_endpoint_with_response_stream(
-                    EndpointName=self.endpoint_name,
-                    Body=body,
-                    ContentType=self.content_handler.content_type,
-                    **_endpoint_kwargs,
-                )
+            EndpointName=self.endpoint_name,
+            Body=body,
+            ContentType=self.content_handler.content_type,
+            **_endpoint_kwargs,
+        )
         iterator = LineIterator(resp["Body"])
 
         for line in iterator:
@@ -178,6 +186,7 @@ class SagemakerEndpointWithStreaming(SagemakerEndpoint):
                 resp_output = enforce_stop_tokens(resp_output, stop)
             # run_manager.on_llm_new_token(resp_output)
             yield GenerationChunk(text=resp_output)
+
 
 class SagemakerEndpointChat(BaseChatModel):
     client: Any = None
@@ -198,7 +207,7 @@ class SagemakerEndpointChat(BaseChatModel):
     See: https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html
     """
 
-    content_handler: LLMContentHandler =None
+    content_handler: LLMContentHandler = None
     """The content handler class that provides an input and
     output transform functions to handle formats between LLM
     and the endpoint.
@@ -236,6 +245,7 @@ class SagemakerEndpointChat(BaseChatModel):
     """
     content_type = "application/json"
     accepts = "application/json"
+
     class Config:
         """Configuration for this pydantic object."""
 
@@ -291,6 +301,7 @@ class SagemakerEndpointChat(BaseChatModel):
     def _llm_type(self) -> str:
         """Return type of llm."""
         return "sagemaker_endpoint"
+
     def _stream(
             self,
             messages: List[BaseMessage],
@@ -304,19 +315,19 @@ class SagemakerEndpointChat(BaseChatModel):
 
         # body = self.content_handler.transform_input(prompt, self.chat_history, _model_kwargs)
         body = json.dumps({
-                "messages" : messages,
-                "parameters" : {**_model_kwargs}
-            })
+            "messages": messages,
+            "parameters": {**_model_kwargs}
+        })
         # print(body)
         # # print(sdg)
         # content_type = self.content_handler.content_type
         # accepts = self.content_handler.accepts
         resp = self.client.invoke_endpoint_with_response_stream(
-                    EndpointName=self.endpoint_name,
-                    Body=body,
-                    ContentType=self.content_type,
-                    **_endpoint_kwargs,
-                )
+            EndpointName=self.endpoint_name,
+            Body=body,
+            ContentType=self.content_type,
+            **_endpoint_kwargs,
+        )
         iterator = LineIterator(resp["Body"])
 
         for line in iterator:
@@ -329,20 +340,20 @@ class SagemakerEndpointChat(BaseChatModel):
             yield resp_output
 
     def _generate(self,
-        messages: List[BaseMessage],
-        stop: Optional[List[str]] = None,
-        run_manager: Optional[CallbackManagerForLLMRun] = None,
-        **kwargs: Any,
-    ) -> str:
+                  messages: List[BaseMessage],
+                  stop: Optional[List[str]] = None,
+                  run_manager: Optional[CallbackManagerForLLMRun] = None,
+                  **kwargs: Any,
+                  ) -> str:
         _model_kwargs = self.model_kwargs or {}
         _model_kwargs = {**_model_kwargs, **kwargs}
         _endpoint_kwargs = self.endpoint_kwargs or {}
 
         # body = self.content_handler.transform_input(prompt, self.chat_history, _model_kwargs)
         body = json.dumps({
-                "messages" : messages,
-                "parameters" : {**_model_kwargs}
-            })
+            "messages": messages,
+            "parameters": {**_model_kwargs}
+        })
         try:
             response = self.client.invoke_endpoint(
                 EndpointName=self.endpoint_name,
@@ -356,13 +367,13 @@ class SagemakerEndpointChat(BaseChatModel):
 
         # text = self.content_handler.transform_output(response["Body"])
         text = json.loads(response["Body"].read().decode("utf-8"))
-        
+
         if stop is not None:
             # This is a bit hacky, but I can't figure out a better way to enforce
             # stop tokens when making calls to the sagemaker endpoint.
             text = enforce_stop_tokens(text, stop)
         return text
-        
+
 
 def SagemakerEndpointVectorOrCross(prompt: str, endpoint_name: str, region_name: str, model_type: str, stop: List[str], target_model=None, **kwargs) -> SagemakerEndpoint:
     """
@@ -376,13 +387,13 @@ def SagemakerEndpointVectorOrCross(prompt: str, endpoint_name: str, region_name:
         )
     """
     if target_model:
-        endpoint_kwargs={"TargetModel":target_model}
+        endpoint_kwargs = {"TargetModel": target_model}
     else:
-        endpoint_kwargs=None
+        endpoint_kwargs = None
     client = boto3.client(
-            "sagemaker-runtime",
-            region_name=region_name
-        )
+        "sagemaker-runtime",
+        region_name=region_name
+    )
     if model_type == "vector" or model_type == "bce":
         content_handler = vectorContentHandler()
         embeddings = SagemakerEndpointEmbeddings(
@@ -417,18 +428,19 @@ def SagemakerEndpointVectorOrCross(prompt: str, endpoint_name: str, region_name:
     # TODO: replace with SagemakerEndpointStreaming
     genericModel = SagemakerEndpoint(
         client=client,
-        endpoint_name = endpoint_name,
+        endpoint_name=endpoint_name,
         # region_name = region_name,
-        content_handler = content_handler,
+        content_handler=content_handler,
         endpoint_kwargs=endpoint_kwargs
     )
     return genericModel(prompt=prompt, stop=stop, **kwargs)
 
+
 def getCustomEmbeddings(endpoint_name: str, region_name: str, model_type: str) -> SagemakerEndpointEmbeddings:
     client = boto3.client(
-            "sagemaker-runtime",
-            region_name=region_name
-            )
+        "sagemaker-runtime",
+        region_name=region_name
+    )
     embeddings = None
     if model_type == "bce":
         content_handler = vectorContentHandler()
@@ -436,7 +448,7 @@ def getCustomEmbeddings(endpoint_name: str, region_name: str, model_type: str) -
             client=client,
             endpoint_name=endpoint_name,
             content_handler=content_handler,
-            endpoint_kwargs={"TargetModel":"bce_embedding_model.tar.gz"}
+            endpoint_kwargs={"TargetModel": "bce_embedding_model.tar.gz"}
         )
     # compatible with both m3 and bce.
     else:

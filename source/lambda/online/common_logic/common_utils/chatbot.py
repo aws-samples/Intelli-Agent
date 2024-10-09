@@ -1,5 +1,6 @@
 from typing import Dict, Any, List
 
+
 class Chatbot:
     def __init__(self, group_name: str, chatbot_id: str, create_time: str, index_ids: Dict[str, Any], languages: List[str], status: str, update_time: str):
         self.group_name = group_name
@@ -24,7 +25,7 @@ class Chatbot:
             group_name=item.get("groupName"),
             chatbot_id=item.get("chatbotId"),
             create_time=item.get("createTime"),
-            index_ids=item.get("indexIds",{}),
+            index_ids=item.get("indexIds", {}),
             languages=item.get("languages"),
             status=item.get("status"),
             update_time=item.get("updateTime")
@@ -40,9 +41,8 @@ class Chatbot:
             index_dict: chatbot index dict including qd, qq, intention
         """
         index_dict = {}
-        
+
         for index_type, item_dict in self.index_ids.items():
             for index_content in item_dict["value"].values():
                 index_dict[index_content['indexId']] = index_type
         return index_dict
-

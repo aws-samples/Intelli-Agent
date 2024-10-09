@@ -207,7 +207,8 @@ class DynamoDBChatMessageHistory(BaseChatMessageHistory):
         """Clear session memory from DynamoDB"""
         try:
             self.messages_table.delete_item(
-                Key={"sessionId": self.session_id, "messageId": self.message_id}
+                Key={"sessionId": self.session_id,
+                     "messageId": self.message_id}
             )
         except ClientError as err:
             print(err)

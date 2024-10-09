@@ -7,31 +7,36 @@ class EnumDirectValueMeta(EnumMeta):
         if isinstance(value, cls):
             value = value.value
         return value
-    
-    def __call__(*args,**kwargs):
-        r = EnumMeta.__call__(*args,**kwargs)
+
+    def __call__(*args, **kwargs):
+        r = EnumMeta.__call__(*args, **kwargs)
         return r.value
 
-class ConstantBase(Enum,metaclass=EnumDirectValueMeta):
+
+class ConstantBase(Enum, metaclass=EnumDirectValueMeta):
     @classmethod
     def has_value(cls, value):
-        return value in cls._value2member_map_ 
-    
+        return value in cls._value2member_map_
+
     @classmethod
     def all_values(cls):
         return list(cls._value2member_map_.keys())
-    
+
 
 class EntryType(ConstantBase):
     COMMON = "common"
     RETAIL = "retail"
 
+
 class SceneType(ConstantBase):
     COMMON = "common"
     RETAIL = "retail"
     AWS_QA = "aws-qa"
-    
+
+
 Type = EntryType
+
+
 class IntentType(ConstantBase):
     # common intention
     # CHAT = "chat"
@@ -50,6 +55,7 @@ class IntentType(ConstantBase):
     TEXT2SQL_SQL_RE_GEN = "text2sql_sql_re_generate"
     TEXT2SQL_SQL_VALIDATED = "text2sql_sql_validated"
 
+
 class RerankerType(ConstantBase):
     BGE_RERANKER = "bge_reranker"
     BGE_M3_RERANKER = "bge_m3_colbert"
@@ -60,6 +66,7 @@ class MKTUserType(ConstantBase):
     ASSISTANT = "assistant"
     AUTO_CHAT = "auto_chat"
 
+
 class HistoryType(ConstantBase):
     DDB = 'ddb'
     MESSAGE = "message"
@@ -68,7 +75,7 @@ class HistoryType(ConstantBase):
 class LLMTaskType(ConstantBase):
     # LLM chain typs
     QUERY_TRANSLATE_TYPE = "query_translate"  # for query translate purpose
-    INTENT_RECOGNITION_TYPE = "intent_recognition" # for intent recognition
+    INTENT_RECOGNITION_TYPE = "intent_recognition"  # for intent recognition
     AWS_TRANSLATE_SERVICE_MODEL_ID = "Amazon Translate"
     QUERY_TRANSLATE_IDENTITY_TYPE = "identity"
     QUERY_REWRITE_TYPE = "query_rewrite"
@@ -84,7 +91,7 @@ class LLMTaskType(ConstantBase):
     RAG = "rag"
     CHAT = 'chat'
     AUTO_EVALUATION = "auto_evaluation"
-    
+
 
 class MessageType(ConstantBase):
     HUMAN_MESSAGE_TYPE = 'human'
@@ -104,9 +111,9 @@ class StreamMessageType(ConstantBase):
 
 
 class ChatbotMode(ConstantBase):
-    chat = "chat" # chi-chat
+    chat = "chat"  # chi-chat
     # rag_mode = "rag"  # rag
-    agent = "agent" # rag + tool use
+    agent = "agent"  # rag + tool use
 
 
 class ToolRuningMode(ConstantBase):
@@ -133,14 +140,15 @@ class LLMModelType(ConstantBase):
     QWEN2INSTRUCT72B = "qwen2-72B-instruct"
     QWEN15INSTRUCT32B = "qwen1_5-32B-instruct"
 
+
 class EmbeddingModelType(ConstantBase):
     BEDROCK_TITAN_V1 = "amazon.titan-embed-text-v1"
+
 
 @unique
 class Status(Enum):
     ACTIVE = "active"
     INACTIVE = "inactive"
-
 
 
 class IndexType(ConstantBase):

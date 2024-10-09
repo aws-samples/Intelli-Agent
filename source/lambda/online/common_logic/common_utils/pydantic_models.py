@@ -3,8 +3,6 @@ import copy
 import os
 from typing import Any, Union
 
-from typing import Any, Union
-
 import boto3
 from common_logic.common_utils.chatbot_utils import ChatbotManager
 from common_logic.common_utils.constant import (
@@ -13,23 +11,15 @@ from common_logic.common_utils.constant import (
     LLMModelType,
     SceneType,
 )
-from common_logic.common_utils.constant import (
-    ChatbotMode,
-    IndexType,
-    LLMModelType,
-    SceneType,
-)
+
 from common_logic.common_utils.logger_utils import get_logger
 from common_logic.common_utils.python_utils import update_nest_dict
-from pydantic import BaseModel, ConfigDict, Field
 from pydantic import BaseModel, ConfigDict, Field
 
 logger = get_logger("pydantic_models")
 
 
-
 class ForbidBaseModel(BaseModel):
-    model_config = ConfigDict(extra="forbid", protected_namespaces=())
     model_config = ConfigDict(extra="forbid", protected_namespaces=())
 
 
@@ -38,30 +28,25 @@ class ForbidBaseModel(BaseModel):
 class AllowBaseModel(BaseModel):
     class Config:
         extra = "allow"
-    class Config:
-        extra = "allow"
 
 
 class LLMConfig(AllowBaseModel):
     model_id: LLMModelType = LLMModelType.CLAUDE_3_SONNET
     model_kwargs: dict = {"temperature": 0.01, "max_tokens": 4096}
-    model_kwargs: dict = {"temperature": 0.01, "max_tokens": 4096}
 
 
 class QueryProcessConfig(ForbidBaseModel):
-    conversation_query_rewrite_config: LLMConfig = Field(default_factory=LLMConfig)
-
+    conversation_query_rewrite_config: LLMConfig = Field(
+        default_factory=LLMConfig)
 
 
 class RetrieverConfigBase(AllowBaseModel):
     index_type: str
 
 
-
 class IntentionRetrieverConfig(RetrieverConfigBase):
     top_k: int = 5
     query_key: str = "query"
-    index_name: str
     index_name: str
 
 
@@ -69,16 +54,13 @@ class QQMatchRetrieverConfig(RetrieverConfigBase):
     top_k: int = 5
     query_key: str = "query"
     index_name: str
-    index_name: str
 
 
 class PrivateKnowledgeRetrieverConfig(RetrieverConfigBase):
     top_k: int = 5
     context_num: int = 1
     using_whole_doc: bool = False
-    using_whole_doc: bool = False
     query_key: str = "query"
-    index_name: str
     index_name: str
 
 
@@ -97,16 +79,15 @@ class QQMatchConfig(ForbidBaseModel):
     threshold: float = 0.9
 
 
-
 class RagToolConfig(AllowBaseModel):
-    retrievers: list[PrivateKnowledgeRetrieverConfig] = Field(default_factory=list)
+    retrievers: list[PrivateKnowledgeRetrieverConfig] = Field(
+        default_factory=list)
     rerankers: list[RerankConfig] = Field(default_factory=list)
     llm_config: LLMConfig = Field(default_factory=LLMConfig)
 
 
 class AgentConfig(ForbidBaseModel):
     llm_config: LLMConfig = Field(default_factory=LLMConfig)
-    tools: list[str] = Field(default_factory=list)
     tools: list[str] = Field(default_factory=list)
     only_use_rag_tool: bool = False
 
@@ -122,10 +103,10 @@ class ChatbotConfig(AllowBaseModel):
     chatbot_mode: ChatbotMode = ChatbotMode.chat
     use_history: bool = True
     enable_trace: bool = True
-    enable_trace: bool = True
     scene: SceneType = SceneType.COMMON
     agent_repeated_call_limit: int = 5
-    query_process_config: QueryProcessConfig = Field(default_factory=QueryProcessConfig)
+    query_process_config: QueryProcessConfig = Field(
+        default_factory=QueryProcessConfig)
     intention_config: IntentionConfig = Field(default_factory=IntentionConfig)
     qq_match_config: QQMatchConfig = Field(default_factory=QQMatchConfig)
     agent_config: AgentConfig = Field(default_factory=AgentConfig)
@@ -133,19 +114,14 @@ class ChatbotConfig(AllowBaseModel):
     private_knowledge_config: PrivateKnowledgeConfig = Field(
         default_factory=PrivateKnowledgeConfig
     )
-    private_knowledge_config: PrivateKnowledgeConfig = Field(
-        default_factory=PrivateKnowledgeConfig
-    )
     tools_config: dict[str, Any] = Field(default_factory=dict)
 
-    def update_llm_config(self, new_llm_config: dict):
     def update_llm_config(self, new_llm_config: dict):
         """unified update llm config
 
         Args:
             new_llm_config (dict): _description_
         """
-
 
         def _update_llm_config(m):
             if isinstance(m, LLMConfig):
@@ -154,19 +130,11 @@ class ChatbotConfig(AllowBaseModel):
                 return
             elif isinstance(m, BaseModel):
                 for k, v in m:
-            if isinstance(m, LLMConfig):
-                for k, v in new_llm_config.items():
-                    setattr(m, k, copy.deepcopy(v))
-                return
-            elif isinstance(m, BaseModel):
-                for k, v in m:
                     _update_llm_config(v)
-
 
         _update_llm_config(self)
 
     @staticmethod
-    def format_index_info(index_info_from_ddb: dict):
     def format_index_info(index_info_from_ddb: dict):
         return {
             "index_name": index_info_from_ddb["indexId"],
@@ -184,9 +152,7 @@ class ChatbotConfig(AllowBaseModel):
             "index_type": index_info_from_ddb["indexType"],
         }
 
-
     @staticmethod
-    def get_index_info(index_infos: dict, index_type: str, index_name: str):
     def get_index_info(index_infos: dict, index_type: str, index_name: str):
         try:
             index_info = index_infos[index_type][index_name]
@@ -194,35 +160,26 @@ class ChatbotConfig(AllowBaseModel):
         except KeyError:
             valid_index_names = []
             for task_name, infos in index_infos.items():
-            for task_name, infos in index_infos.items():
                 for key in infos.keys():
                     valid_index_names.append(f"{task_name}->{key}")
             valid_index_name_str = "\n".join(valid_index_names)
             logger.error(f"valid index_names:\n{valid_index_name_str}")
             raise KeyError(f"key: {index_type}->{index_name} not exits")
 
-
     @classmethod
-    def get_index_infos_from_ddb(cls, group_name, chatbot_id):
     def get_index_infos_from_ddb(cls, group_name, chatbot_id):
         chatbot_manager = ChatbotManager.from_environ()
         chatbot = chatbot_manager.get_chatbot(group_name, chatbot_id)
         _infos = chatbot.index_ids or {}
         infos = {}
         for index_type, index_info in _infos.items():
-        for index_type, index_info in _infos.items():
             assert IndexType.has_value(index_type), IndexType.all_values()
             info_list = [
                 cls.format_index_info(info)
                 for info in list(index_info["value"].values())
             ]
-            infos[index_type] = {info["index_name"]: info for info in info_list}
-
-            info_list = [
-                cls.format_index_info(info)
-                for info in list(index_info["value"].values())
-            ]
-            infos[index_type] = {info["index_name"]: info for info in info_list}
+            infos[index_type] = {info["index_name"]
+                : info for info in info_list}
 
         for index_type in IndexType.all_values():
             if index_type not in infos:
@@ -230,15 +187,13 @@ class ChatbotConfig(AllowBaseModel):
 
         return infos
 
-
     def update_retrievers(
         self,
         default_index_names: dict[str, list],
         default_retriever_config: dict[str, dict],
-        default_index_names: dict[str, list],
-        default_retriever_config: dict[str, dict],
     ):
-        index_infos = self.get_index_infos_from_ddb(self.group_name, self.chatbot_id)
+        index_infos = self.get_index_infos_from_ddb(
+            self.group_name, self.chatbot_id)
         print(f"index_infos: {index_infos}")
         print(f"default_index_names: {default_index_names}")
         print(f"default_retriever_config: {default_retriever_config}")
@@ -251,7 +206,6 @@ class ChatbotConfig(AllowBaseModel):
             elif task_name == "private_knowledge":
                 index_type = IndexType.QD
 
-
             # default to use all index
             if not index_names:
                 index_info_list = list(index_infos[index_type].values())
@@ -259,12 +213,8 @@ class ChatbotConfig(AllowBaseModel):
                     {**default_retriever_config[task_name], **index_info}
                     for index_info in index_info_list
                 ]
-                getattr(self, f"{task_name}_config").retrievers.extend(index_info_list)
-                index_info_list = [
-                    {**default_retriever_config[task_name], **index_info}
-                    for index_info in index_info_list
-                ]
-                getattr(self, f"{task_name}_config").retrievers.extend(index_info_list)
+                getattr(self, f"{task_name}_config").retrievers.extend(
+                    index_info_list)
             else:
                 for index_name in index_names:
                     index_info = self.get_index_info(
@@ -272,21 +222,11 @@ class ChatbotConfig(AllowBaseModel):
                     )
                     getattr(self, f"{task_name}_config").retrievers.append(
                         {**default_retriever_config[task_name], **index_info}
-                for index_name in index_names:
-                    index_info = self.get_index_info(
-                        index_infos, index_type, index_name
                     )
-                    getattr(self, f"{task_name}_config").retrievers.append(
-                        {**default_retriever_config[task_name], **index_info}
-                    )
-
-    def model_copy(self, update=None, deep=True):
 
     def model_copy(self, update=None, deep=True):
         update = update or {}
         new_dict = update_nest_dict(copy.deepcopy(self.dict()), update)
-        new_dict = update_nest_dict(copy.deepcopy(self.dict()), update)
         cls = type(self)
         obj = cls(**new_dict)
         return obj
-
