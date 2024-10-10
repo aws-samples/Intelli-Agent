@@ -12,7 +12,7 @@ const MoreResource: React.FC = () => {
         </Link>
       </Box>
       <Box padding={{ vertical: 'xs' }}>
-        <Link href="/" target="_blank">
+        <Link href="https://github.com/aws-samples/Intelli-Agent/issues/new" target="_blank">
           {t('moreResources.submitIssue')}
         </Link>
       </Box>

@@ -161,6 +161,11 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
             }}
             items={[
               {
+                type: 'link',
+                text: t('homeSidebar'),
+                href: '/',
+              },
+              {
                 type: 'section',
                 text: t('chatSpace'),
                 items: [

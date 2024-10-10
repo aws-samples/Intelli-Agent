@@ -169,6 +169,7 @@
     "projectDescription": "AI Customer Service offers a streamlined workflow for developing scalable, production-grade agent-based applications",
     "awsSolutionGuidance": "Amazon Web Services Solution Guidance",
     "mead": "Media & Advertisement",
+    "homeSidebar": "Home",
     "featuresAndBenefits": {
       "name": "Features and Benefits",
       "feat1": {
@@ -199,7 +200,7 @@
       "name": "Getting Started",
       "link1": "Getting Started",
       "link2": "Implementation Guide",
-      "link3": "Chat"
+      "link3": "Start to Chat"
     },
     "moreResources": {
       "name": "More Resources",
