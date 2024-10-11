@@ -11,6 +11,7 @@ from common_logic.common_utils.constant import (
     LLMModelType,
     SceneType,
 )
+
 from common_logic.common_utils.logger_utils import get_logger
 from common_logic.common_utils.python_utils import update_nest_dict
 from pydantic import BaseModel, ConfigDict, Field
@@ -35,7 +36,8 @@ class LLMConfig(AllowBaseModel):
 
 
 class QueryProcessConfig(ForbidBaseModel):
-    conversation_query_rewrite_config: LLMConfig = Field(default_factory=LLMConfig)
+    conversation_query_rewrite_config: LLMConfig = Field(
+        default_factory=LLMConfig)
 
 
 class RetrieverConfigBase(AllowBaseModel):
@@ -78,7 +80,8 @@ class QQMatchConfig(ForbidBaseModel):
 
 
 class RagToolConfig(AllowBaseModel):
-    retrievers: list[PrivateKnowledgeRetrieverConfig] = Field(default_factory=list)
+    retrievers: list[PrivateKnowledgeRetrieverConfig] = Field(
+        default_factory=list)
     rerankers: list[RerankConfig] = Field(default_factory=list)
     llm_config: LLMConfig = Field(default_factory=LLMConfig)
 
@@ -102,7 +105,8 @@ class ChatbotConfig(AllowBaseModel):
     enable_trace: bool = True
     scene: SceneType = SceneType.COMMON
     agent_repeated_call_limit: int = 5
-    query_process_config: QueryProcessConfig = Field(default_factory=QueryProcessConfig)
+    query_process_config: QueryProcessConfig = Field(
+        default_factory=QueryProcessConfig)
     intention_config: IntentionConfig = Field(default_factory=IntentionConfig)
     qq_match_config: QQMatchConfig = Field(default_factory=QQMatchConfig)
     agent_config: AgentConfig = Field(default_factory=AgentConfig)
@@ -174,7 +178,8 @@ class ChatbotConfig(AllowBaseModel):
                 cls.format_index_info(info)
                 for info in list(index_info["value"].values())
             ]
-            infos[index_type] = {info["index_name"]: info for info in info_list}
+            infos[index_type] = {info["index_name"]
+                : info for info in info_list}
 
         for index_type in IndexType.all_values():
             if index_type not in infos:
@@ -187,7 +192,8 @@ class ChatbotConfig(AllowBaseModel):
         default_index_names: dict[str, list],
         default_retriever_config: dict[str, dict],
     ):
-        index_infos = self.get_index_infos_from_ddb(self.group_name, self.chatbot_id)
+        index_infos = self.get_index_infos_from_ddb(
+            self.group_name, self.chatbot_id)
         print(f"index_infos: {index_infos}")
         print(f"default_index_names: {default_index_names}")
         print(f"default_retriever_config: {default_retriever_config}")
@@ -207,7 +213,8 @@ class ChatbotConfig(AllowBaseModel):
                     {**default_retriever_config[task_name], **index_info}
                     for index_info in index_info_list
                 ]
-                getattr(self, f"{task_name}_config").retrievers.extend(index_info_list)
+                getattr(self, f"{task_name}_config").retrievers.extend(
+                    index_info_list)
             else:
                 for index_name in index_names:
                     index_info = self.get_index_info(

@@ -13,8 +13,9 @@ execution_table = dynamodb.Table(os.environ.get("EXECUTION_TABLE"))
 def lambda_handler(event, context):
     logger.info(f"event:{event}")
     if len(event["Records"]) != 1:
-        raise ValueError(f"Record is not valid, it should only has 1 item, {event}")
-    
+        raise ValueError(
+            f"Record is not valid, it should only has 1 item, {event}")
+
     message = json.loads(event["Records"][0]["Sns"]["Message"])
     execution_id = message["executionId"]
     status = "COMPLETED"

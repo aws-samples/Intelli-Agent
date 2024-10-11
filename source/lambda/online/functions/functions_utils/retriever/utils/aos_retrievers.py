@@ -26,6 +26,7 @@ aos_endpoint = os.environ.get("AOS_ENDPOINT", "")
 aos_domain_name = os.environ.get("AOS_DOMAIN_NAME", "smartsearch")
 aos_secret = os.environ.get("AOS_SECRET_NAME", "opensearch-master-user")
 sm_client = boto3.client("secretsmanager")
+bedrock_region = os.environ.get("BEDROCK_REGION", "us-east-1")
 try:
     master_user = sm_client.get_secret_value(SecretId=aos_secret)[
         "SecretString"
@@ -71,7 +72,7 @@ def get_similarity_embedding(
     model_type: str = "vector",
 ) -> List[List[float]]:
     if model_type.lower() == "bedrock":
-        embeddings = BedrockEmbeddings(model_id=embedding_model_endpoint)
+        embeddings = BedrockEmbeddings(model_id=embedding_model_endpoint, region_name=bedrock_region)
         response = embeddings.embed_query(query)
     else:
         query_similarity_embedding_prompt = query
@@ -95,7 +96,7 @@ def get_relevance_embedding(
     model_type: str = "vector",
 ):
     if model_type == "bedrock":
-        embeddings = BedrockEmbeddings(model_id=embedding_model_endpoint)
+        embeddings = BedrockEmbeddings(model_id=embedding_model_endpoint, region_name=bedrock_region)
         response = embeddings.embed_query(query)
     else:
         if model_type == "vector":

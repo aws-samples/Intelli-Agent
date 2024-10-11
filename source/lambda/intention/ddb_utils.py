@@ -4,6 +4,7 @@ from typing import Any
 from constant import IndexType, KBType, ModelType, Status
 from embeddings import get_embedding_info
 
+
 def create_item_if_not_exist(ddb_table, item_key: dict, body: str):
     response = ddb_table.get_item(Key=item_key)
     item = response.get("Item")
@@ -11,6 +12,7 @@ def create_item_if_not_exist(ddb_table, item_key: dict, body: str):
         ddb_table.put_item(Item=body)
         return False, item
     return True, item
+
 
 def check_item_exist(ddb_table, item_key: dict):
     response = ddb_table.get_item(Key=item_key)
@@ -107,7 +109,8 @@ def initiate_chatbot(
                 chatbot_table.put_item(Item=item)
         else:
             # Add a new index type
-            item["indexIds"][index_type] = {"count": 1, "value": {tag: index_id}}
+            item["indexIds"][index_type] = {
+                "count": 1, "value": {tag: index_id}}
             chatbot_table.put_item(Item=item)
 
 

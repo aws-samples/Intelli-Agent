@@ -77,7 +77,7 @@ class Claude2(Model):
         )
         region_name = (
             kwargs.get("region_name", None)
-            or os.environ.get("AWS_REGION", None)
+            or os.environ.get("BEDROCK_REGION", None)
             or None
         )
         llm = BedrockChat(

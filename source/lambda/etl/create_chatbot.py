@@ -59,7 +59,8 @@ def lambda_handler(event, context):
 
     model_id = f"{chatbot_id}-embedding"
     create_time = str(datetime.now(timezone.utc))
-    initiate_model(model_table, group_name, model_id, embedding_endpoint, create_time)
+    initiate_model(model_table, group_name, model_id,
+                   embedding_endpoint, create_time)
 
     index_id_list = {}
     DESCRIPTION = "Answer question based on search result"

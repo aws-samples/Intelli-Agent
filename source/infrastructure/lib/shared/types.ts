@@ -24,6 +24,7 @@ export interface SystemConfig {
   };
   chat: {
     enabled: boolean;
+    bedrockRegion: string;
     amazonConnect: {
       enabled: boolean;
     }

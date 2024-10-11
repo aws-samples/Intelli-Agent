@@ -39,6 +39,7 @@ embedding_model_endpoint = os.environ.get("EMBEDDING_MODEL_ENDPOINT", "")
 aosEndpoint = os.environ.get("AOS_ENDPOINT")
 kb_enabled = os.environ["KNOWLEDGE_BASE_ENABLED"].lower() == "true"
 region = os.environ.get("AWS_REGION", "us-east-1")
+bedrock_region = os.environ.get("BEDROCK_REGION", "us-east-1")
 aos_domain_name = os.environ.get("AOS_DOMAIN_NAME", "smartsearch")
 aos_endpoint = os.environ.get("AOS_ENDPOINT", "")
 aos_secret = os.environ.get("AOS_SECRET_NAME", "opensearch-master-user")
@@ -77,7 +78,7 @@ except Exception as err:
 
 dynamodb_client = boto3.client("dynamodb")
 s3_client = boto3.client("s3")
-bedrock_client = boto3.client("bedrock-runtime", region_name=region)
+bedrock_client = boto3.client("bedrock-runtime", region_name=bedrock_region)
 
 credentials = boto3.Session().get_credentials()
 awsauth = AWS4Auth(refreshable_credentials=credentials,
@@ -176,18 +177,19 @@ def lambda_handler(event, context):
             "headers": resp_header,
             "body": json.dumps(output),
         }
-    except Exception as err:
-        logger.error("Error: %s", str(err))
+    except Exception as error:
+        logger.error("Error: %s", str(error))
         return {
             "statusCode": 500,
             "headers": resp_header,
-            "body": json.dumps(f"Error: {str(err)}"),
+            "body": json.dumps(f"Error: {str(error)}"),
         }
+
 
 def __delete_execution(event, group_name):
     input_body = json.loads(event["body"])
     execution_ids = input_body.get("executionIds")
-    res=[]
+    res = []
     for execution_id in execution_ids:
         index_response = intention_table.get_item(
             Key={
@@ -215,6 +217,8 @@ def __delete_execution(event, group_name):
 # def __can_be_deleted(execution_id):
 
 #     return False, ""
+
+
 def __delete_documents_by_text_set(index_name, text_values):
     # Search for the documents based on the "text" field matching any value in text_values set
     search_body = {
@@ -228,9 +232,10 @@ def __delete_documents_by_text_set(index_name, text_values):
 
     # Perform the search
     try:
-        search_result = aos_client.search(index=index_name, body=search_body)  # Adjust size if needed
+        search_result = aos_client.search(
+            index=index_name, body=search_body)  # Adjust size if needed
         hits = search_result['hits']['hits']
-    
+
         # If documents exist, delete them
         if hits:
             for hit in hits:
@@ -238,7 +243,8 @@ def __delete_documents_by_text_set(index_name, text_values):
                 aos_client.delete(index=index_name, id=doc_id)
                 logger.info("Deleted document with id %s", doc_id)
     except NotFoundError:
-            logger.info("Index is not existed: %s", index_name)
+        logger.info("Index is not existed: %s", index_name)
+
 
 def __get_query_parameter(event, parameter_name, default_value=None):
     if (
@@ -322,8 +328,8 @@ def __create_execution(event, context, email, group_name):
     execution_detail["index"] = input_body.get("index")
     execution_detail["model"] = input_body.get("model")
     execution_detail["fileName"] = input_body.get("s3Prefix").split("/").pop()
-    bucket=input_body.get("s3Bucket")
-    prefix=input_body.get("s3Prefix")
+    bucket = input_body.get("s3Bucket")
+    prefix = input_body.get("s3Prefix")
     s3_response = __get_s3_object_with_retry(bucket, prefix)
     file_content = s3_response['Body'].read()
     excel_file = BytesIO(file_content)
@@ -365,7 +371,8 @@ def __create_execution(event, context, email, group_name):
         }
     )
     # write to aos(vectorData)
-    __save_2_aos(input_body.get("model", {}).get("value"), execution_detail["index"], qaList, bucket, prefix)
+    __save_2_aos(input_body.get("model"),
+                 execution_detail["index"], qaList, bucket, prefix)
 
     return {
         "execution_id": execution_detail["tableItemId"],
@@ -464,8 +471,9 @@ def __create_index(index: str, modelId: str):
     try:
         aos_client.indices.create(index=index, body=body)
         logger.info("Index %s created successfully.", index)
-    except RequestError as err:
-        logger.info(err.error)
+    except RequestError as error:
+        logger.info(error.error)
+
 
 def __refresh_index(index: str, modelId: str, qaList):
     success, failed = helpers.bulk(aos_client,  __append_embeddings(
@@ -562,9 +570,8 @@ def __get_s3_object_with_retry(bucket: str, key: str, max_retries: int = 5, dela
             attempt += 1
             if attempt >= max_retries:
                 logger.info("Time out, retry...")
-                raise 
+                raise
             time.sleep(delay)
-
 
 def __download_template():
     url = s3_client.generate_presigned_url(
