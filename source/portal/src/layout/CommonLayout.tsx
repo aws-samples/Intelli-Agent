@@ -31,7 +31,6 @@ interface CommonLayoutProps {
 }
 
 const CommonLayout: React.FC<CommonLayoutProps> = ({
-  activeHref,
   children,
   flashBar,
   breadCrumbs,
