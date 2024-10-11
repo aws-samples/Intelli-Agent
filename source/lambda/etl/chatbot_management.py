@@ -35,6 +35,7 @@ INDEXES_RESOURCE = f"{ROOT_RESOURCE}/indexes"
 CHATBOTS_RESOURCE = f"{ROOT_RESOURCE}/chatbots"
 # DETAILS_RESOURCE = f"{ROOT_RESOURCE}/chatbot"
 CHATBOTCHECK_RESOURCE = f"{ROOT_RESOURCE}/check-chatbot"
+CHATBOTCHECK_DEFAULT = f"{ROOT_RESOURCE}/check-default-chatbot"
 logger = logging.getLogger(__name__)
 encoder = TokenEncoder()
 
@@ -261,6 +262,8 @@ def lambda_handler(event, context):
             output = __delete_chatbot(event, group_name)
     elif resource == CHATBOTCHECK_RESOURCE:
         output = __validate_chatbot(event, group_name)
+    elif resource == CHATBOTCHECK_DEFAULT:
+        output = __validate_default_chatbot(event, group_name)
 
     try:
         return {
@@ -276,6 +279,11 @@ def lambda_handler(event, context):
             "body": json.dumps(f"Error: {str(e)}"),
         }
 
+def __validate_default_chatbot(event, group_name):
+    chatbot_item = chatbot_table.get_item(
+            Key={"groupName": group_name, "chatbotId": group_name.lower()}
+        ).get("Item")
+    return True if chatbot_item else False
 
 def __validate_chatbot(event, group_name):
     input_body = json.loads(event["body"])

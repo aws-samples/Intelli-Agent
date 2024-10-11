@@ -13,8 +13,16 @@ const LoginCallback: React.FC = () => {
     window.location.href = `${lastVisitUrl}`;
   };
 
-  const createChatBot = async () => {
+  const createDefaultChatBotIfNotExist = async () => {
     const groupName: string[] = auth?.user?.profile?.['cognito:groups'] as any;
+    const existed = await fetchData({
+      url: 'chatbot-management/check-default-chatbot',
+      method: 'get'
+    })
+    if(existed){
+      gotoBasePage();
+      return;
+    }
     const data = await fetchData({
       url: 'chatbot-management/chatbots',
       method: 'post',
@@ -28,7 +36,7 @@ const LoginCallback: React.FC = () => {
   };
 
   useEffect(() => {
-    createChatBot();
+    createDefaultChatBotIfNotExist();
   }, []);
   return (
     <div className="page-loading">

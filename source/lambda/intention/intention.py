@@ -20,8 +20,7 @@ from aos import sm_utils
 from requests_aws4auth import AWS4Auth
 
 from aos.aos_utils import LLMBotOpenSearchClient
-from constant import (AOS_INDEX,
-                      BULK_SIZE,
+from constant import (BULK_SIZE,
                       DEFAULT_CONTENT_TYPE,
                       DEFAULT_MAX_ITEMS,
                       DEFAULT_SIZE,
@@ -30,7 +29,6 @@ from constant import (AOS_INDEX,
                       INDEX_USED_SCAN_RESOURCE,
                       PRESIGNED_URL_RESOURCE,
                       SECRET_NAME,
-                      IndexType,
                       ModelDimensionMap)
 
 logger = logging.getLogger(__name__)
@@ -74,8 +72,8 @@ try:
             aos_endpoint, (username, password)).client
 except sm_client.exceptions.ResourceNotFoundException:
     logger.info("Secret '%s' not found in Secrets Manager", aos_secret)
-except Exception as e:
-    logger.error("Error retrieving secret '%s': %s", aos_secret, str(e))
+except Exception as err:
+    logger.error("Error retrieving secret '%s': %s", aos_secret, str(err))
     raise
 
 dynamodb_client = boto3.client("dynamodb")
@@ -179,12 +177,12 @@ def lambda_handler(event, context):
             "headers": resp_header,
             "body": json.dumps(output),
         }
-    except Exception as e:
-        logger.error("Error: %s", str(e))
+    except Exception as error:
+        logger.error("Error: %s", str(error))
         return {
             "statusCode": 500,
             "headers": resp_header,
-            "body": json.dumps(f"Error: {str(e)}"),
+            "body": json.dumps(f"Error: {str(error)}"),
         }
 
 
@@ -338,11 +336,20 @@ def __create_execution(event, context, email, group_name):
     workbook = load_workbook(excel_file)
     sheet = workbook.active
     qaList = []
+
     for row in sheet.iter_rows(min_row=2, values_only=True):
         question, intention, kwargs = row[0], row[1], row[2] if len(
             row) > 2 else None
         if not question:
             continue
+        # for i, element in enumerate(qaList):
+        #     if element.get("question") == question:
+        #         qaList[i] = {
+        #             "question": question,
+        #             "intention": intention,
+        #             "kwargs": kwargs
+        #         }
+        #         return qaList
         qaList.append({
             "question": question,
             "intention": intention,
@@ -399,7 +406,8 @@ def convert_qa_list(qa_list: list, bucket: str, prefix: str) -> List[Document]:
     return doc_list
 
 
-def __save_2_aos(modelId: str, index: str, qaList: list, bucket: str, prefix: str):
+def __save_2_aos(modelId: str, index: str, qaListParam: list, bucket: str, prefix: str):
+    qaList = __deduplicate_by_key(qaListParam, "question")
     if kb_enabled:
         embedding_function = sm_utils.getCustomEmbeddings(
             embedding_model_endpoint, region, "bce"
@@ -463,8 +471,8 @@ def __create_index(index: str, modelId: str):
     try:
         aos_client.indices.create(index=index, body=body)
         logger.info("Index %s created successfully.", index)
-    except RequestError as e:
-        logger.info(e.error)
+    except RequestError as error:
+        logger.info(error.error)
 
 
 def __refresh_index(index: str, modelId: str, qaList):
@@ -476,6 +484,7 @@ def __refresh_index(index: str, modelId: str, qaList):
 
 
 def __append_embeddings(index, modelId, qaList: list):
+    actions = []
     documents = []
     for item in qaList:
         question = item["question"]
@@ -503,7 +512,16 @@ def __append_embeddings(index, modelId, qaList: list):
     for document in documents:
         index_list = index.split(",")
         for index_item in index_list:
-            yield {"_op_type": "index", "_index": index_item, "_source": document, "_id": hashlib.md5(str(document).encode('utf-8')).hexdigest()}
+            doc_id = hashlib.md5(str(document["text"]).encode('utf-8')).hexdigest()
+            action = {
+                "_op_type": "index",
+                "_index": index_item,
+                "_id": doc_id,
+                "_source": document
+            }
+            actions.append(action)
+    return actions
+            # yield {"_op_type": "index", "_index": index_item, "_source": document, "_id": hashlib.md5(str(document).encode('utf-8')).hexdigest()}
 
 
 def __get_execution(event, group_name):
@@ -555,7 +573,6 @@ def __get_s3_object_with_retry(bucket: str, key: str, max_retries: int = 5, dela
                 raise
             time.sleep(delay)
 
-
 def __download_template():
     url = s3_client.generate_presigned_url(
         ClientMethod="get_object",
@@ -603,6 +620,12 @@ def __index_used_scan(event, group_name):
             }
             )}
 
+
+def __deduplicate_by_key(lst, key):
+    seen = {}
+    for element in lst:
+        seen[element[key]] = element
+    return list(seen.values())
 
 def __get_query_parameter(event, parameter_name, default_value=None):
     if (
