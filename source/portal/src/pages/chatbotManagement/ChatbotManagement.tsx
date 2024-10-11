@@ -117,41 +117,6 @@ const ChatbotManagement: React.FC = () => {
     }
   };
 
-  // const getChatbotById = async () => {
-  //   setLoadingGet(true);
-  //   // let requestUrl = `chatbot-management/chatbots/create`;
-  //   // if (type === 'edit') {
-  //   // requestUrl = `chatbot-management/chatbots/edit`;
-  //   setChatbotName(selectedItems[0].ChatbotId);
-  //     // setModelOption({
-  //     //   label: selectedItems[0].ModelName,
-  //     //   value: selectedItems[0].ModelName,
-  //     // });
-  //   // }
-  //   // try {
-  //   //   let chatbotIdParam = '';
-  //   //   if (selectedItems.length > 0) {
-  //   //     chatbotIdParam = selectedItems[0].ChatbotId;
-  //   //   } else {
-  //   //     chatbotIdParam = 'admin';
-  //   //   }
-  //   const data: chatbotDetail = await fetchData({
-  //     url: `chatbot-management/chatbot/${selectedItems[0].ChatbotId}`,
-  //     method: 'get'
-  //   });
-  //   setLoadingGet(false);
-  //   setQdIndex(data.Chatbot.qd);
-  //   setQqIndex(data.Chatbot.qq);
-  //   setIntentionIndex(data.Chatbot.intention);
-  //   // setCurrentChatbot(data);
-  //   setShowEdit(true);
-      
-  //   // } catch (error: unknown) {
-  //   //   console.info('error:', error);
-  //   //   setLoadingGet(false);
-  //   // }
-  // };
-
   const deleteChatbot = async () => {
     setLoadingSave(true);
     try {
