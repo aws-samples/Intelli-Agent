@@ -19,7 +19,7 @@ import {
 } from 'src/utils/const';
 import { useAuth } from 'react-oidc-context';
 import ConfigContext from 'src/context/config-context';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import CustomBreadCrumb, { BreadCrumbType } from './CustomBreadCrumb';
 
 interface CommonLayoutProps {
@@ -104,6 +104,8 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
   } : null
 
   const layoutItems = kbItem ? [...baseItems, kbItem, promptItem] : [...baseItems, promptItem];
+  const location = useLocation();
+  const currentActiveHref = location.pathname;
 
   return (
     <I18nProvider locale={i18n.language} messages={[messages]}>
@@ -151,7 +153,7 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
         }
         navigation={
           <SideNavigation
-            activeHref={activeHref}
+            activeHref={currentActiveHref}
             header={{ href: '/', text: t('name') }}
             onFollow={(e) => {
               if (!e.detail.external) {
