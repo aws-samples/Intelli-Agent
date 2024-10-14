@@ -25,7 +25,7 @@ echo "UI Enabled: $ui_enabled"
 
 
 prepare_etl_model() {
-    echo "Prepare ETL Model"
+    echo "Preparing ETL Model"
     cd model/etl/code
     sh model.sh ./Dockerfile $ecr_repository $ecr_image_tag
     cd - > /dev/null
@@ -33,14 +33,14 @@ prepare_etl_model() {
 }
 
 prepare_online_model() {
-    echo "Prepare Online Model"
+    echo "Preparing Online Model"
     cd model
     bash prepare_model.sh -s $model_assets_bucket
     cd - > /dev/null
 }
 
 build_frontend() {
-    echo "Build Frontend"
+    echo "Building Frontend"
     cd portal
     npm install && npm run build
     cd - > /dev/null
