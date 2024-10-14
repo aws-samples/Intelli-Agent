@@ -16,6 +16,15 @@ from .exceptions import LambdaInvokeError
 logger = get_logger("lambda_invoke_utils")
 
 
+__FUNC_NAME_MAP = {
+    "query_preprocess": "Preprocess for multi-round conversation",
+    "intention_detection": "Intention detection",
+    "agent": "Agent",
+    "tools_choose_and_results_generation": "Tool calling",
+    "results_evaluation": "Result evaluation",
+    "tool_execution": "Final tool result"
+}
+
 class LAMBDA_INVOKE_MODE(enum.Enum):
     LAMBDA = "lambda"
     LOCAL = "local"
@@ -271,7 +280,7 @@ def node_monitor_wrapper(fn: Optional[Callable[..., Any]] = None, *, monitor_key
             current_stream_use = state["stream"]
             ws_connection_id = state["ws_connection_id"]
             enable_trace = state["enable_trace"]
-            send_trace(f"\n\n **Enter {func.__name__}**",
+            send_trace(f"\n\n ### {__FUNC_NAME_MAP[func.__name__]}\n\n",
                        current_stream_use, ws_connection_id, enable_trace)
             state['trace_infos'].append(
                 f"Enter: {func.__name__}, time: {time.time()}")
@@ -281,9 +290,8 @@ def node_monitor_wrapper(fn: Optional[Callable[..., Any]] = None, *, monitor_key
                 send_trace(f"\n\n {current_monitor_infos}",
                            current_stream_use, ws_connection_id, enable_trace)
             exit_time = time.time()
-            state['trace_infos'].append(
-                f"Exit: {func.__name__}, time: {time.time()}")
-            send_trace(f"\n\n **Exit {func.__name__}**, elapsed time: {round((exit_time-enter_time)*100)/100} s",
+            state['trace_infos'].append(f"Exit: {func.__name__}, time: {time.time()}")
+            send_trace(f"\n\n Elapsed time: {round((exit_time-enter_time)*100)/100} s",
                        current_stream_use, ws_connection_id, enable_trace)
             return output
 
