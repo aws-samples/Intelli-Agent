@@ -10,6 +10,7 @@ knowledge_base_models_enabled=$(jq -r '.knowledgeBase.knowledgeBaseType.intelliA
 ecr_repository=$(jq -r '.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.ecrRepository' $config_file)
 ecr_image_tag=$(jq -r '.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.ecrImageTag' $config_file)
 opensearch_enabled=$(jq -r '.knowledgeBase.knowledgeBaseType.intelliAgentKb.vectorStore.opensearch.enabled' $config_file)
+embedding_model_provider=$(jq -r '.model.embeddingsModels[0].provider' $config_file)
 model_assets_bucket=$(jq -r '.model.modelConfig.modelAssetsBucket' $config_file)
 ui_enabled=$(jq -r '.ui.enabled' $config_file)
 
@@ -53,7 +54,7 @@ if $knowledge_base_enabled && $knowledge_base_intelliagent_enabled && $knowledge
     modules_prepared="${modules_prepared}ETL Model, "
 fi
 
-if $knowledge_base_enabled && $knowledge_base_intelliagent_enabled && $opensearch_enabled; then
+if $knowledge_base_enabled && $knowledge_base_intelliagent_enabled && $opensearch_enabled && [ "$embedding_model_provider" != "bedrock" ]; then
     prepare_online_model
     modules_prepared="${modules_prepared}Online Model, "
 fi
