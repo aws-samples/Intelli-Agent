@@ -5,7 +5,9 @@ import { prompt } from "enquirer";
 import * as fs from "fs";
 import * as AWS from "aws-sdk";
 import {
-  SystemConfig
+  SystemConfig,
+  SupportedBedrockRegion,
+  SupportedRegion,
 } from "../lib/shared/types";
 import { LIB_VERSION } from "./version.js";
 
@@ -37,6 +39,9 @@ const embeddingModels = [
   }
 ];
 
+const supportedRegions = Object.values(SupportedRegion) as string[];
+const supportedBedrockRegions = Object.values(SupportedBedrockRegion) as string[];
+
 const llms = [
   {
     provider: "bedrock",
@@ -61,7 +66,7 @@ async function getAwsAccountAndRegion() {
     AWS_REGION = new AWS.IniLoader().loadFrom({ isConfig: true }).default.region;
 
   } catch (error) {
-    console.error("Error fetching AWS region:", error);
+    console.error("No default region found in the AWS credentials file. Please enter the region you want to deploy the intelli-agent knowledge base");
     AWS_REGION = undefined;
   }
 
@@ -90,6 +95,8 @@ async function getAwsAccountAndRegion() {
         fs.readFileSync("./bin/config.json").toString("utf8")
       );
       options.prefix = config.prefix;
+      options.intelliAgentUserEmail = config.email;
+      options.intelliAgentDeployRegion = config.deployRegion;
       options.enableKnowledgeBase = config.knowledgeBase.enabled;
       options.knowledgeBaseType = config.knowledgeBase.knowledgeBaseType.intelliAgentKb.enabled
         ? "intelliAgentKb"
@@ -142,7 +149,7 @@ function createConfig(config: any): void {
 async function processCreateOptions(options: any): Promise<void> {
   // Get AWS account ID and region
   const { AWS_ACCOUNT, AWS_REGION } = await getAwsAccountAndRegion();
-  let questions = [
+  const mandatoryQuestions = [
     {
       type: "input",
       name: "prefix",
@@ -162,6 +169,23 @@ async function processCreateOptions(options: any): Promise<void> {
           : "Enter a valid email address in specified format: [a-zA-Z0-9]+([._-][0-9a-zA-Z]+)*@[a-zA-Z0-9]+([.-][0-9a-zA-Z]+)*\\.[a-zA-Z]{2,}";
       },
     },
+    {
+      type: "input",
+      name: "intelliAgentDeployRegion",
+      message: "Please enter the region you want to deploy the intelli-agent knowledge base",
+      initial: options.intelliAgentDeployRegion ?? AWS_REGION,
+      validate(intelliAgentDeployRegion: string) {
+        if (Object.values(supportedRegions).includes(intelliAgentDeployRegion)) {
+          return true;
+        }
+        return "Enter a valid region. Supported regions: " + supportedRegions.join(", ");
+      },
+    },
+  ]
+
+  const mandatoryQuestionAnswers: any = await prompt(mandatoryQuestions);
+
+  let questions = [
     {
       type: "confirm",
       name: "enableKnowledgeBase",
@@ -263,7 +287,13 @@ async function processCreateOptions(options: any): Promise<void> {
       type: "input",
       name: "bedrockRegion",
       message: "Which region would you like to use Bedrock?",
-      initial: options.bedrockRegion ?? AWS_REGION,
+      initial: options.bedrockRegion ?? mandatoryQuestionAnswers.intelliAgentDeployRegion,
+      validate(bedrockRegion: string) {
+        if (Object.values(supportedBedrockRegions).includes(bedrockRegion)) {
+          return true;
+        }
+        return "Enter a valid region for Bedrock. Supported regions: " + supportedBedrockRegions.join(", ");
+      },
       skip(): boolean {
         return (!(this as any).state.answers.enableChat);
       },
@@ -316,7 +346,7 @@ async function processCreateOptions(options: any): Promise<void> {
       type: "input",
       name: "sagemakerModelS3Bucket",
       message: "Please enter the name of the S3 Bucket for the sagemaker models assets",
-      initial: options.sagemakerModelS3Bucket ?? `intelli-agent-models-${AWS_ACCOUNT}-${AWS_REGION}`,
+      initial: options.sagemakerModelS3Bucket ?? `intelli-agent-models-${AWS_ACCOUNT}-${mandatoryQuestionAnswers.intelliAgentDeployRegion}`,
       validate(sagemakerModelS3Bucket: string) {
         return (this as any).skipped ||
           RegExp(/^(?!(^xn--|.+-s3alias$))^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/i).test(sagemakerModelS3Bucket)
@@ -381,8 +411,9 @@ async function processCreateOptions(options: any): Promise<void> {
 
   // Create the config object
   const config = {
-    prefix: answers.prefix,
-    email: answers.intelliAgentUserEmail,
+    prefix: mandatoryQuestionAnswers.prefix,
+    email: mandatoryQuestionAnswers.intelliAgentUserEmail,
+    deployRegion: mandatoryQuestionAnswers.intelliAgentDeployRegion,
     knowledgeBase: {
       enabled: answers.enableKnowledgeBase,
       knowledgeBaseType: {
