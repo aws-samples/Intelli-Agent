@@ -12,7 +12,7 @@ export function getConfig(): SystemConfig {
   return {
     prefix: "",
     email: "support@example.com",
-    deployRegion: AWS_REGION,
+    deployRegion: "us-east-1",
     knowledgeBase: {
       enabled: true,
       knowledgeBaseType: {
