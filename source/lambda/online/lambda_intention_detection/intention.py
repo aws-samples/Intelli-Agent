@@ -67,22 +67,13 @@ def get_intention_results(query:str, intention_config:dict):
                 # Titan v1 threshold is 0.001, Titan v2 threshold is 0.4
                 threshold_score = 0.001
             if doc["score"] > threshold_score:
-                if kb_enabled and intelli_agent_kb_enabled:
-                    doc_item = {
-                        "query": doc["page_content"],
-                        "score": doc["score"],
-                        "name": doc["answer"]["jsonlAnswer"]["intent"],
-                        "intent": doc["answer"]["jsonlAnswer"]["intent"],
-                        "kwargs": doc["answer"]["jsonlAnswer"].get("kwargs", {}),
-                    }
-                else:
-                    doc_item = {
-                        "query": doc["page_content"],
-                        "score": doc["score"],
-                        "name": doc["answer"],
-                        "intent": doc["answer"],
-                        "kwargs": doc.get("kwargs", {}),
-                    }
+                doc_item = {
+                    "query": doc["page_content"],
+                    "score": doc["score"],
+                    "name": doc["answer"],
+                    "intent": doc["answer"],
+                    "kwargs": doc.get("kwargs", {}),
+                }
                 intent_fewshot_examples.append(doc_item)
         
     return intent_fewshot_examples

@@ -19,7 +19,7 @@ import {
 } from 'src/utils/const';
 import { useAuth } from 'react-oidc-context';
 import ConfigContext from 'src/context/config-context';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import CustomBreadCrumb, { BreadCrumbType } from './CustomBreadCrumb';
 
 interface CommonLayoutProps {
@@ -31,7 +31,6 @@ interface CommonLayoutProps {
 }
 
 const CommonLayout: React.FC<CommonLayoutProps> = ({
-  activeHref,
   children,
   flashBar,
   breadCrumbs,
@@ -104,12 +103,14 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
   } : null
 
   const layoutItems = kbItem ? [...baseItems, kbItem, promptItem] : [...baseItems, promptItem];
+  const location = useLocation();
+  const currentActiveHref = location.pathname;
 
   return (
     <I18nProvider locale={i18n.language} messages={[messages]}>
       <TopNavigation
         identity={{
-          href: '#',
+          href: '/',
           title: t('name'),
         }}
         utilities={[
@@ -151,8 +152,8 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
         }
         navigation={
           <SideNavigation
-            activeHref={activeHref}
-            header={{ href: '#/', text: t('name') }}
+            activeHref={currentActiveHref}
+            header={{ href: '/', text: t('name') }}
             onFollow={(e) => {
               if (!e.detail.external) {
                 e.preventDefault();
@@ -161,13 +162,18 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
             }}
             items={[
               {
+                type: 'link',
+                text: t('homeSidebar'),
+                href: '/',
+              },
+              {
                 type: 'section',
                 text: t('chatSpace'),
                 items: [
                   {
                     type: 'link',
                     text: t('chat'),
-                    href: '/',
+                    href: '/chats',
                   },
                   {
                     type: 'link',

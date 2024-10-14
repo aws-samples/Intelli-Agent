@@ -396,7 +396,10 @@ def convert_qa_list(qa_list: list, bucket: str, prefix: str) -> List[Document]:
         }
         page_content = qa["question"]
         metadata = metadata_template
-        metadata["jsonlAnswer"] = qa["intention"]
+        metadata["jsonlAnswer"] = {}
+        metadata["jsonlAnswer"]["answer"] = qa["intention"]
+        metadata["jsonlAnswer"]["question"] = qa["question"]
+        metadata["jsonlAnswer"]["intent"] = qa["intention"]
         metadata["kwargs"] = qa["kwargs"]
         metadata["file_path"] = f"s3://{bucket}/{prefix}"
         # Assemble the document
