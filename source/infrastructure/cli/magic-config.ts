@@ -44,25 +44,32 @@ const llms = [
   }
 ]
 
-// Use AWS SDK to get the account and region
-AWS.config.credentials = new AWS.SharedIniFileCredentials({ profile: "default" });
-AWS.config.region = new AWS.IniLoader().loadFrom({ isConfig: true }).default.region;
-
-
 // Function to get AWS account ID and region
 async function getAwsAccountAndRegion() {
   const sts = new AWS.STS();
+  let AWS_ACCOUNT;
+  let AWS_REGION;
   try {
     const data = await sts.getCallerIdentity().promise();
-    const AWS_ACCOUNT = data.Account;
-    const AWS_REGION = AWS.config.region;
-
-    return { AWS_ACCOUNT, AWS_REGION };
+    AWS_ACCOUNT = data.Account;
   } catch (error) {
-    console.error('Error getting AWS account and region:', error);
+    console.error('Error getting AWS account:', error);
     throw error;
   }
+  try {
+    AWS.config.credentials = new AWS.SharedIniFileCredentials({ profile: "default" });
+    AWS_REGION = new AWS.IniLoader().loadFrom({ isConfig: true }).default.region;
+
+  } catch (error) {
+    console.error("Error fetching AWS region:", error);
+    AWS_REGION = undefined;
+  }
+
+  console.log("AWS_ACCOUNT", AWS_ACCOUNT);
+  console.log("AWS_REGION", AWS_REGION);
+  return { AWS_ACCOUNT, AWS_REGION };
 }
+
 
 
 /**
@@ -197,7 +204,7 @@ async function processCreateOptions(options: any): Promise<void> {
         return true;
       },
       skip(): boolean {
-        return ( !(this as any).state.answers.enableKnowledgeBase ||
+        return (!(this as any).state.answers.enableKnowledgeBase ||
           (this as any).state.answers.knowledgeBaseType !== "intelliAgentKb");
       },
       initial: options.intelliAgentKbVectorStoreType ?? "opensearch",
@@ -208,7 +215,7 @@ async function processCreateOptions(options: any): Promise<void> {
       message: "Do you want to inject PDF files into your knowledge base?",
       initial: options.enableIntelliAgentKbModel ?? true,
       skip(): boolean {
-        return ( !(this as any).state.answers.enableKnowledgeBase ||
+        return (!(this as any).state.answers.enableKnowledgeBase ||
           (this as any).state.answers.knowledgeBaseType !== "intelliAgentKb");
       },
     },
@@ -224,8 +231,8 @@ async function processCreateOptions(options: any): Promise<void> {
           : "Enter a valid ECR Repository Name in the specified format: (?:[a-z0-9]+(?:[._-][a-z0-9]+)*/)*[a-z0-9]+(?:[._-][a-z0-9]+)*";
       },
       skip(): boolean {
-        return ( !(this as any).state.answers.enableKnowledgeBase ||
-          (this as any).state.answers.knowledgeBaseType !== "intelliAgentKb" || 
+        return (!(this as any).state.answers.enableKnowledgeBase ||
+          (this as any).state.answers.knowledgeBaseType !== "intelliAgentKb" ||
           !(this as any).state.answers.enableIntelliAgentKbModel);
       },
     },
@@ -241,8 +248,8 @@ async function processCreateOptions(options: any): Promise<void> {
           : "Enter a valid ECR Image Tag in the specified format: ";
       },
       skip(): boolean {
-        return ( !(this as any).state.answers.enableKnowledgeBase ||
-          (this as any).state.answers.knowledgeBaseType !== "intelliAgentKb" || 
+        return (!(this as any).state.answers.enableKnowledgeBase ||
+          (this as any).state.answers.knowledgeBaseType !== "intelliAgentKb" ||
           !(this as any).state.answers.enableIntelliAgentKbModel);
       },
     },
