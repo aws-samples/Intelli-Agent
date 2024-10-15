@@ -179,12 +179,20 @@ wget https://raw.githubusercontent.com/aws-samples/Intelli-Agent/dev/source/scri
 sh setup_env.sh
 ```
 
-**步骤 2**: 安装 AWS CLI 并配置您的 AWS 账号
+**步骤 2**: 安装 AWS CLI
 
-执行以下命令配置您的 AWS 账号（请跳过此步骤如果您已经配置过 AWS 账号），参考 [AWS CLI](https://docs.aws.amazon.com/cli/latest/reference/configure/) 命令获取更多使用说明。
+如果您还没有安装 AWS CLI，请执行以下命令安装。
 
 ```bash
-aws configure
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
+```
+
+您可以执行以下命令查看 AWS CLI 版本：
+
+```bash
+aws --version
 ```
 
 
@@ -276,6 +284,8 @@ cd Intelli-Agent/source/infrastructure
 ```json
 {
   "prefix": "",
+  "email": "your-email@amazon.com",
+  "deployRegion": "us-east-1",
   "knowledgeBase": {
     "enabled": false,
     "knowledgeBaseType": {
@@ -284,7 +294,9 @@ cd Intelli-Agent/source/infrastructure
         "email": "support@example.com",
         "vectorStore": {
           "opensearch": {
-            "enabled": true
+            "enabled": true,
+            "useCustomDomain": false,
+            "customDomainEndpoint": ""
           }
         },
         "knowledgeBaseModel": {

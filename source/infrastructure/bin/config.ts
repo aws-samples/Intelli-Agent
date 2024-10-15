@@ -21,6 +21,8 @@ export function getConfig(): SystemConfig {
           vectorStore: {
             opensearch: {
               enabled: true,
+              useCustomDomain: false,
+              customDomainEndpoint: ""
             },
           },
           knowledgeBaseModel: {
