@@ -13,6 +13,8 @@ export interface SystemConfig {
         vectorStore: {
           opensearch: {
             enabled: boolean;
+            useCustomDomain: boolean;
+            customDomainName: string;
           };
         };
         knowledgeBaseModel: {

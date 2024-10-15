@@ -24,7 +24,6 @@ interface AOSProps extends StackProps {
 
 export class AOSConstruct extends Construct {
   public domainEndpoint;
-  public domain;
 
   constructor(scope: Construct, id: string, props: AOSProps) {
     super(scope, id);
@@ -59,7 +58,6 @@ export class AOSConstruct extends Construct {
     );
 
     this.domainEndpoint = devDomain.domainEndpoint;
-    this.domain = devDomain;
     
   }
 }
