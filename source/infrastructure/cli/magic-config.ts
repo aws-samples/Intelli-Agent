@@ -241,10 +241,12 @@ async function processCreateOptions(options: any): Promise<void> {
       message: "Do you want to use a custom domain for your knowledge base?",
       initial: options.useCustomDomain ?? false,
       skip(): boolean {
-        if ((this as any).state.answers.intelliAgentKbVectorStoreType === "opensearch") {
-          return false;
+        if ( !(this as any).state.answers.enableKnowledgeBase ||
+          (this as any).state.answers.knowledgeBaseType !== "intelliAgentKb" ||
+          (this as any).state.answers.intelliAgentKbVectorStoreType !== "opensearch") {
+          return true;
         }
-        return true;
+        return false;
       },
     },
     {
@@ -259,7 +261,13 @@ async function processCreateOptions(options: any): Promise<void> {
           : "Enter a valid OpenSearch domain endpoint (e.g., https://search-domain-region-id.region.es.amazonaws.com)";
       },
       skip(): boolean {
-        return (!(this as any).state.answers.useCustomDomain);
+        if ( !(this as any).state.answers.enableKnowledgeBase ||
+          (this as any).state.answers.knowledgeBaseType !== "intelliAgentKb" ||
+          (this as any).state.answers.intelliAgentKbVectorStoreType !== "opensearch" ||
+          !(this as any).state.answers.useCustomDomain) {
+          return true;
+        }
+        return false;
       },
     },
     {
