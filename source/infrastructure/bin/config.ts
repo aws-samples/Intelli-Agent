@@ -2,16 +2,17 @@ import { SystemConfig } from "../lib/shared/types";
 import { existsSync, readFileSync } from "fs";
 
 export function getConfig(): SystemConfig {
-  let AWS_ACCOUNT = process.env.CDK_DEFAULT_ACCOUNT;
-  let AWS_REGION = process.env.CDK_DEFAULT_REGION;
-  let custom_assets_bucket = "intelli-agent-model" + AWS_ACCOUNT + "-" + AWS_REGION;
   if (existsSync("./bin/config.json")) {
     return JSON.parse(readFileSync("./bin/config.json").toString("utf8"));
   }
+  let AWS_ACCOUNT = process.env.CDK_DEFAULT_ACCOUNT;
+  let AWS_REGION = process.env.CDK_DEFAULT_REGION;
+  let custom_assets_bucket = "intelli-agent-model" + AWS_ACCOUNT + "-" + AWS_REGION;
   // Default config
   return {
     prefix: "",
     email: "support@example.com",
+    deployRegion: "us-east-1",
     knowledgeBase: {
       enabled: true,
       knowledgeBaseType: {
