@@ -17,7 +17,10 @@ index_table = dynamodb.Table(os.environ.get("INDEX_TABLE_NAME"))
 chatbot_table = dynamodb.Table(os.environ.get("CHATBOT_TABLE_NAME"))
 model_table = dynamodb.Table(os.environ.get("MODEL_TABLE_NAME"))
 embedding_endpoint = os.environ.get("EMBEDDING_ENDPOINT")
+sfn_arn = os.environ.get("SFN_ARN")
 create_time = str(datetime.now(timezone.utc))
+
+
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
@@ -103,7 +106,7 @@ def handler(event, context):
     input_body["embeddingModelType"] = chatbot_result["modelType"]
     input_payload = json.dumps(input_body)
     response = client.start_execution(
-        stateMachineArn=os.environ["sfn_arn"], input=input_payload
+        stateMachineArn=sfn_arn, input=input_payload
     )
 
     # Update execution table item
