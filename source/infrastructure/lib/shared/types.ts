@@ -14,7 +14,7 @@ export interface SystemConfig {
           opensearch: {
             enabled: boolean;
             useCustomDomain: boolean;
-            customDomainName: string;
+            customDomainEndpoint: string;
           };
         };
         knowledgeBaseModel: {

@@ -106,7 +106,7 @@ async function getAwsAccountAndRegion() {
         ? "opensearch"
         : "unsupported";
       options.useCustomDomain = config.knowledgeBase.knowledgeBaseType.intelliAgentKb.vectorStore.opensearch.useCustomDomain;
-      options.customDomainName = config.knowledgeBase.knowledgeBaseType.intelliAgentKb.vectorStore.opensearch.customDomainName;
+      options.customDomainEndpoint = config.knowledgeBase.knowledgeBaseType.intelliAgentKb.vectorStore.opensearch.customDomainEndpoint;
       options.enableIntelliAgentKbModel = config.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.enabled;
       options.knowledgeBaseModelEcrRepository = config.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.ecrRepository;
       options.knowledgeBaseModelEcrImageTag = config.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.ecrImageTag;
@@ -249,14 +249,14 @@ async function processCreateOptions(options: any): Promise<void> {
     },
     {
       type: "input",
-      name: "customDomainName",
-      message: "Please enter the name of the custom domain",
-      initial: options.customDomainName ?? "",
-      validate(customDomainName: string) {
+      name: "customDomainEndpoint",
+      message: "Please enter the endpoint of the custom domain",
+      initial: options.customDomainEndpoint ?? "",
+      validate(customDomainEndpoint: string) {
         return (this as any).skipped ||
-          RegExp(/^(?!-)[a-zA-Z0-9-]{1,63}(?<!-)$/).test(customDomainName)
+          RegExp(/^https:\/\/[a-z0-9-]+.[a-z0-9-]{2,}\.es\.amazonaws\.com$/).test(customDomainEndpoint)
           ? true
-          : "Enter a valid domain name in the specified format: (?!-)[a-zA-Z0-9-]{1,63}(?<!-)";
+          : "Enter a valid OpenSearch domain endpoint (e.g., https://search-domain-region-id.region.es.amazonaws.com)";
       },
       skip(): boolean {
         return (!(this as any).state.answers.useCustomDomain);
@@ -452,7 +452,7 @@ async function processCreateOptions(options: any): Promise<void> {
             opensearch: {
               enabled: answers.intelliAgentKbVectorStoreType === "opensearch",
               useCustomDomain: answers.useCustomDomain,
-              customDomainName: answers.customDomainName,
+              customDomainEndpoint: answers.customDomainEndpoint,
             },
           },
           knowledgeBaseModel: {

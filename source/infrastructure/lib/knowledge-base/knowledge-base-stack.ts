@@ -71,6 +71,8 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
     const aosConstruct = new AOSConstruct(this, "aos-construct", {
       osVpc: props.sharedConstructOutputs.vpc,
       securityGroup: props.sharedConstructOutputs.securityGroups,
+      useCustomDomain: props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.vectorStore.opensearch.useCustomDomain,
+      customDomainEndpoint: props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.vectorStore.opensearch.customDomainEndpoint,
     });
     this.aosDomainEndpoint = aosConstruct.domainEndpoint;
     this.glueLibS3Bucket = new s3.Bucket(this, "llm-bot-glue-lib-bucket", {

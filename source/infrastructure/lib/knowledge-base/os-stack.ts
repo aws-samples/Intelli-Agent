@@ -20,6 +20,8 @@ import { Construct } from "constructs";
 interface AOSProps extends StackProps {
   osVpc?: ec2.Vpc;
   securityGroup?: [ec2.SecurityGroup];
+  useCustomDomain: boolean;
+  customDomainEndpoint: string;
 }
 
 export class AOSConstruct extends Construct {
@@ -28,36 +30,40 @@ export class AOSConstruct extends Construct {
   constructor(scope: Construct, id: string, props: AOSProps) {
     super(scope, id);
 
-    // If deployment mode is ALL, then create the following resources
+    if (props.useCustomDomain) {
+      const devDomain = Domain.fromDomainEndpoint(this, "Domain", props.customDomainEndpoint);
+      this.domainEndpoint = devDomain.domainEndpoint;
+    } else {
 
-    const devDomain = new Domain(this, "Domain", {
-      version: EngineVersion.OPENSEARCH_2_5,
-      removalPolicy: RemovalPolicy.DESTROY,
-      vpc: props.osVpc,
-      zoneAwareness: {
-        enabled: true,
-      },
-      securityGroups: props.securityGroup,
-      capacity: {
-        dataNodes: 2,
-        dataNodeInstanceType: "r6g.2xlarge.search",
-      },
-      ebs: {
-        volumeSize: 300,
-        volumeType: ec2.EbsDeviceVolumeType.GENERAL_PURPOSE_SSD_GP3,
-      },
-    });
+      const devDomain = new Domain(this, "Domain", {
+        version: EngineVersion.OPENSEARCH_2_5,
+        removalPolicy: RemovalPolicy.DESTROY,
+        vpc: props.osVpc,
+        zoneAwareness: {
+          enabled: true,
+        },
+        securityGroups: props.securityGroup,
+        capacity: {
+          dataNodes: 2,
+          dataNodeInstanceType: "r6g.2xlarge.search",
+        },
+        ebs: {
+          volumeSize: 300,
+          volumeType: ec2.EbsDeviceVolumeType.GENERAL_PURPOSE_SSD_GP3,
+        },
+      });
 
-    devDomain.addAccessPolicies(
-      new iam.PolicyStatement({
-        actions: ["es:*"],
-        effect: iam.Effect.ALLOW,
-        principals: [new iam.AnyPrincipal()],
-        resources: [`${devDomain.domainArn}/*`],
-      }),
-    );
+      devDomain.addAccessPolicies(
+        new iam.PolicyStatement({
+          actions: ["es:*"],
+          effect: iam.Effect.ALLOW,
+          principals: [new iam.AnyPrincipal()],
+          resources: [`${devDomain.domainArn}/*`],
+        }),
+      );
 
-    this.domainEndpoint = devDomain.domainEndpoint;
-    
+      this.domainEndpoint = devDomain.domainEndpoint;
+    }
+
   }
 }
