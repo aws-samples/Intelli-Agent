@@ -5,7 +5,8 @@ import traceback
 from common_logic.common_utils.ddb_utils import DynamoDBChatMessageHistory
 from common_logic.common_utils.websocket_utils import send_to_ws_client
 from common_logic.common_utils.constant import StreamMessageType
-logger = logging.getLogger("response_utils")
+from common_logic.common_utils.logger_utils import get_logger
+logger = get_logger("response_utils")
 
 class WebsocketClientError(Exception):
     pass
