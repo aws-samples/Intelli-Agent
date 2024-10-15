@@ -5,6 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import { BounceLoader } from 'react-spinners';
 import remarkGfm from 'remark-gfm';
 import BedrockImg from 'src/assets/bedrock.webp';
+import './Message.css';
 
 interface MessageProps {
   type: 'ai' | 'human';
@@ -45,7 +46,16 @@ const Message: React.FC<MessageProps> = ({
                   headingTagOverride="h5"
                   headerText="Monitoring"
                 >
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}
+                    components={{
+                      h1: ({node, ...props}) => <h1 className="custom-header" {...props} />,
+                      h2: ({node, ...props}) => <h2 className="custom-header" {...props} />,
+                      h3: ({node, ...props}) => <h3 className="custom-header" {...props} />,
+                      table: ({node, ...props}) => <table className="custom-table" {...props} />,
+                      th: ({node, ...props}) => <th className="custom-table-header" {...props} />,
+                      td: ({node, ...props}) => <td className="custom-table-cell" {...props} />,
+                    }}
+                  >
                     {message.monitoring}
                   </ReactMarkdown>
                 </ExpandableSection>
