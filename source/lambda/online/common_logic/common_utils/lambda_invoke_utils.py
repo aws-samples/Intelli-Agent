@@ -17,12 +17,12 @@ logger = get_logger("lambda_invoke_utils")
 
 
 __FUNC_NAME_MAP = {
-    "query_preprocess": "Preprocess for multi-round conversation",
-    "intention_detection": "Intention detection",
+    "query_preprocess": "Preprocess for Multi-round Conversation",
+    "intention_detection": "Intention Detection",
     "agent": "Agent",
-    "tools_choose_and_results_generation": "Tool calling",
-    "results_evaluation": "Result evaluation",
-    "tool_execution": "Final tool result"
+    "tools_choose_and_results_generation": "Tool Calling",
+    "results_evaluation": "Result Evaluation",
+    "tool_execution": "Final Tool Result"
 }
 
 class LAMBDA_INVOKE_MODE(enum.Enum):
