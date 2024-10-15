@@ -10,12 +10,13 @@ def format_rag_data(data):
     if data is None or len(data) == 0:
         return ""
 
-    md_content = "---------\n"
+    markdown_table = "| RAG Context |\n"
+    markdown_table += "|-----|\n"
     for item in data:
-        md_content += f"{item}\n"
-        md_content += "---------\n"
+        item = item.replace("\n", "<br>")
+        markdown_table += f"| {item} |\n"
 
-    return md_content
+    return markdown_table
 
 
 def lambda_handler(event_body, context=None):
@@ -45,7 +46,7 @@ def lambda_handler(event_body, context=None):
 
     context_md = format_rag_data(context_list)
     send_trace(
-        f"\n\n**RAG contexts:**\n\n{context_md}\n\n", enable_trace=state["enable_trace"])
+        f"\n\n{context_md}\n\n", enable_trace=state["enable_trace"])
 
     group_name = state['chatbot_config']['group_name']
     llm_config = state["chatbot_config"]["private_knowledge_config"]['llm_config']
