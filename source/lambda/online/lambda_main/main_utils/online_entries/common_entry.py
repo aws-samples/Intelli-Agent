@@ -111,18 +111,30 @@ def is_null_or_empty(value):
     return False
 
 
+def format_preprocess_output(ori_query, rewrite_query):
+    if is_null_or_empty(ori_query) or is_null_or_empty(rewrite_query):
+        return ""
+
+    markdown_table = "| Original Query | Rewritten Query |\n"
+    markdown_table += "|-------|-------|\n"
+    markdown_table += f"| {ori_query} | {rewrite_query} |\n"
+
+    return markdown_table
+
+
 def format_intention_output(data):
     if is_null_or_empty(data):
         return ""
 
-    markdown_table = "| Query                | Score | Name       | Intent      | Additional Info      |\n"
-    markdown_table += "|----------------------|-------|------------|-------------|----------------------|\n"
+    markdown_table = "| Query | Score | Name | Intent | Additional Info |\n"
+    markdown_table += "|-------|-------|-------|-------|-------|\n"
     for item in data:
         query = item.get("query", "")
         score = item.get("score", "")
         name = item.get("name", "")
         intent = item.get("intent", "")
-        kwargs = ', '.join([f'{k}: {v}' for k, v in item.get('kwargs', {}).items()])
+        kwargs = ', '.join(
+            [f'{k}: {v}' for k, v in item.get('kwargs', {}).items()])
         markdown_table += f"| {query} | {score} | {name} | {intent} | {kwargs} |\n"
         logger.info(markdown_table)
 
@@ -142,7 +154,8 @@ def query_preprocess(state: ChatbotState):
         handler_name="lambda_handler",
     )
 
-    send_trace(f"\n**query rewrite:** {output}\n**origin query:** {state['query']}")
+    preprocess_md = format_preprocess_output(state["query"], output)
+    send_trace(f"{preprocess_md}")
     return {"query_rewrite": output}
 
 
@@ -198,7 +211,7 @@ def intention_detection(state: ChatbotState):
 
     markdown_table = format_intention_output(intent_fewshot_examples)
     send_trace(
-        f"**intention retrieved:**\n\n {markdown_table}",
+        f"{markdown_table}",
         state["stream"],
         state["ws_connection_id"],
         state["enable_trace"],
@@ -253,7 +266,8 @@ def agent(state: ChatbotState):
         or state["chatbot_config"]["agent_config"]["only_use_rag_tool"]
     ):
         if state["chatbot_config"]["agent_config"]["only_use_rag_tool"]:
-            send_trace("agent only use rag tool", enable_trace=state["enable_trace"])
+            send_trace("agent only use rag tool",
+                       enable_trace=state["enable_trace"])
         elif no_intention_condition:
             send_trace(
                 "no_intention_condition, switch to rag tool",
@@ -361,7 +375,8 @@ def build_graph(chatbot_state_cls):
     # add node for all chat/rag/agent mode
     workflow.add_node("query_preprocess", query_preprocess)
     # chat mode
-    workflow.add_node("llm_direct_results_generation", llm_direct_results_generation)
+    workflow.add_node("llm_direct_results_generation",
+                      llm_direct_results_generation)
     # rag mode
     # workflow.add_node("knowledge_retrieve", knowledge_retrieve)
     # workflow.add_node("llm_rag_results_generation", llm_rag_results_generation)
@@ -376,7 +391,8 @@ def build_graph(chatbot_state_cls):
     # add all edges
     workflow.set_entry_point("query_preprocess")
     # chat mode
-    workflow.add_edge("llm_direct_results_generation", "final_results_preparation")
+    workflow.add_edge("llm_direct_results_generation",
+                      "final_results_preparation")
     # rag mode
     # workflow.add_edge("knowledge_retrieve", "llm_rag_results_generation")
     # workflow.add_edge("llm_rag_results_generation", END)

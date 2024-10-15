@@ -4,6 +4,7 @@ import Avatar from 'react-avatar';
 import ReactMarkdown from 'react-markdown';
 import { BounceLoader } from 'react-spinners';
 import remarkGfm from 'remark-gfm';
+import remarkHtml from 'remark-html';
 import BedrockImg from 'src/assets/bedrock.webp';
 import './Message.css';
 
@@ -46,7 +47,7 @@ const Message: React.FC<MessageProps> = ({
                   headingTagOverride="h5"
                   headerText="Monitoring"
                 >
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}
+                  <ReactMarkdown remarkPlugins={[remarkGfm, remarkHtml]}
                     components={{
                       h1: ({node, ...props}) => <h1 className="custom-header" {...props} />,
                       h2: ({node, ...props}) => <h2 className="custom-header" {...props} />,
