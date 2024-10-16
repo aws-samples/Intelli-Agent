@@ -3,7 +3,7 @@ version: 0.2
 env:
   variables:
     REPOSITORY_URL: "https://github.com/aws-samples/Intelli-Agent.git"
-    CODE_BRANCH: "dev"
+    CODE_BRANCH: "main"
     PROJECT_NAME: "Intelli-Agent"
     STACK_NAME: "ai-customer-service"
     DEPLOY_STACK: "cdk"
@@ -11,22 +11,21 @@ env:
     TEST_FAST: "false"
     REGION: "us-east-1"
     EXEC_ROLE: "arn:aws:iam::544919262599:role/agent-api-test-role"
-    # S3_MODEL_ASSETS_BUCKET: "intelli-agent-rag"
+    S3_MODEL_ASSETS_BUCKET: "intelli-agent-rag"
     API_TEST_RESULT_BUCKET: "intelli-agent-rag-us-east-1-api-test"
-    # ETL_REPOSITORY_NAME: "intelli-agent-etl"
-    # ETL_IMAGE_TAG: "latest"
+    ETL_REPOSITORY_NAME: "intelli-agent-etl"
+    ETL_IMAGE_TAG: "latest"
     SUB_EMAIL: "cuihubin@amazon.com"
     TOPIC: "arn:aws:sns:us-east-1:544919262599:agent-developers"
     GEN_REPORT_FUNCTION: "agent-api-test-report-function"
     CLEAR_RESOURCES_FUNCTION: "agent-clear-resources-function"
     ADMIN_PASSWORD: "TEST123!"
-
 phases:
   install:
     commands:
-      - aws cloudformation delete-stack --stack-name $STACK_NAME
+      - aws cloudformation delete-stack --stack-name "$STACK_NAME"
       - |
-        aws cloudformation wait stack-delete-complete --stack-name $STACK_NAME
+        aws cloudformation wait stack-delete-complete --stack-name "$STACK_NAME"
         WAIT_STATUS=$?
         if [ $WAIT_STATUS -eq 0 ]; then
           echo "Stack deletion complete."
@@ -42,8 +41,8 @@ phases:
           echo $lambda_status
           if [ $lambda_status -eq 200 ]; then
             echo "Lambda executed successfully. Proceeding with stack deletion."
-            aws cloudformation delete-stack --stack-name $STACK_NAME
-            aws cloudformation wait stack-delete-complete --stack-name $STACK_NAME
+            aws cloudformation delete-stack --stack-name "$STACK_NAME"
+            aws cloudformation wait stack-delete-complete --stack-name "$STACK_NAME"
             if [ $? -eq 0 ]; then
               echo "Stack deletion complete after Lambda execution."
             else
@@ -59,12 +58,10 @@ phases:
         echo "$install_start_time install start..."
         echo "----------------------------------------------------------------" 
         git clone $REPOSITORY_URL --branch $CODE_BRANCH --single-branch
-        pushd "Intelli-Agent/source/portal"
+        echo "build portal assets >>>"
+        pushd Intelli-Agent/source/portal
         npm i -g pnpm
         pnpm i
-        popd
-        pushd "Intelli-Agent/source/infrastructure"
-        echo "build portal assets >>>"
         npm run build
         popd
         deploy_start_time=$(date +"%Y-%m-%d_%H-%M-%S")
@@ -93,11 +90,6 @@ phases:
             pushd "Intelli-Agent/source/infrastructure"
             pnpm i
             npx cdk deploy
-            #  --parameters SubEmail=$SUB_EMAIL \
-            #       --parameters S3ModelAssets="$S3_MODEL_ASSETS_BUCKET" \
-            #       --parameters EtlImageName="$ETL_REPOSITORY_NAME" \
-            #       --parameters ETLTag="$ETL_IMAGE_TAG" \
-            #       --require-approval never
             deploy_exit_code=$?
             if [ $deploy_exit_code -ne 0 ]; then
               echo "CDK deployment failed. Sending email and exiting with status code 1."
@@ -137,7 +129,7 @@ phases:
         pip3 install --upgrade pip
         pip3 --default-timeout=6000 install -r requirements.txt
         popd
-        stack_info=$(aws cloudformation describe-stacks --stack-name $STACK_NAME)
+        stack_info=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME")
         rest_api_gateway_url=$(echo "$stack_info" | jq -r '.Stacks[0].Outputs[] | select(.OutputKey=="APIEndpointAddress").OutputValue')
         ws_api_gateway_url=$(echo "$stack_info" | jq -r '.Stacks[0].Outputs[] | select(.OutputKey=="WebSocketEndpointAddress").OutputValue')
         user_pool_id=$(echo "$stack_info" | jq -r '.Stacks[0].Outputs[] | select(.OutputKey=="UserPoolId").OutputValue')
