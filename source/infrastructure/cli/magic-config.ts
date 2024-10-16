@@ -163,7 +163,7 @@ async function processCreateOptions(options: any): Promise<void> {
       type: "input",
       name: "intelliAgentUserEmail",
       message: "Please enter the name of the email you want to use for notifications",
-      initial: options.intelliAgentUserEmail ?? "cuihubin@example.com",
+      initial: options.intelliAgentUserEmail ?? "support@example.com",
       validate(intelliAgentUserEmail: string) {
         return (this as any).skipped ||
           RegExp(/^[a-zA-Z0-9]+([._-][0-9a-zA-Z]+)*@[a-zA-Z0-9]+([.-][0-9a-zA-Z]+)*\.[a-zA-Z]{2,}$/i).test(intelliAgentUserEmail)
@@ -192,7 +192,7 @@ async function processCreateOptions(options: any): Promise<void> {
       type: "confirm",
       name: "enableKnowledgeBase",
       message: "Do you want to use knowledge base in this solution?",
-      initial: options.enableKnowledgeBase ?? true,
+      initial: options.enableKnowledgeBase ?? false,
     },
     {
       type: "select",
