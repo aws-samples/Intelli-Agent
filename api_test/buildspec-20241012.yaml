@@ -3,7 +3,7 @@ version: 0.2
 env:
   variables:
     REPOSITORY_URL: "https://github.com/aws-samples/Intelli-Agent.git"
-    CODE_BRANCH: "main"
+    CODE_BRANCH: "dev"
     PROJECT_NAME: "Intelli-Agent"
     STACK_NAME: "ai-customer-service"
     DEPLOY_STACK: "cdk"
