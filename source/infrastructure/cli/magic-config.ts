@@ -5,7 +5,9 @@ import { prompt } from "enquirer";
 import * as fs from "fs";
 import * as AWS from "aws-sdk";
 import {
-  SystemConfig
+  SystemConfig,
+  SupportedBedrockRegion,
+  SupportedRegion,
 } from "../lib/shared/types";
 import { LIB_VERSION } from "./version.js";
 
@@ -37,6 +39,9 @@ const embeddingModels = [
   }
 ];
 
+const supportedRegions = Object.values(SupportedRegion) as string[];
+const supportedBedrockRegions = Object.values(SupportedBedrockRegion) as string[];
+
 const llms = [
   {
     provider: "bedrock",
@@ -44,25 +49,32 @@ const llms = [
   }
 ]
 
-// Use AWS SDK to get the account and region
-AWS.config.credentials = new AWS.SharedIniFileCredentials({ profile: "default" });
-AWS.config.region = new AWS.IniLoader().loadFrom({ isConfig: true }).default.region;
-
-
 // Function to get AWS account ID and region
 async function getAwsAccountAndRegion() {
   const sts = new AWS.STS();
+  let AWS_ACCOUNT;
+  let AWS_REGION;
   try {
     const data = await sts.getCallerIdentity().promise();
-    const AWS_ACCOUNT = data.Account;
-    const AWS_REGION = AWS.config.region;
-
-    return { AWS_ACCOUNT, AWS_REGION };
+    AWS_ACCOUNT = data.Account;
   } catch (error) {
-    console.error('Error getting AWS account and region:', error);
+    console.error('Error getting AWS account:', error);
     throw error;
   }
+  try {
+    AWS.config.credentials = new AWS.SharedIniFileCredentials({ profile: "default" });
+    AWS_REGION = new AWS.IniLoader().loadFrom({ isConfig: true }).default.region;
+
+  } catch (error) {
+    console.error("No default region found in the AWS credentials file. Please enter the region you want to deploy the intelli-agent knowledge base");
+    AWS_REGION = undefined;
+  }
+
+  console.log("AWS_ACCOUNT", AWS_ACCOUNT);
+  console.log("AWS_REGION", AWS_REGION);
+  return { AWS_ACCOUNT, AWS_REGION };
 }
+
 
 
 /**
@@ -83,6 +95,8 @@ async function getAwsAccountAndRegion() {
         fs.readFileSync("./bin/config.json").toString("utf8")
       );
       options.prefix = config.prefix;
+      options.intelliAgentUserEmail = config.email;
+      options.intelliAgentDeployRegion = config.deployRegion;
       options.enableKnowledgeBase = config.knowledgeBase.enabled;
       options.knowledgeBaseType = config.knowledgeBase.knowledgeBaseType.intelliAgentKb.enabled
         ? "intelliAgentKb"
@@ -91,6 +105,8 @@ async function getAwsAccountAndRegion() {
       options.intelliAgentKbVectorStoreType = config.knowledgeBase.knowledgeBaseType.intelliAgentKb.vectorStore.opensearch.enabled
         ? "opensearch"
         : "unsupported";
+      options.useCustomDomain = config.knowledgeBase.knowledgeBaseType.intelliAgentKb.vectorStore.opensearch.useCustomDomain;
+      options.customDomainEndpoint = config.knowledgeBase.knowledgeBaseType.intelliAgentKb.vectorStore.opensearch.customDomainEndpoint;
       options.enableIntelliAgentKbModel = config.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.enabled;
       options.knowledgeBaseModelEcrRepository = config.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.ecrRepository;
       options.knowledgeBaseModelEcrImageTag = config.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.ecrImageTag;
@@ -135,7 +151,7 @@ function createConfig(config: any): void {
 async function processCreateOptions(options: any): Promise<void> {
   // Get AWS account ID and region
   const { AWS_ACCOUNT, AWS_REGION } = await getAwsAccountAndRegion();
-  let questions = [
+  const mandatoryQuestions = [
     {
       type: "input",
       name: "prefix",
@@ -155,6 +171,23 @@ async function processCreateOptions(options: any): Promise<void> {
           : "Enter a valid email address in specified format: [a-zA-Z0-9]+([._-][0-9a-zA-Z]+)*@[a-zA-Z0-9]+([.-][0-9a-zA-Z]+)*\\.[a-zA-Z]{2,}";
       },
     },
+    {
+      type: "input",
+      name: "intelliAgentDeployRegion",
+      message: "Please enter the region you want to deploy the intelli-agent knowledge base",
+      initial: options.intelliAgentDeployRegion ?? AWS_REGION,
+      validate(intelliAgentDeployRegion: string) {
+        if (Object.values(supportedRegions).includes(intelliAgentDeployRegion)) {
+          return true;
+        }
+        return "Enter a valid region. Supported regions: " + supportedRegions.join(", ");
+      },
+    },
+  ]
+
+  const mandatoryQuestionAnswers: any = await prompt(mandatoryQuestions);
+
+  let questions = [
     {
       type: "confirm",
       name: "enableKnowledgeBase",
@@ -197,10 +230,45 @@ async function processCreateOptions(options: any): Promise<void> {
         return true;
       },
       skip(): boolean {
-        return ( !(this as any).state.answers.enableKnowledgeBase ||
+        return (!(this as any).state.answers.enableKnowledgeBase ||
           (this as any).state.answers.knowledgeBaseType !== "intelliAgentKb");
       },
       initial: options.intelliAgentKbVectorStoreType ?? "opensearch",
+    },
+    {
+      type: "confirm",
+      name: "useCustomDomain",
+      message: "Do you want to use a custom domain for your knowledge base?",
+      initial: options.useCustomDomain ?? false,
+      skip(): boolean {
+        if ( !(this as any).state.answers.enableKnowledgeBase ||
+          (this as any).state.answers.knowledgeBaseType !== "intelliAgentKb" ||
+          (this as any).state.answers.intelliAgentKbVectorStoreType !== "opensearch") {
+          return true;
+        }
+        return false;
+      },
+    },
+    {
+      type: "input",
+      name: "customDomainEndpoint",
+      message: "Please enter the endpoint of the custom domain",
+      initial: options.customDomainEndpoint ?? "",
+      validate(customDomainEndpoint: string) {
+        return (this as any).skipped ||
+          RegExp(/^https:\/\/[a-z0-9-]+.[a-z0-9-]{2,}\.es\.amazonaws\.com$/).test(customDomainEndpoint)
+          ? true
+          : "Enter a valid OpenSearch domain endpoint (e.g., https://search-domain-region-id.region.es.amazonaws.com)";
+      },
+      skip(): boolean {
+        if ( !(this as any).state.answers.enableKnowledgeBase ||
+          (this as any).state.answers.knowledgeBaseType !== "intelliAgentKb" ||
+          (this as any).state.answers.intelliAgentKbVectorStoreType !== "opensearch" ||
+          !(this as any).state.answers.useCustomDomain) {
+          return true;
+        }
+        return false;
+      },
     },
     {
       type: "confirm",
@@ -208,7 +276,7 @@ async function processCreateOptions(options: any): Promise<void> {
       message: "Do you want to inject PDF files into your knowledge base?",
       initial: options.enableIntelliAgentKbModel ?? true,
       skip(): boolean {
-        return ( !(this as any).state.answers.enableKnowledgeBase ||
+        return (!(this as any).state.answers.enableKnowledgeBase ||
           (this as any).state.answers.knowledgeBaseType !== "intelliAgentKb");
       },
     },
@@ -224,8 +292,8 @@ async function processCreateOptions(options: any): Promise<void> {
           : "Enter a valid ECR Repository Name in the specified format: (?:[a-z0-9]+(?:[._-][a-z0-9]+)*/)*[a-z0-9]+(?:[._-][a-z0-9]+)*";
       },
       skip(): boolean {
-        return ( !(this as any).state.answers.enableKnowledgeBase ||
-          (this as any).state.answers.knowledgeBaseType !== "intelliAgentKb" || 
+        return (!(this as any).state.answers.enableKnowledgeBase ||
+          (this as any).state.answers.knowledgeBaseType !== "intelliAgentKb" ||
           !(this as any).state.answers.enableIntelliAgentKbModel);
       },
     },
@@ -241,8 +309,8 @@ async function processCreateOptions(options: any): Promise<void> {
           : "Enter a valid ECR Image Tag in the specified format: ";
       },
       skip(): boolean {
-        return ( !(this as any).state.answers.enableKnowledgeBase ||
-          (this as any).state.answers.knowledgeBaseType !== "intelliAgentKb" || 
+        return (!(this as any).state.answers.enableKnowledgeBase ||
+          (this as any).state.answers.knowledgeBaseType !== "intelliAgentKb" ||
           !(this as any).state.answers.enableIntelliAgentKbModel);
       },
     },
@@ -256,7 +324,13 @@ async function processCreateOptions(options: any): Promise<void> {
       type: "input",
       name: "bedrockRegion",
       message: "Which region would you like to use Bedrock?",
-      initial: options.bedrockRegion ?? AWS_REGION,
+      initial: options.bedrockRegion ?? mandatoryQuestionAnswers.intelliAgentDeployRegion,
+      validate(bedrockRegion: string) {
+        if (Object.values(supportedBedrockRegions).includes(bedrockRegion)) {
+          return true;
+        }
+        return "Enter a valid region for Bedrock. Supported regions: " + supportedBedrockRegions.join(", ");
+      },
       skip(): boolean {
         return (!(this as any).state.answers.enableChat);
       },
@@ -309,7 +383,7 @@ async function processCreateOptions(options: any): Promise<void> {
       type: "input",
       name: "sagemakerModelS3Bucket",
       message: "Please enter the name of the S3 Bucket for the sagemaker models assets",
-      initial: options.sagemakerModelS3Bucket ?? `intelli-agent-models-${AWS_ACCOUNT}-${AWS_REGION}`,
+      initial: options.sagemakerModelS3Bucket ?? `intelli-agent-models-${AWS_ACCOUNT}-${mandatoryQuestionAnswers.intelliAgentDeployRegion}`,
       validate(sagemakerModelS3Bucket: string) {
         return (this as any).skipped ||
           RegExp(/^(?!(^xn--|.+-s3alias$))^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/i).test(sagemakerModelS3Bucket)
@@ -374,8 +448,9 @@ async function processCreateOptions(options: any): Promise<void> {
 
   // Create the config object
   const config = {
-    prefix: answers.prefix,
-    email: answers.intelliAgentUserEmail,
+    prefix: mandatoryQuestionAnswers.prefix,
+    email: mandatoryQuestionAnswers.intelliAgentUserEmail,
+    deployRegion: mandatoryQuestionAnswers.intelliAgentDeployRegion,
     knowledgeBase: {
       enabled: answers.enableKnowledgeBase,
       knowledgeBaseType: {
@@ -384,6 +459,8 @@ async function processCreateOptions(options: any): Promise<void> {
           vectorStore: {
             opensearch: {
               enabled: answers.intelliAgentKbVectorStoreType === "opensearch",
+              useCustomDomain: answers.useCustomDomain,
+              customDomainEndpoint: answers.customDomainEndpoint,
             },
           },
           knowledgeBaseModel: {

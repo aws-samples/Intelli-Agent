@@ -103,6 +103,31 @@ class ChatbotState(TypedDict):
     current_agent_tools_def: list
 
 
+def is_null_or_empty(value):
+    if value is None:
+        return True
+    elif isinstance(value, (dict, list, str)) and not value:
+        return True
+    return False
+
+
+def format_intention_output(data):
+    if is_null_or_empty(data):
+        return ""
+
+    markdown_table = "| Query                | Score | Name       | Intent      | Additional Info      |\n"
+    markdown_table += "|----------------------|-------|------------|-------------|----------------------|\n"
+    for item in data:
+        query = item.get("query", "")
+        score = item.get("score", "")
+        name = item.get("name", "")
+        intent = item.get("intent", "")
+        kwargs = ', '.join([f'{k}: {v}' for k, v in item.get('kwargs', {}).items()])
+        markdown_table += f"| {query} | {score} | {name} | {intent} | {kwargs} |\n"
+        logger.info(markdown_table)
+
+    return markdown_table
+
 ####################
 # nodes in graph #
 ####################
@@ -171,8 +196,9 @@ def intention_detection(state: ChatbotState):
         set([e["intent"] for e in intent_fewshot_examples])
     )
 
+    markdown_table = format_intention_output(intent_fewshot_examples)
     send_trace(
-        f"**intention retrieved:**\n{json.dumps(intent_fewshot_examples,ensure_ascii=False,indent=2)}",
+        f"**intention retrieved:**\n\n {markdown_table}",
         state["stream"],
         state["ws_connection_id"],
         state["enable_trace"],
