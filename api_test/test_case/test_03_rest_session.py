@@ -41,3 +41,7 @@ class TestSession:
         step(
             f"[{datetime.datetime.strftime(datetime.datetime.now(),'%Y-%m-%d')}] [{__name__}] Test end."
         )
+    
+    def test_38_list_session(self):
+        # TBD
+        pass
