@@ -11,7 +11,7 @@ export function getConfig(): SystemConfig {
   // Default config
   return {
     prefix: "",
-    email: "support@example.com",
+    email: "cuihubin@example.com",
     knowledgeBase: {
       enabled: true,
       knowledgeBaseType: {

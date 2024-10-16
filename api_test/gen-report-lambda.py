@@ -3,7 +3,6 @@ from datetime import datetime
 import boto3
 
 def __gen_completed_report(event):
-    print(f"!======={event}")
     s3_client = boto3.client('s3')
     repository = event['repository'] if 'repository' in event else '-'
     branch = event['branch'] if 'branch' in event else '-'
