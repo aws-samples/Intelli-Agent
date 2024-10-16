@@ -66,7 +66,7 @@ async function getAwsAccountAndRegion() {
     AWS_REGION = new AWS.IniLoader().loadFrom({ isConfig: true }).default.region;
 
   } catch (error) {
-    console.error("No default region found in the AWS credentials file. Please enter the region you want to deploy the intelli-agent knowledge base");
+    console.error("No default region found in the AWS credentials file. Please enter the region you want to deploy the intelli-agent solution");
     AWS_REGION = undefined;
   }
 
@@ -172,7 +172,7 @@ async function processCreateOptions(options: any): Promise<void> {
     {
       type: "input",
       name: "intelliAgentDeployRegion",
-      message: "Please enter the region you want to deploy the intelli-agent knowledge base",
+      message: "Please enter the region you want to deploy the intelli-agent solution",
       initial: options.intelliAgentDeployRegion ?? AWS_REGION,
       validate(intelliAgentDeployRegion: string) {
         if (Object.values(supportedRegions).includes(intelliAgentDeployRegion)) {
