@@ -105,6 +105,8 @@ async function getAwsAccountAndRegion() {
       options.intelliAgentKbVectorStoreType = config.knowledgeBase.knowledgeBaseType.intelliAgentKb.vectorStore.opensearch.enabled
         ? "opensearch"
         : "unsupported";
+      options.useCustomDomain = config.knowledgeBase.knowledgeBaseType.intelliAgentKb.vectorStore.opensearch.useCustomDomain;
+      options.customDomainEndpoint = config.knowledgeBase.knowledgeBaseType.intelliAgentKb.vectorStore.opensearch.customDomainEndpoint;
       options.enableIntelliAgentKbModel = config.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.enabled;
       options.knowledgeBaseModelEcrRepository = config.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.ecrRepository;
       options.knowledgeBaseModelEcrImageTag = config.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.ecrImageTag;
@@ -232,6 +234,41 @@ async function processCreateOptions(options: any): Promise<void> {
           (this as any).state.answers.knowledgeBaseType !== "intelliAgentKb");
       },
       initial: options.intelliAgentKbVectorStoreType ?? "opensearch",
+    },
+    {
+      type: "confirm",
+      name: "useCustomDomain",
+      message: "Do you want to use a custom domain for your knowledge base?",
+      initial: options.useCustomDomain ?? false,
+      skip(): boolean {
+        if ( !(this as any).state.answers.enableKnowledgeBase ||
+          (this as any).state.answers.knowledgeBaseType !== "intelliAgentKb" ||
+          (this as any).state.answers.intelliAgentKbVectorStoreType !== "opensearch") {
+          return true;
+        }
+        return false;
+      },
+    },
+    {
+      type: "input",
+      name: "customDomainEndpoint",
+      message: "Please enter the endpoint of the custom domain",
+      initial: options.customDomainEndpoint ?? "",
+      validate(customDomainEndpoint: string) {
+        return (this as any).skipped ||
+          RegExp(/^https:\/\/[a-z0-9-]+.[a-z0-9-]{2,}\.es\.amazonaws\.com$/).test(customDomainEndpoint)
+          ? true
+          : "Enter a valid OpenSearch domain endpoint (e.g., https://search-domain-region-id.region.es.amazonaws.com)";
+      },
+      skip(): boolean {
+        if ( !(this as any).state.answers.enableKnowledgeBase ||
+          (this as any).state.answers.knowledgeBaseType !== "intelliAgentKb" ||
+          (this as any).state.answers.intelliAgentKbVectorStoreType !== "opensearch" ||
+          !(this as any).state.answers.useCustomDomain) {
+          return true;
+        }
+        return false;
+      },
     },
     {
       type: "confirm",
@@ -422,6 +459,8 @@ async function processCreateOptions(options: any): Promise<void> {
           vectorStore: {
             opensearch: {
               enabled: answers.intelliAgentKbVectorStoreType === "opensearch",
+              useCustomDomain: answers.useCustomDomain,
+              customDomainEndpoint: answers.customDomainEndpoint,
             },
           },
           knowledgeBaseModel: {

@@ -198,10 +198,13 @@ export class ApiConstruct extends Construct {
         code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
         handler: "delete_execution.lambda_handler",
         environment: {
+          SFN_ARN: props.knowledgeBaseStackOutputs.sfnOutput.stateMachineArn,
           EXECUTION_TABLE: executionTableName,
         },
         statements: [this.iamHelper.dynamodbStatement],
       });
+
+      props.knowledgeBaseStackOutputs.sfnOutput.grantStartExecution(delExecutionLambda.function);
 
       const uploadDocLambda = new LambdaFunction(this, "UploadDocument", {
         code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
@@ -242,7 +245,7 @@ export class ApiConstruct extends Construct {
           code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
           handler: "sfn_handler.handler",
           environment: {
-            sfn_arn: props.knowledgeBaseStackOutputs.sfnOutput.stateMachineArn,
+            SFN_ARN: props.knowledgeBaseStackOutputs.sfnOutput.stateMachineArn,
             EXECUTION_TABLE_NAME: props.knowledgeBaseStackOutputs.executionTableName,
             INDEX_TABLE_NAME: props.sharedConstructOutputs.indexTable.tableName,
             CHATBOT_TABLE_NAME: props.sharedConstructOutputs.chatbotTable.tableName,
