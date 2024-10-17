@@ -489,14 +489,14 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                 >
                   {t('enableTrace')}
                 </Toggle>
-                {enableTrace && (
+                {/* {enableTrace && (
                   <Toggle
                     onChange={({ detail }) => setShowTrace(detail.checked)}
                     checked={showTrace}
                   >
                     {t('showTrace')}
                   </Toggle>
-                )}
+                )} */}
                 {(
                   <Toggle
                     onChange={({ detail }) => setOnlyRAGTool(detail.checked)}
