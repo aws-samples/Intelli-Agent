@@ -9,7 +9,7 @@ from typing import List
 
 import boto3
 from aos import sm_utils
-from aos.aos_utils import LLMBotOpenSearchClient
+from embeddings import get_embedding_info
 from botocore.paginate import TokenEncoder
 from constant import (
     BULK_SIZE,
@@ -24,7 +24,7 @@ from constant import (
     ModelDimensionMap,
 )
 from langchain.docstore.document import Document
-from langchain.embeddings.bedrock import BedrockEmbeddings
+from langchain_community.embeddings import BedrockEmbeddings
 from langchain_community.vectorstores import OpenSearchVectorSearch
 from langchain_community.vectorstores.opensearch_vector_search import (
     OpenSearchVectorSearch,
@@ -56,30 +56,31 @@ chatbot_table = dynamodb_client.Table(chatbot_table_name)
 model_table = dynamodb_client.Table(model_table_name)
 
 sm_client = boto3.client("secretsmanager")
-try:
-    master_user = sm_client.get_secret_value(SecretId=aos_secret)["SecretString"]
-    secret_body = sm_client.get_secret_value(SecretId=SECRET_NAME)["SecretString"]
-    secret = json.loads(secret_body)
-    username = secret.get("username")
-    password = secret.get("password")
-
-    if not aos_endpoint:
-        opensearch_client = boto3.client("opensearch")
-        response = opensearch_client.describe_domain(DomainName=aos_domain_name)
-        aos_endpoint = response["DomainStatus"]["Endpoint"]
-    aos_client = LLMBotOpenSearchClient(aos_endpoint, (username, password)).client
-except sm_client.exceptions.ResourceNotFoundException:
-    logger.info("Secret '%s' not found in Secrets Manager", aos_secret)
-except Exception as err:
-    logger.error("Error retrieving secret '%s': %s", aos_secret, str(err))
-    raise
 
 dynamodb_client = boto3.client("dynamodb")
 s3_client = boto3.client("s3")
 bedrock_client = boto3.client("bedrock-runtime", region_name=bedrock_region)
 
-credentials = boto3.Session().get_credentials()
-awsauth = AWS4Auth(refreshable_credentials=credentials, region=region, service="es")
+if not aos_endpoint:
+    opensearch_client = boto3.client("opensearch")
+    response = opensearch_client.describe_domain(DomainName=aos_domain_name)
+    aos_endpoint = response["DomainStatus"]["Endpoint"]
+
+try:
+    master_user = sm_client.get_secret_value(SecretId=SECRET_NAME)[
+        "SecretString"
+    ]
+    cred = json.loads(master_user)
+    username = cred.get("username")
+    password = cred.get("password")
+    awsauth = (username, password)
+        
+except sm_client.exceptions.ResourceNotFoundException:
+    credentials = boto3.Session().get_credentials()
+    awsauth = AWS4Auth(refreshable_credentials=credentials, region=region, service="es")
+except Exception as e:
+    logger.error(f"Error retrieving secret '{aos_secret}': {str(e)}")
+    raise 
 
 resp_header = {
     "Content-Type": "application/json",
@@ -374,7 +375,8 @@ def convert_qa_list(qa_list: list, bucket: str, prefix: str) -> List[Document]:
 def __save_2_aos(modelId: str, index: str, qaListParam: list, bucket: str, prefix: str):
     qaList = __deduplicate_by_key(qaListParam, "question")
     if kb_enabled:
-        embedding_function = sm_utils.getCustomEmbeddings(embedding_model_endpoint, region, "bce")
+        embedding_info = get_embedding_info(embedding_model_endpoint)
+        embedding_function = sm_utils.getCustomEmbeddings(embedding_model_endpoint, region, embedding_info.get("ModelType"))
         docsearch = OpenSearchVectorSearch(
             index_name=index,
             embedding_function=embedding_function,

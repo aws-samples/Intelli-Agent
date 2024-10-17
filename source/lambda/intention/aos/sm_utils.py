@@ -5,7 +5,7 @@ from typing import Any, Dict, Iterator, List, Mapping, Optional
 
 import boto3
 from langchain.callbacks.manager import CallbackManagerForLLMRun
-from langchain.embeddings import BedrockEmbeddings, SagemakerEndpointEmbeddings
+from langchain_community.embeddings import BedrockEmbeddings, SagemakerEndpointEmbeddings
 from langchain.embeddings.sagemaker_endpoint import EmbeddingsContentHandler
 from langchain.llms.sagemaker_endpoint import LLMContentHandler, SagemakerEndpoint
 from langchain.llms.utils import enforce_stop_tokens
