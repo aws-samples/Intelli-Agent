@@ -6,7 +6,7 @@ import boto3
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
-state_machine_arn = os.environ["sfn_arn"]
+state_machine_arn = os.environ["SFN_ARN"]
 
 
 def lambda_handler(event, context):

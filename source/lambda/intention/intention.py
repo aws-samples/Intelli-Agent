@@ -68,8 +68,8 @@ try:
         response = opensearch_client.describe_domain(
             DomainName=aos_domain_name)
         aos_endpoint = response["DomainStatus"]["Endpoint"]
-        aos_client = LLMBotOpenSearchClient(
-            aos_endpoint, (username, password)).client
+    aos_client = LLMBotOpenSearchClient(
+        aos_endpoint, (username, password)).client
 except sm_client.exceptions.ResourceNotFoundException:
     logger.info("Secret '%s' not found in Secrets Manager", aos_secret)
 except Exception as err:
