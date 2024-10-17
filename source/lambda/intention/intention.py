@@ -30,7 +30,7 @@ from langchain_community.vectorstores.opensearch_vector_search import (
     OpenSearchVectorSearch,
 )
 from openpyxl import load_workbook
-from opensearchpy import NotFoundError, RequestError, RequestsHttpConnection, helpers
+from opensearchpy import NotFoundError, RequestError, RequestsHttpConnection, helpers, OpenSearch
 from requests_aws4auth import AWS4Auth
 
 logger = logging.getLogger(__name__)
@@ -81,6 +81,19 @@ except sm_client.exceptions.ResourceNotFoundException:
 except Exception as e:
     logger.error(f"Error retrieving secret '{aos_secret}': {str(e)}")
     raise 
+
+aos_client = OpenSearch(
+    hosts=[
+        {
+            "host": aos_endpoint.replace("https://", ""),
+            "port": int(os.environ.get("AOS_PORT", 443)),
+        }
+    ],
+    http_auth=awsauth,
+    use_ssl=True,
+    verify_certs=True,
+    connection_class=RequestsHttpConnection,
+)
 
 resp_header = {
     "Content-Type": "application/json",
