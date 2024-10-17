@@ -82,15 +82,17 @@ class LLMTaskType(ConstantBase):
     HYDE_TYPE = "hyde"
     CONVERSATION_SUMMARY_TYPE = "conversation_summary"
     RETAIL_CONVERSATION_SUMMARY_TYPE = "retail_conversation_summary"
-
     MKT_CONVERSATION_SUMMARY_TYPE = "mkt_conversation_summary"
     MKT_QUERY_REWRITE_TYPE = "mkt_query_rewrite"
     STEPBACK_PROMPTING_TYPE = "stepback_prompting"
-    TOOL_CALLING = "tool_calling"
+    TOOL_CALLING_XML = "tool_calling_xml"
+    TOOL_CALLING_API = "tool_calling_api"
     RETAIL_TOOL_CALLING = "retail_tool_calling"
     RAG = "rag"
+    MTK_RAG = "mkt_rag"
     CHAT = 'chat'
     AUTO_EVALUATION = "auto_evaluation"
+
 
 
 class MessageType(ConstantBase):
@@ -133,12 +135,16 @@ class LLMModelType(ConstantBase):
     INTERNLM2_CHAT_7B = "internlm2-chat-7b"
     INTERNLM2_CHAT_20B = "internlm2-chat-20b"
     GLM_4_9B_CHAT = "glm-4-9b-chat"
-    CHATGPT_35_TURBO = "gpt-3.5-turbo-0125"
+    CHATGPT_35_TURBO_0125 = "gpt-3.5-turbo-0125"
     CHATGPT_4_TURBO = "gpt-4-turbo"
     CHATGPT_4O = "gpt-4o"
     QWEN2INSTRUCT7B = "qwen2-7B-instruct"
     QWEN2INSTRUCT72B = "qwen2-72B-instruct"
     QWEN15INSTRUCT32B = "qwen1_5-32B-instruct"
+    LLAMA3_1_70B_INSTRUCT = "meta.llama3-1-70b-instruct-v1:0"
+    MISTRAL_LARGE_2407 = "mistral.mistral-large-2407-v1:0"
+    COHERE_COMMAND_R_PLUS = "cohere.command-r-plus-v1:0"
+
 
 
 class EmbeddingModelType(ConstantBase):

@@ -2,6 +2,7 @@ import json
 import logging
 import os
 from datetime import datetime
+from langchain_aws.chat_models import ChatBedrockConverse
 
 
 import boto3

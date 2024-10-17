@@ -174,7 +174,7 @@ class Claude2ToolCallingChain(LLMChain):
         "temperature": 0.1,
         "top_p": 0.9,
         "stop_sequences": ["\n\nHuman:", "\n\nAssistant","</function_calls>"],
-        }
+    }
 
     @staticmethod
     def format_fewshot_examples(fewshot_examples:list[dict]):

@@ -338,7 +338,7 @@ register_prompt_templates(
         LLMModelType.CLAUDE_3_SONNET,
         LLMModelType.CLAUDE_3_5_SONNET,
     ],
-    task_type=LLMTaskType.TOOL_CALLING,
+    task_type=LLMTaskType.TOOL_CALLING_XML,
     prompt_template=AGENT_USER_PROMPT,
     prompt_name="user_prompt"
 )
@@ -363,7 +363,7 @@ register_prompt_templates(
         LLMModelType.CLAUDE_3_SONNET,
         LLMModelType.CLAUDE_3_5_SONNET,
     ],
-    task_type=LLMTaskType.TOOL_CALLING,
+    task_type=LLMTaskType.TOOL_CALLING_XML,
     prompt_template=AGENT_GUIDELINES_PROMPT,
     prompt_name="guidelines_prompt"
 )

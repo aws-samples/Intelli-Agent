@@ -2,52 +2,44 @@
 import json
 from typing import List,Dict,Any
 import re
+from datetime import datetime 
 
 from langchain.schema.runnable import (
     RunnableLambda,
-    RunnablePassthrough
 )
-from common_logic.common_utils.prompt_utils import get_prompt_template
-from common_logic.common_utils.logger_utils import print_llm_messages
+
 from langchain_core.messages import(
     AIMessage,
     SystemMessage
 ) 
 from langchain.prompts import ChatPromptTemplate
 
-from langchain_core.messages import AIMessage,SystemMessage
+from langchain_core.messages import AIMessage,SystemMessage,HumanMessage
 
 from common_logic.common_utils.constant import (
     LLMTaskType,
     LLMModelType,
-    MessageType
+    SceneType
 )
-from common_logic.common_utils.time_utils import get_china_now
+from functions import get_tool_by_name
+from ..llm_chain_base import LLMChain
+from ...llm_models import Model
 
-from .llm_chain_base import LLMChain
-from ..llm_models import Model
-
-incorrect_tool_call_example = """Here is an example of an incorrectly formatted tool call, which you should avoid.
-<incorrect_tool_calling>
-<function_calls>
-<invoke>
-<tool_name>tool_name</tool_name>
-<parameters>
-<parameter>
-<name>question</name>
-<type>string</type>
-<value>value</value>
-</parameter>
-</parameters>
-</invoke>
-</function_calls>
-</incorrect_tool_calling>
-
-In this incorrect tool calling example, the parameter `name` should form a <name> XLM tag. 
+tool_call_guidelines = """<guidlines>
+- Don't forget to output <function_calls> </function_calls> when any tool is called.
+- 每次回答总是先进行思考，并将思考过程写在<thinking>标签中。请你按照下面的步骤进行思考:
+    1. 判断根据当前的上下文是否足够回答用户的问题。
+    2. 如果当前的上下文足够回答用户的问题，请调用 `give_final_response` 工具。
+    3. 如果当前的上下文不能支持回答用户的问题，你可以考虑调用<tools> 标签中列举的工具。
+    4. 如果调用工具对应的参数不够，请调用反问工具 `give_rhetorical_question` 来让用户提供更加充分的信息。
+    5. 最后给出你要调用的工具名称。
+- Always output with "中文". 
+</guidlines>
 """
 
 
-SYSTEM_MESSAGE_PROMPT =(f"In this environment you have access to a set of tools you can use to answer the user's question.\n"
+SYSTEM_MESSAGE_PROMPT=("你是安踏的客服助理小安, 主要职责是处理用户售前和售后的问题。下面是当前用户正在浏览的商品信息:\n<goods_info>\n{goods_info}\n</goods_info>"
+        "In this environment you have access to a set of tools you can use to answer the customer's question."
         "\n"
         "You may call them like this:\n"
         "<function_calls>\n"
@@ -65,8 +57,7 @@ SYSTEM_MESSAGE_PROMPT =(f"In this environment you have access to a set of tools 
         "{tools}"
         "\n</tools>"
         "\nAnswer the user's request using relevant tools (if they are available). Before calling a tool, do some analysis within <thinking></thinking> tags. First, think about which of the provided tools is the relevant tool to answer the user's request. Second, go through each of the required parameters of the relevant tool and determine if the user has directly provided or given enough information to infer a value. When deciding if the parameter can be inferred, carefully consider all the context to see if it supports a specific value. If all of the required parameters are present or can be reasonably inferred, close the thinking tag and proceed with the tool call. BUT, if one of the values for a required parameter is missing, DO NOT invoke the function (not even with fillers for the missing params) and instead, ask the user to provide the missing parameters. DO NOT ask for more information on optional parameters if it is not provided."
-        "\nHere are some guidelines for you:\n{tool_call_guidelines}."
-        f"\n{incorrect_tool_call_example}"
+        f"\nHere are some guidelines for you:\n{tool_call_guidelines}"
     )
 
 SYSTEM_MESSAGE_PROMPT_WITH_FEWSHOT_EXAMPLES = SYSTEM_MESSAGE_PROMPT + (
@@ -109,8 +100,6 @@ TOOL_EXECUTE_FAIL_TEMPLATE = """
 </error>
 </function_results>
 """
-
-AGENT_SYSTEM_PROMPT = "你是一个亚马逊云科技的AI助理，你的名字是亚麻小Q。今天是{date_str},{weekday}. "
 
 
 def _get_type(parameter: Dict[str, Any]) -> str:
@@ -166,9 +155,9 @@ def convert_openai_tool_to_anthropic(tools:list[dict])->str:
     return tools_formatted
 
 
-class Claude2ToolCallingChain(LLMChain):
+class Claude2RetailToolCallingChain(LLMChain):
     model_id = LLMModelType.CLAUDE_2
-    intent_type = LLMTaskType.TOOL_CALLING_XML
+    intent_type = LLMTaskType.RETAIL_TOOL_CALLING
     default_model_kwargs = {
         "max_tokens": 2000,
         "temperature": 0.1,
@@ -217,28 +206,30 @@ class Claude2ToolCallingChain(LLMChain):
                 "function_calls": function_calls,
                 "content": content
             } 
-
-    @classmethod
-    def create_chat_history(cls,x):
-        chat_history = x['chat_history'] + \
-            [{"role": MessageType.HUMAN_MESSAGE_TYPE,"content": x['query']}] + \
-            x['agent_tool_history']
-        return chat_history
-
-    @classmethod
-    def get_common_system_prompt(cls,system_prompt_template:str):
-        now = get_china_now()
-        date_str = now.strftime("%Y年%m月%d日")
-        weekdays = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日']
-        weekday = weekdays[now.weekday()]
-        system_prompt = system_prompt_template.format(date=date_str,weekday=weekday)
-        return system_prompt
     
+
+    @staticmethod 
+    def generate_chat_history(state:dict):
+        chat_history = state['chat_history'] \
+            + [{"role": "user","content":state['query']}] \
+            + state['agent_tool_history']
+        return {"chat_history":chat_history}
+
         
     @classmethod
     def create_chain(cls, model_kwargs=None, **kwargs):
         model_kwargs = model_kwargs or {}
-        tools:list = kwargs['tools']
+        tools:list[dict] = kwargs['tools']
+
+        tool_names = [tool['name'] for tool in tools]
+
+        # add two extral tools
+        if "give_rhetorical_question" not in tool_names:
+            tools.append(get_tool_by_name("give_rhetorical_question",scene=SceneType.RETAIL).tool_def)
+
+        if "give_final_response" not in tool_names:
+            tools.append(get_tool_by_name("give_final_response",scene=SceneType.RETAIL).tool_def)
+
         fewshot_examples = kwargs.get('fewshot_examples',[])
         if fewshot_examples:
             fewshot_examples.append({
@@ -246,41 +237,26 @@ class Claude2ToolCallingChain(LLMChain):
                 "query": "今天天气怎么样?",
                 "kwargs": {"question": "请问你想了解哪个城市的天气?"}
             })
-        user_system_prompt = get_prompt_template(
-            model_id=cls.model_id,
-            task_type=cls.intent_type,
-            prompt_name="user_prompt"     
-        ).prompt_template
-
-        user_system_prompt = kwargs.get("user_prompt",None) or user_system_prompt
-
-        user_system_prompt = cls.get_common_system_prompt(
-            user_system_prompt
-        )
-        guidelines_prompt = get_prompt_template(
-            model_id=cls.model_id,
-            task_type=cls.intent_type,
-            prompt_name="guidelines_prompt"     
-        ).prompt_template
-
-        guidelines_prompt = kwargs.get("guidelines_prompt",None) or guidelines_prompt
+        
         model_kwargs = {**cls.default_model_kwargs, **model_kwargs}
 
         tools_formatted = convert_openai_tool_to_anthropic(tools)
+        goods_info = kwargs['goods_info']
 
         if fewshot_examples:
             system_prompt = SYSTEM_MESSAGE_PROMPT_WITH_FEWSHOT_EXAMPLES.format(
                 tools=tools_formatted,
-                fewshot_examples=cls.format_fewshot_examples(fewshot_examples),
-                tool_call_guidelines=guidelines_prompt
+                fewshot_examples=cls.format_fewshot_examples(
+                    fewshot_examples
+                    ),
+                goods_info = goods_info
             )
         else:
             system_prompt = SYSTEM_MESSAGE_PROMPT.format(
                 tools=tools_formatted,
-                tool_call_guidelines=guidelines_prompt
+                goods_info=goods_info
             )
-        
-        system_prompt = user_system_prompt + system_prompt 
+         
         tool_calling_template = ChatPromptTemplate.from_messages(
             [
             SystemMessage(content=system_prompt),
@@ -292,29 +268,87 @@ class Claude2ToolCallingChain(LLMChain):
             model_id=cls.model_id,
             model_kwargs=model_kwargs,
         )
-        chain = RunnablePassthrough.assign(chat_history=lambda x: cls.create_chat_history(x)) | tool_calling_template \
-            | RunnableLambda(lambda x: print_llm_messages(f"Agent messages: {x.messages}") or x.messages ) \
+        chain = RunnableLambda(cls.generate_chat_history) | tool_calling_template \
+            | RunnableLambda(lambda x: x.messages) \
             | llm | RunnableLambda(lambda message:cls.parse_function_calls_from_ai_message(
                 message
             ))
+        
         return chain
 
 
-class Claude21ToolCallingChain(Claude2ToolCallingChain):
+class Claude21RetailToolCallingChain(Claude2RetailToolCallingChain):
     model_id = LLMModelType.CLAUDE_21
 
 
-class ClaudeInstanceToolCallingChain(Claude2ToolCallingChain):
+class ClaudeInstanceRetailToolCallingChain(Claude2RetailToolCallingChain):
     model_id = LLMModelType.CLAUDE_INSTANCE
 
 
-class Claude3SonnetToolCallingChain(Claude2ToolCallingChain):
+class Claude3SonnetRetailToolCallingChain(Claude2RetailToolCallingChain):
     model_id = LLMModelType.CLAUDE_3_SONNET
 
 
-class Claude3HaikuToolCallingChain(Claude2ToolCallingChain):
+class Claude3HaikuRetailToolCallingChain(Claude2RetailToolCallingChain):
     model_id = LLMModelType.CLAUDE_3_HAIKU
 
 
-class Claude35SonnetToolCallingChain(Claude2ToolCallingChain):
-    model_id = "anthropic.claude-3-5-sonnet-20240620-v1:0"
+MIXTRAL8X7B_QUERY_TEMPLATE = """下面是客户和客服的历史对话信息:
+{chat_history}
+
+当前客户的问题是: {query}
+
+请你从安踏客服助理小安的角度回答客户当前的问题。你需要使用上述提供的各种工具进行回答。"""
+
+
+class Mixtral8x7bRetailToolCallingChain(Claude2RetailToolCallingChain):
+    model_id = LLMModelType.MIXTRAL_8X7B_INSTRUCT
+    default_model_kwargs = {"max_tokens": 1000, "temperature": 0.01,"stop":["</function_calls>"]}
+
+    @classmethod
+    def parse_function_calls_from_ai_message(cls,message:AIMessage):
+        content = message.content.replace("\_","_")
+        function_calls:List[str] = re.findall("<function_calls>(.*?)</function_calls>", content + "</function_calls>",re.S)
+        if function_calls:
+            function_calls = [function_calls[0]]
+        if not function_calls:
+            content = message.content
+        return {
+                "function_calls": function_calls,
+                "content": content
+            } 
+    
+    @staticmethod 
+    def chat_history_to_string(chat_history:list[dict]):
+        chat_history_lc = ChatPromptTemplate.from_messages([
+             ("placeholder", "{chat_history}")
+        ]).invoke({"chat_history":chat_history}).messages
+
+        chat_history_strs = []
+        for message in chat_history_lc:
+            assert isinstance(message,(HumanMessage,AIMessage)),message
+            if isinstance(message,HumanMessage):
+                chat_history_strs.append(f"客户: {message.content}")
+            else:
+                chat_history_strs.append(f"客服: {message.content}")
+        return "\n".join(chat_history_strs)     
+
+    
+    @classmethod
+    def generate_chat_history(cls,state:dict):
+        chat_history_str = cls.chat_history_to_string(state['chat_history'])
+
+        chat_history = [{
+            "role": "user",
+            "content": MIXTRAL8X7B_QUERY_TEMPLATE.format(
+                chat_history=chat_history_str,
+                query = state['query']
+            )
+            }] + state['agent_tool_history']
+        return {"chat_history": chat_history}
+
+        
+
+
+
+
