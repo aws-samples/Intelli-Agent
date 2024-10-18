@@ -191,13 +191,20 @@ wget https://raw.githubusercontent.com/aws-samples/Intelli-Agent/dev/source/scri
 sh setup_env.sh
 ```
 
-**Step 2**: Install the AWS CLI and configure your AWS account
+**Step 2**: Install the AWS CLI 
 
-Execute the following command to configure your AWS account (please skip this step if you have already configured your AWS account). Refer to the [AWS CLI](https://docs.aws.amazon.com/cli/latest/reference/configure/) command for more usage instructions.
-
+Execute the following command to install the AWS CLI if it is not installed.
 
 ```bash
-aws configure
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
+```
+
+You can execute the following command to check the AWS CLI version:
+
+```bash
+aws --version
 ```
 
 ### Deployment
@@ -291,6 +298,8 @@ Sample config.json:
 ```json
 {
   "prefix": "",
+  "email": "your-email@amazon.com",
+  "deployRegion": "us-east-1",
   "knowledgeBase": {
     "enabled": false,
     "knowledgeBaseType": {
@@ -299,7 +308,9 @@ Sample config.json:
         "email": "support@example.com",
         "vectorStore": {
           "opensearch": {
-            "enabled": true
+            "enabled": true,
+            "useCustomDomain": false,
+            "customDomainEndpoint": ""
           }
         },
         "knowledgeBaseModel": {
