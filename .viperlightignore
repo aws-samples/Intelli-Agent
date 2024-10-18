@@ -3,6 +3,7 @@
 tests/data/
 tests/buildspec_build.sh
 api_test/buildspec.yaml
+api_test/buildspec-20241012.yaml
 api_test/biz_logic/generated-client-rest-api/setup.py
 api_test/biz_logic/generated-client-rest-api/pyproject.toml
 api_test/test_case/*
@@ -14,3 +15,6 @@ source/lambda/online/functions/retail_tools/lambda_product_information_search/pr
 source/lambda/job/test/prepare_data.py
 README.md
 README_zh-cn.md
+source/infrastructure/bin/config.ts
+source/infrastructure/cli/magic-config.ts
+source/infrastructure/lib/api/asset/intention_corpus.xlsx

@@ -33,12 +33,12 @@ def write_chat_history_to_ddb(
     )
 
 
-def api_response(event_body:dict,response:dict):
+def api_response(event_body: dict, response: dict):
     ddb_history_obj = event_body["ddb_history_obj"]
     answer = response["answer"]
     if not isinstance(answer, str):
         answer = json.dumps(answer, ensure_ascii=False)
-    
+
     write_chat_history_to_ddb(
         query=event_body['query'],
         answer=answer,
@@ -46,7 +46,7 @@ def api_response(event_body:dict,response:dict):
         message_id=event_body['message_id'],
         custom_message_id=event_body['custom_message_id'],
         entry_type=event_body['entry_type'],
-        additional_kwargs=response.get("ddb_additional_kwargs",{})
+        additional_kwargs=response.get("ddb_additional_kwargs", {})
     )
 
     return {

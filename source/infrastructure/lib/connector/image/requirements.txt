@@ -1,3 +1,0 @@
-requests
-psycopg2-binary
-opensearch-py

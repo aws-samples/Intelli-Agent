@@ -3,7 +3,7 @@ import functools
 import importlib
 import json
 import time
-from typing import Any, Dict, Optional, Callable,Union
+from typing import Any, Dict, Optional, Callable, Union
 
 import requests
 from common_logic.common_utils.constant import StreamMessageType
@@ -14,6 +14,16 @@ from langchain.pydantic_v1 import BaseModel, Field, root_validator
 from .exceptions import LambdaInvokeError
 
 logger = get_logger("lambda_invoke_utils")
+
+
+__FUNC_NAME_MAP = {
+    "query_preprocess": "Preprocess for multi-round conversation",
+    "intention_detection": "Intention detection",
+    "agent": "Agent",
+    "tools_choose_and_results_generation": "Tool calling",
+    "results_evaluation": "Result evaluation",
+    "tool_execution": "Final tool result"
+}
 
 class LAMBDA_INVOKE_MODE(enum.Enum):
     LAMBDA = "lambda"
@@ -35,7 +45,7 @@ _is_current_invoke_local = False
 _current_stream_use = True
 _ws_connection_id = None
 _enable_trace = True
-_is_main_lambda = True 
+_is_main_lambda = True
 
 
 class LambdaInvoker(BaseModel):
@@ -101,17 +111,17 @@ class LambdaInvoker(BaseModel):
         return response_body
 
     def invoke_with_local(
-        self, 
+        self,
         lambda_module_path: Union[str, Callable],
-        event_body: dict, 
+        event_body: dict,
         handler_name="lambda_handler"
-        ):
+    ):
         if callable(lambda_module_path):
             lambda_fn = lambda_module_path
         else:
             lambda_module = importlib.import_module(lambda_module_path)
             lambda_fn = getattr(lambda_module, handler_name)
-        ret =lambda_fn(event_body)
+        ret = lambda_fn(event_body)
         return ret
 
     def invoke_with_apigateway(self, url, event_body: dict):
@@ -166,14 +176,14 @@ def chatbot_lambda_call_wrapper(fn):
     """
     @functools.wraps(fn)
     def inner(event: dict, context=None):
-        global _lambda_invoke_mode, _is_current_invoke_local,_enable_trace,_ws_connection_id,_is_main_lambda
+        global _lambda_invoke_mode, _is_current_invoke_local, _enable_trace, _ws_connection_id, _is_main_lambda
         _is_current_invoke_local = True if context is None else False
         current_lambda_invoke_mode = LAMBDA_INVOKE_MODE.LOCAL.value
         # avoid recursive lambda calling
         if context is not None and type(context).__name__ == "LambdaContext":
             context = context.__dict__
             _lambda_invoke_mode = LAMBDA_INVOKE_MODE.LOCAL.value
-        
+
         if "Records" in event:
             records = event["Records"]
             assert len(records) == 1, "Please set sqs batch size to 1"
@@ -195,15 +205,16 @@ def chatbot_lambda_call_wrapper(fn):
             _lambda_invoke_mode = LAMBDA_INVOKE_MODE.LOCAL.value
             current_lambda_invoke_mode = LAMBDA_INVOKE_MODE.API_GW.value
             event = json.loads(event["body"])
-        
-        # set _enable_trace
-        _is_main_lambda_inner = False # local valiable to represent main lambda
-        if _is_main_lambda:
-            _enable_trace = event.get('chatbot_config',{}).get("enable_trace",True)
-            _is_main_lambda = False  # global valiable to represent main lambda
-            _is_main_lambda_inner = True 
 
-        # run 
+        # set _enable_trace
+        _is_main_lambda_inner = False  # local valiable to represent main lambda
+        if _is_main_lambda:
+            _enable_trace = event.get(
+                'chatbot_config', {}).get("enable_trace", True)
+            _is_main_lambda = False  # global valiable to represent main lambda
+            _is_main_lambda_inner = True
+
+        # run
         ret = fn(event, context=context)
         # save response to body
         # TODO
@@ -213,7 +224,7 @@ def chatbot_lambda_call_wrapper(fn):
                 "body": json.dumps(ret),
                 "headers": {"content-type": "application/json"},
             }
-        
+
         if _is_main_lambda_inner:
             _is_main_lambda = True
         return ret
@@ -225,11 +236,11 @@ def is_running_local():
 
 
 def send_trace(
-        trace_info: str, 
-        current_stream_use: Union[bool,None] = None, 
-        ws_connection_id: Optional[str] = None, 
-        enable_trace: Union[bool,None] = None
-    ) -> None:
+    trace_info: str,
+    current_stream_use: Union[bool, None] = None,
+    ws_connection_id: Optional[str] = None,
+    enable_trace: Union[bool, None] = None
+) -> None:
     """
     Send trace information either to a WebSocket client or log it.
     """
@@ -239,7 +250,6 @@ def send_trace(
     if enable_trace is None:
         enable_trace = _enable_trace
 
-    
     if ws_connection_id is None:
         ws_connection_id = _ws_connection_id
 
@@ -270,15 +280,19 @@ def node_monitor_wrapper(fn: Optional[Callable[..., Any]] = None, *, monitor_key
             current_stream_use = state["stream"]
             ws_connection_id = state["ws_connection_id"]
             enable_trace = state["enable_trace"]
-            send_trace(f"\n\n **Enter {func.__name__}**", current_stream_use, ws_connection_id, enable_trace)
-            state['trace_infos'].append(f"Enter: {func.__name__}, time: {time.time()}")
+            send_trace(f"\n\n ### {__FUNC_NAME_MAP[func.__name__]}\n\n",
+                       current_stream_use, ws_connection_id, enable_trace)
+            state['trace_infos'].append(
+                f"Enter: {func.__name__}, time: {time.time()}")
             output = func(state)
             current_monitor_infos = output.get(monitor_key, None)
             if current_monitor_infos is not None:
-                send_trace(f"\n\n {current_monitor_infos}", current_stream_use, ws_connection_id, enable_trace)
+                send_trace(f"\n\n {current_monitor_infos}",
+                           current_stream_use, ws_connection_id, enable_trace)
             exit_time = time.time()
             state['trace_infos'].append(f"Exit: {func.__name__}, time: {time.time()}")
-            send_trace(f"\n\n **Exit {func.__name__}**, elapsed time: {round((exit_time-enter_time)*100)/100} s", current_stream_use, ws_connection_id, enable_trace)
+            send_trace(f"\n\n Elapsed time: {round((exit_time-enter_time)*100)/100} s",
+                       current_stream_use, ws_connection_id, enable_trace)
             return output
 
         return wrapper

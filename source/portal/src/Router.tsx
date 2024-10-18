@@ -10,28 +10,30 @@ import { useTranslation } from 'react-i18next';
 import SessionHistory from './pages/history/SessionHistory';
 import SessionDetail from './pages/history/SessionDetail';
 import PromptList from './pages/prompts/PromptList';
+import ChatbotManagement from './pages/chatbotManagement/ChatbotManagement';
+
 import LoginCallback from './comps/LoginCallback';
-import Login from './pages/login';
-import FindPWD from './pages/find-pwd';
-import Register from './pages/register';
-import ChangePWD from './pages/change-pwd';
-import { ROUTES } from './utils/const';
+
+import Intention from './pages/intention/Intention';
+import IntentionDetail from './pages/intention/IntentionDetail';
+import Home from './pages/home/Home';
+
 
 const SignedInRouter = () => {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path={ROUTES.Login} element={<Login />} />
-        <Route path={ROUTES.FindPWD}  element={<FindPWD />} />
-        <Route path={ROUTES.Register}  element={<Register />} />
-        <Route path={ROUTES.ChangePWD}  element={<ChangePWD />} />
-        <Route path={ROUTES.LoginCallback}  element={<LoginCallback />} />
-        <Route path={ROUTES.ChatBot} element={<ChatBot />} />
-        <Route path={ROUTES.Library}  element={<Library />} />
-        <Route path={ROUTES.LibraryDetail}  element={<LibraryDetail />} />
-        <Route path={ROUTES.SessionHistory}  element={<SessionHistory />} />
-        <Route path={ROUTES.SessionDetail}  element={<SessionDetail />} />
-        <Route path={ROUTES.PromptList}  element={<PromptList />} />
+        <Route path="/signin" element={<LoginCallback />} />
+        <Route path="/chats" element={<ChatBot />} />
+        <Route path="/" element={<Home />} />
+        <Route path="/library" element={<Library />} />
+        <Route path="/library/detail/:id" element={<LibraryDetail />} />
+        <Route path="/sessions" element={<SessionHistory />} />
+        <Route path="/session/detail/:id" element={<SessionDetail />} />
+        <Route path="/prompts" element={<PromptList />} />
+        <Route path="/intention" element={<Intention />} />
+        <Route path="/intention/detail/:id" element={<IntentionDetail />} />
+        <Route path="/chatbot-management" element={<ChatbotManagement />} />
       </Routes>
       <CommonAlert />
     </BrowserRouter>
@@ -58,9 +60,10 @@ const AppRouter = () => {
     );
   }
 
-  // if (auth.isAuthenticated) {
-  //   return <SignedInRouter />;
-  // }
+  // auth.isAuthenticated = true
+  if (auth.isAuthenticated) {
+    return <SignedInRouter />;
+  }
   return (
     <SignedInRouter />
     // <Login />

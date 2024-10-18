@@ -222,10 +222,45 @@ def bigo_test():
     session_id = f"multiturn_test_{time.time()}"
     user_queries = [
         {
-            "query": "怎么进行个体户注册",
-            "use_history": True
+            "query": "可以帮忙看看xx这台机，是不是配置太低还是怎么，感觉没启动几个服务，负载比较高",
+            "use_history": False
+        },
+        {
+            "query": "如何申请跳板机和服务器的登录权限",
+            "use_history": False
+        },
+        {
+            "query": "问一下sgjump跳板机登录权限怎么申请",
+            "use_history": False
+        },
+        {
+            "query": "可以给我开通下gitlab的权限吗",
+            "use_history": False
+        },
+        {
+            "query": "需要开通git的账号",
+            "use_history": False
+        },
+        {
+            "query": "vscode连接不上远程服务器",
+            "use_history": False
+        },
+        {
+            "query": "哈喽，我们这边用vscode连不上服务器，不知道什么原因",
+            "use_history": False
         },
     ]
+    test_rag_system_prompt = """You are a customer service agent, and answering user's query. You ALWAYS follow these guidelines when writing your response:
+    <guidelines>
+    - NERVER say "根据搜索结果/大家好/谢谢/根据这个文档...".
+    - 回答简单明了
+    - 如果问题与<docs>里面的内容不相关，请回答 "根据内部知识库，找不到相关内容"，不需要额外补充内容
+    </guidelines>
+
+    Here are some documents for you to reference for your query.
+    <docs>
+    {context}
+    </docs>"""
 
     for query in user_queries:
         print()
@@ -243,9 +278,13 @@ def bigo_test():
             "use_history": query['use_history'],
             "default_llm_config": default_llm_config,
             "default_index_names": {
-                "intention": ['default-intent'],
-                "qq_match": ['bingo_qq'],
-                "private_knowledge": ['wrong']
+                "qq_match": ['admin-qq-bigo_qq'],
+                "private_knowledge": ['admin-qd-bigo_qd'],
+            },
+            "private_knowledge_config": {
+                "llm_config":{
+                    "system_prompt": test_rag_system_prompt,
+                }
             },
             "agent_config": {
                 "only_use_rag_tool": True
@@ -370,10 +409,10 @@ def anta_test():
 if __name__ == "__main__":
     # complete_test_pr()
     # test_multi_turns_rag_pr()
-    test_multi_turns_agent_pr()
+    # test_multi_turns_agent_pr()
     # test_qq_case_from_hanxu()
     # test_multi_turns_chat_pr()
     # bigo_test()
     # sso_batch_test()
     # anta_test()
-    # bigo_test()
+    bigo_test()

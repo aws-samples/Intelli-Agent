@@ -14,7 +14,6 @@
 import { LayerVersion, Runtime, Code } from "aws-cdk-lib/aws-lambda";
 import * as path from "path";
 import { Construct } from "constructs";
-import { BuildConfig } from "./build-config";
 import * as pyLambda from "@aws-cdk/aws-lambda-python-alpha";
 
 export class LambdaLayers {
@@ -29,16 +28,16 @@ export class LambdaLayers {
           path.join(__dirname, "../../../lambda/embedding"),
           {
             bundling: {
-              image: Runtime.PYTHON_3_11.bundlingImage,
+              image: Runtime.PYTHON_3_12.bundlingImage,
               command: [
                 "bash",
                 "-c",
-                `pip install -r requirements.txt ${BuildConfig.LAYER_PIP_OPTION} -t /asset-output/python`,
+                `pip install -r requirements.txt -t /asset-output/python`,
               ],
             },
           },
         ),
-        compatibleRuntimes: [Runtime.PYTHON_3_11],
+        compatibleRuntimes: [Runtime.PYTHON_3_12],
         description: `LLM Bot - API layer`,
       },
     );
@@ -53,7 +52,7 @@ export class LambdaLayers {
       {
         entry: path.join(__dirname, "../../../lambda/online"),
         compatibleRuntimes: [Runtime.PYTHON_3_12],
-        description: `Intelli agent - Online Source layer`,
+        description: `AI-Customer-Service - Online Source layer`,
         bundling: {
           assetExcludes: ["*.pyc","*/__pycache__/*","*.xls","*.xlsx","*.csv","*.png","lambda_main/retail/size/*"],
         }
@@ -69,7 +68,7 @@ export class LambdaLayers {
       {
         entry: path.join(__dirname, "../../../lambda/job/dep/llm_bot_dep"),
         compatibleRuntimes: [Runtime.PYTHON_3_12],
-        description: `Intelli agent - Job Source layer`,
+        description: `AI Customer Service agent - Job Source layer`,
       },
     );
     return LambdaJobSourceLayer;
@@ -81,7 +80,7 @@ export class LambdaLayers {
       "APILambdaAuthorizerLayer",
       {
         entry: path.join(__dirname, "../../../lambda/authorizer"),
-        compatibleRuntimes: [Runtime.PYTHON_3_11],
+        compatibleRuntimes: [Runtime.PYTHON_3_12],
         description: `LLM Bot - Authorizer layer`,
       },
     );

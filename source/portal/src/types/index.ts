@@ -13,13 +13,50 @@ export type LibraryListItem = {
   qaEnhance: string;
   operationType: string;
   sfnExecutionId: string;
-  indexType: string;
+  indexType: string; 
   chatbotId: string;
   createTime: string;
 };
 
 export type LibraryListResponse = {
   Items: LibraryListItem[];
+  Count: number;
+  config: ResponseConfig;
+};
+
+export type IntentionsItem = {
+  executionId: string;
+  executionStatus: string;
+  fileName: string;
+  index: string;
+  model: string;
+  tag: string;
+  chatbotId: string;
+  createTime: string;
+};
+
+export type IntentionsResponse = {
+  Items: IntentionsItem[];
+  Count: number;
+  config: ResponseConfig;
+};
+
+export type ChatbotsItem = {
+  groupName: string,
+  chatbotId: string,
+  model: {
+    model_endpoint: string,
+    model_name: string,
+  };
+  index: {
+    intention: string,
+    qq: string,
+    qd: string
+  }
+};
+
+export type ChatbotsResponse = {
+  Items: ChatbotsItem[];
   Count: number;
   config: ResponseConfig;
 };
@@ -81,6 +118,28 @@ export type LibraryExecutionResponse = {
   Count: number;
 };
 
+export type QAItem = {
+  question: string,
+  intention: string,
+  kwargs: string
+}
+
+export type IntentionExecutionItem = {
+  s3Prefix: string;
+  detail?: string;
+  s3Bucket: string;
+  executionId: string;
+  status: string;
+  createTime: string;
+  s3Path: string;
+  QAList: QAItem[]
+};
+
+export type IntentionExecutionResponse = {
+  Items: IntentionExecutionItem[];
+  Count: number;
+};
+
 export type AdditionalImageType = {
   content_type: string;
   figure_path: string;
@@ -105,10 +164,11 @@ export interface CreatePromptResponse {
 export type PromptItem = {
   uuid: string;
   LastModifiedTime: string;
-  LastModifiedBy: string;
+  // LastModifiedBy: string;
   ModelId: string;
   SortKey: string;
   Scene: string;
+  ChatbotId: string;
 };
 
 export type PromptResponse = {
@@ -128,18 +188,61 @@ export interface GetPromptResponse {
   SortKey: string;
   ModelId: string;
   Scene: string;
+  ChatbotId: string;
   Prompt: Prompt;
 }
 
-export interface PresignedUrlResponse {
-  data: string;
-  message: string;
+
+export interface PresignedUrlData {
+  url: string;
   s3Bucket: string;
   s3Prefix: string;
+}
+
+export interface CreEditChatbotResponse {
+  Message: string;
+}
+
+export type ChatbotItem = {
+  ChatbotId: string;
+  LastModifiedTime: string;
+  ModelName: string;
+  SortKey: string;
+};
+
+export type ChatbotResponse = {
+  Items: ChatbotItem[];
+  Config: ResponseConfig;
+  Count: number;
+};
+
+export interface Chatbot {
+  qd: string;
+  qq: string;
+  intention: string;
+}
+
+export interface chatbotDetail {
+  GroupName: string;
+  ChatbotId: string;
+  Chatbot: Chatbot;
+}
+
+export interface PresignedUrlResponse {
+  data: PresignedUrlData;
+  message: string;
+}
+
+export interface indexScanResponse {
+  result: string;
 }
 
 export interface ExecutionResponse {
   execution_id: string;
   input_payload: string;
   step_function_arn: string;
+}
+export interface SelectedOption {
+  value: string;
+  label: string;
 }

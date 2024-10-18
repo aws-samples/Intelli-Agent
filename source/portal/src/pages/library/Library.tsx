@@ -169,6 +169,11 @@ const Library: React.FC = () => {
               //     ? a.indexType.localeCompare(b.indexType)
               //     : b.indexType.localeCompare(a.indexType);
               // }
+              if (sortingColumn.sortingField === 'chatbotId') {
+                return !isDescending
+                  ? a.chatbotId.localeCompare(b.chatbotId)
+                  : b.chatbotId.localeCompare(a.chatbotId);
+              }
               if (sortingColumn.sortingField === 'executionStatus') {
                 return !isDescending
                   ? a.executionStatus.localeCompare(b.executionStatus)
@@ -191,6 +196,11 @@ const Library: React.FC = () => {
               header: t('id'),
               cell: (item: LibraryListItem) => LinkComp(item),
               isRowHeader: true,
+            },
+            {
+              id: 'chatbotId',
+              header: t('chatbotName'),
+              cell: (item: LibraryListItem) => item.chatbotId,
             },
             {
               id: 's3Prefix',

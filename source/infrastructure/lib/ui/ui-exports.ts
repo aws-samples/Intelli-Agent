@@ -28,6 +28,10 @@ export interface UIProps extends StackProps {
   readonly oidcLogoutUrl: string;
   readonly oidcRedirectUrl: string;
   readonly region: string;
+  readonly kbEnabled: string;
+  readonly kbType: string;
+  readonly embeddingEndpoint: string;
+  // readonly apiKey?: string;
 }
 
 export interface UiExportsProps extends StackProps {
@@ -56,7 +60,7 @@ export class UiExportsConstruct extends Construct {
           Key: configFile,
         },
         service: 'S3',
-        physicalResourceId: PhysicalResourceId.of('config'),
+        physicalResourceId: PhysicalResourceId.of(`config-${Date.now()}`),
       },
       policy: AwsCustomResourcePolicy.fromStatements([
         new PolicyStatement({

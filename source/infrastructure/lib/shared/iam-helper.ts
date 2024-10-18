@@ -26,6 +26,8 @@ export class IAMHelper extends Construct {
   public llmStatement: PolicyStatement;
   public cognitoStatement: PolicyStatement;
   public bedrockStatement: PolicyStatement;
+  public esStatement: PolicyStatement;
+  public secretStatement: PolicyStatement;
 
   public createPolicyStatement(actions: string[], resources: string[]) {
     return new PolicyStatement({
@@ -88,6 +90,7 @@ export class IAMHelper extends Construct {
         "dynamodb:Describe*",
         "dynamodb:List*",
         "dynamodb:Scan",
+        "dynamodb:DeleteItem",
       ],
       [`arn:${Aws.PARTITION}:dynamodb:${Aws.REGION}:${Aws.ACCOUNT_ID}:table/*`],
     );
@@ -140,5 +143,21 @@ export class IAMHelper extends Construct {
       ],
       [ "*" ],
     );
+    this.esStatement = this.createPolicyStatement(
+      [
+        "es:ESHttpGet",
+        "es:ESHttpPut",
+        "es:ESHttpPost",
+        "es:ESHttpHead",
+        "es:DescribeDomain"
+      ],
+      [ "*" ],
+    );
+    this.secretStatement = this.createPolicyStatement(
+      [
+        "secretsmanager:GetSecretValue",
+      ],
+      [ "*" ],
+    )
   }
 }

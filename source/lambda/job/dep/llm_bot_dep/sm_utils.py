@@ -2,7 +2,7 @@ import json
 import io
 from typing import Any, Dict, Iterator, List, Mapping, Optional
 from langchain.llms.sagemaker_endpoint import LLMContentHandler, SagemakerEndpoint
-from langchain.embeddings import SagemakerEndpointEmbeddings
+from langchain.embeddings import SagemakerEndpointEmbeddings, BedrockEmbeddings
 from langchain.embeddings.sagemaker_endpoint import EmbeddingsContentHandler
 from langchain.callbacks.manager import CallbackManagerForLLMRun
 from langchain.llms.utils import enforce_stop_tokens
@@ -429,8 +429,16 @@ def getCustomEmbeddings(endpoint_name: str, region_name: str, model_type: str) -
             "sagemaker-runtime",
             region_name=region_name
             )
+    bedrock_client = boto3.client("bedrock-runtime")
     embeddings = None
-    if model_type == "bce":
+    if model_type == "bedrock":
+        content_handler = BedrockEmbeddings()
+        embeddings = BedrockEmbeddings(
+            client=bedrock_client,
+            region_name=region_name,
+            model_id=endpoint_name,
+        )
+    elif model_type == "bce":
         content_handler = vectorContentHandler()
         embeddings = SagemakerEndpointEmbeddings(
             client=client,
