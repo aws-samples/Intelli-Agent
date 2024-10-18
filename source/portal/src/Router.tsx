@@ -13,7 +13,6 @@ import PromptList from './pages/prompts/PromptList';
 import ChatbotManagement from './pages/chatbotManagement/ChatbotManagement';
 
 import LoginCallback from './comps/LoginCallback';
-
 import Intention from './pages/intention/Intention';
 import IntentionDetail from './pages/intention/IntentionDetail';
 import Home from './pages/home/Home';
@@ -65,18 +64,16 @@ const AppRouter = () => {
     return <SignedInRouter />;
   }
   return (
-    <SignedInRouter />
-    // <Login />
-    // <div className="login-container">
-    //   <div className="text-center">
-    //     <Box variant="h2">{t('welcome')}</Box>
-    //     <div className="mt-10">
-    //       <Button variant="primary" onClick={() => void auth.signinRedirect()}>
-    //         {t('button.login')}
-    //       </Button>
-    //     </div>
-    //   </div>
-    // </div>
+    <div className="login-container">
+      <div className="text-center">
+        <Box variant="h2">{t('welcome')}</Box>
+        <div className="mt-10">
+          <Button variant="primary" onClick={() => void auth.signinRedirect()}>
+            {t('button.login')}
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 };
 

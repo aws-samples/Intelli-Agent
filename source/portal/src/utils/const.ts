@@ -1,5 +1,4 @@
 import { SelectProps } from '@cloudscape-design/components';
-import Library from 'src/pages/library/Library';
 
 export const DEFAULT_ZH_LANG = 'zh';
 export const DEFAULT_EN_LANG = 'en';
