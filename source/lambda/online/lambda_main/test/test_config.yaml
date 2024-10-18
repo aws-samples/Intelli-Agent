@@ -1,0 +1,38 @@
+llm_config: &default_llm_config
+  model_id: "anthropic.claude-3-sonnet-20240229-v1:0"
+  model_kwargs: 
+    temperature: 0.5
+    max_tokens: 4096
+chatbot_config:
+  <<: *default_llm_config
+  stream: True
+  default_workspace_config:
+    intent_workspace_ids:
+      - default-intent-debug
+scenarios:
+  - name: "common"
+    cases:
+      - mode: "rag"
+        querys:
+          - query: "什么是aws ec2"
+          - query: "什么是sagemaker"
+            checks:
+              - name: "ground_truth"
+                contents: ["一种服务","用于模型开发用的"]
+      - mode: "chat"
+        querys:
+          - query: "你好"
+          - query: "你今天心情如何"
+            use_history: False
+      - mode: "agent"
+        querys:
+          - query: "你好"
+            checks:
+              - name: "ground_truth"
+                contents: ["你好呀","嗯嗯，你好"]
+                threshold: 0.8
+          - query: "人工客服"
+          - query: "垃圾"
+          - query: "什么是aws ec2"
+          - query: "今天天气怎么样"
+          - query: "我在上海"

@@ -27,6 +27,7 @@ export interface UIProps extends StackProps {
   readonly oidcClientId: string;
   readonly oidcLogoutUrl: string;
   readonly oidcRedirectUrl: string;
+  readonly region: string;
   readonly kbEnabled: string;
   readonly kbType: string;
   readonly embeddingEndpoint: string;
