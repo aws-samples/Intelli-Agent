@@ -109,9 +109,9 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
     });
     const lambdaOnlineMain = new LambdaFunction(this, "lambdaOnlineMain", {
       runtime: Runtime.PYTHON_3_12,
-      handler: "main.lambda_handler",
+      handler: "lambda_main.main.lambda_handler",
       code: Code.fromAsset(
-        join(__dirname, "../../../lambda/online/lambda_main"),
+        join(__dirname, "../../../lambda/online"),
       ),
       memorySize: 4096,
       vpc: vpc,
