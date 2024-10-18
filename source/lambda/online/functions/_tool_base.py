@@ -3,6 +3,7 @@ from langchain.pydantic_v1 import BaseModel,Field
 from enum import Enum
 from common_logic.common_utils.constant import SceneType,ToolRuningMode
 
+
 class ToolDefType(Enum):
     openai = "openai"
 
@@ -18,6 +19,7 @@ class Tool(BaseModel):
     tool_def_type: ToolDefType = Field(description="tool definition type",default=ToolDefType.openai.value)
     scene: str = Field(description="tool use scene",default=SceneType.COMMON)
     # should_ask_parameter: bool = Field(description="tool use scene")
+
 
 class ToolManager:
     def __init__(self) -> None:
