@@ -31,7 +31,7 @@
     "react-use-websocket": "^4.8.1",
     "remark-gfm": "^4.0.0",
     "sass": "^1.74.1",
-    "yaml": "^2.5.0"
+    "uuid": "^9.0.1"
   },
   "devDependencies": {
     "@types/lodash": "^4.17.0",
