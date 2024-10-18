@@ -72,6 +72,7 @@ phases:
         if [ -d "Intelli-Agent/source/infrastructure" ]; then
           echo "Synthesizing start..."
           pushd "Intelli-Agent/source/infrastructure"
+          sed -i 's/support@example.com/$SUB_EMAIL/g' bin/config.ts
           pnpm i
           npx cdk synth 2>&1 | tee synth.log
           if [ ${PIPESTATUS[0]} -ne 0 ]; then
@@ -89,7 +90,7 @@ phases:
           if [ -d "Intelli-Agent/source/infrastructure" ]; then
             pushd "Intelli-Agent/source/infrastructure"
             pnpm i
-            npx cdk deploy
+            npx cdk deploy $STACK_NAME
             deploy_exit_code=$?
             if [ $deploy_exit_code -ne 0 ]; then
               echo "CDK deployment failed. Sending email and exiting with status code 1."
