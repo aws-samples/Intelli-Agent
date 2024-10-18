@@ -84,8 +84,6 @@ s3_client = boto3.client("s3")
 bedrock_client = boto3.client("bedrock-runtime", region_name=bedrock_region)
 
 credentials = boto3.Session().get_credentials()
-awsauth = AWS4Auth(refreshable_credentials=credentials,
-                   region=region, service="es")
 
 resp_header = {
     "Content-Type": "application/json",
