@@ -8,10 +8,6 @@ from common_logic.common_utils.logger_utils import get_logger
 from . import Model
 
 
-# AI_MESSAGE_TYPE = MessageType.AI_MESSAGE_TYPE
-# HUMAN_MESSAGE_TYPE = MessageType.HUMAN_MESSAGE_TYPE
-# SYSTEM_MESSAGE_TYPE = MessageType.SYSTEM_MESSAGE_TYPE
-
 logger = get_logger("bedrock_model")
 
 # Bedrock model type
