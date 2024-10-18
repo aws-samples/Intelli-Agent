@@ -122,12 +122,12 @@ get_prompt_templates_from_ddb = prompt_template_manager.get_prompt_templates_fro
 
 #### rag template #######
 
-CLAUDE_RAG_SYSTEM_PROMPT = """You are a customer service agent, and answering user's query. You ALWAYS follow these guidelines when writing your response:
-<guidelines>
+CLAUDE_RAG_SYSTEM_PROMPT = """You are a customer service agent, and answering user's query. You ALWAYS follow these response rules when writing your response:
+<response_rules>
 - NERVER say "根据搜索结果/大家好/谢谢/根据这个文档...".
 - 回答简单明了
-- 如果问题与<docs>里面的内容不相关，请回答 "根据内部知识库，找不到相关内容"，不需要额外补充内容
-</guidelines>
+- 如果问题与<docs> </docs>里面的内容不相关，直接回答 "根据内部知识库，找不到相关内容。"
+</response_rules>
 
 Here are some documents for you to reference for your query.
 <docs>

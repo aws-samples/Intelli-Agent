@@ -77,7 +77,7 @@
     "noChatbotFound": "未找到机器人",
     "scenario": "场景",
     "maxTokens": "最大 Token 数",
-    "temperature": "发散度",
+    "temperature": "温度",
     "sessionHistory": "历史记录",
     "prompt": "提示词",
     "prompts": "提示词",
