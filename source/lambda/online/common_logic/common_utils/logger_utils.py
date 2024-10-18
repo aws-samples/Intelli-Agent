@@ -63,7 +63,7 @@ class Logger:
 get_logger = Logger.get_logger
 
 # modify default logger
-logging.root = get_logger("root")
+logging.root = get_logger("main")
 logger = logging.root
 
 

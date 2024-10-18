@@ -1,3 +1,4 @@
+
 import hashlib
 import json
 import os
@@ -7,6 +8,7 @@ from typing import List
 import boto3
 from openpyxl import load_workbook
 from io import BytesIO
+from embeddings import get_embedding_info
 from botocore.paginate import TokenEncoder
 from opensearchpy import NotFoundError, RequestError, helpers, RequestsHttpConnection
 import logging
@@ -28,7 +30,6 @@ from constant import (BULK_SIZE,
                       EXECUTION_RESOURCE,
                       INDEX_USED_SCAN_RESOURCE,
                       PRESIGNED_URL_RESOURCE,
-                      SECRET_NAME,
                       ModelDimensionMap)
 
 logger = logging.getLogger(__name__)
@@ -54,12 +55,11 @@ chatbot_table = dynamodb_client.Table(chatbot_table_name)
 model_table = dynamodb_client.Table(model_table_name)
 
 sm_client = boto3.client("secretsmanager")
+credentials = boto3.Session().get_credentials()
 try:
     master_user = sm_client.get_secret_value(
         SecretId=aos_secret)["SecretString"]
-    secret_body = sm_client.get_secret_value(
-        SecretId=SECRET_NAME)['SecretString']
-    secret = json.loads(secret_body)
+    secret = json.loads(master_user)
     username = secret.get("username")
     password = secret.get("password")
 
@@ -68,10 +68,13 @@ try:
         response = opensearch_client.describe_domain(
             DomainName=aos_domain_name)
         aos_endpoint = response["DomainStatus"]["Endpoint"]
-        aos_client = LLMBotOpenSearchClient(
-            aos_endpoint, (username, password)).client
+    aos_client = LLMBotOpenSearchClient(aos_endpoint, (username, password)).client
+    awsauth = (username, password)
 except sm_client.exceptions.ResourceNotFoundException:
     logger.info("Secret '%s' not found in Secrets Manager", aos_secret)
+    aos_client = LLMBotOpenSearchClient(aos_endpoint).client
+    awsauth = AWS4Auth(refreshable_credentials=credentials,
+                   region=region, service="es")
 except Exception as err:
     logger.error("Error retrieving secret '%s': %s", aos_secret, str(err))
     raise
@@ -81,8 +84,6 @@ s3_client = boto3.client("s3")
 bedrock_client = boto3.client("bedrock-runtime", region_name=bedrock_region)
 
 credentials = boto3.Session().get_credentials()
-awsauth = AWS4Auth(refreshable_credentials=credentials,
-                   region=region, service="es")
 
 resp_header = {
     "Content-Type": "application/json",
@@ -412,8 +413,9 @@ def convert_qa_list(qa_list: list, bucket: str, prefix: str) -> List[Document]:
 def __save_2_aos(modelId: str, index: str, qaListParam: list, bucket: str, prefix: str):
     qaList = __deduplicate_by_key(qaListParam, "question")
     if kb_enabled:
+        embedding_info = get_embedding_info(embedding_model_endpoint)
         embedding_function = sm_utils.getCustomEmbeddings(
-            embedding_model_endpoint, region, "bce"
+            embedding_model_endpoint, region, embedding_info.get("ModelType")
         )
         docsearch = OpenSearchVectorSearch(
             index_name=index,

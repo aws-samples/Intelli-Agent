@@ -31,7 +31,7 @@ phases:
           echo "Stack deletion complete."
         else
           echo "Failed to delete stack."
-          reason_detail=$(aws cloudformation describe-stack-events --stack-name "$STACK_NAME" --query "StackEvents[?ResourceStatus=='DELETE_FAILED'] | [-1]")
+          reason_detail=$(aws cloudformation describe-stack-events --stack-name intelli-agent | jq '[.StackEvents[] | select(.ResourceType=="AWS::EC2::Subnet" and .ResourceStatus=="DELETE_FAILED")] | last')
           reason=$(echo $reason_detail | jq -r '.ResourceStatusReason')
           echo $reason | jq -R --arg reason "$reason" '{"error_msg":$reason}' > clear_resources.json
           cat clear_resources.json
@@ -75,8 +75,8 @@ phases:
           npx cdk synth 2>&1 | tee synth.log
           if [ ${PIPESTATUS[0]} -ne 0 ]; then
             echo "cdk synth failed"
-            jq -n --arg error "$(cat synth.log)" '{error: $error}' > sync_error.json
-            aws lambda invoke --function-name $GEN_REPORT_FUNCTION --payload fileb://payload.json sync_error.json
+            jq -n --arg error "$(cat synth.log)" '{detail: $error, status: "unCompleted", build_url: $CODEBUILD_BUILD_URL, project_name: $PROJECT_NAME, topic: $TOPIC, repository: $REPOSITORY_URL, branch: $CODE_BRANCH}' > sync_error.json
+            aws lambda invoke --function-name $GEN_REPORT_FUNCTION --payload fileb://sync_error.json sync_error.json
             exit 1
           else
             echo "Synthesizing complete."
@@ -96,6 +96,9 @@ phases:
             if [ $deploy_exit_code -ne 0 ]; then
               echo "CDK deployment failed. Sending email and exiting with status code 1."
               msg=$(aws cloudformation describe-stack-events --stack-name intelli-agent --query "StackEvents[?ResourceStatus=='CREATE_FAILED'] | [-1]")
+              if [ -z "$msg" ]; then 
+                msg=$(aws cloudformation describe-stack-events --stack-name intelli-agent | jq '[.StackEvents[] | select(.ResourceType=="AWS::EC2::Subnet" and .ResourceStatus=="DELETE_FAILED")] | last'); 
+              fi
               echo "{\"project_name\":\"$PROJECT_NAME\",\"build_url\":\"$CODEBUILD_BUILD_URL\",\"status\":\"unCompleted\",\"detail\":\"$msg\",\"topic\":\"$TOPIC\",\"repository\":\"$REPOSITORY_URL\",\"branch\":\"$CODE_BRANCH\"}" > payload.json
               aws lambda invoke --function-name $GEN_REPORT_FUNCTION --payload fileb://payload.json response.json
               exit 1
