@@ -1,0 +1,73 @@
+.delete-top {
+    font-family: "Open Sans", sans-serif;
+    font-style: normal;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 22px;
+    display: flex;
+    align-items: flex-end;
+    user-select: none;
+  }
+  
+  .delete-intention {
+    box-sizing: border-box;
+    padding: 10px 18px;
+    gap: 16px;
+  
+    width: 552px;
+    height: 98px;
+    border: 2px solid #987d85;
+    border-radius: 12px;
+  }
+  
+  .delete-intention-warning {
+    color: #d91515 !important;
+  }
+  
+  .warning-desc {
+    font-family: "Open Sans", sans-serif;
+    font-style: normal;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 22px;
+    color: #000716;
+    user-select: none;
+    margin-bottom: 10px;
+  }
+  
+  .warning-list {
+    padding-left: 20px;
+  }
+
+  .confirm-top {
+    margin-top: 20px;
+    font-family: "Open Sans", sans-serif;
+    font-style: normal;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 22px;
+  
+    display: flex;
+    align-items: flex-end;
+    user-select: none;
+  }
+  
+  .confirm-agree {
+    font-family: "Open Sans", sans-serif;
+    font-style: normal;
+    font-weight: 700;
+    font-size: 14px;
+    line-height: 22px;
+  
+    color: #000716;
+  
+    flex: none;
+    order: 0;
+    flex-grow: 0;
+  }
+  
+  .confirm-input {
+    margin-top: 5px;
+    width: 419px;
+  }
+  

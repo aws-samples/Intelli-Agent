@@ -34,11 +34,13 @@ def lambda_handler(event_body,context=None):
     
     group_name = state['chatbot_config']['group_name']
     llm_config = state["chatbot_config"]["private_knowledge_config"]['llm_config']
+    chatbot_id = state["chatbot_config"]["chatbot_id"]
     task_type = LLMTaskType.RAG
     prompt_templates_from_ddb = get_prompt_templates_from_ddb(
         group_name,
         model_id=llm_config['model_id'],
-        task_type=task_type
+        task_type=task_type,
+        chatbot_id=chatbot_id
     )
 
     output: str = invoke_lambda(

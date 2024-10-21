@@ -1,7 +1,7 @@
 import json
 import logging
 import os
-
+from utils.parameter_utils import get_query_parameter
 import boto3
 
 logger = logging.getLogger()
@@ -20,7 +20,8 @@ def create_presigned_url(bucket_name, object_name, content_type, expiration):
     """
     presigned_url = s3_client.generate_presigned_url(
         ClientMethod="put_object",
-        Params={"Bucket": bucket_name, "Key": object_name, "ContentType": content_type},
+        Params={"Bucket": bucket_name, "Key": object_name,
+                "ContentType": content_type},
         ExpiresIn=expiration,
         HttpMethod="PUT",
     )
@@ -30,13 +31,6 @@ def create_presigned_url(bucket_name, object_name, content_type, expiration):
 
 def lambda_handler(event, context):
     logger.info(event)
-    authorizer_type = event["requestContext"]["authorizer"].get("authorizerType")
-    if authorizer_type == "lambda_authorizer":
-        claims = json.loads(event["requestContext"]["authorizer"]["claims"])
-        cognito_groups = claims["cognito:groups"]
-        cognito_groups_list = cognito_groups.split(",")
-    else:
-        raise Exception("Invalid authorizer type")
     resp_header = {
         "Content-Type": "application/json",
         "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
@@ -45,6 +39,24 @@ def lambda_handler(event, context):
     }
     content_type = "text/plain;charset=UTF-8"
     expiration = 3600
+    authorizer_type = (
+        event["requestContext"].get("authorizer", {}).get("authorizerType")
+    )
+    if authorizer_type == "lambda_authorizer":
+        claims = json.loads(event["requestContext"]["authorizer"]["claims"])
+        if "use_api_key" in claims:
+            group_name = get_query_parameter(event, "GroupName", "Admin")
+            cognito_groups_list = [group_name]
+        else:
+            cognito_groups = claims["cognito:groups"]
+            cognito_groups_list = cognito_groups.split(",")
+    else:
+        logger.error("Invalid authorizer type")
+        return {
+            "statusCode": 403,
+            "headers": resp_header,
+            "body": json.dumps({"error": "Invalid authorizer type"}),
+        }
 
     try:
         input_body = json.loads(event["body"])
@@ -62,9 +74,11 @@ def lambda_handler(event, context):
         )
         output = {
             "message": "The S3 presigned url is generated",
-            "data": presigned_url,
-            "s3Bucket": s3_bucket_name,
-            "s3Prefix": file_name
+            "data": {
+                "url": presigned_url,
+                "s3Bucket": s3_bucket_name,
+                "s3Prefix": file_name,
+            }
         }
 
         return {

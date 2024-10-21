@@ -1,10 +1,15 @@
 import json
 import os
 import time
+
 import boto3
 from botocore.paginate import TokenEncoder
 from common_logic.common_utils.logger_utils import get_logger
-from common_logic.common_utils.prompt_utils import get_all_templates, EXPORT_MODEL_IDS, EXPORT_SCENES
+from common_logic.common_utils.prompt_utils import (
+    EXPORT_MODEL_IDS,
+    EXPORT_SCENES,
+    get_all_templates,
+)
 
 DEFAULT_MAX_ITEMS = 50
 DEFAULT_SIZE = 50
@@ -17,7 +22,7 @@ dynamodb_client = boto3.client("dynamodb")
 encoder = TokenEncoder()
 
 dynamodb_resource = boto3.resource("dynamodb")
-prompt_table_name = os.getenv("PROMPT_TABLE_NAME","prompt")
+prompt_table_name = os.getenv("PROMPT_TABLE_NAME", "prompt")
 prompt_table = dynamodb_resource.Table(prompt_table_name)
 
 resp_header = {
@@ -37,22 +42,24 @@ def get_query_parameter(event, parameter_name, default_value=None):
     return default_value
 
 
-def __put_prompt(event, group_name, email):
+def __put_prompt(event, group_name):
     body = json.loads(event["body"])
     model_id = body.get("ModelId")
     scene = body.get("Scene")
+    chatbot_id = body.get("ChatbotId")
     prompt_table.put_item(
-                Item={
-                    "GroupName": group_name,
-                    "SortKey": f"{model_id}__{scene}",
-                    "ModelId": model_id,
-                    "Scene": scene,
-                    "Prompt": body.get("Prompt"),
-                    "LastModifiedBy": email,
-                    "LastModifiedTime": str(int(time.time())),
-                }
-            )
-    return {"Message":"OK"}
+        Item={
+            "GroupName": group_name,
+            "SortKey": f"{model_id}__{scene}__{chatbot_id}",
+            "ChatbotId": chatbot_id,
+            "ModelId": model_id,
+            "Scene": scene,
+            "Prompt": body.get("Prompt"),
+            # "LastModifiedBy": email,
+            "LastModifiedTime": str(int(time.time())),
+        }
+    )
+    return {"Message": "OK"}
 
 
 def __list_model():
@@ -110,19 +117,20 @@ def __list_prompt(event, group_name):
 
 
 def __get_prompt(event, group_name):
-    sort_key = event["path"].replace(f"{PROMPTS_RESOURCE}/", "").strip().replace("/","__")
-    response = prompt_table.get_item(
-            Key={"GroupName": group_name, "SortKey": sort_key}
-        )
+    sort_key = (
+        event["path"].replace(f"{PROMPTS_RESOURCE}/", "").strip().replace("/", "__")
+    )
+    response = prompt_table.get_item(Key={"GroupName": group_name, "SortKey": sort_key})
     item = response.get("Item")
     if item:
         return item
     keys = sort_key.split("__")
-    default_prompt = get_all_templates().get(keys[0],{}).get(keys[1])
+    default_prompt = get_all_templates().get(keys[0], {}).get(keys[1])
     response_prompt = {
         "GroupName": group_name,
         "SortKey": sort_key,
         "ModelId": keys[0],
+        "ChatbotId": keys[2],
         "Scene": keys[1],
         "Prompt": default_prompt,
     }
@@ -130,31 +138,43 @@ def __get_prompt(event, group_name):
 
 
 def __delete_prompt(event, group_name):
-    sort_key = event["path"].replace(f"{PROMPTS_RESOURCE}/", "").strip().replace("/","__")
+    sort_key = (
+        event["path"].replace(f"{PROMPTS_RESOURCE}/", "").strip().replace("/", "__")
+    )
     response = prompt_table.delete_item(
-            Key={"GroupName": group_name, "SortKey": sort_key}
-        )
-    return {"Message":"OK"}
+        Key={"GroupName": group_name, "SortKey": sort_key}
+    )
+    return {"Message": "OK"}
 
 
 def lambda_handler(event, context):
     logger.info(event)
-    authorizer_type = event["requestContext"]["authorizer"].get("authorizerType")
+    authorizer_type = (
+        event["requestContext"].get("authorizer", {}).get("authorizerType")
+    )
     if authorizer_type == "lambda_authorizer":
         claims = json.loads(event["requestContext"]["authorizer"]["claims"])
-        email = claims["email"]
-        group_name = claims["cognito:groups"] #Agree to only be in one group
+        if "use_api_key" in claims:
+            group_name = get_query_parameter(event, "GroupName", "Admin")
+        else:
+            group_name = claims["cognito:groups"]
     else:
-        raise Exception("Invalid authorizer type")
+        logger.error("Invalid authorizer type")
+        return {
+            "statusCode": 403,
+            "headers": resp_header,
+            "body": json.dumps({"error": "Invalid authorizer type"}),
+        }
+
     http_method = event["httpMethod"]
-    resource:str = event["resource"]
+    resource: str = event["resource"]
     if resource == MODELS_RESOURCE:
         output = __list_model()
     elif resource == SCENES_RESOURCE:
         output = __list_scene()
     elif resource.startswith(PROMPTS_RESOURCE):
         if http_method == "POST":
-            output = __put_prompt(event, group_name, email)
+            output = __put_prompt(event, group_name)
         elif http_method == "GET":
             if event["resource"] == PROMPTS_RESOURCE:
                 output = __list_prompt(event, group_name)

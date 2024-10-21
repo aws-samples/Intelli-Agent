@@ -1,19 +1,22 @@
 {
   "translation": {
-    "name": "Intelli-Agent",
-    "welcome": "欢迎使用 Intelli-Agent",
+    "name": "AI Customer Service",
+    "welcome": "欢迎使用 AI Customer Service",
     "you": "你",
     "welcomeMessage": "您好，我今天有什么可以帮助您？",
     "server": "服务器",
     "settings": "设置",
     "signOut": "退出登录",
     "chatSpace": "聊天",
+    "chat": "当前会话",
     "chatBot": "聊天机器人",
     "docLibrary": "文档库",
     "addLibrary": "添加文档",
     "documentation": "文档",
     "ingest": "导入",
     "ingestDesc": "请选择要导入的文件",
+    "createIntention": "上传文件",
+    "ingestIntentionDesc": "请选择要导入的包含意图语料的文件",
     "selectFile": "选择文件",
     "selectFileDesc": "文件上传成功后，将开始导入文档过程。",
     "chooseFile": "选择文件",
@@ -27,6 +30,7 @@
     "supportFiles": "支持的文件类型：",
     "uploadProgress": "上传进度",
     "uploadSuccess": "上传成功",
+    "deleteSuccess": "删除成功",
     "completed": "完成",
     "inProgress": "进行中",
     "failed": "失败",
@@ -44,9 +48,13 @@
     "loadingData": "正在加载数据...",
     "noData": "无数据",
     "findResources": "查找资源",
+    "loadingResources": "正在加载资源",
     "deleteTips": "您确定要删除选中的项目吗？",
     "executionDetail": "执行详情",
     "executionDetailDesc": "请检查下方的文件列表，并点击信息图标了解更多详情。",
+    "qaList": "问题列表",
+    "qaListDesc": "本批次上传的问题一览",
+    "indexComment": "多个索引请用半角逗号隔开",
     "detailNoFiles": "没有文件或请等待执行完成",
     "loading": "正在连接...",
     "success": "连接成功",
@@ -58,23 +66,32 @@
     "pageSize": "每页显示",
     "fileEmptyError": "请选择需要上传的文件",
     "docName": "文档名称",
+    "intentionName": "文件名称",
     "multiRound": "多轮对话",
     "onlyRAGTool": "只使用RAG工具",
     "trace": "跟踪",
     "modelSettings": "模型设置",
     "modelName": "模型名称",
     "noModelFound": "未找到模型",
+    "chatbotName": "机器人名称",
+    "noChatbotFound": "未找到机器人",
     "scenario": "场景",
     "maxTokens": "最大 Token 数",
-    "temperature": "发散度",
+    "temperature": "温度",
     "sessionHistory": "历史记录",
     "prompt": "提示词",
     "prompts": "提示词",
+    "chatbot": "聊天机器人",
+    "chatbots": "聊天机器人",
+    "chatbotManagement": "聊天机器人",
     "type": "类型",
     "updateBy": "更新者",
     "updateTime": "更新时间",
     "promptCreateTips": "新的提示将覆盖当前提示词，您确定要继续吗？",
     "promptDeleteTips": "删除此提示词将会恢复成系统默认提示词。",
+    "chatbotCreateTips": "新的聊天机器人将覆盖现有的同名聊天机器人，请谨慎操作",
+    "chatbotDeleteTips": "删除此聊天机器人将会恢复成系统默认聊天机器人。",
+    "intentionDeleteTips": "删除这些项目将会删除系统里面所有相关数据。",
     "endPoint": "端点",
     "enableTrace": "启用 trace",
     "showTrace": "显示 trace",
@@ -83,6 +100,23 @@
     "indexName": "索引名称",
     "tag": "标签",
     "optional": "可选",
+    "intention": "意图",
+    "addIntention": "上传文件",
+    "bot": "Bot",
+    "model": "模型",
+    "empty":"没找到语料",
+    "customizeIndex": "自定义索引",
+    "downloadTemplate":"下载模板",
+    "chatbotNamePlaceholder": "请输入聊天机器人名称",
+    "indexPlaceholder": "请输入相应索引名称",
+    "toAvoidTips": "为避免意外删除，我们要求您提供额外的书面同意。",
+    "typeConfirm": "输入 “确认” 即表示同意",
+    "confirmDelete": "请确认删除",
+    "confirm": "确认",
+    "deleteIntentionTips": "永久删除这些数据？",
+    "deleteAlert": "此操作将无法恢复，请谨慎操作",
+    "deleteIntentionFailed": "下列数据因为被其他索引使用，删除失败",
+    "deleteIntentionTitle": "删除意图注入",
     "button": {
       "login": "登录到 AWS 大语言模型机器人",
       "reload": "重新加载",
@@ -93,11 +127,15 @@
       "backToList": "返回列表",
       "delete": "删除",
       "createDoc": "创建文档",
+      "createIntention": "上传文件",
       "upload": "上传",
       "createPrompt": "创建提示",
+      "createChatbot": "创建聊天机器人",
+      "editChatbot": "编辑聊天机器人",
       "edit": "编辑",
       "save": "保存",
-      "action": "操作"
+      "action": "操作",
+      "startToChat": "开始聊天"
     },
     "header": {
       "reSignIn": "请重新登录",
@@ -105,6 +143,10 @@
     },
     "validation": {
       "requireModel": "请选择或输入一个模型",
+      "requireChatbotName": "请输入机器人名称",
+      "repeatChatbotName": "该名称已经被使用，请更换新的名称",
+      "repeatIndex": "该索引名称已经被使用，请更换新的索引名称",
+      "requireChatbot": "请选择一个机器人",
       "requireTemperature": "请输入模型发散度",
       "requireMaxTokens": "请输入一个最大 token 数",
       "temperatureRange": "发散度必须介于 0 和 1 之间",
@@ -114,7 +156,54 @@
       "invalidJson": "无效的 JSON 格式",
       "requiredIndexName": "请输入索引名称",
       "requiredTag": "请输入标签",
-      "formatInvalidTagIndex": "仅允许字母、数字、- 和 _"
+      "formatInvalidTagIndex": "仅允许字母、数字、- 和 _",
+      "indexNameEmpty": "索引名称不能为空",
+      "tagEmpty": "标签不能为空",
+      "indexValid": "索引已经被其他模型使用，请变更索引名称",
+      "defaultIndexValid": "该默认索引已经被其他模型使用，请自定义索引名称"
+    },
+    "solutionName": "AI Customer Service",
+    "subTitle": "构建基于代理的应用程序的优化工作流",
+    "projectDescription": "AI Customer Service提供一个高效简洁的工作流程，用于开发可扩展的、生产级别的、基于 agent（代理）的应用",
+    "awsSolutionGuidance": "Amazon Web Services 解决方案指南",
+    "mead": "媒体与广告",
+    "homeSidebar": "首页",
+    "featuresAndBenefits": {
+      "name": "功能和优势",
+      "feat1": {
+        "name": "Enterprise Knowledge Base Construction",
+        "desc": "Its data preprocessing module includes format recognition, content extraction, metadata conversion, and semantic segmentation, seamlessly in the background."
+      },
+      "feat2": {
+        "name": "Flexible Mode Options",
+        "desc": "The following graph is generated by online logic which is built based on LangGraph. The first node is query_preprocess_lambda which handles the chat history. Then the user can choose from three modes: chat, rag and agent. The chat mode lets you interact directly with different LLMs, such as Anthropic Claude 3"
+      },
+      "feat3": {
+        "name": "Intention detection",
+        "desc": "desc"
+      },
+      "feat4": {
+        "name": "Management and governance",
+        "desc": "desc"
+      }
+    },
+    "useCases": {
+      "name": "使用案例",
+      "case1": {
+        "name": "MEAD use case",
+        "desc": "desc"
+      }
+    },    
+    "gettingStarted": {
+      "name": "入门指南",
+      "link1": "入门指南",
+      "link2": "实施指南",
+      "link3": "开始聊天"
+    },
+    "moreResources": {
+      "name": "更多资源",
+      "faq": "常见问题",
+      "submitIssue": "提交问题"
     }
   }
 }

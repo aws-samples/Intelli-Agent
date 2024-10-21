@@ -19,7 +19,7 @@ import {
 } from 'src/utils/const';
 import { useAuth } from 'react-oidc-context';
 import ConfigContext from 'src/context/config-context';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import CustomBreadCrumb, { BreadCrumbType } from './CustomBreadCrumb';
 
 interface CommonLayoutProps {
@@ -31,7 +31,6 @@ interface CommonLayoutProps {
 }
 
 const CommonLayout: React.FC<CommonLayoutProps> = ({
-  activeHref,
   children,
   flashBar,
   breadCrumbs,
@@ -78,11 +77,40 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
     }
   }, []);
 
+  const baseItems = [
+    {
+      type: 'link',
+      text: t('chatbotManagement'),
+      href: '/chatbot-management',
+    },
+    {
+      type: 'link',
+      text: t('intention'),
+      href: '/intention',
+    },
+  ]
+
+  const promptItem = {
+    type: 'link',
+    text: t('prompt'),
+    href: '/prompts',
+  }
+
+  const kbItem = config?.kbEnabled === 'true' ? {
+    type: 'link',
+    text: t('docLibrary'),
+    href: '/library',
+  } : null
+
+  const layoutItems = kbItem ? [...baseItems, kbItem, promptItem] : [...baseItems, promptItem];
+  const location = useLocation();
+  const currentActiveHref = location.pathname;
+
   return (
     <I18nProvider locale={i18n.language} messages={[messages]}>
       <TopNavigation
         identity={{
-          href: '#',
+          href: '/',
           title: t('name'),
         }}
         utilities={[
@@ -124,8 +152,8 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
         }
         navigation={
           <SideNavigation
-            activeHref={activeHref}
-            header={{ href: '#/', text: t('name') }}
+            activeHref={currentActiveHref}
+            header={{ href: '/', text: t('name') }}
             onFollow={(e) => {
               if (!e.detail.external) {
                 e.preventDefault();
@@ -134,13 +162,18 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
             }}
             items={[
               {
+                type: 'link',
+                text: t('homeSidebar'),
+                href: '/',
+              },
+              {
                 type: 'section',
                 text: t('chatSpace'),
                 items: [
                   {
                     type: 'link',
-                    text: t('chatBot'),
-                    href: '/',
+                    text: t('chat'),
+                    href: '/chats',
                   },
                   {
                     type: 'link',
@@ -152,24 +185,31 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
               {
                 type: 'section',
                 text: t('settings'),
-                items: [
-                  {
-                    type: 'link',
-                    text: t('docLibrary'),
-                    href: '/library',
-                  },
-                  {
-                    type: 'link',
-                    text: t('prompt'),
-                    href: '/prompts',
-                  },
-                ],
+                items: layoutItems as readonly any[],
+                //     href: '/chatbot-management',
+                //   },
+                //   {
+                //     type: 'link',
+                //     text: t('intention'),
+                //     href: '/intention',
+                //   },
+                //   {
+                //     type: 'link',
+                //     text: t('docLibrary'),
+                //     href: '/library',
+                //   },
+                //   {
+                //     type: 'link',
+                //     text: t('prompt'),
+                //     href: '/prompts',
+                //   },
+                // ],
               },
               { type: 'divider' },
               {
                 type: 'link',
                 text: t('documentation'),
-                href: 'https://docs.aws.amazon.com/',
+                href: 'https://github.com/aws-samples/Intelli-Agent',
                 external: true,
               },
             ]}

@@ -18,7 +18,7 @@ import { Construct } from "constructs";
 export class DynamoDBTable extends Construct {
   public table: Table;
 
-  constructor(scope: Construct, name: string, partitionKey: Attribute, sortKey?: Attribute) {
+  constructor(scope: Construct, name: string, partitionKey: Attribute, sortKey?: Attribute, pointInTimeRecovery?: boolean) {
     super(scope, name);
 
     this.table = new Table(this, name, {
@@ -27,6 +27,7 @@ export class DynamoDBTable extends Construct {
       billingMode: BillingMode.PAY_PER_REQUEST,
       encryption: TableEncryption.AWS_MANAGED,
       removalPolicy: RemovalPolicy.DESTROY,
+      pointInTimeRecovery: pointInTimeRecovery ?? false,
     });
   }
 }

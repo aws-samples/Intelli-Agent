@@ -33,7 +33,7 @@ def lambda_handler(event, context):
             "Items": response["Items"],
             "Count": response["Count"]
         }
-        
+
         return {
             "statusCode": 200,
             "headers": resp_header,

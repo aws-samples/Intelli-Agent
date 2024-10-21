@@ -6,14 +6,15 @@ import boto3
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
-state_machine_arn = os.environ["sfn_arn"]
+state_machine_arn = os.environ["SFN_ARN"]
 
 
 def lambda_handler(event, context):
     execution_id = event["queryStringParameters"]["executionId"]
     sf_client = boto3.client("stepfunctions")
     execution_arn = (
-        state_machine_arn.replace("stateMachine", "execution") + ":" + execution_id
+        state_machine_arn.replace(
+            "stateMachine", "execution") + ":" + execution_id
     )
 
     resp_header = {
