@@ -24,7 +24,6 @@ class ForbidBaseModel(BaseModel):
 
 
 # class AllowBaseModel(BaseModel):
-#     model_config = ConfigDict(extra="allow", protected_namespaces=())
 class AllowBaseModel(BaseModel):
     class Config:
         extra = "allow"
