@@ -12,8 +12,9 @@
   "dependencies": {
     "@cloudscape-design/components": "^3.0.604",
     "@cloudscape-design/global-styles": "^1.0.27",
-    "axios": "^1.6.8",
+    "axios": "^1.7.4",
     "classnames": "^2.5.1",
+    "date-fns": "^4.1.0",
     "i18next": "^23.11.3",
     "i18next-browser-languagedetector": "^7.2.1",
     "lodash": "^4.17.21",

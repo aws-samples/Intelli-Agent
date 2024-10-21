@@ -71,6 +71,8 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
     const aosConstruct = new AOSConstruct(this, "aos-construct", {
       osVpc: props.sharedConstructOutputs.vpc,
       securityGroup: props.sharedConstructOutputs.securityGroups,
+      useCustomDomain: props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.vectorStore.opensearch.useCustomDomain,
+      customDomainEndpoint: props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.vectorStore.opensearch.customDomainEndpoint,
     });
     this.aosDomainEndpoint = aosConstruct.domainEndpoint;
     this.glueLibS3Bucket = new s3.Bucket(this, "llm-bot-glue-lib-bucket", {
@@ -193,6 +195,7 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
           "ec2:CreateNetworkInterface",
           "ec2:AttachNetworkInterface",
           "ec2:CreateTags",
+          "secretsmanager:GetSecretValue",
         ],
         effect: iam.Effect.ALLOW,
         resources: ["*"],
@@ -223,10 +226,10 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
       role: glueRole,
       defaultArguments: {
         "--AOS_ENDPOINT": this.aosDomainEndpoint,
-        "--REGION": process.env.CDK_DEFAULT_REGION || "",
+        "--REGION": process.env.CDK_DEFAULT_REGION || "-",
         "--ETL_MODEL_ENDPOINT": props.modelConstructOutputs.defaultKnowledgeBaseModelName,
         "--RES_BUCKET": this.glueResultBucket.bucketName,
-        "--ETL_OBJECT_TABLE": this.etlObjTableName || "",
+        "--ETL_OBJECT_TABLE": this.etlObjTableName || "-",
         "--PORTAL_BUCKET": this.uiPortalBucketName,
         "--CHATBOT_TABLE": props.sharedConstructOutputs.chatbotTable.tableName,
         "--additional-python-modules":
@@ -300,7 +303,7 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
         "--BATCH_INDICE.$": 'States.Format(\'{}\', $.batchIndices)',
         "--DOCUMENT_LANGUAGE.$": "$.documentLanguage",
         "--EMBEDDING_MODEL_ENDPOINT.$": "$.embeddingEndpoint",
-        "--ETL_MODEL_ENDPOINT": props.modelConstructOutputs.defaultKnowledgeBaseModelName,
+        "--ETL_MODEL_ENDPOINT": props.modelConstructOutputs.defaultKnowledgeBaseModelName || "-",
         "--INDEX_TYPE.$": "$.indexType",
         "--JOB_NAME": glueJob.jobName,
         "--OFFLINE": "true",

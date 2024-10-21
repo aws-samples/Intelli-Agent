@@ -2,6 +2,7 @@ import itertools
 import logging
 import os
 import sys
+import json
 import traceback
 from datetime import datetime, timezone
 from typing import Generator, Iterable, List
@@ -120,9 +121,11 @@ chatbot_table = args["CHATBOT_TABLE"]
 index_type = args["INDEX_TYPE"]
 # Valid Operation types: "create", "delete", "update", "extract_only"
 operation_type = args["OPERATION_TYPE"]
+aos_secret = args.get("AOS_SECRET_NAME", "opensearch-master-user")
 
 
 s3_client = boto3.client("s3")
+sm_client = boto3.client("secretsmanager")
 smr_client = boto3.client("sagemaker-runtime")
 dynamodb = boto3.resource("dynamodb")
 etl_object_table = dynamodb.Table(etl_object_table_name)
@@ -131,11 +134,26 @@ ENHANCE_CHUNK_SIZE = 25000
 OBJECT_EXPIRY_TIME = 3600
 
 credentials = boto3.Session().get_credentials()
-awsauth = AWS4Auth(refreshable_credentials=credentials, region=region, service="es")
 MAX_OS_DOCS_PER_PUT = 8
 
 nltk.data.path.append("/tmp/nltk_data")
 
+def get_aws_auth():
+    try:
+        master_user = sm_client.get_secret_value(SecretId=aos_secret)[
+            "SecretString"
+        ]
+        cred = json.loads(master_user)
+        username = cred.get("username")
+        password = cred.get("password")
+        aws_auth = (username, password)
+        
+    except sm_client.exceptions.ResourceNotFoundException:
+        aws_auth = AWS4Auth(refreshable_credentials=credentials, region=region, service="es")
+    except Exception as e:
+        logger.error(f"Error retrieving secret '{aos_secret}': {str(e)}")
+        raise
+    return aws_auth
 
 class S3FileProcessor:
     def __init__(self, bucket: str, prefix: str, supported_file_types: List[str] = []):
@@ -661,11 +679,12 @@ def main():
         embedding_function = sm_utils.getCustomEmbeddings(
             embedding_model_endpoint, region, embedding_model_type
         )
+        aws_auth = get_aws_auth()
         docsearch = OpenSearchVectorSearch(
             index_name=aos_index_name,
             embedding_function=embedding_function,
             opensearch_url="https://{}".format(aosEndpoint),
-            http_auth=awsauth,
+            http_auth=aws_auth,
             use_ssl=True,
             verify_certs=True,
             connection_class=RequestsHttpConnection,

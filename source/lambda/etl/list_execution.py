@@ -15,10 +15,7 @@ encoder = TokenEncoder()
 
 
 def get_query_parameter(event, parameter_name, default_value=None):
-    if (
-        event.get("queryStringParameters")
-        and parameter_name in event["queryStringParameters"]
-    ):
+    if event.get("queryStringParameters") and parameter_name in event["queryStringParameters"]:
         return event["queryStringParameters"][parameter_name]
     return default_value
 
@@ -32,9 +29,7 @@ def lambda_handler(event, context):
         "Access-Control-Allow-Methods": "*",
     }
 
-    authorizer_type = (
-        event["requestContext"].get("authorizer", {}).get("authorizerType")
-    )
+    authorizer_type = event["requestContext"].get("authorizer", {}).get("authorizerType")
     if authorizer_type == "lambda_authorizer":
         claims = json.loads(event["requestContext"]["authorizer"]["claims"])
         if "use_api_key" in claims:
@@ -95,9 +90,7 @@ def lambda_handler(event, context):
         output["Items"] = page_json
         output["Count"] = page["Count"]
         if "LastEvaluatedKey" in page:
-            output["LastEvaluatedKey"] = encoder.encode(
-                {"ExclusiveStartKey": page["LastEvaluatedKey"]}
-            )
+            output["LastEvaluatedKey"] = encoder.encode({"ExclusiveStartKey": page["LastEvaluatedKey"]})
 
     output["Config"] = config
 
