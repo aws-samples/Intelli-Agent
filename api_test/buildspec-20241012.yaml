@@ -3,7 +3,7 @@ version: 0.2
 env:
   variables:
     REPOSITORY_URL: "https://github.com/aws-samples/Intelli-Agent.git"
-    CODE_BRANCH: "dev"
+    CODE_BRANCH: "main"
     PROJECT_NAME: "Intelli-Agent"
     STACK_NAME: "ai-customer-service"
     DEPLOY_STACK: "cdk"
@@ -23,9 +23,9 @@ env:
 phases:
   install:
     commands:
-      - aws cloudformation delete-stack --stack-name "$STACK_NAME"
+      - aws cloudformation delete-stack --stack-name $STACK_NAME
       - |
-        aws cloudformation wait stack-delete-complete --stack-name "$STACK_NAME"
+        aws cloudformation wait stack-delete-complete --stack-name $STACK_NAME
         WAIT_STATUS=$?
         if [ $WAIT_STATUS -eq 0 ]; then
           echo "Stack deletion complete."
@@ -41,8 +41,8 @@ phases:
           echo $lambda_status
           if [ $lambda_status -eq 200 ]; then
             echo "Lambda executed successfully. Proceeding with stack deletion."
-            aws cloudformation delete-stack --stack-name "$STACK_NAME"
-            aws cloudformation wait stack-delete-complete --stack-name "$STACK_NAME"
+            aws cloudformation delete-stack --stack-name $STACK_NAME
+            aws cloudformation wait stack-delete-complete --stack-name $STACK_NAME
             if [ $? -eq 0 ]; then
               echo "Stack deletion complete after Lambda execution."
             else
@@ -72,9 +72,9 @@ phases:
         if [ -d "Intelli-Agent/source/infrastructure" ]; then
           echo "Synthesizing start..."
           pushd "Intelli-Agent/source/infrastructure"
-          sed -i 's/support@example.com/$SUB_EMAIL/g' bin/config.ts
+          sed -i "s/support@example.com/${SUB_EMAIL}/g" bin/config.ts
           pnpm i
-          npx cdk synth 2>&1 | tee synth.log
+          npx cdk synth > synth.log 2>&1
           if [ ${PIPESTATUS[0]} -ne 0 ]; then
             echo "cdk synth failed"
             # jq -n --arg error "$(cat synth.log)" '{detail: $error}' > sync_error.json
@@ -90,7 +90,7 @@ phases:
           if [ -d "Intelli-Agent/source/infrastructure" ]; then
             pushd "Intelli-Agent/source/infrastructure"
             pnpm i
-            npx cdk deploy $STACK_NAME
+            npx cdk deploy $STACK_NAME --require-approval never
             deploy_exit_code=$?
             if [ $deploy_exit_code -ne 0 ]; then
               echo "CDK deployment failed. Sending email and exiting with status code 1."
@@ -130,11 +130,11 @@ phases:
         pip3 install --upgrade pip
         pip3 --default-timeout=6000 install -r requirements.txt
         popd
-        stack_info=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME")
+        stack_info=$(aws cloudformation describe-stacks --stack-name $STACK_NAME)
         rest_api_gateway_url=$(echo "$stack_info" | jq -r '.Stacks[0].Outputs[] | select(.OutputKey=="APIEndpointAddress").OutputValue')
         ws_api_gateway_url=$(echo "$stack_info" | jq -r '.Stacks[0].Outputs[] | select(.OutputKey=="WebSocketEndpointAddress").OutputValue')
-        user_pool_id=$(echo "$stack_info" | jq -r '.Stacks[0].Outputs[] | select(.OutputKey=="UserPoolId").OutputValue')
-        oidc_client_id=$(echo "$stack_info" | jq -r '.Stacks[0].Outputs[] | select(.OutputKey=="OidcClientId").OutputValue')
+        user_pool_id=$(echo "$stack_info" | jq -r '.Stacks[0].Outputs[] | select(.OutputKey=="UserPoolID").OutputValue')
+        oidc_client_id=$(echo "$stack_info" | jq -r '.Stacks[0].Outputs[] | select(.OutputKey=="OIDCClientID").OutputValue')
         aws cognito-idp admin-create-user \
           --user-pool-id $user_pool_id \
           --username lvning@amazon.com \

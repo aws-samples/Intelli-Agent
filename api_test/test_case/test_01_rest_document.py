@@ -64,11 +64,11 @@ class TestDocument:
     
     def test_01_upload_document_pdf(self):
         '''test case'''
-        param = openapi_client.Intellapicormo5LBZXS9Rb(content_type='application/pdf', file_name="summary.pdf")
+        param = openapi_client.Aicusapico51RafCAYOxiZ(content_type='application/pdf', file_name="summary.pdf")
         response = self.api_instance.knowledge_base_kb_presigned_url_post(param)
         assert response.message==self.upload_success_msg and response.data.startswith(self.upload_prefix_data), "test_01_upload_document_pdf test failed"
         self.__upload_file_to_s3(response.data, "./test_data/summary.pdf")
-        post_param = openapi_client.IntellapicoNK9oLf1K1uex(
+        post_param = openapi_client.AicusapicoseOArXMRpSNs(
             s3Bucket=response.s3_bucket,
             s3Prefix=response.s3_prefix,
             indexType="qd",

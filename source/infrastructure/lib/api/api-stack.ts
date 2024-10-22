@@ -381,10 +381,13 @@ export class ApiConstruct extends Construct {
         new apigw.LambdaIntegration(uploadDocLambda.function),
         {...
           this.genMethodOption(api, auth, {
-            data: { type: JsonSchemaType.STRING },
-            message: { type: JsonSchemaType.STRING },
-            s3Bucket: { type: JsonSchemaType.STRING },
-            s3Prefix: { type: JsonSchemaType.STRING }
+            data: { type: JsonSchemaType.OBJECT,
+                    properties: {
+                      s3Bucket: { type: JsonSchemaType.STRING },
+                      s3Prefix: { type: JsonSchemaType.STRING }
+                    }
+                  },
+            message: { type: JsonSchemaType.STRING }
           }),
           requestModels: this.genRequestModel(api, {
             "content_type": { "type": JsonSchemaType.STRING },
