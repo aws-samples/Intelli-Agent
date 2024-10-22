@@ -430,6 +430,7 @@ def organize_faq_results(
                 result["source"] = metadata[source_field]
                 result["kwargs"] = metadata.get("kwargs", {})
             elif "jsonlAnswer" in aos_hit["_source"]["metadata"] and "answer" in aos_hit["_source"]["metadata"]["jsonlAnswer"]:
+                # Intention
                 result["answer"] = aos_hit["_source"]["metadata"]["jsonlAnswer"]["answer"]
                 result["question"] = aos_hit["_source"]["metadata"]["jsonlAnswer"]["question"]
                 result["content"] = aos_hit["_source"]["text"]
@@ -437,17 +438,22 @@ def organize_faq_results(
                     result[source_field] = aos_hit["_source"]["metadata"]["jsonlAnswer"][source_field]
                 else:
                     result[source_field] = aos_hit["_source"]["metadata"]["file_path"]
+            elif "jsonlAnswer" in aos_hit["_source"]["metadata"] and "answer" not in aos_hit["_source"]["metadata"]["jsonlAnswer"]:
+                # QQ match
+                result["answer"] = aos_hit["_source"]["metadata"]["jsonlAnswer"]
+                result["question"] = aos_hit["_source"]["text"]
+                result["content"] = aos_hit["_source"]["text"]
+                result[source_field] = aos_hit["_source"]["metadata"]["file_path"]
             else:
                 result["answer"] = aos_hit["_source"]["metadata"]
                 result["content"] = aos_hit["_source"][text_field]
                 result["question"] = aos_hit["_source"][text_field]
                 result[source_field] = aos_hit["_source"]["metadata"][source_field]
-        except:
-            logger.info("index_error")
-            logger.info(traceback.format_exc())
-            logger.info(aos_hit["_source"])
+        except Exception as e:
+            logger.error(e)
+            logger.error(traceback.format_exc())
+            logger.error(aos_hit)
             continue
-        # result.update(aos_hit["_source"])
         results.append(result)
     return results
 

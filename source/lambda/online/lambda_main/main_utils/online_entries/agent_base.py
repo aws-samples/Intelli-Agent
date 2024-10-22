@@ -30,7 +30,7 @@ def tools_choose_and_results_generation(state):
     agent_repeated_call_validation = state['agent_current_call_number'] < state['agent_repeated_call_limit']
 
     send_trace(
-        f"\n\n**agent_current_output:** \n\n{json.dumps(agent_current_output['agent_output'],ensure_ascii=False,indent=2)}\n\n **agent_current_call_number:** {agent_current_call_number}",
+        f"\n\n**agent_current_output:** \n\n {json.dumps(agent_current_output['agent_output'],ensure_ascii=False,indent=4)} \n\n **agent_current_call_number:** {agent_current_call_number}",
         state["stream"],
         state["ws_connection_id"]
     )
@@ -41,6 +41,20 @@ def tools_choose_and_results_generation(state):
     }
 
 
+def format_agent_result_output(data):
+    markdown_table = "| Tool Name | Model ID | Kwargs |\n"
+    markdown_table += "|-------|-------|-------|\n"
+    for item in data:
+        tool_name = item.get("name", "")
+        model_id = item.get("model_id", "")
+        kwargs = ', '.join(
+            [f'{k}: {v}' for k, v in item.get('kwargs', {}).items()])
+        markdown_table += f"| {tool_name} | {model_id} | {kwargs} |\n"
+        logger.info(markdown_table)
+
+    return markdown_table
+
+
 @node_monitor_wrapper
 def results_evaluation(state):
     # parse tool_calls:
@@ -49,7 +63,8 @@ def results_evaluation(state):
             agent_output=state['agent_current_output']
         )
         tool_calls = output['tool_calls']
-        send_trace(f"\n\n**tool_calls parsed:** \n{tool_calls}", state["stream"], state["ws_connection_id"], state["enable_trace"])
+        md_tool_result = format_agent_result_output(tool_calls)
+        send_trace(f"\n\n**tool_calls parsed:** \n\n {md_tool_result}", state["stream"], state["ws_connection_id"], state["enable_trace"])
         if not state["extra_response"].get("current_agent_intent_type", None):
             state["extra_response"]["current_agent_intent_type"] = output['tool_calls'][0]["name"]
        
@@ -106,8 +121,10 @@ def tool_execution(state):
             "kwargs": tool_call['kwargs'],
             "model_id": tool_call['model_id']
         })
-    
-    output = format_tool_call_results(tool_call['model_id'],tool_call_results)
+
+        output = format_tool_call_results(
+            tool_call['model_id'], tool_call_results)
+
     send_trace(f'**tool_execute_res:** \n{output["tool_message"]["content"]}', enable_trace=state["enable_trace"])
     return {
         "agent_tool_history": [output['tool_message']]
