@@ -1,0 +1,22 @@
+.custom-header {
+    font-weight: bold;
+    color: #333;
+    margin: 10px 0;
+}
+
+.custom-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+.custom-table-header {
+    background-color: #f2f2f2;
+    padding: 8px;
+    border: 1px solid #ddd;
+}
+
+.custom-table-cell {
+    padding: 8px;
+    border: 1px solid #ddd;
+}
