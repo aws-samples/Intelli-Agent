@@ -113,9 +113,8 @@ async function getAwsAccountAndRegion() {
       options.enableChat = config.chat.enabled;
       options.bedrockRegion = config.chat.bedrockRegion;
       options.enableConnect = config.chat.amazonConnect.enabled;
-      options.defaultEmbedding = (config.model.embeddingsModels ?? []).filter(
-        (m: any) => m.default
-      )[0].name;
+      options.defaultEmbedding = (config.model.embeddingsModels ?? [])
+        .find((m: any) => m.default)?.name ?? embeddingModels[0].name;
       options.defaultLlm = config.model.llms.find((m) => m.provider === "bedrock")?.name;
       options.sagemakerModelS3Bucket = config.model.modelConfig.modelAssetsBucket;
       options.enableUI = config.ui.enabled;

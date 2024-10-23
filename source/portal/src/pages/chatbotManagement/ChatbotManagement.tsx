@@ -73,10 +73,16 @@ const ChatbotManagement: React.FC = () => {
 
   const getModelList = async (type: 'create' | 'edit') => {
     const tempModels:{label: string; value:string}[] =[]
-    const BCEMBEDDING = [
-      {"model_id": config?.embeddingEndpoint || "", "model_name": "BCEmbedding"},
+    const BCE_EMBEDDING = [
+      {"model_id": config?.embeddingEndpoint || "", "model_name": "BCE_Embedding"},
     ]
-    const embedding_models = config?.kbEnabled === 'true' ? BCEMBEDDING : EMBEDDING_MODEL_LIST
+    let embedding_models = EMBEDDING_MODEL_LIST
+
+    // Check if config?.embeddingEndpoint starts with "bce-embedding-and-bge-reranker"
+    if (config?.embeddingEndpoint?.startsWith("bce-embedding-and-bge-reranker")) {
+      embedding_models = [...BCE_EMBEDDING, ...EMBEDDING_MODEL_LIST]
+    }
+
     embedding_models.forEach((item: {model_id: string; model_name: string})=>{
       tempModels.push({
         label: item.model_name,
