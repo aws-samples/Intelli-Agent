@@ -110,6 +110,7 @@ def aics_restapi_event_handler(event_body: dict, context: dict, entry_executor):
     user_id = event_body.get("user_id", "default_user_id")
     group_name = para_chatbot_config.get("group_name", "Admin")
     chatbot_id = para_chatbot_config.get("chatbot_id", "admin")
+    use_history = para_chatbot_config.get("use_history", "true").lower() == "true"
 
     ddb_history_obj = DynamoDBChatMessageHistory(
         sessions_table_name=sessions_table_name,
@@ -128,7 +129,7 @@ def aics_restapi_event_handler(event_body: dict, context: dict, entry_executor):
         "user_id": user_id,
         "chatbot_config": {
             "chatbot_mode": "agent",
-            "use_history": True,
+            "use_history": use_history,
         },
         "stream": False,
     }
