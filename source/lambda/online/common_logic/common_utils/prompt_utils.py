@@ -17,7 +17,9 @@ ddb_prompt_table = dynamodb_resource.Table(ddb_prompt_table_name)
 EXPORT_MODEL_IDS = [
     LLMModelType.CLAUDE_3_HAIKU,
     LLMModelType.CLAUDE_3_SONNET,
-    # LLMModelType.CLAUDE_3_5_SONNET,
+    LLMModelType.LLAMA3_1_70B_INSTRUCT,
+    LLMModelType.MISTRAL_LARGE_2407,
+    LLMModelType.COHERE_COMMAND_R_PLUS
 ]
 
 EXPORT_SCENES = [
@@ -142,7 +144,10 @@ register_prompt_templates(
         LLMModelType.CLAUDE_3_SONNET,
         LLMModelType.CLAUDE_3_5_SONNET,
         LLMModelType.CLAUDE_INSTANCE,
-        LLMModelType.MIXTRAL_8X7B_INSTRUCT
+        LLMModelType.MIXTRAL_8X7B_INSTRUCT,
+        LLMModelType.LLAMA3_1_70B_INSTRUCT,
+        LLMModelType.MISTRAL_LARGE_2407,
+        LLMModelType.COHERE_COMMAND_R_PLUS,
     ],
     task_type=LLMTaskType.RAG,
     prompt_template=CLAUDE_RAG_SYSTEM_PROMPT,
@@ -171,37 +176,9 @@ register_prompt_templates(
 )
 
 
-# CHIT_CHAT_SYSTEM_TEMPLATE = "你是一个AI助理。今天是{date},{weekday}. "
-
-# register_prompt_templates(
-#     model_ids=[
-#         LLMModelType.CLAUDE_2,
-#         LLMModelType.CLAUDE_21,
-#         LLMModelType.CLAUDE_3_HAIKU,
-#         LLMModelType.CLAUDE_3_SONNET,
-#         LLMModelType.CLAUDE_3_5_SONNET,
-#         LLMModelType.CLAUDE_INSTANCE,
-#         LLMModelType.MIXTRAL_8X7B_INSTRUCT,
-#         LLMModelType.GLM_4_9B_CHAT,
-#         LLMModelType.QWEN2INSTRUCT72B,
-#         LLMModelType.QWEN2INSTRUCT7B
-#     ],
-#     task_type=LLMTaskType.CHAT,
-#     prompt_template=CHIT_CHAT_SYSTEM_TEMPLATE,
-#     prompt_name="system_prompt"
-# )
-
-
-# CQR_TEMPLATE = """Given the following conversation between `USER` and `AI`, and a follow up `USER` reply, Put yourself in the shoes of `USER`, rephrase the follow up \
-# `USER` reply to be a standalone reply.
-
-# Chat History:
-# {history}
-
-# The USER's follow up reply: {question}"""
-
-
+################ 
 # query rewrite prompt template from paper https://arxiv.org/pdf/2401.10225
+###################
 CQR_SYSTEM_PROMPT = """You are a helpful, pattern-following assistant."""
 
 CQR_USER_PROMPT_TEMPLATE = """Given the following conversation between PersonU and PersonA:
@@ -284,7 +261,11 @@ register_prompt_templates(
         LLMModelType.MIXTRAL_8X7B_INSTRUCT,
         LLMModelType.QWEN2INSTRUCT72B,
         LLMModelType.QWEN2INSTRUCT7B,
-        LLMModelType.GLM_4_9B_CHAT
+        LLMModelType.GLM_4_9B_CHAT,
+        LLMModelType.LLAMA3_1_70B_INSTRUCT,
+        LLMModelType.MISTRAL_LARGE_2407,
+        LLMModelType.COHERE_COMMAND_R_PLUS,
+    
     ],
     task_type=LLMTaskType.CONVERSATION_SUMMARY_TYPE,
     prompt_template=CQR_SYSTEM_PROMPT,
@@ -302,7 +283,10 @@ register_prompt_templates(
         LLMModelType.MIXTRAL_8X7B_INSTRUCT,
         LLMModelType.QWEN2INSTRUCT72B,
         LLMModelType.QWEN2INSTRUCT7B,
-        LLMModelType.GLM_4_9B_CHAT
+        LLMModelType.GLM_4_9B_CHAT,
+        LLMModelType.LLAMA3_1_70B_INSTRUCT,
+        LLMModelType.MISTRAL_LARGE_2407,
+        LLMModelType.COHERE_COMMAND_R_PLUS,
     ],
     task_type=LLMTaskType.CONVERSATION_SUMMARY_TYPE,
     prompt_template=CQR_USER_PROMPT_TEMPLATE,
@@ -321,14 +305,19 @@ register_prompt_templates(
         LLMModelType.MIXTRAL_8X7B_INSTRUCT,
         LLMModelType.QWEN2INSTRUCT72B,
         LLMModelType.QWEN2INSTRUCT7B,
-        LLMModelType.GLM_4_9B_CHAT
+        LLMModelType.GLM_4_9B_CHAT,
+        LLMModelType.LLAMA3_1_70B_INSTRUCT,
+        LLMModelType.MISTRAL_LARGE_2407,
+        LLMModelType.COHERE_COMMAND_R_PLUS,
     ],
     task_type=LLMTaskType.CONVERSATION_SUMMARY_TYPE,
     prompt_template=json.dumps(CQR_FEW_SHOTS, ensure_ascii=False, indent=2),
     prompt_name="few_shots"
 )
 
-# agent prompt
+
+
+############## xml agent prompt #############
 AGENT_USER_PROMPT = "你是一个AI助理。今天是{date},{weekday}. "
 register_prompt_templates(
     model_ids=[
@@ -362,11 +351,58 @@ register_prompt_templates(
         LLMModelType.CLAUDE_3_HAIKU,
         LLMModelType.CLAUDE_3_SONNET,
         LLMModelType.CLAUDE_3_5_SONNET,
+        LLMModelType.LLAMA3_1_70B_INSTRUCT,
+        LLMModelType.MISTRAL_LARGE_2407,
+        LLMModelType.COHERE_COMMAND_R_PLUS,
     ],
     task_type=LLMTaskType.TOOL_CALLING_XML,
     prompt_template=AGENT_GUIDELINES_PROMPT,
     prompt_name="guidelines_prompt"
 )
+
+################# api agent prompt #####################
+AGENT_USER_PROMPT = "你是一个AI助理。今天是{date},{weekday}. "
+register_prompt_templates(
+    model_ids=[
+        LLMModelType.CLAUDE_3_HAIKU,
+        LLMModelType.CLAUDE_3_SONNET,
+        LLMModelType.CLAUDE_3_5_SONNET,
+        LLMModelType.LLAMA3_1_70B_INSTRUCT,
+        LLMModelType.MISTRAL_LARGE_2407,
+        LLMModelType.COHERE_COMMAND_R_PLUS,
+    ],
+    task_type=LLMTaskType.TOOL_CALLING_API,
+    prompt_template=AGENT_USER_PROMPT,
+    prompt_name="user_prompt"
+)
+
+AGENT_GUIDELINES_PROMPT = """<guidlines>
+- 每次回答总是先进行思考，并将思考过程写在<thinking>标签中。请你按照下面的步骤进行思考:
+    1. 判断根据当前的上下文是否足够回答用户的问题。
+    2. 如果当前的上下文足够回答用户的问题，请调用 `give_final_response` 工具。
+    3. 如果当前的上下文不能支持回答用户的问题，你可以考虑调用提供的工具。
+    4. 如果调用工具对应的参数不够，请调用反问工具 `give_rhetorical_question` 来让用户提供更加充分的信息。如果调用工具不需要参数，则不需要调用反问工具。
+    5. 最后给出你要调用的工具名称。
+- Always output with the same language as user's query. If the content is english, use englisth to output. If the content is Chinese, use Chinese to output.
+</guidlines>
+"""
+
+register_prompt_templates(
+    model_ids=[
+        LLMModelType.CLAUDE_2,
+        LLMModelType.CLAUDE_21,
+        LLMModelType.CLAUDE_3_HAIKU,
+        LLMModelType.CLAUDE_3_SONNET,
+        LLMModelType.CLAUDE_3_5_SONNET,
+        LLMModelType.LLAMA3_1_70B_INSTRUCT,
+        LLMModelType.MISTRAL_LARGE_2407,
+        LLMModelType.COHERE_COMMAND_R_PLUS,
+    ],
+    task_type=LLMTaskType.TOOL_CALLING_API,
+    prompt_template=AGENT_GUIDELINES_PROMPT,
+    prompt_name="guidelines_prompt"
+)
+
 
 
 if __name__ == "__main__":
