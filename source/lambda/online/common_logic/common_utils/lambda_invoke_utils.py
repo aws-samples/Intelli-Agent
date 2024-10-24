@@ -22,7 +22,8 @@ __FUNC_NAME_MAP = {
     "agent": "Agent",
     "tools_choose_and_results_generation": "Tool Calling",
     "results_evaluation": "Result Evaluation",
-    "tool_execution": "Final Tool Result"
+    "tool_execution": "Final Tool Result",
+    "llm_direct_results_generation": "LLM Response"
 }
 
 class LAMBDA_INVOKE_MODE(enum.Enum):
@@ -280,7 +281,7 @@ def node_monitor_wrapper(fn: Optional[Callable[..., Any]] = None, *, monitor_key
             current_stream_use = state["stream"]
             ws_connection_id = state["ws_connection_id"]
             enable_trace = state["enable_trace"]
-            send_trace(f"\n\n ### {__FUNC_NAME_MAP[func.__name__]}\n\n",
+            send_trace(f"\n\n ### {__FUNC_NAME_MAP.get(func.__name__, func.__name__)}\n\n",
                        current_stream_use, ws_connection_id, enable_trace)
             state['trace_infos'].append(
                 f"Enter: {func.__name__}, time: {time.time()}")
