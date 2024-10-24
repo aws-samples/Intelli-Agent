@@ -1,865 +1,58 @@
 {
-  "openapi" : "3.0.1",
+  "swagger" : "2.0",
   "info" : {
-    "title" : "aics-api",
     "description" : "AI-Customer-Service - Core API",
-    "version" : "2024-10-21T08:32:58Z"
+    "version" : "2024-10-24T04:30:07Z",
+    "title" : "aics-api"
   },
-  "servers" : [ {
-    "url" : "https://vbjlqj8va0.execute-api.us-east-1.amazonaws.com/{basePath}",
-    "variables" : {
-      "basePath" : {
-        "default" : "prod"
-      }
-    }
-  } ],
+  "host" : "c63g9uqsze.execute-api.us-east-1.amazonaws.com",
+  "basePath" : "/prod",
+  "schemes" : [ "https" ],
   "paths" : {
-    "/chatbot-management/check-default-chatbot" : {
-      "get" : {
-        "responses" : {
-          "400" : {
-            "description" : "400 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          },
-          "500" : {
-            "description" : "500 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          },
-          "200" : {
-            "description" : "200 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          }
-        },
-        "security" : [ {
-          "aicustomerserviceapiconstructApiAuthorizerEB0B49FC" : [ ]
-        } ]
-      },
+    "/" : {
       "options" : {
+        "consumes" : [ "application/json" ],
         "responses" : {
           "204" : {
             "description" : "204 response",
             "headers" : {
               "Access-Control-Allow-Origin" : {
-                "schema" : {
-                  "type" : "string"
-                }
+                "type" : "string"
               },
               "Access-Control-Allow-Methods" : {
-                "schema" : {
-                  "type" : "string"
-                }
+                "type" : "string"
               },
               "Access-Control-Allow-Credentials" : {
-                "schema" : {
-                  "type" : "string"
-                }
+                "type" : "string"
               },
               "Access-Control-Allow-Headers" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              }
-            },
-            "content" : { }
-          }
-        }
-      }
-    },
-    "/intention/execution-presigned-url" : {
-      "post" : {
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/aicusapicoCyd129M65yKV"
+                "type" : "string"
               }
             }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "400" : {
-            "description" : "400 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          },
-          "500" : {
-            "description" : "500 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          },
-          "200" : {
-            "description" : "200 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/aicusapicoUy1YBXiWJ5Aq"
-                }
-              }
-            }
-          }
-        },
-        "security" : [ {
-          "aicustomerserviceapiconstructApiAuthorizerEB0B49FC" : [ ]
-        } ]
-      },
-      "options" : {
-        "responses" : {
-          "204" : {
-            "description" : "204 response",
-            "headers" : {
-              "Access-Control-Allow-Origin" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Methods" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Credentials" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Headers" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              }
-            },
-            "content" : { }
-          }
-        }
-      }
-    },
-    "/llm" : {
-      "post" : {
-        "responses" : {
-          "400" : {
-            "description" : "400 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          },
-          "500" : {
-            "description" : "500 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          },
-          "200" : {
-            "description" : "200 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          }
-        },
-        "security" : [ {
-          "aicustomerserviceapiconstructApiAuthorizerEB0B49FC" : [ ]
-        } ]
-      },
-      "options" : {
-        "responses" : {
-          "204" : {
-            "description" : "204 response",
-            "headers" : {
-              "Access-Control-Allow-Origin" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Methods" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Credentials" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Headers" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              }
-            },
-            "content" : { }
-          }
-        }
-      }
-    },
-    "/prompt-management/models" : {
-      "get" : {
-        "responses" : {
-          "400" : {
-            "description" : "400 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          },
-          "500" : {
-            "description" : "500 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          },
-          "200" : {
-            "description" : "200 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          }
-        },
-        "security" : [ {
-          "aicustomerserviceapiconstructApiAuthorizerEB0B49FC" : [ ]
-        } ]
-      },
-      "options" : {
-        "responses" : {
-          "204" : {
-            "description" : "204 response",
-            "headers" : {
-              "Access-Control-Allow-Origin" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Methods" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Credentials" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Headers" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              }
-            },
-            "content" : { }
-          }
-        }
-      }
-    },
-    "/intention/executions/{executionId}" : {
-      "get" : {
-        "parameters" : [ {
-          "name" : "intentionId",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "string"
-          }
-        }, {
-          "name" : "executionId",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "string"
-          }
-        } ],
-        "responses" : {
-          "400" : {
-            "description" : "400 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          },
-          "500" : {
-            "description" : "500 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          },
-          "200" : {
-            "description" : "200 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/aicusapico35klzY80ikPh"
-                }
-              }
-            }
-          }
-        },
-        "security" : [ {
-          "aicustomerserviceapiconstructApiAuthorizerEB0B49FC" : [ ]
-        } ]
-      },
-      "options" : {
-        "parameters" : [ {
-          "name" : "executionId",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "string"
-          }
-        } ],
-        "responses" : {
-          "204" : {
-            "description" : "204 response",
-            "headers" : {
-              "Access-Control-Allow-Origin" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Methods" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Credentials" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Headers" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              }
-            },
-            "content" : { }
-          }
-        }
-      }
-    },
-    "/chatbot-management/chatbots" : {
-      "get" : {
-        "parameters" : [ {
-          "name" : "page_size",
-          "in" : "query",
-          "schema" : {
-            "type" : "string"
-          }
-        }, {
-          "name" : "max_items",
-          "in" : "query",
-          "schema" : {
-            "type" : "string"
-          }
-        } ],
-        "responses" : {
-          "400" : {
-            "description" : "400 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          },
-          "500" : {
-            "description" : "500 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          },
-          "200" : {
-            "description" : "200 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/aicusapicoiXUam8N8Dh8l"
-                }
-              }
-            }
-          }
-        },
-        "security" : [ {
-          "aicustomerserviceapiconstructApiAuthorizerEB0B49FC" : [ ]
-        } ]
-      },
-      "post" : {
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/aicusapicobMN2pLK9AvE8"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "400" : {
-            "description" : "400 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          },
-          "500" : {
-            "description" : "500 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          },
-          "200" : {
-            "description" : "200 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/aicusapicohQbFv37cvtQS"
-                }
-              }
-            }
-          }
-        },
-        "security" : [ {
-          "aicustomerserviceapiconstructApiAuthorizerEB0B49FC" : [ ]
-        } ]
-      },
-      "options" : {
-        "responses" : {
-          "204" : {
-            "description" : "204 response",
-            "headers" : {
-              "Access-Control-Allow-Origin" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Methods" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Credentials" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Headers" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              }
-            },
-            "content" : { }
-          }
-        }
-      }
-    },
-    "/prompt-management/prompts" : {
-      "get" : {
-        "responses" : {
-          "400" : {
-            "description" : "400 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          },
-          "500" : {
-            "description" : "500 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          },
-          "200" : {
-            "description" : "200 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          }
-        },
-        "security" : [ {
-          "aicustomerserviceapiconstructApiAuthorizerEB0B49FC" : [ ]
-        } ]
-      },
-      "post" : {
-        "responses" : {
-          "400" : {
-            "description" : "400 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          },
-          "500" : {
-            "description" : "500 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          },
-          "200" : {
-            "description" : "200 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          }
-        },
-        "security" : [ {
-          "aicustomerserviceapiconstructApiAuthorizerEB0B49FC" : [ ]
-        } ]
-      },
-      "options" : {
-        "responses" : {
-          "204" : {
-            "description" : "204 response",
-            "headers" : {
-              "Access-Control-Allow-Origin" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Methods" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Credentials" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Headers" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              }
-            },
-            "content" : { }
-          }
-        }
-      }
-    },
-    "/chatbot-management" : {
-      "options" : {
-        "responses" : {
-          "204" : {
-            "description" : "204 response",
-            "headers" : {
-              "Access-Control-Allow-Origin" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Methods" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Credentials" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Headers" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              }
-            },
-            "content" : { }
-          }
-        }
-      }
-    },
-    "/chat-history" : {
-      "post" : {
-        "responses" : {
-          "400" : {
-            "description" : "400 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          },
-          "500" : {
-            "description" : "500 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          },
-          "200" : {
-            "description" : "200 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          }
-        },
-        "security" : [ {
-          "aicustomerserviceapiconstructApiAuthorizerEB0B49FC" : [ ]
-        } ]
-      },
-      "options" : {
-        "responses" : {
-          "204" : {
-            "description" : "204 response",
-            "headers" : {
-              "Access-Control-Allow-Origin" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Methods" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Credentials" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Headers" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              }
-            },
-            "content" : { }
-          }
-        }
-      }
-    },
-    "/chatbot-management/check-chatbot" : {
-      "post" : {
-        "responses" : {
-          "400" : {
-            "description" : "400 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          },
-          "500" : {
-            "description" : "500 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          },
-          "200" : {
-            "description" : "200 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          }
-        },
-        "security" : [ {
-          "aicustomerserviceapiconstructApiAuthorizerEB0B49FC" : [ ]
-        } ]
-      },
-      "options" : {
-        "responses" : {
-          "204" : {
-            "description" : "204 response",
-            "headers" : {
-              "Access-Control-Allow-Origin" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Methods" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Credentials" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Headers" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              }
-            },
-            "content" : { }
-          }
-        }
-      }
-    },
-    "/knowledge-base" : {
-      "options" : {
-        "responses" : {
-          "204" : {
-            "description" : "204 response",
-            "headers" : {
-              "Access-Control-Allow-Origin" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Methods" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Credentials" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Headers" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              }
-            },
-            "content" : { }
           }
         }
       }
     },
     "/aos" : {
       "get" : {
+        "produces" : [ "application/json" ],
         "responses" : {
+          "200" : {
+            "description" : "200 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          },
           "400" : {
             "description" : "400 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
             }
           },
           "500" : {
             "description" : "500 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          },
-          "200" : {
-            "description" : "200 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
             }
           }
         },
@@ -868,35 +61,24 @@
         } ]
       },
       "post" : {
+        "produces" : [ "application/json" ],
         "responses" : {
+          "200" : {
+            "description" : "200 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          },
           "400" : {
             "description" : "400 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
             }
           },
           "500" : {
             "description" : "500 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          },
-          "200" : {
-            "description" : "200 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
             }
           }
         },
@@ -905,297 +87,48 @@
         } ]
       },
       "options" : {
+        "consumes" : [ "application/json" ],
         "responses" : {
           "204" : {
             "description" : "204 response",
             "headers" : {
               "Access-Control-Allow-Origin" : {
-                "schema" : {
-                  "type" : "string"
-                }
+                "type" : "string"
               },
               "Access-Control-Allow-Methods" : {
-                "schema" : {
-                  "type" : "string"
-                }
+                "type" : "string"
               },
               "Access-Control-Allow-Credentials" : {
-                "schema" : {
-                  "type" : "string"
-                }
+                "type" : "string"
               },
               "Access-Control-Allow-Headers" : {
-                "schema" : {
-                  "type" : "string"
-                }
+                "type" : "string"
               }
-            },
-            "content" : { }
+            }
           }
         }
       }
     },
-    "/prompt-management" : {
-      "options" : {
-        "responses" : {
-          "204" : {
-            "description" : "204 response",
-            "headers" : {
-              "Access-Control-Allow-Origin" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Methods" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Credentials" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Headers" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              }
-            },
-            "content" : { }
-          }
-        }
-      }
-    },
-    "/chat-history/sessions" : {
-      "get" : {
-        "responses" : {
-          "400" : {
-            "description" : "400 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          },
-          "500" : {
-            "description" : "500 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          },
-          "200" : {
-            "description" : "200 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          }
-        },
-        "security" : [ {
-          "aicustomerserviceapiconstructApiAuthorizerEB0B49FC" : [ ]
-        } ]
-      },
-      "options" : {
-        "responses" : {
-          "204" : {
-            "description" : "204 response",
-            "headers" : {
-              "Access-Control-Allow-Origin" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Methods" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Credentials" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Headers" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              }
-            },
-            "content" : { }
-          }
-        }
-      }
-    },
-    "/intention" : {
-      "options" : {
-        "responses" : {
-          "204" : {
-            "description" : "204 response",
-            "headers" : {
-              "Access-Control-Allow-Origin" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Methods" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Credentials" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Headers" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              }
-            },
-            "content" : { }
-          }
-        }
-      }
-    },
-    "/intention/executions" : {
-      "get" : {
-        "parameters" : [ {
-          "name" : "page_size",
-          "in" : "query",
-          "schema" : {
-            "type" : "string"
-          }
-        }, {
-          "name" : "max_items",
-          "in" : "query",
-          "schema" : {
-            "type" : "string"
-          }
-        } ],
-        "responses" : {
-          "400" : {
-            "description" : "400 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          },
-          "500" : {
-            "description" : "500 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          },
-          "200" : {
-            "description" : "200 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/aicusapicob9jxGQ8zv1AS"
-                }
-              }
-            }
-          }
-        },
-        "security" : [ {
-          "aicustomerserviceapiconstructApiAuthorizerEB0B49FC" : [ ]
-        } ]
-      },
+    "/chat-history" : {
       "post" : {
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/aicusapicoEOcLNul8cwxa"
-              }
+        "produces" : [ "application/json" ],
+        "responses" : {
+          "200" : {
+            "description" : "200 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
             }
           },
-          "required" : true
-        },
-        "responses" : {
           "400" : {
             "description" : "400 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
             }
           },
           "500" : {
             "description" : "500 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          },
-          "200" : {
-            "description" : "200 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/aicusapico4rwMspzeBOe5"
-                }
-              }
-            }
-          }
-        },
-        "security" : [ {
-          "aicustomerserviceapiconstructApiAuthorizerEB0B49FC" : [ ]
-        } ]
-      },
-      "delete" : {
-        "responses" : {
-          "400" : {
-            "description" : "400 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          },
-          "500" : {
-            "description" : "500 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          },
-          "200" : {
-            "description" : "200 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
             }
           }
         },
@@ -1204,636 +137,48 @@
         } ]
       },
       "options" : {
+        "consumes" : [ "application/json" ],
         "responses" : {
           "204" : {
             "description" : "204 response",
             "headers" : {
               "Access-Control-Allow-Origin" : {
-                "schema" : {
-                  "type" : "string"
-                }
+                "type" : "string"
               },
               "Access-Control-Allow-Methods" : {
-                "schema" : {
-                  "type" : "string"
-                }
+                "type" : "string"
               },
               "Access-Control-Allow-Credentials" : {
-                "schema" : {
-                  "type" : "string"
-                }
+                "type" : "string"
               },
               "Access-Control-Allow-Headers" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              }
-            },
-            "content" : { }
-          }
-        }
-      }
-    },
-    "/knowledge-base/executions" : {
-      "get" : {
-        "parameters" : [ {
-          "name" : "page_size",
-          "in" : "query",
-          "schema" : {
-            "type" : "string"
-          }
-        }, {
-          "name" : "max_items",
-          "in" : "query",
-          "schema" : {
-            "type" : "string"
-          }
-        } ],
-        "responses" : {
-          "400" : {
-            "description" : "400 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
+                "type" : "string"
               }
             }
-          },
-          "500" : {
-            "description" : "500 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          },
-          "200" : {
-            "description" : "200 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/aicusapico2TwvXbhsTncy"
-                }
-              }
-            }
-          }
-        },
-        "security" : [ {
-          "aicustomerserviceapiconstructApiAuthorizerEB0B49FC" : [ ]
-        } ]
-      },
-      "post" : {
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/aicusapicoseOArXMRpSNs"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "400" : {
-            "description" : "400 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          },
-          "500" : {
-            "description" : "500 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          },
-          "200" : {
-            "description" : "200 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          }
-        },
-        "security" : [ {
-          "aicustomerserviceapiconstructApiAuthorizerEB0B49FC" : [ ]
-        } ]
-      },
-      "delete" : {
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/aicusapicor1Kt5C2mLnkm"
-              }
-            }
-          },
-          "required" : true
-        },
-        "responses" : {
-          "400" : {
-            "description" : "400 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          },
-          "500" : {
-            "description" : "500 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          },
-          "200" : {
-            "description" : "200 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/aicusapicoqew7t5vTA2ak"
-                }
-              }
-            }
-          }
-        },
-        "security" : [ {
-          "aicustomerserviceapiconstructApiAuthorizerEB0B49FC" : [ ]
-        } ]
-      },
-      "options" : {
-        "responses" : {
-          "204" : {
-            "description" : "204 response",
-            "headers" : {
-              "Access-Control-Allow-Origin" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Methods" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Credentials" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Headers" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              }
-            },
-            "content" : { }
-          }
-        }
-      }
-    },
-    "/" : {
-      "options" : {
-        "responses" : {
-          "204" : {
-            "description" : "204 response",
-            "headers" : {
-              "Access-Control-Allow-Origin" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Methods" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Credentials" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Headers" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              }
-            },
-            "content" : { }
-          }
-        }
-      }
-    },
-    "/knowledge-base/executions/{executionId}" : {
-      "get" : {
-        "parameters" : [ {
-          "name" : "executionId",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "string"
-          }
-        } ],
-        "responses" : {
-          "400" : {
-            "description" : "400 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          },
-          "500" : {
-            "description" : "500 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          },
-          "200" : {
-            "description" : "200 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/aicusapicoQjcoKzzZFI86"
-                }
-              }
-            }
-          }
-        },
-        "security" : [ {
-          "aicustomerserviceapiconstructApiAuthorizerEB0B49FC" : [ ]
-        } ]
-      },
-      "options" : {
-        "parameters" : [ {
-          "name" : "executionId",
-          "in" : "path",
-          "required" : true,
-          "schema" : {
-            "type" : "string"
-          }
-        } ],
-        "responses" : {
-          "204" : {
-            "description" : "204 response",
-            "headers" : {
-              "Access-Control-Allow-Origin" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Methods" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Credentials" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Headers" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              }
-            },
-            "content" : { }
-          }
-        }
-      }
-    },
-    "/intention/download-template" : {
-      "get" : {
-        "responses" : {
-          "400" : {
-            "description" : "400 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          },
-          "500" : {
-            "description" : "500 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          },
-          "200" : {
-            "description" : "200 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          }
-        },
-        "security" : [ {
-          "aicustomerserviceapiconstructApiAuthorizerEB0B49FC" : [ ]
-        } ]
-      },
-      "options" : {
-        "responses" : {
-          "204" : {
-            "description" : "204 response",
-            "headers" : {
-              "Access-Control-Allow-Origin" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Methods" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Credentials" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Headers" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              }
-            },
-            "content" : { }
-          }
-        }
-      }
-    },
-    "/prompt-management/scenes" : {
-      "get" : {
-        "responses" : {
-          "400" : {
-            "description" : "400 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          },
-          "500" : {
-            "description" : "500 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          },
-          "200" : {
-            "description" : "200 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          }
-        },
-        "security" : [ {
-          "aicustomerserviceapiconstructApiAuthorizerEB0B49FC" : [ ]
-        } ]
-      },
-      "options" : {
-        "responses" : {
-          "204" : {
-            "description" : "204 response",
-            "headers" : {
-              "Access-Control-Allow-Origin" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Methods" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Credentials" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Headers" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              }
-            },
-            "content" : { }
-          }
-        }
-      }
-    },
-    "/intention/index-used-scan" : {
-      "post" : {
-        "responses" : {
-          "400" : {
-            "description" : "400 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          },
-          "500" : {
-            "description" : "500 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          },
-          "200" : {
-            "description" : "200 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          }
-        },
-        "security" : [ {
-          "aicustomerserviceapiconstructApiAuthorizerEB0B49FC" : [ ]
-        } ]
-      },
-      "options" : {
-        "responses" : {
-          "204" : {
-            "description" : "204 response",
-            "headers" : {
-              "Access-Control-Allow-Origin" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Methods" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Credentials" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Headers" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              }
-            },
-            "content" : { }
-          }
-        }
-      }
-    },
-    "/extract" : {
-      "post" : {
-        "responses" : {
-          "400" : {
-            "description" : "400 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          },
-          "500" : {
-            "description" : "500 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          },
-          "200" : {
-            "description" : "200 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          }
-        },
-        "security" : [ {
-          "aicustomerserviceapiconstructApiAuthorizerEB0B49FC" : [ ]
-        } ]
-      },
-      "options" : {
-        "responses" : {
-          "204" : {
-            "description" : "204 response",
-            "headers" : {
-              "Access-Control-Allow-Origin" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Methods" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Credentials" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              },
-              "Access-Control-Allow-Headers" : {
-                "schema" : {
-                  "type" : "string"
-                }
-              }
-            },
-            "content" : { }
           }
         }
       }
     },
     "/chat-history/messages" : {
       "get" : {
+        "produces" : [ "application/json" ],
         "responses" : {
+          "200" : {
+            "description" : "200 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          },
           "400" : {
             "description" : "400 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
             }
           },
           "500" : {
             "description" : "500 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          },
-          "200" : {
-            "description" : "200 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
             }
           }
         },
@@ -1842,67 +187,318 @@
         } ]
       },
       "options" : {
+        "consumes" : [ "application/json" ],
         "responses" : {
           "204" : {
             "description" : "204 response",
             "headers" : {
               "Access-Control-Allow-Origin" : {
-                "schema" : {
-                  "type" : "string"
-                }
+                "type" : "string"
               },
               "Access-Control-Allow-Methods" : {
-                "schema" : {
-                  "type" : "string"
-                }
+                "type" : "string"
               },
               "Access-Control-Allow-Credentials" : {
-                "schema" : {
-                  "type" : "string"
-                }
+                "type" : "string"
               },
               "Access-Control-Allow-Headers" : {
-                "schema" : {
-                  "type" : "string"
-                }
+                "type" : "string"
               }
-            },
-            "content" : { }
+            }
+          }
+        }
+      }
+    },
+    "/chat-history/sessions" : {
+      "get" : {
+        "produces" : [ "application/json" ],
+        "responses" : {
+          "200" : {
+            "description" : "200 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          },
+          "400" : {
+            "description" : "400 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          },
+          "500" : {
+            "description" : "500 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          }
+        },
+        "security" : [ {
+          "aicustomerserviceapiconstructApiAuthorizerEB0B49FC" : [ ]
+        } ]
+      },
+      "options" : {
+        "consumes" : [ "application/json" ],
+        "responses" : {
+          "204" : {
+            "description" : "204 response",
+            "headers" : {
+              "Access-Control-Allow-Origin" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Methods" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Credentials" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Headers" : {
+                "type" : "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chatbot-management" : {
+      "options" : {
+        "consumes" : [ "application/json" ],
+        "responses" : {
+          "204" : {
+            "description" : "204 response",
+            "headers" : {
+              "Access-Control-Allow-Origin" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Methods" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Credentials" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Headers" : {
+                "type" : "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chatbot-management/chatbots" : {
+      "get" : {
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "page_size",
+          "in" : "query",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "max_items",
+          "in" : "query",
+          "required" : false,
+          "type" : "string"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "200 response",
+            "schema" : {
+              "$ref" : "#/definitions/aicusapicoYa9VOrUQINzF"
+            }
+          },
+          "400" : {
+            "description" : "400 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          },
+          "500" : {
+            "description" : "500 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          }
+        },
+        "security" : [ {
+          "aicustomerserviceapiconstructApiAuthorizerEB0B49FC" : [ ]
+        } ]
+      },
+      "post" : {
+        "consumes" : [ "application/json" ],
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "in" : "body",
+          "name" : "aicusapicou6VksROJ90h2",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/definitions/aicusapicou6VksROJ90h2"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "200 response",
+            "schema" : {
+              "$ref" : "#/definitions/aicusapicoaOehYyqx8qlR"
+            }
+          },
+          "400" : {
+            "description" : "400 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          },
+          "500" : {
+            "description" : "500 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          }
+        },
+        "security" : [ {
+          "aicustomerserviceapiconstructApiAuthorizerEB0B49FC" : [ ]
+        } ]
+      },
+      "options" : {
+        "consumes" : [ "application/json" ],
+        "responses" : {
+          "204" : {
+            "description" : "204 response",
+            "headers" : {
+              "Access-Control-Allow-Origin" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Methods" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Credentials" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Headers" : {
+                "type" : "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chatbot-management/check-chatbot" : {
+      "post" : {
+        "produces" : [ "application/json" ],
+        "responses" : {
+          "200" : {
+            "description" : "200 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          },
+          "400" : {
+            "description" : "400 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          },
+          "500" : {
+            "description" : "500 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          }
+        },
+        "security" : [ {
+          "aicustomerserviceapiconstructApiAuthorizerEB0B49FC" : [ ]
+        } ]
+      },
+      "options" : {
+        "consumes" : [ "application/json" ],
+        "responses" : {
+          "204" : {
+            "description" : "204 response",
+            "headers" : {
+              "Access-Control-Allow-Origin" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Methods" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Credentials" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Headers" : {
+                "type" : "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chatbot-management/check-default-chatbot" : {
+      "get" : {
+        "produces" : [ "application/json" ],
+        "responses" : {
+          "200" : {
+            "description" : "200 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          },
+          "400" : {
+            "description" : "400 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          },
+          "500" : {
+            "description" : "500 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          }
+        },
+        "security" : [ {
+          "aicustomerserviceapiconstructApiAuthorizerEB0B49FC" : [ ]
+        } ]
+      },
+      "options" : {
+        "consumes" : [ "application/json" ],
+        "responses" : {
+          "204" : {
+            "description" : "204 response",
+            "headers" : {
+              "Access-Control-Allow-Origin" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Methods" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Credentials" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Headers" : {
+                "type" : "string"
+              }
+            }
           }
         }
       }
     },
     "/chatbot-management/embeddings" : {
       "get" : {
+        "produces" : [ "application/json" ],
         "responses" : {
+          "200" : {
+            "description" : "200 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          },
           "400" : {
             "description" : "400 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
             }
           },
           "500" : {
             "description" : "500 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          },
-          "200" : {
-            "description" : "200 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
             }
           }
         },
@@ -1911,77 +507,696 @@
         } ]
       },
       "options" : {
+        "consumes" : [ "application/json" ],
         "responses" : {
           "204" : {
             "description" : "204 response",
             "headers" : {
               "Access-Control-Allow-Origin" : {
-                "schema" : {
-                  "type" : "string"
-                }
+                "type" : "string"
               },
               "Access-Control-Allow-Methods" : {
-                "schema" : {
-                  "type" : "string"
-                }
+                "type" : "string"
               },
               "Access-Control-Allow-Credentials" : {
-                "schema" : {
-                  "type" : "string"
-                }
+                "type" : "string"
               },
               "Access-Control-Allow-Headers" : {
-                "schema" : {
-                  "type" : "string"
-                }
+                "type" : "string"
               }
-            },
-            "content" : { }
+            }
+          }
+        }
+      }
+    },
+    "/extract" : {
+      "post" : {
+        "produces" : [ "application/json" ],
+        "responses" : {
+          "200" : {
+            "description" : "200 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          },
+          "400" : {
+            "description" : "400 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          },
+          "500" : {
+            "description" : "500 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          }
+        },
+        "security" : [ {
+          "aicustomerserviceapiconstructApiAuthorizerEB0B49FC" : [ ]
+        } ]
+      },
+      "options" : {
+        "consumes" : [ "application/json" ],
+        "responses" : {
+          "204" : {
+            "description" : "204 response",
+            "headers" : {
+              "Access-Control-Allow-Origin" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Methods" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Credentials" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Headers" : {
+                "type" : "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/intention" : {
+      "options" : {
+        "consumes" : [ "application/json" ],
+        "responses" : {
+          "204" : {
+            "description" : "204 response",
+            "headers" : {
+              "Access-Control-Allow-Origin" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Methods" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Credentials" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Headers" : {
+                "type" : "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/intention/download-template" : {
+      "get" : {
+        "produces" : [ "application/json" ],
+        "responses" : {
+          "200" : {
+            "description" : "200 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          },
+          "400" : {
+            "description" : "400 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          },
+          "500" : {
+            "description" : "500 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          }
+        },
+        "security" : [ {
+          "aicustomerserviceapiconstructApiAuthorizerEB0B49FC" : [ ]
+        } ]
+      },
+      "options" : {
+        "consumes" : [ "application/json" ],
+        "responses" : {
+          "204" : {
+            "description" : "204 response",
+            "headers" : {
+              "Access-Control-Allow-Origin" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Methods" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Credentials" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Headers" : {
+                "type" : "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/intention/execution-presigned-url" : {
+      "post" : {
+        "consumes" : [ "application/json" ],
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "in" : "body",
+          "name" : "aicusapico2eyMRt6useQL",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/definitions/aicusapico2eyMRt6useQL"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "200 response",
+            "schema" : {
+              "$ref" : "#/definitions/aicusapicoKUtg5hw5MQ23"
+            }
+          },
+          "400" : {
+            "description" : "400 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          },
+          "500" : {
+            "description" : "500 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          }
+        },
+        "security" : [ {
+          "aicustomerserviceapiconstructApiAuthorizerEB0B49FC" : [ ]
+        } ]
+      },
+      "options" : {
+        "consumes" : [ "application/json" ],
+        "responses" : {
+          "204" : {
+            "description" : "204 response",
+            "headers" : {
+              "Access-Control-Allow-Origin" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Methods" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Credentials" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Headers" : {
+                "type" : "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/intention/executions" : {
+      "get" : {
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "page_size",
+          "in" : "query",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "max_items",
+          "in" : "query",
+          "required" : false,
+          "type" : "string"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "200 response",
+            "schema" : {
+              "$ref" : "#/definitions/aicusapicoHWyvBnB1QggI"
+            }
+          },
+          "400" : {
+            "description" : "400 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          },
+          "500" : {
+            "description" : "500 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          }
+        },
+        "security" : [ {
+          "aicustomerserviceapiconstructApiAuthorizerEB0B49FC" : [ ]
+        } ]
+      },
+      "post" : {
+        "consumes" : [ "application/json" ],
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "in" : "body",
+          "name" : "aicusapicoZeNx832zHfgx",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/definitions/aicusapicoZeNx832zHfgx"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "200 response",
+            "schema" : {
+              "$ref" : "#/definitions/aicusapicoOzq0ulOG1nrK"
+            }
+          },
+          "400" : {
+            "description" : "400 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          },
+          "500" : {
+            "description" : "500 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          }
+        },
+        "security" : [ {
+          "aicustomerserviceapiconstructApiAuthorizerEB0B49FC" : [ ]
+        } ]
+      },
+      "delete" : {
+        "produces" : [ "application/json" ],
+        "responses" : {
+          "200" : {
+            "description" : "200 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          },
+          "400" : {
+            "description" : "400 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          },
+          "500" : {
+            "description" : "500 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          }
+        },
+        "security" : [ {
+          "aicustomerserviceapiconstructApiAuthorizerEB0B49FC" : [ ]
+        } ]
+      },
+      "options" : {
+        "consumes" : [ "application/json" ],
+        "responses" : {
+          "204" : {
+            "description" : "204 response",
+            "headers" : {
+              "Access-Control-Allow-Origin" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Methods" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Credentials" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Headers" : {
+                "type" : "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/intention/executions/{executionId}" : {
+      "get" : {
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "intentionId",
+          "in" : "path",
+          "required" : true,
+          "type" : "string"
+        }, {
+          "name" : "executionId",
+          "in" : "path",
+          "required" : true,
+          "type" : "string"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "200 response",
+            "schema" : {
+              "$ref" : "#/definitions/aicusapicoqhVwTerAVPQm"
+            }
+          },
+          "400" : {
+            "description" : "400 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          },
+          "500" : {
+            "description" : "500 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          }
+        },
+        "security" : [ {
+          "aicustomerserviceapiconstructApiAuthorizerEB0B49FC" : [ ]
+        } ]
+      },
+      "options" : {
+        "consumes" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "executionId",
+          "in" : "path",
+          "required" : true,
+          "type" : "string"
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "204 response",
+            "headers" : {
+              "Access-Control-Allow-Origin" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Methods" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Credentials" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Headers" : {
+                "type" : "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/intention/index-used-scan" : {
+      "post" : {
+        "produces" : [ "application/json" ],
+        "responses" : {
+          "200" : {
+            "description" : "200 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          },
+          "400" : {
+            "description" : "400 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          },
+          "500" : {
+            "description" : "500 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          }
+        },
+        "security" : [ {
+          "aicustomerserviceapiconstructApiAuthorizerEB0B49FC" : [ ]
+        } ]
+      },
+      "options" : {
+        "consumes" : [ "application/json" ],
+        "responses" : {
+          "204" : {
+            "description" : "204 response",
+            "headers" : {
+              "Access-Control-Allow-Origin" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Methods" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Credentials" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Headers" : {
+                "type" : "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/knowledge-base" : {
+      "options" : {
+        "consumes" : [ "application/json" ],
+        "responses" : {
+          "204" : {
+            "description" : "204 response",
+            "headers" : {
+              "Access-Control-Allow-Origin" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Methods" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Credentials" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Headers" : {
+                "type" : "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/knowledge-base/executions" : {
+      "get" : {
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "page_size",
+          "in" : "query",
+          "required" : false,
+          "type" : "string"
+        }, {
+          "name" : "max_items",
+          "in" : "query",
+          "required" : false,
+          "type" : "string"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "200 response",
+            "schema" : {
+              "$ref" : "#/definitions/aicusapicoNPq1TceemSd8"
+            }
+          },
+          "400" : {
+            "description" : "400 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          },
+          "500" : {
+            "description" : "500 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          }
+        },
+        "security" : [ {
+          "aicustomerserviceapiconstructApiAuthorizerEB0B49FC" : [ ]
+        } ]
+      },
+      "post" : {
+        "consumes" : [ "application/json" ],
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "in" : "body",
+          "name" : "aicusapicoTaAUp0RjHHQ0",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/definitions/aicusapicoTaAUp0RjHHQ0"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "200 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          },
+          "400" : {
+            "description" : "400 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          },
+          "500" : {
+            "description" : "500 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          }
+        },
+        "security" : [ {
+          "aicustomerserviceapiconstructApiAuthorizerEB0B49FC" : [ ]
+        } ]
+      },
+      "delete" : {
+        "consumes" : [ "application/json" ],
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "in" : "body",
+          "name" : "aicusapicoDPw375iu4xb1",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/definitions/aicusapicoDPw375iu4xb1"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "200 response",
+            "schema" : {
+              "$ref" : "#/definitions/aicusapicoyip3eUBUK13Z"
+            }
+          },
+          "400" : {
+            "description" : "400 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          },
+          "500" : {
+            "description" : "500 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          }
+        },
+        "security" : [ {
+          "aicustomerserviceapiconstructApiAuthorizerEB0B49FC" : [ ]
+        } ]
+      },
+      "options" : {
+        "consumes" : [ "application/json" ],
+        "responses" : {
+          "204" : {
+            "description" : "204 response",
+            "headers" : {
+              "Access-Control-Allow-Origin" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Methods" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Credentials" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Headers" : {
+                "type" : "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/knowledge-base/executions/{executionId}" : {
+      "get" : {
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "executionId",
+          "in" : "path",
+          "required" : true,
+          "type" : "string"
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "200 response",
+            "schema" : {
+              "$ref" : "#/definitions/aicusapico5ObTetko9oMO"
+            }
+          },
+          "400" : {
+            "description" : "400 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          },
+          "500" : {
+            "description" : "500 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          }
+        },
+        "security" : [ {
+          "aicustomerserviceapiconstructApiAuthorizerEB0B49FC" : [ ]
+        } ]
+      },
+      "options" : {
+        "consumes" : [ "application/json" ],
+        "parameters" : [ {
+          "name" : "executionId",
+          "in" : "path",
+          "required" : true,
+          "type" : "string"
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "204 response",
+            "headers" : {
+              "Access-Control-Allow-Origin" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Methods" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Credentials" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Headers" : {
+                "type" : "string"
+              }
+            }
           }
         }
       }
     },
     "/knowledge-base/kb-presigned-url" : {
       "post" : {
-        "requestBody" : {
-          "content" : {
-            "application/json" : {
-              "schema" : {
-                "$ref" : "#/components/schemas/aicusapico51RafCAYOxiZ"
-              }
+        "consumes" : [ "application/json" ],
+        "produces" : [ "application/json" ],
+        "parameters" : [ {
+          "in" : "body",
+          "name" : "aicusapicodBETf4Zuz6WH",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/definitions/aicusapicodBETf4Zuz6WH"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "200 response",
+            "schema" : {
+              "$ref" : "#/definitions/aicusapico4LPAf103DGIi"
             }
           },
-          "required" : true
-        },
-        "responses" : {
           "400" : {
             "description" : "400 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
             }
           },
           "500" : {
             "description" : "500 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/Empty"
-                }
-              }
-            }
-          },
-          "200" : {
-            "description" : "200 response",
-            "content" : {
-              "application/json" : {
-                "schema" : {
-                  "$ref" : "#/components/schemas/aicusapicoh5w3FRwxBjhG"
-                }
-              }
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
             }
           }
         },
@@ -1990,266 +1205,389 @@
         } ]
       },
       "options" : {
+        "consumes" : [ "application/json" ],
         "responses" : {
           "204" : {
             "description" : "204 response",
             "headers" : {
               "Access-Control-Allow-Origin" : {
-                "schema" : {
-                  "type" : "string"
-                }
+                "type" : "string"
               },
               "Access-Control-Allow-Methods" : {
-                "schema" : {
-                  "type" : "string"
-                }
+                "type" : "string"
               },
               "Access-Control-Allow-Credentials" : {
-                "schema" : {
-                  "type" : "string"
-                }
+                "type" : "string"
               },
               "Access-Control-Allow-Headers" : {
-                "schema" : {
-                  "type" : "string"
-                }
+                "type" : "string"
               }
-            },
-            "content" : { }
+            }
+          }
+        }
+      }
+    },
+    "/llm" : {
+      "post" : {
+        "produces" : [ "application/json" ],
+        "responses" : {
+          "200" : {
+            "description" : "200 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          },
+          "400" : {
+            "description" : "400 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          },
+          "500" : {
+            "description" : "500 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          }
+        },
+        "security" : [ {
+          "aicustomerserviceapiconstructApiAuthorizerEB0B49FC" : [ ]
+        } ]
+      },
+      "options" : {
+        "consumes" : [ "application/json" ],
+        "responses" : {
+          "204" : {
+            "description" : "204 response",
+            "headers" : {
+              "Access-Control-Allow-Origin" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Methods" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Credentials" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Headers" : {
+                "type" : "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/prompt-management" : {
+      "options" : {
+        "consumes" : [ "application/json" ],
+        "responses" : {
+          "204" : {
+            "description" : "204 response",
+            "headers" : {
+              "Access-Control-Allow-Origin" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Methods" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Credentials" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Headers" : {
+                "type" : "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/prompt-management/models" : {
+      "get" : {
+        "produces" : [ "application/json" ],
+        "responses" : {
+          "200" : {
+            "description" : "200 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          },
+          "400" : {
+            "description" : "400 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          },
+          "500" : {
+            "description" : "500 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          }
+        },
+        "security" : [ {
+          "aicustomerserviceapiconstructApiAuthorizerEB0B49FC" : [ ]
+        } ]
+      },
+      "options" : {
+        "consumes" : [ "application/json" ],
+        "responses" : {
+          "204" : {
+            "description" : "204 response",
+            "headers" : {
+              "Access-Control-Allow-Origin" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Methods" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Credentials" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Headers" : {
+                "type" : "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/prompt-management/prompts" : {
+      "get" : {
+        "produces" : [ "application/json" ],
+        "responses" : {
+          "200" : {
+            "description" : "200 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          },
+          "400" : {
+            "description" : "400 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          },
+          "500" : {
+            "description" : "500 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          }
+        },
+        "security" : [ {
+          "aicustomerserviceapiconstructApiAuthorizerEB0B49FC" : [ ]
+        } ]
+      },
+      "post" : {
+        "produces" : [ "application/json" ],
+        "responses" : {
+          "200" : {
+            "description" : "200 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          },
+          "400" : {
+            "description" : "400 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          },
+          "500" : {
+            "description" : "500 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          }
+        },
+        "security" : [ {
+          "aicustomerserviceapiconstructApiAuthorizerEB0B49FC" : [ ]
+        } ]
+      },
+      "options" : {
+        "consumes" : [ "application/json" ],
+        "responses" : {
+          "204" : {
+            "description" : "204 response",
+            "headers" : {
+              "Access-Control-Allow-Origin" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Methods" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Credentials" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Headers" : {
+                "type" : "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/prompt-management/scenes" : {
+      "get" : {
+        "produces" : [ "application/json" ],
+        "responses" : {
+          "200" : {
+            "description" : "200 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          },
+          "400" : {
+            "description" : "400 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          },
+          "500" : {
+            "description" : "500 response",
+            "schema" : {
+              "$ref" : "#/definitions/Empty"
+            }
+          }
+        },
+        "security" : [ {
+          "aicustomerserviceapiconstructApiAuthorizerEB0B49FC" : [ ]
+        } ]
+      },
+      "options" : {
+        "consumes" : [ "application/json" ],
+        "responses" : {
+          "204" : {
+            "description" : "204 response",
+            "headers" : {
+              "Access-Control-Allow-Origin" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Methods" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Credentials" : {
+                "type" : "string"
+              },
+              "Access-Control-Allow-Headers" : {
+                "type" : "string"
+              }
+            }
           }
         }
       }
     }
   },
-  "components" : {
-    "schemas" : {
-      "aicusapico2TwvXbhsTncy" : {
-        "title" : "ResponsePayload",
-        "type" : "object",
-        "properties" : {
-          "Config" : {
-            "type" : "object",
-            "properties" : {
-              "PageSize" : {
-                "type" : "integer"
-              },
-              "MaxItems" : {
-                "type" : "integer"
-              }
-            }
-          },
-          "Items" : {
-            "type" : "array",
-            "items" : {
-              "required" : [ "chatbotId", "createTime", "embeddingModelType", "executionId", "executionStatus", "groupName", "indexId", "indexType", "offline", "operationType", "qaEnhance", "s3Bucket", "s3Prefix", "sfnExecutionId", "uiStatus" ],
-              "type" : "object",
-              "properties" : {
-                "executionStatus" : {
-                  "type" : "string"
-                },
-                "s3Prefix" : {
-                  "type" : "string"
-                },
-                "uiStatus" : {
-                  "type" : "string"
-                },
-                "s3Bucket" : {
-                  "type" : "string"
-                },
-                "qaEnhance" : {
-                  "type" : "string"
-                },
-                "sfnExecutionId" : {
-                  "type" : "string"
-                },
-                "embeddingModelType" : {
-                  "type" : "string"
-                },
-                "offline" : {
-                  "type" : "string"
-                },
-                "executionId" : {
-                  "type" : "string"
-                },
-                "groupName" : {
-                  "type" : "string"
-                },
-                "chatbotId" : {
-                  "type" : "string"
-                },
-                "indexType" : {
-                  "type" : "string"
-                },
-                "createTime" : {
-                  "type" : "string"
-                },
-                "indexId" : {
-                  "type" : "string"
-                },
-                "operationType" : {
-                  "type" : "string"
-                }
-              }
-            }
-          },
-          "Count" : {
-            "type" : "integer"
-          }
-        }
-      },
-      "aicusapicoseOArXMRpSNs" : {
-        "title" : "PostPayload",
-        "required" : [ "chatbotId", "indexType", "offline", "operationType", "qaEnhance", "s3Bucket", "s3Prefix" ],
-        "type" : "object",
-        "properties" : {
-          "offline" : {
-            "type" : "string"
-          },
-          "chatbotId" : {
-            "type" : "string"
-          },
-          "indexType" : {
-            "type" : "string"
-          },
-          "operationType" : {
-            "type" : "string"
-          },
-          "s3Prefix" : {
-            "type" : "string"
-          },
-          "s3Bucket" : {
-            "type" : "string"
-          },
-          "qaEnhance" : {
-            "type" : "string"
-          }
-        }
-      },
-      "aicusapicobMN2pLK9AvE8" : {
-        "title" : "PostPayload",
-        "required" : [ "chatbotId", "index", "modelId", "modelName" ],
-        "type" : "object",
-        "properties" : {
-          "modelName" : {
-            "type" : "string"
-          },
-          "chatbotId" : {
-            "type" : "string"
-          },
-          "modelId" : {
-            "type" : "string"
-          },
-          "index" : {
-            "required" : [ "intention", "qd", "qq" ],
-            "type" : "object",
-            "properties" : {
-              "qq" : {
-                "type" : "string"
-              },
-              "qd" : {
-                "type" : "string"
-              },
-              "intention" : {
-                "type" : "string"
-              }
-            }
-          }
-        }
-      },
-      "aicusapicoEOcLNul8cwxa" : {
-        "title" : "PostPayload",
-        "required" : [ "chatbotId", "index", "model", "s3Bucket", "s3Prefix" ],
-        "type" : "object",
-        "properties" : {
-          "chatbotId" : {
-            "type" : "string"
-          },
-          "index" : {
-            "type" : "string"
-          },
-          "model" : {
-            "type" : "string"
-          },
-          "s3Prefix" : {
-            "type" : "string"
-          },
-          "s3Bucket" : {
-            "type" : "string"
-          }
-        }
-      },
-      "aicusapicoUy1YBXiWJ5Aq" : {
-        "title" : "ResponsePayload",
-        "type" : "object",
-        "properties" : {
-          "data" : {
-            "type" : "string"
-          },
-          "message" : {
-            "type" : "string"
-          },
-          "s3Prefix" : {
-            "type" : "string"
-          },
-          "s3Bucket" : {
-            "type" : "string"
-          }
-        }
-      },
-      "aicusapicoh5w3FRwxBjhG" : {
-        "title" : "ResponsePayload",
-        "type" : "object",
-        "properties" : {
-          "data" : {
-            "type" : "string"
-          },
-          "message" : {
-            "type" : "string"
-          },
-          "s3Prefix" : {
-            "type" : "string"
-          },
-          "s3Bucket" : {
-            "type" : "string"
-          }
-        }
-      },
-      "aicusapicor1Kt5C2mLnkm" : {
-        "title" : "PostPayload",
-        "required" : [ "executionId" ],
-        "type" : "object",
-        "properties" : {
-          "executionId" : {
-            "type" : "array",
-            "items" : {
+  "securityDefinitions" : {
+    "aicustomerserviceapiconstructApiAuthorizerEB0B49FC" : {
+      "type" : "apiKey",
+      "name" : "Authorization",
+      "in" : "header",
+      "x-amazon-apigateway-authtype" : "custom"
+    }
+  },
+  "definitions" : {
+    "aicusapicou6VksROJ90h2" : {
+      "type" : "object",
+      "required" : [ "chatbotId", "index", "modelId", "modelName" ],
+      "properties" : {
+        "modelName" : {
+          "type" : "string"
+        },
+        "chatbotId" : {
+          "type" : "string"
+        },
+        "modelId" : {
+          "type" : "string"
+        },
+        "index" : {
+          "type" : "object",
+          "properties" : {
+            "qq" : {
+              "type" : "string"
+            },
+            "qd" : {
+              "type" : "string"
+            },
+            "intention" : {
               "type" : "string"
             }
+          },
+          "required" : [ "intention", "qd", "qq" ]
+        }
+      },
+      "title" : "PostPayload"
+    },
+    "aicusapicoZeNx832zHfgx" : {
+      "type" : "object",
+      "required" : [ "chatbotId", "index", "model", "s3Bucket", "s3Prefix" ],
+      "properties" : {
+        "chatbotId" : {
+          "type" : "string"
+        },
+        "index" : {
+          "type" : "string"
+        },
+        "model" : {
+          "type" : "string"
+        },
+        "s3Prefix" : {
+          "type" : "string"
+        },
+        "s3Bucket" : {
+          "type" : "string"
+        }
+      },
+      "title" : "PostPayload"
+    },
+    "aicusapicoDPw375iu4xb1" : {
+      "type" : "object",
+      "required" : [ "executionId" ],
+      "properties" : {
+        "executionId" : {
+          "type" : "array",
+          "items" : {
+            "type" : "string"
           }
         }
       },
-      "aicusapico4rwMspzeBOe5" : {
-        "title" : "ResponsePayload",
-        "type" : "object",
-        "properties" : {
-          "result" : {
-            "type" : "string"
-          },
-          "execution_id" : {
-            "type" : "string"
-          },
-          "input_payload" : {
+      "title" : "PostPayload"
+    },
+    "aicusapicoHWyvBnB1QggI" : {
+      "type" : "object",
+      "properties" : {
+        "Config" : {
+          "type" : "object",
+          "properties" : {
+            "PageSize" : {
+              "type" : "integer"
+            },
+            "MaxItems" : {
+              "type" : "integer"
+            }
+          }
+        },
+        "Items" : {
+          "type" : "array",
+          "items" : {
             "type" : "object",
             "properties" : {
+              "executionId" : {
+                "type" : "string"
+              },
+              "fileName" : {
+                "type" : "string"
+              },
+              "createBy" : {
+                "type" : "string"
+              },
               "chatbotId" : {
                 "type" : "string"
               },
-              "groupName" : {
+              "createTime" : {
                 "type" : "string"
               },
-              "tableItemId" : {
-                "type" : "string"
-              },
-              "fieldName" : {
+              "executionStatus" : {
                 "type" : "string"
               },
               "index" : {
@@ -2257,282 +1595,404 @@
               },
               "model" : {
                 "type" : "string"
-              }
-            }
-          }
-        }
-      },
-      "aicusapicoiXUam8N8Dh8l" : {
-        "title" : "ResponsePayload",
-        "type" : "object",
-        "properties" : {
-          "chatbot_ids" : {
-            "type" : "array",
-            "items" : {
-              "type" : "string"
-            }
-          },
-          "Config" : {
-            "type" : "object",
-            "properties" : {
-              "PageSize" : {
-                "type" : "integer"
               },
-              "MaxItems" : {
-                "type" : "integer"
-              }
-            }
-          },
-          "Items" : {
-            "type" : "array",
-            "items" : {
-              "required" : [ "ChatbotId", "LastModifiedTime", "ModelId", "ModelName" ],
-              "type" : "object",
-              "properties" : {
-                "ChatbotId" : {
-                  "type" : "string"
-                },
-                "ModelName" : {
-                  "type" : "string"
-                },
-                "LastModifiedTime" : {
-                  "type" : "string"
-                },
-                "ModelId" : {
-                  "type" : "string"
-                }
-              }
-            }
-          },
-          "Count" : {
-            "type" : "integer"
-          }
-        }
-      },
-      "aicusapicob9jxGQ8zv1AS" : {
-        "title" : "ResponsePayload",
-        "type" : "object",
-        "properties" : {
-          "Config" : {
-            "type" : "object",
-            "properties" : {
-              "PageSize" : {
-                "type" : "integer"
-              },
-              "MaxItems" : {
-                "type" : "integer"
-              }
-            }
-          },
-          "Items" : {
-            "type" : "array",
-            "items" : {
-              "required" : [ "chatbotId", "createBy", "createTime", "details", "executionId", "executionStatus", "fileName", "index", "model", "tag" ],
-              "type" : "object",
-              "properties" : {
-                "executionId" : {
-                  "type" : "string"
-                },
-                "fileName" : {
-                  "type" : "string"
-                },
-                "createBy" : {
-                  "type" : "string"
-                },
-                "chatbotId" : {
-                  "type" : "string"
-                },
-                "createTime" : {
-                  "type" : "string"
-                },
-                "executionStatus" : {
-                  "type" : "string"
-                },
-                "index" : {
-                  "type" : "string"
-                },
-                "model" : {
-                  "type" : "string"
-                },
-                "details" : {
-                  "type" : "string"
-                },
-                "tag" : {
-                  "type" : "string"
-                }
-              }
-            }
-          },
-          "Count" : {
-            "type" : "integer"
-          }
-        }
-      },
-      "Empty" : {
-        "title" : "Empty Schema",
-        "type" : "object"
-      },
-      "aicusapicoCyd129M65yKV" : {
-        "title" : "PostPayload",
-        "required" : [ "content_type", "file_name" ],
-        "type" : "object",
-        "properties" : {
-          "content_type" : {
-            "type" : "string"
-          },
-          "file_name" : {
-            "type" : "string"
-          }
-        }
-      },
-      "aicusapicohQbFv37cvtQS" : {
-        "title" : "ResponsePayload",
-        "type" : "object",
-        "properties" : {
-          "chatbotId" : {
-            "type" : "string"
-          },
-          "groupName" : {
-            "type" : "string"
-          },
-          "indexIds" : {
-            "type" : "object",
-            "properties" : {
-              "qq" : {
+              "details" : {
                 "type" : "string"
               },
-              "qd" : {
+              "tag" : {
+                "type" : "string"
+              }
+            },
+            "required" : [ "chatbotId", "createBy", "createTime", "details", "executionId", "executionStatus", "fileName", "index", "model", "tag" ]
+          }
+        },
+        "Count" : {
+          "type" : "integer"
+        }
+      },
+      "title" : "ResponsePayload"
+    },
+    "aicusapicoqhVwTerAVPQm" : {
+      "type" : "object",
+      "properties" : {
+        "Items" : {
+          "type" : "array",
+          "items" : {
+            "type" : "object",
+            "properties" : {
+              "s3Path" : {
                 "type" : "string"
               },
-              "intention" : {
+              "createTime" : {
                 "type" : "string"
-              }
-            }
-          },
-          "Message" : {
-            "type" : "string"
-          }
-        }
-      },
-      "aicusapicoQjcoKzzZFI86" : {
-        "title" : "ResponsePayload",
-        "type" : "object",
-        "properties" : {
-          "Items" : {
-            "type" : "array",
-            "items" : {
-              "required" : [ "createTime", "executionId", "s3Bucket", "s3Path", "s3Prefix", "status" ],
-              "type" : "object",
-              "properties" : {
-                "executionId" : {
-                  "type" : "string"
-                },
-                "s3Path" : {
-                  "type" : "string"
-                },
-                "createTime" : {
-                  "type" : "string"
-                },
-                "s3Prefix" : {
-                  "type" : "string"
-                },
-                "s3Bucket" : {
-                  "type" : "string"
-                },
-                "status" : {
-                  "type" : "string"
-                }
-              }
-            }
-          },
-          "Count" : {
-            "type" : "integer"
-          }
-        }
-      },
-      "aicusapicoqew7t5vTA2ak" : {
-        "title" : "ResponsePayload",
-        "type" : "object",
-        "properties" : {
-          "data" : {
-            "type" : "array",
-            "items" : {
-              "type" : "string"
-            }
-          },
-          "message" : {
-            "type" : "string"
-          }
-        }
-      },
-      "aicusapico35klzY80ikPh" : {
-        "title" : "ResponsePayload",
-        "type" : "object",
-        "properties" : {
-          "Items" : {
-            "type" : "array",
-            "items" : {
-              "required" : [ "createTime", "s3Path", "s3Prefix", "status" ],
-              "type" : "object",
-              "properties" : {
-                "s3Path" : {
-                  "type" : "string"
-                },
-                "createTime" : {
-                  "type" : "string"
-                },
-                "s3Prefix" : {
-                  "type" : "string"
-                },
-                "QAList" : {
-                  "type" : "array",
-                  "items" : {
-                    "type" : "object",
-                    "properties" : {
-                      "question" : {
-                        "type" : "string"
-                      },
-                      "kwargs" : {
-                        "type" : "string"
-                      },
-                      "intention" : {
-                        "type" : "string"
-                      }
+              },
+              "s3Prefix" : {
+                "type" : "string"
+              },
+              "QAList" : {
+                "type" : "array",
+                "items" : {
+                  "type" : "object",
+                  "properties" : {
+                    "question" : {
+                      "type" : "string"
+                    },
+                    "kwargs" : {
+                      "type" : "string"
+                    },
+                    "intention" : {
+                      "type" : "string"
                     }
                   }
-                },
-                "status" : {
-                  "type" : "string"
                 }
+              },
+              "status" : {
+                "type" : "string"
               }
+            },
+            "required" : [ "createTime", "s3Path", "s3Prefix", "status" ]
+          }
+        },
+        "Count" : {
+          "type" : "integer"
+        }
+      },
+      "title" : "ResponsePayload"
+    },
+    "aicusapicodBETf4Zuz6WH" : {
+      "type" : "object",
+      "required" : [ "content_type", "file_name" ],
+      "properties" : {
+        "content_type" : {
+          "type" : "string"
+        },
+        "file_name" : {
+          "type" : "string"
+        }
+      },
+      "title" : "PostPayload"
+    },
+    "aicusapicoYa9VOrUQINzF" : {
+      "type" : "object",
+      "properties" : {
+        "chatbot_ids" : {
+          "type" : "array",
+          "items" : {
+            "type" : "string"
+          }
+        },
+        "Config" : {
+          "type" : "object",
+          "properties" : {
+            "PageSize" : {
+              "type" : "integer"
+            },
+            "MaxItems" : {
+              "type" : "integer"
             }
-          },
-          "Count" : {
-            "type" : "integer"
+          }
+        },
+        "Items" : {
+          "type" : "array",
+          "items" : {
+            "type" : "object",
+            "properties" : {
+              "ChatbotId" : {
+                "type" : "string"
+              },
+              "ModelName" : {
+                "type" : "string"
+              },
+              "LastModifiedTime" : {
+                "type" : "string"
+              },
+              "ModelId" : {
+                "type" : "string"
+              }
+            },
+            "required" : [ "ChatbotId", "LastModifiedTime", "ModelId", "ModelName" ]
+          }
+        },
+        "Count" : {
+          "type" : "integer"
+        }
+      },
+      "title" : "ResponsePayload"
+    },
+    "aicusapicoTaAUp0RjHHQ0" : {
+      "type" : "object",
+      "required" : [ "chatbotId", "indexType", "offline", "operationType", "qaEnhance", "s3Bucket", "s3Prefix" ],
+      "properties" : {
+        "offline" : {
+          "type" : "string"
+        },
+        "chatbotId" : {
+          "type" : "string"
+        },
+        "indexType" : {
+          "type" : "string"
+        },
+        "operationType" : {
+          "type" : "string"
+        },
+        "s3Prefix" : {
+          "type" : "string"
+        },
+        "s3Bucket" : {
+          "type" : "string"
+        },
+        "qaEnhance" : {
+          "type" : "string"
+        }
+      },
+      "title" : "PostPayload"
+    },
+    "aicusapico5ObTetko9oMO" : {
+      "type" : "object",
+      "properties" : {
+        "Items" : {
+          "type" : "array",
+          "items" : {
+            "type" : "object",
+            "properties" : {
+              "executionId" : {
+                "type" : "string"
+              },
+              "s3Path" : {
+                "type" : "string"
+              },
+              "createTime" : {
+                "type" : "string"
+              },
+              "s3Prefix" : {
+                "type" : "string"
+              },
+              "s3Bucket" : {
+                "type" : "string"
+              },
+              "status" : {
+                "type" : "string"
+              }
+            },
+            "required" : [ "createTime", "executionId", "s3Bucket", "s3Path", "s3Prefix", "status" ]
+          }
+        },
+        "Count" : {
+          "type" : "integer"
+        }
+      },
+      "title" : "ResponsePayload"
+    },
+    "aicusapicoaOehYyqx8qlR" : {
+      "type" : "object",
+      "properties" : {
+        "chatbotId" : {
+          "type" : "string"
+        },
+        "groupName" : {
+          "type" : "string"
+        },
+        "indexIds" : {
+          "type" : "object",
+          "properties" : {
+            "qq" : {
+              "type" : "string"
+            },
+            "qd" : {
+              "type" : "string"
+            },
+            "intention" : {
+              "type" : "string"
+            }
+          }
+        },
+        "Message" : {
+          "type" : "string"
+        }
+      },
+      "title" : "ResponsePayload"
+    },
+    "Empty" : {
+      "type" : "object",
+      "title" : "Empty Schema"
+    },
+    "aicusapico4LPAf103DGIi" : {
+      "type" : "object",
+      "properties" : {
+        "data" : {
+          "type" : "object",
+          "properties" : {
+            "s3Prefix" : {
+              "type" : "string"
+            },
+            "s3Bucket" : {
+              "type" : "string"
+            },
+            "url" : {
+              "type" : "string"
+            }
+          }
+        },
+        "message" : {
+          "type" : "string"
+        }
+      },
+      "title" : "ResponsePayload"
+    },
+    "aicusapicoNPq1TceemSd8" : {
+      "type" : "object",
+      "properties" : {
+        "Config" : {
+          "type" : "object",
+          "properties" : {
+            "PageSize" : {
+              "type" : "integer"
+            },
+            "MaxItems" : {
+              "type" : "integer"
+            }
+          }
+        },
+        "Items" : {
+          "type" : "array",
+          "items" : {
+            "type" : "object",
+            "properties" : {
+              "executionStatus" : {
+                "type" : "string"
+              },
+              "s3Prefix" : {
+                "type" : "string"
+              },
+              "uiStatus" : {
+                "type" : "string"
+              },
+              "s3Bucket" : {
+                "type" : "string"
+              },
+              "qaEnhance" : {
+                "type" : "string"
+              },
+              "sfnExecutionId" : {
+                "type" : "string"
+              },
+              "embeddingModelType" : {
+                "type" : "string"
+              },
+              "offline" : {
+                "type" : "string"
+              },
+              "executionId" : {
+                "type" : "string"
+              },
+              "groupName" : {
+                "type" : "string"
+              },
+              "chatbotId" : {
+                "type" : "string"
+              },
+              "indexType" : {
+                "type" : "string"
+              },
+              "createTime" : {
+                "type" : "string"
+              },
+              "indexId" : {
+                "type" : "string"
+              },
+              "operationType" : {
+                "type" : "string"
+              }
+            },
+            "required" : [ "chatbotId", "createTime", "embeddingModelType", "executionId", "executionStatus", "groupName", "indexId", "indexType", "offline", "operationType", "qaEnhance", "s3Bucket", "s3Prefix", "sfnExecutionId", "uiStatus" ]
+          }
+        },
+        "Count" : {
+          "type" : "integer"
+        }
+      },
+      "title" : "ResponsePayload"
+    },
+    "aicusapicoOzq0ulOG1nrK" : {
+      "type" : "object",
+      "properties" : {
+        "result" : {
+          "type" : "string"
+        },
+        "execution_id" : {
+          "type" : "string"
+        },
+        "input_payload" : {
+          "type" : "object",
+          "properties" : {
+            "chatbotId" : {
+              "type" : "string"
+            },
+            "groupName" : {
+              "type" : "string"
+            },
+            "tableItemId" : {
+              "type" : "string"
+            },
+            "fieldName" : {
+              "type" : "string"
+            },
+            "index" : {
+              "type" : "string"
+            },
+            "model" : {
+              "type" : "string"
+            }
           }
         }
       },
-      "aicusapico51RafCAYOxiZ" : {
-        "title" : "PostPayload",
-        "required" : [ "content_type", "file_name" ],
-        "type" : "object",
-        "properties" : {
-          "content_type" : {
-            "type" : "string"
-          },
-          "file_name" : {
+      "title" : "ResponsePayload"
+    },
+    "aicusapicoKUtg5hw5MQ23" : {
+      "type" : "object",
+      "properties" : {
+        "data" : {
+          "type" : "string"
+        },
+        "message" : {
+          "type" : "string"
+        },
+        "s3Prefix" : {
+          "type" : "string"
+        },
+        "s3Bucket" : {
+          "type" : "string"
+        }
+      },
+      "title" : "ResponsePayload"
+    },
+    "aicusapicoyip3eUBUK13Z" : {
+      "type" : "object",
+      "properties" : {
+        "data" : {
+          "type" : "array",
+          "items" : {
             "type" : "string"
           }
+        },
+        "message" : {
+          "type" : "string"
         }
-      }
+      },
+      "title" : "ResponsePayload"
     },
-    "securitySchemes" : {
-      "aicustomerserviceapiconstructApiAuthorizerEB0B49FC" : {
-        "type" : "apiKey",
-        "name" : "Authorization",
-        "in" : "header",
-        "x-amazon-apigateway-authtype" : "custom"
-      }
+    "aicusapico2eyMRt6useQL" : {
+      "type" : "object",
+      "required" : [ "content_type", "file_name" ],
+      "properties" : {
+        "content_type" : {
+          "type" : "string"
+        },
+        "file_name" : {
+          "type" : "string"
+        }
+      },
+      "title" : "PostPayload"
     }
   }
 }
