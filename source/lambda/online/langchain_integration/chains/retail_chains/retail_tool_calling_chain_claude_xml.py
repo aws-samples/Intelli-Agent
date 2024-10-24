@@ -22,7 +22,7 @@ from common_logic.common_utils.constant import (
     SceneType
 )
 from functions import get_tool_by_name
-from ..llm_chain_base import LLMChain
+from ..__llm_chain_base import LLMChain
 from ...llm_models import Model
 
 tool_call_guidelines = """<guidlines>

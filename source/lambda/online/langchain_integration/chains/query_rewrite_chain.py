@@ -14,7 +14,7 @@ from common_logic.common_utils.constant import (
 from ..chains import LLMChain
 from ..chat_models import Model as LLM_Model
 from .chat_chain import Iternlm2Chat7BChatChain
-from .llm_chain_base import LLMChain
+from . import LLMChain
 
 QUERY_REWRITE_TYPE = LLMTaskType.QUERY_REWRITE_TYPE
 query_expansion_template_claude = PromptTemplate.from_template("""You are an AI language model assistant. Your task is to generate 1 - 5 different sub questions OR alternate versions of the given user question to retrieve relevant documents from a vector database.

@@ -14,8 +14,8 @@ from common_logic.common_utils.prompt_utils import get_prompt_template
 from common_logic.common_utils.logger_utils import print_llm_messages
 
 # from ...prompt_template import convert_chat_history_from_fstring_format
-from ..llm_models import Model
-from .llm_chain_base import LLMChain
+from ..chat_models import Model
+from . import LLMChain
 
 
 def get_claude_rag_context(contexts: list):
@@ -81,8 +81,25 @@ class Claude3SonnetRAGLLMChain(Claude2RagLLMChain):
 class Claude3HaikuRAGLLMChain(Claude2RagLLMChain):
     model_id = LLMModelType.CLAUDE_3_HAIKU
 
+class Claude35SonnetRAGLLMChain(Claude2RagLLMChain):
+    model_id = LLMModelType.CLAUDE_3_5_SONNET
+
+
+class Llama31Instruct70B(Claude2RagLLMChain):
+    model_id = LLMModelType.LLAMA3_1_70B_INSTRUCT
+
+
+class MistraLlarge2407(Claude2RagLLMChain):
+    model_id = LLMModelType.MISTRAL_LARGE_2407
+
+
+class CohereCommandRPlus(Claude2RagLLMChain):
+    model_id = LLMModelType.COHERE_COMMAND_R_PLUS
+
+
 class Mixtral8x7bChatChain(Claude2RagLLMChain):
     model_id = LLMModelType.MIXTRAL_8X7B_INSTRUCT
+
 
 
 from .chat_chain import GLM4Chat9BChatChain

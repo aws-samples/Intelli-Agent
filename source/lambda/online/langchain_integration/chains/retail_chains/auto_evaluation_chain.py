@@ -12,7 +12,7 @@ from common_logic.common_utils.constant import (
     LLMModelType,
 )
 from ...llm_models import Model
-from ..llm_chain_base import LLMChain
+from ..__llm_chain_base import LLMChain
 
 from ..chat_chain import Claude2ChatChain
 

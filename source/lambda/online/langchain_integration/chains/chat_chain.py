@@ -6,8 +6,8 @@ from langchain.prompts import ChatPromptTemplate,HumanMessagePromptTemplate
 from langchain_core.messages import convert_to_messages
 
 
-from ..llm_models import Model
-from .llm_chain_base import LLMChain
+from ..chat_models import Model
+from . import LLMChain
 
 from common_logic.common_utils.constant import (
     MessageType,

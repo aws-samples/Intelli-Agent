@@ -17,7 +17,7 @@ from common_logic.common_utils.constant import (
 from ..chains import LLMChain
 from ..chat_models import Model as LLM_Model
 from .chat_chain import Iternlm2Chat7BChatChain
-from .llm_chain_base import LLMChain
+from . import LLMChain
 
 HYDE_TYPE = LLMTaskType.HYDE_TYPE
 

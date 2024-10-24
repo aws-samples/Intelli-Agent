@@ -24,8 +24,8 @@ from common_logic.common_utils.constant import (
 )
 from common_logic.common_utils.time_utils import get_china_now
 
-from .llm_chain_base import LLMChain
-from ..llm_models import Model
+from . import LLMChain
+from ..chat_models import Model
 
 incorrect_tool_call_example = """Here is an example of an incorrectly formatted tool call, which you should avoid.
 <incorrect_tool_calling>

@@ -25,7 +25,7 @@ from common_logic.common_utils.constant import (
 )
 from functions import get_tool_by_name
 
-from ..llm_chain_base import LLMChain
+from ..__llm_chain_base import LLMChain
 from ...llm_models import Model
 from ..chat_chain import GLM4Chat9BChatChain
 from common_logic.common_utils.logger_utils import get_logger

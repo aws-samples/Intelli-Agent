@@ -7,9 +7,9 @@ from langchain.schema.runnable import (
 )
 
 
-from ..llm_models import Model
+from ..chat_models import Model
 from .chat_chain import Iternlm2Chat7BChatChain
-from .llm_chain_base import LLMChain
+from . import LLMChain
 from common_logic.common_utils.constant import (
     MessageType,
     LLMTaskType,

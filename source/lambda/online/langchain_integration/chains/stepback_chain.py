@@ -8,8 +8,8 @@ from common_logic.common_utils.constant import (
     LLMTaskType,
     LLMModelType
 )
-from ..chains.chat_chain import Iternlm2Chat7BChatChain
-from ..chains.llm_chain_base import LLMChain
+from .chat_chain import Iternlm2Chat7BChatChain
+from . import LLMChain
 from ..chat_models import Model
 
 STEPBACK_PROMPTING_TYPE = LLMTaskType.STEPBACK_PROMPTING_TYPE
