@@ -384,7 +384,8 @@ export class ApiConstruct extends Construct {
             data: { type: JsonSchemaType.OBJECT,
                     properties: {
                       s3Bucket: { type: JsonSchemaType.STRING },
-                      s3Prefix: { type: JsonSchemaType.STRING }
+                      s3Prefix: { type: JsonSchemaType.STRING },
+                      url: {type: JsonSchemaType.STRING}
                     }
                   },
             message: { type: JsonSchemaType.STRING }
