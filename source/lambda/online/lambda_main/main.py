@@ -65,54 +65,18 @@ def get_secret_value(secret_arn: str):
             raise Exception("Fail to retrieve the secret value")
 
 
-def connect_case_event_handler(event_body: dict, context: dict, executor):
-    performed_by = event_body["detail"]["performedBy"]["iamPrincipalArn"]
-    logger.info(performed_by)
-    if "AWSServiceRoleForAmazonConnect" not in performed_by:
-        return None
+def create_ddb_history_obj(session_id: str, user_id: str, client_type: str) -> DynamoDBChatMessageHistory:
+    """Create a DynamoDBChatMessageHistory object
 
-    executor_body = compose_connect_body(event_body, context)
+    Args:
+        session_id (str): The session id
+        user_id (str): The user id
+        client_type (str): The client type
 
-    try:
-        executor_response: dict = executor(executor_body)
-        response_message = executor_response["message"]["content"]
-        logger.info(response_message)
-        logger.info("Add response message to case comment")
-
-        related_item = event_body["detail"]["relatedItem"]
-        case_id = related_item["caseId"]
-
-        response = connect_client.create_related_item(
-            caseId=case_id,
-            content={
-                "comment": {"body": response_message, "contentType": "Text/Plain"},
-            },
-            domainId=connect_domain_id,
-            performedBy={
-                "userArn": connect_user_arn,
-            },
-            type="Comment",
-        )
-        logger.info(response)
-    except Exception as e:
-        msg = traceback.format_exc()
-        logger.exception("Main exception:%s" % msg)
-        return "An exception has occurred, check CloudWatch log for more details"
-
-    return {"status": "OK", "message": "Amazon Connect event has been processed"}
-
-
-def aics_restapi_event_handler(event_body: dict, context: dict, entry_executor):
-    request_timestamp = context["request_timestamp"]
-    client_type = event_body.get("client_type", "default_client_type")
-    session_id = event_body.get("session_id", f"session_{request_timestamp}")
-    para_chatbot_config = event_body.get("chatbot_config", {})
-    user_id = event_body.get("user_id", "default_user_id")
-    group_name = para_chatbot_config.get("group_name", "Admin")
-    chatbot_id = para_chatbot_config.get("chatbot_id", "admin")
-    use_history = para_chatbot_config.get("use_history", "true").lower() == "true"
-
-    ddb_history_obj = DynamoDBChatMessageHistory(
+    Returns:
+        DynamoDBChatMessageHistory: The DynamoDBChatMessageHistory object
+    """
+    return DynamoDBChatMessageHistory(
         sessions_table_name=sessions_table_name,
         messages_table_name=messages_table_name,
         session_id=session_id,
@@ -120,44 +84,18 @@ def aics_restapi_event_handler(event_body: dict, context: dict, entry_executor):
         client_type=client_type,
     )
 
-    chat_history = ddb_history_obj.messages_as_langchain
-
-    standard_event_body = {
-        "query": event_body["query"],
-        "entry_type": EntryType.COMMON,
-        "session_id": session_id,
-        "user_id": user_id,
-        "chatbot_config": {
-            "chatbot_mode": "agent",
-            "use_history": use_history,
-        },
-        "stream": False,
-    }
-
-    standard_event_body["chat_history"] = chat_history
-    standard_event_body["ddb_history_obj"] = ddb_history_obj
-    standard_event_body["request_timestamp"] = request_timestamp
-    standard_event_body["chatbot_config"]["user_id"] = user_id
-    standard_event_body["chatbot_config"]["group_name"] = group_name
-    standard_event_body["chatbot_config"]["chatbot_id"] = chatbot_id
-    standard_event_body["message_id"] = str(uuid.uuid4())
-    standard_event_body["custom_message_id"] = ""
-    standard_event_body["ws_connection_id"] = ""
-
-    standard_response = entry_executor(standard_event_body)
-
-    aics_response = {
-        "role": standard_response["message"]["role"],
-        "content": standard_response["message"]["content"],
-        "category": standard_response.get("current_agent_intent_type", ""),
-        "intent_id": "i0",
-        "intent_completed": "true",
-    }
-
-    return aics_response
-
 
 def compose_connect_body(event_body: dict, context: dict):
+    """
+    Compose the body for the Amazon Connect API request based on the event and context.
+
+    Args:
+        event_body (dict): The event body received from the Lambda function.
+        context (dict): The context object passed to the Lambda function.
+
+    Returns:
+        dict: The composed body for the Amazon Connect API request.
+    """
     request_timestamp = context["request_timestamp"]
     chatbot_id = os.environ.get("CONNECT_BOT_ID", "admin")
     related_item = event_body["detail"]["relatedItem"]
@@ -237,74 +175,156 @@ def compose_connect_body(event_body: dict, context: dict):
     return agent_flow_body
 
 
+def assemble_event_body(event_body: dict, context: dict):
+    """
+    Assembles the event body for processing based on the provided event body and context.
+
+    This function takes the event body and context as input, extracts relevant information, and constructs a new event body that includes the client type, session ID, user ID, message ID, group name, and chatbot ID. The session ID is generated based on the request timestamp if not provided in the event body.
+
+    Parameters:
+        event_body (dict): The original event body received by the lambda function.
+        context (dict): The context object provided by the lambda function, containing information such as the request timestamp.
+
+    Returns:
+        dict: The assembled event body with the extracted and generated information.
+    """
+    body = {}
+    request_timestamp = context["request_timestamp"]
+    body["client_type"] = event_body.get("client_type", "default_client_type")
+    body["session_id"] = event_body.get(
+        "session_id", f"session_{int(request_timestamp)}")
+    body["user_id"] = event_body.get("user_id", "default_user_id")
+    body["message_id"] = event_body.get("custom_message_id", str(uuid.uuid4()))
+    body["group_name"] = event_body.get(
+        "chatbot_config", {}).get("group_name", "Admin")
+    body["chatbot_id"] = event_body.get(
+        "chatbot_config", {}).get("chatbot_id", "admin")
+
+    return body
+
+
+def connect_case_event_handler(event_body: dict, context: dict, executor):
+    performed_by = event_body["detail"]["performedBy"]["iamPrincipalArn"]
+    logger.info(performed_by)
+    if "AWSServiceRoleForAmazonConnect" not in performed_by:
+        return None
+
+    executor_body = compose_connect_body(event_body, context)
+
+    try:
+        executor_response: dict = executor(executor_body)
+        response_message = executor_response["message"]["content"]
+        logger.info(response_message)
+        logger.info("Add response message to case comment")
+
+        related_item = event_body["detail"]["relatedItem"]
+        case_id = related_item["caseId"]
+
+        response = connect_client.create_related_item(
+            caseId=case_id,
+            content={
+                "comment": {"body": response_message, "contentType": "Text/Plain"},
+            },
+            domainId=connect_domain_id,
+            performedBy={
+                "userArn": connect_user_arn,
+            },
+            type="Comment",
+        )
+        logger.info(response)
+    except Exception as e:
+        msg = traceback.format_exc()
+        logger.exception("Main exception:%s" % msg)
+        return "An exception has occurred, check CloudWatch log for more details"
+
+    return {"status": "OK", "message": "Amazon Connect event has been processed"}
+
+
+def aics_restapi_event_handler(event_body: dict, context: dict, entry_executor):
+
+    use_history = event_body.get("chatbot_config", {}).get(
+        "use_history", "true").lower() == "true"
+
+    ddb_history_obj = create_ddb_history_obj(session_id, user_id, client_type)
+    chat_history = ddb_history_obj.messages_as_langchain
+
+    standard_event_body = {
+        "query": event_body["query"],
+        "entry_type": EntryType.COMMON,
+        "session_id": session_id,
+        "user_id": user_id,
+        "chatbot_config": {
+            "chatbot_mode": "agent",
+            "use_history": use_history,
+        },
+        "stream": False,
+    }
+
+    standard_event_body["chat_history"] = chat_history
+    standard_event_body["ddb_history_obj"] = ddb_history_obj
+    standard_event_body["request_timestamp"] = request_timestamp
+    standard_event_body["chatbot_config"]["user_id"] = user_id
+    standard_event_body["chatbot_config"]["group_name"] = group_name
+    standard_event_body["chatbot_config"]["chatbot_id"] = chatbot_id
+    standard_event_body["message_id"] =
+    standard_event_body["custom_message_id"] = ""
+    standard_event_body["ws_connection_id"] = ""
+
+    standard_response = entry_executor(standard_event_body)
+
+    aics_response = {
+        "role": standard_response["message"]["role"],
+        "content": standard_response["message"]["content"],
+        "category": standard_response.get("current_agent_intent_type", ""),
+        "intent_id": "i0",
+        "intent_completed": "true",
+    }
+
+    return aics_response
+
+
+def default_event_handler(event_body: dict, context: dict, entry_executor):
+    ws_connection_id = context.get("ws_connection_id")
+
+    load_ws_client(websocket_url)
+
+    ddb_history_obj = create_ddb_history_obj(session_id, user_id, client_type)
+    chat_history = ddb_history_obj.messages_as_langchain
+
+    event_body["stream"] = context["stream"]
+    event_body["chat_history"] = chat_history
+    event_body["ws_connection_id"] = ws_connection_id
+    event_body["custom_message_id"] = message_id
+    event_body["message_id"] = message_id
+    event_body["ddb_history_obj"] = ddb_history_obj
+    event_body["request_timestamp"] = request_timestamp
+    event_body["chatbot_config"]["user_id"] = user_id
+    event_body["chatbot_config"]["group_name"] = group_name
+    event_body["chatbot_config"]["chatbot_id"] = chatbot_id
+    event_body["kb_enabled"] = kb_enabled
+    event_body["kb_type"] = kb_type
+
+    # show debug info directly in local mode
+    if is_running_local():
+        response: dict = entry_executor(event_body)
+        return response
+    else:
+        response: dict = entry_executor(event_body)
+        return response
+
+
 @chatbot_lambda_call_wrapper
 def lambda_handler(event_body: dict, context: dict):
-    logger.info(f"raw event_body: {event_body}")
+    logger.info(f"Raw event_body: {event_body}")
     entry_type = event_body.get("entry_type", EntryType.COMMON).lower()
     entry_executor = get_entry(entry_type)
     stream = context["stream"]
     if event_body.get("source", "") == "aws.cases":
-        # Connect case event
+        # Amazon Connect case event
         return connect_case_event_handler(event_body, context, entry_executor)
     elif not stream:
+        # Restful API
         return aics_restapi_event_handler(event_body, context, entry_executor)
     else:
-
-        ws_connection_id = context.get("ws_connection_id")
-        request_timestamp = context["request_timestamp"]
-        load_ws_client(websocket_url)
-
-        client_type = event_body.get("client_type", "default_client_type")
-        session_id = event_body.get("session_id", f"session_{int(request_timestamp)}")
-        message_id = event_body.get("custom_message_id", str(uuid.uuid4()))
-        user_id = event_body.get("user_id", "default_user_id")
-        # TODO Need to modify key
-        group_name = event_body.get("chatbot_config", {}).get("group_name", "Admin")
-        chatbot_id = event_body.get("chatbot_config", {}).get("chatbot_id", "admin")
-
-        ddb_history_obj = DynamoDBChatMessageHistory(
-            sessions_table_name=sessions_table_name,
-            messages_table_name=messages_table_name,
-            session_id=session_id,
-            user_id=user_id,
-            client_type=client_type,
-        )
-
-        chat_history = ddb_history_obj.messages_as_langchain
-
-        event_body["stream"] = stream
-        event_body["chat_history"] = chat_history
-        event_body["ws_connection_id"] = ws_connection_id
-        event_body["custom_message_id"] = message_id
-        event_body["message_id"] = message_id
-        event_body["ddb_history_obj"] = ddb_history_obj
-        event_body["request_timestamp"] = request_timestamp
-        event_body["chatbot_config"]["user_id"] = user_id
-        event_body["chatbot_config"]["group_name"] = group_name
-        event_body["chatbot_config"]["chatbot_id"] = chatbot_id
-        event_body["kb_enabled"] = kb_enabled
-        event_body["kb_type"] = kb_type
-        # TODO: chatbot id add to event body
-
-        # logger.info(f"event_body:\n{json.dumps(event_body,ensure_ascii=False,indent=2,cls=JSONEncoder)}")
-        # debuging
-        # show debug info directly in local mode
-        if is_running_local():
-            response: dict = entry_executor(event_body)
-            return response
-            # r = process_response(event_body,response)
-            # if not stream:
-            #     return r
-            # return "All records have been processed"
-            # return r
-        else:
-            try:
-                response: dict = entry_executor(event_body)
-                # r = process_response(event_body,response)
-                if not stream:
-                    return response
-                return "All records have been processed"
-            except Exception as e:
-                msg = traceback.format_exc()
-                logger.exception("Main exception:%s" % msg)
-                return "An exception has occurred"
+        # WebSocket API
+        return default_event_handler(event_body, context, entry_executor)
