@@ -5,14 +5,13 @@ from datetime import datetime, timezone
 
 import boto3
 from botocore.exceptions import ClientError
-from common_logic.common_utils.constant import EntryType
+from common_logic.common_utils.constant import EntryType, ExecutionType
 from common_logic.common_utils.ddb_utils import DynamoDBChatMessageHistory
 from common_logic.common_utils.lambda_invoke_utils import (
     chatbot_lambda_call_wrapper,
     is_running_local,
 )
 from common_logic.common_utils.logger_utils import get_logger
-from common_logic.common_utils.response_utils import process_response
 from common_logic.common_utils.websocket_utils import load_ws_client
 from lambda_main.main_utils.online_entries import get_entry
 
@@ -224,40 +223,47 @@ def connect_case_event_handler(event_body: dict, context: dict, executor):
         return None
 
     executor_body = compose_connect_body(event_body, context)
+    executor_response: dict = executor(executor_body)
+    response_message = executor_response["message"]["content"]
+    logger.info(response_message)
+    logger.info("Add response message to case comment")
 
-    try:
-        executor_response: dict = executor(executor_body)
-        response_message = executor_response["message"]["content"]
-        logger.info(response_message)
-        logger.info("Add response message to case comment")
+    related_item = event_body["detail"]["relatedItem"]
+    case_id = related_item["caseId"]
 
-        related_item = event_body["detail"]["relatedItem"]
-        case_id = related_item["caseId"]
-
-        response = connect_client.create_related_item(
-            caseId=case_id,
-            content={
-                "comment": {"body": response_message, "contentType": "Text/Plain"},
-            },
-            domainId=connect_domain_id,
-            performedBy={
-                "userArn": connect_user_arn,
-            },
-            type="Comment",
-        )
-        logger.info(response)
-    except Exception as e:
-        msg = traceback.format_exc()
-        logger.exception("Main exception:%s" % msg)
-        return "An exception has occurred, check CloudWatch log for more details"
+    response = connect_client.create_related_item(
+        caseId=case_id,
+        content={
+            "comment": {"body": response_message, "contentType": "Text/Plain"},
+        },
+        domainId=connect_domain_id,
+        performedBy={
+            "userArn": connect_user_arn,
+        },
+        type="Comment",
+    )
+    logger.info(response)
 
     return {"status": "OK", "message": "Amazon Connect event has been processed"}
 
 
-def aics_restapi_event_handler(event_body: dict, context: dict, entry_executor):
+def restapi_event_handler(event_body: dict, context: dict, entry_executor):
+    """
+    Handles the event processing for Restful API requests.
+
+    This function processes events related to Restful API requests, specifically handling the assembly of the event body for further processing. It extracts relevant information from the event body and context, checks the use of history, and then composes a standard event body for further processing. It attempts to execute the entry executor with the composed body, logs the response message, and returns the response.
+
+    Parameters:
+        event_body (dict): The event body received by the lambda function, containing details about the Restful API request.
+        context (dict): The context object provided by the lambda function, containing information such as the request timestamp.
+        entry_executor (function): A function that executes the processing of the event, taking the standard event body as input.
+
+    Returns:
+        dict: Returns a dictionary with the response from the entry executor, including the role, content, category, intent_id, and intent_completed.
+    """
     assembled_body = assemble_event_body(event_body, context)
-    use_history = event_body.get("chatbot_config", {}).get(
-        "use_history", "true").lower() == "true"
+    use_history = str(event_body.get("chatbot_config", {}).get(
+        "use_history", "true")).lower() == "true"
 
     ddb_history_obj = create_ddb_history_obj(
         assembled_body["session_id"], assembled_body["user_id"], assembled_body["client_type"])
@@ -299,6 +305,19 @@ def aics_restapi_event_handler(event_body: dict, context: dict, entry_executor):
 
 
 def default_event_handler(event_body: dict, context: dict, entry_executor):
+    """
+    Handles the default event (WebSocket API) processing for the lambda function.
+
+    This function is responsible for processing events that do not require special handling, such as those from the WebSocket API. It assembles the event body, loads the WebSocket client, and prepares the DynamoDB history object and chat history for processing. The event body is then passed to the entry executor for further processing.
+
+    Args:
+        event_body (dict): The event body received from the Lambda function.
+        context (dict): The context object passed to the Lambda function.
+        entry_executor (function): A function that executes the processing of the event, taking the standard event body as input.
+
+    Returns:
+        dict: Returns a dictionary with the response from the entry executor.
+    """
     ws_connection_id = context.get("ws_connection_id")
     assembled_body = assemble_event_body(event_body, context)
     load_ws_client(websocket_url)
@@ -320,7 +339,7 @@ def default_event_handler(event_body: dict, context: dict, entry_executor):
     event_body["kb_enabled"] = kb_enabled
     event_body["kb_type"] = kb_type
 
-    # show debug info directly in local mode
+    # Show debug info directly in local mode
     if is_running_local():
         response: dict = entry_executor(event_body)
         return response
@@ -332,15 +351,25 @@ def default_event_handler(event_body: dict, context: dict, entry_executor):
 @chatbot_lambda_call_wrapper
 def lambda_handler(event_body: dict, context: dict):
     logger.info(f"Raw event_body: {event_body}")
+    run_type = ExecutionType.RESTFUL_API
     entry_type = event_body.get("entry_type", EntryType.COMMON).lower()
-    entry_executor = get_entry(entry_type)
-    stream = context["stream"]
-    if event_body.get("source", "") == "aws.cases":
-        # Amazon Connect case event
-        return connect_case_event_handler(event_body, context, entry_executor)
-    elif not stream:
-        # Restful API
-        return aics_restapi_event_handler(event_body, context, entry_executor)
-    else:
-        # WebSocket API
-        return default_event_handler(event_body, context, entry_executor)
+    try:
+        entry_executor = get_entry(entry_type)
+        stream = context["stream"]
+        if event_body.get("source", "") == "aws.cases":
+            # Amazon Connect case event
+            run_type = ExecutionType.AMAZON_CONNECT
+            return connect_case_event_handler(event_body, context, entry_executor)
+        elif not stream:
+            # Restful API
+            run_type = ExecutionType.RESTFUL_API
+            return restapi_event_handler(event_body, context, entry_executor)
+        else:
+            # WebSocket API
+            run_type = ExecutionType.WEBSOCKET_API
+            return default_event_handler(event_body, context, entry_executor)
+    except Exception as e:
+        if ExecutionType.WEBSOCKET_API == run_type:
+            pass
+        logger.error(f"An error occurred: {e}")
+        return {"error": str(e)}

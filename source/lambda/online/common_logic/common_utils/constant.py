@@ -171,3 +171,9 @@ class IndexTag(Enum):
 @unique
 class KBType(Enum):
     AOS = "aos"
+
+
+class ExecutionType(Enum):
+    AMAZON_CONNECT = "amazon_connect"
+    RESTFUL_API = "restful_api"
+    WEBSOCKET_API = "websocket_api"
