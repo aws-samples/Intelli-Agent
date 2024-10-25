@@ -190,6 +190,7 @@ def assemble_event_body(event_body: dict, context: dict):
     """
     body = {}
     request_timestamp = context["request_timestamp"]
+    body["request_timestamp"] = request_timestamp
     body["client_type"] = event_body.get("client_type", "default_client_type")
     body["session_id"] = event_body.get(
         "session_id", f"session_{int(request_timestamp)}")
@@ -204,6 +205,19 @@ def assemble_event_body(event_body: dict, context: dict):
 
 
 def connect_case_event_handler(event_body: dict, context: dict, executor):
+    """
+    Handles the event processing for Amazon Connect cases.
+
+    This function processes events related to Amazon Connect cases, specifically handling the creation of case comments. It extracts relevant information from the event body and context, checks the performedBy IAM principal ARN to ensure it's an Amazon Connect service role, and then composes an executor body for further processing. If the check passes, it attempts to execute the executor with the composed body, logs the response message, and adds the response message as a comment to the related case.
+
+    Parameters:
+        event_body (dict): The event body received by the lambda function, containing details about the Amazon Connect case event.
+        context (dict): The context object provided by the lambda function, containing information such as the request timestamp.
+        executor (function): A function that executes the processing of the event, taking the executor body as input.
+
+    Returns:
+        dict or str: Returns a dictionary with a status and message indicating the outcome of the processing, or a string indicating an exception has occurred.
+    """
     performed_by = event_body["detail"]["performedBy"]["iamPrincipalArn"]
     logger.info(performed_by)
     if "AWSServiceRoleForAmazonConnect" not in performed_by:
@@ -241,18 +255,19 @@ def connect_case_event_handler(event_body: dict, context: dict, executor):
 
 
 def aics_restapi_event_handler(event_body: dict, context: dict, entry_executor):
-
+    assembled_body = assemble_event_body(event_body, context)
     use_history = event_body.get("chatbot_config", {}).get(
         "use_history", "true").lower() == "true"
 
-    ddb_history_obj = create_ddb_history_obj(session_id, user_id, client_type)
+    ddb_history_obj = create_ddb_history_obj(
+        assembled_body["session_id"], assembled_body["user_id"], assembled_body["client_type"])
     chat_history = ddb_history_obj.messages_as_langchain
 
     standard_event_body = {
         "query": event_body["query"],
         "entry_type": EntryType.COMMON,
-        "session_id": session_id,
-        "user_id": user_id,
+        "session_id": assembled_body["session_id"],
+        "user_id": assembled_body["user_id"],
         "chatbot_config": {
             "chatbot_mode": "agent",
             "use_history": use_history,
@@ -262,11 +277,11 @@ def aics_restapi_event_handler(event_body: dict, context: dict, entry_executor):
 
     standard_event_body["chat_history"] = chat_history
     standard_event_body["ddb_history_obj"] = ddb_history_obj
-    standard_event_body["request_timestamp"] = request_timestamp
-    standard_event_body["chatbot_config"]["user_id"] = user_id
-    standard_event_body["chatbot_config"]["group_name"] = group_name
-    standard_event_body["chatbot_config"]["chatbot_id"] = chatbot_id
-    standard_event_body["message_id"] =
+    standard_event_body["request_timestamp"] = assembled_body["request_timestamp"]
+    standard_event_body["chatbot_config"]["user_id"] = assembled_body["user_id"]
+    standard_event_body["chatbot_config"]["group_name"] = assembled_body["group_name"]
+    standard_event_body["chatbot_config"]["chatbot_id"] = assembled_body["chatbot_id"]
+    standard_event_body["message_id"] = assembled_body["message_id"]
     standard_event_body["custom_message_id"] = ""
     standard_event_body["ws_connection_id"] = ""
 
@@ -285,22 +300,23 @@ def aics_restapi_event_handler(event_body: dict, context: dict, entry_executor):
 
 def default_event_handler(event_body: dict, context: dict, entry_executor):
     ws_connection_id = context.get("ws_connection_id")
-
+    assembled_body = assemble_event_body(event_body, context)
     load_ws_client(websocket_url)
 
-    ddb_history_obj = create_ddb_history_obj(session_id, user_id, client_type)
+    ddb_history_obj = create_ddb_history_obj(
+        assembled_body["session_id"], assembled_body["user_id"], assembled_body["client_type"])
     chat_history = ddb_history_obj.messages_as_langchain
 
     event_body["stream"] = context["stream"]
     event_body["chat_history"] = chat_history
     event_body["ws_connection_id"] = ws_connection_id
-    event_body["custom_message_id"] = message_id
-    event_body["message_id"] = message_id
+    event_body["custom_message_id"] = assembled_body["message_id"]
+    event_body["message_id"] = assembled_body["message_id"]
     event_body["ddb_history_obj"] = ddb_history_obj
-    event_body["request_timestamp"] = request_timestamp
-    event_body["chatbot_config"]["user_id"] = user_id
-    event_body["chatbot_config"]["group_name"] = group_name
-    event_body["chatbot_config"]["chatbot_id"] = chatbot_id
+    event_body["request_timestamp"] = assembled_body["request_timestamp"]
+    event_body["chatbot_config"]["user_id"] = assembled_body["user_id"]
+    event_body["chatbot_config"]["group_name"] = assembled_body["group_name"]
+    event_body["chatbot_config"]["chatbot_id"] = assembled_body["chatbot_id"]
     event_body["kb_enabled"] = kb_enabled
     event_body["kb_type"] = kb_type
 
