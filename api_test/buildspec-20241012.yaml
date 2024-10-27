@@ -58,12 +58,6 @@ phases:
         echo "$install_start_time install start..."
         echo "----------------------------------------------------------------" 
         git clone $REPOSITORY_URL --branch $CODE_BRANCH --single-branch
-        echo "build portal assets >>>"
-        pushd Intelli-Agent/source/portal
-        npm i -g pnpm
-        pnpm i
-        npm run build
-        popd
         deploy_start_time=$(date +"%Y-%m-%d_%H-%M-%S")
         echo "----------------------------------------------------------------"
         echo "$deploy_start_time deploy start..."
@@ -73,7 +67,16 @@ phases:
           echo "Synthesizing start..."
           pushd "Intelli-Agent/source/infrastructure"
           sed -i "s/support@example.com/${SUB_EMAIL}/g" bin/config.ts
+          sed -i "s/provider: \"bedrock\"/provider: \"sagemaker\"/g" bin/config.ts
+          sed -i "s/name: \"amazon.titan-embed-text-v2\"/name: \"bce-embedding-and-bge-reranker\"/g" bin/config.ts
+          sed -i "s/commitId: \"\"/commitId: \"43972580a35ceacacd31b95b9f430f695d07dde9\"/g" bin/config.ts
+          sed -i "s/dimensions: 1024,/dimensions: 768/g" bin/config.ts
+          sed -i "s/default: true//g" bin/config.ts          
+          npm i -g pnpm
           pnpm i
+          # echo "bin/config.ts >>>>>>>"
+          # cat bin/config.ts
+          npm run build
           npx cdk synth > synth.log 2>&1
           if [ ${PIPESTATUS[0]} -ne 0 ]; then
             echo "cdk synth failed"

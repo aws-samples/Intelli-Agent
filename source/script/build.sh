@@ -4,6 +4,21 @@ set -e
 
 # Load config.json
 config_file="../infrastructure/bin/config.json"
+# 检查 config.json 是否存在
+if [[ ! -f $config_file ]]; then
+  # 调用 TypeScript 文件中的方法获取返回值
+  config_file=$(node -e "require('../infrastructure/bin/config.ts').getConfig()")
+#   knowledge_base_enabled=$(jq -r '.knowledgeBase.enabled' $config_file)
+#   knowledge_base_intelliagent_enabled=$(jq -r '.knowledgeBase.knowledgeBaseType.intelliAgentKb.enabled' $config_file)
+#   knowledge_base_models_enabled=$(jq -r '.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.enabled' $config_file)
+#   ecr_repository=$(jq -r '.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.ecrRepository' $config_file)
+#   ecr_image_tag=$(jq -r '.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.ecrImageTag' $config_file)
+#   opensearch_enabled=$(jq -r '.knowledgeBase.knowledgeBaseType.intelliAgentKb.vectorStore.opensearch.enabled' $config_file)
+#   embedding_model_provider=$(jq -r '.model.embeddingsModels[0].provider' $config_file)
+#   model_assets_bucket=$(jq -r '.model.modelConfig.modelAssetsBucket' $config_file)
+#   ui_enabled=$(jq -r '.ui.enabled' $config_file)
+# else
+fi
 knowledge_base_enabled=$(jq -r '.knowledgeBase.enabled' $config_file)
 knowledge_base_intelliagent_enabled=$(jq -r '.knowledgeBase.knowledgeBaseType.intelliAgentKb.enabled' $config_file)
 knowledge_base_models_enabled=$(jq -r '.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.enabled' $config_file)
@@ -13,6 +28,7 @@ opensearch_enabled=$(jq -r '.knowledgeBase.knowledgeBaseType.intelliAgentKb.vect
 embedding_model_provider=$(jq -r '.model.embeddingsModels[0].provider' $config_file)
 model_assets_bucket=$(jq -r '.model.modelConfig.modelAssetsBucket' $config_file)
 ui_enabled=$(jq -r '.ui.enabled' $config_file)
+# fi
 
 echo "Knowledge Base Enabled: $knowledge_base_enabled"
 echo "IntelliAgent Knowledge Base Enabled: $knowledge_base_intelliagent_enabled"
