@@ -66,9 +66,10 @@ phases:
         if [ -d "Intelli-Agent/source/infrastructure" ]; then
           echo "Synthesizing start..."
           pushd "Intelli-Agent/source/infrastructure"
-          sed -i "s#./bin/config.json#../../api_test/config.json#g" bin/config.ts
-          sed -i "s#./bin/config.json#../../api_test/config.json#g" cli/magic-config.ts
-          sed -i "s#../infrastructure/bin/config.json#../../api_test/config.json#g" ../script/build.sh
+          sed -i "s#aws_region=$(aws configure get region)#aws_region=\"us-east-1\"#g" ../model/etl/code/model.sh
+          sed -i "s#./bin/config.json#../../api_test/config-third.json#g" bin/config.ts
+          sed -i "s#./bin/config.json#../../api_test/config-third.json#g" cli/magic-config.ts
+          sed -i "s#../infrastructure/bin/config.json#../../api_test/config-third.json#g" ../script/build.sh
           npm i -g pnpm
           pnpm i
           # echo "bin/config.ts >>>>>>>"
@@ -194,9 +195,9 @@ phases:
         echo "----------------------------------------------------------------"
         report_datetime=$(date +"%Y-%m-%d_%H-%M-%S")
         project_name="Intelli-Agent"
-        original_filename="report.html"
-        original_json_filename="detail.json"
-        original_log="detail.log"
+        original_filename="report_third.html"
+        original_json_filename="detail_third.json"
+        original_log="detail_third.log"
         s3_key=${report_datetime}_${original_json_filename}
         log=${report_datetime}_${original_log}
         pushd Intelli-Agent/api_test || exit 1
