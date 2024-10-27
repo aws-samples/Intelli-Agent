@@ -66,12 +66,9 @@ phases:
         if [ -d "Intelli-Agent/source/infrastructure" ]; then
           echo "Synthesizing start..."
           pushd "Intelli-Agent/source/infrastructure"
-          sed -i "s/support@example.com/${SUB_EMAIL}/g" bin/config.ts
-          sed -i "s/provider: \"bedrock\"/provider: \"sagemaker\"/g" bin/config.ts
-          sed -i "s/name: \"amazon.titan-embed-text-v2\"/name: \"bce-embedding-and-bge-reranker\"/g" bin/config.ts
-          sed -i "s/commitId: \"\"/commitId: \"43972580a35ceacacd31b95b9f430f695d07dde9\"/g" bin/config.ts
-          sed -i "s/dimensions: 1024,/dimensions: 768/g" bin/config.ts
-          sed -i "s/default: true//g" bin/config.ts          
+          sed -i "s#./bin/config.json#../../api_test/config.json#g" bin/config.ts
+          sed -i "s#./bin/config.json#../../api_test/config.json#g" cli/magic-config.ts
+          sed -i "s#../infrastructure/bin/config.json#../../api_test/config.json#g" ../script/build.sh
           npm i -g pnpm
           pnpm i
           # echo "bin/config.ts >>>>>>>"
