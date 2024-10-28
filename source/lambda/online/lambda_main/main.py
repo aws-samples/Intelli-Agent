@@ -14,6 +14,7 @@ from common_logic.common_utils.lambda_invoke_utils import (
 from common_logic.common_utils.logger_utils import get_logger
 from common_logic.common_utils.websocket_utils import load_ws_client
 from lambda_main.main_utils.online_entries import get_entry
+from common_logic.common_utils.response_utils import process_response
 
 logger = get_logger("main")
 
@@ -369,7 +370,7 @@ def lambda_handler(event_body: dict, context: dict):
             run_type = ExecutionType.WEBSOCKET_API
             return default_event_handler(event_body, context, entry_executor)
     except Exception as e:
-        if ExecutionType.WEBSOCKET_API == run_type:
-            pass
-        logger.error(f"An error occurred: {e}")
+        error_response = {"answer": str(e), "extra_response": {}}
+        process_response(event_body, error_response)
+        logger.error(f"An error occurred: {str(e)}")
         return {"error": str(e)}
