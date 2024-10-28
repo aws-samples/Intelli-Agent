@@ -141,7 +141,8 @@ export class ApiConstruct extends Construct {
       identitySources: [apigw.IdentitySource.header('Authorization')],
     });
 
-    if (props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.enabled) {
+    // if (props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.enabled) {
+    if (props.config.knowledgeBase.enabled && props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.enabled) {
       const embeddingLambda = new LambdaFunction(this, "lambdaEmbedding", {
         code: Code.fromAsset(join(__dirname, "../../../lambda/embedding")),
         vpc: vpc,
