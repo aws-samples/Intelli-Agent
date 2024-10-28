@@ -30,7 +30,7 @@
     "react-spinners": "^0.13.8",
     "react-use-websocket": "^4.8.1",
     "remark-gfm": "^4.0.0",
-    "remark-html": "16.0.1",
+    "remark-html": "^16.0.1",
     "sass": "^1.74.1",
     "uuid": "^9.0.1"
   },
