@@ -5,7 +5,7 @@ env:
     REPOSITORY_URL: "https://github.com/aws-samples/Intelli-Agent.git"
     CODE_BRANCH: "main"
     PROJECT_NAME: "Intelli-Agent"
-    STACK_NAME: "ai-customer-service"
+    STACK_NAME: "third-ai-customer-service"
     DEPLOY_STACK: "cdk"
     CLEAN_RESOURCES: "no"
     TEST_FAST: "false"
@@ -180,7 +180,7 @@ phases:
         cat .env
         source agentVenv/bin/activate
         # pytest test_case --continue-on-collection-errors --log-cli-level=INFO
-        pytest test_case --continue-on-collection-errors --log-cli-level=INFO --json-report --json-report-file=detail.json --html=report.html --self-contained-html > detail.log
+        pytest test_case --continue-on-collection-errors --log-cli-level=INFO --json-report --json-report-file=detail_third.json --html=report_third.html --self-contained-html > detail_third.log
         popd
         test_complete_time=$(date +"%Y-%m-%d_%H-%M-%S")
         echo "----------------------------------------------------------------"
