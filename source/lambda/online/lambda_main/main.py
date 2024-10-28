@@ -352,22 +352,18 @@ def default_event_handler(event_body: dict, context: dict, entry_executor):
 @chatbot_lambda_call_wrapper
 def lambda_handler(event_body: dict, context: dict):
     logger.info(f"Raw event_body: {event_body}")
-    run_type = ExecutionType.RESTFUL_API
     entry_type = event_body.get("entry_type", EntryType.COMMON).lower()
     try:
         entry_executor = get_entry(entry_type)
         stream = context["stream"]
         if event_body.get("source", "") == "aws.cases":
             # Amazon Connect case event
-            run_type = ExecutionType.AMAZON_CONNECT
             return connect_case_event_handler(event_body, context, entry_executor)
         elif not stream:
             # Restful API
-            run_type = ExecutionType.RESTFUL_API
             return restapi_event_handler(event_body, context, entry_executor)
         else:
             # WebSocket API
-            run_type = ExecutionType.WEBSOCKET_API
             return default_event_handler(event_body, context, entry_executor)
     except Exception as e:
         error_response = {"answer": str(e), "extra_response": {}}
