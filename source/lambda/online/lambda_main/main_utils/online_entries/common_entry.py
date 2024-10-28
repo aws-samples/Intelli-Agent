@@ -136,7 +136,6 @@ def format_intention_output(data):
         kwargs = ', '.join(
             [f'{k}: {v}' for k, v in item.get('kwargs', {}).items()])
         markdown_table += f"| {query} | {score} | {name} | {intent} | {kwargs} |\n"
-        logger.info(markdown_table)
 
     return markdown_table
 
@@ -478,7 +477,7 @@ def register_rag_tool_from_config(event_body: dict):
     chatbot = chatbot_manager.get_chatbot(group_name, chatbot_id)
     logger.info(chatbot)
     for index_type, item_dict in chatbot.index_ids.items():
-        if index_type != IndexType.INTENTION:
+        if index_type == IndexType.QD:
             for index_content in item_dict["value"].values():
                 if "indexId" in index_content and "description" in index_content:
                     register_rag_tool(
