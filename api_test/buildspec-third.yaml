@@ -207,7 +207,7 @@ phases:
         aws s3 cp $original_json_filename s3://${API_TEST_RESULT_BUCKET}/$s3_key
         aws s3 cp $original_log s3://${API_TEST_RESULT_BUCKET}/$log
         popd
-        echo "{\"project_name\":\"$PROJECT_NAME\",\"build_url\":\"$CODEBUILD_BUILD_URL\",\"status\":\"completed\",\"bucket\":\"$API_TEST_RESULT_BUCKET\",\"s3_key\":\"$s3_key\",\"log\":\"$log\",\"topic\":\"$TOPIC\",\"repository\":\"$REPOSITORY_URL\",\"branch\":\"$CODE_BRANCH\"}" > payload.json
+        echo "{\"project_name\":\"$PROJECT_NAME\",\"phase\":\"third\",\"build_url\":\"$CODEBUILD_BUILD_URL\",\"status\":\"completed\",\"bucket\":\"$API_TEST_RESULT_BUCKET\",\"s3_key\":\"$s3_key\",\"log\":\"$log\",\"topic\":\"$TOPIC\",\"repository\":\"$REPOSITORY_URL\",\"branch\":\"$CODE_BRANCH\"}" > payload.json
         aws lambda invoke --function-name $GEN_REPORT_FUNCTION --payload fileb://payload.json response.json
       - |
         post_build_end_time=$(date +"%Y-%m-%d_%H-%M-%S")
