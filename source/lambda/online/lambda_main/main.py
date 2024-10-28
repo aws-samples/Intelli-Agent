@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 
 import boto3
 from botocore.exceptions import ClientError
-from common_logic.common_utils.constant import EntryType 
+from common_logic.common_utils.constant import EntryType
 from common_logic.common_utils.ddb_utils import DynamoDBChatMessageHistory
 from common_logic.common_utils.lambda_invoke_utils import (
     chatbot_lambda_call_wrapper,
