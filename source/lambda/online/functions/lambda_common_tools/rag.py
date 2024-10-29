@@ -6,23 +6,41 @@ from common_logic.common_utils.constant import (
 from common_logic.common_utils.lambda_invoke_utils import send_trace
 
 
-def format_rag_data(data):
+def _generate_markdown_link(file_path: str) -> str:
+    file_name = file_path.split("/")[-1]
+    markdown_link = f"[{file_name}]({file_path})"
+    return markdown_link
+
+
+def format_rag_data(data) -> str:
+    """
+    Formats the given data into a markdown table.
+
+    Args:
+        data (list): A list of dictionaries containing 'source', 'score', and 'page_content' keys.
+
+    Returns:
+        str: A markdown table string representing the formatted data.
+    """
     if data is None or len(data) == 0:
         return ""
 
-    markdown_table = "| RAG Context |\n"
-    markdown_table += "|-----|\n"
+    markdown_table = "| Source | Score | RAG Context |\n"
+    markdown_table += "|-----|-----|-----|\n"
     for item in data:
-        item = item.replace("\n", "<br>")
-        markdown_table += f"| {item} |\n"
+        source = _generate_markdown_link(item.get("source", ""))
+        score = item.get("score", -1)
+        page_content = item.get("page_content", "").replace("\n", "<br>")
+        markdown_table += f"| {source} | {score} | {page_content} |\n"
 
     return markdown_table
 
 
 def lambda_handler(event_body, context=None):
     state = event_body['state']
+    print(event_body)
     context_list = []
-    # add qq match results
+    # Add qq match results
     context_list.extend(state['qq_match_results'])
     figure_list = []
     retriever_params = state["chatbot_config"]["private_knowledge_config"]
@@ -34,6 +52,8 @@ def lambda_handler(event_body, context=None):
         lambda_module_path="functions.functions_utils.retriever.retriever",
         handler_name="lambda_handler",
     )
+    print("RAG debug")
+    print(output)
 
     for doc in output["result"]["docs"]:
         context_list.append(doc["page_content"])
@@ -44,7 +64,7 @@ def lambda_handler(event_body, context=None):
     unique_figure_list = [dict(t) for t in unique_set]
     state['extra_response']['figures'] = unique_figure_list
 
-    context_md = format_rag_data(context_list)
+    context_md = format_rag_data(output["result"]["docs"])
     send_trace(
         f"\n\n{context_md}\n\n", enable_trace=state["enable_trace"])
 
@@ -77,6 +97,5 @@ def lambda_handler(event_body, context=None):
             },
         },
     )
-    #
 
     return {"code": 0, "result": output}
