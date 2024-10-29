@@ -71,7 +71,7 @@ def stream_response(event_body:dict, response:dict):
     ws_connection_id = event_body["ws_connection_id"]
     custom_message_id = event_body["custom_message_id"]
     answer = response["answer"]
-    figure = response.get("ddb_additional_kwargs").get("figure")
+    figure = response.get("ddb_additional_kwargs", {}).get("figure")
     if isinstance(answer, str):
         answer = iter([answer])
 
