@@ -4,44 +4,15 @@ from common_logic.common_utils.constant import (
     LLMTaskType
 )
 from common_logic.common_utils.lambda_invoke_utils import send_trace
-
-
-def _generate_markdown_link(file_path: str) -> str:
-    file_name = file_path.split("/")[-1]
-    markdown_link = f"[{file_name}]({file_path})"
-    return markdown_link
-
-
-def format_rag_data(data) -> str:
-    """
-    Formats the given data into a markdown table.
-
-    Args:
-        data (list): A list of dictionaries containing 'source', 'score', and 'page_content' keys.
-
-    Returns:
-        str: A markdown table string representing the formatted data.
-    """
-    if data is None or len(data) == 0:
-        return ""
-
-    markdown_table = "| Source | Score | RAG Context |\n"
-    markdown_table += "|-----|-----|-----|\n"
-    for item in data:
-        source = _generate_markdown_link(item.get("source", ""))
-        score = item.get("score", -1)
-        page_content = item.get("page_content", "").replace("\n", "<br>")
-        markdown_table += f"| {source} | {score} | {page_content} |\n"
-
-    return markdown_table
+from common_logic.common_utils.monitor_utils import format_rag_data
 
 
 def lambda_handler(event_body, context=None):
-    state = event_body['state']
+    state = event_body["state"]
     print(event_body)
     context_list = []
     # Add qq match results
-    context_list.extend(state['qq_match_results'])
+    context_list.extend(state["qq_match_results"])
     figure_list = []
     retriever_params = state["chatbot_config"]["private_knowledge_config"]
     retriever_params["query"] = state[retriever_params.get(
@@ -64,7 +35,7 @@ def lambda_handler(event_body, context=None):
     unique_figure_list = [dict(t) for t in unique_set]
     state['extra_response']['figures'] = unique_figure_list
 
-    context_md = format_rag_data(output["result"]["docs"])
+    context_md = format_rag_data(output["result"]["docs"], state["qq_match_contexts"])
     send_trace(
         f"\n\n{context_md}\n\n", enable_trace=state["enable_trace"])
 

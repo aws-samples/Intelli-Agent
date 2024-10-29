@@ -1,4 +1,3 @@
-import json
 from typing import Annotated, Any, TypedDict
 
 from common_logic.common_utils.chatbot_utils import ChatbotManager
@@ -20,6 +19,7 @@ from common_logic.common_utils.prompt_utils import get_prompt_templates_from_ddb
 from common_logic.common_utils.python_utils import add_messages, update_nest_dict
 from common_logic.common_utils.response_utils import process_response
 from common_logic.common_utils.serialization_utils import JSONEncoder
+from common_logic.common_utils.monitor_utils import format_intention_output, format_preprocess_output, format_qq_data
 from functions import get_tool_by_name
 from functions._tool_base import tool_manager
 from functions.lambda_common_tools import rag
@@ -79,6 +79,7 @@ class ChatbotState(TypedDict):
     ########### retriever states ###########
     # contexts information retrieved in search engine, e.g. OpenSearch
     qq_match_results: list = []
+    qq_match_contexts: dict
     contexts: str = None
     figure: list = None
 
@@ -103,42 +104,6 @@ class ChatbotState(TypedDict):
     current_agent_tools_def: list
 
 
-def is_null_or_empty(value):
-    if value is None:
-        return True
-    elif isinstance(value, (dict, list, str)) and not value:
-        return True
-    return False
-
-
-def format_preprocess_output(ori_query, rewrite_query):
-    if is_null_or_empty(ori_query) or is_null_or_empty(rewrite_query):
-        return ""
-
-    markdown_table = "| Original Query | Rewritten Query |\n"
-    markdown_table += "|-------|-------|\n"
-    markdown_table += f"| {ori_query} | {rewrite_query} |\n"
-
-    return markdown_table
-
-
-def format_intention_output(data):
-    if is_null_or_empty(data):
-        return ""
-
-    markdown_table = "| Query | Score | Name | Intent | Additional Info |\n"
-    markdown_table += "|-------|-------|-------|-------|-------|\n"
-    for item in data:
-        query = item.get("query", "")
-        score = item.get("score", "")
-        name = item.get("name", "")
-        intent = item.get("intent", "")
-        kwargs = ', '.join(
-            [f'{k}: {v}' for k, v in item.get('kwargs', {}).items()])
-        markdown_table += f"| {query} | {score} | {name} | {intent} | {kwargs} |\n"
-
-    return markdown_table
-
 ####################
 # nodes in graph #
 ####################
@@ -160,10 +125,6 @@ def query_preprocess(state: ChatbotState):
 
 @node_monitor_wrapper
 def intention_detection(state: ChatbotState):
-    # if state['chatbot_config']['agent_config']['only_use_rag_tool']:
-    #     return {
-    #         "intent_type": "intention detected"
-    #     }
     retriever_params = state["chatbot_config"]["qq_match_config"]
     retriever_params["query"] = state[
         retriever_params.get("retriever_config", {}).get("query_key", "query")
@@ -178,8 +139,9 @@ def intention_detection(state: ChatbotState):
     qq_match_threshold = retriever_params["threshold"]
     for doc in output["result"]["docs"]:
         if doc["retrieval_score"] > qq_match_threshold:
+            doc_md = format_qq_data(doc)
             send_trace(
-                f"\n\n**similar query found**\n{doc}",
+                f"\n\n**similar query found**\n\n{doc_md}",
                 state["stream"],
                 state["ws_connection_id"],
                 state["enable_trace"],
@@ -219,6 +181,7 @@ def intention_detection(state: ChatbotState):
         "intent_fewshot_examples": intent_fewshot_examples,
         "intent_fewshot_tools": intent_fewshot_tools,
         "qq_match_results": context_list,
+        "qq_match_contexts": output["result"]["docs"],
         "intent_type": "intention detected",
     }
 
