@@ -477,7 +477,7 @@ def register_rag_tool_from_config(event_body: dict):
     chatbot = chatbot_manager.get_chatbot(group_name, chatbot_id)
     logger.info(chatbot)
     for index_type, item_dict in chatbot.index_ids.items():
-        if index_type == IndexType.QD:
+        if index_type != IndexType.INTENTION:
             for index_content in item_dict["value"].values():
                 if "indexId" in index_content and "description" in index_content:
                     register_rag_tool(
