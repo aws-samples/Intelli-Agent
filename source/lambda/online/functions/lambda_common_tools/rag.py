@@ -4,26 +4,15 @@ from common_logic.common_utils.constant import (
     LLMTaskType
 )
 from common_logic.common_utils.lambda_invoke_utils import send_trace
-
-
-def format_rag_data(data):
-    if data is None or len(data) == 0:
-        return ""
-
-    markdown_table = "| RAG Context |\n"
-    markdown_table += "|-----|\n"
-    for item in data:
-        item = item.replace("\n", "<br>")
-        markdown_table += f"| {item} |\n"
-
-    return markdown_table
+from common_logic.common_utils.monitor_utils import format_rag_data
 
 
 def lambda_handler(event_body, context=None):
-    state = event_body['state']
+    state = event_body["state"]
+    print(event_body)
     context_list = []
-    # add qq match results
-    context_list.extend(state['qq_match_results'])
+    # Add qq match results
+    context_list.extend(state["qq_match_results"])
     figure_list = []
     retriever_params = state["chatbot_config"]["private_knowledge_config"]
     retriever_params["query"] = state[retriever_params.get(
@@ -34,6 +23,8 @@ def lambda_handler(event_body, context=None):
         lambda_module_path="functions.functions_utils.retriever.retriever",
         handler_name="lambda_handler",
     )
+    print("RAG debug")
+    print(output)
 
     for doc in output["result"]["docs"]:
         context_list.append(doc["page_content"])
@@ -44,7 +35,7 @@ def lambda_handler(event_body, context=None):
     unique_figure_list = [dict(t) for t in unique_set]
     state['extra_response']['figures'] = unique_figure_list
 
-    context_md = format_rag_data(context_list)
+    context_md = format_rag_data(output["result"]["docs"], state["qq_match_contexts"])
     send_trace(
         f"\n\n{context_md}\n\n", enable_trace=state["enable_trace"])
 
@@ -77,6 +68,5 @@ def lambda_handler(event_body, context=None):
             },
         },
     )
-    #
 
     return {"code": 0, "result": output}
