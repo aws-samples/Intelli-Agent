@@ -4,16 +4,19 @@ from common_logic.common_utils.constant import (
     LLMTaskType
 )
 from common_logic.common_utils.lambda_invoke_utils import send_trace
+from langchain_integration.langgraph_integration import get_current_app
 
-
-def rag(query,state):
+def rag_tool(retriever_config:dict,state):
+  
     # state = event_body['state']
     context_list = []
     # add qq match results
     context_list.extend(state['qq_match_results'])
     figure_list = []
-    retriever_params = state["chatbot_config"]["private_knowledge_config"]
-    retriever_params["query"] = state[retriever_params.get("retriever_config",{}).get("query_key","query")]
+    retriever_params = retriever_config
+    # retriever_params = state["chatbot_config"]["private_knowledge_config"]
+    retriever_params["query"] = state[retriever_config.get("query_key","query")]
+    # retriever_params["query"] = query
     output: str = invoke_lambda(
         event_body=retriever_params,
         lambda_name="Online_Functions",

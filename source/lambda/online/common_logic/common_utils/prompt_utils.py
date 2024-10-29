@@ -361,7 +361,19 @@ register_prompt_templates(
 )
 
 ################# api agent prompt #####################
-AGENT_USER_PROMPT = "你是一个AI助理。今天是{date},{weekday}. "
+AGENT_SYSTEM_PROMPT = """\
+You are a helpful AI assistant. Today is {date},{weekday}. 
+Here are some guidelines for you:
+<guidlines>
+- Always start each answer with a reflection and write the reflection process in the <thinking> tag. Please follow the steps below to think about it:
+    1. Determine whether the current context is sufficient to answer the user's question.
+    2. If the current context is sufficient to answer the user's question, call the `give_final_response` tool.
+    3. If the current context is not sufficient to answer the user's question, you can consider calling the provided tools.
+    4. If the parameters of the tool you call do not meet the requirements, call the `give_rhetorical_question` tool to ask the user for more information. If the tool does not require parameters, do not call the `give_rhetorical_question` tool.
+    5. Finally, output the name of the tool you want to call.
+- Always output with the same language as the content within <query></query>. If the content is english, use english to output. If the content is chinese, use chinese to output.
+</guidlines>"""
+
 register_prompt_templates(
     model_ids=[
         LLMModelType.CLAUDE_3_HAIKU,
@@ -372,20 +384,62 @@ register_prompt_templates(
         LLMModelType.COHERE_COMMAND_R_PLUS,
     ],
     task_type=LLMTaskType.TOOL_CALLING_API,
-    prompt_template=AGENT_USER_PROMPT,
-    prompt_name="user_prompt"
+    prompt_template=AGENT_SYSTEM_PROMPT,
+    prompt_name="agent_system_prompt"
 )
 
-AGENT_GUIDELINES_PROMPT = """<guidlines>
-- 每次回答总是先进行思考，并将思考过程写在<thinking>标签中。请你按照下面的步骤进行思考:
-    1. 判断根据当前的上下文是否足够回答用户的问题。
-    2. 如果当前的上下文足够回答用户的问题，请调用 `give_final_response` 工具。
-    3. 如果当前的上下文不能支持回答用户的问题，你可以考虑调用提供的工具。
-    4. 如果调用工具对应的参数不够，请调用反问工具 `give_rhetorical_question` 来让用户提供更加充分的信息。如果调用工具不需要参数，则不需要调用反问工具。
-    5. 最后给出你要调用的工具名称。
-- Always output with the same language as user's query. If the content is english, use englisth to output. If the content is Chinese, use Chinese to output.
-</guidlines>
-"""
+# AGENT_GUIDELINES_PROMPT = """<guidlines>
+# - 每次回答总是先进行思考，并将思考过程写在<thinking>标签中。请你按照下面的步骤进行思考:。
+#     2. 如果当前的上下文足够回答用户的问题，请调用 `give_final_response` 工具。
+#     3. 如果当前的上下文不能支持回答用户的问题，你可以考虑调用提供的工具。
+#     4. 如果调用工具对应的参数不够，请调用反问工具 `give_rhetorical_question` 来让用户提供更加充分的信息。如果调用工具不需要参数，则不需要调用反问工具。
+#     5. 最后给出你要调用的工具名称。
+# - Always output with the same language as user's query. If the content is english, use englisth to output. If the content is Chinese, use Chinese to output.
+# </guidlines>"""
+# register_prompt_templates(
+#     model_ids=[
+#         LLMModelType.CLAUDE_3_HAIKU,
+#         LLMModelType.CLAUDE_3_SONNET,
+#         LLMModelType.CLAUDE_3_5_SONNET,
+#         LLMModelType.LLAMA3_1_70B_INSTRUCT,
+#         LLMModelType.MISTRAL_LARGE_2407,
+#         LLMModelType.COHERE_COMMAND_R_PLUS,
+#     ],
+#     task_type=LLMTaskType.TOOL_CALLING_API,
+#     prompt_template=AGENT_USER_PROMPT,
+#     prompt_name="agent_prompt"
+# )
+
+# AGENT_GUIDELINES_PROMPT = """<guidlines>
+# - 每次回答总是先进行思考，并将思考过程写在<thinking>标签中。请你按照下面的步骤进行思考:
+#     1. 判断根据当前的上下文是否足够回答用户的问题。
+#     2. 如果当前的上下文足够回答用户的问题，请调用 `give_final_response` 工具。
+#     3. 如果当前的上下文不能支持回答用户的问题，你可以考虑调用提供的工具。
+#     4. 如果调用工具对应的参数不够，请调用反问工具 `give_rhetorical_question` 来让用户提供更加充分的信息。如果调用工具不需要参数，则不需要调用反问工具。
+#     5. 最后给出你要调用的工具名称。
+# - Always output with the same language as user's query. If the content is english, use englisth to output. If the content is Chinese, use Chinese to output.
+# </guidlines>
+# """
+
+# register_prompt_templates(
+#     model_ids=[
+#         LLMModelType.CLAUDE_2,
+#         LLMModelType.CLAUDE_21,
+#         LLMModelType.CLAUDE_3_HAIKU,
+#         LLMModelType.CLAUDE_3_SONNET,
+#         LLMModelType.CLAUDE_3_5_SONNET,
+#         LLMModelType.LLAMA3_1_70B_INSTRUCT,
+#         LLMModelType.MISTRAL_LARGE_2407,
+#         LLMModelType.COHERE_COMMAND_R_PLUS,
+#     ],
+#     task_type=LLMTaskType.TOOL_CALLING_API,
+#     prompt_template=AGENT_GUIDELINES_PROMPT,
+#     prompt_name="guidelines_prompt"
+# )
+
+TOOL_FEWSHOT_PROMPT = """\
+Input: {query}
+Args: {args}"""
 
 register_prompt_templates(
     model_ids=[
@@ -399,8 +453,8 @@ register_prompt_templates(
         LLMModelType.COHERE_COMMAND_R_PLUS,
     ],
     task_type=LLMTaskType.TOOL_CALLING_API,
-    prompt_template=AGENT_GUIDELINES_PROMPT,
-    prompt_name="guidelines_prompt"
+    prompt_template=TOOL_FEWSHOT_PROMPT,
+    prompt_name="tool_fewshot_prompt"
 )
 
 

@@ -98,6 +98,19 @@ class Mixtral8x7bChatChain(Claude2ChatChain):
     default_model_kwargs = {"max_tokens": 4096, "temperature": 0.01}
 
 
+class Llama31Instruct70BChatChain(Claude2ChatChain):
+    model_id = LLMModelType.LLAMA3_1_70B_INSTRUCT
+
+
+class MistraLlargeChat2407ChatChain(Claude2ChatChain):
+    model_id = LLMModelType.MISTRAL_LARGE_2407
+
+
+class CohereCommandRPlusChatChain(Claude2ChatChain):
+    model_id = LLMModelType.COHERE_COMMAND_R_PLUS
+
+
+
 class Baichuan2Chat13B4BitsChatChain(LLMChain):
     model_id = LLMModelType.BAICHUAN2_13B_CHAT
     intent_type = LLMTaskType.CHAT

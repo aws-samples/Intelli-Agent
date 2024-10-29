@@ -39,10 +39,18 @@ import types
 from datamodel_code_generator import DataModelType, PythonVersion
 from datamodel_code_generator.model import get_data_model_types
 from datamodel_code_generator.parser.jsonschema import JsonSchemaParser
-from langchain.tools.base import StructuredTool,BaseTool
-
+from langchain.tools.base import StructuredTool as _StructuredTool ,BaseTool
+from langchain_core.pydantic_v1 import create_model,BaseModel
 from common_logic.common_utils.constant import SceneType
 from common_logic.common_utils.lambda_invoke_utils import invoke_with_lambda
+from functools import partial
+
+
+
+class StructuredTool(_StructuredTool):
+    pass_state:bool = False # if pass state into tool invoke 
+    pass_state_name:str = "state" # pass state name 
+    
 
 
 class ToolIdentifier(BaseModel):
@@ -104,6 +112,7 @@ class ToolManager:
         )
         assert isinstance(tool,BaseTool),(tool,type(tool))
         cls.tool_map[tool_identifier.tool_id] = tool 
+        return tool
     
 
     @classmethod
@@ -131,7 +140,7 @@ class ToolManager:
             return_direct=return_direct
         )
         # register tool 
-        ToolManager.register_lc_tool(
+        return ToolManager.register_lc_tool(
             tool_identifier=tool_identifier,
             tool=tool
         )
@@ -165,11 +174,55 @@ class ToolManager:
             ),
             return_direct=return_direct
         )
-        ToolManager.register_lc_tool(
+        return ToolManager.register_lc_tool(
             tool_identifier=tool_identifier,
             tool=tool
         )
 
+    @classmethod
+    def register_common_rag_tool(
+        cls,
+        retriever_config:dict,
+        description:str,
+        scene=None,
+        name=None,
+        tool_identifier=None,   
+        return_direct=False,
+        pass_state=True,
+        pass_state_name='state'
+    ):
+        assert scene == SceneType.COMMON, scene
+        from .common_tools.rag import rag_tool
+
+        tool_identifier = cls.get_tool_identifier(
+            scene=scene,
+            name=name,
+            tool_identifier=tool_identifier
+        )
+
+        class RagModel(BaseModel):
+            class Config:
+                schema_extra = {"description": description}
+
+        tool = StructuredTool.from_function(
+            func=partial(rag_tool,
+                         retriever_config=retriever_config
+                        ),
+            name=tool_identifier.name,
+            args_schema=ToolManager.convert_tool_def_to_pydantic(
+                tool_id=tool_identifier.tool_id,
+                tool_def=RagModel
+            ),
+            description=description,
+            return_direct=return_direct,
+            pass_state=pass_state,
+            pass_state_name=pass_state_name
+        )
+        
+        return ToolManager.register_lc_tool(
+            tool_identifier=tool_identifier,
+            tool=tool
+        )
         
 
     @classmethod
@@ -306,7 +359,7 @@ def _load_common_rag_tool(tool_identifier:ToolIdentifier):
     ToolManager.register_func_as_tool(
         tool_identifier.scene,
         tool_identifier.name,
-        rag.rag,
+        rag.rag_tool,
         tool_def,
         return_direct=True
     )

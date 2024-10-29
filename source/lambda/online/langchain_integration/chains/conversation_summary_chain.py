@@ -197,6 +197,26 @@ class Claude3HaikuConversationSummaryChain(Claude2ConversationSummaryChain):
     model_id = LLMModelType.CLAUDE_3_HAIKU
 
 
+class Mixtral8x7bConversationSummaryChain(Claude2ConversationSummaryChain):
+    model_id = LLMModelType.MIXTRAL_8X7B_INSTRUCT
+    default_model_kwargs = {"max_tokens": 4096, "temperature": 0.01}
+
+
+class Llama31Instruct70BConversationSummaryChain(Claude2ConversationSummaryChain):
+    model_id = LLMModelType.LLAMA3_1_70B_INSTRUCT
+
+
+class MistraLlargeChat2407ConversationSummaryChain(Claude2ConversationSummaryChain):
+    model_id = LLMModelType.MISTRAL_LARGE_2407
+
+
+class CohereCommandRPlusConversationSummaryChain(Claude2ConversationSummaryChain):
+    model_id = LLMModelType.COHERE_COMMAND_R_PLUS
+
+
+
+
+
 class Qwen2Instruct72BConversationSummaryChain(Claude2ConversationSummaryChain):
     model_id = LLMModelType.QWEN2INSTRUCT72B
 
