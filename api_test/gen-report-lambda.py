@@ -6,7 +6,7 @@ def __gen_completed_message(bucket: str, date: str, payload_type: int):
     log_key=f"{date}_detail_third.log" if payload_type == 0 else f"{date}_detail.log"
     response = __s3_client.get_object(Bucket=bucket, Key=detail_key)
     log_response = __s3_client.get_object(Bucket=bucket, Key=log_key)
-    message = '【BuiltIn KB】:\n' if payload_type == 1 else '【Third KB】:\n'
+    message = 'BuiltIn KB:\n' if payload_type == 1 else 'Third KB:\n'
     content = log_response['Body'].read().decode('utf-8')
     target_substring = "=================================== FAILURES ==================================="
     end_target_substring = "=============================== warnings summary ==============================="
@@ -57,7 +57,7 @@ def __gen_completed_message(bucket: str, date: str, payload_type: int):
     
 
 def __gen_uncompleted_message(payload, payload_type):
-    message = '【BuiltIn KB】:\n' if payload_type == 1 else '【Third KB】:\n'
+    message = 'BuiltIn KB:\n' if payload_type == 1 else 'Third KB:\n'
     message+= "The stack deploy FAILED! The reason for the failure is as follows:"
     message+="\n\n"
     message+=payload['detail']
@@ -98,7 +98,7 @@ def lambda_handler(event, context):
         passed, failed, error, msg = __gen_completed_message(bucket, date, 1)
         total=passed + failed + error
         if total != 0:
-            coverage = passed/total
+            coverage = round(passed/total, 2)*100
     else:
         msg = __gen_uncompleted_message(payload, 1)
 
@@ -106,11 +106,11 @@ def lambda_handler(event, context):
         third_passed, third_failed, third_error, third_msg = __gen_completed_message(bucket, date, 0)
         third_total = third_passed + third_failed + third_error
         if third_total != 0:
-            third_coverage = third_passed/third_total
+            third_coverage = round(third_passed/third_total, 2)*100
     else:
         third_msg = __gen_uncompleted_message(payload, 0)
 
-    message = f"Hi, team!\nThe following is API autotest report for {date}.\n\n ============================ summary =============================\n REPOSITORY: {payload['repository']}\n BRANCH: {payload['branch']}\n TEST RESULT: {status}\n Built-In KB Total:{passed + failed + error} Passed:{passed} Failed:{failed} Error:{error}\n Coverage:{coverage}\n Third KB Total:{third_passed + third_failed + third_error} Passed:{third_passed} Failed:{third_failed} Error:{third_error}\n Coverage:{third_coverage}\n\n\n "
+    message = f"Hi, team!\nThe following is API autotest report for {date}.\n\n ============================ summary =============================\n REPOSITORY: {payload['repository']}\n BRANCH: {payload['branch']}\n TEST RESULT: {status}\n Built-In KB:\n     Total:{passed + failed + error}\n     Passed:{passed} Failed:{failed} Error:{error}\n     Coverage:{coverage}%\n Third KB:\n     Total:{third_passed + third_failed + third_error}\n     Passed:{third_passed} Failed:{third_failed} Error:{third_error}\n     Coverage:{third_coverage}%\n\n\n "
     message += msg
     message += third_msg
     message+=f"\n\n More details click:\n Built-in KB: {payload['build_url']}\n Third KB: {third_payload['build_url']}"

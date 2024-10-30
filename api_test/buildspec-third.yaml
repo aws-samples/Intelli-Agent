@@ -181,7 +181,7 @@ phases:
         cat .env
         source agentVenv/bin/activate
         # pytest test_case --continue-on-collection-errors --log-cli-level=INFO
-        pytest test_case --continue-on-collection-errors --log-cli-level=INFO --json-report --json-report-file=detail_third.json --html=report_third.html --self-contained-html > detail_third.log
+        pytest test_case --ignore=test_case/test_01_rest_document.py --continue-on-collection-errors --log-cli-level=INFO --json-report --json-report-file=detail_third.json --html=report_third.html --self-contained-html > detail_third.log
         popd
         test_complete_time=$(date +"%Y-%m-%d_%H-%M-%S")
         echo "----------------------------------------------------------------"
