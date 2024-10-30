@@ -11,7 +11,7 @@ from .utils import step
 logger = logging.getLogger(__name__)
 
 class TestChat:
-    """DataSourceDiscovery test stubs"""
+    """Chat test stubs"""
 
     @classmethod
     def setup_class(cls):
