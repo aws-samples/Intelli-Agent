@@ -1,0 +1,63 @@
+{
+  "prefix": "third",
+  "email": "cuihubin@amazon.com",
+  "deployRegion": "us-east-1",
+  "knowledgeBase": {
+    "enabled": false,
+    "knowledgeBaseType": {
+      "intelliAgentKb": {
+        "enabled": true,
+        "vectorStore": {
+          "opensearch": {
+            "enabled": true,
+            "useCustomDomain": false,
+            "customDomainEndpoint": ""
+          }
+        },
+        "knowledgeBaseModel": {
+          "enabled": true,
+          "ecrRepository": "intelli-agent-knowledge-base",
+          "ecrImageTag": "latest"
+        }
+      }
+    }
+  },
+  "chat": {
+    "enabled": true,
+    "bedrockRegion": "us-east-1",
+    "amazonConnect": {
+      "enabled": true
+    }
+  },
+  "model": {
+    "embeddingsModels": [
+      {
+        "provider": "bedrock",
+        "name": "amazon.titan-embed-text-v2:0",
+        "commitId": "",
+        "dimensions": 1024,
+        "default": true
+      }
+    ],
+    "llms": [
+      {
+        "provider": "bedrock",
+        "name": "anthropic.claude-3-sonnet-20240229-v1:0"
+      }
+    ],
+    "modelConfig": {
+      "modelAssetsBucket": "intelli-agent-models-456882501179-us-east-1"
+    }
+  },
+  "ui": {
+    "enabled": true
+  },
+  "federatedAuth": {
+    "enabled": true,
+    "provider": {
+      "cognito": {
+        "enabled": true
+      }
+    }
+  }
+}

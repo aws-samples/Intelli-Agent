@@ -1,0 +1,219 @@
+version: 0.2
+
+env:
+  variables:
+    REPOSITORY_URL: "https://github.com/aws-samples/Intelli-Agent.git"
+    CODE_BRANCH: "main"
+    PROJECT_NAME: "Intelli-Agent"
+    STACK_NAME: "third-ai-customer-service"
+    DEPLOY_STACK: "cdk"
+    CLEAN_RESOURCES: "no"
+    TEST_FAST: "false"
+    REGION: "us-east-1"
+    EXEC_ROLE: "arn:aws:iam::544919262599:role/agent-api-test-role"
+    S3_MODEL_ASSETS_BUCKET: "intelli-agent-rag"
+    API_TEST_RESULT_BUCKET: "intelli-agent-rag-us-east-1-api-test"
+    ETL_REPOSITORY_NAME: "intelli-agent-etl"
+    ETL_IMAGE_TAG: "latest"
+    SUB_EMAIL: "cuihubin@amazon.com"
+    TOPIC: "arn:aws:sns:us-east-1:544919262599:agent-developers"
+    GEN_REPORT_FUNCTION: "agent-api-test-report-function"
+    CLEAR_RESOURCES_FUNCTION: "agent-clear-resources-function"
+    ADMIN_PASSWORD: "TEST123!"
+phases:
+  install:
+    commands:
+      - export REPORT_DATE=$(date +"%Y-%m-%d")
+      - aws cloudformation delete-stack --stack-name $STACK_NAME
+      - |
+        aws cloudformation wait stack-delete-complete --stack-name $STACK_NAME
+        WAIT_STATUS=$?
+        if [ $WAIT_STATUS -eq 0 ]; then
+          echo "Stack deletion complete."
+        else
+          echo "Failed to delete stack."
+          reason_detail=$(aws cloudformation describe-stack-events --stack-name $STACK_NAME | jq '[.StackEvents[] | select(.ResourceType=="AWS::EC2::Subnet" and .ResourceStatus=="DELETE_FAILED")] | last')
+          reason=$(echo $reason_detail | jq -r '.ResourceStatusReason')
+          echo $reason | jq -R --arg reason "$reason" '{"error_msg":$reason}' > clear_resources.json
+          aws lambda invoke --function-name $CLEAR_RESOURCES_FUNCTION --payload fileb://clear_resources.json response.json
+          cat response.json
+          lambda_status=$(jq -r '.statusCode' < response.json)
+          echo $lambda_status
+          if [ $lambda_status -eq 200 ]; then
+            echo "Lambda executed successfully. Proceeding with stack deletion."
+            aws cloudformation delete-stack --stack-name $STACK_NAME
+            aws cloudformation wait stack-delete-complete --stack-name $STACK_NAME
+            if [ $? -eq 0 ]; then
+              echo "Stack deletion complete after Lambda execution."
+            else
+              echo "Failed to delete stack after Lambda execution."
+            fi
+          else
+            echo "Lambda execution failed. Stack deletion not retried."
+          fi
+        fi
+      - |
+        install_start_time=$(date +"%Y-%m-%d_%H-%M-%S")
+        echo "----------------------------------------------------------------"
+        echo "$install_start_time install start..."
+        echo "----------------------------------------------------------------" 
+        git clone $REPOSITORY_URL --branch $CODE_BRANCH --single-branch
+        deploy_start_time=$(date +"%Y-%m-%d_%H-%M-%S")
+        echo "----------------------------------------------------------------"
+        echo "$deploy_start_time deploy start..."
+        echo "----------------------------------------------------------------"
+      - |
+        if [ -d "Intelli-Agent/source/infrastructure" ]; then
+          echo "Synthesizing start..."
+          pushd "Intelli-Agent/source/infrastructure"
+          sed -i "s#{Aws.ACCOUNT_ID}#{Aws.ACCOUNT_ID}third#g" lib/user/user-construct.ts
+          sed -i "s#aws_region=$(aws configure get region)#aws_region=\"us-east-1\"#g" ../model/etl/code/model.sh
+          sed -i "s#./bin/config.json#../../api_test/config-third.json#g" bin/config.ts
+          sed -i "s#./bin/config.json#../../api_test/config-third.json#g" cli/magic-config.ts
+          sed -i "s#../infrastructure/bin/config.json#../../api_test/config-third.json#g" ../script/build.sh
+          npm i -g pnpm
+          pnpm i
+          # echo "bin/config.ts >>>>>>>"
+          # cat bin/config.ts
+          npm run build
+          npx cdk synth > synth.log 2>&1
+          if [ ${PIPESTATUS[0]} -ne 0 ]; then
+            echo "cdk synth failed"
+            # jq -n --arg error "$(cat synth.log)" '{detail: $error}' > sync_error.json
+            jq -n --arg error "$(cat synth.log)" '{detail: $error, status: "unCompleted", build_url: $CODEBUILD_BUILD_URL, project_name: $PROJECT_NAME, topic: $TOPIC, repository: $REPOSITORY_URL, branch: $CODE_BRANCH}' > sync_error.json
+            aws lambda invoke --function-name $GEN_REPORT_FUNCTION --payload fileb://sync_error.json response.json
+            exit 1
+          else
+            echo "Synthesizing complete."
+          fi
+          popd
+        fi
+        if [ "$DEPLOY_STACK" = "cdk" ]; then
+          if [ -d "Intelli-Agent/source/infrastructure" ]; then
+            pushd "Intelli-Agent/source/infrastructure"
+            pnpm i
+            npx cdk deploy $STACK_NAME --require-approval never
+            deploy_exit_code=$?
+            if [ $deploy_exit_code -ne 0 ]; then
+              echo "CDK deployment failed. Sending email and exiting with status code 1."
+              msg=$(aws cloudformation describe-stack-events --stack-name $STACK_NAME --query "StackEvents[?ResourceStatus=='CREATE_FAILED'] | [-1]")
+              if [ -z "$msg" ]; then 
+                msg=$(aws cloudformation describe-stack-events --stack-name $STACK_NAME | jq '[.StackEvents[] | select(.ResourceType=="AWS::EC2::Subnet" and .ResourceStatus=="DELETE_FAILED")] | last'); 
+              fi
+              echo "{\"project_name\":\"$PROJECT_NAME\",\"build_url\":\"$CODEBUILD_BUILD_URL\",\"status\":\"unCompleted\",\"detail\":\"$msg\",\"topic\":\"$TOPIC\",\"repository\":\"$REPOSITORY_URL\",\"branch\":\"$CODE_BRANCH\"}" > payload.json
+              aws lambda invoke --function-name $GEN_REPORT_FUNCTION --payload fileb://payload.json response.json
+              exit 1
+            fi
+            popd
+          else
+            echo "Directory Intelli-Agent/source/infrastructure does not exist."
+            exit 1
+          fi
+        fi
+        deploy_complete_time=$(date +"%Y-%m-%d_%H-%M-%S")
+        echo "----------------------------------------------------------------"
+        echo "$deploy_complete_time deploy complete."
+        echo "----------------------------------------------------------------"
+        install_complete_time=$(date +"%Y-%m-%d_%H-%M-%S")
+        echo "----------------------------------------------------------------"
+        echo "$install_complete_time intstall complete."
+        echo "----------------------------------------------------------------"
+  pre_build:
+    commands:
+      - |
+        prebuild_start_time=$(date +"%Y-%m-%d_%H-%M-%S")
+        echo "----------------------------------------------------------------"
+        echo "$prebuild_start_time prebuild start..."
+        echo "----------------------------------------------------------------" 
+        pushd Intelli-Agent/api_test || exit 1
+        rm -rf agentVenv
+        python3 -m venv agentVenv
+        source agentVenv/bin/activate
+        pip3 install --upgrade pip
+        pip3 --default-timeout=6000 install -r requirements.txt
+        popd
+        stack_info=$(aws cloudformation describe-stacks --stack-name $STACK_NAME)
+        rest_api_gateway_url=$(echo "$stack_info" | jq -r '.Stacks[0].Outputs[] | select(.OutputKey=="APIEndpointAddress").OutputValue')
+        ws_api_gateway_url=$(echo "$stack_info" | jq -r '.Stacks[0].Outputs[] | select(.OutputKey=="WebSocketEndpointAddress").OutputValue')
+        user_pool_id=$(echo "$stack_info" | jq -r '.Stacks[0].Outputs[] | select(.OutputKey=="UserPoolID").OutputValue')
+        oidc_client_id=$(echo "$stack_info" | jq -r '.Stacks[0].Outputs[] | select(.OutputKey=="OIDCClientID").OutputValue')
+        aws cognito-idp admin-create-user \
+          --user-pool-id $user_pool_id \
+          --username lvning@amazon.com \
+          --user-attributes Name=email,Value=lvning@amazon.com \
+          --temporary-password TempPassword123!
+        aws cognito-idp admin-set-user-password \
+          --user-pool-id $user_pool_id \
+          --username lvning@amazon.com \
+          --password CSDC123! \
+          --permanent
+        aws cognito-idp admin-add-user-to-group \
+          --user-pool-id $user_pool_id \
+          --username lvning@amazon.com \
+          --group-name Admin
+        set -euxo pipefail
+        prebuild_complete_time=$(date +"%Y-%m-%d_%H-%M-%S")
+        echo "----------------------------------------------------------------"
+        echo "$prebuild_complete_time prebuild complete."
+        echo "----------------------------------------------------------------"
+  build:
+    commands:
+      - |
+        test_start_time=$(date +"%Y-%m-%d_%H-%M-%S")
+        echo "----------------------------------------------------------------"
+        echo "$test_start_time test start..."
+        echo "----------------------------------------------------------------"
+        pushd Intelli-Agent/api_test || exit 1
+        aws cognito-idp admin-set-user-password \
+          --user-pool-id $user_pool_id \
+          --username $SUB_EMAIL \
+          --password $ADMIN_PASSWORD \
+          --permanent
+        credentials=$(aws cognito-idp initiate-auth \
+          --region $REGION \
+          --auth-flow USER_PASSWORD_AUTH \
+          --client-id $oidc_client_id \
+          --auth-parameters USERNAME=$SUB_EMAIL,PASSWORD=$ADMIN_PASSWORD)
+        token=$(echo $credentials | jq -r '.AuthenticationResult.IdToken')
+        echo "rest_api_url=$rest_api_gateway_url" > .env
+        echo "ws_api_url=$ws_api_gateway_url" >> .env
+        echo "token=$token" >> .env
+        cat .env
+        source agentVenv/bin/activate
+        # pytest test_case --continue-on-collection-errors --log-cli-level=INFO
+        pytest test_case --continue-on-collection-errors --log-cli-level=INFO --json-report --json-report-file=detail_third.json --html=report_third.html --self-contained-html > detail_third.log
+        popd
+        test_complete_time=$(date +"%Y-%m-%d_%H-%M-%S")
+        echo "----------------------------------------------------------------"
+        echo "$test_complete_time test complete."
+        echo "----------------------------------------------------------------"
+  post_build:
+    commands:
+      - |
+        post_build_start_time=$(date +"%Y-%m-%d_%H-%M-%S")
+        echo "----------------------------------------------------------------"
+        echo "$post_build_start_time post build start..."
+        echo "----------------------------------------------------------------"
+        project_name="Intelli-Agent"
+        original_filename="report_third.html"
+        original_json_filename="detail_third.json"
+        original_log="detail_third.log"
+        original_payload="payload_third.json"
+        s3_key=${REPORT_DATE}_${original_json_filename}
+        log=${REPORT_DATE}_${original_log}
+        third_payload=${REPORT_DATE}_${original_payload}
+        pushd Intelli-Agent/api_test || exit 1
+        pwd
+        ls -l
+        aws s3 cp $original_filename s3://${API_TEST_RESULT_BUCKET}/${REPORT_DATE}_${original_filename}
+        aws s3 cp $original_json_filename s3://${API_TEST_RESULT_BUCKET}/$s3_key
+        aws s3 cp $original_log s3://${API_TEST_RESULT_BUCKET}/$log
+        popd
+        echo "{\"project_name\":\"$PROJECT_NAME\",\"phase\":\"third\",\"build_url\":\"$CODEBUILD_BUILD_URL\",\"status\":\"completed\",\"bucket\":\"$API_TEST_RESULT_BUCKET\",\"s3_key\":\"$s3_key\",\"log\":\"$log\",\"topic\":\"$TOPIC\",\"repository\":\"$REPOSITORY_URL\",\"branch\":\"$CODE_BRANCH\"}" > payload.json
+        aws s3 cp payload.json s3://$API_TEST_RESULT_BUCKET/$third_payload
+        # aws lambda invoke --function-name $GEN_REPORT_FUNCTION --payload fileb://payload.json response.json
+      - |
+        post_build_end_time=$(date +"%Y-%m-%d_%H-%M-%S")
+        echo "----------------------------------------------------------------"
+        echo "$post_build_end_time post build end."
+        echo "----------------------------------------------------------------"

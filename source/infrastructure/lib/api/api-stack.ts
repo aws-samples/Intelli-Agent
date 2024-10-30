@@ -141,7 +141,8 @@ export class ApiConstruct extends Construct {
       identitySources: [apigw.IdentitySource.header('Authorization')],
     });
 
-    if (props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.enabled) {
+    // if (props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.enabled) {
+    if (props.config.knowledgeBase.enabled && props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.enabled) {
       const embeddingLambda = new LambdaFunction(this, "lambdaEmbedding", {
         code: Code.fromAsset(join(__dirname, "../../../lambda/embedding")),
         vpc: vpc,
@@ -381,10 +382,14 @@ export class ApiConstruct extends Construct {
         new apigw.LambdaIntegration(uploadDocLambda.function),
         {...
           this.genMethodOption(api, auth, {
-            data: { type: JsonSchemaType.STRING },
-            message: { type: JsonSchemaType.STRING },
-            s3Bucket: { type: JsonSchemaType.STRING },
-            s3Prefix: { type: JsonSchemaType.STRING }
+            data: { type: JsonSchemaType.OBJECT,
+                    properties: {
+                      s3Bucket: { type: JsonSchemaType.STRING },
+                      s3Prefix: { type: JsonSchemaType.STRING },
+                      url: {type: JsonSchemaType.STRING}
+                    }
+                  },
+            message: { type: JsonSchemaType.STRING }
           }),
           requestModels: this.genRequestModel(api, {
             "content_type": { "type": JsonSchemaType.STRING },
