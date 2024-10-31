@@ -583,19 +583,36 @@ def register_rag_tool_from_config(event_body: dict):
     chatbot_manager = ChatbotManager.from_environ()
     chatbot = chatbot_manager.get_chatbot(group_name, chatbot_id)
     logger.info(chatbot)
+    registered_tool_names = []
     for index_type, item_dict in chatbot.index_ids.items():
         if index_type != IndexType.INTENTION:
             for index_content in item_dict["value"].values():
                 if "indexId" in index_content and "description" in index_content:
+                    # Find retriever contain index_id
+                    retrievers = event_body["chatbot_config"]["private_knowledge_config"]['retrievers']
+                    retriever = None 
+                    for retriever in retrievers:
+                        if retriever["index_name"] == index_content["indexId"]:
+                            break
+                    assert retriever is not None,retrievers
+                    reranks = event_body["chatbot_config"]["private_knowledge_config"]['reranks']
+                    index_name = index_content["indexId"]
                     # TODO give specific retriever config
                     ToolManager.register_common_rag_tool(
-                        retriever_config=event_body["chatbot_config"]["private_knowledge_config"],
-                        name=index_content["indexId"],
+                        retriever_config={
+                            "retrievers":[retriever],
+                            "reranks":[reranks[0]],
+                            "llm_config": event_body["chatbot_config"]["private_knowledge_config"]['llm_config']
+                        },
+                        # event_body["chatbot_config"]["private_knowledge_config"],
+                        name=index_name,
                         scene=SceneType.COMMON,
                         description=index_content["description"],
                         pass_state=True,
                         pass_state_name='state'
                     )
+                    registered_tool_names.append(index_name)
+    return registered_tool_names
 
 
 def common_entry(event_body):
@@ -604,7 +621,7 @@ def common_entry(event_body):
     :param event_body: The event body for lambda function.
     return: answer(str)
     """
-    global app, app_agent
+    global app
     if app is None:
         app = build_graph(ChatbotState)
 
@@ -633,10 +650,15 @@ def common_entry(event_body):
     message_id = event_body["custom_message_id"]
     ws_connection_id = event_body["ws_connection_id"]
     enable_trace = chatbot_config["enable_trace"]
+    agent_config = event_body["chatbot_config"]["agent_config"]
     
     # register as rag tool for each aos index
-    register_rag_tool_from_config(event_body)
-    
+    registered_tool_names = register_rag_tool_from_config(event_body)
+    # update private knowledge tool to agent config
+    for registered_tool_name in registered_tool_names:
+        if registered_tool_name not in agent_config['tools']:
+            agent_config['tools'].append(registered_tool_name)
+
     # define all knowledge rag tool
     all_knowledge_rag_tool = ToolManager.register_common_rag_tool(
                 retriever_config=event_body["chatbot_config"]["private_knowledge_config"],
