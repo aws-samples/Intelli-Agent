@@ -1,4 +1,3 @@
-
 import logging
 import threading
 import os
@@ -72,3 +71,15 @@ def print_llm_messages(msg, logger=logger):
         "ENABLE_PRINT_MESSAGES", 'True').lower() in ('true', '1', 't')
     if enable_print_messages:
         logger.info(msg)
+
+
+def llm_messages_print_decorator(fn):
+    @wraps(fn)
+    def _inner(*args, **kwargs):
+        if args:
+            print_llm_messages(args)
+        if kwargs:
+            print_llm_messages(kwargs)
+        return fn(*args, **kwargs)
+    return _inner
+    

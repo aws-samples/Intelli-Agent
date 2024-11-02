@@ -1,5 +1,7 @@
 import json
-from typing import Annotated, Any, TypedDict
+import traceback
+from typing import Annotated, Any, TypedDict, List,Union
+import copy
 
 from common_logic.common_utils.chatbot_utils import ChatbotManager
 from common_logic.common_utils.constant import (
@@ -7,7 +9,6 @@ from common_logic.common_utils.constant import (
     IndexType,
     LLMTaskType,
     SceneType,
-    ToolRuningMode,
 )
 from common_logic.common_utils.lambda_invoke_utils import (
     invoke_lambda,
@@ -15,20 +16,26 @@ from common_logic.common_utils.lambda_invoke_utils import (
     node_monitor_wrapper,
     send_trace,
 )
+from langchain_core.messages import ToolMessage,AIMessage
 from common_logic.common_utils.logger_utils import get_logger
 from common_logic.common_utils.prompt_utils import get_prompt_templates_from_ddb
 from common_logic.common_utils.python_utils import add_messages, update_nest_dict
 from common_logic.common_utils.response_utils import process_response
 from common_logic.common_utils.serialization_utils import JSONEncoder
-from functions import get_tool_by_name
-from functions._tool_base import tool_manager
-from functions.lambda_common_tools import rag
-from lambda_main.main_utils.online_entries.agent_base import (
-    build_agent_graph,
-    tool_execution,
-)
+from common_logic.langchain_integration.tools import ToolManager
+from langchain_core.tools import BaseTool
+from langchain_core.messages.tool import ToolCall
+from langgraph.prebuilt.tool_node import ToolNode,TOOL_CALL_ERROR_TEMPLATE
+from common_logic.langchain_integration.chains import LLMChain
+
+
+# from lambda_main.main_utils.online_entries.agent_base import (
+#     build_agent_graph,
+#     tool_execution,
+# )
 from lambda_main.main_utils.parse_config import CommonConfigParser
 from langgraph.graph import END, StateGraph
+from common_logic.langchain_integration.langgraph_integration import set_currrent_app
 
 logger = get_logger("common_entry")
 
@@ -84,23 +91,27 @@ class ChatbotState(TypedDict):
 
     ########### agent states ###########
     # current output of agent
-    agent_current_output: dict
-    # record messages during agent tool choose and calling, including agent message, tool ouput and error messages
-    agent_tool_history: Annotated[list[dict], add_messages]
-    # the maximum number that agent node can be called
-    agent_repeated_call_limit: int
-    # the current call time of agent
-    agent_current_call_number: int  #
-    # whehter the current call time is less than maximum number of agent call
-    agent_repeated_call_validation: bool
-    # function calling
-    # whether the output of agent can be parsed as the valid tool calling
-    function_calling_parse_ok: bool
-    # whether the current parsed tool calling is run once
-    function_calling_is_run_once: bool
-    # current tool calls
-    function_calling_parsed_tool_calls: list
-    current_agent_tools_def: list
+    # agent_current_output: dict
+    # # record messages during agent tool choose and calling, including agent message, tool ouput and error messages
+    agent_tool_history: Annotated[List[Union[AIMessage,ToolMessage]], add_messages]
+    # # the maximum number that agent node can be called
+    # agent_repeated_call_limit: int
+    # # the current call time of agent
+    # agent_current_call_number: int  #
+    # # whehter the current call time is less than maximum number of agent call
+    # agent_repeated_call_validation: bool
+    # # function calling
+    # # whether the output of agent can be parsed as the valid tool calling
+    # function_calling_parse_ok: bool
+    # # whether the current parsed tool calling is run once
+    exit_tool_calling: bool
+    # # current tool calls
+    # function_calling_parsed_tool_calls: list
+    # current_agent_tools_def: list
+    last_tool_messages: List[ToolMessage]
+    tools: List[BaseTool]
+    # the global rag tool use all knowledge
+    all_knowledge_rag_tool: BaseTool
 
 
 def is_null_or_empty(value):
@@ -218,38 +229,57 @@ def agent(state: ChatbotState):
     # 2. for the first time, agent decides to give final results
 
     # deal with once tool calling
-    if (
-        state["agent_repeated_call_validation"]
-        and state["function_calling_parse_ok"]
-        and state["agent_tool_history"]
-    ):
-        tool_execute_res = state["agent_tool_history"][-1]["additional_kwargs"][
-            "raw_tool_call_results"
-        ][0]
-        tool_name = tool_execute_res["name"]
-        output = tool_execute_res["output"]
-        tool = get_tool_by_name(tool_name, scene=SceneType.COMMON)
-        if tool.running_mode == ToolRuningMode.ONCE:
+    last_tool_messages = state["last_tool_messages"]
+    if last_tool_messages and len(last_tool_messages) == 1:
+        last_tool_message = last_tool_messages[0]
+        tool:BaseTool = ToolManager.get_tool(
+            scene=SceneType.COMMON,
+            name=last_tool_message.name
+        )
+        if tool.return_direct:
             send_trace("once tool", enable_trace=state["enable_trace"])
-            return {"answer": output["result"], "function_calling_is_run_once": True}
+            return {"answer": last_tool_message.content, "exit_tool_calling": True}
+
+        # tool_execute_res = last_tool_calls_results[-1].additional_kwargs[
+        #     "raw_tool_call_results"
+        # ][0]
+        # tool_name = tool_execute_res["name"]
+        # output = tool_execute_res["output"]
+        # tool = get_tool_by_name(tool_name, scene=SceneType.COMMON)
+        # if tool.running_mode == ToolRuningMode.ONCE:
+        #     send_trace("once tool", enable_trace=state["enable_trace"])
+        #     return {"answer": output["result"], "exit_tool_calling": True}
+    
+
+
+    # if state["agent_tool_history"] and state["agent_tool_history"][-1].type=="tool_call":
+    #     tool_execute_res = state["agent_tool_history"][-1]["additional_kwargs"][
+    #         "raw_tool_call_results"
+    #     ][0]
+    #     tool_name = tool_execute_res["name"]
+    #     output = tool_execute_res["output"]
+    #     tool = get_tool_by_name(tool_name, scene=SceneType.COMMON)
+    #     if tool.running_mode == ToolRuningMode.ONCE:
+    #         send_trace("once tool", enable_trace=state["enable_trace"])
+    #         return {"answer": output["result"], "exit_tool_calling": True}
 
     no_intention_condition = not state["intent_fewshot_examples"]
-    first_tool_final_response = False
-    if (
-        (state["agent_current_call_number"] == 1)
-        and state["function_calling_parse_ok"]
-        and state["agent_tool_history"]
-    ):
-        tool_execute_res = state["agent_tool_history"][-1]["additional_kwargs"][
-            "raw_tool_call_results"
-        ][0]
-        tool_name = tool_execute_res["name"]
-        if tool_name == "give_final_response":
-            first_tool_final_response = True
+    # first_tool_final_response = False
+    # if (
+    #     (state["agent_current_call_number"] == 1)
+    #     and state["function_calling_parse_ok"]
+    #     and state["agent_tool_history"]
+    # ):
+    #     tool_execute_res = state["agent_tool_history"][-1]["additional_kwargs"][
+    #         "raw_tool_call_results"
+    #     ][0]
+    #     tool_name = tool_execute_res["name"]
+    #     if tool_name == "give_final_response":
+    #         first_tool_final_response = True
 
     if (
         no_intention_condition
-        or first_tool_final_response
+        # or first_tool_final_response
         or state["chatbot_config"]["agent_config"]["only_use_rag_tool"]
     ):
         if state["chatbot_config"]["agent_config"]["only_use_rag_tool"]:
@@ -259,28 +289,67 @@ def agent(state: ChatbotState):
                 "no_intention_condition, switch to rag tool",
                 enable_trace=state["enable_trace"],
             )
-        elif first_tool_final_response:
-            send_trace(
-                "first tool is final response, switch to rag tool",
-                enable_trace=state["enable_trace"],
+         
+        all_knowledge_rag_tool = state['all_knowledge_rag_tool']
+        return AIMessage(content="",tool_calls=[
+            ToolCall(
+                name=all_knowledge_rag_tool.name,
+                args={}
             )
+        ])
 
-        return {
-            "function_calling_parse_ok": True,
-            "agent_repeated_call_validation": True,
-            "function_calling_parsed_tool_calls": [
-                {
-                    "name": "rag_tool",
-                    "kwargs": {},
-                    "model_id": state["chatbot_config"]["agent_config"]["llm_config"][
-                        "model_id"
-                    ],
-                }
-            ],
-        }
-    response = app_agent.invoke(state)
+    # normal call
+    agent_config = state["chatbot_config"]['agent_config']
 
-    return response
+    tools_name = list(set(state['intent_fewshot_tools'] + agent_config['tools']))
+    # get tools from tool names
+    tools = [
+        ToolManager.get_tool(
+            scene=SceneType.COMMON,
+            name=name
+            ) 
+        for name in tools_name
+    ]
+    llm_config = {
+        **agent_config['llm_config'],
+        "tools": tools,
+        "fewshot_examples": state['intent_fewshot_examples'],
+    }
+    group_name = state['chatbot_config']['group_name']
+    chatbot_id = state['chatbot_config']['chatbot_id']
+    prompt_templates_from_ddb = get_prompt_templates_from_ddb(
+        group_name,
+        model_id = llm_config['model_id'],
+        task_type=LLMTaskType.TOOL_CALLING_API,
+        chatbot_id=chatbot_id
+    )
+    llm_config.update(**prompt_templates_from_ddb)
+
+    tool_calling_chain = LLMChain.get_chain(
+        intent_type=LLMTaskType.TOOL_CALLING_API,
+        scene=SceneType.COMMON,
+        **llm_config
+    )
+    
+
+    # print(state['chat_history'] + state['agent_tool_history'])
+    agent_message:AIMessage = tool_calling_chain.invoke({
+        "query":state['query'],
+        "chat_history":state['chat_history'],
+        "agent_tool_history":state['agent_tool_history']
+    })
+
+
+    send_trace(
+        # f"\n\n**agent_current_output:** \n{agent_message}\n\n **agent_current_call_number:** {agent_current_call_number}",
+        f"\n\n**agent_current_output:** \n{agent_message}\n\n",
+        state["stream"],
+        state["ws_connection_id"]
+    )
+    if not agent_message.tool_calls:
+        return {"answer": agent_message.content, "exit_tool_calling": True}
+
+    return {"agent_tool_history":[agent_message],"tools":tools}
 
 
 @node_monitor_wrapper
@@ -314,6 +383,78 @@ def llm_direct_results_generation(state: ChatbotState):
     return {"answer": answer}
 
 
+@node_monitor_wrapper
+def tool_execution(state):
+    """executor lambda
+    Args:
+        state (NestUpdateState): _description_
+
+    Returns:
+        _type_: _description_
+    """
+    tools:List[BaseTool] = state['tools']
+
+    
+    def handle_tool_errors(e):
+        content = TOOL_CALL_ERROR_TEMPLATE.format(error=repr(e))
+        logger.error(f"Tool execution error:\n{traceback.format_exc()}")
+        return content
+
+    tool_node = ToolNode(
+        tools,
+        handle_tool_errors=handle_tool_errors
+    )
+    last_agent_message:AIMessage = state["agent_tool_history"][-1]
+
+    # print(last_agent_message)
+    # pass state to tools if needed
+    # tools_map = {tool.name:tool for tool in tools}
+    tool_calls = last_agent_message.tool_calls
+    # tool_calls:List[ToolCall] = copy.deepcopy(last_agent_message.tool_calls)
+
+    # for tool_call in tool_calls:
+    #     tool = tools_map[tool_call['name']]
+    #     if tool.pass_state:
+    #         tool_call['args'].update({tool.pass_state_name:state})
+
+    tool_messages:List[ToolMessage] = tool_node.invoke(
+        [AIMessage(content="",tool_calls=tool_calls)]
+    )
+
+    print("tool result",tool_messages[0].content)
+
+    # tool_calls = state['function_calling_parsed_tool_calls']
+    # assert len(tool_calls) == 1, tool_calls
+    # tool_call_results = []
+    # for tool_call in tool_calls:
+    #     tool_name = tool_call["name"]
+    #     tool_kwargs = tool_call['kwargs']
+    #     # call tool
+    #     output = invoke_lambda(
+    #         event_body = {
+    #             "tool_name":tool_name,
+    #             "state":state,
+    #             "kwargs":tool_kwargs
+    #             },
+    #         lambda_name="Online_Tool_Execute",
+    #         lambda_module_path="functions.lambda_tool",
+    #         handler_name="lambda_handler"   
+    #     )
+    #     tool_call_results.append({
+    #         "name": tool_name,
+    #         "output": output,
+    #         "kwargs": tool_call['kwargs'],
+    #         "model_id": tool_call['model_id']
+    #     })
+    
+    # output = format_tool_call_results(tool_call['model_id'],tool_call_results)
+    send_trace(f'**tool_execute_res:** \n{tool_messages}', enable_trace=state["enable_trace"])
+    return {
+            "agent_tool_history": tool_messages,
+            "last_tool_messages": tool_messages
+        }
+
+
 def final_results_preparation(state: ChatbotState):
     app_response = process_response(state["event_body"], state)
     return {"app_response": app_response}
@@ -337,18 +478,17 @@ def intent_route(state: dict):
 
 
 def agent_route(state: dict):
-    if state.get("function_calling_is_run_once", False):
+    if state.get("exit_tool_calling", False):
         return "no need tool calling"
+    # state["agent_repeated_call_validation"] = (
+    #     state["agent_current_call_number"] < state["agent_repeated_call_limit"]
+    # )
+    # if state["agent_repeated_call_validation"]:
 
-    state["agent_repeated_call_validation"] = (
-        state["agent_current_call_number"] < state["agent_repeated_call_limit"]
-    )
-
-    if state["agent_repeated_call_validation"]:
-        return "valid tool calling"
-    else:
-        # TODO give final strategy
-        raise RuntimeError
+    return "valid tool calling"
+    # else:
+    #     # TODO give final strategy
+    #     raise RuntimeError
 
 
 #############################
@@ -358,6 +498,7 @@ def agent_route(state: dict):
 
 def build_graph(chatbot_state_cls):
     workflow = StateGraph(chatbot_state_cls)
+
     # add node for all chat/rag/agent mode
     workflow.add_node("query_preprocess", query_preprocess)
     # chat mode
@@ -430,30 +571,29 @@ def build_graph(chatbot_state_cls):
 #####################################
 # define online sub-graph for agent #
 #####################################
-app_agent = None
+# app_agent = None
 app = None
 
 
-def register_rag_tool(
-    name: str,
-    description: str,
-    scene=SceneType.COMMON,
-    lambda_name: str = "lambda_common_tools",
-):
-    tool_manager.register_tool(
-        {
-            "name": name,
-            "scene": scene,
-            "lambda_name": lambda_name,
-            "lambda_module_path": rag.lambda_handler,
-            "tool_def": {
-                "name": name,
-                "description": description,
-            },
-            "running_mode": ToolRuningMode.ONCE,
-        }
-    )
-
+# def register_rag_tool(
+#     name: str,
+#     description: str,
+#     scene=SceneType.COMMON,
+#     lambda_name: str = "lambda_common_tools",
+# ):
+#     tool_manager.register_tool(
+#         {
+#             "name": name,
+#             "scene": scene,
+#             "lambda_name": lambda_name,
+#             "lambda_module_path": rag.lambda_handler,
+#             "tool_def": {
+#                 "name": name,
+#                 "description": description,
+#             },
+#             "running_mode": ToolRuningMode.ONCE,
+#         }
+#     )
 
 def register_rag_tool_from_config(event_body: dict):
     group_name = event_body.get("chatbot_config").get("group_name", "Admin")
@@ -461,13 +601,36 @@ def register_rag_tool_from_config(event_body: dict):
     chatbot_manager = ChatbotManager.from_environ()
     chatbot = chatbot_manager.get_chatbot(group_name, chatbot_id)
     logger.info(chatbot)
+    registered_tool_names = []
     for index_type, item_dict in chatbot.index_ids.items():
         if index_type != IndexType.INTENTION:
             for index_content in item_dict["value"].values():
                 if "indexId" in index_content and "description" in index_content:
-                    register_rag_tool(
-                        index_content["indexId"], index_content["description"]
+                    # Find retriever contain index_id
+                    retrievers = event_body["chatbot_config"]["private_knowledge_config"]['retrievers']
+                    retriever = None 
+                    for retriever in retrievers:
+                        if retriever["index_name"] == index_content["indexId"]:
+                            break
+                    assert retriever is not None,retrievers
+                    reranks = event_body["chatbot_config"]["private_knowledge_config"]['reranks']
+                    index_name = index_content["indexId"]
+                    # TODO give specific retriever config
+                    ToolManager.register_common_rag_tool(
+                        retriever_config={
+                            "retrievers":[retriever],
+                            "reranks":[reranks[0]],
+                            "llm_config": event_body["chatbot_config"]["private_knowledge_config"]['llm_config']
+                        },
+                        # event_body["chatbot_config"]["private_knowledge_config"],
+                        name=index_name,
+                        scene=SceneType.COMMON,
+                        description=index_content["description"],
+                        # pass_state=True,
+                        # pass_state_name='state'
                     )
+                    registered_tool_names.append(index_name)
+    return registered_tool_names
 
 
 def common_entry(event_body):
@@ -476,20 +639,20 @@ def common_entry(event_body):
     :param event_body: The event body for lambda function.
     return: answer(str)
     """
-    global app, app_agent
+    global app
     if app is None:
         app = build_graph(ChatbotState)
 
-    if app_agent is None:
-        app_agent = build_agent_graph(ChatbotState)
+    # if app_agent is None:
+    #     app_agent = build_agent_graph(ChatbotState)
 
     # debuging
     if is_running_local():
         with open("common_entry_workflow.png", "wb") as f:
             f.write(app.get_graph().draw_mermaid_png())
 
-        with open("common_entry_agent_workflow.png", "wb") as f:
-            f.write(app_agent.get_graph().draw_mermaid_png())
+        # with open("common_entry_agent_workflow.png", "wb") as f:
+        #     f.write(app_agent.get_graph().draw_mermaid_png())
 
     ################################################################################
     # prepare inputs and invoke graph
@@ -505,7 +668,26 @@ def common_entry(event_body):
     message_id = event_body["custom_message_id"]
     ws_connection_id = event_body["ws_connection_id"]
     enable_trace = chatbot_config["enable_trace"]
-    register_rag_tool_from_config(event_body)
+    agent_config = event_body["chatbot_config"]["agent_config"]
+    
+    # register as rag tool for each aos index
+    registered_tool_names = register_rag_tool_from_config(event_body)
+    # update private knowledge tool to agent config
+    for registered_tool_name in registered_tool_names:
+        if registered_tool_name not in agent_config['tools']:
+            agent_config['tools'].append(registered_tool_name)
+
+    # define all knowledge rag tool
+    print('private_knowledge_config',event_body["chatbot_config"]["private_knowledge_config"])
+
+    all_knowledge_rag_tool = ToolManager.register_common_rag_tool(
+                retriever_config=event_body["chatbot_config"]["private_knowledge_config"],
+                name="all_knowledge_rag_tool",
+                scene=SceneType.COMMON,
+                description="all knowledge rag tool",
+                # pass_state=True,
+                # pass_state_name='state'
+    )
 
     # invoke graph and get results
     response = app.invoke(
@@ -523,10 +705,14 @@ def common_entry(event_body):
             "debug_infos": {},
             "extra_response": {},
             "qq_match_results": [],
-            "agent_repeated_call_limit": chatbot_config["agent_repeated_call_limit"],
-            "agent_current_call_number": 0,
-            "ddb_additional_kwargs": {},
-        }
+            "last_tool_messages":None,
+            "all_knowledge_rag_tool":all_knowledge_rag_tool,
+            "tools":None,
+            # "agent_repeated_call_limit": chatbot_config["agent_repeated_call_limit"],
+            # "agent_current_call_number": 0,
+            "ddb_additional_kwargs": {}
+        },
+        config={"recursion_limit": 10}
     )
     return response["app_response"]
 

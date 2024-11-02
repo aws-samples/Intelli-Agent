@@ -23,9 +23,9 @@ from functions.functions_utils.retriever.utils.websearch_retrievers import (
     GoogleRetriever,
 )
 from langchain.retrievers import (
-    AmazonKnowledgeBasesRetriever,
     ContextualCompressionRetriever,
 )
+from langchain_community.retrievers import AmazonKnowledgeBasesRetriever
 from langchain.retrievers.merger_retriever import MergerRetriever
 from langchain.schema.runnable import RunnableLambda, RunnablePassthrough
 from langchain_community.retrievers import AmazonKnowledgeBasesRetriever

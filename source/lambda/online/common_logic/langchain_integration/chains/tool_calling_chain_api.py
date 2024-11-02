@@ -60,7 +60,9 @@ class Claude2ToolCallingChain(LLMChain):
     def bind_tools(cls,llm:BaseChatModel,tools:List[BaseTool], fewshot_examples=None, fewshot_template=None,tool_choice='any'):
         tools = [tool.model_copy() for tool in tools]
         if not fewshot_examples:
-            return llm.bind_tools(tools,tool_choice=tool_choice)
+            if getattr(llm,"enable_auto_tool_choice",True):
+                return llm.bind_tools(tools,tool_choice=tool_choice)
+            return llm.bind_tools(tools)
 
         # add fewshot examples to tool description
         tools_map = {tool.name:tool for tool in tools}
@@ -84,7 +86,10 @@ class Claude2ToolCallingChain(LLMChain):
                 )
             
             tool.description += "\n\n".join(examples_strs)
-        return llm.bind_tools(tools,tool_choice=tool_choice)
+        
+        if getattr(llm,"enable_auto_tool_choice",True):
+            return llm.bind_tools(tools,tool_choice=tool_choice)
+        return llm.bind_tools(tools)
     
         
     @classmethod
@@ -132,7 +137,9 @@ class Claude2ToolCallingChain(LLMChain):
             [
                SystemMessage(content=agent_system_prompt), 
                ("placeholder", "{chat_history}"),
-               ("human", "{query}")
+               ("human", "{query}"),
+               ("placeholder", "{agent_tool_history}"),
+
             ]
         )
         # chain = RunnablePassthrough.assign(chat_history=lambda x: cls.create_chat_history(x)) | llm 

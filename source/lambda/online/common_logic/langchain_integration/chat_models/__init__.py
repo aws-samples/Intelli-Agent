@@ -36,7 +36,8 @@ class ModelMeta(type):
 
 
 class Model(ModeMixins,metaclass=ModelMeta):
-    model_id = None
+    model_id: str = None
+    enable_auto_tool_choice: bool = True
     model_map = {}
 
     @classmethod

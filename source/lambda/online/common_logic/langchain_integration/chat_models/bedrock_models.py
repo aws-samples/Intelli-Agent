@@ -1,19 +1,24 @@
 import os
-from langchain_aws.chat_models import ChatBedrockConverse
+from langchain_aws.chat_models import ChatBedrockConverse as _ChatBedrockConverse
 from common_logic.common_utils.constant import (
     MessageType,
     LLMModelType
 )
-from common_logic.common_utils.logger_utils import get_logger
+from common_logic.common_utils.logger_utils import get_logger,llm_messages_print_decorator
 from . import Model
 
-
 logger = get_logger("bedrock_model")
+
+
+class ChatBedrockConverse(_ChatBedrockConverse):
+    enable_auto_tool_choice: bool = True
+
 
 # Bedrock model type
 class Claude2(Model):
     model_id = LLMModelType.CLAUDE_2
     default_model_kwargs = {"max_tokens": 2000, "temperature": 0.7, "top_p": 0.9}
+    enable_auto_tool_choice = True 
 
     @classmethod
     def create_model(cls, model_kwargs=None, **kwargs):
@@ -34,8 +39,11 @@ class Claude2(Model):
             credentials_profile_name=credentials_profile_name,
             region_name=region_name,
             model=cls.model_id,
+            enable_auto_tool_choice=cls.enable_auto_tool_choice,
             **model_kwargs,
         )
+        llm.client.converse_stream = llm_messages_print_decorator(llm.client.converse_stream)
+        llm.client.converse = llm_messages_print_decorator(llm.client.converse)
         return llm
 
 
@@ -65,10 +73,12 @@ class MistralLarge2407(Claude2):
 
 class Llama3d1Instruct70B(Claude2):
     model_id = LLMModelType.LLAMA3_1_70B_INSTRUCT
+    enable_auto_tool_choice = False 
 
 
 class CohereCommandRPlus(Claude2):
     model_id = LLMModelType.COHERE_COMMAND_R_PLUS
+    enable_auto_tool_choice = False 
     
 
 

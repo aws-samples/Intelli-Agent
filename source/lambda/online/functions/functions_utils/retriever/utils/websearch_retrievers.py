@@ -9,7 +9,7 @@ import logging
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-from langchain.utilities import GoogleSearchAPIWrapper
+from langchain_community.utilities import GoogleSearchAPIWrapper
 from langchain.callbacks.manager import CallbackManagerForRetrieverRun
 from langchain.docstore.document import Document
 from langchain.schema.retriever import BaseRetriever

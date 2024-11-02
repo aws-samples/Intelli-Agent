@@ -1,13 +1,13 @@
-from common_logic.common_utils.lambda_invoke_utils import invoke_lambda
+from common_logic.common_utils.lambda_invoke_utils import invoke_lambda,StateContext
 from common_logic.common_utils.prompt_utils import get_prompt_templates_from_ddb
 from common_logic.common_utils.constant import (
     LLMTaskType
 )
 from common_logic.common_utils.lambda_invoke_utils import send_trace
-from common_logic.langchain_integration.langgraph_integration import get_current_app
 
-def rag_tool(retriever_config:dict,state):
-  
+
+def rag_tool(retriever_config:dict,query=None):
+    state = StateContext.get_current_state()
     # state = event_body['state']
     context_list = []
     # add qq match results
@@ -15,7 +15,7 @@ def rag_tool(retriever_config:dict,state):
     figure_list = []
     retriever_params = retriever_config
     # retriever_params = state["chatbot_config"]["private_knowledge_config"]
-    retriever_params["query"] = state[retriever_config.get("query_key","query")]
+    retriever_params["query"] = query or state[retriever_config.get("query_key","query")]
     # retriever_params["query"] = query
     output: str = invoke_lambda(
         event_body=retriever_params,

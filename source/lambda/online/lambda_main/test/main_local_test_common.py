@@ -144,10 +144,32 @@ def test_multi_turns_agent_pr():
     #     "qq_match": [],
     #     "private_knowledge": ['pr_test-qd-sso_poc']
     # }
+    # user_queries = [{
+    #         "query": "今天天气怎么样",
+    #         "use_history": True,
+    #         "enable_trace": False
+    #     }]
+    user_queries = [{
+            # "query": "199乘以98等于多少",
+            "query": "1234乘以89878等于多少？",
+            "use_history": True,
+            "enable_trace": True
+        }]
+
     default_index_names = {
         "intention":[],
         "qq_match": [],
         "private_knowledge": []
+    }
+    default_llm_config = {
+        # 'model_id': 'anthropic.claude-3-sonnet-20240229-v1:0',
+        # 'model_id': "meta.llama3-1-70b-instruct-v1:0",
+        # 'model_id':"mistral.mistral-large-2407-v1:0",
+        'model_id':"cohere.command-r-plus-v1:0",
+        'model_kwargs': {
+            'temperature': 0.1,
+            'max_tokens': 4096
+        }
     }
 
     for query in user_queries:
@@ -158,12 +180,14 @@ def test_multi_turns_agent_pr():
              session_id=session_id,
              query=query['query'],
              use_history=query['use_history'],
-             chatbot_id="pr_test",
-             group_name='pr_test',
+             chatbot_id="admin",
+             group_name='admin',
              only_use_rag_tool=False,
              default_index_names=default_index_names,
-             enable_trace = query.get('enable_trace',True)
-             )
+             enable_trace = query.get('enable_trace',True),
+             agent_config={"tools":["python_repl"]},
+             default_llm_config=default_llm_config
+        )
         print()
 
 
@@ -197,8 +221,6 @@ def test_qq_case_from_hanxu():
              enable_trace = True
              )
         print()
-
-
 
 
 
@@ -409,10 +431,10 @@ def anta_test():
 if __name__ == "__main__":
     # complete_test_pr()
     # test_multi_turns_rag_pr()
-    # test_multi_turns_agent_pr()
+    test_multi_turns_agent_pr()
     # test_qq_case_from_hanxu()
     # test_multi_turns_chat_pr()
     # bigo_test()
     # sso_batch_test()
     # anta_test()
-    bigo_test()
+    # bigo_test()

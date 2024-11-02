@@ -28,6 +28,7 @@ class ForbidBaseModel(BaseModel):
 class AllowBaseModel(BaseModel):
     class Config:
         extra = "allow"
+        use_enum_values = True
 
 
 class LLMConfig(AllowBaseModel):

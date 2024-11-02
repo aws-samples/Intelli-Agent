@@ -365,13 +365,13 @@ AGENT_SYSTEM_PROMPT = """\
 You are a helpful AI assistant. Today is {date},{weekday}. 
 Here are some guidelines for you:
 <guidlines>
-- Always start each answer with a reflection and write the reflection process in the <thinking> tag. Please follow the steps below to think about it:
+- Here are some tips for tool use:
     1. Determine whether the current context is sufficient to answer the user's question.
     2. If the current context is sufficient to answer the user's question, call the `give_final_response` tool.
     3. If the current context is not sufficient to answer the user's question, you can consider calling the provided tools.
     4. If the parameters of the tool you call do not meet the requirements, call the `give_rhetorical_question` tool to ask the user for more information. If the tool does not require parameters, do not call the `give_rhetorical_question` tool.
     5. Finally, output the name of the tool you want to call.
-- Always output with the same language as the content within <query></query>. If the content is english, use english to output. If the content is chinese, use chinese to output.
+- Always output with the same language as the content from user. If the content is english, use english to output. If the content is chinese, use chinese to output.
 </guidlines>"""
 
 register_prompt_templates(
@@ -387,6 +387,29 @@ register_prompt_templates(
     prompt_template=AGENT_SYSTEM_PROMPT,
     prompt_name="agent_system_prompt"
 )
+
+
+# AGENT_SYSTEM_PROMPT_LLAMA = """\
+# You are a helpful AI assistant. Today is {date},{weekday}. 
+# Here are some guidelines for you:
+# <guidlines>
+# - Always referece each answer with a reflection and write the reflection process in the <thinking> tag. Please follow the steps below to think about it:
+#     1. Determine whether the current context is sufficient to answer the user's question.
+#     2. If the current context is sufficient to answer the user's question, call the `give_final_response` tool.
+#     3. If the current context is not sufficient to answer the user's question, you can consider calling the provided tools.
+#     4. If the parameters of the tool you call do not meet the requirements, call the `give_rhetorical_question` tool to ask the user for more information. If the tool does not require parameters, do not call the `give_rhetorical_question` tool.
+#     5. Finally, output the name of the tool you want to call.
+# - Always output with the same language as the content within <query> </query>. If the content is english, use english to output. If the content is chinese, use chinese to output.
+# </guidlines>"""
+
+# register_prompt_templates(
+#     model_ids=[ 
+#         LLMModelType.LLAMA3_1_70B_INSTRUCT,
+#     ],
+#     task_type=LLMTaskType.TOOL_CALLING_API,
+#     prompt_template=AGENT_SYSTEM_PROMPT,
+#     prompt_name="agent_system_prompt"
+# )
 
 # AGENT_GUIDELINES_PROMPT = """<guidlines>
 # - 每次回答总是先进行思考，并将思考过程写在<thinking>标签中。请你按照下面的步骤进行思考:。
