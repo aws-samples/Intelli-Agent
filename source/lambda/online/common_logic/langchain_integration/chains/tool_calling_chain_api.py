@@ -125,8 +125,18 @@ class Claude2ToolCallingChain(LLMChain):
             model_id=cls.model_id,
             model_kwargs=model_kwargs,
         )
+
         llm = cls.bind_tools(llm,tools,fewshot_examples,fewshot_template=tool_fewshot_prompt)
-        chain = RunnablePassthrough.assign(chat_history=lambda x: cls.create_chat_history(x)) | llm 
+
+        tool_calling_template = ChatPromptTemplate.from_messages(
+            [
+               SystemMessage(content=agent_system_prompt), 
+               ("placeholder", "{chat_history}"),
+               ("human", "{query}")
+            ]
+        )
+        # chain = RunnablePassthrough.assign(chat_history=lambda x: cls.create_chat_history(x)) | llm 
+        chain = tool_calling_template | llm 
         return chain
 
 

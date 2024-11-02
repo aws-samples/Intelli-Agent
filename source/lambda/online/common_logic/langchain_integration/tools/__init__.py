@@ -85,9 +85,12 @@ class ToolManager:
             use_schema_description=True
         )
         result = parser.parse()
+        result = result.replace("from __future__ import annotations","")
         new_tool_module = types.ModuleType(tool_id)
         exec(result, new_tool_module.__dict__)
-        return new_tool_module.Model
+        model_cls = new_tool_module.Model
+        # model_cls.model_rebuild()
+        return model_cls
 
     
     @staticmethod
@@ -108,7 +111,7 @@ class ToolManager:
         tool_identifier = cls.get_tool_identifier(
             scene=scene,
             name=name,
-            tool_identifier=None
+            tool_identifier=tool_identifier
         )
         assert isinstance(tool,BaseTool),(tool,type(tool))
         cls.tool_map[tool_identifier.tool_id] = tool 
@@ -246,13 +249,12 @@ def lazy_tool_load_decorator(scene:SceneType,name):
             if "tool_identifier" in inspect.signature(func).parameters:
                 kwargs = {**kwargs,"tool_identifier":tool_identifier}
             return func(*args, **kwargs)
-        TOOL_MOFULE_LOAD_FN_MAP[tool_identifier.tool_id] = func
+        TOOL_MOFULE_LOAD_FN_MAP[tool_identifier.tool_id] = wrapper
         return wrapper
     return decorator
 
 
 ############################# tool load func ######################
-
 
 @lazy_tool_load_decorator(SceneType.COMMON,"get_weather")
 def _load_common_weather_tool(tool_identifier:ToolIdentifier):
@@ -268,10 +270,10 @@ def _load_common_weather_tool(tool_identifier:ToolIdentifier):
         "required": ["city_name"]
     }
     ToolManager.register_func_as_tool(
-        tool_identifier.scene,
-        tool_identifier.name,
-        get_weather.get_weather,
-        tool_def,
+        func=get_weather.get_weather,
+        tool_def=tool_def,
+        scene=tool_identifier.scene,
+        name=tool_identifier.name,
         return_direct=False
     )
 
@@ -286,13 +288,14 @@ def _load_common_rhetorical_tool(tool_identifier:ToolIdentifier):
                 "description": "The rhetorical question to user",
                 "type": "string"
             },
-        }
+        },
+        "required": [] #["question"]
     } 
     ToolManager.register_func_as_tool(
-        tool_identifier.scene,
-        tool_identifier.name,
-        give_rhetorical_question.give_rhetorical_question,
-        tool_def,
+        scene=tool_identifier.scene,
+        name=tool_identifier.name,
+        func=give_rhetorical_question.give_rhetorical_question,
+        tool_def=tool_def,
         return_direct=True
     )
 
@@ -312,10 +315,10 @@ def _load_common_final_response_tool(tool_identifier:ToolIdentifier):
         "required": ["response"]
     }
     ToolManager.register_func_as_tool(
-        tool_identifier.scene,
-        tool_identifier.name,
-        give_final_response.give_final_response,
-        tool_def,
+        scene=tool_identifier.scene,
+        name=tool_identifier.name,
+        func=give_final_response.give_final_response,
+        tool_def=tool_def,
         return_direct=True
     )
 
@@ -335,10 +338,10 @@ def _load_common_chat_tool(tool_identifier:ToolIdentifier):
     }
 
     ToolManager.register_func_as_tool(
-        tool_identifier.scene,
-        tool_identifier.name,
-        chat.chat,
-        tool_def,
+        scene=tool_identifier.scene,
+        name=tool_identifier.name,
+        func=chat.chat,
+        tool_def=tool_def,
         return_direct=True
     )
 
@@ -354,13 +357,13 @@ def _load_common_rag_tool(tool_identifier:ToolIdentifier):
                 "type": "string"
                 }
         },
-        "required": ["query"]
+        # "required": ["query"]
     }
     ToolManager.register_func_as_tool(
-        tool_identifier.scene,
-        tool_identifier.name,
-        rag.rag_tool,
-        tool_def,
+        scene=tool_identifier.scene,
+        name=tool_identifier.name,
+        func=rag.rag_tool,
+        tool_def=tool_def,
         return_direct=True
     )
 

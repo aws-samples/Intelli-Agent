@@ -161,6 +161,18 @@ def _import_retail_tool_calling_chain_claude_xml():
     Claude3HaikuRetailToolCallingChain
 )
 
+def _import_tool_calling_chain_api():
+    from .tool_calling_chain_api import (
+        Claude21ToolCallingChain,
+        Claude2ToolCallingChain,
+        Claude35SonnetToolCallingChain,
+        Claude3HaikuToolCallingChain,
+        Claude3SonnetToolCallingChain,
+        Llama31Instruct70BToolCallingChain,
+        CohereCommandRPlusToolCallingChain,
+        MistraLlarge2407ToolCallingChain
+    )
+
 
 def _import_auto_evaluation_chain():
     from .retail_chains.auto_evaluation_chain import (
@@ -188,6 +200,7 @@ CHAIN_MODULE_LOAD_FN_MAP = {
     LLMTaskType.HYDE_TYPE: _import_hyde_chain,
     LLMTaskType.QUERY_REWRITE_TYPE: _import_query_rewrite_chain,
     LLMTaskType.TOOL_CALLING_XML: _import_tool_calling_chain_claude_xml,
+    LLMTaskType.TOOL_CALLING_API:_import_tool_calling_chain_api,
     LLMTaskType.RETAIL_CONVERSATION_SUMMARY_TYPE: _import_retail_conversation_summary_chain,
     LLMTaskType.RETAIL_TOOL_CALLING: _import_retail_tool_calling_chain_claude_xml,
     LLMTaskType.AUTO_EVALUATION: _import_auto_evaluation_chain

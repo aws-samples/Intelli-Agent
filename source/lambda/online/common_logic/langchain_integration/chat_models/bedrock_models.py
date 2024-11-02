@@ -66,6 +66,7 @@ class MistralLarge2407(Claude2):
 class Llama3d1Instruct70B(Claude2):
     model_id = LLMModelType.LLAMA3_1_70B_INSTRUCT
 
+
 class CohereCommandRPlus(Claude2):
     model_id = LLMModelType.COHERE_COMMAND_R_PLUS
     

@@ -4,7 +4,7 @@ from common_logic.common_utils.constant import (
     LLMTaskType
 )
 from common_logic.common_utils.lambda_invoke_utils import send_trace
-from langchain_integration.langgraph_integration import get_current_app
+from common_logic.langchain_integration.langgraph_integration import get_current_app
 
 def rag_tool(retriever_config:dict,state):
   

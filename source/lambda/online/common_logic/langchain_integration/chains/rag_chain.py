@@ -101,7 +101,6 @@ class Mixtral8x7bChatChain(Claude2RagLLMChain):
     model_id = LLMModelType.MIXTRAL_8X7B_INSTRUCT
 
 
-
 from .chat_chain import GLM4Chat9BChatChain
 
 class GLM4Chat9BRagChain(GLM4Chat9BChatChain):
