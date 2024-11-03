@@ -55,6 +55,7 @@ chatbot_table = dynamodb_client.Table(chatbot_table_name)
 model_table = dynamodb_client.Table(model_table_name)
 
 sm_client = boto3.client("secretsmanager")
+credentials = boto3.Session().get_credentials()
 try:
     master_user = sm_client.get_secret_value(
         SecretId=aos_secret)["SecretString"]
@@ -68,9 +69,12 @@ try:
             DomainName=aos_domain_name)
         aos_endpoint = response["DomainStatus"]["Endpoint"]
     aos_client = LLMBotOpenSearchClient(aos_endpoint, (username, password)).client
+    awsauth = (username, password)
 except sm_client.exceptions.ResourceNotFoundException:
     logger.info("Secret '%s' not found in Secrets Manager", aos_secret)
     aos_client = LLMBotOpenSearchClient(aos_endpoint).client
+    awsauth = AWS4Auth(refreshable_credentials=credentials,
+                   region=region, service="es")
 except Exception as err:
     logger.error("Error retrieving secret '%s': %s", aos_secret, str(err))
     raise
@@ -80,8 +84,6 @@ s3_client = boto3.client("s3")
 bedrock_client = boto3.client("bedrock-runtime", region_name=bedrock_region)
 
 credentials = boto3.Session().get_credentials()
-awsauth = AWS4Auth(refreshable_credentials=credentials,
-                   region=region, service="es")
 
 resp_header = {
     "Content-Type": "application/json",

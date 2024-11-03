@@ -27,15 +27,16 @@ from langchain_core.tools import BaseTool
 from langchain_core.messages.tool import ToolCall
 from langgraph.prebuilt.tool_node import ToolNode,TOOL_CALL_ERROR_TEMPLATE
 from common_logic.langchain_integration.chains import LLMChain
-
-
-# from lambda_main.main_utils.online_entries.agent_base import (
-#     build_agent_graph,
-#     tool_execution,
-# )
 from lambda_main.main_utils.parse_config import CommonConfigParser
 from langgraph.graph import END, StateGraph
 from common_logic.langchain_integration.langgraph_integration import set_currrent_app
+from common_logic.langchain_integration.retrievers.retriever import lambda_handler as retrieve_fn
+from common_logic.common_utils.monitor_utils import (
+    format_preprocess_output,
+    format_qq_data,
+    format_intention_output
+)
+from lambda_intention_detection.intention import get_intention_results
 
 logger = get_logger("common_entry")
 
@@ -86,6 +87,7 @@ class ChatbotState(TypedDict):
     ########### retriever states ###########
     # contexts information retrieved in search engine, e.g. OpenSearch
     qq_match_results: list = []
+    qq_match_contexts: dict
     contexts: str = None
     figure: list = None
 
@@ -114,31 +116,6 @@ class ChatbotState(TypedDict):
     all_knowledge_rag_tool: BaseTool
 
 
-def is_null_or_empty(value):
-    if value is None:
-        return True
-    elif isinstance(value, (dict, list, str)) and not value:
-        return True
-    return False
-
-
-def format_intention_output(data):
-    if is_null_or_empty(data):
-        return ""
-
-    markdown_table = "| Query                | Score | Name       | Intent      | Additional Info      |\n"
-    markdown_table += "|----------------------|-------|------------|-------------|----------------------|\n"
-    for item in data:
-        query = item.get("query", "")
-        score = item.get("score", "")
-        name = item.get("name", "")
-        intent = item.get("intent", "")
-        kwargs = ', '.join([f'{k}: {v}' for k, v in item.get('kwargs', {}).items()])
-        markdown_table += f"| {query} | {score} | {name} | {intent} | {kwargs} |\n"
-        logger.info(markdown_table)
-
-    return markdown_table
-
 ####################
 # nodes in graph #
 ####################
@@ -153,32 +130,26 @@ def query_preprocess(state: ChatbotState):
         handler_name="lambda_handler",
     )
 
-    send_trace(f"\n**query rewrite:** {output}\n**origin query:** {state['query']}")
+    preprocess_md = format_preprocess_output(state["query"], output)
+    send_trace(f"{preprocess_md}")
     return {"query_rewrite": output}
 
 
 @node_monitor_wrapper
 def intention_detection(state: ChatbotState):
-    # if state['chatbot_config']['agent_config']['only_use_rag_tool']:
-    #     return {
-    #         "intent_type": "intention detected"
-    #     }
     retriever_params = state["chatbot_config"]["qq_match_config"]
     retriever_params["query"] = state[
         retriever_params.get("retriever_config", {}).get("query_key", "query")
     ]
-    output: str = invoke_lambda(
-        event_body=retriever_params,
-        lambda_name="Online_Functions",
-        lambda_module_path="functions.functions_utils.retriever.retriever",
-        handler_name="lambda_handler",
-    )
+   
+    output = retrieve_fn(retriever_params)
     context_list = []
     qq_match_threshold = retriever_params["threshold"]
     for doc in output["result"]["docs"]:
         if doc["retrieval_score"] > qq_match_threshold:
+            doc_md = format_qq_data(doc)
             send_trace(
-                f"\n\n**similar query found**\n{doc}",
+                f"\n\n**similar query found**\n\n{doc_md}",
                 state["stream"],
                 state["ws_connection_id"],
                 state["enable_trace"],
@@ -196,11 +167,15 @@ def intention_detection(state: ChatbotState):
     if state["chatbot_config"]["agent_config"]["only_use_rag_tool"]:
         return {"qq_match_results": context_list, "intent_type": "intention detected"}
 
-    intent_fewshot_examples = invoke_lambda(
-        lambda_module_path="lambda_intention_detection.intention",
-        lambda_name="Online_Intention_Detection",
-        handler_name="lambda_handler",
-        event_body=state,
+    # get intention results from aos
+    intention_config = state["chatbot_config"].get("intention_config",{})
+    query_key = intention_config.get("retriever_config",{}).get("query_key","query")
+    query = state[query_key]
+    intent_fewshot_examples = get_intention_results(
+        query,
+        {
+            **intention_config,
+        }
     )
 
     intent_fewshot_tools: list[str] = list(
@@ -209,7 +184,7 @@ def intention_detection(state: ChatbotState):
 
     markdown_table = format_intention_output(intent_fewshot_examples)
     send_trace(
-        f"**intention retrieved:**\n\n {markdown_table}",
+        f"{markdown_table}",
         state["stream"],
         state["ws_connection_id"],
         state["enable_trace"],
@@ -218,6 +193,7 @@ def intention_detection(state: ChatbotState):
         "intent_fewshot_examples": intent_fewshot_examples,
         "intent_fewshot_tools": intent_fewshot_tools,
         "qq_match_results": context_list,
+        "qq_match_contexts": output["result"]["docs"],
         "intent_type": "intention detected",
     }
 
@@ -283,7 +259,8 @@ def agent(state: ChatbotState):
         or state["chatbot_config"]["agent_config"]["only_use_rag_tool"]
     ):
         if state["chatbot_config"]["agent_config"]["only_use_rag_tool"]:
-            send_trace("agent only use rag tool", enable_trace=state["enable_trace"])
+            send_trace("agent only use rag tool",
+                       enable_trace=state["enable_trace"])
         elif no_intention_condition:
             send_trace(
                 "no_intention_condition, switch to rag tool",
@@ -502,7 +479,8 @@ def build_graph(chatbot_state_cls):
     # add node for all chat/rag/agent mode
     workflow.add_node("query_preprocess", query_preprocess)
     # chat mode
-    workflow.add_node("llm_direct_results_generation", llm_direct_results_generation)
+    workflow.add_node("llm_direct_results_generation",
+                      llm_direct_results_generation)
     # rag mode
     # workflow.add_node("knowledge_retrieve", knowledge_retrieve)
     # workflow.add_node("llm_rag_results_generation", llm_rag_results_generation)
@@ -517,7 +495,8 @@ def build_graph(chatbot_state_cls):
     # add all edges
     workflow.set_entry_point("query_preprocess")
     # chat mode
-    workflow.add_edge("llm_direct_results_generation", "final_results_preparation")
+    workflow.add_edge("llm_direct_results_generation",
+                      "final_results_preparation")
     # rag mode
     # workflow.add_edge("knowledge_retrieve", "llm_rag_results_generation")
     # workflow.add_edge("llm_rag_results_generation", END)

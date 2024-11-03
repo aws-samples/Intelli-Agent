@@ -13,6 +13,7 @@ opensearch_enabled=$(jq -r '.knowledgeBase.knowledgeBaseType.intelliAgentKb.vect
 embedding_model_provider=$(jq -r '.model.embeddingsModels[0].provider' $config_file)
 model_assets_bucket=$(jq -r '.model.modelConfig.modelAssetsBucket' $config_file)
 ui_enabled=$(jq -r '.ui.enabled' $config_file)
+# fi
 
 echo "Knowledge Base Enabled: $knowledge_base_enabled"
 echo "IntelliAgent Knowledge Base Enabled: $knowledge_base_intelliagent_enabled"

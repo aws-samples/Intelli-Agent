@@ -1,2 +1,3 @@
 FlagEmbedding==1.2.5
 BCEmbedding==0.1.3
+transformers<4.46.0

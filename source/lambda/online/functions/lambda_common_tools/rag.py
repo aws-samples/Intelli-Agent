@@ -4,34 +4,41 @@ from common_logic.common_utils.constant import (
     LLMTaskType
 )
 from common_logic.common_utils.lambda_invoke_utils import send_trace
+from common_logic.common_utils.monitor_utils import format_rag_data
 
 
-def lambda_handler(event_body,context=None):
-    state = event_body['state']
+def lambda_handler(event_body, context=None):
+    state = event_body["state"]
+    print(event_body)
     context_list = []
-    # add qq match results
-    context_list.extend(state['qq_match_results'])
+    # Add qq match results
+    context_list.extend(state["qq_match_results"])
     figure_list = []
     retriever_params = state["chatbot_config"]["private_knowledge_config"]
-    retriever_params["query"] = state[retriever_params.get("retriever_config",{}).get("query_key","query")]
+    retriever_params["query"] = state[retriever_params.get(
+        "retriever_config", {}).get("query_key", "query")]
     output: str = invoke_lambda(
         event_body=retriever_params,
         lambda_name="Online_Functions",
         lambda_module_path="functions.functions_utils.retriever.retriever",
         handler_name="lambda_handler",
     )
+    print("RAG debug")
+    print(output)
 
     for doc in output["result"]["docs"]:
         context_list.append(doc["page_content"])
-        figure_list = figure_list + doc.get("figure",[])
-    
+        figure_list = figure_list + doc.get("figure", [])
+
     # Remove duplicate figures
     unique_set = {tuple(d.items()) for d in figure_list}
     unique_figure_list = [dict(t) for t in unique_set]
     state['extra_response']['figures'] = unique_figure_list
-    
-    send_trace(f"\n\n**rag-contexts:** {context_list}", enable_trace=state["enable_trace"])
-    
+
+    context_md = format_rag_data(output["result"]["docs"], state["qq_match_contexts"])
+    send_trace(
+        f"\n\n{context_md}\n\n", enable_trace=state["enable_trace"])
+
     group_name = state['chatbot_config']['group_name']
     llm_config = state["chatbot_config"]["private_knowledge_config"]['llm_config']
     chatbot_id = state["chatbot_config"]["chatbot_id"]
@@ -61,7 +68,5 @@ def lambda_handler(event_body,context=None):
             },
         },
     )
-    # 
 
-    return {"code":0,"result":output}
-
+    return {"code": 0, "result": output}
