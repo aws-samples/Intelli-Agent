@@ -2,7 +2,7 @@ import boto3
 import os
 import json
 
-from langchain.pydantic_v1 import BaseModel, Field
+from pydantic import BaseModel, Field
 from collections import defaultdict
 from common_logic.common_utils.constant import LLMModelType, LLMTaskType
 import copy

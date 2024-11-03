@@ -4,7 +4,7 @@ from common_logic.common_utils.constant import (
     LLMTaskType
 )
 from common_logic.common_utils.lambda_invoke_utils import send_trace
-
+from common_logic.langchain_integration.retrievers.retriever import lambda_handler as retrieve_fn
 
 def rag_tool(retriever_config:dict,query=None):
     state = StateContext.get_current_state()
@@ -17,12 +17,13 @@ def rag_tool(retriever_config:dict,query=None):
     # retriever_params = state["chatbot_config"]["private_knowledge_config"]
     retriever_params["query"] = query or state[retriever_config.get("query_key","query")]
     # retriever_params["query"] = query
-    output: str = invoke_lambda(
-        event_body=retriever_params,
-        lambda_name="Online_Functions",
-        lambda_module_path="functions.functions_utils.retriever.retriever",
-        handler_name="lambda_handler",
-    )
+    # output: str = invoke_lambda(
+    #     event_body=retriever_params,
+    #     lambda_name="Online_Functions",
+    #     lambda_module_path="functions.functions_utils.retriever.retriever",
+    #     handler_name="lambda_handler",
+    # )
+    output = retrieve_fn(retriever_params)
 
     for doc in output["result"]["docs"]:
         context_list.append(doc["page_content"])

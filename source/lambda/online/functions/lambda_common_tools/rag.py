@@ -17,12 +17,14 @@ def lambda_handler(event_body, context=None):
     retriever_params = state["chatbot_config"]["private_knowledge_config"]
     retriever_params["query"] = state[retriever_params.get(
         "retriever_config", {}).get("query_key", "query")]
+    
     output: str = invoke_lambda(
         event_body=retriever_params,
         lambda_name="Online_Functions",
         lambda_module_path="functions.functions_utils.retriever.retriever",
         handler_name="lambda_handler",
     )
+    
     print("RAG debug")
     print(output)
 
