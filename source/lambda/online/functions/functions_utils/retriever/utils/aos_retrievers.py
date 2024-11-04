@@ -710,20 +710,6 @@ class QueryDocumentBM25Retriever(BaseRetriever):
         for aos_hit in aos_hits:
             result = {"data": {}}
             source = aos_hit["_source"]["metadata"][source_field]
-            source = (
-                source.replace(
-                    "s3://aws-chatbot-knowledge-base/aws-acts-knowledge/qd/zh_CN/",
-                    "https://www.amazonaws.cn/",
-                )
-                .replace(
-                    "s3://aws-chatbot-knowledge-base/aws-acts-knowledge/qd/en_US/",
-                    "https://www.amazonaws.cn/en/",
-                )
-                .replace(
-                    "s3://aws-chatbot-knowledge-base/aws-global-site-cn-knowledge/",
-                    "https://aws.amazon.com/",
-                )
-            )
             result["source"] = source
             result["score"] = aos_hit["_score"]
             result["detail"] = aos_hit["_source"]

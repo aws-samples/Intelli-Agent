@@ -10,6 +10,7 @@ from common_logic.common_utils.ddb_utils import DynamoDBChatMessageHistory
 from common_logic.common_utils.lambda_invoke_utils import (
     chatbot_lambda_call_wrapper,
     is_running_local,
+    send_trace
 )
 from common_logic.common_utils.logger_utils import get_logger
 from common_logic.common_utils.websocket_utils import load_ws_client
@@ -367,6 +368,8 @@ def lambda_handler(event_body: dict, context: dict):
             return default_event_handler(event_body, context, entry_executor)
     except Exception as e:
         error_response = {"answer": str(e), "extra_response": {}}
+        enable_trace = event_body.get("chatbot_config", {}).get("enable_trace", True)
+        send_trace(f"\n### Error trace\n\n{traceback.format_exc()}\n\n", enable_trace=enable_trace)
         process_response(event_body, error_response)
-        logger.error(f"An error occurred: {str(e)}")
+        logger.error(f"An error occurred: {str(e)}\n{traceback.format_exc()}")
         return {"error": str(e)}
