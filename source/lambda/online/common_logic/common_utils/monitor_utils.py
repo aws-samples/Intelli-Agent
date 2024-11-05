@@ -52,24 +52,26 @@ def format_rag_data(data, qq_result) -> str:
     if data is None or len(data) == 0:
         return ""
 
-    markdown_table = "| Source | Score | RAG Context |\n"
-    markdown_table += "|-----|-----|-----|\n"
+    markdown_table = "| Source File Name | Source URI | Score | RAG Context |\n"
+    markdown_table += "|-----|-----|-----|-----|\n"
     for item in data:
-        source = _generate_markdown_link(item.get("source", ""))
+        raw_source = item.get("source", "")
+        source = _generate_markdown_link(raw_source)
         score = item.get("score", -1)
         page_content = item.get("page_content", "").replace("\n", "<br>")
-        markdown_table += f"| {source} | {score} | {page_content} |\n\n"
+        markdown_table += f"| {source} | {raw_source} | {score} | {page_content} |\n\n"
     
     markdown_table += "**QQ Match Result**\n"
-    markdown_table += "| Source | Score | Question | Answer |\n"
-    markdown_table += "|-----|-----|-----|-----|\n"
+    markdown_table += "| Source File Name | Source URI | Score | Question | Answer |\n"
+    markdown_table += "|-----|-----|-----|-----|-----|\n"
 
     for qq_item in qq_result:
-        qq_source = _generate_markdown_link(qq_item.get("source", ""))
+        raw_qq_source = qq_item.get("source", "")
+        qq_source = _generate_markdown_link(raw_qq_source)
         qq_score = qq_item.get("score", -1)
         qq_question = qq_item.get("page_content", "").replace("\n", "<br>")
         qq_answer = qq_item.get("answer", "").replace("\n", "<br>")
-        markdown_table += f"| {qq_source} | {qq_score} | {qq_question} | {qq_answer} |\n"
+        markdown_table += f"| {qq_source} | {raw_qq_source} | {qq_score} | {qq_question} | {qq_answer} |\n"
 
     return markdown_table
 
