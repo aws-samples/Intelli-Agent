@@ -10,7 +10,7 @@ kb_type = json.loads(os.environ["KNOWLEDGE_BASE_TYPE"])
 intelli_agent_kb_enabled = kb_type.get("intelliAgentKb", {}).get("enabled", False)
 
 
-def get_intention_results(query:str, intention_config:dict):
+def get_intention_results(query: str, intention_config: dict):
     """get intention few shots results according embedding similarity
 
     Args:
@@ -25,6 +25,9 @@ def get_intention_results(query:str, intention_config:dict):
         "type": "qq",
         **intention_config
     }
+
+    logger.info("intention event body")
+    logger.info(event_body)
     # call retriver
     res:list[dict] = invoke_lambda(
         lambda_name="Online_Functions",
@@ -34,6 +37,9 @@ def get_intention_results(query:str, intention_config:dict):
     )
 
     if not res["result"]["docs"]:
+        # Return to guide the user to add intentions
+        return [], False
+
         # add default intention
         current_path = pathlib.Path(__file__).parent.resolve()
         try:
@@ -76,7 +82,7 @@ def get_intention_results(query:str, intention_config:dict):
                 }
                 intent_fewshot_examples.append(doc_item)
         
-    return intent_fewshot_examples
+    return intent_fewshot_examples, True
 
 
 @chatbot_lambda_call_wrapper
