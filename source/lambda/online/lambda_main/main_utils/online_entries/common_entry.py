@@ -7,6 +7,7 @@ from common_logic.common_utils.constant import (
     LLMTaskType,
     SceneType,
     ToolRuningMode,
+    GUIDE_INTENTION_NOT_FOUND,
 )
 from common_logic.common_utils.lambda_invoke_utils import (
     invoke_lambda,
@@ -167,7 +168,10 @@ def intention_detection(state: ChatbotState):
     )
 
     if not intention_ready:
-        return {"intent_type": "intention not ready"}
+        return {
+            "answer": GUIDE_INTENTION_NOT_FOUND,
+            "intent_type": "intention not ready",
+        }
 
     intent_fewshot_tools: list[str] = list(
         set([e["intent"] for e in intent_fewshot_examples])
@@ -369,6 +373,7 @@ def build_graph(chatbot_state_cls):
     # agent mode
     workflow.add_edge("tools_execution", "agent")
     workflow.add_edge("matched_query_return", "final_results_preparation")
+    workflow.add_edge("intention_not_ready", "final_results_preparation")
     workflow.add_edge("final_results_preparation", END)
 
     # add conditional edges

@@ -28,12 +28,11 @@ def format_qq_data(data) -> str:
     markdown_table += "| Source | Score | Question | Answer |\n"
     markdown_table += "|-----|-----|-----|-----|\n"
 
-    for qq_item in data:
-        qq_source = _generate_markdown_link(qq_item.get("source", ""))
-        qq_score = qq_item.get("score", -1)
-        qq_question = qq_item.get("page_content", "").replace("\n", "<br>")
-        qq_answer = qq_item.get("answer", "").replace("\n", "<br>")
-        markdown_table += f"| {qq_source} | {qq_score} | {qq_question} | {qq_answer} |\n"
+    qq_source = _generate_markdown_link(data.get("source", ""))
+    qq_score = data.get("score", -1)
+    qq_question = data.get("page_content", "").replace("\n", "<br>")
+    qq_answer = data.get("answer", "").replace("\n", "<br>")
+    markdown_table += f"| {qq_source} | {qq_score} | {qq_question} | {qq_answer} |\n"
 
     return markdown_table
 

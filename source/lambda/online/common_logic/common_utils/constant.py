@@ -171,3 +171,7 @@ class IndexTag(Enum):
 @unique
 class KBType(Enum):
     AOS = "aos"
+
+
+GUIDE_INTENTION_NOT_FOUND = "Intention not found, please add intentions first when using agent mode"
+

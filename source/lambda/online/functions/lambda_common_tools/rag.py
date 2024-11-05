@@ -9,7 +9,6 @@ from common_logic.common_utils.monitor_utils import format_rag_data
 
 def lambda_handler(event_body, context=None):
     state = event_body["state"]
-    print(event_body)
     context_list = []
     # Add qq match results
     context_list.extend(state["qq_match_results"])
@@ -23,8 +22,6 @@ def lambda_handler(event_body, context=None):
         lambda_module_path="functions.functions_utils.retriever.retriever",
         handler_name="lambda_handler",
     )
-    print("RAG debug")
-    print(output)
 
     for doc in output["result"]["docs"]:
         context_list.append(doc["page_content"])

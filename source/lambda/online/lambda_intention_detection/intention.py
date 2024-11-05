@@ -26,8 +26,6 @@ def get_intention_results(query: str, intention_config: dict):
         **intention_config
     }
 
-    logger.info("intention event body")
-    logger.info(event_body)
     # call retriver
     res:list[dict] = invoke_lambda(
         lambda_name="Online_Functions",
@@ -40,31 +38,31 @@ def get_intention_results(query: str, intention_config: dict):
         # Return to guide the user to add intentions
         return [], False
 
-        # add default intention
-        current_path = pathlib.Path(__file__).parent.resolve()
-        try:
-            with open(f"{current_path}/intention_utils/default_intent.jsonl", "r") as json_file:
-                json_list = list(json_file)
-        except FileNotFoundError:
-            logger.error(f"File note found: {current_path}/intention_utils/default_intent.jsonl")
-            json_list = []
+        # # add default intention
+        # current_path = pathlib.Path(__file__).parent.resolve()
+        # try:
+        #     with open(f"{current_path}/intention_utils/default_intent.jsonl", "r") as json_file:
+        #         json_list = list(json_file)
+        # except FileNotFoundError:
+        #     logger.error(f"File note found: {current_path}/intention_utils/default_intent.jsonl")
+        #     json_list = []
 
-        intent_fewshot_examples = []
-        for json_str in json_list:
-            try:
-                intent_result = json.loads(json_str)
-            except json.JSONDecodeError as e:
-                logger.error(f"Error decoding JSON: {e}")
-                intent_result = {}
-            question = intent_result.get("question","你好")
-            answer = intent_result.get("answer",{})
-            intent_fewshot_examples.append({
-                "query": question,
-                "score": "n/a",
-                "name": answer.get("intent","chat"),
-                "intent": answer.get("intent","chat"),
-                "kwargs": answer.get("kwargs", {}),
-            })       
+        # intent_fewshot_examples = []
+        # for json_str in json_list:
+        #     try:
+        #         intent_result = json.loads(json_str)
+        #     except json.JSONDecodeError as e:
+        #         logger.error(f"Error decoding JSON: {e}")
+        #         intent_result = {}
+        #     question = intent_result.get("question","你好")
+        #     answer = intent_result.get("answer",{})
+        #     intent_fewshot_examples.append({
+        #         "query": question,
+        #         "score": "n/a",
+        #         "name": answer.get("intent","chat"),
+        #         "intent": answer.get("intent","chat"),
+        #         "kwargs": answer.get("kwargs", {}),
+        #     })       
     else:
         intent_fewshot_examples = []
         for doc in res["result"]["docs"]:
