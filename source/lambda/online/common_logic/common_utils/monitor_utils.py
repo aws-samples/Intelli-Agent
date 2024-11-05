@@ -5,6 +5,14 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 
+def is_null_or_empty(value):
+    if value is None:
+        return True
+    elif isinstance(value, (dict, list, str)) and not value:
+        return True
+    return False
+
+
 def _generate_markdown_link(file_path: str) -> str:
     file_name = file_path.split("/")[-1]
     markdown_link = f"[{file_name}]({file_path})"
@@ -21,7 +29,7 @@ def format_qq_data(data) -> str:
     Returns:
         str: A markdown table string representing the formatted data.
     """
-    if data is None or len(data) == 0:
+    if is_null_or_empty(data):
         return ""
     
     markdown_table = "**QQ Match Result**\n"
@@ -49,7 +57,7 @@ def format_rag_data(data, qq_result) -> str:
     Returns:
         str: A markdown table string representing the formatted data.
     """
-    if data is None or len(data) == 0:
+    if is_null_or_empty(data):
         return ""
 
     markdown_table = "| Source File Name | Source URI | Score | RAG Context |\n"
@@ -61,27 +69,20 @@ def format_rag_data(data, qq_result) -> str:
         page_content = item.get("page_content", "").replace("\n", "<br>")
         markdown_table += f"| {source} | {raw_source} | {score} | {page_content} |\n\n"
     
-    markdown_table += "**QQ Match Result**\n"
-    markdown_table += "| Source File Name | Source URI | Score | Question | Answer |\n"
-    markdown_table += "|-----|-----|-----|-----|-----|\n"
+    if not is_null_or_empty(qq_result):
+        markdown_table += "**QQ Match Result**\n"
+        markdown_table += "| Source File Name | Source URI | Score | Question | Answer |\n"
+        markdown_table += "|-----|-----|-----|-----|-----|\n"
 
-    for qq_item in qq_result:
-        raw_qq_source = qq_item.get("source", "")
-        qq_source = _generate_markdown_link(raw_qq_source)
-        qq_score = qq_item.get("score", -1)
-        qq_question = qq_item.get("page_content", "").replace("\n", "<br>")
-        qq_answer = qq_item.get("answer", "").replace("\n", "<br>")
-        markdown_table += f"| {qq_source} | {raw_qq_source} | {qq_score} | {qq_question} | {qq_answer} |\n"
+        for qq_item in qq_result:
+            raw_qq_source = qq_item.get("source", "")
+            qq_source = _generate_markdown_link(raw_qq_source)
+            qq_score = qq_item.get("score", -1)
+            qq_question = qq_item.get("page_content", "").replace("\n", "<br>")
+            qq_answer = qq_item.get("answer", "").replace("\n", "<br>")
+            markdown_table += f"| {qq_source} | {raw_qq_source} | {qq_score} | {qq_question} | {qq_answer} |\n"
 
     return markdown_table
-
-
-def is_null_or_empty(value):
-    if value is None:
-        return True
-    elif isinstance(value, (dict, list, str)) and not value:
-        return True
-    return False
 
 
 def format_preprocess_output(ori_query, rewrite_query):
