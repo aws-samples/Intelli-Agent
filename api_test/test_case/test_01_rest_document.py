@@ -17,7 +17,7 @@ caller_identity = boto3.client('sts').get_caller_identity()
 partition = caller_identity['Arn'].split(':')[1]
 
 class TestDocument:
-    """DataSourceDiscovery test stubs"""
+    """Document test stubs"""
     upload_success_msg = 'The S3 presigned url is generated'
     upload_prefix_data = 'https://intelli-agent-apiconstructllmbotdocument'
 
