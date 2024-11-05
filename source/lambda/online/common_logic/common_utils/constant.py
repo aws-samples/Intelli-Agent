@@ -173,5 +173,5 @@ class KBType(Enum):
     AOS = "aos"
 
 
-GUIDE_INTENTION_NOT_FOUND = "Intention not found, please add intentions first when using agent mode"
+GUIDE_INTENTION_NOT_FOUND = "Intention not found, please add intentions first when using agent mode, refer to https://amzn-chn.feishu.cn/docx/HlxvduJYgoOz8CxITxXc43XWn8e"
 
