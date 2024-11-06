@@ -293,7 +293,6 @@ const Library: React.FC = () => {
                     loading={loadingData}
                     onItemClick={({ detail }) => {
                       if (detail.id === 'update') {
-                        console.log('Update button clicked, selected items:', selectedItems);
                         setIsUpdate(true);
                         setShowAddModal(true);
                       }

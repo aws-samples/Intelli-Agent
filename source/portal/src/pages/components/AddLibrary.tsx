@@ -81,8 +81,6 @@ const AddLibrary: React.FC<AddLibraryProps> = (props: AddLibraryProps) => {
   }, [props.isUpdate, props.selectedItem]);
 
   const executionKnowledgeBase = async (bucket: string, prefix: string) => {
-    console.log('Edit mode:', props.isUpdate);
-    console.log('Selected item:', props.selectedItem);
 
     const baseData = {
       s3Bucket: bucket,
@@ -94,8 +92,6 @@ const AddLibrary: React.FC<AddLibraryProps> = (props: AddLibraryProps) => {
       indexType: indexType.value,
       tag: tagName ? tagName.trim() : undefined,
     };
-
-    console.log('Base data:', baseData);
 
     const requestConfig = props.isUpdate ? {
       url: `/knowledge-base/executions/${props.selectedItem?.executionId}`,
@@ -113,10 +109,7 @@ const AddLibrary: React.FC<AddLibraryProps> = (props: AddLibraryProps) => {
       }
     };
 
-    console.log('Request config:', requestConfig);
-
     const resExecution: ExecutionResponse = await fetchData(requestConfig);
-    console.log('Execution response:', resExecution);
     
     if (resExecution.execution_id) {
       setIndexName('');
@@ -145,7 +138,6 @@ const AddLibrary: React.FC<AddLibraryProps> = (props: AddLibraryProps) => {
   };
 
   const uploadFilesToS3 = async () => {
-    console.log('Starting upload with edit mode:', props.isUpdate);
     // validate  file
     if (uploadFiles.length <= 0) {
       setFileEmptyError(true);
@@ -167,7 +159,6 @@ const AddLibrary: React.FC<AddLibraryProps> = (props: AddLibraryProps) => {
     let percentage = 0;
 
     const uploadPromises = uploadFiles.map(async (file) => {
-      console.log('Uploading file:', file.name);
       const resPresignedData: PresignedUrlResponse = await fetchData({
         url: `/knowledge-base/kb-presigned-url`,
         method: 'post',
@@ -176,7 +167,6 @@ const AddLibrary: React.FC<AddLibraryProps> = (props: AddLibraryProps) => {
           content_type: file.type,
         },
       });
-      console.log('Presigned URL response:', resPresignedData);
       const uploadPreSignUrl = resPresignedData.data;
       return axios.put(uploadPreSignUrl.url, file, {
         headers: {
