@@ -108,9 +108,9 @@ const Library: React.FC = () => {
     if (status === 'COMPLETED') {
       return <StatusIndicator type="success">{t('completed')}</StatusIndicator>;
     } else if (status === 'IN-PROGRESS') {
-      return (
-        <StatusIndicator type="loading">{t('inProgress')}</StatusIndicator>
-      );
+      return <StatusIndicator type="loading">{t('inProgress')}</StatusIndicator>;
+    } else if (status === 'DELETING') {
+      return <StatusIndicator type="loading">{t('deleting')}</StatusIndicator>;
     } else {
       return <StatusIndicator type="error">{t('failed')}</StatusIndicator>;
     }

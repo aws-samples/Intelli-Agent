@@ -33,6 +33,7 @@
     "deleteSuccess": "删除成功",
     "completed": "完成",
     "inProgress": "进行中",
+    "deleting": "删除中",
     "failed": "失败",
     "item": "项目",
     "items": "项目",
