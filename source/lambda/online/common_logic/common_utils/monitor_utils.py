@@ -13,10 +13,8 @@ def is_null_or_empty(value):
     return False
 
 
-def _generate_markdown_link(file_path: str) -> str:
-    file_name = file_path.split("/")[-1]
-    markdown_link = f"[{file_name}]({file_path})"
-    return markdown_link
+def _file_name_in_path(file_path: str) -> str:
+    return file_path.split("/")[-1]
 
 
 def format_qq_data(data) -> str:
@@ -37,7 +35,7 @@ def format_qq_data(data) -> str:
     markdown_table += "|-----|-----|-----|-----|\n"
 
     # Data contains only one QQ match result
-    qq_source = _generate_markdown_link(data.get("source", ""))
+    qq_source = _file_name_in_path(data.get("source", ""))
     qq_score = data.get("score", -1)
     qq_question = data.get("page_content", "").replace("\n", "<br>")
     qq_answer = data.get("answer", "").replace("\n", "<br>")
@@ -64,9 +62,9 @@ def format_rag_data(data, qq_result) -> str:
     markdown_table += "|-----|-----|-----|-----|\n"
     for item in data:
         raw_source = item.get("source", "")
-        source = _generate_markdown_link(raw_source)
+        source = _file_name_in_path(raw_source)
         score = item.get("score", -1)
-        page_content = item.get("page_content", "").replace("\n", "<br>")
+        page_content = item.get("retrieval_content", "").replace("\n", "<br>")
         markdown_table += f"| {source} | {raw_source} | {score} | {page_content} |\n"
     
     if not is_null_or_empty(qq_result):
@@ -76,7 +74,7 @@ def format_rag_data(data, qq_result) -> str:
 
         for qq_item in qq_result:
             raw_qq_source = qq_item.get("source", "")
-            qq_source = _generate_markdown_link(raw_qq_source)
+            qq_source = _file_name_in_path(raw_qq_source)
             qq_score = qq_item.get("score", -1)
             qq_question = qq_item.get("page_content", "").replace("\n", "<br>")
             qq_answer = qq_item.get("answer", "").replace("\n", "<br>")
