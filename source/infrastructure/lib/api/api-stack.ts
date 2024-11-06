@@ -327,7 +327,7 @@ export class ApiConstruct extends Construct {
           })
         }
       );
-
+      
       const apiGetExecutionById = apiKBExecution.addResource("{executionId}");
       apiGetExecutionById.addMethod(
         "GET",
@@ -358,6 +358,8 @@ export class ApiConstruct extends Construct {
           // })
         }
       );
+      apiGetExecutionById.addMethod("PUT", new apigw.LambdaIntegration(executionManagementLambda.function), this.genMethodOption(api, auth, null));
+
 
       const apiUploadDoc = apiResourceStepFunction.addResource("kb-presigned-url");
       apiUploadDoc.addMethod(
