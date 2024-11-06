@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from constant import IndexTag, IndexType, KBType, ModelType, Status
+from constant import IndexType, KBType, ModelType, UiStatus
 from utils.embeddings import get_embedding_info
 
 
@@ -31,12 +31,8 @@ def update_model(model_table, item_key, model_parameter):
     )
 
 
-def initiate_model(
-    model_table, group_name, model_id, embedding_endpoint, create_time=None
-):
-    existing_item = item_exist(
-        model_table, {"groupName": group_name, "modelId": model_id}
-    )
+def initiate_model(model_table, group_name, model_id, embedding_endpoint, create_time=None):
+    existing_item = item_exist(model_table, {"groupName": group_name, "modelId": model_id})
     embedding_info = get_embedding_info(embedding_endpoint)
     embedding_info["ModelEndpoint"] = embedding_endpoint
     if existing_item:
@@ -61,7 +57,7 @@ def initiate_model(
                 "parameter": embedding_info,
                 "createTime": create_time,
                 "updateTime": create_time,
-                "status": Status.ACTIVE.value,
+                "status": UiStatus.ACTIVE.value,
             },
         )
     return embedding_info["ModelType"]
@@ -77,9 +73,7 @@ def initiate_index(
     create_time=None,
     description="",
 ):
-    existing_item = item_exist(
-        index_table, {"groupName": group_name, "indexId": index_id}
-    )
+    existing_item = item_exist(index_table, {"groupName": group_name, "indexId": index_id})
 
     if not existing_item:
         if not create_time:
@@ -93,14 +87,12 @@ def initiate_index(
             "modelIds": {"embedding": model_id},
             "tag": tag,
             "createTime": create_time,
-            "status": Status.ACTIVE.value,
+            "status": UiStatus.ACTIVE.value,
         }
         if index_type != IndexType.INTENTION.value:
             db_body["description"] = description
 
-        create_item(
-            index_table, {"groupName": group_name, "indexId": index_id}, db_body
-        )
+        create_item(index_table, {"groupName": group_name, "indexId": index_id}, db_body)
 
 
 def create_item_if_not_exist(ddb_table, item_key: dict, body: str):
@@ -121,9 +113,7 @@ def initiate_chatbot(
     index_id_list,
     create_time=None,
 ):
-    existing_item = item_exist(
-        chatbot_table, {"groupName": group_name, "chatbotId": chatbot_id}
-    )
+    existing_item = item_exist(chatbot_table, {"groupName": group_name, "chatbotId": chatbot_id})
     if existing_item:
         chatbot_table.update_item(
             Key={"groupName": group_name, "chatbotId": chatbot_id},
@@ -159,7 +149,7 @@ def initiate_chatbot(
                 },
                 "createTime": create_time,
                 "updateTime": create_time,
-                "status": Status.ACTIVE.value,
+                "status": UiStatus.ACTIVE.value,
             },
         )
 

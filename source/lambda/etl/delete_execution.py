@@ -11,6 +11,7 @@ import logging
 import os
 
 import boto3
+from constant import ExecutionStatus, OperationType, UiStatus
 
 # Set up logging
 logger = logging.getLogger()
@@ -78,7 +79,7 @@ def delete_execution_pipeline(execution_id):
         raise Exception(f"Execution {execution_id} not found")
 
     # Update execution item status
-    update_execution_item(execution_id, "DELETED", "INACTIVE")
+    update_execution_item(execution_id, ExecutionStatus.DELETING.value, UiStatus.ACTIVE.value)
 
     # Prepare input for Step Function to delete document from OpenSearch
     delete_document_sfn_input = {
@@ -86,7 +87,7 @@ def delete_execution_pipeline(execution_id):
         "s3Prefix": execution_item["s3Prefix"],
         "chatbotId": execution_item["chatbotId"],
         "indexType": execution_item["indexType"],
-        "operationType": "delete",
+        "operationType": OperationType.DELETE.value,
         "indexId": execution_item["indexId"],
         "groupName": execution_item["groupName"],
         "tableItemId": execution_item["executionId"],

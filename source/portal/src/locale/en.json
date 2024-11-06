@@ -33,6 +33,7 @@
     "deleteSuccess": "Delete Successfully",
     "completed": "Completed",
     "inProgress": "In Progress",
+    "deleting": "Deleting",
     "failed": "Failed",
     "item": "item",
     "items": "items",
