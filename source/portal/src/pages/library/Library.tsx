@@ -3,6 +3,7 @@ import CommonLayout from 'src/layout/CommonLayout';
 import {
   Box,
   Button,
+  ButtonDropdown,
   CollectionPreferences,
   ContentLayout,
   Header,
@@ -27,7 +28,7 @@ const parseDate = (item: LibraryListItem) => {
 const Library: React.FC = () => {
   const [selectedItems, setSelectedItems] = useState<LibraryListItem[]>([]);
   const fetchData = useAxiosRequest();
-  const [visible, setVisible] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
   const { t } = useTranslation();
   const [loadingData, setLoadingData] = useState(false);
   const [allLibraryList, setAllLibraryList] = useState<LibraryListItem[]>([]);
@@ -81,7 +82,7 @@ const Library: React.FC = () => {
         method: 'delete',
         data: { executionId: selectedItems.map((item) => item.executionId) },
       });
-      setVisible(false);
+      setShowDelete(false);
       getLibraryList();
       alertMsg(data.message, 'success');
       setLoadingDelete(false);
@@ -284,14 +285,24 @@ const Library: React.FC = () => {
                       getLibraryList();
                     }}
                   />
-                  <Button
-                    disabled={selectedItems.length <= 0}
-                    onClick={() => {
-                      setVisible(true);
+                  <ButtonDropdown
+                    disabled={selectedItems.length === 0}
+                    loading={loadingData}
+                    onItemClick={({ detail }) => {
+                      if (detail.id === 'edit') {
+                        setShowAddModal(true);
+                      }
+                      if (detail.id === 'delete') {
+                        setShowDelete(true);
+                      }
                     }}
+                    items={[
+                      { text: t('button.edit'), id: 'edit' },
+                      { text: t('button.delete'), id: 'delete' },
+                    ]}
                   >
-                    {t('button.delete')}
-                  </Button>
+                    {t('button.action')}
+                  </ButtonDropdown>
                   <Button
                     variant="primary"
                     onClick={() => {
@@ -313,15 +324,15 @@ const Library: React.FC = () => {
           }
         />
         <Modal
-          onDismiss={() => setVisible(false)}
-          visible={visible}
+          onDismiss={() => setShowDelete(false)}
+          visible={showDelete}
           footer={
             <Box float="right">
               <SpaceBetween direction="horizontal" size="xs">
                 <Button
                   variant="link"
                   onClick={() => {
-                    setVisible(false);
+                    setShowDelete(false);
                   }}
                 >
                   {t('button.cancel')}
