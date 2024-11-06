@@ -48,10 +48,9 @@ def lambda_handler(event, context):
     current_execution = get_execution_item(execution_id)
     current_execution_status = current_execution["executionStatus"]
     operation_type = message["operationType"]
+
     if operation_type == OperationType.DELETE.value:
         if current_execution_status == ExecutionStatus.DELETING.value:
-            update_execution_item(execution_id, ExecutionStatus.DELETING.value, UiStatus.INACTIVE.value)
+            update_execution_item(execution_id, ExecutionStatus.DELETED.value, UiStatus.INACTIVE.value)
     else:
         update_execution_item(execution_id, ExecutionStatus.COMPLETED.value, UiStatus.ACTIVE.value)
-
-    logger.info(f"DynamoDB update: {response}")

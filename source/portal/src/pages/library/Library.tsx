@@ -47,6 +47,7 @@ const Library: React.FC = () => {
 
   // ingest document
   const [showAddModal, setShowAddModal] = useState(false);
+  const [isUpdate, setIsUpdate] = useState(false);
 
   const getLibraryList = async () => {
     setLoadingData(true);
@@ -84,7 +85,7 @@ const Library: React.FC = () => {
       });
       setShowDelete(false);
       getLibraryList();
-      alertMsg(data.message, 'success');
+      alertMsg(data.Message, 'success');
       setLoadingDelete(false);
       setSelectedItems([]);
     } catch (error: unknown) {
@@ -110,6 +111,8 @@ const Library: React.FC = () => {
       return <StatusIndicator type="success">{t('completed')}</StatusIndicator>;
     } else if (status === 'IN-PROGRESS') {
       return <StatusIndicator type="loading">{t('inProgress')}</StatusIndicator>;
+    } else if (status === 'UPDATING') {
+      return <StatusIndicator type="loading">{t('updating')}</StatusIndicator>;
     } else if (status === 'DELETING') {
       return <StatusIndicator type="loading">{t('deleting')}</StatusIndicator>;
     } else {
@@ -289,7 +292,9 @@ const Library: React.FC = () => {
                     disabled={selectedItems.length === 0}
                     loading={loadingData}
                     onItemClick={({ detail }) => {
-                      if (detail.id === 'edit') {
+                      if (detail.id === 'update') {
+                        console.log('Update button clicked, selected items:', selectedItems);
+                        setIsUpdate(true);
                         setShowAddModal(true);
                       }
                       if (detail.id === 'delete') {
@@ -297,7 +302,7 @@ const Library: React.FC = () => {
                       }
                     }}
                     items={[
-                      { text: t('button.edit'), id: 'edit' },
+                      { text: t('button.update'), id: 'update', disabled: selectedItems.length !== 1 },
                       { text: t('button.delete'), id: 'delete' },
                     ]}
                   >
@@ -306,6 +311,7 @@ const Library: React.FC = () => {
                   <Button
                     variant="primary"
                     onClick={() => {
+                      setIsUpdate(false);
                       setShowAddModal(true);
                     }}
                   >
@@ -368,6 +374,8 @@ const Library: React.FC = () => {
               getLibraryList();
             }, 2000);
           }}
+          selectedItem={isUpdate ? selectedItems[0] : undefined}
+          isUpdate={isUpdate}
         />
       </ContentLayout>
     </CommonLayout>

@@ -15,6 +15,7 @@ import {
   SelectProps,
   SpaceBetween,
 } from '@cloudscape-design/components';
+import { LibraryListItem } from 'src/types';
 import { alertMsg, validateNameTagString } from 'src/utils/utils';
 import { AxiosProgressEvent } from 'axios';
 import { useTranslation } from 'react-i18next';
@@ -26,6 +27,8 @@ interface AddLibraryProps {
   showAddModal: boolean;
   setShowAddModal: (show: boolean) => void;
   reloadLibrary: () => void;
+  selectedItem?: LibraryListItem;
+  isUpdate?: boolean;
 }
 
 const AddLibrary: React.FC<AddLibraryProps> = (props: AddLibraryProps) => {
@@ -50,22 +53,71 @@ const AddLibrary: React.FC<AddLibraryProps> = (props: AddLibraryProps) => {
     null,
   );
 
+  useEffect(() => {
+    const getExecutionDetails = async () => {
+      if (props.isUpdate && props.selectedItem?.executionId) {
+        try {
+          setIndexName(props.selectedItem?.indexId || '');
+          setTagName(props.selectedItem?.tag || '');
+          setChatbotOption({
+            label: props.selectedItem?.chatbotId.toLowerCase(),
+            value: props.selectedItem?.chatbotId.toLowerCase(),
+          });
+          
+          const selectedType = DOC_INDEX_TYPE_LIST.find(
+            type => type.value === props.selectedItem?.indexType
+          );
+          if (selectedType) {
+            setIndexType(selectedType);
+          }
+          setAdvanceExpand(true);
+        } catch (error) {
+          alertMsg(error instanceof Error ? error.message : String(error), 'error');
+        }
+      }
+    };
+  
+    getExecutionDetails();
+  }, [props.isUpdate, props.selectedItem]);
+
   const executionKnowledgeBase = async (bucket: string, prefix: string) => {
-    const resExecution: ExecutionResponse = await fetchData({
-      url: `/knowledge-base/executions`,
-      method: 'post',
+    console.log('Edit mode:', props.isUpdate);
+    console.log('Selected item:', props.selectedItem);
+
+    const baseData = {
+      s3Bucket: bucket,
+      s3Prefix: prefix,
+      offline: 'true',
+      qaEnhance: 'false',
+      chatbotId: chatbotOption ? chatbotOption.value : 'admin',
+      indexId: indexName ? indexName.trim() : undefined,
+      indexType: indexType.value,
+      tag: tagName ? tagName.trim() : undefined,
+    };
+
+    console.log('Base data:', baseData);
+
+    const requestConfig = props.isUpdate ? {
+      url: `/knowledge-base/executions/${props.selectedItem?.executionId}`,
+      method: 'put' as const,
       data: {
-        s3Bucket: bucket,
-        s3Prefix: prefix,
-        offline: 'true',
-        qaEnhance: 'false',
-        chatbotId: chatbotOption ? chatbotOption.value : 'admin',
-        indexId: indexName ? indexName.trim() : undefined,
-        indexType: indexType.value,
+        ...baseData,
+        executionId: props.selectedItem?.executionId,
+      }
+    } : {
+      url: `/knowledge-base/executions`,
+      method: 'post' as const,
+      data: {
+        ...baseData,
         operationType: 'create',
-        tag: tagName ? tagName.trim() : undefined,
-      },
-    });
+      }
+    };
+
+    console.log('Request config:', requestConfig);
+
+    const resExecution: ExecutionResponse = await fetchData(requestConfig);
+    console.log('Execution response:', resExecution);
+    
     if (resExecution.execution_id) {
       setIndexName('');
       setTagName('');
@@ -93,6 +145,7 @@ const AddLibrary: React.FC<AddLibraryProps> = (props: AddLibraryProps) => {
   };
 
   const uploadFilesToS3 = async () => {
+    console.log('Starting upload with edit mode:', props.isUpdate);
     // validate  file
     if (uploadFiles.length <= 0) {
       setFileEmptyError(true);
@@ -114,6 +167,7 @@ const AddLibrary: React.FC<AddLibraryProps> = (props: AddLibraryProps) => {
     let percentage = 0;
 
     const uploadPromises = uploadFiles.map(async (file) => {
+      console.log('Uploading file:', file.name);
       const resPresignedData: PresignedUrlResponse = await fetchData({
         url: `/knowledge-base/kb-presigned-url`,
         method: 'post',
@@ -122,6 +176,7 @@ const AddLibrary: React.FC<AddLibraryProps> = (props: AddLibraryProps) => {
           content_type: file.type,
         },
       });
+      console.log('Presigned URL response:', resPresignedData);
       const uploadPreSignUrl = resPresignedData.data;
       return axios.put(uploadPreSignUrl.url, file, {
         headers: {
@@ -196,7 +251,11 @@ const AddLibrary: React.FC<AddLibraryProps> = (props: AddLibraryProps) => {
           </SpaceBetween>
         </Box>
       }
-      header={<Header description={t('ingestDesc')}>{t('ingest')}</Header>}
+      header={
+        <Header description={t('ingestDesc')}>
+          {props.isUpdate ? t('update') : t('ingest')}
+        </Header>
+      }
     >
       <SpaceBetween direction="vertical" size="l">
         <Form variant="embedded">
@@ -253,6 +312,7 @@ const AddLibrary: React.FC<AddLibraryProps> = (props: AddLibraryProps) => {
                       options={chatbotList}
                       placeholder={t('validation.requireChatbot')}
                       empty={t('noChatbotFound')}
+                      disabled={props.isUpdate}
                     />
                   </FormField>
                   <FormField
@@ -274,6 +334,7 @@ const AddLibrary: React.FC<AddLibraryProps> = (props: AddLibraryProps) => {
                         setIndexNameError('');
                         setIndexName(detail.value);
                       }}
+                      disabled={props.isUpdate}
                     />
                   </FormField>
                   <FormField label={t('indexType')} stretch={true}>
@@ -283,6 +344,7 @@ const AddLibrary: React.FC<AddLibraryProps> = (props: AddLibraryProps) => {
                       onChange={({ detail }) => {
                         setIndexType(detail.selectedOption);
                       }}
+                      disabled={props.isUpdate}
                     />
                   </FormField>
                   <FormField
@@ -304,6 +366,7 @@ const AddLibrary: React.FC<AddLibraryProps> = (props: AddLibraryProps) => {
                         setTagNameError('');
                         setTagName(detail.value);
                       }}
+                      disabled={props.isUpdate}
                     />
                   </FormField>
                 </SpaceBetween>
