@@ -184,6 +184,78 @@ class ExecutionManager:
 
         return output
 
+    @staticmethod
+    def update_execution(execution_id: str, updated_s3_bucket: str, updated_s3_prefix: str) -> Dict[str, Any]:
+        """Update execution details in DynamoDB
+        
+        Args:
+            execution_id: The ID of the execution to update
+            update_data: Dictionary containing fields to update
+            
+        Returns:
+            Updated execution item
+            
+        Raises:
+            ValueError: If execution not found or invalid update data
+        """
+        # Verify execution exists
+        execution = ExecutionManager.get_execution(execution_id)
+        if not execution:
+            raise ValueError(f"Execution {execution_id} not found")
+        
+        ExecutionManager.update_execution_status(execution_id, ExecutionStatus.UPDATING.value, UiStatus.ACTIVE.value)
+
+        existing_s3_bucket = execution["s3Bucket"]
+        existing_s3_prefix = execution["s3Prefix"]
+
+        if existing_s3_bucket == updated_s3_bucket and existing_s3_prefix == updated_s3_prefix:
+            update_input = {
+                "s3Bucket": execution["s3Bucket"],
+                "s3Prefix": execution["s3Prefix"],
+                "chatbotId": execution["chatbotId"],
+                "indexType": execution["indexType"],
+                "operationType": OperationType.UPDATE.value,
+                "indexId": execution["indexId"],
+                "groupName": execution["groupName"],
+                "tableItemId": execution["executionId"],
+                "embeddingModelType": execution["embeddingModelType"],
+                "offline": "true",
+            }
+        else:
+            # Prepare deletion input for Step Function
+            deletion_input = {
+                "s3Bucket": execution["s3Bucket"],
+                "s3Prefix": execution["s3Prefix"],
+                "chatbotId": execution["chatbotId"],
+                "indexType": execution["indexType"],
+                "operationType": OperationType.DELETE.value,
+                "indexId": execution["indexId"],
+                "groupName": execution["groupName"],
+                "tableItemId": execution["executionId"],
+                "embeddingModelType": execution["embeddingModelType"],
+                "offline": "true",
+            }
+
+            aws_resources.sfn_client.start_execution(stateMachineArn=Config.SFN_ARN, input=json.dumps(deletion_input))
+
+            # Create new execution for the updated S3 bucket and prefix
+            update_execution_input = {
+                "s3Bucket": updated_s3_bucket,
+                "s3Prefix": updated_s3_prefix,
+                "chatbotId": execution["chatbotId"],
+                "indexType": execution["indexType"],
+                "operationType": OperationType.CREATE.value,
+                "indexId": execution["indexId"],
+                "groupName": execution["groupName"],
+                "tableItemId": execution["executionId"],
+                "embeddingModelType": execution["embeddingModelType"],
+                "offline": "true",
+            }
+
+            aws_resources.sfn_client.start_execution(stateMachineArn=Config.SFN_ARN, input=json.dumps(update_execution_input))
+        
+        return response.get("Attributes", {})
+
 
 class ApiResponse:
     """Standardized API response handler"""
@@ -247,6 +319,23 @@ class ApiHandler:
         except Exception as e:
             return ApiResponse.error(str(e))
 
+    @staticmethod
+    def update_execution(event: Dict) -> Dict:
+        """Handle PUT /executions/{executionId} endpoint"""
+        try:
+            event_body = json.loads(event["body"])
+            execution_id = event_body["executionId"]
+            updated_s3_bucket = event_body["s3Bucket"]
+            updated_s3_prefix = event_body["s3Prefix"]
+            
+            updated_execution = ExecutionManager.update_execution(execution_id, update_data)
+            return ApiResponse.success(updated_execution)
+            
+        except ValueError as ve:
+            return ApiResponse.error(str(ve), 400)
+        except Exception as e:
+            return ApiResponse.error(str(e))
+
 
 def lambda_handler(event: Dict, context: Any) -> Dict:
     """Routes API requests to appropriate handlers based on HTTP method and path"""
@@ -256,6 +345,7 @@ def lambda_handler(event: Dict, context: Any) -> Dict:
         ("DELETE", "/knowledge-base/executions"): ApiHandler.delete_executions,
         ("GET", "/knowledge-base/executions/{executionId}"): ApiHandler.get_execution_objects,
         ("GET", "/knowledge-base/executions"): ApiHandler.list_executions,
+        ("PUT", "/knowledge-base/executions/{executionId}"): ApiHandler.update_execution,
     }
 
     handler = routes.get((event["httpMethod"], event["resource"]))
