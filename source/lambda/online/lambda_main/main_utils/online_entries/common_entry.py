@@ -1,7 +1,6 @@
-import json
 import traceback
+import json 
 from typing import Annotated, Any, TypedDict, List,Union
-import copy
 
 from common_logic.common_utils.chatbot_utils import ChatbotManager
 from common_logic.common_utils.constant import (
@@ -21,7 +20,6 @@ from common_logic.common_utils.logger_utils import get_logger
 from common_logic.common_utils.prompt_utils import get_prompt_templates_from_ddb
 from common_logic.common_utils.python_utils import add_messages, update_nest_dict
 from common_logic.common_utils.response_utils import process_response
-from common_logic.common_utils.serialization_utils import JSONEncoder
 from common_logic.langchain_integration.tools import ToolManager
 from langchain_core.tools import BaseTool
 from langchain_core.messages.tool import ToolCall
@@ -29,7 +27,6 @@ from langgraph.prebuilt.tool_node import ToolNode,TOOL_CALL_ERROR_TEMPLATE
 from common_logic.langchain_integration.chains import LLMChain
 from lambda_main.main_utils.parse_config import CommonConfigParser
 from langgraph.graph import END, StateGraph
-from common_logic.langchain_integration.langgraph_integration import set_currrent_app
 from common_logic.langchain_integration.retrievers.retriever import lambda_handler as retrieve_fn
 from common_logic.common_utils.monitor_utils import (
     format_preprocess_output,
@@ -37,6 +34,9 @@ from common_logic.common_utils.monitor_utils import (
     format_intention_output
 )
 from lambda_intention_detection.intention import get_intention_results
+from common_logic.langchain_integration.chains import LLMChain
+from common_logic.common_utils.serialization_utils import JSONEncoder
+
 
 logger = get_logger("common_entry")
 
@@ -308,17 +308,13 @@ def agent(state: ChatbotState):
         **llm_config
     )
     
-
-    # print(state['chat_history'] + state['agent_tool_history'])
     agent_message:AIMessage = tool_calling_chain.invoke({
         "query":state['query'],
         "chat_history":state['chat_history'],
         "agent_tool_history":state['agent_tool_history']
     })
 
-
     send_trace(
-        # f"\n\n**agent_current_output:** \n{agent_message}\n\n **agent_current_call_number:** {agent_current_call_number}",
         f"\n\n**agent_current_output:** \n{agent_message}\n\n",
         state["stream"],
         state["ws_connection_id"]
@@ -340,23 +336,23 @@ def llm_direct_results_generation(state: ChatbotState):
     )
     logger.info(prompt_templates_from_ddb)
 
-    answer: dict = invoke_lambda(
-        event_body={
-            "llm_config": {
+    llm_config = {
                 **llm_config,
                 "stream": state["stream"],
                 "intent_type": task_type,
                 **prompt_templates_from_ddb,
-            },
-            "llm_input": {
+            }
+
+    llm_input = {
                 "query": state["query"],
                 "chat_history": state["chat_history"],
-            },
-        },
-        lambda_name="Online_LLM_Generate",
-        lambda_module_path="lambda_llm_generate.llm_generate",
-        handler_name="lambda_handler",
+            }
+    
+    chain = LLMChain.get_chain(
+        **llm_config
     )
+    answer = chain.invoke(llm_input)
+
     return {"answer": answer}
 
 
@@ -371,7 +367,6 @@ def tool_execution(state):
     """
     tools:List[BaseTool] = state['tools']
 
-    
     def handle_tool_errors(e):
         content = TOOL_CALL_ERROR_TEMPLATE.format(error=repr(e))
         logger.error(f"Tool execution error:\n{traceback.format_exc()}")
@@ -383,48 +378,12 @@ def tool_execution(state):
     )
     last_agent_message:AIMessage = state["agent_tool_history"][-1]
 
-    # print(last_agent_message)
-    # pass state to tools if needed
-    # tools_map = {tool.name:tool for tool in tools}
     tool_calls = last_agent_message.tool_calls
-    # tool_calls:List[ToolCall] = copy.deepcopy(last_agent_message.tool_calls)
-
-    # for tool_call in tool_calls:
-    #     tool = tools_map[tool_call['name']]
-    #     if tool.pass_state:
-    #         tool_call['args'].update({tool.pass_state_name:state})
 
     tool_messages:List[ToolMessage] = tool_node.invoke(
         [AIMessage(content="",tool_calls=tool_calls)]
     )
 
-    print("tool result",tool_messages[0].content)
-
-    # tool_calls = state['function_calling_parsed_tool_calls']
-    # assert len(tool_calls) == 1, tool_calls
-    # tool_call_results = []
-    # for tool_call in tool_calls:
-    #     tool_name = tool_call["name"]
-    #     tool_kwargs = tool_call['kwargs']
-    #     # call tool
-    #     output = invoke_lambda(
-    #         event_body = {
-    #             "tool_name":tool_name,
-    #             "state":state,
-    #             "kwargs":tool_kwargs
-    #             },
-    #         lambda_name="Online_Tool_Execute",
-    #         lambda_module_path="functions.lambda_tool",
-    #         handler_name="lambda_handler"   
-    #     )
-    #     tool_call_results.append({
-    #         "name": tool_name,
-    #         "output": output,
-    #         "kwargs": tool_call['kwargs'],
-    #         "model_id": tool_call['model_id']
-    #     })
-    
-    # output = format_tool_call_results(tool_call['model_id'],tool_call_results)
     send_trace(f'**tool_execute_res:** \n{tool_messages}', enable_trace=state["enable_trace"])
     return {
             "agent_tool_history": tool_messages,
@@ -550,40 +509,20 @@ def build_graph(chatbot_state_cls):
 #####################################
 # define online sub-graph for agent #
 #####################################
-# app_agent = None
 app = None
 
-
-# def register_rag_tool(
-#     name: str,
-#     description: str,
-#     scene=SceneType.COMMON,
-#     lambda_name: str = "lambda_common_tools",
-# ):
-#     tool_manager.register_tool(
-#         {
-#             "name": name,
-#             "scene": scene,
-#             "lambda_name": lambda_name,
-#             "lambda_module_path": rag.lambda_handler,
-#             "tool_def": {
-#                 "name": name,
-#                 "description": description,
-#             },
-#             "running_mode": ToolRuningMode.ONCE,
-#         }
-#     )
 
 def register_rag_tool_from_config(event_body: dict):
     group_name = event_body.get("chatbot_config").get("group_name", "Admin")
     chatbot_id = event_body.get("chatbot_config").get("chatbot_id", "admin")
     chatbot_manager = ChatbotManager.from_environ()
     chatbot = chatbot_manager.get_chatbot(group_name, chatbot_id)
-    logger.info(chatbot)
+    logger.info(f"chatbot info: {chatbot}")
     registered_tool_names = []
     for index_type, item_dict in chatbot.index_ids.items():
         if index_type != IndexType.INTENTION:
             for index_content in item_dict["value"].values():
+
                 if "indexId" in index_content and "description" in index_content:
                     # Find retriever contain index_id
                     retrievers = event_body["chatbot_config"]["private_knowledge_config"]['retrievers']
@@ -592,24 +531,52 @@ def register_rag_tool_from_config(event_body: dict):
                         if retriever["index_name"] == index_content["indexId"]:
                             break
                     assert retriever is not None,retrievers
-                    reranks = event_body["chatbot_config"]["private_knowledge_config"]['reranks']
-                    index_name = index_content["indexId"]
+                    rerankers = event_body["chatbot_config"]["private_knowledge_config"]['rerankers']
+                    if rerankers:
+                        rerankers = [rerankers[0]]
+                    index_name = index_content["indexId"].replace("-","_")
                     # TODO give specific retriever config
                     ToolManager.register_common_rag_tool(
                         retriever_config={
                             "retrievers":[retriever],
-                            "reranks":[reranks[0]],
+                            "rerankers":rerankers,
                             "llm_config": event_body["chatbot_config"]["private_knowledge_config"]['llm_config']
                         },
-                        # event_body["chatbot_config"]["private_knowledge_config"],
                         name=index_name,
                         scene=SceneType.COMMON,
-                        description=index_content["description"],
-                        # pass_state=True,
-                        # pass_state_name='state'
+                        description=index_content["description"]
                     )
                     registered_tool_names.append(index_name)
     return registered_tool_names
+
+
+def register_custom_lambda_tools_from_config(event_body):
+    agent_config_tools = event_body['chatbot_config']['agent_config']['tools']
+    new_agent_config_tools = []
+    for tool in agent_config_tools:
+        if isinstance(tool,str):
+            new_agent_config_tools.append(tool)
+        elif isinstance(tool, dict):
+            tool_name = tool['name']
+            assert tool_name not in new_agent_config_tools, f"repeat tool: {tool_name}\n{agent_config_tools}"
+            if "lambda_name" in tool:
+                ToolManager.register_aws_lambda_as_tool(
+                    lambda_name=tool["lambda_name"],
+                    tool_def={
+                       "description":tool["description"],
+                       "properties":tool['properties'],
+                       "required":tool.get('required',[])
+                    },
+                    name=tool_name,
+                    scene=SceneType.COMMON,
+                    return_direct=tool.get("return_direct",False)
+                )
+            new_agent_config_tools.append(tool_name)
+        else:
+            raise ValueError(f"tool type {type(tool)}: {tool} is not supported")
+    
+    event_body['chatbot_config']['agent_config']['tools'] = new_agent_config_tools
+    return new_agent_config_tools
 
 
 def common_entry(event_body):
@@ -622,16 +589,10 @@ def common_entry(event_body):
     if app is None:
         app = build_graph(ChatbotState)
 
-    # if app_agent is None:
-    #     app_agent = build_agent_graph(ChatbotState)
-
     # debuging
     if is_running_local():
         with open("common_entry_workflow.png", "wb") as f:
             f.write(app.get_graph().draw_mermaid_png())
-
-        # with open("common_entry_agent_workflow.png", "wb") as f:
-        #     f.write(app_agent.get_graph().draw_mermaid_png())
 
     ################################################################################
     # prepare inputs and invoke graph
@@ -650,22 +611,28 @@ def common_entry(event_body):
     agent_config = event_body["chatbot_config"]["agent_config"]
     
     # register as rag tool for each aos index
+    # print('private_knowledge_config',event_body["chatbot_config"]["private_knowledge_config"])
     registered_tool_names = register_rag_tool_from_config(event_body)
     # update private knowledge tool to agent config
     for registered_tool_name in registered_tool_names:
         if registered_tool_name not in agent_config['tools']:
             agent_config['tools'].append(registered_tool_name)
 
-    # define all knowledge rag tool
-    print('private_knowledge_config',event_body["chatbot_config"]["private_knowledge_config"])
+    
 
+    # register lambda tools
+    register_custom_lambda_tools_from_config(event_body)
+
+    # 
+    logger.info(f'event body to graph:\n{json.dumps(event_body,ensure_ascii=False,cls=JSONEncoder)}')
+
+    
+    # define all knowledge rag tool
     all_knowledge_rag_tool = ToolManager.register_common_rag_tool(
                 retriever_config=event_body["chatbot_config"]["private_knowledge_config"],
                 name="all_knowledge_rag_tool",
                 scene=SceneType.COMMON,
                 description="all knowledge rag tool",
-                # pass_state=True,
-                # pass_state_name='state'
     )
 
     # invoke graph and get results
@@ -687,12 +654,11 @@ def common_entry(event_body):
             "last_tool_messages":None,
             "all_knowledge_rag_tool":all_knowledge_rag_tool,
             "tools":None,
-            # "agent_repeated_call_limit": chatbot_config["agent_repeated_call_limit"],
-            # "agent_current_call_number": 0,
             "ddb_additional_kwargs": {}
         },
         config={"recursion_limit": 10}
     )
+    # print('extra_response',response['extra_response'])
     return response["app_response"]
 
 

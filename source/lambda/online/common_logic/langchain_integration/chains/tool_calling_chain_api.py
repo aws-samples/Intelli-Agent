@@ -1,15 +1,9 @@
 # tool calling chain
 import json
 from typing import List,Dict,Any
-import re
 from collections import defaultdict
 
-from langchain.schema.runnable import (
-    RunnableLambda,
-    RunnablePassthrough
-)
 from common_logic.common_utils.prompt_utils import get_prompt_template
-from common_logic.common_utils.logger_utils import print_llm_messages
 from langchain_core.messages import(
     AIMessage,
     SystemMessage
@@ -142,7 +136,6 @@ class Claude2ToolCallingChain(LLMChain):
 
             ]
         )
-        # chain = RunnablePassthrough.assign(chat_history=lambda x: cls.create_chat_history(x)) | llm 
         chain = tool_calling_template | llm 
         return chain
 

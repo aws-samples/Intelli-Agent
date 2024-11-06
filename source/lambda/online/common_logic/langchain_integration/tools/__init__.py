@@ -10,17 +10,14 @@ from datamodel_code_generator import DataModelType, PythonVersion
 from datamodel_code_generator.model import get_data_model_types
 from datamodel_code_generator.parser.jsonschema import JsonSchemaParser
 from langchain.tools.base import StructuredTool as _StructuredTool ,BaseTool
-# from langchain_core.pydantic_v1 import BaseModel
 from common_logic.common_utils.constant import SceneType
 from common_logic.common_utils.lambda_invoke_utils import invoke_with_lambda
 from functools import partial
 
 
-
 class StructuredTool(_StructuredTool):
-    pass
-    # pass_state:bool = False # if pass state into tool invoke 
-    # pass_state_name:str = "state" # pass state name 
+    pass 
+
 
 class ToolIdentifier(BaseModel):
     scene: SceneType
@@ -158,9 +155,7 @@ class ToolManager:
         scene=None,
         name=None,
         tool_identifier=None,   
-        return_direct=False,
-        # pass_state=True,
-        # pass_state_name='state'
+        return_direct=False
     ):
         assert scene == SceneType.COMMON, scene
         from .common_tools.rag import rag_tool
@@ -185,9 +180,7 @@ class ToolManager:
                 tool_def=RagModel
             ),
             description=description,
-            return_direct=return_direct,
-            # pass_state=pass_state,
-            # pass_state_name=pass_state_name
+            return_direct=return_direct
         )
         
         return ToolManager.register_lc_tool(

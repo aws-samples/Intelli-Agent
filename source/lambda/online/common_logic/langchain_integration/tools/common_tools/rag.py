@@ -5,6 +5,8 @@ from common_logic.common_utils.constant import (
 )
 from common_logic.common_utils.lambda_invoke_utils import send_trace
 from common_logic.langchain_integration.retrievers.retriever import lambda_handler as retrieve_fn
+from common_logic.langchain_integration.chains import LLMChain
+import threading 
 
 def rag_tool(retriever_config:dict,query=None):
     state = StateContext.get_current_state()
@@ -14,15 +16,7 @@ def rag_tool(retriever_config:dict,query=None):
     context_list.extend(state['qq_match_results'])
     figure_list = []
     retriever_params = retriever_config
-    # retriever_params = state["chatbot_config"]["private_knowledge_config"]
     retriever_params["query"] = query or state[retriever_config.get("query_key","query")]
-    # retriever_params["query"] = query
-    # output: str = invoke_lambda(
-    #     event_body=retriever_params,
-    #     lambda_name="Online_Functions",
-    #     lambda_module_path="functions.functions_utils.retriever.retriever",
-    #     handler_name="lambda_handler",
-    # )
     output = retrieve_fn(retriever_params)
 
     for doc in output["result"]["docs"]:
@@ -34,7 +28,7 @@ def rag_tool(retriever_config:dict,query=None):
     unique_figure_list = [dict(t) for t in unique_set]
     state['extra_response']['figures'] = unique_figure_list
     
-    send_trace(f"\n\n**rag-contexts:** {context_list}", enable_trace=state["enable_trace"])
+    send_trace(f"\n\n**rag-contexts:**\n\n {context_list}", enable_trace=state["enable_trace"])
     
     group_name = state['chatbot_config']['group_name']
     llm_config = state["chatbot_config"]["private_knowledge_config"]['llm_config']
@@ -47,23 +41,21 @@ def rag_tool(retriever_config:dict,query=None):
         chatbot_id=chatbot_id
     )
 
-    output: str = invoke_lambda(
-        lambda_name="Online_LLM_Generate",
-        lambda_module_path="lambda_llm_generate.llm_generate",
-        handler_name="lambda_handler",
-        event_body={
-            "llm_config": {
+    llm_config = {
                 **prompt_templates_from_ddb,
                 **llm_config,
                 "stream": state["stream"],
                 "intent_type": task_type,
-            },
-            "llm_input": {
+            }
+    
+    llm_input = {
                 "contexts": context_list,
                 "query": state["query"],
-                "chat_history": state["chat_history"],
-            },
-        },
+                "chat_history": state["chat_history"]
+        }
+    chain = LLMChain.get_chain(
+        **llm_config
     )
+    output = chain.invoke(llm_input)
     return output
 

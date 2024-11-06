@@ -17,7 +17,9 @@ from pydantic import BaseModel, Field, model_validator
 from .exceptions import LambdaInvokeError
 
 logger = get_logger("lambda_invoke_utils")
+# thread_local = threading.local()
 thread_local = threading.local()
+CURRENT_STATE = None
 
 __FUNC_NAME_MAP = {
     "query_preprocess": "Preprocess for Multi-round Conversation",
@@ -37,17 +39,22 @@ class StateContext:
     
     @classmethod
     def get_current_state(cls):
-        state = getattr(thread_local,'state',None)
+        # print("thread id",threading.get_ident(),'parent id',threading.)
+        # state = getattr(thread_local,'state',None)
+        state = CURRENT_STATE
         assert state is not None,"There is not a valid state in current context"
         return state
 
     @classmethod
     def set_current_state(cls, state):
-        setattr(thread_local, 'state', state)
+        global CURRENT_STATE 
+        assert CURRENT_STATE is None, "Parallel node executions are not alowed"
+        CURRENT_STATE = state
     
     @classmethod
     def clear_state(cls):
-        setattr(thread_local, 'state', None)
+        global CURRENT_STATE
+        CURRENT_STATE = None
 
     def __enter__(self):
         self.set_current_state(self.state)
@@ -125,8 +132,9 @@ class LambdaInvoker(BaseModel):
         )
         response_body = invoke_response["Payload"]
         response_str = response_body.read().decode()
-
         response_body = json.loads(response_str)
+        if "body" in response_body:
+            response_body = json.loads(response_body['body'])
 
         if "errorType" in response_body:
             error = (
@@ -136,7 +144,6 @@ class LambdaInvoker(BaseModel):
                 + f"{response_body['errorType']}: {response_body['errorMessage']}"
             )
             raise LambdaInvokeError(error)
-
         return response_body
 
     def invoke_with_local(

@@ -102,8 +102,7 @@ def _load_rag_tool(tool_identifier:ToolIdentifier):
                 "description": "query for retrieve",
                 "type": "string"
                 }
-        },
-        # "required": ["query"]
+        }
     }
     ToolManager.register_func_as_tool(
         scene=tool_identifier.scene,
@@ -114,7 +113,6 @@ def _load_rag_tool(tool_identifier:ToolIdentifier):
     )
 
 
-
 ################### langchain tools #######################
 
 @lazy_tool_load_decorator(SceneType.COMMON,"python_repl")
@@ -122,10 +120,16 @@ def _loadd_python_repl_tool(tool_identifier:ToolIdentifier):
     from langchain_core.tools import Tool
     from langchain_experimental.utilities import PythonREPL
     python_repl = PythonREPL()
+
+    def _run(command: str, timeout = None) -> str:
+        res = python_repl.run(command=command,timeout=timeout)
+        if not res:
+            raise ValueError(f"The output is empty, please call this tool again and refine you code, use `print` function to output the value you want to obtain.")                  
+        return res 
     repl_tool = Tool(
         name="python_repl",
-        description="A Python shell. Use this to execute python commands. Input should be a valid python command. If you want to see the output of a value, you SHOULD print it out with `print(...)`.",
-        func=python_repl.run
+        description="This tool is for arbitrary python code execution, typically scenes include scientific problems, such as math problems, physics problems, etc. Use this to execute python code. Input should be a valid python code. If you want to see the output of a value, you must print it out with `print(...)` statement.",
+        func=_run
     )
     ToolManager.register_lc_tool(
         scene=tool_identifier.scene,

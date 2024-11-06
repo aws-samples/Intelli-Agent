@@ -6,20 +6,19 @@ import sys
 
 import boto3
 from common_logic.common_utils.chatbot_utils import ChatbotManager
-from common_logic.common_utils.lambda_invoke_utils import chatbot_lambda_call_wrapper
-from functions.functions_utils.retriever.utils.aos_retrievers import (
+from common_logic.langchain_integration.retrievers.utils.aos_retrievers import (
     QueryDocumentBM25Retriever,
     QueryDocumentKNNRetriever,
     QueryQuestionRetriever,
 )
-from functions.functions_utils.retriever.utils.context_utils import (
+from common_logic.langchain_integration.retrievers.utils.context_utils import (
     retriever_results_format,
 )
-from functions.functions_utils.retriever.utils.reranker import (
+from common_logic.langchain_integration.retrievers.utils.reranker import (
     BGEReranker,
     MergeReranker,
 )
-from functions.functions_utils.retriever.utils.websearch_retrievers import (
+from common_logic.langchain_integration.retrievers.utils.websearch_retrievers import (
     GoogleRetriever,
 )
 from langchain.retrievers import (
@@ -123,8 +122,6 @@ retriever_dict = {
 
 def get_custom_retrievers(retriever):
     return retriever_dict[retriever["index_type"]](retriever)
-
-
 
 
 def lambda_handler(event, context=None):

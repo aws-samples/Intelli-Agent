@@ -2,8 +2,7 @@
 from typing import List 
 import json 
 from langchain.schema.runnable import (
-    RunnableLambda,
-    RunnablePassthrough,
+    RunnableLambda
 )
 
 
@@ -212,8 +211,6 @@ class MistraLlargeChat2407ConversationSummaryChain(Claude2ConversationSummaryCha
 
 class CohereCommandRPlusConversationSummaryChain(Claude2ConversationSummaryChain):
     model_id = LLMModelType.COHERE_COMMAND_R_PLUS
-
-
 
 
 
