@@ -8,12 +8,11 @@ import json
 import logging
 import os
 from dataclasses import dataclass
-from typing import Any, Dict, Iterator, List, Optional
+from typing import Any, Dict, List, Optional
 
 import boto3
 from boto3.dynamodb.conditions import Key
 from botocore.paginate import TokenEncoder
-from botocore.paginator import Paginator
 from constant import ExecutionStatus, OperationType, UiStatus
 
 # Configure logging
@@ -143,7 +142,7 @@ class ExecutionManager:
 
     @staticmethod
     def get_filtered_executions(
-        paginator: Paginator, cognito_groups: List[str], pagination_config: Dict[str, Any]
+        paginator, cognito_groups: List[str], pagination_config: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Get filtered executions based on user groups"""
         if "Admin" in cognito_groups:
@@ -155,7 +154,7 @@ class ExecutionManager:
             )
         else:
             response_iterator = paginator.paginate(
-            TableName=Config.EXECUTION_TABLE_NAME,
+                TableName=Config.EXECUTION_TABLE_NAME,
                 PaginationConfig=pagination_config,
                 FilterExpression="uiStatus = :active AND groupName = :group_id",
                 ExpressionAttributeValues={
@@ -185,16 +184,17 @@ class ExecutionManager:
         return output
 
     @staticmethod
-    def update_execution(execution_id: str, updated_s3_bucket: str, updated_s3_prefix: str) -> Dict[str, Any]:
+    def update_execution(execution_id: str, update_s3_bucket: str, update_s3_prefix: str) -> Dict[str, Any]:
         """Update execution details in DynamoDB
-        
+
         Args:
             execution_id: The ID of the execution to update
-            update_data: Dictionary containing fields to update
-            
+            update_s3_bucket: The new S3 bucket
+            update_s3_prefix: The new S3 prefix
+
         Returns:
             Updated execution item
-            
+
         Raises:
             ValueError: If execution not found or invalid update data
         """
@@ -202,14 +202,14 @@ class ExecutionManager:
         execution = ExecutionManager.get_execution(execution_id)
         if not execution:
             raise ValueError(f"Execution {execution_id} not found")
-        
+
         ExecutionManager.update_execution_status(execution_id, ExecutionStatus.UPDATING.value, UiStatus.ACTIVE.value)
 
         existing_s3_bucket = execution["s3Bucket"]
         existing_s3_prefix = execution["s3Prefix"]
 
-        if existing_s3_bucket == updated_s3_bucket and existing_s3_prefix == updated_s3_prefix:
-            update_input = {
+        if existing_s3_bucket == update_s3_bucket and existing_s3_prefix == update_s3_prefix:
+            update_execution_input = {
                 "s3Bucket": execution["s3Bucket"],
                 "s3Prefix": execution["s3Prefix"],
                 "chatbotId": execution["chatbotId"],
@@ -221,6 +221,10 @@ class ExecutionManager:
                 "embeddingModelType": execution["embeddingModelType"],
                 "offline": "true",
             }
+
+            aws_resources.sfn_client.start_execution(
+                stateMachineArn=Config.SFN_ARN, input=json.dumps(update_execution_input)
+            )
         else:
             # Prepare deletion input for Step Function
             deletion_input = {
@@ -240,8 +244,8 @@ class ExecutionManager:
 
             # Create new execution for the updated S3 bucket and prefix
             update_execution_input = {
-                "s3Bucket": updated_s3_bucket,
-                "s3Prefix": updated_s3_prefix,
+                "s3Bucket": update_s3_bucket,
+                "s3Prefix": update_s3_prefix,
                 "chatbotId": execution["chatbotId"],
                 "indexType": execution["indexType"],
                 "operationType": OperationType.CREATE.value,
@@ -252,9 +256,11 @@ class ExecutionManager:
                 "offline": "true",
             }
 
-            aws_resources.sfn_client.start_execution(stateMachineArn=Config.SFN_ARN, input=json.dumps(update_execution_input))
-        
-        return response.get("Attributes", {})
+            aws_resources.sfn_client.start_execution(
+                stateMachineArn=Config.SFN_ARN, input=json.dumps(update_execution_input)
+            )
+
+        return {"Message": "Update process initiated"}
 
 
 class ApiResponse:
@@ -272,9 +278,6 @@ class ApiResponse:
 
 class ApiHandler:
     """API endpoint handlers"""
-
-    def __init__(self):
-        self.execution_service = ExecutionService(aws_resources.dynamodb_client)
 
     @staticmethod
     def delete_executions(event: Dict) -> Dict:
@@ -325,12 +328,12 @@ class ApiHandler:
         try:
             event_body = json.loads(event["body"])
             execution_id = event_body["executionId"]
-            updated_s3_bucket = event_body["s3Bucket"]
-            updated_s3_prefix = event_body["s3Prefix"]
-            
-            updated_execution = ExecutionManager.update_execution(execution_id, update_data)
+            update_s3_bucket = event_body["s3Bucket"]
+            update_s3_prefix = event_body["s3Prefix"]
+
+            updated_execution = ExecutionManager.update_execution(execution_id, update_s3_bucket, update_s3_prefix)
             return ApiResponse.success(updated_execution)
-            
+
         except ValueError as ve:
             return ApiResponse.error(str(ve), 400)
         except Exception as e:
