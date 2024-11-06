@@ -369,7 +369,8 @@ def lambda_handler(event_body: dict, context: dict):
     except Exception as e:
         error_response = {"answer": str(e), "extra_response": {}}
         enable_trace = event_body.get("chatbot_config", {}).get("enable_trace", True)
-        send_trace(f"\n### Error trace\n\n{traceback.format_exc()}\n\n", enable_trace=enable_trace)
+        error_trace = f"\n### Error trace\n\n{traceback.format_exc()}\n\n"
+        send_trace(error_trace, enable_trace=enable_trace)
         process_response(event_body, error_response)
-        logger.error(f"An error occurred: {str(e)}\n{traceback.format_exc()}")
+        logger.error(f"An error occurred: {str(e)}\n{error_trace}")
         return {"error": str(e)}

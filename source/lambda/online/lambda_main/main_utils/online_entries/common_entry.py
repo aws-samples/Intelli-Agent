@@ -7,6 +7,7 @@ from common_logic.common_utils.constant import (
     LLMTaskType,
     SceneType,
     ToolRuningMode,
+    GUIDE_INTENTION_NOT_FOUND,
 )
 from common_logic.common_utils.lambda_invoke_utils import (
     invoke_lambda,
@@ -159,12 +160,18 @@ def intention_detection(state: ChatbotState):
     if state["chatbot_config"]["agent_config"]["only_use_rag_tool"]:
         return {"qq_match_results": context_list, "intent_type": "intention detected"}
 
-    intent_fewshot_examples = invoke_lambda(
+    intent_fewshot_examples, intention_ready = invoke_lambda(
         lambda_module_path="lambda_intention_detection.intention",
         lambda_name="Online_Intention_Detection",
         handler_name="lambda_handler",
         event_body=state,
     )
+
+    if not intention_ready:
+        return {
+            "answer": GUIDE_INTENTION_NOT_FOUND,
+            "intent_type": "intention not ready",
+        }
 
     intent_fewshot_tools: list[str] = list(
         set([e["intent"] for e in intent_fewshot_examples])
@@ -299,6 +306,10 @@ def matched_query_return(state: ChatbotState):
     return {"answer": state["answer"]}
 
 
+def intention_not_ready(state: ChatbotState):
+    return {"answer": state["answer"]}
+
+
 ################
 # define edges #
 ################
@@ -345,6 +356,7 @@ def build_graph(chatbot_state_cls):
     # agent mode
     workflow.add_node("intention_detection", intention_detection)
     workflow.add_node("matched_query_return", matched_query_return)
+    workflow.add_node("intention_not_ready", intention_not_ready)
     # agent sub graph
     workflow.add_node("agent", agent)
     workflow.add_node("tools_execution", tool_execution)
@@ -361,6 +373,7 @@ def build_graph(chatbot_state_cls):
     # agent mode
     workflow.add_edge("tools_execution", "agent")
     workflow.add_edge("matched_query_return", "final_results_preparation")
+    workflow.add_edge("intention_not_ready", "final_results_preparation")
     workflow.add_edge("final_results_preparation", END)
 
     # add conditional edges
@@ -386,6 +399,7 @@ def build_graph(chatbot_state_cls):
         {
             "similar query found": "matched_query_return",
             "intention detected": "agent",
+            "intention not ready": "intention_not_ready",
         },
     )
 
