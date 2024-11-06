@@ -67,10 +67,10 @@ def format_rag_data(data, qq_result) -> str:
         source = _generate_markdown_link(raw_source)
         score = item.get("score", -1)
         page_content = item.get("page_content", "").replace("\n", "<br>")
-        markdown_table += f"| {source} | {raw_source} | {score} | {page_content} |\n\n"
+        markdown_table += f"| {source} | {raw_source} | {score} | {page_content} |\n"
     
     if not is_null_or_empty(qq_result):
-        markdown_table += "**QQ Match Result**\n"
+        markdown_table += "\n**QQ Match Result**\n"
         markdown_table += "| Source File Name | Source URI | Score | Question | Answer |\n"
         markdown_table += "|-----|-----|-----|-----|-----|\n"
 
