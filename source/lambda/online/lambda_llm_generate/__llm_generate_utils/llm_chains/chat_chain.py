@@ -300,7 +300,7 @@ class Qwen2Instruct72BChatChain(Qwen2Instruct7BChatChain):
     
 
 class ChatGPT35ChatChain(LLMChain):
-    model_id = LLMModelType.CHATGPT_35_TURBO
+    model_id = LLMModelType.CHATGPT_35_TURBO_0125
     intent_type = LLMTaskType.CHAT
 
     @classmethod
