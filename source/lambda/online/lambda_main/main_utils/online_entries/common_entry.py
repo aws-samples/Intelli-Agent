@@ -526,6 +526,7 @@ def register_rag_tool_from_config(event_body: dict):
                     if rerankers:
                         rerankers = [rerankers[0]]
                     index_name = index_content["indexId"].replace("-","_")
+                    description = index_content["description"]
                     # TODO give specific retriever config
                     ToolManager.register_common_rag_tool(
                         retriever_config={
@@ -535,10 +536,11 @@ def register_rag_tool_from_config(event_body: dict):
                         },
                         name=index_name,
                         scene=SceneType.COMMON,
-                        description=index_content["description"],
+                        description=description,
                         return_direct=True
                     )
                     registered_tool_names.append(index_name)
+                    logger.info(f"registered rag tool: {index_name}, description: {description}")
     return registered_tool_names
 
 
