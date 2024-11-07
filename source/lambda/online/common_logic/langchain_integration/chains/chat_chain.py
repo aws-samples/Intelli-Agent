@@ -4,7 +4,7 @@ from langchain.schema.runnable import RunnableLambda, RunnablePassthrough
 from langchain_core.messages import AIMessage,SystemMessage
 from langchain.prompts import ChatPromptTemplate,HumanMessagePromptTemplate
 from langchain_core.messages import convert_to_messages
-
+from langchain_core.output_parsers import StrOutputParser
 
 from ..chat_models import Model
 from . import LLMChain
@@ -62,15 +62,14 @@ class Claude2ChatChain(LLMChain):
         messages_template = ChatPromptTemplate.from_messages(messages)
         llm = Model.get_model(cls.model_id, model_kwargs=model_kwargs, **kwargs)
         chain = messages_template | RunnableLambda(lambda x: x.messages)
-        if stream:
-            chain = (
-                chain | RunnableLambda(lambda messages: llm.stream(messages))
-                | RunnableLambda(lambda x: (i.content for i in x))
-            )
-        else:
-            chain = chain | llm | RunnableLambda(lambda x: x.content)
+        chain = chain | llm | StrOutputParser()
 
-        return chain
+        if stream:
+            final_chain = RunnableLambda(lambda x: chain.stream(x))
+        else:
+            final_chain = RunnableLambda(lambda x: chain.invoke(x))
+
+        return final_chain
 
 
 class Claude21ChatChain(Claude2ChatChain):
@@ -334,15 +333,14 @@ class ChatGPT35ChatChain(LLMChain):
         messages_template = ChatPromptTemplate.from_messages(messages)
         llm = Model.get_model(cls.model_id, model_kwargs=model_kwargs, **kwargs)
         chain = messages_template | RunnableLambda(lambda x: x.messages)
-        if stream:
-            chain = (
-                chain | RunnableLambda(lambda messages: llm.stream(messages))
-                | RunnableLambda(lambda x: (i.content for i in x))
-            )
-        else:
-            chain = chain | llm | RunnableLambda(lambda x: x.content)
+        chain = chain | llm | StrOutputParser()
 
-        return chain
+        if stream:
+            final_chain = RunnableLambda(lambda x: chain.stream(x))
+        else:
+            final_chain = RunnableLambda(lambda x: chain.invoke(x))
+
+        return final_chain
 
 class ChatGPT4ChatChain(ChatGPT35ChatChain):
     model_id = LLMModelType.CHATGPT_4_TURBO

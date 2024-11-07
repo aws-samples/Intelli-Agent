@@ -53,9 +53,10 @@ def rag_tool(retriever_config:dict,query=None):
                 "query": state["query"],
                 "chat_history": state["chat_history"]
         }
+
     chain = LLMChain.get_chain(
         **llm_config
     )
     output = chain.invoke(llm_input)
-    return output
+    return output,output
 

@@ -180,7 +180,8 @@ class ToolManager:
                 tool_def=RagModel
             ),
             description=description,
-            return_direct=return_direct
+            return_direct=return_direct,
+            response_format="content_and_artifact"
         )
         
         return ToolManager.register_lc_tool(

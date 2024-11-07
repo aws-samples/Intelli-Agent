@@ -4,6 +4,7 @@ from langchain.prompts import (
     HumanMessagePromptTemplate,
     SystemMessagePromptTemplate
 )
+from langchain_core.output_parsers import StrOutputParser
 
 from langchain.schema.runnable import RunnableLambda, RunnablePassthrough
 from common_logic.common_utils.constant import (
@@ -55,15 +56,15 @@ class Claude2RagLLMChain(LLMChain):
         )
         llm = Model.get_model(cls.model_id, model_kwargs=model_kwargs, **kwargs)
         chain = context_chain | ChatPromptTemplate.from_messages(chat_messages) | RunnableLambda(lambda x: print_llm_messages(f"rag messages: {x.messages}") or x)
+        
+        chain = chain | llm | StrOutputParser()
+
         if stream:
-            chain = (
-                chain
-                | RunnableLambda(lambda x: llm.stream(x.messages))
-                | RunnableLambda(lambda x: (i.content for i in x))
-            )
+            final_chain = RunnableLambda(lambda x: chain.stream(x))
         else:
-            chain = chain | llm | RunnableLambda(lambda x: x.content)
-        return chain
+            final_chain = RunnableLambda(lambda x: chain.invoke(x))
+
+        return final_chain
 
 
 class Claude21RagLLMChain(Claude2RagLLMChain):
