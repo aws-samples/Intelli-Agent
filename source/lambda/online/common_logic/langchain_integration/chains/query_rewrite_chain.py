@@ -86,7 +86,15 @@ class Claude3SonnetQueryRewriteChain(Claude2QueryRewriteChain):
 
 
 class Claude35SonnetQueryRewriteChain(Claude2QueryRewriteChain):
-    mdoel_id = "anthropic.claude-3-5-sonnet-20240620-v1:0"
+    mdoel_id = LLMModelType.CLAUDE_3_5_SONNET
+
+
+class Claude35SonnetV2QueryRewriteChain(Claude2QueryRewriteChain):
+    mdoel_id = LLMModelType.CLAUDE_3_5_SONNET_V2
+
+
+class Claude35HaikuQueryRewriteChain(Claude2QueryRewriteChain):
+    mdoel_id = LLMModelType.CLAUDE_3_5_HAIKU
 
 
 internlm2_meta_instruction = """You are an AI language model assistant. Your task is to generate 1 - 5 different sub questions OR alternate versions of the given user question to retrieve relevant documents from a vector database.
