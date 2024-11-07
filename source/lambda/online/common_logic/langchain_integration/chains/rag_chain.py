@@ -86,6 +86,13 @@ class Claude35SonnetRAGLLMChain(Claude2RagLLMChain):
     model_id = LLMModelType.CLAUDE_3_5_SONNET
 
 
+class Claude35SonnetV2RAGLLMChain(Claude2RagLLMChain):
+    model_id = LLMModelType.CLAUDE_3_5_SONNET_V2
+
+class Claude35HaikuRAGLLMChain(Claude2RagLLMChain):
+    model_id = LLMModelType.CLAUDE_3_5_HAIKU
+
+
 class Llama31Instruct70B(Claude2RagLLMChain):
     model_id = LLMModelType.LLAMA3_1_70B_INSTRUCT
 

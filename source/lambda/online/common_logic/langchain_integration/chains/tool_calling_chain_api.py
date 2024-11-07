@@ -156,6 +156,14 @@ class Claude35SonnetToolCallingChain(Claude2ToolCallingChain):
     model_id = LLMModelType.CLAUDE_3_5_SONNET
 
 
+class Claude35SonnetV2ToolCallingChain(Claude2ToolCallingChain):
+    model_id = LLMModelType.CLAUDE_3_5_SONNET_V2
+
+
+class Claude35HaikuToolCallingChain(Claude2ToolCallingChain):
+    model_id = LLMModelType.CLAUDE_3_5_HAIKU
+
+
 class Llama31Instruct70BToolCallingChain(Claude2ToolCallingChain):
     model_id = LLMModelType.LLAMA3_1_70B_INSTRUCT
 

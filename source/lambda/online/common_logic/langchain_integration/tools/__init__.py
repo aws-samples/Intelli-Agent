@@ -7,6 +7,7 @@ from functools import wraps
 import types 
 
 from datamodel_code_generator import DataModelType, PythonVersion
+from datamodel_code_generator.format import DatetimeClassType
 from datamodel_code_generator.model import get_data_model_types
 from datamodel_code_generator.parser.jsonschema import JsonSchemaParser
 from langchain.tools.base import StructuredTool as _StructuredTool ,BaseTool
@@ -39,7 +40,8 @@ class ToolManager:
         current_python_version = ".".join(platform.python_version().split(".")[:-1])
         data_model_types = get_data_model_types(
             DataModelType.PydanticBaseModel,
-            target_python_version=PythonVersion(current_python_version)
+            target_python_version=PythonVersion(current_python_version),
+            target_datetime_class=DatetimeClassType.Datetime
         )
         parser = JsonSchemaParser(
             json.dumps(tool_def,ensure_ascii=False,indent=2),

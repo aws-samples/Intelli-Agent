@@ -58,6 +58,8 @@ def _import_bedrock_models():
         Claude3Sonnet,
         Claude3Haiku,
         Claude35Sonnet,
+        Claude35Haiku,
+        Claude35SonnetV2,
         MistralLarge2407,
         Llama3d1Instruct70B,
         CohereCommandRPlus
@@ -89,6 +91,8 @@ MODEL_MODULE_LOAD_FN_MAP = {
     LLMModelType.LLAMA3_1_70B_INSTRUCT:_import_bedrock_models,
     LLMModelType.MISTRAL_LARGE_2407:_import_bedrock_models,
     LLMModelType.COHERE_COMMAND_R_PLUS:_import_bedrock_models,
+    LLMModelType.CLAUDE_3_5_SONNET_V2:_import_bedrock_models,
+    LLMModelType.CLAUDE_3_5_HAIKU:_import_bedrock_models,
 }
 
 

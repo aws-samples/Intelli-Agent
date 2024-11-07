@@ -17,6 +17,8 @@ ddb_prompt_table = dynamodb_resource.Table(ddb_prompt_table_name)
 EXPORT_MODEL_IDS = [
     LLMModelType.CLAUDE_3_HAIKU,
     LLMModelType.CLAUDE_3_SONNET,
+    LLMModelType.CLAUDE_3_5_HAIKU,
+    LLMModelType.CLAUDE_3_5_SONNET_V2,
     LLMModelType.LLAMA3_1_70B_INSTRUCT,
     LLMModelType.MISTRAL_LARGE_2407,
     LLMModelType.COHERE_COMMAND_R_PLUS
@@ -143,6 +145,8 @@ register_prompt_templates(
         LLMModelType.CLAUDE_3_HAIKU,
         LLMModelType.CLAUDE_3_SONNET,
         LLMModelType.CLAUDE_3_5_SONNET,
+        LLMModelType.CLAUDE_3_5_HAIKU,
+        LLMModelType.CLAUDE_3_5_SONNET_V2,
         LLMModelType.CLAUDE_INSTANCE,
         LLMModelType.MIXTRAL_8X7B_INSTRUCT,
         LLMModelType.LLAMA3_1_70B_INSTRUCT,
@@ -257,6 +261,8 @@ register_prompt_templates(
         LLMModelType.CLAUDE_3_HAIKU,
         LLMModelType.CLAUDE_3_SONNET,
         LLMModelType.CLAUDE_3_5_SONNET,
+        LLMModelType.CLAUDE_3_5_HAIKU,
+        LLMModelType.CLAUDE_3_5_SONNET_V2,
         LLMModelType.CLAUDE_INSTANCE,
         LLMModelType.MIXTRAL_8X7B_INSTRUCT,
         LLMModelType.QWEN2INSTRUCT72B,
@@ -279,6 +285,8 @@ register_prompt_templates(
         LLMModelType.CLAUDE_3_HAIKU,
         LLMModelType.CLAUDE_3_SONNET,
         LLMModelType.CLAUDE_3_5_SONNET,
+        LLMModelType.CLAUDE_3_5_HAIKU,
+        LLMModelType.CLAUDE_3_5_SONNET_V2,
         LLMModelType.CLAUDE_INSTANCE,
         LLMModelType.MIXTRAL_8X7B_INSTRUCT,
         LLMModelType.QWEN2INSTRUCT72B,
@@ -301,6 +309,8 @@ register_prompt_templates(
         LLMModelType.CLAUDE_3_HAIKU,
         LLMModelType.CLAUDE_3_SONNET,
         LLMModelType.CLAUDE_3_5_SONNET,
+        LLMModelType.CLAUDE_3_5_HAIKU,
+        LLMModelType.CLAUDE_3_5_SONNET_V2,
         LLMModelType.CLAUDE_INSTANCE,
         LLMModelType.MIXTRAL_8X7B_INSTRUCT,
         LLMModelType.QWEN2INSTRUCT72B,
@@ -326,6 +336,8 @@ register_prompt_templates(
         LLMModelType.CLAUDE_3_HAIKU,
         LLMModelType.CLAUDE_3_SONNET,
         LLMModelType.CLAUDE_3_5_SONNET,
+        LLMModelType.CLAUDE_3_5_HAIKU,
+        LLMModelType.CLAUDE_3_5_SONNET_V2,
     ],
     task_type=LLMTaskType.TOOL_CALLING_XML,
     prompt_template=AGENT_USER_PROMPT,
@@ -351,6 +363,8 @@ register_prompt_templates(
         LLMModelType.CLAUDE_3_HAIKU,
         LLMModelType.CLAUDE_3_SONNET,
         LLMModelType.CLAUDE_3_5_SONNET,
+        LLMModelType.CLAUDE_3_5_HAIKU,
+        LLMModelType.CLAUDE_3_5_SONNET_V2,
         LLMModelType.LLAMA3_1_70B_INSTRUCT,
         LLMModelType.MISTRAL_LARGE_2407,
         LLMModelType.COHERE_COMMAND_R_PLUS,
@@ -369,7 +383,7 @@ Here are some guidelines for you:
     1. Determine whether the current context is sufficient to answer the user's question.
     2. If the current context is sufficient to answer the user's question, call the `give_final_response` tool.
     3. If the current context is not sufficient to answer the user's question, you can consider calling the provided tools.
-    4. If the parameters of the tool you call do not meet the requirements, call the `give_rhetorical_question` tool to ask the user for more information. If the tool does not require parameters, do not call the `give_rhetorical_question` tool.
+    4. If the parameters of the tool you want to call do not meet the requirements, call the `give_rhetorical_question` tool to ask the user for more information. If the tool does not require parameters, do not call the `give_rhetorical_question` tool.
     5. Finally, output the name of the tool you want to call.
 - Always output with the same language as the content from user. If the content is english, use english to output. If the content is chinese, use chinese to output.
 </guidlines>"""
@@ -379,6 +393,8 @@ register_prompt_templates(
         LLMModelType.CLAUDE_3_HAIKU,
         LLMModelType.CLAUDE_3_SONNET,
         LLMModelType.CLAUDE_3_5_SONNET,
+        LLMModelType.CLAUDE_3_5_SONNET_V2,
+        LLMModelType.CLAUDE_3_5_HAIKU,
         LLMModelType.LLAMA3_1_70B_INSTRUCT,
         LLMModelType.MISTRAL_LARGE_2407,
         LLMModelType.COHERE_COMMAND_R_PLUS,
@@ -399,6 +415,8 @@ register_prompt_templates(
         LLMModelType.CLAUDE_21,
         LLMModelType.CLAUDE_3_HAIKU,
         LLMModelType.CLAUDE_3_SONNET,
+        LLMModelType.CLAUDE_3_5_SONNET_V2,
+        LLMModelType.CLAUDE_3_5_HAIKU,
         LLMModelType.CLAUDE_3_5_SONNET,
         LLMModelType.LLAMA3_1_70B_INSTRUCT,
         LLMModelType.MISTRAL_LARGE_2407,

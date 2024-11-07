@@ -36,6 +36,7 @@ from common_logic.common_utils.monitor_utils import (
     format_intention_output
 )
 from lambda_intention_detection.intention import get_intention_results
+from lambda_query_preprocess.query_preprocess import conversation_query_rewrite
 from common_logic.langchain_integration.chains import LLMChain
 from common_logic.common_utils.serialization_utils import JSONEncoder
 
@@ -125,11 +126,23 @@ class ChatbotState(TypedDict):
 
 @node_monitor_wrapper
 def query_preprocess(state: ChatbotState):
-    output: str = invoke_lambda(
-        event_body=state,
-        lambda_name="Online_Query_Preprocess",
-        lambda_module_path="lambda_query_preprocess.query_preprocess",
-        handler_name="lambda_handler",
+
+    # output: str = invoke_lambda(
+    #     event_body=state,
+    #     lambda_name="Online_Query_Preprocess",
+    #     lambda_module_path="lambda_query_preprocess.query_preprocess",
+    #     handler_name="lambda_handler",
+    # )
+
+    
+    query_rewrite_llm_type = state.get("query_rewrite_llm_type",None) or LLMTaskType.CONVERSATION_SUMMARY_TYPE
+    output = conversation_query_rewrite(
+        query=state['query'],
+        chat_history=state['chat_history'],
+        message_id=state['message_id'],
+        trace_infos=state['trace_infos'],
+        chatbot_config=state['chatbot_config'],
+        query_rewrite_llm_type=query_rewrite_llm_type
     )
 
     preprocess_md = format_preprocess_output(state["query"], output)

@@ -67,6 +67,14 @@ class Claude35Sonnet(Claude2):
     model_id = LLMModelType.CLAUDE_3_5_SONNET
 
 
+class Claude35SonnetV2(Claude2):
+    model_id = LLMModelType.CLAUDE_3_5_SONNET_V2
+
+
+class Claude35Haiku(Claude2):
+    model_id = LLMModelType.CLAUDE_3_5_HAIKU
+
+
 class MistralLarge2407(Claude2):
     model_id = LLMModelType.MISTRAL_LARGE_2407
 

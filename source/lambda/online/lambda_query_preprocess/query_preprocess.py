@@ -39,7 +39,7 @@ def conversation_query_rewrite(query:str, chat_history:list, message_id:str, tra
         chatbot_id=chatbot_id
     )
     logger.info(f'conversation summary prompt templates: {prompt_templates_from_ddb}')
-
+    
     cqr_llm_chain = RunnableLambda(lambda x: invoke_lambda(
         lambda_name='Online_LLM_Generate',
         lambda_module_path="lambda_llm_generate.llm_generate",

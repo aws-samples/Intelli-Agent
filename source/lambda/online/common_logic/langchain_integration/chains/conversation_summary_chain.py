@@ -196,6 +196,14 @@ class Claude3HaikuConversationSummaryChain(Claude2ConversationSummaryChain):
     model_id = LLMModelType.CLAUDE_3_HAIKU
 
 
+class Claude35HaikuConversationSummaryChain(Claude2ConversationSummaryChain):
+    model_id = LLMModelType.CLAUDE_3_5_HAIKU
+
+
+class Claude3SonnetV2ConversationSummaryChain(Claude2ConversationSummaryChain):
+    model_id = LLMModelType.CLAUDE_3_5_SONNET_V2
+
+
 class Mixtral8x7bConversationSummaryChain(Claude2ConversationSummaryChain):
     model_id = LLMModelType.MIXTRAL_8X7B_INSTRUCT
     default_model_kwargs = {"max_tokens": 4096, "temperature": 0.01}
