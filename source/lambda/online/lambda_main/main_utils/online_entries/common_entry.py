@@ -1,5 +1,6 @@
 import traceback
 import json 
+import uuid 
 from typing import Annotated, Any, TypedDict, List,Union
 
 from common_logic.common_utils.chatbot_utils import ChatbotManager
@@ -8,6 +9,7 @@ from common_logic.common_utils.constant import (
     IndexType,
     LLMTaskType,
     SceneType,
+    GUIDE_INTENTION_NOT_FOUND
 )
 from common_logic.common_utils.lambda_invoke_utils import (
     invoke_lambda,
@@ -171,12 +173,18 @@ def intention_detection(state: ChatbotState):
     intention_config = state["chatbot_config"].get("intention_config",{})
     query_key = intention_config.get("retriever_config",{}).get("query_key","query")
     query = state[query_key]
-    intent_fewshot_examples = get_intention_results(
+    intent_fewshot_examples, intention_ready = get_intention_results(
         query,
         {
             **intention_config,
         }
     )
+
+    # if not intention_ready:
+    #     return {
+    #         "answer": GUIDE_INTENTION_NOT_FOUND,
+    #         "intent_type": "intention not ready",
+    #     }
 
     intent_fewshot_tools: list[str] = list(
         set([e["intent"] for e in intent_fewshot_examples])
@@ -203,7 +211,6 @@ def agent(state: ChatbotState):
     # two cases to invoke rag function
     # 1. when valid intention fewshot found
     # 2. for the first time, agent decides to give final results
-
     # deal with once tool calling
     last_tool_messages = state["last_tool_messages"]
     if last_tool_messages and len(last_tool_messages) == 1:
@@ -214,49 +221,18 @@ def agent(state: ChatbotState):
         )
         if tool.return_direct:
             send_trace("once tool", enable_trace=state["enable_trace"])
-            return {"answer": last_tool_message.content, "exit_tool_calling": True}
-
-        # tool_execute_res = last_tool_calls_results[-1].additional_kwargs[
-        #     "raw_tool_call_results"
-        # ][0]
-        # tool_name = tool_execute_res["name"]
-        # output = tool_execute_res["output"]
-        # tool = get_tool_by_name(tool_name, scene=SceneType.COMMON)
-        # if tool.running_mode == ToolRuningMode.ONCE:
-        #     send_trace("once tool", enable_trace=state["enable_trace"])
-        #     return {"answer": output["result"], "exit_tool_calling": True}
-    
-
-
-    # if state["agent_tool_history"] and state["agent_tool_history"][-1].type=="tool_call":
-    #     tool_execute_res = state["agent_tool_history"][-1]["additional_kwargs"][
-    #         "raw_tool_call_results"
-    #     ][0]
-    #     tool_name = tool_execute_res["name"]
-    #     output = tool_execute_res["output"]
-    #     tool = get_tool_by_name(tool_name, scene=SceneType.COMMON)
-    #     if tool.running_mode == ToolRuningMode.ONCE:
-    #         send_trace("once tool", enable_trace=state["enable_trace"])
-    #         return {"answer": output["result"], "exit_tool_calling": True}
+            if tool.response_format == "content_and_artifact":
+                content = last_tool_message.artifact
+            else:
+                content = last_tool_message.content
+            return {"answer": content, "exit_tool_calling": True}
 
     no_intention_condition = not state["intent_fewshot_examples"]
-    # first_tool_final_response = False
-    # if (
-    #     (state["agent_current_call_number"] == 1)
-    #     and state["function_calling_parse_ok"]
-    #     and state["agent_tool_history"]
-    # ):
-    #     tool_execute_res = state["agent_tool_history"][-1]["additional_kwargs"][
-    #         "raw_tool_call_results"
-    #     ][0]
-    #     tool_name = tool_execute_res["name"]
-    #     if tool_name == "give_final_response":
-    #         first_tool_final_response = True
 
     if (
-        no_intention_condition
+        # no_intention_condition,
         # or first_tool_final_response
-        or state["chatbot_config"]["agent_config"]["only_use_rag_tool"]
+        state["chatbot_config"]["agent_config"]["only_use_rag_tool"]
     ):
         if state["chatbot_config"]["agent_config"]["only_use_rag_tool"]:
             send_trace("agent only use rag tool",
@@ -268,12 +244,20 @@ def agent(state: ChatbotState):
             )
          
         all_knowledge_rag_tool = state['all_knowledge_rag_tool']
-        return AIMessage(content="",tool_calls=[
+        agent_message = AIMessage(content="",tool_calls=[
             ToolCall(
+                id=uuid.uuid4().hex,
                 name=all_knowledge_rag_tool.name,
-                args={}
+                args={"query":state["query"]}
             )
         ])
+        tools = [
+            ToolManager.get_tool(
+                scene=SceneType.COMMON,
+                name=all_knowledge_rag_tool.name
+                )
+            ]
+        return {"agent_tool_history":[agent_message],"tools":tools}
 
     # normal call
     agent_config = state["chatbot_config"]['agent_config']
@@ -400,6 +384,10 @@ def matched_query_return(state: ChatbotState):
     return {"answer": state["answer"]}
 
 
+def intention_not_ready(state: ChatbotState):
+    return {"answer": state["answer"]}
+
+
 ################
 # define edges #
 ################
@@ -446,6 +434,7 @@ def build_graph(chatbot_state_cls):
     # agent mode
     workflow.add_node("intention_detection", intention_detection)
     workflow.add_node("matched_query_return", matched_query_return)
+    workflow.add_node("intention_not_ready", intention_not_ready)
     # agent sub graph
     workflow.add_node("agent", agent)
     workflow.add_node("tools_execution", tool_execution)
@@ -462,6 +451,7 @@ def build_graph(chatbot_state_cls):
     # agent mode
     workflow.add_edge("tools_execution", "agent")
     workflow.add_edge("matched_query_return", "final_results_preparation")
+    workflow.add_edge("intention_not_ready", "final_results_preparation")
     workflow.add_edge("final_results_preparation", END)
 
     # add conditional edges
@@ -487,6 +477,7 @@ def build_graph(chatbot_state_cls):
         {
             "similar query found": "matched_query_return",
             "intention detected": "agent",
+            "intention not ready": "intention_not_ready",
         },
     )
 
@@ -544,7 +535,8 @@ def register_rag_tool_from_config(event_body: dict):
                         },
                         name=index_name,
                         scene=SceneType.COMMON,
-                        description=index_content["description"]
+                        description=index_content["description"],
+                        return_direct=True
                     )
                     registered_tool_names.append(index_name)
     return registered_tool_names
@@ -626,13 +618,13 @@ def common_entry(event_body):
     # 
     logger.info(f'event body to graph:\n{json.dumps(event_body,ensure_ascii=False,cls=JSONEncoder)}')
 
-    
     # define all knowledge rag tool
     all_knowledge_rag_tool = ToolManager.register_common_rag_tool(
                 retriever_config=event_body["chatbot_config"]["private_knowledge_config"],
                 name="all_knowledge_rag_tool",
                 scene=SceneType.COMMON,
                 description="all knowledge rag tool",
+                return_direct=True
     )
 
     # invoke graph and get results

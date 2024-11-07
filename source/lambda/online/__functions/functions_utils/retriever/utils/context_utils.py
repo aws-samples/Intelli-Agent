@@ -24,7 +24,8 @@ def contexts_trunc(docs: list[dict], context_num=2):
             context_strs.append(content)
             s.add(content)
             context_docs.append(
-                {"doc": content, "source": doc["source"], "score": doc["score"]}
+                {"doc": content,
+                    "source": doc["source"], "score": doc["score"]}
             )
             context_sources.append(doc["source"])
     return {
@@ -53,8 +54,10 @@ def retriever_results_format(
                 "answer": doc.metadata.get("answer", ""),
                 "question": doc.metadata.get("question", ""),
                 "figure": doc.metadata.get("figure", []),
+                "retrieval_content": doc.metadata.get("retrieval_content", ""),
             }
         )
+
     if print_source:
         source_strs = []
         for doc_dict in doc_dicts:

@@ -367,6 +367,7 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
       message: sfn.TaskInput.fromObject({
         "executionId.$": "$.tableItemId",
         "mapResults.$": "$.mapResults",
+        "operationType.$": "$.operationType",
       }),
     });
 

@@ -2,13 +2,11 @@ import json
 import logging
 import os
 from datetime import datetime, timezone
-from urllib.parse import unquote_plus
-from utils.parameter_utils import get_query_parameter
-from chatbot_management import create_chatbot
-import boto3
-from constant import IndexTag, IndexType
-from utils.ddb_utils import initiate_chatbot, initiate_index, initiate_model
 
+import boto3
+from chatbot_management import create_chatbot
+from constant import ExecutionStatus, IndexType, UiStatus
+from utils.parameter_utils import get_query_parameter
 
 client = boto3.client("stepfunctions")
 dynamodb = boto3.resource("dynamodb")
@@ -36,9 +34,7 @@ def handler(event, context):
         "Access-Control-Allow-Methods": "*",
     }
 
-    authorizer_type = (
-        event["requestContext"].get("authorizer", {}).get("authorizerType")
-    )
+    authorizer_type = event["requestContext"].get("authorizer", {}).get("authorizerType")
     if authorizer_type == "lambda_authorizer":
         claims = json.loads(event["requestContext"]["authorizer"]["claims"])
         if "use_api_key" in claims:
@@ -72,9 +68,7 @@ def handler(event, context):
             ),
         }
     index_type = input_body["indexType"]
-    group_name = (
-        "Admin" if "Admin" in cognito_groups_list else cognito_groups_list[0]
-    )
+    group_name = "Admin" if "Admin" in cognito_groups_list else cognito_groups_list[0]
     chatbot_id = input_body.get("chatbotId", group_name.lower())
 
     if "indexId" in input_body:
@@ -93,31 +87,25 @@ def handler(event, context):
         tag = index_id
 
     input_body["indexId"] = index_id
-    input_body["groupName"] = (
-        group_name if "groupName" not in input_body else input_body["groupName"]
-    )
-    chatbot_event = {
-        "body": json.dumps({"group_name": group_name})
-    }
+    input_body["groupName"] = group_name if "groupName" not in input_body else input_body["groupName"]
+    chatbot_event = {"body": json.dumps({"group_name": group_name})}
     chatbot_result = create_chatbot(chatbot_event, group_name)
 
     input_body["tableItemId"] = context.aws_request_id
     input_body["chatbotId"] = chatbot_id
     input_body["embeddingModelType"] = chatbot_result["modelType"]
     input_payload = json.dumps(input_body)
-    response = client.start_execution(
-        stateMachineArn=sfn_arn, input=input_payload
-    )
+    response = client.start_execution(stateMachineArn=sfn_arn, input=input_payload)
 
     # Update execution table item
     if "tableItemId" in input_body:
         del input_body["tableItemId"]
     execution_id = response["executionArn"].split(":")[-1]
     input_body["sfnExecutionId"] = execution_id
-    input_body["executionStatus"] = "IN-PROGRESS"
+    input_body["executionStatus"] = ExecutionStatus.IN_PROGRESS.value
     input_body["indexId"] = index_id
     input_body["executionId"] = context.aws_request_id
-    input_body["uiStatus"] = "ACTIVE"
+    input_body["uiStatus"] = UiStatus.ACTIVE.value
     input_body["createTime"] = create_time
 
     execution_table.put_item(Item=input_body)

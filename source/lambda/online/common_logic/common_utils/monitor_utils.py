@@ -5,10 +5,16 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 
-def _generate_markdown_link(file_path: str) -> str:
-    file_name = file_path.split("/")[-1]
-    markdown_link = f"[{file_name}]({file_path})"
-    return markdown_link
+def is_null_or_empty(value):
+    if value is None:
+        return True
+    elif isinstance(value, (dict, list, str)) and not value:
+        return True
+    return False
+
+
+def _file_name_in_path(file_path: str) -> str:
+    return file_path.split("/")[-1]
 
 
 def format_qq_data(data) -> str:
@@ -21,19 +27,19 @@ def format_qq_data(data) -> str:
     Returns:
         str: A markdown table string representing the formatted data.
     """
-    if data is None or len(data) == 0:
+    if is_null_or_empty(data):
         return ""
     
     markdown_table = "**QQ Match Result**\n"
     markdown_table += "| Source | Score | Question | Answer |\n"
     markdown_table += "|-----|-----|-----|-----|\n"
 
-    for qq_item in data:
-        qq_source = _generate_markdown_link(qq_item.get("source", ""))
-        qq_score = qq_item.get("score", -1)
-        qq_question = qq_item.get("page_content", "").replace("\n", "<br>")
-        qq_answer = qq_item.get("answer", "").replace("\n", "<br>")
-        markdown_table += f"| {qq_source} | {qq_score} | {qq_question} | {qq_answer} |\n"
+    # Data contains only one QQ match result
+    qq_source = _file_name_in_path(data.get("source", ""))
+    qq_score = data.get("score", -1)
+    qq_question = data.get("page_content", "").replace("\n", "<br>")
+    qq_answer = data.get("answer", "").replace("\n", "<br>")
+    markdown_table += f"| {qq_source} | {qq_score} | {qq_question} | {qq_answer} |\n"
 
     return markdown_table
 
@@ -49,37 +55,32 @@ def format_rag_data(data, qq_result) -> str:
     Returns:
         str: A markdown table string representing the formatted data.
     """
-    if data is None or len(data) == 0:
+    if is_null_or_empty(data):
         return ""
 
-    markdown_table = "| Source | Score | RAG Context |\n"
-    markdown_table += "|-----|-----|-----|\n"
-    for item in data:
-        source = _generate_markdown_link(item.get("source", ""))
-        score = item.get("score", -1)
-        page_content = item.get("page_content", "").replace("\n", "<br>")
-        markdown_table += f"| {source} | {score} | {page_content} |\n\n"
-    
-    markdown_table += "**QQ Match Result**\n"
-    markdown_table += "| Source | Score | Question | Answer |\n"
+    markdown_table = "| Source File Name | Source URI | Score | RAG Context |\n"
     markdown_table += "|-----|-----|-----|-----|\n"
+    for item in data:
+        raw_source = item.get("source", "")
+        source = _file_name_in_path(raw_source)
+        score = item.get("score", -1)
+        page_content = item.get("retrieval_content", "").replace("\n", "<br>")
+        markdown_table += f"| {source} | {raw_source} | {score} | {page_content} |\n"
+    
+    if not is_null_or_empty(qq_result):
+        markdown_table += "\n**QQ Match Result**\n"
+        markdown_table += "| Source File Name | Source URI | Score | Question | Answer |\n"
+        markdown_table += "|-----|-----|-----|-----|-----|\n"
 
-    for qq_item in qq_result:
-        qq_source = _generate_markdown_link(qq_item.get("source", ""))
-        qq_score = qq_item.get("score", -1)
-        qq_question = qq_item.get("page_content", "").replace("\n", "<br>")
-        qq_answer = qq_item.get("answer", "").replace("\n", "<br>")
-        markdown_table += f"| {qq_source} | {qq_score} | {qq_question} | {qq_answer} |\n"
+        for qq_item in qq_result:
+            raw_qq_source = qq_item.get("source", "")
+            qq_source = _file_name_in_path(raw_qq_source)
+            qq_score = qq_item.get("score", -1)
+            qq_question = qq_item.get("page_content", "").replace("\n", "<br>")
+            qq_answer = qq_item.get("answer", "").replace("\n", "<br>")
+            markdown_table += f"| {qq_source} | {raw_qq_source} | {qq_score} | {qq_question} | {qq_answer} |\n"
 
     return markdown_table
-
-
-def is_null_or_empty(value):
-    if value is None:
-        return True
-    elif isinstance(value, (dict, list, str)) and not value:
-        return True
-    return False
 
 
 def format_preprocess_output(ori_query, rewrite_query):
