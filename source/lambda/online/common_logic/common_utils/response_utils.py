@@ -107,7 +107,6 @@ def stream_response(event_body:dict, response:dict):
                 },
                 ws_connection_id=ws_connection_id
             )
-
             answer_str += chunk
         
         if log_first_token_time:
