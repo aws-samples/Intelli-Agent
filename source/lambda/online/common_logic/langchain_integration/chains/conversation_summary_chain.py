@@ -137,6 +137,7 @@ class Claude2ConversationSummaryChain(LLMChain):
 
     @classmethod
     def create_messages_chain(cls,**kwargs):
+        enable_prefill = kwargs['enable_prefill']
         system_prompt = get_prompt_template(
             model_id=cls.model_id,
             task_type=cls.intent_type,
@@ -157,13 +158,17 @@ class Claude2ConversationSummaryChain(LLMChain):
 
         system_prompt = kwargs.get("system_prompt", system_prompt)
         user_prompt = kwargs.get('user_prompt', user_prompt)
+        
 
-        cqr_template = ChatPromptTemplate.from_messages([
+        messages = [
             SystemMessage(content=system_prompt),
             ('placeholder','{few_shots}'),
-            HumanMessagePromptTemplate.from_template(user_prompt),
-            AIMessage(content=cls.prefill)
-        ])
+            HumanMessagePromptTemplate.from_template(user_prompt)
+        ]
+        if enable_prefill:
+            messages.append(AIMessage(content=cls.prefill))
+
+        cqr_template = ChatPromptTemplate.from_messages(messages)
         return RunnableLambda(lambda x: cls.create_messages_inputs(x,user_prompt=user_prompt,few_shots=json.loads(few_shots))) | cqr_template 
  
     @classmethod
@@ -174,9 +179,9 @@ class Claude2ConversationSummaryChain(LLMChain):
             model_id=cls.model_id,
             model_kwargs=model_kwargs,
         )
-        messages_chain = cls.create_messages_chain(**kwargs)
+        messages_chain = cls.create_messages_chain(**kwargs,enable_prefill=llm.enable_prefill)
         chain = messages_chain | RunnableLambda(lambda x: print_llm_messages(f"conversation summary messages: {x.messages}") or x.messages) \
-              | llm | RunnableLambda(lambda x: x.content)
+              | llm | RunnableLambda(lambda x: x.content.replace(cls.prefill,"").strip())
         return chain
 
 
@@ -200,7 +205,10 @@ class Claude35HaikuConversationSummaryChain(Claude2ConversationSummaryChain):
     model_id = LLMModelType.CLAUDE_3_5_HAIKU
 
 
-class Claude3SonnetV2ConversationSummaryChain(Claude2ConversationSummaryChain):
+class Claude35SonnetConversationSummaryChain(Claude2ConversationSummaryChain):
+    model_id = LLMModelType.CLAUDE_3_5_SONNET
+
+class Claude35SonnetV2ConversationSummaryChain(Claude2ConversationSummaryChain):
     model_id = LLMModelType.CLAUDE_3_5_SONNET_V2
 
 

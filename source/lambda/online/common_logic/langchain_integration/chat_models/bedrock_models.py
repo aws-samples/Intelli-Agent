@@ -11,7 +11,8 @@ logger = get_logger("bedrock_model")
 
 
 class ChatBedrockConverse(_ChatBedrockConverse):
-    enable_auto_tool_choice: bool = True
+    enable_auto_tool_choice: bool = False
+    enable_prefill: bool = True
 
 
 # Bedrock model type
@@ -40,6 +41,7 @@ class Claude2(Model):
             region_name=region_name,
             model=cls.model_id,
             enable_auto_tool_choice=cls.enable_auto_tool_choice,
+            enable_prefill=cls.enable_prefill,
             **model_kwargs,
         )
         llm.client.converse_stream = llm_messages_print_decorator(llm.client.converse_stream)
@@ -77,16 +79,19 @@ class Claude35Haiku(Claude2):
 
 class MistralLarge2407(Claude2):
     model_id = LLMModelType.MISTRAL_LARGE_2407
+    enable_prefill = False
 
 
 class Llama3d1Instruct70B(Claude2):
     model_id = LLMModelType.LLAMA3_1_70B_INSTRUCT
     enable_auto_tool_choice = False 
+    enable_prefill = False
 
 
 class CohereCommandRPlus(Claude2):
     model_id = LLMModelType.COHERE_COMMAND_R_PLUS
     enable_auto_tool_choice = False 
+    enable_prefill = False
     
 
 

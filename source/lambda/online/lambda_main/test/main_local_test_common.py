@@ -187,12 +187,12 @@ def test_multi_turns_agent_pr():
     # }
     default_llm_config = {
         # 'model_id': "anthropic.claude-3-5-sonnet-20240620-v1:0",
-        'model_id': "anthropic.claude-3-5-haiku-20241022-v1:0",
+        # 'model_id': "anthropic.claude-3-5-haiku-20241022-v1:0",
         # 'model_id': "meta.llama3-1-70b-instruct-v1:0",
         # 'model_id':"mistral.mistral-large-2407-v1:0",
-        # 'model_id':"cohere.command-r-plus-v1:0",
+        'model_id':"cohere.command-r-plus-v1:0",
         'model_kwargs': {
-            'temperature': 0.1,
+            'temperature': 0.01,
             'max_tokens': 4096
         }
     }

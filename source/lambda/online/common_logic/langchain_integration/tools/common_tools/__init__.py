@@ -9,7 +9,7 @@ def _load_weather_tool(tool_identifier:ToolIdentifier):
         "description": "Get the current weather for `city_name`",
         "properties": {
             "city_name": {
-                "description": "The name of the city to be queried",
+                "description": "The name of the city",
                 "type": "string"
             },
         },
@@ -28,7 +28,7 @@ def _load_weather_tool(tool_identifier:ToolIdentifier):
 def _load_rhetorical_tool(tool_identifier:ToolIdentifier):
     from . import give_rhetorical_question
     tool_def = {
-        "description": "If the user's question is not clear and specific, resulting in the inability to call other tools, please call this tool to ask the user a rhetorical question",
+        "description": "This tool is designed to handle the scenario when required parameters are missing from other tools. It prompts the user to provide the necessary information, ensuring that all essential parameters are collected before proceeding. This tools enhances user interaction by clarifying what is needed and improving the overall usability of the application.",
         "properties": {
             "question": {
                 "description": "The rhetorical question to user",

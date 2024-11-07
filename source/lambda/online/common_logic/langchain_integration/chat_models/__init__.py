@@ -38,6 +38,7 @@ class ModelMeta(type):
 class Model(ModeMixins,metaclass=ModelMeta):
     model_id: str = None
     enable_auto_tool_choice: bool = True
+    enable_prefill: bool = True
     model_map = {}
 
     @classmethod
