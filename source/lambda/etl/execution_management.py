@@ -260,7 +260,7 @@ class ExecutionManager:
                 stateMachineArn=Config.SFN_ARN, input=json.dumps(update_execution_input)
             )
 
-        return {"Message": "Update process initiated"}
+        return {"Message": "Update process initiated", "execution_id": execution_id}
 
 
 class ApiResponse:

@@ -74,6 +74,11 @@ const AddLibrary: React.FC<AddLibraryProps> = (props: AddLibraryProps) => {
         } catch (error) {
           alertMsg(error instanceof Error ? error.message : String(error), 'error');
         }
+      } else {
+        setIndexName('');
+        setIndexType(DOC_INDEX_TYPE_LIST[0]);
+        setTagName('');
+        setAdvanceExpand(false);
       }
     };
   
