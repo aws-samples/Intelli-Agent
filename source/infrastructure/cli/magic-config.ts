@@ -76,7 +76,15 @@ async function getAwsAccountAndRegion() {
 }
 
 async function getCustomDomainEndpoint(region: string) {
-  const ssm = new AWS.SSM({ region });
+  // Create SSM client with EC2 metadata credentials
+  const ssm = new AWS.SSM({ 
+    region,
+    credentials: new AWS.EC2MetadataCredentials({
+      httpOptions: { timeout: 5000 }, // Optional: adds a timeout
+      maxRetries: 3 // Optional: number of retries
+    })
+  });
+
   try {
     const parameter = await ssm.getParameter({
       Name: 'AICSCustomDomainEndpoint',
