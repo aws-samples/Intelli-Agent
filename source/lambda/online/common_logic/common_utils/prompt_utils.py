@@ -385,6 +385,7 @@ Here are some guidelines for you:
     3. If the current context is not sufficient to answer the user's question, you can consider calling one of the provided tools.
     4. If the parameters of the tool you want to call do not meet the requirements, call the `give_rhetorical_question` tool to ask the user for more information. 
 - Always output with the same language as the content from user. If the content is english, use english to output. If the content is chinese, use chinese to output.
+- Always call one tool at a time.
 </guidlines>"""
 
 # - Output your thinking before to call one tool.
@@ -397,10 +398,36 @@ register_prompt_templates(
         LLMModelType.CLAUDE_3_5_HAIKU,
         LLMModelType.LLAMA3_1_70B_INSTRUCT,
         LLMModelType.MISTRAL_LARGE_2407,
-        LLMModelType.COHERE_COMMAND_R_PLUS,
+        # LLMModelType.COHERE_COMMAND_R_PLUS,
     ],
     task_type=LLMTaskType.TOOL_CALLING_API,
     prompt_template=AGENT_SYSTEM_PROMPT,
+    prompt_name="agent_system_prompt"
+)
+
+
+
+AGENT_SYSTEM_PROMPT_COHERE = """\
+You are a helpful and honest AI assistant. Today is {date},{weekday}.
+You need to carefully understand the user's intent and then invoke the tool to reply. 
+
+## Tool use guidelines
+Here are steps for you to decide to use which tool:
+* Determine whether the current context is sufficient to answer the user's question.
+* If the current context is sufficient to answer the user's question, call the `give_final_response` tool.
+* If the current context is not sufficient to answer the user's question, you can consider calling one of the provided tools.
+* If the parameters of the tool you want to call do not meet the requirements, call the `give_rhetorical_question` tool to ask the user for more information. 
+
+## Reply rules
+* Always output with the same language as the content from user. If the content is english, use english to output. If the content is chinese, use chinese to output.
+* Always call one tool at a time."""
+
+register_prompt_templates(
+    model_ids=[
+        LLMModelType.COHERE_COMMAND_R_PLUS
+    ],
+    task_type=LLMTaskType.TOOL_CALLING_API,
+    prompt_template=AGENT_SYSTEM_PROMPT_COHERE,
     prompt_name="agent_system_prompt"
 )
 
