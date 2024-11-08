@@ -90,7 +90,8 @@ async function getCustomDomainEndpoint(region: string) {
       Name: 'AICSCustomDomainEndpoint',
       WithDecryption: true
     }).promise();
-    return parameter.Parameter?.Value ?? "";
+    let customDomainEndpoint = parameter.Parameter?.Value ?? "";
+    return `https://${customDomainEndpoint}`;
   } catch (error) {
     console.log("Could not fetch customDomainEndpoint from SSM, using default value");
     console.log(error);
