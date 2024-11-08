@@ -75,6 +75,20 @@ async function getAwsAccountAndRegion() {
   return { AWS_ACCOUNT, AWS_REGION };
 }
 
+async function getCustomDomainEndpoint(region: string) {
+  const ssm = new AWS.SSM({ region });
+  try {
+    const parameter = await ssm.getParameter({
+      Name: 'AICSCustomDomainEndpoint',
+      WithDecryption: true
+    }).promise();
+    return parameter.Parameter?.Value ?? "";
+  } catch (error) {
+    console.log("Could not fetch customDomainEndpoint from SSM, using default value");
+    console.log(error);
+    return "";
+  }
+}
 
 
 /**
@@ -151,6 +165,8 @@ function createConfig(config: any): void {
 async function processCreateOptions(options: any): Promise<void> {
   // Get AWS account ID and region
   const { AWS_ACCOUNT, AWS_REGION } = await getAwsAccountAndRegion();
+  console.log("AWS_REGION", AWS_REGION);
+  const customDomainEndpoint = await getCustomDomainEndpoint(AWS_REGION ?? "");
   const mandatoryQuestions = [
     {
       type: "input",
@@ -192,7 +208,7 @@ async function processCreateOptions(options: any): Promise<void> {
       type: "confirm",
       name: "enableKnowledgeBase",
       message: "Do you want to use knowledge base in this solution?",
-      initial: options.enableKnowledgeBase ?? false,
+      initial: options.enableKnowledgeBase ?? true,
     },
     {
       type: "select",
@@ -239,7 +255,7 @@ async function processCreateOptions(options: any): Promise<void> {
       type: "confirm",
       name: "useCustomDomain",
       message: "Do you want to use a custom domain for your knowledge base?",
-      initial: options.useCustomDomain ?? false,
+      initial: options.useCustomDomain ?? true,
       skip(): boolean {
         if ( !(this as any).state.answers.enableKnowledgeBase ||
           (this as any).state.answers.knowledgeBaseType !== "intelliAgentKb" ||
@@ -253,7 +269,7 @@ async function processCreateOptions(options: any): Promise<void> {
       type: "input",
       name: "customDomainEndpoint",
       message: "Please enter the endpoint of the custom domain",
-      initial: options.customDomainEndpoint ?? "",
+      initial: options.customDomainEndpoint ?? customDomainEndpoint,
       validate(customDomainEndpoint: string) {
         return (this as any).skipped ||
           RegExp(/^https:\/\/[a-z0-9-]+.[a-z0-9-]{2,}\.es\.amazonaws\.com$/).test(customDomainEndpoint)
@@ -274,7 +290,7 @@ async function processCreateOptions(options: any): Promise<void> {
       type: "confirm",
       name: "enableIntelliAgentKbModel",
       message: "Do you want to inject PDF files into your knowledge base?",
-      initial: options.enableIntelliAgentKbModel ?? true,
+      initial: options.enableIntelliAgentKbModel ?? false,
       skip(): boolean {
         return (!(this as any).state.answers.enableKnowledgeBase ||
           (this as any).state.answers.knowledgeBaseType !== "intelliAgentKb");
@@ -339,7 +355,7 @@ async function processCreateOptions(options: any): Promise<void> {
       type: "confirm",
       name: "enableConnect",
       message: "Do you want to integrate it with Amazon Connect?",
-      initial: options.enableConnect ?? true,
+      initial: options.enableConnect ?? false,
       skip(): boolean {
         return (!(this as any).state.answers.enableChat);
       },

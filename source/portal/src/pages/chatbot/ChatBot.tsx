@@ -78,7 +78,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   // );
   const [chatbotList, setChatbotList] = useState<SelectProps.Option[]>([]);
   const [chatbotOption, setChatbotOption] = useState<SelectProps.Option>(null as any);
-  const [useChatHistory, setUseChatHistory] = useState(true);
+  const [useChatHistory, setUseChatHistory] = useState(false);
   const [enableTrace, setEnableTrace] = useState(true);
   const [showTrace, setShowTrace] = useState(true);
   const [onlyRAGTool, setOnlyRAGTool] = useState(false);
