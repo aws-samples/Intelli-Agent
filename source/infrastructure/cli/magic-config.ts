@@ -66,8 +66,8 @@ async function getAwsAccountAndRegion() {
     AWS_REGION = new AWS.IniLoader().loadFrom({ isConfig: true }).default.region;
 
   } catch (error) {
-    console.error("No default region found in the AWS credentials file. Using default region: us-east-1");
-    AWS_REGION = 'us-east-1';
+    console.error("No default region found in the AWS credentials file. Using default region: us-west-2");
+    AWS_REGION = 'us-west-2';
   }
 
   console.log("AWS_ACCOUNT", AWS_ACCOUNT);
