@@ -91,6 +91,7 @@ async function getCustomValueFromSSM(region: string) {
       WithDecryption: true
     }).promise();
     let customDomainEndpoint = domainParameter.Parameter?.Value ?? "";
+    customDomainEndpoint = `https://${customDomainEndpoint}`;
     const bucketParameter = await ssm.getParameter({
       Name: 'AICSWorkshopBucket',
       WithDecryption: true
