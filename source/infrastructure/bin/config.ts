@@ -25,6 +25,10 @@ export function getConfig(): SystemConfig {
               customDomainEndpoint: ""
             },
           },
+          customDocumentsBucket: {
+            enabled: false,
+            bucketName: ""
+          },
           knowledgeBaseModel: {
             enabled: true,
             ecrRepository: "intelli-agent-knowledge-base",

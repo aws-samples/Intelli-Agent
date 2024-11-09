@@ -75,7 +75,7 @@ async function getAwsAccountAndRegion() {
   return { AWS_ACCOUNT, AWS_REGION };
 }
 
-async function getCustomDomainEndpoint(region: string) {
+async function getCustomValueFromSSM(region: string) {
   // Create SSM client with EC2 metadata credentials
   const ssm = new AWS.SSM({ 
     region,
@@ -86,16 +86,21 @@ async function getCustomDomainEndpoint(region: string) {
   });
 
   try {
-    const parameter = await ssm.getParameter({
+    const domainParameter = await ssm.getParameter({
       Name: 'AICSCustomDomainEndpoint',
       WithDecryption: true
     }).promise();
-    let customDomainEndpoint = parameter.Parameter?.Value ?? "";
-    return `https://${customDomainEndpoint}`;
+    let customDomainEndpoint = domainParameter.Parameter?.Value ?? "";
+    const bucketParameter = await ssm.getParameter({
+      Name: 'AICSWorkshopBucket',
+      WithDecryption: true
+    }).promise();
+    let customBucket = bucketParameter.Parameter?.Value ?? "";
+    return { customDomainEndpoint, customBucket };
   } catch (error) {
     console.log("Could not fetch customDomainEndpoint from SSM, using default value");
     console.log(error);
-    return "";
+    return { customDomainEndpoint: "", customBucket: "" };
   }
 }
 
@@ -131,6 +136,8 @@ async function getCustomDomainEndpoint(region: string) {
       options.useCustomDomain = config.knowledgeBase.knowledgeBaseType.intelliAgentKb.vectorStore.opensearch.useCustomDomain;
       options.customDomainEndpoint = config.knowledgeBase.knowledgeBaseType.intelliAgentKb.vectorStore.opensearch.customDomainEndpoint;
       options.enableIntelliAgentKbModel = config.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.enabled;
+      options.useCustomDocumentsBucket = config.knowledgeBase.knowledgeBaseType.intelliAgentKb.customDocumentsBucket.enabled;
+      options.uploadDocumentsBucketName = config.knowledgeBase.knowledgeBaseType.intelliAgentKb.customDocumentsBucket.bucketName;
       options.knowledgeBaseModelEcrRepository = config.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.ecrRepository;
       options.knowledgeBaseModelEcrImageTag = config.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.ecrImageTag;
       options.enableChat = config.chat.enabled;
@@ -175,7 +182,7 @@ async function processCreateOptions(options: any): Promise<void> {
   // Get AWS account ID and region
   const { AWS_ACCOUNT, AWS_REGION } = await getAwsAccountAndRegion();
   console.log("AWS_REGION", AWS_REGION);
-  const customDomainEndpoint = await getCustomDomainEndpoint(AWS_REGION ?? "");
+  const { customDomainEndpoint, customBucket } = await getCustomValueFromSSM(AWS_REGION ?? "");
   const mandatoryQuestions = [
     {
       type: "input",
@@ -293,6 +300,30 @@ async function processCreateOptions(options: any): Promise<void> {
           return true;
         }
         return false;
+      },
+    },
+    {
+      type: "confirm",
+      name: "useCustomDocumentsBucket",
+      message: "Do you want to use a custom bucket for the upload documents?",
+      initial: options.useCustomDocumentsBucket ?? true,
+      skip(): boolean {
+        if ( !(this as any).state.answers.enableKnowledgeBase ||
+          (this as any).state.answers.knowledgeBaseType !== "intelliAgentKb") {
+          return true;
+        }
+        return false;
+      },
+    },
+    {
+      type: "input",
+      name: "uploadDocumentsBucketName",
+      message: "Please enter the name of the S3 Bucket for the upload documents",
+      initial: options.uploadDocumentsBucketName ?? customBucket,
+      skip(): boolean {
+        return (!(this as any).state.answers.enableKnowledgeBase ||
+          (this as any).state.answers.knowledgeBaseType !== "intelliAgentKb" ||
+          !(this as any).state.answers.useCustomDocumentsBucket);
       },
     },
     {
@@ -487,6 +518,10 @@ async function processCreateOptions(options: any): Promise<void> {
               useCustomDomain: answers.useCustomDomain,
               customDomainEndpoint: answers.customDomainEndpoint,
             },
+          },
+          customDocumentsBucket: {
+            enabled: answers.useCustomDocumentsBucket,
+            bucketName: answers.uploadDocumentsBucketName,
           },
           knowledgeBaseModel: {
             enabled: answers.enableIntelliAgentKbModel,

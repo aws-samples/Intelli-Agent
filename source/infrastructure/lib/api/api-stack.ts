@@ -71,21 +71,33 @@ export class ApiConstruct extends Construct {
     const apiLambdaAuthorizerLayer = lambdaLayers.createAuthorizerLayer();
 
     // S3 bucket for storing documents
-    const s3Bucket = new s3.Bucket(this, "llm-bot-documents", {
-      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
-      cors: [
-        {
-          allowedMethods: [
-            s3.HttpMethods.GET,
-            s3.HttpMethods.POST,
-            s3.HttpMethods.PUT,
-            s3.HttpMethods.DELETE,
-          ],
-          allowedOrigins: ["*"],
-          allowedHeaders: ["*"],
-        },
-      ],
-    });
+    let s3Bucket: s3.IBucket;
+    
+    if (props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.customDocumentsBucket?.enabled) {
+      // Use existing bucket
+      s3Bucket = s3.Bucket.fromBucketName(
+        this, 
+        "llm-bot-documents",
+        props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.customDocumentsBucket.bucketName
+      );
+    } else {
+      // Create new bucket
+      s3Bucket = new s3.Bucket(this, "llm-bot-documents", {
+        blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+        cors: [
+          {
+            allowedMethods: [
+              s3.HttpMethods.GET,
+              s3.HttpMethods.POST,
+              s3.HttpMethods.PUT,
+              s3.HttpMethods.DELETE,
+            ],
+            allowedOrigins: ["*"],
+            allowedHeaders: ["*"],
+          },
+        ],
+      });
+    }
 
     new S3Deployment.BucketDeployment(this, 'IntentionCorpusTemplate', {
       memoryLimit: 512,
