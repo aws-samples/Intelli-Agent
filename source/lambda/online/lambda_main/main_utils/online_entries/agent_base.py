@@ -113,7 +113,7 @@ def tool_execution(state):
                 },
             lambda_name="Online_Tool_Execute",
             lambda_module_path="functions.lambda_tool",
-            handler_name="lambda_handler"   
+            handler_name="lambda_handler"
         )
         tool_call_results.append({
             "name": tool_name,
