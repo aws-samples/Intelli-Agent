@@ -2,12 +2,12 @@ from typing import Annotated, Any, TypedDict
 
 from common_logic.common_utils.chatbot_utils import ChatbotManager
 from common_logic.common_utils.constant import (
-    ChatbotMode,
     IndexType,
     LLMTaskType,
     SceneType,
     ToolRuningMode,
     GUIDE_INTENTION_NOT_FOUND,
+    Threshold,
 )
 from common_logic.common_utils.lambda_invoke_utils import (
     invoke_lambda,
@@ -21,6 +21,7 @@ from common_logic.common_utils.python_utils import add_messages, update_nest_dic
 from common_logic.common_utils.response_utils import process_response
 from common_logic.common_utils.serialization_utils import JSONEncoder
 from common_logic.common_utils.monitor_utils import format_intention_output, format_preprocess_output, format_qq_data
+from common_logic.common_utils.ddb_utils import custom_index_desc
 from functions import get_tool_by_name
 from functions._tool_base import tool_manager
 from functions.lambda_common_tools import rag
@@ -137,6 +138,7 @@ def intention_detection(state: ChatbotState):
         handler_name="lambda_handler",
     )
     context_list = []
+    qq_match_contexts = []
     qq_match_threshold = retriever_params["threshold"]
     for doc in output["result"]["docs"]:
         if doc["retrieval_score"] > qq_match_threshold:
@@ -153,9 +155,12 @@ def intention_detection(state: ChatbotState):
                 "answer": query_content,
                 "intent_type": "similar query found",
             }
-        question = doc["question"]
-        answer = doc["answer"]
-        context_list.append(f"问题: {question}, \n答案：{answer}")
+
+        if doc["retrieval_score"] > Threshold.QQ_IN_RAG_CONTEXT:
+            question = doc["question"]
+            answer = doc["answer"]
+            context_list.append(f"问题: {question}, \n答案：{answer}")
+            qq_match_contexts.append(doc)
 
     if state["chatbot_config"]["agent_config"]["only_use_rag_tool"]:
         return {"qq_match_results": context_list, "intent_type": "intention detected"}
@@ -167,28 +172,36 @@ def intention_detection(state: ChatbotState):
         event_body=state,
     )
 
-    if not intention_ready:
+    group_name = state["chatbot_config"]["group_name"]
+    chatbot_id = state["chatbot_config"]["chatbot_id"]
+    custom_qd_index = custom_index_desc(group_name, chatbot_id)
+
+    if not intention_ready and not custom_qd_index:
         return {
             "answer": GUIDE_INTENTION_NOT_FOUND,
             "intent_type": "intention not ready",
         }
+    elif not intention_ready and custom_qd_index:
+        intent_fewshot_examples = []
+        intent_fewshot_tools: list[str] = []
+    else:
+        intent_fewshot_tools: list[str] = list(
+            set([e["intent"] for e in intent_fewshot_examples])
+        )
 
-    intent_fewshot_tools: list[str] = list(
-        set([e["intent"] for e in intent_fewshot_examples])
-    )
+        markdown_table = format_intention_output(intent_fewshot_examples)
+        send_trace(
+            f"{markdown_table}",
+            state["stream"],
+            state["ws_connection_id"],
+            state["enable_trace"],
+        )
 
-    markdown_table = format_intention_output(intent_fewshot_examples)
-    send_trace(
-        f"{markdown_table}",
-        state["stream"],
-        state["ws_connection_id"],
-        state["enable_trace"],
-    )
     return {
         "intent_fewshot_examples": intent_fewshot_examples,
         "intent_fewshot_tools": intent_fewshot_tools,
         "qq_match_results": context_list,
-        "qq_match_contexts": output["result"]["docs"],
+        "qq_match_contexts": qq_match_contexts,
         "intent_type": "intention detected",
     }
 
