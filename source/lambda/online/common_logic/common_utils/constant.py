@@ -144,6 +144,7 @@ class LLMModelType(ConstantBase):
     QWEN2INSTRUCT72B = "qwen2-72B-instruct"
     QWEN15INSTRUCT32B = "qwen1_5-32B-instruct"
     LLAMA3_1_70B_INSTRUCT = "meta.llama3-1-70b-instruct-v1:0"
+    LLAMA3_2_90B_INSTRUCT = "us.meta.llama3-2-90b-instruct-v1:0"
     MISTRAL_LARGE_2407 = "mistral.mistral-large-2407-v1:0"
     COHERE_COMMAND_R_PLUS = "cohere.command-r-plus-v1:0"
 

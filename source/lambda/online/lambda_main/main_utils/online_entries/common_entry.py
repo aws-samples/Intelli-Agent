@@ -1,6 +1,7 @@
 import traceback
 import json 
 import uuid 
+import re
 from typing import Annotated, Any, TypedDict, List,Union
 
 from common_logic.common_utils.chatbot_utils import ChatbotManager
@@ -389,6 +390,10 @@ def tool_execution(state):
 
 
 def final_results_preparation(state: ChatbotState):
+    answer = state['answer']
+    if isinstance(answer,str):
+        answer = re.sub("<thinking>.*?</thinking>","",answer,flags=re.S).strip()
+        state['answer'] = answer
     app_response = process_response(state["event_body"], state)
     return {"app_response": app_response}
 
@@ -538,6 +543,7 @@ def register_rag_tool_from_config(event_body: dict):
                     rerankers = event_body["chatbot_config"]["private_knowledge_config"]['rerankers']
                     if rerankers:
                         rerankers = [rerankers[0]]
+                    # index_name = index_content["indexId"]
                     index_name = index_content["indexId"].replace("-","_")
                     description = index_content["description"]
                     # TODO give specific retriever config
@@ -625,11 +631,8 @@ def common_entry(event_body):
         if registered_tool_name not in agent_config['tools']:
             agent_config['tools'].append(registered_tool_name)
 
-    
-
     # register lambda tools
     register_custom_lambda_tools_from_config(event_body)
-
     # 
     logger.info(f'event body to graph:\n{json.dumps(event_body,ensure_ascii=False,cls=JSONEncoder)}')
 
@@ -663,7 +666,7 @@ def common_entry(event_body):
             "tools":None,
             "ddb_additional_kwargs": {}
         },
-        config={"recursion_limit": 10}
+        config={"recursion_limit": 20}
     )
     # print('extra_response',response['extra_response'])
     return response["app_response"]

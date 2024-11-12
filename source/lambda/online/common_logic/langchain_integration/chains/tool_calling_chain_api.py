@@ -92,12 +92,12 @@ class Claude2ToolCallingChain(LLMChain):
         tools:list = kwargs['tools']
         assert all(isinstance(tool,BaseTool) for tool in tools),tools
         fewshot_examples = kwargs.get('fewshot_examples',[])
-        if fewshot_examples:
-            fewshot_examples.append({
-                "name": "give_rhetorical_question",
-                "query": "今天天气怎么样?",
-                "kwargs": {"question": "请问你想了解哪个城市的天气?"}
-            })
+        # if fewshot_examples:
+        # fewshot_examples.append({
+        #     "name": "give_rhetorical_question",
+        #     "query": "今天天气怎么样?",
+        #     "kwargs": {"question": "请问您想了解哪个城市的天气?"}
+        # })
         agent_system_prompt = get_prompt_template(
             model_id=cls.model_id,
             task_type=cls.intent_type,
@@ -166,6 +166,10 @@ class Claude35HaikuToolCallingChain(Claude2ToolCallingChain):
 
 class Llama31Instruct70BToolCallingChain(Claude2ToolCallingChain):
     model_id = LLMModelType.LLAMA3_1_70B_INSTRUCT
+
+
+class Llama32Instruct90BToolCallingChain(Claude2ToolCallingChain):
+    model_id = LLMModelType.LLAMA3_2_90B_INSTRUCT
 
 
 class MistraLlarge2407ToolCallingChain(Claude2ToolCallingChain):

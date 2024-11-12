@@ -19,7 +19,7 @@ class ChatBedrockConverse(_ChatBedrockConverse):
 class Claude2(Model):
     model_id = LLMModelType.CLAUDE_2
     default_model_kwargs = {"max_tokens": 2000, "temperature": 0.7, "top_p": 0.9}
-    enable_auto_tool_choice = True 
+    enable_auto_tool_choice = False
 
     @classmethod
     def create_model(cls, model_kwargs=None, **kwargs):
@@ -84,6 +84,11 @@ class MistralLarge2407(Claude2):
 
 class Llama3d1Instruct70B(Claude2):
     model_id = LLMModelType.LLAMA3_1_70B_INSTRUCT
+    enable_auto_tool_choice = False 
+    enable_prefill = False
+
+class Llama3d2Instruct90B(Claude2):
+    model_id = LLMModelType.LLAMA3_2_90B_INSTRUCT
     enable_auto_tool_choice = False 
     enable_prefill = False
 

@@ -150,6 +150,7 @@ register_prompt_templates(
         LLMModelType.CLAUDE_INSTANCE,
         LLMModelType.MIXTRAL_8X7B_INSTRUCT,
         LLMModelType.LLAMA3_1_70B_INSTRUCT,
+        LLMModelType.LLAMA3_2_90B_INSTRUCT,
         LLMModelType.MISTRAL_LARGE_2407,
         LLMModelType.COHERE_COMMAND_R_PLUS,
     ],
@@ -269,6 +270,7 @@ register_prompt_templates(
         LLMModelType.QWEN2INSTRUCT7B,
         LLMModelType.GLM_4_9B_CHAT,
         LLMModelType.LLAMA3_1_70B_INSTRUCT,
+        LLMModelType.LLAMA3_2_90B_INSTRUCT,
         LLMModelType.MISTRAL_LARGE_2407,
         LLMModelType.COHERE_COMMAND_R_PLUS,
     
@@ -293,6 +295,7 @@ register_prompt_templates(
         LLMModelType.QWEN2INSTRUCT7B,
         LLMModelType.GLM_4_9B_CHAT,
         LLMModelType.LLAMA3_1_70B_INSTRUCT,
+        LLMModelType.LLAMA3_2_90B_INSTRUCT,
         LLMModelType.MISTRAL_LARGE_2407,
         LLMModelType.COHERE_COMMAND_R_PLUS,
     ],
@@ -317,6 +320,7 @@ register_prompt_templates(
         LLMModelType.QWEN2INSTRUCT7B,
         LLMModelType.GLM_4_9B_CHAT,
         LLMModelType.LLAMA3_1_70B_INSTRUCT,
+        LLMModelType.LLAMA3_2_90B_INSTRUCT,
         LLMModelType.MISTRAL_LARGE_2407,
         LLMModelType.COHERE_COMMAND_R_PLUS,
     ],
@@ -383,10 +387,47 @@ Here are some guidelines for you:
     1. Determine whether the current context is sufficient to answer the user's question.
     2. If the current context is sufficient to answer the user's question, call the `give_final_response` tool.
     3. If the current context is not sufficient to answer the user's question, you can consider calling one of the provided tools.
-    4. If the parameters of the tool you want to call do not meet the requirements, call the `give_rhetorical_question` tool to ask the user for more information. 
-- Always output with the same language as the content from user. If the content is english, use english to output. If the content is chinese, use chinese to output.
+    4. If any of required parameters of the tool you want to call do not appears in context, call the `give_rhetorical_question` tool to ask the user for more information. 
+- Always output with the same language as the content from user. If the content is English, use English to output. If the content is Chinese, use Chinese to output.
 - Always call one tool at a time.
 </guidlines>"""
+
+# AGENT_SYSTEM_PROMPT = """\
+# You are a helpful and honest AI assistant. Today is {date},{weekday}. 
+# Here are some guidelines for you:
+# <guidlines>
+# - Output your step by step thinking in one pair of <thinking> and </thinking> tags, here are steps for you to think about deciding to use which tool:
+#     1. If the context contains the result of last tool call, it needs to be analyzed.
+#     2. Determine whether the current context is sufficient to answer the user's question.
+#     3. If the current context is sufficient to answer the user's question, call the `give_final_response` tool.
+#     4. If the current context is not sufficient to answer the user's question, you can consider calling one of the provided tools.
+#     5. If any of required parameters of the tool you want to call do not appears in context, call the `give_rhetorical_question` tool to ask the user for more information. 
+# - Always output with the same language as the content from user. If the content is English, use English to output. If the content is Chinese, use Chinese to output.
+# - Always invoke one tool.
+# - Before invoking any tool, be sure to first output your thought process in one pair of <thinking> and </thinking> tag.
+# </guidlines>"""
+
+
+# AGENT_SYSTEM_PROMPT = """\
+# You are a helpful and honest AI assistant. Today is {date},{weekday}. 
+# Here are some guidelines for you:
+# <guidlines>
+# - Output your step by step thinking in one pair of <thinking> and </thinking> tags, here are steps for you to think about deciding to use which tool:
+#     1. If the context contains the result of last tool call, it needs to be analyzed.
+#     2. Determine whether the current context is sufficient to answer the user's question.
+#     3. If the current context is sufficient to answer the user's question, call the `give_final_response` tool.
+#     4. If the current context is not sufficient to answer the user's question, you can consider calling one of the provided tools.
+#     5. If any of required parameters of the tool you want to call do not appears in context, call the `give_rhetorical_question` tool to ask the user for more information. 
+# - Always output with the same language as the content from user. If the content is English, use English to output. If the content is Chinese, use Chinese to output.
+# - Always invoke one tool.
+# </guidlines>
+
+# # Output example
+# <thinking>
+# write your thinking according to guidlines.
+# </thinking>
+# [invoke some tools]"""
+
 
 # - Output your thinking before to call one tool.
 register_prompt_templates(
@@ -397,6 +438,7 @@ register_prompt_templates(
         LLMModelType.CLAUDE_3_5_SONNET_V2,
         LLMModelType.CLAUDE_3_5_HAIKU,
         LLMModelType.LLAMA3_1_70B_INSTRUCT,
+        LLMModelType.LLAMA3_2_90B_INSTRUCT,
         LLMModelType.MISTRAL_LARGE_2407,
         # LLMModelType.COHERE_COMMAND_R_PLUS,
     ],
@@ -416,7 +458,7 @@ Here are steps for you to decide to use which tool:
 * Determine whether the current context is sufficient to answer the user's question.
 * If the current context is sufficient to answer the user's question, call the `give_final_response` tool.
 * If the current context is not sufficient to answer the user's question, you can consider calling one of the provided tools.
-* If the parameters of the tool you want to call do not meet the requirements, call the `give_rhetorical_question` tool to ask the user for more information. 
+* If the parameters of the tool you want to call do not meet the requirements, call the `give_rhetorical_question` tool to ask the user for more information about the . 
 
 ## Reply rules
 * Always output with the same language as the content from user. If the content is english, use english to output. If the content is chinese, use chinese to output.
@@ -446,6 +488,7 @@ register_prompt_templates(
         LLMModelType.CLAUDE_3_5_HAIKU,
         LLMModelType.CLAUDE_3_5_SONNET,
         LLMModelType.LLAMA3_1_70B_INSTRUCT,
+        LLMModelType.LLAMA3_2_90B_INSTRUCT,
         LLMModelType.MISTRAL_LARGE_2407,
         LLMModelType.COHERE_COMMAND_R_PLUS,
     ],

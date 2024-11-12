@@ -90,6 +90,7 @@ MODEL_MODULE_LOAD_FN_MAP = {
     LLMModelType.CLAUDE_3_HAIKU:_import_bedrock_models,
     LLMModelType.CLAUDE_3_5_SONNET:_import_bedrock_models,
     LLMModelType.LLAMA3_1_70B_INSTRUCT:_import_bedrock_models,
+    LLMModelType.LLAMA3_2_90B_INSTRUCT:_import_bedrock_models,
     LLMModelType.MISTRAL_LARGE_2407:_import_bedrock_models,
     LLMModelType.COHERE_COMMAND_R_PLUS:_import_bedrock_models,
     LLMModelType.CLAUDE_3_5_SONNET_V2:_import_bedrock_models,

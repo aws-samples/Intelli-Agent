@@ -164,8 +164,9 @@ def test_multi_turns_agent_pr():
     user_queries = [
         {
             # "query": "”我爱北京天安门“包含多少个字符?",
-            # "query": "11133乘以97892395等于多少",  # 1089836033535
-            "query": "今天天气怎么样？", 
+            # "query": "What does 245346356356 times 346357457 equal?",  # 1089836033535
+            # "query": "9.11和9.9哪个更大？",  # 1089836033535
+            "query": "今天天气如何？", 
             # "query": "介绍一下MemGPT",
             "use_history": True,
             "enable_trace": True
@@ -186,9 +187,10 @@ def test_multi_turns_agent_pr():
     #     "private_knowledge": []
     # }
     default_llm_config = {
+        # "model_id":'anthropic.claude-3-sonnet-20240229-v1:0',
         # 'model_id': "anthropic.claude-3-5-sonnet-20240620-v1:0",
         # 'model_id': "anthropic.claude-3-5-haiku-20241022-v1:0",
-        # 'model_id': "meta.llama3-1-70b-instruct-v1:0",
+        # 'model_id': "us.meta.llama3-2-90b-instruct-v1:0",
         # 'model_id':"mistral.mistral-large-2407-v1:0",
         'model_id':"cohere.command-r-plus-v1:0",
         'model_kwargs': {
@@ -197,6 +199,7 @@ def test_multi_turns_agent_pr():
         }
     }
     # agent_config={"tools":["python_repl"]}
+    agent_config = {}
     agent_config={
         "tools":[
             {
@@ -215,6 +218,28 @@ def test_multi_turns_agent_pr():
             "python_repl"
         ]
     }
+
+
+# {
+#     "agent_config":{
+#         "tools":[
+#             {
+#             "lambda_name":"intelli-agent-lambda-tool-example1",
+#             "name": "count_char",
+#             "description": "Count the number of chars contained in a sentence.",
+#             "properties": {
+#                 "phrase": {
+#                     "type": "string",
+#                     "description": "The phrase needs to count chars"
+#                 }
+#             },
+#             "required": ["phrase"],
+#             "return_direct":False
+#             },
+#             "python_repl"
+#         ]
+#     }
+# }
 
     for query in user_queries:
         print("==" * 50)

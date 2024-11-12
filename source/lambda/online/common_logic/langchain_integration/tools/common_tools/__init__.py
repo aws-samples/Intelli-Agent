@@ -36,7 +36,7 @@ def _load_rhetorical_tool(tool_identifier:ToolIdentifier):
         "description": "This tool is designed to handle the scenario when required parameters are missing from other tools. It prompts the user to provide the necessary information, ensuring that all essential parameters are collected before proceeding. This tools enhances user interaction by clarifying what is needed and improving the overall usability of the application.",
         "properties": {
             "question": {
-                "description": "The rhetorical question to user",
+                "description": "The rhetorical question to user. Example:\nInput: 今天天气怎么样?\nOutput: 请问您想了解哪个城市的天气?",
                 "type": "string"
             },
         },
@@ -186,11 +186,19 @@ def _loadd_python_repl_tool(tool_identifier:ToolIdentifier):
     def _run(command: str, timeout = None) -> str:
         res = python_repl.run(command=command,timeout=timeout)
         if not res:
-            raise ValueError(f"The output is empty, please call this tool again and refine you code, use `print` function to output the value you want to obtain.")                  
+            raise ValueError(f"The current tool does not produce a result, modify your code and continue to call the `python_repl` tool, making sure to use the `print` function to output the final result.")                  
         return res 
+
+    description = """\
+This tool handles scientific computing problems by executing python code. Typical scenarios include the follows:
+1. Mathematical arithmetic/numerical comparisons.
+2. Code execution scenarios, such as data analysis, visualization, etc.
+
+Input should be a valid python code. If you want to see the output of a value, you must print it out with `print(...)` statement.
+"""
     repl_tool = Tool(
         name="python_repl",
-        description="This tool is for arbitrary python code execution, typically scenes include scientific problems, such as math problems, physics problems, etc. Use this to execute python code. Input should be a valid python code. If you want to see the output of a value, you must print it out with `print(...)` statement.",
+        description=description,
         func=_run
     )
     ToolManager.register_lc_tool(

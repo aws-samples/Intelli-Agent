@@ -108,6 +108,9 @@ class Mixtral8x7bChatChain(Claude2ChatChain):
 class Llama31Instruct70BChatChain(Claude2ChatChain):
     model_id = LLMModelType.LLAMA3_1_70B_INSTRUCT
 
+class Llama32Instruct90BChatChain(Claude2ChatChain):
+    model_id = LLMModelType.LLAMA3_2_90B_INSTRUCT
+
 
 class MistraLlargeChat2407ChatChain(Claude2ChatChain):
     model_id = LLMModelType.MISTRAL_LARGE_2407

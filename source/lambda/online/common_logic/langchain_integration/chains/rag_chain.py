@@ -96,6 +96,9 @@ class Claude35HaikuRAGLLMChain(Claude2RagLLMChain):
 class Llama31Instruct70B(Claude2RagLLMChain):
     model_id = LLMModelType.LLAMA3_1_70B_INSTRUCT
 
+class Llama32Instruct90B(Claude2RagLLMChain):
+    model_id = LLMModelType.LLAMA3_2_90B_INSTRUCT
+
 
 class MistraLlarge2407(Claude2RagLLMChain):
     model_id = LLMModelType.MISTRAL_LARGE_2407

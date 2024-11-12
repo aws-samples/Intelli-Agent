@@ -221,6 +221,10 @@ class Llama31Instruct70BConversationSummaryChain(Claude2ConversationSummaryChain
     model_id = LLMModelType.LLAMA3_1_70B_INSTRUCT
 
 
+class Llama32Instruct90BConversationSummaryChain(Claude2ConversationSummaryChain):
+    model_id = LLMModelType.LLAMA3_2_90B_INSTRUCT
+
+
 class MistraLlargeChat2407ConversationSummaryChain(Claude2ConversationSummaryChain):
     model_id = LLMModelType.MISTRAL_LARGE_2407
 
