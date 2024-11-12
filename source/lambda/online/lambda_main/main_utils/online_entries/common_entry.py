@@ -2,11 +2,12 @@ from typing import Annotated, Any, TypedDict
 
 from common_logic.common_utils.chatbot_utils import ChatbotManager
 from common_logic.common_utils.constant import (
-    ChatbotMode,
     IndexType,
     LLMTaskType,
     SceneType,
     ToolRuningMode,
+    GUIDE_INTENTION_NOT_FOUND,
+    Threshold,
 )
 from common_logic.common_utils.lambda_invoke_utils import (
     invoke_lambda,
@@ -20,6 +21,7 @@ from common_logic.common_utils.python_utils import add_messages, update_nest_dic
 from common_logic.common_utils.response_utils import process_response
 from common_logic.common_utils.serialization_utils import JSONEncoder
 from common_logic.common_utils.monitor_utils import format_intention_output, format_preprocess_output, format_qq_data
+from common_logic.common_utils.ddb_utils import custom_index_desc
 from functions import get_tool_by_name
 from functions._tool_base import tool_manager
 from functions.lambda_common_tools import rag
@@ -136,6 +138,7 @@ def intention_detection(state: ChatbotState):
         handler_name="lambda_handler",
     )
     context_list = []
+    qq_match_contexts = []
     qq_match_threshold = retriever_params["threshold"]
     for doc in output["result"]["docs"]:
         if doc["retrieval_score"] > qq_match_threshold:
@@ -152,36 +155,53 @@ def intention_detection(state: ChatbotState):
                 "answer": query_content,
                 "intent_type": "similar query found",
             }
-        question = doc["question"]
-        answer = doc["answer"]
-        context_list.append(f"问题: {question}, \n答案：{answer}")
+
+        if doc["retrieval_score"] > Threshold.QQ_IN_RAG_CONTEXT:
+            question = doc["question"]
+            answer = doc["answer"]
+            context_list.append(f"问题: {question}, \n答案：{answer}")
+            qq_match_contexts.append(doc)
 
     if state["chatbot_config"]["agent_config"]["only_use_rag_tool"]:
         return {"qq_match_results": context_list, "intent_type": "intention detected"}
 
-    intent_fewshot_examples = invoke_lambda(
+    intent_fewshot_examples, intention_ready = invoke_lambda(
         lambda_module_path="lambda_intention_detection.intention",
         lambda_name="Online_Intention_Detection",
         handler_name="lambda_handler",
         event_body=state,
     )
 
-    intent_fewshot_tools: list[str] = list(
-        set([e["intent"] for e in intent_fewshot_examples])
-    )
+    group_name = state["chatbot_config"]["group_name"]
+    chatbot_id = state["chatbot_config"]["chatbot_id"]
+    custom_qd_index = custom_index_desc(group_name, chatbot_id)
 
-    markdown_table = format_intention_output(intent_fewshot_examples)
-    send_trace(
-        f"{markdown_table}",
-        state["stream"],
-        state["ws_connection_id"],
-        state["enable_trace"],
-    )
+    if not intention_ready and not custom_qd_index:
+        return {
+            "answer": GUIDE_INTENTION_NOT_FOUND,
+            "intent_type": "intention not ready",
+        }
+    elif not intention_ready and custom_qd_index:
+        intent_fewshot_examples = []
+        intent_fewshot_tools: list[str] = []
+    else:
+        intent_fewshot_tools: list[str] = list(
+            set([e["intent"] for e in intent_fewshot_examples])
+        )
+
+        markdown_table = format_intention_output(intent_fewshot_examples)
+        send_trace(
+            f"{markdown_table}",
+            state["stream"],
+            state["ws_connection_id"],
+            state["enable_trace"],
+        )
+
     return {
         "intent_fewshot_examples": intent_fewshot_examples,
         "intent_fewshot_tools": intent_fewshot_tools,
         "qq_match_results": context_list,
-        "qq_match_contexts": output["result"]["docs"],
+        "qq_match_contexts": qq_match_contexts,
         "intent_type": "intention detected",
     }
 
@@ -299,6 +319,10 @@ def matched_query_return(state: ChatbotState):
     return {"answer": state["answer"]}
 
 
+def intention_not_ready(state: ChatbotState):
+    return {"answer": state["answer"]}
+
+
 ################
 # define edges #
 ################
@@ -345,6 +369,7 @@ def build_graph(chatbot_state_cls):
     # agent mode
     workflow.add_node("intention_detection", intention_detection)
     workflow.add_node("matched_query_return", matched_query_return)
+    workflow.add_node("intention_not_ready", intention_not_ready)
     # agent sub graph
     workflow.add_node("agent", agent)
     workflow.add_node("tools_execution", tool_execution)
@@ -361,6 +386,7 @@ def build_graph(chatbot_state_cls):
     # agent mode
     workflow.add_edge("tools_execution", "agent")
     workflow.add_edge("matched_query_return", "final_results_preparation")
+    workflow.add_edge("intention_not_ready", "final_results_preparation")
     workflow.add_edge("final_results_preparation", END)
 
     # add conditional edges
@@ -386,6 +412,7 @@ def build_graph(chatbot_state_cls):
         {
             "similar query found": "matched_query_return",
             "intention detected": "agent",
+            "intention not ready": "intention_not_ready",
         },
     )
 

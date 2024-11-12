@@ -16,6 +16,8 @@ export type LibraryListItem = {
   indexType: string; 
   chatbotId: string;
   createTime: string;
+  indexId: string;
+  tag: string;
 };
 
 export type LibraryListResponse = {
