@@ -11,6 +11,11 @@ dynamodb = boto3.resource("dynamodb")
 execution_table = dynamodb.Table(os.environ.get("EXECUTION_TABLE"))
 
 
+def get_execution_item(execution_id):
+    response = execution_table.get_item(Key={"executionId": execution_id})
+    return response.get("Item", {})
+
+
 def update_execution_item(execution_id, execution_status, ui_status):
     """
     Update the status of an execution item in DynamoDB.
@@ -39,10 +44,13 @@ def lambda_handler(event, context):
 
     message = json.loads(event["Records"][0]["Sns"]["Message"])
     execution_id = message["executionId"]
+
+    current_execution = get_execution_item(execution_id)
+    current_execution_status = current_execution["executionStatus"]
     operation_type = message["operationType"]
+
     if operation_type == OperationType.DELETE.value:
-        update_execution_item(execution_id, ExecutionStatus.DELETED.value, UiStatus.INACTIVE.value)
+        if current_execution_status == ExecutionStatus.DELETING.value:
+            update_execution_item(execution_id, ExecutionStatus.DELETED.value, UiStatus.INACTIVE.value)
     else:
         update_execution_item(execution_id, ExecutionStatus.COMPLETED.value, UiStatus.ACTIVE.value)
-
-    logger.info(f"DynamoDB update: {response}")

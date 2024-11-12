@@ -22,7 +22,7 @@ class ExecutionStatus(Enum):
     COMPLETED = "COMPLETED"
     DELETING = "DELETING"
     DELETED = "DELETED"
-
+    UPDATING = "UPDATING"
 
 class EmbeddingModelType(Enum):
     BEDROCK_TITAN_V1 = "amazon.titan-embed-text-v1"

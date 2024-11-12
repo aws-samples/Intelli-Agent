@@ -176,36 +176,19 @@ export class ApiConstruct extends Construct {
         ],
       });
 
-      const listExecutionLambda = new LambdaFunction(this, "ListExecution", {
+      const executionManagementLambda = new LambdaFunction(this, "ExecutionManagementLambda", {
         code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
-        handler: "list_execution.lambda_handler",
+        handler: "execution_management.lambda_handler",
         environment: {
           EXECUTION_TABLE: executionTableName,
-        },
-        statements: [this.iamHelper.dynamodbStatement],
-      });
-  
-      const getExecutionLambda = new LambdaFunction(this, "GetExecution", {
-        code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
-        handler: "get_execution.lambda_handler",
-        environment: {
           ETL_OBJECT_TABLE: etlObjTableName,
           ETL_OBJECT_INDEX: etlObjIndexName,
-        },
-        statements: [this.iamHelper.dynamodbStatement],
-      });
-  
-      const delExecutionLambda = new LambdaFunction(this, "DeleteExecution", {
-        code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
-        handler: "delete_execution.lambda_handler",
-        environment: {
           SFN_ARN: props.knowledgeBaseStackOutputs.sfnOutput.stateMachineArn,
-          EXECUTION_TABLE: executionTableName,
         },
         statements: [this.iamHelper.dynamodbStatement],
       });
 
-      props.knowledgeBaseStackOutputs.sfnOutput.grantStartExecution(delExecutionLambda.function);
+      props.knowledgeBaseStackOutputs.sfnOutput.grantStartExecution(executionManagementLambda.function);
 
       const uploadDocLambda = new LambdaFunction(this, "UploadDocument", {
         code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
@@ -278,7 +261,7 @@ export class ApiConstruct extends Construct {
       }
       apiKBExecution.addMethod(
         "GET",
-        new apigw.LambdaIntegration(listExecutionLambda.function),
+        new apigw.LambdaIntegration(executionManagementLambda.function),
         {...this.genMethodOption(api, auth, {
           Items: {type: JsonSchemaType.ARRAY, items: {
             type: JsonSchemaType.OBJECT,
@@ -333,22 +316,22 @@ export class ApiConstruct extends Construct {
       );
       apiKBExecution.addMethod(
         "DELETE",
-        new apigw.LambdaIntegration(delExecutionLambda.function),
+        new apigw.LambdaIntegration(executionManagementLambda.function),
         {
           ...this.genMethodOption(api, auth, {
-            data: { type: JsonSchemaType.ARRAY, items: { type: JsonSchemaType.STRING } },
-            message: { type: JsonSchemaType.STRING }
+            ExecutionIds: { type: JsonSchemaType.ARRAY, items: { type: JsonSchemaType.STRING } },
+            Message: { type: JsonSchemaType.STRING }
           }),
           requestModels: this.genRequestModel(api, {
             "executionId": { "type": JsonSchemaType.ARRAY, "items": { "type": JsonSchemaType.STRING } },
           })
         }
       );
-
+      
       const apiGetExecutionById = apiKBExecution.addResource("{executionId}");
       apiGetExecutionById.addMethod(
         "GET",
-        new apigw.LambdaIntegration(getExecutionLambda.function),
+        new apigw.LambdaIntegration(executionManagementLambda.function),
         {
           ...this.genMethodOption(api, auth, {
             Items: {
@@ -375,6 +358,8 @@ export class ApiConstruct extends Construct {
           // })
         }
       );
+      apiGetExecutionById.addMethod("PUT", new apigw.LambdaIntegration(executionManagementLambda.function), this.genMethodOption(api, auth, null));
+
 
       const apiUploadDoc = apiResourceStepFunction.addResource("kb-presigned-url");
       apiUploadDoc.addMethod(
