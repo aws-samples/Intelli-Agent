@@ -60,27 +60,19 @@ def create_chatbot(event, group_name):
 
     model_type = initiate_model(
         model_table, group_name, model_id, chatbot_embedding, create_time)
-
-    index_id_list = {}
-    # Iterate over all enum members and create DDB metadata
-    for member in IndexType.__members__.values():
-        index_type = member.value
-        index_ids = (
-            request_body.get("index", {})
-            .get(index_type, f"{chatbot_id}-{index_type}-default")
-            # .get("index", f"{chatbot_id}-{index_type}-default")
-        )
-        index_id_list[index_type] = index_ids
+    index = request_body.get("index", {})
+    for index_type in index:
+        index_ids = list(index[index_type].keys())
         initiate_chatbot(
             chatbot_table,
             group_name,
             chatbot_id,
             chatbot_description,
             index_type,
-            index_ids.split(","),
+            index_ids,
             create_time,
         )
-        for index_id in index_ids.split(","):
+        for index_id in index_ids:
             tag = index_id
             initiate_index(
                 index_table,
@@ -89,14 +81,13 @@ def create_chatbot(event, group_name):
                 model_id,
                 index_type,
                 tag,
-                create_time,
-                chatbot_description,
+                index.get(index_type,{}).get(index_id),
+                create_time
             )
-
     return {
         "chatbotId": chatbot_id,
         "groupName": group_name,
-        "indexIds": index_id_list,
+        "indexIds": index_ids,
         "modelType": model_type,
         "Message": "OK",  # Need to be OK for the frontend to know the chatbot is created successfully and redirect to the chatbot management page
     }
@@ -192,33 +183,39 @@ def __get_chatbot(event, group_name):
         chatbot_item = None
         model_item = None
 
+    update_time = datetime.fromisoformat(chatbot_item.get("updateTime", "")).strftime("%Y/%m/%d %H:%M:%S")
     if chatbot_item and model_item:
         chatbot_index_ids = chatbot_item.get("indexIds", {})
         model = model_item.get("parameter", {})
         model_endpoint = model.get("ModelEndpoint", {})
         model_name = model.get("ModelName", {})
+        chatbot_index = []
+        for key, value in chatbot_index_ids.items():
+            v = value.get('value',{})
+            # name = list(v.keys())[0]
+            for index in list(v.keys()):
+                chatbot_index.append({
+                    "name": index,
+                    "type": key,
+                    "description": value.get("desc", ""),
+                    "tag": v.get(index)
+                })
         response = {
             "groupName": group_name,
             "chatbotId": chatbot_id,
+            "updateTime": update_time,
             "model": {
                 "model_endpoint": model_endpoint,
                 "model_name": model_name
             },
-            "index": {
-                "intention": merge_index(chatbot_index_ids, "intention"),
-                "qq":  merge_index(chatbot_index_ids, "qq"),
-                "qd": merge_index(chatbot_index_ids, "qd")
-            },
+            "index": chatbot_index,
         }
     else:
         response = {
             "groupName": group_name,
             "chatbotId": chatbot_id,
-            "index": {
-                "inention": f"{chatbot_id}-intention-default",
-                "qq": f"{chatbot_id}-qq-default",
-                "qd": f"{chatbot_id}-qd-default"
-            },
+            "updateTime": update_time,
+            "index": chatbot_index,
         }
     return response
 
@@ -287,7 +284,6 @@ def __validate_default_chatbot(event, group_name):
 
 def __validate_chatbot(event, group_name):
     input_body = json.loads(event["body"])
-    # chabotName
     chatbot_id = input_body.get("chatbotId")
     chatbot_type = input_body.get("type")
     model = input_body.get("model")
@@ -304,20 +300,11 @@ def __validate_chatbot(event, group_name):
             return {
                 "result": False,
                 "item": "chatbotName",
-                "Message": "repeat"
+                "reason": 0
             }
-    # index
-    # index_ids=[]
     index_set = set()
-    for member in IndexType.__members__.values():
-        index_type = member.value
-        index_list = index.get(index_type).split(",")
-        # index_ids.append({
-        #     index_type: index_list
-        # })
-        index_set |= set(index_list)
-        # index_ids.append(index.get(index_type))
-        # .get("index", f"{chatbot_id}-{index_type}-default")
+    for index_type in index:
+        index_set |= set(list(index[index_type].split(",")))
 
     response = index_table.scan(
         FilterExpression=Attr('indexId').is_in(list(index_set))
@@ -326,45 +313,30 @@ def __validate_chatbot(event, group_name):
     if items:
         for item in items:
             if item['groupName'] != group_name:
-                # 其他人用了index，报错
                 return {
                     "result": False,
-                    "item": __find_key(index, item['indexId']),
-                    "Message": "repeat in other group name"
+                    "item": __find_invalid_index(index, item['indexId']),
+                    "reason": 1
                 }
             else:
                 if item.get("modelIds", {}).get("embedding", "") != model:
-                    # 自己用了index，但是模型 不对，报错
                     return {
                         "result": False,
-                        "item": __find_key(index, item['indexId']),
-                        "Message": "used by other models"
+                        "item": __find_invalid_index(index, item['indexId']),
+                        "reason": 2
                     }
     return {
         "result": True,
         "item": None,
-        "Message": None
+        "reason": None
     }
 
 
-def __find_key(index, index_id):
+def __find_invalid_index(index, index_id):
     for key, value in index.items():
         if index_id in value.split(","):
-            return key
+            return index_id
     return None
-
-# def __chatbot_details(chatbot_id, group_name):
-#     res={chatbot_id:chatbot_id}
-#     index = chatbot_table.get_item(
-#          Key={"groupName": group_name,
-#               "chatbotId": chatbot_id
-#               }
-#         ).get("Item",{}).get("indexIds")
-#     for key, value in index.items():
-#         value.get("value",{}).get("M",{}).keys()
-#         res[key]=""
-#     return res
-
 
 def __get_query_parameter(event, parameter_name, default_value=None):
     if (

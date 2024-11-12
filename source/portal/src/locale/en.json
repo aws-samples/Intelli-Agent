@@ -1,6 +1,7 @@
 {
   "translation": {
     "name": "AI Customer Service",
+    "desc": "Description",
     "welcome": "Welcome to AI Customer Service",
     "you": "Y o u",
     "welcomeMessage": "Hello, how can I help you today?",
@@ -71,6 +72,7 @@
     "modelName": "Model name",
     "noModelFound": "No model found",
     "chatbotName": "Chatbot name",
+    "embeddingModel": "Embedding Model Name",
     "noChatbotFound": "No chatbot found",
     "scenario": "Scenario",
     "maxTokens": "Max Tokens",
@@ -117,6 +119,18 @@
     "deleteAlert": "This action cannot be undone, please proceed with caution.",
     "deleteIntentionTitle": "Delet Intention Data",
     "deleteIntentionFailed": "These data could not be deleted because it is being used by other indexes.",
+    "indexList":"Index List",
+    "indexListDesc":"Here is a list of indexes of this chatbot.",
+    "addIndex": "Add New Index",
+    "defaultIndexDesc": "Answer question based on search result",
+    "remove": "remove",
+    "chatbotNameDesc": "The unique identifier of the robot space, it must not duplicate with any existing ones.",
+    "modelDesc": "Used for text vectorization in the robot space.",
+    "indexManagement": "Indexes",
+    "indexLeft": "Index not yet configured, click",
+    "indexUsedByBot":"This index is already used by other users",
+    "indexUsedByModel":"This index is already associated with other embedding models",
+    "indexRight":"to add index.",
     "button": {
       "login": "Log in to AI Customer Service",
       "reload": "Reload",
@@ -160,7 +174,8 @@
       "indexNameEmpty": "Index name can not be empty.",
       "tagEmpty": "Tag can not be empty.",
       "indexValid": "Index is used by other model, please change index name",
-      "defaultIndexValid": "Default index is used by other model, please customize index name"
+      "defaultIndexValid": "Default index is used by other model, please customize index name",
+      "repeatedIndexName":"The index is duplicated with a previous entry, please modify it"
     },
     
 
@@ -170,6 +185,7 @@
     "awsSolutionGuidance": "Amazon Web Services Solution Guidance",
     "mead": "Media & Advertisement",
     "homeSidebar": "Home",
+    "chatbotDetail": "ChatBot Detail",
     "featuresAndBenefits": {
       "name": "Features and Benefits",
       "feat1": {

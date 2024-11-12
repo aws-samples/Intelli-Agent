@@ -92,8 +92,6 @@ def lambda_handler(event, context):
     
     payload = __gen_json_from_s3(bucket, date, "payload.json", 1)
 
-    if payload.get('status ')=='completed' and third_payload.get('status')=='completed':
-        status = "PASSED"
     if payload['status'] == 'completed':
         passed, failed, error, msg = __gen_completed_message(bucket, date, 1)
         total=passed + failed + error
@@ -109,7 +107,8 @@ def lambda_handler(event, context):
             third_coverage = round(third_passed/third_total, 2)*100
     else:
         third_msg = __gen_uncompleted_message(payload, 0)
-
+    if payload.get('status')=='completed' and third_payload.get('status')=='completed' and failed + error + third_failed + third_error == 0:
+        status = "PASSED"
     message = f"Hi, team!\nThe following is API autotest report for {date}.\n\n ============================ summary =============================\n REPOSITORY: {payload['repository']}\n BRANCH: {payload['branch']}\n TEST RESULT: {status}\n Built-In KB:\n     Total:{passed + failed + error}\n     Passed:{passed} Failed:{failed} Error:{error}\n     Coverage:{coverage}%\n Third KB:\n     Total:{third_passed + third_failed + third_error}\n     Passed:{third_passed} Failed:{third_failed} Error:{third_error}\n     Coverage:{third_coverage}%\n\n\n "
     message += msg
     message += third_msg

@@ -34,13 +34,15 @@ const Intention: React.FC = () => {
   const [visible, setVisible] = useState(false);
   const { t } = useTranslation();
   const [loadingData, setLoadingData] = useState(false);
+  const [loadingDetailData, setLoadingDetailData] = useState(false)
+  // const [loadingChangeDetailData, setLoadingChangeDetailData] = useState(false)
   const [allIntentions, setAllIntentions] = useState<IntentionsItem[]>([]);
   const [tableIntentions, setTableIntentions] = useState<IntentionsItem[]>(
     [],
   );
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [indexName, setIndexName] = useState('');
+  const [indexNameOptions, setIndexNameOptions] = useState<SelectedOption[]>([]);
   const [confirmInput, setConfirmInput] = useState('');
   // const [loadingDelete, setLoadingDelete] = useState(false);
   const [sortingColumn, setSortingColumn] = useState<
@@ -64,6 +66,8 @@ const Intention: React.FC = () => {
   const [loadingDelete, setLoadingDelete] = useState(false);
   const [showDeleteError, setShowDeleteError] = useState(false)
   const [deleteErrorItem, setDeleteErrorItem] = useState([] as any)
+  const [indexDesc, setIndexDesc] = useState('');
+  const [selectedIndexOption, setSelectedIndexOption] = useState<SelectedOption>();
 
   const deleteExecutiuonsConfirmed = async () => {
     if (!confirmInput || confirmInput !== t('confirm')) {
@@ -120,34 +124,39 @@ const Intention: React.FC = () => {
   }
 
   const getChatBotDetail = async (chatbotId: string) =>{
+    // setLoadingChangeDetailData(true)
+    let intentionNameOptions: SelectedOption[] = []
+    let indexDesc = ""
     const res: ChatbotsItem = await fetchData({
       url: `chatbot-management/chatbots/${chatbotId}`,
       method: 'get',
     });
     setModel({label: res.model.model_name, value: res.model.model_endpoint})
-    setIndexName(res.index.intention)
+    res.index.forEach((item)=>{
+      if(item.type==="intention"){
+        intentionNameOptions.push({
+           value: item.name,
+           label: item.name
+        })
+        indexDesc = item.description
+        // intention = {name: item.name, desc: item.description}
+
+        // return
+      }
+    }
+    )
+    // setIndexName(intention.name)
+    setIndexNameOptions(intentionNameOptions)
+    setSelectedIndexOption(intentionNameOptions[0])
+    setIndexDesc(indexDesc)
   }
 
   const changeBotOption = async (selectedBotOption: SelectedOption)=>{
-    setSelectedBotsOption(selectedBotOption)
+    setIndexNameOptions([])
+    // setSelectedIndexOption(null)
+    setSelectedBotsOption(selectedBotOption)  
     await getChatBotDetail(selectedBotOption.value)
-    // setModel({label: res.model.model_name, value: res.model.model_endpoint})
-    // setIndexName(res.index.intention)
-
-
-    // if(useDefaultIndex){
-    //   setIndexName(`${selectedBotOption.value.toLocaleLowerCase()}-intention-default`)
-    // }
   }
-
-  // const changeUseDefaultIndex = (useDefault: boolean)=>{
-  //    console.log(!useDefault)
-  //    setUseDefaultIndex(!useDefault)
-  // }
-
-  // const changeModelOption = (selectedBotOption: SelectedOption)=>{
-  //   setSelectedModelOption(selectedBotOption)
-  // }
 
   const getIntentionList = async () => {
     setLoadingData(true);
@@ -177,7 +186,12 @@ const Intention: React.FC = () => {
     }
   };
 
+  // function sleep(ms: number): Promise<void> {
+  //   return new Promise((resolve) => setTimeout(resolve, ms));
+  // }
+
   const getBots = async ()=>{
+    setLoadingDetailData(true)
     // const groupName: string[] = auth?.user?.profile?.['cognito:groups'] as any;
     const data: any = await fetchData({
       url: 'chatbot-management/chatbots',
@@ -191,44 +205,11 @@ const Intention: React.FC = () => {
       })
     })
     setBotsOption(options)
-    // setSelectedBotsOption(options[0])
-    // const res: ChatbotsItem = await getChatBotDetail(options[0].value)
-    // setModel({label: res.model.model_name, value: res.model.model_endpoint})
-    // setIndexName(res.index.intention)
+    // await sleep(5000);
+    setLoadingDetailData(false)
   }
 
-  // useEffect(()=>{
-  //   if(useDefaultIndex == false){
-  //     setIndexName("")
-  //   } else {
-  //     setIndexName(`${selectedBotsOption?.value.toLocaleLowerCase()}-intention-default`)
-  //   }
-
-  // },[useDefaultIndex])
-
-  // const getExistedIndex = async ()=>{
-  //   const data: any = await fetchData({
-  //     url: 'intention/get-all-index',
-  //     method: 'get',
-  //     data: {
-  //       groupName: groupName?.[0] ?? 'Admin',
-  //     },
-  //   });
-
-  // }
-
-  // const getModels  = async ()=>{
-  //   const tempModels:{label: string; value:string}[] =[]
-
-  //   EMBEDDING_MODEL_LIST.forEach((item: {model_id: string; model_name: string})=>{
-  //      tempModels.push({
-  //           label: item.model_name,
-  //           value: item.model_id
-  //      })
-  //   })
-  //   setModels(tempModels)
-  //   setSelectedModelOption(tempModels[0])
-  // }
+  
 
   useEffect(() => {
     getIntentionList();
@@ -459,7 +440,7 @@ const Intention: React.FC = () => {
                       setShowAddModal(true)
                       setSelectedBotsOption(botsOption[0])
                       setUploadFiles([])
-                      getChatBotDetail(botsOption[0].value)
+                      getChatBotDetail(botsOption[0]?.value)
                     }}
                   >
                     {t('button.createIntention')}
@@ -603,22 +584,27 @@ const Intention: React.FC = () => {
         
         <AddIntention
           model={model}
-          indexName={indexName}
+          loading={loadingDetailData}
+          indexNameOptions={indexNameOptions}
+          // selectedIndexOption={selectedBotsOption}
+          indexDesc={indexDesc}
           botsOption={botsOption}
           showAddModal={showAddModal}
           selectedBotOption={selectedBotsOption}
           uploadFiles={uploadFiles}
           changeBotOption={changeBotOption}
           setShowAddModal={setShowAddModal}
-          setIndexName={setIndexName}
-          fileEmptyError={fileEmptyError} 
-          setFileEmptyError={setFileEmptyError} 
+          // setIndexName={setIndexName}
+          fileEmptyError={fileEmptyError}
+          setFileEmptyError={setFileEmptyError}
           setUploadFiles={setUploadFiles}
           reloadIntention={() => {
             setTimeout(() => {
               getIntentionList();
             }, 2000);
           } }
+          selectedIndexOption={selectedIndexOption}
+          setSelectedIndexOption={setSelectedIndexOption}
         />
         
       </ContentLayout>
