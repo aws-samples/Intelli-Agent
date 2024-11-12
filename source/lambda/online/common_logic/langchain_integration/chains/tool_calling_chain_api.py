@@ -41,12 +41,14 @@ class Claude2ToolCallingChain(LLMChain):
         return chat_history
 
     @classmethod
-    def get_common_system_prompt(cls,system_prompt_template:str):
+    def get_common_system_prompt(cls,system_prompt_template:str,all_knowledge_retrieved_list=None):
+        all_knowledge_retrieved_list = all_knowledge_retrieved_list or []
+        all_knowledge_retrieved = "\n\n".join(all_knowledge_retrieved_list)
         now = get_china_now()
         date_str = now.strftime("%Y年%m月%d日")
         weekdays = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日']
         weekday = weekdays[now.weekday()]
-        system_prompt = system_prompt_template.format(date=date_str,weekday=weekday)
+        system_prompt = system_prompt_template.format(date=date_str,weekday=weekday,context=all_knowledge_retrieved)
         return system_prompt
 
 
@@ -92,12 +94,6 @@ class Claude2ToolCallingChain(LLMChain):
         tools:list = kwargs['tools']
         assert all(isinstance(tool,BaseTool) for tool in tools),tools
         fewshot_examples = kwargs.get('fewshot_examples',[])
-        # if fewshot_examples:
-        # fewshot_examples.append({
-        #     "name": "give_rhetorical_question",
-        #     "query": "今天天气怎么样?",
-        #     "kwargs": {"question": "请问您想了解哪个城市的天气?"}
-        # })
         agent_system_prompt = get_prompt_template(
             model_id=cls.model_id,
             task_type=cls.intent_type,
@@ -105,9 +101,10 @@ class Claude2ToolCallingChain(LLMChain):
         ).prompt_template
 
         agent_system_prompt = kwargs.get("agent_system_prompt",None) or agent_system_prompt
-
+        
+        all_knowledge_retrieved_list = kwargs.get('all_knowledge_retrieved_list',[])
         agent_system_prompt = cls.get_common_system_prompt(
-            agent_system_prompt
+            agent_system_prompt,all_knowledge_retrieved_list
         )
         
         # tool fewshot prompt 

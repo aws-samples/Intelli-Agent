@@ -31,9 +31,6 @@ from common_logic.langchain_integration.chains import LLMChain
 from common_logic.common_utils.serialization_utils import JSONEncoder
 from common_logic.common_utils.monitor_utils import format_intention_output, format_preprocess_output, format_qq_data
 from common_logic.common_utils.ddb_utils import custom_index_desc
-from lambda_main.main_utils.online_entries.agent_base import (
-    tool_execution,
-)
 from lambda_main.main_utils.parse_config import CommonConfigParser
 from langgraph.graph import END, StateGraph
 from common_logic.langchain_integration.retrievers.retriever import lambda_handler as retrieve_fn
@@ -49,6 +46,7 @@ from common_logic.common_utils.serialization_utils import JSONEncoder
 
 
 logger = get_logger("common_entry")
+
 
 
 class ChatbotState(TypedDict):
@@ -93,6 +91,7 @@ class ChatbotState(TypedDict):
     intent_fewshot_examples: list
     # tools of retrieved intention samples in search engine, e.g. OpenSearch
     intent_fewshot_tools: list
+    all_knowledge_retrieved_list: list
 
     ########### retriever states ###########
     # contexts information retrieved in search engine, e.g. OpenSearch
@@ -204,6 +203,12 @@ def intention_detection(state: ChatbotState):
         }
     )
 
+    intent_fewshot_tools: list[str] = list(
+        set([e["intent"] for e in intent_fewshot_examples])
+    )
+    all_knowledge_retrieved_list = []
+    markdown_table = format_intention_output(intent_fewshot_examples)
+
     group_name = state["chatbot_config"]["group_name"]
     chatbot_id = state["chatbot_config"]["chatbot_id"]
     custom_qd_index = custom_index_desc(group_name, chatbot_id)
@@ -211,34 +216,48 @@ def intention_detection(state: ChatbotState):
 
     # TODO need to modify with new intent logic
     if not intention_ready and not custom_qd_index:
-        return {
-            "answer": GUIDE_INTENTION_NOT_FOUND,
-            "intent_type": "intention not ready",
-        }
-    elif not intention_ready and custom_qd_index:
-        intent_fewshot_examples = []
-        intent_fewshot_tools: list[str] = []
-    else:
-        intent_fewshot_tools: list[str] = list(
-            set([e["intent"] for e in intent_fewshot_examples])
-        )
+        # retrieve all knowledge
+        retriever_params = state["chatbot_config"]["private_knowledge_config"]
+        retriever_params["query"] = state[
+            retriever_params.get("retriever_config", {}).get("query_key", "query")
+        ]
+        threshold = Threshold.INTENTION_ALL_KNOWLEDGAE_RETRIEVE
+        output = retrieve_fn(retriever_params)
+        all_knowledge_retrieved_list = [
+            doc["page_content"]
+            for doc in output["result"]["docs"]
+            if doc['score'] >= threshold
 
-        markdown_table = format_intention_output(intent_fewshot_examples)
-        send_trace(
-            f"{markdown_table}",
-            state["stream"],
-            state["ws_connection_id"],
-            state["enable_trace"],
-        )
+        ]
+        # return {
+        #     "answer": GUIDE_INTENTION_NOT_FOUND,
+        #     "intent_type": "intention not ready",
+        # }
+    # elif not intention_ready and custom_qd_index:
+    #     intent_fewshot_examples = []
+    #     intent_fewshot_tools: list[str] = []
+    # else:
+    send_trace(
+        f"{markdown_table}",
+        state["stream"],
+        state["ws_connection_id"],
+        state["enable_trace"],
+    )
+    
+    # rename tool name
+    intent_fewshot_tools = [tool_rename(i) for i in intent_fewshot_tools]
+    intent_fewshot_examples = [
+        {**e, "intent": tool_rename(e["intent"])} for e in intent_fewshot_examples
+    ]
 
     return {
         "intent_fewshot_examples": intent_fewshot_examples,
         "intent_fewshot_tools": intent_fewshot_tools,
+        "all_knowledge_retrieved_list":all_knowledge_retrieved_list,
         "qq_match_results": context_list,
         "qq_match_contexts": qq_match_contexts,
-        "intent_type": "intention detected",
+        "intent_type": "intention detected"
     }
-
 
 @node_monitor_wrapper
 def agent(state: ChatbotState):
@@ -309,6 +328,7 @@ def agent(state: ChatbotState):
         **agent_config['llm_config'],
         "tools": tools,
         "fewshot_examples": state['intent_fewshot_examples'],
+        "all_knowledge_retrieved_list":state['all_knowledge_retrieved_list']
     }
     group_name = state['chatbot_config']['group_name']
     chatbot_id = state['chatbot_config']['chatbot_id']
@@ -540,6 +560,13 @@ def build_graph(chatbot_state_cls):
 #####################################
 app = None
 
+def tool_rename(name:str) -> str:
+    """
+    rename the tool name
+    """
+    return name.replace("-","_")
+
+
 
 def register_rag_tool_from_config(event_body: dict):
     group_name = event_body.get("chatbot_config").get("group_name", "Admin")
@@ -564,7 +591,7 @@ def register_rag_tool_from_config(event_body: dict):
                     if rerankers:
                         rerankers = [rerankers[0]]
                     # index_name = index_content["indexId"]
-                    index_name = index_content["indexId"].replace("-","_")
+                    index_name = tool_rename(index_content["indexId"])
                     description = index_content["description"]
                     # TODO give specific retriever config
                     ToolManager.register_common_rag_tool(
