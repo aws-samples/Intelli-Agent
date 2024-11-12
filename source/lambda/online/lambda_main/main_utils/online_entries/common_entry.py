@@ -216,6 +216,7 @@ def intention_detection(state: ChatbotState):
 
     # TODO need to modify with new intent logic
     if not intention_ready and not custom_qd_index:
+    # if not intention_ready:
         # retrieve all knowledge
         retriever_params = state["chatbot_config"]["private_knowledge_config"]
         retriever_params["query"] = state[
@@ -223,16 +224,20 @@ def intention_detection(state: ChatbotState):
         ]
         threshold = Threshold.INTENTION_ALL_KNOWLEDGAE_RETRIEVE
         output = retrieve_fn(retriever_params)
-        all_knowledge_retrieved_list = [
-            doc["page_content"]
-            for doc in output["result"]["docs"]
-            if doc['score'] >= threshold
 
-        ]
-        # return {
-        #     "answer": GUIDE_INTENTION_NOT_FOUND,
-        #     "intent_type": "intention not ready",
-        # }
+        info_to_log = []
+        all_knowledge_retrieved_list = []
+        for doc in output["result"]["docs"]:
+            if doc['score'] >= threshold:
+                all_knowledge_retrieved_list.append(doc["page_content"])
+            info_to_log.append(f"score: {doc['score']}, page_content: {doc['page_content'][:200]}")
+
+        send_trace(
+            f"all knowledge retrieved:\n {'\n'.join(info_to_log)}",
+            state["stream"],
+            state["ws_connection_id"],
+            state["enable_trace"],
+        )
     # elif not intention_ready and custom_qd_index:
     #     intent_fewshot_examples = []
     #     intent_fewshot_tools: list[str] = []
@@ -253,7 +258,7 @@ def intention_detection(state: ChatbotState):
     return {
         "intent_fewshot_examples": intent_fewshot_examples,
         "intent_fewshot_tools": intent_fewshot_tools,
-        "all_knowledge_retrieved_list":all_knowledge_retrieved_list,
+        "all_knowledge_retrieved_list": all_knowledge_retrieved_list,
         "qq_match_results": context_list,
         "qq_match_contexts": qq_match_contexts,
         "intent_type": "intention detected"
