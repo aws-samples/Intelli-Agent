@@ -1,18 +1,16 @@
 import json
 import logging
 import os
-import time
 from datetime import datetime, timezone
 
 import boto3
 from boto3.dynamodb.conditions import Attr
 from botocore.paginate import TokenEncoder
-from constant import IndexType, EmbeddingModelType
+from constant import EmbeddingModelType, IndexType
 from utils.ddb_utils import (
     initiate_chatbot,
     initiate_index,
     initiate_model,
-    is_chatbot_existed,
 )
 
 logger = logging.getLogger()
@@ -51,23 +49,22 @@ def create_chatbot(event, group_name):
     request_body = json.loads(event["body"])
     chatbot_id = request_body.get("chatbotId", group_name.lower())
     chatbot_description = request_body.get(
-        "chatbotDescription", "Answer question based on search result"
+        "chatbotDescription",
+        "Answer question based on search result. You will be answering question based on the content retrieved from the knowledge base, including 本地音乐相关问题, 设置与功能相关问题 and 研发团队文档相关问题。",
     )
     chatbot_embedding = request_body.get("modelId", embedding_endpoint)
     model_id = f"{chatbot_id}-embedding"
     # model_id = request_body.get("modelId", f"{chatbot_id}-embedding")
     create_time = str(datetime.now(timezone.utc))
 
-    model_type = initiate_model(
-        model_table, group_name, model_id, chatbot_embedding, create_time)
+    model_type = initiate_model(model_table, group_name, model_id, chatbot_embedding, create_time)
 
     index_id_list = {}
     # Iterate over all enum members and create DDB metadata
     for member in IndexType.__members__.values():
         index_type = member.value
         index_ids = (
-            request_body.get("index", {})
-            .get(index_type, f"{chatbot_id}-{index_type}-default")
+            request_body.get("index", {}).get(index_type, f"{chatbot_id}-{index_type}-default")
             # .get("index", f"{chatbot_id}-{index_type}-default")
         )
         index_id_list[index_type] = index_ids
@@ -136,8 +133,9 @@ def __list_chatbot(event, group_name):
         for item in page_items:
             item_json = {}
             chatbot_id = item.get("chatbotId", {"S": ""})["S"]
-            index_dict = list(item.get("indexIds", {}).get("M", {}).get(
-                "intention", {}).get("M", {}).get("value", {}).values())[0]
+            index_dict = list(
+                item.get("indexIds", {}).get("M", {}).get("intention", {}).get("M", {}).get("value", {}).values()
+            )[0]
             index_id = list(index_dict.keys())[0]
             index_table_item = index_table.get_item(
                 Key={
@@ -145,8 +143,7 @@ def __list_chatbot(event, group_name):
                     "indexId": index_id,
                 }
             )
-            model_id = index_table_item.get("Item", {}).get(
-                "modelIds", {}).get("embedding", "")
+            model_id = index_table_item.get("Item", {}).get("modelIds", {}).get("embedding", "")
             item_json["ChatbotId"] = chatbot_id
             chatbot_model_item = model_table.get_item(
                 Key={
@@ -154,19 +151,14 @@ def __list_chatbot(event, group_name):
                     "modelId": f"{chatbot_id}-embedding",
                 }
             ).get("Item")
-            item_json["ModelName"] = chatbot_model_item.get("parameter", {}).get(
-                "ModelEndpoint", ""
-            )
+            item_json["ModelName"] = chatbot_model_item.get("parameter", {}).get("ModelEndpoint", "")
             item_json["ModelId"] = chatbot_model_item.get("modelId", "")
-            item_json["LastModifiedTime"] = item.get(
-                "updateTime", {"S": ""})["S"]
+            item_json["LastModifiedTime"] = item.get("updateTime", {"S": ""})["S"]
             page_json.append(item_json)
         page_json.sort(key=lambda x: x["LastModifiedTime"], reverse=True)
         output["Items"] = page_json
         if "LastEvaluatedKey" in page:
-            output["LastEvaluatedKey"] = encoder.encode(
-                {"ExclusiveStartKey": page["LastEvaluatedKey"]}
-            )
+            output["LastEvaluatedKey"] = encoder.encode({"ExclusiveStartKey": page["LastEvaluatedKey"]})
         break
 
     output["Config"] = config
@@ -182,12 +174,10 @@ def merge_index(chatbot_index_ids, key):
 def __get_chatbot(event, group_name):
     chatbot_id = event.get("pathParameters", {}).get("proxy")
     if chatbot_id:
-        chatbot_item = chatbot_table.get_item(
-            Key={"groupName": group_name, "chatbotId": chatbot_id}
-        ).get("Item")
-        model_item = model_table.get_item(
-            Key={"groupName": group_name, "modelId": f'{chatbot_id}-embedding'}
-        ).get("Item")
+        chatbot_item = chatbot_table.get_item(Key={"groupName": group_name, "chatbotId": chatbot_id}).get("Item")
+        model_item = model_table.get_item(Key={"groupName": group_name, "modelId": f"{chatbot_id}-embedding"}).get(
+            "Item"
+        )
     else:
         chatbot_item = None
         model_item = None
@@ -200,14 +190,11 @@ def __get_chatbot(event, group_name):
         response = {
             "groupName": group_name,
             "chatbotId": chatbot_id,
-            "model": {
-                "model_endpoint": model_endpoint,
-                "model_name": model_name
-            },
+            "model": {"model_endpoint": model_endpoint, "model_name": model_name},
             "index": {
                 "intention": merge_index(chatbot_index_ids, "intention"),
-                "qq":  merge_index(chatbot_index_ids, "qq"),
-                "qd": merge_index(chatbot_index_ids, "qd")
+                "qq": merge_index(chatbot_index_ids, "qq"),
+                "qd": merge_index(chatbot_index_ids, "qd"),
             },
         }
     else:
@@ -217,7 +204,7 @@ def __get_chatbot(event, group_name):
             "index": {
                 "inention": f"{chatbot_id}-intention-default",
                 "qq": f"{chatbot_id}-qq-default",
-                "qd": f"{chatbot_id}-qd-default"
+                "qd": f"{chatbot_id}-qd-default",
             },
         }
     return response
@@ -226,17 +213,13 @@ def __get_chatbot(event, group_name):
 def __delete_chatbot(event, group_name):
     chatbot_id = event["path"].split("/")[-1]
 
-    response = chatbot_table.delete_item(
-        Key={"groupName": group_name, "chatbotId": chatbot_id}
-    )
+    response = chatbot_table.delete_item(Key={"groupName": group_name, "chatbotId": chatbot_id})
     return response
 
 
 def lambda_handler(event, context):
     # logger.info(f"event:{event}")
-    authorizer_type = (
-        event["requestContext"].get("authorizer", {}).get("authorizerType")
-    )
+    authorizer_type = event["requestContext"].get("authorizer", {}).get("authorizerType")
     if authorizer_type == "lambda_authorizer":
         claims = json.loads(event["requestContext"]["authorizer"]["claims"])
 
@@ -279,11 +262,11 @@ def lambda_handler(event, context):
             "body": json.dumps(f"Error: {str(e)}"),
         }
 
+
 def __validate_default_chatbot(event, group_name):
-    chatbot_item = chatbot_table.get_item(
-            Key={"groupName": group_name, "chatbotId": group_name.lower()}
-        ).get("Item")
+    chatbot_item = chatbot_table.get_item(Key={"groupName": group_name, "chatbotId": group_name.lower()}).get("Item")
     return True if chatbot_item else False
+
 
 def __validate_chatbot(event, group_name):
     input_body = json.loads(event["body"])
@@ -297,15 +280,9 @@ def __validate_chatbot(event, group_name):
         raise
 
     if chatbot_type == "create":
-        chatbot_item = chatbot_table.get_item(
-            Key={"groupName": group_name, "chatbotId": chatbot_id}
-        ).get("Item")
+        chatbot_item = chatbot_table.get_item(Key={"groupName": group_name, "chatbotId": chatbot_id}).get("Item")
         if chatbot_item:
-            return {
-                "result": False,
-                "item": "chatbotName",
-                "Message": "repeat"
-            }
+            return {"result": False, "item": "chatbotName", "Message": "repeat"}
     # index
     # index_ids=[]
     index_set = set()
@@ -319,32 +296,26 @@ def __validate_chatbot(event, group_name):
         # index_ids.append(index.get(index_type))
         # .get("index", f"{chatbot_id}-{index_type}-default")
 
-    response = index_table.scan(
-        FilterExpression=Attr('indexId').is_in(list(index_set))
-    )
-    items = response.get('Items')
+    response = index_table.scan(FilterExpression=Attr("indexId").is_in(list(index_set)))
+    items = response.get("Items")
     if items:
         for item in items:
-            if item['groupName'] != group_name:
+            if item["groupName"] != group_name:
                 # 其他人用了index，报错
                 return {
                     "result": False,
-                    "item": __find_key(index, item['indexId']),
-                    "Message": "repeat in other group name"
+                    "item": __find_key(index, item["indexId"]),
+                    "Message": "repeat in other group name",
                 }
             else:
                 if item.get("modelIds", {}).get("embedding", "") != model:
                     # 自己用了index，但是模型 不对，报错
                     return {
                         "result": False,
-                        "item": __find_key(index, item['indexId']),
-                        "Message": "used by other models"
+                        "item": __find_key(index, item["indexId"]),
+                        "Message": "used by other models",
                     }
-    return {
-        "result": True,
-        "item": None,
-        "Message": None
-    }
+    return {"result": True, "item": None, "Message": None}
 
 
 def __find_key(index, index_id):
@@ -352,6 +323,7 @@ def __find_key(index, index_id):
         if index_id in value.split(","):
             return key
     return None
+
 
 # def __chatbot_details(chatbot_id, group_name):
 #     res={chatbot_id:chatbot_id}
@@ -367,9 +339,6 @@ def __find_key(index, index_id):
 
 
 def __get_query_parameter(event, parameter_name, default_value=None):
-    if (
-        event.get("queryStringParameters")
-        and parameter_name in event["queryStringParameters"]
-    ):
+    if event.get("queryStringParameters") and parameter_name in event["queryStringParameters"]:
         return event["queryStringParameters"][parameter_name]
     return default_value
