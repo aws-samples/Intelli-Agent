@@ -164,8 +164,10 @@ def test_multi_turns_agent_pr():
     user_queries = [
         {
             # "query": "”我爱北京天安门“包含多少个字符?",
-            "query": "What does 245346356356 times 346357457 equal?",  # 1089836033535
+            # "query": "What does 245346356356 times 346357457 equal?",  # 1089836033535
             # "query": "9.11和9.9哪个更大？",  # 1089836033535
+            # "query": "what happened in the history of Morgan Stanley in Emerging market in 1989 ?",  
+            "query": "Tell me the team members of Morgan Stanley in China",  
             # "query": "今天天气如何？", 
             # "query": "介绍一下MemGPT",
             "use_history": True,
@@ -190,8 +192,8 @@ def test_multi_turns_agent_pr():
         # "model_id":'anthropic.claude-3-sonnet-20240229-v1:0',
         # 'model_id': "anthropic.claude-3-5-sonnet-20240620-v1:0",
         # 'model_id': "anthropic.claude-3-5-haiku-20241022-v1:0",
-        # 'model_id': "us.meta.llama3-2-90b-instruct-v1:0",
-        'model_id': "meta.llama3-1-70b-instruct-v1:0",
+        'model_id': "us.meta.llama3-2-90b-instruct-v1:0",
+        # 'model_id': "meta.llama3-1-70b-instruct-v1:0",
         # 'model_id':"mistral.mistral-large-2407-v1:0",
         # 'model_id':"cohere.command-r-plus-v1:0",
         'model_kwargs': {

@@ -215,8 +215,8 @@ def intention_detection(state: ChatbotState):
     
 
     # TODO need to modify with new intent logic
-    if not intention_ready and not custom_qd_index:
-    # if not intention_ready:
+    # if not intention_ready and not custom_qd_index:
+    if not intention_ready:
         # retrieve all knowledge
         retriever_params = state["chatbot_config"]["private_knowledge_config"]
         retriever_params["query"] = state[
