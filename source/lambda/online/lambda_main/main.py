@@ -2,7 +2,6 @@ import os
 import traceback
 import uuid
 from datetime import datetime, timezone
-import traceback
 
 import boto3
 from botocore.exceptions import ClientError

@@ -144,7 +144,7 @@ class Baichuan2Chat13B4BitsChatChain(LLMChain):
         return llm_chain
 
 
-class Iternlm2Chat7BChatChain(LLMChain):
+class Internlm2Chat7BChatChain(LLMChain):
     model_id = LLMModelType.INTERNLM2_CHAT_7B
     intent_type = LLMTaskType.CHAT
 
@@ -217,7 +217,7 @@ class Iternlm2Chat7BChatChain(LLMChain):
         return llm_chain
 
 
-class Iternlm2Chat20BChatChain(Iternlm2Chat7BChatChain):
+class Internlm2Chat20BChatChain(Internlm2Chat7BChatChain):
     model_id = LLMModelType.INTERNLM2_CHAT_20B
 
 
