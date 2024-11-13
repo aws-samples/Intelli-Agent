@@ -13,6 +13,7 @@ api_test/test_data/*
 api_test/gen-report-lambda.py
 source/portal/src/utils/const.ts
 source/lambda/online/lambda_main/test/main_local_test_retail.py
+source/lambda/online/lambda_main/test/main_local_test_common.py
 source/lambda/online/functions/retail_tools/lambda_product_information_search/product_information_search.py
 source/lambda/job/test/prepare_data.py
 README.md
