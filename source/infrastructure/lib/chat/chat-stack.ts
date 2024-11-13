@@ -69,7 +69,7 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
   private lambdaOnlineAgent: Function;
   private lambdaOnlineLLMGenerate: Function;
   private chatbotTableName: string;
-  private lambdaOnlineFunctions: Function;
+  // private lambdaOnlineFunctions: Function;
 
   constructor(scope: Construct, id: string, props: ChatStackProps) {
     super(scope, id);
@@ -282,23 +282,23 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
     this.lambdaOnlineLLMGenerate.addToRolePolicy(this.iamHelper.dynamodbStatement);
 
 
-    const lambdaOnlineFunctions = new LambdaFunction(this, "lambdaOnlineFunctions", {
-      runtime: Runtime.PYTHON_3_12,
-      handler: "lambda_tools.lambda_handler",
-      code: Code.fromAsset(
-        join(__dirname, "../../../lambda/online/functions/functions_utils"),
-      ),
-      memorySize: 4096,
-      vpc: vpc,
-      securityGroups: securityGroups,
-      layers: [apiLambdaOnlineSourceLayer, apiLambdaJobSourceLayer],
-      environment: {
-        CHATBOT_TABLE: props.sharedConstructOutputs.chatbotTable.tableName,
-        INDEX_TABLE: this.indexTableName,
-        MODEL_TABLE: this.modelTableName,
-      },
-    });
-    this.lambdaOnlineFunctions = lambdaOnlineFunctions.function;
+    // const lambdaOnlineFunctions = new LambdaFunction(this, "lambdaOnlineFunctions", {
+    //   runtime: Runtime.PYTHON_3_12,
+    //   handler: "lambda_tools.lambda_handler",
+    //   code: Code.fromAsset(
+    //     join(__dirname, "../../../lambda/online/functions/functions_utils"),
+    //   ),
+    //   memorySize: 4096,
+    //   vpc: vpc,
+    //   securityGroups: securityGroups,
+    //   layers: [apiLambdaOnlineSourceLayer, apiLambdaJobSourceLayer],
+    //   environment: {
+    //     CHATBOT_TABLE: props.sharedConstructOutputs.chatbotTable.tableName,
+    //     INDEX_TABLE: this.indexTableName,
+    //     MODEL_TABLE: this.modelTableName,
+    //   },
+    // });
+    // this.lambdaOnlineFunctions = lambdaOnlineFunctions.function;
 
     this.lambdaOnlineQueryPreprocess.grantInvoke(this.lambdaOnlineMain);
 
@@ -310,8 +310,8 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
     this.lambdaOnlineLLMGenerate.grantInvoke(this.lambdaOnlineQueryPreprocess);
     this.lambdaOnlineLLMGenerate.grantInvoke(this.lambdaOnlineAgent);
 
-    this.lambdaOnlineFunctions.grantInvoke(this.lambdaOnlineMain);
-    this.lambdaOnlineFunctions.grantInvoke(this.lambdaOnlineIntentionDetection);
+    // this.lambdaOnlineFunctions.grantInvoke(this.lambdaOnlineMain);
+    // this.lambdaOnlineFunctions.grantInvoke(this.lambdaOnlineIntentionDetection);
 
     if (props.config.chat.amazonConnect.enabled) {
       new ConnectConstruct(this, "connect-construct", {

@@ -1,11 +1,12 @@
 import json
 import io
 from typing import Any, Dict, Iterator, List, Mapping, Optional
-from langchain.llms.sagemaker_endpoint import LLMContentHandler, SagemakerEndpoint
-from langchain.embeddings import SagemakerEndpointEmbeddings, BedrockEmbeddings
-from langchain.embeddings.sagemaker_endpoint import EmbeddingsContentHandler
+from langchain_community.llms import SagemakerEndpoint
+from langchain_community.llms.sagemaker_endpoint import LLMContentHandler
+from langchain_community.embeddings import SagemakerEndpointEmbeddings,BedrockEmbeddings
+from langchain_community.embeddings.sagemaker_endpoint import EmbeddingsContentHandler
 from langchain.callbacks.manager import CallbackManagerForLLMRun
-from langchain.llms.utils import enforce_stop_tokens
+from langchain_community.llms.utils import enforce_stop_tokens
 from typing import Dict, List, Optional, Any,Iterator
 from langchain_core.outputs import GenerationChunk
 import boto3
@@ -234,12 +235,12 @@ class SagemakerEndpointChat(BaseChatModel):
     function. See `boto3`_. docs for more info.
     .. _boto3: <https://boto3.amazonaws.com/v1/documentation/api/latest/index.html>
     """
-    content_type = "application/json"
-    accepts = "application/json"
+    content_type: str = "application/json"
+    accepts: str = "application/json"
     class Config:
         """Configuration for this pydantic object."""
 
-        extra = Extra.forbid
+        extra = Extra.forbid.value
 
     @root_validator()
     def validate_environment(cls, values: Dict) -> Dict:

@@ -82,15 +82,17 @@ class LLMTaskType(ConstantBase):
     HYDE_TYPE = "hyde"
     CONVERSATION_SUMMARY_TYPE = "conversation_summary"
     RETAIL_CONVERSATION_SUMMARY_TYPE = "retail_conversation_summary"
-
     MKT_CONVERSATION_SUMMARY_TYPE = "mkt_conversation_summary"
     MKT_QUERY_REWRITE_TYPE = "mkt_query_rewrite"
     STEPBACK_PROMPTING_TYPE = "stepback_prompting"
-    TOOL_CALLING = "tool_calling"
+    TOOL_CALLING_XML = "tool_calling_xml"
+    TOOL_CALLING_API = "tool_calling_api"
     RETAIL_TOOL_CALLING = "retail_tool_calling"
     RAG = "rag"
+    MTK_RAG = "mkt_rag"
     CHAT = 'chat'
     AUTO_EVALUATION = "auto_evaluation"
+
 
 
 class MessageType(ConstantBase):
@@ -126,19 +128,26 @@ class LLMModelType(ConstantBase):
     CLAUDE_2 = "anthropic.claude-v2"
     CLAUDE_21 = "anthropic.claude-v2:1"
     CLAUDE_3_HAIKU = "anthropic.claude-3-haiku-20240307-v1:0"
+    CLAUDE_3_5_HAIKU = "anthropic.claude-3-5-haiku-20241022-v1:0"
     CLAUDE_3_SONNET = "anthropic.claude-3-sonnet-20240229-v1:0"
     CLAUDE_3_5_SONNET = "anthropic.claude-3-5-sonnet-20240620-v1:0"
+    CLAUDE_3_5_SONNET_V2 = "anthropic.claude-3-5-sonnet-20241022-v2:0"
     MIXTRAL_8X7B_INSTRUCT = "mistral.mixtral-8x7b-instruct-v0:1"
     BAICHUAN2_13B_CHAT = "Baichuan2-13B-Chat-4bits"
     INTERNLM2_CHAT_7B = "internlm2-chat-7b"
     INTERNLM2_CHAT_20B = "internlm2-chat-20b"
     GLM_4_9B_CHAT = "glm-4-9b-chat"
-    CHATGPT_35_TURBO = "gpt-3.5-turbo-0125"
+    CHATGPT_35_TURBO_0125 = "gpt-3.5-turbo-0125"
     CHATGPT_4_TURBO = "gpt-4-turbo"
     CHATGPT_4O = "gpt-4o"
     QWEN2INSTRUCT7B = "qwen2-7B-instruct"
     QWEN2INSTRUCT72B = "qwen2-72B-instruct"
     QWEN15INSTRUCT32B = "qwen1_5-32B-instruct"
+    LLAMA3_1_70B_INSTRUCT = "meta.llama3-1-70b-instruct-v1:0"
+    LLAMA3_2_90B_INSTRUCT = "us.meta.llama3-2-90b-instruct-v1:0"
+    MISTRAL_LARGE_2407 = "mistral.mistral-large-2407-v1:0"
+    COHERE_COMMAND_R_PLUS = "cohere.command-r-plus-v1:0"
+
 
 
 class EmbeddingModelType(ConstantBase):
@@ -170,8 +179,7 @@ class IndexTag(Enum):
 
 @unique
 class KBType(Enum):
-    AOS = "aos"
-
+    AOS = "aos" 
 
 GUIDE_INTENTION_NOT_FOUND = "Intention not found, please add intentions first when using agent mode, refer to https://amzn-chn.feishu.cn/docx/HlxvduJYgoOz8CxITxXc43XWn8e"
 INDEX_DESC = "Answer question based on search result"
@@ -179,4 +187,5 @@ INDEX_DESC = "Answer question based on search result"
 
 class Threshold(ConstantBase):
     QQ_IN_RAG_CONTEXT = 0.5
+    INTENTION_ALL_KNOWLEDGE_RETRIEVAL = 0.4
 

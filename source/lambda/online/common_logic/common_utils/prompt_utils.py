@@ -2,7 +2,7 @@ import boto3
 import os
 import json
 
-from langchain.pydantic_v1 import BaseModel, Field
+from pydantic import BaseModel, Field
 from collections import defaultdict
 from common_logic.common_utils.constant import LLMModelType, LLMTaskType
 import copy
@@ -17,7 +17,11 @@ ddb_prompt_table = dynamodb_resource.Table(ddb_prompt_table_name)
 EXPORT_MODEL_IDS = [
     LLMModelType.CLAUDE_3_HAIKU,
     LLMModelType.CLAUDE_3_SONNET,
-    # LLMModelType.CLAUDE_3_5_SONNET,
+    LLMModelType.CLAUDE_3_5_HAIKU,
+    LLMModelType.CLAUDE_3_5_SONNET_V2,
+    LLMModelType.LLAMA3_1_70B_INSTRUCT,
+    LLMModelType.MISTRAL_LARGE_2407,
+    LLMModelType.COHERE_COMMAND_R_PLUS
 ]
 
 EXPORT_SCENES = [
@@ -141,8 +145,14 @@ register_prompt_templates(
         LLMModelType.CLAUDE_3_HAIKU,
         LLMModelType.CLAUDE_3_SONNET,
         LLMModelType.CLAUDE_3_5_SONNET,
+        LLMModelType.CLAUDE_3_5_HAIKU,
+        LLMModelType.CLAUDE_3_5_SONNET_V2,
         LLMModelType.CLAUDE_INSTANCE,
-        LLMModelType.MIXTRAL_8X7B_INSTRUCT
+        LLMModelType.MIXTRAL_8X7B_INSTRUCT,
+        LLMModelType.LLAMA3_1_70B_INSTRUCT,
+        LLMModelType.LLAMA3_2_90B_INSTRUCT,
+        LLMModelType.MISTRAL_LARGE_2407,
+        LLMModelType.COHERE_COMMAND_R_PLUS,
     ],
     task_type=LLMTaskType.RAG,
     prompt_template=CLAUDE_RAG_SYSTEM_PROMPT,
@@ -171,37 +181,9 @@ register_prompt_templates(
 )
 
 
-# CHIT_CHAT_SYSTEM_TEMPLATE = "你是一个AI助理。今天是{date},{weekday}. "
-
-# register_prompt_templates(
-#     model_ids=[
-#         LLMModelType.CLAUDE_2,
-#         LLMModelType.CLAUDE_21,
-#         LLMModelType.CLAUDE_3_HAIKU,
-#         LLMModelType.CLAUDE_3_SONNET,
-#         LLMModelType.CLAUDE_3_5_SONNET,
-#         LLMModelType.CLAUDE_INSTANCE,
-#         LLMModelType.MIXTRAL_8X7B_INSTRUCT,
-#         LLMModelType.GLM_4_9B_CHAT,
-#         LLMModelType.QWEN2INSTRUCT72B,
-#         LLMModelType.QWEN2INSTRUCT7B
-#     ],
-#     task_type=LLMTaskType.CHAT,
-#     prompt_template=CHIT_CHAT_SYSTEM_TEMPLATE,
-#     prompt_name="system_prompt"
-# )
-
-
-# CQR_TEMPLATE = """Given the following conversation between `USER` and `AI`, and a follow up `USER` reply, Put yourself in the shoes of `USER`, rephrase the follow up \
-# `USER` reply to be a standalone reply.
-
-# Chat History:
-# {history}
-
-# The USER's follow up reply: {question}"""
-
-
+################ 
 # query rewrite prompt template from paper https://arxiv.org/pdf/2401.10225
+###################
 CQR_SYSTEM_PROMPT = """You are a helpful, pattern-following assistant."""
 
 CQR_USER_PROMPT_TEMPLATE = """Given the following conversation between PersonU and PersonA:
@@ -280,11 +262,18 @@ register_prompt_templates(
         LLMModelType.CLAUDE_3_HAIKU,
         LLMModelType.CLAUDE_3_SONNET,
         LLMModelType.CLAUDE_3_5_SONNET,
+        LLMModelType.CLAUDE_3_5_HAIKU,
+        LLMModelType.CLAUDE_3_5_SONNET_V2,
         LLMModelType.CLAUDE_INSTANCE,
         LLMModelType.MIXTRAL_8X7B_INSTRUCT,
         LLMModelType.QWEN2INSTRUCT72B,
         LLMModelType.QWEN2INSTRUCT7B,
-        LLMModelType.GLM_4_9B_CHAT
+        LLMModelType.GLM_4_9B_CHAT,
+        LLMModelType.LLAMA3_1_70B_INSTRUCT,
+        LLMModelType.LLAMA3_2_90B_INSTRUCT,
+        LLMModelType.MISTRAL_LARGE_2407,
+        LLMModelType.COHERE_COMMAND_R_PLUS,
+    
     ],
     task_type=LLMTaskType.CONVERSATION_SUMMARY_TYPE,
     prompt_template=CQR_SYSTEM_PROMPT,
@@ -298,11 +287,17 @@ register_prompt_templates(
         LLMModelType.CLAUDE_3_HAIKU,
         LLMModelType.CLAUDE_3_SONNET,
         LLMModelType.CLAUDE_3_5_SONNET,
+        LLMModelType.CLAUDE_3_5_HAIKU,
+        LLMModelType.CLAUDE_3_5_SONNET_V2,
         LLMModelType.CLAUDE_INSTANCE,
         LLMModelType.MIXTRAL_8X7B_INSTRUCT,
         LLMModelType.QWEN2INSTRUCT72B,
         LLMModelType.QWEN2INSTRUCT7B,
-        LLMModelType.GLM_4_9B_CHAT
+        LLMModelType.GLM_4_9B_CHAT,
+        LLMModelType.LLAMA3_1_70B_INSTRUCT,
+        LLMModelType.LLAMA3_2_90B_INSTRUCT,
+        LLMModelType.MISTRAL_LARGE_2407,
+        LLMModelType.COHERE_COMMAND_R_PLUS,
     ],
     task_type=LLMTaskType.CONVERSATION_SUMMARY_TYPE,
     prompt_template=CQR_USER_PROMPT_TEMPLATE,
@@ -317,18 +312,26 @@ register_prompt_templates(
         LLMModelType.CLAUDE_3_HAIKU,
         LLMModelType.CLAUDE_3_SONNET,
         LLMModelType.CLAUDE_3_5_SONNET,
+        LLMModelType.CLAUDE_3_5_HAIKU,
+        LLMModelType.CLAUDE_3_5_SONNET_V2,
         LLMModelType.CLAUDE_INSTANCE,
         LLMModelType.MIXTRAL_8X7B_INSTRUCT,
         LLMModelType.QWEN2INSTRUCT72B,
         LLMModelType.QWEN2INSTRUCT7B,
-        LLMModelType.GLM_4_9B_CHAT
+        LLMModelType.GLM_4_9B_CHAT,
+        LLMModelType.LLAMA3_1_70B_INSTRUCT,
+        LLMModelType.LLAMA3_2_90B_INSTRUCT,
+        LLMModelType.MISTRAL_LARGE_2407,
+        LLMModelType.COHERE_COMMAND_R_PLUS,
     ],
     task_type=LLMTaskType.CONVERSATION_SUMMARY_TYPE,
     prompt_template=json.dumps(CQR_FEW_SHOTS, ensure_ascii=False, indent=2),
     prompt_name="few_shots"
 )
 
-# agent prompt
+
+
+############## xml agent prompt #############
 AGENT_USER_PROMPT = "你是一个AI助理。今天是{date},{weekday}. "
 register_prompt_templates(
     model_ids=[
@@ -337,8 +340,10 @@ register_prompt_templates(
         LLMModelType.CLAUDE_3_HAIKU,
         LLMModelType.CLAUDE_3_SONNET,
         LLMModelType.CLAUDE_3_5_SONNET,
+        LLMModelType.CLAUDE_3_5_HAIKU,
+        LLMModelType.CLAUDE_3_5_SONNET_V2,
     ],
-    task_type=LLMTaskType.TOOL_CALLING,
+    task_type=LLMTaskType.TOOL_CALLING_XML,
     prompt_template=AGENT_USER_PROMPT,
     prompt_name="user_prompt"
 )
@@ -362,11 +367,143 @@ register_prompt_templates(
         LLMModelType.CLAUDE_3_HAIKU,
         LLMModelType.CLAUDE_3_SONNET,
         LLMModelType.CLAUDE_3_5_SONNET,
+        LLMModelType.CLAUDE_3_5_HAIKU,
+        LLMModelType.CLAUDE_3_5_SONNET_V2,
+        LLMModelType.LLAMA3_1_70B_INSTRUCT,
+        LLMModelType.MISTRAL_LARGE_2407,
+        LLMModelType.COHERE_COMMAND_R_PLUS,
     ],
-    task_type=LLMTaskType.TOOL_CALLING,
+    task_type=LLMTaskType.TOOL_CALLING_XML,
     prompt_template=AGENT_GUIDELINES_PROMPT,
     prompt_name="guidelines_prompt"
 )
+
+################# api agent prompt #####################
+AGENT_SYSTEM_PROMPT = """\
+You are a helpful and honest AI assistant. Today is {date},{weekday}. 
+Here are some guidelines for you:
+<guidlines>
+- Here are steps for you to decide to use which tool:
+    1. Determine whether the current context is sufficient to answer the user's question.
+    2. If the current context is sufficient to answer the user's question, call the `give_final_response` tool.
+    3. If the current context is not sufficient to answer the user's question, you can consider calling one of the provided tools.
+    4. If any of required parameters of the tool you want to call do not appears in context, call the `give_rhetorical_question` tool to ask the user for more information. 
+- Always output with the same language as the content from user. If the content is English, use English to output. If the content is Chinese, use Chinese to output.
+- Always call one tool at a time.
+</guidlines>
+Here's some context for reference:
+<context>
+{context}
+</context>"""
+
+# AGENT_SYSTEM_PROMPT = """\
+# You are a helpful and honest AI assistant. Today is {date},{weekday}. 
+# Here are some guidelines for you:
+# <guidlines>
+# - Output your step by step thinking in one pair of <thinking> and </thinking> tags, here are steps for you to think about deciding to use which tool:
+#     1. If the context contains the result of last tool call, it needs to be analyzed.
+#     2. Determine whether the current context is sufficient to answer the user's question.
+#     3. If the current context is sufficient to answer the user's question, call the `give_final_response` tool.
+#     4. If the current context is not sufficient to answer the user's question, you can consider calling one of the provided tools.
+#     5. If any of required parameters of the tool you want to call do not appears in context, call the `give_rhetorical_question` tool to ask the user for more information. 
+# - Always output with the same language as the content from user. If the content is English, use English to output. If the content is Chinese, use Chinese to output.
+# - Always invoke one tool.
+# - Before invoking any tool, be sure to first output your thought process in one pair of <thinking> and </thinking> tag.
+# </guidlines>"""
+
+
+# AGENT_SYSTEM_PROMPT = """\
+# You are a helpful and honest AI assistant. Today is {date},{weekday}. 
+# Here are some guidelines for you:
+# <guidlines>
+# - Output your step by step thinking in one pair of <thinking> and </thinking> tags, here are steps for you to think about deciding to use which tool:
+#     1. If the context contains the result of last tool call, it needs to be analyzed.
+#     2. Determine whether the current context is sufficient to answer the user's question.
+#     3. If the current context is sufficient to answer the user's question, call the `give_final_response` tool.
+#     4. If the current context is not sufficient to answer the user's question, you can consider calling one of the provided tools.
+#     5. If any of required parameters of the tool you want to call do not appears in context, call the `give_rhetorical_question` tool to ask the user for more information. 
+# - Always output with the same language as the content from user. If the content is English, use English to output. If the content is Chinese, use Chinese to output.
+# - Always invoke one tool.
+# </guidlines>
+
+# # Output example
+# <thinking>
+# write your thinking according to guidlines.
+# </thinking>
+# [invoke some tools]"""
+
+
+# - Output your thinking before to call one tool.
+register_prompt_templates(
+    model_ids=[
+        LLMModelType.CLAUDE_3_HAIKU,
+        LLMModelType.CLAUDE_3_SONNET,
+        LLMModelType.CLAUDE_3_5_SONNET,
+        LLMModelType.CLAUDE_3_5_SONNET_V2,
+        LLMModelType.CLAUDE_3_5_HAIKU,
+        # LLMModelType.LLAMA3_1_70B_INSTRUCT,
+        # LLMModelType.LLAMA3_2_90B_INSTRUCT,
+        # LLMModelType.MISTRAL_LARGE_2407,
+        # LLMModelType.COHERE_COMMAND_R_PLUS,
+    ],
+    task_type=LLMTaskType.TOOL_CALLING_API,
+    prompt_template=AGENT_SYSTEM_PROMPT,
+    prompt_name="agent_system_prompt"
+)
+
+
+AGENT_SYSTEM_PROMPT_COHERE = """\
+## Task & Context
+You are a helpful and honest AI assistant. Today is {date},{weekday}. 
+Here's some context for reference:
+{context}
+
+## Guidlines
+Here are some guidelines for you:
+- Here are strategies for you to decide to use which tool:
+    1. Determine whether the current context is sufficient to answer the user's question.
+    2. If the current context is sufficient to answer the user's question, call the `give_final_response` tool.
+    3. If the current context is not sufficient to answer the user's question, you can consider calling one of the provided tools.
+    4. If any of required parameters of the tool you want to call do not appears in context, call the `give_rhetorical_question` tool to ask the user for more information. 
+- Always output with the same language as the content from user. If the content is English, use English to output. If the content is Chinese, use Chinese to output.
+- Always call one tool at a time."""
+
+register_prompt_templates(
+    model_ids=[
+        LLMModelType.COHERE_COMMAND_R_PLUS,
+        LLMModelType.LLAMA3_1_70B_INSTRUCT,
+        LLMModelType.LLAMA3_2_90B_INSTRUCT,
+        LLMModelType.MISTRAL_LARGE_2407
+    ],
+    task_type=LLMTaskType.TOOL_CALLING_API,
+    prompt_template=AGENT_SYSTEM_PROMPT_COHERE,
+    prompt_name="agent_system_prompt"
+)
+
+
+TOOL_FEWSHOT_PROMPT = """\
+Input: {query}
+Args: {args}"""
+
+register_prompt_templates(
+    model_ids=[
+        LLMModelType.CLAUDE_2,
+        LLMModelType.CLAUDE_21,
+        LLMModelType.CLAUDE_3_HAIKU,
+        LLMModelType.CLAUDE_3_SONNET,
+        LLMModelType.CLAUDE_3_5_SONNET_V2,
+        LLMModelType.CLAUDE_3_5_HAIKU,
+        LLMModelType.CLAUDE_3_5_SONNET,
+        LLMModelType.LLAMA3_1_70B_INSTRUCT,
+        LLMModelType.LLAMA3_2_90B_INSTRUCT,
+        LLMModelType.MISTRAL_LARGE_2407,
+        LLMModelType.COHERE_COMMAND_R_PLUS,
+    ],
+    task_type=LLMTaskType.TOOL_CALLING_API,
+    prompt_template=TOOL_FEWSHOT_PROMPT,
+    prompt_name="tool_fewshot_prompt"
+)
+
 
 
 if __name__ == "__main__":

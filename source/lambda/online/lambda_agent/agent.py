@@ -26,7 +26,7 @@ def tool_calling(state:dict):
         "fewshot_examples": state['intent_fewshot_examples'],
     }
 
-    agent_llm_type = state.get("agent_llm_type",None) or LLMTaskType.TOOL_CALLING
+    agent_llm_type = state.get("agent_llm_type",None) or LLMTaskType.TOOL_CALLING_XML
     
     group_name = state['chatbot_config']['group_name']
     chatbot_id = state['chatbot_config']['chatbot_id']

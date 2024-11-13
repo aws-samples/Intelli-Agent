@@ -27,6 +27,7 @@ class ForbidBaseModel(BaseModel):
 class AllowBaseModel(BaseModel):
     class Config:
         extra = "allow"
+        use_enum_values = True
 
 
 class LLMConfig(AllowBaseModel):
@@ -87,7 +88,7 @@ class RagToolConfig(AllowBaseModel):
 
 class AgentConfig(ForbidBaseModel):
     llm_config: LLMConfig = Field(default_factory=LLMConfig)
-    tools: list[str] = Field(default_factory=list)
+    tools: list[Union[str,dict]] = Field(default_factory=list)
     only_use_rag_tool: bool = False
 
 
@@ -113,7 +114,7 @@ class ChatbotConfig(AllowBaseModel):
     private_knowledge_config: PrivateKnowledgeConfig = Field(
         default_factory=PrivateKnowledgeConfig
     )
-    tools_config: dict[str, Any] = Field(default_factory=dict)
+    # tools_config: dict[str, Any] = Field(default_factory=dict)
 
     def update_llm_config(self, new_llm_config: dict):
         """unified update llm config

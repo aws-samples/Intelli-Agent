@@ -1,8 +1,10 @@
-from common_logic.common_utils.logger_utils  import get_logger
-from common_logic.common_utils.lambda_invoke_utils import chatbot_lambda_call_wrapper,invoke_lambda
 import json
 import pathlib
 import os
+
+from common_logic.common_utils.logger_utils  import get_logger
+from common_logic.common_utils.lambda_invoke_utils import chatbot_lambda_call_wrapper,invoke_lambda
+from common_logic.langchain_integration.retrievers.retriever import lambda_handler as retrieve_fn
 
 logger = get_logger("intention")
 kb_enabled = os.environ["KNOWLEDGE_BASE_ENABLED"].lower() == "true"
@@ -27,12 +29,13 @@ def get_intention_results(query: str, intention_config: dict):
     }
 
     # call retriver
-    res:list[dict] = invoke_lambda(
-        lambda_name="Online_Functions",
-        lambda_module_path="functions.functions_utils.retriever.retriever",
-        handler_name="lambda_handler",
-        event_body=event_body
-    )
+    # res:list[dict] = invoke_lambda(
+    #     lambda_name="Online_Functions",
+    #     lambda_module_path="functions.functions_utils.retriever.retriever",
+    #     handler_name="lambda_handler",
+    #     event_body=event_body
+    # )
+    res = retrieve_fn(event_body)
 
     if not res["result"]["docs"]:
         # Return to guide the user to add intentions
@@ -95,6 +98,5 @@ def lambda_handler(state:dict, context=None):
                 **intention_config,
             }
         )
-
     return output
 
