@@ -188,5 +188,5 @@ INDEX_DESC = "Answer question based on search result"
 
 class Threshold(ConstantBase):
     QQ_IN_RAG_CONTEXT = 0.5
-    INTENTION_ALL_KNOWLEDGAE_RETRIEVE = 0.4
+    INTENTION_ALL_KNOWLEDGE_RETRIEVAL = 0.4
 

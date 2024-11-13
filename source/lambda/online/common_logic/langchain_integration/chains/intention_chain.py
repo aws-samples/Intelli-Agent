@@ -14,7 +14,7 @@ from langchain.schema.runnable import (
 
 from common_logic.common_utils.constant import LLMTaskType,LLMModelType
 from ..chat_models import Model
-from .chat_chain import Iternlm2Chat7BChatChain
+from .chat_chain import Internlm2Chat7BChatChain
 from . import LLMChain
 
 abs_dir = os.path.dirname(__file__)
@@ -48,7 +48,7 @@ def load_intention_file(intent_save_path=intent_save_path, seed=42):
     }
 
 
-class Iternlm2Chat7BIntentRecognitionChain(Iternlm2Chat7BChatChain):
+class Internlm2Chat7BIntentRecognitionChain(Internlm2Chat7BChatChain):
     model_id = LLMModelType.INTERNLM2_CHAT_7B
     intent_type =LLMTaskType.INTENT_RECOGNITION_TYPE
 
@@ -102,7 +102,7 @@ class Iternlm2Chat7BIntentRecognitionChain(Iternlm2Chat7BChatChain):
         return chain
 
 
-class Iternlm2Chat20BIntentRecognitionChain(Iternlm2Chat7BIntentRecognitionChain):
+class Internlm2Chat20BIntentRecognitionChain(Internlm2Chat7BIntentRecognitionChain):
     model_id = LLMModelType.INTERNLM2_CHAT_20B
 
 

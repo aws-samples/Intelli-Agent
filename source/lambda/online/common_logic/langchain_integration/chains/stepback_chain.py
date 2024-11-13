@@ -8,13 +8,13 @@ from common_logic.common_utils.constant import (
     LLMTaskType,
     LLMModelType
 )
-from .chat_chain import Iternlm2Chat7BChatChain
+from .chat_chain import Internlm2Chat7BChatChain
 from . import LLMChain
 from ..chat_models import Model
 
 STEPBACK_PROMPTING_TYPE = LLMTaskType.STEPBACK_PROMPTING_TYPE
 
-class Iternlm2Chat7BStepBackChain(Iternlm2Chat7BChatChain):
+class Internlm2Chat7BStepBackChain(Internlm2Chat7BChatChain):
     model_id = LLMModelType.INTERNLM2_CHAT_7B
     intent_type = STEPBACK_PROMPTING_TYPE
 
@@ -61,7 +61,7 @@ class Iternlm2Chat7BStepBackChain(Iternlm2Chat7BChatChain):
         return prompt
 
 
-class Iternlm2Chat20BStepBackChain(Iternlm2Chat7BStepBackChain):
+class Internlm2Chat20BStepBackChain(Internlm2Chat7BStepBackChain):
     model_id = LLMModelType.INTERNLM2_CHAT_20B
     intent_type = STEPBACK_PROMPTING_TYPE
 

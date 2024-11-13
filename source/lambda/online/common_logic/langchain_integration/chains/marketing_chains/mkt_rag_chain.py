@@ -2,7 +2,7 @@ from common_logic.common_utils.constant import (
     LLMTaskType,
     LLMModelType
 )
-from ..chat_chain import Iternlm2Chat7BChatChain
+from ..chat_chain import Internlm2Chat7BChatChain
 from common_logic.common_utils.prompt_utils import register_prompt_templates,get_prompt_template
 
 INTERLM2_RAG_PROMPT_TEMPLATE = "你是一个Amazon AWS的客服助理小Q，帮助的用户回答使用AWS过程中的各种问题。\n面对用户的问题，你需要给出中文回答，注意不要在回答中重复输出内容。\n下面给出相关问题的背景知识, 需要注意的是如果你认为当前的问题不能在背景知识中找到答案, 你需要拒答。\n背景知识:\n{context}\n\n"
@@ -14,7 +14,7 @@ register_prompt_templates(
     prompt_name="system_prompt"
 )
 
-class Iternlm2Chat7BKnowledgeQaChain(Iternlm2Chat7BChatChain):
+class Internlm2Chat7BKnowledgeQaChain(Internlm2Chat7BChatChain):
     model_id = LLMModelType.INTERNLM2_CHAT_7B
     intent_type = LLMTaskType.MTK_RAG
     default_model_kwargs = {"temperature": 0.05, "max_new_tokens": 1000}
@@ -51,5 +51,5 @@ class Iternlm2Chat7BKnowledgeQaChain(Iternlm2Chat7BChatChain):
         return prompt
 
 
-class Iternlm2Chat20BKnowledgeQaChain(Iternlm2Chat7BKnowledgeQaChain):
+class Internlm2Chat20BKnowledgeQaChain(Internlm2Chat7BKnowledgeQaChain):
     model_id = LLMModelType.INTERNLM2_CHAT_20B

@@ -7,7 +7,7 @@ from langchain.schema.runnable import (
 
 
 from ..chat_models import Model
-from .chat_chain import Iternlm2Chat7BChatChain
+from .chat_chain import Internlm2Chat7BChatChain
 from . import LLMChain
 from common_logic.common_utils.constant import (
     MessageType,
@@ -38,7 +38,7 @@ QUERY_TRANSLATE_TYPE = LLMTaskType.QUERY_TRANSLATE_TYPE
 SYSTEM_MESSAGE_TYPE = MessageType.SYSTEM_MESSAGE_TYPE
 
 
-class Iternlm2Chat20BConversationSummaryChain(Iternlm2Chat7BChatChain):
+class Internlm2Chat20BConversationSummaryChain(Internlm2Chat7BChatChain):
     model_id = LLMModelType.INTERNLM2_CHAT_20B
     default_model_kwargs = {
         "max_new_tokens": 300,
@@ -73,7 +73,7 @@ class Iternlm2Chat20BConversationSummaryChain(Iternlm2Chat7BChatChain):
         prompt = prompt + "Standalone Question: "
         return prompt
 
-class Iternlm2Chat7BConversationSummaryChain(Iternlm2Chat20BConversationSummaryChain):
+class Internlm2Chat7BConversationSummaryChain(Internlm2Chat20BConversationSummaryChain):
     model_id = LLMModelType.INTERNLM2_CHAT_7B
 
 

@@ -4,7 +4,7 @@ from langchain.schema.runnable import (
     RunnablePassthrough,
 )
 
-from ..chat_chain import Claude2ChatChain, Iternlm2Chat7BChatChain
+from ..chat_chain import Claude2ChatChain, Internlm2Chat7BChatChain
 
 from common_logic.common_utils.constant import (
     MessageType,
@@ -20,7 +20,7 @@ MKT_CONVERSATION_SUMMARY_TYPE = LLMTaskType.MKT_CONVERSATION_SUMMARY_TYPE
 
 CHIT_CHAT_SYSTEM_TEMPLATE = """You are a helpful AI Assistant"""
 
-class Iternlm2Chat7BMKTConversationSummaryChain(Iternlm2Chat7BChatChain):
+class Internlm2Chat7BMKTConversationSummaryChain(Internlm2Chat7BChatChain):
     model_id = LLMModelType.INTERNLM2_CHAT_7B
     intent_type = MKT_CONVERSATION_SUMMARY_TYPE
 
@@ -84,8 +84,8 @@ class Iternlm2Chat7BMKTConversationSummaryChain(Iternlm2Chat7BChatChain):
         return chain
 
 
-class Iternlm2Chat20BMKTConversationSummaryChain(
-    Iternlm2Chat7BMKTConversationSummaryChain
+class Internlm2Chat20BMKTConversationSummaryChain(
+    Internlm2Chat7BMKTConversationSummaryChain
 ):
     model_id = LLMModelType.INTERNLM2_CHAT_20B
 

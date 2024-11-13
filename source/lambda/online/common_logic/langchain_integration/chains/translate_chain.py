@@ -5,12 +5,12 @@ from common_logic.common_utils.constant import (
     LLMTaskType,
     LLMModelType
 )
-from .chat_chain import Iternlm2Chat7BChatChain
+from .chat_chain import Internlm2Chat7BChatChain
 
 QUERY_TRANSLATE_TYPE = LLMTaskType.QUERY_TRANSLATE_TYPE
 
 
-class Iternlm2Chat7BTranslateChain(Iternlm2Chat7BChatChain):
+class Internlm2Chat7BTranslateChain(Internlm2Chat7BChatChain):
     intent_type = QUERY_TRANSLATE_TYPE
     default_model_kwargs = {"temperature": 0.1, "max_new_tokens": 200}
 
@@ -36,5 +36,5 @@ class Iternlm2Chat7BTranslateChain(Iternlm2Chat7BChatChain):
         return llm_chain
 
 
-class Iternlm2Chat20BTranslateChain(Iternlm2Chat7BTranslateChain):
+class Internlm2Chat20BTranslateChain(Internlm2Chat7BTranslateChain):
     model_id = LLMModelType.INTERNLM2_CHAT_20B

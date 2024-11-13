@@ -13,7 +13,7 @@ from common_logic.common_utils.constant import (
 )
 from ..chains import LLMChain
 from ..chat_models import Model as LLM_Model
-from .chat_chain import Iternlm2Chat7BChatChain
+from .chat_chain import Internlm2Chat7BChatChain
 from . import LLMChain
 
 QUERY_REWRITE_TYPE = LLMTaskType.QUERY_REWRITE_TYPE
@@ -116,7 +116,7 @@ Provide these alternative questions separated by newlines between XML tags. For 
 </questions>"""
 
 
-class Iternlm2Chat7BQueryRewriteChain(Iternlm2Chat7BChatChain):
+class Internlm2Chat7BQueryRewriteChain(Internlm2Chat7BChatChain):
     model_id = LLMModelType.INTERNLM2_CHAT_7B
     intent_type = QUERY_REWRITE_TYPE
 
@@ -146,6 +146,6 @@ class Iternlm2Chat7BQueryRewriteChain(Iternlm2Chat7BChatChain):
         return chain
 
 
-class Iternlm2Chat20BQueryRewriteChain(Iternlm2Chat7BQueryRewriteChain):
+class Internlm2Chat20BQueryRewriteChain(Internlm2Chat7BQueryRewriteChain):
     model_id = LLMModelType.INTERNLM2_CHAT_20B
     intent_type = QUERY_REWRITE_TYPE

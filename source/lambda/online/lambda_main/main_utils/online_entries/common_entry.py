@@ -10,7 +10,6 @@ from common_logic.common_utils.constant import (
     LLMTaskType,
     SceneType,
     GUIDE_INTENTION_NOT_FOUND,
-    GUIDE_INTENTION_NOT_FOUND,
     Threshold,
 )
 from common_logic.common_utils.lambda_invoke_utils import (
@@ -222,7 +221,7 @@ def intention_detection(state: ChatbotState):
         retriever_params["query"] = state[
             retriever_params.get("retriever_config", {}).get("query_key", "query")
         ]
-        threshold = Threshold.INTENTION_ALL_KNOWLEDGAE_RETRIEVE
+        threshold = Threshold.INTENTION_ALL_KNOWLEDGE_RETRIEVAL
         output = retrieve_fn(retriever_params)
 
         info_to_log = []

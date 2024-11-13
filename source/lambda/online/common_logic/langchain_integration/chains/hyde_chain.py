@@ -16,7 +16,7 @@ from common_logic.common_utils.constant import (
 
 from ..chains import LLMChain
 from ..chat_models import Model as LLM_Model
-from .chat_chain import Iternlm2Chat7BChatChain
+from .chat_chain import Internlm2Chat7BChatChain
 from . import LLMChain
 
 HYDE_TYPE = LLMTaskType.HYDE_TYPE
@@ -79,7 +79,7 @@ class Claude35SonnetHydeChain(Claude2HydeChain):
 internlm2_meta_instruction = "You are a helpful AI Assistant."
 
 
-class Iternlm2Chat7BHydeChain(Iternlm2Chat7BChatChain):
+class Internlm2Chat7BHydeChain(Internlm2Chat7BChatChain):
     model_id = LLMModelType.INTERNLM2_CHAT_7B
     intent_type = HYDE_TYPE
 
@@ -98,6 +98,6 @@ class Iternlm2Chat7BHydeChain(Iternlm2Chat7BChatChain):
         return prompt
 
 
-class Iternlm2Chat20BHydeChain(Iternlm2Chat7BHydeChain):
+class Internlm2Chat20BHydeChain(Internlm2Chat7BHydeChain):
     model_id = LLMModelType.INTERNLM2_CHAT_20B
     intent_type = HYDE_TYPE
