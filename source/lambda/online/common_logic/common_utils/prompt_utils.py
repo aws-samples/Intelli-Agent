@@ -332,51 +332,51 @@ register_prompt_templates(
 
 
 ############## xml agent prompt #############
-AGENT_USER_PROMPT = "你是一个AI助理。今天是{date},{weekday}. "
-register_prompt_templates(
-    model_ids=[
-        LLMModelType.CLAUDE_2,
-        LLMModelType.CLAUDE_21,
-        LLMModelType.CLAUDE_3_HAIKU,
-        LLMModelType.CLAUDE_3_SONNET,
-        LLMModelType.CLAUDE_3_5_SONNET,
-        LLMModelType.CLAUDE_3_5_HAIKU,
-        LLMModelType.CLAUDE_3_5_SONNET_V2,
-    ],
-    task_type=LLMTaskType.TOOL_CALLING_XML,
-    prompt_template=AGENT_USER_PROMPT,
-    prompt_name="user_prompt"
-)
+# AGENT_USER_PROMPT = "你是一个AI助理。今天是{date},{weekday}. "
+# register_prompt_templates(
+#     model_ids=[
+#         LLMModelType.CLAUDE_2,
+#         LLMModelType.CLAUDE_21,
+#         LLMModelType.CLAUDE_3_HAIKU,
+#         LLMModelType.CLAUDE_3_SONNET,
+#         LLMModelType.CLAUDE_3_5_SONNET,
+#         LLMModelType.CLAUDE_3_5_HAIKU,
+#         LLMModelType.CLAUDE_3_5_SONNET_V2,
+#     ],
+#     task_type=LLMTaskType.TOOL_CALLING_XML,
+#     prompt_template=AGENT_USER_PROMPT,
+#     prompt_name="user_prompt"
+# )
 
-AGENT_GUIDELINES_PROMPT = """<guidlines>
-- Don't forget to output <function_calls> </function_calls> when any tool is called.
-- 每次回答总是先进行思考，并将思考过程写在<thinking>标签中。请你按照下面的步骤进行思考:
-    1. 判断根据当前的上下文是否足够回答用户的问题。
-    2. 如果当前的上下文足够回答用户的问题，请调用 `give_final_response` 工具。
-    3. 如果当前的上下文不能支持回答用户的问题，你可以考虑调用<tools> 标签中列举的工具。
-    4. 如果调用工具对应的参数不够，请调用反问工具 `give_rhetorical_question` 来让用户提供更加充分的信息。如果调用工具不需要参数，则不需要调用反问工具。
-    5. 最后给出你要调用的工具名称。
-- Always output with the same language as the content within <query></query>. If the content is english, use englisth to output. If the content is chinese, use chinese to output.
-</guidlines>
-"""
+# AGENT_GUIDELINES_PROMPT = """<guidlines>
+# - Don't forget to output <function_calls> </function_calls> when any tool is called.
+# - 每次回答总是先进行思考，并将思考过程写在<thinking>标签中。请你按照下面的步骤进行思考:
+#     1. 判断根据当前的上下文是否足够回答用户的问题。
+#     2. 如果当前的上下文足够回答用户的问题，请调用 `give_final_response` 工具。
+#     3. 如果当前的上下文不能支持回答用户的问题，你可以考虑调用<tools> 标签中列举的工具。
+#     4. 如果调用工具对应的参数不够，请调用反问工具 `give_rhetorical_question` 来让用户提供更加充分的信息。如果调用工具不需要参数，则不需要调用反问工具。
+#     5. 最后给出你要调用的工具名称。
+# - Always output with the same language as the content within <query></query>. If the content is english, use englisth to output. If the content is chinese, use chinese to output.
+# </guidlines>
+# """
 
-register_prompt_templates(
-    model_ids=[
-        LLMModelType.CLAUDE_2,
-        LLMModelType.CLAUDE_21,
-        LLMModelType.CLAUDE_3_HAIKU,
-        LLMModelType.CLAUDE_3_SONNET,
-        LLMModelType.CLAUDE_3_5_SONNET,
-        LLMModelType.CLAUDE_3_5_HAIKU,
-        LLMModelType.CLAUDE_3_5_SONNET_V2,
-        LLMModelType.LLAMA3_1_70B_INSTRUCT,
-        LLMModelType.MISTRAL_LARGE_2407,
-        LLMModelType.COHERE_COMMAND_R_PLUS,
-    ],
-    task_type=LLMTaskType.TOOL_CALLING_XML,
-    prompt_template=AGENT_GUIDELINES_PROMPT,
-    prompt_name="guidelines_prompt"
-)
+# register_prompt_templates(
+#     model_ids=[
+#         LLMModelType.CLAUDE_2,
+#         LLMModelType.CLAUDE_21,
+#         LLMModelType.CLAUDE_3_HAIKU,
+#         LLMModelType.CLAUDE_3_SONNET,
+#         LLMModelType.CLAUDE_3_5_SONNET,
+#         LLMModelType.CLAUDE_3_5_HAIKU,
+#         LLMModelType.CLAUDE_3_5_SONNET_V2,
+#         LLMModelType.LLAMA3_1_70B_INSTRUCT,
+#         LLMModelType.MISTRAL_LARGE_2407,
+#         LLMModelType.COHERE_COMMAND_R_PLUS,
+#     ],
+#     task_type=LLMTaskType.TOOL_CALLING_XML,
+#     prompt_template=AGENT_GUIDELINES_PROMPT,
+#     prompt_name="guidelines_prompt"
+# )
 
 ################# api agent prompt #####################
 AGENT_SYSTEM_PROMPT = """\
