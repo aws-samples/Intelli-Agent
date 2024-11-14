@@ -284,7 +284,7 @@ def agent(state: ChatbotState):
                 content = last_tool_message.content
             return {"answer": content, "exit_tool_calling": True}
 
-    no_intention_condition = not state["intent_fewshot_examples"]
+    no_intention_condition = not state.get("intent_fewshot_examples",[])
 
     if (
         # no_intention_condition,
