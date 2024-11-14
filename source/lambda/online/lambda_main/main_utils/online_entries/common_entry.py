@@ -232,7 +232,7 @@ def intention_detection(state: ChatbotState):
             info_to_log.append(f"score: {doc['score']}, page_content: {doc['page_content'][:200]}")
 
         send_trace(
-            f"all knowledge retrieved:\n {'\n'.join(info_to_log)}",
+            f"all knowledge retrieved:\n{chr(10).join(info_to_log)}",
             state["stream"],
             state["ws_connection_id"],
             state["enable_trace"],
@@ -251,7 +251,7 @@ def intention_detection(state: ChatbotState):
     # rename tool name
     intent_fewshot_tools = [tool_rename(i) for i in intent_fewshot_tools]
     intent_fewshot_examples = [
-        {**e, "intent": tool_rename(e["intent"])} for e in intent_fewshot_examples
+        {**e, "name": tool_rename(e["name"]), "intent": tool_rename(e["intent"])} for e in intent_fewshot_examples
     ]
 
     return {
@@ -580,7 +580,7 @@ def register_rag_tool_from_config(event_body: dict):
     logger.info(f"chatbot info: {chatbot}")
     registered_tool_names = []
     for index_type, item_dict in chatbot.index_ids.items():
-        if index_type != IndexType.INTENTION:
+        if index_type != IndexType.INTENTION and index_type != IndexType.QQ:
             for index_content in item_dict["value"].values():
 
                 if "indexId" in index_content and "description" in index_content:

@@ -26,8 +26,8 @@ def conversation_query_rewrite(query:str, chat_history:list, message_id:str, tra
     Returns:
         rewrite_query (dict): query rewrite result
     """
-    group_name = chatbot_config['group_name']
-    chatbot_id = chatbot_config['chatbot_id']
+    group_name = chatbot_config.get("group_name", "Admin")
+    chatbot_id = chatbot_config.get("chatbot_id", "admin")
     conversation_query_rewrite_config = chatbot_config["query_process_config"][
         "conversation_query_rewrite_config"
     ]
