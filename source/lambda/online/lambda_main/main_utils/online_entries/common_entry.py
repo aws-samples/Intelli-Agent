@@ -214,8 +214,8 @@ def intention_detection(state: ChatbotState):
     
 
     # TODO need to modify with new intent logic
-    # if not intention_ready and not custom_qd_index:
-    if not intention_ready:
+    if not intention_ready and not custom_qd_index:
+    # if not intention_ready:
         # retrieve all knowledge
         retriever_params = state["chatbot_config"]["private_knowledge_config"]
         retriever_params["query"] = state[
@@ -284,7 +284,7 @@ def agent(state: ChatbotState):
                 content = last_tool_message.content
             return {"answer": content, "exit_tool_calling": True}
 
-    no_intention_condition = not state["intent_fewshot_examples"]
+    no_intention_condition = not state.get("intent_fewshot_examples",[])
 
     if (
         # no_intention_condition,
