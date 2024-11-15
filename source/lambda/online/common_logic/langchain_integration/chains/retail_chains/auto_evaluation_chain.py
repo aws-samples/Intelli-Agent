@@ -2,9 +2,9 @@
 import re
 
 from langchain.schema.runnable import RunnableLambda, RunnablePassthrough
-from langchain_core.messages import AIMessage,SystemMessage,HumanMessage
+from langchain_core.messages import AIMessage, SystemMessage, HumanMessage
 from common_logic.common_utils.logger_utils import get_logger
-from langchain.prompts import ChatPromptTemplate,HumanMessagePromptTemplate
+from langchain.prompts import ChatPromptTemplate, HumanMessagePromptTemplate
 from langchain_core.messages import convert_to_messages
 from common_logic.common_utils.constant import (
     MessageType,
@@ -49,11 +49,11 @@ AUTO_EVALUATION_TEMPLATE = """作为一位专业的评分员,您需要根据以�
 
 
 class Claude2AutoEvaluationChain(Claude2ChatChain):
-    intent_type = LLMTaskType.AUTO_EVALUATION  
+    intent_type = LLMTaskType.AUTO_EVALUATION
     model_id = LLMModelType.CLAUDE_2
 
     @classmethod
-    def create_messages(cls,x:dict,examples=""):
+    def create_messages(cls, x: dict, examples=""):
         prompt = AUTO_EVALUATION_TEMPLATE.format(
             ref_answer=x['ref_answer'],
             model_answer=x['model_answer'],
@@ -62,30 +62,31 @@ class Claude2AutoEvaluationChain(Claude2ChatChain):
         messages = [
             HumanMessage(content=prompt),
             AIMessage(content="<thinking>")
-            ]
+        ]
         return messages
 
     @classmethod
-    def postprocess(cls,content):
+    def postprocess(cls, content):
         logger.info(f"auto eval content: {content}")
         try:
-            score = float(re.findall("<score>(.*?)</score>",content)[0].strip())
+            score = float(re.findall(
+                "<score>(.*?)</score>", content)[0].strip())
             return score
         except Exception as e:
             logger.error(f"error: {e}, content: {content}")
             raise e
-            
 
     @classmethod
     def create_chain(cls, model_kwargs=None, **kwargs):
-        llm = Model.get_model(cls.model_id, model_kwargs=model_kwargs, **kwargs)
-        chain = RunnableLambda(lambda x: cls.create_messages(x)) | llm | RunnableLambda(lambda x: cls.postprocess(x.content))
-        return chain  
-        
+        llm = Model.get_model(
+            cls.model_id, model_kwargs=model_kwargs, **kwargs)
+        chain = RunnableLambda(lambda x: cls.create_messages(
+            x)) | llm | RunnableLambda(lambda x: cls.postprocess(x.content))
+        return chain
+
 
 class Claude21AutoEvaluationChain(Claude2AutoEvaluationChain):
     model_id = LLMModelType.CLAUDE_21
-
 
 
 class Claude3HaikuAutoEvaluationChain(Claude2AutoEvaluationChain):
@@ -94,6 +95,3 @@ class Claude3HaikuAutoEvaluationChain(Claude2AutoEvaluationChain):
 
 class Claude3SonnetAutoEvaluationChain(Claude2AutoEvaluationChain):
     model_id = LLMModelType.CLAUDE_3_SONNET
-
-
-

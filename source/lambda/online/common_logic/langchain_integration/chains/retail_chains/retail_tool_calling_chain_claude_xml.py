@@ -1,20 +1,20 @@
 # tool calling chain
 import json
-from typing import List,Dict,Any
+from typing import List, Dict, Any
 import re
-from datetime import datetime 
+from datetime import datetime
 
 from langchain.schema.runnable import (
     RunnableLambda,
 )
 
-from langchain_core.messages import(
+from langchain_core.messages import (
     AIMessage,
     SystemMessage
-) 
+)
 from langchain.prompts import ChatPromptTemplate
 
-from langchain_core.messages import AIMessage,SystemMessage,HumanMessage
+from langchain_core.messages import AIMessage, SystemMessage, HumanMessage
 
 from common_logic.common_utils.constant import (
     LLMTaskType,
@@ -38,27 +38,27 @@ tool_call_guidelines = """<guidlines>
 """
 
 
-SYSTEM_MESSAGE_PROMPT=("你是安踏的客服助理小安, 主要职责是处理用户售前和售后的问题。下面是当前用户正在浏览的商品信息:\n<goods_info>\n{goods_info}\n</goods_info>"
-        "In this environment you have access to a set of tools you can use to answer the customer's question."
-        "\n"
-        "You may call them like this:\n"
-        "<function_calls>\n"
-        "<invoke>\n"
-        "<tool_name>$TOOL_NAME</tool_name>\n"
-        "<parameters>\n"
-        "<$PARAMETER_NAME>$PARAMETER_VALUE</$PARAMETER_NAME>\n"
-        "...\n"
-        "</parameters>\n"
-        "</invoke>\n"
-        "</function_calls>\n"
-        "\n"
-        "Here are the tools available:\n"
-        "<tools>\n"
-        "{tools}"
-        "\n</tools>"
-        "\nAnswer the user's request using relevant tools (if they are available). Before calling a tool, do some analysis within <thinking></thinking> tags. First, think about which of the provided tools is the relevant tool to answer the user's request. Second, go through each of the required parameters of the relevant tool and determine if the user has directly provided or given enough information to infer a value. When deciding if the parameter can be inferred, carefully consider all the context to see if it supports a specific value. If all of the required parameters are present or can be reasonably inferred, close the thinking tag and proceed with the tool call. BUT, if one of the values for a required parameter is missing, DO NOT invoke the function (not even with fillers for the missing params) and instead, ask the user to provide the missing parameters. DO NOT ask for more information on optional parameters if it is not provided."
-        f"\nHere are some guidelines for you:\n{tool_call_guidelines}"
-    )
+SYSTEM_MESSAGE_PROMPT = ("你是安踏的客服助理小安, 主要职责是处理用户售前和售后的问题。下面是当前用户正在浏览的商品信息:\n<goods_info>\n{goods_info}\n</goods_info>"
+                         "In this environment you have access to a set of tools you can use to answer the customer's question."
+                         "\n"
+                         "You may call them like this:\n"
+                         "<function_calls>\n"
+                         "<invoke>\n"
+                         "<tool_name>$TOOL_NAME</tool_name>\n"
+                         "<parameters>\n"
+                         "<$PARAMETER_NAME>$PARAMETER_VALUE</$PARAMETER_NAME>\n"
+                         "...\n"
+                         "</parameters>\n"
+                         "</invoke>\n"
+                         "</function_calls>\n"
+                         "\n"
+                         "Here are the tools available:\n"
+                         "<tools>\n"
+                         "{tools}"
+                         "\n</tools>"
+                         "\nAnswer the user's request using relevant tools (if they are available). Before calling a tool, do some analysis within <thinking></thinking> tags. First, think about which of the provided tools is the relevant tool to answer the user's request. Second, go through each of the required parameters of the relevant tool and determine if the user has directly provided or given enough information to infer a value. When deciding if the parameter can be inferred, carefully consider all the context to see if it supports a specific value. If all of the required parameters are present or can be reasonably inferred, close the thinking tag and proceed with the tool call. BUT, if one of the values for a required parameter is missing, DO NOT invoke the function (not even with fillers for the missing params) and instead, ask the user to provide the missing parameters. DO NOT ask for more information on optional parameters if it is not provided."
+                         f"\nHere are some guidelines for you:\n{tool_call_guidelines}"
+                         )
 
 SYSTEM_MESSAGE_PROMPT_WITH_FEWSHOT_EXAMPLES = SYSTEM_MESSAGE_PROMPT + (
     "Some examples of tool calls are given below, where the content within <query></query> represents the most recent reply in the dialog."
@@ -112,7 +112,7 @@ def _get_type(parameter: Dict[str, Any]) -> str:
     return json.dumps(parameter)
 
 
-def convert_openai_tool_to_anthropic(tools:list[dict])->str:
+def convert_openai_tool_to_anthropic(tools: list[dict]) -> str:
     formatted_tools = tools
     tools_data = [
         {
@@ -162,15 +162,15 @@ class Claude2RetailToolCallingChain(LLMChain):
         "max_tokens": 2000,
         "temperature": 0.1,
         "top_p": 0.9,
-        "stop_sequences": ["\n\nHuman:", "\n\nAssistant","</function_calls>"],
-        }
+        "stop_sequences": ["\n\nHuman:", "\n\nAssistant", "</function_calls>"],
+    }
 
     @staticmethod
-    def format_fewshot_examples(fewshot_examples:list[dict]):
+    def format_fewshot_examples(fewshot_examples: list[dict]):
         fewshot_example_strs = []
         for fewshot_example in fewshot_examples:
             param_strs = []
-            for p,v in fewshot_example['kwargs'].items():
+            for p, v in fewshot_example['kwargs'].items():
                 param_strs.append(f"<{p}>{v}</{p}")
             param_str = "\n".join(param_strs)
             if param_strs:
@@ -194,50 +194,51 @@ class Claude2RetailToolCallingChain(LLMChain):
             fewshot_example_strs.append(fewshot_example_str)
         fewshot_example_str = '\n'.join(fewshot_example_strs)
         return f"<examples>\n{fewshot_example_str}\n</examples>"
-    
+
     @classmethod
-    def parse_function_calls_from_ai_message(cls,message:AIMessage):
+    def parse_function_calls_from_ai_message(cls, message: AIMessage):
         content = "<thinking>" + message.content + "</function_calls>"
-        function_calls:List[str] = re.findall("<function_calls>(.*?)</function_calls>", content,re.S)
+        function_calls: List[str] = re.findall(
+            "<function_calls>(.*?)</function_calls>", content, re.S)
         if not function_calls:
-            content = "<thinking>" +  message.content
+            content = "<thinking>" + message.content
 
         return {
-                "function_calls": function_calls,
-                "content": content
-            } 
-    
+            "function_calls": function_calls,
+            "content": content
+        }
 
-    @staticmethod 
-    def generate_chat_history(state:dict):
+    @staticmethod
+    def generate_chat_history(state: dict):
         chat_history = state['chat_history'] \
-            + [{"role": "user","content":state['query']}] \
+            + [{"role": "user", "content": state['query']}] \
             + state['agent_tool_history']
-        return {"chat_history":chat_history}
+        return {"chat_history": chat_history}
 
-        
     @classmethod
     def create_chain(cls, model_kwargs=None, **kwargs):
         model_kwargs = model_kwargs or {}
-        tools:list[dict] = kwargs['tools']
+        tools: list[dict] = kwargs['tools']
 
         tool_names = [tool['name'] for tool in tools]
 
         # add two extral tools
         if "give_rhetorical_question" not in tool_names:
-            tools.append(get_tool_by_name("give_rhetorical_question",scene=SceneType.RETAIL).tool_def)
+            tools.append(get_tool_by_name(
+                "give_rhetorical_question", scene=SceneType.RETAIL).tool_def)
 
         if "give_final_response" not in tool_names:
-            tools.append(get_tool_by_name("give_final_response",scene=SceneType.RETAIL).tool_def)
+            tools.append(get_tool_by_name("give_final_response",
+                         scene=SceneType.RETAIL).tool_def)
 
-        fewshot_examples = kwargs.get('fewshot_examples',[])
+        fewshot_examples = kwargs.get('fewshot_examples', [])
         if fewshot_examples:
             fewshot_examples.append({
                 "name": "give_rhetorical_question",
                 "query": "今天天气怎么样?",
                 "kwargs": {"question": "请问你想了解哪个城市的天气?"}
             })
-        
+
         model_kwargs = {**cls.default_model_kwargs, **model_kwargs}
 
         tools_formatted = convert_openai_tool_to_anthropic(tools)
@@ -248,21 +249,21 @@ class Claude2RetailToolCallingChain(LLMChain):
                 tools=tools_formatted,
                 fewshot_examples=cls.format_fewshot_examples(
                     fewshot_examples
-                    ),
-                goods_info = goods_info
+                ),
+                goods_info=goods_info
             )
         else:
             system_prompt = SYSTEM_MESSAGE_PROMPT.format(
                 tools=tools_formatted,
                 goods_info=goods_info
             )
-         
+
         tool_calling_template = ChatPromptTemplate.from_messages(
             [
-            SystemMessage(content=system_prompt),
-            ("placeholder", "{chat_history}"),
-            AIMessage(content="<thinking>")
-        ])
+                SystemMessage(content=system_prompt),
+                ("placeholder", "{chat_history}"),
+                AIMessage(content="<thinking>")
+            ])
 
         llm = Model.get_model(
             model_id=cls.model_id,
@@ -270,10 +271,10 @@ class Claude2RetailToolCallingChain(LLMChain):
         )
         chain = RunnableLambda(cls.generate_chat_history) | tool_calling_template \
             | RunnableLambda(lambda x: x.messages) \
-            | llm | RunnableLambda(lambda message:cls.parse_function_calls_from_ai_message(
+            | llm | RunnableLambda(lambda message: cls.parse_function_calls_from_ai_message(
                 message
             ))
-        
+
         return chain
 
 
@@ -303,52 +304,47 @@ MIXTRAL8X7B_QUERY_TEMPLATE = """下面是客户和客服的历史对话信息:
 
 class Mixtral8x7bRetailToolCallingChain(Claude2RetailToolCallingChain):
     model_id = LLMModelType.MIXTRAL_8X7B_INSTRUCT
-    default_model_kwargs = {"max_tokens": 1000, "temperature": 0.01,"stop":["</function_calls>"]}
+    default_model_kwargs = {"max_tokens": 1000,
+                            "temperature": 0.01, "stop": ["</function_calls>"]}
 
     @classmethod
-    def parse_function_calls_from_ai_message(cls,message:AIMessage):
-        content = message.content.replace("\_","_")
-        function_calls:List[str] = re.findall("<function_calls>(.*?)</function_calls>", content + "</function_calls>",re.S)
+    def parse_function_calls_from_ai_message(cls, message: AIMessage):
+        content = message.content.replace("\_", "_")
+        function_calls: List[str] = re.findall(
+            "<function_calls>(.*?)</function_calls>", content + "</function_calls>", re.S)
         if function_calls:
             function_calls = [function_calls[0]]
         if not function_calls:
             content = message.content
         return {
-                "function_calls": function_calls,
-                "content": content
-            } 
-    
-    @staticmethod 
-    def chat_history_to_string(chat_history:list[dict]):
+            "function_calls": function_calls,
+            "content": content
+        }
+
+    @staticmethod
+    def chat_history_to_string(chat_history: list[dict]):
         chat_history_lc = ChatPromptTemplate.from_messages([
-             ("placeholder", "{chat_history}")
-        ]).invoke({"chat_history":chat_history}).messages
+            ("placeholder", "{chat_history}")
+        ]).invoke({"chat_history": chat_history}).messages
 
         chat_history_strs = []
         for message in chat_history_lc:
-            assert isinstance(message,(HumanMessage,AIMessage)),message
-            if isinstance(message,HumanMessage):
+            assert isinstance(message, (HumanMessage, AIMessage)), message
+            if isinstance(message, HumanMessage):
                 chat_history_strs.append(f"客户: {message.content}")
             else:
                 chat_history_strs.append(f"客服: {message.content}")
-        return "\n".join(chat_history_strs)     
+        return "\n".join(chat_history_strs)
 
-    
     @classmethod
-    def generate_chat_history(cls,state:dict):
+    def generate_chat_history(cls, state: dict):
         chat_history_str = cls.chat_history_to_string(state['chat_history'])
 
         chat_history = [{
             "role": "user",
             "content": MIXTRAL8X7B_QUERY_TEMPLATE.format(
                 chat_history=chat_history_str,
-                query = state['query']
+                query=state['query']
             )
-            }] + state['agent_tool_history']
+        }] + state['agent_tool_history']
         return {"chat_history": chat_history}
-
-        
-
-
-
-

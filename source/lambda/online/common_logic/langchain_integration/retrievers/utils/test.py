@@ -1,26 +1,26 @@
-import json
-import os
-
-os.environ["PYTHONUNBUFFERED"] = "1"
-import logging
-import sys
-
-import boto3
-from common_logic.common_utils.lambda_invoke_utils import chatbot_lambda_call_wrapper
+from langchain_community.retrievers import AmazonKnowledgeBasesRetriever
+from langchain.schema.runnable import RunnableLambda, RunnablePassthrough
+from langchain.retrievers.merger_retriever import MergerRetriever
+from langchain.retrievers import (
+    AmazonKnowledgeBasesRetriever,
+    ContextualCompressionRetriever,
+)
+from lambda_retriever.utils.reranker import MergeReranker
+from lambda_retriever.utils.context_utils import retriever_results_format
 from lambda_retriever.utils.aos_retrievers import (
     QueryDocumentBM25Retriever,
     QueryDocumentKNNRetriever,
     QueryQuestionRetriever,
 )
-from lambda_retriever.utils.context_utils import retriever_results_format
-from lambda_retriever.utils.reranker import MergeReranker
-from langchain.retrievers import (
-    AmazonKnowledgeBasesRetriever,
-    ContextualCompressionRetriever,
-)
-from langchain.retrievers.merger_retriever import MergerRetriever
-from langchain.schema.runnable import RunnableLambda, RunnablePassthrough
-from langchain_community.retrievers import AmazonKnowledgeBasesRetriever
+from common_logic.common_utils.lambda_invoke_utils import chatbot_lambda_call_wrapper
+import boto3
+import sys
+import logging
+import json
+import os
+
+os.environ["PYTHONUNBUFFERED"] = "1"
+
 
 logger = logging.getLogger("retriever")
 logger.setLevel(logging.INFO)
@@ -38,7 +38,8 @@ def get_bedrock_kb_retrievers(knowledge_base_id_list, top_k: int):
     retriever_list = [
         AmazonKnowledgeBasesRetriever(
             knowledge_base_id=knowledge_base_id,
-            retrieval_config={"vectorSearchConfiguration": {"numberOfResults": top_k}},
+            retrieval_config={"vectorSearchConfiguration": {
+                "numberOfResults": top_k}},
         )
         for knowledge_base_id in knowledge_base_id_list
     ]
@@ -110,7 +111,8 @@ def lambda_handler(event, context=None):
     retriever_type = event_body["type"]
     for retriever_config in event_body["retrievers"]:
         # retriever_type = retriever_config["type"]
-        retriever_list.extend(get_custom_retrievers(retriever_config, retriever_type))
+        retriever_list.extend(get_custom_retrievers(
+            retriever_config, retriever_type))
 
     # Re-rank not used.
     # rerankers = event_body.get("rerankers", None)

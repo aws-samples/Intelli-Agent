@@ -84,7 +84,7 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
     this.dynamodbStatement = createKnowledgeBaseTablesAndPoliciesResult.dynamodbStatement;
 
     this.sfnOutput = this.createKnowledgeBaseJob(props);
-    
+
   }
 
   private createKnowledgeBaseTablesAndPolicies(props: any) {
@@ -153,7 +153,7 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
 
     // If this.region is cn-north-1 or cn-northwest-1, use the glue-job-script-cn.py
     const glueJobScript = "glue-job-script.py";
-    
+
 
     const extraPythonFiles = new s3deploy.BucketDeployment(
       this,
@@ -172,9 +172,9 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
     const extraPythonFilesList = [
       this.glueLibS3Bucket.s3UrlForObject("llm_bot_dep-0.1.0-py3-none-any.whl"),
     ].join(",");
-  
 
-  
+
+
     const glueRole = new iam.Role(this, "ETLGlueJobRole", {
       assumedBy: new iam.ServicePrincipal("glue.amazonaws.com"),
       // The role is used by the glue job to access AOS and by default it has 1 hour session duration which is not enough for the glue job to finish the embedding injection

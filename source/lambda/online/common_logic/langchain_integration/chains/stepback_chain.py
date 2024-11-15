@@ -14,6 +14,7 @@ from ..chat_models import Model
 
 STEPBACK_PROMPTING_TYPE = LLMTaskType.STEPBACK_PROMPTING_TYPE
 
+
 class Internlm2Chat7BStepBackChain(Internlm2Chat7BChatChain):
     model_id = LLMModelType.INTERNLM2_CHAT_7B
     intent_type = STEPBACK_PROMPTING_TYPE
@@ -108,7 +109,8 @@ class Claude2StepBackChain(LLMChain):
             ]
         )
 
-        llm = Model.get_model(cls.model_id, model_kwargs=model_kwargs, **kwargs)
+        llm = Model.get_model(
+            cls.model_id, model_kwargs=model_kwargs, **kwargs)
         chain = prompt | llm
         if stream:
             chain = (

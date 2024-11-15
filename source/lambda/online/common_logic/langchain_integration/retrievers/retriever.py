@@ -1,33 +1,32 @@
-import json
-import os
-os.environ["PYTHONUNBUFFERED"] = "1"
-import logging
-import sys
-
-import boto3
-from common_logic.common_utils.chatbot_utils import ChatbotManager
-from common_logic.langchain_integration.retrievers.utils.aos_retrievers import (
-    QueryDocumentBM25Retriever,
-    QueryDocumentKNNRetriever,
-    QueryQuestionRetriever,
+from langchain.schema.runnable import RunnableLambda, RunnablePassthrough
+from langchain.retrievers.merger_retriever import MergerRetriever
+from langchain_community.retrievers import AmazonKnowledgeBasesRetriever
+from langchain.retrievers import (
+    ContextualCompressionRetriever,
 )
-from common_logic.langchain_integration.retrievers.utils.context_utils import (
-    retriever_results_format,
+from common_logic.langchain_integration.retrievers.utils.websearch_retrievers import (
+    GoogleRetriever,
 )
 from common_logic.langchain_integration.retrievers.utils.reranker import (
     BGEReranker,
     MergeReranker,
 )
-from common_logic.langchain_integration.retrievers.utils.websearch_retrievers import (
-    GoogleRetriever,
+from common_logic.langchain_integration.retrievers.utils.context_utils import (
+    retriever_results_format,
 )
-from langchain.retrievers import (
-    ContextualCompressionRetriever,
+from common_logic.langchain_integration.retrievers.utils.aos_retrievers import (
+    QueryDocumentBM25Retriever,
+    QueryDocumentKNNRetriever,
+    QueryQuestionRetriever,
 )
-from langchain_community.retrievers import AmazonKnowledgeBasesRetriever
-from langchain.retrievers.merger_retriever import MergerRetriever
-from langchain.schema.runnable import RunnableLambda, RunnablePassthrough
-from langchain_community.retrievers import AmazonKnowledgeBasesRetriever
+from common_logic.common_utils.chatbot_utils import ChatbotManager
+import boto3
+import sys
+import logging
+import json
+import os
+os.environ["PYTHONUNBUFFERED"] = "1"
+
 
 logger = logging.getLogger("retriever")
 logger.setLevel(logging.INFO)
@@ -56,7 +55,8 @@ def get_bedrock_kb_retrievers(knowledge_base_id_list, top_k: int):
     retriever_list = [
         AmazonKnowledgeBasesRetriever(
             knowledge_base_id=knowledge_base_id,
-            retrieval_config={"vectorSearchConfiguration": {"numberOfResults": top_k}},
+            retrieval_config={"vectorSearchConfiguration": {
+                "numberOfResults": top_k}},
         )
         for knowledge_base_id in knowledge_base_id_list
     ]
