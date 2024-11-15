@@ -181,7 +181,7 @@ register_prompt_templates(
 )
 
 
-################ 
+################
 # query rewrite prompt template from paper https://arxiv.org/pdf/2401.10225
 ###################
 CQR_SYSTEM_PROMPT = """You are a helpful, pattern-following assistant."""
@@ -273,7 +273,7 @@ register_prompt_templates(
         LLMModelType.LLAMA3_2_90B_INSTRUCT,
         LLMModelType.MISTRAL_LARGE_2407,
         LLMModelType.COHERE_COMMAND_R_PLUS,
-    
+
     ],
     task_type=LLMTaskType.CONVERSATION_SUMMARY_TYPE,
     prompt_template=CQR_SYSTEM_PROMPT,
@@ -328,7 +328,6 @@ register_prompt_templates(
     prompt_template=json.dumps(CQR_FEW_SHOTS, ensure_ascii=False, indent=2),
     prompt_name="few_shots"
 )
-
 
 
 ############## xml agent prompt #############
@@ -397,7 +396,7 @@ Here's some context for reference:
 </context>"""
 
 # AGENT_SYSTEM_PROMPT = """\
-# You are a helpful and honest AI assistant. Today is {date},{weekday}. 
+# You are a helpful and honest AI assistant. Today is {date},{weekday}.
 # Here are some guidelines for you:
 # <guidlines>
 # - Output your step by step thinking in one pair of <thinking> and </thinking> tags, here are steps for you to think about deciding to use which tool:
@@ -405,7 +404,7 @@ Here's some context for reference:
 #     2. Determine whether the current context is sufficient to answer the user's question.
 #     3. If the current context is sufficient to answer the user's question, call the `give_final_response` tool.
 #     4. If the current context is not sufficient to answer the user's question, you can consider calling one of the provided tools.
-#     5. If any of required parameters of the tool you want to call do not appears in context, call the `give_rhetorical_question` tool to ask the user for more information. 
+#     5. If any of required parameters of the tool you want to call do not appears in context, call the `give_rhetorical_question` tool to ask the user for more information.
 # - Always output with the same language as the content from user. If the content is English, use English to output. If the content is Chinese, use Chinese to output.
 # - Always invoke one tool.
 # - Before invoking any tool, be sure to first output your thought process in one pair of <thinking> and </thinking> tag.
@@ -413,7 +412,7 @@ Here's some context for reference:
 
 
 # AGENT_SYSTEM_PROMPT = """\
-# You are a helpful and honest AI assistant. Today is {date},{weekday}. 
+# You are a helpful and honest AI assistant. Today is {date},{weekday}.
 # Here are some guidelines for you:
 # <guidlines>
 # - Output your step by step thinking in one pair of <thinking> and </thinking> tags, here are steps for you to think about deciding to use which tool:
@@ -421,7 +420,7 @@ Here's some context for reference:
 #     2. Determine whether the current context is sufficient to answer the user's question.
 #     3. If the current context is sufficient to answer the user's question, call the `give_final_response` tool.
 #     4. If the current context is not sufficient to answer the user's question, you can consider calling one of the provided tools.
-#     5. If any of required parameters of the tool you want to call do not appears in context, call the `give_rhetorical_question` tool to ask the user for more information. 
+#     5. If any of required parameters of the tool you want to call do not appears in context, call the `give_rhetorical_question` tool to ask the user for more information.
 # - Always output with the same language as the content from user. If the content is English, use English to output. If the content is Chinese, use Chinese to output.
 # - Always invoke one tool.
 # </guidlines>
@@ -503,7 +502,6 @@ register_prompt_templates(
     prompt_template=TOOL_FEWSHOT_PROMPT,
     prompt_name="tool_fewshot_prompt"
 )
-
 
 
 if __name__ == "__main__":

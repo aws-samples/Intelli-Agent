@@ -1,6 +1,6 @@
 import json
-from langgraph.graph import StateGraph,END
-from common_logic.common_utils.lambda_invoke_utils import invoke_lambda,node_monitor_wrapper
+from langgraph.graph import StateGraph, END
+from common_logic.common_utils.lambda_invoke_utils import invoke_lambda, node_monitor_wrapper
 
 from functions.tool_calling_parse import parse_tool_calling as _parse_tool_calling
 from common_logic.common_utils.lambda_invoke_utils import send_trace
@@ -15,13 +15,14 @@ from functions.tool_execute_result_format import format_tool_call_results
 
 logger = get_logger("agent_base")
 
+
 @node_monitor_wrapper
 def tools_choose_and_results_generation(state):
     # check once tool calling
-    agent_current_output:dict = invoke_lambda(
+    agent_current_output: dict = invoke_lambda(
         event_body={
             **state
-            },
+        },
         lambda_name="Online_Agent",
         lambda_module_path="lambda_agent.agent",
         handler_name="lambda_handler"
@@ -64,25 +65,27 @@ def results_evaluation(state):
         )
         tool_calls = output['tool_calls']
         md_tool_result = format_agent_result_output(tool_calls)
-        send_trace(f"\n\n**tool_calls parsed:** \n\n {md_tool_result}", state["stream"], state["ws_connection_id"], state["enable_trace"])
+        send_trace(f"\n\n**tool_calls parsed:** \n\n {md_tool_result}",
+                   state["stream"], state["ws_connection_id"], state["enable_trace"])
         if not state["extra_response"].get("current_agent_intent_type", None):
             state["extra_response"]["current_agent_intent_type"] = output['tool_calls'][0]["name"]
-       
+
         return {
             "function_calling_parse_ok": True,
             "function_calling_parsed_tool_calls": tool_calls,
             "agent_tool_history": [output['agent_message']]
         }
-    
+
     except (ToolNotExistError,
-             ToolParameterNotExistError,
-             MultipleToolNameError,
-             ToolNotFound
-             ) as e:
-        send_trace(f"\n\n**tool_calls parse failed:** \n{str(e)}", state["stream"], state["ws_connection_id"], state["enable_trace"])
+            ToolParameterNotExistError,
+            MultipleToolNameError,
+            ToolNotFound
+            ) as e:
+        send_trace(f"\n\n**tool_calls parse failed:** \n{str(e)}",
+                   state["stream"], state["ws_connection_id"], state["enable_trace"])
         return {
             "function_calling_parse_ok": False,
-            "agent_tool_history":[
+            "agent_tool_history": [
                 e.agent_message,
                 e.error_message
             ]
@@ -106,11 +109,11 @@ def tool_execution(state):
         tool_kwargs = tool_call['kwargs']
         # call tool
         output = invoke_lambda(
-            event_body = {
-                "tool_name":tool_name,
-                "state":state,
-                "kwargs":tool_kwargs
-                },
+            event_body={
+                "tool_name": tool_name,
+                "state": state,
+                "kwargs": tool_kwargs
+            },
             lambda_name="Online_Tool_Execute",
             lambda_module_path="functions.lambda_tool",
             handler_name="lambda_handler"
@@ -125,26 +128,29 @@ def tool_execution(state):
         output = format_tool_call_results(
             tool_call['model_id'], tool_call_results)
 
-    send_trace(f'**tool_execute_res:** \n{output["tool_message"]["content"]}', enable_trace=state["enable_trace"])
+    send_trace(
+        f'**tool_execute_res:** \n{output["tool_message"]["content"]}', enable_trace=state["enable_trace"])
     return {
         "agent_tool_history": [output['tool_message']]
-        }
+    }
 
 
 def build_agent_graph(chatbot_state_cls):
     def _results_evaluation_route(state: dict):
-        #TODO: pass no need tool calling or valid tool calling?
+        # TODO: pass no need tool calling or valid tool calling?
         if state["agent_repeated_call_validation"] and not state["function_calling_parse_ok"]:
             return "invalid tool calling"
         return "continue"
 
     workflow = StateGraph(chatbot_state_cls)
-    workflow.add_node("tools_choose_and_results_generation", tools_choose_and_results_generation)
+    workflow.add_node("tools_choose_and_results_generation",
+                      tools_choose_and_results_generation)
     workflow.add_node("results_evaluation", results_evaluation)
 
     # add all edges
     workflow.set_entry_point("tools_choose_and_results_generation")
-    workflow.add_edge("tools_choose_and_results_generation","results_evaluation")
+    workflow.add_edge("tools_choose_and_results_generation",
+                      "results_evaluation")
 
     # add conditional edges
     # the results of agent planning will be evaluated and decide next step:

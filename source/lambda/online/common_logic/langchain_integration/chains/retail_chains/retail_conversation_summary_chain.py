@@ -1,5 +1,5 @@
 # conversation summary chain
-from typing import List 
+from typing import List
 
 from langchain.schema.runnable import (
     RunnableLambda,
@@ -15,12 +15,12 @@ from common_logic.common_utils.constant import (
     LLMModelType
 )
 
-from langchain_core.messages import(
+from langchain_core.messages import (
     AIMessage,
     HumanMessage,
     BaseMessage,
     convert_to_messages
-) 
+)
 from langchain.prompts import (
     HumanMessagePromptTemplate,
     ChatPromptTemplate
@@ -64,22 +64,25 @@ CQR_TEMPLATE = """# CONTEXT #
 class Claude2RetailConversationSummaryChain(LLMChain):
     model_id = LLMModelType.CLAUDE_2
     intent_type = LLMTaskType.RETAIL_CONVERSATION_SUMMARY_TYPE
-    default_model_kwargs = {"max_tokens": 2000, "temperature": 0.1, "top_p": 0.9}
+    default_model_kwargs = {"max_tokens": 2000,
+                            "temperature": 0.1, "top_p": 0.9}
     CQR_TEMPLATE = CQR_TEMPLATE
+
     @staticmethod
-    def create_conversational_context(chat_history:List[BaseMessage]):
+    def create_conversational_context(chat_history: List[BaseMessage]):
         conversational_contexts = []
         for his in chat_history:
-            role = his.type 
+            role = his.type
             content = his.content
-            assert role in [HUMAN_MESSAGE_TYPE, AI_MESSAGE_TYPE],(role,[HUMAN_MESSAGE_TYPE, AI_MESSAGE_TYPE])
+            assert role in [HUMAN_MESSAGE_TYPE, AI_MESSAGE_TYPE], (role, [
+                                                                   HUMAN_MESSAGE_TYPE, AI_MESSAGE_TYPE])
             if role == HUMAN_MESSAGE_TYPE:
                 conversational_contexts.append(f"客户: {content}")
             else:
                 conversational_contexts.append(f"客服: {content}")
         conversational_context = "\n".join(conversational_contexts)
         return conversational_context
-        
+
     @classmethod
     def create_chain(cls, model_kwargs=None, **kwargs):
         model_kwargs = model_kwargs or {}
@@ -95,14 +98,14 @@ class Claude2RetailConversationSummaryChain(LLMChain):
             model_kwargs=model_kwargs,
         )
         cqr_chain = RunnablePassthrough.assign(
-                conversational_context=RunnableLambda(
+            conversational_context=RunnableLambda(
                 lambda x: cls.create_conversational_context(
                     convert_to_messages(x["chat_history"])
                 )
             ))  \
-            | RunnableLambda(lambda x: cqr_template.format(chat_history=x['conversational_context'],query=x['query'])) \
+            | RunnableLambda(lambda x: cqr_template.format(chat_history=x['conversational_context'], query=x['query'])) \
             | llm | RunnableLambda(lambda x: x.content)
-        
+
         return cqr_chain
 
 
@@ -144,15 +147,15 @@ class Mixtral8x7bRetailConversationSummaryChain(Claude2RetailConversationSummary
     CQR_TEMPLATE = MIXTRAL_CQR_TEMPLATE
 
 
-class GLM4Chat9BRetailConversationSummaryChain(GLM4Chat9BChatChain,Claude2RetailConversationSummaryChain):
+class GLM4Chat9BRetailConversationSummaryChain(GLM4Chat9BChatChain, Claude2RetailConversationSummaryChain):
     model_id = LLMModelType.GLM_4_9B_CHAT
     intent_type = LLMTaskType.RETAIL_CONVERSATION_SUMMARY_TYPE
     CQR_TEMPLATE = MIXTRAL_CQR_TEMPLATE
 
     @classmethod
-    def create_chat_history(cls,x):
+    def create_chat_history(cls, x):
         conversational_context = cls.create_conversational_context(
-                    convert_to_messages(x["chat_history"])
+            convert_to_messages(x["chat_history"])
         )
         prompt = cls.CQR_TEMPLATE.format(
             chat_history=conversational_context,
@@ -161,12 +164,12 @@ class GLM4Chat9BRetailConversationSummaryChain(GLM4Chat9BChatChain,Claude2Retail
         chat_history = [
             {"role": MessageType.HUMAN_MESSAGE_TYPE,
                 "content": prompt
-            },
+             },
             {
-                "role":MessageType.AI_MESSAGE_TYPE,
+                "role": MessageType.AI_MESSAGE_TYPE,
                 "content": "好的，站在客户的角度，我将当前用户的回复内容改写为: "
             }
-            ] 
+        ]
 
         return chat_history
 
@@ -174,7 +177,7 @@ class GLM4Chat9BRetailConversationSummaryChain(GLM4Chat9BChatChain,Claude2Retail
     def create_chain(cls, model_kwargs=None, **kwargs):
         model_kwargs = model_kwargs or {}
         model_kwargs = {**cls.default_model_kwargs, **model_kwargs}
-        
+
         llm = Model.get_model(
             model_id=cls.model_id,
             model_kwargs=model_kwargs,
@@ -182,11 +185,11 @@ class GLM4Chat9BRetailConversationSummaryChain(GLM4Chat9BChatChain,Claude2Retail
         )
 
         cqr_chain = RunnablePassthrough.assign(
-            chat_history = RunnableLambda(lambda x: cls.create_chat_history(x)) 
+            chat_history=RunnableLambda(lambda x: cls.create_chat_history(x))
         ) | RunnableLambda(lambda x: llm.invoke(x))
-        
+
         return cqr_chain
-    
+
 
 class Qwen2Instruct7BRetailConversationSummaryChain(GLM4Chat9BRetailConversationSummaryChain):
     model_id = LLMModelType.QWEN2INSTRUCT7B
@@ -194,10 +197,11 @@ class Qwen2Instruct7BRetailConversationSummaryChain(GLM4Chat9BRetailConversation
         "max_tokens": 1024,
         "temperature": 0.1,
     }
+
     @classmethod
     def create_chain(cls, model_kwargs=None, **kwargs):
-        chain = super().create_chain(model_kwargs=model_kwargs,**kwargs)
-        return chain | RunnableLambda(lambda x:x['text'])
+        chain = super().create_chain(model_kwargs=model_kwargs, **kwargs)
+        return chain | RunnableLambda(lambda x: x['text'])
 
 
 class Qwen2Instruct72BRetailConversationSummaryChain(Qwen2Instruct7BRetailConversationSummaryChain):

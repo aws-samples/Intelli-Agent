@@ -4,7 +4,7 @@ from common_logic.common_utils.constant import (
     MessageType,
     LLMModelType
 )
-from common_logic.common_utils.logger_utils import get_logger,llm_messages_print_decorator
+from common_logic.common_utils.logger_utils import get_logger, llm_messages_print_decorator
 from . import Model
 
 logger = get_logger("bedrock_model")
@@ -18,7 +18,8 @@ class ChatBedrockConverse(_ChatBedrockConverse):
 # Bedrock model type
 class Claude2(Model):
     model_id = LLMModelType.CLAUDE_2
-    default_model_kwargs = {"max_tokens": 2000, "temperature": 0.7, "top_p": 0.9}
+    default_model_kwargs = {"max_tokens": 2000,
+                            "temperature": 0.7, "top_p": 0.9}
     enable_auto_tool_choice = False
 
     @classmethod
@@ -44,7 +45,8 @@ class Claude2(Model):
             enable_prefill=cls.enable_prefill,
             **model_kwargs,
         )
-        llm.client.converse_stream = llm_messages_print_decorator(llm.client.converse_stream)
+        llm.client.converse_stream = llm_messages_print_decorator(
+            llm.client.converse_stream)
         llm.client.converse = llm_messages_print_decorator(llm.client.converse)
         return llm
 
@@ -84,19 +86,17 @@ class MistralLarge2407(Claude2):
 
 class Llama3d1Instruct70B(Claude2):
     model_id = LLMModelType.LLAMA3_1_70B_INSTRUCT
-    enable_auto_tool_choice = False 
+    enable_auto_tool_choice = False
     enable_prefill = False
+
 
 class Llama3d2Instruct90B(Claude2):
     model_id = LLMModelType.LLAMA3_2_90B_INSTRUCT
-    enable_auto_tool_choice = False 
+    enable_auto_tool_choice = False
     enable_prefill = False
 
 
 class CohereCommandRPlus(Claude2):
     model_id = LLMModelType.COHERE_COMMAND_R_PLUS
-    enable_auto_tool_choice = False 
+    enable_auto_tool_choice = False
     enable_prefill = False
-    
-
-

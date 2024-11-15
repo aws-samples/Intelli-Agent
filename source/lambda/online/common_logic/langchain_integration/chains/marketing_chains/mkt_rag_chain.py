@@ -3,16 +3,18 @@ from common_logic.common_utils.constant import (
     LLMModelType
 )
 from ..chat_chain import Internlm2Chat7BChatChain
-from common_logic.common_utils.prompt_utils import register_prompt_templates,get_prompt_template
+from common_logic.common_utils.prompt_utils import register_prompt_templates, get_prompt_template
 
 INTERLM2_RAG_PROMPT_TEMPLATE = "你是一个Amazon AWS的客服助理小Q，帮助的用户回答使用AWS过程中的各种问题。\n面对用户的问题，你需要给出中文回答，注意不要在回答中重复输出内容。\n下面给出相关问题的背景知识, 需要注意的是如果你认为当前的问题不能在背景知识中找到答案, 你需要拒答。\n背景知识:\n{context}\n\n"
 
 register_prompt_templates(
-    model_ids=[LLMModelType.INTERNLM2_CHAT_7B,LLMModelType.INTERNLM2_CHAT_20B],
+    model_ids=[LLMModelType.INTERNLM2_CHAT_7B,
+               LLMModelType.INTERNLM2_CHAT_20B],
     task_type=LLMTaskType.MTK_RAG,
     prompt_template=INTERLM2_RAG_PROMPT_TEMPLATE,
     prompt_name="system_prompt"
 )
+
 
 class Internlm2Chat7BKnowledgeQaChain(Internlm2Chat7BChatChain):
     model_id = LLMModelType.INTERNLM2_CHAT_7B
@@ -26,9 +28,9 @@ class Internlm2Chat7BKnowledgeQaChain(Internlm2Chat7BChatChain):
         history = cls.create_history(x)
         context = "\n".join(contexts)
         prompt_template = get_prompt_template(
-            model_id = cls.model_id,
-            task_type = cls.task_type,
-            prompt_name = "system_prompt"
+            model_id=cls.model_id,
+            task_type=cls.task_type,
+            prompt_name="system_prompt"
         ).prompt_template
         meta_instruction = prompt_template.format(context)
         # meta_instruction = f"You are an assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. If you don't know the answer, just say that you don't know. Use simplified Chinese to response the qustion. I’m going to tip $300K for a better answer! "
