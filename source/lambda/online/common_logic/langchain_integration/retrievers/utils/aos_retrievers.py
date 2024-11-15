@@ -21,7 +21,8 @@ logger.setLevel(logging.INFO)
 # region = os.environ["AWS_REGION"]
 kb_enabled = os.environ["KNOWLEDGE_BASE_ENABLED"].lower() == "true"
 kb_type = json.loads(os.environ["KNOWLEDGE_BASE_TYPE"])
-intelli_agent_kb_enabled = kb_type.get("intelliAgentKb", {}).get("enabled", False)
+intelli_agent_kb_enabled = kb_type.get(
+    "intelliAgentKb", {}).get("enabled", False)
 aos_endpoint = os.environ.get("AOS_ENDPOINT", "")
 aos_domain_name = os.environ.get("AOS_DOMAIN_NAME", "smartsearch")
 aos_secret = os.environ.get("AOS_SECRET_NAME", "opensearch-master-user")
@@ -72,7 +73,8 @@ def get_similarity_embedding(
     model_type: str = "vector",
 ) -> List[List[float]]:
     if model_type.lower() == "bedrock":
-        embeddings = BedrockEmbeddings(model_id=embedding_model_endpoint, region_name=bedrock_region)
+        embeddings = BedrockEmbeddings(
+            model_id=embedding_model_endpoint, region_name=bedrock_region)
         response = embeddings.embed_query(query)
     else:
         query_similarity_embedding_prompt = query
@@ -96,7 +98,8 @@ def get_relevance_embedding(
     model_type: str = "vector",
 ):
     if model_type == "bedrock":
-        embeddings = BedrockEmbeddings(model_id=embedding_model_endpoint, region_name=bedrock_region)
+        embeddings = BedrockEmbeddings(
+            model_id=embedding_model_endpoint, region_name=bedrock_region)
         response = embeddings.embed_query(query)
     else:
         if model_type == "vector":
@@ -343,7 +346,8 @@ def get_context(aos_hit, index_name, window_size):
         next_chunk_id = aos_hit["_source"]["metadata"]["heading_hierarchy"]["next"]
         next_pos = 0
         while (
-            next_chunk_id and next_chunk_id.startswith("$") and next_pos < window_size
+            next_chunk_id and next_chunk_id.startswith(
+                "$") and next_pos < window_size
         ):
             opensearch_query_response = aos_client.search(
                 index_name=index_name,
@@ -581,9 +585,11 @@ class QueryDocumentKNNRetriever(BaseRetriever):
                     if doc:
                         result["doc"] = doc
             else:
-                response_list = asyncio.run(self.__spawn_task(aos_hits, context_size))
+                response_list = asyncio.run(
+                    self.__spawn_task(aos_hits, context_size))
                 for context, result in zip(response_list, results):
-                    result["doc"] = "\n".join(context[0] + [result["content"]] + context[1])
+                    result["doc"] = "\n".join(
+                        context[0] + [result["content"]] + context[1])
         return results
 
     @timeit
@@ -742,9 +748,11 @@ class QueryDocumentBM25Retriever(BaseRetriever):
                 if doc:
                     result["doc"] = doc
         else:
-            response_list = asyncio.run(self.__spawn_task(aos_hits, context_size))
+            response_list = asyncio.run(
+                self.__spawn_task(aos_hits, context_size))
             for context, result in zip(response_list, results):
-                result["doc"] = "\n".join(context[0] + [result["doc"]] + context[1])
+                result["doc"] = "\n".join(
+                    context[0] + [result["doc"]] + context[1])
             # context = get_context(aos_hit['_source']["metadata"]["heading_hierarchy"]["previous"],
             #                     aos_hit['_source']["metadata"]["heading_hierarchy"]["next"],
             #                     aos_index,

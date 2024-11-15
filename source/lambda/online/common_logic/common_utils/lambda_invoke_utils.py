@@ -3,7 +3,7 @@ import functools
 import importlib
 import json
 import time
-import os 
+import os
 from typing import Any, Dict, Optional, Callable, Union
 import threading
 
@@ -34,23 +34,23 @@ __FUNC_NAME_MAP = {
 
 class StateContext:
 
-    def __init__(self,state):
-        self.state=state
-    
+    def __init__(self, state):
+        self.state = state
+
     @classmethod
     def get_current_state(cls):
         # print("thread id",threading.get_ident(),'parent id',threading.)
         # state = getattr(thread_local,'state',None)
         state = CURRENT_STATE
-        assert state is not None,"There is not a valid state in current context"
+        assert state is not None, "There is not a valid state in current context"
         return state
 
     @classmethod
     def set_current_state(cls, state):
-        global CURRENT_STATE 
+        global CURRENT_STATE
         assert CURRENT_STATE is None, "Parallel node executions are not alowed"
         CURRENT_STATE = state
-    
+
     @classmethod
     def clear_state(cls):
         global CURRENT_STATE
@@ -108,7 +108,8 @@ class LambdaInvoker(BaseModel):
                     session = boto3.Session()
                 values["client"] = session.client(
                     "lambda",
-                    region_name=values.get("region_name",os.environ['AWS_REGION'])
+                    region_name=values.get(
+                        "region_name", os.environ['AWS_REGION'])
                 )
             except Exception as e:
                 raise ValueError(
@@ -320,8 +321,8 @@ def node_monitor_wrapper(fn: Optional[Callable[..., Any]] = None, *, monitor_key
                        current_stream_use, ws_connection_id, enable_trace)
             state['trace_infos'].append(
                 f"Enter: {func.__name__}, time: {time.time()}")
-            
-            with StateContext(state): 
+
+            with StateContext(state):
                 output = func(state)
 
             current_monitor_infos = output.get(monitor_key, None)
@@ -329,7 +330,8 @@ def node_monitor_wrapper(fn: Optional[Callable[..., Any]] = None, *, monitor_key
                 send_trace(f"\n\n {current_monitor_infos}",
                            current_stream_use, ws_connection_id, enable_trace)
             exit_time = time.time()
-            state['trace_infos'].append(f"Exit: {func.__name__}, time: {time.time()}")
+            state['trace_infos'].append(
+                f"Exit: {func.__name__}, time: {time.time()}")
             send_trace(f"\n\n Elapsed time: {round((exit_time-enter_time)*100)/100} s",
                        current_stream_use, ws_connection_id, enable_trace)
             return output

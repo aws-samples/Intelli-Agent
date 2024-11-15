@@ -94,7 +94,6 @@ class LLMTaskType(ConstantBase):
     AUTO_EVALUATION = "auto_evaluation"
 
 
-
 class MessageType(ConstantBase):
     HUMAN_MESSAGE_TYPE = 'human'
     AI_MESSAGE_TYPE = 'ai'
@@ -149,7 +148,6 @@ class LLMModelType(ConstantBase):
     COHERE_COMMAND_R_PLUS = "cohere.command-r-plus-v1:0"
 
 
-
 class EmbeddingModelType(ConstantBase):
     BEDROCK_TITAN_V1 = "amazon.titan-embed-text-v1"
 
@@ -179,7 +177,8 @@ class IndexTag(Enum):
 
 @unique
 class KBType(Enum):
-    AOS = "aos" 
+    AOS = "aos"
+
 
 GUIDE_INTENTION_NOT_FOUND = "Intention not found, please add intentions first when using agent mode, refer to https://amzn-chn.feishu.cn/docx/HlxvduJYgoOz8CxITxXc43XWn8e"
 INDEX_DESC = "Answer question based on search result"
@@ -188,4 +187,3 @@ INDEX_DESC = "Answer question based on search result"
 class Threshold(ConstantBase):
     QQ_IN_RAG_CONTEXT = 0.5
     INTENTION_ALL_KNOWLEDGE_RETRIEVAL = 0.4
-

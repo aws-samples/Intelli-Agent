@@ -24,7 +24,8 @@ def contexts_trunc(docs: list[dict], context_num=2):
             context_strs.append(content)
             s.add(content)
             context_docs.append(
-                {"doc": content, "source": doc["source"], "score": doc["score"]}
+                {"doc": content,
+                    "source": doc["source"], "score": doc["score"]}
             )
             context_sources.append(doc["source"])
     return {

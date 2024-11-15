@@ -1,8 +1,8 @@
 import traceback
-import json 
-import uuid 
+import json
+import uuid
 import re
-from typing import Annotated, Any, TypedDict, List,Union
+from typing import Annotated, Any, TypedDict, List, Union
 
 from common_logic.common_utils.chatbot_utils import ChatbotManager
 from common_logic.common_utils.constant import (
@@ -17,7 +17,7 @@ from common_logic.common_utils.lambda_invoke_utils import (
     node_monitor_wrapper,
     send_trace,
 )
-from langchain_core.messages import ToolMessage,AIMessage
+from langchain_core.messages import ToolMessage, AIMessage
 from common_logic.common_utils.logger_utils import get_logger
 from common_logic.common_utils.prompt_utils import get_prompt_templates_from_ddb
 from common_logic.common_utils.python_utils import add_messages, update_nest_dict
@@ -25,7 +25,7 @@ from common_logic.common_utils.response_utils import process_response
 from common_logic.langchain_integration.tools import ToolManager
 from langchain_core.tools import BaseTool
 from langchain_core.messages.tool import ToolCall
-from langgraph.prebuilt.tool_node import ToolNode,TOOL_CALL_ERROR_TEMPLATE
+from langgraph.prebuilt.tool_node import ToolNode, TOOL_CALL_ERROR_TEMPLATE
 from common_logic.langchain_integration.chains import LLMChain
 from common_logic.common_utils.serialization_utils import JSONEncoder
 from common_logic.common_utils.monitor_utils import format_intention_output, format_preprocess_output, format_qq_data
@@ -45,7 +45,6 @@ from common_logic.common_utils.serialization_utils import JSONEncoder
 
 
 logger = get_logger("common_entry")
-
 
 
 class ChatbotState(TypedDict):
@@ -103,7 +102,8 @@ class ChatbotState(TypedDict):
     # current output of agent
     # agent_current_output: dict
     # # record messages during agent tool choose and calling, including agent message, tool ouput and error messages
-    agent_tool_history: Annotated[List[Union[AIMessage,ToolMessage]], add_messages]
+    agent_tool_history: Annotated[List[Union[AIMessage,
+                                             ToolMessage]], add_messages]
     # # the maximum number that agent node can be called
     # agent_repeated_call_limit: int
     # # the current call time of agent
@@ -139,8 +139,8 @@ def query_preprocess(state: ChatbotState):
     #     handler_name="lambda_handler",
     # )
 
-    
-    query_rewrite_llm_type = state.get("query_rewrite_llm_type",None) or LLMTaskType.CONVERSATION_SUMMARY_TYPE
+    query_rewrite_llm_type = state.get(
+        "query_rewrite_llm_type", None) or LLMTaskType.CONVERSATION_SUMMARY_TYPE
     output = conversation_query_rewrite(
         query=state['query'],
         chat_history=state['chat_history'],
@@ -161,7 +161,7 @@ def intention_detection(state: ChatbotState):
     retriever_params["query"] = state[
         retriever_params.get("retriever_config", {}).get("query_key", "query")
     ]
-   
+
     output = retrieve_fn(retriever_params)
     context_list = []
     qq_match_contexts = []
@@ -192,8 +192,9 @@ def intention_detection(state: ChatbotState):
         return {"qq_match_results": context_list, "intent_type": "intention detected"}
 
     # get intention results from aos
-    intention_config = state["chatbot_config"].get("intention_config",{})
-    query_key = intention_config.get("retriever_config",{}).get("query_key","query")
+    intention_config = state["chatbot_config"].get("intention_config", {})
+    query_key = intention_config.get(
+        "retriever_config", {}).get("query_key", "query")
     query = state[query_key]
     intent_fewshot_examples, intention_ready = get_intention_results(
         query,
@@ -211,15 +212,15 @@ def intention_detection(state: ChatbotState):
     group_name = state["chatbot_config"]["group_name"]
     chatbot_id = state["chatbot_config"]["chatbot_id"]
     custom_qd_index = custom_index_desc(group_name, chatbot_id)
-    
 
     # TODO need to modify with new intent logic
     if not intention_ready and not custom_qd_index:
-    # if not intention_ready:
+        # if not intention_ready:
         # retrieve all knowledge
         retriever_params = state["chatbot_config"]["private_knowledge_config"]
         retriever_params["query"] = state[
-            retriever_params.get("retriever_config", {}).get("query_key", "query")
+            retriever_params.get("retriever_config", {}).get(
+                "query_key", "query")
         ]
         threshold = Threshold.INTENTION_ALL_KNOWLEDGE_RETRIEVAL
         output = retrieve_fn(retriever_params)
@@ -229,7 +230,8 @@ def intention_detection(state: ChatbotState):
         for doc in output["result"]["docs"]:
             if doc['score'] >= threshold:
                 all_knowledge_retrieved_list.append(doc["page_content"])
-            info_to_log.append(f"score: {doc['score']}, page_content: {doc['page_content'][:200]}")
+            info_to_log.append(
+                f"score: {doc['score']}, page_content: {doc['page_content'][:200]}")
 
         send_trace(
             f"all knowledge retrieved:\n{chr(10).join(info_to_log)}",
@@ -247,7 +249,7 @@ def intention_detection(state: ChatbotState):
         state["ws_connection_id"],
         state["enable_trace"],
     )
-    
+
     # rename tool name
     intent_fewshot_tools = [tool_rename(i) for i in intent_fewshot_tools]
     intent_fewshot_examples = [
@@ -263,6 +265,7 @@ def intention_detection(state: ChatbotState):
         "intent_type": "intention detected"
     }
 
+
 @node_monitor_wrapper
 def agent(state: ChatbotState):
     # two cases to invoke rag function
@@ -272,7 +275,7 @@ def agent(state: ChatbotState):
     last_tool_messages = state["last_tool_messages"]
     if last_tool_messages and len(last_tool_messages) == 1:
         last_tool_message = last_tool_messages[0]
-        tool:BaseTool = ToolManager.get_tool(
+        tool: BaseTool = ToolManager.get_tool(
             scene=SceneType.COMMON,
             name=last_tool_message.name
         )
@@ -284,7 +287,7 @@ def agent(state: ChatbotState):
                 content = last_tool_message.content
             return {"answer": content, "exit_tool_calling": True}
 
-    no_intention_condition = not state.get("intent_fewshot_examples",[])
+    no_intention_condition = not state.get("intent_fewshot_examples", [])
 
     if (
         # no_intention_condition,
@@ -299,46 +302,47 @@ def agent(state: ChatbotState):
                 "no_intention_condition, switch to rag tool",
                 enable_trace=state["enable_trace"],
             )
-         
+
         all_knowledge_rag_tool = state['all_knowledge_rag_tool']
-        agent_message = AIMessage(content="",tool_calls=[
+        agent_message = AIMessage(content="", tool_calls=[
             ToolCall(
                 id=uuid.uuid4().hex,
                 name=all_knowledge_rag_tool.name,
-                args={"query":state["query"]}
+                args={"query": state["query"]}
             )
         ])
         tools = [
             ToolManager.get_tool(
                 scene=SceneType.COMMON,
                 name=all_knowledge_rag_tool.name
-                )
-            ]
-        return {"agent_tool_history":[agent_message],"tools":tools}
+            )
+        ]
+        return {"agent_tool_history": [agent_message], "tools": tools}
 
     # normal call
     agent_config = state["chatbot_config"]['agent_config']
 
-    tools_name = list(set(state['intent_fewshot_tools'] + agent_config['tools']))
+    tools_name = list(
+        set(state['intent_fewshot_tools'] + agent_config['tools']))
     # get tools from tool names
     tools = [
         ToolManager.get_tool(
             scene=SceneType.COMMON,
             name=name
-            ) 
+        )
         for name in tools_name
     ]
     llm_config = {
         **agent_config['llm_config'],
         "tools": tools,
         "fewshot_examples": state['intent_fewshot_examples'],
-        "all_knowledge_retrieved_list":state['all_knowledge_retrieved_list']
+        "all_knowledge_retrieved_list": state['all_knowledge_retrieved_list']
     }
     group_name = state['chatbot_config']['group_name']
     chatbot_id = state['chatbot_config']['chatbot_id']
     prompt_templates_from_ddb = get_prompt_templates_from_ddb(
         group_name,
-        model_id = llm_config['model_id'],
+        model_id=llm_config['model_id'],
         task_type=LLMTaskType.TOOL_CALLING_API,
         chatbot_id=chatbot_id
     )
@@ -349,11 +353,11 @@ def agent(state: ChatbotState):
         scene=SceneType.COMMON,
         **llm_config
     )
-    
-    agent_message:AIMessage = tool_calling_chain.invoke({
-        "query":state['query'],
-        "chat_history":state['chat_history'],
-        "agent_tool_history":state['agent_tool_history']
+
+    agent_message: AIMessage = tool_calling_chain.invoke({
+        "query": state['query'],
+        "chat_history": state['chat_history'],
+        "agent_tool_history": state['agent_tool_history']
     })
 
     send_trace(
@@ -364,7 +368,7 @@ def agent(state: ChatbotState):
     if not agent_message.tool_calls:
         return {"answer": agent_message.content, "exit_tool_calling": True}
 
-    return {"agent_tool_history":[agent_message],"tools":tools}
+    return {"agent_tool_history": [agent_message], "tools": tools}
 
 
 @node_monitor_wrapper
@@ -379,17 +383,17 @@ def llm_direct_results_generation(state: ChatbotState):
     logger.info(prompt_templates_from_ddb)
 
     llm_config = {
-                **llm_config,
-                "stream": state["stream"],
-                "intent_type": task_type,
-                **prompt_templates_from_ddb,
-            }
+        **llm_config,
+        "stream": state["stream"],
+        "intent_type": task_type,
+        **prompt_templates_from_ddb,
+    }
 
     llm_input = {
-                "query": state["query"],
-                "chat_history": state["chat_history"],
-            }
-    
+        "query": state["query"],
+        "chat_history": state["chat_history"],
+    }
+
     chain = LLMChain.get_chain(
         **llm_config
     )
@@ -407,7 +411,7 @@ def tool_execution(state):
     Returns:
         _type_: _description_
     """
-    tools:List[BaseTool] = state['tools']
+    tools: List[BaseTool] = state['tools']
 
     def handle_tool_errors(e):
         content = TOOL_CALL_ERROR_TEMPLATE.format(error=repr(e))
@@ -418,25 +422,27 @@ def tool_execution(state):
         tools,
         handle_tool_errors=handle_tool_errors
     )
-    last_agent_message:AIMessage = state["agent_tool_history"][-1]
+    last_agent_message: AIMessage = state["agent_tool_history"][-1]
 
     tool_calls = last_agent_message.tool_calls
 
-    tool_messages:List[ToolMessage] = tool_node.invoke(
-        [AIMessage(content="",tool_calls=tool_calls)]
+    tool_messages: List[ToolMessage] = tool_node.invoke(
+        [AIMessage(content="", tool_calls=tool_calls)]
     )
 
-    send_trace(f'**tool_execute_res:** \n{tool_messages}', enable_trace=state["enable_trace"])
+    send_trace(
+        f'**tool_execute_res:** \n{tool_messages}', enable_trace=state["enable_trace"])
     return {
-            "agent_tool_history": tool_messages,
-            "last_tool_messages": tool_messages
-        }
+        "agent_tool_history": tool_messages,
+        "last_tool_messages": tool_messages
+    }
 
 
 def final_results_preparation(state: ChatbotState):
     answer = state['answer']
-    if isinstance(answer,str):
-        answer = re.sub("<thinking>.*?</thinking>","",answer,flags=re.S).strip()
+    if isinstance(answer, str):
+        answer = re.sub("<thinking>.*?</thinking>",
+                        "", answer, flags=re.S).strip()
         state['answer'] = answer
     app_response = process_response(state["event_body"], state)
     return {"app_response": app_response}
@@ -564,12 +570,12 @@ def build_graph(chatbot_state_cls):
 #####################################
 app = None
 
-def tool_rename(name:str) -> str:
+
+def tool_rename(name: str) -> str:
     """
     rename the tool name
     """
-    return name.replace("-","_")
-
+    return name.replace("-", "_")
 
 
 def register_rag_tool_from_config(event_body: dict):
@@ -582,15 +588,14 @@ def register_rag_tool_from_config(event_body: dict):
     for index_type, item_dict in chatbot.index_ids.items():
         if index_type != IndexType.INTENTION and index_type != IndexType.QQ:
             for index_content in item_dict["value"].values():
-
                 if "indexId" in index_content and "description" in index_content:
                     # Find retriever contain index_id
                     retrievers = event_body["chatbot_config"]["private_knowledge_config"]['retrievers']
-                    retriever = None 
+                    retriever = None
                     for retriever in retrievers:
                         if retriever["index_name"] == index_content["indexId"]:
                             break
-                    assert retriever is not None,retrievers
+                    assert retriever is not None, retrievers
                     rerankers = event_body["chatbot_config"]["private_knowledge_config"]['rerankers']
                     if rerankers:
                         rerankers = [rerankers[0]]
@@ -600,8 +605,8 @@ def register_rag_tool_from_config(event_body: dict):
                     # TODO give specific retriever config
                     ToolManager.register_common_rag_tool(
                         retriever_config={
-                            "retrievers":[retriever],
-                            "rerankers":rerankers,
+                            "retrievers": [retriever],
+                            "rerankers": rerankers,
                             "llm_config": event_body["chatbot_config"]["private_knowledge_config"]['llm_config']
                         },
                         name=index_name,
@@ -610,7 +615,8 @@ def register_rag_tool_from_config(event_body: dict):
                         return_direct=True
                     )
                     registered_tool_names.append(index_name)
-                    logger.info(f"registered rag tool: {index_name}, description: {description}")
+                    logger.info(
+                        f"registered rag tool: {index_name}, description: {description}")
     return registered_tool_names
 
 
@@ -618,7 +624,7 @@ def register_custom_lambda_tools_from_config(event_body):
     agent_config_tools = event_body['chatbot_config']['agent_config']['tools']
     new_agent_config_tools = []
     for tool in agent_config_tools:
-        if isinstance(tool,str):
+        if isinstance(tool, str):
             new_agent_config_tools.append(tool)
         elif isinstance(tool, dict):
             tool_name = tool['name']
@@ -627,18 +633,19 @@ def register_custom_lambda_tools_from_config(event_body):
                 ToolManager.register_aws_lambda_as_tool(
                     lambda_name=tool["lambda_name"],
                     tool_def={
-                       "description":tool["description"],
-                       "properties":tool['properties'],
-                       "required":tool.get('required',[])
+                        "description": tool["description"],
+                        "properties": tool['properties'],
+                        "required": tool.get('required', [])
                     },
                     name=tool_name,
                     scene=SceneType.COMMON,
-                    return_direct=tool.get("return_direct",False)
+                    return_direct=tool.get("return_direct", False)
                 )
             new_agent_config_tools.append(tool_name)
         else:
-            raise ValueError(f"tool type {type(tool)}: {tool} is not supported")
-    
+            raise ValueError(
+                f"tool type {type(tool)}: {tool} is not supported")
+
     event_body['chatbot_config']['agent_config']['tools'] = new_agent_config_tools
     return new_agent_config_tools
 
@@ -673,7 +680,7 @@ def common_entry(event_body):
     ws_connection_id = event_body["ws_connection_id"]
     enable_trace = chatbot_config["enable_trace"]
     agent_config = event_body["chatbot_config"]["agent_config"]
-    
+
     # register as rag tool for each aos index
     # print('private_knowledge_config',event_body["chatbot_config"]["private_knowledge_config"])
     registered_tool_names = register_rag_tool_from_config(event_body)
@@ -684,16 +691,17 @@ def common_entry(event_body):
 
     # register lambda tools
     register_custom_lambda_tools_from_config(event_body)
-    # 
-    logger.info(f'event body to graph:\n{json.dumps(event_body,ensure_ascii=False,cls=JSONEncoder)}')
+    #
+    logger.info(
+        f'event body to graph:\n{json.dumps(event_body,ensure_ascii=False,cls=JSONEncoder)}')
 
     # define all knowledge rag tool
     all_knowledge_rag_tool = ToolManager.register_common_rag_tool(
-                retriever_config=event_body["chatbot_config"]["private_knowledge_config"],
-                name="all_knowledge_rag_tool",
-                scene=SceneType.COMMON,
-                description="all knowledge rag tool",
-                return_direct=True
+        retriever_config=event_body["chatbot_config"]["private_knowledge_config"],
+        name="all_knowledge_rag_tool",
+        scene=SceneType.COMMON,
+        description="all knowledge rag tool",
+        return_direct=True
     )
 
     # invoke graph and get results
@@ -712,9 +720,9 @@ def common_entry(event_body):
             "debug_infos": {},
             "extra_response": {},
             "qq_match_results": [],
-            "last_tool_messages":None,
-            "all_knowledge_rag_tool":all_knowledge_rag_tool,
-            "tools":None,
+            "last_tool_messages": None,
+            "all_knowledge_rag_tool": all_knowledge_rag_tool,
+            "tools": None,
             "ddb_additional_kwargs": {}
         },
         config={"recursion_limit": 20}

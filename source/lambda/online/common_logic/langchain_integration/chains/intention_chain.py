@@ -12,7 +12,7 @@ from langchain.schema.runnable import (
     RunnablePassthrough,
 )
 
-from common_logic.common_utils.constant import LLMTaskType,LLMModelType
+from common_logic.common_utils.constant import LLMTaskType, LLMModelType
 from ..chat_models import Model
 from .chat_chain import Internlm2Chat7BChatChain
 from . import LLMChain
@@ -50,7 +50,7 @@ def load_intention_file(intent_save_path=intent_save_path, seed=42):
 
 class Internlm2Chat7BIntentRecognitionChain(Internlm2Chat7BChatChain):
     model_id = LLMModelType.INTERNLM2_CHAT_7B
-    intent_type =LLMTaskType.INTENT_RECOGNITION_TYPE
+    intent_type = LLMTaskType.INTENT_RECOGNITION_TYPE
 
     default_model_kwargs = {
         "temperature": 0.1,
@@ -67,7 +67,8 @@ class Internlm2Chat7BIntentRecognitionChain(Internlm2Chat7BChatChain):
         example_strs = []
         for example in few_shot_examples:
             example_strs.append(
-                exmaple_template.format(query=example["query"], label=example["intent"])
+                exmaple_template.format(
+                    query=example["query"], label=example["intent"])
             )
 
         example_str = "\n\n".join(example_strs)
@@ -148,7 +149,8 @@ class Claude2IntentRecognitionChain(LLMChain):
         for example in cls.few_shot_examples:
             example_strs.append(
                 example_template.format(
-                    label=intent_indexs[example["intent"]], query=example["query"]
+                    label=intent_indexs[example["intent"]
+                                        ], query=example["query"]
                 )
             )
         return "\n\n".join(example_strs)

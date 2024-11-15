@@ -29,7 +29,7 @@ def format_qq_data(data) -> str:
     """
     if is_null_or_empty(data):
         return ""
-    
+
     markdown_table = "**QQ Match Result**\n"
     markdown_table += "| Source | Score | Question | Answer |\n"
     markdown_table += "|-----|-----|-----|-----|\n"
@@ -66,7 +66,7 @@ def format_rag_data(data, qq_result) -> str:
         score = item.get("score", -1)
         page_content = item.get("retrieval_content", "").replace("\n", "<br>")
         markdown_table += f"| {source} | {raw_source} | {score} | {page_content} |\n"
-    
+
     if not is_null_or_empty(qq_result):
         markdown_table += "\n**QQ Match Result**\n"
         markdown_table += "| Source File Name | Source URI | Score | Question | Answer |\n"

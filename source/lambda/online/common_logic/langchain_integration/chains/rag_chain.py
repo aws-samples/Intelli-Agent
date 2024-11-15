@@ -1,4 +1,7 @@
 # rag llm chains
+from .chat_chain import Baichuan2Chat13B4BitsChatChain
+from .chat_chain import Qwen2Instruct7BChatChain
+from .chat_chain import GLM4Chat9BChatChain
 from langchain.prompts import (
     ChatPromptTemplate,
     HumanMessagePromptTemplate,
@@ -41,10 +44,11 @@ class Claude2RagLLMChain(LLMChain):
         system_prompt_template = get_prompt_template(
             model_id=cls.model_id,
             task_type=cls.intent_type,
-            prompt_name="system_prompt"     
+            prompt_name="system_prompt"
         ).prompt_template
 
-        system_prompt_template = kwargs.get("system_prompt",system_prompt_template)
+        system_prompt_template = kwargs.get(
+            "system_prompt", system_prompt_template)
 
         chat_messages = [
             SystemMessagePromptTemplate.from_template(system_prompt_template),
@@ -52,11 +56,14 @@ class Claude2RagLLMChain(LLMChain):
             HumanMessagePromptTemplate.from_template("{query}")
         ]
         context_chain = RunnablePassthrough.assign(
-            context=RunnableLambda(lambda x: get_claude_rag_context(x["contexts"]))
+            context=RunnableLambda(
+                lambda x: get_claude_rag_context(x["contexts"]))
         )
-        llm = Model.get_model(cls.model_id, model_kwargs=model_kwargs, **kwargs)
-        chain = context_chain | ChatPromptTemplate.from_messages(chat_messages) | RunnableLambda(lambda x: print_llm_messages(f"rag messages: {x.messages}") or x)
-        
+        llm = Model.get_model(
+            cls.model_id, model_kwargs=model_kwargs, **kwargs)
+        chain = context_chain | ChatPromptTemplate.from_messages(chat_messages) | RunnableLambda(
+            lambda x: print_llm_messages(f"rag messages: {x.messages}") or x)
+
         chain = chain | llm | StrOutputParser()
 
         if stream:
@@ -82,6 +89,7 @@ class Claude3SonnetRAGLLMChain(Claude2RagLLMChain):
 class Claude3HaikuRAGLLMChain(Claude2RagLLMChain):
     model_id = LLMModelType.CLAUDE_3_HAIKU
 
+
 class Claude35SonnetRAGLLMChain(Claude2RagLLMChain):
     model_id = LLMModelType.CLAUDE_3_5_SONNET
 
@@ -89,12 +97,14 @@ class Claude35SonnetRAGLLMChain(Claude2RagLLMChain):
 class Claude35SonnetV2RAGLLMChain(Claude2RagLLMChain):
     model_id = LLMModelType.CLAUDE_3_5_SONNET_V2
 
+
 class Claude35HaikuRAGLLMChain(Claude2RagLLMChain):
     model_id = LLMModelType.CLAUDE_3_5_HAIKU
 
 
 class Llama31Instruct70B(Claude2RagLLMChain):
     model_id = LLMModelType.LLAMA3_1_70B_INSTRUCT
+
 
 class Llama32Instruct90B(Claude2RagLLMChain):
     model_id = LLMModelType.LLAMA3_2_90B_INSTRUCT
@@ -112,44 +122,40 @@ class Mixtral8x7bChatChain(Claude2RagLLMChain):
     model_id = LLMModelType.MIXTRAL_8X7B_INSTRUCT
 
 
-from .chat_chain import GLM4Chat9BChatChain
-
 class GLM4Chat9BRagChain(GLM4Chat9BChatChain):
     model_id = LLMModelType.GLM_4_9B_CHAT
     intent_type = LLMTaskType.RAG
 
     @classmethod
-    def create_chat_history(cls,x, system_prompt=None):
+    def create_chat_history(cls, x, system_prompt=None):
         if system_prompt is None:
             system_prompt = get_prompt_template(
                 model_id=cls.model_id,
                 task_type=cls.intent_type,
-                prompt_name="system_prompt"     
+                prompt_name="system_prompt"
             ).prompt_template
-        context = ("\n" + "="*50+ "\n").join(x['contexts'])
+        context = ("\n" + "="*50 + "\n").join(x['contexts'])
         system_prompt = system_prompt.format(context=context)
 
-        return super().create_chat_history(x,system_prompt=system_prompt)
-    
+        return super().create_chat_history(x, system_prompt=system_prompt)
 
-from .chat_chain import Qwen2Instruct7BChatChain
 
 class Qwen2Instruct7BRagChain(Qwen2Instruct7BChatChain):
     model_id = LLMModelType.QWEN2INSTRUCT7B
     intent_type = LLMTaskType.RAG
 
     @classmethod
-    def create_chat_history(cls,x, system_prompt=None):
+    def create_chat_history(cls, x, system_prompt=None):
         if system_prompt is None:
             system_prompt = get_prompt_template(
                 model_id=cls.model_id,
                 task_type=cls.intent_type,
-                prompt_name="system_prompt"     
+                prompt_name="system_prompt"
             ).prompt_template
-        
+
         context = ("\n\n").join(x['contexts'])
         system_prompt = system_prompt.format(context=context)
-        return super().create_chat_history(x,system_prompt=system_prompt)
+        return super().create_chat_history(x, system_prompt=system_prompt)
 
 
 class Qwen2Instruct72BRagChain(Qwen2Instruct7BRagChain):
@@ -159,8 +165,6 @@ class Qwen2Instruct72BRagChain(Qwen2Instruct7BRagChain):
 class Qwen2Instruct72BRagChain(Qwen2Instruct7BRagChain):
     model_id = LLMModelType.QWEN15INSTRUCT32B
 
-
-from .chat_chain import Baichuan2Chat13B4BitsChatChain
 
 class Baichuan2Chat13B4BitsKnowledgeQaChain(Baichuan2Chat13B4BitsChatChain):
     model_id = LLMModelType.BAICHUAN2_13B_CHAT
@@ -182,7 +186,3 @@ class Baichuan2Chat13B4BitsKnowledgeQaChain(Baichuan2Chat13B4BitsChatChain):
         )
         llm_chain = chat_history_chain | llm_chain
         return llm_chain
-
-
-
-

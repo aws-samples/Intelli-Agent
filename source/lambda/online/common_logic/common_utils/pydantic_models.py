@@ -35,9 +35,12 @@ class LLMConfig(AllowBaseModel):
     model_kwargs: dict = {"temperature": 0.01, "max_tokens": 4096}
 
 
+class QueryRewriteConfig(LLMConfig):
+    rewrite_first_message: bool = False
+
 class QueryProcessConfig(ForbidBaseModel):
-    conversation_query_rewrite_config: LLMConfig = Field(
-        default_factory=LLMConfig)
+    conversation_query_rewrite_config: QueryRewriteConfig = Field(
+        default_factory=QueryRewriteConfig)
 
 
 class RetrieverConfigBase(AllowBaseModel):
@@ -88,7 +91,7 @@ class RagToolConfig(AllowBaseModel):
 
 class AgentConfig(ForbidBaseModel):
     llm_config: LLMConfig = Field(default_factory=LLMConfig)
-    tools: list[Union[str,dict]] = Field(default_factory=list)
+    tools: list[Union[str, dict]] = Field(default_factory=list)
     only_use_rag_tool: bool = False
 
 
@@ -178,8 +181,7 @@ class ChatbotConfig(AllowBaseModel):
                 cls.format_index_info(info)
                 for info in list(index_info["value"].values())
             ]
-            infos[index_type] = {info["index_name"]
-                : info for info in info_list}
+            infos[index_type] = {info["index_name"]                                 : info for info in info_list}
 
         for index_type in IndexType.all_values():
             if index_type not in infos:
@@ -194,17 +196,18 @@ class ChatbotConfig(AllowBaseModel):
     ):
         index_infos = self.get_index_infos_from_ddb(
             self.group_name, self.chatbot_id)
-        print(f"index_infos: {index_infos}")
-        print(f"default_index_names: {default_index_names}")
-        print(f"default_retriever_config: {default_retriever_config}")
+        logger.info(f"index_infos: {index_infos}")
+        logger.info(f"default_index_names: {default_index_names}")
+        logger.info(f"default_retriever_config: {default_retriever_config}")
         for task_name, index_names in default_index_names.items():
-            assert task_name in ("qq_match", "intention", "private_knowledge")
             if task_name == "qq_match":
                 index_type = IndexType.QQ
             elif task_name == "intention":
                 index_type = IndexType.INTENTION
             elif task_name == "private_knowledge":
                 index_type = IndexType.QD
+            else:
+                raise ValueError(f"Invalid task_name: {task_name}")
 
             # default to use all index
             if not index_names:

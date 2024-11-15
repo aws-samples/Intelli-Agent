@@ -59,7 +59,8 @@ class Claude2QueryRewriteChain(LLMChain):
         query_key = kwargs.pop("query_key", "query")
         model_kwargs = model_kwargs or {}
         model_kwargs = {**cls.default_model_kwargs, **model_kwargs}
-        llm = LLM_Model.get_model(cls.model_id, model_kwargs=model_kwargs, **kwargs)
+        llm = LLM_Model.get_model(
+            cls.model_id, model_kwargs=model_kwargs, **kwargs)
         chain = (
             RunnablePassthrough.assign(question=lambda x: x[query_key])
             | query_expansion_template_claude
@@ -142,7 +143,8 @@ class Internlm2Chat7BQueryRewriteChain(Internlm2Chat7BChatChain):
         model_kwargs = model_kwargs or {}
         model_kwargs = {**cls.default_model_kwargs, **model_kwargs}
         chain = super().create_chain(model_kwargs=model_kwargs, **kwargs)
-        chain = chain | RunnableLambda(lambda x: cls.query_rewrite_postprocess(x))
+        chain = chain | RunnableLambda(
+            lambda x: cls.query_rewrite_postprocess(x))
         return chain
 
 

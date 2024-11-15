@@ -1,6 +1,6 @@
 # tool calling chain
 import json
-from typing import List,Dict,Any
+from typing import List, Dict, Any
 import re
 
 from langchain.schema.runnable import (
@@ -9,13 +9,13 @@ from langchain.schema.runnable import (
 )
 from common_logic.common_utils.prompt_utils import get_prompt_template
 from common_logic.common_utils.logger_utils import print_llm_messages
-from langchain_core.messages import(
+from langchain_core.messages import (
     AIMessage,
     SystemMessage
-) 
+)
 from langchain.prompts import ChatPromptTemplate
 
-from langchain_core.messages import AIMessage,SystemMessage
+from langchain_core.messages import AIMessage, SystemMessage
 
 from common_logic.common_utils.constant import (
     LLMTaskType,
@@ -47,27 +47,27 @@ In this incorrect tool calling example, the parameter `name` should form a <name
 """
 
 
-SYSTEM_MESSAGE_PROMPT =(f"In this environment you have access to a set of tools you can use to answer the user's question.\n"
-        "\n"
-        "You may call them like this:\n"
-        "<function_calls>\n"
-        "<invoke>\n"
-        "<tool_name>$TOOL_NAME</tool_name>\n"
-        "<parameters>\n"
-        "<$PARAMETER_NAME>$PARAMETER_VALUE</$PARAMETER_NAME>\n"
-        "...\n"
-        "</parameters>\n"
-        "</invoke>\n"
-        "</function_calls>\n"
-        "\n"
-        "Here are the tools available:\n"
-        "<tools>\n"
-        "{tools}"
-        "\n</tools>"
-        "\nAnswer the user's request using relevant tools (if they are available). Before calling a tool, do some analysis within <thinking></thinking> tags. First, think about which of the provided tools is the relevant tool to answer the user's request. Second, go through each of the required parameters of the relevant tool and determine if the user has directly provided or given enough information to infer a value. When deciding if the parameter can be inferred, carefully consider all the context to see if it supports a specific value. If all of the required parameters are present or can be reasonably inferred, close the thinking tag and proceed with the tool call. BUT, if one of the values for a required parameter is missing, DO NOT invoke the function (not even with fillers for the missing params) and instead, ask the user to provide the missing parameters. DO NOT ask for more information on optional parameters if it is not provided."
-        "\nHere are some guidelines for you:\n{tool_call_guidelines}."
-        f"\n{incorrect_tool_call_example}"
-    )
+SYSTEM_MESSAGE_PROMPT = (f"In this environment you have access to a set of tools you can use to answer the user's question.\n"
+                         "\n"
+                         "You may call them like this:\n"
+                         "<function_calls>\n"
+                         "<invoke>\n"
+                         "<tool_name>$TOOL_NAME</tool_name>\n"
+                         "<parameters>\n"
+                         "<$PARAMETER_NAME>$PARAMETER_VALUE</$PARAMETER_NAME>\n"
+                         "...\n"
+                         "</parameters>\n"
+                         "</invoke>\n"
+                         "</function_calls>\n"
+                         "\n"
+                         "Here are the tools available:\n"
+                         "<tools>\n"
+                         "{tools}"
+                         "\n</tools>"
+                         "\nAnswer the user's request using relevant tools (if they are available). Before calling a tool, do some analysis within <thinking></thinking> tags. First, think about which of the provided tools is the relevant tool to answer the user's request. Second, go through each of the required parameters of the relevant tool and determine if the user has directly provided or given enough information to infer a value. When deciding if the parameter can be inferred, carefully consider all the context to see if it supports a specific value. If all of the required parameters are present or can be reasonably inferred, close the thinking tag and proceed with the tool call. BUT, if one of the values for a required parameter is missing, DO NOT invoke the function (not even with fillers for the missing params) and instead, ask the user to provide the missing parameters. DO NOT ask for more information on optional parameters if it is not provided."
+                         "\nHere are some guidelines for you:\n{tool_call_guidelines}."
+                         f"\n{incorrect_tool_call_example}"
+                         )
 
 SYSTEM_MESSAGE_PROMPT_WITH_FEWSHOT_EXAMPLES = SYSTEM_MESSAGE_PROMPT + (
     "Some examples of tool calls are given below, where the content within <query></query> represents the most recent reply in the dialog."
@@ -123,7 +123,7 @@ def _get_type(parameter: Dict[str, Any]) -> str:
     return json.dumps(parameter)
 
 
-def convert_openai_tool_to_anthropic(tools:list[dict])->str:
+def convert_openai_tool_to_anthropic(tools: list[dict]) -> str:
     formatted_tools = tools
     tools_data = [
         {
@@ -173,15 +173,15 @@ class Claude2ToolCallingChain(LLMChain):
         "max_tokens": 2000,
         "temperature": 0.1,
         "top_p": 0.9,
-        "stop_sequences": ["\n\nHuman:", "\n\nAssistant","</function_calls>"],
+        "stop_sequences": ["\n\nHuman:", "\n\nAssistant", "</function_calls>"],
     }
 
     @staticmethod
-    def format_fewshot_examples(fewshot_examples:list[dict]):
+    def format_fewshot_examples(fewshot_examples: list[dict]):
         fewshot_example_strs = []
         for fewshot_example in fewshot_examples:
             param_strs = []
-            for p,v in fewshot_example['kwargs'].items():
+            for p, v in fewshot_example['kwargs'].items():
                 param_strs.append(f"<{p}>{v}</{p}")
             param_str = "\n".join(param_strs)
             if param_strs:
@@ -205,41 +205,42 @@ class Claude2ToolCallingChain(LLMChain):
             fewshot_example_strs.append(fewshot_example_str)
         fewshot_example_str = '\n'.join(fewshot_example_strs)
         return f"<examples>\n{fewshot_example_str}\n</examples>"
-    
+
     @classmethod
-    def parse_function_calls_from_ai_message(cls,message:AIMessage):
+    def parse_function_calls_from_ai_message(cls, message: AIMessage):
         content = "<thinking>" + message.content + "</function_calls>"
-        function_calls:List[str] = re.findall("<function_calls>(.*?)</function_calls>", content,re.S)
+        function_calls: List[str] = re.findall(
+            "<function_calls>(.*?)</function_calls>", content, re.S)
         if not function_calls:
-            content = "<thinking>" +  message.content
+            content = "<thinking>" + message.content
 
         return {
-                "function_calls": function_calls,
-                "content": content
-            } 
+            "function_calls": function_calls,
+            "content": content
+        }
 
     @classmethod
-    def create_chat_history(cls,x):
+    def create_chat_history(cls, x):
         chat_history = x['chat_history'] + \
-            [{"role": MessageType.HUMAN_MESSAGE_TYPE,"content": x['query']}] + \
+            [{"role": MessageType.HUMAN_MESSAGE_TYPE, "content": x['query']}] + \
             x['agent_tool_history']
         return chat_history
 
     @classmethod
-    def get_common_system_prompt(cls,system_prompt_template:str):
+    def get_common_system_prompt(cls, system_prompt_template: str):
         now = get_china_now()
         date_str = now.strftime("%Y年%m月%d日")
         weekdays = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日']
         weekday = weekdays[now.weekday()]
-        system_prompt = system_prompt_template.format(date=date_str,weekday=weekday)
+        system_prompt = system_prompt_template.format(
+            date=date_str, weekday=weekday)
         return system_prompt
-    
-        
+
     @classmethod
     def create_chain(cls, model_kwargs=None, **kwargs):
         model_kwargs = model_kwargs or {}
-        tools:list = kwargs['tools']
-        fewshot_examples = kwargs.get('fewshot_examples',[])
+        tools: list = kwargs['tools']
+        fewshot_examples = kwargs.get('fewshot_examples', [])
         if fewshot_examples:
             fewshot_examples.append({
                 "name": "give_rhetorical_question",
@@ -249,10 +250,11 @@ class Claude2ToolCallingChain(LLMChain):
         user_system_prompt = get_prompt_template(
             model_id=cls.model_id,
             task_type=cls.intent_type,
-            prompt_name="user_prompt"     
+            prompt_name="user_prompt"
         ).prompt_template
 
-        user_system_prompt = kwargs.get("user_prompt",None) or user_system_prompt
+        user_system_prompt = kwargs.get(
+            "user_prompt", None) or user_system_prompt
 
         user_system_prompt = cls.get_common_system_prompt(
             user_system_prompt
@@ -260,10 +262,11 @@ class Claude2ToolCallingChain(LLMChain):
         guidelines_prompt = get_prompt_template(
             model_id=cls.model_id,
             task_type=cls.intent_type,
-            prompt_name="guidelines_prompt"     
+            prompt_name="guidelines_prompt"
         ).prompt_template
 
-        guidelines_prompt = kwargs.get("guidelines_prompt",None) or guidelines_prompt
+        guidelines_prompt = kwargs.get(
+            "guidelines_prompt", None) or guidelines_prompt
         model_kwargs = {**cls.default_model_kwargs, **model_kwargs}
 
         tools_formatted = convert_openai_tool_to_anthropic(tools)
@@ -279,22 +282,22 @@ class Claude2ToolCallingChain(LLMChain):
                 tools=tools_formatted,
                 tool_call_guidelines=guidelines_prompt
             )
-        
-        system_prompt = user_system_prompt + system_prompt 
+
+        system_prompt = user_system_prompt + system_prompt
         tool_calling_template = ChatPromptTemplate.from_messages(
             [
-            SystemMessage(content=system_prompt),
-            ("placeholder", "{chat_history}"),
-            AIMessage(content="<thinking>")
-        ])
+                SystemMessage(content=system_prompt),
+                ("placeholder", "{chat_history}"),
+                AIMessage(content="<thinking>")
+            ])
 
         llm = Model.get_model(
             model_id=cls.model_id,
             model_kwargs=model_kwargs,
         )
         chain = RunnablePassthrough.assign(chat_history=lambda x: cls.create_chat_history(x)) | tool_calling_template \
-            | RunnableLambda(lambda x: print_llm_messages(f"Agent messages: {x.messages}") or x.messages ) \
-            | llm | RunnableLambda(lambda message:cls.parse_function_calls_from_ai_message(
+            | RunnableLambda(lambda x: print_llm_messages(f"Agent messages: {x.messages}") or x.messages) \
+            | llm | RunnableLambda(lambda message: cls.parse_function_calls_from_ai_message(
                 message
             ))
         return chain

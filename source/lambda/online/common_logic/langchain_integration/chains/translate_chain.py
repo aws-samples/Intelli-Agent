@@ -32,7 +32,8 @@ class Internlm2Chat7BTranslateChain(Internlm2Chat7BChatChain):
         model_kwargs = model_kwargs or {}
         model_kwargs = {**cls.default_model_kwargs, **model_kwargs}
         llm_chain = super().create_chain(model_kwargs=model_kwargs, **kwargs)
-        llm_chain = llm_chain | RunnableLambda(lambda x: x.strip('"'))  # postprocess
+        llm_chain = llm_chain | RunnableLambda(
+            lambda x: x.strip('"'))  # postprocess
         return llm_chain
 
 

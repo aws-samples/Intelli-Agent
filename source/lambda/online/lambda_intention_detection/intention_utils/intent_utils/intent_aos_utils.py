@@ -39,7 +39,8 @@ logger.setLevel(logging.INFO)
 
 opensearch_client_lock = threading.Lock()
 abs_file_dir = os.path.dirname(__file__)
-intent_example_path = os.path.join(abs_file_dir, "intent_examples", "examples.json")
+intent_example_path = os.path.join(
+    abs_file_dir, "intent_examples", "examples.json")
 
 
 class LangchainOpenSearchClient:
@@ -120,10 +121,12 @@ class IntentRecognitionAOSIndex:
         return index_name
 
     def check_index_exist(self):
-        if_exist = self.opensearch_client.client.indices.exists(self.index_name)
+        if_exist = self.opensearch_client.client.indices.exists(
+            self.index_name)
         count = 0
         if if_exist:
-            count = self.opensearch_client.client.count(index=self.index_name)["count"]
+            count = self.opensearch_client.client.count(
+                index=self.index_name)["count"]
         if_exist = count > 0
         logger.info(f"{self.index_name} exist: {if_exist}, count: {count}")
         return if_exist
@@ -133,7 +136,8 @@ class IntentRecognitionAOSIndex:
         intent_examples = json.load(open(intent_example_path))["examples"]
         for intent_name, examples in intent_examples.items():
             for example in examples:
-                doc = Document(page_content=example, metadata={"intent": intent_name})
+                doc = Document(page_content=example, metadata={
+                               "intent": intent_name})
                 docs.append(doc)
         logger.info(
             f"ingestion intent doc, num: {len(docs)}, index_name: {self.index_name}"
@@ -158,7 +162,7 @@ class IntentRecognitionAOSIndex:
         logger.info(f"intent index search results:\n{ret}")
 
         return ret
-    
+
     @staticmethod
     def intent_postprocess_top_1(retriever_list: list[dict]):
         retriever_list = sorted(retriever_list, key=lambda x: x["score"])

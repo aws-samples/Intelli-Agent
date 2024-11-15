@@ -2,14 +2,15 @@ import json
 import pathlib
 import os
 
-from common_logic.common_utils.logger_utils  import get_logger
-from common_logic.common_utils.lambda_invoke_utils import chatbot_lambda_call_wrapper,invoke_lambda
+from common_logic.common_utils.logger_utils import get_logger
+from common_logic.common_utils.lambda_invoke_utils import chatbot_lambda_call_wrapper, invoke_lambda
 from common_logic.langchain_integration.retrievers.retriever import lambda_handler as retrieve_fn
 
 logger = get_logger("intention")
 kb_enabled = os.environ["KNOWLEDGE_BASE_ENABLED"].lower() == "true"
 kb_type = json.loads(os.environ["KNOWLEDGE_BASE_TYPE"])
-intelli_agent_kb_enabled = kb_type.get("intelliAgentKb", {}).get("enabled", False)
+intelli_agent_kb_enabled = kb_type.get(
+    "intelliAgentKb", {}).get("enabled", False)
 
 
 def get_intention_results(query: str, intention_config: dict):
@@ -65,7 +66,7 @@ def get_intention_results(query: str, intention_config: dict):
         #         "name": answer.get("intent","chat"),
         #         "intent": answer.get("intent","chat"),
         #         "kwargs": answer.get("kwargs", {}),
-        #     })       
+        #     })
     else:
         intent_fewshot_examples = []
         for doc in res["result"]["docs"]:
@@ -82,21 +83,21 @@ def get_intention_results(query: str, intention_config: dict):
                     "kwargs": doc.get("kwargs", {}),
                 }
                 intent_fewshot_examples.append(doc_item)
-        
+
     return intent_fewshot_examples, True
 
 
 @chatbot_lambda_call_wrapper
-def lambda_handler(state:dict, context=None):
-    intention_config = state["chatbot_config"].get("intention_config",{})
-    query_key = intention_config.get("retriever_config",{}).get("query_key","query")
+def lambda_handler(state: dict, context=None):
+    intention_config = state["chatbot_config"].get("intention_config", {})
+    query_key = intention_config.get(
+        "retriever_config", {}).get("query_key", "query")
     query = state[query_key]
 
-    output:list = get_intention_results(
-            query,
-            {
-                **intention_config,
-            }
-        )
+    output: list = get_intention_results(
+        query,
+        {
+            **intention_config,
+        }
+    )
     return output
-

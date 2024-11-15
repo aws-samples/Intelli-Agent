@@ -20,6 +20,7 @@ MKT_CONVERSATION_SUMMARY_TYPE = LLMTaskType.MKT_CONVERSATION_SUMMARY_TYPE
 
 CHIT_CHAT_SYSTEM_TEMPLATE = """You are a helpful AI Assistant"""
 
+
 class Internlm2Chat7BMKTConversationSummaryChain(Internlm2Chat7BChatChain):
     model_id = LLMModelType.INTERNLM2_CHAT_7B
     intent_type = MKT_CONVERSATION_SUMMARY_TYPE
@@ -39,7 +40,8 @@ class Internlm2Chat7BMKTConversationSummaryChain(Internlm2Chat7BChatChain):
             assert chat_history[i].type == HUMAN_MESSAGE_TYPE, chat_history
             assert chat_history[i + 1].type == AI_MESSAGE_TYPE, chat_history
             questions.append(chat_history[i].content)
-            history.append((chat_history[i].content, chat_history[i + 1].content))
+            history.append(
+                (chat_history[i].content, chat_history[i + 1].content))
 
         questions_str = ""
         for i, question in enumerate(questions):
@@ -70,7 +72,8 @@ class Internlm2Chat7BMKTConversationSummaryChain(Internlm2Chat7BChatChain):
         stream = kwargs.get("stream", False)
         llm_chain = super().create_chain(model_kwargs=model_kwargs, **kwargs)
         chain = (
-            RunnablePassthrough.assign(prompt_dict=lambda x: cls._create_prompt(x))
+            RunnablePassthrough.assign(
+                prompt_dict=lambda x: cls._create_prompt(x))
             | RunnablePassthrough.assign(
                 prompt=lambda x: x["prompt_dict"]["prompt"],
                 prefix=lambda x: x["prompt_dict"]["prefix"],
@@ -78,9 +81,11 @@ class Internlm2Chat7BMKTConversationSummaryChain(Internlm2Chat7BChatChain):
             | RunnablePassthrough.assign(llm_output=llm_chain)
         )
         if stream:
-            chain = chain | RunnableLambda(lambda x: cls.stream_postprocess_fn(x))
+            chain = chain | RunnableLambda(
+                lambda x: cls.stream_postprocess_fn(x))
         else:
-            chain = chain | RunnableLambda(lambda x: x["prefix"] + x["llm_output"])
+            chain = chain | RunnableLambda(
+                lambda x: x["prefix"] + x["llm_output"])
         return chain
 
 
@@ -94,7 +99,8 @@ class Claude2MKTConversationSummaryChain(Claude2ChatChain):
     model_id = LLMModelType.CLAUDE_2
     intent_type = MKT_CONVERSATION_SUMMARY_TYPE
 
-    default_model_kwargs = {"max_tokens": 2000, "temperature": 0.1, "top_p": 0.9}
+    default_model_kwargs = {"max_tokens": 2000,
+                            "temperature": 0.1, "top_p": 0.9}
 
     @classmethod
     def create_chain(cls, model_kwargs=None, **kwargs):

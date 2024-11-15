@@ -5,9 +5,11 @@ from . import Model
 
 logger = get_logger("openai_model")
 
+
 class ChatGPT35(Model):
     model_id = LLMModelType.CHATGPT_35_TURBO_0125
-    default_model_kwargs = {"max_tokens": 2000, "temperature": 0.7, "top_p": 0.9}
+    default_model_kwargs = {"max_tokens": 2000,
+                            "temperature": 0.7, "top_p": 0.9}
 
     @classmethod
     def create_model(cls, model_kwargs=None, **kwargs):
