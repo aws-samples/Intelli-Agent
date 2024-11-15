@@ -13,7 +13,7 @@ intelli_agent_kb_enabled = kb_type.get(
     "intelliAgentKb", {}).get("enabled", False)
 
 
-def get_intention_results(query: str, intention_config: dict):
+def get_intention_results(query: str, intention_config: dict,intent_threshold:float):
     """get intention few shots results according embedding similarity
 
     Args:
@@ -41,40 +41,13 @@ def get_intention_results(query: str, intention_config: dict):
     if not res["result"]["docs"]:
         # Return to guide the user to add intentions
         return [], False
-
-        # # add default intention
-        # current_path = pathlib.Path(__file__).parent.resolve()
-        # try:
-        #     with open(f"{current_path}/intention_utils/default_intent.jsonl", "r") as json_file:
-        #         json_list = list(json_file)
-        # except FileNotFoundError:
-        #     logger.error(f"File note found: {current_path}/intention_utils/default_intent.jsonl")
-        #     json_list = []
-
-        # intent_fewshot_examples = []
-        # for json_str in json_list:
-        #     try:
-        #         intent_result = json.loads(json_str)
-        #     except json.JSONDecodeError as e:
-        #         logger.error(f"Error decoding JSON: {e}")
-        #         intent_result = {}
-        #     question = intent_result.get("question","你好")
-        #     answer = intent_result.get("answer",{})
-        #     intent_fewshot_examples.append({
-        #         "query": question,
-        #         "score": "n/a",
-        #         "name": answer.get("intent","chat"),
-        #         "intent": answer.get("intent","chat"),
-        #         "kwargs": answer.get("kwargs", {}),
-        #     })
     else:
         intent_fewshot_examples = []
         for doc in res["result"]["docs"]:
-            threshold_score = 0.4
-            if "titan-embed-text-v1" in intention_config["retrievers"][0]["target_model"]:
-                # Titan v1 threshold is 0.001, Titan v2 threshold is 0.4
-                threshold_score = 0.001
-            if doc["score"] > threshold_score:
+            # if "titan-embed-text-v1" in intention_config["retrievers"][0]["target_model"]:
+            #     # Titan v1 threshold is 0.001, Titan v2 threshold is 0.4
+            #     threshold_score = 0.001
+            if doc["score"] > intent_threshold:
                 doc_item = {
                     "query": doc["page_content"],
                     "score": doc["score"],

@@ -165,7 +165,9 @@ def intention_detection(state: ChatbotState):
     output = retrieve_fn(retriever_params)
     context_list = []
     qq_match_contexts = []
-    qq_match_threshold = retriever_params["threshold"]
+    qq_match_threshold = retriever_params["qq_match_threshold"]
+    qq_in_rag_context_threshold = retriever_params["qq_in_rag_context_threshold"]
+
     for doc in output["result"]["docs"]:
         if doc["retrieval_score"] > qq_match_threshold:
             doc_md = format_qq_data(doc)
@@ -182,7 +184,7 @@ def intention_detection(state: ChatbotState):
                 "intent_type": "similar query found",
             }
 
-        if doc["retrieval_score"] > Threshold.QQ_IN_RAG_CONTEXT:
+        if doc["retrieval_score"] > qq_in_rag_context_threshold:
             question = doc["question"]
             answer = doc["answer"]
             context_list.append(f"问题: {question}, \n答案：{answer}")
@@ -196,11 +198,15 @@ def intention_detection(state: ChatbotState):
     query_key = intention_config.get(
         "retriever_config", {}).get("query_key", "query")
     query = state[query_key]
+    intent_threshold = intention_config['intent_threshold']
+    all_knowledge_in_agent_threshold = intention_config['all_knowledge_in_agent_threshold']
     intent_fewshot_examples, intention_ready = get_intention_results(
         query,
         {
             **intention_config,
-        }
+        },
+        intent_threshold=intent_threshold
+
     )
 
     intent_fewshot_tools: list[str] = list(
@@ -222,13 +228,12 @@ def intention_detection(state: ChatbotState):
             retriever_params.get("retriever_config", {}).get(
                 "query_key", "query")
         ]
-        threshold = Threshold.INTENTION_ALL_KNOWLEDGE_RETRIEVAL
         output = retrieve_fn(retriever_params)
 
         info_to_log = []
         all_knowledge_retrieved_list = []
         for doc in output["result"]["docs"]:
-            if doc['score'] >= threshold:
+            if doc['score'] >= all_knowledge_in_agent_threshold:
                 all_knowledge_retrieved_list.append(doc["page_content"])
             info_to_log.append(
                 f"score: {doc['score']}, page_content: {doc['page_content'][:200]}")
@@ -239,10 +244,6 @@ def intention_detection(state: ChatbotState):
             state["ws_connection_id"],
             state["enable_trace"],
         )
-    # elif not intention_ready and custom_qd_index:
-    #     intent_fewshot_examples = []
-    #     intent_fewshot_tools: list[str] = []
-    # else:
     send_trace(
         f"{markdown_table}",
         state["stream"],

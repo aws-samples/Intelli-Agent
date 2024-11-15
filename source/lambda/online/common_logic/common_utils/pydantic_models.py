@@ -10,11 +10,13 @@ from common_logic.common_utils.constant import (
     IndexType,
     LLMModelType,
     SceneType,
+    Threshold
 )
 
 from common_logic.common_utils.logger_utils import get_logger
 from common_logic.common_utils.python_utils import update_nest_dict
 from pydantic import BaseModel, ConfigDict, Field
+
 
 logger = get_logger("pydantic_models")
 
@@ -69,7 +71,9 @@ class PrivateKnowledgeRetrieverConfig(RetrieverConfigBase):
 
 class IntentionConfig(ForbidBaseModel):
     retrievers: list[IntentionRetrieverConfig] = Field(default_factory=list)
-
+    intent_threshold: float = Threshold.INTENTION_THRESHOLD
+    all_knowledge_in_agent_threshold: float = Threshold.ALL_KNOWLEDGE_IN_AGENT_THRESHOLD
+    
 
 class RerankConfig(AllowBaseModel):
     endpoint_name: str = None
@@ -79,7 +83,8 @@ class RerankConfig(AllowBaseModel):
 class QQMatchConfig(ForbidBaseModel):
     retrievers: list[QQMatchRetrieverConfig] = Field(default_factory=list)
     reranks: list[RerankConfig] = Field(default_factory=list)
-    threshold: float = 0.9
+    qq_match_threshold: float = 0.9
+    qq_in_rag_context_threshold: float = Threshold.QQ_IN_RAG_CONTEXT_THRESHOLD
 
 
 class RagToolConfig(AllowBaseModel):

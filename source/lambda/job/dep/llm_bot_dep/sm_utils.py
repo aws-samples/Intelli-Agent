@@ -438,6 +438,7 @@ def getCustomEmbeddings(endpoint_name: str, region_name: str, model_type: str) -
             client=bedrock_client,
             region_name=region_name,
             model_id=endpoint_name,
+            normalize=True
         )
     elif model_type == "bce":
         content_handler = vectorContentHandler()

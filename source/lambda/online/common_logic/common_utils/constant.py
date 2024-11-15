@@ -185,5 +185,7 @@ INDEX_DESC = "Answer question based on search result"
 
 
 class Threshold(ConstantBase):
-    QQ_IN_RAG_CONTEXT = 0.5
-    INTENTION_ALL_KNOWLEDGE_RETRIEVAL = 0.4
+    QQ_IN_RAG_CONTEXT_THRESHOLD = 0.5
+    QQ_MATCH_THRESHOLD = 0.9
+    ALL_KNOWLEDGE_IN_AGENT_THRESHOLD = 0.4 # This threhold will work when there are no intention examples.
+    INTENTION_THRESHOLD = 0.4
