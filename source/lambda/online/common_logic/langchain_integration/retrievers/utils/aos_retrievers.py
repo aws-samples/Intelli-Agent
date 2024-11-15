@@ -72,7 +72,11 @@ def get_similarity_embedding(
     model_type: str = "vector",
 ) -> List[List[float]]:
     if model_type.lower() == "bedrock":
-        embeddings = BedrockEmbeddings(model_id=embedding_model_endpoint, region_name=bedrock_region)
+        embeddings = BedrockEmbeddings(
+            model_id=embedding_model_endpoint,
+            region_name=bedrock_region,
+            normalize=True
+        )
         response = embeddings.embed_query(query)
     else:
         query_similarity_embedding_prompt = query

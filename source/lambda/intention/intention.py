@@ -495,7 +495,8 @@ def __append_embeddings(index, modelId, qaList: list):
         question = item["question"]
         embedding_func = BedrockEmbeddings(
             client=bedrock_client,
-            model_id=modelId
+            model_id=modelId,
+            normalize=True
         )
 
         embeddings_vectors = embedding_func.embed_documents(
