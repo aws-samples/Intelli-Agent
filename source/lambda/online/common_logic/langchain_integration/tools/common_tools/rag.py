@@ -1,4 +1,4 @@
-from common_logic.common_utils.lambda_invoke_utils import invoke_lambda, StateContext
+from common_logic.common_utils.lambda_invoke_utils import StateContext
 from common_logic.common_utils.prompt_utils import get_prompt_templates_from_ddb
 from common_logic.common_utils.constant import (
     LLMTaskType
@@ -6,7 +6,7 @@ from common_logic.common_utils.constant import (
 from common_logic.common_utils.lambda_invoke_utils import send_trace
 from common_logic.langchain_integration.retrievers.retriever import lambda_handler as retrieve_fn
 from common_logic.langchain_integration.chains import LLMChain
-import threading
+from common_logic.common_utils.monitor_utils import format_rag_data
 
 
 def rag_tool(retriever_config: dict, query=None):
@@ -30,8 +30,11 @@ def rag_tool(retriever_config: dict, query=None):
     unique_figure_list = [dict(t) for t in unique_set]
     state['extra_response']['figures'] = unique_figure_list
 
+    context_md = format_rag_data(output["result"]["docs"], state["qq_match_contexts"])
     send_trace(
-        f"\n\n**rag-contexts:**\n\n {context_list}", enable_trace=state["enable_trace"])
+        f"\n\n{context_md}\n\n", enable_trace=state["enable_trace"])
+    # send_trace(
+    #     f"\n\n**rag-contexts:**\n\n {context_list}", enable_trace=state["enable_trace"])
 
     group_name = state['chatbot_config']['group_name']
     llm_config = state["chatbot_config"]["private_knowledge_config"]['llm_config']
