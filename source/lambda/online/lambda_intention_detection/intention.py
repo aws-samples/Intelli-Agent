@@ -13,7 +13,7 @@ intelli_agent_kb_enabled = kb_type.get(
     "intelliAgentKb", {}).get("enabled", False)
 
 
-def get_intention_results(query: str, intention_config: dict,intent_threshold:float):
+def get_intention_results(query: str, intention_config: dict, intent_threshold: float):
     """get intention few shots results according embedding similarity
 
     Args:

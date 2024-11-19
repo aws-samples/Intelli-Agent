@@ -537,8 +537,8 @@ class QueryDocumentKNNRetriever(BaseRetriever):
     async def __ainvoke_get_context(self, aos_hit, window_size, loop):
         return await loop.run_in_executor(
             None, get_context, aos_hit, self.index_name, window_size
-        )
 
+        )
     async def __spawn_task(self, aos_hits, context_size):
         loop = asyncio.get_event_loop()
         task_list = []
