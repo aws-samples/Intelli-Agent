@@ -191,7 +191,10 @@ def intention_detection(state: ChatbotState):
             qq_match_contexts.append(doc)
 
     if state["chatbot_config"]["agent_config"]["only_use_rag_tool"]:
-        return {"qq_match_results": context_list, "intent_type": "intention detected"}
+        return {
+            "qq_match_results": context_list,
+            "intent_type": "intention detected"
+        }
 
     # get intention results from aos
     intention_config = state["chatbot_config"].get("intention_config", {})
@@ -206,7 +209,6 @@ def intention_detection(state: ChatbotState):
             **intention_config,
         },
         intent_threshold=intent_threshold
-
     )
 
     intent_fewshot_tools: list[str] = list(

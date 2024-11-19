@@ -47,6 +47,7 @@ def retriever_results_format(
         doc_dicts.append(
             {
                 "page_content": doc.page_content,
+                "retrieval_content": doc.metadata["retrieval_content"],
                 "retrieval_score": doc.metadata["retrieval_score"],
                 "rerank_score": doc.metadata["score"],
                 "score": doc.metadata["score"],
