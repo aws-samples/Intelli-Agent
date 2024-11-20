@@ -16,7 +16,8 @@ logger = get_logger("parse_config")
 
 class ConfigParserBase:
     default_llm_config_str = "{'model_id': 'anthropic.claude-3-sonnet-20240229-v1:0', 'model_kwargs': {'temperature': 0.01, 'max_tokens': 4096}}"
-    default_index_names = {"intention": [], "private_knowledge": [], "qq_match": []}
+    default_index_names = {"intention": [],
+                           "private_knowledge": [], "qq_match": []}
     default_retriever_config = {
         "intention": {"top_k": 5, "query_key": "query"},
         "private_knowledge": {
@@ -60,13 +61,15 @@ class ConfigParserBase:
         chatbot_config = copy.deepcopy(chatbot_config)
         default_llm_config = cls.parse_default_llm_config(chatbot_config)
         default_index_names = cls.parse_default_index_names(chatbot_config)
-        default_retriever_config = cls.parse_default_retriever_config(chatbot_config)
+        default_retriever_config = cls.parse_default_retriever_config(
+            chatbot_config)
 
         group_name = chatbot_config["group_name"]
         chatbot_id = chatbot_config["chatbot_id"]
 
         # init chatbot config
-        chatbot_config_obj = ChatbotConfig(group_name=group_name, chatbot_id=chatbot_id)
+        chatbot_config_obj = ChatbotConfig(
+            group_name=group_name, chatbot_id=chatbot_id)
         # init default llm
         chatbot_config_obj.update_llm_config(default_llm_config)
 

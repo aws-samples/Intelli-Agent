@@ -17,6 +17,7 @@ from common_logic.common_utils.websocket_utils import load_ws_client
 from lambda_main.main_utils.online_entries import get_entry
 from common_logic.common_utils.response_utils import process_response
 
+
 logger = get_logger("main")
 
 sessions_table_name = os.environ.get("SESSIONS_TABLE_NAME", "")
@@ -368,9 +369,11 @@ def lambda_handler(event_body: dict, context: dict):
             return default_event_handler(event_body, context, entry_executor)
     except Exception as e:
         error_response = {"answer": str(e), "extra_response": {}}
-        enable_trace = event_body.get("chatbot_config", {}).get("enable_trace", True)
+        enable_trace = event_body.get(
+            "chatbot_config", {}).get("enable_trace", True)
         error_trace = f"\n### Error trace\n\n{traceback.format_exc()}\n\n"
+        load_ws_client(websocket_url)
         send_trace(error_trace, enable_trace=enable_trace)
         process_response(event_body, error_response)
-        logger.error(f"An error occurred: {str(e)}\n{error_trace}")
+        logger.error(f"{traceback.format_exc()}\nAn error occurred: {str(e)}")
         return {"error": str(e)}

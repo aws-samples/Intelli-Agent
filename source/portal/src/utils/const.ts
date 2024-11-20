@@ -24,13 +24,16 @@ export const LIBRARY_DEFAULT_PREFIX = 'documents';
 export const LLM_BOT_MODEL_LIST = [
   'anthropic.claude-3-sonnet-20240229-v1:0',
   'anthropic.claude-3-haiku-20240307-v1:0',
-  // 'anthropic.claude-3-5-sonnet-20240620-v1:0',
 ];
 
 export const LLM_BOT_COMMON_MODEL_LIST = [
   'anthropic.claude-3-sonnet-20240229-v1:0',
   'anthropic.claude-3-haiku-20240307-v1:0',
-  // 'anthropic.claude-3-5-sonnet-20240620-v1:0',
+  'anthropic.claude-3-5-sonnet-20241022-v2:0',
+  'anthropic.claude-3-5-haiku-20241022-v1:0',
+  'meta.llama3-1-70b-instruct-v1:0',
+  'mistral.mistral-large-2407-v1:0',
+  'cohere.command-r-plus-v1:0',
 ];
 
 export const LLM_BOT_RETAIL_MODEL_LIST = [

@@ -139,16 +139,111 @@ def test_multi_turns_agent_pr():
         },
     ]
 
-    # default_index_names = {
-    #     "intention":["pr_test-intention-default"],
-    #     "qq_match": [],
-    #     "private_knowledge": ['pr_test-qd-sso_poc']
-    # }
     default_index_names = {
         "intention":[],
         "qq_match": [],
         "private_knowledge": []
     }
+    # user_queries = [{
+    #         "query": "今天天气怎么样",
+    #         "use_history": True,
+    #         "enable_trace": False
+    #     }]
+    # user_queries = [{
+    #         # "query": "199乘以98等于多少",
+    #         "query": "1234乘以89878等于多少？",
+    #         "use_history": True,
+    #         "enable_trace": True
+    #     }]
+    # user_queries = [{
+    #         "query": "199乘以98等于多少",
+    #         # "query": "介绍一下MemGPT",
+    #         "use_history": True,
+    #         "enable_trace": True
+    #     }]
+    user_queries = [
+        {
+            # "query": "”我爱北京天安门“包含多少个字符?",
+            # "query": "What does 245346356356 times 346357457 equal?",  # 1089836033535
+            # "query": "9.11和9.9哪个更大？",  # 1089836033535
+            # "query": "what happened in the history of Morgan Stanley in Emerging market in 1989 ?",  
+            "query": "Tell me the team members of Morgan Stanley in China",  
+            # "query": "今天天气如何？", 
+            # "query": "介绍一下MemGPT",
+            "use_history": True,
+            "enable_trace": True
+        },
+        # {
+        #     # "query": "”我爱北京天安门“包含多少个字符?",
+        #     # "query": "11133乘以97892395等于多少",  # 1089836033535
+        #     "query": "我在上海", 
+        #     # "query": "介绍一下MemGPT",
+        #     "use_history": True,
+        #     "enable_trace": True
+        # },
+        ]
+
+    # default_index_names = {
+    #     "intention":[],
+    #     "qq_match": [],
+    #     "private_knowledge": []
+    # }
+    default_llm_config = {
+        # "model_id":'anthropic.claude-3-sonnet-20240229-v1:0',
+        # 'model_id': "anthropic.claude-3-5-sonnet-20240620-v1:0",
+        # 'model_id': "anthropic.claude-3-5-haiku-20241022-v1:0",
+        # 'model_id': "us.meta.llama3-2-90b-instruct-v1:0",
+        'model_id': "anthropic.claude-3-5-sonnet-20241022-v2:0",
+        # 'model_id': "meta.llama3-1-70b-instruct-v1:0",
+        # 'model_id':"mistral.mistral-large-2407-v1:0",
+        # 'model_id':"cohere.command-r-plus-v1:0",
+        'model_kwargs': {
+            'temperature': 0.01,
+            'max_tokens': 4096
+        }
+    }
+    # agent_config={"tools":["python_repl"]}
+    agent_config = {}
+    agent_config={
+        "tools":[
+            {
+            "lambda_name":"intelli-agent-lambda-tool-example1",
+            "name": "count_char",
+            "description": "Count the number of chars contained in a sentence.",
+            "properties": {
+                "phrase": {
+                    "type": "string",
+                    "description": "The phrase needs to count chars"
+                }
+            },
+            "required": ["phrase"],
+            "return_direct":False
+            },
+            "python_repl"
+        ]
+    }
+
+
+# {
+#     "agent_config":{
+#         "tools":[
+#             {
+#             "lambda_name":"intelli-agent-lambda-tool-example1",
+#             "name": "count_char",
+#             "description": "Count the number of chars contained in a sentence.",
+#             "properties": {
+#                 "phrase": {
+#                     "type": "string",
+#                     "description": "The phrase needs to count chars"
+#                 }
+#             },
+#             "required": ["phrase"],
+#             "return_direct":False
+#             },
+#             "python_repl"
+#         ]
+#     }
+# }
 
     for query in user_queries:
         print("==" * 50)
@@ -158,12 +253,14 @@ def test_multi_turns_agent_pr():
              session_id=session_id,
              query=query['query'],
              use_history=query['use_history'],
-             chatbot_id="pr_test",
-             group_name='pr_test',
+             chatbot_id="admin",
+             group_name='Admin',
              only_use_rag_tool=False,
              default_index_names=default_index_names,
-             enable_trace = query.get('enable_trace',True)
-             )
+             enable_trace = query.get('enable_trace',True),
+             agent_config=agent_config,
+             default_llm_config=default_llm_config
+        )
         print()
 
 
@@ -200,17 +297,13 @@ def test_qq_case_from_hanxu():
 
 
 
-
-
 def complete_test_pr():
     print("start test in agent mode")
     test_multi_turns_agent_pr()
     print("finish test in agent mode")
-
     print("start test in rag mode")
     test_multi_turns_rag_pr()
     print("finish test in rag mode")
-
     print("start test in chat mode")
     test_multi_turns_chat_pr()
     # print(srg)
@@ -409,10 +502,10 @@ def anta_test():
 if __name__ == "__main__":
     # complete_test_pr()
     # test_multi_turns_rag_pr()
-    # test_multi_turns_agent_pr()
+    test_multi_turns_agent_pr()
     # test_qq_case_from_hanxu()
     # test_multi_turns_chat_pr()
     # bigo_test()
     # sso_batch_test()
     # anta_test()
-    bigo_test()
+    # bigo_test()

@@ -3,18 +3,23 @@ import functools
 import importlib
 import json
 import time
+import os
 from typing import Any, Dict, Optional, Callable, Union
+import threading
 
 import requests
 from common_logic.common_utils.constant import StreamMessageType
 from common_logic.common_utils.logger_utils import get_logger
 from common_logic.common_utils.websocket_utils import is_websocket_request, send_to_ws_client
-from langchain.pydantic_v1 import BaseModel, Field, root_validator
+from pydantic import BaseModel, Field, model_validator
+
 
 from .exceptions import LambdaInvokeError
 
 logger = get_logger("lambda_invoke_utils")
-
+# thread_local = threading.local()
+thread_local = threading.local()
+CURRENT_STATE = None
 
 __FUNC_NAME_MAP = {
     "query_preprocess": "Preprocess for Multi-round Conversation",
@@ -25,6 +30,38 @@ __FUNC_NAME_MAP = {
     "tool_execution": "Final Tool Result",
     "llm_direct_results_generation": "LLM Response"
 }
+
+
+class StateContext:
+
+    def __init__(self, state):
+        self.state = state
+
+    @classmethod
+    def get_current_state(cls):
+        # print("thread id",threading.get_ident(),'parent id',threading.)
+        # state = getattr(thread_local,'state',None)
+        state = CURRENT_STATE
+        assert state is not None, "There is not a valid state in current context"
+        return state
+
+    @classmethod
+    def set_current_state(cls, state):
+        global CURRENT_STATE
+        assert CURRENT_STATE is None, "Parallel node executions are not alowed"
+        CURRENT_STATE = state
+
+    @classmethod
+    def clear_state(cls):
+        global CURRENT_STATE
+        CURRENT_STATE = None
+
+    def __enter__(self):
+        self.set_current_state(self.state)
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.clear_state()
+
 
 class LAMBDA_INVOKE_MODE(enum.Enum):
     LAMBDA = "lambda"
@@ -55,26 +92,25 @@ class LambdaInvoker(BaseModel):
     region_name: str = None
     credentials_profile_name: Optional[str] = Field(default=None, exclude=True)
 
-    @root_validator()
+    @model_validator(mode="before")
     def validate_environment(cls, values: Dict):
         if values.get("client") is not None:
             return values
         try:
             import boto3
-
             try:
-                if values["credentials_profile_name"] is not None:
+                if values.get("credentials_profile_name") is not None:
                     session = boto3.Session(
                         profile_name=values["credentials_profile_name"]
                     )
                 else:
                     # use default credentials
                     session = boto3.Session()
-
                 values["client"] = session.client(
-                    "lambda", region_name=values["region_name"]
+                    "lambda",
+                    region_name=values.get(
+                        "region_name", os.environ['AWS_REGION'])
                 )
-
             except Exception as e:
                 raise ValueError(
                     "Could not load credentials to authenticate with AWS client. "
@@ -97,8 +133,9 @@ class LambdaInvoker(BaseModel):
         )
         response_body = invoke_response["Payload"]
         response_str = response_body.read().decode()
-
         response_body = json.loads(response_str)
+        if "body" in response_body:
+            response_body = json.loads(response_body['body'])
 
         if "errorType" in response_body:
             error = (
@@ -108,7 +145,6 @@ class LambdaInvoker(BaseModel):
                 + f"{response_body['errorType']}: {response_body['errorMessage']}"
             )
             raise LambdaInvokeError(error)
-
         return response_body
 
     def invoke_with_local(
@@ -285,13 +321,17 @@ def node_monitor_wrapper(fn: Optional[Callable[..., Any]] = None, *, monitor_key
                        current_stream_use, ws_connection_id, enable_trace)
             state['trace_infos'].append(
                 f"Enter: {func.__name__}, time: {time.time()}")
-            output = func(state)
+
+            with StateContext(state):
+                output = func(state)
+
             current_monitor_infos = output.get(monitor_key, None)
             if current_monitor_infos is not None:
                 send_trace(f"\n\n {current_monitor_infos}",
                            current_stream_use, ws_connection_id, enable_trace)
             exit_time = time.time()
-            state['trace_infos'].append(f"Exit: {func.__name__}, time: {time.time()}")
+            state['trace_infos'].append(
+                f"Exit: {func.__name__}, time: {time.time()}")
             send_trace(f"\n\n Elapsed time: {round((exit_time-enter_time)*100)/100} s",
                        current_stream_use, ws_connection_id, enable_trace)
             return output

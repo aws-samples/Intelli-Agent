@@ -13,7 +13,7 @@ import time
 from typing import Any
 import common_logic.common_utils.websocket_utils as websocket_utils
 from common_logic.common_utils.constant import LLMTaskType
-from langchain_core.pydantic_v1 import BaseModel, Field, validator
+from pydantic import BaseModel, Field
 
 class DummyWebSocket:
     def post_to_connection(self,ConnectionId,Data):

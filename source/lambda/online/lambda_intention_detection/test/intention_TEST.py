@@ -1,26 +1,25 @@
-import dotenv
-import sys 
-dotenv.load_dotenv()
-sys.path.extend([".",'common_logic'])
-
 from common_logic.common_utils.lambda_invoke_utils import invoke_lambda
+import dotenv
+import sys
+dotenv.load_dotenv()
+sys.path.extend([".", 'common_logic'])
 
 
 def test(lambda_invoke_mode="local"):
     event_body = {
         "query": "hi",
-        "chatbot_config":{
-            "intention_config":{
+        "chatbot_config": {
+            "intention_config": {
                 "retrievers": [
-                        {
-                            "type": "qq",
-                            "index_ids": ["yb_intent"],
-                            "config": {
+                    {
+                        "type": "qq",
+                        "index_ids": ["yb_intent"],
+                        "config": {
                                 "top_k": 10,
-                            }
-                        },
-                    ]
-            } 
+                        }
+                    },
+                ]
+            }
         }
     }
     r = invoke_lambda(
@@ -29,8 +28,9 @@ def test(lambda_invoke_mode="local"):
         lambda_name="Online_Intention_Detection",
         handler_name="lambda_handler",
         event_body=event_body
-        )
+    )
     print(r)
+
 
 if __name__ == "__main__":
     test(lambda_invoke_mode='local')
