@@ -248,3 +248,22 @@ export interface SelectedOption {
   value: string;
   label: string;
 }
+
+import { SideNavigationProps } from "@cloudscape-design/components";
+
+// Extend the Link type to include id
+export interface CustomLink extends SideNavigationProps.Link {
+  id?: string;
+  itemID?: string;
+  className?: string;
+}
+
+// Extend the Section type to include id
+export interface CustomSection extends SideNavigationProps.Section {
+  id?: string;
+  'data-testid'?: string;
+}
+
+// Create a union type for all navigation items
+export type CustomNavigationItem = CustomLink | CustomSection | SideNavigationProps.Divider;
+
