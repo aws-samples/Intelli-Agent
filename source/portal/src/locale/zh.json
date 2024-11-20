@@ -1,6 +1,7 @@
 {
   "translation": {
     "name": "AI Customer Service",
+    "desc": "描述",
     "welcome": "欢迎使用 AI Customer Service",
     "you": "你",
     "welcomeMessage": "您好，我今天有什么可以帮助您？",
@@ -43,6 +44,7 @@
     "prefix": "前缀",
     "offline": "离线",
     "indexType": "索引类型",
+    "indexTypeDesc":"请选择合适的索引类型",
     "status": "状态",
     "createTime": "创建时间",
     "latestQuestion": "最新问题",
@@ -75,7 +77,10 @@
     "modelName": "模型名称",
     "noModelFound": "未找到模型",
     "chatbotName": "机器人名称",
+    "embeddingModel": "向量化模型名",
     "noChatbotFound": "未找到机器人",
+    "embeddingModelName":"向量化模型",
+    "embeddingModelDesc": "用于此机器人的向量化操作",
     "scenario": "场景",
     "maxTokens": "最大 Token 数",
     "temperature": "温度",
@@ -88,6 +93,7 @@
     "type": "类型",
     "update": "更新",
     "updating": "更新中",
+    "updated": "更新完成，即将跳转到列表页...",
     "updateBy": "更新者",
     "updateTime": "更新时间",
     "promptCreateTips": "新的提示将覆盖当前提示词，您确定要继续吗？",
@@ -101,6 +107,7 @@
     "onlyUseRAGTool": "只使用 RAG 工具",
     "additionalSettings": "附加设置",
     "indexName": "索引名称",
+    "indexNameDesc": "不能和现有的索引名称重复",
     "tag": "标签",
     "optional": "可选",
     "intention": "意图",
@@ -112,6 +119,7 @@
     "downloadTemplate":"下载模板",
     "chatbotNamePlaceholder": "请输入聊天机器人名称",
     "indexPlaceholder": "请输入相应索引名称",
+    "indexPlaceholderDesc": "请输入索引描述",
     "toAvoidTips": "为避免意外删除，我们要求您提供额外的书面同意。",
     "typeConfirm": "输入 “确认” 即表示同意",
     "confirmDelete": "请确认删除",
@@ -120,6 +128,20 @@
     "deleteAlert": "此操作将无法恢复，请谨慎操作",
     "deleteIntentionFailed": "下列数据因为被其他索引使用，删除失败",
     "deleteIntentionTitle": "删除意图注入",
+    "indexList":"索引列表",
+    "indexListDesc":"本机器人所有的索引一览",
+    "addIndex": "添加新的索引",
+    "addIndexDesc":"添加索引给机器人: ",
+    "indexDescription": "简要描述一下索引功能",
+    "defaultIndexDesc": "基于搜索结果回答问题",
+    "remove": "移除",
+    "addNewIndex": "添加新的索引",
+    "chatbotNameDesc": "机器人空间的唯一标识，不能与现有的重复",
+    "modelDesc": "机器人空间用于文本向量化的模型",
+    "indexManagement": "索引管理",
+    "indexLeft": "尚未配置索引，点击",
+    "indexUsedByModel":"该索引已经关联了其他的向量化模型",
+    "indexRight":"添加索引.",
     "button": {
       "login": "登录到 AWS 大语言模型机器人",
       "reload": "重新加载",
@@ -139,7 +161,9 @@
       "edit": "编辑",
       "save": "保存",
       "action": "操作",
-      "startToChat": "开始聊天"
+      "startToChat": "开始聊天",
+      "discardChanges": "放弃更改",
+      "saveChanges": "保存更改"
     },
     "header": {
       "reSignIn": "请重新登录",
@@ -149,7 +173,7 @@
       "requireModel": "请选择或输入一个模型",
       "requireChatbotName": "请输入机器人名称",
       "repeatChatbotName": "该名称已经被使用，请更换新的名称",
-      "repeatIndex": "该索引名称已经被使用，请更换新的索引名称",
+      "repeatIndex": "该索引名称已经被其他用户使用",
       "requireChatbot": "请选择一个机器人",
       "requireTemperature": "请输入模型发散度",
       "requireMaxTokens": "请输入一个最大 token 数",
@@ -164,7 +188,7 @@
       "indexNameEmpty": "索引名称不能为空",
       "tagEmpty": "标签不能为空",
       "indexValid": "索引已经被其他模型使用，请变更索引名称",
-      "defaultIndexValid": "该默认索引已经被其他模型使用，请自定义索引名称"
+      "repeatedIndex": "索引名称和现有索引重复，请更换名称"
     },
     "solutionName": "AI Customer Service",
     "subTitle": "构建基于代理的应用程序的优化工作流",
@@ -172,6 +196,7 @@
     "awsSolutionGuidance": "Amazon Web Services 解决方案指南",
     "mead": "媒体与广告",
     "homeSidebar": "首页",
+    "chatbotDetail": "机器人详情",
     "featuresAndBenefits": {
       "name": "功能和优势",
       "feat1": {

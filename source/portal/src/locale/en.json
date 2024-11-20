@@ -1,6 +1,7 @@
 {
   "translation": {
     "name": "AI Customer Service",
+    "desc": "Description",
     "welcome": "Welcome to AI Customer Service",
     "you": "Y o u",
     "welcomeMessage": "Hello, how can I help you today?",
@@ -43,6 +44,7 @@
     "prefix": "Prefix",
     "offline": "Offline",
     "indexType": "Index Type",
+    "indexTypeDesc":"Please select an appropriate index type",
     "status": "Status",
     "createTime": "Create time",
     "latestQuestion": "Latest Question",
@@ -71,7 +73,8 @@
     "modelSettings": "Model Settings",
     "modelName": "Model name",
     "noModelFound": "No model found",
-    "chatbotName": "Chatbot name",
+    "chatbotName": "Chatbot Name",
+    "embeddingModel": "Embedding Model Name",
     "noChatbotFound": "No chatbot found",
     "scenario": "Scenario",
     "maxTokens": "Max Tokens",
@@ -87,9 +90,10 @@
     "chatbotManagement": "Chatbot",
     "type": "Type",
     "update": "Update",
+    "updated": "Update completed, redirecting to the list page....",
     "updating": "Updating",
     "updateBy": "Update by",
-    "updateTime": "Update time",
+    "updateTime": "Update Time",
     "promptCreateTips": "New prompt will override current prompt, are you sure to continue?",
     "promptDeleteTips": "Delete the prompt will reset to the system default prompt.",
     "chatbotCreateTips": "New chatbot will override the current chatbot, are you sure to continue?",
@@ -101,6 +105,7 @@
     "onlyUseRAGTool": "Only use RAG tool",
     "additionalSettings": "Additional Settings",
     "indexName": "Index name",
+    "indexNameDesc": "Cannot duplicate an existing index name",
     "tag": "Tag",
     "optional": "Optional",
     "intention": "Intention",
@@ -112,6 +117,7 @@
     "downloadTemplate":"Download Template",
     "chatbotNamePlaceholder": "Please input chatbot name",
     "indexPlaceholder": "Please input index name",
+    "indexPlaceholderDesc": "Please input index description",
     "toAvoidTips": "To avoid accidental deletions we ask you to provide additional written consent.",
     "typeConfirm": "Type “Confirm” to agree",
     "confirmDelete": "Please confirm delete",
@@ -120,6 +126,22 @@
     "deleteAlert": "This action cannot be undone, please proceed with caution.",
     "deleteIntentionTitle": "Delet Intention Data",
     "deleteIntentionFailed": "These data could not be deleted because it is being used by other indexes.",
+    "indexList":"Index List",
+    "indexListDesc":"Here is a list of indexes of this chatbot.",
+    "addNewIndex": "Add New Index",
+    "defaultIndexDesc": "Answer question based on search result",
+    "indexDescription": "Briefly describe the index function",
+    "remove": "remove",
+    "chatbotNameDesc": "The unique identifier of the robot space, it must not duplicate with any existing ones",
+    "modelDesc": "Used for text vectorization in the robot space.",
+    "indexManagement": "Indexes",
+    "indexLeft": "Index not yet configured, click",
+    "indexUsedByModel":"This index is already associated with other embedding models",
+    "indexRight":"to add index.",
+    "embeddingModelDesc": "Used by this bot for vectorization processing",
+    "embeddingModelName": "Embedding Model",
+    "addIndex":"Add Index",
+    "addIndexDesc":"Add new index for bot: ",
     "button": {
       "login": "Log in to AI Customer Service",
       "reload": "Reload",
@@ -139,7 +161,9 @@
       "edit": "Edit",
       "save": "Save",
       "action": "Action",
-      "startToChat": "Start to chat"
+      "startToChat": "Start to chat",
+      "discardChanges": "Discard Changes",
+      "saveChanges": "Save Changes"
     },
     "header": {
       "reSignIn": "Please login again",
@@ -149,7 +173,7 @@
       "requireModel": "Please select or input a model",
       "requireChatbotName": "Please input chatbot name",
       "repeatChatbotName": "Chatbot name is already used, please change the name",
-      "repeatIndex": "This index is already used, please change the index",
+      "repeatIndex": "This index is already used by other users",
       "requireChatbot": "Please select a chatbot",
       "requireTemperature": "Please enter a temperature",
       "requireMaxTokens": "Please enter a maximum number of tokens",
@@ -164,7 +188,8 @@
       "indexNameEmpty": "Index name can not be empty.",
       "tagEmpty": "Tag can not be empty.",
       "indexValid": "Index is used by other model, please change index name",
-      "defaultIndexValid": "Default index is used by other model, please customize index name"
+      "repeatedIndexName":"The index is duplicated with a previous entry, please modify it",
+      "repeatedIndex": "The index name is already in use. Please choose a different name"
     },
     
 
@@ -174,6 +199,7 @@
     "awsSolutionGuidance": "Amazon Web Services Solution Guidance",
     "mead": "Media & Advertisement",
     "homeSidebar": "Home",
+    "chatbotDetail": "ChatBot Detail",
     "featuresAndBenefits": {
       "name": "Features and Benefits",
       "feat1": {

@@ -495,6 +495,12 @@ export class ApiConstruct extends Construct {
       apiResourceCheckDefaultChatbot.addMethod("GET", lambdaChatbotIntegration, this.genMethodOption(api, auth, null));
       const apiResourceCheckChatbot = apiResourceChatbotManagement.addResource('check-chatbot');
       apiResourceCheckChatbot.addMethod("POST", lambdaChatbotIntegration, this.genMethodOption(api, auth, null));
+      const apiResourceCheckIndex = apiResourceChatbotManagement.addResource('check-index');
+      apiResourceCheckIndex.addMethod("POST", lambdaChatbotIntegration, this.genMethodOption(api, auth, null));
+      const apiResourceListIndex = apiResourceChatbotManagement.addResource('list-index');
+      apiResourceListIndex.addMethod("GET", lambdaChatbotIntegration, this.genMethodOption(api, auth, null));
+      const apiResourceEditChatBot = apiResourceChatbotManagement.addResource('edit-chatbot');
+      apiResourceEditChatBot.addMethod("POST", lambdaChatbotIntegration, this.genMethodOption(api, auth, null));
       const apiResourceChatbots = apiResourceChatbotManagement.addResource("chatbots");
       apiResourceChatbots.addMethod("POST", lambdaChatbotIntegration, {
         ...this.genMethodOption(api, auth, {

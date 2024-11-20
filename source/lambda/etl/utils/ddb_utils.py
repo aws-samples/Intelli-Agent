@@ -70,8 +70,8 @@ def initiate_index(
     model_id,
     index_type,
     tag,
-    create_time=None,
-    description="",
+    description,
+    create_time=None
 ):
     existing_item = item_exist(index_table, {"groupName": group_name, "indexId": index_id})
 
@@ -86,11 +86,12 @@ def initiate_index(
             "kbType": KBType.AOS.value,
             "modelIds": {"embedding": model_id},
             "tag": tag,
+            "description": description,
             "createTime": create_time,
             "status": UiStatus.ACTIVE.value,
         }
-        if index_type != IndexType.INTENTION.value:
-            db_body["description"] = description
+        # if index_type != IndexType.INTENTION.value:
+        #     db_body["description"] = description
 
         create_item(index_table, {"groupName": group_name, "indexId": index_id}, db_body)
 
@@ -126,7 +127,7 @@ def initiate_chatbot(
             ExpressionAttributeValues={
                 ":indexIdTypeDict": {
                     "count": len(index_id_list),
-                    "value": {index_id: index_id for index_id in index_id_list},
+                    "value": {index_id: index_id for index_id in index_id_list}
                 },
                 ":updateTime": str(datetime.now(timezone.utc)),
             },
@@ -144,7 +145,7 @@ def initiate_chatbot(
                 "indexIds": {
                     index_type: {
                         "count": len(index_id_list),
-                        "value": {index_id: index_id for index_id in index_id_list},
+                        "value": {index_id: index_id for index_id in index_id_list}
                     }
                 },
                 "createTime": create_time,
