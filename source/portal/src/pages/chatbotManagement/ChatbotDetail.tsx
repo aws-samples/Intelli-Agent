@@ -1,11 +1,9 @@
-import React, { useEffect, useState, useContext } from 'react';
+import React, { useEffect, useState } from 'react';
 // import KeyValuePairs from "@cloudscape-design/components/key-value-pairs";
 import CommonLayout from 'src/layout/CommonLayout';
 import {
-  Alert,
   Box,
   Button,
-  ButtonDropdown,
   // ButtonDropdown,
   CollectionPreferences,
   Container,
@@ -15,7 +13,9 @@ import {
   Header,
   Icon,
   Input,
+  Modal,
   Pagination,
+  Select,
   SpaceBetween,
   Table,
   TextFilter,
@@ -23,13 +23,23 @@ import {
 import {
   ChatbotItemDetail,
   ChatbotDetailResponse,
-  IndexItem,
-  IndexItemTmp
+  IndexItemTmp,
+  SelectedOption,
+  CreEditChatbotResponse
 } from 'src/types';
 import useAxiosRequest from 'src/hooks/useAxiosRequest';
 import { useTranslation } from 'react-i18next';
 import { alertMsg } from 'src/utils/utils';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
+import { INDEX_TYPE_OPTIONS } from 'src/utils/const';
+
+const INITIAL_ADD_INDEX ={
+  name:"",
+  type:"qq",
+  description:"",
+  tag:"",
+  status: "new"
+}
 
 const ChatbotDetail: React.FC = () => {
   const { t } = useTranslation();
@@ -41,14 +51,33 @@ const ChatbotDetail: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageCount, setPageCount] = useState(1);
   const [loadingData, setLoadingData] = useState(false);
-  const [indexList, setIndexList] = useState<IndexItem[]>([]);
+  // const [indexList, setIndexList] = useState<IndexItem[]>([]);
   const [tmpIndexList, setTmpIndexList] = useState<IndexItemTmp[]>([]);
   const [tableIndexList, setTableIndexList] = useState<IndexItemTmp[]>([]);
-  const [addIndexStatus, setAddIndexStatus] = useState(false)
+  const [addedIndex, setAddedIndex] = useState<IndexItemTmp>(INITIAL_ADD_INDEX)
+  const [errText, setErrText] = useState("")
+  const [selectedIndexTypeOption, setSelectedIndexTypeOption] = useState<SelectedOption>({label:"qq", value:"qq"})
+  const [addIndexModel, setAddIndexModel] = useState(false)
+  const [tmpDesc, setTmpDesc] = useState('')
+  const navigate = useNavigate();
+  const [loadingSave, setLoadingSave] = useState(false)
 
   useEffect(()=>{
     getChatbotDetail();
   },[])
+
+  useEffect(()=>{
+    setSelectedIndexTypeOption({
+      label: addedIndex.type,
+      value: addedIndex.type
+    })
+
+  },[addedIndex.type])
+
+  useEffect(()=>{
+    setErrText("")
+    setAddedIndex(INITIAL_ADD_INDEX)
+  },[addIndexModel])
   
   useEffect(() => {
     let list = tmpIndexList
@@ -63,20 +92,120 @@ const ChatbotDetail: React.FC = () => {
       ),
     );
   }, [currentPage, pageSize, searchIndexName, tmpIndexList.length]);
-  const getChatbotIndex = async () =>{
-
+  
+  
+  const getChatbotIndexes = async () =>{
+    setLoadingData(true);
+    // setSelectedItems([]);
+    const params = {
+      max_items: 9999,
+      page_size: 9999,
+    };
+    try {
+      const data = await fetchData({
+        url: 'chatbot-management/chatbots',
+        method: 'get',
+        params,
+      });
+      // const items: ChatbotResponse = data;
+      // const preSortItem = items.Items.map((chatbot) => {
+      //   return {
+      //     ...chatbot,
+      //     uuid: chatbot.ChatbotId,
+      //   };
+      // });
+      // setAllChatbotList(preSortItem);
+      // setTableChatbotList(preSortItem.slice(0, pageSize));
+      setLoadingData(false);
+    } catch (error: unknown) {
+      setLoadingData(false);
+    }
   }
 
+  const discardChange = ()=>{
+    navigate("/chatbot-management")
+  }
   const addNewIndex = () =>{
-    setTmpIndexList([{
-      name: "",
-      type: "",
-      description: "",
-      tag: "",
-      status: 'new'
-    }, ...tmpIndexList])
-    // tmpIndexList.unshift()
-    setAddIndexStatus(true)
+    setAddIndexModel(true)
+  }
+
+  const saveAddedIndex = async ()=>{
+    if(addedIndex.name?.trim().length === 0){
+      setErrText(t('validation.indexNameEmpty'))
+      return
+    }
+
+    const bot_index_list = tmpIndexList.map(item=> item.name)
+
+    if(bot_index_list.includes(addedIndex.name)){
+      setErrText(t('validation.repeatedIndex'))
+      return
+    }
+    const indexCheck = await isValidIndex()
+    if(!indexCheck.result){
+      setErrText(indexCheck.reason==1?t('validation.repeatIndex'):t('validation.indexValid'))
+      return
+    }
+    setTmpIndexList([addedIndex, ...tmpIndexList])
+    setAddIndexModel(false)
+  }
+
+  const updateChatbot = async ()=>{
+    setLoadingSave(true);
+    const indexList = tmpIndexList.map(({status,...rest})=> rest)
+    // const index = {}
+    
+    try {
+      const createRes: CreEditChatbotResponse = await fetchData({
+        url: 'chatbot-management/edit-chatbot',
+        method: 'post',
+        data: {
+          chatbotId: chatbotDetail.chatbotId,
+          modelId: chatbotDetail.model,
+          modelName: chatbotDetail.model,
+          index: genBotIndexCreate(indexList),
+        },
+      });
+      // const createRes: CreateChatbotResponse = data;
+      if (createRes.Message === 'OK') {
+        setLoadingSave(false);
+        alertMsg(t('updated'), 'success');
+        setTimeout(() => {
+          setLoadingSave(false);
+          navigate("/chatbot-management")
+        }, 1500);
+        
+        // setShowCreate(false);
+        // setShowEdit(false);
+        // getChatbotList();
+      }
+      // setLoadingSave(false);
+    } catch (error: unknown) {
+      setLoadingSave(false);
+    }
+  }
+
+  const genBotIndexCreate = (indexList: any[])=>{
+    let index:any={}
+    indexList.map((item: any)=>{
+      if (!index[item.type]) {
+        index[item.type] = {};
+      }
+      index[item.type][item.name] = item.description||'';
+    });
+    return index
+  }
+
+  const isValidIndex = async () =>{
+    return await fetchData({
+      url: `chatbot-management/check-index`,
+      method: 'post',
+      data: {
+        index: addedIndex.name,
+        model: chatbotDetail.model
+      },
+    });
+    // return 
   }
   const getChatbotDetail = async () => {
     setLoadingData(true);
@@ -92,7 +221,7 @@ const ChatbotDetail: React.FC = () => {
         updateTime: data.updateTime
       };
       setChatbotDetail(chatbotDetail)
-      setIndexList(chatbotDetail.index)
+      // setIndexList(chatbotDetail.index)
       const tmpIndexList = chatbotDetail.index.map(item => ({
         ...item,
         status: 'old'
@@ -133,6 +262,7 @@ const ChatbotDetail: React.FC = () => {
           header={
             <Header
               variant="h2"
+            
               >
               {t('chatbotDetail')}
             </Header>
@@ -162,7 +292,7 @@ const ChatbotDetail: React.FC = () => {
       <div>
       <FormField
       description={chatbotDetail?.updateTime}
-      label={t("createTime")}
+      label={t("updateTime")}
     >
     </FormField>
       </div>
@@ -185,13 +315,13 @@ const ChatbotDetail: React.FC = () => {
                     iconName="refresh"
                     loading={loadingData}
                     onClick={() => {
-                      getChatbotIndex();
+                      getChatbotIndexes();
                     }}
                   />
                   
                   
                   <Button variant="primary" onClick={addNewIndex}>
-                  <Icon name="add-plus" /> {t('addIndex')}
+                  <Icon name="add-plus" /> {t('addNewIndex')}
                   </Button>
                 </SpaceBetween>
               }
@@ -202,16 +332,21 @@ const ChatbotDetail: React.FC = () => {
         >
           <Table
           loading={loadingData}
+          ariaLabels={{
+            activateEditLabel: (column, item) =>
+              `Edit ${item.name} ${column.header}`,
+            cancelEditLabel: column =>
+              `Cancel editing ${column.header}`,
+            submitEditLabel: column =>
+              `Submit editing ${column.header}`,
+            tableLabel: "Table with inline editing"
+          }}
       columnDefinitions={[
         {
           id: "name",
           header: t('indexName'),
           cell: item => {
-            if(item.status === "old"){
-              return item.name
-            } else {
-              return (<Input value={item.name}/>)
-            }
+            return item.name
           },
           sortingField: "name",
           isRowHeader: true,
@@ -220,11 +355,7 @@ const ChatbotDetail: React.FC = () => {
           id: "type",
           header: t('indexType'),
           cell: item => {
-            if(item.status === "old"){
               return item.type
-            } else {
-              return (<Input value={item.type}/>)
-            }
           },
           sortingField: "type"
         },
@@ -232,14 +363,10 @@ const ChatbotDetail: React.FC = () => {
           id: "desc",
           header: t('desc'),
           cell: item => {
-            if(item.status === "old"){
               return item.description
-            } else {
-              return (<Input value={item.description}/>)
-            }
           },
           editConfig: {
-            ariaLabel: "Name",
+            ariaLabel: "Description",
             editIconAriaLabel: "editable",
             errorIconAriaLabel: "Name Error",
             editingCell: (
@@ -250,8 +377,10 @@ const ChatbotDetail: React.FC = () => {
                 <Input
                   autoFocus={true}
                   value={currentValue ?? item.description}
-                  onChange={event =>
+                  onChange={event => {
                     setValue(event.detail.value)
+                    setTmpDesc(currentValue)
+                    }
                   }
                 />
               );
@@ -262,11 +391,7 @@ const ChatbotDetail: React.FC = () => {
           id: "tag",
           header: t('tag'),
           cell: item => {
-            if(item.status === "old"){
               return item.tag
-            } else {
-              return (<Input value={item.tag}/>)
-            }
           },
         }
       ]}
@@ -278,18 +403,17 @@ const ChatbotDetail: React.FC = () => {
       ]}
       enableKeyboardNavigation
       items={tableIndexList||[]}
+      submitEdit={async (item: IndexItemTmp) => {
+        item.description = tmpDesc
+      }}
       loadingText="Loading resources"
       stickyHeader
       trackBy="name"
       sortingDisabled
       empty={
-        <Box
-          margin={{ vertical: "xs" }}
-          textAlign="center"
-          color="inherit"
-        >
+        <Box margin={{ vertical: 'xs' }} textAlign="center" color="inherit">
           <SpaceBetween size="m">
-            <b>{t('empty')}</b>
+            <b>{t('noData')}</b>
           </SpaceBetween>
         </Box>
       }
@@ -373,13 +497,72 @@ const ChatbotDetail: React.FC = () => {
           {/* <div></div>í */}
           <div style={{marginLeft:'auto'}}>
             <SpaceBetween size={'s'} direction='horizontal'>
-               <Button>{t('button.discardChanges')}</Button>
-               <Button variant="primary">{t('button.saveChanges')}</Button>
+               <Button onClick={()=>discardChange()}>{t('button.discardChanges')}</Button>
+               <Button variant="primary" onClick={()=>updateChatbot()} loading={loadingSave}>{t('button.saveChanges')}</Button>
             </SpaceBetween>
           </div>
         </div>
         </SpaceBetween>
-        
+        <Modal
+      onDismiss={() => setAddIndexModel(false)}
+      visible={addIndexModel}
+      footer={
+        <Box float="right">
+          <SpaceBetween direction="horizontal" size="xs">
+            <Button variant="link" onClick={()=>setAddIndexModel(false)}>{t('button.cancel')}</Button>
+            <Button variant="primary" onClick={()=>saveAddedIndex()}>{t('button.save')}</Button>
+          </SpaceBetween>
+        </Box>
+      }
+      header={<Header
+      variant="h2"
+      description={<>{t('addIndexDesc')}{chatbotDetail?.chatbotId}</>}
+      >
+      {t('addIndex')}
+    </Header>}
+      
+      
+    >
+      <SpaceBetween size={'m'} direction='vertical'>
+      <div style={{height:5}}></div>
+      <FormField
+        label={t('indexName')}
+        description={t('indexNameDesc')}
+        errorText={errText}
+      >
+        <Input 
+          value={addedIndex.name} 
+          placeholder={t('indexPlaceholder')}
+          onChange={({ detail }) => {
+            setAddedIndex({...addedIndex, name: detail.value, tag: detail.value})
+          }}
+          />
+      </FormField>
+      <FormField
+        label={t('indexType')}
+        description={t('indexTypeDesc')}
+      >
+        <Select 
+        selectedOption={selectedIndexTypeOption} 
+        options={INDEX_TYPE_OPTIONS}
+        onChange={({ detail }:{detail: any})=>setAddedIndex({...addedIndex, type: detail.selectedOption.value})}
+        />
+      </FormField>
+      <FormField
+        label={<>{t('desc')} - {t('optional')}</>}
+        description={t('indexDescription')}
+      >
+        <Input 
+          value={addedIndex.description} 
+          placeholder={t('indexPlaceholderDesc')}
+          onChange={({ detail }) => {
+            setAddedIndex({...addedIndex, description: detail.value})
+          }}
+          />
+      </FormField>
+      <div style={{height:15}}></div>
+      </SpaceBetween>
+    </Modal>
       </ContentLayout>
     </CommonLayout>
     );

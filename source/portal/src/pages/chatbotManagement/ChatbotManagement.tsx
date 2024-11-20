@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useContext } from 'react';
 import CommonLayout from 'src/layout/CommonLayout';
 import {
-  Alert,
   Box,
   Button,
   ButtonDropdown,
@@ -11,7 +10,6 @@ import {
   Grid,
   Header,
   Input,
-  Modal,
   Pagination,
   Select,
   SelectProps,
@@ -30,7 +28,7 @@ import useAxiosRequest from 'src/hooks/useAxiosRequest';
 import { useTranslation } from 'react-i18next';
 import { formatTime } from 'src/utils/utils';
 import ConfigContext from 'src/context/config-context';
-import { EMBEDDING_MODEL_LIST } from 'src/utils/const';
+import { EMBEDDING_MODEL_LIST, INDEX_TYPE_OPTIONS } from 'src/utils/const';
 import { useNavigate } from 'react-router-dom';
 import RightModal from '../right-modal';
 import minus from 'src/assets/images/minus.png';
@@ -87,23 +85,10 @@ const INITIAL_INDEX_LIST: INDEX_TYPE[]=[{
   const [chatbotNameError, setChatbotNameError] = useState('');
   // validation
   const [modelError, setModelError] = useState('');
-  const [showDelete, setShowDelete] = useState(false);
   const [useDefaultIndex, setUseDefaultIndex] = useState(true);
-  const [qqIndex, setQqIndex] = useState('');
-  const [qdIndex, setQdIndex] = useState('');
-  const [intentionIndex, setIntentionIndex] = useState('');
-
-  const [qqIndexDesc, setQqIndexDesc] = useState(t('defaultIndexDesc'));
-  const [qdIndexDesc, setQdIndexDesc] = useState(t('defaultIndexDesc'));
-  const [intentionIndexDesc, setIntentionIndexDesc] = useState(t('defaultIndexDesc'));
-
-  const [qqIndexError, setQqIndexError] = useState('');
-  const [qdIndexError, setQdIndexError] = useState('');
-  const [intentionIndexError, setIntentionIndexError] = useState('');
-  const [showCreateChatbot, setShowCreateChatbot] = useState(false);
   const [indexList, setIndexList] = useState(INITIAL_INDEX_LIST)
 
-  const indexTypeOption:SelectedOption[] =[{label: "qq", value: "qq"}, {label: "qd", value: "qd"}, {label: "intention", value: "intention"}]
+  const indexTypeOption:SelectedOption[] =INDEX_TYPE_OPTIONS
   const navigate = useNavigate();
 
   const getModelList = async (type: 'create' | 'edit') => {
@@ -156,21 +141,6 @@ const INITIAL_INDEX_LIST: INDEX_TYPE[]=[{
     }
   };
 
-  const deleteChatbot = async () => {
-    setLoadingSave(true);
-    try {
-      await fetchData({
-        url: `chatbot-management/chatbots/delete/${selectedItems[0].ChatbotId}`,
-        method: 'delete',
-      });
-      setLoadingSave(false);
-      getChatbotList();
-      setShowDelete(false);
-    } catch (error: unknown) {
-      setLoadingSave(false);
-    }
-  };
-
   const removeIndex =(removedIndex: number)=>{
     setIndexList(prevIndexList => 
       prevIndexList.filter((_, index) => index !== removedIndex)
@@ -214,11 +184,6 @@ const INITIAL_INDEX_LIST: INDEX_TYPE[]=[{
   }
 
   const genBotIndexCreate = ()=>{
-    // index:{
-    //    qq: {name: qqIndex, desc: qqIndexDesc},
-    //    qd: {name: qdIndex, desc: qdIndexDesc},
-    //    intention: {name: intentionIndex, desc: intentionIndexDesc}
-    // }
     let index:any={}
     indexList.map((item: INDEX_TYPE)=>{
       if (!index[item.type]) {
@@ -284,7 +249,7 @@ const INITIAL_INDEX_LIST: INDEX_TYPE[]=[{
       } else {
         setIndexList((prevIndexList) =>
           prevIndexList.map((item) => {
-            return item.name == indexIsValid.item ? { ...item, errText: indexIsValid.reason==1?t('indexUsedByBot'):t('indexUsedByModel') } : item;
+            return item.name == indexIsValid.item ? { ...item, errText: indexIsValid.reason==1?t('validation.repeatIndex'):t('validation.indexValid') } : item;
           })
         );
       }
@@ -299,8 +264,8 @@ const INITIAL_INDEX_LIST: INDEX_TYPE[]=[{
           chatbotId: chatbotName,
           modelId: modelOption.value,
           modelName: modelOption.label,
-          index: genBotIndexCreate()
-
+          index: genBotIndexCreate(),
+          operatorType: "add"
         },
       });
       // const createRes: CreateChatbotResponse = data;
@@ -346,9 +311,9 @@ const INITIAL_INDEX_LIST: INDEX_TYPE[]=[{
         setIndexList(INITIAL_INDEX_LIST)
       } 
         
-        setQdIndexError('');
-        setQqIndexError('');
-        setIntentionIndexError('');
+        // setQdIndexError('');
+        // setQqIndexError('');
+        // setIntentionIndexError('');
       }
     
 
@@ -514,12 +479,12 @@ const INITIAL_INDEX_LIST: INDEX_TYPE[]=[{
                     onClick={() => {
                       setChatbotName('')
                       setChatbotNameError('')
-                      setQdIndex('')
-                      setQqIndex('')
-                      setIntentionIndex('')
-                      setQdIndexDesc(t('defaultIndexDesc'))
-                      setQqIndexDesc(t('defaultIndexDesc'))
-                      setIntentionIndexDesc(t('defaultIndexDesc'))
+                      // setQdIndex('')
+                      // setQqIndex('')
+                      // setIntentionIndex('')
+                      // setQdIndexDesc(t('defaultIndexDesc'))
+                      // setQqIndexDesc(t('defaultIndexDesc'))
+                      // setIntentionIndexDesc(t('defaultIndexDesc'))
                       setLoadingSave(false)
                       getModelList('create')
                       setUseDefaultIndex(true)
@@ -590,8 +555,8 @@ const INITIAL_INDEX_LIST: INDEX_TYPE[]=[{
             />
           </FormField>
             <FormField
-              description={t('modelDesc')}
-              label={t('modelName')}
+              description={t('embeddingModelDesc')}
+              label={t('embeddingModelName')}
               stretch={true}
               errorText={modelError}
             >
@@ -611,9 +576,9 @@ const INITIAL_INDEX_LIST: INDEX_TYPE[]=[{
               <Toggle
                 onChange={({ detail }) =>
                   {
-                    setQdIndexError('');
-                    setQqIndexError('');
-                    setIntentionIndexError('');
+                    // setQdIndexError('');
+                    // setQqIndexError('');
+                    // setIntentionIndexError('');
                     setUseDefaultIndex(!detail.checked)
                   }
                 }
@@ -647,7 +612,7 @@ const INITIAL_INDEX_LIST: INDEX_TYPE[]=[{
                     </FormField>
                     <FormField>
                       <Select
-                       disabled={useDefaultIndex}
+                       disabled={useDefaultIndex||index<3}
                        selectedOption={{label: item.type, value: item.type}}
                        options={indexTypeOption}
                        onChange={({ detail }:{detail: any})=>changeIndexType(detail.selectedOption.value, index)}
@@ -664,7 +629,7 @@ const INITIAL_INDEX_LIST: INDEX_TYPE[]=[{
                         value={item.desc}
                       />
                     </FormField>
-                    {!useDefaultIndex && (
+                    {!useDefaultIndex && index>2 && (
                     // <FormField >
                       <Link onFollow={() =>
                         removeIndex(index)

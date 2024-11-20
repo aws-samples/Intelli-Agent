@@ -190,6 +190,8 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       setSessionId(uuidv4());
     }
     getWorkspaceList();
+    // TODO
+    console.log("messages are :>>>>>>"+JSON.stringify(messages))
   }, []);
 
   useEffect(() => {
@@ -440,6 +442,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
           <div className="flex gap-5 send-message">
             <Select
               options={chatbotList}
+              loadingText='kkkkk...'
               selectedOption={chatbotOption}
               onChange={({ detail }) => {
                 setChatbotOption(detail.selectedOption);

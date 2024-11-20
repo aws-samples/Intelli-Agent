@@ -11,6 +11,12 @@ export const LANGUAGE_ITEMS = [
   { id: DEFAULT_ZH_LANG, text: ZH_TEXT },
 ];
 
+export const INDEX_TYPE_OPTIONS = [
+  {label: "qq", value: "qq"},
+  {label: "qd", value: "qd"},
+  {label: "intention", value: "intention"}
+]
+
 export const LAST_VISIT_URL = 'llm-bot-app-last-visit-url';
 
 export const LIBRARY_DEFAULT_PREFIX = 'documents';

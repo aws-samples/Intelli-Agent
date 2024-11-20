@@ -125,7 +125,7 @@ const Intention: React.FC = () => {
 
   const getChatBotDetail = async (chatbotId: string) =>{
     // setLoadingChangeDetailData(true)
-    let intentionNameOptions: SelectedOption[] = []
+    let intentionNameOptions: any[] = []
     let indexDesc = ""
     const res: ChatbotsItem = await fetchData({
       url: `chatbot-management/chatbots/${chatbotId}`,
@@ -134,10 +134,18 @@ const Intention: React.FC = () => {
     setModel({label: res.model.model_name, value: res.model.model_endpoint})
     res.index.forEach((item)=>{
       if(item.type==="intention"){
-        intentionNameOptions.push({
-           value: item.name,
-           label: item.name
-        })
+        if(item.description?.trim().length>0){
+          intentionNameOptions.push({
+            value: item.name,
+            label: item.name, 
+            tags: [item.description]
+         })
+        } else {
+          intentionNameOptions.push({
+            value: item.name,
+            label: item.name, 
+         })
+        }
         indexDesc = item.description
         // intention = {name: item.name, desc: item.description}
 

@@ -35,6 +35,9 @@ INDEXES_RESOURCE = f"{ROOT_RESOURCE}/indexes"
 CHATBOTS_RESOURCE = f"{ROOT_RESOURCE}/chatbots"
 # DETAILS_RESOURCE = f"{ROOT_RESOURCE}/chatbot"
 CHATBOTCHECK_RESOURCE = f"{ROOT_RESOURCE}/check-chatbot"
+CHATBOTINDEXCHECK_RESOURCE = f"{ROOT_RESOURCE}/check-index"
+CHATBOTLISTINDEX_RESOURCE = f"{ROOT_RESOURCE}/list-index"
+CHATBOTEDIT_RESOURCE = f"{ROOT_RESOURCE}/edit-chatbot"
 CHATBOTCHECK_DEFAULT = f"{ROOT_RESOURCE}/check-default-chatbot"
 logger = logging.getLogger(__name__)
 encoder = TokenEncoder()
@@ -60,7 +63,7 @@ def create_chatbot(event, group_name):
 
     model_type = initiate_model(
         model_table, group_name, model_id, chatbot_embedding, create_time)
-    index = request_body.get("index", {})
+    index = request_body.get("index", {"qq":{"admin-qq-default": "Answer question based on search result"},"qd":{"admin-qd-default": "Answer question based on search result"},"intention":{"admin-intention-default": "Answer question based on search result"}})
     for index_type in index:
         index_ids = list(index[index_type].keys())
         initiate_chatbot(
@@ -127,17 +130,6 @@ def __list_chatbot(event, group_name):
         for item in page_items:
             item_json = {}
             chatbot_id = item.get("chatbotId", {"S": ""})["S"]
-            index_dict = list(item.get("indexIds", {}).get("M", {}).get(
-                "intention", {}).get("M", {}).get("value", {}).values())[0]
-            index_id = list(index_dict.keys())[0]
-            index_table_item = index_table.get_item(
-                Key={
-                    "groupName": group_name,
-                    "indexId": index_id,
-                }
-            )
-            model_id = index_table_item.get("Item", {}).get(
-                "modelIds", {}).get("embedding", "")
             item_json["ChatbotId"] = chatbot_id
             chatbot_model_item = model_table.get_item(
                 Key={
@@ -194,10 +186,14 @@ def __get_chatbot(event, group_name):
             v = value.get('value',{})
             # name = list(v.keys())[0]
             for index in list(v.keys()):
+                index_detail = index_table.get_item(
+                    Key={"groupName": group_name, "indexId": index}
+                ).get("Item")
+
                 chatbot_index.append({
                     "name": index,
                     "type": key,
-                    "description": value.get("desc", ""),
+                    "description": index_detail.get("description", ""),
                     "tag": v.get(index)
                 })
         response = {
@@ -261,6 +257,12 @@ def lambda_handler(event, context):
         output = __validate_chatbot(event, group_name)
     elif resource == CHATBOTCHECK_DEFAULT:
         output = __validate_default_chatbot(event, group_name)
+    elif resource == CHATBOTINDEXCHECK_RESOURCE:
+        output = __validate_index(event, group_name)
+    elif resource == CHATBOTEDIT_RESOURCE:
+        output = __edit_chatbot(event, group_name)
+    elif resource == CHATBOTLISTINDEX_RESOURCE:
+        output = __list_index(event, group_name)
 
     try:
         return {
@@ -275,6 +277,103 @@ def lambda_handler(event, context):
             "headers": resp_header,
             "body": json.dumps(f"Error: {str(e)}"),
         }
+    
+def __validate_index(event, group_name):
+    input_body = json.loads(event["body"])
+    model = input_body.get("model")
+    index = input_body.get("index")
+    response = index_table.scan(
+        FilterExpression=Attr('indexId').eq(index)
+    )
+    items = response.get('Items')
+    if items:
+        for item in items:
+            if item['groupName'] != group_name:
+                return {
+                    "result": False,
+                    "reason": 1
+                }
+            else:
+                if item.get("modelIds", {}).get("embedding", "") != model:
+                    return {
+                        "result": False,
+                        "reason": 2
+                    }
+    return {
+        "result": True,
+        "reason": None
+    }
+
+def __edit_chatbot(event, group_name):
+    input_body = json.loads(event["body"])
+    index = input_body["index"]
+    chatbot_id = input_body["chatbotId"]
+    model_id = input_body["modelId"]
+    chatbot_description = input_body.get(
+        "chatbotDescription", "Answer question based on search result"
+    )
+    update_time = str(datetime.now(timezone.utc))
+    # {
+    #       chatbotId: chatbotDetail.chatbotId,
+    #       modelId: chatbotDetail.model,
+    #       modelName: chatbotDetail.model,
+    #       indexList: tmpIndexList.map(({status,...rest})=> rest),
+    #     }
+    # 1.删除index表旧的index
+    index_dict = chatbot_table.get_item(
+            Key={"groupName": group_name, "chatbotId": chatbot_id}
+    ).get("Item").get("indexIds",{})
+    for key in index_dict:
+        value = index_dict.get(key,{}).get("value",{})
+        for k in value:
+            print(f"start delete index>>>>: {k}")
+            index_table.delete_item(
+                Key={
+                    "groupName": group_name,
+                    "indexId": k,
+                }
+            )
+    
+
+    # 2.更新chatbot表
+    # indexList
+    for index_type in index:
+        index_ids = list(index[index_type].keys())
+        initiate_chatbot(
+            chatbot_table,
+            group_name,
+            chatbot_id,
+            chatbot_description,
+            index_type,
+            index_ids,
+            update_time,
+        )
+        for index_id in index_ids:
+            tag = index_id
+            initiate_index(
+                index_table,
+                group_name,
+                index_id,
+                model_id,
+                index_type,
+                tag,
+                index.get(index_type,{}).get(index_id),
+                update_time
+            )
+
+    
+
+
+    # 3.更新index表
+    return {
+        "chatbotId": chatbot_id,
+        "groupName": group_name,
+        "indexIds": index_ids,
+        "Message": "OK",  # Need to be OK for the frontend to know the chatbot is created successfully and redirect to the chatbot management page
+    }
+
+def __list_index(event, group_name):
+    return []
 
 def __validate_default_chatbot(event, group_name):
     chatbot_item = chatbot_table.get_item(
