@@ -29,7 +29,7 @@ import {
   RETAIL_GOODS_LIST,
 } from 'src/utils/const';
 import { v4 as uuidv4 } from 'uuid';
-import { MessageDataType, SessionMessage } from 'src/types';
+import { MessageDataType, SelectedOption, SessionMessage } from 'src/types';
 import { isValidJson } from 'src/utils/utils';
 
 interface MessageType {
@@ -44,8 +44,21 @@ interface ChatBotProps {
   historySessionId?: string;
 }
 
+const CURRENT_CHAT_BOT = "current_chat_bot";
+const USE_CHAT_HISTORY = "use_chat_history"
+const ENABLE_TRACE = "enable_trace"
+const ONLY_RAG_TOOL = "only_rag_tool"
+const SCENARIO = "scenario"
+const MODEL_OPTION = "model"
+const MAX_TOKEN = "max_token"
+const TEMPERATURE = "temperature"
+const ADITIONAL_SETTRINGS = "additional_settings"
 const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const { historySessionId } = props;
+  const localScenario = localStorage.getItem(SCENARIO);
+  const localMaxToken = localStorage.getItem(MAX_TOKEN);
+  const localTemperature = localStorage.getItem(TEMPERATURE);
+  const localConfig = localStorage.getItem(ADITIONAL_SETTRINGS)
   const config = useContext(ConfigContext);
   const { t } = useTranslation();
   const auth = useAuth();
@@ -78,23 +91,23 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   // );
   const [chatbotList, setChatbotList] = useState<SelectProps.Option[]>([]);
   const [chatbotOption, setChatbotOption] = useState<SelectProps.Option>(null as any);
-  const [useChatHistory, setUseChatHistory] = useState(true);
-  const [enableTrace, setEnableTrace] = useState(true);
-  const [showTrace, setShowTrace] = useState(true);
-  const [onlyRAGTool, setOnlyRAGTool] = useState(false);
+  const [useChatHistory, setUseChatHistory] = useState(localStorage.getItem(USE_CHAT_HISTORY)==null || localStorage.getItem(USE_CHAT_HISTORY)=="true" ?true:false);
+  const [enableTrace, setEnableTrace] = useState(localStorage.getItem(ENABLE_TRACE)==null || localStorage.getItem(ENABLE_TRACE)=="true" ?true:false);
+  const [showTrace, setShowTrace] = useState(enableTrace);
+  const [onlyRAGTool, setOnlyRAGTool] = useState(localStorage.getItem(ONLY_RAG_TOOL)==null || localStorage.getItem(ONLY_RAG_TOOL)=="false" ?false:true);
   // const [useWebSearch, setUseWebSearch] = useState(false);
   // const [googleAPIKey, setGoogleAPIKey] = useState('');
   const [retailGoods, setRetailGoods] = useState<SelectProps.Option>(
     RETAIL_GOODS_LIST[0],
   );
   const [scenario, setScenario] = useState<SelectProps.Option>(
-    SCENARIO_LIST[0],
+    localScenario==null?SCENARIO_LIST[0]:JSON.parse(localScenario),
   );
 
   const [sessionId, setSessionId] = useState(historySessionId);
 
-  const [temperature, setTemperature] = useState<string>('0.01');
-  const [maxToken, setMaxToken] = useState<string>('1000');
+  const [temperature, setTemperature] = useState<string>(localTemperature?localTemperature:'0.01');
+  const [maxToken, setMaxToken] = useState<string>(localMaxToken?localMaxToken:'1000');
 
   const [endPoint, setEndPoint] = useState('');
   const [showEndpoint, setShowEndpoint] = useState(false);
@@ -102,7 +115,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const [showMessageError, setShowMessageError] = useState(false);
   // const [googleAPIKeyError, setGoogleAPIKeyError] = useState(false);
   const [isMessageEnd, setIsMessageEnd] = useState(false);
-  const [additionalConfig, setAdditionalConfig] = useState('');
+  const [additionalConfig, setAdditionalConfig] = useState(localConfig?localConfig:'');
 
   // validation
   const [modelError, setModelError] = useState('');
@@ -137,7 +150,9 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       }
       );
       setChatbotList(getChatbots);
-      setChatbotOption(getChatbots[0])
+      const localChatBot =localStorage.getItem(CURRENT_CHAT_BOT)    
+      setChatbotOption(localChatBot!==null?JSON.parse(localChatBot):getChatbots[0])
+      // setChatbotOption(getChatbots[0])
     } catch (error) {
       console.error(error);
       return [];
@@ -189,18 +204,61 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     } else {
       setSessionId(uuidv4());
     }
-    getWorkspaceList();
-    // TODO
-    console.log("messages are :>>>>>>"+JSON.stringify(messages))
+    getWorkspaceList();   
   }, []);
 
+  useEffect(()=>{
+    if(chatbotOption){
+     localStorage.setItem(CURRENT_CHAT_BOT, JSON.stringify(chatbotOption))
+    }
+  },[chatbotOption])
+
+  useEffect(()=>{
+    localStorage.setItem(USE_CHAT_HISTORY, useChatHistory?"true":"false")
+  },[useChatHistory])
+
   useEffect(() => {
+    localStorage.setItem(ENABLE_TRACE, enableTrace?"true":"false")
     if (enableTrace) {
       setShowTrace(true);
     } else {
       setShowTrace(false);
     }
   }, [enableTrace]);
+
+  useEffect(()=>{
+    if(scenario){
+      localStorage.setItem(SCENARIO, JSON.stringify(scenario))
+     }
+  },[scenario])
+
+  useEffect(()=>{
+    localStorage.setItem(ONLY_RAG_TOOL, onlyRAGTool?"true":"false")
+  },[onlyRAGTool])
+
+  useEffect(()=>{
+    if(modelOption){
+      localStorage.setItem(MODEL_OPTION, modelOption)
+    }
+  },[modelOption])
+
+  useEffect(()=>{
+    if(maxToken){
+      localStorage.setItem(MAX_TOKEN, maxToken)
+     }
+  },[maxToken])
+
+  useEffect(()=>{
+    if(temperature){
+      localStorage.setItem(TEMPERATURE, temperature)
+     }
+  },[temperature])
+
+  useEffect(()=>{
+    if(additionalConfig){
+      localStorage.setItem(ADITIONAL_SETTRINGS, additionalConfig)
+     }
+  },[additionalConfig])
 
   const handleAIMessage = (message: MessageDataType) => {
     console.info('handleAIMessage:', message);
@@ -380,6 +438,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
 
   useEffect(() => {
     let optionList: SelectProps.Option[] = [];
+    const localModel = localStorage.getItem(MODEL_OPTION)
     if (scenario.value === 'common') {
       optionList = LLM_BOT_COMMON_MODEL_LIST.map((item) => {
         return {
@@ -388,7 +447,8 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
         };
       });
       setModelList(optionList);
-      setModelOption(optionList?.[0]?.value ?? '');
+      
+      
     } else if (scenario.value === 'retail') {
       optionList = LLM_BOT_RETAIL_MODEL_LIST.map((item) => {
         return {
@@ -397,6 +457,12 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
         };
       });
       setModelList(optionList);
+      // TODO
+      // setModelOption(optionList?.[0]?.value ?? '');
+    }
+    if(localModel){
+      setModelOption(localModel)
+    } else {
       setModelOption(optionList?.[0]?.value ?? '');
     }
   }, [scenario]);
