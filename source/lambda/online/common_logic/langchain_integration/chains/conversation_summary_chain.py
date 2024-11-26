@@ -170,6 +170,8 @@ class Claude2ConversationSummaryChain(LLMChain):
         ]
         if enable_prefill:
             messages.append(AIMessage(content=cls.prefill))
+        else:
+            messages.append(HumanMessage(content=cls.prefill))
 
         cqr_template = ChatPromptTemplate.from_messages(messages)
         return RunnableLambda(lambda x: cls.create_messages_inputs(x, user_prompt=user_prompt, few_shots=json.loads(few_shots))) | cqr_template
