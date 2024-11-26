@@ -27,7 +27,7 @@ const Home: React.FC = () => {
   const baseSteps = [
     {
       target: '.home-banner',
-      content: 'This is the banner section.',
+      content: 'Deploying this solution using the default parameters will build the environment in Amazon Web Services.',
       disableBeacon: true,
     },
     {
@@ -42,25 +42,25 @@ const Home: React.FC = () => {
     },
     {
       target: 'a[href="/chatbot-management"]',
-      content: 'Manage your chatbots here.',
+      content: 'You can create/edit/delete the chatbots. Each chatbot has at least one index for Intention/QD/QQ, Intention index stores the chatbot intentions, QD index stores the knowledges, QQ index stores the FAQ.',
       disableBeacon: true,
     },
     {
       target: 'a[href="/intention"]',
-      content: 'Define your intentions here.',
+      content: 'Manage your intentions here. The intentions are uploaded via excel files, the chatbot will chat according to the intentions you provided, if no intention is provided, it will retrive knowledges by default.',
       disableBeacon: true,
     },
   ];
 
   const kbStep = {
     target: 'a[href="/library"]',
-    content: 'Access your document library here.',
+    content: 'You can create/update/delete knowledges. Choose index type as QD to inject a knowledge, and choose QQ index type to inject FAQ (only in excel format)',
     disableBeacon: true,
   };
 
   const promptsStep = {
     target: 'a[href="/prompts"]',
-    content: 'Manage your prompts here.',
+    content: 'Manage your prompts here. Conversation summary prompt will rewrite the queries in your chat history, RAG prompt is for how to use the retrieved knowledges to help LLM generate responses, tool calling prompt defines how the agent choose and invoke tools.',
     disableBeacon: true,
   };
 
@@ -74,7 +74,7 @@ const Home: React.FC = () => {
 
   const handleJoyrideCallback = (data: CallBackProps) => {
     const { status, action } = data;
-    if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status)) {
+    if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
       setRunTour(false);
       localStorage.setItem('tourCompleted', 'true');
     } else if (action === ACTIONS.START) {
@@ -106,7 +106,7 @@ const Home: React.FC = () => {
     },
     overlay: {
       backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      mixBlendMode: 'hard-light',
+      mixBlendMode: 'hard-light' as const,
       zIndex: 9998
     },
     tooltip: {
@@ -119,7 +119,7 @@ const Home: React.FC = () => {
       animation: 'fade-in 0.3s ease-in-out',
     },
     tooltipContainer: {
-      textAlign: 'left',
+      textAlign: 'left' as const,
       padding: '8px 0',
     },
     tooltipTitle: {
@@ -141,9 +141,6 @@ const Home: React.FC = () => {
       borderRadius: '4px',
       cursor: 'pointer',
       transition: 'background-color 0.2s ease',
-      '&:hover': {
-        backgroundColor: '#033160',
-      },
     },
     buttonBack: {
       color: '#5f6b7a',
@@ -155,9 +152,6 @@ const Home: React.FC = () => {
       border: 'none',
       cursor: 'pointer',
       transition: 'color 0.2s ease',
-      '&:hover': {
-        color: '#16191f',
-      },
     },
     buttonSkip: {
       color: '#5f6b7a',
@@ -167,9 +161,6 @@ const Home: React.FC = () => {
       border: 'none',
       cursor: 'pointer',
       transition: 'color 0.2s ease',
-      '&:hover': {
-        color: '#16191f',
-      },
     },
     spotlight: {
       backgroundColor: 'transparent',
@@ -179,17 +170,6 @@ const Home: React.FC = () => {
     },
     beacon: {
       display: 'none'
-    },
-    floaterStyles: {
-      arrow: {
-        length: 8,
-        margin: 4,
-      },
-      wrapper: {
-        padding: 0,
-        margin: 0,
-        transition: 'transform 0.2s ease-in-out',
-      }
     }
   };
 
@@ -216,7 +196,6 @@ const Home: React.FC = () => {
         callback={handleJoyrideCallback}
         run={runTour}
         scrollToFirstStep={true}
-        disableBeacon={true}
         disableOverlayClose={true}
         hideBackButton={false}
         spotlightClicks={false}
