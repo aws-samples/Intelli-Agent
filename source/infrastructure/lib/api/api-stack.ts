@@ -491,13 +491,13 @@ export class ApiConstruct extends Construct {
       });
       const apiResourceChatbotManagement = api.root.addResource("chatbot-management");
       // const chatbotResource = apiResourceChatbotManagement.addResource('chatbot');
-      const apiResourceCheckDefaultChatbot = apiResourceChatbotManagement.addResource('check-default-chatbot');
+      const apiResourceCheckDefaultChatbot = apiResourceChatbotManagement.addResource('default-chatbot');
       apiResourceCheckDefaultChatbot.addMethod("GET", lambdaChatbotIntegration, this.genMethodOption(api, auth, null));
       const apiResourceCheckChatbot = apiResourceChatbotManagement.addResource('check-chatbot');
       apiResourceCheckChatbot.addMethod("POST", lambdaChatbotIntegration, this.genMethodOption(api, auth, null));
       const apiResourceCheckIndex = apiResourceChatbotManagement.addResource('check-index');
       apiResourceCheckIndex.addMethod("POST", lambdaChatbotIntegration, this.genMethodOption(api, auth, null));
-      const apiResourceListIndex = apiResourceChatbotManagement.addResource('list-index');
+      const apiResourceListIndex = apiResourceChatbotManagement.addResource('indexes').addResource('{chatbotId}');
       apiResourceListIndex.addMethod("GET", lambdaChatbotIntegration, this.genMethodOption(api, auth, null));
       const apiResourceEditChatBot = apiResourceChatbotManagement.addResource('edit-chatbot');
       apiResourceEditChatBot.addMethod("POST", lambdaChatbotIntegration, this.genMethodOption(api, auth, null));

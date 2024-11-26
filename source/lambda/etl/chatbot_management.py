@@ -11,8 +11,7 @@ from constant import IndexType, EmbeddingModelType
 from utils.ddb_utils import (
     initiate_chatbot,
     initiate_index,
-    initiate_model,
-    is_chatbot_existed,
+    initiate_model
 )
 
 logger = logging.getLogger()
@@ -31,14 +30,14 @@ DEFAULT_SIZE = 50
 ROOT_RESOURCE = "/chatbot-management"
 # CHATBOT_RESOURCE = "/chatbot-management/chatbot"
 EMBEDDING_MODELS_RESOURCE = f"{ROOT_RESOURCE}/embeddings"
-INDEXES_RESOURCE = f"{ROOT_RESOURCE}/indexes"
+# INDEXES_RESOURCE = f"{ROOT_RESOURCE}/indexes"
 CHATBOTS_RESOURCE = f"{ROOT_RESOURCE}/chatbots"
 # DETAILS_RESOURCE = f"{ROOT_RESOURCE}/chatbot"
 CHATBOTCHECK_RESOURCE = f"{ROOT_RESOURCE}/check-chatbot"
 CHATBOTINDEXCHECK_RESOURCE = f"{ROOT_RESOURCE}/check-index"
-CHATBOTLISTINDEX_RESOURCE = f"{ROOT_RESOURCE}/list-index"
+CHATBOTLISTINDEX_RESOURCE = f"{ROOT_RESOURCE}/indexes"
 CHATBOTEDIT_RESOURCE = f"{ROOT_RESOURCE}/edit-chatbot"
-CHATBOTCHECK_DEFAULT = f"{ROOT_RESOURCE}/check-default-chatbot"
+CHATBOTCHECK_DEFAULT = f"{ROOT_RESOURCE}/default-chatbot"
 logger = logging.getLogger(__name__)
 encoder = TokenEncoder()
 
@@ -240,7 +239,7 @@ def lambda_handler(event, context):
         group_name = claims["cognito:groups"]  # Agree to only be in one group
     http_method = event["httpMethod"]
     resource: str = event["resource"]
-
+    output = {}
     if resource == EMBEDDING_MODELS_RESOURCE:
         output = __list_embedding_model()
     elif resource.startswith(CHATBOTS_RESOURCE):
@@ -261,7 +260,7 @@ def lambda_handler(event, context):
         output = __validate_index(event, group_name)
     elif resource == CHATBOTEDIT_RESOURCE:
         output = __edit_chatbot(event, group_name)
-    elif resource == CHATBOTLISTINDEX_RESOURCE:
+    elif resource.startswith(CHATBOTLISTINDEX_RESOURCE):
         output = __list_index(event, group_name)
 
     try:
@@ -373,7 +372,94 @@ def __edit_chatbot(event, group_name):
     }
 
 def __list_index(event, group_name):
-    return []
+    chatbot_id = event.get("path", "").split("/").pop()
+    max_items = __get_query_parameter(event, "MaxItems", DEFAULT_MAX_ITEMS)
+    page_size = __get_query_parameter(event, "PageSize", DEFAULT_SIZE)
+    starting_token = __get_query_parameter(event, "StartingToken")
+
+    config = {
+        "MaxItems": int(max_items),
+        "PageSize": int(page_size),
+        "StartingToken": starting_token,
+    }
+
+    chatbot_item = chatbot_table.get_item(
+            Key={"groupName": group_name, "chatbotId": chatbot_id}
+        ).get("Item")
+    chatbot_index_ids = chatbot_item.get("indexIds", {})
+    index_list = []
+    for key, value in chatbot_index_ids.items():
+        v = value.get('value',{})
+        # name = list(v.keys())[0]
+        for index in list(v.keys()):
+            index_detail = index_table.get_item(
+                Key={"groupName": group_name, "indexId": index}
+            ).get("Item")
+
+            index_list.append({
+                "name": index,
+                "type": key,
+                "description": index_detail.get("description", ""),
+                "tag": v.get(index)
+            })
+    output={}
+    # # Use query after adding a filter
+    # paginator = dynamodb_client.get_paginator("query")
+    # # chatbot->index->model
+    # response_iterator = paginator.paginate(
+    #     TableName=chatbot_table_name,
+    #     PaginationConfig=config,
+    #     KeyConditionExpression="groupName = :GroupName AND chatbotId = :ChatbotId",
+    #     ExpressionAttributeValues={":GroupName": {"S": group_name},":ChatbotId": {"S": chatbot_id}},
+    #     ScanIndexForward=False,
+    # )
+
+    # output = {}
+
+    # for page in response_iterator:
+    #     page_items = page["Items"]
+    #     page_json = []
+    #     for item in page_items:
+    #         item_json = {}
+    #         chatbot_index_ids = item.get("indexIds", {})
+    #         for key, value in chatbot_index_ids.items():
+    #             v = value.get('value',{})
+    #             # name = list(v.keys())[0]
+    #             for index in list(v.keys()):
+    #                 index_detail = index_table.get_item(
+    #                     Key={"groupName": group_name, "indexId": index}
+    #                 ).get("Item")
+
+    #                 page_json.append({
+    #                     "name": index,
+    #                     "type": key,
+    #                     "description": index_detail.get("description", ""),
+    #                     "tag": v.get(index)
+    #                 })
+    #         # item_json["ChatbotId"] = chatbot_id
+    #         # chatbot_model_item = model_table.get_item(
+    #         #     Key={
+    #         #         "groupName": group_name,
+    #         #         "modelId": f"{chatbot_id}-embedding",
+    #         #     }
+    #         # ).get("Item")
+    #         # item_json["ModelName"] = chatbot_model_item.get("parameter", {}).get(
+    #         #     "ModelEndpoint", ""
+    #         # )
+    #         # item_json["ModelId"] = chatbot_model_item.get("modelId", "")
+    #         # item_json["LastModifiedTime"] = item.get(
+    #         #     "updateTime", {"S": ""})["S"]
+    #         page_json.append(item_json)
+    #     output["Items"] = page_json
+    #     if "LastEvaluatedKey" in page:
+    #         output["LastEvaluatedKey"] = encoder.encode(
+    #             {"ExclusiveStartKey": page["LastEvaluatedKey"]}
+    #         )
+    #     break
+
+    output["Items"] = index_list
+    output["Count"] = len(index_list)
+    return output
 
 def __validate_default_chatbot(event, group_name):
     chatbot_item = chatbot_table.get_item(
