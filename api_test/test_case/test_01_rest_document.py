@@ -311,7 +311,7 @@ class TestDocument:
         '''test case'''
         param = openapi_client.AicusapicoDPw375iu4xb1(executionId=list(self.exeIdDict.values()))
         response = self.api_instance.knowledge_base_executions_delete(param)
-        assert response.message=="The deletion of specified documents has started", "test_23_delete_document test failed"
+        assert response.message=="Deletion process initiated", "test_23_delete_document test failed"
 
     # def test_24_upload_mismatch_document(self):
     #     '''test case'''

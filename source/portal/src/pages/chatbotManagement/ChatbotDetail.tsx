@@ -25,7 +25,8 @@ import {
   ChatbotDetailResponse,
   IndexItemTmp,
   SelectedOption,
-  CreEditChatbotResponse
+  CreEditChatbotResponse,
+  ChatbotIndexResponse
 } from 'src/types';
 import useAxiosRequest from 'src/hooks/useAxiosRequest';
 import { useTranslation } from 'react-i18next';
@@ -96,26 +97,31 @@ const ChatbotDetail: React.FC = () => {
   
   const getChatbotIndexes = async () =>{
     setLoadingData(true);
-    // setSelectedItems([]);
     const params = {
       max_items: 9999,
       page_size: 9999,
     };
     try {
       const data = await fetchData({
-        url: 'chatbot-management/chatbots',
+        url: `chatbot-management/indexes/${chatbotDetail.chatbotId}`,
         method: 'get',
         params,
       });
-      // const items: ChatbotResponse = data;
-      // const preSortItem = items.Items.map((chatbot) => {
-      //   return {
-      //     ...chatbot,
-      //     uuid: chatbot.ChatbotId,
-      //   };
-      // });
+      const items: ChatbotIndexResponse = data;
+      const preSortItem = items.Items.map((index) => {
+        return {
+          ...index,
+          status: "old",
+        };
+      });
       // setAllChatbotList(preSortItem);
-      // setTableChatbotList(preSortItem.slice(0, pageSize));
+      setChatbotDetail((prev)=>{
+           return {
+            ...prev,
+            index: preSortItem
+           }
+      })
+      setTableIndexList(preSortItem.slice(0, pageSize));
       setLoadingData(false);
     } catch (error: unknown) {
       setLoadingData(false);

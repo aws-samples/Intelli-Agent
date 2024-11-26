@@ -243,6 +243,12 @@ export type ChatbotResponse = {
   Count: number;
 };
 
+export type ChatbotIndexResponse = {
+  Items: IndexItem[];
+  Count: number;
+};
+
+
 export interface Chatbot {
   qd: string;
   qq: string;

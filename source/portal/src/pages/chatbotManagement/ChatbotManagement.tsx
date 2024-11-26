@@ -155,7 +155,7 @@ const INITIAL_INDEX_LIST: INDEX_TYPE[]=[{
 
   const isValidChatbot = async (type:string) =>{
     return await fetchData({
-      url: `chatbot-management/check-chatbot`,
+      url: 'chatbot-management/check-chatbot',
       method: 'post',
       data: {
         type,

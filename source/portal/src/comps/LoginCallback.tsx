@@ -16,7 +16,7 @@ const LoginCallback: React.FC = () => {
   const createDefaultChatBotIfNotExist = async () => {
     const groupName: string[] = auth?.user?.profile?.['cognito:groups'] as any;
     const existed = await fetchData({
-      url: 'chatbot-management/check-default-chatbot',
+      url: 'chatbot-management/default-chatbot',
       method: 'get'
     })
     if(existed){

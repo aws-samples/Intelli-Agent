@@ -29,7 +29,7 @@ import {
   RETAIL_GOODS_LIST,
 } from 'src/utils/const';
 import { v4 as uuidv4 } from 'uuid';
-import { MessageDataType, SelectedOption, SessionMessage } from 'src/types';
+import { MessageDataType, SessionMessage } from 'src/types';
 import { isValidJson } from 'src/utils/utils';
 
 interface MessageType {
