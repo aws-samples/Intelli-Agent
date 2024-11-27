@@ -91,3 +91,5 @@ export const EMBEDDING_MODEL_LIST = [
   {"model_id": "cohere.embed-english-v3", "model_name": "cohere.embed-english-v3"},
   {"model_id": "amazon.titan-embed-text-v1", "model_name": "amazon.titan-embed-text-v1"}
 ]
+
+export const RESOURCE_QQ_TEMPLATE = "https://ai-customer-service-resources.s3.us-west-2.amazonaws.com/qq_match_template.xlsx"
