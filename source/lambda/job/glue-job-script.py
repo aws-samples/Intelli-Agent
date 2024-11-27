@@ -150,6 +150,10 @@ def get_aws_auth():
         
     except sm_client.exceptions.ResourceNotFoundException:
         aws_auth = AWS4Auth(refreshable_credentials=credentials, region=region, service="es")
+    except sm_client.exceptions.InvalidRequestException:
+        logger.info("InvalidRequestException. It might caused by getting secret value from a deleting secret")
+        logger.info("Fallback to authentication with IAM")
+        aws_auth = AWS4Auth(refreshable_credentials=credentials, region=region, service="es")
     except Exception as e:
         logger.error(f"Error retrieving secret '{aos_secret}': {str(e)}")
         raise
