@@ -46,6 +46,10 @@ try:
 except sm_client.exceptions.ResourceNotFoundException:
     logger.info(f"Secret '{aos_secret}' not found in Secrets Manager")
     aos_client = LLMBotOpenSearchClient(aos_endpoint)
+except sm_client.exceptions.InvalidRequestException:
+    logger.info("InvalidRequestException. It might caused by getting secret value from a deleting secret")
+    logger.info("Fallback to authentication with IAM")
+    aos_client = LLMBotOpenSearchClient(aos_endpoint)
 except Exception as e:
     logger.error(f"Error retrieving secret '{aos_secret}': {str(e)}")
     raise
