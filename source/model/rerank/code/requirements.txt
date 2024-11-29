@@ -71,7 +71,7 @@ soupsieve==2.6
 threadpoolctl==3.5.0
 tokenizers==0.19.1
 torch==1.13.1+cu117
-tqdm==4.66.0
+tqdm==4.66.3
 transformers==4.44.2
 trec-car-tools==2.6
 triton==2.0.0.dev20221202
