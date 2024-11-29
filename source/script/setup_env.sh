@@ -6,7 +6,13 @@ sudo yum groupinstall "Development Tools" -y
 sudo yum install python3 -y
 sudo yum install python3-pip -y
 # Install Node.js and npm
-sudo yum install nodejs npm -y
+node_version="v22.11.0"
+file_name="node-${node_version}-linux-x64"
+wget "https://nodejs.org/dist/${node_version}/${file_name}.tar.xz"
+sudo tar xvf "${file_name}.tar.xz" --directory=/usr/local
+sudo mv "/usr/local/${file_name}" /usr/local/nodejs
+sudo ln -sf /usr/local/nodejs/bin/node /usr/bin/node
+sudo ln -sf /usr/local/nodejs/bin/npm /usr/bin/npm
 # Install AWS CLI
 pip3 install awscli
 # Install Docker
