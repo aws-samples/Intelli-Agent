@@ -84,7 +84,7 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
     this.dynamodbStatement = createKnowledgeBaseTablesAndPoliciesResult.dynamodbStatement;
 
     this.sfnOutput = this.createKnowledgeBaseJob(props);
-    
+
   }
 
   private createKnowledgeBaseTablesAndPolicies(props: any) {
@@ -153,7 +153,7 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
 
     // If this.region is cn-north-1 or cn-northwest-1, use the glue-job-script-cn.py
     const glueJobScript = "glue-job-script.py";
-    
+
 
     const extraPythonFiles = new s3deploy.BucketDeployment(
       this,
@@ -172,9 +172,9 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
     const extraPythonFilesList = [
       this.glueLibS3Bucket.s3UrlForObject("llm_bot_dep-0.1.0-py3-none-any.whl"),
     ].join(",");
-  
 
-  
+
+
     const glueRole = new iam.Role(this, "ETLGlueJobRole", {
       assumedBy: new iam.ServicePrincipal("glue.amazonaws.com"),
       // The role is used by the glue job to access AOS and by default it has 1 hour session duration which is not enough for the glue job to finish the embedding injection
@@ -233,7 +233,7 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
         "--PORTAL_BUCKET": this.uiPortalBucketName,
         "--CHATBOT_TABLE": props.sharedConstructOutputs.chatbotTable.tableName,
         "--additional-python-modules":
-          "langchain==0.1.11,beautifulsoup4==4.12.2,requests-aws4auth==1.2.3,boto3==1.28.84,openai==0.28.1,pyOpenSSL==23.3.0,tenacity==8.2.3,markdownify==0.11.6,mammoth==1.6.0,chardet==5.2.0,python-docx==1.1.0,nltk==3.8.1,pdfminer.six==20221105,smart-open==7.0.4,lxml==5.2.2,pandas==2.1.2,openpyxl==3.1.5,xlrd==2.0.1",
+          "langchain==0.3.7,beautifulsoup4==4.12.2,requests-aws4auth==1.2.2,boto3==1.28.84,openai==0.28.1,pyOpenSSL==23.3.0,tenacity==8.2.3,markdownify==0.11.6,mammoth==1.6.0,chardet==5.2.0,python-docx==1.1.0,nltk==3.8.1,pdfminer.six==20221105,smart-open==7.0.4,opensearch-py==2.2.0,lxml==5.2.2,pandas==2.1.2,openpyxl==3.1.5,xlrd==2.0.1,langchain_community==0.3.5",
         // Add multiple extra python files
         "--extra-py-files": extraPythonFilesList
       },
@@ -367,6 +367,7 @@ export class KnowledgeBaseStack extends NestedStack implements KnowledgeBaseStac
       message: sfn.TaskInput.fromObject({
         "executionId.$": "$.tableItemId",
         "mapResults.$": "$.mapResults",
+        "operationType.$": "$.operationType",
       }),
     });
 

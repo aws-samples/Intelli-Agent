@@ -10,11 +10,13 @@ from common_logic.common_utils.constant import (
     IndexType,
     LLMModelType,
     SceneType,
+    Threshold
 )
 
 from common_logic.common_utils.logger_utils import get_logger
 from common_logic.common_utils.python_utils import update_nest_dict
 from pydantic import BaseModel, ConfigDict, Field
+
 
 logger = get_logger("pydantic_models")
 
@@ -27,6 +29,7 @@ class ForbidBaseModel(BaseModel):
 class AllowBaseModel(BaseModel):
     class Config:
         extra = "allow"
+        use_enum_values = True
 
 
 class LLMConfig(AllowBaseModel):
@@ -34,9 +37,12 @@ class LLMConfig(AllowBaseModel):
     model_kwargs: dict = {"temperature": 0.01, "max_tokens": 4096}
 
 
+class QueryRewriteConfig(LLMConfig):
+    rewrite_first_message: bool = False
+
 class QueryProcessConfig(ForbidBaseModel):
-    conversation_query_rewrite_config: LLMConfig = Field(
-        default_factory=LLMConfig)
+    conversation_query_rewrite_config: QueryRewriteConfig = Field(
+        default_factory=QueryRewriteConfig)
 
 
 class RetrieverConfigBase(AllowBaseModel):
@@ -65,7 +71,9 @@ class PrivateKnowledgeRetrieverConfig(RetrieverConfigBase):
 
 class IntentionConfig(ForbidBaseModel):
     retrievers: list[IntentionRetrieverConfig] = Field(default_factory=list)
-
+    intent_threshold: float = Threshold.INTENTION_THRESHOLD
+    all_knowledge_in_agent_threshold: float = Threshold.ALL_KNOWLEDGE_IN_AGENT_THRESHOLD
+    
 
 class RerankConfig(AllowBaseModel):
     endpoint_name: str = None
@@ -75,7 +83,8 @@ class RerankConfig(AllowBaseModel):
 class QQMatchConfig(ForbidBaseModel):
     retrievers: list[QQMatchRetrieverConfig] = Field(default_factory=list)
     reranks: list[RerankConfig] = Field(default_factory=list)
-    threshold: float = 0.9
+    qq_match_threshold: float = 0.9
+    qq_in_rag_context_threshold: float = Threshold.QQ_IN_RAG_CONTEXT_THRESHOLD
 
 
 class RagToolConfig(AllowBaseModel):
@@ -87,7 +96,7 @@ class RagToolConfig(AllowBaseModel):
 
 class AgentConfig(ForbidBaseModel):
     llm_config: LLMConfig = Field(default_factory=LLMConfig)
-    tools: list[str] = Field(default_factory=list)
+    tools: list[Union[str, dict]] = Field(default_factory=list)
     only_use_rag_tool: bool = False
 
 
@@ -113,7 +122,7 @@ class ChatbotConfig(AllowBaseModel):
     private_knowledge_config: PrivateKnowledgeConfig = Field(
         default_factory=PrivateKnowledgeConfig
     )
-    tools_config: dict[str, Any] = Field(default_factory=dict)
+    # tools_config: dict[str, Any] = Field(default_factory=dict)
 
     def update_llm_config(self, new_llm_config: dict):
         """unified update llm config
@@ -177,8 +186,7 @@ class ChatbotConfig(AllowBaseModel):
                 cls.format_index_info(info)
                 for info in list(index_info["value"].values())
             ]
-            infos[index_type] = {info["index_name"]
-                : info for info in info_list}
+            infos[index_type] = {info["index_name"]                                 : info for info in info_list}
 
         for index_type in IndexType.all_values():
             if index_type not in infos:
@@ -193,17 +201,18 @@ class ChatbotConfig(AllowBaseModel):
     ):
         index_infos = self.get_index_infos_from_ddb(
             self.group_name, self.chatbot_id)
-        print(f"index_infos: {index_infos}")
-        print(f"default_index_names: {default_index_names}")
-        print(f"default_retriever_config: {default_retriever_config}")
+        logger.info(f"index_infos: {index_infos}")
+        logger.info(f"default_index_names: {default_index_names}")
+        logger.info(f"default_retriever_config: {default_retriever_config}")
         for task_name, index_names in default_index_names.items():
-            assert task_name in ("qq_match", "intention", "private_knowledge")
             if task_name == "qq_match":
                 index_type = IndexType.QQ
             elif task_name == "intention":
                 index_type = IndexType.INTENTION
             elif task_name == "private_knowledge":
                 index_type = IndexType.QD
+            else:
+                raise ValueError(f"Invalid task_name: {task_name}")
 
             # default to use all index
             if not index_names:

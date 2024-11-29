@@ -148,7 +148,10 @@ const devEnv = {
 };
 
 const app = new App();
-const stackName = `${config.prefix}ai-customer-service`;
+let stackName = "ai-customer-service"
+if(config.prefix && config.prefix.trim().length > 0){
+  stackName = `${config.prefix}-ai-customer-service`;
+}
 new RootStack(app, stackName, { config, env: devEnv, suppressTemplateIndentation: true });
 
 app.synth();

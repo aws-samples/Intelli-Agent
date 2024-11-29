@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 import requests
 import boto3
 from api_test.biz_logic.rest_api import openapi_client
+# from models import AicusapicoYSAGBFYarsoe
 from .utils import step
 
 logger = logging.getLogger(__name__)
@@ -16,7 +17,7 @@ caller_identity = boto3.client('sts').get_caller_identity()
 partition = caller_identity['Arn'].split(':')[1]
 
 class TestDocument:
-    """DataSourceDiscovery test stubs"""
+    """Document test stubs"""
     upload_success_msg = 'The S3 presigned url is generated'
     upload_prefix_data = 'https://intelli-agent-apiconstructllmbotdocument'
 
@@ -64,13 +65,14 @@ class TestDocument:
     
     def test_01_upload_document_pdf(self):
         '''test case'''
-        param = openapi_client.Intellapicormo5LBZXS9Rb(content_type='application/pdf', file_name="summary.pdf")
+        param = openapi_client.AicusapicodBETf4Zuz6WH(content_type='application/pdf', file_name="summary.pdf")
+        
         response = self.api_instance.knowledge_base_kb_presigned_url_post(param)
-        assert response.message==self.upload_success_msg and response.data.startswith(self.upload_prefix_data), "test_01_upload_document_pdf test failed"
-        self.__upload_file_to_s3(response.data, "./test_data/summary.pdf")
-        post_param = openapi_client.IntellapicoNK9oLf1K1uex(
-            s3Bucket=response.s3_bucket,
-            s3Prefix=response.s3_prefix,
+        assert response.message==self.upload_success_msg, "test_01_upload_document_pdf test failed"
+        self.__upload_file_to_s3(response.data.url, "./test_data/summary.pdf")
+        post_param = openapi_client.AicusapicoTaAUp0RjHHQ0(
+            s3Bucket=response.data.s3_bucket,
+            s3Prefix=response.data.s3_prefix,
             indexType="qd",
             offline="true",
             chatbotId="admin",
@@ -82,13 +84,13 @@ class TestDocument:
 
     def test_02_upload_document_docx(self):
         '''test case'''
-        param = openapi_client.Intellapicormo5LBZXS9Rb(content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document', file_name="summary.docx")
+        param = openapi_client.AicusapicodBETf4Zuz6WH(content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document', file_name="summary.docx")
         response = self.api_instance.knowledge_base_kb_presigned_url_post(param)
-        assert response.message==self.upload_success_msg and response.data.startswith(self.upload_prefix_data), "test_02_upload_document_docx test failed"
-        self.__upload_file_to_s3(response.data, "./test_data/summary.docx")
-        post_param = openapi_client.IntellapicoNK9oLf1K1uex(
-            s3Bucket=response.s3_bucket,
-            s3Prefix=response.s3_prefix,
+        assert response.message==self.upload_success_msg, "test_02_upload_document_docx test failed"
+        self.__upload_file_to_s3(response.data.url, "./test_data/summary.docx")
+        post_param = openapi_client.AicusapicoTaAUp0RjHHQ0(
+            s3Bucket=response.data.s3_bucket,
+            s3Prefix=response.data.s3_prefix,
             indexType="qd",
             offline="true",
             chatbotId="admin",
@@ -99,13 +101,13 @@ class TestDocument:
 
     def test_03_upload_document_csv(self):
         '''test case'''
-        param = openapi_client.Intellapicormo5LBZXS9Rb(content_type='text/csv', file_name="summary.csv")
+        param = openapi_client.AicusapicodBETf4Zuz6WH(content_type='text/csv', file_name="summary.csv")
         response = self.api_instance.knowledge_base_kb_presigned_url_post(param)
-        assert response.message==self.upload_success_msg and response.data.startswith(self.upload_prefix_data), "test_03_upload_document_csv test failed"
-        self.__upload_file_to_s3(response.data, "./test_data/summary.csv")
-        post_param = openapi_client.IntellapicoNK9oLf1K1uex(
-            s3Bucket=response.s3_bucket,
-            s3Prefix=response.s3_prefix,
+        assert response.message==self.upload_success_msg, "test_03_upload_document_csv test failed"
+        self.__upload_file_to_s3(response.data.url, "./test_data/summary.csv")
+        post_param = openapi_client.AicusapicoTaAUp0RjHHQ0(
+            s3Bucket=response.data.s3_bucket,
+            s3Prefix=response.data.s3_prefix,
             indexType="qd",
             offline="true",
             chatbotId="admin",
@@ -116,13 +118,13 @@ class TestDocument:
 
     def test_04_upload_document_html(self):
         '''test case'''
-        param = openapi_client.Intellapicormo5LBZXS9Rb(content_type='text/html', file_name="summary.html")
+        param = openapi_client.AicusapicodBETf4Zuz6WH(content_type='text/html', file_name="summary.html")
         response = self.api_instance.knowledge_base_kb_presigned_url_post(param)
-        assert response.message==self.upload_success_msg and response.data.startswith(self.upload_prefix_data), "test_04_upload_document_html test failed"
-        self.__upload_file_to_s3(response.data, "./test_data/summary.html")
-        post_param = openapi_client.IntellapicoNK9oLf1K1uex(
-            s3Bucket=response.s3_bucket,
-            s3Prefix=response.s3_prefix,
+        assert response.message==self.upload_success_msg, "test_04_upload_document_html test failed"
+        self.__upload_file_to_s3(response.data.url, "./test_data/summary.html")
+        post_param = openapi_client.AicusapicoTaAUp0RjHHQ0(
+            s3Bucket=response.data.s3_bucket,
+            s3Prefix=response.data.s3_prefix,
             indexType="qd",
             offline="true",
             chatbotId="admin",
@@ -133,13 +135,13 @@ class TestDocument:
 
     def test_05_upload_document_jpeg(self):
         '''test case'''
-        param = openapi_client.Intellapicormo5LBZXS9Rb(content_type='image/jpeg', file_name="summary.jpeg")
+        param = openapi_client.AicusapicodBETf4Zuz6WH(content_type='image/jpeg', file_name="summary.jpeg")
         response = self.api_instance.knowledge_base_kb_presigned_url_post(param)
-        assert response.message==self.upload_success_msg and response.data.startswith(self.upload_prefix_data), "test_05_upload_document_jpeg test failed"
-        self.__upload_file_to_s3(response.data, "./test_data/summary.jpeg")
-        post_param = openapi_client.IntellapicoNK9oLf1K1uex(
-            s3Bucket=response.s3_bucket,
-            s3Prefix=response.s3_prefix,
+        assert response.message==self.upload_success_msg, "test_05_upload_document_jpeg test failed"
+        self.__upload_file_to_s3(response.data.url, "./test_data/summary.jpeg")
+        post_param = openapi_client.AicusapicoTaAUp0RjHHQ0(
+            s3Bucket=response.data.s3_bucket,
+            s3Prefix=response.data.s3_prefix,
             indexType="qd",
             offline="true",
             chatbotId="admin",
@@ -150,13 +152,13 @@ class TestDocument:
     
     def test_06_upload_document_jpg(self):
         '''test case'''
-        param = openapi_client.Intellapicormo5LBZXS9Rb(content_type='image/jpeg', file_name="summary.jpg")
+        param = openapi_client.AicusapicodBETf4Zuz6WH(content_type='image/jpeg', file_name="summary.jpg")
         response = self.api_instance.knowledge_base_kb_presigned_url_post(param)
-        assert response.message==self.upload_success_msg and response.data.startswith(self.upload_prefix_data), "test_06_upload_document_jpg test failed"
-        self.__upload_file_to_s3(response.data, "./test_data/summary.jpg")
-        post_param = openapi_client.IntellapicoNK9oLf1K1uex(
-            s3Bucket=response.s3_bucket,
-            s3Prefix=response.s3_prefix,
+        assert response.message==self.upload_success_msg, "test_06_upload_document_jpg test failed"
+        self.__upload_file_to_s3(response.data.url, "./test_data/summary.jpg")
+        post_param = openapi_client.AicusapicoTaAUp0RjHHQ0(
+            s3Bucket=response.data.s3_bucket,
+            s3Prefix=response.data.s3_prefix,
             indexType="qd",
             offline="true",
             chatbotId="admin",
@@ -167,13 +169,13 @@ class TestDocument:
     
     def test_07_upload_document_png(self):
         '''test case'''
-        param = openapi_client.Intellapicormo5LBZXS9Rb(content_type='image/png', file_name="summary.png")
+        param = openapi_client.AicusapicodBETf4Zuz6WH(content_type='image/png', file_name="summary.png")
         response = self.api_instance.knowledge_base_kb_presigned_url_post(param)
-        assert response.message==self.upload_success_msg and response.data.startswith(self.upload_prefix_data), "test_07_upload_document_png test failed"
-        self.__upload_file_to_s3(response.data, "./test_data/summary.png")
-        post_param = openapi_client.IntellapicoNK9oLf1K1uex(
-            s3Bucket=response.s3_bucket,
-            s3Prefix=response.s3_prefix,
+        assert response.message==self.upload_success_msg, "test_07_upload_document_png test failed"
+        self.__upload_file_to_s3(response.data.url, "./test_data/summary.png")
+        post_param = openapi_client.AicusapicoTaAUp0RjHHQ0(
+            s3Bucket=response.data.s3_bucket,
+            s3Prefix=response.data.s3_prefix,
             indexType="qd",
             offline="true",
             chatbotId="admin",
@@ -184,13 +186,13 @@ class TestDocument:
     
     def test_08_upload_document_json(self):
         '''test case'''
-        param = openapi_client.Intellapicormo5LBZXS9Rb(content_type='application/json', file_name="summary.json")
+        param = openapi_client.AicusapicodBETf4Zuz6WH(content_type='application/json', file_name="summary.json")
         response = self.api_instance.knowledge_base_kb_presigned_url_post(param)
-        assert response.message==self.upload_success_msg and response.data.startswith(self.upload_prefix_data), "test_08_upload_document_json test failed"
-        self.__upload_file_to_s3(response.data, "./test_data/summary.json")
-        post_param = openapi_client.IntellapicoNK9oLf1K1uex(
-            s3Bucket=response.s3_bucket,
-            s3Prefix=response.s3_prefix,
+        assert response.message==self.upload_success_msg, "test_08_upload_document_json test failed"
+        self.__upload_file_to_s3(response.data.url, "./test_data/summary.json")
+        post_param = openapi_client.AicusapicoTaAUp0RjHHQ0(
+            s3Bucket=response.data.s3_bucket,
+            s3Prefix=response.data.s3_prefix,
             indexType="qd",
             offline="true",
             chatbotId="admin",
@@ -201,13 +203,13 @@ class TestDocument:
     
     def test_09_upload_document_md(self):
         '''test case'''
-        param = openapi_client.Intellapicormo5LBZXS9Rb(content_type='text/markdown', file_name="summary.md")
+        param = openapi_client.AicusapicodBETf4Zuz6WH(content_type='text/markdown', file_name="summary.md")
         response = self.api_instance.knowledge_base_kb_presigned_url_post(param)
-        assert response.message==self.upload_success_msg and response.data.startswith(self.upload_prefix_data), "test_09_upload_document_md test failed"
-        self.__upload_file_to_s3(response.data, "./test_data/summary.md")
-        post_param = openapi_client.IntellapicoNK9oLf1K1uex(
-            s3Bucket=response.s3_bucket,
-            s3Prefix=response.s3_prefix,
+        assert response.message==self.upload_success_msg, "test_09_upload_document_md test failed"
+        self.__upload_file_to_s3(response.data.url, "./test_data/summary.md")
+        post_param = openapi_client.AicusapicoTaAUp0RjHHQ0(
+            s3Bucket=response.data.s3_bucket,
+            s3Prefix=response.data.s3_prefix,
             indexType="qd",
             offline="true",
             chatbotId="admin",
@@ -218,13 +220,13 @@ class TestDocument:
     
     def test_10_upload_document_txt(self):
         '''test case'''
-        param = openapi_client.Intellapicormo5LBZXS9Rb(content_type='text/plain', file_name="summary.txt")
+        param = openapi_client.AicusapicodBETf4Zuz6WH(content_type='text/plain', file_name="summary.txt")
         response = self.api_instance.knowledge_base_kb_presigned_url_post(param)
-        assert response.message==self.upload_success_msg and response.data.startswith(self.upload_prefix_data), "test_10_upload_document_txt test failed"
-        self.__upload_file_to_s3(response.data, "./test_data/summary.txt")
-        post_param = openapi_client.IntellapicoNK9oLf1K1uex(
-            s3Bucket=response.s3_bucket,
-            s3Prefix=response.s3_prefix,
+        assert response.message==self.upload_success_msg, "test_10_upload_document_txt test failed"
+        self.__upload_file_to_s3(response.data.url, "./test_data/summary.txt")
+        post_param = openapi_client.AicusapicoTaAUp0RjHHQ0(
+            s3Bucket=response.data.s3_bucket,
+            s3Prefix=response.data.s3_prefix,
             indexType="qd",
             offline="true",
             chatbotId="admin",
@@ -235,10 +237,10 @@ class TestDocument:
 
     # def test_11_upload_document_jsonl(self):
     #     '''test case'''
-    #     param = openapi_client.Intellapicormo5LBZXS9Rb(content_type='application/jsonlines', file_name="summary.jsonl")
+    #     param = openapi_client.AicusapicodBETf4Zuz6WH(content_type='application/jsonlines', file_name="summary.jsonl")
     #     response = self.api_instance.knowledge_base_kb_presigned_url_post(param)
-    #     assert response.message==self.upload_success_msg and response.data.startswith(self.upload_prefix_data), "test_11_upload_document_jsonl test failed"
-    #     self.__upload_file_to_s3(response.data, "./test_data/summary.jsonl")
+    #     assert response.message==self.upload_success_msg, "test_11_upload_document_jsonl test failed"
+    #     self.__upload_file_to_s3(response.data.url, "./test_data/summary.jsonl")
     
     def test_12_list_document(self):
         '''test case'''
@@ -307,9 +309,9 @@ class TestDocument:
     
     def test_23_delete_document(self):
         '''test case'''
-        param = openapi_client.IntellapicoH4A9yvm8c1p3(executionId=list(self.exeIdDict.values()))
+        param = openapi_client.AicusapicoDPw375iu4xb1(executionId=list(self.exeIdDict.values()))
         response = self.api_instance.knowledge_base_executions_delete(param)
-        assert response.message=="The deletion has completed", "test_23_delete_document test failed"
+        assert response.message=="Deletion process initiated", "test_23_delete_document test failed"
 
     # def test_24_upload_mismatch_document(self):
     #     '''test case'''

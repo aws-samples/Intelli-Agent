@@ -1,7 +1,8 @@
 import os
 import re
 
-SERVICE_NAME_PATH = os.path.join(os.path.dirname(__file__), "service_names.txt")
+SERVICE_NAME_PATH = os.path.join(
+    os.path.dirname(__file__), "service_names.txt")
 
 SERVICE_NAMES = None
 SERVICE_NAMES_UPPER = None

@@ -20,7 +20,7 @@ caller_identity = boto3.client('sts').get_caller_identity()
 partition = caller_identity['Arn'].split(':')[1]
 
 class TestPrompt:
-    """DataSourceDiscovery test stubs"""
+    """Prompt test stubs"""
 
     @classmethod
     def setup_class(cls):

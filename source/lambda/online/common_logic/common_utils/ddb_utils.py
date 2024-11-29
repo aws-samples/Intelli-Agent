@@ -7,8 +7,8 @@ import boto3
 from botocore.exceptions import ClientError
 from langchain.schema import BaseChatMessageHistory
 from langchain.schema.messages import BaseMessage
-
-from .constant import MessageType
+from common_logic.common_utils.chatbot_utils import ChatbotManager
+from .constant import MessageType, IndexType, INDEX_DESC
 
 client = boto3.resource("dynamodb")
 
@@ -245,3 +245,15 @@ def filter_chat_history_by_time(
             selected_indexes.append(end_index + 1)
     ret = [chat_history[i] for i in selected_indexes]
     return ret
+
+
+def custom_index_desc(group_name: str, chatbot_id: str):
+    chatbot_manager = ChatbotManager.from_environ()
+    chatbot = chatbot_manager.get_chatbot(group_name, chatbot_id)
+    qd_index_dict = chatbot.index_ids.get(IndexType.QD, {}).get("value", {})
+
+    for value in qd_index_dict.values():
+        if "description" in value and value["description"] != INDEX_DESC:
+            return True
+
+    return False

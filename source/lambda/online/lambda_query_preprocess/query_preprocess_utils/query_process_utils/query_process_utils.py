@@ -145,7 +145,7 @@ def get_query_process_chain(chat_history, query_process_config, message_id=None)
     query_process_chain = preprocess_chain
     query_process_chain = (
         conversation_query_rewrite_chain | preprocess_chain
-    )  #  | stepback_promping_chain
+    )  # | stepback_promping_chain
 
     query_process_chain = chain_logger(
         query_process_chain, "query process module", message_id=message_id
