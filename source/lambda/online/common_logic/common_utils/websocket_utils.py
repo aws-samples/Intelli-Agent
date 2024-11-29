@@ -27,10 +27,12 @@ def is_websocket_request(event):
     else:
         return False
 
+
 def load_ws_client(websocket_url):
     global ws_client
     if ws_client is None:
-        ws_client = boto3.client("apigatewaymanagementapi", endpoint_url=websocket_url)
+        ws_client = boto3.client(
+            "apigatewaymanagementapi", endpoint_url=websocket_url)
     return ws_client
 
 
@@ -39,4 +41,3 @@ def send_to_ws_client(message: dict, ws_connection_id):
         ConnectionId=ws_connection_id,
         Data=json.dumps(message).encode("utf-8"),
     )
-

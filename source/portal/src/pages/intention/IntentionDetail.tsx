@@ -26,6 +26,7 @@ const IntentionDetail: React.FC = () => {
   const pageSize = 10;
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuestionName, setSearchQuestionName] = useState("")
+  const [pageCount, setPageCount] = useState(1)
   const [loadingData, setLoadingData] = useState(false);
   const [executionFileList, setExecutionFileList] = useState<
     IntentionExecutionItem[]
@@ -38,13 +39,18 @@ const IntentionDetail: React.FC = () => {
   const { id } = useParams();
 
   useEffect(() => {
+    let list = executionFileList[0]?.QAList
+    if(searchQuestionName!=null && searchQuestionName.length > 0){
+        list = list?.filter(item => item.question.indexOf(searchQuestionName)>-1);
+    }
+    setPageCount(Math.ceil(list?.length / pageSize))
     setTableQAList(
-      executionFileList[0]?.QAList.slice(
+      list?.slice(
         (currentPage - 1) * pageSize,
         currentPage * pageSize,
       ),
     );
-  }, [currentPage, pageSize]);
+  }, [currentPage, pageSize, searchQuestionName]);
 
   const getIntentionDetail = async () => {
     setLoadingData(true);
@@ -54,40 +60,6 @@ const IntentionDetail: React.FC = () => {
         method: 'get',
       });
       const executionRes: IntentionExecutionResponse = data;
-      // const executionRes: IntentionExecutionResponse = {
-      //     Items:[{
-      //          "s3Prefix": "intentions/Admin/基于周会讨论的QA对.xlsx",
-      //          "s3Bucket": "intelli-agent-apiconstructllmbotdocumentsfc4f8a7a-6vbr3vihybqs",
-      //          "createTime": "2022-08-21 17:28:32",
-      //          "executionId": "2ed65d3d-3d78-4557-917f-a8fe4c65276f",
-      //          "s3Path": "s3://intelli-agent-apiconstructllmbotdocumentsfc4f8a7a-6vbr3vihybqs/intentions/Admin/基于周会讨论的QA对.xlsx",
-      //          "status": "SUCCEED",
-      //          "QAList": [
-      //             {"question": "Hi", "answer": "greeting", "kwargs": ""},
-      //             {"question": "HI ADMIN", "answer": "greeting", "kwargs": ""},
-      //             {"question": "你好", "answer": "greeting", "kwargs": ""},
-      //             {"question": "My name is Jack", "answer": "greeting", "kwargs": ""},
-      //             {"question": "good afternoon", "answer": "greeting", "kwargs": ""},
-      //             {"question": "签署公会线下合作协议注意事项", "answer": "general-rag", "kwargs": ""},
-      //             {"question": "公会承诺保底/底薪需注意哪些", "answer": "general-rag", "kwargs": ""},
-      //             {"question": "从当前公会换到其他公会的操作流程", "answer": "general-rag", "kwargs": ""},
-      //             {"question": "公会承诺可避税的可信度", "answer": "general-rag", "kwargs": ""},
-      //             {"question": "公会承诺提供黑产服务的合规性", "answer": "general-rag", "kwargs": ""},
-      //             {"question": "使用公会提供账号直播的风险", "answer": "general-rag", "kwargs": ""},
-      //             {"question": "签署《主播及公会合作协议》的作用", "answer": "general-rag", "kwargs": ""},
-      //             {"question": "主播退出当前公会的渠道", "answer": "general-rag", "kwargs": ""},
-      //             {"question": "公会招募未成年主播的应对措施", "answer": "general-rag", "kwargs": ""},
-      //             {"question": "公会教唆主播进行违规行为的处理方式", "answer": "general-rag", "kwargs": ""},
-      //             {"question": "Ur game is not good", "answer": "comfort", "kwargs": ""},
-      //             {"question": "Scaming to me", "answer": "comfort", "kwargs": ""},
-      //             {"question": "your games is not fair, I never recommend your apps to anyone.", "answer": "comfort", "kwargs": ""},
-      //             {"question": "All games im lost a lot of coins", "answer": "comfort", "kwargs": ""},
-      //             {"question": "always lose. Waste of money", "answer": "comfort", "kwargs": ""},
-      //             {"question": "What is the weather like in Shanghai today", "answer": "get_weather", "kwargs": "{\"city_name\": \"shanghai\"}"}
-      //         ]
-      //     }],
-      //     Count: 1
-      // }
       setExecutionFileList(executionRes.Items);
       setTableQAList(executionRes.Items[0]?.QAList.slice(0, pageSize));
       setLoadingData(false);
@@ -246,7 +218,9 @@ const IntentionDetail: React.FC = () => {
         <Pagination
               disabled={loadingData}
               currentPageIndex={currentPage}
-              pagesCount={Math.ceil(executionFileList[0]?.QAList?.length / pageSize)}
+              pagesCount={
+                pageCount
+              }
               onChange={({ detail }) => setCurrentPage(detail.currentPageIndex)}
             />
       }

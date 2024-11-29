@@ -75,6 +75,12 @@ except sm_client.exceptions.ResourceNotFoundException:
     aos_client = LLMBotOpenSearchClient(aos_endpoint).client
     awsauth = AWS4Auth(refreshable_credentials=credentials,
                    region=region, service="es")
+except sm_client.exceptions.InvalidRequestException:
+    logger.info("InvalidRequestException. It might caused by getting secret value from a deleting secret")
+    logger.info("Fallback to authentication with IAM")
+    aos_client = LLMBotOpenSearchClient(aos_endpoint).client
+    awsauth = AWS4Auth(refreshable_credentials=credentials,
+                   region=region, service="es")
 except Exception as err:
     logger.error("Error retrieving secret '%s': %s", aos_secret, str(err))
     raise
@@ -495,7 +501,8 @@ def __append_embeddings(index, modelId, qaList: list):
         question = item["question"]
         embedding_func = BedrockEmbeddings(
             client=bedrock_client,
-            model_id=modelId
+            model_id=modelId,
+            normalize=True
         )
 
         embeddings_vectors = embedding_func.embed_documents(

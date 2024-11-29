@@ -129,7 +129,8 @@ def auto_intention_recoginition_chain(
     )
 
     chain = intent_type_chain | RunnableBranch(
-        (lambda x: x["intent_type"] == IntentType.KNOWLEDGE_QA.value, sub_intent_chain),
+        (lambda x: x["intent_type"] ==
+         IntentType.KNOWLEDGE_QA.value, sub_intent_chain),
         RunnablePassthrough(),
     )
 

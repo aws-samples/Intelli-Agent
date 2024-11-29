@@ -8,22 +8,23 @@ from common_logic.common_utils.constant import StreamMessageType
 from common_logic.common_utils.logger_utils import get_logger
 logger = get_logger("response_utils")
 
+
 class WebsocketClientError(Exception):
     pass
 
 
 def write_chat_history_to_ddb(
-        query:str,
-        answer:str,
-        ddb_obj:DynamoDBChatMessageHistory,
+        query: str,
+        answer: str,
+        ddb_obj: DynamoDBChatMessageHistory,
         message_id,
         custom_message_id,
         entry_type,
         additional_kwargs=None,
-        ):
+):
     ddb_obj.add_user_message(
-                f"user_{message_id}", custom_message_id, entry_type, query, additional_kwargs
-            )
+        f"user_{message_id}", custom_message_id, entry_type, query, additional_kwargs
+    )
     ddb_obj.add_ai_message(
         f"ai_{message_id}",
         custom_message_id,
@@ -51,27 +52,27 @@ def api_response(event_body: dict, response: dict):
     )
 
     return {
-            "session_id": event_body['session_id'],
-            "entry_type": event_body['entry_type'],
-            "created": time.time(),
-            "total_time": time.time()-event_body["request_timestamp"],
-            "message": {
-                "role": "assistant",
-                "content": answer
-            },
-            **response['extra_response']
+        "session_id": event_body['session_id'],
+        "entry_type": event_body['entry_type'],
+        "created": time.time(),
+        "total_time": time.time()-event_body["request_timestamp"],
+        "message": {
+            "role": "assistant",
+            "content": answer
+        },
+        **response['extra_response']
     }
 
 
-def stream_response(event_body:dict, response:dict):
+def stream_response(event_body: dict, response: dict):
     request_timestamp = event_body["request_timestamp"]
     entry_type = event_body["entry_type"]
     message_id = event_body["message_id"]
-    log_first_token_time = True 
+    log_first_token_time = True
     ws_connection_id = event_body["ws_connection_id"]
     custom_message_id = event_body["custom_message_id"]
     answer = response["answer"]
-    figure = response.get("ddb_additional_kwargs").get("figure")
+    figure = response.get("ddb_additional_kwargs", {}).get("figure")
     if isinstance(answer, str):
         answer = iter([answer])
 
@@ -79,10 +80,10 @@ def stream_response(event_body:dict, response:dict):
 
     try:
         send_to_ws_client(message={
-                "message_type": StreamMessageType.START,
-                "message_id": f"ai_{message_id}",
-                "custom_message_id": custom_message_id,
-            },
+            "message_type": StreamMessageType.START,
+            "message_id": f"ai_{message_id}",
+            "custom_message_id": custom_message_id,
+        },
             ws_connection_id=ws_connection_id
         )
         answer_str = ""
@@ -90,26 +91,25 @@ def stream_response(event_body:dict, response:dict):
         for i, chunk in enumerate(answer):
             if i == 0 and log_first_token_time:
                 first_token_time = time.time()
-                
+
                 logger.info(
                     f"{custom_message_id} running time of first token whole {entry_type} entry: {first_token_time-request_timestamp}s"
                 )
             send_to_ws_client(message={
-                    "message_type": StreamMessageType.CHUNK,
-                    "message_id": f"ai_{message_id}",
-                    "custom_message_id": custom_message_id,
-                    "message": {
-                        "role": "assistant",
-                        "content": chunk,
-                        # "knowledge_sources": sources,
-                    },
-                    "chunk_id": i,
+                "message_type": StreamMessageType.CHUNK,
+                "message_id": f"ai_{message_id}",
+                "custom_message_id": custom_message_id,
+                "message": {
+                    "role": "assistant",
+                    "content": chunk,
+                    # "knowledge_sources": sources,
                 },
+                "chunk_id": i,
+            },
                 ws_connection_id=ws_connection_id
             )
-
             answer_str += chunk
-        
+
         if log_first_token_time:
             logger.info(
                 f"{custom_message_id} running time of last token whole {entry_type} entry: {time.time()-request_timestamp}s"
@@ -124,7 +124,7 @@ def stream_response(event_body:dict, response:dict):
             message_id=message_id,
             custom_message_id=custom_message_id,
             entry_type=entry_type,
-            additional_kwargs=response.get("ddb_additional_kwargs",{})
+            additional_kwargs=response.get("ddb_additional_kwargs", {})
         )
 
         # Send source and contexts
@@ -181,8 +181,9 @@ class WebSocketCallback:
 
         return stream_response(**kwargs)
 
-def process_response(event_body,response):
-    stream = event_body["stream"]
+
+def process_response(event_body, response):
+    stream = event_body.get("stream", True)
     if stream:
-        return stream_response(event_body,response)
-    return api_response(event_body,response)
+        return stream_response(event_body, response)
+    return api_response(event_body, response)

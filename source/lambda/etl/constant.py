@@ -11,10 +11,18 @@ class KBType(Enum):
 
 
 @unique
-class Status(Enum):
-    ACTIVE = "active"
-    INACTIVE = "inactive"
+class UiStatus(Enum):
+    ACTIVE = "ACTIVE"
+    INACTIVE = "INACTIVE"
 
+
+@unique
+class ExecutionStatus(Enum):
+    IN_PROGRESS = "IN-PROGRESS"
+    COMPLETED = "COMPLETED"
+    DELETING = "DELETING"
+    DELETED = "DELETED"
+    UPDATING = "UPDATING"
 
 class EmbeddingModelType(Enum):
     BEDROCK_TITAN_V1 = "amazon.titan-embed-text-v1"
@@ -36,3 +44,11 @@ class ModelType(Enum):
 @unique
 class IndexTag(Enum):
     COMMON = "common"
+
+
+@unique
+class OperationType(Enum):
+    CREATE = "create"
+    UPDATE = "update"
+    DELETE = "delete"
+    EXTRACT_ONLY = "extract_only"

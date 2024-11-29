@@ -3,6 +3,7 @@ import CommonLayout from 'src/layout/CommonLayout';
 import {
   Box,
   Button,
+  ButtonDropdown,
   CollectionPreferences,
   ContentLayout,
   Header,
@@ -27,7 +28,7 @@ const parseDate = (item: LibraryListItem) => {
 const Library: React.FC = () => {
   const [selectedItems, setSelectedItems] = useState<LibraryListItem[]>([]);
   const fetchData = useAxiosRequest();
-  const [visible, setVisible] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
   const { t } = useTranslation();
   const [loadingData, setLoadingData] = useState(false);
   const [allLibraryList, setAllLibraryList] = useState<LibraryListItem[]>([]);
@@ -46,6 +47,7 @@ const Library: React.FC = () => {
 
   // ingest document
   const [showAddModal, setShowAddModal] = useState(false);
+  const [isUpdate, setIsUpdate] = useState(false);
 
   const getLibraryList = async () => {
     setLoadingData(true);
@@ -81,9 +83,9 @@ const Library: React.FC = () => {
         method: 'delete',
         data: { executionId: selectedItems.map((item) => item.executionId) },
       });
-      setVisible(false);
+      setShowDelete(false);
       getLibraryList();
-      alertMsg(data.message, 'success');
+      alertMsg(data.Message, 'success');
       setLoadingDelete(false);
       setSelectedItems([]);
     } catch (error: unknown) {
@@ -108,9 +110,11 @@ const Library: React.FC = () => {
     if (status === 'COMPLETED') {
       return <StatusIndicator type="success">{t('completed')}</StatusIndicator>;
     } else if (status === 'IN-PROGRESS') {
-      return (
-        <StatusIndicator type="loading">{t('inProgress')}</StatusIndicator>
-      );
+      return <StatusIndicator type="loading">{t('inProgress')}</StatusIndicator>;
+    } else if (status === 'UPDATING') {
+      return <StatusIndicator type="loading">{t('updating')}</StatusIndicator>;
+    } else if (status === 'DELETING') {
+      return <StatusIndicator type="loading">{t('deleting')}</StatusIndicator>;
     } else {
       return <StatusIndicator type="error">{t('failed')}</StatusIndicator>;
     }
@@ -284,17 +288,29 @@ const Library: React.FC = () => {
                       getLibraryList();
                     }}
                   />
-                  <Button
-                    disabled={selectedItems.length <= 0}
-                    onClick={() => {
-                      setVisible(true);
+                  <ButtonDropdown
+                    disabled={selectedItems.length === 0}
+                    loading={loadingData}
+                    onItemClick={({ detail }) => {
+                      if (detail.id === 'update') {
+                        setIsUpdate(true);
+                        setShowAddModal(true);
+                      }
+                      if (detail.id === 'delete') {
+                        setShowDelete(true);
+                      }
                     }}
+                    items={[
+                      { text: t('button.update'), id: 'update', disabled: selectedItems.length !== 1 },
+                      { text: t('button.delete'), id: 'delete' },
+                    ]}
                   >
-                    {t('button.delete')}
-                  </Button>
+                    {t('button.action')}
+                  </ButtonDropdown>
                   <Button
                     variant="primary"
                     onClick={() => {
+                      setIsUpdate(false);
                       setShowAddModal(true);
                     }}
                   >
@@ -313,15 +329,15 @@ const Library: React.FC = () => {
           }
         />
         <Modal
-          onDismiss={() => setVisible(false)}
-          visible={visible}
+          onDismiss={() => setShowDelete(false)}
+          visible={showDelete}
           footer={
             <Box float="right">
               <SpaceBetween direction="horizontal" size="xs">
                 <Button
                   variant="link"
                   onClick={() => {
-                    setVisible(false);
+                    setShowDelete(false);
                   }}
                 >
                   {t('button.cancel')}
@@ -357,6 +373,8 @@ const Library: React.FC = () => {
               getLibraryList();
             }, 2000);
           }}
+          selectedItem={isUpdate ? selectedItems[0] : undefined}
+          isUpdate={isUpdate}
         />
       </ContentLayout>
     </CommonLayout>
