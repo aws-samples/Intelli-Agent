@@ -11,7 +11,7 @@ beautifulsoup4==4.12.3
 bitsandbytes==0.38.1
 botocore==1.31.23
 cbor==1.0.0
-certifi==2023.7.22
+certifi==2024.7.4
 charset-normalizer==3.2.0
 cmake==3.27.1
 colorama==0.4.4
