@@ -83,5 +83,5 @@ warc3-wet==0.2.5
 warc3-wet-clueweb09==0.2.5
 xxhash==3.5.0
 yarl==1.15.2
-zipp==3.16.2
+zipp==3.19.1
 zlib-state==0.1.9
