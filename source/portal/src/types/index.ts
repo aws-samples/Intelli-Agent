@@ -13,7 +13,7 @@ export type LibraryListItem = {
   qaEnhance: string;
   operationType: string;
   sfnExecutionId: string;
-  indexType: string; 
+  indexType: string;
   chatbotId: string;
   createTime: string;
   indexId: string;
@@ -226,7 +226,7 @@ export type ChatbotItem = {
 export type ChatbotDetailResponse = {
   chatbotId: string;
   updateTime: string;
-  model: {model_endpoint: string, model_name: string};
+  model: { model_endpoint: string, model_name: string };
   index: IndexItem[];
 };
 
