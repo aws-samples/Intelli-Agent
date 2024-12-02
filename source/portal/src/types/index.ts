@@ -73,6 +73,7 @@ export type SessionHistoryResponse = {
 };
 
 export type SessionMessage = {
+  messageId: string;
   role: 'ai' | 'human';
   content: string;
   createTimestamp: string;

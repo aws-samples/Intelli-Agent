@@ -33,6 +33,7 @@ import { MessageDataType, SessionMessage } from 'src/types';
 import { isValidJson } from 'src/utils/utils';
 
 interface MessageType {
+  messageId: string;
   type: 'ai' | 'human';
   message: {
     data: string;
@@ -65,6 +66,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [messages, setMessages] = useState<MessageType[]>([
     {
+      messageId: uuidv4(),
       type: 'ai',
       message: {
         data: t('welcomeMessage'),
@@ -83,6 +85,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   );
   const [currentAIMessage, setCurrentAIMessage] = useState('');
   const [currentMonitorMessage, setCurrentMonitorMessage] = useState('');
+  const [currentAIMessageId, setCurrentAIMessageId] = useState('');
   const [aiSpeaking, setAiSpeaking] = useState(false);
   const [modelOption, setModelOption] = useState('');
   const [modelList, setModelList] = useState<SelectProps.Option[]>([]);
@@ -163,10 +166,9 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     try {
       setLoadingHistory(true);
       const data = await fetchData({
-        url: `chat-history/messages`,
+        url: `sessions/${historySessionId}/messages`,
         method: 'get',
         params: {
-          session_id: historySessionId,
           page_size: 9999,
           max_items: 9999,
         },
@@ -182,6 +184,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
           //   });
           // }
           return {
+            messageId: msg.messageId,
             type: msg.role,
             message: {
               data: messageContent,
@@ -281,6 +284,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
         // });
       }
     } else if (message.message_type === 'END') {
+      setCurrentAIMessageId(message.message_id);
       setIsMessageEnd(true);
     }
   };
@@ -305,6 +309,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
         return [
           ...prev,
           {
+            messageId: currentAIMessageId,
             type: 'ai',
             message: {
               data: currentAIMessage,
@@ -425,6 +430,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       return [
         ...prev,
         {
+          messageId: '',
           type: 'human',
           message: {
             data: userMessage,
@@ -476,6 +482,15 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     }
   }, [modelOption]);
 
+  const handleThumbUpClick = (index: number) => {
+    console.log(`${messages[index].messageId}`)
+    console.log(`Thumb up clicked for message at index ${index}, sessionId: ${sessionId}, messageId: ${messages[index].messageId}`);
+  };
+
+  const handleThumbDownClick = (index: number) => {
+    console.log(`Thumb down clicked for message at index ${index}, sessionId: ${sessionId}, messageId: ${messages[index].message.data}`);
+  };
+
   return (
     <CommonLayout
       isLoading={loadingHistory}
@@ -484,23 +499,38 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       <div className="chat-container mt-10">
         <div className="chat-message flex-v flex-1 gap-10">
           {messages.map((msg, index) => (
-            <Message
-              showTrace={showTrace}
-              key={identity(index)}
-              type={msg.type}
-              message={msg.message}
-            />
+            <div key={identity(index)}>
+              <Message
+                showTrace={showTrace}
+                type={msg.type}
+                message={msg.message}
+              />
+              {msg.type === 'ai' && (
+                <div className="thumb-buttons">
+                  <Button onClick={() => handleThumbUpClick(index)}>👍</Button>
+                  <Button onClick={() => handleThumbDownClick(index)}>👎</Button>
+                </div>
+              )}
+            </div>
           ))}
           {aiSpeaking && (
-            <Message
-              aiSpeaking={aiSpeaking}
-              type="ai"
-              showTrace={showTrace}
-              message={{
-                data: currentAIMessage,
-                monitoring: currentMonitorMessage,
-              }}
-            />
+            <div>
+              <Message
+                aiSpeaking={aiSpeaking}
+                type="ai"
+                showTrace={showTrace}
+                message={{
+                  data: currentAIMessage,
+                  monitoring: currentMonitorMessage,
+                }}
+              />
+              {isMessageEnd && (
+                <div className="thumb-buttons">
+                  <Button onClick={() => handleThumbUpClick(messages.length)}>👍</Button>
+                  <Button onClick={() => handleThumbDownClick(messages.length)}>👎</Button>
+                </div>
+              )}
+            </div>
           )}
         </div>
 
