@@ -27,40 +27,40 @@ const Home: React.FC = () => {
   const baseSteps = [
     {
       target: '.home-banner',
-      content: 'Deploying this solution using the default parameters will build the environment in Amazon Web Services.',
+      content: t('tour.home'),
       disableBeacon: true,
     },
     {
       target: 'a[href="/chats"]',
-      content: 'Click here to start chatting with our AI assistant.',
+      content: t('tour.chat'),
       disableBeacon: true,
     },
     {
       target: 'a[href="/sessions"]',
-      content: 'Session history contains all your chat history, you can resume the chat by choosing the chat history',
+      content: t('tour.session'),
       disableBeacon: true,
     },
     {
       target: 'a[href="/chatbot-management"]',
-      content: 'You can create/edit/delete the chatbots. Each chatbot has at least one index for Intention/QD/QQ, Intention index stores the chatbot intentions, QD index stores the knowledges, QQ index stores the FAQ.',
+      content: t('tour.chatbot'),
       disableBeacon: true,
     },
     {
       target: 'a[href="/intention"]',
-      content: 'Manage your intentions here. The intentions are uploaded via excel files, the chatbot will chat according to the intentions you provided, if no intention is provided, it will retrive knowledges by default.',
+      content: t('tour.intention'),
       disableBeacon: true,
     },
   ];
 
   const kbStep = {
     target: 'a[href="/library"]',
-    content: 'You can create/update/delete knowledges. Choose index type as QD to inject a knowledge, and choose QQ index type to inject FAQ (only in excel format)',
+    content: t('tour.kb'),
     disableBeacon: true,
   };
 
   const promptsStep = {
     target: 'a[href="/prompts"]',
-    content: 'Manage your prompts here. Conversation summary prompt will rewrite the queries in your chat history, RAG prompt is for how to use the retrieved knowledges to help LLM generate responses, tool calling prompt defines how the agent choose and invoke tools.',
+    content: t('tour.prompt'),
     disableBeacon: true,
   };
 
@@ -222,11 +222,11 @@ const Home: React.FC = () => {
           }
         }}
         locale={{
-          back: 'Previous',
-          close: 'Close',
-          last: 'Finish',
-          next: 'Next',
-          skip: 'Skip tour',
+          back: t('tour.previous'),
+          close: t('tour.close'),
+          last: t('tour.finish'),
+          next: t('tour.next'),
+          skip: t('tour.skip'),
         }}
       />
       <CommonLayout activeHref="/home">
@@ -255,7 +255,7 @@ const Home: React.FC = () => {
                       variant="normal"
                       onClick={resetTour}
                     >
-                      {t('button.restartTour')}
+                      {t('tour.restartTour')}
                     </Button>
                   </SpaceBetween>
                 }
