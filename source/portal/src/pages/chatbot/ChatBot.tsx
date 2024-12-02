@@ -505,8 +505,8 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                 type={msg.type}
                 message={msg.message}
               />
-              {msg.type === 'ai' && (
-                <div className="thumb-buttons">
+              {msg.type === 'ai' && index !== 0 && (
+                <div className="thumb-buttons" style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
                   <Button onClick={() => handleThumbUpClick(index)}>👍</Button>
                   <Button onClick={() => handleThumbDownClick(index)}>👎</Button>
                 </div>
@@ -525,7 +525,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                 }}
               />
               {isMessageEnd && (
-                <div className="thumb-buttons">
+                <div className="thumb-buttons" style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
                   <Button onClick={() => handleThumbUpClick(messages.length)}>👍</Button>
                   <Button onClick={() => handleThumbDownClick(messages.length)}>👎</Button>
                 </div>
