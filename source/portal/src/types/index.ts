@@ -50,11 +50,7 @@ export type ChatbotsItem = {
     model_endpoint: string,
     model_name: string,
   };
-  index: {
-    intention: string,
-    qq: string,
-    qd: string
-  }
+  index: IndexItem[]
 };
 
 export type ChatbotsResponse = {
@@ -113,6 +109,21 @@ export type LibraryExecutionItem = {
   status: string;
   createTime: string;
   s3Path: string;
+};
+
+export type IndexItem = {
+  name: string;
+  type: string;
+  description: string;
+  tag: string;
+};
+
+export type IndexItemTmp = {
+  name: string;
+  type: string;
+  description: string;
+  tag: string;
+  status: string
 };
 
 export type LibraryExecutionResponse = {
@@ -212,11 +223,31 @@ export type ChatbotItem = {
   SortKey: string;
 };
 
+export type ChatbotDetailResponse = {
+  chatbotId: string;
+  updateTime: string;
+  model: {model_endpoint: string, model_name: string};
+  index: IndexItem[];
+};
+
+export type ChatbotItemDetail = {
+  chatbotId: string;
+  updateTime: string;
+  model: string;
+  index: IndexItem[];
+};
+
 export type ChatbotResponse = {
   Items: ChatbotItem[];
   Config: ResponseConfig;
   Count: number;
 };
+
+export type ChatbotIndexResponse = {
+  Items: IndexItem[];
+  Count: number;
+};
+
 
 export interface Chatbot {
   qd: string;

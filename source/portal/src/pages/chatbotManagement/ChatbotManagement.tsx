@@ -1,41 +1,72 @@
 import React, { useEffect, useState, useContext } from 'react';
 import CommonLayout from 'src/layout/CommonLayout';
 import {
-  Alert,
   Box,
   Button,
-  // ButtonDropdown,
+  ButtonDropdown,
   CollectionPreferences,
   ContentLayout,
   FormField,
   Grid,
   Header,
   Input,
-  Modal,
   Pagination,
   Select,
   SelectProps,
   SpaceBetween,
   Table,
   Toggle,
+  Link
 } from '@cloudscape-design/components';
 import {
-  // CreateChatbotResponse,
   ChatbotItem,
   ChatbotResponse,
-  // chatbotDetail,
-  CreEditChatbotResponse
+  CreEditChatbotResponse,
+  SelectedOption
 } from 'src/types';
 import useAxiosRequest from 'src/hooks/useAxiosRequest';
 import { useTranslation } from 'react-i18next';
 import { formatTime } from 'src/utils/utils';
 import ConfigContext from 'src/context/config-context';
-import { EMBEDDING_MODEL_LIST } from 'src/utils/const';
+import { EMBEDDING_MODEL_LIST, INDEX_TYPE_OPTIONS } from 'src/utils/const';
+import { useNavigate } from 'react-router-dom';
+import RightModal from '../right-modal';
+import minus from 'src/assets/images/minus.png';
+import plus from 'src/assets/images/plus.png';
+import './style.scss';
+
+interface INDEX_TYPE {
+  name:string,
+  type: string,
+  tag: string,
+  desc: string,
+  errText: string
+}
 
 const ChatbotManagement: React.FC = () => {
+  const { t } = useTranslation();
+const INITIAL_INDEX_LIST: INDEX_TYPE[]=[{
+  name: "",
+  type: "qq",
+  tag: "",
+  desc: t('defaultIndexDesc'),
+  errText: ""
+},{
+  name: "",
+  type: "qd",
+  tag: "",
+  desc: t('defaultIndexDesc'),
+  errText: ""
+},{
+  name: "",
+  type: "intention",
+  tag: "",
+  desc: t('defaultIndexDesc'),
+  errText: ""
+}]
   const [selectedItems, setSelectedItems] = useState<ChatbotItem[]>([]);
   const fetchData = useAxiosRequest();
-  const { t } = useTranslation();
+  
   const [loadingData, setLoadingData] = useState(false);
   const [allChatbotList, setAllChatbotList] = useState<ChatbotItem[]>([]);
   const [tableChatbotList, setTableChatbotList] = useState<ChatbotItem[]>([]);
@@ -47,29 +78,18 @@ const ChatbotManagement: React.FC = () => {
   const [showEdit, setShowEdit] = useState(false);
   const [loadingSave, setLoadingSave] = useState(false);
   const [modelList, setModelList] = useState<SelectProps.Option[]>([]);
-  // const [chatbotList, setChatbotList] = useState<SelectProps.Option[]>([]);
   const [modelOption, setModelOption] = useState<{label:string;value:string} | null>(
     null,
   );
-  // const [chatbotOption, setChatbotOption] = useState<SelectProps.Option | null>(
-  //   null,
-  // );
   const [chatbotName, setChatbotName] = useState('');
   const [chatbotNameError, setChatbotNameError] = useState('');
-
-  // const [loadingGet, setLoadingGet] = useState(false);
   // validation
   const [modelError, setModelError] = useState('');
-  // const [chatbotError, setChatbotError] = useState('');
-
-  const [showDelete, setShowDelete] = useState(false);
   const [useDefaultIndex, setUseDefaultIndex] = useState(true);
-  const [qqIndex, setQqIndex] = useState('');
-  const [qdIndex, setQdIndex] = useState('');
-  const [intentionIndex, setIntentionIndex] = useState('');
-  const [qqIndexError, setQqIndexError] = useState('');
-  const [qdIndexError, setQdIndexError] = useState('');
-  const [intentionIndexError, setIntentionIndexError] = useState('');
+  const [indexList, setIndexList] = useState(INITIAL_INDEX_LIST)
+
+  const indexTypeOption:SelectedOption[] =INDEX_TYPE_OPTIONS
+  const navigate = useNavigate();
 
   const getModelList = async (type: 'create' | 'edit') => {
     const tempModels:{label: string; value:string}[] =[]
@@ -77,8 +97,6 @@ const ChatbotManagement: React.FC = () => {
       {"model_id": config?.embeddingEndpoint || "", "model_name": "BCE_Embedding"},
     ]
     let embedding_models = EMBEDDING_MODEL_LIST
-
-    // Check if config?.embeddingEndpoint starts with "bce-embedding-and-bge-reranker"
     if (config?.embeddingEndpoint?.startsWith("bce-embedding-and-bge-reranker")) {
       embedding_models = [...BCE_EMBEDDING, ...EMBEDDING_MODEL_LIST]
     }
@@ -123,87 +141,61 @@ const ChatbotManagement: React.FC = () => {
     }
   };
 
-  const deleteChatbot = async () => {
-    setLoadingSave(true);
-    try {
-      await fetchData({
-        url: `chatbot-management/chatbots/delete/${selectedItems[0].ChatbotId}`,
-        method: 'delete',
-      });
-      setLoadingSave(false);
-      getChatbotList();
-      setShowDelete(false);
-    } catch (error: unknown) {
-      setLoadingSave(false);
-    }
-  };
-  const editChatbot = async ()=>{
-    setLoadingSave(true)
-    if(!qqIndex?.trim()){
-      setQqIndexError(t('validation.requiredIndexName'));
-      setLoadingSave(false)
-      return;
-    }
-    if(!qdIndex?.trim()){
-      setQdIndexError(t('validation.requiredIndexName'));
-      setLoadingSave(false)
-      return;
-    }
-    if(!intentionIndex?.trim()){
-      setIntentionIndexError(t('validation.requiredIndexName'));
-      setLoadingSave(false)
-      return;
-    }
+  const removeIndex =(removedIndex: number)=>{
+    setIndexList(prevIndexList => 
+      prevIndexList.filter((_, index) => index !== removedIndex)
+    );
 
-    const indexIsValid = await isValidChatbot('edit')
+  }
 
-    if(!indexIsValid.result){
-      if(indexIsValid.item=="qq") {
-        setQqIndexError(t('validation.repeatIndex'))
-      } else if(indexIsValid.item=="qd") {
-        setQdIndexError(t('validation.repeatIndex'))
-      } else if(indexIsValid.item=="intention") {
-        setIntentionIndexError(t('validation.repeatIndex'))
-      }
-      setLoadingSave(false) 
-      return;
-    }
-
-    const editRes: CreEditChatbotResponse = await fetchData({
-      url: `chatbot-management/chatbot/${selectedItems[0].ChatbotId}`,
-      method: 'post',
-      data: {
-         index: {
-            qq: qqIndex,
-            qd: qdIndex,
-            intention: intentionIndex
-         }
-      }
-    });
-
-    if (editRes.Message === 'OK') {
-      setShowCreate(false);
-      setShowEdit(false);
-      getChatbotList();
-    }
-    setLoadingSave(false);
+  const addIndex =()=>{
+    setIndexList(prevIndexList => [...prevIndexList, {name:"", type:"qq", desc:t('defaultIndexDesc'), tag:"", errText:""}]
+    );
   }
 
   const isValidChatbot = async (type:string) =>{
     return await fetchData({
-      url: `chatbot-management/check-chatbot`,
+      url: 'chatbot-management/check-chatbot',
       method: 'post',
       data: {
         type,
         chatbotId: chatbotName,
         // groupName: selectedBotOption?.value,
-        index: {qq: qqIndex, qd: qdIndex, intention: intentionIndex}, 
+        index: genBotIndexCheck(), 
         model: modelOption?.value
       },
     });
     // return 
   }
+
+  const genBotIndexCheck = ()=>{
+    let index:any={}
+    indexList.map((item: INDEX_TYPE)=>{
+      if (!index[item.type]) {
+        index[item.type] = "";
+      }
+      index[item.type] += item.name + ",";
+    });
+    for (let type in index) {
+      index[type] = index[type].slice(0, -1);
+    }
+    
+    return index
+  }
+
+  const genBotIndexCreate = ()=>{
+    let index:any={}
+    indexList.map((item: INDEX_TYPE)=>{
+      if (!index[item.type]) {
+        index[item.type] = {};
+      }
+      index[item.type][item.name] = item.desc;
+    });
+    return index
+  }
   const createChatbot = async () => {
+
+    let staticCheck = true
     // validate model settings
     if (!modelOption?.value?.trim()) {
       setModelError(t('validation.requireModel'));
@@ -215,20 +207,37 @@ const ChatbotManagement: React.FC = () => {
       return;
     }
 
+
+
     if(!useDefaultIndex){
-      if(!qqIndex?.trim()){
-        setQqIndexError(t('validation.requiredIndexName'));
-        return;
-      }
-      if(!qdIndex?.trim()){
-        setQdIndexError(t('validation.requiredIndexName'));
-        return;
-      }
-      if(!intentionIndex?.trim()){
-        setIntentionIndexError(t('validation.requiredIndexName'));
-        return;
-      }
+      const validIndexNames: string[] = []
+      setIndexList((prevIndexList) =>
+        prevIndexList.map((item) => {
+          if(item.name?.trim().length === 0){
+            staticCheck = false
+            return {
+              ...item,
+              errText:t('validation.requiredIndexName')
+            };
+          } else if(validIndexNames.includes(item.name)) {
+            staticCheck = false
+            return {
+              ...item,
+              errText:t('validation.repeatedIndexName')
+            };
+          } else {
+            validIndexNames.push(item.name)
+            return item
+          }
+        })
+      );
+      if(!staticCheck) return;
+      
+
+
     }
+
+    
     
     setLoadingSave(true);
 
@@ -237,20 +246,17 @@ const ChatbotManagement: React.FC = () => {
     if(!indexIsValid.result){
       if(indexIsValid.item=="chatbotName"){
         setChatbotNameError(t('validation.repeatChatbotName'))
-      } else if(indexIsValid.item=="qq") {
-        setQqIndexError(t('validation.repeatIndex'))
-      } else if(indexIsValid.item=="qd") {
-        setQdIndexError(t('validation.repeatIndex'))
-      } else if(indexIsValid.item=="intention") {
-        setIntentionIndexError(t('validation.repeatIndex'))
+      } else {
+        setIndexList((prevIndexList) =>
+          prevIndexList.map((item) => {
+            return item.name == indexIsValid.item ? { ...item, errText: indexIsValid.reason==1?t('validation.repeatIndex'):t('validation.indexValid') } : item;
+          })
+        );
       }
       setLoadingSave(false) 
       return;
     }
     try {
-      // if (type === 'create' && currentChatbot) {
-      //   currentChatbot.ChatbotId = createChatbotId;
-      // }
       const createRes: CreEditChatbotResponse = await fetchData({
         url: 'chatbot-management/chatbots',
         method: 'post',
@@ -258,11 +264,8 @@ const ChatbotManagement: React.FC = () => {
           chatbotId: chatbotName,
           modelId: modelOption.value,
           modelName: modelOption.label,
-          index:{
-             qq: qqIndex,
-             qd: qdIndex,
-             intention: intentionIndex
-          }
+          index: genBotIndexCreate(),
+          operatorType: "add"
         },
       });
       // const createRes: CreateChatbotResponse = data;
@@ -277,19 +280,6 @@ const ChatbotManagement: React.FC = () => {
     }
   };
 
-  // const handleChatbotChange = (key: string, subKey: string, value: string) => {
-  //   setCurrentChatbot((prevData: any) => ({
-  //     ...prevData,
-  //     Chatbot: {
-  //       ...prevData.Chatbot,
-  //       [key]: {
-  //         ...prevData.Chatbot[key],
-  //         [subKey]: value,
-  //       },
-  //     },
-  //   }));
-  // };
-
   useEffect(() => {
     getChatbotList();
   }, []);
@@ -303,23 +293,68 @@ const ChatbotManagement: React.FC = () => {
   useEffect(()=>{
     if(chatbotName?.trim()!==""){
       if(useDefaultIndex){
-          setQdIndex(`${chatbotName}-qd-default`);
-          setQqIndex(`${chatbotName}-qq-default`);
-          setIntentionIndex(`${chatbotName}-intention-default`);
-        }}
+        setIndexList(
+        //   prevIndexList =>
+          INITIAL_INDEX_LIST.map(item => ({
+            ...item,
+            name: `${chatbotName}-${item.type}-default`,
+          }))
+        );
+          // setQdIndex(`${chatbotName}-qd-default`);
+          // setQqIndex(`${chatbotName}-qq-default`);
+          // setIntentionIndex(`${chatbotName}-intention-default`);
+          // setQdIndexDesc(t('defaultIndexDesc'));
+          // setQqIndexDesc(t('defaultIndexDesc'));
+          // setIntentionIndexDesc(t('defaultIndexDesc'));
+        }
+      } else{
+        setIndexList(INITIAL_INDEX_LIST)
+      } 
         
-        setQdIndexError('');
-        setQqIndexError('');
-        setIntentionIndexError('');
+        // setQdIndexError('');
+        // setQqIndexError('');
+        // setIntentionIndexError('');
       }
     
 
   ,[chatbotName, useDefaultIndex])
-  // useEffect(() => {
-  //   if (showCreate && modelOption) {
-  //     getChatbotById('create');
-  //   }
-  // }, [modelOption]);
+
+  const changeIndexName =(value: string, index: number)=>{
+    setIndexList(prevIndexList =>
+      prevIndexList.map((item,i) => {
+        if(i===index){return {
+        ...item,
+        name: value,
+        errText:''
+      }} else {
+        return item
+      }})
+    );
+  }
+
+  const changeIndexType =(value: string, index: number)=>{
+    setIndexList(prevIndexList =>
+      prevIndexList.map((item,i) => {
+        if(i===index){return {
+        ...item,
+        type: value
+      }} else {
+        return item
+      }})
+    );
+  }
+
+  const changeIndexDesc =(value: string, index: number)=>{
+    setIndexList(prevIndexList =>
+      prevIndexList.map((item,i) => {
+        if(i===index){return {
+        ...item,
+        desc: value
+      }} else {
+        return item
+      }})
+    );
+  }
 
   return (
     <CommonLayout
@@ -420,32 +455,36 @@ const ChatbotManagement: React.FC = () => {
                       getChatbotList();
                     }}
                   />
-                  {/* <ButtonDropdown
-                    disabled={selectedItems.length === 0 || selectedItems[0].ChatbotId==="admin"}
-                    loading={loadingGet}
+                  <ButtonDropdown
+                    disabled={selectedItems.length === 0}
                     onItemClick={({ detail }) => {
-                      if (detail.id === 'delete') {
-                        setShowDelete(true);
-                      }
+                      // if (detail.id === 'delete') {
+                      //   setShowDelete(true);
+                      // }
                       if (detail.id === 'edit') {
-                        getChatbotById();
+                        // getChatbotById();
+                        navigate(`/chatbot/detail/${selectedItems[0].ChatbotId}`)
+                        
                       }
                     }}
                     items={[
                       { text: t('button.edit'), id: 'edit' },
-                      { text: t('button.delete'), id: 'delete'},
+                      // { text: t('button.delete'), id: 'delete'},
                     ]}
                   >
                     {t('button.action')}
-                  </ButtonDropdown> */}
+                  </ButtonDropdown>
                   <Button
                     variant="primary"
                     onClick={() => {
                       setChatbotName('')
                       setChatbotNameError('')
-                      setQdIndex('')
-                      setQqIndex('')
-                      setIntentionIndex('')
+                      // setQdIndex('')
+                      // setQqIndex('')
+                      // setIntentionIndex('')
+                      // setQdIndexDesc(t('defaultIndexDesc'))
+                      // setQqIndexDesc(t('defaultIndexDesc'))
+                      // setIntentionIndexDesc(t('defaultIndexDesc'))
                       setLoadingSave(false)
                       getModelList('create')
                       setUseDefaultIndex(true)
@@ -467,56 +506,42 @@ const ChatbotManagement: React.FC = () => {
             </Header>
           }
         />
-        <Modal
-          onDismiss={() => {
-            setShowCreate(false);
-            setShowEdit(false);
-          }}
-          visible={showCreate || showEdit}
-          footer={
-            <Box float="right">
-              <SpaceBetween direction="horizontal" size="xs">
-                <Button
-                  variant="link"
-                  onClick={() => {
-                    setShowCreate(false);
-                    setShowEdit(false);
-                  }}
-                >
-                  {t('button.cancel')}
-                </Button>
-                {showEdit ? (
-                  <Button
-                    loading={loadingSave}
-                    variant="primary"
-                    onClick={() => {
-                      editChatbot();
-                    }}
-                  >
-                    {t('button.save')}
-                  </Button>
-                ) : (
-                  <Button
-                    // disabled={loadingGet}
-                    loading={loadingSave}
-                    variant="primary"
-                    onClick={() => {
-                      createChatbot();
-                    }}
-                  >
-                    {t('button.createChatbot')}
-                  </Button>
-                )}
-              </SpaceBetween>
-            </Box>
-          }
-          header={showCreate?t('button.createChatbot'):t('button.editChatbot')}
-        >
-          <SpaceBetween direction="vertical" size="m">
+        <RightModal
+        setShowModal={setShowCreate}
+        showModal={showCreate}
+        header={t('button.createChatbot')}
+        showFolderIcon={false}
+        footer={<div className='create-chatbot-modal-foot'>
+          <div className='create-chatbot-modal-foot-content'>
+        <SpaceBetween direction="horizontal" size="xs">
+          <Button
+            variant="link"
+            onClick={() => {
+              setShowCreate(false);
+              setShowEdit(false);
+            }}
+          >
+            {t('button.cancel')}
+          </Button>
+          <Button
+            loading={loadingSave}
+            variant="primary"
+            onClick={() => {
+              createChatbot();
+            }}
+          >
+            {t('button.createChatbot')}
+          </Button>
+        </SpaceBetween>
+        </div>
+      </div>}
+      >
+        <div className="create-chatbot-modal">
+        <SpaceBetween direction="vertical" size="xl">
           <FormField
             label={t('chatbotName')}
-            
             stretch={true}
+            description={t('chatbotNameDesc')}
             errorText={chatbotNameError}
           >
             <Input
@@ -526,23 +551,12 @@ const ChatbotManagement: React.FC = () => {
               onChange={({ detail }) => {
                 setChatbotNameError('');
                 setChatbotName(detail.value);
-                
               }}
             />
-            {/* <Textarea
-              rows={1}
-              disabled={loadingGet || showEdit}
-              value={chatbotOption?.value ?? ''}
-              placeholder={'admin'}
-              onChange={({ detail }) => {
-                setChatbotError('');
-                setChatbotOption({ value: detail.value, label: detail.value})
-                setCreateChatbotId(detail.value);
-              }}
-            /> */}
           </FormField>
             <FormField
-              label={t('modelName')}
+              description={t('embeddingModelDesc')}
+              label={t('embeddingModelName')}
               stretch={true}
               errorText={modelError}
             >
@@ -558,127 +572,87 @@ const ChatbotManagement: React.FC = () => {
                 empty={t('noModelFound')}
               />
             </FormField>
-            <FormField stretch={true} constraintText={t('indexComment')}>
-                  <Toggle
-                    onChange={({ detail }) =>
-                      {
-                        setQdIndexError('');
-                        setQqIndexError('');
-                        setIntentionIndexError('');
-                        // if(chatbotName !==null && chatbotName.trim() !==""){
-                        //   setQdIndex(`${chatbotName}-qd-default`);
-                        //   setQqIndex(`${chatbotName}-qq-default`);
-                        //   setIntentionIndex(`${chatbotName}-intention-default`);
-                        // } else {
-                        //   setQdIndex('');
-                        //   setQqIndex('');
-                        //   setIntentionIndex('');
-                        // }
-                        
-                        setUseDefaultIndex(!detail.checked)
-                      }
-                    }
-                    checked={!useDefaultIndex}
-                  >
-                  {t('customizeIndex')}
-                  </Toggle>
-                  </FormField>
-            {/* <Grid gridDefinition={[{ colspan: 4 }, { colspan: 4 }, { colspan: 4 }]}> */}
-              <Grid gridDefinition={[{ colspan: 2 }, { colspan: 10 }]}> 
-              <div style={{ height: '100%',display: "flex", alignItems: "center"}}>qq</div>
-              <FormField errorText={qqIndexError}>
-              <Input
-                placeholder={t('indexPlaceholder')}
-                disabled={useDefaultIndex}
-                onChange={({ detail }) => {
-                  setQqIndexError('')
-                  setQqIndex(detail.value)
-                }}
-                value={qqIndex}
-              />
-              </FormField>
-              </Grid>
-              
-              <Grid gridDefinition={[{ colspan: 2 }, { colspan: 10 }]}> 
-              <div style={{ height: '100%',display: "flex", alignItems: "center"}}>qd</div>
-              <FormField errorText={qdIndexError}>
-              <Input
-                placeholder={t('indexPlaceholder')}
-                disabled={useDefaultIndex}
-                onChange={({ detail }) => {
-                  setQdIndexError('')
-                  setQdIndex(detail.value)
-                }}
-                value={qdIndex}
-              />
-              </FormField>
-              </Grid>
-              <Grid gridDefinition={[{ colspan: 2 }, { colspan: 10 }]}> 
-              <div style={{ height: '100%',display: "flex", alignItems: "center"}}>intention</div>
-              <FormField errorText={intentionIndexError}>
-              <Input
-                placeholder={t('indexPlaceholder')}
-                disabled={useDefaultIndex}
-                onChange={({ detail }) => {
-                  setIntentionIndexError('')
-                  setIntentionIndex(detail.value)
-                }}
-                value={intentionIndex}
-              />
-              </FormField>
-              </Grid>
-              <div style={{height:20}}></div>
-            {/* </Grid> */}
-            {/* <FormField
-              label={t('chatbots')}
-              stretch={true}
-              errorText={chatbotError}
-            >
-              {loadingGet ? (
-                <Spinner />
-              ) : (
-                <Tabs
-                  tabs={
-                    currentChatbot?.Chatbot
-                      ? Object.keys(currentChatbot?.Chatbot).map((key) => ({
-                          label: key,
-                          id: key,
-                          content: (
-                            <>
-                              {Object.keys(currentChatbot?.Chatbot[key]).map(
-                                (subKey) => (
-                                  <FormField key={subKey} label={subKey}>
-                                    <Textarea
-                                      rows={5}
-                                      placeholder={t(
-                                        'validation.requireChatbot',
-                                      )}
-                                      value={currentChatbot.Chatbot[key][subKey]}
-                                      onChange={({ detail }) => {
-                                        setChatbotError('');
-                                        handleChatbotChange(
-                                          key,
-                                          subKey,
-                                          detail.value,
-                                        );
-                                      }}
-                                    />
-                                  </FormField>
-                                ),
-                              )}
-                            </>
-                          ),
-                        }))
-                      : []
+            <FormField stretch={true} label={t('indexManagement')}>
+              <Toggle
+                onChange={({ detail }) =>
+                  {
+                    // setQdIndexError('');
+                    // setQqIndexError('');
+                    // setIntentionIndexError('');
+                    setUseDefaultIndex(!detail.checked)
                   }
-                />
-              )}
-            </FormField> */}
-            {/* <Alert type="info">{t('chatbotCreateTips')}</Alert> */}
+                }
+                checked={!useDefaultIndex}
+                >
+                {t('customizeIndex')}
+              </Toggle>
+            </FormField>
+            {/* <div> */}
+            {(indexList!=null && indexList.length>0)?(
+              <>
+              <Grid gridDefinition={[{ colspan: 4 }, { colspan: 3}, { colspan: 4 }, { colspan: 1 }]}>
+              <div>{t('indexName')}</div>
+              <div>{t('indexType')}</div>
+              <div>{<>{t('desc')} - {t('optional')}</>}</div>
+              <div></div>
+              </Grid>
+              <div style={{marginTop:-30}}>
+              {indexList.map((item, index)=>{
+                return (
+                  <Grid gridDefinition={[{ colspan: 4 }, { colspan: 3}, { colspan: 4 }, { colspan: 1 }]}> 
+                    <FormField errorText={item.errText}>
+                      <Input
+                        placeholder={t('indexPlaceholder')}
+                        disabled={useDefaultIndex}
+                        onChange={({ detail }) => {
+                          changeIndexName(detail.value, index)
+                        }}
+                        value={item.name} 
+                      />
+                    </FormField>
+                    <FormField>
+                      <Select
+                       disabled={useDefaultIndex||index<3}
+                       selectedOption={{label: item.type, value: item.type}}
+                       options={indexTypeOption}
+                       onChange={({ detail }:{detail: any})=>changeIndexType(detail.selectedOption.value, index)}
+                      >
+                      </Select>
+                    </FormField>
+                    <FormField>
+                      <Input
+                        placeholder={t('indexPlaceholderDesc')}
+                        disabled={useDefaultIndex}
+                        onChange={({ detail }) => {
+                          changeIndexDesc(detail.value, index)
+                        }}
+                        value={item.desc}
+                      />
+                    </FormField>
+                    {!useDefaultIndex && index>2 && (
+                    // <FormField >
+                      <Link onFollow={() =>
+                        removeIndex(index)
+                      }><img alt="banner" src={minus} width="35px" /></Link>
+                    // </FormField>
+                    )}
+                  </Grid>)
+              })}
+              {!useDefaultIndex&&(<div style={{marginTop:20}}><Link onFollow={()=>addIndex()}><img alt="banner" src={plus} width="35px" /></Link></div>)}
+              
+              </div></>
+            ):(<div style={{textAlign:"center",paddingTop:100}}><div style={{marginTop:135, fontSize: 16, color:"#5F6B7A",margin:"0 auto", }}>
+              {t('indexLeft')}&nbsp;&nbsp;<Link onFollow={()=>addIndex()}><img alt="banner" src={plus} width="20px" />
+              </Link>&nbsp;&nbsp; {t('indexRight')}</div></div>)}
+            
+            
+            <div style={{height:20}}></div>
           </SpaceBetween>
-        </Modal>
+        </div>
+      </RightModal>
+       
 
-        <Modal
+        {/* <Modal
           onDismiss={() => setShowDelete(false)}
           visible={showDelete}
           footer={
@@ -715,7 +689,7 @@ const ChatbotManagement: React.FC = () => {
             </ul>
           </div>
           <Alert type="warning">{t('chatbotDeleteTips')}</Alert>
-        </Modal>
+        </Modal> */}
       </ContentLayout>
     </CommonLayout>
   );

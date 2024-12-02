@@ -14,6 +14,7 @@ import {
   Select,
   SelectProps,
   SpaceBetween,
+  Link,
 } from '@cloudscape-design/components';
 import { LibraryListItem } from 'src/types';
 import { alertMsg, validateNameTagString } from 'src/utils/utils';
@@ -21,7 +22,7 @@ import { AxiosProgressEvent } from 'axios';
 import { useTranslation } from 'react-i18next';
 import useAxiosRequest from 'src/hooks/useAxiosRequest';
 import { ExecutionResponse, PresignedUrlResponse } from 'src/types';
-import { DOC_INDEX_TYPE_LIST } from 'src/utils/const';
+import { DOC_INDEX_TYPE_LIST, RESOURCE_QQ_TEMPLATE } from 'src/utils/const';
 
 interface AddLibraryProps {
   showAddModal: boolean;
@@ -283,6 +284,15 @@ const AddLibrary: React.FC<AddLibraryProps> = (props: AddLibraryProps) => {
                   accept=".pdf,.csv,.doc,.docx,.html,.json,.txt,.md,.png,.jpg,.jpeg,.webp,.xlsx,.xls"
                   constraintText={`${t('supportFiles')} pdf, csv, docx, html, json, txt, md, png, jpg, jpeg, webp, xlsx, xls.`}
                 />
+                <div className="mt-5">
+                  <Link
+                    href={RESOURCE_QQ_TEMPLATE}
+                    external
+                    externalIconAriaLabel="Opens in a new tab"
+                  >
+                    {t("downloadQQTemplate")}
+                  </Link>
+                </div>
               </div>
             </FormField>
             <div>

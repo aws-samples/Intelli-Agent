@@ -9,6 +9,8 @@ export interface ApiResponse<T> {
   error: string;
 }
 
+
+
 export const alertMsg = (alertTxt: string, alertType: AlertType = 'error') => {
   const patchEvent = new CustomEvent('showAlertMsg', {
     detail: {

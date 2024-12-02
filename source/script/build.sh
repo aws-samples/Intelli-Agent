@@ -24,6 +24,7 @@ echo "OpenSearch Enabled: $opensearch_enabled"
 echo "Model Assets Bucket: $model_assets_bucket"
 echo "UI Enabled: $ui_enabled"
 
+aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
 
 prepare_etl_model() {
     echo "Preparing ETL Model"

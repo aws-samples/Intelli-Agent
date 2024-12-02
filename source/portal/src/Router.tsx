@@ -16,6 +16,7 @@ import LoginCallback from './comps/LoginCallback';
 import Intention from './pages/intention/Intention';
 import IntentionDetail from './pages/intention/IntentionDetail';
 import Home from './pages/home/Home';
+import ChatbotDetail from './pages/chatbotManagement/ChatbotDetail';
 
 
 const SignedInRouter = () => {
@@ -33,6 +34,7 @@ const SignedInRouter = () => {
         <Route path="/intention" element={<Intention />} />
         <Route path="/intention/detail/:id" element={<IntentionDetail />} />
         <Route path="/chatbot-management" element={<ChatbotManagement />} />
+        <Route path="/chatbot/detail/:id" element={<ChatbotDetail />} />
       </Routes>
       <CommonAlert />
     </BrowserRouter>
