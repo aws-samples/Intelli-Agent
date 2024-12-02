@@ -390,33 +390,14 @@ export class ApiConstruct extends Construct {
     }
 
     if (props.config.chat.enabled) {
-      const chatHistoryLambda = new LambdaFunction(this, "ChatHistoryLambda", {
-        handler: "rating.lambda_handler",
-        code: Code.fromAsset(join(__dirname, "../../../lambda/ddb")),
+
+      const chatHistoryManagementLambda = new LambdaFunction(this, "ChatHistoryManagementLambda", {
+        code: Code.fromAsset(join(__dirname, "../../../lambda/chat_history")),
+        handler: "chat_history_management.lambda_handler",
         environment: {
           SESSIONS_TABLE_NAME: sessionsTableName,
           MESSAGES_TABLE_NAME: messagesTableName,
           SESSIONS_BY_TIMESTAMP_INDEX_NAME: "byTimestamp",
-          MESSAGES_BY_SESSION_ID_INDEX_NAME: "bySessionId",
-        },
-        statements: [this.iamHelper.dynamodbStatement],
-      });
-
-      const listSessionsLambda = new LambdaFunction(this, "ListSessionsLambda", {
-        handler: "list_sessions.lambda_handler",
-        code: Code.fromAsset(join(__dirname, "../../../lambda/ddb")),
-        environment: {
-          SESSIONS_TABLE_NAME: sessionsTableName,
-          SESSIONS_BY_TIMESTAMP_INDEX_NAME: "byTimestamp",
-        },
-        statements: [this.iamHelper.dynamodbStatement],
-      });
-
-      const listMessagesLambda = new LambdaFunction(this, "ListMessagesLambda", {
-        handler: "list_messages.lambda_handler",
-        code: Code.fromAsset(join(__dirname, "../../../lambda/ddb")),
-        environment: {
-          MESSAGES_TABLE_NAME: messagesTableName,
           MESSAGES_BY_SESSION_ID_INDEX_NAME: "bySessionId",
         },
         statements: [this.iamHelper.dynamodbStatement],
@@ -479,17 +460,12 @@ export class ApiConstruct extends Construct {
         this.iamHelper.logStatement],
       });
 
-      // Define the API Gateway Lambda Integration with proxy and no integration responses
-      const lambdaChatHistoryIntegration = new apigw.LambdaIntegration(chatHistoryLambda.function, {
-        proxy: true,
-      });
-
-      const apiResourceDdb = api.root.addResource("chat-history");
-      apiResourceDdb.addMethod("POST", lambdaChatHistoryIntegration, this.genMethodOption(api, auth, null),);
-      const apiResourceListSessions = apiResourceDdb.addResource("sessions");
-      apiResourceListSessions.addMethod("GET", new apigw.LambdaIntegration(listSessionsLambda.function), this.genMethodOption(api, auth, null),);
-      const apiResourceListMessages = apiResourceDdb.addResource("messages");
-      apiResourceListMessages.addMethod("GET", new apigw.LambdaIntegration(listMessagesLambda.function), this.genMethodOption(api, auth, null),);
+      const apiResourceSessions = api.root.addResource("sessions");
+      apiResourceSessions.addMethod("GET", new apigw.LambdaIntegration(chatHistoryManagementLambda.function), this.genMethodOption(api, auth, null),);
+      const apiResourceMessages = apiResourceSessions.addResource('{sessionId}').addResource("messages");
+      apiResourceMessages.addMethod("GET", new apigw.LambdaIntegration(chatHistoryManagementLambda.function), this.genMethodOption(api, auth, null),);
+      const apiResourceMessageFeedback = apiResourceMessages.addResource("{messageId}").addResource("feedback");
+      apiResourceMessageFeedback.addMethod("POST", new apigw.LambdaIntegration(chatHistoryManagementLambda.function), this.genMethodOption(api, auth, null),);
 
       const lambdaChatbotIntegration = new apigw.LambdaIntegration(chatbotManagementLambda.function, {
         proxy: true,
