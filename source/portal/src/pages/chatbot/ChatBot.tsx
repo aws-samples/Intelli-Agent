@@ -16,7 +16,7 @@ import {
   SpaceBetween,
   StatusIndicator,
   Textarea,
-  Toggle,
+  Toggle
 } from '@cloudscape-design/components';
 import useWebSocket, { ReadyState } from 'react-use-websocket';
 import { identity } from 'lodash';
@@ -482,13 +482,48 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     }
   }, [modelOption]);
 
-  const handleThumbUpClick = (index: number) => {
-    console.log(`${messages[index].messageId}`)
-    console.log(`Thumb up clicked for message at index ${index}, sessionId: ${sessionId}, messageId: ${messages[index].messageId}`);
+  const [feedbackGiven, setFeedbackGiven] = useState<{ [key: string]: 'thumb_up' | 'thumb_down' | null }>({});
+
+  const handleThumbUpClick = async (index: number) => {
+    const currentFeedback = feedbackGiven[index];
+    const newFeedback = currentFeedback === 'thumb_up' ? null : 'thumb_up';
+
+    try {
+      await fetchData({
+        url: `sessions/${sessionId}/messages/${messages[index].messageId}/feedback`,
+        method: 'post',
+        data: {
+          feedback_type: newFeedback || '',
+          feedback_reason: '',
+          suggest_message: ''
+        }
+      });
+      setFeedbackGiven(prev => ({ ...prev, [index]: newFeedback }));
+      console.log('Thumb up feedback sent successfully');
+    } catch (error) {
+      console.error('Error sending thumb up feedback:', error);
+    }
   };
 
-  const handleThumbDownClick = (index: number) => {
-    console.log(`Thumb down clicked for message at index ${index}, sessionId: ${sessionId}, messageId: ${messages[index].message.data}`);
+  const handleThumbDownClick = async (index: number) => {
+    const currentFeedback = feedbackGiven[index];
+    const newFeedback = currentFeedback === 'thumb_down' ? null : 'thumb_down';
+
+    try {
+      await fetchData({
+        url: `sessions/${sessionId}/messages/${messages[index].messageId}/feedback`,
+        method: 'post',
+        data: {
+          feedback_type: newFeedback || '',
+          feedback_reason: '',
+          suggest_message: ''
+        }
+      });
+      setFeedbackGiven(prev => ({ ...prev, [index]: newFeedback }));
+      console.log('Thumb down feedback sent successfully');
+    } catch (error) {
+      console.error('Error sending thumb down feedback:', error);
+    }
   };
 
   return (
@@ -506,9 +541,19 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                 message={msg.message}
               />
               {msg.type === 'ai' && index !== 0 && (
-                <div className="thumb-buttons" style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                  <Button onClick={() => handleThumbUpClick(index)}>👍</Button>
-                  <Button onClick={() => handleThumbDownClick(index)}>👎</Button>
+                <div className="feedback-buttons" style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                  <Button
+                    iconName={feedbackGiven[index] === 'thumb_up' ? "thumbs-up-filled" : "thumbs-up"}
+                    variant="icon"
+                    onClick={() => handleThumbUpClick(index)}
+                    ariaLabel={t('feedback.helpful')}
+                  />
+                  <Button
+                    iconName={feedbackGiven[index] === 'thumb_down' ? "thumbs-down-filled" : "thumbs-down"}
+                    variant="icon"
+                    onClick={() => handleThumbDownClick(index)}
+                    ariaLabel={t('feedback.notHelpful')}
+                  />
                 </div>
               )}
             </div>
@@ -525,9 +570,19 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                 }}
               />
               {isMessageEnd && (
-                <div className="thumb-buttons" style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                  <Button onClick={() => handleThumbUpClick(messages.length)}>👍</Button>
-                  <Button onClick={() => handleThumbDownClick(messages.length)}>👎</Button>
+                <div className="feedback-buttons" style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                  <Button
+                    iconName={feedbackGiven[messages.length] === 'thumb_up' ? "thumbs-up-filled" : "thumbs-up"}
+                    variant="icon"
+                    onClick={() => handleThumbUpClick(messages.length)}
+                    ariaLabel={t('feedback.helpful')}
+                  />
+                  <Button
+                    iconName={feedbackGiven[messages.length] === 'thumb_down' ? "thumbs-down-filled" : "thumbs-down"}
+                    variant="icon"
+                    onClick={() => handleThumbDownClick(messages.length)}
+                    ariaLabel={t('feedback.notHelpful')}
+                  />
                 </div>
               )}
             </div>
