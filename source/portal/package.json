@@ -32,7 +32,8 @@
     "remark-gfm": "^4.0.0",
     "remark-html": "^16.0.1",
     "sass": "^1.74.1",
-    "uuid": "^9.0.1"
+    "uuid": "^9.0.1",
+    "react-joyride": "^2.9.3"
   },
   "devDependencies": {
     "@types/lodash": "^4.17.0",
