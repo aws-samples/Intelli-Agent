@@ -360,9 +360,6 @@ def __edit_chatbot(event, group_name):
                 update_time
             )
 
-    
-
-
     # 3.更新index表
     return {
         "chatbotId": chatbot_id,
