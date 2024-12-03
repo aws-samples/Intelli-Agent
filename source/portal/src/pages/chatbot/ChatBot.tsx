@@ -16,7 +16,7 @@ import {
   SpaceBetween,
   StatusIndicator,
   Textarea,
-  Toggle,
+  Toggle
 } from '@cloudscape-design/components';
 import useWebSocket, { ReadyState } from 'react-use-websocket';
 import { identity } from 'lodash';
@@ -33,6 +33,7 @@ import { MessageDataType, SessionMessage } from 'src/types';
 import { isValidJson } from 'src/utils/utils';
 
 interface MessageType {
+  messageId: string;
   type: 'ai' | 'human';
   message: {
     data: string;
@@ -65,6 +66,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [messages, setMessages] = useState<MessageType[]>([
     {
+      messageId: uuidv4(),
       type: 'ai',
       message: {
         data: t('welcomeMessage'),
@@ -83,6 +85,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   );
   const [currentAIMessage, setCurrentAIMessage] = useState('');
   const [currentMonitorMessage, setCurrentMonitorMessage] = useState('');
+  const [currentAIMessageId, setCurrentAIMessageId] = useState('');
   const [aiSpeaking, setAiSpeaking] = useState(false);
   const [modelOption, setModelOption] = useState('');
   const [modelList, setModelList] = useState<SelectProps.Option[]>([]);
@@ -91,23 +94,23 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   // );
   const [chatbotList, setChatbotList] = useState<SelectProps.Option[]>([]);
   const [chatbotOption, setChatbotOption] = useState<SelectProps.Option>(null as any);
-  const [useChatHistory, setUseChatHistory] = useState(localStorage.getItem(USE_CHAT_HISTORY)==null || localStorage.getItem(USE_CHAT_HISTORY)=="true" ?true:false);
-  const [enableTrace, setEnableTrace] = useState(localStorage.getItem(ENABLE_TRACE)==null || localStorage.getItem(ENABLE_TRACE)=="true" ?true:false);
+  const [useChatHistory, setUseChatHistory] = useState(localStorage.getItem(USE_CHAT_HISTORY) == null || localStorage.getItem(USE_CHAT_HISTORY) == "true" ? true : false);
+  const [enableTrace, setEnableTrace] = useState(localStorage.getItem(ENABLE_TRACE) == null || localStorage.getItem(ENABLE_TRACE) == "true" ? true : false);
   const [showTrace, setShowTrace] = useState(enableTrace);
-  const [onlyRAGTool, setOnlyRAGTool] = useState(localStorage.getItem(ONLY_RAG_TOOL)==null || localStorage.getItem(ONLY_RAG_TOOL)=="false" ?false:true);
+  const [onlyRAGTool, setOnlyRAGTool] = useState(localStorage.getItem(ONLY_RAG_TOOL) == null || localStorage.getItem(ONLY_RAG_TOOL) == "false" ? false : true);
   // const [useWebSearch, setUseWebSearch] = useState(false);
   // const [googleAPIKey, setGoogleAPIKey] = useState('');
   const [retailGoods, setRetailGoods] = useState<SelectProps.Option>(
     RETAIL_GOODS_LIST[0],
   );
   const [scenario, setScenario] = useState<SelectProps.Option>(
-    localScenario==null?SCENARIO_LIST[0]:JSON.parse(localScenario),
+    localScenario == null ? SCENARIO_LIST[0] : JSON.parse(localScenario),
   );
 
   const [sessionId, setSessionId] = useState(historySessionId);
 
-  const [temperature, setTemperature] = useState<string>(localTemperature?localTemperature:'0.01');
-  const [maxToken, setMaxToken] = useState<string>(localMaxToken?localMaxToken:'1000');
+  const [temperature, setTemperature] = useState<string>(localTemperature ? localTemperature : '0.01');
+  const [maxToken, setMaxToken] = useState<string>(localMaxToken ? localMaxToken : '1000');
 
   const [endPoint, setEndPoint] = useState('');
   const [showEndpoint, setShowEndpoint] = useState(false);
@@ -115,7 +118,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const [showMessageError, setShowMessageError] = useState(false);
   // const [googleAPIKeyError, setGoogleAPIKeyError] = useState(false);
   const [isMessageEnd, setIsMessageEnd] = useState(false);
-  const [additionalConfig, setAdditionalConfig] = useState(localConfig?localConfig:'');
+  const [additionalConfig, setAdditionalConfig] = useState(localConfig ? localConfig : '');
 
   // validation
   const [modelError, setModelError] = useState('');
@@ -150,8 +153,8 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       }
       );
       setChatbotList(getChatbots);
-      const localChatBot =localStorage.getItem(CURRENT_CHAT_BOT)    
-      setChatbotOption(localChatBot!==null?JSON.parse(localChatBot):getChatbots[0])
+      const localChatBot = localStorage.getItem(CURRENT_CHAT_BOT)
+      setChatbotOption(localChatBot !== null ? JSON.parse(localChatBot) : getChatbots[0])
       // setChatbotOption(getChatbots[0])
     } catch (error) {
       console.error(error);
@@ -163,10 +166,9 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     try {
       setLoadingHistory(true);
       const data = await fetchData({
-        url: `chat-history/messages`,
+        url: `sessions/${historySessionId}/messages`,
         method: 'get',
         params: {
-          session_id: historySessionId,
           page_size: 9999,
           max_items: 9999,
         },
@@ -182,6 +184,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
           //   });
           // }
           return {
+            messageId: msg.messageId,
             type: msg.role,
             message: {
               data: messageContent,
@@ -204,21 +207,21 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     } else {
       setSessionId(uuidv4());
     }
-    getWorkspaceList();   
+    getWorkspaceList();
   }, []);
 
-  useEffect(()=>{
-    if(chatbotOption){
-     localStorage.setItem(CURRENT_CHAT_BOT, JSON.stringify(chatbotOption))
+  useEffect(() => {
+    if (chatbotOption) {
+      localStorage.setItem(CURRENT_CHAT_BOT, JSON.stringify(chatbotOption))
     }
-  },[chatbotOption])
-
-  useEffect(()=>{
-    localStorage.setItem(USE_CHAT_HISTORY, useChatHistory?"true":"false")
-  },[useChatHistory])
+  }, [chatbotOption])
 
   useEffect(() => {
-    localStorage.setItem(ENABLE_TRACE, enableTrace?"true":"false")
+    localStorage.setItem(USE_CHAT_HISTORY, useChatHistory ? "true" : "false")
+  }, [useChatHistory])
+
+  useEffect(() => {
+    localStorage.setItem(ENABLE_TRACE, enableTrace ? "true" : "false")
     if (enableTrace) {
       setShowTrace(true);
     } else {
@@ -226,39 +229,39 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     }
   }, [enableTrace]);
 
-  useEffect(()=>{
-    if(scenario){
+  useEffect(() => {
+    if (scenario) {
       localStorage.setItem(SCENARIO, JSON.stringify(scenario))
-     }
-  },[scenario])
+    }
+  }, [scenario])
 
-  useEffect(()=>{
-    localStorage.setItem(ONLY_RAG_TOOL, onlyRAGTool?"true":"false")
-  },[onlyRAGTool])
+  useEffect(() => {
+    localStorage.setItem(ONLY_RAG_TOOL, onlyRAGTool ? "true" : "false")
+  }, [onlyRAGTool])
 
-  useEffect(()=>{
-    if(modelOption){
+  useEffect(() => {
+    if (modelOption) {
       localStorage.setItem(MODEL_OPTION, modelOption)
     }
-  },[modelOption])
+  }, [modelOption])
 
-  useEffect(()=>{
-    if(maxToken){
+  useEffect(() => {
+    if (maxToken) {
       localStorage.setItem(MAX_TOKEN, maxToken)
-     }
-  },[maxToken])
+    }
+  }, [maxToken])
 
-  useEffect(()=>{
-    if(temperature){
+  useEffect(() => {
+    if (temperature) {
       localStorage.setItem(TEMPERATURE, temperature)
-     }
-  },[temperature])
+    }
+  }, [temperature])
 
-  useEffect(()=>{
-    if(additionalConfig){
+  useEffect(() => {
+    if (additionalConfig) {
       localStorage.setItem(ADITIONAL_SETTRINGS, additionalConfig)
-     }
-  },[additionalConfig])
+    }
+  }, [additionalConfig])
 
   const handleAIMessage = (message: MessageDataType) => {
     console.info('handleAIMessage:', message);
@@ -281,6 +284,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
         // });
       }
     } else if (message.message_type === 'END') {
+      setCurrentAIMessageId(message.message_id);
       setIsMessageEnd(true);
     }
   };
@@ -305,6 +309,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
         return [
           ...prev,
           {
+            messageId: currentAIMessageId,
             type: 'ai',
             message: {
               data: currentAIMessage,
@@ -385,7 +390,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       user_id: auth?.user?.profile?.['cognito:username'] || 'default_user_id',
       chatbot_config: {
         group_name: groupName?.[0] ?? 'Admin',
-        chatbot_id: chatbotOption.value?? 'admin',
+        chatbot_id: chatbotOption.value ?? 'admin',
         goods_id: retailGoods.value,
         chatbot_mode: 'agent',
         use_history: useChatHistory,
@@ -425,6 +430,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       return [
         ...prev,
         {
+          messageId: '',
           type: 'human',
           message: {
             data: userMessage,
@@ -447,8 +453,8 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
         };
       });
       setModelList(optionList);
-      
-      
+
+
     } else if (scenario.value === 'retail') {
       optionList = LLM_BOT_RETAIL_MODEL_LIST.map((item) => {
         return {
@@ -460,7 +466,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       // TODO
       // setModelOption(optionList?.[0]?.value ?? '');
     }
-    if(localModel){
+    if (localModel) {
       setModelOption(localModel)
     } else {
       setModelOption(optionList?.[0]?.value ?? '');
@@ -476,6 +482,50 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     }
   }, [modelOption]);
 
+  const [feedbackGiven, setFeedbackGiven] = useState<{ [key: string]: 'thumb_up' | 'thumb_down' | null }>({});
+
+  const handleThumbUpClick = async (index: number) => {
+    const currentFeedback = feedbackGiven[index];
+    const newFeedback = currentFeedback === 'thumb_up' ? null : 'thumb_up';
+
+    try {
+      await fetchData({
+        url: `sessions/${sessionId}/messages/${messages[index].messageId}/feedback`,
+        method: 'post',
+        data: {
+          feedback_type: newFeedback || '',
+          feedback_reason: '',
+          suggest_message: ''
+        }
+      });
+      setFeedbackGiven(prev => ({ ...prev, [index]: newFeedback }));
+      console.log('Thumb up feedback sent successfully');
+    } catch (error) {
+      console.error('Error sending thumb up feedback:', error);
+    }
+  };
+
+  const handleThumbDownClick = async (index: number) => {
+    const currentFeedback = feedbackGiven[index];
+    const newFeedback = currentFeedback === 'thumb_down' ? null : 'thumb_down';
+
+    try {
+      await fetchData({
+        url: `sessions/${sessionId}/messages/${messages[index].messageId}/feedback`,
+        method: 'post',
+        data: {
+          feedback_type: newFeedback || '',
+          feedback_reason: '',
+          suggest_message: ''
+        }
+      });
+      setFeedbackGiven(prev => ({ ...prev, [index]: newFeedback }));
+      console.log('Thumb down feedback sent successfully');
+    } catch (error) {
+      console.error('Error sending thumb down feedback:', error);
+    }
+  };
+
   return (
     <CommonLayout
       isLoading={loadingHistory}
@@ -484,23 +534,58 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       <div className="chat-container mt-10">
         <div className="chat-message flex-v flex-1 gap-10">
           {messages.map((msg, index) => (
-            <Message
-              showTrace={showTrace}
-              key={identity(index)}
-              type={msg.type}
-              message={msg.message}
-            />
+            <div key={identity(index)}>
+              <Message
+                showTrace={showTrace}
+                type={msg.type}
+                message={msg.message}
+              />
+              {msg.type === 'ai' && index !== 0 && (
+                <div className="feedback-buttons" style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                  <Button
+                    iconName={feedbackGiven[index] === 'thumb_up' ? "thumbs-up-filled" : "thumbs-up"}
+                    variant="icon"
+                    onClick={() => handleThumbUpClick(index)}
+                    ariaLabel={t('feedback.helpful')}
+                  />
+                  <Button
+                    iconName={feedbackGiven[index] === 'thumb_down' ? "thumbs-down-filled" : "thumbs-down"}
+                    variant="icon"
+                    onClick={() => handleThumbDownClick(index)}
+                    ariaLabel={t('feedback.notHelpful')}
+                  />
+                </div>
+              )}
+            </div>
           ))}
           {aiSpeaking && (
-            <Message
-              aiSpeaking={aiSpeaking}
-              type="ai"
-              showTrace={showTrace}
-              message={{
-                data: currentAIMessage,
-                monitoring: currentMonitorMessage,
-              }}
-            />
+            <div>
+              <Message
+                aiSpeaking={aiSpeaking}
+                type="ai"
+                showTrace={showTrace}
+                message={{
+                  data: currentAIMessage,
+                  monitoring: currentMonitorMessage,
+                }}
+              />
+              {isMessageEnd && (
+                <div className="feedback-buttons" style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                  <Button
+                    iconName={feedbackGiven[messages.length] === 'thumb_up' ? "thumbs-up-filled" : "thumbs-up"}
+                    variant="icon"
+                    onClick={() => handleThumbUpClick(messages.length)}
+                    ariaLabel={t('feedback.helpful')}
+                  />
+                  <Button
+                    iconName={feedbackGiven[messages.length] === 'thumb_down' ? "thumbs-down-filled" : "thumbs-down"}
+                    variant="icon"
+                    onClick={() => handleThumbDownClick(messages.length)}
+                    ariaLabel={t('feedback.notHelpful')}
+                  />
+                </div>
+              )}
+            </div>
           )}
         </div>
 

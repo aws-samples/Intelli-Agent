@@ -159,7 +159,7 @@ export class ApiConstruct extends Construct {
           this.iamHelper.endpointStatement,
         ],
       });
-  
+
       const aosLambda = new LambdaFunction(this, "AOSLambda", {
         code: Code.fromAsset(join(__dirname, "../../../lambda/aos")),
         vpc: vpc,
@@ -222,7 +222,7 @@ export class ApiConstruct extends Construct {
 
       const apiResourceStepFunction = api.root.addResource("knowledge-base");
       const apiKBExecution = apiResourceStepFunction.addResource("executions");
-      if ( props.knowledgeBaseStackOutputs.sfnOutput !== undefined) {
+      if (props.knowledgeBaseStackOutputs.sfnOutput !== undefined) {
         // Integration with Step Function to trigger ETL process
         // Lambda function to trigger Step Function
         const sfnLambda = new LambdaFunction(this, "StepFunctionLambda", {
@@ -262,52 +262,55 @@ export class ApiConstruct extends Construct {
       apiKBExecution.addMethod(
         "GET",
         new apigw.LambdaIntegration(executionManagementLambda.function),
-        {...this.genMethodOption(api, auth, {
-          Items: {type: JsonSchemaType.ARRAY, items: {
-            type: JsonSchemaType.OBJECT,
-            properties: {
-              s3Prefix: { type: JsonSchemaType.STRING },
-              offline: { type: JsonSchemaType.STRING },
-              s3Bucket: { type: JsonSchemaType.STRING },
-              executionId: { type: JsonSchemaType.STRING },
-              executionStatus: { type: JsonSchemaType.STRING },
-              qaEnhance: { type: JsonSchemaType.STRING },
-              operationType: { type: JsonSchemaType.STRING },
-              uiStatus: { type: JsonSchemaType.STRING },
-              createTime: { type: JsonSchemaType.STRING }, // Consider using format: 'date-time'
-              sfnExecutionId: { type: JsonSchemaType.STRING },
-              embeddingModelType: { type: JsonSchemaType.STRING },
-              groupName: { type: JsonSchemaType.STRING },
-              chatbotId: { type: JsonSchemaType.STRING },
-              indexType: { type: JsonSchemaType.STRING },
-              indexId: { type: JsonSchemaType.STRING },
+        {
+          ...this.genMethodOption(api, auth, {
+            Items: {
+              type: JsonSchemaType.ARRAY, items: {
+                type: JsonSchemaType.OBJECT,
+                properties: {
+                  s3Prefix: { type: JsonSchemaType.STRING },
+                  offline: { type: JsonSchemaType.STRING },
+                  s3Bucket: { type: JsonSchemaType.STRING },
+                  executionId: { type: JsonSchemaType.STRING },
+                  executionStatus: { type: JsonSchemaType.STRING },
+                  qaEnhance: { type: JsonSchemaType.STRING },
+                  operationType: { type: JsonSchemaType.STRING },
+                  uiStatus: { type: JsonSchemaType.STRING },
+                  createTime: { type: JsonSchemaType.STRING }, // Consider using format: 'date-time'
+                  sfnExecutionId: { type: JsonSchemaType.STRING },
+                  embeddingModelType: { type: JsonSchemaType.STRING },
+                  groupName: { type: JsonSchemaType.STRING },
+                  chatbotId: { type: JsonSchemaType.STRING },
+                  indexType: { type: JsonSchemaType.STRING },
+                  indexId: { type: JsonSchemaType.STRING },
+                },
+                required: ['s3Prefix',
+                  'offline',
+                  's3Bucket',
+                  'executionId',
+                  'executionStatus',
+                  'qaEnhance',
+                  'operationType',
+                  'uiStatus',
+                  'createTime',
+                  'sfnExecutionId',
+                  'embeddingModelType',
+                  'groupName',
+                  'chatbotId',
+                  'indexType',
+                  'indexId'],
+              }
             },
-            required: ['s3Prefix',
-                      'offline',
-                      's3Bucket',
-                      'executionId',
-                      'executionStatus',
-                      'qaEnhance',
-                      'operationType',
-                      'uiStatus',
-                      'createTime',
-                      'sfnExecutionId',
-                      'embeddingModelType',
-                      'groupName',
-                      'chatbotId',
-                      'indexType',
-                      'indexId'],
-          }
-          },
-          Count: { type: JsonSchemaType.INTEGER },
-          Config: { type: JsonSchemaType.OBJECT,
-                    properties: {
-                      MaxItems: { type: JsonSchemaType.INTEGER },
-                      PageSize: { type: JsonSchemaType.INTEGER },
-                      StartingToken: { type: JsonSchemaType.NULL }
-                    }
-                  }
-        }),
+            Count: { type: JsonSchemaType.INTEGER },
+            Config: {
+              type: JsonSchemaType.OBJECT,
+              properties: {
+                MaxItems: { type: JsonSchemaType.INTEGER },
+                PageSize: { type: JsonSchemaType.INTEGER },
+                StartingToken: { type: JsonSchemaType.NULL }
+              }
+            }
+          }),
           requestParameters: {
             'method.request.querystring.max_items': false,
             'method.request.querystring.page_size': false
@@ -327,7 +330,7 @@ export class ApiConstruct extends Construct {
           })
         }
       );
-      
+
       const apiGetExecutionById = apiKBExecution.addResource("{executionId}");
       apiGetExecutionById.addMethod(
         "GET",
@@ -345,7 +348,7 @@ export class ApiConstruct extends Construct {
                   s3Path: { type: JsonSchemaType.STRING },
                   status: { type: JsonSchemaType.STRING },
                 },
-                required: ['s3Prefix', 's3Bucket', 'createTime', 's3Path', 'status','executionId'],
+                required: ['s3Prefix', 's3Bucket', 'createTime', 's3Path', 'status', 'executionId'],
               }
             },
             Count: { type: JsonSchemaType.INTEGER }
@@ -365,29 +368,32 @@ export class ApiConstruct extends Construct {
       apiUploadDoc.addMethod(
         "POST",
         new apigw.LambdaIntegration(uploadDocLambda.function),
-        {...
+        {
+          ...
           this.genMethodOption(api, auth, {
-            data: { type: JsonSchemaType.OBJECT,
-                    properties: {
-                      s3Bucket: { type: JsonSchemaType.STRING },
-                      s3Prefix: { type: JsonSchemaType.STRING },
-                      url: {type: JsonSchemaType.STRING}
-                    }
-                  },
+            data: {
+              type: JsonSchemaType.OBJECT,
+              properties: {
+                s3Bucket: { type: JsonSchemaType.STRING },
+                s3Prefix: { type: JsonSchemaType.STRING },
+                url: { type: JsonSchemaType.STRING }
+              }
+            },
             message: { type: JsonSchemaType.STRING }
           }),
           requestModels: this.genRequestModel(api, {
             "content_type": { "type": JsonSchemaType.STRING },
             "file_name": { "type": JsonSchemaType.STRING },
           })
-      }
+        }
       );
     }
 
     if (props.config.chat.enabled) {
-      const chatHistoryLambda = new LambdaFunction(this, "ChatHistoryLambda", {
-        handler: "rating.lambda_handler",
-        code: Code.fromAsset(join(__dirname, "../../../lambda/ddb")),
+
+      const chatHistoryManagementLambda = new LambdaFunction(this, "ChatHistoryManagementLambda", {
+        code: Code.fromAsset(join(__dirname, "../../../lambda/chat_history")),
+        handler: "chat_history_management.lambda_handler",
         environment: {
           SESSIONS_TABLE_NAME: sessionsTableName,
           MESSAGES_TABLE_NAME: messagesTableName,
@@ -396,27 +402,7 @@ export class ApiConstruct extends Construct {
         },
         statements: [this.iamHelper.dynamodbStatement],
       });
-  
-      const listSessionsLambda = new LambdaFunction(this, "ListSessionsLambda", {
-        handler: "list_sessions.lambda_handler",
-        code: Code.fromAsset(join(__dirname, "../../../lambda/ddb")),
-        environment: {
-          SESSIONS_TABLE_NAME: sessionsTableName,
-          SESSIONS_BY_TIMESTAMP_INDEX_NAME: "byTimestamp",
-        },
-        statements: [this.iamHelper.dynamodbStatement],
-      });
-  
-      const listMessagesLambda = new LambdaFunction(this, "ListMessagesLambda", {
-        handler: "list_messages.lambda_handler",
-        code: Code.fromAsset(join(__dirname, "../../../lambda/ddb")),
-        environment: {
-          MESSAGES_TABLE_NAME: messagesTableName,
-          MESSAGES_BY_SESSION_ID_INDEX_NAME: "bySessionId",
-        },
-        statements: [this.iamHelper.dynamodbStatement],
-      });
-  
+
       const promptManagementLambda = new LambdaFunction(this, "PromptManagementLambda", {
         runtime: Runtime.PYTHON_3_12,
         code: Code.fromAsset(join(__dirname, "../../../lambda/prompt_management")),
@@ -426,7 +412,7 @@ export class ApiConstruct extends Construct {
         },
         layers: [apiLambdaOnlineSourceLayer],
         statements: [this.iamHelper.dynamodbStatement,
-                      this.iamHelper.logStatement],
+        this.iamHelper.logStatement],
       });
 
 
@@ -450,13 +436,13 @@ export class ApiConstruct extends Construct {
         },
         layers: [apiLambdaOnlineSourceLayer],
         statements: [this.iamHelper.dynamodbStatement,
-                     this.iamHelper.logStatement,
-                     this.iamHelper.secretStatement,
-                     this.iamHelper.esStatement,
-                     this.iamHelper.s3Statement,
-                     this.iamHelper.bedrockStatement,
-                     this.iamHelper.endpointStatement,
-                    ],
+        this.iamHelper.logStatement,
+        this.iamHelper.secretStatement,
+        this.iamHelper.esStatement,
+        this.iamHelper.s3Statement,
+        this.iamHelper.bedrockStatement,
+        this.iamHelper.endpointStatement,
+        ],
       });
 
       const chatbotManagementLambda = new LambdaFunction(this, "ChatbotManagementLambda", {
@@ -471,20 +457,15 @@ export class ApiConstruct extends Construct {
         },
         layers: [apiLambdaOnlineSourceLayer],
         statements: [this.iamHelper.dynamodbStatement,
-                      this.iamHelper.logStatement],
+        this.iamHelper.logStatement],
       });
 
-      // Define the API Gateway Lambda Integration with proxy and no integration responses
-      const lambdaChatHistoryIntegration = new apigw.LambdaIntegration(chatHistoryLambda.function, {
-        proxy: true,
-      });
-
-      const apiResourceDdb = api.root.addResource("chat-history");
-      apiResourceDdb.addMethod("POST", lambdaChatHistoryIntegration, this.genMethodOption(api, auth, null),);
-      const apiResourceListSessions = apiResourceDdb.addResource("sessions");
-      apiResourceListSessions.addMethod("GET", new apigw.LambdaIntegration(listSessionsLambda.function), this.genMethodOption(api, auth, null),);
-      const apiResourceListMessages = apiResourceDdb.addResource("messages");
-      apiResourceListMessages.addMethod("GET", new apigw.LambdaIntegration(listMessagesLambda.function), this.genMethodOption(api, auth, null),);
+      const apiResourceSessions = api.root.addResource("sessions");
+      apiResourceSessions.addMethod("GET", new apigw.LambdaIntegration(chatHistoryManagementLambda.function), this.genMethodOption(api, auth, null),);
+      const apiResourceMessages = apiResourceSessions.addResource('{sessionId}').addResource("messages");
+      apiResourceMessages.addMethod("GET", new apigw.LambdaIntegration(chatHistoryManagementLambda.function), this.genMethodOption(api, auth, null),);
+      const apiResourceMessageFeedback = apiResourceMessages.addResource("{messageId}").addResource("feedback");
+      apiResourceMessageFeedback.addMethod("POST", new apigw.LambdaIntegration(chatHistoryManagementLambda.function), this.genMethodOption(api, auth, null),);
 
       const lambdaChatbotIntegration = new apigw.LambdaIntegration(chatbotManagementLambda.function, {
         proxy: true,
@@ -504,61 +485,66 @@ export class ApiConstruct extends Construct {
       const apiResourceChatbots = apiResourceChatbotManagement.addResource("chatbots");
       apiResourceChatbots.addMethod("POST", lambdaChatbotIntegration, {
         ...this.genMethodOption(api, auth, {
-          chatbotId: {type: JsonSchemaType.STRING},
-          groupName: {type: JsonSchemaType.STRING},
+          chatbotId: { type: JsonSchemaType.STRING },
+          groupName: { type: JsonSchemaType.STRING },
           indexIds: {
-             type: JsonSchemaType.OBJECT,
-             properties: {
+            type: JsonSchemaType.OBJECT,
+            properties: {
               qq: { type: JsonSchemaType.STRING },
               qd: { type: JsonSchemaType.STRING },
               intention: { type: JsonSchemaType.STRING }
-             }
+            }
           },
-          Message: {type: JsonSchemaType.STRING},
+          Message: { type: JsonSchemaType.STRING },
         }),
         requestModels: this.genRequestModel(api, {
           "chatbotId": { "type": JsonSchemaType.STRING },
-          "index": {type: JsonSchemaType.OBJECT,
-                    properties: {
-                      qq: { type: JsonSchemaType.STRING },
-                      qd: { type: JsonSchemaType.STRING },
-                      intention: { type: JsonSchemaType.STRING }
-                    },
-                    required: ['qq','qd','intention']},
-                    modelId: { "type": JsonSchemaType.STRING },
-                    modelName: { "type": JsonSchemaType.STRING }
-                   })
-            });
-      apiResourceChatbots.addMethod("GET", lambdaChatbotIntegration, {...this.genMethodOption(api, auth, {
-        Items: {type: JsonSchemaType.ARRAY, items: {
-          type: JsonSchemaType.OBJECT,
-          properties: {
-            ChatbotId: { type: JsonSchemaType.STRING },
-            ModelName: { type: JsonSchemaType.STRING },
-            ModelId: { type: JsonSchemaType.STRING },
-            LastModifiedTime: { type: JsonSchemaType.STRING }
+          "index": {
+            type: JsonSchemaType.OBJECT,
+            properties: {
+              qq: { type: JsonSchemaType.STRING },
+              qd: { type: JsonSchemaType.STRING },
+              intention: { type: JsonSchemaType.STRING }
+            },
+            required: ['qq', 'qd', 'intention']
           },
-          required: ['ChatbotId',
-                    'ModelName',
-                    'ModelId',
-                    'LastModifiedTime'],
-        }
-        },
-        Count: { type: JsonSchemaType.INTEGER },
-        Config: { type: JsonSchemaType.OBJECT,
-                  properties: {
-                    MaxItems: { type: JsonSchemaType.INTEGER },
-                    PageSize: { type: JsonSchemaType.INTEGER },
-                    StartingToken: { type: JsonSchemaType.NULL }
-                  }
-        },
-        chatbot_ids: {
-          type: JsonSchemaType.ARRAY, items: {
-            type: JsonSchemaType.STRING,
+          modelId: { "type": JsonSchemaType.STRING },
+          modelName: { "type": JsonSchemaType.STRING }
+        })
+      });
+      apiResourceChatbots.addMethod("GET", lambdaChatbotIntegration, {
+        ...this.genMethodOption(api, auth, {
+          Items: {
+            type: JsonSchemaType.ARRAY, items: {
+              type: JsonSchemaType.OBJECT,
+              properties: {
+                ChatbotId: { type: JsonSchemaType.STRING },
+                ModelName: { type: JsonSchemaType.STRING },
+                ModelId: { type: JsonSchemaType.STRING },
+                LastModifiedTime: { type: JsonSchemaType.STRING }
+              },
+              required: ['ChatbotId',
+                'ModelName',
+                'ModelId',
+                'LastModifiedTime'],
+            }
+          },
+          Count: { type: JsonSchemaType.INTEGER },
+          Config: {
+            type: JsonSchemaType.OBJECT,
+            properties: {
+              MaxItems: { type: JsonSchemaType.INTEGER },
+              PageSize: { type: JsonSchemaType.INTEGER },
+              StartingToken: { type: JsonSchemaType.NULL }
+            }
+          },
+          chatbot_ids: {
+            type: JsonSchemaType.ARRAY, items: {
+              type: JsonSchemaType.STRING,
+            }
           }
-        }
-      })
-      ,
+        })
+        ,
         requestParameters: {
           'method.request.querystring.max_items': false,
           'method.request.querystring.page_size': false
@@ -616,14 +602,14 @@ export class ApiConstruct extends Construct {
 
       const apiResourcePromptManagementModels = apiResourcePromptManagement.addResource("models")
       apiResourcePromptManagementModels.addMethod("GET", lambdaPromptIntegration, this.genMethodOption(api, auth, null));
-  
+
       const apiResourcePromptManagementScenes = apiResourcePromptManagement.addResource("scenes")
       apiResourcePromptManagementScenes.addMethod("GET", lambdaPromptIntegration, this.genMethodOption(api, auth, null));
-  
+
       const apiResourcePrompt = apiResourcePromptManagement.addResource("prompts");
       apiResourcePrompt.addMethod("POST", lambdaPromptIntegration, this.genMethodOption(api, auth, null));
       apiResourcePrompt.addMethod("GET", lambdaPromptIntegration, this.genMethodOption(api, auth, null));
-  
+
       const apiResourcePromptProxy = apiResourcePrompt.addResource("{proxy+}")
       apiResourcePromptProxy.addMethod("POST", lambdaPromptIntegration, this.genMethodOption(api, auth, null));
       apiResourcePromptProxy.addMethod("DELETE", lambdaPromptIntegration, this.genMethodOption(api, auth, null));
@@ -679,43 +665,46 @@ export class ApiConstruct extends Construct {
           "s3Prefix": { "type": JsonSchemaType.STRING }
         })
       });
-      apiResourceExecutionManagement.addMethod("GET", lambdaIntentionIntegration, {...this.genMethodOption(api, auth, {
-        Items: {type: JsonSchemaType.ARRAY, items: {
-          type: JsonSchemaType.OBJECT,
-          properties: {
-            model: { type: JsonSchemaType.STRING },
-            executionStatus: { type: JsonSchemaType.STRING },
-            index: { type: JsonSchemaType.STRING },
-            fileName: { type: JsonSchemaType.STRING },     
-            createTime: { type: JsonSchemaType.STRING },
-            createBy: { type: JsonSchemaType.STRING },
-            executionId: { type: JsonSchemaType.STRING },
+      apiResourceExecutionManagement.addMethod("GET", lambdaIntentionIntegration, {
+        ...this.genMethodOption(api, auth, {
+          Items: {
+            type: JsonSchemaType.ARRAY, items: {
+              type: JsonSchemaType.OBJECT,
+              properties: {
+                model: { type: JsonSchemaType.STRING },
+                executionStatus: { type: JsonSchemaType.STRING },
+                index: { type: JsonSchemaType.STRING },
+                fileName: { type: JsonSchemaType.STRING },
+                createTime: { type: JsonSchemaType.STRING },
+                createBy: { type: JsonSchemaType.STRING },
+                executionId: { type: JsonSchemaType.STRING },
 
-            chatbotId: { type: JsonSchemaType.STRING },
-            details: { type: JsonSchemaType.STRING },
-            tag: { type: JsonSchemaType.STRING },
+                chatbotId: { type: JsonSchemaType.STRING },
+                details: { type: JsonSchemaType.STRING },
+                tag: { type: JsonSchemaType.STRING },
+              },
+              required: ['model',
+                'executionStatus',
+                'index',
+                'fileName',
+                'createTime',
+                'createBy',
+                'executionId',
+                'chatbotId',
+                'details',
+                'tag'],
+            }
           },
-          required: ['model',
-                    'executionStatus',
-                    'index',
-                    'fileName',
-                    'createTime',
-                    'createBy',
-                    'executionId',
-                    'chatbotId',
-                    'details',
-                    'tag'],
-        }
-        },
-        Count: { type: JsonSchemaType.INTEGER },
-        Config: { type: JsonSchemaType.OBJECT,
-                  properties: {
-                    MaxItems: { type: JsonSchemaType.INTEGER },
-                    PageSize: { type: JsonSchemaType.INTEGER },
-                    StartingToken: { type: JsonSchemaType.NULL }
-                  }
-                }
-      }),
+          Count: { type: JsonSchemaType.INTEGER },
+          Config: {
+            type: JsonSchemaType.OBJECT,
+            properties: {
+              MaxItems: { type: JsonSchemaType.INTEGER },
+              PageSize: { type: JsonSchemaType.INTEGER },
+              StartingToken: { type: JsonSchemaType.NULL }
+            }
+          }
+        }),
         requestParameters: {
           'method.request.querystring.max_items': false,
           'method.request.querystring.page_size': false
@@ -728,7 +717,7 @@ export class ApiConstruct extends Construct {
         {
           ...this.genMethodOption(api, auth, {
             Items: {
-              type: JsonSchemaType.ARRAY, 
+              type: JsonSchemaType.ARRAY,
               items: {
                 type: JsonSchemaType.OBJECT,
                 properties: {
@@ -748,7 +737,7 @@ export class ApiConstruct extends Construct {
                     }
                   }
                 },
-                required: ['s3Path', 's3Prefix', 'createTime', 'status','executionId'],
+                required: ['s3Path', 's3Prefix', 'createTime', 'status', 'executionId'],
               }
             },
             Count: { type: JsonSchemaType.INTEGER }
@@ -760,8 +749,8 @@ export class ApiConstruct extends Construct {
       );
       // const apiUploadIntention = apiResourceIntentionManagement.addResource("upload");
       // apiUploadIntention.addMethod("POST", lambdaIntentionIntegration, this.genMethodOption(api, auth, null))
-      
-      
+
+
       // Define the API Gateway Lambda Integration with proxy and no integration responses
       const lambdaExecutorIntegration = new apigw.LambdaIntegration(
         props.chatStackOutputs.lambdaOnlineMain,
@@ -793,7 +782,7 @@ export class ApiConstruct extends Construct {
     // const plan = api.addUsagePlan('ExternalUsagePlan', {
     //   name: 'external-api-usage-plan'
     // });
-    
+
     // This is not safe, but for the purpose of the test, we will use this
     // For deployment, we suggest user manually create the key and use it on the console
 
@@ -801,7 +790,7 @@ export class ApiConstruct extends Construct {
     // const key = api.addApiKey('ApiKey', {
     //   value: apiKeyValue,
     // });
-    
+
     // plan.addApiKey(key);
     // plan.addApiStage({
     //   stage: api.deploymentStage
@@ -822,11 +811,11 @@ export class ApiConstruct extends Construct {
       counter += 1;
     }
     return apiKeyValue;
-}
+  }
 
-  genMethodOption =(api: apigw.RestApi, auth: apigw.RequestAuthorizer, properties: any)=>{
+  genMethodOption = (api: apigw.RestApi, auth: apigw.RequestAuthorizer, properties: any) => {
     let responseModel = apigw.Model.EMPTY_MODEL
-    if(properties!==null){
+    if (properties !== null) {
       responseModel = new Model(this, `ResponseModel-${Math.random().toString(36).substr(2, 9)}`, {
         restApi: api,
         schema: {
@@ -862,8 +851,8 @@ export class ApiConstruct extends Construct {
       ]
     };
   }
-  
-  genRequestModel = (api: apigw.RestApi, properties: any) =>{
+
+  genRequestModel = (api: apigw.RestApi, properties: any) => {
     return {
       'application/json': new Model(this, `PostModel-${Math.random().toString(36).substr(2, 9)}`, {
         restApi: api,
