@@ -108,7 +108,7 @@ class OpenSearchIngestionWorker:
         self.docsearch = docsearch
         self.embedding_model_endpoint = embedding_model_endpoint
 
-    def aos_ingestion(self, documents: List[Document]) -> None:
+    def aos_ingestion(self, documents: List[Document], index: str) -> None:
         texts = [doc.page_content for doc in documents]
         metadatas = [doc.metadata for doc in documents]
         embeddings_vectors = self.docsearch.embedding_function.embed_documents(
@@ -127,7 +127,7 @@ class OpenSearchIngestionWorker:
             embeddings_vectors = embeddings_vectors_list
             metadatas = metadata_list
         self.docsearch._OpenSearchVectorSearch__add(
-            texts, embeddings_vectors, metadatas=metadatas
+            texts, embeddings_vectors, metadatas=metadatas, index=index
         )
 
 
@@ -435,7 +435,7 @@ def __save_2_aos(modelId: str, index: str, qaListParam: list, bucket: str, prefi
 
         worker = OpenSearchIngestionWorker(docsearch, embedding_model_endpoint)
         intention_list = convert_qa_list(qaList, bucket, prefix)
-        worker.aos_ingestion(intention_list)
+        worker.aos_ingestion(intention_list, index)
     else:
         index_exists = aos_client.indices.exists(index=index)
         if not index_exists:

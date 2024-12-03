@@ -71,10 +71,12 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
   const [uploadProgress, setUploadProgress] = useState(0);
   const [showProgress, setShowProgress] = useState(false);
   // const [fileEmptyError, setFileEmptyError] = useState(false);
-  const [indexName, setIndexName] = useState('');
+  const [indexName, setIndexName] = useState(indexNameOptions[0].value);
   // const [tagNameError, setTagNameError] = useState('');
   const [advanceExpand, setAdvanceExpand] = useState(false);
   // const [selectedIndexOption, setSelectedIndexOption]  = useState(indexNameOptions[0]); 
+
+  
 
   const changeIndexOption = (option: SelectedOption)=>{
     setSelectedIndexOption(option)
