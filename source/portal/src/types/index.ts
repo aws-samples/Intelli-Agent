@@ -13,7 +13,7 @@ export type LibraryListItem = {
   qaEnhance: string;
   operationType: string;
   sfnExecutionId: string;
-  indexType: string; 
+  indexType: string;
   chatbotId: string;
   createTime: string;
   indexId: string;
@@ -73,6 +73,7 @@ export type SessionHistoryResponse = {
 };
 
 export type SessionMessage = {
+  messageId: string;
   role: 'ai' | 'human';
   content: string;
   createTimestamp: string;
@@ -226,7 +227,7 @@ export type ChatbotItem = {
 export type ChatbotDetailResponse = {
   chatbotId: string;
   updateTime: string;
-  model: {model_endpoint: string, model_name: string};
+  model: { model_endpoint: string, model_name: string };
   index: IndexItem[];
 };
 
@@ -279,3 +280,22 @@ export interface SelectedOption {
   value: string;
   label: string;
 }
+
+import { SideNavigationProps } from "@cloudscape-design/components";
+
+// Extend the Link type to include id
+export interface CustomLink extends SideNavigationProps.Link {
+  id?: string;
+  itemID?: string;
+  className?: string;
+}
+
+// Extend the Section type to include id
+export interface CustomSection extends SideNavigationProps.Section {
+  id?: string;
+  'data-testid'?: string;
+}
+
+// Create a union type for all navigation items
+export type CustomNavigationItem = CustomLink | CustomSection | SideNavigationProps.Divider;
+
