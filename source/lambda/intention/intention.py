@@ -418,7 +418,7 @@ def convert_qa_list(qa_list: list, bucket: str, prefix: str) -> List[Document]:
 
 def __save_2_aos(modelId: str, index: str, qaListParam: list, bucket: str, prefix: str):
     qaList = __deduplicate_by_key(qaListParam, "question")
-    if kb_enabled:
+    if kb_enabled and embedding_model_endpoint.startswith("bce-embedding"):
         embedding_info = get_embedding_info(embedding_model_endpoint)
         embedding_function = sm_utils.getCustomEmbeddings(
             embedding_model_endpoint, region, embedding_info.get("ModelType")
