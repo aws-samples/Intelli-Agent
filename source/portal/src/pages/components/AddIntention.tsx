@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { axios } from 'src/utils/request';
 import {
@@ -71,12 +71,12 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
   const [uploadProgress, setUploadProgress] = useState(0);
   const [showProgress, setShowProgress] = useState(false);
   // const [fileEmptyError, setFileEmptyError] = useState(false);
-  const [indexName, setIndexName] = useState(indexNameOptions[0].value);
+  const [indexName, setIndexName] = useState('');
   // const [tagNameError, setTagNameError] = useState('');
   const [advanceExpand, setAdvanceExpand] = useState(false);
   // const [selectedIndexOption, setSelectedIndexOption]  = useState(indexNameOptions[0]); 
 
-  
+
 
   const changeIndexOption = (option: SelectedOption)=>{
     setSelectedIndexOption(option)
@@ -92,7 +92,7 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
         s3Prefix: prefix,
         chatbotId: selectedBotOption?.value.toLocaleLowerCase() ?? 'admin',
         // groupName: selectedBotOption?.value,
-        index: indexName ? indexName.trim() : undefined,
+        index: indexName ? indexName.trim() : indexNameOptions[0]?.value,
         model: model?.value ?? DEFAULT_EMBEDDING_MODEL,
         // tag: indexName ? indexName.trim() : undefined,
       },
