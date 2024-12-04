@@ -539,20 +539,20 @@ export class ApiConstruct extends Construct {
           }
         )
       });
-      apiResourceChatbots.addMethod("GET", lambdaChatbotIntegration, {...this.genMethodOption(api, auth, {
-        Items: {type: JsonSchemaType.ARRAY, items: {
-          type: JsonSchemaType.OBJECT,
-          properties: {
-            ChatbotId: { type: JsonSchemaType.STRING },
-            ModelName: { type: JsonSchemaType.STRING },
-            ModelId: { type: JsonSchemaType.STRING },
-            LastModifiedTime: { type: JsonSchemaType.STRING }
-          },
-          modelId: { "type": JsonSchemaType.STRING },
-          modelName: { "type": JsonSchemaType.STRING }
-        }}
-      })
-      });
+      // apiResourceChatbots.addMethod("GET", lambdaChatbotIntegration, {...this.genMethodOption(api, auth, {
+      //   Items: {type: JsonSchemaType.ARRAY, items: {
+      //     type: JsonSchemaType.OBJECT,
+      //     properties: {
+      //       ChatbotId: { type: JsonSchemaType.STRING },
+      //       ModelName: { type: JsonSchemaType.STRING },
+      //       ModelId: { type: JsonSchemaType.STRING },
+      //       LastModifiedTime: { type: JsonSchemaType.STRING }
+      //     },
+      //     modelId: { "type": JsonSchemaType.STRING },
+      //     modelName: { "type": JsonSchemaType.STRING }
+      //   }}
+      // })
+      // });
       apiResourceChatbots.addMethod("GET", lambdaChatbotIntegration, {
         ...this.genMethodOption(api, auth, {
           Items: {
