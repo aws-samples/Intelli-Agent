@@ -51,6 +51,11 @@ build_frontend() {
 modules_prepared=""
 cd ..
 
+if $ui_enabled; then
+    build_frontend
+    modules_prepared="${modules_prepared}Frontend, "
+fi
+
 if $knowledge_base_enabled && $knowledge_base_intelliagent_enabled && $knowledge_base_models_enabled; then
     prepare_etl_model
     modules_prepared="${modules_prepared}ETL Model, "
@@ -59,11 +64,6 @@ fi
 if $knowledge_base_enabled && $knowledge_base_intelliagent_enabled && $opensearch_enabled && [ "$embedding_model_provider" != "bedrock" ]; then
     prepare_online_model
     modules_prepared="${modules_prepared}Online Model, "
-fi
-
-if $ui_enabled; then
-    build_frontend
-    modules_prepared="${modules_prepared}Frontend, "
 fi
 
 aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws

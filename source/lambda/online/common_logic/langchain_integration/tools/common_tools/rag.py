@@ -30,7 +30,8 @@ def rag_tool(retriever_config: dict, query=None):
     unique_figure_list = [dict(t) for t in unique_set]
     state['extra_response']['figures'] = unique_figure_list
 
-    context_md = format_rag_data(output["result"]["docs"], state.get("qq_match_contexts", {}))
+    context_md = format_rag_data(
+        output["result"]["docs"], state.get("qq_match_contexts", {}))
     send_trace(
         f"\n\n{context_md}\n\n", enable_trace=state["enable_trace"])
     # send_trace(
