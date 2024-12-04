@@ -76,6 +76,8 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
   const [advanceExpand, setAdvanceExpand] = useState(false);
   // const [selectedIndexOption, setSelectedIndexOption]  = useState(indexNameOptions[0]); 
 
+
+
   const changeIndexOption = (option: SelectedOption)=>{
     setSelectedIndexOption(option)
     setIndexName(option.value)
@@ -90,7 +92,7 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
         s3Prefix: prefix,
         chatbotId: selectedBotOption?.value.toLocaleLowerCase() ?? 'admin',
         // groupName: selectedBotOption?.value,
-        index: indexName ? indexName.trim() : undefined,
+        index: indexName ? indexName.trim() : indexNameOptions[0]?.value,
         model: model?.value ?? DEFAULT_EMBEDDING_MODEL,
         // tag: indexName ? indexName.trim() : undefined,
       },

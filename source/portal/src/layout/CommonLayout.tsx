@@ -21,6 +21,7 @@ import { useAuth } from 'react-oidc-context';
 import ConfigContext from 'src/context/config-context';
 import { useLocation, useNavigate } from 'react-router-dom';
 import CustomBreadCrumb, { BreadCrumbType } from './CustomBreadCrumb';
+import { CustomNavigationItem } from 'src/types';
 
 interface CommonLayoutProps {
   activeHref: string;
@@ -154,6 +155,7 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
           <SideNavigation
             activeHref={currentActiveHref}
             header={{ href: '/', text: t('name') }}
+            className="main-navigation"
             onFollow={(e) => {
               if (!e.detail.external) {
                 e.preventDefault();
@@ -165,45 +167,38 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
                 type: 'link',
                 text: t('homeSidebar'),
                 href: '/',
+                id: 'home-sidebar',
+                itemID: 'home-nav'
               },
               {
                 type: 'section',
                 text: t('chatSpace'),
+                id: 'chat-space',
                 items: [
                   {
                     type: 'link',
                     text: t('chat'),
                     href: '/chats',
+                    id: 'chat',
+                    itemID: 'chat-nav'
                   },
                   {
                     type: 'link',
                     text: t('sessionHistory'),
                     href: '/sessions',
+                    id: 'session-history',
+                    itemID: 'session-history-nav'
                   },
                 ],
               },
               {
                 type: 'section',
                 text: t('settings'),
-                items: layoutItems as readonly any[],
-                //     href: '/chatbot-management',
-                //   },
-                //   {
-                //     type: 'link',
-                //     text: t('intention'),
-                //     href: '/intention',
-                //   },
-                //   {
-                //     type: 'link',
-                //     text: t('docLibrary'),
-                //     href: '/library',
-                //   },
-                //   {
-                //     type: 'link',
-                //     text: t('prompt'),
-                //     href: '/prompts',
-                //   },
-                // ],
+                items: layoutItems.map((item, index) => ({
+                  ...item,
+                  itemID: `settings-nav-${index}`,
+                  className: item.text.toLowerCase().replace(/\s+/g, '-'),
+                })),
               },
               { type: 'divider' },
               {
@@ -211,8 +206,9 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
                 text: t('documentation'),
                 href: 'https://github.com/aws-samples/Intelli-Agent',
                 external: true,
+                itemID: 'docs-nav'
               },
-            ]}
+            ] as CustomNavigationItem[]}
           />
         }
         content={<>{isLoading ? <Spinner /> : children}</>}

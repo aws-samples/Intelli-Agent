@@ -192,6 +192,21 @@
       "repeatedIndexName": "The index is duplicated with a previous entry, please modify it",
       "repeatedIndex": "The index name is already in use. Please choose a different name"
     },
+    "tour":{
+      "home": "Deploying this solution using the default parameters will build the environment in Amazon Web Services.",
+      "chat": "Click here to start chatting with the AI assistant.",
+      "session": "Session history contains all your chat history, you can resume the chat by choosing the chat history.",
+      "chatbot": "You can create/edit/delete the chatbots. Each chatbot has at least one index for Intention/QD/QQ, Intention index stores the chatbot intentions, QD index stores the knowledges, QQ index stores the FAQ.",
+      "intention": "Manage your intentions here. The intentions are uploaded via excel files, the chatbot will chat according to the intentions you provided, if no intention is provided, it will retrive knowledges by default.",
+      "kb": "You can create/update/delete knowledges. Choose index type as QD to inject a knowledge, and choose QQ index type to inject FAQ (only in excel format).",
+      "prompt": "Manage your prompts here. Conversation summary prompt will rewrite the queries in your chat history, RAG prompt is for how to use the retrieved knowledges to help LLM generate responses, tool calling prompt defines how the agent choose and invoke tools.",
+      "restartTour": "Start tour",
+      "previous": "Previous",
+      "close": "Close",
+      "finish": "Finish",
+      "next": "Next",
+      "skip": "Skip tour"
+    },
     "solutionName": "AI Customer Service",
     "subTitle": "Streamlined Workflow for Building Agent-Based Applications",
     "projectDescription": "AI Customer Service offers a streamlined workflow for developing scalable, production-grade agent-based applications",
