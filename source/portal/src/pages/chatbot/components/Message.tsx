@@ -47,7 +47,8 @@ const Message: React.FC<MessageProps> = ({
                   headingTagOverride="h5"
                   headerText="Monitoring"
                 >
-                  <ReactMarkdown remarkPlugins={[remarkGfm, remarkHtml]}
+                  <ReactMarkdown 
+                    remarkPlugins={[remarkGfm, remarkHtml]}
                     components={{
                       h1: ({node, ...props}) => <h1 className="custom-header" {...props} />,
                       h2: ({node, ...props}) => <h2 className="custom-header" {...props} />,
@@ -55,6 +56,13 @@ const Message: React.FC<MessageProps> = ({
                       table: ({node, ...props}) => <table className="custom-table" {...props} />,
                       th: ({node, ...props}) => <th className="custom-table-header" {...props} />,
                       td: ({node, ...props}) => <td className="custom-table-cell" {...props} />,
+                      img: ({node, ...props}) => (
+                        <img 
+                          {...props} 
+                          className="markdown-table-image" 
+                          style={{ maxWidth: '150px', height: 'auto' }} 
+                        />
+                      )
                     }}
                   >
                     {message.monitoring}
