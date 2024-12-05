@@ -1,4 +1,3 @@
-
 import hashlib
 import json
 import os
@@ -56,6 +55,8 @@ model_table = dynamodb_client.Table(model_table_name)
 
 sm_client = boto3.client("secretsmanager")
 credentials = boto3.Session().get_credentials()
+built_in_tools = ["chat", "get_weather"]
+
 try:
     master_user = sm_client.get_secret_value(
         SecretId=aos_secret)["SecretString"]
@@ -306,23 +307,25 @@ def __list_execution(event, group_name):
         item_json = {}
         for key in list(item.keys()):
             value = item.get(key, {"S": ""}).get("S", "-")
-            if key == "File":
+            if key == "file" or key == "File":
                 item_json["fileName"] = value.split("/").pop()
             elif key == "modelId":
                 item_json["model"] = value
-            elif key == "LastModifiedTime":
+            elif key == "lastModifiedTime" or key == "LastModifiedTime":
                 item_json["createTime"] = value
-            elif key == "LastModifiedBy":
+            elif key == "lastModifiedBy" or key == "LastModifiedBy":
                 item_json["createBy"] = value
             elif key == "intentionId":
                 item_json["executionId"] = value
+            elif key == "validRatio":
+                item_json["executionStatus"] = value
             else:
                 item_json[key] = value
-            item_json["executionStatus"] = "COMPLETED"
+            
         page_json.append(item_json)
-        output["Items"] = page_json
-    output["Config"] = config
-    output["Count"] = len(items)
+        output["items"] = page_json
+    output["config"] = config
+    output["count"] = len(items)
     return output
 
 
@@ -344,24 +347,29 @@ def __create_execution(event, context, email, group_name):
     sheet = workbook.active
     qaList = []
 
+    # Query current chatbot's qd index
+    chatbot_item = chatbot_table.get_item(
+        Key={
+            "groupName": group_name,
+            "chatbotId": input_body.get("chatbotId"),
+        }
+    ).get("Item", {})
+
+    qd_index = chatbot_item.get("indexIds", {}).get("qd", {}).get("value", {})
+    valid_qd_types = [*built_in_tools, *list(qd_index.keys())]
     for row in sheet.iter_rows(min_row=2, values_only=True):
         question, intention, kwargs = row[0], row[1], row[2] if len(
             row) > 2 else None
         if not question:
             continue
-        # for i, element in enumerate(qaList):
-        #     if element.get("question") == question:
-        #         qaList[i] = {
-        #             "question": question,
-        #             "intention": intention,
-        #             "kwargs": kwargs
-        #         }
-        #         return qaList
         qaList.append({
             "question": question,
             "intention": intention,
-            "kwargs": kwargs
+            "kwargs": kwargs,
+            "is_valid": intention in valid_qd_types
         })
+
+    valid_qa_list = [qa for qa in qaList if qa.get("is_valid")]
     # write to ddb(meta data)
     intention_table.put_item(
         Item={
@@ -371,15 +379,17 @@ def __create_execution(event, context, email, group_name):
             "model": execution_detail["model"],
             "index": execution_detail["index"],
             "tag": execution_detail["index"],
-            "File": f'{bucket}{input_body.get("s3Prefix")}',
-            "LastModifiedBy": email,
-            "LastModifiedTime": re.findall(r'\[(.*?)\]', input_body.get("s3Prefix"))[0],
-            "details": json.dumps(qaList)
+            "file": f'{bucket}{input_body.get("s3Prefix")}',
+            "lastModifiedBy": email,
+            "lastModifiedTime": re.findall(r'\[(.*?)\]', input_body.get("s3Prefix"))[0],
+            "details": json.dumps(qaList),
+            "validRatio": f"{len(valid_qa_list)} / {len(qaList)}",
         }
     )
+   
     # write to aos(vectorData)
     __save_2_aos(input_body.get("model"),
-                 execution_detail["index"], qaList, bucket, prefix)
+                 execution_detail["index"], valid_qa_list, bucket, prefix)
 
     return {
         "execution_id": execution_detail["tableItemId"],
@@ -546,12 +556,12 @@ def __get_execution(event, group_name):
     )
     item = index_response['Item']
     res = {}
-    Items = []
+    items = []
     # for item in items:
     item_json = {}
     for key in list(item.keys()):
         value = item.get(key)
-        if key == "File":
+        if key == "file" or key == "File":
             split_index = value.rfind('/')
             if split_index != -1:
                 item_json["s3Path"] = value[:split_index]
@@ -559,16 +569,16 @@ def __get_execution(event, group_name):
             else:
                 item_json["s3Path"] = value
                 item_json["s3Prefix"] = "-"
-        elif key == "LastModifiedTime":
+        elif key == "lastModifiedTime":
             item_json["createTime"] = value
         elif key == "details":
-            item_json["QAList"] = json.loads(value)
+            item_json["qaList"] = json.loads(value)
         else:
             continue
         item_json["status"] = "COMPLETED"
-    Items.append(item_json)
-    res["Items"] = Items
-    res["Count"] = len(Items)
+    items.append(item_json)
+    res["items"] = items
+    res["count"] = len(items)
     return res
 
 
