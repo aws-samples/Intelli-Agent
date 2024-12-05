@@ -100,3 +100,7 @@ class CohereCommandRPlus(Claude2):
     model_id = LLMModelType.COHERE_COMMAND_R_PLUS
     enable_auto_tool_choice = False
     enable_prefill = False
+
+
+class NovaPro(Claude2):
+    model_id = LLMModelType.NOVA_PRO

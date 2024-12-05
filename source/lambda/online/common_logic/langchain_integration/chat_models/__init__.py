@@ -63,7 +63,8 @@ def _import_bedrock_models():
         Claude35SonnetV2,
         MistralLarge2407,
         Llama3d1Instruct70B,
-        CohereCommandRPlus
+        CohereCommandRPlus,
+        NovaPro
     )
 
 def _import_openai_models():
@@ -95,6 +96,7 @@ MODEL_MODULE_LOAD_FN_MAP = {
     LLMModelType.COHERE_COMMAND_R_PLUS:_import_bedrock_models,
     LLMModelType.CLAUDE_3_5_SONNET_V2:_import_bedrock_models,
     LLMModelType.CLAUDE_3_5_HAIKU:_import_bedrock_models,
+    LLMModelType.NOVA_PRO:_import_bedrock_models,
 }
 
 
