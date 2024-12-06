@@ -39,12 +39,14 @@ class Claude2(Model):
             or None
         )
         br_aws_access_key_id = os.environ.get("BEDROCK_AWS_ACCESS_KEY_ID", "")
-        br_aws_secret_access_key = os.environ.get("BEDROCK_AWS_SECRET_ACCESS_KEY", "")
+        br_aws_secret_access_key = os.environ.get(
+            "BEDROCK_AWS_SECRET_ACCESS_KEY", "")
 
         if br_aws_access_key_id != "" and br_aws_secret_access_key != "":
-            logger.info(f"Bedrock Using AWS AKSK from environment variables. Key ID: {br_aws_access_key_id}")
+            logger.info(
+                f"Bedrock Using AWS AKSK from environment variables. Key ID: {br_aws_access_key_id}")
 
-            client = boto3.client("bedrock-runtime", region_name=region_name, 
+            client = boto3.client("bedrock-runtime", region_name=region_name,
                                   aws_access_key_id=br_aws_access_key_id, aws_secret_access_key=br_aws_secret_access_key)
 
             llm = ChatBedrockConverse(
@@ -125,45 +127,3 @@ class NovaPro(Claude2):
     model_id = LLMModelType.NOVA_PRO
     enable_auto_tool_choice = False
     enable_prefill = False
-    
-    # @classmethod
-    # def create_model(cls, model_kwargs=None, **kwargs):
-    #     model_kwargs = model_kwargs or {}
-        
-    #     # Get the inference profile ARN from environment variable or kwargs
-    #     inference_profile = (
-    #         kwargs.get("inference_profile", None)
-    #         or os.environ.get("NOVA_PRO_INFERENCE_PROFILE", None)
-    #         or "arn:aws:bedrock:us-west-2:817734611975:inference-profile/us.amazon.nova-pro-v1:0"
-    #     )
-        
-    #     # Add inference profile to the model kwargs
-    #     bedrock_parameters = {"inferenceProfile": inference_profile}
-    #     model_kwargs["model_kwargs"] = bedrock_parameters
-        
-    #     # Merge with default kwargs
-    #     model_kwargs = {**cls.default_model_kwargs, **model_kwargs}
-
-    #     credentials_profile_name = (
-    #         kwargs.get("credentials_profile_name", None)
-    #         or os.environ.get("AWS_PROFILE", None)
-    #         or None
-    #     )
-    #     region_name = (
-    #         kwargs.get("region_name", None)
-    #         or os.environ.get("BEDROCK_REGION", None)
-    #         or None
-    #     )
-
-    #     llm = ChatBedrockConverse(
-    #         credentials_profile_name=credentials_profile_name,
-    #         region_name=region_name,
-    #         model=cls.model_id,
-    #         enable_auto_tool_choice=cls.enable_auto_tool_choice,
-    #         enable_prefill=cls.enable_prefill,
-    #         **model_kwargs,
-    #     )
-    #     llm.client.converse_stream = llm_messages_print_decorator(
-    #         llm.client.converse_stream)
-    #     llm.client.converse = llm_messages_print_decorator(llm.client.converse)
-    #     return llm
