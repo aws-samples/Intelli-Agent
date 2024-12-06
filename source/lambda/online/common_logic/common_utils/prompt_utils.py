@@ -21,7 +21,8 @@ EXPORT_MODEL_IDS = [
     LLMModelType.CLAUDE_3_5_SONNET_V2,
     LLMModelType.LLAMA3_1_70B_INSTRUCT,
     LLMModelType.MISTRAL_LARGE_2407,
-    LLMModelType.COHERE_COMMAND_R_PLUS
+    LLMModelType.COHERE_COMMAND_R_PLUS,
+    LLMModelType.NOVA_PRO,
 ]
 
 EXPORT_SCENES = [
@@ -192,6 +193,7 @@ register_prompt_templates(
         LLMModelType.LLAMA3_2_90B_INSTRUCT,
         LLMModelType.MISTRAL_LARGE_2407,
         LLMModelType.COHERE_COMMAND_R_PLUS,
+        LLMModelType.NOVA_PRO,
     ],
     task_type=LLMTaskType.RAG,
     prompt_template=CLAUDE_RAG_SYSTEM_PROMPT,
@@ -312,7 +314,7 @@ register_prompt_templates(
         LLMModelType.LLAMA3_2_90B_INSTRUCT,
         LLMModelType.MISTRAL_LARGE_2407,
         LLMModelType.COHERE_COMMAND_R_PLUS,
-
+        LLMModelType.NOVA_PRO,
     ],
     task_type=LLMTaskType.CONVERSATION_SUMMARY_TYPE,
     prompt_template=CQR_SYSTEM_PROMPT,
@@ -337,6 +339,7 @@ register_prompt_templates(
         LLMModelType.LLAMA3_2_90B_INSTRUCT,
         LLMModelType.MISTRAL_LARGE_2407,
         LLMModelType.COHERE_COMMAND_R_PLUS,
+        LLMModelType.NOVA_PRO,
     ],
     task_type=LLMTaskType.CONVERSATION_SUMMARY_TYPE,
     prompt_template=CQR_USER_PROMPT_TEMPLATE,
@@ -362,6 +365,7 @@ register_prompt_templates(
         LLMModelType.LLAMA3_2_90B_INSTRUCT,
         LLMModelType.MISTRAL_LARGE_2407,
         LLMModelType.COHERE_COMMAND_R_PLUS,
+        LLMModelType.NOVA_PRO,
     ],
     task_type=LLMTaskType.CONVERSATION_SUMMARY_TYPE,
     prompt_template=json.dumps(CQR_FEW_SHOTS, ensure_ascii=False, indent=2),
@@ -420,7 +424,7 @@ register_prompt_templates(
 AGENT_SYSTEM_PROMPT = """\
 You are a helpful and honest AI assistant. Today is {date},{weekday}. 
 Here are some guidelines for you:
-<guidlines>
+<guidelines>
 - Here are steps for you to decide to use which tool:
     1. Determine whether the current context is sufficient to answer the user's question.
     2. If the current context is sufficient to answer the user's question, call the `give_final_response` tool.
@@ -428,7 +432,7 @@ Here are some guidelines for you:
     4. If any of required parameters of the tool you want to call do not appears in context, call the `give_rhetorical_question` tool to ask the user for more information. 
 - Always output with the same language as the content from user. If the content is English, use English to output. If the content is Chinese, use Chinese to output.
 - Always call one tool at a time.
-</guidlines>
+</guidelines>
 Here's some context for reference:
 <context>
 {context}
@@ -479,6 +483,7 @@ register_prompt_templates(
         LLMModelType.CLAUDE_3_5_SONNET,
         LLMModelType.CLAUDE_3_5_SONNET_V2,
         LLMModelType.CLAUDE_3_5_HAIKU,
+        LLMModelType.NOVA_PRO,
         # LLMModelType.LLAMA3_1_70B_INSTRUCT,
         # LLMModelType.LLAMA3_2_90B_INSTRUCT,
         # LLMModelType.MISTRAL_LARGE_2407,
@@ -496,7 +501,7 @@ You are a helpful and honest AI assistant. Today is {date},{weekday}.
 Here's some context for reference:
 {context}
 
-## Guidlines
+## Guidelines
 Here are some guidelines for you:
 - Here are strategies for you to decide to use which tool:
     1. Determine whether the current context is sufficient to answer the user's question.
@@ -536,6 +541,7 @@ register_prompt_templates(
         LLMModelType.LLAMA3_2_90B_INSTRUCT,
         LLMModelType.MISTRAL_LARGE_2407,
         LLMModelType.COHERE_COMMAND_R_PLUS,
+        LLMModelType.NOVA_PRO,
     ],
     task_type=LLMTaskType.TOOL_CALLING_API,
     prompt_template=TOOL_FEWSHOT_PROMPT,

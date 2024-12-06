@@ -146,7 +146,8 @@ class LLMModelType(ConstantBase):
     LLAMA3_2_90B_INSTRUCT = "us.meta.llama3-2-90b-instruct-v1:0"
     MISTRAL_LARGE_2407 = "mistral.mistral-large-2407-v1:0"
     COHERE_COMMAND_R_PLUS = "cohere.command-r-plus-v1:0"
-    NOVA_PRO = "amazon.nova-pro-v1:0"
+    # NOVA_PRO = "amazon.nova-pro-v1:0"
+    NOVA_PRO = "us.amazon.nova-pro-v1:0"
 
 
 class EmbeddingModelType(ConstantBase):

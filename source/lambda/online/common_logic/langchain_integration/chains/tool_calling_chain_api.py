@@ -180,5 +180,5 @@ class CohereCommandRPlusToolCallingChain(Claude2ToolCallingChain):
     model_id = LLMModelType.COHERE_COMMAND_R_PLUS
 
 
-class NovaProV2ToolCallingChain(Claude2ToolCallingChain):
+class NovaProToolCallingChain(Claude2ToolCallingChain):
     model_id = LLMModelType.NOVA_PRO
