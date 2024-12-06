@@ -1,11 +1,11 @@
+from aikits_utils import lambda_return
+from main import process_pdf_pipeline
 from gevent import pywsgi
 import flask
 import json
 
 app = flask.Flask(__name__)
 
-from main import process_pdf_pipeline
-from aikits_utils import lambda_return
 
 def handler(event, context):
     if 'body' not in event:
@@ -15,16 +15,17 @@ def handler(event, context):
             body = json.loads(event['body'])
         else:
             body = event['body']
-        
+
         if 's3_bucket' not in body or 'object_key' not in body:
             return lambda_return(400, 'Must specify the `s3_bucket` and `object_key` for the file')
-        
+
     except:
         return lambda_return(400, 'invalid param')
-    
+
     output = process_pdf_pipeline(body)
 
     return lambda_return(200, json.dumps(output))
+
 
 @app.route('/ping', methods=['GET'])
 def ping():
@@ -35,7 +36,8 @@ def ping():
     """
     status = 200
     return flask.Response(response='Flask app is activated.', status=status, mimetype='application/json')
-    
+
+
 @app.route('/invocations', methods=['POST'])
 def transformation():
     """
@@ -46,7 +48,7 @@ def transformation():
     if flask.request.content_type == 'application/json':
         request_body = flask.request.data.decode('utf-8')
         body = json.loads(request_body)
-        req = handler({'body':body}, None)
+        req = handler({'body': body}, None)
         return flask.Response(
             response=req['body'],
             status=req['statusCode'], mimetype='application/json')
@@ -54,6 +56,7 @@ def transformation():
         return flask.Response(
             response='Only supports application/json data',
             status=415, mimetype='application/json')
-            
+
+
 server = pywsgi.WSGIServer(('0.0.0.0', 8080), app)
 server.serve_forever()

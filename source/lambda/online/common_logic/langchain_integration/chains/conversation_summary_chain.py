@@ -254,3 +254,7 @@ class Qwen2Instruct7BConversationSummaryChain(Claude2ConversationSummaryChain):
 
 class GLM4Chat9BConversationSummaryChain(Claude2ConversationSummaryChain):
     model_id = LLMModelType.GLM_4_9B_CHAT
+
+
+class NovaProConversationSummaryChain(Claude2ConversationSummaryChain):
+    model_id = LLMModelType.NOVA_PRO
