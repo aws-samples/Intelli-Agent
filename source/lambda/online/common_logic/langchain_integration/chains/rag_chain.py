@@ -186,3 +186,8 @@ class Baichuan2Chat13B4BitsKnowledgeQaChain(Baichuan2Chat13B4BitsChatChain):
         )
         llm_chain = chat_history_chain | llm_chain
         return llm_chain
+
+
+class NovaProRAGLLMChain(Claude2RagLLMChain):
+    model_id = LLMModelType.NOVA_PRO
+

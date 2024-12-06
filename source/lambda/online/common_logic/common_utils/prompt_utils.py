@@ -21,7 +21,8 @@ EXPORT_MODEL_IDS = [
     LLMModelType.CLAUDE_3_5_SONNET_V2,
     LLMModelType.LLAMA3_1_70B_INSTRUCT,
     LLMModelType.MISTRAL_LARGE_2407,
-    LLMModelType.COHERE_COMMAND_R_PLUS
+    LLMModelType.COHERE_COMMAND_R_PLUS,
+    LLMModelType.NOVA_PRO,
 ]
 
 EXPORT_SCENES = [
@@ -126,18 +127,56 @@ get_prompt_templates_from_ddb = prompt_template_manager.get_prompt_templates_fro
 
 #### rag template #######
 
-CLAUDE_RAG_SYSTEM_PROMPT = """You are a customer service agent, and answering user's query. You ALWAYS follow these response rules when writing your response:
+CLAUDE_RAG_SYSTEM_PROMPT = """
+You are a customer service agent responding to user queries. ALWAYS adhere to these response rules:
+
 <response_rules>
-- 如果<docs> </docs>里面的内容包含markdown格式的图片，如 ![image](https://www.demo.com/demo.png)，请保留这个markdown格式的图片，并将他原封不动的输出到回答内容的最后，注意：不要修改这个markdown格式的图片.
-- NERVER say "根据搜索结果/大家好/谢谢/根据这个文档...".
-- 回答简单明了
-- 如果问题与<docs> </docs>里面的内容不相关，直接回答 "根据内部知识库，找不到相关内容。"
+1. Image Handling:
+   - If <docs></docs> contains markdown-formatted images, append them unaltered to the end of your response.
+   - Only process markdown-formatted images within <docs></docs>.
+   - IMPORTANT: If no markdown-formatted images are present in <docs></docs>, do not add any image references to your response.
+
+2. Language and Tone:
+   - Never use phrases like "According to search results," "Hello everyone," "Thank you," or "According to this document..."
+   - Provide concise and clear answers.
+   - Maintain a professional and helpful tone throughout the response.
+
+3. Relevance:
+   - If the query is unrelated to the content in <docs></docs>, respond with: "根据内部知识库，找不到相关内容。"
+
+4. Reference Citation:
+   - Include the context ID you refer to in your response using the <reference> tag.
+   - The context ID should be the index of the document in the <docs> tag.
+   - Always use the correct format: \n<reference>X</reference>, where X is the document index.
+   - Example: \n<reference>1</reference> for <doc index="1"></doc>
+   - All <reference> tags should be in the beginning of the response
+   - IMPORTANT: Ensure that the opening tag <reference> always comes before the number, and the closing tag </reference> always comes after the number.
+
+5. Language Adaptation:
+   - Respond in the same language as the user's query.
+   - If the query is in a language other than English, adapt your response accordingly.
+
+6. Confidentiality:
+   - Do not disclose any information not present in the provided documents.
+   - If asked about topics outside your knowledge base, politely state that you don't have that information.
+
+7. Formatting:
+   - Use appropriate formatting (bold, italics, bullet points) to enhance readability when necessary.
+
+8. Completeness:
+   - Ensure your response addresses all aspects of the user's query.
+   - If multiple relevant documents are provided, synthesize the information coherently.
+
+9. Tag Verification:
+   - Before finalizing your response, double-check all <reference> tags to ensure they are correctly formatted.
+   - If you find any incorrectly formatted tags (e.g., 1</reference>), correct them to the proper format (\n<reference>1</reference>).
 </response_rules>
 
-Here are some documents for you to reference for your query.
+Reference the following documents to answer the query:
 <docs>
 {context}
-</docs>"""
+</docs>
+"""
 
 register_prompt_templates(
     model_ids=[
@@ -154,6 +193,7 @@ register_prompt_templates(
         LLMModelType.LLAMA3_2_90B_INSTRUCT,
         LLMModelType.MISTRAL_LARGE_2407,
         LLMModelType.COHERE_COMMAND_R_PLUS,
+        LLMModelType.NOVA_PRO,
     ],
     task_type=LLMTaskType.RAG,
     prompt_template=CLAUDE_RAG_SYSTEM_PROMPT,
@@ -274,7 +314,7 @@ register_prompt_templates(
         LLMModelType.LLAMA3_2_90B_INSTRUCT,
         LLMModelType.MISTRAL_LARGE_2407,
         LLMModelType.COHERE_COMMAND_R_PLUS,
-
+        LLMModelType.NOVA_PRO,
     ],
     task_type=LLMTaskType.CONVERSATION_SUMMARY_TYPE,
     prompt_template=CQR_SYSTEM_PROMPT,
@@ -299,6 +339,7 @@ register_prompt_templates(
         LLMModelType.LLAMA3_2_90B_INSTRUCT,
         LLMModelType.MISTRAL_LARGE_2407,
         LLMModelType.COHERE_COMMAND_R_PLUS,
+        LLMModelType.NOVA_PRO,
     ],
     task_type=LLMTaskType.CONVERSATION_SUMMARY_TYPE,
     prompt_template=CQR_USER_PROMPT_TEMPLATE,
@@ -324,6 +365,7 @@ register_prompt_templates(
         LLMModelType.LLAMA3_2_90B_INSTRUCT,
         LLMModelType.MISTRAL_LARGE_2407,
         LLMModelType.COHERE_COMMAND_R_PLUS,
+        LLMModelType.NOVA_PRO,
     ],
     task_type=LLMTaskType.CONVERSATION_SUMMARY_TYPE,
     prompt_template=json.dumps(CQR_FEW_SHOTS, ensure_ascii=False, indent=2),
@@ -382,7 +424,7 @@ register_prompt_templates(
 AGENT_SYSTEM_PROMPT = """\
 You are a helpful and honest AI assistant. Today is {date},{weekday}. 
 Here are some guidelines for you:
-<guidlines>
+<guidelines>
 - Here are steps for you to decide to use which tool:
     1. Determine whether the current context is sufficient to answer the user's question.
     2. If the current context is sufficient to answer the user's question, call the `give_final_response` tool.
@@ -390,7 +432,7 @@ Here are some guidelines for you:
     4. If any of required parameters of the tool you want to call do not appears in context, call the `give_rhetorical_question` tool to ask the user for more information. 
 - Always output with the same language as the content from user. If the content is English, use English to output. If the content is Chinese, use Chinese to output.
 - Always call one tool at a time.
-</guidlines>
+</guidelines>
 Here's some context for reference:
 <context>
 {context}
@@ -441,6 +483,7 @@ register_prompt_templates(
         LLMModelType.CLAUDE_3_5_SONNET,
         LLMModelType.CLAUDE_3_5_SONNET_V2,
         LLMModelType.CLAUDE_3_5_HAIKU,
+        LLMModelType.NOVA_PRO,
         # LLMModelType.LLAMA3_1_70B_INSTRUCT,
         # LLMModelType.LLAMA3_2_90B_INSTRUCT,
         # LLMModelType.MISTRAL_LARGE_2407,
@@ -458,7 +501,7 @@ You are a helpful and honest AI assistant. Today is {date},{weekday}.
 Here's some context for reference:
 {context}
 
-## Guidlines
+## Guidelines
 Here are some guidelines for you:
 - Here are strategies for you to decide to use which tool:
     1. Determine whether the current context is sufficient to answer the user's question.
@@ -498,6 +541,7 @@ register_prompt_templates(
         LLMModelType.LLAMA3_2_90B_INSTRUCT,
         LLMModelType.MISTRAL_LARGE_2407,
         LLMModelType.COHERE_COMMAND_R_PLUS,
+        LLMModelType.NOVA_PRO,
     ],
     task_type=LLMTaskType.TOOL_CALLING_API,
     prompt_template=TOOL_FEWSHOT_PROMPT,

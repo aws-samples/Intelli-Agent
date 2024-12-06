@@ -22,3 +22,14 @@
     border: 1px solid #ddd;
     min-width: 120px;
 }
+
+.markdown-table-image {
+    display: block;
+    margin: 4px auto;
+    object-fit: contain;
+}
+
+.markdown-image {
+    max-width: 100%;
+    height: auto;
+}

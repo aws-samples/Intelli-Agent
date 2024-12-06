@@ -39,12 +39,14 @@ class Claude2(Model):
             or None
         )
         br_aws_access_key_id = os.environ.get("BEDROCK_AWS_ACCESS_KEY_ID", "")
-        br_aws_secret_access_key = os.environ.get("BEDROCK_AWS_SECRET_ACCESS_KEY", "")
+        br_aws_secret_access_key = os.environ.get(
+            "BEDROCK_AWS_SECRET_ACCESS_KEY", "")
 
         if br_aws_access_key_id != "" and br_aws_secret_access_key != "":
-            logger.info(f"Bedrock Using AWS AKSK from environment variables. Key ID: {br_aws_access_key_id}")
+            logger.info(
+                f"Bedrock Using AWS AKSK from environment variables. Key ID: {br_aws_access_key_id}")
 
-            client = boto3.client("bedrock-runtime", region_name=region_name, 
+            client = boto3.client("bedrock-runtime", region_name=region_name,
                                   aws_access_key_id=br_aws_access_key_id, aws_secret_access_key=br_aws_secret_access_key)
 
             llm = ChatBedrockConverse(
@@ -117,5 +119,11 @@ class Llama3d2Instruct90B(Claude2):
 
 class CohereCommandRPlus(Claude2):
     model_id = LLMModelType.COHERE_COMMAND_R_PLUS
+    enable_auto_tool_choice = False
+    enable_prefill = False
+
+
+class NovaPro(Claude2):
+    model_id = LLMModelType.NOVA_PRO
     enable_auto_tool_choice = False
     enable_prefill = False

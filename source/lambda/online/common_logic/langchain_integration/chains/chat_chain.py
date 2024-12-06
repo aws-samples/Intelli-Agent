@@ -372,3 +372,7 @@ class ChatGPT4ChatChain(ChatGPT35ChatChain):
 
 class ChatGPT4oChatChain(ChatGPT35ChatChain):
     model_id = LLMModelType.CHATGPT_4O
+
+
+class NovaProChatChain(Claude2ChatChain):
+    model_id = LLMModelType.NOVA_PRO

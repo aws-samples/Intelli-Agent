@@ -101,3 +101,7 @@ class Internlm2Chat7BHydeChain(Internlm2Chat7BChatChain):
 class Internlm2Chat20BHydeChain(Internlm2Chat7BHydeChain):
     model_id = LLMModelType.INTERNLM2_CHAT_20B
     intent_type = HYDE_TYPE
+
+
+class NovaProHydeChain(Claude2HydeChain):
+    model_id = LLMModelType.NOVA_PRO
