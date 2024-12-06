@@ -36,6 +36,8 @@ export function getConfig(): SystemConfig {
     chat: {
       enabled: true,
       bedrockRegion: "us-east-1",
+      bedrockAk: "",
+      bedrockSk: "",
       amazonConnect: {
         enabled: true
       }
