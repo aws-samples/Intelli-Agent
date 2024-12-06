@@ -470,7 +470,7 @@ To inject intent data into your system, follow these steps:
    - Use the following JSON format for injecting individual intent data:
 
    ```json
-  {"question": "Hello", "answer": {"intent": "chat"}}
+   {"question": "Hello", "answer": {"intent": "chat"}}
    ```
 
    - Replace `"Hello"` with the actual question text.
