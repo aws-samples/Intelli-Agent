@@ -39,6 +39,7 @@ def _import_chat_chain():
     Baichuan2Chat13B4BitsChatChain,
     Claude3HaikuChatChain,
     Claude3SonnetChatChain,
+    NovaProChatChain
 )
 
 def _import_conversation_summary_chain():
@@ -48,7 +49,8 @@ def _import_conversation_summary_chain():
     Claude21ConversationSummaryChain,
     Claude3HaikuConversationSummaryChain,
     Claude3SonnetConversationSummaryChain,
-    Internlm2Chat20BConversationSummaryChain
+    Internlm2Chat20BConversationSummaryChain,
+    NovaProConversationSummaryChain
 )
 
 def _import_intention_chain():
@@ -71,7 +73,8 @@ def _import_rag_chain():
     ClaudeInstanceRAGLLMChain,
     Claude3HaikuRAGLLMChain,
     Claude3SonnetRAGLLMChain,
-    Baichuan2Chat13B4BitsKnowledgeQaChain
+    Baichuan2Chat13B4BitsKnowledgeQaChain,
+    NovaProRAGLLMChain
 )
 
 
@@ -117,7 +120,8 @@ def _import_hyde_chain():
     Claude3SonnetHydeChain,
     ClaudeInstanceHydeChain,
     Internlm2Chat20BHydeChain,
-    Internlm2Chat7BHydeChain
+    Internlm2Chat7BHydeChain,
+    NovaProHydeChain
 )
 
 def _import_query_rewrite_chain():
@@ -128,7 +132,8 @@ def _import_query_rewrite_chain():
     Claude3HaikuQueryRewriteChain,
     Claude3SonnetQueryRewriteChain,
     Internlm2Chat20BQueryRewriteChain,
-    Internlm2Chat7BQueryRewriteChain
+    Internlm2Chat7BQueryRewriteChain,
+    NovaProQueryRewriteChain
 )
 
 
@@ -138,7 +143,8 @@ def _import_tool_calling_chain_claude_xml():
     Claude3HaikuToolCallingChain,
     Claude2ToolCallingChain,
     Claude3SonnetToolCallingChain,
-    ClaudeInstanceToolCallingChain
+    ClaudeInstanceToolCallingChain,
+    NovaProToolCallingChain
 )
 
 def _import_retail_conversation_summary_chain():
@@ -169,7 +175,8 @@ def _import_tool_calling_chain_api():
         Claude3SonnetToolCallingChain,
         Llama31Instruct70BToolCallingChain,
         CohereCommandRPlusToolCallingChain,
-        MistraLlarge2407ToolCallingChain
+        MistraLlarge2407ToolCallingChain,
+        NovaProToolCallingChain,
     )
 
 
