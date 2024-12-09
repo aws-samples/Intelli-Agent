@@ -89,7 +89,7 @@
     "question": "question",
     "args": "kwargs",
     "intentionFailMsg": "Intention type must be qd index value of the robot or the specified tool name (chat/get_weather)",
-    "intentionSuccess": "Success",
+    "intentionSuccess": "Successed",
     "intentionFail": "Failed",
     "qaListDesc": "Here is a list of questions uploaded in this batch.",
     "chatbotManagement": "Chatbot",

@@ -241,13 +241,13 @@ const Intention: React.FC = () => {
 
   const renderStatus = (ratio: string) => {
     if(ratio === undefined){
-      return <StatusIndicator type="success">{t('successed')}</StatusIndicator>;
+      return <StatusIndicator type="success">{t('intentionSuccess')}</StatusIndicator>;
     } else {
       const ratioArray = ratio.split("/")
       if (ratioArray[0].trim() !== ratioArray[1].trim()) {
         return <StatusIndicator type="error">{t('failed')}</StatusIndicator>;
       } else {
-        return <StatusIndicator type="success">{t('successed')}</StatusIndicator>;
+        return <StatusIndicator type="success">{t('intentionSuccess')}</StatusIndicator>;
       }
   }
   };
