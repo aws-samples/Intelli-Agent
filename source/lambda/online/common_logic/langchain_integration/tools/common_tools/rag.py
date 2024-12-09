@@ -15,40 +15,74 @@ logger = logging.getLogger("rag")
 logger.setLevel(logging.INFO)
 
 
-# def llm_stream_helper(res: Iterable, state: dict):
-#     reference_close_flag = False
-#     reference_str = ""
-#     all_str = ""
-#     for r in res:
-#         all_str += r
-#         if all_str.endswith("</reference>"):
-#             reference_str = all_str.split("</reference>")[0]
-#             state["extra_response"]["references"] = reference_str.split(",")
-#             reference_close_flag = True
-#             all_docs = state["extra_response"]["docs"]
-#             ref_docs = []
-#             ref_figures = []
-#             for ref in state["extra_response"]["references"]:
-#                 try:
-#                     doc_id = int(ref)
-#                     ref_docs.append(all_docs[doc_id-1])
-#                     ref_figures.append(all_docs[doc_id-1].get("figure", []))
-#                 except Exception as e:
-#                     logger.error(
-#                         f"Invalid reference doc id: {ref} in {all_str}. Error: {e}")
-#             state["extra_response"]["ref_docs"] = ref_docs
-#             state["extra_response"]["ref_figures"] = ref_figures
-#             continue
+def filter_response(res: Iterable, state: dict):
+    """
+    Filter out reference tags from the response and store reference numbers
+    Args:
+        res: Generator object from LLM response
+        state: State dictionary to store references
+    Returns:
+        Generator yielding filtered response
+    """
+    buffer = ""
+    references = []
+    tag_start = "<reference>"
+    tag_end = "</reference>"
 
-#         if reference_close_flag:
-#             yield r
+    for char in res:
+        if not buffer and char not in ["<", "<reference"]:
+            yield char
+            continue
+
+        buffer += char
+
+        # Check the string starts with <reference>
+        if buffer == tag_start[:len(buffer)]:
+            continue
+        elif buffer.startswith(tag_start):
+            if buffer.endswith(tag_end):
+                # Get reference document number after finding </reference>
+                ref_content = buffer[len(tag_start):-len(tag_end)]
+                try:
+                    ref_num = int(ref_content)
+                    references.append(ref_num)
+                except ValueError:
+                    logger.error(f"Invalid reference number: {ref_content}")
+                buffer = ""
+            continue
+        else:
+            # Move next
+            yield buffer[0]
+            buffer = buffer[1:]
+
+    if buffer:
+        yield buffer
+
+    if references:
+        state["extra_response"]["references"] = references
+        all_docs = state["extra_response"]["docs"]
+        ref_docs = []
+        ref_figures = []
+
+        for ref in references:
+            try:
+                doc_id = ref
+                ref_docs.append(all_docs[doc_id-1])
+                ref_figures.extend(all_docs[doc_id-1].get("figure", []))
+            except Exception as e:
+                logger.error(f"Invalid reference doc id: {ref}. Error: {e}")
+
+        # Remove duplicate figures
+        unique_set = {tuple(d.items()) for d in ref_figures}
+        unique_figure_list = [dict(t) for t in unique_set]
+        state["extra_response"]["ref_docs"] = ref_docs
+        state["extra_response"]["ref_figures"] = unique_figure_list
 
 
 def rag_tool(retriever_config: dict, query=None):
     state = StateContext.get_current_state()
-    # state = event_body['state']
     context_list = []
-    # add qq match results
+    # Add QQ match results
     context_list.extend(state['qq_match_results'])
     figure_list = []
     retriever_params = retriever_config
@@ -60,11 +94,6 @@ def rag_tool(retriever_config: dict, query=None):
     for doc in output["result"]["docs"]:
         context_list.append(doc["page_content"])
         figure_list = figure_list + doc.get("figure", [])
-
-    # # Remove duplicate figures
-    # unique_set = {tuple(d.items()) for d in figure_list}
-    # unique_figure_list = [dict(t) for t in unique_set]
-    # state['extra_response']['figures'] = unique_figure_list
 
     context_md = format_rag_data(
         output["result"]["docs"], state.get("qq_match_contexts", {}))
@@ -102,11 +131,6 @@ def rag_tool(retriever_config: dict, query=None):
     )
     output = chain.invoke(llm_input)
 
-    # filtered_output = llm_stream_helper(output, state)
+    filtered_output = filter_response(output, state)
 
-    # Remove duplicate figures
-    # unique_set = {tuple(d.items()) for d in figure_list}
-    # unique_figure_list = [dict(t) for t in unique_set]
-
-    # return filtered_output, filtered_output
-    return output, output
+    return filtered_output, filtered_output
