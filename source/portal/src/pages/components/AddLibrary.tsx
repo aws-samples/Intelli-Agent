@@ -205,7 +205,7 @@ const AddLibrary: React.FC<AddLibraryProps> = (props: AddLibraryProps) => {
         setShowProgress(false);
         setUploadFiles([]);
         setUploadProgress(0);
-        alertMsg(t('uploadSuccess'), 'success');
+        alertMsg(t('uploadCompleted'), 'success');
         setShowAddModal(false);
         reloadLibrary();
       }

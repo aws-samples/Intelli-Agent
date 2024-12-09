@@ -54,7 +54,6 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
     selectedBotOption, 
     showAddModal, 
     indexNameOptions,
-    indexDesc,
     fileEmptyError,
     uploadFiles,
     selectedIndexOption,
@@ -174,7 +173,7 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
         setShowProgress(false);
         setUploadFiles([]);
         setUploadProgress(0);
-        alertMsg(t('uploadSuccess'), 'success');
+        alertMsg(t('uploadCompleted'), 'success');
         setShowAddModal(false);
         reloadIntention();
       }
@@ -289,7 +288,6 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
                       </>
                     }
                     stretch={true}
-                    {...(indexDesc !== null && indexDesc.trim().length > 0?{description: indexDesc}:{})}
                   > 
                     <Select
                       options={indexNameOptions}
