@@ -54,7 +54,6 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
     selectedBotOption, 
     showAddModal, 
     indexNameOptions,
-    indexDesc,
     fileEmptyError,
     uploadFiles,
     selectedIndexOption,
