@@ -321,3 +321,8 @@ class Claude3HaikuToolCallingChain(Claude2ToolCallingChain):
 
 class Claude35SonnetToolCallingChain(Claude2ToolCallingChain):
     model_id = "anthropic.claude-3-5-sonnet-20240620-v1:0"
+
+
+class NovaProToolCallingChain(Claude2ToolCallingChain):
+    model_id = LLMModelType.NOVA_PRO
+

@@ -34,6 +34,7 @@ export const LLM_BOT_COMMON_MODEL_LIST = [
   'meta.llama3-1-70b-instruct-v1:0',
   'mistral.mistral-large-2407-v1:0',
   'cohere.command-r-plus-v1:0',
+  'us.amazon.nova-pro-v1:0',
 ];
 
 export const LLM_BOT_RETAIL_MODEL_LIST = [
