@@ -294,14 +294,14 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     } else if (message.message_type === 'CONTEXT') {
       // handle context message
       if (message.ddb_additional_kwargs?.figure?.length > 0) {
-        // message.ddb_additional_kwargs.figure.forEach((item) => {
-        //   setCurrentAIMessage((prev) => {
-        //     return (
-        //       prev +
-        //       ` \n ![${item.content_type}](/${encodeURIComponent(item.figure_path)})`
-        //     );
-        //   });
-        // });
+        message.ddb_additional_kwargs.figure.forEach((item) => {
+          setCurrentAIMessage((prev) => {
+            return (
+              prev +
+              ` \n ![${item.content_type}](/${encodeURIComponent(item.figure_path)})`
+            );
+          });
+        });
       }
     } else if (message.message_type === 'END') {
       setCurrentAIMessageId(message.message_id);
