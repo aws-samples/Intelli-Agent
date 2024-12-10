@@ -154,18 +154,19 @@ def stream_response(event_body: dict, response: dict):
                             try:
                                 alt_end = line.find("](", img_start)
                                 img_end = line.find(")", alt_end)
-                                
+
                                 if alt_end != -1 and img_end != -1:
                                     image_path = line[alt_end + 2:img_end]
                                     # Remove optional title if present
                                     if '"' in image_path or "'" in image_path:
-                                        image_path = image_path.split('"')[0].split("'")[0].strip()
+                                        image_path = image_path.split(
+                                            '"')[0].split("'")[0].strip()
                                     if image_path:
                                         have_same_image = False
                                         for md_image_item in md_image_list:
                                             if image_path in md_image_item:
                                                 have_same_image = True
-                                        
+
                                         md_image_json = {
                                             "content_type": "md_image",
                                             "figure_path": image_path
@@ -183,14 +184,13 @@ def stream_response(event_body: dict, response: dict):
                                 continue
 
                 if md_images:
-                    context_msg["ddb_additional_kwargs"].setdefault("figure", []).extend(md_images)
+                    context_msg["ddb_additional_kwargs"].setdefault(
+                        "figure", []).extend(md_images)
 
             send_to_ws_client(
                 message=context_msg,
                 ws_connection_id=ws_connection_id
             )
-            print("lvning context message")
-            print(context_msg)
 
         # send end
         send_to_ws_client(
