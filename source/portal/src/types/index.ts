@@ -64,6 +64,7 @@ export type SessionHistoryItem = {
   userId: string;
   createTimestamp: string;
   latestQuestion: string;
+  chatbotId: string;
 };
 
 export type SessionHistoryResponse = {

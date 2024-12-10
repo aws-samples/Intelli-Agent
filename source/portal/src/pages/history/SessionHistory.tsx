@@ -141,6 +141,11 @@ const SessionHistory: React.FC = () => {
               isRowHeader: true,
             },
             {
+              id: 'chatbotId',
+              header: t('chatbotName'),
+              cell: (item: SessionHistoryItem) => item.chatbotId,
+            },
+            {
               id: 'latestQuestion',
               header: t('latestQuestion'),
               cell: (item: SessionHistoryItem) => item.latestQuestion,
