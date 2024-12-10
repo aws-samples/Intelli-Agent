@@ -452,16 +452,15 @@ def SagemakerEndpointVectorOrCross(
 
 
 def getCustomEmbeddings(
-    endpoint_name: str, region_name: str, model_type: str
+    endpoint_name: str, region_name: str, bedrock_region: str, model_type: str
 ) -> SagemakerEndpointEmbeddings:
     client = boto3.client("sagemaker-runtime", region_name=region_name)
-    bedrock_client = boto3.client("bedrock-runtime")
+    bedrock_client = boto3.client("bedrock-runtime", region_name=bedrock_region)
     embeddings = None
     if model_type == "bedrock":
         content_handler = BedrockEmbeddings()
         embeddings = BedrockEmbeddings(
             client=bedrock_client,
-            region_name=region_name,
             model_id=endpoint_name,
             normalize=True,
         )

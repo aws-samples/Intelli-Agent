@@ -51,6 +51,7 @@ try:
             "INDEX_TYPE",
             "OPERATION_TYPE",
             "PORTAL_BUCKET",
+            "BEDROCK_REGION",
         ],
     )
 except Exception as e:
@@ -84,6 +85,7 @@ except Exception as e:
     args["ETL_MODEL_ENDPOINT"] = os.environ["ETL_ENDPOINT"]
     args["RES_BUCKET"] = os.environ["RES_BUCKET"]
     args["REGION"] = os.environ["REGION"]
+    args["BEDROCK_REGION"] = os.environ["BEDROCK_REGION"]
     args["PORTAL_BUCKET"] = os.environ.get("PORTAL_BUCKET", None)
 
 from llm_bot_dep import sm_utils
@@ -112,6 +114,7 @@ portal_bucket_name = args["PORTAL_BUCKET"]
 table_item_id = args["TABLE_ITEM_ID"]
 qa_enhancement = args["QA_ENHANCEMENT"]
 region = args["REGION"]
+bedrock_region = args["BEDROCK_REGION"]
 res_bucket = args["RES_BUCKET"]
 s3_bucket = args["S3_BUCKET"]
 s3_prefix = args["S3_PREFIX"]
@@ -730,7 +733,10 @@ def main():
         embedding_function, docsearch = None, None
     else:
         embedding_function = sm_utils.getCustomEmbeddings(
-            embedding_model_endpoint, region, embedding_model_type
+            embedding_model_endpoint,
+            region_name=region,
+            bedrock_region=bedrock_region,
+            model_type=embedding_model_type,
         )
         aws_auth = get_aws_auth()
         docsearch = OpenSearchVectorSearch(
