@@ -8,8 +8,11 @@ import {
   Box,
   Button,
   ColumnLayout,
+  Container,
+  ContentLayout,
   ExpandableSection,
   FormField,
+  Header,
   Input,
   Select,
   SelectProps,
@@ -27,6 +30,15 @@ import {
   LLM_BOT_RETAIL_MODEL_LIST,
   SCENARIO_LIST,
   RETAIL_GOODS_LIST,
+  SCENARIO,
+  MAX_TOKEN,
+  TEMPERATURE,
+  ADITIONAL_SETTRINGS,
+  USE_CHAT_HISTORY,
+  ENABLE_TRACE,
+  ONLY_RAG_TOOL,
+  MODEL_OPTION,
+  CURRENT_CHAT_BOT,
 } from 'src/utils/const';
 import { v4 as uuidv4 } from 'uuid';
 import { MessageDataType, SessionMessage } from 'src/types';
@@ -45,15 +57,7 @@ interface ChatBotProps {
   historySessionId?: string;
 }
 
-const CURRENT_CHAT_BOT = "current_chat_bot";
-const USE_CHAT_HISTORY = "use_chat_history"
-const ENABLE_TRACE = "enable_trace"
-const ONLY_RAG_TOOL = "only_rag_tool"
-const SCENARIO = "scenario"
-const MODEL_OPTION = "model"
-const MAX_TOKEN = "max_token"
-const TEMPERATURE = "temperature"
-const ADITIONAL_SETTRINGS = "additional_settings"
+
 const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const { historySessionId } = props;
   const localScenario = localStorage.getItem(SCENARIO);
@@ -98,6 +102,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const [enableTrace, setEnableTrace] = useState(localStorage.getItem(ENABLE_TRACE) == null || localStorage.getItem(ENABLE_TRACE) == "true" ? true : false);
   const [showTrace, setShowTrace] = useState(enableTrace);
   const [onlyRAGTool, setOnlyRAGTool] = useState(localStorage.getItem(ONLY_RAG_TOOL) == null || localStorage.getItem(ONLY_RAG_TOOL) == "false" ? false : true);
+  const [isComposing, setIsComposing] = useState(false);
   // const [useWebSearch, setUseWebSearch] = useState(false);
   // const [googleAPIKey, setGoogleAPIKey] = useState('');
   const [retailGoods, setRetailGoods] = useState<SelectProps.Option>(
@@ -137,6 +142,21 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
 
   // Define an async function to get the data
   const fetchData = useAxiosRequest();
+
+  const startNewChat = () => {
+    setSessionId(uuidv4());
+    getWorkspaceList();
+    setMessages([
+      {
+        messageId: uuidv4(),
+        type: 'ai',
+        message: {
+          data: t('welcomeMessage'),
+          monitoring: '',
+        },
+      },
+    ]);
+  }
 
   const getWorkspaceList = async () => {
     try {
@@ -288,6 +308,14 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       setIsMessageEnd(true);
     }
   };
+
+  document.addEventListener('compositionstart', () => {
+    setIsComposing(true);
+  });
+
+  document.addEventListener('compositionend', () => {
+    setIsComposing(false);
+  });
 
   useEffect(() => {
     if (lastMessage !== null) {
@@ -530,170 +558,45 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     <CommonLayout
       isLoading={loadingHistory}
       activeHref={!historySessionId ? '/' : '/sessions'}
+      breadCrumbs={[
+        {
+          text: t('name'),
+          href: '/',
+        },
+        {
+          text: t('chatbot'),
+          href: '/chatbots',
+        },
+      ]}
     >
-      <div className="chat-container mt-10">
-        <div className="chat-message flex-v flex-1 gap-10">
-          {messages.map((msg, index) => (
-            <div key={identity(index)}>
-              <Message
-                showTrace={showTrace}
-                type={msg.type}
-                message={msg.message}
-              />
-              {msg.type === 'ai' && index !== 0 && (
-                <div className="feedback-buttons" style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+      <div className='chat-container-layout'>
+      <ContentLayout
+          header={
+            <Header
+              variant="h1"
+              actions={
+                <SpaceBetween size="xs" direction="horizontal">
                   <Button
-                    iconName={feedbackGiven[index] === 'thumb_up' ? "thumbs-up-filled" : "thumbs-up"}
-                    variant="icon"
-                    onClick={() => handleThumbUpClick(index)}
-                    ariaLabel={t('feedback.helpful')}
-                  />
-                  <Button
-                    iconName={feedbackGiven[index] === 'thumb_down' ? "thumbs-down-filled" : "thumbs-down"}
-                    variant="icon"
-                    onClick={() => handleThumbDownClick(index)}
-                    ariaLabel={t('feedback.notHelpful')}
-                  />
-                </div>
-              )}
-            </div>
-          ))}
-          {aiSpeaking && (
-            <div>
-              <Message
-                aiSpeaking={aiSpeaking}
-                type="ai"
-                showTrace={showTrace}
-                message={{
-                  data: currentAIMessage,
-                  monitoring: currentMonitorMessage,
-                }}
-              />
-              {isMessageEnd && (
-                <div className="feedback-buttons" style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                  <Button
-                    iconName={feedbackGiven[messages.length] === 'thumb_up' ? "thumbs-up-filled" : "thumbs-up"}
-                    variant="icon"
-                    onClick={() => handleThumbUpClick(messages.length)}
-                    ariaLabel={t('feedback.helpful')}
-                  />
-                  <Button
-                    iconName={feedbackGiven[messages.length] === 'thumb_down' ? "thumbs-down-filled" : "thumbs-down"}
-                    variant="icon"
-                    onClick={() => handleThumbDownClick(messages.length)}
-                    ariaLabel={t('feedback.notHelpful')}
-                  />
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        <div className="flex-v gap-10">
-          <div className="flex gap-5 send-message">
-            <Select
-              options={chatbotList}
-              loadingText='kkkkk...'
-              selectedOption={chatbotOption}
-              onChange={({ detail }) => {
-                setChatbotOption(detail.selectedOption);
-              }}
-            />
-            <div className="flex-1 pr">
-              <Textarea
-                invalid={showMessageError}
-                rows={1}
-                value={userMessage}
-                placeholder={t('typeMessage')}
-                onChange={(e) => {
-                  setShowMessageError(false);
-                  setUserMessage(e.detail.value);
-                }}
-                onKeyDown={(e) => {
-                  if (e.detail.key === 'Enter') {
-                    e.preventDefault();
-                    handleClickSendMessage();
-                  }
-                }}
-              />
-            </div>
-            <div>
-              <Button
-                disabled={aiSpeaking || readyState !== ReadyState.OPEN}
-                onClick={() => {
-                  handleClickSendMessage();
-                }}
-              >
-                {t('button.send')}
-              </Button>
-            </div>
-          </div>
-          <div>
-            <div className="flex space-between">
-              <div className="flex gap-10 align-center">
-                <Toggle
-                  onChange={({ detail }) => setUseChatHistory(detail.checked)}
-                  checked={useChatHistory}
-                >
-                  {t('multiRound')}
-                </Toggle>
-                <Toggle
-                  onChange={({ detail }) => setEnableTrace(detail.checked)}
-                  checked={enableTrace}
-                >
-                  {t('enableTrace')}
-                </Toggle>
-                {/* {enableTrace && (
-                  <Toggle
-                    onChange={({ detail }) => setShowTrace(detail.checked)}
-                    checked={showTrace}
+                    variant="primary"
+                    onClick={() => {
+                      startNewChat()
+                    }}
                   >
-                    {t('showTrace')}
-                  </Toggle>
-                )} */}
-                {(
-                  <Toggle
-                    onChange={({ detail }) => setOnlyRAGTool(detail.checked)}
-                    checked={onlyRAGTool}
-                  >
-                    {t('onlyUseRAGTool')}
-                  </Toggle>
-                )}
-
-                {/*
-                <Toggle
-                  onChange={({ detail }) => {
-                    setGoogleAPIKeyError(false);
-                    setUseWebSearch(detail.checked);
-                  }}
-                  checked={useWebSearch}
-                >
-                  Enable WebSearch
-                </Toggle>
-                {useWebSearch && (
-                  <div style={{ minWidth: 300 }}>
-                    <Input
-                      invalid={googleAPIKeyError}
-                      placeholder="Please input your Google API key"
-                      value={googleAPIKey}
-                      onChange={({ detail }) => {
-                        setGoogleAPIKeyError(false);
-                        setGoogleAPIKey(detail.value);
-                      }}
-                    />
-                  </div>
-                )}
-                */}
-              </div>
-              <div className="flex align-center gap-10">
-                <Box variant="p">{t('server')}: </Box>
-                <StatusIndicator type={connectionStatus as any}>
-                  {t(connectionStatus)}
-                </StatusIndicator>
-              </div>
-            </div>
-          </div>
-          <div>
+                    {t('button.startNewChat')}
+                  </Button>
+                 
+                </SpaceBetween>
+              }
+              description={t('chatDescription')}
+            >
+              <Box variant="h1">{t('chat')}</Box>
+            </Header>
+          }
+        >
+          <Container
+            fitHeight={true}
+            footer={
+              <div>
             <ExpandableSection
               onChange={({ detail }) => {
                 setModelSettingExpand(detail.expanded);
@@ -812,8 +715,143 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
               </SpaceBetween>
             </ExpandableSection>
           </div>
+            }
+          >
+      <div className="chat-container mt-10">
+        <div className="chat-message flex-v flex-1 gap-10">
+          {messages.map((msg, index) => (
+            <div key={identity(index)}>
+              <Message
+                showTrace={showTrace}
+                type={msg.type}
+                message={msg.message}
+              />
+              {msg.type === 'ai' && index !== 0 && (
+                <div className="feedback-buttons" style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                  <Button
+                    iconName={feedbackGiven[index] === 'thumb_up' ? "thumbs-up-filled" : "thumbs-up"}
+                    variant="icon"
+                    onClick={() => handleThumbUpClick(index)}
+                    ariaLabel={t('feedback.helpful')}
+                  />
+                  <Button
+                    iconName={feedbackGiven[index] === 'thumb_down' ? "thumbs-down-filled" : "thumbs-down"}
+                    variant="icon"
+                    onClick={() => handleThumbDownClick(index)}
+                    ariaLabel={t('feedback.notHelpful')}
+                  />
+                </div>
+              )}
+            </div>
+          ))}
+          {aiSpeaking && (
+            <div>
+              <Message
+                aiSpeaking={aiSpeaking}
+                type="ai"
+                showTrace={showTrace}
+                message={{
+                  data: currentAIMessage,
+                  monitoring: currentMonitorMessage,
+                }}
+              />
+              {isMessageEnd && (
+                <div className="feedback-buttons" style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                  <Button
+                    iconName={feedbackGiven[messages.length] === 'thumb_up' ? "thumbs-up-filled" : "thumbs-up"}
+                    variant="icon"
+                    onClick={() => handleThumbUpClick(messages.length)}
+                    ariaLabel={t('feedback.helpful')}
+                  />
+                  <Button
+                    iconName={feedbackGiven[messages.length] === 'thumb_down' ? "thumbs-down-filled" : "thumbs-down"}
+                    variant="icon"
+                    onClick={() => handleThumbDownClick(messages.length)}
+                    ariaLabel={t('feedback.notHelpful')}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="flex-v gap-10">
+          <div className="flex gap-5 send-message">
+            <Select
+              options={chatbotList}
+              loadingText='loading...'
+              selectedOption={chatbotOption}
+              onChange={({ detail }) => {
+                setChatbotOption(detail.selectedOption);
+              }}
+            />
+            <div className="flex-1 pr">
+              <Textarea
+                invalid={showMessageError}
+                rows={1}
+                value={userMessage}
+                placeholder={t('typeMessage')}
+                onChange={(e) => {
+                  setShowMessageError(false);
+                  setUserMessage(e.detail.value);
+                }}
+                onKeyDown={(e) => {
+                  if (e.detail.key === 'Enter' && !isComposing) {
+                    e.preventDefault();
+                    handleClickSendMessage();
+                  }
+                }}
+              />
+            </div>
+            <div>
+              <Button
+                disabled={aiSpeaking || readyState !== ReadyState.OPEN}
+                onClick={() => {
+                  handleClickSendMessage();
+                }}
+              >
+                {t('button.send')}
+              </Button>
+            </div>
+          </div>
+          <div>
+            <div className="flex space-between">
+              <div className="flex gap-10 align-center">
+                <Toggle
+                  onChange={({ detail }) => setUseChatHistory(detail.checked)}
+                  checked={useChatHistory}
+                >
+                  {t('multiRound')}
+                </Toggle>
+                <Toggle
+                  onChange={({ detail }) => setEnableTrace(detail.checked)}
+                  checked={enableTrace}
+                >
+                  {t('enableTrace')}
+                </Toggle>
+                {(
+                  <Toggle
+                    onChange={({ detail }) => setOnlyRAGTool(detail.checked)}
+                    checked={onlyRAGTool}
+                  >
+                    {t('onlyUseRAGTool')}
+                  </Toggle>
+                )}
+              </div>
+              <div className="flex align-center gap-10">
+                <Box variant="p">{t('server')}: </Box>
+                <StatusIndicator type={connectionStatus as any}>
+                  {t(connectionStatus)}
+                </StatusIndicator>
+              </div>
+            </div>
+          </div>
+          
         </div>
       </div>
+    </Container>
+      </ContentLayout>
+    </div>
     </CommonLayout>
   );
 };

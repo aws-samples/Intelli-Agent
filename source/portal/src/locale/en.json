@@ -10,6 +10,7 @@
     "signOut": "Sign Out",
     "chatSpace": "Chats",
     "chat": "Current chat",
+    "chatDescription": "Click the button on the right to start a new conversation with chatBot",
     "chatBot": "Chatbot",
     "docLibrary": "Document Library",
     "addLibrary": "Add Document",
@@ -169,7 +170,8 @@
       "action": "Action",
       "startToChat": "Start to chat",
       "discardChanges": "Discard Changes",
-      "saveChanges": "Save Changes"
+      "saveChanges": "Save Changes",
+      "startNewChat": "Start a new chat"
     },
     "header": {
       "reSignIn": "Please login again",
