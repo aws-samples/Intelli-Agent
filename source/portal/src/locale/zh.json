@@ -10,6 +10,7 @@
     "signOut": "退出登录",
     "chatSpace": "聊天",
     "chat": "当前会话",
+    "chatDescription": "点击右侧按钮开始与机器人的新对话",
     "chatBot": "聊天机器人",
     "docLibrary": "文档库",
     "addLibrary": "添加文档",
@@ -169,7 +170,8 @@
       "action": "操作",
       "startToChat": "开始聊天",
       "discardChanges": "放弃更改",
-      "saveChanges": "保存更改"
+      "saveChanges": "保存更改",
+      "startNewChat": "开启新的对话"
     },
     "header": {
       "reSignIn": "请重新登录",
