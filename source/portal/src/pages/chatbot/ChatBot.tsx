@@ -590,7 +590,14 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     }
   };
 
-  const [showFigures, setShowFigures] = useState(true);
+  // Initialize showFigures from local storage
+  const localShowFigures = localStorage.getItem('SHOW_FIGURES');
+  const [showFigures, setShowFigures] = useState(localShowFigures === null || localShowFigures === "true");
+
+  useEffect(() => {
+    // Update local storage whenever showFigures changes
+    localStorage.setItem('SHOW_FIGURES', showFigures ? "true" : "false");
+  }, [showFigures]);
 
   return (
     <CommonLayout
