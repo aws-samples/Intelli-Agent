@@ -21,12 +21,16 @@ class DynamoDBChatMessageHistory(BaseChatMessageHistory):
         session_id: str,
         user_id: str,
         client_type: str,
+        group_name: str,
+        chatbot_id: str,
     ):
         self.sessions_table = client.Table(sessions_table_name)
         self.messages_table = client.Table(messages_table_name)
         self.session_id = session_id
         self.user_id = user_id
         self.client_type = client_type
+        self.group_name = group_name
+        self.chatbot_id = chatbot_id
         self.MESSAGE_BY_SESSION_ID_INDEX_NAME = "bySessionId"
 
     @property
@@ -123,6 +127,7 @@ class DynamoDBChatMessageHistory(BaseChatMessageHistory):
                 Item={
                     "sessionId": self.session_id,
                     "userId": self.user_id,
+                    "chatbotId": self.chatbot_id,
                     "clientType": self.client_type,
                     "startTime": current_timestamp,
                     "createTimestamp": current_timestamp,
@@ -150,6 +155,7 @@ class DynamoDBChatMessageHistory(BaseChatMessageHistory):
                 Item={
                     "messageId": message_id,
                     "sessionId": self.session_id,
+                    "chatbotId": self.chatbot_id,
                     "role": message_type,
                     "customMessageId": custom_message_id,
                     "inputMessageId": input_message_id,
