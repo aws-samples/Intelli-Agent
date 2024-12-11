@@ -295,12 +295,22 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       // handle context message
       if (message.ddb_additional_kwargs?.figure?.length > 0) {
         message.ddb_additional_kwargs.figure.forEach((item) => {
-          setCurrentAIMessage((prev) => {
-            return (
-              prev +
-              ` \n ![${item.content_type}](/${encodeURIComponent(item.figure_path)})`
-            );
-          });
+          if (item.content_type === "md_image") {
+            setCurrentAIMessage((prev) => {
+              return (
+                prev +
+                ` \n ![${item.content_type}](${item.figure_path})`
+              );
+            });
+          } else {
+            setCurrentAIMessage((prev) => {
+              return (
+                prev +
+                ` \n ![${item.content_type}](/${encodeURIComponent(item.figure_path)})`
+              );
+            });
+          }
+
         });
       }
     } else if (message.message_type === 'END') {

@@ -115,7 +115,7 @@ class ChatHistoryManager:
 
         return ChatHistoryManager._process_paginated_response(
             response_iterator,
-            ["sessionId", "userId", "createTimestamp", "latestQuestion"],
+            ["sessionId", "userId", "createTimestamp", "latestQuestion", "chatbotId"],
             pagination_config=pagination_config,
         )
 
@@ -135,7 +135,7 @@ class ChatHistoryManager:
 
         return ChatHistoryManager._process_paginated_response(
             response_iterator,
-            ["messageId", "role", "content", "createTimestamp"],
+            ["messageId", "role", "content", "createTimestamp", "chatbotId"],
             pagination_config=pagination_config,
             is_messages_list=True,
         )
