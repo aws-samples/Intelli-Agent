@@ -564,8 +564,8 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
           href: '/',
         },
         {
-          text: t('chatbot'),
-          href: '/chatbots',
+          text: t('conversation'),
+          href: '/chats',
         },
       ]}
     >
@@ -575,21 +575,22 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
             <Header
               variant="h1"
               actions={
-                <SpaceBetween size="xs" direction="horizontal">
+                historySessionId?(
+                <></>):(<SpaceBetween size="xs" direction="horizontal">
                   <Button
                     variant="primary"
+                    disabled={aiSpeaking || readyState !== ReadyState.OPEN}
                     onClick={() => {
                       startNewChat()
                     }}
                   >
                     {t('button.startNewChat')}
                   </Button>
-                 
-                </SpaceBetween>
+                </SpaceBetween>)
               }
-              description={t('chatDescription')}
+              description={historySessionId?(t('chatHistoryDescription') +" " +historySessionId):t('chatDescription')}
             >
-              <Box variant="h1">{t('chat')}</Box>
+              <Box variant="h1">{historySessionId?t('chatHistory'):t('chat')}</Box>
             </Header>
           }
         >
@@ -774,8 +775,8 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
             </div>
           )}
         </div>
-
-        <div className="flex-v gap-10">
+        
+        {historySessionId?(<></>):(<div className="flex-v gap-10">
           <div className="flex gap-5 send-message">
             <Select
               options={chatbotList}
@@ -846,8 +847,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
               </div>
             </div>
           </div>
-          
-        </div>
+        </div>)}
       </div>
     </Container>
       </ContentLayout>
