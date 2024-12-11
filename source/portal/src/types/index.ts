@@ -78,6 +78,7 @@ export type SessionMessage = {
   role: 'ai' | 'human';
   content: string;
   createTimestamp: string;
+  chatbotId: string;
   additional_kwargs: {
     figure: AdditionalImageType[];
   };

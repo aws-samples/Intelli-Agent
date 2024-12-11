@@ -170,12 +170,26 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
           label: item,
           value: item,
         };
-      }
-      );
+      });
       setChatbotList(getChatbots);
-      const localChatBot = localStorage.getItem(CURRENT_CHAT_BOT)
-      setChatbotOption(localChatBot !== null ? JSON.parse(localChatBot) : getChatbots[0])
-      // setChatbotOption(getChatbots[0])
+
+      // First try to get chatbotId from history if it exists
+      const historyChatbotId = localStorage.getItem('HISTORY_CHATBOT_ID');
+      const localChatBot = localStorage.getItem(CURRENT_CHAT_BOT);
+      
+      if (historyChatbotId && getChatbots.some(bot => bot.value === historyChatbotId)) {
+        // If history chatbotId exists and is valid, use it
+        setChatbotOption({
+          label: historyChatbotId,
+          value: historyChatbotId
+        });
+      } else if (localChatBot !== null) {
+        // Otherwise fall back to local storage
+        setChatbotOption(JSON.parse(localChatBot));
+      } else {
+        // Finally fall back to first chatbot
+        setChatbotOption(getChatbots[0]);
+      }
     } catch (error) {
       console.error(error);
       return [];
@@ -194,6 +208,14 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
         },
       });
       const sessionMessage: SessionMessage[] = data.Items;
+      
+      // Get chatbotId from first message if available
+      if (sessionMessage && sessionMessage.length > 0) {
+        const chatbotId = sessionMessage[0].chatbotId;
+        // Store chatbotId for use in getWorkspaceList
+        localStorage.setItem('HISTORY_CHATBOT_ID', chatbotId);
+      }
+
       setMessages(
         sessionMessage.map((msg) => {
           let messageContent = msg.content;
@@ -219,15 +241,19 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       return [];
     }
   };
-
   useEffect(() => {
-    if (historySessionId) {
-      // get session history by id
-      getSessionHistoryById();
-    } else {
-      setSessionId(uuidv4());
-    }
-    getWorkspaceList();
+    const initializeChatbot = async () => {
+      if (historySessionId) {
+        // Wait for getSessionHistoryById to complete to set history chatbotId
+        await getSessionHistoryById();
+      } else {
+        setSessionId(uuidv4());
+      }
+      // Call getWorkspaceList after getSessionHistoryById
+      getWorkspaceList();
+    };
+
+    initializeChatbot();
   }, []);
 
   useEffect(() => {
