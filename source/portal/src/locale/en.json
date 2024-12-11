@@ -75,6 +75,7 @@
     "modelName": "Model name",
     "noModelFound": "No model found",
     "chatbotName": "Chatbot Name",
+    "showFigures": "Show figures",
     "embeddingModel": "Embedding Model Name",
     "noChatbotFound": "No chatbot found",
     "scenario": "Scenario",

@@ -220,7 +220,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
         sessionMessage.map((msg) => {
           let messageContent = msg.content;
           // Handle AI images message
-          if (msg.role === 'ai' && msg.additional_kwargs?.figure?.length > 0) {
+          if (showFigures && msg.role === 'ai' && msg.additional_kwargs?.figure?.length > 0) {
             msg.additional_kwargs.figure.forEach((item) => {
               messageContent += ` \n ![${item.content_type}](/${encodeURIComponent(item.figure_path)})`;
             });
@@ -319,7 +319,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       });
     } else if (message.message_type === 'CONTEXT') {
       // handle context message
-      if (message.ddb_additional_kwargs?.figure?.length > 0) {
+      if (showFigures && message.ddb_additional_kwargs?.figure?.length > 0) {
         message.ddb_additional_kwargs.figure.forEach((item) => {
           if (item.content_type === "md_image") {
             setCurrentAIMessage((prev) => {
@@ -589,6 +589,8 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       console.error('Error sending thumb down feedback:', error);
     }
   };
+
+  const [showFigures, setShowFigures] = useState(true);
 
   return (
     <CommonLayout
@@ -865,14 +867,18 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                 >
                   {t('enableTrace')}
                 </Toggle>
-                {(
-                  <Toggle
-                    onChange={({ detail }) => setOnlyRAGTool(detail.checked)}
-                    checked={onlyRAGTool}
-                  >
-                    {t('onlyUseRAGTool')}
-                  </Toggle>
-                )}
+                <Toggle
+                  onChange={({ detail }) => setShowFigures(detail.checked)}
+                  checked={showFigures}
+                >
+                  {t('showFigures')}
+                </Toggle>
+                <Toggle
+                  onChange={({ detail }) => setOnlyRAGTool(detail.checked)}
+                  checked={onlyRAGTool}
+                >
+                  {t('onlyUseRAGTool')}
+                </Toggle>
               </div>
               <div className="flex align-center gap-10">
                 <Box variant="p">{t('server')}: </Box>
