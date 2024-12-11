@@ -170,12 +170,26 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
           label: item,
           value: item,
         };
-      }
-      );
+      });
       setChatbotList(getChatbots);
-      const localChatBot = localStorage.getItem(CURRENT_CHAT_BOT)
-      setChatbotOption(localChatBot !== null ? JSON.parse(localChatBot) : getChatbots[0])
-      // setChatbotOption(getChatbots[0])
+
+      // First try to get chatbotId from history if it exists
+      const historyChatbotId = localStorage.getItem('HISTORY_CHATBOT_ID');
+      const localChatBot = localStorage.getItem(CURRENT_CHAT_BOT);
+      
+      if (historyChatbotId && getChatbots.some(bot => bot.value === historyChatbotId)) {
+        // If history chatbotId exists and is valid, use it
+        setChatbotOption({
+          label: historyChatbotId,
+          value: historyChatbotId
+        });
+      } else if (localChatBot !== null) {
+        // Otherwise fall back to local storage
+        setChatbotOption(JSON.parse(localChatBot));
+      } else {
+        // Finally fall back to first chatbot
+        setChatbotOption(getChatbots[0]);
+      }
     } catch (error) {
       console.error(error);
       return [];
@@ -194,11 +208,19 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
         },
       });
       const sessionMessage: SessionMessage[] = data.Items;
+      
+      // Get chatbotId from first message if available
+      if (sessionMessage && sessionMessage.length > 0) {
+        const chatbotId = sessionMessage[0].chatbotId;
+        // Store chatbotId for use in getWorkspaceList
+        localStorage.setItem('HISTORY_CHATBOT_ID', chatbotId);
+      }
+
       setMessages(
         sessionMessage.map((msg) => {
           let messageContent = msg.content;
           // Handle AI images message
-          if (msg.role === 'ai' && msg.additional_kwargs?.figure?.length > 0) {
+          if (showFigures && msg.role === 'ai' && msg.additional_kwargs?.figure?.length > 0) {
             msg.additional_kwargs.figure.forEach((item) => {
               messageContent += ` \n ![${item.content_type}](/${encodeURIComponent(item.figure_path)})`;
             });
@@ -219,15 +241,19 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       return [];
     }
   };
-
   useEffect(() => {
-    if (historySessionId) {
-      // get session history by id
-      getSessionHistoryById();
-    } else {
-      setSessionId(uuidv4());
-    }
-    getWorkspaceList();
+    const initializeChatbot = async () => {
+      if (historySessionId) {
+        // Wait for getSessionHistoryById to complete to set history chatbotId
+        await getSessionHistoryById();
+      } else {
+        setSessionId(uuidv4());
+      }
+      // Call getWorkspaceList after getSessionHistoryById
+      getWorkspaceList();
+    };
+
+    initializeChatbot();
   }, []);
 
   useEffect(() => {
@@ -293,7 +319,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       });
     } else if (message.message_type === 'CONTEXT') {
       // handle context message
-      if (message.ddb_additional_kwargs?.figure?.length > 0) {
+      if (showFigures && message.ddb_additional_kwargs?.figure?.length > 0) {
         message.ddb_additional_kwargs.figure.forEach((item) => {
           if (item.content_type === "md_image") {
             setCurrentAIMessage((prev) => {
@@ -563,6 +589,15 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       console.error('Error sending thumb down feedback:', error);
     }
   };
+
+  // Initialize showFigures from local storage
+  const localShowFigures = localStorage.getItem('SHOW_FIGURES');
+  const [showFigures, setShowFigures] = useState(localShowFigures === null || localShowFigures === "true");
+
+  useEffect(() => {
+    // Update local storage whenever showFigures changes
+    localStorage.setItem('SHOW_FIGURES', showFigures ? "true" : "false");
+  }, [showFigures]);
 
   return (
     <CommonLayout
@@ -840,14 +875,18 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                 >
                   {t('enableTrace')}
                 </Toggle>
-                {(
-                  <Toggle
-                    onChange={({ detail }) => setOnlyRAGTool(detail.checked)}
-                    checked={onlyRAGTool}
-                  >
-                    {t('onlyUseRAGTool')}
-                  </Toggle>
-                )}
+                <Toggle
+                  onChange={({ detail }) => setShowFigures(detail.checked)}
+                  checked={showFigures}
+                >
+                  {t('showFigures')}
+                </Toggle>
+                <Toggle
+                  onChange={({ detail }) => setOnlyRAGTool(detail.checked)}
+                  checked={onlyRAGTool}
+                >
+                  {t('onlyUseRAGTool')}
+                </Toggle>
               </div>
               <div className="flex align-center gap-10">
                 <Box variant="p">{t('server')}: </Box>
