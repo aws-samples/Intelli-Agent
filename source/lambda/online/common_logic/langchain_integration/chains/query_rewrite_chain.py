@@ -87,7 +87,7 @@ class Claude3SonnetQueryRewriteChain(Claude2QueryRewriteChain):
 
 
 class Claude35SonnetQueryRewriteChain(Claude2QueryRewriteChain):
-    mdoel_id = LLMModelType.CLAUDE_3_5_SONNET
+    model_id = LLMModelType.CLAUDE_3_5_SONNET
 
 
 class Claude35SonnetV2QueryRewriteChain(Claude2QueryRewriteChain):
@@ -151,3 +151,8 @@ class Internlm2Chat7BQueryRewriteChain(Internlm2Chat7BChatChain):
 class Internlm2Chat20BQueryRewriteChain(Internlm2Chat7BQueryRewriteChain):
     model_id = LLMModelType.INTERNLM2_CHAT_20B
     intent_type = QUERY_REWRITE_TYPE
+
+
+class NovaProQueryRewriteChain(Claude2QueryRewriteChain):
+    model_id = LLMModelType.NOVA_PRO
+

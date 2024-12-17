@@ -178,3 +178,7 @@ class MistraLlarge2407ToolCallingChain(Claude2ToolCallingChain):
 
 class CohereCommandRPlusToolCallingChain(Claude2ToolCallingChain):
     model_id = LLMModelType.COHERE_COMMAND_R_PLUS
+
+
+class NovaProToolCallingChain(Claude2ToolCallingChain):
+    model_id = LLMModelType.NOVA_PRO

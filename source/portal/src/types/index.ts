@@ -13,7 +13,7 @@ export type LibraryListItem = {
   qaEnhance: string;
   operationType: string;
   sfnExecutionId: string;
-  indexType: string; 
+  indexType: string;
   chatbotId: string;
   createTime: string;
   indexId: string;
@@ -32,14 +32,14 @@ export type IntentionsItem = {
   fileName: string;
   index: string;
   model: string;
-  tag: string;
+  validRatio: string;
   chatbotId: string;
   createTime: string;
 };
 
 export type IntentionsResponse = {
-  Items: IntentionsItem[];
-  Count: number;
+  items: IntentionsItem[];
+  count: number;
   config: ResponseConfig;
 };
 
@@ -64,6 +64,7 @@ export type SessionHistoryItem = {
   userId: string;
   createTimestamp: string;
   latestQuestion: string;
+  chatbotId: string;
 };
 
 export type SessionHistoryResponse = {
@@ -73,9 +74,11 @@ export type SessionHistoryResponse = {
 };
 
 export type SessionMessage = {
+  messageId: string;
   role: 'ai' | 'human';
   content: string;
   createTimestamp: string;
+  chatbotId: string;
   additional_kwargs: {
     figure: AdditionalImageType[];
   };
@@ -134,7 +137,8 @@ export type LibraryExecutionResponse = {
 export type QAItem = {
   question: string,
   intention: string,
-  kwargs: string
+  kwargs: string,
+  is_valid: boolean
 }
 
 export type IntentionExecutionItem = {
@@ -145,12 +149,12 @@ export type IntentionExecutionItem = {
   status: string;
   createTime: string;
   s3Path: string;
-  QAList: QAItem[]
+  qaList: QAItem[]
 };
 
 export type IntentionExecutionResponse = {
-  Items: IntentionExecutionItem[];
-  Count: number;
+  items: IntentionExecutionItem[];
+  count: number;
 };
 
 export type AdditionalImageType = {
@@ -226,7 +230,7 @@ export type ChatbotItem = {
 export type ChatbotDetailResponse = {
   chatbotId: string;
   updateTime: string;
-  model: {model_endpoint: string, model_name: string};
+  model: { model_endpoint: string, model_name: string };
   index: IndexItem[];
 };
 
@@ -279,3 +283,22 @@ export interface SelectedOption {
   value: string;
   label: string;
 }
+
+import { SideNavigationProps } from "@cloudscape-design/components";
+
+// Extend the Link type to include id
+export interface CustomLink extends SideNavigationProps.Link {
+  id?: string;
+  itemID?: string;
+  className?: string;
+}
+
+// Extend the Section type to include id
+export interface CustomSection extends SideNavigationProps.Section {
+  id?: string;
+  'data-testid'?: string;
+}
+
+// Create a union type for all navigation items
+export type CustomNavigationItem = CustomLink | CustomSection | SideNavigationProps.Divider;
+

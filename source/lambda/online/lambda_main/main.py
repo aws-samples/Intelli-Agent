@@ -67,13 +67,15 @@ def get_secret_value(secret_arn: str):
             raise Exception("Fail to retrieve the secret value")
 
 
-def create_ddb_history_obj(session_id: str, user_id: str, client_type: str) -> DynamoDBChatMessageHistory:
+def create_ddb_history_obj(session_id: str, user_id: str, client_type: str, group_name: str, chatbot_id: str) -> DynamoDBChatMessageHistory:
     """Create a DynamoDBChatMessageHistory object
 
     Args:
         session_id (str): The session id
         user_id (str): The user id
         client_type (str): The client type
+        group_name (str): The group name
+        chatbot_id (str): The chatbot id
 
     Returns:
         DynamoDBChatMessageHistory: The DynamoDBChatMessageHistory object
@@ -84,6 +86,8 @@ def create_ddb_history_obj(session_id: str, user_id: str, client_type: str) -> D
         session_id=session_id,
         user_id=user_id,
         client_type=client_type,
+        group_name=group_name,
+        chatbot_id=chatbot_id
     )
 
 
@@ -100,6 +104,7 @@ def compose_connect_body(event_body: dict, context: dict):
     """
     request_timestamp = context["request_timestamp"]
     chatbot_id = os.environ.get("CONNECT_BOT_ID", "admin")
+    group_name = os.environ.get("CONNECT_GROUP_NAME", "Admin")
     related_item = event_body["detail"]["relatedItem"]
     case_id = related_item["caseId"]
     logger.info(case_id)
@@ -137,6 +142,8 @@ def compose_connect_body(event_body: dict, context: dict):
         session_id=session_id,
         user_id=user_id,
         client_type=client_type,
+        group_name=group_name,
+        chatbot_id=chatbot_id
     )
     chat_history = ddb_history_obj.messages_as_langchain
 
@@ -269,7 +276,7 @@ def restapi_event_handler(event_body: dict, context: dict, entry_executor):
         "use_history", "true")).lower() == "true"
 
     ddb_history_obj = create_ddb_history_obj(
-        assembled_body["session_id"], assembled_body["user_id"], assembled_body["client_type"])
+        assembled_body["session_id"], assembled_body["user_id"], assembled_body["client_type"], assembled_body["group_name"], assembled_body["chatbot_id"])
     chat_history = ddb_history_obj.messages_as_langchain
 
     standard_event_body = {
@@ -326,7 +333,7 @@ def default_event_handler(event_body: dict, context: dict, entry_executor):
     load_ws_client(websocket_url)
 
     ddb_history_obj = create_ddb_history_obj(
-        assembled_body["session_id"], assembled_body["user_id"], assembled_body["client_type"])
+        assembled_body["session_id"], assembled_body["user_id"], assembled_body["client_type"], assembled_body["group_name"], assembled_body["chatbot_id"])
     chat_history = ddb_history_obj.messages_as_langchain
 
     event_body["stream"] = context["stream"]

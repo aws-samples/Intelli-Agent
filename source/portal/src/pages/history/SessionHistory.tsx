@@ -50,7 +50,7 @@ const SessionHistory: React.FC = () => {
     };
     try {
       const data = await fetchData({
-        url: 'chat-history/sessions',
+        url: 'sessions',
         method: 'get',
         params,
       });
@@ -130,8 +130,7 @@ const SessionHistory: React.FC = () => {
           selectedItems={selectedItems}
           ariaLabels={{
             allItemsSelectionLabel: ({ selectedItems }) =>
-              `${selectedItems.length} ${
-                selectedItems.length === 1 ? t('item') : t('items')
+              `${selectedItems.length} ${selectedItems.length === 1 ? t('item') : t('items')
               } ${t('selected')}`,
           }}
           columnDefinitions={[
@@ -140,6 +139,11 @@ const SessionHistory: React.FC = () => {
               header: t('id'),
               cell: (item: SessionHistoryItem) => LinkComp(item),
               isRowHeader: true,
+            },
+            {
+              id: 'chatbotId',
+              header: t('chatbotName'),
+              cell: (item: SessionHistoryItem) => item.chatbotId,
             },
             {
               id: 'latestQuestion',

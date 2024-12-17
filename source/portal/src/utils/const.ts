@@ -34,6 +34,7 @@ export const LLM_BOT_COMMON_MODEL_LIST = [
   'meta.llama3-1-70b-instruct-v1:0',
   'mistral.mistral-large-2407-v1:0',
   'cohere.command-r-plus-v1:0',
+  'us.amazon.nova-pro-v1:0',
 ];
 
 export const LLM_BOT_RETAIL_MODEL_LIST = [
@@ -91,3 +92,15 @@ export const EMBEDDING_MODEL_LIST = [
   {"model_id": "cohere.embed-english-v3", "model_name": "cohere.embed-english-v3"},
   {"model_id": "amazon.titan-embed-text-v1", "model_name": "amazon.titan-embed-text-v1"}
 ]
+
+export const RESOURCE_QQ_TEMPLATE = "https://ai-customer-service-resources.s3.us-west-2.amazonaws.com/qq_match_template.xlsx"
+
+export const CURRENT_CHAT_BOT = "current_chat_bot";
+export const USE_CHAT_HISTORY = "use_chat_history"
+export const ENABLE_TRACE = "enable_trace"
+export const ONLY_RAG_TOOL = "only_rag_tool"
+export const SCENARIO = "scenario"
+export const MODEL_OPTION = "model"
+export const MAX_TOKEN = "max_token"
+export const TEMPERATURE = "temperature"
+export const ADITIONAL_SETTRINGS = "additional_settings"

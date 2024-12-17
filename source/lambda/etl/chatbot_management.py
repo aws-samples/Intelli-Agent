@@ -353,15 +353,12 @@ def __edit_chatbot(event, group_name):
                 index_table,
                 group_name,
                 index_id,
-                model_id,
+                f"{chatbot_id}-embedding",
                 index_type,
                 tag,
                 index.get(index_type,{}).get(index_id),
                 update_time
             )
-
-    
-
 
     # 3.更新index表
     return {

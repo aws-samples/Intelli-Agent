@@ -1,14 +1,13 @@
-from typing import Optional,Dict,Any
-import sys 
+from typing import Optional, Dict, Any
+import sys
 from io import StringIO
 
-from .. import lazy_tool_load_decorator,ToolIdentifier,ToolManager
+from .. import lazy_tool_load_decorator, ToolIdentifier, ToolManager
 from common_logic.common_utils.constant import SceneType
 
 
-
-@lazy_tool_load_decorator(SceneType.COMMON,"get_weather")
-def _load_weather_tool(tool_identifier:ToolIdentifier):
+@lazy_tool_load_decorator(SceneType.COMMON, "get_weather")
+def _load_weather_tool(tool_identifier: ToolIdentifier):
     from . import get_weather
     tool_def = {
         "description": "Get the current weather for `city_name`",
@@ -29,8 +28,8 @@ def _load_weather_tool(tool_identifier:ToolIdentifier):
     )
 
 
-@lazy_tool_load_decorator(SceneType.COMMON,"give_rhetorical_question")
-def _load_rhetorical_tool(tool_identifier:ToolIdentifier):
+@lazy_tool_load_decorator(SceneType.COMMON, "give_rhetorical_question")
+def _load_rhetorical_tool(tool_identifier: ToolIdentifier):
     from . import give_rhetorical_question
     tool_def = {
         "description": "This tool is designed to handle the scenario when required parameters are missing from other tools. It prompts the user to provide the necessary information, ensuring that all essential parameters are collected before proceeding. This tools enhances user interaction by clarifying what is needed and improving the overall usability of the application.",
@@ -41,7 +40,7 @@ def _load_rhetorical_tool(tool_identifier:ToolIdentifier):
             },
         },
         "required": ["question"]
-    } 
+    }
     ToolManager.register_func_as_tool(
         scene=tool_identifier.scene,
         name=tool_identifier.name,
@@ -51,10 +50,10 @@ def _load_rhetorical_tool(tool_identifier:ToolIdentifier):
     )
 
 
-@lazy_tool_load_decorator(SceneType.COMMON,"give_final_response")
-def _load_final_response_tool(tool_identifier:ToolIdentifier):
+@lazy_tool_load_decorator(SceneType.COMMON, "give_final_response")
+def _load_final_response_tool(tool_identifier: ToolIdentifier):
     from . import give_final_response
-    
+
     tool_def = {
         "description": "If none of the other tools need to be called, call the current tool to complete the direct response to the user.",
         "properties": {
@@ -74,8 +73,8 @@ def _load_final_response_tool(tool_identifier:ToolIdentifier):
     )
 
 
-@lazy_tool_load_decorator(SceneType.COMMON,"chat")
-def _load_chat_tool(tool_identifier:ToolIdentifier):
+@lazy_tool_load_decorator(SceneType.COMMON, "chat")
+def _load_chat_tool(tool_identifier: ToolIdentifier):
     from . import chat
     tool_def = {
         "description": "casual talk with AI",
@@ -83,7 +82,7 @@ def _load_chat_tool(tool_identifier:ToolIdentifier):
             "response": {
                 "description": "response to users",
                 "type": "string"
-                }
+            }
         },
         "required": ["response"]
     }
@@ -97,8 +96,8 @@ def _load_chat_tool(tool_identifier:ToolIdentifier):
     )
 
 
-@lazy_tool_load_decorator(SceneType.COMMON,"rag_tool")
-def _load_rag_tool(tool_identifier:ToolIdentifier):
+@lazy_tool_load_decorator(SceneType.COMMON, "rag_tool")
+def _load_rag_tool(tool_identifier: ToolIdentifier):
     from . import rag
     tool_def = {
         "description": "private knowledge",
@@ -106,7 +105,7 @@ def _load_rag_tool(tool_identifier:ToolIdentifier):
             "query": {
                 "description": "query for retrieve",
                 "type": "string"
-                }
+            }
         }
     }
     ToolManager.register_func_as_tool(
@@ -120,16 +119,16 @@ def _load_rag_tool(tool_identifier:ToolIdentifier):
 
 ################### langchain tools #######################
 
-@lazy_tool_load_decorator(SceneType.COMMON,"python_repl")
-def _loadd_python_repl_tool(tool_identifier:ToolIdentifier):
+@lazy_tool_load_decorator(SceneType.COMMON, "python_repl")
+def _loadd_python_repl_tool(tool_identifier: ToolIdentifier):
     from langchain_core.tools import Tool
     from langchain_experimental.utilities import PythonREPL as _PythonREPL
     from langchain_experimental.utilities.python import warn_once
     import multiprocessing
 
-    
     # modify LangChain's PythonREPL to adapt aws lambda,
     # where it's execution environment not having /dev/shm
+
     class PythonREPL(_PythonREPL):
         @classmethod
         def worker(
@@ -150,6 +149,7 @@ def _loadd_python_repl_tool(tool_identifier:ToolIdentifier):
                 sys.stdout = old_stdout
                 conn.send(repr(e))
             conn.close()
+
         def run(self, command: str, timeout: Optional[int] = None) -> str:
             """Run command with own globals/locals and returns anything printed.
             Timeout after the specified number of seconds."""
@@ -164,7 +164,8 @@ def _loadd_python_repl_tool(tool_identifier:ToolIdentifier):
             if timeout is not None:
                 # create a Process
                 p = multiprocessing.Process(
-                    target=self.worker, args=(command, self.globals, self.locals, child_conn)
+                    target=self.worker, args=(
+                        command, self.globals, self.locals, child_conn)
                 )
 
                 # start it
@@ -183,11 +184,12 @@ def _loadd_python_repl_tool(tool_identifier:ToolIdentifier):
 
     python_repl = PythonREPL()
 
-    def _run(command: str, timeout = None) -> str:
-        res = python_repl.run(command=command,timeout=timeout)
+    def _run(command: str, timeout=None) -> str:
+        res = python_repl.run(command=command, timeout=timeout)
         if not res:
-            raise ValueError(f"The current tool does not produce a result, modify your code and continue to call the `python_repl` tool, making sure to use the `print` function to output the final result.")                  
-        return res 
+            raise ValueError(
+                f"The current tool does not produce a result, modify your code and continue to call the `python_repl` tool, making sure to use the `print` function to output the final result.")
+        return res
 
     description = """\
 This tool handles scientific computing problems by executing python code. Typical scenarios include the follows:
@@ -206,4 +208,3 @@ Input should be a valid python code. If you want to see the output of a value, y
         name=tool_identifier.name,
         tool=repl_tool
     )
-

@@ -385,7 +385,7 @@ const ChatbotDetail: React.FC = () => {
                   value={currentValue ?? item.description}
                   onChange={event => {
                     setValue(event.detail.value)
-                    setTmpDesc(currentValue)
+                    setTmpDesc(event.detail.value)
                     }
                   }
                 />

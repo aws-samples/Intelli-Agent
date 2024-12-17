@@ -54,7 +54,6 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
     selectedBotOption, 
     showAddModal, 
     indexNameOptions,
-    indexDesc,
     fileEmptyError,
     uploadFiles,
     selectedIndexOption,
@@ -76,6 +75,8 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
   const [advanceExpand, setAdvanceExpand] = useState(false);
   // const [selectedIndexOption, setSelectedIndexOption]  = useState(indexNameOptions[0]); 
 
+
+
   const changeIndexOption = (option: SelectedOption)=>{
     setSelectedIndexOption(option)
     setIndexName(option.value)
@@ -90,7 +91,7 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
         s3Prefix: prefix,
         chatbotId: selectedBotOption?.value.toLocaleLowerCase() ?? 'admin',
         // groupName: selectedBotOption?.value,
-        index: indexName ? indexName.trim() : undefined,
+        index: indexName ? indexName.trim() : indexNameOptions[0]?.value,
         model: model?.value ?? DEFAULT_EMBEDDING_MODEL,
         // tag: indexName ? indexName.trim() : undefined,
       },
@@ -172,7 +173,7 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
         setShowProgress(false);
         setUploadFiles([]);
         setUploadProgress(0);
-        alertMsg(t('uploadSuccess'), 'success');
+        alertMsg(t('uploadCompleted'), 'success');
         setShowAddModal(false);
         reloadIntention();
       }
@@ -287,7 +288,6 @@ const AddIntention: React.FC<AddIntentionProps> = (props: AddIntentionProps) => 
                       </>
                     }
                     stretch={true}
-                    {...(indexDesc !== null && indexDesc.trim().length > 0?{description: indexDesc}:{})}
                   > 
                     <Select
                       options={indexNameOptions}

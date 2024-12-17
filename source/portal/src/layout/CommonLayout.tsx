@@ -11,16 +11,27 @@ import messages from '@cloudscape-design/components/i18n/messages/all.en';
 import TopNavigation from '@cloudscape-design/components/top-navigation';
 import { useTranslation } from 'react-i18next';
 import {
+  ADITIONAL_SETTRINGS,
+  ENABLE_TRACE,
+  CURRENT_CHAT_BOT,  
   DEFAULT_ZH_LANG,
   EN_TEXT,
   LANGUAGE_ITEMS,
   ZH_LANGUAGE_LIST,
   ZH_TEXT,
+  USE_CHAT_HISTORY,
+  ONLY_RAG_TOOL,
+  SCENARIO,
+  MODEL_OPTION,
+  MAX_TOKEN,
+  TEMPERATURE,
 } from 'src/utils/const';
 import { useAuth } from 'react-oidc-context';
 import ConfigContext from 'src/context/config-context';
 import { useLocation, useNavigate } from 'react-router-dom';
 import CustomBreadCrumb, { BreadCrumbType } from './CustomBreadCrumb';
+import { CustomNavigationItem } from 'src/types';
+const STORAGE_KEYS = [CURRENT_CHAT_BOT, USE_CHAT_HISTORY, ENABLE_TRACE, ONLY_RAG_TOOL, SCENARIO, MODEL_OPTION, MAX_TOKEN, TEMPERATURE, ADITIONAL_SETTRINGS]
 
 interface CommonLayoutProps {
   activeHref: string;
@@ -46,6 +57,12 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
   const changeLanguage = (lng: string) => {
     i18n.changeLanguage(lng);
   };
+
+  const clearStorage = () => {
+    STORAGE_KEYS.forEach(key => {
+      localStorage.removeItem(key);
+    })
+  }
 
   useEffect(() => {
     setDisplayName(
@@ -134,6 +151,7 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
               if (item.detail.id === 'signout') {
                 if (fullLogoutUrl) {
                   auth.removeUser();
+                  clearStorage()
                   window.location.href = fullLogoutUrl;
                 }
                 auth.removeUser();
@@ -154,6 +172,7 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
           <SideNavigation
             activeHref={currentActiveHref}
             header={{ href: '/', text: t('name') }}
+            className="main-navigation"
             onFollow={(e) => {
               if (!e.detail.external) {
                 e.preventDefault();
@@ -165,45 +184,38 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
                 type: 'link',
                 text: t('homeSidebar'),
                 href: '/',
+                id: 'home-sidebar',
+                itemID: 'home-nav'
               },
               {
                 type: 'section',
                 text: t('chatSpace'),
+                id: 'chat-space',
                 items: [
                   {
                     type: 'link',
                     text: t('chat'),
                     href: '/chats',
+                    id: 'chat',
+                    itemID: 'chat-nav'
                   },
                   {
                     type: 'link',
                     text: t('sessionHistory'),
                     href: '/sessions',
+                    id: 'session-history',
+                    itemID: 'session-history-nav'
                   },
                 ],
               },
               {
                 type: 'section',
                 text: t('settings'),
-                items: layoutItems as readonly any[],
-                //     href: '/chatbot-management',
-                //   },
-                //   {
-                //     type: 'link',
-                //     text: t('intention'),
-                //     href: '/intention',
-                //   },
-                //   {
-                //     type: 'link',
-                //     text: t('docLibrary'),
-                //     href: '/library',
-                //   },
-                //   {
-                //     type: 'link',
-                //     text: t('prompt'),
-                //     href: '/prompts',
-                //   },
-                // ],
+                items: layoutItems.map((item, index) => ({
+                  ...item,
+                  itemID: `settings-nav-${index}`,
+                  className: item.text.toLowerCase().replace(/\s+/g, '-'),
+                })),
               },
               { type: 'divider' },
               {
@@ -211,8 +223,9 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
                 text: t('documentation'),
                 href: 'https://github.com/aws-samples/Intelli-Agent',
                 external: true,
+                itemID: 'docs-nav'
               },
-            ]}
+            ] as CustomNavigationItem[]}
           />
         }
         content={<>{isLoading ? <Spinner /> : children}</>}
