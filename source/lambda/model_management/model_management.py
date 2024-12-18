@@ -17,12 +17,6 @@ DEPLOY_RESOURCE = f"{ROOT_RESOURCE}/deploy"
 DESTROY_RESOURCE = f"{ROOT_RESOURCE}/destroy"
 STATUS_RESOURCE = f"{ROOT_RESOURCE}/status"
 
-# status
-DELETING = "DELETING"
-DEPLOYING = "DEPLOYING"
-READY_FOR_DEPLOYMENT = "READY_FOR_DEPLOYMENT"
-
-
 dynamodb_resource = boto3.resource("dynamodb")
 model_table_name = os.getenv("MODEL_TABLE_NAME","model-management")
 assert model_table_name,model_table_name
@@ -110,18 +104,16 @@ def __deploy(event,group_name):
     logger.info(f'deploy ret: {ret}')
     # write ret to ddb 
     now_time_str = get_now_time()
-    item = get_model_item(group_name,model_id)
     ret['model_deploy_start_time'] = f"{ret['model_deploy_start_time']}"
-    item['status'] = DEPLOYING
-    # item = {
-    #         "groupName": group_name,
-    #         "modelId": model_id,
-    #         "createTime": now_time_str,
-    #         "modelType": "LLM",
-    #         "parameter":ret,
-    #         "status": "InProgress",
-    #         "updateTime": now_time_str
-    #     }
+    item = {
+            "groupName": group_name,
+            "modelId": model_id,
+            "createTime": now_time_str,
+            "modelType": "LLM",
+            "parameter":ret,
+            "status": "InProgress",
+            "updateTime": now_time_str
+        }
     model_table.put_item(
         Item=item
     )
@@ -136,7 +128,7 @@ def __destroy(event, group_name):
     inprogress = ret['inprogress']
     completed = ret['completed']
     if not inprogress and not completed:
-        item['status'] = "deleted"
+        item['status'] = "Deleted"
         model_table.put_item(
             Item=item
         )
@@ -147,7 +139,7 @@ def __destroy(event, group_name):
         model_tag=group_name,
         waiting_until_complete=False
     )
-    item['status'] = DELETING
+    item['status'] = "Deleting"
 
     model_table.put_item(
         Item=item
@@ -164,18 +156,32 @@ def __status(event, group_name):
     inprogress = ret['inprogress']
     completed = ret['completed']
     if inprogress:
-        status = f"Deploy {inprogress[0]['status']} ({inprogress[0]['stage_name']})"
+        status = f"In Progress ({inprogress[0]['stage_name']})"
     elif completed:
         status = completed[0]['stack_status']
     else:
-        return {
-            "groupName":group_name,
-            "modeId":model_id,
-            'status':READY_FOR_DEPLOYMENT,"info":"model not exists "
-        }
+        return {'status':"NOT_EXISTS","info":"model not exists "}
      
-    item = get_model_item(group_name,model_id)
+    response = model_table.get_item(Key={"groupName": group_name, "modelId": model_id})
+    
+    now_time_str = get_now_time()
+    cur_item = {
+            "groupName": group_name,
+            # "SortKey": sort_key,
+            "modelId": model_id,
+            "parameter":{},
+            "createTime": now_time_str,
+            "modelType": "LLM"
+    }
+    item = response.get("Item",{})
+    item = {
+        **cur_item,
+        **item,
+    }
+    now_time_str = get_now_time()
     item['status'] = status
+    item['updateTime'] = now_time_str
+
     model_table.put_item(
         Item=item
     )
