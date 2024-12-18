@@ -123,6 +123,7 @@ class ToolRuningMode(ConstantBase):
 
 
 class LLMModelType(ConstantBase):
+    DEFAULT = "default-model-id"
     CLAUDE_INSTANCE = "anthropic.claude-instant-v1"
     CLAUDE_2 = "anthropic.claude-v2"
     CLAUDE_21 = "anthropic.claude-v2:1"

@@ -183,6 +183,11 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
           label: historyChatbotId,
           value: historyChatbotId
         });
+
+        localStorage.setItem(CURRENT_CHAT_BOT, JSON.stringify({
+          label: historyChatbotId,
+          value: historyChatbotId
+        }));
       } else if (localChatBot !== null) {
         // Otherwise fall back to local storage
         setChatbotOption(JSON.parse(localChatBot));

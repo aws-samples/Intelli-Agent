@@ -22,10 +22,11 @@ from common_logic.common_utils.time_utils import get_china_now
 
 from . import LLMChain
 from ..chat_models import Model
+from ..model_config import MODEL_CONFIGS
 
 
-class Claude2ToolCallingChain(LLMChain):
-    model_id = LLMModelType.CLAUDE_2
+class ToolCallingChain(LLMChain):
+    model_id = LLMModelType.DEFAULT
     intent_type = LLMTaskType.TOOL_CALLING_API
     default_model_kwargs = {
         "max_tokens": 2000,
@@ -140,45 +141,13 @@ class Claude2ToolCallingChain(LLMChain):
         return chain
 
 
-class Claude21ToolCallingChain(Claude2ToolCallingChain):
-    model_id = LLMModelType.CLAUDE_21
+chain_classes = {
+    f"{LLMChain.model_id_to_class_name(model_id, LLMTaskType.TOOL_CALLING_API)}": ToolCallingChain.create_for_model(model_id, LLMTaskType.TOOL_CALLING_API)
+    for model_id in MODEL_CONFIGS
+}
 
+# Add all chain classes to the module's global namespace
+globals().update(chain_classes)
+print("lvning tool calling chain")
+print(chain_classes)
 
-class Claude3SonnetToolCallingChain(Claude2ToolCallingChain):
-    model_id = LLMModelType.CLAUDE_3_SONNET
-
-
-class Claude3HaikuToolCallingChain(Claude2ToolCallingChain):
-    model_id = LLMModelType.CLAUDE_3_HAIKU
-
-
-class Claude35SonnetToolCallingChain(Claude2ToolCallingChain):
-    model_id = LLMModelType.CLAUDE_3_5_SONNET
-
-
-class Claude35SonnetV2ToolCallingChain(Claude2ToolCallingChain):
-    model_id = LLMModelType.CLAUDE_3_5_SONNET_V2
-
-
-class Claude35HaikuToolCallingChain(Claude2ToolCallingChain):
-    model_id = LLMModelType.CLAUDE_3_5_HAIKU
-
-
-class Llama31Instruct70BToolCallingChain(Claude2ToolCallingChain):
-    model_id = LLMModelType.LLAMA3_1_70B_INSTRUCT
-
-
-class Llama32Instruct90BToolCallingChain(Claude2ToolCallingChain):
-    model_id = LLMModelType.LLAMA3_2_90B_INSTRUCT
-
-
-class MistraLlarge2407ToolCallingChain(Claude2ToolCallingChain):
-    model_id = LLMModelType.MISTRAL_LARGE_2407
-
-
-class CohereCommandRPlusToolCallingChain(Claude2ToolCallingChain):
-    model_id = LLMModelType.COHERE_COMMAND_R_PLUS
-
-
-class NovaProToolCallingChain(Claude2ToolCallingChain):
-    model_id = LLMModelType.NOVA_PRO

@@ -306,7 +306,7 @@ def agent(state: ChatbotState):
                 enable_trace=state["enable_trace"],
             )
 
-        all_knowledge_rag_tool = state['all_knowledge_rag_tool']
+        all_knowledge_rag_tool = state["all_knowledge_rag_tool"]
         agent_message = AIMessage(content="", tool_calls=[
             ToolCall(
                 id=uuid.uuid4().hex,
