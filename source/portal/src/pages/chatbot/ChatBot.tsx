@@ -821,7 +821,9 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
           )}
         </div>
         
-        {historySessionId?(<></>):(<div className="flex-v gap-10">
+        {/* {historySessionId?(<></>): */}
+        {/* ( */}
+        <div className="flex-v gap-10">
           <div className="flex gap-5 send-message">
             <Select
               options={chatbotList}
@@ -896,7 +898,8 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
               </div>
             </div>
           </div>
-        </div>)}
+        </div>
+        {/* )} */}
       </div>
     </Container>
       </ContentLayout>
