@@ -148,6 +148,4 @@ chain_classes = {
 
 # Add all chain classes to the module's global namespace
 globals().update(chain_classes)
-print("lvning tool calling chain")
-print(chain_classes)
 

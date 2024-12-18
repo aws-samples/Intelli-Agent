@@ -28,7 +28,7 @@ SYSTEM_MESSAGE_TYPE = MessageType.SYSTEM_MESSAGE_TYPE
 class ChatChain(LLMChain):
     intent_type = LLMTaskType.CHAT
     model_id = LLMModelType.DEFAULT
-    default_model_kwargs={"max_tokens": 1000, "temperature": 0.01}
+    default_model_kwargs = {"max_tokens": 1000, "temperature": 0.01}
 
     @classmethod
     def get_common_system_prompt(cls, system_prompt_template: str):
@@ -330,5 +330,3 @@ chain_classes = {
 
 # Add all chain classes to the module's global namespace
 globals().update(chain_classes)
-print("lvning chat chain")
-print(chain_classes)
