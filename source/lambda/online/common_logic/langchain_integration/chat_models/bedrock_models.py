@@ -7,6 +7,7 @@ from common_logic.common_utils.constant import (
 )
 from common_logic.common_utils.logger_utils import get_logger, llm_messages_print_decorator
 from . import Model
+from ..model_config import MODEL_CONFIGS
 
 logger = get_logger("bedrock_model")
 
@@ -16,9 +17,8 @@ class ChatBedrockConverse(_ChatBedrockConverse):
     enable_prefill: bool = True
 
 
-# Bedrock model type
-class Claude2(Model):
-    model_id = LLMModelType.CLAUDE_2
+class BedrockModel(Model):
+    model_id = LLMModelType.DEFAULT
     default_model_kwargs = {"max_tokens": 2000,
                             "temperature": 0.7, "top_p": 0.9}
     enable_auto_tool_choice = False
@@ -72,58 +72,10 @@ class Claude2(Model):
         return llm
 
 
-class ClaudeInstance(Claude2):
-    model_id = LLMModelType.CLAUDE_INSTANCE
+model_classes = {
+    f"{Model.model_id_to_class_name(model_id)}": BedrockModel.create_for_model(model_id)
+    for model_id in MODEL_CONFIGS
+}
 
-
-class Claude21(Claude2):
-    model_id = LLMModelType.CLAUDE_21
-
-
-class Claude3Sonnet(Claude2):
-    model_id = LLMModelType.CLAUDE_3_SONNET
-
-
-class Claude3Haiku(Claude2):
-    model_id = LLMModelType.CLAUDE_3_HAIKU
-
-
-class Claude35Sonnet(Claude2):
-    model_id = LLMModelType.CLAUDE_3_5_SONNET
-
-
-class Claude35SonnetV2(Claude2):
-    model_id = LLMModelType.CLAUDE_3_5_SONNET_V2
-
-
-class Claude35Haiku(Claude2):
-    model_id = LLMModelType.CLAUDE_3_5_HAIKU
-
-
-class MistralLarge2407(Claude2):
-    model_id = LLMModelType.MISTRAL_LARGE_2407
-    enable_prefill = False
-
-
-class Llama3d1Instruct70B(Claude2):
-    model_id = LLMModelType.LLAMA3_1_70B_INSTRUCT
-    enable_auto_tool_choice = False
-    enable_prefill = False
-
-
-class Llama3d2Instruct90B(Claude2):
-    model_id = LLMModelType.LLAMA3_2_90B_INSTRUCT
-    enable_auto_tool_choice = False
-    enable_prefill = False
-
-
-class CohereCommandRPlus(Claude2):
-    model_id = LLMModelType.COHERE_COMMAND_R_PLUS
-    enable_auto_tool_choice = False
-    enable_prefill = False
-
-
-class NovaPro(Claude2):
-    model_id = LLMModelType.NOVA_PRO
-    enable_auto_tool_choice = False
-    enable_prefill = False
+# Add all model classes to the module's global namespace
+globals().update(model_classes)

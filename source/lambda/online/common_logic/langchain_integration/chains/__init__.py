@@ -41,15 +41,11 @@ class LLMChain(metaclass=LLMChainMeta):
         # Remove version numbers and vendor prefixes
         name = str(model_id).split(':')[0]
         name = name.split('.')[-1]
-
-        # Split by hyphens and clean each part
         parts = name.replace('_', '-').split('-')
 
         cleaned_parts = []
         for part in parts:
-            # Handle parts with numbers
             if any(c.isdigit() for c in part):
-                # Keep numbers but capitalize letters
                 cleaned = ''.join(c.upper() if i == 0 or part[i-1] in '- ' else c
                                   for i, c in enumerate(part))
             else:

@@ -7,6 +7,8 @@ from common_logic.common_utils.constant import LLMModelType
 class ModelConfig:
     model_id: str
     default_model_kwargs: Dict[str, Any] = None
+    enable_auto_tool_choice: bool = True
+    enable_prefill: bool = True
 
     def __post_init__(self):
         if self.default_model_kwargs is None:
@@ -15,7 +17,7 @@ class ModelConfig:
 
 BASE_CONFIG = ModelConfig(
     model_id=LLMModelType.CLAUDE_3_SONNET,
-    default_model_kwargs={"max_tokens": 1000, "temperature": 0.01},
+    default_model_kwargs={"max_tokens": 1000, "temperature": 0.01, "top_p": 0.9},
 )
 
 MODEL_CONFIGS = {
@@ -42,7 +44,9 @@ MODEL_CONFIGS = {
     ),
     LLMModelType.NOVA_PRO: ModelConfig(
         model_id=LLMModelType.NOVA_PRO,
-        default_model_kwargs=BASE_CONFIG.default_model_kwargs.copy()
+        default_model_kwargs=BASE_CONFIG.default_model_kwargs.copy(),
+        enable_auto_tool_choice = False,
+        enable_prefill = False
     ),
     LLMModelType.MIXTRAL_8X7B_INSTRUCT: ModelConfig(
         model_id=LLMModelType.MIXTRAL_8X7B_INSTRUCT,
@@ -50,18 +54,25 @@ MODEL_CONFIGS = {
     ),
     LLMModelType.LLAMA3_1_70B_INSTRUCT: ModelConfig(
         model_id=LLMModelType.LLAMA3_1_70B_INSTRUCT,
-        default_model_kwargs=BASE_CONFIG.default_model_kwargs.copy()
+        default_model_kwargs=BASE_CONFIG.default_model_kwargs.copy(),
+        enable_auto_tool_choice = False,
+        enable_prefill = False
     ),
     LLMModelType.LLAMA3_2_90B_INSTRUCT: ModelConfig(
         model_id=LLMModelType.LLAMA3_2_90B_INSTRUCT,
-        default_model_kwargs=BASE_CONFIG.default_model_kwargs.copy()
+        default_model_kwargs=BASE_CONFIG.default_model_kwargs.copy(),
+        enable_auto_tool_choice = False,
+        enable_prefill = False
     ),
     LLMModelType.MISTRAL_LARGE_2407: ModelConfig(
         model_id=LLMModelType.MISTRAL_LARGE_2407,
-        default_model_kwargs=BASE_CONFIG.default_model_kwargs.copy()
+        default_model_kwargs=BASE_CONFIG.default_model_kwargs.copy(),
+        enable_prefill = False
     ),
     LLMModelType.COHERE_COMMAND_R_PLUS: ModelConfig(
         model_id=LLMModelType.COHERE_COMMAND_R_PLUS,
-        default_model_kwargs=BASE_CONFIG.default_model_kwargs.copy()
+        default_model_kwargs=BASE_CONFIG.default_model_kwargs.copy(),
+        enable_auto_tool_choice = False,
+        enable_prefill = False
     )
 }
