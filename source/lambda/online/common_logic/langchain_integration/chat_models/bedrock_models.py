@@ -17,7 +17,7 @@ class ChatBedrockConverse(_ChatBedrockConverse):
     enable_prefill: bool = True
 
 
-class BedrockModel(Model):
+class BedrockBaseModel(Model):
     model_id = LLMModelType.DEFAULT
     default_model_kwargs = {"max_tokens": 2000,
                             "temperature": 0.7, "top_p": 0.9}
@@ -73,9 +73,6 @@ class BedrockModel(Model):
 
 
 model_classes = {
-    f"{Model.model_id_to_class_name(model_id)}": BedrockModel.create_for_model(model_id)
+    f"{Model.model_id_to_class_name(model_id)}": BedrockBaseModel.create_for_model(model_id)
     for model_id in MODEL_CONFIGS
 }
-
-# Add all model classes to the module's global namespace
-globals().update(model_classes)

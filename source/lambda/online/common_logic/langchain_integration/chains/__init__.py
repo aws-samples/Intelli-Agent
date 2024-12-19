@@ -6,7 +6,7 @@ from ..model_config import MODEL_CONFIGS
 class LLMChainMeta(type):
     def __new__(cls, name, bases, attrs):
         new_cls = type.__new__(cls, name, bases, attrs)
-        if name == "LLMChain":
+        if name == "LLMChain" or name.endswith("BaseChain"):
             return new_cls
         new_cls.model_map[new_cls.get_chain_id()] = new_cls
         return new_cls
@@ -74,7 +74,6 @@ class LLMChain(metaclass=LLMChainMeta):
 
 def _import_chat_chain():
     from .chat_chain import chain_classes
-    globals().update(chain_classes)
     from .chat_chain import (
         Internlm2Chat7BChatChain,
         Internlm2Chat20BChatChain,
@@ -84,7 +83,6 @@ def _import_chat_chain():
 
 def _import_query_rewrite_chain():
     from .query_rewrite_chain import chain_classes
-    globals().update(chain_classes)
     from .query_rewrite_chain import (
         Internlm2Chat20BQueryRewriteChain,
         Internlm2Chat7BQueryRewriteChain,
@@ -93,7 +91,6 @@ def _import_query_rewrite_chain():
 
 def _import_rag_chain():
     from .rag_chain import chain_classes
-    globals().update(chain_classes)
     from .rag_chain import (
         Baichuan2Chat13B4BitsKnowledgeQaChain,
     )
@@ -101,7 +98,6 @@ def _import_rag_chain():
 
 def _import_tool_calling_chain_api():
     from .tool_calling_chain_api import chain_classes
-    globals().update(chain_classes)
 
 
 def _import_conversation_summary_chain():

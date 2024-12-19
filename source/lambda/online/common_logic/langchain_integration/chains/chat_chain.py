@@ -25,7 +25,7 @@ QUERY_TRANSLATE_TYPE = LLMTaskType.QUERY_TRANSLATE_TYPE
 SYSTEM_MESSAGE_TYPE = MessageType.SYSTEM_MESSAGE_TYPE
 
 
-class ChatChain(LLMChain):
+class ChatBaseChain(LLMChain):
     intent_type = LLMTaskType.CHAT
     model_id = LLMModelType.DEFAULT
     default_model_kwargs = {"max_tokens": 1000, "temperature": 0.01}
@@ -77,7 +77,7 @@ class ChatChain(LLMChain):
         return final_chain
 
 
-class Baichuan2Chat13B4BitsChatChain(ChatChain):
+class Baichuan2Chat13B4BitsChatChain(ChatBaseChain):
     model_id = LLMModelType.BAICHUAN2_13B_CHAT
     default_model_kwargs = {
         "max_new_tokens": 2048,
@@ -100,7 +100,7 @@ class Baichuan2Chat13B4BitsChatChain(ChatChain):
         return llm_chain
 
 
-class Internlm2Chat7BChatChain(ChatChain):
+class Internlm2Chat7BChatChain(ChatBaseChain):
     model_id = LLMModelType.INTERNLM2_CHAT_7B
     default_model_kwargs = {"temperature": 0.5, "max_new_tokens": 1000}
 
@@ -177,7 +177,7 @@ class Internlm2Chat20BChatChain(Internlm2Chat7BChatChain):
     model_id = LLMModelType.INTERNLM2_CHAT_20B
 
 
-class GLM4Chat9BChatChain(ChatChain):
+class GLM4Chat9BChatChain(ChatBaseChain):
     model_id = LLMModelType.GLM_4_9B_CHAT
     default_model_kwargs = {
         "max_new_tokens": 1024,
@@ -223,7 +223,7 @@ class GLM4Chat9BChatChain(ChatChain):
         return chain
 
 
-class Qwen2Instruct7BChatChain(ChatChain):
+class Qwen2Instruct7BChatChain(ChatBaseChain):
     model_id = LLMModelType.QWEN2INSTRUCT7B
     default_model_kwargs = {
         "max_tokens": 1024,
@@ -282,7 +282,7 @@ class Qwen2Instruct72BChatChain(Qwen2Instruct7BChatChain):
     model_id = LLMModelType.QWEN15INSTRUCT32B
 
 
-class ChatGPT35ChatChain(ChatChain):
+class ChatGPT35ChatChain(ChatBaseChain):
     model_id = LLMModelType.CHATGPT_35_TURBO_0125
     intent_type = LLMTaskType.CHAT
 
@@ -324,9 +324,6 @@ class ChatGPT4oChatChain(ChatGPT35ChatChain):
 
 
 chain_classes = {
-    f"{LLMChain.model_id_to_class_name(model_id, LLMTaskType.CHAT)}": ChatChain.create_for_model(model_id, LLMTaskType.CHAT)
+    f"{LLMChain.model_id_to_class_name(model_id, LLMTaskType.CHAT)}": ChatBaseChain.create_for_model(model_id, LLMTaskType.CHAT)
     for model_id in MODEL_CONFIGS
 }
-
-# Add all chain classes to the module's global namespace
-globals().update(chain_classes)

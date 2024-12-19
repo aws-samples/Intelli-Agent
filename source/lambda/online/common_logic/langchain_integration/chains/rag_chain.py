@@ -35,7 +35,7 @@ def get_claude_rag_context(contexts: list):
     return context
 
 
-class RagChain(LLMChain):
+class RagBaseChain(LLMChain):
     model_id = LLMModelType.DEFAULT
     intent_type = LLMTaskType.RAG
 
@@ -142,9 +142,6 @@ class Baichuan2Chat13B4BitsKnowledgeQaChain(Baichuan2Chat13B4BitsChatChain):
 
 
 chain_classes = {
-    f"{LLMChain.model_id_to_class_name(model_id, LLMTaskType.RAG)}": RagChain.create_for_model(model_id, LLMTaskType.RAG)
+    f"{LLMChain.model_id_to_class_name(model_id, LLMTaskType.RAG)}": RagBaseChain.create_for_model(model_id, LLMTaskType.RAG)
     for model_id in MODEL_CONFIGS
 }
-
-# Add all chain classes to the module's global namespace
-globals().update(chain_classes)

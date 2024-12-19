@@ -25,7 +25,7 @@ from ..chat_models import Model
 from ..model_config import MODEL_CONFIGS
 
 
-class ToolCallingChain(LLMChain):
+class ToolCallingBaseChain(LLMChain):
     model_id = LLMModelType.DEFAULT
     intent_type = LLMTaskType.TOOL_CALLING_API
     default_model_kwargs = {
@@ -142,10 +142,6 @@ class ToolCallingChain(LLMChain):
 
 
 chain_classes = {
-    f"{LLMChain.model_id_to_class_name(model_id, LLMTaskType.TOOL_CALLING_API)}": ToolCallingChain.create_for_model(model_id, LLMTaskType.TOOL_CALLING_API)
+    f"{LLMChain.model_id_to_class_name(model_id, LLMTaskType.TOOL_CALLING_API)}": ToolCallingBaseChain.create_for_model(model_id, LLMTaskType.TOOL_CALLING_API)
     for model_id in MODEL_CONFIGS
 }
-
-# Add all chain classes to the module's global namespace
-globals().update(chain_classes)
-

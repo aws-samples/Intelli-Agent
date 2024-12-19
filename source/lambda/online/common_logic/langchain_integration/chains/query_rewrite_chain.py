@@ -40,7 +40,7 @@ Provide these alternative questions separated by newlines between XML tags. For 
 Original question: {question}""")
 
 
-class QueryRewriteChain(LLMChain):
+class QueryRewriteBaseChain(LLMChain):
     model_id = LLMModelType.DEFAULT
     intent_type = QUERY_REWRITE_TYPE
 
@@ -128,9 +128,6 @@ class Internlm2Chat20BQueryRewriteChain(Internlm2Chat7BQueryRewriteChain):
 
 
 chain_classes = {
-    f"{LLMChain.model_id_to_class_name(model_id, LLMTaskType.QUERY_REWRITE_TYPE)}": QueryRewriteChain.create_for_model(model_id, LLMTaskType.QUERY_REWRITE_TYPE)
+    f"{LLMChain.model_id_to_class_name(model_id, LLMTaskType.QUERY_REWRITE_TYPE)}": QueryRewriteBaseChain.create_for_model(model_id, LLMTaskType.QUERY_REWRITE_TYPE)
     for model_id in MODEL_CONFIGS
 }
-
-# Add all chain classes to the module's global namespace
-globals().update(chain_classes)

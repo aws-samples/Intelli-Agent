@@ -30,7 +30,7 @@ class ModeMixins:
 class ModelMeta(type):
     def __new__(cls, name, bases, attrs):
         new_cls = type.__new__(cls, name, bases, attrs)
-        if name == "Model" or new_cls.model_id is None:
+        if name == "Model" or new_cls.model_id is None or name.endswith("BaseModel"):
             return new_cls
         new_cls.model_map[new_cls.model_id] = new_cls
         return new_cls
@@ -96,7 +96,6 @@ class Model(ModeMixins, metaclass=ModelMeta):
 
 def _import_bedrock_models():
     from .bedrock_models import model_classes
-    globals().update(model_classes)
     # from .bedrock_models import (
     #     Claude2,
     #     ClaudeInstance,
