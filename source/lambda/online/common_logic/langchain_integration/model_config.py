@@ -17,13 +17,58 @@ class ModelConfig:
 
 BASE_CONFIG = ModelConfig(
     model_id=LLMModelType.CLAUDE_3_SONNET,
-    default_model_kwargs={"max_tokens": 1000, "temperature": 0.01, "top_p": 0.9},
+    default_model_kwargs={"max_tokens": 1000,
+                          "temperature": 0.01, "top_p": 0.9},
 )
 
 MODEL_CONFIGS = {
     LLMModelType.CLAUDE_3_SONNET: BASE_CONFIG,
     LLMModelType.CLAUDE_3_HAIKU: ModelConfig(
         model_id=LLMModelType.CLAUDE_3_HAIKU,
+        default_model_kwargs=BASE_CONFIG.default_model_kwargs.copy()
+    ),
+    LLMModelType.CLAUDE_3_SONNET_US: ModelConfig(
+        model_id=LLMModelType.CLAUDE_3_SONNET_US,
+        default_model_kwargs=BASE_CONFIG.default_model_kwargs.copy()
+    ),
+    LLMModelType.CLAUDE_3_OPUS_US: ModelConfig(
+        model_id=LLMModelType.CLAUDE_3_OPUS_US,
+        default_model_kwargs=BASE_CONFIG.default_model_kwargs.copy()
+    ),
+    LLMModelType.CLAUDE_3_HAIKU_US: ModelConfig(
+        model_id=LLMModelType.CLAUDE_3_HAIKU_US,
+        default_model_kwargs=BASE_CONFIG.default_model_kwargs.copy()
+    ),
+    LLMModelType.CLAUDE_3_5_SONNET_V2_US: ModelConfig(
+        model_id=LLMModelType.CLAUDE_3_5_SONNET_V2_US,
+        default_model_kwargs=BASE_CONFIG.default_model_kwargs.copy()
+    ),
+    LLMModelType.CLAUDE_3_5_HAIKU_US: ModelConfig(
+        model_id=LLMModelType.CLAUDE_3_5_HAIKU_US,
+        default_model_kwargs=BASE_CONFIG.default_model_kwargs.copy()
+    ),
+    LLMModelType.CLAUDE_3_SONNET_EU: ModelConfig(
+        model_id=LLMModelType.CLAUDE_3_SONNET_EU,
+        default_model_kwargs=BASE_CONFIG.default_model_kwargs.copy()
+    ),
+    LLMModelType.CLAUDE_3_5_SONNET_EU: ModelConfig(
+        model_id=LLMModelType.CLAUDE_3_5_SONNET_EU,
+        default_model_kwargs=BASE_CONFIG.default_model_kwargs.copy()
+    ),
+    LLMModelType.CLAUDE_3_HAIKU_EU: ModelConfig(
+        model_id=LLMModelType.CLAUDE_3_HAIKU_EU,
+        default_model_kwargs=BASE_CONFIG.default_model_kwargs.copy()
+    ),
+    LLMModelType.CLAUDE_3_SONNET_APAC: ModelConfig(
+        model_id=LLMModelType.CLAUDE_3_SONNET_APAC,
+        default_model_kwargs=BASE_CONFIG.default_model_kwargs.copy()
+    ),
+    LLMModelType.CLAUDE_3_5_SONNET_APAC: ModelConfig(
+        model_id=LLMModelType.CLAUDE_3_5_SONNET_APAC,
+        default_model_kwargs=BASE_CONFIG.default_model_kwargs.copy()
+    ),
+    LLMModelType.CLAUDE_3_HAIKU_APAC: ModelConfig(
+        model_id=LLMModelType.CLAUDE_3_HAIKU_APAC,
         default_model_kwargs=BASE_CONFIG.default_model_kwargs.copy()
     ),
     LLMModelType.CLAUDE_3_5_SONNET_V2: ModelConfig(
@@ -45,8 +90,20 @@ MODEL_CONFIGS = {
     LLMModelType.NOVA_PRO: ModelConfig(
         model_id=LLMModelType.NOVA_PRO,
         default_model_kwargs=BASE_CONFIG.default_model_kwargs.copy(),
-        enable_auto_tool_choice = False,
-        enable_prefill = False
+        enable_auto_tool_choice=False,
+        enable_prefill=False
+    ),
+    LLMModelType.NOVA_LITE: ModelConfig(
+        model_id=LLMModelType.NOVA_LITE,
+        default_model_kwargs=BASE_CONFIG.default_model_kwargs.copy(),
+        enable_auto_tool_choice=False,
+        enable_prefill=False
+    ),
+    LLMModelType.NOVA_MICRO: ModelConfig(
+        model_id=LLMModelType.NOVA_MICRO,
+        default_model_kwargs=BASE_CONFIG.default_model_kwargs.copy(),
+        enable_auto_tool_choice=False,
+        enable_prefill=False
     ),
     LLMModelType.MIXTRAL_8X7B_INSTRUCT: ModelConfig(
         model_id=LLMModelType.MIXTRAL_8X7B_INSTRUCT,
@@ -55,24 +112,30 @@ MODEL_CONFIGS = {
     LLMModelType.LLAMA3_1_70B_INSTRUCT: ModelConfig(
         model_id=LLMModelType.LLAMA3_1_70B_INSTRUCT,
         default_model_kwargs=BASE_CONFIG.default_model_kwargs.copy(),
-        enable_auto_tool_choice = False,
-        enable_prefill = False
+        enable_auto_tool_choice=False,
+        enable_prefill=False
+    ),
+    LLMModelType.LLAMA3_1_70B_INSTRUCT_US: ModelConfig(
+        model_id=LLMModelType.LLAMA3_1_70B_INSTRUCT_US,
+        default_model_kwargs=BASE_CONFIG.default_model_kwargs.copy(),
+        enable_auto_tool_choice=False,
+        enable_prefill=False
     ),
     LLMModelType.LLAMA3_2_90B_INSTRUCT: ModelConfig(
         model_id=LLMModelType.LLAMA3_2_90B_INSTRUCT,
         default_model_kwargs=BASE_CONFIG.default_model_kwargs.copy(),
-        enable_auto_tool_choice = False,
-        enable_prefill = False
+        enable_auto_tool_choice=False,
+        enable_prefill=False
     ),
     LLMModelType.MISTRAL_LARGE_2407: ModelConfig(
         model_id=LLMModelType.MISTRAL_LARGE_2407,
         default_model_kwargs=BASE_CONFIG.default_model_kwargs.copy(),
-        enable_prefill = False
+        enable_prefill=False
     ),
     LLMModelType.COHERE_COMMAND_R_PLUS: ModelConfig(
         model_id=LLMModelType.COHERE_COMMAND_R_PLUS,
         default_model_kwargs=BASE_CONFIG.default_model_kwargs.copy(),
-        enable_auto_tool_choice = False,
-        enable_prefill = False
-    )
+        enable_auto_tool_choice=False,
+        enable_prefill=False
+    ),
 }

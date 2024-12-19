@@ -35,7 +35,23 @@ export const LLM_BOT_COMMON_MODEL_LIST = [
   'mistral.mistral-large-2407-v1:0',
   'cohere.command-r-plus-v1:0',
   'us.amazon.nova-pro-v1:0',
+  'us.anthropic.claude-3-sonnet-20240229-v1:0',
+  "us.amazon.nova-lite-v1:0",
+  "us.amazon.nova-micro-v1:0",
+  "us.anthropic.claude-3-sonnet-20240229-v1:0",
+  "us.anthropic.claude-3-opus-20240229-v1:0",
+  "us.anthropic.claude-3-haiku-20240307-v1:0",
+  "us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+  "us.anthropic.claude-3-5-haiku-20241022-v1:0",
+  "eu.anthropic.claude-3-sonnet-20240229-v1:0",
+  "eu.anthropic.claude-3-5-sonnet-20240620-v1:0",
+  "eu.anthropic.claude-3-haiku-20240307-v1:0",
+  "apac.anthropic.claude-3-sonnet-20240229-v1:0",
+  "apac.anthropic.claude-3-5-sonnet-20240620-v1:0",
+  "apac.anthropic.claude-3-haiku-20240307-v1:0",
+  "us.meta.llama3-1-70b-instruct-v1:0",
 ];
+
 
 export const LLM_BOT_RETAIL_MODEL_LIST = [
   'qwen2-72B-instruct',

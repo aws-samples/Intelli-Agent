@@ -26,7 +26,7 @@ from langchain.prompts import (
     HumanMessagePromptTemplate,
     ChatPromptTemplate
 )
-
+from ..model_config import MODEL_CONFIGS
 from common_logic.common_utils.prompt_utils import get_prompt_template
 from common_logic.common_utils.logger_utils import get_logger, print_llm_messages
 
@@ -38,48 +38,8 @@ QUERY_TRANSLATE_TYPE = LLMTaskType.QUERY_TRANSLATE_TYPE
 SYSTEM_MESSAGE_TYPE = MessageType.SYSTEM_MESSAGE_TYPE
 
 
-class Internlm2Chat20BConversationSummaryChain(Internlm2Chat7BChatChain):
-    model_id = LLMModelType.INTERNLM2_CHAT_20B
-    default_model_kwargs = {
-        "max_new_tokens": 300,
-        "temperature": 0.1,
-        "stop_tokens": ["\n\n"],
-    }
-
-    @classmethod
-    def create_prompt(cls, x, system_prompt=None):
-        chat_history = x["chat_history"]
-        conversational_contexts = []
-        for his in chat_history:
-            role = his['role']
-            assert role in [HUMAN_MESSAGE_TYPE, AI_MESSAGE_TYPE]
-            if role == HUMAN_MESSAGE_TYPE:
-                conversational_contexts.append(f"USER: {his['content']}")
-            else:
-                conversational_contexts.append(f"AI: {his['content']}")
-        if system_prompt is None:
-            system_prompt = get_prompt_template(
-                model_id=cls.model_id,
-                task_type=cls.intent_type,
-                prompt_name="system_prompt"
-            ).prompt_template
-
-        conversational_context = "\n".join(conversational_contexts)
-        prompt = cls.build_prompt(
-            system_prompt.format(
-                history=conversational_context, question=x["query"]
-            )
-        )
-        prompt = prompt + "Standalone Question: "
-        return prompt
-
-
-class Internlm2Chat7BConversationSummaryChain(Internlm2Chat20BConversationSummaryChain):
-    model_id = LLMModelType.INTERNLM2_CHAT_7B
-
-
-class Claude2ConversationSummaryChain(LLMChain):
-    model_id = LLMModelType.CLAUDE_2
+class ConversationSummaryBaseChain(LLMChain):
+    model_id = LLMModelType.DEFAULT
     intent_type = LLMTaskType.CONVERSATION_SUMMARY_TYPE
 
     default_model_kwargs = {"max_tokens": 2000,
@@ -191,70 +151,63 @@ class Claude2ConversationSummaryChain(LLMChain):
         return chain
 
 
-class Claude21ConversationSummaryChain(Claude2ConversationSummaryChain):
-    model_id = LLMModelType.CLAUDE_21
+class Internlm2Chat20BConversationSummaryChain(Internlm2Chat7BChatChain):
+    model_id = LLMModelType.INTERNLM2_CHAT_20B
+    default_model_kwargs = {
+        "max_new_tokens": 300,
+        "temperature": 0.1,
+        "stop_tokens": ["\n\n"],
+    }
+
+    @classmethod
+    def create_prompt(cls, x, system_prompt=None):
+        chat_history = x["chat_history"]
+        conversational_contexts = []
+        for his in chat_history:
+            role = his['role']
+            assert role in [HUMAN_MESSAGE_TYPE, AI_MESSAGE_TYPE]
+            if role == HUMAN_MESSAGE_TYPE:
+                conversational_contexts.append(f"USER: {his['content']}")
+            else:
+                conversational_contexts.append(f"AI: {his['content']}")
+        if system_prompt is None:
+            system_prompt = get_prompt_template(
+                model_id=cls.model_id,
+                task_type=cls.intent_type,
+                prompt_name="system_prompt"
+            ).prompt_template
+
+        conversational_context = "\n".join(conversational_contexts)
+        prompt = cls.build_prompt(
+            system_prompt.format(
+                history=conversational_context, question=x["query"]
+            )
+        )
+        prompt = prompt + "Standalone Question: "
+        return prompt
 
 
-class ClaudeInstanceConversationSummaryChain(Claude2ConversationSummaryChain):
-    model_id = LLMModelType.CLAUDE_INSTANCE
+class Internlm2Chat7BConversationSummaryChain(Internlm2Chat20BConversationSummaryChain):
+    model_id = LLMModelType.INTERNLM2_CHAT_7B
 
 
-class Claude3SonnetConversationSummaryChain(Claude2ConversationSummaryChain):
-    model_id = LLMModelType.CLAUDE_3_SONNET
-
-
-class Claude3HaikuConversationSummaryChain(Claude2ConversationSummaryChain):
-    model_id = LLMModelType.CLAUDE_3_HAIKU
-
-
-class Claude35HaikuConversationSummaryChain(Claude2ConversationSummaryChain):
-    model_id = LLMModelType.CLAUDE_3_5_HAIKU
-
-
-class Claude35SonnetConversationSummaryChain(Claude2ConversationSummaryChain):
-    model_id = LLMModelType.CLAUDE_3_5_SONNET
-
-
-class Claude35SonnetV2ConversationSummaryChain(Claude2ConversationSummaryChain):
-    model_id = LLMModelType.CLAUDE_3_5_SONNET_V2
-
-
-class Mixtral8x7bConversationSummaryChain(Claude2ConversationSummaryChain):
-    model_id = LLMModelType.MIXTRAL_8X7B_INSTRUCT
-    default_model_kwargs = {"max_tokens": 4096, "temperature": 0.01}
-
-
-class Llama31Instruct70BConversationSummaryChain(Claude2ConversationSummaryChain):
-    model_id = LLMModelType.LLAMA3_1_70B_INSTRUCT
-
-
-class Llama32Instruct90BConversationSummaryChain(Claude2ConversationSummaryChain):
-    model_id = LLMModelType.LLAMA3_2_90B_INSTRUCT
-
-
-class MistraLlargeChat2407ConversationSummaryChain(Claude2ConversationSummaryChain):
-    model_id = LLMModelType.MISTRAL_LARGE_2407
-
-
-class CohereCommandRPlusConversationSummaryChain(Claude2ConversationSummaryChain):
-    model_id = LLMModelType.COHERE_COMMAND_R_PLUS
-
-
-class Qwen2Instruct72BConversationSummaryChain(Claude2ConversationSummaryChain):
+class Qwen2Instruct72BConversationSummaryChain(ConversationSummaryBaseChain):
     model_id = LLMModelType.QWEN2INSTRUCT72B
 
 
-class Qwen2Instruct72BConversationSummaryChain(Claude2ConversationSummaryChain):
+class Qwen2Instruct72BConversationSummaryChain(ConversationSummaryBaseChain):
     model_id = LLMModelType.QWEN15INSTRUCT32B
 
 
-class Qwen2Instruct7BConversationSummaryChain(Claude2ConversationSummaryChain):
+class Qwen2Instruct7BConversationSummaryChain(ConversationSummaryBaseChain):
     model_id = LLMModelType.QWEN2INSTRUCT7B
 
 
-class GLM4Chat9BConversationSummaryChain(Claude2ConversationSummaryChain):
+class GLM4Chat9BConversationSummaryChain(ConversationSummaryBaseChain):
     model_id = LLMModelType.GLM_4_9B_CHAT
 
 
-class NovaProConversationSummaryChain(Claude2ConversationSummaryChain):
-    model_id = LLMModelType.NOVA_PRO
+chain_classes = {
+    f"{LLMChain.model_id_to_class_name(model_id, LLMTaskType.CONVERSATION_SUMMARY_TYPE)}": ConversationSummaryBaseChain.create_for_model(model_id, LLMTaskType.CONVERSATION_SUMMARY_TYPE)
+    for model_id in MODEL_CONFIGS
+}

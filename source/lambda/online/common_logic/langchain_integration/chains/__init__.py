@@ -72,20 +72,11 @@ class LLMChain(metaclass=LLMChainMeta):
         return chain_class
 
 
-def _import_chat_chain():
-    from .chat_chain import chain_classes
-    from .chat_chain import (
-        Internlm2Chat7BChatChain,
-        Internlm2Chat20BChatChain,
-        Baichuan2Chat13B4BitsChatChain,
-    )
-
-
-def _import_query_rewrite_chain():
-    from .query_rewrite_chain import chain_classes
-    from .query_rewrite_chain import (
-        Internlm2Chat20BQueryRewriteChain,
-        Internlm2Chat7BQueryRewriteChain,
+def _import_conversation_summary_chain():
+    from .conversation_summary_chain import chain_classes
+    from .conversation_summary_chain import (
+        Internlm2Chat7BConversationSummaryChain,
+        Internlm2Chat20BConversationSummaryChain,
     )
 
 
@@ -96,20 +87,17 @@ def _import_rag_chain():
     )
 
 
+def _import_chat_chain():
+    from .chat_chain import chain_classes
+    from .chat_chain import (
+        Internlm2Chat7BChatChain,
+        Internlm2Chat20BChatChain,
+        Baichuan2Chat13B4BitsChatChain,
+    )
+
+
 def _import_tool_calling_chain_api():
     from .tool_calling_chain_api import chain_classes
-
-
-def _import_conversation_summary_chain():
-    from .conversation_summary_chain import (
-        Internlm2Chat7BConversationSummaryChain,
-        ClaudeInstanceConversationSummaryChain,
-        Claude21ConversationSummaryChain,
-        Claude3HaikuConversationSummaryChain,
-        Claude3SonnetConversationSummaryChain,
-        Internlm2Chat20BConversationSummaryChain,
-        NovaProConversationSummaryChain
-    )
 
 
 def _import_intention_chain():
@@ -121,6 +109,14 @@ def _import_intention_chain():
         Claude3SonnetIntentRecognitionChain,
         Internlm2Chat7BIntentRecognitionChain,
         Internlm2Chat20BIntentRecognitionChain,
+    )
+
+
+def _import_query_rewrite_chain():
+    from .query_rewrite_chain import chain_classes
+    from .query_rewrite_chain import (
+        Internlm2Chat20BQueryRewriteChain,
+        Internlm2Chat7BQueryRewriteChain,
     )
 
 
