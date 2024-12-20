@@ -326,7 +326,7 @@ class Qwen2Instruct7BChatChain(LLMChain):
 
 
 class Qwen2Instruct72BChatChain(Qwen2Instruct7BChatChain):
-    model_id = LLMModelType.QWEN2INSTRUCT72B
+    model_id = LLMModelType.QWEN25_INSTRUCT_72B_AWQ
 
 
 class Qwen2Instruct72BChatChain(Qwen2Instruct7BChatChain):

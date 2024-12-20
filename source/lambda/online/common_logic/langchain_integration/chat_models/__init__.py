@@ -1,7 +1,7 @@
 """
 chat models build in command pattern
 """
-from common_logic.common_utils.constant import LLMModelType
+from common_logic.common_utils.constant import LLMModelType,ModelProvider
 
 
 class ModeMixins:
@@ -40,6 +40,7 @@ class Model(ModeMixins,metaclass=ModelMeta):
     enable_auto_tool_choice: bool = True
     enable_prefill: bool = True
     model_map = {}
+    model_provider: ModelProvider = ModelProvider.BEDROCK
 
     @classmethod
     def create_model(cls, model_kwargs=None, **kwargs):
