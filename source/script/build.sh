@@ -13,6 +13,7 @@ opensearch_enabled=$(jq -r '.knowledgeBase.knowledgeBaseType.intelliAgentKb.vect
 embedding_model_provider=$(jq -r '.model.embeddingsModels[0].provider' $config_file)
 model_assets_bucket=$(jq -r '.model.modelConfig.modelAssetsBucket' $config_file)
 ui_enabled=$(jq -r '.ui.enabled' $config_file)
+use_open_source_llm=$(jq -r '.chat.useOpenSourceLLM' $config_file)
 # fi
 
 echo "Knowledge Base Enabled: $knowledge_base_enabled"
@@ -21,6 +22,7 @@ echo "Knowledge Base Models Enabled: $knowledge_base_models_enabled"
 echo "ECR Repository: $ecr_repository"
 echo "ECR Image Tag: $ecr_image_tag"
 echo "OpenSearch Enabled: $opensearch_enabled"
+echo "Use Open Source Model: $use_open_source_llm"
 echo "Model Assets Bucket: $model_assets_bucket"
 echo "UI Enabled: $ui_enabled"
 
@@ -48,12 +50,21 @@ build_frontend() {
     cd - > /dev/null
 }
 
+build_deployment_module() {
+    echo "Building Model Deployment Module"
+}
+
 modules_prepared=""
 cd ..
 
 if $ui_enabled; then
     build_frontend
     modules_prepared="${modules_prepared}Frontend, "
+fi
+
+if $use_open_source_llm; then
+    build_deployment_module
+    modules_prepared="${modules_prepared}Model Deployment, "
 fi
 
 if $knowledge_base_enabled && $knowledge_base_intelliagent_enabled && $knowledge_base_models_enabled; then
