@@ -12,19 +12,15 @@ codepipeline = boto3.client("codepipeline", region_name=region)
 dynamodb = boto3.client("dynamodb", region_name=region)
 model_table_name = os.environ.get("DYNAMODB_TABLE", "")
 post_lambda_name = os.environ.get("POST_LAMBDA", "")
+CODE_PIPELINE_PREFIX = "DMAA-Env"
 
 
 def lambda_handler(event, context):
     """
     Custom resource handler to monitor and update CodePipeline
     """
-    logger.info("test")
-    logger.info(event)
-    logger.info(context)
     request_type = event["RequestType"].upper() if (
         "RequestType" in event) else ""
-    logger.info(event["RequestType"])
-    logger.info(request_type)
     try:
         logger.info(
             f"Processing {request_type} request with properties: {event.get('ResourceProperties', {})}")
@@ -35,7 +31,7 @@ def lambda_handler(event, context):
             target_pipeline = None
 
             for pipeline in response["pipelines"]:
-                if pipeline["name"].startswith("DMAA-Env"):
+                if pipeline["name"].startswith(CODE_PIPELINE_PREFIX):
                     target_pipeline = pipeline["name"]
                     break
 
@@ -45,9 +41,6 @@ def lambda_handler(event, context):
 
             pipeline_response = codepipeline.get_pipeline(name=target_pipeline)
             pipeline_config = pipeline_response["pipeline"]
-
-            logger.info("get pipeline")
-            logger.info(pipeline_config)
 
             # Remove existing monitoring stage if it exists
             pipeline_config["stages"] = [
@@ -76,10 +69,8 @@ def lambda_handler(event, context):
             }
 
             pipeline_config["stages"].append(monitoring_stage)
-            logger.info("New wa")
             logger.info(pipeline_config)
 
-            # Update pipeline
             codepipeline.update_pipeline(pipeline=pipeline_config)
             logger.info(f"Successfully updated pipeline {target_pipeline}")
 
