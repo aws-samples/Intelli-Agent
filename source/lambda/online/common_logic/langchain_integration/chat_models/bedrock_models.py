@@ -18,7 +18,7 @@ class ChatBedrockConverse(_ChatBedrockConverse):
 
 
 class BedrockBaseModel(Model):
-    model_id = LLMModelType.DEFAULT
+    
     default_model_kwargs = {"max_tokens": 2000,
                             "temperature": 0.7, "top_p": 0.9}
     enable_auto_tool_choice = False

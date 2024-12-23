@@ -41,7 +41,7 @@ Original question: {question}""")
 
 
 class QueryRewriteBaseChain(LLMChain):
-    model_id = LLMModelType.DEFAULT
+    
     intent_type = QUERY_REWRITE_TYPE
 
     default_model_kwargs = {

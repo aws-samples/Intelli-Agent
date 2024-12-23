@@ -205,7 +205,7 @@ class Qwen2Instruct7BRetailConversationSummaryChain(GLM4Chat9BRetailConversation
 
 
 class Qwen2Instruct72BRetailConversationSummaryChain(Qwen2Instruct7BRetailConversationSummaryChain):
-    model_id = LLMModelType.QWEN2INSTRUCT72B
+    model_id = LLMModelType.QWEN25_INSTRUCT_72B_AWQ
 
 
 class Qwen2Instruct72BRetailConversationSummaryChain(Qwen2Instruct7BRetailConversationSummaryChain):

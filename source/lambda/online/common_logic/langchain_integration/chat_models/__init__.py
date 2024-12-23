@@ -1,7 +1,7 @@
 """
 chat models build in command pattern
 """
-from common_logic.common_utils.constant import LLMModelType
+from common_logic.common_utils.constant import LLMModelType,ModelProvider
 from ..model_config import MODEL_CONFIGS
 
 
@@ -41,6 +41,7 @@ class Model(ModeMixins, metaclass=ModelMeta):
     enable_auto_tool_choice: bool = True
     enable_prefill: bool = True
     model_map = {}
+    model_provider: ModelProvider = ModelProvider.BEDROCK
 
     @classmethod
     def create_model(cls, model_kwargs=None, **kwargs):
@@ -119,6 +120,10 @@ def _import_openai_models():
         ChatGPT4o
     )
 
+def _import_dmaa_models():
+    from . import dmaa_models
+        
+
 
 def _load_module(model_id):
     assert model_id in MODEL_MODULE_LOAD_FN_MAP, (
@@ -157,4 +162,5 @@ MODEL_MODULE_LOAD_FN_MAP = {
     LLMModelType.CLAUDE_3_5_SONNET_APAC: _import_bedrock_models,
     LLMModelType.CLAUDE_3_HAIKU_APAC: _import_bedrock_models,
     LLMModelType.LLAMA3_1_70B_INSTRUCT_US: _import_bedrock_models,
+    LLMModelType.QWEN25_INSTRUCT_72B_AWQ: _import_dmaa_models
 }

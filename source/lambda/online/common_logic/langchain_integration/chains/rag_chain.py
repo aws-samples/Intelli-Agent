@@ -36,7 +36,7 @@ def get_claude_rag_context(contexts: list):
 
 
 class RagBaseChain(LLMChain):
-    model_id = LLMModelType.DEFAULT
+    
     intent_type = LLMTaskType.RAG
 
     @classmethod
@@ -112,7 +112,7 @@ class Qwen2Instruct7BRagChain(Qwen2Instruct7BChatChain):
 
 
 class Qwen2Instruct72BRagChain(Qwen2Instruct7BRagChain):
-    model_id = LLMModelType.QWEN2INSTRUCT72B
+    model_id = LLMModelType.QWEN25_INSTRUCT_72B_AWQ
 
 
 class Qwen2Instruct72BRagChain(Qwen2Instruct7BRagChain):

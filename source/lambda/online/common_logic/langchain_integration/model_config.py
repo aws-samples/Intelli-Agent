@@ -138,4 +138,10 @@ MODEL_CONFIGS = {
         enable_auto_tool_choice=False,
         enable_prefill=False
     ),
+    LLMModelType.QWEN25_INSTRUCT_72B_AWQ: ModelConfig(
+        model_id=LLMModelType.QWEN25_INSTRUCT_72B_AWQ,
+        default_model_kwargs=BASE_CONFIG.default_model_kwargs.copy(),
+        enable_auto_tool_choice=True,
+        enable_prefill=True
+    )
 }

@@ -26,7 +26,7 @@ from ..model_config import MODEL_CONFIGS
 
 
 class ToolCallingBaseChain(LLMChain):
-    model_id = LLMModelType.DEFAULT
+    
     intent_type = LLMTaskType.TOOL_CALLING_API
     default_model_kwargs = {
         "max_tokens": 2000,

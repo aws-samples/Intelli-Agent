@@ -39,7 +39,7 @@ SYSTEM_MESSAGE_TYPE = MessageType.SYSTEM_MESSAGE_TYPE
 
 
 class ConversationSummaryBaseChain(LLMChain):
-    model_id = LLMModelType.DEFAULT
+    
     intent_type = LLMTaskType.CONVERSATION_SUMMARY_TYPE
 
     default_model_kwargs = {"max_tokens": 2000,
@@ -192,7 +192,7 @@ class Internlm2Chat7BConversationSummaryChain(Internlm2Chat20BConversationSummar
 
 
 class Qwen2Instruct72BConversationSummaryChain(ConversationSummaryBaseChain):
-    model_id = LLMModelType.QWEN2INSTRUCT72B
+    model_id = LLMModelType.QWEN25_INSTRUCT_72B_AWQ
 
 
 class Qwen2Instruct72BConversationSummaryChain(ConversationSummaryBaseChain):

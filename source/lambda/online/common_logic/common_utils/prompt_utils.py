@@ -236,7 +236,7 @@ GLM4_RAG_SYSTEM_PROMPT = """你是一个人工智能助手，正在回答人类�
 
 register_prompt_templates(
     model_ids=[
-        LLMModelType.QWEN2INSTRUCT72B,
+        LLMModelType.QWEN25_INSTRUCT_72B_AWQ,
         LLMModelType.QWEN2INSTRUCT7B,
         LLMModelType.GLM_4_9B_CHAT
     ],
@@ -331,7 +331,6 @@ register_prompt_templates(
         LLMModelType.CLAUDE_3_5_SONNET_V2,
         LLMModelType.CLAUDE_INSTANCE,
         LLMModelType.MIXTRAL_8X7B_INSTRUCT,
-        LLMModelType.QWEN2INSTRUCT72B,
         LLMModelType.QWEN2INSTRUCT7B,
         LLMModelType.GLM_4_9B_CHAT,
         LLMModelType.LLAMA3_1_70B_INSTRUCT,
@@ -339,6 +338,7 @@ register_prompt_templates(
         LLMModelType.MISTRAL_LARGE_2407,
         LLMModelType.COHERE_COMMAND_R_PLUS,
         LLMModelType.NOVA_PRO,
+        LLMModelType.QWEN25_INSTRUCT_72B_AWQ,
         LLMModelType.NOVA_LITE,
         LLMModelType.NOVA_MICRO,
         LLMModelType.CLAUDE_3_SONNET_US,
@@ -370,7 +370,6 @@ register_prompt_templates(
         LLMModelType.CLAUDE_3_5_SONNET_V2,
         LLMModelType.CLAUDE_INSTANCE,
         LLMModelType.MIXTRAL_8X7B_INSTRUCT,
-        LLMModelType.QWEN2INSTRUCT72B,
         LLMModelType.QWEN2INSTRUCT7B,
         LLMModelType.GLM_4_9B_CHAT,
         LLMModelType.LLAMA3_1_70B_INSTRUCT,
@@ -378,6 +377,7 @@ register_prompt_templates(
         LLMModelType.MISTRAL_LARGE_2407,
         LLMModelType.COHERE_COMMAND_R_PLUS,
         LLMModelType.NOVA_PRO,
+        LLMModelType.QWEN25_INSTRUCT_72B_AWQ,
         LLMModelType.NOVA_LITE,
         LLMModelType.NOVA_MICRO,
         LLMModelType.CLAUDE_3_SONNET_US,
@@ -410,7 +410,6 @@ register_prompt_templates(
         LLMModelType.CLAUDE_3_5_SONNET_V2,
         LLMModelType.CLAUDE_INSTANCE,
         LLMModelType.MIXTRAL_8X7B_INSTRUCT,
-        LLMModelType.QWEN2INSTRUCT72B,
         LLMModelType.QWEN2INSTRUCT7B,
         LLMModelType.GLM_4_9B_CHAT,
         LLMModelType.LLAMA3_1_70B_INSTRUCT,
@@ -418,6 +417,7 @@ register_prompt_templates(
         LLMModelType.MISTRAL_LARGE_2407,
         LLMModelType.COHERE_COMMAND_R_PLUS,
         LLMModelType.NOVA_PRO,
+        LLMModelType.QWEN25_INSTRUCT_72B_AWQ,
         LLMModelType.NOVA_LITE,
         LLMModelType.NOVA_MICRO,
         LLMModelType.CLAUDE_3_SONNET_US,
@@ -550,6 +550,7 @@ register_prompt_templates(
         LLMModelType.CLAUDE_3_5_SONNET_V2,
         LLMModelType.CLAUDE_3_5_HAIKU,
         LLMModelType.NOVA_PRO,
+        LLMModelType.QWEN25_INSTRUCT_72B_AWQ,
         LLMModelType.NOVA_LITE,
         LLMModelType.NOVA_MICRO,
         LLMModelType.CLAUDE_3_SONNET_US,
@@ -562,7 +563,7 @@ register_prompt_templates(
         LLMModelType.CLAUDE_3_HAIKU_EU,
         LLMModelType.CLAUDE_3_SONNET_APAC,
         LLMModelType.CLAUDE_3_5_SONNET_APAC,
-        LLMModelType.CLAUDE_3_HAIKU_APAC,
+        LLMModelType.CLAUDE_3_HAIKU_APAC
         # LLMModelType.LLAMA3_1_70B_INSTRUCT,
         # LLMModelType.LLAMA3_2_90B_INSTRUCT,
         # LLMModelType.MISTRAL_LARGE_2407,
@@ -636,6 +637,7 @@ register_prompt_templates(
         LLMModelType.CLAUDE_3_5_SONNET_APAC,
         LLMModelType.CLAUDE_3_HAIKU_APAC,
         LLMModelType.LLAMA3_1_70B_INSTRUCT_US,
+        LLMModelType.QWEN25_INSTRUCT_72B_AWQ
     ],
     task_type=LLMTaskType.TOOL_CALLING_API,
     prompt_template=TOOL_FEWSHOT_PROMPT,

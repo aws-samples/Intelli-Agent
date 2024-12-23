@@ -27,7 +27,7 @@ SYSTEM_MESSAGE_TYPE = MessageType.SYSTEM_MESSAGE_TYPE
 
 class ChatBaseChain(LLMChain):
     intent_type = LLMTaskType.CHAT
-    model_id = LLMModelType.DEFAULT
+    
     default_model_kwargs = {"max_tokens": 1000, "temperature": 0.01}
 
     @classmethod
@@ -275,7 +275,7 @@ class Qwen2Instruct7BChatChain(ChatBaseChain):
 
 
 class Qwen2Instruct72BChatChain(Qwen2Instruct7BChatChain):
-    model_id = LLMModelType.QWEN2INSTRUCT72B
+    model_id = LLMModelType.QWEN25_INSTRUCT_72B_AWQ
 
 
 class Qwen2Instruct72BChatChain(Qwen2Instruct7BChatChain):
