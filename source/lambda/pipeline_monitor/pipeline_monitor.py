@@ -83,7 +83,6 @@ def post_model_deployment(event, context):
     Function to be called by the pipeline monitoring stage
     """
     try:
-        logger.info("pipeline completed")
         logger.info(event)
         logger.info(context)
         user_parameters = event["CodePipeline.job"]["data"]["actionConfiguration"]["configuration"]["UserParameters"]
