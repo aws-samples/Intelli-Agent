@@ -113,6 +113,7 @@ async function getAwsAccountAndRegion() {
       options.enableChat = config.chat.enabled;
       options.bedrockRegion = config.chat.bedrockRegion;
       options.enableConnect = config.chat.amazonConnect.enabled;
+      options.useOpenSourceLLM = config.chat.useOpenSourceLLM;
       options.defaultEmbedding = config.model.embeddingsModels && config.model.embeddingsModels.length > 0
         ? config.model.embeddingsModels[0].name
         : embeddingModels[0].name;
@@ -192,7 +193,7 @@ async function processCreateOptions(options: any): Promise<void> {
       type: "confirm",
       name: "enableKnowledgeBase",
       message: "Do you want to use knowledge base in this solution?",
-      initial: options.enableKnowledgeBase ?? false,
+      initial: options.enableKnowledgeBase ?? true,
     },
     {
       type: "select",
@@ -337,6 +338,15 @@ async function processCreateOptions(options: any): Promise<void> {
     },
     {
       type: "confirm",
+      name: "useOpenSourceLLM",
+      message: "Do you want to use open source LLM(eg. Qwen, ChatGLM, IntermLM)?",
+      initial: options.useOpenSourceLLM ?? true,
+      skip(): boolean {
+        return (!(this as any).state.answers.enableChat);
+      },
+    },
+    {
+      type: "confirm",
       name: "enableConnect",
       message: "Do you want to integrate it with Amazon Connect?",
       initial: options.enableConnect ?? true,
@@ -474,6 +484,7 @@ async function processCreateOptions(options: any): Promise<void> {
     chat: {
       enabled: answers.enableChat,
       bedrockRegion: answers.bedrockRegion,
+      useOpenSourceLLM: answers.useOpenSourceLLM,
       amazonConnect: {
         enabled: answers.enableConnect,
       },

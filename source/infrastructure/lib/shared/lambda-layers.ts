@@ -44,7 +44,6 @@ export class LambdaLayers {
     return LambdaEmbeddingLayer;
   }
 
-
   createOnlineSourceLayer() {
     const LambdaOnlineSourceLayer = new pyLambda.PythonLayerVersion(
       this.scope,
@@ -54,7 +53,9 @@ export class LambdaLayers {
         compatibleRuntimes: [Runtime.PYTHON_3_12],
         description: `AI-Customer-Service - Online Source layer`,
         bundling: {
-          assetExcludes: ["*.pyc","*/__pycache__/*","*.xls","*.xlsx","*.csv","*.png","lambda_main/retail/size/*"],
+          "command": [
+                    "bash", "-c", "pip install -r requirements.txt -t /asset-output/python"],
+          "assetExcludes": ["*.pyc","*/__pycache__/*","*.xls","*.xlsx","*.csv","*.png","lambda_main/retail/size/*"],
         }
       },
     );

@@ -30,6 +30,7 @@ export interface SystemConfig {
     bedrockRegion: string;
     bedrockAk?: string;
     bedrockSk?: string;
+    useOpenSourceLLM: boolean;
     amazonConnect: {
       enabled: boolean;
     }

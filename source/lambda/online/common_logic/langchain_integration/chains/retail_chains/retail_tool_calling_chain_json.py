@@ -150,7 +150,7 @@ class GLM4Chat9BRetailToolCallingChain(GLM4Chat9BChatChain):
 
 
 class Qwen2Instruct72BRetailToolCallingChain(Qwen2Instruct7BChatChain):
-    model_id = LLMModelType.QWEN2INSTRUCT72B
+    model_id = LLMModelType.QWEN25_INSTRUCT_72B_AWQ
     intent_type = LLMTaskType.RETAIL_TOOL_CALLING
     default_model_kwargs = {
         "max_tokens": 1024,

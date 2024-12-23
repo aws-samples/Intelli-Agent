@@ -15,6 +15,8 @@ from ..chains import LLMChain
 from ..chat_models import Model as LLM_Model
 from .chat_chain import Internlm2Chat7BChatChain
 from . import LLMChain
+from ..model_config import MODEL_CONFIGS
+
 
 QUERY_REWRITE_TYPE = LLMTaskType.QUERY_REWRITE_TYPE
 query_expansion_template_claude = PromptTemplate.from_template("""You are an AI language model assistant. Your task is to generate 1 - 5 different sub questions OR alternate versions of the given user question to retrieve relevant documents from a vector database.
@@ -38,8 +40,8 @@ Provide these alternative questions separated by newlines between XML tags. For 
 Original question: {question}""")
 
 
-class Claude2QueryRewriteChain(LLMChain):
-    model_id = LLMModelType.CLAUDE_2
+class QueryRewriteBaseChain(LLMChain):
+    
     intent_type = QUERY_REWRITE_TYPE
 
     default_model_kwargs = {
@@ -68,34 +70,6 @@ class Claude2QueryRewriteChain(LLMChain):
             | RunnableLambda(cls.query_rewrite_postprocess)
         )
         return chain
-
-
-class Claude21QueryRewriteChain(Claude2QueryRewriteChain):
-    model_id = LLMModelType.CLAUDE_21
-
-
-class ClaudeInstanceQueryRewriteChain(Claude2QueryRewriteChain):
-    model_id = LLMModelType.CLAUDE_INSTANCE
-
-
-class Claude3HaikuQueryRewriteChain(Claude2QueryRewriteChain):
-    model_id = LLMModelType.CLAUDE_3_HAIKU
-
-
-class Claude3SonnetQueryRewriteChain(Claude2QueryRewriteChain):
-    model_id = LLMModelType.CLAUDE_3_SONNET
-
-
-class Claude35SonnetQueryRewriteChain(Claude2QueryRewriteChain):
-    model_id = LLMModelType.CLAUDE_3_5_SONNET
-
-
-class Claude35SonnetV2QueryRewriteChain(Claude2QueryRewriteChain):
-    mdoel_id = LLMModelType.CLAUDE_3_5_SONNET_V2
-
-
-class Claude35HaikuQueryRewriteChain(Claude2QueryRewriteChain):
-    mdoel_id = LLMModelType.CLAUDE_3_5_HAIKU
 
 
 internlm2_meta_instruction = """You are an AI language model assistant. Your task is to generate 1 - 5 different sub questions OR alternate versions of the given user question to retrieve relevant documents from a vector database.
@@ -153,6 +127,7 @@ class Internlm2Chat20BQueryRewriteChain(Internlm2Chat7BQueryRewriteChain):
     intent_type = QUERY_REWRITE_TYPE
 
 
-class NovaProQueryRewriteChain(Claude2QueryRewriteChain):
-    model_id = LLMModelType.NOVA_PRO
-
+chain_classes = {
+    f"{LLMChain.model_id_to_class_name(model_id, LLMTaskType.QUERY_REWRITE_TYPE)}": QueryRewriteBaseChain.create_for_model(model_id, LLMTaskType.QUERY_REWRITE_TYPE)
+    for model_id in MODEL_CONFIGS
+}

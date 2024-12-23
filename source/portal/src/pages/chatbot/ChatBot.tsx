@@ -39,6 +39,7 @@ import {
   ONLY_RAG_TOOL,
   MODEL_OPTION,
   CURRENT_CHAT_BOT,
+  HISTORY_CHATBOT_ID,
 } from 'src/utils/const';
 import { v4 as uuidv4 } from 'uuid';
 import { MessageDataType, SessionMessage } from 'src/types';
@@ -174,7 +175,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       setChatbotList(getChatbots);
 
       // First try to get chatbotId from history if it exists
-      const historyChatbotId = localStorage.getItem('HISTORY_CHATBOT_ID');
+      const historyChatbotId = localStorage.getItem(HISTORY_CHATBOT_ID);
       const localChatBot = localStorage.getItem(CURRENT_CHAT_BOT);
       
       if (historyChatbotId && getChatbots.some(bot => bot.value === historyChatbotId)) {
@@ -213,7 +214,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       if (sessionMessage && sessionMessage.length > 0) {
         const chatbotId = sessionMessage[0].chatbotId;
         // Store chatbotId for use in getWorkspaceList
-        localStorage.setItem('HISTORY_CHATBOT_ID', chatbotId);
+        localStorage.setItem(HISTORY_CHATBOT_ID, chatbotId);
       }
 
       setMessages(
@@ -821,7 +822,9 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
           )}
         </div>
         
-        {historySessionId?(<></>):(<div className="flex-v gap-10">
+        {/* {historySessionId?(<></>): */}
+        {/* ( */}
+        <div className="flex-v gap-10">
           <div className="flex gap-5 send-message">
             <Select
               options={chatbotList}
@@ -829,6 +832,9 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
               selectedOption={chatbotOption}
               onChange={({ detail }) => {
                 setChatbotOption(detail.selectedOption);
+                // Remove history chatbot ID from localStorage when manually changing chatbot
+                // Next time it will only use current_chatbot in localStorage
+                localStorage.removeItem(HISTORY_CHATBOT_ID);
               }}
             />
             <div className="flex-1 pr">
@@ -896,7 +902,8 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
               </div>
             </div>
           </div>
-        </div>)}
+        </div>
+        {/* )} */}
       </div>
     </Container>
       </ContentLayout>

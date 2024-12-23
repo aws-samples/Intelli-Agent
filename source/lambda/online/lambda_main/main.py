@@ -284,10 +284,7 @@ def restapi_event_handler(event_body: dict, context: dict, entry_executor):
         "entry_type": EntryType.COMMON,
         "session_id": assembled_body["session_id"],
         "user_id": assembled_body["user_id"],
-        "chatbot_config": {
-            "chatbot_mode": "agent",
-            "use_history": use_history,
-        },
+        "chatbot_config": event_body['chatbot_config'],
         "stream": False,
     }
 
@@ -361,6 +358,9 @@ def default_event_handler(event_body: dict, context: dict, entry_executor):
 @chatbot_lambda_call_wrapper
 def lambda_handler(event_body: dict, context: dict):
     logger.info(f"Raw event_body: {event_body}")
+    # set GROUP_NAME for dmaa model initialize
+    os.environ['GROUP_NAME'] = event_body.get(
+        "chatbot_config", {}).get("group_name", "Admin")
     entry_type = event_body.get("entry_type", EntryType.COMMON).lower()
     try:
         entry_executor = get_entry(entry_type)

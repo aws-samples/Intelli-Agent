@@ -128,6 +128,7 @@ class ModelProvider(ConstantBase):
 
 
 class LLMModelType(ConstantBase):
+    DEFAULT = "default-model-id"
     CLAUDE_INSTANCE = "anthropic.claude-instant-v1"
     CLAUDE_2 = "anthropic.claude-v2"
     CLAUDE_21 = "anthropic.claude-v2:1"
@@ -151,8 +152,23 @@ class LLMModelType(ConstantBase):
     LLAMA3_2_90B_INSTRUCT = "us.meta.llama3-2-90b-instruct-v1:0"
     MISTRAL_LARGE_2407 = "mistral.mistral-large-2407-v1:0"
     COHERE_COMMAND_R_PLUS = "cohere.command-r-plus-v1:0"
-    # NOVA_PRO = "amazon.nova-pro-v1:0"
     NOVA_PRO = "us.amazon.nova-pro-v1:0"
+    NOVA_LITE = "us.amazon.nova-lite-v1:0"
+    NOVA_MICRO = "us.amazon.nova-micro-v1:0"
+    CLAUDE_3_SONNET_US = "us.anthropic.claude-3-sonnet-20240229-v1:0"
+    CLAUDE_3_OPUS_US = "us.anthropic.claude-3-opus-20240229-v1:0"
+    CLAUDE_3_HAIKU_US = "us.anthropic.claude-3-haiku-20240307-v1:0"
+    CLAUDE_3_5_SONNET_V2_US = "us.anthropic.claude-3-5-sonnet-20241022-v2:0"
+    CLAUDE_3_5_HAIKU_US = "us.anthropic.claude-3-5-haiku-20241022-v1:0"
+    CLAUDE_3_SONNET_EU = "eu.anthropic.claude-3-sonnet-20240229-v1:0"
+    CLAUDE_3_5_SONNET_EU = "eu.anthropic.claude-3-5-sonnet-20240620-v1:0"
+    CLAUDE_3_HAIKU_EU = "eu.anthropic.claude-3-haiku-20240307-v1:0"
+    CLAUDE_3_SONNET_APAC = "apac.anthropic.claude-3-sonnet-20240229-v1:0"
+    CLAUDE_3_5_SONNET_APAC = "apac.anthropic.claude-3-5-sonnet-20240620-v1:0"
+    CLAUDE_3_HAIKU_APAC = "apac.anthropic.claude-3-haiku-20240307-v1:0"
+    LLAMA3_1_70B_INSTRUCT_US = "us.meta.llama3-1-70b-instruct-v1:0"
+
+
 
 
 class EmbeddingModelType(ConstantBase):
