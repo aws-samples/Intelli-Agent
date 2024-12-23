@@ -71,7 +71,7 @@ export class ModelConstruct extends NestedStack implements ModelConstructOutputs
   public defaultKnowledgeBaseModelName: string = "";
   modelAccount = Aws.ACCOUNT_ID;
   modelRegion = Aws.REGION;
-  modelIamHelper?: IAMHelper;
+  modelIamHelper: IAMHelper;
   modelExecutionRole?: iam.Role;
   modelImageUrlDomain?: string;
   modelPublicEcrAccount?: string;
@@ -79,12 +79,12 @@ export class ModelConstruct extends NestedStack implements ModelConstructOutputs
 
   constructor(scope: Construct, id: string, props: ModelConstructProps) {
     super(scope, id);
+    this.modelIamHelper = props.sharedConstructOutputs.iamHelper;
 
     // this.defaultEmbeddingModelName = "cohere.embed-english-v3"
     if (props.config.model.embeddingsModels[0].provider === "bedrock") {
       this.defaultEmbeddingModelName = props.config.model.embeddingsModels[0].name;
     } else {
-      this.modelIamHelper = props.sharedConstructOutputs.iamHelper;
       this.modelVariantName = "variantProd";
       this.modelImageUrlDomain =
         this.modelRegion === "cn-north-1" || this.modelRegion === "cn-northwest-1"
@@ -131,6 +131,50 @@ export class ModelConstruct extends NestedStack implements ModelConstructOutputs
           this.defaultKnowledgeBaseModelName = knowledgeBaseModelResources.endpoint.endpointName ?? "";
         }
       }
+    }
+
+    if (props.config.chat.useOpenSourceLLM) {
+      const modelTriggerLambda = new Function(this, "ModelTriggerLambda", {
+        runtime: Runtime.PYTHON_3_11,
+        handler: "pipeline_monitor.post_model_deployment",
+        code: Code.fromAsset(join(__dirname, "../../../lambda/pipeline_monitor")),
+        timeout: Duration.minutes(10),
+        memorySize: 512,
+        environment: {
+          DYNAMODB_TABLE: props.sharedConstructOutputs.modelTable.tableName,
+        }
+      });
+      modelTriggerLambda.addToRolePolicy(this.modelIamHelper.dynamodbStatement);
+      const pipelineMonitorLambda = new Function(this, "PipelineMonitorLambda", {
+        runtime: Runtime.PYTHON_3_11,
+        handler: "pipeline_monitor.lambda_handler",
+        code: Code.fromAsset(join(__dirname, "../../../lambda/pipeline_monitor")),
+        timeout: Duration.minutes(10),
+        memorySize: 512,
+        environment: {
+          DYNAMODB_TABLE: props.sharedConstructOutputs.modelTable.tableName,
+          POST_LAMBDA: modelTriggerLambda.functionName,
+          // Add a random UUID to force the custom resource to run on every deployment
+          FORCE_UPDATE: new Date().toISOString()
+        }
+      });
+      pipelineMonitorLambda.addToRolePolicy(this.modelIamHelper.codePipelineStatement);
+      pipelineMonitorLambda.addToRolePolicy(this.modelIamHelper.stsStatement);
+
+      // Create the custom resource provider to update open source model status
+      const provider = new cr.Provider(this, "PipelineMonitorProvider", {
+        onEventHandler: pipelineMonitorLambda,
+        logRetention: logs.RetentionDays.ONE_WEEK
+      });
+
+      new CustomResource(this, "PipelineMonitorResource", {
+        serviceToken: provider.serviceToken,
+        resourceType: "Custom::CodePipelineMonitor",
+        properties: {
+          // Add a timestamp to force the custom resource to execute on every deployment
+          UpdateTimestamp: new Date().toISOString()
+        }
+      });
     }
   }
 
@@ -327,12 +371,12 @@ export class ModelConstruct extends NestedStack implements ModelConstructOutputs
       }),
     );
     crLambda.node.addDependency(scalingTarget);
-    const customResourceProvider = new cr.Provider(this, 'CustomResourceProvider', {
+    const customResourceProvider = new cr.Provider(this, "CustomResourceProvider", {
       onEventHandler: crLambda,
       logRetention: logs.RetentionDays.ONE_DAY,
     });
 
-    new CustomResource(this, 'EtlEndpointCustomResource', {
+    new CustomResource(this, "EtlEndpointCustomResource", {
       serviceToken: customResourceProvider.serviceToken,
       resourceType: "Custom::ETLEndpoint",
     });
