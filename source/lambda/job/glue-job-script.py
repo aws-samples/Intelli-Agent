@@ -593,7 +593,7 @@ def ingestion_pipeline(
                     SplittingType.SEMANTIC.value,
                 )
 
-            gen_chunk_flag = False if file_type == "csv" else True
+            gen_chunk_flag = False if file_type in ["csv", "xlsx", "xls"] else True
             batches = batch_chunk_processor.batch_generator(res, gen_chunk_flag)
 
             for batch in batches:

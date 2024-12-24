@@ -6,22 +6,17 @@ from datetime import datetime
 import pandas as pd
 from langchain.docstore.document import Document
 
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def process_xlsx(s3, jsonl: bytes, **kwargs) -> List[Document]:
+def process_xlsx(s3, **kwargs) -> List[Document]:
     """
-    Process the jsonl file include query and answer pairs or other k-v alike data, in format of:
-    {"question": "<question 1>", "answer": "<answer 1>"}
-    {"question": "<question 2>", "answer": "<answer 2>"}
-    ...
-
+    Process the Excel file
     We will extract the question and assemble the content in page_content of Document, extract the answer and assemble as extra field in metadata (jsonlAnswer) of Document.
 
-    :param jsonl: jsonl file content
     :param kwargs: other arguments
-
     :return: list of Document, e.g.
     [
         Document(page_content="<question 1>", metadata={"jsonlAnswer": "<answer 1>, other metadata in metadata_template"}),
@@ -39,7 +34,7 @@ def process_xlsx(s3, jsonl: bytes, **kwargs) -> List[Document]:
     local_path = f"/tmp/excel-{timestamp_str}-{random_uuid}.xlsx"
 
     s3.download_file(bucket_name, key, local_path)
-    
+
     try:
         # load the excel file
         df = pd.read_excel(local_path)
@@ -71,7 +66,8 @@ def process_xlsx(s3, jsonl: bytes, **kwargs) -> List[Document]:
                         )
                     )
                     # assemble the Document
-                    doc = Document(page_content=page_content, metadata=metadata)
+                    doc = Document(page_content=page_content,
+                                   metadata=metadata)
                     doc_list.append(doc)
                 except json.JSONDecodeError as e:
                     logger.error(
@@ -79,9 +75,10 @@ def process_xlsx(s3, jsonl: bytes, **kwargs) -> List[Document]:
                     )
                     continue
                 except KeyError as e:
-                    logger.error(f"line: {str(json_obj)} does not contain key: {e}")
+                    logger.error(
+                        f"line: {str(json_obj)} does not contain key: {e}")
         else:
-            from .csv import CustomCSVLoader
+            from .csv import CustomCSVLoader            
             local_temp_path = local_path.replace('.xlsx', '.csv')
             df.to_csv(local_temp_path, index=None)
             loader = CustomCSVLoader(
