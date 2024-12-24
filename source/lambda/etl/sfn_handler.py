@@ -88,7 +88,9 @@ def handler(event, context):
 
     input_body["indexId"] = index_id
     input_body["groupName"] = group_name if "groupName" not in input_body else input_body["groupName"]
-    chatbot_event = {"body": json.dumps({"group_name": group_name})}
+    chatbot_event_body = input_body
+    chatbot_event_body["group_name"] = group_name
+    chatbot_event = {"body": json.dumps(chatbot_event_body)}
     chatbot_result = create_chatbot(chatbot_event, group_name)
 
     input_body["tableItemId"] = context.aws_request_id
