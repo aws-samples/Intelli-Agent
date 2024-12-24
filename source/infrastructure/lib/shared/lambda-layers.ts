@@ -19,31 +19,6 @@ import * as pyLambda from "@aws-cdk/aws-lambda-python-alpha";
 export class LambdaLayers {
   constructor(private scope: Construct) { }
 
-  createEmbeddingLayer() {
-    const LambdaEmbeddingLayer = new LayerVersion(
-      this.scope,
-      "APILambdaEmbeddingLayer",
-      {
-        code: Code.fromAsset(
-          path.join(__dirname, "../../../lambda/embedding"),
-          {
-            bundling: {
-              image: Runtime.PYTHON_3_12.bundlingImage,
-              command: [
-                "bash",
-                "-c",
-                `pip install -r requirements.txt -t /asset-output/python`,
-              ],
-            },
-          },
-        ),
-        compatibleRuntimes: [Runtime.PYTHON_3_12],
-        description: `LLM Bot - API layer`,
-      },
-    );
-    return LambdaEmbeddingLayer;
-  }
-
   createOnlineSourceLayer() {
     const LambdaOnlineSourceLayer = new pyLambda.PythonLayerVersion(
       this.scope,
