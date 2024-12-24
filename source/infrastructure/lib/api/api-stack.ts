@@ -30,6 +30,7 @@ import { ChatStackOutputs } from "../chat/chat-stack";
 import { UserConstructOutputs } from "../user/user-construct";
 import { LambdaFunction } from "../shared/lambda-helper";
 import { Constants } from "../shared/constants";
+import { PythonFunction } from "@aws-cdk/aws-lambda-python-alpha";
 
 interface ApiStackProps extends StackProps {
   config: SystemConfig;
@@ -416,10 +417,11 @@ export class ApiConstruct extends Construct {
       });
 
 
-      const intentionLambda = new LambdaFunction(this, "IntentionLambda", {
+      const intentionLambda = new PythonFunction(this, "IntentionLambda", {
         runtime: Runtime.PYTHON_3_12,
-        code: Code.fromAsset(join(__dirname, "../../../lambda/intention")),
-        handler: "intention.lambda_handler",
+        entry: join(__dirname, "../../../lambda/intention"),
+        index: "intention.py",
+        handler: "lambda_handler",
         vpc: vpc,
         securityGroups: securityGroups,
         environment: {
@@ -435,15 +437,14 @@ export class ApiConstruct extends Construct {
           BEDROCK_REGION: props.config.chat.bedrockRegion,
         },
         layers: [apiLambdaOnlineSourceLayer],
-        statements: [this.iamHelper.dynamodbStatement,
-        this.iamHelper.logStatement,
-        this.iamHelper.secretStatement,
-        this.iamHelper.esStatement,
-        this.iamHelper.s3Statement,
-        this.iamHelper.bedrockStatement,
-        this.iamHelper.endpointStatement,
-        ],
       });
+      intentionLambda.addToRolePolicy(this.iamHelper.dynamodbStatement);
+      intentionLambda.addToRolePolicy(this.iamHelper.logStatement);
+      intentionLambda.addToRolePolicy(this.iamHelper.secretStatement);
+      intentionLambda.addToRolePolicy(this.iamHelper.esStatement);
+      intentionLambda.addToRolePolicy(this.iamHelper.s3Statement);
+      intentionLambda.addToRolePolicy(this.iamHelper.bedrockStatement);
+      intentionLambda.addToRolePolicy(this.iamHelper.endpointStatement);
 
       const chatbotManagementLambda = new LambdaFunction(this, "ChatbotManagementLambda", {
         runtime: Runtime.PYTHON_3_12,

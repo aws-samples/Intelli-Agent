@@ -112,12 +112,12 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
       handler: "lambda_main.main.lambda_handler",
       code: Code.fromCustomCommand(
         "/tmp/online_lambda_function_codes",
-        ['bash', '-c',[
+        ['bash', '-c', [
           "mkdir -p /tmp/online_lambda_function_codes",
-          `cp -r ${join(__dirname, "../../../lambda/online/*")} /tmp/online_lambda_function_codes`, 
-          `cp ${join(__dirname, "../../../lambda/job/dep/llm_bot_dep/sm_utils.py")} /tmp/online_lambda_function_codes/`, 
+          `cp -r ${join(__dirname, "../../../lambda/online/*")} /tmp/online_lambda_function_codes`,
+          `cp ${join(__dirname, "../../../lambda/job/dep/llm_bot_dep/sm_utils.py")} /tmp/online_lambda_function_codes/`,
         ].join(' && ')
-      ]
+        ]
       ),
       memorySize: 4096,
       vpc: vpc,
@@ -177,7 +177,7 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
           "cloudformation:List*",
           "cloudformation:ValidateTemplate",
           "cloudformation:Detect*"
-      ],
+        ],
         effect: iam.Effect.ALLOW,
         resources: ["*"],
       }),
