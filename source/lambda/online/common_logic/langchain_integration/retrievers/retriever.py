@@ -4,9 +4,6 @@ from langchain_community.retrievers import AmazonKnowledgeBasesRetriever
 from langchain.retrievers import (
     ContextualCompressionRetriever,
 )
-from common_logic.langchain_integration.retrievers.utils.websearch_retrievers import (
-    GoogleRetriever,
-)
 from common_logic.langchain_integration.retrievers.utils.reranker import (
     BGEReranker,
     MergeReranker,
@@ -63,11 +60,6 @@ def get_bedrock_kb_retrievers(knowledge_base_id_list, top_k: int):
     return retriever_list
 
 
-def get_websearch_retrievers(top_k: int):
-    retriever_list = [GoogleRetriever(top_k)]
-    return retriever_list
-
-
 def get_custom_qd_retrievers(config: dict, using_bm25=False):
     qd_retriever = QueryDocumentKNNRetriever(**config)
 
@@ -115,7 +107,6 @@ retriever_dict = {
     "qq": get_custom_qq_retrievers,
     "intention": get_custom_qq_retrievers,
     "qd": get_custom_qd_retrievers,
-    "websearch": get_websearch_retrievers,
     "bedrock_kb": get_bedrock_kb_retrievers,
 }
 

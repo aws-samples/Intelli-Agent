@@ -66,8 +66,6 @@ export class ApiConstruct extends Construct {
     const messageQueue = props.chatStackOutputs.messageQueue;
 
     const lambdaLayers = new LambdaLayers(this);
-    // const apiLambdaExecutorLayer = lambdaLayers.createExecutorLayer();
-    const apiLambdaEmbeddingLayer = lambdaLayers.createEmbeddingLayer();
     const apiLambdaOnlineSourceLayer = lambdaLayers.createOnlineSourceLayer();
     const apiLambdaAuthorizerLayer = lambdaLayers.createAuthorizerLayer();
 
@@ -144,39 +142,6 @@ export class ApiConstruct extends Construct {
 
     // if (props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.enabled) {
     if (props.config.knowledgeBase.enabled && props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.enabled) {
-      const embeddingLambda = new LambdaFunction(this, "lambdaEmbedding", {
-        code: Code.fromAsset(join(__dirname, "../../../lambda/embedding")),
-        vpc: vpc,
-        securityGroups: securityGroups,
-        environment: {
-          ETL_MODEL_ENDPOINT: props.modelConstructOutputs.defaultKnowledgeBaseModelName,
-          REGION: Aws.REGION,
-          RES_BUCKET: resBucketName,
-        },
-        layers: [apiLambdaEmbeddingLayer],
-        statements: [
-          this.iamHelper.esStatement,
-          this.iamHelper.s3Statement,
-          this.iamHelper.endpointStatement,
-        ],
-      });
-
-      const aosLambda = new LambdaFunction(this, "AOSLambda", {
-        code: Code.fromAsset(join(__dirname, "../../../lambda/aos")),
-        vpc: vpc,
-        securityGroups: securityGroups,
-        environment: {
-          opensearch_cluster_domain: domainEndpoint,
-          embedding_endpoint: props.modelConstructOutputs.defaultEmbeddingModelName,
-        },
-        layers: [apiLambdaEmbeddingLayer],
-        statements: [
-          this.iamHelper.esStatement,
-          this.iamHelper.s3Statement,
-          this.iamHelper.endpointStatement,
-        ],
-      });
-
       const executionManagementLambda = new LambdaFunction(this, "ExecutionManagementLambda", {
         code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
         handler: "execution_management.lambda_handler",
@@ -199,27 +164,6 @@ export class ApiConstruct extends Construct {
         },
         statements: [this.iamHelper.s3Statement],
       });
-
-      // Define the API Gateway Lambda Integration with proxy and no integration responses
-      const lambdaEmbeddingIntegration = new apigw.LambdaIntegration(
-        embeddingLambda.function,
-        { proxy: true },
-      );
-
-      // Define the API Gateway Method
-      const apiResourceEmbedding = api.root.addResource("extract");
-      apiResourceEmbedding.addMethod("POST", lambdaEmbeddingIntegration, this.genMethodOption(api, auth, null),);
-
-      // Define the API Gateway Lambda Integration with proxy and no integration responses
-      const lambdaAosIntegration = new apigw.LambdaIntegration(aosLambda.function, {
-        proxy: true,
-      });
-
-      // All AOS wrapper should be within such lambda
-      const apiResourceAos = api.root.addResource("aos");
-      apiResourceAos.addMethod("POST", lambdaAosIntegration, this.genMethodOption(api, auth, null),);
-      // Add Get method to query & search index in OpenSearch, such embedding lambda will be updated for online process
-      apiResourceAos.addMethod("GET", lambdaAosIntegration, this.genMethodOption(api, auth, null),);
 
       const apiResourceStepFunction = api.root.addResource("knowledge-base");
       const apiKBExecution = apiResourceStepFunction.addResource("executions");
@@ -658,7 +602,7 @@ export class ApiConstruct extends Construct {
       apiResourcePromptProxy.addMethod("GET", lambdaPromptIntegration, this.genMethodOption(api, auth, null));
 
       // Define the API Gateway Lambda Integration to manage intention
-      const lambdaIntentionIntegration = new apigw.LambdaIntegration(intentionLambda.function, {
+      const lambdaIntentionIntegration = new apigw.LambdaIntegration(intentionLambda, {
         proxy: true,
       });
       const apiResourceIntentionManagement = api.root.addResource("intention");
