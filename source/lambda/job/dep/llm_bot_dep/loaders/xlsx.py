@@ -75,11 +75,11 @@ def process_xlsx(s3, jsonl: bytes, **kwargs) -> List[Document]:
                     doc_list.append(doc)
                 except json.JSONDecodeError as e:
                     logger.error(
-                        f"jsonl_line: {str(json_obj)} is not a valid json object, error: {e}"
+                        f"line: {str(json_obj)} is not a valid json object, error: {e}"
                     )
                     continue
                 except KeyError as e:
-                    logger.error(f"jsonl_line: {str(json_obj)} does not contain key: {e}")
+                    logger.error(f"line: {str(json_obj)} does not contain key: {e}")
         else:
             from .csv import CustomCSVLoader
             local_temp_path = local_path.replace('.xlsx', '.csv')
@@ -89,10 +89,10 @@ def process_xlsx(s3, jsonl: bytes, **kwargs) -> List[Document]:
             )
             doc_list = loader.load()
     except UnicodeDecodeError as e:
-        logger.error(f"jsonl file is not utf-8 encoded, error: {e}")
+        logger.error(f"Excel file is not utf-8 encoded, error: {e}")
         raise e
 
     logger.info(
-        f"processed jsonl_list: {doc_list} and if it is iterable: {isinstance(doc_list, Iterable)}"
+        f"processed excel file: {doc_list} and if it is iterable: {isinstance(doc_list, Iterable)}"
     )
     return doc_list
