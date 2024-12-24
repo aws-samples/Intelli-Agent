@@ -78,7 +78,7 @@ def process_xlsx(s3, **kwargs) -> List[Document]:
                     logger.error(
                         f"line: {str(json_obj)} does not contain key: {e}")
         else:
-            from .csv import CustomCSVLoader            
+            from .csv import CustomCSVLoader
             local_temp_path = local_path.replace('.xlsx', '.csv')
             df.to_csv(local_temp_path, index=None)
             loader = CustomCSVLoader(
