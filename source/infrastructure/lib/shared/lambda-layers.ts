@@ -25,12 +25,29 @@ export class LambdaLayers {
       "APILambdaOnlineSourceLayer",
       {
         entry: path.join(__dirname, "../../../lambda/online"),
-        compatibleRuntimes: [Runtime.PYTHON_3_12],
+        compatibleRuntimes: [Runtime.PYTHON_3_11, Runtime.PYTHON_3_12],
         description: `AI-Customer-Service - Online Source layer`,
         bundling: {
           "command": [
-                    "bash", "-c", "pip install -r requirements.txt -t /asset-output/python"],
-          "assetExcludes": ["*.pyc","*/__pycache__/*","*.xls","*.xlsx","*.csv","*.png","lambda_main/retail/size/*"],
+            "bash", "-c", "pip install --no-cache-dir -r requirements.txt -t /asset-output/python"],
+          "assetExcludes": [
+            "*.pyc",
+            "*/__pycache__/*",
+            "*.xls",
+            "*.xlsx",
+            "*.csv",
+            "*.png",
+            "*.jpg",
+            "*.jpeg",
+            "*.md",
+            "*.rst",
+            "docs/*",
+            "tests/*",
+            "examples/*",
+            "*.zip",
+            "*.tar.gz",
+            "*.7z",
+          ],
         }
       },
     );
@@ -43,7 +60,7 @@ export class LambdaLayers {
       "APILambdaJobSourceLayer",
       {
         entry: path.join(__dirname, "../../../lambda/job/dep/llm_bot_dep"),
-        compatibleRuntimes: [Runtime.PYTHON_3_12],
+        compatibleRuntimes: [Runtime.PYTHON_3_11, Runtime.PYTHON_3_12],
         description: `AI Customer Service agent - Job Source layer`,
       },
     );
@@ -56,7 +73,7 @@ export class LambdaLayers {
       "APILambdaAuthorizerLayer",
       {
         entry: path.join(__dirname, "../../../lambda/authorizer"),
-        compatibleRuntimes: [Runtime.PYTHON_3_12],
+        compatibleRuntimes: [Runtime.PYTHON_3_11, Runtime.PYTHON_3_12],
         description: `LLM Bot - Authorizer layer`,
       },
     );

@@ -400,9 +400,7 @@ export class ApiConstruct extends Construct {
           MODEL_TABLE_NAME: props.sharedConstructOutputs.modelTable.tableName,
           EMBEDDING_ENDPOINT: props.modelConstructOutputs.defaultEmbeddingModelName,
         },
-        layers: [apiLambdaOnlineSourceLayer],
-        statements: [this.iamHelper.dynamodbStatement,
-        this.iamHelper.logStatement],
+        statements: [this.iamHelper.dynamodbStatement, this.iamHelper.logStatement],
       });
 
       const apiResourceSessions = api.root.addResource("sessions");
@@ -422,30 +420,31 @@ export class ApiConstruct extends Construct {
       const apiResourceCheckChatbot = apiResourceChatbotManagement.addResource('check-chatbot');
       apiResourceCheckChatbot.addMethod("POST", lambdaChatbotIntegration, {
         ...this.genMethodOption(api, auth, {
-          item: {type: JsonSchemaType.STRING || JsonSchemaType.NULL},
-          reason: {type: JsonSchemaType.STRING || JsonSchemaType.NULL},
-          result: {type: JsonSchemaType.BOOLEAN}
+          item: { type: JsonSchemaType.STRING || JsonSchemaType.NULL },
+          reason: { type: JsonSchemaType.STRING || JsonSchemaType.NULL },
+          result: { type: JsonSchemaType.BOOLEAN }
         }),
         requestModels: this.genRequestModel(api, {
           "chatbotId": { "type": JsonSchemaType.STRING },
-          "index": {type: JsonSchemaType.OBJECT,
-                    properties: {
-                      qq: { type: JsonSchemaType.STRING },
-                      qd: { type: JsonSchemaType.STRING },
-                      intention: { type: JsonSchemaType.STRING }
-                    },
-                    required: ['qq','qd','intention']
-                  },
+          "index": {
+            type: JsonSchemaType.OBJECT,
+            properties: {
+              qq: { type: JsonSchemaType.STRING },
+              qd: { type: JsonSchemaType.STRING },
+              intention: { type: JsonSchemaType.STRING }
+            },
+            required: ['qq', 'qd', 'intention']
+          },
           model: { "type": JsonSchemaType.STRING },
           type: { "type": JsonSchemaType.STRING }
-          }
+        }
         )
       });
       const apiResourceCheckIndex = apiResourceChatbotManagement.addResource('check-index');
       apiResourceCheckIndex.addMethod("POST", lambdaChatbotIntegration, {
         ...this.genMethodOption(api, auth, {
-          reason: {type: JsonSchemaType.STRING || JsonSchemaType.NULL},
-          result: {type: JsonSchemaType.BOOLEAN}
+          reason: { type: JsonSchemaType.STRING || JsonSchemaType.NULL },
+          result: { type: JsonSchemaType.BOOLEAN }
         }),
         requestModels: this.genRequestModel(api, {
           "index": { "type": JsonSchemaType.STRING },
@@ -462,26 +461,27 @@ export class ApiConstruct extends Construct {
           chatbotId: { type: JsonSchemaType.STRING },
           groupName: { type: JsonSchemaType.STRING },
           indexIds: {
-             type: JsonSchemaType.ARRAY,
-             items: {type: JsonSchemaType.STRING}
+            type: JsonSchemaType.ARRAY,
+            items: { type: JsonSchemaType.STRING }
           },
-          modelType: {type: JsonSchemaType.STRING},
-          Message: {type: JsonSchemaType.STRING},
+          modelType: { type: JsonSchemaType.STRING },
+          Message: { type: JsonSchemaType.STRING },
         }),
         requestModels: this.genRequestModel(api, {
           "chatbotId": { "type": JsonSchemaType.STRING },
-          "index": {type: JsonSchemaType.OBJECT,
-                    properties: {
-                      qq: { type: JsonSchemaType.STRING },
-                      qd: { type: JsonSchemaType.STRING },
-                      intention: { type: JsonSchemaType.STRING }
-                    },
-                    required: ['qq','qd','intention']
-                  },
+          "index": {
+            type: JsonSchemaType.OBJECT,
+            properties: {
+              qq: { type: JsonSchemaType.STRING },
+              qd: { type: JsonSchemaType.STRING },
+              intention: { type: JsonSchemaType.STRING }
+            },
+            required: ['qq', 'qd', 'intention']
+          },
           modelId: { "type": JsonSchemaType.STRING },
           modelName: { "type": JsonSchemaType.STRING },
           operatorType: { "type": JsonSchemaType.STRING }
-          }
+        }
         )
       });
       // apiResourceChatbots.addMethod("GET", lambdaChatbotIntegration, {...this.genMethodOption(api, auth, {
