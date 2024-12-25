@@ -135,7 +135,7 @@ export class ModelConstruct extends NestedStack implements ModelConstructOutputs
 
     if (props.config.chat.useOpenSourceLLM) {
       const modelTriggerLambda = new Function(this, "ModelTriggerLambda", {
-        runtime: Runtime.PYTHON_3_11,
+        runtime: Runtime.PYTHON_3_12,
         handler: "pipeline_monitor.post_model_deployment",
         code: Code.fromAsset(join(__dirname, "../../../lambda/pipeline_monitor")),
         timeout: Duration.minutes(10),
@@ -146,7 +146,7 @@ export class ModelConstruct extends NestedStack implements ModelConstructOutputs
       });
       modelTriggerLambda.addToRolePolicy(this.modelIamHelper.dynamodbStatement);
       const pipelineMonitorLambda = new Function(this, "PipelineMonitorLambda", {
-        runtime: Runtime.PYTHON_3_11,
+        runtime: Runtime.PYTHON_3_12,
         handler: "pipeline_monitor.lambda_handler",
         code: Code.fromAsset(join(__dirname, "../../../lambda/pipeline_monitor")),
         timeout: Duration.minutes(10),
@@ -334,7 +334,7 @@ export class ModelConstruct extends NestedStack implements ModelConstructOutputs
 
     // Custom resource to update ETL endpoint autoscaling setting
     const crLambda = new Function(this, "ETLCustomResource", {
-      runtime: Runtime.PYTHON_3_11,
+      runtime: Runtime.PYTHON_3_12,
       code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
       handler: "etl_custom_resource.lambda_handler",
       environment: {

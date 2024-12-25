@@ -31,6 +31,7 @@ import { UserConstructOutputs } from "../user/user-construct";
 import { LambdaFunction } from "../shared/lambda-helper";
 import { Constants } from "../shared/constants";
 import { PythonFunction } from "@aws-cdk/aws-lambda-python-alpha";
+import { BundlingFileAccess } from 'aws-cdk-lib/core';
 
 interface ApiStackProps extends StackProps {
   config: SystemConfig;
@@ -350,16 +351,14 @@ export class ApiConstruct extends Construct {
 
       const promptManagementLambda = new LambdaFunction(this, "PromptManagementLambda", {
         runtime: Runtime.PYTHON_3_12,
-        code: Code.fromAsset(join(__dirname, "../../../lambda/prompt_management")),
         handler: "prompt_management.lambda_handler",
+        code: Code.fromAsset(join(__dirname, '../../../lambda/deployment_assets/lambda_assets/prompt_management.zip')),
         environment: {
           PROMPT_TABLE_NAME: props.chatStackOutputs.promptTableName,
         },
         layers: [apiLambdaOnlineSourceLayer],
-        statements: [this.iamHelper.dynamodbStatement,
-        this.iamHelper.logStatement],
+        statements: [this.iamHelper.dynamodbStatement, this.iamHelper.logStatement],
       });
-
 
       const intentionLambda = new PythonFunction(this, "IntentionLambda", {
         runtime: Runtime.PYTHON_3_12,
@@ -565,10 +564,6 @@ export class ApiConstruct extends Construct {
       //     // })
       //   }
       // );
-
-
-
-
       // const apiResourceChatbot = apiResourceChatbotManagement.addResource("chatbot");
       // const apiResourceChatbotDetail = apiResourceChatbot.addResource('{chatbotId}')
       // apiResourceChatbotDetail.addMethod("GET", lambdaChatbotIntegration, this.genMethodOption(api, auth, null));
