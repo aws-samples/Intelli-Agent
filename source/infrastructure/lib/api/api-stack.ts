@@ -11,7 +11,7 @@
  *  and limitations under the License.                                                                                *
  *********************************************************************************************************************/
 
-import { Aws, Size, StackProps } from "aws-cdk-lib";
+import { Aws, Duration, Size, StackProps } from "aws-cdk-lib";
 import * as apigw from "aws-cdk-lib/aws-apigateway";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import { Runtime, Code } from 'aws-cdk-lib/aws-lambda';
@@ -366,6 +366,7 @@ export class ApiConstruct extends Construct {
         entry: join(__dirname, "../../../lambda/intention"),
         index: "intention.py",
         handler: "lambda_handler",
+        timeout: Duration.minutes(15),
         vpc: vpc,
         securityGroups: securityGroups,
         environment: {
