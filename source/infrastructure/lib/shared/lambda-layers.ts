@@ -19,7 +19,7 @@ import * as pyLambda from "@aws-cdk/aws-lambda-python-alpha";
 export class LambdaLayers {
   constructor(private scope: Construct) { }
 
-  createOnlineSourceLayer() {
+  createSharedLayer() {
     const sharedLayer = new pyLambda.PythonLayerVersion(
       this.scope,
       "AICSSharedLayer",
@@ -34,11 +34,36 @@ export class LambdaLayers {
             "*.pyc", "*/__pycache__/*",
             "*.xls", "*.xlsx", "*.csv",
             "*.png",
+            "*.md",
+            "*.zip",
             "lambda_main/retail/size/*"],
         }
       },
     );
     return sharedLayer;
+  }
+
+  createModelDeploymentLayer() {
+    const modelDeploymentLayer = new pyLambda.PythonLayerVersion(
+      this.scope,
+      "AICSModelDeploymentLayer",
+      {
+        entry: path.join(__dirname, "../../../lambda/model_management"),
+        compatibleRuntimes: [Runtime.PYTHON_3_12],
+        description: `AI Customer Service - Model deployment layer`,
+        bundling: {
+          "command": [
+            "bash", "-c", "pip install -r requirements.txt -t /asset-output/python"],
+          "assetExcludes": [
+            "*.pyc", "*/__pycache__/*",
+            "*.xls", "*.xlsx", "*.csv",
+            "*.png",
+            "*.md",
+            "*.zip"]
+        }
+      },
+    );
+    return modelDeploymentLayer;
   }
 
   createJobSourceLayer() {
@@ -48,7 +73,7 @@ export class LambdaLayers {
       {
         entry: path.join(__dirname, "../../../lambda/job/dep/llm_bot_dep"),
         compatibleRuntimes: [Runtime.PYTHON_3_12],
-        description: `AI Customer Service agent - Job Source layer`,
+        description: `AI Customer Service - Job Source layer`,
       },
     );
     return etlLayer;

@@ -10,9 +10,42 @@ logger.setLevel(logging.INFO)
 region = os.environ.get("AWS_REGION", "us-east-1")
 codepipeline = boto3.client("codepipeline", region_name=region)
 dynamodb = boto3.client("dynamodb", region_name=region)
+iam = boto3.client("iam")
 model_table_name = os.environ.get("DYNAMODB_TABLE", "")
 post_lambda_name = os.environ.get("POST_LAMBDA", "")
 CODE_PIPELINE_PREFIX = "DMAA-Env"
+
+
+def add_lambda_invoke_policy(pipeline_role):
+    """
+    Adds Lambda invoke policy to existing pipeline role
+    """
+    try:
+        lambda_policy = {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow", 
+                    "Action": [
+                        "lambda:InvokeFunction",
+                        "lambda:InvokeAsync"
+                    ],
+                    "Resource": "*"
+                }
+            ]
+        }
+
+        # Put the policy
+        iam.put_role_policy(
+            RoleName=pipeline_role,
+            PolicyName="AICSLambdaInvokePolicy",
+            PolicyDocument=json.dumps(lambda_policy)
+        )
+
+        logger.info(f"Successfully added Lambda invoke policy to role {pipeline_role}")
+    except Exception as e:
+        logger.error(f"Error adding Lambda invoke policy: {str(e)}")
+        raise e
 
 
 def lambda_handler(event, context):
@@ -29,15 +62,19 @@ def lambda_handler(event, context):
             ("CREATE" in request_type or "UPDATE" in request_type):
             response = codepipeline.list_pipelines()
             target_pipeline = None
+            pipeline_role = None
 
             for pipeline in response["pipelines"]:
                 if pipeline["name"].startswith(CODE_PIPELINE_PREFIX):
                     target_pipeline = pipeline["name"]
+                    pipeline_role = target_pipeline.replace("Pipeline", "CodePipelineRole")
                     break
 
-            if not target_pipeline:
+            if not target_pipeline or not pipeline_role:
                 logger.warning("No pipeline found starting with DMAA-Env")
                 return
+
+            add_lambda_invoke_policy(pipeline_role)
 
             pipeline_response = codepipeline.get_pipeline(name=target_pipeline)
             pipeline_config = pipeline_response["pipeline"]

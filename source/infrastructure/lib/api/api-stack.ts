@@ -67,7 +67,7 @@ export class ApiConstruct extends Construct {
     const messageQueue = props.chatStackOutputs.messageQueue;
 
     const lambdaLayers = new LambdaLayers(this);
-    const apiLambdaOnlineSourceLayer = lambdaLayers.createOnlineSourceLayer();
+    const sharedLayer = lambdaLayers.createSharedLayer();
     const apiLambdaAuthorizerLayer = lambdaLayers.createAuthorizerLayer();
 
     // S3 bucket for storing documents
@@ -356,7 +356,7 @@ export class ApiConstruct extends Construct {
         environment: {
           PROMPT_TABLE_NAME: props.chatStackOutputs.promptTableName,
         },
-        layers: [apiLambdaOnlineSourceLayer],
+        layers: [sharedLayer],
         statements: [this.iamHelper.dynamodbStatement, this.iamHelper.logStatement],
       });
 
@@ -380,7 +380,7 @@ export class ApiConstruct extends Construct {
           KNOWLEDGE_BASE_TYPE: JSON.stringify(props.config.knowledgeBase.knowledgeBaseType || {}),
           BEDROCK_REGION: props.config.chat.bedrockRegion,
         },
-        layers: [apiLambdaOnlineSourceLayer],
+        layers: [sharedLayer],
       });
       intentionLambda.addToRolePolicy(this.iamHelper.dynamodbStatement);
       intentionLambda.addToRolePolicy(this.iamHelper.logStatement);
@@ -400,10 +400,29 @@ export class ApiConstruct extends Construct {
           MODEL_TABLE_NAME: props.sharedConstructOutputs.modelTable.tableName,
           EMBEDDING_ENDPOINT: props.modelConstructOutputs.defaultEmbeddingModelName,
         },
-        layers: [apiLambdaOnlineSourceLayer],
+        layers: [sharedLayer],
         statements: [this.iamHelper.dynamodbStatement,
         this.iamHelper.logStatement],
       });
+      
+      const modelLambda = new PythonFunction(this, "ModelLambda", {
+        runtime: Runtime.PYTHON_3_12,
+        entry: join(__dirname, "../../../lambda/model_management"),
+        index: "model_management.py",
+        handler: "lambda_handler",
+        timeout: Duration.minutes(15),
+        environment: {
+          MODEL_TABLE_NAME: props.sharedConstructOutputs.modelTable.tableName,
+        },
+        layers: [sharedLayer],
+      });
+      modelLambda.addToRolePolicy(this.iamHelper.dynamodbStatement);
+      modelLambda.addToRolePolicy(this.iamHelper.logStatement);
+      modelLambda.addToRolePolicy(this.iamHelper.s3Statement);
+      modelLambda.addToRolePolicy(this.iamHelper.codePipelineStatement);
+      modelLambda.addToRolePolicy(this.iamHelper.cfnStatement);
+      modelLambda.addToRolePolicy(this.iamHelper.stsStatement);
+      modelLambda.addToRolePolicy(this.iamHelper.cfnStatement);
 
       const apiResourceSessions = api.root.addResource("sessions");
       apiResourceSessions.addMethod("GET", new apigw.LambdaIntegration(chatHistoryManagementLambda.function), this.genMethodOption(api, auth, null),);
@@ -484,20 +503,6 @@ export class ApiConstruct extends Construct {
           }
         )
       });
-      // apiResourceChatbots.addMethod("GET", lambdaChatbotIntegration, {...this.genMethodOption(api, auth, {
-      //   Items: {type: JsonSchemaType.ARRAY, items: {
-      //     type: JsonSchemaType.OBJECT,
-      //     properties: {
-      //       ChatbotId: { type: JsonSchemaType.STRING },
-      //       ModelName: { type: JsonSchemaType.STRING },
-      //       ModelId: { type: JsonSchemaType.STRING },
-      //       LastModifiedTime: { type: JsonSchemaType.STRING }
-      //     },
-      //     modelId: { "type": JsonSchemaType.STRING },
-      //     modelName: { "type": JsonSchemaType.STRING }
-      //   }}
-      // })
-      // });
       apiResourceChatbots.addMethod("GET", lambdaChatbotIntegration, {
         ...this.genMethodOption(api, auth, {
           Items: {
@@ -537,37 +542,6 @@ export class ApiConstruct extends Construct {
         }
       })
 
-      // const apiGetChatbotById = chatbotResource.addResource("{chatbotId}");
-      // apiGetChatbotById.addMethod(
-      //   "GET",
-      //   new apigw.LambdaIntegration(chatbotManagementLambda.function),
-      //   {
-      //     ...this.genMethodOption(api, auth, {
-      //       Items: {
-      //         type: JsonSchemaType.ARRAY, items: {
-      //           type: JsonSchemaType.OBJECT,
-      //           properties: {
-      //             chatbotId: { type: JsonSchemaType.STRING },
-      //             index: { type: JsonSchemaType.STRING },
-      //             model: { type: JsonSchemaType.STRING },
-      //           },
-      //           required: ['chatbotId', 'index', 'model'],
-      //         }
-      //       },
-      //       Count: { type: JsonSchemaType.INTEGER }
-      //     }),
-      //     requestParameters: {
-      //       'method.request.path.chatbotId': true
-      //     },
-      //     // requestModels: this.genRequestModel(api, {
-      //     //   "executionId": { "type": JsonSchemaType.ARRAY, "items": {"type": JsonSchemaType.STRING}},
-      //     // })
-      //   }
-      // );
-      // const apiResourceChatbot = apiResourceChatbotManagement.addResource("chatbot");
-      // const apiResourceChatbotDetail = apiResourceChatbot.addResource('{chatbotId}')
-      // apiResourceChatbotDetail.addMethod("GET", lambdaChatbotIntegration, this.genMethodOption(api, auth, null));
-
       const apiResourceChatbotManagementEmbeddings = apiResourceChatbotManagement.addResource("embeddings")
       apiResourceChatbotManagementEmbeddings.addMethod("GET", lambdaChatbotIntegration, this.genMethodOption(api, auth, null));
 
@@ -575,7 +549,7 @@ export class ApiConstruct extends Construct {
       apiResourceChatbotProxy.addMethod("DELETE", lambdaChatbotIntegration, this.genMethodOption(api, auth, null),);
       apiResourceChatbotProxy.addMethod("GET", lambdaChatbotIntegration, this.genMethodOption(api, auth, null),);
 
-      // Define the API Gateway Lambda Integration to manage prompt
+      // API Gateway Lambda Integration to manage prompt
       const lambdaPromptIntegration = new apigw.LambdaIntegration(promptManagementLambda.function, {
         proxy: true,
       });
@@ -597,7 +571,21 @@ export class ApiConstruct extends Construct {
       apiResourcePromptProxy.addMethod("DELETE", lambdaPromptIntegration, this.genMethodOption(api, auth, null));
       apiResourcePromptProxy.addMethod("GET", lambdaPromptIntegration, this.genMethodOption(api, auth, null));
 
-      // Define the API Gateway Lambda Integration to manage intention
+      // API Gateway Lambda Integration to manage model
+      const lambdaModelIntegration = new apigw.LambdaIntegration(modelLambda, {
+        proxy: true,
+      });
+      const apiResourceModelManagement = api.root.addResource("model-management");
+      const apiResourcePromptManagementStatus = apiResourceModelManagement.addResource("status")
+      apiResourcePromptManagementStatus.addMethod("GET", lambdaModelIntegration, this.genMethodOption(api, auth, null));
+
+      const apiResourcePromptManagementDeploy = apiResourceModelManagement.addResource("deploy")
+      apiResourcePromptManagementDeploy.addMethod("POST", lambdaModelIntegration, this.genMethodOption(api, auth, null));
+
+      const apiResourcePromptManagementDestroy = apiResourceModelManagement.addResource("destroy")
+      apiResourcePromptManagementDestroy.addMethod("POST", lambdaModelIntegration, this.genMethodOption(api, auth, null));
+      
+      // API Gateway Lambda Integration to manage intention
       const lambdaIntentionIntegration = new apigw.LambdaIntegration(intentionLambda, {
         proxy: true,
       });
@@ -729,9 +717,6 @@ export class ApiConstruct extends Construct {
           },
         }
       );
-      // const apiUploadIntention = apiResourceIntentionManagement.addResource("upload");
-      // apiUploadIntention.addMethod("POST", lambdaIntentionIntegration, this.genMethodOption(api, auth, null))
-
 
       // Define the API Gateway Lambda Integration with proxy and no integration responses
       const lambdaExecutorIntegration = new apigw.LambdaIntegration(
@@ -760,23 +745,6 @@ export class ApiConstruct extends Construct {
       this.wsEndpoint = `${wsStage.api.apiEndpoint}/${wsStage.stageName}/`;
 
     }
-
-    // const plan = api.addUsagePlan('ExternalUsagePlan', {
-    //   name: 'external-api-usage-plan'
-    // });
-
-    // This is not safe, but for the purpose of the test, we will use this
-    // For deployment, we suggest user manually create the key and use it on the console
-
-    // const apiKeyValue = this.makeApiKey(24);
-    // const key = api.addApiKey('ApiKey', {
-    //   value: apiKeyValue,
-    // });
-
-    // plan.addApiKey(key);
-    // plan.addApiStage({
-    //   stage: api.deploymentStage
-    // })
 
     this.apiEndpoint = api.url;
     this.documentBucket = s3Bucket.bucketName;
