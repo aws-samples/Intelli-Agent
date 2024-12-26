@@ -218,20 +218,6 @@ def lambda_handler(event, context):
 
     try:
         output = api_map[resource](event, group_name)
-        # if resource == MODELS_RESOURCE:
-        #     output = __list_model()
-        # elif resource == SCENES_RESOURCE:
-        #     output = __list_scene()
-        # elif resource.startswith(PROMPTS_RESOURCE):
-        #     if http_method == "POST":
-        #         output = __put_prompt(event, group_name)
-        #     elif http_method == "GET":
-        #         if event["resource"] == PROMPTS_RESOURCE:
-        #             output = __list_prompt(event, group_name)
-        #         else:
-        #             output = __get_prompt(event, group_name)
-        #     elif http_method == "DELETE":
-        #         output = __delete_prompt(event, group_name)
         return {
             "statusCode": 200,
             "headers": resp_header,
