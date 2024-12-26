@@ -56,8 +56,18 @@ build_deployment_module() {
     dmaa bootstrap
 }
 
+build_lambda_asset() {
+    echo "Building Lambda Asset"
+    cd script
+    bash build-s3-dist.sh
+    cd - > /dev/null
+}
+
 modules_prepared=""
 cd ..
+
+build_lambda_asset
+modules_prepared="${modules_prepared}Lambda Deployment, "
 
 if $ui_enabled; then
     build_frontend

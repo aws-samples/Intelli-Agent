@@ -1,9 +1,0 @@
-python-dotenv
-PyPDF2
-streamlit==1.37.0
-langchain==0.1.0
-openai==1.1.0
-tiktoken==0.5.1
-boto3==1.28.84
-nougat-ocr==0.1.17
-tenacity==8.2.2
