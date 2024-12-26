@@ -29,6 +29,7 @@ export class IAMHelper extends Construct {
   public esStatement: PolicyStatement;
   public secretStatement: PolicyStatement;
   public codePipelineStatement: PolicyStatement;
+  public cfnStatement: PolicyStatement;
 
   public createPolicyStatement(actions: string[], resources: string[]) {
     return new PolicyStatement({
@@ -100,6 +101,8 @@ export class IAMHelper extends Construct {
         "sts:AssumeRole",
         "iam:CreateServiceLinkedRole",
         "iam:PassRole",
+        "iam:PutRolePolicy",
+        "iam:Get*",
       ],
       [ "*" ],
     );
@@ -165,9 +168,27 @@ export class IAMHelper extends Construct {
         "codepipeline:GetPipeline",
         "codepipeline:UpdatePipeline",
         "codepipeline:GetPipelineState",
-        "codepipeline:ListPipelines"
+        "codepipeline:ListPipelines",
+        "codepipeline:StartPipelineExecution",
+        "codepipeline:GetPipelineExecution",
       ],
       [ "*" ],
+    );
+    this.cfnStatement = this.createPolicyStatement(
+      [
+        "cloudformation:ListStacks",
+        "cloudformation:DescribeStacks",
+        "cloudformation:GetTemplate",
+        "cloudformation:CreateStack",
+        "cloudformation:UpdateStack",
+        "cloudformation:DeleteStack",
+        "cloudformation:CreateChangeSet",
+        "cloudformation:ExecuteChangeSet",
+        "cloudformation:DeleteChangeSet",
+        "cloudformation:DescribeStackResources",
+        "cloudformation:DescribeStackEvents",
+      ],
+      ["*"],
     );
   }
 }
