@@ -6,14 +6,15 @@ from dmaa import deploy, destroy
 from dmaa.models import Model
 from dmaa.sdk.status import get_model_status
 import logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 region = boto3.Session().region_name
 
 ROOT_RESOURCE = "/model-management"
 DEPLOY_RESOURCE = f"{ROOT_RESOURCE}/deploy"
 DESTROY_RESOURCE = f"{ROOT_RESOURCE}/destroy"
-STATUS_RESOURCE = "/model-management/{modelId}/status"
+STATUS_RESOURCE = "/model-management/status/{modelId}"
 
 dynamodb_resource = boto3.resource("dynamodb")
 model_table_name = os.getenv("MODEL_TABLE_NAME", "model-management")
@@ -147,7 +148,7 @@ def __destroy(event, group_name):
 
 
 def __status(event, group_name):
-    model_id = event["pathParameters"]["model_id"]
+    model_id = event["pathParameters"]["modelId"]
     ret = get_model_status(model_id, model_tag=group_name)
 
     inprogress = ret["inprogress"]

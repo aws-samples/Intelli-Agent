@@ -91,7 +91,3 @@ def post_model_deployment(event, context):
             update_pipeline_status(group_name, model_id, status)
         except Exception as e:
             logger.error(f"Error updating pipeline execution details: {str(e)}")
-
-
-
-# {"version": "0", "id": "8aeab9d4-d8fe-5ada-fcf1-16b3b4e84648", "detail-type": "CodePipeline Pipeline Execution State Change", "source": "aws.codepipeline", "account": "817734611975", "time": "2024-12-30T00:53:03Z", "region": "us-west-2", "resources": ["arn:aws:codepipeline:us-west-2:817734611975:DMAA-Env-0-4-0-Pipeline"], "detail": {"pipeline": "DMAA-Env-0-4-0-Pipeline", "execution-id": "417b6f73-99ef-4105-95f1-11ebb1bcade5", "start-time": "2024-12-30T00:43:13.765Z", "state": "SUCCEEDED", "version": 6.0, "pipeline-execution-attempt": 1.0}}
