@@ -66,8 +66,8 @@ async function getAwsAccountAndRegion() {
     AWS_REGION = new AWS.IniLoader().loadFrom({ isConfig: true }).default.region;
 
   } catch (error) {
-    console.error("No default region found in the AWS credentials file. Please enter the region you want to deploy the intelli-agent solution");
-    AWS_REGION = undefined;
+    console.error("No default region found in the AWS credentials file. Using default region: us-west-2");
+    AWS_REGION = 'us-west-2';
   }
 
   console.log("AWS_ACCOUNT", AWS_ACCOUNT);
@@ -75,6 +75,35 @@ async function getAwsAccountAndRegion() {
   return { AWS_ACCOUNT, AWS_REGION };
 }
 
+async function getCustomValueFromSSM(region: string) {
+  // Create SSM client with EC2 metadata credentials
+  const ssm = new AWS.SSM({
+    region,
+    credentials: new AWS.EC2MetadataCredentials({
+      httpOptions: { timeout: 5000 }, // Optional: adds a timeout
+      maxRetries: 3 // Optional: number of retries
+    })
+  });
+
+  try {
+    const domainParameter = await ssm.getParameter({
+      Name: 'AICSCustomDomainEndpoint',
+      WithDecryption: true
+    }).promise();
+    let customDomainEndpoint = domainParameter.Parameter?.Value ?? "";
+    customDomainEndpoint = `https://${customDomainEndpoint}`;
+    const bucketParameter = await ssm.getParameter({
+      Name: 'AICSWorkshopBucket',
+      WithDecryption: true
+    }).promise();
+    let customBucket = bucketParameter.Parameter?.Value ?? "";
+    return { customDomainEndpoint, customBucket };
+  } catch (error) {
+    console.log("Could not fetch customDomainEndpoint from SSM, using default value");
+    console.log(error);
+    return { customDomainEndpoint: "", customBucket: "" };
+  }
+}
 
 
 /**
@@ -108,6 +137,8 @@ async function getAwsAccountAndRegion() {
       options.useCustomDomain = config.knowledgeBase.knowledgeBaseType.intelliAgentKb.vectorStore.opensearch.useCustomDomain;
       options.customDomainEndpoint = config.knowledgeBase.knowledgeBaseType.intelliAgentKb.vectorStore.opensearch.customDomainEndpoint;
       options.enableIntelliAgentKbModel = config.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.enabled;
+      options.useCustomDocumentsBucket = config.knowledgeBase.knowledgeBaseType.intelliAgentKb.customDocumentsBucket.enabled;
+      options.uploadDocumentsBucketName = config.knowledgeBase.knowledgeBaseType.intelliAgentKb.customDocumentsBucket.bucketName;
       options.knowledgeBaseModelEcrRepository = config.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.ecrRepository;
       options.knowledgeBaseModelEcrImageTag = config.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.ecrImageTag;
       options.enableChat = config.chat.enabled;
@@ -152,6 +183,8 @@ function createConfig(config: any): void {
 async function processCreateOptions(options: any): Promise<void> {
   // Get AWS account ID and region
   const { AWS_ACCOUNT, AWS_REGION } = await getAwsAccountAndRegion();
+  console.log("AWS_REGION", AWS_REGION);
+  const { customDomainEndpoint, customBucket } = await getCustomValueFromSSM(AWS_REGION ?? "");
   const mandatoryQuestions = [
     {
       type: "input",
@@ -240,9 +273,9 @@ async function processCreateOptions(options: any): Promise<void> {
       type: "confirm",
       name: "useCustomDomain",
       message: "Do you want to use a custom domain for your knowledge base?",
-      initial: options.useCustomDomain ?? false,
+      initial: options.useCustomDomain ?? true,
       skip(): boolean {
-        if ( !(this as any).state.answers.enableKnowledgeBase ||
+        if (!(this as any).state.answers.enableKnowledgeBase ||
           (this as any).state.answers.knowledgeBaseType !== "intelliAgentKb" ||
           (this as any).state.answers.intelliAgentKbVectorStoreType !== "opensearch") {
           return true;
@@ -254,7 +287,7 @@ async function processCreateOptions(options: any): Promise<void> {
       type: "input",
       name: "customDomainEndpoint",
       message: "Please enter the endpoint of the custom domain",
-      initial: options.customDomainEndpoint ?? "",
+      initial: options.customDomainEndpoint ?? customDomainEndpoint,
       validate(customDomainEndpoint: string) {
         return (this as any).skipped ||
           RegExp(/^https:\/\/[a-z0-9-]+.[a-z0-9-]{2,}\.es\.amazonaws\.com$/).test(customDomainEndpoint)
@@ -262,7 +295,7 @@ async function processCreateOptions(options: any): Promise<void> {
           : "Enter a valid OpenSearch domain endpoint (e.g., https://search-domain-region-id.region.es.amazonaws.com)";
       },
       skip(): boolean {
-        if ( !(this as any).state.answers.enableKnowledgeBase ||
+        if (!(this as any).state.answers.enableKnowledgeBase ||
           (this as any).state.answers.knowledgeBaseType !== "intelliAgentKb" ||
           (this as any).state.answers.intelliAgentKbVectorStoreType !== "opensearch" ||
           !(this as any).state.answers.useCustomDomain) {
@@ -273,9 +306,33 @@ async function processCreateOptions(options: any): Promise<void> {
     },
     {
       type: "confirm",
+      name: "useCustomDocumentsBucket",
+      message: "Do you want to use a custom bucket for the upload documents?",
+      initial: options.useCustomDocumentsBucket ?? true,
+      skip(): boolean {
+        if (!(this as any).state.answers.enableKnowledgeBase ||
+          (this as any).state.answers.knowledgeBaseType !== "intelliAgentKb") {
+          return true;
+        }
+        return false;
+      },
+    },
+    {
+      type: "input",
+      name: "uploadDocumentsBucketName",
+      message: "Please enter the name of the S3 Bucket for the upload documents",
+      initial: options.uploadDocumentsBucketName ?? customBucket,
+      skip(): boolean {
+        return (!(this as any).state.answers.enableKnowledgeBase ||
+          (this as any).state.answers.knowledgeBaseType !== "intelliAgentKb" ||
+          !(this as any).state.answers.useCustomDocumentsBucket);
+      },
+    },
+    {
+      type: "confirm",
       name: "enableIntelliAgentKbModel",
       message: "Do you want to inject PDF files into your knowledge base?",
-      initial: options.enableIntelliAgentKbModel ?? true,
+      initial: options.enableIntelliAgentKbModel ?? false,
       skip(): boolean {
         return (!(this as any).state.answers.enableKnowledgeBase ||
           (this as any).state.answers.knowledgeBaseType !== "intelliAgentKb");
@@ -340,7 +397,7 @@ async function processCreateOptions(options: any): Promise<void> {
       type: "confirm",
       name: "useOpenSourceLLM",
       message: "Do you want to use open source LLM(eg. Qwen, ChatGLM, IntermLM)?",
-      initial: options.useOpenSourceLLM ?? true,
+      initial: options.useOpenSourceLLM ?? false,
       skip(): boolean {
         return (!(this as any).state.answers.enableChat);
       },
@@ -349,7 +406,7 @@ async function processCreateOptions(options: any): Promise<void> {
       type: "confirm",
       name: "enableConnect",
       message: "Do you want to integrate it with Amazon Connect?",
-      initial: options.enableConnect ?? true,
+      initial: options.enableConnect ?? false,
       skip(): boolean {
         return (!(this as any).state.answers.enableChat);
       },
@@ -472,6 +529,10 @@ async function processCreateOptions(options: any): Promise<void> {
               useCustomDomain: answers.useCustomDomain,
               customDomainEndpoint: answers.customDomainEndpoint,
             },
+          },
+          customDocumentsBucket: {
+            enabled: answers.useCustomDocumentsBucket,
+            bucketName: answers.uploadDocumentsBucketName,
           },
           knowledgeBaseModel: {
             enabled: answers.enableIntelliAgentKbModel,

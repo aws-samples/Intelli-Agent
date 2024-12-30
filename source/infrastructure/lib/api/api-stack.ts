@@ -75,21 +75,34 @@ export class ApiConstruct extends Construct {
     const apiLambdaAuthorizerLayer = lambdaLayers.createAuthorizerLayer();
 
     // S3 bucket for storing documents
-    const s3Bucket = new s3.Bucket(this, "llm-bot-documents", {
-      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
-      cors: [
-        {
-          allowedMethods: [
-            s3.HttpMethods.GET,
-            s3.HttpMethods.POST,
-            s3.HttpMethods.PUT,
-            s3.HttpMethods.DELETE,
-          ],
-          allowedOrigins: ["*"],
-          allowedHeaders: ["*"],
-        },
-      ],
-    });
+    let s3Bucket: s3.IBucket;
+
+    // S3 bucket for storing documents
+    if (props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.customDocumentsBucket?.enabled) {
+      // Use existing bucket
+      s3Bucket = s3.Bucket.fromBucketName(
+        this,
+        "llm-bot-documents",
+        props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.customDocumentsBucket.bucketName
+      );
+    } else {
+      // Create new bucket
+      s3Bucket = new s3.Bucket(this, "llm-bot-documents", {
+        blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+        cors: [
+          {
+            allowedMethods: [
+              s3.HttpMethods.GET,
+              s3.HttpMethods.POST,
+              s3.HttpMethods.PUT,
+              s3.HttpMethods.DELETE,
+            ],
+            allowedOrigins: ["*"],
+            allowedHeaders: ["*"],
+          },
+        ],
+      });
+    }
 
     new S3Deployment.BucketDeployment(this, 'IntentionCorpusTemplate', {
       memoryLimit: 512,
@@ -365,30 +378,31 @@ export class ApiConstruct extends Construct {
       const apiResourceCheckChatbot = apiResourceChatbotManagement.addResource('check-chatbot');
       apiResourceCheckChatbot.addMethod("POST", lambdaChatbotIntegration, {
         ...this.genMethodOption(api, auth, {
-          item: {type: JsonSchemaType.STRING || JsonSchemaType.NULL},
-          reason: {type: JsonSchemaType.STRING || JsonSchemaType.NULL},
-          result: {type: JsonSchemaType.BOOLEAN}
+          item: { type: JsonSchemaType.STRING || JsonSchemaType.NULL },
+          reason: { type: JsonSchemaType.STRING || JsonSchemaType.NULL },
+          result: { type: JsonSchemaType.BOOLEAN }
         }),
         requestModels: this.genRequestModel(api, {
           "chatbotId": { "type": JsonSchemaType.STRING },
-          "index": {type: JsonSchemaType.OBJECT,
-                    properties: {
-                      qq: { type: JsonSchemaType.STRING },
-                      qd: { type: JsonSchemaType.STRING },
-                      intention: { type: JsonSchemaType.STRING }
-                    },
-                    required: ['qq','qd','intention']
-                  },
+          "index": {
+            type: JsonSchemaType.OBJECT,
+            properties: {
+              qq: { type: JsonSchemaType.STRING },
+              qd: { type: JsonSchemaType.STRING },
+              intention: { type: JsonSchemaType.STRING }
+            },
+            required: ['qq', 'qd', 'intention']
+          },
           model: { "type": JsonSchemaType.STRING },
           type: { "type": JsonSchemaType.STRING }
-          }
+        }
         )
       });
       const apiResourceCheckIndex = apiResourceChatbotManagement.addResource('check-index');
       apiResourceCheckIndex.addMethod("POST", lambdaChatbotIntegration, {
         ...this.genMethodOption(api, auth, {
-          reason: {type: JsonSchemaType.STRING || JsonSchemaType.NULL},
-          result: {type: JsonSchemaType.BOOLEAN}
+          reason: { type: JsonSchemaType.STRING || JsonSchemaType.NULL },
+          result: { type: JsonSchemaType.BOOLEAN }
         }),
         requestModels: this.genRequestModel(api, {
           "index": { "type": JsonSchemaType.STRING },
@@ -405,26 +419,27 @@ export class ApiConstruct extends Construct {
           chatbotId: { type: JsonSchemaType.STRING },
           groupName: { type: JsonSchemaType.STRING },
           indexIds: {
-             type: JsonSchemaType.ARRAY,
-             items: {type: JsonSchemaType.STRING}
+            type: JsonSchemaType.ARRAY,
+            items: { type: JsonSchemaType.STRING }
           },
-          modelType: {type: JsonSchemaType.STRING},
-          Message: {type: JsonSchemaType.STRING},
+          modelType: { type: JsonSchemaType.STRING },
+          Message: { type: JsonSchemaType.STRING },
         }),
         requestModels: this.genRequestModel(api, {
           "chatbotId": { "type": JsonSchemaType.STRING },
-          "index": {type: JsonSchemaType.OBJECT,
-                    properties: {
-                      qq: { type: JsonSchemaType.STRING },
-                      qd: { type: JsonSchemaType.STRING },
-                      intention: { type: JsonSchemaType.STRING }
-                    },
-                    required: ['qq','qd','intention']
-                  },
+          "index": {
+            type: JsonSchemaType.OBJECT,
+            properties: {
+              qq: { type: JsonSchemaType.STRING },
+              qd: { type: JsonSchemaType.STRING },
+              intention: { type: JsonSchemaType.STRING }
+            },
+            required: ['qq', 'qd', 'intention']
+          },
           modelId: { "type": JsonSchemaType.STRING },
           modelName: { "type": JsonSchemaType.STRING },
           operatorType: { "type": JsonSchemaType.STRING }
-          }
+        }
         )
       });
       apiResourceChatbots.addMethod("GET", lambdaChatbotIntegration, {
