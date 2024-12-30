@@ -13,7 +13,7 @@ region = boto3.Session().region_name
 ROOT_RESOURCE = "/model-management"
 DEPLOY_RESOURCE = f"{ROOT_RESOURCE}/deploy"
 DESTROY_RESOURCE = f"{ROOT_RESOURCE}/destroy"
-STATUS_RESOURCE = f"{ROOT_RESOURCE}/status"
+STATUS_RESOURCE = "/model-management/{modelId}/status"
 
 dynamodb_resource = boto3.resource("dynamodb")
 model_table_name = os.getenv("MODEL_TABLE_NAME", "model-management")
@@ -52,7 +52,7 @@ def get_model_item(group_name, model_id):
         **cur_item,
         **item
     }
-    item['updateTime'] = now_time_str
+    item["updateTime"] = now_time_str
     return item
 
 
@@ -70,15 +70,15 @@ def __deploy(event, group_name):
     body = json.loads(event["body"])
     model_id = body["model_id"]
     model = Model.get_model(model_id)
-    instance_type = body.get('instance_type')
+    instance_type = body.get("instance_type")
     if not instance_type:
         instance_type = model.supported_instances[0].instance_type
 
-    service_type = body.get('service_type')
+    service_type = body.get("service_type")
     if not service_type:
         service_type = model.supported_services[0].service_type
 
-    engine_type = body.get('engine_type')
+    engine_type = body.get("engine_type")
     if not engine_type:
         engine_type = model.supported_engines[0].engine_type
 
@@ -99,11 +99,11 @@ def __deploy(event, group_name):
         model_tag=model_tag,
         waiting_until_deploy_complete=False
     )
-    ret['model_tag'] = model_tag
-    logger.info(f'deploy ret: {ret}')
+    ret["model_tag"] = model_tag
+    logger.info(f"deploy ret: {ret}")
     # write ret to ddb
     now_time_str = get_now_time()
-    ret['model_deploy_start_time'] = f"{ret['model_deploy_start_time']}"
+    ret["model_deploy_start_time"] = f"{ret["model_deploy_start_time"]}"
     item = {
         "groupName": group_name,
         "modelId": model_id,
@@ -124,10 +124,10 @@ def __destroy(event, group_name):
     model_id = body["model_id"]
     item = get_model_item(group_name, model_id)
     ret = get_model_status(model_id, model_tag=group_name)
-    inprogress = ret['inprogress']
-    completed = ret['completed']
+    inprogress = ret["inprogress"]
+    completed = ret["completed"]
     if not inprogress and not completed:
-        item['status'] = "Deleted"
+        item["status"] = "Deleted"
         model_table.put_item(
             Item=item
         )
@@ -138,7 +138,7 @@ def __destroy(event, group_name):
         model_tag=group_name,
         waiting_until_complete=False
     )
-    item['status'] = "Deleting"
+    item["status"] = "Deleting"
 
     model_table.put_item(
         Item=item
@@ -147,20 +147,17 @@ def __destroy(event, group_name):
 
 
 def __status(event, group_name):
-    body = json.loads(event["body"])
-    model_id = body["model_id"]
-    # sort_key = get_sort_key(model_id,group_name)
-
+    model_id = event["pathParameters"]["model_id"]
     ret = get_model_status(model_id, model_tag=group_name)
 
-    inprogress = ret['inprogress']
-    completed = ret['completed']
+    inprogress = ret["inprogress"]
+    completed = ret["completed"]
     if inprogress:
-        status = f"In Progress ({inprogress[0]['stage_name']})"
+        status = f"In Progress ({inprogress[0]["stage_name"]})"
     elif completed:
-        status = completed[0]['stack_status']
+        status = completed[0]["stack_status"]
     else:
-        return {'status': "NOT_EXISTS", "info": "model not exists "}
+        return {"status": "NOT_EXISTS", "info": "model not exists "}
 
     response = model_table.get_item(
         Key={"groupName": group_name, "modelId": model_id})
@@ -180,8 +177,8 @@ def __status(event, group_name):
         **item,
     }
     now_time_str = get_now_time()
-    item['status'] = status
-    item['updateTime'] = now_time_str
+    item["status"] = status
+    item["updateTime"] = now_time_str
 
     model_table.put_item(
         Item=item
@@ -189,15 +186,20 @@ def __status(event, group_name):
     return item
 
 
-api_map = {
-    DEPLOY_RESOURCE: __deploy,
-    DESTROY_RESOURCE: __destroy,
-    STATUS_RESOURCE: __status,
-}
-
-
 def lambda_handler(event, context):
+    """
+    Example body for deploy and destroy APIs
+    {
+        "model_id": "Qwen2.5-72B-Instruct-AWQ"
+    }
+    """
     logger.info(f"event: {event}")
+    api_map = {
+        ("POST", DEPLOY_RESOURCE): __deploy,
+        ("POST", DESTROY_RESOURCE): __destroy,
+        ("GET", STATUS_RESOURCE): __status,
+    }
+
     authorizer_type = (
         event["requestContext"].get("authorizer", {}).get("authorizerType")
     )
@@ -211,13 +213,12 @@ def lambda_handler(event, context):
             "headers": resp_header,
             "body": json.dumps(f"Error: {error_message}"),
         }
-    email = claims["email"]
     group_name = claims["cognito:groups"]
     http_method = event["httpMethod"]
     resource: str = event["resource"]
 
     try:
-        output = api_map[resource](event, group_name)
+        output = api_map.get((http_method, resource))(event, group_name)
         return {
             "statusCode": 200,
             "headers": resp_header,

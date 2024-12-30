@@ -2,159 +2,96 @@ import boto3
 import os
 import json
 import logging
-import datetime
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 region = os.environ.get("AWS_REGION", "us-east-1")
 codepipeline = boto3.client("codepipeline", region_name=region)
-dynamodb = boto3.client("dynamodb", region_name=region)
+dynamodb = boto3.resource("dynamodb")
 iam = boto3.client("iam")
 model_table_name = os.environ.get("DYNAMODB_TABLE", "")
 post_lambda_name = os.environ.get("POST_LAMBDA", "")
 CODE_PIPELINE_PREFIX = "DMAA-Env"
 
 
-def add_lambda_invoke_policy(pipeline_role):
-    """
-    Adds Lambda invoke policy to existing pipeline role
-    """
+def update_pipeline_status(group_name, model_id, new_status):
+    table = dynamodb.Table(model_table_name)
     try:
-        lambda_policy = {
-            "Version": "2012-10-17",
-            "Statement": [
-                {
-                    "Effect": "Allow", 
-                    "Action": [
-                        "lambda:InvokeFunction",
-                        "lambda:InvokeAsync"
-                    ],
-                    "Resource": "*"
-                }
-            ]
-        }
-
-        # Put the policy
-        iam.put_role_policy(
-            RoleName=pipeline_role,
-            PolicyName="AICSLambdaInvokePolicy",
-            PolicyDocument=json.dumps(lambda_policy)
+        # Update the status field
+        response = table.update_item(
+            Key={
+                "groupName": group_name,
+                "modelId": model_id
+            },
+            UpdateExpression="SET #status = :status",
+            ExpressionAttributeNames={
+                "#status": "status"
+            },
+            ExpressionAttributeValues={
+                ":status": new_status
+            },
+            ReturnValues="UPDATED_NEW"
         )
-
-        logger.info(f"Successfully added Lambda invoke policy to role {pipeline_role}")
+        logger.info(response)
     except Exception as e:
-        logger.error(f"Error adding Lambda invoke policy: {str(e)}")
-        raise e
-
-
-def lambda_handler(event, context):
-    """
-    Custom resource handler to monitor and update CodePipeline
-    """
-    request_type = event["RequestType"].upper() if (
-        "RequestType" in event) else ""
-    try:
-        logger.info(
-            f"Processing {request_type} request with properties: {event.get('ResourceProperties', {})}")
-
-        if event["ResourceType"] == "Custom::CodePipelineMonitor" and \
-            ("CREATE" in request_type or "UPDATE" in request_type):
-            response = codepipeline.list_pipelines()
-            target_pipeline = None
-            pipeline_role = None
-
-            for pipeline in response["pipelines"]:
-                if pipeline["name"].startswith(CODE_PIPELINE_PREFIX):
-                    target_pipeline = pipeline["name"]
-                    pipeline_role = target_pipeline.replace("Pipeline", "CodePipelineRole")
-                    break
-
-            if not target_pipeline or not pipeline_role:
-                logger.warning("No pipeline found starting with DMAA-Env")
-                return
-
-            add_lambda_invoke_policy(pipeline_role)
-
-            pipeline_response = codepipeline.get_pipeline(name=target_pipeline)
-            pipeline_config = pipeline_response["pipeline"]
-
-            # Remove existing monitoring stage if it exists
-            pipeline_config["stages"] = [
-                stage for stage in pipeline_config["stages"]
-                if stage["name"] != "MonitoringStage"
-            ]
-
-            # Create new monitoring stage for model deployment pipeline
-            monitoring_stage = {
-                "name": "MonitoringStage",
-                "actions": [{
-                    "name": "MonitorAction",
-                    "actionTypeId": {
-                        "category": "Invoke",
-                        "owner": "AWS",
-                        "provider": "Lambda",
-                        "version": "1"
-                    },
-                    "configuration": {
-                        "FunctionName": post_lambda_name
-                    },
-                    'outputArtifacts': [],
-                    'inputArtifacts': [],
-                    "runOrder": 1
-                }]
-            }
-
-            pipeline_config["stages"].append(monitoring_stage)
-            logger.info(pipeline_config)
-
-            codepipeline.update_pipeline(pipeline=pipeline_config)
-            logger.info(f"Successfully updated pipeline {target_pipeline}")
-
-    except Exception as e:
-        logger.error(f"Error: {str(e)}")
+        logger.error(f"Error updating status: {str(e)}")
 
 
 def post_model_deployment(event, context):
     """
     Function to be called by the pipeline monitoring stage
     """
-    try:
-        logger.info(event)
-        logger.info(context)
-        user_parameters = event["CodePipeline.job"]["data"]["actionConfiguration"]["configuration"]["UserParameters"]
-        params = json.loads(user_parameters)
-        table_name = params["table"]
+    logger.info(event)
+    logger.info(context)
 
-        pipeline_name = event["CodePipeline.job"]["data"]["pipelineContext"]["pipelineName"]
-        execution_id = event["CodePipeline.job"]["data"]["pipelineContext"]["pipelineExecutionId"]
+    pipeline_name = event["detail"]["pipeline"]
+    if not pipeline_name.startswith(CODE_PIPELINE_PREFIX):
+        return
 
-        response = codepipeline.get_pipeline_execution(
-            pipelineName=pipeline_name,
-            pipelineExecutionId=execution_id
-        )
+    pipeline_state = event["detail"]["state"]
+    execution_id = event["detail"]["execution-id"]
+    result_map = {
+        "SUCCEEDED": "Succeed",
+        "FAILED": "Failed",
+        "CANCELED": "Failed", 
+        "STOPPED": "Failed",
+        "SUPERSEDED": "Failed",
+        "STARTED": "InProgress",
+        "RESUMED": "InProgress",
+        "STOPPING": "InProgress"
+    }
+    logger.info(
+        f"Pipeline {pipeline_name} (Execution ID: {execution_id}) is in state: {pipeline_state}")
 
-        status = response["pipelineExecution"]["status"]
-        current_time = datetime.datetime.now().isoformat()
-
-        # Write to DynamoDB for any completed status (Succeeded, Failed, etc.)
-        if status in ["Succeeded", "Failed", "Stopped"]:
-            dynamodb.put_item(
-                TableName=table_name,
-                Item={
-                    "pipelineId": {"S": pipeline_name},
-                    "executionId": {"S": execution_id},
-                    "status": {"S": status},
-                    "timestamp": {"S": current_time},
-                    "lastUpdateTime": {"S": current_time}
-                }
+    pipeline_state = result_map[pipeline_state]
+    if pipeline_state in ["Succeed", "Failed"]:
+        try:
+            execution_details = codepipeline.get_pipeline_execution(
+                pipelineName=pipeline_name,
+                pipelineExecutionId=execution_id
             )
-
             logger.info(
-                f"Pipeline {pipeline_name} execution {execution_id} completed with status: {status}")
-        else:
-            logger.info(
-                f"Pipeline {pipeline_name} execution {execution_id} is still in progress with status: {status}")
+                f"Execution details: {json.dumps(execution_details, default=str)}")
+            status = execution_details["pipelineExecution"]["status"]
+            variables = execution_details["pipelineExecution"]["variables"]
+            group_name = None
+            model_id = None
+            for variable_item in variables:
+                if variable_item["name"] == "ModelTag":
+                    group_name = variable_item["resolvedValue"]
+                elif variable_item["name"] == "ModelId":
+                    model_id = variable_item["resolvedValue"]
+            
+            if group_name is None or model_id is None:
+                logger.error(
+                    "Unable to find group name or model id in pipeline variables")
+                return
 
-    except Exception as e:
-        logger.error(f"Error monitoring pipeline: {str(e)}")
+            update_pipeline_status(group_name, model_id, status)
+        except Exception as e:
+            logger.error(f"Error updating pipeline execution details: {str(e)}")
+
+
+
+# {"version": "0", "id": "8aeab9d4-d8fe-5ada-fcf1-16b3b4e84648", "detail-type": "CodePipeline Pipeline Execution State Change", "source": "aws.codepipeline", "account": "817734611975", "time": "2024-12-30T00:53:03Z", "region": "us-west-2", "resources": ["arn:aws:codepipeline:us-west-2:817734611975:DMAA-Env-0-4-0-Pipeline"], "detail": {"pipeline": "DMAA-Env-0-4-0-Pipeline", "execution-id": "417b6f73-99ef-4105-95f1-11ebb1bcade5", "start-time": "2024-12-30T00:43:13.765Z", "state": "SUCCEEDED", "version": 6.0, "pipeline-execution-attempt": 1.0}}
