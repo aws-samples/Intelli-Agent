@@ -576,14 +576,12 @@ export class ApiConstruct extends Construct {
         proxy: true,
       });
       const apiResourceModelManagement = api.root.addResource("model-management");
-      const apiResourcePromptManagementStatus = apiResourceModelManagement.addResource("status")
-      apiResourcePromptManagementStatus.addMethod("GET", lambdaModelIntegration, this.genMethodOption(api, auth, null));
-
-      const apiResourcePromptManagementDeploy = apiResourceModelManagement.addResource("deploy")
-      apiResourcePromptManagementDeploy.addMethod("POST", lambdaModelIntegration, this.genMethodOption(api, auth, null));
-
-      const apiResourcePromptManagementDestroy = apiResourceModelManagement.addResource("destroy")
-      apiResourcePromptManagementDestroy.addMethod("POST", lambdaModelIntegration, this.genMethodOption(api, auth, null));
+      const apiResourceModelManagementDeploy = apiResourceModelManagement.addResource("deploy")
+      apiResourceModelManagementDeploy.addMethod("POST", lambdaModelIntegration, this.genMethodOption(api, auth, null));
+      const apiResourceModelManagementDestroy = apiResourceModelManagement.addResource("destroy")
+      apiResourceModelManagementDestroy.addMethod("POST", lambdaModelIntegration, this.genMethodOption(api, auth, null));
+      const apiResourceModelManagementStatus = apiResourceModelManagement.addResource("status").addResource("{modelId}");
+      apiResourceModelManagementStatus.addMethod("GET", lambdaModelIntegration, this.genMethodOption(api, auth, null));
       
       // API Gateway Lambda Integration to manage intention
       const lambdaIntentionIntegration = new apigw.LambdaIntegration(intentionLambda, {
@@ -609,6 +607,8 @@ export class ApiConstruct extends Construct {
       })
       const apiResourceDownload = apiResourceIntentionManagement.addResource("download-template");
       apiResourceDownload.addMethod("GET", lambdaIntentionIntegration, this.genMethodOption(api, auth, null));
+      
+      // API Gateway Lambda Integration to manage knowledges 
       const apiResourceExecutionManagement = apiResourceIntentionManagement.addResource("executions");
       apiResourceExecutionManagement.addMethod("DELETE", lambdaIntentionIntegration, this.genMethodOption(api, auth, null))
       apiResourceExecutionManagement.addMethod("POST", lambdaIntentionIntegration, {

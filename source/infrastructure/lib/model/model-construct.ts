@@ -17,9 +17,11 @@ import * as sagemaker from "aws-cdk-lib/aws-sagemaker";
 import { Construct } from "constructs";
 import * as dotenv from "dotenv";
 import * as appAutoscaling from "aws-cdk-lib/aws-applicationautoscaling";
-import { Metric } from 'aws-cdk-lib/aws-cloudwatch';
-import * as cr from 'aws-cdk-lib/custom-resources';
-import * as logs from 'aws-cdk-lib/aws-logs';
+import { Metric } from "aws-cdk-lib/aws-cloudwatch";
+import * as cr from "aws-cdk-lib/custom-resources";
+import * as logs from "aws-cdk-lib/aws-logs";
+import * as events from "aws-cdk-lib/aws-events";
+import * as targets from "aws-cdk-lib/aws-events-targets";
 import { Architecture, Code, Function, Runtime } from "aws-cdk-lib/aws-lambda";
 import { join } from "path";
 
@@ -122,36 +124,47 @@ export class ModelConstruct extends NestedStack implements ModelConstructOutputs
         }
       });
       modelTriggerLambda.addToRolePolicy(this.modelIamHelper.dynamodbStatement);
-      const pipelineMonitorLambda = new Function(this, "PipelineMonitorLambda", {
-        runtime: Runtime.PYTHON_3_12,
-        handler: "pipeline_monitor.lambda_handler",
-        code: Code.fromAsset(join(__dirname, "../../../lambda/pipeline_monitor")),
-        timeout: Duration.minutes(10),
-        memorySize: 512,
-        environment: {
-          DYNAMODB_TABLE: props.sharedConstructOutputs.modelTable.tableName,
-          POST_LAMBDA: modelTriggerLambda.functionName,
-          // Add a random UUID to force the custom resource to run on every deployment
-          FORCE_UPDATE: new Date().toISOString()
-        }
-      });
-      pipelineMonitorLambda.addToRolePolicy(this.modelIamHelper.codePipelineStatement);
-      pipelineMonitorLambda.addToRolePolicy(this.modelIamHelper.stsStatement);
+      modelTriggerLambda.addToRolePolicy(this.modelIamHelper.codePipelineStatement);
+      modelTriggerLambda.addToRolePolicy(this.modelIamHelper.stsStatement);
 
-      // Create the custom resource provider to update open source model status
-      const provider = new cr.Provider(this, "PipelineMonitorProvider", {
-        onEventHandler: pipelineMonitorLambda,
-        logRetention: logs.RetentionDays.ONE_WEEK
+      const rule = new events.Rule(this, "AllPipelinesStatusRule", {
+        eventPattern: {
+          source: ["aws.codepipeline"],
+          detailType: ["CodePipeline Pipeline Execution State Change"],
+        },
       });
+      rule.addTarget(new targets.LambdaFunction(modelTriggerLambda));
 
-      new CustomResource(this, "PipelineMonitorResource", {
-        serviceToken: provider.serviceToken,
-        resourceType: "Custom::CodePipelineMonitor",
-        properties: {
-          // Add a timestamp to force the custom resource to execute on every deployment
-          UpdateTimestamp: new Date().toISOString()
-        }
-      });
+      // const pipelineMonitorLambda = new Function(this, "PipelineMonitorLambda", {
+      //   runtime: Runtime.PYTHON_3_12,
+      //   handler: "pipeline_monitor.lambda_handler",
+      //   code: Code.fromAsset(join(__dirname, "../../../lambda/pipeline_monitor")),
+      //   timeout: Duration.minutes(10),
+      //   memorySize: 512,
+      //   environment: {
+      //     DYNAMODB_TABLE: props.sharedConstructOutputs.modelTable.tableName,
+      //     POST_LAMBDA: modelTriggerLambda.functionName,
+      //     // Add a random UUID to force the custom resource to run on every deployment
+      //     FORCE_UPDATE: new Date().toISOString()
+      //   }
+      // });
+      // pipelineMonitorLambda.addToRolePolicy(this.modelIamHelper.codePipelineStatement);
+      // pipelineMonitorLambda.addToRolePolicy(this.modelIamHelper.stsStatement);
+
+      // // Create the custom resource provider to update open source model status
+      // const provider = new cr.Provider(this, "PipelineMonitorProvider", {
+      //   onEventHandler: pipelineMonitorLambda,
+      //   logRetention: logs.RetentionDays.ONE_WEEK
+      // });
+
+      // new CustomResource(this, "PipelineMonitorResource", {
+      //   serviceToken: provider.serviceToken,
+      //   resourceType: "Custom::CodePipelineMonitor",
+      //   properties: {
+      //     // Add a timestamp to force the custom resource to execute on every deployment
+      //     UpdateTimestamp: new Date().toISOString()
+      //   }
+      // });
     }
   }
 
