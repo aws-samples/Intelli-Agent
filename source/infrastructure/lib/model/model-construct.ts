@@ -22,7 +22,7 @@ import * as cr from "aws-cdk-lib/custom-resources";
 import * as logs from "aws-cdk-lib/aws-logs";
 import * as events from "aws-cdk-lib/aws-events";
 import * as targets from "aws-cdk-lib/aws-events-targets";
-import { Architecture, Code, Function, Runtime } from "aws-cdk-lib/aws-lambda";
+import { Code, Function, Runtime } from "aws-cdk-lib/aws-lambda";
 import { join } from "path";
 
 import { SystemConfig } from "../shared/types";
@@ -134,37 +134,7 @@ export class ModelConstruct extends NestedStack implements ModelConstructOutputs
         },
       });
       rule.addTarget(new targets.LambdaFunction(modelTriggerLambda));
-
-      // const pipelineMonitorLambda = new Function(this, "PipelineMonitorLambda", {
-      //   runtime: Runtime.PYTHON_3_12,
-      //   handler: "pipeline_monitor.lambda_handler",
-      //   code: Code.fromAsset(join(__dirname, "../../../lambda/pipeline_monitor")),
-      //   timeout: Duration.minutes(10),
-      //   memorySize: 512,
-      //   environment: {
-      //     DYNAMODB_TABLE: props.sharedConstructOutputs.modelTable.tableName,
-      //     POST_LAMBDA: modelTriggerLambda.functionName,
-      //     // Add a random UUID to force the custom resource to run on every deployment
-      //     FORCE_UPDATE: new Date().toISOString()
-      //   }
-      // });
-      // pipelineMonitorLambda.addToRolePolicy(this.modelIamHelper.codePipelineStatement);
-      // pipelineMonitorLambda.addToRolePolicy(this.modelIamHelper.stsStatement);
-
-      // // Create the custom resource provider to update open source model status
-      // const provider = new cr.Provider(this, "PipelineMonitorProvider", {
-      //   onEventHandler: pipelineMonitorLambda,
-      //   logRetention: logs.RetentionDays.ONE_WEEK
-      // });
-
-      // new CustomResource(this, "PipelineMonitorResource", {
-      //   serviceToken: provider.serviceToken,
-      //   resourceType: "Custom::CodePipelineMonitor",
-      //   properties: {
-      //     // Add a timestamp to force the custom resource to execute on every deployment
-      //     UpdateTimestamp: new Date().toISOString()
-      //   }
-      // });
+ 
     }
   }
 
