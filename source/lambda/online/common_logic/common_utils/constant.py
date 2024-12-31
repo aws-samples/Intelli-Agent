@@ -122,7 +122,13 @@ class ToolRuningMode(ConstantBase):
     ONCE = "once"
 
 
+class ModelProvider(ConstantBase):
+    DMAA = "dmaa"
+    BEDROCK = "bedrock"
+
+
 class LLMModelType(ConstantBase):
+    DEFAULT = "default-model-id"
     CLAUDE_INSTANCE = "anthropic.claude-instant-v1"
     CLAUDE_2 = "anthropic.claude-v2"
     CLAUDE_21 = "anthropic.claude-v2:1"
@@ -140,14 +146,29 @@ class LLMModelType(ConstantBase):
     CHATGPT_4_TURBO = "gpt-4-turbo"
     CHATGPT_4O = "gpt-4o"
     QWEN2INSTRUCT7B = "qwen2-7B-instruct"
-    QWEN2INSTRUCT72B = "qwen2-72B-instruct"
+    QWEN25_INSTRUCT_72B_AWQ = "Qwen2.5-72B-Instruct-AWQ"
     QWEN15INSTRUCT32B = "qwen1_5-32B-instruct"
     LLAMA3_1_70B_INSTRUCT = "meta.llama3-1-70b-instruct-v1:0"
     LLAMA3_2_90B_INSTRUCT = "us.meta.llama3-2-90b-instruct-v1:0"
     MISTRAL_LARGE_2407 = "mistral.mistral-large-2407-v1:0"
     COHERE_COMMAND_R_PLUS = "cohere.command-r-plus-v1:0"
-    # NOVA_PRO = "amazon.nova-pro-v1:0"
     NOVA_PRO = "us.amazon.nova-pro-v1:0"
+    NOVA_LITE = "us.amazon.nova-lite-v1:0"
+    NOVA_MICRO = "us.amazon.nova-micro-v1:0"
+    CLAUDE_3_SONNET_US = "us.anthropic.claude-3-sonnet-20240229-v1:0"
+    CLAUDE_3_OPUS_US = "us.anthropic.claude-3-opus-20240229-v1:0"
+    CLAUDE_3_HAIKU_US = "us.anthropic.claude-3-haiku-20240307-v1:0"
+    CLAUDE_3_5_SONNET_V2_US = "us.anthropic.claude-3-5-sonnet-20241022-v2:0"
+    CLAUDE_3_5_HAIKU_US = "us.anthropic.claude-3-5-haiku-20241022-v1:0"
+    CLAUDE_3_SONNET_EU = "eu.anthropic.claude-3-sonnet-20240229-v1:0"
+    CLAUDE_3_5_SONNET_EU = "eu.anthropic.claude-3-5-sonnet-20240620-v1:0"
+    CLAUDE_3_HAIKU_EU = "eu.anthropic.claude-3-haiku-20240307-v1:0"
+    CLAUDE_3_SONNET_APAC = "apac.anthropic.claude-3-sonnet-20240229-v1:0"
+    CLAUDE_3_5_SONNET_APAC = "apac.anthropic.claude-3-5-sonnet-20240620-v1:0"
+    CLAUDE_3_HAIKU_APAC = "apac.anthropic.claude-3-haiku-20240307-v1:0"
+    LLAMA3_1_70B_INSTRUCT_US = "us.meta.llama3-1-70b-instruct-v1:0"
+
+
 
 
 class EmbeddingModelType(ConstantBase):

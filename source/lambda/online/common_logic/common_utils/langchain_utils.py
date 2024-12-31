@@ -9,10 +9,6 @@ from langchain.schema.runnable import (
     RunnablePassthrough,
 )
 from langchain.schema.runnable.base import RunnableLambda
-from prettytable import PrettyTable
-
-# import threading
-# import time
 from .logger_utils import logger
 from .python_utils import update_nest_dict
 
@@ -209,33 +205,6 @@ def chain_logger(
         on_start=obj.on_start, on_end=obj.on_end, on_error=obj.on_error
     )
     return new_chain
-
-
-def format_trace_infos(trace_infos: list, use_pretty_table=True):
-    trace_infos = sorted(trace_infos, key=lambda x: x["create_time"])
-    trace_info_strs = []
-
-    if use_pretty_table:
-        table = PrettyTable()
-        table.field_names = ["chain_name", "create_time", "action"]
-        table.add_rows(
-            [
-                (
-                    trace_info["chain_name"],
-                    trace_info["create_time"],
-                    trace_info["action"],
-                )
-                for trace_info in trace_infos
-            ]
-        )
-        return str(table)
-
-    for trace_info in trace_infos:
-        trace_info_strs.append(
-            f"time: {trace_info['create_time']}, action: {trace_info['action']}, chain: {trace_info['chain_name']}, "
-        )
-
-    return "\n".join(trace_info_strs)
 
 
 class NestUpdateState(TypedDict):

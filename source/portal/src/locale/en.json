@@ -77,7 +77,7 @@
     "modelSettings": "Model Settings",
     "configurations": "Configurations",
     "common": "General",
-    "rad": "Randamness & Diversity",
+    "rad": "Randomness & Diversity",
     "maxRounds": "Max Dialog Rounds To Remember",
     "topKRetrievals": "Top K Retrievals",
     "score": "Relevance Score",

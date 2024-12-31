@@ -6,7 +6,7 @@
  *                                                                                                                    *
  *      http://www.apache.org/licenses/LICENSE-2.0                                                                    *
  *                                                                                                                    *
- *  or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES *
+ *  or in the 'license' file accompanying this file. This file is distributed on an 'AS IS' BASIS, WITHOUT WARRANTIES *
  *  OR CONDITIONS OF ANY KIND, express or implied. See the License for the specific language governing permissions    *
  *  and limitations under the License.                                                                                *
  *********************************************************************************************************************/
@@ -28,6 +28,8 @@ export class IAMHelper extends Construct {
   public bedrockStatement: PolicyStatement;
   public esStatement: PolicyStatement;
   public secretStatement: PolicyStatement;
+  public codePipelineStatement: PolicyStatement;
+  public cfnStatement: PolicyStatement;
 
   public createPolicyStatement(actions: string[], resources: string[]) {
     return new PolicyStatement({
@@ -99,6 +101,8 @@ export class IAMHelper extends Construct {
         "sts:AssumeRole",
         "iam:CreateServiceLinkedRole",
         "iam:PassRole",
+        "iam:PutRolePolicy",
+        "iam:Get*",
       ],
       [ "*" ],
     );
@@ -159,5 +163,32 @@ export class IAMHelper extends Construct {
       ],
       [ "*" ],
     )
+    this.codePipelineStatement = this.createPolicyStatement(
+      [
+        "codepipeline:GetPipeline",
+        "codepipeline:UpdatePipeline",
+        "codepipeline:GetPipelineState",
+        "codepipeline:ListPipelines",
+        "codepipeline:StartPipelineExecution",
+        "codepipeline:GetPipelineExecution",
+      ],
+      [ "*" ],
+    );
+    this.cfnStatement = this.createPolicyStatement(
+      [
+        "cloudformation:ListStacks",
+        "cloudformation:DescribeStacks",
+        "cloudformation:GetTemplate",
+        "cloudformation:CreateStack",
+        "cloudformation:UpdateStack",
+        "cloudformation:DeleteStack",
+        "cloudformation:CreateChangeSet",
+        "cloudformation:ExecuteChangeSet",
+        "cloudformation:DeleteChangeSet",
+        "cloudformation:DescribeStackResources",
+        "cloudformation:DescribeStackEvents",
+      ],
+      ["*"],
+    );
   }
 }
