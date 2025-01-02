@@ -33,7 +33,7 @@ import {
   SCENARIO,
   MAX_TOKEN,
   TEMPERATURE,
-  ADITIONAL_SETTRINGS,
+  ADITIONAL_SETTINGS,
   USE_CHAT_HISTORY,
   ENABLE_TRACE,
   ONLY_RAG_TOOL,
@@ -67,7 +67,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const localScenario = localStorage.getItem(SCENARIO);
   const localMaxToken = localStorage.getItem(MAX_TOKEN);
   const localTemperature = localStorage.getItem(TEMPERATURE);
-  const localConfig = localStorage.getItem(ADITIONAL_SETTRINGS);
+  const localConfig = localStorage.getItem(ADITIONAL_SETTINGS);
   const localRound = localStorage.getItem(ROUND);
   const localTopKRetrievals = localStorage.getItem(TOPK);
   const localScore = localStorage.getItem(SCORE);
@@ -352,7 +352,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
 
   useEffect(() => {
     if (additionalConfig) {
-      localStorage.setItem(ADITIONAL_SETTRINGS, additionalConfig)
+      localStorage.setItem(ADITIONAL_SETTINGS, additionalConfig)
     }
   }, [additionalConfig])
 
@@ -549,9 +549,9 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
             max_tokens: parseInt(maxToken),
           },
         },
-        rag_config: {
-          top_k_retrievals: parseInt(topKRetrievals),
-          relevance_threshold: parseFloat(score),
+        private_knowledge_config: {
+          top_k: parseInt(topKRetrievals),
+          score: parseFloat(score),
         },
         agent_config: {
           only_use_rag_tool: onlyRAGTool,

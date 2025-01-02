@@ -212,3 +212,6 @@ class Threshold(ConstantBase):
     QQ_MATCH_THRESHOLD = 0.9
     ALL_KNOWLEDGE_IN_AGENT_THRESHOLD = 0.4 # This threhold will work when there are no intention examples.
     INTENTION_THRESHOLD = 0.4
+    MAX_DIAG_ROUNDS_IN_MEMORY = 7
+    TOP_K_RETRIEVALS = 6
+
