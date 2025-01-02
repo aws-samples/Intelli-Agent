@@ -590,7 +590,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   };
 
   useEffect(() => {
-    let optionList: SelectProps.Option[] = [];
+    let optionList: any[] = [];
     const localModel = localStorage.getItem(MODEL_OPTION)
     if (scenario.value === 'common') {
       optionList=LLM_BOT_COMMON_MODEL_LIST;
@@ -602,7 +602,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     if (localModel) {
       setModelOption(localModel)
     } else {
-      setModelOption(optionList?.[0]?.value ?? '');
+      setModelOption(optionList?.[0]?.options?.[0].value ?? '');
     }
   }, [scenario]);
 
@@ -822,7 +822,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                   >
                     <Input
                       type="number"
-                      step={0.1}
+                      step={0.01}
                       value={temperature}
                       onChange={({ detail }) => {
                         if(parseFloat(detail.value) < 0 || parseFloat(detail.value) > 1){
@@ -854,8 +854,12 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                   >
                     <Input
                       type="number"
+                      step={0.1}
                       value={score}
                       onChange={({ detail }) => {
+                        if(parseFloat(detail.value) < 0 || parseFloat(detail.value) > 1){
+                          return
+                        }
                         setScoreError('');
                         setScore(detail.value);
                       }}
