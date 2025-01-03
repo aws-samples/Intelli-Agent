@@ -6,8 +6,8 @@ import {
   SideNavigation,
   Spinner,
 } from '@cloudscape-design/components';
-// import { I18nProvider } from '@cloudscape-design/components/i18n';
-// import messages from '@cloudscape-design/components/i18n/messages/all.en';
+import { I18nProvider } from '@cloudscape-design/components/i18n';
+import messages from '@cloudscape-design/components/i18n/messages/all.en';
 import TopNavigation from '@cloudscape-design/components/top-navigation';
 import { useTranslation } from 'react-i18next';
 import {
@@ -31,8 +31,6 @@ import ConfigContext from 'src/context/config-context';
 import { useLocation, useNavigate } from 'react-router-dom';
 import CustomBreadCrumb, { BreadCrumbType } from './CustomBreadCrumb';
 import { CustomNavigationItem } from 'src/types';
-import { I18nProvider } from '@cloudscape-design/components/internal/i18n';
-import messages from '@cloudscape-design/components/internal/i18n/messages/all.all';
 const STORAGE_KEYS = [CURRENT_CHAT_BOT, USE_CHAT_HISTORY, ENABLE_TRACE, ONLY_RAG_TOOL, SCENARIO, MODEL_OPTION, MAX_TOKEN, TEMPERATURE, ADITIONAL_SETTINGS]
 
 interface CommonLayoutProps {
@@ -140,9 +138,10 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
               changeLanguage(item.detail.id);
               // window.location.reload();
             },
-            items: i18n.language === DEFAULT_ZH_LANG
-              ? [...LANGUAGE_ITEMS].reverse()
-              : LANGUAGE_ITEMS,
+            items:
+              i18n.language === DEFAULT_ZH_LANG
+                ? [...LANGUAGE_ITEMS].reverse()
+                : LANGUAGE_ITEMS,
           },
           {
             type: 'menu-dropdown',
@@ -152,7 +151,7 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
               if (item.detail.id === 'signout') {
                 if (fullLogoutUrl) {
                   auth.removeUser();
-                  clearStorage();
+                  clearStorage()
                   window.location.href = fullLogoutUrl;
                 }
                 auth.removeUser();
@@ -160,7 +159,8 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
             },
             items: [{ id: 'signout', text: t('signOut') }],
           },
-        ]} i18nStrings={i18nStrings}      />
+        ]}
+      />
       <AppLayout
         notifications={<Flashbar items={flashBar ?? []} />}
         breadcrumbs={
