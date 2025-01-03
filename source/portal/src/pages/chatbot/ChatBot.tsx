@@ -7,11 +7,11 @@ import {
   Autosuggest,
   Box,
   Button,
-  ColumnLayout,
   Container,
   ContentLayout,
   ExpandableSection,
   FormField,
+  Grid,
   Header,
   Input,
   Select,
@@ -33,12 +33,15 @@ import {
   SCENARIO,
   MAX_TOKEN,
   TEMPERATURE,
-  ADITIONAL_SETTRINGS,
+  ADITIONAL_SETTINGS,
   USE_CHAT_HISTORY,
   ENABLE_TRACE,
   ONLY_RAG_TOOL,
   MODEL_OPTION,
   CURRENT_CHAT_BOT,
+  TOPK,
+  SCORE,
+  ROUND,
   HISTORY_CHATBOT_ID,
 } from 'src/utils/const';
 import { v4 as uuidv4 } from 'uuid';
@@ -64,7 +67,10 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const localScenario = localStorage.getItem(SCENARIO);
   const localMaxToken = localStorage.getItem(MAX_TOKEN);
   const localTemperature = localStorage.getItem(TEMPERATURE);
-  const localConfig = localStorage.getItem(ADITIONAL_SETTRINGS)
+  const localConfig = localStorage.getItem(ADITIONAL_SETTINGS);
+  const localRound = localStorage.getItem(ROUND);
+  const localTopKRetrievals = localStorage.getItem(TOPK);
+  const localScore = localStorage.getItem(SCORE);
   const config = useContext(ConfigContext);
   const { t } = useTranslation();
   const auth = useAuth();
@@ -84,7 +90,6 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     `${config?.websocket}?idToken=${auth.user?.id_token}`,
     {
       onOpen: () => console.log('opened'),
-      //Will attempt to reconnect on all close events, such as server shutting down
       shouldReconnect: () => true,
     },
   );
@@ -94,9 +99,6 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const [aiSpeaking, setAiSpeaking] = useState(false);
   const [modelOption, setModelOption] = useState('');
   const [modelList, setModelList] = useState<SelectProps.Option[]>([]);
-  // const [chatModeOption, setChatModeOption] = useState<SelectProps.Option>(
-  //   LLM_BOT_CHAT_MODE_LIST[0],
-  // );
   const [chatbotList, setChatbotList] = useState<SelectProps.Option[]>([]);
   const [chatbotOption, setChatbotOption] = useState<SelectProps.Option>(null as any);
   const [useChatHistory, setUseChatHistory] = useState(localStorage.getItem(USE_CHAT_HISTORY) == null || localStorage.getItem(USE_CHAT_HISTORY) == "true" ? true : false);
@@ -112,19 +114,32 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const [scenario, setScenario] = useState<SelectProps.Option>(
     localScenario == null ? SCENARIO_LIST[0] : JSON.parse(localScenario),
   );
+  const defaultConfig = {
+    temperature: '0.01',
+    maxToken: '1000',
+    maxRounds: '7',
+    topKRetrievals: '5',
+    score: '0.4',
+    additionalConfig: ''
+  }
 
   const [sessionId, setSessionId] = useState(historySessionId);
 
-  const [temperature, setTemperature] = useState<string>(localTemperature ? localTemperature : '0.01');
-  const [maxToken, setMaxToken] = useState<string>(localMaxToken ? localMaxToken : '1000');
+  const [temperature, setTemperature] = useState<string>(localTemperature ?? defaultConfig.temperature);
+  const [maxToken, setMaxToken] = useState<string>(localMaxToken ?? defaultConfig.maxToken);
+  const [maxRounds, setMaxRounds] = useState<string>(localRound ?? defaultConfig.maxRounds);
+  const [topKRetrievals, setTopKRetrievals] = useState<string>(localTopKRetrievals ?? defaultConfig.topKRetrievals);
+  const [score, setScore] = useState<string>(localScore ?? defaultConfig.score);
+  const [additionalConfig, setAdditionalConfig] = useState(localConfig ?? defaultConfig.additionalConfig);
+  const [topKRetrievalsError, setTopKRetrievalsError] = useState('');
+  const [maxRoundsError, setMaxRoundsError] = useState('');
+  const [scoreError, setScoreError] = useState('');
 
   const [endPoint, setEndPoint] = useState('');
   const [showEndpoint, setShowEndpoint] = useState(false);
   const [endPointError, setEndPointError] = useState('');
   const [showMessageError, setShowMessageError] = useState(false);
-  // const [googleAPIKeyError, setGoogleAPIKeyError] = useState(false);
   const [isMessageEnd, setIsMessageEnd] = useState(false);
-  const [additionalConfig, setAdditionalConfig] = useState(localConfig ? localConfig : '');
 
   // validation
   const [modelError, setModelError] = useState('');
@@ -145,6 +160,19 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   const fetchData = useAxiosRequest();
 
   const startNewChat = () => {
+    [CURRENT_CHAT_BOT,ENABLE_TRACE,MAX_TOKEN, MODEL_OPTION,ONLY_RAG_TOOL,SCENARIO,TEMPERATURE,USE_CHAT_HISTORY].forEach((item) => {
+      localStorage.removeItem(item);
+    })
+    // localStorage.()
+    setChatbotOption(chatbotList[0])
+    setScenario(SCENARIO_LIST[0])
+    setMaxToken(defaultConfig.maxToken)
+    setMaxRounds(defaultConfig.maxRounds)
+    setTemperature(defaultConfig.temperature)
+    setTopKRetrievals(defaultConfig.topKRetrievals)
+    setScore(defaultConfig.score)
+    setAdditionalConfig('')
+    // setModelOption(optionList?.[0]?.value ?? '')
     setSessionId(uuidv4());
     getWorkspaceList();
     setMessages([
@@ -283,6 +311,24 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   }, [scenario])
 
   useEffect(() => {
+    if (maxRounds) {
+      localStorage.setItem(ROUND, maxRounds)
+    }
+  }, [maxRounds])
+
+  useEffect(() => {
+    if (topKRetrievals) {
+      localStorage.setItem(TOPK, topKRetrievals)
+    }
+  }, [topKRetrievals])
+
+  useEffect(() => {
+    if (score) {
+      localStorage.setItem(SCORE, score)
+    }
+  }, [score])
+
+  useEffect(() => {
     localStorage.setItem(ONLY_RAG_TOOL, onlyRAGTool ? "true" : "false")
   }, [onlyRAGTool])
 
@@ -306,7 +352,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
 
   useEffect(() => {
     if (additionalConfig) {
-      localStorage.setItem(ADITIONAL_SETTRINGS, additionalConfig)
+      localStorage.setItem(ADITIONAL_SETTINGS, additionalConfig)
     }
   }, [additionalConfig])
 
@@ -419,8 +465,43 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       setModelSettingExpand(true);
       return;
     }
+
+    if (!maxRounds.trim()) {
+      setMaxTokenError('validation.requireMaxRounds');
+      setModelSettingExpand(true);
+      return;
+    }
+    if (parseInt(maxRounds) < 0) {
+      setMaxTokenError('validation.maxRoundsRange');
+      setModelSettingExpand(true);
+      return;
+    }
+
+    if (!topKRetrievals.trim()) {
+      setMaxTokenError('validation.requireTopKRetrievals');
+      setModelSettingExpand(true);
+      return;
+    }
+    if (parseInt(topKRetrievals) < 1) {
+      setMaxTokenError('validation.topKRetrievals');
+      setModelSettingExpand(true);
+      return;
+    }
+
     if (parseFloat(temperature) < 0.0 || parseFloat(temperature) > 1.0) {
       setTemperatureError('validation.temperatureRange');
+      setModelSettingExpand(true);
+      return;
+    }
+
+    if (!score.trim()) {
+      setScoreError('validation.requireScore');
+      setModelSettingExpand(true);
+      return;
+    }
+
+    if (parseFloat(score) < 0.0 || parseFloat(score) > 1.0) {
+      setScoreError('validation.score');
       setModelSettingExpand(true);
       return;
     }
@@ -443,10 +524,6 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     setCurrentAIMessage('');
     setCurrentMonitorMessage('');
     setIsMessageEnd(false);
-    // if (useWebSearch && !googleAPIKey.trim()) {
-    //   setGoogleAPIKeyError(true);
-    //   return;
-    // }
     const groupName: string[] = auth?.user?.profile?.['cognito:groups'] as any;
     let message = {
       query: userMessage,
@@ -454,6 +531,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
       session_id: sessionId,
       user_id: auth?.user?.profile?.['cognito:username'] || 'default_user_id',
       chatbot_config: {
+        max_rounds_in_memory: parseInt(maxRounds),
         group_name: groupName?.[0] ?? 'Admin',
         chatbot_id: chatbotOption.value ?? 'admin',
         goods_id: retailGoods.value,
@@ -470,6 +548,10 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
             temperature: parseFloat(temperature),
             max_tokens: parseInt(maxToken),
           },
+        },
+        private_knowledge_config: {
+          top_k: parseInt(topKRetrievals),
+          score: parseFloat(score),
         },
         agent_config: {
           only_use_rag_tool: onlyRAGTool,
@@ -508,33 +590,19 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
   };
 
   useEffect(() => {
-    let optionList: SelectProps.Option[] = [];
+    let optionList: any[] = [];
     const localModel = localStorage.getItem(MODEL_OPTION)
     if (scenario.value === 'common') {
-      optionList = LLM_BOT_COMMON_MODEL_LIST.map((item) => {
-        return {
-          label: item,
-          value: item,
-        };
-      });
-      setModelList(optionList);
-
-
+      optionList=LLM_BOT_COMMON_MODEL_LIST;
+      setModelList(LLM_BOT_COMMON_MODEL_LIST);
     } else if (scenario.value === 'retail') {
-      optionList = LLM_BOT_RETAIL_MODEL_LIST.map((item) => {
-        return {
-          label: item,
-          value: item,
-        };
-      });
-      setModelList(optionList);
-      // TODO
-      // setModelOption(optionList?.[0]?.value ?? '');
+      optionList=LLM_BOT_RETAIL_MODEL_LIST;
+      setModelList(LLM_BOT_RETAIL_MODEL_LIST);
     }
     if (localModel) {
       setModelOption(localModel)
     } else {
-      setModelOption(optionList?.[0]?.value ?? '');
+      setModelOption(optionList?.[0]?.options?.[0].value ?? '');
     }
   }, [scenario]);
 
@@ -651,10 +719,13 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
               expanded={modelSettingExpand}
               // variant="footer"
               headingTagOverride="h4"
-              headerText={t('modelSettings')}
+              headerText={t('configurations')}
             >
-              <SpaceBetween direction="vertical" size="l">
-                <ColumnLayout columns={3} variant="text-grid">
+              {/* <SpaceBetween direction="vertical" size="l"> */}
+                <div style={{fontSize: 16, fontWeight: 700, marginBottom: 15, marginTop: 15}}>{t('common')}</div>
+                <SpaceBetween size="xs" direction="vertical">
+                <Grid gridDefinition={[{colspan: 2},{colspan: 6},{colspan: 2},{colspan: 2}]}>
+                {/* <ColumnLayout columns={3} variant="text-grid"> */}
                   <FormField label={t('scenario')} stretch={true}>
                     <Select
                       options={SCENARIO_LIST}
@@ -675,7 +746,6 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                       </div>
                     )}
                   </FormField>
-                  <SpaceBetween size="xs">
                     <FormField
                       label={t('modelName')}
                       stretch={true}
@@ -692,23 +762,6 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                         empty={t('noModelFound')}
                       />
                     </FormField>
-                    {showEndpoint && (
-                      <FormField
-                        label={t('endPoint')}
-                        stretch={true}
-                        errorText={t(endPointError)}
-                      >
-                        <Input
-                          onChange={({ detail }) => {
-                            setEndPointError('');
-                            setEndPoint(detail.value);
-                          }}
-                          value={endPoint}
-                          placeholder="QWen2-72B-XXXXX"
-                        />
-                      </FormField>
-                    )}
-                  </SpaceBetween>
                   <FormField
                     label={t('maxTokens')}
                     stretch={true}
@@ -724,20 +777,96 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                     />
                   </FormField>
                   <FormField
+                    label={t('maxRounds')}
+                    stretch={true}
+                    errorText={t(maxRoundsError)}
+                  >
+                    <Input
+                      type="number"
+                      value={maxRounds}
+                      onChange={({ detail }) => {
+                        setMaxRoundsError('');
+                        setMaxRounds(detail.value);
+                      }}
+                    />
+                  </FormField>
+                  </Grid>
+                  
+                  {showEndpoint && (
+                    <Grid gridDefinition={[{colspan: 8}]}>
+                    <FormField
+                      label={t('endPoint')}
+                      stretch={true}
+                      errorText={t(endPointError)}
+                    >
+                      <Input
+                        onChange={({ detail }) => {
+                          setEndPointError('');
+                          setEndPoint(detail.value);
+                        }}
+                        value={endPoint}
+                        placeholder="QWen2-72B-XXXXX"
+                      />
+                    </FormField>
+                    </Grid>
+                    )
+                  }
+                </SpaceBetween>
+                  <div style={{fontSize: 16, fontWeight: 700,marginBottom: 15, marginTop: 35}}>{t('rad')}</div>
+                  <SpaceBetween size="xs" direction="vertical">
+                    <Grid gridDefinition={[{colspan: 3},{colspan: 2},{colspan: 3}]}>
+                  <FormField
                     label={t('temperature')}
                     stretch={true}
                     errorText={t(temperatureError)}
                   >
                     <Input
                       type="number"
+                      step={0.01}
                       value={temperature}
                       onChange={({ detail }) => {
+                        if(parseFloat(detail.value) < 0 || parseFloat(detail.value) > 1){
+                          return
+                        }
                         setTemperatureError('');
                         setTemperature(detail.value);
                       }}
                     />
                   </FormField>
-                </ColumnLayout>
+                  <FormField
+                    label={t('topKRetrievals')}
+                    stretch={true}
+                    errorText={t(topKRetrievalsError)}
+                  >
+                    <Input
+                      type="number"
+                      value={topKRetrievals}
+                      onChange={({ detail }) => {
+                        setTopKRetrievalsError('');
+                        setTopKRetrievals(detail.value);
+                      }}
+                    />
+                  </FormField>
+                  <FormField
+                    label={t('score')}
+                    stretch={true}
+                    errorText={t(scoreError)}
+                  >
+                    <Input
+                      type="number"
+                      step={0.1}
+                      value={score}
+                      onChange={({ detail }) => {
+                        if(parseFloat(detail.value) < 0 || parseFloat(detail.value) > 1){
+                          return
+                        }
+                        setScoreError('');
+                        setScore(detail.value);
+                      }}
+                    />
+                  </FormField>
+                  </Grid>
+                {/* </ColumnLayout> */}
                 <FormField
                   label={t('additionalSettings')}
                   errorText={t(additionalConfigError)}
