@@ -90,7 +90,7 @@ def rag_tool(retriever_config: dict, query=None):
     retriever_params["query"] = query or state[retriever_config.get(
         "query_key", "query")]
     output = retrieve_fn(retriever_params)
-    top_k = retriever_config.get("top_k", Threshold.TOP_K)
+    top_k = retriever_config.get("top_k", Threshold.TOP_K_RETRIEVALS)
     score = retriever_config.get("score", Threshold.ALL_KNOWLEDGE_IN_AGENT_THRESHOLD)
     filtered_docs = [item for item in output["result"]["docs"] if item["score"] >= score]
     sorted_docs = sorted(filtered_docs, key=lambda x: x["score"], reverse=True)
