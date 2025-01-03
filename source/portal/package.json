@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@cloudscape-design/component-toolkit": "^1.0.0-beta.81",
     "@cloudscape-design/components": "^3.0.604",
     "@cloudscape-design/global-styles": "^1.0.27",
     "axios": "^1.7.4",

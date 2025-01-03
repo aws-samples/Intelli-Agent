@@ -16,6 +16,8 @@ from common_logic.common_utils.constant import (
 )
 from common_logic.common_utils.time_utils import get_china_now
 from common_logic.common_utils.prompt_utils import get_prompt_template
+from ..model_config import MODEL_CONFIGS
+from common_logic.common_utils.constant import LLMModelType, LLMTaskType
 
 AI_MESSAGE_TYPE = MessageType.AI_MESSAGE_TYPE
 HUMAN_MESSAGE_TYPE = MessageType.HUMAN_MESSAGE_TYPE
@@ -23,9 +25,10 @@ QUERY_TRANSLATE_TYPE = LLMTaskType.QUERY_TRANSLATE_TYPE
 SYSTEM_MESSAGE_TYPE = MessageType.SYSTEM_MESSAGE_TYPE
 
 
-class Claude2ChatChain(LLMChain):
-    model_id = LLMModelType.CLAUDE_2
+class ChatBaseChain(LLMChain):
     intent_type = LLMTaskType.CHAT
+    
+    default_model_kwargs = {"max_tokens": 1000, "temperature": 0.01}
 
     @classmethod
     def get_common_system_prompt(cls, system_prompt_template: str):
@@ -74,58 +77,8 @@ class Claude2ChatChain(LLMChain):
         return final_chain
 
 
-class Claude21ChatChain(Claude2ChatChain):
-    model_id = LLMModelType.CLAUDE_21
-
-
-class ClaudeInstanceChatChain(Claude2ChatChain):
-    model_id = LLMModelType.CLAUDE_INSTANCE
-
-
-class Claude3SonnetChatChain(Claude2ChatChain):
-    model_id = LLMModelType.CLAUDE_3_SONNET
-
-
-class Claude3HaikuChatChain(Claude2ChatChain):
-    model_id = LLMModelType.CLAUDE_3_HAIKU
-
-
-class Claude35SonnetChatChain(Claude2ChatChain):
-    model_id = LLMModelType.CLAUDE_3_5_SONNET
-
-
-class Claude35SonnetV2ChatChain(Claude2ChatChain):
-    model_id = LLMModelType.CLAUDE_3_5_SONNET_V2
-
-
-class Claude35HaikuChatChain(Claude2ChatChain):
-    model_id = LLMModelType.CLAUDE_3_5_HAIKU
-
-
-class Mixtral8x7bChatChain(Claude2ChatChain):
-    model_id = LLMModelType.MIXTRAL_8X7B_INSTRUCT
-    default_model_kwargs = {"max_tokens": 4096, "temperature": 0.01}
-
-
-class Llama31Instruct70BChatChain(Claude2ChatChain):
-    model_id = LLMModelType.LLAMA3_1_70B_INSTRUCT
-
-
-class Llama32Instruct90BChatChain(Claude2ChatChain):
-    model_id = LLMModelType.LLAMA3_2_90B_INSTRUCT
-
-
-class MistraLlargeChat2407ChatChain(Claude2ChatChain):
-    model_id = LLMModelType.MISTRAL_LARGE_2407
-
-
-class CohereCommandRPlusChatChain(Claude2ChatChain):
-    model_id = LLMModelType.COHERE_COMMAND_R_PLUS
-
-
-class Baichuan2Chat13B4BitsChatChain(LLMChain):
+class Baichuan2Chat13B4BitsChatChain(ChatBaseChain):
     model_id = LLMModelType.BAICHUAN2_13B_CHAT
-    intent_type = LLMTaskType.CHAT
     default_model_kwargs = {
         "max_new_tokens": 2048,
         "temperature": 0.3,
@@ -147,10 +100,8 @@ class Baichuan2Chat13B4BitsChatChain(LLMChain):
         return llm_chain
 
 
-class Internlm2Chat7BChatChain(LLMChain):
+class Internlm2Chat7BChatChain(ChatBaseChain):
     model_id = LLMModelType.INTERNLM2_CHAT_7B
-    intent_type = LLMTaskType.CHAT
-
     default_model_kwargs = {"temperature": 0.5, "max_new_tokens": 1000}
 
     @staticmethod
@@ -226,9 +177,8 @@ class Internlm2Chat20BChatChain(Internlm2Chat7BChatChain):
     model_id = LLMModelType.INTERNLM2_CHAT_20B
 
 
-class GLM4Chat9BChatChain(LLMChain):
+class GLM4Chat9BChatChain(ChatBaseChain):
     model_id = LLMModelType.GLM_4_9B_CHAT
-    intent_type = LLMTaskType.CHAT
     default_model_kwargs = {
         "max_new_tokens": 1024,
         "timeout": 60,
@@ -273,9 +223,8 @@ class GLM4Chat9BChatChain(LLMChain):
         return chain
 
 
-class Qwen2Instruct7BChatChain(LLMChain):
+class Qwen2Instruct7BChatChain(ChatBaseChain):
     model_id = LLMModelType.QWEN2INSTRUCT7B
-    intent_type = LLMTaskType.CHAT
     default_model_kwargs = {
         "max_tokens": 1024,
         "temperature": 0.1,
@@ -326,14 +275,14 @@ class Qwen2Instruct7BChatChain(LLMChain):
 
 
 class Qwen2Instruct72BChatChain(Qwen2Instruct7BChatChain):
-    model_id = LLMModelType.QWEN2INSTRUCT72B
+    model_id = LLMModelType.QWEN25_INSTRUCT_72B_AWQ
 
 
 class Qwen2Instruct72BChatChain(Qwen2Instruct7BChatChain):
     model_id = LLMModelType.QWEN15INSTRUCT32B
 
 
-class ChatGPT35ChatChain(LLMChain):
+class ChatGPT35ChatChain(ChatBaseChain):
     model_id = LLMModelType.CHATGPT_35_TURBO_0125
     intent_type = LLMTaskType.CHAT
 
@@ -374,5 +323,7 @@ class ChatGPT4oChatChain(ChatGPT35ChatChain):
     model_id = LLMModelType.CHATGPT_4O
 
 
-class NovaProChatChain(Claude2ChatChain):
-    model_id = LLMModelType.NOVA_PRO
+chain_classes = {
+    f"{LLMChain.model_id_to_class_name(model_id, LLMTaskType.CHAT)}": ChatBaseChain.create_for_model(model_id, LLMTaskType.CHAT)
+    for model_id in MODEL_CONFIGS
+}

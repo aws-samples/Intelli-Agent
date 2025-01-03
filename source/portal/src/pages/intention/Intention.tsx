@@ -179,7 +179,7 @@ const Intention: React.FC = () => {
         method: 'get',
         params,
       });
-      const preSortItem = res.Items
+      const preSortItem = res.items
 
       preSortItem.sort((a, b) => {
         return Number(parseDate(b)) - Number(parseDate(a));
@@ -239,16 +239,17 @@ const Intention: React.FC = () => {
     );
   }, [currentPage, pageSize, allIntentions]);
 
-  const renderStatus = (status: string) => {
-    if (status === 'COMPLETED') {
-      return <StatusIndicator type="success">{t('completed')}</StatusIndicator>;
-    } else if (status === 'IN-PROGRESS') {
-      return (
-        <StatusIndicator type="loading">{t('inProgress')}</StatusIndicator>
-      );
+  const renderStatus = (ratio: string) => {
+    if(ratio === undefined){
+      return <StatusIndicator type="success">{t('intentionSuccess')}</StatusIndicator>;
     } else {
-      return <StatusIndicator type="error">{t('failed')}</StatusIndicator>;
-    }
+      const ratioArray = ratio.split("/")
+      if (ratioArray[0].trim() !== ratioArray[1].trim()) {
+        return <StatusIndicator type="error">{t('failed')}</StatusIndicator>;
+      } else {
+        return <StatusIndicator type="success">{t('intentionSuccess')}</StatusIndicator>;
+      }
+  }
   };
 
   const LinkComp = useCallback(
@@ -358,15 +359,8 @@ const Intention: React.FC = () => {
               sortingField: 'model',
               cell: (item: IntentionsItem) =>
                 item.model,
-            },{
-              width: 150,
-              id: 'tag',
-              header: t('tag'),
-              sortingField: 'tag',
-              cell: (item: IntentionsItem) =>
-                item.tag,
-            }
-            ,{
+            },
+            {
               width: 150,
               id: 'executionStatus',
               header: t('status'),

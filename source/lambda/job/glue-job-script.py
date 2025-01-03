@@ -1,8 +1,8 @@
 import itertools
+import json
 import logging
 import os
 import sys
-import json
 import traceback
 from datetime import datetime, timezone
 from typing import Generator, Iterable, List
@@ -51,12 +51,14 @@ try:
             "INDEX_TYPE",
             "OPERATION_TYPE",
             "PORTAL_BUCKET",
+            "BEDROCK_REGION",
         ],
     )
 except Exception as e:
     logger.warning("Running locally")
     import argparse
-    parser=argparse.ArgumentParser(description="local ingestion parameters")
+
+    parser = argparse.ArgumentParser(description="local ingestion parameters")
     parser.add_argument("--offline", type=bool, default=True)
     parser.add_argument("--batch_indice", type=int, default=0)
     parser.add_argument("--batch_file_number", type=int, default=1000)
@@ -71,7 +73,7 @@ except Exception as e:
     parser.add_argument("--embedding_model_type", type=str, required=True)
     parser.add_argument("--index_type", type=str, required=True)
     parser.add_argument("--operation_type", type=str, default="create")
-    command_line_args=parser.parse_args()
+    command_line_args = parser.parse_args()
     sys.path.append("dep")
     command_line_args_dict = vars(command_line_args)
     args = {}
@@ -83,6 +85,7 @@ except Exception as e:
     args["ETL_MODEL_ENDPOINT"] = os.environ["ETL_ENDPOINT"]
     args["RES_BUCKET"] = os.environ["RES_BUCKET"]
     args["REGION"] = os.environ["REGION"]
+    args["BEDROCK_REGION"] = os.environ["BEDROCK_REGION"]
     args["PORTAL_BUCKET"] = os.environ.get("PORTAL_BUCKET", None)
 
 from llm_bot_dep import sm_utils
@@ -111,6 +114,7 @@ portal_bucket_name = args["PORTAL_BUCKET"]
 table_item_id = args["TABLE_ITEM_ID"]
 qa_enhancement = args["QA_ENHANCEMENT"]
 region = args["REGION"]
+bedrock_region = args["BEDROCK_REGION"]
 res_bucket = args["RES_BUCKET"]
 s3_bucket = args["S3_BUCKET"]
 s3_prefix = args["S3_PREFIX"]
@@ -138,6 +142,7 @@ MAX_OS_DOCS_PER_PUT = 8
 
 nltk.data.path.append("/tmp/nltk_data")
 
+
 def get_aws_auth():
     try:
         master_user = sm_client.get_secret_value(SecretId=aos_secret)[
@@ -147,20 +152,29 @@ def get_aws_auth():
         username = cred.get("username")
         password = cred.get("password")
         aws_auth = (username, password)
-        
+
     except sm_client.exceptions.ResourceNotFoundException:
-        aws_auth = AWS4Auth(refreshable_credentials=credentials, region=region, service="es")
+        aws_auth = AWS4Auth(
+            refreshable_credentials=credentials, region=region, service="es"
+        )
     except sm_client.exceptions.InvalidRequestException:
-        logger.info("InvalidRequestException. It might caused by getting secret value from a deleting secret")
+        logger.info(
+            "InvalidRequestException. It might caused by getting secret value from a deleting secret"
+        )
         logger.info("Fallback to authentication with IAM")
-        aws_auth = AWS4Auth(refreshable_credentials=credentials, region=region, service="es")
+        aws_auth = AWS4Auth(
+            refreshable_credentials=credentials, region=region, service="es"
+        )
     except Exception as e:
         logger.error(f"Error retrieving secret '{aos_secret}': {str(e)}")
         raise
     return aws_auth
 
+
 class S3FileProcessor:
-    def __init__(self, bucket: str, prefix: str, supported_file_types: List[str] = []):
+    def __init__(
+        self, bucket: str, prefix: str, supported_file_types: List[str] = []
+    ):
         self.bucket = bucket
         self.prefix = prefix
         self.supported_file_types = supported_file_types
@@ -248,7 +262,9 @@ class S3FileProcessor:
             etl_object_table.put_item(Item=input_body)
             logger.info(message)
 
-    def decode_file_content(self, file_content: str, default_encoding: str = "utf-8"):
+    def decode_file_content(
+        self, file_content: str, default_encoding: str = "utf-8"
+    ):
         """Decode the file content and auto detect the content encoding.
 
         Args:
@@ -267,18 +283,25 @@ class S3FileProcessor:
 
     def iterate_s3_files(self, extract_content=True) -> Generator:
         current_indice = 0
-        for page in self.paginator.paginate(Bucket=self.bucket, Prefix=self.prefix):
+        for page in self.paginator.paginate(
+            Bucket=self.bucket, Prefix=self.prefix
+        ):
             for obj in page.get("Contents", []):
                 key = obj["Key"]
                 file_type = key.split(".")[-1].lower()  # Extract file extension
 
-                if key.endswith("/") or file_type not in self.supported_file_types:
+                if (
+                    key.endswith("/")
+                    or file_type not in self.supported_file_types
+                ):
                     continue
 
                 if current_indice < int(batchIndice) * int(batchFileNumber):
                     current_indice += 1
                     continue
-                elif current_indice >= (int(batchIndice) + 1) * int(batchFileNumber):
+                elif current_indice >= (int(batchIndice) + 1) * int(
+                    batchFileNumber
+                ):
                     # Exit this nested loop
                     break
                 else:
@@ -347,7 +370,9 @@ class BatchChunkDocumentProcessor:
         updated_heading_hierarchy = {}
         for temp_document in temp_content:
             temp_chunk_id = temp_document.metadata["chunk_id"]
-            temp_split_size = len(temp_text_splitter.split_documents([temp_document]))
+            temp_split_size = len(
+                temp_text_splitter.split_documents([temp_document])
+            )
             # Add size in heading_hierarchy
             if "heading_hierarchy" in temp_document.metadata:
                 temp_hierarchy = temp_document.metadata["heading_hierarchy"]
@@ -363,14 +388,16 @@ class BatchChunkDocumentProcessor:
                 logger.info(chunk_id)
                 split.metadata["chunk_id"] = f"{chunk_id}-{index}"
                 if chunk_id in updated_heading_hierarchy:
-                    split.metadata["heading_hierarchy"] = updated_heading_hierarchy[
-                        chunk_id
-                    ]
+                    split.metadata["heading_hierarchy"] = (
+                        updated_heading_hierarchy[chunk_id]
+                    )
                     logger.info(split.metadata["heading_hierarchy"])
                 index += 1
                 yield split
 
-    def batch_generator(self, content: List[Document], gen_chunk_flag: bool = True):
+    def batch_generator(
+        self, content: List[Document], gen_chunk_flag: bool = True
+    ):
         """
         Generates batches of documents from the given content.
 
@@ -435,14 +462,19 @@ class BatchQueryDocumentProcessor:
             "_source": {"excludes": ["vector_field"]},
         }
 
-        if self.docsearch.client.indices.exists(index=self.docsearch.index_name):
+        if self.docsearch.client.indices.exists(
+            index=self.docsearch.index_name
+        ):
             logger.info(
-                "BatchQueryDocumentProcessor: Querying documents for %s", s3_path
+                "BatchQueryDocumentProcessor: Querying documents for %s",
+                s3_path,
             )
             query_documents = self.docsearch.client.search(
                 index=self.docsearch.index_name, body=search_body
             )
-            document_ids = [doc["_id"] for doc in query_documents["hits"]["hits"]]
+            document_ids = [
+                doc["_id"] for doc in query_documents["hits"]["hits"]
+            ]
             return document_ids
         else:
             logger.info(
@@ -480,7 +512,8 @@ class OpenSearchIngestionWorker:
         self.embedding_model_endpoint = embedding_model_endpoint
 
     @retry(
-        stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10)
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=4, max=10),
     )
     def aos_ingestion(self, documents: List[Document]) -> None:
         texts = [doc.page_content for doc in documents]
@@ -496,7 +529,9 @@ class OpenSearchIngestionWorker:
                 embeddings_vectors_list.append(
                     embeddings_vectors[0]["dense_vecs"][doc_id]
                 )
-                metadata["embedding_endpoint_name"] = self.embedding_model_endpoint
+                metadata["embedding_endpoint_name"] = (
+                    self.embedding_model_endpoint
+                )
                 metadata_list.append(metadata)
             embeddings_vectors = embeddings_vectors_list
             metadatas = metadata_list
@@ -531,7 +566,10 @@ class OpenSearchDeleteWorker:
 
 
 def ingestion_pipeline(
-    s3_files_iterator, batch_chunk_processor, ingestion_worker, extract_only=False
+    s3_files_iterator,
+    batch_chunk_processor,
+    ingestion_worker,
+    extract_only=False,
 ):
     for file_type, file_content, kwargs in s3_files_iterator:
         input_body = {
@@ -544,13 +582,18 @@ def ingestion_pipeline(
         }
         try:
             # The res is list[Document] type
-            res = cb_process_object(s3_client, file_type, file_content, **kwargs)
+            res = cb_process_object(
+                s3_client, file_type, file_content, **kwargs
+            )
             for document in res:
                 save_content_to_s3(
-                    s3_client, document, res_bucket, SplittingType.SEMANTIC.value
+                    s3_client,
+                    document,
+                    res_bucket,
+                    SplittingType.SEMANTIC.value,
                 )
 
-            gen_chunk_flag = False if file_type == "csv" else True
+            gen_chunk_flag = False if file_type in ["csv", "xlsx", "xls"] else True
             batches = batch_chunk_processor.batch_generator(res, gen_chunk_flag)
 
             for batch in batches:
@@ -568,7 +611,10 @@ def ingestion_pipeline(
                         document.page_content = document.page_content
 
                     save_content_to_s3(
-                        s3_client, document, res_bucket, SplittingType.CHUNK.value
+                        s3_client,
+                        document,
+                        res_bucket,
+                        SplittingType.CHUNK.value,
                     )
 
                 if not extract_only:
@@ -633,13 +679,17 @@ def create_processors_and_workers(
     """
 
     if operation_type in ["create", "extract_only"]:
-        s3_files_iterator = file_processor.iterate_s3_files(extract_content=True)
+        s3_files_iterator = file_processor.iterate_s3_files(
+            extract_content=True
+        )
         batch_processor = BatchChunkDocumentProcessor(
             chunk_size=1024, chunk_overlap=30, batch_size=10
         )
         worker = OpenSearchIngestionWorker(docsearch, embedding_model_endpoint)
     elif operation_type in ["delete", "update"]:
-        s3_files_iterator = file_processor.iterate_s3_files(extract_content=False)
+        s3_files_iterator = file_processor.iterate_s3_files(
+            extract_content=False
+        )
         batch_processor = BatchQueryDocumentProcessor(docsearch, batch_size=10)
         worker = OpenSearchDeleteWorker(docsearch)
     else:
@@ -653,7 +703,9 @@ def create_processors_and_workers(
 # Main function to be called by Glue job script
 def main():
     logger.info("Starting Glue job with passing arguments: %s", args)
-    logger.info("Running in offline mode with consideration for large file size...")
+    logger.info(
+        "Running in offline mode with consideration for large file size..."
+    )
 
     if index_type == "qq" or index_type == "intention":
         supported_file_types = ["jsonl", "xlsx", "xls"]
@@ -672,7 +724,7 @@ def main():
             "png",
             "jpeg",
             "jpg",
-            "webp"
+            "webp",
         ]
 
     file_processor = S3FileProcessor(s3_bucket, s3_prefix, supported_file_types)
@@ -681,7 +733,10 @@ def main():
         embedding_function, docsearch = None, None
     else:
         embedding_function = sm_utils.getCustomEmbeddings(
-            embedding_model_endpoint, region, embedding_model_type
+            embedding_model_endpoint,
+            region_name=region,
+            bedrock_region=bedrock_region,
+            model_type=embedding_model_type,
         )
         aws_auth = get_aws_auth()
         docsearch = OpenSearchVectorSearch(
@@ -711,8 +766,10 @@ def main():
         delete_pipeline(s3_files_iterator, batch_processor, worker)
 
         # Then ingest the documents
-        s3_files_iterator, batch_processor, worker = create_processors_and_workers(
-            "create", docsearch, embedding_model_endpoint, file_processor
+        s3_files_iterator, batch_processor, worker = (
+            create_processors_and_workers(
+                "create", docsearch, embedding_model_endpoint, file_processor
+            )
         )
         ingestion_pipeline(s3_files_iterator, batch_processor, worker)
     else:

@@ -27,19 +27,68 @@ export const LLM_BOT_MODEL_LIST = [
 ];
 
 export const LLM_BOT_COMMON_MODEL_LIST = [
-  'anthropic.claude-3-sonnet-20240229-v1:0',
-  'anthropic.claude-3-haiku-20240307-v1:0',
-  'anthropic.claude-3-5-sonnet-20241022-v2:0',
-  'anthropic.claude-3-5-haiku-20241022-v1:0',
-  'meta.llama3-1-70b-instruct-v1:0',
-  'mistral.mistral-large-2407-v1:0',
-  'cohere.command-r-plus-v1:0',
-  'us.amazon.nova-pro-v1:0',
+  {
+    label: 'Amazon Nova',
+    options: [
+      {label: 'us.amazon.nova-pro-v1:0', value: 'us.amazon.nova-pro-v1:0'},
+      {label: 'us.amazon.nova-lite-v1:0', value: 'us.amazon.nova-lite-v1:0'},
+      {label: 'us.amazon.nova-micro-v1:0', value: 'us.amazon.nova-micro-v1:0'}
+    ]
+  },
+  {
+    label: 'Claude',
+    options: [
+      {label: 'anthropic.claude-3-sonnet-20240229-v1:0', value: 'anthropic.claude-3-sonnet-20240229-v1:0'},
+      {label: 'us.anthropic.claude-3-opus-20240229-v1:0', value: 'us.anthropic.claude-3-opus-20240229-v1:0'},
+      {label: 'anthropic.claude-3-haiku-20240307-v1:0', value: 'anthropic.claude-3-haiku-20240307-v1:0'},
+      {label: 'anthropic.claude-3-5-sonnet-20241022-v2:0', value: 'anthropic.claude-3-5-sonnet-20241022-v2:0'},
+      {label: 'anthropic.claude-3-5-haiku-20241022-v1:0', value: 'anthropic.claude-3-5-haiku-20241022-v1:0'},
+      {label: 'us.anthropic.claude-3-sonnet-20240229-v1:0', value: 'us.anthropic.claude-3-sonnet-20240229-v1:0'},
+      {label: 'us.anthropic.claude-3-opus-20240229-v1:0', value: 'us.anthropic.claude-3-opus-20240229-v1:0'},
+      {label: 'us.anthropic.claude-3-haiku-20240307-v1:0', value: 'us.anthropic.claude-3-haiku-20240307-v1:0'},
+      {label: 'us.anthropic.claude-3-5-sonnet-20241022-v2:0', value: 'us.anthropic.claude-3-5-sonnet-20241022-v2:0'},
+      {label: 'us.anthropic.claude-3-5-haiku-20241022-v1:0', value: 'us.anthropic.claude-3-5-haiku-20241022-v1:0'},
+      {label: 'eu.anthropic.claude-3-sonnet-20240229-v1:0', value: 'eu.anthropic.claude-3-sonnet-20240229-v1:0'},
+      {label: 'eu.anthropic.claude-3-5-sonnet-20240620-v1:0', value: 'eu.anthropic.claude-3-5-sonnet-20240620-v1:0'},
+      {label: 'eu.anthropic.claude-3-haiku-20240307-v1:0', value: 'eu.anthropic.claude-3-haiku-20240307-v1:0'},
+      {label: 'apac.anthropic.claude-3-sonnet-20240229-v1:0', value: 'apac.anthropic.claude-3-sonnet-20240229-v1:0'},
+      {label: 'apac.anthropic.claude-3-5-sonnet-20240620-v1:0', value: 'apac.anthropic.claude-3-5-sonnet-20240620-v1:0'},
+      {label: 'apac.anthropic.claude-3-haiku-20240307-v1:0', value: 'apac.anthropic.claude-3-haiku-20240307-v1:0'},
+      
+    ]
+  },{
+    label: 'Llama',
+    options: [
+      {lable: 'meta.llama3-1-70b-instruct-v1:0', value: 'meta.llama3-1-70b-instruct-v1:0'},
+      {label: 'us.meta.llama3-1-70b-instruct-v1:0', value: 'us.meta.llama3-1-70b-instruct-v1:0'},
+    ]
+  },{
+    label: 'Mistral',
+    options: [
+      {label: 'mistral.mistral-large-2407-v1:0', value: 'mistral.mistral-large-2407-v1:0'},
+    ]
+  },{
+    label: 'Cohere',
+    options:[{
+      label: 'cohere.command-r-plus-v1:0', value: 'cohere.command-r-plus-v1:0'
+    }]
+  }
 ];
 
+
 export const LLM_BOT_RETAIL_MODEL_LIST = [
-  'qwen2-72B-instruct',
-  'anthropic.claude-3-5-sonnet-20240620-v1:0',
+  {
+    label: 'Qwen',
+    options: [{
+      label: 'qwen2-72B-instruct',
+      value: 'qwen2-72B-instruct'
+    }]
+  },{
+    label: 'Claude',
+    options: [
+      {label: 'anthropic.claude-3-5-sonnet-20240620-v1:0', value: 'anthropic.claude-3-5-sonnet-20240620-v1:0'},
+    ]
+  }
 ];
 
 export const LLM_BOT_CHAT_MODE_LIST: SelectProps.Option[] = [
@@ -94,3 +143,17 @@ export const EMBEDDING_MODEL_LIST = [
 ]
 
 export const RESOURCE_QQ_TEMPLATE = "https://ai-customer-service-resources.s3.us-west-2.amazonaws.com/qq_match_template.xlsx"
+
+export const CURRENT_CHAT_BOT = "current_chat_bot";
+export const USE_CHAT_HISTORY = "use_chat_history"
+export const ENABLE_TRACE = "enable_trace"
+export const ONLY_RAG_TOOL = "only_rag_tool"
+export const SCENARIO = "scenario"
+export const MODEL_OPTION = "model"
+export const MAX_TOKEN = "max_token"
+export const TEMPERATURE = "temperature"
+export const ROUND = "round"
+export const TOPK = "topK"
+export const SCORE = "score"
+export const ADITIONAL_SETTINGS = "additional_settings"
+export const HISTORY_CHATBOT_ID = "history_chatbot_id"

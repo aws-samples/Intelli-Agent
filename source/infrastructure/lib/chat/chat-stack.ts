@@ -97,8 +97,9 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
     this.dlq = chatQueueConstruct.dlq;
 
     const lambdaLayers = new LambdaLayers(this);
-    const apiLambdaOnlineSourceLayer = lambdaLayers.createOnlineSourceLayer();
+    const apiLambdaOnlineSourceLayer = lambdaLayers.createSharedLayer();
     const apiLambdaJobSourceLayer = lambdaLayers.createJobSourceLayer();
+    const modelLayer = lambdaLayers.createModelDeploymentLayer();
 
 
     const openAiKey = new secretsmanager.Secret(this, "OpenAiSecret", {
@@ -110,8 +111,14 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
     const lambdaOnlineMain = new LambdaFunction(this, "lambdaOnlineMain", {
       runtime: Runtime.PYTHON_3_12,
       handler: "lambda_main.main.lambda_handler",
-      code: Code.fromAsset(
-        join(__dirname, "../../../lambda/online"),
+      code: Code.fromCustomCommand(
+        "/tmp/online_lambda_function_codes",
+        ['bash', '-c', [
+          "mkdir -p /tmp/online_lambda_function_codes",
+          `cp -r ${join(__dirname, "../../../lambda/online/*")} /tmp/online_lambda_function_codes`,
+          `cp ${join(__dirname, "../../../lambda/job/dep/llm_bot_dep/sm_utils.py")} /tmp/online_lambda_function_codes/`,
+        ].join(' && ')
+        ]
       ),
       memorySize: 4096,
       vpc: vpc,
@@ -137,7 +144,7 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
         BEDROCK_AWS_ACCESS_KEY_ID: props.config.chat.bedrockAk || "",
         BEDROCK_AWS_SECRET_ACCESS_KEY: props.config.chat.bedrockSk || ""
       },
-      layers: [apiLambdaOnlineSourceLayer, apiLambdaJobSourceLayer],
+      layers: [apiLambdaOnlineSourceLayer, modelLayer],
     });
     this.lambdaOnlineMain = lambdaOnlineMain.function;
 
@@ -160,6 +167,22 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
         resources: ["*"],
       }),
     );
+
+    this.lambdaOnlineMain.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: [
+          "cloudformation:Describe*",
+          "cloudformation:EstimateTemplateCost",
+          "cloudformation:Get*",
+          "cloudformation:List*",
+          "cloudformation:ValidateTemplate",
+          "cloudformation:Detect*"
+        ],
+        effect: iam.Effect.ALLOW,
+        resources: ["*"],
+      }),
+    );
+
     this.lambdaOnlineMain.addToRolePolicy(this.sqsStatement);
     this.lambdaOnlineMain.addEventSource(
       new lambdaEventSources.SqsEventSource(this.messageQueue, { batchSize: 1 }),
@@ -282,25 +305,6 @@ export class ChatStack extends NestedStack implements ChatStackOutputs {
     this.lambdaOnlineLLMGenerate.addToRolePolicy(this.iamHelper.s3Statement);
     this.lambdaOnlineLLMGenerate.addToRolePolicy(this.iamHelper.endpointStatement);
     this.lambdaOnlineLLMGenerate.addToRolePolicy(this.iamHelper.dynamodbStatement);
-
-
-    // const lambdaOnlineFunctions = new LambdaFunction(this, "lambdaOnlineFunctions", {
-    //   runtime: Runtime.PYTHON_3_12,
-    //   handler: "lambda_tools.lambda_handler",
-    //   code: Code.fromAsset(
-    //     join(__dirname, "../../../lambda/online/functions/functions_utils"),
-    //   ),
-    //   memorySize: 4096,
-    //   vpc: vpc,
-    //   securityGroups: securityGroups,
-    //   layers: [apiLambdaOnlineSourceLayer, apiLambdaJobSourceLayer],
-    //   environment: {
-    //     CHATBOT_TABLE: props.sharedConstructOutputs.chatbotTable.tableName,
-    //     INDEX_TABLE: this.indexTableName,
-    //     MODEL_TABLE: this.modelTableName,
-    //   },
-    // });
-    // this.lambdaOnlineFunctions = lambdaOnlineFunctions.function;
 
     this.lambdaOnlineQueryPreprocess.grantInvoke(this.lambdaOnlineMain);
 

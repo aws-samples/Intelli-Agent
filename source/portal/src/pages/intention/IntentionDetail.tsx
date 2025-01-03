@@ -11,6 +11,7 @@ import {
   Pagination,
   CollectionPreferences,
   Table,
+  TableProps,
 } from '@cloudscape-design/components';
 import './style.scss';
 import CommonLayout from 'src/layout/CommonLayout';
@@ -31,15 +32,24 @@ const IntentionDetail: React.FC = () => {
   const [executionFileList, setExecutionFileList] = useState<
     IntentionExecutionItem[]
   >([]);
+  const [qaList, setQaList] = useState<QAItem[]>(
+    [],
+  );
   const [tableQAList, setTableQAList] = useState<QAItem[]>(
     [],
   );
   const fetchData = useAxiosRequest();
   const { t } = useTranslation();
   const { id } = useParams();
+  const [sortingColumn, setSortingColumn] = useState<
+    TableProps.SortingColumn<QAItem>
+  >({
+    sortingField: 'status',
+  });
+  const [isDescending, setIsDescending] = useState<boolean | undefined>(true);
 
   useEffect(() => {
-    let list = executionFileList[0]?.QAList
+    let list = qaList
     if(searchQuestionName!=null && searchQuestionName.length > 0){
         list = list?.filter(item => item.question.indexOf(searchQuestionName)>-1);
     }
@@ -60,8 +70,10 @@ const IntentionDetail: React.FC = () => {
         method: 'get',
       });
       const executionRes: IntentionExecutionResponse = data;
-      setExecutionFileList(executionRes.Items);
-      setTableQAList(executionRes.Items[0]?.QAList.slice(0, pageSize));
+      setExecutionFileList(executionRes.items);
+      setQaList(executionRes.items[0]?.qaList);
+      setPageCount(Math.ceil(executionRes.items[0]?.qaList?.length / pageSize))
+      setTableQAList(executionRes.items[0]?.qaList.slice(0, pageSize));
       setLoadingData(false);
     } catch (error: unknown) {
       setLoadingData(false);
@@ -168,28 +180,79 @@ const IntentionDetail: React.FC = () => {
       columnDefinitions={[
         {
           id: "question",
-          header: "问题",
+          header: t('question'),
           cell: item => item.question,
-          sortingField: "name",
+          // sortingField: "name",
           isRowHeader: true
         },
         {
           id: "intention",
-          header: "意图",
+          header: t('intention'),
           cell: item => item.intention,
-          sortingField: "alt"
+          // sortingField: "alt"
         },
         {
           id: "kwargs",
-          header: "参数",
-          cell: item => item.kwargs
+          header: t('args'),
+          cell: item => {
+             if(item.kwargs){
+
+              return  item.kwargs
+             } else {
+              return "-"
+             }
+          }
+        },
+        {
+          id: "status",
+          header: t('status'),
+          sortingField: "status",
+          cell: item => {
+            if(!item.is_valid){
+            return <Popover
+            dismissButton={false}
+            position="top"
+            size="small"
+            triggerType="custom"
+            content={
+              <span style={{color: "red"}}>
+                {t("intentionFailMsg")}
+              </span>
+            }
+          ><StatusIndicator type="error">{t("intentionFail")}</StatusIndicator></Popover>
+          } else {
+            return <StatusIndicator>{t("intentionSuccess")}</StatusIndicator>
+          }
+          }
         }
       ]}
       columnDisplay={[
         { id: "question", visible: true },
         { id: "intention", visible: true },
-        { id: "kwargs", visible: true }
+        { id: "kwargs", visible: true },
+        { id: "status", visible: true }
       ]}
+      sortingColumn={sortingColumn}
+      sortingDescending={isDescending}
+      onSortingChange={({detail}) => {
+        const { sortingColumn, isDescending } = detail;
+        console.log(sortingColumn.sortingField, isDescending)
+        const sortedItems = [...executionFileList[0]?.qaList].sort((a, b) => {
+          setSortingColumn(sortingColumn);
+          setIsDescending(isDescending);
+          if (sortingColumn.sortingField === 'status') {
+            return !isDescending
+              ? String(a.is_valid).localeCompare(String(b.is_valid))
+              : String(b.is_valid).localeCompare(String(a.is_valid));
+          }
+          return 0;
+        });
+        setQaList(sortedItems);
+        setTableQAList(sortedItems?.slice(
+          (currentPage - 1) * pageSize,
+          currentPage * pageSize,
+        ),);
+      }}
       enableKeyboardNavigation
       items={tableQAList||[]}
       loadingText="Loading resources"

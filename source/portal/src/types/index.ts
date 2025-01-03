@@ -32,14 +32,14 @@ export type IntentionsItem = {
   fileName: string;
   index: string;
   model: string;
-  tag: string;
+  validRatio: string;
   chatbotId: string;
   createTime: string;
 };
 
 export type IntentionsResponse = {
-  Items: IntentionsItem[];
-  Count: number;
+  items: IntentionsItem[];
+  count: number;
   config: ResponseConfig;
 };
 
@@ -64,6 +64,7 @@ export type SessionHistoryItem = {
   userId: string;
   createTimestamp: string;
   latestQuestion: string;
+  chatbotId: string;
 };
 
 export type SessionHistoryResponse = {
@@ -77,6 +78,7 @@ export type SessionMessage = {
   role: 'ai' | 'human';
   content: string;
   createTimestamp: string;
+  chatbotId: string;
   additional_kwargs: {
     figure: AdditionalImageType[];
   };
@@ -135,7 +137,8 @@ export type LibraryExecutionResponse = {
 export type QAItem = {
   question: string,
   intention: string,
-  kwargs: string
+  kwargs: string,
+  is_valid: boolean
 }
 
 export type IntentionExecutionItem = {
@@ -146,12 +149,12 @@ export type IntentionExecutionItem = {
   status: string;
   createTime: string;
   s3Path: string;
-  QAList: QAItem[]
+  qaList: QAItem[]
 };
 
 export type IntentionExecutionResponse = {
-  Items: IntentionExecutionItem[];
-  Count: number;
+  items: IntentionExecutionItem[];
+  count: number;
 };
 
 export type AdditionalImageType = {

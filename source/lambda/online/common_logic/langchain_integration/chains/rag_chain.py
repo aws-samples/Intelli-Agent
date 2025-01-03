@@ -14,6 +14,7 @@ from common_logic.common_utils.constant import (
     LLMTaskType,
     LLMModelType
 )
+from ..model_config import MODEL_CONFIGS
 from common_logic.common_utils.prompt_utils import get_prompt_template
 from common_logic.common_utils.logger_utils import print_llm_messages
 
@@ -34,8 +35,8 @@ def get_claude_rag_context(contexts: list):
     return context
 
 
-class Claude2RagLLMChain(LLMChain):
-    model_id = LLMModelType.CLAUDE_2
+class RagBaseChain(LLMChain):
+    
     intent_type = LLMTaskType.RAG
 
     @classmethod
@@ -72,54 +73,6 @@ class Claude2RagLLMChain(LLMChain):
             final_chain = RunnableLambda(lambda x: chain.invoke(x))
 
         return final_chain
-
-
-class Claude21RagLLMChain(Claude2RagLLMChain):
-    model_id = LLMModelType.CLAUDE_21
-
-
-class ClaudeInstanceRAGLLMChain(Claude2RagLLMChain):
-    model_id = LLMModelType.CLAUDE_INSTANCE
-
-
-class Claude3SonnetRAGLLMChain(Claude2RagLLMChain):
-    model_id = LLMModelType.CLAUDE_3_SONNET
-
-
-class Claude3HaikuRAGLLMChain(Claude2RagLLMChain):
-    model_id = LLMModelType.CLAUDE_3_HAIKU
-
-
-class Claude35SonnetRAGLLMChain(Claude2RagLLMChain):
-    model_id = LLMModelType.CLAUDE_3_5_SONNET
-
-
-class Claude35SonnetV2RAGLLMChain(Claude2RagLLMChain):
-    model_id = LLMModelType.CLAUDE_3_5_SONNET_V2
-
-
-class Claude35HaikuRAGLLMChain(Claude2RagLLMChain):
-    model_id = LLMModelType.CLAUDE_3_5_HAIKU
-
-
-class Llama31Instruct70B(Claude2RagLLMChain):
-    model_id = LLMModelType.LLAMA3_1_70B_INSTRUCT
-
-
-class Llama32Instruct90B(Claude2RagLLMChain):
-    model_id = LLMModelType.LLAMA3_2_90B_INSTRUCT
-
-
-class MistraLlarge2407(Claude2RagLLMChain):
-    model_id = LLMModelType.MISTRAL_LARGE_2407
-
-
-class CohereCommandRPlus(Claude2RagLLMChain):
-    model_id = LLMModelType.COHERE_COMMAND_R_PLUS
-
-
-class Mixtral8x7bChatChain(Claude2RagLLMChain):
-    model_id = LLMModelType.MIXTRAL_8X7B_INSTRUCT
 
 
 class GLM4Chat9BRagChain(GLM4Chat9BChatChain):
@@ -159,7 +112,7 @@ class Qwen2Instruct7BRagChain(Qwen2Instruct7BChatChain):
 
 
 class Qwen2Instruct72BRagChain(Qwen2Instruct7BRagChain):
-    model_id = LLMModelType.QWEN2INSTRUCT72B
+    model_id = LLMModelType.QWEN25_INSTRUCT_72B_AWQ
 
 
 class Qwen2Instruct72BRagChain(Qwen2Instruct7BRagChain):
@@ -188,6 +141,7 @@ class Baichuan2Chat13B4BitsKnowledgeQaChain(Baichuan2Chat13B4BitsChatChain):
         return llm_chain
 
 
-class NovaProRAGLLMChain(Claude2RagLLMChain):
-    model_id = LLMModelType.NOVA_PRO
-
+chain_classes = {
+    f"{LLMChain.model_id_to_class_name(model_id, LLMTaskType.RAG)}": RagBaseChain.create_for_model(model_id, LLMTaskType.RAG)
+    for model_id in MODEL_CONFIGS
+}

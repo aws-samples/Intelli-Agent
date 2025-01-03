@@ -316,6 +316,8 @@ Sample config.json:
   },
   "chat": {
     "enabled": true,
+    "bedrockRegion": "us-east-1",
+    "useOpenSourceLLM": true,
     "amazonConnect": {
       "enabled": true
     }
