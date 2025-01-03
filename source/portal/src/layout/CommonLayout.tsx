@@ -11,7 +11,7 @@ import messages from '@cloudscape-design/components/i18n/messages/all.en';
 import TopNavigation from '@cloudscape-design/components/top-navigation';
 import { useTranslation } from 'react-i18next';
 import {
-  ADITIONAL_SETTRINGS,
+  ADITIONAL_SETTINGS,
   ENABLE_TRACE,
   CURRENT_CHAT_BOT,  
   DEFAULT_ZH_LANG,
@@ -31,7 +31,7 @@ import ConfigContext from 'src/context/config-context';
 import { useLocation, useNavigate } from 'react-router-dom';
 import CustomBreadCrumb, { BreadCrumbType } from './CustomBreadCrumb';
 import { CustomNavigationItem } from 'src/types';
-const STORAGE_KEYS = [CURRENT_CHAT_BOT, USE_CHAT_HISTORY, ENABLE_TRACE, ONLY_RAG_TOOL, SCENARIO, MODEL_OPTION, MAX_TOKEN, TEMPERATURE, ADITIONAL_SETTRINGS]
+const STORAGE_KEYS = [CURRENT_CHAT_BOT, USE_CHAT_HISTORY, ENABLE_TRACE, ONLY_RAG_TOOL, SCENARIO, MODEL_OPTION, MAX_TOKEN, TEMPERATURE, ADITIONAL_SETTINGS]
 
 interface CommonLayoutProps {
   activeHref: string;

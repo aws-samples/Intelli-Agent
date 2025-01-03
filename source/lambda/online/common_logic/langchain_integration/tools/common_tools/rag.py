@@ -1,7 +1,8 @@
 from common_logic.common_utils.lambda_invoke_utils import StateContext
 from common_logic.common_utils.prompt_utils import get_prompt_templates_from_ddb
 from common_logic.common_utils.constant import (
-    LLMTaskType
+    LLMTaskType,
+    Threshold
 )
 from common_logic.common_utils.lambda_invoke_utils import send_trace
 from common_logic.langchain_integration.retrievers.retriever import lambda_handler as retrieve_fn
@@ -89,15 +90,19 @@ def rag_tool(retriever_config: dict, query=None):
     retriever_params["query"] = query or state[retriever_config.get(
         "query_key", "query")]
     output = retrieve_fn(retriever_params)
-    # output["result"]["docs"]
-    state["extra_response"]["docs"] = output["result"]["docs"]
+    top_k = retriever_config.get("top_k", Threshold.TOP_K)
+    score = retriever_config.get("score", Threshold.ALL_KNOWLEDGE_IN_AGENT_THRESHOLD)
+    filtered_docs = [item for item in output["result"]["docs"] if item["score"] >= score]
+    sorted_docs = sorted(filtered_docs, key=lambda x: x["score"], reverse=True)
+    final_docs = sorted_docs[:top_k]
+    state["extra_response"]["docs"] = final_docs
 
-    for doc in output["result"]["docs"]:
+    for doc in final_docs:
         context_list.append(doc["page_content"])
         figure_list = figure_list + doc.get("figure", [])
 
     context_md = format_rag_data(
-        output["result"]["docs"], state.get("qq_match_contexts", {}))
+        final_docs, state.get("qq_match_contexts", {}))
     send_trace(
         f"\n\n{context_md}\n\n", enable_trace=state["enable_trace"])
     # send_trace(
