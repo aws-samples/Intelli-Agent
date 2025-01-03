@@ -89,6 +89,7 @@ def rag_tool(retriever_config: dict, query=None):
     retriever_params["query"] = query or state[retriever_config.get(
         "query_key", "query")]
     output = retrieve_fn(retriever_params)
+    # output["result"]["docs"]
     state["extra_response"]["docs"] = output["result"]["docs"]
 
     for doc in output["result"]["docs"]:

@@ -170,6 +170,7 @@ export class IAMHelper extends Construct {
         "codepipeline:GetPipelineState",
         "codepipeline:ListPipelines",
         "codepipeline:StartPipelineExecution",
+        "codepipeline:StopPipelineExecution",
         "codepipeline:GetPipelineExecution",
       ],
       [ "*" ],
