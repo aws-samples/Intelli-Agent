@@ -16,6 +16,14 @@ DEPLOY_RESOURCE = f"{ROOT_RESOURCE}/deploy"
 DESTROY_RESOURCE = f"{ROOT_RESOURCE}/destroy"
 STATUS_RESOURCE = "/model-management/status/{modelId}"
 
+class ModelStatus:
+    UNDEPLOYED = "Undeployed"
+    INPROGRESS = "InProgress"
+    SUCCEED = "Succeed"
+    FAILED = "Failed"
+    DELETING = "Deleting"
+
+
 dynamodb_resource = boto3.resource("dynamodb")
 model_table_name = os.getenv("MODEL_TABLE_NAME", "model-management")
 model_table = dynamodb_resource.Table(model_table_name)
@@ -47,7 +55,8 @@ def get_model_item(group_name, model_id):
         "modelId": model_id,
         "createTime": now_time_str,
         "parameter": {},
-        "modelType": "LLM"
+        "modelType": "LLM",
+        "status": ModelStatus.UNDEPLOYED
     }
     item = {
         **cur_item,
@@ -111,7 +120,7 @@ def __deploy(event, group_name):
         "createTime": now_time_str,
         "modelType": "LLM",
         "parameter": ret,
-        "status": "InProgress",
+        "status": ModelStatus.INPROGRESS,
         "updateTime": now_time_str
     }
     model_table.put_item(
@@ -124,11 +133,13 @@ def __destroy(event, group_name):
     body = json.loads(event["body"])
     model_id = body["model_id"]
     item = get_model_item(group_name, model_id)
+    if item["status"] == ModelStatus.DELETING:
+        return item 
     ret = get_model_status(model_id, model_tag=group_name)
     inprogress = ret["inprogress"]
     completed = ret["completed"]
     if not inprogress and not completed:
-        item["status"] = "Deleted"
+        item["status"] = ModelStatus.UNDEPLOYED
         model_table.put_item(
             Item=item
         )
@@ -139,7 +150,7 @@ def __destroy(event, group_name):
         model_tag=group_name,
         waiting_until_complete=False
     )
-    item["status"] = "Deleting"
+    item["status"] = ModelStatus.DELETING
 
     model_table.put_item(
         Item=item
@@ -149,6 +160,14 @@ def __destroy(event, group_name):
 
 def __status(event, group_name):
     model_id = event["pathParameters"]["modelId"]
+
+    # response = model_table.get_item(
+    #     Key={"groupName": group_name, "modelId": model_id})
+    
+    response = get_model_item(group_name, model_id)
+    if response['status'] != ModelStatus.DELETING:
+        return response
+    
     ret = get_model_status(model_id, model_tag=group_name)
 
     inprogress = ret["inprogress"]
@@ -158,7 +177,10 @@ def __status(event, group_name):
     elif completed:
         status = completed[0]["stack_status"]
     else:
-        return {"status": "NOT_EXISTS", "info": "model not exists "}
+        status = ModelStatus.UNDEPLOYED
+        # return {"status": ModelStatus.UNDEPLOYED, "info": "model not exists "}
+    if status != ModelStatus.UNDEPLOYED:
+        status = ModelStatus.DELETING
 
     response = model_table.get_item(
         Key={"groupName": group_name, "modelId": model_id})
@@ -170,7 +192,8 @@ def __status(event, group_name):
         "modelId": model_id,
         "parameter": {},
         "createTime": now_time_str,
-        "modelType": "LLM"
+        "modelType": "LLM",
+        "status":ModelStatus.UNDEPLOYED
     }
     item = response.get("Item", {})
     item = {
@@ -226,9 +249,9 @@ def lambda_handler(event, context):
             "body": json.dumps(output),
         }
     except Exception as e:
-        logger.error("Error: %s", str(e))
         import traceback
         trace_error = traceback.format_exc()
+        logger.error(f"Error: {trace_error}")
         return {
             "statusCode": 500,
             "headers": resp_header,
