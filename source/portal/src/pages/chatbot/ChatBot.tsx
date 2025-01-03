@@ -724,9 +724,9 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
               {/* <SpaceBetween direction="vertical" size="l"> */}
                 <div style={{fontSize: 16, fontWeight: 700, marginBottom: 15, marginTop: 15}}>{t('common')}</div>
                 <SpaceBetween size="xs" direction="vertical">
-                <Grid gridDefinition={[{colspan: 2},{colspan: 6},{colspan: 2},{colspan: 2}]}>
+                <Grid gridDefinition={[{colspan: 5},{colspan: 6}]}>
                 {/* <ColumnLayout columns={3} variant="text-grid"> */}
-                  <FormField label={t('scenario')} stretch={true}>
+                  <FormField label={t('scenario')} stretch={true} description={t('scenarioDesc')}>
                     <Select
                       options={SCENARIO_LIST}
                       selectedOption={scenario}
@@ -750,6 +750,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                       label={t('modelName')}
                       stretch={true}
                       errorText={t(modelError)}
+                      description={t('modelNameDesc')}
                     >
                       <Autosuggest
                         onChange={({ detail }) => {
@@ -762,10 +763,13 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                         empty={t('noModelFound')}
                       />
                     </FormField>
+                    </Grid>
+                    <Grid gridDefinition={[ {colspan: 5},{colspan: 6}]}>
                   <FormField
                     label={t('maxTokens')}
                     stretch={true}
                     errorText={t(maxTokenError)}
+                    description={t('maxTokenDesc')}
                   >
                     <Input
                       type="number"
@@ -780,6 +784,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                     label={t('maxRounds')}
                     stretch={true}
                     errorText={t(maxRoundsError)}
+                    description={t('maxRoundsDesc')}
                   >
                     <Input
                       type="number"
@@ -793,11 +798,12 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                   </Grid>
                   
                   {showEndpoint && (
-                    <Grid gridDefinition={[{colspan: 8}]}>
+                    <Grid gridDefinition={[{colspan: 11}]}>
                     <FormField
                       label={t('endPoint')}
                       stretch={true}
                       errorText={t(endPointError)}
+                      description={t('endPointDesc')}
                     >
                       <Input
                         onChange={({ detail }) => {
@@ -811,14 +817,16 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                     </Grid>
                     )
                   }
+                  
                 </SpaceBetween>
                   <div style={{fontSize: 16, fontWeight: 700,marginBottom: 15, marginTop: 35}}>{t('rad')}</div>
                   <SpaceBetween size="xs" direction="vertical">
-                    <Grid gridDefinition={[{colspan: 3},{colspan: 2},{colspan: 3}]}>
+                    <Grid gridDefinition={[{colspan: 3},{colspan: 3},{colspan: 5}]}>
                   <FormField
                     label={t('temperature')}
                     stretch={true}
                     errorText={t(temperatureError)}
+                    description={t('temperatureDesc')}
                   >
                     <Input
                       type="number"
@@ -836,6 +844,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                   <FormField
                     label={t('topKRetrievals')}
                     stretch={true}
+                    description={t('topKRetrievalsDesc')}
                     errorText={t(topKRetrievalsError)}
                   >
                     <Input
@@ -850,6 +859,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                   <FormField
                     label={t('score')}
                     stretch={true}
+                    description={t('scoreDesc')}
                     errorText={t(scoreError)}
                   >
                     <Input
