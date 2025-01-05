@@ -57,7 +57,7 @@ const ChatColumn: FC = () => {
           <Box
             key={message.id}
             className={`flex items-start gap-3 ${
-              message.type === "user" ? "flex-row-reverse" : ""
+              message.type === "bot" ? "flex-row-reverse" : ""
             }`}
           >
             <Avatar
@@ -81,7 +81,7 @@ const ChatColumn: FC = () => {
                   : isDarkMode
                   ? "bg-gray-800/50 shadow-black/10"
                   : "bg-gray-50 shadow-black/5"
-              }`}
+              } ${message.type === "bot" ? "ml-auto" : "mr-auto"}`}
             >
               <Typography>{message.content}</Typography>
             </Paper>

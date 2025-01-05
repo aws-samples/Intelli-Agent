@@ -68,7 +68,7 @@ const DocumentColumn: FC = () => {
   return (
     <Paper className="h-full flex flex-col rounded-xl overflow-hidden">
       <Box
-        className={`p-4 ${
+        className={`p-3 ${
           isDarkMode
             ? "bg-gradient-to-b from-gray-800/50 to-transparent shadow-md"
             : "bg-gradient-to-b from-white/50 to-transparent shadow-sm"
@@ -79,32 +79,27 @@ const DocumentColumn: FC = () => {
         </Typography>
       </Box>
       <Box className="grid grid-cols-3 h-full">
-        <Box
-          className={`${
-            isDarkMode
-              ? "bg-gray-800/30 shadow-[4px_0_16px_-4px_rgba(0,0,0,0.1)]"
-              : "bg-white/30 shadow-[4px_0_16px_-4px_rgba(0,0,0,0.03)]"
-          }`}
-        >
-          <List>
+        <Box className={`${isDarkMode ? "bg-gray-800/30" : "bg-white/30"}`}>
+          <List className="!py-1">
             {documents.map((doc) => (
               <ListItem key={doc.id} disablePadding>
                 <ListItemButton
                   onClick={() => setSelectedDoc(doc)}
                   className={`
+                    py-1 px-2
                     transition-all duration-200
                     ${
                       selectedDoc.id === doc.id
                         ? isDarkMode
-                          ? "bg-blue-600/20 shadow-inner shadow-blue-500/10"
-                          : "bg-blue-50 shadow-inner shadow-blue-500/5"
+                          ? "bg-blue-600/20"
+                          : "bg-blue-50"
                         : "hover:bg-opacity-50"
                     }
                   `}
                 >
-                  <ListItemIcon>
+                  <ListItemIcon className="!min-w-[32px]">
                     <Box
-                      className={`p-1 rounded-lg ${
+                      className={`p-1 rounded-md ${
                         selectedDoc.id === doc.id
                           ? isDarkMode
                             ? "bg-blue-600/10"
@@ -117,24 +112,29 @@ const DocumentColumn: FC = () => {
                   </ListItemIcon>
                   <ListItemText
                     primary={doc.title}
-                    className={selectedDoc.id === doc.id ? "text-blue-500" : ""}
+                    className="my-0"
+                    primaryTypographyProps={{
+                      className: `text-sm ${
+                        selectedDoc.id === doc.id
+                          ? "text-blue-500 font-medium"
+                          : ""
+                      }`,
+                    }}
                   />
                 </ListItemButton>
               </ListItem>
             ))}
           </List>
         </Box>
-        <Box className="col-span-2 p-6 overflow-y-auto">
+        <Box className="col-span-2 p-4 overflow-y-auto">
           <Box
-            className={`rounded-xl p-6 ${
-              isDarkMode
-                ? "bg-gray-800/30 shadow-inner shadow-black/5"
-                : "bg-white/50 shadow-inner shadow-black/5"
+            className={`rounded-xl p-4 ${
+              isDarkMode ? "bg-gray-800/30" : "bg-white/50"
             }`}
           >
             <Typography
               component="pre"
-              className={`whitespace-pre-wrap font-mono text-sm ${
+              className={`whitespace-pre-wrap font-mono ${
                 isDarkMode ? "text-gray-300" : "text-gray-600"
               }`}
             >
