@@ -171,6 +171,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     setTemperature(defaultConfig.temperature)
     setTopKRetrievals(defaultConfig.topKRetrievals)
     setScore(defaultConfig.score)
+    setUserMessage('')
     setAdditionalConfig('')
     // setModelOption(optionList?.[0]?.value ?? '')
     setSessionId(uuidv4());
