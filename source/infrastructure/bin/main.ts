@@ -15,17 +15,17 @@ import { App, CfnOutput, Stack, StackProps } from "aws-cdk-lib";
 import { Construct } from "constructs";
 import * as dotenv from "dotenv";
 import * as path from "path";
-
 import { getConfig } from "./config";
 import { SystemConfig } from "../lib/shared/types";
-import { SharedConstruct } from "../lib/shared/shared-construct";
-import { ApiConstruct } from "../lib/api/api-stack";
+import { SharedConstruct, SharedConstructOutputs } from "../lib/shared/shared-construct";
+import { ApiConstruct, ApiConstructOutputs } from "../lib/api/api-stack";
 import { ModelConstruct } from "../lib/model/model-construct";
 import { KnowledgeBaseStack, KnowledgeBaseStackOutputs } from "../lib/knowledge-base/knowledge-base-stack";
 import { PortalConstruct } from "../lib/ui/ui-portal";
 import { UiExportsConstruct } from "../lib/ui/ui-exports";
 import { UserConstruct } from "../lib/user/user-construct";
 import { ChatStack, ChatStackOutputs } from "../lib/chat/chat-stack";
+import { WorkspaceStack } from "../lib/workspace/workspace-stack";
 
 dotenv.config();
 
@@ -34,6 +34,10 @@ export interface RootStackProps extends StackProps {
 }
 
 export class RootStack extends Stack {
+  public sharedConstruct: SharedConstructOutputs;
+  public apiConstruct: ApiConstructOutputs;
+  public config: SystemConfig;
+
   constructor(scope: Construct, id: string, props: RootStackProps) {
     super(scope, id, props);
     this.templateOptions.description = "(SO8034) - Intelli-Agent";
@@ -117,6 +121,10 @@ export class RootStack extends Stack {
     });
     uiExports.node.addDependency(portalConstruct);
 
+    this.sharedConstruct = sharedConstruct;
+    this.apiConstruct = apiConstruct;
+    this.config = props.config;
+
     new CfnOutput(this, "API Endpoint Address", {
       value: apiConstruct.apiEndpoint,
     });
@@ -139,12 +147,13 @@ export class RootStack extends Stack {
   }
 }
 
+
 const config = getConfig();
 
 // For development, use account/region from CDK CLI
 const devEnv = {
-  account: process.env.CDK_DEFAULT_ACCOUNT,
-  region: process.env.CDK_DEFAULT_REGION,
+  account: process.env.CDK_DEFAULT_ACCOUNT || process.env.AWS_ACCOUNT_ID,
+  region: process.env.CDK_DEFAULT_REGION || process.env.AWS_REGION || "us-east-1",
 };
 
 const app = new App();
@@ -152,6 +161,20 @@ let stackName = "ai-customer-service"
 if(config.prefix && config.prefix.trim().length > 0){
   stackName = `${config.prefix}-ai-customer-service`;
 }
-new RootStack(app, stackName, { config, env: devEnv, suppressTemplateIndentation: true });
+const rootStack = new RootStack(app, stackName, {
+  config,
+  env: devEnv,
+  suppressTemplateIndentation: true
+});
+
+const workspaceStack = new WorkspaceStack(app, `${stackName}-workspace`, {
+  env: devEnv,
+  config: config,
+  sharedConstructOutputs: rootStack.sharedConstruct,
+  apiConstructOutputs: rootStack.apiConstruct,
+  suppressTemplateIndentation: true,
+});
+workspaceStack.addDependency(rootStack);
+
 
 app.synth();

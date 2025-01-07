@@ -23,6 +23,7 @@ keys = json.loads(response.read())["keys"]
 def generatePolicy(principalId, effect, resource, claims):
     authResponse = {}
     authResponse["principalId"] = principalId
+    logger.info(principalId)
     if effect and resource:
         policyDocument = {}
         policyDocument["Version"] = "2012-10-17"
