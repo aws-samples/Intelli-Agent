@@ -73,7 +73,6 @@ def post_model_deployment(event, context):
             )
             logger.info(
                 f"Execution details: {json.dumps(execution_details, default=str)}")
-            status = execution_details["pipelineExecution"]["status"]
             variables = execution_details["pipelineExecution"]["variables"]
             group_name = None
             model_id = None
@@ -88,6 +87,6 @@ def post_model_deployment(event, context):
                     "Unable to find group name or model id in pipeline variables")
                 return
 
-            update_pipeline_status(group_name, model_id, status)
+            update_pipeline_status(group_name, model_id, pipeline_state)
         except Exception as e:
             logger.error(f"Error updating pipeline execution details: {str(e)}")

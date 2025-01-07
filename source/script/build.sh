@@ -4,6 +4,7 @@ set -e
 
 # Load config.json
 config_file="../infrastructure/bin/config.json"
+deploy_region=$(jq -r '.deployRegion' $config_file)
 knowledge_base_enabled=$(jq -r '.knowledgeBase.enabled' $config_file)
 knowledge_base_intelliagent_enabled=$(jq -r '.knowledgeBase.knowledgeBaseType.intelliAgentKb.enabled' $config_file)
 knowledge_base_models_enabled=$(jq -r '.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.enabled' $config_file)
@@ -31,7 +32,7 @@ aws ecr-public get-login-password --region us-east-1 | docker login --username A
 prepare_etl_model() {
     echo "Preparing ETL Model"
     cd model/etl/code
-    sh model.sh ./Dockerfile $ecr_repository $ecr_image_tag
+    sh model.sh ./Dockerfile $ecr_repository $ecr_image_tag $deploy_region
     cd - > /dev/null
     pwd
 }
@@ -52,7 +53,7 @@ build_frontend() {
 
 build_deployment_module() {
     echo "Building Model Deployment Module"
-    curl https://aws-gcr-solutions-assets.s3.us-east-1.amazonaws.com/dmaa/wheels/dmaa-0.4.0-py3-none-any.whl -o dmaa-0.4.0-py3-none-any.whl && pip install dmaa-0.4.0-py3-none-any.whl"[all]"
+    curl https://aws-gcr-solutions-assets.s3.us-east-1.amazonaws.com/dmaa/wheels/dmaa-0.5.0-py3-none-any.whl -o dmaa-0.5.0-py3-none-any.whl && pip install dmaa-0.5.0-py3-none-any.whl"[all]"
     dmaa bootstrap
 }
 

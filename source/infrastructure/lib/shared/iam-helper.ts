@@ -30,6 +30,8 @@ export class IAMHelper extends Construct {
   public secretStatement: PolicyStatement;
   public codePipelineStatement: PolicyStatement;
   public cfnStatement: PolicyStatement;
+  public serviceQuotaStatement: PolicyStatement;
+  public sagemakerModelManagementStatement: PolicyStatement;
 
   public createPolicyStatement(actions: string[], resources: string[]) {
     return new PolicyStatement({
@@ -79,7 +81,7 @@ export class IAMHelper extends Construct {
         "sagemaker:CreateEndpoint",
         "sagemaker:CreateEndpointConfig",
         "sagemaker:InvokeEndpointAsync",
-        "sagemaker:UpdateEndpointWeightsAndCapacities",
+        "sagemaker:UpdateEndpointWeightsAndCapacities"
       ],
       [`arn:${Aws.PARTITION}:sagemaker:${Aws.REGION}:${Aws.ACCOUNT_ID}:endpoint/*`],
     );
@@ -188,6 +190,58 @@ export class IAMHelper extends Construct {
         "cloudformation:DeleteChangeSet",
         "cloudformation:DescribeStackResources",
         "cloudformation:DescribeStackEvents",
+      ],
+      ["*"],
+    );
+    this.sagemakerModelManagementStatement = this.createPolicyStatement(
+      [
+        "sagemaker:List*",
+        "sagemaker:ListEndpoints",
+        "sagemaker:DeleteModel",
+        "sagemaker:DeleteEndpoint",
+        "sagemaker:DescribeEndpoint",
+        "sagemaker:DeleteEndpointConfig",
+        "sagemaker:DescribeEndpointConfig",
+        "sagemaker:InvokeEndpoint",
+        "sagemaker:CreateModel",
+        "sagemaker:CreateEndpoint",
+        "sagemaker:CreateEndpointConfig",
+        "sagemaker:InvokeEndpointAsync",
+        "sagemaker:UpdateEndpointWeightsAndCapacities"
+      ],
+      ["*"],
+    );
+    this.serviceQuotaStatement = this.createPolicyStatement(
+      [
+        "autoscaling:DescribeAccountLimits",
+        "cloudformation:DescribeAccountLimits",
+        "cloudwatch:DescribeAlarmsForMetric",
+        "cloudwatch:DescribeAlarms",
+        "cloudwatch:GetMetricData",
+        "cloudwatch:GetMetricStatistics",
+        "dynamodb:DescribeLimits",
+        "elasticloadbalancing:DescribeAccountLimits",
+        "iam:GetAccountSummary",
+        "kinesis:DescribeLimits",
+        "organizations:DescribeAccount",
+        "organizations:DescribeOrganization",
+        "organizations:ListAWSServiceAccessForOrganization",
+        "rds:DescribeAccountAttributes",
+        "route53:GetAccountLimit",
+        "tag:GetTagKeys",
+        "tag:GetTagValues",
+        "servicequotas:GetAssociationForServiceQuotaTemplate",
+        "servicequotas:GetAWSDefaultServiceQuota",
+        "servicequotas:GetRequestedServiceQuotaChange",
+        "servicequotas:GetServiceQuota",
+        "servicequotas:GetServiceQuotaIncreaseRequestFromTemplate",
+        "servicequotas:ListAWSDefaultServiceQuotas",
+        "servicequotas:ListRequestedServiceQuotaChangeHistory",
+        "servicequotas:ListRequestedServiceQuotaChangeHistoryByQuota",
+        "servicequotas:ListServices",
+        "servicequotas:ListServiceQuotas",
+        "servicequotas:ListServiceQuotaIncreaseRequestsInTemplate",
+        "servicequotas:ListTagsForResource"
       ],
       ["*"],
     );
