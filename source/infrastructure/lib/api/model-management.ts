@@ -66,6 +66,8 @@ export class ModelApi extends Construct {
     modelLambda.addToRolePolicy(this.iamHelper.cfnStatement);
     modelLambda.addToRolePolicy(this.iamHelper.stsStatement);
     modelLambda.addToRolePolicy(this.iamHelper.cfnStatement);
+    modelLambda.addToRolePolicy(this.iamHelper.serviceQuotaStatement);
+    modelLambda.addToRolePolicy(this.iamHelper.sagemakerModelManagementStatement);
 
     // API Gateway Lambda Integration to manage model
     const lambdaModelIntegration = new apigw.LambdaIntegration(modelLambda, {

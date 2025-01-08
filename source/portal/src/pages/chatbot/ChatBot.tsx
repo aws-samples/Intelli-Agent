@@ -171,6 +171,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     setTemperature(defaultConfig.temperature)
     setTopKRetrievals(defaultConfig.topKRetrievals)
     setScore(defaultConfig.score)
+    setUserMessage('')
     setAdditionalConfig('')
     // setModelOption(optionList?.[0]?.value ?? '')
     setSessionId(uuidv4());
@@ -392,13 +393,16 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     }
   };
 
-  document.addEventListener('compositionstart', () => {
-    setIsComposing(true);
-  });
+  const inputElement = document.querySelector('input');
 
-  document.addEventListener('compositionend', () => {
-    setIsComposing(false);
-  });
+  if (inputElement) {
+    inputElement.addEventListener('compositionstart', () => {
+      setIsComposing(true);
+    });
+    inputElement.addEventListener('compositionend', () => {
+      setIsComposing(false);
+    });
+  }
 
   useEffect(() => {
     if (lastMessage !== null) {
@@ -467,23 +471,25 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     }
 
     if (!maxRounds.trim()) {
-      setMaxTokenError('validation.requireMaxRounds');
+      setMaxRoundsError('validation.requireMaxRounds');
       setModelSettingExpand(true);
       return;
     }
+
     if (parseInt(maxRounds) < 0) {
-      setMaxTokenError('validation.maxRoundsRange');
+      setMaxRoundsError('validation.maxRoundsRange');
       setModelSettingExpand(true);
       return;
     }
 
     if (!topKRetrievals.trim()) {
-      setMaxTokenError('validation.requireTopKRetrievals');
+      setTopKRetrievalsError('validation.requireTopKRetrievals');
       setModelSettingExpand(true);
       return;
     }
+
     if (parseInt(topKRetrievals) < 1) {
-      setMaxTokenError('validation.topKRetrievals');
+      setTopKRetrievalsError('validation.topKRetrievals');
       setModelSettingExpand(true);
       return;
     }
@@ -790,6 +796,9 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                       type="number"
                       value={maxRounds}
                       onChange={({ detail }) => {
+                        if(parseInt(detail.value) < 0 || parseInt(detail.value) > 100){
+                          return
+                        }
                         setMaxRoundsError('');
                         setMaxRounds(detail.value);
                       }}
@@ -851,6 +860,9 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                       type="number"
                       value={topKRetrievals}
                       onChange={({ detail }) => {
+                        if(parseInt(detail.value) < 0 || parseInt(detail.value) > 100){
+                          return
+                        }
                         setTopKRetrievalsError('');
                         setTopKRetrievals(detail.value);
                       }}
@@ -864,7 +876,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
                   >
                     <Input
                       type="number"
-                      step={0.1}
+                      step={0.01}
                       value={score}
                       onChange={({ detail }) => {
                         if(parseFloat(detail.value) < 0 || parseFloat(detail.value) > 1){
