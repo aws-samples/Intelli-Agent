@@ -13,7 +13,6 @@ from decimal import Decimal
 from typing import Any, Dict, Optional
 
 import boto3
-from boto3.dynamodb.conditions import Key
 from botocore.paginate import TokenEncoder
 
 # Configure logging
@@ -255,31 +254,7 @@ class ApiHandler:
             result = ChatHistoryManager.list_messages(session_id, pagination_config)
             return ApiResponse.success(result)
         except Exception as e:
-            return ApiResponse.error(str(e))
-
-    @staticmethod
-    def add_feedback(event: Dict) -> Dict:
-        """Handle POST /sessions/{sessionId}/messages/{messageId}/feedback endpoint"""
-        try:
-            # Extract path parameters
-            session_id = event["pathParameters"]["sessionId"]
-            message_id = event["pathParameters"]["messageId"]
-            claims = json.loads(event["requestContext"]["authorizer"]["claims"])
-            user_id = claims["cognito:username"]
-
-            # Parse request body
-            body = json.loads(event["body"])
-            result = ChatHistoryManager.add_feedback(
-                session_id=session_id,
-                user_id=user_id,
-                message_id=message_id,
-                feedback_type=body["feedback_type"],
-                feedback_reason=body["feedback_reason"],
-                suggest_message=body["suggest_message"],
-            )
-            return ApiResponse.success(result)
-        except Exception as e:
-            return ApiResponse.error(str(e))
+            return ApiResponse.error(str(e)) 
 
 
 def send_message(event, context):
@@ -420,7 +395,6 @@ def lambda_handler(event: Dict, context: Any) -> Dict:
 
     routes = {
         ("GET", "/customer-sessions"): ApiHandler.list_sessions,
-        ("POST", "/customer-sessions"): ApiHandler.add_feedback,
         ("GET", "/customer-sessions/{sessionId}/messages"): ApiHandler.list_messages,
     }
 

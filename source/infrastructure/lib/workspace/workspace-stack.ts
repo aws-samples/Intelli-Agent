@@ -108,12 +108,12 @@ export class WorkspaceStack extends Stack implements WorkspaceOutputs {
       partitionKey: { name: "sessionId", type: dynamodb.AttributeType.STRING },
     });
 
-    const queryHandler = new PythonFunction(this, "QueryHandler", {
+    const restQueryHandler = new PythonFunction(this, "RestQueryHandler", {
       // functionName: `query-handler-${randomUuid}`,
       runtime: Runtime.PYTHON_3_12,
       entry: join(__dirname, "../../../lambda/query_handler"),
-      index: "main.py",
-      handler: "main.lambda_handler",
+      index: "rest_api.py",
+      handler: "rest_api.lambda_handler",
       timeout: Duration.minutes(15),
       environment: {
         SESSIONS_TABLE_NAME: customerSessionsTable.tableName,
@@ -122,12 +122,7 @@ export class WorkspaceStack extends Stack implements WorkspaceOutputs {
         MESSAGES_BY_SESSION_ID_INDEX_NAME: "bySessionId",
       },
     });
-    queryHandler.addToRolePolicy(this.iamHelper.dynamodbStatement);
-
-    queryHandler.addToRolePolicy(chatQueueConstruct.sqsStatement);
-    queryHandler.addEventSource(
-      new lambdaEventSources.SqsEventSource(chatQueueConstruct.messageQueue, { batchSize: 1 }),
-    );
+    restQueryHandler.addToRolePolicy(this.iamHelper.dynamodbStatement);
    
     // Define the API Gateway
     const workspaceApi = new apigw.RestApi(this, `${Constants.SOLUTION_SHORT_NAME.toLowerCase()}-workspace-api`, {
@@ -180,10 +175,10 @@ export class WorkspaceStack extends Stack implements WorkspaceOutputs {
     });
 
     const apiResourceSessions = workspaceApi.root.addResource("customer-sessions");
-    apiResourceSessions.addMethod("GET", new apigw.LambdaIntegration(queryHandler), genMethodOption(workspaceApi, auth, null),);
-    apiResourceSessions.addMethod("POST", new apigw.LambdaIntegration(queryHandler), genMethodOption(workspaceApi, auth, null),);
+    apiResourceSessions.addMethod("GET", new apigw.LambdaIntegration(restQueryHandler), genMethodOption(workspaceApi, auth, null),);
+    apiResourceSessions.addMethod("POST", new apigw.LambdaIntegration(restQueryHandler), genMethodOption(workspaceApi, auth, null),);
     const apiResourceMessages = apiResourceSessions.addResource('{sessionId}').addResource("messages");
-    apiResourceMessages.addMethod("GET", new apigw.LambdaIntegration(queryHandler), genMethodOption(workspaceApi, auth, null),);
+    apiResourceMessages.addMethod("GET", new apigw.LambdaIntegration(restQueryHandler), genMethodOption(workspaceApi, auth, null),);
     
     const wsDispatcher = new LambdaFunction(this, "workspaceDispatcher", {
       code: Code.fromAsset(join(__dirname, "../../../lambda/workspace")),
@@ -193,9 +188,29 @@ export class WorkspaceStack extends Stack implements WorkspaceOutputs {
       statements: [chatQueueConstruct.sqsStatement],
     });
 
+    const wsQueryHandler = new PythonFunction(this, "WebSocketQueryHandler", {
+      // functionName: `query-handler-${randomUuid}`,
+      runtime: Runtime.PYTHON_3_12,
+      entry: join(__dirname, "../../../lambda/query_handler"),
+      index: "websocket_api.py",
+      handler: "websocket_api.lambda_handler",
+      timeout: Duration.minutes(15),
+      environment: {
+        SESSIONS_TABLE_NAME: customerSessionsTable.tableName,
+        MESSAGES_TABLE_NAME: customerMessagesTable.tableName,
+        SESSIONS_BY_TIMESTAMP_INDEX_NAME: "byTimestamp",
+        MESSAGES_BY_SESSION_ID_INDEX_NAME: "bySessionId",
+      },
+    });
+    wsQueryHandler.addToRolePolicy(this.iamHelper.dynamodbStatement);    
+    wsQueryHandler.addToRolePolicy(chatQueueConstruct.sqsStatement);
+    wsQueryHandler.addEventSource(
+      new lambdaEventSources.SqsEventSource(chatQueueConstruct.messageQueue, { batchSize: 1 }),
+    );
+
     const webSocketApi = new WSWebSocketConstruct(this, "WSWebSocketApi", {
       dispatcherLambda: wsDispatcher.function,
-      sendMessageLambda: queryHandler,
+      sendMessageLambda: wsQueryHandler,
       customAuthorizerLambda: customAuthorizerLambda.function,
       sessionTableName: customerSessionsTable.tableName,
       messageTableName: customerMessagesTable.tableName,
