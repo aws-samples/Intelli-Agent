@@ -13,7 +13,7 @@ import { useTranslation } from 'react-i18next';
 import {
   ADITIONAL_SETTINGS,
   ENABLE_TRACE,
-  CURRENT_CHAT_BOT,  
+  CURRENT_CHAT_BOT,
   DEFAULT_ZH_LANG,
   EN_TEXT,
   LANGUAGE_ITEMS,
@@ -31,7 +31,17 @@ import ConfigContext from 'src/context/config-context';
 import { useLocation, useNavigate } from 'react-router-dom';
 import CustomBreadCrumb, { BreadCrumbType } from './CustomBreadCrumb';
 import { CustomNavigationItem } from 'src/types';
-const STORAGE_KEYS = [CURRENT_CHAT_BOT, USE_CHAT_HISTORY, ENABLE_TRACE, ONLY_RAG_TOOL, SCENARIO, MODEL_OPTION, MAX_TOKEN, TEMPERATURE, ADITIONAL_SETTINGS]
+const STORAGE_KEYS = [
+  CURRENT_CHAT_BOT,
+  USE_CHAT_HISTORY,
+  ENABLE_TRACE,
+  ONLY_RAG_TOOL,
+  SCENARIO,
+  MODEL_OPTION,
+  MAX_TOKEN,
+  TEMPERATURE,
+  ADITIONAL_SETTINGS,
+];
 
 interface CommonLayoutProps {
   activeHref: string;
@@ -59,10 +69,10 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
   };
 
   const clearStorage = () => {
-    STORAGE_KEYS.forEach(key => {
+    STORAGE_KEYS.forEach((key) => {
       localStorage.removeItem(key);
-    })
-  }
+    });
+  };
 
   useEffect(() => {
     setDisplayName(
@@ -105,21 +115,26 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
       text: t('intention'),
       href: '/intention',
     },
-  ]
+  ];
 
   const promptItem = {
     type: 'link',
     text: t('prompt'),
     href: '/prompts',
-  }
+  };
 
-  const kbItem = config?.kbEnabled === 'true' ? {
-    type: 'link',
-    text: t('docLibrary'),
-    href: '/library',
-  } : null
+  const kbItem =
+    config?.kbEnabled === 'true'
+      ? {
+          type: 'link',
+          text: t('docLibrary'),
+          href: '/library',
+        }
+      : null;
 
-  const layoutItems = kbItem ? [...baseItems, kbItem, promptItem] : [...baseItems, promptItem];
+  const layoutItems = kbItem
+    ? [...baseItems, kbItem, promptItem]
+    : [...baseItems, promptItem];
   const location = useLocation();
   const currentActiveHref = location.pathname;
 
@@ -151,7 +166,7 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
               if (item.detail.id === 'signout') {
                 if (fullLogoutUrl) {
                   auth.removeUser();
-                  clearStorage()
+                  clearStorage();
                   window.location.href = fullLogoutUrl;
                 }
                 auth.removeUser();
@@ -179,53 +194,55 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
                 navigate(e.detail.href);
               }
             }}
-            items={[
-              {
-                type: 'link',
-                text: t('homeSidebar'),
-                href: '/',
-                id: 'home-sidebar',
-                itemID: 'home-nav'
-              },
-              {
-                type: 'section',
-                text: t('chatSpace'),
-                id: 'chat-space',
-                items: [
-                  {
-                    type: 'link',
-                    text: t('chat'),
-                    href: '/chats',
-                    id: 'chat',
-                    itemID: 'chat-nav'
-                  },
-                  {
-                    type: 'link',
-                    text: t('sessionHistory'),
-                    href: '/sessions',
-                    id: 'session-history',
-                    itemID: 'session-history-nav'
-                  },
-                ],
-              },
-              {
-                type: 'section',
-                text: t('settings'),
-                items: layoutItems.map((item, index) => ({
-                  ...item,
-                  itemID: `settings-nav-${index}`,
-                  className: item.text.toLowerCase().replace(/\s+/g, '-'),
-                })),
-              },
-              { type: 'divider' },
-              {
-                type: 'link',
-                text: t('documentation'),
-                href: 'https://github.com/aws-samples/Intelli-Agent',
-                external: true,
-                itemID: 'docs-nav'
-              },
-            ] as CustomNavigationItem[]}
+            items={
+              [
+                {
+                  type: 'link',
+                  text: t('homeSidebar'),
+                  href: '/',
+                  id: 'home-sidebar',
+                  itemID: 'home-nav',
+                },
+                {
+                  type: 'section',
+                  text: t('chatSpace'),
+                  id: 'chat-space',
+                  items: [
+                    {
+                      type: 'link',
+                      text: t('chat'),
+                      href: '/chats',
+                      id: 'chat',
+                      itemID: 'chat-nav',
+                    },
+                    {
+                      type: 'link',
+                      text: t('sessionHistory'),
+                      href: '/sessions',
+                      id: 'session-history',
+                      itemID: 'session-history-nav',
+                    },
+                  ],
+                },
+                {
+                  type: 'section',
+                  text: t('settings'),
+                  items: layoutItems.map((item, index) => ({
+                    ...item,
+                    itemID: `settings-nav-${index}`,
+                    className: item.text.toLowerCase().replace(/\s+/g, '-'),
+                  })),
+                },
+                { type: 'divider' },
+                {
+                  type: 'link',
+                  text: t('documentation'),
+                  href: 'https://github.com/aws-samples/Intelli-Agent',
+                  external: true,
+                  itemID: 'docs-nav',
+                },
+              ] as CustomNavigationItem[]
+            }
           />
         }
         content={<>{isLoading ? <Spinner /> : children}</>}

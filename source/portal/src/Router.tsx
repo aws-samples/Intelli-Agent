@@ -17,7 +17,7 @@ import Intention from './pages/intention/Intention';
 import IntentionDetail from './pages/intention/IntentionDetail';
 import Home from './pages/home/Home';
 import ChatbotDetail from './pages/chatbotManagement/ChatbotDetail';
-
+import CustomerService from './pages/customService/CustomerService';
 
 const SignedInRouter = () => {
   return (
@@ -35,6 +35,7 @@ const SignedInRouter = () => {
         <Route path="/intention/detail/:id" element={<IntentionDetail />} />
         <Route path="/chatbot-management" element={<ChatbotManagement />} />
         <Route path="/chatbot/detail/:id" element={<ChatbotDetail />} />
+        <Route path="/custom-service" element={<CustomerService />} />
       </Routes>
       <CommonAlert />
     </BrowserRouter>

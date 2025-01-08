@@ -1,0 +1,605 @@
+.customer-service-container {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+
+  .workspace {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+    position: relative;
+    background: #ffffff;
+
+    &.dragging {
+      cursor: ew-resize;
+
+      * {
+        user-select: none;
+      }
+
+      .left-nav,
+      .right-panel {
+        transition: none;
+      }
+    }
+
+    // 垂直分割线
+    .resizer {
+      width: 6px;
+      margin: 0 -3px;
+      background: transparent;
+      position: relative;
+      cursor: ew-resize;
+      z-index: 1;
+      transition: background-color 0.2s ease;
+
+      &::after {
+        content: '';
+        position: absolute;
+        left: 50%;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: #e9eaea;
+        transform: translateX(-50%);
+        transition: all 0.2s ease;
+      }
+
+      &:hover::after,
+      &:active::after {
+        width: 4px;
+        background: #0972d3;
+      }
+
+      // 水平分割线
+      &.horizontal {
+        width: 100%;
+        height: 6px;
+        margin: -3px 0;
+        cursor: ns-resize;
+
+        &::after {
+          left: 0;
+          right: 0;
+          top: 50%;
+          width: auto;
+          height: 2px;
+          transform: translateY(-50%);
+        }
+      }
+    }
+
+    // 左侧聊天区域
+    .left-nav {
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid #e9eaea;
+      background: #ffffff;
+      min-width: 250px;
+
+      // 上部分：聊天列表
+      .chat-list {
+        border-bottom: 1px solid #e9eaea;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+
+        .section-header {
+          padding: 16px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          background: #f8f8f8;
+          border-bottom: 1px solid #e9eaea;
+
+          h3 {
+            margin: 0;
+            color: #16191f;
+          }
+
+          .counter {
+            padding: 2px 8px;
+            background: #0972d3;
+            color: white;
+            border-radius: 12px;
+            font-size: 0.8rem;
+          }
+        }
+
+        .chat-items {
+          flex: 1;
+          overflow-y: auto;
+          padding: 8px;
+
+          .chat-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            position: relative;
+            gap: 12px;
+
+            &:hover {
+              background: #f8f8f8;
+            }
+
+            &.new {
+              background: #f0f7ff;
+
+              &:hover {
+                background: #e5f1ff;
+              }
+            }
+
+            .user-avatar {
+              width: 40px;
+              height: 40px;
+              background: #0972d3;
+              color: white;
+              border-radius: 50%;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-weight: 500;
+            }
+
+            .chat-info {
+              flex: 1;
+              min-width: 0;
+
+              .chat-header {
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 4px;
+
+                .name {
+                  font-weight: 500;
+                  color: #16191f;
+                }
+
+                .time {
+                  font-size: 0.8rem;
+                  color: #5f6b7a;
+                }
+              }
+
+              .last-message {
+                margin: 0;
+                color: #5f6b7a;
+                font-size: 0.9rem;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+              }
+            }
+
+            .new-badge {
+              width: 8px;
+              height: 8px;
+              background: #0972d3;
+              border-radius: 50%;
+              position: absolute;
+              top: 50%;
+              right: 12px;
+              transform: translateY(-50%);
+            }
+          }
+        }
+      }
+
+      // 水平分割线
+      .resizer.horizontal {
+        height: 6px;
+        margin: -3px 0;
+        cursor: ns-resize;
+        position: relative;
+        z-index: 1;
+
+        &::after {
+          content: '';
+          position: absolute;
+          top: 50%;
+          left: 0;
+          right: 0;
+          height: 2px;
+          background: #e9eaea;
+          transform: translateY(-50%);
+          transition: all 0.2s ease;
+        }
+
+        &:hover::after,
+        &:active::after {
+          height: 4px;
+          background: #0972d3;
+        }
+      }
+
+      // 下部分：当前对话
+      .current-chat {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+
+        .messages {
+          flex: 1;
+          overflow-y: auto;
+          padding: 16px;
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+
+          .message {
+            display: flex;
+            max-width: 80%;
+
+            &.customer {
+              margin-right: auto;
+
+              .message-content {
+                background: #f2f3f3;
+              }
+            }
+
+            &.agent {
+              margin-left: auto;
+
+              .message-content {
+                background: #0972d3;
+                color: white;
+
+                .time {
+                  color: rgba(255, 255, 255, 0.8);
+                }
+              }
+            }
+
+            .message-content {
+              padding: 12px 16px;
+              border-radius: 12px;
+              position: relative;
+
+              p {
+                margin: 0 0 4px;
+                line-height: 1.4;
+              }
+
+              .time {
+                font-size: 0.8rem;
+                color: #5f6b7a;
+              }
+            }
+          }
+        }
+
+        .chat-input {
+          padding: 16px;
+          border-top: 1px solid #e9eaea;
+          display: flex;
+          gap: 12px;
+          background: white;
+
+          textarea {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #e9eaea;
+            border-radius: 4px;
+            resize: none;
+            font-family: inherit;
+            font-size: 0.9rem;
+
+            &:focus {
+              outline: none;
+              border-color: #0972d3;
+            }
+          }
+
+          .send-btn {
+            padding: 8px 16px;
+            background: #0972d3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+
+            &:hover {
+              background: #0861b9;
+            }
+
+            .icon {
+              font-size: 1.2em;
+            }
+          }
+        }
+      }
+    }
+
+    // 中间内容区
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 400px;
+      border-right: 1px solid #e9eaea;
+
+      // Profile 部分样式
+      .profile-header {
+        padding: 24px;
+        background: #f8f8f8;
+        border-bottom: 1px solid #e9eaea;
+
+        .profile-info {
+          display: flex;
+          gap: 24px;
+
+          .avatar {
+            width: 64px;
+            height: 64px;
+            background: #0972d3;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 500;
+          }
+
+          .details {
+            h2 {
+              margin: 0 0 12px;
+              color: #16191f;
+            }
+
+            .contact-info {
+              display: flex;
+              gap: 24px;
+              margin-bottom: 12px;
+              color: #5f6b7a;
+
+              span {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+              }
+            }
+
+            .tags {
+              display: flex;
+              gap: 8px;
+
+              .tag {
+                padding: 4px 12px;
+                background: #e5f1ff;
+                color: #0972d3;
+                border-radius: 12px;
+                font-size: 0.85rem;
+              }
+            }
+          }
+        }
+
+        .profile-actions {
+          margin-top: 16px;
+          display: flex;
+          gap: 12px;
+        }
+      }
+
+      // 文档部分样式
+      .docs-section {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        background: white;
+
+        .docs-header {
+          padding: 16px 24px;
+          border-bottom: 1px solid #e9eaea;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+
+          h3 {
+            margin: 0;
+            color: #16191f;
+          }
+
+          .search-box {
+            width: 300px;
+
+            input {
+              width: 100%;
+              padding: 8px 12px;
+              border: 1px solid #e9eaea;
+              border-radius: 4px;
+              font-size: 0.9rem;
+
+              &:focus {
+                outline: none;
+                border-color: #0972d3;
+              }
+            }
+          }
+        }
+
+        .docs-tabs {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+
+          .tabs-list {
+            padding: 0 24px;
+            border-bottom: 1px solid #e9eaea;
+            display: flex;
+            gap: 4px;
+            background: #f8f8f8;
+
+            .tab {
+              padding: 12px 16px;
+              border: none;
+              background: none;
+              cursor: pointer;
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              color: #5f6b7a;
+              border-bottom: 2px solid transparent;
+              transition: all 0.2s ease;
+
+              &:hover {
+                color: #16191f;
+              }
+
+              &.active {
+                color: #0972d3;
+                border-bottom-color: #0972d3;
+                background: white;
+              }
+
+              .badge {
+                padding: 2px 8px;
+                background: #f2f3f3;
+                border-radius: 12px;
+                font-size: 0.8rem;
+              }
+            }
+          }
+
+          .tab-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+
+            .document-preview {
+              .doc-header {
+                margin-bottom: 24px;
+                padding-bottom: 16px;
+                border-bottom: 1px solid #e9eaea;
+
+                h2 {
+                  margin: 0 0 8px;
+                  color: #16191f;
+                }
+
+                .last-modified {
+                  color: #5f6b7a;
+                  font-size: 0.9rem;
+                }
+              }
+
+              .doc-content {
+                color: #16191f;
+                line-height: 1.6;
+                font-size: 0.95rem;
+
+                h1,
+                h2,
+                h3 {
+                  margin-top: 24px;
+                  margin-bottom: 16px;
+                  color: #16191f;
+                }
+
+                p {
+                  margin: 0 0 16px;
+                }
+
+                ul,
+                ol {
+                  margin: 0 0 16px;
+                  padding-left: 24px;
+                }
+              }
+            }
+
+            .no-doc-selected {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              height: 100%;
+              color: #5f6b7a;
+            }
+          }
+        }
+      }
+    }
+
+    // 右侧面板
+    .right-panel {
+      display: flex;
+      flex-direction: column;
+      min-width: 250px;
+      background: #ffffff;
+      border-left: 1px solid #e9eaea;
+
+      .panel-header {
+        padding: 16px;
+        border-bottom: 1px solid #e9eaea;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+
+        h3 {
+          color: #16191f;
+          margin: 0;
+        }
+
+        .close-btn {
+          background: none;
+          border: none;
+          font-size: 1.5rem;
+          color: #5f6b7a;
+          cursor: pointer;
+          padding: 4px 8px;
+
+          &:hover {
+            color: #16191f;
+          }
+        }
+      }
+
+      .panel-content {
+        padding: 16px;
+        flex: 1;
+        overflow-y: auto;
+
+        p {
+          margin-bottom: 16px;
+          color: #16191f;
+          line-height: 1.5;
+        }
+
+        h4 {
+          margin: 16px 0 8px;
+          color: #16191f;
+        }
+
+        .learn-more {
+          color: #0972d3;
+          text-decoration: none;
+
+          &:hover {
+            text-decoration: underline;
+          }
+        }
+      }
+
+      transition: width 0.05s ease;
+    }
+  }
+
+  // 添加过渡效果
+  .left-nav,
+  .right-panel {
+    will-change: width;
+    transition: width 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
