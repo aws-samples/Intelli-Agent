@@ -236,15 +236,38 @@ $hover-light: #f3f4f6;
 
           textarea {
             flex: 1;
+            padding: 8px 12px;
             border: 1px solid $border;
             border-radius: 6px;
-            padding: 8px 12px;
-            resize: none;
             font-size: 13px;
+            line-height: 1.5;
+            resize: none;
+            overflow-y: auto;
+            transition: all 0.2s ease;
+            min-height: 36px;
+            height: auto;
 
             &:focus {
               outline: none;
               border-color: $primary;
+              box-shadow: 0 0 0 2px rgba($primary, 0.1);
+            }
+
+            &::-webkit-scrollbar {
+              width: 6px;
+            }
+
+            &::-webkit-scrollbar-track {
+              background: transparent;
+            }
+
+            &::-webkit-scrollbar-thumb {
+              background-color: rgba($text-secondary, 0.2);
+              border-radius: 3px;
+
+              &:hover {
+                background-color: rgba($text-secondary, 0.3);
+              }
             }
           }
 
@@ -587,7 +610,6 @@ $hover-light: #f3f4f6;
             }
 
             .no-doc-selected {
-              height: 100%;
               display: flex;
               flex-direction: column;
               align-items: center;
@@ -610,6 +632,8 @@ $hover-light: #f3f4f6;
     .right-panel {
       background: $bg-white;
       min-width: 300px;
+      display: flex;
+      flex-direction: column;
 
       .panel-header {
         padding: 16px;
@@ -618,6 +642,7 @@ $hover-light: #f3f4f6;
         justify-content: space-between;
         align-items: center;
         background: $bg-light;
+        flex-shrink: 0;
 
         h3 {
           font-size: 14px;
@@ -643,32 +668,178 @@ $hover-light: #f3f4f6;
       }
 
       .panel-content {
-        padding: 16px;
-        font-size: 13px;
-        color: $text-primary;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
 
-        p {
-          margin: 0 0 16px;
-          line-height: 1.6;
-        }
+        .chat-message {
+          display: flex;
+          flex-direction: column;
+          height: 100%;
+          padding-bottom: 10px;
 
-        h4 {
-          font-size: 14px;
-          font-weight: 500;
-          margin: 24px 0 12px;
-        }
+          .message-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            scroll-behavior: smooth;
+            overscroll-behavior: contain;
+            will-change: scroll-position;
 
-        .learn-more {
-          color: $primary;
-          text-decoration: none;
-          transition: all 0.2s ease;
+            &::-webkit-scrollbar {
+              width: 8px;
+            }
 
-          &:hover {
-            color: $primary-dark;
-            text-decoration: underline;
+            &::-webkit-scrollbar-track {
+              background: transparent;
+            }
+
+            &::-webkit-scrollbar-thumb {
+              background-color: rgba($text-secondary, 0.2);
+              border-radius: 4px;
+
+              &:hover {
+                background-color: rgba($text-secondary, 0.3);
+              }
+            }
+
+            .message {
+              max-width: 85%;
+              display: flex;
+
+              &.user {
+                margin-left: auto;
+
+                .message-content {
+                  background: $primary;
+                  color: $bg-white;
+                }
+              }
+
+              &.assistant {
+                margin-right: auto;
+
+                .message-content {
+                  background: $bg-light;
+                  color: $text-primary;
+                }
+              }
+
+              .message-content {
+                padding: 12px 16px;
+                border-radius: 12px;
+                font-size: 13px;
+                line-height: 1.5;
+
+                p {
+                  margin: 0 0 4px;
+                  white-space: pre-wrap;
+                  word-break: break-word;
+                }
+
+                .time {
+                  font-size: 11px;
+                  opacity: 0.7;
+                }
+              }
+            }
+          }
+
+          .input-area {
+            padding: 16px;
+            border-top: 1px solid $border;
+            background: $bg-white;
+            flex-shrink: 0;
+
+            .input-wrapper {
+              display: flex;
+              gap: 12px;
+              align-items: flex-end;
+
+              textarea {
+                flex: 1;
+                padding: 8px 12px;
+                border: 1px solid $border;
+                border-radius: 6px;
+                font-size: 13px;
+                line-height: 1.5;
+                resize: none;
+                overflow-y: auto;
+                transition: all 0.2s ease;
+                min-height: 36px;
+                height: auto;
+
+                &:focus {
+                  outline: none;
+                  border-color: $primary;
+                  box-shadow: 0 0 0 2px rgba($primary, 0.1);
+                }
+
+                &::-webkit-scrollbar {
+                  width: 6px;
+                }
+
+                &::-webkit-scrollbar-track {
+                  background: transparent;
+                }
+
+                &::-webkit-scrollbar-thumb {
+                  background-color: rgba($text-secondary, 0.2);
+                  border-radius: 3px;
+
+                  &:hover {
+                    background-color: rgba($text-secondary, 0.3);
+                  }
+                }
+              }
+
+              .send-button {
+                padding: 8px 16px;
+                background: $primary;
+                color: $bg-white;
+                border: none;
+                border-radius: 6px;
+                font-size: 13px;
+                font-weight: 500;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                transition: all 0.2s ease;
+
+                &:hover {
+                  background: darken($primary, 5%);
+                }
+
+                &:disabled {
+                  background: lighten($primary, 20%);
+                  cursor: not-allowed;
+                }
+
+                .icon {
+                  font-size: 16px;
+                }
+              }
+            }
           }
         }
       }
+    }
+  }
+}
+
+.send-message {
+  position: relative;
+
+  .flex-1 {
+    min-height: 36px;
+
+    [data-awsui-focus-visible='true'] {
+      box-shadow: none;
     }
   }
 }

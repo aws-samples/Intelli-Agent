@@ -10,6 +10,7 @@ import {
 } from 'src/utils/const';
 import './CustomerService.scss';
 import { initResize } from './resize';
+import { ChatMessage } from './comps/ChatMessage';
 
 const INIT_WIDTH = 400;
 const MAX_WIDTH = 800;
@@ -31,6 +32,7 @@ const CustomerService: React.FC = () => {
   //   const [selectedDocTab, setSelectedDocTab] = useState('reference');
   const [leftTopHeight, setLeftTopHeight] = useState(300);
   const [activeDocId, setActiveDocId] = useState<string | null>(null);
+
   const [documents] = useState<Document[]>([
     {
       id: 'doc1',
@@ -411,17 +413,7 @@ Some items cannot be shipped to certain locations due to regulations.`,
             <button className="close-btn">×</button>
           </div>
           <div className="panel-content">
-            <p>
-              Your organization's Connect Administrator has not completed Amazon
-              Q setup. Contact your Administrator so you can search for
-              solutions and start receiving proactive suggestions to help
-              address customer issues more efficiently.
-            </p>
-            <h4>How to fix:</h4>
-            <p>Add an integration association for your Amazon Q Assistant</p>
-            <a href="#" className="learn-more">
-              Learn more about Amazon Q
-            </a>
+            <ChatMessage />
           </div>
         </div>
       </div>
