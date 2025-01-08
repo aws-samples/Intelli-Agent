@@ -1,143 +1,133 @@
+// 定义颜色变量
+$primary: #006ce0;
+$primary-light: #e6f0fc;
+$primary-dark: #0055b3;
+$text-primary: #1f2937;
+$text-secondary: #6b7280;
+$border: #e5e7eb;
+$bg-light: #f9fafb;
+$bg-white: #ffffff;
+$hover-light: #f3f4f6;
+
 .customer-service-container {
   height: 100vh;
   display: flex;
   flex-direction: column;
+  background: $bg-white;
 
   .workspace {
     flex: 1;
     display: flex;
     overflow: hidden;
     position: relative;
-    background: #ffffff;
+    gap: 1px;
+    background: $bg-light;
 
-    &.dragging {
-      cursor: ew-resize;
-
-      * {
-        user-select: none;
-      }
-
-      .left-nav,
-      .right-panel {
-        transition: none;
-      }
+    &.dragging * {
+      user-select: none;
     }
 
-    // 垂直分割线
+    // 分割线
     .resizer {
-      width: 6px;
-      margin: 0 -3px;
-      background: transparent;
+      width: 1px;
+      background: $border;
       position: relative;
-      cursor: ew-resize;
-      z-index: 1;
-      transition: background-color 0.2s ease;
+      z-index: 10;
 
       &::after {
         content: '';
         position: absolute;
-        left: 50%;
         top: 0;
+        left: -2px;
+        right: -2px;
         bottom: 0;
-        width: 2px;
-        background: #e9eaea;
-        transform: translateX(-50%);
-        transition: all 0.2s ease;
+        background: transparent;
+        cursor: col-resize;
       }
 
-      &:hover::after,
-      &:active::after {
-        width: 4px;
-        background: #0972d3;
+      &:hover,
+      &:active {
+        background: $primary;
       }
 
-      // 水平分割线
       &.horizontal {
         width: 100%;
-        height: 6px;
-        margin: -3px 0;
-        cursor: ns-resize;
+        height: 1px;
+        cursor: row-resize;
 
         &::after {
+          top: -2px;
           left: 0;
           right: 0;
-          top: 50%;
-          width: auto;
-          height: 2px;
-          transform: translateY(-50%);
+          bottom: -2px;
         }
       }
     }
 
     // 左侧聊天区域
     .left-nav {
+      background: $bg-white;
       display: flex;
       flex-direction: column;
-      border-right: 1px solid #e9eaea;
-      background: #ffffff;
-      min-width: 250px;
+      min-width: 300px;
+      border-right: 1px solid $border;
 
-      // 上部分：聊天列表
       .chat-list {
-        border-bottom: 1px solid #e9eaea;
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
+        border-bottom: 1px solid $border;
 
         .section-header {
           padding: 16px;
           display: flex;
           justify-content: space-between;
           align-items: center;
-          background: #f8f8f8;
-          border-bottom: 1px solid #e9eaea;
+          border-bottom: 1px solid $border;
 
           h3 {
+            font-size: 14px;
+            font-weight: 500;
+            color: $text-primary;
             margin: 0;
-            color: #16191f;
           }
 
           .counter {
             padding: 2px 8px;
-            background: #0972d3;
-            color: white;
-            border-radius: 12px;
-            font-size: 0.8rem;
+            background: $primary-light;
+            color: $primary;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
           }
         }
 
         .chat-items {
-          flex: 1;
           overflow-y: auto;
-          padding: 8px;
 
           .chat-item {
+            padding: 12px 16px;
             display: flex;
             align-items: center;
-            padding: 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            position: relative;
             gap: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
 
             &:hover {
-              background: #f8f8f8;
+              background: $hover-light;
             }
 
             &.new {
-              background: #f0f7ff;
+              background: $primary-light;
 
               &:hover {
-                background: #e5f1ff;
+                background: darken($primary-light, 2%);
               }
             }
 
             .user-avatar {
-              width: 40px;
-              height: 40px;
-              background: #0972d3;
-              color: white;
-              border-radius: 50%;
+              width: 36px;
+              height: 36px;
+              border-radius: 6px;
+              background: $primary-light;
+              color: $primary;
               display: flex;
               align-items: center;
               justify-content: center;
@@ -154,20 +144,21 @@
                 margin-bottom: 4px;
 
                 .name {
+                  font-size: 13px;
                   font-weight: 500;
-                  color: #16191f;
+                  color: $text-primary;
                 }
 
                 .time {
-                  font-size: 0.8rem;
-                  color: #5f6b7a;
+                  font-size: 12px;
+                  color: $text-secondary;
                 }
               }
 
               .last-message {
+                font-size: 12px;
+                color: $text-secondary;
                 margin: 0;
-                color: #5f6b7a;
-                font-size: 0.9rem;
                 white-space: nowrap;
                 overflow: hidden;
                 text-overflow: ellipsis;
@@ -175,70 +166,54 @@
             }
 
             .new-badge {
-              width: 8px;
-              height: 8px;
-              background: #0972d3;
+              width: 6px;
+              height: 6px;
               border-radius: 50%;
-              position: absolute;
-              top: 50%;
-              right: 12px;
-              transform: translateY(-50%);
+              background: $primary;
             }
           }
         }
       }
 
-      // 水平分割线
-      .resizer.horizontal {
-        height: 6px;
-        margin: -3px 0;
-        cursor: ns-resize;
-        position: relative;
-        z-index: 1;
-
-        &::after {
-          content: '';
-          position: absolute;
-          top: 50%;
-          left: 0;
-          right: 0;
-          height: 2px;
-          background: #e9eaea;
-          transform: translateY(-50%);
-          transition: all 0.2s ease;
-        }
-
-        &:hover::after,
-        &:active::after {
-          height: 4px;
-          background: #0972d3;
-        }
-      }
-
-      // 下部分：当前对话
       .current-chat {
         flex: 1;
         display: flex;
         flex-direction: column;
-        overflow: hidden;
+        background: $bg-white;
 
         .messages {
           flex: 1;
-          overflow-y: auto;
           padding: 16px;
+          overflow-y: auto;
           display: flex;
           flex-direction: column;
-          gap: 16px;
+          gap: 12px;
 
           .message {
-            display: flex;
             max-width: 80%;
+            display: flex;
+
+            .message-content {
+              padding: 12px;
+              border-radius: 6px;
+              font-size: 13px;
+
+              p {
+                margin: 0 0 4px;
+              }
+
+              .time {
+                font-size: 11px;
+                opacity: 0.7;
+              }
+            }
 
             &.customer {
               margin-right: auto;
 
               .message-content {
-                background: #f2f3f3;
+                background: $bg-light;
+                color: $text-primary;
               }
             }
 
@@ -246,28 +221,8 @@
               margin-left: auto;
 
               .message-content {
-                background: #0972d3;
-                color: white;
-
-                .time {
-                  color: rgba(255, 255, 255, 0.8);
-                }
-              }
-            }
-
-            .message-content {
-              padding: 12px 16px;
-              border-radius: 12px;
-              position: relative;
-
-              p {
-                margin: 0 0 4px;
-                line-height: 1.4;
-              }
-
-              .time {
-                font-size: 0.8rem;
-                color: #5f6b7a;
+                background: $primary;
+                color: $bg-white;
               }
             }
           }
@@ -275,97 +230,122 @@
 
         .chat-input {
           padding: 16px;
-          border-top: 1px solid #e9eaea;
+          border-top: 1px solid $border;
           display: flex;
           gap: 12px;
-          background: white;
 
           textarea {
             flex: 1;
+            border: 1px solid $border;
+            border-radius: 6px;
             padding: 8px 12px;
-            border: 1px solid #e9eaea;
-            border-radius: 4px;
             resize: none;
-            font-family: inherit;
-            font-size: 0.9rem;
+            font-size: 13px;
 
             &:focus {
               outline: none;
-              border-color: #0972d3;
+              border-color: $primary;
             }
           }
 
           .send-btn {
             padding: 8px 16px;
-            background: #0972d3;
+            background: $primary;
             color: white;
             border: none;
-            border-radius: 4px;
-            cursor: pointer;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
             display: flex;
             align-items: center;
-            gap: 8px;
-            font-weight: 500;
+            gap: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
 
             &:hover {
-              background: #0861b9;
-            }
-
-            .icon {
-              font-size: 1.2em;
+              background: $primary-dark;
             }
           }
         }
       }
     }
 
-    // 中间内容区
+    // 主内容区
     .main-content {
       flex: 1;
       display: flex;
       flex-direction: column;
-      min-width: 400px;
-      border-right: 1px solid #e9eaea;
+      background: $bg-white;
+      min-width: 500px;
+      border-right: 1px solid $border;
 
-      // Profile 部分样式
+      // 用户信息区域
       .profile-header {
         padding: 24px;
-        background: #f8f8f8;
-        border-bottom: 1px solid #e9eaea;
+        background: $bg-white;
+        border-bottom: 1px solid $border;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        position: relative;
+        z-index: 1;
 
         .profile-info {
           display: flex;
-          gap: 24px;
+          gap: 20px;
 
           .avatar {
-            width: 64px;
-            height: 64px;
-            background: #0972d3;
-            color: white;
-            border-radius: 50%;
+            width: 56px;
+            height: 56px;
+            border-radius: 8px;
+            background: $primary-light;
+            color: $primary;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.5rem;
-            font-weight: 500;
+            font-size: 20px;
+            font-weight: 600;
+            box-shadow: 0 2px 4px rgba($primary, 0.1);
+            transition: transform 0.2s ease;
+
+            &:hover {
+              transform: scale(1.05);
+            }
           }
 
           .details {
+            flex: 1;
+
             h2 {
               margin: 0 0 12px;
-              color: #16191f;
+              font-size: 18px;
+              color: $text-primary;
+              font-weight: 600;
             }
 
             .contact-info {
               display: flex;
-              gap: 24px;
+              flex-wrap: wrap;
+              gap: 16px;
               margin-bottom: 12px;
-              color: #5f6b7a;
 
               span {
+                font-size: 13px;
+                color: $text-secondary;
                 display: flex;
                 align-items: center;
                 gap: 8px;
+                padding: 4px 8px;
+                background: $bg-light;
+                border-radius: 6px;
+                transition: all 0.2s ease;
+
+                &:hover {
+                  background: darken($bg-light, 2%);
+                  color: $text-primary;
+                }
+
+                .icon {
+                  color: $primary;
+                }
               }
             }
 
@@ -375,56 +355,98 @@
 
               .tag {
                 padding: 4px 12px;
-                background: #e5f1ff;
-                color: #0972d3;
-                border-radius: 12px;
-                font-size: 0.85rem;
+                background: $primary-light;
+                color: $primary;
+                border-radius: 6px;
+                font-size: 12px;
+                font-weight: 500;
+                transition: all 0.2s ease;
+                border: 1px solid rgba($primary, 0.1);
+
+                &:hover {
+                  transform: translateY(-1px);
+                  box-shadow: 0 2px 4px rgba($primary, 0.1);
+                }
               }
             }
           }
         }
 
         .profile-actions {
-          margin-top: 16px;
+          margin-top: 20px;
           display: flex;
           gap: 12px;
+
+          .action-button {
+            padding: 8px 16px;
+            border: 1px solid $border;
+            border-radius: 6px;
+            background: $bg-white;
+            color: $text-primary;
+            font-size: 13px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+
+            .icon {
+              color: $primary;
+            }
+
+            &:hover {
+              background: $primary-light;
+              border-color: rgba($primary, 0.1);
+              color: $primary;
+              transform: translateY(-1px);
+            }
+          }
         }
       }
 
-      // 文档部分样式
+      // 文档区域
       .docs-section {
         flex: 1;
         display: flex;
         flex-direction: column;
+        background: $bg-light;
         overflow: hidden;
-        background: white;
 
         .docs-header {
-          padding: 16px 24px;
-          border-bottom: 1px solid #e9eaea;
+          padding: 20px 24px;
+          background: $bg-white;
+          border-bottom: 1px solid $border;
           display: flex;
           justify-content: space-between;
           align-items: center;
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 
           h3 {
+            font-size: 15px;
+            font-weight: 600;
+            color: $text-primary;
             margin: 0;
-            color: #16191f;
           }
 
-          .search-box {
-            width: 300px;
+          .search-box input {
+            width: 280px;
+            padding: 8px 16px;
+            border: 1px solid $border;
+            border-radius: 8px;
+            font-size: 13px;
+            background: $bg-light;
+            transition: all 0.2s ease;
 
-            input {
-              width: 100%;
-              padding: 8px 12px;
-              border: 1px solid #e9eaea;
-              border-radius: 4px;
-              font-size: 0.9rem;
+            &:focus {
+              outline: none;
+              border-color: $primary;
+              background: $bg-white;
+              box-shadow: 0 0 0 3px rgba($primary, 0.1);
+            }
 
-              &:focus {
-                outline: none;
-                border-color: #0972d3;
-              }
+            &::placeholder {
+              color: $text-secondary;
             }
           }
         }
@@ -437,38 +459,54 @@
 
           .tabs-list {
             padding: 0 24px;
-            border-bottom: 1px solid #e9eaea;
+            background: $bg-white;
+            border-bottom: 1px solid $border;
             display: flex;
-            gap: 4px;
-            background: #f8f8f8;
+            gap: 32px;
 
             .tab {
-              padding: 12px 16px;
+              padding: 16px 4px;
               border: none;
               background: none;
+              font-size: 13px;
+              color: $text-secondary;
               cursor: pointer;
-              display: flex;
-              align-items: center;
-              gap: 8px;
-              color: #5f6b7a;
-              border-bottom: 2px solid transparent;
+              position: relative;
               transition: all 0.2s ease;
+              font-weight: 500;
+
+              &::after {
+                content: '';
+                position: absolute;
+                left: 0;
+                right: 0;
+                bottom: -1px;
+                height: 2px;
+                background: transparent;
+                transition: all 0.2s ease;
+              }
 
               &:hover {
-                color: #16191f;
+                color: $text-primary;
               }
 
               &.active {
-                color: #0972d3;
-                border-bottom-color: #0972d3;
-                background: white;
+                color: $primary;
+
+                &::after {
+                  background: $primary;
+                }
               }
 
               .badge {
+                margin-left: 8px;
                 padding: 2px 8px;
-                background: #f2f3f3;
+                background: $primary-light;
+                color: $primary;
                 border-radius: 12px;
-                font-size: 0.8rem;
+                font-size: 11px;
+                font-weight: 500;
+                border: 1px solid rgba($primary, 0.1);
               }
             }
           }
@@ -477,35 +515,59 @@
             flex: 1;
             overflow-y: auto;
             padding: 24px;
+            background: $bg-white;
 
             .document-preview {
+              margin: 0 auto;
+
               .doc-header {
                 margin-bottom: 24px;
                 padding-bottom: 16px;
-                border-bottom: 1px solid #e9eaea;
+                border-bottom: 1px solid $border;
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
 
                 h2 {
-                  margin: 0 0 8px;
-                  color: #16191f;
+                  margin: 0;
+                  font-size: 20px;
+                  color: $text-primary;
+                  font-weight: 600;
                 }
 
                 .last-modified {
-                  color: #5f6b7a;
-                  font-size: 0.9rem;
+                  font-size: 12px;
+                  color: $text-secondary;
+                  padding: 4px 8px;
+                  background: $bg-light;
+                  border-radius: 4px;
                 }
               }
 
               .doc-content {
-                color: #16191f;
-                line-height: 1.6;
-                font-size: 0.95rem;
+                font-size: 14px;
+                line-height: 1.7;
+                color: $text-primary;
+                background: $bg-white;
+                border-radius: 8px;
 
                 h1,
                 h2,
                 h3 {
-                  margin-top: 24px;
+                  margin-top: 28px;
                   margin-bottom: 16px;
-                  color: #16191f;
+                  color: $text-primary;
+                  font-weight: 600;
+                }
+
+                h1 {
+                  font-size: 24px;
+                }
+                h2 {
+                  font-size: 20px;
+                }
+                h3 {
+                  font-size: 16px;
                 }
 
                 p {
@@ -516,16 +578,28 @@
                 ol {
                   margin: 0 0 16px;
                   padding-left: 24px;
+
+                  li {
+                    margin-bottom: 8px;
+                  }
                 }
               }
             }
 
             .no-doc-selected {
+              height: 100%;
               display: flex;
+              flex-direction: column;
               align-items: center;
               justify-content: center;
-              height: 100%;
-              color: #5f6b7a;
+              color: $text-secondary;
+              gap: 12px;
+              padding: 48px;
+
+              &::before {
+                content: '📄';
+                font-size: 32px;
+              }
             }
           }
         }
@@ -534,72 +608,67 @@
 
     // 右侧面板
     .right-panel {
-      display: flex;
-      flex-direction: column;
-      min-width: 250px;
-      background: #ffffff;
-      border-left: 1px solid #e9eaea;
+      background: $bg-white;
+      min-width: 300px;
 
       .panel-header {
         padding: 16px;
-        border-bottom: 1px solid #e9eaea;
+        border-bottom: 1px solid $border;
         display: flex;
         justify-content: space-between;
         align-items: center;
+        background: $bg-light;
 
         h3 {
-          color: #16191f;
+          font-size: 14px;
+          font-weight: 500;
+          color: $text-primary;
           margin: 0;
         }
 
         .close-btn {
-          background: none;
           border: none;
-          font-size: 1.5rem;
-          color: #5f6b7a;
+          background: none;
+          color: $text-secondary;
           cursor: pointer;
-          padding: 4px 8px;
+          font-size: 18px;
+          padding: 4px;
+          line-height: 1;
+          transition: color 0.2s ease;
 
           &:hover {
-            color: #16191f;
+            color: $text-primary;
           }
         }
       }
 
       .panel-content {
         padding: 16px;
-        flex: 1;
-        overflow-y: auto;
+        font-size: 13px;
+        color: $text-primary;
 
         p {
-          margin-bottom: 16px;
-          color: #16191f;
-          line-height: 1.5;
+          margin: 0 0 16px;
+          line-height: 1.6;
         }
 
         h4 {
-          margin: 16px 0 8px;
-          color: #16191f;
+          font-size: 14px;
+          font-weight: 500;
+          margin: 24px 0 12px;
         }
 
         .learn-more {
-          color: #0972d3;
+          color: $primary;
           text-decoration: none;
+          transition: all 0.2s ease;
 
           &:hover {
+            color: $primary-dark;
             text-decoration: underline;
           }
         }
       }
-
-      transition: width 0.05s ease;
     }
-  }
-
-  // 添加过渡效果
-  .left-nav,
-  .right-panel {
-    will-change: width;
-    transition: width 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   }
 }
