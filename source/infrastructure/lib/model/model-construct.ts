@@ -17,10 +17,12 @@ import * as sagemaker from "aws-cdk-lib/aws-sagemaker";
 import { Construct } from "constructs";
 import * as dotenv from "dotenv";
 import * as appAutoscaling from "aws-cdk-lib/aws-applicationautoscaling";
-import { Metric } from 'aws-cdk-lib/aws-cloudwatch';
-import * as cr from 'aws-cdk-lib/custom-resources';
-import * as logs from 'aws-cdk-lib/aws-logs';
-import { Architecture, Code, Function, Runtime } from "aws-cdk-lib/aws-lambda";
+import { Metric } from "aws-cdk-lib/aws-cloudwatch";
+import * as cr from "aws-cdk-lib/custom-resources";
+import * as logs from "aws-cdk-lib/aws-logs";
+import * as events from "aws-cdk-lib/aws-events";
+import * as targets from "aws-cdk-lib/aws-events-targets";
+import { Code, Function, Runtime } from "aws-cdk-lib/aws-lambda";
 import { join } from "path";
 
 import { SystemConfig } from "../shared/types";
@@ -71,66 +73,68 @@ export class ModelConstruct extends NestedStack implements ModelConstructOutputs
   public defaultKnowledgeBaseModelName: string = "";
   modelAccount = Aws.ACCOUNT_ID;
   modelRegion = Aws.REGION;
-  modelIamHelper?: IAMHelper;
-  modelExecutionRole?: iam.Role;
+  modelIamHelper: IAMHelper;
+  modelExecutionRole?: iam.Role = undefined;
   modelImageUrlDomain?: string;
   modelPublicEcrAccount?: string;
   modelVariantName?: string;
 
   constructor(scope: Construct, id: string, props: ModelConstructProps) {
     super(scope, id);
+    this.modelIamHelper = props.sharedConstructOutputs.iamHelper;
 
-    // this.defaultEmbeddingModelName = "cohere.embed-english-v3"
+    // handle embedding model name setup
     if (props.config.model.embeddingsModels[0].provider === "bedrock") {
       this.defaultEmbeddingModelName = props.config.model.embeddingsModels[0].name;
-    } else {
-      this.modelIamHelper = props.sharedConstructOutputs.iamHelper;
-      this.modelVariantName = "variantProd";
-      this.modelImageUrlDomain =
-        this.modelRegion === "cn-north-1" || this.modelRegion === "cn-northwest-1"
-          ? ".amazonaws.com.cn/"
-          : ".amazonaws.com/";
+    } else if (props.config.model.embeddingsModels[0].provider === "sagemaker") {
+      // Initialize SageMaker-specific configurations
+      this.initializeSageMakerConfig();
 
-      this.modelPublicEcrAccount =
-        this.modelRegion === "cn-north-1" || this.modelRegion === "cn-northwest-1"
-          ? "727897471807.dkr.ecr."
-          : "763104351884.dkr.ecr.";
-
-
-      // Create IAM execution role
-      const executionRole = new iam.Role(this, "intelli-agent-endpoint-execution-role", {
-        assumedBy: new iam.ServicePrincipal("sagemaker.amazonaws.com"),
-        managedPolicies: [
-          iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonSageMakerFullAccess"),
-          iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonS3FullAccess"),
-          iam.ManagedPolicy.fromAwsManagedPolicyName("CloudWatchLogsFullAccess"),
-        ],
-      });
-      executionRole.addToPolicy(this.modelIamHelper.logStatement);
-      executionRole.addToPolicy(this.modelIamHelper.s3Statement);
-      executionRole.addToPolicy(this.modelIamHelper.endpointStatement);
-      executionRole.addToPolicy(this.modelIamHelper.bedrockStatement);
-      executionRole.addToPolicy(this.modelIamHelper.stsStatement);
-      executionRole.addToPolicy(this.modelIamHelper.ecrStatement);
-      executionRole.addToPolicy(this.modelIamHelper.llmStatement);
-
-      this.modelExecutionRole = executionRole;
-
-      if (props.config.knowledgeBase.enabled && props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.enabled) {
-
-        // Check if props.config.model.embeddingsModels includes a model with the name 'bce-embedding-and-bge-reranker'
-        if (props.config.model.embeddingsModels.some(model => model.name === 'bce-embedding-and-bge-reranker')) {
-          // Create the resource
-          let embeddingAndRerankerModelResources = this.deployEmbeddingAndRerankerEndpoint(props);
-          this.defaultEmbeddingModelName = embeddingAndRerankerModelResources.endpoint.endpointName ?? "";
-        }
-
-        if (props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.enabled) {
-          let knowledgeBaseModelResources = this.deployKnowledgeBaseEndpoint(props);
-          // this.createKnowledgeBaseEndpointScaling(knowledgeBaseModelResources.endpoint);
-          this.defaultKnowledgeBaseModelName = knowledgeBaseModelResources.endpoint.endpointName ?? "";
-        }
+      // Set up embedding model if it's the BCE+BGE model
+      if (props.config.model.embeddingsModels.some(model => model.name === 'bce-embedding-and-bge-reranker')) {
+        const embeddingAndRerankerModelResources = this.deployEmbeddingAndRerankerEndpoint(props);
+        this.defaultEmbeddingModelName = embeddingAndRerankerModelResources.endpoint.endpointName ?? "";
       }
+    }
+
+    // Handle knowledge base setup separately
+    if (props.config.knowledgeBase.enabled &&
+      props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.enabled &&
+      props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.knowledgeBaseModel.enabled) {
+
+      // Initialize SageMaker config if not already done
+      if (!this.modelExecutionRole) {
+        this.initializeSageMakerConfig();
+      }
+
+      // Deploy knowledge base model if enabled
+      const knowledgeBaseModelResources = this.deployKnowledgeBaseEndpoint(props);
+      this.defaultKnowledgeBaseModelName = knowledgeBaseModelResources.endpoint.endpointName ?? "";
+    }
+
+    if (props.config.chat.useOpenSourceLLM) {
+      const modelTriggerLambda = new Function(this, "ModelTriggerLambda", {
+        runtime: Runtime.PYTHON_3_12,
+        handler: "pipeline_monitor.post_model_deployment",
+        code: Code.fromAsset(join(__dirname, "../../../lambda/pipeline_monitor")),
+        timeout: Duration.minutes(10),
+        memorySize: 512,
+        environment: {
+          DYNAMODB_TABLE: props.sharedConstructOutputs.modelTable.tableName,
+        }
+      });
+      modelTriggerLambda.addToRolePolicy(this.modelIamHelper.dynamodbStatement);
+      modelTriggerLambda.addToRolePolicy(this.modelIamHelper.codePipelineStatement);
+      modelTriggerLambda.addToRolePolicy(this.modelIamHelper.stsStatement);
+
+      const rule = new events.Rule(this, "AllPipelinesStatusRule", {
+        eventPattern: {
+          source: ["aws.codepipeline"],
+          detailType: ["CodePipeline Pipeline Execution State Change"],
+        },
+      });
+      rule.addTarget(new targets.LambdaFunction(modelTriggerLambda));
+ 
     }
   }
 
@@ -290,7 +294,7 @@ export class ModelConstruct extends NestedStack implements ModelConstructOutputs
 
     // Custom resource to update ETL endpoint autoscaling setting
     const crLambda = new Function(this, "ETLCustomResource", {
-      runtime: Runtime.PYTHON_3_11,
+      runtime: Runtime.PYTHON_3_12,
       code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
       handler: "etl_custom_resource.lambda_handler",
       environment: {
@@ -327,17 +331,46 @@ export class ModelConstruct extends NestedStack implements ModelConstructOutputs
       }),
     );
     crLambda.node.addDependency(scalingTarget);
-    const customResourceProvider = new cr.Provider(this, 'CustomResourceProvider', {
+    const customResourceProvider = new cr.Provider(this, "CustomResourceProvider", {
       onEventHandler: crLambda,
       logRetention: logs.RetentionDays.ONE_DAY,
     });
 
-    new CustomResource(this, 'EtlEndpointCustomResource', {
+    new CustomResource(this, "EtlEndpointCustomResource", {
       serviceToken: customResourceProvider.serviceToken,
       resourceType: "Custom::ETLEndpoint",
     });
 
 
+  }
+
+  private initializeSageMakerConfig() {
+    this.modelVariantName = "variantProd";
+
+    const isChinaRegion = this.modelRegion === "cn-north-1" || this.modelRegion === "cn-northwest-1";
+    this.modelImageUrlDomain = isChinaRegion ? ".amazonaws.com.cn/" : ".amazonaws.com/";
+    this.modelPublicEcrAccount = isChinaRegion ? "727897471807.dkr.ecr." : "763104351884.dkr.ecr.";
+
+    // Create IAM execution role
+    const executionRole = new iam.Role(this, "intelli-agent-endpoint-execution-role", {
+      assumedBy: new iam.ServicePrincipal("sagemaker.amazonaws.com"),
+      managedPolicies: [
+        iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonSageMakerFullAccess"),
+        iam.ManagedPolicy.fromAwsManagedPolicyName("AmazonS3FullAccess"),
+        iam.ManagedPolicy.fromAwsManagedPolicyName("CloudWatchLogsFullAccess"),
+      ],
+    });
+
+    // Add required policies
+    executionRole.addToPolicy(this.modelIamHelper.logStatement);
+    executionRole.addToPolicy(this.modelIamHelper.s3Statement);
+    executionRole.addToPolicy(this.modelIamHelper.endpointStatement);
+    executionRole.addToPolicy(this.modelIamHelper.bedrockStatement);
+    executionRole.addToPolicy(this.modelIamHelper.stsStatement);
+    executionRole.addToPolicy(this.modelIamHelper.ecrStatement);
+    executionRole.addToPolicy(this.modelIamHelper.llmStatement);
+
+    this.modelExecutionRole = executionRole;
   }
 
 }

@@ -23,6 +23,21 @@ EXPORT_MODEL_IDS = [
     LLMModelType.MISTRAL_LARGE_2407,
     LLMModelType.COHERE_COMMAND_R_PLUS,
     LLMModelType.NOVA_PRO,
+
+    LLMModelType.NOVA_LITE,
+    LLMModelType.NOVA_MICRO,
+    LLMModelType.CLAUDE_3_SONNET_US,
+    LLMModelType.CLAUDE_3_OPUS_US,
+    LLMModelType.CLAUDE_3_HAIKU_US,
+    LLMModelType.CLAUDE_3_5_SONNET_V2_US,
+    LLMModelType.CLAUDE_3_5_HAIKU_US,
+    LLMModelType.CLAUDE_3_SONNET_EU,
+    LLMModelType.CLAUDE_3_5_SONNET_EU,
+    LLMModelType.CLAUDE_3_HAIKU_EU,
+    LLMModelType.CLAUDE_3_SONNET_APAC,
+    LLMModelType.CLAUDE_3_5_SONNET_APAC,
+    LLMModelType.CLAUDE_3_HAIKU_APAC,
+    LLMModelType.LLAMA3_1_70B_INSTRUCT_US,
 ]
 
 EXPORT_SCENES = [
@@ -131,18 +146,21 @@ CLAUDE_RAG_SYSTEM_PROMPT = """
 You are a customer service agent responding to user queries. ALWAYS adhere to these response rules:
 
 <response_rules>
-1. Image Handling:
-   - If <docs></docs> contains markdown-formatted images, append them unaltered to the end of your response.
-   - Only process markdown-formatted images within <docs></docs>.
-   - IMPORTANT: If no markdown-formatted images are present in <docs></docs>, do not add any image references to your response.
-
-2. Language and Tone:
+1. Language and Tone:
    - Never use phrases like "According to search results," "Hello everyone," "Thank you," or "According to this document..."
    - Provide concise and clear answers.
    - Maintain a professional and helpful tone throughout the response.
 
-3. Relevance:
+2. Relevance:
    - If the query is unrelated to the content in <docs></docs>, respond with: "根据内部知识库，找不到相关内容。"
+
+3. Reference Citation:
+   - Include the context ID you refer to in your response using the <reference> tag.
+   - The context ID should be the index of the document in the <docs> tag.
+   - Always use the correct format: \n<reference>X</reference>, where X is the document index.
+   - Example: \n<reference>1</reference> for <doc index="1"></doc>
+   - All <reference> tags should be in the beginning of the response
+   - IMPORTANT: Ensure that the opening tag <reference> always comes before the number, and the closing tag </reference> always comes after the number.
 
 4. Language Adaptation:
    - Respond in the same language as the user's query.
@@ -159,6 +177,9 @@ You are a customer service agent responding to user queries. ALWAYS adhere to th
    - Ensure your response addresses all aspects of the user's query.
    - If multiple relevant documents are provided, synthesize the information coherently.
 
+8. Tag Verification:
+   - Before finalizing your response, double-check all <reference> tags to ensure they are correctly formatted.
+   - If you find any incorrectly formatted tags (e.g., 1</reference>), correct them to the proper format (\n<reference>1</reference>).
 </response_rules>
 
 Reference the following documents to answer the query:
@@ -183,6 +204,20 @@ register_prompt_templates(
         LLMModelType.MISTRAL_LARGE_2407,
         LLMModelType.COHERE_COMMAND_R_PLUS,
         LLMModelType.NOVA_PRO,
+        LLMModelType.NOVA_LITE,
+        LLMModelType.NOVA_MICRO,
+        LLMModelType.CLAUDE_3_SONNET_US,
+        LLMModelType.CLAUDE_3_OPUS_US,
+        LLMModelType.CLAUDE_3_HAIKU_US,
+        LLMModelType.CLAUDE_3_5_SONNET_V2_US,
+        LLMModelType.CLAUDE_3_5_HAIKU_US,
+        LLMModelType.CLAUDE_3_SONNET_EU,
+        LLMModelType.CLAUDE_3_5_SONNET_EU,
+        LLMModelType.CLAUDE_3_HAIKU_EU,
+        LLMModelType.CLAUDE_3_SONNET_APAC,
+        LLMModelType.CLAUDE_3_5_SONNET_APAC,
+        LLMModelType.CLAUDE_3_HAIKU_APAC,
+        LLMModelType.LLAMA3_1_70B_INSTRUCT_US,
     ],
     task_type=LLMTaskType.RAG,
     prompt_template=CLAUDE_RAG_SYSTEM_PROMPT,
@@ -201,7 +236,7 @@ GLM4_RAG_SYSTEM_PROMPT = """你是一个人工智能助手，正在回答人类�
 
 register_prompt_templates(
     model_ids=[
-        LLMModelType.QWEN2INSTRUCT72B,
+        LLMModelType.QWEN25_INSTRUCT_72B_AWQ,
         LLMModelType.QWEN2INSTRUCT7B,
         LLMModelType.GLM_4_9B_CHAT
     ],
@@ -296,7 +331,6 @@ register_prompt_templates(
         LLMModelType.CLAUDE_3_5_SONNET_V2,
         LLMModelType.CLAUDE_INSTANCE,
         LLMModelType.MIXTRAL_8X7B_INSTRUCT,
-        LLMModelType.QWEN2INSTRUCT72B,
         LLMModelType.QWEN2INSTRUCT7B,
         LLMModelType.GLM_4_9B_CHAT,
         LLMModelType.LLAMA3_1_70B_INSTRUCT,
@@ -304,6 +338,21 @@ register_prompt_templates(
         LLMModelType.MISTRAL_LARGE_2407,
         LLMModelType.COHERE_COMMAND_R_PLUS,
         LLMModelType.NOVA_PRO,
+        LLMModelType.QWEN25_INSTRUCT_72B_AWQ,
+        LLMModelType.NOVA_LITE,
+        LLMModelType.NOVA_MICRO,
+        LLMModelType.CLAUDE_3_SONNET_US,
+        LLMModelType.CLAUDE_3_OPUS_US,
+        LLMModelType.CLAUDE_3_HAIKU_US,
+        LLMModelType.CLAUDE_3_5_SONNET_V2_US,
+        LLMModelType.CLAUDE_3_5_HAIKU_US,
+        LLMModelType.CLAUDE_3_SONNET_EU,
+        LLMModelType.CLAUDE_3_5_SONNET_EU,
+        LLMModelType.CLAUDE_3_HAIKU_EU,
+        LLMModelType.CLAUDE_3_SONNET_APAC,
+        LLMModelType.CLAUDE_3_5_SONNET_APAC,
+        LLMModelType.CLAUDE_3_HAIKU_APAC,
+        LLMModelType.LLAMA3_1_70B_INSTRUCT_US,
     ],
     task_type=LLMTaskType.CONVERSATION_SUMMARY_TYPE,
     prompt_template=CQR_SYSTEM_PROMPT,
@@ -321,7 +370,6 @@ register_prompt_templates(
         LLMModelType.CLAUDE_3_5_SONNET_V2,
         LLMModelType.CLAUDE_INSTANCE,
         LLMModelType.MIXTRAL_8X7B_INSTRUCT,
-        LLMModelType.QWEN2INSTRUCT72B,
         LLMModelType.QWEN2INSTRUCT7B,
         LLMModelType.GLM_4_9B_CHAT,
         LLMModelType.LLAMA3_1_70B_INSTRUCT,
@@ -329,6 +377,21 @@ register_prompt_templates(
         LLMModelType.MISTRAL_LARGE_2407,
         LLMModelType.COHERE_COMMAND_R_PLUS,
         LLMModelType.NOVA_PRO,
+        LLMModelType.QWEN25_INSTRUCT_72B_AWQ,
+        LLMModelType.NOVA_LITE,
+        LLMModelType.NOVA_MICRO,
+        LLMModelType.CLAUDE_3_SONNET_US,
+        LLMModelType.CLAUDE_3_OPUS_US,
+        LLMModelType.CLAUDE_3_HAIKU_US,
+        LLMModelType.CLAUDE_3_5_SONNET_V2_US,
+        LLMModelType.CLAUDE_3_5_HAIKU_US,
+        LLMModelType.CLAUDE_3_SONNET_EU,
+        LLMModelType.CLAUDE_3_5_SONNET_EU,
+        LLMModelType.CLAUDE_3_HAIKU_EU,
+        LLMModelType.CLAUDE_3_SONNET_APAC,
+        LLMModelType.CLAUDE_3_5_SONNET_APAC,
+        LLMModelType.CLAUDE_3_HAIKU_APAC,
+        LLMModelType.LLAMA3_1_70B_INSTRUCT_US,
     ],
     task_type=LLMTaskType.CONVERSATION_SUMMARY_TYPE,
     prompt_template=CQR_USER_PROMPT_TEMPLATE,
@@ -347,7 +410,6 @@ register_prompt_templates(
         LLMModelType.CLAUDE_3_5_SONNET_V2,
         LLMModelType.CLAUDE_INSTANCE,
         LLMModelType.MIXTRAL_8X7B_INSTRUCT,
-        LLMModelType.QWEN2INSTRUCT72B,
         LLMModelType.QWEN2INSTRUCT7B,
         LLMModelType.GLM_4_9B_CHAT,
         LLMModelType.LLAMA3_1_70B_INSTRUCT,
@@ -355,6 +417,21 @@ register_prompt_templates(
         LLMModelType.MISTRAL_LARGE_2407,
         LLMModelType.COHERE_COMMAND_R_PLUS,
         LLMModelType.NOVA_PRO,
+        LLMModelType.QWEN25_INSTRUCT_72B_AWQ,
+        LLMModelType.NOVA_LITE,
+        LLMModelType.NOVA_MICRO,
+        LLMModelType.CLAUDE_3_SONNET_US,
+        LLMModelType.CLAUDE_3_OPUS_US,
+        LLMModelType.CLAUDE_3_HAIKU_US,
+        LLMModelType.CLAUDE_3_5_SONNET_V2_US,
+        LLMModelType.CLAUDE_3_5_HAIKU_US,
+        LLMModelType.CLAUDE_3_SONNET_EU,
+        LLMModelType.CLAUDE_3_5_SONNET_EU,
+        LLMModelType.CLAUDE_3_HAIKU_EU,
+        LLMModelType.CLAUDE_3_SONNET_APAC,
+        LLMModelType.CLAUDE_3_5_SONNET_APAC,
+        LLMModelType.CLAUDE_3_HAIKU_APAC,
+        LLMModelType.LLAMA3_1_70B_INSTRUCT_US,
     ],
     task_type=LLMTaskType.CONVERSATION_SUMMARY_TYPE,
     prompt_template=json.dumps(CQR_FEW_SHOTS, ensure_ascii=False, indent=2),
@@ -473,6 +550,20 @@ register_prompt_templates(
         LLMModelType.CLAUDE_3_5_SONNET_V2,
         LLMModelType.CLAUDE_3_5_HAIKU,
         LLMModelType.NOVA_PRO,
+        LLMModelType.QWEN25_INSTRUCT_72B_AWQ,
+        LLMModelType.NOVA_LITE,
+        LLMModelType.NOVA_MICRO,
+        LLMModelType.CLAUDE_3_SONNET_US,
+        LLMModelType.CLAUDE_3_OPUS_US,
+        LLMModelType.CLAUDE_3_HAIKU_US,
+        LLMModelType.CLAUDE_3_5_SONNET_V2_US,
+        LLMModelType.CLAUDE_3_5_HAIKU_US,
+        LLMModelType.CLAUDE_3_SONNET_EU,
+        LLMModelType.CLAUDE_3_5_SONNET_EU,
+        LLMModelType.CLAUDE_3_HAIKU_EU,
+        LLMModelType.CLAUDE_3_SONNET_APAC,
+        LLMModelType.CLAUDE_3_5_SONNET_APAC,
+        LLMModelType.CLAUDE_3_HAIKU_APAC
         # LLMModelType.LLAMA3_1_70B_INSTRUCT,
         # LLMModelType.LLAMA3_2_90B_INSTRUCT,
         # LLMModelType.MISTRAL_LARGE_2407,
@@ -505,7 +596,8 @@ register_prompt_templates(
         LLMModelType.COHERE_COMMAND_R_PLUS,
         LLMModelType.LLAMA3_1_70B_INSTRUCT,
         LLMModelType.LLAMA3_2_90B_INSTRUCT,
-        LLMModelType.MISTRAL_LARGE_2407
+        LLMModelType.MISTRAL_LARGE_2407,
+        LLMModelType.LLAMA3_1_70B_INSTRUCT_US,
     ],
     task_type=LLMTaskType.TOOL_CALLING_API,
     prompt_template=AGENT_SYSTEM_PROMPT_COHERE,
@@ -531,6 +623,21 @@ register_prompt_templates(
         LLMModelType.MISTRAL_LARGE_2407,
         LLMModelType.COHERE_COMMAND_R_PLUS,
         LLMModelType.NOVA_PRO,
+        LLMModelType.NOVA_LITE,
+        LLMModelType.NOVA_MICRO,
+        LLMModelType.CLAUDE_3_SONNET_US,
+        LLMModelType.CLAUDE_3_OPUS_US,
+        LLMModelType.CLAUDE_3_HAIKU_US,
+        LLMModelType.CLAUDE_3_5_SONNET_V2_US,
+        LLMModelType.CLAUDE_3_5_HAIKU_US,
+        LLMModelType.CLAUDE_3_SONNET_EU,
+        LLMModelType.CLAUDE_3_5_SONNET_EU,
+        LLMModelType.CLAUDE_3_HAIKU_EU,
+        LLMModelType.CLAUDE_3_SONNET_APAC,
+        LLMModelType.CLAUDE_3_5_SONNET_APAC,
+        LLMModelType.CLAUDE_3_HAIKU_APAC,
+        LLMModelType.LLAMA3_1_70B_INSTRUCT_US,
+        LLMModelType.QWEN25_INSTRUCT_72B_AWQ
     ],
     task_type=LLMTaskType.TOOL_CALLING_API,
     prompt_template=TOOL_FEWSHOT_PROMPT,

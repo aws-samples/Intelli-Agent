@@ -1,0 +1,1 @@
+https://aws-gcr-solutions-assets.s3.us-east-1.amazonaws.com/dmaa/wheels/dmaa-0.5.0-py3-none-any.whl

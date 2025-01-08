@@ -137,8 +137,57 @@ def stream_response(event_body: dict, response: dict):
             }
 
             figure = response.get("extra_response").get("ref_figures", [])
-            if figure and figure[0]:
-                context_msg["ddb_additional_kwargs"]["figure"] = figure[0][:2]
+            # Show at most two figures
+            if figure:
+                # context_msg["ddb_additional_kwargs"]["figure"] = figure[:2]
+                context_msg["ddb_additional_kwargs"]["figure"] = figure
+
+            ref_doc = response.get("extra_response").get("ref_docs", [])
+            if ref_doc:
+                md_images = []
+                md_image_list = []
+                for doc in ref_doc:
+                    # Look for markdown image pattern in reference doc: ![alt text](image_path)
+                    doc_content = doc.get("page_content", "")
+                    for line in doc_content.split('\n'):
+                        img_start = line.find("![")
+                        while img_start != -1:
+                            try:
+                                alt_end = line.find("](", img_start)
+                                img_end = line.find(")", alt_end)
+
+                                if alt_end != -1 and img_end != -1:
+                                    image_path = line[alt_end + 2:img_end]
+                                    # Remove optional title if present
+                                    if '"' in image_path or "'" in image_path:
+                                        image_path = image_path.split(
+                                            '"')[0].split("'")[0].strip()
+                                    if image_path:
+                                        have_same_image = False
+                                        for md_image_item in md_image_list:
+                                            if image_path in md_image_item:
+                                                have_same_image = True
+
+                                        md_image_json = {
+                                            "content_type": "md_image",
+                                            "figure_path": image_path
+                                        }
+                                        if not have_same_image and md_image_json not in md_images:
+                                            md_images.append(md_image_json)
+                                            md_image_list.append(image_path)
+                                # Look for next image in the same line
+                                img_start = line.find("![", img_start + 2)
+                            except Exception as e:
+                                logger.error(
+                                    f"Error processing markdown image: {str(e)}, in line: {line}")
+                                # Skip to next image pattern in this line
+                                img_start = line.find("![", img_start + 2)
+                                continue
+
+                if md_images:
+                    context_msg["ddb_additional_kwargs"].setdefault(
+                        "figure", []).extend(md_images)
+
             send_to_ws_client(
                 message=context_msg,
                 ws_connection_id=ws_connection_id
@@ -188,4 +237,5 @@ def process_response(event_body, response):
     stream = event_body.get("stream", True)
     if stream:
         return stream_response(event_body, response)
+
     return api_response(event_body, response)

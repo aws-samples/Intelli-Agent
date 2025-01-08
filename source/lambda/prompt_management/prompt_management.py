@@ -1,10 +1,10 @@
 import json
 import os
 import time
+import logging
 
 import boto3
 from botocore.paginate import TokenEncoder
-from common_logic.common_utils.logger_utils import get_logger
 from common_logic.common_utils.prompt_utils import (
     EXPORT_MODEL_IDS,
     EXPORT_SCENES,
@@ -17,7 +17,8 @@ ROOT_RESOURCE = "/prompt-management"
 MODELS_RESOURCE = f"{ROOT_RESOURCE}/models"
 SCENES_RESOURCE = f"{ROOT_RESOURCE}/scenes"
 PROMPTS_RESOURCE = f"{ROOT_RESOURCE}/prompts"
-logger = get_logger("main")
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 dynamodb_client = boto3.client("dynamodb")
 encoder = TokenEncoder()
 

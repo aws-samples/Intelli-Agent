@@ -1,36 +1,42 @@
-
 import hashlib
 import json
+import logging
 import os
 import re
 import time
-from typing import List
-import boto3
-from openpyxl import load_workbook
 from io import BytesIO
-from embeddings import get_embedding_info
+from typing import List
+
+import boto3
+from aos import sm_utils
+from aos.aos_utils import LLMBotOpenSearchClient
 from botocore.paginate import TokenEncoder
-from opensearchpy import NotFoundError, RequestError, helpers, RequestsHttpConnection
-import logging
-from langchain.embeddings.bedrock import BedrockEmbeddings
+from constant import (
+    BULK_SIZE,
+    DEFAULT_CONTENT_TYPE,
+    DEFAULT_MAX_ITEMS,
+    DEFAULT_SIZE,
+    DOWNLOAD_RESOURCE,
+    EXECUTION_RESOURCE,
+    INDEX_USED_SCAN_RESOURCE,
+    PRESIGNED_URL_RESOURCE,
+    ModelDimensionMap,
+)
+from embeddings import get_embedding_info
 from langchain.docstore.document import Document
+from langchain.embeddings.bedrock import BedrockEmbeddings
 from langchain_community.vectorstores import OpenSearchVectorSearch
 from langchain_community.vectorstores.opensearch_vector_search import (
     OpenSearchVectorSearch,
 )
-from aos import sm_utils
+from openpyxl import load_workbook
+from opensearchpy import (
+    NotFoundError,
+    RequestError,
+    RequestsHttpConnection,
+    helpers,
+)
 from requests_aws4auth import AWS4Auth
-
-from aos.aos_utils import LLMBotOpenSearchClient
-from constant import (BULK_SIZE,
-                      DEFAULT_CONTENT_TYPE,
-                      DEFAULT_MAX_ITEMS,
-                      DEFAULT_SIZE,
-                      DOWNLOAD_RESOURCE,
-                      EXECUTION_RESOURCE,
-                      INDEX_USED_SCAN_RESOURCE,
-                      PRESIGNED_URL_RESOURCE,
-                      ModelDimensionMap)
 
 logger = logging.getLogger(__name__)
 encoder = TokenEncoder()
@@ -56,31 +62,39 @@ model_table = dynamodb_client.Table(model_table_name)
 
 sm_client = boto3.client("secretsmanager")
 credentials = boto3.Session().get_credentials()
+built_in_tools = ["chat", "get_weather"]
+
 try:
-    master_user = sm_client.get_secret_value(
-        SecretId=aos_secret)["SecretString"]
+    master_user = sm_client.get_secret_value(SecretId=aos_secret)[
+        "SecretString"
+    ]
     secret = json.loads(master_user)
     username = secret.get("username")
     password = secret.get("password")
 
     if not aos_endpoint:
         opensearch_client = boto3.client("opensearch")
-        response = opensearch_client.describe_domain(
-            DomainName=aos_domain_name)
+        response = opensearch_client.describe_domain(DomainName=aos_domain_name)
         aos_endpoint = response["DomainStatus"]["Endpoint"]
-    aos_client = LLMBotOpenSearchClient(aos_endpoint, (username, password)).client
+    aos_client = LLMBotOpenSearchClient(
+        aos_endpoint, (username, password)
+    ).client
     awsauth = (username, password)
 except sm_client.exceptions.ResourceNotFoundException:
     logger.info("Secret '%s' not found in Secrets Manager", aos_secret)
     aos_client = LLMBotOpenSearchClient(aos_endpoint).client
-    awsauth = AWS4Auth(refreshable_credentials=credentials,
-                   region=region, service="es")
+    awsauth = AWS4Auth(
+        refreshable_credentials=credentials, region=region, service="es"
+    )
 except sm_client.exceptions.InvalidRequestException:
-    logger.info("InvalidRequestException. It might caused by getting secret value from a deleting secret")
+    logger.info(
+        "InvalidRequestException. It might caused by getting secret value from a deleting secret"
+    )
     logger.info("Fallback to authentication with IAM")
     aos_client = LLMBotOpenSearchClient(aos_endpoint).client
-    awsauth = AWS4Auth(refreshable_credentials=credentials,
-                   region=region, service="es")
+    awsauth = AWS4Auth(
+        refreshable_credentials=credentials, region=region, service="es"
+    )
 except Exception as err:
     logger.error("Error retrieving secret '%s': %s", aos_secret, str(err))
     raise
@@ -122,7 +136,9 @@ class OpenSearchIngestionWorker:
                 embeddings_vectors_list.append(
                     embeddings_vectors[0]["dense_vecs"][doc_id]
                 )
-                metadata["embedding_endpoint_name"] = self.embedding_model_endpoint
+                metadata["embedding_endpoint_name"] = (
+                    self.embedding_model_endpoint
+                )
                 metadata_list.append(metadata)
             embeddings_vectors = embeddings_vectors_list
             metadatas = metadata_list
@@ -151,10 +167,11 @@ def lambda_handler(event, context):
     if resource == PRESIGNED_URL_RESOURCE:
         input_body = json.loads(event["body"])
         file_name = f"intentions/{group_name}/[{input_body['timestamp']}]{input_body['file_name']}"
-        presigned_url = __gen_presigned_url(file_name,
-                                            input_body.get(
-                                                "content_type", DEFAULT_CONTENT_TYPE),
-                                            input_body.get("expiration", 60*60))
+        presigned_url = __gen_presigned_url(
+            file_name,
+            input_body.get("content_type", DEFAULT_CONTENT_TYPE),
+            input_body.get("expiration", 60 * 60),
+        )
         output = {
             "message": "The S3 presigned url is generated",
             "data": {
@@ -162,7 +179,6 @@ def lambda_handler(event, context):
                 "s3Bucket": s3_bucket_name,
                 "s3Prefix": file_name,
             },
-
         }
     elif resource.startswith(EXECUTION_RESOURCE):
         if http_method == "POST":
@@ -204,7 +220,7 @@ def __delete_execution(event, group_name):
                 "intentionId": execution_id,
             },
         )
-        item = index_response.get('Item')
+        item = index_response.get("Item")
         if item:
             indexes = item.get("index").split(",")
             details = json.loads(item.get("details"))
@@ -221,6 +237,7 @@ def __delete_execution(event, group_name):
             )
     return res
 
+
 # def __can_be_deleted(execution_id):
 
 #     return False, ""
@@ -231,22 +248,21 @@ def __delete_documents_by_text_set(index_name, text_values):
     search_body = {
         "size": 10000,
         "query": {
-            "terms": {
-                "text.keyword": list(text_values)  # Convert set to list
-            }
-        }
+            "terms": {"text.keyword": list(text_values)}  # Convert set to list
+        },
     }
 
     # Perform the search
     try:
         search_result = aos_client.search(
-            index=index_name, body=search_body)  # Adjust size if needed
-        hits = search_result['hits']['hits']
+            index=index_name, body=search_body
+        )  # Adjust size if needed
+        hits = search_result["hits"]["hits"]
 
         # If documents exist, delete them
         if hits:
             for hit in hits:
-                doc_id = hit['_id']
+                doc_id = hit["_id"]
                 aos_client.delete(index=index_name, id=doc_id)
                 logger.info("Deleted document with id %s", doc_id)
     except NotFoundError:
@@ -265,8 +281,11 @@ def __get_query_parameter(event, parameter_name, default_value=None):
 def __gen_presigned_url(object_name: str, content_type: str, expiration: int):
     return s3_client.generate_presigned_url(
         ClientMethod="put_object",
-        Params={"Bucket": s3_bucket_name,
-                "Key": object_name, "ContentType": content_type},
+        Params={
+            "Bucket": s3_bucket_name,
+            "Key": object_name,
+            "ContentType": content_type,
+        },
         ExpiresIn=expiration,
         HttpMethod="PUT",
     )
@@ -283,46 +302,44 @@ def __list_execution(event, group_name):
     }
     response = dynamodb_client.query(
         TableName=intention_table_name,
-        KeyConditionExpression='groupName = :groupName',
-        ExpressionAttributeValues={
-            ':groupName': {'S': group_name}
-        }
+        KeyConditionExpression="groupName = :groupName",
+        ExpressionAttributeValues={":groupName": {"S": group_name}},
     )
     output = {}
     page_json = []
-    items = response['Items']
-    while 'LastEvaluatedKey' in response:
+    items = response["Items"]
+    while "LastEvaluatedKey" in response:
         response = dynamodb_client.query(
             TableName=intention_table_name,
-            KeyConditionExpression='groupName = :pk_val',
-            ExpressionAttributeValues={
-                ':pk_val': {'S': group_name}
-            },
-            ExclusiveStartKey=response['LastEvaluatedKey']
+            KeyConditionExpression="groupName = :pk_val",
+            ExpressionAttributeValues={":pk_val": {"S": group_name}},
+            ExclusiveStartKey=response["LastEvaluatedKey"],
         )
-        items.extend(response['Items'])
+        items.extend(response["Items"])
 
     for item in items:
         item_json = {}
         for key in list(item.keys()):
             value = item.get(key, {"S": ""}).get("S", "-")
-            if key == "File":
+            if key == "file" or key == "File":
                 item_json["fileName"] = value.split("/").pop()
             elif key == "modelId":
                 item_json["model"] = value
-            elif key == "LastModifiedTime":
+            elif key == "lastModifiedTime" or key == "LastModifiedTime":
                 item_json["createTime"] = value
-            elif key == "LastModifiedBy":
+            elif key == "lastModifiedBy" or key == "LastModifiedBy":
                 item_json["createBy"] = value
             elif key == "intentionId":
                 item_json["executionId"] = value
+            elif key == "validRatio":
+                item_json["executionStatus"] = value
             else:
                 item_json[key] = value
-            item_json["executionStatus"] = "COMPLETED"
+
         page_json.append(item_json)
-        output["Items"] = page_json
-    output["Config"] = config
-    output["Count"] = len(items)
+        output["items"] = page_json
+    output["config"] = config
+    output["count"] = len(items)
     return output
 
 
@@ -338,30 +355,40 @@ def __create_execution(event, context, email, group_name):
     bucket = input_body.get("s3Bucket")
     prefix = input_body.get("s3Prefix")
     s3_response = __get_s3_object_with_retry(bucket, prefix)
-    file_content = s3_response['Body'].read()
+    file_content = s3_response["Body"].read()
     excel_file = BytesIO(file_content)
     workbook = load_workbook(excel_file)
     sheet = workbook.active
     qaList = []
 
+    # Query current chatbot's qd index
+    chatbot_item = chatbot_table.get_item(
+        Key={
+            "groupName": group_name,
+            "chatbotId": input_body.get("chatbotId"),
+        }
+    ).get("Item", {})
+
+    qd_index = chatbot_item.get("indexIds", {}).get("qd", {}).get("value", {})
+    valid_qd_types = [*built_in_tools, *list(qd_index.keys())]
     for row in sheet.iter_rows(min_row=2, values_only=True):
-        question, intention, kwargs = row[0], row[1], row[2] if len(
-            row) > 2 else None
+        question, intention, kwargs = (
+            row[0],
+            row[1],
+            row[2] if len(row) > 2 else None,
+        )
         if not question:
             continue
-        # for i, element in enumerate(qaList):
-        #     if element.get("question") == question:
-        #         qaList[i] = {
-        #             "question": question,
-        #             "intention": intention,
-        #             "kwargs": kwargs
-        #         }
-        #         return qaList
-        qaList.append({
-            "question": question,
-            "intention": intention,
-            "kwargs": kwargs
-        })
+        qaList.append(
+            {
+                "question": question,
+                "intention": intention,
+                "kwargs": kwargs,
+                "is_valid": intention in valid_qd_types,
+            }
+        )
+
+    valid_qa_list = [qa for qa in qaList if qa.get("is_valid")]
     # write to ddb(meta data)
     intention_table.put_item(
         Item={
@@ -371,20 +398,29 @@ def __create_execution(event, context, email, group_name):
             "model": execution_detail["model"],
             "index": execution_detail["index"],
             "tag": execution_detail["index"],
-            "File": f'{bucket}{input_body.get("s3Prefix")}',
-            "LastModifiedBy": email,
-            "LastModifiedTime": re.findall(r'\[(.*?)\]', input_body.get("s3Prefix"))[0],
-            "details": json.dumps(qaList)
+            "file": f'{bucket}{input_body.get("s3Prefix")}',
+            "lastModifiedBy": email,
+            "lastModifiedTime": re.findall(
+                r"\[(.*?)\]", input_body.get("s3Prefix")
+            )[0],
+            "details": json.dumps(qaList),
+            "validRatio": f"{len(valid_qa_list)} / {len(qaList)}",
         }
     )
+
     # write to aos(vectorData)
-    __save_2_aos(input_body.get("model"),
-                 execution_detail["index"], qaList, bucket, prefix)
+    __save_2_aos(
+        input_body.get("model"),
+        execution_detail["index"],
+        valid_qa_list,
+        bucket,
+        prefix,
+    )
 
     return {
         "execution_id": execution_detail["tableItemId"],
         "input_payload": execution_detail,
-        "result": "success"
+        "result": "success",
     }
 
 
@@ -399,7 +435,7 @@ def convert_qa_list(qa_list: list, bucket: str, prefix: str) -> List[Document]:
             "file_path": "",
             "keywords": [],
             "summary": "",
-            "type": "Intent"
+            "type": "Intent",
         }
         page_content = qa["question"]
         metadata = metadata_template
@@ -416,9 +452,11 @@ def convert_qa_list(qa_list: list, bucket: str, prefix: str) -> List[Document]:
     return doc_list
 
 
-def __save_2_aos(modelId: str, index: str, qaListParam: list, bucket: str, prefix: str):
+def __save_2_aos(
+    modelId: str, index: str, qaListParam: list, bucket: str, prefix: str
+):
     qaList = __deduplicate_by_key(qaListParam, "question")
-    if kb_enabled and embedding_model_endpoint.startswith("bce-embedding"):
+    if kb_enabled:
         embedding_info = get_embedding_info(embedding_model_endpoint)
         embedding_function = sm_utils.getCustomEmbeddings(
             embedding_model_endpoint, region, embedding_info.get("ModelType")
@@ -450,18 +488,14 @@ def __create_index(index: str, modelId: str):
                 "number_of_shards": 1,
                 "number_of_replicas": 0,
                 "knn": True,
-                "knn.algo_param.ef_search": 32
+                "knn.algo_param.ef_search": 32,
             }
         },
         "mappings": {
             "properties": {
                 "text": {
                     "type": "text",
-                    "fields": {
-                        "keyword": {
-                            "type": "keyword"
-                        }
-                    }
+                    "fields": {"keyword": {"type": "keyword"}},
                 },
                 "sentence_vector": {
                     "type": "knn_vector",
@@ -470,14 +504,11 @@ def __create_index(index: str, modelId: str):
                         "engine": "nmslib",
                         "space_type": "l2",
                         "name": "hnsw",
-                        "parameters": {
-                            "ef_construction": 512,
-                            "m": 16
-                        }
-                    }
-                }
+                        "parameters": {"ef_construction": 512, "m": 16},
+                    },
+                },
             }
-        }
+        },
     }
     try:
         aos_client.indices.create(index=index, body=body)
@@ -487,8 +518,11 @@ def __create_index(index: str, modelId: str):
 
 
 def __refresh_index(index: str, modelId: str, qaList):
-    success, failed = helpers.bulk(aos_client,  __append_embeddings(
-        index, modelId, qaList), chunk_size=BULK_SIZE)
+    success, failed = helpers.bulk(
+        aos_client,
+        __append_embeddings(index, modelId, qaList),
+        chunk_size=BULK_SIZE,
+    )
     aos_client.indices.refresh(index=index)
     logger.info("Successfully added: %d ", success)
     logger.info("Failed: %d ", len(failed))
@@ -500,40 +534,40 @@ def __append_embeddings(index, modelId, qaList: list):
     for item in qaList:
         question = item["question"]
         embedding_func = BedrockEmbeddings(
-            client=bedrock_client,
-            model_id=modelId,
-            normalize=True
+            client=bedrock_client, model_id=modelId, normalize=True
         )
 
-        embeddings_vectors = embedding_func.embed_documents(
-            [question]
-        )
+        embeddings_vectors = embedding_func.embed_documents([question])
         documents.append(
             {
                 "text": question,
                 "metadata": {
                     "answer": item["intention"],
                     "source": "portal",
-                    **({"kwargs": item["kwargs"]} if item.get("kwargs") else {}),
-                    "type": "Intent"
+                    **(
+                        {"kwargs": item["kwargs"]} if item.get("kwargs") else {}
+                    ),
+                    "type": "Intent",
                 },
-                "sentence_vector": embeddings_vectors[0]
+                "sentence_vector": embeddings_vectors[0],
             }
         )
 
     for document in documents:
         index_list = index.split(",")
         for index_item in index_list:
-            doc_id = hashlib.md5(str(document["text"]).encode('utf-8')).hexdigest()
+            doc_id = hashlib.md5(
+                str(document["text"]).encode("utf-8")
+            ).hexdigest()
             action = {
                 "_op_type": "index",
                 "_index": index_item,
                 "_id": doc_id,
-                "_source": document
+                "_source": document,
             }
             actions.append(action)
     return actions
-            # yield {"_op_type": "index", "_index": index_item, "_source": document, "_id": hashlib.md5(str(document).encode('utf-8')).hexdigest()}
+    # yield {"_op_type": "index", "_index": index_item, "_source": document, "_id": hashlib.md5(str(document).encode('utf-8')).hexdigest()}
 
 
 def __get_execution(event, group_name):
@@ -544,35 +578,37 @@ def __get_execution(event, group_name):
             "intentionId": executionId,
         },
     )
-    item = index_response['Item']
+    item = index_response["Item"]
     res = {}
-    Items = []
+    items = []
     # for item in items:
     item_json = {}
     for key in list(item.keys()):
         value = item.get(key)
-        if key == "File":
-            split_index = value.rfind('/')
+        if key == "file" or key == "File":
+            split_index = value.rfind("/")
             if split_index != -1:
                 item_json["s3Path"] = value[:split_index]
-                item_json["s3Prefix"] = value[split_index + 1:]
+                item_json["s3Prefix"] = value[split_index + 1 :]
             else:
                 item_json["s3Path"] = value
                 item_json["s3Prefix"] = "-"
-        elif key == "LastModifiedTime":
+        elif key == "lastModifiedTime":
             item_json["createTime"] = value
         elif key == "details":
-            item_json["QAList"] = json.loads(value)
+            item_json["qaList"] = json.loads(value)
         else:
             continue
         item_json["status"] = "COMPLETED"
-    Items.append(item_json)
-    res["Items"] = Items
-    res["Count"] = len(Items)
+    items.append(item_json)
+    res["items"] = items
+    res["count"] = len(items)
     return res
 
 
-def __get_s3_object_with_retry(bucket: str, key: str, max_retries: int = 5, delay: int = 1):
+def __get_s3_object_with_retry(
+    bucket: str, key: str, max_retries: int = 5, delay: int = 1
+):
     attempt = 0
     while attempt < max_retries:
         try:
@@ -585,12 +621,15 @@ def __get_s3_object_with_retry(bucket: str, key: str, max_retries: int = 5, dela
                 raise
             time.sleep(delay)
 
+
 def __download_template():
     url = s3_client.generate_presigned_url(
         ClientMethod="get_object",
-        Params={'Bucket': s3_bucket_name,
-                'Key': "templates/intention_corpus.xlsx"},
-        ExpiresIn=60
+        Params={
+            "Bucket": s3_bucket_name,
+            "Key": "templates/intention_corpus.xlsx",
+        },
+        ExpiresIn=60,
     )
     return url
 
@@ -604,7 +643,7 @@ def __index_used_scan(event, group_name):
         },
     )
     pre_model = index_response.get("Item")
-    model_name = ''
+    model_name = ""
     if pre_model:
         model_response = model_table.get_item(
             Key={
@@ -612,25 +651,24 @@ def __index_used_scan(event, group_name):
                 "modelId": pre_model.get("modelIds", {}).get("embedding"),
             }
         )
-        model_name = model_response.get("Item", {}).get(
-            "parameter", {}).get("ModelName", "")
+        model_name = (
+            model_response.get("Item", {})
+            .get("parameter", {})
+            .get("ModelName", "")
+        )
         #  model_name = model_response.get("ModelName", {}).get("S","-")
     if not pre_model or model_name == input_body.get("model"):
         return {
             "statusCode": 200,
             "headers": resp_header,
-            "body": json.dumps({
-                "result": "valid"
-            })
+            "body": json.dumps({"result": "valid"}),
         }
     else:
         return {
             "statusCode": 200,
             "headers": resp_header,
-            "body": json.dumps({
-                "result": "invalid"
-            }
-            )}
+            "body": json.dumps({"result": "invalid"}),
+        }
 
 
 def __deduplicate_by_key(lst, key):
@@ -638,6 +676,7 @@ def __deduplicate_by_key(lst, key):
     for element in lst:
         seen[element[key]] = element
     return list(seen.values())
+
 
 def __get_query_parameter(event, parameter_name, default_value=None):
     if (

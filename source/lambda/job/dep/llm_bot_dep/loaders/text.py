@@ -43,7 +43,7 @@ class CustomTextLoader(TextLoader):
 
 def pre_process_text(text_content: str) -> str:
     # Clean up text content
-    text_content = re.sub(r"\s+", " ", text_content)
+    text_content = re.sub(r"[^\S\n]+", " ", text_content)
     text_content = re.sub(r"\n+", "\n", text_content)
 
     return text_content.strip()

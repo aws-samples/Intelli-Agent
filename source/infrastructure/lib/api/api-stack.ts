@@ -11,7 +11,7 @@
  *  and limitations under the License.                                                                                *
  *********************************************************************************************************************/
 
-import { Aws, Size, StackProps } from "aws-cdk-lib";
+import { Aws, Duration, Size, StackProps } from "aws-cdk-lib";
 import * as apigw from "aws-cdk-lib/aws-apigateway";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import { Runtime, Code } from 'aws-cdk-lib/aws-lambda';
@@ -30,6 +30,12 @@ import { ChatStackOutputs } from "../chat/chat-stack";
 import { UserConstructOutputs } from "../user/user-construct";
 import { LambdaFunction } from "../shared/lambda-helper";
 import { Constants } from "../shared/constants";
+import { PythonFunction } from "@aws-cdk/aws-lambda-python-alpha";
+import { BundlingFileAccess } from 'aws-cdk-lib/core';
+import { PromptApi } from "./prompt-management";
+import { IntentionApi } from "./intention-management";
+import { ModelApi } from "./model-management";
+import { ChatHistoryApi } from "./chat-history";
 
 interface ApiStackProps extends StackProps {
   config: SystemConfig;
@@ -65,9 +71,7 @@ export class ApiConstruct extends Construct {
     const messageQueue = props.chatStackOutputs.messageQueue;
 
     const lambdaLayers = new LambdaLayers(this);
-    // const apiLambdaExecutorLayer = lambdaLayers.createExecutorLayer();
-    const apiLambdaEmbeddingLayer = lambdaLayers.createEmbeddingLayer();
-    const apiLambdaOnlineSourceLayer = lambdaLayers.createOnlineSourceLayer();
+    const sharedLayer = lambdaLayers.createSharedLayer();
     const apiLambdaAuthorizerLayer = lambdaLayers.createAuthorizerLayer();
 
     // S3 bucket for storing documents
@@ -143,39 +147,6 @@ export class ApiConstruct extends Construct {
 
     // if (props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.enabled) {
     if (props.config.knowledgeBase.enabled && props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.enabled) {
-      const embeddingLambda = new LambdaFunction(this, "lambdaEmbedding", {
-        code: Code.fromAsset(join(__dirname, "../../../lambda/embedding")),
-        vpc: vpc,
-        securityGroups: securityGroups,
-        environment: {
-          ETL_MODEL_ENDPOINT: props.modelConstructOutputs.defaultKnowledgeBaseModelName,
-          REGION: Aws.REGION,
-          RES_BUCKET: resBucketName,
-        },
-        layers: [apiLambdaEmbeddingLayer],
-        statements: [
-          this.iamHelper.esStatement,
-          this.iamHelper.s3Statement,
-          this.iamHelper.endpointStatement,
-        ],
-      });
-
-      const aosLambda = new LambdaFunction(this, "AOSLambda", {
-        code: Code.fromAsset(join(__dirname, "../../../lambda/aos")),
-        vpc: vpc,
-        securityGroups: securityGroups,
-        environment: {
-          opensearch_cluster_domain: domainEndpoint,
-          embedding_endpoint: props.modelConstructOutputs.defaultEmbeddingModelName,
-        },
-        layers: [apiLambdaEmbeddingLayer],
-        statements: [
-          this.iamHelper.esStatement,
-          this.iamHelper.s3Statement,
-          this.iamHelper.endpointStatement,
-        ],
-      });
-
       const executionManagementLambda = new LambdaFunction(this, "ExecutionManagementLambda", {
         code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
         handler: "execution_management.lambda_handler",
@@ -198,27 +169,6 @@ export class ApiConstruct extends Construct {
         },
         statements: [this.iamHelper.s3Statement],
       });
-
-      // Define the API Gateway Lambda Integration with proxy and no integration responses
-      const lambdaEmbeddingIntegration = new apigw.LambdaIntegration(
-        embeddingLambda.function,
-        { proxy: true },
-      );
-
-      // Define the API Gateway Method
-      const apiResourceEmbedding = api.root.addResource("extract");
-      apiResourceEmbedding.addMethod("POST", lambdaEmbeddingIntegration, this.genMethodOption(api, auth, null),);
-
-      // Define the API Gateway Lambda Integration with proxy and no integration responses
-      const lambdaAosIntegration = new apigw.LambdaIntegration(aosLambda.function, {
-        proxy: true,
-      });
-
-      // All AOS wrapper should be within such lambda
-      const apiResourceAos = api.root.addResource("aos");
-      apiResourceAos.addMethod("POST", lambdaAosIntegration, this.genMethodOption(api, auth, null),);
-      // Add Get method to query & search index in OpenSearch, such embedding lambda will be updated for online process
-      apiResourceAos.addMethod("GET", lambdaAosIntegration, this.genMethodOption(api, auth, null),);
 
       const apiResourceStepFunction = api.root.addResource("knowledge-base");
       const apiKBExecution = apiResourceStepFunction.addResource("executions");
@@ -390,61 +340,6 @@ export class ApiConstruct extends Construct {
     }
 
     if (props.config.chat.enabled) {
-
-      const chatHistoryManagementLambda = new LambdaFunction(this, "ChatHistoryManagementLambda", {
-        code: Code.fromAsset(join(__dirname, "../../../lambda/chat_history")),
-        handler: "chat_history_management.lambda_handler",
-        environment: {
-          SESSIONS_TABLE_NAME: sessionsTableName,
-          MESSAGES_TABLE_NAME: messagesTableName,
-          SESSIONS_BY_TIMESTAMP_INDEX_NAME: "byTimestamp",
-          MESSAGES_BY_SESSION_ID_INDEX_NAME: "bySessionId",
-        },
-        statements: [this.iamHelper.dynamodbStatement],
-      });
-
-      const promptManagementLambda = new LambdaFunction(this, "PromptManagementLambda", {
-        runtime: Runtime.PYTHON_3_12,
-        code: Code.fromAsset(join(__dirname, "../../../lambda/prompt_management")),
-        handler: "prompt_management.lambda_handler",
-        environment: {
-          PROMPT_TABLE_NAME: props.chatStackOutputs.promptTableName,
-        },
-        layers: [apiLambdaOnlineSourceLayer],
-        statements: [this.iamHelper.dynamodbStatement,
-        this.iamHelper.logStatement],
-      });
-
-
-      const intentionLambda = new LambdaFunction(this, "IntentionLambda", {
-        runtime: Runtime.PYTHON_3_12,
-        code: Code.fromAsset(join(__dirname, "../../../lambda/intention")),
-        handler: "intention.lambda_handler",
-        vpc: vpc,
-        securityGroups: securityGroups,
-        environment: {
-          INTENTION_TABLE_NAME: props.chatStackOutputs.intentionTableName,
-          INDEX_TABLE_NAME: props.sharedConstructOutputs.indexTable.tableName,
-          CHATBOT_TABLE_NAME: props.sharedConstructOutputs.chatbotTable.tableName,
-          MODEL_TABLE_NAME: props.sharedConstructOutputs.modelTable.tableName,
-          S3_BUCKET: s3Bucket.bucketName,
-          EMBEDDING_MODEL_ENDPOINT: props.modelConstructOutputs.defaultEmbeddingModelName,
-          AOS_ENDPOINT: domainEndpoint,
-          KNOWLEDGE_BASE_ENABLED: props.config.knowledgeBase.enabled.toString(),
-          KNOWLEDGE_BASE_TYPE: JSON.stringify(props.config.knowledgeBase.knowledgeBaseType || {}),
-          BEDROCK_REGION: props.config.chat.bedrockRegion,
-        },
-        layers: [apiLambdaOnlineSourceLayer],
-        statements: [this.iamHelper.dynamodbStatement,
-        this.iamHelper.logStatement,
-        this.iamHelper.secretStatement,
-        this.iamHelper.esStatement,
-        this.iamHelper.s3Statement,
-        this.iamHelper.bedrockStatement,
-        this.iamHelper.endpointStatement,
-        ],
-      });
-
       const chatbotManagementLambda = new LambdaFunction(this, "ChatbotManagementLambda", {
         runtime: Runtime.PYTHON_3_12,
         code: Code.fromAsset(join(__dirname, "../../../lambda/etl")),
@@ -455,17 +350,10 @@ export class ApiConstruct extends Construct {
           MODEL_TABLE_NAME: props.sharedConstructOutputs.modelTable.tableName,
           EMBEDDING_ENDPOINT: props.modelConstructOutputs.defaultEmbeddingModelName,
         },
-        layers: [apiLambdaOnlineSourceLayer],
+        layers: [sharedLayer],
         statements: [this.iamHelper.dynamodbStatement,
         this.iamHelper.logStatement],
       });
-
-      const apiResourceSessions = api.root.addResource("sessions");
-      apiResourceSessions.addMethod("GET", new apigw.LambdaIntegration(chatHistoryManagementLambda.function), this.genMethodOption(api, auth, null),);
-      const apiResourceMessages = apiResourceSessions.addResource('{sessionId}').addResource("messages");
-      apiResourceMessages.addMethod("GET", new apigw.LambdaIntegration(chatHistoryManagementLambda.function), this.genMethodOption(api, auth, null),);
-      const apiResourceMessageFeedback = apiResourceMessages.addResource("{messageId}").addResource("feedback");
-      apiResourceMessageFeedback.addMethod("POST", new apigw.LambdaIntegration(chatHistoryManagementLambda.function), this.genMethodOption(api, auth, null),);
 
       const lambdaChatbotIntegration = new apigw.LambdaIntegration(chatbotManagementLambda.function, {
         proxy: true,
@@ -539,20 +427,6 @@ export class ApiConstruct extends Construct {
           }
         )
       });
-      // apiResourceChatbots.addMethod("GET", lambdaChatbotIntegration, {...this.genMethodOption(api, auth, {
-      //   Items: {type: JsonSchemaType.ARRAY, items: {
-      //     type: JsonSchemaType.OBJECT,
-      //     properties: {
-      //       ChatbotId: { type: JsonSchemaType.STRING },
-      //       ModelName: { type: JsonSchemaType.STRING },
-      //       ModelId: { type: JsonSchemaType.STRING },
-      //       LastModifiedTime: { type: JsonSchemaType.STRING }
-      //     },
-      //     modelId: { "type": JsonSchemaType.STRING },
-      //     modelName: { "type": JsonSchemaType.STRING }
-      //   }}
-      // })
-      // });
       apiResourceChatbots.addMethod("GET", lambdaChatbotIntegration, {
         ...this.genMethodOption(api, auth, {
           Items: {
@@ -592,41 +466,6 @@ export class ApiConstruct extends Construct {
         }
       })
 
-      // const apiGetChatbotById = chatbotResource.addResource("{chatbotId}");
-      // apiGetChatbotById.addMethod(
-      //   "GET",
-      //   new apigw.LambdaIntegration(chatbotManagementLambda.function),
-      //   {
-      //     ...this.genMethodOption(api, auth, {
-      //       Items: {
-      //         type: JsonSchemaType.ARRAY, items: {
-      //           type: JsonSchemaType.OBJECT,
-      //           properties: {
-      //             chatbotId: { type: JsonSchemaType.STRING },
-      //             index: { type: JsonSchemaType.STRING },
-      //             model: { type: JsonSchemaType.STRING },
-      //           },
-      //           required: ['chatbotId', 'index', 'model'],
-      //         }
-      //       },
-      //       Count: { type: JsonSchemaType.INTEGER }
-      //     }),
-      //     requestParameters: {
-      //       'method.request.path.chatbotId': true
-      //     },
-      //     // requestModels: this.genRequestModel(api, {
-      //     //   "executionId": { "type": JsonSchemaType.ARRAY, "items": {"type": JsonSchemaType.STRING}},
-      //     // })
-      //   }
-      // );
-
-
-
-
-      // const apiResourceChatbot = apiResourceChatbotManagement.addResource("chatbot");
-      // const apiResourceChatbotDetail = apiResourceChatbot.addResource('{chatbotId}')
-      // apiResourceChatbotDetail.addMethod("GET", lambdaChatbotIntegration, this.genMethodOption(api, auth, null));
-
       const apiResourceChatbotManagementEmbeddings = apiResourceChatbotManagement.addResource("embeddings")
       apiResourceChatbotManagementEmbeddings.addMethod("GET", lambdaChatbotIntegration, this.genMethodOption(api, auth, null));
 
@@ -634,163 +473,62 @@ export class ApiConstruct extends Construct {
       apiResourceChatbotProxy.addMethod("DELETE", lambdaChatbotIntegration, this.genMethodOption(api, auth, null),);
       apiResourceChatbotProxy.addMethod("GET", lambdaChatbotIntegration, this.genMethodOption(api, auth, null),);
 
-      // Define the API Gateway Lambda Integration to manage prompt
-      const lambdaPromptIntegration = new apigw.LambdaIntegration(promptManagementLambda.function, {
-        proxy: true,
-      });
-
-      const apiResourcePromptManagement = api.root.addResource("prompt-management");
-
-      const apiResourcePromptManagementModels = apiResourcePromptManagement.addResource("models")
-      apiResourcePromptManagementModels.addMethod("GET", lambdaPromptIntegration, this.genMethodOption(api, auth, null));
-
-      const apiResourcePromptManagementScenes = apiResourcePromptManagement.addResource("scenes")
-      apiResourcePromptManagementScenes.addMethod("GET", lambdaPromptIntegration, this.genMethodOption(api, auth, null));
-
-      const apiResourcePrompt = apiResourcePromptManagement.addResource("prompts");
-      apiResourcePrompt.addMethod("POST", lambdaPromptIntegration, this.genMethodOption(api, auth, null));
-      apiResourcePrompt.addMethod("GET", lambdaPromptIntegration, this.genMethodOption(api, auth, null));
-
-      const apiResourcePromptProxy = apiResourcePrompt.addResource("{proxy+}")
-      apiResourcePromptProxy.addMethod("POST", lambdaPromptIntegration, this.genMethodOption(api, auth, null));
-      apiResourcePromptProxy.addMethod("DELETE", lambdaPromptIntegration, this.genMethodOption(api, auth, null));
-      apiResourcePromptProxy.addMethod("GET", lambdaPromptIntegration, this.genMethodOption(api, auth, null));
-
-      // Define the API Gateway Lambda Integration to manage intention
-      const lambdaIntentionIntegration = new apigw.LambdaIntegration(intentionLambda.function, {
-        proxy: true,
-      });
-      const apiResourceIntentionManagement = api.root.addResource("intention");
-      // apiResourceIntentionManagement.addMethod("DELETE", lambdaIntentionIntegration, this.genMethodOption(api, auth, null))
-      const indexScan = apiResourceIntentionManagement.addResource("index-used-scan")
-      indexScan.addMethod("POST", lambdaIntentionIntegration, this.genMethodOption(api, auth, null));
-      // apiResourceIntentionManagement.addMethod("DELETE", lambdaIntentionIntegration, this.genMethodOption(api, auth, null));
-      const presignedUrl = apiResourceIntentionManagement.addResource("execution-presigned-url");
-      presignedUrl.addMethod("POST", lambdaIntentionIntegration, {
-        ...this.genMethodOption(api, auth, {
-          data: { type: JsonSchemaType.STRING },
-          message: { type: JsonSchemaType.STRING },
-          s3Bucket: { type: JsonSchemaType.STRING },
-          s3Prefix: { type: JsonSchemaType.STRING }
-        }),
-        requestModels: this.genRequestModel(api, {
-          "content_type": { "type": JsonSchemaType.STRING },
-          "file_name": { "type": JsonSchemaType.STRING },
-        })
-      })
-      const apiResourceDownload = apiResourceIntentionManagement.addResource("download-template");
-      apiResourceDownload.addMethod("GET", lambdaIntentionIntegration, this.genMethodOption(api, auth, null));
-      const apiResourceExecutionManagement = apiResourceIntentionManagement.addResource("executions");
-      apiResourceExecutionManagement.addMethod("DELETE", lambdaIntentionIntegration, this.genMethodOption(api, auth, null))
-      apiResourceExecutionManagement.addMethod("POST", lambdaIntentionIntegration, {
-        ...this.genMethodOption(api, auth, {
-          execution_id: { type: JsonSchemaType.STRING },
-          input_payload: {
-            type: JsonSchemaType.OBJECT,
-            properties: {
-              tableItemId: { type: JsonSchemaType.STRING },
-              chatbotId: { type: JsonSchemaType.STRING },
-              groupName: { type: JsonSchemaType.STRING },
-              index: { type: JsonSchemaType.STRING },
-              model: { type: JsonSchemaType.STRING },
-              fieldName: { type: JsonSchemaType.STRING }
-            }
-          },
-          result: { type: JsonSchemaType.STRING }
-        }),
-        requestModels: this.genRequestModel(api, {
-          "chatbotId": { "type": JsonSchemaType.STRING },
-          "index": { "type": JsonSchemaType.STRING },
-          "model": { "type": JsonSchemaType.STRING },
-          "s3Bucket": { "type": JsonSchemaType.STRING },
-          "s3Prefix": { "type": JsonSchemaType.STRING }
-        })
-      });
-      apiResourceExecutionManagement.addMethod("GET", lambdaIntentionIntegration, {
-        ...this.genMethodOption(api, auth, {
-          Items: {
-            type: JsonSchemaType.ARRAY, items: {
-              type: JsonSchemaType.OBJECT,
-              properties: {
-                model: { type: JsonSchemaType.STRING },
-                executionStatus: { type: JsonSchemaType.STRING },
-                index: { type: JsonSchemaType.STRING },
-                fileName: { type: JsonSchemaType.STRING },
-                createTime: { type: JsonSchemaType.STRING },
-                createBy: { type: JsonSchemaType.STRING },
-                executionId: { type: JsonSchemaType.STRING },
-
-                chatbotId: { type: JsonSchemaType.STRING },
-                details: { type: JsonSchemaType.STRING },
-                tag: { type: JsonSchemaType.STRING },
-              },
-              required: ['model',
-                'executionStatus',
-                'index',
-                'fileName',
-                'createTime',
-                'createBy',
-                'executionId',
-                'chatbotId',
-                'details',
-                'tag'],
-            }
-          },
-          Count: { type: JsonSchemaType.INTEGER },
-          Config: {
-            type: JsonSchemaType.OBJECT,
-            properties: {
-              MaxItems: { type: JsonSchemaType.INTEGER },
-              PageSize: { type: JsonSchemaType.INTEGER },
-              StartingToken: { type: JsonSchemaType.NULL }
-            }
-          }
-        }),
-        requestParameters: {
-          'method.request.querystring.max_items': false,
-          'method.request.querystring.page_size': false
-        }
-      });
-      const apiGetIntentionById = apiResourceExecutionManagement.addResource("{executionId}");
-      apiGetIntentionById.addMethod(
-        "GET",
-        lambdaIntentionIntegration,
-        {
-          ...this.genMethodOption(api, auth, {
-            Items: {
-              type: JsonSchemaType.ARRAY,
-              items: {
-                type: JsonSchemaType.OBJECT,
-                properties: {
-                  s3Path: { type: JsonSchemaType.STRING },
-                  s3Prefix: { type: JsonSchemaType.STRING },
-                  createTime: { type: JsonSchemaType.STRING }, // Consider using format: 'date-time'                
-                  status: { type: JsonSchemaType.STRING },
-                  QAList: {
-                    type: JsonSchemaType.ARRAY,
-                    items: {
-                      type: JsonSchemaType.OBJECT,
-                      properties: {
-                        question: { type: JsonSchemaType.STRING },
-                        intention: { type: JsonSchemaType.STRING },
-                        kwargs: { type: JsonSchemaType.STRING },
-                      }
-                    }
-                  }
-                },
-                required: ['s3Path', 's3Prefix', 'createTime', 'status', 'executionId'],
-              }
-            },
-            Count: { type: JsonSchemaType.INTEGER }
-          }),
-          requestParameters: {
-            'method.request.path.intentionId': true
-          },
-        }
+      const chatHistoryApi = new ChatHistoryApi(
+        scope, "ChatHistoryApi", {
+          api: api,
+          auth: auth,
+          messagesTableName: messagesTableName,
+          sessionsTableName: sessionsTableName,
+          iamHelper: this.iamHelper,
+          genMethodOption: this.genMethodOption,
+        },
       );
-      // const apiUploadIntention = apiResourceIntentionManagement.addResource("upload");
-      // apiUploadIntention.addMethod("POST", lambdaIntentionIntegration, this.genMethodOption(api, auth, null))
 
+      const promptApi = new PromptApi(
+        scope, "PromptApi", {
+          api: api,
+          auth: auth,
+          promptTableName: props.chatStackOutputs.promptTableName,
+          sharedLayer: sharedLayer,
+          iamHelper: this.iamHelper,
+          genMethodOption: this.genMethodOption,
+        },
+      );
+      promptApi.node.addDependency(chatHistoryApi);
+
+      const intentionApi = new IntentionApi(
+        scope, "IntentionApi", {
+          api: api,
+          auth: auth,
+          vpc: vpc!,
+          securityGroups: securityGroups!,
+          intentionTableName: props.chatStackOutputs.intentionTableName,
+          indexTable: props.sharedConstructOutputs.indexTable.tableName,
+          chatbotTable: props.sharedConstructOutputs.chatbotTable.tableName,
+          modelTable: props.sharedConstructOutputs.modelTable.tableName,
+          s3Bucket: s3Bucket.bucketName,
+          defaultEmbeddingModelName: props.modelConstructOutputs.defaultEmbeddingModelName,
+          domainEndpoint: domainEndpoint,
+          config: props.config,
+          sharedLayer: sharedLayer,
+          iamHelper: this.iamHelper,
+          genMethodOption: this.genMethodOption,
+          genRequestModel: this.genRequestModel,
+        },
+      );
+      intentionApi.node.addDependency(promptApi);
+
+      const modelApi = new ModelApi(
+        scope, "ModelApi", {
+          api: api,
+          auth: auth,
+          modelTable: props.sharedConstructOutputs.modelTable.tableName,
+          sharedLayer: sharedLayer,
+          iamHelper: this.iamHelper,
+          genMethodOption: this.genMethodOption, 
+        },
+      );
+      modelApi.node.addDependency(intentionApi);
 
       // Define the API Gateway Lambda Integration with proxy and no integration responses
       const lambdaExecutorIntegration = new apigw.LambdaIntegration(
@@ -819,23 +557,6 @@ export class ApiConstruct extends Construct {
       this.wsEndpoint = `${wsStage.api.apiEndpoint}/${wsStage.stageName}/`;
 
     }
-
-    // const plan = api.addUsagePlan('ExternalUsagePlan', {
-    //   name: 'external-api-usage-plan'
-    // });
-
-    // This is not safe, but for the purpose of the test, we will use this
-    // For deployment, we suggest user manually create the key and use it on the console
-
-    // const apiKeyValue = this.makeApiKey(24);
-    // const key = api.addApiKey('ApiKey', {
-    //   value: apiKeyValue,
-    // });
-
-    // plan.addApiKey(key);
-    // plan.addApiStage({
-    //   stage: api.deploymentStage
-    // })
 
     this.apiEndpoint = api.url;
     this.documentBucket = s3Bucket.bucketName;
