@@ -6,7 +6,7 @@ import { Button, Spinner, Textarea } from '@cloudscape-design/components';
 import Message from '../../chatbot/components/Message';
 import useWebSocket, { ReadyState } from 'react-use-websocket';
 import ConfigContext from 'src/context/config-context';
-import { MessageDataType, SessionMessage } from 'src/types';
+import { DocumentData, MessageDataType, SessionMessage } from 'src/types';
 import { useAuth } from 'react-oidc-context';
 import useAxiosRequest from 'src/hooks/useAxiosRequest';
 import { useAppDispatch, useAppSelector } from 'src/app/hooks';
@@ -18,6 +18,7 @@ interface MessageType {
   message: {
     data: string;
     monitoring: string;
+    documentList: DocumentData[];
   };
 }
 
@@ -40,6 +41,9 @@ export const ChatMessage: React.FC = () => {
   const [loadingHistory, setLoadingHistory] = useState(false);
   const messageListRef = useRef<HTMLDivElement>(null);
   const [isMessageEnd, setIsMessageEnd] = useState(false);
+  const [currentDocumentList, setCurrentDocumentList] = useState<
+    DocumentData[]
+  >([]);
   const [messages, setMessages] = useState<MessageType[]>([
     {
       messageId: uuidv4(),
@@ -47,6 +51,7 @@ export const ChatMessage: React.FC = () => {
       message: {
         data: t('welcomeMessage'),
         monitoring: '',
+        documentList: [],
       },
     },
   ]);
@@ -103,11 +108,18 @@ export const ChatMessage: React.FC = () => {
       setMessages(
         sessionMessage.map((msg) => {
           let messageContent = msg.content;
+          let documentList: DocumentData[] = [];
           // Handle AI images message
           if (msg.role === 'ai' && msg.additional_kwargs?.figure?.length > 0) {
             msg.additional_kwargs.figure.forEach((item) => {
               messageContent += ` \n ![${item.content_type}](/${encodeURIComponent(item.figure_path)})`;
             });
+          }
+          if (
+            msg.role === 'ai' &&
+            msg.additional_kwargs?.ref_docs?.length > 0
+          ) {
+            documentList = msg.additional_kwargs.ref_docs;
           }
           return {
             messageId: msg.messageId,
@@ -115,6 +127,7 @@ export const ChatMessage: React.FC = () => {
             message: {
               data: messageContent,
               monitoring: '',
+              documentList,
             },
           };
         }),
@@ -133,6 +146,7 @@ export const ChatMessage: React.FC = () => {
     setCurrentMonitorMessage('');
     dispatch(setCurrentSessionId(uuidv4()));
     setIsMessageEnd(false);
+    setCurrentDocumentList([]);
     const groupName: string[] = auth?.user?.profile?.['cognito:groups'] as any;
     let message = {
       query: userMessage,
@@ -177,6 +191,7 @@ export const ChatMessage: React.FC = () => {
           message: {
             data: userMessage,
             monitoring: '',
+            documentList: [],
           },
         },
       ];
@@ -214,12 +229,7 @@ export const ChatMessage: React.FC = () => {
       }
       // handle ref_docs
       if (message.ref_docs?.length > 0) {
-        message.ref_docs.forEach((doc) => {
-          console.info('doc:', doc);
-          //   setCurrentAIMessage((prev) => {
-          //     return prev + `\n ${doc.page_content}`;
-          //   });
-        });
+        setCurrentDocumentList(message.ref_docs);
       }
     } else if (message.message_type === 'END') {
       setCurrentAIMessageId(message.message_id);
@@ -276,6 +286,7 @@ export const ChatMessage: React.FC = () => {
             message: {
               data: currentAIMessage,
               monitoring: currentMonitorMessage,
+              documentList: currentDocumentList,
             },
           },
         ];
@@ -301,6 +312,7 @@ export const ChatMessage: React.FC = () => {
                 showTrace={false}
                 type={msg.type}
                 message={msg.message}
+                documentList={msg.message.documentList}
               />
             </div>
           ))}
@@ -314,6 +326,7 @@ export const ChatMessage: React.FC = () => {
                   data: currentAIMessage,
                   monitoring: currentMonitorMessage,
                 }}
+                documentList={currentDocumentList}
               />
             </div>
           )}

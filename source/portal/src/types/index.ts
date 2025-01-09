@@ -81,6 +81,7 @@ export type SessionMessage = {
   chatbotId: string;
   additional_kwargs: {
     figure: AdditionalImageType[];
+    ref_docs: DocumentData[];
   };
 };
 
@@ -162,7 +163,7 @@ export type AdditionalImageType = {
   figure_path: string;
 };
 
-interface DocumentData {
+export interface DocumentData {
   page_content: string;
   retrieval_content: string;
   retrieval_score: number;

@@ -225,6 +225,44 @@ $hover-light: #f3f4f6;
                 color: $bg-white;
               }
             }
+
+            .document-list {
+              margin-top: 12px;
+              border-top: 1px solid $border;
+              padding-top: 12px;
+
+              .document-item {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 8px;
+                margin: 4px 0;
+                border: 1px solid $border;
+                border-radius: 4px;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                background: $bg-white;
+
+                &:hover {
+                  background: $bg-light;
+                  border-color: $primary;
+                }
+
+                .doc-icon {
+                  color: $primary;
+                  font-size: 16px;
+                }
+
+                .doc-name {
+                  color: $primary;
+                  font-size: 13px;
+                  flex: 1;
+                  overflow: hidden;
+                  text-overflow: ellipsis;
+                  white-space: nowrap;
+                }
+              }
+            }
           }
         }
 
