@@ -67,8 +67,6 @@ export class WorkspaceStack extends Stack implements WorkspaceOutputs {
   constructor(scope: Construct, id: string, props: WorkspaceProps) {
     super(scope, id, props);
 
-    // const randomUuid = uuidv4();
-
     this.iamHelper = props.sharedConstructOutputs.iamHelper;
     const genMethodOption = props.apiConstructOutputs.genMethodOption;
 
@@ -95,7 +93,7 @@ export class WorkspaceStack extends Stack implements WorkspaceOutputs {
     const customerSessionsTable = new DynamoDBTable(this, "CustomerSession", sessionIdAttr).table;
     // customerSessionsTable.addGlobalSecondaryIndex({
     //   indexName: this.byTimestampIndex,
-    //   partitionKey: userIdAttr,
+    //   partitionKey: { name: "status", type: dynamodb.AttributeType.STRING },
     //   sortKey: timestampAttr,
     //   projectionType: dynamodb.ProjectionType.ALL,
     // });
@@ -110,12 +108,12 @@ export class WorkspaceStack extends Stack implements WorkspaceOutputs {
       runtime: Runtime.PYTHON_3_12,
       entry: join(__dirname, "../../../lambda/query_handler"),
       index: "rest_api.py",
-      handler: "rest_api.lambda_handler",
+      handler: "lambda_handler",
       timeout: Duration.minutes(15),
       environment: {
         SESSIONS_TABLE_NAME: customerSessionsTable.tableName,
         MESSAGES_TABLE_NAME: customerMessagesTable.tableName,
-        SESSIONS_BY_TIMESTAMP_INDEX_NAME: "byTimestamp",
+        SESSIONS_BY_TIMESTAMP_INDEX_NAME: "byStatusTimestamp",
         MESSAGES_BY_SESSION_ID_INDEX_NAME: "bySessionId",
       },
     });
@@ -174,7 +172,9 @@ export class WorkspaceStack extends Stack implements WorkspaceOutputs {
 
     const apiResourceSessions = workspaceApi.root.addResource("customer-sessions");
     apiResourceSessions.addMethod("GET", new apigw.LambdaIntegration(restQueryHandler), genMethodOption(workspaceApi, auth, null),);
-    const apiResourceMessages = apiResourceSessions.addResource('{sessionId}').addResource("messages");
+    apiResourceSessions.addMethod("POST", new apigw.LambdaIntegration(restQueryHandler), genMethodOption(workspaceApi, auth, null),);
+    const apiResourceSessionId = apiResourceSessions.addResource('{sessionId}');
+    const apiResourceMessages = apiResourceSessionId.addResource("messages");
     apiResourceMessages.addMethod("GET", new apigw.LambdaIntegration(restQueryHandler), genMethodOption(workspaceApi, auth, null),);
     
     const wsDispatcher = new LambdaFunction(this, "WorkspaceDispatcher", {
@@ -237,21 +237,6 @@ export class WorkspaceStack extends Stack implements WorkspaceOutputs {
         // apiKey: apiConstruct.apiKey,
       },
     });
-    // const clientUIExports = new UiExportsConstruct(this, "ClientUIExportAsset", {
-    //   portalBucket: props.mainPortalConstruct.portalBucket,
-    //   uiProps: {
-    //     websocket: apiConstruct.wsEndpoint,
-    //     apiUrl: apiConstruct.apiEndpoint,
-    //     oidcIssuer: props.userConstruct.oidcIssuer,
-    //     oidcClientId: props.userConstruct.oidcClientId,
-    //     oidcLogoutUrl: props.userConstruct.oidcLogoutUrl,
-    //     oidcRedirectUrl: `https://${props.mainPortalConstruct.portalUrl}/signin`,
-    //     kbEnabled: props.config.knowledgeBase.enabled.toString(),
-    //     kbType: JSON.stringify(props.config.knowledgeBase.knowledgeBaseType || {}),
-    //     embeddingEndpoint: modelConstruct.defaultEmbeddingModelName || "",
-    //     // apiKey: apiConstruct.apiKey,
-    //   },
-    // });
 
     uiExports.node.addDependency(webSocketApi);
     uiExports.node.addDependency(workspaceApi);

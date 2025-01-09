@@ -88,6 +88,7 @@ def send_message(event, context):
     body = json.loads(event['body'])
     logger.info("Send message body:")
     logger.info(body)
+    
     if "user_id" in body:
         user_id = body.get('user_id')
     else:
@@ -98,12 +99,16 @@ def send_message(event, context):
     timestamp = datetime.utcnow().isoformat()
     aws_resources.sessions_table.update_item(
         Key={"sessionId": session_id},
-        UpdateExpression="SET lastModifiedTimestamp = :ts, latestQuestion = :content, status = :status",
+        UpdateExpression="SET lastModifiedTimestamp = :ts, latestQuestion = :content",
+        # UpdateExpression="SET lastModifiedTimestamp = :ts, latestQuestion = :content, #st = :status",
         ExpressionAttributeValues={
             ':ts': timestamp,
-            ':content': content,
-            ':status': "Pending"
+            ':content': content
+            # ':status': "Pending"
         }
+        # ExpressionAttributeNames={
+        #     '#st': 'status'
+        # }
     )
 
     # Add message to the Message Table
@@ -151,12 +156,17 @@ def send_response(event, context):
     if not connection_id:
         return {'statusCode': 400, 'body': 'No active connection for the session'}
     
+    # TODO: can be deleted
     aws_resources.sessions_table.update_item(
         Key={"sessionId": session_id},
-        UpdateExpression="SET lastModifiedTimestamp = :ts, status = :status",
+        UpdateExpression="SET lastModifiedTimestamp = :ts, latestResponse = :content, #st = :status",
         ExpressionAttributeValues={
             ':ts': timestamp,
+            ':content': content,
             ':status': "Active"
+        },
+        ExpressionAttributeNames={
+            '#st': 'status'
         }
     )    
 
@@ -180,10 +190,13 @@ def send_response(event, context):
         # Handle case where the connection is no longer valid
         aws_resources.sessions_table.update_item(
             Key={'sessionId': session_id},
-            UpdateExpression="SET status = :status, lastModifiedTimestamp = :timestamp",
+            UpdateExpression="SET #st = :status, lastModifiedTimestamp = :timestamp",
             ExpressionAttributeValues={
                 ':status': 'Closed',
                 ':timestamp': timestamp
+            },
+            ExpressionAttributeNames={
+                '#st': 'status'
             }
         )
         return {'statusCode': 410, 'body': 'Connection closed'}
@@ -198,6 +211,8 @@ def lambda_handler(event: Dict, context: Any) -> Dict:
     if "Records" in event:
         for record in event["Records"]:
             event_body = json.loads(record["body"])
+            logger.info("Websocket event body")
+            logger.info(event_body)
             route_key = event_body["requestContext"]["routeKey"]
             if route_key in ["sendMessage", "$default"]:
                 send_message(event_body, context)

@@ -78,7 +78,7 @@ modules_prepared="${modules_prepared}Lambda Deployment, "
 
 if $ui_enabled; then
     build_frontend
-    # build_client_frontend
+    build_client_frontend
     modules_prepared="${modules_prepared}Frontend, "
 fi
 

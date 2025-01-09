@@ -83,7 +83,7 @@ class PaginationConfig:
         }
 
 
-class ChatHistoryManager:
+class CustomerChatManager:
     """Handles chat history related database operations"""
 
     @staticmethod
@@ -99,24 +99,33 @@ class ChatHistoryManager:
         return response.get("Item")
 
     @staticmethod
-    def list_sessions(user_id: str, pagination_config: Dict[str, Any]) -> Dict[str, Any]:
-        """List sessions for a user with pagination"""
-        paginator = aws_resources.dynamodb_client.get_paginator("query")
+    def list_pending_sessions(event, pagination_config: Dict[str, Any]) -> Dict[str, Any]:
+        """List pending sessions and active sessions assigned to current agent"""
+        claims = event['requestContext']['authorizer']['claims']
+        claims_json = json.loads(claims)
+        agent_id = claims_json.get("sub")
 
-        response_iterator = paginator.paginate(
-            TableName=Config.SESSIONS_TABLE_NAME,
-            IndexName=Config.SESSIONS_BY_TIMESTAMP_INDEX,
-            KeyConditionExpression="userId = :user_id",
-            ExpressionAttributeValues={":user_id": {"S": user_id}},
-            ScanIndexForward=False,
-            PaginationConfig=pagination_config,
+        response = aws_resources.sessions_table.scan(
+            FilterExpression="(#st = :pending_status) OR (#st = :active_status AND agentId = :agent_id)",
+            ExpressionAttributeValues={
+                ':pending_status': 'Pending',
+                ':active_status': 'Active',
+                ':agent_id': agent_id
+            },
+            ExpressionAttributeNames={
+                '#st': 'status'
+            }
         )
 
-        return ChatHistoryManager._process_paginated_response(
-            response_iterator,
-            ["sessionId", "userId", "createTimestamp", "latestQuestion", "chatbotId"],
-            pagination_config=pagination_config,
-        )
+        items = response.get('Items', [])
+        
+        # Sort by createTimestamp in descending order (newest first)
+        items.sort(key=lambda x: x['createTimestamp'], reverse=True)
+        
+        return {
+            "Items": items,
+            "Count": len(items)
+        }
 
     @staticmethod
     def list_messages(session_id: str, pagination_config: Dict[str, Any]) -> Dict[str, Any]:
@@ -132,12 +141,40 @@ class ChatHistoryManager:
             PaginationConfig=pagination_config,
         )
 
-        return ChatHistoryManager._process_paginated_response(
+        return CustomerChatManager._process_paginated_response(
             response_iterator,
-            ["messageId", "role", "content", "createTimestamp", "chatbotId"],
+            ["messageId", "role", "content", "createTimestamp"],
             pagination_config=pagination_config,
             is_messages_list=True,
         )
+
+    @staticmethod
+    def select_session(event, pagination_config: Dict[str, Any]):
+        body = json.loads(event['body'])
+        session_id = body.get('session_id')
+        claims = event['requestContext']['authorizer']['claims']
+        claims_json = json.loads(claims)
+        agent_id = claims_json.get("sub")
+        timestamp = datetime.utcnow().isoformat()
+
+        logger.info("start to update ddb")
+        aws_resources.sessions_table.update_item(
+            Key={'sessionId': session_id},
+            UpdateExpression="SET agentId = :agent_id, #st = :status, lastModifiedTimestamp = :ts",
+            ExpressionAttributeValues={
+                ':agent_id': agent_id,
+                ':status': 'Active',
+                ':ts': timestamp
+            },
+            ExpressionAttributeNames={
+                '#st': 'status'
+            }
+        )
+
+        logger.info("start to list message")
+        return CustomerChatManager.list_messages(session_id, pagination_config)
+
+
 
     @staticmethod
     def _process_paginated_response(
@@ -153,7 +190,7 @@ class ChatHistoryManager:
             for item in items:
                 processed_item = {key: item.get(key, {"S": ""})["S"] for key in keys}
                 # special handling for AI messages while listing messages
-                if is_messages_list and item.get("role", {}).get("S") == "ai":
+                if is_messages_list and item.get("role", {}).get("S") == "agent":
                     processed_item["additional_kwargs"] = json.loads(item["additional_kwargs"]["S"])
                 processed_items.append(processed_item)
 
@@ -194,54 +231,35 @@ class ApiHandler:
 
     @staticmethod
     def list_sessions(event: Dict) -> Dict:
-        """Handle GET /chat-history/sessions endpoint"""
+        """Handle GET /customer-sessions/sessions endpoint"""
         try:
-            claims = json.loads(event["requestContext"]["authorizer"]["claims"])
-            user_id = claims["cognito:username"]
             pagination_config = PaginationConfig.get_pagination_config(event)
-            result = ChatHistoryManager.list_sessions(user_id, pagination_config)
+            result = CustomerChatManager.list_pending_sessions(event, pagination_config)
             return ApiResponse.success(result)
         except Exception as e:
             return ApiResponse.error(str(e))
 
     @staticmethod
     def list_messages(event: Dict) -> Dict:
-        """Handle GET /chat-history/sessions/{sessionId}/messages endpoint"""
+        """Handle GET /customer-sessions/{sessionId}/messages endpoint"""
         try:
             session_id = event["pathParameters"]["sessionId"]
             pagination_config = PaginationConfig.get_pagination_config(event)
-            result = ChatHistoryManager.list_messages(session_id, pagination_config)
+            result = CustomerChatManager.list_messages(session_id, pagination_config)
             return ApiResponse.success(result)
         except Exception as e:
-            return ApiResponse.error(str(e)) 
+            return ApiResponse.error(str(e))
 
+    @staticmethod
+    def select_session(event: Dict) -> Dict:
+        """Handle POST /customer-sessions/{session_id} endpoint"""
+        try:
+            pagination_config = PaginationConfig.get_pagination_config(event)
+            result = CustomerChatManager.select_session(event, pagination_config)
+            return ApiResponse.success(result)
+        except Exception as e:
+            return ApiResponse.error(str(e))
 
-def get_pending_sessions(event, context):
-    response = aws_resources.session_table.scan(
-        FilterExpression="status = :status",
-        ExpressionAttributeValues={':status': 'Pending'}
-    )
-    return {'statusCode': 200, 'body': json.dumps(response['Items'])}
-
-
-def select_session(event, context):
-    body = json.loads(event['body'])
-    session_id = body.get('sessionId')
-    agent_id = event['requestContext']['authorizer']['claims']['sub']  # Cognito Agent ID
-    timestamp = datetime.utcnow().isoformat()
-
-    aws_resources.session_table.update_item(
-        Key={'sessionId': session_id},
-        UpdateExpression="SET agentId = :agent_id, status = :status, lastModifiedTimestamp = :ts",
-        ExpressionAttributeValues={
-            ':agent_id': agent_id,
-            ':status': 'Active',
-            ':ts': timestamp
-        }
-    )
-    return {'statusCode': 200, 'body': 'Session selected'}
-
-api_client = boto3.client('apigatewaymanagementapi', endpoint_url="https://<your-api-gateway-domain>.execute-api.<region>.amazonaws.com/<stage>")
 
 
 def lambda_handler(event: Dict, context: Any) -> Dict:
@@ -251,6 +269,7 @@ def lambda_handler(event: Dict, context: Any) -> Dict:
     routes = {
         ("GET", "/customer-sessions"): ApiHandler.list_sessions,
         ("GET", "/customer-sessions/{sessionId}/messages"): ApiHandler.list_messages,
+        ("POST", "/customer-sessions"): ApiHandler.select_session,
     }
 
     handler = routes.get((event["httpMethod"], event["resource"]))
