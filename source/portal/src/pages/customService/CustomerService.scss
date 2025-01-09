@@ -482,7 +482,7 @@ $hover-light: #f3f4f6;
         .docs-header {
           padding: 20px 24px;
           background: $bg-white;
-          border-bottom: 1px solid $border;
+          //   border-bottom: 1px solid $border;
           display: flex;
           justify-content: space-between;
           align-items: center;
@@ -531,26 +531,14 @@ $hover-light: #f3f4f6;
             gap: 32px;
 
             .tab {
-              padding: 16px 4px;
-              border: none;
-              background: none;
-              font-size: 13px;
-              color: $text-secondary;
-              cursor: pointer;
               position: relative;
+              padding: 8px 16px;
+              border: none;
+              background: transparent;
+              cursor: pointer;
               transition: all 0.2s ease;
-              font-weight: 500;
-
-              &::after {
-                content: '';
-                position: absolute;
-                left: 0;
-                right: 0;
-                bottom: -1px;
-                height: 2px;
-                background: transparent;
-                transition: all 0.2s ease;
-              }
+              color: $text-secondary;
+              font-size: 13px;
 
               &:hover {
                 color: $text-primary;
@@ -558,21 +546,18 @@ $hover-light: #f3f4f6;
 
               &.active {
                 color: $primary;
+                font-weight: 500;
 
                 &::after {
+                  content: '';
+                  position: absolute;
+                  bottom: 0;
+                  left: 0;
+                  width: 100%;
+                  height: 2px;
                   background: $primary;
+                  transition: all 0.2s ease;
                 }
-              }
-
-              .badge {
-                margin-left: 8px;
-                padding: 2px 8px;
-                background: $primary-light;
-                color: $primary;
-                border-radius: 12px;
-                font-size: 11px;
-                font-weight: 500;
-                border: 1px solid rgba($primary, 0.1);
               }
             }
           }
@@ -884,5 +869,29 @@ $hover-light: #f3f4f6;
     [data-awsui-focus-visible='true'] {
       box-shadow: none;
     }
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes glow {
+  from {
+    box-shadow:
+      0 0 5px rgba(67, 83, 255, 0.2),
+      0 0 10px rgba(67, 83, 255, 0.2),
+      0 0 15px rgba(67, 83, 255, 0.2);
+  }
+  to {
+    box-shadow:
+      0 0 10px rgba(67, 83, 255, 0.4),
+      0 0 20px rgba(67, 83, 255, 0.4),
+      0 0 30px rgba(67, 83, 255, 0.4);
   }
 }
