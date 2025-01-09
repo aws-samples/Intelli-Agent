@@ -24,11 +24,14 @@ import { WebSocketLambdaAuthorizer } from 'aws-cdk-lib/aws-apigatewayv2-authoriz
 import { createBasicLambdaPolicy } from "../shared/utils";
 import { LambdaFunction } from "../shared/lambda-helper";
 import { Constants } from "../shared/constants";
+import { IAMHelper } from "../shared/iam-helper";
 
 interface WSWebSocketProps extends StackProps {
   dispatcherLambda: lambda.Function;
   sendMessageLambda: lambda.Function;
+  sendResponseLambda: lambda.Function;
   customAuthorizerLambda: lambda.Function;
+  iamHelper: IAMHelper;
   sessionTableName: string;
   messageTableName: string;
   sessionIndex: string;
@@ -60,6 +63,7 @@ export class WSWebSocketConstruct extends Construct {
         SESSIONS_BY_TIMESTAMP_INDEX_NAME: props.sessionIndex,
         MESSAGES_BY_SESSION_ID_INDEX_NAME: props.messageIndex,
       },
+      statements: [props.iamHelper.dynamodbStatement],
     });
 
     const onDisconnectLambda = new LambdaFunction(this, "OnDisconnect", {
@@ -74,6 +78,7 @@ export class WSWebSocketConstruct extends Construct {
         SESSIONS_BY_TIMESTAMP_INDEX_NAME: props.sessionIndex,
         MESSAGES_BY_SESSION_ID_INDEX_NAME: props.messageIndex,
       },
+      statements: [props.iamHelper.dynamodbStatement],
     });
 
     const webSocketApi = new apigwv2.WebSocketApi(this, `${Constants.SOLUTION_SHORT_NAME.toLowerCase()}-workspace-ws-api`, {
@@ -116,9 +121,18 @@ export class WSWebSocketConstruct extends Construct {
       ),
     });
 
+    webSocketApi.addRoute("sendResponse", {
+      integration: new WebSocketLambdaIntegration(
+        "MessageIntegration",
+        props.sendResponseLambda,
+      ),
+    });
+
     props.sendMessageLambda.addEnvironment("WEBSOCKET_URL", stage.callbackUrl);
+    props.sendResponseLambda.addEnvironment("WEBSOCKET_URL", stage.callbackUrl);
     webSocketApi.grantManageConnections(props.sendMessageLambda);
     webSocketApi.grantManageConnections(props.dispatcherLambda);
+    webSocketApi.grantManageConnections(props.sendResponseLambda);
 
     this.webSocketApi = webSocketApi;
     this.websocketApiStage = stage;

@@ -12,20 +12,20 @@ session_table = dynamodb.Table(os.environ.get("SESSIONS_TABLE_NAME"))
 
 def lambda_handler(event, context):
     logger.info(f"Disconnect: {event}")
-    connection_id = event['requestContext']['connectionId']
-    session_id = f"session_{connection_id}"
-    response = session_table.get_item(Key={'sessionId': session_id})
-    if 'Item' in response:
-        session = response['Item']
+    qs_param = event["queryStringParameters"]
+    session_id = qs_param["session_id"]
+    response = session_table.get_item(Key={"sessionId": session_id})
+    if "Item" in response:
+        session = response["Item"]
         logger.info(session)
         
         # Mark the session as closed
         session_table.update_item(
-            Key={'sessionId': session_id},
+            Key={"sessionId": session_id},
             UpdateExpression="SET status = :status, lastModifiedTimestamp = :timestamp",
             ExpressionAttributeValues={
-                ':status': 'Closed',
-                ':timestamp': datetime.utcnow().isoformat()
+                ":status": "Closed",
+                ":timestamp": datetime.utcnow().isoformat()
             }
         )    
 

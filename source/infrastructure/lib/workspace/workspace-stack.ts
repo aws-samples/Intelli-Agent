@@ -36,6 +36,7 @@ import { WSWebSocketConstruct } from "./websocket-api";
 import { QueueConstruct } from "../chat/chat-queue";
 import { PortalConstruct } from "../ui/ui-portal";
 import { UserConstruct } from "../user/user-construct";
+import { UiExportsConstruct } from "../ui/ui-exports";
 
 
 
@@ -94,13 +95,13 @@ export class WorkspaceStack extends Stack implements WorkspaceOutputs {
       type: dynamodb.AttributeType.STRING,
     }
 
-    const customerSessionsTable = new DynamoDBTable(this, "CustomerSession", sessionIdAttr, userIdAttr).table;
-    customerSessionsTable.addGlobalSecondaryIndex({
-      indexName: this.byTimestampIndex,
-      partitionKey: userIdAttr,
-      sortKey: timestampAttr,
-      projectionType: dynamodb.ProjectionType.ALL,
-    });
+    const customerSessionsTable = new DynamoDBTable(this, "CustomerSession", sessionIdAttr).table;
+    // customerSessionsTable.addGlobalSecondaryIndex({
+    //   indexName: this.byTimestampIndex,
+    //   partitionKey: userIdAttr,
+    //   sortKey: timestampAttr,
+    //   projectionType: dynamodb.ProjectionType.ALL,
+    // });
 
     const customerMessagesTable = new DynamoDBTable(this, "CustomerMessage", messageIdAttr, sessionIdAttr).table;
     customerMessagesTable.addGlobalSecondaryIndex({
@@ -109,7 +110,6 @@ export class WorkspaceStack extends Stack implements WorkspaceOutputs {
     });
 
     const restQueryHandler = new PythonFunction(this, "RestQueryHandler", {
-      // functionName: `query-handler-${randomUuid}`,
       runtime: Runtime.PYTHON_3_12,
       entry: join(__dirname, "../../../lambda/query_handler"),
       index: "rest_api.py",
@@ -176,11 +176,10 @@ export class WorkspaceStack extends Stack implements WorkspaceOutputs {
 
     const apiResourceSessions = workspaceApi.root.addResource("customer-sessions");
     apiResourceSessions.addMethod("GET", new apigw.LambdaIntegration(restQueryHandler), genMethodOption(workspaceApi, auth, null),);
-    apiResourceSessions.addMethod("POST", new apigw.LambdaIntegration(restQueryHandler), genMethodOption(workspaceApi, auth, null),);
     const apiResourceMessages = apiResourceSessions.addResource('{sessionId}').addResource("messages");
     apiResourceMessages.addMethod("GET", new apigw.LambdaIntegration(restQueryHandler), genMethodOption(workspaceApi, auth, null),);
     
-    const wsDispatcher = new LambdaFunction(this, "workspaceDispatcher", {
+    const wsDispatcher = new LambdaFunction(this, "WorkspaceDispatcher", {
       code: Code.fromAsset(join(__dirname, "../../../lambda/workspace")),
       environment: {
         SQS_QUEUE_URL: chatQueueConstruct.messageQueue.queueUrl,
@@ -193,7 +192,7 @@ export class WorkspaceStack extends Stack implements WorkspaceOutputs {
       runtime: Runtime.PYTHON_3_12,
       entry: join(__dirname, "../../../lambda/query_handler"),
       index: "websocket_api.py",
-      handler: "websocket_api.lambda_handler",
+      handler: "lambda_handler",
       timeout: Duration.minutes(15),
       environment: {
         SESSIONS_TABLE_NAME: customerSessionsTable.tableName,
@@ -211,7 +210,9 @@ export class WorkspaceStack extends Stack implements WorkspaceOutputs {
     const webSocketApi = new WSWebSocketConstruct(this, "WSWebSocketApi", {
       dispatcherLambda: wsDispatcher.function,
       sendMessageLambda: wsQueryHandler,
+      sendResponseLambda: wsQueryHandler,
       customAuthorizerLambda: customAuthorizerLambda.function,
+      iamHelper: this.iamHelper,
       sessionTableName: customerSessionsTable.tableName,
       messageTableName: customerMessagesTable.tableName,
       sessionIndex: "byTimestamp",
@@ -219,5 +220,25 @@ export class WorkspaceStack extends Stack implements WorkspaceOutputs {
     });
     let wsStage = webSocketApi.websocketApiStage
     this.wsEndpoint = `${wsStage.api.apiEndpoint}/${wsStage.stageName}/`;
+
+    const uiExports = new UiExportsConstruct(this, "workspace-ui-exports", {
+      portalBucket: portalConstruct.portalBucket,
+      uiProps: {
+        websocket: this.wsEndpoint,
+        apiUrl: workspaceApi.url,
+        oidcIssuer: userConstruct.oidcIssuer,
+        oidcClientId: userConstruct.oidcClientId,
+        oidcLogoutUrl: userConstruct.oidcLogoutUrl,
+        oidcRedirectUrl: `https://${portalConstruct.portalUrl}/signin`,
+        kbEnabled: props.config.knowledgeBase.enabled.toString(),
+        kbType: JSON.stringify(props.config.knowledgeBase.knowledgeBaseType || {}),
+        embeddingEndpoint: "",
+        // apiKey: apiConstruct.apiKey,
+      },
+    });
+    uiExports.node.addDependency(webSocketApi);
+    uiExports.node.addDependency(workspaceApi);
+    uiExports.node.addDependency(portalConstruct);
+
   }
 }

@@ -175,47 +175,6 @@ class ChatHistoryManager:
         output["Count"] = len(processed_items)
         return output
 
-    @staticmethod
-    def add_feedback(
-        session_id: str, user_id: str, message_id: str, feedback_type: str, feedback_reason: str, suggest_message: Dict
-    ) -> Dict[str, Any]:
-        """Add feedback to a message"""
-        # First verify the session belongs to the user
-        session = ChatHistoryManager.get_session(session_id, user_id)
-        if not session:
-            return {"added": False, "error": "Session not found or unauthorized"}
-
-        message = ChatHistoryManager.get_message(message_id, session_id)
-        if not message:
-            return {"added": False, "error": "Message not found"}
-
-        try:
-            current_timestamp = datetime.utcnow().isoformat() + "Z"
-
-            # Update message with feedback
-            aws_resources.messages_table.update_item(
-                Key={"messageId": message_id, "sessionId": session_id},
-                UpdateExpression="SET feedbackType = :ft, feedbackReason = :fr, suggestMessage = :sm, lastModifiedTimestamp = :t",
-                ExpressionAttributeValues={
-                    ":ft": feedback_type,
-                    ":fr": feedback_reason,
-                    ":sm": suggest_message,
-                    ":t": current_timestamp,
-                },
-            )
-
-            # Update session last modified time
-            aws_resources.sessions_table.update_item(
-                Key={"sessionId": session_id, "userId": user_id},
-                UpdateExpression="SET lastModifiedTimestamp = :t",
-                ExpressionAttributeValues={":t": current_timestamp},
-            )
-
-            return {"added": True}
-        except Exception as e:
-            logger.error("Error adding feedback: %s", str(e))
-            return {"added": False, "error": str(e)}
-
 
 class ApiResponse:
     """Standardized API response handler"""
@@ -257,54 +216,6 @@ class ApiHandler:
             return ApiResponse.error(str(e)) 
 
 
-def send_message(event, context):
-    body = json.loads(event['body'])
-    user_id = event['requestContext']['authorizer']['claims']['sub']  # Cognito User ID
-    content = body.get('message')
-    session_id = body.get('sessionId')  # Create a new session ID if not provided
-    timestamp = datetime.utcnow().isoformat()
-
-    # Check if session exists
-    session_response = aws_resources.session_table.get_item(Key={'sessionId': session_id})
-    if 'Item' not in session_response:
-        # Create a new session
-        aws_resources.session_table.put_item(Item={
-            'sessionId': session_id,
-            'userId': user_id,
-            'clientType': 'web_ui',
-            'createTimestamp': timestamp,
-            'lastModifiedTimestamp': timestamp,
-            'latestQuestion': content,
-            'startTime': timestamp,
-            'status': 'Pending',
-            'agentId': ''
-        })
-    else:
-        # Update existing session
-        aws_resources.session_table.update_item(
-            Key={'sessionId': session_id},
-            UpdateExpression="SET lastModifiedTimestamp = :ts, latestQuestion = :content",
-            ExpressionAttributeValues={
-                ':ts': timestamp,
-                ':content': content
-            }
-        )
-
-    # Add message to the Message Table
-    message_id = f"user_123"
-    aws_resources.message_table.put_item(Item={
-        'messageId': message_id,
-        'sessionId': session_id,
-        'additional_kwargs': "{}",
-        'content': content,
-        'createTimestamp': timestamp,
-        'lastModifiedTimestamp': timestamp,
-        'role': 'user'
-    })
-
-    return {'statusCode': 200, 'body': json.dumps({'sessionId': session_id, 'messageId': message_id})}
-
-
 def get_pending_sessions(event, context):
     response = aws_resources.session_table.scan(
         FilterExpression="status = :status",
@@ -331,62 +242,6 @@ def select_session(event, context):
     return {'statusCode': 200, 'body': 'Session selected'}
 
 api_client = boto3.client('apigatewaymanagementapi', endpoint_url="https://<your-api-gateway-domain>.execute-api.<region>.amazonaws.com/<stage>")
-
-def send_response(event, context):
-    body = json.loads(event['body'])
-    session_id = body.get('sessionId')
-    content = body.get('message')
-    agent_id = event['requestContext']['authorizer']['claims']['sub']  # Cognito Agent ID
-    timestamp = datetime.utcnow().isoformat()
-
-    # Add message to the Message Table
-    message_id = f"agent_123"
-    aws_resources.message_table.put_item(Item={
-        'messageId': message_id,
-        'sessionId': session_id,
-        'additional_kwargs': "{}",
-        'content': content,
-        'createTimestamp': timestamp,
-        'lastModifiedTimestamp': timestamp,
-        'role': 'agent'
-    })
-
-    # Retrieve the connection ID for the end customer from the session
-    session_response = aws_resources.session_table.get_item(Key={'sessionId': session_id})
-    if 'Item' not in session_response:
-        return {'statusCode': 404, 'body': 'Session not found'}
-
-    session = session_response['Item']
-    connection_id = session.get('connectionId')  # Assume connectionId is stored in the session table
-    if not connection_id:
-        return {'statusCode': 400, 'body': 'No active connection for the session'}
-
-    # Send the message to the customer's WebSocket
-    try:
-        api_client.post_to_connection(
-            ConnectionId=connection_id,
-            Data=json.dumps({
-                'sessionId': session_id,
-                'messageId': message_id,
-                'content': content,
-                'role': 'agent',
-                'timestamp': timestamp
-            })
-        )
-    except api_client.exceptions.GoneException:
-        # Handle case where the connection is no longer valid
-        aws_resources.session_table.update_item(
-            Key={'sessionId': session_id},
-            UpdateExpression="SET status = :status, lastModifiedTimestamp = :timestamp",
-            ExpressionAttributeValues={
-                ':status': 'Disconnected',
-                ':timestamp': timestamp
-            }
-        )
-        return {'statusCode': 410, 'body': 'Connection closed'}
-
-    return {'statusCode': 200, 'body': json.dumps({'messageId': message_id})}
-
 
 
 def lambda_handler(event: Dict, context: Any) -> Dict:
