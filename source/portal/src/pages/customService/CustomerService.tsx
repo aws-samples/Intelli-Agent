@@ -11,6 +11,7 @@ import {
 import './CustomerService.scss';
 import { initResize } from './resize';
 import { ChatMessage } from './comps/ChatMessage';
+import { useAppSelector } from 'src/app/hooks';
 
 const INIT_WIDTH = 400;
 const MAX_WIDTH = 800;
@@ -32,6 +33,8 @@ const CustomerService: React.FC = () => {
   //   const [selectedDocTab, setSelectedDocTab] = useState('reference');
   const [leftTopHeight, setLeftTopHeight] = useState(300);
   const [activeDocId, setActiveDocId] = useState<string | null>(null);
+
+  const csWorkspaceState = useAppSelector((state) => state.csWorkspace);
 
   const [documents] = useState<Document[]>([
     {
@@ -157,6 +160,10 @@ Some items cannot be shipped to certain locations due to regulations.`,
     document.body.style.cursor = 'ew-resize';
     document.body.style.userSelect = 'none';
   };
+
+  useEffect(() => {
+    console.info('main page csWorkspaceState:', csWorkspaceState);
+  }, [csWorkspaceState]);
 
   return (
     <div className="customer-service-container">

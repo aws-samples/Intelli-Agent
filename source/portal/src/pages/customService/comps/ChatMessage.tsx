@@ -9,6 +9,8 @@ import ConfigContext from 'src/context/config-context';
 import { MessageDataType, SessionMessage } from 'src/types';
 import { useAuth } from 'react-oidc-context';
 import useAxiosRequest from 'src/hooks/useAxiosRequest';
+import { useAppDispatch, useAppSelector } from 'src/app/hooks';
+import { setCurrentSessionId } from 'src/app/slice/cs-workspace';
 
 interface MessageType {
   messageId: string;
@@ -24,14 +26,20 @@ const historySessionId = '0d9b5396-5a0b-4afb-8217-31a4d3de4804';
 export const ChatMessage: React.FC = () => {
   const { t } = useTranslation();
   const config = useContext(ConfigContext);
+
+  const csWorkspaceState = useAppSelector((state) => state.csWorkspace);
+
   const auth = useAuth();
   const fetchData = useAxiosRequest();
+  const dispatch = useAppDispatch();
   const [aiSpeaking, setAiSpeaking] = useState(false);
   const [currentAIMessage, setCurrentAIMessage] = useState('');
   const [currentMonitorMessage, setCurrentMonitorMessage] = useState('');
+  const [currentAIMessageId, setCurrentAIMessageId] = useState('');
   const [userMessage, setUserMessage] = useState('');
   const [loadingHistory, setLoadingHistory] = useState(false);
   const messageListRef = useRef<HTMLDivElement>(null);
+  const [isMessageEnd, setIsMessageEnd] = useState(false);
   const [messages, setMessages] = useState<MessageType[]>([
     {
       messageId: uuidv4(),
@@ -112,7 +120,6 @@ export const ChatMessage: React.FC = () => {
         }),
       );
       setLoadingHistory(false);
-      setAiSpeaking(false);
     } catch (error) {
       console.error(error);
       return [];
@@ -124,7 +131,8 @@ export const ChatMessage: React.FC = () => {
     setAiSpeaking(true);
     setCurrentAIMessage('');
     setCurrentMonitorMessage('');
-    // setIsMessageEnd(false);
+    dispatch(setCurrentSessionId(uuidv4()));
+    setIsMessageEnd(false);
     const groupName: string[] = auth?.user?.profile?.['cognito:groups'] as any;
     let message = {
       query: userMessage,
@@ -188,26 +196,34 @@ export const ChatMessage: React.FC = () => {
       });
     } else if (message.message_type === 'CONTEXT') {
       // handle context message
-      //   if (showFigures && message.ddb_additional_kwargs?.figure?.length > 0) {
-      //     message.ddb_additional_kwargs.figure.forEach((item) => {
-      //       if (item.content_type === 'md_image') {
-      //         setCurrentAIMessage((prev) => {
-      //           return prev + ` \n ![${item.content_type}](${item.figure_path})`;
-      //         });
-      //       } else {
-      //         setCurrentAIMessage((prev) => {
-      //           return (
-      //             prev +
-      //             ` \n ![${item.content_type}](/${encodeURIComponent(item.figure_path)})`
-      //           );
-      //         });
-      //       }
-      //     });
-      //   }
+      if (message.ddb_additional_kwargs?.figure?.length > 0) {
+        message.ddb_additional_kwargs.figure.forEach((item) => {
+          if (item.content_type === 'md_image') {
+            setCurrentAIMessage((prev) => {
+              return prev + ` \n ![${item.content_type}](${item.figure_path})`;
+            });
+          } else {
+            setCurrentAIMessage((prev) => {
+              return (
+                prev +
+                ` \n ![${item.content_type}](/${encodeURIComponent(item.figure_path)})`
+              );
+            });
+          }
+        });
+      }
+      // handle ref_docs
+      if (message.ref_docs?.length > 0) {
+        message.ref_docs.forEach((doc) => {
+          console.info('doc:', doc);
+          //   setCurrentAIMessage((prev) => {
+          //     return prev + `\n ${doc.page_content}`;
+          //   });
+        });
+      }
     } else if (message.message_type === 'END') {
-      //   setCurrentAIMessageId(message.message_id);
-      //   setIsMessageEnd(true);
-      getSessionHistoryById(true);
+      setCurrentAIMessageId(message.message_id);
+      setIsMessageEnd(true);
       scrollToBottom(100);
     }
   };
@@ -230,6 +246,10 @@ export const ChatMessage: React.FC = () => {
     getSessionHistoryById();
   }, []);
 
+  useEffect(() => {
+    console.info('csWorkspaceState:', csWorkspaceState);
+  }, [csWorkspaceState]);
+
   const calculateRows = (value: string) => {
     if (!value) return 1; // 空内容时返回 1 行
 
@@ -243,6 +263,25 @@ export const ChatMessage: React.FC = () => {
     // 取换行符数量和字符换行数量的较大值，并限制在 1-5 行之间
     return Math.max(1, Math.min(5, Math.max(newlines + 1, lines)));
   };
+
+  useEffect(() => {
+    if (isMessageEnd) {
+      setAiSpeaking(false);
+      setMessages((prev) => {
+        return [
+          ...prev,
+          {
+            messageId: currentAIMessageId,
+            type: 'ai',
+            message: {
+              data: currentAIMessage,
+              monitoring: currentMonitorMessage,
+            },
+          },
+        ];
+      });
+    }
+  }, [isMessageEnd]);
 
   if (loadingHistory) {
     return (

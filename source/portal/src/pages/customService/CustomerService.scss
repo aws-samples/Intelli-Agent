@@ -708,12 +708,12 @@ $hover-light: #f3f4f6;
             }
 
             .message {
-              max-width: 85%;
-              display: flex;
-
+              img {
+                max-width: 80%;
+                height: auto;
+              }
               &.user {
                 margin-left: auto;
-
                 .message-content {
                   background: $primary;
                   color: $bg-white;
@@ -735,11 +735,11 @@ $hover-light: #f3f4f6;
                 font-size: 13px;
                 line-height: 1.5;
 
-                p {
-                  margin: 0 0 4px;
-                  white-space: pre-wrap;
-                  word-break: break-word;
-                }
+                // p {
+                //   margin: 0 0 4px;
+                //   white-space: pre-wrap;
+                //   word-break: break-word;
+                // }
 
                 .time {
                   font-size: 11px;
