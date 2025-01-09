@@ -1,4 +1,4 @@
-import { FC, useContext, useEffect, useState } from "react";
+import { FC, useContext, useEffect, useState, useRef } from "react";
 import {
   Box,
   Fab,
@@ -40,6 +40,7 @@ const CustomerService: FC = () => {
       content: "您好！我是智能客服助手，请问有什么可以帮您？",
     },
   ]);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { lastMessage, sendMessage, readyState } = useWebSocket(
     `${config?.workspaceWebsocket}?idToken=${auth.user?.id_token}&user_id=${auth.user?.profile?.sub}&session_id=${sessionId}&role=user`,
@@ -86,6 +87,14 @@ const CustomerService: FC = () => {
   useEffect(() => {
     console.info("auth", auth);
   }, [auth]);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   return (
     <>
@@ -142,6 +151,7 @@ const CustomerService: FC = () => {
                   </Paper>
                 </Box>
               ))}
+              <div ref={messagesEndRef} />
             </Box>
             <Box className="p-4 border-t">
               <Box className="flex gap-2">

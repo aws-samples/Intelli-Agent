@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState, useRef } from 'react';
 import { useAuth } from 'react-oidc-context';
 import useWebSocket, { ReadyState } from 'react-use-websocket';
 import { useAppSelector } from 'src/app/hooks';
@@ -21,6 +21,10 @@ const UserMessage: React.FC = () => {
       shouldReconnect: () => true,
     },
   );
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [isSending, setIsSending] = useState(false);
+  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+  const messagesRef = useRef<HTMLDivElement>(null);
 
   const getMessageList = async () => {
     const response: ChatMessageResponse = await request({
@@ -31,9 +35,32 @@ const UserMessage: React.FC = () => {
     setMessageList(response.Items);
   };
 
-  const handleSend = () => {
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  // 处理消息区域的滚动事件
+  const handleScroll = () => {
+    if (!messagesRef.current) return;
+
+    const { scrollTop, scrollHeight, clientHeight } = messagesRef.current;
+    const isAtBottom = Math.abs(scrollHeight - clientHeight - scrollTop) < 50;
+
+    // 只有当用户滚动到接近底部时，才重新启用自动滚动
+    setShouldAutoScroll(isAtBottom);
+  };
+
+  // 当消息列表更新时滚动到底部
+  useEffect(() => {
+    if (shouldAutoScroll) {
+      scrollToBottom();
+    }
+  }, [messageList, shouldAutoScroll]);
+
+  const handleSend = async () => {
     if (!message.trim()) return;
 
+    setIsSending(true);
     const sendMessageObj = {
       query: message,
       entry_type: 'common',
@@ -41,19 +68,25 @@ const UserMessage: React.FC = () => {
       user_id: auth.user?.profile?.sub,
       action: 'sendResponse',
     };
-    sendMessage(JSON.stringify(sendMessageObj));
 
-    setMessage('');
-    setMessageList((prev) => [
-      ...prev,
-      {
-        messageId: uuidv4(),
-        role: 'agent',
-        content: message,
-        createTimestamp: new Date().toISOString(),
-        additional_kwargs: {},
-      },
-    ]);
+    try {
+      sendMessage(JSON.stringify(sendMessageObj));
+      setMessageList((prev) => [
+        ...prev,
+        {
+          messageId: uuidv4(),
+          role: 'agent',
+          content: message,
+          createTimestamp: new Date().toISOString(),
+          additional_kwargs: {},
+        },
+      ]);
+      setMessage('');
+      // 发送消息后重新启用自动滚动
+      setShouldAutoScroll(true);
+    } finally {
+      setIsSending(false);
+    }
   };
 
   useEffect(() => {
@@ -65,16 +98,25 @@ const UserMessage: React.FC = () => {
   useEffect(() => {
     if (csWorkspaceState.currentSessionId) {
       getMessageList();
-      // 设置1秒轮询
-      const interval = setInterval(getMessageList, 2000);
-      // 清理函数
-      return () => clearInterval(interval);
+
+      let intervalId: any = null;
+
+      // 只在非发送状态时启动轮询
+      if (!isSending) {
+        intervalId = setInterval(getMessageList, 2000);
+      }
+
+      return () => {
+        if (intervalId) {
+          clearInterval(intervalId);
+        }
+      };
     }
-  }, [csWorkspaceState.currentSessionId]);
+  }, [csWorkspaceState.currentSessionId, isSending]); // 添加 isSending 作为依赖
 
   return (
     <div className="user-message-container">
-      <div className="messages">
+      <div className="messages" ref={messagesRef} onScroll={handleScroll}>
         {messageList.map((message) => (
           <div key={message.messageId} className={`message ${message.role}`}>
             <div className="message-content">
@@ -85,6 +127,7 @@ const UserMessage: React.FC = () => {
             </div>
           </div>
         ))}
+        <div ref={messagesEndRef} />
       </div>
       <div className="input-area">
         <textarea
