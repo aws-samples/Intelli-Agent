@@ -1,4 +1,4 @@
-import { FC, useEffect, useState } from "react";
+import { FC, useContext, useEffect, useState } from "react";
 import {
   Box,
   Fab,
@@ -15,12 +15,22 @@ import {
   Send as SendIcon,
 } from "@mui/icons-material";
 import useWebSocket, { ReadyState } from "react-use-websocket";
+import { useAuth } from "react-oidc-context";
+import ConfigContext from "../contexts/config-context";
+import { v4 as uuidv4 } from "uuid";
 
 const CustomerService: FC = () => {
-  const userId = "e438f438-9021-708d-39a0-6ac2fb9a9ef3";
-  const sessionId = "abc02cf2-b0e3-4305-9574-a2878af43c81";
-  const idToken =
-    "eyJraWQiOiJRdlE0ZlhCWlpacFIxd3QreVRRMDNcL2NEemRZSElJMlJuYmNhbDhFSG55ND0iLCJhbGciOiJSUzI1NiJ9.eyJhdF9oYXNoIjoiMVdzaUwxLXBKZkdEa3I0ZklQWVhpdyIsInN1YiI6ImU0MzhmNDM4LTkwMjEtNzA4ZC0zOWEwLTZhYzJmYjlhOWVmMyIsImNvZ25pdG86Z3JvdXBzIjpbIkFkbWluIl0sImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJpc3MiOiJodHRwczpcL1wvY29nbml0by1pZHAudXMtZWFzdC0xLmFtYXpvbmF3cy5jb21cL3VzLWVhc3QtMV9LOFpjanI2TUMiLCJjb2duaXRvOnVzZXJuYW1lIjoiZTQzOGY0MzgtOTAyMS03MDhkLTM5YTAtNmFjMmZiOWE5ZWYzIiwib3JpZ2luX2p0aSI6ImI3ZGQ1YmY5LWQzMjctNDMwMC04MzAxLWQ4ZDEzNzdmMzc5OCIsImF1ZCI6IjJkc2RjNzN2dDA5bjhrYWd0cmVsZm1udDJsIiwiZXZlbnRfaWQiOiI4NjEwZmY5Zi1kYjJjLTRhYjktODEyYi0wODdhMzVlZTcyMWMiLCJ0b2tlbl91c2UiOiJpZCIsImF1dGhfdGltZSI6MTczNjM5NDMwMywiZXhwIjoxNzM2NDgwNzAzLCJpYXQiOjE3MzYzOTQzMDMsImp0aSI6ImRjOWE1YmU4LTIxYmEtNDQ0ZS05ZDMxLWNkZDU3MjM2MGVlNSIsImVtYWlsIjoiYm9iQGFtYXpvbi5jb20ifQ.pIiUJ3_nPeCFhvURMtUWpoHvwKyFMSlkRgoYKWevHbaB9N5OgpCGSTtUFLH1BVrZziwcZPbGjAd0ceDnY4yXlYqHXFIkv-g0VuV7DtIAoWpDtRXqKnaRikQ-Kw8sHMLOYRO43SDLpxZqaAlwJgNH9hj3_o-OOI3i9ruzPhxPGx1_Sa16d7i2SGg4b67xv1uZ-hDAMzujof5P4Hiec76M34EqmKQXYdmEAMkY24XWZbPAdP6YY7F5fVWcDrY8bQi_m_BwHNzqTXf8pEVpZM8VqV-H7ias8rGBWHvRkc0la-Wm_zt2hbf3k1C9OXXhn9lkbZdRSKr5v5MPE2SWlxrodQ";
+  const auth = useAuth();
+  const config = useContext(ConfigContext);
+  const [sessionId] = useState(() => {
+    const storedSessionId = localStorage.getItem("cs-sessionId");
+    if (storedSessionId) {
+      return storedSessionId;
+    }
+    const newSessionId = uuidv4();
+    localStorage.setItem("cs-sessionId", newSessionId);
+    return newSessionId;
+  });
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([
@@ -32,7 +42,7 @@ const CustomerService: FC = () => {
   ]);
 
   const { lastMessage, sendMessage, readyState } = useWebSocket(
-    `wss://iuzdwf0x93.execute-api.us-east-1.amazonaws.com/prod/?idToken=${idToken}&user_id=${userId}&session_id=${sessionId}&role=user`,
+    `${config?.workspaceWebsocket}?idToken=${auth.user?.id_token}&user_id=${auth.user?.profile?.sub}&session_id=${sessionId}&role=user`,
     {
       onOpen: () => console.log("opened"),
       shouldReconnect: () => true,
@@ -46,10 +56,15 @@ const CustomerService: FC = () => {
       query: message,
       entry_type: "common",
       session_id: sessionId,
-      user_id: userId,
+      user_id: auth.user?.profile?.sub,
       action: "sendMessage",
     };
     sendMessage(JSON.stringify(sendMessageObj));
+    setMessage("");
+    setMessages((prev) => [
+      ...prev,
+      { id: prev.length + 1, type: "user", content: message },
+    ]);
   };
 
   useEffect(() => {
@@ -57,9 +72,20 @@ const CustomerService: FC = () => {
     if (lastMessage && lastMessage.data) {
       const data = JSON.parse(lastMessage.data);
       console.info("data", data);
-      setMessages((prev) => [...prev, data]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: data.message_id,
+          type: "bot",
+          content: data.query,
+        },
+      ]);
     }
   }, [lastMessage]);
+
+  useEffect(() => {
+    console.info("auth", auth);
+  }, [auth]);
 
   return (
     <>
@@ -96,43 +122,55 @@ const CustomerService: FC = () => {
           </IconButton>
         </Box>
 
-        <Box className="h-[400px] overflow-y-auto p-4 space-y-4">
-          {messages.map((msg) => (
-            <Box
-              key={msg.id}
-              className={`flex ${msg.type === "bot" ? "" : "justify-end"}`}
-            >
-              <Paper
-                elevation={0}
-                className={`p-3 max-w-[80%] ${
-                  msg.type === "bot" ? "bg-gray-100" : "bg-blue-500 text-white"
-                }`}
-              >
-                <Typography variant="body2">{msg.content}</Typography>
-              </Paper>
+        {auth.isAuthenticated ? (
+          <>
+            <Box className="h-[400px] overflow-y-auto p-4 space-y-4">
+              {messages.map((msg) => (
+                <Box
+                  key={msg.id}
+                  className={`flex ${msg.type === "bot" ? "" : "justify-end"}`}
+                >
+                  <Paper
+                    elevation={0}
+                    className={`p-3 max-w-[80%] ${
+                      msg.type === "bot"
+                        ? "bg-gray-100"
+                        : "bg-blue-500 text-white"
+                    }`}
+                  >
+                    <Typography variant="body2">{msg.content}</Typography>
+                  </Paper>
+                </Box>
+              ))}
             </Box>
-          ))}
-        </Box>
-
-        <Box className="p-4 border-t">
-          <Box className="flex gap-2">
-            <TextField
-              fullWidth
-              size="small"
-              placeholder="请输入您的问题..."
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              onKeyPress={(e) => e.key === "Enter" && handleSend()}
-            />
-            <Button
-              variant="contained"
-              onClick={handleSend}
-              disabled={!message.trim() || readyState !== ReadyState.OPEN}
-            >
-              <SendIcon />
+            <Box className="p-4 border-t">
+              <Box className="flex gap-2">
+                <TextField
+                  fullWidth
+                  size="small"
+                  placeholder="请输入您的问题..."
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  onKeyPress={(e) => e.key === "Enter" && handleSend()}
+                />
+                <Button
+                  variant="contained"
+                  onClick={handleSend}
+                  disabled={!message.trim() || readyState !== ReadyState.OPEN}
+                >
+                  <SendIcon />
+                </Button>
+              </Box>
+            </Box>
+          </>
+        ) : (
+          <Box className="h-[400px] overflow-y-auto p-4 space-y-4 flex flex-col items-center justify-center">
+            <Typography variant="body2">请先登录，再与客服对话</Typography>
+            <Button variant="contained" onClick={() => auth.signinRedirect()}>
+              登录
             </Button>
           </Box>
-        </Box>
+        )}
       </Dialog>
     </>
   );

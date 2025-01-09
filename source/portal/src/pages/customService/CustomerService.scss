@@ -50,6 +50,10 @@ $hover-light: #f3f4f6;
         background: $primary;
       }
 
+      &.active {
+        background: $primary;
+      }
+
       &.horizontal {
         width: 100%;
         height: 1px;
@@ -114,7 +118,7 @@ $hover-light: #f3f4f6;
               background: $hover-light;
             }
 
-            &.new {
+            &.active {
               background: $primary-light;
 
               &:hover {
@@ -188,6 +192,7 @@ $hover-light: #f3f4f6;
           display: flex;
           flex-direction: column;
           gap: 12px;
+          overflow-y: auto;
 
           .message {
             max-width: 80%;

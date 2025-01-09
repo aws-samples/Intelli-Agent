@@ -8,8 +8,9 @@ import ConfigContext from 'src/context/config-context';
 import { DocumentData, MessageDataType, SessionMessage } from 'src/types';
 import { useAuth } from 'react-oidc-context';
 import useAxiosRequest from 'src/hooks/useAxiosRequest';
-import { useAppSelector } from 'src/app/hooks';
+import { useAppDispatch, useAppSelector } from 'src/app/hooks';
 import { useParams } from 'react-router-dom';
+import { setCurrentSessionId } from 'src/app/slice/cs-workspace';
 
 interface MessageType {
   messageId: string;
@@ -24,7 +25,7 @@ interface MessageType {
 export const ChatMessage: React.FC = () => {
   const { t } = useTranslation();
   const config = useContext(ConfigContext);
-
+  const dispatch = useAppDispatch();
   const csWorkspaceState = useAppSelector((state) => state.csWorkspace);
 
   const auth = useAuth();
@@ -251,6 +252,7 @@ export const ChatMessage: React.FC = () => {
   useEffect(() => {
     if (id) {
       getSessionHistoryById();
+      dispatch(setCurrentSessionId(id));
     }
   }, [id]);
 

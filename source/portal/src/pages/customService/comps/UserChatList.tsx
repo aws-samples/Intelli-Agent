@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useAppDispatch } from 'src/app/hooks';
 import { setCurrentSessionId } from 'src/app/slice/cs-workspace';
 
@@ -10,6 +10,8 @@ interface UserChatListProps {
 const UserChatList: React.FC<UserChatListProps> = ({ leftTopHeight }) => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
+  //   const [currentChatId, setCurrentChatId] = useState('');
+  const { id } = useParams();
   return (
     <div className="chat-list" style={{ height: leftTopHeight }}>
       <div className="section-header">
@@ -19,34 +21,28 @@ const UserChatList: React.FC<UserChatListProps> = ({ leftTopHeight }) => {
       <div className="chat-items">
         {[
           {
-            id: '4c290970-2245-47a3-9404-ccd228cd3374',
-            name: 'Sarah Wilson',
+            id: '04f81649-79c7-41b5-96f5-863625c1ae26',
+            name: 'haiyunc@amazon.com',
             message: 'I need help with my order #12345',
             time: '2min ago',
-            isNew: true,
+            isNew: false,
           },
           {
-            id: '6726d90c-bbdb-47cd-99fb-392129a219a2',
-            name: 'Mike Johnson',
+            id: '384fe22f-5f44-4b89-bd99-e651275ea79d',
+            name: 'lvning@amazon.com',
             message: 'When will my refund be processed?',
             time: '15min ago',
             isNew: true,
           },
-          {
-            id: '10745e4d-d9f6-496b-a45e-a01a41147f5d',
-            name: 'Emma Davis',
-            message: 'Thanks for your help!',
-            time: '1h ago',
-            isNew: false,
-          },
         ].map((chat) => (
           <div
             onClick={() => {
+              //   setCurrentChatId(chat.id);
               dispatch(setCurrentSessionId(chat.id));
               navigate(`/custom-service/chat/${chat.id}`);
             }}
             key={chat.id}
-            className={`chat-item ${chat.isNew ? 'new' : ''}`}
+            className={`chat-item ${id === chat.id ? 'active' : ''}`}
           >
             <div className="user-avatar">{chat.name.charAt(0)}</div>
             <div className="chat-info">

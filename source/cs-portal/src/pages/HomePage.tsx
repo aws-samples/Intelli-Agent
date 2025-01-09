@@ -7,8 +7,10 @@ import Footer from "../components/Footer";
 import Navbar from "../components/Navbar";
 import NewArrivals from "../components/NewArrivals";
 import CustomerService from "../components/CustomerService";
+import { useAuth } from "react-oidc-context";
 
 const HomePage: FC = () => {
+  const auth = useAuth();
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -35,7 +37,7 @@ const HomePage: FC = () => {
         <NewArrivals />
       </Container>
       <Footer />
-      <CustomerService />
+      <CustomerService key={auth.user?.profile?.sub} />
     </div>
   );
 };
