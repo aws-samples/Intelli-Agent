@@ -1,7 +1,6 @@
 import React, { useContext, useEffect, useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { identity } from 'lodash';
-import { v4 as uuidv4 } from 'uuid';
 import { Button, Spinner, Textarea } from '@cloudscape-design/components';
 import Message from '../../chatbot/components/Message';
 import useWebSocket, { ReadyState } from 'react-use-websocket';
@@ -9,8 +8,8 @@ import ConfigContext from 'src/context/config-context';
 import { DocumentData, MessageDataType, SessionMessage } from 'src/types';
 import { useAuth } from 'react-oidc-context';
 import useAxiosRequest from 'src/hooks/useAxiosRequest';
-import { useAppDispatch, useAppSelector } from 'src/app/hooks';
-import { setCurrentSessionId } from 'src/app/slice/cs-workspace';
+import { useAppSelector } from 'src/app/hooks';
+import { useParams } from 'react-router-dom';
 
 interface MessageType {
   messageId: string;
@@ -22,8 +21,6 @@ interface MessageType {
   };
 }
 
-const historySessionId = '0d9b5396-5a0b-4afb-8217-31a4d3de4804';
-
 export const ChatMessage: React.FC = () => {
   const { t } = useTranslation();
   const config = useContext(ConfigContext);
@@ -32,7 +29,7 @@ export const ChatMessage: React.FC = () => {
 
   const auth = useAuth();
   const fetchData = useAxiosRequest();
-  const dispatch = useAppDispatch();
+  const { id } = useParams();
   const [aiSpeaking, setAiSpeaking] = useState(false);
   const [currentAIMessage, setCurrentAIMessage] = useState('');
   const [currentMonitorMessage, setCurrentMonitorMessage] = useState('');
@@ -46,7 +43,7 @@ export const ChatMessage: React.FC = () => {
   >([]);
   const [messages, setMessages] = useState<MessageType[]>([
     {
-      messageId: uuidv4(),
+      messageId: id ?? '',
       type: 'ai',
       message: {
         data: t('welcomeMessage'),
@@ -89,7 +86,7 @@ export const ChatMessage: React.FC = () => {
     try {
       !isRefresh && setLoadingHistory(true);
       const data = await fetchData({
-        url: `sessions/${historySessionId}/messages`,
+        url: `sessions/${id}/messages`,
         method: 'get',
         params: {
           page_size: 9999,
@@ -144,7 +141,6 @@ export const ChatMessage: React.FC = () => {
     setAiSpeaking(true);
     setCurrentAIMessage('');
     setCurrentMonitorMessage('');
-    dispatch(setCurrentSessionId(uuidv4()));
     setIsMessageEnd(false);
     setCurrentDocumentList([]);
     const groupName: string[] = auth?.user?.profile?.['cognito:groups'] as any;
@@ -253,8 +249,10 @@ export const ChatMessage: React.FC = () => {
   }, [lastMessage]);
 
   useEffect(() => {
-    getSessionHistoryById();
-  }, []);
+    if (id) {
+      getSessionHistoryById();
+    }
+  }, [id]);
 
   useEffect(() => {
     console.info('csWorkspaceState:', csWorkspaceState);
