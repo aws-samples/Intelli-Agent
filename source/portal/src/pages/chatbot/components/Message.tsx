@@ -9,6 +9,8 @@ import BedrockImg from 'src/assets/bedrock.webp';
 import './Message.css';
 import { DocumentData } from 'src/types';
 import type { IconProps } from '@cloudscape-design/components';
+import { useAppDispatch } from 'src/app/hooks';
+import { setActiveDocumentId } from 'src/app/slice/cs-workspace';
 
 interface MessageProps {
   type: 'ai' | 'human';
@@ -40,10 +42,6 @@ const getFileIcon = (fileName: string): IconProps['name'] => {
   }
 };
 
-const handleDocClick = (source: string) => {
-  window.open(source, '_blank');
-};
-
 const Message: React.FC<MessageProps> = ({
   showTrace,
   type,
@@ -51,6 +49,11 @@ const Message: React.FC<MessageProps> = ({
   aiSpeaking,
   documentList,
 }) => {
+  const dispatch = useAppDispatch();
+  const handleDocClick = (source: string) => {
+    dispatch(setActiveDocumentId(source));
+  };
+
   return (
     <>
       {type === 'ai' && (
@@ -77,7 +80,7 @@ const Message: React.FC<MessageProps> = ({
                     <div
                       key={doc.page_content}
                       className="document-item"
-                      onClick={() => handleDocClick(doc.source)}
+                      onClick={() => handleDocClick(doc.uuid)}
                     >
                       <Icon name={iconName} />
                       <span className="doc-name" title={fileName}>

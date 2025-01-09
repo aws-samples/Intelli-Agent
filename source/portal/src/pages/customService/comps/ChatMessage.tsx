@@ -10,8 +10,11 @@ import { useAuth } from 'react-oidc-context';
 import useAxiosRequest from 'src/hooks/useAxiosRequest';
 import { useAppDispatch, useAppSelector } from 'src/app/hooks';
 import { useParams } from 'react-router-dom';
-import { setCurrentSessionId } from 'src/app/slice/cs-workspace';
-
+import {
+  addDocumentList,
+  setCurrentSessionId,
+} from 'src/app/slice/cs-workspace';
+import { v4 as uuidv4 } from 'uuid';
 interface MessageType {
   messageId: string;
   type: 'ai' | 'human';
@@ -148,7 +151,7 @@ export const ChatMessage: React.FC = () => {
     let message = {
       query: userMessage,
       entry_type: 'common',
-      session_id: '0d9b5396-5a0b-4afb-8217-31a4d3de4804',
+      session_id: csWorkspaceState.currentSessionId,
       user_id: auth?.user?.profile?.['cognito:username'] || 'default_user_id',
       chatbot_config: {
         max_rounds_in_memory: 7,
@@ -277,6 +280,11 @@ export const ChatMessage: React.FC = () => {
   useEffect(() => {
     if (isMessageEnd) {
       setAiSpeaking(false);
+      const documentList =
+        currentDocumentList.map((doc) => ({
+          ...doc,
+          uuid: uuidv4(),
+        })) ?? [];
       setMessages((prev) => {
         return [
           ...prev,
@@ -286,11 +294,12 @@ export const ChatMessage: React.FC = () => {
             message: {
               data: currentAIMessage,
               monitoring: currentMonitorMessage,
-              documentList: currentDocumentList,
+              documentList: documentList,
             },
           },
         ];
       });
+      dispatch(addDocumentList(documentList));
     }
   }, [isMessageEnd]);
 

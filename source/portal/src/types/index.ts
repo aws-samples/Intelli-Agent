@@ -164,6 +164,7 @@ export type AdditionalImageType = {
 };
 
 export interface DocumentData {
+  uuid: string;
   page_content: string;
   retrieval_content: string;
   retrieval_score: number;
