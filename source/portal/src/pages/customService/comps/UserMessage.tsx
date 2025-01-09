@@ -3,27 +3,17 @@ import { useAuth } from 'react-oidc-context';
 import useWebSocket, { ReadyState } from 'react-use-websocket';
 import { useAppSelector } from 'src/app/hooks';
 import ConfigContext from 'src/context/config-context';
-
+import useAxiosWorkspaceRequest from 'src/hooks/useAxiosWorkspaceRequest';
+import { ChatMessageResponse, ChatMessageType } from 'src/types';
+import { formatTime } from 'src/utils/utils';
+import { v4 as uuidv4 } from 'uuid';
 const UserMessage: React.FC = () => {
   const config = useContext(ConfigContext);
   const csWorkspaceState = useAppSelector((state) => state.csWorkspace);
   const auth = useAuth();
+  const request = useAxiosWorkspaceRequest();
   const [message, setMessage] = useState('');
-  const [messageList, setMessageList] = useState<
-    {
-      id: number;
-      type: string;
-      text: string;
-      time: string;
-    }[]
-  >([
-    {
-      id: 1,
-      type: 'customer',
-      text: 'Hello, I am a customer service agent. How can I assist you today?',
-      time: '14:30',
-    },
-  ]);
+  const [messageList, setMessageList] = useState<ChatMessageType[]>([]);
   const { lastMessage, sendMessage, readyState } = useWebSocket(
     `${config?.workspaceWebsocket}?idToken=${auth.user?.id_token}&user_id=${auth.user?.profile?.sub}&session_id=${csWorkspaceState.currentSessionId}&role=agent`,
     {
@@ -31,6 +21,15 @@ const UserMessage: React.FC = () => {
       shouldReconnect: () => true,
     },
   );
+
+  const getMessageList = async () => {
+    const response: ChatMessageResponse = await request({
+      url: `/customer-sessions/${csWorkspaceState.currentSessionId}/messages`,
+      method: 'get',
+    });
+    console.info('response:', response);
+    setMessageList(response.Items);
+  };
 
   const handleSend = () => {
     if (!message.trim()) return;
@@ -48,13 +47,13 @@ const UserMessage: React.FC = () => {
     setMessageList((prev) => [
       ...prev,
       {
-        id: prev.length + 1,
-        type: 'agent',
-        text: message,
-        time: new Date().toLocaleTimeString(),
+        messageId: uuidv4(),
+        role: 'agent',
+        content: message,
+        createTimestamp: new Date().toISOString(),
+        additional_kwargs: {},
       },
     ]);
-    // setMessageList((prev) => [...prev, sendMessageObj]);
   };
 
   useEffect(() => {
@@ -63,19 +62,31 @@ const UserMessage: React.FC = () => {
     }
   }, [lastMessage]);
 
+  useEffect(() => {
+    if (csWorkspaceState.currentSessionId) {
+      getMessageList();
+      // 设置1秒轮询
+      const interval = setInterval(getMessageList, 2000);
+      // 清理函数
+      return () => clearInterval(interval);
+    }
+  }, [csWorkspaceState.currentSessionId]);
+
   return (
-    <>
+    <div className="user-message-container">
       <div className="messages">
         {messageList.map((message) => (
-          <div key={message.id} className={`message ${message.type}`}>
+          <div key={message.messageId} className={`message ${message.role}`}>
             <div className="message-content">
-              <p>{message.text}</p>
-              <span className="time">{message.time}</span>
+              <p>{message.content}</p>
+              <span className="time">
+                {formatTime(message.createTimestamp)}
+              </span>
             </div>
           </div>
         ))}
       </div>
-      <div className="chat-input">
+      <div className="input-area">
         <textarea
           value={message}
           onChange={(e) => setMessage(e.target.value)}
@@ -89,11 +100,11 @@ const UserMessage: React.FC = () => {
           className="send-btn"
           disabled={readyState !== ReadyState.OPEN}
         >
-          <span className="icon">📤</span>
+          <span className="icon">💬</span>
           Send
         </button>
       </div>
-    </>
+    </div>
   );
 };
 

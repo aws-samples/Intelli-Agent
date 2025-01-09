@@ -1,56 +1,111 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAppDispatch } from 'src/app/hooks';
 import { setCurrentSessionId } from 'src/app/slice/cs-workspace';
+import useAxiosWorkspaceRequest from 'src/hooks/useAxiosWorkspaceRequest';
+import { ChatSessionResponse, ChatSessionType } from 'src/types';
+import { formatTime } from 'src/utils/utils';
 
 interface UserChatListProps {
   leftTopHeight: number;
+}
+
+interface ExtendedChatSessionType extends ChatSessionType {
+  isNew?: boolean;
 }
 
 const UserChatList: React.FC<UserChatListProps> = ({ leftTopHeight }) => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   //   const [currentChatId, setCurrentChatId] = useState('');
+  const request = useAxiosWorkspaceRequest();
+  const [chatList, setChatList] = useState<ExtendedChatSessionType[]>([]);
+  const [prevChatList, setPrevChatList] = useState<ExtendedChatSessionType[]>(
+    [],
+  );
+
+  const getChatList = async () => {
+    const response: ChatSessionResponse = await request({
+      url: '/customer-sessions',
+      params: {
+        max_items: 9999,
+        page_size: 9999,
+      },
+      method: 'get',
+    });
+
+    const newChatList = response.Items.map((chat) => {
+      const prevChat = prevChatList.find(
+        (prev) => prev.sessionId === chat.sessionId,
+      );
+      const isNew = prevChat
+        ? chat.latestQuestion !== prevChat.latestQuestion
+        : true;
+      return {
+        ...chat,
+        isNew: isNew && chat.sessionId !== id,
+      };
+    });
+
+    setPrevChatList(chatList);
+    setChatList(newChatList);
+  };
+
+  const selectChatSession = async (sessionId: string) => {
+    setChatList((prev) =>
+      prev.map((chat) => ({
+        ...chat,
+        isNew: chat.sessionId === sessionId ? false : chat.isNew,
+      })),
+    );
+
+    const response = await request({
+      url: '/customer-sessions',
+      method: 'post',
+      data: {
+        session_id: sessionId,
+      },
+    });
+    console.info('response:', response);
+    getChatList();
+  };
+
+  useEffect(() => {
+    getChatList();
+    const interval = setInterval(getChatList, 2000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   const { id } = useParams();
   return (
     <div className="chat-list" style={{ height: leftTopHeight }}>
       <div className="section-header">
         <h3>Recent Chats</h3>
-        <span className="counter">3 new</span>
+        <span className="counter">
+          {chatList.filter((chat) => chat.isNew).length} new
+        </span>
       </div>
       <div className="chat-items">
-        {[
-          {
-            id: '04f81649-79c7-41b5-96f5-863625c1ae26',
-            name: 'haiyunc@amazon.com',
-            message: 'I need help with my order #12345',
-            time: '2min ago',
-            isNew: false,
-          },
-          {
-            id: '384fe22f-5f44-4b89-bd99-e651275ea79d',
-            name: 'lvning@amazon.com',
-            message: 'When will my refund be processed?',
-            time: '15min ago',
-            isNew: true,
-          },
-        ].map((chat) => (
+        {chatList.map((chat) => (
           <div
             onClick={() => {
-              //   setCurrentChatId(chat.id);
-              dispatch(setCurrentSessionId(chat.id));
-              navigate(`/custom-service/chat/${chat.id}`);
+              selectChatSession(chat.sessionId);
+              dispatch(setCurrentSessionId(chat.sessionId));
+              navigate(`/custom-service/chat/${chat.sessionId}`);
             }}
-            key={chat.id}
-            className={`chat-item ${id === chat.id ? 'active' : ''}`}
+            key={chat.sessionId}
+            className={`chat-item ${id === chat.sessionId ? 'active' : ''}`}
           >
-            <div className="user-avatar">{chat.name.charAt(0)}</div>
+            <div className="user-avatar">{chat.userId.charAt(0)}</div>
             <div className="chat-info">
               <div className="chat-header">
-                <span className="name">{chat.name}</span>
-                <span className="time">{chat.time}</span>
+                <span className="name">{chat.userId}</span>
+                <span className="time">
+                  {formatTime(chat.lastModifiedTimestamp)}
+                </span>
               </div>
-              <p className="last-message">{chat.message}</p>
+              <p className="last-message">{chat.latestQuestion}</p>
             </div>
             {chat.isNew && <div className="new-badge" />}
           </div>

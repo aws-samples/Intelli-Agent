@@ -317,3 +317,35 @@ export type CustomNavigationItem =
   | CustomLink
   | CustomSection
   | SideNavigationProps.Divider;
+
+export interface ChatSessionType {
+  agentId: string;
+  clientType: string; // Specific value provided
+  connectionId: string;
+  createTimestamp: string; // ISO 8601 string format
+  lastModifiedTimestamp: string; // ISO 8601 string format
+  latestQuestion: string;
+  sessionId: string;
+  startTime: string; // ISO 8601 string format
+  status: string; // Assuming possible status values
+  userId: string;
+}
+
+export interface ChatSessionResponse {
+  Items: ChatSessionType[];
+  Count: number;
+}
+
+export interface ChatMessageType {
+  messageId: string;
+  role: 'agent' | 'user'; // Assuming "agent" and "user" are possible roles
+  content: string;
+  createTimestamp: string; // ISO 8601 string format
+  additional_kwargs: Record<string, unknown>; // Assuming it can be any object
+}
+
+export interface ChatMessageResponse {
+  Items: ChatMessageType[];
+  Count: number;
+  Config: ResponseConfig;
+}
