@@ -6,6 +6,7 @@ import FeaturedProducts from "../components/FeaturedProducts";
 import Footer from "../components/Footer";
 import Navbar from "../components/Navbar";
 import NewArrivals from "../components/NewArrivals";
+import CustomerService from "../components/CustomerService";
 
 const HomePage: FC = () => {
   return (
@@ -34,6 +35,7 @@ const HomePage: FC = () => {
         <NewArrivals />
       </Container>
       <Footer />
+      <CustomerService />
     </div>
   );
 };
