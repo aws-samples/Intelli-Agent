@@ -7,7 +7,10 @@ dockerfile=$1
 image=$2
 tag=$3  # New argument for the tag
 aws_region=$4
-echo "Region: >>>>>>1 : $aws_region"
+echo "#####dockerfile: $1"
+echo "#####image: $2"
+echo "#####tag: $3"
+echo "#####aws_region: $4"
 
 if [ "$image" = "" ] || [ "$dockerfile" = "" ] || [ "$tag" = "" ] || [ "$aws_region" = "" ]
 then
