@@ -7,6 +7,7 @@ interface CSWorkspaceState {
   currentSessionId: string;
   documentList: DocumentData[];
   activeDocumentId: string;
+  latestUserMessage: string;
 }
 
 // Define the initial state using that type
@@ -14,6 +15,7 @@ const initialState: CSWorkspaceState = {
   currentSessionId: '',
   documentList: [],
   activeDocumentId: '',
+  latestUserMessage: '',
 };
 
 export const csWorkspaceSlice = createSlice({
@@ -33,6 +35,9 @@ export const csWorkspaceSlice = createSlice({
     setActiveDocumentId: (state, action: PayloadAction<string>) => {
       state.activeDocumentId = action.payload;
     },
+    setLatestUserMessage: (state, action: PayloadAction<string>) => {
+      state.latestUserMessage = action.payload;
+    },
   },
 });
 
@@ -41,6 +46,7 @@ export const {
   addDocumentList,
   clearDocumentList,
   setActiveDocumentId,
+  setLatestUserMessage,
 } = csWorkspaceSlice.actions;
 
 export default csWorkspaceSlice.reducer;

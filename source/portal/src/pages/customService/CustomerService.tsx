@@ -220,7 +220,7 @@ const CustomerService: React.FC = () => {
         <div className="right-panel" style={{ width: rightWidth }}>
           <div className="panel-header">
             <h3>Amazon Q</h3>
-            <button className="close-btn">×</button>
+            <button className="close-btn"></button>
           </div>
           <div className="panel-content">
             <ChatMessage />

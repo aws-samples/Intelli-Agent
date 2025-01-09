@@ -140,7 +140,7 @@ export const ChatMessage: React.FC = () => {
     }
   };
 
-  const handleSendMessage = () => {
+  const handleSendMessage = (autoMessage = '') => {
     setUserMessage('');
     setAiSpeaking(true);
     setCurrentAIMessage('');
@@ -149,7 +149,7 @@ export const ChatMessage: React.FC = () => {
     setCurrentDocumentList([]);
     const groupName: string[] = auth?.user?.profile?.['cognito:groups'] as any;
     let message = {
-      query: userMessage,
+      query: autoMessage ?? userMessage,
       entry_type: 'common',
       session_id: csWorkspaceState.currentSessionId,
       user_id: auth?.user?.profile?.['cognito:username'] || 'default_user_id',
@@ -182,22 +182,44 @@ export const ChatMessage: React.FC = () => {
     };
 
     sendMessage(JSON.stringify(message));
-    setMessages((prev) => {
-      return [
-        ...prev,
-        {
-          messageId: '',
-          type: 'human',
-          message: {
-            data: userMessage,
-            monitoring: '',
-            documentList: [],
+    if (!autoMessage) {
+      setMessages((prev) => {
+        return [
+          ...prev,
+          {
+            messageId: '',
+            type: 'human',
+            message: {
+              data: userMessage,
+              monitoring: '',
+              documentList: [],
+            },
           },
-        },
-      ];
-    });
-    setUserMessage('');
+        ];
+      });
+      setUserMessage('');
+    }
   };
+
+  useEffect(() => {
+    if (csWorkspaceState.latestUserMessage) {
+      setMessages((prev) => {
+        return [
+          ...prev,
+          {
+            messageId: uuidv4(),
+            type: 'human',
+            message: {
+              data: csWorkspaceState.latestUserMessage,
+              monitoring: '',
+              documentList: [],
+            },
+          },
+        ];
+      });
+      handleSendMessage(csWorkspaceState.latestUserMessage);
+    }
+  }, [csWorkspaceState.latestUserMessage]);
 
   const handleAIMessage = (message: MessageDataType) => {
     console.info('handleAIMessage:', message);
@@ -368,7 +390,9 @@ export const ChatMessage: React.FC = () => {
           <div>
             <Button
               disabled={aiSpeaking || readyState !== ReadyState.OPEN}
-              onClick={handleSendMessage}
+              onClick={() => {
+                handleSendMessage();
+              }}
             >
               {t('button.send')}
             </Button>

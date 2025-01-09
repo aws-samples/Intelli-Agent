@@ -1,7 +1,8 @@
 import React, { useContext, useEffect, useState, useRef } from 'react';
 import { useAuth } from 'react-oidc-context';
 import useWebSocket, { ReadyState } from 'react-use-websocket';
-import { useAppSelector } from 'src/app/hooks';
+import { useAppDispatch, useAppSelector } from 'src/app/hooks';
+import { setLatestUserMessage } from 'src/app/slice/cs-workspace';
 import ConfigContext from 'src/context/config-context';
 import useAxiosWorkspaceRequest from 'src/hooks/useAxiosWorkspaceRequest';
 import { ChatMessageResponse, ChatMessageType } from 'src/types';
@@ -10,6 +11,7 @@ import { v4 as uuidv4 } from 'uuid';
 const UserMessage: React.FC = () => {
   const config = useContext(ConfigContext);
   const csWorkspaceState = useAppSelector((state) => state.csWorkspace);
+  const dispatch = useAppDispatch();
   const auth = useAuth();
   const request = useAxiosWorkspaceRequest();
   const [message, setMessage] = useState('');
@@ -25,13 +27,39 @@ const UserMessage: React.FC = () => {
   const [isSending, setIsSending] = useState(false);
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
   const messagesRef = useRef<HTMLDivElement>(null);
+  const [lastUserMessageId, setLastUserMessageId] = useState<string | null>(
+    null,
+  );
 
   const getMessageList = async () => {
     const response: ChatMessageResponse = await request({
       url: `/customer-sessions/${csWorkspaceState.currentSessionId}/messages`,
       method: 'get',
     });
-    console.info('response:', response);
+
+    // 检查是否有新的用户消息
+    const latestUserMessage = response.Items.filter(
+      (msg) => msg.role === 'user',
+    ).pop();
+
+    if (
+      latestUserMessage &&
+      latestUserMessage.messageId !== lastUserMessageId
+    ) {
+      // 有新的用户消息，更新lastUserMessageId
+      setLastUserMessageId(latestUserMessage.messageId);
+      dispatch(setLatestUserMessage(latestUserMessage.content));
+      // 这里可以添加处理新消息的逻辑，比如发送请求
+      //   const sendMessageObj = {
+      //     query: latestUserMessage.content,
+      //     entry_type: 'common',
+      //     session_id: csWorkspaceState.currentSessionId,
+      //     user_id: auth.user?.profile?.sub,
+      //     action: 'receiveMessage',
+      //   };
+      //   sendMessage(JSON.stringify(sendMessageObj));
+    }
+
     setMessageList(response.Items);
   };
 
@@ -95,6 +123,16 @@ const UserMessage: React.FC = () => {
     }
   }, [lastMessage]);
 
+  // 初始化 lastUserMessageId
+  useEffect(() => {
+    if (messageList.length > 0) {
+      const lastUser = messageList.filter((msg) => msg.role === 'user').pop();
+      if (lastUser) {
+        setLastUserMessageId(lastUser.messageId);
+      }
+    }
+  }, []);
+
   useEffect(() => {
     if (csWorkspaceState.currentSessionId) {
       getMessageList();
@@ -112,7 +150,7 @@ const UserMessage: React.FC = () => {
         }
       };
     }
-  }, [csWorkspaceState.currentSessionId, isSending]); // 添加 isSending 作为依赖
+  }, [csWorkspaceState.currentSessionId, isSending]);
 
   return (
     <div className="user-message-container">
