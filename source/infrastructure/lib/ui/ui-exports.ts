@@ -22,7 +22,9 @@ import { PolicyStatement } from "aws-cdk-lib/aws-iam";
 
 export interface UIProps extends StackProps {
   readonly websocket: string;
+  readonly workspaceWebsocket: string;
   readonly apiUrl: string;
+  readonly workspaceApiUrl: string;
   readonly oidcIssuer: string;
   readonly oidcClientId: string;
   readonly oidcLogoutUrl: string;
@@ -34,7 +36,7 @@ export interface UIProps extends StackProps {
 }
 
 export interface UiExportsProps extends StackProps {
-  readonly portalBucket: s3.Bucket;
+  readonly portalBucketName: string;
   readonly uiProps: UIProps;
 }
 
@@ -53,7 +55,7 @@ export class UiExportsConstruct extends Construct {
         action: 'putObject',
         parameters: {
           Body: JSON.stringify(props.uiProps),
-          Bucket: props.portalBucket.bucketName,
+          Bucket: props.portalBucketName,
           CacheControl: 'max-age=0, no-cache, no-store, must-revalidate',
           ContentType: 'application/json',
           Key: configFile,
@@ -64,7 +66,8 @@ export class UiExportsConstruct extends Construct {
       policy: AwsCustomResourcePolicy.fromStatements([
         new PolicyStatement({
           actions: ['s3:PutObject'],
-          resources: [props.portalBucket.arnForObjects(configFile)]
+          // resources: [props.portalBucket.arnForObjects(configFile)]
+          resources: ["*"]
         })
       ])
     });

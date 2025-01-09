@@ -43,7 +43,9 @@ interface ApiStackProps extends StackProps {
   modelConstructOutputs: ModelConstructOutputs;
   knowledgeBaseStackOutputs: KnowledgeBaseStackOutputs;
   chatStackOutputs: ChatStackOutputs;
-  userConstructOutputs: UserConstructOutputs;
+  userPoolId: string;
+  oidcClientId: string;
+  // userConstructOutputs: UserConstructOutputs;
 }
 
 export interface ApiConstructOutputs {
@@ -51,6 +53,7 @@ export interface ApiConstructOutputs {
   auth: apigw.RequestAuthorizer;
   genMethodOption: any;
   customAuthorizerLambda: LambdaFunction;
+  wsEndpoint: string;
 }
 
 export class ApiConstruct extends Construct implements ApiConstructOutputs {
@@ -180,9 +183,9 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
       code: Code.fromAsset(join(__dirname, "../../../lambda/authorizer")),
       handler: "custom_authorizer.lambda_handler",
       environment: {
-        USER_POOL_ID: props.userConstructOutputs.userPool.userPoolId,
+        USER_POOL_ID: props.userPoolId,
         REGION: Aws.REGION,
-        APP_CLIENT_ID: props.userConstructOutputs.oidcClientId,
+        APP_CLIENT_ID: props.oidcClientId,
         // DEPLOYMENT_TIMESTAMP: Date.now().toString(),
       },
       layers: [apiLambdaAuthorizerLayer],

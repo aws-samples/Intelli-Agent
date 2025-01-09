@@ -44,6 +44,12 @@ interface WorkspaceProps extends StackProps {
   readonly config: SystemConfig;
   readonly apiConstructOutputs: ApiConstructOutputs;
   readonly sharedConstructOutputs: SharedConstructOutputs;
+  readonly userPoolId: string;
+  readonly oidcClientId: string;
+  readonly oidcIssuer: string;
+  readonly oidcLogoutUrl: string;
+  readonly portalBucketName: string;
+  readonly portalUrl: string;
 }
 
 export interface WorkspaceOutputs {
@@ -59,9 +65,9 @@ export class WorkspaceStack extends Stack implements WorkspaceOutputs {
   public wsEndpoint: string = "";
 
   constructor(scope: Construct, id: string, props: WorkspaceProps) {
-    super(scope, id);
+    super(scope, id, props);
 
-    const randomUuid = uuidv4();
+    // const randomUuid = uuidv4();
 
     this.iamHelper = props.sharedConstructOutputs.iamHelper;
     const genMethodOption = props.apiConstructOutputs.genMethodOption;
@@ -69,15 +75,6 @@ export class WorkspaceStack extends Stack implements WorkspaceOutputs {
     const chatQueueConstruct = new QueueConstruct(this, "LLMQueueStack", {
       namePrefix: Constants.WORKSPACE_API_QUEUE_NAME,
     });
-
-    const portalConstruct = new PortalConstruct(this, "WorkspaceUI");
-    const userConstruct = new UserConstruct(this, "WorkspaceUser", {
-      adminEmail: props.config.email,
-      callbackUrl: portalConstruct.portalUrl,
-      userPoolName: `${Constants.SOLUTION_NAME}-workspace_UserPool`,
-      domainPrefix: `${Constants.SOLUTION_NAME.toLowerCase()}-workspace-${Aws.ACCOUNT_ID}`,
-    });
-
     const sessionIdAttr = {
       name: "sessionId",
       type: dynamodb.AttributeType.STRING,
@@ -157,12 +154,13 @@ export class WorkspaceStack extends Stack implements WorkspaceOutputs {
     const apiLambdaAuthorizerLayer = lambdaLayers.createAuthorizerLayer();
 
     const customAuthorizerLambda = new LambdaFunction(this, "CustomAuthorizerLambda", {
+      functionName: `${id}-workspace-authorizer`,
       code: Code.fromAsset(join(__dirname, "../../../lambda/authorizer")),
       handler: "custom_authorizer.lambda_handler",
       environment: {
-        USER_POOL_ID: userConstruct.userPool.userPoolId,
+        USER_POOL_ID: props.userPoolId,
         REGION: Aws.REGION,
-        APP_CLIENT_ID: userConstruct.oidcClientId,
+        APP_CLIENT_ID: props.oidcClientId,
       },
       layers: [apiLambdaAuthorizerLayer],
       statements: [props.sharedConstructOutputs.iamHelper.logStatement],
@@ -180,6 +178,7 @@ export class WorkspaceStack extends Stack implements WorkspaceOutputs {
     apiResourceMessages.addMethod("GET", new apigw.LambdaIntegration(restQueryHandler), genMethodOption(workspaceApi, auth, null),);
     
     const wsDispatcher = new LambdaFunction(this, "WorkspaceDispatcher", {
+      functionName: `${id}-workspace-dispatcher`,
       code: Code.fromAsset(join(__dirname, "../../../lambda/workspace")),
       environment: {
         SQS_QUEUE_URL: chatQueueConstruct.messageQueue.queueUrl,
@@ -188,7 +187,7 @@ export class WorkspaceStack extends Stack implements WorkspaceOutputs {
     });
 
     const wsQueryHandler = new PythonFunction(this, "WebSocketQueryHandler", {
-      // functionName: `query-handler-${randomUuid}`,
+      functionName: `${id}-workspace-ws-query-handler`,
       runtime: Runtime.PYTHON_3_12,
       entry: join(__dirname, "../../../lambda/query_handler"),
       index: "websocket_api.py",
@@ -221,24 +220,41 @@ export class WorkspaceStack extends Stack implements WorkspaceOutputs {
     let wsStage = webSocketApi.websocketApiStage
     this.wsEndpoint = `${wsStage.api.apiEndpoint}/${wsStage.stageName}/`;
 
-    const uiExports = new UiExportsConstruct(this, "workspace-ui-exports", {
-      portalBucket: portalConstruct.portalBucket,
+    const uiExports = new UiExportsConstruct(this, "MainUIExportAsset", {
+      portalBucketName: props.portalBucketName,
       uiProps: {
-        websocket: this.wsEndpoint,
-        apiUrl: workspaceApi.url,
-        oidcIssuer: userConstruct.oidcIssuer,
-        oidcClientId: userConstruct.oidcClientId,
-        oidcLogoutUrl: userConstruct.oidcLogoutUrl,
-        oidcRedirectUrl: `https://${portalConstruct.portalUrl}/signin`,
+        websocket: props.apiConstructOutputs.wsEndpoint,
+        workspaceWebsocket: this.wsEndpoint,
+        apiUrl: props.apiConstructOutputs.api.url,
+        workspaceApiUrl: workspaceApi.url,
+        oidcIssuer: props.oidcIssuer,
+        oidcClientId: props.oidcClientId,
+        oidcLogoutUrl: props.oidcLogoutUrl,
+        oidcRedirectUrl: `https://${props.portalUrl}/signin`,
         kbEnabled: props.config.knowledgeBase.enabled.toString(),
         kbType: JSON.stringify(props.config.knowledgeBase.knowledgeBaseType || {}),
         embeddingEndpoint: "",
         // apiKey: apiConstruct.apiKey,
       },
     });
+    // const clientUIExports = new UiExportsConstruct(this, "ClientUIExportAsset", {
+    //   portalBucket: props.mainPortalConstruct.portalBucket,
+    //   uiProps: {
+    //     websocket: apiConstruct.wsEndpoint,
+    //     apiUrl: apiConstruct.apiEndpoint,
+    //     oidcIssuer: props.userConstruct.oidcIssuer,
+    //     oidcClientId: props.userConstruct.oidcClientId,
+    //     oidcLogoutUrl: props.userConstruct.oidcLogoutUrl,
+    //     oidcRedirectUrl: `https://${props.mainPortalConstruct.portalUrl}/signin`,
+    //     kbEnabled: props.config.knowledgeBase.enabled.toString(),
+    //     kbType: JSON.stringify(props.config.knowledgeBase.knowledgeBaseType || {}),
+    //     embeddingEndpoint: modelConstruct.defaultEmbeddingModelName || "",
+    //     // apiKey: apiConstruct.apiKey,
+    //   },
+    // });
+
     uiExports.node.addDependency(webSocketApi);
     uiExports.node.addDependency(workspaceApi);
-    uiExports.node.addDependency(portalConstruct);
 
   }
 }

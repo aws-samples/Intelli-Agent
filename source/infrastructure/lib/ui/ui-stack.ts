@@ -1,0 +1,106 @@
+/**********************************************************************************************************************
+ *  Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.                                                *
+ *                                                                                                                    *
+ *  Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file except in compliance    *
+ *  with the License. A copy of the License is located at                                                             *
+ *                                                                                                                    *
+ *      http://www.apache.org/licenses/LICENSE-2.0                                                                    *
+ *                                                                                                                    *
+ *  or in the 'license' file accompanying this file. This file is distributed on an 'AS IS' BASIS, WITHOUT WARRANTIES *
+ *  OR CONDITIONS OF ANY KIND, express or implied. See the License for the specific language governing permissions    *
+ *  and limitations under the License.                                                                                *
+ *********************************************************************************************************************/
+
+import { Aws, Duration, StackProps, NestedStack, Stack, PhysicalName, CfnOutput } from "aws-cdk-lib";
+import * as iam from "aws-cdk-lib/aws-iam";
+import { v4 as uuidv4 } from 'uuid';
+import { Construct } from "constructs";
+import { join } from "path";
+
+import { Constants } from "../shared/constants";
+import { IAMHelper } from "../shared/iam-helper";
+import { SystemConfig } from "../shared/types";
+import { PortalConstruct } from "../ui/ui-portal";
+import { UserConstruct } from "../user/user-construct";
+import { UiExportsConstruct } from "../ui/ui-exports";
+
+
+
+interface UIStackProps extends StackProps {
+  readonly config: SystemConfig;
+}
+
+export interface UIStackOutputs {
+  readonly mainPortalConstruct: PortalConstruct;
+  readonly clientPortalConstruct: PortalConstruct;
+  readonly userConstruct: UserConstruct;
+}
+
+export class UIStack extends Stack implements UIStackOutputs {
+
+  public mainPortalConstruct: PortalConstruct;
+  public clientPortalConstruct: PortalConstruct;
+  public userConstruct: UserConstruct;
+
+  constructor(scope: Construct, id: string, props: UIStackProps) {
+    super(scope, id, props);
+
+    const randomUuid = uuidv4();
+
+    const mainPortalConstruct = new PortalConstruct(this, "MainUI", {
+      responseHeadersPolicyName: `SecHdr${Aws.REGION}${Aws.STACK_NAME}-main`
+    });
+    const clientPortalConstruct = new PortalConstruct(this, "ClientUI", {
+      uiSourcePath: join(__dirname, "../../../cs-portal/dist"),
+      responseHeadersPolicyName: `SecHdr${Aws.REGION}${Aws.STACK_NAME}-client`
+    });
+
+    const userConstruct = new UserConstruct(this, "User", {
+      adminEmail: props.config.email,
+      callbackUrls: [
+        `https://${clientPortalConstruct.portalUrl}/signin`,
+        `https://${mainPortalConstruct.portalUrl}/signin`
+      ],
+      logoutUrls: [
+        `https://${clientPortalConstruct.portalUrl}`,
+        `https://${mainPortalConstruct.portalUrl}`
+      ],
+      // userPoolName: `${Constants.SOLUTION_NAME}-workspace_UserPool`,
+      // domainPrefix: `${Constants.SOLUTION_NAME.toLowerCase()}-workspace-${Aws.ACCOUNT_ID}`,
+    });
+    this.mainPortalConstruct = mainPortalConstruct;
+    this.clientPortalConstruct = clientPortalConstruct;
+    this.userConstruct = userConstruct;
+
+    // Add CfnOutputs to export values
+    new CfnOutput(this, 'UserPoolId', {
+      value: userConstruct.userPool.userPoolId,
+      exportName: `${id}-user-pool-id`
+    });
+
+    new CfnOutput(this, 'OidcClientId', {
+      value: userConstruct.oidcClientId,
+      exportName: `${id}-oidc-client-id`
+    });
+
+    new CfnOutput(this, 'OidcIssuer', {
+      value: userConstruct.oidcIssuer,
+      exportName: `${id}-oidc-issuer`
+    });
+
+    new CfnOutput(this, 'OidcLogoutUrl', {
+      value: userConstruct.oidcLogoutUrl,
+      exportName: `${id}-oidc-logout-url`
+    });
+
+    new CfnOutput(this, 'PortalBucketName', {
+      value: mainPortalConstruct.portalBucket.bucketName,
+      exportName: `${id}-portal-bucket-name`
+    });
+
+    new CfnOutput(this, 'PortalUrl', {
+      value: mainPortalConstruct.portalUrl,
+      exportName: `${id}-portal-url`
+    });
+  }
+}

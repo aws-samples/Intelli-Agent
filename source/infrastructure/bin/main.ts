@@ -26,11 +26,19 @@ import { UiExportsConstruct } from "../lib/ui/ui-exports";
 import { UserConstruct } from "../lib/user/user-construct";
 import { ChatStack, ChatStackOutputs } from "../lib/chat/chat-stack";
 import { WorkspaceStack } from "../lib/workspace/workspace-stack";
+import { UIStack } from "../lib/ui/ui-stack";
+import { Fn } from "aws-cdk-lib";
 
 dotenv.config();
 
 export interface RootStackProps extends StackProps {
   readonly config: SystemConfig;
+  readonly userPoolId: string;
+  readonly oidcClientId: string;
+  readonly oidcIssuer: string;
+  readonly oidcLogoutUrl: string;
+  readonly portalBucketName: string;
+  readonly portalUrl: string;
 }
 
 export class RootStack extends Stack {
@@ -42,14 +50,14 @@ export class RootStack extends Stack {
     super(scope, id, props);
     this.templateOptions.description = "(SO8034) - Intelli-Agent";
 
+    const sharedConstruct = new SharedConstruct(this, "shared-construct", {
+      config: props.config,
+    });
+
     let knowledgeBaseStack: KnowledgeBaseStack = {} as KnowledgeBaseStack;
     let knowledgeBaseStackOutputs: KnowledgeBaseStackOutputs = {} as KnowledgeBaseStackOutputs;
     let chatStack: ChatStack = {} as ChatStack;
     let chatStackOutputs: ChatStackOutputs = {} as ChatStackOutputs;
-
-    const sharedConstruct = new SharedConstruct(this, "shared-construct", {
-      config: props.config,
-    });
 
     const modelConstruct = new ModelConstruct(this, "model-construct", {
       config: props.config,
@@ -57,14 +65,12 @@ export class RootStack extends Stack {
     });
     modelConstruct.node.addDependency(sharedConstruct);
 
-    const portalConstruct = new PortalConstruct(this, "ui-construct");
-
     if (props.config.knowledgeBase.enabled && props.config.knowledgeBase.knowledgeBaseType.intelliAgentKb.enabled) {
       knowledgeBaseStack = new KnowledgeBaseStack(this, "knowledge-base-stack", {
         config: props.config,
         sharedConstructOutputs: sharedConstruct,
         modelConstructOutputs: modelConstruct,
-        uiPortalBucketName: portalConstruct.portalBucket.bucketName,
+        uiPortalBucketName: props.portalBucketName,
       });
       knowledgeBaseStack.node.addDependency(sharedConstruct);
       knowledgeBaseStack.node.addDependency(modelConstruct);
@@ -81,10 +87,7 @@ export class RootStack extends Stack {
       chatStackOutputs = chatStack;
     }
     
-    const userConstruct = new UserConstruct(this, "user", {
-      adminEmail: props.config.email,
-      callbackUrl: portalConstruct.portalUrl,
-    });
+
 
     const apiConstruct = new ApiConstruct(this, "api-construct", {
       config: props.config,
@@ -92,34 +95,11 @@ export class RootStack extends Stack {
       modelConstructOutputs: modelConstruct,
       knowledgeBaseStackOutputs: knowledgeBaseStackOutputs,
       chatStackOutputs: chatStackOutputs,
-      userConstructOutputs: userConstruct,
+      userPoolId: props.userPoolId,
+      oidcClientId: props.oidcClientId,
     });
     apiConstruct.node.addDependency(sharedConstruct);
     apiConstruct.node.addDependency(modelConstruct);
-    apiConstruct.node.addDependency(portalConstruct);
-    if (chatStack.node) {
-      apiConstruct.node.addDependency(chatStack);
-    }
-    if (knowledgeBaseStack.node) {
-      apiConstruct.node.addDependency(knowledgeBaseStack);
-    }
-
-    const uiExports = new UiExportsConstruct(this, "ui-exports", {
-      portalBucket: portalConstruct.portalBucket,
-      uiProps: {
-        websocket: apiConstruct.wsEndpoint,
-        apiUrl: apiConstruct.apiEndpoint,
-        oidcIssuer: userConstruct.oidcIssuer,
-        oidcClientId: userConstruct.oidcClientId,
-        oidcLogoutUrl: userConstruct.oidcLogoutUrl,
-        oidcRedirectUrl: `https://${portalConstruct.portalUrl}/signin`,
-        kbEnabled: props.config.knowledgeBase.enabled.toString(),
-        kbType: JSON.stringify(props.config.knowledgeBase.knowledgeBaseType || {}),
-        embeddingEndpoint: modelConstruct.defaultEmbeddingModelName || "",
-        // apiKey: apiConstruct.apiKey,
-      },
-    });
-    uiExports.node.addDependency(portalConstruct);
 
     this.sharedConstruct = sharedConstruct;
     this.apiConstruct = apiConstruct;
@@ -129,20 +109,17 @@ export class RootStack extends Stack {
       value: apiConstruct.apiEndpoint,
     });
     new CfnOutput(this, "Web Portal URL", {
-      value: portalConstruct.portalUrl,
+      value: props.portalUrl,
       description: "Web portal url",
     });
     new CfnOutput(this, "WebSocket Endpoint Address", {
       value: apiConstruct.wsEndpoint,
     });
     new CfnOutput(this, "OIDC Client ID", {
-      value: userConstruct.oidcClientId,
+      value: props.oidcClientId,
     });
-    // new CfnOutput(this, "InitialPassword", {
-    //   value: userConstruct.oidcClientId,
-    // });
     new CfnOutput(this, "User Pool ID", {
-      value: userConstruct.userPool.userPoolId,
+      value: props.userPoolId,
     });
   }
 }
@@ -161,20 +138,45 @@ let stackName = "ai-customer-service"
 if(config.prefix && config.prefix.trim().length > 0){
   stackName = `${config.prefix}-ai-customer-service`;
 }
+
+// Create UI stack first
+const uiStack = new UIStack(app, `${stackName}-frontend`, {
+  config: config,
+  env: devEnv,
+  suppressTemplateIndentation: true,
+});
+
+// Create root stack with imported values
 const rootStack = new RootStack(app, stackName, {
   config,
   env: devEnv,
-  suppressTemplateIndentation: true
+  userPoolId: Fn.importValue(`${stackName}-frontend-user-pool-id`),
+  oidcClientId: Fn.importValue(`${stackName}-frontend-oidc-client-id`),
+  oidcIssuer: Fn.importValue(`${stackName}-frontend-oidc-issuer`),
+  oidcLogoutUrl: Fn.importValue(`${stackName}-frontend-oidc-logout-url`),
+  portalBucketName: Fn.importValue(`${stackName}-frontend-portal-bucket-name`),
+  portalUrl: Fn.importValue(`${stackName}-frontend-portal-url`),
+  suppressTemplateIndentation: true,
 });
 
+// Create workspace stack with imported values
 const workspaceStack = new WorkspaceStack(app, `${stackName}-workspace`, {
   env: devEnv,
   config: config,
   sharedConstructOutputs: rootStack.sharedConstruct,
   apiConstructOutputs: rootStack.apiConstruct,
+  userPoolId: Fn.importValue(`${stackName}-frontend-user-pool-id`),
+  oidcClientId: Fn.importValue(`${stackName}-frontend-oidc-client-id`),
+  oidcIssuer: Fn.importValue(`${stackName}-frontend-oidc-issuer`),
+  oidcLogoutUrl: Fn.importValue(`${stackName}-frontend-oidc-logout-url`),
+  portalBucketName: Fn.importValue(`${stackName}-frontend-portal-bucket-name`),
+  portalUrl: Fn.importValue(`${stackName}-frontend-portal-url`),
   suppressTemplateIndentation: true,
 });
-workspaceStack.addDependency(rootStack);
 
+// Add dependencies
+rootStack.addDependency(uiStack);
+workspaceStack.addDependency(rootStack);
+workspaceStack.addDependency(uiStack);
 
 app.synth();

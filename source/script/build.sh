@@ -50,6 +50,13 @@ build_frontend() {
     cd - > /dev/null
 }
 
+build_client_frontend() {
+    echo "Building Frontend"
+    cd cs-portal
+    npm install && npm run build
+    cd - > /dev/null
+}
+
 build_deployment_module() {
     echo "Building Model Deployment Module"
     curl https://aws-gcr-solutions-assets.s3.us-east-1.amazonaws.com/dmaa/wheels/dmaa-0.4.0-py3-none-any.whl -o dmaa-0.4.0-py3-none-any.whl && pip install dmaa-0.4.0-py3-none-any.whl"[all]"
@@ -71,6 +78,7 @@ modules_prepared="${modules_prepared}Lambda Deployment, "
 
 if $ui_enabled; then
     build_frontend
+    # build_client_frontend
     modules_prepared="${modules_prepared}Frontend, "
 fi
 

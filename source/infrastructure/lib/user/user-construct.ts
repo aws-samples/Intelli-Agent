@@ -15,7 +15,8 @@ import { Constants } from '../shared/constants';
 
 export interface UserProps extends StackProps {
   readonly adminEmail: string;
-  readonly callbackUrl: string;
+  readonly callbackUrls: string[];
+  readonly logoutUrls: string[];
   readonly userPoolName?: string;
   readonly domainPrefix?: string;
 }
@@ -80,8 +81,8 @@ export class UserConstruct extends Construct implements UserConstructOutputs {
         userPassword: true,
       },
       oAuth: {
-        callbackUrls: [`https://${props.callbackUrl}/signin`],
-        logoutUrls: [`https://${props.callbackUrl}`],
+        callbackUrls: props.callbackUrls,
+        logoutUrls: props.logoutUrls,
         scopes: [OAuthScope.OPENID, OAuthScope.PROFILE, OAuthScope.EMAIL],
       },
     });

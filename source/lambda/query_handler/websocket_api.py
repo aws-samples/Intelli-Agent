@@ -20,6 +20,9 @@ from botocore.paginate import TokenEncoder
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
+websocket_url = os.environ.get("WEBSOCKET_URL")
+api_client = boto3.client('apigatewaymanagementapi', endpoint_url=websocket_url)
+
 
 @dataclass
 class AwsResources:
@@ -95,10 +98,11 @@ def send_message(event, context):
     timestamp = datetime.utcnow().isoformat()
     aws_resources.sessions_table.update_item(
         Key={"sessionId": session_id},
-        UpdateExpression="SET lastModifiedTimestamp = :ts, latestQuestion = :content",
+        UpdateExpression="SET lastModifiedTimestamp = :ts, latestQuestion = :content, status = :status",
         ExpressionAttributeValues={
             ':ts': timestamp,
-            ':content': content
+            ':content': content,
+            ':status': "Pending"
         }
     )
 
@@ -116,8 +120,6 @@ def send_message(event, context):
 
     return {'statusCode': 200, 'body': json.dumps({'sessionId': session_id, 'messageId': message_id})}
 
-
-api_client = boto3.client('apigatewaymanagementapi', endpoint_url="https://iuzdwf0x93.execute-api.us-east-1.amazonaws.com/prod/")
 
 def send_response(event, context):
     body = json.loads(event['body'])
@@ -148,6 +150,15 @@ def send_response(event, context):
     connection_id = session.get('connectionId')  # Assume connectionId is stored in the session table
     if not connection_id:
         return {'statusCode': 400, 'body': 'No active connection for the session'}
+    
+    aws_resources.sessions_table.update_item(
+        Key={"sessionId": session_id},
+        UpdateExpression="SET lastModifiedTimestamp = :ts, status = :status",
+        ExpressionAttributeValues={
+            ':ts': timestamp,
+            ':status': "Active"
+        }
+    )    
 
     # Send the message to the customer's WebSocket
     try:
