@@ -32,6 +32,7 @@ aws ecr-public get-login-password --region us-east-1 | docker login --username A
 prepare_etl_model() {
     echo "Preparing ETL Model"
     cd model/etl/code
+    echo "deploy_region is >>>>>> $deploy_region"
     sh model.sh ./Dockerfile $ecr_repository $ecr_image_tag $deploy_region
     cd - > /dev/null
     pwd
