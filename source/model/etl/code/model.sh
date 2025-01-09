@@ -7,13 +7,14 @@ dockerfile=$1
 image=$2
 tag=$3  # New argument for the tag
 aws_region=$4
+echo "Region: >>>>>>1 : $aws_region"
 
 if [ "$image" = "" ] || [ "$dockerfile" = "" ] || [ "$tag" = "" ] || [ "$aws_region" = "" ]
 then
     echo "Usage: \$0 <docker-file> <image-name> <tag> <aws-region>"
     exit 1
 fi
-
+echo "Region: >>>>>>2 : $aws_region"
 # Get the account number associated with the current IAM credentials
 account=$(aws sts get-caller-identity --query Account --output text)
 
