@@ -49,15 +49,6 @@ const UserMessage: React.FC = () => {
       // 有新的用户消息，更新lastUserMessageId
       setLastUserMessageId(latestUserMessage.messageId);
       dispatch(setLatestUserMessage(latestUserMessage.content));
-      // 这里可以添加处理新消息的逻辑，比如发送请求
-      //   const sendMessageObj = {
-      //     query: latestUserMessage.content,
-      //     entry_type: 'common',
-      //     session_id: csWorkspaceState.currentSessionId,
-      //     user_id: auth.user?.profile?.sub,
-      //     action: 'receiveMessage',
-      //   };
-      //   sendMessage(JSON.stringify(sendMessageObj));
     }
 
     setMessageList(response.Items);

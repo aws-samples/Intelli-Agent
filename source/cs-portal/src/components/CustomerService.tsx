@@ -18,10 +18,25 @@ import useWebSocket, { ReadyState } from "react-use-websocket";
 import { useAuth } from "react-oidc-context";
 import ConfigContext from "../contexts/config-context";
 import { v4 as uuidv4 } from "uuid";
+import useAxiosWorkspaceRequest from "../assets/useAxiosWorkspaceRequest";
+
+export interface ChatMessageType {
+  messageId: string;
+  role: "agent" | "user"; // Assuming "agent" and "user" are possible roles
+  content: string;
+  createTimestamp: string; // ISO 8601 string format
+  additional_kwargs: Record<string, unknown>; // Assuming it can be any object
+}
+
+export interface ChatMessageResponse {
+  Items: ChatMessageType[];
+  Count: number;
+}
 
 const CustomerService: FC = () => {
   const auth = useAuth();
   const config = useContext(ConfigContext);
+  const request = useAxiosWorkspaceRequest();
   const [sessionId] = useState(() => {
     const storedSessionId = localStorage.getItem("cs-sessionId");
     if (storedSessionId) {
@@ -35,7 +50,7 @@ const CustomerService: FC = () => {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([
     {
-      id: 1,
+      id: "1",
       type: "bot",
       content: "您好！我是智能客服助手，请问有什么可以帮您？",
     },
@@ -64,8 +79,21 @@ const CustomerService: FC = () => {
     setMessage("");
     setMessages((prev) => [
       ...prev,
-      { id: prev.length + 1, type: "user", content: message },
+      { id: uuidv4(), type: "user", content: message },
     ]);
+  };
+
+  const getMessageList = async () => {
+    const response: ChatMessageResponse = await request({
+      url: `/customer-sessions/${sessionId}/messages`,
+      method: "get",
+    });
+    const messages = response.Items.map((item) => ({
+      id: item.messageId,
+      type: item.role === "agent" ? "bot" : "user",
+      content: item.content,
+    }));
+    setMessages(messages);
   };
 
   useEffect(() => {
@@ -83,6 +111,13 @@ const CustomerService: FC = () => {
       ]);
     }
   }, [lastMessage]);
+
+  useEffect(() => {
+    if (sessionId) {
+      getMessageList();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId]);
 
   useEffect(() => {
     console.info("auth", auth);
@@ -114,10 +149,10 @@ const CustomerService: FC = () => {
         PaperProps={{
           sx: {
             position: "fixed",
-            bottom: 96,
+            bottom: 26,
             right: 32,
             m: 0,
-            width: "400px",
+            width: "480px",
             borderRadius: 2,
           },
         }}
@@ -133,7 +168,7 @@ const CustomerService: FC = () => {
 
         {auth.isAuthenticated ? (
           <>
-            <Box className="h-[400px] overflow-y-auto p-4 space-y-4">
+            <Box className="h-[600px] overflow-y-auto p-4 space-y-4">
               {messages.map((msg) => (
                 <Box
                   key={msg.id}

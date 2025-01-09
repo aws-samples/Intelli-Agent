@@ -15,6 +15,7 @@
     "@mui/icons-material": "^6.3.1",
     "@mui/material": "^6.3.1",
     "autoprefixer": "^10.4.20",
+    "axios": "^1.7.9",
     "lodash": "^4.17.21",
     "oidc-client-ts": "^3.1.0",
     "postcss": "^8.4.49",
