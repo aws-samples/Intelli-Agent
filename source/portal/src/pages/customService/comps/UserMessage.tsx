@@ -109,6 +109,37 @@ const UserMessage: React.FC = () => {
   };
 
   useEffect(() => {
+    if (csWorkspaceState.autoSendMessage) {
+      setIsSending(true);
+      const sendMessageObj = {
+        query: csWorkspaceState.autoSendMessage,
+        entry_type: 'common',
+        session_id: csWorkspaceState.currentSessionId,
+        user_id: auth.user?.profile?.sub,
+        action: 'sendResponse',
+      };
+
+      try {
+        sendMessage(JSON.stringify(sendMessageObj));
+        setMessageList((prev) => [
+          ...prev,
+          {
+            messageId: uuidv4(),
+            role: 'agent',
+            content: csWorkspaceState.autoSendMessage,
+            createTimestamp: new Date().toISOString(),
+            additional_kwargs: {},
+          },
+        ]);
+        // 发送消息后重新启用自动滚动
+        setShouldAutoScroll(true);
+      } finally {
+        setIsSending(false);
+      }
+    }
+  }, [csWorkspaceState.autoSendMessage]);
+
+  useEffect(() => {
     if (lastMessage) {
       console.log(lastMessage);
     }

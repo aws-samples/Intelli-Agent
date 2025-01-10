@@ -70,19 +70,14 @@
 }
 
 .message-content {
-  /* 删除 position: relative; */
+  position: relative;
 }
 
-.feedback-buttons {
-  /* 删除绝对定位相关样式 */
+.message-actions {
   opacity: 0;
   transition: opacity 0.2s ease-in-out;
 }
 
-.message-content:hover .feedback-buttons {
+.message-content:hover .message-actions {
   opacity: 1;
-}
-
-.message-actions {
-  margin-top: 8px;
 }

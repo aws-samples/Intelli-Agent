@@ -15,7 +15,10 @@ import './Message.css';
 import { DocumentData } from 'src/types';
 import type { IconProps } from '@cloudscape-design/components';
 import { useAppDispatch } from 'src/app/hooks';
-import { setActiveDocumentId } from 'src/app/slice/cs-workspace';
+import {
+  setActiveDocumentId,
+  setAutoSendMessage,
+} from 'src/app/slice/cs-workspace';
 
 interface MessageProps {
   type: 'ai' | 'human';
@@ -59,8 +62,8 @@ const Message: React.FC<MessageProps> = ({
     dispatch(setActiveDocumentId(source));
   };
 
-  const [isHovered, setIsHovered] = useState(false);
   const [showCopyTooltip, setShowCopyTooltip] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(message.data).then(() => {
@@ -154,14 +157,24 @@ const Message: React.FC<MessageProps> = ({
                 </div>
               )}
               {isHovered && (
-                <div className="message-actions">
+                <div
+                  className="message-actions"
+                  style={{
+                    position: 'absolute',
+                    bottom: '0px',
+                    right: '0px',
+                    backgroundColor: 'rgba(242, 243, 243, 0.8)',
+                    borderRadius: '4px',
+                    padding: '4px 8px',
+                    zIndex: 1,
+                  }}
+                >
                   <div
                     className="feedback-buttons"
                     style={{
                       display: 'flex',
                       justifyContent: 'flex-end',
                       gap: '8px',
-                      marginTop: '8px',
                     }}
                   >
                     <Popover
@@ -183,6 +196,7 @@ const Message: React.FC<MessageProps> = ({
                       variant="icon"
                       onClick={() => {
                         console.log('send');
+                        dispatch(setAutoSendMessage(message.data));
                       }}
                       ariaLabel="send"
                     />

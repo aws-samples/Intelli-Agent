@@ -9,6 +9,7 @@ interface CSWorkspaceState {
   activeDocumentId: string;
   latestUserMessage: string;
   currentUser: ChatSessionType | null;
+  autoSendMessage: string;
 }
 
 // Define the initial state using that type
@@ -18,6 +19,7 @@ const initialState: CSWorkspaceState = {
   activeDocumentId: '',
   latestUserMessage: '',
   currentUser: null,
+  autoSendMessage: '',
 };
 
 export const csWorkspaceSlice = createSlice({
@@ -43,6 +45,12 @@ export const csWorkspaceSlice = createSlice({
     setCurrentUser: (state, action: PayloadAction<ChatSessionType>) => {
       state.currentUser = action.payload;
     },
+    setAutoSendMessage: (state, action: PayloadAction<string>) => {
+      state.autoSendMessage = action.payload;
+    },
+    clearAutoSendMessage: (state) => {
+      state.autoSendMessage = '';
+    },
   },
 });
 
@@ -53,6 +61,8 @@ export const {
   setActiveDocumentId,
   setLatestUserMessage,
   setCurrentUser,
+  setAutoSendMessage,
+  clearAutoSendMessage,
 } = csWorkspaceSlice.actions;
 
 export default csWorkspaceSlice.reducer;
