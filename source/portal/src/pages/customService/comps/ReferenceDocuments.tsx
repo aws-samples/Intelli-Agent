@@ -8,9 +8,10 @@ import { useAppSelector } from 'src/app/hooks';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkHtml from 'remark-html';
-
+import { useTranslation } from 'react-i18next';
 import DocFileViewer from './DocFileViewer';
 const ReferenceDocuments: React.FC = () => {
+  const { t } = useTranslation();
   const [activeDocId, setActiveDocId] = useState<string | null>(null);
   const csWorkspaceState = useAppSelector((state) => state.csWorkspace);
 
@@ -90,7 +91,7 @@ const ReferenceDocuments: React.FC = () => {
           </div>
         ) : (
           <div className="no-doc-selected">
-            <p>Select a document to preview its content</p>
+            <p>{t('selectADocumentToPreview')}</p>
           </div>
         )}
       </div>

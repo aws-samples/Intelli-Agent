@@ -286,7 +286,7 @@ const CustomerService: React.FC = () => {
 
           <div className="docs-section">
             <div className="docs-header">
-              <h3>Reference Documents</h3>
+              <h3>{t('referenceDocuments')}</h3>
               <div className="search-box">
                 {/* <input type="text" placeholder="Search in documents..." /> */}
               </div>
@@ -302,7 +302,7 @@ const CustomerService: React.FC = () => {
 
         <div className="right-panel" style={{ width: rightWidth }}>
           <div className="panel-header">
-            <h3>AI Customer Service</h3>
+            <h3>{t('name')}</h3>
             <button className="close-btn"></button>
           </div>
           <div className="panel-content">

@@ -233,6 +233,13 @@ const CommonLayout: React.FC<CommonLayoutProps> = ({
                     className: item.text.toLowerCase().replace(/\s+/g, '-'),
                   })),
                 },
+                {
+                  type: 'link',
+                  text: t('workspace'),
+                  href: '/workspace',
+                  id: 'workspace',
+                  itemID: 'workspace-nav',
+                },
                 { type: 'divider' },
                 {
                   type: 'link',

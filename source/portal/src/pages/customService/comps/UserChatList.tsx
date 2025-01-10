@@ -8,7 +8,7 @@ import {
 import useAxiosWorkspaceRequest from 'src/hooks/useAxiosWorkspaceRequest';
 import { ChatSessionResponse, ChatSessionType } from 'src/types';
 import { formatTime } from 'src/utils/utils';
-
+import { useTranslation } from 'react-i18next';
 interface UserChatListProps {
   leftTopHeight: number;
 }
@@ -21,6 +21,7 @@ const UserChatList: React.FC<UserChatListProps> = ({ leftTopHeight }) => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { id } = useParams();
+  const { t } = useTranslation();
   //   const [currentChatId, setCurrentChatId] = useState('');
   const request = useAxiosWorkspaceRequest();
   const [chatList, setChatList] = useState<ExtendedChatSessionType[]>([]);
@@ -88,9 +89,9 @@ const UserChatList: React.FC<UserChatListProps> = ({ leftTopHeight }) => {
   return (
     <div className="chat-list" style={{ height: leftTopHeight }}>
       <div className="section-header">
-        <h3>Recent Chats</h3>
+        <h3>{t('recentChats')}</h3>
         <span className="counter">
-          {chatList.filter((chat) => chat.isNew).length} new
+          {chatList.filter((chat) => chat.isNew).length} {t('new')}
         </span>
       </div>
       <div className="chat-items">
@@ -100,7 +101,7 @@ const UserChatList: React.FC<UserChatListProps> = ({ leftTopHeight }) => {
               dispatch(setCurrentUser(chat));
               selectChatSession(chat.sessionId);
               dispatch(setCurrentSessionId(chat.sessionId));
-              navigate(`/custom-service/chat/${chat.sessionId}`);
+              navigate(`/workspace/chat/${chat.sessionId}`);
             }}
             key={chat.sessionId}
             className={`chat-item ${id === chat.sessionId ? 'active' : ''}`}

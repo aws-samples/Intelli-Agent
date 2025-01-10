@@ -35,8 +35,8 @@ const SignedInRouter = () => {
         <Route path="/intention/detail/:id" element={<IntentionDetail />} />
         <Route path="/chatbot-management" element={<ChatbotManagement />} />
         <Route path="/chatbot/detail/:id" element={<ChatbotDetail />} />
-        <Route path="/custom-service" element={<CustomerService />} />
-        <Route path="/custom-service/chat/:id" element={<CustomerService />} />
+        <Route path="/workspace" element={<CustomerService />} />
+        <Route path="/workspace/chat/:id" element={<CustomerService />} />
       </Routes>
       <CommonAlert />
     </BrowserRouter>
