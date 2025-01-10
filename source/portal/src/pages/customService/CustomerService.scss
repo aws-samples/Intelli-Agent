@@ -556,69 +556,41 @@ $hover-light: #f3f4f6;
             background: $bg-white;
 
             .document-preview {
-              margin: 0 auto;
+              height: 100%;
+              display: flex;
+              flex-direction: column;
 
-              .doc-header {
-                margin-bottom: 24px;
-                padding-bottom: 16px;
-                border-bottom: 1px solid $border;
-                display: flex;
-                justify-content: space-between;
-                align-items: flex-start;
-
-                h2 {
-                  margin: 0;
-                  font-size: 20px;
-                  color: $text-primary;
-                  font-weight: 600;
-                }
-
-                .last-modified {
-                  font-size: 12px;
-                  color: $text-secondary;
-                  padding: 4px 8px;
-                  background: $bg-light;
-                  border-radius: 4px;
-                }
+              img {
+                max-width: 80%;
+                height: auto;
               }
 
-              .doc-content {
-                font-size: 14px;
-                line-height: 1.7;
-                color: $text-primary;
-                background: $bg-white;
-                border-radius: 8px;
+              .doc-header {
+                flex-shrink: 0;
+              }
 
-                h1,
-                h2,
-                h3 {
-                  margin-top: 28px;
-                  margin-bottom: 16px;
-                  color: $text-primary;
-                  font-weight: 600;
-                }
+              .doc-viewer-container {
+                flex: 1;
+                height: calc(100vh - 200px);
+                overflow: hidden;
 
-                h1 {
-                  font-size: 24px;
-                }
-                h2 {
-                  font-size: 20px;
-                }
-                h3 {
-                  font-size: 16px;
-                }
+                :global {
+                  .react-doc-viewer {
+                    height: 100%;
 
-                p {
-                  margin: 0 0 16px;
-                }
+                    .viewer-wrapper {
+                      height: 100%;
+                    }
 
-                ul,
-                ol {
-                  margin: 0 0 16px;
-                  padding-left: 24px;
+                    .pg-viewer-wrapper {
+                      height: 100%;
+                      overflow: auto;
 
-                  li {
-                    margin-bottom: 8px;
+                      iframe {
+                        height: 100%;
+                        width: 100%;
+                      }
+                    }
                   }
                 }
               }
@@ -981,5 +953,18 @@ $hover-light: #f3f4f6;
     .icon {
       font-size: 16px;
     }
+  }
+}
+
+.docs-tabs {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+
+  .tab-content {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
   }
 }

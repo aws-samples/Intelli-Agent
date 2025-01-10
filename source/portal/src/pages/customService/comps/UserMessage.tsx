@@ -11,8 +11,10 @@ import { v4 as uuidv4 } from 'uuid';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkHtml from 'remark-html';
+import { useTranslation } from 'react-i18next';
 
 const UserMessage: React.FC = () => {
+  const { t } = useTranslation();
   const config = useContext(ConfigContext);
   const csWorkspaceState = useAppSelector((state) => state.csWorkspace);
   const dispatch = useAppDispatch();
@@ -199,7 +201,7 @@ const UserMessage: React.FC = () => {
         <textarea
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          placeholder="Type your message..."
+          placeholder={t('typeMessage')}
           rows={3}
         />
         <button
@@ -210,7 +212,7 @@ const UserMessage: React.FC = () => {
           disabled={readyState !== ReadyState.OPEN}
         >
           <span className="icon">💬</span>
-          Send
+          {t('button.send')}
         </button>
       </div>
     </div>

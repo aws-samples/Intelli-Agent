@@ -1,7 +1,15 @@
-import { Alert, SpaceBetween } from '@cloudscape-design/components';
+import {
+  Alert,
+  ExpandableSection,
+  SpaceBetween,
+} from '@cloudscape-design/components';
 import React, { useEffect, useState } from 'react';
 import { useAppSelector } from 'src/app/hooks';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import remarkHtml from 'remark-html';
 
+import DocFileViewer from './DocFileViewer';
 const ReferenceDocuments: React.FC = () => {
   const [activeDocId, setActiveDocId] = useState<string | null>(null);
   const csWorkspaceState = useAppSelector((state) => state.csWorkspace);
@@ -29,40 +37,54 @@ const ReferenceDocuments: React.FC = () => {
       <div className="tab-content">
         {activeDocId ? (
           <div className="document-preview">
-            <div className="doc-header">
-              <h2>
-                {csWorkspaceState.documentList
-                  .find((d) => d.uuid === activeDocId)
-                  ?.source.split('/')
-                  .pop()}
-              </h2>
-              <span className="last-modified">
-                Retrieval Score:{' '}
-                {
-                  csWorkspaceState.documentList.find(
-                    (d) => d.uuid === activeDocId,
-                  )?.retrieval_score
-                }
-              </span>
-            </div>
-            <SpaceBetween direction="horizontal" size="xl">
-              <div className="doc-content markdown">
-                <Alert type="info" header="Retrieval Content">
-                  {
+            <SpaceBetween direction="vertical" size="s">
+              <ExpandableSection headerText="Page Content">
+                <Alert>
+                  <ReactMarkdown remarkPlugins={[remarkGfm, remarkHtml]}>
+                    {
+                      csWorkspaceState.documentList.find(
+                        (d) => d.uuid === activeDocId,
+                      )?.page_content
+                    }
+                  </ReactMarkdown>
+                </Alert>
+              </ExpandableSection>
+              <ExpandableSection headerText="Retrieval Content">
+                <Alert>
+                  <ReactMarkdown remarkPlugins={[remarkGfm, remarkHtml]}>
+                    {
+                      csWorkspaceState.documentList.find(
+                        (d) => d.uuid === activeDocId,
+                      )?.retrieval_content
+                    }
+                  </ReactMarkdown>
+                </Alert>
+              </ExpandableSection>
+              <div>
+                <div className="doc-header flex align-center justify-between">
+                  <h2>
+                    {csWorkspaceState.documentList
+                      .find((d) => d.uuid === activeDocId)
+                      ?.source.split('/')
+                      .pop()}
+                  </h2>
+                  <span className="last-modified">
+                    Retrieval Score:{' '}
+                    {
+                      csWorkspaceState.documentList.find(
+                        (d) => d.uuid === activeDocId,
+                      )?.retrieval_score
+                    }
+                  </span>
+                </div>
+                <DocFileViewer
+                  key={activeDocId}
+                  source={
                     csWorkspaceState.documentList.find(
                       (d) => d.uuid === activeDocId,
-                    )?.retrieval_content
+                    )?.source || ''
                   }
-                </Alert>
-              </div>
-              <div className="doc-content markdown">
-                <Alert type="info" header="Page Content">
-                  {
-                    csWorkspaceState.documentList.find(
-                      (d) => d.uuid === activeDocId,
-                    )?.page_content
-                  }
-                </Alert>
+                />
               </div>
             </SpaceBetween>
           </div>

@@ -20,6 +20,7 @@ interface ExtendedChatSessionType extends ChatSessionType {
 const UserChatList: React.FC<UserChatListProps> = ({ leftTopHeight }) => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
+  const { id } = useParams();
   //   const [currentChatId, setCurrentChatId] = useState('');
   const request = useAxiosWorkspaceRequest();
   const [chatList, setChatList] = useState<ExtendedChatSessionType[]>([]);
@@ -49,6 +50,10 @@ const UserChatList: React.FC<UserChatListProps> = ({ leftTopHeight }) => {
         isNew: isNew && chat.sessionId !== id,
       };
     });
+
+    const currentChat = newChatList.find((chat) => chat.sessionId === id);
+
+    dispatch(setCurrentUser(currentChat ?? null));
 
     setPrevChatList(chatList);
     setChatList(newChatList);
@@ -80,7 +85,6 @@ const UserChatList: React.FC<UserChatListProps> = ({ leftTopHeight }) => {
     return () => clearInterval(interval);
   }, []);
 
-  const { id } = useParams();
   return (
     <div className="chat-list" style={{ height: leftTopHeight }}>
       <div className="section-header">

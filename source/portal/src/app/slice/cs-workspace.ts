@@ -42,7 +42,7 @@ export const csWorkspaceSlice = createSlice({
     setLatestUserMessage: (state, action: PayloadAction<string>) => {
       state.latestUserMessage = action.payload;
     },
-    setCurrentUser: (state, action: PayloadAction<ChatSessionType>) => {
+    setCurrentUser: (state, action: PayloadAction<ChatSessionType | null>) => {
       state.currentUser = action.payload;
     },
     setAutoSendMessage: (state, action: PayloadAction<string>) => {
