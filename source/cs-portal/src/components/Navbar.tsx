@@ -1,4 +1,4 @@
-import { FC, useState } from "react";
+import { FC, useContext, useEffect, useState } from "react";
 import {
   AppBar,
   Toolbar,
@@ -18,9 +18,41 @@ import {
 } from "@mui/icons-material";
 import { useAuth } from "react-oidc-context";
 import { Logout as LogoutIcon } from "@mui/icons-material";
+import ConfigContext from "../contexts/config-context";
 const Navbar: FC = () => {
   const [cartCount] = useState(0);
   const auth = useAuth();
+  const config = useContext(ConfigContext);
+  const [fullLogoutUrl, setFullLogoutUrl] = useState("");
+  const [displayName, setDisplayName] = useState("");
+
+  useEffect(() => {
+    setDisplayName(
+      auth.user?.profile?.email ||
+        auth.user?.profile?.name ||
+        auth.user?.profile?.preferred_username ||
+        auth.user?.profile?.nickname ||
+        auth.user?.profile?.sub ||
+        ""
+    );
+  }, [auth]);
+
+  useEffect(() => {
+    if (config?.oidcLogoutUrl) {
+      const redirectUrl = config?.oidcRedirectUrl.replace("/signin", "");
+      const queryParams = new URLSearchParams({
+        client_id: config.oidcClientId,
+        id_token_hint: auth.user?.id_token ?? "",
+        logout_uri: redirectUrl,
+        redirect_uri: redirectUrl,
+        post_logout_redirect_uri: redirectUrl,
+      });
+      const logoutUrl = new URL(config?.oidcLogoutUrl);
+      logoutUrl.search = queryParams.toString();
+      setFullLogoutUrl(decodeURIComponent(logoutUrl.toString()));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <AppBar position="sticky" className="bg-white shadow-sm">
@@ -62,9 +94,16 @@ const Navbar: FC = () => {
               </Button>
             ) : (
               <span className="text-gray-700  normal-case">
-                {auth.user?.profile?.email}
+                {displayName}
                 <Button
-                  onClick={() => auth.signoutRedirect()}
+                  onClick={() => {
+                    if (fullLogoutUrl) {
+                      auth.removeUser();
+                      window.localStorage.clear();
+                      window.location.href = fullLogoutUrl;
+                    }
+                    auth.removeUser();
+                  }}
                   startIcon={<LogoutIcon />}
                   className="text-gray-700 hover:bg-gray-50 normal-case ml-2"
                 >
