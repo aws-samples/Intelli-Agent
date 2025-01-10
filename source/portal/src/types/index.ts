@@ -329,6 +329,7 @@ export interface ChatSessionType {
   startTime: string; // ISO 8601 string format
   status: string; // Assuming possible status values
   userId: string;
+  userName: string;
 }
 
 export interface ChatSessionResponse {

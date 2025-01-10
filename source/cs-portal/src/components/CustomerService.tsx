@@ -88,12 +88,22 @@ const CustomerService: FC = () => {
       url: `/customer-sessions/${sessionId}/messages`,
       method: "get",
     });
-    const messages = response.Items.map((item) => ({
-      id: item.messageId,
-      type: item.role === "agent" ? "bot" : "user",
-      content: item.content,
-    }));
-    setMessages(messages);
+    if (response.Items.length > 0) {
+      const messages = response.Items.map((item) => ({
+        id: item.messageId,
+        type: item.role === "agent" ? "bot" : "user",
+        content: item.content,
+      }));
+      setMessages(messages);
+    } else {
+      setMessages([
+        {
+          id: "1",
+          type: "bot",
+          content: "您好！我是智能客服助手，请问有什么可以帮您？",
+        },
+      ]);
+    }
   };
 
   useEffect(() => {

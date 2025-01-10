@@ -243,10 +243,10 @@ const CustomerService: React.FC = () => {
           <div className="profile-header">
             <div className="profile-info">
               <div className="avatar">
-                {csWorkspaceState.currentUser?.userId.charAt(0)}
+                {csWorkspaceState.currentUser?.userName.charAt(0)}
               </div>
               <div className="details">
-                <h2>{csWorkspaceState.currentUser?.userId}</h2>
+                <h2>{csWorkspaceState.currentUser?.userName}</h2>
                 <div className="contact-info">
                   <span>
                     <i className="icon">📱</i>{' '}
@@ -254,11 +254,11 @@ const CustomerService: React.FC = () => {
                   </span>
                   <span>
                     <i className="icon">✉️</i>{' '}
-                    {csWorkspaceState.currentUser?.clientType}
+                    {csWorkspaceState.currentUser?.userName}
                   </span>
                   <span>
                     <i className="icon">🆔</i>{' '}
-                    {csWorkspaceState.currentUser?.agentId}
+                    {csWorkspaceState.currentUser?.clientType}
                   </span>
                 </div>
                 <div className="tags">
@@ -302,7 +302,7 @@ const CustomerService: React.FC = () => {
 
         <div className="right-panel" style={{ width: rightWidth }}>
           <div className="panel-header">
-            <h3>Amazon Q</h3>
+            <h3>AI Customer Service</h3>
             <button className="close-btn"></button>
           </div>
           <div className="panel-content">

@@ -101,10 +101,10 @@ const UserChatList: React.FC<UserChatListProps> = ({ leftTopHeight }) => {
             key={chat.sessionId}
             className={`chat-item ${id === chat.sessionId ? 'active' : ''}`}
           >
-            <div className="user-avatar">{chat.userId.charAt(0)}</div>
+            <div className="user-avatar">{chat.userName.charAt(0)}</div>
             <div className="chat-info">
               <div className="chat-header">
-                <span className="name">{chat.userId}</span>
+                <span className="name">{chat.userName}</span>
                 <span className="time">
                   {formatTime(chat.lastModifiedTimestamp)}
                 </span>
