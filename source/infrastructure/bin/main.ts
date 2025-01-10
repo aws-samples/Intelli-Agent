@@ -139,14 +139,12 @@ if(config.prefix && config.prefix.trim().length > 0){
   stackName = `${config.prefix}-ai-customer-service`;
 }
 
-// Create UI stack first
 const uiStack = new UIStack(app, `${stackName}-frontend`, {
   config: config,
   env: devEnv,
   suppressTemplateIndentation: true,
 });
 
-// Create root stack with imported values
 const rootStack = new RootStack(app, stackName, {
   config,
   env: devEnv,
@@ -159,7 +157,6 @@ const rootStack = new RootStack(app, stackName, {
   suppressTemplateIndentation: true,
 });
 
-// Create workspace stack with imported values
 const workspaceStack = new WorkspaceStack(app, `${stackName}-workspace`, {
   env: devEnv,
   config: config,
@@ -170,7 +167,9 @@ const workspaceStack = new WorkspaceStack(app, `${stackName}-workspace`, {
   oidcIssuer: Fn.importValue(`${stackName}-frontend-oidc-issuer`),
   oidcLogoutUrl: Fn.importValue(`${stackName}-frontend-oidc-logout-url`),
   portalBucketName: Fn.importValue(`${stackName}-frontend-portal-bucket-name`),
+  clientPortalBucketName: Fn.importValue(`${stackName}-frontend-client-portal-bucket-name`),
   portalUrl: Fn.importValue(`${stackName}-frontend-portal-url`),
+  clientPortalUrl: Fn.importValue(`${stackName}-frontend-client-portal-url`),
   suppressTemplateIndentation: true,
 });
 

@@ -156,19 +156,19 @@ def send_response(event, context):
     if not connection_id:
         return {'statusCode': 400, 'body': 'No active connection for the session'}
     
-    # TODO: can be deleted
-    aws_resources.sessions_table.update_item(
-        Key={"sessionId": session_id},
-        UpdateExpression="SET lastModifiedTimestamp = :ts, latestResponse = :content, #st = :status",
-        ExpressionAttributeValues={
-            ':ts': timestamp,
-            ':content': content,
-            ':status': "Active"
-        },
-        ExpressionAttributeNames={
-            '#st': 'status'
-        }
-    )    
+    # # TODO: can be deleted
+    # aws_resources.sessions_table.update_item(
+    #     Key={"sessionId": session_id},
+    #     UpdateExpression="SET lastModifiedTimestamp = :ts, latestResponse = :content, #st = :status",
+    #     ExpressionAttributeValues={
+    #         ':ts': timestamp,
+    #         ':content': content,
+    #         ':status': "Active"
+    #     },
+    #     ExpressionAttributeNames={
+    #         '#st': 'status'
+    #     }
+    # )    
 
     # Send the message to the customer's WebSocket
     try:

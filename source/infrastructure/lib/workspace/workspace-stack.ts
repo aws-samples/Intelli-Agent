@@ -49,7 +49,9 @@ interface WorkspaceProps extends StackProps {
   readonly oidcIssuer: string;
   readonly oidcLogoutUrl: string;
   readonly portalBucketName: string;
+  readonly clientPortalBucketName: string;
   readonly portalUrl: string;
+  readonly clientPortalUrl: string;
 }
 
 export interface WorkspaceOutputs {
@@ -234,12 +236,31 @@ export class WorkspaceStack extends Stack implements WorkspaceOutputs {
         kbEnabled: props.config.knowledgeBase.enabled.toString(),
         kbType: JSON.stringify(props.config.knowledgeBase.knowledgeBaseType || {}),
         embeddingEndpoint: "",
-        // apiKey: apiConstruct.apiKey,
       },
     });
 
     uiExports.node.addDependency(webSocketApi);
     uiExports.node.addDependency(workspaceApi);
+
+    const clientUiExports = new UiExportsConstruct(this, "ClientUIExportAsset", {
+      portalBucketName: props.clientPortalBucketName,
+      uiProps: {
+        websocket: props.apiConstructOutputs.wsEndpoint,
+        workspaceWebsocket: this.wsEndpoint,
+        apiUrl: props.apiConstructOutputs.api.url,
+        workspaceApiUrl: workspaceApi.url,
+        oidcIssuer: props.oidcIssuer,
+        oidcClientId: props.oidcClientId,
+        oidcLogoutUrl: props.oidcLogoutUrl,
+        oidcRedirectUrl: `https://${props.clientPortalUrl}/signin`,
+        kbEnabled: props.config.knowledgeBase.enabled.toString(),
+        kbType: JSON.stringify(props.config.knowledgeBase.knowledgeBaseType || {}),
+        embeddingEndpoint: "",
+      },
+    });
+
+    clientUiExports.node.addDependency(webSocketApi);
+    clientUiExports.node.addDependency(workspaceApi);
 
   }
 }

@@ -12,17 +12,12 @@
  *********************************************************************************************************************/
 
 import { Aws, Duration, StackProps, NestedStack, Stack, PhysicalName, CfnOutput } from "aws-cdk-lib";
-import * as iam from "aws-cdk-lib/aws-iam";
-import { v4 as uuidv4 } from 'uuid';
 import { Construct } from "constructs";
 import { join } from "path";
 
-import { Constants } from "../shared/constants";
-import { IAMHelper } from "../shared/iam-helper";
 import { SystemConfig } from "../shared/types";
 import { PortalConstruct } from "../ui/ui-portal";
 import { UserConstruct } from "../user/user-construct";
-import { UiExportsConstruct } from "../ui/ui-exports";
 
 
 
@@ -44,8 +39,6 @@ export class UIStack extends Stack implements UIStackOutputs {
 
   constructor(scope: Construct, id: string, props: UIStackProps) {
     super(scope, id, props);
-
-    const randomUuid = uuidv4();
 
     const mainPortalConstruct = new PortalConstruct(this, "MainUI", {
       responseHeadersPolicyName: `SecHdr${Aws.REGION}${Aws.STACK_NAME}-main`
@@ -98,9 +91,19 @@ export class UIStack extends Stack implements UIStackOutputs {
       exportName: `${id}-portal-bucket-name`
     });
 
+    new CfnOutput(this, 'ClientPortalBucketName', {
+      value: clientPortalConstruct.portalBucket.bucketName,
+      exportName: `${id}-client-portal-bucket-name`
+    });
+
     new CfnOutput(this, 'PortalUrl', {
       value: mainPortalConstruct.portalUrl,
       exportName: `${id}-portal-url`
+    });
+
+    new CfnOutput(this, 'ClientPortalUrl', {
+      value: clientPortalConstruct.portalUrl,
+      exportName: `${id}-client-portal-url`
     });
   }
 }
