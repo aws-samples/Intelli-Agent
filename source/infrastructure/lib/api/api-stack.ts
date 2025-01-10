@@ -136,9 +136,13 @@ export class ApiConstruct extends Construct implements ApiConstructOutputs {
             s3.HttpMethods.POST,
             s3.HttpMethods.PUT,
             s3.HttpMethods.DELETE,
+            s3.HttpMethods.HEAD,
           ],
           allowedOrigins: ["*"],
           allowedHeaders: ["*"],
+          exposedHeaders: [
+            "Access-Control-Allow-Origin",
+          ],
         },
       ],
     });
