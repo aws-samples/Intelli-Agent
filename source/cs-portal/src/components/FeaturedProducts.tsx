@@ -7,7 +7,8 @@ const featuredProducts = [
     id: 1,
     name: "iPhone 15 Pro",
     price: 8999,
-    image: "https://via.placeholder.com/300",
+    image:
+      "https://images.unsplash.com/photo-1695048133142-1a20484d2569?auto=format&fit=crop&q=80&w=2670",
     discount: 95,
     rating: 4.8,
     reviews: 125,
@@ -16,7 +17,8 @@ const featuredProducts = [
     id: 2,
     name: "MacBook Pro M3",
     price: 14999,
-    image: "https://via.placeholder.com/300",
+    image:
+      "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&q=80&w=2626",
     discount: 90,
     rating: 4.9,
     reviews: 89,
@@ -25,7 +27,8 @@ const featuredProducts = [
     id: 3,
     name: "AirPods Pro",
     price: 1999,
-    image: "https://via.placeholder.com/300",
+    image:
+      "https://images.unsplash.com/photo-1600294037681-c80b4cb5b434?auto=format&fit=crop&q=80&w=2660",
     discount: 85,
     rating: 4.7,
     reviews: 230,
@@ -34,7 +37,8 @@ const featuredProducts = [
     id: 4,
     name: "iPad Air",
     price: 4999,
-    image: "https://via.placeholder.com/300",
+    image:
+      "https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?auto=format&fit=crop&q=80&w=2675",
     discount: 88,
     rating: 4.6,
     reviews: 156,

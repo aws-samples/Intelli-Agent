@@ -19,6 +19,9 @@ import { useAuth } from "react-oidc-context";
 import ConfigContext from "../contexts/config-context";
 import { v4 as uuidv4 } from "uuid";
 import useAxiosWorkspaceRequest from "../assets/useAxiosWorkspaceRequest";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import remarkHtml from "remark-html";
 
 export interface ChatMessageType {
   messageId: string;
@@ -192,7 +195,11 @@ const CustomerService: FC = () => {
                         : "bg-blue-500 text-white"
                     }`}
                   >
-                    <Typography variant="body2">{msg.content}</Typography>
+                    <Typography variant="body2">
+                      <ReactMarkdown remarkPlugins={[remarkGfm, remarkHtml]}>
+                        {msg.content}
+                      </ReactMarkdown>
+                    </Typography>
                   </Paper>
                 </Box>
               ))}

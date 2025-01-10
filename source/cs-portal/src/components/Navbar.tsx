@@ -16,14 +16,16 @@ import {
   Person as UserIcon,
   Favorite as WishlistIcon,
 } from "@mui/icons-material";
-
+import { useAuth } from "react-oidc-context";
+import { Logout as LogoutIcon } from "@mui/icons-material";
 const Navbar: FC = () => {
   const [cartCount] = useState(0);
+  const auth = useAuth();
 
   return (
     <AppBar position="sticky" className="bg-white shadow-sm">
       <Container maxWidth="xl">
-        <Toolbar className="px-0">
+        <Toolbar className="px-0 justify-between">
           <Typography variant="h5" className="text-gray-800 font-bold">
             ShopName
           </Typography>
@@ -40,12 +42,6 @@ const Navbar: FC = () => {
           </Box>
 
           <Box className="flex items-center gap-4">
-            <Button
-              startIcon={<UserIcon />}
-              className="text-gray-700 hover:bg-gray-50 normal-case"
-            >
-              登录
-            </Button>
             <IconButton className="text-gray-700 hover:bg-gray-50">
               <Badge badgeContent={0} color="error">
                 <WishlistIcon />
@@ -56,6 +52,26 @@ const Navbar: FC = () => {
                 <CartIcon />
               </Badge>
             </IconButton>
+            {!auth.isAuthenticated ? (
+              <Button
+                onClick={() => auth.signinRedirect()}
+                startIcon={<UserIcon />}
+                className="text-gray-700 hover:bg-gray-50 normal-case"
+              >
+                登录
+              </Button>
+            ) : (
+              <span className="text-gray-700  normal-case">
+                {auth.user?.profile?.email}
+                <Button
+                  onClick={() => auth.signoutRedirect()}
+                  startIcon={<LogoutIcon />}
+                  className="text-gray-700 hover:bg-gray-50 normal-case ml-2"
+                >
+                  登出
+                </Button>
+              </span>
+            )}
           </Box>
         </Toolbar>
       </Container>

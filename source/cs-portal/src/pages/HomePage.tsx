@@ -1,5 +1,5 @@
 import { FC } from "react";
-import { Container, Box } from "@mui/material";
+import { Container } from "@mui/material";
 import Banner from "../components/Banner";
 import Categories from "../components/Categories";
 import FeaturedProducts from "../components/FeaturedProducts";
@@ -14,14 +14,7 @@ const HomePage: FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      <Box
-        className="w-full"
-        sx={{
-          mt: { xs: 2, sm: 3, md: 4 },
-        }}
-      >
-        <Banner />
-      </Box>
+      <Banner />
       <Container
         maxWidth="xl"
         className="py-8 space-y-12"

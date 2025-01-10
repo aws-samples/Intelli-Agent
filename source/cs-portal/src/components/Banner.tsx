@@ -67,7 +67,7 @@ const Banner: FC = () => {
     <Box
       className="relative bg-gray-900"
       sx={{
-        height: { xs: "400px", sm: "500px", md: "600px" },
+        height: { xs: "300px", sm: "400px", md: "500px" },
       }}
     >
       <Box
