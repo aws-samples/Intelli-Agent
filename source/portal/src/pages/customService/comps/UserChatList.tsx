@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAppDispatch } from 'src/app/hooks';
-import { setCurrentSessionId } from 'src/app/slice/cs-workspace';
+import {
+  setCurrentSessionId,
+  setCurrentUser,
+} from 'src/app/slice/cs-workspace';
 import useAxiosWorkspaceRequest from 'src/hooks/useAxiosWorkspaceRequest';
 import { ChatSessionResponse, ChatSessionType } from 'src/types';
 import { formatTime } from 'src/utils/utils';
@@ -90,6 +93,7 @@ const UserChatList: React.FC<UserChatListProps> = ({ leftTopHeight }) => {
         {chatList.map((chat) => (
           <div
             onClick={() => {
+              dispatch(setCurrentUser(chat));
               selectChatSession(chat.sessionId);
               dispatch(setCurrentSessionId(chat.sessionId));
               navigate(`/custom-service/chat/${chat.sessionId}`);

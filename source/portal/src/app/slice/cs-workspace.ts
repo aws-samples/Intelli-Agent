@@ -1,6 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
-import { DocumentData } from 'src/types';
+import { ChatSessionType, DocumentData } from 'src/types';
 
 // Define a type for the slice state
 interface CSWorkspaceState {
@@ -8,6 +8,7 @@ interface CSWorkspaceState {
   documentList: DocumentData[];
   activeDocumentId: string;
   latestUserMessage: string;
+  currentUser: ChatSessionType | null;
 }
 
 // Define the initial state using that type
@@ -16,6 +17,7 @@ const initialState: CSWorkspaceState = {
   documentList: [],
   activeDocumentId: '',
   latestUserMessage: '',
+  currentUser: null,
 };
 
 export const csWorkspaceSlice = createSlice({
@@ -38,6 +40,9 @@ export const csWorkspaceSlice = createSlice({
     setLatestUserMessage: (state, action: PayloadAction<string>) => {
       state.latestUserMessage = action.payload;
     },
+    setCurrentUser: (state, action: PayloadAction<ChatSessionType>) => {
+      state.currentUser = action.payload;
+    },
   },
 });
 
@@ -47,6 +52,7 @@ export const {
   clearDocumentList,
   setActiveDocumentId,
   setLatestUserMessage,
+  setCurrentUser,
 } = csWorkspaceSlice.actions;
 
 export default csWorkspaceSlice.reducer;

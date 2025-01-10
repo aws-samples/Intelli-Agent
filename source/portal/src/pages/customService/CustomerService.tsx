@@ -15,6 +15,7 @@ import { useAppSelector } from 'src/app/hooks';
 import UserChatList from './comps/UserChatList';
 import ReferenceDocuments from './comps/ReferenceDocuments';
 import UserMessage from './comps/UserMessage';
+import { formatTime } from 'src/utils/utils';
 
 const INIT_WIDTH = 400;
 const MAX_WIDTH = 800;
@@ -169,27 +170,37 @@ const CustomerService: React.FC = () => {
         <div className="main-content">
           <div className="profile-header">
             <div className="profile-info">
-              <div className="avatar">JD</div>
+              <div className="avatar">
+                {csWorkspaceState.currentUser?.userId.charAt(0)}
+              </div>
               <div className="details">
-                <h2>John Doe</h2>
+                <h2>{csWorkspaceState.currentUser?.userId}</h2>
                 <div className="contact-info">
                   <span>
-                    <i className="icon">📱</i> +1 234 567 8900
+                    <i className="icon">📱</i>{' '}
+                    {csWorkspaceState.currentUser?.status}
                   </span>
                   <span>
-                    <i className="icon">✉️</i> john.doe@example.com
+                    <i className="icon">✉️</i>{' '}
+                    {csWorkspaceState.currentUser?.clientType}
                   </span>
                   <span>
-                    <i className="icon">🆔</i> ACC-12345678
+                    <i className="icon">🆔</i>{' '}
+                    {csWorkspaceState.currentUser?.agentId}
                   </span>
                 </div>
                 <div className="tags">
                   <span className="tag">Premium Customer</span>
-                  <span className="tag">Since 2020</span>
+                  <span className="tag">
+                    Since{' '}
+                    {formatTime(
+                      csWorkspaceState.currentUser?.createTimestamp ?? 0,
+                    )}
+                  </span>
                 </div>
               </div>
             </div>
-            <div className="profile-actions">
+            {/* <div className="profile-actions">
               <button className="action-button">
                 <span className="icon">📝</span>
                 Edit Profile
@@ -198,14 +209,14 @@ const CustomerService: React.FC = () => {
                 <span className="icon">📋</span>
                 View History
               </button>
-            </div>
+            </div> */}
           </div>
 
           <div className="docs-section">
             <div className="docs-header">
               <h3>Reference Documents</h3>
               <div className="search-box">
-                <input type="text" placeholder="Search in documents..." />
+                {/* <input type="text" placeholder="Search in documents..." /> */}
               </div>
             </div>
             <ReferenceDocuments />
