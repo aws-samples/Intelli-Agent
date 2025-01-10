@@ -149,7 +149,7 @@ export const ChatMessage: React.FC = () => {
     setCurrentDocumentList([]);
     const groupName: string[] = auth?.user?.profile?.['cognito:groups'] as any;
     let message = {
-      query: autoMessage ?? userMessage,
+      query: autoMessage || userMessage,
       entry_type: 'common',
       session_id: csWorkspaceState.currentSessionId,
       user_id: auth?.user?.profile?.['cognito:username'] || 'default_user_id',
