@@ -8,11 +8,12 @@ import {
   TextField,
   Button,
   Paper,
+  Avatar,
 } from "@mui/material";
 import {
-  SupportAgent as AgentIcon,
   Close as CloseIcon,
   Send as SendIcon,
+  SmartToy as RobotIcon,
 } from "@mui/icons-material";
 import useWebSocket, { ReadyState } from "react-use-websocket";
 import { useAuth } from "react-oidc-context";
@@ -148,10 +149,22 @@ const CustomerService: FC = () => {
     <>
       <Fab
         color="primary"
-        className="fixed right-8 bottom-8 z-50"
+        className="fixed right-8 bottom-8 z-50 group"
         onClick={() => setOpen(!open)}
+        sx={{
+          background: "linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)",
+          "&:hover": {
+            background: "linear-gradient(45deg, #2196F3 10%, #21CBF3 70%)",
+          },
+        }}
       >
-        <AgentIcon />
+        <Box className="relative">
+          <RobotIcon className="text-white group-hover:scale-110 transition-transform" />
+          <Box
+            className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"
+            sx={{ animation: "pulse 2s infinite" }}
+          />
+        </Box>
       </Fab>
 
       <Dialog
@@ -170,11 +183,30 @@ const CustomerService: FC = () => {
           },
         }}
       >
-        <Box className="flex items-center justify-between p-4 border-b">
-          <Typography variant="h6" className="font-medium">
-            在线客服
-          </Typography>
-          <IconButton onClick={() => setOpen(false)} size="small">
+        <Box className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-blue-500 to-blue-400">
+          <Box className="flex items-center gap-3">
+            <Avatar
+              sx={{
+                background: "linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)",
+                padding: "2px",
+              }}
+            >
+              <RobotIcon />
+            </Avatar>
+            <Box>
+              <Typography variant="h6" className="font-medium text-white">
+                智能客服助手
+              </Typography>
+              <Typography variant="caption" className="text-blue-50">
+                在线为您服务
+              </Typography>
+            </Box>
+          </Box>
+          <IconButton
+            onClick={() => setOpen(false)}
+            size="small"
+            className="text-white"
+          >
             <CloseIcon />
           </IconButton>
         </Box>
@@ -185,8 +217,22 @@ const CustomerService: FC = () => {
               {messages.map((msg) => (
                 <Box
                   key={msg.id}
-                  className={`flex ${msg.type === "bot" ? "" : "justify-end"}`}
+                  className={`flex items-start gap-2 ${
+                    msg.type === "bot" ? "" : "justify-end"
+                  }`}
                 >
+                  {msg.type === "bot" && (
+                    <Avatar
+                      sx={{
+                        width: 32,
+                        height: 32,
+                        background:
+                          "linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)",
+                      }}
+                    >
+                      <RobotIcon sx={{ fontSize: 20 }} />
+                    </Avatar>
+                  )}
                   <Paper
                     elevation={0}
                     className={`p-3 max-w-[80%] ${
@@ -195,11 +241,17 @@ const CustomerService: FC = () => {
                         : "bg-blue-500 text-white"
                     }`}
                   >
-                    <Typography variant="body2">
-                      <ReactMarkdown remarkPlugins={[remarkGfm, remarkHtml]}>
-                        {msg.content}
-                      </ReactMarkdown>
-                    </Typography>
+                    <ReactMarkdown
+                      className="text-sm"
+                      remarkPlugins={[remarkGfm, remarkHtml]}
+                      components={{
+                        p: ({ children }) => (
+                          <span className="block">{children}</span>
+                        ),
+                      }}
+                    >
+                      {msg.content}
+                    </ReactMarkdown>
                   </Paper>
                 </Box>
               ))}
@@ -234,6 +286,27 @@ const CustomerService: FC = () => {
           </Box>
         )}
       </Dialog>
+
+      <style>
+        {`
+          @keyframes pulse {
+            0% {
+              transform: scale(0.95);
+              box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+            }
+            
+            70% {
+              transform: scale(1);
+              box-shadow: 0 0 0 6px rgba(59, 130, 246, 0);
+            }
+            
+            100% {
+              transform: scale(0.95);
+              box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+            }
+          }
+        `}
+      </style>
     </>
   );
 };
