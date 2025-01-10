@@ -1,10 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useTranslation } from 'react-i18next';
 import { TopNavigation } from '@cloudscape-design/components';
 import {
+  ADITIONAL_SETTINGS,
+  CURRENT_CHAT_BOT,
   DEFAULT_ZH_LANG,
   EN_TEXT,
+  ENABLE_TRACE,
   LANGUAGE_ITEMS,
+  MAX_TOKEN,
+  MODEL_OPTION,
+  ONLY_RAG_TOOL,
+  SCENARIO,
+  TEMPERATURE,
+  USE_CHAT_HISTORY,
   ZH_LANGUAGE_LIST,
   ZH_TEXT,
 } from 'src/utils/const';
@@ -16,16 +25,39 @@ import UserChatList from './comps/UserChatList';
 import ReferenceDocuments from './comps/ReferenceDocuments';
 import UserMessage from './comps/UserMessage';
 import { formatTime } from 'src/utils/utils';
+import ConfigContext from 'src/context/config-context';
+import { useAuth } from 'react-oidc-context';
 
 const INIT_WIDTH = 400;
 const MAX_WIDTH = 800;
 
+const STORAGE_KEYS = [
+  CURRENT_CHAT_BOT,
+  USE_CHAT_HISTORY,
+  ENABLE_TRACE,
+  ONLY_RAG_TOOL,
+  SCENARIO,
+  MODEL_OPTION,
+  MAX_TOKEN,
+  TEMPERATURE,
+  ADITIONAL_SETTINGS,
+];
+
 const CustomerService: React.FC = () => {
   const { t, i18n } = useTranslation();
-  const displayName = 'Ning';
+  const config = useContext(ConfigContext);
+  const auth = useAuth();
   const [leftWidth, setLeftWidth] = useState(INIT_WIDTH);
   const [rightWidth, setRightWidth] = useState(INIT_WIDTH);
   const [isDragging, setIsDragging] = useState(false);
+  const [fullLogoutUrl, setFullLogoutUrl] = useState('');
+  const [displayName, setDisplayName] = useState('');
+
+  const clearStorage = () => {
+    STORAGE_KEYS.forEach((key) => {
+      localStorage.removeItem(key);
+    });
+  };
   //   const [selectedDocTab, setSelectedDocTab] = useState('reference');
   const [leftTopHeight, setLeftTopHeight] = useState(300);
 
@@ -34,6 +66,36 @@ const CustomerService: React.FC = () => {
   const changeLanguage = (lang: string) => {
     i18n.changeLanguage(lang);
   };
+
+  useEffect(() => {
+    if (ZH_LANGUAGE_LIST.includes(i18n.language)) {
+      changeLanguage(DEFAULT_ZH_LANG);
+    }
+    if (config?.oidcLogoutUrl) {
+      const redirectUrl = config?.oidcRedirectUrl.replace('/signin', '');
+      const queryParams = new URLSearchParams({
+        client_id: config.oidcClientId,
+        id_token_hint: auth.user?.id_token ?? '',
+        logout_uri: redirectUrl,
+        redirect_uri: redirectUrl,
+        post_logout_redirect_uri: redirectUrl,
+      });
+      const logoutUrl = new URL(config?.oidcLogoutUrl);
+      logoutUrl.search = queryParams.toString();
+      setFullLogoutUrl(decodeURIComponent(logoutUrl.toString()));
+    }
+  }, []);
+
+  useEffect(() => {
+    setDisplayName(
+      auth.user?.profile?.email ||
+        auth.user?.profile?.name ||
+        auth.user?.profile?.preferred_username ||
+        auth.user?.profile?.nickname ||
+        auth.user?.profile?.sub ||
+        '',
+    );
+  }, [auth]);
 
   useEffect(() => {
     const cleanupFns = [
@@ -107,6 +169,7 @@ const CustomerService: React.FC = () => {
             text: ZH_LANGUAGE_LIST.includes(i18n.language) ? ZH_TEXT : EN_TEXT,
             onItemClick: (item) => {
               changeLanguage(item.detail.id);
+              // window.location.reload();
             },
             items:
               i18n.language === DEFAULT_ZH_LANG
@@ -117,7 +180,16 @@ const CustomerService: React.FC = () => {
             type: 'menu-dropdown',
             text: displayName,
             iconName: 'user-profile',
-            onItemClick: () => {},
+            onItemClick: (item) => {
+              if (item.detail.id === 'signout') {
+                if (fullLogoutUrl) {
+                  auth.removeUser();
+                  clearStorage();
+                  window.location.href = fullLogoutUrl;
+                }
+                auth.removeUser();
+              }
+            },
             items: [{ id: 'signout', text: t('signOut') }],
           },
         ]}
