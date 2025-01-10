@@ -106,8 +106,9 @@ class CustomerChatManager:
         agent_id = claims_json.get("sub")
 
         response = aws_resources.sessions_table.scan(
-            FilterExpression="(#st = :pending_status) OR (#st = :active_status AND agentId = :agent_id)",
+            FilterExpression="latestQuestion <> :empty AND ((#st = :pending_status) OR (#st = :active_status AND agentId = :agent_id))",
             ExpressionAttributeValues={
+                ':empty': '',
                 ':pending_status': 'Pending',
                 ':active_status': 'Active',
                 ':agent_id': agent_id

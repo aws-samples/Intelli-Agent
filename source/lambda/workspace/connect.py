@@ -25,6 +25,12 @@ def lambda_handler(event, context):
     session_id = qs_param["session_id"]
     user_id = qs_param["user_id"]
     timestamp = datetime.utcnow().isoformat()
+    claims = event['requestContext']['authorizer']['claims']
+    claims_json = json.loads(claims)
+    user_name = "unknown"
+    if "email" in claims_json:
+        user_name = claims_json["email"]
+
     session_table.put_item(Item={
         "sessionId": session_id,
         "userId": user_id,
@@ -35,7 +41,8 @@ def lambda_handler(event, context):
         "latestQuestion": "",
         "startTime": timestamp,
         "status": "Pending",
-        "agentId": ""
+        "agentId": "",
+        "userName": user_name
     })
 
     return {"statusCode": 200, "body": json.dumps("User connected.")}
