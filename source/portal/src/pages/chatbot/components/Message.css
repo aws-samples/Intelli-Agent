@@ -68,3 +68,21 @@
 .document-item .awsui-icon-wrapper {
   color: #0972d3;
 }
+
+.message-content {
+  /* 删除 position: relative; */
+}
+
+.feedback-buttons {
+  /* 删除绝对定位相关样式 */
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.message-content:hover .feedback-buttons {
+  opacity: 1;
+}
+
+.message-actions {
+  margin-top: 8px;
+}

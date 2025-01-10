@@ -1,5 +1,10 @@
-import { ExpandableSection, Icon } from '@cloudscape-design/components';
-import React from 'react';
+import {
+  Button,
+  ExpandableSection,
+  Icon,
+  Popover,
+} from '@cloudscape-design/components';
+import React, { useState } from 'react';
 import Avatar from 'react-avatar';
 import ReactMarkdown from 'react-markdown';
 import { BounceLoader } from 'react-spinners';
@@ -54,87 +59,139 @@ const Message: React.FC<MessageProps> = ({
     dispatch(setActiveDocumentId(source));
   };
 
+  const [isHovered, setIsHovered] = useState(false);
+  const [showCopyTooltip, setShowCopyTooltip] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(message.data).then(() => {
+      setShowCopyTooltip(true);
+      setTimeout(() => setShowCopyTooltip(false), 2000); // 2秒后隐藏提示
+    });
+  };
+
   return (
     <>
       {type === 'ai' && (
-        <div className="flex gap-10">
-          {<Avatar size="40" round={true} src={BedrockImg} />}
-          <div className={`message-content flex-1 ai`}>
-            <div className="message">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {message.data.replace(/~/g, '\\~')}
-              </ReactMarkdown>
-              {aiSpeaking && (
-                <div className="mt-5">
-                  <BounceLoader size="12px" color="#888" />
+        <>
+          <div className="flex gap-10">
+            {<Avatar size="40" round={true} src={BedrockImg} />}
+            <div
+              className={`message-content flex-1 ai`}
+              onMouseEnter={() => setIsHovered(true)}
+              onMouseLeave={() => setIsHovered(false)}
+            >
+              <div className="message">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {message.data.replace(/~/g, '\\~')}
+                </ReactMarkdown>
+                {aiSpeaking && (
+                  <div className="mt-5">
+                    <BounceLoader size="12px" color="#888" />
+                  </div>
+                )}
+              </div>
+              {documentList && documentList.length > 0 && (
+                <div className="document-list">
+                  {documentList.map((doc) => {
+                    const fileName = doc.source.split('/').pop() || '';
+                    const iconName = getFileIcon(fileName);
+
+                    return (
+                      <div
+                        key={doc.page_content}
+                        className="document-item"
+                        onClick={() => handleDocClick(doc.uuid)}
+                      >
+                        <Icon name={iconName} />
+                        <span className="doc-name" title={fileName}>
+                          {fileName}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              {showTrace && message.monitoring && (
+                <div className="monitor mt-10">
+                  <ExpandableSection
+                    variant="footer"
+                    headingTagOverride="h5"
+                    headerText="Monitoring"
+                  >
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm, remarkHtml]}
+                      components={{
+                        h1: ({ node, ...props }) => (
+                          <h1 className="custom-header" {...props} />
+                        ),
+                        h2: ({ node, ...props }) => (
+                          <h2 className="custom-header" {...props} />
+                        ),
+                        h3: ({ node, ...props }) => (
+                          <h3 className="custom-header" {...props} />
+                        ),
+                        table: ({ node, ...props }) => (
+                          <table className="custom-table" {...props} />
+                        ),
+                        th: ({ node, ...props }) => (
+                          <th className="custom-table-header" {...props} />
+                        ),
+                        td: ({ node, ...props }) => (
+                          <td className="custom-table-cell" {...props} />
+                        ),
+                        img: ({ node, ...props }) => (
+                          <img
+                            {...props}
+                            className="markdown-table-image"
+                            style={{ maxWidth: '150px', height: 'auto' }}
+                          />
+                        ),
+                      }}
+                    >
+                      {message.monitoring}
+                    </ReactMarkdown>
+                  </ExpandableSection>
+                </div>
+              )}
+              {isHovered && (
+                <div className="message-actions">
+                  <div
+                    className="feedback-buttons"
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'flex-end',
+                      gap: '8px',
+                      marginTop: '8px',
+                    }}
+                  >
+                    <Popover
+                      dismissButton={false}
+                      position="top"
+                      size="small"
+                      triggerType="custom"
+                      content={showCopyTooltip ? 'Copied!' : ''}
+                    >
+                      <Button
+                        iconName="copy"
+                        variant="icon"
+                        onClick={handleCopy}
+                        ariaLabel="copy"
+                      />
+                    </Popover>
+                    <Button
+                      iconName="send"
+                      variant="icon"
+                      onClick={() => {
+                        console.log('send');
+                      }}
+                      ariaLabel="send"
+                    />
+                  </div>
                 </div>
               )}
             </div>
-            {documentList && documentList.length > 0 && (
-              <div className="document-list">
-                {documentList.map((doc) => {
-                  const fileName = doc.source.split('/').pop() || '';
-                  const iconName = getFileIcon(fileName);
-
-                  return (
-                    <div
-                      key={doc.page_content}
-                      className="document-item"
-                      onClick={() => handleDocClick(doc.uuid)}
-                    >
-                      <Icon name={iconName} />
-                      <span className="doc-name" title={fileName}>
-                        {fileName}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-            {showTrace && message.monitoring && (
-              <div className="monitor mt-10">
-                <ExpandableSection
-                  variant="footer"
-                  headingTagOverride="h5"
-                  headerText="Monitoring"
-                >
-                  <ReactMarkdown
-                    remarkPlugins={[remarkGfm, remarkHtml]}
-                    components={{
-                      h1: ({ node, ...props }) => (
-                        <h1 className="custom-header" {...props} />
-                      ),
-                      h2: ({ node, ...props }) => (
-                        <h2 className="custom-header" {...props} />
-                      ),
-                      h3: ({ node, ...props }) => (
-                        <h3 className="custom-header" {...props} />
-                      ),
-                      table: ({ node, ...props }) => (
-                        <table className="custom-table" {...props} />
-                      ),
-                      th: ({ node, ...props }) => (
-                        <th className="custom-table-header" {...props} />
-                      ),
-                      td: ({ node, ...props }) => (
-                        <td className="custom-table-cell" {...props} />
-                      ),
-                      img: ({ node, ...props }) => (
-                        <img
-                          {...props}
-                          className="markdown-table-image"
-                          style={{ maxWidth: '150px', height: 'auto' }}
-                        />
-                      ),
-                    }}
-                  >
-                    {message.monitoring}
-                  </ReactMarkdown>
-                </ExpandableSection>
-              </div>
-            )}
           </div>
-        </div>
+        </>
       )}
       {type === 'human' && (
         <div className="flex align-end gap-10">
