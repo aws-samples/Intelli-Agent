@@ -8,6 +8,10 @@ import useAxiosWorkspaceRequest from 'src/hooks/useAxiosWorkspaceRequest';
 import { ChatMessageResponse, ChatMessageType } from 'src/types';
 import { formatTime } from 'src/utils/utils';
 import { v4 as uuidv4 } from 'uuid';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import remarkHtml from 'remark-html';
+
 const UserMessage: React.FC = () => {
   const config = useContext(ConfigContext);
   const csWorkspaceState = useAppSelector((state) => state.csWorkspace);
@@ -180,7 +184,9 @@ const UserMessage: React.FC = () => {
         {messageList.map((message) => (
           <div key={message.messageId} className={`message ${message.role}`}>
             <div className="message-content">
-              <p>{message.content}</p>
+              <ReactMarkdown remarkPlugins={[remarkGfm, remarkHtml]}>
+                {message.content}
+              </ReactMarkdown>
               <span className="time">
                 {formatTime(message.createTimestamp)}
               </span>
