@@ -17,6 +17,10 @@ export interface SystemConfig {
             customDomainEndpoint: string;
           };
         };
+        customDocumentsBucket: {
+          enabled: boolean;
+          bucketName: string;
+        };
         knowledgeBaseModel: {
           enabled: boolean;
           ecrRepository: string;

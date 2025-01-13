@@ -608,7 +608,7 @@ const ChatBot: React.FC<ChatBotProps> = (props: ChatBotProps) => {
     if (localModel) {
       setModelOption(localModel)
     } else {
-      setModelOption(optionList?.[0]?.options?.[0].value ?? '');
+      setModelOption(optionList?.[1]?.options?.[0].value ?? '');
     }
   }, [scenario]);
 
