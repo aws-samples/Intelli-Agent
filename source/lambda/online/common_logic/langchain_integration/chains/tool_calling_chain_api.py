@@ -123,6 +123,7 @@ class ToolCallingBaseChain(LLMChain):
         llm = Model.get_model(
             model_id=cls.model_id,
             model_kwargs=model_kwargs,
+            **kwargs
         )
 
         llm = cls.bind_tools(llm, tools, fewshot_examples,
