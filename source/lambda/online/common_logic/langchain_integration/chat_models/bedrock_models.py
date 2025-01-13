@@ -17,7 +17,7 @@ logger = get_logger("bedrock_model")
 
 
 class ChatBedrockConverse(_ChatBedrockConverse):
-    enable_auto_tool_choice: bool = False
+    enable_any_tool_choice: bool = False
     enable_prefill: bool = True
 
 
@@ -25,7 +25,8 @@ class BedrockBaseModel(Model):
     
     default_model_kwargs = {"max_tokens": 2000,
                             "temperature": 0.7, "top_p": 0.9}
-    enable_auto_tool_choice = False
+    enable_any_tool_choice = False
+    any_tool_choice_value = 'any'
     model_provider = ModelProvider.BEDROCK
 
     @classmethod
@@ -58,7 +59,7 @@ class BedrockBaseModel(Model):
                 client=client,
                 region_name=region_name,
                 model=cls.model_id,
-                enable_auto_tool_choice=cls.enable_auto_tool_choice,
+                enable_any_tool_choice=cls.enable_any_tool_choice,
                 enable_prefill=cls.enable_prefill,
                 **model_kwargs,
             )
@@ -67,7 +68,7 @@ class BedrockBaseModel(Model):
                 credentials_profile_name=credentials_profile_name,
                 region_name=region_name,
                 model=cls.model_id,
-                enable_auto_tool_choice=cls.enable_auto_tool_choice,
+                enable_any_tool_choice=cls.enable_any_tool_choice,
                 enable_prefill=cls.enable_prefill,
                 **model_kwargs,
             )

@@ -39,8 +39,9 @@ class ModelMeta(type):
 
 class Model(ModeMixins, metaclass=ModelMeta):
     model_id: str = None
-    enable_auto_tool_choice: bool = True
+    enable_any_tool_choice: bool = True
     enable_prefill: bool = True
+    any_tool_choice_value = "any"
     model_map = {}
     model_provider: ModelProvider = ModelProvider.BEDROCK
 
@@ -92,7 +93,7 @@ class Model(ModeMixins, metaclass=ModelMeta):
             {
                 "model_id": config.model_id,
                 "default_model_kwargs": config.default_model_kwargs,
-                "enable_auto_tool_choice": config.enable_auto_tool_choice,
+                "enable_any_tool_choice": config.enable_any_tool_choice,
                 "enable_prefill": config.enable_prefill,
             }
         )

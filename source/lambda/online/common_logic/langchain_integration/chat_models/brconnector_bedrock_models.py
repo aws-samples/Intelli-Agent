@@ -14,7 +14,7 @@ logger = get_logger("brconnector_bedrock_model")
 
 
 class BrconnetorChatOpenAI(ChatOpenAI):
-    enable_auto_tool_choice: bool = False
+    enable_any_tool_choice: bool = False
     enable_prefill: bool = True
     
 
@@ -22,7 +22,8 @@ class BrconnetorChatOpenAI(ChatOpenAI):
 class BrconnectorBedrockBaseModel(Model):
     default_model_kwargs = {"max_tokens": 2000,
                             "temperature": 0.7, "top_p": 0.9}
-    enable_auto_tool_choice = False
+    enable_any_tool_choice = False
+    any_tool_choice_value = 'any'
     enable_prefill = False
     model_provider = ModelProvider.BRCONNECTOR_BEDROCK
 
@@ -35,7 +36,7 @@ class BrconnectorBedrockBaseModel(Model):
         assert base_url, ("base_url is required",kwargs)
 
         return BrconnetorChatOpenAI(
-            enable_auto_tool_choice=cls.enable_auto_tool_choice,
+            enable_any_tool_choice=cls.enable_any_tool_choice,
             enable_prefill=cls.enable_prefill,
             base_url=base_url,
             **model_kwargs
