@@ -30,28 +30,33 @@ class ModeMixins:
 class ModelMeta(type):
     def __new__(cls, name, bases, attrs):
         new_cls = type.__new__(cls, name, bases, attrs)
-        if name == "Model" or new_cls.model_id is None or name.endswith("BaseModel"):
+        if name == "Model" or new_cls.model_id is None \
+            or name.endswith("BaseModel") or name.lower().endswith("basemodel"):
             return new_cls
-        new_cls.model_map[new_cls.model_id] = new_cls
+        new_cls.model_map[new_cls.get_model_id()] = new_cls
         return new_cls
 
 
 class Model(ModeMixins, metaclass=ModelMeta):
     model_id: str = None
-    enable_auto_tool_choice: bool = True
+    enable_any_tool_choice: bool = True
     enable_prefill: bool = True
+    any_tool_choice_value = "any"
     model_map = {}
     model_provider: ModelProvider = ModelProvider.BEDROCK
 
     @classmethod
     def create_model(cls, model_kwargs=None, **kwargs):
         raise NotImplementedError
-
+    
+    @classmethod
+    def get_model_id(cls):
+        return f"{cls.model_id}__{cls.model_provider}"
     @classmethod
     def get_model(cls, model_id, model_kwargs=None, **kwargs):
         # dynamic load module
         _load_module(model_id)
-        return cls.model_map[model_id].create_model(model_kwargs=model_kwargs, **kwargs)
+        return cls.model_map[cls.get_model_id()].create_model(model_kwargs=model_kwargs, **kwargs)
 
     @classmethod
     def model_id_to_class_name(cls, model_id: str) -> str:
@@ -88,7 +93,7 @@ class Model(ModeMixins, metaclass=ModelMeta):
             {
                 "model_id": config.model_id,
                 "default_model_kwargs": config.default_model_kwargs,
-                "enable_auto_tool_choice": config.enable_auto_tool_choice,
+                "enable_any_tool_choice": config.enable_any_tool_choice,
                 "enable_prefill": config.enable_prefill,
             }
         )
