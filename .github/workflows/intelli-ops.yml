@@ -56,19 +56,17 @@ jobs:
         role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
         aws-region: us-east-1
 
-    - name: Code review using AWS Bedrock
-      uses: aws-sample/aws-genai-cicd-suite@stable
+    - name: Intelligent GitHub Actions
+      uses: yike5460/intelli-ops@stable
       with:
         # Automatic Provision: The GITHUB_TOKEN is automatically created and provided by GitHub for each workflow run. You don't need to manually create or store this token as a secret.
         github-token: ${{ secrets.GITHUB_TOKEN }}
         aws-region: us-east-1
         model-id: anthropic.claude-3-sonnet-20240229-v1:0
-        generate-code-review-exclude-files: '*.md,*.json'
-        generate-code-review-level: 'detailed'
-        generate-code-review: 'true'
+        exclude-files: '*.md,*.json,*.yml,*.yaml'
+        review-level: 'concise'
+        code-review: 'true'
         generate-pr-description: 'true'
-        generate-unit-test: 'false'
-        generate-unit-test-source-folder: 'src'
-        output-language: 'en'
+        generate-unit-test-suite: 'true'
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
